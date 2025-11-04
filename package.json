@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
   "scripts": {
-    "build": "tsc && npm run copy-files",
-    "copy-files": "cp public/manifest.json dist/ && cp -r public/icons dist/ 2>/dev/null || true && cp src/popup/popup.html dist/",
+    "build": "tsc && npm run post-build && npm run copy-files",
+    "post-build": "node scripts/post-build.js",
+    "copy-files": "cp extension/src/manifest.json extension/dist/ && mkdir -p extension/dist/popup && cp src/popup/popup.html extension/dist/popup/",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"
   },

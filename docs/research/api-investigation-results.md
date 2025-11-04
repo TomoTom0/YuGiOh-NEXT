@@ -1,7 +1,7 @@
 # 遊戯王DB API調査結果
 
 ## 調査日時
-2025-10-30
+最終更新: 2025-11-04
 
 ## 認証・セッション管理
 
@@ -13,17 +13,54 @@
 - `JSESSIONID`: セッションID
 - `yugiohdb_cgid`: ユーザー識別子（短縮版、10桁）
   - 例: `0043529140`
+  - **HttpOnly属性付き**でJavaScriptから読み取り不可
 - `yugiohdb_lt`: ログイントークン
+  - **HttpOnly属性付き**でJavaScriptから読み取り不可
 
 ### 重要なパラメータ
 - **cgid**: セッション/ユーザー識別子（32文字hex）
   - 例: `3d839f01a4d87b01928c60f262150bec`
   - URLパラメータとして使用
+  - **⚠️ cookieからは取得できない（HttpOnly属性）**
+  - **HTMLから取得する必要がある**:
+    1. `input[name="cgid"]`のhidden input
+    2. リンクのhref属性（`?cgid=...`）
+    3. JavaScript変数やHTML内の埋め込み
 - **ytkn**: CSRFトークン（64文字hex）
   - 例: `249374cb8348c2a397d469fdf0cf4f040f226bfb1bee28c86a22a1d6282064a8`
   - **ページ遷移ごとに変わる**
   - フォームのhidden inputとして埋め込まれる
+  - `input[name="ytkn"]`から取得
 - **dno**: デッキ番号（1, 2, 3...）
+
+### cgid取得の実装例
+
+```typescript
+/**
+ * DOMからcgid（ユーザー識別子）を取得する
+ *
+ * cgidはHttpOnly属性付きcookieなのでJavaScriptから読めない。
+ * 代わりに、ページ内のリンクやフォーム要素から抽出する。
+ */
+export function getCgid(): string | null {
+  // 1. hidden inputから取得を試みる
+  const hiddenInput = document.querySelector('input[name="cgid"]') as HTMLInputElement;
+  if (hiddenInput && hiddenInput.value) {
+    return hiddenInput.value.trim();
+  }
+
+  // 2. ページ内のリンクから取得を試みる
+  const links = document.querySelectorAll<HTMLAnchorElement>('a[href*="cgid="]');
+  for (const link of links) {
+    const match = link.href.match(/cgid=([a-f0-9]{32})/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+```
 
 ## デッキ管理API
 
@@ -402,23 +439,178 @@ https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=8&wname=MemberDec
 https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=13&wname=MemberDeck&cgid={cgid}&dno={dno}&request_locale=ja
 ```
 
+## カード検索機能（調査完了）
+
+### 検索エンドポイント
+
+`/yugiohdb/card_search.action`
+
+**⚠️ 重要**: カード検索APIは**cgidパラメータ不要**です。`credentials: 'include'`でcookieが自動送信されるため、認証情報は十分です。
+
+### 検索パラメータ
+
+#### ctype (Card Type) - カードタイプフィルター
+
+**⚠️ 重要**: ctypeは**selectボックス**で、ラジオボタンではありません。
+
+```html
+<select id="ctype" name="ctype">
+  <option value="" class="tabset choice">Search All Cards</option>
+  <option value="1" class="tabset">Monster Cards</option>
+  <option value="2" class="tabset">Spell Cards</option>
+  <option value="3" class="tabset">Trap Cards</option>
+</select>
+```
+
+**パラメータ値とカードタイプの対応**:
+
+| ctype値 | カードタイプ | 英語表記 |
+|---------|------------|----------|
+| `""` (空文字列) | すべてのカード | Search All Cards |
+| `1` | モンスターカード | Monster Cards |
+| `2` | 魔法カード | Spell Cards |
+| `3` | 罠カード | Trap Cards |
+
+**使用例**:
+```javascript
+// すべてのカードを検索
+const url1 = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&ctype=&request_locale=ja';
+
+// モンスターカードのみ
+const url2 = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&ctype=1&request_locale=ja';
+
+// 魔法カードのみ
+const url3 = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&ctype=2&request_locale=ja';
+
+// 罠カードのみ
+const url4 = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&ctype=3&request_locale=ja';
+```
+
+### 検索結果の構造
+
+検索結果ページでは、各カードが`.t_row.c_normal`クラスの要素として表示されます。
+
+**カード要素の構造**:
+```html
+<div class="t_row c_normal">
+  <div class="card_name">カード名</div>
+  <div class="box_card_attribute">
+    <img src="https://www.db.yugioh-card.com/yugiohdb/external/image/parts/attribute/attribute_icon_light.png" alt="光属性">
+    <span>光属性</span>
+  </div>
+  <input type="hidden" class="cid" value="18732">
+</div>
+```
+
+**カード情報の取得**:
+```javascript
+const cardRows = document.querySelectorAll('.t_row.c_normal');
+cardRows.forEach(row => {
+  const name = row.querySelector('.card_name')?.textContent?.trim();
+  const cardId = row.querySelector('input.cid')?.value;
+  // カードタイプは後述のDOM属性ベース判定方法で取得
+});
+```
+
+### カードタイプ判定方法（重要）
+
+**⚠️ 推奨される方法: DOM属性ベース**
+
+検索結果ページでのカードタイプ判定は、**img要素のsrc属性**を使用します。
+
+```javascript
+const img = row.querySelector('.box_card_attribute img');
+const src = img?.src || '';
+
+let cardType;
+if (src.includes('attribute_icon_spell')) {
+  cardType = '魔法';
+} else if (src.includes('attribute_icon_trap')) {
+  cardType = '罠';
+} else if (src.includes('attribute_icon_')) {
+  // light, dark, water, fire, earth, wind, divine
+  cardType = 'モンスター';
+}
+```
+
+**利点**:
+- **ロケール非依存**: 日本語、英語、韓国語などすべてのロケールで動作
+- **保守性が高い**: テキスト変更に影響されない
+- **信頼性が高い**: 画像パスはUIの中核部分で変更されにくい
+
+**検出されるimgパターン**:
+
+| カードタイプ | imgパターン |
+|------------|-----------|
+| 魔法カード | `attribute_icon_spell.png` |
+| 罠カード | `attribute_icon_trap.png` |
+| モンスターカード | `attribute_icon_light.png`<br>`attribute_icon_dark.png`<br>`attribute_icon_water.png`<br>`attribute_icon_fire.png`<br>`attribute_icon_earth.png`<br>`attribute_icon_wind.png`<br>`attribute_icon_divine.png` |
+
+**❌ 非推奨: テキストベース判定**
+
+```javascript
+// ロケール依存のため非推奨
+const spanText = row.querySelector('.box_card_attribute span')?.textContent?.trim();
+if (spanText === '魔法') cardType = '魔法';
+else if (spanText === '罠') cardType = '罠';
+else cardType = 'モンスター';
+```
+
+この方法は日本語ロケール以外では動作しません。
+
+### ブラウザJavaScriptからのFetch操作（調査完了）
+
+**調査結果**: Chrome拡張のContent Scriptsから、ブラウザJavaScriptコンテキストでfetchを使用してHTMLを取得し、DOMParserでパースできることを確認しました。
+
+**テスト結果**:
+```javascript
+// ✅ fetchは正常に動作
+const response = await fetch('/yugiohdb/member_deck.action?ope=1&cgid=xxx&dno=4&request_locale=ja');
+// Status: 200 OK
+
+// ✅ DOMParserでHTML解析が可能
+const parser = new DOMParser();
+const doc = parser.parseFromString(html, 'text/html');
+
+// ✅ 解析したdocからDOM操作が可能
+const cards = doc.querySelectorAll('.card_name');
+```
+
+**CORSの考慮**:
+- 同一オリジン内のfetchなので**CORS制限なし**
+- `https://www.db.yugioh-card.com` 内のページから同じドメインのAPIを呼び出す
+
+**Chrome拡張での実装方法**:
+```typescript
+// Content Script内での実装例
+async function fetchDeckDetail(cgid: string, dno: number): Promise<Document> {
+  const url = `/yugiohdb/member_deck.action?ope=1&cgid=${cgid}&dno=${dno}&request_locale=ja`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch deck detail: ${response.status}`);
+  }
+
+  const html = await response.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  return doc;
+}
+```
+
 ## 未調査項目
 
-1. **カード検索機能**
-   - 検索パラメータ
-   - 検索結果の構造
-   - カード詳細情報の取得方法
-
-2. **カード追加操作**
-   - 検索結果からデッキへの追加方法
-   - カードIDの取得方法
-
-3. **カード削除操作**
+1. **カード削除操作**
    - デッキからカードを削除する方法
    - 削除時のパラメータ
 
-4. **デッキコードインポート**
+2. **デッキコードインポート**
    - コードからのデッキ読み込み方法
+
+3. **カード詳細情報の取得**
+   - カード詳細ページの構造
+   - 効果テキスト、攻撃力・守備力などの取得方法
 
 ## Chrome拡張機能の実装方針
 

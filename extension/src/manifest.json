@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "遊戯王デッキヘルパー",
+  "version": "0.1.0",
+  "description": "遊戯王カードデータベースのデッキ管理を支援するChrome拡張",
+
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+
+  "host_permissions": [
+    "https://www.db.yugioh-card.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background/index.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.db.yugioh-card.com/*"],
+      "js": ["content/index.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html"
+  }
+}

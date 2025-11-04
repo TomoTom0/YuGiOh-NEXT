@@ -1,8 +1,59 @@
 # 調査成果サマリー
 
-**最終更新**: 2025-10-30
+**最終更新**: 2025-11-04
 
 このドキュメントは、遊戯王DBの調査で得られた成果物をまとめたインデックスです。
+
+## 🆕 最新の調査結果（2025-11-04）
+
+### カードタイプ判定方法の確立
+
+**DOM属性ベースの判定方法**（推奨）を確立しました。テキストベースの判定はロケール依存のため非推奨としました。
+
+```javascript
+// ✅ 推奨: img要素のsrc属性を使用
+const img = row.querySelector('.box_card_attribute img');
+const src = img?.src || '';
+
+let cardType;
+if (src.includes('attribute_icon_spell')) {
+  cardType = '魔法';
+} else if (src.includes('attribute_icon_trap')) {
+  cardType = '罠';
+} else if (src.includes('attribute_icon_')) {
+  cardType = 'モンスター';
+}
+```
+
+**利点**:
+- ロケール非依存（日本語、英語、韓国語すべてで動作）
+- 保守性が高い（テキスト変更に影響されない）
+- 信頼性が高い（画像パスは変更されにくい）
+
+### ctypeパラメータの正確な確認
+
+以前の調査で矛盾があった**ctypeパラメータ**の正確な値を確認しました：
+
+- **重要**: ctypeは**selectボックス**（ラジオボタンではない）
+- `""` (空文字列): すべてのカード
+- `1`: モンスターカード
+- `2`: 魔法カード
+- `3`: 罠カード
+
+### ブラウザJavaScriptからのFetch操作
+
+Chrome拡張のContent Scriptsから、**fetchとDOMParserを使用してHTMLを取得・解析できる**ことを確認しました：
+
+```javascript
+// ✅ Content Script内で動作
+const response = await fetch('/yugiohdb/member_deck.action?ope=1&cgid=xxx&dno=4&request_locale=ja');
+const html = await response.text();
+const parser = new DOMParser();
+const doc = parser.parseFromString(html, 'text/html');
+```
+
+- CORS制限なし（同一オリジン）
+- Chrome拡張での実装に直接使用可能
 
 ## 📄 完成した仕様書・レポート
 
@@ -222,14 +273,17 @@ linkbtn1   linkbtn2   linkbtn3
 - ✅ リンクマーカー機能の完全解明
 - ✅ i18nデータ構造の作成（日本語）
 - ✅ 完全仕様書とレポートの作成
+- ✅ **DOM属性ベースのカードタイプ判定方法** (2025-11-04)
+- ✅ **ctypeパラメータの正確な値の確認** (2025-11-04)
+- ✅ **ブラウザJavaScriptからのfetch操作確認** (2025-11-04)
 
 ### 次の調査項目
 - ⏳ 検索結果ページのHTML構造（詳細確認）
 - ⏳ カード詳細ページの構造
-- ⏳ カード追加操作の調査
 - ⏳ カード削除操作の調査
 - ⏳ セッション管理の詳細
 - ⏳ 他言語での動作確認
+- ⏳ カードIDの自動解決メカニズム
 
 ## 🛠️ 実装への活用
 
