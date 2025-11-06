@@ -120,7 +120,7 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result?.imageId).toBe('1');
+      expect(result?.card.imageId).toBe('1');
     });
 
     it('必要な情報が欠けている場合はnullを返す', () => {

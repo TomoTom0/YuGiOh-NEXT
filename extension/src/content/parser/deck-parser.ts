@@ -1,4 +1,4 @@
-import { DeckCard } from '@/types/card';
+import { DeckCard, CardInfo, MonsterCard, SpellCard, TrapCard } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
 
@@ -27,7 +27,11 @@ const CARD_TYPE_FIELDS = {
  * カード行HTMLからカード情報を抽出する
  *
  * @param row カード行のHTML要素
- * @returns カード情報、パースできない場合はnull
+ * @returns デッキ内カード情報、パースできない場合はnull
+ *
+ * 注意: デッキページのHTMLには限定的な情報しかないため、
+ * CardInfoの多くのフィールドは未設定（undefined）となります。
+ * 完全な情報が必要な場合は、カードIDを使ってカード検索APIから取得してください。
  */
 export function parseCardRow(row: HTMLElement): DeckCard | null {
   // カードタイプを検出
@@ -67,11 +71,43 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
     return null;
   }
 
+  // CardInfo型のオブジェクトを作成
+  // デッキページには限定的な情報しかないため、必須フィールドに仮の値を設定
+  let card: CardInfo;
+
+  if (cardType === 'モンスター') {
+    // モンスターカードの場合、必須フィールドに仮の値を設定
+    card = {
+      name,
+      cardId,
+      imageId,
+      cardType: 'モンスター',
+      attribute: 'light', // デッキページからは取得不可、後で更新が必要
+      levelType: null, // デッキページからは取得不可、後で更新が必要
+      race: 'dragon', // デッキページからは取得不可、後で更新が必要
+      types: [], // デッキページからは取得不可、後で更新が必要
+      isExtraDeck: false // デッキページからは正確に判定不可、後で更新が必要
+    } as MonsterCard;
+  } else if (cardType === '魔法') {
+    // 魔法カードの場合
+    card = {
+      name,
+      cardId,
+      imageId,
+      cardType: '魔法'
+    } as SpellCard;
+  } else {
+    // 罠カードの場合
+    card = {
+      name,
+      cardId,
+      imageId,
+      cardType: '罠'
+    } as TrapCard;
+  }
+
   return {
-    name,
-    cardId,
-    cardType,
-    imageId,
+    card,
     quantity
   };
 }

@@ -3,14 +3,14 @@
 
 DEBUG_PORT=9222
 
-echo "=== Chrome Debug Browser Stop ==="
+echo "=== Chromium Debug Browser Stop ==="
 
-# デバッグChromeプロセスを終了
-if pgrep -f "chrome.*remote-debugging-port=${DEBUG_PORT}" > /dev/null; then
-  echo "Chromeを終了します..."
-  pkill -f "chrome.*remote-debugging-port=${DEBUG_PORT}"
+# デバッグChromiumプロセスを終了
+if pgrep -f "chromium.*remote-debugging-port=${DEBUG_PORT}" > /dev/null; then
+  echo "Chromiumを終了します..."
+  pkill -f "chromium.*remote-debugging-port=${DEBUG_PORT}"
   sleep 2
-  echo "✓ Chromeを終了しました"
+  echo "✓ Chromiumを終了しました"
 else
-  echo "✗ Chromeは起動していません"
+  echo "✗ Chromiumは起動していません"
 fi

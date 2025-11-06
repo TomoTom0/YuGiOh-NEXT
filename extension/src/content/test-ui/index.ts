@@ -12,6 +12,20 @@ import { createNewDeck, duplicateDeck, deleteDeck, saveDeck } from '@/api/deck-o
 import { detectCardType } from '../card/detector';
 import type { CardType } from '@/types/card';
 
+// Content Script読み込み確認（視覚的マーカー）
+const debugDiv = document.createElement('div');
+debugDiv.id = 'extension-debug-marker';
+debugDiv.textContent = 'Yu-Gi-Oh! Extension Loaded!';
+debugDiv.style.cssText = 'position: fixed; top: 0; right: 0; background: #4CAF50; color: white; padding: 10px; z-index: 99999; font-size: 14px;';
+if (document.body) {
+  document.body.appendChild(debugDiv);
+} else {
+  document.addEventListener('DOMContentLoaded', () => {
+    document.body.appendChild(debugDiv);
+  });
+}
+console.log('Yu-Gi-Oh! Deck Helper: Content script loaded!');
+
 const TEST_URL_HASH = '#/ytomo/test';
 
 // テストUIが既に読み込まれているかどうかのフラグ
@@ -284,7 +298,8 @@ function displayResult(elementId: string, result: unknown, isError = false): voi
 
 async function handleGetCgid(): Promise<void> {
   try {
-    const cgid = getCgid();
+    displayResult('result-session', { message: 'cgid取得中...' });
+    const cgid = await getCgid();
     if (cgid) {
       displayResult('result-session', { cgid, length: cgid.length });
     } else {
@@ -297,9 +312,11 @@ async function handleGetCgid(): Promise<void> {
 
 async function handleGetYtkn(): Promise<void> {
   try {
-    const ytkn = getYtkn();
+    displayResult('result-session', { message: 'ytkn取得中...' });
+    // デフォルトでdno=4のytknを取得
+    const ytkn = await getYtkn(4);
     if (ytkn) {
-      displayResult('result-session', { ytkn, length: ytkn.length });
+      displayResult('result-session', { ytkn, length: ytkn.length, dno: 4 });
     } else {
       displayResult('result-session', { error: 'ytkn not found' }, true);
     }
@@ -333,7 +350,8 @@ async function handleSearchCards(): Promise<void> {
 
 async function handleCreateDeck(): Promise<void> {
   try {
-    const cgid = getCgid();
+    displayResult('result-deck-ops', { message: 'cgid取得中...' });
+    const cgid = await getCgid();
     if (!cgid) {
       displayResult('result-deck-ops', { error: 'cgid not found' }, true);
       return;
@@ -354,7 +372,8 @@ async function handleCreateDeck(): Promise<void> {
 
 async function handleDuplicateDeck(): Promise<void> {
   try {
-    const cgid = getCgid();
+    displayResult('result-deck-ops', { message: 'cgid取得中...' });
+    const cgid = await getCgid();
     if (!cgid) {
       displayResult('result-deck-ops', { error: 'cgid not found' }, true);
       return;
@@ -376,13 +395,15 @@ async function handleDuplicateDeck(): Promise<void> {
 
 async function handleDeleteDeck(): Promise<void> {
   try {
-    const cgid = getCgid();
-    const ytkn = getYtkn();
-
+    displayResult('result-deck-ops', { message: 'cgid取得中...' });
+    const cgid = await getCgid();
     if (!cgid) {
       displayResult('result-deck-ops', { error: 'cgid not found' }, true);
       return;
     }
+
+    displayResult('result-deck-ops', { message: 'ytkn取得中...' });
+    const ytkn = await getYtkn(4);
     if (!ytkn) {
       displayResult('result-deck-ops', { error: 'ytkn not found' }, true);
       return;
@@ -404,23 +425,25 @@ async function handleDeleteDeck(): Promise<void> {
 
 async function handleSaveDeck(): Promise<void> {
   try {
-    const cgid = getCgid();
-    const ytkn = getYtkn();
-
-    if (!cgid) {
-      displayResult('result-save', { error: 'cgid not found' }, true);
-      return;
-    }
-    if (!ytkn) {
-      displayResult('result-save', { error: 'ytkn not found' }, true);
-      return;
-    }
-
     const dnoInput = document.getElementById('input-deck-no') as HTMLInputElement;
     const nameInput = document.getElementById('input-deck-name') as HTMLInputElement;
 
     const dno = parseInt(dnoInput.value, 10);
     const name = nameInput.value;
+
+    displayResult('result-save', { message: 'cgid取得中...' });
+    const cgid = await getCgid();
+    if (!cgid) {
+      displayResult('result-save', { error: 'cgid not found' }, true);
+      return;
+    }
+
+    displayResult('result-save', { message: 'ytkn取得中...' });
+    const ytkn = await getYtkn(dno);
+    if (!ytkn) {
+      displayResult('result-save', { error: 'ytkn not found' }, true);
+      return;
+    }
 
     // テスト用のデッキデータ
     const deckData = {
@@ -428,10 +451,18 @@ async function handleSaveDeck(): Promise<void> {
       name,
       mainDeck: [
         {
-          name: 'ブラック・マジシャン',
-          cardId: '4335',
-          cardType: 'モンスター' as CardType,
-          imageId: '1',
+          card: {
+            name: 'ブラック・マジシャン',
+            cardId: '4335',
+            imageId: '1',
+            cardType: 'モンスター' as const,
+            attribute: 'dark' as const,
+            levelType: 'level' as const,
+            levelValue: 7,
+            race: 'spellcaster' as const,
+            types: ['normal' as const],
+            isExtraDeck: false
+          },
           quantity: 1
         }
       ],
