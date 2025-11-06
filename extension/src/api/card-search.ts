@@ -29,15 +29,15 @@ const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
 
 /**
  * 属性 → attr値のマッピング
- * 調査結果より: 11=地, 12=水, 13=炎, 14=風, 15=光, 16=闇, 17=神
+ * 調査結果より: 11=光, 12=闇, 13=水, 14=炎, 15=地, 16=風, 17=神
  */
 const ATTRIBUTE_TO_ATTR_VALUE: Record<Attribute, string> = {
-  earth: '11',
-  water: '12',
-  fire: '13',
-  wind: '14',
-  light: '15',
-  dark: '16',
+  light: '11',
+  dark: '12',
+  water: '13',
+  fire: '14',
+  earth: '15',
+  wind: '16',
   divine: '17'
 };
 
@@ -47,31 +47,31 @@ const ATTRIBUTE_TO_ATTR_VALUE: Record<Attribute, string> = {
  */
 const RACE_TO_SPECIES_VALUE: Record<Race, string> = {
   dragon: '1',
-  warrior: '2',
-  spellcaster: '15',
-  fairy: '12',
-  fiend: '11',
-  zombie: '16',
-  machine: '3',
-  aqua: '17',
-  pyro: '10',
-  rock: '9',
-  windbeast: '20',
-  plant: '8',
-  insect: '5',
-  thunder: '14',
-  beast: '7',
-  beastwarrior: '6',
-  dinosaur: '4',
-  fish: '13',
-  seaserpent: '19',
-  reptile: '21',
-  psychic: '18',
+  zombie: '2',
+  fiend: '3',
+  pyro: '4',
+  seaserpent: '5',
+  rock: '6',
+  machine: '7',
+  fish: '8',
+  dinosaur: '9',
+  insect: '10',
+  beast: '11',
+  beastwarrior: '12',
+  plant: '13',
+  aqua: '14',
+  warrior: '15',
+  windbeast: '16',
+  fairy: '17',
+  spellcaster: '18',
+  thunder: '19',
+  reptile: '20',
+  psychic: '21',
   divine: '22',
   creatorgod: '23',
-  wyrm: '24',
-  cyberse: '25',
-  illusion: '26'
+  wyrm: '26',
+  cyberse: '27',
+  illusion: '34'
 };
 
 /**
