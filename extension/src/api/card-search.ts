@@ -7,7 +7,10 @@ import {
   TrapCard,
   LevelType,
   Race,
-  MonsterType
+  MonsterType,
+  Attribute,
+  SpellEffectType,
+  TrapEffectType
 } from '@/types/card';
 import {
   ATTRIBUTE_PATH_TO_ID,
@@ -19,6 +22,102 @@ import {
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 
 const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
+
+// ============================================================================
+// APIパラメータ値マッピング
+// ============================================================================
+
+/**
+ * 属性 → attr値のマッピング
+ * 調査結果より: 11=地, 12=水, 13=炎, 14=風, 15=光, 16=闇, 17=神
+ */
+const ATTRIBUTE_TO_ATTR_VALUE: Record<Attribute, string> = {
+  earth: '11',
+  water: '12',
+  fire: '13',
+  wind: '14',
+  light: '15',
+  dark: '16',
+  divine: '17'
+};
+
+/**
+ * 種族 → species値のマッピング
+ * HTMLの表示順序から推測（要検証）
+ */
+const RACE_TO_SPECIES_VALUE: Record<Race, string> = {
+  dragon: '1',
+  warrior: '2',
+  spellcaster: '15',
+  fairy: '12',
+  fiend: '11',
+  zombie: '16',
+  machine: '3',
+  aqua: '17',
+  pyro: '10',
+  rock: '9',
+  windbeast: '20',
+  plant: '8',
+  insect: '5',
+  thunder: '14',
+  beast: '7',
+  beastwarrior: '6',
+  dinosaur: '4',
+  fish: '13',
+  seaserpent: '19',
+  reptile: '21',
+  psychic: '18',
+  divine: '22',
+  creatorgod: '23',
+  wyrm: '24',
+  cyberse: '25',
+  illusion: '26'
+};
+
+/**
+ * モンスタータイプ → other値のマッピング
+ * 調査結果より: 0-17の値
+ */
+const MONSTER_TYPE_TO_OTHER_VALUE: Record<MonsterType, string> = {
+  normal: '0',
+  effect: '1',
+  fusion: '2',
+  ritual: '3',
+  toon: '4',
+  spirit: '5',
+  union: '6',
+  gemini: '7',
+  tuner: '8',
+  synchro: '9',
+  xyz: '10',
+  flip: '14',
+  pendulum: '15',
+  special: '16',
+  link: '17'
+};
+
+/**
+ * 魔法効果タイプ → effe値のマッピング
+ * 調査結果より: 20=通常, 21=カウンター, 22=フィールド, 23=装備, 24=永続, 25=速攻, 26=儀式
+ */
+const SPELL_EFFECT_TYPE_TO_EFFE_VALUE: Record<SpellEffectType, string> = {
+  normal: '20',
+  quick: '25',
+  continuous: '24',
+  equip: '23',
+  field: '22',
+  ritual: '26'
+};
+
+/**
+ * 罠効果タイプ → effe値のマッピング
+ * 調査結果より: 20=通常, 21=カウンター, 24=永続
+ */
+const TRAP_EFFECT_TYPE_TO_EFFE_VALUE: Record<TrapEffectType, string> = {
+  normal: '20',
+  continuous: '24',
+  counter: '21'
+};
 
 /**
  * link値（例: "13"）を9bit整数に変換する
@@ -39,6 +138,132 @@ const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
  *
  * 例: "13" → 方向1と3 → bit 0とbit 2 → 0b000000101 = 5
  */
+/**
+ * カード検索オプション
+ * 
+ * 設計仕様書（docs/design/functions/intro.md）に基づき、
+ * 「queryや各種検索条件の辞書」として各種フィルタリング条件を指定可能にする
+ */
+export interface SearchOptions {
+  // ============================================================================
+  // 基本検索条件
+  // ============================================================================
+  
+  /** 検索キーワード */
+  keyword: string;
+  
+  /** カードタイプ（モンスター/魔法/罠） */
+  cardType?: CardType;
+  
+  /** 
+   * 検索対象フィールド
+   * - 1: カード名検索（デフォルト）
+   * - 2: カードテキスト検索
+   * - 3: ペンデュラム効果検索
+   * - 4: カード番号検索
+   */
+  searchType?: '1' | '2' | '3' | '4';
+  
+  // ============================================================================
+  // モンスターフィルタ
+  // ============================================================================
+  
+  /** 属性フィルタ（複数選択可） */
+  attributes?: Attribute[];
+  
+  /** 種族フィルタ（複数選択可） */
+  races?: Race[];
+  
+  /** 
+   * モンスタータイプフィルタ（複数選択可）
+   * 例: ['effect', 'fusion'] = 効果または融合モンスター
+   */
+  monsterTypes?: MonsterType[];
+  
+  /** 
+   * モンスタータイプの論理演算
+   * - 'AND': すべてのタイプを持つカード
+   * - 'OR': いずれかのタイプを持つカード（デフォルト）
+   */
+  monsterTypeLogic?: 'AND' | 'OR';
+  
+  /** 除外するモンスタータイプ（複数選択可） */
+  excludeMonsterTypes?: MonsterType[];
+  
+  // ============================================================================
+  // レベル・ステータス
+  // ============================================================================
+  
+  /** レベル/ランクフィルタ（0-13、複数選択可） */
+  levels?: number[];
+  
+  /** 攻撃力範囲 */
+  atk?: { from?: number; to?: number };
+  
+  /** 守備力範囲 */
+  def?: { from?: number; to?: number };
+  
+  // ============================================================================
+  // ペンデュラム・リンク
+  // ============================================================================
+  
+  /** ペンデュラムスケールフィルタ（0-13、複数選択可） */
+  pendulumScales?: number[];
+  
+  /** リンク数フィルタ（1-6、複数選択可） */
+  linkNumbers?: number[];
+  
+  /** 
+   * リンクマーカー方向フィルタ（複数選択可）
+   * 方向番号: 1=左下, 2=下, 3=右下, 4=左, 6=右, 7=左上, 8=上, 9=右上
+   */
+  linkMarkers?: number[];
+  
+  /** 
+   * リンクマーカーの論理演算
+   * - 'AND': すべての方向を持つカード
+   * - 'OR': いずれかの方向を持つカード（デフォルト）
+   */
+  linkMarkerLogic?: 'AND' | 'OR';
+  
+  // ============================================================================
+  // 魔法・罠フィルタ
+  // ============================================================================
+  
+  /** 魔法効果タイプフィルタ（複数選択可） */
+  spellEffectTypes?: SpellEffectType[];
+  
+  /** 罠効果タイプフィルタ（複数選択可） */
+  trapEffectTypes?: TrapEffectType[];
+  
+  // ============================================================================
+  // その他オプション
+  // ============================================================================
+  
+  /** 
+   * ソート順
+   * 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 
+   * 11-12=リンク数, 20-21=発売日
+   * デフォルト: 1
+   */
+  sort?: number;
+  
+  /** ページあたりの結果数（デフォルト: 99） */
+  resultsPerPage?: number;
+  
+  /** 
+   * 表示モード
+   * 1=画像表示, 2=テキスト表示
+   */
+  mode?: number;
+  
+  /** 発売日範囲 */
+  releaseDate?: {
+    start?: { year: number; month: number; day: number };
+    end?: { year: number; month: number; day: number };
+  };
+}
+
 function parseLinkValue(linkValue: string): number {
   let result = 0;
 
@@ -81,6 +306,232 @@ function cardTypeToCtype(cardType?: CardType): string {
  * @param ctype カードタイプ（オプション）
  * @returns カード情報の配列
  */
+/**
+ * SearchOptionsからURLSearchParamsを構築する
+ * @param options 検索オプション
+ * @returns URLSearchParams
+ */
+function buildSearchParams(options: SearchOptions): URLSearchParams {
+  const params = new URLSearchParams();
+  
+  // ============================================================================
+  // 基本パラメータ
+  // ============================================================================
+  params.append('ope', '1'); // 操作種別: 1=検索
+  params.append('sess', '1'); // セッション: 1=初回ロード
+  params.append('keyword', options.keyword);
+  params.append('stype', options.searchType || '1'); // デフォルト: カード名検索
+  
+  // カードタイプ
+  const ctypeValue = cardTypeToCtype(options.cardType);
+  params.append('ctype', ctypeValue);
+  
+  // ============================================================================
+  // モンスターフィルタ
+  // ============================================================================
+  
+  // 属性
+  if (options.attributes) {
+    options.attributes.forEach(attr => {
+      params.append('attr', ATTRIBUTE_TO_ATTR_VALUE[attr]);
+    });
+  }
+  
+  // 種族
+  if (options.races) {
+    options.races.forEach(race => {
+      params.append('species', RACE_TO_SPECIES_VALUE[race]);
+    });
+  }
+  
+  // モンスタータイプ
+  if (options.monsterTypes) {
+    options.monsterTypes.forEach(type => {
+      params.append('other', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+    });
+  }
+  
+  // モンスタータイプの論理演算（AND/OR）
+  params.append('othercon', options.monsterTypeLogic === 'AND' ? '1' : '2');
+  
+  // 除外条件
+  if (options.excludeMonsterTypes) {
+    options.excludeMonsterTypes.forEach(type => {
+      params.append('jogai', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+    });
+  }
+  
+  // ============================================================================
+  // レベル・ステータス
+  // ============================================================================
+  
+  // レベル/ランク
+  if (options.levels) {
+    options.levels.forEach(level => {
+      if (level >= 0 && level <= 13) {
+        params.append(`level${level}`, 'on');
+      }
+    });
+  }
+  
+  // 攻撃力範囲
+  params.append('atkfr', options.atk?.from?.toString() || '');
+  params.append('atkto', options.atk?.to?.toString() || '');
+  
+  // 守備力範囲
+  params.append('deffr', options.def?.from?.toString() || '');
+  params.append('defto', options.def?.to?.toString() || '');
+  
+  // ============================================================================
+  // ペンデュラム・リンク
+  // ============================================================================
+  
+  // ペンデュラムスケール
+  if (options.pendulumScales) {
+    options.pendulumScales.forEach(scale => {
+      if (scale >= 0 && scale <= 13) {
+        params.append(`Pscale${scale}`, 'on');
+      }
+    });
+  }
+  
+  // リンク数
+  if (options.linkNumbers) {
+    options.linkNumbers.forEach(num => {
+      if (num >= 1 && num <= 6) {
+        params.append(`Link${num}`, 'on');
+      }
+    });
+  }
+  
+  // リンクマーカー方向
+  if (options.linkMarkers) {
+    options.linkMarkers.forEach(direction => {
+      // 方向番号: 1-9（5は除く）
+      if (direction >= 1 && direction <= 9 && direction !== 5) {
+        params.append(`linkbtn${direction}`, 'on');
+      }
+    });
+  }
+  
+  // リンクマーカーの論理演算（AND/OR）
+  params.append('link_m', options.linkMarkerLogic === 'AND' ? '1' : '2');
+  
+  // ============================================================================
+  // 魔法・罠フィルタ
+  // ============================================================================
+  
+  // 魔法効果タイプ
+  if (options.spellEffectTypes) {
+    options.spellEffectTypes.forEach(type => {
+      params.append('effe', SPELL_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+    });
+  }
+  
+  // 罠効果タイプ
+  if (options.trapEffectTypes) {
+    options.trapEffectTypes.forEach(type => {
+      params.append('effe', TRAP_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+    });
+  }
+  
+  // ============================================================================
+  // 範囲検索パラメータ（空文字列で送信）
+  // ============================================================================
+  const emptyRangeParams = ['starfr', 'starto', 'pscalefr', 'pscaleto', 
+                             'linkmarkerfr', 'linkmarkerto'];
+  emptyRangeParams.forEach(param => {
+    params.append(param, '');
+  });
+  
+  // ============================================================================
+  // その他オプション
+  // ============================================================================
+  
+  // ソート順（デフォルト: 1=50音順）
+  params.append('sort', (options.sort || 1).toString());
+  
+  // ページあたり件数（デフォルト: 99）
+  params.append('rp', (options.resultsPerPage || 99).toString());
+  
+  // 表示モード
+  if (options.mode) {
+    params.append('mode', options.mode.toString());
+  } else {
+    params.append('mode', '');
+  }
+  
+  // 発売日範囲
+  if (options.releaseDate) {
+    if (options.releaseDate.start) {
+      params.append('releaseYStart', options.releaseDate.start.year.toString());
+      params.append('releaseMStart', options.releaseDate.start.month.toString());
+      params.append('releaseDStart', options.releaseDate.start.day.toString());
+    }
+    if (options.releaseDate.end) {
+      params.append('releaseYEnd', options.releaseDate.end.year.toString());
+      params.append('releaseMEnd', options.releaseDate.end.month.toString());
+      params.append('releaseDEnd', options.releaseDate.end.day.toString());
+    }
+  }
+  
+  return params;
+}
+
+/**
+ * 各種検索条件でカードを検索する
+ * 
+ * @param options 検索オプション
+ * @returns カード情報の配列
+ * 
+ * @example
+ * ```typescript
+ * // 基本的なカード名検索
+ * const cards = await searchCards({
+ *   keyword: 'ブラック・マジシャン'
+ * });
+ * 
+ * // 効果モンスターで攻撃力2000以上を検索
+ * const cards = await searchCards({
+ *   keyword: '',
+ *   cardType: 'モンスター',
+ *   monsterTypes: ['effect'],
+ *   atk: { from: 2000 }
+ * });
+ * 
+ * // 光属性のドラゴン族を検索
+ * const cards = await searchCards({
+ *   keyword: '',
+ *   cardType: 'モンスター',
+ *   attributes: ['light'],
+ *   races: ['dragon']
+ * });
+ * ```
+ */
+export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
+  try {
+    const params = buildSearchParams(options);
+    
+    const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      return [];
+    }
+    
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    return parseSearchResults(doc);
+  } catch (error) {
+    console.error('Failed to search cards:', error);
+    return [];
+  }
+}
+
 export async function searchCardsByName(
   keyword: string,
   ctype?: CardType
