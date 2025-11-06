@@ -21,6 +21,43 @@ import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
 
 /**
+ * link値（例: "13"）を9bit整数に変換する
+ *
+ * @param linkValue link値の数字部分（例: "13", "246", "123456789"）
+ * @returns 9bit整数（各ビットが方向を表す）
+ *
+ * 方向番号とビット位置の対応:
+ *   方向1（左下） → bit 0
+ *   方向2（下）   → bit 1
+ *   方向3（右下） → bit 2
+ *   方向4（左）   → bit 3
+ *   方向5（中央） → bit 4 （常に0、存在しない）
+ *   方向6（右）   → bit 5
+ *   方向7（左上） → bit 6
+ *   方向8（上）   → bit 7
+ *   方向9（右上） → bit 8
+ *
+ * 例: "13" → 方向1と3 → bit 0とbit 2 → 0b000000101 = 5
+ */
+function parseLinkValue(linkValue: string): number {
+  let result = 0;
+
+  // 各文字を方向番号として解析
+  for (const char of linkValue) {
+    const direction = parseInt(char, 10);
+
+    // 方向番号が1〜9の範囲で、5（中央）でない場合
+    if (direction >= 1 && direction <= 9 && direction !== 5) {
+      // 方向番号 → ビット位置（direction - 1）
+      const bitPos = direction - 1;
+      result |= (1 << bitPos);
+    }
+  }
+
+  return result;
+}
+
+/**
  * カードタイプをctypeパラメータに変換する
  */
 function cardTypeToCtype(cardType?: CardType): string {
@@ -271,6 +308,7 @@ function parseSpeciesAndTypes(speciesText: string): { race: Race; types: Monster
  * @returns モンスターカード情報、パースできない場合はnull
  */
 function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null {
+  let extractedLinkValue: string | null = null;
   // 属性取得（必須）
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
   if (!attrImg?.src) return null;
@@ -341,6 +379,16 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     } else {
       return null;
     }
+
+    // リンクマーカー方向情報を画像パスから取得
+    // 例: "external/image/parts/link_pc/link2.png" → "2"
+    const linkImg = linkMarkerElem.querySelector('img') as HTMLImageElement;
+    if (linkImg?.src) {
+      const linkMatch = linkImg.src.match(/link(\d+)\.png/);
+      if (linkMatch && linkMatch[1]) {
+        extractedLinkValue = linkMatch[1];
+      }
+    }
   } else {
     // レベル/ランク/リンク要素が存在しない
     return null;
@@ -397,12 +445,12 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     pendulumEffect = pendulumEffectElem.textContent.trim();
   }
 
-  // リンクマーカー取得（TODO: 向きの情報を取得する方法を調査）
+  // リンクマーカー取得
   let linkMarkers: number | undefined;
-  if (levelType === 'link') {
-    // リンクマーカーの向きはHTMLに明示的に含まれていない可能性
-    // カード詳細ページやJavaScriptコードから取得が必要
-    linkMarkers = undefined;
+  if (levelType === 'link' && extractedLinkValue) {
+    // extractedLinkValue（例: "13"）を9bit整数に変換
+    // "13" → 方向1と3 → bit 0とbit 2 → 0b000000101 = 5
+    linkMarkers = parseLinkValue(extractedLinkValue);
   }
 
   // エクストラデッキ判定
@@ -502,7 +550,10 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
  * @param imageInfoMap cidごとの画像情報マップ
  * @returns カード情報、パースできない場合はnull
  */
-function parseSearchResultRow(row: HTMLElement, imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>): CardInfo | null {
+function parseSearchResultRow(
+  row: HTMLElement,
+  imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>
+): CardInfo | null {
   // 1. 共通情報を取得
   const base = parseCardBase(row, imageInfoMap);
   if (!base) return null;

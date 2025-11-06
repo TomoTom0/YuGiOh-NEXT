@@ -61,9 +61,11 @@ export interface MonsterCard extends CardBase {
   /** 守備力（オプション、リンクモンスターは持たない） */
   def?: number | string;
 
-  /** リンクマーカー（オプション、リンクモンスターのみ、8bit整数）
-   * bit 0: 上, bit 1: 右上, bit 2: 右, bit 3: 右下,
-   * bit 4: 下, bit 5: 左下, bit 6: 左, bit 7: 左上
+  /** リンクマーカー（オプション、リンクモンスターのみ、9bit整数）
+   * 方向番号Nに対応するビット位置は N-1
+   * bit 0: 方向1（左下）, bit 1: 方向2（下）, bit 2: 方向3（右下）
+   * bit 3: 方向4（左）, bit 4: 方向5（中央、常に0）, bit 5: 方向6（右）
+   * bit 6: 方向7（左上）, bit 7: 方向8（上）, bit 8: 方向9（右上）
    */
   linkMarkers?: number;
 
