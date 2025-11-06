@@ -1,4 +1,5 @@
 import { DeckInfo, OperationResult } from '@/types/deck';
+import { DeckCard } from '@/types/card';
 
 const BASE_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 
@@ -219,9 +220,11 @@ export async function deleteDeck(
  */
 function appendCardToFormData(
   formData: FormData,
-  card: { cardId: string; cardType: string; imageId?: string; quantity: number },
+  deckCard: DeckCard,
   _deckType: 'main' | 'extra' | 'side'
 ): void {
+  const { card, quantity } = deckCard;
+
   // カードタイプに応じたフィールド名を使用
   let cardIdName: string;
   let imgsName: string;
@@ -244,5 +247,5 @@ function appendCardToFormData(
 
   formData.append(cardIdName, card.cardId);
   formData.append(imgsName, card.imageId || '1');
-  formData.append(numberName, card.quantity.toString());
+  formData.append(numberName, quantity.toString());
 }

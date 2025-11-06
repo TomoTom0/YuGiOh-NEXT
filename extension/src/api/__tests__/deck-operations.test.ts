@@ -99,10 +99,17 @@ describe('デッキ操作API', () => {
         name: 'テストデッキ',
         mainDeck: [
           {
-            name: 'ブラック・マジシャン',
-            cardId: '12345',
-            cardType: 'モンスター',
-            imageId: '1',
+            card: {
+              name: 'ブラック・マジシャン',
+              cardId: '12345',
+              imageId: '1',
+              cardType: 'モンスター' as const,
+              attribute: 'dark' as const,
+              levelType: 'level' as const,
+              race: 'spellcaster' as const,
+              types: ['normal' as const],
+              isExtraDeck: false
+            },
             quantity: 2
           }
         ],

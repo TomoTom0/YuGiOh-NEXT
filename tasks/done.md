@@ -477,3 +477,319 @@
 - [x] デプロイ成功確認
   - /home/tomo/user/Mine/_chex/src_ygoNeuronHelperに正しく配置
   - manifest.jsonも正しく更新
+
+## Webpackビルドシステムへの移行と拡張機能ロード問題の解決（2025-11-04 完了）
+- [x] Webpackビルドシステムの導入
+  - [x] extension/でwebpackを使用してビルド
+  - [x] TypeScriptコンパイルエラーの修正
+    - `DOM.Iterable`をlib配列に追加（tsconfig.json）
+    - `match[1]`の型ミスマッチ修正（`?? null`追加）
+  - [x] webpack.config.jsの確認
+    - entry point: `./src/content/test-ui/index.ts`
+    - output: `extension/dist/`にフラット構造で出力
+  - [x] ビルド成功確認（content.js: 13 KB）
+- [x] manifest.jsonのパス修正
+  - [x] フラット構造への変更
+    - `content/index.js` → `content.js`
+    - `background/index.js` → `background.js`
+    - `popup/popup.html` → `popup.html`
+  - [x] 正しいファイルパスの確認
+- [x] Google Chromeでの拡張機能ロード問題の発見
+  - [x] 問題発見: Google Chromeが`--load-extension`フラグを**無視**する
+    - Chromeログ: `WARNING: --load-extension is not allowed in Google Chrome, ignoring.`
+  - [x] chrome://extensions/ページで拡張機能が表示されないことを確認
+  - [x] start-chrome.shスクリプトは正しく設定されているが、Google Chromeでは動作しない
+- [x] Playwright persistentContextによる解決
+  - [x] `chromium.launchPersistentContext`を使用
+  - [x] 引数に`--disable-extensions-except`と`--load-extension`を指定
+  - [x] tmp/test-with-persistent-context.jsの作成
+  - [x] テスト実行成功
+    - ✅ Content Scriptが正常にロード
+    - ✅ デバッグマーカー（緑色の"Yu-Gi-Oh! Extension Loaded!"）が表示
+    - ✅ Test UIが正常に表示
+- [x] 動作確認
+  - [x] #/ytomo/test URLでTest UIが表示されることを確認
+  - [x] 5つのテストセクションが表示
+    - セッション情報（cgid取得、ytkn取得）
+    - カード検索（入力フィールドとドロップダウン）
+    - デッキ操作（新規作成、複製、削除）
+    - デッキ保存（デッキ番号とデッキ名）
+    - カードタイプ判定テスト
+  - [x] スクリーンショット保存（tmp/test-page-persistent.png）
+- [x] 今後の方針の確立
+  - テスト環境: Playwright persistentContextを使用
+  - 本番環境: chrome://extensions/から手動でロード
+  - 開発環境: Chromiumのインストールも検討可能
+
+## Chromiumへの移行と拡張機能ロード成功（2025-11-05 09:15完了）
+- [x] Google Chromeでの拡張機能ロード問題の発見
+  - [x] `--load-extension`フラグが無視される仕様を確認
+  - [x] ログに`WARNING: --load-extension is not allowed in Google Chrome, ignoring.`を発見
+- [x] Chromiumのインストールと環境構築
+  - [x] `chromium-browser`をインストール
+  - [x] `scripts/debug/setup/start-chrome.sh`をChromium用に修正
+  - [x] `scripts/debug/setup/stop-chrome.sh`をChromium用に修正
+- [x] Chromiumでの拡張機能ロード成功
+  - [x] `--load-extension`が正常に動作
+  - [x] デバッグマーカー "Yu-Gi-Oh! Extension Loaded!" の表示確認
+  - [x] Content Scriptの正常実行確認
+- [x] テストページでの機能テスト
+  - [x] テストUI表示成功（`#/ytomo/test`）
+  - [x] カード検索機能動作確認（✅ 成功）
+  - [x] カードタイプ判定動作確認（✅ 成功）
+  - [x] セッション情報取得テスト（⚠️ 部分的に失敗）
+- [x] テスト結果の記録
+  - [x] `tmp/test-summary.md`の作成
+  - [x] スクリーンショット保存（5枚）
+- [x] ドキュメント整備
+  - [x] `CLAUDE.md`の作成（ブラウザ制御方針を明記）
+  - [x] `version.dat`の作成（0.1.0）
+  - [x] `tasks/wip.md`の更新
+
+## テストページでの初期動作確認（2025-11-04 20:30完了）
+- [x] テストページ全ボタンの自動テスト実施
+  - [x] tmp/test-all-buttons.jsの作成
+  - [x] 8つの機能ボタンを順次テスト
+  - [x] スクリーンショット保存（tmp/test-all-buttons-result.png）
+- [x] テスト結果の分析
+  - [x] ✅ カードタイプ判定：正常動作（モンスター・魔法・罠すべて正しく判定）
+  - [x] ❌ cgid取得：not found（テストページに認証情報なし）
+  - [x] ❌ ytkn取得：not found（テストページに認証情報なし）
+  - [x] ❌ カード検索：0件（認証情報不足）
+  - [x] ❌ デッキ操作：cgid不足でエラー
+- [x] 根本原因の特定
+  - [x] テストページ（#/ytomo/test）は拡張機能が作成した仮想ページ
+  - [x] 実際のページではないため、hidden inputやcookieにセッション情報が存在しない
+  - [x] 認証情報なしではカード検索やデッキ操作が不可能
+- [x] 解決方針の決定
+  - [x] ログイン済みセッションの作成が必要
+  - [x] tmp/open-browser-for-login.jsの作成
+  - [x] Playwright persistentContextで永続プロファイルを使用
+  - [x] ユーザーが手動でログイン→セッションを保存
+
+## intro.md機能実装状況の整理と残調査の完了（2025-11-06 12:00完了）
+- [x] intro.md機能実装状況マップの作成
+  - [x] tmp/wip/intro-implementation-status.mdの作成
+  - [x] intro.mdの各機能（10項目）について詳細な実装ガイドを記載
+  - [x] 判明している情報、実装例、参照ドキュメントを整理
+  - [x] 残調査項目の特定
+- [x] tasks/ファイルの更新
+  - [x] tasks/todo.mdの更新（残調査項目を優先度別に整理）
+  - [x] tasks/wip.mdの更新（現在の作業状況を反映）
+- [x] カード詳細ページの完全調査
+  - [x] URL形式の確認
+    - ✅ `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid={カードID}&request_locale=ja`
+  - [x] cidからのURL生成方法の確認
+    - ✅ 単純な文字列結合で可能
+  - [x] カード画像の高解像度版取得方法の調査
+    - [x] tmp/investigate-card-image.jsの作成と実行
+    - [x] tmp/verify-image-sizes.jsの作成と実行
+    - [x] tmp/check-actual-image-size.jsの作成と実行
+    - ✅ 画像サイズは200x290ピクセル固定
+    - ❌ 高解像度版は存在しない（type=1とtype=2は同じ）
+    - ✅ encパラメータは省略可能
+  - [x] 調査結果のドキュメント化
+    - [x] tmp/wip/card-detail-page-investigation.mdの作成
+    - [x] tmp/wip/intro-implementation-status.mdの更新
+    - [x] カード個別情報の項目を「完全に判明」に更新
+- [x] 調査成果の最終確認
+  - ✅ intro.mdの全機能（10項目）が実装可能な状態
+  - ✅ 100%の機能で実装に必要な情報が揃った
+  - ✅ 実装フェーズへの移行準備完了
+
+## intro.md関数の実装と検証（2025-11-06 11:45完了）
+
+### 実装フェーズ
+- [x] TypeScript型定義の実装（extension/src/types/）
+  - card.ts: CardInfo, CardType, CardTypeFields
+  - deck.ts: DeckInfo, DeckData, DeckOperationResult
+  - session.ts: SessionInfo
+- [x] セッション管理の実装（extension/src/content/session/session.ts）
+  - getCgid(): ページからcgidを取得、キャッシュ機能付き
+  - getYtkn(dno): デッキ編集ページからytknを取得
+- [x] デッキ操作APIの実装（extension/src/api/deck-operations.ts）
+  - createNewDeck(cgid): 新規デッキ作成（ope=6）
+  - duplicateDeck(cgid, dno): デッキ複製（ope=8）
+  - saveDeck(cgid, dno, deckData, ytkn): デッキ保存（ope=3）
+  - deleteDeck(cgid, dno, ytkn): デッキ削除（ope=7）
+  - appendCardToFormData(): カードタイプ別フィールドマッピング対応
+- [x] カード検索APIの実装（extension/src/api/card-search.ts）
+  - searchCardsByName(keyword, ctype?): キーワード検索
+  - searchCardById(cardId): ID検索
+  - parseSearchResults(doc): HTML解析
+- [x] HTMLパーサーの実装（extension/src/content/parsers.ts）
+  - DOMParserを使用したHTML解析
+- [x] カードタイプ判定の実装（extension/src/content/card/detector.ts）
+  - detectCardType(row): DOM属性ベース判定
+  - ロケール非依存の実装
+- [x] テストUIの実装（extension/src/content/test-ui/index.ts）
+  - #/ytomo/test URLでテストページ表示
+  - 8つのテスト機能ボタン
+  - 結果表示エリア
+
+### ビルド & デプロイ
+- [x] webpack設定の確認（extension/webpack.config.js）
+- [x] ビルド実行（npm run build）
+- [x] デプロイスクリプト実行（bash scripts/deploy.sh）
+  - デプロイ先: ~/user/Mine/_chex/src_ygoNeuronHelper
+
+### 動作検証フェーズ
+
+#### 環境セットアップ
+- [x] Chromium起動スクリプトのパス修正
+  - 問題発見: extension/dist を指定していたが正しくは ~/user/Mine/_chex/src_ygoNeuronHelper
+  - scripts/debug/setup/start-chrome.sh を修正
+- [x] Chromiumでの拡張機能ロード確認
+  - デバッグマーカー "Yu-Gi-Oh! Extension Loaded!" が表示
+  - Content Scriptが正常に実行
+
+#### テスト実施
+- [x] カードタイプ判定テスト ✅
+  - モンスター: ✅ 正常判定
+  - 魔法: ✅ 正常判定
+  - 罠: ✅ 正常判定
+- [x] カード検索APIテスト ✅
+  - fetch API動作確認
+  - DOMParser解析動作確認
+- [x] セッション情報取得テスト ⚠️
+  - cgid取得: 実装完了（ログイン後にテスト可能）
+  - ytkn取得: 実装完了（ログイン後にテスト可能）
+- [x] デッキ操作テスト ⚠️
+  - 実装完了（ログイン後にテスト可能）
+
+### ドキュメント作成
+- [x] テストレポート作成（tmp/intro-functions-test-report.md）
+  - 実装状況まとめ（100%完了）
+  - 動作検証結果
+  - 発見した問題と修正内容
+  - 次のステップ
+
+### 成果物
+- **実装完了率**: 100% ✅
+- **動作確認**: ログイン不要機能は検証済み、ログイン必要機能は実装完了
+- **スクリーンショット**:
+  - tmp/extension-check-final.png（拡張機能ロード確認）
+  - tmp/intro-test-result.png（カードタイプ判定テスト）
+  - tmp/intro-functions-verified.png（カード検索テスト）
+- **テストスクリプト**:
+  - tmp/check-chrome-extensions.js（拡張機能検出）
+  - tmp/verify-extension-loaded.js（ロード状態確認）
+  - tmp/test-intro-via-buttons.js（ボタンクリック形式テスト）
+  - tmp/test-all-intro-functions.js（完全テスト）
+
+### 残課題
+- [ ] ログイン後の完全テスト（ユーザー操作が必要）
+- [ ] E2Eテストの整備
+- [ ] ユーザー向けREADMEの作成
+
+---
+
+## カード情報スクレイピング機能の完全実装（2025-11-06 完了）
+
+### 提案書v3の作成
+- [x] ユーザー指摘の反映
+  - 不要な情報の削除（再構成可能な項目）
+  - 追加情報の取得（ciid, img_hash, ペンデュラム情報）
+  - 種族とタイプの分離
+  - マップ定義方式の採用
+- [x] 提案書v3の作成（tmp/wip/card-scraping-proposal-v3.md）
+  - 識別子ベースのデータ管理
+  - `as const`と`keyof typeof`による型自動生成
+  - HTMLテキスト→識別子への変換マップ
+
+### 実装
+- [x] マップ定義ファイルの作成（types/card-maps.ts）
+  - ATTRIBUTE_MAP: 属性マップ（7種類）
+  - RACE_MAP: 種族マップ（25種類）
+  - MONSTER_TYPE_MAP: モンスタータイプマップ（15種類）
+  - SPELL_EFFECT_TYPE_MAP: 魔法効果種類マップ（6種類）
+  - TRAP_EFFECT_TYPE_MAP: 罠効果種類マップ（3種類）
+  - 逆引きマップの生成（TEXT_TO_ID）
+- [x] 型定義の更新（types/card.ts）
+  - CardBase: 共通情報（ciid, imgHash追加）
+  - MonsterCard: 識別子ベース（race, types配列化、ペンデュラム情報追加）
+  - SpellCard: 識別子ベース（effectType）
+  - TrapCard: 識別子ベース（effectType）
+- [x] パーサー関数の実装（api/card-search.ts）
+  - parseCardBase(): 共通情報抽出
+  - parseSpeciesAndTypes(): 種族・タイプのパースと変換
+  - parseMonsterCard(): モンスター固有情報抽出
+  - parseSpellCard(): 魔法固有情報抽出
+  - parseTrapCard(): 罠固有情報抽出
+  - HTMLテキスト→識別子への変換処理
+- [x] 既存コードの更新
+  - api/deck-operations.ts: DeckCard型対応
+  - content/parser/deck-parser.ts: 新型定義対応
+  - content/test-ui/index.ts: テストデータ更新
+  - __tests__/*.test.ts: テストコード更新
+
+### ビルドとデプロイ
+- [x] TypeScriptコンパイル成功
+- [x] webpackビルド成功
+- [x] デプロイ完了（~/user/Mine/_chex/src_ygoNeuronHelper）
+
+### 成果物
+- **マップ定義**: 56種類の識別子定義（属性7、種族25、モンスタータイプ15、魔法6、罠3）
+- **型安全性**: 完全な型チェック、識別子のタイポ防止
+- **国際化対応**: マップを差し替えるだけで多言語対応可能
+- **データ正規化**: 文字列の揺れがない、検索・フィルタリングが効率的
+
+### 技術的特徴
+- `as const`による型リテラル化
+- `keyof typeof`による型の自動生成
+- `Object.fromEntries`による逆引きマップの生成
+- 構造ベースのカード判定（HTML構造から属性・レベル種別を判定）
+- 未知の値の警告機能（console.warn）
+
+
+---
+
+## カード情報スクレイピング機能の検証と修正（2025-11-06）
+
+### 実施内容
+1. **日本語モードでの動作確認**
+   - [x] Chrome拡張の日本語モード切り替え（`request_locale=ja`）
+   - [x] 様々なカードタイプでの検索テスト実行
+   - [x] マップ定義の完全性確認（未知の値なし）
+
+2. **フィールド存在確認とセレクタ修正**
+   - [x] ペンデュラム関連セレクタの修正
+     - 誤: `.box_card_pendulum_scale` / `.box_card_pendulum_effect`
+     - 正: `.box_card_pen_scale` / `.box_card_pen_effect`
+   - [x] 実際のHTMLからペンデュラム情報の正常取得確認
+
+3. **ciid/imgHash取得ロジックの実装**
+   - [x] HTMLのJavaScriptコードからの画像URL情報抽出
+   - [x] 正規表現パターンによるciid/imgHashの解析
+     - パターン: `/get_image\.action\?.*cid=(\d+)(?:&ciid=(\d+))?(?:&enc=([^&'"\s]+))?/g`
+   - [x] `extractImageInfo`関数の実装
+   - [x] `parseCardBase`と`parseSearchResultRow`の修正（imageInfoMap対応）
+
+4. **全フィールドの動作確認**
+   - [x] ciid: ✅ 取得成功（例: "1"）
+   - [x] imgHash: ✅ 取得成功（例: "ixM9cUpGwT8_wcEF5XNJQw"）
+   - [x] pendulumScale: ✅ 取得成功（例: 5）
+   - [x] pendulumEffect: ✅ 取得成功（全文）
+
+### 修正ファイル
+- `extension/src/api/card-search.ts`
+  - extractImageInfo関数追加（HTMLからciid/imgHash抽出）
+  - parseSearchResults関数修正（画像情報マップ生成）
+  - parseCardBase関数修正（画像情報マップから取得）
+  - parseSearchResultRow関数修正（引数追加）
+  - ペンデュラムセレクタ修正（2箇所）
+
+### ビルドとデプロイ
+- [x] TypeScriptコンパイル成功
+- [x] webpackビルド成功（content.js: 20KB）
+- [x] デプロイ完了（~/user/Mine/_chex/src_ygoNeuronHelper）
+- [x] Chrome拡張の再起動と動作確認
+
+### テスト結果
+- **検索成功率**: 100%（全カードタイプで正常動作）
+- **未知の値**: 0件（マップ定義が完全）
+- **フィールド取得**: 100%（ciid, imgHash, pendulum情報すべて取得成功）
+
+### バージョン更新
+- v0.1.0 → v0.2.0（新機能の追加: ciid/imgHash取得）
+
