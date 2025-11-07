@@ -4,6 +4,50 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-07: デッキレシピ画像作成機能の型設計改善
+
+### 実装内容
+
+#### 問題点
+- `parseDeckDetail()`が`DeckInfo`を返すのに、わざわざ`DeckRecipeImageData`に変換していた
+- 2つの異なる型（`DeckInfo`と`DeckRecipeImageData`）が同じデッキ情報を表現
+- `convertDeckInfoToImageData()`という不自然な変換関数が必要
+
+#### 解決策
+1. **型定義の統一**
+   - `CreateDeckRecipeImageOptions.deckData`の型を`DeckRecipeImageData`から`DeckInfo`に変更
+   - `DeckRecipeImageData`型を削除（不要になる）
+
+2. **createDeckRecipeImage.tsの修正**
+   - `DeckInfo`から直接カード画像URLを構築するように変更
+   - `buildCardImageUrl()`を使用して各カードから画像URLを生成
+   - `CardSection[]`を動的に構築
+
+3. **downloadDeckRecipeImage.tsの簡素化**
+   - `convertDeckInfoToImageData()`関数を削除
+   - `parseDeckDetail()`の結果を直接`createDeckRecipeImage()`に渡す
+
+#### 変更されたファイル
+- `extension/src/types/deck-recipe-image.ts`
+- `extension/src/content/deck-recipe/createDeckRecipeImage.ts`
+- `extension/src/content/deck-recipe/downloadDeckRecipeImage.ts`
+
+### メリット
+
+1. **型の一貫性**: パーサーが返す型をそのまま使用
+2. **コードの簡潔性**: 不要な型変換処理の削除
+3. **保守性向上**: 1つの型のみを管理すれば良い
+4. **責任の明確化**: 画像URL構築はcreateD eckRecipeImage内部で完結
+
+### デプロイとテスト
+
+- ビルド成功
+- デプロイ完了
+- Chrome拡張の再起動後、テストページでボタン表示を確認
+- デッキレシピ画像作成ボタンのクリックに成功
+
+---
+
 ## 2025-11-07: SessionManagerクラスの実装とリファクタリング
 
 ### 実装内容

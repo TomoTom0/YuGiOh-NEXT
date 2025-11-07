@@ -1,6 +1,5 @@
 import {
   CreateDeckRecipeImageOptions,
-  DeckRecipeImageData,
   CanvasDrawSettings,
   ColorVariant,
   COLOR_SETTINGS,
@@ -11,6 +10,7 @@ import {
   QR_CODE_SETTINGS,
   CardSection
 } from '../../types/deck-recipe-image';
+import { buildCardImageUrl } from '../../api/card-search';
 import QRCode from 'qrcode';
 
 /**
@@ -46,8 +46,33 @@ export async function createDeckRecipeImage(
   }
   const data = deckData;
 
-  // 2. Canvas描画設定の初期化
-  const drawSettings = initializeCanvasSettings(data, scale, color, includeQR);
+  // 2. DeckInfoからCardSection配列を構築
+  const sections: CardSection[] = [
+    {
+      name: 'main',
+      displayName: 'メイン',
+      cardImages: data.mainDeck.flatMap(({ card, quantity }) =>
+        Array(quantity).fill(buildCardImageUrl(card))
+      )
+    },
+    {
+      name: 'extra',
+      displayName: 'エクストラ',
+      cardImages: data.extraDeck.flatMap(({ card, quantity }) =>
+        Array(quantity).fill(buildCardImageUrl(card))
+      )
+    },
+    {
+      name: 'side',
+      displayName: 'サイド',
+      cardImages: data.sideDeck.flatMap(({ card, quantity }) =>
+        Array(quantity).fill(buildCardImageUrl(card))
+      )
+    }
+  ];
+
+  // 3. Canvas描画設定の初期化
+  const drawSettings = initializeCanvasSettings(sections, scale, color, includeQR, data.isPublic ?? false);
 
   // 3. Canvasの作成と初期化
   let canvas: any;
@@ -80,11 +105,11 @@ export async function createDeckRecipeImage(
   drawHeaderAccentLine(ctx, drawSettings);
 
   // 7. デッキ名描画
-  drawDeckName(ctx, data.deckName, drawSettings);
+  drawDeckName(ctx, data.name, drawSettings);
 
   // 8. カードセクション描画（旧実装: height_now = 49 * ratio）
   let currentY = LAYOUT_CONSTANTS.headerHeight * scale;
-  for (const section of data.sections) {
+  for (const section of sections) {
     currentY = await drawCardSection(ctx, section, currentY, drawSettings);
   }
 
@@ -122,27 +147,29 @@ export async function createDeckRecipeImage(
 /**
  * Canvas描画設定を初期化する
  *
- * @param data - デッキデータ
+ * @param sections - カードセクション配列
  * @param scale - スケール倍率
  * @param color - カラーバリエーション
  * @param includeQR - QRコードを含めるか
+ * @param isPublic - 公開デッキかどうか
  * @returns Canvas描画設定
  */
 function initializeCanvasSettings(
-  data: DeckRecipeImageData,
+  sections: CardSection[],
   scale: number,
   color: ColorVariant,
-  includeQR: boolean
+  includeQR: boolean,
+  isPublic: boolean
 ): CanvasDrawSettings {
   const width = DECK_RECIPE_WIDTH * scale;
 
   // 高さの計算（旧実装: (img_qr ? 80 : 0) + 65 + 49 + セクション合計）
-  let height = (includeQR && data.isPublic ? LAYOUT_CONSTANTS.qrAreaHeight : 0) * scale;
+  let height = (includeQR && isPublic ? LAYOUT_CONSTANTS.qrAreaHeight : 0) * scale;
   height += 65 * scale; // 固定余白
   height += LAYOUT_CONSTANTS.headerHeight * scale;
 
   // 各セクションの高さを計算
-  for (const section of data.sections) {
+  for (const section of sections) {
     const rows = Math.ceil(section.cardImages.length / CARD_IMAGE_SETTINGS.cardsPerRow);
     height += (LAYOUT_CONSTANTS.sectionHeaderHeight + rows * LAYOUT_CONSTANTS.sectionRowHeight) * scale;
   }
