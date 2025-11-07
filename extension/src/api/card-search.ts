@@ -665,7 +665,27 @@ export function buildCardImageUrl(card: CardBase): string | undefined {
  */
 function parseSearchResults(doc: Document): CardInfo[] {
   const cards: CardInfo[] = [];
-  const rows = doc.querySelectorAll('.t_row');
+  
+  // #main980 > #article_body > #card_list の階層を使用
+  const main980 = doc.querySelector('#main980');
+  if (!main980) {
+    console.warn('[Card Search] #main980が見つかりません');
+    return cards;
+  }
+
+  const articleBody = main980.querySelector('#article_body');
+  if (!articleBody) {
+    console.warn('[Card Search] #main980 > #article_bodyが見つかりません');
+    return cards;
+  }
+
+  const cardList = articleBody.querySelector('#card_list');
+  if (!cardList) {
+    console.warn('[Card Search] #main980 > #article_body > #card_listが見つかりません');
+    return cards;
+  }
+
+  const rows = cardList.querySelectorAll('.t_row');
 
   // 画像情報を事前に抽出
   const imageInfoMap = extractImageInfo(doc);
@@ -694,9 +714,15 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   const name = nameElem.textContent.trim();
 
   // カードID（必須）
-  const cidInput = row.querySelector('input.cid') as HTMLInputElement;
-  if (!cidInput?.value) return null;
-  const cardId = cidInput.value;
+  // input.link_value の値から cid= を抽出
+  const linkValueInput = row.querySelector('input.link_value') as HTMLInputElement;
+  if (!linkValueInput?.value) return null;
+  
+  // "/yugiohdb/card_search.action?ope=2&cid=13903&request_locale=en" から cid を抽出
+  const match = linkValueInput.value.match(/[?&]cid=(\d+)/);
+  if (!match || !match[1]) return null;
+  
+  const cardId = match[1];
 
   // ふりがな（オプション）
   const rubyElem = row.querySelector('.card_ruby');

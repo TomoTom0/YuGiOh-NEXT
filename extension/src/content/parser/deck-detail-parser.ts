@@ -12,6 +12,9 @@ import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
  * カード情報は検索結果ページと同じ構造（tr.row）からパースします。
  */
 export function parseDeckDetail(doc: Document): DeckInfo {
+  // デッキ表示ページのDOM構造を検証
+  validateDeckDetailPageStructure(doc);
+
   // デッキ番号をURLから取得
   const dno = extractDnoFromPage(doc);
 
@@ -44,6 +47,113 @@ export function parseDeckDetail(doc: Document): DeckInfo {
 }
 
 /**
+ * デッキ表示ページのDOM構造を検証する
+ *
+ * @param doc ドキュメント
+ * @throws デッキ表示ページでない場合はエラー
+ */
+function validateDeckDetailPageStructure(doc: Document): void {
+  // 1. #main980 > #article_body > #deck_detailtext > #detailtext_main の階層を検証
+  const main980 = doc.querySelector('#main980');
+  if (!main980) {
+    throw new Error('#main980が見つかりません。デッキ表示ページではありません。');
+  }
+
+  const articleBody = main980.querySelector('#article_body');
+  if (!articleBody) {
+    throw new Error('#main980 > #article_bodyが見つかりません。デッキ表示ページではありません。');
+  }
+
+  const deckDetailtext = articleBody.querySelector('#deck_detailtext');
+  if (!deckDetailtext) {
+    throw new Error('#main980 > #article_body > #deck_detailtextが見つかりません。デッキ表示ページではありません。');
+  }
+
+  const detailtextMain = deckDetailtext.querySelector('#detailtext_main');
+  if (!detailtextMain) {
+    throw new Error('#main980 > #article_body > #deck_detailtext > #detailtext_mainが見つかりません。デッキ表示ページではありません。');
+  }
+
+  // 2. 必須のdiv.t_bodyを検証（#detailtext_main配下）
+  const requiredSections = [
+    { selector: '.t_body.mlist_m', name: 'モンスターカードセクション' },
+    { selector: '.t_body.mlist_s', name: '魔法カードセクション' },
+    { selector: '.t_body.mlist_t', name: '罠カードセクション' }
+  ];
+
+  const errors: string[] = [];
+
+  for (const section of requiredSections) {
+    const tBody = detailtextMain.querySelector(section.selector);
+    
+    if (!tBody) {
+      errors.push(`${section.name}(${section.selector})が#detailtext_main配下に見つかりません`);
+      continue;
+    }
+    
+    // div.t_row構造が取得可能か検証
+    try {
+      tBody.querySelectorAll('.t_row');
+    } catch (e) {
+      errors.push(`${section.name}内で.t_rowを検索できません`);
+      continue;
+    }
+
+    // 最初のdiv.t_rowがあれば、その内部構造も検証
+    const firstRow = tBody.querySelector('.t_row');
+    if (firstRow) {
+      const hasCardName = firstRow.querySelector('.card_name') !== null;
+      const hasLinkValue = firstRow.querySelector('input.link_value') !== null;
+      
+      if (!hasCardName) {
+        errors.push(`${section.name}の.t_row内に.card_nameが見つかりません`);
+      }
+      if (!hasLinkValue) {
+        errors.push(`${section.name}の.t_row内にinput.link_valueが見つかりません`);
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(
+      `デッキ表示ページのDOM構造が不正です:\n${errors.map(e => `  - ${e}`).join('\n')}`
+    );
+  }
+
+  // 3. head配下からmetaタグを検証
+  const head = doc.querySelector('head');
+  if (!head) {
+    throw new Error('head要素が見つかりません');
+  }
+
+  const descriptionMeta = head.querySelector('meta[name="description"]');
+  const ogDescMeta = head.querySelector('meta[property="og:description"]');
+  
+  if (!descriptionMeta && !ogDescMeta) {
+    throw new Error('head配下にデッキ名取得用のmetaタグが見つかりません');
+  }
+
+  // 4. body配下からh1タグを検証
+  const body = doc.querySelector('body');
+  if (!body) {
+    throw new Error('body要素が見つかりません');
+  }
+
+  const h1Elements = body.querySelectorAll('h1');
+  if (h1Elements.length === 0) {
+    throw new Error('body配下にページタイトル（h1要素）が見つかりません');
+  }
+
+  // 5. デッキ番号の存在確認（JavaScriptコード内）
+  const scriptText = doc.documentElement.innerHTML;
+  const hasDno = scriptText.includes("$('#dno')") || scriptText.includes('dno=');
+  
+  if (!hasDno) {
+    throw new Error('デッキ表示ページではありません。デッキ番号情報が見つかりません。');
+  }
+}
+
+/**
  * カードセクションからカード情報を抽出する
  *
  * @param doc ドキュメント
@@ -58,44 +168,76 @@ function parseCardSection(
 ): DeckCard[] {
   const deckCards: DeckCard[] = [];
 
-  // セクションのテーブルIDを決定
-  let tableIds: string[] = [];
-  if (sectionId === 'main') {
-    // メインデッキは複数のテーブルに分かれている
-    tableIds = ['#monster_list', '#spell_list', '#trap_list'];
-  } else if (sectionId === 'extra') {
-    tableIds = ['#extra_list'];
-  } else if (sectionId === 'side') {
-    tableIds = ['#side_list'];
+  // #main980 > #article_body > #deck_detailtext > #detailtext_main の階層を使用
+  const detailtextMain = doc.querySelector('#main980 #article_body #deck_detailtext #detailtext_main');
+  if (!detailtextMain) {
+    return deckCards;
   }
 
-  // 各テーブルから行を取得
-  tableIds.forEach(tableId => {
-    const table = doc.querySelector(tableId);
-    if (!table) {
+  // セクションのdiv.t_bodyクラスを決定
+  let selectors: string[] = [];
+  if (sectionId === 'main') {
+    // メインデッキは3種類のカードタイプ
+    selectors = ['.t_body.mlist_m', '.t_body.mlist_s', '.t_body.mlist_t'];
+  } else if (sectionId === 'extra') {
+    // エクストラデッキ（Extra Deck見出しの後のdiv.t_body）
+    const extraHeading = Array.from(detailtextMain.querySelectorAll('h3')).find(h3 => h3.textContent?.includes('Extra Deck'));
+    if (extraHeading) {
+      const extraContainer = extraHeading.closest('.deck_set') || extraHeading.closest('div');
+      if (extraContainer) {
+        const tBody = extraContainer.querySelector('.t_body');
+        if (tBody) {
+          const rows = tBody.querySelectorAll('.t_row');
+          rows.forEach(row => {
+            const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
+            if (cardInfo) {
+              deckCards.push({ card: cardInfo, quantity: 1 });
+            }
+          });
+        }
+      }
+    }
+    return deckCards;
+  } else if (sectionId === 'side') {
+    // サイドデッキ（Side Deck見出しの後のdiv.t_body）
+    const sideHeading = Array.from(detailtextMain.querySelectorAll('h3')).find(h3 => h3.textContent?.includes('Side Deck'));
+    if (sideHeading) {
+      const sideContainer = sideHeading.closest('.deck_set') || sideHeading.closest('div');
+      if (sideContainer) {
+        const tBody = sideContainer.querySelector('.t_body');
+        if (tBody) {
+          const rows = tBody.querySelectorAll('.t_row');
+          rows.forEach(row => {
+            const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
+            if (cardInfo) {
+              deckCards.push({ card: cardInfo, quantity: 1 });
+            }
+          });
+        }
+      }
+    }
+    return deckCards;
+  }
+
+  // メインデッキの各セクションから行を取得
+  selectors.forEach(selector => {
+    const tBody = detailtextMain.querySelector(selector);
+    if (!tBody) {
       return;
     }
 
-    const rows = table.querySelectorAll('tr.row');
+    const rows = tBody.querySelectorAll('.t_row');
 
     rows.forEach(row => {
-      // 既存の検索結果パーサーを再利用
       const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
       if (!cardInfo) {
         return;
       }
 
-      // 枚数を取得（td.num span）
-      const numElem = row.querySelector('td.num span');
-      const quantity = numElem?.textContent ? parseInt(numElem.textContent.trim(), 10) : 1;
-
-      if (isNaN(quantity) || quantity <= 0) {
-        return;
-      }
-
+      // 枚数は常に1（div.t_rowでは枚数情報がカード毎に独立）
       deckCards.push({
         card: cardInfo,
-        quantity
+        quantity: 1
       });
     });
   });
