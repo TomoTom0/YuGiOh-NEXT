@@ -2,6 +2,7 @@ import axios from 'axios';
 import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
+import { sessionManager } from '../session/session';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -20,11 +21,14 @@ import { parseDeckDetail } from '../parser/deck-detail-parser';
 export async function downloadDeckRecipeImage(
   options: DownloadDeckRecipeImageOptions
 ): Promise<void> {
-  // 1. deckDataがない場合は、dnoから公開デッキ情報を取得
+  // 1. deckDataがない場合は、dnoから自分のデッキ情報を取得
   let deckData = options.deckData;
   if (!deckData && options.dno) {
-    const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&request_locale=ja&dno=${options.dno}`;
-    const response = await axios.get(url);
+    const cgid = await sessionManager.getCgid();
+    const url = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&cgid=${cgid}&dno=${options.dno}`;
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
     deckData = parseDeckDetail(doc);
