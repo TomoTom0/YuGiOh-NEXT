@@ -169,60 +169,32 @@ function parseCardSection(
 ): DeckCard[] {
   const deckCards: DeckCard[] = [];
 
-  // #main980 > #article_body > #deck_detailtext > #detailtext_main の階層を使用
-  const detailtextMain = doc.querySelector('#main980 #article_body #deck_detailtext #detailtext_main');
-  if (!detailtextMain) {
+  // #main980 > #article_body > #deck_detailtext までの階層を取得
+  const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
+  if (!deckDetailtext) {
     return deckCards;
   }
 
-  // セクションのdiv.t_bodyクラスを決定
-  let selectors: string[] = [];
+  // セクションごとに異なる親要素を使用
+  let parentSelector: string;
   if (sectionId === 'main') {
-    // メインデッキは3種類のカードタイプ
-    selectors = ['.t_body.mlist_m', '.t_body.mlist_s', '.t_body.mlist_t'];
+    parentSelector = '#detailtext_main';
   } else if (sectionId === 'extra') {
-    // エクストラデッキ（Extra Deck見出しの後のdiv.t_body）
-    const extraHeading = Array.from(detailtextMain.querySelectorAll('h3')).find(h3 => h3.textContent?.includes('Extra Deck'));
-    if (extraHeading) {
-      const extraContainer = extraHeading.closest('.deck_set') || extraHeading.closest('div');
-      if (extraContainer) {
-        const tBody = extraContainer.querySelector('.t_body');
-        if (tBody) {
-          const rows = tBody.querySelectorAll('.t_row');
-          rows.forEach(row => {
-            const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
-            if (cardInfo) {
-              deckCards.push({ card: cardInfo, quantity: 1 });
-            }
-          });
-        }
-      }
-    }
-    return deckCards;
-  } else if (sectionId === 'side') {
-    // サイドデッキ（Side Deck見出しの後のdiv.t_body）
-    const sideHeading = Array.from(detailtextMain.querySelectorAll('h3')).find(h3 => h3.textContent?.includes('Side Deck'));
-    if (sideHeading) {
-      const sideContainer = sideHeading.closest('.deck_set') || sideHeading.closest('div');
-      if (sideContainer) {
-        const tBody = sideContainer.querySelector('.t_body');
-        if (tBody) {
-          const rows = tBody.querySelectorAll('.t_row');
-          rows.forEach(row => {
-            const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
-            if (cardInfo) {
-              deckCards.push({ card: cardInfo, quantity: 1 });
-            }
-          });
-        }
-      }
-    }
+    parentSelector = '#detailtext_ext';
+  } else { // side
+    parentSelector = '#detailtext_side';
+  }
+
+  const parentElement = deckDetailtext.querySelector(parentSelector);
+  if (!parentElement) {
     return deckCards;
   }
 
-  // メインデッキの各セクションから行を取得
-  selectors.forEach(selector => {
-    const tBody = detailtextMain.querySelector(selector);
+  // すべての.listを取得
+  const lists = parentElement.querySelectorAll('.list');
+
+  lists.forEach(list => {
+    const tBody = list.querySelector('.t_body');
     if (!tBody) {
       return;
     }
@@ -235,10 +207,13 @@ function parseCardSection(
         return;
       }
 
-      // 枚数は常に1（div.t_rowでは枚数情報がカード毎に独立）
+      // 枚数を取得
+      const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
+      const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
+
       deckCards.push({
         card: cardInfo,
-        quantity: 1
+        quantity
       });
     });
   });
