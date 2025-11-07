@@ -60,20 +60,6 @@ export interface CardSection {
 }
 
 /**
- * デッキレシピ画像作成に必要なデータ
- */
-export interface DeckRecipeImageData {
-  /** デッキ名 */
-  deckName: string;
-  /** カードセクション配列 */
-  sections: CardSection[];
-  /** 公開デッキかどうか */
-  isPublic: boolean;
-  /** デッキ番号 */
-  dno: string;
-}
-
-/**
  * デッキレシピ画像作成オプション
  */
 export interface CreateDeckRecipeImageOptions {
@@ -93,7 +79,7 @@ export interface CreateDeckRecipeImageOptions {
   fileName?: string;
 
   /** デッキデータ（既に取得済みの場合、パフォーマンス最適化） */
-  deckData?: DeckRecipeImageData;
+  deckData?: import('./deck').DeckInfo;
 }
 
 /**

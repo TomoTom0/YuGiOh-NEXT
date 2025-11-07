@@ -1,5 +1,7 @@
+import axios from 'axios';
 import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
+import { parseDeckDetail } from '../parser/deck-detail-parser';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -18,16 +20,29 @@ import { createDeckRecipeImage } from './createDeckRecipeImage';
 export async function downloadDeckRecipeImage(
   options: DownloadDeckRecipeImageOptions
 ): Promise<void> {
-  // 1. 画像を作成
-  const result = await createDeckRecipeImage(options);
+  // 1. deckDataがない場合は、dnoから公開デッキ情報を取得
+  let deckData = options.deckData;
+  if (!deckData && options.dno) {
+    const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=4&pid=100&request_locale=ja&dno=${options.dno}`;
+    const response = await axios.get(url);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+    deckData = parseDeckDetail(doc);
+  }
 
-  // 2. ブラウザ環境では常にBlobが返される
+  // 2. 画像を作成
+  const result = await createDeckRecipeImage({
+    ...options,
+    deckData
+  });
+
+  // 3. ブラウザ環境では常にBlobが返される
   const blob = result as Blob;
 
-  // 3. ファイル名を生成
-  const fileName = options.fileName || generateFileName(options.deckData?.deckName);
+  // 4. ファイル名を生成
+  const fileName = options.fileName || generateFileName(deckData?.name);
 
-  // 4. ダウンロードを実行
+  // 5. ダウンロードを実行
   downloadBlob(blob, fileName);
 }
 
