@@ -40,6 +40,13 @@ module.exports = (env, argv) => {
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
+      fallback: {
+        // Node.jsモジュールはブラウザで使用しないため無視
+        "path": false,
+        "url": false,
+        "https": false,
+        "fs": false,
+      },
     },
 
     plugins: [

@@ -19,12 +19,15 @@ export async function downloadDeckRecipeImage(
   options: DownloadDeckRecipeImageOptions
 ): Promise<void> {
   // 1. 画像を作成
-  const blob = await createDeckRecipeImage(options);
+  const result = await createDeckRecipeImage(options);
 
-  // 2. ファイル名を生成
+  // 2. ブラウザ環境では常にBlobが返される
+  const blob = result as Blob;
+
+  // 3. ファイル名を生成
   const fileName = options.fileName || generateFileName(options.deckData?.deckName);
 
-  // 3. ダウンロードを実行
+  // 4. ダウンロードを実行
   downloadBlob(blob, fileName);
 }
 
