@@ -58,6 +58,11 @@ module.exports = (env, argv) => {
             },
             noErrorOnMissing: true,
           },
+          {
+            from: 'src/images',
+            to: 'images',
+            noErrorOnMissing: true,
+          },
         ],
       }),
 

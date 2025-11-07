@@ -8,10 +8,12 @@ import {
   LAYOUT_CONSTANTS,
   CARD_IMAGE_SETTINGS,
   FONT_SETTINGS,
+  QR_CODE_SETTINGS,
   CardSection
 } from '../../types/deck-recipe-image';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
 import { buildCardImageUrl } from '../../api/card-search';
+import QRCode from 'qrcode';
 
 /**
  * デッキレシピ画像を作成する
@@ -285,9 +287,15 @@ async function drawCardSection(
     28 * scale
   );
 
-  // 2. カードバック画像（TODO: 実装予定）
-  // const cardBackImg = await loadCardBackImage();
-  // ctx.drawImage(cardBackImg, 8 * scale, currentY + 9 * scale, 14 * scale, 17 * scale);
+  // 2. カードバック画像
+  try {
+    const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
+    const cardBackImg = await loadImage(cardBackUrl);
+    ctx.drawImage(cardBackImg, 8 * scale, currentY + 9 * scale, 14 * scale, 17 * scale);
+  } catch (error) {
+    console.error('Failed to load card back image:', error);
+    // カードバック画像の読み込みに失敗しても処理は継続
+  }
 
   // 3. セクション名とカード数
   ctx.font = `${FONT_SETTINGS.sectionNameSize * scale}px ${FONT_SETTINGS.family}`;
@@ -353,14 +361,45 @@ function loadImage(url: string): Promise<HTMLImageElement> {
  * @param settings - 描画設定
  */
 async function drawQRCode(
-  _ctx: CanvasRenderingContext2D,
-  _dno: string,
-  _settings: CanvasDrawSettings
+  ctx: CanvasRenderingContext2D,
+  dno: string,
+  settings: CanvasDrawSettings
 ): Promise<void> {
-  // TODO: 実装予定（Phase 3）
-  // - qrcode.jsライブラリを使用
-  // - QRコード生成
-  // - Canvas上に描画
+  const scale = settings.scale;
+
+  // QRコードのURL（公開デッキの表示ページ）
+  const qrUrl = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&dno=${dno}`;
+
+  try {
+    // QRコードを生成（Data URL形式）
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+      errorCorrectionLevel: QR_CODE_SETTINGS.correctLevel,
+      width: QR_CODE_SETTINGS.size * scale,
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+
+    // QRコード画像をロード
+    const qrImage = await loadImage(qrDataUrl);
+
+    // 右下に描画（余白10px）
+    const x = settings.width - (QR_CODE_SETTINGS.size * scale) - (10 * scale);
+    const y = settings.height - (QR_CODE_SETTINGS.size * scale) - (10 * scale);
+
+    ctx.drawImage(
+      qrImage,
+      x,
+      y,
+      QR_CODE_SETTINGS.size * scale,
+      QR_CODE_SETTINGS.size * scale
+    );
+  } catch (error) {
+    console.error('Failed to generate QR code:', error);
+    // QRコード生成に失敗しても処理は継続
+  }
 }
 
 /**
