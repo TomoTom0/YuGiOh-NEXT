@@ -114,10 +114,14 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
 }
 
 /**
- * デッキページ全体からデッキ情報を抽出する
+ * デッキ編集ページ（ope=2）からデッキ情報を抽出する
  *
- * @param doc パース済みのHTMLドキュメント
+ * @param doc パース済みのHTMLドキュメント（編集ページ）
  * @returns デッキ情報
+ *
+ * 注意: この関数は編集ページ専用です。
+ * フォームフィールドから情報を取得するため、表示ページでは動作しません。
+ * 表示ページからデータを取得する場合は parseDeckDetail() を使用してください。
  */
 export function parseDeckPage(doc: Document): DeckInfo {
   // デッキ番号を取得
@@ -133,7 +137,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
   const mainDeck: DeckCard[] = [];
   if (mainDeckElement) {
     const rows = mainDeckElement.querySelectorAll('.card-row');
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const card = parseCardRow(row as HTMLElement);
       if (card) {
         mainDeck.push(card);
@@ -146,7 +150,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
   const extraDeck: DeckCard[] = [];
   if (extraDeckElement) {
     const rows = extraDeckElement.querySelectorAll('.card-row');
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const card = parseCardRow(row as HTMLElement);
       if (card) {
         extraDeck.push(card);
@@ -159,7 +163,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
   const sideDeck: DeckCard[] = [];
   if (sideDeckElement) {
     const rows = sideDeckElement.querySelectorAll('.card-row');
-    rows.forEach(row => {
+    rows.forEach((row) => {
       const card = parseCardRow(row as HTMLElement);
       if (card) {
         sideDeck.push(card);
@@ -190,3 +194,4 @@ export function parseDeckPage(doc: Document): DeckInfo {
     comment
   };
 }
+

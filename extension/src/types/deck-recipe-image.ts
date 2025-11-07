@@ -1,5 +1,3 @@
-import { DeckInfo } from './deck';
-
 /**
  * カラーバリエーション
  */

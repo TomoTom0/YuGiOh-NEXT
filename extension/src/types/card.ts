@@ -32,6 +32,8 @@ export interface CardBase {
   ciid?: string;
   /** 画像ハッシュ（画像URL生成用、オプション） */
   imgHash?: string;
+  /** カード画像URL（完全なURL、encパラメータ込み、オプション） */
+  imageUrl?: string;
   /** 効果テキスト（オプション） */
   text?: string;
 }

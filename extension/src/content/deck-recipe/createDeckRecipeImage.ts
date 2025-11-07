@@ -10,6 +10,8 @@ import {
   FONT_SETTINGS,
   CardSection
 } from '../../types/deck-recipe-image';
+import { parseDeckDetail } from '../parser/deck-detail-parser';
+import { buildCardImageUrl } from '../../api/card-search';
 
 /**
  * デッキレシピ画像を作成する
@@ -35,7 +37,6 @@ export async function createDeckRecipeImage(
     includeQR,
     scale = 2,
     color,
-    fileName,
     deckData
   } = options;
 
@@ -98,110 +99,65 @@ export async function createDeckRecipeImage(
  * @returns デッキレシピ画像作成用のデータ
  */
 async function fetchDeckData(dno: string): Promise<DeckRecipeImageData> {
-  // デッキ名を取得
-  const deckName = getDeckName();
+  // 現在のページ（表示ページ）からデッキ情報をパース
+  const deckInfo = parseDeckDetail(document);
 
-  // カード画像URLをセクションごとに取得
+  // DeckInfo → DeckRecipeImageData に変換
   const sections: CardSection[] = [];
 
   // メインデッキ
-  const mainImages = getCardImagesFromSection('main');
-  if (mainImages.length > 0) {
-    sections.push({
-      name: 'main',
-      displayName: 'メイン',
-      cardImages: mainImages
-    });
+  if (deckInfo.mainDeck.length > 0) {
+    const mainImages = deckInfo.mainDeck
+      .flatMap(dc => Array(dc.quantity).fill(buildCardImageUrl(dc.card) || ''))
+      .filter(url => url !== '');
+
+    if (mainImages.length > 0) {
+      sections.push({
+        name: 'main',
+        displayName: 'メイン',
+        cardImages: mainImages
+      });
+    }
   }
 
   // エクストラデッキ
-  const extraImages = getCardImagesFromSection('extra');
-  if (extraImages.length > 0) {
-    sections.push({
-      name: 'extra',
-      displayName: 'エクストラ',
-      cardImages: extraImages
-    });
+  if (deckInfo.extraDeck.length > 0) {
+    const extraImages = deckInfo.extraDeck
+      .flatMap(dc => Array(dc.quantity).fill(buildCardImageUrl(dc.card) || ''))
+      .filter(url => url !== '');
+
+    if (extraImages.length > 0) {
+      sections.push({
+        name: 'extra',
+        displayName: 'エクストラ',
+        cardImages: extraImages
+      });
+    }
   }
 
   // サイドデッキ
-  const sideImages = getCardImagesFromSection('side');
-  if (sideImages.length > 0) {
-    sections.push({
-      name: 'side',
-      displayName: 'サイド',
-      cardImages: sideImages
-    });
+  if (deckInfo.sideDeck.length > 0) {
+    const sideImages = deckInfo.sideDeck
+      .flatMap(dc => Array(dc.quantity).fill(buildCardImageUrl(dc.card) || ''))
+      .filter(url => url !== '');
+
+    if (sideImages.length > 0) {
+      sections.push({
+        name: 'side',
+        displayName: 'サイド',
+        cardImages: sideImages
+      });
+    }
   }
 
-  // 公開フラグを取得
-  const isPublic = getIsPublic();
-
   return {
-    deckName,
+    deckName: deckInfo.name,
     sections,
-    isPublic,
+    isPublic: deckInfo.isPublic ?? false,
     dno
   };
 }
 
-/**
- * デッキ名を取得する
- *
- * @returns デッキ名
- */
-function getDeckName(): string {
-  // 新UI（2024/9/11以降）
-  const dnmElement = document.getElementById('dnm') as HTMLInputElement | null;
-  if (dnmElement) {
-    return dnmElement.value || dnmElement.getAttribute('placeholder') || 'デッキ';
-  }
-
-  // 旧UI（2024/9/11以前）
-  const titleElement = document.querySelector('#broad_title h1');
-  if (titleElement && titleElement.innerHTML) {
-    const parts = titleElement.innerHTML.split('<br>');
-    if (parts.length > 0) {
-      const namePart = parts[0].split('】');
-      if (namePart.length > 1) {
-        return namePart[1].trim();
-      }
-    }
-  }
-
-  return 'デッキ';
-}
-
-/**
- * セクションからカード画像URLを取得する
- *
- * @param sectionName - セクション名（'main' | 'extra' | 'side'）
- * @returns カード画像URLの配列
- */
-function getCardImagesFromSection(sectionName: 'main' | 'extra' | 'side'): string[] {
-  const selector = `#deck_image #${sectionName}.card_set div.image_set span>img`;
-  const imgElements = document.querySelectorAll<HTMLImageElement>(selector);
-
-  const urls: string[] = [];
-  imgElements.forEach(img => {
-    if (img.src) {
-      urls.push(img.src);
-    }
-  });
-
-  return urls;
-}
-
-/**
- * デッキの公開フラグを取得する
- *
- * @returns 公開デッキの場合true
- */
-function getIsPublic(): boolean {
-  // TODO: 公開フラグの判定ロジックを実装
-  // DOMから公開/非公開の情報を取得する必要がある
-  return false;
-}
 
 /**
  * Canvas描画設定を初期化する
@@ -397,9 +353,9 @@ function loadImage(url: string): Promise<HTMLImageElement> {
  * @param settings - 描画設定
  */
 async function drawQRCode(
-  ctx: CanvasRenderingContext2D,
-  dno: string,
-  settings: CanvasDrawSettings
+  _ctx: CanvasRenderingContext2D,
+  _dno: string,
+  _settings: CanvasDrawSettings
 ): Promise<void> {
   // TODO: 実装予定（Phase 3）
   // - qrcode.jsライブラリを使用

@@ -620,7 +620,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
  * HTMLから画像URL情報（ciid, imgHash）を抽出する
  * JavaScriptコード内の画像URL設定からcidごとのマッピングを作成
  */
-function extractImageInfo(doc: Document): Map<string, { ciid?: string; imgHash?: string }> {
+export function extractImageInfo(doc: Document): Map<string, { ciid?: string; imgHash?: string }> {
   const imageInfoMap = new Map<string, { ciid?: string; imgHash?: string }>();
 
   // scriptタグとインラインJavaScriptから画像URL設定を検索
@@ -641,6 +641,20 @@ function extractImageInfo(doc: Document): Map<string, { ciid?: string; imgHash?:
   }
 
   return imageInfoMap;
+}
+
+/**
+ * カード情報から画像URLを構築する
+ *
+ * @param card カード基本情報
+ * @returns 画像URL、構築できない場合はundefined
+ */
+export function buildCardImageUrl(card: CardBase): string | undefined {
+  if (!card.ciid || !card.imgHash) {
+    return undefined;
+  }
+
+  return `/yugiohdb/get_image.action?type=1&lang=${card.imageId}&cid=${card.cardId}&ciid=${card.ciid}&enc=${card.imgHash}&osplang=1`;
 }
 
 /**
@@ -1001,7 +1015,7 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
  * @param imageInfoMap cidごとの画像情報マップ
  * @returns カード情報、パースできない場合はnull
  */
-function parseSearchResultRow(
+export function parseSearchResultRow(
   row: HTMLElement,
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>
 ): CardInfo | null {
