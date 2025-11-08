@@ -58,6 +58,10 @@ module.exports = (env, argv) => {
             to: 'manifest.json',
           },
           {
+            from: 'src/options.html',
+            to: 'options.html',
+          },
+          {
             from: 'public',
             to: '.',
             globOptions: {
