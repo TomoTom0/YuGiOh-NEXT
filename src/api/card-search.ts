@@ -626,7 +626,8 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
   const htmlText = doc.documentElement.innerHTML;
 
   // パターン: get_image.action?...cid=123&ciid=1&enc=xxxxx
-  const regex = /get_image\.action\?[^'"]*cid=(\d+)(?:&ciid=(\d+))?(?:&enc=([^&'"\s]+))?/g;
+  // HTMLエスケープされた &amp; にも対応
+  const regex = /get_image\.action\?[^'"]*cid=(\d+)(?:&(?:amp;)?ciid=(\d+))?(?:&(?:amp;)?enc=([^&'"\s]+))?/g;
   let match;
 
   while ((match = regex.exec(htmlText)) !== null) {

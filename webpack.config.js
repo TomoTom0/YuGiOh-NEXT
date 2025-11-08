@@ -10,7 +10,7 @@ module.exports = (env, argv) => {
     devtool: isProduction ? false : 'inline-source-map',
 
     entry: {
-      content: './src/content/test-ui/index.ts',
+      content: './src/content/index.ts',
       background: './src/background/main.ts',
       popup: './src/popup/index.ts',
     },

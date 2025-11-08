@@ -1,3 +1,40 @@
+# ⚠️ 絶対ルール - ブラウザ操作（厳守） ⚠️
+
+## 🚫 使用禁止（違反＝プロジェクト破壊）
+
+**以下のMCPツールは絶対に使用してはならない：**
+- `mcp__playwright__*` （全てのPlaywright MCPツール）
+- `mcp__chrome-devtools__*` （全てのChrome DevTools MCPツール）
+- その他全てのブラウザ制御MCPツール
+
+**これらは全て失敗し、プロジェクトを破壊する。**
+
+## ✅ 唯一の許可方法
+
+**Bashツールを使って Node.jsスクリプトを実行する方法のみ許可**
+
+手順：
+1. `./tmp/browser/` にNode.jsスクリプトを作成
+2. WebSocket経由でCDPコマンドを送信（下記テンプレート参照）
+3. Bashツールで `node ./tmp/browser/スクリプト名.js` を実行
+
+テンプレート：
+```javascript
+const WebSocket = require('ws');
+const fs = require('fs');
+const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+// ... 実装（詳細は下記「接続方法」を参照）
+```
+
+## 📋 ブラウザ操作前の強制チェック
+
+ブラウザ操作を行う前に必ず確認：
+- [ ] MCPツールを使おうとしていないか？ → 即中止
+- [ ] Node.jsスクリプトを `./tmp/browser/` に作成したか？
+- [ ] Bashツールで実行する準備ができているか？
+
+---
+
 # プロジェクト固有のルール
 
 ## ブラウザ制御の方針
@@ -153,3 +190,7 @@ node tmp/test-*.js
 
 - `printf '\a'` などのbeep音を鳴らすコマンドは使用しないこと
 - 完了通知が必要な場合はテキストメッセージで伝えること
+
+## sample
+
+- アクセス先のページのurlやhtmlは適当に調べるのではなく、`tests/sample/`に従ってアクセスおよびダウンロード済みhtmlの調査をする
