@@ -27,5 +27,16 @@
 
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+
+  "icons": {
+    "128": "images/card_back.png"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["images/*"],
+      "matches": ["https://www.db.yugioh-card.com/*"]
+    }
+  ]
 }

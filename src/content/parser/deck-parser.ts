@@ -6,17 +6,17 @@ import { detectCardType } from '../card/detector';
  * カードタイプ別のフィールド名マッピング
  */
 const CARD_TYPE_FIELDS = {
-  'モンスター': {
+  'monster': {
     cardIdName: 'monsterCardId',
     imgsName: 'monster_imgs',
     numberName: 'monster_card_number'
   },
-  '魔法': {
+  'spell': {
     cardIdName: 'spellCardId',
     imgsName: 'spell_imgs',
     numberName: 'spell_card_number'
   },
-  '罠': {
+  'trap': {
     cardIdName: 'trapCardId',
     imgsName: 'trap_imgs',
     numberName: 'trap_card_number'
@@ -75,13 +75,13 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
   // デッキページには限定的な情報しかないため、必須フィールドに仮の値を設定
   let card: CardInfo;
 
-  if (cardType === 'モンスター') {
+  if (cardType === 'monster') {
     // モンスターカードの場合、必須フィールドに仮の値を設定
     card = {
       name,
       cardId,
       imageId,
-      cardType: 'モンスター',
+      cardType: 'monster',
       attribute: 'light', // デッキページからは取得不可、後で更新が必要
       levelType: 'level', // デッキページからは取得不可、後で更新が必要
       levelValue: 0, // デッキページからは取得不可、後で更新が必要
@@ -89,13 +89,13 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
       types: [], // デッキページからは取得不可、後で更新が必要
       isExtraDeck: false // デッキページからは正確に判定不可、後で更新が必要
     } as MonsterCard;
-  } else if (cardType === '魔法') {
+  } else if (cardType === 'spell') {
     // 魔法カードの場合
     card = {
       name,
       cardId,
       imageId,
-      cardType: '魔法'
+      cardType: 'spell'
     } as SpellCard;
   } else {
     // 罠カードの場合
@@ -103,7 +103,7 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
       name,
       cardId,
       imageId,
-      cardType: '罠'
+      cardType: 'trap'
     } as TrapCard;
   }
 
@@ -175,13 +175,18 @@ export function parseDeckPage(doc: Document): DeckInfo {
   const isPublicCheckbox = doc.querySelector('input[name="is_public"]') as HTMLInputElement;
   const isPublic = isPublicCheckbox?.checked || false;
 
-  // デッキタイプを取得
+  // デッキタイプを取得（value値として保存）
   const deckTypeSelect = doc.querySelector('select[name="deck_type"]') as HTMLSelectElement;
-  const deckType = deckTypeSelect?.value ? parseInt(deckTypeSelect.value, 10) : undefined;
+  const deckType = deckTypeSelect?.value || undefined;
 
   // コメントを取得
   const commentTextarea = doc.querySelector('textarea[name="comment"]') as HTMLTextAreaElement;
-  const comment = commentTextarea?.value || undefined;
+  const comment = commentTextarea?.value || "";
+
+  // カテゴリ、タグ、デッキコードを取得（編集ページでは未実装のため空の値）
+  const category: string[] = [];
+  const tags: string[] = [];
+  const deckCode = "";
 
   return {
     dno,
@@ -191,7 +196,10 @@ export function parseDeckPage(doc: Document): DeckInfo {
     sideDeck,
     isPublic,
     deckType,
-    comment
+    category,
+    tags,
+    comment,
+    deckCode
   };
 }
 

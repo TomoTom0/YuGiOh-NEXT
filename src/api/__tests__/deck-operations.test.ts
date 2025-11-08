@@ -103,7 +103,7 @@ describe('デッキ操作API', () => {
               name: 'ブラック・マジシャン',
               cardId: '12345',
               imageId: '1',
-              cardType: 'モンスター' as const,
+              cardType: 'monster' as const,
               attribute: 'dark' as const,
               levelType: 'level' as const,
               levelValue: 7,

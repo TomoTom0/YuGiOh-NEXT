@@ -27,12 +27,12 @@ export function detectCardType(row: HTMLElement): CardType | null {
 
   // src属性の文字列から判定
   if (src.includes('attribute_icon_spell')) {
-    return '魔法';
+    return 'spell';
   } else if (src.includes('attribute_icon_trap')) {
-    return '罠';
+    return 'trap';
   } else if (src.includes('attribute_icon_')) {
     // モンスターの属性アイコン（light, dark, water, fire, earth, wind, divine）
-    return 'モンスター';
+    return 'monster';
   }
 
   // 認識できないアイコンの場合
@@ -65,7 +65,7 @@ export function isExtraDeckMonster(row: HTMLElement): boolean {
     // 2. レベル/ランク要素が存在しない → リンクモンスター
     // ただし、モンスターカードであることを確認
     const cardType = detectCardType(row);
-    if (cardType === 'モンスター') {
+    if (cardType === 'monster') {
       return true;
     }
   }

@@ -1,6 +1,8 @@
 import axios from 'axios';
-import { DeckInfo, OperationResult } from '@/types/deck';
+import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 import { DeckCard } from '@/types/card';
+import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
+import { parseDeckList } from '@/content/parser/deck-list-parser';
 
 const BASE_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 
@@ -207,11 +209,11 @@ function appendCardToFormData(
   let imgsName: string;
   let numberName: string;
 
-  if (card.cardType === 'モンスター') {
+  if (card.cardType === 'monster') {
     cardIdName = 'monsterCardId';
     imgsName = 'monster_imgs';
     numberName = 'monster_card_number';
-  } else if (card.cardType === '魔法') {
+  } else if (card.cardType === 'spell') {
     cardIdName = 'spellCardId';
     imgsName = 'spell_imgs';
     numberName = 'spell_card_number';
@@ -225,4 +227,92 @@ function appendCardToFormData(
   formData.append(cardIdName, card.cardId);
   formData.append(imgsName, card.imageId || '1');
   formData.append(numberName, quantity.toString());
+}
+
+/**
+ * デッキ個別情報を取得する
+ *
+ * @param dno デッキ番号
+ * @param cgid ユーザー識別子（非公開デッキの場合は必須、公開デッキの場合は省略可）
+ * @returns デッキ情報、取得失敗時はnull
+ *
+ * @example
+ * ```typescript
+ * // 公開デッキを取得
+ * const deck = await getDeckDetail(95);
+ *
+ * // 非公開デッキを取得（cgid必須）
+ * const deck = await getDeckDetail(3, 'your-cgid-here');
+ * ```
+ */
+export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
+  try {
+    // URLパラメータを構築
+    const params = new URLSearchParams({
+      ope: '1',
+      dno: dno.toString(),
+      request_locale: 'ja'
+    });
+
+    // cgidが指定されている場合は追加
+    if (cgid) {
+      params.append('cgid', cgid);
+    }
+
+    const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+      withCredentials: true
+    });
+
+    const html = response.data;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // parseDeckDetailを使用してデッキ情報を抽出
+    const deckInfo = parseDeckDetail(doc);
+
+    return deckInfo;
+  } catch (error) {
+    console.error('Failed to get deck detail:', error);
+    return null;
+  }
+}
+
+/**
+ * マイデッキ一覧を取得する（内部関数）
+ *
+ * @param cgid ユーザー識別子
+ * @returns デッキ一覧、取得失敗時は空配列
+ * @internal SessionManager経由で呼び出すこと
+ *
+ * @example
+ * ```typescript
+ * const deckList = await getDeckListInternal('your-cgid-here');
+ * console.log(`Found ${deckList.length} decks`);
+ * ```
+ */
+export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
+  try {
+    // URLパラメータを構築
+    const params = new URLSearchParams({
+      ope: '4',
+      cgid: cgid,
+      request_locale: 'ja'
+    });
+
+    const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+      withCredentials: true
+    });
+
+    const html = response.data;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // parseDeckListを使用してデッキ一覧を抽出
+    const deckList = parseDeckList(doc);
+
+    return deckList;
+  } catch (error) {
+    console.error('Failed to get deck list:', error);
+    return [];
+  }
 }

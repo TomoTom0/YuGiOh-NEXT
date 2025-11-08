@@ -59,13 +59,13 @@ describe('カード検索API', () => {
       expect(result[0]).toEqual({
         name: 'ブラック・マジシャン',
         cardId: '12345',
-        cardType: 'モンスター',
+        cardType: 'monster',
         imageId: '1'
       });
       expect(result[1]).toEqual({
         name: 'ブラック・マジック',
         cardId: '67890',
-        cardType: '魔法',
+        cardType: 'spell',
         imageId: '2'
       });
     });
@@ -77,7 +77,7 @@ describe('カード検索API', () => {
         text: async () => mockResponse
       });
 
-      await searchCardsByName('青眼', 'モンスター');
+      await searchCardsByName('青眼', 'monster');
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('ctype=1'),
@@ -92,7 +92,7 @@ describe('カード検索API', () => {
         text: async () => mockResponse
       });
 
-      await searchCardsByName('融合', '魔法');
+      await searchCardsByName('融合', 'spell');
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('ctype=2'),
@@ -107,7 +107,7 @@ describe('カード検索API', () => {
         text: async () => mockResponse
       });
 
-      await searchCardsByName('ミラー', '罠');
+      await searchCardsByName('ミラー', 'trap');
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('ctype=3'),
@@ -171,7 +171,7 @@ describe('カード検索API', () => {
       expect(result).toEqual({
         name: '青眼の白龍',
         cardId: '12345',
-        cardType: 'モンスター',
+        cardType: 'monster',
         imageId: '1'
       });
     });

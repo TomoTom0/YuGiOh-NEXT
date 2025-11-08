@@ -7,8 +7,9 @@
 
 // Import実装済み関数
 import { sessionManager } from '../session/session';
-import { searchCardsByName } from '@/api/card-search';
-import { detectCardType } from '../card/detector';
+import { searchCardsByName, getCardDetail } from '@/api/card-search';
+import { getDeckDetail } from '@/api/deck-operations';
+import { getCardFAQList, getFAQDetail } from '@/api/card-faq';
 import { downloadDeckRecipeImage } from '../deck-recipe';
 import type { CardType } from '@/types/card';
 import type { ColorVariant } from '@/types/deck-recipe-image';
@@ -135,10 +136,26 @@ function getTestUITemplate(): string {
         <h2>デッキ操作</h2>
         <div class="test-controls">
           <button id="btn-create-deck">新規デッキ作成</button>
-          <button id="btn-duplicate-deck">デッキ複製 (dno=4)</button>
-          <button id="btn-delete-deck">デッキ削除 (dno=4)</button>
         </div>
         <div class="test-result" id="result-deck-ops"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>デッキ複製</h2>
+        <div class="test-controls">
+          <input type="number" id="input-duplicate-dno" placeholder="複製元デッキ番号" value="4">
+          <button id="btn-duplicate-deck">複製</button>
+        </div>
+        <div class="test-result" id="result-duplicate"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>デッキ削除</h2>
+        <div class="test-controls">
+          <input type="number" id="input-delete-dno" placeholder="削除デッキ番号" value="4">
+          <button id="btn-delete-deck">削除</button>
+        </div>
+        <div class="test-result" id="result-delete"></div>
       </div>
 
       <div class="test-section">
@@ -149,14 +166,6 @@ function getTestUITemplate(): string {
           <button id="btn-save-deck">保存</button>
         </div>
         <div class="test-result" id="result-save"></div>
-      </div>
-
-      <div class="test-section">
-        <h2>カードタイプ判定テスト</h2>
-        <div class="test-controls">
-          <button id="btn-test-detector">判定テスト実行</button>
-        </div>
-        <div class="test-result" id="result-detector"></div>
       </div>
 
       <div class="test-section">
@@ -173,6 +182,50 @@ function getTestUITemplate(): string {
           <button id="btn-create-recipe-image">画像作成＆ダウンロード</button>
         </div>
         <div class="test-result" id="result-recipe"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>デッキ個別取得</h2>
+        <div class="test-controls">
+          <input type="number" id="input-get-deck-dno" placeholder="デッキ番号" value="4">
+          <button id="btn-get-deck">取得</button>
+        </div>
+        <div class="test-result" id="result-get-deck"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>マイデッキ一覧取得</h2>
+        <div class="test-controls">
+          <button id="btn-get-deck-list">取得</button>
+        </div>
+        <div class="test-result" id="result-deck-list"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>カード詳細情報取得</h2>
+        <div class="test-controls">
+          <input type="text" id="input-card-detail-id" placeholder="カードID" value="4335">
+          <button id="btn-get-card-detail">取得</button>
+        </div>
+        <div class="test-result" id="result-card-detail"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>カードQA一覧取得</h2>
+        <div class="test-controls">
+          <input type="text" id="input-faq-list-cid" placeholder="カードID" value="4335">
+          <button id="btn-get-faq-list">取得</button>
+        </div>
+        <div class="test-result" id="result-faq-list"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>個別QA詳細取得</h2>
+        <div class="test-controls">
+          <input type="text" id="input-faq-detail-fid" placeholder="FAQ ID" value="115">
+          <button id="btn-get-faq-detail">取得</button>
+        </div>
+        <div class="test-result" id="result-faq-detail"></div>
       </div>
     </div>
 
@@ -234,11 +287,11 @@ function getTestUITemplate(): string {
       input[type="text"],
       input[type="number"],
       select {
-        padding: 10px;
+        padding: 8px 12px;
         border: 1px solid #ddd;
         border-radius: 4px;
         font-size: 14px;
-        flex: 1;
+        max-width: 300px;
         min-width: 150px;
       }
 
@@ -320,11 +373,23 @@ function attachEventHandlers(): void {
   // デッキ保存
   document.getElementById('btn-save-deck')?.addEventListener('click', handleSaveDeck);
 
-  // カードタイプ判定テスト
-  document.getElementById('btn-test-detector')?.addEventListener('click', handleTestDetector);
-
   // デッキレシピ画像作成
   document.getElementById('btn-create-recipe-image')?.addEventListener('click', handleCreateRecipeImage);
+
+  // デッキ個別取得
+  document.getElementById('btn-get-deck')?.addEventListener('click', handleGetDeck);
+
+  // マイデッキ一覧取得
+  document.getElementById('btn-get-deck-list')?.addEventListener('click', handleGetDeckList);
+
+  // カード詳細情報取得
+  document.getElementById('btn-get-card-detail')?.addEventListener('click', handleGetCardDetail);
+
+  // カードQA一覧取得
+  document.getElementById('btn-get-faq-list')?.addEventListener('click', handleGetFAQList);
+
+  // 個別QA詳細取得
+  document.getElementById('btn-get-faq-detail')?.addEventListener('click', handleGetFAQDetail);
 }
 
 /**
@@ -390,29 +455,35 @@ async function handleCreateDeck(): Promise<void> {
 
 async function handleDuplicateDeck(): Promise<void> {
   try {
-    displayResult('result-deck-ops', { message: 'デッキ複製中...' });
-    const newDno = await sessionManager.duplicateDeck(4);
-    displayResult('result-deck-ops', {
+    const dnoInput = document.getElementById('input-duplicate-dno') as HTMLInputElement;
+    const sourceDno = parseInt(dnoInput.value, 10);
+
+    displayResult('result-duplicate', { message: 'デッキ複製中...', sourceDno });
+    const newDno = await sessionManager.duplicateDeck(sourceDno);
+    displayResult('result-duplicate', {
       message: 'デッキ複製完了',
-      sourceDno: 4,
+      sourceDno,
       newDno
     });
   } catch (error) {
-    displayResult('result-deck-ops', { error: String(error) }, true);
+    displayResult('result-duplicate', { error: String(error) }, true);
   }
 }
 
 async function handleDeleteDeck(): Promise<void> {
   try {
-    displayResult('result-deck-ops', { message: 'デッキ削除中...' });
-    const result = await sessionManager.deleteDeck(4);
-    displayResult('result-deck-ops', {
+    const dnoInput = document.getElementById('input-delete-dno') as HTMLInputElement;
+    const dno = parseInt(dnoInput.value, 10);
+
+    displayResult('result-delete', { message: 'デッキ削除中...', dno });
+    const result = await sessionManager.deleteDeck(dno);
+    displayResult('result-delete', {
       message: 'デッキ削除完了',
-      dno: 4,
+      dno,
       result
     }, !result.success);
   } catch (error) {
-    displayResult('result-deck-ops', { error: String(error) }, true);
+    displayResult('result-delete', { error: String(error) }, true);
   }
 }
 
@@ -434,7 +505,7 @@ async function handleSaveDeck(): Promise<void> {
             name: 'ブラック・マジシャン',
             cardId: '4335',
             imageId: '1',
-            cardType: 'モンスター' as const,
+            cardType: 'monster' as const,
             attribute: 'dark' as const,
             levelType: 'level' as const,
             levelValue: 7,
@@ -446,7 +517,11 @@ async function handleSaveDeck(): Promise<void> {
         }
       ],
       extraDeck: [],
-      sideDeck: []
+      sideDeck: [],
+      category: [],
+      tags: [],
+      comment: "",
+      deckCode: ""
     };
 
     displayResult('result-save', { message: 'デッキ保存中...' });
@@ -462,45 +537,6 @@ async function handleSaveDeck(): Promise<void> {
   }
 }
 
-async function handleTestDetector(): Promise<void> {
-  try {
-    // テスト用のHTML要素を作成
-    const tests = [
-      {
-        name: 'モンスター（光属性）',
-        html: '<div class="box_card_attribute"><img src="/yugiohdb/icon/attribute_icon_light.png"></div>'
-      },
-      {
-        name: '魔法',
-        html: '<div class="box_card_attribute"><img src="/yugiohdb/icon/attribute_icon_spell.png"></div>'
-      },
-      {
-        name: '罠',
-        html: '<div class="box_card_attribute"><img src="/yugiohdb/icon/attribute_icon_trap.png"></div>'
-      }
-    ];
-
-    const results = tests.map(test => {
-      const container = document.createElement('div');
-      container.innerHTML = test.html;
-      const element = container.firstElementChild as HTMLElement;
-      const detectedType = detectCardType(element);
-
-      return {
-        test: test.name,
-        detected: detectedType,
-        success: detectedType !== null
-      };
-    });
-
-    displayResult('result-detector', {
-      message: 'カードタイプ判定テスト完了',
-      results
-    });
-  } catch (error) {
-    displayResult('result-detector', { error: String(error) }, true);
-  }
-}
 
 async function handleCreateRecipeImage(): Promise<void> {
   try {
@@ -548,6 +584,99 @@ async function handleCreateRecipeImage(): Promise<void> {
       error: String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, true);
+  }
+}
+
+async function handleGetDeck(): Promise<void> {
+  try {
+    const dnoInput = document.getElementById('input-get-deck-dno') as HTMLInputElement;
+    const dno = parseInt(dnoInput.value, 10);
+
+    displayResult('result-get-deck', { message: 'デッキ取得中...' });
+
+    const cgid = await sessionManager.getCgid();
+    const deckInfo = await getDeckDetail(dno, cgid);
+
+    displayResult('result-get-deck', {
+      message: 'デッキ取得完了',
+      dno,
+      deckInfo
+    }, !deckInfo);
+  } catch (error) {
+    displayResult('result-get-deck', { error: String(error) }, true);
+  }
+}
+
+async function handleGetDeckList(): Promise<void> {
+  try {
+    displayResult('result-deck-list', { message: 'デッキ一覧取得中...' });
+
+    const deckList = await sessionManager.getDeckList();
+
+    displayResult('result-deck-list', {
+      message: 'デッキ一覧取得完了',
+      count: deckList.length,
+      deckList
+    });
+  } catch (error) {
+    displayResult('result-deck-list', { error: String(error) }, true);
+  }
+}
+
+async function handleGetCardDetail(): Promise<void> {
+  try {
+    const cardIdInput = document.getElementById('input-card-detail-id') as HTMLInputElement;
+    const cardId = cardIdInput.value;
+
+    displayResult('result-card-detail', { message: 'カード詳細取得中...' });
+
+    const cardDetail = await getCardDetail(cardId);
+
+    displayResult('result-card-detail', {
+      message: 'カード詳細取得完了',
+      cardId,
+      cardDetail
+    }, !cardDetail);
+  } catch (error) {
+    displayResult('result-card-detail', { error: String(error) }, true);
+  }
+}
+
+async function handleGetFAQList(): Promise<void> {
+  try {
+    const cardIdInput = document.getElementById('input-faq-list-cid') as HTMLInputElement;
+    const cardId = cardIdInput.value;
+
+    displayResult('result-faq-list', { message: 'カードQA一覧取得中...' });
+
+    const faqList = await getCardFAQList(cardId);
+
+    displayResult('result-faq-list', {
+      message: 'カードQA一覧取得完了',
+      cardId,
+      faqList
+    }, !faqList);
+  } catch (error) {
+    displayResult('result-faq-list', { error: String(error) }, true);
+  }
+}
+
+async function handleGetFAQDetail(): Promise<void> {
+  try {
+    const faqIdInput = document.getElementById('input-faq-detail-fid') as HTMLInputElement;
+    const faqId = faqIdInput.value;
+
+    displayResult('result-faq-detail', { message: '個別QA詳細取得中...' });
+
+    const faqDetail = await getFAQDetail(faqId);
+
+    displayResult('result-faq-detail', {
+      message: '個別QA詳細取得完了',
+      faqId,
+      faqDetail
+    }, !faqDetail);
+  } catch (error) {
+    displayResult('result-faq-detail', { error: String(error) }, true);
   }
 }
 

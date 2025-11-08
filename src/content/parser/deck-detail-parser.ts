@@ -46,10 +46,13 @@ export function parseDeckDetail(doc: Document): DeckInfo {
   // cgidを取得（公開デッキの場合）
   const cgid = extractCgidFromPage(doc);
 
-  // デッキタイプ、デッキスタイル、カテゴリ、コメント、デッキコードを取得
+  // デッキタイプ、デッキスタイル（オプショナル）
   const deckType = extractDeckType(doc);
   const deckStyle = extractDeckStyle(doc);
+
+  // カテゴリ、タグ、コメント、デッキコード（必須）
   const category = extractCategory(doc);
+  const tags = extractTags(doc);
   const comment = extractComment(doc);
   const deckCode = extractDeckCode(doc);
 
@@ -64,6 +67,7 @@ export function parseDeckDetail(doc: Document): DeckInfo {
     deckType,
     deckStyle,
     category,
+    tags,
     comment,
     deckCode
   };
@@ -402,10 +406,48 @@ function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
  * @param _doc ドキュメント
  * @returns カテゴリID配列
  */
-function extractCategory(_doc: Document): DeckCategory | undefined {
-  // TODO: カテゴリ情報の抽出実装
-  // 現在、公開デッキページにはカテゴリ情報が表示されていないため、undefinedを返す
-  return undefined;
+function extractCategory(doc: Document): DeckCategory {
+  // <dd class="regist_category"><span>マジェスペクター</span><span>竜剣士</span></dd>
+  const dd = doc.querySelector('dd.regist_category');
+  if (dd) {
+    // フィールドが存在する場合、span要素からカテゴリ名を抽出
+    const spans = dd.querySelectorAll('span');
+    const categories: string[] = [];
+    spans.forEach(span => {
+      const text = span.textContent?.trim();
+      if (text) {
+        categories.push(text);
+      }
+    });
+    return categories;
+  }
+  // フィールドが存在しない場合も空配列を返す
+  return [];
+}
+
+/**
+ * 登録タグを抽出する
+ *
+ * @param doc ドキュメント
+ * @returns 登録タグ（タグ名の配列）
+ */
+function extractTags(doc: Document): string[] {
+  // <dd class="regist_tag"><span>大会優勝デッキ</span><span>...</span></dd>
+  const dd = doc.querySelector('dd.regist_tag');
+  if (dd) {
+    // フィールドが存在する場合、span要素からタグ名を抽出
+    const spans = dd.querySelectorAll('span');
+    const tags: string[] = [];
+    spans.forEach(span => {
+      const text = span.textContent?.trim();
+      if (text) {
+        tags.push(text);
+      }
+    });
+    return tags;
+  }
+  // フィールドが存在しない場合も空配列を返す
+  return [];
 }
 
 /**
@@ -414,7 +456,7 @@ function extractCategory(_doc: Document): DeckCategory | undefined {
  * @param doc ドキュメント
  * @returns コメント
  */
-function extractComment(doc: Document): string | undefined {
+function extractComment(doc: Document): string {
   // <dt><span>コメント</span></dt><dd class="text_set"><span class="biko">...</span></dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
@@ -422,11 +464,15 @@ function extractComment(doc: Document): string | undefined {
       const dd = dt.nextElementSibling;
       if (dd?.classList.contains('text_set')) {
         const span = dd.querySelector('span.biko');
-        return span?.textContent?.trim() || undefined;
+        // フィールドが存在する場合は空文字列でも返す
+        if (span) {
+          return span.textContent?.trim() ?? "";
+        }
       }
     }
   }
-  return undefined;
+  // フィールドが存在しない場合も空文字列を返す
+  return "";
 }
 
 /**
@@ -435,8 +481,24 @@ function extractComment(doc: Document): string | undefined {
  * @param _doc ドキュメント
  * @returns デッキコード
  */
-function extractDeckCode(_doc: Document): string | undefined {
-  // TODO: デッキコード情報の抽出実装
-  // デッキコード情報が見つからない場合はundefined
-  return undefined;
+function extractDeckCode(doc: Document): string {
+  // <dt><span>デッキコード</span></dt><dd class="a_set">...</dd>
+  const dtElements = doc.querySelectorAll('dt');
+  for (const dt of dtElements) {
+    if (dt.textContent?.includes('デッキコード')) {
+      const dd = dt.nextElementSibling;
+      if (dd?.classList.contains('a_set')) {
+        // フィールドが存在する場合、デッキコードのテキストを探す
+        // ボタンやリンク以外のテキストノードを取得
+        const text = dd.textContent?.trim() ?? "";
+        // 「デッキコードを発行」のようなボタンテキストを除外
+        if (text.includes('発行')) {
+          return "";
+        }
+        return text;
+      }
+    }
+  }
+  // フィールドが存在しない場合も空文字列を返す
+  return "";
 }

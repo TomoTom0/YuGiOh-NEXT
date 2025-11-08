@@ -10,12 +10,12 @@
 
 ### ✅ 正しい方法: Chrome DevTools Protocol（CDP）を使用
 
-普通のGoogle Chromeをリモートデバッグモードで起動し、WebSocket経由で制御します。
+**Chromium**をリモートデバッグモードで起動し、WebSocket経由で制御します。
 
 #### 起動方法
 
 ```bash
-# Chrome起動（リモートデバッグモード + 拡張機能ロード）
+# Chromium起動（リモートデバッグモード + 拡張機能ロード）
 ./scripts/debug/setup/start-chrome.sh
 
 # 停止
@@ -55,10 +55,10 @@ await sendCommand('Runtime.evaluate', { expression: 'document.title' });
 
 #### この方法の利点
 
-1. **ログイン可能**: 普通のChromeブラウザなので、ユーザーが手動でログインできる
+1. **ログイン可能**: Chromiumブラウザなので、ユーザーが手動でログインできる
 2. **セッション永続化**: `--user-data-dir=.chrome_cache` でログイン状態を保持
-3. **拡張機能ロード**: `--load-extension` でChrome拡張を読み込める
-4. **実機での動作確認**: 本番環境と同じブラウザで動作確認できる
+3. **拡張機能ロード**: `--load-extension` でChrome拡張を読み込める（Google Chromeと異なり正式サポート）
+4. **実機での動作確認**: 本番環境に近いブラウザで動作確認できる
 
 ### ❌ 避けるべき方法
 
@@ -72,6 +72,7 @@ google-chrome --load-extension=... --remote-debugging-port=9222
 **理由**:
 - Google Chromeは `--load-extension` フラグを無視する
 - ログに `WARNING: --load-extension is not allowed in Google Chrome, ignoring.` が出力される
+- **そのためChromium（chromium-browser）を使用する**
 
 #### 2. Playwright persistentContext
 
@@ -126,7 +127,7 @@ node tmp/test-*.js
 
 以下のディレクトリは`.gitignore`に含まれています：
 - `tmp/` - 一時的なテストスクリプトやデバッグファイル
-- `.chrome_cache/` - Chromeのユーザープロファイル
+- `.chrome_cache/` - Chromiumのユーザープロファイル
 - `dist/` - ビルド出力
 - `node_modules/` - npmパッケージ
 

@@ -3,9 +3,10 @@ import {
   createNewDeckInternal,
   duplicateDeckInternal,
   saveDeckInternal,
-  deleteDeckInternal
+  deleteDeckInternal,
+  getDeckListInternal
 } from '@/api/deck-operations';
-import type { DeckInfo, OperationResult } from '@/types/deck';
+import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 
 /**
  * セッション管理クラス
@@ -148,6 +149,16 @@ class SessionManager {
     }
 
     return result;
+  }
+
+  /**
+   * マイデッキ一覧を取得
+   *
+   * @returns デッキ一覧
+   */
+  async getDeckList(): Promise<DeckListItem[]> {
+    const cgid = await this.ensureCgid();
+    return getDeckListInternal(cgid);
   }
 }
 

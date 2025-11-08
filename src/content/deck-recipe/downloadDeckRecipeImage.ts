@@ -32,6 +32,13 @@ export async function downloadDeckRecipeImage(
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
     deckData = parseDeckDetail(doc);
+
+    // デバッグログ
+    console.log('[downloadDeckRecipeImage] mainDeckCount:', deckData.mainDeck.length);
+    deckData.mainDeck.forEach((d, i) => {
+      const imgHash = d.card.imgs?.find(img => img.ciid === d.card.ciid)?.imgHash;
+      console.log(`  [${i}] ${d.card.name} (${d.card.cardType}) x${d.quantity} - ciid:${d.card.ciid}, hash:${imgHash}`);
+    });
   }
 
   // 2. 画像を作成

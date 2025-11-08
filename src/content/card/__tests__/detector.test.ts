@@ -24,7 +24,7 @@ describe('detectCardType', () => {
       const cardType = detectCardType(row);
 
       // Assert
-      expect(cardType).toBe('魔法');
+      expect(cardType).toBe('spell');
     });
 
     it('相対パスのattribute_icon_spell.pngからも検出できる', () => {
@@ -37,7 +37,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('魔法');
+      expect(cardType).toBe('spell');
     });
   });
 
@@ -52,7 +52,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('罠');
+      expect(cardType).toBe('trap');
     });
   });
 
@@ -67,7 +67,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_dark.png を含むimg要素から闇属性モンスターを検出できる', () => {
@@ -80,7 +80,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_water.png を含むimg要素から水属性モンスターを検出できる', () => {
@@ -93,7 +93,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_fire.png を含むimg要素から炎属性モンスターを検出できる', () => {
@@ -106,7 +106,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_earth.png を含むimg要素から地属性モンスターを検出できる', () => {
@@ -119,7 +119,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_wind.png を含むimg要素から風属性モンスターを検出できる', () => {
@@ -132,7 +132,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
 
     it('attribute_icon_divine.png を含むimg要素から神属性モンスターを検出できる', () => {
@@ -145,7 +145,7 @@ describe('detectCardType', () => {
       const row = container.firstElementChild as HTMLElement;
 
       const cardType = detectCardType(row);
-      expect(cardType).toBe('モンスター');
+      expect(cardType).toBe('monster');
     });
   });
 
