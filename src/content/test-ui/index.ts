@@ -14,20 +14,6 @@ import { downloadDeckRecipeImage } from '../deck-recipe';
 import type { CardType } from '@/types/card';
 import type { ColorVariant } from '@/types/deck-recipe-image';
 
-// Content Script読み込み確認（視覚的マーカー）
-const debugDiv = document.createElement('div');
-debugDiv.id = 'extension-debug-marker';
-debugDiv.textContent = 'Yu-Gi-Oh! Extension Loaded!';
-debugDiv.style.cssText = 'position: fixed; top: 0; right: 0; background: #4CAF50; color: white; padding: 10px; z-index: 99999; font-size: 14px;';
-if (document.body) {
-  document.body.appendChild(debugDiv);
-} else {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.body.appendChild(debugDiv);
-  });
-}
-console.log('Yu-Gi-Oh! Deck Helper: Content script loaded!');
-
 const TEST_URL_HASH = '#/ytomo/test';
 
 // テストUIが既に読み込まれているかどうかのフラグ

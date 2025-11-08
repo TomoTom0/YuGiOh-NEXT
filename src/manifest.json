@@ -29,6 +29,8 @@
     "default_popup": "popup.html"
   },
 
+  "options_page": "options.html",
+
   "icons": {
     "128": "images/card_back.png"
   },
