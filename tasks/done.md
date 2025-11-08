@@ -4,6 +4,235 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-09 (02:00): 新API動作確認完了（Phase 1）
+
+### 実施内容
+
+1. **ブラウザテスト環境準備**:
+   - Chromium（CDP経由）でテストページにアクセス
+   - `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test`
+   - ページリロードが必要なことを確認
+
+2. **全APIの動作確認**:
+   - ✅ **getDeckDetail**: 正常動作（dno=4のデッキ情報を取得）
+   - ✅ **getDeckList**: 正常動作（8個のデッキ一覧を取得）
+   - ✅ **getCardDetail**: 動作確認（スタブ実装のためnull返却）
+   - ✅ **getCardFAQList**: 動作確認（スタブ実装のため空配列返却）
+   - ✅ **getFAQDetail**: 動作確認（スタブ実装のためTODOプレースホルダー返却）
+
+3. **判明した事項**:
+   - getCardDetailは`parseSearchResults`が検索結果ページの構造を想定しているため、カード詳細ページ（ope=2）では動作しない
+   - スタブ実装の3機能は、後でパーサー実装が必要（Phase 1完了条件）
+
+### Phase 1の状態
+
+- ✅ テストページで全APIの動作確認
+- 🔄 スタブ実装した3機能の詳細パーサー実装（次のタスク）
+  - カード詳細情報（収録シリーズ・関連カード）
+  - カードQA一覧
+  - 個別QA詳細
+
+## 2025-11-08 (23:30): テストページに新API追加（Phase 1）
+
+### 実施内容
+
+1. **テストページUI実装**:
+   - `src/content/test-ui/index.ts`: 5つの新APIのテストセクションを追加
+   - デッキ個別取得: dno入力、取得ボタン、結果表示
+   - マイデッキ一覧取得: 取得ボタン（引数なし）、結果表示
+   - カード詳細情報取得: cardId入力、取得ボタン、結果表示
+   - カードQA一覧取得: cardId入力、取得ボタン、結果表示
+   - 個別QA詳細取得: faqId入力、取得ボタン、結果表示
+
+2. **ビルド・デプロイ**:
+   - ✅ ビルド成功
+   - ✅ デプロイ完了
+
+### テスト方法
+
+Chromiumで `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test` にアクセスして、各APIの動作を確認できます。
+
+## 2025-11-08 (14:00): intro.mdで要求される基本API実装（Phase 1）
+
+### 実施内容
+
+1. **デッキ個別取得API実装**:
+   - `src/api/deck-operations.ts`: `getDeckDetail(dno, cgid?)` 関数を追加
+   - 既存の`parseDeckDetail`パーサーを活用
+   - 公開デッキは cgid 省略可、非公開デッキは cgid 必須
+
+2. **マイデッキ一覧取得API実装**:
+   - `src/types/deck.ts`: `DeckListItem` 型定義を追加
+   - `src/content/parser/deck-list-parser.ts`: デッキ一覧ページのパーサーを新規作成
+   - `src/api/deck-operations.ts`: `getDeckListInternal(cgid)` 関数を追加
+   - `src/content/session/session.ts`: `SessionManager.getDeckList()` メソッドを追加
+   - Chrome CDPを使用してデッキ一覧ページ（ope=4）のHTML構造を調査
+
+3. **カード詳細情報型定義とAPI実装**:
+   - `src/types/card.ts`: `PackInfo`（収録シリーズ）、`CardDetail`、`CardFAQ`、`CardFAQList` 型を追加
+   - `src/api/card-search.ts`: `getCardDetail(cardId)` 関数を追加（スタブ実装）
+   - 収録シリーズ、関連カードを含む拡張情報の型定義
+
+4. **カードQA関連API実装**:
+   - `src/api/card-faq.ts`: 新規ファイル作成
+   - `getCardFAQList(cardId)`: カードQA一覧取得（スタブ実装）
+   - `getFAQDetail(faqId)`: 個別QA詳細取得（スタブ実装）
+
+### 実装状況
+
+intro.mdで要求されるすべての基本機能のAPI枠組みが実装完了：
+
+✅ **完全実装**:
+- cgid取得
+- デッキ新規作成
+- デッキ複製
+- デッキ上書き保存
+- デッキ削除
+- デッキ個別取得
+- マイデッキ一覧取得
+- カード検索
+
+📝 **スタブ実装**（詳細パーサーは後で実装予定）:
+- カード詳細情報取得（収録シリーズ・関連カード）
+- カードQA一覧取得
+- 個別QA詳細取得
+
+## 2025-11-08 (午前): デッキメタデータの型定義追加と動的管理システム実装
+
+### 実施内容
+
+1. **デバッグログの削除**:
+   - `src/api/card-search.ts`: 全てのconsole.*文を削除
+   - `src/content/parser/deck-detail-parser.ts`: 全てのconsole.*文を削除
+   - JSON出力がクリーンになり、パース結果が正しく利用可能に
+
+2. **デッキメタデータの型定義追加**:
+   - `src/types/deck-metadata.ts`: デッキタイプ、デッキスタイル、カテゴリの型定義
+   - デッキ検索フォームから実際の選択肢を取得
+   - DeckType: 'OCG（マスタールール）' | 'OCG（スピードルール）' | 'デュエルリンクス' | 'マスターデュエル' | string
+   - DeckStyle: 'キャラクター' | 'トーナメント' | 'コンセプト' | string
+   - DeckCategory: string[]（カテゴリID配列）
+
+3. **デッキメタデータの動的管理システム実装**:
+   - `scripts/update-deck-metadata.mjs`: デッキ検索ページからメタデータを取得してJSONを生成
+   - `src/data/deck-metadata.json`: 初期メタデータ（443カテゴリ、4デッキタイプ、3デッキスタイル）
+   - `src/utils/deck-metadata-loader.ts`: chrome.storage.localを優先的に読み込むローダー
+   - `src/background/main.ts`: 24時間ごとに自動更新
+   - ビルド時は初期JSONをバンドル、実行時はストレージから最新データを優先取得
+
+4. **ビルドエラー修正**:
+   - `tsconfig.json`: テストファイルを除外、jest型定義を削除
+   - `src/types/qrcode.d.ts`: qrcodeモジュールの型定義を追加
+   - `src/content/parser/deck-parser.ts`: deckTypeをstring型に修正
+   - `scripts/deploy.sh`: distディレクトリパスを修正（extension/dist → dist）
+
+### 変更ファイル
+- `src/api/card-search.ts`
+- `src/content/parser/deck-detail-parser.ts`
+- `src/content/parser/deck-parser.ts`
+- `src/types/deck-metadata.ts`
+- `src/types/deck.ts`
+- `src/types/qrcode.d.ts` (新規)
+- `src/utils/deck-metadata-loader.ts` (新規)
+- `src/data/deck-metadata.json` (新規)
+- `src/background/main.ts`
+- `scripts/update-deck-metadata.mjs` (新規)
+- `scripts/deploy.sh`
+- `tsconfig.json`
+- `version.dat` (0.0.8 → 0.0.9)
+
+### 動作確認
+- ビルド成功
+- パーサーテスト成功（tmp/parse-result-ja.json）
+- デッキタイプ、デッキスタイル、コメントが正しく抽出されることを確認
+- デプロイ成功
+
+### 備考
+カテゴリなどのメタデータが公式サイトで追加されても、拡張機能が自動的に24時間以内に最新情報を取得して更新する。
+
+## 2025-11-08 01:47: buildCardImageUrlのundefined対策とエラーハンドリング改善（動作未確認）
+
+### 実装内容
+
+#### 問題点
+1. **画像URLがundefinedになる問題**:
+   - ユーザー報告: `"Failed to load image from undefined"`
+   - `buildCardImageUrl`が`undefined`を返す場合がある
+   - `loadImage(undefined)`が呼ばれてエラーになる
+
+2. **エラーメッセージが不明瞭**:
+   - `img.onerror`でEventオブジェクトをそのまま出力
+   - `"[object Event]"`と表示されて原因不明
+
+3. **CLAUDE.mdの誤記**:
+   - 「普通のGoogle Chrome」と記載（実際は`chromium-browser`）
+
+#### 実施した修正
+1. **buildCardImageUrlのundefined対策**:
+   - `createDeckRecipeImage.ts`でURLがundefinedの場合はスキップ
+   - `url ? Array(quantity).fill(url) : []`に変更
+
+2. **loadImage関数のエラーハンドリング改善**:
+   - `img.onerror`で適切なErrorオブジェクトを作成
+   - URLとエラー情報を含むメッセージ
+
+3. **Manifest.jsonの修正**:
+   - `web_accessible_resources`を追加
+   - アイコン設定を追加
+
+4. **CLAUDE.mdの修正**:
+   - ブラウザ記述を「Chromium」に修正
+
+#### 動作確認状況
+**⚠️ 実際の動作確認は未完了です**
+- ビルドとデプロイは実施
+- 実際にエラーが解消したかは未確認
+- 画像作成が成功するかは未確認
+
+#### 変更ファイル
+- `extension/src/content/deck-recipe/createDeckRecipeImage.ts`
+- `extension/src/manifest.json`
+- `CLAUDE.md`
+
+---
+
+## 2025-11-08 00:15: QRコード表示機能の修正
+
+### 実装内容
+
+#### 問題点
+- チェックボックスをオンにしてもQRコードがデッキ画像に含まれない
+- `createDeckRecipeImage.ts`で`includeQR && data.isPublic`の両方がtrueの場合のみQRコードを描画していた
+- 非公開デッキではQRコードが一切表示されなかった
+
+#### 解決策
+1. QRコード描画条件を修正:
+   - `includeQR && data.isPublic` → `includeQR`に変更
+   - チェックボックスをオンにすれば常にQRコードを描画
+
+2. 非公開デッキ用の視覚的フィードバック追加:
+   - QRコードの上に黒い縁取り付きの白い「HIDDEN」テキストを表示
+   - QRコード自体は描画されるが、非公開であることが明示される
+
+3. Canvas高さ計算の修正:
+   - `initializeCanvasSettings`関数でも`isPublic`チェックを削除
+   - `includeQR`がtrueなら常にQRコード領域を確保
+
+#### 動作確認
+Node.jsでテストスクリプト `tmp/test-qr-code.ts` を作成して検証:
+- ✓ 公開デッキ + QRコードあり → QRコードが右下に表示
+- ✓ 非公開デッキ + QRコードあり → QRコード + "HIDDEN"テキスト表示
+- ✓ 両画像のサイズが同一（1500x592px）
+
+#### 変更ファイル
+- `extension/src/content/deck-recipe/createDeckRecipeImage.ts`:
+  - L117: `if (includeQR && data.isPublic)` → `if (includeQR)`に変更
+  - L118: `drawQRCode`に`isPublic`パラメータを追加
+  - L167: Canvas高さ計算から`isPublic`チェックを削除
+  - L426-490: `drawQRCode`関数に非公開時のHIDDEN表示ロジックを追加
+
+---
+
 ## 2025-11-07 22:45: バリデーション修正 - 部分的なデッキに対応
 
 ### 実装内容
