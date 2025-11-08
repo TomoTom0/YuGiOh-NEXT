@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
   "scripts": {
-    "build": "cd extension && webpack --mode production",
-    "build:dev": "cd extension && webpack --mode development",
-    "dev": "cd extension && webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "dev": "webpack --mode development --watch",
     "type-check": "tsc --noEmit"
   },
   "keywords": [

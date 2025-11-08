@@ -9,6 +9,25 @@
  */
 
 // ============================================================================
+// カードタイプ（CardType）
+// ============================================================================
+
+export const CARD_TYPE_MAP = {
+  monster: 'モンスター',
+  spell: '魔法',
+  trap: '罠',
+} as const;
+
+export type CardType = keyof typeof CARD_TYPE_MAP;
+
+/**
+ * HTMLテキスト → 識別子への変換マップ（逆引き）
+ */
+export const CARD_TYPE_TEXT_TO_ID = Object.fromEntries(
+  Object.entries(CARD_TYPE_MAP).map(([id, text]) => [text, id as CardType])
+) as Record<string, CardType>;
+
+// ============================================================================
 // 属性（Attribute）
 // ============================================================================
 
@@ -38,6 +57,13 @@ export const ATTRIBUTE_PATH_TO_ID: Record<string, Attribute> = {
   'wind': 'wind',
   'divine': 'divine',
 };
+
+/**
+ * HTMLテキスト → 識別子への変換マップ（逆引き）
+ */
+export const ATTRIBUTE_TEXT_TO_ID = Object.fromEntries(
+  Object.entries(ATTRIBUTE_MAP).map(([id, text]) => [text, id as Attribute])
+) as Record<string, Attribute>;
 
 // ============================================================================
 // 種族（Race）

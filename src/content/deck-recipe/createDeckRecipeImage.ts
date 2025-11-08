@@ -51,28 +51,31 @@ export async function createDeckRecipeImage(
     {
       name: 'main',
       displayName: 'メイン',
-      cardImages: data.mainDeck.flatMap(({ card, quantity }) =>
-        Array(quantity).fill(buildCardImageUrl(card))
-      )
+      cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
+        const url = buildCardImageUrl(card);
+        return url ? Array(quantity).fill(url) : [];
+      })
     },
     {
       name: 'extra',
       displayName: 'エクストラ',
-      cardImages: data.extraDeck.flatMap(({ card, quantity }) =>
-        Array(quantity).fill(buildCardImageUrl(card))
-      )
+      cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
+        const url = buildCardImageUrl(card);
+        return url ? Array(quantity).fill(url) : [];
+      })
     },
     {
       name: 'side',
       displayName: 'サイド',
-      cardImages: data.sideDeck.flatMap(({ card, quantity }) =>
-        Array(quantity).fill(buildCardImageUrl(card))
-      )
+      cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
+        const url = buildCardImageUrl(card);
+        return url ? Array(quantity).fill(url) : [];
+      })
     }
   ];
 
   // 3. Canvas描画設定の初期化
-  const drawSettings = initializeCanvasSettings(sections, scale, color, includeQR, data.isPublic ?? false);
+  const drawSettings = initializeCanvasSettings(sections, scale, color, includeQR);
 
   // 3. Canvasの作成と初期化
   let canvas: any;
@@ -109,13 +112,19 @@ export async function createDeckRecipeImage(
 
   // 8. カードセクション描画（旧実装: height_now = 49 * ratio）
   let currentY = LAYOUT_CONSTANTS.headerHeight * scale;
-  for (const section of sections) {
+  // 0枚のセクションは表示しない
+  const nonEmptySections = sections.filter(section => section.cardImages.length > 0);
+  for (const section of nonEmptySections) {
     currentY = await drawCardSection(ctx, section, currentY, drawSettings);
   }
 
-  // 7. QRコード描画（公開デッキの場合）
-  if (includeQR && data.isPublic) {
-    await drawQRCode(ctx, dno, drawSettings);
+  // 7. QRコード描画（includeQRがtrueの場合）
+  console.log('[QRCode Debug] includeQR:', includeQR, 'data.isPublic:', data.isPublic);
+  if (includeQR) {
+    console.log('[QRCode Debug] Drawing QR code...');
+    await drawQRCode(ctx, dno, drawSettings, data.isPublic ?? false);
+  } else {
+    console.log('[QRCode Debug] Skipping QR code (includeQR is false)');
   }
 
   // 8. タイムスタンプ描画
@@ -151,27 +160,27 @@ export async function createDeckRecipeImage(
  * @param scale - スケール倍率
  * @param color - カラーバリエーション
  * @param includeQR - QRコードを含めるか
- * @param isPublic - 公開デッキかどうか
  * @returns Canvas描画設定
  */
 function initializeCanvasSettings(
   sections: CardSection[],
   scale: number,
   color: ColorVariant,
-  includeQR: boolean,
-  isPublic: boolean
+  includeQR: boolean
 ): CanvasDrawSettings {
   const width = DECK_RECIPE_WIDTH * scale;
 
   // 高さの計算（旧実装: (img_qr ? 80 : 0) + 65 + 49 + セクション合計）
-  let height = (includeQR && isPublic ? LAYOUT_CONSTANTS.qrAreaHeight : 0) * scale;
+  let height = (includeQR ? LAYOUT_CONSTANTS.qrAreaHeight : 0) * scale;
   height += 65 * scale; // 固定余白
   height += LAYOUT_CONSTANTS.headerHeight * scale;
 
-  // 各セクションの高さを計算
+  // 各セクションの高さを計算（0枚のセクションは除外）
   for (const section of sections) {
-    const rows = Math.ceil(section.cardImages.length / CARD_IMAGE_SETTINGS.cardsPerRow);
-    height += (LAYOUT_CONSTANTS.sectionHeaderHeight + rows * LAYOUT_CONSTANTS.sectionRowHeight) * scale;
+    if (section.cardImages.length > 0) {
+      const rows = Math.ceil(section.cardImages.length / CARD_IMAGE_SETTINGS.cardsPerRow);
+      height += (LAYOUT_CONSTANTS.sectionHeaderHeight + rows * LAYOUT_CONSTANTS.sectionRowHeight) * scale;
+    }
   }
 
   return {
@@ -333,8 +342,13 @@ async function drawCardSection(
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  const sectionText = `${section.name.slice(0, 1).toUpperCase() + section.name.slice(1)} Deck: ${section.cardImages.length} Cards`;
-  ctx.fillText(sectionText, 32 * scale, currentY + 25 * scale);
+  // セクション名（"Deck"を省略）
+  const sectionName = section.name.slice(0, 1).toUpperCase() + section.name.slice(1);
+  ctx.fillText(sectionName + ':', 32 * scale, currentY + 25 * scale);
+
+  // カード数（位置を揃えるため固定位置から描画）
+  const cardCountText = `${section.cardImages.length} Cards`;
+  ctx.fillText(cardCountText, 100 * scale, currentY + 25 * scale);
 
   // 4. カード画像グリッド描画
   currentY += LAYOUT_CONSTANTS.sectionHeaderHeight * scale;
@@ -379,7 +393,9 @@ async function loadImage(url: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = reject;
+      img.onerror = (error) => {
+        reject(new Error(`Failed to load image from ${url}: ${error instanceof ErrorEvent ? error.message : 'Unknown error'}`));
+      };
       img.src = url;
     });
   } else {
@@ -421,11 +437,13 @@ async function loadImage(url: string): Promise<any> {
  * @param ctx - Canvas 2Dコンテキスト
  * @param dno - デッキ番号
  * @param settings - 描画設定
+ * @param isPublic - 公開デッキかどうか（非公開の場合は「HIDDEN」と表示）
  */
 async function drawQRCode(
   ctx: CanvasRenderingContext2D,
   dno: string,
-  settings: CanvasDrawSettings
+  settings: CanvasDrawSettings,
+  isPublic: boolean
 ): Promise<void> {
   const scale = settings.scale;
 
@@ -433,6 +451,8 @@ async function drawQRCode(
   const qrUrl = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&dno=${dno}`;
 
   try {
+    console.log('[drawQRCode] isPublic:', isPublic, 'dno:', dno);
+
     // QRコードを生成（Data URL形式）
     const qrDataUrl = await QRCode.toDataURL(qrUrl, {
       errorCorrectionLevel: QR_CODE_SETTINGS.correctLevel,
@@ -458,6 +478,33 @@ async function drawQRCode(
       QR_CODE_SETTINGS.size * scale,
       QR_CODE_SETTINGS.size * scale
     );
+    console.log('[drawQRCode] QR code drawn at', x, y);
+
+    // 非公開デッキの場合は「HIDDEN」と表示
+    if (!isPublic) {
+      console.log('[drawQRCode] Drawing HIDDEN text over QR code');
+      // 「HIDDEN」テキストを二重縁取り付きで描画
+      const centerX = x + (QR_CODE_SETTINGS.size * scale) / 2;
+      const centerY = y + (QR_CODE_SETTINGS.size * scale) / 2;
+
+      ctx.font = `bold ${24 * scale}px ${FONT_SETTINGS.family}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 外側の縁取り（黒、太い）
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 8 * scale;
+      ctx.strokeText('HIDDEN', centerX, centerY);
+
+      // 内側の縁取り（赤、中間）
+      ctx.strokeStyle = '#FF0000';
+      ctx.lineWidth = 4 * scale;
+      ctx.strokeText('HIDDEN', centerX, centerY);
+
+      // テキスト本体（白）
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText('HIDDEN', centerX, centerY);
+    }
   } catch (error) {
     console.error('Failed to generate QR code:', error);
     // QRコード生成に失敗しても処理は継続

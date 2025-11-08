@@ -1,4 +1,5 @@
 import {
+  CardType,
   Attribute,
   Race,
   MonsterType,
@@ -6,10 +7,8 @@ import {
   TrapEffectType
 } from './card-maps';
 
-/**
- * カードタイプ
- */
-export type CardType = 'モンスター' | '魔法' | '罠';
+// CardTypeはcard-maps.tsで定義
+export type { CardType };
 
 /**
  * レベル/ランク/リンクの種別
@@ -28,10 +27,10 @@ export interface CardBase {
   cardId: string;
   /** 画像ID（デフォルト '1'） */
   imageId: string;
-  /** 画像識別子（複数画像がある場合、オプション） */
+  /** 代表画像識別子（オプション） */
   ciid?: string;
-  /** 画像ハッシュ（画像URL生成用、オプション） */
-  imgHash?: string;
+  /** 複数画像情報（複数画像がある場合） */
+  imgs?: Array<{ciid: string; imgHash: string}>;
   /** カード画像URL（完全なURL、encパラメータ込み、オプション） */
   imageUrl?: string;
   /** 効果テキスト（オプション） */
@@ -43,7 +42,7 @@ export interface CardBase {
  */
 export interface MonsterCard extends CardBase {
   /** カードタイプ */
-  cardType: 'モンスター';
+  cardType: 'monster';
 
   /** 属性 */
   attribute: Attribute;
@@ -85,7 +84,7 @@ export interface MonsterCard extends CardBase {
  */
 export interface SpellCard extends CardBase {
   /** カードタイプ */
-  cardType: '魔法';
+  cardType: 'spell';
 
   /** 効果種類（オプション） */
   effectType?: SpellEffectType;
@@ -96,7 +95,7 @@ export interface SpellCard extends CardBase {
  */
 export interface TrapCard extends CardBase {
   /** カードタイプ */
-  cardType: '罠';
+  cardType: 'trap';
 
   /** 効果種類（オプション） */
   effectType?: TrapEffectType;

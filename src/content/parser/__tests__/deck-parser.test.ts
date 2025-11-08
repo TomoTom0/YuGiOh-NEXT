@@ -31,7 +31,7 @@ describe('デッキページパーサー', () => {
       expect(result).toEqual({
         name: 'ブラック・マジシャン',
         cardId: '12345',
-        cardType: 'モンスター' as CardType,
+        cardType: 'monster' as CardType,
         imageId: '1',
         quantity: 2
       });
@@ -62,7 +62,7 @@ describe('デッキページパーサー', () => {
       expect(result).toEqual({
         name: 'ブラック・マジック',
         cardId: '67890',
-        cardType: '魔法' as CardType,
+        cardType: 'spell' as CardType,
         imageId: '2',
         quantity: 3
       });
@@ -93,7 +93,7 @@ describe('デッキページパーサー', () => {
       expect(result).toEqual({
         name: '聖なるバリア -ミラーフォース-',
         cardId: '11111',
-        cardType: '罠' as CardType,
+        cardType: 'trap' as CardType,
         imageId: '1',
         quantity: 1
       });
@@ -196,7 +196,7 @@ describe('デッキページパーサー', () => {
       expect(result.mainDeck[0]).toEqual({
         name: 'ブラック・マジシャン',
         cardId: '12345',
-        cardType: 'モンスター',
+        cardType: 'monster',
         imageId: '1',
         quantity: 2
       });

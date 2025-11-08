@@ -32,8 +32,8 @@ echo "デプロイ先: $DEPLOY_PATH"
 echo ""
 
 # ビルドディレクトリの確認
-if [ ! -d extension/dist ]; then
-    echo "エラー: extension/dist ディレクトリが見つかりません"
+if [ ! -d dist ]; then
+    echo "エラー: dist ディレクトリが見つかりません"
     echo "先に 'npm run build' を実行してください"
     exit 1
 fi
@@ -46,7 +46,7 @@ echo "ファイルを転送中..."
 rsync -av --delete \
     --exclude='.DS_Store' \
     --exclude='*.map' \
-    extension/dist/ "$DEPLOY_PATH/"
+    dist/ "$DEPLOY_PATH/"
 
 echo ""
 echo "✓ デプロイ完了"

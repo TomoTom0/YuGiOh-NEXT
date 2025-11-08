@@ -290,11 +290,11 @@ function parseLinkValue(linkValue: string): number {
 function cardTypeToCtype(cardType?: CardType): string {
   if (!cardType) return '';
   switch (cardType) {
-    case 'モンスター':
+    case 'monster':
       return '1';
-    case '魔法':
+    case 'spell':
       return '2';
-    case '罠':
+    case 'trap':
       return '3';
     default:
       return '';
@@ -496,7 +496,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
  * // 効果モンスターで攻撃力2000以上を検索
  * const cards = await searchCards({
  *   keyword: '',
- *   cardType: 'モンスター',
+ *   cardType: 'monster',
  *   monsterTypes: ['effect'],
  *   atk: { from: 2000 }
  * });
@@ -504,7 +504,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
  * // 光属性のドラゴン族を検索
  * const cards = await searchCards({
  *   keyword: '',
- *   cardType: 'モンスター',
+ *   cardType: 'monster',
  *   attributes: ['light'],
  *   races: ['dragon']
  * });
@@ -649,11 +649,17 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
  * @returns 画像URL、構築できない場合はundefined
  */
 export function buildCardImageUrl(card: CardBase): string | undefined {
-  if (!card.ciid || !card.imgHash) {
+  // ciidに対応するimgHashをimgs配列から取得
+  if (!card.ciid || !card.imgs) {
     return undefined;
   }
 
-  return `/yugiohdb/get_image.action?type=1&lang=${card.imageId}&cid=${card.cardId}&ciid=${card.ciid}&enc=${card.imgHash}&osplang=1`;
+  const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
+  if (!imageInfo) {
+    return undefined;
+  }
+
+  return `/yugiohdb/get_image.action?type=1&lang=${card.imageId}&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
 }
 
 /**
@@ -734,10 +740,12 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   const langInput = row.querySelector('input.lang') as HTMLInputElement;
   const imageId = langInput?.value || '1';
 
-  // 画像識別子とハッシュ（JavaScriptコードから抽出）
+  // 画像識別子（JavaScriptコードから抽出）
   const imageInfo = imageInfoMap.get(cardId);
   const ciid = imageInfo?.ciid;
-  const imgHash = imageInfo?.imgHash;
+
+  // imgs配列を構築（検索結果ページでは1つの画像情報のみ）
+  const imgs = (ciid && imageInfo?.imgHash) ? [{ciid, imgHash: imageInfo.imgHash}] : undefined;
 
   // 効果テキスト（オプション）
   const textElem = row.querySelector('.box_card_text');
@@ -749,7 +757,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     cardId,
     imageId,
     ciid,
-    imgHash,
+    imgs,
     text
   };
 }
@@ -957,7 +965,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 
   return {
     ...base,
-    cardType: 'モンスター',
+    cardType: 'monster',
     attribute,
     levelType,
     levelValue,
@@ -1001,7 +1009,7 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
 
   return {
     ...base,
-    cardType: '魔法',
+    cardType: 'spell',
     effectType
   };
 }
@@ -1035,7 +1043,7 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
 
   return {
     ...base,
-    cardType: '罠',
+    cardType: 'trap',
     effectType
   };
 }
@@ -1065,11 +1073,11 @@ export function parseSearchResultRow(
 
   // 3. カードタイプ別にパース
   switch (cardType) {
-    case 'モンスター':
+    case 'monster':
       return parseMonsterCard(row, base);
-    case '魔法':
+    case 'spell':
       return parseSpellCard(row, base);
-    case '罠':
+    case 'trap':
       return parseTrapCard(row, base);
     default:
       return null;
@@ -1171,6 +1179,286 @@ function parseRelatedCards(doc: Document): CardInfo[] {
   return relatedCards;
 }
 
+/**
+ * カード詳細ページから基本カード情報をパースする
+ * カード詳細ページの構造は検索結果ページと異なるため、専用のパーサーが必要
+ */
+function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
+  // カード名とルビを取得
+  const cardNameElem = doc.querySelector('#cardname h1');
+  if (!cardNameElem) {
+    return null;
+  }
+  
+  const rubyElem = cardNameElem.querySelector('.ruby');
+  const ruby = rubyElem?.textContent?.trim() || '';
+  
+  let cardName = '';
+  cardNameElem.childNodes.forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        cardName += text;
+      }
+    }
+  });
+  
+  if (!cardName) {
+    return null;
+  }
+
+  // 画像情報を取得（複数画像対応）
+  const thumbnailImages = doc.querySelectorAll('#thumbnail img');
+  const imageId = thumbnailImages.length > 0 ? (thumbnailImages[0]?.getAttribute('alt') ?? '1') : '1';
+
+  // 複数画像がある場合の情報
+  const imgs: Array<{ciid: string, imgHash: string}> = [];
+  thumbnailImages.forEach(img => {
+    const src = img.getAttribute('src') || '';
+    const ciidMatch = src.match(/ciid=(\d+)/);
+    const encMatch = src.match(/enc=([^&]+)/);
+    if (ciidMatch?.[1] && encMatch?.[1]) {
+      imgs.push({
+        ciid: ciidMatch[1],
+        imgHash: encMatch[1]
+      });
+    }
+  });
+
+  // カードテキストを取得
+  const textElem = doc.querySelector('.item_box_text');
+  let cardText = '';
+  if (textElem) {
+    textElem.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent?.trim();
+        if (text) {
+          cardText += text;
+        }
+      }
+    });
+  }
+
+  // カードタイプを判定
+  let cardTypeText = '';
+
+  // 「効果」というタイトルの隣の値を探す
+  const itemBoxes = doc.querySelectorAll('.item_box');
+  itemBoxes.forEach(box => {
+    const title = box.querySelector('.item_box_title')?.textContent?.trim();
+    if (title === '効果') {
+      const value = box.querySelector('.item_box_value')?.textContent?.trim();
+      if (value) {
+        cardTypeText = value;
+      }
+    }
+  });
+
+  // カードタイプを判定（imgのsrc属性から）
+  let cardType: CardType;
+  let spellEffectType: SpellEffectType | undefined;
+  let trapEffectType: TrapEffectType | undefined;
+
+  const typeImg = doc.querySelector('.icon_img[src*="attribute_icon"]') as HTMLImageElement;
+  if (typeImg?.src) {
+    if (typeImg.src.includes('attribute_icon_spell')) {
+      cardType = 'spell';
+      // 魔法効果タイプを抽出: cardTypeTextから末尾の「魔法」を除去してマッピング
+      if (cardTypeText.endsWith('spell')) {
+        const effectText = cardTypeText.slice(0, -2); // 「魔法」(2文字)を除去
+        spellEffectType = SPELL_EFFECT_TYPE_TEXT_TO_ID[effectText];
+      }
+    } else if (typeImg.src.includes('attribute_icon_trap')) {
+      cardType = 'trap';
+      // 罠効果タイプを抽出: cardTypeTextから末尾の「罠」を除去してマッピング
+      if (cardTypeText.endsWith('trap')) {
+        const effectText = cardTypeText.slice(0, -1); // 「罠」(1文字)を除去
+        trapEffectType = TRAP_EFFECT_TYPE_TEXT_TO_ID[effectText];
+      }
+    } else {
+      cardType = 'monster';
+    }
+  } else {
+    // imgが見つからない場合はnullを返す（エラー状態）
+    return null;
+  }
+
+  // 画像情報を設定（最初のimgsを代表として使用）
+  const ciid = imgs.length > 0 ? imgs[0]?.ciid : undefined;
+
+  // モンスターカードの場合
+  if (cardType === 'monster') {
+    const monsterCard: MonsterCard = {
+      name: cardName,
+      ruby,
+      cardId,
+      imageId,
+      ciid,
+      cardType: 'monster',
+      attribute: 'dark',
+      levelType: 'level',
+      levelValue: 0,
+      race: 'warrior',
+      types: [],
+      isExtraDeck: false
+    };
+
+    if (cardText) {
+      monsterCard.text = cardText;
+    }
+
+    // 複数画像がある場合
+    if (imgs.length > 0) {
+      monsterCard.imgs = imgs;
+    }
+
+    // 属性を取得（imgのsrc属性から）
+    const attrImg = doc.querySelector('.icon_img[src*="attribute_icon"]') as HTMLImageElement;
+    if (attrImg?.src) {
+      const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
+      if (attrMatch && attrMatch[1]) {
+        const attrPath = attrMatch[1];
+        const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
+        if (attribute) {
+          monsterCard.attribute = attribute;
+        }
+      }
+    }
+
+    // レベル/ランク/リンクを取得（imgのsrcから判定）
+    itemBoxes.forEach(box => {
+      const iconImg = box.querySelector('.item_box_title img.icon_img') as HTMLImageElement;
+      if (!iconImg?.src) return;
+
+      const value = box.querySelector('.item_box_value')?.textContent?.trim();
+      if (!value) return;
+
+      // 数値部分を抽出
+      const numberMatch = value.match(/(\d+)/);
+      if (!numberMatch || !numberMatch[1]) return;
+      const levelValue = parseInt(numberMatch[1], 10);
+
+      if (iconImg.src.includes('icon_level.png')) {
+        monsterCard.levelType = 'level';
+        monsterCard.levelValue = levelValue;
+      } else if (iconImg.src.includes('icon_rank.png')) {
+        monsterCard.levelType = 'rank';
+        monsterCard.levelValue = levelValue;
+      } else if (iconImg.src.includes('icon_link.png')) {
+        monsterCard.levelType = 'link';
+        monsterCard.levelValue = levelValue;
+      }
+    });
+
+    // ATK/DEFを取得
+    itemBoxes.forEach(box => {
+      const title = box.querySelector('.item_box_title')?.textContent?.trim();
+      const value = box.querySelector('.item_box_value')?.textContent?.trim();
+      
+      if (title === 'ATK' && value) {
+        monsterCard.atk = value === '?' ? '?' : parseInt(value, 10);
+      } else if (title === 'DEF' && value) {
+        monsterCard.def = value === '?' ? '?' : parseInt(value, 10);
+      }
+    });
+
+    // 種族とタイプを取得
+    const speciesElem = doc.querySelector('.species');
+    if (speciesElem) {
+      const spans = speciesElem.querySelectorAll('span');
+      const texts: string[] = [];
+      spans.forEach(span => {
+        const text = span.textContent?.trim();
+        if (text && text !== '／') {
+          texts.push(text);
+        }
+      });
+
+      // 最初の要素が種族
+      if (texts.length > 0 && texts[0]) {
+        const raceText: string = texts[0];
+        const mappedRace = RACE_TEXT_TO_ID[raceText];
+        if (mappedRace) {
+          monsterCard.race = mappedRace;
+        }
+      }
+
+      // 2番目以降の要素がタイプ
+      // カード詳細ページでは「シンクロ／効果」のように1つのspanに複数のタイプが入る場合がある
+      const typeTexts = texts.slice(1);
+      const types: MonsterType[] = [];
+      typeTexts.forEach(typeText => {
+        // 「／」で分割して個別のタイプを取得
+        const individualTypes = typeText.split('／').map(t => t.trim()).filter(t => t);
+
+        individualTypes.forEach(individualType => {
+          const type = MONSTER_TYPE_TEXT_TO_ID[individualType];
+          if (type) {
+            types.push(type);
+          }
+        });
+      });
+      monsterCard.types = types;
+
+      // エクストラデッキ判定
+      monsterCard.isExtraDeck = types.includes('fusion') || types.includes('synchro') ||
+                                 types.includes('xyz') || types.includes('link');
+    }
+
+    return monsterCard;
+  }
+
+  // 魔法カードの場合
+  if (cardType === 'spell') {
+    const spellCard: SpellCard = {
+      name: cardName,
+      ruby,
+      cardId,
+      imageId,
+      ciid,
+      cardType: 'spell',
+      effectType: spellEffectType
+    };
+
+    if (cardText) {
+      spellCard.text = cardText;
+    }
+
+    // 複数画像がある場合
+    if (imgs.length > 0) {
+      spellCard.imgs = imgs;
+    }
+
+    return spellCard;
+  }
+
+  // 罠カードの場合
+  if (cardType === 'trap') {
+    const trapCard: TrapCard = {
+      name: cardName,
+      ruby,
+      cardId,
+      imageId,
+      ciid,
+      cardType: 'trap',
+      effectType: trapEffectType
+    };
+
+    if (cardText) {
+      trapCard.text = cardText;
+    }
+
+    // 複数画像がある場合
+    if (imgs.length > 0) {
+      trapCard.imgs = imgs;
+    }
+
+    return trapCard;
+  }
+
+  return null;
+}
+
 export async function getCardDetail(cardId: string): Promise<CardDetail | null> {
   try {
     const params = new URLSearchParams({
@@ -1192,9 +1480,8 @@ export async function getCardDetail(cardId: string): Promise<CardDetail | null> 
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // 基本カード情報を取得
-    const results = parseSearchResults(doc);
-    const card = results[0];
+    // カード詳細ページ専用のパーサーを使用
+    const card = parseCardDetailPage(doc, cardId);
     if (!card) {
       return null;
     }

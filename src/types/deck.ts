@@ -23,12 +23,14 @@ export interface DeckInfo {
   deckType?: DeckTypeValue;
   /** デッキスタイル（value値: "0", "1", "2"） */
   deckStyle?: DeckStyleValue;
-  /** カテゴリ（カテゴリID配列） */
-  category?: DeckCategory;
+  /** カテゴリ（カテゴリ名配列） */
+  category: DeckCategory;
+  /** 登録タグ（タグ名配列） */
+  tags: string[];
   /** コメント */
-  comment?: string;
+  comment: string;
   /** デッキコード */
-  deckCode?: string;
+  deckCode: string;
 }
 
 /**
