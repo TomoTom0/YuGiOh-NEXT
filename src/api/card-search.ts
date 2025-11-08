@@ -1115,17 +1115,17 @@ function parsePackInfo(doc: Document): PackInfo[] {
     
     // カード番号を取得
     const cardNumberElem = rowElement.querySelector('.card_number');
-    const cardNumber = cardNumberElem?.textContent?.trim() || undefined;
+    const code = cardNumberElem?.textContent?.trim() || undefined;
     
     // パック名を取得
     const packNameElem = rowElement.querySelector('.pack_name');
-    const packName = packNameElem?.textContent?.trim() || undefined;
+    const name = packNameElem?.textContent?.trim() || '';
     
     // 少なくともパック名がある場合のみ追加
-    if (packName) {
+    if (name) {
       packs.push({
-        packName,
-        cardNumber,
+        name,
+        code,
         releaseDate
       });
     }
