@@ -25,28 +25,30 @@
      - 魔法・罠情報（effectType）
    - 実行結果: ✓ 成功（10枚のモンスターカードをパース）
 
-### 未実装（パーサーが実装されていない）
-
-3. **card-detail.test.ts** - カード詳細パーサー（TODO）
+3. **card-detail.test.ts** - カード詳細パーサー
    - 対象HTML: `tests/combine/data/card-detail.html`
-   - パーサー: `src/api/card-search.ts` の `getCardDetail`（スタブ実装）
-   - 実装が必要な項目:
-     - 収録シリーズ（packs）
-     - 関連カード（relatedCards）
+   - パーサー: `src/api/card-search.ts` の `parsePackInfo` + `parseRelatedCards`
+   - テスト項目:
+     - 収録シリーズ（releaseDate, cardNumber, packName）
+     - 関連カード（基本カード情報）
+   - 実行結果: ✓ 成功（2 packs, 10 related cards）
 
-4. **card-faq-list.test.ts** - カードQA一覧パーサー（TODO）
+4. **card-faq-list.test.ts** - カードQA一覧パーサー
    - 対象HTML: `tests/combine/data/card-faq-list.html`
-   - パーサー: `src/api/card-faq.ts` の `getCardFAQList`（スタブ実装）
-   - 実装が必要な項目:
-     - カード名
-     - FAQ一覧
+   - パーサー: `src/api/card-faq.ts` の `getCardFAQList`
+   - テスト項目:
+     - カード名（タイトルから抽出）
+     - FAQ一覧（faqId, question, updatedAt）
+   - 実行結果: ✓ 成功（3 FAQs, cardName: "王家の眠る谷－ネクロバレー"）
 
-5. **faq-detail.test.ts** - 個別QA詳細パーサー（TODO）
+5. **faq-detail.test.ts** - 個別QA詳細パーサー
    - 対象HTML: `tests/combine/data/faq-detail.html`
-   - パーサー: `src/api/card-faq.ts` の `getFAQDetail`（スタブ実装）
-   - 実装が必要な項目:
+   - パーサー: `src/api/card-faq.ts` の `getFAQDetail`
+   - テスト項目:
      - 質問（question）
      - 回答（answer）
+     - 更新日（updatedAt）
+   - 実行結果: ✓ 成功（question: 115文字, answer: 89文字）
 
 ## テスト実行方法
 
@@ -54,10 +56,16 @@
 # 個別のテストを実行
 npx tsx tests/combine/parser/deck-detail.test.ts
 npx tsx tests/combine/parser/card-search.test.ts
+npx tsx tests/combine/parser/card-detail.test.ts
+npx tsx tests/combine/parser/card-faq-list.test.ts
+npx tsx tests/combine/parser/faq-detail.test.ts
 
-# 全テストを実行（実装済みのもののみ）
+# 全テストを実行
 npx tsx tests/combine/parser/deck-detail.test.ts && \
-npx tsx tests/combine/parser/card-search.test.ts
+npx tsx tests/combine/parser/card-search.test.ts && \
+npx tsx tests/combine/parser/card-detail.test.ts && \
+npx tsx tests/combine/parser/card-faq-list.test.ts && \
+npx tsx tests/combine/parser/faq-detail.test.ts
 ```
 
 ## データファイル

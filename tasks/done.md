@@ -4,6 +4,57 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-09 (06:00): 未実装パーサーの実装完了
+
+### 実施内容
+
+1. **カード詳細パーサーの実装** (`src/api/card-search.ts`):
+   - `parsePackInfo()`: 収録シリーズ情報の抽出
+     - 発売日、カード番号、パック名を取得
+   - `parseRelatedCards()`: 関連カード情報の抽出
+     - #card_list または .list_style.list から .t_row を抽出
+     - parseSearchResultRow を再利用
+   - `getCardDetail()`: TODOコメント削除、実装完了
+
+2. **カードQA一覧パーサーの実装** (`src/api/card-faq.ts`):
+   - `getCardFAQList()`: HTMLパース処理の実装
+     - タイトルからカード名を抽出
+     - .t_row から FAQ ID、質問文、更新日を抽出
+     - スタブ実装から完全実装に変更
+
+3. **個別QA詳細パーサーの実装** (`src/api/card-faq.ts`):
+   - `getFAQDetail()`: HTMLパース処理の実装
+     - #question_text から質問文を抽出
+     - #answer_text から回答を抽出
+     - 更新日を抽出
+     - スタブ実装から完全実装に変更
+
+4. **テストファイルの作成と実行**:
+   - `card-detail.test.ts`: ✓ 成功（2 packs, 10 related cards）
+   - `card-faq-list.test.ts`: ✓ 成功（3 FAQs）
+   - `faq-detail.test.ts`: ✓ 成功（質問115文字、回答89文字）
+
+5. **README更新**:
+   - 実装済みパーサーの情報を追加
+   - 全テスト実行コマンドを更新
+
+### 検証結果
+
+全てのパーサーが正常に動作することを確認：
+- カード詳細パーサー: ✓ 正常動作
+- カードQA一覧パーサー: ✓ 正常動作
+- 個別QA詳細パーサー: ✓ 正常動作
+
+### intro.md要件の充足
+
+intro.mdに記載された全ての基本機能のパーサーが実装完了しました：
+- ✅ デッキ個別取得
+- ✅ デッキ一覧取得
+- ✅ カード検索
+- ✅ カード詳細情報（収録シリーズ・関連カード）
+- ✅ カードQA一覧取得
+- ✅ 個別QA詳細取得
+
 ## 2025-11-09 (05:00): パーサー動作確認テスト作成完了
 
 ### 実施内容
