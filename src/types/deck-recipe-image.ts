@@ -66,6 +66,9 @@ export interface CreateDeckRecipeImageOptions {
   /** デッキ番号 */
   dno: string;
 
+  /** ユーザーID（デッキ作成者） */
+  cgid: string;
+
   /** QRコードを含めるか */
   includeQR: boolean;
 

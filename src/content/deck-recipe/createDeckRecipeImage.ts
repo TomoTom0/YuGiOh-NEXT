@@ -34,6 +34,7 @@ export async function createDeckRecipeImage(
 ): Promise<Blob | Buffer> {
   const {
     dno,
+    cgid,
     includeQR,
     scale = 2,
     color,
@@ -122,7 +123,7 @@ export async function createDeckRecipeImage(
   console.log('[QRCode Debug] includeQR:', includeQR, 'data.isPublic:', data.isPublic);
   if (includeQR) {
     console.log('[QRCode Debug] Drawing QR code...');
-    await drawQRCode(ctx, dno, drawSettings, data.isPublic ?? false);
+    await drawQRCode(ctx, cgid, dno, drawSettings, data.isPublic ?? false);
   } else {
     console.log('[QRCode Debug] Skipping QR code (includeQR is false)');
   }
@@ -441,14 +442,15 @@ async function loadImage(url: string): Promise<any> {
  */
 async function drawQRCode(
   ctx: CanvasRenderingContext2D,
+  cgid: string,
   dno: string,
   settings: CanvasDrawSettings,
   isPublic: boolean
 ): Promise<void> {
   const scale = settings.scale;
 
-  // QRコードのURL（公開デッキの表示ページ）
-  const qrUrl = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&dno=${dno}`;
+  // QRコードのURL（デッキ表示ページ）
+  const qrUrl = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&cgid=${cgid}&dno=${dno}`;
 
   try {
     console.log('[drawQRCode] isPublic:', isPublic, 'dno:', dno);

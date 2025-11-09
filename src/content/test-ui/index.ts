@@ -157,6 +157,7 @@ function getTestUITemplate(): string {
       <div class="test-section">
         <h2>デッキレシピ画像作成</h2>
         <div class="test-controls">
+          <input type="text" id="input-recipe-cgid" placeholder="ユーザーID (cgid)" value="87999bd183514004b8aa8afa1ff1bdb9">
           <input type="number" id="input-recipe-dno" placeholder="デッキ番号" value="4">
           <div class="color-selection">
             <label>カラー:</label>
@@ -527,6 +528,9 @@ async function handleSaveDeck(): Promise<void> {
 async function handleCreateRecipeImage(): Promise<void> {
   try {
     // 入力値を取得
+    const cgidInput = document.getElementById('input-recipe-cgid') as HTMLInputElement;
+    const cgid = cgidInput.value;
+
     const dnoInput = document.getElementById('input-recipe-dno') as HTMLInputElement;
     const dno = dnoInput.value;
 
@@ -544,6 +548,7 @@ async function handleCreateRecipeImage(): Promise<void> {
 
     displayResult('result-recipe', {
       message: 'デッキレシピ画像作成中...',
+      cgid,
       dno,
       color,
       includeQR,
@@ -552,6 +557,7 @@ async function handleCreateRecipeImage(): Promise<void> {
 
     // 画像作成とダウンロード
     await downloadDeckRecipeImage({
+      cgid,
       dno,
       color,
       includeQR,
@@ -560,6 +566,7 @@ async function handleCreateRecipeImage(): Promise<void> {
 
     displayResult('result-recipe', {
       message: 'デッキレシピ画像作成完了！ダウンロードが開始されました。',
+      cgid,
       dno,
       color,
       includeQR,
