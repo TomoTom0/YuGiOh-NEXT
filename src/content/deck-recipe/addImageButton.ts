@@ -8,7 +8,7 @@ import { showImageDialog } from './imageDialog';
  * カメラアイコンのSVG
  */
 const CAMERA_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
   <circle cx="12" cy="13" r="4"></circle>
 </svg>
@@ -36,25 +36,14 @@ export function addDeckImageButton(): HTMLElement | null {
   // ボタンを作成（アイコンのみ、グラデーション）
   const button = document.createElement('a');
   button.id = 'ygo-deck-image-btn';
-  button.className = 'btn hex';
+  button.className = 'btn hex ytomo-neuron-btn';
   button.href = '#';
-  button.style.cssText = `
-    margin-left: 10px;
-    padding: 8px 12px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(to bottom, #00CED1, #C71585) !important;
-    border: none !important;
-  `;
+  button.style.cssText = 'margin-left: 10px;';
   button.title = 'デッキ画像作成';
 
   // アイコンのみ
   const span = document.createElement('span');
   span.innerHTML = CAMERA_ICON;
-  span.style.display = 'flex';
-  span.style.alignItems = 'center';
-  span.style.justifyContent = 'center';
 
   button.appendChild(span);
 

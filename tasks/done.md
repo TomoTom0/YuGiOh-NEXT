@@ -4,6 +4,51 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-09 (18:30): シャッフル機能の調査完了
+
+### 実施内容
+
+1. **デッキ表示ページのDOM構造調査**:
+   - 公開デッキページ（dno=95）のHTMLをダウンロード
+   - Chrome CDP経由でJavaScript実行後のDOM構造を確認
+   - メインデッキ、エクストラデッキ、サイドデッキの構造を特定
+
+2. **ボタン配置位置の決定**:
+   - 候補1: `div.subcatergory > div.top` の最後（カード枚数の後）
+   - 候補2: `div.subcatergory` の直後に独立したdivを追加
+   - **決定**: 候補1を採用（視覚的に分かりやすく、既存レイアウトを崩さない）
+
+3. **カード一覧の構造解析**:
+   - メインデッキは3カテゴリに分割（モンスター/魔法/罠）
+   - 各カテゴリは `.t_body` 要素内に `.t_row` 要素が配置
+   - モンスター: `.t_body.mlist_m`（13行/27枚）
+   - 魔法: `.t_body.mlist_s`（6行/9枚）
+   - 罠: `.t_body.mlist_t`（3行/5枚）
+
+4. **シャッフル実装方針の確定**:
+   - 各 `.t_body` 内の `.t_row` 要素の順序を変更
+   - 複数枚のカードは1行にまとめられているため、行単位でシャッフル
+   - 元の順序を保存してソート機能で復元
+
+5. **flip and shuffle機能の設計**:
+   - カードバック画像は拡張機能側で用意（ページ内に存在しない）
+   - `img.src` を書き換えて裏面表示
+   - `dataset.originalSrc` に元のURLを保存
+   - クリックイベントで表面に戻す
+
+### 技術的詳細
+
+- **調査対象URL**: 公開デッキ表示ページ（dno=95）
+- **調査スクリプト**: `tmp/browser/investigate-shuffle-v3.js`
+- **サンプルHTML**: `tmp/deck-display-page.html`
+- **調査ドキュメント**: `docs/research/shuffle-feature-investigation.md`
+
+### 次のステップ
+
+- テストHTML作成（サンプルページ）
+- ボタン追加機能の実装（TDD）
+- シャッフル/ソート/flip and shuffle機能の実装
+
 ## 2025-11-09 (15:00): デッキ画像作成ダイアログUI完成
 
 ### 実施内容
@@ -874,3 +919,48 @@ const html = response.data;
 - 詳細な調査ドキュメント
 - API 仕様書
 - アーキテクチャ設計書
+
+### 2025-11-09: Phase 2完了 - シャッフル機能とQRコード修正
+
+**主要な成果:**
+- ✅ シャッフル・ソート機能実装（sortfix対応）
+- ✅ QRコードURL修正（cgid追加）
+- ✅ デッキ画像ダイアログ位置修正
+
+**実装内容:**
+
+1. **シャッフル機能（Phase 2）**
+   - シャッフルボタン・ソートボタン追加（ヒストグラムアイコン）
+   - sortfix機能：カード右上1/4クリックで先頭固定
+   - 南京錠インジケーター（青緑線・黒グレー縁取り）
+   - sortfixカード：常時薄い青緑背景
+   - アニメーション追加（0.4s cubic-bezier）
+   - Fisher-Yates shuffleアルゴリズム実装
+
+2. **QRコードバグ修正**
+   - URLに`cgid`（ユーザーID）を追加
+   - 修正前: `member_deck.action?ope=1&dno=${dno}` （動作しない）
+   - 修正後: `member_deck.action?ope=1&cgid=${cgid}&dno=${dno}` （正常動作）
+   - テストUIに`cgid`入力欄追加
+
+3. **UI改善**
+   - デッキ画像ダイアログを`position: absolute`に変更
+   - ボタンと一緒にスクロールするように修正
+   - ボタンスタイル統一（ytomo-neuron-btn）
+
+**技術詳細:**
+- sortfix状態管理：data-sortfix属性
+- CSS疑似要素（::after）で南京錠表示
+- ホバーUI：右上1/4エリアの視覚化
+- カーソル位置に応じた明度変更
+
+**ファイル構成:**
+- `src/content/shuffle/` - シャッフル機能
+  - `addShuffleButtons.ts` - ボタン追加
+  - `shuffleCards.ts` - シャッフル・ソートロジック
+  - `sortfixCards.ts` - sortfix機能
+  - `index.ts` - エントリーポイント
+- `src/content/styles/buttons.css` - 共通ボタンスタイル
+- `src/types/deck-recipe-image.ts` - cgid追加
+
+**バージョン:** 0.2.0
