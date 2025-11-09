@@ -55,5 +55,4 @@ url例: https://www.db.yugioh-card.com/yugiohdb/faq_search.action?ope=5&fid=115&
 
 また、基本の言語は日本語である必要がある。
 
-
 認証不要ページは単にcurlすればよい。

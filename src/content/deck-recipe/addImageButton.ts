@@ -66,14 +66,14 @@ export function addDeckImageButton(): HTMLElement | null {
 }
 
 /**
- * デッキ表示/編集ページかどうかを判定
- * @returns true if current page is deck display or edit page
+ * デッキ表示ページかどうかを判定
+ * @returns true if current page is deck display page (ope=1 only)
  */
 export function isDeckPage(): boolean {
   const url = window.location.href;
 
-  // member_deck.action?ope=1 (表示) または ope=2 (編集)
-  return /member_deck\.action\?.*ope=[12]/.test(url);
+  // member_deck.action?ope=1 (表示のみ、編集ページは除外)
+  return /member_deck\.action\?.*ope=1/.test(url);
 }
 
 /**

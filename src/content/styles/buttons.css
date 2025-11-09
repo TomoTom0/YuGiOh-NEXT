@@ -21,6 +21,8 @@
 .ytomo-neuron-btn svg {
   width: 16px;
   height: 16px;
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 /**

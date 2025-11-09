@@ -194,6 +194,30 @@ function createPopupHTML(
           transform: translateY(0);
         }
       }
+      @keyframes ygo-popup-out {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+      @keyframes ygo-overlay-out {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+      #ygo-image-popup.closing {
+        animation: ygo-popup-out 0.2s ease forwards;
+      }
+      #ygo-image-popup-overlay.closing {
+        animation: ygo-overlay-out 0.2s ease forwards;
+      }
       #ygo-deck-name-input:hover {
         border-color: rgba(150, 150, 150, 0.7);
       }
@@ -375,11 +399,23 @@ export async function showImageDialog(): Promise<void> {
   const qrToggle = document.getElementById('ygo-qr-toggle');
   const downloadBtn = document.getElementById('ygo-download-btn');
 
+  /**
+   * ポップアップを閉じる（アニメーション付き）
+   */
+  const closePopup = () => {
+    // クローズアニメーション開始
+    overlay?.classList.add('closing');
+    popup?.classList.add('closing');
+
+    // アニメーション終了後に削除
+    setTimeout(() => {
+      overlay?.remove();
+      popup?.remove();
+    }, 200); // アニメーション時間と同じ
+  };
+
   // オーバーレイクリックで閉じる
-  overlay?.addEventListener('click', () => {
-    overlay.remove();
-    popup?.remove();
-  });
+  overlay?.addEventListener('click', closePopup);
 
   // ポップアップ全体をクリックで色切り替え
   popup?.addEventListener('click', async () => {
@@ -444,9 +480,8 @@ export async function showImageDialog(): Promise<void> {
 
       console.log('[YGO Helper] Download completed');
 
-      // ポップアップを閉じる
-      overlay?.remove();
-      popup?.remove();
+      // ポップアップを閉じる（アニメーション付き）
+      closePopup();
     } catch (error) {
       console.error('[YGO Helper] Failed to create image:', error);
 
