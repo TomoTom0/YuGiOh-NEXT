@@ -65,8 +65,8 @@ function createPopupHTML(
   imageHeight: number,
   deckName: string
 ): string {
-  const top = buttonRect.bottom + 8;
-  const left = buttonRect.left;
+  const top = buttonRect.bottom + window.scrollY + 8;
+  const left = buttonRect.left + window.scrollX;
 
   // 背景画像はscale=0.25で生成されているので、そのまま表示
   const displayWidth = imageWidth;
@@ -85,7 +85,7 @@ function createPopupHTML(
       z-index: 9999;
     "></div>
     <div id="ygo-image-popup" style="
-      position: fixed;
+      position: absolute;
       top: ${top}px;
       left: ${left}px;
       background: #d8d8d8;
@@ -269,6 +269,7 @@ interface BackgroundImageInfo {
  * 背景画像を生成する（小さいスケールで軽量化）
  */
 async function generateBackgroundImage(
+  cgid: string,
   dno: string,
   deckData: DeckInfo,
   color: ColorVariant
@@ -280,6 +281,7 @@ async function generateBackgroundImage(
   };
 
   const blob = await createDeckRecipeImage({
+    cgid,
     dno,
     color,
     includeQR: false,
@@ -331,14 +333,20 @@ export async function showImageDialog(): Promise<void> {
 
   const buttonRect = button.getBoundingClientRect();
 
-  // URLからデッキ番号を取得
+  // URLからデッキ番号とユーザーIDを取得
   const url = window.location.href;
   const dnoMatch = url.match(/dno=(\d+)/);
+  const cgidMatch = url.match(/cgid=([a-f0-9]+)/);
   if (!dnoMatch || !dnoMatch[1]) {
     console.error('[YGO Helper] Failed to get deck number from URL');
     return;
   }
+  if (!cgidMatch || !cgidMatch[1]) {
+    console.error('[YGO Helper] Failed to get user ID from URL');
+    return;
+  }
   const dno = dnoMatch[1];
+  const cgid = cgidMatch[1];
 
   // 現在のページのDOMからデッキデータを取得
   let deckData: DeckInfo;
@@ -354,7 +362,7 @@ export async function showImageDialog(): Promise<void> {
   let includeQR = true;
 
   // 背景画像を生成
-  const backgroundImage = await generateBackgroundImage(dno, deckData, selectedColor);
+  const backgroundImage = await generateBackgroundImage(cgid, dno, deckData, selectedColor);
 
   // ポップアップHTML を挿入
   const popupHTML = createPopupHTML(buttonRect, backgroundImage.dataUrl, backgroundImage.width, backgroundImage.height, deckData.name);
@@ -379,7 +387,7 @@ export async function showImageDialog(): Promise<void> {
     selectedColor = selectedColor === 'red' ? 'blue' : 'red';
 
     // 背景画像を再生成
-    const newBackgroundImage = await generateBackgroundImage(dno, deckData, selectedColor);
+    const newBackgroundImage = await generateBackgroundImage(cgid, dno, deckData, selectedColor);
 
     if (backgroundImageDiv) {
       backgroundImageDiv.style.background = `url('${newBackgroundImage.dataUrl}') no-repeat center center`;
@@ -426,6 +434,7 @@ export async function showImageDialog(): Promise<void> {
 
       // ダウンロード実行（更新されたdeckDataを渡す）
       await downloadDeckRecipeImage({
+        cgid,
         dno,
         color: selectedColor,
         includeQR,

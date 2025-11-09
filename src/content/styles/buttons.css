@@ -1,0 +1,92 @@
+/**
+ * 遊戯王デッキヘルパー - 共通ボタンスタイル
+ */
+
+.ytomo-neuron-btn {
+  padding: 1px 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, #00CED1, #C71585) !important;
+  border: none !important;
+  line-height: 1;
+}
+
+.ytomo-neuron-btn span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ytomo-neuron-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/**
+ * sortfix ONのカード全体に薄い色を付ける
+ */
+a[data-sortfix] {
+  background-color: rgba(0, 206, 209, 0.1);
+}
+
+/**
+ * sortfix用の右上南京錠インジケーター（青緑線、黒グレー縁取り）
+ */
+a[data-sortfix]::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" ry="2" stroke="%23333" stroke-width="4"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="%23333" stroke-width="4"/><rect x="5" y="11" width="14" height="10" rx="2" ry="2" stroke="%2300CED1" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="%2300CED1" stroke-width="2"/></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+}
+
+/**
+ * ホバー時に右上1/4エリアを表示（sortfix可能領域の視覚化）
+ */
+a[data-sortfix-initialized].hover-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 50%;
+  background-color: rgba(0, 206, 209, 0.3);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/**
+ * カーソルが右上1/4エリア内にある場合、より明るく
+ */
+a[data-sortfix-initialized].hover-overlay.cursor-in-area::before {
+  background-color: rgba(0, 206, 209, 0.6);
+}
+
+/**
+ * sortfix済みの場合はホバー時に解除マークを表示
+ */
+a[data-sortfix].hover-overlay::before {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 5-5c1.5 0 2.8.6 3.7 1.5M17 11V8"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>');
+}
+
+/**
+ * カードのアニメーション
+ */
+#deck_image #main.card_set div.image_set > a {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#deck_image #main.card_set div.image_set.animating > a {
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
