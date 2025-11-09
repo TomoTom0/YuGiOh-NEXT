@@ -48,12 +48,22 @@ export async function createDeckRecipeImage(
   const data = deckData;
 
   // 2. DeckInfoからCardSection配列を構築
+  // buildCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
+  const isNode = typeof window === 'undefined';
+  const toAbsoluteUrl = (url: string | undefined): string | undefined => {
+    if (!url) return undefined;
+    if (isNode && url.startsWith('/')) {
+      return `https://www.db.yugioh-card.com${url}`;
+    }
+    return url;
+  };
+
   const sections: CardSection[] = [
     {
       name: 'main',
       displayName: 'メイン',
       cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
-        const url = buildCardImageUrl(card);
+        const url = toAbsoluteUrl(buildCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -61,7 +71,7 @@ export async function createDeckRecipeImage(
       name: 'extra',
       displayName: 'エクストラ',
       cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
-        const url = buildCardImageUrl(card);
+        const url = toAbsoluteUrl(buildCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -69,7 +79,7 @@ export async function createDeckRecipeImage(
       name: 'side',
       displayName: 'サイド',
       cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
-        const url = buildCardImageUrl(card);
+        const url = toAbsoluteUrl(buildCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     }
