@@ -995,7 +995,7 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
 
   // 効果種類取得
   const effectElem = row.querySelector('.box_card_effect');
-  let effectType = undefined;
+  let effectType: SpellEffectType | undefined = undefined;
 
   if (effectElem) {
     const effectSpan = effectElem.querySelector('span');
@@ -1029,7 +1029,7 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
 
   // 効果種類取得
   const effectElem = row.querySelector('.box_card_effect');
-  let effectType = undefined;
+  let effectType: TrapEffectType | undefined = undefined;
 
   if (effectElem) {
     const effectSpan = effectElem.querySelector('span');

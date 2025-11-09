@@ -1,6 +1,7 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -13,6 +14,7 @@ module.exports = (env, argv) => {
       content: './src/content/index.ts',
       background: './src/background/main.ts',
       popup: './src/popup/index.ts',
+      options: './src/options/index.ts',
     },
 
     output: {
@@ -24,9 +26,16 @@ module.exports = (env, argv) => {
     module: {
       rules: [
         {
+          test: /\.vue$/,
+          loader: 'vue-loader',
+        },
+        {
           test: /\.ts$/,
-          use: 'ts-loader',
+          loader: 'ts-loader',
           exclude: [/node_modules/, /__tests__/],
+          options: {
+            appendTsSuffixTo: [/\.vue$/],
+          },
         },
         {
           test: /\.css$/,
@@ -36,7 +45,7 @@ module.exports = (env, argv) => {
     },
 
     resolve: {
-      extensions: ['.ts', '.js'],
+      extensions: ['.ts', '.js', '.vue'],
       alias: {
         '@': path.resolve(__dirname, 'src'),
       },
@@ -50,16 +59,14 @@ module.exports = (env, argv) => {
     },
 
     plugins: [
+      new VueLoaderPlugin(),
+
       // manifest.jsonをコピー
       new CopyWebpackPlugin({
         patterns: [
           {
             from: 'src/manifest.json',
             to: 'manifest.json',
-          },
-          {
-            from: 'src/options.html',
-            to: 'options.html',
           },
           {
             from: 'public',
@@ -82,6 +89,13 @@ module.exports = (env, argv) => {
         template: './src/popup/index.html',
         filename: 'popup.html',
         chunks: ['popup'],
+      }),
+
+      // Options HTMLを生成
+      new HtmlWebpackPlugin({
+        template: './src/options/index.html',
+        filename: 'options.html',
+        chunks: ['options'],
       }),
     ],
 
