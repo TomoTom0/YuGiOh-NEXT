@@ -1,6 +1,6 @@
 {
   "name": "ygo-neuron-helper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "遊戯王公式データベースのデッキ管理を支援するChrome拡張",
   "private": true,
   "scripts": {
