@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>遊戯王デッキヘルパー - 設定</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #555;
+      margin-top: 0;
+      font-size: 1.2em;
+    }
+
+    button {
+      padding: 12px 24px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #45a049;
+    }
+
+    button:active {
+      background: #3d8b40;
+    }
+
+    .description {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .link-button {
+      display: block;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>遊戯王デッキヘルパー</h1>
+
+  <div class="section">
+    <h2>テスト機能</h2>
+    <p class="description">
+      拡張機能の全API機能をテストできるページを開きます。
+    </p>
+    <a href="https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test" target="_blank" class="link-button">
+      <button>テストページを開く</button>
+    </a>
+  </div>
+
+  <div class="section">
+    <h2>バージョン情報</h2>
+    <p class="description">
+      バージョン: <strong id="version">0.0.17</strong>
+    </p>
+  </div>
+
+  <script>
+    // マニフェストからバージョンを取得
+    const manifest = chrome.runtime.getManifest();
+    document.getElementById('version').textContent = manifest.version;
+  </script>
+</body>
+</html>

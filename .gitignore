@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build output
+dist/
+build/
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Session information (IMPORTANT: Never commit!)
+.env.local
+session.env
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Chrome extension
+*.crx
+*.pem
+*.zip
+
+# Playwright and Chrome cache
+.chrome_cache/
+.chrome_cache_temp/
+.chrome_playwright_ws
+.npm-cache/
+.npmrc
+.playwright-browsers/
+
+# Serena (MCP)
+.serena/
+
+# MCP configuration (may contain sensitive data)
+.mcp.json
+
+# Gemini AI cache
+.gemini/
+
+# Reference materials (old extension)
+ref/

@@ -1,0 +1,46 @@
+{
+  "name": "ygo-deck-helper",
+  "version": "0.1.0",
+  "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
+  "scripts": {
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "dev": "webpack --mode development --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "yugioh",
+    "deck",
+    "chrome-extension"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/dotenv": "^6.1.1",
+    "@types/jsdom": "^27.0.0",
+    "@types/node": "^22.0.0",
+    "@vue/compiler-sfc": "^3.5.24",
+    "cheerio": "^1.1.2",
+    "copy-webpack-plugin": "^12.0.0",
+    "css-loader": "^7.1.2",
+    "dotenv": "^17.2.3",
+    "html-webpack-plugin": "^5.6.0",
+    "playwright": "^1.56.1",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.0",
+    "vue": "^3.5.24",
+    "vue-loader": "^17.3.1",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^5.1.0"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "canvas": "^3.2.0",
+    "jsdom": "^27.1.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.18.3"
+  }
+}
