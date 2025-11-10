@@ -31,9 +31,9 @@
 
 **作成される画像のサンプル：**
 
-| 赤背景 + QR | 青背景 + QR | 青背景（QRなし） |
-|------------|------------|----------------|
-| <img src="./docs/usage/images/deck-image-sample-red-qr.png" alt="赤背景" width="200"> | <img src="./docs/usage/images/deck-image-sample-blue-qr.png" alt="青背景" width="200"> | <img src="./docs/usage/images/deck-image-sample-blue-noqr.png" alt="青背景QRなし" width="200"> |
+| デッキレシピ画像例 |
+|-------------------|
+| <img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="400"> |
 
 ## インストール方法
 
