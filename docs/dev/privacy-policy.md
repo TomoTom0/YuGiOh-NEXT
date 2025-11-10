@@ -6,9 +6,29 @@
 
 Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カードデータベースでのデッキ管理を支援するChrome拡張機能です。本プライバシーポリシーでは、本拡張機能がどのようにユーザー情報を取り扱うかについて説明します。
 
-## データ収集について
+## データの取り扱いについて
 
-**本拡張機能は、個人情報や利用状況データを一切収集しません。**
+本拡張機能は、以下のデータを**ブラウザ内でのみ処理**します。これらのデータは開発者のサーバーや第三者のサーバーに**一切送信されません**。
+
+### 処理するデータ
+
+1. **ページ内のデータ**
+   - デッキ情報（デッキ名、カードリスト、枚数など）
+   - カード情報（カード名、画像、属性など）
+   - ユーザーID（cgid）
+     ※公式サイトのURLに含まれる識別子。デッキURL生成に使用
+   - その他URLパラメータ（dno等）
+
+2. **ユーザーの操作**
+   - ボタンのクリック（シャッフル、ダウンロードなど）
+   - テキスト入力（デッキ名の編集）
+   - 設定の変更（機能のON/OFF）
+
+3. **保存するデータ**
+   - 機能設定（各機能のON/OFF状態）
+   - デッキメタデータ（デッキタイプ、スタイル、カテゴリの選択肢）
+
+**これらのデータは全てブラウザ内で処理され、外部には送信されません。**
 
 ## 使用する権限
 
@@ -16,10 +36,12 @@ Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カ�
 
 ### 1. ストレージ権限（storage）
 
-- **目的**: ユーザーの設定情報をブラウザのローカルストレージに保存
+- **目的**: ユーザーの設定情報とデッキメタデータをブラウザのローカルストレージに保存
 - **保存される情報**:
   - 各機能のON/OFF設定（デッキ画像作成、シャッフル機能など）
-- **保存場所**: ユーザーのブラウザ内（ローカルストレージ）
+  - デッキメタデータ（デッキタイプ、スタイル、カテゴリの選択肢）
+    ※公式サイトの検索フォームから取得したラベル情報をキャッシュ
+- **保存場所**: ユーザーのブラウザ内（chrome.storage.local）
 - **外部送信**: なし
 
 ### 2. ホスト権限（https://www.db.yugioh-card.com/*）
@@ -91,9 +113,29 @@ https://github.com/TomoTom0/ygo-deck-helper/issues
 
 Yu-Gi-Oh! Deck Helper ("this extension") is a Chrome extension that enhances deck management on the official Yu-Gi-Oh! card database. This privacy policy explains how this extension handles user information.
 
-## Data Collection
+## Data Handling
 
-**This extension does not collect any personal information or usage data.**
+This extension processes the following data **only within your browser**. None of this data is **transmitted to developers' servers or third-party servers**.
+
+### Data Processed
+
+1. **Page Data**
+   - Deck information (deck name, card list, quantities, etc.)
+   - Card information (card name, images, attributes, etc.)
+   - User ID (cgid)
+     *Identifier included in official site URLs, used for generating deck URLs
+   - Other URL parameters (dno, etc.)
+
+2. **User Actions**
+   - Button clicks (shuffle, download, etc.)
+   - Text input (deck name editing)
+   - Settings changes (feature ON/OFF)
+
+3. **Stored Data**
+   - Feature settings (ON/OFF status for each feature)
+   - Deck metadata (deck type, style, category options)
+
+**All of this data is processed within your browser and is not transmitted externally.**
 
 ## Permissions Used
 
