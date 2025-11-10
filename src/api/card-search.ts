@@ -18,8 +18,8 @@ import {
   ATTRIBUTE_PATH_TO_ID,
   RACE_TEXT_TO_ID,
   MONSTER_TYPE_TEXT_TO_ID,
-  SPELL_EFFECT_TYPE_TEXT_TO_ID,
-  TRAP_EFFECT_TYPE_TEXT_TO_ID
+  SPELL_EFFECT_PATH_TO_ID,
+  TRAP_EFFECT_PATH_TO_ID
 } from '@/types/card-maps';
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 
@@ -995,19 +995,23 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
   if (!attrImg?.src?.includes('attribute_icon_spell')) return null;
 
-  // 効果種類取得
+  // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
   let effectType: SpellEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectSpan = effectElem.querySelector('span');
-    const effectText = effectSpan?.textContent?.trim();
-
-    if (effectText) {
-      effectType = SPELL_EFFECT_TYPE_TEXT_TO_ID[effectText];
-      if (!effectType) {
+    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    if (effectImg?.src) {
+      const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
+      if (match && match[1]) {
+        effectType = SPELL_EFFECT_PATH_TO_ID[match[1]];
       }
     }
+  }
+
+  // 効果アイコンがない場合は'normal'（通常魔法）
+  if (!effectType) {
+    effectType = 'normal';
   }
 
   return {
@@ -1029,19 +1033,23 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
   if (!attrImg?.src?.includes('attribute_icon_trap')) return null;
 
-  // 効果種類取得
+  // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
   let effectType: TrapEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectSpan = effectElem.querySelector('span');
-    const effectText = effectSpan?.textContent?.trim();
-
-    if (effectText) {
-      effectType = TRAP_EFFECT_TYPE_TEXT_TO_ID[effectText];
-      if (!effectType) {
+    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    if (effectImg?.src) {
+      const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
+      if (match && match[1]) {
+        effectType = TRAP_EFFECT_PATH_TO_ID[match[1]];
       }
     }
+  }
+
+  // 効果アイコンがない場合は'normal'（通常罠）
+  if (!effectType) {
+    effectType = 'normal';
   }
 
   return {
@@ -1242,20 +1250,8 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
     });
   }
 
-  // カードタイプを判定
-  let cardTypeText = '';
-
-  // 「効果」というタイトルの隣の値を探す
+  // .item_boxを取得（モンスターカード情報に使用）
   const itemBoxes = doc.querySelectorAll('.item_box');
-  itemBoxes.forEach(box => {
-    const title = box.querySelector('.item_box_title')?.textContent?.trim();
-    if (title === '効果') {
-      const value = box.querySelector('.item_box_value')?.textContent?.trim();
-      if (value) {
-        cardTypeText = value;
-      }
-    }
-  });
 
   // カードタイプを判定（imgのsrc属性から）
   let cardType: CardType;
@@ -1266,17 +1262,31 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
   if (typeImg?.src) {
     if (typeImg.src.includes('attribute_icon_spell')) {
       cardType = 'spell';
-      // 魔法効果タイプを抽出: cardTypeTextから末尾の「魔法」を除去してマッピング
-      if (cardTypeText.endsWith('魔法')) {
-        const effectText = cardTypeText.slice(0, -2); // 「魔法」(2文字)を除去
-        spellEffectType = SPELL_EFFECT_TYPE_TEXT_TO_ID[effectText];
+      // 魔法効果タイプを抽出: box_card_effectのimg要素から判定
+      const effectImg = doc.querySelector('.box_card_effect .icon_img[src*="effect_icon"]') as HTMLImageElement;
+      if (effectImg?.src) {
+        const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
+        if (match && match[1]) {
+          spellEffectType = SPELL_EFFECT_PATH_TO_ID[match[1]];
+        }
+      }
+      // 効果アイコンがない場合は'normal'（通常魔法）
+      if (!spellEffectType) {
+        spellEffectType = 'normal';
       }
     } else if (typeImg.src.includes('attribute_icon_trap')) {
       cardType = 'trap';
-      // 罠効果タイプを抽出: cardTypeTextから末尾の「罠」を除去してマッピング
-      if (cardTypeText.endsWith('罠')) {
-        const effectText = cardTypeText.slice(0, -1); // 「罠」(1文字)を除去
-        trapEffectType = TRAP_EFFECT_TYPE_TEXT_TO_ID[effectText];
+      // 罠効果タイプを抽出: box_card_effectのimg要素から判定
+      const effectImg = doc.querySelector('.box_card_effect .icon_img[src*="effect_icon"]') as HTMLImageElement;
+      if (effectImg?.src) {
+        const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
+        if (match && match[1]) {
+          trapEffectType = TRAP_EFFECT_PATH_TO_ID[match[1]];
+        }
+      }
+      // 効果アイコンがない場合は'normal'（通常罠）
+      if (!trapEffectType) {
+        trapEffectType = 'normal';
       }
     } else {
       cardType = 'monster';

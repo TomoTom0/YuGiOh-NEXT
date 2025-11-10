@@ -154,6 +154,20 @@ export const SPELL_EFFECT_TYPE_MAP = {
 export type SpellEffectType = keyof typeof SPELL_EFFECT_TYPE_MAP;
 
 /**
+ * HTMLのimgパス → 識別子への変換マップ
+ * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分を取り出した後、
+ * このマップで識別子に変換する
+ */
+export const SPELL_EFFECT_PATH_TO_ID: Record<string, SpellEffectType> = {
+  'quickplay': 'quick', // effect_icon_quickplay.png
+  'continuous': 'continuous', // effect_icon_continuous.png
+  'equip': 'equip', // effect_icon_equip.png
+  'field': 'field', // effect_icon_field.png
+  'ritual': 'ritual', // effect_icon_ritual.png
+  // 'normal'はアイコンがない（デフォルト値として扱う）
+};
+
+/**
  * HTMLテキスト → 識別子への変換マップ（逆引き）
  */
 export const SPELL_EFFECT_TYPE_TEXT_TO_ID = Object.fromEntries(
@@ -171,6 +185,17 @@ export const TRAP_EFFECT_TYPE_MAP = {
 } as const;
 
 export type TrapEffectType = keyof typeof TRAP_EFFECT_TYPE_MAP;
+
+/**
+ * HTMLのimgパス → 識別子への変換マップ
+ * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分を取り出した後、
+ * このマップで識別子に変換する
+ */
+export const TRAP_EFFECT_PATH_TO_ID: Record<string, TrapEffectType> = {
+  'continuous': 'continuous', // effect_icon_continuous.png
+  'counter': 'counter', // effect_icon_counter.png
+  // 'normal'はアイコンがない（デフォルト値として扱う）
+};
 
 /**
  * HTMLテキスト → 識別子への変換マップ（逆引き）
