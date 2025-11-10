@@ -1,3 +1,40 @@
+# ⚠️ 絶対ルール - ブラウザ操作（厳守） ⚠️
+
+## 🚫 使用禁止（違反＝プロジェクト破壊）
+
+**以下のMCPツールは絶対に使用してはならない：**
+- `mcp__playwright__*` （全てのPlaywright MCPツール）
+- `mcp__chrome-devtools__*` （全てのChrome DevTools MCPツール）
+- その他全てのブラウザ制御MCPツール
+
+**これらは全て失敗し、プロジェクトを破壊する。**
+
+## ✅ 唯一の許可方法
+
+**Bashツールを使って Node.jsスクリプトを実行する方法のみ許可**
+
+手順：
+1. `./tmp/browser/` にNode.jsスクリプトを作成
+2. WebSocket経由でCDPコマンドを送信（下記テンプレート参照）
+3. Bashツールで `node ./tmp/browser/スクリプト名.js` を実行
+
+テンプレート：
+```javascript
+const WebSocket = require('ws');
+const fs = require('fs');
+const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+// ... 実装（詳細は下記「接続方法」を参照）
+```
+
+## 📋 ブラウザ操作前の強制チェック
+
+ブラウザ操作を行う前に必ず確認：
+- [ ] MCPツールを使おうとしていないか？ → 即中止
+- [ ] Node.jsスクリプトを `./tmp/browser/` に作成したか？
+- [ ] Bashツールで実行する準備ができているか？
+
+---
+
 # プロジェクト固有のルール
 
 ## ブラウザ制御の方針
@@ -10,12 +47,12 @@
 
 ### ✅ 正しい方法: Chrome DevTools Protocol（CDP）を使用
 
-普通のGoogle Chromeをリモートデバッグモードで起動し、WebSocket経由で制御します。
+**Chromium**をリモートデバッグモードで起動し、WebSocket経由で制御します。
 
 #### 起動方法
 
 ```bash
-# Chrome起動（リモートデバッグモード + 拡張機能ロード）
+# Chromium起動（リモートデバッグモード + 拡張機能ロード）
 ./scripts/debug/setup/start-chrome.sh
 
 # 停止
@@ -55,10 +92,10 @@ await sendCommand('Runtime.evaluate', { expression: 'document.title' });
 
 #### この方法の利点
 
-1. **ログイン可能**: 普通のChromeブラウザなので、ユーザーが手動でログインできる
+1. **ログイン可能**: Chromiumブラウザなので、ユーザーが手動でログインできる
 2. **セッション永続化**: `--user-data-dir=.chrome_cache` でログイン状態を保持
-3. **拡張機能ロード**: `--load-extension` でChrome拡張を読み込める
-4. **実機での動作確認**: 本番環境と同じブラウザで動作確認できる
+3. **拡張機能ロード**: `--load-extension` でChrome拡張を読み込める（Google Chromeと異なり正式サポート）
+4. **実機での動作確認**: 本番環境に近いブラウザで動作確認できる
 
 ### ❌ 避けるべき方法
 
@@ -72,6 +109,7 @@ google-chrome --load-extension=... --remote-debugging-port=9222
 **理由**:
 - Google Chromeは `--load-extension` フラグを無視する
 - ログに `WARNING: --load-extension is not allowed in Google Chrome, ignoring.` が出力される
+- **そのためChromium（chromium-browser）を使用する**
 
 #### 2. Playwright persistentContext
 
@@ -126,7 +164,7 @@ node tmp/test-*.js
 
 以下のディレクトリは`.gitignore`に含まれています：
 - `tmp/` - 一時的なテストスクリプトやデバッグファイル
-- `.chrome_cache/` - Chromeのユーザープロファイル
+- `.chrome_cache/` - Chromiumのユーザープロファイル
 - `dist/` - ビルド出力
 - `node_modules/` - npmパッケージ
 
@@ -145,3 +183,14 @@ node tmp/test-*.js
 - **メジャー**: 大きな変更や互換性のない変更
 - **マイナー**: 新機能の追加や改善
 - **パッチ**: バグ修正や小さな変更
+
+## 通知
+
+**beep音は使用禁止**
+
+- `printf '\a'` などのbeep音を鳴らすコマンドは使用しないこと
+- 完了通知が必要な場合はテキストメッセージで伝えること
+
+## sample
+
+- アクセス先のページのurlやhtmlは適当に調べるのではなく、`tests/sample/`に従ってアクセスおよびダウンロード済みhtmlの調査をする
