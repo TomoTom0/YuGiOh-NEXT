@@ -61,7 +61,7 @@
           <div
             v-for="feature in features"
             :key="feature.id"
-            :ref="(el: any) => { if (el) featureRefs[feature.id] = el }"
+            :ref="(el: Element | null) => { if (el) featureRefs[feature.id] = el as HTMLElement }"
             class="feature-section"
             :class="{ disabled: !feature.enabled }"
           >

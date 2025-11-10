@@ -529,6 +529,7 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
     
     return parseSearchResults(doc);
   } catch (error) {
+    console.error('Failed to search cards:', error);
     return [];
   }
 }
@@ -576,6 +577,7 @@ export async function searchCardsByName(
 
     return parseSearchResults(doc);
   } catch (error) {
+    console.error('Failed to search cards:', error);
     return [];
   }
 }
@@ -1265,14 +1267,14 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
     if (typeImg.src.includes('attribute_icon_spell')) {
       cardType = 'spell';
       // 魔法効果タイプを抽出: cardTypeTextから末尾の「魔法」を除去してマッピング
-      if (cardTypeText.endsWith('spell')) {
+      if (cardTypeText.endsWith('魔法')) {
         const effectText = cardTypeText.slice(0, -2); // 「魔法」(2文字)を除去
         spellEffectType = SPELL_EFFECT_TYPE_TEXT_TO_ID[effectText];
       }
     } else if (typeImg.src.includes('attribute_icon_trap')) {
       cardType = 'trap';
       // 罠効果タイプを抽出: cardTypeTextから末尾の「罠」を除去してマッピング
-      if (cardTypeText.endsWith('trap')) {
+      if (cardTypeText.endsWith('罠')) {
         const effectText = cardTypeText.slice(0, -1); // 「罠」(1文字)を除去
         trapEffectType = TRAP_EFFECT_TYPE_TEXT_TO_ID[effectText];
       }
