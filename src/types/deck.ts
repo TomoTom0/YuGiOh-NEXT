@@ -1,6 +1,9 @@
 import { DeckCard } from './card';
 import { DeckTypeValue, DeckStyleValue, DeckCategory } from './deck-metadata';
 
+// Re-export for convenience
+export type { DeckCard };
+
 /**
  * デッキ情報
  */

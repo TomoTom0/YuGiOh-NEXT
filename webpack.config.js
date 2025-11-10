@@ -20,6 +20,7 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
+      publicPath: '',
       clean: true,
     },
 
@@ -45,6 +46,10 @@ module.exports = (env, argv) => {
         {
           test: /\.css$/,
           use: ['style-loader', 'css-loader'],
+        },
+        {
+          test: /\.scss$/,
+          use: ['style-loader', 'css-loader', 'sass-loader'],
         },
       ],
     },
@@ -106,6 +111,7 @@ module.exports = (env, argv) => {
 
     optimization: {
       minimize: isProduction,
+      splitChunks: false,
     },
   };
 };

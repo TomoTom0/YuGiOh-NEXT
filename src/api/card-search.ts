@@ -16,12 +16,12 @@ import {
 } from '@/types/card';
 import {
   ATTRIBUTE_PATH_TO_ID,
-  RACE_TEXT_TO_ID,
-  MONSTER_TYPE_TEXT_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
   TRAP_EFFECT_PATH_TO_ID
 } from '@/types/card-maps';
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
+import { detectLanguage } from '@/utils/language-detector';
+import { mappingManager } from '@/utils/mapping-manager';
 
 const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
 
@@ -766,13 +766,20 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
 }
 
 /**
- * 種族・タイプ情報をパースして識別子に変換する
+ * 種族・タイプ情報をパースして識別子に変換する（多言語対応）
  * 例: "【ドラゴン族／融合／効果】" → { race: "dragon", types: ["fusion", "effect"] }
+ * 例: "[Dragon／Fusion／Effect]" → { race: "dragon", types: ["fusion", "effect"] }
  *
+ * @param doc ページのDocument（言語検出に使用）
  * @param speciesText 種族・タイプのテキスト
  * @returns パース結果、パースできない場合はnull
  */
-function parseSpeciesAndTypes(speciesText: string): { race: Race; types: MonsterType[] } | null {
+function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race; types: MonsterType[] } | null {
+  // 言語を検出して適切なマッピングテーブルを取得
+  const lang = detectLanguage(doc);
+  const raceMap = mappingManager.getRaceTextToId(lang);
+  const typeMap = mappingManager.getMonsterTypeTextToId(lang);
+
   // 括弧を除去してスラッシュで分割（日本語【】、英語[]に対応）
   const cleaned = speciesText.replace(/【|】|\[|\]/g, '').trim();
   const parts = cleaned.split('／').map(p => p.trim()).filter(p => p);
@@ -784,15 +791,15 @@ function parseSpeciesAndTypes(speciesText: string): { race: Race; types: Monster
   if (!raceText) return null;
   const typeTexts = parts.slice(1);
 
-  // テキスト → 識別子に変換
-  const race = RACE_TEXT_TO_ID[raceText];
+  // テキスト → 識別子に変換（言語別マッピングを使用）
+  const race = raceMap[raceText];
   if (!race) {
     return null;
   }
 
   const types: MonsterType[] = [];
   for (const typeText of typeTexts) {
-    const type = MONSTER_TYPE_TEXT_TO_ID[typeText];
+    const type = typeMap[typeText];
     if (type) {
       types.push(type);
     } else {
@@ -905,7 +912,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     return null;
   }
 
-  const parsed = parseSpeciesAndTypes(speciesElem.textContent);
+  const parsed = parseSpeciesAndTypes(row.ownerDocument!, speciesElem.textContent);
   if (!parsed) {
     return null;
   }
@@ -1375,9 +1382,14 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
       }
     });
 
-    // 種族とタイプを取得
+    // 種族とタイプを取得（多言語対応）
     const speciesElem = doc.querySelector('.species');
     if (speciesElem) {
+      // 言語検出
+      const lang = detectLanguage(doc);
+      const raceMap = mappingManager.getRaceTextToId(lang);
+      const typeMap = mappingManager.getMonsterTypeTextToId(lang);
+
       const spans = speciesElem.querySelectorAll('span');
       const texts: string[] = [];
       spans.forEach(span => {
@@ -1390,7 +1402,7 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
       // 最初の要素が種族
       if (texts.length > 0 && texts[0]) {
         const raceText: string = texts[0];
-        const mappedRace = RACE_TEXT_TO_ID[raceText];
+        const mappedRace = raceMap[raceText];
         if (mappedRace) {
           monsterCard.race = mappedRace;
         }
@@ -1405,7 +1417,7 @@ function parseCardDetailPage(doc: Document, cardId: string): CardInfo | null {
         const individualTypes = typeText.split('／').map(t => t.trim()).filter(t => t);
 
         individualTypes.forEach(individualType => {
-          const type = MONSTER_TYPE_TEXT_TO_ID[individualType];
+          const type = typeMap[individualType];
           if (type) {
             types.push(type);
           }

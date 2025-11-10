@@ -17,9 +17,15 @@
       >
         Omit and Usage
       </button>
+      <button
+        :class="['tab', { active: activeTab === 'deckedit' }]"
+        @click="activeTab = 'deckedit'"
+      >
+        Deck Edit
+      </button>
     </div>
 
-    <div class="tab-content">
+     <div class="tab-content">
       <!-- General Tab -->
       <div v-if="activeTab === 'general'" class="general-tab">
         <p class="placeholder">将来的な拡張機能の設定がここに表示されます。</p>
@@ -61,7 +67,7 @@
           <div
             v-for="feature in features"
             :key="feature.id"
-            :ref="(el: Element | null) => { if (el) featureRefs[feature.id] = el as HTMLElement }"
+            :ref="(el) => { if (el) featureRefs[feature.id] = el as HTMLElement }"
             class="feature-section"
             :class="{ disabled: !feature.enabled }"
           >
@@ -82,12 +88,18 @@
           </div>
         </div>
       </div>
+
+      <!-- Deck Edit Tab -->
+      <div v-if="activeTab === 'deckedit'" class="deckedit-tab">
+        <DeckEdit />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
+import DeckEdit from './DeckEdit.vue';
 
 interface Feature {
   id: string;
@@ -97,9 +109,9 @@ interface Feature {
   enabled: boolean;
 }
 
-const activeTab = ref<'general' | 'omit'>('omit');
+const activeTab = ref<'general' | 'omit' | 'deckedit'>('omit');
 const featuresDetail = ref<HTMLElement | null>(null);
-const featureRefs = reactive<Record<string, HTMLElement | Element>>({});
+const featureRefs = reactive<Record<string, any>>({});
 
 const features = reactive<Feature[]>([
   {
