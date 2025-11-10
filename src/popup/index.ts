@@ -1,139 +1,36 @@
-// Popup script for Yu-Gi-Oh! Deck Helper
+/**
+ * Popup UI
+ *
+ * テストページへのリンクを表示
+ */
 
-document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Popup loaded');
-  
-  await updateStatus();
-  await loadDeckCount();
-  setupEventListeners();
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.createElement('div');
+  container.style.cssText = 'padding: 20px; min-width: 250px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;';
+
+  const title = document.createElement('h2');
+  title.textContent = '遊戯王デッキヘルパー';
+  title.style.cssText = 'margin: 0 0 15px 0; color: #333; font-size: 16px;';
+
+  const button = document.createElement('button');
+  button.textContent = 'テストページを開く';
+  button.style.cssText = 'width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;';
+
+  button.addEventListener('click', () => {
+    chrome.tabs.create({
+      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test'
+    });
+  });
+
+  button.addEventListener('mouseenter', () => {
+    button.style.background = '#45a049';
+  });
+
+  button.addEventListener('mouseleave', () => {
+    button.style.background = '#4CAF50';
+  });
+
+  container.appendChild(title);
+  container.appendChild(button);
+  document.body.appendChild(container);
 });
-
-async function updateStatus() {
-  const extensionStatus = document.getElementById('extensionStatus');
-  const siteStatus = document.getElementById('siteStatus');
-  
-  if (extensionStatus) {
-    extensionStatus.textContent = '起動中';
-    extensionStatus.className = 'status-value online';
-  }
-  
-  // 現在のタブが公式サイトかチェック
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.url?.includes('db.yugioh-card.com')) {
-      if (siteStatus) {
-        siteStatus.textContent = '公式サイト上';
-        siteStatus.className = 'status-value online';
-      }
-    } else {
-      if (siteStatus) {
-        siteStatus.textContent = '他のサイト';
-        siteStatus.className = 'status-value offline';
-      }
-    }
-  } catch (error) {
-    console.error('Error checking site status:', error);
-  }
-}
-
-async function loadDeckCount() {
-  try {
-    const result = await chrome.storage.local.get(['decks']);
-    const decks = result.decks || [];
-    const deckCountElement = document.getElementById('deckCount');
-    if (deckCountElement) {
-      deckCountElement.textContent = decks.length.toString();
-    }
-  } catch (error) {
-    console.error('Error loading deck count:', error);
-  }
-}
-
-function setupEventListeners() {
-  // デッキ管理ボタン
-  const openDeckManagerBtn = document.getElementById('openDeckManager');
-  if (openDeckManagerBtn) {
-    openDeckManagerBtn.addEventListener('click', () => {
-      chrome.tabs.create({
-        url: 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=4&wname=MemberDeck'
-      });
-    });
-  }
-  
-  // 同期ボタン
-  const syncDecksBtn = document.getElementById('syncDecks');
-  if (syncDecksBtn) {
-    syncDecksBtn.addEventListener('click', async () => {
-      await syncWithCurrentPage();
-    });
-  }
-  
-  // 設定ボタン
-  const openSettingsBtn = document.getElementById('openSettings');
-  if (openSettingsBtn) {
-    openSettingsBtn.addEventListener('click', () => {
-      alert('設定画面は開発中です');
-    });
-  }
-}
-
-async function syncWithCurrentPage() {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
-    if (!tab?.url?.includes('db.yugioh-card.com')) {
-      alert('遊戯王公式サイトを開いてから同期してください');
-      return;
-    }
-    
-    // Content scriptにメッセージを送信
-    const response = await chrome.tabs.sendMessage(tab.id!, {
-      action: 'getPageInfo'
-    });
-
-    console.log('Page info:', response);
-
-    // ユーザー主導でエクスポートする：クリップボードへコピーとJSONファイルをダウンロード
-    try {
-      const json = JSON.stringify(response, null, 2);
-
-      // クリップボードコピー（ポップアップのコンテキストでは navigator.clipboard が使える）
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(json);
-        alert('ページ情報をクリップボードにコピーしました');
-      } else {
-        // フォールバック：ダウンロードのみ
-        downloadJson(json, 'page-info.json');
-        alert('ページ情報をファイルに保存しました');
-      }
-      // 常にダウンロードも行う
-      downloadJson(json, 'page-info.json');
-    } catch (err) {
-      console.error('Export error:', err);
-      alert('ページ情報のエクスポートに失敗しました');
-    }
-    
-  } catch (error) {
-    console.error('Sync error:', error);
-    alert('エラーが発生しました');
-  }
-}
-
-function downloadJson(content: string, filename: string) {
-  const blob = new Blob([content], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// Background scriptとの接続確認
-chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
-  console.log('Background connection test:', response);
-});
-
-export {};
