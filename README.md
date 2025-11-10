@@ -21,7 +21,7 @@
 
 デッキレシピを画像として保存できます。SNSでの共有やアーカイブに便利です。
 
-<img src="./docs/usage/images/deck-image-dialog.gif" alt="デッキ画像作成機能" width="600">
+<img src="./docs/usage/images/deck-image-sample-red-qr.png" alt="デッキ画像作成機能" width="600">
 
 **機能詳細：**
 - デッキ名のカスタマイズ
