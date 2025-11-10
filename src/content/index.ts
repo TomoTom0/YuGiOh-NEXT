@@ -16,8 +16,27 @@ import { initDeckImageButton } from './deck-recipe';
 // シャッフル機能の初期化
 import { initShuffle } from './shuffle';
 
-// デッキ画像作成ボタンを初期化（デッキ表示/編集ページで動作）
-initDeckImageButton();
+// 設定読み込み
+import { isFeatureEnabled } from '../utils/settings';
 
-// シャッフル機能を初期化（デッキ表示ページで動作）
-initShuffle();
+/**
+ * 機能設定に基づいて、各機能を初期化する
+ */
+async function initializeFeatures(): Promise<void> {
+  try {
+    // デッキ画像作成機能の初期化（設定で有効な場合のみ）
+    if (await isFeatureEnabled('deck-image')) {
+      initDeckImageButton();
+    }
+
+    // シャッフル機能の初期化（設定で有効な場合のみ）
+    if (await isFeatureEnabled('shuffle-sort')) {
+      initShuffle();
+    }
+  } catch (error) {
+    console.error('Failed to initialize features:', error);
+  }
+}
+
+// 機能を初期化
+initializeFeatures();
