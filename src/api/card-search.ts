@@ -773,8 +773,8 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
  * @returns パース結果、パースできない場合はnull
  */
 function parseSpeciesAndTypes(speciesText: string): { race: Race; types: MonsterType[] } | null {
-  // 【】を除去してスラッシュで分割
-  const cleaned = speciesText.replace(/【|】/g, '').trim();
+  // 括弧を除去してスラッシュで分割（日本語【】、英語[]に対応）
+  const cleaned = speciesText.replace(/【|】|\[|\]/g, '').trim();
   const parts = cleaned.split('／').map(p => p.trim()).filter(p => p);
 
   if (parts.length === 0) return null;

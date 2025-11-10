@@ -101,11 +101,46 @@ export const RACE_MAP = {
 export type Race = keyof typeof RACE_MAP;
 
 /**
- * HTMLテキスト → 識別子への変換マップ（逆引き）
+ * 英語テキスト → 識別子への変換マップ
  */
-export const RACE_TEXT_TO_ID = Object.fromEntries(
-  Object.entries(RACE_MAP).map(([id, text]) => [text, id as Race])
-) as Record<string, Race>;
+const RACE_EN_TO_ID: Record<string, Race> = {
+  'Dragon': 'dragon',
+  'Zombie': 'zombie',
+  'Fiend': 'fiend',
+  'Pyro': 'pyro',
+  'Sea Serpent': 'seaserpent',
+  'Rock': 'rock',
+  'Machine': 'machine',
+  'Fish': 'fish',
+  'Dinosaur': 'dinosaur',
+  'Insect': 'insect',
+  'Beast': 'beast',
+  'Beast-Warrior': 'beastwarrior',
+  'Plant': 'plant',
+  'Aqua': 'aqua',
+  'Warrior': 'warrior',
+  'Winged Beast': 'windbeast',
+  'Fairy': 'fairy',
+  'Spellcaster': 'spellcaster',
+  'Thunder': 'thunder',
+  'Reptile': 'reptile',
+  'Psychic': 'psychic',
+  'Divine-Beast': 'divine',
+  'Wyrm': 'wyrm',
+  'Cyberse': 'cyberse',
+  'Illusion': 'illusion',
+};
+
+/**
+ * HTMLテキスト → 識別子への変換マップ（逆引き）
+ * 日本語と英語両方に対応
+ */
+export const RACE_TEXT_TO_ID = {
+  ...Object.fromEntries(
+    Object.entries(RACE_MAP).map(([id, text]) => [text, id as Race])
+  ),
+  ...RACE_EN_TO_ID,
+} as Record<string, Race>;
 
 // ============================================================================
 // モンスタータイプ（MonsterType）
@@ -132,11 +167,36 @@ export const MONSTER_TYPE_MAP = {
 export type MonsterType = keyof typeof MONSTER_TYPE_MAP;
 
 /**
- * HTMLテキスト → 識別子への変換マップ（逆引き）
+ * 英語テキスト → 識別子への変換マップ
  */
-export const MONSTER_TYPE_TEXT_TO_ID = Object.fromEntries(
-  Object.entries(MONSTER_TYPE_MAP).map(([id, text]) => [text, id as MonsterType])
-) as Record<string, MonsterType>;
+const MONSTER_TYPE_EN_TO_ID: Record<string, MonsterType> = {
+  'Normal': 'normal',
+  'Effect': 'effect',
+  'Fusion': 'fusion',
+  'Ritual': 'ritual',
+  'Synchro': 'synchro',
+  'Xyz': 'xyz',
+  'Pendulum': 'pendulum',
+  'Link': 'link',
+  'Tuner': 'tuner',
+  'Spirit': 'spirit',
+  'Union': 'union',
+  'Gemini': 'gemini',
+  'Flip': 'flip',
+  'Toon': 'toon',
+  'Special Summon': 'special',
+};
+
+/**
+ * HTMLテキスト → 識別子への変換マップ（逆引き）
+ * 日本語と英語両方に対応
+ */
+export const MONSTER_TYPE_TEXT_TO_ID = {
+  ...Object.fromEntries(
+    Object.entries(MONSTER_TYPE_MAP).map(([id, text]) => [text, id as MonsterType])
+  ),
+  ...MONSTER_TYPE_EN_TO_ID,
+} as Record<string, MonsterType>;
 
 // ============================================================================
 // 魔法効果種類（SpellEffectType）
