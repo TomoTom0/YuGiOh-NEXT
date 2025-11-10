@@ -101,7 +101,7 @@ Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カ�
 
 本プライバシーポリシーに関するご質問は、以下のGitHubリポジトリのIssuesページよりお問い合わせください：
 
-https://github.com/TomoTom0/ygo-deck-helper/issues
+https://github.com/TomoTom0/ygo-neuron-helper/issues
 
 ---
 
@@ -206,4 +206,4 @@ This privacy policy may be updated as necessary. Significant changes will be ann
 
 For questions about this privacy policy, please contact us through the Issues page of our GitHub repository:
 
-https://github.com/TomoTom0/ygo-deck-helper/issues
+https://github.com/TomoTom0/ygo-neuron-helper/issues
