@@ -4,6 +4,54 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-10 (13:55): Geminiレビュー対応と設定制御機能の追加
+
+### 実施内容
+
+1. **Geminiレビューコメントへの対応（PR #1）**:
+   - 高優先度: `endsWith('spell')` → `endsWith('魔法')` 修正
+   - 高優先度: `endsWith('trap')` → `endsWith('罠')` 修正
+   - 高優先度: tsconfig.jsonで型安全性を再度有効化、webpack.config.jsでVueファイルのみ無効化
+   - 中優先度: console.error文を再追加してエラーログを復活
+   - 各コメントに個別に返信して解決
+
+2. **オプションページによる機能制御の実装**:
+   - `src/types/settings.ts`: 設定の型定義
+   - `src/utils/settings.ts`: 設定読み込みユーティリティ
+   - `src/content/index.ts`: 設定に基づいて機能を条件付きで初期化
+
+3. **変更内容のコミット・プッシュ**:
+   - コミット: a032149 "feat: オプションページで機能の有効/無効を制御可能に"
+   - ブランチ: feature/deck-recipe-image
+
+### 技術詳細
+
+**型安全性のバランス調整**:
+- `tsconfig.json`では全体的に`noImplicitAny: true`と`noUnusedParameters: true`を維持
+- `webpack.config.js`のts-loaderで`.vue`ファイルのみこれらを無効化
+- 通常のTypeScriptファイル：厳格な型チェック
+- Vueファイル：フレームワーク特有の制約に対応
+
+**設定制御の仕組み**:
+```typescript
+// options.htmlで設定を保存
+chrome.storage.local.set({ featureSettings: { 'shuffle-sort': true, 'deck-image': false } })
+
+// content scriptで設定を読み込み
+const settings = await loadFeatureSettings();
+if (settings['deck-image']) {
+  initDeckImageButton();
+}
+```
+
+### 成果物
+
+- PR #1のレビュー完全対応
+- ユーザーが各機能のON/OFFを切り替え可能に
+- 型安全性とVue互換性のバランスを実現
+
+---
+
 ## 2025-11-09 (23:00): 動画撮影スクリプトの作成と実行
 
 ### 実施内容
