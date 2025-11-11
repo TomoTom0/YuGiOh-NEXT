@@ -2,29 +2,20 @@
   <div 
     class="deck-section"
     :class="`${sectionType}-deck`"
-    @dragover="handleDragOver"
-    @drop="onAreaDrop"
+    @dragover.prevent
+    @drop="handleDrop"
   >
     <h3>
       {{ title }}
       <span v-if="showCount" class="count">{{ cards.length }}</span>
     </h3>
-    <div class="card-grid" @dragover="handleDragOver">
+    <div class="card-grid" @dragover.prevent @drop="handleDrop">
       <DeckCard
         v-for="(card, idx) in cards"
         :key="`${sectionType}-${idx}`"
         :card="card"
         :section-type="sectionType"
         :index="idx"
-        @dragstart="$emit('dragstart', $event, sectionType, idx, card)"
-        @dragover="handleDragOver"
-        @drop="$emit('drop', $event, sectionType, idx)"
-        @click="$emit('card-click', card)"
-        @move-to-side="$emit('move-to-side', card, idx)"
-        @move-from-side="$emit('move-from-side', card, idx)"
-        @move-to-trash="$emit('move-to-trash', card, idx)"
-        @move-from-trash="$emit('move-from-trash', card, idx)"
-        @add-copy="$emit('add-copy', card, idx)"
       />
     </div>
   </div>
@@ -32,6 +23,7 @@
 
 <script>
 import DeckCard from '../components/DeckCard.vue'
+import { useDeckEditStore } from '../stores/deck-edit'
 
 export default {
   name: 'DeckSection',
@@ -56,20 +48,44 @@ export default {
       default: true
     }
   },
-  emits: ['dragstart', 'drop', 'area-drop', 'card-click', 'move-to-side', 'move-from-side', 'move-to-trash', 'move-from-trash', 'add-copy'],
-  setup(props, { emit }) {
-    const handleDragOver = (event) => {
-      event.preventDefault()
-      return false
-    }
+  setup(props) {
+    const deckStore = useDeckEditStore()
 
-    const onAreaDrop = (event) => {
-      emit('area-drop', event, props.sectionType)
+    const handleDrop = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      console.log('DeckSection drop:', props.sectionType)
+      
+      try {
+        const data = event.dataTransfer.getData('text/plain')
+        console.log('Drop data received:', data)
+        if (!data) return
+        
+        const { sectionType: sourceSectionType, card } = JSON.parse(data)
+        console.log('Parsed:', { sourceSectionType, card: card?.name, targetSection: props.sectionType })
+        
+        if (!card) return
+        
+        if (sourceSectionType === 'search') {
+          console.log('Adding from search to:', props.sectionType)
+          if (props.sectionType === 'main' || props.sectionType === 'extra') {
+            deckStore.addCopyToMainOrExtra(card)
+          } else if (props.sectionType === 'side') {
+            deckStore.addCopyToSection(card, 'side')
+          } else if (props.sectionType === 'trash') {
+            // Ignore drop to trash from search
+          }
+        } else if (sourceSectionType !== props.sectionType) {
+          console.log('Moving from', sourceSectionType, 'to', props.sectionType)
+          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType)
+        }
+      } catch (e) {
+        console.error('Drop error:', e)
+      }
     }
 
     return {
-      handleDragOver,
-      onAreaDrop
+      handleDrop
     }
   }
 }
@@ -126,15 +142,15 @@ export default {
 
 .trash-deck {
   flex: none;
-  height: 90px;
-  min-height: 90px;
-  max-height: 90px;
+  height: 100px;
+  min-height: 100px;
+  max-height: 100px;
   
   .card-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
-    min-height: 60px;
+    min-height: 70px;
   }
 }
 </style>

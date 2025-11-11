@@ -11,6 +11,13 @@
           title="main"
           section-type="main"
           :cards="mainDeck"
+          @dragstart="onDragStart"
+          @drop="onDrop"
+          @area-drop="onAreaDrop"
+          @card-click="showCardDetail"
+          @move-to-side="moveToSide"
+          @move-to-trash="moveToTrash"
+          @add-copy="addCopy"
         />
 
         <div class="middle-decks">
@@ -18,12 +25,26 @@
             title="extra"
             section-type="extra"
             :cards="extraDeck"
+            @dragstart="onDragStart"
+            @drop="onDrop"
+            @area-drop="onAreaDrop"
+            @card-click="showCardDetail"
+            @move-to-side="moveToSide"
+            @move-to-trash="moveToTrash"
+            @add-copy="addCopy"
           />
 
           <DeckSection
             title="side"
             section-type="side"
             :cards="sideDeck"
+            @dragstart="onDragStart"
+            @drop="onDrop"
+            @area-drop="onAreaDrop"
+            @card-click="showCardDetail"
+            @move-from-side="moveFromSide"
+            @move-to-trash="moveToTrash"
+            @add-copy="addCopy"
           />
         </div>
 
@@ -32,21 +53,114 @@
           section-type="trash"
           :cards="trashDeck"
           :show-count="false"
+          @dragstart="onDragStart"
+          @drop="onDrop"
+          @area-drop="onAreaDrop"
+          @card-click="showCardDetail"
+          @move-from-trash="moveFromTrash"
+          @add-copy="addCopy"
         />
       </div>
     </div>
 
-    <RightArea />
+    <div class="right-area">
+      <div class="tabs">
+        <button class="tab-header" disabled>Header</button>
+        <button
+          :class="{ active: activeTab === 'search' }"
+          @click="activeTab = 'search'"
+        >
+          Search
+        </button>
+        <button
+          :class="{ active: activeTab === 'card' }"
+          @click="activeTab = 'card'"
+        >
+          Card
+        </button>
+      </div>
+
+      <div v-if="activeTab === 'search'" class="search-content">
+        <div class="search-toolbar">
+          <label class="switch-container">
+            <span>Detail</span>
+            <input type="checkbox" v-model="showDetail">
+            <span class="slider"></span>
+          </label>
+          <div class="view-switch">
+            <label class="view-option">
+              <input type="radio" v-model="viewMode" value="list" name="viewMode">
+              <span class="icon">☰</span>
+            </label>
+            <label class="view-option">
+              <input type="radio" v-model="viewMode" value="grid" name="viewMode">
+              <span class="icon">▦</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="search-results" :class="{ 'grid-view': viewMode === 'grid' }">
+          <div
+            v-for="(card, idx) in searchResults"
+            :key="`search-${idx}`"
+            class="search-result-item"
+          >
+            <DeckCard
+              :card="card.card"
+              :section-type="'search'"
+              :index="idx"
+              @dragstart="onDragStart"
+              @dragover="handleDragOver"
+              @move-to-side="addToSide"
+              @add-copy="addToMainOrExtra"
+            />
+            <div class="card-info" v-if="showDetail">
+              <div class="card-name">{{ card.card.name }}</div>
+              <div class="card-text">{{ card.card.text }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'card'" class="card-detail-content">
+        <div v-if="selectedCard">
+          <h4>{{ selectedCard.name }}</h4>
+          <img :src="selectedCard.imageUrl || '/card-placeholder.png'" :alt="selectedCard.name" class="detail-image">
+          <p>{{ selectedCard.text }}</p>
+          <div class="detail-actions">
+            <button @click="addToMain(selectedCard)">Main追加</button>
+            <button @click="addToExtra(selectedCard)">Extra追加</button>
+            <button @click="addToSide(selectedCard)">Side追加</button>
+          </div>
+        </div>
+        <div v-else>
+          <p>カードを選択してください</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-input-bottom">
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="カード名を検索..."
+        @input="onSearchInput"
+      >
+      <button class="search-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+        </svg>
+      </button>
+    </div>
   </div>
 </template>
 
 <script>
 import { ref, reactive, computed } from 'vue'
-import { useDeckEditStore } from '../../stores/deck-edit'
+import { useDeckStore } from '../../stores/deck'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
-import RightArea from '../../components/RightArea.vue'
 import { searchCardsByName, buildCardImageUrl } from '../../api/card-search'
 
 export default {
@@ -54,11 +168,10 @@ export default {
   components: {
     DeckCard,
     DeckSection,
-    DeckEditTopBar,
-    RightArea
+    DeckEditTopBar
   },
   setup() {
-    const deckStore = useDeckEditStore()
+    const deckStore = useDeckStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -128,14 +241,14 @@ export default {
       cardTab.value = 'info'
     }
 
-    const onSearchInput = async (query) => {
-      if (!query || !query.trim()) {
+    const onSearchInput = async () => {
+      if (!searchQuery.value.trim()) {
         searchResults.length = 0
         return
       }
       
       try {
-        const results = await searchCardsByName(query.trim())
+        const results = await searchCardsByName(searchQuery.value.trim())
         searchResults.length = 0
         searchResults.push(...results.map(card => {
           const relativeUrl = buildCardImageUrl(card)
@@ -332,11 +445,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-// Hide page top button
-:global(.menu_btn_pagetop) {
-  display: none !important;
-}
-
 .deck-edit-container {
   display: flex;
   height: 100vh;
@@ -423,8 +531,6 @@ export default {
   margin: 10px 10px 10px 0;
   padding: 0;
   box-sizing: border-box;
-  max-height: calc(100vh - 20px);
-  overflow: hidden;
 }
 
 .tabs {
@@ -588,6 +694,7 @@ export default {
     }
   }
 }
+</style>
 
 .switch-container {
   display: flex;
@@ -688,4 +795,3 @@ export default {
   text-align: center;
   color: #999;
 }
-</style>

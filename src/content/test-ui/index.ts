@@ -414,7 +414,7 @@ async function handleSearchCards(): Promise<void> {
 
     displayResult('result-search', { message: '検索中...' });
 
-    const results = await searchCardsByName(keyword, cardType || undefined);
+    const results = await searchCardsByName(keyword, undefined, cardType || undefined);
 
     displayResult('result-search', {
       keyword,
