@@ -14,6 +14,7 @@ import {
   CardDetail,
   PackInfo
 } from '@/types/card';
+import { getCardFAQList } from './card-faq';
 import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
@@ -754,7 +755,15 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
 
   // 効果テキスト（オプション）
   const textElem = row.querySelector('.box_card_text');
-  const text = textElem?.textContent?.trim() || undefined;
+  let text: string | undefined = undefined;
+  if (textElem) {
+    // <br>を改行に変換してからtextContentを取得
+    const cloned = textElem.cloneNode(true) as HTMLElement;
+    cloned.querySelectorAll('br').forEach(br => {
+      br.replaceWith('\n');
+    });
+    text = cloned.textContent?.trim() || undefined;
+  }
 
   return {
     name,
@@ -959,8 +968,13 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   }
 
   const pendulumEffectElem = row.querySelector('.box_card_pen_effect');
-  if (pendulumEffectElem?.textContent) {
-    pendulumEffect = pendulumEffectElem.textContent.trim();
+  if (pendulumEffectElem) {
+    // <br>を改行に変換
+    const cloned = pendulumEffectElem.cloneNode(true) as HTMLElement;
+    cloned.querySelectorAll('br').forEach(br => {
+      br.replaceWith('\n');
+    });
+    pendulumEffect = cloned.textContent?.trim();
   }
 
   // リンクマーカー取得
@@ -1149,12 +1163,24 @@ function parsePackInfo(doc: Document): PackInfo[] {
     const packNameElem = rowElement.querySelector('.pack_name');
     const name = packNameElem?.textContent?.trim() || '';
     
+    // レアリティを取得
+    const rarityElem = rowElement.querySelector('.lr_icon');
+    let rarity = '';
+    if (rarityElem) {
+      // <p>タグ内のテキストを取得（"SR"など）
+      const rarityText = rarityElem.querySelector('p')?.textContent?.trim();
+      if (rarityText) {
+        rarity = rarityText;
+      }
+    }
+    
     // 少なくともパック名がある場合のみ追加
     if (name) {
       packs.push({
         name,
         code,
-        releaseDate
+        releaseDate,
+        rarity: rarity || undefined
       });
     }
   });
@@ -1516,11 +1542,24 @@ export async function getCardDetail(cardId: string): Promise<CardDetail | null> 
     // 収録シリーズと関連カードをパース
     const packs = parsePackInfo(doc);
     const relatedCards = parseRelatedCards(doc);
+    
+    // 関連カードのimageUrlを生成
+    relatedCards.forEach(relatedCard => {
+      if (!relatedCard.imageUrl) {
+        const relativeUrl = buildCardImageUrl(relatedCard);
+        relatedCard.imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined;
+      }
+    });
+    
+    // Q&A情報を取得（既存のAPI関数を使用）
+    const faqList = await getCardFAQList(cardId);
+    const qaList = faqList?.faqs || [];
 
     return {
       card,
       packs,
-      relatedCards
+      relatedCards,
+      qaList
     };
   } catch (error) {
     console.error('Failed to get card detail:', error);

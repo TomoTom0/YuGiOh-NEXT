@@ -140,6 +140,8 @@ export interface CardDetail {
   packs: PackInfo[];
   /** 関連カード */
   relatedCards: CardInfo[];
+  /** Q&A情報 */
+  qaList?: CardFAQ[];
 }
 
 /**
@@ -168,6 +170,8 @@ export interface CardFAQList {
   cardText?: string;
   /** 補足情報 */
   supplementInfo?: string;
+  /** 補足情報の日付 */
+  supplementDate?: string;
   /** FAQ一覧 */
   faqs: CardFAQ[];
 }
