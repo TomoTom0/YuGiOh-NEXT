@@ -265,6 +265,7 @@ export default {
     width: 100% !important;
     margin: 0 !important;
     border-left: none !important;
+    height: calc(100% - 65px) !important;
   }
 }
 
@@ -283,7 +284,7 @@ export default {
     color: #333;
 
     &.active {
-      background: #008cff;
+      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
     }
     
@@ -507,7 +508,7 @@ export default {
     color: #333;
     
     &.active {
-      background: #008cff;
+      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
     }
   }
@@ -766,6 +767,12 @@ export default {
     &::placeholder {
       color: #999 !important;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .search-input-bottom {
+    right: 20px;
   }
 }
 

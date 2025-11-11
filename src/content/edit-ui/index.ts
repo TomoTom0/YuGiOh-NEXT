@@ -92,6 +92,11 @@ function loadEditUI(): void {
     headerHeight = headerElement.offsetHeight;
   }
   document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+  
+  // テーマカラーのCSS変数を設定
+  document.documentElement.style.setProperty('--theme-gradient', 'linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%)');
+  document.documentElement.style.setProperty('--theme-color-start', '#00d9b8');
+  document.documentElement.style.setProperty('--theme-color-end', '#b84fc9');
 
   // スタイルを追加
   const styleId = 'ygo-edit-ui-styles';
