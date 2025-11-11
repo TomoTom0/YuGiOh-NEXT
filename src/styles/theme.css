@@ -1,0 +1,5 @@
+:root {
+  --theme-gradient: linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%);
+  --theme-color-start: #00d9b8;
+  --theme-color-end: #b84fc9;
+}
