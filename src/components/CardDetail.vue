@@ -189,6 +189,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #008cff;
+  width: 100%;
   
   button {
     padding: 8px;
@@ -197,9 +198,10 @@ export default {
     cursor: pointer;
     font-size: 12px;
     color: #333;
+    flex: 1;
     
     &.active {
-      background: #008cff;
+      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
     }
   }
