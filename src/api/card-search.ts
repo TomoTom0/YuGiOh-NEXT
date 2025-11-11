@@ -536,6 +536,7 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
 
 export async function searchCardsByName(
   keyword: string,
+  limit?: number,
   ctype?: CardType
 ): Promise<CardInfo[]> {
   try {
@@ -546,17 +547,16 @@ export async function searchCardsByName(
       keyword: keyword,
       stype: '1',
       othercon: '2',
-      link_m: '2'
+      link_m: '2',
+      rp: (limit || 99).toString()
     });
 
     if (ctypeValue) {
       params.append('ctype', ctypeValue);
     } else {
-      // ctypeが指定されていない場合は空文字列を追加
       params.append('ctype', '');
     }
 
-    // その他の空パラメータを追加（公式サイトの仕様）
     const emptyParams = ['starfr', 'starto', 'pscalefr', 'pscaleto', 'linkmarkerfr', 'linkmarkerto', 'atkfr', 'atkto', 'deffr', 'defto'];
     emptyParams.forEach(param => {
       params.append(param, '');
@@ -739,9 +739,11 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   const rubyElem = row.querySelector('.card_ruby');
   const ruby = rubyElem?.textContent?.trim() || undefined;
 
-  // 画像ID（デフォルト'1'）
+  // 画像ID（ページのrequest_localeから取得、デフォルト'ja'）
   const langInput = row.querySelector('input.lang') as HTMLInputElement;
-  const imageId = langInput?.value || '1';
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestLocale = urlParams.get('request_locale') || 'ja';
+  const imageId = langInput?.value || requestLocale;
 
   // 画像識別子（JavaScriptコードから抽出）
   const imageInfo = imageInfoMap.get(cardId);

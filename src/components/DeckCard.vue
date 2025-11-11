@@ -8,18 +8,20 @@
     @click="$emit('click', card)"
   >
     <img :src="cardImageUrl" :alt="card.name">
-    <div v-if="!card.empty && !showSearchButtons" class="card-controls">
+    <div v-if="!card.empty" class="card-controls">
       <button 
         class="card-btn top-left" 
-        @click.stop
-      ></button>
+        @click.stop="handleInfo"
+      >
+        <span class="btn-text">ⓘ</span>
+      </button>
       <button 
         v-if="topRightText"
         class="card-btn top-right"
         :class="topRightClass"
         @click.stop="handleTopRight"
       >
-        <span v-if="topRightText === 'M/E'" class="btn-text btn-text-multiline">M<br>E</span>
+        <span v-if="topRightText === 'M/E'" class="btn-text">M</span>
         <span v-else-if="topRightText" class="btn-text">{{ topRightText }}</span>
       </button>
       <button 
@@ -35,7 +37,7 @@
         <svg v-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />
         </svg>
-        <span v-else-if="bottomLeftText === 'M/E'" class="btn-text btn-text-multiline">M<br>E</span>
+        <span v-else-if="bottomLeftText === 'M/E'" class="btn-text">M</span>
         <span v-else-if="bottomLeftText" class="btn-text">{{ bottomLeftText }}</span>
       </button>
       <button 
@@ -49,33 +51,11 @@
         <span v-else class="btn-text">{{ bottomRightText }}</span>
       </button>
     </div>
-    <div v-if="!card.empty && showSearchButtons" class="card-controls">
-      <button 
-        class="card-btn top-left" 
-        @click.stop
-      ></button>
-      <button 
-        class="card-btn top-right"
-        @click.stop
-      ></button>
-      <button 
-        class="card-btn bottom-left card-btn-me"
-        @click.stop="handleBottomLeft"
-      >
-        <span class="btn-text btn-text-multiline">M<br>E</span>
-      </button>
-      <button 
-        class="card-btn bottom-right card-btn-side"
-        @click.stop="handleBottomRight"
-      >
-        <span class="btn-text">S</span>
-      </button>
-    </div>
   </div>
 </template>
 
 <script>
-import { useDeckStore } from '../stores/deck'
+import { useDeckEditStore } from '../stores/deck-edit'
 
 export default {
   name: 'DeckCard',
@@ -94,7 +74,7 @@ export default {
     }
   },
   setup() {
-    const deckStore = useDeckStore()
+    const deckStore = useDeckEditStore()
     return { deckStore }
   },
   computed: {
@@ -152,6 +132,19 @@ export default {
   },
   methods: {
     handleDragStart(event) {
+      console.log('DeckCard handleDragStart:', this.sectionType, this.card.name, 'empty:', this.card.empty)
+      if (this.card.empty) {
+        console.log('Card is empty, preventing drag')
+        event.preventDefault()
+        return
+      }
+      event.dataTransfer.effectAllowed = this.sectionType === 'search' ? 'copy' : 'move'
+      event.dataTransfer.setData('text/plain', JSON.stringify({
+        sectionType: this.sectionType,
+        index: this.index,
+        card: this.card
+      }))
+      console.log('Drag data set:', { sectionType: this.sectionType, card: this.card.name })
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
@@ -159,6 +152,13 @@ export default {
     },
     handleDrop(event) {
       this.$emit('drop', event, this.sectionType, this.index)
+    },
+    handleInfo() {
+      console.log('Info clicked, card:', this.card)
+      this.deckStore.selectedCard = this.card
+      this.deckStore.activeTab = 'card'
+      this.deckStore.cardTab = 'info'
+      console.log('Store updated - activeTab:', this.deckStore.activeTab, 'selectedCard:', this.deckStore.selectedCard)
     },
     handleTopRight() {
       if (this.sectionType === 'side') {
@@ -239,90 +239,203 @@ export default {
 
 .card-btn {
   border: none;
-  background: rgba(0, 0, 0, 0.4);
+  background: transparent;
   cursor: pointer;
   padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
   color: white;
   font-size: 8px;
   font-weight: bold;
   transition: all 0.15s;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    transition: background 0.15s;
+    pointer-events: none;
+  }
 
   svg {
     display: block;
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn-text {
+    position: relative;
+    z-index: 1;
   }
 
   &.top-left {
     grid-column: 1;
     grid-row: 1;
-    background: rgba(128, 128, 128, 0.3);
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 2px 0 0 2px;
 
-    &:hover {
-      background: rgba(128, 128, 128, 0.5);
+    &::before {
+      top: 0;
+      left: 0;
+      width: 66.67%;
+      height: 66.67%;
+      background: rgba(255, 165, 0, 0.8);
+      border: none;
+      transition: all 0.15s;
+    }
+
+    &:hover::before {
+      background: rgba(255, 140, 0, 0.95);
+      border: 1px solid rgba(255, 140, 0, 1);
+    }
+    
+    .btn-text {
+      font-size: 9px;
+    }
+
+    svg {
+      width: 8px;
+      height: 8px;
     }
   }
 
   &.top-right {
     grid-column: 2;
     grid-row: 1;
-    background: rgba(180, 180, 180, 0.3);
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 2px 2px 0 0;
 
-    &:hover {
+    &::before {
+      top: 0;
+      right: 0;
+      width: 66.67%;
+      height: 66.67%;
+      background: rgba(180, 180, 180, 0.3);
+      border: none;
+      transition: all 0.15s;
+    }
+
+    &:hover::before {
       background: rgba(180, 180, 180, 0.5);
+      border: 1px solid rgba(180, 180, 180, 0.7);
     }
 
     &.card-btn-me {
-      background: rgba(100, 150, 255, 0.6);
+      &::before {
+        background: rgba(100, 150, 255, 0.6);
+      }
 
-      &:hover {
+      &:hover::before {
         background: rgba(100, 150, 255, 0.95);
+        border: 1px solid rgba(100, 150, 255, 1);
       }
     }
 
     &.card-btn-s {
-      background: rgba(150, 100, 255, 0.6);
-
-      &:hover {
-        background: rgba(150, 100, 255, 0.95);
+      &::before {
+        background: rgba(150, 100, 255, 0.6);
       }
+
+      &:hover::before {
+        background: rgba(150, 100, 255, 0.95);
+        border: 1px solid rgba(150, 100, 255, 1);
+      }
+    }
+
+    .btn-text {
+      font-size: 9px;
+    }
+
+    svg {
+      width: 8px;
+      height: 8px;
     }
   }
 
   &.bottom-left {
     grid-column: 1;
     grid-row: 2;
-    background: rgba(255, 100, 100, 0.6);
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 0 0 2px 2px;
 
-    &:hover {
+    &::before {
+      bottom: 0;
+      left: 0;
+      width: 66.67%;
+      height: 66.67%;
+      background: rgba(255, 100, 100, 0.6);
+      border: none;
+      transition: all 0.15s;
+    }
+
+    &:hover::before {
       background: rgba(255, 100, 100, 0.95);
+      border: 1px solid rgba(255, 100, 100, 1);
     }
 
     &.card-btn-me {
-      background: rgba(100, 150, 255, 0.6);
-
-      &:hover {
-        background: rgba(100, 150, 255, 0.95);
+      &::before {
+        background: rgba(100, 150, 255, 0.6);
       }
+
+      &:hover::before {
+        background: rgba(100, 150, 255, 0.95);
+        border: 1px solid rgba(100, 150, 255, 1);
+      }
+    }
+
+    .btn-text {
+      font-size: 9px;
+    }
+
+    svg {
+      width: 10px;
+      height: 10px;
     }
   }
 
   &.bottom-right {
     grid-column: 2;
     grid-row: 2;
-    background: rgba(100, 200, 100, 0.6);
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 2px 2px 0;
 
-    &:hover {
+    &::before {
+      bottom: 0;
+      right: 0;
+      width: 66.67%;
+      height: 66.67%;
+      background: rgba(100, 200, 100, 0.6);
+      border: none;
+      transition: all 0.15s;
+    }
+
+    &:hover::before {
       background: rgba(100, 200, 100, 0.95);
+      border: 1px solid rgba(100, 200, 100, 1);
     }
 
     &.card-btn-side {
-      background: rgba(150, 100, 255, 0.6);
-
-      &:hover {
-        background: rgba(150, 100, 255, 0.95);
+      &::before {
+        background: rgba(150, 100, 255, 0.6);
       }
+
+      &:hover::before {
+        background: rgba(150, 100, 255, 0.95);
+        border: 1px solid rgba(150, 100, 255, 1);
+      }
+    }
+
+    .btn-text {
+      font-size: 9px;
+    }
+
+    svg {
+      width: 10px;
+      height: 10px;
     }
   }
 

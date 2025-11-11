@@ -1,29 +1,33 @@
 <template>
   <div>
     <div class="top-bar">
-      <input
-        v-model="localDno"
-        type="number"
-        placeholder="dno"
-        class="dno-input"
-      >
-      <input
-        v-model="localDeckName"
-        type="text"
-        placeholder="デッキ名"
-        class="deck-name-input"
-      >
-      <button class="btn-action" title="save" @click="toggleSaveDialog">
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
-        </svg>
-      </button>
-      <button class="btn-action" title="load" @click="toggleLoadDialog">
-        <svg width="20" height="20" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z" />
-        </svg>
-      </button>
-      <button class="btn-menu">⋮</button>
+      <div class="top-bar-left">
+        <input
+          v-model="localDno"
+          type="number"
+          placeholder="dno"
+          class="dno-input"
+        >
+        <input
+          v-model="localDeckName"
+          type="text"
+          placeholder="デッキ名"
+          class="deck-name-input"
+        >
+      </div>
+      <div class="top-bar-right">
+        <button class="btn-action" title="save" @click="toggleSaveDialog">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+          </svg>
+        </button>
+        <button class="btn-action" title="load" @click="toggleLoadDialog">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z" />
+          </svg>
+        </button>
+        <button class="btn-menu">⋮</button>
+      </div>
     </div>
 
     <!-- Save Dialog -->
@@ -72,7 +76,7 @@
 
 <script>
 import { ref, computed, reactive } from 'vue'
-import { useDeckStore } from '../stores/deck'
+import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
 
 export default {
@@ -92,7 +96,7 @@ export default {
   },
   emits: ['update:dno', 'update:deckName'],
   setup(props, { emit }) {
-    const deckStore = useDeckStore()
+    const deckStore = useDeckEditStore()
     const showSaveDialog = ref(false)
     const showLoadDialog = ref(false)
     const loadDno = ref(null)
@@ -182,15 +186,21 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
 }
 
-.top-bar-cell {
+.top-bar-left {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   align-items: center;
-  padding: 0;
-  background: transparent;
+  flex: 1;
+}
+
+.top-bar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .deck-name-input {
@@ -202,7 +212,7 @@ export default {
 }
 
 .dno-input {
-  width: 80px;
+  width: 60px;
   padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;

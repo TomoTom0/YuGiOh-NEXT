@@ -6,7 +6,7 @@ import { sessionManager } from '../content/session/session';
 import { getDeckDetail } from '../api/deck-operations';
 import { buildCardImageUrl } from '../api/card-search';
 
-export const useDeckStore = defineStore('deck', () => {
+export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
     dno: 0,
     name: '',
@@ -20,6 +20,22 @@ export const useDeckStore = defineStore('deck', () => {
   });
 
   const trashDeck = ref<DeckCard[]>([]);
+  
+  // Search and UI state
+  const searchQuery = ref('');
+  const searchResults = ref<Array<{ card: CardInfo }>>([]);
+  const selectedCard = ref<CardInfo | null>(null);
+  const activeTab = ref<'search' | 'card'>('search');
+  const showDetail = ref(true);
+  const viewMode = ref<'list' | 'grid'>('list');
+  const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
+  
+  // Search loading state
+  const sortOrder = ref('release_desc');
+  const isLoading = ref(false);
+  const allResults = ref<CardInfo[]>([]);
+  const currentPage = ref(0);
+  const hasMore = ref(false);
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
@@ -217,6 +233,18 @@ export const useDeckStore = defineStore('deck', () => {
   return {
     deckInfo,
     trashDeck,
+    searchQuery,
+    searchResults,
+    selectedCard,
+    activeTab,
+    showDetail,
+    viewMode,
+    cardTab,
+    sortOrder,
+    isLoading,
+    allResults,
+    currentPage,
+    hasMore,
     addCard,
     removeCard,
     moveCard,

@@ -6,6 +6,7 @@
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
     "dev": "webpack --mode development --watch",
+    "deploy": "bash scripts/deploy.sh",
     "type-check": "tsc --noEmit",
     "setup:download-forms": "bash scripts/setup/download-search-forms.sh",
     "setup:extract-mappings": "npx tsx scripts/setup/extract-mappings.ts",
