@@ -1,6 +1,13 @@
 <template>
   <div class="right-area">
     <div class="tabs">
+      <button
+        class="deck-tab"
+        :class="{ active: deckStore.activeTab === 'deck' }"
+        @click="deckStore.activeTab = 'deck'"
+      >
+        Deck
+      </button>
       <button class="tab-header" disabled>Header</button>
       <button
         :class="{ active: deckStore.activeTab === 'search' }"
@@ -14,6 +21,10 @@
       >
         Card
       </button>
+    </div>
+
+    <div v-if="deckStore.activeTab === 'deck'" class="deck-content">
+      <slot name="deck-tab"></slot>
     </div>
 
     <div v-if="deckStore.activeTab === 'search'" class="search-content">
@@ -243,11 +254,18 @@ export default {
   border-left: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  margin: 10px;
+  margin: 0 0 0 10px;
   padding: 0;
   box-sizing: border-box;
-  min-height: 0;
-  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .right-area {
+    width: 100% !important;
+    margin: 0 !important;
+    border-left: none !important;
+  }
 }
 
 .tabs {
@@ -273,7 +291,31 @@ export default {
       background: #f0f0f0;
       cursor: default;
     }
+    
+    &.deck-tab {
+      display: none;
+    }
   }
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    grid-template-columns: repeat(4, 1fr);
+    
+    button.deck-tab {
+      display: block;
+    }
+  }
+}
+
+.deck-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-content {

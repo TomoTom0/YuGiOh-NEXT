@@ -1,6 +1,6 @@
 <template>
   <div class="deck-edit-container">
-    <div class="main-content">
+    <div class="main-content" :class="{ 'hide-on-mobile': true }">
       <DeckEditTopBar
         v-model:dno="dno"
         v-model:deck-name="deckName"
@@ -36,7 +36,45 @@
       </div>
     </div>
 
-    <RightArea />
+    <RightArea>
+      <template #deck-tab>
+        <div class="mobile-deck-content">
+          <DeckEditTopBar
+            v-model:dno="dno"
+            v-model:deck-name="deckName"
+          />
+
+          <div class="deck-areas">
+            <DeckSection
+              title="main"
+              section-type="main"
+              :cards="mainDeck"
+            />
+
+            <div class="middle-decks">
+              <DeckSection
+                title="extra"
+                section-type="extra"
+                :cards="extraDeck"
+              />
+
+              <DeckSection
+                title="side"
+                section-type="side"
+                :cards="sideDeck"
+              />
+            </div>
+
+            <DeckSection
+              title="trash"
+              section-type="trash"
+              :cards="trashDeck"
+              :show-count="false"
+            />
+          </div>
+        </div>
+      </template>
+    </RightArea>
   </div>
 </template>
 
@@ -344,6 +382,16 @@ export default {
   padding: 10px;
 }
 
+@media (max-width: 768px) {
+  .deck-edit-container {
+    padding: 5px;
+  }
+
+  .main-content.hide-on-mobile {
+    display: none;
+  }
+}
+
 .main-content {
   flex: 1;
   display: flex;
@@ -354,6 +402,16 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+}
+
+.mobile-deck-content {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
 }
 
 .deck-areas {
