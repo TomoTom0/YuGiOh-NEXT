@@ -41,6 +41,31 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     const titleElem = doc.querySelector('title');
     const title = titleElem?.textContent || '';
     const cardName = title.split('|')[0]?.trim() || '';
+    
+    // カードテキストを取得
+    const cardTextElem = doc.querySelector('.cardtext, .card_text');
+    const cardText = cardTextElem?.textContent?.trim() || undefined;
+    
+    // 補足情報を取得
+    const supplementElem = doc.querySelector('.supplement');
+    let supplementInfo: string | undefined = undefined;
+    let supplementDate: string | undefined = undefined;
+    
+    if (supplementElem) {
+      // 日付を取得
+      const dateElem = supplementElem.querySelector('.title .update');
+      supplementDate = dateElem?.textContent?.trim() || undefined;
+      
+      // テキストを取得（改行を保持）
+      const textElem = supplementElem.querySelector('.text');
+      if (textElem) {
+        const cloned = textElem.cloneNode(true) as HTMLElement;
+        cloned.querySelectorAll('br').forEach(br => {
+          br.replaceWith('\n');
+        });
+        supplementInfo = cloned.textContent?.trim() || undefined;
+      }
+    }
 
     // FAQ一覧をパース
     const faqs: CardFAQ[] = [];
@@ -85,6 +110,9 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     return {
       cardId,
       cardName,
+      cardText,
+      supplementInfo,
+      supplementDate,
       faqs
     };
   } catch (error) {

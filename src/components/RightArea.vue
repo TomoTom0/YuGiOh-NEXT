@@ -243,9 +243,11 @@ export default {
   border-left: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  margin: 10px 10px 10px 0;
+  margin: 10px;
   padding: 0;
   box-sizing: border-box;
+  min-height: 0;
+  height: 100%;
 }
 
 .tabs {

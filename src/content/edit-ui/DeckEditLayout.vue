@@ -339,8 +339,9 @@ export default {
 
 .deck-edit-container {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - var(--header-height, 0px) - 20px);
   background-color: #f0f0f0;
+  padding: 10px;
 }
 
 .main-content {
@@ -420,10 +421,9 @@ export default {
   border-left: 1px solid #ddd;
   display: flex;
   flex-direction: column;
-  margin: 10px 10px 10px 0;
+  margin: 0 0 0 10px;
   padding: 0;
   box-sizing: border-box;
-  max-height: calc(100vh - 20px);
   overflow: hidden;
 }
 

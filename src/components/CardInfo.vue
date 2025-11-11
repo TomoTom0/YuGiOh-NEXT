@@ -62,13 +62,18 @@
     
     <div class="card-info-bottom">
       <div v-if="card.pendulumEffect" class="card-effect-section">
-        <div class="section-title">Pendulum Effect</div>
+        <div class="section-title">Pend. Text</div>
         <div class="effect-text">{{ card.pendulumEffect }}</div>
       </div>
       
       <div v-if="card.text" class="card-effect-section">
-        <div class="section-title">Text</div>
+        <div class="section-title">Card Text</div>
         <div class="effect-text">{{ card.text }}</div>
+      </div>
+      
+      <div v-if="supplementInfo" class="card-effect-section">
+        <div class="section-title">Detail{{ supplementDate ? ` [${supplementDate}]` : '' }}</div>
+        <div class="detail-text">{{ supplementInfo }}</div>
       </div>
     </div>
   </div>
@@ -83,6 +88,14 @@ export default {
     card: {
       type: Object,
       required: true
+    },
+    supplementInfo: {
+      type: String,
+      default: undefined
+    },
+    supplementDate: {
+      type: String,
+      default: undefined
     }
   },
   methods: {
@@ -377,5 +390,16 @@ export default {
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
   background: #fff;
+}
+
+.detail-text {
+  font-size: 11px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-line;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 0 0 4px 4px;
+  background: #f5f5f5;
 }
 </style>
