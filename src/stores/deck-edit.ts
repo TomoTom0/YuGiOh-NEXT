@@ -80,6 +80,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } else {
       targetDeck.push({ card, quantity: 1 });
     }
+    
+    // displayOrderに追加
+    const sectionOrder = displayOrder.value[section];
+    const existingCards = sectionOrder.filter(dc => dc.cid === card.cardId);
+    const ciid = existingCards.length; // 何枚目か
+    
+    sectionOrder.push({
+      cid: card.cardId,
+      ciid: ciid,
+      uuid: generateUUID()
+    });
   }
 
   function removeCard(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
@@ -96,6 +107,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       } else {
         targetDeck.splice(index, 1);
       }
+    }
+    
+    // displayOrderから削除（最後の1枚を削除）
+    const sectionOrder = displayOrder.value[section];
+    const lastIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    if (lastIndex !== -1) {
+      sectionOrder.splice(lastIndex, 1);
+      
+      // ciidを再計算（削除後の同じカードのインデックスを更新）
+      sectionOrder.forEach((dc, idx) => {
+        if (dc.cid === cardId) {
+          const precedingCount = sectionOrder.slice(0, idx).filter(d => d.cid === cardId).length;
+          dc.ciid = precedingCount;
+        }
+      });
     }
   }
 
@@ -117,18 +143,35 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (!deckCard) return;
     const card = deckCard.card;
     
-    // FLIP アニメーション: First - データ変更前に全カード位置を記録
-    const firstPositions = recordAllCardPositions();
+    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+    const firstPositions = recordAllCardPositionsByUUID();
     
-    // 影響を受けるセクションを記録
-    const affectedSections = new Set<string>();
-    affectedSections.add(from);
-    if (from !== to) affectedSections.add(to);
+    // displayOrderから移動するカードを1枚取得（最後の1枚）
+    const fromOrder = displayOrder.value[from];
+    const moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    if (moveCardIndex === -1) return;
     
-    // データ変更: カードを削除
+    const movingDisplayCard = fromOrder[moveCardIndex];
+    
+    // fromのdisplayOrderから削除
+    fromOrder.splice(moveCardIndex, 1);
+    
+    // fromのciidを再計算
+    fromOrder.forEach((dc, idx) => {
+      if (dc.cid === cardId) {
+        const precedingCount = fromOrder.slice(0, idx).filter(d => d.cid === cardId).length;
+        dc.ciid = precedingCount;
+      }
+    });
+    
+    // toのdisplayOrderに追加
+    const toOrder = displayOrder.value[to];
+    const existingInTo = toOrder.filter(dc => dc.cid === cardId);
+    movingDisplayCard.ciid = existingInTo.length;
+    toOrder.push(movingDisplayCard);
+    
+    // deckInfoを更新
     removeCard(cardId, from);
-    
-    // データ変更: カードを追加
     const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
     if (existingCard) {
       existingCard.quantity++;
@@ -138,8 +181,79 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // DOM更新後にアニメーション実行
     nextTick(() => {
-      animateCardMove(firstPositions, affectedSections);
+      animateCardMoveByUUID(firstPositions, new Set([from, to]));
     });
+  }
+  
+  // UUIDをキーにして全カード位置を記録
+  function recordAllCardPositionsByUUID(): Map<string, DOMRect> {
+    const positions = new Map<string, DOMRect>();
+    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
+    
+    sections.forEach(section => {
+      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+      if (!sectionElement) return;
+      
+      const cards = sectionElement.querySelectorAll('.deck-card');
+      cards.forEach((card) => {
+        const uuid = (card as HTMLElement).getAttribute('data-uuid');
+        if (uuid) {
+          positions.set(uuid, card.getBoundingClientRect());
+        }
+      });
+    });
+    
+    return positions;
+  }
+  
+  // UUIDベースでアニメーション実行
+  function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
+    const duration = 300;
+    const allCards: HTMLElement[] = [];
+    
+    affectedSections.forEach(section => {
+      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+      if (!sectionElement) return;
+      
+      const cards = sectionElement.querySelectorAll('.deck-card');
+      cards.forEach((card) => {
+        const cardElement = card as HTMLElement;
+        const uuid = cardElement.getAttribute('data-uuid');
+        if (!uuid) return;
+        
+        const first = firstPositions.get(uuid);
+        const last = cardElement.getBoundingClientRect();
+        
+        if (first && last) {
+          const deltaX = first.left - last.left;
+          const deltaY = first.top - last.top;
+          
+          if (deltaX === 0 && deltaY === 0) return;
+          
+          cardElement.style.transition = 'none';
+          cardElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+          allCards.push(cardElement);
+        }
+      });
+    });
+    
+    if (allCards.length === 0) return;
+    
+    document.body.getBoundingClientRect();
+    
+    requestAnimationFrame(() => {
+      allCards.forEach(card => {
+        card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
+        card.style.transform = '';
+      });
+    });
+    
+    setTimeout(() => {
+      allCards.forEach(card => {
+        card.style.transition = '';
+        card.style.transform = '';
+      });
+    }, duration);
   }
   
   // 全セクションの全カード位置を記録（セクション+インデックスで識別）
