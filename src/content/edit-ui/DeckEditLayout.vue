@@ -79,7 +79,8 @@ import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
-import { searchCardsByName, buildCardImageUrl } from '../../api/card-search'
+import { searchCardsByName } from '../../api/card-search'
+import { getCardImageUrl } from '../../types/card'
 
 export default {
   name: 'DeckEditLayout',
@@ -179,7 +180,7 @@ export default {
         const results = await searchCardsByName(query.trim())
         searchResults.length = 0
         searchResults.push(...results.map(card => {
-          const relativeUrl = buildCardImageUrl(card)
+          const relativeUrl = getCardImageUrl(card)
           const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
           return {
             card: {

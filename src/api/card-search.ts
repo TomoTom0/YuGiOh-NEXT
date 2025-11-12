@@ -647,23 +647,13 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
 }
 
 /**
- * カード情報から画像URLを構築する
- *
- * @param card カード基本情報
- * @returns 画像URL、構築できない場合はundefined
+ * カード情報から画像URLを構築する（非推奨: getCardImageUrlを使用してください）
+ * @deprecated types/card.tsのgetCardImageUrlを使用してください
  */
 export function buildCardImageUrl(card: CardBase): string | undefined {
-  // ciidに対応するimgHashをimgs配列から取得
-  if (!card.ciid || !card.imgs) {
-    return undefined;
-  }
-
-  const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
-  if (!imageInfo) {
-    return undefined;
-  }
-
-  return `/yugiohdb/get_image.action?type=1&lang=${card.imageId}&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+  // types/card.tsのgetCardImageUrlに委譲
+  const { getCardImageUrl } = require('../types/card');
+  return getCardImageUrl(card);
 }
 
 /**
@@ -740,18 +730,13 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   const rubyElem = row.querySelector('.card_ruby');
   const ruby = rubyElem?.textContent?.trim() || undefined;
 
-  // 画像ID（ページのrequest_localeから取得、デフォルト'ja'）
-  const langInput = row.querySelector('input.lang') as HTMLInputElement;
-  const urlParams = new URLSearchParams(window.location.search);
-  const requestLocale = urlParams.get('request_locale') || 'ja';
-  const imageId = langInput?.value || requestLocale;
-
   // 画像識別子（JavaScriptコードから抽出）
   const imageInfo = imageInfoMap.get(cardId);
-  const ciid = imageInfo?.ciid;
+  const ciid = imageInfo?.ciid || '1';
+  const imgHash = imageInfo?.imgHash || `${cardId}_1_1_1`;
 
-  // imgs配列を構築（検索結果ページでは1つの画像情報のみ）
-  const imgs = (ciid && imageInfo?.imgHash) ? [{ciid, imgHash: imageInfo.imgHash}] : undefined;
+  // imgs配列を構築
+  const imgs = [{ciid, imgHash}];
 
   // 効果テキスト（オプション）
   const textElem = row.querySelector('.box_card_text');
@@ -769,14 +754,10 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     name,
     ruby,
     cardId,
-    imageId,
     ciid,
     imgs,
     text
   };
-  
-  // 画像URLを生成（buildCardImageUrlを使用）
-  base.imageUrl = buildCardImageUrl(base);
   
   return base;
 }
@@ -1285,14 +1266,6 @@ export async function getCardDetail(card: CardInfo): Promise<CardDetail | null> 
     // 収録シリーズと関連カードをパース
     const packs = parsePackInfo(doc);
     const relatedCards = parseRelatedCards(doc);
-    
-    // 関連カードのimageUrlを生成
-    relatedCards.forEach(relatedCard => {
-      if (!relatedCard.imageUrl) {
-        const relativeUrl = buildCardImageUrl(relatedCard);
-        relatedCard.imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined;
-      }
-    });
     
     // Q&A情報を取得（既存のAPI関数を使用）
     const faqList = await getCardFAQList(card.cardId);
