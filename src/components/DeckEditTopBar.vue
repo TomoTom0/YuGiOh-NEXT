@@ -127,15 +127,26 @@ export default {
           saveTimer.value = null
         }
         savingState.value = false
+        
+        // displayOrderを元に戻す
+        deckStore.restoreDisplayOrder()
         showToast('保存をキャンセルしました', 'info')
       } else {
         // 2秒後に保存
         savingState.value = true
+        
+        // displayOrderをバックアップ
+        deckStore.backupDisplayOrder()
+        
+        // 公式フォーマットに並び替え
+        deckStore.sortDisplayOrderForOfficial()
+        
         saveTimer.value = window.setTimeout(async () => {
           try {
             if (!localDno.value) {
               showToast('dnoが設定されていません', 'warning')
               savingState.value = false
+              deckStore.restoreDisplayOrder()
               return
             }
             
@@ -146,12 +157,17 @@ export default {
             if (result.success) {
               lastSavedDeckName.value = localDeckName.value
               showToast('保存しました', 'success')
+              // 保存成功時はバックアップをクリア（並び替えたままにする）
             } else {
               showToast('保存に失敗しました', 'error')
+              // 保存失敗時は元に戻す
+              deckStore.restoreDisplayOrder()
             }
           } catch (error) {
             console.error('Save error:', error)
             showToast('保存エラーが発生しました', 'error')
+            // エラー時は元に戻す
+            deckStore.restoreDisplayOrder()
           } finally {
             savingState.value = false
             saveTimer.value = null
