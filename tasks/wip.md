@@ -80,10 +80,10 @@
 - ✅ .gitignoreに.drawio.dtmpを追加
 - ✅ deck-operations.ts: imgsパラメータ修正（ciid使用）
 - ✅ console.log削除（DeckCard.vue, CardList.vue）
-- [ ] deck-operations.ts: コメントアウトコード整理
-- [ ] CardList.vue: scrollToTopをemitベースに変更
+- ✅ deck-operations.ts: コメントアウトコード削除
+- ✅ CardList.vue: scrollToTopをemitベースに変更
 - [ ] RightArea.vue: 無限スクロール実装改善
-- [ ] deck-edit.ts: sortDisplayOrderForOfficialにコメント追加
+- ✅ deck-edit.ts: sortDisplayOrderForOfficialにコメント追加
 
 ### 現在対応中のバグ・課題
 1. ✅ UI改善と翻訳

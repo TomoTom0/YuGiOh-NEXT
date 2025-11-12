@@ -1233,12 +1233,22 @@ function parseRelatedCards(doc: Document): CardInfo[] {
  * カード詳細ページから基本カード情報をパースする
  * カード詳細ページの構造は検索結果ページと異なるため、専用のパーサーが必要
  */
-export async function getCardDetail(card: CardInfo): Promise<CardDetail | null> {
+/**
+ * カード詳細情報を取得する
+ *
+ * @param card 対象カード
+ * @param lang 言語コード（省略時は現在のページから自動検出）
+ * @returns カード詳細情報
+ */
+export async function getCardDetail(card: CardInfo, lang?: string): Promise<CardDetail | null> {
   try {
+    // 言語が指定されていない場合は現在のページから検出
+    const requestLocale = lang || detectLanguage(document);
+    
     const params = new URLSearchParams({
       ope: '2',
       cid: card.cardId,
-      request_locale: 'ja'
+      request_locale: requestLocale
     });
 
     const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
