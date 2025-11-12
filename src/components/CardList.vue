@@ -110,12 +110,25 @@ export default {
     })
     
     const scrollToTop = (event) => {
+      console.log('Scroll to top clicked', event)
       const button = event.currentTarget
       const wrapper = button.closest('.card-list-wrapper')
+      console.log('Wrapper:', wrapper)
       if (wrapper) {
-        const resultsElement = wrapper.querySelector('.card-list-results')
-        if (resultsElement) {
-          resultsElement.scrollTo({ top: 0, behavior: 'smooth' })
+        // CardListの親要素（.tab-content）を探す
+        const tabContent = wrapper.closest('.tab-content')
+        console.log('Tab content:', tabContent)
+        if (tabContent) {
+          console.log('Scrolling tab-content to top, current scrollTop:', tabContent.scrollTop)
+          tabContent.scrollTo({ top: 0, behavior: 'smooth' })
+        } else {
+          // tab-contentが見つからない場合はcard-detail-contentを探す
+          const cardDetailContent = wrapper.closest('.card-detail-content')
+          console.log('Card detail content:', cardDetailContent)
+          if (cardDetailContent) {
+            console.log('Scrolling card-detail-content to top, current scrollTop:', cardDetailContent.scrollTop)
+            cardDetailContent.scrollTo({ top: 0, behavior: 'smooth' })
+          }
         }
       }
     }
