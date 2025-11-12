@@ -45,6 +45,30 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
   
+  // displayOrderを初期化（deckInfoから生成）
+  function initializeDisplayOrder() {
+    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
+    
+    sections.forEach(section => {
+      const deck = section === 'main' ? deckInfo.value.mainDeck :
+                   section === 'extra' ? deckInfo.value.extraDeck :
+                   section === 'side' ? deckInfo.value.sideDeck :
+                   trashDeck.value;
+      
+      displayOrder.value[section] = [];
+      
+      deck.forEach(deckCard => {
+        for (let i = 0; i < deckCard.quantity; i++) {
+          displayOrder.value[section].push({
+            cid: deckCard.card.cardId,
+            ciid: i,
+            uuid: generateUUID()
+          });
+        }
+      });
+    });
+  }
+  
   // Deck list state
   const deckList = ref<Array<{ dno: number; name: string }>>([]);
   const lastUsedDno = ref<number | null>(null);
@@ -386,6 +410,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         loadedDeck.sideDeck = addImageUrls(loadedDeck.sideDeck);
         
         deckInfo.value = loadedDeck;
+        
+        // displayOrderを初期化
+        initializeDisplayOrder();
+        
         lastUsedDno.value = dno;
         localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
       }
