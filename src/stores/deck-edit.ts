@@ -92,9 +92,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!deckCard) return;
       const card = deckCard.card;
       
-      // FLIP アニメーション: First - 移動前の位置を記録
-      const allPositions = recordAllCardPositions();
-      
       // 移動するカードと影響を受けるカードのIDを記録
       const affectedCardIds = new Set<string>();
       
@@ -106,6 +103,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         const dc = fromDeck[i];
         if (dc) affectedCardIds.add(dc.card.cardId);
       }
+      
+      // FLIP アニメーション: First - DOM操作前に全カード位置を記録
+      // nextTickを使って同期的にDOM読み取り
+      const allPositions = recordAllCardPositions();
       
       removeCard(cardId, from);
       
