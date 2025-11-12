@@ -164,9 +164,17 @@ export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
       return null; // 質問が取得できない場合は失敗
     }
 
-    // 回答を取得（#answer_text から）
+    // 回答を取得（#answer_text から）改行を保持
     const answerElem = doc.querySelector('#answer_text');
-    const answer = answerElem?.textContent?.trim() || '';
+    let answer = '';
+    if (answerElem) {
+      // <br>を改行に変換
+      const cloned = answerElem.cloneNode(true) as HTMLElement;
+      cloned.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
+      });
+      answer = cloned.textContent?.trim() || '';
+    }
 
     // 更新日を取得（オプション）
     const dateElem = doc.querySelector('#tag_update .date');

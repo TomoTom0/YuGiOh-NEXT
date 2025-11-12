@@ -1,11 +1,15 @@
 <template>
   <div class="card-info-layout">
+    <h3 class="card-name-large">{{ card.name }}</h3>
     <div class="card-info-top">
-      <div class="card-image-large">
-        <img :src="card.imageUrl || '/images/card_back.png'" :alt="card.name">
+      <div class="card-image-wrapper">
+        <DeckCard
+          :card="card"
+          :section-type="'info'"
+          :uuid="'info-card'"
+        />
       </div>
       <div class="card-details">
-        <h3 class="card-name-large">{{ card.name }}</h3>
         
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
           <div class="stat-box stat-box-type">
@@ -15,7 +19,7 @@
           <div class="stat-box">
             <span class="stat-text">
               <img v-if="card.attribute" :src="getAttributeIcon(card.attribute)" class="attribute-icon" :alt="card.attribute">
-              {{ card.attribute }} / {{ card.race }}
+              {{ getAttributeText(card.attribute) }} / {{ getRaceText(card.race) }}
             </span>
           </div>
           
@@ -48,14 +52,16 @@
           </div>
         </div>
         
-        <div v-else class="card-type-line">
-          <span class="stat-label">Type</span>
-          <span class="stat-value">
-            {{ card.cardType }}
-            <template v-if="card.effectType">
-              / {{ card.effectType }}
-            </template>
-          </span>
+        <div v-else class="card-stats-layout">
+          <div class="stat-box stat-box-type">
+            <img v-if="card.cardType === 'spell'" :src="getSpellIconUrl()" class="card-type-icon" alt="魔法">
+            <img v-else-if="card.cardType === 'trap'" :src="getTrapIconUrl()" class="card-type-icon" alt="罠">
+            <span class="stat-text">{{ getCardTypeText(card.cardType) }}</span>
+          </div>
+          <div v-if="card.effectType" class="stat-box stat-box-subtype">
+            <img v-if="getEffectTypeIconUrl(card.effectType)" :src="getEffectTypeIconUrl(card.effectType)" class="effect-type-icon" :alt="card.effectType">
+            <span class="stat-text">{{ getEffectTypeText(card.effectType, card.cardType) }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -80,10 +86,15 @@
 </template>
 
 <script>
-import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getLinkMarkerClasses, getLinkMarkerClassName } from '../api/image-utils'
+import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
+import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP } from '../types/card-maps'
+import DeckCard from './DeckCard.vue'
 
 export default {
   name: 'CardInfo',
+  components: {
+    DeckCard
+  },
   props: {
     card: {
       type: Object,
@@ -99,6 +110,28 @@ export default {
     }
   },
   methods: {
+    getCardTypeText(cardType) {
+      if (cardType === 'spell') return '魔法'
+      if (cardType === 'trap') return '罠'
+      return cardType
+    },
+    getSpellIconUrl,
+    getTrapIconUrl,
+    getEffectTypeIconUrl,
+    getAttributeText(attribute) {
+      return ATTRIBUTE_MAP[attribute] || attribute
+    },
+    getRaceText(race) {
+      return RACE_MAP[race] || race
+    },
+    getEffectTypeText(effectType, cardType) {
+      if (cardType === 'spell') {
+        return SPELL_EFFECT_TYPE_MAP[effectType] || effectType
+      } else if (cardType === 'trap') {
+        return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
+      }
+      return effectType
+    },
     isLinkMarkerActive(linkMarkers, posDisplay) {
       if (!linkMarkers || posDisplay === 5) return false
       // posDisplayは1-9のグリッド位置、linkMarkersは0から始まるビット
@@ -123,12 +156,6 @@ export default {
     },
     getRankIcon() {
       return getRankIconUrl()
-    },
-    getLinkMarkerClasses(linkMarkers) {
-      return getLinkMarkerClasses(linkMarkers)
-    },
-    getLinkMarkerClassName(linkMarkers) {
-      return getLinkMarkerClassName(linkMarkers)
     }
   }
 }
@@ -138,12 +165,21 @@ export default {
 .card-info-layout {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
+}
+
+.card-name-large {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+  width: 100%;
 }
 
 .card-info-top {
   display: flex;
   gap: 15px;
+  align-items: flex-start;
 }
 
 .card-info-bottom {
@@ -152,15 +188,18 @@ export default {
   gap: 10px;
 }
 
-.card-image-large {
+.card-image-wrapper {
   flex-shrink: 0;
-  width: 80px;
+  width: 100px;
   
-  img {
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  .deck-card {
+    width: 100px;
+    height: 147px;
+    
+    img {
+      width: 100%;
+      height: 100%;
+    }
   }
 }
 
@@ -168,14 +207,8 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.card-name-large {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  margin: 0 0 8px 0;
+  gap: 6px;
+  min-width: 0;
 }
 
 .attribute-icon {
@@ -221,8 +254,25 @@ export default {
     background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
     justify-content: center;
     
+    .card-type-icon {
+      width: 16px;
+      height: 16px;
+      transform: skewX(10deg);
+    }
+    
     .stat-text {
       transform: skewX(10deg);
+    }
+  }
+  
+  &.stat-box-subtype {
+    width: 100%;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    
+    .effect-type-icon {
+      width: 16px;
+      height: 16px;
     }
   }
   
@@ -231,6 +281,20 @@ export default {
     background: transparent;
     border: none;
   }
+}
+
+.effect-type-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.card-type-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  display: inline-block;
 }
 
 .icon_img_set {
@@ -352,17 +416,6 @@ export default {
   font-size: 12px;
   font-weight: bold;
   color: #333;
-}
-
-.card-type-line {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fafafa;
-  font-size: 11px;
 }
 
 .card-pendulum-effect,

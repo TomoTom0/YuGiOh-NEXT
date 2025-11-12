@@ -217,9 +217,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (!movingCard) return;
     
     // targetIndexを再計算（sourceを削除した後のインデックス）
-    const newTargetIndex = sourceIndex < targetIndex ? targetIndex : targetIndex + 1;
+    const newTargetIndex = sourceIndex < targetIndex ? targetIndex : targetIndex;
     
-    // targetの直後に挿入（targetがずれて後ろに行く）
+    // targetの前に挿入
     sectionOrder.splice(newTargetIndex, 0, movingCard);
     
     // ciidを再計算（全体）
@@ -557,7 +557,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     requestAnimationFrame(() => {
       allCards.forEach(card => {
-        card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
+        card.style.transition = `transform ${duration}ms ease`;
         card.style.transform = '';
       });
     });
