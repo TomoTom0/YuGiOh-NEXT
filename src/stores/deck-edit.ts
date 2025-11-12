@@ -78,7 +78,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   /**
-   * displayOrderを公式保存フォーマットに並び替え
+   * displayOrderを公式保存フォーマットに並び替え（deckInfoも同期）
    * ルール: モンスター→魔法→罠、同じカードは最初の登場位置でグループ化
    */
   function sortDisplayOrderForOfficial() {
@@ -88,15 +88,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const sectionOrder = displayOrder.value[section];
       if (sectionOrder.length === 0) return;
       
+      const deck = section === 'main' ? deckInfo.value.mainDeck :
+                   section === 'extra' ? deckInfo.value.extraDeck :
+                   deckInfo.value.sideDeck;
+      
       // カード情報を取得してタイプ判定用マップを作成
       const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
-      const allDecks = [
-        ...deckInfo.value.mainDeck,
-        ...deckInfo.value.extraDeck,
-        ...deckInfo.value.sideDeck
-      ];
-      
-      allDecks.forEach(dc => {
+      deck.forEach(dc => {
         const type = dc.card.cardType;
         let priority = 0;
         if (type === 'spell') priority = 1;
@@ -135,6 +133,29 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       });
       
       displayOrder.value[section] = sorted;
+      
+      // deckInfoを並び替え（displayOrderの順序に合わせる）
+      const newDeck: DeckCard[] = [];
+      const seenCards = new Set<string>();
+      
+      sorted.forEach(dc => {
+        if (!seenCards.has(dc.cid)) {
+          seenCards.add(dc.cid);
+          const deckCard = deck.find(d => d.card.cardId === dc.cid);
+          if (deckCard) {
+            newDeck.push(deckCard);
+          }
+        }
+      });
+      
+      // deckInfoを更新
+      if (section === 'main') {
+        deckInfo.value.mainDeck = newDeck;
+      } else if (section === 'extra') {
+        deckInfo.value.extraDeck = newDeck;
+      } else {
+        deckInfo.value.sideDeck = newDeck;
+      }
     });
   }
   
