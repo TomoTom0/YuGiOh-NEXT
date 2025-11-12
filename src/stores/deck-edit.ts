@@ -195,8 +195,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     movingDisplayCard.ciid = existingInTo.length;
     toOrder.push(movingDisplayCard);
     
-    // deckInfoを更新
-    removeCard(cardId, from);
+    // deckInfoを更新（displayOrderは既に更新済みなので、deckInfoのみ更新）
+    // fromから削除
+    const fromDeckCard = fromDeck[fromIndex];
+    if (fromDeckCard && fromDeckCard.quantity > 1) {
+      fromDeckCard.quantity--;
+    } else {
+      fromDeck.splice(fromIndex, 1);
+    }
+    
+    // toに追加
     const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
     if (existingCard) {
       existingCard.quantity++;
