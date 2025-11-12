@@ -3,6 +3,7 @@ import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 import { DeckCard } from '@/types/card';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
+import { detectLanguage } from '@/utils/language-detector';
 
 const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 
@@ -187,7 +188,8 @@ export async function saveDeckInternal(
       params.append('imgsSide', 'null_null_null_null');
     }
 
-    const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=ja`;
+    const requestLocale = detectLanguage(document);
+    const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
     
     console.log('[saveDeckInternal] POST URL:', postUrl);
@@ -368,11 +370,13 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
+    const requestLocale = detectLanguage(document);
+    
     // URLパラメータを構築
     const params = new URLSearchParams({
       ope: '1',
       dno: dno.toString(),
-      request_locale: 'ja'
+      request_locale: requestLocale
     });
 
     // cgidが指定されている場合は追加
@@ -413,11 +417,13 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
  */
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
   try {
+    const requestLocale = detectLanguage(document);
+    
     // URLパラメータを構築
     const params = new URLSearchParams({
       ope: '4',
       cgid: cgid,
-      request_locale: 'ja'
+      request_locale: requestLocale
     });
 
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
