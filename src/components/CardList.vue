@@ -165,11 +165,13 @@ export default {
 
 .card-list-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 8px;
-  background: #f5f5f5;
-  border-bottom: 1px solid #ddd;
+  background: transparent;
+  border-bottom: none;
+  width: calc(100% - 48px);
+  margin-left: 48px;
 }
 
 .toolbar-left {

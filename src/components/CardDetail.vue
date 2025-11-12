@@ -54,15 +54,6 @@
                   <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
                 </svg>
               </button>
-              <button 
-                v-else
-                class="qa-collapse-btn qa-collapse-btn-main"
-                @click="collapseQA(index)"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,13H5V11H19V13Z" />
-                </svg>
-              </button>
               <div v-if="expandedQA[index]" class="qa-answer-container">
                 <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
                 <div v-else-if="qaAnswers[index]" class="qa-answer">
@@ -130,15 +121,6 @@
             >
               <svg width="12" height="12" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
-              </svg>
-            </button>
-            <button 
-              v-else-if="pack.packId"
-              class="pack-collapse-btn pack-collapse-btn-main"
-              @click="collapsePack(pack.packId)"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19,13H5V11H19V13Z" />
               </svg>
             </button>
             <div v-if="expandedPacks[pack.packId]" class="pack-cards-container">
