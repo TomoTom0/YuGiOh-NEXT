@@ -188,22 +188,69 @@ export default {
       }
     },
     handleBottomLeft() {
+      // 移動元の位置を記録
+      const sourceRect = this.$el?.getBoundingClientRect()
+      
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToMainOrExtra(this.card, 'trash')
       } else if (this.sectionType === 'search') {
         this.deckStore.addCopyToMainOrExtra(this.card)
+        
+        // アニメーション実行（移動元から移動先へ）
+        if (sourceRect) {
+          this.$nextTick(() => {
+            this.animateFromSource(sourceRect)
+          })
+        }
       } else {
         this.deckStore.moveCardToTrash(this.card, this.sectionType)
       }
     },
     handleBottomRight() {
+      // 移動元の位置を記録
+      const sourceRect = this.$el?.getBoundingClientRect()
+      
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToSide(this.card, 'trash')
       } else if (this.sectionType === 'search') {
         this.deckStore.addCopyToSection(this.card, 'side')
+        
+        // アニメーション実行（移動元から移動先へ）
+        if (sourceRect) {
+          this.$nextTick(() => {
+            this.animateFromSource(sourceRect, 'side')
+          })
+        }
       } else {
         this.deckStore.addCopyToSection(this.card, this.sectionType)
       }
+    },
+    animateFromSource(sourceRect, targetSection) {
+      // 追加されたカードを探す（最新のもの）
+      const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
+      const displayOrder = this.deckStore.displayOrder[section]
+      const addedCards = displayOrder.filter(dc => dc.cid === this.card.cardId)
+      
+      if (addedCards.length === 0) return
+      
+      const lastAdded = addedCards[addedCards.length - 1]
+      const targetEl = document.querySelector(`[data-uuid="${lastAdded.uuid}"]`)
+      
+      if (!targetEl) return
+      
+      const targetRect = targetEl.getBoundingClientRect()
+      
+      // FLIPアニメーション: 移動元から移動先へ
+      const deltaX = sourceRect.left - targetRect.left
+      const deltaY = sourceRect.top - targetRect.top
+      
+      targetEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`
+      targetEl.style.transition = 'none'
+      
+      requestAnimationFrame(() => {
+        targetEl.style.transform = ''
+        targetEl.style.transition = 'transform 0.3s ease'
+      })
     }
   }
 }
