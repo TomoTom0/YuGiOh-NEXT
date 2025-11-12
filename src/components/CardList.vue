@@ -110,16 +110,12 @@ export default {
     })
     
     const scrollToTop = (event) => {
-      console.log('Scroll to top clicked', event)
       const button = event.currentTarget
       const wrapper = button.closest('.card-list-wrapper')
-      console.log('Wrapper:', wrapper)
       if (wrapper) {
         // CardListの親要素（.card-tab-content）を探す - これが実際のスクロールコンテナ
         const cardTabContent = wrapper.closest('.card-tab-content')
-        console.log('Card tab content:', cardTabContent)
         if (cardTabContent) {
-          console.log('Scrolling card-tab-content to top, current scrollTop:', cardTabContent.scrollTop)
           cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
         }
       }

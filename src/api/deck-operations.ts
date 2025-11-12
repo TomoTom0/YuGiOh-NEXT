@@ -368,21 +368,21 @@ function appendCardToFormData(
     target.append(nameField, card.name);
     target.append(numField, quantity.toString());
     target.append(cardIdField, card.cardId);
-    target.append('imgs', `${card.cardId}_1_1_1`);
+    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
     
   } else if (deckType === 'extra') {
     // エクストラデッキ: 統一フィールド名
     target.append('exnm', card.name);
     target.append('exnum', quantity.toString());
     target.append('extraCardId', card.cardId);
-    target.append('imgs', `${card.cardId}_1_1_1`);
+    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
     
   } else {
     // サイドデッキ: 統一フィールド名（imgsフィールド名が異なる）
     target.append('sinm', card.name);
     target.append('sinum', quantity.toString());
     target.append('sideCardId', card.cardId);
-    target.append('imgsSide', `${card.cardId}_1_1_1`);
+    target.append('imgsSide', `${card.cardId}_${card.ciid}_1_1`);
   }
 }
 

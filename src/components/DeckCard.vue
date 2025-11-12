@@ -141,9 +141,7 @@ export default {
   },
   methods: {
     handleDragStart(event) {
-      console.log('DeckCard handleDragStart:', this.sectionType, this.card.name, 'empty:', this.card.empty)
       if (this.card.empty) {
-        console.log('Card is empty, preventing drag')
         event.preventDefault()
         return
       }
@@ -154,7 +152,6 @@ export default {
         card: this.card,
         uuid: this.uuid
       }))
-      console.log('Drag data set:', { sectionType: this.sectionType, card: this.card.name, uuid: this.uuid })
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
@@ -172,11 +169,9 @@ export default {
         
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
           // 同じセクション内での並び替え: targetの前に挿入
-          console.log('Reordering: move', sourceUuid, 'before', this.uuid)
           this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
           // 他のセクションからの移動: targetの前に挿入
-          console.log('Moving from', sourceSectionType, 'to', this.sectionType, 'before', this.uuid)
           this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
         }
       } catch (e) {
@@ -184,8 +179,6 @@ export default {
       }
     },
     handleInfo() {
-      console.log('Info clicked, card:', this.card)
-      
       // infoセクションの場合は新しいタブで公式ページを開く
       if (this.sectionType === 'info') {
         const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
@@ -196,7 +189,6 @@ export default {
       this.deckStore.selectedCard = this.card
       this.deckStore.activeTab = 'card'
       this.deckStore.cardTab = 'info'
-      console.log('Store updated - activeTab:', this.deckStore.activeTab, 'selectedCard:', this.deckStore.selectedCard)
     },
     handleTopRight() {
       if (this.sectionType === 'side') {
