@@ -672,7 +672,7 @@ export function buildCardImageUrl(card: CardBase): string | undefined {
  * @param doc パース済みのHTMLドキュメント
  * @returns カード情報の配列
  */
-function parseSearchResults(doc: Document): CardInfo[] {
+export function parseSearchResults(doc: Document): CardInfo[] {
   const cards: CardInfo[] = [];
   
   // #main980 > #article_body > #card_list の階層を使用
@@ -1163,6 +1163,16 @@ function parsePackInfo(doc: Document): PackInfo[] {
     const packNameElem = rowElement.querySelector('.pack_name');
     const name = packNameElem?.textContent?.trim() || '';
     
+    // パックIDを取得
+    const linkValueInput = rowElement.querySelector('input.link_value') as HTMLInputElement;
+    let packId: string | undefined;
+    if (linkValueInput?.value) {
+      const pidMatch = linkValueInput.value.match(/pid=(\d+)/);
+      if (pidMatch && pidMatch[1]) {
+        packId = pidMatch[1];
+      }
+    }
+    
     // レアリティを取得
     const rarityElem = rowElement.querySelector('.lr_icon');
     let rarity = '';
@@ -1187,7 +1197,8 @@ function parsePackInfo(doc: Document): PackInfo[] {
         code,
         releaseDate,
         rarity: rarity || undefined,
-        rarityColor: rarityColor || undefined
+        rarityColor: rarityColor || undefined,
+        packId
       });
     }
   });

@@ -146,6 +146,62 @@
                 </span>
               </div>
             </div>
+            <button 
+              v-if="pack.packId && !expandedPacks[pack.packId]"
+              class="pack-expand-btn"
+              @click="expandPack(pack.packId)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+              </svg>
+            </button>
+            <button 
+              v-else-if="pack.packId"
+              class="pack-collapse-btn"
+              @click="collapsePack(pack.packId)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+              </svg>
+            </button>
+            <div v-if="expandedPacks[pack.packId]" class="pack-cards-container">
+              <div class="pack-cards-toolbar">
+                <div class="view-switch">
+                  <label class="view-option">
+                    <input type="radio" :name="`pack-view-${pack.packId}`" value="list" v-model="packViewModes[pack.packId]">
+                    <span class="icon">☰</span>
+                  </label>
+                  <label class="view-option">
+                    <input type="radio" :name="`pack-view-${pack.packId}`" value="grid" v-model="packViewModes[pack.packId]">
+                    <span class="icon">▦</span>
+                  </label>
+                </div>
+              </div>
+              <div v-if="loadingPacks[pack.packId]" class="pack-loading">読み込み中...</div>
+              <div 
+                v-else-if="packCards[pack.packId]" 
+                class="pack-cards-list"
+                :class="{ 'grid-view': packViewModes[pack.packId] === 'grid' }"
+              >
+                <div
+                  v-for="(card, idx) in packCards[pack.packId]"
+                  :key="`pack-card-${idx}`"
+                  class="pack-card-item"
+                >
+                  <div class="card-wrapper">
+                    <DeckCard
+                      :card="card"
+                      :section-type="'search'"
+                      :index="idx"
+                    />
+                  </div>
+                  <div class="card-info" v-if="packViewModes[pack.packId] === 'list'">
+                    <div class="card-name">{{ card.name }}</div>
+                    <div class="card-text">{{ card.text }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -191,6 +247,11 @@ export default {
     const expandedQA = ref({})
     const loadingQA = ref({})
     const qaAnswers = ref({})
+    
+    const expandedPacks = ref({})
+    const loadingPacks = ref({})
+    const packCards = ref({})
+    const packViewModes = ref({})
     
     const sortedRelatedCards = computed(() => {
       if (!detail.value || !detail.value.relatedCards) return []
@@ -256,6 +317,7 @@ export default {
             name: pack.name,
             code: pack.code,
             releaseDate: pack.releaseDate,
+            packId: pack.packId,
             rarities: []
           })
         }
@@ -269,6 +331,45 @@ export default {
       
       return Array.from(packMap.values())
     })
+    
+    const expandPack = async (packId) => {
+      if (expandedPacks.value[packId]) return
+      
+      loadingPacks.value[packId] = true
+      expandedPacks.value[packId] = true
+      packViewModes.value[packId] = 'list'
+      
+      try {
+        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
+        const response = await fetch(url, {
+          method: 'GET',
+          credentials: 'include'
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch pack cards')
+        }
+        
+        const html = await response.text()
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, 'text/html')
+        
+        // searchCardsByNameと同じパース処理を使う
+        const { parseSearchResults } = await import('../api/card-search')
+        const cards = parseSearchResults(doc)
+        
+        packCards.value[packId] = cards
+      } catch (error) {
+        console.error('Failed to fetch pack cards:', error)
+        packCards.value[packId] = []
+      } finally {
+        loadingPacks.value[packId] = false
+      }
+    }
+    
+    const collapsePack = (packId) => {
+      expandedPacks.value[packId] = false
+    }
     
     const collapseQA = (index) => {
       const qaItem = document.querySelectorAll('.qa-item')[index]
@@ -377,7 +478,13 @@ export default {
       loadingQA,
       qaAnswers,
       expandQA,
-      collapseQA
+      collapseQA,
+      expandedPacks,
+      loadingPacks,
+      packCards,
+      packViewModes,
+      expandPack,
+      collapsePack
     }
   }
 }
@@ -643,6 +750,97 @@ export default {
   color: white;
   border: 1px solid;
   white-space: nowrap;
+}
+
+.pack-expand-btn,
+.pack-collapse-btn {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  
+  &:hover {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+  
+  svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.pack-collapse-btn {
+  background: #f5f5f5;
+}
+
+.pack-cards-container {
+  margin-top: 8px;
+  animation: expandAnswer 0.3s ease;
+}
+
+.pack-cards-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+
+.pack-loading {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 12px;
+}
+
+.pack-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #fafafa;
+  border-radius: 4px;
+  
+  &.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 60px);
+    grid-auto-rows: max-content;
+    gap: 2px;
+    align-content: start;
+  }
+}
+
+.pack-card-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: white;
+  cursor: move;
+  min-height: 90px;
+  
+  .grid-view & {
+    flex-direction: column;
+    min-height: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    width: 60px;
+  }
 }
 
 .search-toolbar {
