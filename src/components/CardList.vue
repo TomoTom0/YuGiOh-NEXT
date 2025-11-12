@@ -2,7 +2,7 @@
   <div class="card-list-wrapper">
     <button 
       class="scroll-to-top-btn"
-      @click="scrollToTop"
+      @click="$emit('scroll-to-top')"
     >
       <svg width="16" height="16" viewBox="0 0 24 24">
         <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
@@ -88,7 +88,7 @@ export default {
       default: () => `list-${Math.random().toString(36).substr(2, 9)}`
     }
   },
-  emits: ['sort-change', 'scroll', 'update:sortOrder', 'update:viewMode'],
+  emits: ['sort-change', 'scroll', 'scroll-to-top', 'update:sortOrder', 'update:viewMode'],
   setup(props, { emit }) {
     const localSortOrder = ref(props.sortOrder)
     const localViewMode = ref(props.viewMode)
@@ -109,22 +109,9 @@ export default {
       emit('update:viewMode', val)
     })
     
-    const scrollToTop = (event) => {
-      const button = event.currentTarget
-      const wrapper = button.closest('.card-list-wrapper')
-      if (wrapper) {
-        // CardListの親要素（.card-tab-content）を探す - これが実際のスクロールコンテナ
-        const cardTabContent = wrapper.closest('.card-tab-content')
-        if (cardTabContent) {
-          cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-        }
-      }
-    }
-    
     return {
       localSortOrder,
-      localViewMode,
-      scrollToTop
+      localViewMode
     }
   }
 }

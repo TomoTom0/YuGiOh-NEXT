@@ -35,6 +35,7 @@
         section-type="search"
         @sort-change="handleSortChange"
         @scroll="handleScroll"
+        @scroll-to-top="handleScrollToTop"
         @update:sortOrder="deckStore.sortOrder = $event"
         @update:viewMode="deckStore.viewMode = $event"
       />
@@ -134,6 +135,13 @@ export default {
         loadMoreResults()
       }
     }
+    
+    const handleScrollToTop = () => {
+      const searchContent = document.querySelector('.search-content')
+      if (searchContent) {
+        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
 
     const handleSearchInput = async () => {
       if (!deckStore.searchQuery.trim()) {
@@ -209,6 +217,7 @@ export default {
       handleSearchInput,
       handleSortChange,
       handleScroll,
+      handleScrollToTop,
       showCardDetail
     }
   }
