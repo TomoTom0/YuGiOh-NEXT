@@ -3,8 +3,9 @@ import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 import { DeckCard } from '@/types/card';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
+import { detectLanguage } from '@/utils/language-detector';
 
-const BASE_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -15,7 +16,7 @@ const BASE_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
-    const response = await axios.get(`${BASE_URL}?ope=6&cgid=${cgid}`, {
+    const response = await axios.get(`${API_ENDPOINT}?ope=6&cgid=${cgid}`, {
       withCredentials: true
     });
 
@@ -43,7 +44,7 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
  */
 export async function duplicateDeckInternal(cgid: string, dno: number): Promise<number> {
   try {
-    const response = await axios.get(`${BASE_URL}?ope=8&cgid=${cgid}&dno=${dno}`, {
+    const response = await axios.get(`${API_ENDPOINT}?ope=8&cgid=${cgid}&dno=${dno}`, {
       withCredentials: true
     });
 
@@ -78,62 +79,160 @@ export async function saveDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
-    const formData = new FormData();
+    console.log('[saveDeckInternal] Saving deck:', {
+      dno,
+      deckName: deckData.name,
+      mainDeckCount: deckData.mainDeck.length,
+      extraDeckCount: deckData.extraDeck.length,
+      sideDeckCount: deckData.sideDeck.length
+    });
 
+    // URL-encoded形式でデータを構築（公式と同じ順序で）
+    const params = new URLSearchParams();
+    
+    // ope=3を先頭に追加
+    params.append('ope', '3');
+    
     // 基本情報
-    formData.append('ope', '3');
-    formData.append('cgid', cgid);
-    formData.append('dno', dno.toString());
-    formData.append('ytkn', ytkn);
-    formData.append('deck_name', deckData.name);
+    params.append('wname', 'MemberDeck');
+    params.append('ytkn', ytkn);
+    params.append('dnm', deckData.name);
+    params.append('dno', dno.toString());
 
     // 公開設定
-    if (deckData.isPublic) {
-      formData.append('is_public', 'on');
+    if (deckData.isPublic !== undefined) {
+      params.append('pflg', deckData.isPublic ? '1' : '0');
     }
 
     // デッキタイプ
     if (deckData.deckType !== undefined) {
-      formData.append('deck_type', deckData.deckType.toString());
+      params.append('deck_type', deckData.deckType.toString());
     }
+
+    // デッキスタイル
+    params.append('deckStyle', deckData.deckStyle !== undefined ? deckData.deckStyle.toString() : '-1');
+
+    // カテゴリー（txt_のみ送信、配列は送信しない）
+    params.append('txt_dctCategoryMst', '');
+    params.append('category_serch_flg', 'on');
+
+    // タグ（txt_のみ送信、配列は送信しない）
+    params.append('txt_dctTagMst', '');
+    params.append('serch_flg', 'on');
 
     // コメント
-    if (deckData.comment !== undefined) {
-      formData.append('comment', deckData.comment);
+    params.append('biko', deckData.comment || '');
+
+    // カード情報を追加（デッキタイプによってフィールド名が異なる）
+    // 順序: メインデッキ（monm → spnm → trnm）→ エクストラ → サイド
+    
+    const TOTAL_MAIN_SLOTS = 65;  // メイン: モンスター/魔法/罠それぞれ65枠
+    const TOTAL_EXTRA_SLOTS = 20;  // エクストラ: 20枠
+    const TOTAL_SIDE_SLOTS = 20;   // サイド: 20枠
+    
+    // メインデッキ: モンスター（実カード→空き枠）
+    const mainMonsters = deckData.mainDeck.filter(c => c.card.cardType === 'monster');
+    mainMonsters.forEach(card => {
+      appendCardToFormData(params, card, 'main');
+    });
+    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
+      params.append('monm', '');
+      params.append('monum', '0');
+      params.append('monsterCardId', '');
+      params.append('imgs', 'null_null_null_null');
+    }
+    
+    // メインデッキ: 魔法（実カード→空き枠）
+    const mainSpells = deckData.mainDeck.filter(c => c.card.cardType === 'spell');
+    mainSpells.forEach(card => {
+      appendCardToFormData(params, card, 'main');
+    });
+    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
+      params.append('spnm', '');
+      params.append('spnum', '0');
+      params.append('spellCardId', '');
+      params.append('imgs', 'null_null_null_null');
+    }
+    
+    // メインデッキ: 罠（実カード→空き枠）
+    const mainTraps = deckData.mainDeck.filter(c => c.card.cardType === 'trap');
+    mainTraps.forEach(card => {
+      appendCardToFormData(params, card, 'main');
+    });
+    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
+      params.append('trnm', '');
+      params.append('trnum', '0');
+      params.append('trapCardId', '');
+      params.append('imgs', 'null_null_null_null');
+    }
+    
+    // エクストラデッキ（実カード→空き枠）
+    deckData.extraDeck.forEach(card => {
+      appendCardToFormData(params, card, 'extra');
+    });
+    for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
+      params.append('exnm', '');
+      params.append('exnum', '0');
+      params.append('extraCardId', '');
+      params.append('imgs', 'null_null_null_null');
+    }
+    
+    // サイドデッキ（実カード→空き枠）
+    deckData.sideDeck.forEach(card => {
+      appendCardToFormData(params, card, 'side');
+    });
+    for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
+      params.append('sinm', '');
+      params.append('sinum', '0');
+      params.append('sideCardId', '');
+      params.append('imgsSide', 'null_null_null_null');
     }
 
-    // カード情報を追加
-    deckData.mainDeck.forEach(card => {
-      appendCardToFormData(formData, card, 'main');
-    });
-    deckData.extraDeck.forEach(card => {
-      appendCardToFormData(formData, card, 'extra');
-    });
-    deckData.sideDeck.forEach(card => {
-      appendCardToFormData(formData, card, 'side');
+    const requestLocale = detectLanguage(document);
+    const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
+    const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
+    
+    console.log('[saveDeckInternal] POST URL:', postUrl);
+    console.log('[saveDeckInternal] POST data:', encoded_params);
+    //console.log('[saveDeckInternal] Total length:', params.toString().length);
+    //console.log('[saveDeckInternal] Sending request...');
+    
+    // 公式の実装に合わせて、URLSearchParamsを直接渡す
+    // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
+    // paramsはurl encodeされる必要がある, +は%20に変換されるべき
+    const response = await axios.post(postUrl, encoded_params, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
     });
 
-    const response = await axios.post(BASE_URL, formData, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // エラーチェック
-    const errorElements = doc.querySelectorAll('.error');
-    if (errorElements.length > 0) {
-      const errors = Array.from(errorElements).map(el => el.textContent?.trim() || '');
+    console.log('[saveDeckInternal] Response received');
+    
+    const data = response.data;
+    
+    // 公式の判定方法に合わせる
+    if (data.result) {
+      console.log('[saveDeckInternal] ✅ Save successful');
+      return { success: true };
+    } else {
+      if (data.error) {
+        console.error('[saveDeckInternal] ❌ Save failed:', data.error);
+        return {
+          success: false,
+          error: data.error
+        };
+      }
+      // data.resultがfalseでerrorもない場合
+      console.error('[saveDeckInternal] ❌ Save failed: Unknown error (no error message from server)');
       return {
         success: false,
-        error: errors
+        error: ['保存に失敗しました']
       };
     }
-
-    return { success: true };
   } catch (error) {
-    console.error('Failed to save deck:', error);
+    console.error('[saveDeckInternal] Exception:', error);
     return {
       success: false,
       error: [error instanceof Error ? error.message : 'Unknown error']
@@ -162,7 +261,7 @@ export async function deleteDeckInternal(
     formData.append('dno', dno.toString());
     formData.append('ytkn', ytkn);
 
-    const response = await axios.post(BASE_URL, formData, {
+    const response = await axios.post(API_ENDPOINT, formData, {
       withCredentials: true
     });
 
@@ -197,36 +296,60 @@ export async function deleteDeckInternal(
  * @param card カード情報
  * @param _deckType デッキタイプ（使用しない、互換性のため残す）
  */
+/**
+ * カード情報をFormDataに追加する補助関数
+ *
+ * @param target FormDataまたはURLSearchParamsオブジェクト
+ * @param deckCard デッキカード情報
+ * @param deckType デッキタイプ（main/extra/side）
+ */
 function appendCardToFormData(
-  formData: FormData,
+  target: FormData | URLSearchParams,
   deckCard: DeckCard,
-  _deckType: 'main' | 'extra' | 'side'
+  deckType: 'main' | 'extra' | 'side'
 ): void {
   const { card, quantity } = deckCard;
 
-  // カードタイプに応じたフィールド名を使用
-  let cardIdName: string;
-  let imgsName: string;
-  let numberName: string;
+  if (deckType === 'main') {
+    // メインデッキ: カードタイプ別のフィールド名
+    let nameField: string;
+    let numField: string;
+    let cardIdField: string;
 
-  if (card.cardType === 'monster') {
-    cardIdName = 'monsterCardId';
-    imgsName = 'monster_imgs';
-    numberName = 'monster_card_number';
-  } else if (card.cardType === 'spell') {
-    cardIdName = 'spellCardId';
-    imgsName = 'spell_imgs';
-    numberName = 'spell_card_number';
+    if (card.cardType === 'monster') {
+      nameField = 'monm';
+      numField = 'monum';
+      cardIdField = 'monsterCardId';
+    } else if (card.cardType === 'spell') {
+      nameField = 'spnm';
+      numField = 'spnum';
+      cardIdField = 'spellCardId';
+    } else {
+      // trap
+      nameField = 'trnm';
+      numField = 'trnum';
+      cardIdField = 'trapCardId';
+    }
+
+    target.append(nameField, card.name);
+    target.append(numField, quantity.toString());
+    target.append(cardIdField, card.cardId);
+    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
+    
+  } else if (deckType === 'extra') {
+    // エクストラデッキ: 統一フィールド名
+    target.append('exnm', card.name);
+    target.append('exnum', quantity.toString());
+    target.append('extraCardId', card.cardId);
+    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
+    
   } else {
-    // 罠
-    cardIdName = 'trapCardId';
-    imgsName = 'trap_imgs';
-    numberName = 'trap_card_number';
+    // サイドデッキ: 統一フィールド名（imgsフィールド名が異なる）
+    target.append('sinm', card.name);
+    target.append('sinum', quantity.toString());
+    target.append('sideCardId', card.cardId);
+    target.append('imgsSide', `${card.cardId}_${card.ciid}_1_1`);
   }
-
-  formData.append(cardIdName, card.cardId);
-  formData.append(imgsName, card.imageId || '1');
-  formData.append(numberName, quantity.toString());
 }
 
 /**
@@ -247,11 +370,13 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
+    const requestLocale = detectLanguage(document);
+    
     // URLパラメータを構築
     const params = new URLSearchParams({
       ope: '1',
       dno: dno.toString(),
-      request_locale: 'ja'
+      request_locale: requestLocale
     });
 
     // cgidが指定されている場合は追加
@@ -259,7 +384,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       params.append('cgid', cgid);
     }
 
-    const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+    const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });
 
@@ -292,14 +417,16 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
  */
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
   try {
+    const requestLocale = detectLanguage(document);
+    
     // URLパラメータを構築
     const params = new URLSearchParams({
       ope: '4',
       cgid: cgid,
-      request_locale: 'ja'
+      request_locale: requestLocale
     });
 
-    const response = await axios.get(`${BASE_URL}?${params.toString()}`, {
+    const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });
 

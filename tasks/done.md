@@ -4,6 +4,52 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-10 (16:51): tmp/prototype DeckCard リファクタリング
+
+### 実施内容
+
+1. **emit経由からstore直接呼び出しへの変更**:
+   - DeckCard.vueに`useDeckStore`をインポート
+   - カード移動・追加ボタンのハンドラーを直接storeメソッド呼び出しに変更
+   - 不要なemitを削除（dragstart, drop, clickのみ残す）
+
+2. **ボタンハンドラーの修正**:
+   - `handleTopRight()`: side → main/extra移動、main/extra → side移動
+   - `handleBottomLeft()`: trash → main/extra移動、search → 追加、その他 → trash移動
+   - `handleBottomRight()`: trash → side移動、search → side追加、その他 → コピー追加
+
+3. **引数順序の修正**:
+   - emit時の余分な`sectionType`引数を削除
+   - card, indexのみを渡すように統一
+
+### 技術詳細
+
+**変更前**:
+```javascript
+handleTopRight() {
+  this.$emit('move-to-side', this.card, this.index, this.sectionType)
+}
+```
+
+**変更後**:
+```javascript
+handleTopRight() {
+  if (this.sectionType === 'side') {
+    this.deckStore.moveCardFromSide(this.card)
+  } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
+    this.deckStore.moveCardToSide(this.card, this.sectionType)
+  }
+}
+```
+
+### 成果
+
+- コードの簡潔化
+- データフローの明確化
+- 親コンポーネントでのイベントハンドラー削減
+
+---
+
 ## 2025-11-10 (14:49): 効果タイプ判定を画像ベースに変更
 
 ### 実施内容

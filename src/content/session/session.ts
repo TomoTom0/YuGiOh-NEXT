@@ -11,11 +11,10 @@ import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 /**
  * セッション管理クラス
  *
- * cgidとytknを内部管理し、デッキ操作の統一インターフェースを提供する
+ * cgidを内部管理し、デッキ操作の統一インターフェースを提供する
  */
 class SessionManager {
   private cgid: string | null = null;
-  private ytknCache: Map<number, string> = new Map();
 
   /**
    * cgidを取得（キャッシュあり）
@@ -55,40 +54,29 @@ class SessionManager {
   }
 
   /**
-   * ytknを取得（キャッシュあり）
+   * ytknを取得（CSRFトークンのため毎回新規取得）
+   * 
+   * @param cgid ユーザー識別子
+   * @param dno デッキ番号
+   * @param request_locale リクエストロケール（例: 'request_locale=ja'）
+   * @returns ytkn、取得失敗時はnull
    */
-  private async ensureYtkn(dno: number): Promise<string> {
-    // キャッシュチェック
-    const cached = this.ytknCache.get(dno);
-    if (cached) {
-      console.log('[SessionManager] Using cached ytkn for dno:', dno);
-      return cached;
+  private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
+    const edit_url = `/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&${request_locale}`;
+    
+    try {
+      const response = await axios.get(edit_url, { withCredentials: true });
+      const html = response.data;
+      
+      const parser = new DOMParser();
+      const htmlDoc = parser.parseFromString(html, 'text/html');
+      const ytkn_input = htmlDoc.querySelector('input#ytkn') as HTMLInputElement | null;
+      
+      return ytkn_input ? ytkn_input.value : null;
+    } catch (error) {
+      console.error('[SessionManager] Failed to fetch ytkn:', error);
+      return null;
     }
-
-    console.log('[SessionManager] Fetching ytkn for dno:', dno);
-
-    const cgid = await this.ensureCgid();
-
-    // デッキ編集ページを取得
-    const url = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=2&dno=${dno}&cgid=${cgid}&request_locale=ja`;
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const input = doc.querySelector('input[name="ytkn"]') as HTMLInputElement;
-    if (!input || !input.value) {
-      throw new Error('ytkn not found in page');
-    }
-
-    const ytkn = input.value.trim();
-    this.ytknCache.set(dno, ytkn);
-    console.log('[SessionManager] ✅ ytkn found for dno:', dno);
-
-    return ytkn;
   }
 
   /**
@@ -128,7 +116,11 @@ class SessionManager {
    */
   async saveDeck(dno: number, deckData: DeckInfo): Promise<OperationResult> {
     const cgid = await this.ensureCgid();
-    const ytkn = await this.ensureYtkn(dno);
+    // CSRFトークンは使い捨てのため毎回新規取得
+    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+    if (!ytkn) {
+      throw new Error('ytkn not found for saveDeck');
+    }
     return saveDeckInternal(cgid, dno, deckData, ytkn);
   }
 
@@ -140,15 +132,12 @@ class SessionManager {
    */
   async deleteDeck(dno: number): Promise<OperationResult> {
     const cgid = await this.ensureCgid();
-    const ytkn = await this.ensureYtkn(dno);
-    const result = await deleteDeckInternal(cgid, dno, ytkn);
-
-    // 削除成功時はキャッシュをクリア
-    if (result.success) {
-      this.ytknCache.delete(dno);
+    // CSRFトークンは使い捨てのため毎回新規取得
+    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+    if (!ytkn) {
+      throw new Error('ytkn not found for deleteDeck');
     }
-
-    return result;
+    return deleteDeckInternal(cgid, dno, ytkn);
   }
 
   /**

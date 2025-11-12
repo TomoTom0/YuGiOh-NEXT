@@ -57,9 +57,21 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
   }
   const name = nameElement.textContent.trim();
 
-  // 画像IDを取得（オプション、デフォルト '1'）
+  // 画像情報を取得（ciid_imgHash形式）
   const imgsInput = row.querySelector(`input[name="${fields.imgsName}"]`) as HTMLInputElement;
-  const imageId = imgsInput?.value || '1';
+  const imgsValue = imgsInput?.value || '';
+  
+  // ciidとimgHashを抽出（形式: "cardId_ciid_1_1"）
+  let ciid: string = '1';
+  let imgHash: string = `${cardId}_1_1_1`;
+  
+  if (imgsValue) {
+    const parts = imgsValue.split('_');
+    if (parts.length >= 2 && parts[1]) {
+      ciid = parts[1];
+      imgHash = imgsValue;
+    }
+  }
 
   // 枚数を取得
   const numberInput = row.querySelector(`input[name="${fields.numberName}"]`) as HTMLInputElement;
@@ -80,7 +92,8 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
     card = {
       name,
       cardId,
-      imageId,
+      ciid,
+      imgs: [{ciid, imgHash}],
       cardType: 'monster',
       attribute: 'light', // デッキページからは取得不可、後で更新が必要
       levelType: 'level', // デッキページからは取得不可、後で更新が必要
@@ -94,7 +107,8 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
     card = {
       name,
       cardId,
-      imageId,
+      ciid,
+      imgs: [{ciid, imgHash}],
       cardType: 'spell'
     } as SpellCard;
   } else {
@@ -102,7 +116,8 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
     card = {
       name,
       cardId,
-      imageId,
+      ciid,
+      imgs: [{ciid, imgHash}],
       cardType: 'trap'
     } as TrapCard;
   }
