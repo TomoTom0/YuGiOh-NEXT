@@ -28,50 +28,17 @@
     </div>
 
     <div v-if="deckStore.activeTab === 'search'" class="search-content">
-      <div class="search-toolbar">
-        <div class="toolbar-left">
-          <svg class="sort-icon" width="16" height="16" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M9.25,5L12.5,1.75L15.75,5H9.25M15.75,19L12.5,22.25L9.25,19H15.75M8.89,14.3H6L5.28,17H2.91L6,7H9L12.13,17H9.67L8.89,14.3M6.33,12.68H8.56L7.93,10.56L7.67,9.59L7.42,8.63H7.39L7.17,9.6L6.93,10.58L6.33,12.68M13.05,17V15.74L17.8,8.97V8.91H13.5V7H20.73V8.34L16.09,15V15.08H20.8V17H13.05Z" />
-          </svg>
-          <select v-model="deckStore.sortOrder" class="sort-select" @change="handleSortChange">
-            <option value="release_desc">Newer</option>
-            <option value="release_asc">Older</option>
-            <option value="name_asc">Name (A-Z)</option>
-            <option value="name_desc">Name (Z-A)</option>
-          </select>
-        </div>
-        <div class="view-switch">
-          <label class="view-option">
-            <input type="radio" v-model="deckStore.viewMode" value="list" name="viewMode">
-            <span class="icon">☰</span>
-          </label>
-          <label class="view-option">
-            <input type="radio" v-model="deckStore.viewMode" value="grid" name="viewMode">
-            <span class="icon">▦</span>
-          </label>
-        </div>
-      </div>
-      
-      <div class="search-results" :class="{ 'grid-view': deckStore.viewMode === 'grid' }" @scroll="handleScroll">
-        <div
-          v-for="(card, idx) in deckStore.searchResults"
-          :key="`search-${idx}`"
-          class="search-result-item"
-        >
-          <div class="card-wrapper">
-            <DeckCard
-              :card="card"
-              :section-type="'search'"
-              :index="idx"
-            />
-          </div>
-          <div class="card-info" v-if="deckStore.viewMode === 'list'">
-            <div class="card-name">{{ card.name }}</div>
-            <div class="card-text">{{ card.text }}</div>
-          </div>
-        </div>
-        <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
-      </div>
+      <CardList
+        :cards="deckStore.searchResults"
+        :sort-order="deckStore.sortOrder"
+        :view-mode="deckStore.viewMode"
+        section-type="search"
+        @sort-change="handleSortChange"
+        @scroll="handleScroll"
+        @update:sortOrder="deckStore.sortOrder = $event"
+        @update:viewMode="deckStore.viewMode = $event"
+      />
+      <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
     </div>
 
     <div v-if="deckStore.activeTab === 'card'" class="card-detail-content">
@@ -105,13 +72,13 @@
 <script>
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCardsByName, buildCardImageUrl } from '../api/card-search'
-import DeckCard from './DeckCard.vue'
+import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 
 export default {
   name: 'RightArea',
   components: {
-    DeckCard,
+    CardList,
     CardDetail
   },
   setup() {
@@ -323,9 +290,11 @@ export default {
   display: flex;
   flex-direction: column;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
+  padding: 15px;
 }
 
 .card-detail-content {
