@@ -162,12 +162,16 @@ export default {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
         
-        const { sectionType: sourceSectionType, uuid: sourceUuid } = JSON.parse(data)
+        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
         
-        // 同じセクション内でのドロップのみ処理
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
+          // 同じセクション内での並び替え: targetの前に挿入
           console.log('Reordering: move', sourceUuid, 'before', this.uuid)
           this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
+        } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
+          // 他のセクションからの移動: targetの前に挿入
+          console.log('Moving from', sourceSectionType, 'to', this.sectionType, 'before', this.uuid)
+          this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
         }
       } catch (e) {
         console.error('Card drop error:', e)
