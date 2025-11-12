@@ -167,7 +167,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 8px;
+  padding: 8px 0;
   background: transparent;
   border-bottom: none;
   width: calc(100% - 48px);
