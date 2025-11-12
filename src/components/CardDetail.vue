@@ -140,8 +140,8 @@
                 :viewMode="packViewModes[pack.packId] || 'list'"
                 sectionType="search"
                 :uniqueId="`pack-${pack.packId}`"
-                @update:sortOrder="(val) => { packSortOrders[pack.packId] = val }"
-                @update:viewMode="(val) => { packViewModes[pack.packId] = val }"
+                @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
+                @update:viewMode="updatePackViewMode(pack.packId, $event)"
               />
             </div>
           </div>
@@ -326,6 +326,14 @@ export default {
       expandedPacks.value[packId] = false
     }
     
+    const updatePackSortOrder = (packId, value) => {
+      packSortOrders.value = { ...packSortOrders.value, [packId]: value }
+    }
+    
+    const updatePackViewMode = (packId, value) => {
+      packViewModes.value = { ...packViewModes.value, [packId]: value }
+    }
+    
     const collapseQA = (index) => {
       const qaItem = document.querySelectorAll('.qa-item')[index]
       if (qaItem) {
@@ -438,8 +446,11 @@ export default {
       loadingPacks,
       packCards,
       packViewModes,
+      packSortOrders,
       expandPack,
-      collapsePack
+      collapsePack,
+      updatePackSortOrder,
+      updatePackViewMode
     }
   }
 }
