@@ -213,7 +213,6 @@ export default {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  overflow: hidden;
 }
 
 .attribute-icon {
@@ -236,9 +235,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
 }
 
 .stat-box-row {
@@ -257,13 +253,11 @@ export default {
   font-size: 11px;
   
   &.stat-box-type {
-    width: 100%;
-    max-width: 100%;
+    width: 95%;
     box-sizing: border-box;
     transform: skewX(-10deg);
     background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
     justify-content: center;
-    overflow: hidden;
     
     .card-type-icon {
       width: 16px;
@@ -274,9 +268,8 @@ export default {
     
     .stat-text {
       transform: skewX(10deg);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-align: center;
+      line-height: 1.4;
     }
   }
   
