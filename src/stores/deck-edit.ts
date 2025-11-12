@@ -21,6 +21,30 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   const trashDeck = ref<DeckCard[]>([]);
   
+  // 表示順序データ構造: 画面上のカード画像の並び順
+  interface DisplayCard {
+    cid: string;      // カードID
+    ciid: number;     // 同じカードの何枚目か（0始まり）
+    uuid: string;     // ユニークな識別子（アニメーション追跡用）
+  }
+  
+  const displayOrder = ref<{
+    main: DisplayCard[];
+    extra: DisplayCard[];
+    side: DisplayCard[];
+    trash: DisplayCard[];
+  }>({
+    main: [],
+    extra: [],
+    side: [],
+    trash: []
+  });
+  
+  // UUID生成ヘルパー
+  function generateUUID(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
   // Deck list state
   const deckList = ref<Array<{ dno: number; name: string }>>([]);
   const lastUsedDno = ref<number | null>(null);
