@@ -92,6 +92,7 @@ export default {
   setup(props, { emit }) {
     const localSortOrder = ref(props.sortOrder)
     const localViewMode = ref(props.viewMode)
+    const resultsContainer = ref(null)
     
     watch(() => props.sortOrder, (val) => {
       localSortOrder.value = val
@@ -110,15 +111,15 @@ export default {
     })
     
     const scrollToTop = () => {
-      const resultsElement = document.querySelector('.card-list-results')
-      if (resultsElement) {
-        resultsElement.scrollTo({ top: 0, behavior: 'smooth' })
+      if (resultsContainer.value) {
+        resultsContainer.value.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
     
     return {
       localSortOrder,
       localViewMode,
+      resultsContainer,
       scrollToTop
     }
   }
