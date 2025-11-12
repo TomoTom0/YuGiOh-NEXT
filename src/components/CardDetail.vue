@@ -334,7 +334,7 @@ export default {
           const afterHeight = packItem.scrollHeight
           const heightDiff = beforeHeight - afterHeight
           
-          const container = packItem.closest('.card-detail-content')
+          const container = packItem.closest('.card-tab-content')
           if (container && heightDiff > 0) {
             const packItemTop = packItem.getBoundingClientRect().top
             const containerTop = container.getBoundingClientRect().top
@@ -375,7 +375,7 @@ export default {
           const afterHeight = qaItem.scrollHeight
           const heightDiff = beforeHeight - afterHeight
           
-          const container = qaItem.closest('.card-detail-content')
+          const container = qaItem.closest('.card-tab-content')
           if (container && heightDiff > 0) {
             const qaItemTop = qaItem.getBoundingClientRect().top
             const containerTop = container.getBoundingClientRect().top
