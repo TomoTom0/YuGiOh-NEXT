@@ -271,7 +271,30 @@ export default {
     })
     
     const collapseQA = (index) => {
-      expandedQA.value[index] = false
+      // 折りたたむ前の高さを記録
+      const qaItem = document.querySelectorAll('.qa-item')[index]
+      if (qaItem) {
+        const beforeHeight = qaItem.scrollHeight
+        expandedQA.value[index] = false
+        
+        // 次のフレームで高さの差分を計算してスクロール調整
+        this.$nextTick(() => {
+          const afterHeight = qaItem.scrollHeight
+          const heightDiff = beforeHeight - afterHeight
+          
+          // 折りたたんだ要素より下にスクロール位置がある場合、上にスクロール
+          const container = qaItem.closest('.card-detail-content')
+          if (container && heightDiff > 0) {
+            const qaItemTop = qaItem.getBoundingClientRect().top
+            const containerTop = container.getBoundingClientRect().top
+            
+            // 折りたたんだ要素が表示範囲の上部にある場合のみスクロール
+            if (qaItemTop < containerTop + container.clientHeight) {
+              container.scrollTop = Math.max(0, container.scrollTop - heightDiff)
+            }
+          }
+        })
+      }
     }
     
     const expandQA = async (faqId, index) => {
@@ -324,6 +347,10 @@ export default {
     // カードが変わったら詳細を取得
     watch(() => props.card, () => {
       relatedCurrentPage.value = 0
+      // QA展開状態をリセット
+      expandedQA.value = {}
+      loadingQA.value = {}
+      qaAnswers.value = {}
       fetchDetail()
     }, { immediate: true })
     

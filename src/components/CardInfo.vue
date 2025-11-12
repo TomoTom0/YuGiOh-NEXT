@@ -13,7 +13,7 @@
         
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
           <div class="stat-box stat-box-type">
-            <span class="stat-text">{{ card.types ? card.types.join(' / ') : '' }}</span>
+            <span class="stat-text">{{ card.types ? card.types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ') : '' }}</span>
           </div>
           
           <div class="stat-box">
@@ -87,7 +87,7 @@
 
 <script>
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
-import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP } from '../types/card-maps'
+import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -190,11 +190,11 @@ export default {
 
 .card-image-wrapper {
   flex-shrink: 0;
-  width: 100px;
+  width: 90px;
   
   .deck-card {
-    width: 100px;
-    height: 147px;
+    width: 90px;
+    height: 132px;
     
     img {
       width: 100%;
