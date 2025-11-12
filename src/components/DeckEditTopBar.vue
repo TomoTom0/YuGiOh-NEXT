@@ -2,21 +2,27 @@
   <div>
     <div class="top-bar">
       <div class="top-bar-left">
-        <input
-          v-model="localDno"
-          type="number"
-          placeholder="dno"
-          class="dno-input"
-        >
-        <input
-          v-model="localDeckName"
-          type="text"
-          placeholder="デッキ名"
-          class="deck-name-input"
-        >
+        <div class="dno-display">{{ localDno || '-' }}</div>
+        <div class="deck-name-group">
+          <input
+            v-model="localDeckName"
+            type="text"
+            placeholder="デッキ名"
+            class="deck-name-input"
+          >
+          <div v-if="lastSavedDeckName" class="last-saved-name">
+            {{ lastSavedDeckName }}
+          </div>
+        </div>
       </div>
+      <div class="spacer"></div>
       <div class="top-bar-right">
-        <button class="btn-action" title="save" @click="toggleSaveDialog">
+        <button
+          class="btn-action"
+          :class="{ saving: savingState }"
+          :title="savingState ? 'キャンセル' : 'save'"
+          @click="handleSaveClick"
+        >
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
           </svg>
@@ -30,37 +36,35 @@
       </div>
     </div>
 
-    <!-- Save Dialog -->
-    <div v-if="showSaveDialog" class="dialog-overlay" @click="toggleSaveDialog">
-      <div class="dialog-box" @click.stop>
-        <h3>デッキを保存</h3>
-        <div class="dialog-info">
-          <p>dno: {{ localDno || '(未設定)' }}</p>
-          <p>デッキ名: {{ localDeckName || '(未設定)' }}</p>
-        </div>
-        <div class="dialog-actions">
-          <button @click="handleSave" class="btn-primary">Save Official</button>
-          <button @click="toggleSaveDialog" class="btn-secondary">キャンセル</button>
-        </div>
-      </div>
-    </div>
-
     <!-- Load Dialog -->
     <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
-      <div class="dialog-box" @click.stop>
-        <h3>デッキを読み込み</h3>
-        <div class="dialog-form">
-          <label>dno:</label>
-          <input
-            v-model.number="loadDno"
-            type="number"
-            placeholder="デッキ番号を入力"
-            class="dialog-input"
-          >
+      <div class="load-dialog" @click.stop>
+        <div class="load-dialog-content">
+          <div v-if="deckStore.deckList.length === 0" class="no-decks">
+            デッキがありません
+          </div>
+          <div v-else class="deck-list">
+            <div
+              v-for="deck in deckStore.deckList"
+              :key="deck.dno"
+              class="deck-list-item"
+              :class="{ selected: selectedDeckDno === deck.dno }"
+              @click="selectedDeckDno = deck.dno"
+            >
+              <div class="deck-dno">{{ deck.dno }}</div>
+              <div class="deck-name">{{ deck.name }}</div>
+            </div>
+          </div>
         </div>
-        <div class="dialog-actions">
-          <button @click="handleLoad" class="btn-primary">Load</button>
-          <button @click="toggleLoadDialog" class="btn-secondary">キャンセル</button>
+        <div class="load-dialog-actions">
+          <button @click="toggleLoadDialog" class="btn-cancel">Cancel</button>
+          <button
+            @click="handleLoadSelected"
+            class="btn-load"
+            :disabled="!selectedDeckDno"
+          >
+            Load
+          </button>
         </div>
       </div>
     </div>
@@ -74,89 +78,105 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
+
+interface ToastState {
+  show: boolean
+  message: string
+  type: string
+}
 
 export default {
   name: 'DeckEditTopBar',
   components: {
     Toast
   },
-  props: {
-    dno: {
-      type: Number,
-      default: null
-    },
-    deckName: {
-      type: String,
-      default: ''
-    }
-  },
-  emits: ['update:dno', 'update:deckName'],
-  setup(props, { emit }) {
+  setup() {
     const deckStore = useDeckEditStore()
-    const showSaveDialog = ref(false)
     const showLoadDialog = ref(false)
-    const loadDno = ref(null)
-    const toast = reactive({
+    const selectedDeckDno = ref<number | null>(null)
+    const savingState = ref(false)
+    const saveTimer = ref<number | null>(null)
+    const lastSavedDeckName = ref('')
+    const toast = reactive<ToastState>({
       show: false,
       message: '',
       type: 'info'
     })
 
-    const showToast = (message, type = 'info') => {
+    const showToast = (message: string, type = 'info') => {
       toast.message = message
       toast.type = type
       toast.show = true
     }
 
-    const localDno = computed({
-      get: () => props.dno,
-      set: (value) => emit('update:dno', value)
-    })
-
+    const localDno = computed(() => deckStore.deckInfo.dno || 0)
     const localDeckName = computed({
-      get: () => props.deckName,
-      set: (value) => emit('update:deckName', value)
+      get: () => deckStore.deckInfo.name || '',
+      set: (value: string) => deckStore.setDeckName(value)
     })
 
-    const toggleSaveDialog = () => {
-      showSaveDialog.value = !showSaveDialog.value
-    }
-
-    const toggleLoadDialog = () => {
-      showLoadDialog.value = !showLoadDialog.value
-    }
-
-    const handleSave = async () => {
-      try {
-        if (!localDno.value) {
-          showToast('dnoを入力してください', 'warning')
-          return
+    const handleSaveClick = () => {
+      if (savingState.value) {
+        // キャンセル
+        if (saveTimer.value) {
+          clearTimeout(saveTimer.value)
+          saveTimer.value = null
         }
-        const result = await deckStore.saveDeck(localDno.value)
-        if (result.success) {
-          showToast('保存しました', 'success')
-          showSaveDialog.value = false
-        } else {
-          showToast('保存に失敗しました', 'error')
-        }
-      } catch (error) {
-        console.error('Save error:', error)
-        showToast('保存エラーが発生しました', 'error')
+        savingState.value = false
+        showToast('保存をキャンセルしました', 'info')
+      } else {
+        // 2秒後に保存
+        savingState.value = true
+        saveTimer.value = window.setTimeout(async () => {
+          try {
+            if (!localDno.value) {
+              showToast('dnoが設定されていません', 'warning')
+              savingState.value = false
+              return
+            }
+            
+            // デッキ名を更新してから保存
+            deckStore.setDeckName(localDeckName.value)
+            
+            const result = await deckStore.saveDeck(localDno.value)
+            if (result.success) {
+              lastSavedDeckName.value = localDeckName.value
+              showToast('保存しました', 'success')
+            } else {
+              showToast('保存に失敗しました', 'error')
+            }
+          } catch (error) {
+            console.error('Save error:', error)
+            showToast('保存エラーが発生しました', 'error')
+          } finally {
+            savingState.value = false
+            saveTimer.value = null
+          }
+        }, 2000)
       }
     }
 
-    const handleLoad = async () => {
+    const toggleLoadDialog = async () => {
+      if (!showLoadDialog.value) {
+        // ダイアログを開く前にデッキ一覧を取得
+        await deckStore.fetchDeckList()
+        selectedDeckDno.value = null
+      }
+      showLoadDialog.value = !showLoadDialog.value
+    }
+
+    const handleLoadSelected = async () => {
       try {
-        if (!loadDno.value) {
-          showToast('dnoを入力してください', 'warning')
+        if (!selectedDeckDno.value) {
+          showToast('デッキを選択してください', 'warning')
           return
         }
-        await deckStore.loadDeck(loadDno.value)
-        localDno.value = loadDno.value
+        await deckStore.loadDeck(selectedDeckDno.value)
+        lastSavedDeckName.value = deckStore.deckInfo.name
         showLoadDialog.value = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
@@ -166,16 +186,17 @@ export default {
     }
 
     return {
-      showSaveDialog,
+      deckStore,
       showLoadDialog,
-      loadDno,
+      selectedDeckDno,
+      savingState,
+      lastSavedDeckName,
       localDno,
       localDeckName,
       toast,
-      toggleSaveDialog,
+      handleSaveClick,
       toggleLoadDialog,
-      handleSave,
-      handleLoad
+      handleLoadSelected
     }
   }
 }
@@ -185,7 +206,7 @@ export default {
 .top-bar {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 10px;
 }
@@ -193,7 +214,11 @@ export default {
 .top-bar-left {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
+  flex: 0 0 auto;
+}
+
+.spacer {
   flex: 1;
 }
 
@@ -201,22 +226,51 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex: 0 0 auto;
+}
+
+.deck-name-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
 }
 
 .deck-name-input {
-  flex: 1;
   padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  min-width: 200px;
+  text-align: left;
+  background: white;
+  color: #000;
 }
 
-.dno-input {
+.last-saved-name {
+  position: absolute;
+  top: 100%;
+  left: 4px;
+  font-size: 10px;
+  color: #aaa;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.dno-display {
   width: 60px;
   padding: 6px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 14px;
+  background: #f5f5f5;
+  color: #666;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-weight: 600;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .btn-menu,
@@ -231,6 +285,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  position: relative;
 
   &:hover {
     background: #f0f0f0;
@@ -238,6 +294,33 @@ export default {
 
   svg {
     display: block;
+  }
+  
+  &.saving {
+    pointer-events: none;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid #e0e0e0;
+      border-top-color: var(--theme-color-start, #00d9b8);
+      animation: save-progress 2s linear;
+    }
+  }
+}
+
+@keyframes save-progress {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -259,10 +342,126 @@ export default {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 80px;
   z-index: 1000;
+}
+
+.load-dialog {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 500px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.load-dialog-content {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  
+  .no-decks {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 14px;
+  }
+}
+
+.deck-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deck-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: #ccc;
+    background: #f9f9f9;
+  }
+  
+  &.selected {
+    border-color: var(--theme-color-start, #00d9b8);
+    background: linear-gradient(90deg, rgba(0,217,184,0.1) 0%, rgba(184,79,201,0.1) 100%);
+  }
+  
+  .deck-dno {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    width: 60px;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  
+  .deck-name {
+    font-size: 14px;
+    color: #333;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+}
+
+.load-dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    min-width: 80px;
+    
+    &.btn-cancel {
+      background: white;
+      color: #666;
+      border: 1px solid #ddd;
+      
+      &:hover {
+        background: #f5f5f5;
+        border-color: #ccc;
+      }
+    }
+    
+    &.btn-load {
+      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+      color: white;
+      
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,217,184,0.3);
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
 }
 
 .dialog-box {
@@ -279,19 +478,6 @@ export default {
     color: #333;
     border-bottom: 2px solid #4CAF50;
     padding-bottom: 8px;
-  }
-}
-
-.dialog-info {
-  margin: 15px 0;
-  padding: 10px;
-  background: #f5f5f5;
-  border-radius: 4px;
-
-  p {
-    margin: 5px 0;
-    font-size: 14px;
-    color: #666;
   }
 }
 
