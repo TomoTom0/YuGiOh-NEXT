@@ -114,7 +114,7 @@
               </div>
             </div>
             <button 
-              v-if="pack.packId && !expandedPacks[pack.packId]"
+              v-if="!expandedPacks[pack.packId] && pack.packId"
               class="pack-expand-btn"
               @click="expandPack(pack.packId)"
             >
@@ -265,6 +265,9 @@ export default {
             packId: pack.packId,
             rarities: []
           })
+        } else if (pack.packId && !packMap.get(key).packId) {
+          // 既存エントリにpackIdがない場合は更新
+          packMap.get(key).packId = pack.packId
         }
         if (pack.rarity) {
           packMap.get(key).rarities.push({
