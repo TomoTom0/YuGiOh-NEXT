@@ -91,6 +91,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const deckCard = fromDeck[index];
       if (!deckCard) return;
       const card = deckCard.card;
+      
+      // アニメーション用に移動前の位置を記録
+      triggerCardAnimation(from, to);
+      
       removeCard(cardId, from);
       
       const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
@@ -100,6 +104,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         toDeck.push({ card, quantity: 1 });
       }
     }
+  }
+  
+  // カード移動アニメーションをトリガー
+  function triggerCardAnimation(from: string, to: string) {
+    // nextTickでDOM更新後にアニメーション実行イベントを発火
+    import('vue').then(({ nextTick }) => {
+      nextTick(() => {
+        // カスタムイベントで各セクションにアニメーション実行を通知
+        const fromEvent = new CustomEvent('deck-card-moved', { detail: { section: from } });
+        const toEvent = new CustomEvent('deck-card-moved', { detail: { section: to } });
+        window.dispatchEvent(fromEvent);
+        window.dispatchEvent(toEvent);
+      });
+    });
   }
 
   function moveCardToTrash(card: CardInfo, from: 'main' | 'extra' | 'side') {
