@@ -26,20 +26,6 @@ import { mappingManager } from '@/utils/mapping-manager';
 
 const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
 
-/**
- * カード画像URLを生成する
- * @param cardId カードID
- * @param imageId 画像ID（言語など）
- * @param ciid カード画像識別子（オプション）
- * @returns 画像URL
- */
-function generateCardImageUrl(cardId: string, imageId: string, ciid?: string): string {
-  const base = 'https://www.db.yugioh-card.com/yugiohdb/card_image';
-  const cid = cardId.padStart(8, '0');
-  const ciidParam = ciid ? `/${ciid}` : '';
-  return `${base}/${cid}${ciidParam}/${imageId}.jpg`;
-}
-
 // ============================================================================
 // APIパラメータ値マッピング
 // ============================================================================
@@ -767,9 +753,6 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   // imgs配列を構築（検索結果ページでは1つの画像情報のみ）
   const imgs = (ciid && imageInfo?.imgHash) ? [{ciid, imgHash: imageInfo.imgHash}] : undefined;
 
-  // 画像URLを生成
-  const imageUrl = generateCardImageUrl(cardId, imageId, ciid);
-
   // 効果テキスト（オプション）
   const textElem = row.querySelector('.box_card_text');
   let text: string | undefined = undefined;
@@ -782,16 +765,20 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     text = cloned.textContent?.trim() || undefined;
   }
 
-  return {
+  const base: CardBase = {
     name,
     ruby,
     cardId,
     imageId,
     ciid,
     imgs,
-    imageUrl,
     text
   };
+  
+  // 画像URLを生成（buildCardImageUrlを使用）
+  base.imageUrl = buildCardImageUrl(base);
+  
+  return base;
 }
 
 /**
