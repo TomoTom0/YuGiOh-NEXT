@@ -233,6 +233,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   /**
    * displayOrderにカードを追加（deckInfoも更新）
+   * 同じカードが既に存在する場合、最初に登場する位置の直後に挿入
    */
   function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
@@ -250,14 +251,39 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // displayOrder更新
     const sectionOrder = displayOrder.value[section];
-    const existingCards = sectionOrder.filter(dc => dc.cid === card.cardId);
-    const ciid = existingCards.length;
     
-    sectionOrder.push({
-      cid: card.cardId,
-      ciid: ciid,
-      uuid: generateUUID()
-    });
+    // 同じカードが既に存在するか確認
+    const existingCardIndex = sectionOrder.findIndex(dc => dc.cid === card.cardId);
+    
+    if (existingCardIndex !== -1) {
+      // 既存の同じカードの最後の位置を探す
+      let lastSameCardIndex = existingCardIndex;
+      for (let i = existingCardIndex + 1; i < sectionOrder.length; i++) {
+        const orderCard = sectionOrder[i];
+        if (orderCard && orderCard.cid === card.cardId) {
+          lastSameCardIndex = i;
+        } else {
+          break;
+        }
+      }
+      
+      // 最後の同じカードの直後に挿入
+      const existingCards = sectionOrder.filter((dc, idx) => dc.cid === card.cardId && idx <= lastSameCardIndex);
+      const ciid = existingCards.length;
+      
+      sectionOrder.splice(lastSameCardIndex + 1, 0, {
+        cid: card.cardId,
+        ciid: ciid,
+        uuid: generateUUID()
+      });
+    } else {
+      // 新しいカードなので末尾に追加
+      sectionOrder.push({
+        cid: card.cardId,
+        ciid: 0,
+        uuid: generateUUID()
+      });
+    }
   }
   
   /**
