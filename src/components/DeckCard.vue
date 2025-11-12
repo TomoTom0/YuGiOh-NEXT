@@ -2,6 +2,7 @@
   <div
     class="card-item deck-card"
     :data-card-id="card.cardId"
+    :data-uuid="uuid"
     :draggable="!card.empty"
     @dragstart="handleDragStart"
     @dragover="handleDragOver"
@@ -69,9 +70,10 @@ export default {
       type: String,
       required: true
     },
-    index: {
-      type: Number,
-      required: true
+    uuid: {
+      type: String,
+      required: false,
+      default: ''
     }
   },
   setup() {

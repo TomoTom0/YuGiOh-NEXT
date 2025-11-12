@@ -7,22 +7,22 @@
   >
     <h3>
       {{ title }}
-      <span v-if="showCount" class="count">{{ cards.length }}</span>
+      <span v-if="showCount" class="count">{{ displayCards.length }}</span>
     </h3>
     <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleDrop">
       <DeckCard
-        v-for="(card, idx) in cards"
-        :key="`${sectionType}-${idx}`"
-        :card="card"
+        v-for="displayCard in displayCards"
+        :key="displayCard.uuid"
+        :card="getCardInfo(displayCard.cid)"
         :section-type="sectionType"
-        :index="idx"
+        :uuid="displayCard.uuid"
       />
     </div>
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -52,6 +52,24 @@ export default {
   setup(props) {
     const deckStore = useDeckEditStore()
     const cardGridRef = ref(null)
+    
+    // displayOrderから該当セクションのカードリストを取得
+    const displayCards = computed(() => {
+      return deckStore.displayOrder[props.sectionType] || []
+    })
+    
+    // cidからカード情報を取得
+    const getCardInfo = (cid) => {
+      const allDecks = [
+        ...deckStore.deckInfo.mainDeck,
+        ...deckStore.deckInfo.extraDeck,
+        ...deckStore.deckInfo.sideDeck,
+        ...deckStore.trashDeck
+      ]
+      
+      const deckCard = allDecks.find(dc => dc.card.cardId === cid)
+      return deckCard ? deckCard.card : null
+    }
 
     const handleDrop = (event) => {
       event.preventDefault()
@@ -88,7 +106,9 @@ export default {
 
     return {
       handleDrop,
-      cardGridRef
+      cardGridRef,
+      displayCards,
+      getCardInfo
     }
   }
 }
