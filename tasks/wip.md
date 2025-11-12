@@ -64,6 +64,27 @@
      - ボタンサイズとアイコンを拡大（展開:24px/14px、縮小:32px/16px）
    - CardProducts.vueのボタンスタイルも統一
    - main-contentのpadding/gap削除
+16. ✅ 型リファクタリング（2025-11-13）
+   - imageIdをciidに統一、ciid/imgs必須化
+   - getCardImageUrl関数をcard.tsに追加（型と密結合）
+   - buildCardImageUrlは非推奨化、getCardImageUrlに委譲
+   - 全箇所でgetCardImageUrlに統一
+
+### PR#2レビュー対応（2025-11-13）
+#### High Priority
+- [ ] card-search.ts: request_localeのハードコード修正
+  - getCardDetailに言語引数を追加
+  - detectLanguageユーティリティの活用
+
+#### Medium Priority
+- [ ] .gitignoreに.drawio.dtmpを追加
+- [ ] deck-operations.ts: imgsパラメータ修正
+  - `${cardId}_1_1_1` → `${cardId}_${ciid}_1_1` に修正
+- [ ] console.log削除（DeckCard.vueなど）
+- [ ] deck-operations.ts: コメントアウトコード整理
+- [ ] CardList.vue: scrollToTopをemitベースに変更
+- [ ] RightArea.vue: 無限スクロール実装改善
+- [ ] deck-edit.ts: sortDisplayOrderForOfficialにコメント追加
 
 ### 現在対応中のバグ・課題
 1. ✅ UI改善と翻訳
