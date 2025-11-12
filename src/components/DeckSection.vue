@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -52,83 +52,6 @@ export default {
   setup(props) {
     const deckStore = useDeckEditStore()
     const cardGridRef = ref(null)
-    let savedPositions = new Map()
-    
-    // カード移動イベントをリッスン
-    const handleCardMoved = (event) => {
-      if (event.detail.section !== props.sectionType) return
-      if (!cardGridRef.value) return
-      
-      // First: 現在の位置を記録（移動前の状態）
-      savedPositions.clear()
-      const cards = cardGridRef.value.querySelectorAll('.deck-card')
-      cards.forEach(card => {
-        const cardId = card.getAttribute('data-card-id')
-        if (cardId) {
-          savedPositions.set(cardId, card.getBoundingClientRect())
-        }
-      })
-      
-      // nextTickでDOM更新を待ってからアニメーション実行
-      nextTick(() => {
-        executeAnimation()
-      })
-    }
-    
-    const executeAnimation = () => {
-      if (!cardGridRef.value) return
-      
-      const cards = cardGridRef.value.querySelectorAll('.deck-card')
-      const duration = 300
-      
-      // Last & Invert
-      cards.forEach(card => {
-        const cardId = card.getAttribute('data-card-id')
-        if (!cardId) return
-        
-        const first = savedPositions.get(cardId)
-        const last = card.getBoundingClientRect()
-        
-        if (first && last) {
-          const deltaX = first.left - last.left
-          const deltaY = first.top - last.top
-          
-          if (deltaX === 0 && deltaY === 0) return
-          
-          card.style.transition = 'none'
-          card.style.transform = `translate(${deltaX}px, ${deltaY}px)`
-        }
-      })
-      
-      // リフロー
-      cardGridRef.value.getBoundingClientRect()
-      
-      // Play
-      requestAnimationFrame(() => {
-        cards.forEach(card => {
-          if (card.style.transform) {
-            card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`
-            card.style.transform = ''
-          }
-        })
-      })
-      
-      // クリーンアップ
-      setTimeout(() => {
-        cards.forEach(card => {
-          card.style.transition = ''
-          card.style.transform = ''
-        })
-      }, duration)
-    }
-    
-    onMounted(() => {
-      window.addEventListener('deck-card-moved', handleCardMoved)
-    })
-    
-    onUnmounted(() => {
-      window.removeEventListener('deck-card-moved', handleCardMoved)
-    })
 
     const handleDrop = (event) => {
       event.preventDefault()

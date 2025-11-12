@@ -93,7 +93,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const card = deckCard.card;
       
       // アニメーション用に移動前の位置を記録
-      triggerCardAnimation(from, to);
+      recordCardPositions(from);
+      recordCardPositions(to);
       
       removeCard(cardId, from);
       
@@ -103,19 +104,84 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       } else {
         toDeck.push({ card, quantity: 1 });
       }
+      
+      // DOM更新後にアニメーション実行
+      nextTick(() => {
+        animateSection(from);
+        animateSection(to);
+      });
     }
   }
   
-  // カード移動アニメーションをトリガー
-  function triggerCardAnimation(from: string, to: string) {
-    // nextTickでDOM更新後にアニメーション実行イベントを発火
-    nextTick(() => {
-      // カスタムイベントで各セクションにアニメーション実行を通知
-      const fromEvent = new CustomEvent('deck-card-moved', { detail: { section: from } });
-      const toEvent = new CustomEvent('deck-card-moved', { detail: { section: to } });
-      window.dispatchEvent(fromEvent);
-      window.dispatchEvent(toEvent);
+  // セクション内のカード位置を記録
+  function recordCardPositions(section: string) {
+    const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+    if (!sectionElement) return;
+    
+    const positions = new Map();
+    const cards = sectionElement.querySelectorAll('.deck-card');
+    cards.forEach(card => {
+      const cardId = card.getAttribute('data-card-id');
+      if (cardId) {
+        positions.set(cardId, card.getBoundingClientRect());
+      }
     });
+    
+    // セクションごとに位置情報を保存
+    (window as any).__cardPositions = (window as any).__cardPositions || {};
+    (window as any).__cardPositions[section] = positions;
+  }
+  
+  // セクションのアニメーションを実行
+  function animateSection(section: string) {
+    const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+    if (!sectionElement) return;
+    
+    const savedPositions = (window as any).__cardPositions?.[section];
+    if (!savedPositions) return;
+    
+    const cards = sectionElement.querySelectorAll('.deck-card');
+    const duration = 300;
+    
+    // Last & Invert
+    cards.forEach(card => {
+      const cardId = card.getAttribute('data-card-id');
+      if (!cardId) return;
+      
+      const first = savedPositions.get(cardId);
+      const last = card.getBoundingClientRect();
+      
+      if (first && last) {
+        const deltaX = first.left - last.left;
+        const deltaY = first.top - last.top;
+        
+        if (deltaX === 0 && deltaY === 0) return;
+        
+        (card as HTMLElement).style.transition = 'none';
+        (card as HTMLElement).style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      }
+    });
+    
+    // リフロー
+    sectionElement.getBoundingClientRect();
+    
+    // Play
+    requestAnimationFrame(() => {
+      cards.forEach(card => {
+        if ((card as HTMLElement).style.transform) {
+          (card as HTMLElement).style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
+          (card as HTMLElement).style.transform = '';
+        }
+      });
+    });
+    
+    // クリーンアップ
+    setTimeout(() => {
+      cards.forEach(card => {
+        (card as HTMLElement).style.transition = '';
+        (card as HTMLElement).style.transform = '';
+      });
+    }, duration);
   }
 
   function moveCardToTrash(card: CardInfo, from: 'main' | 'extra' | 'side') {
