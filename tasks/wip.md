@@ -51,10 +51,17 @@
    - ✅ ボタン色分け（info:オレンジ、link:水色、M/E:青、S:紫）
    - ✅ タブ切り替えアニメーション（fadeIn 0.2s）
    - ✅ stat-box-typeの横スクロール問題修正（95%幅）
-   - ⏳ Productsタブの展開機能（パック内カード一覧表示）
-     - パック名の左下に展開ボタン配置
-     - `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=パックID&rp=99999`
-     - 検索結果をパースしてlist/grid切り替え可能に表示
+   - ✅ Productsタブの展開機能（パック内カード一覧表示）
+     - ✅ パック名の左下に展開ボタン配置
+     - ✅ `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=パックID&rp=99999`
+     - ✅ 検索結果をパースしてlist/grid切り替え可能に表示
+   - ✅ CardListコンポーネントに上スクロールボタン追加
+     - ✅ related/productsの展開ブロック最上部へのスクロール機能
+     - ✅ .card-tab-contentを正しくスクロール対象に設定
+   - ✅ QA/Products縮小時の自動上スクロール機能
+     - ✅ 縮小で減った高さ分だけ上にスクロール調整
+     - ✅ .card-tab-contentを正しいスクロールコンテナとして使用
+   - ⏳ スクロールバーの常時表示（レイアウトずれ防止）
 
 ### 残課題
 - ⏭️ Load時のデッキ情報反映確認

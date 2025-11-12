@@ -529,7 +529,7 @@ export default {
 .card-tab-content {
   padding: 15px;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
 }
 
 .no-card-selected,
