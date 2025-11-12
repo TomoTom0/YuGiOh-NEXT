@@ -10,13 +10,15 @@
       <span v-if="showCount" class="count">{{ displayCards.length }}</span>
     </h3>
     <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
-      <DeckCard
-        v-for="displayCard in displayCards"
-        :key="displayCard.uuid"
-        :card="getCardInfo(displayCard.cid)"
-        :section-type="sectionType"
-        :uuid="displayCard.uuid"
-      />
+      <TransitionGroup name="card-list">
+        <DeckCard
+          v-for="displayCard in displayCards"
+          :key="displayCard.uuid"
+          :card="getCardInfo(displayCard.cid)"
+          :section-type="sectionType"
+          :uuid="displayCard.uuid"
+        />
+      </TransitionGroup>
       <!-- 空スペース: 最後尾にドロップ可能 -->
       <div 
         class="drop-zone-end" 
@@ -209,6 +211,26 @@ export default {
     transition: border-color 0.2s;
     flex-shrink: 0;
   }
+}
+
+// カード追加/削除のトランジション
+.card-list-enter-active {
+  transition: all 0.3s ease;
+}
+.card-list-leave-active {
+  transition: all 0.3s ease;
+  position: absolute;
+}
+.card-list-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.card-list-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.card-list-move {
+  transition: transform 0.3s ease;
 }
 
 .main-deck {
