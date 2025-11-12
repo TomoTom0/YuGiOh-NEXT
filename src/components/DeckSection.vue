@@ -199,7 +199,7 @@ export default {
   
   .drop-zone-end {
     min-width: 59px;
-    min-height: 86px;
+    min-height: 0;
     border: 2px dashed transparent;
     border-radius: 4px;
     transition: border-color 0.2s;

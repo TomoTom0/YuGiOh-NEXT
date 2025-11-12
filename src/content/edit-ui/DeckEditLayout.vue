@@ -421,6 +421,7 @@ export default {
   gap: 10px;
   margin: 0;
   padding: 0;
+  margin-bottom: 65px;
 }
 
 .middle-decks {

@@ -317,11 +317,18 @@ export default {
   font-size: 11px;
   color: #333;
   margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .card-text {
   font-size: 10px;
   color: #666;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 </style>
