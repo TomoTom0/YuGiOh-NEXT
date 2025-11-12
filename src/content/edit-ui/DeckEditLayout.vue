@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
@@ -98,9 +98,25 @@ export default {
     const viewMode = ref('list')
     const cardTab = ref('info')
     
+    // 画面幅変更時の処理
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768
+      const wasDesktop = window.innerWidth > 768
+      
+      // 画面が広くなった時にdeck tabがactiveならsearch tabに変更
+      if (wasDesktop && deckStore.activeTab === 'deck') {
+        deckStore.activeTab = 'search'
+      }
+    }
+    
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       await deckStore.initializeOnPageLoad()
+      window.addEventListener('resize', handleResize)
+    })
+    
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize)
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {
