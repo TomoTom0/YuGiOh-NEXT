@@ -108,6 +108,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (dc) affectedCardIds.add(dc.card.cardId);
     }
     
+    // 移動先セクション: 追加位置を事前に計算
+    // 同じカードが既に存在する場合はその位置、そうでなければ末尾
+    const existingCardInDest = toDeck.find(dc => dc.card.cardId === cardId);
+    const insertIndex = existingCardInDest 
+      ? toDeck.findIndex(dc => dc.card.cardId === cardId)
+      : toDeck.length;
+    
+    // 移動先セクション: 挿入位置以降のカード（既存カードの場合は自身の次から）
+    const startIndex = existingCardInDest ? insertIndex + 1 : insertIndex;
+    for (let i = startIndex; i < toDeck.length; i++) {
+      const dc = toDeck[i];
+      if (dc) affectedCardIds.add(dc.card.cardId);
+    }
+    
     // データ変更: カードを削除
     removeCard(cardId, from);
     
@@ -117,15 +131,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       existingCard.quantity++;
     } else {
       toDeck.push({ card, quantity: 1 });
-    }
-    
-    // 移動先セクションで影響を受けるカードを計算（データ変更後）
-    const toIndex = toDeck.findIndex(dc => dc.card.cardId === cardId);
-    for (let i = toIndex + 1; i < toDeck.length; i++) {
-      const dc = toDeck[i];
-      if (dc && dc.card.cardId !== cardId) {
-        affectedCardIds.add(dc.card.cardId);
-      }
     }
     
     // DOM更新後にアニメーション実行
