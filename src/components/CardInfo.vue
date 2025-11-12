@@ -13,7 +13,7 @@
         
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
           <div class="stat-box stat-box-type">
-            <span class="stat-text">{{ card.types ? card.types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ') : '' }}</span>
+            <span class="stat-text">{{ getMonsterTypesText(card.types) }}</span>
           </div>
           
           <div class="stat-box">
@@ -131,6 +131,10 @@ export default {
         return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
       }
       return effectType
+    },
+    getMonsterTypesText(types) {
+      if (!types || !Array.isArray(types)) return ''
+      return types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ')
     },
     isLinkMarkerActive(linkMarkers, posDisplay) {
       if (!linkMarkers || posDisplay === 5) return false
