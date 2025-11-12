@@ -646,10 +646,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         loadedDeck.extraDeck = addImageUrls(loadedDeck.extraDeck);
         loadedDeck.sideDeck = addImageUrls(loadedDeck.sideDeck);
         
+        // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+        const firstPositions = recordAllCardPositionsByUUID();
+        
         deckInfo.value = loadedDeck;
         
         // displayOrderを初期化
         initializeDisplayOrder();
+        
+        // DOM更新後にアニメーション実行
+        nextTick(() => {
+          animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side', 'trash']));
+        });
         
         lastUsedDno.value = dno;
         localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
