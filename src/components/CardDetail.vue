@@ -657,6 +657,8 @@ export default {
   background: #fafafa;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+  padding-bottom: 32px;
 }
 
 .pack-name {
