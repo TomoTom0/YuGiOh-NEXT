@@ -253,7 +253,7 @@ export default {
 
 .card-list-results {
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: visible;
   overflow-x: hidden;
   padding: 10px 0;
   display: flex;

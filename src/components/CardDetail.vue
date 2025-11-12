@@ -750,18 +750,25 @@ export default {
   gap: 10px;
   align-items: center;
   width: 100%;
+  overflow: hidden;
 }
 
 .pack-date {
   font-size: 10px;
   color: #666;
   width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pack-code {
   font-size: 10px;
   color: #333;
   width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pack-rarities {
@@ -771,6 +778,8 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .rarity-badge {
