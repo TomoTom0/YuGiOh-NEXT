@@ -182,9 +182,9 @@ export default {
     },
     handleTopRight() {
       if (this.sectionType === 'side') {
-        this.deckStore.moveCardFromSide(this.card)
+        this.deckStore.moveCardFromSide(this.card, this.uuid)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
-        this.deckStore.moveCardToSide(this.card, this.sectionType)
+        this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
       }
     },
     handleBottomLeft() {
@@ -192,7 +192,7 @@ export default {
       const sourceRect = this.$el?.getBoundingClientRect()
       
       if (this.sectionType === 'trash') {
-        this.deckStore.moveCardToMainOrExtra(this.card, 'trash')
+        this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search') {
         this.deckStore.addCopyToMainOrExtra(this.card)
         
@@ -203,7 +203,7 @@ export default {
           })
         }
       } else {
-        this.deckStore.moveCardToTrash(this.card, this.sectionType)
+        this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
       }
     },
     handleBottomRight() {
@@ -211,7 +211,7 @@ export default {
       const sourceRect = this.$el?.getBoundingClientRect()
       
       if (this.sectionType === 'trash') {
-        this.deckStore.moveCardToSide(this.card, 'trash')
+        this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search') {
         this.deckStore.addCopyToSection(this.card, 'side')
         

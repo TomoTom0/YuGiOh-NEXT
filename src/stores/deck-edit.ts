@@ -288,8 +288,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   /**
    * displayOrderからカードを削除（deckInfoも更新）
+   * @param cardId カードID
+   * @param section セクション
+   * @param uuid 削除する特定のカードのUUID（省略時は最後の1枚）
    */
-  function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
+  function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
                        section === 'extra' ? deckInfo.value.extraDeck :
                        section === 'side' ? deckInfo.value.sideDeck :
@@ -306,11 +309,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       }
     }
     
-    // displayOrder更新（最後の1枚を削除）
+    // displayOrder更新（UUIDで特定、なければ最後の1枚を削除）
     const sectionOrder = displayOrder.value[section];
-    const lastIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
-    if (lastIndex !== -1) {
-      sectionOrder.splice(lastIndex, 1);
+    let removeIndex = -1;
+    
+    if (uuid) {
+      removeIndex = sectionOrder.findIndex(dc => dc.uuid === uuid);
+    } else {
+      removeIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    }
+    
+    if (removeIndex !== -1) {
+      sectionOrder.splice(removeIndex, 1);
       
       // ciidを再計算
       sectionOrder.forEach((dc, idx) => {
