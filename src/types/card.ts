@@ -126,6 +126,8 @@ export interface PackInfo {
   code?: string;
   /** レアリティ */
   rarity?: string;
+  /** レアリティの背景色 */
+  rarityColor?: string;
   /** 発売日（例: "2025-10-25"） */
   releaseDate?: string;
 }

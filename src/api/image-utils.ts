@@ -29,6 +29,42 @@ export function getRankIconUrl(): string {
 }
 
 /**
+ * Get spell card icon URL
+ */
+export function getSpellIconUrl(): string {
+  return `${BASE_IMAGE_URL}/attribute/attribute_icon_spell.png`
+}
+
+/**
+ * Get trap card icon URL
+ */
+export function getTrapIconUrl(): string {
+  return `${BASE_IMAGE_URL}/attribute/attribute_icon_trap.png`
+}
+
+/**
+ * Get effect type icon URL
+ * @param effectType - Effect type (quick, equip, field, continuous, ritual, counter)
+ */
+export function getEffectTypeIconUrl(effectType: string): string | null {
+  if (!effectType || effectType === 'normal') return null
+  
+  const pathMap: Record<string, string> = {
+    'quick': 'quickplay',
+    'continuous': 'continuous',
+    'equip': 'equip',
+    'field': 'field',
+    'ritual': 'ritual',
+    'counter': 'counter'
+  }
+  
+  const path = pathMap[effectType.toLowerCase()]
+  if (!path) return null
+  
+  return `${BASE_IMAGE_URL}/effect/effect_icon_${path}.png`
+}
+
+/**
  * Get link marker classes for official display
  * @param linkMarkers - Link markers bit flag
  * @returns Array of position classes (e.g., ['i_i_1', 'i_i_9'])
