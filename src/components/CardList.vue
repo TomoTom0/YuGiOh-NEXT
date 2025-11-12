@@ -114,6 +114,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
 }
 
 .card-list-toolbar {
@@ -203,12 +204,13 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
   
   &.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 60px));
+    grid-template-columns: repeat(auto-fill, 60px);
     grid-auto-rows: max-content;
-    gap: 8px;
+    gap: 4px;
     align-content: start;
     justify-content: start;
   }
