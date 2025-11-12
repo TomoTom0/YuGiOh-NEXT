@@ -1,6 +1,7 @@
 <template>
   <div
-    class="card-item"
+    class="card-item deck-card"
+    :data-card-id="card.cardId"
     :draggable="!card.empty"
     @dragstart="handleDragStart"
     @dragover="handleDragOver"

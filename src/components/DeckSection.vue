@@ -52,16 +52,20 @@ export default {
   setup(props) {
     const deckStore = useDeckEditStore()
     const cardGridRef = ref(null)
-    const firstPositions = new Map()
+    const firstPositionsByCardId = new Map()
     
-    // DOM更新前にカード位置を記録
+    // DOM更新前にカード位置をカードIDで記録
     onBeforeUpdate(() => {
       if (!cardGridRef.value) return
       
-      firstPositions.clear()
+      firstPositionsByCardId.clear()
       const cards = cardGridRef.value.querySelectorAll('.deck-card')
       cards.forEach(card => {
-        firstPositions.set(card, card.getBoundingClientRect())
+        // data-card-id属性からカードIDを取得
+        const cardId = card.getAttribute('data-card-id')
+        if (cardId) {
+          firstPositionsByCardId.set(cardId, card.getBoundingClientRect())
+        }
       })
     })
     
@@ -69,7 +73,7 @@ export default {
     watch(() => props.cards, async (newCards, oldCards) => {
       if (!cardGridRef.value) return
       if (!oldCards || oldCards.length === 0) return
-      if (firstPositions.size === 0) return
+      if (firstPositionsByCardId.size === 0) return
       
       // カードの追加・削除・移動を検出
       const hasChange = newCards.length !== oldCards.length || 
@@ -83,7 +87,10 @@ export default {
         const duration = 300
         
         cards.forEach(card => {
-          const first = firstPositions.get(card)
+          const cardId = card.getAttribute('data-card-id')
+          if (!cardId) return
+          
+          const first = firstPositionsByCardId.get(cardId)
           const last = card.getBoundingClientRect()
           
           if (first && last) {
