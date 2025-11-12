@@ -21,6 +21,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   const trashDeck = ref<DeckCard[]>([]);
   
+  // Deck list state
+  const deckList = ref<Array<{ dno: number; name: string }>>([]);
+  const lastUsedDno = ref<number | null>(null);
+  
   // Search and UI state
   const searchQuery = ref('');
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
@@ -223,6 +227,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         loadedDeck.sideDeck = addImageUrls(loadedDeck.sideDeck);
         
         deckInfo.value = loadedDeck;
+        lastUsedDno.value = dno;
+        localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
       }
     } catch (error) {
       console.error('Failed to load deck:', error);
@@ -230,9 +236,55 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  async function fetchDeckList() {
+    try {
+      const list = await sessionManager.getDeckList();
+      deckList.value = list.map(item => ({
+        dno: item.dno,
+        name: item.name
+      }));
+      return deckList.value;
+    } catch (error) {
+      console.error('Failed to fetch deck list:', error);
+      return [];
+    }
+  }
+
+  async function initializeOnPageLoad() {
+    try {
+      // デッキ一覧を取得
+      const list = await fetchDeckList();
+      
+      if (list.length === 0) {
+        // デッキがない場合は何もしない
+        return;
+      }
+
+      // 前回使用したdnoを取得
+      const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
+      if (savedDno) {
+        const dno = parseInt(savedDno, 10);
+        // 前回使用したdnoが一覧に存在するか確認
+        const exists = list.some(item => item.dno === dno);
+        if (exists) {
+          await loadDeck(dno);
+          return;
+        }
+      }
+
+      // 前回使用したdnoがない、または存在しない場合、最大のdnoをload
+      const maxDno = Math.max(...list.map(item => item.dno));
+      await loadDeck(maxDno);
+    } catch (error) {
+      console.error('Failed to initialize deck on page load:', error);
+    }
+  }
+
   return {
     deckInfo,
     trashDeck,
+    deckList,
+    lastUsedDno,
     searchQuery,
     searchResults,
     selectedCard,
@@ -258,6 +310,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     moveCardWithPosition,
     setDeckName,
     saveDeck,
-    loadDeck
+    loadDeck,
+    fetchDeckList,
+    initializeOnPageLoad
   };
 });

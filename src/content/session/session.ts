@@ -57,12 +57,14 @@ class SessionManager {
   /**
    * ytknを取得（キャッシュあり）
    */
-  private async ensureYtkn(dno: number): Promise<string> {
-    // キャッシュチェック
-    const cached = this.ytknCache.get(dno);
-    if (cached) {
-      console.log('[SessionManager] Using cached ytkn for dno:', dno);
-      return cached;
+  private async ensureYtkn(dno: number, forceRefresh = false): Promise<string> {
+    // キャッシュチェック（強制更新時はスキップ）
+    if (!forceRefresh) {
+      const cached = this.ytknCache.get(dno);
+      if (cached) {
+        console.log('[SessionManager] Using cached ytkn for dno:', dno);
+        return cached;
+      }
     }
 
     console.log('[SessionManager] Fetching ytkn for dno:', dno);
@@ -85,7 +87,10 @@ class SessionManager {
     }
 
     const ytkn = input.value.trim();
-    this.ytknCache.set(dno, ytkn);
+    // forceRefreshの場合はキャッシュしない（CSRFトークンは使い捨て）
+    if (!forceRefresh) {
+      this.ytknCache.set(dno, ytkn);
+    }
     console.log('[SessionManager] ✅ ytkn found for dno:', dno);
 
     return ytkn;
@@ -119,6 +124,18 @@ class SessionManager {
     return duplicateDeckInternal(cgid, dno);
   }
 
+  async getYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
+      // https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=3d839f01a4d87b01928c60f262150bec&dno=4&request_locale=ja
+      const edit_url = `/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&${request_locale}`;
+      const doc = await axios.get(edit_url);
+      const text = doc.data;
+      // input#ytkn の値をparseで取得
+      const parser = new DOMParser();
+      const htmlDoc = parser.parseFromString(text, 'text/html');
+      const ytkn_input = htmlDoc.querySelector('input#ytkn') as HTMLInputElement | null;
+      return ytkn_input ? ytkn_input.value : null;
+  }
+
   /**
    * デッキを保存
    *
@@ -128,7 +145,12 @@ class SessionManager {
    */
   async saveDeck(dno: number, deckData: DeckInfo): Promise<OperationResult> {
     const cgid = await this.ensureCgid();
-    const ytkn = await this.ensureYtkn(dno);
+    // 保存時は必ずytknを再取得（CSRFトークンは使い捨て）
+    // const ytkn = await this.ensureYtkn(dno, true);
+    const ytkn = await this.getYtkn(cgid, dno, 'request_locale=ja');
+    if (!ytkn) {
+      throw new Error('ytkn not found for saveDeck');
+    }
     return saveDeckInternal(cgid, dno, deckData, ytkn);
   }
 

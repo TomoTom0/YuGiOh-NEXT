@@ -1,10 +1,7 @@
 <template>
   <div class="deck-edit-container">
     <div class="main-content" :class="{ 'hide-on-mobile': true }">
-      <DeckEditTopBar
-        v-model:dno="dno"
-        v-model:deck-name="deckName"
-      />
+      <DeckEditTopBar />
 
       <div class="deck-areas">
         <DeckSection
@@ -39,10 +36,7 @@
     <RightArea>
       <template #deck-tab>
         <div class="mobile-deck-content">
-          <DeckEditTopBar
-            v-model:dno="dno"
-            v-model:deck-name="deckName"
-          />
+          <DeckEditTopBar />
 
           <div class="deck-areas">
             <DeckSection
@@ -79,7 +73,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
@@ -104,16 +98,9 @@ export default {
     const viewMode = ref('list')
     const cardTab = ref('info')
     
-    const dno = computed({
-      get: () => deckStore.deckInfo.dno || 0,
-      set: (value) => {
-        deckStore.deckInfo.dno = value || 0
-      }
-    })
-    
-    const deckName = computed({
-      get: () => deckStore.deckInfo.name || '新しいデッキ',
-      set: (value) => deckStore.setDeckName(value)
+    // ページ初期化時にデッキを自動ロード
+    onMounted(async () => {
+      await deckStore.initializeOnPageLoad()
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {
@@ -341,8 +328,6 @@ export default {
       showDetail,
       viewMode,
       cardTab,
-      dno,
-      deckName,
       mainDeck,
       extraDeck,
       sideDeck,
