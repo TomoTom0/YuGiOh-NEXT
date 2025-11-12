@@ -12,10 +12,14 @@
     <img :src="cardImageUrl" :alt="card.name">
     <div v-if="!card.empty" class="card-controls">
       <button 
-        class="card-btn top-left" 
+        class="card-btn top-left"
+        :class="{ 'is-link': sectionType === 'info' }"
         @click.stop="handleInfo"
       >
-        <span class="btn-text">ⓘ</span>
+        <svg v-if="sectionType === 'info'" width="10" height="10" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M3.9,12C3.9,10.29 5.29,8.9 7,8.9H11V7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H11V15.1H7C5.29,15.1 3.9,13.71 3.9,12M8,13H16V11H8V13M17,7H13V8.9H17C18.71,8.9 20.1,10.29 20.1,12C20.1,13.71 18.71,15.1 17,15.1H13V17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7Z" />
+        </svg>
+        <span v-else class="btn-text">ⓘ</span>
       </button>
       <button 
         v-if="topRightText"
@@ -88,44 +92,44 @@ export default {
       return chrome.runtime.getURL('images/card_back.png')
     },
     topRightText() {
-      if (this.sectionType === 'search') return ''
+      if (this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'M/E'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'S'
       return ''
     },
     topRightClass() {
-      if (this.sectionType === 'search') return ''
+      if (this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'card-btn-me'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'card-btn-s'
       return ''
     },
     topLeftEmpty() {
-      if (this.sectionType === 'search') return true
+      if (this.sectionType === 'search' || this.sectionType === 'info') return true
       return true
     },
     showTrashIcon() {
-      return this.sectionType !== 'trash' && this.sectionType !== 'search'
+      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
     },
     bottomLeftText() {
-      if (this.sectionType === 'search') return 'M/E'
+      if (this.sectionType === 'search' || this.sectionType === 'info') return 'M/E'
       if (this.sectionType === 'trash') return 'M/E'
       return ''
     },
     bottomLeftClass() {
-      if (this.sectionType === 'search') return 'card-btn-me'
+      if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-me'
       if (this.sectionType === 'trash') return 'card-btn-me'
       return ''
     },
     showPlusIcon() {
-      return this.sectionType !== 'trash' && this.sectionType !== 'search'
+      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
     },
     bottomRightText() {
-      if (this.sectionType === 'search') return 'S'
+      if (this.sectionType === 'search' || this.sectionType === 'info') return 'S'
       if (this.sectionType === 'trash') return 'S'
       return ''
     },
     bottomRightClass() {
-      if (this.sectionType === 'search') return 'card-btn-side'
+      if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-side'
       if (this.sectionType === 'trash') return 'card-btn-side'
       return ''
     },
@@ -179,6 +183,14 @@ export default {
     },
     handleInfo() {
       console.log('Info clicked, card:', this.card)
+      
+      // infoセクションの場合は新しいタブで公式ページを開く
+      if (this.sectionType === 'info') {
+        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
+        window.open(url, '_blank')
+        return
+      }
+      
       this.deckStore.selectedCard = this.card
       this.deckStore.activeTab = 'card'
       this.deckStore.cardTab = 'info'
@@ -197,11 +209,11 @@ export default {
       
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
-      } else if (this.sectionType === 'search') {
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
         this.deckStore.addCopyToMainOrExtra(this.card)
         
         // アニメーション実行（移動元から移動先へ）
-        if (sourceRect) {
+        if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
             this.animateFromSource(sourceRect)
           })
@@ -216,11 +228,11 @@ export default {
       
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
-      } else if (this.sectionType === 'search') {
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
         this.deckStore.addCopyToSection(this.card, 'side')
         
         // アニメーション実行（移動元から移動先へ）
-        if (sourceRect) {
+        if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
             this.animateFromSource(sourceRect, 'side')
           })
@@ -360,13 +372,25 @@ export default {
       border: 1px solid rgba(255, 140, 0, 1);
     }
     
+    &.is-link {
+      &::before {
+        background: rgba(100, 180, 255, 0.8);
+      }
+      
+      &:hover::before {
+        background: rgba(80, 160, 255, 0.95);
+        border: 1px solid rgba(80, 160, 255, 1);
+      }
+    }
+    
     .btn-text {
       font-size: 9px;
     }
 
     svg {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
+      fill: white;
     }
   }
 

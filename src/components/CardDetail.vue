@@ -44,8 +44,29 @@
           <div class="qa-list">
             <div v-for="(qa, index) in faqListData.faqs" :key="qa.faqId || index" class="qa-item">
               <div class="qa-question">Q: {{ qa.question }}</div>
-              <div v-if="qa.answer" class="qa-answer">A: {{ qa.answer }}</div>
               <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
+              <button 
+                v-if="!expandedQA[index]" 
+                class="qa-expand-btn"
+                @click="expandQA(qa.faqId, index)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                </svg>
+              </button>
+              <button 
+                v-else
+                class="qa-collapse-btn"
+                @click="collapseQA(index)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                </svg>
+              </button>
+              <div v-if="expandedQA[index]" class="qa-answer-container">
+                <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
+                <div v-else-if="qaAnswers[index]" class="qa-answer">A: {{ qaAnswers[index] }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -56,7 +77,51 @@
         <div v-else-if="!detail || !detail.relatedCards || detail.relatedCards.length === 0" class="no-data">
           関連カード情報がありません
         </div>
-        <CardListView v-else :cards="detail.relatedCards" />
+        <div v-else>
+          <div class="search-toolbar">
+            <div class="toolbar-left">
+              <svg class="sort-icon" width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M9.25,5L12.5,1.75L15.75,5H9.25M15.75,19L12.5,22.25L9.25,19H15.75M8.89,14.3H6L5.28,17H2.91L6,7H9L12.13,17H9.67L8.89,14.3M6.33,12.68H8.56L7.93,10.56L7.67,9.59L7.42,8.63H7.39L7.17,9.6L6.93,10.58L6.33,12.68M13.05,17V15.74L17.8,8.97V8.91H13.5V7H20.73V8.34L16.09,15V15.08H20.8V17H13.05Z" />
+              </svg>
+              <select v-model="relatedSortOrder" class="sort-select" @change="handleRelatedSortChange">
+                <option value="release_desc">Newer</option>
+                <option value="release_asc">Older</option>
+                <option value="name_asc">Name (A-Z)</option>
+                <option value="name_desc">Name (Z-A)</option>
+              </select>
+            </div>
+            <div class="view-switch">
+              <label class="view-option">
+                <input type="radio" v-model="relatedViewMode" value="list" name="relatedViewMode">
+                <span class="icon">☰</span>
+              </label>
+              <label class="view-option">
+                <input type="radio" v-model="relatedViewMode" value="grid" name="relatedViewMode">
+                <span class="icon">▦</span>
+              </label>
+            </div>
+          </div>
+          <div class="related-results" :class="{ 'grid-view': relatedViewMode === 'grid' }" @scroll="handleRelatedScroll">
+            <div
+              v-for="(card, idx) in displayedRelatedCards"
+              :key="`related-${idx}`"
+              class="related-result-item"
+            >
+              <div class="card-wrapper">
+                <DeckCard
+                  :card="card"
+                  :section-type="'search'"
+                  :index="idx"
+                />
+              </div>
+              <div class="card-info" v-if="relatedViewMode === 'list'">
+                <div class="card-name">{{ card.name }}</div>
+                <div class="card-text">{{ card.text }}</div>
+              </div>
+            </div>
+            <div v-if="relatedLoadingMore" class="loading-indicator">読み込み中...</div>
+          </div>
+        </div>
       </div>
       
       <div v-show="cardTab === 'products'">
@@ -70,7 +135,16 @@
             <div class="pack-details">
               <div class="pack-date">{{ pack.releaseDate || '-' }}</div>
               <div class="pack-code">{{ pack.code || '-' }}</div>
-              <div class="pack-rarities">{{ pack.rarities }}</div>
+              <div class="pack-rarities">
+                <span 
+                  v-for="(rarity, idx) in pack.rarities" 
+                  :key="idx" 
+                  class="rarity-badge"
+                  :style="{ backgroundColor: rarity.color, borderColor: rarity.color }"
+                >
+                  {{ rarity.text }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -82,15 +156,15 @@
 <script>
 import { ref, watch, computed } from 'vue'
 import CardInfo from './CardInfo.vue'
-import CardListView from './CardListView.vue'
+import DeckCard from './DeckCard.vue'
 import { getCardDetail } from '../api/card-search'
-import { getCardFAQList } from '../api/card-faq'
+import { getCardFAQList, getFAQDetail } from '../api/card-faq'
 
 export default {
   name: 'CardDetail',
   components: {
     CardInfo,
-    CardListView
+    DeckCard
   },
   props: {
     card: {
@@ -107,6 +181,67 @@ export default {
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
+    
+    const relatedSortOrder = ref('release_desc')
+    const relatedViewMode = ref('list')
+    const relatedCurrentPage = ref(0)
+    const relatedLoadingMore = ref(false)
+    const relatedCardsPerPage = 100
+    
+    const expandedQA = ref({})
+    const loadingQA = ref({})
+    const qaAnswers = ref({})
+    
+    const sortedRelatedCards = computed(() => {
+      if (!detail.value || !detail.value.relatedCards) return []
+      
+      const cards = [...detail.value.relatedCards]
+      switch (relatedSortOrder.value) {
+        case 'release_desc':
+          return cards.sort((a, b) => (b.releaseDate || 0) - (a.releaseDate || 0))
+        case 'release_asc':
+          return cards.sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0))
+        case 'name_asc':
+          return cards.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        case 'name_desc':
+          return cards.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+        default:
+          return cards
+      }
+    })
+    
+    const displayedRelatedCards = computed(() => {
+      const endIndex = (relatedCurrentPage.value + 1) * relatedCardsPerPage
+      return sortedRelatedCards.value.slice(0, endIndex)
+    })
+    
+    const handleRelatedSortChange = () => {
+      relatedCurrentPage.value = 0
+    }
+    
+    const handleRelatedScroll = (event) => {
+      const element = event.target
+      const scrollThreshold = 100
+      
+      if (element.scrollHeight - element.scrollTop - element.clientHeight < scrollThreshold) {
+        loadMoreRelatedCards()
+      }
+    }
+    
+    const loadMoreRelatedCards = () => {
+      if (relatedLoadingMore.value) return
+      
+      const totalCards = sortedRelatedCards.value.length
+      const currentDisplayed = displayedRelatedCards.value.length
+      
+      if (currentDisplayed >= totalCards) return
+      
+      relatedLoadingMore.value = true
+      setTimeout(() => {
+        relatedCurrentPage.value++
+        relatedLoadingMore.value = false
+      }, 300)
+    }
     
     const groupedPacks = computed(() => {
       if (!detail.value || !detail.value.packs) return []
@@ -125,16 +260,37 @@ export default {
           })
         }
         if (pack.rarity) {
-          packMap.get(key).rarities.push(pack.rarity)
+          packMap.get(key).rarities.push({
+            text: pack.rarity,
+            color: pack.rarityColor || '#ccc'
+          })
         }
       })
       
-      // レアリティをカンマ区切りに
-      return Array.from(packMap.values()).map(pack => ({
-        ...pack,
-        rarities: pack.rarities.join(', ') || '-'
-      }))
+      return Array.from(packMap.values())
     })
+    
+    const collapseQA = (index) => {
+      expandedQA.value[index] = false
+    }
+    
+    const expandQA = async (faqId, index) => {
+      if (expandedQA.value[index]) return
+      
+      loadingQA.value[index] = true
+      expandedQA.value[index] = true
+      
+      try {
+        const faqDetail = await getFAQDetail(faqId)
+        if (faqDetail && faqDetail.answer) {
+          qaAnswers.value[index] = faqDetail.answer
+        }
+      } catch (error) {
+        console.error('Failed to fetch FAQ detail:', error)
+      } finally {
+        loadingQA.value[index] = false
+      }
+    }
     
     const fetchDetail = async () => {
       if (!props.card || !props.card.cardId) {
@@ -150,10 +306,10 @@ export default {
       
       loading.value = true
       try {
-        const [detailResult, faqResult] = await Promise.all([
-          getCardDetail(props.card.cardId),
-          getCardFAQList(props.card.cardId)
-        ])
+        const detailResult = await getCardDetail(props.card)
+        const faqResult = await getCardFAQList(props.card.cardId)
+        console.log('Card detail fetched:', detailResult)
+        console.log('FAQ fetched:', faqResult)
         detail.value = detailResult
         faqListData.value = faqResult
       } catch (error) {
@@ -166,13 +322,28 @@ export default {
     }
     
     // カードが変わったら詳細を取得
-    watch(() => props.card, fetchDetail, { immediate: true })
+    watch(() => props.card, () => {
+      relatedCurrentPage.value = 0
+      fetchDetail()
+    }, { immediate: true })
     
     return {
       detail,
       loading,
       groupedPacks,
-      faqListData
+      faqListData,
+      relatedSortOrder,
+      relatedViewMode,
+      sortedRelatedCards,
+      displayedRelatedCards,
+      relatedLoadingMore,
+      handleRelatedSortChange,
+      handleRelatedScroll,
+      expandedQA,
+      loadingQA,
+      qaAnswers,
+      expandQA,
+      collapseQA
     }
   }
 }
@@ -272,20 +443,69 @@ export default {
   border-radius: 4px;
   padding: 10px;
   background: #fafafa;
+  position: relative;
 }
 
 .qa-question {
   font-weight: bold;
   font-size: 12px;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 30px;
+  padding-right: 10px;
+}
+
+.qa-expand-btn,
+.qa-collapse-btn {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  
+  &:hover {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+  
+  svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+}
+
+.qa-collapse-btn {
+  background: #f5f5f5;
+}
+
+.qa-answer-container {
+  margin-top: 8px;
+}
+
+.qa-loading {
+  font-size: 11px;
+  color: #999;
+  padding: 8px;
 }
 
 .qa-answer {
   font-size: 11px;
-  color: #666;
+  color: #333;
   line-height: 1.6;
   margin-bottom: 5px;
+  padding: 8px;
+  background: white;
+  border-radius: 4px;
+  white-space: pre-line;
 }
 
 .qa-date {
@@ -342,5 +562,179 @@ export default {
   font-size: 10px;
   color: #666;
   text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rarity-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: bold;
+  color: white;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.search-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-icon {
+  color: #333;
+  flex-shrink: 0;
+}
+
+.sort-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 11px;
+  background: white;
+  cursor: pointer;
+}
+
+.view-switch {
+  display: flex;
+  gap: 0;
+}
+
+.view-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  
+  input {
+    display: none;
+  }
+  
+  .icon {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #666;
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  
+  &:first-child .icon {
+    border-radius: 4px 0 0 4px;
+  }
+  
+  &:last-child .icon {
+    border-radius: 0 4px 4px 0;
+    border-left: none;
+  }
+  
+  input:checked + .icon {
+    background: #008cff;
+    color: white;
+    border-color: #008cff;
+  }
+}
+
+.related-results {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+  
+  &.grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 60px);
+    grid-auto-rows: max-content;
+    gap: 2px;
+    align-content: start;
+    width: 100%;
+  }
+}
+
+.related-result-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: white;
+  cursor: move;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 90px;
+  
+  .grid-view & {
+    flex-direction: column;
+    min-height: auto;
+    padding: 0;
+    border: none;
+    background: none;
+    width: 60px;
+  }
+}
+
+.card-wrapper {
+  flex-shrink: 0;
+  position: relative;
+  
+  .grid-view & {
+    width: 60px;
+  }
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+  
+  .grid-view & {
+    display: none;
+  }
+}
+
+.card-name {
+  font-weight: bold;
+  font-size: 11px;
+  margin-bottom: 2px;
+  word-break: break-word;
+  color: #000;
+}
+
+.card-text {
+  font-size: 10px;
+  color: #666;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 10px;
+  color: #666;
+  font-size: 13px;
+  grid-column: 1 / -1;
 }
 </style>
