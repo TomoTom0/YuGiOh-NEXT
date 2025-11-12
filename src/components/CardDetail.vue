@@ -746,7 +746,7 @@ export default {
 
 .pack-details {
   display: grid;
-  grid-template-columns: 90px 110px 1fr;
+  grid-template-columns: 60px 100px 1fr;
   gap: 10px;
   align-items: center;
   width: 100%;
@@ -756,7 +756,7 @@ export default {
 .pack-date {
   font-size: 10px;
   color: #666;
-  width: 90px;
+  width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -765,7 +765,7 @@ export default {
 .pack-code {
   font-size: 10px;
   color: #333;
-  width: 110px;
+  width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
