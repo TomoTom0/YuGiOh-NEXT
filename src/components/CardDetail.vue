@@ -1006,66 +1006,6 @@ export default {
   }
 }
 
-.related-result-item {
-  display: flex;
-  gap: 10px;
-  padding: 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background: white;
-  cursor: move;
-  position: relative;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 90px;
-  
-  .grid-view & {
-    flex-direction: column;
-    min-height: auto;
-    padding: 0;
-    border: none;
-    background: none;
-    width: 60px;
-  }
-}
-
-.card-wrapper {
-  flex-shrink: 0;
-  position: relative;
-  
-  .grid-view & {
-    width: 60px;
-  }
-}
-
-.card-info {
-  flex: 1;
-  min-width: 0;
-  
-  .grid-view & {
-    display: none;
-  }
-}
-
-.card-name {
-  font-weight: bold;
-  font-size: 11px;
-  margin-bottom: 2px;
-  word-break: break-word;
-  color: #000;
-}
-
-.card-text {
-  font-size: 10px;
-  color: #666;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-}
-
 .loading-indicator {
   text-align: center;
   padding: 10px;

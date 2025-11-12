@@ -138,7 +138,6 @@ export default {
 .card-list-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
   position: relative;
 }
@@ -281,6 +280,8 @@ export default {
   background: white;
   cursor: move;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
   min-height: 90px;
   
   .grid-view & {
@@ -324,11 +325,6 @@ export default {
   font-size: 10px;
   color: #666;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
   word-break: break-word;
 }
 </style>
