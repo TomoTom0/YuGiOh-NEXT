@@ -519,6 +519,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   return {
     deckInfo,
     trashDeck,
+    displayOrder,
     deckList,
     lastUsedDno,
     searchQuery,
