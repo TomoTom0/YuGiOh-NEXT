@@ -127,6 +127,8 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .toolbar-left {
@@ -158,44 +160,42 @@ export default {
 .view-switch {
   display: flex;
   gap: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .view-option {
   display: flex;
   align-items: center;
   cursor: pointer;
+  margin: 0;
   
   input {
     display: none;
   }
   
   .icon {
-    padding: 4px 8px;
-    border: 1px solid #ddd;
+    padding: 6px 12px;
     background: white;
     color: #666;
     font-size: 14px;
     transition: all 0.2s;
-    
-    &:first-child {
-      border-top-left-radius: 4px;
-      border-bottom-left-radius: 4px;
-    }
-    
-    &:last-child {
-      border-top-right-radius: 4px;
-      border-bottom-right-radius: 4px;
-    }
+    border: none;
+    border-right: 1px solid #ddd;
+  }
+  
+  &:last-child .icon {
+    border-right: none;
   }
   
   input:checked + .icon {
     background: #4a9eff;
     color: white;
-    border-color: #4a9eff;
   }
   
-  &:not(:last-child) .icon {
-    border-right: none;
+  &:hover:not(:has(input:checked)) .icon {
+    background: #f5f5f5;
   }
 }
 
@@ -211,7 +211,7 @@ export default {
   
   &.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 60px);
+    grid-template-columns: repeat(auto-fill, 36px);
     grid-auto-rows: max-content;
     gap: 4px;
     align-content: start;
@@ -236,16 +236,17 @@ export default {
     padding: 0;
     border: none;
     background: none;
-    width: 60px;
+    width: 36px;
   }
 }
 
 .card-wrapper {
   flex-shrink: 0;
   position: relative;
+  width: 36px;
   
   .grid-view & {
-    width: 60px;
+    width: 36px;
   }
 }
 
