@@ -130,6 +130,8 @@ export interface PackInfo {
   rarityColor?: string;
   /** 発売日（例: "2025-10-25"） */
   releaseDate?: string;
+  /** パックID（例: "1000009524000"） */
+  packId?: string;
 }
 
 /**
