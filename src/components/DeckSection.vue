@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { ref, watch, nextTick, onBeforeUpdate } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -52,84 +52,83 @@ export default {
   setup(props) {
     const deckStore = useDeckEditStore()
     const cardGridRef = ref(null)
-    const firstPositionsByCardId = new Map()
+    let savedPositions = new Map()
     
-    // DOM更新前にカード位置をカードIDで記録
-    onBeforeUpdate(() => {
+    // カード移動イベントをリッスン
+    const handleCardMoved = (event) => {
+      if (event.detail.section !== props.sectionType) return
       if (!cardGridRef.value) return
       
-      firstPositionsByCardId.clear()
+      // First: 現在の位置を記録（移動前の状態）
+      savedPositions.clear()
       const cards = cardGridRef.value.querySelectorAll('.deck-card')
       cards.forEach(card => {
-        // data-card-id属性からカードIDを取得
         const cardId = card.getAttribute('data-card-id')
         if (cardId) {
-          firstPositionsByCardId.set(cardId, card.getBoundingClientRect())
+          savedPositions.set(cardId, card.getBoundingClientRect())
         }
       })
-    })
+      
+      // nextTickでDOM更新を待ってからアニメーション実行
+      nextTick(() => {
+        executeAnimation()
+      })
+    }
     
-    // カード配列が変更されたらアニメーション
-    watch(() => props.cards, async (newCards, oldCards) => {
+    const executeAnimation = () => {
       if (!cardGridRef.value) return
-      if (!oldCards || oldCards.length === 0) return
-      if (firstPositionsByCardId.size === 0) return
       
-      // カードの追加・削除・移動を検出
-      const hasChange = newCards.length !== oldCards.length || 
-                        newCards.some((card, idx) => oldCards[idx]?.card?.cardId !== card.card?.cardId)
+      const cards = cardGridRef.value.querySelectorAll('.deck-card')
+      const duration = 300
       
-      if (hasChange) {
-        await nextTick()
+      // Last & Invert
+      cards.forEach(card => {
+        const cardId = card.getAttribute('data-card-id')
+        if (!cardId) return
         
-        // FLIPアニメーション実行
-        const cards = cardGridRef.value.querySelectorAll('.deck-card')
-        const duration = 300
+        const first = savedPositions.get(cardId)
+        const last = card.getBoundingClientRect()
         
+        if (first && last) {
+          const deltaX = first.left - last.left
+          const deltaY = first.top - last.top
+          
+          if (deltaX === 0 && deltaY === 0) return
+          
+          card.style.transition = 'none'
+          card.style.transform = `translate(${deltaX}px, ${deltaY}px)`
+        }
+      })
+      
+      // リフロー
+      cardGridRef.value.getBoundingClientRect()
+      
+      // Play
+      requestAnimationFrame(() => {
         cards.forEach(card => {
-          const cardId = card.getAttribute('data-card-id')
-          if (!cardId) return
-          
-          const first = firstPositionsByCardId.get(cardId)
-          const last = card.getBoundingClientRect()
-          
-          if (first && last) {
-            const deltaX = first.left - last.left
-            const deltaY = first.top - last.top
-            
-            // 移動がない場合はスキップ
-            if (deltaX === 0 && deltaY === 0) {
-              return
-            }
-            
-            // Invert: transformで元の位置に戻す
-            card.style.transition = 'none'
-            card.style.transform = `translate(${deltaX}px, ${deltaY}px)`
+          if (card.style.transform) {
+            card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`
+            card.style.transform = ''
           }
         })
-        
-        // 強制的にリフローさせる
-        cardGridRef.value.getBoundingClientRect()
-        
-        // Play: transformを0にしてアニメーション開始
-        requestAnimationFrame(() => {
-          cards.forEach(card => {
-            if (card.style.transform) {
-              card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`
-              card.style.transform = ''
-            }
-          })
+      })
+      
+      // クリーンアップ
+      setTimeout(() => {
+        cards.forEach(card => {
+          card.style.transition = ''
+          card.style.transform = ''
         })
-        
-        // アニメーション終了後のクリーンアップ
-        setTimeout(() => {
-          cards.forEach(card => {
-            card.style.transition = ''
-            card.style.transform = ''
-          })
-        }, duration)
-      }
-    }, { deep: true })
+      }, duration)
+    }
+    
+    onMounted(() => {
+      window.addEventListener('deck-card-moved', handleCardMoved)
+    })
+    
+    onUnmounted(() => {
+      window.removeEventListener('deck-card-moved', handleCardMoved)
+    })
 
     const handleDrop = (event) => {
       event.preventDefault()
