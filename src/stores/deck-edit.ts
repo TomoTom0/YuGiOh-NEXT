@@ -92,9 +92,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!deckCard) return;
       const card = deckCard.card;
       
-      // アニメーション用に移動前の位置を記録
-      recordCardPositions(from);
-      recordCardPositions(to);
+      // FLIP アニメーション: First - 移動前の全カード位置を記録
+      const allPositions = recordAllCardPositions();
       
       removeCard(cardId, from);
       
@@ -107,79 +106,85 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       
       // DOM更新後にアニメーション実行
       nextTick(() => {
-        animateSection(from);
-        animateSection(to);
+        animateCardMove(allPositions);
       });
     }
   }
   
-  // セクション内のカード位置を記録
-  function recordCardPositions(section: string) {
-    const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-    if (!sectionElement) return;
+  // 全セクションの全カード位置を記録
+  function recordAllCardPositions(): Map<string, DOMRect> {
+    const positions = new Map<string, DOMRect>();
+    const sections = ['main', 'extra', 'side', 'trash'];
     
-    const positions = new Map();
-    const cards = sectionElement.querySelectorAll('.deck-card');
-    cards.forEach(card => {
-      const cardId = card.getAttribute('data-card-id');
-      if (cardId) {
-        positions.set(cardId, card.getBoundingClientRect());
-      }
+    sections.forEach(section => {
+      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+      if (!sectionElement) return;
+      
+      const cards = sectionElement.querySelectorAll('.deck-card');
+      cards.forEach(card => {
+        const cardId = (card as HTMLElement).getAttribute('data-card-id');
+        if (cardId) {
+          positions.set(cardId, card.getBoundingClientRect());
+        }
+      });
     });
     
-    // セクションごとに位置情報を保存
-    (window as any).__cardPositions = (window as any).__cardPositions || {};
-    (window as any).__cardPositions[section] = positions;
+    return positions;
   }
   
-  // セクションのアニメーションを実行
-  function animateSection(section: string) {
-    const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-    if (!sectionElement) return;
-    
-    const savedPositions = (window as any).__cardPositions?.[section];
-    if (!savedPositions) return;
-    
-    const cards = sectionElement.querySelectorAll('.deck-card');
+  // 全カードのアニメーションを実行
+  function animateCardMove(firstPositions: Map<string, DOMRect>) {
+    const sections = ['main', 'extra', 'side', 'trash'];
     const duration = 300;
+    const allCards: HTMLElement[] = [];
     
-    // Last & Invert
-    cards.forEach(card => {
-      const cardId = card.getAttribute('data-card-id');
-      if (!cardId) return;
+    // Last: 移動後の位置を取得 & Invert: 差分計算して元の位置に戻す
+    sections.forEach(section => {
+      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
+      if (!sectionElement) return;
       
-      const first = savedPositions.get(cardId);
-      const last = card.getBoundingClientRect();
-      
-      if (first && last) {
-        const deltaX = first.left - last.left;
-        const deltaY = first.top - last.top;
+      const cards = sectionElement.querySelectorAll('.deck-card');
+      cards.forEach(card => {
+        const cardElement = card as HTMLElement;
+        const cardId = cardElement.getAttribute('data-card-id');
+        if (!cardId) return;
         
-        if (deltaX === 0 && deltaY === 0) return;
+        const first = firstPositions.get(cardId);
+        const last = cardElement.getBoundingClientRect();
         
-        (card as HTMLElement).style.transition = 'none';
-        (card as HTMLElement).style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-      }
+        if (first && last) {
+          const deltaX = first.left - last.left;
+          const deltaY = first.top - last.top;
+          
+          // 移動がない場合はスキップ
+          if (deltaX === 0 && deltaY === 0) return;
+          
+          // Invert: transformで元の位置に戻す
+          cardElement.style.transition = 'none';
+          cardElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+          allCards.push(cardElement);
+        }
+      });
     });
     
-    // リフロー
-    sectionElement.getBoundingClientRect();
+    if (allCards.length === 0) return;
     
-    // Play
+    // リフローを強制
+    document.body.getBoundingClientRect();
+    
+    // Play: transformを0にしてアニメーション開始
     requestAnimationFrame(() => {
-      cards.forEach(card => {
-        if ((card as HTMLElement).style.transform) {
-          (card as HTMLElement).style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
-          (card as HTMLElement).style.transform = '';
-        }
+      allCards.forEach(card => {
+        card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
+        card.style.transform = '';
       });
     });
     
     // クリーンアップ
     setTimeout(() => {
-      cards.forEach(card => {
-        (card as HTMLElement).style.transition = '';
-        (card as HTMLElement).style.transform = '';
+      allCards.forEach(card => {
+        card.style.transition = '';
+        card.style.transform = '';
       });
     }, duration);
   }
