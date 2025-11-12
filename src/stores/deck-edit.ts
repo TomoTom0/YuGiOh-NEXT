@@ -398,15 +398,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const hasMore = ref(false);
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
-    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
-    const firstPositions = recordAllCardPositionsByUUID();
-    
+    // データ追加
     addToDisplayOrder(card, section);
     
-    // DOM更新後にアニメーション実行
-    nextTick(() => {
-      animateCardMoveByUUID(firstPositions, new Set([section]));
-    });
+    // 新規追加されたカードは位置情報がないため、単純なフェードイン
+    // FLIPアニメーションは移動のみに使用
   }
 
   function removeCard(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
@@ -646,18 +642,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         loadedDeck.extraDeck = addImageUrls(loadedDeck.extraDeck);
         loadedDeck.sideDeck = addImageUrls(loadedDeck.sideDeck);
         
-        // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
-        const firstPositions = recordAllCardPositionsByUUID();
-        
         deckInfo.value = loadedDeck;
         
         // displayOrderを初期化
         initializeDisplayOrder();
         
-        // DOM更新後にアニメーション実行
-        nextTick(() => {
-          animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side', 'trash']));
-        });
+        // ロード時はアニメーション不要（新規表示のため）
         
         lastUsedDno.value = dno;
         localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
