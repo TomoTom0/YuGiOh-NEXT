@@ -13,62 +13,31 @@
 
 ## 🚀 v0.3.0 リリースタスク（優先度：最高）
 
-**目標日**: 2025-11-17  
-**詳細**: tasks/v0.3.0.md参照
+**目標日**: 2025-11-17
 
-### 1. テスト実装
+### 必須タスク（リリースブロッカー）
+
+#### 1. テスト実装
 - [ ] E2Eテスト環境セットアップ
-  - [ ] Playwright or Puppeteer導入
-  - [ ] テストデータ準備
-- [ ] デッキ編集画面テスト
-  - [ ] デッキロード・保存
-  - [ ] カード検索・追加
-  - [ ] ドラッグ＆ドロップ
-- [ ] カード詳細表示テスト
-  - [ ] タブ切り替え
-  - [ ] 収録パック展開
-- [ ] 多言語テスト
-  - [ ] 日本語/英語ページでの動作確認
-  - [ ] 言語自動検出
-- [ ] ユニットテスト
-  - [ ] language-detector.ts
-  - [ ] mapping-manager.ts
-  - [ ] card-animation.ts
-  - [ ] deck-edit.ts (store)
+- [ ] デッキ編集画面の基本操作テスト
+- [ ] 多言語対応テスト（日本語/英語）
+- [ ] ユニットテスト（language-detector, mapping-manager, card-animation, deck-edit store）
 
-### 2. ドキュメント整備
-- [ ] ユーザー向け
-  - [ ] docs/usage/deck-edit.md（使い方）
-  - [ ] README.md更新（v0.3.0新機能）
-- [ ] 開発者向け
-  - [ ] docs/dev/architecture.md（設計）
-  - [ ] docs/dev/i18n.md（多言語対応）
-  - [ ] docs/dev/testing.md（テスト実行方法）
-  - [ ] docs/dev/api.md（API仕様）
+#### 2. ドキュメント整備
+- [ ] ユーザー向け: docs/usage/deck-edit.md作成
+- [ ] README.md更新（v0.3.0新機能説明）
+- [ ] 開発者向け: docs/dev/architecture.md, i18n.md作成
 
-### 3. オプションページ拡張
-- [ ] デッキ編集機能設定
-  - [ ] 機能ON/OFF
-  - [ ] デフォルト表示モード
-  - [ ] デフォルトソート順
-  - [ ] アニメーション有効化
-- [ ] 多言語設定
-  - [ ] 自動/手動選択
-  - [ ] 言語選択UI
-- [ ] 設定UI実装
-  - [ ] src/options/DeckEdit.vue拡張
-  - [ ] 設定保存・読み込み
+#### 3. オプションページ拡張
+- [ ] デッキ編集機能の設定UI（機能ON/OFF、デフォルト表示モード等）
+- [ ] 多言語設定UI（自動/手動選択）
 
-### 4. リリース準備
-- [ ] バージョン更新（0.3.0）
-  - [ ] version.dat
-  - [ ] manifest.json
-  - [ ] package.json
+#### 4. リリース準備
+- [ ] バージョン更新（version.dat, manifest.json, package.json → 0.3.0）
 - [ ] CHANGELOG作成
-- [ ] リリースノート作成
-- [ ] 最終確認
-  - [ ] 全テスト通過
-  - [ ] Chrome/Edge動作確認
+- [ ] 最終動作確認（Chrome/Edge）
+
+**詳細**: tmp/wip/v0.3.0-detailed.md参照（必要に応じて作成）
 
 ---
 
