@@ -29,7 +29,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const searchQuery = ref('');
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
   const selectedCard = ref<CardInfo | null>(null);
-  const activeTab = ref<'search' | 'card'>('search');
+  
+  // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではsearch）
+  const isMobile = window.innerWidth <= 768;
+  const activeTab = ref<'deck' | 'search' | 'card'>(isMobile ? 'deck' : 'search');
+  
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
