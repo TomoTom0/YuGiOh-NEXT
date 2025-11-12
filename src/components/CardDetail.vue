@@ -165,42 +165,17 @@
               </svg>
             </button>
             <div v-if="expandedPacks[pack.packId]" class="pack-cards-container">
-              <div class="pack-cards-toolbar">
-                <div class="view-switch">
-                  <label class="view-option">
-                    <input type="radio" :name="`pack-view-${pack.packId}`" value="list" v-model="packViewModes[pack.packId]">
-                    <span class="icon">☰</span>
-                  </label>
-                  <label class="view-option">
-                    <input type="radio" :name="`pack-view-${pack.packId}`" value="grid" v-model="packViewModes[pack.packId]">
-                    <span class="icon">▦</span>
-                  </label>
-                </div>
-              </div>
               <div v-if="loadingPacks[pack.packId]" class="pack-loading">読み込み中...</div>
-              <div 
-                v-else-if="packCards[pack.packId]" 
-                class="pack-cards-list"
-                :class="{ 'grid-view': packViewModes[pack.packId] === 'grid' }"
-              >
-                <div
-                  v-for="(card, idx) in packCards[pack.packId]"
-                  :key="`pack-card-${idx}`"
-                  class="pack-card-item"
-                >
-                  <div class="card-wrapper">
-                    <DeckCard
-                      :card="card"
-                      :section-type="'search'"
-                      :index="idx"
-                    />
-                  </div>
-                  <div class="card-info" v-if="packViewModes[pack.packId] === 'list'">
-                    <div class="card-name">{{ card.name }}</div>
-                    <div class="card-text">{{ card.text }}</div>
-                  </div>
-                </div>
-              </div>
+              <CardList
+                v-else-if="packCards[pack.packId]"
+                :cards="packCards[pack.packId]"
+                :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
+                :viewMode="packViewModes[pack.packId] || 'list'"
+                sectionType="search"
+                :uniqueId="`pack-${pack.packId}`"
+                @update:sortOrder="packSortOrders[pack.packId] = $event"
+                @update:viewMode="packViewModes[pack.packId] = $event"
+              />
             </div>
           </div>
         </div>
@@ -213,6 +188,7 @@
 import { ref, watch, computed } from 'vue'
 import CardInfo from './CardInfo.vue'
 import DeckCard from './DeckCard.vue'
+import CardList from './CardList.vue'
 import { getCardDetail } from '../api/card-search'
 import { getCardFAQList, getFAQDetail } from '../api/card-faq'
 
@@ -220,7 +196,8 @@ export default {
   name: 'CardDetail',
   components: {
     CardInfo,
-    DeckCard
+    DeckCard,
+    CardList
   },
   props: {
     card: {
@@ -252,6 +229,7 @@ export default {
     const loadingPacks = ref({})
     const packCards = ref({})
     const packViewModes = ref({})
+    const packSortOrders = ref({})
     
     const sortedRelatedCards = computed(() => {
       if (!detail.value || !detail.value.relatedCards) return []
@@ -337,7 +315,14 @@ export default {
       
       loadingPacks.value[packId] = true
       expandedPacks.value[packId] = true
-      packViewModes.value[packId] = 'list'
+      
+      // デフォルト値を設定
+      if (!packViewModes.value[packId]) {
+        packViewModes.value[packId] = 'list'
+      }
+      if (!packSortOrders.value[packId]) {
+        packSortOrders.value[packId] = 'release_desc'
+      }
       
       try {
         const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
