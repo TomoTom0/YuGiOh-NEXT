@@ -12,16 +12,18 @@
       <div class="qa-list">
         <div v-for="(qa, index) in faqListData.faqs" :key="qa.faqId || index" class="qa-item">
           <div class="qa-question">Q: {{ qa.question }}</div>
-          <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
-          <button 
-            v-if="!expandedQA[index]"
-            class="qa-expand-btn"
-            @click="expandQA(qa.faqId, index)"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
-            </svg>
-          </button>
+          <div class="qa-footer">
+            <button 
+              v-if="!expandedQA[index]"
+              class="qa-expand-btn"
+              @click="expandQA(qa.faqId, index)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+              </svg>
+            </button>
+            <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
+          </div>
           <div v-if="expandedQA[index]" class="qa-answer-container">
             <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
             <div v-else-if="qaAnswers[index]" class="qa-answer">
@@ -30,7 +32,7 @@
                 class="qa-collapse-btn-sticky"
                 @click="collapseQA(index)"
               >
-                <svg width="12" height="12" viewBox="0 0 24 24">
+                <svg width="16" height="16" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19,13H5V11H19V13Z" />
                 </svg>
               </button>
@@ -179,29 +181,36 @@ export default {
   font-weight: 500;
   margin-bottom: 4px;
   line-height: 1.5;
-  padding-right: 30px;
+}
+
+.qa-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  min-height: 24px;
 }
 
 .qa-date {
   font-size: 10px;
   color: #999;
-  margin-bottom: 8px;
+  flex: 1;
+  text-align: right;
 }
 
 .qa-expand-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border: 1px solid #ddd;
   background: white;
-  border-radius: 50%;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  flex-shrink: 0;
   
   &:hover {
     background: #f0f0f0;
@@ -210,6 +219,8 @@ export default {
   
   svg {
     display: block;
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -239,13 +250,12 @@ export default {
 .qa-collapse-btn-sticky {
   position: sticky;
   bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
   border: 1px solid #ddd;
   background: white;
-  border-radius: 50%;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -262,6 +272,8 @@ export default {
   
   svg {
     display: block;
+    width: 16px;
+    height: 16px;
   }
 }
 </style>

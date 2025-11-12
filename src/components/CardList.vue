@@ -263,7 +263,7 @@ export default {
   
   &.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 36px);
+    grid-template-columns: repeat(auto-fill, 60px);
     grid-auto-rows: max-content;
     gap: 4px;
     align-content: start;
@@ -283,6 +283,7 @@ export default {
   width: 100%;
   box-sizing: border-box;
   min-height: 90px;
+  align-items: flex-start;
   
   .grid-view & {
     flex-direction: column;
@@ -290,7 +291,7 @@ export default {
     padding: 0;
     border: none;
     background: none;
-    width: 36px;
+    width: 60px;
   }
 }
 
@@ -300,7 +301,7 @@ export default {
   width: 36px;
   
   .grid-view & {
-    width: 36px;
+    width: 60px;
   }
 }
 
@@ -326,5 +327,12 @@ export default {
   color: #666;
   line-height: 1.4;
   word-break: break-word;
+  overflow-wrap: break-word;
+  // 四行省略（一時的な対応）- pending.md参照
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

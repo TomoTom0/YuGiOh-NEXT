@@ -286,6 +286,11 @@ export default {
   flex-grow: 0;
   margin: 0;
 
+  .grid-view & {
+    width: 60px;
+    height: 88px;
+  }
+
   &:hover {
     border-color: #aaa;
 
