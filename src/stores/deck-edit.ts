@@ -217,9 +217,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (!movingCard) return;
     
     // targetIndexを再計算（sourceを削除した後のインデックス）
-    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    const newTargetIndex = sourceIndex < targetIndex ? targetIndex : targetIndex + 1;
     
-    // targetの直前に挿入
+    // targetの直後に挿入（targetがずれて後ろに行く）
     sectionOrder.splice(newTargetIndex, 0, movingCard);
     
     // ciidを再計算（全体）
