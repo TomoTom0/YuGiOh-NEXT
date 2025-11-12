@@ -46,7 +46,7 @@
               <div class="qa-question">Q: {{ qa.question }}</div>
               <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
               <button 
-                v-if="!expandedQA[index]" 
+                v-if="!expandedQA[index]"
                 class="qa-expand-btn"
                 @click="expandQA(qa.faqId, index)"
               >
@@ -56,7 +56,7 @@
               </button>
               <button 
                 v-else
-                class="qa-collapse-btn"
+                class="qa-collapse-btn qa-collapse-btn-main"
                 @click="collapseQA(index)"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24">
@@ -65,7 +65,17 @@
               </button>
               <div v-if="expandedQA[index]" class="qa-answer-container">
                 <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
-                <div v-else-if="qaAnswers[index]" class="qa-answer">A: {{ qaAnswers[index] }}</div>
+                <div v-else-if="qaAnswers[index]" class="qa-answer">
+                  A: {{ qaAnswers[index] }}
+                  <button 
+                    class="qa-collapse-btn-sticky"
+                    @click="collapseQA(index)"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -124,7 +134,7 @@
             </button>
             <button 
               v-else-if="pack.packId"
-              class="pack-collapse-btn"
+              class="pack-collapse-btn pack-collapse-btn-main"
               @click="collapsePack(pack.packId)"
             >
               <svg width="12" height="12" viewBox="0 0 24 24">
@@ -133,16 +143,25 @@
             </button>
             <div v-if="expandedPacks[pack.packId]" class="pack-cards-container">
               <div v-if="loadingPacks[pack.packId]" class="pack-loading">読み込み中...</div>
-              <CardList
-                v-else-if="packCards[pack.packId]"
-                :cards="packCards[pack.packId]"
-                :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
-                :viewMode="packViewModes[pack.packId] || 'list'"
-                sectionType="search"
-                :uniqueId="`pack-${pack.packId}`"
-                @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
-                @update:viewMode="updatePackViewMode(pack.packId, $event)"
-              />
+              <div v-else-if="packCards[pack.packId]" class="pack-cards-wrapper">
+                <CardList
+                  :cards="packCards[pack.packId]"
+                  :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
+                  :viewMode="packViewModes[pack.packId] || 'list'"
+                  sectionType="search"
+                  :uniqueId="`pack-${pack.packId}`"
+                  @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
+                  @update:viewMode="updatePackViewMode(pack.packId, $event)"
+                />
+                <button 
+                  class="pack-collapse-btn-sticky"
+                  @click="collapsePack(pack.packId)"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -614,10 +633,41 @@ export default {
   background: #f5f5f5;
 }
 
+.qa-collapse-btn-sticky {
+  position: sticky;
+  bottom: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 5;
+  
+  &:hover {
+    background: #f0f0f0;
+    border-color: #999;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  
+  svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
+}
+
 .qa-answer-container {
   margin-top: 8px;
   animation: expandAnswer 0.3s ease;
   overflow: hidden;
+  position: relative;
 }
 
 @keyframes expandAnswer {
@@ -646,6 +696,11 @@ export default {
   background: white;
   border-radius: 4px;
   white-space: pre-line;
+  position: relative;
+}
+
+.pack-cards-wrapper {
+  position: relative;
 }
 
 .qa-date {
@@ -751,6 +806,36 @@ export default {
 
 .pack-collapse-btn {
   background: #f5f5f5;
+}
+
+.pack-collapse-btn-sticky {
+  position: sticky;
+  bottom: 8px;
+  left: 8px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 5;
+  
+  &:hover {
+    background: #f0f0f0;
+    border-color: #999;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  
+  svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .pack-cards-container {

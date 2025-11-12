@@ -124,6 +124,9 @@ export default {
   padding: 8px;
   background: #f5f5f5;
   border-bottom: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .toolbar-left {
