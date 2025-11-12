@@ -110,9 +110,9 @@ export default {
     })
     
     const scrollToTop = () => {
-      const wrapper = document.querySelector('.card-list-wrapper')
-      if (wrapper) {
-        wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const resultsElement = document.querySelector('.card-list-results')
+      if (resultsElement) {
+        resultsElement.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
     
