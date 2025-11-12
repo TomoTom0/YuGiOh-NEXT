@@ -385,11 +385,31 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       }
     });
     
-    // toのdisplayOrderに追加
+    // toのdisplayOrderに追加（同じカードが既に存在する場合は直後に挿入）
     const toOrder = displayOrder.value[to];
-    const existingInTo = toOrder.filter(dc => dc.cid === cardId);
-    movingDisplayCard.ciid = existingInTo.length;
-    toOrder.push(movingDisplayCard);
+    const existingCardIndex = toOrder.findIndex(dc => dc.cid === cardId);
+    
+    if (existingCardIndex !== -1) {
+      // 既存の同じカードの最後の位置を探す
+      let lastSameCardIndex = existingCardIndex;
+      for (let i = existingCardIndex + 1; i < toOrder.length; i++) {
+        const orderCard = toOrder[i];
+        if (orderCard && orderCard.cid === cardId) {
+          lastSameCardIndex = i;
+        } else {
+          break;
+        }
+      }
+      
+      // 最後の同じカードの直後に挿入
+      const existingCards = toOrder.filter((dc, idx) => dc.cid === cardId && idx <= lastSameCardIndex);
+      movingDisplayCard.ciid = existingCards.length;
+      toOrder.splice(lastSameCardIndex + 1, 0, movingDisplayCard);
+    } else {
+      // 新しいカードなので末尾に追加
+      movingDisplayCard.ciid = 0;
+      toOrder.push(movingDisplayCard);
+    }
     
     // deckInfo更新
     // fromから削除
