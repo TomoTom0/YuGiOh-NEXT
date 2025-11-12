@@ -140,8 +140,8 @@
                 :viewMode="packViewModes[pack.packId] || 'list'"
                 sectionType="search"
                 :uniqueId="`pack-${pack.packId}`"
-                @update:sortOrder="packSortOrders[pack.packId] = $event"
-                @update:viewMode="packViewModes[pack.packId] = $event"
+                @update:sortOrder="(val) => { packSortOrders[pack.packId] = val }"
+                @update:viewMode="(val) => { packViewModes[pack.packId] = val }"
               />
             </div>
           </div>
@@ -286,12 +286,12 @@ export default {
       loadingPacks.value[packId] = true
       expandedPacks.value[packId] = true
       
-      // デフォルト値を設定
+      // デフォルト値を設定（リアクティブに）
       if (!packViewModes.value[packId]) {
-        packViewModes.value[packId] = 'list'
+        packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
-        packSortOrders.value[packId] = 'release_desc'
+        packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
       }
       
       try {
