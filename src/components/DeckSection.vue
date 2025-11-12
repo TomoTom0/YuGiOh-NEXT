@@ -9,7 +9,7 @@
       {{ title }}
       <span v-if="showCount" class="count">{{ cards.length }}</span>
     </h3>
-    <div class="card-grid" @dragover.prevent @drop="handleDrop">
+    <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleDrop">
       <DeckCard
         v-for="(card, idx) in cards"
         :key="`${sectionType}-${idx}`"
@@ -22,8 +22,10 @@
 </template>
 
 <script>
+import { ref, watch, nextTick } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { animateCardsMoveInSection } from '../utils/card-animation'
 
 export default {
   name: 'DeckSection',
@@ -50,6 +52,22 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
+    const cardGridRef = ref(null)
+    
+    // カード配列が変更されたらアニメーション
+    watch(() => props.cards, async (newCards, oldCards) => {
+      if (!cardGridRef.value) return
+      if (!oldCards || oldCards.length === 0) return
+      
+      // カードの追加・削除・移動を検出
+      const hasChange = newCards.length !== oldCards.length || 
+                        newCards.some((card, idx) => oldCards[idx]?.card?.cardId !== card.card?.cardId)
+      
+      if (hasChange) {
+        await nextTick()
+        animateCardsMoveInSection(cardGridRef.value, 300)
+      }
+    }, { deep: true })
 
     const handleDrop = (event) => {
       event.preventDefault()
@@ -85,7 +103,8 @@ export default {
     }
 
     return {
-      handleDrop
+      handleDrop,
+      cardGridRef
     }
   }
 }
