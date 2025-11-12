@@ -9,7 +9,7 @@
       {{ title }}
       <span v-if="showCount" class="count">{{ displayCards.length }}</span>
     </h3>
-    <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleDrop">
+    <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
       <DeckCard
         v-for="displayCard in displayCards"
         :key="displayCard.uuid"
@@ -17,12 +17,18 @@
         :section-type="sectionType"
         :uuid="displayCard.uuid"
       />
+      <!-- 空スペース: 最後尾にドロップ可能 -->
+      <div 
+        class="drop-zone-end" 
+        @dragover.prevent 
+        @drop="handleEndDrop"
+      ></div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -71,6 +77,44 @@ export default {
       return deckCard ? deckCard.card : null
     }
 
+    const handleSectionDrop = (event) => {
+      // カードグリッド全体へのドロップは無視（個別カードまたは末尾へ）
+      event.stopPropagation()
+    }
+    
+    const handleEndDrop = (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      try {
+        const data = event.dataTransfer.getData('text/plain')
+        if (!data) return
+        
+        const { sectionType: sourceSectionType, uuid: sourceUuid } = JSON.parse(data)
+        
+        // 同じセクション内で最後尾に移動
+        if (sourceSectionType === props.sectionType && sourceUuid) {
+          const lastCard = displayCards.value[displayCards.value.length - 1]
+          if (lastCard && lastCard.uuid !== sourceUuid) {
+            // 最後のカードの次に移動（つまり最後尾）
+            deckStore.reorderCard(sourceUuid, lastCard.uuid, props.sectionType)
+            // 追加で1つ後ろにずらす
+            nextTick(() => {
+              const sectionOrder = deckStore.displayOrder[props.sectionType]
+              const movedIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid)
+              const lastIndex = sectionOrder.length - 1
+              if (movedIndex !== -1 && movedIndex < lastIndex) {
+                const [card] = sectionOrder.splice(movedIndex, 1)
+                sectionOrder.push(card)
+              }
+            })
+          }
+        }
+      } catch (e) {
+        console.error('End drop error:', e)
+      }
+    }
+
     const handleDrop = (event) => {
       event.preventDefault()
       event.stopPropagation()
@@ -112,6 +156,8 @@ export default {
 
     return {
       handleDrop,
+      handleSectionDrop,
+      handleEndDrop,
       cardGridRef,
       displayCards,
       getCardInfo
@@ -153,6 +199,15 @@ export default {
     min-height: 60px;
     align-content: flex-start;
     justify-content: flex-start;
+  }
+  
+  .drop-zone-end {
+    min-width: 59px;
+    min-height: 86px;
+    border: 2px dashed transparent;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
   }
 }
 
