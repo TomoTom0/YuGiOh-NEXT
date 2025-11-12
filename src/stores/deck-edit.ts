@@ -140,8 +140,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   /**
    * displayOrder内でカードを移動（deckInfoも更新）
+   * @param cardId カードID
+   * @param from 移動元セクション
+   * @param to 移動先セクション
+   * @param uuid 移動する特定のカードのUUID（省略時は最後の1枚）
    */
-  function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash') {
+  function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
     const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
@@ -161,7 +165,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // displayOrderから移動するカードを取得
     const fromOrder = displayOrder.value[from];
-    const moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    let moveCardIndex: number;
+    
+    if (uuid) {
+      // UUIDが指定されている場合は、そのUUIDのカードを移動
+      moveCardIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
+    } else {
+      // UUIDが未指定の場合は最後の1枚を移動
+      moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    }
+    
     if (moveCardIndex === -1) return;
     
     const movingDisplayCard = fromOrder[moveCardIndex];
@@ -234,7 +247,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     removeFromDisplayOrder(cardId, section);
   }
 
-  function moveCard(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash') {
+  function moveCard(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
     const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
@@ -247,7 +260,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const firstPositions = recordAllCardPositionsByUUID();
     
     // displayOrder操作関数を使用（deckInfoも同時に更新）
-    moveInDisplayOrder(cardId, from, to);
+    moveInDisplayOrder(cardId, from, to, uuid);
     
     // DOM更新後にアニメーション実行
     nextTick(() => {

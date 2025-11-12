@@ -145,9 +145,10 @@ export default {
       event.dataTransfer.setData('text/plain', JSON.stringify({
         sectionType: this.sectionType,
         index: this.index,
-        card: this.card
+        card: this.card,
+        uuid: this.uuid
       }))
-      console.log('Drag data set:', { sectionType: this.sectionType, card: this.card.name })
+      console.log('Drag data set:', { sectionType: this.sectionType, card: this.card.name, uuid: this.uuid })
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
