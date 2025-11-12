@@ -86,27 +86,51 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                    to === 'side' ? deckInfo.value.sideDeck :
                    trashDeck.value;
     
-    const index = fromDeck.findIndex(dc => dc.card.cardId === cardId);
-    if (index !== -1) {
-      const deckCard = fromDeck[index];
+    const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
+    if (fromIndex !== -1) {
+      const deckCard = fromDeck[fromIndex];
       if (!deckCard) return;
       const card = deckCard.card;
       
-      // FLIP アニメーション: First - 移動前の全カード位置を記録
+      // FLIP アニメーション: First - 移動前の位置を記録
       const allPositions = recordAllCardPositions();
+      
+      // 移動するカードと影響を受けるカードのIDを記録
+      const affectedCardIds = new Set<string>();
+      
+      // 移動するカード
+      affectedCardIds.add(cardId);
+      
+      // 移動元セクション: 移動するカード以降のカード
+      for (let i = fromIndex + 1; i < fromDeck.length; i++) {
+        const dc = fromDeck[i];
+        if (dc) affectedCardIds.add(dc.card.cardId);
+      }
       
       removeCard(cardId, from);
       
       const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+      let toIndex = toDeck.length;
+      
       if (existingCard) {
         existingCard.quantity++;
+        toIndex = toDeck.findIndex(dc => dc.card.cardId === cardId);
       } else {
         toDeck.push({ card, quantity: 1 });
+        toIndex = toDeck.length - 1;
+      }
+      
+      // 移動先セクション: 挿入位置以降のカード（移動するカード自身は除く）
+      for (let i = toIndex + 1; i < toDeck.length; i++) {
+        const dc = toDeck[i];
+        if (dc && dc.card.cardId !== cardId) {
+          affectedCardIds.add(dc.card.cardId);
+        }
       }
       
       // DOM更新後にアニメーション実行
       nextTick(() => {
-        animateCardMove(allPositions);
+        animateCardMove(allPositions, affectedCardIds);
       });
     }
   }
@@ -132,8 +156,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return positions;
   }
   
-  // 全カードのアニメーションを実行
-  function animateCardMove(firstPositions: Map<string, DOMRect>) {
+  // 影響を受けるカードのみアニメーションを実行
+  function animateCardMove(firstPositions: Map<string, DOMRect>, affectedCardIds: Set<string>) {
     const sections = ['main', 'extra', 'side', 'trash'];
     const duration = 300;
     const allCards: HTMLElement[] = [];
@@ -148,6 +172,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         const cardElement = card as HTMLElement;
         const cardId = cardElement.getAttribute('data-card-id');
         if (!cardId) return;
+        
+        // 影響を受けるカードのみアニメーション
+        if (!affectedCardIds.has(cardId)) return;
         
         const first = firstPositions.get(cardId);
         const last = cardElement.getBoundingClientRect();
