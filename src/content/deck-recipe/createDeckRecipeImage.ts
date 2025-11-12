@@ -10,7 +10,7 @@ import {
   QR_CODE_SETTINGS,
   CardSection
 } from '../../types/deck-recipe-image';
-import { buildCardImageUrl } from '../../api/card-search';
+import { getCardImageUrl } from '../../types/card';
 import QRCode from 'qrcode';
 
 /**
@@ -48,7 +48,7 @@ export async function createDeckRecipeImage(
   const data = deckData;
 
   // 2. DeckInfoからCardSection配列を構築
-  // buildCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
+  // getCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
   const isNode = typeof window === 'undefined';
   const toAbsoluteUrl = (url: string | undefined): string | undefined => {
     if (!url) return undefined;
@@ -63,7 +63,7 @@ export async function createDeckRecipeImage(
       name: 'main',
       displayName: 'メイン',
       cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(buildCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -71,7 +71,7 @@ export async function createDeckRecipeImage(
       name: 'extra',
       displayName: 'エクストラ',
       cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(buildCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -79,7 +79,7 @@ export async function createDeckRecipeImage(
       name: 'side',
       displayName: 'サイド',
       cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(buildCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card));
         return url ? Array(quantity).fill(url) : [];
       })
     }
