@@ -1,5 +1,13 @@
 <template>
   <div class="card-list-wrapper">
+    <button 
+      class="scroll-to-top-btn"
+      @click="scrollToTop"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+      </svg>
+    </button>
     <div class="card-list-toolbar">
       <div class="toolbar-left">
         <svg class="sort-icon" width="16" height="16" viewBox="0 0 24 24">
@@ -101,9 +109,17 @@ export default {
       emit('update:viewMode', val)
     })
     
+    const scrollToTop = () => {
+      const wrapper = document.querySelector('.card-list-wrapper')
+      if (wrapper) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }
+    
     return {
       localSortOrder,
-      localViewMode
+      localViewMode,
+      scrollToTop
     }
   }
 }
@@ -115,6 +131,36 @@ export default {
   flex-direction: column;
   height: 100%;
   width: 100%;
+  position: relative;
+}
+
+.scroll-to-top-btn {
+  position: sticky;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 20;
+  margin: 0 0 -32px 8px;
+  
+  &:hover {
+    background: #f0f0f0;
+    border-color: #999;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  
+  svg {
+    display: block;
+  }
 }
 
 .card-list-toolbar {
@@ -124,11 +170,6 @@ export default {
   padding: 8px;
   background: #f5f5f5;
   border-bottom: 1px solid #ddd;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  width: 100%;
-  box-sizing: border-box;
 }
 
 .toolbar-left {
@@ -203,7 +244,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 10px;
+  padding: 10px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
