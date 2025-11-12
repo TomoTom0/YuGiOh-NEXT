@@ -62,6 +62,7 @@
 
 <script>
 import { useDeckEditStore } from '../stores/deck-edit'
+import { getCardImageUrl } from '../types/card'
 
 export default {
   name: 'DeckCard',
@@ -86,8 +87,9 @@ export default {
   },
   computed: {
     cardImageUrl() {
-      if (this.card.imageUrl) {
-        return this.card.imageUrl
+      const relativeUrl = getCardImageUrl(this.card)
+      if (relativeUrl) {
+        return `https://www.db.yugioh-card.com${relativeUrl}`
       }
       return chrome.runtime.getURL('images/card_back.png')
     },

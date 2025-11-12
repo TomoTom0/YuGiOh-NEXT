@@ -4,7 +4,6 @@ import type { DeckInfo, DeckCard } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail } from '../api/deck-operations';
-import { buildCardImageUrl } from '../api/card-search';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -703,21 +702,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const loadedDeck = await getDeckDetail(dno, cgid);
       
       if (loadedDeck) {
-        // imageUrl を各カードに追加
-        const addImageUrls = (deckCards: DeckCard[]) => {
-          return deckCards.map(dc => ({
-            ...dc,
-            card: {
-              ...dc.card,
-              imageUrl: dc.card.imageUrl || buildCardImageUrl(dc.card)
-            }
-          }));
-        };
-        
-        loadedDeck.mainDeck = addImageUrls(loadedDeck.mainDeck);
-        loadedDeck.extraDeck = addImageUrls(loadedDeck.extraDeck);
-        loadedDeck.sideDeck = addImageUrls(loadedDeck.sideDeck);
-        
         deckInfo.value = loadedDeck;
         
         // displayOrderを初期化

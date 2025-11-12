@@ -71,7 +71,8 @@
 
 <script>
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCardsByName, buildCardImageUrl } from '../api/card-search'
+import { searchCardsByName } from '../api/card-search'
+import { getCardImageUrl } from '../types/card'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 
@@ -102,7 +103,7 @@ export default {
 
     const processCards = (cards) => {
       return cards.map(card => {
-        const relativeUrl = buildCardImageUrl(card)
+        const relativeUrl = getCardImageUrl(card)
         const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
         return {
           ...card,
