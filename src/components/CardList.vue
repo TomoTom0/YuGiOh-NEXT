@@ -185,9 +185,9 @@ export default {
   }
   
   input:checked + .icon {
-    background: linear-gradient(135deg, var(--theme-start) 0%, var(--theme-end) 100%);
+    background: #4a9eff;
     color: white;
-    border-color: var(--theme-end);
+    border-color: #4a9eff;
   }
   
   &:not(:last-child) .icon {
@@ -206,10 +206,11 @@ export default {
   
   &.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 60px);
+    grid-template-columns: repeat(auto-fill, minmax(60px, 60px));
     grid-auto-rows: max-content;
-    gap: 2px;
+    gap: 8px;
     align-content: start;
+    justify-content: start;
   }
 }
 
