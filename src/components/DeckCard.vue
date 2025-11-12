@@ -155,7 +155,23 @@ export default {
       this.$emit('dragover', event)
     },
     handleDrop(event) {
-      this.$emit('drop', event, this.sectionType, this.index)
+      event.preventDefault()
+      event.stopPropagation()
+      
+      try {
+        const data = event.dataTransfer.getData('text/plain')
+        if (!data) return
+        
+        const { sectionType: sourceSectionType, uuid: sourceUuid } = JSON.parse(data)
+        
+        // 同じセクション内でのドロップのみ処理
+        if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
+          console.log('Reordering: move', sourceUuid, 'before', this.uuid)
+          this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
+        }
+      } catch (e) {
+        console.error('Card drop error:', e)
+      }
     },
     handleInfo() {
       console.log('Info clicked, card:', this.card)

@@ -69,9 +69,39 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     });
   }
   
-  // ========================================
-  // displayOrder操作関数（deckInfoも同時に更新）
-  // ========================================
+  /**
+   * displayOrder内でカードを並び替え（同一セクション内での位置変更）
+   * @param sourceUuid 移動するカードのUUID
+   * @param targetUuid ドロップ先カードのUUID
+   * @param section セクション
+   */
+  function reorderInDisplayOrder(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash') {
+    const sectionOrder = displayOrder.value[section];
+    
+    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
+    const targetIndex = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
+    
+    if (sourceIndex === -1 || targetIndex === -1) return;
+    if (sourceIndex === targetIndex) return;
+    
+    // sourceを削除
+    const [movingCard] = sectionOrder.splice(sourceIndex, 1);
+    if (!movingCard) return;
+    
+    // targetIndexを再計算（sourceを削除した後のインデックス）
+    const newTargetIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    
+    // targetの直前に挿入
+    sectionOrder.splice(newTargetIndex, 0, movingCard);
+    
+    // ciidを再計算（全体）
+    const cidCounts = new Map<string, number>();
+    sectionOrder.forEach(dc => {
+      const count = cidCounts.get(dc.cid) || 0;
+      dc.ciid = count;
+      cidCounts.set(dc.cid, count + 1);
+    });
+  }
   
   /**
    * displayOrderにカードを追加（deckInfoも更新）
@@ -265,6 +295,19 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // DOM更新後にアニメーション実行
     nextTick(() => {
       animateCardMoveByUUID(firstPositions, new Set([from, to]));
+    });
+  }
+  
+  function reorderCard(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash') {
+    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+    const firstPositions = recordAllCardPositionsByUUID();
+    
+    // displayOrder操作関数を使用
+    reorderInDisplayOrder(sourceUuid, targetUuid, section);
+    
+    // DOM更新後にアニメーション実行
+    nextTick(() => {
+      animateCardMoveByUUID(firstPositions, new Set([section]));
     });
   }
   
@@ -546,6 +589,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     addCard,
     removeCard,
     moveCard,
+    reorderCard,
     moveCardToTrash,
     moveCardToSide,
     moveCardToMainOrExtra,
