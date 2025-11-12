@@ -69,6 +69,139 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     });
   }
   
+  // ========================================
+  // displayOrder操作関数（deckInfoも同時に更新）
+  // ========================================
+  
+  /**
+   * displayOrderにカードを追加（deckInfoも更新）
+   */
+  function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
+    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
+                       section === 'extra' ? deckInfo.value.extraDeck :
+                       section === 'side' ? deckInfo.value.sideDeck :
+                       trashDeck.value;
+    
+    // deckInfo更新
+    const existingCard = targetDeck.find(dc => dc.card.cardId === card.cardId);
+    if (existingCard) {
+      existingCard.quantity++;
+    } else {
+      targetDeck.push({ card, quantity: 1 });
+    }
+    
+    // displayOrder更新
+    const sectionOrder = displayOrder.value[section];
+    const existingCards = sectionOrder.filter(dc => dc.cid === card.cardId);
+    const ciid = existingCards.length;
+    
+    sectionOrder.push({
+      cid: card.cardId,
+      ciid: ciid,
+      uuid: generateUUID()
+    });
+  }
+  
+  /**
+   * displayOrderからカードを削除（deckInfoも更新）
+   */
+  function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
+    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
+                       section === 'extra' ? deckInfo.value.extraDeck :
+                       section === 'side' ? deckInfo.value.sideDeck :
+                       trashDeck.value;
+    
+    // deckInfo更新
+    const index = targetDeck.findIndex(dc => dc.card.cardId === cardId);
+    if (index !== -1) {
+      const deckCard = targetDeck[index];
+      if (deckCard && deckCard.quantity > 1) {
+        deckCard.quantity--;
+      } else {
+        targetDeck.splice(index, 1);
+      }
+    }
+    
+    // displayOrder更新（最後の1枚を削除）
+    const sectionOrder = displayOrder.value[section];
+    const lastIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    if (lastIndex !== -1) {
+      sectionOrder.splice(lastIndex, 1);
+      
+      // ciidを再計算
+      sectionOrder.forEach((dc, idx) => {
+        if (dc.cid === cardId) {
+          const precedingCount = sectionOrder.slice(0, idx).filter(d => d.cid === cardId).length;
+          dc.ciid = precedingCount;
+        }
+      });
+    }
+  }
+  
+  /**
+   * displayOrder内でカードを移動（deckInfoも更新）
+   */
+  function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash') {
+    const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
+                     from === 'extra' ? deckInfo.value.extraDeck :
+                     from === 'side' ? deckInfo.value.sideDeck :
+                     trashDeck.value;
+    
+    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
+                   to === 'extra' ? deckInfo.value.extraDeck :
+                   to === 'side' ? deckInfo.value.sideDeck :
+                   trashDeck.value;
+    
+    const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
+    if (fromIndex === -1) return;
+    
+    const deckCard = fromDeck[fromIndex];
+    if (!deckCard) return;
+    const card = deckCard.card;
+    
+    // displayOrderから移動するカードを取得
+    const fromOrder = displayOrder.value[from];
+    const moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    if (moveCardIndex === -1) return;
+    
+    const movingDisplayCard = fromOrder[moveCardIndex];
+    if (!movingDisplayCard) return;
+    
+    // fromのdisplayOrderから削除
+    fromOrder.splice(moveCardIndex, 1);
+    
+    // fromのciidを再計算
+    fromOrder.forEach((dc, idx) => {
+      if (dc.cid === cardId) {
+        const precedingCount = fromOrder.slice(0, idx).filter(d => d.cid === cardId).length;
+        dc.ciid = precedingCount;
+      }
+    });
+    
+    // toのdisplayOrderに追加
+    const toOrder = displayOrder.value[to];
+    const existingInTo = toOrder.filter(dc => dc.cid === cardId);
+    movingDisplayCard.ciid = existingInTo.length;
+    toOrder.push(movingDisplayCard);
+    
+    // deckInfo更新
+    // fromから削除
+    const fromDeckCard = fromDeck[fromIndex];
+    if (fromDeckCard && fromDeckCard.quantity > 1) {
+      fromDeckCard.quantity--;
+    } else {
+      fromDeck.splice(fromIndex, 1);
+    }
+    
+    // toに追加
+    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+    if (existingCard) {
+      existingCard.quantity++;
+    } else {
+      toDeck.push({ card, quantity: 1 });
+    }
+  }
+  
   // Deck list state
   const deckList = ref<Array<{ dno: number; name: string }>>([]);
   const lastUsedDno = ref<number | null>(null);
@@ -94,59 +227,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const hasMore = ref(false);
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
-    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
-                       section === 'extra' ? deckInfo.value.extraDeck :
-                       deckInfo.value.sideDeck;
-    
-    const existingCard = targetDeck.find(dc => dc.card.cardId === card.cardId);
-    if (existingCard) {
-      existingCard.quantity++;
-    } else {
-      targetDeck.push({ card, quantity: 1 });
-    }
-    
-    // displayOrderに追加
-    const sectionOrder = displayOrder.value[section];
-    const existingCards = sectionOrder.filter(dc => dc.cid === card.cardId);
-    const ciid = existingCards.length; // 何枚目か
-    
-    sectionOrder.push({
-      cid: card.cardId,
-      ciid: ciid,
-      uuid: generateUUID()
-    });
+    addToDisplayOrder(card, section);
   }
 
   function removeCard(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
-    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
-                       section === 'extra' ? deckInfo.value.extraDeck :
-                       section === 'side' ? deckInfo.value.sideDeck :
-                       trashDeck.value;
-    
-    const index = targetDeck.findIndex(dc => dc.card.cardId === cardId);
-    if (index !== -1) {
-      const deckCard = targetDeck[index];
-      if (deckCard && deckCard.quantity > 1) {
-        deckCard.quantity--;
-      } else {
-        targetDeck.splice(index, 1);
-      }
-    }
-    
-    // displayOrderから削除（最後の1枚を削除）
-    const sectionOrder = displayOrder.value[section];
-    const lastIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
-    if (lastIndex !== -1) {
-      sectionOrder.splice(lastIndex, 1);
-      
-      // ciidを再計算（削除後の同じカードのインデックスを更新）
-      sectionOrder.forEach((dc, idx) => {
-        if (dc.cid === cardId) {
-          const precedingCount = sectionOrder.slice(0, idx).filter(d => d.cid === cardId).length;
-          dc.ciid = precedingCount;
-        }
-      });
-    }
+    removeFromDisplayOrder(cardId, section);
   }
 
   function moveCard(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash') {
@@ -155,62 +240,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
     
-    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
-                   to === 'extra' ? deckInfo.value.extraDeck :
-                   to === 'side' ? deckInfo.value.sideDeck :
-                   trashDeck.value;
-    
     const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
     if (fromIndex === -1) return;
-    
-    const deckCard = fromDeck[fromIndex];
-    if (!deckCard) return;
-    const card = deckCard.card;
     
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
     
-    // displayOrderから移動するカードを1枚取得（最後の1枚）
-    const fromOrder = displayOrder.value[from];
-    const moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
-    if (moveCardIndex === -1) return;
-    
-    const movingDisplayCard = fromOrder[moveCardIndex];
-    if (!movingDisplayCard) return;
-    
-    // fromのdisplayOrderから削除
-    fromOrder.splice(moveCardIndex, 1);
-    
-    // fromのciidを再計算
-    fromOrder.forEach((dc, idx) => {
-      if (dc.cid === cardId) {
-        const precedingCount = fromOrder.slice(0, idx).filter(d => d.cid === cardId).length;
-        dc.ciid = precedingCount;
-      }
-    });
-    
-    // toのdisplayOrderに追加
-    const toOrder = displayOrder.value[to];
-    const existingInTo = toOrder.filter(dc => dc.cid === cardId);
-    movingDisplayCard.ciid = existingInTo.length;
-    toOrder.push(movingDisplayCard);
-    
-    // deckInfoを更新（displayOrderは既に更新済みなので、deckInfoのみ更新）
-    // fromから削除
-    const fromDeckCard = fromDeck[fromIndex];
-    if (fromDeckCard && fromDeckCard.quantity > 1) {
-      fromDeckCard.quantity--;
-    } else {
-      fromDeck.splice(fromIndex, 1);
-    }
-    
-    // toに追加
-    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
-    if (existingCard) {
-      existingCard.quantity++;
-    } else {
-      toDeck.push({ card, quantity: 1 });
-    }
+    // displayOrder操作関数を使用（deckInfoも同時に更新）
+    moveInDisplayOrder(cardId, from, to);
     
     // DOM更新後にアニメーション実行
     nextTick(() => {
