@@ -87,53 +87,51 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                    trashDeck.value;
     
     const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
-    if (fromIndex !== -1) {
-      const deckCard = fromDeck[fromIndex];
-      if (!deckCard) return;
-      const card = deckCard.card;
-      
-      // 移動するカードと影響を受けるカードのIDを記録
-      const affectedCardIds = new Set<string>();
-      
-      // 移動するカード
-      affectedCardIds.add(cardId);
-      
-      // 移動元セクション: 移動するカード以降のカード
-      for (let i = fromIndex + 1; i < fromDeck.length; i++) {
-        const dc = fromDeck[i];
-        if (dc) affectedCardIds.add(dc.card.cardId);
-      }
-      
-      // FLIP アニメーション: First - DOM操作前に全カード位置を記録
-      // nextTickを使って同期的にDOM読み取り
-      const allPositions = recordAllCardPositions();
-      
-      removeCard(cardId, from);
-      
-      const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
-      let toIndex = toDeck.length;
-      
-      if (existingCard) {
-        existingCard.quantity++;
-        toIndex = toDeck.findIndex(dc => dc.card.cardId === cardId);
-      } else {
-        toDeck.push({ card, quantity: 1 });
-        toIndex = toDeck.length - 1;
-      }
-      
-      // 移動先セクション: 挿入位置以降のカード（移動するカード自身は除く）
-      for (let i = toIndex + 1; i < toDeck.length; i++) {
-        const dc = toDeck[i];
-        if (dc && dc.card.cardId !== cardId) {
-          affectedCardIds.add(dc.card.cardId);
-        }
-      }
-      
-      // DOM更新後にアニメーション実行
-      nextTick(() => {
-        animateCardMove(allPositions, affectedCardIds);
-      });
+    if (fromIndex === -1) return;
+    
+    const deckCard = fromDeck[fromIndex];
+    if (!deckCard) return;
+    const card = deckCard.card;
+    
+    // FLIP アニメーション: First - データ変更前に全カード位置を記録
+    const firstPositions = recordAllCardPositions();
+    
+    // 移動するカードと影響を受けるカードのIDを記録
+    const affectedCardIds = new Set<string>();
+    
+    // 移動するカード
+    affectedCardIds.add(cardId);
+    
+    // 移動元セクション: 移動するカード以降のカード（これらは前に詰まる）
+    for (let i = fromIndex + 1; i < fromDeck.length; i++) {
+      const dc = fromDeck[i];
+      if (dc) affectedCardIds.add(dc.card.cardId);
     }
+    
+    // データ変更: カードを削除
+    removeCard(cardId, from);
+    
+    // データ変更: カードを追加
+    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+    if (existingCard) {
+      existingCard.quantity++;
+    } else {
+      toDeck.push({ card, quantity: 1 });
+    }
+    
+    // 移動先セクションで影響を受けるカードを計算（データ変更後）
+    const toIndex = toDeck.findIndex(dc => dc.card.cardId === cardId);
+    for (let i = toIndex + 1; i < toDeck.length; i++) {
+      const dc = toDeck[i];
+      if (dc && dc.card.cardId !== cardId) {
+        affectedCardIds.add(dc.card.cardId);
+      }
+    }
+    
+    // DOM更新後にアニメーション実行
+    nextTick(() => {
+      animateCardMove(firstPositions, affectedCardIds);
+    });
   }
   
   // 全セクションの全カード位置を記録
