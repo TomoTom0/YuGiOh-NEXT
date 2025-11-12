@@ -258,6 +258,7 @@ export default {
     transform: skewX(-10deg);
     background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
     justify-content: center;
+    flex-shrink: 0;
     
     .card-type-icon {
       width: 16px;
@@ -270,6 +271,7 @@ export default {
       transform: skewX(10deg);
       text-align: center;
       line-height: 1.4;
+      white-space: nowrap;
     }
   }
   
