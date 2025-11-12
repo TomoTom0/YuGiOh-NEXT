@@ -209,42 +209,6 @@ export async function saveDeckInternal(
     console.log('[saveDeckInternal] Response received');
     
     const data = response.data;
-    //console.log('[saveDeckInternal] Response data type:', typeof data);
-    
-    // HTMLが返ってきた場合はエラーページの可能性が高い
-    // if (typeof data === 'string') {
-    //   console.log('[saveDeckInternal] HTML response received (first 1000 chars):', data.substring(0, 1000));
-    //   console.log('[saveDeckInternal] Full HTML length:', data.length);
-      
-    //   // エラーメッセージを抽出
-    //   const parser = new DOMParser();
-    //   const doc = parser.parseFromString(data, 'text/html');
-      
-    //   // より広範囲のセレクタでエラーを探す
-    //   const errorElements = doc.querySelectorAll('.error, .alert, .message, .error_message, #message, .warning');
-    //   if (errorElements.length > 0) {
-    //     const errors = Array.from(errorElements).map(el => el.textContent?.trim() || '').filter(e => e);
-    //     console.error('[saveDeckInternal] ❌ Error messages found in HTML:', errors);
-    //     return {
-    //       success: false,
-    //       error: errors.length > 0 ? errors : ['エラーが発生しました']
-    //     };
-    //   }
-      
-    //   // bodyのテキストを確認
-    //   const bodyText = doc.body?.textContent?.trim() || '';
-    //   console.log('[saveDeckInternal] Body text (first 500 chars):', bodyText.substring(0, 500));
-      
-    //   console.error('[saveDeckInternal] ❌ HTML response but no error message found');
-    //   return {
-    //     success: false,
-    //     error: ['予期しないHTMLレスポンスが返されました。ページをリロードして再試行してください。']
-    //   };
-    // }
-    
-    // // JSONレスポンスの場合
-    // console.log('[saveDeckInternal] Response data.result:', data.result);
-    // console.log('[saveDeckInternal] Response data.error:', data.error);
     
     // 公式の判定方法に合わせる
     if (data.result) {

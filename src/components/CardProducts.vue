@@ -39,6 +39,7 @@
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
+              @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -189,6 +190,13 @@ export default {
       packViewModes.value = { ...packViewModes.value, [packId]: value }
     }
     
+    const handleScrollToTop = () => {
+      const cardTabContent = document.querySelector('.card-tab-content')
+      if (cardTabContent) {
+        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+    
     return {
       groupedPacks,
       expandedPacks,
@@ -199,7 +207,8 @@ export default {
       expandPack,
       collapsePack,
       updatePackSortOrder,
-      updatePackViewMode
+      updatePackViewMode,
+      handleScrollToTop
     }
   }
 }
