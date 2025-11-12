@@ -98,7 +98,7 @@
           収録パック情報がありません
         </div>
         <div v-else class="pack-list">
-          <div v-for="pack in groupedPacks" :key="`${pack.code}_${pack.name}`" class="pack-item">
+          <div v-for="pack in groupedPacks" :key="`${pack.code}_${pack.name}`" class="pack-item" :data-pack-id="pack.packId">
             <div class="pack-name">{{ pack.name }}</div>
             <div class="pack-details">
               <div class="pack-date">{{ pack.releaseDate || '-' }}</div>
@@ -324,7 +324,32 @@ export default {
     }
     
     const collapsePack = (packId) => {
-      expandedPacks.value[packId] = false
+      const packItem = document.querySelector(`[data-pack-id="${packId}"]`)
+      if (packItem) {
+        const beforeHeight = packItem.scrollHeight
+        
+        expandedPacks.value[packId] = false
+        
+        setTimeout(() => {
+          const afterHeight = packItem.scrollHeight
+          const heightDiff = beforeHeight - afterHeight
+          
+          const container = packItem.closest('.card-detail-content')
+          if (container && heightDiff > 0) {
+            const packItemTop = packItem.getBoundingClientRect().top
+            const containerTop = container.getBoundingClientRect().top
+            
+            if (packItemTop < containerTop + container.clientHeight) {
+              container.scrollTo({
+                top: Math.max(0, container.scrollTop - heightDiff),
+                behavior: 'smooth'
+              })
+            }
+          }
+        }, 300)
+      } else {
+        expandedPacks.value[packId] = false
+      }
     }
     
     const updatePackSortOrder = (packId, value) => {
