@@ -612,9 +612,75 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
-  function moveCardWithPosition(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', 
-                                fromIndex: number, to: 'main' | 'extra' | 'side' | 'trash', 
-                                toIndex: number) {
+  function moveCardWithPosition(cardId: string, from: 'main' | 'extra' | 'side' | 'trash',
+                                to: 'main' | 'extra' | 'side' | 'trash',
+                                sourceUuid: string, targetUuid: string | null) {
+    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+    const firstPositions = recordAllCardPositionsByUUID();
+    
+    const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
+                     from === 'extra' ? deckInfo.value.extraDeck :
+                     from === 'side' ? deckInfo.value.sideDeck :
+                     trashDeck.value;
+    
+    const card = fromDeck.find(dc => dc.card.cardId === cardId);
+    if (!card) return;
+    
+    // 移動元から削除
+    removeFromDisplayOrder(cardId, from, sourceUuid);
+    
+    // 移動先に追加
+    const toOrder = displayOrder.value[to];
+    
+    if (targetUuid === null) {
+      // targetUuidがnullの場合は末尾に追加
+      addToDisplayOrder(card.card, to);
+    } else {
+      // targetUuidの前に挿入
+      const targetIndex = toOrder.findIndex(dc => dc.uuid === targetUuid);
+      
+      if (targetIndex !== -1) {
+        // 同じカードが既に存在するか確認
+        const sameCidIndex = toOrder.findIndex(dc => dc.cid === cardId);
+        const ciid = sameCidIndex !== -1 ? toOrder.filter(dc => dc.cid === cardId).length : 0;
+        
+        toOrder.splice(targetIndex, 0, {
+          cid: cardId,
+          ciid: ciid,
+          uuid: generateUUID()
+        });
+        
+        // ciidを再計算
+        const cidCounts = new Map<string, number>();
+        toOrder.forEach(dc => {
+          const count = cidCounts.get(dc.cid) || 0;
+          dc.ciid = count;
+          cidCounts.set(dc.cid, count + 1);
+        });
+      } else {
+        // targetが見つからない場合は末尾に追加
+        addToDisplayOrder(card.card, to);
+      }
+    }
+    
+    // deckInfo更新
+    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
+                   to === 'extra' ? deckInfo.value.extraDeck :
+                   to === 'side' ? deckInfo.value.sideDeck :
+                   trashDeck.value;
+    
+    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+    if (existingCard) {
+      existingCard.quantity++;
+    } else {
+      toDeck.push({ card: card.card, quantity: 1 });
+    }
+    
+    // DOM更新後にアニメーション実行
+    nextTick(() => {
+      animateCardMoveByUUID(firstPositions, new Set([from, to]));
+    });
+  }
     const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
