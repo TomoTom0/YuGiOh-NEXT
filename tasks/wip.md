@@ -43,6 +43,13 @@
    - 検索結果をCardListコンポーネントに統一
    - .search-contentにoverflow-y: autoとpadding追加（スクロール可能に）
    - CardList.vueの.card-textにテキストはみ出し防止スタイル追加（4行省略表示）
+13. ✅ CardListコンポーネント統一とスタイル整理（2025-11-13）
+   - CardList.vueから height: 100% を削除（内容に合わせた高さに）
+   - CardList.vueに width: 100%, box-sizing, min-height: 90px を追加
+   - RightArea.vueから重複した検索結果用スタイルを削除
+   - CardDetail.vueから重複したカードリスト用スタイルを削除
+   - search tabとrelated tabでCardListのスタイルを統一
+   - CardQAコンポーネントを新規作成（Q&Aタブの分離準備）
 
 ### 現在対応中のバグ・課題
 1. ✅ UI改善と翻訳
@@ -75,6 +82,7 @@
      - ✅ pack-details のグリッド列幅調整（60px 100px 1fr）
 
 ### 残課題
+- ⏭️ CardQAとCardProductsコンポーネントの分離完成
 - ⏭️ Load時のデッキ情報反映確認
 - ⏭️ Save機能のダイアログ実装
 - ⏭️ カードドラッグ＆ドロップ機能
