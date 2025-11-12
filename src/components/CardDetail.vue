@@ -530,6 +530,8 @@ export default {
   padding: 15px;
   flex: 1;
   overflow-y: scroll;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .no-card-selected,

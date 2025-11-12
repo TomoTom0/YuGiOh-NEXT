@@ -253,13 +253,14 @@ export default {
 
 .card-list-results {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   padding: 10px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  box-sizing: border-box;
   
   &.grid-view {
     display: grid;
