@@ -95,7 +95,13 @@ export default {
           } else if (props.sectionType === 'trash') {
             // Ignore drop to trash from search
           }
-        } else if (sourceSectionType !== props.sectionType) {
+        } else if (sourceSectionType === props.sectionType) {
+          // 同じセクション内での並び替え
+          console.log('Reordering within', props.sectionType, 'uuid:', uuid)
+          // TODO: ドロップ位置を判定して並び替え
+          // 現在は未実装のため何もしない
+        } else {
+          // 異なるセクション間での移動
           console.log('Moving from', sourceSectionType, 'to', props.sectionType, 'uuid:', uuid)
           deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, uuid)
         }
