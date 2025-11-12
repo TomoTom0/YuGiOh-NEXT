@@ -40,6 +40,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     trash: []
   });
   
+  // displayOrderのバックアップ（保存キャンセル時に復元用）
+  const displayOrderBackup = ref<{
+    main: DisplayCard[];
+    extra: DisplayCard[];
+    side: DisplayCard[];
+    trash: DisplayCard[];
+  } | null>(null);
+  
   // UUID生成ヘルパー
   function generateUUID(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -67,6 +75,89 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
       });
     });
+  }
+  
+  /**
+   * displayOrderを公式保存フォーマットに並び替え
+   * ルール: モンスター→魔法→罠、同じカードは最初の登場位置でグループ化
+   */
+  function sortDisplayOrderForOfficial() {
+    const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side'];
+    
+    sections.forEach(section => {
+      const sectionOrder = displayOrder.value[section];
+      if (sectionOrder.length === 0) return;
+      
+      // カード情報を取得してタイプ判定用マップを作成
+      const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
+      const allDecks = [
+        ...deckInfo.value.mainDeck,
+        ...deckInfo.value.extraDeck,
+        ...deckInfo.value.sideDeck
+      ];
+      
+      allDecks.forEach(dc => {
+        const type = dc.card.cardType;
+        let priority = 0;
+        if (type === 'spell') priority = 1;
+        else if (type === 'trap') priority = 2;
+        cardTypeMap.set(dc.card.cardId, priority);
+      });
+      
+      // 最初の登場順を記録
+      const firstAppearance = new Map<string, number>();
+      sectionOrder.forEach((dc, index) => {
+        if (!firstAppearance.has(dc.cid)) {
+          firstAppearance.set(dc.cid, index);
+        }
+      });
+      
+      // ソート: 1. カードタイプ順、2. 最初の登場順
+      const sorted = [...sectionOrder].sort((a, b) => {
+        const typeA = cardTypeMap.get(a.cid) || 0;
+        const typeB = cardTypeMap.get(b.cid) || 0;
+        
+        if (typeA !== typeB) {
+          return typeA - typeB;
+        }
+        
+        const firstA = firstAppearance.get(a.cid) || 0;
+        const firstB = firstAppearance.get(b.cid) || 0;
+        return firstA - firstB;
+      });
+      
+      // ciidを再計算
+      const cidCounts = new Map<string, number>();
+      sorted.forEach(dc => {
+        const count = cidCounts.get(dc.cid) || 0;
+        dc.ciid = count;
+        cidCounts.set(dc.cid, count + 1);
+      });
+      
+      displayOrder.value[section] = sorted;
+    });
+  }
+  
+  /**
+   * displayOrderをバックアップ
+   */
+  function backupDisplayOrder() {
+    displayOrderBackup.value = {
+      main: JSON.parse(JSON.stringify(displayOrder.value.main)),
+      extra: JSON.parse(JSON.stringify(displayOrder.value.extra)),
+      side: JSON.parse(JSON.stringify(displayOrder.value.side)),
+      trash: JSON.parse(JSON.stringify(displayOrder.value.trash))
+    };
+  }
+  
+  /**
+   * displayOrderをバックアップから復元
+   */
+  function restoreDisplayOrder() {
+    if (displayOrderBackup.value) {
+      displayOrder.value = displayOrderBackup.value;
+      displayOrderBackup.value = null;
+    }
   }
   
   /**
@@ -590,6 +681,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     removeCard,
     moveCard,
     reorderCard,
+    sortDisplayOrderForOfficial,
+    backupDisplayOrder,
+    restoreDisplayOrder,
     moveCardToTrash,
     moveCardToSide,
     moveCardToMainOrExtra,
