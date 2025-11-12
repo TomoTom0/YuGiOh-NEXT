@@ -4,6 +4,82 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-13: v0.3.0実装完了・PR#2マージ
+
+### Phase 3: デッキ編集UI + 多言語対応基盤
+
+#### デッキ編集UI実装
+- ✅ 基本UI実装（Vue + Pinia）
+  - DeckEditLayout.vue（メインレイアウト）
+  - DeckEditTopBar.vue（トップバー）
+  - DeckSection.vue（デッキエリア）
+  - RightArea.vue（右サイドバー）
+- ✅ カードコンポーネント
+  - DeckCard.vue（カード表示・操作）
+  - CardList.vue（カードリスト）
+  - CardDetail.vue（カード詳細）
+  - CardInfo.vue（カード情報タブ）
+  - CardQA.vue（Q&Aタブ）
+  - CardProducts.vue（収録パックタブ）
+- ✅ 状態管理（Pinia）
+  - deck-edit.ts（デッキ編集ストア）
+  - displayOrder管理（UUID付きカード配列）
+  - FLIP アニメーション対応
+- ✅ 機能実装
+  - カードドラッグ＆ドロップ
+  - カード検索（名前/属性/種族等）
+  - リスト/グリッド表示切り替え
+  - ソート機能（新しい順/古い順/名前順）
+  - デッキロード・保存
+  - カード詳細表示（Info/Related/Products/QA）
+  - 収録パック展開・折りたたみ
+  - 関連カード表示
+- ✅ UI改善
+  - レスポンシブデザイン
+  - FLIPアニメーション
+  - スクロール最適化
+  - ボタンスタイル統一
+
+#### 多言語対応基盤
+- ✅ 言語検出
+  - language-detector.ts（ページ言語自動検出）
+  - #nowlanguage要素、meta og:url、URLパラメータから検出
+- ✅ マッピングテーブル
+  - 属性・種族・エフェクトタイプのマッピング
+  - scripts/setup/generate-card-maps.ts（自動生成スクリプト）
+  - mapping-manager.ts（マッピング管理）
+- ✅ API多言語対応
+  - getCardDetail: 言語引数追加、自動検出
+  - saveDeckInternal: request_locale自動検出
+  - getDeckDetail: request_locale自動検出
+  - getDeckListInternal: request_locale自動検出
+
+#### 型定義改善
+- ✅ CardInfo型の改善
+  - imageId → ciid に統一
+  - ciid/imgs を必須化
+  - getCardImageUrl関数追加（型と密結合）
+
+#### コード品質改善（PR#2レビュー対応）
+- ✅ .gitignoreに*.dtmp追加
+- ✅ imgsパラメータ修正（ciid使用）
+- ✅ console.log削除
+- ✅ コメントアウトコード削除
+- ✅ scrollToTopをemitベースに変更（DOM依存解消）
+- ✅ sortDisplayOrderForOfficialに詳細コメント追加
+
+#### ドキュメント
+- ✅ docs/usage/index.md更新（デッキ編集画面追加）
+- ✅ docs/research/i18n-investigation.md（多言語調査）
+- ✅ docs/dev/privacy-policy.md
+
+#### リリース
+- ✅ PR#2作成・レビュー対応・マージ
+- ✅ devブランチにマージ完了
+- ✅ バージョン 0.2.1 → 0.2.2（開発版）
+
+---
+
 ## 2025-11-10 (16:51): tmp/prototype DeckCard リファクタリング
 
 ### 実施内容
