@@ -31,7 +31,7 @@
         <p class="no-card-selected">カードを選択してください</p>
       </div>
       
-      <div v-show="cardTab === 'qa'">
+      <div v-show="cardTab === 'qa'" class="tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!faqListData || !faqListData.faqs || faqListData.faqs.length === 0" class="no-data">
           Q&A情報がありません
@@ -72,7 +72,7 @@
         </div>
       </div>
       
-      <div v-show="cardTab === 'related'">
+      <div v-show="cardTab === 'related'" class="tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!detail || !detail.relatedCards || detail.relatedCards.length === 0" class="no-data">
           関連カード情報がありません
@@ -124,7 +124,7 @@
         </div>
       </div>
       
-      <div v-show="cardTab === 'products'">
+      <div v-show="cardTab === 'products'" class="tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!detail || !detail.packs || detail.packs.length === 0" class="no-data">
           収録パック情報がありません
@@ -271,29 +271,36 @@ export default {
     })
     
     const collapseQA = (index) => {
-      // 折りたたむ前の高さを記録
       const qaItem = document.querySelectorAll('.qa-item')[index]
       if (qaItem) {
         const beforeHeight = qaItem.scrollHeight
+        
+        // アニメーション用のクラスを追加
+        qaItem.classList.add('collapsing')
+        
         expandedQA.value[index] = false
         
-        // 次のフレームで高さの差分を計算してスクロール調整
-        this.$nextTick(() => {
+        // アニメーション後にスクロール調整
+        setTimeout(() => {
           const afterHeight = qaItem.scrollHeight
           const heightDiff = beforeHeight - afterHeight
           
-          // 折りたたんだ要素より下にスクロール位置がある場合、上にスクロール
           const container = qaItem.closest('.card-detail-content')
           if (container && heightDiff > 0) {
             const qaItemTop = qaItem.getBoundingClientRect().top
             const containerTop = container.getBoundingClientRect().top
             
-            // 折りたたんだ要素が表示範囲の上部にある場合のみスクロール
             if (qaItemTop < containerTop + container.clientHeight) {
-              container.scrollTop = Math.max(0, container.scrollTop - heightDiff)
+              // スムーズにスクロール
+              container.scrollTo({
+                top: Math.max(0, container.scrollTop - heightDiff),
+                behavior: 'smooth'
+              })
             }
           }
-        })
+          
+          qaItem.classList.remove('collapsing')
+        }, 300)
       }
     }
     
@@ -381,6 +388,21 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.tab-content {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card-detail-tabs {
@@ -471,6 +493,11 @@ export default {
   padding: 10px;
   background: #fafafa;
   position: relative;
+  transition: all 0.3s ease;
+  
+  &.collapsing {
+    transition: all 0.3s ease;
+  }
 }
 
 .qa-question {
@@ -516,6 +543,19 @@ export default {
 
 .qa-answer-container {
   margin-top: 8px;
+  animation: expandAnswer 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes expandAnswer {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
+  }
 }
 
 .qa-loading {
