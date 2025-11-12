@@ -82,6 +82,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * ルール: モンスター→魔法→罠、同じカードは最初の登場位置でグループ化
    */
   function sortDisplayOrderForOfficial() {
+    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+    const firstPositions = recordAllCardPositionsByUUID();
+    
     const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side'];
     
     sections.forEach(section => {
@@ -157,6 +160,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         deckInfo.value.sideDeck = newDeck;
       }
     });
+    
+    // DOM更新後にアニメーション実行
+    nextTick(() => {
+      animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side']));
+    });
   }
   
   /**
@@ -176,8 +184,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   function restoreDisplayOrder() {
     if (displayOrderBackup.value) {
+      // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+      const firstPositions = recordAllCardPositionsByUUID();
+      
       displayOrder.value = displayOrderBackup.value;
       displayOrderBackup.value = null;
+      
+      // DOM更新後にアニメーション実行
+      nextTick(() => {
+        animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side', 'trash']));
+      });
     }
   }
   
@@ -382,7 +398,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const hasMore = ref(false);
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
+    // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
+    const firstPositions = recordAllCardPositionsByUUID();
+    
     addToDisplayOrder(card, section);
+    
+    // DOM更新後にアニメーション実行
+    nextTick(() => {
+      animateCardMoveByUUID(firstPositions, new Set([section]));
+    });
   }
 
   function removeCard(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
