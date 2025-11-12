@@ -681,52 +681,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       animateCardMoveByUUID(firstPositions, new Set([from, to]));
     });
   }
-    const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
-                     from === 'extra' ? deckInfo.value.extraDeck :
-                     from === 'side' ? deckInfo.value.sideDeck :
-                     trashDeck.value;
-    
-    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
-                   to === 'extra' ? deckInfo.value.extraDeck :
-                   to === 'side' ? deckInfo.value.sideDeck :
-                   trashDeck.value;
-    
-    if (from === to) {
-      const flatFrom = fromDeck.flatMap((dc, idx) => 
-        Array(dc.quantity).fill(null).map((_, qIdx) => ({ deckCardIndex: idx, quantityIndex: qIdx, card: dc.card }))
-      );
-      
-      if (fromIndex >= 0 && fromIndex < flatFrom.length && toIndex >= 0) {
-        const sourceCard = flatFrom[fromIndex];
-        if (!sourceCard) return;
-        removeCard(sourceCard.card.cardId, from);
-        
-        const flatAfterRemove = fromDeck.flatMap((dc, idx) => 
-          Array(dc.quantity).fill(null).map((_, qIdx) => ({ deckCardIndex: idx, quantityIndex: qIdx, card: dc.card }))
-        );
-        
-        const actualToIndex = Math.min(toIndex, flatAfterRemove.length);
-        insertCard(sourceCard.card, to, actualToIndex);
-      }
-    } else {
-      const flatFrom = fromDeck.flatMap((dc, idx) => 
-        Array(dc.quantity).fill(null).map((_, qIdx) => ({ deckCardIndex: idx, quantityIndex: qIdx, card: dc.card }))
-      );
-      
-      if (fromIndex >= 0 && fromIndex < flatFrom.length) {
-        const sourceCard = flatFrom[fromIndex];
-        if (!sourceCard) return;
-        removeCard(sourceCard.card.cardId, from);
-        
-        const flatTo = toDeck.flatMap((dc, idx) => 
-          Array(dc.quantity).fill(null).map((_, qIdx) => ({ deckCardIndex: idx, quantityIndex: qIdx, card: dc.card }))
-        );
-        
-        const actualToIndex = Math.min(toIndex, flatTo.length);
-        insertCard(sourceCard.card, to, actualToIndex);
-      }
-    }
-  }
 
   function setDeckName(name: string) {
     deckInfo.value.name = name;

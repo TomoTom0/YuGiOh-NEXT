@@ -92,25 +92,19 @@ export default {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
         
-        const { sectionType: sourceSectionType, uuid: sourceUuid } = JSON.parse(data)
+        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
         
-        // 同じセクション内で最後尾に移動
         if (sourceSectionType === props.sectionType && sourceUuid) {
-          const lastCard = displayCards.value[displayCards.value.length - 1]
-          if (lastCard && lastCard.uuid !== sourceUuid) {
-            // 最後のカードの次に移動（つまり最後尾）
-            deckStore.reorderCard(sourceUuid, lastCard.uuid, props.sectionType)
-            // 追加で1つ後ろにずらす
-            nextTick(() => {
-              const sectionOrder = deckStore.displayOrder[props.sectionType]
-              const movedIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid)
-              const lastIndex = sectionOrder.length - 1
-              if (movedIndex !== -1 && movedIndex < lastIndex) {
-                const [card] = sectionOrder.splice(movedIndex, 1)
-                sectionOrder.push(card)
-              }
-            })
+          // 同じセクション内で最後尾に移動
+          const sectionOrder = deckStore.displayOrder[props.sectionType]
+          const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid)
+          if (sourceIndex !== -1 && sourceIndex !== sectionOrder.length - 1) {
+            const [movedCard] = sectionOrder.splice(sourceIndex, 1)
+            sectionOrder.push(movedCard)
           }
+        } else if (card && sourceSectionType !== props.sectionType) {
+          // 他のセクションから最後尾に移動
+          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
         }
       } catch (e) {
         console.error('End drop error:', e)
