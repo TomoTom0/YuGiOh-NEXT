@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
 import type { DeckInfo, DeckCard } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
@@ -109,14 +109,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // カード移動アニメーションをトリガー
   function triggerCardAnimation(from: string, to: string) {
     // nextTickでDOM更新後にアニメーション実行イベントを発火
-    import('vue').then(({ nextTick }) => {
-      nextTick(() => {
-        // カスタムイベントで各セクションにアニメーション実行を通知
-        const fromEvent = new CustomEvent('deck-card-moved', { detail: { section: from } });
-        const toEvent = new CustomEvent('deck-card-moved', { detail: { section: to } });
-        window.dispatchEvent(fromEvent);
-        window.dispatchEvent(toEvent);
-      });
+    nextTick(() => {
+      // カスタムイベントで各セクションにアニメーション実行を通知
+      const fromEvent = new CustomEvent('deck-card-moved', { detail: { section: from } });
+      const toEvent = new CustomEvent('deck-card-moved', { detail: { section: to } });
+      window.dispatchEvent(fromEvent);
+      window.dispatchEvent(toEvent);
     });
   }
 
