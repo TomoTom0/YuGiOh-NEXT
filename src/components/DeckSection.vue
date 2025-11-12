@@ -81,8 +81,8 @@ export default {
         console.log('Drop data received:', data)
         if (!data) return
         
-        const { sectionType: sourceSectionType, card } = JSON.parse(data)
-        console.log('Parsed:', { sourceSectionType, card: card?.name, targetSection: props.sectionType })
+        const { sectionType: sourceSectionType, card, uuid } = JSON.parse(data)
+        console.log('Parsed:', { sourceSectionType, card: card?.name, uuid, targetSection: props.sectionType })
         
         if (!card) return
         
@@ -96,8 +96,8 @@ export default {
             // Ignore drop to trash from search
           }
         } else if (sourceSectionType !== props.sectionType) {
-          console.log('Moving from', sourceSectionType, 'to', props.sectionType)
-          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType)
+          console.log('Moving from', sourceSectionType, 'to', props.sectionType, 'uuid:', uuid)
+          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, uuid)
         }
       } catch (e) {
         console.error('Drop error:', e)
