@@ -2232,3 +2232,99 @@ gh pr comment 3 --body "最新のコミット: v0.3.0リリース準備完了"
 1. Chrome/Edgeでの最終動作確認
 2. 問題なければPR#3をdevにマージ
 3. v0.3.0リリース
+
+---
+
+## 2025-11-14 05:00: ブランチ保護ルール設定完了
+
+### 実施内容
+
+**目的**: main/devブランチに保護ルールを適用し、特定のブランチからのみPRを受け付けるように設定
+
+### 実装内容
+
+#### 1. GitHub Actionsワークフロー
+- **.github/workflows/branch-protection.yml**
+  - mainへのPR: devブランチからのみ許可
+  - devへのPR: feature/fix/docs/refactor/testブランチからのみ許可
+  - ポリシー違反時はワークフロー失敗→マージ不可
+
+#### 2. ブランチ保護設定スクリプト
+- **scripts/setup/setup-branch-protection.sh**
+  - GitHub REST APIを使用してブランチ保護を設定
+  - main/devブランチに適用
+
+#### 3. 保護ルール詳細
+
+**mainブランチ（最も厳格）**:
+- PR必須（直接push禁止）
+- devからのPRのみ（GitHub Actions強制）
+- ステータスチェック必須: check-branch-policy
+- 署名済みコミット必須
+- force push禁止
+- 削除禁止
+- 管理者も従う（enforce_admins: true）
+- 会話解決必須
+
+**devブランチ（中程度）**:
+- PR必須（直接push禁止）
+- feature/fix/docs/refactor/testからのPRのみ（GitHub Actions強制）
+- ステータスチェック必須: check-branch-policy
+- 署名済みコミット必須
+- force push禁止
+- 削除禁止
+- 会話解決必須
+
+#### 4. ドキュメント
+- **docs/dev/branch-protection.md**
+  - ブランチ戦略の説明
+  - 保護ルール詳細
+  - 設定方法
+  - 署名済みコミットの設定手順
+
+### 技術的な工夫
+
+#### ブランチ制限の実現方法
+- GitHub APIではベースブランチ制限を直接設定できない
+- **GitHub Actions + ステータスチェック**で実現
+  1. PRが作成されるとワークフローが実行
+  2. baseブランチとheadブランチを検証
+  3. ポリシー違反→ワークフロー失敗
+  4. ステータスチェック必須設定により、失敗時はマージ不可
+
+#### APIパラメータ形式
+- 当初`-f`フラグでJSON文字列を渡して失敗
+- `--input -`でHeredoc形式に修正して成功
+
+### 実行結果
+
+```bash
+./scripts/setup/setup-branch-protection.sh
+```
+
+**mainブランチ**:
+- required_status_checks: ✓ (strict: true, contexts: ["check-branch-policy"])
+- required_signatures: ✓
+- enforce_admins: ✓
+- required_conversation_resolution: ✓
+- allow_force_pushes: ✗
+- allow_deletions: ✗
+
+**devブランチ**:
+- required_status_checks: ✓ (strict: true, contexts: ["check-branch-policy"])
+- required_signatures: ✓
+- enforce_admins: ✗（緊急時の対応を可能にする）
+- required_conversation_resolution: ✓
+- allow_force_pushes: ✗
+- allow_deletions: ✗
+
+### コミット
+
+- e300252: "ci: add branch protection rules and workflow"
+- 750117c: "fix(ci): fix branch protection script JSON format"
+
+### 次のステップ
+
+- PR#3のレビュー結果確認
+- 問題なければdevにマージ
+- devからmainへのPR作成（この時点でブランチ保護が動作開始）

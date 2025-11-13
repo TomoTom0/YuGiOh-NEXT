@@ -86,7 +86,9 @@
 - [x] CHANGELOG作成（docs/changelog/v0.3.0.md, docs/changelog/index.md）
 - [x] ドキュメント絵文字削除（changelog/index.md, changelog/v0.3.0.md）
 - [x] オプションページに独自デッキ編集画面の画像追加（3枚）
+- [x] ブランチ保護ルール設定（main/dev）
 - [ ] 最終動作確認（Chrome/Edge）
+- [ ] PR#3レビュー結果確認
 
 ---
 
