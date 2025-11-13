@@ -25,9 +25,9 @@
           </div>
           <div class="qa-footer">
             <button
-              v-if="!expandedQA[index]"
+              v-if="!expandedQA[qa.faqId]"
               class="qa-expand-btn"
-              @click="expandQA(qa.faqId, index)"
+              @click="expandQA(qa.faqId)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
@@ -36,11 +36,11 @@
             <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
           </div>
           <transition name="qa-expand">
-            <div v-if="expandedQA[index]" class="qa-answer-container">
-              <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
-              <div v-else-if="qaAnswers[index]" class="qa-answer">
+            <div v-if="expandedQA[qa.faqId]" class="qa-answer-container">
+              <div v-if="loadingQA[qa.faqId]" class="qa-loading">読み込み中...</div>
+              <div v-else-if="qaAnswers[qa.faqId]" class="qa-answer">
                 A:
-                <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[index])" :key="partIndex">
+                <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[qa.faqId])" :key="partIndex">
                   <span
                     v-if="part.type === 'link'"
                     class="card-link"
@@ -52,7 +52,7 @@
                 </template>
                 <button
                   class="qa-collapse-btn-sticky"
-                  @click="collapseQA(index)"
+                  @click="collapseQA(qa.faqId)"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M19,13H5V11H19V13Z" />
@@ -156,46 +156,60 @@ export default {
       }
     }
 
-    const expandQA = async (faqId, index) => {
-      if (qaAnswers.value[index]) {
-        expandedQA.value[index] = true
+    const expandQA = async (faqId) => {
+      // 既にキャッシュがある場合は再取得せずに展開
+      if (qaAnswers.value[faqId]) {
+        expandedQA.value[faqId] = true
         return
       }
 
-      loadingQA.value[index] = true
-      expandedQA.value[index] = true
+      loadingQA.value[faqId] = true
+      expandedQA.value[faqId] = true
 
       try {
         const faqDetail = await getFAQDetail(faqId)
-        qaAnswers.value[index] = faqDetail.answer
+        qaAnswers.value[faqId] = faqDetail.answer
       } catch (error) {
         console.error('FAQ詳細の取得に失敗しました:', error)
-        qaAnswers.value[index] = 'エラーが発生しました'
+        qaAnswers.value[faqId] = 'エラーが発生しました'
       } finally {
-        loadingQA.value[index] = false
+        loadingQA.value[faqId] = false
       }
     }
 
-    const collapseQA = (index) => {
-      const qaItem = document.querySelectorAll('.qa-item')[index]
-      if (!qaItem) {
-        expandedQA.value[index] = false
+    const collapseQA = (faqId) => {
+      // faqIdから該当のDOM要素を見つける
+      const qaItems = document.querySelectorAll('.qa-item')
+      let targetItem = null
+
+      qaItems.forEach((item) => {
+        const btn = item.querySelector('.qa-collapse-btn-sticky')
+        if (btn && btn.closest('.qa-item') === item) {
+          // このアイテムが展開されているか確認
+          if (expandedQA.value[faqId]) {
+            targetItem = item
+          }
+        }
+      })
+
+      if (!targetItem) {
+        expandedQA.value[faqId] = false
         return
       }
 
-      const qaAnswer = qaItem.querySelector('.qa-answer')
+      const qaAnswer = targetItem.querySelector('.qa-answer')
       if (!qaAnswer) {
-        expandedQA.value[index] = false
+        expandedQA.value[faqId] = false
         return
       }
 
       const heightDiff = qaAnswer.offsetHeight
-      expandedQA.value[index] = false
+      expandedQA.value[faqId] = false
 
       setTimeout(() => {
-        const container = qaItem.closest('.card-tab-content')
+        const container = targetItem.closest('.card-tab-content')
         if (container && heightDiff > 0) {
-          const qaItemTop = qaItem.getBoundingClientRect().top
+          const qaItemTop = targetItem.getBoundingClientRect().top
           const containerTop = container.getBoundingClientRect().top
 
           if (qaItemTop < containerTop + container.clientHeight) {
