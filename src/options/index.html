@@ -3,23 +3,431 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yu-Gi-Oh! Deck Helper - 設定</title>
+  <title>Yugioh Neuron Helper - 設定</title>
   <style>
     * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      box-sizing: border-box;
     }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .version {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fafafa;
+    }
+
+    .tab {
+      padding: 16px 24px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: #666;
+      transition: all 0.2s;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab:hover {
+      background: #f0f0f0;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 24px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .feature-section {
+      margin-bottom: 32px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .feature-section:last-child {
+      border-bottom: none;
+    }
+
+    h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 16px;
+      color: #555;
+      margin: 16px 0 12px;
+    }
+
+    .feature-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #667eea;
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(24px);
+    }
+
+    .description {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .feature-image {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      border-radius: 4px;
+      margin: 16px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .feature-gif {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      border-radius: 4px;
+      margin: 16px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+
+    .setting-label {
+      font-size: 14px;
+      color: #333;
+    }
+
+    select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .info-box {
+      background: #e8eaf6;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      margin: 16px 0;
+      border-radius: 4px;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="container">
+    <header>
+      <h1>Yugioh Neuron Helper</h1>
+      <div class="version">バージョン: <span id="version">0.3.0</span></div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="omit">Omit and Usage</button>
+      <button class="tab" data-tab="deck-edit">Deck Edit Settings</button>
+      <button class="tab" data-tab="general">General</button>
+    </div>
+
+    <!-- Omit and Usage Tab -->
+    <div class="tab-content active" id="omit-tab">
+      <div class="feature-section">
+        <div class="feature-header">
+          <h2>独自デッキ編集画面</h2>
+          <label class="toggle-switch">
+            <input type="checkbox" id="omit-deck-edit" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="description">
+          独自デッキ編集画面（#/ytomo/edit）の有効/無効を切り替えます。無効にすると、独自デッキ編集画面へのアクセスができなくなります。
+        </p>
+        <div class="info-box">
+          <p><strong>URL:</strong> https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</p>
+        </div>
+      </div>
+
+      <div class="feature-section">
+        <h2>デッキ表示ページの機能</h2>
+        
+        <h3>シャッフル・ソート・固定機能</h3>
+        <div class="feature-header">
+          <p class="description" style="margin: 0;">デッキのカードをシャッフル、元に戻す、固定する機能</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="omit-shuffle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <img src="images/shuffle-sort-animation.gif" alt="シャッフル機能デモ" class="feature-gif">
+        
+        <h3>デッキ画像作成機能</h3>
+        <div class="feature-header">
+          <p class="description" style="margin: 0;">デッキレシピ画像を作成してダウンロードする機能</p>
+          <label class="toggle-switch">
+            <input type="checkbox" id="omit-deck-image" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <img src="images/deck-recipe-sample.png" alt="デッキ画像見本" class="feature-image">
+      </div>
+    </div>
+
+    <!-- Deck Edit Settings Tab -->
+    <div class="tab-content" id="deck-edit-tab">
+      <div class="feature-section">
+        <h2>基本設定</h2>
+        
+        <div class="setting-row">
+          <span class="setting-label">独自デッキ編集画面を有効化</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="enable-deck-edit" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="feature-section">
+        <h2>表示設定</h2>
+        
+        <div class="setting-row">
+          <span class="setting-label">デフォルト表示モード</span>
+          <select id="default-view-mode">
+            <option value="list">リスト表示</option>
+            <option value="grid">グリッド表示</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">デフォルトソート順</span>
+          <select id="default-sort-order">
+            <option value="official">公式並び順</option>
+            <option value="name">カード名順</option>
+            <option value="level">レベル/ランク順</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">アニメーションを有効化</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="enable-animation" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="feature-section">
+        <h2>言語設定</h2>
+        
+        <div class="setting-row">
+          <span class="setting-label">カード情報取得言語</span>
+          <select id="card-language">
+            <option value="auto">自動検出</option>
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <div class="info-box">
+          <p>自動検出では、アクセスしているページの言語に合わせてカード情報を取得します。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- General Tab -->
+    <div class="tab-content" id="general-tab">
+      <div class="feature-section">
+        <h2>バージョン情報</h2>
+        <p class="description">
+          現在インストールされている拡張機能のバージョンです。
+        </p>
+        <div class="info-box">
+          <p><strong>バージョン:</strong> <span id="version-display">0.3.0</span></p>
+          <p><strong>名前:</strong> Yugioh Neuron Helper</p>
+          <p><strong>説明:</strong> 遊戯王カードデータベースのデッキ管理を支援する拡張機能</p>
+        </div>
+      </div>
+
+      <div class="feature-section">
+        <h2>テスト機能</h2>
+        <p class="description">
+          拡張機能の全API機能をテストできるページを開きます。
+        </p>
+        <a href="https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test" target="_blank" style="text-decoration: none;">
+          <button style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+            テストページを開く
+          </button>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // マニフェストからバージョンを取得
+    const manifest = chrome.runtime.getManifest();
+    document.getElementById('version').textContent = manifest.version;
+    document.getElementById('version-display').textContent = manifest.version;
+
+    // タブ切り替え
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        tab.classList.add('active');
+        document.getElementById(tabName + '-tab').classList.add('active');
+      });
+    });
+
+    // 設定の読み込みと保存
+    function loadSettings() {
+      chrome.storage.sync.get({
+        omitDeckEdit: false,
+        omitShuffle: false,
+        omitDeckImage: false,
+        enableDeckEdit: true,
+        defaultViewMode: 'list',
+        defaultSortOrder: 'official',
+        enableAnimation: true,
+        cardLanguage: 'auto'
+      }, (items) => {
+        document.getElementById('omit-deck-edit').checked = !items.omitDeckEdit;
+        document.getElementById('omit-shuffle').checked = !items.omitShuffle;
+        document.getElementById('omit-deck-image').checked = !items.omitDeckImage;
+        document.getElementById('enable-deck-edit').checked = items.enableDeckEdit;
+        document.getElementById('default-view-mode').value = items.defaultViewMode;
+        document.getElementById('default-sort-order').value = items.defaultSortOrder;
+        document.getElementById('enable-animation').checked = items.enableAnimation;
+        document.getElementById('card-language').value = items.cardLanguage;
+      });
+    }
+
+    function saveSettings() {
+      const settings = {
+        omitDeckEdit: !document.getElementById('omit-deck-edit').checked,
+        omitShuffle: !document.getElementById('omit-shuffle').checked,
+        omitDeckImage: !document.getElementById('omit-deck-image').checked,
+        enableDeckEdit: document.getElementById('enable-deck-edit').checked,
+        defaultViewMode: document.getElementById('default-view-mode').value,
+        defaultSortOrder: document.getElementById('default-sort-order').value,
+        enableAnimation: document.getElementById('enable-animation').checked,
+        cardLanguage: document.getElementById('card-language').value
+      };
+
+      chrome.storage.sync.set(settings);
+    }
+
+    // イベントリスナー
+    document.querySelectorAll('input, select').forEach(element => {
+      element.addEventListener('change', saveSettings);
+    });
+
+    // 初期読み込み
+    loadSettings();
+  </script>
 </body>
 </html>
