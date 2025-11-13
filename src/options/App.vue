@@ -149,7 +149,11 @@ const deckEditFeature = reactive<Feature>({
   id: 'deck-edit',
   name: '独自デッキ編集画面',
   description: 'カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。デッキの読み込み・保存、ドラッグ＆ドロップによる編集、レスポンシブデザインに対応しています。',
-  images: [],
+  images: [
+    { src: '/images/deck-edit-initial-state.png', alt: 'デッキ編集画面の全体UI（初期状態）' },
+    { src: '/images/deck-edit-search-function.png', alt: 'カード検索機能（リスト表示・ソート）' },
+    { src: '/images/deck-edit-card-detail-info.png', alt: 'カード詳細表示（Infoタブ）' }
+  ],
   usage: `
     <h5>主な機能</h5>
     <ul>
@@ -158,6 +162,11 @@ const deckEditFeature = reactive<Feature>({
       <li><strong>デッキ編集</strong>: ドラッグ＆ドロップでカードを追加・移動。Main/Extra/Sideで同じカードは合計3枚まで。</li>
       <li><strong>カード詳細表示</strong>: Info/QA/Related/Productsタブで詳細情報を確認。</li>
       <li><strong>レスポンシブデザイン</strong>: デスクトップ/モバイル両対応。</li>
+    </ul>
+    <h5>アクセス方法</h5>
+    <ul>
+      <li>URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></li>
+      <li>デッキ表示ページから「編集」ボタンでアクセス可能です。</li>
     </ul>
   `,
   enabled: true

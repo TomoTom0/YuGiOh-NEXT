@@ -20,11 +20,11 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードをロックして、シャッフルの影響を受けないように固定することもできます。
 
-![シャッフル・ソート・固定機能のデモ](./images/shuffle-sort-animation.gif)
+![シャッフル・ソート・固定機能のデモ](./images/shuffle-sort/shuffle-sort-animation.gif)
 
 ##### ボタン
 
-![シャッフル・ソートボタン](./images/shuffle-sort-buttons.png)
+![シャッフル・ソートボタン](./images/shuffle-sort/shuffle-sort-buttons.png)
 
 **シャッフルボタン**
 - **位置**: メインデッキの枚数表示の左側
@@ -52,14 +52,14 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 **カードをロックする（先頭固定）**
 
-![カードのロック機能（クリック位置）](./images/card-lock-feature.png)
+![カードのロック機能（クリック位置）](./images/shuffle-sort/card-lock-feature.png)
 
 1. カード画像の右上1/4のエリアをクリック
 2. カードがロック状態になり、以下の表示になります：
    - 薄い青緑色の背景
    - 右上に南京錠アイコン（青緑線・黒グレー縁取り）
 
-![カードがロックされた状態](./images/card-locked-state.png)
+![カードがロックされた状態](./images/shuffle-sort/card-locked-state.png)
 
 3. ロックされたカードはデッキの先頭に移動し、シャッフル時も順序が保持されます
 4. もう一度右上1/4のエリアをクリックするとロックが解除されます
@@ -76,7 +76,7 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 ##### ボタン
 
-![デッキ画像作成ボタン](./images/deck-image-button.png)
+![デッキ画像作成ボタン](./images/deck-image/deck-image-button.png)
 
 **デッキ画像作成ボタン**
 - **位置**: ページ下部の `#bottom_btn_set` エリア（右端）
@@ -140,7 +140,7 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 デッキ画像作成ボタンをクリックすると表示されるダイアログの詳細です。
 
-![デッキ画像作成ダイアログのデモ](./images/deck-image-dialog.gif)
+![デッキ画像作成ダイアログのデモ](./images/deck-image/deck-image-dialog.gif)
 
 ### オプション（設定項目）
 
@@ -158,7 +158,7 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 | 赤背景 | 青背景 |
 |--------|--------|
-| ![赤背景](./images/image-dialog-color-red.png) | ![青背景](./images/image-dialog-color-blue.png) |
+| ![赤背景](./images/deck-image/image-dialog-color-red.png) | ![青背景](./images/deck-image/image-dialog-color-blue.png) |
 
 **プレビュー画像**
 - **位置**: ダイアログ中央
@@ -178,11 +178,11 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 | QR ON | QR OFF |
 |-------|--------|
-| ![QR ON](./images/image-dialog-qr-on.png) | ![QR OFF](./images/image-dialog-qr-off.png) |
+| ![QR ON](./images/deck-image/image-dialog-qr-on.png) | ![QR OFF](./images/deck-image/image-dialog-qr-off.png) |
 
 **ダウンロードボタン**
 
-![ダウンロードボタン](./images/image-dialog-download-button.png)
+![ダウンロードボタン](./images/deck-image/image-dialog-download-button.png)
 
 - **位置**: ダイアログ左下
 - **アイコン**: ダウンロードアイコン
@@ -248,5 +248,5 @@ Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理
 
 ## バージョン情報
 
-- **現在のバージョン**: 0.2.0
+- **現在のバージョン**: 0.3.0
 - **対応ブラウザ**: Google Chrome, Chromium（Manifest V3対応）

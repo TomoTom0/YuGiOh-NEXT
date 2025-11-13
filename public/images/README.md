@@ -1,88 +1,41 @@
-# 使い方ドキュメント用画像
+# public/images/ ディレクトリ
 
-## 画像一覧（予定）
+このディレクトリには、Vueビルドシステム（オプションページ）で使用する画像のシンボリックリンクが格納されています。
 
-### デッキ表示ページ
+## シンボリックリンク構造
 
-#### 1. `deck-display-page-overview.png`
-- **内容**: デッキ表示ページ全体
-- **撮影位置**: デッキ表示ページ全体のスクリーンショット
-- **目的**: ページの全体像を把握
-- **参照URL**: tests/sample/url.md の公開デッキURL
+実際の画像ファイルは `docs/usage/images/` に格納されており、このディレクトリにはシンボリックリンクのみが配置されています。
 
-#### 2. `shuffle-sort-buttons.png`
-- **内容**: シャッフルボタンとソートボタン
-- **撮影位置**: メインデッキのタイトル部分（「メイン（XX枚）」の左側）
-- **目的**: カードシャッフル機能のボタン位置を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+```
+public/images/
+├── shuffle-sort-animation.gif -> ../../docs/usage/images/shuffle-sort/shuffle-sort-animation.gif
+├── deck-recipe-sample.png -> ../../docs/usage/images/deck-image/deck-recipe-sample.png
+├── deck-edit-initial-state.png -> ../../docs/usage/images/deck-edit/01-initial-state.png
+├── deck-edit-search-function.png -> ../../docs/usage/images/deck-edit/07-search-function.png
+└── deck-edit-card-detail-info.png -> ../../docs/usage/images/deck-edit/03-card-detail-info.png
+```
 
-#### 3. `deck-image-button.png`
-- **内容**: デッキ画像作成ボタン
-- **撮影位置**: ページ下部の `#bottom_btn_set` エリア（右端のカメラアイコンボタン）
-- **目的**: デッキ画像作成機能のボタン位置を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+## 使用箇所
 
-#### 4. `card-lock-feature.png`
-- **内容**: カードのロック機能（sortfix）
-- **撮影位置**: カード画像の右上1/4エリアにカーソルを置いた状態
-- **目的**: ロック機能の操作方法を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+これらの画像は `src/options/App.vue` で使用されています：
 
-#### 5. `card-locked-state.png`
-- **内容**: ロックされたカード
-- **撮影位置**: ロック状態のカード（薄い青緑背景、右上に南京錠アイコン）
-- **目的**: ロック時の視覚的フィードバックを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+- **shuffle-sort-animation.gif**: シャッフル・ソート・固定機能のデモ
+- **deck-recipe-sample.png**: デッキ画像作成機能の見本
+- **deck-edit-initial-state.png**: デッキ編集画面の全体UI
+- **deck-edit-search-function.png**: カード検索機能
+- **deck-edit-card-detail-info.png**: カード詳細表示
 
-### デッキ画像作成ダイアログ
+## 新しい画像の追加方法
 
-#### 6. `image-dialog-overview.png`
-- **内容**: デッキ画像作成ダイアログ全体
-- **撮影位置**: ダイアログが表示された状態
-- **目的**: ダイアログの全体像を把握
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+1. 実際の画像ファイルを `docs/usage/images/` の適切なサブディレクトリに配置
+2. このディレクトリにシンボリックリンクを作成：
+   ```bash
+   ln -s ../../docs/usage/images/サブディレクトリ/ファイル名.png public/images/リンク名.png
+   ```
+3. `src/options/App.vue` で `/images/リンク名.png` として参照
 
-#### 7. `image-dialog-deck-name.png`
-- **内容**: デッキ名入力欄
-- **撮影位置**: ダイアログ上部のデッキ名入力欄
-- **目的**: デッキ名編集機能を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+## 注意事項
 
-#### 8. `image-dialog-color-red.png`
-- **内容**: 赤背景のプレビュー画像
-- **撮影位置**: ダイアログ中央のプレビュー画像（赤背景）
-- **目的**: 赤背景オプションを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
-
-#### 9. `image-dialog-color-blue.png`
-- **内容**: 青背景のプレビュー画像
-- **撮影位置**: ダイアログ中央のプレビュー画像（青背景）
-- **目的**: 青背景オプションを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後、全体クリックで切り替え）
-
-#### 10. `image-dialog-qr-on.png`
-- **内容**: QRトグルボタン（ON状態）
-- **撮影位置**: ダイアログ右下のQRボタン（青色）
-- **目的**: QRコードON状態を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
-
-#### 11. `image-dialog-qr-off.png`
-- **内容**: QRトグルボタン（OFF状態）
-- **撮影位置**: ダイアログ右下のQRボタン（グレー）
-- **目的**: QRコードOFF状態を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後、QRボタンクリック）
-
-#### 12. `image-dialog-download-button.png`
-- **内容**: ダウンロードボタン
-- **撮影位置**: ダイアログ左下のダウンロードボタン
-- **目的**: ダウンロード機能を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
-
----
-
-## 撮影時の注意事項
-
-- すべての画像は tests/sample/url.md に記載された公開デッキURLを使用
-- 画像フォーマット: PNG
-- 解像度: 実際のブラウザ表示サイズ
-- ボタンやUI要素が明確に見えるように撮影
+- このディレクトリには直接画像ファイルを配置しないこと（シンボリックリンクのみ）
+- 画像の単一ソースは `docs/usage/images/` であることを維持
+- ビルド時、Webpackはシンボリックリンクを追跡して実際のファイルを `dist/images/` にコピーします
