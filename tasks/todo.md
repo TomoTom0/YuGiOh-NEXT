@@ -46,8 +46,8 @@
   - [x] カードタイプ・属性・種族マッピング確認
 
 #### フェーズ3: 既存テスト修正
-- [ ] card-search.test.ts（ciid/imgs必須化対応）
-- [ ] deck-detail.test.ts（多言語対応確認）
+- [x] card-search.test.ts（ciid/imgs必須化対応） ✅
+- [x] deck-detail.test.ts（多言語対応・ciid/imgs確認） ✅
 
 ### 必須タスク（リリースブロッカー）
 
