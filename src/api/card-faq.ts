@@ -41,31 +41,59 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     const titleElem = doc.querySelector('title');
     const title = titleElem?.textContent || '';
     const cardName = title.split('|')[0]?.trim() || '';
-    
-    // カードテキストを取得
-    const cardTextElem = doc.querySelector('.cardtext, .card_text');
-    const cardText = cardTextElem?.textContent?.trim() || undefined;
-    
-    // 補足情報を取得
-    const supplementElem = doc.querySelector('.supplement');
+
+    // 補足情報を取得（カードテキスト用）
     let supplementInfo: string | undefined = undefined;
     let supplementDate: string | undefined = undefined;
-    
-    if (supplementElem) {
+
+    // 補足情報を取得（ペンデュラムテキスト用）
+    let pendulumSupplementInfo: string | undefined = undefined;
+    let pendulumSupplementDate: string | undefined = undefined;
+
+    // 全ての.supplement要素を取得
+    const supplementElems = doc.querySelectorAll('.supplement');
+
+    supplementElems.forEach(supplementElem => {
+      // テキスト要素のIDで判別
+      const textElem = supplementElem.querySelector('.text');
+      if (!textElem) return;
+
+      const textId = textElem.id;
+
       // 日付を取得
       const dateElem = supplementElem.querySelector('.title .update');
-      supplementDate = dateElem?.textContent?.trim() || undefined;
-      
-      // テキストを取得（改行を保持）
-      const textElem = supplementElem.querySelector('.text');
-      if (textElem) {
-        const cloned = textElem.cloneNode(true) as HTMLElement;
-        cloned.querySelectorAll('br').forEach(br => {
-          br.replaceWith('\n');
-        });
-        supplementInfo = cloned.textContent?.trim() || undefined;
+      const date = dateElem?.textContent?.trim() || undefined;
+
+      // テキストを取得（改行を保持、カードリンクをテンプレート形式に変換）
+      const cloned = textElem.cloneNode(true) as HTMLElement;
+      cloned.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
+      });
+
+      // カードリンクを{{カード名|cid}}形式に変換
+      cloned.querySelectorAll('a[href*="cid="]').forEach(link => {
+        const href = link.getAttribute('href') || '';
+        const match = href.match(/[?&]cid=(\d+)/);
+        if (match && match[1]) {
+          const cardId = match[1];
+          const cardLinkName = link.textContent?.trim() || '';
+          link.replaceWith(`{{${cardLinkName}|${cardId}}}`);
+        }
+      });
+
+      const text = cloned.textContent?.trim() || undefined;
+
+      // IDで判別して適切なフィールドに格納
+      if (textId === 'pen_supplement') {
+        // ペンデュラムテキストの補足情報
+        pendulumSupplementInfo = text;
+        pendulumSupplementDate = date;
+      } else if (textId === 'supplement') {
+        // カードテキストの補足情報
+        supplementInfo = text;
+        supplementDate = date;
       }
-    }
+    });
 
     // FAQ一覧をパース
     const faqs: CardFAQ[] = [];
@@ -110,9 +138,10 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     return {
       cardId,
       cardName,
-      cardText,
       supplementInfo,
       supplementDate,
+      pendulumSupplementInfo,
+      pendulumSupplementDate,
       faqs
     };
   } catch (error) {
