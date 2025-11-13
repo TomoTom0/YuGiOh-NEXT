@@ -90,7 +90,15 @@
 - [x] PR#3レビュー結果確認・対応完了
   - [x] レビューコメント#1: CHANGELOG.mdプレースホルダーURL修正
   - [x] レビューコメント#2: テストフレームワークvitest統一
+- [x] PR#3マージ（feature/v0.3.0-tests → dev）
+- [x] devブランチをpull
+- [x] PR#4作成（dev → main）
+  - [x] v0.3.0リリースPR作成
+  - [x] 主な変更点を網羅的に記載
+  - [x] URL: https://github.com/TomoTom0/ygo-neuron-helper/pull/4
 - [ ] 最終動作確認（Chrome/Edge）
+- [ ] PR#4マージ（dev → main）
+- [ ] v0.3.0タグ作成
 
 ---
 

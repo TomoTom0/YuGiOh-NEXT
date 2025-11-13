@@ -4,6 +4,23 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-14: v0.3.0リリースPR作成完了
+
+### PR#4作成（dev → main）
+- ✅ v0.3.0リリースPRを作成 (PR#4)
+  - タイトル: "Release v0.3.0: デッキ編集機能と多言語対応基盤"
+  - 主な変更点を網羅的に記載
+  - CHANGELOG.mdベースのリリースノート
+  - URL: https://github.com/TomoTom0/ygo-neuron-helper/pull/4
+- ✅ PR#3マージ済み（feature/v0.3.0-tests → dev）
+  - レビューコメント対応完了
+  - 2件の指摘に返信投稿
+- ✅ devブランチをpull
+
+**タイムスタンプ**: 2025-11-14 05:43
+
+---
+
 ## 2025-11-14: PR#3レビュー対応完了
 
 ### レビューコメント対応
