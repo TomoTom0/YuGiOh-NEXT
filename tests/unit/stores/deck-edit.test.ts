@@ -210,7 +210,44 @@ const sampleFusion: CardInfo = {
   });
 
   // ===== 枚数制限チェックテスト =====
-  // Note: canAddCardがstoreにexportされていないため、スキップ
+
+  await test('addCard: 3枚制限（main/extra/side合計）', () => {
+    const store = useDeckEditStore();
+    
+    // メインに2枚追加
+    store.addCard(sampleMonster, 'main');
+    store.addCard(sampleMonster, 'main');
+    assertEquals(store.deckInfo.mainDeck[0]?.quantity, 2, 'メインに2枚');
+    
+    // サイドに1枚追加
+    store.addCard(sampleMonster, 'side');
+    assertEquals(store.deckInfo.sideDeck[0]?.quantity, 1, 'サイドに1枚');
+    
+    // 合計3枚なので、4枚目は追加されない
+    store.addCard(sampleMonster, 'main');
+    assertEquals(store.deckInfo.mainDeck[0]?.quantity, 2, 'メインは2枚のまま');
+    
+    // 別のセクションへの追加も無効
+    store.addCard(sampleMonster, 'extra');
+    assertEquals(store.deckInfo.extraDeck.length, 0, 'エクストラには追加されない');
+  });
+
+  await test('addCard: 3枚制限（異なるセクションでの分散）', () => {
+    const store = useDeckEditStore();
+    
+    // main, extra, sideに1枚ずつ
+    store.addCard(sampleMonster, 'main');
+    store.addCard(sampleMonster, 'extra');
+    store.addCard(sampleMonster, 'side');
+    
+    assertEquals(store.deckInfo.mainDeck[0]?.quantity, 1, 'メインに1枚');
+    assertEquals(store.deckInfo.extraDeck[0]?.quantity, 1, 'エクストラに1枚');
+    assertEquals(store.deckInfo.sideDeck[0]?.quantity, 1, 'サイドに1枚');
+    
+    // 4枚目は追加されない
+    store.addCard(sampleMonster, 'main');
+    assertEquals(store.deckInfo.mainDeck[0]?.quantity, 1, 'メインは1枚のまま');
+  });
 
   // ===== ソート機能テスト =====
 
