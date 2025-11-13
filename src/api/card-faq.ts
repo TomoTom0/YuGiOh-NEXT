@@ -122,6 +122,44 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
 }
 
 /**
+ * HTMLElement内のカードリンクを {{カード名|cid}} 形式のテンプレートに変換
+ *
+ * @param element 変換対象のHTMLElement
+ * @returns 変換後のテキスト
+ *
+ * @example
+ * ```html
+ * <div>「<a href="faq_search.action?ope=4&cid=5533">王家の眠る谷－ネクロバレー</a>」の効果</div>
+ * ```
+ * ↓
+ * ```
+ * 「{{王家の眠る谷－ネクロバレー|5533}}」の効果
+ * ```
+ */
+function convertCardLinksToTemplate(element: HTMLElement): string {
+  const cloned = element.cloneNode(true) as HTMLElement;
+
+  // <br>を改行に変換
+  cloned.querySelectorAll('br').forEach(br => {
+    br.replaceWith('\n');
+  });
+
+  // カードリンク <a href="...?cid=5533">カード名</a> を {{カード名|5533}} に変換
+  cloned.querySelectorAll('a[href*="cid="]').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    const match = href.match(/[?&]cid=(\d+)/);
+    if (match && match[1]) {
+      const cardId = match[1];
+      const cardName = link.textContent?.trim() || '';
+      // {{カード名|cid}} 形式に変換
+      link.replaceWith(`{{${cardName}|${cardId}}}`);
+    }
+  });
+
+  return cloned.textContent?.trim() || '';
+}
+
+/**
  * 個別QA詳細を取得する
  *
  * @param faqId FAQ ID (fid)
@@ -132,6 +170,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
  * const faq = await getFAQDetail('115');
  * console.log('Q:', faq.question);
  * console.log('A:', faq.answer);
+ * // 質問や回答に含まれるカードリンクは {{カード名|cid}} 形式で保存される
  * ```
  */
 export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
@@ -156,24 +195,22 @@ export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // 質問文を取得（#question_text から）
+    // 質問文を取得（#question_text から）カードリンクをテンプレート形式に変換
     const questionElem = doc.querySelector('#question_text');
-    const question = questionElem?.textContent?.trim();
-
-    if (!question) {
+    if (!questionElem) {
       return null; // 質問が取得できない場合は失敗
     }
+    const question = convertCardLinksToTemplate(questionElem as HTMLElement);
 
-    // 回答を取得（#answer_text から）改行を保持
+    if (!question) {
+      return null;
+    }
+
+    // 回答を取得（#answer_text から）カードリンクをテンプレート形式に変換
     const answerElem = doc.querySelector('#answer_text');
     let answer = '';
     if (answerElem) {
-      // <br>を改行に変換
-      const cloned = answerElem.cloneNode(true) as HTMLElement;
-      cloned.querySelectorAll('br').forEach(br => {
-        br.replaceWith('\n');
-      });
-      answer = cloned.textContent?.trim() || '';
+      answer = convertCardLinksToTemplate(answerElem as HTMLElement);
     }
 
     // 更新日を取得（オプション）
