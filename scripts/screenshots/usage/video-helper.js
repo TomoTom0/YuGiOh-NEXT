@@ -81,6 +81,23 @@ function connectCDP() {
         clip.width = Math.floor(clip.width / 2) * 2;
         clip.height = Math.floor(clip.height / 2) * 2;
         console.log(`Clip: x=${clip.x}, y=${clip.y}, width=${clip.width}, height=${clip.height}`);
+      } else {
+        // 全画面録画の場合、ビューポートサイズを取得して偶数に調整
+        const viewport = await this.evaluate(`
+          (() => {
+            return {
+              width: window.innerWidth,
+              height: window.innerHeight
+            };
+          })()
+        `);
+        clip = {
+          x: 0,
+          y: 0,
+          width: Math.floor(viewport.width / 2) * 2,
+          height: Math.floor(viewport.height / 2) * 2
+        };
+        console.log(`Full screen (adjusted): width=${clip.width}, height=${clip.height}`);
       }
 
       const frameInterval = 1000 / fps; // ミリ秒
@@ -138,8 +155,7 @@ function connectCDP() {
       await execAsync(cmd);
 
       // 一時ファイル削除
-      frames.forEach(frame => fs.unlinkSync(frame));
-      fs.rmdirSync(tempDir);
+      fs.rmSync(tempDir, { recursive: true, force: true });
 
       console.log(`✅ Video saved: ${outputPath}`);
       return outputPath;

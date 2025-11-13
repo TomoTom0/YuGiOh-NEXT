@@ -1,6 +1,9 @@
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // DOMParserをモックするため、JSDOMのwindow.DOMParserを使用
 global.DOMParser = (new JSDOM()).window.DOMParser as any;

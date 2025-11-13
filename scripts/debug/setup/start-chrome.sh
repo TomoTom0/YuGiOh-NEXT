@@ -34,6 +34,7 @@ else
     --no-default-browser-check \
     --enable-logging=stderr \
     --v=1 \
+    --window-size=1280,900 \
     > "${CHROME_LOG}" 2>&1 &
   
   # 起動を待つ
