@@ -182,6 +182,49 @@ node scripts/screenshots/usage/record-dialog.js
 node scripts/screenshots/usage/record-all-videos.js
 ```
 
+### v0.3.0 用スクリプト
+
+#### `record-deck-edit.js`
+
+デッキ編集画面（#/ytomo/edit）の動画を撮影します。
+
+**撮影する動画**（2本 + GIF）:
+1. `deck-edit-basic.mp4` / `deck-edit-basic.gif` - 基本操作（DNO入力→ロード、カード検索、追加、詳細表示）
+2. `deck-edit-detail.mp4` / `deck-edit-detail.gif` - 詳細操作（タブ切り替え、Q&A展開、収録パック展開）
+
+**実行方法**:
+```bash
+node scripts/screenshots/usage/record-deck-edit.js
+```
+
+#### `capture-options-page.js`
+
+オプションページのスクリーンショットを撮影します。
+
+**撮影する画像**（1枚）:
+1. `options-page.png` - オプションページ全体
+
+**実行方法**:
+```bash
+# 注意: chrome-extension:// URLの制約により、手動撮影を推奨
+node scripts/screenshots/usage/capture-options-page.js
+```
+
+手動撮影手順:
+1. chrome://extensions を開く
+2. "Yugioh Neuron Helper" のオプションを開く
+3. スクリーンショットを撮影
+4. `docs/usage/images/options-page.png` として保存
+
+#### `record-all-v0.3.0.js`
+
+v0.3.0の全動画を一度に撮影します。
+
+**実行方法**:
+```bash
+node scripts/screenshots/usage/record-all-v0.3.0.js
+```
+
 ## 出力先
 
 すべてのスクリーンショット・動画・GIFは以下のディレクトリに保存されます：
