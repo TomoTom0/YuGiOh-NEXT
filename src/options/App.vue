@@ -23,12 +23,6 @@
       >
         Deck Edit Settings
       </button>
-      <button
-        :class="['tab', { active: activeTab === 'deckedit' }]"
-        @click="activeTab = 'deckedit'"
-      >
-        Deck Edit (Sample)
-      </button>
     </div>
 
      <div class="tab-content">
@@ -39,58 +33,68 @@
 
       <!-- Omit and Usage Tab -->
       <div v-if="activeTab === 'omit'" class="omit-tab">
-        <!-- 目次 (Table of Contents) -->
-        <div class="toc">
-          <h2>機能一覧</h2>
-          <div class="toc-items">
+        <h2 class="section-title">画面と機能一覧</h2>
+        
+        <!-- デッキ表示ページ -->
+        <div class="screen-section">
+          <h3 class="screen-title">デッキ表示ページ</h3>
+          <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...</code></p>
+          <img src="/docs/usage/images/deck-display-page-overview.png" alt="デッキ表示ページ" class="screen-image" />
+          
+          <!-- 機能一覧 -->
+          <div class="features-list">
             <div
-              v-for="feature in features"
+              v-for="feature in deckDisplayFeatures"
               :key="feature.id"
-              class="toc-item"
+              class="feature-section"
               :class="{ disabled: !feature.enabled }"
             >
-              <label class="toggle-label">
-                <input
-                  type="checkbox"
-                  v-model="feature.enabled"
-                  @change="saveSettings"
+              <div class="feature-header">
+                <h4>{{ feature.name }}</h4>
+                <label class="toggle-label">
+                  <input
+                    type="checkbox"
+                    v-model="feature.enabled"
+                    @change="saveSettings"
+                  />
+                  <span class="toggle-switch"></span>
+                  <span>{{ feature.enabled ? '有効' : '無効' }}</span>
+                </label>
+              </div>
+              <p class="feature-description">{{ feature.description }}</p>
+              <div class="feature-images" v-if="feature.images && feature.images.length">
+                <img
+                  v-for="(img, idx) in feature.images"
+                  :key="idx"
+                  :src="img.src"
+                  :alt="img.alt"
+                  class="feature-image"
                 />
-                <span class="toggle-switch"></span>
-                <span class="feature-name">{{ feature.name }}</span>
-              </label>
-              <button
-                class="scroll-btn"
-                @click="scrollToFeature(feature.id)"
-              >
-                →
-              </button>
+              </div>
+              <div class="feature-usage" v-html="feature.usage"></div>
             </div>
           </div>
         </div>
 
-        <!-- 詳細セクション -->
-        <div class="features-detail" ref="featuresDetail">
-          <div
-            v-for="feature in features"
-            :key="feature.id"
-            :ref="(el) => { if (el) featureRefs[feature.id] = el as HTMLElement }"
-            class="feature-section"
-            :class="{ disabled: !feature.enabled }"
-          >
-            <div class="feature-header">
-              <h3>{{ feature.name }}</h3>
-              <label class="toggle-label">
-                <input
-                  type="checkbox"
-                  v-model="feature.enabled"
-                  @change="saveSettings"
-                />
-                <span class="toggle-switch"></span>
-                <span>{{ feature.enabled ? '有効' : '無効' }}</span>
-              </label>
+        <!-- デッキ編集ページ -->
+        <div class="screen-section">
+          <h3 class="screen-title">デッキ編集ページ</h3>
+          <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></p>
+          <p class="screen-note">デッキ編集ページは独立した統合UIで、カード検索・デッキ編集・カード詳細確認を一画面で行えます。</p>
+          <p class="screen-note">詳細は <a href="/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
+          
+          <!-- 主な機能のリスト -->
+          <div class="features-list">
+            <div class="feature-section">
+              <h4>主な機能</h4>
+              <ul class="feature-list-items">
+                <li>デッキの読み込み・保存</li>
+                <li>カード検索（リスト/グリッド表示）</li>
+                <li>デッキ編集（ドラッグ＆ドロップ、枚数調整）</li>
+                <li>カード詳細表示（Info/QA/Related/Products）</li>
+                <li>レスポンシブデザイン（デスクトップ/モバイル）</li>
+              </ul>
             </div>
-            <p class="feature-description">{{ feature.description }}</p>
-            <div class="feature-usage" v-html="feature.usage"></div>
           </div>
         </div>
       </div>
@@ -99,18 +103,12 @@
       <div v-if="activeTab === 'deck-edit-settings'" class="deck-edit-settings-tab">
         <DeckEditSettings />
       </div>
-
-      <!-- Deck Edit Tab -->
-      <div v-if="activeTab === 'deckedit'" class="deckedit-tab">
-        <DeckEdit />
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import DeckEdit from './DeckEdit.vue';
 import DeckEditSettings from './DeckEditSettings.vue';
 
 interface Feature {
@@ -119,23 +117,28 @@ interface Feature {
   description: string;
   usage: string;
   enabled: boolean;
+  images?: Array<{ src: string; alt: string }>;
 }
 
-const activeTab = ref<'general' | 'omit' | 'deckedit' | 'deck-edit-settings'>('omit');
-const featuresDetail = ref<HTMLElement | null>(null);
-const featureRefs = reactive<Record<string, any>>({});
+const activeTab = ref<'general' | 'omit' | 'deck-edit-settings'>('omit');
 
-const features = reactive<Feature[]>([
+const deckDisplayFeatures = reactive<Feature[]>([
   {
     id: 'shuffle-sort',
     name: 'シャッフル・ソート・固定',
     description: 'デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードを固定して、シャッフル時に先頭に配置し続けることも可能です。',
+    images: [
+      { src: '/docs/usage/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' },
+      { src: '/docs/usage/images/shuffle-sort-buttons.png', alt: 'シャッフル・ソートボタン' },
+      { src: '/docs/usage/images/card-lock-feature.png', alt: 'カードのロック機能' },
+      { src: '/docs/usage/images/card-locked-state.png', alt: 'カードがロックされた状態' }
+    ],
     usage: `
+      <h5>使い方</h5>
       <ul>
-        <li>デッキ表示ページの「メインデッキ」枚数表示の左側にシャッフルボタンが追加されます</li>
-        <li>シャッフルボタンの右側にソートボタンが追加されます</li>
-        <li>カードの右上をクリックすることで、そのカードを固定/固定解除できます</li>
-        <li>固定されたカードは常にデッキの先頭に配置されます</li>
+        <li><strong>シャッフルボタン</strong>: メインデッキの枚数表示の左側に表示。ロックされていないカードをランダムに並べ替えます。</li>
+        <li><strong>ソートボタン</strong>: シャッフルボタンの右側に表示。カードを元の順序に戻します。</li>
+        <li><strong>カードのロック</strong>: カード画像の右上1/4のエリアをクリックしてロック/解除。ロックされたカードはデッキの先頭に固定されます。</li>
       </ul>
     `,
     enabled: true
@@ -144,30 +147,27 @@ const features = reactive<Feature[]>([
     id: 'deck-image',
     name: 'デッキ画像作成',
     description: 'デッキレシピを画像として保存できます。SNSでの共有やアーカイブに便利です。',
+    images: [
+      { src: '/docs/usage/images/deck-image-dialog.gif', alt: 'デッキ画像作成ダイアログのデモ' },
+      { src: '/docs/usage/images/deck-image-button.png', alt: 'デッキ画像作成ボタン' },
+      { src: '/docs/usage/images/deck-recipe-sample.png', alt: 'デッキレシピ出力サンプル' }
+    ],
     usage: `
+      <h5>使い方</h5>
       <ul>
-        <li>デッキ表示ページの下部右端にカメラアイコンのボタンが追加されます</li>
-        <li>ボタンをクリックすると、デッキ画像作成ダイアログが開きます</li>
-        <li>デッキ名のカスタマイズ、背景色の選択（赤/青）、QRコードの表示/非表示を切り替えられます</li>
-        <li>ダウンロードボタンをクリックすると、画像がダウンロードされます</li>
+        <li>ページ下部右端のカメラアイコンのボタンをクリック</li>
+        <li>ダイアログでデッキ名のカスタマイズ、背景色の選択（赤/青）、QRコードの表示/非表示を設定</li>
+        <li>ダウンロードボタンをクリックして画像を保存</li>
       </ul>
     `,
     enabled: true
   }
 ]);
 
-// スクロール処理
-const scrollToFeature = (featureId: string) => {
-  const el = featureRefs[featureId];
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-};
-
 // 設定の保存
 const saveSettings = () => {
   const settings: Record<string, boolean> = {};
-  features.forEach(feature => {
+  deckDisplayFeatures.forEach(feature => {
     settings[feature.id] = feature.enabled;
   });
 
@@ -181,7 +181,7 @@ const loadSettings = () => {
   chrome.storage.local.get(['featureSettings'], (result) => {
     if (result.featureSettings) {
       Object.keys(result.featureSettings).forEach(key => {
-        const feature = features.find(f => f.id === key);
+        const feature = deckDisplayFeatures.find(f => f.id === key);
         if (feature) {
           feature.enabled = result.featureSettings[key];
         }
@@ -256,86 +256,87 @@ onMounted(() => {
 }
 
 .omit-tab {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 24px;
-  align-items: start;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.toc {
-  position: sticky;
-  top: 24px;
-  background-color: white;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.toc h2 {
-  font-size: 16px;
-  margin-bottom: 12px;
+.section-title {
+  font-size: 24px;
   color: #333;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #1976d2;
 }
 
-.toc-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.toc-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.toc-item:hover {
-  background-color: #f5f5f5;
-}
-
-.toc-item.disabled {
-  opacity: 0.5;
-}
-
-.toc-item.disabled .feature-name {
-  text-decoration: line-through;
-  color: #999;
-}
-
-.scroll-btn {
-  background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px 8px;
-}
-
-.scroll-btn:hover {
-  background-color: #e3f2fd;
-  border-radius: 4px;
-}
-
-.features-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.feature-section {
+.screen-section {
   background-color: white;
   padding: 24px;
   border-radius: 8px;
+  margin-bottom: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.screen-title {
+  font-size: 20px;
+  color: #1976d2;
+  margin-bottom: 12px;
+}
+
+.screen-desc {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.screen-desc code {
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.screen-note {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.screen-note a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.screen-note a:hover {
+  text-decoration: underline;
+}
+
+.screen-image {
+  width: 100%;
+  max-width: 800px;
+  margin: 16px 0;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.feature-section {
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
   transition: all 0.2s;
 }
 
 .feature-section.disabled {
   opacity: 0.5;
-  background-color: #fafafa;
+  background-color: #f5f5f5;
 }
 
 .feature-header {
@@ -345,9 +346,10 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.feature-header h3 {
+.feature-header h4 {
   font-size: 18px;
   color: #333;
+  margin: 0;
 }
 
 .feature-description {
@@ -357,9 +359,28 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.feature-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.feature-image {
+  width: 100%;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 .feature-usage {
   color: #555;
   font-size: 14px;
+}
+
+.feature-usage h5 {
+  font-size: 16px;
+  color: #333;
+  margin: 12px 0 8px 0;
 }
 
 .feature-usage ul {
@@ -369,6 +390,17 @@ onMounted(() => {
 
 .feature-usage li {
   margin-bottom: 8px;
+}
+
+.feature-list-items {
+  list-style-type: disc;
+  margin-left: 20px;
+  line-height: 1.8;
+}
+
+.feature-list-items li {
+  margin-bottom: 8px;
+  color: #555;
 }
 
 .toggle-label {
@@ -411,9 +443,5 @@ onMounted(() => {
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
   transform: translateX(16px);
-}
-
-.feature-name {
-  flex: 1;
 }
 </style>
