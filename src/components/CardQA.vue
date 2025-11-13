@@ -7,7 +7,6 @@
     <div v-else>
       <div class="qa-header">
         <div class="qa-card-name">{{ faqListData.cardName }}</div>
-        <div v-if="faqListData.cardText" class="qa-card-text">{{ faqListData.cardText }}</div>
       </div>
       <div class="qa-list">
         <div v-for="(qa, index) in faqListData.faqs" :key="qa.faqId || index" class="qa-item">
@@ -36,30 +35,32 @@
             </button>
             <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
           </div>
-          <div v-if="expandedQA[index]" class="qa-answer-container">
-            <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
-            <div v-else-if="qaAnswers[index]" class="qa-answer">
-              A:
-              <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[index])" :key="partIndex">
-                <span
-                  v-if="part.type === 'link'"
-                  class="card-link"
-                  @click="handleCardLinkClick(part.cardId)"
+          <transition name="qa-expand">
+            <div v-if="expandedQA[index]" class="qa-answer-container">
+              <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
+              <div v-else-if="qaAnswers[index]" class="qa-answer">
+                A:
+                <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[index])" :key="partIndex">
+                  <span
+                    v-if="part.type === 'link'"
+                    class="card-link"
+                    @click="handleCardLinkClick(part.cardId)"
+                  >
+                    {{ part.text }}
+                  </span>
+                  <span v-else>{{ part.text }}</span>
+                </template>
+                <button
+                  class="qa-collapse-btn-sticky"
+                  @click="collapseQA(index)"
                 >
-                  {{ part.text }}
-                </span>
-                <span v-else>{{ part.text }}</span>
-              </template>
-              <button
-                class="qa-collapse-btn-sticky"
-                @click="collapseQA(index)"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,13H5V11H19V13Z" />
-                </svg>
-              </button>
+                  <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
+          </transition>
         </div>
       </div>
     </div>
@@ -69,7 +70,7 @@
 <script>
 import { ref } from 'vue'
 import { getFAQDetail } from '../api/card-faq'
-import { searchCardById } from '../api/card-search'
+import { getCardDetail } from '../api/card-search'
 import { useDeckEditStore } from '../stores/deck-edit'
 
 export default {
@@ -139,15 +140,15 @@ export default {
      */
     const handleCardLinkClick = async (cardId) => {
       try {
-        // カードIDからカード情報を取得
-        const card = await searchCardById(cardId)
-        if (!card) {
+        // カード詳細を取得（cidのみからCardInfo全体をパース）
+        const cardDetail = await getCardDetail(cardId)
+        if (!cardDetail || !cardDetail.card) {
           console.error('カード情報の取得に失敗しました:', cardId)
           return
         }
 
         // deckStoreにカードをセットしてCardタブのinfoを表示
-        deckStore.selectedCard = card
+        deckStore.selectedCard = cardDetail.card
         deckStore.activeTab = 'card'
         deckStore.cardTab = 'info'
       } catch (error) {
@@ -223,6 +224,11 @@ export default {
 <style lang="scss" scoped>
 .card-qa {
   width: 100%;
+  box-sizing: border-box;
+
+  * {
+    box-sizing: border-box;
+  }
 }
 
 .loading, .no-data {
@@ -233,24 +239,13 @@ export default {
 }
 
 .qa-header {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
+  margin-bottom: 12px;
 }
 
 .qa-card-name {
   font-weight: bold;
-  font-size: 13px;
-  margin-bottom: 5px;
+  font-size: 14px;
   color: #333;
-}
-
-.qa-card-text {
-  font-size: 11px;
-  color: #666;
-  line-height: 1.4;
 }
 
 .qa-list {
@@ -260,6 +255,7 @@ export default {
 }
 
 .qa-item {
+  width: 100%;
   padding: 10px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
@@ -315,12 +311,17 @@ export default {
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   flex-shrink: 0;
-  
+
   &:hover {
     background: #f0f0f0;
     border-color: #999;
+    transform: scale(1.05);
   }
-  
+
+  &:active {
+    transform: scale(0.95);
+  }
+
   svg {
     display: block;
     width: 14px;
@@ -367,17 +368,57 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   transition: all 0.2s;
   margin-top: 8px;
-  
+
   &:hover {
     background: #f0f0f0;
     border-color: #999;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transform: scale(1.08);
   }
-  
+
+  &:active {
+    transform: scale(0.95);
+  }
+
   svg {
     display: block;
     width: 16px;
     height: 16px;
+  }
+}
+
+// FAQ展開/縮小のトランジション
+.qa-expand-enter-active {
+  animation: qa-expand-in 0.3s ease-out;
+}
+
+.qa-expand-leave-active {
+  animation: qa-expand-out 0.2s ease-in;
+}
+
+@keyframes qa-expand-in {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes qa-expand-out {
+  0% {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
 </style>

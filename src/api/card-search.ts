@@ -589,6 +589,12 @@ export async function searchCardsByName(
  * @param cardId カードID
  * @returns カード情報、見つからない場合はnull
  */
+/**
+ * カードIDで検索する
+ *
+ * @param cardId カードID
+ * @returns カード情報、見つからない場合はnull
+ */
 export async function searchCardById(cardId: string): Promise<CardInfo | null> {
   try {
     const params = new URLSearchParams({
@@ -597,7 +603,9 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
       request_locale: 'ja'
     });
 
-    const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+    const url = `${SEARCH_URL}?${params.toString()}`;
+
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -611,9 +619,11 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
     const doc = parser.parseFromString(html, 'text/html');
 
     const results = parseSearchResults(doc);
+
     const firstResult = results[0];
     return firstResult !== undefined ? firstResult : null;
   } catch (error) {
+    console.error('[searchCardById] Error:', error);
     return null;
   }
 }
@@ -1240,14 +1250,27 @@ function parseRelatedCards(doc: Document): CardInfo[] {
  * @param lang 言語コード（省略時は現在のページから自動検出）
  * @returns カード詳細情報
  */
-export async function getCardDetail(card: CardInfo, lang?: string): Promise<CardDetail | null> {
+/**
+ * カード詳細情報を取得する
+ * 
+ * @param cardOrId 既存のCardInfoまたはcardId文字列
+ * @param lang 言語コード（省略時は現在のページから自動検出）
+ * @returns カード詳細情報
+ */
+export async function getCardDetail(
+  cardOrId: CardInfo | string,
+  lang?: string
+): Promise<CardDetail | null> {
   try {
+    // CardInfoまたはcidから実際のcidを取得
+    const cid = typeof cardOrId === 'string' ? cardOrId : cardOrId.cardId;
+    
     // 言語が指定されていない場合は現在のページから検出
     const requestLocale = lang || detectLanguage(document);
     
     const params = new URLSearchParams({
       ope: '2',
-      cid: card.cardId,
+      cid: cid,
       request_locale: requestLocale
     });
 
@@ -1264,6 +1287,21 @@ export async function getCardDetail(card: CardInfo, lang?: string): Promise<Card
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
+    // CardInfoを取得（文字列の場合は詳細ページからパース、それ以外は引数を使用）
+    let card: CardInfo;
+    if (typeof cardOrId === 'string') {
+      // cidのみの場合：カード詳細ページからCardInfoをパース
+      const parsedCard = parseCardInfoFromDetailPage(doc, cid);
+      if (!parsedCard) {
+        console.error('[getCardDetail] Failed to parse card info from detail page');
+        return null;
+      }
+      card = parsedCard;
+    } else {
+      // CardInfoが渡された場合：既存の処理
+      card = cardOrId;
+    }
+
     // 複数画像情報を取得（2枚目以降がある場合）
     const additionalImgs = parseAdditionalImages(doc);
     
@@ -1278,7 +1316,7 @@ export async function getCardDetail(card: CardInfo, lang?: string): Promise<Card
     const relatedCards = parseRelatedCards(doc);
     
     // Q&A情報を取得（既存のAPI関数を使用）
-    const faqList = await getCardFAQList(card.cardId);
+    const faqList = await getCardFAQList(cid);
     const qaList = faqList?.faqs || [];
 
     return {
@@ -1313,4 +1351,333 @@ function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: str
   });
   
   return imgs;
+}
+
+/**
+ * カード詳細ページからCardInfo全体をパースする
+ * FAQカードリンクなど、cidのみが分かっている場合に使用
+ * 
+ * @param doc カード詳細ページのDocument
+ * @param cid カードID
+ * @returns CardInfo、パースできない場合はnull
+ */
+/**
+ * カード詳細ページからCardInfo全体をパースする
+ * FAQカードリンクなど、cidのみが分かっている場合に使用
+ * 
+ * @param doc カード詳細ページのDocument
+ * @param cid カードID
+ * @returns CardInfo、パースできない場合はnull
+ */
+function parseCardInfoFromDetailPage(doc: Document, cid: string): CardInfo | null {
+  try {
+    // カード名を取得
+    const cardNameElem = doc.querySelector('#cardname h1, .cardname h1');
+    if (!cardNameElem) {
+      console.error('[parseCardInfoFromDetailPage] Card name element not found');
+      return null;
+    }
+
+    // ふりがな（ruby）を除外してカード名を取得
+    const rubyElem = cardNameElem.querySelector('.ruby');
+    const ruby = rubyElem?.textContent?.trim();
+    
+    // カード名はh1のテキストからrubyと英語名を除外
+    const clonedH1 = cardNameElem.cloneNode(true) as HTMLElement;
+    // rubyと最後のspanを削除
+    clonedH1.querySelectorAll('.ruby').forEach(el => el.remove());
+    clonedH1.querySelectorAll('span').forEach(el => el.remove());
+    const name = clonedH1.textContent?.trim() || '';
+
+    if (!name) {
+      console.error('[parseCardInfoFromDetailPage] Card name not found');
+      return null;
+    }
+
+    // 画像情報を取得
+    const imageInfoMap = extractImageInfo(doc);
+    const imageInfo = imageInfoMap.get(cid);
+    const ciid = imageInfo?.ciid || '1';
+    const imgHash = imageInfo?.imgHash || `${cid}_1`;
+    const imgs = [{ ciid, imgHash }];
+
+    // カードテキストを取得
+    const cardTextElem = doc.querySelector('.item_box_text');
+    let text: string | undefined;
+    if (cardTextElem) {
+      const cloned = cardTextElem.cloneNode(true) as HTMLElement;
+      // タイトル部分を除去
+      cloned.querySelector('.text_title')?.remove();
+      // <br>を改行に変換
+      cloned.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
+      });
+      text = cloned.textContent?.trim() || undefined;
+    }
+
+    // CardBaseを構築
+    const base: CardBase = {
+      name,
+      ruby,
+      cardId: cid,
+      ciid,
+      imgs,
+      text
+    };
+
+    // カードタイプを判定
+    const itemBoxValue = doc.querySelector('.item_box_value');
+    if (!itemBoxValue) {
+      console.error('[parseCardInfoFromDetailPage] item_box_value not found');
+      return null;
+    }
+
+    const typeText = itemBoxValue.textContent?.trim() || '';
+
+    // 魔法カードの判定
+    if (typeText.includes('魔法') || typeText.includes('Spell')) {
+      return parseSpellCardFromDetailPage(doc, base, typeText);
+    }
+
+    // 罠カードの判定
+    if (typeText.includes('罠') || typeText.includes('Trap')) {
+      return parseTrapCardFromDetailPage(doc, base, typeText);
+    }
+
+    // それ以外はモンスターカード
+    return parseMonsterCardFromDetailPage(doc, base);
+
+  } catch (error) {
+    console.error('[parseCardInfoFromDetailPage] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * カード詳細ページから魔法カード情報をパースする
+ */
+/**
+ * カード詳細ページから魔法カード情報をパースする
+ */
+function parseSpellCardFromDetailPage(doc: Document, base: CardBase, typeText: string): SpellCard {
+  // 効果タイプを判定（通常/速攻/永続/フィールド/装備/儀式）
+  let effectType: SpellEffectType = 'normal';
+  
+  if (typeText.includes('速攻') || typeText.includes('Quick-Play')) {
+    effectType = 'quick';
+  } else if (typeText.includes('永続') || typeText.includes('Continuous')) {
+    effectType = 'continuous';
+  } else if (typeText.includes('フィールド') || typeText.includes('Field')) {
+    effectType = 'field';
+  } else if (typeText.includes('装備') || typeText.includes('Equip')) {
+    effectType = 'equip';
+  } else if (typeText.includes('儀式') || typeText.includes('Ritual')) {
+    effectType = 'ritual';
+  }
+
+  return {
+    ...base,
+    cardType: 'spell',
+    effectType
+  };
+}
+
+/**
+ * カード詳細ページから罠カード情報をパースする
+ */
+function parseTrapCardFromDetailPage(doc: Document, base: CardBase, typeText: string): TrapCard {
+  // 効果タイプを判定（通常/永続/カウンター）
+  let effectType: TrapEffectType = 'normal';
+  
+  if (typeText.includes('永続') || typeText.includes('Continuous')) {
+    effectType = 'continuous';
+  } else if (typeText.includes('カウンター') || typeText.includes('Counter')) {
+    effectType = 'counter';
+  }
+
+  return {
+    ...base,
+    cardType: 'trap',
+    effectType
+  };
+}
+
+/**
+ * カード詳細ページからモンスターカード情報をパースする
+ */
+/**
+ * カード詳細ページからモンスターカード情報をパースする
+ */
+function parseMonsterCardFromDetailPage(doc: Document, base: CardBase): MonsterCard | null {
+  try {
+    // 属性を取得（詳細ページではitem_box_title内のimgから）
+    const attrImg = doc.querySelector('.item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+    if (!attrImg?.src) {
+      console.error('[parseMonsterCardFromDetailPage] Attribute image not found');
+      return null;
+    }
+
+    // src属性から属性名を抽出: "attribute_icon_light.png" → "light"
+    const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
+    if (!attrMatch || !attrMatch[1]) {
+      console.error('[parseMonsterCardFromDetailPage] Failed to parse attribute');
+      return null;
+    }
+    const attrPath = attrMatch[1];
+
+    // パス → 識別子に変換
+    const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
+    if (!attribute) {
+      console.error('[parseMonsterCardFromDetailPage] Unknown attribute:', attrPath);
+      return null;
+    }
+
+    // レベル/ランク/リンク取得
+    const levelImg = doc.querySelector('.item_box_title img[src*="icon_level"], .item_box_title img[src*="icon_rank"]') as HTMLImageElement;
+    const linkMarkerElem = doc.querySelector('.box_card_linkmarker');
+    let levelType: LevelType;
+    let levelValue: number;
+    let extractedLinkValue: string | null = null;
+
+    if (levelImg) {
+      // アイコンから種別を判定
+      if (levelImg.src.includes('icon_rank.png')) {
+        levelType = 'rank';
+      } else {
+        levelType = 'level';
+      }
+
+      // 値を取得: item_box_valueから"レベル 8"や"ランク 4"を抽出
+      const levelBox = levelImg.closest('.item_box');
+      const levelValueElem = levelBox?.querySelector('.item_box_value');
+      if (levelValueElem?.textContent) {
+        const match = levelValueElem.textContent.match(/\d+/);
+        if (match) {
+          levelValue = parseInt(match[0], 10);
+        } else {
+          console.error('[parseMonsterCardFromDetailPage] Failed to parse level/rank value');
+          return null;
+        }
+      } else {
+        console.error('[parseMonsterCardFromDetailPage] Level/rank value not found');
+        return null;
+      }
+    } else if (linkMarkerElem) {
+      // リンクモンスター
+      levelType = 'link';
+
+      // リンク数取得
+      const linkSpan = linkMarkerElem.querySelector('span');
+      if (linkSpan?.textContent) {
+        const match = linkSpan.textContent.match(/\d+/);
+        if (match) {
+          levelValue = parseInt(match[0], 10);
+        } else {
+          console.error('[parseMonsterCardFromDetailPage] Failed to parse link value');
+          return null;
+        }
+      } else {
+        console.error('[parseMonsterCardFromDetailPage] Link span not found');
+        return null;
+      }
+
+      // リンクマーカー方向情報を画像パスから取得
+      const linkImg = linkMarkerElem.querySelector('img') as HTMLImageElement;
+      if (linkImg?.src) {
+        const linkMatch = linkImg.src.match(/link(\d+)\.png/);
+        if (linkMatch && linkMatch[1]) {
+          extractedLinkValue = linkMatch[1];
+        }
+      }
+    } else {
+      console.error('[parseMonsterCardFromDetailPage] Level/rank/link element not found');
+      return null;
+    }
+
+    // 種族・タイプ取得（詳細ページでは<p class="species">内）
+    const speciesElem = doc.querySelector('p.species');
+    if (!speciesElem?.textContent) {
+      console.error('[parseMonsterCardFromDetailPage] Species element not found');
+      return null;
+    }
+
+    const parsed = parseSpeciesAndTypes(doc, speciesElem.textContent);
+    if (!parsed) {
+      console.error('[parseMonsterCardFromDetailPage] Failed to parse species and types');
+      return null;
+    }
+    const { race, types } = parsed;
+
+    // ATK/DEF取得（詳細ページではitem_boxから）
+    let atk: number | string | undefined;
+    let def: number | string | undefined;
+
+    const itemBoxes = doc.querySelectorAll('.item_box');
+    itemBoxes.forEach(box => {
+      const titleElem = box.querySelector('.item_box_title');
+      const valueElem = box.querySelector('.item_box_value');
+      
+      if (!titleElem || !valueElem) return;
+      
+      const title = titleElem.textContent?.trim();
+      const value = valueElem.textContent?.trim();
+      
+      if (title === 'ATK' && value) {
+        atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+      } else if (title === 'DEF' && value) {
+        def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+      }
+    });
+
+    // ペンデュラム情報取得（オプション）
+    let pendulumScale: number | undefined;
+    let pendulumEffect: string | undefined;
+
+    const pendulumScaleElem = doc.querySelector('.box_card_pen_scale');
+    if (pendulumScaleElem?.textContent) {
+      const match = pendulumScaleElem.textContent.match(/\d+/);
+      if (match) {
+        pendulumScale = parseInt(match[0], 10);
+      }
+    }
+
+    const pendulumEffectElem = doc.querySelector('.box_card_pen_effect');
+    if (pendulumEffectElem) {
+      const cloned = pendulumEffectElem.cloneNode(true) as HTMLElement;
+      cloned.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
+      });
+      pendulumEffect = cloned.textContent?.trim();
+    }
+
+    // リンクマーカー取得
+    let linkMarkers: number | undefined;
+    if (levelType === 'link' && extractedLinkValue) {
+      linkMarkers = parseLinkValue(extractedLinkValue);
+    }
+
+    // エクストラデッキ判定
+    const isExtraDeck = types.some(t => 
+      t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+    );
+
+    return {
+      ...base,
+      cardType: 'monster',
+      attribute,
+      levelType,
+      levelValue,
+      race,
+      types,
+      atk,
+      def,
+      linkMarkers,
+      pendulumScale,
+      pendulumEffect,
+      isExtraDeck
+    };
+  } catch (error) {
+    console.error('[parseMonsterCardFromDetailPage] Error:', error);
+    return null;
+  }
 }

@@ -71,15 +71,42 @@
         <div class="section-title">Pend. Text</div>
         <div class="effect-text">{{ card.pendulumEffect }}</div>
       </div>
-      
+
+      <div v-if="pendulumSupplementInfo" class="card-effect-section">
+        <div class="section-title">Pend. Detail{{ pendulumSupplementDate ? ` [${pendulumSupplementDate}]` : '' }}</div>
+        <div class="detail-text">
+          <template v-for="(part, partIndex) in parseCardLinks(pendulumSupplementInfo)" :key="partIndex">
+            <span
+              v-if="part.type === 'link'"
+              class="card-link"
+              @click="handleCardLinkClick(part.cardId)"
+            >
+              {{ part.text }}
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </div>
+      </div>
+
       <div v-if="card.text" class="card-effect-section">
         <div class="section-title">Card Text</div>
         <div class="effect-text">{{ card.text }}</div>
       </div>
-      
+
       <div v-if="supplementInfo" class="card-effect-section">
         <div class="section-title">Detail{{ supplementDate ? ` [${supplementDate}]` : '' }}</div>
-        <div class="detail-text">{{ supplementInfo }}</div>
+        <div class="detail-text">
+          <template v-for="(part, partIndex) in parseCardLinks(supplementInfo)" :key="partIndex">
+            <span
+              v-if="part.type === 'link'"
+              class="card-link"
+              @click="handleCardLinkClick(part.cardId)"
+            >
+              {{ part.text }}
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -88,6 +115,8 @@
 <script>
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
+import { getCardDetail } from '../api/card-search'
+import { useDeckEditStore } from '../stores/deck-edit'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -107,9 +136,87 @@ export default {
     supplementDate: {
       type: String,
       default: undefined
+    },
+    pendulumSupplementInfo: {
+      type: String,
+      default: undefined
+    },
+    pendulumSupplementDate: {
+      type: String,
+      default: undefined
+    }
+  },
+  setup() {
+    const deckStore = useDeckEditStore()
+    return {
+      deckStore
     }
   },
   methods: {
+    /**
+     * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
+     * @param {string} text - パース対象のテキスト
+     * @returns {Array} - { type: 'text' | 'link', text: string, cardId?: string }[] の配列
+     */
+    parseCardLinks(text) {
+      if (!text) return [{ type: 'text', text: '' }]
+
+      const parts = []
+      const regex = /\{\{([^|]+)\|(\d+)\}\}/g
+      let lastIndex = 0
+      let match
+
+      while ((match = regex.exec(text)) !== null) {
+        // マッチ前のテキスト
+        if (match.index > lastIndex) {
+          parts.push({
+            type: 'text',
+            text: text.substring(lastIndex, match.index)
+          })
+        }
+
+        // カードリンク部分
+        parts.push({
+          type: 'link',
+          text: match[1], // カード名
+          cardId: match[2] // cid
+        })
+
+        lastIndex = regex.lastIndex
+      }
+
+      // 残りのテキスト
+      if (lastIndex < text.length) {
+        parts.push({
+          type: 'text',
+          text: text.substring(lastIndex)
+        })
+      }
+
+      return parts.length > 0 ? parts : [{ type: 'text', text }]
+    },
+
+    /**
+     * カードリンクがクリックされた時の処理
+     * @param {string} cardId - カードID
+     */
+    async handleCardLinkClick(cardId) {
+      try {
+        // カード詳細を取得（cidのみからCardInfo全体をパース）
+        const cardDetail = await getCardDetail(cardId)
+        if (!cardDetail || !cardDetail.card) {
+          console.error('カード情報の取得に失敗しました:', cardId)
+          return
+        }
+
+        // deckStoreにカードをセットしてCardタブのinfoを表示
+        this.deckStore.selectedCard = cardDetail.card
+        this.deckStore.activeTab = 'card'
+        this.deckStore.cardTab = 'info'
+      } catch (error) {
+        console.error('カードリンククリック処理に失敗しました:', error)
+      }
+    },
     getCardTypeText(cardType) {
       if (cardType === 'spell') return '魔法'
       if (cardType === 'trap') return '罠'
@@ -170,6 +277,24 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: cardInfoFadeIn 0.25s ease-out;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@keyframes cardInfoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card-name-large {
@@ -190,6 +315,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .card-image-wrapper {
@@ -432,6 +558,7 @@ export default {
 .card-effect-text,
 .card-effect-section {
   margin-top: 5px;
+  width: 100%;
 }
 
 .section-title {
@@ -442,6 +569,7 @@ export default {
   padding: 4px 8px;
   background: #f0f0f0;
   border-radius: 4px 4px 0 0;
+  width: 100%;
 }
 
 .effect-text {
@@ -453,6 +581,9 @@ export default {
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
   background: #fff;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .detail-text {
@@ -464,5 +595,20 @@ export default {
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
   background: #f5f5f5;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #0052a3;
+    text-decoration: underline;
+  }
 }
 </style>
