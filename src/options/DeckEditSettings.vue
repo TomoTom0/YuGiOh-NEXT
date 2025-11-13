@@ -1,7 +1,7 @@
 <template>
   <div class="deck-edit-settings">
-    <h2>デッキ編集機能の設定</h2>
-    <p class="desc">デッキ編集ページ（#/ytomo/edit）の動作をカスタマイズできます。</p>
+    <h2>独自デッキ編集画面の設定</h2>
+    <p class="desc">独自デッキ編集画面（#/ytomo/edit）の動作をカスタマイズできます。</p>
 
     <div class="settings-group">
       <h3>基本設定</h3>
@@ -9,9 +9,9 @@
       <div class="setting-item">
         <label class="checkbox-label">
           <input type="checkbox" v-model="settings.enabled" />
-          <span>デッキ編集機能を有効にする</span>
+          <span>独自デッキ編集画面を有効にする</span>
         </label>
-        <p class="setting-desc">無効にすると、デッキ編集ページ（#/ytomo/edit）が使用できなくなります。</p>
+        <p class="setting-desc">無効にすると、独自デッキ編集画面（#/ytomo/edit）が使用できなくなります。</p>
       </div>
     </div>
 
@@ -24,7 +24,7 @@
           <option value="list">リスト表示</option>
           <option value="grid">グリッド表示</option>
         </select>
-        <p class="setting-desc">デッキ編集ページを開いたときの初期表示モードです。</p>
+        <p class="setting-desc">独自デッキ編集画面を開いたときの初期表示モードです。</p>
       </div>
 
       <div class="setting-item">

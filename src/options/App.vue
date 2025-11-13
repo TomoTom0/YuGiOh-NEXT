@@ -1,7 +1,7 @@
 <template>
   <div class="options-container">
     <header class="header">
-      <h1>Yu-Gi-Oh! Deck Helper - 設定</h1>
+      <h1>Yugioh Neuron Helper - 設定</h1>
     </header>
 
     <div class="tabs">
@@ -76,24 +76,40 @@
           </div>
         </div>
 
-        <!-- デッキ編集ページ -->
+        <!-- 独自デッキ編集画面 -->
         <div class="screen-section">
-          <h3 class="screen-title">デッキ編集ページ</h3>
+          <h3 class="screen-title">独自デッキ編集画面</h3>
           <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></p>
-          <p class="screen-note">デッキ編集ページは独立した統合UIで、カード検索・デッキ編集・カード詳細確認を一画面で行えます。</p>
-          <p class="screen-note">詳細は <a href="/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
           
-          <!-- 主な機能のリスト -->
+          <!-- 機能のON/OFF設定 -->
           <div class="features-list">
-            <div class="feature-section">
-              <h4>主な機能</h4>
-              <ul class="feature-list-items">
-                <li>デッキの読み込み・保存</li>
-                <li>カード検索（リスト/グリッド表示）</li>
-                <li>デッキ編集（ドラッグ＆ドロップ、枚数調整）</li>
-                <li>カード詳細表示（Info/QA/Related/Products）</li>
-                <li>レスポンシブデザイン（デスクトップ/モバイル）</li>
-              </ul>
+            <div
+              class="feature-section"
+              :class="{ disabled: !deckEditFeature.enabled }"
+            >
+              <div class="feature-header">
+                <h4>{{ deckEditFeature.name }}</h4>
+                <label class="toggle-label">
+                  <input
+                    type="checkbox"
+                    v-model="deckEditFeature.enabled"
+                    @change="saveSettings"
+                  />
+                  <span class="toggle-switch"></span>
+                  <span>{{ deckEditFeature.enabled ? '有効' : '無効' }}</span>
+                </label>
+              </div>
+              <p class="feature-description">{{ deckEditFeature.description }}</p>
+              <div class="feature-images" v-if="deckEditFeature.images && deckEditFeature.images.length">
+                <img
+                  v-for="(img, idx) in deckEditFeature.images"
+                  :key="idx"
+                  :src="img.src"
+                  :alt="img.alt"
+                  class="feature-image"
+                />
+              </div>
+              <div class="feature-usage" v-html="deckEditFeature.usage"></div>
             </div>
           </div>
         </div>
@@ -121,6 +137,27 @@ interface Feature {
 }
 
 const activeTab = ref<'general' | 'omit' | 'deck-edit-settings'>('omit');
+
+const deckEditFeature = reactive<Feature>({
+  id: 'deck-edit',
+  name: '独自デッキ編集画面',
+  description: 'カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。デッキの読み込み・保存、ドラッグ＆ドロップによる編集、レスポンシブデザインに対応しています。',
+  images: [
+    // TODO: 実際のスクリーンショットを追加
+  ],
+  usage: `
+    <h5>主な機能</h5>
+    <ul>
+      <li><strong>デッキの読み込み・保存</strong>: DNO（デッキ番号）入力でデッキを読み込み、編集後に保存できます。</li>
+      <li><strong>カード検索</strong>: リスト/グリッド表示切り替え、ソート機能、無限スクロールに対応。</li>
+      <li><strong>デッキ編集</strong>: ドラッグ＆ドロップでカードを追加・移動。Main/Extra/Sideで同じカードは合計3枚まで。</li>
+      <li><strong>カード詳細表示</strong>: Info/QA/Related/Productsタブで詳細情報を確認。</li>
+      <li><strong>レスポンシブデザイン</strong>: デスクトップ/モバイル両対応。</li>
+    </ul>
+    <p>詳細は <a href="/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
+  `,
+  enabled: true
+});
 
 const deckDisplayFeatures = reactive<Feature[]>([
   {
@@ -170,6 +207,7 @@ const saveSettings = () => {
   deckDisplayFeatures.forEach(feature => {
     settings[feature.id] = feature.enabled;
   });
+  settings[deckEditFeature.id] = deckEditFeature.enabled;
 
   chrome.storage.local.set({ featureSettings: settings }, () => {
     console.log('[Options] Settings saved:', settings);
@@ -184,6 +222,8 @@ const loadSettings = () => {
         const feature = deckDisplayFeatures.find(f => f.id === key);
         if (feature) {
           feature.enabled = result.featureSettings[key];
+        } else if (key === deckEditFeature.id) {
+          deckEditFeature.enabled = result.featureSettings[key];
         }
       });
     }
