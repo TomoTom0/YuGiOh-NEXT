@@ -164,10 +164,7 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'シャッフル・ソート・固定',
     description: 'デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードを固定して、シャッフル時に先頭に配置し続けることも可能です。',
     images: [
-      { src: '/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' },
-      { src: '/images/shuffle-sort-buttons.png', alt: 'シャッフル・ソートボタン' },
-      { src: '/images/card-lock-feature.png', alt: 'カードのロック機能' },
-      { src: '/images/card-locked-state.png', alt: 'カードがロックされた状態' }
+      { src: '/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' }
     ],
     usage: `
       <h5>使い方</h5>
@@ -184,10 +181,7 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'デッキ画像作成',
     description: 'デッキレシピを画像として保存できます。SNSでの共有やアーカイブに便利です。',
     images: [
-      { src: '/images/deck-image-dialog.gif', alt: 'デッキ画像作成ダイアログのデモ' },
-      { src: '/images/deck-image-button.png', alt: 'デッキ画像作成ボタン' },
-      { src: '/images/image-dialog-color-red.png', alt: '赤背景' },
-      { src: '/images/image-dialog-color-blue.png', alt: '青背景' }
+      { src: '/images/deck-recipe-sample.png', alt: '作成された画像見本' }
     ],
     usage: `
       <h5>使い方</h5>
@@ -400,13 +394,13 @@ onMounted(() => {
 }
 
 .feature-images {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
 .feature-image {
+  max-width: 600px;
   width: 100%;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

@@ -39,8 +39,6 @@
 デッキレシピをスマホのNeuronアプリのように画像として保存できます。
 意図的に一部のデザインを公式とは変えています。
 
-<img src="./docs/usage/images/deck-image-dialog.gif" alt="デッキ画像作成機能" width="600">
-
 **機能詳細：**
 - タイトルのカスタマイズ(デフォルトはデッキ名)
 - 背景色の選択（赤/青）
@@ -48,8 +46,6 @@
 - 出力日時を記載
 
 **作成される画像のサンプル：**
-
-<img src="./docs/usage/images/覇王魔術師_2025-11-09T09-23-27.jpg" alt="デッキレシピサンプル" width="600">
 
 <img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
 
