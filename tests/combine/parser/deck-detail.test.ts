@@ -21,10 +21,16 @@ async function testDeckDetailParser() {
   const doc = dom.window.document as unknown as Document;
 
   try {
+    // 言語検出テスト
+    console.log('--- Language Detection ---');
+    const metaLang = doc.querySelector('meta[http-equiv="Content-Language"]')?.getAttribute('content');
+    console.log('Content-Language:', metaLang || '(not found)');
+    console.log('URL locale:', doc.URL.includes('request_locale=ja') ? 'ja' : 'unknown');
+    
     // パーサーを実行
     const result = parseDeckDetail(doc);
 
-    console.log('✓ parseDeckDetail executed successfully\n');
+    console.log('\n✓ parseDeckDetail executed successfully\n');
 
     // 基本情報
     console.log('--- Basic Information ---');
@@ -63,6 +69,32 @@ async function testDeckDetailParser() {
       console.log('  cardId:', deckCard.card.cardId);
       console.log('  cardType:', deckCard.card.cardType);
       console.log('  quantity:', deckCard.quantity);
+      
+      // ciid/imgsの確認
+      if (index === 0) {
+        console.log('  ciid:', deckCard.card.ciid);
+        console.log('  imgs:', deckCard.card.imgs);
+      }
+      
+      // モンスターカードの属性・種族確認（多言語対応）
+      if (index === 0 && deckCard.card.cardType === 'monster') {
+        console.log('  attribute:', deckCard.card.attribute);
+        console.log('  race:', deckCard.card.race);
+        
+        // 属性・種族が英語IDに変換されているか確認
+        const validAttributes = ['light', 'dark', 'water', 'fire', 'earth', 'wind', 'divine'];
+        const validRaces = ['dragon', 'spellcaster', 'warrior', 'fairy', 'fiend', 'zombie', 
+                           'machine', 'aqua', 'pyro', 'rock', 'windbeast', 'plant', 'insect',
+                           'thunder', 'beast', 'beastwarrior', 'dinosaur', 'fish', 'seaserpent',
+                           'reptile', 'psychic', 'divine', 'creatorgod', 'wyrm', 'cyberse', 'illusion'];
+        
+        if (deckCard.card.attribute && !validAttributes.includes(deckCard.card.attribute)) {
+          console.log('  ⚠ Warning: attribute not in valid list');
+        }
+        if (deckCard.card.race && !validRaces.includes(deckCard.card.race)) {
+          console.log('  ⚠ Warning: race not in valid list');
+        }
+      }
     });
 
     // 検証
@@ -78,6 +110,16 @@ async function testDeckDetailParser() {
     if (!Array.isArray(result.tags)) errors.push('tags should be array');
     if (typeof result.comment !== 'string') errors.push('comment should be string');
     if (typeof result.deckCode !== 'string') errors.push('deckCode should be string');
+    
+    // ciid/imgs必須チェック
+    result.mainDeck.forEach((deckCard, index) => {
+      if (deckCard.card.ciid === undefined) {
+        errors.push(`mainDeck[${index}]: missing ciid`);
+      }
+      if (!deckCard.card.imgs) {
+        errors.push(`mainDeck[${index}]: missing imgs`);
+      }
+    });
 
     if (errors.length > 0) {
       console.log('✗ Validation failed:');
