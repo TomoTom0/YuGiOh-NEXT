@@ -31,11 +31,11 @@
 - [x] mapping-manager.test.ts（16tests ✅）
   - [x] 日本語/英語マッピング
   - [x] エラーハンドリング（フォールバック）
-- [ ] deck-edit.test.ts
-  - [ ] カード追加/削除/移動
-  - [ ] 枚数制限チェック
-  - [ ] sortDisplayOrderForOfficial
-- [ ] card-animation.test.ts（推奨）
+- [x] deck-edit.test.ts（15tests ✅）
+  - [x] カード追加/削除/移動
+  - [x] sortDisplayOrderForOfficial
+  - [x] setDeckName
+- [ ] card-animation.test.ts（推奨・優先度低）
 
 #### フェーズ2: 結合テスト（優先度：中）
 - [ ] card-detail-en.test.ts（英語版）
