@@ -10,8 +10,6 @@
 
 デッキ詳細ページにインタラクティブな編集UIを追加します。
 
-<img src="./docs/usage/images/deck-edit-demo.gif" alt="デッキ編集UI" width="600">
-
 **機能詳細：**
 - ドラッグ&ドロップでカードを移動
 - カード検索エリアから追加
@@ -41,8 +39,6 @@
 デッキレシピをスマホのNeuronアプリのように画像として保存できます。
 意図的に一部のデザインを公式とは変えています。
 
-<img src="./docs/usage/images/deck-image-dialog.gif" alt="デッキ画像作成機能" width="600">
-
 **機能詳細：**
 - タイトルのカスタマイズ(デフォルトはデッキ名)
 - 背景色の選択（赤/青）
@@ -51,9 +47,7 @@
 
 **作成される画像のサンプル：**
 
-| デッキレシピ画像例 |
-|-------------------|
-| <img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="400"> |
+<img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
 
 ## インストール方法
 

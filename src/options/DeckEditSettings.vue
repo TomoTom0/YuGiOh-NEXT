@@ -1,35 +1,33 @@
 <template>
   <div class="deck-edit-settings">
-    <h2>デッキ編集機能の設定</h2>
-    <p class="desc">デッキ編集ページ（#/ytomo/edit）の動作をカスタマイズできます。</p>
+    <h2>Deck Edit Settings</h2>
+    <p class="desc">独自デッキ編集画面（#/ytomo/edit）の詳細設定を行います。</p>
 
     <div class="settings-group">
       <h3>基本設定</h3>
       
       <div class="setting-item">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="settings.enabled" />
-          <span>デッキ編集機能を有効にする</span>
-        </label>
-        <p class="setting-desc">無効にすると、デッキ編集ページ（#/ytomo/edit）が使用できなくなります。</p>
+        <p class="setting-note">
+          独自デッキ編集画面のON/OFFは「Omit and Usage」タブで設定できます。
+        </p>
       </div>
     </div>
 
-    <div class="settings-group" :class="{ disabled: !settings.enabled }">
+    <div class="settings-group">
       <h3>表示設定</h3>
 
       <div class="setting-item">
         <label>デフォルト表示モード</label>
-        <select v-model="settings.defaultDisplayMode" :disabled="!settings.enabled">
+        <select v-model="settings.defaultDisplayMode">
           <option value="list">リスト表示</option>
           <option value="grid">グリッド表示</option>
         </select>
-        <p class="setting-desc">デッキ編集ページを開いたときの初期表示モードです。</p>
+        <p class="setting-desc">独自デッキ編集画面を開いたときの初期表示モードです。</p>
       </div>
 
       <div class="setting-item">
         <label>デフォルトソート順</label>
-        <select v-model="settings.defaultSortOrder" :disabled="!settings.enabled">
+        <select v-model="settings.defaultSortOrder">
           <option value="official">公式順</option>
           <option value="level">レベル順</option>
           <option value="atk">攻撃力順</option>
@@ -40,19 +38,19 @@
 
       <div class="setting-item">
         <label class="checkbox-label">
-          <input type="checkbox" v-model="settings.enableAnimation" :disabled="!settings.enabled" />
+          <input type="checkbox" v-model="settings.enableAnimation" />
           <span>アニメーションを有効にする</span>
         </label>
         <p class="setting-desc">カードの追加・削除時のアニメーション効果を有効にします。</p>
       </div>
     </div>
 
-    <div class="settings-group" :class="{ disabled: !settings.enabled }">
+    <div class="settings-group">
       <h3>言語設定</h3>
 
       <div class="setting-item">
         <label>言語</label>
-        <select v-model="settings.language" :disabled="!settings.enabled">
+        <select v-model="settings.language">
           <option value="auto">自動検出</option>
           <option value="ja">日本語</option>
           <option value="en">English</option>
@@ -214,6 +212,13 @@ onMounted(() => {
   margin: 6px 0 0 0;
   font-size: 13px;
   color: #586069;
+}
+
+.setting-note {
+  margin: 0;
+  font-size: 13px;
+  color: #0366d6;
+  font-style: italic;
 }
 
 .actions {
