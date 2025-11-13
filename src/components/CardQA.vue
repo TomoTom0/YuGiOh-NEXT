@@ -11,9 +11,21 @@
       </div>
       <div class="qa-list">
         <div v-for="(qa, index) in faqListData.faqs" :key="qa.faqId || index" class="qa-item">
-          <div class="qa-question">Q: {{ qa.question }}</div>
+          <div class="qa-question">
+            Q:
+            <template v-for="(part, partIndex) in parseCardLinks(qa.question)" :key="partIndex">
+              <span
+                v-if="part.type === 'link'"
+                class="card-link"
+                @click="handleCardLinkClick(part.cardId)"
+              >
+                {{ part.text }}
+              </span>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </div>
           <div class="qa-footer">
-            <button 
+            <button
               v-if="!expandedQA[index]"
               class="qa-expand-btn"
               @click="expandQA(qa.faqId, index)"
@@ -27,8 +39,18 @@
           <div v-if="expandedQA[index]" class="qa-answer-container">
             <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
             <div v-else-if="qaAnswers[index]" class="qa-answer">
-              A: {{ qaAnswers[index] }}
-              <button 
+              A:
+              <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[index])" :key="partIndex">
+                <span
+                  v-if="part.type === 'link'"
+                  class="card-link"
+                  @click="handleCardLinkClick(part.cardId)"
+                >
+                  {{ part.text }}
+                </span>
+                <span v-else>{{ part.text }}</span>
+              </template>
+              <button
                 class="qa-collapse-btn-sticky"
                 @click="collapseQA(index)"
               >
@@ -47,6 +69,8 @@
 <script>
 import { ref } from 'vue'
 import { getFAQDetail } from '../api/card-faq'
+import { searchCardById } from '../api/card-search'
+import { useDeckEditStore } from '../stores/deck-edit'
 
 export default {
   name: 'CardQA',
@@ -61,19 +85,85 @@ export default {
     }
   },
   setup() {
+    const deckStore = useDeckEditStore()
     const expandedQA = ref({})
     const loadingQA = ref({})
     const qaAnswers = ref({})
-    
+
+    /**
+     * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
+     * @param {string} text - パース対象のテキスト
+     * @returns {Array} - { type: 'text' | 'link', text: string, cardId?: string }[] の配列
+     */
+    const parseCardLinks = (text) => {
+      if (!text) return [{ type: 'text', text: '' }]
+
+      const parts = []
+      const regex = /\{\{([^|]+)\|(\d+)\}\}/g
+      let lastIndex = 0
+      let match
+
+      while ((match = regex.exec(text)) !== null) {
+        // マッチ前のテキスト
+        if (match.index > lastIndex) {
+          parts.push({
+            type: 'text',
+            text: text.substring(lastIndex, match.index)
+          })
+        }
+
+        // カードリンク部分
+        parts.push({
+          type: 'link',
+          text: match[1], // カード名
+          cardId: match[2] // cid
+        })
+
+        lastIndex = regex.lastIndex
+      }
+
+      // 残りのテキスト
+      if (lastIndex < text.length) {
+        parts.push({
+          type: 'text',
+          text: text.substring(lastIndex)
+        })
+      }
+
+      return parts.length > 0 ? parts : [{ type: 'text', text }]
+    }
+
+    /**
+     * カードリンクがクリックされた時の処理
+     * @param {string} cardId - カードID
+     */
+    const handleCardLinkClick = async (cardId) => {
+      try {
+        // カードIDからカード情報を取得
+        const card = await searchCardById(cardId)
+        if (!card) {
+          console.error('カード情報の取得に失敗しました:', cardId)
+          return
+        }
+
+        // deckStoreにカードをセットしてCardタブのinfoを表示
+        deckStore.selectedCard = card
+        deckStore.activeTab = 'card'
+        deckStore.cardTab = 'info'
+      } catch (error) {
+        console.error('カードリンククリック処理に失敗しました:', error)
+      }
+    }
+
     const expandQA = async (faqId, index) => {
       if (qaAnswers.value[index]) {
         expandedQA.value[index] = true
         return
       }
-      
+
       loadingQA.value[index] = true
       expandedQA.value[index] = true
-      
+
       try {
         const faqDetail = await getFAQDetail(faqId)
         qaAnswers.value[index] = faqDetail.answer
@@ -84,29 +174,29 @@ export default {
         loadingQA.value[index] = false
       }
     }
-    
+
     const collapseQA = (index) => {
       const qaItem = document.querySelectorAll('.qa-item')[index]
       if (!qaItem) {
         expandedQA.value[index] = false
         return
       }
-      
+
       const qaAnswer = qaItem.querySelector('.qa-answer')
       if (!qaAnswer) {
         expandedQA.value[index] = false
         return
       }
-      
+
       const heightDiff = qaAnswer.offsetHeight
       expandedQA.value[index] = false
-      
+
       setTimeout(() => {
         const container = qaItem.closest('.card-tab-content')
         if (container && heightDiff > 0) {
           const qaItemTop = qaItem.getBoundingClientRect().top
           const containerTop = container.getBoundingClientRect().top
-          
+
           if (qaItemTop < containerTop + container.clientHeight) {
             container.scrollTo({
               top: Math.max(0, container.scrollTop - heightDiff),
@@ -116,13 +206,15 @@ export default {
         }
       }, 50)
     }
-    
+
     return {
       expandedQA,
       loadingQA,
       qaAnswers,
       expandQA,
-      collapseQA
+      collapseQA,
+      parseCardLinks,
+      handleCardLinkClick
     }
   }
 }
@@ -181,6 +273,18 @@ export default {
   font-weight: 500;
   margin-bottom: 4px;
   line-height: 1.5;
+}
+
+.card-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #0052a3;
+    text-decoration: underline;
+  }
 }
 
 .qa-footer {

@@ -177,12 +177,14 @@ export interface CardFAQList {
   cardId: string;
   /** カード名 */
   cardName: string;
-  /** カードテキスト */
-  cardText?: string;
-  /** 補足情報 */
+  /** カードテキストの補足情報 */
   supplementInfo?: string;
-  /** 補足情報の日付 */
+  /** カードテキストの補足情報の日付 */
   supplementDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendulumSupplementInfo?: string;
+  /** ペンデュラムテキストの補足情報の日付 */
+  pendulumSupplementDate?: string;
   /** FAQ一覧 */
   faqs: CardFAQ[];
 }
