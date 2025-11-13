@@ -28,7 +28,13 @@
      <div class="tab-content">
       <!-- General Tab -->
       <div v-if="activeTab === 'general'" class="general-tab">
-        <p class="placeholder">将来的な拡張機能の設定がここに表示されます。</p>
+        <h2 class="section-title">バージョン情報</h2>
+        <p>Yugioh Neuron Helper v0.3.0</p>
+      </div>
+
+      <!-- Deck Edit Settings Tab -->
+      <div v-if="activeTab === 'deck-edit-settings'">
+        <DeckEditSettings />
       </div>
 
       <!-- Omit and Usage Tab -->
@@ -39,7 +45,6 @@
         <div class="screen-section">
           <h3 class="screen-title">デッキ表示ページ</h3>
           <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...</code></p>
-          <img src="/docs/usage/images/deck-display-page-overview.png" alt="デッキ表示ページ" class="screen-image" />
           
           <!-- 機能一覧 -->
           <div class="features-list">
@@ -115,10 +120,6 @@
         </div>
       </div>
 
-      <!-- Deck Edit Settings Tab -->
-      <div v-if="activeTab === 'deck-edit-settings'" class="deck-edit-settings-tab">
-        <DeckEditSettings />
-      </div>
     </div>
   </div>
 </template>
@@ -142,9 +143,7 @@ const deckEditFeature = reactive<Feature>({
   id: 'deck-edit',
   name: '独自デッキ編集画面',
   description: 'カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。デッキの読み込み・保存、ドラッグ＆ドロップによる編集、レスポンシブデザインに対応しています。',
-  images: [
-    // TODO: 実際のスクリーンショットを追加
-  ],
+  images: [],
   usage: `
     <h5>主な機能</h5>
     <ul>
@@ -154,7 +153,7 @@ const deckEditFeature = reactive<Feature>({
       <li><strong>カード詳細表示</strong>: Info/QA/Related/Productsタブで詳細情報を確認。</li>
       <li><strong>レスポンシブデザイン</strong>: デスクトップ/モバイル両対応。</li>
     </ul>
-    <p>詳細は <a href="/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
+    <p>詳細は <a href="https://github.com/your-repo/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
   `,
   enabled: true
 });
@@ -165,10 +164,10 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'シャッフル・ソート・固定',
     description: 'デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードを固定して、シャッフル時に先頭に配置し続けることも可能です。',
     images: [
-      { src: '/docs/usage/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' },
-      { src: '/docs/usage/images/shuffle-sort-buttons.png', alt: 'シャッフル・ソートボタン' },
-      { src: '/docs/usage/images/card-lock-feature.png', alt: 'カードのロック機能' },
-      { src: '/docs/usage/images/card-locked-state.png', alt: 'カードがロックされた状態' }
+      { src: '/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' },
+      { src: '/images/shuffle-sort-buttons.png', alt: 'シャッフル・ソートボタン' },
+      { src: '/images/card-lock-feature.png', alt: 'カードのロック機能' },
+      { src: '/images/card-locked-state.png', alt: 'カードがロックされた状態' }
     ],
     usage: `
       <h5>使い方</h5>
@@ -185,9 +184,10 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'デッキ画像作成',
     description: 'デッキレシピを画像として保存できます。SNSでの共有やアーカイブに便利です。',
     images: [
-      { src: '/docs/usage/images/deck-image-dialog.gif', alt: 'デッキ画像作成ダイアログのデモ' },
-      { src: '/docs/usage/images/deck-image-button.png', alt: 'デッキ画像作成ボタン' },
-      { src: '/docs/usage/images/deck-recipe-sample.png', alt: 'デッキレシピ出力サンプル' }
+      { src: '/images/deck-image-dialog.gif', alt: 'デッキ画像作成ダイアログのデモ' },
+      { src: '/images/deck-image-button.png', alt: 'デッキ画像作成ボタン' },
+      { src: '/images/image-dialog-color-red.png', alt: '赤背景' },
+      { src: '/images/image-dialog-color-blue.png', alt: '青背景' }
     ],
     usage: `
       <h5>使い方</h5>

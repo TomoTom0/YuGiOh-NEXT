@@ -49,6 +49,8 @@
 
 **作成される画像のサンプル：**
 
+<img src="./docs/usage/images/覇王魔術師_2025-11-09T09-23-27.jpg" alt="デッキレシピサンプル" width="600">
+
 <img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
 
 ## インストール方法
