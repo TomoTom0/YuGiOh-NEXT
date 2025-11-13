@@ -6,18 +6,20 @@
 
     <div class="tabs">
       <button
-        :class="['tab', { active: activeTab === 'general' }]"
-        @click="activeTab = 'general'"
-      >
-        General
-      </button>
-      <button
         :class="['tab', { active: activeTab === 'omit' }]"
         @click="activeTab = 'omit'"
       >
         Omit and Usage
       </button>
       <button
+        v-if="false"
+        :class="['tab', { active: activeTab === 'general' }]"
+        @click="activeTab = 'general'"
+      >
+        General
+      </button>
+      <button
+        v-if="false"
         :class="['tab', { active: activeTab === 'deck-edit-settings' }]"
         @click="activeTab = 'deck-edit-settings'"
       >
@@ -27,13 +29,13 @@
 
      <div class="tab-content">
       <!-- General Tab -->
-      <div v-if="activeTab === 'general'" class="general-tab">
+      <div v-if="false && activeTab === 'general'" class="general-tab">
         <h2 class="section-title">バージョン情報</h2>
         <p>Yugioh Neuron Helper v0.3.0</p>
       </div>
 
       <!-- Deck Edit Settings Tab -->
-      <div v-if="activeTab === 'deck-edit-settings'">
+      <div v-if="false && activeTab === 'deck-edit-settings'">
         <DeckEditSettings />
       </div>
 
@@ -67,16 +69,18 @@
                 </label>
               </div>
               <p class="feature-description">{{ feature.description }}</p>
-              <div class="feature-images" v-if="feature.images && feature.images.length">
-                <img
-                  v-for="(img, idx) in feature.images"
-                  :key="idx"
-                  :src="img.src"
-                  :alt="img.alt"
-                  class="feature-image"
-                />
+              <div class="feature-content">
+                <div class="feature-images" v-if="feature.images && feature.images.length">
+                  <img
+                    v-for="(img, idx) in feature.images"
+                    :key="idx"
+                    :src="img.src"
+                    :alt="img.alt"
+                    class="feature-image"
+                  />
+                </div>
+                <div class="feature-usage" v-html="feature.usage"></div>
               </div>
-              <div class="feature-usage" v-html="feature.usage"></div>
             </div>
           </div>
         </div>
@@ -105,16 +109,18 @@
                 </label>
               </div>
               <p class="feature-description">{{ deckEditFeature.description }}</p>
-              <div class="feature-images" v-if="deckEditFeature.images && deckEditFeature.images.length">
-                <img
-                  v-for="(img, idx) in deckEditFeature.images"
-                  :key="idx"
-                  :src="img.src"
-                  :alt="img.alt"
-                  class="feature-image"
-                />
+              <div class="feature-content">
+                <div class="feature-images" v-if="deckEditFeature.images && deckEditFeature.images.length">
+                  <img
+                    v-for="(img, idx) in deckEditFeature.images"
+                    :key="idx"
+                    :src="img.src"
+                    :alt="img.alt"
+                    class="feature-image"
+                  />
+                </div>
+                <div class="feature-usage" v-html="deckEditFeature.usage"></div>
               </div>
-              <div class="feature-usage" v-html="deckEditFeature.usage"></div>
             </div>
           </div>
         </div>
@@ -153,7 +159,6 @@ const deckEditFeature = reactive<Feature>({
       <li><strong>カード詳細表示</strong>: Info/QA/Related/Productsタブで詳細情報を確認。</li>
       <li><strong>レスポンシブデザイン</strong>: デスクトップ/モバイル両対応。</li>
     </ul>
-    <p>詳細は <a href="https://github.com/your-repo/docs/usage/deck-edit.md" target="_blank">デッキ編集機能ガイド</a> を参照してください。</p>
   `,
   enabled: true
 });
@@ -167,7 +172,6 @@ const deckDisplayFeatures = reactive<Feature[]>([
       { src: '/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' }
     ],
     usage: `
-      <h5>使い方</h5>
       <ul>
         <li><strong>シャッフルボタン</strong>: メインデッキの枚数表示の左側に表示。ロックされていないカードをランダムに並べ替えます。</li>
         <li><strong>ソートボタン</strong>: シャッフルボタンの右側に表示。カードを元の順序に戻します。</li>
@@ -184,7 +188,6 @@ const deckDisplayFeatures = reactive<Feature[]>([
       { src: '/images/deck-recipe-sample.png', alt: '作成された画像見本' }
     ],
     usage: `
-      <h5>使い方</h5>
       <ul>
         <li>ページ下部右端のカメラアイコンのボタンをクリック</li>
         <li>ダイアログでデッキ名のカスタマイズ、背景色の選択（赤/青）、QRコードの表示/非表示を設定</li>
@@ -264,8 +267,13 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
-.tab:hover {
+.tab:hover:not(:disabled) {
   background-color: #f5f5f5;
+}
+
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .tab.active {
@@ -393,22 +401,30 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.feature-images {
+.feature-content {
   display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.feature-images {
+  flex-shrink: 0;
+  width: 500px;
 }
 
 .feature-image {
-  max-width: 600px;
+  max-width: 100%;
   width: 100%;
+  height: auto;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .feature-usage {
+  flex: 1;
   color: #555;
   font-size: 14px;
+  line-height: 1.8;
 }
 
 .feature-usage h5 {
