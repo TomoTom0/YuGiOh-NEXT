@@ -1,7 +1,10 @@
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { parseSearchResultRow, extractImageInfo } from '../../../src/api/card-search';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * カード検索結果パーサーのテスト

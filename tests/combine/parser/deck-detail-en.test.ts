@@ -1,7 +1,10 @@
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { parseDeckDetail } from '../../../src/content/parser/deck-detail-parser';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * デッキ詳細パーサーのテスト（英語版）
