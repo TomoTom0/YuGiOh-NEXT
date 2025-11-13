@@ -38,8 +38,12 @@
 - [ ] card-animation.test.ts（推奨・優先度低）
 
 #### フェーズ2: 結合テスト（優先度：中）
-- [ ] card-detail-en.test.ts（英語版）
-- [ ] deck-detail-en.test.ts（英語版）
+- [x] card-detail-en.test.ts（英語版）（17tests ✅）
+  - [x] 英語版パース成功確認
+  - [x] 属性・種族・エフェクトタイプのマッピング確認
+- [x] deck-detail-en.test.ts（英語版）（17tests ✅）
+  - [x] 英語版パース成功確認
+  - [x] カードタイプ・属性・種族マッピング確認
 
 #### フェーズ3: 既存テスト修正
 - [ ] card-search.test.ts（ciid/imgs必須化対応）
