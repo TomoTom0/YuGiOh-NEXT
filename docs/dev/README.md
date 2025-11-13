@@ -1,20 +1,57 @@
-# 開発用ツール
+# 開発ガイド
 
-このディレクトリには、開発・テスト用のスクリプトが含まれています。
+## テスト実行方法
 
-## ファイル
+### 全テストの実行
+
+```bash
+npm test
+```
+
+### 特定のテストスイートの実行
+
+```bash
+# ユニットテストのみ
+npm test -- tests/unit/
+
+# 結合テストのみ
+npm test -- tests/combine/
+
+# 特定のファイル
+npm test -- tests/unit/language-detector.test.ts
+```
+
+### ウォッチモード
+
+```bash
+npm test -- --watch
+```
+
+### カバレッジレポート
+
+```bash
+npm test -- --coverage
+```
+
+## テスト構成
+
+- `tests/unit/` - ユニットテスト
+  - `language-detector.test.ts` - 言語検出機能
+  - `mapping-manager.test.ts` - マッピング管理機能
+  - `card-animation.test.ts` - カードアニメーション機能
+  
+- `tests/combine/` - 結合テスト
+  - `parser/` - HTMLパーサーテスト
+  - `deck-edit/` - デッキ編集機能テスト
+  - `i18n/` - 多言語対応テスト
+
+## 開発用ツール
 
 ### session.example.env
 セッション情報のテンプレート。
 これをコピーして `.env.local` を作成し、実際のセッション情報を設定します。
 
-### test-api.ts
-APIの動作確認用スクリプト。
-ブラウザから取得したセッション情報を使って、ローカル環境からAPIをテストできます。
-
-## 使い方
-
-### 1. セッション情報の取得
+## セッション情報の取得（必要に応じて）
 
 1. Chromeで遊戯王公式サイトにログイン
 2. F12でDevToolsを開く
@@ -30,21 +67,11 @@ console.log('cgid:', document.querySelector('[name="cgid"]')?.value);
 console.log('ytkn:', document.querySelector('[name="ytkn"]')?.value);
 ```
 
-### 2. .env.local の作成
+### .env.local の作成
 
 ```bash
-cp dev/session.example.env .env.local
+cp docs/dev/session.example.env .env.local
 # エディタで .env.local を開いて、取得した値を設定
-```
-
-### 3. テストスクリプトの実行
-
-```bash
-# 必要なパッケージをインストール
-npm install -D tsx dotenv
-
-# テスト実行
-npx tsx dev/test-api.ts
 ```
 
 ## 注意事項
@@ -58,10 +85,8 @@ npx tsx dev/test-api.ts
 - セッション情報には有効期限があります
 - 「セッションが無効」エラーが出たら再取得が必要
 
-## 出力ファイル
+## 関連ドキュメント
 
-テストスクリプトは `tmp/` ディレクトリにHTMLファイルを保存します:
-- `tmp/card-search.html` - カード検索結果
-- `tmp/deck-list.html` - デッキ一覧
-
-これらのファイルを使ってHTMLパーサーの開発・デバッグができます。
+- [アーキテクチャ](./architecture.md) - システム構成とコンポーネント設計
+- [多言語対応](./i18n.md) - 多言語対応の仕組みとマッピングテーブル
+- [テスト](./testing.md) - テスト戦略と実行方法（作成予定）

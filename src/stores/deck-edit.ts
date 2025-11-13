@@ -464,6 +464,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const hasMore = ref(false);
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
+    // main, extra, sideで同じcidのカードは合計3枚まで
+    const mainCount = deckInfo.value.mainDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
+    const extraCount = deckInfo.value.extraDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
+    const sideCount = deckInfo.value.sideDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
+    const totalCount = mainCount + extraCount + sideCount;
+    
+    if (totalCount >= 3) {
+      // 4枚目以降は追加しない（無言で無効化）
+      return;
+    }
+    
     // データ追加
     addToDisplayOrder(card, section);
     

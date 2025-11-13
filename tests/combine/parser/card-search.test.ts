@@ -1,7 +1,10 @@
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { parseSearchResultRow, extractImageInfo } from '../../../src/api/card-search';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * カード検索結果パーサーのテスト
@@ -100,6 +103,8 @@ async function testCardSearchParser() {
       if (!card.name) errors.push(`Card ${index}: missing name`);
       if (!card.cardId) errors.push(`Card ${index}: missing cardId`);
       if (!card.cardType) errors.push(`Card ${index}: missing cardType`);
+      if (card.ciid === undefined) errors.push(`Card ${index}: missing ciid`);
+      if (!card.imgs) errors.push(`Card ${index}: missing imgs`);
 
       if (card.cardType === 'モンスター') {
         if (!card.attribute) errors.push(`Card ${index}: missing attribute`);

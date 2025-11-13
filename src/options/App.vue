@@ -18,10 +18,16 @@
         Omit and Usage
       </button>
       <button
+        :class="['tab', { active: activeTab === 'deck-edit-settings' }]"
+        @click="activeTab = 'deck-edit-settings'"
+      >
+        Deck Edit Settings
+      </button>
+      <button
         :class="['tab', { active: activeTab === 'deckedit' }]"
         @click="activeTab = 'deckedit'"
       >
-        Deck Edit
+        Deck Edit (Sample)
       </button>
     </div>
 
@@ -89,6 +95,11 @@
         </div>
       </div>
 
+      <!-- Deck Edit Settings Tab -->
+      <div v-if="activeTab === 'deck-edit-settings'" class="deck-edit-settings-tab">
+        <DeckEditSettings />
+      </div>
+
       <!-- Deck Edit Tab -->
       <div v-if="activeTab === 'deckedit'" class="deckedit-tab">
         <DeckEdit />
@@ -100,6 +111,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import DeckEdit from './DeckEdit.vue';
+import DeckEditSettings from './DeckEditSettings.vue';
 
 interface Feature {
   id: string;
@@ -109,7 +121,7 @@ interface Feature {
   enabled: boolean;
 }
 
-const activeTab = ref<'general' | 'omit' | 'deckedit'>('omit');
+const activeTab = ref<'general' | 'omit' | 'deckedit' | 'deck-edit-settings'>('omit');
 const featuresDetail = ref<HTMLElement | null>(null);
 const featureRefs = reactive<Record<string, any>>({});
 

@@ -4,15 +4,20 @@
 
 ## 主要な関数
 
-### `searchCards(options: SearchOptions): Promise<CardInfo[]>`
+### `searchCards(options: SearchOptions, language?: 'ja' | 'en'): Promise<CardInfo[]>`
 
 カードを検索して結果を返す。
 
 **パラメータ:**
 - `options: SearchOptions` - 検索オプション
+- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
 
 **戻り値:**
 - `Promise<CardInfo[]>` - カード情報の配列（エラー時は空配列）
+
+**言語対応:**
+- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
+- `request_locale=ja`または`request_locale=en`がAPI URLに追加されます
 
 **エラーハンドリング:**
 - HTTP通信エラー: 空配列を返す
@@ -20,24 +25,35 @@
 
 **使用例:**
 ```typescript
+// 言語自動検出
 const cards = await searchCards({
   cardName: 'Blue-Eyes',
   cardType: 'モンスター'
 });
+
+// 言語明示指定
+const cardsEn = await searchCards({
+  cardName: 'Blue-Eyes',
+  cardType: 'monster'
+}, 'en');
 ```
 
 ---
 
-### `searchCardsByName(keyword: string, ctype?: CardType): Promise<CardInfo[]>`
+### `searchCardsByName(keyword: string, ctype?: CardType, language?: 'ja' | 'en'): Promise<CardInfo[]>`
 
 カード名でカードを検索する。
 
 **パラメータ:**
 - `keyword: string` - 検索キーワード
 - `ctype?: CardType` - カードタイプ（オプション）
+- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
 
 **戻り値:**
 - `Promise<CardInfo[]>` - カード情報の配列（エラー時は空配列）
+
+**言語対応:**
+- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
 
 **エラーハンドリング:**
 - HTTP通信エラー: 空配列を返す
@@ -46,19 +62,24 @@ const cards = await searchCards({
 **使用例:**
 ```typescript
 const cards = await searchCardsByName('Blue-Eyes', 'モンスター');
+const cardsEn = await searchCardsByName('Blue-Eyes', 'monster', 'en');
 ```
 
 ---
 
-### `searchCardById(cardId: string): Promise<CardInfo | null>`
+### `searchCardById(cardId: string, language?: 'ja' | 'en'): Promise<CardInfo | null>`
 
 カードIDでカードを検索する。
 
 **パラメータ:**
 - `cardId: string` - カードID
+- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
 
 **戻り値:**
 - `Promise<CardInfo | null>` - カード情報（見つからない場合はnull）
+
+**言語対応:**
+- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
 
 **エラーハンドリング:**
 - HTTP通信エラー: nullを返す
@@ -67,6 +88,7 @@ const cards = await searchCardsByName('Blue-Eyes', 'モンスター');
 **使用例:**
 ```typescript
 const card = await searchCardById('14953');
+const cardEn = await searchCardById('14953', 'en');
 ```
 
 ---
