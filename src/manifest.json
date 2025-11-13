@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "遊戯王デッキヘルパー",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "遊戯王カードデータベースのデッキ管理を支援するChrome拡張",
 
   "permissions": [
