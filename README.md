@@ -10,8 +10,6 @@
 
 デッキ詳細ページにインタラクティブな編集UIを追加します。
 
-<img src="./docs/usage/images/deck-edit-demo.gif" alt="デッキ編集UI" width="600">
-
 **機能詳細：**
 - ドラッグ&ドロップでカードを移動
 - カード検索エリアから追加
@@ -51,9 +49,7 @@
 
 **作成される画像のサンプル：**
 
-| デッキレシピ画像例 |
-|-------------------|
-| <img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="400"> |
+<img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
 
 ## インストール方法
 
