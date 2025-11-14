@@ -6,27 +6,26 @@
 
 ## 主要機能
 
-### デッキ編集UI ⭐ NEW in v0.3
+### デッキ編集UI (v0.3)
 
 デッキ詳細ページにインタラクティブな編集UIを追加します。
 
 **機能詳細：**
 - ドラッグ&ドロップでカードを移動
 - カード検索エリアから追加
-- ワンクリックで枚数調整（+1, -1, 全削除, サイドへ移動）
-- 公式並び順ソート機能
+- ワンクリックでカード操作（枚数追加、ゴミ箱移動、サイドへ移動）
 - リスト/グリッド表示切り替え
 - スムーズなアニメーション
 - 多言語対応（日本語・英語）
 
-詳細は [デッキ編集機能ガイド](./docs/usage/deck-edit.md) をご覧ください。
+詳細は [デッキ編集機能ガイド](./docs/usage/custom-deck-edit.md) をご覧ください。
 
 ### カードのシャッフル
 
 デッキのカード順序をランダムに並べ替えたり、元に戻したりできます。特定のカードを固定して、シャッフル時に先頭に配置し続けることも可能です。
 デッキの回し具合を、簡単に確かめたいときのために。
 
-<img src="./docs/usage/images/shuffle-sort-animation.gif" alt="シャッフル・ソート・固定機能" width="600">
+<img src="./docs/usage/images/shuffle-sort/shuffle-sort-animation.gif" alt="シャッフル・ソート・固定機能" width="600">
 
 **機能詳細：**
 - カードをワンクリックでシャッフル
@@ -47,7 +46,7 @@
 
 **作成される画像のサンプル：**
 
-<img src="./docs/usage/images/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
+<img src="./docs/usage/images/deck-image/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
 
 ## インストール方法
 
@@ -72,7 +71,7 @@ releasesページから最新の`.zip`ファイルをダウンロードし、以
 - **ソートボタン**: シャッフルボタンの右側
 - **デッキ画像作成ボタン**: メタデータ部分の下部
 
-詳細は [ドキュメント](./docs/usage/index.md) をご覧ください。
+詳細は [ドキュメント](./docs/usage/README.md) をご覧ください。
 
 ## 対応ページ
 
@@ -108,5 +107,5 @@ ISC
 ## 関連リンク
 
 - [遊戯王カードデータベース](https://www.db.yugioh-card.com/)
-- [使い方ドキュメント](./docs/usage/index.md)
-- [デッキ編集機能](./docs/usage/deck-edit.md)
+- [使い方ドキュメント](./docs/usage/README.md)
+- [デッキ編集機能](./docs/usage/custom-deck-edit.md)
