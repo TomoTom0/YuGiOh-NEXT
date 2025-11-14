@@ -5,7 +5,7 @@
 
 set -e
 
-REPO="TomoTom0/ygo-neuron-helper"
+REPO="TomoTom0/YuGiOh-NEXT"
 
 echo "=== ブランチ保護ルール設定 ==="
 echo "リポジトリ: $REPO"

@@ -6,6 +6,12 @@
 
 - **遊戯王カードデータベース**: https://www.db.yugioh-card.com/
 
+## 主な機能
+
+![デッキ編集機能の概要](./images/store-promo-01-easy-moving.png)
+
+PC版の遊戯王Neuronでも、カード検索・追加・詳細確認が快適にできます。
+
 ## 機能一覧
 
 本拡張機能は、以下のページで利用できます。

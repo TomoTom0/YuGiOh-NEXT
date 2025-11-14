@@ -4,6 +4,73 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-14: Chrome Store宣伝画像をドキュメントに追加完了
+
+### Chrome Store宣伝画像の追加
+- ✅ tmp/のChrome Store画像3枚をドキュメントに配置
+  - `store-promo-01-easy-moving.png`: デッキ編集の操作説明（557KB）
+  - `store-promo-02-card-info.png`: カード詳細4タブ表示（608KB）
+  - `store-promo-03-viewing-page.png`: デッキ表示ページの追加機能（1.4MB）
+
+- ✅ README.md に画像追加
+  - introセクション直後: 全体概要（promo-01）
+  - デッキ編集UIセクション: カード詳細情報（promo-02）
+  - デッキ表示画面セクション: 追加機能概要（promo-03）
+
+- ✅ docs/usage/ ドキュメントに画像追加
+  - `custom-deck-edit.md`: 概要セクションに promo-01、カード詳細セクションに promo-02
+  - `deck-show.md`: 冒頭に promo-03
+  - `README.md`: 主な機能セクションに promo-01
+
+- ✅ 画像配置とビルド
+  - `docs/usage/images/` と `public/images/` 両方に配置
+  - ビルド・デプロイ完了（約2.5MB追加）
+
+**方針**: 視覚的インパクト（Chrome Store画像）+ 詳細説明（実スクリーンショット）の併用
+
+**変更ファイル**:
+- `README.md`
+- `docs/usage/custom-deck-edit.md`
+- `docs/usage/deck-show.md`
+- `docs/usage/README.md`
+- `docs/usage/images/store-promo-*.png` (3枚)
+- `public/images/store-promo-*.png` (3枚)
+
+**タイムスタンプ**: 2025-11-14 20:15
+
+---
+
+## 2025-11-14: オプションページにサイドバーナビゲーション追加完了
+
+### サイドバーナビゲーション機能の実装
+- ✅ 折りたたみ可能なサイドバーナビゲーションを追加
+  - トグルボタン（▶/◀）で開閉可能
+  - `position: sticky` でスクロール時も固定表示
+  - スムーズなトランジション効果（0.3秒）
+  - ホバー時にアクセントカラー（#008cff）表示
+  - 折りたたみ時: 50px、展開時: 200px
+
+- ✅ セクション構成の変更
+  - 独自デッキ編集画面を公式デッキ表示ページより上に配置
+  - セクションIDを追加（#deck-edit-screen、#deck-display-page）
+  - スムーズスクロール機能を実装
+
+- ✅ アクセス方法の追加
+  - ポップアップからのアクセス方法を記載
+  - コンテキストメニューからのアクセス方法を記載
+
+- ✅ デザイン統一
+  - 白背景 (#f0f0f0) とアクセントカラー (#008cff)
+  - 微妙な影効果 (0 2px 4px rgba(0, 0, 0, 0.08))
+  - 他のUI要素（popup、deck edit）との一貫性を確保
+
+**変更ファイル**:
+- `src/options/App.vue`: サイドバー構造とスタイル追加
+
+**タイムスタンプ**: 2025-11-14 20:00
+
+---
+
 ## 2025-11-14: docs/usage/ ファイル構造再整理完了
 
 ### ファイル構造の再整理 (commit: 7e75520)
@@ -69,8 +136,8 @@
   - v0.3.0からの差分リリース
 - ✅ tagをリモートにpush
 - ✅ GitHub Releaseを作成
-  - v0.3.0: https://github.com/TomoTom0/ygo-neuron-helper/releases/tag/v0.3.0
-  - v0.3.1: https://github.com/TomoTom0/ygo-neuron-helper/releases/tag/v0.3.1
+  - v0.3.0: https://github.com/TomoTom0/YuGiOh-NEXT/releases/tag/v0.3.0
+  - v0.3.1: https://github.com/TomoTom0/YuGiOh-NEXT/releases/tag/v0.3.1
 
 **タイムスタンプ**: 2025-11-14 18:00
 
@@ -83,7 +150,7 @@
   - タイトル: "Release v0.3.0: デッキ編集機能と多言語対応基盤"
   - 主な変更点を網羅的に記載
   - CHANGELOG.mdベースのリリースノート
-  - URL: https://github.com/TomoTom0/ygo-neuron-helper/pull/4
+  - URL: https://github.com/TomoTom0/YuGiOh-NEXT/pull/4
 - ✅ PR#3マージ済み（feature/v0.3.0-tests → dev）
   - レビューコメント対応完了
   - 2件の指摘に返信投稿
@@ -2313,7 +2380,7 @@ gh pr comment 3 --body "最新のコミット: v0.3.0リリース準備完了"
 
 ### PR状況
 
-- **PR#3**: https://github.com/TomoTom0/ygo-neuron-helper/pull/3
+- **PR#3**: https://github.com/TomoTom0/YuGiOh-NEXT/pull/3
 - **Base**: dev
 - **Status**: OPEN
 - **コミット追加**: b8cdf68 "docs: v0.3.0リリース準備完了"
