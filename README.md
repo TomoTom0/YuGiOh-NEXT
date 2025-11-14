@@ -10,6 +10,8 @@
 
 デッキ詳細ページにインタラクティブな編集UIを追加します。
 
+<img src="./docs/usage/images/deck-edit/01-initial-state.png" alt="デッキ編集画面の全体構成" width="600">
+
 **機能詳細：**
 - ドラッグ&ドロップでカードを移動
 - カード検索エリアから追加
@@ -17,6 +19,8 @@
 - リスト/グリッド表示切り替え
 - スムーズなアニメーション
 - 多言語対応（日本語・英語）
+
+<img src="./docs/usage/images/deck-edit/07-search-function.png" alt="カード検索機能" width="600">
 
 詳細は [デッキ編集機能ガイド](./docs/usage/custom-deck-edit.md) をご覧ください。
 
