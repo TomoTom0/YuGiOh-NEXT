@@ -1,4 +1,6 @@
-# 遊戯王 Neuron Helper
+# 遊戯王NEXT
+
+**遊戯王 Neuron EXTention** の略称です。
 
 遊戯王公式カードデータベース(Neuron)でのデッキ管理を支援するChrome拡張機能です。
 

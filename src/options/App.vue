@@ -1,7 +1,7 @@
 <template>
   <div class="options-container">
     <header class="header">
-      <h1>Yugioh Neuron Helper - 設定</h1>
+      <h1>遊戯王NEXT - 設定</h1>
     </header>
 
     <div class="tabs">
@@ -31,7 +31,7 @@
       <!-- General Tab -->
       <div v-if="false && activeTab === 'general'" class="general-tab">
         <h2 class="section-title">バージョン情報</h2>
-        <p>Yugioh Neuron Helper v0.3.0</p>
+        <p>遊戯王NEXT (遊戯王 Neuron EXTention) v0.3.0</p>
       </div>
 
       <!-- Deck Edit Settings Tab -->

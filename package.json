@@ -1,7 +1,7 @@
 {
-  "name": "ygo-neuron-helper",
+  "name": "ygo-next",
   "version": "0.3.0",
-  "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
+  "description": "遊戯王NEXT (遊戯王 Neuron EXTention) - 遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",

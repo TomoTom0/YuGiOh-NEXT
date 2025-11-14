@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "遊戯王デッキヘルパー",
+  "name": "遊戯王NEXT",
   "version": "0.3.0",
-  "description": "遊戯王カードデータベースのデッキ管理を支援するChrome拡張",
+  "description": "遊戯王 Neuron EXTention - 遊戯王カードデータベースのデッキ管理を支援するChrome拡張",
 
   "permissions": [
     "storage",
