@@ -25,16 +25,23 @@ export interface CardBase {
   ruby?: string;
   /** カードID (cid) */
   cardId: string;
-  /** 画像ID（デフォルト '1'） */
-  imageId: string;
-  /** 代表画像識別子（オプション） */
-  ciid?: string;
-  /** 複数画像情報（複数画像がある場合） */
-  imgs?: Array<{ciid: string; imgHash: string}>;
-  /** カード画像URL（完全なURL、encパラメータ込み、オプション） */
-  imageUrl?: string;
+  /** 画像識別子 (ciid) */
+  ciid: string;
+  /** 複数画像情報 */
+  imgs: Array<{ciid: string; imgHash: string}>;
   /** 効果テキスト（オプション） */
   text?: string;
+}
+
+/**
+ * CardInfoにimageUrlゲッターを追加するヘルパー
+ */
+export function getCardImageUrl(card: CardBase): string | undefined {
+  const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
+  if (!imageInfo) {
+    return undefined;
+  }
+  return `/yugiohdb/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
 }
 
 /**
@@ -126,8 +133,12 @@ export interface PackInfo {
   code?: string;
   /** レアリティ */
   rarity?: string;
+  /** レアリティの背景色 */
+  rarityColor?: string;
   /** 発売日（例: "2025-10-25"） */
   releaseDate?: string;
+  /** パックID（例: "1000009524000"） */
+  packId?: string;
 }
 
 /**
@@ -140,6 +151,8 @@ export interface CardDetail {
   packs: PackInfo[];
   /** 関連カード */
   relatedCards: CardInfo[];
+  /** Q&A情報 */
+  qaList?: CardFAQ[];
 }
 
 /**
@@ -164,10 +177,14 @@ export interface CardFAQList {
   cardId: string;
   /** カード名 */
   cardName: string;
-  /** カードテキスト */
-  cardText?: string;
-  /** 補足情報 */
+  /** カードテキストの補足情報 */
   supplementInfo?: string;
+  /** カードテキストの補足情報の日付 */
+  supplementDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendulumSupplementInfo?: string;
+  /** ペンデュラムテキストの補足情報の日付 */
+  pendulumSupplementDate?: string;
   /** FAQ一覧 */
   faqs: CardFAQ[];
 }

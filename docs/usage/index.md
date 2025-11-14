@@ -1,28 +1,30 @@
 # 遊戯王デッキヘルパー - 使い方
 
-遊戯王カードデータベースのデッキ管理を支援するChrome拡張の使い方をページ、機能、ボタンの順に説明します。
+Yugioh Neuron Helperは、遊戯王カードデータベースのデッキ管理を支援するChrome拡張です。使い方を画面>機能の構造で説明します。
 
 ## 対象サイト
 
 - **遊戯王カードデータベース**: https://www.db.yugioh-card.com/
 
-## 機能一覧（ページ別）
+---
+
+## 画面と機能一覧
 
 ### 1. デッキ表示ページ
 
 **URL**: `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...`
 
-デッキ表示ページでは、以下の2つの機能が利用できます。
+デッキ表示ページでは、以下の機能が利用できます。
 
-#### 1.1 カードシャッフル機能
+#### 機能1: カードシャッフル
 
 デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードをロックして、シャッフルの影響を受けないように固定することもできます。
 
-![シャッフル・ソート・固定機能のデモ](./images/shuffle-sort-animation.gif)
+![シャッフル・ソート・固定機能のデモ](./images/shuffle-sort/shuffle-sort-animation.gif)
 
 ##### ボタン
 
-![シャッフル・ソートボタン](./images/shuffle-sort-buttons.png)
+![シャッフル・ソートボタン](./images/shuffle-sort/shuffle-sort-buttons.png)
 
 **シャッフルボタン**
 - **位置**: メインデッキの枚数表示の左側
@@ -50,14 +52,14 @@
 
 **カードをロックする（先頭固定）**
 
-![カードのロック機能（クリック位置）](./images/card-lock-feature.png)
+![カードのロック機能（クリック位置）](./images/shuffle-sort/card-lock-feature.png)
 
 1. カード画像の右上1/4のエリアをクリック
 2. カードがロック状態になり、以下の表示になります：
    - 薄い青緑色の背景
    - 右上に南京錠アイコン（青緑線・黒グレー縁取り）
 
-![カードがロックされた状態](./images/card-locked-state.png)
+![カードがロックされた状態](./images/shuffle-sort/card-locked-state.png)
 
 3. ロックされたカードはデッキの先頭に移動し、シャッフル時も順序が保持されます
 4. もう一度右上1/4のエリアをクリックするとロックが解除されます
@@ -68,13 +70,13 @@
 - 複数のカードをロックした場合、ロックした順序が保持されます
 - ソートボタンを押してもロック状態は維持されます
 
-#### 1.2 デッキ画像作成機能
+#### 機能2: デッキ画像作成
 
 デッキレシピの画像を作成してダウンロードする機能です。
 
 ##### ボタン
 
-![デッキ画像作成ボタン](./images/deck-image-button.png)
+![デッキ画像作成ボタン](./images/deck-image/deck-image-button.png)
 
 **デッキ画像作成ボタン**
 - **位置**: ページ下部の `#bottom_btn_set` エリア（右端）
@@ -89,6 +91,48 @@
 
 ---
 
+### 2. 独自デッキ編集画面
+
+**URL**: `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit`
+
+独自デッキ編集画面は、カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。
+
+**詳細**: [独自デッキ編集画面ガイド](./deck-edit.md) を参照してください。
+
+#### 主な機能
+- デッキの読み込み・保存
+- カード検索（リスト/グリッド表示）
+- デッキ編集（ドラッグ＆ドロップ、枚数調整）
+- カード詳細表示（Info/QA/Related/Products）
+- レスポンシブデザイン（デスクトップ/モバイル）
+
+---
+
+### 3. オプションページ
+
+**アクセス方法**: 拡張機能アイコンを右クリック→「オプション」
+
+オプションページは拡張機能の情報とテスト機能へのアクセスを提供します。
+
+#### 機能: 拡張機能の設定
+
+オプションページでは以下の設定が可能です：
+
+##### Omit and Usage タブ
+- **デッキ表示ページの機能**: シャッフル・ソート・固定機能、デッキ画像作成機能のON/OFF切り替え
+- **独自デッキ編集画面**: 独自デッキ編集画面自体のON/OFF切り替え
+- **使い方の説明**: 各機能の詳細な使い方と画像付きの説明
+
+##### Deck Edit Settings タブ
+- **基本設定**: 独自デッキ編集画面の有効/無効
+- **表示設定**: デフォルト表示モード（リスト/グリッド）、ソート順、アニメーションON/OFF
+- **言語設定**: カード情報取得言語（自動検出/日本語/English）
+
+##### General タブ
+- 将来的な拡張機能の設定（現在は未使用）
+
+#### バージョン情報
+- 現在インストールされている拡張機能のバージョンが表示されます（General タブ）
 
 ---
 
@@ -96,7 +140,7 @@
 
 デッキ画像作成ボタンをクリックすると表示されるダイアログの詳細です。
 
-![デッキ画像作成ダイアログのデモ](./images/deck-image-dialog.gif)
+![デッキ画像作成ダイアログのデモ](./images/deck-image/deck-image-dialog.gif)
 
 ### オプション（設定項目）
 
@@ -114,7 +158,7 @@
 
 | 赤背景 | 青背景 |
 |--------|--------|
-| ![赤背景](./images/image-dialog-color-red.png) | ![青背景](./images/image-dialog-color-blue.png) |
+| ![赤背景](./images/deck-image/image-dialog-color-red.png) | ![青背景](./images/deck-image/image-dialog-color-blue.png) |
 
 **プレビュー画像**
 - **位置**: ダイアログ中央
@@ -134,11 +178,11 @@
 
 | QR ON | QR OFF |
 |-------|--------|
-| ![QR ON](./images/image-dialog-qr-on.png) | ![QR OFF](./images/image-dialog-qr-off.png) |
+| ![QR ON](./images/deck-image/image-dialog-qr-on.png) | ![QR OFF](./images/deck-image/image-dialog-qr-off.png) |
 
 **ダウンロードボタン**
 
-![ダウンロードボタン](./images/image-dialog-download-button.png)
+![ダウンロードボタン](./images/deck-image/image-dialog-download-button.png)
 
 - **位置**: ダイアログ左下
 - **アイコン**: ダウンロードアイコン
@@ -204,5 +248,5 @@
 
 ## バージョン情報
 
-- **現在のバージョン**: 0.2.0
+- **現在のバージョン**: 0.3.0
 - **対応ブラウザ**: Google Chrome, Chromium（Manifest V3対応）

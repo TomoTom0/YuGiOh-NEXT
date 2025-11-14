@@ -1,88 +1,71 @@
 # 使い方ドキュメント用画像
 
-## 画像一覧（予定）
+## ディレクトリ構造
 
-### デッキ表示ページ
+```
+docs/usage/images/
+├── deck-edit/       # デッキ編集機能のスクリーンショット
+├── shuffle-sort/    # シャッフル・ソート機能のスクリーンショット
+├── deck-image/      # デッキ画像作成機能のスクリーンショット
+└── README.md        # このファイル
+```
 
-#### 1. `deck-display-page-overview.png`
-- **内容**: デッキ表示ページ全体
-- **撮影位置**: デッキ表示ページ全体のスクリーンショット
-- **目的**: ページの全体像を把握
-- **参照URL**: tests/sample/url.md の公開デッキURL
+## 各ディレクトリの内容
 
-#### 2. `shuffle-sort-buttons.png`
-- **内容**: シャッフルボタンとソートボタン
-- **撮影位置**: メインデッキのタイトル部分（「メイン（XX枚）」の左側）
-- **目的**: カードシャッフル機能のボタン位置を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+### deck-edit/
 
-#### 3. `deck-image-button.png`
-- **内容**: デッキ画像作成ボタン
-- **撮影位置**: ページ下部の `#bottom_btn_set` エリア（右端のカメラアイコンボタン）
-- **目的**: デッキ画像作成機能のボタン位置を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+デッキ編集機能（`#/ytomo/edit`）のスクリーンショット
 
-#### 4. `card-lock-feature.png`
-- **内容**: カードのロック機能（sortfix）
-- **撮影位置**: カード画像の右上1/4エリアにカーソルを置いた状態
-- **目的**: ロック機能の操作方法を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+- `01-initial-state.png`: 初期状態（デッキ読み込み完了）
+- `02-deck-name-input.png`: デッキ名入力状態
+- `03-card-detail-info.png`: カード詳細（Infoタブ）
+- `04-card-detail-related.png`: カード詳細（Relatedタブ）
+- `05-card-detail-products.png`: カード詳細（Productsタブ）
+- `06-card-detail-qa.png`: カード詳細（Q&Aタブ）
+- `07-search-function.png`: カード検索機能
 
-#### 5. `card-locked-state.png`
-- **内容**: ロックされたカード
-- **撮影位置**: ロック状態のカード（薄い青緑背景、右上に南京錠アイコン）
-- **目的**: ロック時の視覚的フィードバックを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL
+### shuffle-sort/
 
-### デッキ画像作成ダイアログ
+シャッフル・ソート機能のスクリーンショット
 
-#### 6. `image-dialog-overview.png`
-- **内容**: デッキ画像作成ダイアログ全体
-- **撮影位置**: ダイアログが表示された状態
-- **目的**: ダイアログの全体像を把握
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+- `shuffle-sort-animation.gif`: シャッフル・ソート・固定機能のデモアニメーション
+- `shuffle-sort-buttons.png`: シャッフルボタンとソートボタン
+- `card-lock-feature.png`: カードのロック機能（クリック位置）
+- `card-locked-state.png`: ロックされたカード
 
-#### 7. `image-dialog-deck-name.png`
-- **内容**: デッキ名入力欄
-- **撮影位置**: ダイアログ上部のデッキ名入力欄
-- **目的**: デッキ名編集機能を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+### deck-image/
 
-#### 8. `image-dialog-color-red.png`
-- **内容**: 赤背景のプレビュー画像
-- **撮影位置**: ダイアログ中央のプレビュー画像（赤背景）
-- **目的**: 赤背景オプションを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+デッキ画像作成機能のスクリーンショット
 
-#### 9. `image-dialog-color-blue.png`
-- **内容**: 青背景のプレビュー画像
-- **撮影位置**: ダイアログ中央のプレビュー画像（青背景）
-- **目的**: 青背景オプションを示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後、全体クリックで切り替え）
+- `deck-image-button.png`: デッキ画像作成ボタン
+- `deck-image-dialog.gif`: デッキ画像作成ダイアログのデモアニメーション
+- `image-dialog-overview.png`: ダイアログ全体
+- `image-dialog-deck-name.png`: デッキ名入力欄
+- `image-dialog-color-red.png`: 赤背景のプレビュー画像
+- `image-dialog-color-blue.png`: 青背景のプレビュー画像
+- `image-dialog-qr-on.png`: QRトグルボタン（ON状態）
+- `image-dialog-qr-off.png`: QRトグルボタン（OFF状態）
+- `image-dialog-download-button.png`: ダウンロードボタン
 
-#### 10. `image-dialog-qr-on.png`
-- **内容**: QRトグルボタン（ON状態）
-- **撮影位置**: ダイアログ右下のQRボタン（青色）
-- **目的**: QRコードON状態を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+## 画像撮影時の注意事項
 
-#### 11. `image-dialog-qr-off.png`
-- **内容**: QRトグルボタン（OFF状態）
-- **撮影位置**: ダイアログ右下のQRボタン（グレー）
-- **目的**: QRコードOFF状態を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後、QRボタンクリック）
+- **URL**: `tests/sample/url.md` に記載された公開デッキURLを使用
+- **フォーマット**: PNG（アニメーションはGIF）
+- **解像度**: 実際のブラウザ表示サイズ
+- **環境**: 日本語環境（`?request_locale=ja`）
+- **ブラウザ**: Chromium（CDP経由）
 
-#### 12. `image-dialog-download-button.png`
-- **内容**: ダウンロードボタン
-- **撮影位置**: ダイアログ左下のダウンロードボタン
-- **目的**: ダウンロード機能を示す
-- **参照URL**: tests/sample/url.md の公開デッキURL（カメラボタンクリック後）
+## スクリーンショット撮影スクリプト
 
----
+デッキ編集機能のスクリーンショットは自動撮影スクリプトで生成されています：
 
-## 撮影時の注意事項
+- `scripts/screenshots/deck-edit/capture-screenshots.js`
 
-- すべての画像は tests/sample/url.md に記載された公開デッキURLを使用
-- 画像フォーマット: PNG
-- 解像度: 実際のブラウザ表示サイズ
-- ボタンやUI要素が明確に見えるように撮影
+実行方法：
+```bash
+# Chromiumを起動（リモートデバッグモード）
+./scripts/debug/setup/start-chrome.sh
+
+# スクリーンショット撮影
+node scripts/screenshots/deck-edit/capture-screenshots.js
+```
