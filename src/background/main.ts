@@ -33,6 +33,24 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     await updateMetadata();
   }
+
+  // コンテキストメニューを作成（拡張機能アイコン右クリック用）
+  chrome.contextMenus.create({
+    id: 'open-deck-edit',
+    title: 'デッキ編集画面を開く',
+    contexts: ['action']
+  });
+});
+
+/**
+ * コンテキストメニュークリック時の処理
+ */
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'open-deck-edit') {
+    chrome.tabs.create({
+      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+    });
+  }
 });
 
 /**
