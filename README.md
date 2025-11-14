@@ -2,7 +2,7 @@
 
 PCからも新鮮で快適な遊戯王Neuronライフを！
 
-**遊戯王NEXT(Neuron EXTention)**は、~~Neo-Spacianではなく、~~遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
+**遊戯王NEXT(Neuron EXTension)**は、~~Neo-Spacianではなく、~~遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
 
 **現在のバージョン**: v0.3.1 ([変更履歴](./docs/changelog/))
 

@@ -1,6 +1,6 @@
 # Changelog
 
-遊戯王NEXT (遊戯王 Neuron EXTention) の全バージョンの変更履歴です。
+遊戯王NEXT (遊戯王 Neuron EXTension) の全バージョンの変更履歴です。
 
 ## バージョン一覧
 

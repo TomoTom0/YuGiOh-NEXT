@@ -31,7 +31,7 @@
       <!-- General Tab -->
       <div v-if="false && activeTab === 'general'" class="general-tab">
         <h2 class="section-title">バージョン情報</h2>
-        <p>遊戯王NEXT (遊戯王 Neuron EXTention) v0.3.0</p>
+        <p>遊戯王NEXT (遊戯王 Neuron EXTension) v0.3.0</p>
       </div>
 
       <!-- Deck Edit Settings Tab -->

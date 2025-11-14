@@ -1,6 +1,6 @@
 # 遊戯王NEXT - 使い方
 
-**遊戯王NEXT** (遊戯王 Neuron EXTention) は、遊戯王カードデータベースのデッキ管理を支援するChrome拡張です。
+**遊戯王NEXT** (遊戯王 Neuron EXTension) は、遊戯王カードデータベースのデッキ管理を支援するChrome拡張です。
 
 ## 対象サイト
 
