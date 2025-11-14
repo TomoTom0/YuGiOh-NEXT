@@ -274,15 +274,15 @@ onMounted(async () => {
 
 .settings-section {
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  background-color: #fafafa;
+  background-color: var(--bg-secondary);
   margin-bottom: 20px;
 }
 
 .section-title {
   font-size: 18px;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   font-weight: 500;
 }
@@ -297,7 +297,7 @@ onMounted(async () => {
 
 .subsection-title {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 10px 0;
   font-weight: 500;
 }
@@ -312,20 +312,20 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   padding: 10px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
+  background-color: var(--card-bg);
 
   &:hover {
-    border-color: #008cff;
-    background-color: #f9f9f9;
+    border-color: var(--button-bg);
+    background-color: var(--card-hover-bg);
   }
 
   &.active {
-    border-color: #008cff;
-    background-color: #f0f8ff;
+    border-color: var(--button-bg);
+    background-color: var(--card-hover-bg);
   }
 
   input[type="radio"] {
@@ -339,12 +339,12 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     font-size: 14px;
-    color: #333;
+    color: var(--text-primary);
   }
 
   .size-info {
     font-size: 12px;
-    color: #999;
+    color: var(--text-tertiary);
     margin-left: 8px;
   }
 }
@@ -352,14 +352,14 @@ onMounted(async () => {
 .preview-container {
   margin-top: 16px;
   padding: 12px;
-  background-color: white;
+  background-color: var(--card-bg);
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
 }
 
 .preview-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
@@ -392,19 +392,20 @@ onMounted(async () => {
   width: 100%;
   padding: 10px 14px;
   font-size: 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--input-bg);
+  color: var(--input-text);
   cursor: pointer;
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: #008cff;
+    border-color: var(--button-bg);
   }
 
   &:focus {
     outline: none;
-    border-color: #008cff;
+    border-color: var(--button-bg);
   }
 
   option {
@@ -415,7 +416,7 @@ onMounted(async () => {
 .language-note {
   margin-top: 6px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   line-height: 1.4;
 }
 
@@ -430,21 +431,21 @@ onMounted(async () => {
 .reset-button {
   padding: 10px 20px;
   font-size: 14px;
-  color: #fff;
-  background-color: #dc3545;
+  color: var(--button-text);
+  background-color: var(--color-error);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #c82333;
+    opacity: 0.9;
   }
 }
 
 .save-status {
   font-size: 13px;
-  color: #28a745;
+  color: var(--color-success);
   font-weight: normal;
   animation: fadeIn 0.3s ease;
 }
