@@ -115,8 +115,8 @@
 <script>
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
-import { getCardDetail } from '../api/card-search'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -148,75 +148,15 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const { parseCardLinks, handleCardLinkClick } = useCardLinks()
+
     return {
-      deckStore
+      deckStore,
+      parseCardLinks,
+      handleCardLinkClick
     }
   },
   methods: {
-    /**
-     * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
-     * @param {string} text - パース対象のテキスト
-     * @returns {Array} - { type: 'text' | 'link', text: string, cardId?: string }[] の配列
-     */
-    parseCardLinks(text) {
-      if (!text) return [{ type: 'text', text: '' }]
-
-      const parts = []
-      const regex = /\{\{([^|]+)\|(\d+)\}\}/g
-      let lastIndex = 0
-      let match
-
-      while ((match = regex.exec(text)) !== null) {
-        // マッチ前のテキスト
-        if (match.index > lastIndex) {
-          parts.push({
-            type: 'text',
-            text: text.substring(lastIndex, match.index)
-          })
-        }
-
-        // カードリンク部分
-        parts.push({
-          type: 'link',
-          text: match[1], // カード名
-          cardId: match[2] // cid
-        })
-
-        lastIndex = regex.lastIndex
-      }
-
-      // 残りのテキスト
-      if (lastIndex < text.length) {
-        parts.push({
-          type: 'text',
-          text: text.substring(lastIndex)
-        })
-      }
-
-      return parts.length > 0 ? parts : [{ type: 'text', text }]
-    },
-
-    /**
-     * カードリンクがクリックされた時の処理
-     * @param {string} cardId - カードID
-     */
-    async handleCardLinkClick(cardId) {
-      try {
-        // カード詳細を取得（cidのみからCardInfo全体をパース）
-        const cardDetail = await getCardDetail(cardId)
-        if (!cardDetail || !cardDetail.card) {
-          console.error('カード情報の取得に失敗しました:', cardId)
-          return
-        }
-
-        // deckStoreにカードをセットしてCardタブのinfoを表示
-        this.deckStore.selectedCard = cardDetail.card
-        this.deckStore.activeTab = 'card'
-        this.deckStore.cardTab = 'info'
-      } catch (error) {
-        console.error('カードリンククリック処理に失敗しました:', error)
-      }
-    },
     getCardTypeText(cardType) {
       if (cardType === 'spell') return '魔法'
       if (cardType === 'trap') return '罠'
