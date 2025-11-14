@@ -506,8 +506,11 @@ export default {
     }
 
     &.tab-header {
-      background: var(--bg-secondary);
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
       cursor: default;
+      font-style: italic;
+      opacity: 0.7;
     }
   }
 }
