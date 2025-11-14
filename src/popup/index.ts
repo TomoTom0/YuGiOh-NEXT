@@ -8,17 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const container = document.createElement('div');
   container.style.cssText = `
     padding: 0;
-    width: 260px;
+    width: 280px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    background: #f0f0f0;
   `;
 
   // ヘッダー
   const header = document.createElement('div');
   header.style.cssText = `
-    padding: 24px 20px;
+    padding: 20px;
     text-align: center;
-    color: white;
+    background: white;
+    border-bottom: 3px solid #008cff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   `;
 
   const title = document.createElement('h1');
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     font-size: 20px;
     font-weight: 600;
     letter-spacing: 0.5px;
+    color: #333;
   `;
 
   const subtitle = document.createElement('p');
@@ -35,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   subtitle.style.cssText = `
     margin: 0;
     font-size: 11px;
-    opacity: 0.85;
+    color: #666;
     letter-spacing: 0.3px;
   `;
 
@@ -45,8 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // メニューエリア
   const menu = document.createElement('div');
   menu.style.cssText = `
-    background: white;
-    border-radius: 12px 12px 0 0;
     padding: 16px;
   `;
 
@@ -95,9 +96,9 @@ function createMenuButton(title: string, onClick: () => void): HTMLElement {
 
   button.addEventListener('mouseenter', () => {
     button.style.background = '#f8f9fa';
-    button.style.borderColor = '#34495e';
+    button.style.borderColor = '#008cff';
     button.style.transform = 'translateY(-1px)';
-    button.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+    button.style.boxShadow = '0 2px 8px rgba(0,140,255,0.15)';
   });
 
   button.addEventListener('mouseleave', () => {

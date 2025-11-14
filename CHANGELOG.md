@@ -100,6 +100,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[0.3.0]: https://github.com/TomoTom0/ygo-neuron-helper/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/TomoTom0/ygo-neuron-helper/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/TomoTom0/ygo-neuron-helper/releases/tag/v0.1.0
+[0.3.0]: https://github.com/TomoTom0/YuGiOh-NEXT/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/TomoTom0/YuGiOh-NEXT/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/TomoTom0/YuGiOh-NEXT/releases/tag/v0.1.0
