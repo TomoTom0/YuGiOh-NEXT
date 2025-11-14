@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Yu-Gi-Oh! Deck Helper",
+  "name": "遊戯王NEXT",
   "version": "0.3.0",
-  "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
+  "description": "遊戯王Neuron(公式カードデータベース)のデッキ管理を劇的に改善するChrome拡張",
   "permissions": [
     "storage"
   ],
