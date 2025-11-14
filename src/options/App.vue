@@ -42,11 +42,64 @@
       <!-- Omit and Usage Tab -->
       <div v-if="activeTab === 'omit'" class="omit-tab">
         <h2 class="section-title">画面と機能一覧</h2>
-        
-        <!-- デッキ表示ページ -->
-        <div class="screen-section">
-          <h3 class="screen-title">デッキ表示ページ</h3>
-          <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...</code></p>
+
+        <div class="layout-container">
+          <!-- サイドバーナビゲーション -->
+          <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+            <button class="sidebar-toggle" @click="sidebarCollapsed = !sidebarCollapsed">
+              {{ sidebarCollapsed ? '▶' : '◀' }}
+            </button>
+            <nav v-if="!sidebarCollapsed" class="sidebar-nav">
+              <a href="#deck-edit-screen" class="nav-item" @click.prevent="scrollToSection('deck-edit-screen')">独自デッキ編集画面</a>
+              <a href="#deck-display-page" class="nav-item" @click.prevent="scrollToSection('deck-display-page')">公式デッキ表示ページ</a>
+            </nav>
+          </aside>
+
+          <!-- メインコンテンツ -->
+          <div class="main-content">
+            <!-- 独自デッキ編集画面 -->
+            <div id="deck-edit-screen" class="screen-section">
+              <div class="screen-header">
+                <h3 class="screen-title">独自デッキ編集画面</h3>
+                <label class="toggle-label">
+                  <input
+                    type="checkbox"
+                    v-model="deckEditScreen.enabled"
+                    @change="saveSettings"
+                  />
+                  <span class="toggle-switch"></span>
+                  <span>{{ deckEditScreen.enabled ? '有効' : '無効' }}</span>
+                </label>
+              </div>
+              <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></p>
+
+              <!-- 機能説明 -->
+              <div class="features-list">
+                <div class="feature-section" :class="{ disabled: !deckEditScreen.enabled }">
+                  <div class="feature-header">
+                    <h4>デッキ編集MouseUI</h4>
+                  </div>
+                  <p class="feature-description">{{ deckEditScreen.description }}</p>
+                  <div class="feature-content">
+                    <div class="feature-images" v-if="deckEditScreen.images && deckEditScreen.images.length">
+                      <img
+                        v-for="(img, idx) in deckEditScreen.images"
+                        :key="idx"
+                        :src="img.src"
+                        :alt="img.alt"
+                        class="feature-image"
+                      />
+                    </div>
+                    <div class="feature-usage" v-html="deckEditScreen.usage"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 公式デッキ表示ページ -->
+            <div id="deck-display-page" class="screen-section">
+              <h3 class="screen-title">公式デッキ表示ページ</h3>
+              <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...</code> (opeパラメータ省略時はope=1と解釈)</p>
           
           <!-- 機能一覧 -->
           <div class="features-list">
@@ -82,44 +135,6 @@
                 <div class="feature-usage" v-html="feature.usage"></div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- 独自デッキ編集画面 -->
-        <div class="screen-section">
-          <h3 class="screen-title">独自デッキ編集画面</h3>
-          <p class="screen-desc">URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></p>
-          
-          <!-- 機能のON/OFF設定 -->
-          <div class="features-list">
-            <div
-              class="feature-section"
-              :class="{ disabled: !deckEditFeature.enabled }"
-            >
-              <div class="feature-header">
-                <h4>{{ deckEditFeature.name }}</h4>
-                <label class="toggle-label">
-                  <input
-                    type="checkbox"
-                    v-model="deckEditFeature.enabled"
-                    @change="saveSettings"
-                  />
-                  <span class="toggle-switch"></span>
-                  <span>{{ deckEditFeature.enabled ? '有効' : '無効' }}</span>
-                </label>
-              </div>
-              <p class="feature-description">{{ deckEditFeature.description }}</p>
-              <div class="feature-content">
-                <div class="feature-images" v-if="deckEditFeature.images && deckEditFeature.images.length">
-                  <img
-                    v-for="(img, idx) in deckEditFeature.images"
-                    :key="idx"
-                    :src="img.src"
-                    :alt="img.alt"
-                    class="feature-image"
-                  />
-                </div>
-                <div class="feature-usage" v-html="deckEditFeature.usage"></div>
               </div>
             </div>
           </div>
@@ -144,9 +159,17 @@ interface Feature {
 }
 
 const activeTab = ref<'general' | 'omit' | 'deck-edit-settings'>('omit');
+const sidebarCollapsed = ref(false);
 
-const deckEditFeature = reactive<Feature>({
-  id: 'deck-edit',
+const scrollToSection = (id: string) => {
+  const element = document.getElementById(id);
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+const deckEditScreen = reactive<Feature>({
+  id: 'deck-edit-screen',
   name: '独自デッキ編集画面',
   description: 'カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。デッキの読み込み・保存、ドラッグ＆ドロップによる編集、レスポンシブデザインに対応しています。',
   images: [
@@ -165,8 +188,9 @@ const deckEditFeature = reactive<Feature>({
     </ul>
     <h5>アクセス方法</h5>
     <ul>
-      <li>URL: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></li>
-      <li>デッキ表示ページから「編集」ボタンでアクセス可能です。</li>
+      <li>URL直接入力: <code>https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit</code></li>
+      <li>拡張機能のポップアップから「デッキ編集画面」ボタンをクリック</li>
+      <li>拡張機能アイコンの右クリックメニューから「デッキ編集画面を開く」を選択</li>
     </ul>
   `,
   enabled: true
@@ -213,7 +237,7 @@ const saveSettings = () => {
   deckDisplayFeatures.forEach(feature => {
     settings[feature.id] = feature.enabled;
   });
-  settings[deckEditFeature.id] = deckEditFeature.enabled;
+  settings[deckEditScreen.id] = deckEditScreen.enabled;
 
   chrome.storage.local.set({ featureSettings: settings }, () => {
     console.log('[Options] Settings saved:', settings);
@@ -228,8 +252,9 @@ const loadSettings = () => {
         const feature = deckDisplayFeatures.find(f => f.id === key);
         if (feature) {
           feature.enabled = result.featureSettings[key];
-        } else if (key === deckEditFeature.id) {
-          deckEditFeature.enabled = result.featureSettings[key];
+        } else if (key === deckEditScreen.id || key === 'deck-edit') {
+          // 旧ID 'deck-edit' との互換性を保つ
+          deckEditScreen.enabled = result.featureSettings[key];
         }
       });
     }
@@ -248,10 +273,11 @@ onMounted(() => {
 }
 
 .header {
-  background-color: #1976d2;
-  color: white;
+  background-color: white;
+  color: #333;
   padding: 16px 24px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-bottom: 3px solid #008cff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .header h1 {
@@ -286,8 +312,8 @@ onMounted(() => {
 }
 
 .tab.active {
-  color: #1976d2;
-  border-bottom-color: #1976d2;
+  color: #008cff;
+  border-bottom-color: #008cff;
 }
 
 .tab-content {
@@ -316,7 +342,7 @@ onMounted(() => {
   color: #333;
   margin-bottom: 24px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #1976d2;
+  border-bottom: 2px solid #008cff;
 }
 
 .screen-section {
@@ -327,10 +353,17 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .screen-title {
   font-size: 20px;
-  color: #1976d2;
-  margin-bottom: 12px;
+  color: #008cff;
+  margin: 0;
 }
 
 .screen-desc {
@@ -354,7 +387,7 @@ onMounted(() => {
 }
 
 .screen-note a {
-  color: #1976d2;
+  color: #008cff;
   text-decoration: none;
 }
 
@@ -502,5 +535,70 @@ onMounted(() => {
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
   transform: translateX(16px);
+}
+
+/* サイドバーナビゲーション */
+.layout-container {
+  display: flex;
+  gap: 24px;
+  position: relative;
+}
+
+.sidebar {
+  position: sticky;
+  top: 24px;
+  align-self: flex-start;
+  width: 200px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.sidebar.collapsed {
+  width: 50px;
+}
+
+.sidebar-toggle {
+  width: 100%;
+  padding: 12px;
+  background-color: #f0f0f0;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  transition: background-color 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background-color: #e8e8e8;
+  color: #008cff;
+}
+
+.sidebar-nav {
+  padding: 12px 0;
+}
+
+.nav-item {
+  display: block;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+  background-color: #f5f5f5;
+  color: #008cff;
+  border-left-color: #008cff;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
 }
 </style>

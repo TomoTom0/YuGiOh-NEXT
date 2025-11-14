@@ -54,8 +54,8 @@ feature/*, fix/*, docs/* (開発ブランチ)
 ./scripts/setup/setup-branch-protection.sh
 
 # 設定確認
-gh api repos/TomoTom0/ygo-neuron-helper/branches/main/protection
-gh api repos/TomoTom0/ygo-neuron-helper/branches/dev/protection
+gh api repos/TomoTom0/YuGiOh-NEXT/branches/main/protection
+gh api repos/TomoTom0/YuGiOh-NEXT/branches/dev/protection
 ```
 
 ## 署名済みコミットの設定
