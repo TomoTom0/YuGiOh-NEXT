@@ -4,6 +4,24 @@
 
 > **注**: 詳細な履歴は `docs/_archived/tasks/done_full_2025-11-07.md` を参照
 
+## 2025-11-14: v0.3.0/v0.3.1 GitHub Release作成完了
+
+### tagとrelease作成
+- ✅ v0.3.0のtagを作成 (commit: 26b125f)
+  - デッキ編集機能と多言語対応基盤
+  - テスト合計: 135 tests
+- ✅ v0.3.1のtagを作成 (commit: 2bd3189, main)
+  - カードリンク機能とコード品質改善
+  - v0.3.0からの差分リリース
+- ✅ tagをリモートにpush
+- ✅ GitHub Releaseを作成
+  - v0.3.0: https://github.com/TomoTom0/ygo-neuron-helper/releases/tag/v0.3.0
+  - v0.3.1: https://github.com/TomoTom0/ygo-neuron-helper/releases/tag/v0.3.1
+
+**タイムスタンプ**: 2025-11-14 18:00
+
+---
+
 ## 2025-11-14: v0.3.0リリースPR作成完了
 
 ### PR#4作成（dev → main）
