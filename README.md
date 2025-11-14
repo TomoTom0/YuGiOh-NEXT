@@ -4,6 +4,8 @@ PCからも新鮮で快適な遊戯王Neuronライフを！
 
 **遊戯王NEXT(Neuron EXTention)**は、~~Neo-Spacianではなく、~~遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
 
+**現在のバージョン**: v0.3.1 ([変更履歴](./docs/changelog/))
+
 ## intro
 
 随分便利になった遊戯王Neuronアプリ。もう今では、PCから遊戯王公式データベースを見るけど、デッキ編集はスマホからしかしてない。そんな人も多いのではないでしょうか。
@@ -136,6 +138,7 @@ ISC
 - [遊戯王カードデータベース](https://www.db.yugioh-card.com/)
 - [使い方ドキュメント](./docs/usage/README.md)
 - [デッキ編集機能](./docs/usage/custom-deck-edit.md)
+- [変更履歴 (CHANGELOG)](./docs/changelog/)
 
 ## お問い合わせ
 
