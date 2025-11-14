@@ -18,9 +18,11 @@ let isEventListenerRegistered = false;
 
 /**
  * 現在のURLが編集用URLかどうかをチェック
+ * URLパラメータがある場合も考慮してベースハッシュで判定
  */
 function isEditUrl(): boolean {
-  return window.location.hash === EDIT_URL_HASH;
+  const hashBase = window.location.hash.split('?')[0];
+  return hashBase === EDIT_URL_HASH;
 }
 
 /**
