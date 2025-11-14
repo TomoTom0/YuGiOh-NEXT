@@ -246,8 +246,8 @@ export default {
   
   &.grid-view {
     display: grid;
-    /* CSS変数を使用してグリッドカラム幅を管理 */
-    grid-template-columns: repeat(auto-fill, var(--card-width));
+    /* グリッド表示用のCSS変数を使用 */
+    grid-template-columns: repeat(auto-fill, var(--card-width-grid));
     grid-auto-rows: max-content;
     gap: 4px;
     align-content: start;
@@ -275,19 +275,20 @@ export default {
     padding: 0;
     border: none;
     background: none;
-    /* CSS変数を使用してカード幅を管理 */
-    width: var(--card-width);
+    /* グリッド表示用のCSS変数を使用 */
+    width: var(--card-width-grid);
   }
 }
 
 .card-wrapper {
   flex-shrink: 0;
   position: relative;
-  /* CSS変数を使用してカード幅を管理 */
-  width: var(--card-width);
+  /* リスト表示用のCSS変数を使用 */
+  width: var(--card-width-list);
 
   .grid-view & {
-    width: var(--card-width);
+    /* グリッド表示用のCSS変数を使用 */
+    width: var(--card-width-grid);
   }
 }
 

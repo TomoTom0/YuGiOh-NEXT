@@ -1,6 +1,7 @@
 <template>
   <div
     class="card-item deck-card"
+    :class="`section-${sectionType}`"
     :data-card-id="card.cardId"
     :data-uuid="uuid"
     :draggable="!card.empty"
@@ -268,9 +269,9 @@ export default {
 
 <style scoped lang="scss">
 .card-item {
-  /* CSS変数を使用してカードサイズを管理 */
-  width: var(--card-width);
-  height: var(--card-height);
+  /* デフォルト: デッキ編集用のCSS変数 */
+  width: var(--card-width-deck);
+  height: var(--card-height-deck);
   border: 1px solid var(--border-primary);
   border-radius: 2px;
   position: relative;
@@ -280,6 +281,19 @@ export default {
   flex-shrink: 0;
   flex-grow: 0;
   margin: 0;
+
+  /* カード詳細パネル用 */
+  &.section-info {
+    width: var(--card-width-info);
+    height: var(--card-height-info);
+  }
+
+  /* 検索結果（リスト/グリッド）用は親要素（CardList）が幅を制御 */
+  &.section-search {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 36 / 53; /* カード画像の縦横比を維持 */
+  }
 
   &:hover {
     border-color: var(--border-secondary);

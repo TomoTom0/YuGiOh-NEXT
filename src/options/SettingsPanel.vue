@@ -1,36 +1,101 @@
 <template>
   <div class="settings-panel">
     <div class="settings-section">
-      <h3 class="section-title">カードサイズ</h3>
-      <div class="radio-group">
-        <label
-          v-for="size in cardSizes"
-          :key="size.value"
-          class="radio-label"
-          :class="{ active: settingsStore.appSettings.cardSize === size.value }"
-        >
-          <input
-            type="radio"
-            :value="size.value"
-            v-model="settingsStore.appSettings.cardSize"
-            @change="handleCardSizeChange"
-          />
-          <span class="radio-text">
-            {{ size.label }}
-            <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
-          </span>
-        </label>
-      </div>
-      <div class="preview-container">
-        <div class="preview-label">プレビュー:</div>
-        <div class="card-preview">
-          <div class="preview-card" :style="previewCardStyle">
-            <img
-              src="https://www.db.yugioh-card.com/yugiohdb/card_image/0000/0002/002.jpg"
-              alt="Card preview"
-              class="preview-image"
+      <h3 class="section-title">カードサイズ設定</h3>
+
+      <!-- デッキ編集用 -->
+      <div class="size-subsection">
+        <h4 class="subsection-title">デッキ編集</h4>
+        <div class="radio-group">
+          <label
+            v-for="size in cardSizes"
+            :key="`deck-${size.value}`"
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.deckEditCardSize === size.value }"
+          >
+            <input
+              type="radio"
+              :value="size.value"
+              v-model="settingsStore.appSettings.deckEditCardSize"
+              @change="handleDeckEditCardSizeChange"
             />
-          </div>
+            <span class="radio-text">
+              {{ size.label }}
+              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- カード詳細用 -->
+      <div class="size-subsection">
+        <h4 class="subsection-title">カード詳細パネル</h4>
+        <div class="radio-group">
+          <label
+            v-for="size in cardSizes"
+            :key="`info-${size.value}`"
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.infoCardSize === size.value }"
+          >
+            <input
+              type="radio"
+              :value="size.value"
+              v-model="settingsStore.appSettings.infoCardSize"
+              @change="handleInfoCardSizeChange"
+            />
+            <span class="radio-text">
+              {{ size.label }}
+              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- グリッド表示用 -->
+      <div class="size-subsection">
+        <h4 class="subsection-title">グリッド表示</h4>
+        <div class="radio-group">
+          <label
+            v-for="size in cardSizes"
+            :key="`grid-${size.value}`"
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.gridCardSize === size.value }"
+          >
+            <input
+              type="radio"
+              :value="size.value"
+              v-model="settingsStore.appSettings.gridCardSize"
+              @change="handleGridCardSizeChange"
+            />
+            <span class="radio-text">
+              {{ size.label }}
+              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- リスト表示用 -->
+      <div class="size-subsection">
+        <h4 class="subsection-title">リスト表示</h4>
+        <div class="radio-group">
+          <label
+            v-for="size in cardSizes"
+            :key="`list-${size.value}`"
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.listCardSize === size.value }"
+          >
+            <input
+              type="radio"
+              :value="size.value"
+              v-model="settingsStore.appSettings.listCardSize"
+              @change="handleListCardSizeChange"
+            />
+            <span class="radio-text">
+              {{ size.label }}
+              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
+            </span>
+          </label>
         </div>
       </div>
     </div>
@@ -87,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import type { CardSize, Theme, Language } from '../types/settings';
 import { CARD_SIZE_MAP } from '../types/settings';
@@ -140,20 +205,28 @@ const languages = ref<LanguageOption[]>([
   { value: 'pt', label: 'Português (pt)' },
 ]);
 
-// プレビューカードのスタイルを計算
-const previewCardStyle = computed(() => {
-  const size = CARD_SIZE_MAP[settingsStore.appSettings.cardSize];
-  return {
-    width: `${size.width}px`,
-    height: `${size.height}px`,
-  };
-});
+// カードサイズ変更時のハンドラー（デッキ編集用）
+const handleDeckEditCardSizeChange = () => {
+  settingsStore.setDeckEditCardSize(settingsStore.appSettings.deckEditCardSize);
+  showSaveStatus('デッキ編集のカードサイズを変更しました');
+};
 
-// カードサイズ変更時のハンドラー
-const handleCardSizeChange = () => {
-  settingsStore.setCardSize(settingsStore.appSettings.cardSize);
-  settingsStore.applyCardSize();
-  showSaveStatus('カードサイズを変更しました');
+// カードサイズ変更時のハンドラー（カード詳細用）
+const handleInfoCardSizeChange = () => {
+  settingsStore.setInfoCardSize(settingsStore.appSettings.infoCardSize);
+  showSaveStatus('カード詳細のカードサイズを変更しました');
+};
+
+// カードサイズ変更時のハンドラー（グリッド表示用）
+const handleGridCardSizeChange = () => {
+  settingsStore.setGridCardSize(settingsStore.appSettings.gridCardSize);
+  showSaveStatus('グリッド表示のカードサイズを変更しました');
+};
+
+// カードサイズ変更時のハンドラー（リスト表示用）
+const handleListCardSizeChange = () => {
+  settingsStore.setListCardSize(settingsStore.appSettings.listCardSize);
+  showSaveStatus('リスト表示のカードサイズを変更しました');
 };
 
 // テーマ変更時のハンドラー
@@ -211,6 +284,21 @@ onMounted(async () => {
   font-size: 18px;
   color: #333;
   margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+.size-subsection {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.subsection-title {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 10px 0;
   font-weight: 500;
 }
 
