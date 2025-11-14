@@ -5,6 +5,7 @@ import type {
   CardSize,
   Theme,
   Language,
+  MiddleDecksLayout,
   FeatureSettings,
   StorageSettings
 } from '../types/settings';
@@ -156,6 +157,14 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * Extra/Sideデッキの配置方向を変更
+   */
+  function setMiddleDecksLayout(layout: MiddleDecksLayout): void {
+    appSettings.value.middleDecksLayout = layout;
+    saveSettings();
+  }
+
+  /**
    * 機能のON/OFF切り替え
    */
   function toggleFeature(featureId: string, enabled: boolean): void {
@@ -277,6 +286,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setListCardSize,
     setTheme,
     setLanguage,
+    setMiddleDecksLayout,
     toggleFeature,
     resetSettings,
     applyTheme,

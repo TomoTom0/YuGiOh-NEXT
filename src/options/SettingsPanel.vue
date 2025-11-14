@@ -140,6 +140,31 @@
       </div>
     </div>
 
+    <div class="settings-section">
+      <h3 class="section-title">デッキ編集レイアウト</h3>
+      <div class="radio-group">
+        <label
+          v-for="layout in layouts"
+          :key="layout.value"
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.middleDecksLayout === layout.value }"
+        >
+          <input
+            type="radio"
+            :value="layout.value"
+            v-model="settingsStore.appSettings.middleDecksLayout"
+            @change="handleLayoutChange"
+          />
+          <span class="radio-text">
+            {{ layout.label }}
+          </span>
+        </label>
+      </div>
+      <div class="language-note">
+        ※ Extra/Sideデッキの配置方向を変更します
+      </div>
+    </div>
+
     <div class="settings-actions">
       <button class="reset-button" @click="handleReset">
         設定をリセット
@@ -154,7 +179,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
-import type { CardSize, Theme, Language } from '../types/settings';
+import type { CardSize, Theme, Language, MiddleDecksLayout } from '../types/settings';
 import { CARD_SIZE_MAP } from '../types/settings';
 
 const settingsStore = useSettingsStore();
@@ -175,6 +200,11 @@ interface ThemeOption {
 
 interface LanguageOption {
   value: Language;
+  label: string;
+}
+
+interface LayoutOption {
+  value: MiddleDecksLayout;
   label: string;
 }
 
@@ -203,6 +233,11 @@ const languages = ref<LanguageOption[]>([
   { value: 'it', label: 'Italiano (it)' },
   { value: 'es', label: 'Español (es)' },
   { value: 'pt', label: 'Português (pt)' },
+]);
+
+const layouts = ref<LayoutOption[]>([
+  { value: 'horizontal', label: '横並び（Extra | Side）' },
+  { value: 'vertical', label: '縦並び（Extra / Side）' },
 ]);
 
 // カードサイズ変更時のハンドラー（デッキ編集用）
@@ -240,6 +275,12 @@ const handleThemeChange = () => {
 const handleLanguageChange = () => {
   settingsStore.setLanguage(settingsStore.appSettings.language);
   showSaveStatus('言語を変更しました');
+};
+
+// レイアウト変更時のハンドラー
+const handleLayoutChange = () => {
+  settingsStore.setMiddleDecksLayout(settingsStore.appSettings.middleDecksLayout);
+  showSaveStatus('デッキレイアウトを変更しました');
 };
 
 // リセットハンドラー
