@@ -7,9 +7,6 @@
 // 共通スタイル
 import './styles/buttons.css';
 
-// テストページ用の処理をインポート
-import './test-ui';
-
 // デッキ編集ページ用の処理をインポート
 import './edit-ui';
 

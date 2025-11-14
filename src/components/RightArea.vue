@@ -23,11 +23,11 @@
       </button>
     </div>
 
-    <div v-if="deckStore.activeTab === 'deck'" class="deck-content">
+    <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
       <slot name="deck-tab"></slot>
     </div>
 
-    <div v-if="deckStore.activeTab === 'search'" class="search-content">
+    <div v-show="deckStore.activeTab === 'search'" class="search-content">
       <CardList
         :cards="deckStore.searchResults"
         :sort-order="deckStore.sortOrder"
@@ -42,7 +42,7 @@
       <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
     </div>
 
-    <div v-if="deckStore.activeTab === 'card'" class="card-detail-content">
+    <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
       <CardDetail 
         v-if="deckStore.selectedCard" 
         :card="deckStore.selectedCard"
@@ -283,6 +283,21 @@ export default {
     button.deck-tab {
       display: block;
     }
+  }
+}
+
+.deck-content, .search-content, .card-detail-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
