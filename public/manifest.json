@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Yu-Gi-Oh! Deck Helper",
+  "name": "遊戯王NEXT",
   "version": "0.3.0",
-  "description": "遊戯王公式サイトのデッキ管理を快適にするChrome拡張機能",
+  "description": "遊戯王Neuron(公式カードデータベース)のデッキ管理を劇的に改善するChrome拡張",
   "permissions": [
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://www.db.yugioh-card.com/*"
@@ -32,5 +33,11 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [ "images/*", "icons/*" ],
+      "matches": [ "https://www.db.yugioh-card.com/*" ]
+    }
+  ]
 }

@@ -71,13 +71,9 @@ module.exports = (env, argv) => {
     plugins: [
       new VueLoaderPlugin(),
 
-      // manifest.jsonをコピー
+      // public/ディレクトリ（manifest.json含む）と画像をコピー
       new CopyWebpackPlugin({
         patterns: [
-          {
-            from: 'src/manifest.json',
-            to: 'manifest.json',
-          },
           {
             from: 'public',
             to: '.',
