@@ -95,7 +95,7 @@
 - [x] PR#4作成（dev → main）
   - [x] v0.3.0リリースPR作成
   - [x] 主な変更点を網羅的に記載
-  - [x] URL: https://github.com/TomoTom0/ygo-neuron-helper/pull/4
+  - [x] URL: https://github.com/TomoTom0/YuGiOh-NEXT/pull/4
 - [ ] 最終動作確認（Chrome/Edge）
 - [ ] PR#4マージ（dev → main）
 - [ ] v0.3.0タグ作成

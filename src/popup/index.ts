@@ -1,36 +1,60 @@
 /**
  * Popup UI
  *
- * テストページへのリンクを表示
+ * 独自デッキ編集画面とオプションページへのリンクを表示
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // コンテナ
   const container = document.createElement('div');
-  container.style.cssText = 'padding: 20px; min-width: 250px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;';
+  container.className = 'popup-container';
 
-  const title = document.createElement('h2');
-  title.textContent = '遊戯王デッキヘルパー';
-  title.style.cssText = 'margin: 0 0 15px 0; color: #333; font-size: 16px;';
+  // ヘッダー
+  const header = document.createElement('div');
+  header.className = 'popup-header';
 
-  const button = document.createElement('button');
-  button.textContent = 'テストページを開く';
-  button.style.cssText = 'width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;';
+  const title = document.createElement('h1');
+  title.className = 'popup-title';
+  title.textContent = '遊戯王NEXT';
 
-  button.addEventListener('click', () => {
+  const subtitle = document.createElement('p');
+  subtitle.className = 'popup-subtitle';
+  subtitle.textContent = 'YuGiOh Neuron EXTention';
+
+  header.appendChild(title);
+  header.appendChild(subtitle);
+
+  // メニューエリア
+  const menu = document.createElement('div');
+  menu.className = 'popup-menu';
+
+  // デッキ編集ボタン
+  const deckButton = createMenuButton('デッキ編集画面', () => {
     chrome.tabs.create({
-      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test'
+      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
     });
   });
 
-  button.addEventListener('mouseenter', () => {
-    button.style.background = '#45a049';
+  // オプションボタン
+  const optionsButton = createMenuButton('オプション', () => {
+    chrome.runtime.openOptionsPage();
   });
 
-  button.addEventListener('mouseleave', () => {
-    button.style.background = '#4CAF50';
-  });
+  menu.appendChild(deckButton);
+  menu.appendChild(optionsButton);
 
-  container.appendChild(title);
-  container.appendChild(button);
+  container.appendChild(header);
+  container.appendChild(menu);
   document.body.appendChild(container);
 });
+
+/**
+ * メニューボタンを作成
+ */
+function createMenuButton(title: string, onClick: () => void): HTMLElement {
+  const button = document.createElement('button');
+  button.className = 'menu-button';
+  button.textContent = title;
+  button.addEventListener('click', onClick);
+  return button;
+}
