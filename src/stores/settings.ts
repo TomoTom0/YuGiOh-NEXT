@@ -31,7 +31,11 @@ export const useSettingsStore = defineStore('settings', () => {
   // ===== 算出プロパティ =====
 
   /** 現在のカードサイズ（ピクセル） */
-  const cardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.cardSize]);
+  // 各場所のカードサイズピクセル値
+  const deckEditCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.deckEditCardSize]);
+  const infoCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.infoCardSize]);
+  const gridCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.gridCardSize]);
+  const listCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.listCardSize]);
 
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
@@ -96,10 +100,37 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
-   * カードサイズを変更
+   * デッキ編集のカードサイズを変更
    */
-  function setCardSize(size: CardSize): void {
-    appSettings.value.cardSize = size;
+  function setDeckEditCardSize(size: CardSize): void {
+    appSettings.value.deckEditCardSize = size;
+    applyCardSize();
+    saveSettings();
+  }
+
+  /**
+   * カード詳細（info）のカードサイズを変更
+   */
+  function setInfoCardSize(size: CardSize): void {
+    appSettings.value.infoCardSize = size;
+    applyCardSize();
+    saveSettings();
+  }
+
+  /**
+   * グリッド表示のカードサイズを変更
+   */
+  function setGridCardSize(size: CardSize): void {
+    appSettings.value.gridCardSize = size;
+    applyCardSize();
+    saveSettings();
+  }
+
+  /**
+   * リスト表示のカードサイズを変更
+   */
+  function setListCardSize(size: CardSize): void {
+    appSettings.value.listCardSize = size;
     applyCardSize();
     saveSettings();
   }
@@ -162,14 +193,35 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
-   * カードサイズをDOMに適用
+   * カードサイズをDOMに適用（4箇所それぞれ）
    */
   function applyCardSize(): void {
-    const pixels = cardSizePixels.value;
-    document.documentElement.style.setProperty('--card-width', `${pixels.width}px`);
-    document.documentElement.style.setProperty('--card-height', `${pixels.height}px`);
+    // デッキ編集用
+    const deckEdit = deckEditCardSizePixels.value;
+    document.documentElement.style.setProperty('--card-width-deck', `${deckEdit.width}px`);
+    document.documentElement.style.setProperty('--card-height-deck', `${deckEdit.height}px`);
 
-    console.log('[Settings] Applied card size:', appSettings.value.cardSize, pixels);
+    // カード詳細（info）用
+    const info = infoCardSizePixels.value;
+    document.documentElement.style.setProperty('--card-width-info', `${info.width}px`);
+    document.documentElement.style.setProperty('--card-height-info', `${info.height}px`);
+
+    // グリッド表示用
+    const grid = gridCardSizePixels.value;
+    document.documentElement.style.setProperty('--card-width-grid', `${grid.width}px`);
+    document.documentElement.style.setProperty('--card-height-grid', `${grid.height}px`);
+
+    // リスト表示用
+    const list = listCardSizePixels.value;
+    document.documentElement.style.setProperty('--card-width-list', `${list.width}px`);
+    document.documentElement.style.setProperty('--card-height-list', `${list.height}px`);
+
+    console.log('[Settings] Applied card sizes:', {
+      deckEdit: appSettings.value.deckEditCardSize,
+      info: appSettings.value.infoCardSize,
+      grid: appSettings.value.gridCardSize,
+      list: appSettings.value.listCardSize
+    });
   }
 
   /**
@@ -209,14 +261,20 @@ export const useSettingsStore = defineStore('settings', () => {
     isLoaded,
 
     // 算出プロパティ
-    cardSizePixels,
+    deckEditCardSizePixels,
+    infoCardSizePixels,
+    gridCardSizePixels,
+    listCardSizePixels,
     effectiveTheme,
     effectiveLanguage,
 
     // アクション
     loadSettings,
     saveSettings,
-    setCardSize,
+    setDeckEditCardSize,
+    setInfoCardSize,
+    setGridCardSize,
+    setListCardSize,
     setTheme,
     setLanguage,
     toggleFeature,

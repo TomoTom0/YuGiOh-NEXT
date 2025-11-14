@@ -45,9 +45,15 @@
   --input-border: #ddd;
   --input-text: #333;
 
-  /* カードサイズ（デフォルトmedium） */
-  --card-width: 60px;
-  --card-height: 88px;
+  /* カードサイズ（4箇所それぞれ） */
+  --card-width-deck: 36px;   /* デッキ編集: small */
+  --card-height-deck: 53px;
+  --card-width-info: 90px;   /* カード詳細: large */
+  --card-height-info: 132px;
+  --card-width-grid: 60px;   /* グリッド表示: medium */
+  --card-height-grid: 88px;
+  --card-width-list: 36px;   /* リスト表示: small */
+  --card-height-list: 53px;
 }
 
 /* ダークテーマ */

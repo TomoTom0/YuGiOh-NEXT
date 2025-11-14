@@ -78,8 +78,14 @@ export interface DeckEditSettings {
  * アプリ全体設定
  */
 export interface AppSettings {
-  /** カードサイズ */
-  cardSize: CardSize;
+  /** カードサイズ（デッキ編集） */
+  deckEditCardSize: CardSize;
+  /** カードサイズ（info - カード詳細パネル） */
+  infoCardSize: CardSize;
+  /** カードサイズ（grid表示） */
+  gridCardSize: CardSize;
+  /** カードサイズ（list表示） */
+  listCardSize: CardSize;
   /** テーマ */
   theme: Theme;
   /** 言語 */
@@ -138,7 +144,10 @@ export const DEFAULT_DECK_EDIT_SETTINGS: DeckEditSettings = {
  * デフォルトのアプリ設定
  */
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  cardSize: 'medium',
+  deckEditCardSize: 'small',   // デッキ編集: 現在のサイズ（36×53）
+  infoCardSize: 'large',        // カード詳細: 現在のサイズ（90×132）
+  gridCardSize: 'medium',       // グリッド表示: 現在のサイズ（60×88）
+  listCardSize: 'small',        // リスト表示: 現在のサイズ（36×53）
   theme: 'system',
   language: 'auto',
   enableBanlistCheck: false,

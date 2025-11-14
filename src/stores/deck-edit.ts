@@ -788,7 +788,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // URLから設定を復元（URLパラメータが設定ストアより優先）
       const urlSettings = URLStateManager.restoreSettingsFromURL();
-      if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
+      // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
+      // if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
       if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
       if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
 
