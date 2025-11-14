@@ -25,7 +25,9 @@ gh api \
     "contexts": ["check-branch-policy"]
   },
   "enforce_admins": true,
-  "required_pull_request_reviews": null,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
   "restrictions": null,
   "required_linear_history": false,
   "allow_force_pushes": false,
@@ -55,7 +57,9 @@ gh api \
     "contexts": ["check-branch-policy"]
   },
   "enforce_admins": true,
-  "required_pull_request_reviews": null,
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 0
+  },
   "restrictions": null,
   "required_linear_history": false,
   "allow_force_pushes": false,
