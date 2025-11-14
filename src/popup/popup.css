@@ -1,0 +1,80 @@
+/**
+ * Popup UI Styles
+ */
+
+/* リセット */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* コンテナ */
+.popup-container {
+  width: 280px;
+  background: #f0f0f0;
+}
+
+/* ヘッダー */
+.popup-header {
+  padding: 20px;
+  text-align: center;
+  background: white;
+  border-bottom: 3px solid #008cff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.popup-title {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #333;
+}
+
+.popup-subtitle {
+  margin: 0;
+  font-size: 11px;
+  color: #666;
+  letter-spacing: 0.3px;
+}
+
+/* メニューエリア */
+.popup-menu {
+  padding: 16px;
+}
+
+/* メニューボタン */
+.menu-button {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.menu-button:last-child {
+  margin-bottom: 0;
+}
+
+.menu-button:hover {
+  background: #f8f9fa;
+  border-color: #008cff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 140, 255, 0.15);
+}
+
+.menu-button:active {
+  transform: translateY(0);
+}
