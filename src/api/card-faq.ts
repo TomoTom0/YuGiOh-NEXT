@@ -65,23 +65,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
       const date = dateElem?.textContent?.trim() || undefined;
 
       // テキストを取得（改行を保持、カードリンクをテンプレート形式に変換）
-      const cloned = textElem.cloneNode(true) as HTMLElement;
-      cloned.querySelectorAll('br').forEach(br => {
-        br.replaceWith('\n');
-      });
-
-      // カードリンクを{{カード名|cid}}形式に変換
-      cloned.querySelectorAll('a[href*="cid="]').forEach(link => {
-        const href = link.getAttribute('href') || '';
-        const match = href.match(/[?&]cid=(\d+)/);
-        if (match && match[1]) {
-          const cardId = match[1];
-          const cardLinkName = link.textContent?.trim() || '';
-          link.replaceWith(`{{${cardLinkName}|${cardId}}}`);
-        }
-      });
-
-      const text = cloned.textContent?.trim() || undefined;
+      const text = convertCardLinksToTemplate(textElem as HTMLElement) || undefined;
 
       // IDで判別して適切なフィールドに格納
       if (textId === 'pen_supplement') {

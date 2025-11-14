@@ -70,8 +70,8 @@
 <script>
 import { ref } from 'vue'
 import { getFAQDetail } from '../api/card-faq'
-import { getCardDetail } from '../api/card-search'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardLinks } from '../composables/useCardLinks'
 
 export default {
   name: 'CardQA',
@@ -90,71 +90,7 @@ export default {
     const expandedQA = ref({})
     const loadingQA = ref({})
     const qaAnswers = ref({})
-
-    /**
-     * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
-     * @param {string} text - パース対象のテキスト
-     * @returns {Array} - { type: 'text' | 'link', text: string, cardId?: string }[] の配列
-     */
-    const parseCardLinks = (text) => {
-      if (!text) return [{ type: 'text', text: '' }]
-
-      const parts = []
-      const regex = /\{\{([^|]+)\|(\d+)\}\}/g
-      let lastIndex = 0
-      let match
-
-      while ((match = regex.exec(text)) !== null) {
-        // マッチ前のテキスト
-        if (match.index > lastIndex) {
-          parts.push({
-            type: 'text',
-            text: text.substring(lastIndex, match.index)
-          })
-        }
-
-        // カードリンク部分
-        parts.push({
-          type: 'link',
-          text: match[1], // カード名
-          cardId: match[2] // cid
-        })
-
-        lastIndex = regex.lastIndex
-      }
-
-      // 残りのテキスト
-      if (lastIndex < text.length) {
-        parts.push({
-          type: 'text',
-          text: text.substring(lastIndex)
-        })
-      }
-
-      return parts.length > 0 ? parts : [{ type: 'text', text }]
-    }
-
-    /**
-     * カードリンクがクリックされた時の処理
-     * @param {string} cardId - カードID
-     */
-    const handleCardLinkClick = async (cardId) => {
-      try {
-        // カード詳細を取得（cidのみからCardInfo全体をパース）
-        const cardDetail = await getCardDetail(cardId)
-        if (!cardDetail || !cardDetail.card) {
-          console.error('カード情報の取得に失敗しました:', cardId)
-          return
-        }
-
-        // deckStoreにカードをセットしてCardタブのinfoを表示
-        deckStore.selectedCard = cardDetail.card
-        deckStore.activeTab = 'card'
-        deckStore.cardTab = 'info'
-      } catch (error) {
-        console.error('カードリンククリック処理に失敗しました:', error)
-      }
-    }
+    const { parseCardLinks, handleCardLinkClick } = useCardLinks()
 
     const expandQA = async (faqId) => {
       // 既にキャッシュがある場合は再取得せずに展開

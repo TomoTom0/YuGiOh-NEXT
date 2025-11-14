@@ -589,12 +589,6 @@ export async function searchCardsByName(
  * @param cardId カードID
  * @returns カード情報、見つからない場合はnull
  */
-/**
- * カードIDで検索する
- *
- * @param cardId カードID
- * @returns カード情報、見つからない場合はnull
- */
 export async function searchCardById(cardId: string): Promise<CardInfo | null> {
   try {
     const params = new URLSearchParams({
@@ -1246,13 +1240,6 @@ function parseRelatedCards(doc: Document): CardInfo[] {
 /**
  * カード詳細情報を取得する
  *
- * @param card 対象カード
- * @param lang 言語コード（省略時は現在のページから自動検出）
- * @returns カード詳細情報
- */
-/**
- * カード詳細情報を取得する
- * 
  * @param cardOrId 既存のCardInfoまたはcardId文字列
  * @param lang 言語コード（省略時は現在のページから自動検出）
  * @returns カード詳細情報
@@ -1356,15 +1343,7 @@ function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: str
 /**
  * カード詳細ページからCardInfo全体をパースする
  * FAQカードリンクなど、cidのみが分かっている場合に使用
- * 
- * @param doc カード詳細ページのDocument
- * @param cid カードID
- * @returns CardInfo、パースできない場合はnull
- */
-/**
- * カード詳細ページからCardInfo全体をパースする
- * FAQカードリンクなど、cidのみが分かっている場合に使用
- * 
+ *
  * @param doc カード詳細ページのDocument
  * @param cid カードID
  * @returns CardInfo、パースできない場合はnull
