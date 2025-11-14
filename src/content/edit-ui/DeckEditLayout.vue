@@ -1,16 +1,16 @@
 <template>
   <div class="deck-edit-container">
-    <div class="main-content" :class="{ 'hide-on-mobile': true }">
+    <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
-      <div class="deck-areas">
+      <div class="deck-areas" :style="deckAreasStyle">
         <DeckSection
           title="main"
           section-type="main"
           :cards="mainDeck"
         />
 
-        <div class="middle-decks">
+        <div :class="middleDecksClass">
           <DeckSection
             title="extra"
             section-type="extra"
@@ -38,14 +38,14 @@
         <div class="mobile-deck-content">
           <DeckEditTopBar />
 
-          <div class="deck-areas">
+          <div class="deck-areas" :style="deckAreasStyle">
             <DeckSection
               title="main"
               section-type="main"
               :cards="mainDeck"
             />
 
-            <div class="middle-decks">
+            <div :class="middleDecksClass">
               <DeckSection
                 title="extra"
                 section-type="extra"
@@ -75,6 +75,7 @@
 <script>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
@@ -92,6 +93,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -157,9 +159,34 @@ export default {
       )
     })
     const trashDeck = computed(() => {
-      return deckStore.trashDeck.flatMap(dc => 
+      return deckStore.trashDeck.flatMap(dc =>
         Array(dc.quantity).fill(dc.card)
       )
+    })
+
+    // middle-decksの配置クラス
+    const middleDecksClass = computed(() => ({
+      'middle-decks': true,
+      'vertical-layout': settingsStore.appSettings.middleDecksLayout === 'vertical'
+    }))
+
+    // カードサイズに応じた動的padding
+    const deckAreasStyle = computed(() => {
+      const cardHeight = settingsStore.deckEditCardSizePixels.height
+      // カード高さに基づいてbottom marginを計算（カード2枚分＋余裕）
+      const marginBottom = cardHeight * 2 + 30
+      return {
+        marginBottom: `${marginBottom}px`
+      }
+    })
+
+    const mainContentStyle = computed(() => {
+      const cardHeight = settingsStore.deckEditCardSizePixels.height
+      // カード高さに基づいてbottom paddingを計算（カード1枚分＋余裕）
+      const paddingBottom = cardHeight + 50
+      return {
+        paddingBottom: `${paddingBottom}px`
+      }
     })
 
     const searchResults = reactive([])
@@ -339,6 +366,8 @@ export default {
     }
 
     return {
+      deckStore,
+      settingsStore,
       activeTab,
       searchQuery,
       selectedCard,
@@ -349,6 +378,9 @@ export default {
       extraDeck,
       sideDeck,
       trashDeck,
+      middleDecksClass,
+      deckAreasStyle,
+      mainContentStyle,
       searchResults,
       showCardDetail,
       onSearchInput,
@@ -398,7 +430,7 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px;
+  /* padding-bottomは動的に設定 */
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
@@ -420,7 +452,7 @@ export default {
   gap: 10px;
   margin: 0;
   padding: 0;
-  margin-bottom: 65px;
+  /* margin-bottomは動的に設定 */
 }
 
 .middle-decks {
@@ -429,6 +461,10 @@ export default {
   flex: none;
   min-height: 120px;
   width: 100%;
+
+  &.vertical-layout {
+    flex-direction: column;
+  }
 }
 
 .search-input-bottom {

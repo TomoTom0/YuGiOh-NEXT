@@ -75,6 +75,11 @@ export interface DeckEditSettings {
 }
 
 /**
+ * Extra/Sideデッキの配置方向
+ */
+export type MiddleDecksLayout = 'horizontal' | 'vertical';
+
+/**
  * アプリ全体設定
  */
 export interface AppSettings {
@@ -90,6 +95,8 @@ export interface AppSettings {
   theme: Theme;
   /** 言語 */
   language: Language;
+  /** Extra/Sideデッキの配置方向 */
+  middleDecksLayout: MiddleDecksLayout;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
 }
@@ -150,6 +157,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   listCardSize: 'small',        // リスト表示: 現在のサイズ（36×53）
   theme: 'system',
   language: 'auto',
+  middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
   enableBanlistCheck: false,
 };
 
