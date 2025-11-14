@@ -6,6 +6,14 @@
 
 ---
 
+## 2025-11-14: バージョン整合性修正完了
+
+- **不整合解消**: version.dat=0.3.1, package.json/manifest.json=0.3.0 → 全て0.3.1に統一
+- **修正ファイル**: package.json, public/manifest.json
+- **ブランチ**: feature/v0.3.0-tests
+
+---
+
 ## 2025-11-14: PR #8レビュー対応完了 - webpack修正とCSS変数導入
 
 - **PR #8レビュー指摘2件に対応**:
