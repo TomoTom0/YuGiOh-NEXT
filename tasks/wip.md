@@ -40,5 +40,5 @@
 
 #### 4. リリース準備
 - [x] CHANGELOG作成（v0.3.1作成完了）
-- [ ] リリースノート作成
+- [x] リリースノート作成（docs/release-notes/v0.3.1.md）
 - [ ] 最終動作確認（Chrome/Edge）
