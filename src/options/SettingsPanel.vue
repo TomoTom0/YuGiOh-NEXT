@@ -52,7 +52,6 @@
           />
           <span class="radio-text">
             {{ theme.label }}
-            <span class="theme-icon">{{ theme.icon }}</span>
           </span>
         </label>
       </div>
@@ -122,9 +121,9 @@ const cardSizes = ref<CardSizeOption[]>([
 ]);
 
 const themes = ref<ThemeOption[]>([
-  { value: 'light', label: 'ライト', icon: '☀️' },
-  { value: 'dark', label: 'ダーク', icon: '🌙' },
-  { value: 'system', label: 'システム設定に従う', icon: '🖥️' },
+  { value: 'light', label: 'ライト', icon: '' },
+  { value: 'dark', label: 'ダーク', icon: '' },
+  { value: 'system', label: 'システム設定に従う', icon: '' },
 ]);
 
 const languages = ref<LanguageOption[]>([
@@ -196,56 +195,53 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .settings-panel {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
 .settings-section {
-  background-color: white;
-  padding: 24px;
+  padding: 20px;
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background-color: #fafafa;
+  margin-bottom: 20px;
 }
 
 .section-title {
   font-size: 18px;
   color: #333;
   margin: 0 0 16px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #008cff;
+  font-weight: 500;
 }
 
 .radio-group {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
 .radio-label {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: #fafafa;
+  background-color: white;
 
   &:hover {
     border-color: #008cff;
-    background-color: #f0f8ff;
+    background-color: #f9f9f9;
   }
 
   &.active {
     border-color: #008cff;
-    background-color: #e6f4ff;
+    background-color: #f0f8ff;
   }
 
   input[type="radio"] {
-    margin-right: 12px;
-    width: 18px;
-    height: 18px;
+    margin-right: 10px;
     cursor: pointer;
   }
 
@@ -254,48 +250,43 @@ onMounted(async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 15px;
+    font-size: 14px;
     color: #333;
   }
 
   .size-info {
-    font-size: 13px;
-    color: #666;
-    margin-left: 8px;
-  }
-
-  .theme-icon {
-    font-size: 20px;
+    font-size: 12px;
+    color: #999;
     margin-left: 8px;
   }
 }
 
 .preview-container {
-  margin-top: 20px;
-  padding: 16px;
-  background-color: #f9f9f9;
-  border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 4px;
+  border: 1px solid #ddd;
 }
 
 .preview-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .card-preview {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 180px;
+  min-height: 150px;
 }
 
 .preview-card {
   transition: all 0.3s ease;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .preview-image {
@@ -311,10 +302,10 @@ onMounted(async () => {
 
 .language-select {
   width: 100%;
-  padding: 12px 16px;
-  font-size: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   background-color: white;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -326,63 +317,56 @@ onMounted(async () => {
   &:focus {
     outline: none;
     border-color: #008cff;
-    box-shadow: 0 0 0 3px rgba(0, 140, 255, 0.1);
   }
 
   option {
-    padding: 8px;
+    padding: 6px;
   }
 }
 
 .language-note {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #666;
-  line-height: 1.5;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #999;
+  line-height: 1.4;
 }
 
 .settings-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 20px;
+  margin-top: 10px;
 }
 
 .reset-button {
-  padding: 12px 24px;
-  font-size: 15px;
+  padding: 10px 20px;
+  font-size: 14px;
   color: #fff;
   background-color: #dc3545;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
 
   &:hover {
     background-color: #c82333;
-    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
-  }
-
-  &:active {
-    transform: translateY(1px);
   }
 }
 
 .save-status {
-  font-size: 14px;
+  font-size: 13px;
   color: #28a745;
-  font-weight: 500;
+  font-weight: normal;
   animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-5px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 </style>
