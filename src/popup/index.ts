@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   container.style.cssText = 'padding: 20px; min-width: 250px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;';
 
   const title = document.createElement('h2');
-  title.textContent = '遊戯王デッキヘルパー';
+  title.textContent = '遊戯王NEXT';
   title.style.cssText = 'margin: 0 0 15px 0; color: #333; font-size: 16px;';
 
   const button = document.createElement('button');
