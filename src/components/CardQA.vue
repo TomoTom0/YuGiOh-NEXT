@@ -7,16 +7,27 @@
     <div v-else>
       <div class="qa-header">
         <div class="qa-card-name">{{ faqListData.cardName }}</div>
-        <div v-if="faqListData.cardText" class="qa-card-text">{{ faqListData.cardText }}</div>
       </div>
       <div class="qa-list">
         <div v-for="(qa, index) in faqListData.faqs" :key="qa.faqId || index" class="qa-item">
-          <div class="qa-question">Q: {{ qa.question }}</div>
+          <div class="qa-question">
+            Q:
+            <template v-for="(part, partIndex) in parseCardLinks(qa.question)" :key="partIndex">
+              <span
+                v-if="part.type === 'link'"
+                class="card-link"
+                @click="handleCardLinkClick(part.cardId)"
+              >
+                {{ part.text }}
+              </span>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </div>
           <div class="qa-footer">
-            <button 
-              v-if="!expandedQA[index]"
+            <button
+              v-if="!expandedQA[qa.faqId]"
               class="qa-expand-btn"
-              @click="expandQA(qa.faqId, index)"
+              @click="expandQA(qa.faqId)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
@@ -24,20 +35,32 @@
             </button>
             <div v-if="qa.updatedAt" class="qa-date">更新日: {{ qa.updatedAt }}</div>
           </div>
-          <div v-if="expandedQA[index]" class="qa-answer-container">
-            <div v-if="loadingQA[index]" class="qa-loading">読み込み中...</div>
-            <div v-else-if="qaAnswers[index]" class="qa-answer">
-              A: {{ qaAnswers[index] }}
-              <button 
-                class="qa-collapse-btn-sticky"
-                @click="collapseQA(index)"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,13H5V11H19V13Z" />
-                </svg>
-              </button>
+          <transition name="qa-expand">
+            <div v-if="expandedQA[qa.faqId]" class="qa-answer-container">
+              <div v-if="loadingQA[qa.faqId]" class="qa-loading">読み込み中...</div>
+              <div v-else-if="qaAnswers[qa.faqId]" class="qa-answer">
+                A:
+                <template v-for="(part, partIndex) in parseCardLinks(qaAnswers[qa.faqId])" :key="partIndex">
+                  <span
+                    v-if="part.type === 'link'"
+                    class="card-link"
+                    @click="handleCardLinkClick(part.cardId)"
+                  >
+                    {{ part.text }}
+                  </span>
+                  <span v-else>{{ part.text }}</span>
+                </template>
+                <button
+                  class="qa-collapse-btn-sticky"
+                  @click="collapseQA(qa.faqId)"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
+          </transition>
         </div>
       </div>
     </div>
@@ -47,6 +70,8 @@
 <script>
 import { ref } from 'vue'
 import { getFAQDetail } from '../api/card-faq'
+import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardLinks } from '../composables/useCardLinks'
 
 export default {
   name: 'CardQA',
@@ -61,52 +86,68 @@ export default {
     }
   },
   setup() {
+    const deckStore = useDeckEditStore()
     const expandedQA = ref({})
     const loadingQA = ref({})
     const qaAnswers = ref({})
-    
-    const expandQA = async (faqId, index) => {
-      if (qaAnswers.value[index]) {
-        expandedQA.value[index] = true
+    const { parseCardLinks, handleCardLinkClick } = useCardLinks()
+
+    const expandQA = async (faqId) => {
+      // 既にキャッシュがある場合は再取得せずに展開
+      if (qaAnswers.value[faqId]) {
+        expandedQA.value[faqId] = true
         return
       }
-      
-      loadingQA.value[index] = true
-      expandedQA.value[index] = true
-      
+
+      loadingQA.value[faqId] = true
+      expandedQA.value[faqId] = true
+
       try {
         const faqDetail = await getFAQDetail(faqId)
-        qaAnswers.value[index] = faqDetail.answer
+        qaAnswers.value[faqId] = faqDetail.answer
       } catch (error) {
         console.error('FAQ詳細の取得に失敗しました:', error)
-        qaAnswers.value[index] = 'エラーが発生しました'
+        qaAnswers.value[faqId] = 'エラーが発生しました'
       } finally {
-        loadingQA.value[index] = false
+        loadingQA.value[faqId] = false
       }
     }
-    
-    const collapseQA = (index) => {
-      const qaItem = document.querySelectorAll('.qa-item')[index]
-      if (!qaItem) {
-        expandedQA.value[index] = false
+
+    const collapseQA = (faqId) => {
+      // faqIdから該当のDOM要素を見つける
+      const qaItems = document.querySelectorAll('.qa-item')
+      let targetItem = null
+
+      qaItems.forEach((item) => {
+        const btn = item.querySelector('.qa-collapse-btn-sticky')
+        if (btn && btn.closest('.qa-item') === item) {
+          // このアイテムが展開されているか確認
+          if (expandedQA.value[faqId]) {
+            targetItem = item
+          }
+        }
+      })
+
+      if (!targetItem) {
+        expandedQA.value[faqId] = false
         return
       }
-      
-      const qaAnswer = qaItem.querySelector('.qa-answer')
+
+      const qaAnswer = targetItem.querySelector('.qa-answer')
       if (!qaAnswer) {
-        expandedQA.value[index] = false
+        expandedQA.value[faqId] = false
         return
       }
-      
+
       const heightDiff = qaAnswer.offsetHeight
-      expandedQA.value[index] = false
-      
+      expandedQA.value[faqId] = false
+
       setTimeout(() => {
-        const container = qaItem.closest('.card-tab-content')
+        const container = targetItem.closest('.card-tab-content')
         if (container && heightDiff > 0) {
-          const qaItemTop = qaItem.getBoundingClientRect().top
+          const qaItemTop = targetItem.getBoundingClientRect().top
           const containerTop = container.getBoundingClientRect().top
-          
+
           if (qaItemTop < containerTop + container.clientHeight) {
             container.scrollTo({
               top: Math.max(0, container.scrollTop - heightDiff),
@@ -116,13 +157,15 @@ export default {
         }
       }, 50)
     }
-    
+
     return {
       expandedQA,
       loadingQA,
       qaAnswers,
       expandQA,
-      collapseQA
+      collapseQA,
+      parseCardLinks,
+      handleCardLinkClick
     }
   }
 }
@@ -131,6 +174,11 @@ export default {
 <style lang="scss" scoped>
 .card-qa {
   width: 100%;
+  box-sizing: border-box;
+
+  * {
+    box-sizing: border-box;
+  }
 }
 
 .loading, .no-data {
@@ -141,24 +189,13 @@ export default {
 }
 
 .qa-header {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #f9f9f9;
+  margin-bottom: 12px;
 }
 
 .qa-card-name {
   font-weight: bold;
-  font-size: 13px;
-  margin-bottom: 5px;
+  font-size: 14px;
   color: #333;
-}
-
-.qa-card-text {
-  font-size: 11px;
-  color: #666;
-  line-height: 1.4;
 }
 
 .qa-list {
@@ -168,6 +205,7 @@ export default {
 }
 
 .qa-item {
+  width: 100%;
   padding: 10px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
@@ -181,6 +219,18 @@ export default {
   font-weight: 500;
   margin-bottom: 4px;
   line-height: 1.5;
+}
+
+.card-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #0052a3;
+    text-decoration: underline;
+  }
 }
 
 .qa-footer {
@@ -211,12 +261,17 @@ export default {
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   flex-shrink: 0;
-  
+
   &:hover {
     background: #f0f0f0;
     border-color: #999;
+    transform: scale(1.05);
   }
-  
+
+  &:active {
+    transform: scale(0.95);
+  }
+
   svg {
     display: block;
     width: 14px;
@@ -263,17 +318,57 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   transition: all 0.2s;
   margin-top: 8px;
-  
+
   &:hover {
     background: #f0f0f0;
     border-color: #999;
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    transform: scale(1.08);
   }
-  
+
+  &:active {
+    transform: scale(0.95);
+  }
+
   svg {
     display: block;
     width: 16px;
     height: 16px;
+  }
+}
+
+// FAQ展開/縮小のトランジション
+.qa-expand-enter-active {
+  animation: qa-expand-in 0.3s ease-out;
+}
+
+.qa-expand-leave-active {
+  animation: qa-expand-out 0.2s ease-in;
+}
+
+@keyframes qa-expand-in {
+  0% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes qa-expand-out {
+  0% {
+    max-height: 1000px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
 </style>

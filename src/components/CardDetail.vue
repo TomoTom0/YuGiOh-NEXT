@@ -20,12 +20,14 @@
     </div>
     
     <div class="card-tab-content">
-      <CardInfo 
-        v-show="cardTab === 'info'" 
-        v-if="card" 
+      <CardInfo
+        v-show="cardTab === 'info'"
+        v-if="card"
         :card="card"
         :supplement-info="faqListData?.supplementInfo"
         :supplement-date="faqListData?.supplementDate"
+        :pendulum-supplement-info="faqListData?.pendulumSupplementInfo"
+        :pendulum-supplement-date="faqListData?.pendulumSupplementDate"
       />
       <div v-show="cardTab === 'info' && !card">
         <p class="no-card-selected">カードを選択してください</p>

@@ -71,15 +71,42 @@
         <div class="section-title">Pend. Text</div>
         <div class="effect-text">{{ card.pendulumEffect }}</div>
       </div>
-      
+
+      <div v-if="pendulumSupplementInfo" class="card-effect-section">
+        <div class="section-title">Pend. Detail{{ pendulumSupplementDate ? ` [${pendulumSupplementDate}]` : '' }}</div>
+        <div class="detail-text">
+          <template v-for="(part, partIndex) in parseCardLinks(pendulumSupplementInfo)" :key="partIndex">
+            <span
+              v-if="part.type === 'link'"
+              class="card-link"
+              @click="handleCardLinkClick(part.cardId)"
+            >
+              {{ part.text }}
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </div>
+      </div>
+
       <div v-if="card.text" class="card-effect-section">
         <div class="section-title">Card Text</div>
         <div class="effect-text">{{ card.text }}</div>
       </div>
-      
+
       <div v-if="supplementInfo" class="card-effect-section">
         <div class="section-title">Detail{{ supplementDate ? ` [${supplementDate}]` : '' }}</div>
-        <div class="detail-text">{{ supplementInfo }}</div>
+        <div class="detail-text">
+          <template v-for="(part, partIndex) in parseCardLinks(supplementInfo)" :key="partIndex">
+            <span
+              v-if="part.type === 'link'"
+              class="card-link"
+              @click="handleCardLinkClick(part.cardId)"
+            >
+              {{ part.text }}
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </div>
       </div>
     </div>
   </div>
@@ -88,6 +115,8 @@
 <script>
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
+import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -107,6 +136,24 @@ export default {
     supplementDate: {
       type: String,
       default: undefined
+    },
+    pendulumSupplementInfo: {
+      type: String,
+      default: undefined
+    },
+    pendulumSupplementDate: {
+      type: String,
+      default: undefined
+    }
+  },
+  setup() {
+    const deckStore = useDeckEditStore()
+    const { parseCardLinks, handleCardLinkClick } = useCardLinks()
+
+    return {
+      deckStore,
+      parseCardLinks,
+      handleCardLinkClick
     }
   },
   methods: {
@@ -170,6 +217,24 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  animation: cardInfoFadeIn 0.25s ease-out;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@keyframes cardInfoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card-name-large {
@@ -190,6 +255,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .card-image-wrapper {
@@ -432,6 +498,7 @@ export default {
 .card-effect-text,
 .card-effect-section {
   margin-top: 5px;
+  width: 100%;
 }
 
 .section-title {
@@ -442,6 +509,7 @@ export default {
   padding: 4px 8px;
   background: #f0f0f0;
   border-radius: 4px 4px 0 0;
+  width: 100%;
 }
 
 .effect-text {
@@ -453,6 +521,9 @@ export default {
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
   background: #fff;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .detail-text {
@@ -464,5 +535,20 @@ export default {
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
   background: #f5f5f5;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #0052a3;
+    text-decoration: underline;
+  }
 }
 </style>
