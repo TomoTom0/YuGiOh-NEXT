@@ -1,8 +1,5 @@
 import type {
-  DisplayMode,
   SortOrder,
-  ActiveTab,
-  CardTab,
   CardSize,
   Theme,
   Language,

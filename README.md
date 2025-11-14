@@ -2,10 +2,6 @@
 
 PCからも新鮮で快適な遊戯王Neuronライフを！
 
-**遊戯王NEXT(Neuron EXTension)**は、~~Neo-Spacianではなく、~~遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
-
-**現在のバージョン**: v0.3.1 ([変更履歴](./docs/changelog/))
-
 ## intro
 
 随分便利になった遊戯王Neuronアプリ。もう今では、PCから遊戯王公式データベースを見るけど、デッキ編集はスマホからしかしてない。そんな人も多いのではないでしょうか。
@@ -15,10 +11,19 @@ PCからも新鮮で快適な遊戯王Neuronライフを！
 
 PC版の遊戯王Neuron(公式データベース)でも、カード画像を並べながらデッキ編集できます！
 カードをマウスでのドラッグ操作でも、クリック操作でも自在に移動できます！
+
+<img src="./docs/usage/images/store-promo-01-easy-moving.png" alt="デッキ編集機能の概要" width="800">
+
 カードを検索して、そこからカードを追加できます！
 ページを移動せずにカードのテキスト、QAページでの解説、関連QA、関連カード、関連商品をすべてみることができます！
 
-<img src="./docs/usage/images/store-promo-01-easy-moving.png" alt="デッキ編集機能の概要" width="800">
+<img src="./docs/usage/images/store-promo-02-card-info.png" alt="カード詳細情報の4タブ表示" width="800">
+
+
+**遊戯王NEXT(Neuron EXTension)**は、遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
+
+**現在のバージョン**: v0.3.1 ([変更履歴](./docs/changelog/))
+
 
 ## 主要機能
 
@@ -27,6 +32,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 デッキ詳細ページにインタラクティブな編集UIを追加します。
 
 <img src="./docs/usage/images/deck-edit/01-initial-state.png" alt="デッキ編集画面の全体構成" width="600">
+
 
 **機能詳細：**
 - マウスでのドラッグ&ドロップでカードを移動
@@ -37,10 +43,6 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 - 多言語対応
 
 <img src="./docs/usage/images/deck-edit/07-search-function.png" alt="カード検索機能" width="600">
-
-カード詳細情報も充実：
-
-<img src="./docs/usage/images/store-promo-02-card-info.png" alt="カード詳細情報の4タブ表示" width="800">
 
 詳細は [デッキ編集機能ガイド](./docs/usage/custom-deck-edit.md) をご覧ください。
 

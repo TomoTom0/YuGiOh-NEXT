@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import type {
   AppSettings,
   CardSize,
@@ -135,12 +135,12 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * 設定をリセット
    */
-  function resetSettings(): void {
+  async function resetSettings(): Promise<void> {
     appSettings.value = { ...DEFAULT_APP_SETTINGS };
     featureSettings.value = { ...DEFAULT_FEATURE_SETTINGS };
     applyTheme();
     applyCardSize();
-    saveSettings();
+    await saveSettings();
   }
 
   // ===== 内部関数 =====

@@ -792,6 +792,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
       if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
 
+      // 設定をDOMに適用
+      settingsStore.applyTheme();
+      settingsStore.applyCardSize();
+
       // デッキ一覧を取得
       const list = await fetchDeckList();
 

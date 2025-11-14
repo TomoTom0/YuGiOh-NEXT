@@ -6,17 +6,16 @@
 
     <div class="tabs">
       <button
-        :class="['tab', { active: activeTab === 'omit' }]"
-        @click="activeTab = 'omit'"
-      >
-        Omit and Usage
-      </button>
-      <button
-        v-if="false"
         :class="['tab', { active: activeTab === 'general' }]"
         @click="activeTab = 'general'"
       >
-        General
+        設定
+      </button>
+      <button
+        :class="['tab', { active: activeTab === 'omit' }]"
+        @click="activeTab = 'omit'"
+      >
+        機能一覧
       </button>
       <button
         v-if="false"
@@ -29,9 +28,8 @@
 
      <div class="tab-content">
       <!-- General Tab -->
-      <div v-if="false && activeTab === 'general'" class="general-tab">
-        <h2 class="section-title">バージョン情報</h2>
-        <p>遊戯王NEXT (遊戯王 Neuron EXTension) v0.3.0</p>
+      <div v-if="activeTab === 'general'" class="general-tab">
+        <SettingsPanel />
       </div>
 
       <!-- Deck Edit Settings Tab -->
@@ -148,6 +146,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import DeckEditSettings from './DeckEditSettings.vue';
+import SettingsPanel from './SettingsPanel.vue';
 
 interface Feature {
   id: string;
