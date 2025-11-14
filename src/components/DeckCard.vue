@@ -268,25 +268,22 @@ export default {
 
 <style scoped lang="scss">
 .card-item {
-  width: 36px;
-  height: 53px;
-  border: 1px solid #ddd;
+  /* CSS変数を使用してカードサイズを管理 */
+  width: var(--card-width);
+  height: var(--card-height);
+  border: 1px solid var(--border-primary);
   border-radius: 2px;
   position: relative;
   overflow: hidden;
-  background: #f9f9f9;
+  background: var(--card-bg);
   cursor: move;
   flex-shrink: 0;
   flex-grow: 0;
   margin: 0;
 
-  .grid-view & {
-    width: 60px;
-    height: 88px;
-  }
-
   &:hover {
-    border-color: #aaa;
+    border-color: var(--border-secondary);
+    background: var(--card-hover-bg);
 
     .card-controls {
       opacity: 1;
