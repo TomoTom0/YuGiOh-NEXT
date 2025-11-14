@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import type { DeckInfo, DeckCard } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail } from '../api/deck-operations';
+import { URLStateManager } from '../utils/url-state';
+import { useSettingsStore } from './settings';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -447,21 +449,35 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const searchQuery = ref('');
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
   const selectedCard = ref<CardInfo | null>(null);
-  
+
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではsearch）
   const isMobile = window.innerWidth <= 768;
   const activeTab = ref<'deck' | 'search' | 'card'>(isMobile ? 'deck' : 'search');
-  
+
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
-  
+
   // Search loading state
-  const sortOrder = ref('release_desc');
+  const sortOrder = ref<string>('official');
   const isLoading = ref(false);
   const allResults = ref<CardInfo[]>([]);
   const currentPage = ref(0);
   const hasMore = ref(false);
+
+  // 設定ストアを取得
+  const settingsStore = useSettingsStore();
+
+  // UI状態の変更をURLに同期
+  watch([viewMode, sortOrder, activeTab, cardTab, showDetail], () => {
+    URLStateManager.syncUIStateToURL({
+      viewMode: viewMode.value,
+      sortOrder: sortOrder.value as any,
+      activeTab: activeTab.value,
+      cardTab: cardTab.value,
+      showDetail: showDetail.value,
+    });
+  }, { deep: true });
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
     // main, extra, sideで同じcidのカードは合計3枚まで
@@ -722,9 +738,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     try {
       const cgid = await sessionManager.getCgid();
       const loadedDeck = await getDeckDetail(dno, cgid);
-      
+
       if (loadedDeck) {
         deckInfo.value = loadedDeck;
+
+        // URLにdnoを同期
+        URLStateManager.setDno(dno);
         
         // displayOrderを初期化
         initializeDisplayOrder();
@@ -756,6 +775,23 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function initializeOnPageLoad() {
     try {
+      // 設定ストアを初期化
+      await settingsStore.loadSettings();
+
+      // URLからUI状態を復元
+      const uiState = URLStateManager.restoreUIStateFromURL();
+      if (uiState.viewMode) viewMode.value = uiState.viewMode;
+      if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
+      if (uiState.activeTab) activeTab.value = uiState.activeTab;
+      if (uiState.cardTab) cardTab.value = uiState.cardTab;
+      if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
+
+      // URLから設定を復元（URLパラメータが設定ストアより優先）
+      const urlSettings = URLStateManager.restoreSettingsFromURL();
+      if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
+      if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
+      if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
+
       // デッキ一覧を取得
       const list = await fetchDeckList();
 
@@ -764,23 +800,19 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         return;
       }
 
-      // URLパラメータからdnoを取得
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlDnoStr = urlParams.get('dno');
+      // URLパラメータからdnoを取得（URLStateManagerを使用）
+      const urlDno = URLStateManager.getDno();
 
-      if (urlDnoStr) {
-        const urlDno = parseInt(urlDnoStr, 10);
-        if (!isNaN(urlDno)) {
-          // URLで指定されたdnoが一覧に存在するか確認
-          const exists = list.some(item => item.dno === urlDno);
-          if (exists) {
-            try {
-              await loadDeck(urlDno);
-              return;
-            } catch (error) {
-              console.error(`Failed to load deck with dno=${urlDno}, falling back to default:`, error);
-              // ロード失敗時は通常処理に続く
-            }
+      if (urlDno !== null) {
+        // URLで指定されたdnoが一覧に存在するか確認
+        const exists = list.some(item => item.dno === urlDno);
+        if (exists) {
+          try {
+            await loadDeck(urlDno);
+            return;
+          } catch (error) {
+            console.error(`Failed to load deck with dno=${urlDno}, falling back to default:`, error);
+            // ロード失敗時は通常処理に続く
           }
         }
       }
