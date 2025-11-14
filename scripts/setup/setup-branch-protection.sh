@@ -54,7 +54,7 @@ gh api \
     "strict": true,
     "contexts": ["check-branch-policy"]
   },
-  "enforce_admins": false,
+  "enforce_admins": true,
   "required_pull_request_reviews": null,
   "restrictions": null,
   "required_linear_history": false,
