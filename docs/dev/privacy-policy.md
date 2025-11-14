@@ -1,10 +1,10 @@
 # プライバシーポリシー
 
-**最終更新日**: 2025年11月10日
+**最終更新日**: 2025年11月14日
 
 ## 概要
 
-Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カードデータベースでのデッキ管理を支援するChrome拡張機能です。本プライバシーポリシーでは、本拡張機能がどのようにユーザー情報を取り扱うかについて説明します。
+遊戯王NEXT（以下「本拡張機能」）は、遊戯王公式カードデータベースでのデッキ管理を支援するChrome拡張機能です。本プライバシーポリシーでは、本拡張機能がどのようにユーザー情報を取り扱うかについて説明します。
 
 ## データの取り扱いについて
 
@@ -53,6 +53,14 @@ Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カ�
   - デッキ画像の生成（ブラウザ内で完結）
 - **外部送信**: なし
 
+### 3. コンテキストメニュー権限（contextMenus）
+
+- **目的**: 拡張機能アイコンの右クリックメニューに項目を追加
+- **動作内容**:
+  - 拡張機能アイコンを右クリックした際に「デッキ編集画面を開く」メニューを表示
+  - クリック時に独自デッキ編集ページ（`#/ytomo/edit`）を新規タブで開く
+- **外部送信**: なし
+
 ## データの取り扱い
 
 ### ローカル処理
@@ -99,19 +107,26 @@ Yu-Gi-Oh! Deck Helper（以下「本拡張機能」）は、遊戯王公式カ�
 
 ## お問い合わせ
 
-本プライバシーポリシーに関するご質問は、以下のGitHubリポジトリのIssuesページよりお問い合わせください：
+本プライバシーポリシーや本拡張機能に関するご質問・ご要望は、以下の方法でご連絡ください：
 
-https://github.com/TomoTom0/ygo-neuron-helper/issues
+**お問い合わせフォーム**:
+https://docs.google.com/forms/d/e/1FAIpQLSdh2wRCUWpX6ZLfma-g5O46eD93wOPHpDHWQGxdOcJLmm_tGQ/viewform?usp=pp_url&entry.1848091360=%E9%81%8A%E6%88%AF%E7%8E%8BNEXT(YuGiOh+Neuron+EXTension)
+
+**メール**:
+TomoIris427+GitHub@gmail.com
+
+**GitHub Issues** (バグ報告・機能要望):
+https://github.com/TomoTom0/YuGiOh-NEXT/issues
 
 ---
 
 ## Privacy Policy (English)
 
-**Last Updated**: November 10, 2025
+**Last Updated**: November 14, 2025
 
 ## Overview
 
-Yu-Gi-Oh! Deck Helper ("this extension") is a Chrome extension that enhances deck management on the official Yu-Gi-Oh! card database. This privacy policy explains how this extension handles user information.
+YuGiOh NEXT ("this extension") is a Chrome extension that enhances deck management on the official Yu-Gi-Oh! card database. This privacy policy explains how this extension handles user information.
 
 ## Data Handling
 
@@ -156,6 +171,14 @@ This extension uses the following permissions, but does not transmit any informa
   - Add buttons to deck pages
   - Shuffle, sort, and lock cards
   - Generate deck images (processed entirely in browser)
+- **External Transmission**: None
+
+### 3. Context Menu Permission (contextMenus)
+
+- **Purpose**: Add menu items to the extension icon's right-click menu
+- **Operations**:
+  - Display "Open Deck Edit Page" menu item when right-clicking the extension icon
+  - Open custom deck edit page (`#/ytomo/edit`) in a new tab when clicked
 - **External Transmission**: None
 
 ## Data Handling
@@ -204,6 +227,13 @@ This privacy policy may be updated as necessary. Significant changes will be ann
 
 ## Contact
 
-For questions about this privacy policy, please contact us through the Issues page of our GitHub repository:
+For questions or feedback about this privacy policy or this extension, please contact us through:
 
-https://github.com/TomoTom0/ygo-neuron-helper/issues
+**Contact Form**:
+https://docs.google.com/forms/d/e/1FAIpQLSdh2wRCUWpX6ZLfma-g5O46eD93wOPHpDHWQGxdOcJLmm_tGQ/viewform?usp=pp_url&entry.1848091360=%E9%81%8A%E6%88%AF%E7%8E%8BNEXT(YuGiOh+Neuron+EXTension)
+
+**Email**:
+TomoIris427+GitHub@gmail.com
+
+**GitHub Issues** (bug reports and feature requests):
+https://github.com/TomoTom0/YuGiOh-NEXT/issues
