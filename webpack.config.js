@@ -87,6 +87,10 @@ module.exports = (env, argv) => {
             to: 'images',
             noErrorOnMissing: true,
           },
+          {
+            from: 'src/popup/popup.css',
+            to: 'popup.css',
+          },
         ],
       }),
 
