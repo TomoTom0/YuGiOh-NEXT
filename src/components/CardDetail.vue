@@ -251,7 +251,7 @@ export default {
     background: white;
     cursor: pointer;
     font-size: 12px;
-    color: #333;
+    color: var(--text-primary);
     flex: 1;
     
     &.active {
@@ -273,14 +273,14 @@ export default {
 .no-data {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .loading {
   padding: 20px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 </style>
