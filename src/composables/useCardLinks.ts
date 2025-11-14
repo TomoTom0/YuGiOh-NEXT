@@ -1,5 +1,5 @@
 import { getCardDetail } from '@/api/card-search'
-import { useDeckStore } from '@/stores/deck'
+import { useDeckEditStore } from '@/stores/deck-edit'
 
 /**
  * カードリンクの解析部分（type: 'text' | 'link'）
@@ -14,7 +14,7 @@ export interface CardLinkPart {
  * カードリンクのパースとクリック処理を提供するcomposable
  */
 export function useCardLinks() {
-  const deckStore = useDeckStore()
+  const deckStore = useDeckEditStore()
 
   /**
    * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
@@ -51,8 +51,8 @@ export function useCardLinks() {
       // カードリンク部分
       parts.push({
         type: 'link',
-        text: match[1], // カード名
-        cardId: match[2] // cid
+        text: match[1]!, // カード名
+        cardId: match[2]! // cid
       })
 
       lastIndex = regex.lastIndex

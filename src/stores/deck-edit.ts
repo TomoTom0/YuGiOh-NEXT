@@ -758,13 +758,34 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     try {
       // デッキ一覧を取得
       const list = await fetchDeckList();
-      
+
       if (list.length === 0) {
         // デッキがない場合は何もしない
         return;
       }
 
-      // 前回使用したdnoを取得
+      // URLパラメータからdnoを取得
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlDnoStr = urlParams.get('dno');
+
+      if (urlDnoStr) {
+        const urlDno = parseInt(urlDnoStr, 10);
+        if (!isNaN(urlDno)) {
+          // URLで指定されたdnoが一覧に存在するか確認
+          const exists = list.some(item => item.dno === urlDno);
+          if (exists) {
+            try {
+              await loadDeck(urlDno);
+              return;
+            } catch (error) {
+              console.error(`Failed to load deck with dno=${urlDno}, falling back to default:`, error);
+              // ロード失敗時は通常処理に続く
+            }
+          }
+        }
+      }
+
+      // URLパラメータがない、または失敗した場合、前回使用したdnoを取得
       const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
       if (savedDno) {
         const dno = parseInt(savedDno, 10);
