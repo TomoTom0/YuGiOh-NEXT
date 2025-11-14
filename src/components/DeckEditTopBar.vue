@@ -279,7 +279,7 @@ export default {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 14px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   color: #666;
   text-align: left;
   display: flex;
@@ -305,7 +305,7 @@ export default {
   position: relative;
 
   &:hover {
-    background: #f0f0f0;
+    background: var(--bg-secondary);
   }
 
   svg {
@@ -406,7 +406,7 @@ export default {
   
   &:hover {
     border-color: #ccc;
-    background: #f9f9f9;
+    background: var(--bg-secondary);
   }
   
   &.selected {
@@ -425,7 +425,7 @@ export default {
   
   .deck-name {
     font-size: 14px;
-    color: #333;
+    color: var(--text-primary);
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -457,7 +457,7 @@ export default {
       border: 1px solid #ddd;
       
       &:hover {
-        background: #f5f5f5;
+        background: var(--bg-secondary);
         border-color: #ccc;
       }
     }
@@ -491,7 +491,7 @@ export default {
   h3 {
     margin: 0 0 15px 0;
     font-size: 16px;
-    color: #333;
+    color: var(--text-primary);
     border-bottom: 2px solid #4CAF50;
     padding-bottom: 8px;
   }
@@ -541,11 +541,11 @@ export default {
     }
 
     &.btn-secondary {
-      background: #ddd;
-      color: #333;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
 
       &:hover {
-        background: #ccc;
+        background: var(--bg-tertiary);
       }
     }
   }

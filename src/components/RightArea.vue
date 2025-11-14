@@ -258,7 +258,7 @@ export default {
     background: white;
     cursor: pointer;
     font-size: 13px;
-    color: #333;
+    color: var(--text-primary);
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
@@ -266,7 +266,7 @@ export default {
     }
     
     &.tab-header {
-      background: #f0f0f0;
+      background: var(--bg-secondary);
       cursor: default;
     }
     
@@ -333,7 +333,7 @@ export default {
 .loading-indicator {
   text-align: center;
   padding: 10px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
   grid-column: 1 / -1;
 }
@@ -358,7 +358,7 @@ export default {
 
 .card-text {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -378,7 +378,7 @@ export default {
     background: white;
     cursor: pointer;
     font-size: 12px;
-    color: #333;
+    color: var(--text-primary);
     
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
@@ -430,7 +430,7 @@ export default {
 .card-name-large {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
@@ -451,9 +451,9 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   font-size: 11px;
   
   &.stat-box-full {
@@ -463,7 +463,7 @@ export default {
   &.stat-box-type {
     width: 100%;
     transform: skewX(-10deg);
-    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
     justify-content: center;
     
     .stat-text {
@@ -475,14 +475,14 @@ export default {
 .stat-text {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .link-markers-box {
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .link-markers-grid {
@@ -495,21 +495,21 @@ export default {
 .marker-cell {
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 14px;
   
   &.active {
-    background: #008cff;
+    background: var(--button-bg);
     color: white;
     font-weight: bold;
   }
   
   &:nth-child(5) {
-    background: #f0f0f0;
+    background: var(--bg-secondary);
   }
 }
 
@@ -522,7 +522,7 @@ export default {
 .stat-value {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .card-type-line {
@@ -530,31 +530,31 @@ export default {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   font-size: 11px;
 }
 
 .card-atk-def {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .card-ruby {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: -5px;
 }
 
 .card-type-info {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   padding: 4px 8px;
   background: #f5f5f5;
   border-radius: 4px;
@@ -579,7 +579,7 @@ export default {
 }
 
 .stat-value {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .card-pendulum-effect,
@@ -591,22 +591,22 @@ export default {
 .section-title {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   border-radius: 4px 4px 0 0;
 }
 
 .effect-text {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 0 0 4px 4px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .no-card-selected {
@@ -657,7 +657,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--text-secondary);
 
   &:hover {
     color: #008cff;

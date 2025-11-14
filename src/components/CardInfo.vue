@@ -240,7 +240,7 @@ export default {
 .card-name-large {
   font-size: 14px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
   width: 100%;
 }
@@ -315,7 +315,7 @@ export default {
   padding: 6px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   font-size: 11px;
   
   &.stat-box-type {
@@ -343,7 +343,7 @@ export default {
   
   &.stat-box-subtype {
     width: 100%;
-    background: #f0f0f0;
+    background: var(--bg-secondary);
     border: 1px solid #ddd;
     
     .effect-type-icon {
@@ -387,10 +387,10 @@ export default {
     width: 8px;
     height: 8px;
     clip-path: polygon(0 0, 100% 100%, 0 100%);
-    background: #ccc;
-    
+    background: var(--bg-tertiary);
+
     &.active {
-      background: #008cff;
+      background: var(--button-bg);
     }
     
     // 位置1: 左下 (中心から左下向き ↙) bit 0
@@ -457,41 +457,41 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 10px;
   
   &.active {
-    background: #008cff;
+    background: var(--button-bg);
     color: white;
     font-weight: bold;
   }
   
   &:nth-child(5) {
-    background: #f0f0f0;
+    background: var(--bg-secondary);
   }
 }
 
 .stat-text {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stat-separator {
   margin: 0 4px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .stat-label {
   font-size: 9px;
-  color: #999;
+  color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
 .stat-value {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .card-pendulum-effect,
@@ -504,23 +504,23 @@ export default {
 .section-title {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   border-radius: 4px 4px 0 0;
   width: 100%;
 }
 
 .effect-text {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
-  background: #fff;
+  background: var(--bg-primary);
   width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -528,13 +528,13 @@ export default {
 
 .detail-text {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 0 0 4px 4px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   width: 100%;
   word-wrap: break-word;
   overflow-wrap: break-word;
