@@ -380,7 +380,7 @@ export default {
 .deck-edit-container {
   display: flex;
   height: calc(100vh - var(--header-height, 0px) - 20px);
-  background-color: #f0f0f0;
+  background-color: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -438,7 +438,7 @@ export default {
   right: 340px;
   display: flex;
   gap: 10px;
-  background: white;
+  background: var(--bg-primary);
   padding: 10px 15px;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -450,11 +450,11 @@ export default {
     outline: none;
     font-size: 14px;
     padding: 5px;
-    background: white !important;
-    color: #000 !important;
-    
+    background: var(--input-bg) !important;
+    color: var(--input-text) !important;
+
     &::placeholder {
-      color: #999 !important;
+      color: var(--text-tertiary) !important;
     }
   }
 }
@@ -467,17 +467,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--text-secondary);
 
   &:hover {
-    color: #333;
+    color: var(--text-primary);
   }
 }
 
 .right-area {
   width: 320px;
-  background: white;
-  border-left: 1px solid #ddd;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   margin: 0 0 0 10px;
@@ -489,24 +489,24 @@ export default {
 .tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--button-bg);
   margin: 0;
 
   button {
     padding: 8px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 13px;
-    color: #333;
+    color: var(--text-primary);
 
     &.active {
-      background: #008cff;
-      color: white;
+      background: var(--button-bg);
+      color: var(--button-text);
     }
-    
+
     &.tab-header {
-      background: #f0f0f0;
+      background: var(--bg-secondary);
       cursor: default;
     }
   }
@@ -526,8 +526,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-secondary);
   margin-bottom: 10px;
 }
 
@@ -535,22 +535,22 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
-  
+
   label {
     display: flex;
     gap: 4px;
     align-items: center;
     cursor: pointer;
-    color: #000;
+    color: var(--text-primary);
     font-size: 13px;
   }
-  
+
   .switch {
     cursor: pointer;
   }
-  
+
   span {
-    color: #000;
+    color: var(--text-primary);
     font-size: 14px;
   }
 }
@@ -567,9 +567,9 @@ export default {
   display: flex;
   gap: 10px;
   padding: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-secondary);
   border-radius: 4px;
-  background: white;
+  background: var(--card-bg);
   cursor: move;
   position: relative;
   width: 100%;
@@ -582,7 +582,7 @@ export default {
   height: 58px;
   object-fit: cover;
   border-radius: 2px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   pointer-events: none;
   user-select: none;
 }
@@ -597,18 +597,18 @@ export default {
   font-size: 11px;
   margin-bottom: 2px;
   word-break: break-word;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .card-status {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .card-text {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -623,7 +623,7 @@ export default {
   height: auto;
   margin: 15px 0;
   border-radius: 4px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
 }
 
 .detail-actions {
@@ -634,16 +634,16 @@ export default {
 
   button {
     padding: 8px;
-    border: 1px solid #008cff;
-    background: white;
-    color: #008cff;
+    border: 1px solid var(--button-bg);
+    background: var(--bg-primary);
+    color: var(--button-bg);
     cursor: pointer;
     border-radius: 4px;
     font-size: 14px;
 
     &:hover {
-      background: #008cff;
-      color: white;
+      background: var(--button-bg);
+      color: var(--button-text);
     }
   }
 }
@@ -662,10 +662,10 @@ export default {
     position: relative;
     width: 40px;
     height: 20px;
-    background: #ccc;
+    background: var(--bg-tertiary);
     border-radius: 20px;
     transition: 0.3s;
-    
+
     &::before {
       content: '';
       position: absolute;
@@ -673,15 +673,15 @@ export default {
       height: 16px;
       left: 2px;
       top: 2px;
-      background: white;
+      background: var(--button-text);
       border-radius: 50%;
       transition: 0.3s;
     }
   }
-  
+
   input:checked + .slider {
-    background: #008cff;
-    
+    background: var(--button-bg);
+
     &::before {
       transform: translateX(20px);
     }

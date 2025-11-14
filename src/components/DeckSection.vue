@@ -176,13 +176,13 @@ export default {
     padding: 2px 0;
     font-size: 13px;
     font-weight: bold;
-    color: #333;
-    border-bottom: 1px solid #ddd;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
     line-height: 18px;
-    
+
     .count {
       margin-left: 8px;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 12px;
       font-weight: normal;
     }
