@@ -2,6 +2,20 @@
  * Popup UI Styles
  */
 
+/* CSS変数定義 */
+:root {
+  --popup-width: 280px;
+  --primary-color: #008cff;
+  --background-color: #f0f0f0;
+  --text-color: #333;
+  --text-color-secondary: #666;
+  --border-color: #e0e0e0;
+  --white: white;
+  --hover-bg: #f8f9fa;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 2px 8px rgba(0, 140, 255, 0.15);
+}
+
 /* リセット */
 * {
   box-sizing: border-box;
@@ -15,17 +29,17 @@ body {
 
 /* コンテナ */
 .popup-container {
-  width: 280px;
-  background: #f0f0f0;
+  width: var(--popup-width);
+  background: var(--background-color);
 }
 
 /* ヘッダー */
 .popup-header {
   padding: 20px;
   text-align: center;
-  background: white;
-  border-bottom: 3px solid #008cff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background: var(--white);
+  border-bottom: 3px solid var(--primary-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .popup-title {
@@ -33,13 +47,13 @@ body {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: #333;
+  color: var(--text-color);
 }
 
 .popup-subtitle {
   margin: 0;
   font-size: 11px;
-  color: #666;
+  color: var(--text-color-secondary);
   letter-spacing: 0.3px;
 }
 
@@ -53,15 +67,15 @@ body {
   width: 100%;
   padding: 14px 16px;
   margin-bottom: 8px;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
 }
 
 .menu-button:last-child {
@@ -69,10 +83,10 @@ body {
 }
 
 .menu-button:hover {
-  background: #f8f9fa;
-  border-color: #008cff;
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 140, 255, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .menu-button:active {
