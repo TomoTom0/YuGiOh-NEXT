@@ -49,7 +49,7 @@ echo "✓ アイコン生成完了"
 echo ""
 
 # ファイルサイズ表示
-ls -lh "$ICONS_DIR"/icon*.png | awk '{print $9, "-", $5}'
+(cd "$ICONS_DIR" && ls -lh icon*.png | awk '{print $9, "-", $5}')
 
 echo ""
 echo "次のステップ:"
