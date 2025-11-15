@@ -281,8 +281,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       
       // 最後の同じカードの直後に挿入
       const existingCards = sectionOrder.filter((dc, idx) => dc.cid === card.cardId && idx <= lastSameCardIndex);
-      const ciid = existingCards.length;
-      
+      // card.ciidが指定されていればそれを使用、なければ枚数から決定
+      const ciid = card.ciid ? parseInt(String(card.ciid), 10) : existingCards.length;
+
+      console.log('[addToDisplayOrder] existing card:', {
+        cardId: card.cardId,
+        cardCiid: card.ciid,
+        cardCiidType: typeof card.ciid,
+        calculatedCiid: ciid,
+        existingCardsLength: existingCards.length
+      });
+
       sectionOrder.splice(lastSameCardIndex + 1, 0, {
         cid: card.cardId,
         ciid: ciid,
@@ -290,9 +299,19 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       });
     } else {
       // 新しいカードなので末尾に追加
+      // card.ciidが指定されていればそれを使用、なければ0
+      const ciid = card.ciid ? parseInt(String(card.ciid), 10) : 0;
+
+      console.log('[addToDisplayOrder] new card:', {
+        cardId: card.cardId,
+        cardCiid: card.ciid,
+        cardCiidType: typeof card.ciid,
+        calculatedCiid: ciid
+      });
+
       sectionOrder.push({
         cid: card.cardId,
-        ciid: 0,
+        ciid: ciid,
         uuid: generateUUID()
       });
     }

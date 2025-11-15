@@ -1339,18 +1339,25 @@ export async function getCardDetail(
 function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: string}> {
   const imgs: Array<{ciid: string, imgHash: string}> = [];
   
-  const thumbnailImages = doc.querySelectorAll('#thumbnail img');
-  thumbnailImages.forEach(img => {
-    const src = img.getAttribute('src') || '';
-    const ciidMatch = src.match(/ciid=(\d+)/);
-    const encMatch = src.match(/enc=([^&]+)/);
+  // HTML全体を文字列として取得
+  const html = doc.documentElement.outerHTML;
+  
+  // JavaScriptコード内の $('#thumbnail_card_image_X').attr('src', '...') パターンを抽出
+  const pattern = /\$\(['"]#thumbnail_card_image_\d+['"]\)\.attr\(['"]src['"],\s*['"]([^'"]+)['"]\)/g;
+  
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    const url = match[1];
+    const ciidMatch = url.match(/ciid=(\d+)/);
+    const encMatch = url.match(/enc=([^&]+)/);
+    
     if (ciidMatch?.[1] && encMatch?.[1]) {
       imgs.push({
         ciid: ciidMatch[1],
         imgHash: encMatch[1]
       });
     }
-  });
+  }
   
   return imgs;
 }
