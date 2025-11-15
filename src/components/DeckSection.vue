@@ -6,8 +6,30 @@
     @drop="handleDrop"
   >
     <h3>
-      {{ title }}
-      <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+      <div class="title-group">
+        {{ title }}
+        <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+      </div>
+      <div v-if="sectionType !== 'trash'" class="section-buttons">
+        <button
+          class="btn-section"
+          title="Shuffle"
+          @click="handleShuffle"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiShuffle" />
+          </svg>
+        </button>
+        <button
+          class="btn-section"
+          title="Sort"
+          @click="handleSort"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiSort" />
+          </svg>
+        </button>
+      </div>
     </h3>
     <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
       <TransitionGroup name="card-list">
@@ -33,6 +55,7 @@
 import { ref, computed, nextTick } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { mdiShuffle, mdiSort } from '@mdi/js'
 
 export default {
   name: 'DeckSection',
@@ -150,13 +173,25 @@ export default {
       }
     }
 
+    const handleShuffle = () => {
+      deckStore.shuffleSection(props.sectionType)
+    }
+
+    const handleSort = () => {
+      deckStore.sortSection(props.sectionType)
+    }
+
     return {
       handleDrop,
       handleSectionDrop,
       handleEndDrop,
+      handleShuffle,
+      handleSort,
       cardGridRef,
       displayCards,
-      getCardInfo
+      getCardInfo,
+      mdiShuffle,
+      mdiSort
     }
   }
 }
@@ -179,12 +214,48 @@ export default {
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-primary);
     line-height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .title-group {
+      display: flex;
+      align-items: center;
+    }
 
     .count {
       margin-left: 8px;
       color: var(--text-secondary);
       font-size: 12px;
       font-weight: normal;
+    }
+
+    .section-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-section {
+      background: transparent;
+      border: 1px solid var(--border-primary);
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+        border-color: var(--hover-border, rgba(0, 0, 0, 0.2));
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
     }
   }
   

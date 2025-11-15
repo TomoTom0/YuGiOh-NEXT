@@ -24,17 +24,36 @@
           @click="handleSaveClick"
         >
           <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z" />
+            <path fill="currentColor" :d="mdiContentSave" />
           </svg>
         </button>
         <button class="btn-action" title="load" @click="toggleLoadDialog">
           <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z" />
+            <path fill="currentColor" :d="mdiFolderOpen" />
           </svg>
         </button>
-        <button class="btn-menu">⋮</button>
+        <button class="btn-menu" @click="toggleMenu">⋮</button>
+
+        <!-- Menu Dropdown -->
+        <div v-if="showMenu" class="menu-dropdown" @click.stop>
+          <button @click="handleSortAll" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiSortVariant" />
+            </svg>
+            Sort All Sections
+          </button>
+          <button @click="handleDownloadImage" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiImageOutline" />
+            </svg>
+            Download Deck Image
+          </button>
+        </div>
       </div>
     </div>
+
+    <!-- Menu Overlay (外側クリックで閉じる用) -->
+    <div v-if="showMenu" class="menu-overlay" @click="toggleMenu"></div>
 
     <!-- Load Dialog -->
     <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
@@ -82,6 +101,9 @@
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
+import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
+import { sessionManager } from '../content/session/session'
+import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -101,6 +123,7 @@ export default {
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
     const lastSavedDeckName = ref('')
+    const showMenu = ref(false)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -201,18 +224,75 @@ export default {
       }
     }
 
+    const toggleMenu = () => {
+      showMenu.value = !showMenu.value
+    }
+
+    const handleSortAll = () => {
+      deckStore.sortAllSections()
+      showMenu.value = false
+      showToast('全セクションをソートしました', 'success')
+    }
+
+    const handleDownloadImage = async () => {
+      showMenu.value = false
+
+      try {
+        // cgidを取得
+        const cgid = await sessionManager.getCgid()
+
+        // dnoを取得
+        const dnoNum = deckStore.deckInfo.dno || 0
+
+        if (!dnoNum) {
+          showToast('デッキ番号が設定されていません', 'warning')
+          return
+        }
+
+        // DeckInfo形式のデータを構築
+        const deckData = {
+          dno: dnoNum,
+          name: deckStore.deckInfo.name || '',
+          mainDeck: deckStore.deckInfo.mainDeck,
+          extraDeck: deckStore.deckInfo.extraDeck,
+          sideDeck: deckStore.deckInfo.sideDeck,
+          category: deckStore.deckInfo.category || [],
+          tags: deckStore.deckInfo.tags || [],
+          comment: deckStore.deckInfo.comment || '',
+          deckCode: deckStore.deckInfo.deckCode || ''
+        }
+
+        // dnoを文字列に変換
+        const dno = String(dnoNum)
+
+        // ダイアログを表示
+        await showImageDialogWithData(cgid, dno, deckData, null)
+      } catch (error) {
+        console.error('Download image error:', error)
+        showToast('画像作成ダイアログの表示に失敗しました', 'error')
+      }
+    }
+
     return {
       deckStore,
       showLoadDialog,
       selectedDeckDno,
       savingState,
       lastSavedDeckName,
+      showMenu,
       localDno,
       localDeckName,
       toast,
       handleSaveClick,
       toggleLoadDialog,
-      handleLoadSelected
+      handleLoadSelected,
+      toggleMenu,
+      handleSortAll,
+      handleDownloadImage,
+      mdiContentSave,
+      mdiFolderOpen,
+      mdiSortVariant,
+      mdiImageOutline
     }
   }
 }
@@ -243,6 +323,55 @@ export default {
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+  position: relative;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 100;
+  overflow: hidden;
+
+  .menu-item {
+    display: block;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: var(--bg-secondary, #f5f5f5);
+    }
+
+    &:active {
+      background: #e8e8e8;
+    }
+  }
+}
+
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99;
+  background: transparent;
 }
 
 .deck-name-group {

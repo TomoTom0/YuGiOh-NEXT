@@ -16,6 +16,11 @@ export type { CardType };
 export type LevelType = 'level' | 'rank' | 'link';
 
 /**
+ * 禁止制限の種類
+ */
+export type LimitRegulation = 'forbidden' | 'limited' | 'semi-limited';
+
+/**
  * カード基本情報（全カードタイプ共通）
  */
 export interface CardBase {
@@ -31,6 +36,8 @@ export interface CardBase {
   imgs: Array<{ciid: string; imgHash: string}>;
   /** 効果テキスト（オプション） */
   text?: string;
+  /** 禁止制限（オプション） */
+  limitRegulation?: LimitRegulation;
 }
 
 /**
