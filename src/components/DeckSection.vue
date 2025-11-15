@@ -219,10 +219,9 @@ export default {
     justify-content: space-between;
 
     .title-group {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       font-weight: bold;
-      flex: 0 0 auto;
     }
 
     .count {
@@ -233,9 +232,8 @@ export default {
     }
 
     .section-buttons {
-      display: flex;
+      display: inline-flex;
       gap: 4px;
-      flex: 0 0 auto;
     }
 
     .btn-section {
