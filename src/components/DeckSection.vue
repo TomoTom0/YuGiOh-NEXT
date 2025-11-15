@@ -6,11 +6,11 @@
     @drop="handleDrop"
   >
     <h3>
-      <div class="title-group">
+      <span class="title-group">
         {{ title }}
         <span v-if="showCount" class="count">{{ displayCards.length }}</span>
-      </div>
-      <div v-if="sectionType !== 'trash'" class="section-buttons">
+      </span>
+      <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
           class="btn-section"
           title="Shuffle"
@@ -29,7 +29,7 @@
             <path fill="currentColor" :d="mdiSort" />
           </svg>
         </button>
-      </div>
+      </span>
     </h3>
     <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
       <TransitionGroup name="card-list">
@@ -219,8 +219,6 @@ export default {
     justify-content: space-between;
 
     .title-group {
-      display: inline-flex;
-      align-items: center;
       font-weight: bold;
     }
 
@@ -232,8 +230,7 @@ export default {
     }
 
     .section-buttons {
-      display: inline-flex;
-      gap: 4px;
+      white-space: nowrap;
     }
 
     .btn-section {
