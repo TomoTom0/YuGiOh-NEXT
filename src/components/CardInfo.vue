@@ -198,23 +198,11 @@ export default {
 
     const selectImage = (ciid) => {
       // selectedCardのciidを更新
-      console.log('[CardInfo] selectImage:', {
-        beforeCiid: deckStore.selectedCard?.ciid,
-        newCiid: ciid,
-        displayCardBeforeCiid: displayCard.value?.ciid
-      })
       if (deckStore.selectedCard) {
         deckStore.selectedCard = {
           ...deckStore.selectedCard,
           ciid: ciid
         }
-        // 次のティックでdisplayCardの値を確認
-        setTimeout(() => {
-          console.log('[CardInfo] after update:', {
-            selectedCardCiid: deckStore.selectedCard.ciid,
-            displayCardCiid: displayCard.value?.ciid
-          })
-        }, 0)
       }
       showImageDialog.value = false
     }

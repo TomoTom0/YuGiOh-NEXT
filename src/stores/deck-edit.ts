@@ -68,9 +68,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       
       deck.forEach(deckCard => {
         for (let i = 0; i < deckCard.quantity; i++) {
+          // 同じカードの複数枚は全て同じciid（カードのデフォルト画像）を使用
+          const ciid = parseInt(String(deckCard.card.ciid), 10);
           displayOrder.value[section].push({
             cid: deckCard.card.cardId,
-            ciid: i,
+            ciid: isNaN(ciid) ? 0 : ciid,
             uuid: generateUUID()
           });
         }
@@ -233,14 +235,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // targetの前に挿入
     sectionOrder.splice(newTargetIndex, 0, movingCard);
-    
-    // ciidを再計算（全体）
-    const cidCounts = new Map<string, number>();
-    sectionOrder.forEach(dc => {
-      const count = cidCounts.get(dc.cid) || 0;
-      dc.ciid = count;
-      cidCounts.set(dc.cid, count + 1);
-    });
+
+    // ciidは変更しない（画像IDは保持）
   }
   
   /**
@@ -284,14 +280,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // card.ciidが指定されていればそれを使用、なければ枚数から決定
       const ciid = card.ciid ? parseInt(String(card.ciid), 10) : existingCards.length;
 
-      console.log('[addToDisplayOrder] existing card:', {
-        cardId: card.cardId,
-        cardCiid: card.ciid,
-        cardCiidType: typeof card.ciid,
-        calculatedCiid: ciid,
-        existingCardsLength: existingCards.length
-      });
-
       sectionOrder.splice(lastSameCardIndex + 1, 0, {
         cid: card.cardId,
         ciid: ciid,
@@ -301,13 +289,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 新しいカードなので末尾に追加
       // card.ciidが指定されていればそれを使用、なければ0
       const ciid = card.ciid ? parseInt(String(card.ciid), 10) : 0;
-
-      console.log('[addToDisplayOrder] new card:', {
-        cardId: card.cardId,
-        cardCiid: card.ciid,
-        cardCiidType: typeof card.ciid,
-        calculatedCiid: ciid
-      });
 
       sectionOrder.push({
         cid: card.cardId,
@@ -352,14 +333,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     if (removeIndex !== -1) {
       sectionOrder.splice(removeIndex, 1);
-      
-      // ciidを再計算
-      sectionOrder.forEach((dc, idx) => {
-        if (dc.cid === cardId) {
-          const precedingCount = sectionOrder.slice(0, idx).filter(d => d.cid === cardId).length;
-          dc.ciid = precedingCount;
-        }
-      });
+      // ciidは変更しない（画像IDは保持）
     }
   }
   
@@ -407,14 +381,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // fromのdisplayOrderから削除
     fromOrder.splice(moveCardIndex, 1);
-    
-    // fromのciidを再計算
-    fromOrder.forEach((dc, idx) => {
-      if (dc.cid === cardId) {
-        const precedingCount = fromOrder.slice(0, idx).filter(d => d.cid === cardId).length;
-        dc.ciid = precedingCount;
-      }
-    });
+
+    // fromのciidは変更しない（画像IDは保持）
     
     // toのdisplayOrderに追加（同じカードが既に存在する場合は直後に挿入）
     const toOrder = displayOrder.value[to];
@@ -432,13 +400,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
       }
       
-      // 最後の同じカードの直後に挿入
-      const existingCards = toOrder.filter((dc, idx) => dc.cid === cardId && idx <= lastSameCardIndex);
-      movingDisplayCard.ciid = existingCards.length;
+      // 最後の同じカードの直後に挿入（ciidは変更しない）
       toOrder.splice(lastSameCardIndex + 1, 0, movingDisplayCard);
     } else {
-      // 新しいカードなので末尾に追加
-      movingDisplayCard.ciid = 0;
+      // 新しいカードなので末尾に追加（ciidは変更しない）
       toOrder.push(movingDisplayCard);
     }
     

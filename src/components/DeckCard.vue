@@ -229,11 +229,6 @@ export default {
         // infoセクションの場合はselectedCardを使用
         // （画像選択でciidが更新されているため、this.cardではなくselectedCardを使う）
         const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
-        console.log('[DeckCard] handleBottomLeft - cardToAdd:', {
-          sectionType: this.sectionType,
-          cardToAddCiid: cardToAdd?.ciid,
-          cardToAddCiidType: typeof cardToAdd?.ciid
-        })
         this.deckStore.addCopyToMainOrExtra(cardToAdd)
 
         // アニメーション実行（移動元から移動先へ）
@@ -255,11 +250,6 @@ export default {
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
         // infoセクションの場合はselectedCardを使用（ciidが更新されている）
         const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
-        console.log('[DeckCard] handleBottomRight - cardToAdd:', {
-          sectionType: this.sectionType,
-          cardToAddCiid: cardToAdd?.ciid,
-          cardToAddCiidType: typeof cardToAdd?.ciid
-        })
         this.deckStore.addCopyToSection(cardToAdd, 'side')
         
         // アニメーション実行（移動元から移動先へ）

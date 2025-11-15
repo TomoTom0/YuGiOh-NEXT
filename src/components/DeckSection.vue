@@ -102,10 +102,13 @@ export default {
       if (!deckCard) return null
 
       // displayOrderのciidを使用してカード情報を上書き
-      return {
+      // ciidがundefinedの場合はdeckCard.card.ciidをそのまま使用
+      const result = {
         ...deckCard.card,
-        ciid: String(ciid)
+        ciid: ciid !== undefined ? String(ciid) : deckCard.card.ciid
       }
+
+      return result
     }
 
     const handleSectionDrop = (event) => {
