@@ -335,9 +335,18 @@ async function generateBackgroundImage(
 }
 
 /**
- * ポップアップメニューを表示
+ * ポップアップメニューを表示（汎用版）
+ * @param cgid ユーザーID
+ * @param dno デッキ番号
+ * @param deckData デッキデータ
+ * @param buttonRect ボタンの位置（nullの場合は画面中央に表示）
  */
-export async function showImageDialog(): Promise<void> {
+export async function showImageDialogWithData(
+  cgid: string,
+  dno: string,
+  deckData: DeckInfo,
+  buttonRect: DOMRect | null = null
+): Promise<void> {
   // 既存のポップアップがあれば削除
   const existingPopup = document.getElementById('ygo-image-popup-overlay');
   if (existingPopup) {
@@ -348,38 +357,18 @@ export async function showImageDialog(): Promise<void> {
     existingMenu.remove();
   }
 
-  // ボタンの位置を取得
-  const button = document.getElementById('ygo-deck-image-btn');
-  if (!button) {
-    console.error('[YGO Helper] Button not found');
-    return;
-  }
-
-  const buttonRect = button.getBoundingClientRect();
-
-  // URLからデッキ番号とユーザーIDを取得
-  const url = window.location.href;
-  const dnoMatch = url.match(/dno=(\d+)/);
-  const cgidMatch = url.match(/cgid=([a-f0-9]+)/);
-  if (!dnoMatch || !dnoMatch[1]) {
-    console.error('[YGO Helper] Failed to get deck number from URL');
-    return;
-  }
-  if (!cgidMatch || !cgidMatch[1]) {
-    console.error('[YGO Helper] Failed to get user ID from URL');
-    return;
-  }
-  const dno = dnoMatch[1];
-  const cgid = cgidMatch[1];
-
-  // 現在のページのDOMからデッキデータを取得
-  let deckData: DeckInfo;
-  try {
-    deckData = parseDeckDetail(document);
-  } catch (error) {
-    console.error('[YGO Helper] Failed to parse deck data from current page:', error);
-    return;
-  }
+  // buttonRectがnullの場合は、画面中央に表示するためのダミーRectを作成
+  const rect = buttonRect || {
+    bottom: window.innerHeight / 2 - 200,
+    left: window.innerWidth / 2 - 200,
+    top: 0,
+    right: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({})
+  } as DOMRect;
 
   // 状態管理
   let selectedColor: ColorVariant = 'red';
@@ -389,7 +378,7 @@ export async function showImageDialog(): Promise<void> {
   const backgroundImage = await generateBackgroundImage(cgid, dno, deckData, selectedColor);
 
   // ポップアップHTML を挿入
-  const popupHTML = createPopupHTML(buttonRect, backgroundImage.dataUrl, backgroundImage.width, backgroundImage.height, deckData.name);
+  const popupHTML = createPopupHTML(rect, backgroundImage.dataUrl, backgroundImage.width, backgroundImage.height, deckData.name);
   document.body.insertAdjacentHTML('beforeend', popupHTML);
 
   // イベントハンドラを登録
@@ -492,4 +481,45 @@ export async function showImageDialog(): Promise<void> {
   });
 
   console.log('[YGO Helper] Image popup shown');
+}
+
+/**
+ * ポップアップメニューを表示（デッキ表示画面用）
+ */
+export async function showImageDialog(): Promise<void> {
+  // ボタンの位置を取得
+  const button = document.getElementById('ygo-deck-image-btn');
+  if (!button) {
+    console.error('[YGO Helper] Button not found');
+    return;
+  }
+
+  const buttonRect = button.getBoundingClientRect();
+
+  // URLからデッキ番号とユーザーIDを取得
+  const url = window.location.href;
+  const dnoMatch = url.match(/dno=(\d+)/);
+  const cgidMatch = url.match(/cgid=([a-f0-9]+)/);
+  if (!dnoMatch || !dnoMatch[1]) {
+    console.error('[YGO Helper] Failed to get deck number from URL');
+    return;
+  }
+  if (!cgidMatch || !cgidMatch[1]) {
+    console.error('[YGO Helper] Failed to get user ID from URL');
+    return;
+  }
+  const dno = dnoMatch[1];
+  const cgid = cgidMatch[1];
+
+  // 現在のページのDOMからデッキデータを取得
+  let deckData: DeckInfo;
+  try {
+    deckData = parseDeckDetail(document);
+  } catch (error) {
+    console.error('[YGO Helper] Failed to parse deck data from current page:', error);
+    return;
+  }
+
+  // 汎用版を呼び出し
+  await showImageDialogWithData(cgid, dno, deckData, buttonRect);
 }

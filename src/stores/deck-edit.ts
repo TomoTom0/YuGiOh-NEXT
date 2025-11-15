@@ -842,6 +842,114 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  /**
+   * Fisher-Yatesアルゴリズムで配列をシャッフル
+   */
+  function fisherYatesShuffle<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+    }
+    return shuffled;
+  }
+
+  /**
+   * 指定セクションのカードをシャッフル
+   */
+  function shuffleSection(sectionType: 'main' | 'extra' | 'side' | 'trash') {
+    const section = displayOrder.value[sectionType];
+    if (!section || section.length === 0) return;
+
+    displayOrder.value[sectionType] = fisherYatesShuffle(section);
+  }
+
+  /**
+   * 指定セクションのカードをソート
+   */
+  function sortSection(sectionType: 'main' | 'extra' | 'side' | 'trash') {
+    const section = displayOrder.value[sectionType];
+    if (!section || section.length === 0) return;
+
+    // cidからカード情報を取得するヘルパー関数
+    const getCardInfo = (cid: string) => {
+      const allDecks = [
+        ...deckInfo.value.mainDeck,
+        ...deckInfo.value.extraDeck,
+        ...deckInfo.value.sideDeck,
+        ...trashDeck.value
+      ];
+      const deckCard = allDecks.find(dc => dc.card.cardId === cid);
+      return deckCard ? deckCard.card : null;
+    };
+
+    // ソート優先順位
+    const sorted = [...section].sort((a, b) => {
+      const cardA = getCardInfo(a.cid);
+      const cardB = getCardInfo(b.cid);
+      if (!cardA || !cardB) return 0;
+
+      // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
+      const typeOrder = { monster: 0, spell: 1, trap: 2 };
+      const typeA = typeOrder[cardA.cardType] ?? 999;
+      const typeB = typeOrder[cardB.cardType] ?? 999;
+      if (typeA !== typeB) return typeA - typeB;
+
+      // 2. Monster Type: Fusion > Synchro > Xyz > Link > その他
+      if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
+        const monsterTypeOrder: Record<string, number> = {
+          'Fusion': 0,
+          'Synchro': 1,
+          'Xyz': 2,
+          'Link': 3
+        };
+        // types配列から主要なタイプを抽出
+        const getMainType = (types: typeof cardA.types) => {
+          for (const type of types) {
+            if (type in monsterTypeOrder) {
+              return monsterTypeOrder[type];
+            }
+          }
+          return 999;
+        };
+        const monsterTypeA = getMainType(cardA.types) ?? 999;
+        const monsterTypeB = getMainType(cardB.types) ?? 999;
+        if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
+
+        // 4. Level/Rank/Link（降順）
+        const levelA = cardA.levelValue ?? 0;
+        const levelB = cardB.levelValue ?? 0;
+        if (levelA !== levelB) return levelB - levelA; // 降順
+      }
+
+      // 3. Spell Type / Trap Type
+      if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
+        const spellTypeA = cardA.effectType ?? '';
+        const spellTypeB = cardB.effectType ?? '';
+        if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
+      }
+      if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
+        const trapTypeA = cardA.effectType ?? '';
+        const trapTypeB = cardB.effectType ?? '';
+        if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
+      }
+
+      // 5. Card Name（昇順）
+      return cardA.name.localeCompare(cardB.name, 'ja');
+    });
+
+    displayOrder.value[sectionType] = sorted;
+  }
+
+  /**
+   * 全セクションをソート
+   */
+  function sortAllSections() {
+    sortSection('main');
+    sortSection('extra');
+    sortSection('side');
+  }
+
   return {
     deckInfo,
     trashDeck,
@@ -879,6 +987,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     saveDeck,
     loadDeck,
     fetchDeckList,
-    initializeOnPageLoad
+    initializeOnPageLoad,
+    shuffleSection,
+    sortSection,
+    sortAllSections
   };
 });

@@ -54,6 +54,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@mdi/js": "^7.4.47",
     "axios": "^1.13.2",
     "canvas": "^3.2.0",
     "jsdom": "^27.1.0",
