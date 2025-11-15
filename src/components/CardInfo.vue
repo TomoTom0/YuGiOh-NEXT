@@ -4,10 +4,36 @@
     <div class="card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
-          :card="card"
+          :card="displayCard"
           :section-type="'info'"
           :uuid="'info-card'"
         />
+        <button
+          v-if="card.imgs && card.imgs.length > 1"
+          class="image-select-btn"
+          @click="toggleImageDialog"
+          :title="`画像を選択 (${card.imgs.length}種類)`"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiImageMultiple" />
+          </svg>
+        </button>
+        <transition name="dialog-fade">
+          <div v-if="showImageDialog" class="image-select-dialog">
+          <div class="image-grid">
+            <div
+              v-for="(img, index) in card.imgs"
+              :key="img.ciid"
+              class="image-option"
+              :class="{ active: img.ciid === displayCard.ciid }"
+              @click="selectImage(img.ciid)"
+            >
+              <img :src="getImageUrl(img)" :alt="`画像 ${index + 1}`">
+              <span class="image-label">{{ index + 1 }}</span>
+            </div>
+          </div>
+          </div>
+        </transition>
       </div>
       <div class="card-details">
         
@@ -113,11 +139,13 @@
 </template>
 
 <script>
+import { ref, computed } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
+import { mdiImageMultiple } from '@mdi/js'
 
 export default {
   name: 'CardInfo',
@@ -146,14 +174,65 @@ export default {
       default: undefined
     }
   },
-  setup() {
+  setup(props) {
     const deckStore = useDeckEditStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
+    const showImageDialog = ref(false)
+
+    // selectedCard.ciidを反映したcard objectを作成
+    const displayCard = computed(() => {
+      // selectedCard全体を監視するのではなく、ciidプロパティを直接監視
+      const currentCiid = deckStore.selectedCard?.ciid
+      if (currentCiid) {
+        return {
+          ...props.card,
+          ciid: currentCiid
+        }
+      }
+      return props.card
+    })
+
+    const toggleImageDialog = () => {
+      showImageDialog.value = !showImageDialog.value
+    }
+
+    const selectImage = (ciid) => {
+      // selectedCardのciidを更新
+      console.log('[CardInfo] selectImage:', {
+        beforeCiid: deckStore.selectedCard?.ciid,
+        newCiid: ciid,
+        displayCardBeforeCiid: displayCard.value?.ciid
+      })
+      if (deckStore.selectedCard) {
+        deckStore.selectedCard = {
+          ...deckStore.selectedCard,
+          ciid: ciid
+        }
+        // 次のティックでdisplayCardの値を確認
+        setTimeout(() => {
+          console.log('[CardInfo] after update:', {
+            selectedCardCiid: deckStore.selectedCard.ciid,
+            displayCardCiid: displayCard.value?.ciid
+          })
+        }, 0)
+      }
+      showImageDialog.value = false
+    }
+
+    const getImageUrl = (img) => {
+      return `https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=${deckStore.selectedCard.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+    }
 
     return {
       deckStore,
       parseCardLinks,
-      handleCardLinkClick
+      handleCardLinkClick,
+      displayCard,
+      showImageDialog,
+      toggleImageDialog,
+      selectImage,
+      getImageUrl,
+      mdiImageMultiple
     }
   },
   methods: {
@@ -261,15 +340,133 @@ export default {
 .card-image-wrapper {
   flex-shrink: 0;
   width: 90px;
-  
+  position: relative;
+
   .deck-card {
     width: 90px;
     height: 132px;
-    
+
     img {
       width: 100%;
       height: 100%;
     }
+  }
+}
+
+.image-select-btn {
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 217, 184, 0.3);
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 217, 184, 0.5);
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 217, 184, 0.4);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.image-select-dialog {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 10px;
+  z-index: 1000;
+  min-width: 220px;
+}
+
+// トランジションアニメーション
+.dialog-fade-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.dialog-fade-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.dialog-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.dialog-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.dialog-fade-enter-to,
+.dialog-fade-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.image-option {
+  position: relative;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s;
+  background: #f5f5f5;
+
+  &:hover {
+    border-color: var(--theme-color-start, #00d9b8);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 217, 184, 0.3);
+  }
+
+  &.active {
+    border-color: var(--theme-color-start, #00d9b8);
+    box-shadow: 0 0 8px rgba(0, 217, 184, 0.5);
+    background: linear-gradient(135deg, rgba(0, 217, 184, 0.1) 0%, rgba(184, 79, 201, 0.1) 100%);
+  }
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .image-label {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 }
 
