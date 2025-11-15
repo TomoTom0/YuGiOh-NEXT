@@ -11,6 +11,17 @@
     @click="$emit('click', card)"
   >
     <img :src="cardImageUrl" :alt="card.name">
+    <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
+      <svg v-if="card.limitRegulation === 'forbidden'" width="16" height="16" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z" />
+      </svg>
+      <svg v-else-if="card.limitRegulation === 'limited'" width="16" height="16" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M11,7H13V9H11V7M11,11H13V17H11V11M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20Z" />
+      </svg>
+      <svg v-else-if="card.limitRegulation === 'semi-limited'" width="16" height="16" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12,2C6.5,2 2,6.5 2,12C2,17.5 6.5,22 12,22C17.5,22 22,17.5 22,12C22,6.5 17.5,2 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M16,12H13V16H11V12H8V10H11V6H13V10H16V12Z" />
+      </svg>
+    </div>
     <div v-if="!card.empty" class="card-controls">
       <button 
         class="card-btn top-left"
@@ -314,6 +325,35 @@ export default {
     object-fit: cover;
     pointer-events: none;
     user-select: none;
+  }
+}
+
+.limit-regulation {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 25%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  &.limit-forbidden {
+    background: rgba(220, 20, 20, 0.85);
+  }
+
+  &.limit-limited {
+    background: rgba(255, 220, 0, 0.85);
+  }
+
+  &.limit-semi-limited {
+    background: rgba(255, 140, 0, 0.85);
+  }
+
+  svg {
+    color: white;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   }
 }
 

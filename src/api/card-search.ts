@@ -12,7 +12,8 @@ import {
   SpellEffectType,
   TrapEffectType,
   CardDetail,
-  PackInfo
+  PackInfo,
+  LimitRegulation
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import {
@@ -754,15 +755,29 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     text = cloned.textContent?.trim() || undefined;
   }
 
+  // 禁止制限（オプション）
+  let limitRegulation: LimitRegulation | undefined = undefined;
+  const lrIconElem = row.querySelector('.lr_icon');
+  if (lrIconElem) {
+    if (lrIconElem.classList.contains('fl_1')) {
+      limitRegulation = 'forbidden';
+    } else if (lrIconElem.classList.contains('fl_2')) {
+      limitRegulation = 'limited';
+    } else if (lrIconElem.classList.contains('fl_3')) {
+      limitRegulation = 'semi-limited';
+    }
+  }
+
   const base: CardBase = {
     name,
     ruby,
     cardId,
     ciid,
     imgs,
-    text
+    text,
+    limitRegulation
   };
-  
+
   return base;
 }
 

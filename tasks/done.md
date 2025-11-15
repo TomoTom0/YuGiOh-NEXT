@@ -6,6 +6,136 @@
 
 ---
 
+## 2025-11-15: v0.3.4開発完了 - 禁止制限カード表示機能追加
+
+- **タイムスタンプ**: 2025-11-15
+- **バージョン**: 0.3.4
+- **ブランチ**: `dev`
+
+### 実装内容
+
+**1. 禁止制限データの収集**
+- ✅ CardBase型にlimitRegulation追加（types/card.ts）
+- ✅ .lr_iconクラスから制限情報をパース（api/card-search.ts）
+  - fl_1: 禁止（forbidden）
+  - fl_2: 制限（limited）
+  - fl_3: 準制限（semi-limited）
+
+**2. 禁止制限の表示**
+- ✅ DeckCard.vueにlimit-regulation表示追加
+- ✅ カード画像下部25%に色付き背景とアイコン表示
+  - 禁止：赤背景（rgba(220, 20, 20, 0.85)）+ ×アイコン
+  - 制限：黄色背景（rgba(255, 220, 0, 0.85)）+ !アイコン
+  - 準制限：オレンジ背景（rgba(255, 140, 0, 0.85)）+ +アイコン
+- ✅ ドロップシャドウでアイコンを見やすく
+
+**3. ボタン配置の修正**
+- ✅ DeckSection.vueのshuffle/sortボタンを右端に配置
+  - title-groupでタイトルと枚数を囲む
+  - justify-content: space-betweenで左右配置
+
+### ビルド・デプロイ
+
+- ✅ ビルド成功
+- ✅ デプロイ完了
+
+---
+
+## 2025-11-15: v0.3.4開発 - デッキ編集画面の機能拡張
+
+- **タイムスタンプ**: 2025-11-15
+- **バージョン**: 0.3.3 → 0.3.4
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 目標達成
+
+デッキ編集画面にshuffle/sortボタン、メニュー機能、デッキ画像作成ダイアログを追加
+
+### 実装内容
+
+**1. DeckSection.vue: セクションボタン追加**
+- ✅ shuffle/sortボタンを各セクション（main, extra, side）に追加
+- ✅ trashセクションはボタン非表示
+- ✅ ボタンのスタイリング（hover/active効果）
+
+**2. deck-edit.ts: ソート機能実装**
+- ✅ `shuffleSection()`: Fisher-Yatesアルゴリズム
+- ✅ `sortSection()`: 優先順位付きソート
+  - Card Type: Monster > Spell > Trap
+  - Monster Type: Fusion > Synchro > Xyz > Link > その他
+  - Level/Rank/Link（降順）
+  - Ruby（昇順）
+- ✅ `sortAllSections()`: 全セクション一括ソート
+
+**3. DeckEditTopBar.vue: メニュー機能追加**
+- ✅ ⋮ボタンでドロップダウンメニュー表示
+- ✅ メニュー項目: Sort All Sections, Download Deck Image
+- ✅ メニュー外クリックで閉じる機能
+
+**4. imageDialog.ts: 汎用化**
+- ✅ `showImageDialogWithData()`: パラメータ受け取り可能な汎用関数
+- ✅ デッキ編集画面からもダイアログ表示可能に
+- ✅ sessionManagerからcgidを取得
+
+### 技術的詳細
+
+- CardInfo型に合わせた実装（types配列、levelValue、effectType）
+- DeckInfo型の完全な構築（category, tags, comment, deckCode）
+- TypeScript型エラーの解消
+
+### ビルド・デプロイ
+
+- ✅ ビルド成功（警告のみ）
+- ✅ デプロイ完了
+
+---
+
+## 2025-11-15: v0.4.0 Phase 1完了 - 基盤整備（USP/設定/テーマ）
+
+- **タイムスタンプ**: 2025-11-15
+- **バージョン**: 0.3.2 → 0.4.0 Phase 1
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 目標達成
+
+URLパラメータ、画像サイズ、テーマ、言語切り替えの基盤実装完了
+
+### 実装内容
+
+**Week 1: 基盤実装**
+- ✅ 型定義拡張（`src/types/settings.ts`）
+- ✅ テーマシステム実装（`src/styles/themes.ts`, `themes.css`）
+- ✅ 設定ストア実装（`src/stores/settings.ts`）
+- ✅ URLステートマネージャー実装（`src/utils/url-state.ts`）
+
+**Week 2: UI統合・テスト**
+- ✅ deck-editストアへのUSP統合
+- ✅ テーマCSS読み込み
+- ✅ カードサイズ・テーマのCSS変数適用
+- ✅ オプション画面の拡張（SettingsPanel.vue）
+- ✅ E2Eテスト作成（全6テスト成功）
+
+### 実装ファイル
+
+- `src/types/settings.ts`: 設定型定義
+- `src/stores/settings.ts`: 設定ストア（Pinia）
+- `src/utils/url-state.ts`: URLステート管理
+- `src/styles/themes.ts`: テーマ定義
+- `src/styles/themes.css`: テーマCSS変数
+- `src/components/SettingsPanel.vue`: 設定UI
+
+### E2Eテスト結果
+
+全6テスト成功:
+1. カードサイズ切り替え
+2. テーマ切り替え
+3. URLパラメータからの状態復元
+4. 設定の永続化
+5. デッキ編集画面での連携
+6. オプション画面での設定変更
+
+---
+
 ## 2025-11-15: デッキ編集画面レイアウト修正 - xlarge カードサイズ対応
 
 - **タイムスタンプ**: 2025-11-15
