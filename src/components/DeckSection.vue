@@ -36,7 +36,7 @@
         <DeckCard
           v-for="displayCard in displayCards"
           :key="displayCard.uuid"
-          :card="getCardInfo(displayCard.cid)"
+          :card="getCardInfo(displayCard.cid, displayCard.ciid)"
           :section-type="sectionType"
           :uuid="displayCard.uuid"
         />
@@ -89,17 +89,23 @@ export default {
       return deckStore.displayOrder[props.sectionType] || []
     })
     
-    // cidからカード情報を取得
-    const getCardInfo = (cid) => {
+    // cidからカード情報を取得（ciidを上書き）
+    const getCardInfo = (cid, ciid) => {
       const allDecks = [
         ...deckStore.deckInfo.mainDeck,
         ...deckStore.deckInfo.extraDeck,
         ...deckStore.deckInfo.sideDeck,
         ...deckStore.trashDeck
       ]
-      
+
       const deckCard = allDecks.find(dc => dc.card.cardId === cid)
-      return deckCard ? deckCard.card : null
+      if (!deckCard) return null
+
+      // displayOrderのciidを使用してカード情報を上書き
+      return {
+        ...deckCard.card,
+        ciid: String(ciid)
+      }
     }
 
     const handleSectionDrop = (event) => {

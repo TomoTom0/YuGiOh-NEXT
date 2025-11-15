@@ -10,7 +10,7 @@
     @drop="handleDrop"
     @click="$emit('click', card)"
   >
-    <img :src="cardImageUrl" :alt="card.name">
+    <img :src="cardImageUrl" :alt="card.name" :key="cardImageUrl" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
@@ -203,8 +203,12 @@ export default {
         window.open(url, '_blank')
         return
       }
-      
-      this.deckStore.selectedCard = this.card
+
+      // 押下元のカードのciidをselectedCardに反映
+      this.deckStore.selectedCard = {
+        ...this.card,
+        ciid: this.card.ciid
+      }
       this.deckStore.activeTab = 'card'
       this.deckStore.cardTab = 'info'
     },
@@ -218,12 +222,20 @@ export default {
     handleBottomLeft() {
       // 移動元の位置を記録
       const sourceRect = this.$el?.getBoundingClientRect()
-      
+
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        this.deckStore.addCopyToMainOrExtra(this.card)
-        
+        // infoセクションの場合はselectedCardを使用
+        // （画像選択でciidが更新されているため、this.cardではなくselectedCardを使う）
+        const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
+        console.log('[DeckCard] handleBottomLeft - cardToAdd:', {
+          sectionType: this.sectionType,
+          cardToAddCiid: cardToAdd?.ciid,
+          cardToAddCiidType: typeof cardToAdd?.ciid
+        })
+        this.deckStore.addCopyToMainOrExtra(cardToAdd)
+
         // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
@@ -237,11 +249,18 @@ export default {
     handleBottomRight() {
       // 移動元の位置を記録
       const sourceRect = this.$el?.getBoundingClientRect()
-      
+
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        this.deckStore.addCopyToSection(this.card, 'side')
+        // infoセクションの場合はselectedCardを使用（ciidが更新されている）
+        const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
+        console.log('[DeckCard] handleBottomRight - cardToAdd:', {
+          sectionType: this.sectionType,
+          cardToAddCiid: cardToAdd?.ciid,
+          cardToAddCiidType: typeof cardToAdd?.ciid
+        })
+        this.deckStore.addCopyToSection(cardToAdd, 'side')
         
         // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
@@ -331,7 +350,19 @@ export default {
     object-fit: cover;
     pointer-events: none;
     user-select: none;
+    transition: opacity 0.2s ease;
+
+    &.card-image {
+      // keyを使って画像が変わるたびに再マウント
+      // 再マウント時のアニメーション
+      animation: fadeIn 0.25s ease;
+    }
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .limit-regulation {
