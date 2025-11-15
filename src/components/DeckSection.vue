@@ -230,7 +230,9 @@ export default {
     }
 
     .section-buttons {
-      white-space: nowrap;
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
     }
 
     .btn-section {
