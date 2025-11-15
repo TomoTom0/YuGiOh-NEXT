@@ -199,7 +199,7 @@ export default {
 
 <style lang="scss" scoped>
 .deck-section {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 8px;
   padding: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -221,6 +221,8 @@ export default {
     .title-group {
       display: flex;
       align-items: center;
+      font-weight: bold;
+      flex: 0 0 auto;
     }
 
     .count {
@@ -233,6 +235,7 @@ export default {
     .section-buttons {
       display: flex;
       gap: 4px;
+      flex: 0 0 auto;
     }
 
     .btn-section {
@@ -249,8 +252,8 @@ export default {
       justify-content: center;
 
       &:hover {
-        background: var(--hover-bg, rgba(0, 0, 0, 0.05));
-        border-color: var(--hover-border, rgba(0, 0, 0, 0.2));
+        background: var(--bg-secondary);
+        border-color: var(--border-secondary);
       }
 
       &:active {
