@@ -6,6 +6,168 @@
 
 ---
 
+## 2025-11-17: 複数ciid対応 - Load時のイラスト違いカード正しくパース
+
+- **タイムスタンプ**: 2025-11-17 20:30
+- **バージョン**: 0.3.7
+- **ブランチ**: `feature/v0.4.0-foundation`
+- **コミット**: `2c0a62f`
+
+### 問題
+
+**Load時に複数ciidを持つカードがciid=1で上書きされる**
+- デッキをLoadすると、イラスト違い（ciid違い）の情報が失われる
+- 例: 灰流うらら ciid=2が1枚、ciid=1が2枚のデッキをLoadすると、全てciid=1になる
+- ciid=2のカード画像が裏面になる
+
+### 原因
+
+1. **`extractImageInfo`の問題**: 同じcidで複数のciidがあっても、最後のciidで上書きされる
+2. **`parseCardBase`の問題**: `imgs`配列に1つのciidしか含まれない
+3. **`parseCardSection`の問題**: ciidごとに別レコードを作成していない
+
+### 解決策
+
+**HTMLの`<img>`タグから各ciidの枚数とimgHashを抽出**
+
+1. **`extractCiidCounts`関数を追加**:
+   - HTMLの`<img class="card_image_{type}_{index}_{ciid}">`タグを検索
+   - Monster, Spell, Trap, Extra の全カードタイプに対応
+   - JavaScriptから`cid`と`imgHash`（enc）を抽出
+   - `cid → ciid → { count, imgHash }`のマップを生成
+
+2. **`parseCardSection`関数を修正**:
+   - ciid情報がない場合: 従来通り1レコード
+   - 単一ciidの場合: 正しいciidとimgs配列を設定した1レコード
+   - **複数ciidの場合: ciidごとに別レコードとして追加**
+   - 各レコードに正しい`imgs: [{ ciid, imgHash }]`を設定
+
+3. **`parseDeckDetail`関数を修正**:
+   - `extractCiidCounts`を呼び出してciid情報を取得
+   - 各セクション（main, extra, side）に渡す
+
+### テスト
+
+- **テストデッキ**: dno=8 (urls.mdに記載)
+- **テストカード**: 灰流うらら (cid=12950)
+  - ciid=1: 2枚
+  - ciid=2: 1枚
+- **確認項目**:
+  - ✅ Load時に3レコード生成される（ciid=1×2, ciid=2×1）
+  - ✅ ciid=2のカード画像が正しく表示される（裏面にならない）
+  - ✅ 各レコードに正しいimgHashが設定される
+
+### 実装ファイル
+
+- `src/content/parser/deck-detail-parser.ts`
+  - `extractCiidCounts` 関数追加 (+58行)
+  - `parseCardSection` 関数修正 (+45行)
+  - `parseDeckDetail` 関数修正 (+3行)
+
+---
+
+## 2025-11-16: ciid画像選択バグ修正 - imgs配列の正しい継承
+
+- **タイムスタンプ**: 2025-11-16
+- **バージョン**: 0.3.6
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 問題
+
+**既存のcidで異なるciidを追加しようとすると裏面になる**
+- 検索結果から異なるciid（異なる画像）のカードをデッキに追加しようとすると裏面表示になる
+- 根本原因: `imgs`配列が継承されず、1要素に減っていた
+
+### 原因調査
+
+**ログによる証拠:**
+```
+[DeckCard] handleBottomLeft: imgsLength=2
+[deck-edit] addToDisplayOrder: imgsLength= 2
+[getCardImageUrl] imgs= [{"ciid":"1"}]  ← 1要素に減っている！
+[getCardImageUrl] ERROR: ciid=2 not found
+```
+
+**問題箇所特定:**
+- `DeckCard.vue`の`handleBottomLeft`で`this.card`をそのまま渡していた
+- 複数のコンポーネントが同じオブジェクト参照を共有し、どこかで`imgs`配列が変更されていた
+
+### 修正内容
+
+**1. `src/components/DeckCard.vue` - handleBottomLeftメソッド（232-252行）**
+
+```typescript
+handleBottomLeft() {
+  // propsから渡されたcardをディープコピー（元のオブジェクトを変更しないため）
+  const cardCopy = JSON.parse(JSON.stringify(this.card))
+  const result = this.deckStore.addCopyToMainOrExtra(cardCopy)
+  // ... エラーハンドリング
+}
+```
+
+- `this.card`をディープコピーしてから`addCopyToMainOrExtra`に渡す
+- 元の検索結果/カード詳細オブジェクトが変更されなくなる
+
+**2. `src/stores/deck-edit.ts` - addToDisplayOrder関数（240-311行）**
+
+```typescript
+function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
+  // cardオブジェクトをディープコピーして保存（参照を共有しないため）
+  const cardCopy = JSON.parse(JSON.stringify(card)) as CardInfo;
+  targetDeck.push({ card: cardCopy, quantity: 1 });
+}
+```
+
+- 新規カード追加時にさらにディープコピーを実施（二重の安全策）
+
+**3. `src/types/card.ts` - getCardImageUrl関数（46-53行）**
+
+```typescript
+export function getCardImageUrl(card: CardBase): string | undefined {
+  const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
+  if (!imageInfo) {
+    console.log('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
+    return undefined;
+  }
+  return `/yugiohdb/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+}
+```
+
+- ログ出力を簡素化（エラーのみ詳細情報を出力）
+
+### 検証結果
+
+**テストスクリプト**: `tmp/browser/complete-flow-test.js`
+
+**修正前:**
+```
+[getCardImageUrl] cardId= 12950 ciid= 2 imgs= [{"ciid":"1"}]
+[getCardImageUrl] ERROR: imageInfo not found for ciid= 2
+→ 裏面表示
+```
+
+**修正後:**
+```
+[getCardImageUrl] cardId= 12950 ciid= 2 imgs= [{"ciid":"1",...},{"ciid":"2",...}]
+→ 正常に画像URL生成: https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=12950&ciid=2&enc=...
+→ 正しい画像が表示される
+```
+
+### 技術的詳細
+
+- **問題の本質**: オブジェクト参照の共有によるミューテーション
+- **解決策**: ディープコピーによる参照の分離
+- **実装箇所**: 2箇所（DeckCard.vue → deck-edit.ts）の二重防御
+- **副次効果**: 検索結果とデッキのカードが完全に独立
+
+### ビルド・デプロイ
+
+- ✅ ビルド成功
+- ✅ デプロイ完了
+- ✅ E2Eテスト合格（ciid=2のカードが正しく表示される）
+
+---
+
 ## 2025-11-15: v0.3.4開発完了 - 禁止制限カード表示機能追加
 
 - **タイムスタンプ**: 2025-11-15
@@ -620,3 +782,523 @@ Passed: 6/6 ✅
 
 - **修正前**: カード移動・削除・並び替えのたびにciidが0,1,2...とインデックスで上書きされ、カード画像が表示されなくなっていた
 - **修正後**: ciidは画像IDとして正しく保持され、カード操作後も選択した画像が保持される
+
+## 2025-11-16: ciid対応の全面修正 - (cid, ciid)ペアでの一貫した処理
+
+- **タイムスタンプ**: 2025-11-16
+- **バージョン**: 0.3.7
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 問題
+
+**Sortやカード移動で異なるciidのカードが消える**
+- 同じcid（カードID）で異なるciid（画像ID）を持つカードをデッキに追加
+- Sortボタンをクリックするとカードが消える
+- カードの移動操作でも同様に消える
+
+### 根本原因
+
+多くの箇所で`cardId`（cid）のみで検索しており、`(cid, ciid)`ペアでの検索ができていなかった：
+
+1. **表示**: `DeckSection.vue`の`getCardInfo`がcidのみで検索
+2. **Sort**: `deck-edit.ts`の`sortSection`内の`getCardInfo`がcidのみで検索
+3. **初期化**: `initializeDisplayOrder`がcidのみで重複排除
+4. **移動**: `insertCard`, `moveInDisplayOrder`, `moveCardWithPosition`がcidのみで検索
+5. **Load**: `extractImageInfo`と`parseCardBase`が1つのciidしか保存しない
+
+### 修正内容
+
+#### 1. **DeckSection.vue (lines 101-109)** - 表示時の検索
+
+```typescript
+// Before: cidのみで検索
+const deckCard = allDecks.find(dc => dc.card.cardId === cid);
+return deckCard ? { ...deckCard.card, ciid: String(ciid) } : null;
+
+// After: (cid, ciid)ペアで検索
+const deckCard = allDecks.find(dc =>
+  dc.card.cardId === cid && dc.card.ciid === String(ciid)
+);
+if (!deckCard) return null;
+return deckCard.card;
+```
+
+#### 2. **deck-edit.ts (lines 888-898)** - Sort処理
+
+```typescript
+// Before: cidのみで検索
+const getCardInfo = (cid: string) => {
+  const deckCard = allDecks.find(dc => dc.card.cardId === cid);
+  return deckCard ? deckCard.card : null;
+};
+
+// After: (cid, ciid)ペアで検索
+const getCardInfo = (cid: string, ciid: number) => {
+  const deckCard = allDecks.find(dc =>
+    dc.card.cardId === cid && dc.card.ciid === String(ciid)
+  );
+  return deckCard ? deckCard.card : null;
+};
+const sorted = [...section].sort((a, b) => {
+  const cardA = getCardInfo(a.cid, a.ciid);  // ciid追加
+  const cardB = getCardInfo(b.cid, b.ciid);
+  // ...
+});
+```
+
+#### 3. **deck-edit.ts (lines 152-163)** - 初期化時の重複排除
+
+```typescript
+// Before: cidのみで重複排除
+if (!seenCards.has(dc.cid)) {
+  seenCards.add(dc.cid);
+  const deckCard = deck.find(d => d.card.cardId === dc.cid);
+  if (deckCard) newDeck.push(deckCard);
+}
+
+// After: (cid, ciid)ペアで重複排除
+const key = `${dc.cid}_${dc.ciid}`;
+if (!seenCards.has(key)) {
+  seenCards.add(key);
+  const deckCard = deck.find(d =>
+    d.card.cardId === dc.cid && d.card.ciid === String(dc.ciid)
+  );
+  if (deckCard) newDeck.push(deckCard);
+}
+```
+
+#### 4. **deck-edit.ts** - カード移動系関数
+
+- **insertCard (lines 652-654)**: `(cid, ciid)`ペアで検索
+- **moveInDisplayOrder (lines 396-398, 443-445)**: displayOrderからciidを取得して検索
+- **moveCardWithPosition (lines 669-682)**: 同様に修正
+
+#### 5. **card-search.ts (lines 630-658)** - Load時の画像情報抽出
+
+```typescript
+// Before: 1つのciidのみ保存（上書き）
+export function extractImageInfo(doc: Document): Map<string, { ciid?: string; imgHash?: string }> {
+  const imageInfoMap = new Map<string, { ciid?: string; imgHash?: string }>();
+  // ...
+  imageInfoMap.set(cid, { ciid, imgHash });  // 上書き！
+  return imageInfoMap;
+}
+
+// After: 複数ciidを配列で保存
+export function extractImageInfo(doc: Document): Map<string, Array<{ ciid?: string; imgHash?: string }>> {
+  const imageInfoMap = new Map<string, Array<{ ciid?: string; imgHash?: string }>>();
+  // ...
+  const existing = imageInfoMap.get(cid) || [];
+  if (!existing.some(info => info.ciid === ciid)) {
+    existing.push({ ciid, imgHash });
+    imageInfoMap.set(cid, existing);
+  }
+  return imageInfoMap;
+}
+```
+
+#### 6. **card-search.ts (lines 744-756)** - カード情報パース
+
+```typescript
+// Before: 1要素のimgs配列
+const imgs = [{ciid, imgHash}];
+
+// After: 全ciidのimgs配列
+const imageInfoList = imageInfoMap.get(cardId) || [];
+const imgs = imageInfoList.length > 0
+  ? imageInfoList.map(info => ({
+      ciid: info.ciid || '1',
+      imgHash: info.imgHash || `${cardId}_${info.ciid || '1'}_1_1`
+    }))
+  : [{ ciid: '1', imgHash: `${cardId}_1_1_1` }];
+const ciid = imgs[0]?.ciid || '1';
+```
+
+#### 7. **DeckCard.vue (line 6)** - DOM属性追加
+
+```vue
+<div
+  class="card-item deck-card"
+  :data-card-id="card.cardId"
+  :data-ciid="card.ciid"  <!-- 追加 -->
+  :data-uuid="uuid"
+  ...
+>
+```
+
+### テスト結果
+
+✅ **ciid=2のカード追加**: 成功
+- Main deckに正しくciid=2のカードが追加される
+- 画像URLに`ciid=2`が含まれている
+
+✅ **Sort実行**: 成功
+- Sort前: 2枚のカード（ciid=2）
+- Sort後: 2枚のカード（ciid=2）
+- カード数もciidも変わらない
+
+### 影響範囲
+
+- `src/components/DeckSection.vue`
+- `src/components/DeckCard.vue`
+- `src/stores/deck-edit.ts`
+- `src/api/card-search.ts`
+- `src/content/parser/deck-detail-parser.ts`
+
+### 備考
+
+- 枚数制限（3枚まで）はcidのみでカウント（仕様通り）
+- (cid, ciid)ペアは表示/ソート/移動のためのユニークキー
+- Save/Load機能は未テスト（保存ボタンのセレクタ調査中）
+
+
+### 追加修正: Load時のciid抽出 (2025-11-16)
+
+#### 問題
+**Load時に常に最初のciid（imgs[0]）を使用していた**
+- `parseCardBase`関数（card-search.ts:756）で`const ciid = imgs[0]?.ciid || '1'`
+- Save時にciid=2を保存しても、Load時には常にimgs配列の最初の要素（ciid=1）が使われていた
+- HTMLに保存されている実際のciid値を無視していた
+
+#### 修正内容
+
+**card-search.ts (lines 755-764)** - HTMLのimg要素srcから実際のciidを抽出
+
+```typescript
+// Before: 常に最初のciidを使用
+const ciid = imgs[0]?.ciid || '1';
+
+// After: img要素のsrcからciidを抽出
+let ciid = imgs[0]?.ciid || '1';
+const imgElem = row.querySelector('img.box_card_image, img[src*="get_image.action"]');
+if (imgElem) {
+  const imgSrc = imgElem.getAttribute('src') || '';
+  const ciidMatch = imgSrc.match(/[?&]ciid=(\d+)/);
+  if (ciidMatch && ciidMatch[1]) {
+    ciid = ciidMatch[1];  // 実際のciidを使用
+  }
+}
+```
+
+#### 効果
+- 公式サイトのHTMLに`<img src="...?cid=12950&ciid=2...>`のように保存されているciid値を正しく読み込める
+- Save→Load後も選択したciidが保持される
+
+
+---
+
+## 2025-11-16: Load時のciid保持修正 - インデックスベースのciid抽出
+
+- **タイムスタンプ**: 2025-11-16
+- **バージョン**: 0.3.7
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 問題
+
+**Load時にciid=2で保存したカードがciid=1として表示される**
+- Save操作では正しく`imgs=${cid}_${ciid}_1_1`形式で保存されている
+- しかし、Load操作後は全てのカードがciid=1の画像になってしまう
+
+### 原因調査
+
+**根本原因:**
+- `parseSearchResultRow`が常に`imgs[0]?.ciid`を使用していた
+- 同じcidで複数のciidが存在する場合、`imageInfoMap.get(cid)`は配列`[{ciid:'1'}, {ciid:'2'}]`を返す
+- しかし、どのカードがどのciidを使うべきかを判別する方法がなかった
+
+**HTML構造の発見:**
+```javascript
+$('#card_image_0_1').attr('src', '...cid=13903&ciid=1...')  // 1枚目
+$('#card_image_1_1').attr('src', '...cid=14098&ciid=1...')  // 2枚目
+```
+- カードの順序インデックス（0, 1, 2...）とciidが対応している
+- これを利用すればカードごとの正しいciidを特定できる
+
+### 修正内容
+
+**1. `src/api/card-search.ts` - extractCiidByIndex関数を追加（694-726行）**
+
+```typescript
+export function extractCiidByIndex(
+  doc: Document,
+  sectionId: 'main' | 'extra' | 'side'
+): Map<number, { cid: string; ciid: string }> {
+  const ciidByIndexMap = new Map();
+  const htmlText = doc.documentElement.innerHTML;
+  const sectionSuffix = sectionId === 'main' ? '1' : sectionId === 'extra' ? '2' : '3';
+  
+  // パターン: $('#card_image_0_1').attr('src', '...cid=13903&ciid=1...')
+  const regex = new RegExp(
+    `#card_image_(\\d+)_${sectionSuffix}['"].*?cid=(\\d+)(?:&(?:amp;)?ciid=(\\d+))?`,
+    'g'
+  );
+  
+  let match;
+  while ((match = regex.exec(htmlText)) !== null) {
+    const cardIndex = parseInt(match[1], 10);
+    const cid = match[2];
+    const ciid = match[3] || '1';
+    ciidByIndexMap.set(cardIndex, { cid, ciid });
+  }
+  
+  return ciidByIndexMap;
+}
+```
+
+**2. `src/content/parser/deck-detail-parser.ts` - parseCardSection修正（191-251行）**
+
+```typescript
+function parseCardSection(
+  doc: Document,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  sectionId: 'main' | 'extra' | 'side'
+): DeckCard[] {
+  // インデックスベースのciid情報を抽出
+  const ciidByIndexMap = extractCiidByIndex(doc, sectionId);
+  
+  let globalRowIndex = 0; // セクション全体での行インデックス
+  
+  rows.forEach((row) => {
+    const cardInfo = parseSearchResultRow(
+      row as HTMLElement,
+      imageInfoMap,
+      ciidByIndexMap,  // 追加
+      globalRowIndex    // 追加
+    );
+    globalRowIndex++;
+  });
+}
+```
+
+**3. `src/api/card-search.ts` - parseSearchResultRowとparseCardBaseのシグネチャ変更**
+
+```typescript
+export function parseSearchResultRow(
+  row: HTMLElement,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  ciidByIndexMap?: Map<number, { cid: string; ciid: string }>,  // 追加（オプショナル）
+  rowIndex?: number  // 追加（オプショナル）
+): CardInfo | null {
+  const base = parseCardBase(row, imageInfoMap, ciidByIndexMap, rowIndex);
+  // ...
+}
+
+function parseCardBase(
+  row: HTMLElement,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  ciidByIndexMap?: Map<number, { cid: string; ciid: string }>,
+  rowIndex?: number
+): CardBase | null {
+  // インデックスベースのciid情報を優先的に使用
+  let ciid = '1';
+  
+  if (ciidByIndexMap && rowIndex !== undefined) {
+    const indexedInfo = ciidByIndexMap.get(rowIndex);
+    if (indexedInfo && indexedInfo.cid === cardId) {
+      ciid = indexedInfo.ciid;
+      console.log(`[parseCardBase] Using index-based ciid: card=${cardId}, index=${rowIndex}, ciid=${ciid}`);
+    } else {
+      // フォールバック: imageInfoMapから取得
+      ciid = imgs[0]?.ciid || '1';
+    }
+  } else {
+    // インデックス情報が無い場合（検索結果など）
+    ciid = imgs[0]?.ciid || '1';
+  }
+  // ...
+}
+```
+
+**4. インポート追加**
+
+`src/content/parser/deck-detail-parser.ts`:
+```typescript
+import { parseSearchResultRow, extractImageInfo, extractCiidByIndex } from '@/api/card-search';
+```
+
+### テスト方法
+
+手動テスト手順書を作成: `tmp/ciid-fix-manual-test.md`
+
+1. テスト用デッキを作成（同じcidで異なるciid=2のカードを含む）
+2. Saveで保存
+3. Load操作を実行
+4. コンソールログで`[parseCardBase] Using index-based ciid`を確認
+5. ciid=2が保持されていることを確認
+
+### ビルドとデプロイ
+
+```bash
+npm run build && ./scripts/deploy.sh
+```
+
+### 影響範囲
+
+- ✅ Load操作: 正しいciidが保持されるようになる
+- ✅ 検索結果: オプショナルパラメータなので既存動作を維持
+- ✅ 後方互換性: 新しいパラメータはオプショナルなので既存コードは変更不要
+
+### 次のステップ
+
+- [ ] 手動テストで動作確認（ログイン必要）
+- [ ] 複数のciidを持つカードでの検証
+- [ ] エクストラデッキ・サイドデッキでの動作確認
+
+---
+
+## 2025-11-16: Load時のciid保持修正 - インデックスベースのciid抽出
+
+- **タイムスタンプ**: 2025-11-16
+- **バージョン**: 0.3.7
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 問題
+
+**Load時にciid=2で保存したカードがciid=1として表示される**
+- Save操作では正しく`imgs=${cid}_${ciid}_1_1`形式で保存されている
+- しかし、Load操作後は全てのカードがciid=1の画像になってしまう
+
+### 原因調査
+
+**根本原因:**
+- `parseSearchResultRow`が常に`imgs[0]?.ciid`を使用していた
+- 同じcidで複数のciidが存在する場合、`imageInfoMap.get(cid)`は配列`[{ciid:'1'}, {ciid:'2'}]`を返す
+- しかし、どのカードがどのciidを使うべきかを判別する方法がなかった
+
+**HTML構造の発見:**
+```javascript
+$('#card_image_0_1').attr('src', '...cid=13903&ciid=1...')  // 1枚目
+$('#card_image_1_1').attr('src', '...cid=14098&ciid=1...')  // 2枚目
+```
+- カードの順序インデックス（0, 1, 2...）とciidが対応している
+- これを利用すればカードごとの正しいciidを特定できる
+
+### 修正内容
+
+**1. `src/api/card-search.ts` - extractCiidByIndex関数を追加（694-726行）**
+
+```typescript
+export function extractCiidByIndex(
+  doc: Document,
+  sectionId: 'main' | 'extra' | 'side'
+): Map<number, { cid: string; ciid: string }> {
+  const ciidByIndexMap = new Map();
+  const htmlText = doc.documentElement.innerHTML;
+  const sectionSuffix = sectionId === 'main' ? '1' : sectionId === 'extra' ? '2' : '3';
+  
+  // パターン: $('#card_image_0_1').attr('src', '...cid=13903&ciid=1...')
+  const regex = new RegExp(
+    `#card_image_(\\d+)_${sectionSuffix}['"].*?cid=(\\d+)(?:&(?:amp;)?ciid=(\\d+))?`,
+    'g'
+  );
+  
+  let match;
+  while ((match = regex.exec(htmlText)) !== null) {
+    const cardIndex = parseInt(match[1], 10);
+    const cid = match[2];
+    const ciid = match[3] || '1';
+    ciidByIndexMap.set(cardIndex, { cid, ciid });
+  }
+  
+  return ciidByIndexMap;
+}
+```
+
+**2. `src/content/parser/deck-detail-parser.ts` - parseCardSection修正（191-251行）**
+
+```typescript
+function parseCardSection(
+  doc: Document,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  sectionId: 'main' | 'extra' | 'side'
+): DeckCard[] {
+  // インデックスベースのciid情報を抽出
+  const ciidByIndexMap = extractCiidByIndex(doc, sectionId);
+  
+  let globalRowIndex = 0; // セクション全体での行インデックス
+  
+  rows.forEach((row) => {
+    const cardInfo = parseSearchResultRow(
+      row as HTMLElement,
+      imageInfoMap,
+      ciidByIndexMap,  // 追加
+      globalRowIndex    // 追加
+    );
+    globalRowIndex++;
+  });
+}
+```
+
+**3. `src/api/card-search.ts` - parseSearchResultRowとparseCardBaseのシグネチャ変更**
+
+```typescript
+export function parseSearchResultRow(
+  row: HTMLElement,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  ciidByIndexMap?: Map<number, { cid: string; ciid: string }>,  // 追加（オプショナル）
+  rowIndex?: number  // 追加（オプショナル）
+): CardInfo | null {
+  const base = parseCardBase(row, imageInfoMap, ciidByIndexMap, rowIndex);
+  // ...
+}
+
+function parseCardBase(
+  row: HTMLElement,
+  imageInfoMap: Map<string, Array<{ ciid?: string; imgHash?: string }>>,
+  ciidByIndexMap?: Map<number, { cid: string; ciid: string }>,
+  rowIndex?: number
+): CardBase | null {
+  // インデックスベースのciid情報を優先的に使用
+  let ciid = '1';
+  
+  if (ciidByIndexMap && rowIndex !== undefined) {
+    const indexedInfo = ciidByIndexMap.get(rowIndex);
+    if (indexedInfo && indexedInfo.cid === cardId) {
+      ciid = indexedInfo.ciid;
+      console.log(`[parseCardBase] Using index-based ciid: card=${cardId}, index=${rowIndex}, ciid=${ciid}`);
+    } else {
+      // フォールバック: imageInfoMapから取得
+      ciid = imgs[0]?.ciid || '1';
+    }
+  } else {
+    // インデックス情報が無い場合（検索結果など）
+    ciid = imgs[0]?.ciid || '1';
+  }
+  // ...
+}
+```
+
+**4. インポート追加**
+
+`src/content/parser/deck-detail-parser.ts`:
+```typescript
+import { parseSearchResultRow, extractImageInfo, extractCiidByIndex } from '@/api/card-search';
+```
+
+### テスト方法
+
+手動テスト手順書を作成: `tmp/ciid-fix-manual-test.md`
+
+1. テスト用デッキを作成（同じcidで異なるciid=2のカードを含む）
+2. Saveで保存
+3. Load操作を実行
+4. コンソールログで`[parseCardBase] Using index-based ciid`を確認
+5. ciid=2が保持されていることを確認
+
+### ビルドとデプロイ
+
+```bash
+npm run build && ./scripts/deploy.sh
+```
+
+### 影響範囲
+
+- ✅ Load操作: 正しいciidが保持されるようになる
+- ✅ 検索結果: オプショナルパラメータなので既存動作を維持
+- ✅ 後方互換性: 新しいパラメータはオプショナルなので既存コードは変更不要
+
+### 次のステップ
+
+- [ ] 手動テストで動作確認（ログイン必要）
+- [ ] 複数のciidを持つカードでの検証
+- [ ] エクストラデッキ・サイドデッキでの動作確認
