@@ -14,7 +14,7 @@
             <input
               ref="fileInput"
               type="file"
-              accept=".csv,.txt,.png"
+              accept=".csv,.txt"
               @change="handleFileSelect"
               class="file-input"
             />
