@@ -14,14 +14,18 @@ displayOrderとdeckInfoの二重管理による設計不備を修正。
 - データの整合性が保てず、ドラッグ移動時にエラーが発生
 
 #### 実装計画
-- [ ] `insertToDisplayOrder(card, section, targetUuid)`関数を新規作成
+- [x] `insertToDisplayOrder(card, section, targetUuid)`関数を新規作成
   - 指定位置にカードを挿入（displayOrderとdeckInfoを同時更新）
-- [ ] `moveCardWithPosition`を修正
+- [x] `reorderWithinSection(section, sourceUuid, targetUuid)`関数を新規作成
+  - 同じセクション内での並び替え（displayOrderのみ更新、deckInfo不要）
+- [x] `moveCardWithPosition`を修正
   - `removeFromDisplayOrder` + `insertToDisplayOrder`に置き換え
-- [ ] `insertCard`を削除または修正
-  - displayOrder操作関数を使うように変更
-- [ ] 全てのdeckInfo直接操作を削除
-- [ ] テスト・ビルド・デプロイ
+- [x] `insertCard`を削除
+  - 使用箇所がなく、deckInfoだけを直接操作していたため削除
+- [x] DeckSection.vueの直接操作を削除
+  - `reorderWithinSection`を使用するように修正
+- [x] ビルド・デプロイ
+- [ ] 動作確認（ドラッグ移動のエラーが解消されたか）
 
 #### 完了条件
 - [ ] displayOrder操作関数以外からdeckInfo/displayOrderを直接操作していない

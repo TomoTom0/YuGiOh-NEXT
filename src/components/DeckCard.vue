@@ -50,10 +50,10 @@
       ></button>
       <button
         class="card-btn bottom-left"
-        :class="[bottomLeftClass, { 'error-btn': showError }]"
+        :class="[bottomLeftClass, { 'error-btn': showErrorLeft }]"
         @click.stop="handleBottomLeft"
       >
-        <svg v-if="showError" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="showErrorLeft" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" :d="mdiCloseCircle" />
         </svg>
         <svg v-else-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
@@ -62,12 +62,15 @@
         <span v-else-if="bottomLeftText === 'M/E'" class="btn-text">M</span>
         <span v-else-if="bottomLeftText" class="btn-text">{{ bottomLeftText }}</span>
       </button>
-      <button 
+      <button
         class="card-btn bottom-right"
-        :class="bottomRightClass"
+        :class="[bottomRightClass, { 'error-btn': showErrorRight }]"
         @click.stop="handleBottomRight"
       >
-        <svg v-if="showPlusIcon" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="showErrorRight" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="mdiCloseCircle" />
+        </svg>
+        <svg v-else-if="showPlusIcon" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
         <span v-else class="btn-text">{{ bottomRightText }}</span>
@@ -101,10 +104,12 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
-    const showError = ref(false)
+    const showErrorLeft = ref(false)
+    const showErrorRight = ref(false)
     return {
       deckStore,
-      showError,
+      showErrorLeft,
+      showErrorRight,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle
@@ -232,16 +237,24 @@ export default {
       const sourceRect = this.$el?.getBoundingClientRect()
 
       if (this.sectionType === 'trash') {
-        this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
+        const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
+        if (result && !result.success) {
+          this.showErrorLeft = true
+          console.error('[DeckCard] カード移動失敗:', result.error)
+          setTimeout(() => {
+            this.showErrorLeft = false
+          }, 1500)
+          return
+        }
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
         // addToDisplayOrderでディープコピーされるため、ここでのコピーは不要
         const result = this.deckStore.addCopyToMainOrExtra(this.card)
         if (!result.success) {
           // 4枚制限エラー表示
-          this.showError = true
+          this.showErrorLeft = true
           console.error('[DeckCard] カード追加失敗:', result.error)
           setTimeout(() => {
-            this.showError = false
+            this.showErrorLeft = false
           }, 1500)
           return
         }
@@ -261,7 +274,15 @@ export default {
       const sourceRect = this.$el?.getBoundingClientRect()
 
       if (this.sectionType === 'trash') {
-        this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
+        const result = this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
+        if (result && !result.success) {
+          this.showErrorRight = true
+          console.error('[DeckCard] カード移動失敗:', result.error)
+          setTimeout(() => {
+            this.showErrorRight = false
+          }, 1500)
+          return
+        }
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
         // propsから渡されたcardをそのまま使用（CardInfo.vueで既にciidが設定されている）
         this.deckStore.addCopyToSection(this.card, 'side')
@@ -272,11 +293,36 @@ export default {
             this.animateFromSource(sourceRect, 'side')
           })
         }
-      } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
-        // main/extraからsideへ移動
-        this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
-      } else {
-        // それ以外（side）は何もしない
+      } else if (this.sectionType === 'main') {
+        // mainセクション内でコピー追加
+        const result = this.deckStore.addCopyToSection(this.card, 'main')
+        if (!result.success) {
+          this.showErrorRight = true
+          console.error('[DeckCard] カード追加失敗:', result.error)
+          setTimeout(() => {
+            this.showErrorRight = false
+          }, 1500)
+        }
+      } else if (this.sectionType === 'extra') {
+        // extraセクション内でコピー追加
+        const result = this.deckStore.addCopyToSection(this.card, 'extra')
+        if (!result.success) {
+          this.showErrorRight = true
+          console.error('[DeckCard] カード追加失敗:', result.error)
+          setTimeout(() => {
+            this.showErrorRight = false
+          }, 1500)
+        }
+      } else if (this.sectionType === 'side') {
+        // sideセクション内でコピー追加
+        const result = this.deckStore.addCopyToSection(this.card, 'side')
+        if (!result.success) {
+          this.showErrorRight = true
+          console.error('[DeckCard] カード追加失敗:', result.error)
+          setTimeout(() => {
+            this.showErrorRight = false
+          }, 1500)
+        }
       }
     },
     animateFromSource(sourceRect, targetSection) {
