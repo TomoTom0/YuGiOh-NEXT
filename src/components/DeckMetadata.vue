@@ -1,17 +1,6 @@
 <template>
   <div class="deck-metadata">
     <div class="metadata-section">
-      <label class="metadata-label">デッキ名</label>
-      <input
-        v-model="localDeckName"
-        type="text"
-        class="metadata-input"
-        placeholder="デッキ名を入力"
-        @blur="updateDeckName"
-      />
-    </div>
-
-    <div class="metadata-section">
       <label class="metadata-label">公開設定</label>
       <div class="toggle-switch">
         <input
@@ -55,6 +44,82 @@
     </div>
 
     <div class="metadata-section">
+      <label class="metadata-label">カテゴリ（複数選択可）</label>
+      <div class="category-selector">
+        <input
+          v-model="categorySearchQuery"
+          type="text"
+          class="metadata-input"
+          placeholder="カテゴリを検索..."
+          @focus="showCategoryDropdown = true"
+        />
+        <div v-if="showCategoryDropdown" class="category-dropdown">
+          <div
+            v-for="(label, id) in filteredCategories"
+            :key="id"
+            class="category-option"
+            @click="toggleCategory(id)"
+          >
+            <input
+              type="checkbox"
+              :checked="localCategory.includes(id)"
+              @click.stop="toggleCategory(id)"
+            />
+            <span>{{ label }}</span>
+          </div>
+        </div>
+        <div class="selected-categories">
+          <span
+            v-for="catId in localCategory"
+            :key="catId"
+            class="tag"
+          >
+            {{ categories[catId] }}
+            <button class="tag-remove" @click="removeCategory(catId)">×</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metadata-section">
+      <label class="metadata-label">タグ（複数選択可）</label>
+      <div class="tag-selector">
+        <input
+          v-model="tagSearchQuery"
+          type="text"
+          class="metadata-input"
+          placeholder="タグを検索..."
+          @focus="showTagDropdown = true"
+        />
+        <div v-if="showTagDropdown" class="tag-dropdown">
+          <div
+            v-for="(label, id) in filteredTags"
+            :key="id"
+            class="tag-option"
+            @click="toggleTag(id)"
+          >
+            <input
+              type="checkbox"
+              :checked="localTags.includes(id)"
+              @click.stop="toggleTag(id)"
+            />
+            <span>{{ label }}</span>
+          </div>
+        </div>
+        <div class="selected-tags">
+          <span
+            v-for="tagId in localTags"
+            :key="tagId"
+            class="tag"
+          >
+            {{ tags[tagId] }}
+            <button class="tag-remove" @click="removeTag(tagId)">×</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metadata-section">
       <label class="metadata-label">コメント</label>
       <textarea
         v-model="localComment"
@@ -63,27 +128,6 @@
         rows="4"
         @blur="updateComment"
       ></textarea>
-    </div>
-
-    <div class="metadata-section">
-      <label class="metadata-label">タグ</label>
-      <div class="tags-container">
-        <span
-          v-for="(tag, index) in localTags"
-          :key="index"
-          class="tag"
-        >
-          {{ tag }}
-          <button class="tag-remove" @click="removeTag(index)">×</button>
-        </span>
-        <input
-          v-model="newTag"
-          type="text"
-          class="tag-input"
-          placeholder="タグを追加"
-          @keyup.enter="addTag"
-        />
-      </div>
     </div>
 
     <div class="metadata-actions">
@@ -95,36 +139,79 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
+import { getDeckMetadata } from '../utils/deck-metadata-loader';
 
 const deckStore = useDeckEditStore();
 
+// メタデータ（カテゴリ・タグマスター）
+const categories = ref<Record<string, string>>({});
+const tags = ref<Record<string, string>>({});
+
 // ローカル状態
-const localDeckName = ref(deckStore.deckInfo.name);
 const localIsPublic = ref(deckStore.deckInfo.isPublic ?? false);
 const localDeckType = ref<DeckTypeValue>(deckStore.deckInfo.deckType ?? '0');
 const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? '-1');
-const localComment = ref(deckStore.deckInfo.comment ?? '');
+const localCategory = ref<string[]>([...(deckStore.deckInfo.category ?? [])]);
 const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
-const newTag = ref('');
+const localComment = ref(deckStore.deckInfo.comment ?? '');
+
+// カテゴリ検索用
+const categorySearchQuery = ref('');
+const showCategoryDropdown = ref(false);
+
+// タグ検索用
+const tagSearchQuery = ref('');
+const showTagDropdown = ref(false);
+
+// カテゴリ検索フィルタ
+const filteredCategories = computed(() => {
+  if (!categorySearchQuery.value) {
+    return categories.value;
+  }
+  const query = categorySearchQuery.value.toLowerCase();
+  return Object.fromEntries(
+    Object.entries(categories.value).filter(([_, label]) =>
+      label.toLowerCase().includes(query)
+    )
+  );
+});
+
+// タグ検索フィルタ
+const filteredTags = computed(() => {
+  if (!tagSearchQuery.value) {
+    return tags.value;
+  }
+  const query = tagSearchQuery.value.toLowerCase();
+  return Object.fromEntries(
+    Object.entries(tags.value).filter(([_, label]) =>
+      label.toLowerCase().includes(query)
+    )
+  );
+});
+
+// マウント時にメタデータを読み込み
+onMounted(async () => {
+  const metadata = await getDeckMetadata();
+  categories.value = metadata.categories;
+  // タグは現時点ではメタデータに含まれていないため、空のままにする
+  // TODO: updateDeckMetadata() でタグマスターも取得するように修正が必要
+  tags.value = {};
+});
 
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
-  localDeckName.value = newDeckInfo.name;
   localIsPublic.value = newDeckInfo.isPublic ?? false;
   localDeckType.value = newDeckInfo.deckType ?? '0';
   localDeckStyle.value = newDeckInfo.deckStyle ?? '-1';
-  localComment.value = newDeckInfo.comment ?? '';
+  localCategory.value = [...(newDeckInfo.category ?? [])];
   localTags.value = [...(newDeckInfo.tags ?? [])];
+  localComment.value = newDeckInfo.comment ?? '';
 }, { deep: true });
 
 // 更新関数
-function updateDeckName() {
-  deckStore.deckInfo.name = localDeckName.value;
-}
-
 function updatePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
@@ -141,17 +228,40 @@ function updateComment() {
   deckStore.deckInfo.comment = localComment.value;
 }
 
-function addTag() {
-  if (newTag.value.trim() && !localTags.value.includes(newTag.value.trim())) {
-    localTags.value.push(newTag.value.trim());
-    deckStore.deckInfo.tags = [...localTags.value];
-    newTag.value = '';
+function toggleCategory(catId: string) {
+  const index = localCategory.value.indexOf(catId);
+  if (index >= 0) {
+    localCategory.value.splice(index, 1);
+  } else {
+    localCategory.value.push(catId);
+  }
+  deckStore.deckInfo.category = [...localCategory.value];
+}
+
+function removeCategory(catId: string) {
+  const index = localCategory.value.indexOf(catId);
+  if (index >= 0) {
+    localCategory.value.splice(index, 1);
+    deckStore.deckInfo.category = [...localCategory.value];
   }
 }
 
-function removeTag(index: number) {
-  localTags.value.splice(index, 1);
+function toggleTag(tagId: string) {
+  const index = localTags.value.indexOf(tagId);
+  if (index >= 0) {
+    localTags.value.splice(index, 1);
+  } else {
+    localTags.value.push(tagId);
+  }
   deckStore.deckInfo.tags = [...localTags.value];
+}
+
+function removeTag(tagId: string) {
+  const index = localTags.value.indexOf(tagId);
+  if (index >= 0) {
+    localTags.value.splice(index, 1);
+    deckStore.deckInfo.tags = [...localTags.value];
+  }
 }
 
 async function saveDeckMetadata() {
@@ -278,14 +388,101 @@ async function saveDeckMetadata() {
   color: white;
 }
 
-.tags-container {
+.category-selector {
+  position: relative;
+}
+
+.category-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  margin-top: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+}
+
+.selected-categories {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 8px;
+  margin-top: 8px;
+  min-height: 40px;
+}
+
+.tag-selector {
+  position: relative;
+}
+
+.tag-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: var(--bg-primary);
+  margin-top: 4px;
+  z-index: 100;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tag-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
+
+  input[type="checkbox"] {
+    cursor: pointer;
+  }
+
+  span {
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
   min-height: 40px;
 }
 
