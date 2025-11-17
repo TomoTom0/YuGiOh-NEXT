@@ -19,6 +19,10 @@
               <input type="radio" v-model="format" value="txt" />
               <span>TXT (Human-Readable Text)</span>
             </label>
+            <label class="radio-label">
+              <input type="radio" v-model="format" value="png" />
+              <span>PNG (Deck Image with Metadata)</span>
+            </label>
           </div>
         </div>
 
@@ -63,7 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { downloadDeckAsCSV, downloadDeckAsTXT } from '@/utils/deck-export';
+import { downloadDeckAsCSV, downloadDeckAsTXT, downloadDeckAsPNG } from '@/utils/deck-export';
 // @ts-ignore - Used in defineProps type
 import type { DeckInfo } from '@/types/deck';
 
@@ -83,8 +87,8 @@ const emit = defineEmits<{
   exported: [format: string];
 }>();
 
-// フォーマット（CSV or TXT）
-const format = ref<'csv' | 'txt'>('csv');
+// フォーマット（CSV or TXT or PNG）
+const format = ref<'csv' | 'txt' | 'png'>('csv');
 
 // サイドデッキを含めるか
 const includeSide = ref(true);
@@ -107,7 +111,7 @@ function close() {
 }
 
 // エクスポート実行
-function handleExport() {
+async function handleExport() {
   if (!props.deckInfo) {
     console.error('[ExportDialog] No deck info available');
     return;
@@ -116,14 +120,28 @@ function handleExport() {
   const filename = `${filenameBase.value || 'deck'}.${format.value}`;
   const options = { includeSide: includeSide.value };
 
-  if (format.value === 'csv') {
-    downloadDeckAsCSV(props.deckInfo, filename, options);
-  } else {
-    downloadDeckAsTXT(props.deckInfo, filename, options);
-  }
+  try {
+    if (format.value === 'csv') {
+      downloadDeckAsCSV(props.deckInfo, filename, options);
+    } else if (format.value === 'txt') {
+      downloadDeckAsTXT(props.deckInfo, filename, options);
+    } else if (format.value === 'png') {
+      // PNG形式はasync
+      await downloadDeckAsPNG(props.deckInfo, filename, {
+        ...options,
+        scale: 2,
+        color: 'red',
+        includeQR: false,
+        cgid: ''
+      });
+    }
 
-  emit('exported', format.value);
-  close();
+    emit('exported', format.value);
+    close();
+  } catch (error) {
+    console.error('[ExportDialog] Export failed:', error);
+    alert(`Export failed: ${error}`);
+  }
 }
 </script>
 

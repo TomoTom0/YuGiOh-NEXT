@@ -1,4 +1,7 @@
 import type { DeckInfo } from '@/types/deck';
+import type { ColorVariant } from '@/types/deck-recipe-image';
+import { createDeckRecipeImage } from '@/content/deck-recipe/createDeckRecipeImage';
+import { embedDeckInfoToPNG } from './png-metadata';
 
 /**
  * エクスポートオプション
@@ -6,6 +9,20 @@ import type { DeckInfo } from '@/types/deck';
 export interface ExportOptions {
   /** サイドデッキを含めるかどうか */
   includeSide?: boolean;
+}
+
+/**
+ * PNG画像エクスポートオプション
+ */
+export interface PNGExportOptions extends ExportOptions {
+  /** 画像のスケール（デフォルト: 2） */
+  scale?: number;
+  /** カラーバリエーション（デフォルト: 'red'） */
+  color?: ColorVariant;
+  /** QRコードを含めるか（デフォルト: false） */
+  includeQR?: boolean;
+  /** cgid（QRコード生成用） */
+  cgid?: string;
 }
 
 /**
@@ -177,4 +194,74 @@ export function downloadDeckAsTXT(
 ): void {
   const txt = exportToTXT(deckInfo, options);
   downloadFile(txt, filename, 'text/plain');
+}
+
+/**
+ * PNG画像形式でエクスポート（デッキ情報埋め込み）
+ *
+ * @param deckInfo - エクスポートするデッキ情報
+ * @param options - PNG画像エクスポートオプション
+ * @returns デッキ情報が埋め込まれたPNG画像Blob
+ */
+export async function exportToPNG(
+  deckInfo: DeckInfo,
+  options: PNGExportOptions = {}
+): Promise<Blob> {
+  const {
+    scale = 2,
+    color = 'red',
+    includeQR = false,
+    cgid = '',
+    includeSide = true
+  } = options;
+
+  // サイドデッキを除外する場合は、DeckInfoをコピーして空にする
+  const exportDeckInfo: DeckInfo = includeSide
+    ? deckInfo
+    : {
+        ...deckInfo,
+        sideDeck: []
+      };
+
+  // デッキ画像を生成
+  const imageBlob = await createDeckRecipeImage({
+    dno: deckInfo.dno.toString(),
+    cgid,
+    includeQR,
+    scale,
+    color,
+    deckData: exportDeckInfo
+  });
+
+  // BlobでなくBufferの場合はBlobに変換（Node.js環境対策）
+  const pngBlob =
+    imageBlob instanceof Blob
+      ? imageBlob
+      : new Blob([new Uint8Array(imageBlob as unknown as ArrayBuffer)], { type: 'image/png' });
+
+  // デッキ情報を埋め込み
+  return await embedDeckInfoToPNG(pngBlob, exportDeckInfo);
+}
+
+/**
+ * デッキをPNG画像ファイルとしてダウンロード
+ *
+ * @param deckInfo - エクスポートするデッキ情報
+ * @param filename - ファイル名（デフォルト: 'deck.png'）
+ * @param options - PNG画像エクスポートオプション
+ */
+export async function downloadDeckAsPNG(
+  deckInfo: DeckInfo,
+  filename: string = 'deck.png',
+  options: PNGExportOptions = {}
+): Promise<void> {
+  const pngBlob = await exportToPNG(deckInfo, options);
+  const url = URL.createObjectURL(pngBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

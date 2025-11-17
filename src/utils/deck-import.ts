@@ -1,5 +1,6 @@
 import type { DeckInfo } from '@/types/deck';
 import type { CardInfo } from '@/types/card';
+import { extractDeckInfoFromPNG } from './png-metadata';
 
 /**
  * インポート結果
@@ -68,6 +69,62 @@ export function importFromCSV(content: string): ImportResult {
     return { success: true, deckInfo, warnings: warnings.length > 0 ? warnings : undefined };
   } catch (error) {
     return { success: false, error: `CSV読み込みエラー: ${error}` };
+  }
+}
+
+/**
+ * PNG画像ファイルからインポート（埋め込まれたメタデータを抽出）
+ */
+export async function importFromPNG(file: File): Promise<ImportResult> {
+  try {
+    // PNG画像からデッキ情報を抽出
+    const simpleDeckInfo = await extractDeckInfoFromPNG(file);
+
+    if (!simpleDeckInfo) {
+      return {
+        success: false,
+        error: 'PNG画像からデッキ情報を抽出できませんでした。この画像にはデッキ情報が埋め込まれていない可能性があります。'
+      };
+    }
+
+    // SimpleDeckInfoをImportRow配列に変換
+    const rows: ImportRow[] = [];
+
+    for (const card of simpleDeckInfo.main) {
+      rows.push({
+        section: 'main',
+        cid: card.cid,
+        ciid: card.ciid,
+        quantity: card.quantity
+      });
+    }
+
+    for (const card of simpleDeckInfo.extra) {
+      rows.push({
+        section: 'extra',
+        cid: card.cid,
+        ciid: card.ciid,
+        quantity: card.quantity
+      });
+    }
+
+    for (const card of simpleDeckInfo.side) {
+      rows.push({
+        section: 'side',
+        cid: card.cid,
+        ciid: card.ciid,
+        quantity: card.quantity
+      });
+    }
+
+    if (rows.length === 0) {
+      return { success: false, error: 'インポート可能なデータがありません' };
+    }
+
+    const deckInfo = convertRowsToDeckInfo(rows);
+    return { success: true, deckInfo };
+  } catch (error) {
+    return { success: false, error: `PNG読み込みエラー: ${error}` };
   }
 }
 
@@ -320,8 +377,15 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
  */
 export async function importDeckFromFile(file: File): Promise<ImportResult> {
   try {
-    const content = await readFileAsText(file);
     const extension = file.name.split('.').pop()?.toLowerCase();
+
+    // PNG形式の場合
+    if (extension === 'png') {
+      return await importFromPNG(file);
+    }
+
+    // テキスト形式（CSV/TXT）の場合
+    const content = await readFileAsText(file);
 
     if (extension === 'csv') {
       return importFromCSV(content);
@@ -335,7 +399,10 @@ export async function importDeckFromFile(file: File): Promise<ImportResult> {
       } else if (firstLine.includes('===')) {
         return importFromTXT(content);
       } else {
-        return { success: false, error: 'サポートされていないファイル形式です（.csv または .txt を使用してください）' };
+        return {
+          success: false,
+          error: 'サポートされていないファイル形式です（.csv、.txt、または .png を使用してください）'
+        };
       }
     }
   } catch (error) {
