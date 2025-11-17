@@ -12,9 +12,9 @@ import type { DeckInfo } from '@/types/deck';
  * エクスポート用の簡略デッキ情報
  */
 interface SimpleDeckInfo {
-  main: { cid: string; ciid: string; quantity: number }[];
-  extra: { cid: string; ciid: string; quantity: number }[];
-  side: { cid: string; ciid: string; quantity: number }[];
+  main: { cid: string; ciid: string; enc: string; quantity: number }[];
+  extra: { cid: string; ciid: string; enc: string; quantity: number }[];
+  side: { cid: string; ciid: string; enc: string; quantity: number }[];
 }
 
 /**
@@ -25,16 +25,19 @@ function simplifyDeckInfo(deckInfo: DeckInfo): SimpleDeckInfo {
     main: deckInfo.mainDeck.map(({ card, quantity }) => ({
       cid: card.cardId,
       ciid: card.ciid,
+      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
       quantity
     })),
     extra: deckInfo.extraDeck.map(({ card, quantity }) => ({
       cid: card.cardId,
       ciid: card.ciid,
+      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
       quantity
     })),
     side: deckInfo.sideDeck.map(({ card, quantity }) => ({
       cid: card.cardId,
       ciid: card.ciid,
+      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
       quantity
     }))
   };
