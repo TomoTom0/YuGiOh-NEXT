@@ -125,12 +125,7 @@ export default {
         
         if (sourceSectionType === props.sectionType && sourceUuid) {
           // 同じセクション内で最後尾に移動
-          const sectionOrder = deckStore.displayOrder[props.sectionType]
-          const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid)
-          if (sourceIndex !== -1 && sourceIndex !== sectionOrder.length - 1) {
-            const [movedCard] = sectionOrder.splice(sourceIndex, 1)
-            sectionOrder.push(movedCard)
-          }
+          deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
         } else if (card && sourceSectionType !== props.sectionType) {
           // 他のセクションから最後尾に移動
           deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)

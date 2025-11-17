@@ -63,25 +63,54 @@
       </div>
     </div>
 
+    <div class="search-header">
+      <button class="menu-button" @click.stop>⋯</button>
+    </div>
     <div class="search-input-bottom">
-      <input
-        v-model="deckStore.searchQuery"
-        type="text"
-        placeholder="カード名を検索..."
-        @keyup.enter="handleSearchInput"
-      >
-      <button class="search-btn" @click="handleSearchInput">
-        <svg width="18" height="18" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
-        </svg>
-      </button>
+      <div class="search-input-wrapper">
+        <button class="search-mode-toggle" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
+          <div class="toggle-content">
+            <span class="toggle-icon">▼</span>
+            <span class="toggle-mode">{{ searchMode === 'name' ? 'name' : searchMode === 'text' ? 'text' : 'pend' }}</span>
+          </div>
+        </button>
+        <div v-if="showSearchModeDropdown" class="mode-dropdown">
+          <div class="mode-option" @click="searchMode = 'name'; showSearchModeDropdown = false">
+            カード名で検索
+          </div>
+          <div class="mode-option" @click="searchMode = 'text'; showSearchModeDropdown = false">
+            テキストで検索
+          </div>
+          <div class="mode-option" @click="searchMode = 'pendulum'; showSearchModeDropdown = false">
+            ペンデュラムテキストで検索
+          </div>
+        </div>
+        <input
+          v-model="deckStore.searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="カード名を検索..."
+          @keyup.enter="handleSearchInput"
+        >
+        <button
+          v-if="deckStore.searchQuery"
+          class="clear-button"
+          @click="deckStore.searchQuery = ''"
+        >×</button>
+        <button class="search-btn" @click="handleSearchInput">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCardsByName } from '../api/card-search'
+import { searchCards } from '../api/card-search'
 import { getCardImageUrl } from '../types/card'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
@@ -96,6 +125,8 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const searchMode = ref('name')
+    const showSearchModeDropdown = ref(false)
 
     const sortResults = (results) => {
       const sorted = [...results]
@@ -162,33 +193,49 @@ export default {
         deckStore.currentPage = 0
         return
       }
-      
+
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
-      
+
+      // searchModeに応じてsearchTypeを設定
+      const searchTypeMap = {
+        'name': '1',
+        'text': '2',
+        'pendulum': '3'
+      }
+      const searchType = searchTypeMap[searchMode.value] || '1'
+
       try {
-        const results = await searchCardsByName(deckStore.searchQuery.trim(), 100)
+        const results = await searchCards({
+          keyword: deckStore.searchQuery.trim(),
+          searchType: searchType,
+          resultsPerPage: 100
+        })
         console.log('Initial search results:', results.length)
-        
+
         const processed = processCards(results)
         const sorted = sortResults(processed)
         deckStore.searchResults = sorted
         deckStore.allResults = sorted
-        
+
         if (results.length >= 100) {
           deckStore.hasMore = true
-          
+
           setTimeout(async () => {
             try {
-              const moreResults = await searchCardsByName(deckStore.searchQuery.trim(), 2000)
+              const moreResults = await searchCards({
+                keyword: deckStore.searchQuery.trim(),
+                searchType: searchType,
+                resultsPerPage: 2000
+              })
               console.log('Extended search results:', moreResults.length)
-              
+
               if (moreResults.length > 100) {
                 const allProcessed = processCards(moreResults)
                 const allSorted = sortResults(allProcessed)
                 deckStore.searchResults = allSorted
                 deckStore.allResults = allSorted
-                
+
                 deckStore.hasMore = moreResults.length >= 2000
                 deckStore.currentPage = 1
               } else {
@@ -225,6 +272,8 @@ export default {
 
     return {
       deckStore,
+      searchMode,
+      showSearchModeDropdown,
       handleSearchInput,
       handleSortChange,
       handleScroll,
@@ -629,35 +678,196 @@ export default {
   color: #999;
 }
 
+.search-header {
+  position: fixed;
+  bottom: 65px;
+  left: 20px;
+  right: 340px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  z-index: 100;
+}
+
 .search-input-bottom {
   position: fixed;
   bottom: 20px;
   left: 20px;
   right: 340px;
   display: flex;
-  gap: 10px;
+  flex-direction: row;
+  z-index: 100;
+}
+
+.menu-button {
   background: white;
-  padding: 10px 15px;
+  border: none;
+  color: var(--text-secondary, #666);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+  }
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  background: white;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  z-index: 100;
+  padding: 0 10px;
+  height: 44px;
+  min-height: 44px;
+}
 
-  input {
-    flex: 1;
-    border: none;
+.search-mode-toggle {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: var(--text-secondary, #666);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  width: 48px;
+  min-width: 48px;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+  }
+}
+
+.toggle-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.toggle-icon {
+  display: block;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.toggle-mode {
+  display: block;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--text-tertiary, #999);
+}
+
+.mode-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid var(--border-primary, #ddd);
+  border-radius: 8px;
+  margin-bottom: 4px;
+  z-index: 101;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+}
+
+.mode-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 13px;
+  color: var(--text-primary, #333);
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+  }
+
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  padding: 8px;
+  background: transparent;
+  color: var(--text-primary, #333);
+  height: 100%;
+  line-height: 1.5;
+
+  &::placeholder {
+    color: var(--text-tertiary, #999);
+  }
+
+  &:focus {
     outline: none;
-    font-size: 14px;
-    padding: 5px;
-    background: white !important;
-    color: #000 !important;
-    
-    &::placeholder {
-      color: #999 !important;
-    }
+  }
+}
+
+.clear-button {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #999);
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
+  }
+}
+
+.search-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
+  }
+
+  svg {
+    display: block;
   }
 }
 
 @media (max-width: 768px) {
+  .search-header {
+    right: 20px;
+  }
+
   .search-input-bottom {
     right: 20px;
   }

@@ -29,6 +29,15 @@ export const useSettingsStore = defineStore('settings', () => {
   /** ロード完了フラグ */
   const isLoaded = ref(false);
 
+  /** カード幅（リスト表示用） */
+  const cardWidthList = ref(59);
+
+  /** カード幅（グリッド表示用） */
+  const cardWidthGrid = ref(59);
+
+  /** カード枚数制限モード */
+  const cardLimitMode = ref<'all-3' | 'limit-reg'>('all-3');
+
   // ===== 算出プロパティ =====
 
   /** 現在のカードサイズ（ピクセル） */
@@ -133,6 +142,24 @@ export const useSettingsStore = defineStore('settings', () => {
   function setListCardSize(size: CardSize): void {
     appSettings.value.listCardSize = size;
     applyCardSize();
+    saveSettings();
+  }
+
+  /**
+   * カード幅を変更（ピクセル値で直接指定）
+   */
+  function setCardWidth(mode: 'list' | 'grid', width: number): void {
+    if (mode === 'list') {
+      cardWidthList.value = width;
+      const height = Math.round(width * 1.46);
+      document.documentElement.style.setProperty('--card-width-list', `${width}px`);
+      document.documentElement.style.setProperty('--card-height-list', `${height}px`);
+    } else {
+      cardWidthGrid.value = width;
+      const height = Math.round(width * 1.46);
+      document.documentElement.style.setProperty('--card-width-grid', `${width}px`);
+      document.documentElement.style.setProperty('--card-height-grid', `${height}px`);
+    }
     saveSettings();
   }
 
@@ -268,6 +295,9 @@ export const useSettingsStore = defineStore('settings', () => {
     appSettings,
     featureSettings,
     isLoaded,
+    cardWidthList,
+    cardWidthGrid,
+    cardLimitMode,
 
     // 算出プロパティ
     deckEditCardSizePixels,
@@ -284,6 +314,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setInfoCardSize,
     setGridCardSize,
     setListCardSize,
+    setCardWidth,
     setTheme,
     setLanguage,
     setMiddleDecksLayout,

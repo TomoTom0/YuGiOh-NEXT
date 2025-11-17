@@ -266,7 +266,8 @@ export default {
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  min-height: 90px;
+  /* カード高さに16px（padding上下8px×2）を加えた高さ */
+  min-height: calc(var(--card-height-list) + 16px);
   align-items: flex-start;
 
   .grid-view & {
