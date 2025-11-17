@@ -16,6 +16,7 @@ interface ExportRow {
   name: string;
   cid: string;
   ciid: string;
+  enc: string; // imgHash
   quantity: number;
 }
 
@@ -33,6 +34,7 @@ function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): Ex
       name: card.name,
       cid: card.cardId,
       ciid: card.ciid,
+      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
       quantity
     });
   });
@@ -44,6 +46,7 @@ function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): Ex
       name: card.name,
       cid: card.cardId,
       ciid: card.ciid,
+      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
       quantity
     });
   });
@@ -56,6 +59,7 @@ function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): Ex
         name: card.name,
         cid: card.cardId,
         ciid: card.ciid,
+        enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
         quantity
       });
     });
@@ -70,8 +74,8 @@ function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): Ex
 export function exportToCSV(deckInfo: DeckInfo, options: ExportOptions = {}): string {
   const rows = generateExportRows(deckInfo, options);
 
-  // ヘッダー行
-  const header = 'section,name,cid,ciid,quantity';
+  // ヘッダー行（encフィールド追加）
+  const header = 'section,name,cid,ciid,enc,quantity';
 
   // データ行
   const dataRows = rows.map(row => {
@@ -88,6 +92,7 @@ export function exportToCSV(deckInfo: DeckInfo, options: ExportOptions = {}): st
       escapeName(row.name),
       row.cid,
       row.ciid,
+      row.enc,
       row.quantity.toString()
     ].join(',');
   });
@@ -113,7 +118,7 @@ export function exportToTXT(deckInfo: DeckInfo, options: ExportOptions = {}): st
     const totalMain = mainRows.reduce((sum, r) => sum + r.quantity, 0);
     lines.push(`=== Main Deck (${totalMain} cards) ===`);
     mainRows.forEach(row => {
-      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid})`);
+      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid}:${row.enc})`);
     });
     lines.push('');
   }
@@ -123,7 +128,7 @@ export function exportToTXT(deckInfo: DeckInfo, options: ExportOptions = {}): st
     const totalExtra = extraRows.reduce((sum, r) => sum + r.quantity, 0);
     lines.push(`=== Extra Deck (${totalExtra} cards) ===`);
     extraRows.forEach(row => {
-      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid})`);
+      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid}:${row.enc})`);
     });
     lines.push('');
   }
@@ -133,7 +138,7 @@ export function exportToTXT(deckInfo: DeckInfo, options: ExportOptions = {}): st
     const totalSide = sideRows.reduce((sum, r) => sum + r.quantity, 0);
     lines.push(`=== Side Deck (${totalSide} cards) ===`);
     sideRows.forEach(row => {
-      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid})`);
+      lines.push(`${row.quantity}x ${row.name} (${row.cid}:${row.ciid}:${row.enc})`);
     });
   }
 
