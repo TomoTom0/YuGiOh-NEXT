@@ -46,7 +46,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiImageOutline" />
             </svg>
-            Download Deck Image
+            Deck Image
           </button>
           <div class="menu-divider"></div>
           <button @click="handleExportDeck" class="menu-item">
@@ -60,6 +60,13 @@
               <path fill="currentColor" :d="mdiImport" />
             </svg>
             Import Deck
+          </button>
+          <div class="menu-divider"></div>
+          <button @click="handleOptions" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiCog" />
+            </svg>
+            Options
           </button>
         </div>
       </div>
@@ -82,6 +89,12 @@
       :isVisible="showImportDialog"
       @close="showImportDialog = false"
       @imported="handleImported"
+    />
+
+    <!-- Options Dialog -->
+    <OptionsDialog
+      :isVisible="showOptionsDialog"
+      @close="showOptionsDialog = false"
     />
 
     <!-- Load Dialog -->
@@ -132,9 +145,10 @@ import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
 import ExportDialog from './ExportDialog.vue'
 import ImportDialog from './ImportDialog.vue'
+import OptionsDialog from './OptionsDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -147,7 +161,8 @@ export default {
   components: {
     Toast,
     ExportDialog,
-    ImportDialog
+    ImportDialog,
+    OptionsDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -159,6 +174,7 @@ export default {
     const showMenu = ref(false)
     const showExportDialog = ref(false)
     const showImportDialog = ref(false)
+    const showOptionsDialog = ref(false)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -322,6 +338,11 @@ export default {
       showImportDialog.value = true
     }
 
+    const handleOptions = () => {
+      showMenu.value = false
+      showOptionsDialog.value = true
+    }
+
     const handleImported = (deckInfo: any, replaceExisting: boolean) => {
       if (replaceExisting) {
         // 既存のデッキを置き換え
@@ -362,6 +383,7 @@ export default {
       showMenu,
       showExportDialog,
       showImportDialog,
+      showOptionsDialog,
       localDno,
       localDeckName,
       toast,
@@ -375,12 +397,14 @@ export default {
       handleExported,
       handleImportDeck,
       handleImported,
+      handleOptions,
       mdiContentSave,
       mdiFolderOpen,
       mdiSortVariant,
       mdiImageOutline,
       mdiExport,
-      mdiImport
+      mdiImport,
+      mdiCog
     }
   }
 }

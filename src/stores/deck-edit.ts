@@ -2,10 +2,12 @@ import { defineStore } from 'pinia';
 import { ref, nextTick, watch } from 'vue';
 import type { DeckInfo, DeckCard } from '../types/deck';
 import type { CardInfo } from '../types/card';
+import type { MonsterType } from '../types/card-maps';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
+import { getCardLimit } from '../utils/card-limit';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -319,19 +321,100 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   /**
+   * displayOrder内で同じセクション内のカードを並び替え
+   * @param section セクション
+   * @param sourceUuid 移動するカードのUUID
+   * @param targetUuid 移動先の直前にあるカードのUUID（nullの場合は末尾に移動）
+   */
+  function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null) {
+    const sectionOrder = displayOrder.value[section];
+    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
+    if (sourceIndex === -1) return;
+
+    const movedCards = sectionOrder.splice(sourceIndex, 1);
+    if (movedCards.length === 0) return;
+    const movedCard = movedCards[0];
+    if (!movedCard) return;
+
+    if (targetUuid === null) {
+      // 末尾に移動
+      sectionOrder.push(movedCard);
+    } else {
+      // targetUuidの直後に挿入
+      const targetIndex = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
+      if (targetIndex !== -1) {
+        sectionOrder.splice(targetIndex + 1, 0, movedCard);
+      } else {
+        // targetが見つからない場合は末尾に移動
+        sectionOrder.push(movedCard);
+      }
+    }
+  }
+
+  /**
+   * displayOrderの指定位置にカードを挿入（deckInfoも更新）
+   * @param card カード情報
+   * @param section セクション
+   * @param targetUuid 挿入位置の直前にあるカードのUUID（nullの場合は末尾に追加）
+   */
+  function insertToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash', targetUuid: string | null) {
+    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
+                       section === 'extra' ? deckInfo.value.extraDeck :
+                       section === 'side' ? deckInfo.value.sideDeck :
+                       trashDeck.value;
+
+    // deckInfo更新
+    const existingCard = targetDeck.find(dc =>
+      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
+    );
+    if (existingCard) {
+      existingCard.quantity++;
+    } else {
+      targetDeck.push({ card, quantity: 1 });
+    }
+
+    // displayOrder更新
+    const sectionOrder = displayOrder.value[section];
+    const newDisplayCard = {
+      uuid: crypto.randomUUID(),
+      cid: card.cardId,
+      ciid: parseInt(card.ciid)
+    };
+
+    if (targetUuid === null) {
+      // 末尾に追加
+      sectionOrder.push(newDisplayCard);
+    } else {
+      // targetUuidの直後に挿入
+      const targetIndex = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
+      if (targetIndex !== -1) {
+        sectionOrder.splice(targetIndex + 1, 0, newDisplayCard);
+      } else {
+        // targetUuidが見つからない場合は末尾に追加
+        sectionOrder.push(newDisplayCard);
+      }
+    }
+  }
+
+  /**
    * displayOrderからカードを削除（deckInfoも更新）
    * @param cardId カードID
    * @param section セクション
    * @param uuid 削除する特定のカードのUUID（省略時は最後の1枚）
    */
-  function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
+  function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string, ciid?: string) {
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
                        section === 'extra' ? deckInfo.value.extraDeck :
                        section === 'side' ? deckInfo.value.sideDeck :
                        trashDeck.value;
-    
-    // deckInfo更新
-    const index = targetDeck.findIndex(dc => dc.card.cardId === cardId);
+
+    // deckInfo更新（ciidが指定されている場合はciidも条件に含める）
+    const index = targetDeck.findIndex(dc => {
+      if (ciid !== undefined) {
+        return dc.card.cardId === cardId && dc.card.ciid === ciid;
+      }
+      return dc.card.cardId === cardId;
+    });
     if (index !== -1) {
       const deckCard = targetDeck[index];
       if (deckCard && deckCard.quantity > 1) {
@@ -489,7 +572,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }, { deep: true });
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
-    // main, extra, sideで同じcidのカードは合計3枚まで（ciidが異なっても同じカード扱い）
+    const settingsStore = useSettingsStore();
+
+    // main, extra, sideで同じcidのカードの合計枚数をカウント
     const allDecks = [
       ...deckInfo.value.mainDeck,
       ...deckInfo.value.extraDeck,
@@ -499,8 +584,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       .filter(dc => dc.card.cardId === card.cardId)
       .reduce((sum, dc) => sum + dc.quantity, 0);
 
-    if (totalCount >= 3) {
-      // 4枚目以降は追加しない（無言で無効化）
+    // 枚数制限をチェック
+    const limit = settingsStore.cardLimitMode === 'all-3'
+      ? 3
+      : getCardLimit(card);
+
+    if (totalCount >= limit) {
+      // 制限枚数を超える場合は追加しない
       return { success: false, error: 'max_copies_reached' };
     }
 
@@ -532,8 +622,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     moveInDisplayOrder(cardId, from, to, uuid);
     
     // DOM更新後にアニメーション実行
+    // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
     nextTick(() => {
-      animateCardMoveByUUID(firstPositions, new Set([from, to]));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          animateCardMoveByUUID(firstPositions, new Set([from, to]));
+        });
+      });
     });
   }
   
@@ -573,65 +668,144 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   // UUIDベースでアニメーション実行
   function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
-    const duration = 300;
-    const allCards: HTMLElement[] = [];
-    
+    const allCards: Array<{ element: HTMLElement; distance: number }> = [];
+
+    console.log('[animateCardMoveByUUID] affectedSections:', Array.from(affectedSections));
+    console.log('[animateCardMoveByUUID] firstPositions size:', firstPositions.size);
+
     affectedSections.forEach(section => {
       const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) return;
-      
+      if (!sectionElement) {
+        console.log(`[animateCardMoveByUUID] section ${section} not found`);
+        return;
+      }
+
       const cards = sectionElement.querySelectorAll('.deck-card');
+      console.log(`[animateCardMoveByUUID] section ${section} has ${cards.length} cards`);
+
+      let movedCount = 0;
       cards.forEach((card) => {
         const cardElement = card as HTMLElement;
         const uuid = cardElement.getAttribute('data-uuid');
         if (!uuid) return;
-        
+
         const first = firstPositions.get(uuid);
         const last = cardElement.getBoundingClientRect();
-        
+
         if (first && last) {
           const deltaX = first.left - last.left;
           const deltaY = first.top - last.top;
-          
-          if (deltaX === 0 && deltaY === 0) return;
-          
+
+          console.log(`[animateCardMoveByUUID] uuid=${uuid}, deltaX=${deltaX}, deltaY=${deltaY}`);
+
+          // 1ピクセル未満の移動は誤差として無視
+          if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+          movedCount++;
+          // 移動距離を計算（横方向の移動を重視）
+          // 横方向は視覚的に目立ちにくいため、係数を大きくする
+          const weightedDeltaX = deltaX * 1.5;
+          const distance = Math.sqrt(weightedDeltaX * weightedDeltaX + deltaY * deltaY);
+
           cardElement.style.transition = 'none';
           cardElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-          allCards.push(cardElement);
+          allCards.push({ element: cardElement, distance });
         }
       });
+      console.log(`[animateCardMoveByUUID] section ${section}: ${movedCount} cards will animate`);
     });
-    
+
     if (allCards.length === 0) return;
-    
+
     document.body.getBoundingClientRect();
-    
+
     requestAnimationFrame(() => {
-      allCards.forEach(card => {
-        card.style.transition = `transform ${duration}ms ease`;
-        card.style.transform = '';
+      allCards.forEach(({ element, distance }) => {
+        // 移動距離に応じてアニメーション時間を調整（平方根で非線形）
+        // シャッフル/ソートと統一するため、基本を300msに設定
+        // 最小300ms、最大600ms
+        const baseDuration = 300;
+        const maxDuration = 600;
+        const distanceFactor = Math.sqrt(distance) * 12; // 調整係数
+        const duration = Math.min(maxDuration, baseDuration + distanceFactor);
+
+        element.style.transition = `transform ${duration}ms ease`;
+        element.style.transform = '';
       });
     });
-    
+
+    // 最大のdurationを取得してタイムアウトに使用
+    const maxDuration = Math.max(...allCards.map(({ distance }) => {
+      const baseDuration = 300;
+      const maxDuration = 600;
+      const distanceFactor = Math.sqrt(distance) * 12;
+      return Math.min(maxDuration, baseDuration + distanceFactor);
+    }));
+
     setTimeout(() => {
-      allCards.forEach(card => {
-        card.style.transition = '';
-        card.style.transform = '';
+      allCards.forEach(({ element }) => {
+        element.style.transition = '';
+        element.style.transform = '';
       });
-    }, duration);
+    }, maxDuration);
   }
 
   function moveCardToTrash(card: CardInfo, from: 'main' | 'extra' | 'side') {
     moveCard(card.cardId, from, 'trash');
   }
 
-  function moveCardToSide(card: CardInfo, from: 'main' | 'extra' | 'trash') {
-    moveCard(card.cardId, from, 'side');
+  function moveCardToSide(card: CardInfo, from: 'main' | 'extra' | 'trash', uuid?: string) {
+    // trashからの移動の場合は枚数制限チェック
+    if (from === 'trash') {
+      const allDecks = [
+        ...deckInfo.value.mainDeck,
+        ...deckInfo.value.extraDeck,
+        ...deckInfo.value.sideDeck
+      ];
+      const totalCount = allDecks
+        .filter(dc => dc.card.cardId === card.cardId)
+        .reduce((sum, dc) => sum + dc.quantity, 0);
+
+      const settingsStore = useSettingsStore();
+      const limit = settingsStore.cardLimitMode === 'all-3'
+        ? 3
+        : getCardLimit(card);
+
+      if (totalCount >= limit) {
+        return { success: false, error: 'max_copies_reached' };
+      }
+    }
+
+    moveCard(card.cardId, from, 'side', uuid);
+    return { success: true };
   }
 
-  function moveCardToMainOrExtra(card: CardInfo, from: 'side' | 'trash') {
+  function moveCardToMainOrExtra(card: CardInfo, from: 'side' | 'trash', uuid?: string) {
     const targetSection = (card.cardType === 'monster' && card.isExtraDeck) ? 'extra' : 'main';
-    moveCard(card.cardId, from, targetSection);
+
+    // trashからの移動の場合は枚数制限チェック
+    if (from === 'trash') {
+      const allDecks = [
+        ...deckInfo.value.mainDeck,
+        ...deckInfo.value.extraDeck,
+        ...deckInfo.value.sideDeck
+      ];
+      const totalCount = allDecks
+        .filter(dc => dc.card.cardId === card.cardId)
+        .reduce((sum, dc) => sum + dc.quantity, 0);
+
+      const settingsStore = useSettingsStore();
+      const limit = settingsStore.cardLimitMode === 'all-3'
+        ? 3
+        : getCardLimit(card);
+
+      if (totalCount >= limit) {
+        return { success: false, error: 'max_copies_reached' };
+      }
+    }
+
+    moveCard(card.cardId, from, targetSection, uuid);
+    return { success: true };
   }
 
   function moveCardFromSide(card: CardInfo) {
@@ -640,29 +814,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   function addCopyToSection(card: CardInfo, section: 'main' | 'extra' | 'side') {
-    addCard(card, section);
+    return addCard(card, section);
   }
 
   function addCopyToMainOrExtra(card: CardInfo) {
     const targetSection = (card.cardType === 'monster' && card.isExtraDeck) ? 'extra' : 'main';
     return addCard(card, targetSection);
-  }
-
-  function insertCard(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash', position: number) {
-    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
-                       section === 'extra' ? deckInfo.value.extraDeck :
-                       section === 'side' ? deckInfo.value.sideDeck :
-                       trashDeck.value;
-
-    const existingIndex = targetDeck.findIndex(dc =>
-      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
-    );
-    if (existingIndex !== -1) {
-      const existing = targetDeck[existingIndex];
-      if (existing) existing.quantity++;
-    } else {
-      targetDeck.splice(position, 0, { card, quantity: 1 });
-    }
   }
 
   function moveCardWithPosition(cardId: string, from: 'main' | 'extra' | 'side' | 'trash',
@@ -681,66 +838,29 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
 
-    const card = fromDeck.find(dc =>
+    const deckCard = fromDeck.find(dc =>
       dc.card.cardId === cardId && dc.card.ciid === String(sourceCard.ciid)
     );
-    if (!card) return;
-    
-    // 移動元から削除
-    removeFromDisplayOrder(cardId, from, sourceUuid);
-    
-    // 移動先に追加
-    const toOrder = displayOrder.value[to];
-    
-    if (targetUuid === null) {
-      // targetUuidがnullの場合は末尾に追加
-      addToDisplayOrder(card.card, to);
-    } else {
-      // targetUuidの前に挿入
-      const targetIndex = toOrder.findIndex(dc => dc.uuid === targetUuid);
-      
-      if (targetIndex !== -1) {
-        // 同じカードが既に存在するか確認
-        const sameCidIndex = toOrder.findIndex(dc => dc.cid === cardId);
-        const ciid = sameCidIndex !== -1 ? toOrder.filter(dc => dc.cid === cardId).length : 0;
-        
-        toOrder.splice(targetIndex, 0, {
-          cid: cardId,
-          ciid: ciid,
-          uuid: generateUUID()
-        });
-        
-        // ciidを再計算
-        const cidCounts = new Map<string, number>();
-        toOrder.forEach(dc => {
-          const count = cidCounts.get(dc.cid) || 0;
-          dc.ciid = count;
-          cidCounts.set(dc.cid, count + 1);
-        });
-      } else {
-        // targetが見つからない場合は末尾に追加
-        addToDisplayOrder(card.card, to);
-      }
-    }
-    
-    // deckInfo更新
-    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
-                   to === 'extra' ? deckInfo.value.extraDeck :
-                   to === 'side' ? deckInfo.value.sideDeck :
-                   trashDeck.value;
+    if (!deckCard) return;
 
-    const existingCard = toDeck.find(dc =>
-      dc.card.cardId === cardId && dc.card.ciid === card.card.ciid
-    );
-    if (existingCard) {
-      existingCard.quantity++;
-    } else {
-      toDeck.push({ card: card.card, quantity: 1 });
-    }
-    
+    // カード情報を保存（削除前に）
+    const cardInfo = deckCard.card;
+
+    // displayOrder操作関数を使用してデータを更新
+    // 1. 移動元から削除
+    removeFromDisplayOrder(cardId, from, sourceUuid, cardInfo.ciid);
+
+    // 2. 移動先に挿入
+    insertToDisplayOrder(cardInfo, to, targetUuid);
+
     // DOM更新後にアニメーション実行
+    // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
     nextTick(() => {
-      animateCardMoveByUUID(firstPositions, new Set([from, to]));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          animateCardMoveByUUID(firstPositions, new Set([from, to]));
+        });
+      });
     });
   }
 
@@ -924,23 +1044,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // 2. Monster Type: Fusion > Synchro > Xyz > Link > その他
       if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
-        const monsterTypeOrder: Record<string, number> = {
-          'Fusion': 0,
-          'Synchro': 1,
-          'Xyz': 2,
-          'Link': 3
+        const monsterTypeOrder: Partial<Record<MonsterType, number>> = {
+          fusion: 0,
+          synchro: 1,
+          xyz: 2,
+          link: 3
         };
         // types配列から主要なタイプを抽出
-        const getMainType = (types: typeof cardA.types) => {
+        const getMainType = (types: MonsterType[]) => {
           for (const type of types) {
-            if (type in monsterTypeOrder) {
-              return monsterTypeOrder[type];
+            const order = monsterTypeOrder[type];
+            if (order !== undefined) {
+              return order;
             }
           }
           return 999;
         };
-        const monsterTypeA = getMainType(cardA.types) ?? 999;
-        const monsterTypeB = getMainType(cardB.types) ?? 999;
+        const monsterTypeA = getMainType(cardA.types);
+        const monsterTypeB = getMainType(cardB.types);
         if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
 
         // 4. Level/Rank/Link（降順）
@@ -999,6 +1120,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     removeCard,
     moveCard,
     reorderCard,
+    reorderWithinSection,
     sortDisplayOrderForOfficial,
     backupDisplayOrder,
     restoreDisplayOrder,
@@ -1008,7 +1130,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     moveCardFromSide,
     addCopyToSection,
     addCopyToMainOrExtra,
-    insertCard,
     moveCardWithPosition,
     setDeckName,
     saveDeck,

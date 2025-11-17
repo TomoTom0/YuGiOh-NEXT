@@ -393,41 +393,9 @@ async function saveDeckMetadata() {
   color: white;
 }
 
-.category-selector {
+.category-selector,
+.tag-selector {
   position: relative;
-}
-
-.category-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  margin-top: 4px;
-  z-index: 100;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.category-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-  background: var(--bg-primary);
-
-  &:hover {
-    background: var(--bg-secondary);
-  }
-
-  input[type="checkbox"] {
-    cursor: pointer;
-  }
 }
 
 .option-text {
@@ -436,7 +404,8 @@ async function saveDeckMetadata() {
   font-weight: 400;
 }
 
-.selected-categories {
+.selected-categories,
+.selected-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -444,10 +413,7 @@ async function saveDeckMetadata() {
   min-height: 40px;
 }
 
-.tag-selector {
-  position: relative;
-}
-
+.category-dropdown,
 .tag-dropdown {
   position: absolute;
   top: 100%;
@@ -463,6 +429,7 @@ async function saveDeckMetadata() {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.category-option,
 .tag-option {
   display: flex;
   align-items: center;
@@ -479,14 +446,6 @@ async function saveDeckMetadata() {
   input[type="checkbox"] {
     cursor: pointer;
   }
-}
-
-.selected-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-  min-height: 40px;
 }
 
 .tag {
