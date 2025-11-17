@@ -632,13 +632,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function reorderCard(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash') {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
-    
+
     // displayOrder操作関数を使用
     reorderInDisplayOrder(sourceUuid, targetUuid, section);
-    
+
     // DOM更新後にアニメーション実行
+    // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
     nextTick(() => {
-      animateCardMoveByUUID(firstPositions, new Set([section]));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          animateCardMoveByUUID(firstPositions, new Set([section]));
+        });
+      });
     });
   }
   

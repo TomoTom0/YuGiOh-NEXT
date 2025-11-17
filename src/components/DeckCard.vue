@@ -11,7 +11,7 @@
     @drop="handleDrop"
     @click="$emit('click', card)"
   >
-    <img :src="cardImageUrl" :alt="card.name" :key="`${card.cardId}-${card.ciid}`" class="card-image">
+    <img :src="cardImageUrl" :alt="card.name" :key="uuid || `${card.cardId}-${card.ciid}`" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
@@ -190,18 +190,22 @@ export default {
     handleDrop(event) {
       event.preventDefault()
       event.stopPropagation()
-      
+      console.log('[DeckCard.handleDrop] Called for card:', this.card.name)
+
       try {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
-        
+
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        
+        console.log('[DeckCard.handleDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: this.sectionType })
+
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
-          // 同じセクション内での並び替え: targetの前に挿入
+          // 同じセクション内での並び替え: targetの位置に挿入（targetは後ろにずれる）
+          console.log('[DeckCard.handleDrop] Reordering within same section')
           this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
-          // 他のセクションからの移動: targetの前に挿入
+          // 他のセクションからの移動: targetの位置に挿入（targetは後ろにずれる）
+          console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
           this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
         }
       } catch (e) {
