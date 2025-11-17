@@ -46,6 +46,7 @@ export interface CardBase {
 export function getCardImageUrl(card: CardBase): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
   if (!imageInfo) {
+    console.log('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
   return `/yugiohdb/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;

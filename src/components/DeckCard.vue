@@ -1,8 +1,9 @@
 <template>
   <div
     class="card-item deck-card"
-    :class="`section-${sectionType}`"
+    :class="[`section-${sectionType}`, { 'error-state': showError }]"
     :data-card-id="card.cardId"
+    :data-ciid="card.ciid"
     :data-uuid="uuid"
     :draggable="!card.empty"
     @dragstart="handleDragStart"
@@ -10,7 +11,7 @@
     @drop="handleDrop"
     @click="$emit('click', card)"
   >
-    <img :src="cardImageUrl" :alt="card.name" :key="cardImageUrl" class="card-image">
+    <img :src="cardImageUrl" :alt="card.name" :key="`${card.cardId}-${card.ciid}`" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
@@ -47,12 +48,15 @@
         class="card-btn top-right" 
         @click.stop
       ></button>
-      <button 
+      <button
         class="card-btn bottom-left"
-        :class="bottomLeftClass"
+        :class="[bottomLeftClass, { 'error-btn': showError }]"
         @click.stop="handleBottomLeft"
       >
-        <svg v-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="showError" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="mdiCloseCircle" />
+        </svg>
+        <svg v-else-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />
         </svg>
         <span v-else-if="bottomLeftText === 'M/E'" class="btn-text">M</span>
@@ -73,6 +77,7 @@
 </template>
 
 <script>
+import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { getCardImageUrl } from '../types/card'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
@@ -96,8 +101,10 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const showError = ref(false)
     return {
       deckStore,
+      showError,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle
@@ -204,9 +211,10 @@ export default {
         return
       }
 
-      // 押下元のカードのciidをselectedCardに反映
+      // 押下元のカードをselectedCardに設定（imgs配列もコピーして独立させる）
       this.deckStore.selectedCard = {
         ...this.card,
+        imgs: [...this.card.imgs],
         ciid: this.card.ciid
       }
       this.deckStore.activeTab = 'card'
@@ -226,10 +234,17 @@ export default {
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // infoセクションの場合はselectedCardを使用
-        // （画像選択でciidが更新されているため、this.cardではなくselectedCardを使う）
-        const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
-        this.deckStore.addCopyToMainOrExtra(cardToAdd)
+        // addToDisplayOrderでディープコピーされるため、ここでのコピーは不要
+        const result = this.deckStore.addCopyToMainOrExtra(this.card)
+        if (!result.success) {
+          // 4枚制限エラー表示
+          this.showError = true
+          console.error('[DeckCard] カード追加失敗:', result.error)
+          setTimeout(() => {
+            this.showError = false
+          }, 1500)
+          return
+        }
 
         // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
@@ -248,18 +263,20 @@ export default {
       if (this.sectionType === 'trash') {
         this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // infoセクションの場合はselectedCardを使用（ciidが更新されている）
-        const cardToAdd = this.sectionType === 'info' ? this.deckStore.selectedCard : this.card
-        this.deckStore.addCopyToSection(cardToAdd, 'side')
-        
+        // propsから渡されたcardをそのまま使用（CardInfo.vueで既にciidが設定されている）
+        this.deckStore.addCopyToSection(this.card, 'side')
+
         // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
             this.animateFromSource(sourceRect, 'side')
           })
         }
+      } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
+        // main/extraからsideへ移動
+        this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
       } else {
-        this.deckStore.addCopyToSection(this.card, this.sectionType)
+        // それ以外（side）は何もしない
       }
     },
     animateFromSource(sourceRect, targetSection) {
@@ -307,6 +324,11 @@ export default {
   flex-shrink: 0;
   flex-grow: 0;
   margin: 0;
+
+  &.error-state {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: #ff0000;
+  }
 
   /* カード詳細パネル用 */
   &.section-info {
@@ -555,6 +577,13 @@ export default {
       &:hover::before {
         background: rgba(100, 150, 255, 0.95);
         border: 1px solid rgba(100, 150, 255, 1);
+      }
+    }
+
+    &.error-btn {
+      &::before {
+        background: rgba(255, 0, 0, 0.9) !important;
+        border: 1px solid rgba(255, 0, 0, 1) !important;
       }
     }
 

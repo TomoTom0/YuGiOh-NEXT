@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
@@ -112,14 +112,38 @@ export default {
       }
     }
     
+    // dnoパラメータを取得する関数
+    const getCurrentDno = () => {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      return urlParams.get('dno') || ''
+    }
+
+    // 現在のdnoを追跡
+    const currentDno = ref(getCurrentDno())
+
+    // dnoパラメータの変更を監視
+    const checkDnoChange = () => {
+      const newDno = getCurrentDno()
+      if (newDno !== currentDno.value) {
+        console.log('[DeckEditLayout] dno changed from', currentDno.value, 'to', newDno)
+        currentDno.value = newDno
+        // デッキデータを再ロード
+        deckStore.initializeOnPageLoad()
+      }
+    }
+
+    // hashchangeイベントでdno変更を監視
+    window.addEventListener('hashchange', checkDnoChange)
+
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       await deckStore.initializeOnPageLoad()
       window.addEventListener('resize', handleResize)
     })
-    
+
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('hashchange', checkDnoChange)
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {
@@ -144,23 +168,23 @@ export default {
     // 初期データ設定は行わない（load で読み込むため）
     
     const mainDeck = computed(() => {
-      return deckStore.deckInfo.mainDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.mainDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const extraDeck = computed(() => {
-      return deckStore.deckInfo.extraDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.extraDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const sideDeck = computed(() => {
-      return deckStore.deckInfo.sideDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.sideDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const trashDeck = computed(() => {
       return deckStore.trashDeck.flatMap(dc =>
-        Array(dc.quantity).fill(dc.card)
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
 

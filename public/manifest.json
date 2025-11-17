@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "遊戯王NEXT",
-  "version": "0.3.6",
+  "version": "0.3.8",
   "description": "遊戯王Neuron(公式カードデータベース)のデッキ管理を劇的に改善するChrome拡張",
   "permissions": [
     "storage",
@@ -15,8 +15,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.db.yugioh-card.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://www.db.yugioh-card.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_end"
     }
   ],
@@ -36,8 +40,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [ "images/*", "icons/*" ],
-      "matches": [ "https://www.db.yugioh-card.com/*" ]
+      "resources": [
+        "images/*",
+        "icons/*"
+      ],
+      "matches": [
+        "https://www.db.yugioh-card.com/*"
+      ]
     }
   ]
 }

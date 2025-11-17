@@ -370,8 +370,9 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
+    console.log('[getDeckDetail] Loading deck:', dno, 'cgid:', cgid);
     const requestLocale = detectLanguage(document);
-    
+
     // URLパラメータを構築
     const params = new URLSearchParams({
       ope: '1',
@@ -384,16 +385,31 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       params.append('cgid', cgid);
     }
 
+    console.log('[getDeckDetail] Fetching:', `${API_ENDPOINT}?${params.toString()}`);
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });
 
     const html = response.data;
+    console.log('[getDeckDetail] HTML length:', html.length);
+
+    // imgsパラメータのサンプルを抽出
+    const imgsMatches = html.match(/imgs[^>]{0,100}/g) || [];
+    console.log('[getDeckDetail] imgs samples (first 5):', imgsMatches.slice(0, 5));
+
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
     // parseDeckDetailを使用してデッキ情報を抽出
+    console.log('[getDeckDetail] Parsing deck detail...');
     const deckInfo = parseDeckDetail(doc);
+    console.log('[getDeckDetail] Parsed:', {
+      dno: deckInfo.dno,
+      name: deckInfo.name,
+      mainCount: deckInfo.mainDeck.length,
+      extraCount: deckInfo.extraDeck.length,
+      sideCount: deckInfo.sideDeck.length
+    });
 
     return deckInfo;
   } catch (error) {

@@ -89,7 +89,7 @@ export default {
       return deckStore.displayOrder[props.sectionType] || []
     })
     
-    // cidからカード情報を取得（ciidを上書き）
+    // (cid, ciid)ペアでカード情報を取得
     const getCardInfo = (cid, ciid) => {
       const allDecks = [
         ...deckStore.deckInfo.mainDeck,
@@ -98,17 +98,14 @@ export default {
         ...deckStore.trashDeck
       ]
 
-      const deckCard = allDecks.find(dc => dc.card.cardId === cid)
+      // (cid, ciid)ペアで検索
+      const deckCard = allDecks.find(dc =>
+        dc.card.cardId === cid && dc.card.ciid === String(ciid)
+      )
       if (!deckCard) return null
 
-      // displayOrderのciidを使用してカード情報を上書き
-      // ciidがundefinedの場合はdeckCard.card.ciidをそのまま使用
-      const result = {
-        ...deckCard.card,
-        ciid: ciid !== undefined ? String(ciid) : deckCard.card.ciid
-      }
-
-      return result
+      // カード情報をそのまま返す（ciidは既に正しい値）
+      return deckCard.card
     }
 
     const handleSectionDrop = (event) => {

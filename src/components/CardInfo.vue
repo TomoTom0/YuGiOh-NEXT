@@ -1,18 +1,20 @@
 <template>
   <div class="card-info-layout">
-    <h3 class="card-name-large">{{ card.name }}</h3>
+    <h3 class="card-name-large">{{ card?.name }}</h3>
     <div class="card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
-          :card="displayCard"
+          v-if="card"
+          :key="card.ciid"
+          :card="card"
           :section-type="'info'"
           :uuid="'info-card'"
         />
         <button
-          v-if="card.imgs && card.imgs.length > 1"
+          v-if="showImageSelectButton"
           class="image-select-btn"
           @click="toggleImageDialog"
-          :title="`画像を選択 (${card.imgs.length}種類)`"
+          :title="`画像を選択 (${card.imgs?.length || 0}種類)`"
         >
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiImageMultiple" />
@@ -22,10 +24,10 @@
           <div v-if="showImageDialog" class="image-select-dialog">
           <div class="image-grid">
             <div
-              v-for="(img, index) in card.imgs"
+              v-for="(img, index) in card?.imgs"
               :key="img.ciid"
               class="image-option"
-              :class="{ active: img.ciid === displayCard.ciid }"
+              :class="{ active: img.ciid === card?.ciid }"
               @click="selectImage(img.ciid)"
             >
               <img :src="getImageUrl(img)" :alt="`画像 ${index + 1}`">
@@ -36,7 +38,7 @@
         </transition>
       </div>
       <div class="card-details">
-        
+
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
           <div class="stat-box stat-box-type">
             <span class="stat-text">{{ getMonsterTypesText(card.types) }}</span>
@@ -153,10 +155,6 @@ export default {
     DeckCard
   },
   props: {
-    card: {
-      type: Object,
-      required: true
-    },
     supplementInfo: {
       type: String,
       default: undefined
@@ -179,17 +177,20 @@ export default {
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
 
-    // selectedCard.ciidを反映したcard objectを作成
-    const displayCard = computed(() => {
-      // selectedCard全体を監視するのではなく、ciidプロパティを直接監視
-      const currentCiid = deckStore.selectedCard?.ciid
-      if (currentCiid) {
-        return {
-          ...props.card,
-          ciid: currentCiid
-        }
-      }
-      return props.card
+    // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
+    const card = computed(() => deckStore.selectedCard)
+
+    // 画像選択ボタンを表示するかどうか
+    const showImageSelectButton = computed(() => {
+      const result = !!(card.value && card.value.imgs && card.value.imgs.length > 1)
+      console.log('[CardInfo] showImageSelectButton computed:', JSON.stringify({
+        hasCard: !!card.value,
+        cardId: card.value?.cardId,
+        hasImgs: !!card.value?.imgs,
+        imgsLength: card.value?.imgs?.length || 0,
+        result: result
+      }))
+      return result
     })
 
     const toggleImageDialog = () => {
@@ -197,26 +198,26 @@ export default {
     }
 
     const selectImage = (ciid) => {
-      // selectedCardのciidを更新
+      // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
       if (deckStore.selectedCard) {
-        deckStore.selectedCard = {
-          ...deckStore.selectedCard,
-          ciid: ciid
-        }
+        deckStore.selectedCard.ciid = String(ciid)
+        console.log('[CardInfo] selectImage: ciid updated to', String(ciid))
       }
       showImageDialog.value = false
     }
 
     const getImageUrl = (img) => {
-      return `https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=${deckStore.selectedCard.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+      if (!card.value) return ''
+      return `https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
     }
 
     return {
       deckStore,
       parseCardLinks,
       handleCardLinkClick,
-      displayCard,
+      card,
       showImageDialog,
+      showImageSelectButton,
       toggleImageDialog,
       selectImage,
       getImageUrl,

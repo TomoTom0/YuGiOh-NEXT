@@ -241,7 +241,11 @@ function createPopupHTML(
       }
 
       #ygo-download-btn:hover {
-        background: rgba(220, 220, 220, 1);
+        background: rgba(70, 120, 255, 0.15);
+        border-color: rgba(70, 120, 255, 0.5);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        opacity: 1;
       }
       #ygo-qr-toggle:hover {
         opacity: 1 !important;

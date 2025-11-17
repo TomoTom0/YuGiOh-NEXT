@@ -48,12 +48,41 @@
             </svg>
             Download Deck Image
           </button>
+          <div class="menu-divider"></div>
+          <button @click="handleExportDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiExport" />
+            </svg>
+            Export Deck
+          </button>
+          <button @click="handleImportDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiImport" />
+            </svg>
+            Import Deck
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Menu Overlay (外側クリックで閉じる用) -->
     <div v-if="showMenu" class="menu-overlay" @click="toggleMenu"></div>
+
+    <!-- Export Dialog -->
+    <ExportDialog
+      :isVisible="showExportDialog"
+      :deckInfo="deckStore.deckInfo"
+      :dno="String(localDno)"
+      @close="showExportDialog = false"
+      @exported="handleExported"
+    />
+
+    <!-- Import Dialog -->
+    <ImportDialog
+      :isVisible="showImportDialog"
+      @close="showImportDialog = false"
+      @imported="handleImported"
+    />
 
     <!-- Load Dialog -->
     <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
@@ -101,9 +130,11 @@
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
+import ExportDialog from './ExportDialog.vue'
+import ImportDialog from './ImportDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -114,7 +145,9 @@ interface ToastState {
 export default {
   name: 'DeckEditTopBar',
   components: {
-    Toast
+    Toast,
+    ExportDialog,
+    ImportDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -124,6 +157,8 @@ export default {
     const saveTimer = ref<number | null>(null)
     const lastSavedDeckName = ref('')
     const showMenu = ref(false)
+    const showExportDialog = ref(false)
+    const showImportDialog = ref(false)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -273,6 +308,51 @@ export default {
       }
     }
 
+    const handleExportDeck = () => {
+      showMenu.value = false
+      showExportDialog.value = true
+    }
+
+    const handleExported = (format: string) => {
+      showToast(`デッキを${format.toUpperCase()}形式でエクスポートしました`, 'success')
+    }
+
+    const handleImportDeck = () => {
+      showMenu.value = false
+      showImportDialog.value = true
+    }
+
+    const handleImported = (deckInfo: any, replaceExisting: boolean) => {
+      if (replaceExisting) {
+        // 既存のデッキを置き換え
+        deckStore.deckInfo.mainDeck = []
+        deckStore.deckInfo.extraDeck = []
+        deckStore.deckInfo.sideDeck = []
+      }
+
+      // インポートされたカードを追加
+      deckInfo.mainDeck.forEach((entry: any) => {
+        for (let i = 0; i < entry.quantity; i++) {
+          deckStore.addCard(entry.card, 'main')
+        }
+      })
+
+      deckInfo.extraDeck.forEach((entry: any) => {
+        for (let i = 0; i < entry.quantity; i++) {
+          deckStore.addCard(entry.card, 'extra')
+        }
+      })
+
+      deckInfo.sideDeck.forEach((entry: any) => {
+        for (let i = 0; i < entry.quantity; i++) {
+          deckStore.addCard(entry.card, 'side')
+        }
+      })
+
+      const action = replaceExisting ? '置き換えました' : '追加しました'
+      showToast(`デッキを${action}`, 'success')
+    }
+
     return {
       deckStore,
       showLoadDialog,
@@ -280,6 +360,8 @@ export default {
       savingState,
       lastSavedDeckName,
       showMenu,
+      showExportDialog,
+      showImportDialog,
       localDno,
       localDeckName,
       toast,
@@ -289,10 +371,16 @@ export default {
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
+      handleExportDeck,
+      handleExported,
+      handleImportDeck,
+      handleImported,
       mdiContentSave,
       mdiFolderOpen,
       mdiSortVariant,
-      mdiImageOutline
+      mdiImageOutline,
+      mdiExport,
+      mdiImport
     }
   }
 }
@@ -361,6 +449,12 @@ export default {
     &:active {
       background: #e8e8e8;
     }
+  }
+
+  .menu-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 4px 0;
   }
 }
 

@@ -25,7 +25,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // 表示順序データ構造: 画面上のカード画像の並び順
   interface DisplayCard {
     cid: string;      // カードID
-    ciid: number;     // 同じカードの何枚目か（0始まり）
+    ciid: number;     // Card Image ID（画像のバリエーション番号）
     uuid: string;     // ユニークな識別子（アニメーション追跡用）
   }
   
@@ -68,7 +68,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       
       deck.forEach(deckCard => {
         for (let i = 0; i < deckCard.quantity; i++) {
-          // 同じカードの複数枚は全て同じciid（カードのデフォルト画像）を使用
+          // 各カードのciid（Card Image ID）を使用
           const ciid = parseInt(String(deckCard.card.ciid), 10);
           displayOrder.value[section].push({
             cid: deckCard.card.cardId,
@@ -141,24 +141,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         return firstA - firstB;
       });
       
-      // ciidを再計算
-      const cidCounts = new Map<string, number>();
-      sorted.forEach(dc => {
-        const count = cidCounts.get(dc.cid) || 0;
-        dc.ciid = count;
-        cidCounts.set(dc.cid, count + 1);
-      });
+      // ciidは変更しない（Card Image IDを保持）
       
       displayOrder.value[section] = sorted;
       
       // deckInfoを並び替え（displayOrderの順序に合わせる）
       const newDeck: DeckCard[] = [];
       const seenCards = new Set<string>();
-      
+
       sorted.forEach(dc => {
-        if (!seenCards.has(dc.cid)) {
-          seenCards.add(dc.cid);
-          const deckCard = deck.find(d => d.card.cardId === dc.cid);
+        const key = `${dc.cid}_${dc.ciid}`;
+        if (!seenCards.has(key)) {
+          seenCards.add(key);
+          const deckCard = deck.find(d =>
+            d.card.cardId === dc.cid && d.card.ciid === String(dc.ciid)
+          );
           if (deckCard) {
             newDeck.push(deckCard);
           }
@@ -244,57 +241,80 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 同じカードが既に存在する場合、最初に登場する位置の直後に挿入
    */
   function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
+    console.log('[deck-edit] addToDisplayOrder:', 'cardId=', card.cardId, 'ciid=', card.ciid, 'hasImgs=', !!card.imgs, 'imgsLength=', card.imgs?.length);
+
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
                        section === 'extra' ? deckInfo.value.extraDeck :
                        section === 'side' ? deckInfo.value.sideDeck :
                        trashDeck.value;
-    
-    // deckInfo更新
-    const existingCard = targetDeck.find(dc => dc.card.cardId === card.cardId);
+
+    // deckInfo更新: (cardId, ciid)ペアで既存カードを検索
+    const existingCard = targetDeck.find(dc =>
+      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
+    );
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      targetDeck.push({ card, quantity: 1 });
+      // cardオブジェクトをディープコピーして保存（参照を共有しないため）
+      const cardCopy = JSON.parse(JSON.stringify(card)) as CardInfo;
+      targetDeck.push({ card: cardCopy, quantity: 1 });
     }
     
     // displayOrder更新
     const sectionOrder = displayOrder.value[section];
     
-    // 同じカードが既に存在するか確認
-    const existingCardIndex = sectionOrder.findIndex(dc => dc.cid === card.cardId);
+    // 同じ(cid, ciid)ペアが既に存在するか確認
+    const existingCardIndex = sectionOrder.findIndex(dc => 
+      dc.cid === card.cardId && dc.ciid === parseInt(String(card.ciid), 10)
+    );
     
     if (existingCardIndex !== -1) {
-      // 既存の同じカードの最後の位置を探す
+      // 既存の同じ(cid, ciid)ペアの最後の位置を探す
+      const targetCiid = parseInt(String(card.ciid), 10);
       let lastSameCardIndex = existingCardIndex;
       for (let i = existingCardIndex + 1; i < sectionOrder.length; i++) {
         const orderCard = sectionOrder[i];
-        if (orderCard && orderCard.cid === card.cardId) {
+        if (orderCard && orderCard.cid === card.cardId && orderCard.ciid === targetCiid) {
           lastSameCardIndex = i;
-        } else {
-          break;
         }
       }
       
-      // 最後の同じカードの直後に挿入
-      const existingCards = sectionOrder.filter((dc, idx) => dc.cid === card.cardId && idx <= lastSameCardIndex);
-      // card.ciidが指定されていればそれを使用、なければ枚数から決定
-      const ciid = card.ciid ? parseInt(String(card.ciid), 10) : existingCards.length;
+      console.log('[deck-edit] addToDisplayOrder: adding to', section, 'cardId=', card.cardId, 'ciid=', targetCiid, 'after existing');
 
+      // 最後の同じ(cid, ciid)ペアの直後に挿入
       sectionOrder.splice(lastSameCardIndex + 1, 0, {
         cid: card.cardId,
-        ciid: ciid,
+        ciid: targetCiid,
         uuid: generateUUID()
       });
     } else {
-      // 新しいカードなので末尾に追加
-      // card.ciidが指定されていればそれを使用、なければ0
-      const ciid = card.ciid ? parseInt(String(card.ciid), 10) : 0;
+      // 新しい(cid, ciid)ペアなので、同じcidの最後に追加
+      const sameCidCards = sectionOrder.filter(dc => dc.cid === card.cardId);
+      const ciid = (card.ciid !== undefined && card.ciid !== null)
+        ? parseInt(String(card.ciid), 10)
+        : 0;
 
-      sectionOrder.push({
-        cid: card.cardId,
-        ciid: ciid,
-        uuid: generateUUID()
-      });
+      console.log('[deck-edit] addToDisplayOrder: adding new to', section, 'cardId=', card.cardId, 'ciid=', ciid);
+
+      if (sameCidCards.length > 0) {
+        // 同じcidのカードがある場合、その最後の位置の後に挿入
+        const lastSameCidIndex = sectionOrder.map((dc, idx) => ({ dc, idx }))
+          .filter(item => item.dc.cid === card.cardId)
+          .pop()!.idx;
+        
+        sectionOrder.splice(lastSameCidIndex + 1, 0, {
+          cid: card.cardId,
+          ciid: ciid,
+          uuid: generateUUID()
+        });
+      } else {
+        // 完全に新しいカードなので末尾に追加
+        sectionOrder.push({
+          cid: card.cardId,
+          ciid: ciid,
+          uuid: generateUUID()
+        });
+      }
     }
   }
   
@@ -354,18 +374,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                    to === 'extra' ? deckInfo.value.extraDeck :
                    to === 'side' ? deckInfo.value.sideDeck :
                    trashDeck.value;
-    
-    const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
-    if (fromIndex === -1) return;
-    
-    const deckCard = fromDeck[fromIndex];
-    if (!deckCard) return;
-    const card = deckCard.card;
-    
+
     // displayOrderから移動するカードを取得
     const fromOrder = displayOrder.value[from];
     let moveCardIndex: number;
-    
+
     if (uuid) {
       // UUIDが指定されている場合は、そのUUIDのカードを移動
       moveCardIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
@@ -373,11 +386,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // UUIDが未指定の場合は最後の1枚を移動
       moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
     }
-    
+
     if (moveCardIndex === -1) return;
-    
+
     const movingDisplayCard = fromOrder[moveCardIndex];
     if (!movingDisplayCard) return;
+
+    // (cid, ciid)ペアでdeckCardを取得
+    const fromIndex = fromDeck.findIndex(dc =>
+      dc.card.cardId === cardId && dc.card.ciid === String(movingDisplayCard.ciid)
+    );
+    if (fromIndex === -1) return;
+
+    const deckCard = fromDeck[fromIndex];
+    if (!deckCard) return;
+    const card = deckCard.card;
     
     // fromのdisplayOrderから削除
     fromOrder.splice(moveCardIndex, 1);
@@ -416,8 +439,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       fromDeck.splice(fromIndex, 1);
     }
     
-    // toに追加
-    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+    // toに追加（ciidも考慮）
+    const existingCard = toDeck.find(dc =>
+      dc.card.cardId === cardId && dc.card.ciid === String(movingDisplayCard.ciid)
+    );
     if (existingCard) {
       existingCard.quantity++;
     } else {
@@ -464,22 +489,27 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }, { deep: true });
 
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
-    // main, extra, sideで同じcidのカードは合計3枚まで
-    const mainCount = deckInfo.value.mainDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
-    const extraCount = deckInfo.value.extraDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
-    const sideCount = deckInfo.value.sideDeck.find(dc => dc.card.cardId === card.cardId)?.quantity || 0;
-    const totalCount = mainCount + extraCount + sideCount;
-    
+    // main, extra, sideで同じcidのカードは合計3枚まで（ciidが異なっても同じカード扱い）
+    const allDecks = [
+      ...deckInfo.value.mainDeck,
+      ...deckInfo.value.extraDeck,
+      ...deckInfo.value.sideDeck
+    ];
+    const totalCount = allDecks
+      .filter(dc => dc.card.cardId === card.cardId)
+      .reduce((sum, dc) => sum + dc.quantity, 0);
+
     if (totalCount >= 3) {
       // 4枚目以降は追加しない（無言で無効化）
-      return;
+      return { success: false, error: 'max_copies_reached' };
     }
-    
+
     // データ追加
     addToDisplayOrder(card, section);
-    
+
     // 新規追加されたカードは位置情報がないため、単純なフェードイン
     // FLIPアニメーションは移動のみに使用
+    return { success: true };
   }
 
   function removeCard(cardId: string, section: 'main' | 'extra' | 'side' | 'trash') {
@@ -615,7 +645,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   function addCopyToMainOrExtra(card: CardInfo) {
     const targetSection = (card.cardType === 'monster' && card.isExtraDeck) ? 'extra' : 'main';
-    addCard(card, targetSection);
+    return addCard(card, targetSection);
   }
 
   function insertCard(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash', position: number) {
@@ -623,8 +653,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                        section === 'extra' ? deckInfo.value.extraDeck :
                        section === 'side' ? deckInfo.value.sideDeck :
                        trashDeck.value;
-    
-    const existingIndex = targetDeck.findIndex(dc => dc.card.cardId === card.cardId);
+
+    const existingIndex = targetDeck.findIndex(dc =>
+      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
+    );
     if (existingIndex !== -1) {
       const existing = targetDeck[existingIndex];
       if (existing) existing.quantity++;
@@ -638,13 +670,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                                 sourceUuid: string, targetUuid: string | null) {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
-    
+
+    // displayOrderからciidを取得
+    const fromOrder = displayOrder.value[from];
+    const sourceCard = fromOrder.find(dc => dc.uuid === sourceUuid);
+    if (!sourceCard) return;
+
     const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
-    
-    const card = fromDeck.find(dc => dc.card.cardId === cardId);
+
+    const card = fromDeck.find(dc =>
+      dc.card.cardId === cardId && dc.card.ciid === String(sourceCard.ciid)
+    );
     if (!card) return;
     
     // 移動元から削除
@@ -689,8 +728,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                    to === 'extra' ? deckInfo.value.extraDeck :
                    to === 'side' ? deckInfo.value.sideDeck :
                    trashDeck.value;
-    
-    const existingCard = toDeck.find(dc => dc.card.cardId === cardId);
+
+    const existingCard = toDeck.find(dc =>
+      dc.card.cardId === cardId && dc.card.ciid === card.card.ciid
+    );
     if (existingCard) {
       existingCard.quantity++;
     } else {
@@ -855,22 +896,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const section = displayOrder.value[sectionType];
     if (!section || section.length === 0) return;
 
-    // cidからカード情報を取得するヘルパー関数
-    const getCardInfo = (cid: string) => {
+    // (cid, ciid)ペアからカード情報を取得するヘルパー関数
+    const getCardInfo = (cid: string, ciid: number) => {
       const allDecks = [
         ...deckInfo.value.mainDeck,
         ...deckInfo.value.extraDeck,
         ...deckInfo.value.sideDeck,
         ...trashDeck.value
       ];
-      const deckCard = allDecks.find(dc => dc.card.cardId === cid);
+      const deckCard = allDecks.find(dc =>
+        dc.card.cardId === cid && dc.card.ciid === String(ciid)
+      );
       return deckCard ? deckCard.card : null;
     };
 
     // ソート優先順位
     const sorted = [...section].sort((a, b) => {
-      const cardA = getCardInfo(a.cid);
-      const cardB = getCardInfo(b.cid);
+      const cardA = getCardInfo(a.cid, a.ciid);
+      const cardB = getCardInfo(b.cid, b.ciid);
       if (!cardA || !cardB) return 0;
 
       // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
