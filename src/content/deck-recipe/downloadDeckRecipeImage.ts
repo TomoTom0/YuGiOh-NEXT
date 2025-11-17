@@ -3,6 +3,7 @@ import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
 import { sessionManager } from '../session/session';
+import { embedDeckInfoToPNG } from '../../utils/png-metadata';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -48,12 +49,23 @@ export async function downloadDeckRecipeImage(
   });
 
   // 3. ブラウザ環境では常にBlobが返される
-  const blob = result as Blob;
+  let blob = result as Blob;
 
-  // 4. ファイル名を生成
+  // 4. デッキ情報をPNG画像に埋め込み
+  if (deckData) {
+    try {
+      blob = await embedDeckInfoToPNG(blob, deckData);
+      console.log('[downloadDeckRecipeImage] Deck info embedded into PNG');
+    } catch (error) {
+      console.error('[downloadDeckRecipeImage] Failed to embed deck info:', error);
+      // 埋め込み失敗時は元の画像をダウンロード
+    }
+  }
+
+  // 5. ファイル名を生成
   const fileName = options.fileName || generateFileName(deckData?.name);
 
-  // 5. ダウンロードを実行
+  // 6. ダウンロードを実行
   downloadBlob(blob, fileName);
 }
 
@@ -71,7 +83,7 @@ function generateFileName(deckName?: string): string {
     .replace(/\..+/, '');
 
   const prefix = deckName || 'deck-recipe';
-  return `${prefix}_${timestamp}.jpg`;
+  return `${prefix}_${timestamp}.png`;
 }
 
 /**
