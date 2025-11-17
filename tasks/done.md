@@ -1,3 +1,35 @@
+## 2025-11-18: デッキ画像作成UIの改善完了
+
+- **タイムスタンプ**: 2025-11-18 03:30
+- **バージョン**: 0.4.0（予定）
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 実装内容
+
+**デッキ画像作成ダイアログのUI改善**
+- `imageDialog.ts`: QRトグルボタンとInclude Sideボタンの改善
+  - QRボタン:
+    - テキスト変更: 1行「QR」→ 2行「Include / QR」
+    - サイズ変更: 60px × 60px → 80px × 70px
+    - 色変更: 青色背景 → 白背景（有効時）、グレー背景（無効時）
+  - Include Sideボタン追加:
+    - 位置: 右中央（`position: absolute; right: 12px; top: 50%`）
+    - サイズ: 80px × 70px
+    - テキスト: 2行「Include / Side」
+    - 表示条件: `deckData.sideDeck.length > 0`（サイドデッキが存在する場合のみ表示）
+    - 機能: トグル時にプレビュー画像を再生成（サイドデッキの有無で高さが変わる）
+
+**テキストの大文字化**
+- QRボタン: 「include qr」→「Include QR」
+- Sideボタン: 「include side」→「Include Side」
+
+### ビルド・デプロイ
+- ✅ TypeScriptビルド完了
+- ✅ デプロイ完了（`/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`）
+- ✅ Chromium再起動
+
+---
+
 ## 2025-11-18: デッキインポート/エクスポート全形式でenc対応完了（最終版）
 
 - **タイムスタンプ**: 2025-11-18 02:00
