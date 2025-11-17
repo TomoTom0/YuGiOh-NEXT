@@ -22,10 +22,10 @@
         class="metadata-select"
         @change="updateDeckType"
       >
-        <option value="0">OCG（マスタールール）</option>
-        <option value="1">OCG（スピードルール）</option>
-        <option value="2">デュエルリンクス</option>
-        <option value="3">マスターデュエル</option>
+        <option class="select-option" value="0">OCG（マスタールール）</option>
+        <option class="select-option" value="1">OCG（スピードルール）</option>
+        <option class="select-option" value="2">デュエルリンクス</option>
+        <option class="select-option" value="3">マスターデュエル</option>
       </select>
     </div>
 
@@ -36,10 +36,10 @@
         class="metadata-select"
         @change="updateDeckStyle"
       >
-        <option value="-1">未選択</option>
-        <option value="0">キャラクター</option>
-        <option value="1">トーナメント</option>
-        <option value="2">コンセプト</option>
+        <option class="select-option" value="-1">未選択</option>
+        <option class="select-option" value="0">キャラクター</option>
+        <option class="select-option" value="1">トーナメント</option>
+        <option class="select-option" value="2">コンセプト</option>
       </select>
     </div>
 
@@ -328,6 +328,11 @@ async function saveDeckMetadata() {
   }
 }
 
+.select-option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 .metadata-textarea {
   resize: vertical;
   min-height: 80px;
@@ -399,8 +404,8 @@ async function saveDeckMetadata() {
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-primary, #ddd);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   margin-top: 4px;
   z-index: 100;
@@ -414,10 +419,10 @@ async function saveDeckMetadata() {
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.2s;
-  background: var(--bg-primary, #ffffff);
+  background: var(--bg-primary);
 
   &:hover {
-    background: var(--bg-secondary, #f5f5f5);
+    background: var(--bg-secondary);
   }
 
   input[type="checkbox"] {
@@ -427,7 +432,7 @@ async function saveDeckMetadata() {
 
 .option-text {
   font-size: 13px;
-  color: #333333;
+  color: var(--text-primary);
   font-weight: 400;
 }
 
@@ -450,8 +455,8 @@ async function saveDeckMetadata() {
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-primary, #ddd);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   margin-top: 4px;
   z-index: 100;
@@ -465,10 +470,10 @@ async function saveDeckMetadata() {
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.2s;
-  background: var(--bg-primary, #ffffff);
+  background: var(--bg-primary);
 
   &:hover {
-    background: var(--bg-secondary, #f5f5f5);
+    background: var(--bg-secondary);
   }
 
   input[type="checkbox"] {
