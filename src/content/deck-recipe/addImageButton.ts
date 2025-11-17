@@ -3,6 +3,7 @@
  */
 
 import { showImageDialog } from './imageDialog';
+import { isDeckDisplayPage } from '../../utils/page-detector';
 
 /**
  * カメラアイコンのSVG
@@ -66,21 +67,18 @@ export function addDeckImageButton(): HTMLElement | null {
 }
 
 /**
- * デッキ表示ページかどうかを判定
- * @returns true if current page is deck display page (ope=1 only)
+ * デッキ表示ページかどうかを判定（後方互換性のため維持）
+ * @deprecated 直接 isDeckDisplayPage を使用してください
  */
 export function isDeckPage(): boolean {
-  const url = window.location.href;
-
-  // member_deck.action?ope=1 (表示のみ、編集ページは除外)
-  return /member_deck\.action\?.*ope=1/.test(url);
+  return isDeckDisplayPage();
 }
 
 /**
  * ページが読み込まれたときに自動でボタンを追加
  */
 export function initDeckImageButton(): void {
-  if (isDeckPage()) {
+  if (isDeckDisplayPage()) {
     // DOMContentLoaded後に実行
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
