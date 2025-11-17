@@ -9,6 +9,7 @@
     @dragstart="handleDragStart"
     @dragover="handleDragOver"
     @drop="handleDrop"
+    @dragend="handleDragEnd"
     @click="$emit('click', card)"
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid || `${card.cardId}-${card.ciid}`" class="card-image">
@@ -182,10 +183,21 @@ export default {
         card: this.card,
         uuid: this.uuid
       }))
+
+      // ドラッグ中のカード情報をストアに設定（移動可否判定用）
+      this.deckStore.draggingCard = {
+        card: this.card,
+        sectionType: this.sectionType
+      }
+
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
       this.$emit('dragover', event)
+    },
+    handleDragEnd() {
+      // ドラッグ終了時にストアの情報をクリア
+      this.deckStore.draggingCard = null
     },
     handleDrop(event) {
       event.preventDefault()

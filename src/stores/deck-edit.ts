@@ -27,6 +27,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // 枚数制限エラー表示用のcardId
   const limitErrorCardId = ref<string | null>(null);
 
+  // ドラッグ中のカード情報（移動可否判定用）
+  const draggingCard = ref<{ card: CardInfo; sectionType: string } | null>(null);
+
   // 表示順序データ構造: 画面上のカード画像の並び順
   interface DisplayCard {
     cid: string;      // カードID
@@ -1132,6 +1135,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     trashDeck,
     displayOrder,
     limitErrorCardId,
+    draggingCard,
     deckList,
     lastUsedDno,
     searchQuery,
