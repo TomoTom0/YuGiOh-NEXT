@@ -723,9 +723,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // 移動元と移動先の両方のセクションをアニメーション（カードが詰まる動きを表現）
     nextTick(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          animateCardMoveByUUID(firstPositions, new Set([from, to]));
-        });
+        animateCardMoveByUUID(firstPositions, new Set([from, to]));
       });
     });
   }
@@ -741,9 +739,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
     nextTick(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          animateCardMoveByUUID(firstPositions, new Set([section]));
-        });
+        animateCardMoveByUUID(firstPositions, new Set([section]));
       });
     });
   }
@@ -963,9 +959,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // 移動元と移動先の両方のセクションをアニメーション（カードが詰まる動きを表現）
     nextTick(() => {
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          animateCardMoveByUUID(firstPositions, new Set([from, to]));
-        });
+        animateCardMoveByUUID(firstPositions, new Set([from, to]));
       });
     });
   }
