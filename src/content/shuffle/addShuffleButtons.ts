@@ -2,6 +2,8 @@
  * デッキ表示ページにシャッフル関連のボタンを追加
  */
 
+import { isDeckDisplayPage } from '../../utils/page-detector';
+
 /**
  * シャッフルアイコン（ランダム/シャッフル）
  */
@@ -88,15 +90,6 @@ function createButton(id: string, iconSvg: string, title: string): HTMLAnchorEle
   });
 
   return button;
-}
-
-/**
- * デッキ表示ページかどうかを判定
- */
-function isDeckDisplayPage(): boolean {
-  const url = window.location.href;
-  // member_deck.action?ope=1 (表示のみ、編集ページは除外)
-  return /member_deck\.action\?.*ope=1/.test(url);
 }
 
 /**

@@ -7,8 +7,7 @@
 
 // テーマCSSをインポート
 import '../../styles/themes.css';
-
-const EDIT_URL_HASH = '#/ytomo/edit';
+import { isVueEditPage } from '../../utils/page-detector';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -17,12 +16,11 @@ let isEditUILoaded = false;
 let isEventListenerRegistered = false;
 
 /**
- * 現在のURLが編集用URLかどうかをチェック
- * URLパラメータがある場合も考慮してベースハッシュで判定
+ * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
+ * @deprecated 直接 isVueEditPage を使用してください
  */
 function isEditUrl(): boolean {
-  const hashBase = window.location.hash.split('?')[0];
-  return hashBase === EDIT_URL_HASH;
+  return isVueEditPage();
 }
 
 /**
