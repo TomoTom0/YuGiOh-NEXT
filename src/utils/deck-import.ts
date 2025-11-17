@@ -24,6 +24,7 @@ interface ImportRow {
   name?: string;
   cid: string;
   ciid: string;
+  enc?: string; // imgHash（オプション）
   quantity: number;
 }
 
@@ -95,6 +96,7 @@ export async function importFromPNG(file: File): Promise<ImportResult> {
         section: 'main',
         cid: card.cid,
         ciid: card.ciid,
+        enc: card.enc,
         quantity: card.quantity
       });
     }
@@ -104,6 +106,7 @@ export async function importFromPNG(file: File): Promise<ImportResult> {
         section: 'extra',
         cid: card.cid,
         ciid: card.ciid,
+        enc: card.enc,
         quantity: card.quantity
       });
     }
@@ -113,6 +116,7 @@ export async function importFromPNG(file: File): Promise<ImportResult> {
         section: 'side',
         cid: card.cid,
         ciid: card.ciid,
+        enc: card.enc,
         quantity: card.quantity
       });
     }
@@ -161,13 +165,31 @@ export function importFromTXT(content: string): ImportResult {
       // 空行をスキップ
       if (!line) continue;
 
-      // カード行をパース（例: "2x 灰流うらら (12950:1)"）
-      const match = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+)\)$/);
-      if (match && currentSection) {
-        const quantityStr = match[1] || '1';
-        const name = match[2] || '';
-        const cid = match[3] || '';
-        const ciid = match[4] || '1';
+      // カード行をパース
+      // 新形式: "2x 灰流うらら (12950:1:abc123)"
+      // 旧形式: "2x 灰流うらら (12950:1)"
+      const matchWithEnc = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+):(\w+)\)$/);
+      const matchOld = line.match(/^(\d+)x\s+(.+?)\s+\((\d+):(\d+)\)$/);
+
+      if (matchWithEnc && currentSection) {
+        const quantityStr = matchWithEnc[1] || '1';
+        const name = matchWithEnc[2] || '';
+        const cid = matchWithEnc[3] || '';
+        const ciid = matchWithEnc[4] || '1';
+        const enc = matchWithEnc[5] || '';
+        rows.push({
+          section: currentSection,
+          name,
+          cid,
+          ciid,
+          enc,
+          quantity: parseInt(quantityStr, 10)
+        });
+      } else if (matchOld && currentSection) {
+        const quantityStr = matchOld[1] || '1';
+        const name = matchOld[2] || '';
+        const cid = matchOld[3] || '';
+        const ciid = matchOld[4] || '1';
         rows.push({
           section: currentSection,
           name,
@@ -235,7 +257,8 @@ function parseCSVLine(line: string): string[] | null {
  */
 function parseImportRow(fields: string[], lineNumber: number, warnings: string[]): ImportRow | null {
   // 最小限の形式: section,cid,quantity
-  // 完全な形式: section,name,cid,ciid,quantity
+  // enc対応形式: section,name,cid,ciid,enc,quantity
+  // 旧完全形式: section,name,cid,ciid,quantity
 
   if (fields.length < 3) {
     warnings.push(`行${lineNumber}: フィールド数が不足しています（最低3列必要）`);
@@ -251,6 +274,7 @@ function parseImportRow(fields: string[], lineNumber: number, warnings: string[]
   let name: string | undefined;
   let cid: string;
   let ciid: string;
+  let enc: string | undefined;
   let quantity: number;
 
   if (fields.length === 3) {
@@ -277,12 +301,36 @@ function parseImportRow(fields: string[], lineNumber: number, warnings: string[]
       ciid = '1'; // デフォルト
       quantity = parseInt(field3, 10);
     }
-  } else {
-    // 形式: section,name,cid,ciid,quantity
+  } else if (fields.length === 5) {
+    // 形式: section,name,cid,ciid,quantity または section,cid,ciid,enc,quantity
+    const field1 = (fields[1] || '').trim();
+    const field2 = (fields[2] || '').trim();
+    const field3 = (fields[3] || '').trim();
+    const field4 = (fields[4] || '').trim();
+
+    if (/^\d+$/.test(field1) && /^\d+$/.test(field2)) {
+      // section,cid,ciid,enc,quantity
+      cid = field1;
+      ciid = field2;
+      enc = field3 || undefined;
+      quantity = parseInt(field4, 10);
+    } else {
+      // section,name,cid,ciid,quantity
+      name = field1;
+      cid = field2;
+      ciid = field3;
+      quantity = parseInt(field4, 10);
+    }
+  } else if (fields.length >= 6) {
+    // 形式: section,name,cid,ciid,enc,quantity
     name = (fields[1] || '').trim();
     cid = (fields[2] || '').trim();
     ciid = (fields[3] || '').trim();
-    quantity = parseInt((fields[4] || '').trim(), 10);
+    enc = (fields[4] || '').trim() || undefined;
+    quantity = parseInt((fields[5] || '').trim(), 10);
+  } else {
+    warnings.push(`行${lineNumber}: フィールド数が不正です`);
+    return null;
   }
 
   // バリデーション
@@ -301,7 +349,7 @@ function parseImportRow(fields: string[], lineNumber: number, warnings: string[]
     return null;
   }
 
-  return { section, name, cid, ciid, quantity };
+  return { section, name, cid, ciid, enc, quantity };
 }
 
 /**
@@ -321,6 +369,10 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
     } else {
       // 新しいカードを追加
       // インポート時は最小限の仮データを作成（後でAPIから正しい情報を取得する必要がある）
+
+      // enc（imgHash）がある場合はimgs配列に設定
+      const imgs = row.enc ? [{ ciid: row.ciid, imgHash: row.enc }] : [];
+
       const card: CardInfo = {
         cardType: 'monster',
         attribute: 'light',
@@ -336,7 +388,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         imageUrl: '',
         effect: '',
         isExtraDeck: false,
-        imgs: []
+        imgs
       } as CardInfo;
 
       cardMap.set(key, { section: row.section, card, quantity: row.quantity });

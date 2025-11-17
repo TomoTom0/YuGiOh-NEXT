@@ -1,20 +1,38 @@
-## 2025-11-18: デッキ画像作成時のメタデータ自動埋め込み（enc対応完了版）
+## 2025-11-18: デッキインポート/エクスポート全形式でenc対応完了
 
-- **タイムスタンプ**: 2025-11-18 01:00
+- **タイムスタンプ**: 2025-11-18 01:30
 - **バージョン**: 0.3.9
 - **ブランチ**: `feature/v0.4.0-foundation`
 
-### 最終的な実装
+### 実装内容
 
-**デッキ画像作成ダイアログのみで対応**
+**PNG画像へのメタデータ埋め込み**
 - `downloadDeckRecipeImage.ts`: PNG画像に自動的にメタデータ埋め込み
 - ファイル名拡張子: `.jpg` → `.png`
-
-**enc（imgHash）フィールド対応**
 - `png-metadata.ts`: SimpleDeckInfo に `enc` フィールド追加
-  - `enc` フィールドは各カードの `imgs` 配列から該当する `ciid` の `imgHash` を取得
-  - これによりインポート時にカード画像が正しく表示される
-  - enc がない場合、インポート直後は裏面表示になる（save/load後は表示される）
+
+**CSV/TXT形式でもenc対応**
+- `deck-export.ts`: エクスポート時に `enc` フィールドを含める
+  - CSV形式: `section,name,cid,ciid,enc,quantity`
+  - TXT形式: `2x カード名 (cid:ciid:enc)`
+- `deck-import.ts`: インポート時に `enc` フィールドを読み込み
+  - `enc` があれば `imgs` 配列に設定
+  - これによりカード画像が正しく表示される
+
+### 修正内容
+
+**問題点**: CSV/TXTからインポートした際、カード画像が裏面になっていた
+- 原因: `imgs` 配列が空配列のまま作成されていた
+- 解決: `enc` フィールドを追加し、`imgs` 配列に `{ ciid, imgHash }` を設定
+
+**対応ファイル**:
+- `src/utils/deck-import.ts`:
+  - `ImportRow` に `enc` フィールド追加
+  - CSV/TXTパーサーで `enc` 読み込み対応
+  - `convertRowsToDeckInfo()` で `imgs` 配列に設定
+- `src/utils/deck-export.ts`:
+  - `ExportRow` に `enc` フィールド追加
+  - CSV/TXTエクスポート時に `enc` 出力
 
 ### 削除した不要な実装
 - ExportDialog.vue: PNG形式選択（不要だった）
@@ -22,16 +40,27 @@
 - deck-export.ts: exportToPNG(), downloadDeckAsPNG()（不要だった）
 
 ### 正しい使い方
+
+**エクスポート**:
+1. Export Deck メニューから CSV/TXT を選択
+2. **自動的に enc フィールドが含まれる**
+
+**PNG画像作成**:
 1. デッキ編集/表示ページで**カメラボタン**をクリック
 2. デッキ画像作成ダイアログでオプション選択
 3. ダウンロードボタンをクリック
 4. **自動的にデッキ情報（cid, ciid, enc, quantity）が埋め込まれたPNG画像**がダウンロード
-5. その画像を Import Deck 機能でドロップしてデッキ復元
+
+**インポート**:
+1. Import Deck メニューから CSV/TXT/PNG を選択
+2. **enc フィールドが含まれている場合、カード画像が正しく表示される**
+3. enc がない場合、インポート直後は裏面表示（save/load後は表示）
 
 ### テスト結果
 - ✅ enc フィールドが正しくPNG画像に埋め込まれることを確認
 - ✅ enc フィールドが正しく抽出されることを確認
 - ✅ ciid 違いのカードでも正しい imgHash が設定されることを確認
+- ✅ CSV/TXT形式でも enc フィールドが正しくエクスポート/インポートされる
 
 ---
 
