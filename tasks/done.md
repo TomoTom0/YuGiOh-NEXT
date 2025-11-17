@@ -1,3 +1,46 @@
+## 2025-11-18: デッキメタデータ編集機能完了
+
+- **タイムスタンプ**: 2025-11-18 04:00
+- **バージョン**: 0.4.0（予定）
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 実装内容
+
+**Phase 1: デフォルトテーマの変更**
+- `src/types/settings.ts`: `DEFAULT_APP_SETTINGS.theme` を `'system'` → `'light'` に変更
+  - 理由: darkテーマが実質機能していないため、ライトテーマをデフォルトに設定
+
+**Phase 2: メタデータ編集機能の実装**
+- `src/components/RightArea.vue`: Header タブ → Metadata タブに変更
+  - 無効化されていたタブを有効化
+  - DeckMetadata コンポーネントをインポート・登録
+  - metadata-content セクションを追加
+
+- `src/components/DeckMetadata.vue`: メタデータ編集UI（新規作成）
+  - 編集可能フィールド:
+    - デッキ名（text input）
+    - 公開設定（toggle switch: 公開/非公開）
+    - デッキタイプ（select: OCG マスター/スピード、デュエルリンクス、マスターデュエル）
+    - デッキスタイル（select: 未選択、キャラクター、トーナメント、コンセプト）
+    - コメント（textarea）
+    - タグ（chip表示 + 追加/削除機能）
+  - ローカル状態管理: `ref` + `watch` でストアと同期
+  - 保存機能:
+    - `deckStore.saveDeck(dno)` を呼び出してサーバーに保存
+    - エラーハンドリング（dno未設定、API失敗時）
+    - 成功/失敗時のアラート表示
+
+### ビルド・デプロイ
+- ✅ TypeScriptビルド完了
+- ✅ デプロイ完了（`/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`）
+
+### 技術的なポイント
+- 既存の `saveDeckInternal` API を再利用（新規APIは不要）
+- メタデータ保存時に `DeckInfo` の全フィールド（name, isPublic, deckType, deckStyle, comment, tags, mainDeck, extraDeck, sideDeck）をサーバーに送信
+- TypeScript型安全性: `DeckTypeValue`, `DeckStyleValue` 型を適用
+
+---
+
 ## 2025-11-18: デッキ画像作成UIの改善完了
 
 - **タイムスタンプ**: 2025-11-18 03:30

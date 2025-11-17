@@ -15,20 +15,25 @@
 ### 実装計画
 
 #### Phase 1: オプション設定のテーマ変更
-- [ ] デフォルトテーマをライトテーマに設定
-- [ ] 設定ファイル修正（`src/utils/settings.ts` または関連ファイル）
-- [ ] ビルド・デプロイ
+- [x] デフォルトテーマをライトテーマに設定
+- [x] 設定ファイル修正（`src/types/settings.ts`: DEFAULT_APP_SETTINGS.theme = 'light'）
+- [x] ビルド・デプロイ
 
 #### Phase 2: メタデータ編集機能の調査と実装
-- [ ] right-areaのheader tabの調査
-- [ ] header tab → metadata tab に名前変更
-- [ ] メタデータ編集UIの設計
-- [ ] メタデータ保存機能の実装
+- [x] right-areaのheader tabの調査
+- [x] header tab → metadata tab に名前変更（`src/components/RightArea.vue`）
+- [x] メタデータ編集UIの設計
+  - デッキ名、公開設定、タグなどの編集フォーム
+  - `src/components/DeckMetadata.vue`を作成
+- [x] メタデータ保存機能の実装
+  - APIエンドポイント調査（既存の`saveDeck`を利用）
+  - 保存ロジック実装
+- [x] ビルド・デプロイ
 
 ### 完了条件
-- [ ] デフォルトテーマがライトテーマに設定されている
-- [ ] メタデータタブが表示され、編集可能
-- [ ] ビルド・デプロイ完了
+- [x] デフォルトテーマがライトテーマに設定されている
+- [x] メタデータタブが表示され、編集可能
+- [x] ビルド・デプロイ完了
 
 ---
 

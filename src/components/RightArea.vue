@@ -8,7 +8,12 @@
       >
         Deck
       </button>
-      <button class="tab-header" disabled>Header</button>
+      <button
+        :class="{ active: deckStore.activeTab === 'metadata' }"
+        @click="deckStore.activeTab = 'metadata'"
+      >
+        Metadata
+      </button>
       <button
         :class="{ active: deckStore.activeTab === 'search' }"
         @click="deckStore.activeTab = 'search'"
@@ -25,6 +30,10 @@
 
     <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
       <slot name="deck-tab"></slot>
+    </div>
+
+    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+      <DeckMetadata />
     </div>
 
     <div v-show="deckStore.activeTab === 'search'" class="search-content">
@@ -76,12 +85,14 @@ import { searchCardsByName } from '../api/card-search'
 import { getCardImageUrl } from '../types/card'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
+import DeckMetadata from './DeckMetadata.vue'
 
 export default {
   name: 'RightArea',
   components: {
     CardList,
-    CardDetail
+    CardDetail,
+    DeckMetadata
   },
   setup() {
     const deckStore = useDeckEditStore()

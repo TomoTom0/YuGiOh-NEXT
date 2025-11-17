@@ -155,7 +155,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   infoCardSize: 'large',        // カード詳細: 現在のサイズ（90×132）
   gridCardSize: 'medium',       // グリッド表示: 現在のサイズ（60×88）
   listCardSize: 'small',        // リスト表示: 現在のサイズ（36×53）
-  theme: 'system',
+  theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
   language: 'auto',
   middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
   enableBanlistCheck: false,
