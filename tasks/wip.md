@@ -1,17 +1,19 @@
 # 作業中のタスク
 
-## v0.4.1: displayOrder/deckInfo設計修正（2025-11-18）
+## v0.4.0: デッキ編集UI改善とメタデータ編集機能（2025-11-18）
 
-### 概要
+### ⚠️ 緊急修正: displayOrder/deckInfo設計修正
+
+#### 概要
 displayOrderとdeckInfoの二重管理による設計不備を修正。
 「displayOrder操作関数が常にdeckInfoも同時更新する」という原則を徹底。
 
-### 問題
+#### 問題
 - `moveCardWithPosition`が手動でdisplayOrderとdeckInfoを直接操作している
 - `insertCard`がdeckInfoだけを直接操作している
 - データの整合性が保てず、ドラッグ移動時にエラーが発生
 
-### 実装計画
+#### 実装計画
 - [ ] `insertToDisplayOrder(card, section, targetUuid)`関数を新規作成
   - 指定位置にカードを挿入（displayOrderとdeckInfoを同時更新）
 - [ ] `moveCardWithPosition`を修正
@@ -21,14 +23,12 @@ displayOrderとdeckInfoの二重管理による設計不備を修正。
 - [ ] 全てのdeckInfo直接操作を削除
 - [ ] テスト・ビルド・デプロイ
 
-### 完了条件
+#### 完了条件
 - [ ] displayOrder操作関数以外からdeckInfo/displayOrderを直接操作していない
 - [ ] ドラッグ移動のエラーが解消
 - [ ] 全ての操作で正常にアニメーション動作
 
 ---
-
-## v0.4.0: デッキ編集UI改善とメタデータ編集機能（2025-11-18）
 
 ### 概要
 デッキ編集UIを改善し、以下の機能を実装：
