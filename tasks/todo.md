@@ -37,6 +37,20 @@
 
 ---
 
+### 0. メタデータ管理の改善（優先度：高）
+
+#### 0.1 タグマスターデータの取得実装
+- [ ] `src/utils/deck-metadata-loader.ts`の`updateDeckMetadata()`を修正
+  - デッキ検索ページからタグマスターデータを取得
+  - `DeckMetadata`インターフェースに`tags: Record<string, string>`を追加
+  - chrome.storage.localに保存
+- [ ] タグマスターデータの初期JSONファイル作成
+  - `src/data/deck-metadata.json`にタグマスター追加
+- [ ] `src/components/DeckMetadata.vue`でタグ選択UIを有効化
+  - 現在は空オブジェクト（`tags.value = {}`）のため選択不可
+
+---
+
 ### 1. UIデザイン改善（優先度：高）
 
 #### 1.1 ダイアログのデザイン統一
