@@ -182,10 +182,51 @@ export default {
       deckStore.sortSection(props.sectionType)
     }
 
+    // ドラッグ中のカードが移動可能なセクションか判定
+    const canDropToSection = () => {
+      const dragging = deckStore.draggingCard
+      if (!dragging) return false
+
+      const { card, sectionType: from } = dragging
+      const to = props.sectionType
+
+      // searchからtrashへは移動不可
+      if (from === 'search' && to === 'trash') return false
+
+      // searchから移動する場合
+      if (from === 'search') {
+        // mainとextraはカードタイプで自動判定されるため許可
+        if (to === 'main' || to === 'extra') return true
+        // sideへは常に許可
+        if (to === 'side') return true
+        return false
+      }
+
+      // trashからの移動は全て許可
+      if (from === 'trash') return true
+
+      // main/extra/side間の移動はカードタイプによる
+      // ただし、extraデッキカード（融合・シンクロ・エクシーズ・リンク）をmainには移動できない
+      if (to === 'main' && card.types) {
+        const isExtraDeckCard = card.types.some(t =>
+          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+        )
+        if (isExtraDeckCard) return false
+      }
+
+      // それ以外は許可
+      return true
+    }
+
     const handleSectionDragOver = (event) => {
       event.preventDefault()
-      if (!isSectionDragOver.value) {
+
+      // 移動可能な場合のみ背景色を表示
+      const canDrop = canDropToSection()
+      if (canDrop && !isSectionDragOver.value) {
         isSectionDragOver.value = true
+      } else if (!canDrop && isSectionDragOver.value) {
+        isSectionDragOver.value = false
       }
     }
 
