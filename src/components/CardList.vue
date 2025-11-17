@@ -37,20 +37,21 @@
       @scroll="$emit('scroll', $event)"
     >
       <div
-        v-for="(card, idx) in cards"
-        :key="`card-${idx}`"
+        v-for="(item, idx) in cardsWithUuid"
+        :key="item.uuid"
         class="card-result-item"
       >
         <div class="card-wrapper">
           <DeckCard
-            :card="card"
+            :card="item.card"
             :section-type="sectionType"
             :index="idx"
+            :uuid="item.uuid"
           />
         </div>
         <div class="card-info" v-if="localViewMode === 'list'">
-          <div class="card-name">{{ card.name }}</div>
-          <div class="card-text" v-if="card.text">{{ card.text }}</div>
+          <div class="card-name">{{ item.card.name }}</div>
+          <div class="card-text" v-if="item.card.text">{{ item.card.text }}</div>
         </div>
       </div>
     </div>
@@ -58,7 +59,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -92,26 +93,35 @@ export default {
   setup(props, { emit }) {
     const localSortOrder = ref(props.sortOrder)
     const localViewMode = ref(props.viewMode)
-    
+
+    // 各カードにUUIDを付与（初回のみ生成、cardsが変わったら再生成）
+    const cardsWithUuid = computed(() => {
+      return props.cards.map((card) => ({
+        card,
+        uuid: crypto.randomUUID()
+      }))
+    })
+
     watch(() => props.sortOrder, (val) => {
       localSortOrder.value = val
     })
-    
+
     watch(() => props.viewMode, (val) => {
       localViewMode.value = val
     })
-    
+
     watch(localSortOrder, (val) => {
       emit('update:sortOrder', val)
     })
-    
+
     watch(localViewMode, (val) => {
       emit('update:viewMode', val)
     })
-    
+
     return {
       localSortOrder,
-      localViewMode
+      localViewMode,
+      cardsWithUuid
     }
   }
 }

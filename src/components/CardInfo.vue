@@ -5,10 +5,10 @@
       <div class="card-image-wrapper">
         <DeckCard
           v-if="card"
-          :key="card.ciid"
+          :key="cardUuid"
           :card="card"
           :section-type="'info'"
-          :uuid="'info-card'"
+          :uuid="cardUuid"
         />
         <button
           v-if="showImageSelectButton"
@@ -180,6 +180,12 @@ export default {
     // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
     const card = computed(() => deckStore.selectedCard)
 
+    // cardが変わるたびに新しいUUIDを生成
+    const cardUuid = computed(() => {
+      if (!card.value) return crypto.randomUUID()
+      return crypto.randomUUID()
+    })
+
     // 画像選択ボタンを表示するかどうか
     const showImageSelectButton = computed(() => {
       const result = !!(card.value && card.value.imgs && card.value.imgs.length > 1)
@@ -216,6 +222,7 @@ export default {
       parseCardLinks,
       handleCardLinkClick,
       card,
+      cardUuid,
       showImageDialog,
       showImageSelectButton,
       toggleImageDialog,

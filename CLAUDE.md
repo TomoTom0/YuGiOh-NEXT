@@ -126,7 +126,6 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 
 ### 参考ドキュメント
 
-- **調査手法の詳細**: `docs/research/investigation-methodology.md`
 - **セットアップスクリプト**: `scripts/debug/setup/`
 
 ## Build & Deploy
@@ -154,9 +153,9 @@ npm test
 node tmp/test-*.js
 ```
 
-### テストページ
+### デッキ編集ページ
 
-拡張機能は `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test` でテストUIを表示します。
+拡張機能のデッキ編集UIは `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit` でアクセスできます。
 
 ## ファイル構成の重要なルール
 
@@ -191,9 +190,44 @@ node tmp/test-*.js
 - `printf '\a'` などのbeep音を鳴らすコマンドは使用しないこと
 - 完了通知が必要な場合はテキストメッセージで伝えること
 
-## sample
+## テストとサンプルデータ
+
+### sample
 
 - アクセス先のページのurlやhtmlは適当に調べるのではなく、`tests/sample/`に従ってアクセスおよびダウンロード済みhtmlの調査をする
+
+### ブラウザ自動テスト
+
+- ブラウザ操作の自動テストスクリプトは `tests/browser/` にある
+- 新しいブラウザテストを作成する際は、既存のテストスクリプト（`test-buttons.js`, `test-shuffle.js`等）を参考にすること
+- `tmp/browser/` のスクリプトは動作確認されていない一時的なものなので、根拠として使用しないこと
+
+#### テストコード作成時の厳守事項
+
+**必ずソースコードから仕様を確認すること**
+
+テストコードを書く前に、以下を必ずソースコードから確認する：
+
+1. **セレクタ・クラス名**: 推測で書かず、ソースコードから実際のクラス名を確認
+2. **イベントハンドラの動作**: ボタンがどの関数を呼ぶか、その関数が何をするかを確認
+3. **データ属性**: data-*属性が存在するか、何が格納されているかを確認
+4. **DOM構造**: 要素の親子関係、兄弟関係を確認
+
+禁止事項：
+- **禁止**: 推測でセレクタやクラス名を書くこと
+- **禁止**: 推測でボタンの動作を決めること（例：「下ボタン=side移動」など）
+- **禁止**: Vue/Piniaの内部プロパティ（`__vue_app__`, `$pinia._s`等）にアクセスすること
+
+必須事項：
+- **必須**: ソースコードを読んで、実際に使用されているクラス名・属性・セレクタを確認すること
+- **必須**: イベントハンドラ関数の中身を読んで、実際の動作を確認すること
+- **必須**: DOM要素とその公開属性のみを使用すること
+
+例：
+- ❌ 悪い例: `document.querySelector('.deck-section[data-section-type="main"]')` （推測で書いた）
+- ✅ 良い例: ソースコードで `.main-deck` クラスを確認してから `document.querySelector('.main-deck')` を使用
+- ❌ 悪い例: 「下ボタンはside移動だろう」と推測して `.bottom-right` をクリック
+- ✅ 良い例: DeckCard.vueで `handleTopRight()` が `moveCardToSide()` を呼ぶことを確認してから `.top-right` をクリック
 
 ## 絵文字の使用禁止
 

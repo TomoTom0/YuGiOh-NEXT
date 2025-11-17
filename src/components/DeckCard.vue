@@ -1,18 +1,19 @@
 <template>
   <div
     class="card-item deck-card"
-    :class="[`section-${sectionType}`, { 'error-state': showError }]"
+    :class="[`section-${sectionType}`, { 'error-state': showError, 'drag-over': isDragOver }]"
     :data-card-id="card.cardId"
     :data-ciid="card.ciid"
     :data-uuid="uuid"
     :draggable="!card.empty"
     @dragstart="handleDragStart"
     @dragover="handleDragOver"
+    @dragleave="handleDragLeave"
     @drop="handleDrop"
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
   >
-    <img :src="cardImageUrl" :alt="card.name" :key="uuid || `${card.cardId}-${card.ciid}`" class="card-image">
+    <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
@@ -99,18 +100,19 @@ export default {
     },
     uuid: {
       type: String,
-      required: false,
-      default: ''
+      required: true
     }
   },
   setup() {
     const deckStore = useDeckEditStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
+    const isDragOver = ref(false)
     return {
       deckStore,
       showErrorLeft,
       showErrorRight,
+      isDragOver,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle
@@ -193,15 +195,45 @@ export default {
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
+      const dragging = this.deckStore.draggingCard
+
+      // 移動可能かチェック
+      const canMove = dragging && this.deckStore.canMoveCard(dragging.sectionType, this.sectionType, dragging.card)
+
+      if (canMove) {
+        // 移動可能な場合のみpreventDefaultを呼んでドロップを有効化
+        event.preventDefault()
+        event.stopPropagation()
+
+        // ドラッグ中のカードが自分自身でない場合のみハイライト
+        if (dragging && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
+          // 自分自身の上ではハイライトしない
+          this.isDragOver = false
+        } else {
+          this.isDragOver = true
+        }
+      } else {
+        // 移動不可の場合はpreventDefaultを呼ばない（ドロップ無効）
+        this.isDragOver = false
+      }
+
       this.$emit('dragover', event)
+    },
+    handleDragLeave(event) {
+      // 子要素への移動ではなく、本当に離れた時のみクリア
+      if (event.currentTarget === event.target || !event.currentTarget.contains(event.relatedTarget)) {
+        this.isDragOver = false
+      }
     },
     handleDragEnd() {
       // ドラッグ終了時にストアの情報をクリア
       this.deckStore.draggingCard = null
+      this.isDragOver = false
     },
     handleDrop(event) {
       event.preventDefault()
       event.stopPropagation()
+      this.isDragOver = false
       console.log('[DeckCard.handleDrop] Called for card:', this.card.name)
 
       try {
@@ -210,6 +242,12 @@ export default {
 
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
         console.log('[DeckCard.handleDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: this.sectionType })
+
+        // 移動可否チェック
+        if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
+          console.log('[DeckCard.handleDrop] Move not allowed, returning')
+          return
+        }
 
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
           // 同じセクション内での並び替え: targetの位置に挿入（targetは後ろにずれる）
@@ -242,6 +280,13 @@ export default {
       this.deckStore.cardTab = 'info'
     },
     handleTopRight() {
+      console.log('[DeckCard.handleTopRight]', {
+        cardName: this.card.name,
+        cardId: this.card.cardId,
+        ciid: this.card.ciid,
+        uuid: this.uuid,
+        sectionType: this.sectionType
+      })
       if (this.sectionType === 'side') {
         this.deckStore.moveCardFromSide(this.card, this.uuid)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
@@ -765,5 +810,12 @@ export default {
       background: rgba(150, 100, 255, 1);
     }
   }
+}
+
+/* ドラッグオーバー時のスタイル */
+.deck-card.drag-over {
+  outline: 2px solid rgba(100, 150, 255, 0.8);
+  outline-offset: -2px;
+  background: rgba(100, 150, 255, 0.1);
 }
 </style>

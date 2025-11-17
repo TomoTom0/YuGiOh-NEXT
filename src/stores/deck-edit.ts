@@ -59,32 +59,107 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   // UUID生成ヘルパー
   function generateUUID(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return crypto.randomUUID();
   }
-  
+
+  // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
+  function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
+    // searchからtrashへは移動不可
+    if (fromSection === 'search' && toSection === 'trash') {
+      return false;
+    }
+
+    // searchから移動する場合
+    if (fromSection === 'search') {
+      // mainに移動する場合：extraデッキカードは不可
+      if (toSection === 'main') {
+        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
+          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+        );
+        return !isExtraDeckCard;
+      }
+      // extraに移動する場合：extraデッキカードのみ可
+      if (toSection === 'extra') {
+        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
+          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+        );
+        return isExtraDeckCard || false;
+      }
+      // sideへは常に許可
+      if (toSection === 'side') {
+        return true;
+      }
+      return false;
+    }
+
+    // trashへの移動は全て不可
+    if (toSection === 'trash') {
+      return false;
+    }
+
+    // trashからの移動は全て許可
+    if (fromSection === 'trash') {
+      return true;
+    }
+
+    // main/extra/side間の移動はカードタイプによる
+    const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
+      t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+    );
+
+    // mainへの移動：extraデッキカードは不可
+    if (toSection === 'main') {
+      return !isExtraDeckCard;
+    }
+
+    // extraへの移動：extraデッキカードのみ可
+    if (toSection === 'extra') {
+      return isExtraDeckCard || false;
+    }
+
+    // sideへの移動：常に許可
+    if (toSection === 'side') {
+      return true;
+    }
+
+    // それ以外は許可
+    return true;
+  }
+
   // displayOrderを初期化（deckInfoから生成）
   function initializeDisplayOrder() {
     const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
-    
+
     sections.forEach(section => {
       const deck = section === 'main' ? deckInfo.value.mainDeck :
                    section === 'extra' ? deckInfo.value.extraDeck :
                    section === 'side' ? deckInfo.value.sideDeck :
                    trashDeck.value;
-      
+
       displayOrder.value[section] = [];
-      
+
       deck.forEach(deckCard => {
         for (let i = 0; i < deckCard.quantity; i++) {
           // 各カードのciid（Card Image ID）を使用
           const ciid = parseInt(String(deckCard.card.ciid), 10);
+          const newUuid = generateUUID();
+          console.log(`[initializeDisplayOrder] section=${section}, cid=${deckCard.card.cardId}, ciid=${ciid}, uuid=${newUuid}, quantity=${deckCard.quantity}, iteration=${i+1}/${deckCard.quantity}`);
           displayOrder.value[section].push({
             cid: deckCard.card.cardId,
             ciid: isNaN(ciid) ? 0 : ciid,
-            uuid: generateUUID()
+            uuid: newUuid
           });
         }
       });
+    });
+
+    // UUID重複チェック
+    sections.forEach(section => {
+      const uuids = displayOrder.value[section].map(dc => dc.uuid);
+      const uniqueUuids = new Set(uuids);
+      if (uuids.length !== uniqueUuids.size) {
+        console.error(`[initializeDisplayOrder] UUID重複検出！ section=${section}, total=${uuids.length}, unique=${uniqueUuids.size}`);
+      }
     });
   }
   
@@ -466,7 +541,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
-    
+
     const toDeck = to === 'main' ? deckInfo.value.mainDeck :
                    to === 'extra' ? deckInfo.value.extraDeck :
                    to === 'side' ? deckInfo.value.sideDeck :
@@ -476,18 +551,41 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const fromOrder = displayOrder.value[from];
     let moveCardIndex: number;
 
+    console.log('[moveInDisplayOrder]', { cardId, from, to, uuid, fromOrderLength: fromOrder.length });
+
     if (uuid) {
       // UUIDが指定されている場合は、そのUUIDのカードを移動
       moveCardIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
+      console.log('[moveInDisplayOrder] UUID search:', { uuid, foundIndex: moveCardIndex });
     } else {
       // UUIDが未指定の場合は最後の1枚を移動
       moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+      console.log('[moveInDisplayOrder] fallback search:', { cardId, foundIndex: moveCardIndex });
     }
 
-    if (moveCardIndex === -1) return;
+    if (moveCardIndex === -1) {
+      console.log('[moveInDisplayOrder] Card not found in displayOrder!');
+      return;
+    }
 
     const movingDisplayCard = fromOrder[moveCardIndex];
-    if (!movingDisplayCard) return;
+    if (!movingDisplayCard) {
+      console.log('[moveInDisplayOrder] movingDisplayCard is undefined!');
+      return;
+    }
+
+    console.log('[moveInDisplayOrder] movingDisplayCard:', {
+      cid: movingDisplayCard.cid,
+      ciid: movingDisplayCard.ciid,
+      uuid: movingDisplayCard.uuid
+    });
+
+    // displayOrderの全体を確認
+    console.log('[moveInDisplayOrder] All cards in fromOrder:', fromOrder.map(dc => ({
+      cid: dc.cid,
+      ciid: dc.ciid,
+      uuid: dc.uuid
+    })));
 
     // (cid, ciid)ペアでdeckCardを取得
     const fromIndex = fromDeck.findIndex(dc =>
@@ -815,9 +913,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return { success: true };
   }
 
-  function moveCardFromSide(card: CardInfo) {
+  function moveCardFromSide(card: CardInfo, uuid?: string) {
     const targetSection = (card.cardType === 'monster' && card.isExtraDeck) ? 'extra' : 'main';
-    moveCard(card.cardId, 'side', targetSection);
+    moveCard(card.cardId, 'side', targetSection, uuid);
   }
 
   function addCopyToSection(card: CardInfo, section: 'main' | 'extra' | 'side') {
@@ -1150,6 +1248,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     allResults,
     currentPage,
     hasMore,
+    canMoveCard,
     addCard,
     removeCard,
     moveCard,

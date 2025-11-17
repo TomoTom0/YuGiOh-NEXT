@@ -80,13 +80,23 @@
                   <p class="feature-description">{{ deckEditScreen.description }}</p>
                   <div class="feature-content">
                     <div class="feature-images" v-if="deckEditScreen.images && deckEditScreen.images.length">
-                      <img
-                        v-for="(img, idx) in deckEditScreen.images"
-                        :key="idx"
-                        :src="img.src"
-                        :alt="img.alt"
-                        class="feature-image"
-                      />
+                      <template v-for="(img, idx) in deckEditScreen.images" :key="idx">
+                        <video
+                          v-if="img.isVideo"
+                          :src="img.src"
+                          class="feature-image"
+                          autoplay
+                          loop
+                          muted
+                          playsinline
+                        ></video>
+                        <img
+                          v-else
+                          :src="img.src"
+                          :alt="img.alt"
+                          class="feature-image"
+                        />
+                      </template>
                     </div>
                     <div class="feature-usage" v-html="deckEditScreen.usage"></div>
                   </div>
@@ -122,13 +132,23 @@
               <p class="feature-description">{{ feature.description }}</p>
               <div class="feature-content">
                 <div class="feature-images" v-if="feature.images && feature.images.length">
-                  <img
-                    v-for="(img, idx) in feature.images"
-                    :key="idx"
-                    :src="img.src"
-                    :alt="img.alt"
-                    class="feature-image"
-                  />
+                  <template v-for="(img, idx) in feature.images" :key="idx">
+                    <video
+                      v-if="img.isVideo"
+                      :src="img.src"
+                      class="feature-image"
+                      autoplay
+                      loop
+                      muted
+                      playsinline
+                    ></video>
+                    <img
+                      v-else
+                      :src="img.src"
+                      :alt="img.alt"
+                      class="feature-image"
+                    />
+                  </template>
                 </div>
                 <div class="feature-usage" v-html="feature.usage"></div>
               </div>
@@ -154,7 +174,7 @@ interface Feature {
   description: string;
   usage: string;
   enabled: boolean;
-  images?: Array<{ src: string; alt: string }>;
+  images?: Array<{ src: string; alt: string; isVideo?: boolean }>;
 }
 
 const activeTab = ref<'general' | 'omit' | 'deck-edit-settings'>('omit');
@@ -172,9 +192,9 @@ const deckEditScreen = reactive<Feature>({
   name: '独自デッキ編集画面',
   description: 'カード検索・デッキ編集・カード詳細確認を一画面で行える統合UIです。デッキの読み込み・保存、ドラッグ＆ドロップによる編集、レスポンシブデザインに対応しています。',
   images: [
-    { src: '/images/deck-edit-initial-state.png', alt: 'デッキ編集画面の全体UI（初期状態）' },
-    { src: '/images/deck-edit-search-function.png', alt: 'カード検索機能（リスト表示・ソート）' },
-    { src: '/images/deck-edit-card-detail-info.png', alt: 'カード詳細表示（Infoタブ）' }
+    { src: '/images/deck-edit-01-initial-state.webp', alt: 'デッキ編集画面の全体UI（初期状態）' },
+    { src: '/images/deck-edit-07-search-function.webp', alt: 'カード検索機能（リスト表示・ソート）' },
+    { src: '/images/deck-edit-03-card-detail-info.webp', alt: 'カード詳細表示（Infoタブ）' }
   ],
   usage: `
     <h5>主な機能</h5>
@@ -201,7 +221,7 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'シャッフル・ソート・固定',
     description: 'デッキのカード順序をランダムに並べ替えたり、元に戻したりする機能です。特定のカードを固定して、シャッフル時に先頭に配置し続けることも可能です。',
     images: [
-      { src: '/images/shuffle-sort-animation.gif', alt: 'シャッフル・ソート・固定機能のデモ' }
+      { src: '/images/shuffle-sort-animation.mp4', alt: 'シャッフル・ソート・固定機能のデモ', isVideo: true }
     ],
     usage: `
       <ul>
@@ -217,7 +237,7 @@ const deckDisplayFeatures = reactive<Feature[]>([
     name: 'デッキ画像作成',
     description: 'デッキレシピを画像として保存できます。SNSでの共有やアーカイブに便利です。',
     images: [
-      { src: '/images/deck-recipe-sample.png', alt: '作成された画像見本' }
+      { src: '/images/deck-recipe-sample.webp', alt: '作成された画像見本' }
     ],
     usage: `
       <ul>

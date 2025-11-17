@@ -33,7 +33,7 @@
         </button>
       </span>
     </h3>
-    <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
+    <div class="card-grid" ref="cardGridRef">
       <TransitionGroup name="card-list">
         <DeckCard
           v-for="displayCard in displayCards"
@@ -112,13 +112,12 @@ export default {
       return deckCard.card
     }
 
-    const handleSectionDrop = (event) => {
-      // カードグリッド全体へのドロップは無視（個別カードまたは末尾へ）
-      event.stopPropagation()
-    }
-    
     const handleEndZoneDragOver = (event) => {
-      event.preventDefault()
+      // 移動可能な場合のみpreventDefaultを呼ぶ
+      const canDrop = canDropToSection()
+      if (canDrop) {
+        event.preventDefault()
+      }
     }
 
     const handleEndZoneDragLeave = (event) => {
@@ -130,6 +129,12 @@ export default {
       event.stopPropagation()
       isSectionDragOver.value = false
       console.log('[handleEndDrop] Called for section:', props.sectionType)
+
+      // 移動可能かチェック
+      if (!canDropToSection()) {
+        console.log('[handleEndDrop] Drop not allowed, returning')
+        return
+      }
 
       try {
         const data = event.dataTransfer.getData('text/plain')
@@ -182,51 +187,39 @@ export default {
       deckStore.sortSection(props.sectionType)
     }
 
-    // ドラッグ中のカードが移動可能なセクションか判定
+    // ドラッグ中のカードが移動可能なセクションか判定（ストアのcanMoveCardを使用）
     const canDropToSection = () => {
       const dragging = deckStore.draggingCard
-      if (!dragging) return false
+      if (!dragging) {
+        console.log('[canDropToSection] No dragging card')
+        return true // draggingCardがない場合はtrueを返す（後方互換性）
+      }
 
       const { card, sectionType: from } = dragging
       const to = props.sectionType
 
-      // searchからtrashへは移動不可
-      if (from === 'search' && to === 'trash') return false
+      console.log('[canDropToSection]', { from, to, cardName: card.name })
 
-      // searchから移動する場合
-      if (from === 'search') {
-        // mainとextraはカードタイプで自動判定されるため許可
-        if (to === 'main' || to === 'extra') return true
-        // sideへは常に許可
-        if (to === 'side') return true
-        return false
-      }
-
-      // trashからの移動は全て許可
-      if (from === 'trash') return true
-
-      // main/extra/side間の移動はカードタイプによる
-      // ただし、extraデッキカード（融合・シンクロ・エクシーズ・リンク）をmainには移動できない
-      if (to === 'main' && card.types) {
-        const isExtraDeckCard = card.types.some(t =>
-          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-        )
-        if (isExtraDeckCard) return false
-      }
-
-      // それ以外は許可
-      return true
+      const canMove = deckStore.canMoveCard(from, to, card)
+      console.log('[canDropToSection] result:', canMove)
+      return canMove
     }
 
     const handleSectionDragOver = (event) => {
-      event.preventDefault()
-
-      // 移動可能な場合のみ背景色を表示
+      // 移動可能かチェック
       const canDrop = canDropToSection()
-      if (canDrop && !isSectionDragOver.value) {
-        isSectionDragOver.value = true
-      } else if (!canDrop && isSectionDragOver.value) {
-        isSectionDragOver.value = false
+
+      if (canDrop) {
+        // 移動可能な場合のみpreventDefaultを呼んでドロップを有効化
+        event.preventDefault()
+        if (!isSectionDragOver.value) {
+          isSectionDragOver.value = true
+        }
+      } else {
+        // 移動不可の場合はpreventDefaultを呼ばない（ドロップ無効）
+        if (isSectionDragOver.value) {
+          isSectionDragOver.value = false
+        }
       }
     }
 
@@ -252,7 +245,6 @@ export default {
     })
 
     return {
-      handleSectionDrop,
       handleEndDrop,
       handleEndZoneDragOver,
       handleEndZoneDragLeave,
