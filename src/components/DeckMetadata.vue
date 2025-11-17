@@ -65,7 +65,7 @@
               :checked="localCategory.includes(id)"
               @click.stop="toggleCategory(id)"
             />
-            <span>{{ label }}</span>
+            <span class="option-text">{{ label }}</span>
           </div>
         </div>
         <div class="selected-categories">
@@ -103,7 +103,7 @@
               :checked="localTags.includes(id)"
               @click.stop="toggleTag(id)"
             />
-            <span>{{ label }}</span>
+            <span class="option-text">{{ label }}</span>
           </div>
         </div>
         <div class="selected-tags">
@@ -399,8 +399,8 @@ async function saveDeckMetadata() {
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #ddd);
   border-radius: 4px;
   margin-top: 4px;
   z-index: 100;
@@ -414,19 +414,21 @@ async function saveDeckMetadata() {
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.2s;
+  background: var(--bg-primary, #ffffff);
 
   &:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-secondary, #f5f5f5);
   }
 
   input[type="checkbox"] {
     cursor: pointer;
   }
+}
 
-  span {
-    font-size: 13px;
-    color: var(--text-primary);
-  }
+.option-text {
+  font-size: 13px;
+  color: #333333;
+  font-weight: 400;
 }
 
 .selected-categories {
@@ -448,8 +450,8 @@ async function saveDeckMetadata() {
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #ddd);
   border-radius: 4px;
   margin-top: 4px;
   z-index: 100;
@@ -463,18 +465,14 @@ async function saveDeckMetadata() {
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.2s;
+  background: var(--bg-primary, #ffffff);
 
   &:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-secondary, #f5f5f5);
   }
 
   input[type="checkbox"] {
     cursor: pointer;
-  }
-
-  span {
-    font-size: 13px;
-    color: var(--text-primary);
   }
 }
 
