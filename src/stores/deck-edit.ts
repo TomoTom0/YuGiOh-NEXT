@@ -619,11 +619,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     // DOM更新後にアニメーション実行
     // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
-    // 移動先のセクションのみアニメーション（移動元はカードがないためアニメーション不要）
+    // 移動元と移動先の両方のセクションをアニメーション（カードが詰まる動きを表現）
     nextTick(() => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          animateCardMoveByUUID(firstPositions, new Set([to]));
+          animateCardMoveByUUID(firstPositions, new Set([from, to]));
         });
       });
     });
@@ -859,11 +859,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // DOM更新後にアニメーション実行
     // nextTick + requestAnimationFrame でレイアウト計算完了を確実に待つ
-    // 移動先のセクションのみアニメーション（移動元はカードがないためアニメーション不要）
+    // 移動元と移動先の両方のセクションをアニメーション（カードが詰まる動きを表現）
     nextTick(() => {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          animateCardMoveByUUID(firstPositions, new Set([to]));
+          animateCardMoveByUUID(firstPositions, new Set([from, to]));
         });
       });
     });
