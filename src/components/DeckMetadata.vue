@@ -895,7 +895,7 @@ function removeTag(tagId: string) {
   color: #333;
   background: white;
   resize: vertical;
-  min-height: 200px;
+  min-height: 400px;
   height: auto;
   line-height: 1.6;
   box-sizing: border-box;
