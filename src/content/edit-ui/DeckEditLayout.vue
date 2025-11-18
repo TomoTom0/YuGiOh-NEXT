@@ -82,6 +82,7 @@ import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
 import { searchCardsByName } from '../../api/card-search'
 import { getCardImageUrl } from '../../types/card'
+import { detectCardGameType } from '../../utils/page-detector'
 
 export default {
   name: 'DeckEditLayout',
@@ -230,9 +231,10 @@ export default {
       
       try {
         const results = await searchCardsByName(query.trim())
+        const gameType = detectCardGameType()
         searchResults.length = 0
         searchResults.push(...results.map(card => {
-          const relativeUrl = getCardImageUrl(card)
+          const relativeUrl = getCardImageUrl(card, gameType)
           const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
           return {
             card: {

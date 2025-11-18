@@ -69,7 +69,7 @@ export async function createDeckRecipeImage(
       name: 'main',
       displayName: 'メイン',
       cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(getCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -77,7 +77,7 @@ export async function createDeckRecipeImage(
       name: 'extra',
       displayName: 'エクストラ',
       cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(getCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
     },
@@ -85,7 +85,7 @@ export async function createDeckRecipeImage(
       name: 'side',
       displayName: 'サイド',
       cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
-        const url = toAbsoluteUrl(getCardImageUrl(card));
+        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
     }
