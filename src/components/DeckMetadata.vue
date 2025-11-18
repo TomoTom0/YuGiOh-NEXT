@@ -236,7 +236,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
@@ -429,6 +429,25 @@ function toggleCategory(catId: string) {
   }
   deckStore.deckInfo.category = [...localCategory.value];
 }
+
+// カテゴリダイアログの位置調整
+watch(showCategoryDropdown, async (newVal) => {
+  if (newVal) {
+    await nextTick();
+    const dropdown = document.querySelector('.category-dialog') as HTMLElement;
+    if (dropdown) {
+      setTimeout(() => {
+        const dropdownRect = dropdown.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        
+        if (dropdownRect.right > viewportWidth) {
+          dropdown.style.left = 'auto';
+          dropdown.style.right = '0';
+        }
+      }, 0);
+    }
+  }
+});
 
 function removeCategory(catId: string) {
   const index = localCategory.value.indexOf(catId);
