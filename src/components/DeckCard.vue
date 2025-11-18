@@ -266,11 +266,17 @@ export default {
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
           // 同じセクション内での並び替え: targetの位置に挿入（targetは後ろにずれる）
           console.log('[DeckCard.handleDrop] Reordering within same section')
-          this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
+          const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
+          if (!result.success) {
+            console.error('[DeckCard] 移動失敗:', result.error)
+          }
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
           // 他のセクションからの移動: targetの位置に挿入（targetは後ろにずれる）
           console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
-          this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
+          const result = this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
+          if (!result.success) {
+            console.error('[DeckCard] 移動失敗:', result.error)
+          }
         }
       } catch (e) {
         console.error('Card drop error:', e)
@@ -302,9 +308,15 @@ export default {
         sectionType: this.sectionType
       })
       if (this.sectionType === 'side') {
-        this.deckStore.moveCardFromSide(this.card, this.uuid)
+        const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
+        if (!result.success) {
+          console.error('[DeckCard] 移動失敗:', result.error)
+        }
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
-        this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
+        const result = this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
+        if (!result.success) {
+          console.error('[DeckCard] 移動失敗:', result.error)
+        }
       }
     },
     handleBottomLeft() {
@@ -341,7 +353,10 @@ export default {
           })
         }
       } else {
-        this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
+        const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
+        if (!result.success) {
+          console.error('[DeckCard] 移動失敗:', result.error)
+        }
       }
     },
     handleBottomRight() {
