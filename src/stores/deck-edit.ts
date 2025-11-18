@@ -687,7 +687,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       limitErrorCardId.value = card.cardId;
       setTimeout(() => {
         limitErrorCardId.value = null;
-      }, 1500);
+      }, 1000);
       return { success: false, error: 'max_copies_reached' };
     }
 

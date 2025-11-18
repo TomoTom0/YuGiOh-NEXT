@@ -318,7 +318,7 @@ export default {
           console.error('[DeckCard] カード移動失敗:', result.error)
           setTimeout(() => {
             this.showErrorLeft = false
-          }, 1500)
+          }, 1000)
           return
         }
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -330,7 +330,7 @@ export default {
           console.error('[DeckCard] カード追加失敗:', result.error)
           setTimeout(() => {
             this.showErrorLeft = false
-          }, 1500)
+          }, 1000)
           return
         }
 
@@ -355,7 +355,7 @@ export default {
           console.error('[DeckCard] カード移動失敗:', result.error)
           setTimeout(() => {
             this.showErrorRight = false
-          }, 1500)
+          }, 1000)
           return
         }
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -376,7 +376,7 @@ export default {
           console.error('[DeckCard] カード追加失敗:', result.error)
           setTimeout(() => {
             this.showErrorRight = false
-          }, 1500)
+          }, 1000)
         }
       } else if (this.sectionType === 'extra') {
         // extraセクション内でコピー追加
@@ -386,7 +386,7 @@ export default {
           console.error('[DeckCard] カード追加失敗:', result.error)
           setTimeout(() => {
             this.showErrorRight = false
-          }, 1500)
+          }, 1000)
         }
       } else if (this.sectionType === 'side') {
         // sideセクション内でコピー追加
@@ -396,7 +396,7 @@ export default {
           console.error('[DeckCard] カード追加失敗:', result.error)
           setTimeout(() => {
             this.showErrorRight = false
-          }, 1500)
+          }, 1000)
         }
       }
     },
@@ -447,9 +447,23 @@ export default {
   margin: 0;
 
   &.error-state {
-    opacity: 0.7;
-    background: rgba(255, 0, 0, 0.3);
     border-color: #ff0000;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 0, 0, 0.5);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    img {
+      opacity: 0.85;
+    }
   }
 
   /* カード詳細パネル用 */
