@@ -222,7 +222,7 @@ export default {
 .loading, .no-data {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -237,7 +237,7 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 8px 10px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -247,7 +247,7 @@ export default {
 .pack-name {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   width: 100%;
 }
@@ -263,7 +263,7 @@ export default {
 
 .pack-date {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -272,7 +272,7 @@ export default {
 
 .pack-code {
   font-size: 10px;
-  color: #333;
+  color: var(--text-primary);
   width: 100px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -281,7 +281,7 @@ export default {
 
 .pack-rarities {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: left;
   display: flex;
   flex-wrap: wrap;
@@ -387,7 +387,7 @@ export default {
 .pack-loading {
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 </style>

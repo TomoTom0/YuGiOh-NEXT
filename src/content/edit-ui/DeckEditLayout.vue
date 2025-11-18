@@ -1,16 +1,16 @@
 <template>
   <div class="deck-edit-container">
-    <div class="main-content" :class="{ 'hide-on-mobile': true }">
+    <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
-      <div class="deck-areas">
+      <div class="deck-areas" :style="deckAreasStyle">
         <DeckSection
           title="main"
           section-type="main"
           :cards="mainDeck"
         />
 
-        <div class="middle-decks">
+        <div :class="middleDecksClass">
           <DeckSection
             title="extra"
             section-type="extra"
@@ -38,14 +38,14 @@
         <div class="mobile-deck-content">
           <DeckEditTopBar />
 
-          <div class="deck-areas">
+          <div class="deck-areas" :style="deckAreasStyle">
             <DeckSection
               title="main"
               section-type="main"
               :cards="mainDeck"
             />
 
-            <div class="middle-decks">
+            <div :class="middleDecksClass">
               <DeckSection
                 title="extra"
                 section-type="extra"
@@ -73,14 +73,16 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
 import { searchCardsByName } from '../../api/card-search'
 import { getCardImageUrl } from '../../types/card'
+import { detectCardGameType } from '../../utils/page-detector'
 
 export default {
   name: 'DeckEditLayout',
@@ -92,6 +94,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -110,14 +113,38 @@ export default {
       }
     }
     
+    // dnoパラメータを取得する関数
+    const getCurrentDno = () => {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      return urlParams.get('dno') || ''
+    }
+
+    // 現在のdnoを追跡
+    const currentDno = ref(getCurrentDno())
+
+    // dnoパラメータの変更を監視
+    const checkDnoChange = () => {
+      const newDno = getCurrentDno()
+      if (newDno !== currentDno.value) {
+        console.log('[DeckEditLayout] dno changed from', currentDno.value, 'to', newDno)
+        currentDno.value = newDno
+        // デッキデータを再ロード
+        deckStore.initializeOnPageLoad()
+      }
+    }
+
+    // hashchangeイベントでdno変更を監視
+    window.addEventListener('hashchange', checkDnoChange)
+
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       await deckStore.initializeOnPageLoad()
       window.addEventListener('resize', handleResize)
     })
-    
+
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('hashchange', checkDnoChange)
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {
@@ -142,24 +169,50 @@ export default {
     // 初期データ設定は行わない（load で読み込むため）
     
     const mainDeck = computed(() => {
-      return deckStore.deckInfo.mainDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.mainDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const extraDeck = computed(() => {
-      return deckStore.deckInfo.extraDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.extraDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const sideDeck = computed(() => {
-      return deckStore.deckInfo.sideDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.deckInfo.sideDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
     })
     const trashDeck = computed(() => {
-      return deckStore.trashDeck.flatMap(dc => 
-        Array(dc.quantity).fill(dc.card)
+      return deckStore.trashDeck.flatMap(dc =>
+        Array.from({ length: dc.quantity }, () => dc.card)
       )
+    })
+
+    // middle-decksの配置クラス
+    const middleDecksClass = computed(() => ({
+      'middle-decks': true,
+      'vertical-layout': settingsStore.appSettings.middleDecksLayout === 'vertical'
+    }))
+
+    // カードサイズに応じた動的padding
+    const deckAreasStyle = computed(() => {
+      const cardHeight = settingsStore.deckEditCardSizePixels.height
+      // TopBarとの間隔を確保（カードサイズが大きいほど間隔を広げる）
+      // smallサイズでも最低32pxの間隔を確保
+      const marginTop = Math.max(32, Math.ceil((cardHeight - 53) / 2))
+      // カード高さに基づいてbottom paddingを計算
+      // 検索入力欄との適切な間隔を確保（固定値150px: 入力欄47px + bottom位置20px + 余裕83px）
+      const paddingBottom = 150
+      return {
+        marginTop: `${marginTop}px`,
+        paddingBottom: `${paddingBottom}px`
+      }
+    })
+
+    const mainContentStyle = computed(() => {
+      // padding-bottomを.deck-areasに移動したため、ここでは何も設定しない
+      return {}
     })
 
     const searchResults = reactive([])
@@ -178,9 +231,10 @@ export default {
       
       try {
         const results = await searchCardsByName(query.trim())
+        const gameType = detectCardGameType()
         searchResults.length = 0
         searchResults.push(...results.map(card => {
-          const relativeUrl = getCardImageUrl(card)
+          const relativeUrl = getCardImageUrl(card, gameType)
           const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
           return {
             card: {
@@ -339,6 +393,8 @@ export default {
     }
 
     return {
+      deckStore,
+      settingsStore,
       activeTab,
       searchQuery,
       selectedCard,
@@ -349,6 +405,9 @@ export default {
       extraDeck,
       sideDeck,
       trashDeck,
+      middleDecksClass,
+      deckAreasStyle,
+      mainContentStyle,
       searchResults,
       showCardDetail,
       onSearchInput,
@@ -380,7 +439,7 @@ export default {
 .deck-edit-container {
   display: flex;
   height: calc(100vh - var(--header-height, 0px) - 20px);
-  background-color: #f0f0f0;
+  background-color: var(--bg-secondary);
   padding: 10px;
 }
 
@@ -398,10 +457,11 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-bottom: 80px;
+  /* padding-bottomは動的に設定 */
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  max-height: 100%; /* 親コンテナの高さを超えないように制限 */
 }
 
 .mobile-deck-content {
@@ -420,7 +480,10 @@ export default {
   gap: 10px;
   margin: 0;
   padding: 0;
-  margin-bottom: 65px;
+  flex: 1; /* .main-content内で残りスペースを使用 */
+  min-height: fit-content; /* 子要素+paddingの全体を表示 */
+  overflow: visible; /* 子要素がはみ出ることを許可 */
+  /* marginTopとpaddingBottomは動的に設定 */
 }
 
 .middle-decks {
@@ -429,6 +492,10 @@ export default {
   flex: none;
   min-height: 120px;
   width: 100%;
+
+  &.vertical-layout {
+    flex-direction: column;
+  }
 }
 
 .search-input-bottom {
@@ -438,7 +505,7 @@ export default {
   right: 340px;
   display: flex;
   gap: 10px;
-  background: white;
+  background: var(--bg-primary);
   padding: 10px 15px;
   border-radius: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -450,11 +517,11 @@ export default {
     outline: none;
     font-size: 14px;
     padding: 5px;
-    background: white !important;
-    color: #000 !important;
-    
+    background: var(--input-bg) !important;
+    color: var(--input-text) !important;
+
     &::placeholder {
-      color: #999 !important;
+      color: var(--text-tertiary) !important;
     }
   }
 }
@@ -467,17 +534,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--text-secondary);
 
   &:hover {
-    color: #333;
+    color: var(--text-primary);
   }
 }
 
 .right-area {
   width: 320px;
-  background: white;
-  border-left: 1px solid #ddd;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-primary);
   display: flex;
   flex-direction: column;
   margin: 0 0 0 10px;
@@ -489,25 +556,28 @@ export default {
 .tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--button-bg);
   margin: 0;
 
   button {
     padding: 8px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 13px;
-    color: #333;
+    color: var(--text-primary);
 
     &.active {
-      background: #008cff;
-      color: white;
+      background: var(--button-bg);
+      color: var(--button-text);
     }
-    
+
     &.tab-header {
-      background: #f0f0f0;
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
       cursor: default;
+      font-style: italic;
+      opacity: 0.7;
     }
   }
 }
@@ -526,8 +596,8 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 8px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-secondary);
   margin-bottom: 10px;
 }
 
@@ -535,22 +605,22 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
-  
+
   label {
     display: flex;
     gap: 4px;
     align-items: center;
     cursor: pointer;
-    color: #000;
+    color: var(--text-primary);
     font-size: 13px;
   }
-  
+
   .switch {
     cursor: pointer;
   }
-  
+
   span {
-    color: #000;
+    color: var(--text-primary);
     font-size: 14px;
   }
 }
@@ -567,9 +637,9 @@ export default {
   display: flex;
   gap: 10px;
   padding: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-secondary);
   border-radius: 4px;
-  background: white;
+  background: var(--card-bg);
   cursor: move;
   position: relative;
   width: 100%;
@@ -582,7 +652,7 @@ export default {
   height: 58px;
   object-fit: cover;
   border-radius: 2px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   pointer-events: none;
   user-select: none;
 }
@@ -597,18 +667,18 @@ export default {
   font-size: 11px;
   margin-bottom: 2px;
   word-break: break-word;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .card-status {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .card-text {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -623,7 +693,7 @@ export default {
   height: auto;
   margin: 15px 0;
   border-radius: 4px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
 }
 
 .detail-actions {
@@ -634,16 +704,16 @@ export default {
 
   button {
     padding: 8px;
-    border: 1px solid #008cff;
-    background: white;
-    color: #008cff;
+    border: 1px solid var(--button-bg);
+    background: var(--bg-primary);
+    color: var(--button-bg);
     cursor: pointer;
     border-radius: 4px;
     font-size: 14px;
 
     &:hover {
-      background: #008cff;
-      color: white;
+      background: var(--button-bg);
+      color: var(--button-text);
     }
   }
 }
@@ -662,10 +732,10 @@ export default {
     position: relative;
     width: 40px;
     height: 20px;
-    background: #ccc;
+    background: var(--bg-tertiary);
     border-radius: 20px;
     transition: 0.3s;
-    
+
     &::before {
       content: '';
       position: absolute;
@@ -673,15 +743,15 @@ export default {
       height: 16px;
       left: 2px;
       top: 2px;
-      background: white;
+      background: var(--button-text);
       border-radius: 50%;
       transition: 0.3s;
     }
   }
-  
+
   input:checked + .slider {
-    background: #008cff;
-    
+    background: var(--button-bg);
+
     &::before {
       transform: translateX(20px);
     }

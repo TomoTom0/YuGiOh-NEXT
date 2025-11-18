@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const subtitle = document.createElement('p');
   subtitle.className = 'popup-subtitle';
-  subtitle.textContent = 'YuGiOh Neuron EXTention';
+  subtitle.textContent = 'YuGiOh Neuron EXTension';
 
   header.appendChild(title);
   header.appendChild(subtitle);

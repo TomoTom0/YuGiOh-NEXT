@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### Rush Duel対応（OCG/Rush Duel両対応化）
+- **基盤整備**
+  - 型定義追加: `CardGameType = 'ocg' | 'rush'`
+  - ページ判定ユーティリティ: `detectCardGameType()`, `getGamePath()`
+  - URLビルダー: 11個のURL生成関数（`buildApiUrl()`, `buildImageUrl()`, `getDeckDisplayUrl()` など）
+  
+- **デッキ表示機能のRush Duel対応**
+  - シャッフル・ソート機能: ゲームタイプ自動判定
+  - デッキ画像作成機能: ゲームタイプ自動判定、QRコードURL動的生成
+
+### Fixed
+
+#### Rush Duel対応のバグ修正
+- `getCardImageUrl()`: `/yugiohdb/` 固定問題を修正、`gameType`パラメータを追加
+- `isDeckDisplayPage()`: `ope=1`省略時も正しくデッキ表示ページと判定
+- 全コンポーネント（DeckCard, RightArea, DeckEditLayout）で画像URL動的生成
+
+### Technical Details
+
+**影響範囲**
+- 修正ファイル: 13個
+- 新規ファイル: 1個 (`src/utils/url-builder.ts`)
+- コミット: 3件（565a848, 0b88de8, c0389e8）
+
+**動作確認**
+- ✅ Rush Duelページでシャッフル・ソートボタン表示
+- ✅ Rush Duelページでデッキ画像作成動作
+- ✅ 画像URLが正しく `/rushdb/` を使用
+- ✅ `ope=1` 省略時も動作
+
+---
+
 ## [0.3.0] - 2025-11-13
 
 ### Added

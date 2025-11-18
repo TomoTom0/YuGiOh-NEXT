@@ -12,7 +12,8 @@ import {
   SpellEffectType,
   TrapEffectType,
   CardDetail,
-  PackInfo
+  PackInfo,
+  LimitRegulation
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import {
@@ -754,15 +755,29 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     text = cloned.textContent?.trim() || undefined;
   }
 
+  // 禁止制限（オプション）
+  let limitRegulation: LimitRegulation | undefined = undefined;
+  const lrIconElem = row.querySelector('.lr_icon');
+  if (lrIconElem) {
+    if (lrIconElem.classList.contains('fl_1')) {
+      limitRegulation = 'forbidden';
+    } else if (lrIconElem.classList.contains('fl_2')) {
+      limitRegulation = 'limited';
+    } else if (lrIconElem.classList.contains('fl_3')) {
+      limitRegulation = 'semi-limited';
+    }
+  }
+
   const base: CardBase = {
     name,
     ruby,
     cardId,
     ciid,
     imgs,
-    text
+    text,
+    limitRegulation
   };
-  
+
   return base;
 }
 
@@ -1324,18 +1339,25 @@ export async function getCardDetail(
 function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: string}> {
   const imgs: Array<{ciid: string, imgHash: string}> = [];
   
-  const thumbnailImages = doc.querySelectorAll('#thumbnail img');
-  thumbnailImages.forEach(img => {
-    const src = img.getAttribute('src') || '';
-    const ciidMatch = src.match(/ciid=(\d+)/);
-    const encMatch = src.match(/enc=([^&]+)/);
+  // HTML全体を文字列として取得
+  const html = doc.documentElement.outerHTML;
+  
+  // JavaScriptコード内の $('#thumbnail_card_image_X').attr('src', '...') パターンを抽出
+  const pattern = /\$\(['"]#thumbnail_card_image_\d+['"]\)\.attr\(['"]src['"],\s*['"]([^'"]+)['"]\)/g;
+  
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    const url = match[1];
+    const ciidMatch = url.match(/ciid=(\d+)/);
+    const encMatch = url.match(/enc=([^&]+)/);
+    
     if (ciidMatch?.[1] && encMatch?.[1]) {
       imgs.push({
         ciid: ciidMatch[1],
         imgHash: encMatch[1]
       });
     }
-  });
+  }
   
   return imgs;
 }
