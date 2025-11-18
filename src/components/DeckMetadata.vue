@@ -154,7 +154,11 @@
           >
             <!-- 1行目: フィルターボタン + 検索入力 + 検索ボタン -->
             <div class="dialog-search-row">
-              <button class="filter-button" @click.stop="onFilterClick">Filter</button>
+              <button class="filter-button" @click.stop="onFilterClick">
+                <svg width="20" height="20" viewBox="0 0 24 24">
+                  <path fill="currentColor" :d="mdiFilterOutline" />
+                </svg>
+              </button>
               <div class="search-input-wrapper">
                 <input
                   v-model="categorySearchQuery"
@@ -163,7 +167,11 @@
                   placeholder="カテゴリを検索..."
                   @click.stop
                 />
-                <button class="search-button" @click.stop>Search</button>
+                <button class="search-button" @click.stop>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="currentColor" :d="mdiMagnify" />
+                  </svg>
+                </button>
               </div>
             </div>
             
