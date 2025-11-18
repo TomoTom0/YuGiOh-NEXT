@@ -894,13 +894,13 @@ function removeTag(tagId: string) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 2px 6px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
   color: white;
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: 500;
-  height: 24px;
+  height: 18px;
 }
 
 .chip-remove {
@@ -909,12 +909,12 @@ function removeTag(tagId: string) {
   color: white;
   cursor: pointer;
   padding: 0;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
   
   &:hover {
