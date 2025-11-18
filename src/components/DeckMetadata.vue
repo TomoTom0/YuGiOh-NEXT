@@ -164,7 +164,7 @@
     </div>
 
     <!-- デッキ説明 -->
-    <div class="metadata-section description-section">
+    <div class="description-section">
       <div class="description-header">
         <label class="metadata-label">説明</label>
         <span class="char-count">{{ localComment.length }}/1000</span>
@@ -855,6 +855,9 @@ function removeTag(tagId: string) {
 
 .description-section {
   margin-top: 8px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .description-header {
@@ -876,27 +879,28 @@ function removeTag(tagId: string) {
 }
 
 .metadata-textarea {
-  width: 100%;
-  max-width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  font-family: inherit;
-  color: #333;
-  background: white;
-  resize: vertical;
-  min-height: 150px;
-  line-height: 1.6;
-  box-sizing: border-box;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 10px !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-family: inherit !important;
+  color: #333 !important;
+  background: white !important;
+  resize: vertical !important;
+  min-height: 200px !important;
+  height: 200px !important;
+  line-height: 1.6 !important;
+  box-sizing: border-box !important;
   
   &:focus {
-    outline: none;
-    border-color: var(--theme-gradient-start, #00d9b8);
+    outline: none !important;
+    border-color: var(--theme-gradient-start, #00d9b8) !important;
   }
   
   &::placeholder {
-    color: #999;
+    color: #999 !important;
   }
 }
 </style>
