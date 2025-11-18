@@ -108,7 +108,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards } from '../api/card-search'
 import { getCardImageUrl } from '../types/card'
@@ -128,6 +128,25 @@ export default {
     const deckStore = useDeckEditStore()
     const searchMode = ref('name')
     const showSearchModeDropdown = ref(false)
+
+    // ドロップダウンの外側クリックで閉じる
+    const handleClickOutside = (event) => {
+      const dropdown = document.querySelector('.mode-dropdown')
+      const toggle = document.querySelector('.search-mode-toggle')
+      if (dropdown && toggle && 
+          !dropdown.contains(event.target) && 
+          !toggle.contains(event.target)) {
+        showSearchModeDropdown.value = false
+      }
+    }
+
+    onMounted(() => {
+      document.addEventListener('click', handleClickOutside)
+    })
+
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside)
+    })
 
     const sortResults = (results) => {
       const sorted = [...results]
@@ -702,19 +721,22 @@ export default {
 }
 
 .menu-button {
-  background: white;
+  background: rgba(255, 255, 255, 0.85);
   border: none;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, #999);
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   padding: 4px 10px;
   border-radius: 8px;
-  transition: background 0.2s;
+  transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
+  top: -2px;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
   }
 }
 
