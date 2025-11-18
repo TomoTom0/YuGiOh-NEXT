@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [vue()],
   test: {
-    environment: 'happy-dom',
+    environment: 'node',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
   },
