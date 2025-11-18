@@ -140,29 +140,55 @@
         </Transition>
       </div>
       <div class="right-half">
-        <button class="action-button" @click.stop="showCategoryDropdown = !showCategoryDropdown">Category</button>
+        <button 
+          ref="categoryButton"
+          class="action-button" 
+          @click.stop="showCategoryDropdown = !showCategoryDropdown"
+        >Category</button>
         <Transition name="dropdown">
-          <div v-if="showCategoryDropdown" class="category-dropdown">
-            <input
-              v-model="categorySearchQuery"
-              type="text"
-              class="dropdown-search"
-              placeholder="カテゴリを検索..."
-              @click.stop
-            />
-            <div class="dropdown-options">
+          <div 
+            v-if="showCategoryDropdown" 
+            ref="categoryDropdown"
+            class="category-dialog"
+            @click.stop
+          >
+            <!-- 1行目: フィルターボタン + 検索入力 + 検索ボタン -->
+            <div class="dialog-search-row">
+              <button class="filter-button" @click.stop="onFilterClick">Filter</button>
+              <div class="search-input-wrapper">
+                <input
+                  v-model="categorySearchQuery"
+                  type="text"
+                  class="dialog-search-input"
+                  placeholder="カテゴリを検索..."
+                  @click.stop
+                />
+                <button class="search-button" @click.stop>🔍</button>
+              </div>
+            </div>
+            
+            <!-- 2行目: 選択済みチップ -->
+            <div class="dialog-selected-chips">
+              <span
+                v-for="catId in localCategory"
+                :key="'selected-' + catId"
+                class="dialog-chip selected"
+              >
+                {{ categories[catId] }}
+                <button class="dialog-chip-remove" @click="removeCategory(catId)">×</button>
+              </span>
+            </div>
+            
+            <!-- 3行目以降: カテゴリ選択グリッド（スクロール可能） -->
+            <div class="dialog-options-grid">
               <div
                 v-for="(label, id) in filteredCategories"
                 :key="id"
-                class="dropdown-option"
+                class="dialog-chip clickable"
+                :class="{ selected: localCategory.includes(id) }"
                 @click="toggleCategory(id)"
               >
-                <input
-                  type="checkbox"
-                  :checked="localCategory.includes(id)"
-                  @click.stop
-                />
-                <span>{{ label }}</span>
+                {{ label }}
               </div>
             </div>
           </div>
@@ -387,6 +413,11 @@ function getDeckStyleLabel() {
 
 function updateComment() {
   deckStore.deckInfo.comment = localComment.value;
+}
+
+function onFilterClick() {
+  // TODO: フィルター機能を実装
+  console.log('Filter button clicked');
 }
 
 function toggleCategory(catId: string) {
@@ -731,6 +762,7 @@ function removeTag(tagId: string) {
   align-items: flex-start;
   min-height: 28px;
   justify-content: flex-start;
+  margin-top: 4px;
 }
 
 // 公開/非公開スイッチ - テキストを左右に配置
@@ -910,8 +942,7 @@ function removeTag(tagId: string) {
 
 .deck-type-dropdown,
 .deck-style-dropdown,
-.tag-dropdown,
-.category-dropdown {
+.tag-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -923,6 +954,144 @@ function removeTag(tagId: string) {
   min-width: 240px;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.category-dialog {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  width: 400px;
+  max-width: calc(100vw - 40px);
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+}
+
+.dialog-search-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-button {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  
+  &:hover {
+    background: #e8e8e8;
+  }
+}
+
+.search-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dialog-search-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  font-size: 12px;
+  outline: none;
+  
+  &:focus {
+    background: #f9f9f9;
+  }
+}
+
+.search-button {
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border: none;
+  border-left: 1px solid #ddd;
+  cursor: pointer;
+  font-size: 14px;
+  
+  &:hover {
+    background: #e8e8e8;
+  }
+}
+
+.dialog-selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+  padding: 6px;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.dialog-options-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 360px;
+  padding: 4px;
+}
+
+.dialog-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: #e8f0fe;
+  border: 1px solid #c5d9f7;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #333;
+  white-space: nowrap;
+  
+  &.selected {
+    background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+    color: white;
+    border-color: transparent;
+  }
+  
+  &.clickable {
+    cursor: pointer;
+    justify-content: center;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
+.dialog-chip-remove {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .deck-type-option,
