@@ -635,7 +635,7 @@ function removeTag(tagId: string) {
   justify-content: flex-start;
 }
 
-// 公開/非公開スイッチ - コンパクト版
+// 公開/非公開スイッチ - テキストをスイッチ内に表示
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -648,53 +648,48 @@ function removeTag(tagId: string) {
 .toggle-slider {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   cursor: pointer;
-  padding: 4px 8px;
+  width: 80px;
   height: 28px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  transition: all 0.2s;
+  border-radius: 14px;
+  background: #e0e0e0;
+  transition: all 0.3s;
   user-select: none;
+  position: relative;
   
   .toggle-text {
-    font-size: 12px;
-    color: #333;
-    white-space: nowrap;
+    font-size: 11px;
+    color: #666;
+    font-weight: 600;
+    z-index: 1;
+    transition: color 0.3s;
   }
   
   &:before {
     content: "";
-    display: inline-block;
-    width: 32px;
-    height: 16px;
-    background-color: #ccc;
-    border-radius: 8px;
-    position: relative;
-    transition: 0.3s;
-  }
-  
-  &:after {
-    content: "";
     position: absolute;
-    left: 10px;
-    top: 7px;
-    height: 12px;
-    width: 12px;
+    left: 2px;
+    top: 2px;
+    width: 36px;
+    height: 24px;
     background-color: white;
-    border-radius: 50%;
+    border-radius: 12px;
     transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
 }
 
 .toggle-checkbox:checked + .toggle-slider {
-  &:before {
-    background-color: #4CAF50;
+  background: #4CAF50;
+  
+  .toggle-text {
+    color: white;
   }
   
-  &:after {
-    transform: translateX(16px);
+  &:before {
+    transform: translateX(40px);
   }
 }
 
@@ -731,7 +726,7 @@ function removeTag(tagId: string) {
 
 .deck-type-button {
   min-width: 60px;
-  padding: 0 6px;
+  padding: 2px 6px;
 }
 
 .deck-style-button {
@@ -744,8 +739,8 @@ function removeTag(tagId: string) {
 }
 
 .deck-type-icon {
-  width: 50px;
-  height: auto;
+  height: 24px;
+  width: auto;
   display: block;
 }
 
