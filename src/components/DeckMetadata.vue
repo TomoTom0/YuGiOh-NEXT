@@ -16,10 +16,10 @@
         </label>
       </div>
 
-      <div class="deck-type-selector">
+      <div class="deck-type-selector" ref="deckTypeSelector">
         <button 
           class="deck-type-button"
-          @click="showDeckTypeDropdown = !showDeckTypeDropdown"
+          @click="toggleDeckTypeDropdown"
         >
           <div v-if="localDeckType === '-1'" class="deck-type-placeholder">DeckType</div>
           <svg v-else-if="localDeckType === '0'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
@@ -44,7 +44,12 @@
           </svg>
         </button>
         <Transition name="dropdown">
-          <div v-if="showDeckTypeDropdown" class="deck-type-dropdown">
+          <div 
+            v-if="showDeckTypeDropdown" 
+            ref="deckTypeDropdown"
+            class="deck-type-dropdown"
+            :class="{ 'align-right': deckTypeDropdownAlignRight }"
+          >
             <div class="deck-type-option" @click="selectDeckType('0')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
@@ -81,15 +86,20 @@
         </Transition>
       </div>
 
-      <div class="deck-style-selector">
+      <div class="deck-style-selector" ref="deckStyleSelector">
         <button 
           class="deck-style-button"
-          @click="showDeckStyleDropdown = !showDeckStyleDropdown"
+          @click="toggleDeckStyleDropdown"
         >
           {{ getDeckStyleLabel() }}
         </button>
         <Transition name="dropdown">
-          <div v-if="showDeckStyleDropdown" class="deck-style-dropdown">
+          <div 
+            v-if="showDeckStyleDropdown" 
+            ref="deckStyleDropdown"
+            class="deck-style-dropdown"
+            :class="{ 'align-right': deckStyleDropdownAlignRight }"
+          >
             <div class="deck-style-option" @click="selectDeckStyle('0')">Chara</div>
             <div class="deck-style-option" @click="selectDeckStyle('1')">Tourn</div>
             <div class="deck-style-option" @click="selectDeckStyle('2')">Concep</div>
@@ -223,6 +233,16 @@ const showDeckStyleDropdown = ref(false);
 const showCategoryDropdown = ref(false);
 const showTagDropdown = ref(false);
 
+// ドロップダウン位置調整
+const deckTypeDropdownAlignRight = ref(false);
+const deckStyleDropdownAlignRight = ref(false);
+
+// DOM参照
+const deckTypeSelector = ref<HTMLElement | null>(null);
+const deckTypeDropdown = ref<HTMLElement | null>(null);
+const deckStyleSelector = ref<HTMLElement | null>(null);
+const deckStyleDropdown = ref<HTMLElement | null>(null);
+
 // カテゴリ・タグ検索用
 const categorySearchQuery = ref('');
 const tagSearchQuery = ref('');
@@ -297,6 +317,50 @@ watch(() => deckStore.deckInfo, (newDeckInfo) => {
 // 更新関数
 function updatePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
+}
+
+// ドロップダウン位置調整関数
+function adjustDropdownPosition(
+  selector: HTMLElement | null,
+  dropdown: HTMLElement | null,
+  alignRightRef: { value: boolean }
+) {
+  if (!selector || !dropdown) return;
+  
+  setTimeout(() => {
+    const rect = selector.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    
+    // 右端からはみ出る場合
+    if (rect.left + dropdownRect.width > viewportWidth) {
+      alignRightRef.value = true;
+    } else {
+      alignRightRef.value = false;
+    }
+  }, 0);
+}
+
+function toggleDeckTypeDropdown() {
+  showDeckTypeDropdown.value = !showDeckTypeDropdown.value;
+  if (showDeckTypeDropdown.value) {
+    adjustDropdownPosition(
+      deckTypeSelector.value,
+      deckTypeDropdown.value,
+      deckTypeDropdownAlignRight
+    );
+  }
+}
+
+function toggleDeckStyleDropdown() {
+  showDeckStyleDropdown.value = !showDeckStyleDropdown.value;
+  if (showDeckStyleDropdown.value) {
+    adjustDropdownPosition(
+      deckStyleSelector.value,
+      deckStyleDropdown.value,
+      deckStyleDropdownAlignRight
+    );
+  }
 }
 
 function selectDeckType(value: string) {
