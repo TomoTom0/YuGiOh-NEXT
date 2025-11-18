@@ -68,4 +68,3 @@ mv tmp/ciid-fix-manual-test.md docs/testing/manual/ciid-fix-verification.md || t
 
 - 削除作業は Git 管理外のファイルに対して行う想定。必要ならバックアップ（`tar`）を作成してから実施すること。
 - 本レポートは `docs/internal-reviews/reports/tmp-cleanup-report.md` に配置済み。
-
