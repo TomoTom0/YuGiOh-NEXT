@@ -1,3 +1,36 @@
+## 2025-11-18: カード追加時のフラッシュエフェクト完了
+
+- **タイムスタンプ**: 2025-11-18 17:10 JST
+- **バージョン**: 0.4.0（開発中）
+- **ブランチ**: `feature/v0.4.0-foundation`
+
+### 実装内容
+
+**プラスボタン押下時のカード追加アニメーションと枚数超過警告**
+
+**修正1 - カード追加アニメーション（DeckCard.vue, CardList.vue）**:
+- プラスボタン押下時に新規追加されたカードをフラッシュ表示
+- `deckStore.addCardFlash(uuid)` で追加カードのUUIDを500ms間保持
+- CSSで `.card-flash` クラスを適用（青色ハイライト）
+
+**修正2 - 枚数超過時の警告表示（DeckCard.vue）**:
+- 枚数超過時にプラスボタンをバツアイコン＋赤色に変更
+- 同じcidのmain/extra/side全カードに赤色警告を表示:
+  - 半透明化（opacity: 0.6）
+  - 赤背景オーバーレイ（::before疑似要素、background: rgba(255, 0, 0, 0.3)）
+- 500ms後に自動的に警告表示を解除
+
+**修正3 - エラーハンドリング統合（DeckCard.vue, DeckSection.vue）**:
+- カード移動のエラー処理を共通関数 `handleMoveResult()` に統合
+- 重複していたエラーログ出力（11箇所）を2箇所に集約
+- ストアの移動メソッドが戻り値 `{ success: boolean; error?: string }` を返すように統一
+
+### ビルド・デプロイ
+- ✅ TypeScriptビルド完了
+- ✅ デプロイ完了（`/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`）
+
+---
+
 ## 2025-11-18: Rush Duel対応（OCG/Rush Duel両対応化）完了
 
 - **タイムスタンプ**: 2025-11-18 12:00 JST
