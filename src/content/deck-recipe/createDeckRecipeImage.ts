@@ -12,6 +12,8 @@ import {
 } from '../../types/deck-recipe-image';
 import { getCardImageUrl } from '../../types/card';
 import QRCode from 'qrcode';
+import { detectCardGameType, getGamePath } from '../../utils/page-detector';
+import { getDeckDisplayUrl } from '../../utils/url-builder';
 
 /**
  * デッキレシピ画像を作成する
@@ -47,7 +49,11 @@ export async function createDeckRecipeImage(
   }
   const data = deckData;
 
-  // 2. DeckInfoからCardSection配列を構築
+  // 2. 現在のゲームタイプを検出（ブラウザ環境のみ）
+  const gameType = typeof window !== 'undefined' ? detectCardGameType() : 'ocg';
+  const gamePath = getGamePath(gameType);
+
+  // 3. DeckInfoからCardSection配列を構築
   // getCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
   const isNode = typeof window === 'undefined';
   const toAbsoluteUrl = (url: string | undefined): string | undefined => {
@@ -88,7 +94,7 @@ export async function createDeckRecipeImage(
   // 3. Canvas描画設定の初期化
   const drawSettings = initializeCanvasSettings(sections, scale, color, includeQR);
 
-  // 3. Canvasの作成と初期化
+  // 4. Canvasの作成と初期化
   let canvas: any;
   let ctx: any;
 
@@ -126,7 +132,7 @@ export async function createDeckRecipeImage(
   // 0枚のセクションは表示しない
   const nonEmptySections = sections.filter(section => section.cardImages.length > 0);
   for (const section of nonEmptySections) {
-    currentY = await drawCardSection(ctx, section, currentY, drawSettings);
+    currentY = await drawCardSection(ctx, section, currentY, drawSettings, gamePath);
   }
 
   // 7. QRコード描画（includeQRがtrueの場合）
@@ -284,13 +290,15 @@ function drawDeckName(
  * @param section - カードセクション
  * @param startY - 開始Y座標
  * @param settings - 描画設定
+ * @param gamePath - ゲームパス（yugiohdb/rushdb）
  * @returns 次のセクションの開始Y座標
  */
 async function drawCardSection(
   ctx: CanvasRenderingContext2D,
   section: CardSection,
   startY: number,
-  settings: CanvasDrawSettings
+  settings: CanvasDrawSettings,
+  gamePath: string
 ): Promise<number> {
   const scale = settings.scale;
   let currentY = startY;
@@ -329,14 +337,14 @@ async function drawCardSection(
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
       // Chrome拡張機能環境
       const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
-      cardBackImg = await loadImage(cardBackUrl);
+      cardBackImg = await loadImage(cardBackUrl, gamePath);
     } else {
       // Node.js環境 - ローカルファイルパスを使用
       const path = await import('path');
       const { fileURLToPath } = await import('url');
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const cardBackPath = path.resolve(__dirname, '../../images/card_back.png');
-      cardBackImg = await loadImage(cardBackPath);
+      cardBackImg = await loadImage(cardBackPath, gamePath);
     }
 
     if (cardBackImg) {
@@ -366,7 +374,7 @@ async function drawCardSection(
 
   // カード画像をロードして描画
   const cardImgs = await Promise.all(
-    section.cardImages.map(url => loadImage(url))
+    section.cardImages.map(url => loadImage(url, gamePath))
   );
 
   cardImgs.forEach((img, index) => {
@@ -396,9 +404,10 @@ async function drawCardSection(
  * 画像をロードする
  *
  * @param url - 画像URL
+ * @param gamePath - ゲームパス（yugiohdb/rushdb）
  * @returns ロードされた画像
  */
-async function loadImage(url: string): Promise<any> {
+async function loadImage(url: string, gamePath: string): Promise<any> {
   if (typeof document !== 'undefined') {
     // ブラウザ環境
     return new Promise((resolve, reject) => {
@@ -421,7 +430,7 @@ async function loadImage(url: string): Promise<any> {
       return new Promise((resolve, reject) => {
         https.default.get(url, {
           headers: {
-            'Referer': 'https://www.db.yugioh-card.com/yugiohdb/',
+            'Referer': `https://www.db.yugioh-card.com/${gamePath}/`,
             'User-Agent': 'Mozilla/5.0'
           }
         }, (res) => {
@@ -459,8 +468,9 @@ async function drawQRCode(
 ): Promise<void> {
   const scale = settings.scale;
 
-  // QRコードのURL（デッキ表示ページ）
-  const qrUrl = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&cgid=${cgid}&dno=${dno}`;
+  // 現在のゲームタイプを検出してQRコードのURLを生成
+  const gameType = typeof window !== 'undefined' ? detectCardGameType() : 'ocg';
+  const qrUrl = getDeckDisplayUrl(cgid, parseInt(dno), gameType);
 
   try {
     console.log('[drawQRCode] isPublic:', isPublic, 'dno:', dno);
@@ -477,7 +487,7 @@ async function drawQRCode(
     });
 
     // QRコード画像をロード
-    const qrImage = await loadImage(qrDataUrl);
+    const qrImage = await loadImage(qrDataUrl, 'yugiohdb'); // Data URLなのでgamePathは使用されないが引数として渡す
 
     // 右下に描画（余白10px）
     const x = settings.width - (QR_CODE_SETTINGS.size * scale) - (10 * scale);

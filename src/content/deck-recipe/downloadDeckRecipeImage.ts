@@ -4,6 +4,8 @@ import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
 import { sessionManager } from '../session/session';
 import { embedDeckInfoToPNG } from '../../utils/png-metadata';
+import { detectCardGameType } from '../../utils/page-detector';
+import { getDeckDisplayUrl } from '../../utils/url-builder';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -26,7 +28,8 @@ export async function downloadDeckRecipeImage(
   let deckData = options.deckData;
   if (!deckData && options.dno) {
     const cgid = await sessionManager.getCgid();
-    const url = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&cgid=${cgid}&dno=${options.dno}`;
+    const gameType = detectCardGameType();
+    const url = getDeckDisplayUrl(cgid, parseInt(options.dno), gameType);
     const response = await axios.get(url, {
       withCredentials: true
     });

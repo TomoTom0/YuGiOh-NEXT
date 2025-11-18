@@ -2,7 +2,7 @@
  * デッキ表示ページにシャッフル関連のボタンを追加
  */
 
-import { isDeckDisplayPage } from '../../utils/page-detector';
+import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
 
 /**
  * シャッフルアイコン（ランダム/シャッフル）
@@ -96,8 +96,11 @@ function createButton(id: string, iconSvg: string, title: string): HTMLAnchorEle
  * シャッフルボタンを初期化
  */
 export function initShuffleButtons(): void {
-  // デッキ表示ページでのみ動作
-  const isDeckDisplay = isDeckDisplayPage();
+  // 現在のページのゲームタイプを検出
+  const gameType = detectCardGameType();
+  
+  // デッキ表示ページでのみ動作（ゲームタイプに対応）
+  const isDeckDisplay = isDeckDisplayPage(gameType);
 
   if (!isDeckDisplay) {
     return;

@@ -3,7 +3,7 @@
  */
 
 import { showImageDialog } from './imageDialog';
-import { isDeckDisplayPage } from '../../utils/page-detector';
+import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
 
 /**
  * カメラアイコンのSVG
@@ -78,7 +78,10 @@ export function isDeckPage(): boolean {
  * ページが読み込まれたときに自動でボタンを追加
  */
 export function initDeckImageButton(): void {
-  if (isDeckDisplayPage()) {
+  // 現在のページのゲームタイプを検出
+  const gameType = detectCardGameType();
+  
+  if (isDeckDisplayPage(gameType)) {
     // DOMContentLoaded後に実行
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
