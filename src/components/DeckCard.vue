@@ -85,6 +85,7 @@
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { getCardImageUrl } from '../types/card'
+import { detectCardGameType } from '../utils/page-detector'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
 
 export default {
@@ -120,7 +121,8 @@ export default {
   },
   computed: {
     cardImageUrl() {
-      const relativeUrl = getCardImageUrl(this.card)
+      const gameType = detectCardGameType()
+      const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
         return `https://www.db.yugioh-card.com${relativeUrl}`
       }

@@ -28,13 +28,16 @@ export function getGamePath(gameType: CardGameType): string {
 /**
  * デッキ表示ページかどうかを判定
  * URL例: https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&cgid=...&dno=...
+ * 注意: ope=1は省略されることもある（省略時はope=1と解釈される）
  * @param gameType 判定対象のゲームタイプ（省略時は自動判定）
  */
 export function isDeckDisplayPage(gameType?: CardGameType): boolean {
   const url = window.location.href;
   const type = gameType || detectCardGameType(url);
   const path = getGamePath(type);
-  return new RegExp(`\\/${path}\\/member_deck\\.action\\?.*ope=1`).test(url);
+  // ope=1が明示的にある、またはopeパラメータが存在しない場合（デフォルトでope=1）
+  return new RegExp(`\\/${path}\\/member_deck\\.action`).test(url) && 
+         (!/[?&]ope=/.test(url) || /[?&]ope=1(&|$)/.test(url));
 }
 
 /**

@@ -112,6 +112,7 @@ import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards } from '../api/card-search'
 import { getCardImageUrl } from '../types/card'
+import { detectCardGameType } from '../utils/page-detector'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 import DeckMetadata from './DeckMetadata.vue'
@@ -145,8 +146,9 @@ export default {
     }
 
     const processCards = (cards) => {
+      const gameType = detectCardGameType()
       return cards.map(card => {
-        const relativeUrl = getCardImageUrl(card)
+        const relativeUrl = getCardImageUrl(card, gameType)
         const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
         return {
           ...card,
