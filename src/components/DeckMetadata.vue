@@ -430,20 +430,35 @@ function toggleCategory(catId: string) {
   deckStore.deckInfo.category = [...localCategory.value];
 }
 
-// カテゴリダイアログの位置調整
+// カテゴリダイアログの位置調整（fixed positionで全画面配置）
 watch(showCategoryDropdown, async (newVal) => {
   if (newVal) {
     await nextTick();
     const dropdown = document.querySelector('.category-dialog') as HTMLElement;
-    if (dropdown) {
+    const button = document.querySelector('.right-half .action-button') as HTMLElement;
+    if (dropdown && button) {
       setTimeout(() => {
+        const buttonRect = button.getBoundingClientRect();
         const dropdownRect = dropdown.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
         
-        if (dropdownRect.right > viewportWidth) {
-          dropdown.style.left = 'auto';
-          dropdown.style.right = '0';
+        // ボタンの下に配置
+        let top = buttonRect.bottom + 4;
+        let left = buttonRect.left;
+        
+        // 右にはみ出る場合は左にずらす
+        if (left + dropdownRect.width > viewportWidth) {
+          left = viewportWidth - dropdownRect.width - 20;
         }
+        
+        // 下にはみ出る場合は上に配置
+        if (top + dropdownRect.height > viewportHeight) {
+          top = buttonRect.top - dropdownRect.height - 4;
+        }
+        
+        dropdown.style.top = `${top}px`;
+        dropdown.style.left = `${left}px`;
       }, 0);
     }
   }
@@ -973,17 +988,20 @@ function removeTag(tagId: string) {
   min-width: 240px;
   max-height: 300px;
   overflow-y: auto;
+  
+  &.align-right {
+    left: auto;
+    right: 0;
+  }
 }
 
 .category-dialog {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 1000;
+  z-index: 10000;
   width: 400px;
   max-width: calc(100vw - 40px);
   max-height: 500px;
@@ -1028,6 +1046,8 @@ function removeTag(tagId: string) {
   border: none;
   font-size: 12px;
   outline: none;
+  background: white;
+  color: #333;
   
   &:focus {
     background: #f9f9f9;
@@ -1060,7 +1080,7 @@ function removeTag(tagId: string) {
 .dialog-options-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
   max-height: 360px;
   padding: 4px;
