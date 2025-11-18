@@ -49,11 +49,21 @@ PR #10で導入された新規機能（PNG メタデータ、デッキ インポ
 ### Git管理
 - ブランチ: `feature/test-doc-implementation`
 
-### 進捗サマリー
-- Week 1完了: 31テスト、ユーザードキュメント1本
-- Week 2完了: 63テスト（累計94テスト）、ユーザードキュメント1本
-- Week 3進行中: 28テスト追加（累計122テスト）
-- 残タスク: E2E基本フロー、開発者向けドキュメント
+### 完了サマリー（2025-11-18）
+**テスト実装**: 122個のユニットテスト（全て成功）
+- png-metadata: 12テスト
+- deck-import: 19テスト
+- deck-export: 18テスト
+- url-state: 45テスト
+- stores/settings: 28テスト
+
+**ドキュメント作成**: 4本
+- docs/usage/import-export.md（ユーザー向け）
+- docs/usage/deck-metadata.md（ユーザー向け）
+- docs/dev/png-format-spec.md（開発者向け）
+- docs/dev/data-models.md（開発者向け）
+
+**残タスク**: E2E基本フロー（オプショナル）
 
 ---
 
