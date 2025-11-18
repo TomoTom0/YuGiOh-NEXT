@@ -154,7 +154,7 @@
           >
             <!-- 1行目: フィルターボタン + 検索入力 + 検索ボタン -->
             <div class="dialog-search-row">
-              <button class="filter-button" @click.stop="onFilterClick">🔽</button>
+              <button class="filter-button" @click.stop="onFilterClick">Filter</button>
               <div class="search-input-wrapper">
                 <input
                   v-model="categorySearchQuery"
@@ -163,7 +163,7 @@
                   placeholder="カテゴリを検索..."
                   @click.stop
                 />
-                <button class="search-button" @click.stop>🔍</button>
+                <button class="search-button" @click.stop>Search</button>
               </div>
             </div>
             
