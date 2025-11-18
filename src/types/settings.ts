@@ -67,9 +67,9 @@ export type SortOrder =
 export type CardTab = 'info' | 'qa' | 'related' | 'products';
 
 /**
- * アクティブタブ（検索/カード/デッキ）
+ * アクティブタブ（検索/カード/デッキ/メタデータ）
  */
-export type ActiveTab = 'search' | 'card' | 'deck';
+export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata';
 
 export interface DeckEditSettings {
   enabled: boolean;
