@@ -108,89 +108,91 @@
       </div>
     </div>
 
-    <!-- 2行目: Tagボタン + 選択タグチップ -->
+    <!-- 2行目: Tagボタン（左半分）+ Categoryボタン（右半分の左寄せ） -->
+    <div class="metadata-row">
+      <div class="left-half">
+        <button class="action-button" @click.stop="showTagDropdown = !showTagDropdown">Tag</button>
+        <Transition name="dropdown">
+          <div v-if="showTagDropdown" class="tag-dropdown">
+            <input
+              v-model="tagSearchQuery"
+              type="text"
+              class="dropdown-search"
+              placeholder="タグを検索..."
+              @click.stop
+            />
+            <div class="dropdown-options">
+              <div
+                v-for="(label, id) in filteredTags"
+                :key="id"
+                class="dropdown-option"
+                @click="toggleTag(id)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="localTags.includes(id)"
+                  @click.stop
+                />
+                <span>{{ label }}</span>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+      <div class="right-half">
+        <button class="action-button" @click.stop="showCategoryDropdown = !showCategoryDropdown">Category</button>
+        <Transition name="dropdown">
+          <div v-if="showCategoryDropdown" class="category-dropdown">
+            <input
+              v-model="categorySearchQuery"
+              type="text"
+              class="dropdown-search"
+              placeholder="カテゴリを検索..."
+              @click.stop
+            />
+            <div class="dropdown-options">
+              <div
+                v-for="(label, id) in filteredCategories"
+                :key="id"
+                class="dropdown-option"
+                @click="toggleCategory(id)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="localCategory.includes(id)"
+                  @click.stop
+                />
+                <span>{{ label }}</span>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </div>
+
+    <!-- 3行目: タグとカテゴリのチップ表示 -->
     <div class="metadata-row chips-row">
-      <button class="action-button" @click.stop="showTagDropdown = !showTagDropdown">Tag</button>
       <div class="chips-container">
         <span
           v-for="tagId in localTags"
-          :key="tagId"
+          :key="'tag-' + tagId"
           class="chip"
         >
           {{ tags[tagId] }}
           <button class="chip-remove" @click="removeTag(tagId)">×</button>
         </span>
-      </div>
-      <Transition name="dropdown">
-        <div v-if="showTagDropdown" class="tag-dropdown">
-          <input
-            v-model="tagSearchQuery"
-            type="text"
-            class="dropdown-search"
-            placeholder="タグを検索..."
-            @click.stop
-          />
-          <div class="dropdown-options">
-            <div
-              v-for="(label, id) in filteredTags"
-              :key="id"
-              class="dropdown-option"
-              @click="toggleTag(id)"
-            >
-              <input
-                type="checkbox"
-                :checked="localTags.includes(id)"
-                @click.stop
-              />
-              <span>{{ label }}</span>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </div>
-
-    <!-- 3行目: Categoryボタン + 選択カテゴリチップ -->
-    <div class="metadata-row chips-row">
-      <button class="action-button" @click.stop="showCategoryDropdown = !showCategoryDropdown">Category</button>
-      <div class="chips-container">
         <span
           v-for="catId in localCategory"
-          :key="catId"
+          :key="'cat-' + catId"
           class="chip"
         >
           {{ categories[catId] }}
           <button class="chip-remove" @click="removeCategory(catId)">×</button>
         </span>
       </div>
-      <Transition name="dropdown">
-        <div v-if="showCategoryDropdown" class="category-dropdown">
-          <input
-            v-model="categorySearchQuery"
-            type="text"
-            class="dropdown-search"
-            placeholder="カテゴリを検索..."
-            @click.stop
-          />
-          <div class="dropdown-options">
-            <div
-              v-for="(label, id) in filteredCategories"
-              :key="id"
-              class="dropdown-option"
-              @click="toggleCategory(id)"
-            >
-              <input
-                type="checkbox"
-                :checked="localCategory.includes(id)"
-                @click.stop
-              />
-              <span>{{ label }}</span>
-            </div>
-          </div>
-        </div>
-      </Transition>
     </div>
 
-    <!-- デッキ説明 -->
+    <!-- 4行目: デッキ説明 -->
     <div class="description-section">
       <div class="description-header">
         <label class="metadata-label">説明</label>
@@ -709,6 +711,15 @@ function removeTag(tagId: string) {
   align-items: center;
   gap: 10px;
   width: 100%;
+}
+
+.left-half,
+.right-half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
 }
 
 .row-main {
