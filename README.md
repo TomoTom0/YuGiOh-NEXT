@@ -2,8 +2,6 @@
 
 PCからも新鮮で快適な遊戯王Neuronライフを！
 
-**遊戯王NEXT(Neuron EXTention)**は、~~Neo-Spacianではなく、~~遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
-
 ## intro
 
 随分便利になった遊戯王Neuronアプリ。もう今では、PCから遊戯王公式データベースを見るけど、デッキ編集はスマホからしかしてない。そんな人も多いのではないでしょうか。
@@ -13,10 +11,19 @@ PCからも新鮮で快適な遊戯王Neuronライフを！
 
 PC版の遊戯王Neuron(公式データベース)でも、カード画像を並べながらデッキ編集できます！
 カードをマウスでのドラッグ操作でも、クリック操作でも自在に移動できます！
+
+<img src="./docs/usage/images/store-promo-01-easy-moving.png" alt="デッキ編集機能の概要" width="800">
+
 カードを検索して、そこからカードを追加できます！
 ページを移動せずにカードのテキスト、QAページでの解説、関連QA、関連カード、関連商品をすべてみることができます！
 
-<img src="./docs/usage/images/store-promo-01-easy-moving.png" alt="デッキ編集機能の概要" width="800">
+<img src="./docs/usage/images/store-promo-02-card-info.png" alt="カード詳細情報の4タブ表示" width="800">
+
+
+**遊戯王NEXT(Neuron EXTension)**は、遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
+
+**現在のバージョン**: v0.3.9 ([変更履歴](./docs/changelog/))
+
 
 ## 主要機能
 
@@ -26,19 +33,19 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 
 <img src="./docs/usage/images/deck-edit/01-initial-state.png" alt="デッキ編集画面の全体構成" width="600">
 
+
 **機能詳細：**
 - マウスでのドラッグ&ドロップでカードを移動
 - カード検索エリアから追加
 - ワンクリックでカード移動操作
 - リスト/グリッド表示切り替え
+- 各セクションのシャッフル/ソート機能
+- 禁止・制限・準制限カードの視覚表示
+- デッキ画像のダウンロード機能
 - スムーズなアニメーション
 - 多言語対応
 
 <img src="./docs/usage/images/deck-edit/07-search-function.png" alt="カード検索機能" width="600">
-
-カード詳細情報も充実：
-
-<img src="./docs/usage/images/store-promo-02-card-info.png" alt="カード詳細情報の4タブ表示" width="800">
 
 詳細は [デッキ編集機能ガイド](./docs/usage/custom-deck-edit.md) をご覧ください。
 
@@ -102,15 +109,23 @@ releasesページから最新の`.zip`ファイルをダウンロードし、以
 
 ## 対応ページ
 
-- デッキ詳細ページ (`member_deck.action?ope=1`) - 全機能利用可能
-- デッキ編集ページ (`deck_edit.action`) - デッキ編集UI, デッキ画像作成
+- デッキ詳細ページ (`member_deck.action?ope=1`) - シャッフル機能、デッキ画像作成機能
+- 独自デッキ編集ページ (`#/ytomo/edit`) - デッキ編集UI（ドラッグ&ドロップ、カード検索、デッキ画像作成）
 
 ## 対応言語
 
-- 日本語
-- 英語
+### 公式サイトの言語対応（カード情報パース）
 
-言語は自動検出されます。
+拡張機能は公式サイトの以下10言語に対応しています：
+- 日本語 (ja) / 英語 (en) / アジア英語 (ae)
+- 韓国語 (ko) / 中国語 (cn)
+- ドイツ語 (de) / フランス語 (fr) / イタリア語 (it) / スペイン語 (es) / ポルトガル語 (pt)
+
+言語は公式サイトから自動検出されます（`request_locale`パラメータ）。
+
+### 拡張機能UI
+
+**注意**: 拡張機能のUI自体は多言語化されておらず、英語と日本語が混在しています。
 
 ## milestone
 
@@ -136,6 +151,7 @@ ISC
 - [遊戯王カードデータベース](https://www.db.yugioh-card.com/)
 - [使い方ドキュメント](./docs/usage/README.md)
 - [デッキ編集機能](./docs/usage/custom-deck-edit.md)
+- [変更履歴 (CHANGELOG)](./docs/changelog/)
 
 ## お問い合わせ
 

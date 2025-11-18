@@ -37,20 +37,21 @@
       @scroll="$emit('scroll', $event)"
     >
       <div
-        v-for="(card, idx) in cards"
-        :key="`card-${idx}`"
+        v-for="(item, idx) in cardsWithUuid"
+        :key="item.uuid"
         class="card-result-item"
       >
         <div class="card-wrapper">
           <DeckCard
-            :card="card"
+            :card="item.card"
             :section-type="sectionType"
             :index="idx"
+            :uuid="item.uuid"
           />
         </div>
         <div class="card-info" v-if="localViewMode === 'list'">
-          <div class="card-name">{{ card.name }}</div>
-          <div class="card-text" v-if="card.text">{{ card.text }}</div>
+          <div class="card-name">{{ item.card.name }}</div>
+          <div class="card-text" v-if="item.card.text">{{ item.card.text }}</div>
         </div>
       </div>
     </div>
@@ -58,7 +59,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -92,26 +93,35 @@ export default {
   setup(props, { emit }) {
     const localSortOrder = ref(props.sortOrder)
     const localViewMode = ref(props.viewMode)
-    
+
+    // 各カードにUUIDを付与（初回のみ生成、cardsが変わったら再生成）
+    const cardsWithUuid = computed(() => {
+      return props.cards.map((card) => ({
+        card,
+        uuid: crypto.randomUUID()
+      }))
+    })
+
     watch(() => props.sortOrder, (val) => {
       localSortOrder.value = val
     })
-    
+
     watch(() => props.viewMode, (val) => {
       localViewMode.value = val
     })
-    
+
     watch(localSortOrder, (val) => {
       emit('update:sortOrder', val)
     })
-    
+
     watch(localViewMode, (val) => {
       emit('update:viewMode', val)
     })
-    
+
     return {
       localSortOrder,
-      localViewMode
+      localViewMode,
+      cardsWithUuid
     }
   }
 }
@@ -131,8 +141,8 @@ export default {
   left: 8px;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -142,13 +152,13 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   z-index: 20;
   margin: 0 0 -32px 8px;
-  
+
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-secondary);
+    border-color: var(--border-secondary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
-  
+
   svg {
     display: block;
   }
@@ -172,29 +182,29 @@ export default {
 }
 
 .sort-icon {
-  color: #333;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
 .sort-select {
   padding: 4px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 11px;
-  background: white;
-  color: #333;
+  background: var(--input-bg);
+  color: var(--input-text);
   cursor: pointer;
-  
+
   option {
-    color: #333;
-    background: white;
+    color: var(--text-primary);
+    background: var(--bg-primary);
   }
 }
 
 .view-switch {
   display: flex;
   gap: 0;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -204,32 +214,32 @@ export default {
   align-items: center;
   cursor: pointer;
   margin: 0;
-  
+
   input {
     display: none;
   }
-  
+
   .icon {
     padding: 6px 12px;
-    background: white;
-    color: #666;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
     font-size: 14px;
     transition: all 0.2s;
     border: none;
-    border-right: 1px solid #ddd;
+    border-right: 1px solid var(--border-primary);
   }
-  
+
   &:last-child .icon {
     border-right: none;
   }
-  
+
   input:checked + .icon {
-    background: #4a9eff;
-    color: white;
+    background: var(--button-bg);
+    color: var(--button-text);
   }
-  
+
   &:hover:not(:has(input:checked)) .icon {
-    background: #f5f5f5;
+    background: var(--bg-secondary);
   }
 }
 
@@ -246,7 +256,8 @@ export default {
   
   &.grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 60px);
+    /* グリッド表示用のCSS変数を使用 */
+    grid-template-columns: repeat(auto-fill, var(--card-width-grid));
     grid-auto-rows: max-content;
     gap: 4px;
     align-content: start;
@@ -258,33 +269,37 @@ export default {
   display: flex;
   gap: 10px;
   padding: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-secondary);
   border-radius: 4px;
-  background: white;
+  background: var(--card-bg);
   cursor: move;
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  min-height: 90px;
+  /* カード高さに16px（padding上下8px×2）を加えた高さ */
+  min-height: calc(var(--card-height-list) + 16px);
   align-items: flex-start;
-  
+
   .grid-view & {
     flex-direction: column;
     min-height: auto;
     padding: 0;
     border: none;
     background: none;
-    width: 60px;
+    /* グリッド表示用のCSS変数を使用 */
+    width: var(--card-width-grid);
   }
 }
 
 .card-wrapper {
   flex-shrink: 0;
   position: relative;
-  width: 36px;
-  
+  /* リスト表示用のCSS変数を使用 */
+  width: var(--card-width-list);
+
   .grid-view & {
-    width: 60px;
+    /* グリッド表示用のCSS変数を使用 */
+    width: var(--card-width-grid);
   }
 }
 
@@ -300,14 +315,14 @@ export default {
 .card-name {
   font-weight: bold;
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
   word-break: break-word;
 }
 
 .card-text {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.4;
   word-break: break-word;
   overflow-wrap: break-word;
