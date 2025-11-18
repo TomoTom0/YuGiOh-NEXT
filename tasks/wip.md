@@ -15,8 +15,10 @@ PR #10で導入された新規機能（PNG メタデータ、デッキ インポ
   - tEXtチャンクの読み書き、複数チャンク対応、CRC検証、エラー処理
   - PNGフィクスチャ作成（`tests/fixtures/png/`）
   - 12個のテストケース、全て成功
-- [ ] `tests/unit/deck-import.test.ts` 作成
-  - YDK/JSON/PNGパース、フォーマット検証、Rush判定
+- [x] `tests/unit/deck-import.test.ts` 作成 ✅ 完了（2025-11-18）
+  - CSV/TXT/PNGパース、フォーマット検証、エラーハンドリング
+  - インポートフィクスチャ作成（`tests/fixtures/import/`）
+  - 19個のテストケース、全て成功
 - [ ] `docs/usage/import-export.md` 草案作成
   - 各フォーマット説明、操作手順、トラブルシューティング
 
