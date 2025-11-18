@@ -772,12 +772,13 @@ function removeTag(tagId: string) {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  overflow-y: auto;
   background: white;
   color: #333;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  height: 100%;
+  overflow: hidden;
 }
 
 .metadata-row {
@@ -1240,6 +1241,9 @@ function removeTag(tagId: string) {
   width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .description-header {
@@ -1273,9 +1277,9 @@ function removeTag(tagId: string) {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #333;
   background: white;
-  resize: vertical;
-  min-height: 200px;
-  height: auto;
+  resize: none;
+  flex: 1;
+  min-height: 0;
   line-height: 1.6;
   box-sizing: border-box;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
