@@ -11,7 +11,8 @@
           @change="updatePublicStatus"
         />
         <label for="public-toggle" class="toggle-slider">
-          <span class="toggle-text">{{ localIsPublic ? '公開' : '非公開' }}</span>
+          <span class="toggle-text">公開</span>
+          <span class="toggle-text">非公開</span>
         </label>
       </div>
 
@@ -197,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
@@ -259,7 +260,29 @@ onMounted(async () => {
   // タグは現時点ではメタデータに含まれていないため、空のままにする
   // TODO: updateDeckMetadata() でタグマスターも取得するように修正が必要
   tags.value = {};
+  
+  // 外クリックでドロップダウンを閉じる
+  document.addEventListener('click', handleClickOutside);
 });
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+// 外クリックでドロップダウンを閉じる
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement;
+  if (!target.closest('.deck-type-selector')) {
+    showDeckTypeDropdown.value = false;
+  }
+  if (!target.closest('.deck-style-selector')) {
+    showDeckStyleDropdown.value = false;
+  }
+  if (!target.closest('.chips-row')) {
+    showCategoryDropdown.value = false;
+    showTagDropdown.value = false;
+  }
+}
 
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
@@ -662,10 +685,17 @@ function removeTag(tagId: string) {
   
   .toggle-text {
     font-size: 11px;
-    color: #666;
     font-weight: 600;
     z-index: 1;
     transition: color 0.3s;
+    
+    &:first-child {
+      color: white;
+    }
+    
+    &:last-child {
+      color: #666;
+    }
   }
   
   &:before {
@@ -686,7 +716,13 @@ function removeTag(tagId: string) {
   background: #4CAF50;
   
   .toggle-text {
-    color: white;
+    &:first-child {
+      color: #666;
+    }
+    
+    &:last-child {
+      color: white;
+    }
   }
   
   &:before {
