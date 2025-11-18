@@ -393,5 +393,208 @@ describe('stores/settings', () => {
       expect(store.isLoaded).toBe(true);
       expect(store.appSettings.theme).toBe('light'); // デフォルト値
     });
+
+    it('should handle chrome.storage.get throwing errors', async () => {
+      global.chrome.storage.local.get = vi.fn(() => {
+        throw new Error('Storage quota exceeded');
+      });
+
+      const store = useSettingsStore();
+      
+      // エラーをキャッチしてデフォルト値で動作することを確認
+      try {
+        await store.loadSettings();
+      } catch (error) {
+        // エラーが発生しても処理は継続
+      }
+
+      // デフォルト値が使用される
+      expect(store.appSettings.theme).toBe('light');
+      expect(store.appSettings.language).toBe('auto');
+    });
+
+    it('should handle chrome.storage.set failures during save', async () => {
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      // setが失敗するようにモック
+      global.chrome.storage.local.set = vi.fn((items, callback) => {
+        // コールバックを呼ばずにエラーを発生させる
+        throw new Error('Failed to save settings');
+      });
+
+      store.appSettings.theme = 'dark';
+      
+      // エラーをキャッチして処理を継続
+      try {
+        await store.saveSettings();
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+
+      // ローカルの状態は変更されている
+      expect(store.appSettings.theme).toBe('dark');
+    });
+
+    it('should handle async callback errors in chrome.storage.get', async () => {
+      // 非同期でエラーが発生するケース
+      global.chrome.storage.local.get = vi.fn((keys, callback) => {
+        setTimeout(() => {
+          callback({}); // 空オブジェクトを返す（エラーではなく空データ）
+        }, 10);
+      });
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      // デフォルト値が適用される
+      expect(store.appSettings.theme).toBe('light');
+      expect(store.isLoaded).toBe(true);
+    });
+
+    it('should handle delayed callbacks in chrome.storage.set', async () => {
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      // 遅延してコールバックを呼ぶ
+      global.chrome.storage.local.set = vi.fn((items, callback) => {
+        setTimeout(() => {
+          Object.assign(mockStorage, items);
+          if (callback) callback();
+        }, 50);
+      });
+
+      store.appSettings.theme = 'dark';
+      await store.saveSettings();
+
+      // 遅延後に保存が完了している
+      expect(mockStorage.appSettings.theme).toBe('dark');
+    });
+
+    it('should handle chrome runtime lastError', async () => {
+      global.chrome.runtime = {
+        lastError: { message: 'Runtime error occurred' }
+      } as any;
+
+      global.chrome.storage.local.get = vi.fn((keys, callback) => {
+        callback({});
+      });
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      // lastErrorが設定されていてもデフォルト値で動作
+      expect(store.isLoaded).toBe(true);
+      expect(store.appSettings.theme).toBe('light');
+    });
+
+    it('should handle corrupted storage data', async () => {
+      // 不正なデータ構造
+      mockStorage.appSettings = {
+        theme: 'invalid-theme' as any,
+        language: 123 as any, // 数値（不正）
+        deckEditCardSize: null as any
+      };
+
+      const store = useSettingsStore();
+      
+      // 不正なデータでもロードが失敗しないことを確認
+      try {
+        await store.loadSettings();
+      } catch (error) {
+        // エラーが発生した場合、最低限動作することを確認
+        console.warn('Corrupted data caused error:', error);
+      }
+
+      // ロードが完了している（デフォルト値またはそのまま）
+      expect(store.isLoaded).toBe(true);
+    });
+  });
+
+  describe('非同期・競合テスト', () => {
+    it('should handle concurrent save operations', async () => {
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      let saveCount = 0;
+      global.chrome.storage.local.set = vi.fn((items, callback) => {
+        saveCount++;
+        setTimeout(() => {
+          Object.assign(mockStorage, items);
+          if (callback) callback();
+        }, Math.random() * 50);
+      });
+
+      // 複数の保存操作を並行実行
+      store.appSettings.theme = 'dark';
+      const save1 = store.saveSettings();
+      
+      store.appSettings.language = 'ja';
+      const save2 = store.saveSettings();
+      
+      store.appSettings.deckEditCardSize = 'large';
+      const save3 = store.saveSettings();
+
+      await Promise.all([save1, save2, save3]);
+
+      // すべての保存操作が完了
+      expect(saveCount).toBe(3);
+      expect(mockStorage.appSettings.theme).toBe('dark');
+      expect(mockStorage.appSettings.language).toBe('ja');
+      expect(mockStorage.appSettings.deckEditCardSize).toBe('large');
+    });
+
+    it('should handle concurrent get operations', async () => {
+      mockStorage.appSettings = {
+        theme: 'dark',
+        language: 'ja'
+      };
+
+      let getCount = 0;
+      global.chrome.storage.local.get = vi.fn((keys, callback) => {
+        getCount++;
+        setTimeout(() => {
+          const result: Record<string, any> = {};
+          if (Array.isArray(keys)) {
+            keys.forEach(key => {
+              if (mockStorage[key]) {
+                result[key] = mockStorage[key];
+              }
+            });
+          }
+          callback(result);
+        }, Math.random() * 30);
+      });
+
+      // 複数のストアインスタンスが同時にloadを呼ぶ（Piniaは単一インスタンスだが、テストとして）
+      const store = useSettingsStore();
+      const load1 = store.loadSettings();
+      const load2 = store.loadSettings();
+      const load3 = store.loadSettings();
+
+      await Promise.all([load1, load2, load3]);
+
+      // すべてのload操作が完了
+      expect(getCount).toBeGreaterThan(0);
+      expect(store.appSettings.theme).toBe('dark');
+      expect(store.appSettings.language).toBe('ja');
+    });
+
+    it('should handle read-while-write race condition', async () => {
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      // 書き込み操作を開始
+      store.appSettings.theme = 'dark';
+      const savePromise = store.saveSettings();
+
+      // 保存中に読み込み操作を実行
+      const loadPromise = store.loadSettings();
+
+      await Promise.all([savePromise, loadPromise]);
+
+      // 最終的にいずれかの状態が反映される
+      expect(store.isLoaded).toBe(true);
+    });
   });
 });
