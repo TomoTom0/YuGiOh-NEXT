@@ -88,6 +88,12 @@ export default {
     const cardGridRef = ref(null)
     const isSectionDragOver = ref(false)
 
+    const handleMoveResult = (result) => {
+      if (!result || result.success) return true
+      console.error('[DeckSection] 移動失敗:', result.error)
+      return false
+    }
+
     // displayOrderから該当セクションのカードリストを取得
     const displayCards = computed(() => {
       return deckStore.displayOrder[props.sectionType] || []
@@ -164,21 +170,15 @@ export default {
           return
         }
 
-        // 同じセクション内で最後尾に移動
         if (sourceSectionType === props.sectionType && sourceUuid) {
           console.log('[handleEndDrop] Reordering within same section')
           const result = deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
-          if (result && !result.success) {
-            console.error('[DeckSection] 移動失敗:', result.error)
-          }
+          handleMoveResult(result)
         }
-        // 他のセクションから最後尾に移動
         else if (sourceSectionType !== props.sectionType) {
           console.log('[handleEndDrop] Moving from', sourceSectionType, 'to', props.sectionType)
           const result = deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
-          if (!result.success) {
-            console.error('[DeckSection] 移動失敗:', result.error)
-          }
+          handleMoveResult(result)
         }
       } catch (e) {
         console.error('End drop error:', e)

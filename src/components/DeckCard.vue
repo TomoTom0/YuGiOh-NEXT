@@ -109,11 +109,29 @@ export default {
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
+    
+    const handleMoveResult = (result, button = null) => {
+      if (!result || result.success) return true
+      
+      console.error('[DeckCard] 移動失敗:', result.error)
+      
+      if (button === 'left') {
+        showErrorLeft.value = true
+        setTimeout(() => { showErrorLeft.value = false }, 500)
+      } else if (button === 'right') {
+        showErrorRight.value = true
+        setTimeout(() => { showErrorRight.value = false }, 500)
+      }
+      
+      return false
+    }
+    
     return {
       deckStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
+      handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle
@@ -264,19 +282,13 @@ export default {
         }
 
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
-          // 同じセクション内での並び替え: targetの位置に挿入（targetは後ろにずれる）
           console.log('[DeckCard.handleDrop] Reordering within same section')
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
-          if (!result.success) {
-            console.error('[DeckCard] 移動失敗:', result.error)
-          }
+          this.handleMoveResult(result)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
-          // 他のセクションからの移動: targetの位置に挿入（targetは後ろにずれる）
           console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
           const result = this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
-          if (!result.success) {
-            console.error('[DeckCard] 移動失敗:', result.error)
-          }
+          this.handleMoveResult(result)
         }
       } catch (e) {
         console.error('Card drop error:', e)
@@ -309,14 +321,10 @@ export default {
       })
       if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
-        if (!result.success) {
-          console.error('[DeckCard] 移動失敗:', result.error)
-        }
+        this.handleMoveResult(result)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
         const result = this.deckStore.moveCardToSide(this.card, this.sectionType, this.uuid)
-        if (!result.success) {
-          console.error('[DeckCard] 移動失敗:', result.error)
-        }
+        this.handleMoveResult(result)
       }
     },
     handleBottomLeft() {
@@ -325,28 +333,11 @@ export default {
 
       if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
-        if (result && !result.success) {
-          this.showErrorLeft = true
-          console.error('[DeckCard] カード移動失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorLeft = false
-          }, 1000)
-          return
-        }
+        if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // addToDisplayOrderでディープコピーされるため、ここでのコピーは不要
         const result = this.deckStore.addCopyToMainOrExtra(this.card)
-        if (!result.success) {
-          // 4枚制限エラー表示
-          this.showErrorLeft = true
-          console.error('[DeckCard] カード追加失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorLeft = false
-          }, 1000)
-          return
-        }
+        if (!this.handleMoveResult(result, 'left')) return
 
-        // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
             this.animateFromSource(sourceRect)
@@ -354,9 +345,7 @@ export default {
         }
       } else {
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
-        if (!result.success) {
-          console.error('[DeckCard] 移動失敗:', result.error)
-        }
+        this.handleMoveResult(result)
       }
     },
     handleBottomRight() {
@@ -365,54 +354,24 @@ export default {
 
       if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
-        if (result && !result.success) {
-          this.showErrorRight = true
-          console.error('[DeckCard] カード移動失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorRight = false
-          }, 1000)
-          return
-        }
+        if (!this.handleMoveResult(result, 'right')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // propsから渡されたcardをそのまま使用（CardInfo.vueで既にciidが設定されている）
         this.deckStore.addCopyToSection(this.card, 'side')
 
-        // アニメーション実行（移動元から移動先へ）
         if (sourceRect && this.sectionType === 'search') {
           this.$nextTick(() => {
             this.animateFromSource(sourceRect, 'side')
           })
         }
       } else if (this.sectionType === 'main') {
-        // mainセクション内でコピー追加
         const result = this.deckStore.addCopyToSection(this.card, 'main')
-        if (!result.success) {
-          this.showErrorRight = true
-          console.error('[DeckCard] カード追加失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorRight = false
-          }, 1000)
-        }
+        this.handleMoveResult(result, 'right')
       } else if (this.sectionType === 'extra') {
-        // extraセクション内でコピー追加
         const result = this.deckStore.addCopyToSection(this.card, 'extra')
-        if (!result.success) {
-          this.showErrorRight = true
-          console.error('[DeckCard] カード追加失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorRight = false
-          }, 1000)
-        }
+        this.handleMoveResult(result, 'right')
       } else if (this.sectionType === 'side') {
-        // sideセクション内でコピー追加
         const result = this.deckStore.addCopyToSection(this.card, 'side')
-        if (!result.success) {
-          this.showErrorRight = true
-          console.error('[DeckCard] カード追加失敗:', result.error)
-          setTimeout(() => {
-            this.showErrorRight = false
-          }, 1000)
-        }
+        if (!this.handleMoveResult(result, 'right')) return
       }
     },
     animateFromSource(sourceRect, targetSection) {
