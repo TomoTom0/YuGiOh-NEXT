@@ -412,4 +412,264 @@ describe('url-state', () => {
       expect(callArgs[2]).toContain('new=param');
     });
   });
+
+  describe('特殊文字とエンコーディング', () => {
+    it('should handle special characters in values', () => {
+      const specialChars = {
+        space: 'hello world',
+        ampersand: 'A&B',
+        equals: 'x=y',
+        question: 'what?',
+        hash: 'tag#1',
+        percent: '50%',
+        plus: 'A+B'
+      };
+
+      URLStateManager.setParams(specialChars);
+
+      const callArgs = (window.history.replaceState as any).mock.calls[0];
+      const url = callArgs[2];
+
+      // URLエンコードされていることを確認
+      // スペースは+または%20でエンコードされる（両方とも正常）
+      expect(url).toMatch(/space=hello[\+%20]world/);
+      expect(url).toContain('ampersand=A%26B');
+      expect(url).toContain('equals=x%3Dy');
+      expect(url).toContain('question=what%3F');
+      expect(url).toContain('hash=tag%231');
+      expect(url).toContain('percent=50%25');
+      expect(url).toContain('plus=A%2BB');
+    });
+
+    it('should handle multibyte characters (Japanese)', () => {
+      const params = {
+        name: '青眼の白龍',
+        desc: 'このカードは攻撃力3000',
+        tag: 'ドラゴン族'
+      };
+
+      URLStateManager.setParams(params);
+
+      // デコード後の値を確認
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('name')).toBe('青眼の白龍');
+      expect(decoded.get('desc')).toBe('このカードは攻撃力3000');
+      expect(decoded.get('tag')).toBe('ドラゴン族');
+    });
+
+    it('should handle emoji characters', () => {
+      const params = {
+        reaction: '👍🎉',
+        label: 'カード💎'
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('reaction')).toBe('👍🎉');
+      expect(decoded.get('label')).toBe('カード💎');
+    });
+
+    it('should handle URL-unsafe characters', () => {
+      const params = {
+        path: '/path/to/file',
+        query: 'a=1&b=2',
+        fragment: '#section',
+        brackets: '[array]',
+        braces: '{object}'
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('path')).toBe('/path/to/file');
+      expect(decoded.get('query')).toBe('a=1&b=2');
+      expect(decoded.get('fragment')).toBe('#section');
+      expect(decoded.get('brackets')).toBe('[array]');
+      expect(decoded.get('braces')).toBe('{object}');
+    });
+
+    it('should handle empty string values', () => {
+      const params = {
+        empty: '',
+        notEmpty: 'value'
+      };
+
+      URLStateManager.setParams(params);
+
+      const callArgs = (window.history.replaceState as any).mock.calls[0];
+      const url = callArgs[2];
+
+      expect(url).toContain('empty=');
+      expect(url).toContain('notEmpty=value');
+    });
+  });
+
+  describe('長いクエリ値', () => {
+    it('should handle long string values', () => {
+      const longText = 'a'.repeat(1000);
+      const params = {
+        longValue: longText
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('longValue')).toBe(longText);
+      expect(decoded.get('longValue')?.length).toBe(1000);
+    });
+
+    it('should handle very long JSON-like strings', () => {
+      const jsonLike = JSON.stringify({
+        cards: Array(100).fill(0).map((_, i) => ({
+          id: i,
+          name: `Card ${i}`,
+          desc: 'A'.repeat(50)
+        }))
+      });
+
+      const params = {
+        data: jsonLike
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('data')).toBe(jsonLike);
+      const parsed = JSON.parse(decoded.get('data')!);
+      expect(parsed.cards).toHaveLength(100);
+    });
+
+    it('should handle multiple long parameters', () => {
+      const params = {
+        param1: 'x'.repeat(500),
+        param2: 'y'.repeat(500),
+        param3: 'z'.repeat(500)
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('param1')?.length).toBe(500);
+      expect(decoded.get('param2')?.length).toBe(500);
+      expect(decoded.get('param3')?.length).toBe(500);
+    });
+
+    it('should handle long multibyte strings', () => {
+      const longJapanese = '日本語のテキスト'.repeat(100);
+      const params = {
+        text: longJapanese
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('text')).toBe(longJapanese);
+    });
+
+    it('should handle URL length limits gracefully', () => {
+      // 非常に長い値を設定（URL長制限を超える可能性がある）
+      const veryLongText = 'a'.repeat(10000);
+      const params = {
+        huge: veryLongText
+      };
+
+      // エラーなく実行できることを確認
+      expect(() => {
+        URLStateManager.setParams(params);
+      }).not.toThrow();
+
+      // ブラウザがURL制限を適用する可能性があるため、
+      // 実際の長さは確認しない（ブラウザ依存）
+    });
+  });
+
+  describe('エッジケースとバリデーション', () => {
+    it('should handle null and undefined values', () => {
+      const params = {
+        nullValue: null as any,
+        undefinedValue: undefined as any,
+        normalValue: 'normal'
+      };
+
+      // nullとundefinedは空文字列として扱われる
+      URLStateManager.setParams(params);
+
+      const callArgs = (window.history.replaceState as any).mock.calls[0];
+      const url = callArgs[2];
+
+      // normalValueのみ設定される
+      expect(url).toContain('normalValue=normal');
+    });
+
+    it('should handle numeric values as strings', () => {
+      const params = {
+        number: 12345 as any,
+        float: 123.45 as any,
+        zero: 0 as any
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('number')).toBe('12345');
+      expect(decoded.get('float')).toBe('123.45');
+      expect(decoded.get('zero')).toBe('0');
+    });
+
+    it('should handle boolean values as strings', () => {
+      const params = {
+        trueValue: true as any,
+        falseValue: false as any
+      };
+
+      URLStateManager.setParams(params);
+
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      const decoded = URLStateManager.getParams();
+
+      expect(decoded.get('trueValue')).toBe('true');
+      expect(decoded.get('falseValue')).toBe('false');
+    });
+
+    it('should handle already encoded values', () => {
+      // すでにエンコードされた値
+      window.location.hash = '#/edit?encoded=%E7%81%B0%E6%B5%81';
+      const params = URLStateManager.getParams();
+
+      // 正しくデコードされる
+      expect(params.get('encoded')).toBe('灰流');
+    });
+
+    it('should handle double encoding prevention', () => {
+      const originalValue = '灰流うらら';
+      
+      // 1回目の設定
+      URLStateManager.setParams({ name: originalValue });
+      window.location.hash = (window.history.replaceState as any).mock.calls[0][2];
+      
+      // 2回目の設定（同じ値）
+      URLStateManager.setParams({ name: originalValue });
+      window.location.hash = (window.history.replaceState as any).mock.calls[1][2];
+      
+      const decoded = URLStateManager.getParams();
+      expect(decoded.get('name')).toBe(originalValue);
+    });
+  });
 });
