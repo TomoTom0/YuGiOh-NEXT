@@ -22,14 +22,13 @@
     <div class="card-tab-content">
       <CardInfo
         v-show="cardTab === 'info'"
-        v-if="card"
-        :card="card"
+        v-if="detail && detail.card"
         :supplement-info="faqListData?.supplementInfo"
         :supplement-date="faqListData?.supplementDate"
         :pendulum-supplement-info="faqListData?.pendulumSupplementInfo"
         :pendulum-supplement-date="faqListData?.pendulumSupplementDate"
       />
-      <div v-show="cardTab === 'info' && !card">
+      <div v-show="cardTab === 'info' && (!detail || !detail.card)">
         <p class="no-card-selected">カードを選択してください</p>
       </div>
       
@@ -76,6 +75,7 @@ import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
 import { getCardDetail } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
+import { useDeckEditStore } from '../stores/deck-edit'
 
 export default {
   name: 'CardDetail',
@@ -97,6 +97,7 @@ export default {
   },
   emits: ['tab-change'],
   setup(props) {
+    const deckStore = useDeckEditStore()
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
@@ -167,24 +168,34 @@ export default {
     
     const fetchDetail = async () => {
       if (!props.card || !props.card.cardId) {
+        console.log('[CardDetail] fetchDetail: no card')
         detail.value = null
         faqListData.value = null
         return
       }
-      
+
       // 既に同じカードの詳細を取得済みなら再取得しない
       if (detail.value && detail.value.card.cardId === props.card.cardId) {
+        console.log('[CardDetail] fetchDetail: skipping (already fetched)', detail.value.card.cardId)
         return
       }
-      
+
+      console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
       try {
         const detailResult = await getCardDetail(props.card)
         const faqResult = await getCardFAQList(props.card.cardId)
-        console.log('Card detail fetched:', detailResult)
+        console.log('[CardDetail] Card detail fetched:', JSON.stringify({
+          cardId: detailResult.card.cardId,
+          name: detailResult.card.name,
+          ciid: detailResult.card.ciid,
+          imgsLength: detailResult.card.imgs?.length || 0,
+          imgs: detailResult.card.imgs?.map(img => ({ ciid: img.ciid })) || []
+        }))
         console.log('FAQ fetched:', faqResult)
         detail.value = detailResult
         faqListData.value = faqResult
+        // selectedCardの更新はwatchで行う
       } catch (error) {
         console.error('Failed to fetch card detail:', error)
         detail.value = null
@@ -199,7 +210,21 @@ export default {
       relatedCurrentPage.value = 0
       fetchDetail()
     }, { immediate: true })
-    
+
+    // detailが更新されたらselectedCardを同期
+    watch(() => detail.value, (newDetail) => {
+      if (newDetail && newDetail.card) {
+        // 詳細情報で selectedCard を更新（imgs配列も新しい配列として設定）
+        const oldCiid = deckStore.selectedCard?.ciid
+        deckStore.selectedCard = {
+          ...newDetail.card,
+          imgs: [...newDetail.card.imgs],  // 配列も新しくコピー
+          ciid: (deckStore.selectedCard?.cardId === newDetail.card.cardId && oldCiid) || newDetail.card.ciid
+        }
+        console.log('[CardDetail] selectedCard synced with detail')
+      }
+    }, { deep: false })
+
     return {
       detail,
       loading,
@@ -251,7 +276,7 @@ export default {
     background: white;
     cursor: pointer;
     font-size: 12px;
-    color: #333;
+    color: var(--text-primary);
     flex: 1;
     
     &.active {
@@ -273,14 +298,14 @@ export default {
 .no-data {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
 .loading {
   padding: 20px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 </style>
