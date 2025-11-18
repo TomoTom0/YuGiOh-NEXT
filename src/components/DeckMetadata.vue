@@ -893,33 +893,19 @@ function removeTag(tagId: string) {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
+  gap: 2px;
+  padding: 0px 3px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
   color: white;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 500;
-  height: 18px;
+  border-radius: 2px;
+  font-size: 8px;
+  font-weight: 400;
+  height: 12px;
+  line-height: 1;
 }
 
 .chip-remove {
-  background: none;
-  border: none;
-  color: white;
-  cursor: pointer;
-  padding: 0;
-  width: 14px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  line-height: 1;
-  
-  &:hover {
-    opacity: 0.8;
-  }
+  display: none;
 }
 
 .deck-type-dropdown,
