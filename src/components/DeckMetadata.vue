@@ -83,7 +83,7 @@
 
     <!-- 2行目: Tagボタン + 選択タグチップ -->
     <div class="metadata-row chips-row">
-      <button class="action-button" @click="showTagDropdown = !showTagDropdown">Tag</button>
+      <button class="action-button" @click.stop="showTagDropdown = !showTagDropdown">Tag</button>
       <div class="chips-container">
         <span
           v-for="tagId in localTags"
@@ -124,7 +124,7 @@
 
     <!-- 3行目: Categoryボタン + 選択カテゴリチップ -->
     <div class="metadata-row chips-row">
-      <button class="action-button" @click="showCategoryDropdown = !showCategoryDropdown">Category</button>
+      <button class="action-button" @click.stop="showCategoryDropdown = !showCategoryDropdown">Category</button>
       <div class="chips-container">
         <span
           v-for="catId in localCategory"
@@ -602,73 +602,83 @@ function removeTag(tagId: string) {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
 }
 
 .row-main {
-  height: 40px;
+  height: 36px;
 }
 
 .chips-row {
-  align-items: center;
-  position: relative;
-  min-height: 40px;
+  align-items: flex-start;
+  min-height: 36px;
 }
 
+// 公開/非公開スイッチ - コンパクト版
 .toggle-switch {
   position: relative;
-  width: 120px;
-  height: 32px;
+  display: inline-block;
 }
 
 .toggle-checkbox {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
+  display: none;
 }
 
 .toggle-slider {
-  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.3s;
-  border-radius: 34px;
-  
-  &:before {
-    position: absolute;
-    content: "";
-    height: 24px;
-    width: 24px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-  }
+  padding: 6px 12px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.2s;
+  user-select: none;
   
   .toggle-text {
-    position: absolute;
-    left: 70px;
-    top: 50%;
-    transform: translateY(-50%);
     font-size: 13px;
     color: #333;
     white-space: nowrap;
-    width: 50px;
+  }
+  
+  &:before {
+    content: "";
+    display: inline-block;
+    width: 36px;
+    height: 18px;
+    background-color: #ccc;
+    border-radius: 9px;
+    position: relative;
+    transition: 0.3s;
+  }
+  
+  &:after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 9px;
+    height: 14px;
+    width: 14px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.3s;
   }
 }
 
 .toggle-checkbox:checked + .toggle-slider {
-  background-color: #4CAF50;
+  &:before {
+    background-color: #4CAF50;
+  }
+  
+  &:after {
+    transform: translateX(18px);
+  }
 }
 
-.toggle-checkbox:checked + .toggle-slider:before {
-  transform: translateX(28px);
+.deck-type-selector,
+.deck-style-selector {
+  position: relative;
 }
 
 .deck-type-button,
@@ -686,19 +696,16 @@ function removeTag(tagId: string) {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 80px;
   
   &:hover {
     border-color: #999;
-    background: #f5f5f5;
+    background: #f9f9f9;
   }
-}
-
-.deck-type-button {
-  min-width: 80px;
-}
-
-.deck-style-button {
-  min-width: 70px;
+  
+  &:active {
+    background: #f0f0f0;
+  }
 }
 
 .action-button {
@@ -709,6 +716,7 @@ function removeTag(tagId: string) {
 .deck-type-icon {
   width: 60px;
   height: auto;
+  display: block;
 }
 
 .deck-type-placeholder {
@@ -721,7 +729,8 @@ function removeTag(tagId: string) {
   flex-wrap: wrap;
   gap: 6px;
   flex: 1;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 4px;
 }
 
 .chip {
@@ -761,15 +770,14 @@ function removeTag(tagId: string) {
 .tag-dropdown,
 .category-dropdown {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
-  margin-top: 4px;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 100;
-  min-width: 220px;
+  z-index: 1000;
+  min-width: 240px;
   max-height: 300px;
   overflow-y: auto;
 }
@@ -784,6 +792,7 @@ function removeTag(tagId: string) {
   display: flex;
   align-items: center;
   gap: 10px;
+  background: white;
   
   &:hover {
     background: #f5f5f5;
@@ -791,6 +800,7 @@ function removeTag(tagId: string) {
   
   input[type="checkbox"] {
     margin: 0;
+    cursor: pointer;
   }
 }
 
@@ -808,6 +818,7 @@ function removeTag(tagId: string) {
   font-size: 13px;
   color: #333;
   background: white;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
@@ -834,12 +845,12 @@ function removeTag(tagId: string) {
 
 .dropdown-enter-from {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(-10px);
 }
 
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(5px);
+  transform: translateY(-5px);
 }
 
 .description-section {
@@ -866,6 +877,7 @@ function removeTag(tagId: string) {
 
 .metadata-textarea {
   width: 100%;
+  max-width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -874,8 +886,9 @@ function removeTag(tagId: string) {
   color: #333;
   background: white;
   resize: vertical;
-  min-height: 120px;
-  line-height: 1.5;
+  min-height: 150px;
+  line-height: 1.6;
+  box-sizing: border-box;
   
   &:focus {
     outline: none;
