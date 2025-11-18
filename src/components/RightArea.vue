@@ -9,10 +9,10 @@
         Deck
       </button>
       <button
-        :class="{ active: deckStore.activeTab === 'metadata' }"
-        @click="deckStore.activeTab = 'metadata'"
+        :class="{ active: deckStore.activeTab === 'card' }"
+        @click="deckStore.activeTab = 'card'"
       >
-        Metadata
+        Card
       </button>
       <button
         :class="{ active: deckStore.activeTab === 'search' }"
@@ -21,10 +21,10 @@
         Search
       </button>
       <button
-        :class="{ active: deckStore.activeTab === 'card' }"
-        @click="deckStore.activeTab = 'card'"
+        :class="{ active: deckStore.activeTab === 'metadata' }"
+        @click="deckStore.activeTab = 'metadata'"
       >
-        Card
+        Metadata
       </button>
     </div>
 
@@ -32,8 +32,16 @@
       <slot name="deck-tab"></slot>
     </div>
 
-    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
-      <DeckMetadata />
+    <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
+      <CardDetail 
+        v-if="deckStore.selectedCard" 
+        :card="deckStore.selectedCard"
+        :card-tab="deckStore.cardTab"
+        @tab-change="deckStore.cardTab = $event"
+      />
+      <div v-else class="no-card-selected">
+        <p>カードを選択してください</p>
+      </div>
     </div>
 
     <div v-show="deckStore.activeTab === 'search'" class="search-content">
@@ -51,16 +59,8 @@
       <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
     </div>
 
-    <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
-      <CardDetail 
-        v-if="deckStore.selectedCard" 
-        :card="deckStore.selectedCard"
-        :card-tab="deckStore.cardTab"
-        @tab-change="deckStore.cardTab = $event"
-      />
-      <div v-else class="no-card-selected">
-        <p>カードを選択してください</p>
-      </div>
+    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+      <DeckMetadata />
     </div>
 
     <div class="search-header">

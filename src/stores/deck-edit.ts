@@ -637,7 +637,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではsearch）
   const isMobile = window.innerWidth <= 768;
-  const activeTab = ref<'deck' | 'search' | 'card'>(isMobile ? 'deck' : 'search');
+  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(isMobile ? 'deck' : 'card');
 
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
