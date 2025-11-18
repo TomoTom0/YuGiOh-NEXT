@@ -612,6 +612,9 @@ function removeTag(tagId: string) {
   overflow-y: auto;
   background: white;
   color: #333;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .metadata-row {
