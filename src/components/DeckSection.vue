@@ -167,12 +167,18 @@ export default {
         // 同じセクション内で最後尾に移動
         if (sourceSectionType === props.sectionType && sourceUuid) {
           console.log('[handleEndDrop] Reordering within same section')
-          deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
+          const result = deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
+          if (result && !result.success) {
+            console.error('[DeckSection] 移動失敗:', result.error)
+          }
         }
         // 他のセクションから最後尾に移動
         else if (sourceSectionType !== props.sectionType) {
           console.log('[handleEndDrop] Moving from', sourceSectionType, 'to', props.sectionType)
-          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
+          const result = deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
+          if (!result.success) {
+            console.error('[DeckSection] 移動失敗:', result.error)
+          }
         }
       } catch (e) {
         console.error('End drop error:', e)
