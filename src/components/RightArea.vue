@@ -74,17 +74,19 @@
             <span class="toggle-mode">{{ searchMode === 'name' ? 'name' : searchMode === 'text' ? 'text' : 'pend' }}</span>
           </div>
         </button>
-        <div v-if="showSearchModeDropdown" class="mode-dropdown">
-          <div class="mode-option" @click="searchMode = 'name'; showSearchModeDropdown = false">
-            カード名で検索
+        <Transition name="dropdown">
+          <div v-if="showSearchModeDropdown" class="mode-dropdown">
+            <div class="mode-option" @click="searchMode = 'name'; showSearchModeDropdown = false">
+              カード名で検索
+            </div>
+            <div class="mode-option" @click="searchMode = 'text'; showSearchModeDropdown = false">
+              テキストで検索
+            </div>
+            <div class="mode-option" @click="searchMode = 'pendulum'; showSearchModeDropdown = false">
+              ペンデュラムテキストで検索
+            </div>
           </div>
-          <div class="mode-option" @click="searchMode = 'text'; showSearchModeDropdown = false">
-            テキストで検索
-          </div>
-          <div class="mode-option" @click="searchMode = 'pendulum'; showSearchModeDropdown = false">
-            ペンデュラムテキストで検索
-          </div>
-        </div>
+        </Transition>
         <input
           v-model="deckStore.searchQuery"
           type="text"
@@ -804,6 +806,31 @@ export default {
   z-index: 101;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   min-width: 160px;
+}
+
+/* ドロップダウンアニメーション */
+.dropdown-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.dropdown-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.dropdown-enter-to,
+.dropdown-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .mode-option {
