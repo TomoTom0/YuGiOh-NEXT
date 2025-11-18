@@ -152,12 +152,18 @@ Rush Duel対応（Phase 1-2）✅ 完了・動作確認済み。
      - 1.0秒後に自動的に警告表示を解除（1.5秒→1.0秒に短縮）
      - ✅ プラスボタン（bottom-right）の赤色スタイル追加（2025-11-18）
      - ✅ カード自体の赤色背景オーバーレイ修正（::before疑似要素で実装、2025-11-18）
+   - [x] カード移動のエラーハンドリング統一（2025-11-18 16:25 JST）
+     - ドロップ移動と押下移動でエラー処理を統一
+     - ストアの移動メソッドが戻り値 `{ success: boolean; error?: string }` を返すように修正
+     - `moveCard`, `reorderCard`, `moveCardWithPosition`, `reorderWithinSection` の戻り値統一
+     - `moveCardToTrash`, `moveCardToSide`, `moveCardToMainOrExtra`, `moveCardFromSide` の戻り値統一
+     - DeckCard.vue, DeckSection.vueでエラーログを統一的に出力
    - [ ] 残課題：
      - デッキタイプ・スタイルのドロップダウンメニューが画面右方向にはみ出る（位置調整）
      - CategoryダイアログのFilterボタンの挙動未実装
      - Tagダイアログの実装（Categoryと同様の仕様）
      - 各要素の配置・高さ・スタイルの微調整
-   - ビルド＆デプロイ完了（警告表示改善まで、2025-11-18 16:16 JST）
+   - ビルド＆デプロイ完了（移動エラーハンドリング統一まで、2025-11-18 16:25 JST）
    
 3. **v0.4.0の他の機能実装**（優先度：高）
    - タグマスターデータの取得実装
