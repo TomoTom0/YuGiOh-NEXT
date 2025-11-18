@@ -1034,6 +1034,17 @@ function removeTag(tagId: string) {
   cursor: pointer;
   font-size: 12px;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    display: block;
+    
+    path {
+      fill: #333;
+    }
+  }
   
   &:hover {
     background: #e8e8e8;
@@ -1070,6 +1081,17 @@ function removeTag(tagId: string) {
   border-left: 1px solid #ddd;
   cursor: pointer;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    display: block;
+    
+    path {
+      fill: #333;
+    }
+  }
   
   &:hover {
     background: #e8e8e8;
@@ -1244,26 +1266,33 @@ function removeTag(tagId: string) {
 .metadata-textarea {
   width: 100%;
   max-width: 100%;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  font-family: inherit;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #333;
   background: white;
   resize: vertical;
-  min-height: 400px;
+  min-height: 200px;
   height: auto;
   line-height: 1.6;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.2s;
   
   &:focus {
     outline: none;
     border-color: var(--theme-gradient-start, #00d9b8);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 3px rgba(0, 217, 184, 0.1);
+  }
+  
+  &:hover {
+    border-color: #999;
   }
   
   &::placeholder {
-    color: #999;
+    color: #aaa;
   }
 }
 </style>
