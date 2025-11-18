@@ -606,13 +606,13 @@ function removeTag(tagId: string) {
 }
 
 .row-main {
-  height: 36px;
+  height: 28px;
   align-items: center;
 }
 
 .chips-row {
   align-items: flex-start;
-  min-height: 36px;
+  min-height: 28px;
   justify-content: flex-start;
 }
 
@@ -629,10 +629,10 @@ function removeTag(tagId: string) {
 .toggle-slider {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
-  padding: 6px 12px;
-  height: 32px;
+  padding: 4px 8px;
+  height: 28px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
@@ -640,7 +640,7 @@ function removeTag(tagId: string) {
   user-select: none;
   
   .toggle-text {
-    font-size: 13px;
+    font-size: 12px;
     color: #333;
     white-space: nowrap;
   }
@@ -648,10 +648,10 @@ function removeTag(tagId: string) {
   &:before {
     content: "";
     display: inline-block;
-    width: 36px;
-    height: 18px;
+    width: 32px;
+    height: 16px;
     background-color: #ccc;
-    border-radius: 9px;
+    border-radius: 8px;
     position: relative;
     transition: 0.3s;
   }
@@ -659,10 +659,10 @@ function removeTag(tagId: string) {
   &:after {
     content: "";
     position: absolute;
-    left: 14px;
-    top: 9px;
-    height: 14px;
-    width: 14px;
+    left: 10px;
+    top: 7px;
+    height: 12px;
+    width: 12px;
     background-color: white;
     border-radius: 50%;
     transition: 0.3s;
@@ -675,7 +675,7 @@ function removeTag(tagId: string) {
   }
   
   &:after {
-    transform: translateX(18px);
+    transform: translateX(16px);
   }
 }
 
@@ -687,19 +687,18 @@ function removeTag(tagId: string) {
 .deck-type-button,
 .deck-style-button,
 .action-button {
-  height: 32px;
-  padding: 0 12px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
   color: #333;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 80px;
   
   &:hover {
     border-color: #999;
@@ -711,19 +710,28 @@ function removeTag(tagId: string) {
   }
 }
 
+.deck-type-button {
+  min-width: 60px;
+  padding: 0 6px;
+}
+
+.deck-style-button {
+  min-width: 60px;
+}
+
 .action-button {
-  min-width: 90px;
+  min-width: 70px;
   flex-shrink: 0;
 }
 
 .deck-type-icon {
-  width: 60px;
+  width: 50px;
   height: auto;
   display: block;
 }
 
 .deck-type-placeholder {
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
 }
 
