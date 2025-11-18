@@ -635,7 +635,7 @@ function removeTag(tagId: string) {
   justify-content: flex-start;
 }
 
-// 公開/非公開スイッチ - テキストをスイッチ内に表示
+// 公開/非公開スイッチ - テキストを左右に配置
 .toggle-switch {
   position: relative;
   display: inline-block;
@@ -648,7 +648,7 @@ function removeTag(tagId: string) {
 .toggle-slider {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   cursor: pointer;
   width: 80px;
   height: 28px;
@@ -658,6 +658,7 @@ function removeTag(tagId: string) {
   transition: all 0.3s;
   user-select: none;
   position: relative;
+  padding: 0 8px;
   
   .toggle-text {
     font-size: 11px;
@@ -726,7 +727,19 @@ function removeTag(tagId: string) {
 
 .deck-type-button {
   min-width: 60px;
-  padding: 2px 6px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  
+  &:hover {
+    background: transparent;
+    opacity: 0.8;
+  }
+  
+  &:active {
+    background: transparent;
+    opacity: 0.6;
+  }
 }
 
 .deck-style-button {
@@ -742,11 +755,19 @@ function removeTag(tagId: string) {
   height: 24px;
   width: auto;
   display: block;
+  border-radius: 4px;
 }
 
 .deck-type-placeholder {
   font-size: 11px;
   color: #999;
+  padding: 0 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  height: 24px;
+  display: flex;
+  align-items: center;
 }
 
 .chips-container {
