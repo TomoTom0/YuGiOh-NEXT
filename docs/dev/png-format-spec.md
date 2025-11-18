@@ -164,6 +164,8 @@ async function extractDeckInfoFromPNG(
 
 PNG仕様に準拠したCRC-32実装が必要です。
 
+**実装参照**: [`src/utils/png-metadata.ts`](../../src/utils/png-metadata.ts#L49-L59)
+
 ```typescript
 function crc32(data: Uint8Array): number {
   let crc = 0xFFFFFFFF;
@@ -179,6 +181,8 @@ function crc32(data: Uint8Array): number {
 
 **CRC計算対象**: `Type + Data`
 - tEXtの場合: `"tEXt" + "DeckInfo\0{JSON文字列}"`
+
+> **注記**: 上記の擬似コードは説明のための簡略版です。実際の実装は参照リンク先をご確認ください。
 
 ## テスト方法
 

@@ -14,6 +14,8 @@ YGO Deck Helperで使用される主要なデータ型とその関係性につ�
 
 ### DeckInfo
 
+**型定義**: [`src/types/deck.ts`](../../src/types/deck.ts)
+
 デッキ全体の情報を表す最上位の型。
 
 ```typescript
@@ -31,6 +33,8 @@ interface DeckInfo {
 
 ### DeckCard
 
+**型定義**: [`src/types/deck.ts`](../../src/types/deck.ts)
+
 デッキ内のカード情報（カード＋枚数）。
 
 ```typescript
@@ -47,6 +51,8 @@ interface DeckCard {
 - 準制限カード: 2枚
 
 ### SimpleDeckInfo
+
+**型定義**: [`src/utils/png-metadata.ts`](../../src/utils/png-metadata.ts)（内部型）
 
 PNG埋め込み用の簡略デッキ情報。
 
@@ -83,6 +89,8 @@ async function expandSimpleDeckInfo(simple: SimpleDeckInfo): Promise<DeckInfo>;
 
 ### CardInfo
 
+**型定義**: [`src/types/card.ts`](../../src/types/card.ts)
+
 カードの詳細情報。
 
 ```typescript
@@ -112,6 +120,8 @@ type CardType =
 ```
 
 ### CardImage
+
+**型定義**: [`src/types/card.ts`](../../src/types/card.ts)
 
 カードイラスト情報。
 
@@ -149,6 +159,8 @@ const isPendulum = (types: string[]) =>
 ## 設定関連
 
 ### AppSettings
+
+**型定義**: [`src/types/settings.ts`](../../src/types/settings.ts)
 
 アプリケーション全体の設定。
 
@@ -206,6 +218,8 @@ type Language =
 ```
 
 ### FeatureSettings
+
+**型定義**: [`src/types/settings.ts`](../../src/types/settings.ts)
 
 機能のON/OFF設定。
 
