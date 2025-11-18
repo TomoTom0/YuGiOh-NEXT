@@ -347,14 +347,15 @@ function updatePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
-// ドロップダウン位置調整関数
-function adjustDropdownPosition(
+// ドロップダウン位置調整（nextTickで確実にDOM更新を待つ）
+async function adjustDropdownPosition(
   selector: HTMLElement | null,
   dropdown: HTMLElement | null,
   alignRightRef: { value: boolean }
 ) {
   if (!selector || !dropdown) return;
   
+  await nextTick();
   setTimeout(() => {
     const rect = selector.getBoundingClientRect();
     const dropdownRect = dropdown.getBoundingClientRect();
@@ -366,7 +367,7 @@ function adjustDropdownPosition(
     } else {
       alignRightRef.value = false;
     }
-  }, 0);
+  }, 10);
 }
 
 function toggleDeckTypeDropdown() {
