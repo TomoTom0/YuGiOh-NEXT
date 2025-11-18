@@ -69,7 +69,7 @@
         :class="[bottomRightClass, { 'error-btn': showErrorRight }]"
         @click.stop="handleBottomRight"
       >
-        <svg v-if="showErrorRight" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="showErrorRight || (showError && (sectionType === 'main' || sectionType === 'extra' || sectionType === 'side'))" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" :d="mdiCloseCircle" />
         </svg>
         <svg v-else-if="showPlusIcon" width="12" height="12" viewBox="0 0 24 24">
@@ -120,6 +120,10 @@ export default {
     }
   },
   computed: {
+    showError() {
+      // 枚数制限エラー時、同じcardIdのカードを全て赤背景で表示
+      return this.deckStore.limitErrorCardId === this.card.cardId
+    },
     cardImageUrl() {
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
@@ -158,6 +162,10 @@ export default {
       return ''
     },
     showPlusIcon() {
+      // 枚数制限超過時はプラスアイコンを表示しない（バツアイコンを表示）
+      if (this.showError && (this.sectionType === 'main' || this.sectionType === 'extra' || this.sectionType === 'side')) {
+        return false
+      }
       return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
     },
     bottomRightText() {
@@ -168,6 +176,10 @@ export default {
     bottomRightClass() {
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-side'
       if (this.sectionType === 'trash') return 'card-btn-side'
+      // 枚数制限超過時はプラスボタンを赤色に（main/extra/sideセクション）
+      if (this.showError && (this.sectionType === 'main' || this.sectionType === 'extra' || this.sectionType === 'side')) {
+        return 'error-btn'
+      }
       return ''
     },
     showSearchButtons() {
@@ -435,7 +447,8 @@ export default {
   margin: 0;
 
   &.error-state {
-    background: rgba(255, 0, 0, 0.2);
+    opacity: 0.7;
+    background: rgba(255, 0, 0, 0.3);
     border-color: #ff0000;
   }
 
