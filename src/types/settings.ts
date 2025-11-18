@@ -2,6 +2,11 @@
  * 機能の有効/無効設定の型定義
  */
 
+/**
+ * カードゲームタイプ（OCG / Rush Duel）
+ */
+export type CardGameType = 'ocg' | 'rush';
+
 export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit';
 
 export interface FeatureSettings {
