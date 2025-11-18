@@ -372,7 +372,7 @@ export default {
   }
 }
 
-.deck-content, .search-content, .card-detail-content {
+.deck-content, .search-content, .card-detail-content, .metadata-content {
   animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -388,6 +388,16 @@ export default {
 }
 
 .deck-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.metadata-content {
   display: flex;
   flex-direction: column;
   flex: 1;
