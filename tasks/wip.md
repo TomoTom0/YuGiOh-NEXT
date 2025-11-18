@@ -1,5 +1,84 @@
 # 作業中のタスク
 
+## Rush Duel対応（OCG/Rush両対応化）（2025-11-18）
+
+### 背景
+遊戯王公式ページには以下の2つのカードゲームがある：
+- **OCG** (yugiohdb) - 現在対応中
+- **Rush Duel** (rushdb) - 今後対応予定
+
+### 対応方針
+
+#### Phase 1: デッキ表示画面の機能のみ対応（今回）
+- シャッフル・ソート機能
+- デッキ画像作成機能
+
+#### Phase 2以降: その他の機能も順次対応
+
+### 実装計画
+
+#### 1. URL使用箇所の調査（優先度：最高）✅ 完了
+- [x] src/内でURLの値を用いている箇所を全て洗い出す
+  - ハードコードされたURL（`https://www.db.yugioh-card.com/yugiohdb/...`）
+  - 正規表現によるURL判定（`/yugiohdb/`, `/member_deck\.action/` など）
+  - API呼び出しのベースURL
+  - パーサーでのURL参照
+- [x] 調査結果をドキュメント化
+  - 📄 `tmp/wip/rush-duel-url-investigation.md` 作成完了
+  - 合計29ファイルで修正が必要
+  - 6段階の実装計画を策定
+
+#### 2. 型定義の追加 ✅ 完了
+- [x] `CardGameType = 'ocg' | 'rush'` の定義
+  - 配置場所: `src/types/settings.ts`
+  - export追加完了
+
+#### 3. ページ判定ユーティリティの拡張（`src/utils/page-detector.ts`）✅ 完了
+- [x] `detectCardGameType(): CardGameType` - URLからゲームタイプを自動判定
+- [x] `getGamePath(cardGameType: CardGameType): string` - 'ocg' → 'yugiohdb', 'rush' → 'rushdb'
+- [x] 各判定関数に `cardGameType?: CardGameType` 引数を追加
+  - `isDeckDisplayPage(cardGameType?: CardGameType): boolean`
+  - `isDeckEditPage`, `isDeckListPage`, `isCardSearchPage`, `isCardDetailPage`
+  - `isFAQSearchPage`, `isFAQDetailPage`, `isDeckSearchPage`, `isYugiohDBSite`
+
+#### 3.1 URLビルダーユーティリティの作成 ✅ 完了
+- [x] `src/utils/url-builder.ts` を新規作成
+  - `buildApiUrl(path: string, gameType: CardGameType): string`
+  - `buildImageUrl(cid, ciid, imgHash, gameType): string`
+  - `buildFullUrl(relativePath): string`
+  - `getDeckApiEndpoint(gameType): string`
+  - `getCardSearchEndpoint(gameType): string`
+  - `getFaqSearchEndpoint(gameType): string`
+  - `getDeckSearchPageUrl(gameType, locale): string`
+  - `getCardSearchFormUrl(gameType): string`
+  - `getImagePartsBaseUrl(gameType): string`
+  - `getVueEditUrl(gameType, dno?): string`
+  - `getDeckDisplayUrl(cgid, dno, gameType): string`
+
+#### 4. API URLの動的生成
+- [ ] ベースURLをゲームタイプから生成する関数
+- [ ] 各APIファイルの修正
+  - `src/api/deck-operations.ts`
+  - `src/api/card-search.ts`
+  - `src/api/card-faq.ts`
+  - その他
+
+#### 5. デッキ表示機能の対応
+- [ ] シャッフル・ソート機能でのゲームタイプ判定
+- [ ] デッキ画像作成機能でのゲームタイプ判定
+
+#### 6. テスト
+- [ ] `page-detector.ts` のテスト追加
+  - Rush Duel用のテストケース
+- [ ] 各機能の動作確認
+
+### 次のアクション
+Phase 1（基盤整備）✅ 完了。次はPhase 2（デッキ表示機能の対応）：
+1. シャッフル・ソート機能でのゲームタイプ判定（優先度：最高）
+2. デッキ画像作成機能でのゲームタイプ判定（優先度：高）
+
+---
+
 ## v0.4.0: デッキ編集UI改善とメタデータ編集機能（2025-11-18）
 
 ### ドラッグ&ドロップUIの改善
