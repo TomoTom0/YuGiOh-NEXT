@@ -39,6 +39,7 @@ docs/internal-reviews/reports/
 7. `07_github_tools_investigation.md`
    → レポート: `docs/internal-reviews/reports/github-tools-analysis.md`
 
-8. `08_test_doc_implementation_review.md` (2025-11-18)
+8. `01-2_test_doc_implementation_review.md` (2025-11-18)
    → レポート: `docs/internal-reviews/reports/test-doc-implementation-review.md`
    → 概要: テストとドキュメント実装のレビュー（122テスト + 4ドキュメント）
+   → 備考: 01_refactoring_review のフォローアップとして番号を 01-2 に変更
