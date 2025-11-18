@@ -255,12 +255,15 @@ interface DeckEditUIState {
 **SortOrder**:
 ```typescript
 type SortOrder = 
-  | 'default'   // デッキ内順序
-  | 'name'      // カード名
-  | 'type'      // カード種類
-  | 'level'     // レベル
-  | 'atk'       // 攻撃力
-  | 'def';      // 守備力
+  | 'official'    // 公式順（デフォルト）
+  | 'name-asc'      // 名前昇順
+  | 'name-desc'     // 名前降順
+  | 'level-asc'     // レベル昇順
+  | 'level-desc'    // レベル降順
+  | 'atk-asc'       // 攻撃力昇順
+  | 'atk-desc'      // 攻撃力降順
+  | 'def-asc'       // 守備力昇順
+  | 'def-desc';     // 守備力降順
 ```
 
 ## メタデータ関連
