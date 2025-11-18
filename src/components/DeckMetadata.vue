@@ -602,15 +602,18 @@ function removeTag(tagId: string) {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
 }
 
 .row-main {
   height: 36px;
+  align-items: center;
 }
 
 .chips-row {
   align-items: flex-start;
   min-height: 36px;
+  justify-content: flex-start;
 }
 
 // 公開/非公開スイッチ - コンパクト版
@@ -865,42 +868,45 @@ function removeTag(tagId: string) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .metadata-label {
   font-size: 14px;
   font-weight: 600;
   color: #333;
+  text-align: left;
 }
 
 .char-count {
   font-size: 12px;
   color: #999;
+  text-align: right;
 }
 
 .metadata-textarea {
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 10px !important;
-  border: 1px solid #ddd !important;
-  border-radius: 4px !important;
-  font-size: 13px !important;
-  font-family: inherit !important;
-  color: #333 !important;
-  background: white !important;
-  resize: vertical !important;
-  min-height: 200px !important;
-  height: 200px !important;
-  line-height: 1.6 !important;
-  box-sizing: border-box !important;
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  background: white;
+  resize: vertical;
+  min-height: 200px;
+  height: auto;
+  line-height: 1.6;
+  box-sizing: border-box;
   
   &:focus {
-    outline: none !important;
-    border-color: var(--theme-gradient-start, #00d9b8) !important;
+    outline: none;
+    border-color: var(--theme-gradient-start, #00d9b8);
   }
   
   &::placeholder {
-    color: #999 !important;
+    color: #999;
   }
 }
 </style>
