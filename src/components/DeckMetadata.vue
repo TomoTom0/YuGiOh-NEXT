@@ -154,7 +154,7 @@
           >
             <!-- 1行目: フィルターボタン + 検索入力 + 検索ボタン -->
             <div class="dialog-search-row">
-              <button class="filter-button" @click.stop="onFilterClick">Filter</button>
+              <button class="filter-button" @click.stop="onFilterClick">🔽</button>
               <div class="search-input-wrapper">
                 <input
                   v-model="categorySearchQuery"
