@@ -355,12 +355,23 @@ export default {
 
 // TransitionGroupのアニメーションを完全に無効化
 // カスタムFLIPアニメーションのみを使用
-.card-list-enter-active,
-.card-list-leave-active {
-  transition: none;
+.card-list-enter-active {
+  transition: all 0.3s ease;
 }
 .card-list-leave-active {
+  transition: all 0.3s ease;
   position: absolute;
+}
+.card-list-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.card-list-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.card-list-move {
+  transition: transform 0.3s ease;
 }
 
 .main-deck {
