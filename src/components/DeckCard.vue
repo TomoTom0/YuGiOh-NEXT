@@ -752,6 +752,13 @@ export default {
       }
     }
 
+    &.error-btn {
+      &::before {
+        background: rgba(255, 0, 0, 0.9) !important;
+        border: 1px solid rgba(255, 0, 0, 1) !important;
+      }
+    }
+
     .btn-text {
       font-size: 9px;
     }
