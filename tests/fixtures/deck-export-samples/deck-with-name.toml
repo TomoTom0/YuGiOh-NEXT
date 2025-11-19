@@ -1,0 +1,65 @@
+[[deck.main]]
+name = "灰流うらら"
+cid = "12950"
+ciid = "1"
+quantity = 2
+
+[[deck.main]]
+name = "灰流うらら"
+cid = "12950"
+ciid = "2"
+quantity = 1
+
+[[deck.main]]
+name = "増殖するG"
+cid = "7102"
+ciid = "1"
+quantity = 3
+
+[[deck.main]]
+name = "エフェクト・ヴェーラー"
+cid = "6602"
+ciid = "1"
+quantity = 2
+
+[[deck.main]]
+name = "青眼の白龍"
+cid = "4007"
+ciid = "1"
+quantity = 1
+
+[[deck.main]]
+name = "青眼の白龍"
+cid = "4007"
+ciid = "3"
+quantity = 2
+
+[[deck.extra]]
+name = "リンクリボー"
+cid = "13703"
+ciid = "1"
+quantity = 1
+
+[[deck.extra]]
+name = "星杯神楽イヴ"
+cid = "13619"
+ciid = "1"
+quantity = 2
+
+[[deck.extra]]
+name = "トロイメア・フェニックス"
+cid = "14098"
+ciid = "1"
+quantity = 1
+
+[[deck.side]]
+name = "ツインツイスター"
+cid = "12159"
+ciid = "1"
+quantity = 2
+
+[[deck.side]]
+name = "王宮の勅命"
+cid = "5603"
+ciid = "1"
+quantity = 3

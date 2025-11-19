@@ -1,5 +1,45 @@
 # 完了したタスク
 
+## 2025-11-19: tmp/ディレクトリ整理完了
+
+- **タイムスタンプ**: 2025-11-19 17:00 JST
+- **対象**: tmp/ディレクトリのクリーンアップ
+- **ブランチ**: `chore/tmp-cleanup` (作成予定)
+
+### 実施内容
+
+**Phase 1: 高優先度ファイルの救出**
+- ドキュメント移動: 6ファイル
+  - v0.4.0設計ドキュメント → `docs/design/v0.4.0/`
+  - Rush Duel調査 → `docs/dev/investigations/`
+  - テスト記録 → `docs/testing/`
+- テストフィクスチャ移動: 11ファイル
+  - export-samples → `tests/fixtures/deck-export-samples/`
+- レビューリクエスト移動: 8ファイル
+  - requests → `docs/internal-reviews/req/`
+
+**Phase 2-3: 不要ファイルの削除**
+- 大容量ディレクトリ削除:
+  - `tmp/_archived/prototype/` (246MB)
+  - `tmp/browser/` (31MB)
+  - `tmp/_archived/.npm-cache/` (23MB)
+  - `tmp/image-optimization/` (3.7MB)
+- 一時ファイル削除:
+  - HTML/ログ/スクリーンショット
+  - Cookie認証ファイル
+  - 一時TSVファイル
+
+**結果サマリー**:
+- **削減量**: 382MB → 46MB（336MB削減、88%削減率）
+- **目標達成**: 100MB以下の目標を大幅達成
+- **保持データ**: scrapingのマスターTSV（将来の参照用）
+
+### 参照
+- レビューレポート: `docs/internal-reviews/reports/wip/04_tmp_cleanup_report.md`
+- 元依頼: `docs/internal-reviews/req/04_tmp_cleanup_review.md`
+
+---
+
 ## 2025-11-18: テストとドキュメント実装完了
 
 - **タイムスタンプ**: 2025-11-18 21:46 JST

@@ -1,6 +1,6 @@
 # 作業中のタスク
 
-## tmp/ディレクトリ整理（2025-11-19）
+## tmp/ディレクトリ整理（2025-11-19）✅ 完了
 
 ### 背景
 `tmp/` ディレクトリが約382MBに肥大化しており、整理が必要。重要なドキュメントやテストフィクスチャを救出し、不要なキャッシュや一時ファイルを削除する。
@@ -11,34 +11,47 @@
 
 ### 実装計画
 
-#### Phase 1: 高優先度ファイルの救出
-- [ ] ドキュメント移動
-  - [ ] `tmp/wip/v0.4.0-phase1-design.md` → `docs/design/v0.4.0/phase1.md`
-  - [ ] `tmp/wip/rush-duel-url-investigation.md` → `docs/dev/investigations/rush-duel-urls.md`
-  - [ ] `tmp/ciid-fix-manual-test.md` → `docs/testing/manual/ciid-fix-verification.md`
-  - [ ] `tmp/test-status-report.md` → `docs/testing/test-status-report.md`
+#### Phase 1: 高優先度ファイルの救出 ✅ 完了
+- [x] ドキュメント移動
+  - [x] `tmp/wip/v0.4.0-phase1-design.md` → `docs/design/v0.4.0/phase1.md`
+  - [x] `tmp/wip/v0.4.0-investigation.md` → `docs/design/v0.4.0/investigation.md`
+  - [x] `tmp/wip/rush-duel-url-investigation.md` → `docs/dev/investigations/rush-duel-urls.md`
+  - [x] `tmp/ciid-fix-manual-test.md` → `docs/testing/manual/ciid-fix-verification.md`
+  - [x] `tmp/test-status-report.md` → `docs/testing/test-status-report.md`
 
-- [ ] テストフィクスチャ移動
-  - [ ] `tmp/export-samples/` → `tests/fixtures/deck-export-samples/`
+- [x] テストフィクスチャ移動
+  - [x] `tmp/export-samples/` → `tests/fixtures/deck-export-samples/`
 
-#### Phase 2: 中優先度ファイルの確認・移動
-- [ ] `tmp/_archived/scraping/` のTSVデータ確認（バックアップ有無）
-- [ ] `tmp/browser/` のPlaywrightスクリプト精査（代表的なもののみ保存）
-- [ ] `tmp/image-optimization/` の反映確認後削除
+- [x] レビューリクエスト移動
+  - [x] `tmp/requests/*.md` → `docs/internal-reviews/req/`
 
-#### Phase 3: 不要ファイルの削除
-- [ ] npm キャッシュ削除（約340MB）: `tmp/_archived/.npm-cache/`
-- [ ] クッキーファイル削除: `tmp/_archived/scraping/cookies*.txt`
-- [ ] browser テスト出力削除: `tmp/browser/`
-- [ ] 一時ログ・HTML削除: `tmp/*.html`, `tmp/*.log`
+#### Phase 2: 中優先度ファイルの確認・移動 ✅ 完了
+- [x] `tmp/_archived/scraping/` のTSVデータ確認（将来の利用可能性のため保持）
+- [x] `tmp/browser/` のPlaywrightスクリプト精査（31MB削除）
+- [x] `tmp/image-optimization/` の反映確認後削除（3.7MB削除）
+
+#### Phase 3: 不要ファイルの削除 ✅ 完了
+- [x] npm キャッシュ削除（23MB）: `tmp/_archived/.npm-cache/`
+- [x] クッキーファイル削除: `tmp/_archived/scraping/cookies*.txt`
+- [x] browser テスト出力削除: `tmp/browser/`（31MB）
+- [x] 一時ログ・HTML削除: `tmp/*.html`, `tmp/*.log`
+- [x] prototypeディレクトリ削除（246MB）: `tmp/_archived/prototype/`
+- [x] 一時TSVファイル削除: `tmp/_archived/scraping/*-temp-*.tsv`
 
 ### 完了条件
-- [ ] 重要ドキュメント・フィクスチャの移動完了
-- [ ] tmp/ のサイズを100MB以下に削減
-- [ ] `.gitignore` に `tmp/` 配下のルール追加（必要に応じて）
+- [x] 重要ドキュメント・フィクスチャの移動完了
+- [x] tmp/ のサイズを100MB以下に削減（**382MB → 46MB、約88%削減**）
+- [x] `.gitignore` に `tmp/` 配下のルール追加（既に設定済み確認）
+
+### 結果サマリー（2025-11-19）
+- **削減量**: 382MB → 46MB（336MB削減、88%削減率）
+- **移動したドキュメント**: 6ファイル
+- **移動したテストフィクスチャ**: 11ファイル
+- **削除した大容量ディレクトリ**: prototype(246MB), browser(31MB), .npm-cache(23MB)
+- **保持したデータ**: scrapingのTSVデータ（cards-all.tsv等、将来の参照用）
 
 ### Git管理
-- ブランチ: `chore/tmp-cleanup`
+- ブランチ: `chore/tmp-cleanup` (作成予定)
 
 ---
 
