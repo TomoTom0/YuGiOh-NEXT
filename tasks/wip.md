@@ -24,6 +24,10 @@
 - **実施方針**: 段階的PR（✅型修正 → ⏳ストア分割検討）
 - **レポート**: `docs/internal-reviews/reports/wip/01_refactoring_analysis.md`
 - **進捗**: 1/3完了（型定義修正完了、コミット: b6da2c4）
+- **分割調査**: 完了（`tmp/reports/store-split-analysis.md`）
+  - 現状: 1,272行、35関数、5つの責務
+  - 推奨: 3段階分割（アニメーション→DisplayOrder→ドメイン）
+  - Phase 1のみ実施で12%削減可能
 
 ---
 
