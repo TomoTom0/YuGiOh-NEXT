@@ -751,3 +751,40 @@
 - ⚠️ 既存の49個のテスト失敗は別タスクで対応が必要
 
 ---
+
+## 2025-11-20: CI/CD整備完了（09, 10レポート対応）
+
+- **タイムスタンプ**: 2025-11-20 00:40 JST
+- **対象**: GitHub Actions CI/CD整備、依存関係自動監視
+- **コミット**: db48d1b, 7fd529d
+
+### 実施内容
+
+**CI ワークフロー追加** (`.github/workflows/ci.yml`):
+- トリガー: PR/push (main, dev), workflow_dispatch
+- ジョブ: build-and-test
+  - Node.js 22, npm キャッシュ有効化
+  - npm ci → build → vitest → tsc --noEmit
+  - continue-on-error（既存テスト失敗を許容）
+  - 成果物アップロード（dist/, 7日保持）
+- concurrency: 重複実行キャンセル
+- permissions: contents: read（最小権限）
+
+**Dependabot 設定追加** (`.github/dependabot.yml`):
+- パッケージエコシステム: npm
+- 更新頻度: 週次（月曜日）
+- PR上限: 5件
+- メジャーバージョンアップ: 除外（手動判断）
+- ラベル: dependencies, automated
+- レビュアー/担当者: TomoTom0
+
+### 残タスク（低優先）
+- E2E実行ポリシー策定（Playwright, 高コスト）
+- デプロイワークフロー（手動トリガー）
+- Secret Scanner導入検討
+
+### ビルド・デプロイ
+- ✅ ビルド成功: webpack 5.102.1
+- ✅ デプロイ完了
+
+---
