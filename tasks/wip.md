@@ -1,5 +1,47 @@
 # 作業中のタスク
 
+## tmp/ディレクトリ整理（2025-11-19）
+
+### 背景
+`tmp/` ディレクトリが約382MBに肥大化しており、整理が必要。重要なドキュメントやテストフィクスチャを救出し、不要なキャッシュや一時ファイルを削除する。
+
+### 参照
+- レビューレポート: `docs/internal-reviews/reports/wip/04_tmp_cleanup_report.md`
+- 元依頼: `docs/internal-reviews/req/04_tmp_cleanup_review.md`
+
+### 実装計画
+
+#### Phase 1: 高優先度ファイルの救出
+- [ ] ドキュメント移動
+  - [ ] `tmp/wip/v0.4.0-phase1-design.md` → `docs/design/v0.4.0/phase1.md`
+  - [ ] `tmp/wip/rush-duel-url-investigation.md` → `docs/dev/investigations/rush-duel-urls.md`
+  - [ ] `tmp/ciid-fix-manual-test.md` → `docs/testing/manual/ciid-fix-verification.md`
+  - [ ] `tmp/test-status-report.md` → `docs/testing/test-status-report.md`
+
+- [ ] テストフィクスチャ移動
+  - [ ] `tmp/export-samples/` → `tests/fixtures/deck-export-samples/`
+
+#### Phase 2: 中優先度ファイルの確認・移動
+- [ ] `tmp/_archived/scraping/` のTSVデータ確認（バックアップ有無）
+- [ ] `tmp/browser/` のPlaywrightスクリプト精査（代表的なもののみ保存）
+- [ ] `tmp/image-optimization/` の反映確認後削除
+
+#### Phase 3: 不要ファイルの削除
+- [ ] npm キャッシュ削除（約340MB）: `tmp/_archived/.npm-cache/`
+- [ ] クッキーファイル削除: `tmp/_archived/scraping/cookies*.txt`
+- [ ] browser テスト出力削除: `tmp/browser/`
+- [ ] 一時ログ・HTML削除: `tmp/*.html`, `tmp/*.log`
+
+### 完了条件
+- [ ] 重要ドキュメント・フィクスチャの移動完了
+- [ ] tmp/ のサイズを100MB以下に削減
+- [ ] `.gitignore` に `tmp/` 配下のルール追加（必要に応じて）
+
+### Git管理
+- ブランチ: `chore/tmp-cleanup`
+
+---
+
 ## テストとドキュメント追加（2025-11-18）✅ 完了
 
 ### 背景
