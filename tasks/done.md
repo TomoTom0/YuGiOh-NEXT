@@ -1,5 +1,31 @@
 # 完了したタスク
 
+## 2025-11-19: 内部レビュー対応完了（02, 08）
+
+- **タイムスタンプ**: 2025-11-19 21:43 JST
+- **対象**: レビューレポート 02, 08 の対応状況確認
+
+### 確認結果
+
+**02_test_doc_obsolescence（テスト・ドキュメント陳腐化調査）**:
+- ✅ 完了済み（2025-11-18）
+- テスト実装: 157件（png-metadata, deck-import/export, url-state, settings, E2E）
+- ドキュメント作成: 4本（import-export.md, deck-metadata.md, png-format-spec.md, data-models.md）
+- レビュー対応: E2Eテスト追加、chrome.storage.localモック強化
+- 参照: `tasks/done.md` の「2025-11-18: テストとドキュメント実装完了」
+
+**08_security-secrets-audit（セキュリティ監査）**:
+- ✅ 完了済み（tmp整理時）
+- 緊急対応完了: cookies*.txt削除、.npm-cache削除
+- 依存脆弱性: `npm audit` で脆弱性ゼロを確認
+- 参照: `tasks/done.md` の「2025-11-19: tmp/ディレクトリ整理完了（PR #13）」
+
+### 移動履歴
+- `docs/internal-reviews/reports/wip/02_test_doc_obsolescence.md` → `done/`
+- `docs/internal-reviews/reports/wip/08_security-secrets-audit.md` → `done/`
+
+---
+
 ## 2025-11-19: タグマスターデータの取得実装完了
 
 - **タイムスタンプ**: 2025-11-19 19:08 JST
