@@ -108,40 +108,40 @@ export const DECK_STYLE_LABEL_TO_VALUE: Record<string, DeckStyleValue> = {
  * カテゴリIDが有効かどうかを検証
  * 
  * @param categoryId - 検証するカテゴリID
- * @param validCategories - 有効なカテゴリIDのマップ（getDeckMetadata()から取得）
+ * @param validCategories - 有効なカテゴリの配列（getDeckMetadata()から取得）
  * @returns カテゴリIDが有効な場合はtrue
  */
 export function isValidCategoryId(
   categoryId: string,
-  validCategories: Record<string, string>
+  validCategories: Array<{ value: string; label: string; originalIndex: number; group: string[] }>
 ): categoryId is CategoryId {
-  return categoryId in validCategories;
+  return validCategories.some(cat => cat.value === categoryId);
 }
 
 /**
  * タグIDが有効かどうかを検証
  * 
  * @param tagId - 検証するタグID
- * @param validTags - 有効なタグIDのマップ（getDeckMetadata()から取得）
+ * @param validTags - 有効なタグの配列（getDeckMetadata()から取得）
  * @returns タグIDが有効な場合はtrue
  */
 export function isValidTagId(
   tagId: string,
-  validTags: Record<string, string>
+  validTags: Array<{ value: string; label: string; originalIndex: number; group: string[] }>
 ): tagId is TagId {
-  return tagId in validTags;
+  return validTags.some(tag => tag.value === tagId);
 }
 
 /**
  * カテゴリID配列をフィルタして有効なIDのみを返す
  * 
  * @param categoryIds - フィルタするカテゴリID配列
- * @param validCategories - 有効なカテゴリIDのマップ
+ * @param validCategories - 有効なカテゴリの配列
  * @returns 有効なカテゴリIDのみの配列
  */
 export function filterValidCategoryIds(
   categoryIds: string[],
-  validCategories: Record<string, string>
+  validCategories: Array<{ value: string; label: string; originalIndex: number; group: string[] }>
 ): CategoryId[] {
   return categoryIds.filter((id) => isValidCategoryId(id, validCategories));
 }
@@ -150,12 +150,12 @@ export function filterValidCategoryIds(
  * タグID配列をフィルタして有効なIDのみを返す
  * 
  * @param tagIds - フィルタするタグID配列
- * @param validTags - 有効なタグIDのマップ
+ * @param validTags - 有効なタグの配列
  * @returns 有効なタグIDのみの配列
  */
 export function filterValidTagIds(
   tagIds: string[],
-  validTags: Record<string, string>
+  validTags: Array<{ value: string; label: string; originalIndex: number; group: string[] }>
 ): TagId[] {
   return tagIds.filter((id) => isValidTagId(id, validTags));
 }

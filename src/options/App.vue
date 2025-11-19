@@ -34,7 +34,7 @@
 
       <!-- Deck Edit Settings Tab -->
       <div v-if="false && activeTab === 'deck-edit-settings'">
-        <DeckEditSettings />
+        <!-- Deck edit settings removed -->
       </div>
 
       <!-- Omit and Usage Tab -->
@@ -165,7 +165,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import DeckEditSettings from './DeckEditSettings.vue';
+
 import SettingsPanel from './SettingsPanel.vue';
 
 interface Feature {

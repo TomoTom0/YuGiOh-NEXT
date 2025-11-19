@@ -1,8 +1,6 @@
 import axios from 'axios';
 import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 import { DeckCard } from '@/types/card';
-import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
-import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
 
 const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
@@ -394,24 +392,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     console.log('[getDeckDetail] HTML length:', html.length);
 
     // imgsパラメータのサンプルを抽出
-    const imgsMatches = html.match(/imgs[^>]{0,100}/g) || [];
-    console.log('[getDeckDetail] imgs samples (first 5):', imgsMatches.slice(0, 5));
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // parseDeckDetailを使用してデッキ情報を抽出
-    console.log('[getDeckDetail] Parsing deck detail...');
-    const deckInfo = parseDeckDetail(doc);
-    console.log('[getDeckDetail] Parsed:', {
-      dno: deckInfo.dno,
-      name: deckInfo.name,
-      mainCount: deckInfo.mainDeck.length,
-      extraCount: deckInfo.extraDeck.length,
-      sideCount: deckInfo.sideDeck.length
-    });
-
-    return deckInfo;
+    throw new Error('Parser functions have been removed.');
   } catch (error) {
     console.error('Failed to get deck detail:', error);
     return null;
@@ -432,30 +413,5 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
  * ```
  */
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
-  try {
-    const requestLocale = detectLanguage(document);
-    
-    // URLパラメータを構築
-    const params = new URLSearchParams({
-      ope: '4',
-      cgid: cgid,
-      request_locale: requestLocale
-    });
-
-    const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // parseDeckListを使用してデッキ一覧を抽出
-    const deckList = parseDeckList(doc);
-
-    return deckList;
-  } catch (error) {
-    console.error('Failed to get deck list:', error);
-    return [];
-  }
+  throw new Error('Parser functions have been removed.');
 }

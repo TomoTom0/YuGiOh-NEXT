@@ -1,11 +1,6 @@
-import axios from 'axios';
 import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
-import { parseDeckDetail } from '../parser/deck-detail-parser';
-import { sessionManager } from '../session/session';
 import { embedDeckInfoToPNG } from '../../utils/png-metadata';
-import { detectCardGameType } from '../../utils/page-detector';
-import { getDeckDisplayUrl } from '../../utils/url-builder';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -27,22 +22,7 @@ export async function downloadDeckRecipeImage(
   // 1. deckDataがない場合は、dnoから自分のデッキ情報を取得
   let deckData = options.deckData;
   if (!deckData && options.dno) {
-    const cgid = await sessionManager.getCgid();
-    const gameType = detectCardGameType();
-    const url = getDeckDisplayUrl(cgid, parseInt(options.dno), gameType);
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(response.data, 'text/html');
-    deckData = parseDeckDetail(doc);
-
-    // デバッグログ
-    console.log('[downloadDeckRecipeImage] mainDeckCount:', deckData.mainDeck.length);
-    deckData.mainDeck.forEach((d, i) => {
-      const imgHash = d.card.imgs?.find(img => img.ciid === d.card.ciid)?.imgHash;
-      console.log(`  [${i}] ${d.card.name} (${d.card.cardType}) x${d.quantity} - ciid:${d.card.ciid}, hash:${imgHash}`);
-    });
+    throw new Error('Parser functions have been removed. Please provide deckData directly.');
   }
 
   // 2. 画像を作成

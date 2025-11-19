@@ -7,8 +7,7 @@
 // 共通スタイル
 import './styles/buttons.css';
 
-// デッキ編集ページ用の処理をインポート
-import './edit-ui';
+
 
 // デッキ画像作成ボタンの初期化
 import { initDeckImageButton } from './deck-recipe';
