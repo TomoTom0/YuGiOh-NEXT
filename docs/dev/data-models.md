@@ -196,6 +196,15 @@ const CARD_SIZE_MAP = {
 };
 ```
 
+**MiddleDecksLayout**:
+```typescript
+type MiddleDecksLayout = 'horizontal' | 'vertical';
+```
+
+Extra/Sideデッキの配置方向を指定：
+- `horizontal`: 横並び（デフォルト）
+- `vertical`: 縦並び
+
 **Theme**:
 ```typescript
 type Theme = 'light' | 'dark' | 'system';
@@ -256,15 +265,17 @@ interface DeckEditUIState {
 ```typescript
 type SortOrder = 
   | 'official'    // 公式順（デフォルト）
-  | 'name-asc'      // 名前昇順
-  | 'name-desc'     // 名前降順
-  | 'level-asc'     // レベル昇順
-  | 'level-desc'    // レベル降順
-  | 'atk-asc'       // 攻撃力昇順
-  | 'atk-desc'      // 攻撃力降順
-  | 'def-asc'       // 守備力昇順
-  | 'def-desc';     // 守備力降順
+  | 'name-asc'    // 名前昇順
+  | 'name-desc'   // 名前降順
+  | 'level-asc'   // レベル昇順
+  | 'level-desc'  // レベル降順
+  | 'atk-asc'     // 攻撃力昇順
+  | 'atk-desc'    // 攻撃力降順
+  | 'def-asc'     // 守備力昇順
+  | 'def-desc';   // 守備力降順
 ```
+
+実装: [`src/types/settings.ts`](../../src/types/settings.ts)
 
 ## メタデータ関連
 

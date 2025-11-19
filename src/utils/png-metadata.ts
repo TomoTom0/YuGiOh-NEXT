@@ -18,6 +18,46 @@ interface SimpleDeckInfo {
 }
 
 /**
+ * SimpleDeckInfo型ガード関数
+ * JSON Injection対策として、パースしたオブジェクトが正しい構造を持つか検証
+ */
+function isValidSimpleDeckInfo(obj: unknown): obj is SimpleDeckInfo {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Record<string, unknown>;
+
+  // main, extra, side プロパティが配列であることを確認
+  if (!Array.isArray(candidate.main) || !Array.isArray(candidate.extra) || !Array.isArray(candidate.side)) {
+    return false;
+  }
+
+  // 各配列の要素が正しい構造を持つか検証
+  const isValidCard = (card: unknown): boolean => {
+    if (typeof card !== 'object' || card === null) {
+      return false;
+    }
+    const c = card as Record<string, unknown>;
+    return (
+      typeof c.cid === 'string' &&
+      typeof c.ciid === 'string' &&
+      typeof c.enc === 'string' &&
+      typeof c.quantity === 'number' &&
+      Number.isInteger(c.quantity) &&
+      c.quantity >= 0 &&
+      c.quantity <= 99
+    );
+  };
+
+  return (
+    candidate.main.every(isValidCard) &&
+    candidate.extra.every(isValidCard) &&
+    candidate.side.every(isValidCard)
+  );
+}
+
+/**
  * DeckInfoを簡略形式に変換
  */
 function simplifyDeckInfo(deckInfo: DeckInfo): SimpleDeckInfo {
@@ -238,8 +278,14 @@ export async function extractDeckInfoFromPNG(
           const key = decoder.decode(data.subarray(0, nullPos));
           if (key === 'DeckInfo') {
             const value = decoder.decode(data.subarray(nullPos + 1));
-            // JSON.parseしてデッキ情報を返す
-            return JSON.parse(value) as SimpleDeckInfo;
+            // JSON.parseして型ガード関数で検証
+            const parsed: unknown = JSON.parse(value);
+            if (isValidSimpleDeckInfo(parsed)) {
+              return parsed;
+            } else {
+              console.warn('Invalid DeckInfo structure in PNG metadata');
+              return null;
+            }
           }
         }
       }
