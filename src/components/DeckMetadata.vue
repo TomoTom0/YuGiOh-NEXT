@@ -111,29 +111,58 @@
     <!-- 2行目: Tagボタン（左半分）+ Categoryボタン（右半分の左寄せ） -->
     <div class="metadata-row">
       <div class="left-half">
-        <button class="action-button" @click.stop="showTagDropdown = !showTagDropdown">Tag</button>
+        <button 
+          ref="tagButton"
+          class="action-button" 
+          @click.stop="showTagDropdown = !showTagDropdown"
+        >Tag</button>
         <Transition name="dropdown">
-          <div v-if="showTagDropdown" class="tag-dropdown">
-            <input
-              v-model="tagSearchQuery"
-              type="text"
-              class="dropdown-search"
-              placeholder="タグを検索..."
-              @click.stop
-            />
-            <div class="dropdown-options">
+          <div 
+            v-if="showTagDropdown" 
+            ref="tagDropdown"
+            class="tag-dialog"
+            @click.stop
+          >
+            <!-- 1行目: 検索入力 + 検索ボタン -->
+            <div class="dialog-search-row">
+              <div class="search-input-wrapper full-width">
+                <input
+                  v-model="tagSearchQuery"
+                  type="text"
+                  class="dialog-search-input"
+                  placeholder="タグを検索..."
+                  @click.stop
+                />
+                <button class="search-button" @click.stop>
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="currentColor" :d="mdiMagnify" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- 2行目: 選択済みチップ -->
+            <div class="dialog-selected-chips">
+              <span
+                v-for="tagId in localTags"
+                :key="'selected-' + tagId"
+                class="dialog-chip selected"
+              >
+                {{ tags[tagId] }}
+                <button class="dialog-chip-remove" @click="removeTag(tagId)">×</button>
+              </span>
+            </div>
+            
+            <!-- 3行目以降: タグ選択グリッド（スクロール可能） -->
+            <div class="dialog-options-grid">
               <div
                 v-for="(label, id) in filteredTags"
                 :key="id"
-                class="dropdown-option"
+                class="dialog-chip clickable"
+                :class="{ selected: localTags.includes(id) }"
                 @click="toggleTag(id)"
               >
-                <input
-                  type="checkbox"
-                  :checked="localTags.includes(id)"
-                  @click.stop
-                />
-                <span>{{ label }}</span>
+                {{ label }}
               </div>
             </div>
           </div>
@@ -278,6 +307,10 @@ const deckTypeSelector = ref<HTMLElement | null>(null);
 const deckTypeDropdown = ref<HTMLElement | null>(null);
 const deckStyleSelector = ref<HTMLElement | null>(null);
 const deckStyleDropdown = ref<HTMLElement | null>(null);
+const tagButton = ref<HTMLElement | null>(null);
+const tagDropdown = ref<HTMLElement | null>(null);
+const categoryButton = ref<HTMLElement | null>(null);
+const categoryDropdown = ref<HTMLElement | null>(null);
 
 // カテゴリ・タグ検索用
 const categorySearchQuery = ref('');
@@ -313,9 +346,7 @@ const filteredTags = computed(() => {
 onMounted(async () => {
   const metadata = await getDeckMetadata();
   categories.value = metadata.categories;
-  // タグは現時点ではメタデータに含まれていないため、空のままにする
-  // TODO: updateDeckMetadata() でタグマスターも取得するように修正が必要
-  tags.value = {};
+  tags.value = metadata.tags;
   
   // 外クリックでドロップダウンを閉じる
   document.addEventListener('click', handleClickOutside);
@@ -355,8 +386,8 @@ function updatePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
-// ドロップダウン位置調整（nextTickで確実にDOM更新を待つ）
-async function adjustDropdownPosition(
+// デッキタイプ・スタイルドロップダウンの右寄せ調整
+async function adjustAlignRight(
   selector: HTMLElement | null,
   dropdown: HTMLElement | null,
   alignRightRef: { value: boolean }
@@ -381,7 +412,7 @@ async function adjustDropdownPosition(
 function toggleDeckTypeDropdown() {
   showDeckTypeDropdown.value = !showDeckTypeDropdown.value;
   if (showDeckTypeDropdown.value) {
-    adjustDropdownPosition(
+    adjustAlignRight(
       deckTypeSelector.value,
       deckTypeDropdown.value,
       deckTypeDropdownAlignRight
@@ -392,7 +423,7 @@ function toggleDeckTypeDropdown() {
 function toggleDeckStyleDropdown() {
   showDeckStyleDropdown.value = !showDeckStyleDropdown.value;
   if (showDeckStyleDropdown.value) {
-    adjustDropdownPosition(
+    adjustAlignRight(
       deckStyleSelector.value,
       deckStyleDropdown.value,
       deckStyleDropdownAlignRight
@@ -439,37 +470,51 @@ function toggleCategory(catId: string) {
   deckStore.deckInfo.category = [...localCategory.value];
 }
 
-// カテゴリダイアログの位置調整（fixed positionで全画面配置）
+// ダイアログ位置調整の共通関数
+function adjustDropdownPosition(
+  button: HTMLElement | null,
+  dropdown: HTMLElement | null,
+) {
+  if (!dropdown || !button) return;
+
+  setTimeout(() => {
+    const buttonRect = button.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // ボタンの下に配置
+    let top = buttonRect.bottom + 4;
+    let left = buttonRect.left;
+    
+    // 右にはみ出る場合は左にずらす
+    if (left + dropdownRect.width > viewportWidth) {
+      left = viewportWidth - dropdownRect.width - 20;
+    }
+    
+    // 下にはみ出る場合は上に配置
+    if (top + dropdownRect.height > viewportHeight) {
+      top = buttonRect.top - dropdownRect.height - 4;
+    }
+    
+    dropdown.style.top = `${top}px`;
+    dropdown.style.left = `${left}px`;
+  }, 0);
+}
+
+// タグダイアログの位置調整
+watch(showTagDropdown, async (newVal) => {
+  if (newVal) {
+    await nextTick();
+    adjustDropdownPosition(tagButton.value, tagDropdown.value);
+  }
+});
+
+// カテゴリダイアログの位置調整
 watch(showCategoryDropdown, async (newVal) => {
   if (newVal) {
     await nextTick();
-    const dropdown = document.querySelector('.category-dialog') as HTMLElement;
-    const button = document.querySelector('.right-half .action-button') as HTMLElement;
-    if (dropdown && button) {
-      setTimeout(() => {
-        const buttonRect = button.getBoundingClientRect();
-        const dropdownRect = dropdown.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // ボタンの下に配置
-        let top = buttonRect.bottom + 4;
-        let left = buttonRect.left;
-        
-        // 右にはみ出る場合は左にずらす
-        if (left + dropdownRect.width > viewportWidth) {
-          left = viewportWidth - dropdownRect.width - 20;
-        }
-        
-        // 下にはみ出る場合は上に配置
-        if (top + dropdownRect.height > viewportHeight) {
-          top = buttonRect.top - dropdownRect.height - 4;
-        }
-        
-        dropdown.style.top = `${top}px`;
-        dropdown.style.left = `${left}px`;
-      }, 0);
-    }
+    adjustDropdownPosition(categoryButton.value, categoryDropdown.value);
   }
 });
 
@@ -739,6 +784,7 @@ function removeTag(tagId: string) {
   }
 }
 
+.tag-dialog,
 .category-dialog {
   position: fixed;
   background: white;
@@ -793,6 +839,10 @@ function removeTag(tagId: string) {
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;
+  
+  &.full-width {
+    width: 100%;
+  }
 }
 
 .dialog-search-input {
