@@ -1,3 +1,18 @@
+# CLAUDE.md - プロジェクトガイド
+
+## 📌 TL;DR（最重要事項）
+
+1. **ブラウザ操作**: Playwright MCP禁止 → `tmp/browser/` のNode.jsスクリプト + CDP経由で実行
+2. **よくあるミス**: [`.claude/common-mistakes.md`](.claude/common-mistakes.md) を必読
+3. **コード品質**: 
+   - DOM更新後は `nextTick()` を必ず待つ
+   - UUID は `crypto.randomUUID()` を使用
+   - `any` 型禁止、型ガードを使用
+4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
+5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
+
+---
+
 # ⚠️ 絶対ルール - ブラウザ操作（厳守） ⚠️
 
 ## 🚫 使用禁止（違反＝プロジェクト破壊）
