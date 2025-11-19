@@ -49,17 +49,20 @@ export type DisplayMode = 'list' | 'grid';
 
 /**
  * ソート順（拡張版）
+ * Note: アンダースコア区切り（実装と一致）
  */
 export type SortOrder =
   | 'official'      // 公式順（デフォルト）
-  | 'name-asc'      // 名前昇順
-  | 'name-desc'     // 名前降順
-  | 'level-asc'     // レベル昇順
-  | 'level-desc'    // レベル降順
-  | 'atk-asc'       // 攻撃力昇順
-  | 'atk-desc'      // 攻撃力降順
-  | 'def-asc'       // 守備力昇順
-  | 'def-desc';     // 守備力降順
+  | 'release_desc'  // リリース日降順（新しい順）
+  | 'release_asc'   // リリース日昇順（古い順）
+  | 'name_asc'      // 名前昇順
+  | 'name_desc'     // 名前降順
+  | 'level_asc'     // レベル昇順
+  | 'level_desc'    // レベル降順
+  | 'atk_asc'       // 攻撃力昇順
+  | 'atk_desc'      // 攻撃力降順
+  | 'def_asc'       // 守備力昇順
+  | 'def_desc';     // 守備力降順
 
 /**
  * カードタブ
