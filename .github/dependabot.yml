@@ -14,7 +14,7 @@ updates:
       - "dependencies"
       - "automated"
     versioning-strategy: increase
-    # 脆弱性のあるパッケージを優先的に更新
+    # メジャーバージョンアップは破壊的変更を含むため、自動更新の対象から除外します。
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
