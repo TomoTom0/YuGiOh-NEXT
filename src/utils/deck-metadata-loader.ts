@@ -19,6 +19,7 @@ export interface DeckMetadata {
   deckTypes: DeckMetadataEntry[];
   deckStyles: DeckMetadataEntry[];
   categories: Record<string, string>;
+  tags: Record<string, string>;
   lastUpdated: string;
 }
 
@@ -78,6 +79,38 @@ export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {
 }
 
 /**
+ * select要素からオプションを抽出する共通ヘルパー関数
+ * 
+ * @param doc - DOMドキュメント
+ * @param selector - select要素のCSSセレクタ
+ * @param excludeTexts - 除外するテキストのリスト（デフォルト: ['------------']）
+ * @returns オプションのマップ（value -> label）
+ */
+function extractOptionsFromSelect(
+  doc: Document,
+  selector: string,
+  excludeTexts: string[] = ['------------']
+): Record<string, string> {
+  const optionsMap: Record<string, string> = {};
+  const selectElement = doc.querySelector(selector);
+  
+  if (selectElement) {
+    const options = selectElement.querySelectorAll('option');
+    options.forEach((option: Element) => {
+      const htmlOption = option as HTMLOptionElement;
+      const value = htmlOption.value;
+      const text = htmlOption.textContent?.trim() || '';
+
+      if (text && !excludeTexts.includes(text) && value) {
+        optionsMap[value] = text;
+      }
+    });
+  }
+  
+  return optionsMap;
+}
+
+/**
  * デッキ検索ページからメタデータを取得して更新
  */
 export async function updateDeckMetadata(): Promise<DeckMetadata> {
@@ -118,26 +151,17 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
       }
     });
 
-    // カテゴリを抽出
-    const categories: Record<string, string> = {};
-    const categorySelect = doc.querySelector('select[name="dckCategoryMst"]');
-    if (categorySelect) {
-      const options = categorySelect.querySelectorAll('option');
-      options.forEach((option: Element) => {
-        const htmlOption = option as HTMLOptionElement;
-        const value = htmlOption.value;
-        const text = htmlOption.textContent?.trim() || '';
+    // カテゴリを抽出（共通ヘルパー使用）
+    const categories = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
 
-        if (text && text !== '------------' && value) {
-          categories[value] = text;
-        }
-      });
-    }
+    // タグを抽出（共通ヘルパー使用）
+    const tags = extractOptionsFromSelect(doc, 'select[name="dckTagMst"]');
 
     const metadata: DeckMetadata = {
       deckTypes,
       deckStyles,
       categories,
+      tags,
       lastUpdated: new Date().toISOString()
     };
 
@@ -147,7 +171,8 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
     console.log('Updated deck metadata:', {
       deckTypes: metadata.deckTypes.length,
       deckStyles: metadata.deckStyles.length,
-      categories: Object.keys(metadata.categories).length
+      categories: Object.keys(metadata.categories).length,
+      tags: Object.keys(metadata.tags).length
     });
 
     return metadata;
