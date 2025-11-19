@@ -26,7 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          # package-lock.json is in .gitignore, so disable cache
+          # cache: 'npm'
       
       - name: Install dependencies
         run: npm ci
