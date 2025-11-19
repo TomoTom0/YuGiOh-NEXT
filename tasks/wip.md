@@ -1,27 +1,8 @@
 # 作業中のタスク
 
-## 2025-11-19: 内部レビュー対応（コード品質・開発環境改善）
+## 2025-11-19: 内部レビュー対応（リファクタリング分析）
 
 ### 対応中のレポート
-
-#### 06_llm_context_improvement（LLMコンテキスト改善）
-- **優先度**: 🔴 高（開発効率・品質向上）
-- **対象**: CLAUDE.md / .claude/ ドキュメントの改善
-- **主要タスク**:
-  1. 高優先（今週〜2週間）:
-     - Git履歴分析実行（`tmp/reports/git-history-analysis.md` 作成）
-       - 変更頻度上位ファイル特定
-       - fix/revert/refactor パターン検索
-       - 再発バグ一覧作成
-     - `.claude/common-mistakes.md` 作成（10個程度の明確なミス例）
-     - `CLAUDE.md` を「概要＋TL;DR + 参照先リンク」形式に更新
-  2. 中優先（1〜2ヶ月）:
-     - PRレビュー集計実施（`tmp/reports/pr-review-summary.md`）
-     - ESLint/Prettier ルール調整 + pre-commit設定
-  3. 低優先（2ヶ月〜）:
-     - LLM向け定期更新ワークフロー確立
-- **備考**: 機密情報を含めない、要点を短い箇条書きに保つ
-- **レポート**: `docs/internal-reviews/reports/wip/06_llm_context_improvement.md`
 
 #### 01_refactoring_analysis（リファクタリング分析）
 - **優先度**: 🟡 中（技術的負債削減）

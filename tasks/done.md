@@ -1,5 +1,55 @@
 # 完了したタスク
 
+## 2025-11-19: LLMコンテキスト改善完了（06レポート）
+
+- **タイムスタンプ**: 2025-11-19 22:08 JST
+- **対象**: レビューレポート 06 の高優先タスク完了
+- **コミット**: bb3055c
+
+### 実施内容
+
+**Git履歴分析**:
+- 変更頻度上位ファイル特定（TOP 30）
+  - `deck-edit.ts`: 54回（最多変更ファイル）
+  - `DeckMetadata.vue`: 34回
+  - `DeckSection.vue`, `DeckCard.vue`: 各30回
+- 再発バグパターン分析（5カテゴリ）:
+  1. UI/レイアウト問題（最頻出）- nextTick不足、境界チェック不備
+  2. メタデータUI関連 - スタイル重複、コンポーネント肥大化
+  3. ciid/UUID関連 - UUID生成の不備（✅修正済み）
+  4. ドラッグ&ドロップ - event.preventDefault()タイミング
+  5. 型安全性 - `any`の多用、型アサーション乱用
+- 成果物: `tmp/reports/git-history-analysis.md`（Git管理外）
+
+**よくあるミスドキュメント作成**:
+- `.claude/common-mistakes.md` 作成（10パターン）
+  - DOM更新タイミング（nextTick）
+  - ビューポートオーバーフロー
+  - スタイル重複・競合
+  - UUID/key属性の不備
+  - 型安全性の欠如
+  - グローバル定数への直接参照
+  - エラーハンドリングの不備
+  - ドラッグ&ドロップのpreventDefault
+  - FLIPアニメーション同期
+  - テストカバレッジ不足
+- 各パターンに悪い例/良い例のコード付き
+- 開発前チェックリスト追加
+
+**CLAUDE.md更新**:
+- TL;DRセクション追加（最重要事項5項目）
+- common-mistakes.md への参照追加
+- 変更頻度の高いファイル注意喚起
+
+### 残タスク（中優先）
+- PRレビュー集計（GitHub API経由）
+- ESLint/Prettier設定強化 + pre-commit設定
+
+### 移動履歴
+- `docs/internal-reviews/reports/wip/06_llm_context_improvement.md` → `done/`
+
+---
+
 ## 2025-11-19: 内部レビュー対応完了（02, 08）
 
 - **タイムスタンプ**: 2025-11-19 21:43 JST
