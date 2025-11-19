@@ -73,7 +73,7 @@
 - small（現在のlist: 36px）
 - medium（現在のgrid: 60px）
 - large（現在のinfo: 未確認）
-- llarge（新規追加: 未定義）
+- xlarge（新規追加: 未定義）
 
 **実装方針:**
 1. グローバル設定として画像サイズを管理（デフォルト: medium）

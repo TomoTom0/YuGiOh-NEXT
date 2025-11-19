@@ -230,7 +230,7 @@ return `/yugiohdb/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&e
 ### Phase 1: 基盤整備（優先度：最高）
 
 #### 1.1 型定義の追加
-- [ ] `src/types/common.ts` に `CardGameType = 'ocg' | 'rush'` を定義
+- [ ] `src/types/settings.ts` に `CardGameType = 'ocg' | 'rush'` を定義
 
 #### 1.2 ページ判定ユーティリティの拡張
 - [ ] `src/utils/page-detector.ts` の修正
