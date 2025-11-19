@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "TomoTom0"
+    assignees:
+      - "TomoTom0"
+    labels:
+      - "dependencies"
+      - "automated"
+    versioning-strategy: increase
+    # 脆弱性のあるパッケージを優先的に更新
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
