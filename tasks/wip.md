@@ -1,5 +1,56 @@
 # 作業中のタスク
 
+## タグマスターデータの取得実装（2025-11-19）
+
+### 背景
+デッキメタデータのタグ選択UIが現在空オブジェクト（`tags.value = {}`）のため機能していない。デッキ検索ページからタグマスターデータを取得し、chrome.storage.localに保存する必要がある。
+
+### 参照
+- todo.md: 0.1 タグマスターデータの取得実装（優先度：高）
+- 関連コンポーネント: `src/components/DeckMetadata.vue`
+- 関連ユーティリティ: `src/utils/deck-metadata-loader.ts`
+
+### 実装計画
+
+#### Phase 1: 調査と設計
+- [ ] デッキ検索ページのHTML構造調査
+  - タグのselect要素のDOM構造確認
+  - optionタグから(value, text)ペアを取得する方法確認
+- [ ] データ構造設計
+  - `DeckMetadata`インターフェースに`tags: Record<string, string>`追加
+  - 初期JSONファイル構造の設計
+
+#### Phase 2: パーサー実装
+- [ ] `src/utils/deck-metadata-loader.ts`の修正
+  - `updateDeckMetadata()`関数にタグ取得ロジック追加
+  - デッキ検索ページからタグマスターをパース
+  - chrome.storage.localへの保存処理追加
+
+#### Phase 3: 初期データ作成
+- [ ] `src/data/deck-metadata.json`にタグマスター追加
+  - フォールバック用の初期データ作成
+  - 既存のカテゴリデータとの整合性確認
+
+#### Phase 4: UI有効化
+- [ ] `src/components/DeckMetadata.vue`の修正
+  - 空オブジェクトから実データへの切り替え
+  - タグ選択UIの動作確認
+
+#### Phase 5: テストとドキュメント
+- [ ] ユニットテストの作成
+- [ ] E2Eテストでの動作確認
+- [ ] ドキュメント更新
+
+### 完了条件
+- [ ] タグマスターデータの取得・保存が動作する
+- [ ] DeckMetadata.vueのタグ選択UIが機能する
+- [ ] テストが追加され、全て成功する
+
+### Git管理
+- ブランチ: `feature/tag-master-data`
+
+---
+
 ## tmp/ディレクトリ整理（2025-11-19）✅ 完了
 
 ### 背景
