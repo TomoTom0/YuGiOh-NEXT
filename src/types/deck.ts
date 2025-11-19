@@ -1,5 +1,5 @@
 import { DeckCard } from './card';
-import { DeckTypeValue, DeckStyleValue, DeckCategory } from './deck-metadata';
+import { DeckTypeValue, DeckStyleValue, DeckCategory, DeckTags } from './deck-metadata';
 
 // Re-export for convenience
 export type { DeckCard };
@@ -26,10 +26,10 @@ export interface DeckInfo {
   deckType?: DeckTypeValue;
   /** デッキスタイル（value値: "0", "1", "2"） */
   deckStyle?: DeckStyleValue;
-  /** カテゴリ（カテゴリ名配列） */
+  /** カテゴリ（カテゴリID配列） */
   category: DeckCategory;
-  /** 登録タグ（タグ名配列） */
-  tags: string[];
+  /** 登録タグ（タグID配列） */
+  tags: DeckTags;
   /** コメント */
   comment: string;
   /** デッキコード */

@@ -19,6 +19,7 @@ export interface DeckMetadata {
   deckTypes: DeckMetadataEntry[];
   deckStyles: DeckMetadataEntry[];
   categories: Record<string, string>;
+  tags: Record<string, string>;
   lastUpdated: string;
 }
 
@@ -134,10 +135,27 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
       });
     }
 
+    // タグを抽出
+    const tags: Record<string, string> = {};
+    const tagSelect = doc.querySelector('select[name="dckTagMst"]');
+    if (tagSelect) {
+      const options = tagSelect.querySelectorAll('option');
+      options.forEach((option: Element) => {
+        const htmlOption = option as HTMLOptionElement;
+        const value = htmlOption.value;
+        const text = htmlOption.textContent?.trim() || '';
+
+        if (text && text !== '------------' && value) {
+          tags[value] = text;
+        }
+      });
+    }
+
     const metadata: DeckMetadata = {
       deckTypes,
       deckStyles,
       categories,
+      tags,
       lastUpdated: new Date().toISOString()
     };
 
@@ -147,7 +165,8 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
     console.log('Updated deck metadata:', {
       deckTypes: metadata.deckTypes.length,
       deckStyles: metadata.deckStyles.length,
-      categories: Object.keys(metadata.categories).length
+      categories: Object.keys(metadata.categories).length,
+      tags: Object.keys(metadata.tags).length
     });
 
     return metadata;
