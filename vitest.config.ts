@@ -8,6 +8,9 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    deps: {
+      inline: ['node:url', 'node:fs', 'node:path'],
+    },
   },
   resolve: {
     alias: {

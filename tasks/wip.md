@@ -1,6 +1,116 @@
 # 作業中のタスク
 
-## Rush Duel対応（OCG/Rush両対応化）（2025-11-18）
+## テストとドキュメント追加（2025-11-18）✅ 完了
+
+### 背景
+PR #10で導入された新規機能（PNG メタデータ、デッキ インポート/エクスポート、URL 状態管理等）に対して、品質保証とユーザビリティ向上のためテストとドキュメントを追加する。
+
+### 参照
+- レビュー結果: `docs/internal-reviews/reports/test-doc-implementation-review.md`
+- 対応報告: `docs/internal-reviews/reports/review-response-01.md`
+
+### 実装計画（優先度順）
+
+#### Week 1: 高優先度テストとドキュメント草案 ✅ 完了（2025-11-18）
+- [x] `tests/unit/png-metadata.test.ts` 作成 ✅
+  - tEXtチャンクの読み書き、複数チャンク対応、CRC検証、エラー処理
+  - PNGフィクスチャ作成（`tests/fixtures/png/`）
+  - 12個のテストケース、全て成功
+- [x] `tests/unit/deck-import.test.ts` 作成 ✅
+  - CSV/TXT/PNGパース、フォーマット検証、エラーハンドリング
+  - インポートフィクスチャ作成（`tests/fixtures/import/`）
+  - 19個のテストケース、全て成功
+- [x] `docs/usage/import-export.md` 草案作成 ✅
+  - 各フォーマット説明（CSV/TXT/PNG）
+  - エクスポート・インポート操作手順
+  - トラブルシューティング、FAQ、技術仕様
+
+#### Week 2: 残りの高優先度テスト ✅ 完了（2025-11-18）
+- [x] `tests/unit/deck-export.test.ts` 作成 ✅
+  - CSV/TXT形式出力の整合性、エスケープ、メタデータ保持
+  - エクスポート→インポートの往復テスト
+  - 18個のテストケース、全て成功
+- [x] `tests/unit/url-state.test.ts` 作成 ✅
+  - シリアライズ/デシリアライズ、デフォルト復元、不正パラメータ対処
+  - URLパラメータの読み書き、UI状態・設定の同期
+  - 45個のテストケース、全て成功
+- [x] `docs/usage/deck-metadata.md` 草案作成 ✅
+  - メタデータ各項目の詳細説明（公開設定、タイプ、スタイル、カテゴリ、タグ、説明）
+  - UI構成と操作ガイド、トラブルシューティング、FAQ
+
+#### Week 3: 中優先度テストとE2E ✅ 完了（2025-11-18）
+- [x] `tests/unit/stores/settings.test.ts` 作成・拡張 ✅
+  - localStorage永続化、デフォルト適用、テーマ連携
+  - カードサイズ、テーマ、言語、レイアウト、機能設定のテスト
+  - エラーハンドリング・非同期・競合テスト追加
+  - 37個のテストケース、全て成功
+- [x] E2E基本フロー実装 ✅
+  - `tests/e2e/deck-edit-export-import.test.ts` 作成
+  - デッキ編集→エクスポート→インポートの完全フロー
+  - 10個のE2Eテスト、全て成功
+
+### Git管理
+- ブランチ: `feature/test-doc-implementation`
+
+### 完了サマリー（2025-11-18）
+**テスト実装**: 157個のテスト（全て成功）
+- png-metadata: 12テスト
+- deck-import: 19テスト
+- deck-export: 18テスト
+- url-state: 60テスト（基本45 + 特殊文字・長いクエリ15）
+- stores/settings: 37テスト（基本28 + エラー・競合9）
+- E2E: 10テスト（デッキ編集→エクスポート→インポート）
+- その他: 1テスト
+
+**ドキュメント作成**: 4本
+- docs/usage/import-export.md（ユーザー向け）
+- docs/usage/deck-metadata.md（ユーザー向け）
+- docs/dev/png-format-spec.md（開発者向け）
+- docs/dev/data-models.md（開発者向け）
+
+### レビュー結果（01-2）: 条件付き承認
+
+**レビュー報告書**: `docs/internal-reviews/reports/test-doc-implementation-review.md`
+
+**高優先度指摘（必須対応）:** ✅ 完了（2025-11-18）
+- [x] E2Eテストを最低1つ追加（デッキ編集→エクスポート→インポート）
+  - `tests/e2e/deck-edit-export-import.test.ts` 作成完了
+  - 10個のE2Eテスト、全て成功
+  - CSV/TXT/PNG形式の往復テスト、エッジケース、round-tripテストを含む
+- [x] chrome.storage.localモックの非同期・エラーケース強化
+  - `tests/unit/stores/settings.test.ts` に9個のテストケース追加
+  - エラースロー、非同期コールバック、遅延コールバック、lastError、破損データ対応
+  - 並列実行時の競合テスト（save/get/read-while-write）を追加
+  - 全37テスト成功
+
+**中優先度指摘（推奨対応）:** ✅ 完了（2025-11-18）
+- [x] ドキュメントと実装の整合性チェック
+  - CRC-32実装コードとドキュメントの一致確認 ✅ 完了
+  - 実装ファイルへの参照リンク追加 ✅ 完了
+    - `docs/dev/png-format-spec.md`: CRC-32実装へのリンク追加
+    - `docs/dev/data-models.md`: 各型定義へのリンク追加（DeckInfo, CardInfo, AppSettings等）
+- [x] 追加テストケース ✅ 完了
+  - url-state: 特殊文字、長いクエリ値テスト ✅ 完了（15件のテスト追加、全60テスト成功）
+  - stores/settings: 並列実行時の競合ケーステスト ✅ 完了
+
+**低優先度指摘（改善提案）:**
+- [ ] ドキュメントにソース参照リンクと要約セクション追加（一部完了）
+
+### ステータス: ✅ 完了（2025-11-18 21:46 JST）
+
+**全対応項目**: 100% 完了
+- 高優先度指摘: 2/2 完了
+- 中優先度指摘: 2/2 完了
+- テスト総数: 157件（全て成功）
+- コミット数: 2件
+
+### 次のアクション
+1. PR作成準備完了
+2. または、todo.mdの次タスク（タグマスターデータ実装）に進む
+
+---
+
+## Rush Duel対応（OCG/Rush両対応化）（2025-11-18）✅ 完了
 
 ### 背景
 遊戯王公式ページには以下の2つのカードゲームがある：
