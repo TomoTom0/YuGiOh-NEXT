@@ -386,8 +386,8 @@ function updatePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
-// ドロップダウン位置調整（nextTickで確実にDOM更新を待つ）
-async function adjustDropdownPosition(
+// デッキタイプ・スタイルドロップダウンの右寄せ調整
+async function adjustAlignRight(
   selector: HTMLElement | null,
   dropdown: HTMLElement | null,
   alignRightRef: { value: boolean }
@@ -412,7 +412,7 @@ async function adjustDropdownPosition(
 function toggleDeckTypeDropdown() {
   showDeckTypeDropdown.value = !showDeckTypeDropdown.value;
   if (showDeckTypeDropdown.value) {
-    adjustDropdownPosition(
+    adjustAlignRight(
       deckTypeSelector.value,
       deckTypeDropdown.value,
       deckTypeDropdownAlignRight
@@ -423,7 +423,7 @@ function toggleDeckTypeDropdown() {
 function toggleDeckStyleDropdown() {
   showDeckStyleDropdown.value = !showDeckStyleDropdown.value;
   if (showDeckStyleDropdown.value) {
-    adjustDropdownPosition(
+    adjustAlignRight(
       deckStyleSelector.value,
       deckStyleDropdown.value,
       deckStyleDropdownAlignRight
@@ -470,71 +470,51 @@ function toggleCategory(catId: string) {
   deckStore.deckInfo.category = [...localCategory.value];
 }
 
+// ダイアログ位置調整の共通関数
+function adjustDropdownPosition(
+  button: HTMLElement | null,
+  dropdown: HTMLElement | null,
+) {
+  if (!dropdown || !button) return;
+
+  setTimeout(() => {
+    const buttonRect = button.getBoundingClientRect();
+    const dropdownRect = dropdown.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // ボタンの下に配置
+    let top = buttonRect.bottom + 4;
+    let left = buttonRect.left;
+    
+    // 右にはみ出る場合は左にずらす
+    if (left + dropdownRect.width > viewportWidth) {
+      left = viewportWidth - dropdownRect.width - 20;
+    }
+    
+    // 下にはみ出る場合は上に配置
+    if (top + dropdownRect.height > viewportHeight) {
+      top = buttonRect.top - dropdownRect.height - 4;
+    }
+    
+    dropdown.style.top = `${top}px`;
+    dropdown.style.left = `${left}px`;
+  }, 0);
+}
+
 // タグダイアログの位置調整
 watch(showTagDropdown, async (newVal) => {
   if (newVal) {
     await nextTick();
-    const dropdown = document.querySelector('.tag-dialog') as HTMLElement;
-    const button = document.querySelector('.left-half .action-button') as HTMLElement;
-    if (dropdown && button) {
-      setTimeout(() => {
-        const buttonRect = button.getBoundingClientRect();
-        const dropdownRect = dropdown.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // ボタンの下に配置
-        let top = buttonRect.bottom + 4;
-        let left = buttonRect.left;
-        
-        // 右にはみ出る場合は左にずらす
-        if (left + dropdownRect.width > viewportWidth) {
-          left = viewportWidth - dropdownRect.width - 20;
-        }
-        
-        // 下にはみ出る場合は上に配置
-        if (top + dropdownRect.height > viewportHeight) {
-          top = buttonRect.top - dropdownRect.height - 4;
-        }
-        
-        dropdown.style.top = `${top}px`;
-        dropdown.style.left = `${left}px`;
-      }, 0);
-    }
+    adjustDropdownPosition(tagButton.value, tagDropdown.value);
   }
 });
 
-// カテゴリダイアログの位置調整（fixed positionで全画面配置）
+// カテゴリダイアログの位置調整
 watch(showCategoryDropdown, async (newVal) => {
   if (newVal) {
     await nextTick();
-    const dropdown = document.querySelector('.category-dialog') as HTMLElement;
-    const button = document.querySelector('.right-half .action-button') as HTMLElement;
-    if (dropdown && button) {
-      setTimeout(() => {
-        const buttonRect = button.getBoundingClientRect();
-        const dropdownRect = dropdown.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // ボタンの下に配置
-        let top = buttonRect.bottom + 4;
-        let left = buttonRect.left;
-        
-        // 右にはみ出る場合は左にずらす
-        if (left + dropdownRect.width > viewportWidth) {
-          left = viewportWidth - dropdownRect.width - 20;
-        }
-        
-        // 下にはみ出る場合は上に配置
-        if (top + dropdownRect.height > viewportHeight) {
-          top = buttonRect.top - dropdownRect.height - 4;
-        }
-        
-        dropdown.style.top = `${top}px`;
-        dropdown.style.left = `${left}px`;
-      }, 0);
-    }
+    adjustDropdownPosition(categoryButton.value, categoryDropdown.value);
   }
 });
 
