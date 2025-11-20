@@ -6,6 +6,8 @@
  */
 
 import initialMetadata from '@/data/deck-metadata.json';
+import type { CategoryEntry } from '@/types/dialog';
+import { assignCategoryGroups } from './category-grouping';
 
 /**
  * デッキメタデータの型定義
@@ -21,6 +23,13 @@ export interface DeckMetadata {
   categories: Record<string, string>;
   tags: Record<string, string>;
   lastUpdated: string;
+}
+
+/**
+ * 拡張デッキメタデータ（CategoryEntry含む）
+ */
+export interface ExtendedDeckMetadata extends DeckMetadata {
+  categoriesWithGroups: CategoryEntry[];
 }
 
 const STORAGE_KEY = 'deck_metadata';
@@ -58,6 +67,29 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
 
   console.log('Using initial deck metadata from JSON file');
   return initialMetadata as DeckMetadata;
+}
+
+/**
+ * 拡張デッキメタデータを取得（CategoryEntry含む）
+ * 
+ * @returns カテゴリにグループ情報を付与したメタデータ
+ */
+export async function getExtendedDeckMetadata(): Promise<ExtendedDeckMetadata> {
+  const metadata = await getDeckMetadata();
+  
+  // カテゴリをCategoryEntry形式に変換
+  const categoriesArray = Object.entries(metadata.categories).map(([value, label]) => ({
+    value,
+    label
+  }));
+  
+  // グループ情報を付与
+  const categoriesWithGroups = assignCategoryGroups(categoriesArray);
+  
+  return {
+    ...metadata,
+    categoriesWithGroups
+  };
 }
 
 /**
@@ -152,6 +184,7 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
     });
 
     // カテゴリを抽出（共通ヘルパー使用）
+    // Note: グループ情報はgetExtendedDeckMetadata()で付与されるため、ここではRecord形式のまま
     const categories = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
 
     // タグを抽出（共通ヘルパー使用）
