@@ -2,8 +2,8 @@
  * 設定管理のユーティリティ関数
  */
 
-import type { FeatureSettings, StorageSettings, FeatureId, DeckEditSettings } from '../types/settings';
-import { DEFAULT_FEATURE_SETTINGS, DEFAULT_DECK_EDIT_SETTINGS } from '../types/settings';
+import type { FeatureSettings, StorageSettings, FeatureId, DeckEditSettings, AppSettings } from '../types/settings';
+import { DEFAULT_FEATURE_SETTINGS, DEFAULT_DECK_EDIT_SETTINGS, DEFAULT_APP_SETTINGS } from '../types/settings';
 
 /**
  * chrome.storage.localから機能設定を読み込む
@@ -90,6 +90,44 @@ export async function saveFeatureSettings(settings: FeatureSettings): Promise<vo
     await chrome.storage.local.set({ featureSettings: settings });
   } catch (error) {
     console.error('Failed to save feature settings:', error);
+    throw error;
+  }
+}
+
+/**
+ * アプリ設定を読み込む
+ *
+ * @returns Promise<AppSettings> アプリ設定オブジェクト
+ */
+export async function loadAppSettings(): Promise<AppSettings> {
+  try {
+    const result = await chrome.storage.local.get(['appSettings']) as StorageSettings;
+    
+    if (result.appSettings) {
+      return {
+        ...DEFAULT_APP_SETTINGS,
+        ...result.appSettings,
+      };
+    }
+    
+    return DEFAULT_APP_SETTINGS;
+  } catch (error) {
+    console.error('Failed to load app settings:', error);
+    return DEFAULT_APP_SETTINGS;
+  }
+}
+
+/**
+ * アプリ設定を保存する
+ *
+ * @param settings アプリ設定オブジェクト
+ * @returns Promise<void>
+ */
+export async function saveAppSettings(settings: AppSettings): Promise<void> {
+  try {
+    await chrome.storage.local.set({ appSettings: settings });
+  } catch (error) {
+    console.error('Failed to save app settings:', error);
     throw error;
   }
 }

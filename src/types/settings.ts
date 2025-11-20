@@ -88,6 +88,11 @@ export interface DeckEditSettings {
 export type MiddleDecksLayout = 'horizontal' | 'vertical';
 
 /**
+ * カード検索入力欄の位置
+ */
+export type SearchInputPosition = 'default' | 'section-title';
+
+/**
  * アプリ全体設定
  */
 export interface AppSettings {
@@ -105,6 +110,8 @@ export interface AppSettings {
   language: Language;
   /** Extra/Sideデッキの配置方向 */
   middleDecksLayout: MiddleDecksLayout;
+  /** カード検索入力欄の位置 */
+  searchInputPosition: SearchInputPosition;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
 }
@@ -166,6 +173,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
   language: 'auto',
   middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
+  searchInputPosition: 'default',   // カード検索入力欄: デフォルト位置
   enableBanlistCheck: false,
 };
 
