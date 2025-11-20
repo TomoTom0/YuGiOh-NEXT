@@ -271,7 +271,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .filter-and-actions {
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   align-items: flex-start;
@@ -281,8 +281,8 @@ watch(() => props.modelValue, (newVal) => {
 
 .action-buttons-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -382,11 +382,13 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   transition: all 0.2s;
+  color: #666;
 }
 
 .btn-icon:hover {
   background: #e0e0e0;
   border-color: #999;
+  color: #333;
 }
 
 .btn-icon svg {

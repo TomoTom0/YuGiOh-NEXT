@@ -11,6 +11,7 @@
               v-for="id in selectedTags" 
               :key="id" 
               class="tag-chip"
+              :data-type="getTagType(id)"
               @click="toggleTag(id)"
             >
               {{ getTagLabel(id) }}
@@ -24,6 +25,11 @@
       <!-- フィルタタブとアクションボタン -->
       <div class="filter-and-actions">
         <div class="action-buttons-left">
+          <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Filter">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+            </svg>
+          </button>
           <button class="btn btn-icon" @click="clearAll" title="Clear All">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
@@ -76,9 +82,17 @@
           :key="tag.value"
           class="tag-item"
           :class="{ selected: selectedTags.includes(tag.value) }"
+          :data-type="getTagType(tag.value)"
+          :data-group="tag.group"
           @click="toggleTag(tag.value)"
         >
-          {{ tag.label }}
+          <span class="tag-label">{{ tag.label }}</span>
+          <img 
+            v-if="tag.group === 'attr' && getAttrIcon(tag.value)" 
+            :src="getAttrIcon(tag.value)" 
+            class="attr-icon"
+            :alt="tag.label"
+          />
         </button>
       </div>
     </div>
@@ -89,6 +103,7 @@
 import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
 import { classifyTagById, type TagGroup } from '@/constants/tag-master-data';
+import { getAttributeIconUrl } from '@/api/image-utils';
 
 const props = defineProps<{
   isVisible: boolean;
@@ -124,6 +139,43 @@ const filteredTags = computed(() => {
 function getTagLabel(tagId: string): string {
   const tag = props.tags.find(t => t.value === tagId);
   return tag?.label || tagId;
+}
+
+function getTagType(tagId: string): string {
+  const tagLabel = getTagLabel(tagId);
+  if (!tagLabel) return '';
+  
+  const typeMappings: Record<string, string> = {
+    '融合': 'fusion',
+    'シンクロ': 'synchro',
+    'エクシーズ': 'xyz',
+    'リンク': 'link',
+    '儀式': 'ritual',
+    'ペンデュラム': 'pendulum'
+  };
+  
+  for (const [key, type] of Object.entries(typeMappings)) {
+    if (tagLabel.includes(key)) {
+      return type;
+    }
+  }
+  
+  return '';
+}
+
+function getAttrIcon(tagId: string): string {
+  const attrNameMap: Record<string, string> = {
+    '1': 'dark',      // 闇属性
+    '2': 'light',     // 光属性
+    '3': 'water',     // 水属性
+    '4': 'fire',      // 炎属性
+    '5': 'earth',     // 地属性
+    '6': 'wind',      // 風属性
+    '7': 'divine'     // 神属性
+  };
+  
+  const attrName = attrNameMap[tagId];
+  return attrName ? getAttributeIconUrl(attrName) : '';
 }
 
 // タグトグル
@@ -235,6 +287,50 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #4caf50;
 }
 
+.tag-chip[data-type="fusion"] {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  color: #4a148c;
+  border-color: #9c27b0;
+}
+
+.tag-chip[data-type="synchro"] {
+  background: 
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 8px,
+      rgba(158, 158, 158, 0.12) 8px,
+      rgba(158, 158, 158, 0.12) 9px
+    ),
+    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: #424242;
+  border-color: #9e9e9e;
+}
+
+.tag-chip[data-type="xyz"] {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  color: #4a148c;
+  border-color: #9c27b0;
+}
+
+.tag-chip[data-type="link"] {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  color: #0d47a1;
+  border-color: #1976d2;
+}
+
+.tag-chip[data-type="ritual"] {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  color: #0d47a1;
+  border-color: #1976d2;
+}
+
+.tag-chip[data-type="pendulum"] {
+  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 30%, #ffb74d 30%, #4db6ac 70%, #4db6ac 70%, #4db6ac 100%);
+  color: #4a148c;
+  border-color: #ff9800;
+}
+
 .chip-remove {
   font-size: 14px;
   font-weight: bold;
@@ -264,7 +360,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .filter-and-actions {
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   align-items: center;
@@ -274,8 +370,8 @@ watch(() => props.modelValue, (newVal) => {
 
 .action-buttons-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -291,11 +387,13 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   transition: all 0.2s;
+  color: #666;
 }
 
 .btn-icon:hover {
   background: #e0e0e0;
   border-color: #999;
+  color: #333;
 }
 
 .btn-icon svg {
@@ -362,16 +460,29 @@ watch(() => props.modelValue, (newVal) => {
   min-height: 42px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.tag-item:hover {
+.tag-label {
+  flex: 1;
+}
+
+.attr-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.tag-item:not([data-type]):hover {
   background: #f8f9fa;
   border-color: #1976d2;
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
-.tag-item.selected {
+.tag-item:not([data-type]).selected {
   background: #e3f2fd;
   border-color: #1976d2;
   border-width: 2px;
@@ -380,7 +491,142 @@ watch(() => props.modelValue, (newVal) => {
   box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
 }
 
+.tag-item[data-type="fusion"] {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  border-color: #ba68c8;
+}
 
+.tag-item[data-type="fusion"]:hover {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  border-color: #9c27b0;
+  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+}
+
+.tag-item[data-type="fusion"].selected {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  border-color: #9c27b0;
+  color: #4a148c;
+  font-weight: 500;
+  border-width: 2px;
+}
+
+.tag-item[data-type="synchro"] {
+  background: 
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 8px,
+      rgba(189, 189, 189, 0.12) 8px,
+      rgba(189, 189, 189, 0.12) 9px
+    ),
+    linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  border-color: #bdbdbd;
+}
+
+.tag-item[data-type="synchro"]:hover {
+  background: 
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 8px,
+      rgba(117, 117, 117, 0.15) 8px,
+      rgba(117, 117, 117, 0.15) 9px
+    ),
+    linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+  border-color: #757575;
+  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
+}
+
+.tag-item[data-type="synchro"].selected {
+  background: 
+    repeating-linear-gradient(
+      135deg,
+      transparent,
+      transparent 8px,
+      rgba(117, 117, 117, 0.2) 8px,
+      rgba(117, 117, 117, 0.2) 9px
+    ),
+    linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+  border-color: #757575;
+  color: #424242;
+  font-weight: 500;
+}
+
+.tag-item[data-type="xyz"] {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  border-color: #ba68c8;
+}
+
+.tag-item[data-type="xyz"]:hover {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  border-color: #9c27b0;
+  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+}
+
+.tag-item[data-type="xyz"].selected {
+  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  border-color: #9c27b0;
+  color: #4a148c;
+  font-weight: 500;
+  border-width: 2px;
+}
+
+.tag-item[data-type="link"] {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-color: #64b5f6;
+}
+
+.tag-item[data-type="link"]:hover {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  border-color: #1976d2;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+}
+
+.tag-item[data-type="link"].selected {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-color: #1976d2;
+  color: #0d47a1;
+  font-weight: 500;
+  border-width: 2px;
+}
+
+.tag-item[data-type="ritual"] {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-color: #64b5f6;
+}
+
+.tag-item[data-type="ritual"]:hover {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  border-color: #1976d2;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+}
+
+.tag-item[data-type="ritual"].selected {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-color: #1976d2;
+  color: #0d47a1;
+  font-weight: 500;
+  border-width: 2px;
+}
+
+.tag-item[data-type="pendulum"] {
+  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  border-color: #ffb74d;
+}
+
+.tag-item[data-type="pendulum"]:hover {
+  background: linear-gradient(180deg, #ffcc80 0%, #ffcc80 30%, #80cbc4 70%, #80cbc4 100%);
+  border-color: #ff9800;
+  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+}
+
+.tag-item[data-type="pendulum"].selected {
+  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  border-color: #ff9800;
+  color: #4a148c;
+  font-weight: 500;
+  border-width: 2px;
+}
 
 .btn {
   padding: 8px 16px;
