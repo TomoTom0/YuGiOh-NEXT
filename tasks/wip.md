@@ -200,6 +200,16 @@
 - ✅ category-itemのスタイル改善（padding増、border強化、shadow追加）
 - ✅ オプションページに検索入力欄位置設定追加（settings.ts, DeckEditSettings.vue）
 
+**色の調整** (2025-11-20 20:51):
+- ✅ Monster typeの選択時の色を淡くする（濃すぎる問題を修正）
+  - 融合/エクシーズ: 選択時 #f3e5f5 → #e1bee7
+  - リンク/儀式: 選択時 #e3f2fd → #bbdefb
+- ✅ ペンデュラムのグラデーションを正しく修正
+  - 0-30%: オレンジ (#fff3e0)
+  - 30-70%: グラデーション（オレンジ → 青緑）
+  - 70-100%: 青緑 (#b2dfdb)
+  - チップとダイアログ選択肢の両方で統一
+
 **未実装**:
 - ⏭️ カード検索入力欄のMain Sectionタイトル内配置機能（UI側実装が必要）
   - オプション設定は完了（searchInputPosition: 'default' | 'section-title'）
