@@ -20,16 +20,9 @@ export interface DeckMetadataEntry {
 export interface DeckMetadata {
   deckTypes: DeckMetadataEntry[];
   deckStyles: DeckMetadataEntry[];
-  categories: Record<string, string>;
+  categories: CategoryEntry[];
   tags: Record<string, string>;
   lastUpdated: string;
-}
-
-/**
- * 拡張デッキメタデータ（CategoryEntry含む）
- */
-export interface ExtendedDeckMetadata extends DeckMetadata {
-  categoriesWithGroups: CategoryEntry[];
 }
 
 const STORAGE_KEY = 'deck_metadata';
@@ -66,30 +59,27 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
   }
 
   console.log('Using initial deck metadata from JSON file');
-  return initialMetadata as DeckMetadata;
+  const initial = initialMetadata as any;
+  
+  // 初期JSONのcategoriesがRecord形式の場合は配列に変換
+  if (initial.categories && !Array.isArray(initial.categories)) {
+    const categoriesArray = Object.entries(initial.categories).map(([value, label]) => ({
+      value,
+      label: label as string
+    }));
+    initial.categories = assignCategoryGroups(categoriesArray);
+  }
+  
+  return initial as DeckMetadata;
 }
 
 /**
- * 拡張デッキメタデータを取得（CategoryEntry含む）
+ * デッキメタデータを取得（後方互換性を保ちつつ新形式に変換）
  * 
- * @returns カテゴリにグループ情報を付与したメタデータ
+ * @returns カテゴリにグループ情報を含むメタデータ
  */
-export async function getExtendedDeckMetadata(): Promise<ExtendedDeckMetadata> {
-  const metadata = await getDeckMetadata();
-  
-  // カテゴリをCategoryEntry形式に変換
-  const categoriesArray = Object.entries(metadata.categories).map(([value, label]) => ({
-    value,
-    label
-  }));
-  
-  // グループ情報を付与
-  const categoriesWithGroups = assignCategoryGroups(categoriesArray);
-  
-  return {
-    ...metadata,
-    categoriesWithGroups
-  };
+export async function getExtendedDeckMetadata(): Promise<DeckMetadata> {
+  return getDeckMetadata();
 }
 
 /**
@@ -183,9 +173,13 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
       }
     });
 
-    // カテゴリを抽出（共通ヘルパー使用）
-    // Note: グループ情報はgetExtendedDeckMetadata()で付与されるため、ここではRecord形式のまま
-    const categories = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
+    // カテゴリを抽出して配列形式+グループ情報を付与
+    const categoriesRecord = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
+    const categoriesArray = Object.entries(categoriesRecord).map(([value, label]) => ({
+      value,
+      label
+    }));
+    const categories = assignCategoryGroups(categoriesArray);
 
     // タグを抽出（共通ヘルパー使用）
     const tags = extractOptionsFromSelect(doc, 'select[name="dckTagMst"]');

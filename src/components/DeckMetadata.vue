@@ -126,16 +126,18 @@
     
     <!-- ダイアログコンポーネント -->
     <TagDialog
-      v-model="localTags"
+      :model-value="localTags"
       :is-visible="showTagDialog"
       :tags="tagList"
+      @update:model-value="updateTags"
       @close="showTagDialog = false"
     />
     
     <CategoryDialog
-      v-model="localCategory"
+      :model-value="localCategory"
       :is-visible="showCategoryDialog"
-      :categories="categoryList"
+      :categories="categories"
+      @update:model-value="updateCategories"
       @close="showCategoryDialog = false"
     />
 
@@ -155,7 +157,7 @@
           :key="'cat-' + catId"
           class="chip"
         >
-          {{ categories[catId] }}
+          {{ getCategoryLabel(catId) }}
           <button class="chip-remove" @click="removeCategory(catId)">×</button>
         </span>
       </div>
@@ -190,9 +192,8 @@ import TagDialog from './TagDialog.vue';
 const deckStore = useDeckEditStore();
 
 // メタデータ（カテゴリ・タグマスター）
-const categories = ref<Record<string, string>>({});
+const categories = ref<CategoryEntry[]>([]);
 const tags = ref<Record<string, string>>({});
-const categoryList = ref<CategoryEntry[]>([]);
 const tagList = computed(() => {
   return Object.entries(tags.value).map(([value, label]) => ({ value, label }));
 });
@@ -226,7 +227,6 @@ onMounted(async () => {
   const metadata = await getExtendedDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
-  categoryList.value = metadata.categoriesWithGroups;
   
   // 外クリックでドロップダウンを閉じる
   document.addEventListener('click', handleClickOutside);
@@ -331,85 +331,30 @@ function updateComment() {
   deckStore.deckInfo.comment = localComment.value;
 }
 
-function onFilterClick() {
-  // TODO: フィルター機能を実装
-  console.log('Filter button clicked');
+// カテゴリラベルを取得
+function getCategoryLabel(catId: string): string {
+  const category = categories.value.find(c => c.value === catId);
+  return category?.label || catId;
 }
 
-function toggleCategory(catId: string) {
-  const index = localCategory.value.indexOf(catId);
-  if (index >= 0) {
-    localCategory.value.splice(index, 1);
-  } else {
-    localCategory.value.push(catId);
-  }
-  deckStore.deckInfo.category = [...localCategory.value];
+// ダイアログからの更新（循環参照を防ぐため直接更新）
+function updateCategories(newCategories: string[]) {
+  localCategory.value = [...newCategories];
+  deckStore.deckInfo.category = [...newCategories];
 }
 
-// ダイアログ位置調整の共通関数
-function adjustDropdownPosition(
-  button: HTMLElement | null,
-  dropdown: HTMLElement | null,
-) {
-  if (!dropdown || !button) return;
-
-  setTimeout(() => {
-    const buttonRect = button.getBoundingClientRect();
-    const dropdownRect = dropdown.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // ボタンの下に配置
-    let top = buttonRect.bottom + 4;
-    let left = buttonRect.left;
-    
-    // 右にはみ出る場合は左にずらす
-    if (left + dropdownRect.width > viewportWidth) {
-      left = viewportWidth - dropdownRect.width - 20;
-    }
-    
-    // 下にはみ出る場合は上に配置
-    if (top + dropdownRect.height > viewportHeight) {
-      top = buttonRect.top - dropdownRect.height - 4;
-    }
-    
-    dropdown.style.top = `${top}px`;
-    dropdown.style.left = `${left}px`;
-  }, 0);
+function updateTags(newTags: string[]) {
+  localTags.value = [...newTags];
+  deckStore.deckInfo.tags = [...newTags];
 }
 
-// タグダイアログの位置調整
-watch(showTagDropdown, async (newVal) => {
-  if (newVal) {
-    await nextTick();
-    adjustDropdownPosition(tagButton.value, tagDropdown.value);
-  }
-});
-
-// カテゴリダイアログの位置調整
-watch(showCategoryDropdown, async (newVal) => {
-  if (newVal) {
-    await nextTick();
-    adjustDropdownPosition(categoryButton.value, categoryDropdown.value);
-  }
-});
-
+// チップから削除
 function removeCategory(catId: string) {
   const index = localCategory.value.indexOf(catId);
   if (index >= 0) {
     localCategory.value.splice(index, 1);
     deckStore.deckInfo.category = [...localCategory.value];
   }
-}
-
-function toggleTag(tagId: string) {
-  const index = localTags.value.indexOf(tagId);
-  if (index >= 0) {
-    localTags.value.splice(index, 1);
-  } else {
-    localTags.value.push(tagId);
-  }
-  deckStore.deckInfo.tags = [...localTags.value];
 }
 
 function removeTag(tagId: string) {
