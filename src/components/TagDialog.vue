@@ -331,9 +331,7 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(180deg, 
     #ffb74d 0%, 
     #ffb74d 30%, 
-    #ffb74d 30%,
     #4db6ac 70%,
-    #4db6ac 70%, 
     #4db6ac 100%
   );
   color: #4a148c;
@@ -344,9 +342,7 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(180deg, 
     #ff9800 0%, 
     #ff9800 30%, 
-    #ff9800 30%,
     #00897b 70%,
-    #00897b 70%, 
     #00897b 100%
   );
   border-color: #f57c00;
@@ -497,6 +493,7 @@ watch(() => props.modelValue, (newVal) => {
   object-fit: contain;
 }
 
+.tag-item:not([data-type]):hover,
 .tag-item[data-group="others"]:hover,
 .tag-item[data-group="attr"]:hover,
 .tag-item[data-group="race"]:hover {
@@ -505,6 +502,7 @@ watch(() => props.modelValue, (newVal) => {
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
+.tag-item:not([data-type]).selected,
 .tag-item[data-group="others"].selected,
 .tag-item[data-group="attr"].selected,
 .tag-item[data-group="race"].selected {
@@ -639,9 +637,6 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(180deg, 
     #fff3e0 0%, 
     #fff3e0 30%, 
-    #ffcc80 30%,
-    #ffcc80 30%,
-    #80cbc4 70%,
     #b2dfdb 70%, 
     #b2dfdb 100%
   );
@@ -652,9 +647,6 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(180deg, 
     #ffcc80 0%, 
     #ffcc80 30%, 
-    #ffcc80 30%,
-    #ffb74d 30%,
-    #4db6ac 70%,
     #80cbc4 70%, 
     #80cbc4 100%
   );
@@ -666,11 +658,8 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(180deg, 
     #ffcc80 0%, 
     #ffcc80 30%, 
-    #ffcc80 30%,
-    #ffb74d 30%,
     #4db6ac 70%,
-    #80cbc4 70%, 
-    #80cbc4 100%
+    #4db6ac 100%
   );
   border-color: #ff9800;
   color: #4a148c;
