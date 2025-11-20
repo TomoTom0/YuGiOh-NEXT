@@ -29,13 +29,13 @@ export type TagGroup = 'attr' | 'race' | 'type' | 'others';
  * @returns グループ名
  */
 export function classifyTagById(tagId: string): TagGroup {
-  if (TAG_GROUPS.attr.includes(tagId)) {
+  if ((TAG_GROUPS.attr as readonly string[]).includes(tagId)) {
     return 'attr';
   }
-  if (TAG_GROUPS.race.includes(tagId)) {
+  if ((TAG_GROUPS.race as readonly string[]).includes(tagId)) {
     return 'race';
   }
-  if (TAG_GROUPS.type.includes(tagId)) {
+  if ((TAG_GROUPS.type as readonly string[]).includes(tagId)) {
     return 'type';
   }
   return 'others';

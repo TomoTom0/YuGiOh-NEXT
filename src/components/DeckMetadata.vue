@@ -112,126 +112,32 @@
     <div class="metadata-row">
       <div class="left-half">
         <button 
-          ref="tagButton"
           class="action-button" 
-          @click.stop="showTagDropdown = !showTagDropdown"
+          @click="showTagDialog = true"
         >Tag</button>
-        <Transition name="dropdown">
-          <div 
-            v-if="showTagDropdown" 
-            ref="tagDropdown"
-            class="tag-dialog"
-            @click.stop
-          >
-            <!-- 1行目: 検索入力 + 検索ボタン -->
-            <div class="dialog-search-row">
-              <div class="search-input-wrapper full-width">
-                <input
-                  v-model="tagSearchQuery"
-                  type="text"
-                  class="dialog-search-input"
-                  placeholder="タグを検索..."
-                  @click.stop
-                />
-                <button class="search-button" @click.stop>
-                  <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path fill="currentColor" :d="mdiMagnify" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <!-- 2行目: 選択済みチップ -->
-            <div class="dialog-selected-chips">
-              <span
-                v-for="tagId in localTags"
-                :key="'selected-' + tagId"
-                class="dialog-chip selected"
-              >
-                {{ tags[tagId] }}
-                <button class="dialog-chip-remove" @click="removeTag(tagId)">×</button>
-              </span>
-            </div>
-            
-            <!-- 3行目以降: タグ選択グリッド（スクロール可能） -->
-            <div class="dialog-options-grid">
-              <div
-                v-for="(label, id) in filteredTags"
-                :key="id"
-                class="dialog-chip clickable"
-                :class="{ selected: localTags.includes(id) }"
-                @click="toggleTag(id)"
-              >
-                {{ label }}
-              </div>
-            </div>
-          </div>
-        </Transition>
       </div>
       <div class="right-half">
         <button 
-          ref="categoryButton"
           class="action-button" 
-          @click.stop="showCategoryDropdown = !showCategoryDropdown"
+          @click="showCategoryDialog = true"
         >Category</button>
-        <Transition name="dropdown">
-          <div 
-            v-if="showCategoryDropdown" 
-            ref="categoryDropdown"
-            class="category-dialog"
-            @click.stop
-          >
-            <!-- 1行目: フィルターボタン + 検索入力 + 検索ボタン -->
-            <div class="dialog-search-row">
-              <button class="filter-button" @click.stop="onFilterClick">
-                <svg width="20" height="20" viewBox="0 0 24 24">
-                  <path fill="currentColor" :d="mdiFilterOutline" />
-                </svg>
-              </button>
-              <div class="search-input-wrapper">
-                <input
-                  v-model="categorySearchQuery"
-                  type="text"
-                  class="dialog-search-input"
-                  placeholder="カテゴリを検索..."
-                  @click.stop
-                />
-                <button class="search-button" @click.stop>
-                  <svg width="20" height="20" viewBox="0 0 24 24">
-                    <path fill="currentColor" :d="mdiMagnify" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <!-- 2行目: 選択済みチップ -->
-            <div class="dialog-selected-chips">
-              <span
-                v-for="catId in localCategory"
-                :key="'selected-' + catId"
-                class="dialog-chip selected"
-              >
-                {{ categories[catId] }}
-                <button class="dialog-chip-remove" @click="removeCategory(catId)">×</button>
-              </span>
-            </div>
-            
-            <!-- 3行目以降: カテゴリ選択グリッド（スクロール可能） -->
-            <div class="dialog-options-grid">
-              <div
-                v-for="(label, id) in filteredCategories"
-                :key="id"
-                class="dialog-chip clickable"
-                :class="{ selected: localCategory.includes(id) }"
-                @click="toggleCategory(id)"
-              >
-                {{ label }}
-              </div>
-            </div>
-          </div>
-        </Transition>
       </div>
     </div>
+    
+    <!-- ダイアログコンポーネント -->
+    <TagDialog
+      v-model="localTags"
+      :is-visible="showTagDialog"
+      :tags="tagList"
+      @close="showTagDialog = false"
+    />
+    
+    <CategoryDialog
+      v-model="localCategory"
+      :is-visible="showCategoryDialog"
+      :categories="categoryList"
+      @close="showCategoryDialog = false"
+    />
 
     <!-- 3行目: タグとカテゴリのチップ表示 -->
     <div class="metadata-row chips-row">
@@ -276,13 +182,20 @@
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
-import { getDeckMetadata } from '../utils/deck-metadata-loader';
+import { getExtendedDeckMetadata } from '../utils/deck-metadata-loader';
+import type { CategoryEntry } from '../types/dialog';
+import CategoryDialog from './CategoryDialog.vue';
+import TagDialog from './TagDialog.vue';
 
 const deckStore = useDeckEditStore();
 
 // メタデータ（カテゴリ・タグマスター）
 const categories = ref<Record<string, string>>({});
 const tags = ref<Record<string, string>>({});
+const categoryList = ref<CategoryEntry[]>([]);
+const tagList = computed(() => {
+  return Object.entries(tags.value).map(([value, label]) => ({ value, label }));
+});
 
 // ローカル状態
 const localIsPublic = ref(deckStore.deckInfo.isPublic ?? false);
@@ -292,11 +205,11 @@ const localCategory = ref<string[]>([...(deckStore.deckInfo.category ?? [])]);
 const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
 
-// ドロップダウン表示状態
+// ダイアログ表示状態
 const showDeckTypeDropdown = ref(false);
 const showDeckStyleDropdown = ref(false);
-const showCategoryDropdown = ref(false);
-const showTagDropdown = ref(false);
+const showCategoryDialog = ref(false);
+const showTagDialog = ref(false);
 
 // ドロップダウン位置調整
 const deckTypeDropdownAlignRight = ref(false);
@@ -307,46 +220,13 @@ const deckTypeSelector = ref<HTMLElement | null>(null);
 const deckTypeDropdown = ref<HTMLElement | null>(null);
 const deckStyleSelector = ref<HTMLElement | null>(null);
 const deckStyleDropdown = ref<HTMLElement | null>(null);
-const tagButton = ref<HTMLElement | null>(null);
-const tagDropdown = ref<HTMLElement | null>(null);
-const categoryButton = ref<HTMLElement | null>(null);
-const categoryDropdown = ref<HTMLElement | null>(null);
-
-// カテゴリ・タグ検索用
-const categorySearchQuery = ref('');
-const tagSearchQuery = ref('');
-
-// カテゴリ検索フィルタ
-const filteredCategories = computed(() => {
-  if (!categorySearchQuery.value) {
-    return categories.value;
-  }
-  const query = categorySearchQuery.value.toLowerCase();
-  return Object.fromEntries(
-    Object.entries(categories.value).filter(([_, label]) =>
-      label.toLowerCase().includes(query)
-    )
-  );
-});
-
-// タグ検索フィルタ
-const filteredTags = computed(() => {
-  if (!tagSearchQuery.value) {
-    return tags.value;
-  }
-  const query = tagSearchQuery.value.toLowerCase();
-  return Object.fromEntries(
-    Object.entries(tags.value).filter(([_, label]) =>
-      label.toLowerCase().includes(query)
-    )
-  );
-});
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {
-  const metadata = await getDeckMetadata();
+  const metadata = await getExtendedDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
+  categoryList.value = metadata.categoriesWithGroups;
   
   // 外クリックでドロップダウンを閉じる
   document.addEventListener('click', handleClickOutside);
@@ -364,10 +244,6 @@ function handleClickOutside(event: MouseEvent) {
   }
   if (!target.closest('.deck-style-selector')) {
     showDeckStyleDropdown.value = false;
-  }
-  if (!target.closest('.chips-row')) {
-    showCategoryDropdown.value = false;
-    showTagDropdown.value = false;
   }
 }
 
