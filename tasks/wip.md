@@ -1,48 +1,69 @@
 # 作業中のタスク
 
-## デッキ編集画面の不具合調査・修正
+## デッキ編集画面の無限ループ問題調査 (2025-11-20)
 
-**現状**: デッキ編集画面で複数の不具合が発生（2025-11-20）
+**問題発生**:
+- デッキ編集画面で無限ループが発生
+- build-and-deploy後も問題が継続
+- 正常なcommitに戻ると問題解消
 
-**調査結果**:
-- **重要発見**: `5802a5b`と`af0cbac`は**完全に同一のツリー**（tree ID一致）
-  - `af0cbac` = Merge(`127ed70`, `5802a5b`) だが、結果は`5802a5b`と100%同じ
-  - つまり`127ed70`側の変更は全て破棄されている
-- **正常動作**: `5802a5b` (現在のブランチ: `feature/fix-infinite-loop`)
-- **カード画像表示問題**: `af0cbac`で発生？
-  - しかしコードは`5802a5b`と完全に同一
-  - ビルド/デプロイの問題の可能性
-  - または`5802a5b`自体に問題がある可能性
-- **その後のコミット**: `f735068`, `87205c0`, `3ba43fb`
-  - 症状: 無限ループ
+**正常動作commit**: `af0cbac` (origin/dev)
+- 現在のブランチ: `feature/stable-base` (commit: 2b9e084)
+- これは`af0cbac`から10個のcommitが追加されたもの
 
-**コミット間の関係と問題**:
-- `127ed70` （dev側の親、マージで破棄された）
-- `5802a5b` ✅ 正常動作（現在のブランチ）
-- `af0cbac` = `5802a5b`（コードは完全に同一）⚠️ カード画像一部非表示？
-- `f735068` ❌ CategoryDialog追加
-- `87205c0` ❌ TagDialog追加
-- `3ba43fb` ❌ 無限ループ（DeckMetadataに統合）
+**無限ループが発生したcommit範囲**:
+- devブランチ (commit: a37897d)
+- backup/infinite-loop-fix-20251120-094954ブランチ
 
-**検証完了**: `af0cbac`を再ビルド・デプロイ（2025-11-20 10:44）
+**commit履歴**:
+1. `af0cbac` ✅ 正常動作 (origin/dev)
+2. `ba33ed0` - カテゴリ/タグ自動分類機能の実装
+3. `86c0a6a` - CategoryDialog/TagDialog実装中（ビルドエラーあり）
+4. `644f7ae` - カテゴリにグループ情報を事前計算してJSON保存
+5. `7b21f61` - UI/UX改善（ダイアログとチップ）
+6. `3715a2b` - モンスタータイプのチップ色とペンデュラムのグラデーション調整
+7. `85fe3b4` - wip.md更新
+8. `3a9ff4c` - ダイアログヘッダーとペンデュラムのグラデーション修正
+9. `d3adb32` - filter/clearボタンを水平配置維持
+10. `0ad4f1a` - ペンデュラムのグラデーションとチップ高さ一貫性
+11. `2b9e084` ✅ 正常動作 (feature/stable-base, HEAD)
 
-**検証結果**:
-- ✅ カード画像表示: 正常
-- ✅ 無限ループ: 発生せず
-- ⚠️ 軽微な問題: ボタン押下でカード移動時、アニメーション開始時に一瞬カードが白くなる
+**devブランチの追加commit（無限ループ発生）**:
+- `f735068` - CategoryDialogコンポーネント追加
+- `87205c0` - TagDialogコンポーネント追加  
+- `3ba43fb` - DeckMetadataにCategoryDialog/TagDialogを統合
+- `a37897d` - 無限ループ修正試行（失敗）
 
-**結論**:
-- 以前の「`af0cbac`での問題」は**ビルドキャッシュが原因**だった
-- クリーンビルドで`af0cbac`は正常動作する
-- `5802a5b`と`af0cbac`は完全に同一コード（tree ID一致）のため当然
+**無限ループの原因（推定）**:
+- `src/stores/deck-edit.ts`での`watch`による無限ループ
+- `DeckMetadata.vue`で`v-model`による双方向バインディングと`watch`の組み合わせ
+- URLStateManager.syncUIStateToURL()が繰り返し呼ばれる
 
-**残存問題**:
-1. ボタン押下でのカード移動アニメーションで一瞬白くなる（軽微）
-2. その後のコミット（`f735068`, `87205c0`, `3ba43fb`）での無限ループ問題
+**devブランチ(a37897d)での修正試行**:
+```typescript
+// deck-edit.ts
+let isUpdatingFromURL = false;
+watch([viewMode, sortOrder, activeTab, cardTab, showDetail], () => {
+  if (isUpdatingFromURL) return; // 無限ループ防止
+  URLStateManager.syncUIStateToURL({...});
+}, { flush: 'post' });
+```
 
-**新ブランチ作成**: `feature/stable-base` (af0cbac = origin/dev)
+しかしこの修正でも無限ループが解消されず。
 
-**破棄されたコミットの詳細仕様調査**:
+**現在の正常なブランチとの主な差分**:
+- CategoryDialog.vue: 完全に異なる実装
+- TagDialog.vue: 完全に異なる実装  
+- DeckMetadata.vue: `v-model`の使い方、`watch`の追加
+- deck-edit.ts: `isUpdatingFromURL`フラグ追加、`flush: 'post'`追加
+
+**次のステップ**: devブランチの実装内容と仕様を調査・把握
+
+---
+
+## devブランチで実装された機能の仕様調査
+
+devブランチ（無限ループ発生）で追加された新機能の仕様を把握し、再実装のための設計を行う。
 
 ### 1. CategoryDialogコンポーネント (f735068)
 
