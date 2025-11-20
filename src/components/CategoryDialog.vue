@@ -218,8 +218,10 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 24px;
+  min-height: 28px;
+  height: 28px;
   align-items: center;
+  overflow-y: auto;
 }
 
 .category-chip {
@@ -271,7 +273,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .filter-and-actions {
-  padding: 8px 16px;
+  padding: 6px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   align-items: flex-start;

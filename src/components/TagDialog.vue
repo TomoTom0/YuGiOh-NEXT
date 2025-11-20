@@ -263,8 +263,10 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 24px;
+  min-height: 28px;
+  height: 28px;
   align-items: center;
+  overflow-y: auto;
 }
 
 .tag-chip {
@@ -326,9 +328,28 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 30%, #ffcc80 30%, #80cbc4 70%, #4db6ac 70%, #4db6ac 100%);
+  background: linear-gradient(180deg, 
+    #ffb74d 0%, 
+    #ffb74d 30%, 
+    #ffb74d 30%,
+    #4db6ac 70%,
+    #4db6ac 70%, 
+    #4db6ac 100%
+  );
   color: #4a148c;
   border-color: #ff9800;
+}
+
+.tag-chip[data-type="pendulum"]:hover {
+  background: linear-gradient(180deg, 
+    #ff9800 0%, 
+    #ff9800 30%, 
+    #ff9800 30%,
+    #00897b 70%,
+    #00897b 70%, 
+    #00897b 100%
+  );
+  border-color: #f57c00;
 }
 
 .chip-remove {
@@ -360,7 +381,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .filter-and-actions {
-  padding: 8px 16px;
+  padding: 6px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   align-items: center;
@@ -507,7 +528,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="fusion"].selected {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
   border-color: #9c27b0;
   color: #4a148c;
   font-weight: 500;
@@ -554,6 +575,7 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #757575;
   color: #424242;
   font-weight: 500;
+  border-width: 2px;
 }
 
 .tag-item[data-type="xyz"] {
@@ -568,7 +590,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="xyz"].selected {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
   border-color: #9c27b0;
   color: #4a148c;
   font-weight: 500;
@@ -587,7 +609,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="link"].selected {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
   border-color: #1976d2;
   color: #0d47a1;
   font-weight: 500;
@@ -606,7 +628,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="ritual"].selected {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
   border-color: #1976d2;
   color: #0d47a1;
   font-weight: 500;
@@ -614,18 +636,42 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="pendulum"] {
-  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #ffcc80 30%, #80cbc4 70%, #b2dfdb 70%, #b2dfdb 100%);
+  background: linear-gradient(180deg, 
+    #fff3e0 0%, 
+    #fff3e0 30%, 
+    #ffcc80 30%,
+    #ffcc80 30%,
+    #80cbc4 70%,
+    #b2dfdb 70%, 
+    #b2dfdb 100%
+  );
   border-color: #ffb74d;
 }
 
 .tag-item[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, #ffcc80 0%, #ffcc80 30%, #ffb74d 30%, #4db6ac 70%, #80cbc4 70%, #80cbc4 100%);
+  background: linear-gradient(180deg, 
+    #ffcc80 0%, 
+    #ffcc80 30%, 
+    #ffcc80 30%,
+    #ffb74d 30%,
+    #4db6ac 70%,
+    #80cbc4 70%, 
+    #80cbc4 100%
+  );
   border-color: #ff9800;
   box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
 }
 
 .tag-item[data-type="pendulum"].selected {
-  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #ffcc80 30%, #80cbc4 70%, #b2dfdb 70%, #b2dfdb 100%);
+  background: linear-gradient(180deg, 
+    #ffcc80 0%, 
+    #ffcc80 30%, 
+    #ffcc80 30%,
+    #ffb74d 30%,
+    #4db6ac 70%,
+    #80cbc4 70%, 
+    #80cbc4 100%
+  );
   border-color: #ff9800;
   color: #4a148c;
   font-weight: 500;

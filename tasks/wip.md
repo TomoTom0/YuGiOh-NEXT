@@ -222,6 +222,21 @@
    - ✅ すべてのタグタイプでhover効果追加（others, attr, race, type）
    - ✅ Filter/Clearボタンを横並びに配置
 
+**最終デザイン修正** (2025-11-20 22:00):
+- ✅ ペンデュラムのグラデーション完全修正
+  - チップ: 0-30%オレンジ (#ffb74d) → 70-100%青緑 (#4db6ac)、中央30-70%で不連続（グラデーション風）
+  - 選択肢: 同様の配色で統一
+  - hover時とselected時でも正しくグラデーション維持
+- ✅ 選択時の色を濃くする（Monster type）
+  - 融合/エクシーズ: selected時 #e1bee7 → #ba68c8
+  - リンク/儀式: selected時 #bbdefb → #42a5f5  
+  - シンクロ: border-width: 2px追加
+- ✅ チップ表示行の高さ固定
+  - height: 28px固定、overflow-y: autoで複数行対応
+  - チップ0個でも1個以上でも高さ変動なし
+- ✅ タブタイトル周りの余白調整
+  - filter-and-actions padding: 8px → 6px
+
 **未実装**:
 - ⏭️ カード検索入力欄のMain Sectionタイトル内配置機能（UI側実装が必要）
   - オプション設定は完了（searchInputPosition: 'default' | 'section-title'）
