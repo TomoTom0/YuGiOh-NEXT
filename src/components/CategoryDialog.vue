@@ -75,11 +75,15 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { CategoryEntry } from '@/types/dialog';
 
 const props = defineProps<{
   isVisible: boolean;
-  categories: CategoryEntry[];
+  categories: Array<{
+    value: string;
+    label: string;
+    originalIndex: number;
+    group: string[];
+  }>;
   modelValue: string[];
 }>();
 
@@ -164,7 +168,8 @@ watch(() => props.modelValue, (newVal) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 600px;
-  max-height: 80vh;
+  height: 80vh;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
 }
@@ -176,6 +181,7 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 12px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .dialog-header h3 {
@@ -240,6 +246,7 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .tab-row {
@@ -257,6 +264,8 @@ watch(() => props.modelValue, (newVal) => {
   color: var(--text-color, #666);
   transition: all 0.2s;
   flex: 1;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .tab-btn:hover {
@@ -308,6 +317,7 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .btn {

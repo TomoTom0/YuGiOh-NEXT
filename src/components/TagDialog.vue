@@ -172,7 +172,8 @@ watch(() => props.modelValue, (newVal) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   width: 90%;
   max-width: 600px;
-  max-height: 80vh;
+  height: 80vh;
+  max-height: 600px;
   display: flex;
   flex-direction: column;
 }
@@ -184,6 +185,7 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 12px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .dialog-header h3 {
@@ -247,6 +249,7 @@ watch(() => props.modelValue, (newVal) => {
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .tab-btn {
@@ -258,6 +261,8 @@ watch(() => props.modelValue, (newVal) => {
   font-size: 14px;
   color: var(--text-color, #666);
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-btn:hover {
@@ -309,6 +314,7 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .btn {
