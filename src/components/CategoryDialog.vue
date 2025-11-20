@@ -3,22 +3,22 @@
     <div class="category-dialog">
       <!-- ヘッダー -->
       <div class="dialog-header">
-        <div class="header-title-area">
+        <div class="header-row">
           <h3>Category</h3>
-          <!-- 選択済みチップ -->
-          <div class="selected-chips-inline">
-            <span 
-              v-for="id in selectedCategories" 
-              :key="id" 
-              class="category-chip"
-              @click="toggleCategory(id)"
-            >
-              {{ getCategoryLabel(id) }}
-              <span class="chip-remove">×</span>
-            </span>
-          </div>
+          <button class="close-btn" @click="close" title="Close">×</button>
         </div>
-        <button class="close-btn" @click="close" title="Close">×</button>
+        <!-- 選択済みチップ -->
+        <div class="selected-chips-row">
+          <span 
+            v-for="id in selectedCategories" 
+            :key="id" 
+            class="category-chip"
+            @click="toggleCategory(id)"
+          >
+            {{ getCategoryLabel(id) }}
+            <span class="chip-remove">×</span>
+          </span>
+        </div>
       </div>
 
       <!-- フィルタタブとアクションボタン -->
@@ -192,34 +192,34 @@ watch(() => props.modelValue, (newVal) => {
 .dialog-header {
   width: 100%;
   padding: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
 
-.header-title-area {
+.header-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
-  flex-shrink: 0;
 }
 
-.selected-chips-inline {
+.selected-chips-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  flex: 1;
+  min-height: 24px;
+  align-items: center;
 }
 
 .category-chip {

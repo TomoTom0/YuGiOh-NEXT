@@ -3,23 +3,23 @@
     <div class="tag-dialog">
       <!-- ヘッダー -->
       <div class="dialog-header">
-        <div class="header-title-area">
+        <div class="header-row">
           <h3>Tag</h3>
-          <!-- 選択済みチップ -->
-          <div class="selected-chips-inline">
-            <span 
-              v-for="id in selectedTags" 
-              :key="id" 
-              class="tag-chip"
-              :data-type="getTagType(id)"
-              @click="toggleTag(id)"
-            >
-              {{ getTagLabel(id) }}
-              <span class="chip-remove">×</span>
-            </span>
-          </div>
+          <button class="close-btn" @click="close" title="Close">×</button>
         </div>
-        <button class="close-btn" @click="close" title="Close">×</button>
+        <!-- 選択済みチップ -->
+        <div class="selected-chips-row">
+          <span 
+            v-for="id in selectedTags" 
+            :key="id" 
+            class="tag-chip"
+            :data-type="getTagType(id)"
+            @click="toggleTag(id)"
+          >
+            {{ getTagLabel(id) }}
+            <span class="chip-remove">×</span>
+          </span>
+        </div>
       </div>
 
       <!-- フィルタタブとアクションボタン -->
@@ -237,34 +237,34 @@ watch(() => props.modelValue, (newVal) => {
 .dialog-header {
   width: 100%;
   padding: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
 
-.header-title-area {
+.header-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
-  flex-shrink: 0;
 }
 
-.selected-chips-inline {
+.selected-chips-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  flex: 1;
+  min-height: 24px;
+  align-items: center;
 }
 
 .tag-chip {
@@ -326,7 +326,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 30%, #ffb74d 30%, #4db6ac 70%, #4db6ac 70%, #4db6ac 100%);
+  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 30%, #ffcc80 30%, #80cbc4 70%, #4db6ac 70%, #4db6ac 100%);
   color: #4a148c;
   border-color: #ff9800;
 }
@@ -476,13 +476,17 @@ watch(() => props.modelValue, (newVal) => {
   object-fit: contain;
 }
 
-.tag-item:not([data-type]):hover {
+.tag-item[data-group="others"]:hover,
+.tag-item[data-group="attr"]:hover,
+.tag-item[data-group="race"]:hover {
   background: #f8f9fa;
   border-color: #1976d2;
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
-.tag-item:not([data-type]).selected {
+.tag-item[data-group="others"].selected,
+.tag-item[data-group="attr"].selected,
+.tag-item[data-group="race"].selected {
   background: #e3f2fd;
   border-color: #1976d2;
   border-width: 2px;
@@ -610,18 +614,18 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="pendulum"] {
-  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #ffcc80 30%, #80cbc4 70%, #b2dfdb 70%, #b2dfdb 100%);
   border-color: #ffb74d;
 }
 
 .tag-item[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, #ffcc80 0%, #ffcc80 30%, #80cbc4 70%, #80cbc4 100%);
+  background: linear-gradient(180deg, #ffcc80 0%, #ffcc80 30%, #ffb74d 30%, #4db6ac 70%, #80cbc4 70%, #80cbc4 100%);
   border-color: #ff9800;
   box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
 }
 
 .tag-item[data-type="pendulum"].selected {
-  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #ffcc80 30%, #80cbc4 70%, #b2dfdb 70%, #b2dfdb 100%);
   border-color: #ff9800;
   color: #4a148c;
   font-weight: 500;
