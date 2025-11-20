@@ -3,23 +3,34 @@
     <div class="tag-dialog">
       <!-- ヘッダー -->
       <div class="dialog-header">
-        <h3>Tag</h3>
-        <div class="selected-chips">
-          <span 
-            v-for="id in selectedTags" 
-            :key="id" 
-            class="tag-chip"
-            @click="toggleTag(id)"
-          >
-            {{ getTagLabel(id) }}
-            <span class="chip-remove">×</span>
-          </span>
+        <div class="header-title-area">
+          <h3>Tag</h3>
+          <!-- 選択済みチップ -->
+          <div class="selected-chips-inline">
+            <span 
+              v-for="id in selectedTags" 
+              :key="id" 
+              class="tag-chip"
+              @click="toggleTag(id)"
+            >
+              {{ getTagLabel(id) }}
+              <span class="chip-remove">×</span>
+            </span>
+          </div>
         </div>
         <button class="close-btn" @click="close" title="Close">×</button>
       </div>
 
-      <!-- フィルタタブ -->
-      <div class="filter-tabs">
+      <!-- フィルタタブとアクションボタン -->
+      <div class="filter-and-actions">
+        <div class="action-buttons-left">
+          <button class="btn btn-icon" @click="clearAll" title="Clear All">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="filter-tabs">
         <button 
           class="tab-btn" 
           :class="{ active: selectedGroup === 'all' }"
@@ -55,6 +66,7 @@
         >
           type
         </button>
+        </div>
       </div>
 
       <!-- タグリスト -->
@@ -68,12 +80,6 @@
         >
           {{ tag.label }}
         </button>
-      </div>
-
-      <!-- フッター -->
-      <div class="dialog-footer">
-        <button class="btn btn-secondary" @click="clearAll">Clear All</button>
-        <button class="btn btn-primary" @click="apply">Apply</button>
       </div>
     </div>
   </div>
@@ -128,17 +134,15 @@ function toggleTag(tagId: string): void {
   } else {
     selectedTags.value.push(tagId);
   }
+  // 即座に適用
+  emit('update:modelValue', [...selectedTags.value]);
 }
 
 // すべてクリア
 function clearAll(): void {
   selectedTags.value = [];
-}
-
-// 適用
-function apply(): void {
-  emit('update:modelValue', [...selectedTags.value]);
-  close();
+  // 即座に適用
+  emit('update:modelValue', []);
 }
 
 // 閉じる
@@ -179,29 +183,36 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .dialog-header {
+  width: 100%;
   padding: 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.header-title-area {
+  display: flex;
   align-items: center;
   gap: 12px;
-  position: relative;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
-  min-width: 50px;
+  flex-shrink: 0;
 }
 
-.selected-chips {
-  flex: 1;
+.selected-chips-inline {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 60px;
-  overflow-y: auto;
+  flex: 1;
 }
 
 .tag-chip {
@@ -211,19 +222,29 @@ watch(() => props.modelValue, (newVal) => {
   padding: 4px 8px;
   background: #e8f5e9;
   color: #2e7d32;
+  border: 1px solid #66bb6a;
   border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .tag-chip:hover {
   background: #c8e6c9;
+  border-color: #4caf50;
 }
 
 .chip-remove {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
+  color: #2e7d32;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.chip-remove:hover {
+  opacity: 1;
 }
 
 .close-btn {
@@ -235,44 +256,87 @@ watch(() => props.modelValue, (newVal) => {
   padding: 0;
   width: 30px;
   height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1;
 }
 
 .close-btn:hover {
   color: var(--text-color, #333);
 }
 
-.filter-tabs {
+.filter-and-actions {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
 }
 
-.tab-btn {
-  padding: 6px 16px;
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border-color, #e0e0e0);
+.action-buttons-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  padding: 6px;
+  min-width: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 3px solid transparent;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-color, #666);
+  font-weight: 500;
+  color: #666;
   transition: all 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
+.tab-btn:last-child {
+  border-right: none;
+}
+
 .tab-btn:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: rgba(25, 118, 210, 0.08);
+  color: #1976d2;
 }
 
 .tab-btn.active {
-  background: #2e7d32;
-  color: white;
-  border-color: #2e7d32;
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+  background: rgba(25, 118, 210, 0.08);
 }
 
 .tag-list {
@@ -286,36 +350,37 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item {
-  padding: 8px 12px;
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 4px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
-  color: var(--text-color, #333);
+  font-size: 14px;
+  color: #333;
   text-align: left;
   transition: all 0.2s;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .tag-item:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: #f8f9fa;
+  border-color: #1976d2;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
 .tag-item.selected {
-  background: #e8f5e9;
-  border-color: #2e7d32;
-  color: #2e7d32;
+  background: #e3f2fd;
+  border-color: #1976d2;
+  border-width: 2px;
+  color: #1565c0;
   font-weight: 500;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
 }
 
-.dialog-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
+
 
 .btn {
   padding: 8px 16px;
@@ -336,11 +401,11 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-primary {
-  background: #2e7d32;
+  background: #1976d2;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1b5e20;
+  background: #1565c0;
 }
 </style>

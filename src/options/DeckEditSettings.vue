@@ -59,6 +59,17 @@
           カード情報の取得言語です。「自動検出」では、ページのURLやmeta情報から判定します。
         </p>
       </div>
+
+      <div class="setting-item">
+        <label>カード検索入力欄の位置</label>
+        <select v-model="searchInputPosition">
+          <option value="default">デフォルト（検索タブ上部）</option>
+          <option value="section-title">Main Sectionタイトル内</option>
+        </select>
+        <p class="setting-desc">
+          カード検索入力欄の表示位置を設定します。「Main Sectionタイトル内」では、枚数表示とシャッフルボタンの間に小さく表示されます。
+        </p>
+      </div>
     </div>
 
     <div class="actions">
@@ -81,29 +92,42 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
-import { loadDeckEditSettings, saveDeckEditSettings } from '../utils/settings';
-import { DEFAULT_DECK_EDIT_SETTINGS } from '../types/settings';
-import type { DeckEditSettings } from '../types/settings';
+import { loadDeckEditSettings, saveDeckEditSettings, loadAppSettings, saveAppSettings } from '../utils/settings';
+import { DEFAULT_DECK_EDIT_SETTINGS, DEFAULT_APP_SETTINGS } from '../types/settings';
+import type { DeckEditSettings, SearchInputPosition } from '../types/settings';
 
 const settings = reactive<DeckEditSettings>({ ...DEFAULT_DECK_EDIT_SETTINGS });
 const originalSettings = ref<DeckEditSettings>({ ...DEFAULT_DECK_EDIT_SETTINGS });
+const searchInputPosition = ref<SearchInputPosition>('default');
+const originalSearchInputPosition = ref<SearchInputPosition>('default');
 const saveMessage = ref('');
 const saveError = ref(false);
 
 const hasChanges = computed(() => {
-  return JSON.stringify(settings) !== JSON.stringify(originalSettings.value);
+  return JSON.stringify(settings) !== JSON.stringify(originalSettings.value) ||
+         searchInputPosition.value !== originalSearchInputPosition.value;
 });
 
 async function loadSettings() {
   const loaded = await loadDeckEditSettings();
   Object.assign(settings, loaded);
   originalSettings.value = { ...loaded };
+  
+  const appSettings = await loadAppSettings();
+  searchInputPosition.value = appSettings.searchInputPosition;
+  originalSearchInputPosition.value = appSettings.searchInputPosition;
 }
 
 async function save() {
   try {
     await saveDeckEditSettings(settings);
     originalSettings.value = { ...settings };
+    
+    const appSettings = await loadAppSettings();
+    appSettings.searchInputPosition = searchInputPosition.value;
+    await saveAppSettings(appSettings);
+    originalSearchInputPosition.value = searchInputPosition.value;
+    
     saveMessage.value = '設定を保存しました';
     saveError.value = false;
     setTimeout(() => {
@@ -118,11 +142,13 @@ async function save() {
 
 function reset() {
   Object.assign(settings, originalSettings.value);
+  searchInputPosition.value = originalSearchInputPosition.value;
   saveMessage.value = '';
 }
 
 function restoreDefaults() {
   Object.assign(settings, DEFAULT_DECK_EDIT_SETTINGS);
+  searchInputPosition.value = DEFAULT_APP_SETTINGS.searchInputPosition;
   saveMessage.value = '';
 }
 

@@ -112,13 +112,13 @@
     <div class="metadata-row">
       <div class="left-half">
         <button 
-          class="action-button" 
+          class="action-button tag-button" 
           @click="showTagDialog = true"
         >Tag</button>
       </div>
       <div class="right-half">
         <button 
-          class="action-button" 
+          class="action-button category-button" 
           @click="showCategoryDialog = true"
         >Category</button>
       </div>
@@ -147,7 +147,8 @@
         <span
           v-for="tagId in localTags"
           :key="'tag-' + tagId"
-          class="chip"
+          class="chip tag-chip"
+          :data-type="getTagType(tagId)"
         >
           {{ tags[tagId] }}
           <button class="chip-remove" @click="removeTag(tagId)">×</button>
@@ -155,7 +156,7 @@
         <span
           v-for="catId in localCategory"
           :key="'cat-' + catId"
-          class="chip"
+          class="chip category-chip"
         >
           {{ getCategoryLabel(catId) }}
           <button class="chip-remove" @click="removeCategory(catId)">×</button>
@@ -337,6 +338,28 @@ function getCategoryLabel(catId: string): string {
   return category?.label || catId;
 }
 
+function getTagType(tagId: string): string {
+  const tagLabel = tags[tagId];
+  if (!tagLabel) return '';
+  
+  const typeMappings: Record<string, string> = {
+    '融合': 'fusion',
+    'シンクロ': 'synchro',
+    'エクシーズ': 'xyz',
+    'リンク': 'link',
+    '儀式': 'ritual',
+    'ペンデュラム': 'pendulum'
+  };
+  
+  for (const [key, type] of Object.entries(typeMappings)) {
+    if (tagLabel.includes(key)) {
+      return type;
+    }
+  }
+  
+  return '';
+}
+
 // ダイアログからの更新（循環参照を防ぐため直接更新）
 function updateCategories(newCategories: string[]) {
   localCategory.value = [...newCategories];
@@ -406,7 +429,7 @@ function removeTag(tagId: string) {
   align-items: flex-start;
   min-height: 28px;
   justify-content: flex-start;
-  margin-top: 4px;
+  margin-top: 0px;
 }
 
 // 公開/非公開スイッチ - テキストを左右に配置
@@ -538,6 +561,57 @@ function removeTag(tagId: string) {
   flex-shrink: 0;
 }
 
+.tag-button {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+  border-radius: 12px;
+  font-weight: 500;
+  
+  &:hover {
+    background: #c8e6c9;
+    border-color: #4caf50;
+  }
+  
+  &:active {
+    background: #a5d6a7;
+  }
+}
+
+.category-button {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+  border-radius: 12px;
+  font-weight: 500;
+  
+  &:hover {
+    background: #ffe0b2;
+    border-color: #f57c00;
+  }
+  
+  &:active {
+    background: #ffcc80;
+  }
+}
+
+.deck-style-button {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #42a5f5;
+  border-radius: 12px;
+  font-weight: 500;
+  
+  &:hover {
+    background: #bbdefb;
+    border-color: #1976d2;
+  }
+  
+  &:active {
+    background: #90caf9;
+  }
+}
+
 .deck-type-icon {
   height: 24px;
   width: auto;
@@ -569,19 +643,87 @@ function removeTag(tagId: string) {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 0px 3px;
-  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-  color: white;
-  border-radius: 2px;
-  font-size: 8px;
-  font-weight: 400;
-  height: 12px;
-  line-height: 1;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chip.tag-chip {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+}
+
+.chip.tag-chip:hover {
+  background: #c8e6c9;
+  border-color: #4caf50;
+}
+
+.chip.tag-chip[data-type="fusion"] {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  color: #4a148c;
+  border-color: #9c27b0;
+}
+
+.chip.tag-chip[data-type="synchro"] {
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  color: #424242;
+  border-color: #9e9e9e;
+}
+
+.chip.tag-chip[data-type="xyz"] {
+  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
+  color: #4a148c;
+  border-color: #9c27b0;
+}
+
+.chip.tag-chip[data-type="link"] {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  color: #0d47a1;
+  border-color: #1976d2;
+}
+
+.chip.tag-chip[data-type="ritual"] {
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  color: #0d47a1;
+  border-color: #1976d2;
+}
+
+.chip.tag-chip[data-type="pendulum"] {
+  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 30%, #4db6ac 30%, #4db6ac 70%, #26a69a 100%);
+  color: #4a148c;
+  border-color: #ff9800;
+}
+
+.chip.category-chip {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+}
+
+.chip.category-chip:hover {
+  background: #ffe0b2;
+  border-color: #f57c00;
 }
 
 .chip-remove {
-  display: none;
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.chip-remove:hover {
+  opacity: 1;
 }
 
 .deck-type-dropdown,

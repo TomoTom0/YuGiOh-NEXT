@@ -3,23 +3,39 @@
     <div class="category-dialog">
       <!-- ヘッダー -->
       <div class="dialog-header">
-        <h3>Category</h3>
-        <div class="selected-chips">
-          <span 
-            v-for="id in selectedCategories" 
-            :key="id" 
-            class="category-chip"
-            @click="toggleCategory(id)"
-          >
-            {{ getCategoryLabel(id) }}
-            <span class="chip-remove">×</span>
-          </span>
+        <div class="header-title-area">
+          <h3>Category</h3>
+          <!-- 選択済みチップ -->
+          <div class="selected-chips-inline">
+            <span 
+              v-for="id in selectedCategories" 
+              :key="id" 
+              class="category-chip"
+              @click="toggleCategory(id)"
+            >
+              {{ getCategoryLabel(id) }}
+              <span class="chip-remove">×</span>
+            </span>
+          </div>
         </div>
         <button class="close-btn" @click="close" title="Close">×</button>
       </div>
 
-      <!-- フィルタタブ（二行表示） -->
-      <div class="filter-tabs">
+      <!-- フィルタタブとアクションボタン -->
+      <div class="filter-and-actions">
+        <div class="action-buttons-left">
+          <button class="btn btn-icon" @click="onFilterClick" title="Filter">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+            </svg>
+          </button>
+          <button class="btn btn-icon" @click="clearAll" title="Clear All">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+            </svg>
+          </button>
+        </div>
+        <div class="filter-tabs">
         <div class="tab-row">
           <button 
             class="tab-btn" 
@@ -49,6 +65,7 @@
             {{ group.replace('ruby_', '') }}
           </button>
         </div>
+        </div>
       </div>
 
       <!-- カテゴリリスト -->
@@ -62,12 +79,6 @@
         >
           {{ category.label }}
         </button>
-      </div>
-
-      <!-- フッター -->
-      <div class="dialog-footer">
-        <button class="btn btn-secondary" @click="clearAll">Clear All</button>
-        <button class="btn btn-primary" @click="apply">Apply</button>
       </div>
     </div>
   </div>
@@ -124,17 +135,21 @@ function toggleCategory(categoryId: string): void {
   } else {
     selectedCategories.value.push(categoryId);
   }
+  // 即座に適用
+  emit('update:modelValue', [...selectedCategories.value]);
 }
 
 // すべてクリア
 function clearAll(): void {
   selectedCategories.value = [];
+  // 即座に適用
+  emit('update:modelValue', []);
 }
 
-// 適用
-function apply(): void {
-  emit('update:modelValue', [...selectedCategories.value]);
-  close();
+// フィルタボタン（後で実装）
+function onFilterClick(): void {
+  console.log('Filter button clicked');
+  // TODO: フィルタ機能を実装
 }
 
 // 閉じる
@@ -175,29 +190,36 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .dialog-header {
+  width: 100%;
   padding: 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.header-title-area {
+  display: flex;
   align-items: center;
   gap: 12px;
-  position: relative;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
-  min-width: 80px;
+  flex-shrink: 0;
 }
 
-.selected-chips {
-  flex: 1;
+.selected-chips-inline {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  max-height: 60px;
-  overflow-y: auto;
+  flex: 1;
 }
 
 .category-chip {
@@ -205,21 +227,31 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
   border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .category-chip:hover {
-  background: #bbdefb;
+  background: #ffe0b2;
+  border-color: #f57c00;
 }
 
 .chip-remove {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
+  color: #e65100;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.chip-remove:hover {
+  opacity: 1;
 }
 
 .close-btn {
@@ -231,22 +263,34 @@ watch(() => props.modelValue, (newVal) => {
   padding: 0;
   width: 30px;
   height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1;
 }
 
 .close-btn:hover {
   color: var(--text-color, #333);
 }
 
-.filter-tabs {
+.filter-and-actions {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.action-buttons-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.filter-tabs {
+  display: flex;
   flex-direction: column;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 1;
 }
 
 .tab-row {
@@ -255,27 +299,34 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tab-btn {
-  padding: 6px 12px;
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 4px;
+  padding: 10px 20px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 3px solid transparent;
   cursor: pointer;
   font-size: 14px;
-  color: var(--text-color, #666);
+  font-weight: 500;
+  color: #666;
   transition: all 0.2s;
   flex: 1;
   white-space: nowrap;
   min-width: 0;
 }
 
+.tab-btn:last-child {
+  border-right: none;
+}
+
 .tab-btn:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: rgba(25, 118, 210, 0.08);
+  color: #1976d2;
 }
 
 .tab-btn.active {
-  background: #1976d2;
-  color: white;
-  border-color: #1976d2;
+  color: #1976d2;
+  border-bottom-color: #1976d2;
+  background: rgba(25, 118, 210, 0.08);
 }
 
 .category-list {
@@ -289,35 +340,58 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item {
-  padding: 8px 12px;
-  background: var(--bg-secondary, #f5f5f5);
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 4px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
-  color: var(--text-color, #333);
+  font-size: 14px;
+  color: #333;
   text-align: left;
   transition: all 0.2s;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .category-item:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: #f8f9fa;
+  border-color: #1976d2;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
 .category-item.selected {
   background: #e3f2fd;
   border-color: #1976d2;
-  color: #1976d2;
+  border-width: 2px;
+  color: #1565c0;
   font-weight: 500;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
 }
 
-.dialog-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
+.btn-icon {
+  padding: 6px;
+  min-width: auto;
+  width: 28px;
+  height: 28px;
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #e0e0e0;
+  border-color: #999;
+}
+
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .btn {
