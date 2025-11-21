@@ -63,10 +63,13 @@
       <DeckMetadata />
     </div>
 
-    <div class="search-header">
+    <!-- グローバル検索モード用オーバーレイ -->
+    <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
+
+    <div v-if="showSearchInputBottom && !deckStore.isGlobalSearchMode" class="search-header">
       <button class="menu-button" @click.stop>⋯</button>
     </div>
-    <div class="search-input-bottom">
+    <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
       <div class="search-input-wrapper">
         <button class="search-mode-toggle" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
           <div class="toggle-content">
@@ -88,17 +91,30 @@
           </div>
         </Transition>
         <input
+          ref="searchInputRef"
           v-model="deckStore.searchQuery"
           type="text"
           class="search-input"
           placeholder="カード名を検索..."
           @keyup.enter="handleSearchInput"
+          @keydown.escape="closeGlobalSearch"
         >
         <button
           v-if="deckStore.searchQuery"
           class="clear-button"
           @click="deckStore.searchQuery = ''"
         >×</button>
+        <button class="filter-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+          </svg>
+          <span v-if="hasActiveFilters" class="filter-badge"></span>
+        </button>
+        <button v-if="hasActiveFilters" class="clear-filter-btn" @click.stop="clearFilters" title="フィルターをクリア">
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+          </svg>
+        </button>
         <button class="search-btn" @click="handleSearchInput">
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
@@ -106,30 +122,90 @@
         </button>
       </div>
     </div>
+
+    <!-- Search Filter Dialog -->
+    <SearchFilterDialog
+      :isVisible="showFilterDialog"
+      :initialFilters="searchFilters"
+      @close="showFilterDialog = false"
+      @apply="handleFilterApply"
+    />
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import { searchCards } from '../api/card-search'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 import DeckMetadata from './DeckMetadata.vue'
+import SearchFilterDialog from './SearchFilterDialog.vue'
 
 export default {
   name: 'RightArea',
   components: {
     CardList,
     CardDetail,
-    DeckMetadata
+    DeckMetadata,
+    SearchFilterDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const searchMode = ref('name')
     const showSearchModeDropdown = ref(false)
+    const searchInputRef = ref(null)
+    const showFilterDialog = ref(false)
+    const searchFilters = ref({
+      cardType: null,
+      attributes: [],
+      races: [],
+      levels: [],
+      atk: { from: undefined, to: undefined },
+      def: { from: undefined, to: undefined },
+      monsterTypes: [],
+      linkNumbers: []
+    })
+
+    // フィルターが設定されているかどうか
+    const hasActiveFilters = computed(() => {
+      const f = searchFilters.value
+      return f.cardType !== null ||
+        f.attributes.length > 0 ||
+        f.races.length > 0 ||
+        f.levels.length > 0 ||
+        f.atk.from !== undefined ||
+        f.atk.to !== undefined ||
+        f.def.from !== undefined ||
+        f.def.to !== undefined ||
+        f.monsterTypes.length > 0 ||
+        f.linkNumbers.length > 0
+    })
+
+    // 検索入力欄をデフォルト位置（下部）に表示するかどうか
+    const showSearchInputBottom = computed(() => {
+      return settingsStore.appSettings.searchInputPosition === 'default'
+    })
+
+    // グローバル検索モードを閉じる
+    const closeGlobalSearch = () => {
+      deckStore.isGlobalSearchMode = false
+    }
+
+    // グローバル検索モードになったらinputにフォーカス
+    watch(() => deckStore.isGlobalSearchMode, (isActive) => {
+      if (isActive) {
+        nextTick(() => {
+          if (searchInputRef.value) {
+            searchInputRef.value.focus()
+          }
+        })
+      }
+    })
 
     // ドロップダウンの外側クリックで閉じる
     const handleClickOutside = (event) => {
@@ -229,11 +305,41 @@ export default {
       const searchType = searchTypeMap[searchMode.value] || '1'
 
       try {
-        const results = await searchCards({
+        // 検索オプションを構築
+        const searchOptions = {
           keyword: deckStore.searchQuery.trim(),
           searchType: searchType,
           resultsPerPage: 100
-        })
+        }
+
+        // フィルターを適用
+        const f = searchFilters.value
+        if (f.cardType) {
+          searchOptions.cardType = f.cardType
+        }
+        if (f.attributes.length > 0) {
+          searchOptions.attributes = f.attributes
+        }
+        if (f.races.length > 0) {
+          searchOptions.races = f.races
+        }
+        if (f.levels.length > 0) {
+          searchOptions.levels = f.levels
+        }
+        if (f.atk.from !== undefined || f.atk.to !== undefined) {
+          searchOptions.atk = f.atk
+        }
+        if (f.def.from !== undefined || f.def.to !== undefined) {
+          searchOptions.def = f.def
+        }
+        if (f.monsterTypes.length > 0) {
+          searchOptions.monsterTypes = f.monsterTypes
+        }
+        if (f.linkNumbers.length > 0) {
+          searchOptions.linkNumbers = f.linkNumbers
+        }
+
+        const results = await searchCards(searchOptions)
         console.log('Initial search results:', results.length)
 
         const processed = processCards(results)
@@ -247,8 +353,7 @@ export default {
           setTimeout(async () => {
             try {
               const moreResults = await searchCards({
-                keyword: deckStore.searchQuery.trim(),
-                searchType: searchType,
+                ...searchOptions,
                 resultsPerPage: 2000
               })
               console.log('Extended search results:', moreResults.length)
@@ -279,6 +384,8 @@ export default {
         deckStore.hasMore = false
       } finally {
         deckStore.isLoading = false
+        // グローバル検索モードを閉じる
+        deckStore.isGlobalSearchMode = false
       }
     }
 
@@ -293,15 +400,48 @@ export default {
       deckStore.cardTab = 'info'
     }
 
+    const handleFilterApply = (filters) => {
+      searchFilters.value = filters
+      // フィルターが適用されたら検索を実行
+      if (deckStore.searchQuery.trim()) {
+        handleSearchInput()
+      }
+    }
+
+    const clearFilters = () => {
+      searchFilters.value = {
+        cardType: null,
+        attributes: [],
+        races: [],
+        levels: [],
+        atk: { from: undefined, to: undefined },
+        def: { from: undefined, to: undefined },
+        monsterTypes: [],
+        linkNumbers: []
+      }
+      // フィルタークリア後に再検索
+      if (deckStore.searchQuery.trim()) {
+        handleSearchInput()
+      }
+    }
+
     return {
       deckStore,
       searchMode,
       showSearchModeDropdown,
+      showSearchInputBottom,
+      searchInputRef,
+      showFilterDialog,
+      searchFilters,
+      hasActiveFilters,
+      closeGlobalSearch,
       handleSearchInput,
       handleSortChange,
       handleScroll,
       handleScrollToTop,
-      showCardDetail
+      showCardDetail,
+      handleFilterApply,
+      clearFilters
     }
   }
 }
@@ -741,6 +881,62 @@ export default {
   display: flex;
   flex-direction: row;
   z-index: 100;
+  transition: all 0.2s ease;
+
+  // グローバル検索モード時のスタイル
+  &.global-search-mode {
+    bottom: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, 50%);
+    width: 90%;
+    max-width: 600px;
+    z-index: 10001;
+    animation: scaleIn 0.2s ease;
+
+    .search-input-wrapper {
+      height: 56px;
+      min-height: 56px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .search-input {
+      font-size: 18px;
+    }
+  }
+}
+
+// グローバル検索モードのオーバーレイ
+.global-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 50%) scale(1);
+  }
 }
 
 .menu-button {
@@ -909,6 +1105,67 @@ export default {
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
     color: var(--text-primary, #333);
+  }
+}
+
+.filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
+  }
+
+  &.active {
+    color: var(--theme-color-start, #00d9b8);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.filter-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--theme-color-end, #b84fc9);
+  border-radius: 50%;
+}
+
+.clear-filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #999);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(255, 0, 0, 0.1);
+    color: #f44336;
+  }
+
+  svg {
+    display: block;
   }
 }
 
