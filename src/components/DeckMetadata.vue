@@ -1,22 +1,16 @@
 <template>
   <div class="deck-metadata">
-    <!-- 1行目: 公開/非公開 + デッキタイプアイコン -->
+    <!-- 1行目: 公開/非公開 + デッキタイプアイコン + Style + Tag + Cat -->
     <div class="metadata-row row-main">
-      <div class="toggle-switch">
-        <input
-          id="public-toggle"
-          v-model="localIsPublic"
-          type="checkbox"
-          class="toggle-checkbox"
-          @change="updatePublicStatus"
-        />
-        <label for="public-toggle" class="toggle-slider">
-          <span class="toggle-text">公開</span>
-          <span class="toggle-text">非公開</span>
-        </label>
-      </div>
-
-      <div class="deck-type-selector" ref="deckTypeSelector">
+      <div class="button-group">
+        <button
+          class="action-button public-button"
+          :class="{ 'is-public': localIsPublic }"
+          @click="togglePublicStatus"
+        >
+          {{ localIsPublic ? '公開' : '非公開' }}
+        </button>
+        <div class="deck-type-selector" ref="deckTypeSelector">
         <button 
           class="deck-type-button"
           @click="toggleDeckTypeDropdown"
@@ -100,30 +94,23 @@
             class="deck-style-dropdown"
             :class="{ 'align-right': deckStyleDropdownAlignRight }"
           >
-            <div class="deck-style-option" @click="selectDeckStyle('0')">Chara</div>
-            <div class="deck-style-option" @click="selectDeckStyle('1')">Tourn</div>
-            <div class="deck-style-option" @click="selectDeckStyle('2')">Concep</div>
+            <div class="deck-style-option" @click="selectDeckStyle('0')">Character</div>
+            <div class="deck-style-option" @click="selectDeckStyle('1')">Tournament</div>
+            <div class="deck-style-option" @click="selectDeckStyle('2')">Concept</div>
           </div>
         </Transition>
       </div>
-    </div>
-
-    <!-- 2行目: Tagボタン（左半分）+ Categoryボタン（右半分の左寄せ） -->
-    <div class="metadata-row">
-      <div class="left-half">
-        <button 
-          class="action-button tag-button" 
+        <button
+          class="action-button tag-button"
           @click="showTagDialog = true"
         >Tag</button>
-      </div>
-      <div class="right-half">
-        <button 
-          class="action-button category-button" 
+        <button
+          class="action-button category-button"
           @click="showCategoryDialog = true"
-        >Category</button>
-      </div>
+        >Cat</button>
     </div>
-    
+    </div>
+
     <!-- ダイアログコンポーネント -->
     <TagDialog
       :model-value="localTags"
@@ -259,7 +246,8 @@ watch(() => deckStore.deckInfo, (newDeckInfo) => {
 }, { deep: true });
 
 // 更新関数
-function updatePublicStatus() {
+function togglePublicStatus() {
+  localIsPublic.value = !localIsPublic.value;
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
@@ -407,21 +395,12 @@ function removeTag(tagId: string) {
 .metadata-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
 }
 
-.left-half,
-.right-half {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
-
 .row-main {
-  height: 28px;
+  height: 24px;
   align-items: center;
 }
 
@@ -432,76 +411,19 @@ function removeTag(tagId: string) {
   margin-top: 0px;
 }
 
-// 公開/非公開スイッチ - テキストを左右に配置
-.toggle-switch {
-  position: relative;
-  display: inline-block;
-}
-
-.toggle-checkbox {
-  display: none;
-}
-
-.toggle-slider {
+.button-group {
   display: flex;
+  flex: 1;
   align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  width: 80px;
-  height: 28px;
-  border: 1px solid #ddd;
-  border-radius: 14px;
-  background: #e0e0e0;
-  transition: all 0.3s;
-  user-select: none;
-  position: relative;
-  padding: 0 8px;
-  
-  .toggle-text {
-    font-size: 11px;
-    font-weight: 600;
-    z-index: 1;
-    transition: color 0.3s;
-    
-    &:first-child {
-      color: white;
-    }
-    
-    &:last-child {
-      color: #666;
-    }
-  }
-  
-  &:before {
-    content: "";
-    position: absolute;
-    left: 2px;
-    top: 2px;
-    width: 36px;
-    height: 24px;
-    background-color: white;
-    border-radius: 12px;
-    transition: 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
+  gap: 4px;
 }
 
-.toggle-checkbox:checked + .toggle-slider {
-  background: #4CAF50;
-  
-  .toggle-text {
-    &:first-child {
-      color: #666;
-    }
-    
-    &:last-child {
-      color: white;
-    }
-  }
-  
-  &:before {
-    transform: translateX(40px);
-  }
+.button-group > *,
+.button-group > .deck-type-selector,
+.button-group > .deck-style-selector {
+  flex: 1;
+  display: flex;
+  justify-content: center;
 }
 
 .deck-type-selector,
@@ -512,40 +434,40 @@ function removeTag(tagId: string) {
 .deck-type-button,
 .deck-style-button,
 .action-button {
-  height: 28px;
-  padding: 0 10px;
+  height: 24px;
+  padding: 0 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
   color: #333;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     border-color: #999;
     background: #f9f9f9;
   }
-  
+
   &:active {
     background: #f0f0f0;
   }
 }
 
 .deck-type-button {
-  min-width: 60px;
+  min-width: 50px;
   padding: 2px 4px;
   border: none;
   background: transparent;
-  
+
   &:hover {
     background: transparent;
     opacity: 0.8;
   }
-  
+
   &:active {
     background: transparent;
     opacity: 0.6;
@@ -553,12 +475,45 @@ function removeTag(tagId: string) {
 }
 
 .deck-style-button {
-  min-width: 60px;
+  min-width: 50px;
 }
 
 .action-button {
-  min-width: 70px;
+  min-width: 36px;
   flex-shrink: 0;
+}
+
+.public-button {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+  border-radius: 12px;
+  font-weight: 500;
+  min-width: 44px;
+
+  &:hover {
+    background: #ffcdd2;
+    border-color: #e53935;
+  }
+
+  &:active {
+    background: #ef9a9a;
+  }
+
+  &.is-public {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #66bb6a;
+
+    &:hover {
+      background: #c8e6c9;
+      border-color: #4caf50;
+    }
+
+    &:active {
+      background: #a5d6a7;
+    }
+  }
 }
 
 .tag-button {
@@ -613,20 +568,20 @@ function removeTag(tagId: string) {
 }
 
 .deck-type-icon {
-  height: 24px;
+  height: 20px;
   width: auto;
   display: block;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .deck-type-placeholder {
-  font-size: 11px;
+  font-size: 10px;
   color: #999;
-  padding: 0 6px;
+  padding: 0 4px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 3px;
   background: white;
-  height: 24px;
+  height: 20px;
   display: flex;
   align-items: center;
 }

@@ -5,19 +5,19 @@
       <div class="dialog-header">
         <div class="header-row">
           <h3>Category</h3>
+          <!-- 選択済みチップ（タイトルの右に配置） -->
+          <div class="selected-chips-row">
+            <span
+              v-for="id in selectedCategories"
+              :key="id"
+              class="category-chip"
+              @click="toggleCategory(id)"
+            >
+              {{ getCategoryLabel(id) }}
+              <span class="chip-remove">×</span>
+            </span>
+          </div>
           <button class="close-btn" @click="close" title="Close">×</button>
-        </div>
-        <!-- 選択済みチップ -->
-        <div class="selected-chips-row">
-          <span 
-            v-for="id in selectedCategories" 
-            :key="id" 
-            class="category-chip"
-            @click="toggleCategory(id)"
-          >
-            {{ getCategoryLabel(id) }}
-            <span class="chip-remove">×</span>
-          </span>
         </div>
       </div>
 
@@ -36,35 +36,35 @@
           </button>
         </div>
         <div class="filter-tabs">
-        <div class="tab-row">
-          <button 
-            class="tab-btn" 
-            :class="{ active: selectedGroup === 'all' }"
-            @click="selectedGroup = 'all'"
-          >
-            all
-          </button>
-          <button 
-            v-for="group in firstRowGroups" 
-            :key="group" 
-            class="tab-btn" 
-            :class="{ active: selectedGroup === group }"
-            @click="selectedGroup = group"
-          >
-            {{ group.replace('ruby_', '') }}
-          </button>
-        </div>
-        <div class="tab-row">
-          <button 
-            v-for="group in secondRowGroups" 
-            :key="group" 
-            class="tab-btn" 
-            :class="{ active: selectedGroup === group }"
-            @click="selectedGroup = group"
-          >
-            {{ group.replace('ruby_', '') }}
-          </button>
-        </div>
+          <div class="tab-row">
+            <button
+              class="tab-btn"
+              :class="{ active: selectedGroup === 'all' }"
+              @click="selectedGroup = 'all'"
+            >
+              all
+            </button>
+            <button
+              v-for="group in firstRowGroups"
+              :key="group"
+              class="tab-btn"
+              :class="{ active: selectedGroup === group }"
+              @click="selectedGroup = group"
+            >
+              {{ group.replace('ruby_', '') }}
+            </button>
+          </div>
+          <div class="tab-row">
+            <button
+              v-for="group in secondRowGroups"
+              :key="group"
+              class="tab-btn"
+              :class="{ active: selectedGroup === group }"
+              @click="selectedGroup = group"
+            >
+              {{ group.replace('ruby_', '') }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -194,17 +194,14 @@ watch(() => props.modelValue, (newVal) => {
   padding: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
 
 .header-row {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   width: 100%;
 }
 
@@ -212,6 +209,7 @@ watch(() => props.modelValue, (newVal) => {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
+  flex-shrink: 0;
 }
 
 .selected-chips-row {
@@ -219,9 +217,10 @@ watch(() => props.modelValue, (newVal) => {
   flex-wrap: wrap;
   gap: 6px;
   min-height: 28px;
-  height: 28px;
   align-items: center;
   overflow-y: auto;
+  flex: 1;
+  max-height: 56px;
 }
 
 .category-chip {
@@ -266,6 +265,7 @@ watch(() => props.modelValue, (newVal) => {
   width: 30px;
   height: 30px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .close-btn:hover {
@@ -291,7 +291,7 @@ watch(() => props.modelValue, (newVal) => {
 .filter-tabs {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   flex: 1;
 }
 
@@ -366,10 +366,9 @@ watch(() => props.modelValue, (newVal) => {
 .category-item.selected {
   background: #e3f2fd;
   border-color: #1976d2;
-  border-width: 2px;
   color: #1565c0;
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px #1976d2;
 }
 
 .btn-icon {

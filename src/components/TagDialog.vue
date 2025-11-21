@@ -5,20 +5,20 @@
       <div class="dialog-header">
         <div class="header-row">
           <h3>Tag</h3>
+          <!-- 選択済みチップ（タイトルの右に配置） -->
+          <div class="selected-chips-row">
+            <span
+              v-for="id in selectedTags"
+              :key="id"
+              class="tag-chip"
+              :data-type="getTagType(id)"
+              @click="toggleTag(id)"
+            >
+              {{ getTagLabel(id) }}
+              <span class="chip-remove">×</span>
+            </span>
+          </div>
           <button class="close-btn" @click="close" title="Close">×</button>
-        </div>
-        <!-- 選択済みチップ -->
-        <div class="selected-chips-row">
-          <span 
-            v-for="id in selectedTags" 
-            :key="id" 
-            class="tag-chip"
-            :data-type="getTagType(id)"
-            @click="toggleTag(id)"
-          >
-            {{ getTagLabel(id) }}
-            <span class="chip-remove">×</span>
-          </span>
         </div>
       </div>
 
@@ -37,41 +37,41 @@
           </button>
         </div>
         <div class="filter-tabs">
-        <button 
-          class="tab-btn" 
-          :class="{ active: selectedGroup === 'all' }"
-          @click="selectedGroup = 'all'"
-        >
-          all
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: selectedGroup === 'others' }"
-          @click="selectedGroup = 'others'"
-        >
-          others
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: selectedGroup === 'attr' }"
-          @click="selectedGroup = 'attr'"
-        >
-          attr
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: selectedGroup === 'race' }"
-          @click="selectedGroup = 'race'"
-        >
-          race
-        </button>
-        <button 
-          class="tab-btn" 
-          :class="{ active: selectedGroup === 'type' }"
-          @click="selectedGroup = 'type'"
-        >
-          type
-        </button>
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'all' }"
+            @click="selectedGroup = 'all'"
+          >
+            all
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'others' }"
+            @click="selectedGroup = 'others'"
+          >
+            others
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'attr' }"
+            @click="selectedGroup = 'attr'"
+          >
+            attr
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'race' }"
+            @click="selectedGroup = 'race'"
+          >
+            race
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'type' }"
+            @click="selectedGroup = 'type'"
+          >
+            type
+          </button>
         </div>
       </div>
 
@@ -239,17 +239,14 @@ watch(() => props.modelValue, (newVal) => {
   padding: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
   flex-shrink: 0;
   box-sizing: border-box;
 }
 
 .header-row {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 12px;
   width: 100%;
 }
 
@@ -257,6 +254,7 @@ watch(() => props.modelValue, (newVal) => {
   margin: 0;
   font-size: 18px;
   color: var(--text-color, #333);
+  flex-shrink: 0;
 }
 
 .selected-chips-row {
@@ -264,9 +262,10 @@ watch(() => props.modelValue, (newVal) => {
   flex-wrap: wrap;
   gap: 6px;
   min-height: 28px;
-  height: 28px;
   align-items: center;
   overflow-y: auto;
+  flex: 1;
+  max-height: 56px;
 }
 
 .tag-chip {
@@ -370,6 +369,7 @@ watch(() => props.modelValue, (newVal) => {
   width: 30px;
   height: 30px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .close-btn:hover {
@@ -462,6 +462,12 @@ watch(() => props.modelValue, (newVal) => {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   align-content: start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.tag-list > .tag-item {
+  width: 100%;
 }
 
 .tag-item {
@@ -474,12 +480,13 @@ watch(() => props.modelValue, (newVal) => {
   color: #333;
   text-align: left;
   transition: all 0.2s;
-  min-height: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 .tag-label {
@@ -493,30 +500,51 @@ watch(() => props.modelValue, (newVal) => {
   object-fit: contain;
 }
 
-.tag-item:not([data-type]):hover,
-.tag-item[data-group="others"]:hover,
-.tag-item[data-group="attr"]:hover,
-.tag-item[data-group="race"]:hover {
+/* others グループ: 長方形（角丸なし） */
+.tag-item[data-group="others"] {
+  border-radius: 2px;
+}
+
+/* attr グループ: 平行四辺形 */
+.tag-item[data-group="attr"] {
+  transform: skewX(-8deg);
+  border-radius: 4px;
+}
+
+.tag-item[data-group="attr"] .tag-label,
+.tag-item[data-group="attr"] .attr-icon {
+  transform: skewX(8deg);
+}
+
+/* race グループ: 角丸大きめ（丸みのある長方形） */
+.tag-item[data-group="race"] {
+  border-radius: 12px;
+}
+
+/* type グループ: 端だけ丸（pill形状） */
+.tag-item[data-group="type"] {
+  border-radius: 21px;
+}
+
+/* 共通のホバー・選択スタイル（個別スタイルがないもの） */
+.tag-item:hover {
   background: #f8f9fa;
   border-color: #1976d2;
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
-.tag-item:not([data-type]).selected,
-.tag-item[data-group="others"].selected,
-.tag-item[data-group="attr"].selected,
-.tag-item[data-group="race"].selected {
+.tag-item.selected {
   background: #e3f2fd;
   border-color: #1976d2;
-  border-width: 2px;
   color: #1565c0;
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2);
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px #1976d2;
 }
 
 .tag-item[data-type="fusion"] {
   background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   border-color: #ba68c8;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="fusion"]:hover {
@@ -530,11 +558,11 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #9c27b0;
   color: #4a148c;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3), inset 0 0 0 1px #9c27b0;
 }
 
 .tag-item[data-type="synchro"] {
-  background: 
+  background:
     repeating-linear-gradient(
       135deg,
       transparent,
@@ -544,6 +572,7 @@ watch(() => props.modelValue, (newVal) => {
     ),
     linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
   border-color: #bdbdbd;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="synchro"]:hover {
@@ -561,7 +590,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="synchro"].selected {
-  background: 
+  background:
     repeating-linear-gradient(
       135deg,
       transparent,
@@ -573,12 +602,13 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #757575;
   color: #424242;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3), inset 0 0 0 1px #757575;
 }
 
 .tag-item[data-type="xyz"] {
   background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   border-color: #ba68c8;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="xyz"]:hover {
@@ -592,12 +622,13 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #9c27b0;
   color: #4a148c;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3), inset 0 0 0 1px #9c27b0;
 }
 
 .tag-item[data-type="link"] {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   border-color: #64b5f6;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="link"]:hover {
@@ -611,12 +642,13 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #1976d2;
   color: #0d47a1;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px #1976d2;
 }
 
 .tag-item[data-type="ritual"] {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   border-color: #64b5f6;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="ritual"]:hover {
@@ -630,17 +662,18 @@ watch(() => props.modelValue, (newVal) => {
   border-color: #1976d2;
   color: #0d47a1;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px #1976d2;
 }
 
 .tag-item[data-type="pendulum"] {
-  background: linear-gradient(180deg, 
-    #fff3e0 0%, 
-    #fff3e0 30%, 
-    #b2dfdb 70%, 
+  background: linear-gradient(180deg,
+    #fff3e0 0%,
+    #fff3e0 30%,
+    #b2dfdb 70%,
     #b2dfdb 100%
   );
   border-color: #ffb74d;
+  border-radius: 21px;
 }
 
 .tag-item[data-type="pendulum"]:hover {
@@ -655,16 +688,16 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="pendulum"].selected {
-  background: linear-gradient(180deg, 
-    #ffcc80 0%, 
-    #ffcc80 30%, 
+  background: linear-gradient(180deg,
+    #ffcc80 0%,
+    #ffcc80 30%,
     #4db6ac 70%,
     #4db6ac 100%
   );
   border-color: #ff9800;
   color: #4a148c;
   font-weight: 500;
-  border-width: 2px;
+  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3), inset 0 0 0 1px #ff9800;
 }
 
 .btn {
