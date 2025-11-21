@@ -214,11 +214,11 @@ export default {
 
       // 種族（短縮表示）
       const raceLabels = {
-        dragon: '竜', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
-        zombie: '不', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
-        fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
-        pyro: '炎', thunder: '雷', psychic: 'P', wyrm: '幻', cyberse: 'C', illusion: '幻想',
-        divine: '神', creatorgod: '創'
+        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械', fiend: '悪魔', fairy: '天使',
+        zombie: '不死', beast: '獣', beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
+        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜', windbeast: '鳥獣', rock: '岩石',
+        pyro: '炎', thunder: '雷', psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
+        divine: '神獣', creatorgod: '創造'
       }
       f.races.forEach(race => {
         icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 2) })
@@ -312,6 +312,26 @@ export default {
           return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
         case 'name_desc':
           return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+        case 'atk_desc':
+          return sorted.sort((a, b) => (b.atk ?? -1) - (a.atk ?? -1))
+        case 'atk_asc':
+          return sorted.sort((a, b) => (a.atk ?? -1) - (b.atk ?? -1))
+        case 'def_desc':
+          return sorted.sort((a, b) => (b.def ?? -1) - (a.def ?? -1))
+        case 'def_asc':
+          return sorted.sort((a, b) => (a.def ?? -1) - (b.def ?? -1))
+        case 'level_desc':
+          return sorted.sort((a, b) => (b.levelValue || 0) - (a.levelValue || 0))
+        case 'level_asc':
+          return sorted.sort((a, b) => (a.levelValue || 0) - (b.levelValue || 0))
+        case 'attribute_asc':
+          return sorted.sort((a, b) => (a.attribute || '').localeCompare(b.attribute || ''))
+        case 'attribute_desc':
+          return sorted.sort((a, b) => (b.attribute || '').localeCompare(a.attribute || ''))
+        case 'race_asc':
+          return sorted.sort((a, b) => (a.race || '').localeCompare(b.race || ''))
+        case 'race_desc':
+          return sorted.sort((a, b) => (b.race || '').localeCompare(a.race || ''))
         default:
           return sorted
       }
@@ -1157,37 +1177,44 @@ export default {
 .filter-icons {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   margin-right: 4px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .filter-icon-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 4px;
-  font-size: 9px;
-  font-weight: 600;
-  border-radius: 3px;
-  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-  color: white;
+  padding: 1px 3px;
+  font-size: 8px;
+  font-weight: 500;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
-  max-width: 28px;
+  max-width: 24px;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .filter-more {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
-  font-size: 10px;
-  font-weight: bold;
-  border-radius: 50%;
-  background: var(--text-secondary, #666);
-  color: white;
+  width: 12px;
+  height: 12px;
+  font-size: 8px;
+  font-weight: 600;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
+  flex-shrink: 0;
 }
 
 .menu-btn {
@@ -1222,18 +1249,18 @@ export default {
 
 .filter-count-badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  font-size: 9px;
+  top: -2px;
+  right: -4px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  font-size: 8px;
   font-weight: 600;
-  line-height: 14px;
+  line-height: 12px;
   text-align: center;
-  background: var(--theme-color-end, #b84fc9);
+  background: var(--text-secondary, #666);
   color: white;
-  border-radius: 7px;
+  border-radius: 6px;
 }
 
 .search-btn {
