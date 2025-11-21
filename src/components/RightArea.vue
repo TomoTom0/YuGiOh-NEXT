@@ -101,9 +101,19 @@
           class="clear-button"
           @click="deckStore.searchQuery = ''"
         >×</button>
+        <!-- フィルター条件表示 -->
+        <div v-if="hasActiveFilters" class="filter-icons">
+          <span
+            v-for="(icon, index) in displayFilterIcons"
+            :key="index"
+            class="filter-icon-item"
+            :class="icon.type"
+          >{{ icon.label }}</span>
+          <span v-if="filterCount > 3" class="filter-more">+</span>
+        </div>
         <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
           <span class="menu-icon">⋯</span>
-          <span v-if="hasActiveFilters" class="filter-badge"></span>
+          <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
         </button>
         <button class="search-btn" @click="handleSearchInput">
           <svg width="18" height="18" viewBox="0 0 24 24">
@@ -174,6 +184,81 @@ export default {
         f.def.to !== undefined ||
         f.monsterTypes.length > 0 ||
         f.linkNumbers.length > 0
+    })
+
+    // フィルター条件の総数
+    const filterCount = computed(() => {
+      const f = searchFilters.value
+      let count = 0
+      if (f.cardType) count++
+      count += f.attributes.length
+      count += f.races.length
+      count += f.levels.length
+      if (f.atk.from !== undefined || f.atk.to !== undefined) count++
+      if (f.def.from !== undefined || f.def.to !== undefined) count++
+      count += f.monsterTypes.length
+      count += f.linkNumbers.length
+      return count
+    })
+
+    // 表示用フィルターアイコン（最大3個）
+    const displayFilterIcons = computed(() => {
+      const icons = []
+      const f = searchFilters.value
+
+      // 属性
+      const attrLabels = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
+      f.attributes.forEach(attr => {
+        icons.push({ type: 'attr', label: attrLabels[attr] || attr })
+      })
+
+      // 種族（短縮表示）
+      const raceLabels = {
+        dragon: '竜', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
+        zombie: '不', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
+        fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
+        pyro: '炎', thunder: '雷', psychic: 'P', wyrm: '幻', cyberse: 'C', illusion: '幻想',
+        divine: '神', creatorgod: '創'
+      }
+      f.races.forEach(race => {
+        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 2) })
+      })
+
+      // レベル
+      f.levels.forEach(level => {
+        icons.push({ type: 'level', label: `★${level}` })
+      })
+
+      // カードタイプ
+      if (f.cardType) {
+        const typeLabels = { monster: 'M', spell: '魔', trap: '罠' }
+        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
+      }
+
+      // ATK/DEF
+      if (f.atk.from !== undefined || f.atk.to !== undefined) {
+        icons.push({ type: 'atk', label: 'ATK' })
+      }
+      if (f.def.from !== undefined || f.def.to !== undefined) {
+        icons.push({ type: 'def', label: 'DEF' })
+      }
+
+      // モンスタータイプ
+      const monsterTypeLabels = {
+        normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
+        pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
+        union: 'U', gemini: 'D', special: '特'
+      }
+      f.monsterTypes.forEach(type => {
+        icons.push({ type: 'monsterType', label: monsterTypeLabels[type] || type.slice(0, 1) })
+      })
+
+      // リンク数
+      f.linkNumbers.forEach(num => {
+        icons.push({ type: 'link', label: `L${num}` })
+      })
+
+      return icons.slice(0, 3)
     })
 
     // 検索入力欄をデフォルト位置（下部）に表示するかどうか
@@ -424,6 +509,8 @@ export default {
       showFilterDialog,
       searchFilters,
       hasActiveFilters,
+      filterCount,
+      displayFilterIcons,
       closeGlobalSearch,
       handleSearchInput,
       handleSortChange,
@@ -1067,6 +1154,42 @@ export default {
   }
 }
 
+.filter-icons {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 4px;
+}
+
+.filter-icon-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 4px;
+  font-size: 9px;
+  font-weight: 600;
+  border-radius: 3px;
+  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+  color: white;
+  white-space: nowrap;
+  max-width: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  background: var(--text-secondary, #666);
+  color: white;
+}
+
 .menu-btn {
   background: transparent;
   border: none;
@@ -1097,14 +1220,20 @@ export default {
   }
 }
 
-.filter-badge {
+.filter-count-badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
+  top: 0;
+  right: 0;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
   background: var(--theme-color-end, #b84fc9);
-  border-radius: 50%;
+  color: white;
+  border-radius: 7px;
 }
 
 .search-btn {
