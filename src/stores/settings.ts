@@ -6,6 +6,7 @@ import type {
   Theme,
   Language,
   MiddleDecksLayout,
+  SearchInputPosition,
   FeatureSettings,
   StorageSettings
 } from '../types/settings';
@@ -192,6 +193,14 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 検索入力欄の位置を変更
+   */
+  function setSearchInputPosition(position: SearchInputPosition): void {
+    appSettings.value.searchInputPosition = position;
+    saveSettings();
+  }
+
+  /**
    * 機能のON/OFF切り替え
    */
   function toggleFeature(featureId: string, enabled: boolean): void {
@@ -318,6 +327,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setSearchInputPosition,
     toggleFeature,
     resetSettings,
     applyTheme,

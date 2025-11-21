@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
@@ -101,6 +101,26 @@ export default {
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
+
+    // グローバルキーボードイベント
+    const handleGlobalKeydown = (event) => {
+      // 入力要素にフォーカスがある場合は無視
+      const activeElement = document.activeElement
+      const isInputFocused = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.contentEditable === 'true'
+      )
+
+      if (isInputFocused) return
+
+      // '/' キーまたは Ctrl+J でグローバル検索モードを有効化
+      if (event.key === '/' || (event.ctrlKey && event.key === 'j')) {
+        event.preventDefault()
+        // グローバル検索モードを有効化（タブは切り替えない）
+        deckStore.isGlobalSearchMode = true
+      }
+    }
     
     // 画面幅変更時の処理
     const handleResize = () => {
@@ -140,11 +160,13 @@ export default {
     onMounted(async () => {
       await deckStore.initializeOnPageLoad()
       window.addEventListener('resize', handleResize)
+      window.addEventListener('keydown', handleGlobalKeydown)
     })
 
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('hashchange', checkDnoChange)
+      window.removeEventListener('keydown', handleGlobalKeydown)
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {

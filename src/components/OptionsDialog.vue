@@ -104,6 +104,35 @@
             </label>
           </div>
         </div>
+
+        <!-- 検索入力欄の位置 -->
+        <div class="setting-section">
+          <h3 class="setting-title">検索入力欄の位置</h3>
+          <div class="setting-item">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="searchInputPosition"
+                value="default"
+                :checked="settingsStore.appSettings.searchInputPosition === 'default'"
+                @change="settingsStore.setSearchInputPosition('default')"
+              />
+              <span>デフォルト（画面左下）</span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="searchInputPosition"
+                value="section-title"
+                :checked="settingsStore.appSettings.searchInputPosition === 'section-title'"
+                @change="settingsStore.setSearchInputPosition('section-title')"
+              />
+              <span>Main Sectionタイトル内</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="dialog-footer">
