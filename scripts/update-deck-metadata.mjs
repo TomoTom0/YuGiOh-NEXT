@@ -171,7 +171,7 @@ function getKanaGroup(char) {
   if (isHiragana(char)) {
     katakana = hiraganaToKatakana(char);
   }
-  
+
   const dakutenMap = {
     'ガ': 'カ', 'ギ': 'キ', 'グ': 'ク', 'ゲ': 'ケ', 'ゴ': 'コ',
     'ザ': 'サ', 'ジ': 'シ', 'ズ': 'ス', 'ゼ': 'セ', 'ゾ': 'ソ',
@@ -180,24 +180,11 @@ function getKanaGroup(char) {
     'パ': 'ハ', 'ピ': 'ヒ', 'プ': 'フ', 'ペ': 'ヘ', 'ポ': 'ホ',
     'ヴ': 'ヴ'
   };
-  
+
   const seion = dakutenMap[katakana] || katakana;
-  
-  const gyouMap = {
-    'ア': 'ア', 'イ': 'ア', 'ウ': 'ア', 'エ': 'ア', 'オ': 'ア',
-    'カ': 'カ', 'キ': 'カ', 'ク': 'カ', 'ケ': 'カ', 'コ': 'カ',
-    'サ': 'サ', 'シ': 'サ', 'ス': 'サ', 'セ': 'サ', 'ソ': 'サ',
-    'タ': 'タ', 'チ': 'タ', 'ツ': 'タ', 'テ': 'タ', 'ト': 'タ',
-    'ナ': 'ナ', 'ニ': 'ナ', 'ヌ': 'ナ', 'ネ': 'ナ', 'ノ': 'ナ',
-    'ハ': 'ハ', 'ヒ': 'ハ', 'フ': 'ハ', 'ヘ': 'ハ', 'ホ': 'ハ',
-    'マ': 'マ', 'ミ': 'マ', 'ム': 'マ', 'メ': 'マ', 'モ': 'マ',
-    'ヤ': 'ヤ', 'ユ': 'ヤ', 'ヨ': 'ヤ',
-    'ラ': 'ラ', 'リ': 'ラ', 'ル': 'ラ', 'レ': 'ラ', 'ロ': 'ラ',
-    'ワ': 'ワ', 'ヲ': 'ワ', 'ン': 'ワ',
-    'ヴ': 'ヴ'
-  };
-  
-  return `ruby_${gyouMap[seion] || seion}`;
+
+  // 個々の文字をそのまま返す
+  return `ruby_${seion}`;
 }
 
 function determineGroupForNonKana(index, categories) {
@@ -243,23 +230,35 @@ function determineGroupForNonKana(index, categories) {
 }
 
 function getGroupsBetween(start, end) {
-  const KANA_GROUPS = ['ア', 'カ', 'サ', 'タ', 'ナ', 'ハ', 'マ', 'ヤ', 'ラ', 'ワ', 'ヴ'];
-  
+  const KANA_LIST = [
+    'ア', 'イ', 'ウ', 'エ', 'オ',
+    'カ', 'キ', 'ク', 'ケ', 'コ',
+    'サ', 'シ', 'ス', 'セ', 'ソ',
+    'タ', 'チ', 'ツ', 'テ', 'ト',
+    'ナ', 'ニ', 'ヌ', 'ネ', 'ノ',
+    'ハ', 'ヒ', 'フ', 'ヘ', 'ホ',
+    'マ', 'ミ', 'ム', 'メ', 'モ',
+    'ヤ', 'ユ', 'ヨ',
+    'ラ', 'リ', 'ル', 'レ', 'ロ',
+    'ワ', 'ヲ', 'ン',
+    'ヴ'
+  ];
+
   const startKana = start.replace('ruby_', '');
   const endKana = end.replace('ruby_', '');
-  
-  const startIndex = KANA_GROUPS.indexOf(startKana);
-  const endIndex = KANA_GROUPS.indexOf(endKana);
-  
+
+  const startIndex = KANA_LIST.indexOf(startKana);
+  const endIndex = KANA_LIST.indexOf(endKana);
+
   if (startIndex === -1 || endIndex === -1) {
     return [start, end];
   }
-  
+
   const result = [];
   for (let i = startIndex; i <= endIndex; i++) {
-    result.push(`ruby_${KANA_GROUPS[i]}`);
+    result.push(`ruby_${KANA_LIST[i]}`);
   }
-  
+
   return result;
 }
 

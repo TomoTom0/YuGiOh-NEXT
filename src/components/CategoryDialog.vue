@@ -110,14 +110,30 @@ const selectedGroup = ref<string>('all');
 const firstRowGroups = ['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ', 'ruby_ナ'];
 const secondRowGroups = ['ruby_ハ', 'ruby_マ', 'ruby_ヤ', 'ruby_ラ', 'ruby_ワ', 'ruby_ヴ'];
 
+// 行から五十音文字へのマッピング
+const rowToCharsMap: Record<string, string[]> = {
+  'ruby_ア': ['ruby_ア', 'ruby_イ', 'ruby_ウ', 'ruby_エ', 'ruby_オ'],
+  'ruby_カ': ['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ'],
+  'ruby_サ': ['ruby_サ', 'ruby_シ', 'ruby_ス', 'ruby_セ', 'ruby_ソ'],
+  'ruby_タ': ['ruby_タ', 'ruby_チ', 'ruby_ツ', 'ruby_テ', 'ruby_ト'],
+  'ruby_ナ': ['ruby_ナ', 'ruby_ニ', 'ruby_ヌ', 'ruby_ネ', 'ruby_ノ'],
+  'ruby_ハ': ['ruby_ハ', 'ruby_ヒ', 'ruby_フ', 'ruby_ヘ', 'ruby_ホ'],
+  'ruby_マ': ['ruby_マ', 'ruby_ミ', 'ruby_ム', 'ruby_メ', 'ruby_モ'],
+  'ruby_ヤ': ['ruby_ヤ', 'ruby_ユ', 'ruby_ヨ'],
+  'ruby_ラ': ['ruby_ラ', 'ruby_リ', 'ruby_ル', 'ruby_レ', 'ruby_ロ'],
+  'ruby_ワ': ['ruby_ワ', 'ruby_ヲ', 'ruby_ン'],
+  'ruby_ヴ': ['ruby_ヴ']
+};
+
 // フィルタされたカテゴリ
 const filteredCategories = computed(() => {
   if (selectedGroup.value === 'all') {
     return props.categories;
   }
-  // 選択されたグループを含むカテゴリを表示
-  return props.categories.filter(cat => 
-    cat.group.includes(selectedGroup.value)
+  // 選択された行に属する全ての文字にマッチ
+  const chars = rowToCharsMap[selectedGroup.value] || [selectedGroup.value];
+  return props.categories.filter(cat =>
+    cat.group.some(g => chars.includes(g))
   );
 });
 
