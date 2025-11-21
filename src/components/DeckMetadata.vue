@@ -135,7 +135,7 @@
           v-for="tagId in localTags"
           :key="'tag-' + tagId"
           class="chip tag-chip"
-          :data-type="getMonsterTypeById(tagId)"
+          :data-type="getTagType(tagId)"
         >
           {{ tags[tagId] }}
           <button class="chip-remove" @click="removeTag(tagId)">×</button>
@@ -174,7 +174,7 @@ import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 import type { CategoryEntry } from '../types/dialog';
-import { getMonsterTypeById } from '../constants/tag-master-data';
+import { getMonsterTypeFromLabel } from '../constants/tag-master-data';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
 
@@ -327,7 +327,11 @@ function getCategoryLabel(catId: string): string {
   return category?.label || catId;
 }
 
-// getTagType は getMonsterTypeById に置き換え（tag-master-data.ts からインポート）
+function getTagType(tagId: string): string {
+  const tagLabel = tags.value[tagId];
+  if (!tagLabel) return '';
+  return getMonsterTypeFromLabel(tagLabel);
+}
 
 // ダイアログからの更新（循環参照を防ぐため直接更新）
 function updateCategories(newCategories: string[]) {
