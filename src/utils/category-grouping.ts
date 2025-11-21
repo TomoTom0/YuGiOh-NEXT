@@ -8,12 +8,20 @@
 import type { CategoryEntry } from '../types/dialog';
 
 /**
- * 50音順のグループリスト
+ * 50音順のリスト（個々の文字）
  */
-const KANA_GROUPS = [
-  'ア', 'カ', 'サ', 'タ', 'ナ',
-  'ハ', 'マ', 'ヤ', 'ラ', 'ワ',
-  'ヴ'  // 特殊: ヴ行
+const KANA_LIST = [
+  'ア', 'イ', 'ウ', 'エ', 'オ',
+  'カ', 'キ', 'ク', 'ケ', 'コ',
+  'サ', 'シ', 'ス', 'セ', 'ソ',
+  'タ', 'チ', 'ツ', 'テ', 'ト',
+  'ナ', 'ニ', 'ヌ', 'ネ', 'ノ',
+  'ハ', 'ヒ', 'フ', 'ヘ', 'ホ',
+  'マ', 'ミ', 'ム', 'メ', 'モ',
+  'ヤ', 'ユ', 'ヨ',
+  'ラ', 'リ', 'ル', 'レ', 'ロ',
+  'ワ', 'ヲ', 'ン',
+  'ヴ'  // 特殊
 ] as const;
 
 /**
@@ -45,7 +53,7 @@ function hiraganaToKatakana(char: string): string {
 
 /**
  * カタカナから50音グループを取得
- * 濁点・半濁点は清音に変換して判定
+ * 濁点・半濁点は清音に変換して、個々の文字を返す
  */
 function getKanaGroup(char: string): string {
   // カタカナに統一
@@ -53,7 +61,7 @@ function getKanaGroup(char: string): string {
   if (isHiragana(char)) {
     katakana = hiraganaToKatakana(char);
   }
-  
+
   // 濁点・半濁点を清音に変換
   const dakutenMap: Record<string, string> = {
     'ガ': 'カ', 'ギ': 'キ', 'グ': 'ク', 'ゲ': 'ケ', 'ゴ': 'コ',
@@ -63,47 +71,33 @@ function getKanaGroup(char: string): string {
     'パ': 'ハ', 'ピ': 'ヒ', 'プ': 'フ', 'ペ': 'ヘ', 'ポ': 'ホ',
     'ヴ': 'ヴ'  // ヴは独立
   };
-  
+
   const seion = dakutenMap[katakana] || katakana;
-  
-  // 行頭文字を判定
-  const gyouMap: Record<string, string> = {
-    'ア': 'ア', 'イ': 'ア', 'ウ': 'ア', 'エ': 'ア', 'オ': 'ア',
-    'カ': 'カ', 'キ': 'カ', 'ク': 'カ', 'ケ': 'カ', 'コ': 'カ',
-    'サ': 'サ', 'シ': 'サ', 'ス': 'サ', 'セ': 'サ', 'ソ': 'サ',
-    'タ': 'タ', 'チ': 'タ', 'ツ': 'タ', 'テ': 'タ', 'ト': 'タ',
-    'ナ': 'ナ', 'ニ': 'ナ', 'ヌ': 'ナ', 'ネ': 'ナ', 'ノ': 'ナ',
-    'ハ': 'ハ', 'ヒ': 'ハ', 'フ': 'ハ', 'ヘ': 'ハ', 'ホ': 'ハ',
-    'マ': 'マ', 'ミ': 'マ', 'ム': 'マ', 'メ': 'マ', 'モ': 'マ',
-    'ヤ': 'ヤ', 'ユ': 'ヤ', 'ヨ': 'ヤ',
-    'ラ': 'ラ', 'リ': 'ラ', 'ル': 'ラ', 'レ': 'ラ', 'ロ': 'ラ',
-    'ワ': 'ワ', 'ヲ': 'ワ', 'ン': 'ワ',
-    'ヴ': 'ヴ'
-  };
-  
-  return `ruby_${gyouMap[seion] || seion}`;
+
+  // 個々の文字をそのまま返す
+  return `ruby_${seion}`;
 }
 
 /**
- * 2つのグループの間にあるすべてのグループを取得
+ * 2つのグループの間にあるすべての文字を取得
  */
 function getGroupsBetween(start: string, end: string): string[] {
   // ruby_ プレフィックスを除去
   const startKana = start.replace('ruby_', '');
   const endKana = end.replace('ruby_', '');
-  
-  const startIndex = KANA_GROUPS.indexOf(startKana as any);
-  const endIndex = KANA_GROUPS.indexOf(endKana as any);
-  
+
+  const startIndex = KANA_LIST.indexOf(startKana as typeof KANA_LIST[number]);
+  const endIndex = KANA_LIST.indexOf(endKana as typeof KANA_LIST[number]);
+
   if (startIndex === -1 || endIndex === -1) {
     return [start, end];
   }
-  
+
   const result: string[] = [];
   for (let i = startIndex; i <= endIndex; i++) {
-    result.push(`ruby_${KANA_GROUPS[i]}`);
+    result.push(`ruby_${KANA_LIST[i]}`);
   }
-  
+
   return result;
 }
 
