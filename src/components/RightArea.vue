@@ -66,9 +66,6 @@
     <!-- グローバル検索モード用オーバーレイ -->
     <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
 
-    <div v-if="showSearchInputBottom && !deckStore.isGlobalSearchMode" class="search-header">
-      <button class="menu-button" @click.stop>⋯</button>
-    </div>
     <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
       <div class="search-input-wrapper">
         <button class="search-mode-toggle" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
@@ -104,16 +101,9 @@
           class="clear-button"
           @click="deckStore.searchQuery = ''"
         >×</button>
-        <button class="filter-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
-          </svg>
+        <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+          <span class="menu-icon">⋯</span>
           <span v-if="hasActiveFilters" class="filter-badge"></span>
-        </button>
-        <button v-if="hasActiveFilters" class="clear-filter-btn" @click.stop="clearFilters" title="フィルターをクリア">
-          <svg width="16" height="16" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
-          </svg>
         </button>
         <button class="search-btn" @click="handleSearchInput">
           <svg width="18" height="18" viewBox="0 0 24 24">
@@ -862,17 +852,6 @@ export default {
   color: #999;
 }
 
-.search-header {
-  position: fixed;
-  bottom: 65px;
-  left: 20px;
-  right: 340px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  z-index: 100;
-}
-
 .search-input-bottom {
   position: fixed;
   bottom: 20px;
@@ -936,26 +915,6 @@ export default {
   to {
     opacity: 1;
     transform: translate(-50%, 50%) scale(1);
-  }
-}
-
-.menu-button {
-  background: rgba(255, 255, 255, 0.85);
-  border: none;
-  color: var(--text-secondary, #999);
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 8px;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  position: relative;
-  top: -2px;
-
-  &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-    color: var(--text-primary, #333);
   }
 }
 
@@ -1108,13 +1067,13 @@ export default {
   }
 }
 
-.filter-btn {
+.menu-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary, #666);
   cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
+  padding: 6px 8px;
+  border-radius: 4px;
   transition: all 0.2s;
   flex-shrink: 0;
   position: relative;
@@ -1131,8 +1090,10 @@ export default {
     color: var(--theme-color-start, #00d9b8);
   }
 
-  svg {
-    display: block;
+  .menu-icon {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
   }
 }
 
@@ -1144,29 +1105,6 @@ export default {
   height: 8px;
   background: var(--theme-color-end, #b84fc9);
   border-radius: 50%;
-}
-
-.clear-filter-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary, #999);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: rgba(255, 0, 0, 0.1);
-    color: #f44336;
-  }
-
-  svg {
-    display: block;
-  }
 }
 
 .search-btn {
