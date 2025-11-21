@@ -35,13 +35,26 @@
             class="clear-btn"
             @click="deckStore.searchQuery = ''"
           >×</button>
-          <button class="menu-btn" @click.stop>⋯</button>
+          <div v-if="hasActiveFilters" class="filter-icons">
+            <span v-for="(icon, index) in displayFilterIcons" :key="index" class="filter-icon-item" :class="icon.type">{{ icon.label }}</span>
+            <span v-if="filterCount > 3" class="filter-more">+</span>
+          </div>
+          <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+            <span class="menu-icon">⋯</span>
+            <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
+          </button>
           <button class="search-btn" @click="handleSearch">
             <svg width="12" height="12" viewBox="0 0 24 24">
               <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
             </svg>
           </button>
         </div>
+        <SearchFilterDialog
+          :is-visible="showFilterDialog"
+          :initial-filters="searchFilters"
+          @close="showFilterDialog = false"
+          @apply="handleFilterApply"
+        />
       </div>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
@@ -86,8 +99,9 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
+import SearchFilterDialog from './SearchFilterDialog.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { searchCards } from '../api/card-search'
@@ -98,7 +112,8 @@ import { mdiShuffle, mdiSort } from '@mdi/js'
 export default {
   name: 'DeckSection',
   components: {
-    DeckCard
+    DeckCard,
+    SearchFilterDialog
   },
   props: {
     title: {
@@ -133,6 +148,84 @@ export default {
     // 検索モード
     const searchMode = ref('name')
     const showSearchModeDropdown = ref(false)
+
+    // フィルターダイアログ
+    const showFilterDialog = ref(false)
+    const searchFilters = reactive({
+      cardType: null as string | null,
+      attributes: [] as string[],
+      races: [] as string[],
+      levels: [] as number[],
+      atk: { from: undefined as number | undefined, to: undefined as number | undefined },
+      def: { from: undefined as number | undefined, to: undefined as number | undefined },
+      monsterTypes: [] as string[],
+      linkNumbers: [] as number[]
+    })
+
+    // フィルター条件の数
+    const filterCount = computed(() => {
+      let count = 0
+      if (searchFilters.cardType) count++
+      count += searchFilters.attributes.length
+      count += searchFilters.races.length
+      count += searchFilters.levels.length
+      if (searchFilters.atk.from !== undefined || searchFilters.atk.to !== undefined) count++
+      if (searchFilters.def.from !== undefined || searchFilters.def.to !== undefined) count++
+      count += searchFilters.monsterTypes.length
+      count += searchFilters.linkNumbers.length
+      return count
+    })
+
+    // フィルターが設定されているか
+    const hasActiveFilters = computed(() => filterCount.value > 0)
+
+    // 表示するフィルターアイコン（最大3個）
+    const displayFilterIcons = computed(() => {
+      const icons: { type: string; label: string }[] = []
+      const f = searchFilters
+
+      if (f.cardType) {
+        const labels = { monster: 'M', spell: 'S', trap: 'T' }
+        icons.push({ type: 'card-type', label: labels[f.cardType] || f.cardType })
+      }
+
+      f.attributes.forEach(attr => {
+        const labels = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
+        icons.push({ type: 'attribute', label: labels[attr] || attr })
+      })
+
+      f.races.slice(0, 3 - icons.length).forEach(race => {
+        icons.push({ type: 'race', label: race.substring(0, 2) })
+      })
+
+      f.levels.slice(0, 3 - icons.length).forEach(level => {
+        icons.push({ type: 'level', label: `L${level}` })
+      })
+
+      if (icons.length < 3 && (f.atk.from !== undefined || f.atk.to !== undefined)) {
+        icons.push({ type: 'atk', label: 'ATK' })
+      }
+
+      if (icons.length < 3 && (f.def.from !== undefined || f.def.to !== undefined)) {
+        icons.push({ type: 'def', label: 'DEF' })
+      }
+
+      f.monsterTypes.slice(0, 3 - icons.length).forEach(type => {
+        icons.push({ type: 'monster-type', label: type.substring(0, 2) })
+      })
+
+      f.linkNumbers.slice(0, 3 - icons.length).forEach(num => {
+        icons.push({ type: 'link', label: `L${num}` })
+      })
+
+      return icons.slice(0, 3)
+    })
+
+    // フィルター適用
+    const handleFilterApply = (filters) => {
+      Object.assign(searchFilters, filters)
+      showFilterDialog.value = false
+    }
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
@@ -435,6 +528,12 @@ export default {
       showSearchModeDropdown,
       toggleSearchModeDropdown,
       selectSearchMode,
+      showFilterDialog,
+      searchFilters,
+      filterCount,
+      hasActiveFilters,
+      displayFilterIcons,
+      handleFilterApply,
       mdiShuffle,
       mdiSort
     }
@@ -626,6 +725,27 @@ export default {
       }
     }
 
+    .filter-icons {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      margin-right: 4px;
+    }
+
+    .filter-icon-item {
+      font-size: 8px;
+      padding: 1px 3px;
+      border-radius: 2px;
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-secondary, #666);
+      white-space: nowrap;
+    }
+
+    .filter-more {
+      font-size: 8px;
+      color: var(--text-tertiary, #999);
+    }
+
     .menu-btn {
       background: transparent;
       border: none;
@@ -634,9 +754,37 @@ export default {
       cursor: pointer;
       padding: 0 4px;
       line-height: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
       &:hover {
         color: var(--text-primary);
+      }
+
+      &.active {
+        color: var(--button-bg, #4CAF50);
+      }
+
+      .menu-icon {
+        display: block;
+      }
+
+      .filter-count-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+        color: white;
+        font-size: 8px;
+        min-width: 12px;
+        height: 12px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 2px;
       }
     }
 
