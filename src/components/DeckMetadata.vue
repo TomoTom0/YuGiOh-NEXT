@@ -8,14 +8,14 @@
           :class="{ 'is-public': localIsPublic }"
           @click="togglePublicStatus"
         >
-          {{ localIsPublic ? '公開' : '非公開' }}
+          <span class="text-bold">{{ localIsPublic ? '公開' : '非公開' }}</span>
         </button>
         <div class="deck-type-selector" ref="deckTypeSelector">
         <button 
           class="deck-type-button"
           @click="toggleDeckTypeDropdown"
         >
-          <div v-if="localDeckType === '-1'" class="deck-type-placeholder">DeckType</div>
+          <div v-if="localDeckType === '-1'" class="deck-type-placeholder">type</div>
           <svg v-else-if="localDeckType === '0'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
             <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
             <polygon fill="#00204b" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
@@ -44,6 +44,9 @@
             class="deck-type-dropdown"
             :class="{ 'align-right': deckTypeDropdownAlignRight }"
           >
+            <div class="deck-type-option" @click="selectDeckType('-1')">
+              <div class="deck-type-unset">未設定</div>
+            </div>
             <div class="deck-type-option" @click="selectDeckType('0')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
@@ -81,11 +84,11 @@
       </div>
 
       <div class="deck-style-selector" ref="deckStyleSelector">
-        <button 
+        <button
           class="deck-style-button"
           @click="toggleDeckStyleDropdown"
         >
-          {{ getDeckStyleLabel() }}
+          <span :class="{ 'text-bold': localDeckStyle !== '-1' }">{{ getDeckStyleLabel() }}</span>
         </button>
         <Transition name="dropdown">
           <div 
@@ -569,6 +572,16 @@ function removeTag(tagId: string) {
   height: 20px;
   display: flex;
   align-items: center;
+}
+
+.text-bold {
+  font-weight: 700;
+}
+
+.deck-type-unset {
+  font-size: 13px;
+  color: #666;
+  padding: 0 8px;
 }
 
 .chips-container {

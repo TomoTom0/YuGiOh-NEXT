@@ -31,8 +31,9 @@
         </label>
       </div>
     </div>
-    <div 
-      class="card-list-results" 
+    <div
+      :key="localSortOrder"
+      class="card-list-results"
       :class="{ 'grid-view': localViewMode === 'grid' }"
       @scroll="$emit('scroll', $event)"
     >
@@ -253,7 +254,8 @@ export default {
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  
+  animation: fadeInList 0.2s ease;
+
   &.grid-view {
     display: grid;
     /* グリッド表示用のCSS変数を使用 */
@@ -262,6 +264,15 @@ export default {
     gap: 4px;
     align-content: start;
     justify-content: start;
+  }
+}
+
+@keyframes fadeInList {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
   }
 }
 
