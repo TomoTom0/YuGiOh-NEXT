@@ -195,13 +195,13 @@ export default {
       })
 
       const raceLabels: Record<string, string> = {
-        dragon: '竜族', spellcaster: '魔法', warrior: '戦士', machine: '機械',
-        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣族',
-        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水族',
-        fish: '魚族', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
-        windbeast: '鳥獣', rock: '岩石', pyro: '炎族', thunder: '雷族',
+        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
+        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
+        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
+        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
+        windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
         psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-        divine: '幻神', creatorgod: '創造'
+        divine: '神獣', creatorgod: '創造'
       }
       f.races.slice(0, 3 - icons.length).forEach(race => {
         icons.push({ type: 'race', label: raceLabels[race] || race.substring(0, 2) })

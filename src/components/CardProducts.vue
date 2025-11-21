@@ -40,6 +40,7 @@
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
               @scroll-to-top="handleScrollToTop"
+              @collapse="collapsePack(pack.packId)"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
