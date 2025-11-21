@@ -129,9 +129,9 @@ function assignCategoryGroups(categories) {
       if (firstChar && isKanaReadable(firstChar)) {
         group = [getKanaGroup(firstChar)];
       }
-      // ルール4: 漢字等で読みが不明
+      // ルール4: カナ文字以外（漢字、英数字、記号等）
       else {
-        group = determineGroupForKanji(index, categories);
+        group = determineGroupForNonKana(index, categories);
       }
     }
     
@@ -200,7 +200,7 @@ function getKanaGroup(char) {
   return `ruby_${gyouMap[seion] || seion}`;
 }
 
-function determineGroupForKanji(index, categories) {
+function determineGroupForNonKana(index, categories) {
   let prevGroup = null;
   for (let i = index - 1; i >= 0; i--) {
     const prevLabel = categories[i]?.label;

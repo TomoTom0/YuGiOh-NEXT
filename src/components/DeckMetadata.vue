@@ -135,7 +135,7 @@
           v-for="tagId in localTags"
           :key="'tag-' + tagId"
           class="chip tag-chip"
-          :data-type="getTagType(tagId)"
+          :data-type="getMonsterTypeById(tagId)"
         >
           {{ tags[tagId] }}
           <button class="chip-remove" @click="removeTag(tagId)">×</button>
@@ -172,8 +172,9 @@
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
-import { getExtendedDeckMetadata } from '../utils/deck-metadata-loader';
+import { getDeckMetadata } from '../utils/deck-metadata-loader';
 import type { CategoryEntry } from '../types/dialog';
+import { getMonsterTypeById } from '../constants/tag-master-data';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
 
@@ -212,7 +213,7 @@ const deckStyleDropdown = ref<HTMLElement | null>(null);
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {
-  const metadata = await getExtendedDeckMetadata();
+  const metadata = await getDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
   
@@ -326,27 +327,7 @@ function getCategoryLabel(catId: string): string {
   return category?.label || catId;
 }
 
-function getTagType(tagId: string): string {
-  const tagLabel = tags[tagId];
-  if (!tagLabel) return '';
-  
-  const typeMappings: Record<string, string> = {
-    '融合': 'fusion',
-    'シンクロ': 'synchro',
-    'エクシーズ': 'xyz',
-    'リンク': 'link',
-    '儀式': 'ritual',
-    'ペンデュラム': 'pendulum'
-  };
-  
-  for (const [key, type] of Object.entries(typeMappings)) {
-    if (tagLabel.includes(key)) {
-      return type;
-    }
-  }
-  
-  return '';
-}
+// getTagType は getMonsterTypeById に置き換え（tag-master-data.ts からインポート）
 
 // ダイアログからの更新（循環参照を防ぐため直接更新）
 function updateCategories(newCategories: string[]) {
@@ -639,9 +620,9 @@ function removeTag(tagId: string) {
 }
 
 .chip.tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  color: #4a148c;
-  border-color: #ba68c8;
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  color: #fff;
+  border-color: #757575;
 }
 
 .chip.tag-chip[data-type="link"] {
@@ -657,7 +638,7 @@ function removeTag(tagId: string) {
 }
 
 .chip.tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
   color: #4a148c;
   border-color: #ff9800;
 }

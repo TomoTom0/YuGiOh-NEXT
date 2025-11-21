@@ -11,7 +11,7 @@
               v-for="id in selectedTags"
               :key="id"
               class="tag-chip"
-              :data-type="getTagType(id)"
+              :data-type="getMonsterTypeById(id)"
               @click="toggleTag(id)"
             >
               {{ getTagLabel(id) }}
@@ -25,7 +25,7 @@
       <!-- フィルタタブとアクションボタン -->
       <div class="filter-and-actions">
         <div class="action-buttons-left">
-          <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Filter">
+          <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Reset Filter">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
             </svg>
@@ -82,7 +82,7 @@
           :key="tag.value"
           class="tag-item"
           :class="{ selected: selectedTags.includes(tag.value) }"
-          :data-type="getTagType(tag.value)"
+          :data-type="getMonsterTypeById(tag.value)"
           :data-group="tag.group"
           @click="toggleTag(tag.value)"
         >
@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
-import { classifyTagById, type TagGroup } from '@/constants/tag-master-data';
+import { classifyTagById, getMonsterTypeById, type TagGroup } from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
 
 const props = defineProps<{
@@ -141,27 +141,7 @@ function getTagLabel(tagId: string): string {
   return tag?.label || tagId;
 }
 
-function getTagType(tagId: string): string {
-  const tagLabel = getTagLabel(tagId);
-  if (!tagLabel) return '';
-  
-  const typeMappings: Record<string, string> = {
-    '融合': 'fusion',
-    'シンクロ': 'synchro',
-    'エクシーズ': 'xyz',
-    'リンク': 'link',
-    '儀式': 'ritual',
-    'ペンデュラム': 'pendulum'
-  };
-  
-  for (const [key, type] of Object.entries(typeMappings)) {
-    if (tagLabel.includes(key)) {
-      return type;
-    }
-  }
-  
-  return '';
-}
+// getTagType は getMonsterTypeById に置き換え（tag-master-data.ts からインポート）
 
 function getAttrIcon(tagId: string): string {
   const attrNameMap: Record<string, string> = {
@@ -309,9 +289,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  color: #4a148c;
-  border-color: #9c27b0;
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  color: #fff;
+  border-color: #757575;
 }
 
 .tag-chip[data-type="link"] {
@@ -606,23 +586,24 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="xyz"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  border-color: #ba68c8;
+  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  border-color: #9e9e9e;
   border-radius: 21px;
+  color: #fff;
 }
 
 .tag-item[data-type="xyz"]:hover {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  border-color: #757575;
+  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
 }
 
 .tag-item[data-type="xyz"].selected {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  color: #4a148c;
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  border-color: #757575;
+  color: #fff;
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3), inset 0 0 0 1px #9c27b0;
+  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3), inset 0 0 0 1px #757575;
 }
 
 .tag-item[data-type="link"] {

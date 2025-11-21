@@ -74,15 +74,6 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
 }
 
 /**
- * デッキメタデータを取得（後方互換性を保ちつつ新形式に変換）
- * 
- * @returns カテゴリにグループ情報を含むメタデータ
- */
-export async function getExtendedDeckMetadata(): Promise<DeckMetadata> {
-  return getDeckMetadata();
-}
-
-/**
  * chrome.storage.localにメタデータを保存
  */
 export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {

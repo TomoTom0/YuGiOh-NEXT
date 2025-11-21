@@ -40,3 +40,32 @@ export function classifyTagById(tagId: string): TagGroup {
   }
   return 'others';
 }
+
+/**
+ * モンスタータイプのタグIDマッピング
+ * タグIDから直接タイプを判定（ラベル依存を排除）
+ */
+const MONSTER_TYPE_MAP: Record<string, string> = {
+  '8': 'fusion',      // 融合
+  '9': 'ritual',      // 儀式
+  '10': 'spirit',     // スピリット
+  '11': 'union',      // ユニオン
+  '12': 'dual',       // デュアル
+  '13': 'tuner',      // チューナー
+  '14': 'synchro',    // シンクロ
+  '15': 'xyz',        // エクシーズ
+  '16': 'pendulum',   // ペンデュラム
+  '17': 'flip',       // リバース
+  '18': 'toon',       // トゥーン
+  '110': 'link'       // リンク
+};
+
+/**
+ * タグIDからモンスタータイプを取得
+ *
+ * @param tagId - タグID
+ * @returns モンスタータイプ（fusion, synchro, xyz など）、該当しない場合は空文字
+ */
+export function getMonsterTypeById(tagId: string): string {
+  return MONSTER_TYPE_MAP[tagId] || '';
+}

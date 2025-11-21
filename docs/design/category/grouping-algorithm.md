@@ -163,9 +163,11 @@ function getGroupsBetween(start: string, end: string): string[] {
 ```
 
 **例**:
-- 前が `ruby_レ`、後が `ruby_ワ` → `['ruby_レ', 'ruby_ロ', 'ruby_ワ']`
-- 前が `ruby_カ`、後が `ruby_サ` → `['ruby_カ', 'ruby_サ']`
-- 前が `ruby_ア`、後が `ruby_タ` → `['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ']`
+- `getGroupsBetween('ruby_ラ', 'ruby_ワ')` → `['ruby_ラ', 'ruby_ワ']`
+- `getGroupsBetween('ruby_カ', 'ruby_サ')` → `['ruby_カ', 'ruby_サ']`
+- `getGroupsBetween('ruby_ア', 'ruby_タ')` → `['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ']`
+
+※ 引数はグループ名（行の先頭文字）であり、個々の文字ではない
 
 ## 実装の流れ
 
@@ -207,9 +209,9 @@ function getGroupsBetween(start: string, end: string): string[] {
 3. **特殊文字**
    - 「ヴ」は独立した行として扱う
 
-4. **英数字**
-   - 該当する場合は先頭文字をそのまま使用
-   - 例: 「A・O・J」→ `['ruby_A']`
+4. **英数字・漢字**
+   - カナ文字以外（漢字、英数字、記号等）は前後のカテゴリから推測
+   - 例: 「A・O・J」が「アマゾネス」と「アルカナフォース」の間にある場合 → `['ruby_ア']`
 
 ## 今後の改善案
 

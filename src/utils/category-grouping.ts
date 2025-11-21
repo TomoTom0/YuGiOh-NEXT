@@ -115,9 +115,10 @@ function isKanaReadable(char: string): boolean {
 }
 
 /**
- * 漢字等で読みが不明な場合のグループ判定
+ * カナ文字以外（漢字、英数字、記号等）のグループ判定
+ * 前後のカテゴリから推測する
  */
-function determineGroupForKanji(
+function determineGroupForNonKana(
   index: number,
   categories: { label: string }[]
 ): string[] {
@@ -196,9 +197,9 @@ export function assignCategoryGroups(
       if (firstChar && isKanaReadable(firstChar)) {
         group = [getKanaGroup(firstChar)];
       }
-      // ルール4: 漢字等で読みが不明
+      // ルール4: カナ文字以外（漢字、英数字、記号等）
       else {
-        group = determineGroupForKanji(index, categories);
+        group = determineGroupForNonKana(index, categories);
       }
     }
     
