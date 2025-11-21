@@ -100,9 +100,16 @@
     <!-- Load Dialog -->
     <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
       <div class="load-dialog" @click.stop>
+        <div class="load-dialog-header">
+          <h2>デッキを読み込む</h2>
+          <button class="close-btn" @click="toggleLoadDialog">×</button>
+        </div>
         <div class="load-dialog-content">
           <div v-if="deckStore.deckList.length === 0" class="no-decks">
-            デッキがありません
+            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
+              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
+            </svg>
+            <p>デッキがありません</p>
           </div>
           <div v-else class="deck-list">
             <div
@@ -111,21 +118,30 @@
               class="deck-list-item"
               :class="{ selected: selectedDeckDno === deck.dno }"
               @click="selectedDeckDno = deck.dno"
+              @dblclick="handleLoadSelected"
             >
               <div class="deck-dno">{{ deck.dno }}</div>
-              <div class="deck-name">{{ deck.name }}</div>
+              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
+              <div class="deck-select-indicator">
+                <svg v-if="selectedDeckDno === deck.dno" width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
-        <div class="load-dialog-actions">
-          <button @click="toggleLoadDialog" class="btn-cancel">Cancel</button>
-          <button
-            @click="handleLoadSelected"
-            class="btn-load"
-            :disabled="!selectedDeckDno"
-          >
-            Load
-          </button>
+        <div class="load-dialog-footer">
+          <div class="deck-count">{{ deckStore.deckList.length }} デッキ</div>
+          <div class="load-dialog-actions">
+            <button @click="toggleLoadDialog" class="btn-cancel">キャンセル</button>
+            <button
+              @click="handleLoadSelected"
+              class="btn-load"
+              :disabled="!selectedDeckDno"
+            >
+              読み込む
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -611,7 +627,7 @@ export default {
 }
 
 .load-dialog {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
   width: 500px;
@@ -622,16 +638,61 @@ export default {
   flex-direction: column;
 }
 
+.load-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+  }
+
+  .close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
 .load-dialog-content {
   padding: 16px;
   flex: 1;
   overflow-y: auto;
-  
+  min-height: 200px;
+
   .no-decks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     padding: 40px 20px;
-    color: #999;
-    font-size: 14px;
+    color: var(--text-tertiary, #999);
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
   }
 }
 
@@ -646,48 +707,72 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-primary, #e0e0e0);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
-    border-color: #ccc;
-    background: var(--bg-secondary);
+    border-color: var(--theme-color-start, #00d9b8);
+    background: var(--bg-secondary, #f5f5f5);
   }
-  
+
   &.selected {
     border-color: var(--theme-color-start, #00d9b8);
     background: linear-gradient(90deg, rgba(0,217,184,0.1) 0%, rgba(184,79,201,0.1) 100%);
   }
-  
+
   .deck-dno {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #666;
-    width: 60px;
-    text-align: left;
+    color: var(--text-secondary, #666);
+    width: 40px;
+    text-align: center;
     flex-shrink: 0;
+    padding: 4px 8px;
+    background: var(--bg-tertiary, #f0f0f0);
+    border-radius: 4px;
   }
-  
+
   .deck-name {
     font-size: 14px;
-    color: var(--text-primary);
+    color: var(--text-primary, #333);
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
   }
+
+  .deck-select-indicator {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--theme-color-start, #00d9b8);
+  }
+}
+
+.load-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-primary, #e0e0e0);
+  background: var(--bg-secondary, #f5f5f5);
+
+  .deck-count {
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+  }
 }
 
 .load-dialog-actions {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  
+
   button {
     padding: 10px 20px;
     border: none;
@@ -697,28 +782,28 @@ export default {
     font-weight: 500;
     transition: all 0.2s;
     min-width: 80px;
-    
+
     &.btn-cancel {
-      background: white;
-      color: #666;
-      border: 1px solid #ddd;
-      
+      background: var(--bg-primary, white);
+      color: var(--text-secondary, #666);
+      border: 1px solid var(--border-primary, #ddd);
+
       &:hover {
-        background: var(--bg-secondary);
-        border-color: #ccc;
+        background: var(--bg-tertiary, #e8e8e8);
+        border-color: var(--border-primary, #ccc);
       }
     }
-    
+
     &.btn-load {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
-      
+
       &:hover:not(:disabled) {
         opacity: 0.9;
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0,217,184,0.3);
       }
-      
+
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
