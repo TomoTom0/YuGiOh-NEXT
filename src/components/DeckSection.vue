@@ -190,12 +190,21 @@ export default {
       }
 
       f.attributes.forEach(attr => {
-        const labels = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
+        const labels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
         icons.push({ type: 'attribute', label: labels[attr] || attr })
       })
 
+      const raceLabels: Record<string, string> = {
+        dragon: '竜族', spellcaster: '魔法', warrior: '戦士', machine: '機械',
+        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣族',
+        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水族',
+        fish: '魚族', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
+        windbeast: '鳥獣', rock: '岩石', pyro: '炎族', thunder: '雷族',
+        psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
+        divine: '幻神', creatorgod: '創造'
+      }
       f.races.slice(0, 3 - icons.length).forEach(race => {
-        icons.push({ type: 'race', label: race.substring(0, 2) })
+        icons.push({ type: 'race', label: raceLabels[race] || race.substring(0, 2) })
       })
 
       f.levels.slice(0, 3 - icons.length).forEach(level => {
@@ -210,8 +219,14 @@ export default {
         icons.push({ type: 'def', label: 'DEF' })
       }
 
+      const monsterTypeLabels: Record<string, string> = {
+        normal: '通常', effect: '効果', fusion: '融合', ritual: '儀式',
+        synchro: 'S', xyz: 'X', pendulum: 'P', link: 'L',
+        tuner: 'T', flip: 'R', toon: 'Tn', spirit: 'Sp',
+        union: 'U', gemini: 'D', special: '特殊'
+      }
       f.monsterTypes.slice(0, 3 - icons.length).forEach(type => {
-        icons.push({ type: 'monster-type', label: type.substring(0, 2) })
+        icons.push({ type: 'monster-type', label: monsterTypeLabels[type] || type.substring(0, 2) })
       })
 
       f.linkNumbers.slice(0, 3 - icons.length).forEach(num => {
@@ -275,7 +290,7 @@ export default {
     }
 
     const handleSearch = async () => {
-      if (!deckStore.searchQuery.trim()) {
+      if (!deckStore.searchQuery.trim() && !hasActiveFilters.value) {
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -294,12 +309,41 @@ export default {
       }
       const searchType = searchTypeMap[searchMode.value] || '1'
 
+      // 検索オプションを構築
+      const searchOptions: any = {
+        keyword: deckStore.searchQuery.trim(),
+        searchType: searchType,
+        resultsPerPage: 100
+      }
+
+      // フィルター条件を追加
+      if (searchFilters.cardType) {
+        searchOptions.cardType = searchFilters.cardType
+      }
+      if (searchFilters.attributes.length > 0) {
+        searchOptions.attributes = searchFilters.attributes
+      }
+      if (searchFilters.races.length > 0) {
+        searchOptions.races = searchFilters.races
+      }
+      if (searchFilters.levels.length > 0) {
+        searchOptions.levels = searchFilters.levels
+      }
+      if (searchFilters.atk.from !== undefined || searchFilters.atk.to !== undefined) {
+        searchOptions.atk = searchFilters.atk
+      }
+      if (searchFilters.def.from !== undefined || searchFilters.def.to !== undefined) {
+        searchOptions.def = searchFilters.def
+      }
+      if (searchFilters.monsterTypes.length > 0) {
+        searchOptions.monsterTypes = searchFilters.monsterTypes
+      }
+      if (searchFilters.linkNumbers.length > 0) {
+        searchOptions.linkNumbers = searchFilters.linkNumbers
+      }
+
       try {
-        const results = await searchCards({
-          keyword: deckStore.searchQuery.trim(),
-          searchType: searchType,
-          resultsPerPage: 100
-        })
+        const results = await searchCards(searchOptions)
 
         const processed = processCards(results)
         const sorted = sortResults(processed)
@@ -312,8 +356,7 @@ export default {
           setTimeout(async () => {
             try {
               const moreResults = await searchCards({
-                keyword: deckStore.searchQuery.trim(),
-                searchType: searchType,
+                ...searchOptions,
                 resultsPerPage: 2000
               })
 
@@ -622,7 +665,6 @@ export default {
   .section-search-container {
     flex: 1 1 auto;
     margin: 0 12px;
-    margin-right: 120px; // ボタン4個分程度の空間
     min-width: 150px;
   }
 
@@ -736,9 +778,31 @@ export default {
       font-size: 8px;
       padding: 1px 3px;
       border-radius: 2px;
-      background: var(--bg-secondary, #f5f5f5);
-      color: var(--text-secondary, #666);
       white-space: nowrap;
+
+      // 属性
+      &.attribute {
+        background: #e3f2fd;
+        color: #1565c0;
+      }
+
+      // 種族
+      &.race {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+
+      // モンスタータイプ
+      &.monster-type {
+        background: #fff3e0;
+        color: #e65100;
+      }
+
+      // その他（レベル、ATK、DEF、リンク、カードタイプ）
+      &.level, &.atk, &.def, &.link, &.card-type {
+        background: var(--bg-secondary, #f5f5f5);
+        color: var(--text-secondary, #666);
+      }
     }
 
     .filter-more {
@@ -749,18 +813,21 @@ export default {
     .menu-btn {
       background: transparent;
       border: none;
+      border-radius: 4px;
       color: var(--text-secondary, #666);
       font-size: 14px;
       cursor: pointer;
-      padding: 0 4px;
+      padding: 4px 6px;
       line-height: 1;
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s;
 
       &:hover {
         color: var(--text-primary);
+        background: var(--bg-secondary, #f5f5f5);
       }
 
       &.active {
@@ -773,8 +840,8 @@ export default {
 
       .filter-count-badge {
         position: absolute;
-        top: -4px;
-        right: -4px;
+        top: -2px;
+        right: 0px;
         background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
         color: white;
         font-size: 8px;
@@ -791,15 +858,18 @@ export default {
     .search-btn {
       background: transparent;
       border: none;
+      border-radius: 4px;
       color: var(--text-secondary, #666);
       cursor: pointer;
-      padding: 2px 4px;
+      padding: 4px 6px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s;
 
       &:hover {
         color: var(--text-primary);
+        background: var(--bg-secondary, #f5f5f5);
       }
 
       svg {

@@ -145,13 +145,13 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 
 ## Build & Deploy
 
-```bash
-# ビルド（TypeScript → JavaScript）
-npm run build
+**ソースコード更新後は必ず以下を実行すること：**
 
-# デプロイ（dist/ を本番環境にコピー）
-./scripts/deploy.sh
+```bash
+npm run build-and-deploy
 ```
+
+このコマンドはビルドとデプロイを一括で行う。
 
 ### デプロイ先
 
