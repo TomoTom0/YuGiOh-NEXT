@@ -11,7 +11,7 @@
               v-for="id in selectedTags"
               :key="id"
               class="tag-chip"
-              :data-type="getMonsterTypeById(id)"
+              :data-type="getTagType(id)"
               @click="toggleTag(id)"
             >
               {{ getTagLabel(id) }}
@@ -26,12 +26,12 @@
       <div class="filter-and-actions">
         <div class="action-buttons-left">
           <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Reset Filter">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
             </svg>
           </button>
           <button class="btn btn-icon" @click="clearAll" title="Clear All">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
             </svg>
           </button>
@@ -82,7 +82,7 @@
           :key="tag.value"
           class="tag-item"
           :class="{ selected: selectedTags.includes(tag.value) }"
-          :data-type="getMonsterTypeById(tag.value)"
+          :data-type="getTagType(tag.value)"
           :data-group="tag.group"
           @click="toggleTag(tag.value)"
         >
@@ -102,7 +102,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
-import { classifyTagById, getMonsterTypeById, type TagGroup } from '@/constants/tag-master-data';
+import { classifyTagById, getMonsterTypeFromLabel, type TagGroup } from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
 
 const props = defineProps<{
@@ -119,12 +119,22 @@ const emit = defineEmits<{
 const selectedTags = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<TagGroup | 'all'>('all');
 
-// タグにグループ情報を付与
+// グループの表示順序
+const GROUP_ORDER: (TagGroup | 'all')[] = ['attr', 'race', 'type', 'others'];
+
+// タグにグループ情報を付与し、グループごとにソート
 const tagsWithGroups = computed<TagEntry[]>(() => {
-  return props.tags.map(tag => ({
+  const tagged = props.tags.map(tag => ({
     ...tag,
     group: classifyTagById(tag.value)
   }));
+
+  // グループ順でソート
+  return tagged.sort((a, b) => {
+    const aIndex = GROUP_ORDER.indexOf(a.group);
+    const bIndex = GROUP_ORDER.indexOf(b.group);
+    return aIndex - bIndex;
+  });
 });
 
 // フィルタされたタグ
@@ -141,7 +151,11 @@ function getTagLabel(tagId: string): string {
   return tag?.label || tagId;
 }
 
-// getTagType は getMonsterTypeById に置き換え（tag-master-data.ts からインポート）
+function getTagType(tagId: string): string {
+  const tag = props.tags.find(t => t.value === tagId);
+  if (!tag) return '';
+  return getMonsterTypeFromLabel(tag.label);
+}
 
 function getAttrIcon(tagId: string): string {
   const attrNameMap: Record<string, string> = {
