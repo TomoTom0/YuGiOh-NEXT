@@ -6,6 +6,8 @@
  */
 
 import initialMetadata from '@/data/deck-metadata.json';
+import type { CategoryEntry } from '@/types/dialog';
+import { assignCategoryGroups } from './category-grouping';
 
 /**
  * デッキメタデータの型定義
@@ -18,7 +20,7 @@ export interface DeckMetadataEntry {
 export interface DeckMetadata {
   deckTypes: DeckMetadataEntry[];
   deckStyles: DeckMetadataEntry[];
-  categories: Record<string, string>;
+  categories: CategoryEntry[];
   tags: Record<string, string>;
   lastUpdated: string;
 }
@@ -57,7 +59,18 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
   }
 
   console.log('Using initial deck metadata from JSON file');
-  return initialMetadata as DeckMetadata;
+  const initial = initialMetadata as any;
+  
+  // 初期JSONのcategoriesがRecord形式の場合は配列に変換
+  if (initial.categories && !Array.isArray(initial.categories)) {
+    const categoriesArray = Object.entries(initial.categories).map(([value, label]) => ({
+      value,
+      label: label as string
+    }));
+    initial.categories = assignCategoryGroups(categoriesArray);
+  }
+  
+  return initial as DeckMetadata;
 }
 
 /**
@@ -151,8 +164,13 @@ export async function updateDeckMetadata(): Promise<DeckMetadata> {
       }
     });
 
-    // カテゴリを抽出（共通ヘルパー使用）
-    const categories = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
+    // カテゴリを抽出して配列形式+グループ情報を付与
+    const categoriesRecord = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
+    const categoriesArray = Object.entries(categoriesRecord).map(([value, label]) => ({
+      value,
+      label
+    }));
+    const categories = assignCategoryGroups(categoriesArray);
 
     // タグを抽出（共通ヘルパー使用）
     const tags = extractOptionsFromSelect(doc, 'select[name="dckTagMst"]');
