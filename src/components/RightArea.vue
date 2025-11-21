@@ -338,16 +338,27 @@ export default {
   button {
     padding: 8px;
     border: none;
+    border-right: 1px solid #e0e0e0;
     background: white;
     cursor: pointer;
     font-size: 13px;
     color: var(--text-primary);
+    transition: background 0.2s, color 0.2s;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &:hover:not(.active):not(.tab-header) {
+      background: #f5f5f5;
+      color: #1976d2;
+    }
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
     }
-    
+
     &.tab-header {
       background: var(--bg-tertiary);
       color: var(--text-tertiary);
@@ -355,7 +366,7 @@ export default {
       font-style: italic;
       opacity: 0.7;
     }
-    
+
     &.deck-tab {
       display: none;
     }
