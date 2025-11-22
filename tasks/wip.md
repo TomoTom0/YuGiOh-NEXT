@@ -1,6 +1,34 @@
 # 作業中のタスク
 
-## v0.4.0 リリース準備
+## v0.4.1 ドキュメント整備（完了）
+
+### ユーザー向けドキュメント（docs/usage/）
+- [x] 検索・フィルター機能ガイド (search-filter.md)
+- [x] ソート機能ガイド (sort.md)
+- [x] カテゴリ・タグ機能ガイド (category-tag.md)
+- [x] カード詳細ガイド (card-detail.md)
+- [x] オプションページガイド (options.md)
+- [x] 言語設定ガイド (language.md)
+- [x] README.md更新
+
+### 開発者向けドキュメント（docs/dev/）
+- [x] コンポーネント構成図の更新 (architecture.md)
+- [x] ストア設計ドキュメント (stores.md)
+- [x] テスト戦略ドキュメント (testing.md)
+
+### PRレビュー対応
+- [x] UUID生成ロジック修正（Math.max(0,...)、trash追加）
+- [x] JSON.parse try-catch追加
+- [x] 儀式モンスター色をシアンに変更（ドキュメント・実装両方）
+  - TagDialog.vue: #b2ebf2/#00bcd4
+  - DeckMetadata.vue: #e0f7fa/#b2ebf2
+
+### PR状況
+- PR #29: マージ可能（全レビュースレッド解決済み）
+
+---
+
+## v0.4.0 リリース準備（完了）
 
 ### 対応順序（レポート18に基づく優先度）
 

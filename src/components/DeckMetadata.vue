@@ -649,9 +649,9 @@ function removeTag(tagId: string) {
 }
 
 .chip.tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #0d47a1;
-  border-color: #64b5f6;
+  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  color: #006064;
+  border-color: #4dd0e1;
 }
 
 .chip.tag-chip[data-type="pendulum"] {

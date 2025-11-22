@@ -315,9 +315,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: #0d47a1;
-  border-color: #1976d2;
+  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
+  color: #006064;
+  border-color: #0097a7;
 }
 
 .tag-chip[data-type="pendulum"] {
@@ -644,23 +644,23 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="ritual"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-color: #64b5f6;
+  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  border-color: #4dd0e1;
   border-radius: 21px;
 }
 
 .tag-item[data-type="ritual"]:hover {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: #1976d2;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
+  border-color: #0097a7;
+  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
 }
 
 .tag-item[data-type="ritual"].selected {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: #1976d2;
-  color: #0d47a1;
+  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
+  border-color: #0097a7;
+  color: #006064;
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px #1976d2;
+  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3), inset 0 0 0 1px #0097a7;
 }
 
 .tag-item[data-type="pendulum"] {
