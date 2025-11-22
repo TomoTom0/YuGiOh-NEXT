@@ -315,9 +315,10 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-  color: #006064;
-  border-color: #0097a7;
+
+  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
+  color: #0d47a1;
+  border-color: #1976d2;
 }
 
 .tag-chip[data-type="pendulum"] {
