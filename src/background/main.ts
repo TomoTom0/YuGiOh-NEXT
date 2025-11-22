@@ -45,7 +45,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 /**
  * コンテキストメニュークリック時の処理
  */
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener((info, _tab) => {
   if (info.menuItemId === 'open-deck-edit') {
     chrome.tabs.create({
       url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'

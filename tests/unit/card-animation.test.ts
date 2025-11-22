@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { animateCardMove, animateCardsMoveInSection } from '../../src/utils/card-animation';
 
 describe('card-animation.ts', () => {
@@ -29,9 +29,8 @@ describe('card-animation.ts', () => {
   });
 
   describe('animateCardMove', () => {
-    it('カード要素が移動している場合、アニメーションが適用される', (done) => {
+    it('カード要素が移動している場合、アニメーションが適用される', async () => {
       let callCount = 0;
-      const originalGetBoundingClientRect = mockElement.getBoundingClientRect;
 
       // 1回目: 元の位置 (100, 100)
       // 2回目: 新しい位置 (150, 150)
@@ -66,14 +65,12 @@ describe('card-animation.ts', () => {
 
       animateCardMove(mockElement, 100);
 
-      setTimeout(() => {
-        // transformが設定されることを確認
-        expect(mockElement.style.transform).toBeDefined();
-        done();
-      }, 50);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      // transformが設定されることを確認
+      expect(mockElement.style.transform).toBeDefined();
     });
 
-    it('カード要素が移動していない場合、アニメーションは適用されない', (done) => {
+    it('カード要素が移動していない場合、アニメーションは適用されない', async () => {
       // 位置が変わらない場合
       mockElement.getBoundingClientRect = vi.fn(() => ({
         top: 100,
@@ -89,14 +86,12 @@ describe('card-animation.ts', () => {
 
       animateCardMove(mockElement, 100);
 
-      setTimeout(() => {
-        // transformが設定されないことを確認
-        expect(mockElement.style.transform).toBe('');
-        done();
-      }, 50);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      // transformが設定されないことを確認
+      expect(mockElement.style.transform).toBe('');
     });
 
-    it('アニメーション終了後にスタイルがクリーンアップされる', (done) => {
+    it('アニメーション終了後にスタイルがクリーンアップされる', async () => {
       let callCount = 0;
 
       mockElement.getBoundingClientRect = vi.fn(() => {
@@ -131,11 +126,9 @@ describe('card-animation.ts', () => {
       animateCardMove(mockElement, 100);
 
       // アニメーション時間 + 余裕をもって待つ
-      setTimeout(() => {
-        expect(mockElement.style.transition).toBe('');
-        expect(mockElement.style.transform).toBe('');
-        done();
-      }, 150);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(mockElement.style.transition).toBe('');
+      expect(mockElement.style.transform).toBe('');
     });
   });
 
@@ -185,7 +178,7 @@ describe('card-animation.ts', () => {
       document.body.removeChild(sectionElement);
     });
 
-    it('セクション内の複数カードにアニメーションが適用される', (done) => {
+    it('セクション内の複数カードにアニメーションが適用される', async () => {
       let call1Count = 0;
       let call2Count = 0;
 
@@ -251,12 +244,10 @@ describe('card-animation.ts', () => {
 
       animateCardsMoveInSection(sectionElement, 100);
 
-      setTimeout(() => {
-        // 両方のカードにtransformが設定されることを確認
-        expect(card1.style.transform).toBeDefined();
-        expect(card2.style.transform).toBeDefined();
-        done();
-      }, 50);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      // 両方のカードにtransformが設定されることを確認
+      expect(card1.style.transform).toBeDefined();
+      expect(card2.style.transform).toBeDefined();
     });
 
     it('セクション要素がnullの場合、何も起こらない', () => {
@@ -276,7 +267,7 @@ describe('card-animation.ts', () => {
       document.body.removeChild(emptySection);
     });
 
-    it('アニメーション終了後にスタイルがクリーンアップされる', (done) => {
+    it('アニメーション終了後にスタイルがクリーンアップされる', async () => {
       let call1Count = 0;
       let call2Count = 0;
 
@@ -296,13 +287,11 @@ describe('card-animation.ts', () => {
 
       animateCardsMoveInSection(sectionElement, 100);
 
-      setTimeout(() => {
-        expect(card1.style.transition).toBe('');
-        expect(card1.style.transform).toBe('');
-        expect(card2.style.transition).toBe('');
-        expect(card2.style.transform).toBe('');
-        done();
-      }, 150);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(card1.style.transition).toBe('');
+      expect(card1.style.transform).toBe('');
+      expect(card2.style.transition).toBe('');
+      expect(card2.style.transform).toBe('');
     });
   });
 });
