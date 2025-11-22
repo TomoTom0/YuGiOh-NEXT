@@ -197,24 +197,77 @@ interface DeckDetail {
 ### Vue コンポーネント階層
 
 ```
-App.vue
+DeckEditLayout.vue (メインレイアウト)
+├─ DeckMetadata.vue (デッキ情報・設定)
+│  ├─ LoadDialog.vue (デッキ読み込み)
+│  ├─ SaveDialog.vue (デッキ保存)
+│  └─ OptionsDialog.vue (設定)
 ├─ DeckSection.vue (メイン/エクストラ/サイド)
+│  ├─ SearchInputBar.vue (検索バー)
 │  └─ CardList.vue
 │     └─ DeckCard.vue (個別カード)
-├─ SearchArea.vue
-│  └─ CardList.vue
-│     └─ DeckCard.vue
-└─ QA.vue
-   └─ QAItem.vue
+├─ RightArea.vue (右側パネル)
+│  ├─ SearchInputBar.vue (検索バー)
+│  ├─ SearchFilterDialog.vue (フィルター)
+│  ├─ CardList.vue (検索結果)
+│  └─ CardInfo.vue (カード詳細)
+└─ TagDialog.vue (タグ・カテゴリ)
 ```
 
 ### 責務分離
 
+- **DeckEditLayout**: 全体レイアウト管理、コンポーネント間の調整
+- **DeckMetadata**: デッキ名・設定の表示と編集
 - **DeckSection**: デッキセクション全体の管理、ドロップゾーン処理
-- **CardList**: カードリストの表示、リスト/グリッド切り替え
+- **CardList**: カードリストの表示、リスト/グリッド切り替え、ソート
 - **DeckCard**: 個別カードの表示、ドラッグ開始、ボタンイベント
-- **SearchArea**: カード検索エリア
-- **QA**: Q&A表示エリア
+- **RightArea**: 検索・カード詳細表示エリア
+- **SearchInputBar**: 検索入力の共通コンポーネント（v0.4.0で追加）
+- **SearchFilterDialog**: 検索フィルター条件設定（v0.4.0で追加）
+- **CardInfo**: カード詳細情報の表示
+- **OptionsDialog**: 表示設定・機能設定
+- **TagDialog**: カテゴリ・タグ自動分類表示
+
+### v0.4.0 で追加されたコンポーネント
+
+#### SearchInputBar.vue
+検索入力バーの共通コンポーネント。DeckSectionとRightAreaで再利用。
+
+**Props:**
+- `modelValue`: 検索文字列
+- `placeholder`: プレースホルダーテキスト
+- `showFilterButton`: フィルターボタン表示
+
+**Events:**
+- `update:modelValue`: 入力値変更
+- `filter-click`: フィルターボタンクリック
+
+#### SearchFilterDialog.vue
+検索フィルター条件を設定するダイアログ。
+
+**フィルター条件:**
+- カードタイプ（モンスター/魔法/罠）
+- 属性
+- 種族
+- レベル/ランク/リンク
+- モンスタータイプ
+
+**Props:**
+- `show`: 表示状態
+- `filters`: 現在のフィルター条件
+
+**Events:**
+- `update:filters`: フィルター条件変更
+- `close`: ダイアログ閉じる
+
+#### OptionsDialog.vue
+表示設定と機能設定を管理するダイアログ。
+
+**設定項目:**
+- 表示モード（リスト/グリッド）
+- デフォルトソート順
+- アニメーション有効/無効
+- 検索バーの位置
 
 ## ビルド・デプロイ
 
