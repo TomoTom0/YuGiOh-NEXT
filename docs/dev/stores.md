@@ -110,10 +110,11 @@ v0.4.0でUUID永続化ロジックが改善されました。新規カードに�
 
 ```typescript
 // 新規カードのUUID生成
-const maxIndex = Math.max(
+const maxIndex = Math.max(0,
   ...displayOrder.main.map(c => parseInt(c.uuid.split('-')[1]) || 0),
   ...displayOrder.extra.map(c => parseInt(c.uuid.split('-')[1]) || 0),
-  ...displayOrder.side.map(c => parseInt(c.uuid.split('-')[1]) || 0)
+  ...displayOrder.side.map(c => parseInt(c.uuid.split('-')[1]) || 0),
+  ...displayOrder.trash.map(c => parseInt(c.uuid.split('-')[1]) || 0)
 );
 const newUuid = `card-${maxIndex + 1}`;
 ```
@@ -177,7 +178,11 @@ localStorage.setItem('ygo-deck-helper-settings', JSON.stringify(state));
 // 読み込み
 const saved = localStorage.getItem('ygo-deck-helper-settings');
 if (saved) {
-  Object.assign(state, JSON.parse(saved));
+  try {
+    Object.assign(state, JSON.parse(saved));
+  } catch (e) {
+    console.error('Failed to parse settings from localStorage', e);
+  }
 }
 ```
 
