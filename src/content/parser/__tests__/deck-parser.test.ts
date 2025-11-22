@@ -14,7 +14,7 @@ describe('デッキページパーサー', () => {
           </div>
           <div class="box_card_name">
             <input type="hidden" name="monsterCardId" id="card_id_1" value="12345">
-            <input type="hidden" name="monster_imgs" value="1">
+            <input type="hidden" name="monster_imgs" value="12345_1_1_1">
             <span class="card_name">ブラック・マジシャン</span>
           </div>
           <div class="box_card_number">
@@ -29,10 +29,19 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        name: 'ブラック・マジシャン',
-        cardId: '12345',
-        cardType: 'monster' as CardType,
-        imageId: '1',
+        card: {
+          name: 'ブラック・マジシャン',
+          cardId: '12345',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
+          cardType: 'monster',
+          attribute: 'light',
+          levelType: 'level',
+          levelValue: 0,
+          race: 'dragon',
+          types: [],
+          isExtraDeck: false
+        },
         quantity: 2
       });
     });
@@ -45,7 +54,7 @@ describe('デッキページパーサー', () => {
           </div>
           <div class="box_card_name">
             <input type="hidden" name="spellCardId" id="card_id_1" value="67890">
-            <input type="hidden" name="spell_imgs" value="2">
+            <input type="hidden" name="spell_imgs" value="67890_2_1_1">
             <span class="card_name">ブラック・マジック</span>
           </div>
           <div class="box_card_number">
@@ -60,10 +69,13 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        name: 'ブラック・マジック',
-        cardId: '67890',
-        cardType: 'spell' as CardType,
-        imageId: '2',
+        card: {
+          name: 'ブラック・マジック',
+          cardId: '67890',
+          ciid: '2',
+          imgs: [{ ciid: '2', imgHash: '67890_2_1_1' }],
+          cardType: 'spell'
+        },
         quantity: 3
       });
     });
@@ -76,7 +88,7 @@ describe('デッキページパーサー', () => {
           </div>
           <div class="box_card_name">
             <input type="hidden" name="trapCardId" id="card_id_1" value="11111">
-            <input type="hidden" name="trap_imgs" value="1">
+            <input type="hidden" name="trap_imgs" value="11111_1_1_1">
             <span class="card_name">聖なるバリア -ミラーフォース-</span>
           </div>
           <div class="box_card_number">
@@ -91,10 +103,13 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        name: '聖なるバリア -ミラーフォース-',
-        cardId: '11111',
-        cardType: 'trap' as CardType,
-        imageId: '1',
+        card: {
+          name: '聖なるバリア -ミラーフォース-',
+          cardId: '11111',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: '11111_1_1_1' }],
+          cardType: 'trap'
+        },
         quantity: 1
       });
     });
@@ -120,7 +135,7 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result?.card.imageId).toBe('1');
+      expect(result?.card.ciid).toBe('1');
     });
 
     it('必要な情報が欠けている場合はnullを返す', () => {
@@ -156,7 +171,7 @@ describe('デッキページパーサー', () => {
                 </div>
                 <div class="box_card_name">
                   <input type="hidden" name="monsterCardId" id="card_id_1" value="12345">
-                  <input type="hidden" name="monster_imgs" value="1">
+                  <input type="hidden" name="monster_imgs" value="12345_1_1_1">
                   <span class="card_name">ブラック・マジシャン</span>
                 </div>
                 <div class="box_card_number">
@@ -189,15 +204,24 @@ describe('デッキページパーサー', () => {
         dno: 4,
         name: 'テストデッキ',
         isPublic: true,
-        deckType: 1,
+        deckType: '1',
         comment: 'テストコメント'
       });
       expect(result.mainDeck).toHaveLength(1);
       expect(result.mainDeck[0]).toEqual({
-        name: 'ブラック・マジシャン',
-        cardId: '12345',
-        cardType: 'monster',
-        imageId: '1',
+        card: {
+          name: 'ブラック・マジシャン',
+          cardId: '12345',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
+          cardType: 'monster',
+          attribute: 'light',
+          levelType: 'level',
+          levelValue: 0,
+          race: 'dragon',
+          types: [],
+          isExtraDeck: false
+        },
         quantity: 2
       });
       expect(result.extraDeck).toHaveLength(0);

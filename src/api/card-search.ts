@@ -1369,9 +1369,11 @@ function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: str
   let match;
   while ((match = pattern.exec(html)) !== null) {
     const url = match[1];
+    if (!url) continue;
+
     const ciidMatch = url.match(/ciid=(\d+)/);
     const encMatch = url.match(/enc=([^&]+)/);
-    
+
     if (ciidMatch?.[1] && encMatch?.[1]) {
       imgs.push({
         ciid: ciidMatch[1],
@@ -1481,7 +1483,7 @@ function parseCardInfoFromDetailPage(doc: Document, cid: string): CardInfo | nul
 /**
  * カード詳細ページから魔法カード情報をパースする
  */
-function parseSpellCardFromDetailPage(doc: Document, base: CardBase, typeText: string): SpellCard {
+function parseSpellCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): SpellCard {
   // 効果タイプを判定（通常/速攻/永続/フィールド/装備/儀式）
   let effectType: SpellEffectType = 'normal';
   
@@ -1507,7 +1509,7 @@ function parseSpellCardFromDetailPage(doc: Document, base: CardBase, typeText: s
 /**
  * カード詳細ページから罠カード情報をパースする
  */
-function parseTrapCardFromDetailPage(doc: Document, base: CardBase, typeText: string): TrapCard {
+function parseTrapCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): TrapCard {
   // 効果タイプを判定（通常/永続/カウンター）
   let effectType: TrapEffectType = 'normal';
   
