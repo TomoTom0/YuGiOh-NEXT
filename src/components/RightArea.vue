@@ -74,6 +74,7 @@
             <span class="toggle-mode">{{ searchMode === 'name' ? 'name' : searchMode === 'text' ? 'text' : 'pend' }}</span>
           </div>
         </button>
+        <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
         <Transition name="dropdown">
           <div v-if="showSearchModeDropdown" class="mode-dropdown">
             <div class="mode-option" @click="searchMode = 'name'; showSearchModeDropdown = false">
@@ -280,6 +281,34 @@ export default {
           }
         })
       }
+    })
+
+    // タブ切り替え時にスクロールを一番上に戻す
+    watch(() => deckStore.activeTab, () => {
+      nextTick(() => {
+        const contentSelectors = ['.search-content', '.card-detail-content', '.metadata-content', '.deck-content']
+        contentSelectors.forEach(selector => {
+          const el = document.querySelector(selector)
+          if (el) {
+            el.scrollTop = 0
+          }
+        })
+      })
+    })
+
+    // 選択カード変更時にcard-detail-content内のスクロールをリセット
+    watch(() => deckStore.selectedCard, () => {
+      nextTick(() => {
+        const cardDetailContent = document.querySelector('.card-detail-content')
+        if (cardDetailContent) {
+          cardDetailContent.scrollTop = 0
+        }
+        // CardDetail内のcard-tab-contentもリセット
+        const cardTabContent = document.querySelector('.card-tab-content')
+        if (cardTabContent) {
+          cardTabContent.scrollTop = 0
+        }
+      })
     })
 
     // ドロップダウンの外側クリックで閉じる
@@ -547,6 +576,7 @@ export default {
 <style scoped lang="scss">
 .right-area {
   width: 320px;
+  height: 100%;
   background: white;
   border-left: 1px solid #ddd;
   display: flex;
@@ -715,18 +745,24 @@ export default {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #008cff;
-  
+
   button {
     padding: 8px;
     border: none;
+    border-right: 1px solid var(--border-primary, #e0e0e0);
     background: white;
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
-    
+
+    &:last-child {
+      border-right: none;
+    }
+
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
+      border-right-color: transparent;
     }
   }
 }
@@ -1076,6 +1112,15 @@ export default {
   font-size: 8px;
   line-height: 1;
   color: var(--text-tertiary, #999);
+}
+
+.mode-dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
 }
 
 .mode-dropdown {

@@ -39,6 +39,7 @@
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
+              :showCollapseButton="true"
               @scroll-to-top="handleScrollToTop"
               @collapse="collapsePack(pack.packId)"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"

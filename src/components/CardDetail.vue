@@ -269,19 +269,25 @@ export default {
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #008cff;
   width: 100%;
-  
+
   button {
     padding: 8px;
     border: none;
+    border-right: 1px solid var(--border-primary, #e0e0e0);
     background: white;
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
     flex: 1;
-    
+
+    &:last-child {
+      border-right: none;
+    }
+
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
+      border-right-color: transparent;
     }
   }
 }
