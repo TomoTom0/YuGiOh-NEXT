@@ -241,10 +241,10 @@ export default {
     // 各カードにUUIDを付与し、ソートして返す
     const cardsWithUuid = computed(() => {
       const sorted = sortCards(props.cards, localSortOrder.value)
-      return sorted.map((card) => ({
+      return sorted.map((card, index) => ({
         card,
-        // cardIdとciidを組み合わせてユニークなキーを生成（検索リストでの重複対応）
-        uuid: `${card.cardId}-${card.ciid || '0'}`
+        // cardId、ciid、インデックスを組み合わせてユニークなキーを生成
+        uuid: `${card.cardId}-${card.ciid || '0'}-${index}`
       }))
     })
 
