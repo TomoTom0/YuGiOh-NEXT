@@ -31,4 +31,5 @@ jobs:
         run: |
           echo "Base branch: ${{ github.base_ref }}"
           echo "Head branch: ${{ github.head_ref }}"
+
           echo "✅ Branch policy check passed: PR to dev (no branch name restriction)"
