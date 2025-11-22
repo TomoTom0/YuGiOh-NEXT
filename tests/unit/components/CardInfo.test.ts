@@ -53,10 +53,10 @@ describe('CardInfo.vue', () => {
 
   describe('基本レンダリング', () => {
     it('モンスターカードの基本情報を表示できる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
-        props: {
-          card: mockMonsterCard,
-        },
         global: {
           plugins: [pinia],
         },
@@ -74,10 +74,10 @@ describe('CardInfo.vue', () => {
         pendulumEffect: 'ペンデュラム効果', // pendulumTextではなくpendulumEffect
       };
 
+      const store = useDeckEditStore();
+      store.selectedCard = cardWithPendulumEffect as any;
+
       const wrapper = mount(CardInfo, {
-        props: {
-          card: cardWithPendulumEffect,
-        },
         global: {
           plugins: [pinia],
         },
@@ -95,10 +95,10 @@ describe('CardInfo.vue', () => {
     });
 
     it('DeckCardコンポーネントが正しくレンダリングされる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
-        props: {
-          card: mockMonsterCard,
-        },
         global: {
           plugins: [pinia],
         },
@@ -113,9 +113,11 @@ describe('CardInfo.vue', () => {
 
   describe('補足情報の表示', () => {
     it('補足情報がある場合に表示される', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: 'このカードは特別なルールがあります。',
           supplementDate: '2024-01-01',
         },
@@ -139,10 +141,10 @@ describe('CardInfo.vue', () => {
     });
 
     it('補足情報がない場合は表示されない', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
-        props: {
-          card: mockMonsterCard,
-        },
         global: {
           plugins: [pinia],
         },
@@ -157,9 +159,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('ペンデュラム補足情報が表示される', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockPendulumCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockPendulumCard,
           pendulumSupplementInfo: 'ペンデュラム特別ルール',
           pendulumSupplementDate: '2024-02-01',
         },
@@ -183,9 +187,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('補足情報の表示順序が正しい（Pend. Text → Pend. Detail → Card Text → Detail）', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockPendulumCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockPendulumCard,
           supplementInfo: '通常補足',
           supplementDate: '2024-01-01',
           pendulumSupplementInfo: 'ペンデュラム補足',
@@ -221,9 +227,11 @@ describe('CardInfo.vue', () => {
 
   describe('カードリンクのパース', () => {
     it('parseCardLinksが{{カード名|cid}}形式をパースできる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{ブルーアイズ・ホワイト・ドラゴン|4007}}を参照',
         },
         global: {
@@ -237,9 +245,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('複数のカードリンクをパースできる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo:
             '{{カード1|100}}と{{カード2|200}}と{{カード3|300}}を参照',
         },
@@ -256,9 +266,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('カードリンクがない場合は通常テキストとして表示', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '特別なルールはありません。',
         },
         global: {
@@ -274,9 +286,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('カードリンクと通常テキストが混在する場合', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '前のテキスト{{カード|123}}後ろのテキスト',
         },
         global: {
@@ -293,9 +307,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('ペンデュラム補足情報のカードリンクもパースされる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockPendulumCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockPendulumCard,
           pendulumSupplementInfo: '{{関連カード|999}}を参照',
         },
         global: {
@@ -327,9 +343,11 @@ describe('CardInfo.vue', () => {
       };
       (getCardDetail as any).mockResolvedValue(mockCardDetail);
 
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{ブルーアイズ・ホワイト・ドラゴン|4007}}を参照',
         },
         global: {
@@ -356,17 +374,17 @@ describe('CardInfo.vue', () => {
       };
       (getCardDetail as any).mockResolvedValue(mockCardDetail);
 
+      const deckStore = useDeckEditStore();
+      deckStore.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{ブルーアイズ・ホワイト・ドラゴン|4007}}を参照',
         },
         global: {
           plugins: [pinia],
         },
       });
-
-      const deckStore = useDeckEditStore();
 
       const cardLink = wrapper.find('.card-link');
       await cardLink.trigger('click');
@@ -381,9 +399,11 @@ describe('CardInfo.vue', () => {
     it('getCardDetailがエラーを返した場合でもクラッシュしない', async () => {
       (getCardDetail as any).mockRejectedValue(new Error('API Error'));
 
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{カード|999}}を参照',
         },
         global: {
@@ -404,9 +424,11 @@ describe('CardInfo.vue', () => {
     it('getCardDetailがnullを返した場合でもクラッシュしない', async () => {
       (getCardDetail as any).mockResolvedValue(null);
 
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{カード|999}}を参照',
         },
         global: {
@@ -426,9 +448,11 @@ describe('CardInfo.vue', () => {
 
   describe('エッジケース', () => {
     it('空の補足情報でもエラーにならない', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '',
         },
         global: {
@@ -440,9 +464,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('undefined補足情報でもエラーにならない', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: undefined,
         },
         global: {
@@ -454,9 +480,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('不正なカードリンク形式でもエラーにならない', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '{{不完全なリンク|',
         },
         global: {
@@ -471,9 +499,11 @@ describe('CardInfo.vue', () => {
     });
 
     it('日付なしの補足情報も表示できる', () => {
+      const store = useDeckEditStore();
+      store.selectedCard = mockMonsterCard as any;
+
       const wrapper = mount(CardInfo, {
         props: {
-          card: mockMonsterCard,
           supplementInfo: '補足情報',
           supplementDate: undefined,
         },

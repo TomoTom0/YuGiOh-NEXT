@@ -52,7 +52,7 @@ describe('category-grouping', () => {
 
       const result = assignCategoryGroups(categories);
 
-      expect(result[2].group).toEqual(['ruby_サ']); // し → シ → サ行
+      expect(result[2].group).toEqual(['ruby_シ']); // し → シ
     });
 
     it('濁点は清音のグループに分類', () => {
@@ -93,8 +93,8 @@ describe('category-grouping', () => {
 
       const result = assignCategoryGroups(categories);
 
-      // 前がカラクリ(ruby_カ)、後がサイバー(ruby_サ) → ruby_カ, ruby_サ
-      expect(result[3].group).toEqual(['ruby_カ', 'ruby_サ']);
+      // 前がカラクリ(ruby_カ)、後がサイバー(ruby_サ) → 間のすべての文字グループ
+      expect(result[3].group).toEqual(['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ', 'ruby_サ']);
     });
 
     it('originalIndexが正しく設定される', () => {
