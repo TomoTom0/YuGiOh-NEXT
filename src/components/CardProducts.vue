@@ -187,7 +187,7 @@ export default {
     const updatePackSortOrder = (packId, value) => {
       packSortOrders.value = { ...packSortOrders.value, [packId]: value }
     }
-    
+
     const updatePackViewMode = (packId, value) => {
       packViewModes.value = { ...packViewModes.value, [packId]: value }
     }

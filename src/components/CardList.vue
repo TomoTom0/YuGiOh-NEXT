@@ -187,9 +187,61 @@ export default {
 
     const localSortOrder = computed(() => `${sortBase.value}_${sortDirection.value}`)
 
-    // 各カードにUUIDを付与（初回のみ生成、cardsが変わったら再生成）
+    // ソート関数
+    const sortCards = (cards, sortOrder) => {
+      const sorted = [...cards]
+      const getCid = (card) => parseInt(card.cardId, 10) || 0
+
+      switch (sortOrder) {
+        case 'release_desc':
+          return sorted.sort((a, b) => getCid(b) - getCid(a))
+        case 'release_asc':
+          return sorted.sort((a, b) => getCid(a) - getCid(b))
+        case 'name_asc':
+          return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        case 'name_desc':
+          return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+        case 'atk_desc':
+          return sorted.sort((a, b) => (b.atk ?? -1) - (a.atk ?? -1))
+        case 'atk_asc':
+          return sorted.sort((a, b) => (a.atk ?? -1) - (b.atk ?? -1))
+        case 'def_desc':
+          return sorted.sort((a, b) => (b.def ?? -1) - (a.def ?? -1))
+        case 'def_asc':
+          return sorted.sort((a, b) => (a.def ?? -1) - (b.def ?? -1))
+        case 'level_desc':
+          return sorted.sort((a, b) => (b.levelValue || 0) - (a.levelValue || 0))
+        case 'level_asc':
+          return sorted.sort((a, b) => (a.levelValue || 0) - (b.levelValue || 0))
+        case 'attribute_asc':
+          return sorted.sort((a, b) => {
+            const cmp = (a.attribute || '').localeCompare(b.attribute || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'attribute_desc':
+          return sorted.sort((a, b) => {
+            const cmp = (b.attribute || '').localeCompare(a.attribute || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'race_asc':
+          return sorted.sort((a, b) => {
+            const cmp = (a.race || '').localeCompare(b.race || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'race_desc':
+          return sorted.sort((a, b) => {
+            const cmp = (b.race || '').localeCompare(a.race || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        default:
+          return sorted
+      }
+    }
+
+    // 各カードにUUIDを付与し、ソートして返す
     const cardsWithUuid = computed(() => {
-      return props.cards.map((card) => ({
+      const sorted = sortCards(props.cards, localSortOrder.value)
+      return sorted.map((card) => ({
         card,
         uuid: crypto.randomUUID()
       }))

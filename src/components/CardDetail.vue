@@ -108,27 +108,10 @@ export default {
     const relatedLoadingMore = ref(false)
     const relatedCardsPerPage = 100
     
-    const sortedRelatedCards = computed(() => {
-      if (!detail.value || !detail.value.relatedCards) return []
-      
-      const cards = [...detail.value.relatedCards]
-      switch (relatedSortOrder.value) {
-        case 'release_desc':
-          return cards.sort((a, b) => (b.releaseDate || 0) - (a.releaseDate || 0))
-        case 'release_asc':
-          return cards.sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0))
-        case 'name_asc':
-          return cards.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        case 'name_desc':
-          return cards.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
-        default:
-          return cards
-      }
-    })
-    
     const displayedRelatedCards = computed(() => {
+      if (!detail.value || !detail.value.relatedCards) return []
       const endIndex = (relatedCurrentPage.value + 1) * relatedCardsPerPage
-      return sortedRelatedCards.value.slice(0, endIndex)
+      return detail.value.relatedCards.slice(0, endIndex)
     })
     
     const handleRelatedSortChange = () => {
@@ -231,7 +214,6 @@ export default {
       faqListData,
       relatedSortOrder,
       relatedViewMode,
-      sortedRelatedCards,
       displayedRelatedCards,
       relatedLoadingMore,
       handleRelatedSortChange,

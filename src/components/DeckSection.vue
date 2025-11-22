@@ -14,46 +14,9 @@
       </span>
       <!-- section-title配置時の検索入力欄 -->
       <div v-if="showSearchInTitle" class="section-search-container">
-        <div class="section-search-input">
-          <button class="search-mode-btn" @click.stop="toggleSearchModeDropdown">
-            <span class="mode-icon">▼</span>
-            <span class="mode-text">{{ searchModeLabel }}</span>
-          </button>
-          <div v-if="showSearchModeDropdown" class="search-mode-dropdown">
-            <div class="mode-option" @click="selectSearchMode('name')">カード名</div>
-            <div class="mode-option" @click="selectSearchMode('text')">テキスト</div>
-            <div class="mode-option" @click="selectSearchMode('pendulum')">Pテキスト</div>
-          </div>
-          <input
-            v-model="deckStore.searchQuery"
-            type="text"
-            placeholder="検索..."
-            @keyup.enter="handleSearch"
-          >
-          <button
-            v-if="deckStore.searchQuery"
-            class="clear-btn"
-            @click="deckStore.searchQuery = ''"
-          >×</button>
-          <div v-if="hasActiveFilters" class="filter-icons">
-            <span v-for="(icon, index) in displayFilterIcons" :key="index" class="filter-icon-item" :class="icon.type">{{ icon.label }}</span>
-            <span v-if="filterCount > 3" class="filter-more">+</span>
-          </div>
-          <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
-            <span class="menu-icon">⋯</span>
-            <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
-          </button>
-          <button class="search-btn" @click="handleSearch">
-            <svg width="12" height="12" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
-            </svg>
-          </button>
-        </div>
-        <SearchFilterDialog
-          :is-visible="showFilterDialog"
-          :initial-filters="searchFilters"
-          @close="showFilterDialog = false"
-          @apply="handleFilterApply"
+        <SearchInputBar
+          :compact="true"
+          placeholder="検索..."
         />
       </div>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
@@ -99,21 +62,18 @@
 </template>
 
 <script lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
-import SearchFilterDialog from './SearchFilterDialog.vue'
+import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
-import { searchCards } from '../api/card-search'
-import { getCardImageUrl } from '../types/card'
-import { detectCardGameType } from '../utils/page-detector'
 import { mdiShuffle, mdiSort } from '@mdi/js'
 
 export default {
   name: 'DeckSection',
   components: {
     DeckCard,
-    SearchFilterDialog
+    SearchInputBar
   },
   props: {
     title: {
@@ -144,250 +104,6 @@ export default {
       return props.sectionType === 'main' &&
              settingsStore.appSettings.searchInputPosition === 'section-title'
     })
-
-    // 検索モード
-    const searchMode = ref('name')
-    const showSearchModeDropdown = ref(false)
-
-    // フィルターダイアログ
-    const showFilterDialog = ref(false)
-    const searchFilters = reactive({
-      cardType: null as string | null,
-      attributes: [] as string[],
-      races: [] as string[],
-      levels: [] as number[],
-      atk: { from: undefined as number | undefined, to: undefined as number | undefined },
-      def: { from: undefined as number | undefined, to: undefined as number | undefined },
-      monsterTypes: [] as string[],
-      linkNumbers: [] as number[]
-    })
-
-    // フィルター条件の数
-    const filterCount = computed(() => {
-      let count = 0
-      if (searchFilters.cardType) count++
-      count += searchFilters.attributes.length
-      count += searchFilters.races.length
-      count += searchFilters.levels.length
-      if (searchFilters.atk.from !== undefined || searchFilters.atk.to !== undefined) count++
-      if (searchFilters.def.from !== undefined || searchFilters.def.to !== undefined) count++
-      count += searchFilters.monsterTypes.length
-      count += searchFilters.linkNumbers.length
-      return count
-    })
-
-    // フィルターが設定されているか
-    const hasActiveFilters = computed(() => filterCount.value > 0)
-
-    // 表示するフィルターアイコン（最大3個）
-    const displayFilterIcons = computed(() => {
-      const icons: { type: string; label: string }[] = []
-      const f = searchFilters
-
-      if (f.cardType) {
-        const labels = { monster: 'M', spell: 'S', trap: 'T' }
-        icons.push({ type: 'card-type', label: labels[f.cardType] || f.cardType })
-      }
-
-      f.attributes.forEach(attr => {
-        const labels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
-        icons.push({ type: 'attribute', label: labels[attr] || attr })
-      })
-
-      const raceLabels: Record<string, string> = {
-        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
-        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
-        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
-        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
-        windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
-        psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-        divine: '神獣', creatorgod: '創造'
-      }
-      f.races.slice(0, 3 - icons.length).forEach(race => {
-        icons.push({ type: 'race', label: raceLabels[race] || race.substring(0, 2) })
-      })
-
-      f.levels.slice(0, 3 - icons.length).forEach(level => {
-        icons.push({ type: 'level', label: `L${level}` })
-      })
-
-      if (icons.length < 3 && (f.atk.from !== undefined || f.atk.to !== undefined)) {
-        icons.push({ type: 'atk', label: 'ATK' })
-      }
-
-      if (icons.length < 3 && (f.def.from !== undefined || f.def.to !== undefined)) {
-        icons.push({ type: 'def', label: 'DEF' })
-      }
-
-      const monsterTypeLabels: Record<string, string> = {
-        normal: '通常', effect: '効果', fusion: '融合', ritual: '儀式',
-        synchro: 'S', xyz: 'X', pendulum: 'P', link: 'L',
-        tuner: 'T', flip: 'R', toon: 'Tn', spirit: 'Sp',
-        union: 'U', gemini: 'D', special: '特殊'
-      }
-      f.monsterTypes.slice(0, 3 - icons.length).forEach(type => {
-        icons.push({ type: 'monster-type', label: monsterTypeLabels[type] || type.substring(0, 2) })
-      })
-
-      f.linkNumbers.slice(0, 3 - icons.length).forEach(num => {
-        icons.push({ type: 'link', label: `L${num}` })
-      })
-
-      return icons.slice(0, 3)
-    })
-
-    // フィルター適用
-    const handleFilterApply = (filters) => {
-      Object.assign(searchFilters, filters)
-      showFilterDialog.value = false
-    }
-
-    const searchModeLabel = computed(() => {
-      switch (searchMode.value) {
-        case 'name': return 'name'
-        case 'text': return 'text'
-        case 'pendulum': return 'pend'
-        default: return 'name'
-      }
-    })
-
-    const toggleSearchModeDropdown = () => {
-      showSearchModeDropdown.value = !showSearchModeDropdown.value
-    }
-
-    const selectSearchMode = (mode: string) => {
-      searchMode.value = mode
-      showSearchModeDropdown.value = false
-    }
-
-    // 検索処理（RightAreaと同じロジック）
-    const processCards = (cards) => {
-      const gameType = detectCardGameType()
-      return cards.map(card => {
-        const relativeUrl = getCardImageUrl(card, gameType)
-        const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
-        return {
-          ...card,
-          imageUrl
-        }
-      })
-    }
-
-    const sortResults = (results) => {
-      const sorted = [...results]
-      switch (deckStore.sortOrder) {
-        case 'release_desc':
-          return sorted.sort((a, b) => (b.releaseDate || 0) - (a.releaseDate || 0))
-        case 'release_asc':
-          return sorted.sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0))
-        case 'name_asc':
-          return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        case 'name_desc':
-          return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
-        default:
-          return sorted
-      }
-    }
-
-    const handleSearch = async () => {
-      if (!deckStore.searchQuery.trim() && !hasActiveFilters.value) {
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-        deckStore.currentPage = 0
-        return
-      }
-
-      deckStore.activeTab = 'search'
-      deckStore.isLoading = true
-
-      // searchModeに応じてsearchTypeを設定
-      const searchTypeMap: Record<string, '1' | '2' | '3' | '4'> = {
-        'name': '1',
-        'text': '2',
-        'pendulum': '3'
-      }
-      const searchType = searchTypeMap[searchMode.value] || '1'
-
-      // 検索オプションを構築
-      const searchOptions: any = {
-        keyword: deckStore.searchQuery.trim(),
-        searchType: searchType,
-        resultsPerPage: 100
-      }
-
-      // フィルター条件を追加
-      if (searchFilters.cardType) {
-        searchOptions.cardType = searchFilters.cardType
-      }
-      if (searchFilters.attributes.length > 0) {
-        searchOptions.attributes = searchFilters.attributes
-      }
-      if (searchFilters.races.length > 0) {
-        searchOptions.races = searchFilters.races
-      }
-      if (searchFilters.levels.length > 0) {
-        searchOptions.levels = searchFilters.levels
-      }
-      if (searchFilters.atk.from !== undefined || searchFilters.atk.to !== undefined) {
-        searchOptions.atk = searchFilters.atk
-      }
-      if (searchFilters.def.from !== undefined || searchFilters.def.to !== undefined) {
-        searchOptions.def = searchFilters.def
-      }
-      if (searchFilters.monsterTypes.length > 0) {
-        searchOptions.monsterTypes = searchFilters.monsterTypes
-      }
-      if (searchFilters.linkNumbers.length > 0) {
-        searchOptions.linkNumbers = searchFilters.linkNumbers
-      }
-
-      try {
-        const results = await searchCards(searchOptions)
-
-        const processed = processCards(results)
-        const sorted = sortResults(processed)
-        deckStore.searchResults = sorted
-        deckStore.allResults = sorted
-
-        if (results.length >= 100) {
-          deckStore.hasMore = true
-
-          setTimeout(async () => {
-            try {
-              const moreResults = await searchCards({
-                ...searchOptions,
-                resultsPerPage: 2000
-              })
-
-              if (moreResults.length > 100) {
-                const allProcessed = processCards(moreResults)
-                const allSorted = sortResults(allProcessed)
-                deckStore.searchResults = allSorted
-                deckStore.allResults = allSorted
-
-                deckStore.hasMore = moreResults.length >= 2000
-                deckStore.currentPage = 1
-              } else {
-                deckStore.hasMore = false
-              }
-            } catch (error) {
-              console.error('Extended search error:', error)
-              deckStore.hasMore = false
-            }
-          }, 1000)
-        } else {
-          deckStore.hasMore = false
-        }
-      } catch (error) {
-        console.error('Search error:', error)
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-      } finally {
-        deckStore.isLoading = false
-      }
-    }
 
     const handleMoveResult = (result) => {
       if (!result || result.success) return true
@@ -558,7 +274,6 @@ export default {
       handleEndZoneDragLeave,
       handleShuffle,
       handleSort,
-      handleSearch,
       handleSectionDragOver,
       handleSectionDragLeave,
       handleDragEnd,
@@ -567,16 +282,6 @@ export default {
       getCardInfo,
       isSectionDragOver,
       showSearchInTitle,
-      searchModeLabel,
-      showSearchModeDropdown,
-      toggleSearchModeDropdown,
-      selectSearchMode,
-      showFilterDialog,
-      searchFilters,
-      filterCount,
-      hasActiveFilters,
-      displayFilterIcons,
-      handleFilterApply,
       mdiShuffle,
       mdiSort
     }
@@ -666,218 +371,6 @@ export default {
     flex: 1 1 auto;
     margin: 0 12px;
     min-width: 150px;
-  }
-
-  .section-search-input {
-    display: flex;
-    align-items: center;
-    position: relative;
-    background: white;
-    border: 1px solid var(--border-primary, #ddd);
-    border-radius: 4px;
-    padding: 4px 8px;
-    height: 28px;
-
-    input {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 13px;
-      padding: 4px 6px;
-      background: transparent;
-      color: var(--text-primary);
-      min-width: 80px;
-
-      &::placeholder {
-        color: var(--text-tertiary, #999);
-      }
-    }
-
-    .search-mode-btn {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 2px 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1px;
-      color: var(--text-secondary, #666);
-      font-size: 11px;
-      min-width: 36px;
-
-      .mode-icon {
-        font-size: 8px;
-        line-height: 1;
-      }
-
-      .mode-text {
-        font-size: 10px;
-        line-height: 1;
-      }
-
-      &:hover {
-        color: var(--text-primary);
-      }
-    }
-
-    .search-mode-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: white;
-      border: 1px solid var(--border-primary, #ddd);
-      border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      z-index: 100;
-      min-width: 80px;
-      margin-top: 2px;
-
-      .mode-option {
-        padding: 6px 8px;
-        font-size: 10px;
-        cursor: pointer;
-        color: var(--text-primary);
-
-        &:hover {
-          background: var(--bg-secondary, #f5f5f5);
-        }
-
-        &:first-child {
-          border-radius: 4px 4px 0 0;
-        }
-
-        &:last-child {
-          border-radius: 0 0 4px 4px;
-        }
-      }
-    }
-
-    .clear-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-tertiary, #999);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 0 4px;
-      line-height: 1;
-
-      &:hover {
-        color: var(--text-primary);
-      }
-    }
-
-    .filter-icons {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      margin-right: 4px;
-    }
-
-    .filter-icon-item {
-      font-size: 8px;
-      padding: 1px 3px;
-      border-radius: 2px;
-      white-space: nowrap;
-
-      // 属性
-      &.attribute {
-        background: #e3f2fd;
-        color: #1565c0;
-      }
-
-      // 種族
-      &.race {
-        background: #f3e5f5;
-        color: #7b1fa2;
-      }
-
-      // モンスタータイプ
-      &.monster-type {
-        background: #fff3e0;
-        color: #e65100;
-      }
-
-      // その他（レベル、ATK、DEF、リンク、カードタイプ）
-      &.level, &.atk, &.def, &.link, &.card-type {
-        background: var(--bg-secondary, #f5f5f5);
-        color: var(--text-secondary, #666);
-      }
-    }
-
-    .filter-more {
-      font-size: 8px;
-      color: var(--text-tertiary, #999);
-    }
-
-    .menu-btn {
-      background: transparent;
-      border: none;
-      border-radius: 4px;
-      color: var(--text-secondary, #666);
-      font-size: 14px;
-      cursor: pointer;
-      padding: 4px 6px;
-      line-height: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-
-      &:hover {
-        color: var(--text-primary);
-        background: var(--bg-secondary, #f5f5f5);
-      }
-
-      &.active {
-        color: var(--button-bg, #4CAF50);
-      }
-
-      .menu-icon {
-        display: block;
-      }
-
-      .filter-count-badge {
-        position: absolute;
-        top: -2px;
-        right: 0px;
-        background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-        color: white;
-        font-size: 8px;
-        min-width: 12px;
-        height: 12px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 2px;
-      }
-    }
-
-    .search-btn {
-      background: transparent;
-      border: none;
-      border-radius: 4px;
-      color: var(--text-secondary, #666);
-      cursor: pointer;
-      padding: 4px 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-
-      &:hover {
-        color: var(--text-primary);
-        background: var(--bg-secondary, #f5f5f5);
-      }
-
-      svg {
-        display: block;
-        width: 16px;
-        height: 16px;
-      }
-    }
   }
   
   .card-grid {
