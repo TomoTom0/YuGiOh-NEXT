@@ -1,3 +1,19 @@
+# CLAUDE.md - プロジェクトガイド
+
+## 📌 TL;DR（最重要事項）
+
+1. **ブラウザ操作**: Playwright MCP禁止 → `tmp/browser/` のNode.jsスクリプト + CDP経由で実行
+2. **よくあるミス**: [`.claude/common-mistakes.md`](.claude/common-mistakes.md) を必読
+3. **コード品質**:
+   - DOM更新後は `nextTick()` を必ず待つ
+   - UUID は `crypto.randomUUID()` を使用
+   - `any` 型禁止、型ガードを使用
+4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
+5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
+6. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
+
+---
+
 # ⚠️ 絶対ルール - ブラウザ操作（厳守） ⚠️
 
 ## 🚫 使用禁止（違反＝プロジェクト破壊）
@@ -126,18 +142,17 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 
 ### 参考ドキュメント
 
-- **調査手法の詳細**: `docs/research/investigation-methodology.md`
 - **セットアップスクリプト**: `scripts/debug/setup/`
 
 ## Build & Deploy
 
-```bash
-# ビルド（TypeScript → JavaScript）
-npm run build
+**ソースコード更新後は必ず以下を実行すること：**
 
-# デプロイ（dist/ を本番環境にコピー）
-./scripts/deploy.sh
+```bash
+npm run build-and-deploy
 ```
+
+このコマンドはビルドとデプロイを一括で行う。
 
 ### デプロイ先
 
@@ -154,9 +169,9 @@ npm test
 node tmp/test-*.js
 ```
 
-### テストページ
+### デッキ編集ページ
 
-拡張機能は `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test` でテストUIを表示します。
+拡張機能のデッキ編集UIは `https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit` でアクセスできます。
 
 ## ファイル構成の重要なルール
 
@@ -191,6 +206,82 @@ node tmp/test-*.js
 - `printf '\a'` などのbeep音を鳴らすコマンドは使用しないこと
 - 完了通知が必要な場合はテキストメッセージで伝えること
 
-## sample
+## テストとサンプルデータ
+
+### sample
 
 - アクセス先のページのurlやhtmlは適当に調べるのではなく、`tests/sample/`に従ってアクセスおよびダウンロード済みhtmlの調査をする
+
+### ブラウザ自動テスト
+
+- ブラウザ操作の自動テストスクリプトは `tests/browser/` にある
+- 新しいブラウザテストを作成する際は、既存のテストスクリプト（`test-buttons.js`, `test-shuffle.js`等）を参考にすること
+- `tmp/browser/` のスクリプトは動作確認されていない一時的なものなので、根拠として使用しないこと
+
+#### テストコード作成時の厳守事項
+
+**必ずソースコードから仕様を確認すること**
+
+テストコードを書く前に、以下を必ずソースコードから確認する：
+
+1. **セレクタ・クラス名**: 推測で書かず、ソースコードから実際のクラス名を確認
+2. **イベントハンドラの動作**: ボタンがどの関数を呼ぶか、その関数が何をするかを確認
+3. **データ属性**: data-*属性が存在するか、何が格納されているかを確認
+4. **DOM構造**: 要素の親子関係、兄弟関係を確認
+
+禁止事項：
+- **禁止**: 推測でセレクタやクラス名を書くこと
+- **禁止**: 推測でボタンの動作を決めること（例：「下ボタン=side移動」など）
+- **禁止**: Vue/Piniaの内部プロパティ（`__vue_app__`, `$pinia._s`等）にアクセスすること
+
+必須事項：
+- **必須**: ソースコードを読んで、実際に使用されているクラス名・属性・セレクタを確認すること
+- **必須**: イベントハンドラ関数の中身を読んで、実際の動作を確認すること
+- **必須**: DOM要素とその公開属性のみを使用すること
+
+例：
+- ❌ 悪い例: `document.querySelector('.deck-section[data-section-type="main"]')` （推測で書いた）
+- ✅ 良い例: ソースコードで `.main-deck` クラスを確認してから `document.querySelector('.main-deck')` を使用
+- ❌ 悪い例: 「下ボタンはside移動だろう」と推測して `.bottom-right` をクリック
+- ✅ 良い例: DeckCard.vueで `handleTopRight()` が `moveCardToSide()` を呼ぶことを確認してから `.top-right` をクリック
+
+## 絵文字の使用禁止
+
+**絵文字は絶対に使用してはならない**
+
+- ソースコード、HTML、Vue template、CSS、JavaScript/TypeScriptなど全てのコードで絵文字を使用しないこと
+- アイコンが必要な場合は以下の方法を使用すること：
+  - SVGアイコン
+  - フォントアイコン（Font Awesome等）
+  - テキスト記号（例: `×`, `⋯`, `▼`など）
+  - CSS擬似要素による描画
+- コミットメッセージやドキュメント内でも絵文字は使用しないこと
+
+## PRレビュー対応
+
+**gh-replyコマンドを使用すること**
+
+PRのレビューコメントに返信する際は、`gh-reply`コマンドを使用する。
+
+### 基本的な使い方
+
+```bash
+# PRのレビューコメント一覧を取得
+gh-reply comment list <PR番号>
+
+# ドラフト返信を追加 (comment listで取得したthreadIdを指定)
+gh-reply draft add <PR番号> <threadId> "返信内容"
+
+# ドラフト一覧を確認
+gh-reply draft show <PR番号>
+
+# ドラフトを送信
+gh-reply draft send <PR番号>
+```
+
+### ワークフロー
+
+1. `gh-reply comment list <PR番号>` でレビューコメントを確認
+2. 各コメントに対して `gh-reply draft add` でドラフト返信を作成
+3. 必要な修正をコードに反映してコミット・プッシュ
+4. `gh-reply draft send <PR番号>` でドラフトを一括送信

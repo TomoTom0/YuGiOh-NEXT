@@ -22,15 +22,15 @@ npm run build
 5. `extension/dist`フォルダを選択
 6. 拡張機能「遊戯王デッキヘルパー」がリストに追加される
 
-### 3. テストUIにアクセス
+### 3. デッキ編集UIにアクセス
 
-以下のURLにアクセスしてテストUIが表示されることを確認：
+以下のURLにアクセスしてデッキ編集UIが表示されることを確認：
 
 ```
-https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test
+https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit
 ```
 
-正常に動作していれば、公式サイトのコンテンツが消えて、テスト用UIが表示されます。
+正常に動作していれば、公式サイトのコンテンツが消えて、デッキ編集UIが表示されます。
 
 ## デプロイ後の更新
 
@@ -42,12 +42,12 @@ https://www.db.yugioh-card.com/yugiohdb/#/ytomo/test
 
 ## トラブルシューティング
 
-### テストUIが表示されない
+### デッキ編集UIが表示されない
 
 1. Chromeのデベロッパーツール（F12）を開く
 2. Consoleタブで以下のログを確認：
-   - `Loading test UI...` - Content scriptが実行されている
-   - `Test UI loaded successfully` - UIの読み込み成功
+   - `Loading edit UI...` - Content scriptが実行されている
+   - `Edit UI loaded successfully` - UIの読み込み成功
 3. ログが表示されない場合：
    - `chrome://extensions/`で拡張機能が**有効**になっているか確認
    - 拡張機能の**「エラー」**ボタンがあれば、クリックしてエラー内容を確認

@@ -8,7 +8,12 @@
       >
         Deck
       </button>
-      <button class="tab-header" disabled>Header</button>
+      <button
+        :class="{ active: deckStore.activeTab === 'card' }"
+        @click="deckStore.activeTab = 'card'"
+      >
+        Card
+      </button>
       <button
         :class="{ active: deckStore.activeTab === 'search' }"
         @click="deckStore.activeTab = 'search'"
@@ -16,30 +21,15 @@
         Search
       </button>
       <button
-        :class="{ active: deckStore.activeTab === 'card' }"
-        @click="deckStore.activeTab = 'card'"
+        :class="{ active: deckStore.activeTab === 'metadata' }"
+        @click="deckStore.activeTab = 'metadata'"
       >
-        Card
+        Metadata
       </button>
     </div>
 
     <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
       <slot name="deck-tab"></slot>
-    </div>
-
-    <div v-show="deckStore.activeTab === 'search'" class="search-content">
-      <CardList
-        :cards="deckStore.searchResults"
-        :sort-order="deckStore.sortOrder"
-        :view-mode="deckStore.viewMode"
-        section-type="search"
-        @sort-change="handleSortChange"
-        @scroll="handleScroll"
-        @scroll-to-top="handleScrollToTop"
-        @update:sortOrder="deckStore.sortOrder = $event"
-        @update:viewMode="deckStore.viewMode = $event"
-      />
-      <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
     </div>
 
     <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
@@ -54,57 +44,112 @@
       </div>
     </div>
 
-    <div class="search-input-bottom">
-      <input
-        v-model="deckStore.searchQuery"
-        type="text"
-        placeholder="カード名を検索..."
-        @keyup.enter="handleSearchInput"
-      >
-      <button class="search-btn" @click="handleSearchInput">
-        <svg width="18" height="18" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
-        </svg>
-      </button>
+    <div v-show="deckStore.activeTab === 'search'" class="search-content">
+      <CardList
+        :cards="deckStore.searchResults"
+        :sort-order="deckStore.sortOrder"
+        :view-mode="deckStore.viewMode"
+        section-type="search"
+        @scroll="handleScroll"
+        @scroll-to-top="handleScrollToTop"
+        @update:sortOrder="deckStore.sortOrder = $event"
+        @update:viewMode="deckStore.viewMode = $event"
+      />
+      <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
+    </div>
+
+    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+      <DeckMetadata />
+    </div>
+
+    <!-- グローバル検索モード用オーバーレイ -->
+    <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
+
+    <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
+      <SearchInputBar
+        ref="searchInputBarRef"
+        @escape="closeGlobalSearch"
+      />
     </div>
   </div>
 </template>
 
 <script>
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCardsByName } from '../api/card-search'
+import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
+import DeckMetadata from './DeckMetadata.vue'
+import SearchInputBar from './SearchInputBar.vue'
 
 export default {
   name: 'RightArea',
   components: {
     CardList,
-    CardDetail
+    CardDetail,
+    DeckMetadata,
+    SearchInputBar
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
+    const searchInputBarRef = ref(null)
 
-    const sortResults = (results) => {
-      const sorted = [...results]
-      switch (deckStore.sortOrder) {
-        case 'release_desc':
-          return sorted.sort((a, b) => (b.releaseDate || 0) - (a.releaseDate || 0))
-        case 'release_asc':
-          return sorted.sort((a, b) => (a.releaseDate || 0) - (b.releaseDate || 0))
-        case 'name_asc':
-          return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-        case 'name_desc':
-          return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
-        default:
-          return sorted
-      }
+    // 検索入力欄をデフォルト位置（下部）に表示するかどうか
+    const showSearchInputBottom = computed(() => {
+      return settingsStore.appSettings.searchInputPosition === 'default'
+    })
+
+    // グローバル検索モードを閉じる
+    const closeGlobalSearch = () => {
+      deckStore.isGlobalSearchMode = false
     }
 
+    // グローバル検索モードになったらinputにフォーカス
+    watch(() => deckStore.isGlobalSearchMode, (isActive) => {
+      if (isActive) {
+        nextTick(() => {
+          if (searchInputBarRef.value) {
+            searchInputBarRef.value.focus()
+          }
+        })
+      }
+    })
+
+    // タブ切り替え時にスクロールを一番上に戻す
+    watch(() => deckStore.activeTab, () => {
+      nextTick(() => {
+        const contentSelectors = ['.search-content', '.card-detail-content', '.metadata-content', '.deck-content']
+        contentSelectors.forEach(selector => {
+          const el = document.querySelector(selector)
+          if (el) {
+            el.scrollTop = 0
+          }
+        })
+      })
+    })
+
+    // 選択カード変更時にcard-detail-content内のスクロールをリセット
+    watch(() => deckStore.selectedCard, () => {
+      nextTick(() => {
+        const cardDetailContent = document.querySelector('.card-detail-content')
+        if (cardDetailContent) {
+          cardDetailContent.scrollTop = 0
+        }
+        // CardDetail内のcard-tab-contentもリセット
+        const cardTabContent = document.querySelector('.card-tab-content')
+        if (cardTabContent) {
+          cardTabContent.scrollTop = 0
+        }
+      })
+    })
+
     const processCards = (cards) => {
+      const gameType = detectCardGameType()
       return cards.map(card => {
-        const relativeUrl = getCardImageUrl(card)
+        const relativeUrl = getCardImageUrl(card, gameType)
         const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
         return {
           ...card,
@@ -143,69 +188,6 @@ export default {
       }
     }
 
-    const handleSearchInput = async () => {
-      if (!deckStore.searchQuery.trim()) {
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-        deckStore.currentPage = 0
-        return
-      }
-      
-      deckStore.activeTab = 'search'
-      deckStore.isLoading = true
-      
-      try {
-        const results = await searchCardsByName(deckStore.searchQuery.trim(), 100)
-        console.log('Initial search results:', results.length)
-        
-        const processed = processCards(results)
-        const sorted = sortResults(processed)
-        deckStore.searchResults = sorted
-        deckStore.allResults = sorted
-        
-        if (results.length >= 100) {
-          deckStore.hasMore = true
-          
-          setTimeout(async () => {
-            try {
-              const moreResults = await searchCardsByName(deckStore.searchQuery.trim(), 2000)
-              console.log('Extended search results:', moreResults.length)
-              
-              if (moreResults.length > 100) {
-                const allProcessed = processCards(moreResults)
-                const allSorted = sortResults(allProcessed)
-                deckStore.searchResults = allSorted
-                deckStore.allResults = allSorted
-                
-                deckStore.hasMore = moreResults.length >= 2000
-                deckStore.currentPage = 1
-              } else {
-                deckStore.hasMore = false
-              }
-            } catch (error) {
-              console.error('Extended search error:', error)
-              deckStore.hasMore = false
-            }
-          }, 1000)
-        } else {
-          deckStore.hasMore = false
-        }
-      } catch (error) {
-        console.error('Search error:', error)
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-      } finally {
-        deckStore.isLoading = false
-      }
-    }
-
-    const handleSortChange = () => {
-      const sorted = sortResults(deckStore.allResults)
-      deckStore.searchResults = sorted
-    }
-
     const showCardDetail = (card) => {
       deckStore.selectedCard = card
       deckStore.activeTab = 'card'
@@ -214,8 +196,9 @@ export default {
 
     return {
       deckStore,
-      handleSearchInput,
-      handleSortChange,
+      showSearchInputBottom,
+      searchInputBarRef,
+      closeGlobalSearch,
       handleScroll,
       handleScrollToTop,
       showCardDetail
@@ -227,6 +210,7 @@ export default {
 <style scoped lang="scss">
 .right-area {
   width: 320px;
+  height: 100%;
   background: white;
   border-left: 1px solid #ddd;
   display: flex;
@@ -255,21 +239,35 @@ export default {
   button {
     padding: 8px;
     border: none;
+    border-right: 1px solid #e0e0e0;
     background: white;
     cursor: pointer;
     font-size: 13px;
-    color: #333;
+    color: var(--text-primary);
+    transition: background 0.2s, color 0.2s;
+
+    &:last-child {
+      border-right: none;
+    }
+
+    &:hover:not(.active):not(.tab-header) {
+      background: #f5f5f5;
+      color: #1976d2;
+    }
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
     }
-    
+
     &.tab-header {
-      background: #f0f0f0;
+      background: var(--bg-tertiary);
+      color: var(--text-tertiary);
       cursor: default;
+      font-style: italic;
+      opacity: 0.7;
     }
-    
+
     &.deck-tab {
       display: none;
     }
@@ -286,7 +284,7 @@ export default {
   }
 }
 
-.deck-content, .search-content, .card-detail-content {
+.deck-content, .search-content, .card-detail-content, .metadata-content {
   animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -302,6 +300,16 @@ export default {
 }
 
 .deck-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.metadata-content {
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -333,7 +341,7 @@ export default {
 .loading-indicator {
   text-align: center;
   padding: 10px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
   grid-column: 1 / -1;
 }
@@ -358,7 +366,7 @@ export default {
 
 .card-text {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -371,18 +379,24 @@ export default {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #008cff;
-  
+
   button {
     padding: 8px;
     border: none;
+    border-right: 1px solid var(--border-primary, #e0e0e0);
     background: white;
     cursor: pointer;
     font-size: 12px;
-    color: #333;
-    
+    color: var(--text-primary);
+
+    &:last-child {
+      border-right: none;
+    }
+
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: white;
+      border-right-color: transparent;
     }
   }
 }
@@ -430,7 +444,7 @@ export default {
 .card-name-large {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
@@ -451,9 +465,9 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   font-size: 11px;
   
   &.stat-box-full {
@@ -463,7 +477,7 @@ export default {
   &.stat-box-type {
     width: 100%;
     transform: skewX(-10deg);
-    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
     justify-content: center;
     
     .stat-text {
@@ -475,14 +489,14 @@ export default {
 .stat-text {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .link-markers-box {
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .link-markers-grid {
@@ -495,21 +509,21 @@ export default {
 .marker-cell {
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--bg-primary);
   font-size: 14px;
   
   &.active {
-    background: #008cff;
+    background: var(--button-bg);
     color: white;
     font-weight: bold;
   }
   
   &:nth-child(5) {
-    background: #f0f0f0;
+    background: var(--bg-secondary);
   }
 }
 
@@ -522,7 +536,7 @@ export default {
 .stat-value {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .card-type-line {
@@ -530,31 +544,31 @@ export default {
   flex-direction: column;
   gap: 2px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   font-size: 11px;
 }
 
 .card-atk-def {
   font-size: 12px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-secondary);
 }
 
 .card-ruby {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: -5px;
 }
 
 .card-type-info {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   padding: 4px 8px;
   background: #f5f5f5;
   border-radius: 4px;
@@ -579,7 +593,7 @@ export default {
 }
 
 .stat-value {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .card-pendulum-effect,
@@ -591,22 +605,22 @@ export default {
 .section-title {
   font-size: 11px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   padding: 4px 8px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   border-radius: 4px 4px 0 0;
 }
 
 .effect-text {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 0 0 4px 4px;
-  background: #fff;
+  background: var(--bg-primary);
 }
 
 .no-card-selected {
@@ -621,46 +635,69 @@ export default {
   left: 20px;
   right: 340px;
   display: flex;
-  gap: 10px;
-  background: white;
-  padding: 10px 15px;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  flex-direction: row;
   z-index: 100;
+  transition: all 0.2s ease;
 
-  input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 14px;
-    padding: 5px;
-    background: white !important;
-    color: #000 !important;
-    
-    &::placeholder {
-      color: #999 !important;
+  // グローバル検索モード時のスタイル
+  &.global-search-mode {
+    bottom: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, 50%);
+    width: 90%;
+    max-width: 600px;
+    z-index: 10001;
+    animation: scaleIn 0.2s ease;
+
+    .search-input-wrapper {
+      height: 56px;
+      min-height: 56px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
+
+    .search-input {
+      font-size: 18px;
+    }
+  }
+}
+
+// グローバル検索モードのオーバーレイ
+.global-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 50%) scale(1);
   }
 }
 
 @media (max-width: 768px) {
   .search-input-bottom {
     right: 20px;
-  }
-}
-
-.search-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-
-  &:hover {
-    color: #008cff;
   }
 }
 </style>

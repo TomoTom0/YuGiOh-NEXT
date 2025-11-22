@@ -4,101 +4,212 @@
 
 ## 📊 現状サマリー
 
-**Phase 1（調査）**: ✅ 完了（全API実装・テスト完了）
-**Phase 2（独立機能）**: ✅ 完了（デッキ画像作成・シャッフル機能・オプションページ）
-**Phase 3（デッキ編集UI + i18n基盤）**: ✅ 実装完了（PR#2マージ済み）
-**次のステップ**: v0.3.0リリース準備（バージョン更新）
+**Phase 1（調査）**: ✅ 完了
+**Phase 2（独立機能）**: ✅ 完了（v0.2.0）
+**Phase 3（デッキ編集UI + i18n基盤）**: ✅ 完了（v0.3.0）
+**Phase 4（デッキ編集画面実装）**: ✅ 完了（v0.4.0 - PR #10マージ済み）
+**内部レビュー対応**: 🔄 進行中（01 対応中）
 
-**最新の状況** (2025-11-13):
-- ✅ テスト修正完了（vitest対応: __dirname polyfill追加）
-- ✅ 単体テスト: 全Pass（tsx実行）
-- ✅ 結合テスト: 全Pass（tsx実行）
-- ✅ コンポーネントテスト: 51 passed | 3 skipped
-- ✅ オプションページ修正完了
-  - 拡張機能名を "Yugioh Neuron Helper" に統一
-  - "独自デッキ編集画面" の表記に統一
-  - 独自デッキ編集画面自体のON/OFF設定を追加（Omit and Usage タブ）
-  - Deck Edit Settings タブで詳細設定を提供
-  - 画面>機能の構造を維持
-  - 画像を public/images/ に配置し、オプションページで表示可能に
-- ✅ ドキュメント修正完了
-  - docs/usage/index.md: オプションページの説明を実装に合わせて更新
-  - README.md: すでに適切な画像を使用（修正不要）
-- ✅ ビルド・デプロイ完了
-- 📝 次: バージョン更新とリリース準備（スクリーンショット撮影後）
+### リリース状況
+- **v0.3.0**: ✅ リリース済み（2025-11-13）
+- **v0.3.1**: ✅ リリース済み（2025-11-14）
+- **v0.3.2**: ✅ 開発完了（リリース準備完了）
+- **v0.4.0**: 🔄 開発中（Phase 1: 基盤整備）
+
+### 現在の作業ブランチ
+- `feature/v0.4.0-foundation`（Phase 1: 基盤整備）
 
 ---
 
-## v0.3.0 リリースタスク（優先度：最高）
+## v0.4.0開発タスク（Phase 1: 基盤整備）
 
-**目標日**: 2025-11-17  
-**現在**: ドキュメント修正中 - スクリーンショット追加必要
+### 📋 実装計画
+**Phase 1完了条件:**
+- USP（URL State Parameters）による状態管理
+- 画像サイズ4段階切り替え
+- カラーテーマ3種（dark/light/system）
+- 言語切り替え（10言語 + auto）
 
-### ブロッカー: ドキュメント修正
+**詳細:** `tmp/wip/v0.4.0-investigation.md`, `tasks/wip.md`
 
-#### ドキュメント構造修正 ✅
-- [x] README.md: デッキ画像サンプルをダイアログではなく実際の出力画像に変更
-- [x] README.md: 存在しないdeck-edit-demo.gifの参照を削除
-- [x] docs/usage/index.md: 画面>機能の構造に修正
-- [x] docs/usage/index.md: デッキ編集ページの詳細は deck-edit.md に移動
-- [x] docs/usage/index.md: オプションページを実装状況に合わせて修正
-- [x] オプションページの修正
-  - [x] "Deck Edit Sample" タブ削除
-  - [x] Omit and Usage タブを画面>機能の構造に再編（上下配置）
-  - [x] デッキ表示ページの各機能に画像を追加
-  - [x] デッキ編集ページのセクション追加
-  - [x] Deck Edit Settings タブを追加
-  - [x] 画像を public/images/ に配置
+---
 
-#### スクリーンショット追加必要（手動）
-- [ ] `docs/usage/images/options-page.png` - オプションページ全体
-- [ ] `docs/usage/images/deck-edit-demo.gif` - デッキ編集UIのデモ（オプション）
-  
-### 完了: カード枚数制限実装 ✅
-- [x] main/extra/side合計で同じカード3枚まで制限
-- [x] テスト追加（17tests → 17tests 全pass）
-- [x] ドキュメント更新（docs/usage/deck-edit.md）
-- [x] ビルド・デプロイ完了
-- [x] テスト・ドキュメント最終確認完了
+> **Note**: 設定ストアとUSP実装は完了済み（2025-11-17）→ `tasks/done.md` 参照
 
-### 完了: テスト実装 ✅
-**v0.3.0テスト**: 125tests（単体47 + 結合34 + コンポーネント54-3skip）
-**実行方法**:
-- `npm test` - 全テスト（tsx）
-- `npm run test:components` - コンポーネントテスト（vitest）
-- `npm run test:vitest` - 全vitestテスト
+---
 
-### 必須タスク（リリースブロッカー）
+### 0. メタデータ管理の改善（優先度：高）
 
-#### 2. ドキュメント整備 ✅
-- [x] ユーザー向け: docs/usage/deck-edit.md作成
-- [x] README.md更新（v0.3.0新機能説明）
-- [x] 開発者向け: docs/dev/architecture.md, i18n.md作成
+#### 0.1 タグマスターデータの取得実装
+- [ ] `src/utils/deck-metadata-loader.ts`の`updateDeckMetadata()`を修正
+  - デッキ検索ページからタグマスターデータを取得
+  - `DeckMetadata`インターフェースに`tags: Record<string, string>`を追加
+  - chrome.storage.localに保存
+- [ ] タグマスターデータの初期JSONファイル作成
+  - `src/data/deck-metadata.json`にタグマスター追加
+- [ ] `src/components/DeckMetadata.vue`でタグ選択UIを有効化
+  - 現在は空オブジェクト（`tags.value = {}`）のため選択不可
 
-#### 3. オプションページ拡張 ✅
-- [x] デッキ編集機能の設定UI（機能ON/OFF、デフォルト表示モード等）
-- [x] 多言語設定UI（自動/手動選択）
-- [x] 設定の保存・読み込み機能
-- [x] DeckEditSettings型定義とユーティリティ関数
+---
 
-#### 4. リリース準備
-- [x] バージョン更新（version.dat, manifest.json, package.json → 0.3.0）
-- [x] CHANGELOG作成（docs/changelog/v0.3.0.md, docs/changelog/index.md）
-- [x] ドキュメント絵文字削除（changelog/index.md, changelog/v0.3.0.md）
-- [x] オプションページに独自デッキ編集画面の画像追加（3枚）
-- [x] ブランチ保護ルール設定（main/dev）
-- [x] PR#3レビュー結果確認・対応完了
-  - [x] レビューコメント#1: CHANGELOG.mdプレースホルダーURL修正
-  - [x] レビューコメント#2: テストフレームワークvitest統一
-- [x] PR#3マージ（feature/v0.3.0-tests → dev）
-- [x] devブランチをpull
-- [x] PR#4作成（dev → main）
-  - [x] v0.3.0リリースPR作成
-  - [x] 主な変更点を網羅的に記載
-  - [x] URL: https://github.com/TomoTom0/YuGiOh-NEXT/pull/4
-- [ ] 最終動作確認（Chrome/Edge）
-- [ ] PR#4マージ（dev → main）
-- [ ] v0.3.0タグ作成
+### 1. UIデザイン改善（優先度：高）
+
+#### 1.1 ダイアログのデザイン統一
+- [ ] オプション画面（`src/options/App.vue`）のデザイン改善
+  - モダンなカード型レイアウトに変更
+  - CSS変数の完全適用（ダークモード対応）
+  - フォント、余白、影の調整
+- [ ] エクスポートダイアログ（`src/components/ExportDialog.vue`）のデザイン改善
+  - グラデーション効果の追加
+  - アニメーション効果の追加
+  - アイコンとボタンのスタイル統一
+- [ ] デッキ画像作成ダイアログ（`src/content/deck-recipe/imageDialog.ts`）のデザイン改善
+  - カラーパレットの統一
+  - モダンなフォームスタイル
+  - レスポンシブ対応
+
+#### 1.2 デザインシステムの確立
+- [ ] 共通のダイアログコンポーネント作成（`src/components/BaseDialog.vue`）
+  - ヘッダー、ボディ、フッターの統一レイアウト
+  - アニメーション（フェードイン/スライドイン）
+  - 閉じるボタンの統一スタイル
+- [ ] カラーパレットの定義（`src/styles/colors.css`）
+  - プライマリカラー、セカンダリカラー
+  - ライト/ダークモードの色定義
+  - グラデーション定義
+
+---
+
+### 2. デッキデータのエクスポート/インポート機能（優先度：高）
+
+#### 2.1 エクスポート機能実装
+- [x] CSV形式エクスポート関数（`src/utils/deck-export.ts`）
+  - 常にname列を含む
+  - フォーマット: `section,name,cid,ciid,quantity`
+  - オプション: Include Side Deck（デフォルト: true）
+- [x] TXT形式エクスポート関数
+  - 人間が読みやすい形式
+  - 例: `2x 灰流うらら (12950:1)`
+- [x] エクスポートダイアログUI（`src/components/ExportDialog.vue`）
+  - フォーマット選択（CSV/TXT）
+  - Include Side Deckチェックボックス
+  - ファイル名入力（デフォルト: `deck-{dno}.csv`）
+- [x] DeckEditTopBarメニューにエクスポート項目追加
+  - "Export Deck"
+
+#### 2.2 テスト
+- [ ] エクスポート関数のユニットテスト
+  - 複数ciid対応
+  - サイドデッキ含む/含まない
+- [ ] インポートパーサーのユニットテスト
+  - 柔軟な形式対応（name省略、ciid省略、複数行）
+  - エラーハンドリング（不正な形式）
+- [ ] E2Eテスト（エクスポート→インポート）
+
+#### 2.3 サンプルファイル
+- [x] `tmp/export-samples/deck-with-name.csv`
+- [x] `tmp/export-samples/deck-with-name.txt`
+- [x] `tmp/export-samples/README.md`
+
+---
+
+### 3. 画像サイズ切り替え実装（優先度：高）
+
+> **Note**: 基盤実装完了（setProperty方式でCSS変数適用）→ `tasks/done.md` 参照
+
+#### 3.1 UI実装
+- [ ] オプション画面に設定項目追加
+- [ ] デッキ編集画面にクイック切り替えボタン追加（オプション）
+
+#### 3.2 テスト
+- [ ] ユニットテスト
+- [ ] E2Eテスト（サイズ切り替え）
+
+---
+
+### 4. カラーテーマ切り替え実装（優先度：高）
+
+> **Note**: 基盤実装完了（themes.ts + applyTheme）→ `tasks/done.md` 参照
+
+#### 4.1 コンポーネント修正
+- [ ] 全コンポーネントのテーマ対応確認
+- [ ] ハードコードされた色をCSS変数に置き換え
+
+#### 4.2 UI実装
+- [ ] オプション画面にテーマ選択追加
+- [ ] デッキ編集画面にクイック切り替えボタン追加（オプション）
+
+#### 4.3 テスト
+- [ ] ユニットテスト
+- [ ] E2Eテスト（テーマ切り替え）
+- [ ] ダークテーマでの視覚確認
+
+---
+
+### 5. 言語切り替え実装（優先度：高）
+
+> **Note**: 基盤実装完了（言語設定ストア + effectiveLanguage）→ `tasks/done.md` 参照
+
+#### 5.1 API修正
+- [ ] 全APIファイルに`request_locale`パラメータ付与ロジック追加
+  - `src/api/deck-parser.ts`
+  - `src/api/card-search.ts`
+  - `src/api/card-faq.ts`
+  - その他APIファイル
+- [ ] 言語設定に応じたlocale付与
+
+#### 5.2 UI実装
+- [ ] オプション画面に言語選択UI追加
+- [ ] 言語切り替え後のリロード処理
+
+#### 5.3 テスト
+- [ ] 各言語でのAPI動作確認
+- [ ] E2Eテスト（言語切り替え）
+
+---
+
+### 6. オプション画面の拡張（優先度：中）
+
+#### 6.1 新しいタブの追加
+- [ ] "Settings"タブの作成
+  - 画像サイズ設定
+  - テーマ設定
+  - 言語設定
+  - その他設定項目
+- [ ] 既存の"Omit and Usage"タブとの分離
+
+#### 6.2 UI実装
+- [ ] 設定項目のレイアウト
+- [ ] 設定変更の即時反映
+- [ ] 設定リセット機能
+
+---
+
+### 7. 統合テストとドキュメント（優先度：中）
+
+#### 7.1 E2Eテスト
+- [ ] 全機能の統合テストシナリオ作成
+- [ ] テストスクリプト作成（`tmp/browser/e2e-v0.4.0-phase1.js`）
+
+#### 7.2 ドキュメント更新
+- [ ] README.md更新（v0.4.0新機能）
+- [ ] CHANGELOG作成（`docs/changelog/v0.4.0-alpha.md`）
+- [ ] 使い方ドキュメント更新
+
+---
+
+### Phase 1完了後のリリース作業
+
+#### バージョン更新
+- [ ] version.dat: 0.3.2 → 0.4.0-alpha
+- [ ] manifest.json: 0.3.2 → 0.4.0
+- [ ] package.json: 0.3.2 → 0.4.0
+
+#### Git管理
+- [ ] git commit（Phase 1完了）
+- [ ] git push
+- [ ] v0.4.0-alpha タグ作成
+- [ ] ビルド・デプロイ
 
 ---
 

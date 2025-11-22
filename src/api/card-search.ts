@@ -12,7 +12,8 @@ import {
   SpellEffectType,
   TrapEffectType,
   CardDetail,
-  PackInfo
+  PackInfo,
+  LimitRegulation
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import {
@@ -120,6 +121,27 @@ const TRAP_EFFECT_TYPE_TO_EFFE_VALUE: Record<TrapEffectType, string> = {
   normal: '20',
   continuous: '24',
   counter: '21'
+};
+
+/**
+ * 内部sortOrder → API sortパラメータのマッピング
+ * API値: 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 11-12=リンク数, 20-21=発売日
+ */
+export const SORT_ORDER_TO_API_VALUE: Record<string, number> = {
+  'name_asc': 1,
+  'name_desc': 1, // APIは50音順のみ、descはクライアント側で反転
+  'release_desc': 20,
+  'release_asc': 21,
+  'level_desc': 2,
+  'level_asc': 3,
+  'atk_desc': 4,
+  'atk_asc': 5,
+  'def_desc': 6,
+  'def_asc': 7,
+  'attribute_asc': 1, // APIに属性ソートなし、50音順で代用
+  'attribute_desc': 1,
+  'race_asc': 1, // APIに種族ソートなし、50音順で代用
+  'race_desc': 1
 };
 
 /**
@@ -754,15 +776,29 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     text = cloned.textContent?.trim() || undefined;
   }
 
+  // 禁止制限（オプション）
+  let limitRegulation: LimitRegulation | undefined = undefined;
+  const lrIconElem = row.querySelector('.lr_icon');
+  if (lrIconElem) {
+    if (lrIconElem.classList.contains('fl_1')) {
+      limitRegulation = 'forbidden';
+    } else if (lrIconElem.classList.contains('fl_2')) {
+      limitRegulation = 'limited';
+    } else if (lrIconElem.classList.contains('fl_3')) {
+      limitRegulation = 'semi-limited';
+    }
+  }
+
   const base: CardBase = {
     name,
     ruby,
     cardId,
     ciid,
     imgs,
-    text
+    text,
+    limitRegulation
   };
-  
+
   return base;
 }
 
@@ -1324,18 +1360,27 @@ export async function getCardDetail(
 function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: string}> {
   const imgs: Array<{ciid: string, imgHash: string}> = [];
   
-  const thumbnailImages = doc.querySelectorAll('#thumbnail img');
-  thumbnailImages.forEach(img => {
-    const src = img.getAttribute('src') || '';
-    const ciidMatch = src.match(/ciid=(\d+)/);
-    const encMatch = src.match(/enc=([^&]+)/);
+  // HTML全体を文字列として取得
+  const html = doc.documentElement.outerHTML;
+  
+  // JavaScriptコード内の $('#thumbnail_card_image_X').attr('src', '...') パターンを抽出
+  const pattern = /\$\(['"]#thumbnail_card_image_\d+['"]\)\.attr\(['"]src['"],\s*['"]([^'"]+)['"]\)/g;
+  
+  let match;
+  while ((match = pattern.exec(html)) !== null) {
+    const url = match[1];
+    if (!url) continue;
+
+    const ciidMatch = url.match(/ciid=(\d+)/);
+    const encMatch = url.match(/enc=([^&]+)/);
+
     if (ciidMatch?.[1] && encMatch?.[1]) {
       imgs.push({
         ciid: ciidMatch[1],
         imgHash: encMatch[1]
       });
     }
-  });
+  }
   
   return imgs;
 }
@@ -1438,7 +1483,7 @@ function parseCardInfoFromDetailPage(doc: Document, cid: string): CardInfo | nul
 /**
  * カード詳細ページから魔法カード情報をパースする
  */
-function parseSpellCardFromDetailPage(doc: Document, base: CardBase, typeText: string): SpellCard {
+function parseSpellCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): SpellCard {
   // 効果タイプを判定（通常/速攻/永続/フィールド/装備/儀式）
   let effectType: SpellEffectType = 'normal';
   
@@ -1464,7 +1509,7 @@ function parseSpellCardFromDetailPage(doc: Document, base: CardBase, typeText: s
 /**
  * カード詳細ページから罠カード情報をパースする
  */
-function parseTrapCardFromDetailPage(doc: Document, base: CardBase, typeText: string): TrapCard {
+function parseTrapCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): TrapCard {
   // 効果タイプを判定（通常/永続/カウンター）
   let effectType: TrapEffectType = 'normal';
   
