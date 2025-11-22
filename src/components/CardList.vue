@@ -162,6 +162,12 @@ export default {
     // 展開状態のカードUUIDセット
     const expandedCards = reactive(new Set())
 
+    // カードごとのuuidを永続的に保持するMap
+    // キー: カードオブジェクトの参照, 値: uuid文字列
+    const cardUuidMap = new WeakMap()
+    // 各baseKey (cardId-ciid) ごとの最大インデックスを追跡
+    const maxIndexMap = reactive(new Map())
+
     // カードテキストの展開/折りたたみ切り替え
     const toggleCardExpand = (uuid) => {
       if (expandedCards.has(uuid)) {
@@ -241,15 +247,21 @@ export default {
     // 各カードにUUIDを付与し、ソートして返す
     const cardsWithUuid = computed(() => {
       const sorted = sortCards(props.cards, localSortOrder.value)
-      // 同じcardId-ciidの出現回数をカウントしてユニークなキーを生成
-      const countMap = new Map()
       return sorted.map((card) => {
-        const baseKey = `${card.cardId}-${card.ciid || '0'}`
-        const count = countMap.get(baseKey) || 0
-        countMap.set(baseKey, count + 1)
+        // 既存のuuidがあればそれを使用
+        let uuid = cardUuidMap.get(card)
+        if (!uuid) {
+          // 新規カードの場合、baseKeyの最大インデックス+1を付与
+          const baseKey = `${card.cardId}-${card.ciid || '0'}`
+          const currentMax = maxIndexMap.get(baseKey) || -1
+          const newIndex = currentMax + 1
+          maxIndexMap.set(baseKey, newIndex)
+          uuid = `${baseKey}-${newIndex}`
+          cardUuidMap.set(card, uuid)
+        }
         return {
           card,
-          uuid: `${baseKey}-${count}`
+          uuid
         }
       })
     })
