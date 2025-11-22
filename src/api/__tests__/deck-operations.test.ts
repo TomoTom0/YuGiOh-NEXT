@@ -174,6 +174,7 @@ describe('デッキ操作API', () => {
       const result = await deleteDeckInternal(testCgid, 4, testYtkn);
 
       expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });
