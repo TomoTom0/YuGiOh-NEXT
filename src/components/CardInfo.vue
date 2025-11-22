@@ -335,12 +335,12 @@ export default {
 
 .card-image-wrapper {
   flex-shrink: 0;
-  width: 90px;
+  width: var(--card-width-info, 90px);
   position: relative;
 
   .deck-card {
-    width: 90px;
-    height: 132px;
+    width: var(--card-width-info, 90px);
+    height: var(--card-height-info, 132px);
 
     img {
       width: 100%;

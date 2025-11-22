@@ -124,6 +124,27 @@ const TRAP_EFFECT_TYPE_TO_EFFE_VALUE: Record<TrapEffectType, string> = {
 };
 
 /**
+ * 内部sortOrder → API sortパラメータのマッピング
+ * API値: 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 11-12=リンク数, 20-21=発売日
+ */
+export const SORT_ORDER_TO_API_VALUE: Record<string, number> = {
+  'name_asc': 1,
+  'name_desc': 1, // APIは50音順のみ、descはクライアント側で反転
+  'release_desc': 20,
+  'release_asc': 21,
+  'level_desc': 2,
+  'level_asc': 3,
+  'atk_desc': 4,
+  'atk_asc': 5,
+  'def_desc': 6,
+  'def_asc': 7,
+  'attribute_asc': 1, // APIに属性ソートなし、50音順で代用
+  'attribute_desc': 1,
+  'race_asc': 1, // APIに種族ソートなし、50音順で代用
+  'race_desc': 1
+};
+
+/**
  * link値（例: "13"）を9bit整数に変換する
  *
  * @param linkValue link値の数字部分（例: "13", "246", "123456789"）

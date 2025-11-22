@@ -6,6 +6,7 @@ import type {
   Theme,
   Language,
   MiddleDecksLayout,
+  SearchInputPosition,
   FeatureSettings,
   StorageSettings
 } from '../types/settings';
@@ -146,6 +147,65 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * カードサイズプリセットを適用
+   * xl: deck/list=xl, info=xl, grid=l
+   * l: deck/list=l, info=xl, grid=m
+   * m: deck/list=m, info=l, grid=s
+   * s: deck/list=s, info=m, grid=s
+   */
+  function setCardSizePreset(preset: 's' | 'm' | 'l' | 'xl'): void {
+    switch (preset) {
+      case 'xl':
+        appSettings.value.deckEditCardSize = 'xlarge';
+        appSettings.value.infoCardSize = 'xlarge';
+        appSettings.value.gridCardSize = 'large';
+        appSettings.value.listCardSize = 'xlarge';
+        break;
+      case 'l':
+        appSettings.value.deckEditCardSize = 'large';
+        appSettings.value.infoCardSize = 'xlarge';
+        appSettings.value.gridCardSize = 'medium';
+        appSettings.value.listCardSize = 'large';
+        break;
+      case 'm':
+        appSettings.value.deckEditCardSize = 'medium';
+        appSettings.value.infoCardSize = 'large';
+        appSettings.value.gridCardSize = 'small';
+        appSettings.value.listCardSize = 'medium';
+        break;
+      case 's':
+        appSettings.value.deckEditCardSize = 'small';
+        appSettings.value.infoCardSize = 'medium';
+        appSettings.value.gridCardSize = 'small';
+        appSettings.value.listCardSize = 'small';
+        break;
+    }
+    applyCardSize();
+    saveSettings();
+  }
+
+  /**
+   * 現在のプリセットを取得
+   */
+  function getCurrentPreset(): 's' | 'm' | 'l' | 'xl' | null {
+    const { deckEditCardSize, infoCardSize, gridCardSize, listCardSize } = appSettings.value;
+
+    if (deckEditCardSize === 'xlarge' && infoCardSize === 'xlarge' && gridCardSize === 'large' && listCardSize === 'xlarge') {
+      return 'xl';
+    }
+    if (deckEditCardSize === 'large' && infoCardSize === 'xlarge' && gridCardSize === 'medium' && listCardSize === 'large') {
+      return 'l';
+    }
+    if (deckEditCardSize === 'medium' && infoCardSize === 'large' && gridCardSize === 'small' && listCardSize === 'medium') {
+      return 'm';
+    }
+    if (deckEditCardSize === 'small' && infoCardSize === 'medium' && gridCardSize === 'small' && listCardSize === 'small') {
+      return 's';
+    }
+    return null;
+  }
+
+  /**
    * カード幅を変更（ピクセル値で直接指定）
    */
   function setCardWidth(mode: 'list' | 'grid', width: number): void {
@@ -188,6 +248,14 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   function setMiddleDecksLayout(layout: MiddleDecksLayout): void {
     appSettings.value.middleDecksLayout = layout;
+    saveSettings();
+  }
+
+  /**
+   * 検索入力欄の位置を変更
+   */
+  function setSearchInputPosition(position: SearchInputPosition): void {
+    appSettings.value.searchInputPosition = position;
     saveSettings();
   }
 
@@ -314,10 +382,13 @@ export const useSettingsStore = defineStore('settings', () => {
     setInfoCardSize,
     setGridCardSize,
     setListCardSize,
+    setCardSizePreset,
+    getCurrentPreset,
     setCardWidth,
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setSearchInputPosition,
     toggleFeature,
     resetSettings,
     applyTheme,
