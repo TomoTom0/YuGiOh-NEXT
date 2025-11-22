@@ -2,6 +2,24 @@
 
 検討中・保留のタスク
 
+## v0.5.0向け改善タスク
+
+### コード重複の解消（REQ-17）
+- [ ] getCardInfo()の共通化（DeckSection.vue, deck-edit.ts）
+- [ ] ラベル変換関数の共通ユーティリティ化
+  - getAttributeLabel
+  - getRaceLabel
+  - getMonsterTypeLabel
+
+### 高リスクコードのレビュー（REQ-18）
+- [ ] deck-edit.ts のUUID永続化ロジック確認
+- [ ] displayOrderとdeckInfoの同期確認
+- [ ] DeckMetadata.vueのファイル分割検討
+
+---
+
+## その他保留タスク
+
 - [ ] **ダークモードの色修正**（優先度：高）
   - 問題: ダークモードにしても一部の要素がライトモードの色のまま
   - 影響箇所:

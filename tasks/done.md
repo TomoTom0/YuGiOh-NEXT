@@ -1,5 +1,61 @@
 # 完了したタスク
 
+## 2025-11-22: v0.4.0 ドキュメント整備とディレクトリ整理
+
+- **タイムスタンプ**: 2025-11-22 19:30 JST
+- **対象**: docs/usage/, docs/dev/, docs/構造整理
+- **ブランチ**: `dev`
+- **PR**: #29
+
+### 実施内容
+
+**ユーザー向けドキュメント追加**:
+- search-filter.md - 検索・フィルター機能ガイド
+- sort.md - ソート機能ガイド
+- category-tag.md - カテゴリ・タグ機能ガイド
+- card-detail.md - カード詳細ガイド
+- options.md - オプションページガイド
+- language.md - 言語設定ガイド
+- README.md更新
+
+**開発者向けドキュメント追加**:
+- architecture.md更新 - コンポーネント構成図
+- stores.md - Piniaストア設計
+- testing.md - Vitestテスト戦略
+
+**PRレビュー対応**:
+- UUID生成ロジック修正（Math.max(0,...)、trash追加）
+- JSON.parse try-catch追加
+- 儀式モンスター色をシアンに変更（TagDialog.vue, DeckMetadata.vue）
+
+**ディレクトリ整理**:
+- docs/各フォルダにREADME.md追加
+- docs/changelog/index.md → README.mdにリネーム
+- docs/archive/ → docs/_archived/に統合
+
+---
+
+## 2025-11-22: v0.4.0 リリース完了
+
+- **タイムスタンプ**: 2025-11-22 12:00 JST
+- **対象**: v0.4.0全体
+- **PR**: #20, #21
+
+### 実施内容
+
+**テスト修正完了**:
+- 370件全テスト通過
+- Parser, API, Session, Component, Utils全て修正
+
+**ドキュメント更新**:
+- CHANGELOG.md v0.4.0作成
+- README.md バージョン更新
+
+**TypeScriptエラー修正**:
+- card-search.ts, background/main.ts
+
+---
+
 ## 2025-11-21: 検索フィルターダイアログとデッキロードダイアログUI改善
 
 - **タイムスタンプ**: 2025-11-21 15:30 JST
