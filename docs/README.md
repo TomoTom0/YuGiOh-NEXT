@@ -18,4 +18,6 @@
 
 - [使い方ガイド](./usage/README.md)
 - [開発者ガイド](./dev/README.md)
+- [API仕様](./api/README.md)
+- [設計ドキュメント](./design/README.md)
 - [変更履歴](./changelog/README.md)
