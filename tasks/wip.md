@@ -52,11 +52,10 @@
   - getRaceLabel
   - getMonsterTypeLabel
 
-#### 4. ドキュメント更新（優先度中）- REQ-16
-- [ ] README.mdのバージョン更新（v0.3.9 → v0.4.0）
-- [ ] SearchInputBar関連の説明追加
-- [ ] v0.4.0 CHANGELOGの作成
-- [ ] architecture.mdの更新
+#### 4. ドキュメント更新（優先度中）- REQ-16 - 完了
+- [x] README.mdのバージョン更新（v0.3.9 → v0.4.0）
+- [x] v0.4.0 CHANGELOGの作成
+- [x] changelog/index.mdの更新（ロードマップ調整）
 
 #### 5. 高リスクコードのレビュー - REQ-18
 - [ ] deck-edit.ts のUUID永続化ロジック確認
