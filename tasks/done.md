@@ -1,5 +1,94 @@
 # 完了したタスク
 
+## 2025-11-21: 検索フィルターダイアログとデッキロードダイアログUI改善
+
+- **タイムスタンプ**: 2025-11-21 15:30 JST
+- **対象**: SearchFilterDialog（新規）, RightArea, DeckEditTopBar
+- **ブランチ**: `dev`
+
+### 実施内容
+
+**検索フィルターダイアログ新規作成**（SearchFilterDialog.vue）:
+- 属性フィルター（光/闇/水/炎/地/風/神）
+- 種族フィルター（26種族）
+- レベル/ランクフィルター（0-12）
+- ATK/DEFレンジフィルター
+- モンスタータイプフィルター（15種類）
+- リンク数フィルター（1-6）
+- カードタイプフィルター（モンスター/魔法/罠）
+- チップ形式のUI、スクロール対応
+
+**RightArea検索入力欄の拡張**:
+- フィルターボタン追加（漏斗アイコン）
+- フィルター設定時にバッジ表示
+- クリアボタン追加（フィルター設定時のみ表示）
+- 検索APIにフィルターパラメータを適用
+
+**デッキロードダイアログのデザイン改善**（DeckEditTopBar.vue）:
+- グラデーションヘッダー追加
+- 閉じるボタン追加
+- デッキアイテムに選択インジケーター（チェックマーク）追加
+- ダブルクリックで即座に読み込み
+- 名称未設定デッキの表示改善
+- フッターにデッキ数表示
+- CSS変数によるダークモード対応
+
+### 修正ファイル
+- `src/components/SearchFilterDialog.vue` - 新規作成
+- `src/components/RightArea.vue` - フィルターダイアログ統合、検索ロジック拡張
+- `src/components/DeckEditTopBar.vue` - ロードダイアログUI改善
+
+### ビルド・デプロイ
+- ビルド成功: webpack 5.102.1
+- デプロイ完了: `/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`
+
+---
+
+## 2025-11-21: タグダイアログ・カテゴリダイアログUI/UX改善
+
+- **タイムスタンプ**: 2025-11-21 01:07 JST
+- **対象**: TagDialog, CategoryDialog, RightAreaコンポーネント
+- **ブランチ**: `feature/investigate-infinite-loop`
+
+### 実施内容
+
+**Monster type色マッピング修正**:
+- 問題: `tag-master-data.ts`に重複した`MONSTER_TYPE_MAP`があり、IDマッピングが間違っていた
+- 修正: `card-maps.ts`の`MONSTER_TYPE_MAP`をインポートして逆引きで使用
+- 新関数: `getMonsterTypeFromLabel(tagLabel)` - ラベルからモンスタータイプを取得
+
+**タグ順序の改善**（TagDialog.vue）:
+- 'all'タブでタグをグループ別にソート
+- 順序: attr（属性）→ race（種族）→ type（モンスタータイプ）→ others（その他）
+- `GROUP_ORDER`定数と`tagsWithGroups` computed propertyで実装
+
+**Filter/Clearアイコン表示修正**（TagDialog.vue, CategoryDialog.vue）:
+- 問題: SVGアイコンが表示されない（width: 0）
+- 修正: `.btn-icon svg`に`min-width: 16px; min-height: 16px; flex-shrink: 0`を追加
+
+**CategoryDialogタブボタン高さ縮小**:
+- `padding: 10px 20px → 6px 12px`
+- `font-size: 14px → 13px`
+
+**RightAreaタブのボーダー・ホバー効果追加**:
+- タブ間にボーダー（`border-right: 1px solid #e0e0e0`）
+- 最後のタブはボーダーなし
+- ホバー時: `background: #f5f5f5; color: #1976d2`
+- トランジション: `background 0.2s, color 0.2s`
+
+### 修正ファイル
+- `src/constants/tag-master-data.ts` - MONSTER_TYPE_MAP統合、getMonsterTypeFromLabel追加
+- `src/components/TagDialog.vue` - グループソート、SVG修正、getTagType更新
+- `src/components/DeckMetadata.vue` - getMonsterTypeFromLabelインポート
+- `src/components/CategoryDialog.vue` - SVG修正、タブ高さ縮小
+- `src/components/RightArea.vue` - タブボーダー・ホバー効果
+
+### ビルド・デプロイ
+- ✅ ビルド成功: webpack 5.102.1
+- ✅ デプロイ完了: `/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`
+
+---
+
 ## 2025-11-19: LLMコンテキスト改善完了（06レポート）
 
 - **タイムスタンプ**: 2025-11-19 22:08 JST

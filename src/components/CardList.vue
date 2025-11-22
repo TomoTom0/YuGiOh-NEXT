@@ -1,38 +1,73 @@
 <template>
   <div class="card-list-wrapper">
-    <button 
-      class="scroll-to-top-btn"
-      @click="$emit('scroll-to-top')"
-    >
-      <svg width="16" height="16" viewBox="0 0 24 24">
-        <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
-      </svg>
-    </button>
+    <div class="floating-buttons">
+      <button
+        class="floating-btn"
+        @click="$emit('scroll-to-top')"
+        title="トップへ"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+        </svg>
+      </button>
+      <button
+        v-if="showCollapseButton"
+        class="floating-btn"
+        @click="$emit('collapse')"
+        title="縮小"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+        </svg>
+      </button>
+    </div>
     <div class="card-list-toolbar">
       <div class="toolbar-left">
-        <svg class="sort-icon" width="16" height="16" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M9.25,5L12.5,1.75L15.75,5H9.25M15.75,19L12.5,22.25L9.25,19H15.75M8.89,14.3H6L5.28,17H2.91L6,7H9L12.13,17H9.67L8.89,14.3M6.33,12.68H8.56L7.93,10.56L7.67,9.59L7.42,8.63H7.39L7.17,9.6L6.93,10.58L6.33,12.68M13.05,17V15.74L17.8,8.97V8.91H13.5V7H20.73V8.34L16.09,15V15.08H20.8V17H13.05Z" />
-        </svg>
-        <select v-model="localSortOrder" class="sort-select" @change="$emit('sort-change', localSortOrder)">
-          <option value="release_desc">Newer</option>
-          <option value="release_asc">Older</option>
-          <option value="name_asc">Name (A-Z)</option>
-          <option value="name_desc">Name (Z-A)</option>
-        </select>
+        <div class="sort-wrapper">
+          <select v-model="sortBase" class="sort-select" @change="handleSortChange">
+            <option value="release">発売日</option>
+            <option value="name">名前</option>
+            <option value="atk">ATK</option>
+            <option value="def">DEF</option>
+            <option value="level">Lv/Rank</option>
+            <option value="attribute">属性</option>
+            <option value="race">種族</option>
+          </select>
+          <button class="sort-direction-btn" @click="toggleSortDirection" :title="sortDirection === 'asc' ? '昇順' : '降順'">
+            <svg width="10" height="10" viewBox="0 0 24 24">
+              <path v-if="sortDirection === 'asc'" fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+              <path v-else fill="currentColor" d="M7.41,8.59L12,13.17L16.59,8.59L18,10L12,16L6,10L7.41,8.59Z" />
+            </svg>
+          </button>
+          <span class="count-badge">{{ cards.length }}</span>
+        </div>
       </div>
       <div class="view-switch">
-        <label class="view-option">
-          <input type="radio" v-model="localViewMode" value="list" :name="`view-${uniqueId}`">
-          <span class="icon">☰</span>
-        </label>
-        <label class="view-option">
-          <input type="radio" v-model="localViewMode" value="grid" :name="`view-${uniqueId}`">
-          <span class="icon">▦</span>
-        </label>
+        <button
+          class="view-btn"
+          :class="{ active: localViewMode === 'list' }"
+          @click="localViewMode = 'list'"
+          title="リスト表示"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M3,4H21V8H3V4M3,10H21V14H3V10M3,16H21V20H3V16Z" />
+          </svg>
+        </button>
+        <button
+          class="view-btn"
+          :class="{ active: localViewMode === 'grid' }"
+          @click="localViewMode = 'grid'"
+          title="グリッド表示"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M3,3H11V11H3V3M3,13H11V21H3V13M13,3H21V11H13V3M13,13H21V21H13V13Z" />
+          </svg>
+        </button>
       </div>
     </div>
-    <div 
-      class="card-list-results" 
+    <div
+      :key="localSortOrder"
+      class="card-list-results"
       :class="{ 'grid-view': localViewMode === 'grid' }"
       @scroll="$emit('scroll', $event)"
     >
@@ -51,7 +86,34 @@
         </div>
         <div class="card-info" v-if="localViewMode === 'list'">
           <div class="card-name">{{ item.card.name }}</div>
-          <div class="card-text" v-if="item.card.text">{{ item.card.text }}</div>
+          <div
+            v-if="item.card.text || item.card.pendulumEffect"
+            class="card-text"
+            :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
+            @click="toggleCardExpand(item.uuid)"
+          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumEffect">
+------
+[Pendulum]
+{{ item.card.pendulumEffect }}</template></div>
+          <div class="card-stats">
+            <!-- モンスターカード -->
+            <template v-if="item.card.cardType === 'monster'">
+              <span class="stat-item attribute">{{ getAttributeLabel(item.card.attribute) }}</span>
+              <span class="stat-item race">{{ getRaceLabel(item.card.race) }}</span>
+              <span class="stat-item level">{{ getLevelLabel(item.card) }}</span>
+              <span class="stat-item atk">ATK {{ item.card.atk ?? '?' }}</span>
+              <span class="stat-item def" v-if="item.card.levelType !== 'link'">DEF {{ item.card.def ?? '?' }}</span>
+              <span class="stat-item type" v-for="type in item.card.types" :key="type">{{ getMonsterTypeLabel(type) }}</span>
+            </template>
+            <!-- 魔法カード -->
+            <template v-else-if="item.card.cardType === 'spell'">
+              <span class="stat-item spell-type">{{ getSpellTypeLabel(item.card.effectType) }}</span>
+            </template>
+            <!-- 罠カード -->
+            <template v-else-if="item.card.cardType === 'trap'">
+              <span class="stat-item trap-type">{{ getTrapTypeLabel(item.card.effectType) }}</span>
+            </template>
+          </div>
         </div>
       </div>
     </div>
@@ -59,7 +121,7 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, reactive } from 'vue'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -87,23 +149,127 @@ export default {
     uniqueId: {
       type: String,
       default: () => `list-${Math.random().toString(36).substr(2, 9)}`
+    },
+    showCollapseButton: {
+      type: Boolean,
+      default: false
     }
   },
-  emits: ['sort-change', 'scroll', 'scroll-to-top', 'update:sortOrder', 'update:viewMode'],
+  emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
   setup(props, { emit }) {
-    const localSortOrder = ref(props.sortOrder)
     const localViewMode = ref(props.viewMode)
 
-    // 各カードにUUIDを付与（初回のみ生成、cardsが変わったら再生成）
+    // 展開状態のカードUUIDセット
+    const expandedCards = reactive(new Set())
+
+    // カードごとのuuidを永続的に保持するMap
+    // キー: カードオブジェクトの参照, 値: uuid文字列
+    const cardUuidMap = new WeakMap()
+    // 各baseKey (cardId-ciid) ごとの最大インデックスを追跡
+    const maxIndexMap = reactive(new Map())
+
+    // カードテキストの展開/折りたたみ切り替え
+    const toggleCardExpand = (uuid) => {
+      if (expandedCards.has(uuid)) {
+        expandedCards.delete(uuid)
+      } else {
+        expandedCards.add(uuid)
+      }
+    }
+
+    // sortOrderを分解してbase と direction に分ける
+    const parseSortOrder = (order) => {
+      if (order.endsWith('_asc')) {
+        return { base: order.replace('_asc', ''), direction: 'asc' }
+      } else if (order.endsWith('_desc')) {
+        return { base: order.replace('_desc', ''), direction: 'desc' }
+      }
+      return { base: 'release', direction: 'desc' }
+    }
+
+    const initial = parseSortOrder(props.sortOrder)
+    const sortBase = ref(initial.base)
+    const sortDirection = ref(initial.direction)
+
+    const localSortOrder = computed(() => `${sortBase.value}_${sortDirection.value}`)
+
+    // ソート関数
+    const sortCards = (cards, sortOrder) => {
+      const sorted = [...cards]
+      const getCid = (card) => parseInt(card.cardId, 10) || 0
+
+      switch (sortOrder) {
+        case 'release_desc':
+          return sorted.sort((a, b) => getCid(b) - getCid(a))
+        case 'release_asc':
+          return sorted.sort((a, b) => getCid(a) - getCid(b))
+        case 'name_asc':
+          return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+        case 'name_desc':
+          return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
+        case 'atk_desc':
+          return sorted.sort((a, b) => (b.atk ?? -1) - (a.atk ?? -1))
+        case 'atk_asc':
+          return sorted.sort((a, b) => (a.atk ?? -1) - (b.atk ?? -1))
+        case 'def_desc':
+          return sorted.sort((a, b) => (b.def ?? -1) - (a.def ?? -1))
+        case 'def_asc':
+          return sorted.sort((a, b) => (a.def ?? -1) - (b.def ?? -1))
+        case 'level_desc':
+          return sorted.sort((a, b) => (b.levelValue || 0) - (a.levelValue || 0))
+        case 'level_asc':
+          return sorted.sort((a, b) => (a.levelValue || 0) - (b.levelValue || 0))
+        case 'attribute_asc':
+          return sorted.sort((a, b) => {
+            const cmp = (a.attribute || '').localeCompare(b.attribute || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'attribute_desc':
+          return sorted.sort((a, b) => {
+            const cmp = (b.attribute || '').localeCompare(a.attribute || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'race_asc':
+          return sorted.sort((a, b) => {
+            const cmp = (a.race || '').localeCompare(b.race || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        case 'race_desc':
+          return sorted.sort((a, b) => {
+            const cmp = (b.race || '').localeCompare(a.race || '')
+            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
+          })
+        default:
+          return sorted
+      }
+    }
+
+    // 各カードにUUIDを付与し、ソートして返す
     const cardsWithUuid = computed(() => {
-      return props.cards.map((card) => ({
-        card,
-        uuid: crypto.randomUUID()
-      }))
+      const sorted = sortCards(props.cards, localSortOrder.value)
+      return sorted.map((card) => {
+        // 既存のuuidがあればそれを使用
+        let uuid = cardUuidMap.get(card)
+        if (!uuid) {
+          // 新規カードの場合、baseKeyの最大インデックス+1を付与
+          const baseKey = `${card.cardId}-${card.ciid || '0'}`
+          const currentMax = maxIndexMap.get(baseKey) || -1
+          const newIndex = currentMax + 1
+          maxIndexMap.set(baseKey, newIndex)
+          uuid = `${baseKey}-${newIndex}`
+          cardUuidMap.set(card, uuid)
+        }
+        return {
+          card,
+          uuid
+        }
+      })
     })
 
     watch(() => props.sortOrder, (val) => {
-      localSortOrder.value = val
+      const parsed = parseSortOrder(val)
+      sortBase.value = parsed.base
+      sortDirection.value = parsed.direction
     })
 
     watch(() => props.viewMode, (val) => {
@@ -112,16 +278,98 @@ export default {
 
     watch(localSortOrder, (val) => {
       emit('update:sortOrder', val)
+      emit('sort-change', val)
     })
 
     watch(localViewMode, (val) => {
       emit('update:viewMode', val)
     })
 
+    const handleSortChange = () => {
+      // selectが変更された時、デフォルトの方向を設定
+      // release, atk, def, level は desc がデフォルト
+      // name, attribute, race は asc がデフォルト
+      const descDefaults = ['release', 'atk', 'def', 'level']
+      sortDirection.value = descDefaults.includes(sortBase.value) ? 'desc' : 'asc'
+    }
+
+    const toggleSortDirection = () => {
+      sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+    }
+
+    // ラベル変換関数
+    const getAttributeLabel = (attr) => {
+      const labels = {
+        light: '光', dark: '闇', water: '水', fire: '炎',
+        earth: '地', wind: '風', divine: '神'
+      }
+      return labels[attr] || attr
+    }
+
+    const getRaceLabel = (race) => {
+      const labels = {
+        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
+        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
+        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
+        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
+        windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
+        psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
+        divine: '神獣', creatorgod: '創造'
+      }
+      return labels[race] || race
+    }
+
+    const getMonsterTypeLabel = (type) => {
+      const labels = {
+        normal: '通常', effect: '効果', fusion: '融合', ritual: '儀式',
+        synchro: 'シンクロ', xyz: 'エクシーズ', pendulum: 'ペンデュラム', link: 'リンク',
+        tuner: 'チューナー', flip: 'リバース', toon: 'トゥーン', spirit: 'スピリット',
+        union: 'ユニオン', gemini: 'デュアル', special: '特殊召喚'
+      }
+      return labels[type] || type
+    }
+
+    const getLevelLabel = (card) => {
+      const value = card.levelValue
+      switch (card.levelType) {
+        case 'level': return `Lv.${value}`
+        case 'rank': return `Rank ${value}`
+        case 'link': return `LINK-${value}`
+        default: return `Lv.${value}`
+      }
+    }
+
+    const getSpellTypeLabel = (effectType) => {
+      const labels = {
+        normal: '通常魔法', continuous: '永続魔法', equip: '装備魔法',
+        quickplay: '速攻魔法', field: 'フィールド魔法', ritual: '儀式魔法'
+      }
+      return labels[effectType] || '魔法'
+    }
+
+    const getTrapTypeLabel = (effectType) => {
+      const labels = {
+        normal: '通常罠', continuous: '永続罠', counter: 'カウンター罠'
+      }
+      return labels[effectType] || '罠'
+    }
+
     return {
+      sortBase,
+      sortDirection,
       localSortOrder,
       localViewMode,
-      cardsWithUuid
+      cardsWithUuid,
+      expandedCards,
+      handleSortChange,
+      toggleSortDirection,
+      toggleCardExpand,
+      getAttributeLabel,
+      getRaceLabel,
+      getMonsterTypeLabel,
+      getLevelLabel,
+      getSpellTypeLabel,
+      getTrapTypeLabel
     }
   }
 }
@@ -135,12 +383,21 @@ export default {
   position: relative;
 }
 
-.scroll-to-top-btn {
+.floating-buttons {
   position: sticky;
   top: 8px;
   left: 8px;
-  width: 32px;
-  height: 32px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  z-index: 20;
+  margin: 0 0 -28px 8px;
+  width: 52px;
+}
+
+.floating-btn {
+  width: 24px;
+  height: 24px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
   border-radius: 4px;
@@ -149,14 +406,13 @@ export default {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  z-index: 20;
-  margin: 0 0 -32px 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  padding: 0;
 
   &:hover {
     background: var(--bg-secondary);
     border-color: var(--border-secondary);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   }
 
   svg {
@@ -178,12 +434,30 @@ export default {
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.sort-icon {
-  color: var(--text-primary);
-  flex-shrink: 0;
+.sort-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.count-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background: var(--text-secondary, #666);
+  color: white;
+  font-size: 8px;
+  min-width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+  font-weight: 500;
 }
 
 .sort-select {
@@ -201,45 +475,63 @@ export default {
   }
 }
 
-.view-switch {
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.view-option {
+.sort-direction-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 2px;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   cursor: pointer;
-  margin: 0;
+  transition: all 0.2s;
 
-  input {
-    display: none;
+  &:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-secondary);
+    color: var(--text-primary);
   }
 
-  .icon {
-    padding: 6px 12px;
-    background: var(--bg-primary);
+  svg {
+    display: block;
+  }
+}
+
+.view-switch {
+  display: flex;
+  gap: 2px;
+}
+
+.view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-secondary);
     color: var(--text-secondary);
-    font-size: 14px;
-    transition: all 0.2s;
-    border: none;
-    border-right: 1px solid var(--border-primary);
   }
 
-  &:last-child .icon {
-    border-right: none;
-  }
-
-  input:checked + .icon {
+  &.active {
     background: var(--button-bg);
     color: var(--button-text);
   }
 
-  &:hover:not(:has(input:checked)) .icon {
-    background: var(--bg-secondary);
+  svg {
+    display: block;
   }
 }
 
@@ -253,7 +545,8 @@ export default {
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  
+  animation: fadeInList 0.2s ease;
+
   &.grid-view {
     display: grid;
     /* グリッド表示用のCSS変数を使用 */
@@ -262,6 +555,15 @@ export default {
     gap: 4px;
     align-content: start;
     justify-content: start;
+  }
+}
+
+@keyframes fadeInList {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -276,8 +578,8 @@ export default {
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  /* カード高さに16px（padding上下8px×2）を加えた高さ */
-  min-height: calc(var(--card-height-list) + 16px);
+  /* カード高さに16px（padding上下8px×2）+ 一行分（16px）を加えた高さ */
+  min-height: calc(var(--card-height-list) + 32px);
   align-items: flex-start;
 
   .grid-view & {
@@ -326,11 +628,80 @@ export default {
   line-height: 1.4;
   word-break: break-word;
   overflow-wrap: break-word;
-  // 四行省略（一時的な対応）- pending.md参照
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  white-space: pre-line;
+  // カードの高さに連動した行数制限
+  // カード高さ - 名前(15px) - stats(26px) - margins(10px) = 利用可能高さ
+  // line-height 1.4 * font-size 10px = 14px per line
+  max-height: calc(var(--card-height-list) - 51px);
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: all 0.2s ease;
+
+  &.clickable {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px;
+    margin: -4px;
+
+    &:hover {
+      background: var(--bg-secondary, #f5f5f5);
+    }
+  }
+
+  &.expanded {
+    max-height: none;
+    overflow: visible;
+    background: var(--bg-secondary, #f5f5f5);
+  }
 }
+
+.card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.stat-item {
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+
+  &.attribute {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  &.race {
+    background: #f3e5f5;
+    color: #7b1fa2;
+  }
+
+  &.type {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.level {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.atk, &.def {
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-secondary, #666);
+  }
+
+  &.spell-type {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &.trap-type {
+    background: #ffebee;
+    color: #c62828;
+  }
+}
+
 </style>
