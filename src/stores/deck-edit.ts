@@ -143,7 +143,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           // 各カードのciid（Card Image ID）を使用
           const ciid = parseInt(String(deckCard.card.ciid), 10);
           const newUuid = generateUUID();
-          console.log(`[initializeDisplayOrder] section=${section}, cid=${deckCard.card.cardId}, ciid=${ciid}, uuid=${newUuid}, quantity=${deckCard.quantity}, iteration=${i+1}/${deckCard.quantity}`);
           displayOrder.value[section].push({
             cid: deckCard.card.cardId,
             ciid: isNaN(ciid) ? 0 : ciid,
@@ -151,15 +150,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           });
         }
       });
-    });
-
-    // UUID重複チェック
-    sections.forEach(section => {
-      const uuids = displayOrder.value[section].map(dc => dc.uuid);
-      const uniqueUuids = new Set(uuids);
-      if (uuids.length !== uniqueUuids.size) {
-        console.error(`[initializeDisplayOrder] UUID重複検出！ section=${section}, total=${uuids.length}, unique=${uniqueUuids.size}`);
-      }
     });
   }
   
@@ -645,11 +635,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
 
   // Search loading state
-  const sortOrder = ref<string>('official');
+  const sortOrder = ref<string>('release_desc');
   const isLoading = ref(false);
   const allResults = ref<CardInfo[]>([]);
   const currentPage = ref(0);
   const hasMore = ref(false);
+
+  // グローバル検索モード（検索入力欄を画面中央に大きく表示）
+  const isGlobalSearchMode = ref(false);
 
   // 設定ストアを取得
   const settingsStore = useSettingsStore();
@@ -1244,6 +1237,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     allResults,
     currentPage,
     hasMore,
+    isGlobalSearchMode,
     canMoveCard,
     addCard,
     removeCard,

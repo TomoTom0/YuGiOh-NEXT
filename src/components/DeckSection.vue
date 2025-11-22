@@ -1,17 +1,24 @@
 <template>
   <div
     class="deck-section"
-    :class="[`${sectionType}-deck`, { 'section-drag-over': isSectionDragOver }]"
+    :class="[`${sectionType}-deck`, { 'section-drag-over': isSectionDragOver, 'has-search-in-title': showSearchInTitle }]"
     @dragover.prevent="handleSectionDragOver"
     @dragleave="handleSectionDragLeave"
     @drop="handleEndDrop"
     @dragend="handleDragEnd"
   >
-    <h3>
+    <h3 :class="{ 'with-search': showSearchInTitle }">
       <span class="title-group">
         {{ title }}
         <span v-if="showCount" class="count">{{ displayCards.length }}</span>
       </span>
+      <!-- section-title配置時の検索入力欄 -->
+      <div v-if="showSearchInTitle" class="section-search-container">
+        <SearchInputBar
+          :compact="true"
+          placeholder="検索..."
+        />
+      </div>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
           class="btn-section"
@@ -54,16 +61,19 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+<script lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
+import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import { mdiShuffle, mdiSort } from '@mdi/js'
 
 export default {
   name: 'DeckSection',
   components: {
-    DeckCard
+    DeckCard,
+    SearchInputBar
   },
   props: {
     title: {
@@ -85,8 +95,15 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const cardGridRef = ref(null)
     const isSectionDragOver = ref(false)
+
+    // 検索入力欄をsection-titleに表示するかどうか
+    const showSearchInTitle = computed(() => {
+      return props.sectionType === 'main' &&
+             settingsStore.appSettings.searchInputPosition === 'section-title'
+    })
 
     const handleMoveResult = (result) => {
       if (!result || result.success) return true
@@ -263,6 +280,7 @@ export default {
       displayCards,
       getCardInfo,
       isSectionDragOver,
+      showSearchInTitle,
       mdiShuffle,
       mdiSort
     }
@@ -284,6 +302,10 @@ export default {
     background: rgba(0, 150, 255, 0.15);
     outline: 2px dashed #0096ff;
     outline-offset: -2px;
+  }
+
+  &.has-search-in-title {
+    min-height: 280px;
   }
   
   h3 {
@@ -337,6 +359,17 @@ export default {
         transform: scale(0.95);
       }
     }
+
+    &.with-search {
+      height: 36px;
+      padding: 6px 0;
+    }
+  }
+
+  .section-search-container {
+    flex: 1 1 auto;
+    margin: 0 12px;
+    min-width: 150px;
   }
   
   .card-grid {

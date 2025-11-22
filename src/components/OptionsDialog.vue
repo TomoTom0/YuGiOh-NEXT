@@ -2,112 +2,75 @@
   <div v-if="isVisible" class="dialog-overlay" @click="$emit('close')">
     <div class="dialog" @click.stop>
       <div class="dialog-header">
-        <h2>設定</h2>
+        <h2>Settings</h2>
         <button class="close-btn" @click="$emit('close')">×</button>
       </div>
 
       <div class="dialog-content">
-        <!-- カード画像サイズ設定 -->
-        <div class="setting-section">
-          <h3 class="setting-title">カード画像サイズ</h3>
-
-          <!-- デッキ編集エリア -->
-          <div class="setting-item">
-            <label class="setting-label">デッキ編集エリア</label>
-            <div class="size-controls">
+        <div class="settings-grid">
+          <!-- 左上: Image Size -->
+          <div class="setting-block">
+            <div class="block-title">Image</div>
+            <div class="size-grid">
               <button
-                v-for="size in cardSizes"
-                :key="size"
-                class="size-option-btn"
-                :class="{ active: settingsStore.appSettings.deckEditCardSize === size }"
-                @click="settingsStore.setDeckEditCardSize(size)"
+                v-for="preset in presets"
+                :key="preset.value"
+                class="size-btn"
+                :class="{ active: settingsStore.getCurrentPreset() === preset.value }"
+                @click="settingsStore.setCardSizePreset(preset.value)"
               >
-                {{ size }}
+                {{ preset.label }}
               </button>
             </div>
           </div>
 
-          <!-- カード詳細パネル -->
-          <div class="setting-item">
-            <label class="setting-label">カード詳細パネル</label>
-            <div class="size-controls">
+          <!-- 右上: Count Check -->
+          <div class="setting-block">
+            <div class="block-title">Count</div>
+            <div class="toggle-row">
               <button
-                v-for="size in cardSizes"
-                :key="size"
-                class="size-option-btn"
-                :class="{ active: settingsStore.appSettings.infoCardSize === size }"
-                @click="settingsStore.setInfoCardSize(size)"
+                class="toggle-btn"
+                :class="{ active: settingsStore.cardLimitMode === 'all-3' }"
+                @click="settingsStore.cardLimitMode = 'all-3'"
               >
-                {{ size }}
+                No Limit
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: settingsStore.cardLimitMode === 'limit-reg' }"
+                @click="settingsStore.cardLimitMode = 'limit-reg'"
+              >
+                Limit
               </button>
             </div>
           </div>
 
-          <!-- グリッド表示 -->
-          <div class="setting-item">
-            <label class="setting-label">グリッド表示</label>
-            <div class="size-controls">
+          <!-- 左下: Search Input -->
+          <div class="setting-block">
+            <div class="block-title">Search</div>
+            <div class="toggle-col">
               <button
-                v-for="size in cardSizes"
-                :key="size"
-                class="size-option-btn"
-                :class="{ active: settingsStore.appSettings.gridCardSize === size }"
-                @click="settingsStore.setGridCardSize(size)"
+                class="toggle-btn"
+                :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
+                @click="settingsStore.setSearchInputPosition('section-title')"
               >
-                {{ size }}
+                Top
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                @click="settingsStore.setSearchInputPosition('default')"
+              >
+                Bottom
               </button>
             </div>
           </div>
 
-          <!-- リスト表示 -->
-          <div class="setting-item">
-            <label class="setting-label">リスト表示</label>
-            <div class="size-controls">
-              <button
-                v-for="size in cardSizes"
-                :key="size"
-                class="size-option-btn"
-                :class="{ active: settingsStore.appSettings.listCardSize === size }"
-                @click="settingsStore.setListCardSize(size)"
-              >
-                {{ size }}
-              </button>
-            </div>
+          <!-- 右下: Reserved -->
+          <div class="setting-block reserved">
+            <div class="block-title">-</div>
           </div>
         </div>
-
-        <!-- 枚数制限設定 -->
-        <div class="setting-section">
-          <h3 class="setting-title">枚数制限</h3>
-          <div class="setting-item">
-            <label class="radio-label">
-              <input
-                type="radio"
-                name="limitMode"
-                value="all-3"
-                :checked="settingsStore.cardLimitMode === 'all-3'"
-                @change="updateLimitMode('all-3')"
-              />
-              <span>全カード3枚まで</span>
-            </label>
-          </div>
-          <div class="setting-item">
-            <label class="radio-label">
-              <input
-                type="radio"
-                name="limitMode"
-                value="limit-reg"
-                :checked="settingsStore.cardLimitMode === 'limit-reg'"
-                @change="updateLimitMode('limit-reg')"
-              />
-              <span>リミットレギュレーションに従う</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="dialog-footer">
-        <button class="btn btn-secondary" @click="$emit('close')">閉じる</button>
       </div>
     </div>
   </div>
@@ -115,7 +78,6 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../stores/settings';
-import type { CardSize } from '../types/settings';
 
 defineProps<{
   isVisible: boolean;
@@ -127,11 +89,12 @@ defineEmits<{
 
 const settingsStore = useSettingsStore();
 
-const cardSizes: CardSize[] = ['small', 'medium', 'large', 'xlarge'];
-
-function updateLimitMode(mode: 'all-3' | 'limit-reg') {
-  settingsStore.cardLimitMode = mode;
-}
+const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
+  { value: 's', label: 'S' },
+  { value: 'm', label: 'M' },
+  { value: 'l', label: 'L' },
+  { value: 'xl', label: 'XL' }
+];
 </script>
 
 <style scoped lang="scss">
@@ -141,7 +104,7 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,10 +114,11 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
 .dialog {
   background: var(--bg-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  width: 90%;
-  max-width: 500px;
-  max-height: 80vh;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  width: 500px;
+  max-width: 90vw;
+  overflow: hidden;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
@@ -163,12 +127,14 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-primary);
+  width: 100%;
+  box-sizing: border-box;
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
   }
@@ -177,12 +143,12 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
-  color: var(--text-secondary);
+  font-size: 18px;
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -196,48 +162,98 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
 }
 
 .dialog-content {
-  flex: 1;
-  overflow-y: auto;
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.setting-section {
-  margin-bottom: 24px;
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-  &:last-child {
-    margin-bottom: 0;
+.setting-block {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  height: 120px;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+
+  &.reserved {
+    opacity: 0.3;
   }
 }
 
-.setting-title {
+@media (max-width: 400px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setting-block {
+    height: auto;
+    min-height: 100px;
+  }
+}
+
+.block-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.size-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex: 1;
+}
+
+.size-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 12px 0;
-}
+  transition: all 0.15s;
 
-.setting-item {
-  margin-bottom: 12px;
+  &:hover {
+    border-color: var(--text-tertiary);
+  }
 
-  &:last-child {
-    margin-bottom: 0;
+  &.active {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
   }
 }
 
-.setting-label {
-  display: block;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.size-controls {
+.toggle-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
 }
 
-.size-option-btn {
+.toggle-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.toggle-btn {
   flex: 1;
   padding: 8px 12px;
   border: 1px solid var(--border-primary);
@@ -245,73 +261,18 @@ function updateLimitMode(mode: 'all-3' | 'limit-reg') {
   color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
 
   &:hover {
-    background: var(--bg-secondary);
-    border-color: var(--button-bg);
+    border-color: var(--text-tertiary);
   }
 
   &.active {
-    background: var(--button-bg);
-    color: white;
-    border-color: var(--button-bg);
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.radio-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
-
-  &:hover {
-    background: var(--bg-secondary);
-  }
-
-  input[type="radio"] {
-    cursor: pointer;
-  }
-
-  span {
-    font-size: 13px;
-    color: var(--text-primary);
-  }
-}
-
-.dialog-footer {
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-primary);
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &.btn-secondary {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-primary);
-
-    &:hover {
-      background: var(--bg-tertiary);
-    }
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
   }
 }
 </style>

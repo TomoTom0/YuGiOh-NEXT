@@ -317,13 +317,13 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tab-btn {
-  padding: 10px 20px;
+  padding: 6px 12px;
   background: transparent;
   border: none;
   border-right: 1px solid #e0e0e0;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #666;
   transition: all 0.2s;
@@ -411,6 +411,9 @@ watch(() => props.modelValue, (newVal) => {
 .btn-icon svg {
   width: 16px;
   height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  flex-shrink: 0;
 }
 
 .btn {
