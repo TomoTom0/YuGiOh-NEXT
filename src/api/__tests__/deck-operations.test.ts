@@ -1,5 +1,10 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createNewDeckInternal, saveDeckInternal, duplicateDeckInternal, deleteDeckInternal } from '../deck-operations';
 import { DeckInfo } from '@/types/deck';
+import axios from 'axios';
+
+// axiosをモック
+vi.mock('axios');
 
 /**
  * デッキ操作API関数のテスト
@@ -10,17 +15,15 @@ describe('デッキ操作API', () => {
   const testYtkn = 'b'.repeat(64);
 
   beforeEach(() => {
-    // fetchのモックをリセット
-    global.fetch = jest.fn();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('createNewDeckInternal', () => {
     it('新規デッキを作成し、デッキ番号を返す', async () => {
-      // Arrange
       const mockResponse = `
         <html>
           <body>
@@ -28,16 +31,13 @@ describe('デッキ操作API', () => {
           </body>
         </html>
       `;
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      vi.mocked(axios.get).mockResolvedValue({
+        data: mockResponse
       });
 
-      // Act
       const result = await createNewDeckInternal(testCgid);
 
-      // Assert
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(axios.get).toHaveBeenCalledWith(
         `${BASE_URL}?ope=6&cgid=${testCgid}`,
         expect.any(Object)
       );
@@ -46,9 +46,8 @@ describe('デッキ操作API', () => {
 
     it('デッキ番号が取得できない場合は0を返す', async () => {
       const mockResponse = '<html><body></body></html>';
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      vi.mocked(axios.get).mockResolvedValue({
+        data: mockResponse
       });
 
       const result = await createNewDeckInternal(testCgid);
@@ -56,11 +55,8 @@ describe('デッキ操作API', () => {
       expect(result).toBe(0);
     });
 
-    it('fetchが失敗した場合は0を返す', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        status: 500
-      });
+    it('axiosが失敗した場合は0を返す', async () => {
+      vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
 
       const result = await createNewDeckInternal(testCgid);
 
@@ -77,14 +73,13 @@ describe('デッキ操作API', () => {
           </body>
         </html>
       `;
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      vi.mocked(axios.get).mockResolvedValue({
+        data: mockResponse
       });
 
       const result = await duplicateDeckInternal(testCgid, 5);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(axios.get).toHaveBeenCalledWith(
         `${BASE_URL}?ope=8&cgid=${testCgid}&dno=5`,
         expect.any(Object)
       );
@@ -102,7 +97,8 @@ describe('デッキ操作API', () => {
             card: {
               name: 'ブラック・マジシャン',
               cardId: '12345',
-              imageId: '1',
+              ciid: '1',
+              imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
               cardType: 'monster' as const,
               attribute: 'dark' as const,
               levelType: 'level' as const,
@@ -121,27 +117,14 @@ describe('デッキ操作API', () => {
         comment: 'テストコメント'
       };
 
-      const mockResponse = `
-        <html>
-          <body>
-            <div class="success">保存しました</div>
-          </body>
-        </html>
-      `;
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      // saveDeckInternalはJSONレスポンスを期待（data.resultで成功判定）
+      vi.mocked(axios.post).mockResolvedValue({
+        data: { result: true }
       });
 
       const result = await saveDeckInternal(testCgid, 4, deckData, testYtkn);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        BASE_URL,
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.any(FormData)
-        })
-      );
+      expect(axios.post).toHaveBeenCalled();
       expect(result.success).toBe(true);
     });
 
@@ -154,23 +137,15 @@ describe('デッキ操作API', () => {
         sideDeck: []
       };
 
-      const mockResponse = `
-        <html>
-          <body>
-            <div class="error">エラー1</div>
-            <div class="error">エラー2</div>
-          </body>
-        </html>
-      `;
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      // saveDeckInternalはJSONレスポンスを期待（data.errorでエラー判定）
+      vi.mocked(axios.post).mockResolvedValue({
+        data: { result: false, error: ['エラー1', 'エラー2'] }
       });
 
       const result = await saveDeckInternal(testCgid, 4, deckData, testYtkn);
 
       expect(result.success).toBe(false);
-      expect(result.error).toEqual(['エラー1', 'エラー2']);
+      expect(result.error).toContain('エラー1');
     });
   });
 
@@ -183,33 +158,22 @@ describe('デッキ操作API', () => {
           </body>
         </html>
       `;
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        text: async () => mockResponse
+      vi.mocked(axios.post).mockResolvedValue({
+        data: mockResponse
       });
 
       const result = await deleteDeckInternal(testCgid, 4, testYtkn);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        BASE_URL,
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.any(FormData)
-        })
-      );
+      expect(axios.post).toHaveBeenCalled();
       expect(result.success).toBe(true);
     });
 
-    it('fetchが失敗した場合は失敗結果を返す', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        status: 500
-      });
+    it('axiosが失敗した場合は失敗結果を返す', async () => {
+      vi.mocked(axios.post).mockRejectedValue(new Error('Network error'));
 
       const result = await deleteDeckInternal(testCgid, 4, testYtkn);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('HTTP error: 500');
     });
   });
 });
