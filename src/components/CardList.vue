@@ -11,6 +11,7 @@
         </svg>
       </button>
       <button
+        v-if="showCollapseButton"
         class="floating-btn"
         @click="$emit('collapse')"
         title="縮小"
@@ -85,7 +86,15 @@
         </div>
         <div class="card-info" v-if="localViewMode === 'list'">
           <div class="card-name">{{ item.card.name }}</div>
-          <div class="card-text" v-if="item.card.text">{{ item.card.text }}</div>
+          <div
+            v-if="item.card.text || item.card.pendulumEffect"
+            class="card-text"
+            :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
+            @click="toggleCardExpand(item.uuid)"
+          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumEffect">
+------
+[Pendulum]
+{{ item.card.pendulumEffect }}</template></div>
           <div class="card-stats">
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">
@@ -112,7 +121,7 @@
 </template>
 
 <script>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, reactive } from 'vue'
 import DeckCard from './DeckCard.vue'
 
 export default {
@@ -140,11 +149,27 @@ export default {
     uniqueId: {
       type: String,
       default: () => `list-${Math.random().toString(36).substr(2, 9)}`
+    },
+    showCollapseButton: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
   setup(props, { emit }) {
     const localViewMode = ref(props.viewMode)
+
+    // 展開状態のカードUUIDセット
+    const expandedCards = reactive(new Set())
+
+    // カードテキストの展開/折りたたみ切り替え
+    const toggleCardExpand = (uuid) => {
+      if (expandedCards.has(uuid)) {
+        expandedCards.delete(uuid)
+      } else {
+        expandedCards.add(uuid)
+      }
+    }
 
     // sortOrderを分解してbase と direction に分ける
     const parseSortOrder = (order) => {
@@ -264,8 +289,10 @@ export default {
       localSortOrder,
       localViewMode,
       cardsWithUuid,
+      expandedCards,
       handleSortChange,
       toggleSortDirection,
+      toggleCardExpand,
       getAttributeLabel,
       getRaceLabel,
       getMonsterTypeLabel,
@@ -530,12 +557,31 @@ export default {
   line-height: 1.4;
   word-break: break-word;
   overflow-wrap: break-word;
-  // 四行省略（一時的な対応）- pending.md参照
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+  white-space: pre-line;
+  // カードの高さに連動した行数制限
+  // カード高さ - 名前(15px) - stats(26px) - margins(10px) = 利用可能高さ
+  // line-height 1.4 * font-size 10px = 14px per line
+  max-height: calc(var(--card-height-list) - 51px);
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: all 0.2s ease;
+
+  &.clickable {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px;
+    margin: -4px;
+
+    &:hover {
+      background: var(--bg-secondary, #f5f5f5);
+    }
+  }
+
+  &.expanded {
+    max-height: none;
+    overflow: visible;
+    background: var(--bg-secondary, #f5f5f5);
+  }
 }
 
 .card-stats {

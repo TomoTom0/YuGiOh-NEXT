@@ -101,7 +101,7 @@
     <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
       <div class="load-dialog" @click.stop>
         <div class="load-dialog-header">
-          <h2>デッキを読み込む</h2>
+          <h2>Load Deck</h2>
           <button class="close-btn" @click="toggleLoadDialog">×</button>
         </div>
         <div class="load-dialog-content">
@@ -111,36 +111,15 @@
             </svg>
             <p>デッキがありません</p>
           </div>
-          <div v-else class="deck-list">
+          <div v-else class="deck-grid">
             <div
               v-for="deck in deckStore.deckList"
               :key="deck.dno"
-              class="deck-list-item"
-              :class="{ selected: selectedDeckDno === deck.dno }"
-              @click="selectedDeckDno = deck.dno"
-              @dblclick="handleLoadSelected"
+              class="deck-card"
+              @click="loadDeck(deck.dno)"
             >
-              <div class="deck-dno">{{ deck.dno }}</div>
               <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
-              <div class="deck-select-indicator">
-                <svg v-if="selectedDeckDno === deck.dno" width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
-                </svg>
-              </div>
             </div>
-          </div>
-        </div>
-        <div class="load-dialog-footer">
-          <div class="deck-count">{{ deckStore.deckList.length }} デッキ</div>
-          <div class="load-dialog-actions">
-            <button @click="toggleLoadDialog" class="btn-cancel">キャンセル</button>
-            <button
-              @click="handleLoadSelected"
-              class="btn-load"
-              :disabled="!selectedDeckDno"
-            >
-              読み込む
-            </button>
           </div>
         </div>
       </div>
@@ -291,6 +270,18 @@ export default {
       }
     }
 
+    const loadDeck = async (dno: number) => {
+      try {
+        await deckStore.loadDeck(dno)
+        lastSavedDeckName.value = deckStore.deckInfo.name
+        showLoadDialog.value = false
+        showToast('デッキを読み込みました', 'success')
+      } catch (error) {
+        console.error('Load error:', error)
+        showToast('読み込みエラーが発生しました', 'error')
+      }
+    }
+
     const toggleMenu = () => {
       showMenu.value = !showMenu.value
     }
@@ -406,6 +397,7 @@ export default {
       handleSaveClick,
       toggleLoadDialog,
       handleLoadSelected,
+      loadDeck,
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
@@ -628,9 +620,9 @@ export default {
 
 .load-dialog {
   background: var(--bg-primary, white);
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-  width: 500px;
+  width: 600px;
   max-width: 90vw;
   max-height: 80vh;
   overflow: hidden;
@@ -642,34 +634,37 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-primary, #e0e0e0);
-  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+  background: var(--bg-primary, white);
+  width: 100%;
+  box-sizing: border-box;
 
   h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 600;
-    color: white;
+    color: var(--text-primary, #333);
   }
 
   .close-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: none;
     border: none;
-    font-size: 20px;
-    color: white;
+    font-size: 18px;
+    color: var(--text-tertiary, #999);
     cursor: pointer;
     padding: 0;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 4px;
     transition: all 0.2s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary, #333);
     }
   }
 }
@@ -696,121 +691,38 @@ export default {
   }
 }
 
-.deck-list {
-  display: flex;
-  flex-direction: column;
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
-.deck-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 2px solid var(--border-primary, #e0e0e0);
-  border-radius: 8px;
+.deck-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f5f5f5);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    border-color: var(--theme-color-start, #00d9b8);
-    background: var(--bg-secondary, #f5f5f5);
-  }
-
-  &.selected {
-    border-color: var(--theme-color-start, #00d9b8);
-    background: linear-gradient(90deg, rgba(0,217,184,0.1) 0%, rgba(184,79,201,0.1) 100%);
-  }
-
-  .deck-dno {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-secondary, #666);
-    width: 40px;
-    text-align: center;
-    flex-shrink: 0;
-    padding: 4px 8px;
-    background: var(--bg-tertiary, #f0f0f0);
-    border-radius: 4px;
+    border-color: var(--text-tertiary, #999);
+    background: var(--bg-primary, white);
   }
 
   .deck-name {
-    font-size: 14px;
-    color: var(--text-primary, #333);
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-  }
-
-  .deck-select-indicator {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--theme-color-start, #00d9b8);
-  }
-}
-
-.load-dialog-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-primary, #e0e0e0);
-  background: var(--bg-secondary, #f5f5f5);
-
-  .deck-count {
     font-size: 12px;
-    color: var(--text-secondary, #666);
-  }
-}
-
-.load-dialog-actions {
-  display: flex;
-  gap: 12px;
-
-  button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s;
-    min-width: 80px;
-
-    &.btn-cancel {
-      background: var(--bg-primary, white);
-      color: var(--text-secondary, #666);
-      border: 1px solid var(--border-primary, #ddd);
-
-      &:hover {
-        background: var(--bg-tertiary, #e8e8e8);
-        border-color: var(--border-primary, #ccc);
-      }
-    }
-
-    &.btn-load {
-      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
-
-      &:hover:not(:disabled) {
-        opacity: 0.9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0,217,184,0.3);
-      }
-
-      &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    }
+    color: var(--text-primary, #333);
+    line-height: 1.3;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
+
 
 .dialog-box {
   background: white;

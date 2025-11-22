@@ -565,6 +565,7 @@ export default {
 
 .right-area {
   width: 320px;
+  height: 100%;
   background: var(--bg-primary);
   border-left: 1px solid var(--border-primary);
   display: flex;
