@@ -4,12 +4,13 @@
 
 1. **ブラウザ操作**: Playwright MCP禁止 → `tmp/browser/` のNode.jsスクリプト + CDP経由で実行
 2. **よくあるミス**: [`.claude/common-mistakes.md`](.claude/common-mistakes.md) を必読
-3. **コード品質**: 
+3. **コード品質**:
    - DOM更新後は `nextTick()` を必ず待つ
    - UUID は `crypto.randomUUID()` を使用
    - `any` 型禁止、型ガードを使用
 4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
+6. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
 
 ---
 
@@ -255,3 +256,32 @@ node tmp/test-*.js
   - テキスト記号（例: `×`, `⋯`, `▼`など）
   - CSS擬似要素による描画
 - コミットメッセージやドキュメント内でも絵文字は使用しないこと
+
+## PRレビュー対応
+
+**gh-replyコマンドを使用すること**
+
+PRのレビューコメントに返信する際は、`gh-reply`コマンドを使用する。
+
+### 基本的な使い方
+
+```bash
+# PRのレビューコメント一覧を取得
+gh-reply comment list <PR番号>
+
+# ドラフト返信を追加
+gh-reply draft add <PR番号> <threadId> "返信内容"
+
+# ドラフト一覧を確認
+gh-reply draft show <PR番号>
+
+# ドラフトを送信
+gh-reply draft send <PR番号>
+```
+
+### ワークフロー
+
+1. `gh-reply comment list <PR番号>` でレビューコメントを確認
+2. 各コメントに対して `gh-reply draft add` でドラフト返信を作成
+3. 必要な修正をコードに反映してコミット・プッシュ
+4. `gh-reply draft send <PR番号>` でドラフトを一括送信
