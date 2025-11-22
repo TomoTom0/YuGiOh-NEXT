@@ -5,23 +5,33 @@
       <span class="char-count">{{ modelValue.length }}/1000</span>
     </div>
     <textarea
-      :value="modelValue"
+      v-model="value"
       class="metadata-textarea"
       :maxlength="1000"
       placeholder="デッキの説明を入力..."
-      @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
     ></textarea>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   modelValue: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+
+const value = computed({
+  get() {
+    return props.modelValue
+  },
+  set(newValue: string) {
+    emit('update:modelValue', newValue)
+  }
+})
 </script>
 
 <style scoped lang="scss">
