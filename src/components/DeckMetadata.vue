@@ -132,42 +132,20 @@
     />
 
     <!-- 3行目: タグとカテゴリのチップ表示 -->
-    <div class="metadata-row chips-row">
-      <div class="chips-container">
-        <span
-          v-for="tagId in localTags"
-          :key="'tag-' + tagId"
-          class="chip tag-chip"
-          :data-type="getTagType(tagId)"
-        >
-          {{ tags[tagId] }}
-          <button class="chip-remove" @click="removeTag(tagId)">×</button>
-        </span>
-        <span
-          v-for="catId in localCategory"
-          :key="'cat-' + catId"
-          class="chip category-chip"
-        >
-          {{ getCategoryLabel(catId) }}
-          <button class="chip-remove" @click="removeCategory(catId)">×</button>
-        </span>
-      </div>
-    </div>
+    <DeckMetadataTags
+      :model-tags="localTags"
+      :model-categories="localCategory"
+      :tags="tags"
+      :categories="categories"
+      @remove-tag="removeTag"
+      @remove-category="removeCategory"
+    />
 
     <!-- 4行目: デッキ説明 -->
-    <div class="description-section">
-      <div class="description-header">
-        <label class="metadata-label">説明</label>
-        <span class="char-count">{{ localComment.length }}/1000</span>
-      </div>
-      <textarea
-        v-model="localComment"
-        class="metadata-textarea"
-        :maxlength="1000"
-        placeholder="デッキの説明を入力..."
-        @input="updateComment"
-      ></textarea>
-    </div>
+    <DeckMetadataDescription
+      v-model="localComment"
+      @update:model-value="updateComment"
+    />
   </div>
 </template>
 
@@ -177,9 +155,10 @@ import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 import type { CategoryEntry } from '../types/dialog';
-import { getMonsterTypeFromLabel } from '../constants/tag-master-data';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
+import DeckMetadataDescription from './DeckMetadataDescription.vue';
+import DeckMetadataTags from './DeckMetadataTags.vue';
 
 const deckStore = useDeckEditStore();
 
@@ -322,18 +301,6 @@ function getDeckStyleLabel() {
 
 function updateComment() {
   deckStore.deckInfo.comment = localComment.value;
-}
-
-// カテゴリラベルを取得
-function getCategoryLabel(catId: string): string {
-  const category = categories.value.find(c => c.value === catId);
-  return category?.label || catId;
-}
-
-function getTagType(tagId: string): string {
-  const tagLabel = tags.value[tagId];
-  if (!tagLabel) return '';
-  return getMonsterTypeFromLabel(tagLabel);
 }
 
 // ダイアログからの更新（循環参照を防ぐため直接更新）
