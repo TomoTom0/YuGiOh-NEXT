@@ -243,7 +243,8 @@ export default {
       const sorted = sortCards(props.cards, localSortOrder.value)
       return sorted.map((card) => ({
         card,
-        uuid: crypto.randomUUID()
+        // cardIdとciidを組み合わせてユニークなキーを生成（検索リストでの重複対応）
+        uuid: `${card.cardId}-${card.ciid || '0'}`
       }))
     })
 
