@@ -5,7 +5,9 @@
  * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
  */
 
-const EDIT_URL_HASH = '#/ytomo/edit';
+// テーマCSSをインポート
+import '../../styles/themes.css';
+import { isVueEditPage } from '../../utils/page-detector';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -14,10 +16,11 @@ let isEditUILoaded = false;
 let isEventListenerRegistered = false;
 
 /**
- * 現在のURLが編集用URLかどうかをチェック
+ * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
+ * @deprecated 直接 isVueEditPage を使用してください
  */
 function isEditUrl(): boolean {
-  return window.location.hash === EDIT_URL_HASH;
+  return isVueEditPage();
 }
 
 /**
@@ -92,11 +95,9 @@ function loadEditUI(): void {
     headerHeight = headerElement.offsetHeight;
   }
   document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
-  
-  // テーマカラーのCSS変数を設定
-  document.documentElement.style.setProperty('--theme-gradient', 'linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%)');
-  document.documentElement.style.setProperty('--theme-color-start', '#00d9b8');
-  document.documentElement.style.setProperty('--theme-color-end', '#b84fc9');
+
+  // テーマカラーのCSS変数は設定ストアが適用するため、ここでは不要
+  // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）
 
   // スタイルを追加
   const styleId = 'ygo-edit-ui-styles';

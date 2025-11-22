@@ -1,43 +1,79 @@
 <template>
-  <div 
+  <div
     class="deck-section"
-    :class="`${sectionType}-deck`"
-    @dragover.prevent
-    @drop="handleDrop"
+    :class="[`${sectionType}-deck`, { 'section-drag-over': isSectionDragOver, 'has-search-in-title': showSearchInTitle }]"
+    @dragover.prevent="handleSectionDragOver"
+    @dragleave="handleSectionDragLeave"
+    @drop="handleEndDrop"
+    @dragend="handleDragEnd"
   >
-    <h3>
-      {{ title }}
-      <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+    <h3 :class="{ 'with-search': showSearchInTitle }">
+      <span class="title-group">
+        {{ title }}
+        <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+      </span>
+      <!-- section-title配置時の検索入力欄 -->
+      <div v-if="showSearchInTitle" class="section-search-container">
+        <SearchInputBar
+          :compact="true"
+          placeholder="検索..."
+        />
+      </div>
+      <span v-if="sectionType !== 'trash'" class="section-buttons">
+        <button
+          class="btn-section"
+          title="Shuffle"
+          @click="handleShuffle"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiShuffle" />
+          </svg>
+        </button>
+        <button
+          class="btn-section"
+          title="Sort"
+          @click="handleSort"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiSort" />
+          </svg>
+        </button>
+      </span>
     </h3>
-    <div class="card-grid" ref="cardGridRef" @dragover.prevent @drop="handleSectionDrop">
+    <div class="card-grid" ref="cardGridRef">
       <TransitionGroup name="card-list">
         <DeckCard
           v-for="displayCard in displayCards"
           :key="displayCard.uuid"
-          :card="getCardInfo(displayCard.cid)"
+          :card="getCardInfo(displayCard.cid, displayCard.ciid)"
           :section-type="sectionType"
           :uuid="displayCard.uuid"
         />
       </TransitionGroup>
       <!-- 空スペース: 最後尾にドロップ可能 -->
-      <div 
-        class="drop-zone-end" 
-        @dragover.prevent 
+      <div
+        class="drop-zone-end"
+        @dragover.prevent="handleEndZoneDragOver"
+        @dragleave="handleEndZoneDragLeave"
         @drop="handleEndDrop"
       ></div>
     </div>
   </div>
 </template>
 
-<script>
-import { ref, computed, nextTick } from 'vue'
+<script lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
+import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
+import { mdiShuffle, mdiSort } from '@mdi/js'
 
 export default {
   name: 'DeckSection',
   components: {
-    DeckCard
+    DeckCard,
+    SearchInputBar
   },
   props: {
     title: {
@@ -59,104 +95,194 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const cardGridRef = ref(null)
-    
+    const isSectionDragOver = ref(false)
+
+    // 検索入力欄をsection-titleに表示するかどうか
+    const showSearchInTitle = computed(() => {
+      return props.sectionType === 'main' &&
+             settingsStore.appSettings.searchInputPosition === 'section-title'
+    })
+
+    const handleMoveResult = (result) => {
+      if (!result || result.success) return true
+      console.error('[DeckSection] 移動失敗:', result.error)
+      return false
+    }
+
     // displayOrderから該当セクションのカードリストを取得
     const displayCards = computed(() => {
       return deckStore.displayOrder[props.sectionType] || []
     })
     
-    // cidからカード情報を取得
-    const getCardInfo = (cid) => {
+    // (cid, ciid)ペアでカード情報を取得
+    const getCardInfo = (cid, ciid) => {
       const allDecks = [
         ...deckStore.deckInfo.mainDeck,
         ...deckStore.deckInfo.extraDeck,
         ...deckStore.deckInfo.sideDeck,
         ...deckStore.trashDeck
       ]
-      
-      const deckCard = allDecks.find(dc => dc.card.cardId === cid)
-      return deckCard ? deckCard.card : null
+
+      // (cid, ciid)ペアで検索
+      const deckCard = allDecks.find(dc =>
+        dc.card.cardId === cid && dc.card.ciid === String(ciid)
+      )
+      if (!deckCard) return null
+
+      // カード情報をそのまま返す（ciidは既に正しい値）
+      return deckCard.card
     }
 
-    const handleSectionDrop = (event) => {
-      // カードグリッド全体へのドロップは無視（個別カードまたは末尾へ）
-      event.stopPropagation()
+    const handleEndZoneDragOver = (event) => {
+      // 移動可能な場合のみpreventDefaultを呼ぶ
+      const canDrop = canDropToSection()
+      if (canDrop) {
+        event.preventDefault()
+      }
     }
-    
+
+    const handleEndZoneDragLeave = (event) => {
+      // 何もしない（視覚的フィードバックは不要）
+    }
+
     const handleEndDrop = (event) => {
       event.preventDefault()
       event.stopPropagation()
-      
+      isSectionDragOver.value = false
+      console.log('[handleEndDrop] Called for section:', props.sectionType)
+
+      // 移動可能かチェック
+      if (!canDropToSection()) {
+        console.log('[handleEndDrop] Drop not allowed, returning')
+        return
+      }
+
       try {
         const data = event.dataTransfer.getData('text/plain')
-        if (!data) return
-        
+        console.log('[handleEndDrop] Drop data:', data)
+        if (!data) {
+          console.log('[handleEndDrop] No data, returning')
+          return
+        }
+
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        
-        if (sourceSectionType === props.sectionType && sourceUuid) {
-          // 同じセクション内で最後尾に移動
-          const sectionOrder = deckStore.displayOrder[props.sectionType]
-          const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid)
-          if (sourceIndex !== -1 && sourceIndex !== sectionOrder.length - 1) {
-            const [movedCard] = sectionOrder.splice(sourceIndex, 1)
-            sectionOrder.push(movedCard)
+        console.log('[handleEndDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: props.sectionType })
+
+        if (!card) {
+          console.log('[handleEndDrop] No card, returning')
+          return
+        }
+
+        // searchセクションからのドロップ
+        if (sourceSectionType === 'search') {
+          console.log('[handleEndDrop] Adding from search')
+          if (props.sectionType === 'main' || props.sectionType === 'extra') {
+            deckStore.addCopyToMainOrExtra(card)
+          } else if (props.sectionType === 'side') {
+            deckStore.addCopyToSection(card, 'side')
           }
-        } else if (card && sourceSectionType !== props.sectionType) {
-          // 他のセクションから最後尾に移動
-          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
+          // trashへのドロップは無視
+          return
+        }
+
+        if (sourceSectionType === props.sectionType && sourceUuid) {
+          console.log('[handleEndDrop] Reordering within same section')
+          const result = deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
+          handleMoveResult(result)
+        }
+        else if (sourceSectionType !== props.sectionType) {
+          console.log('[handleEndDrop] Moving from', sourceSectionType, 'to', props.sectionType)
+          const result = deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
+          handleMoveResult(result)
         }
       } catch (e) {
         console.error('End drop error:', e)
       }
     }
 
-    const handleDrop = (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      console.log('DeckSection drop:', props.sectionType)
-      
-      try {
-        const data = event.dataTransfer.getData('text/plain')
-        console.log('Drop data received:', data)
-        if (!data) return
-        
-        const { sectionType: sourceSectionType, card, uuid } = JSON.parse(data)
-        console.log('Parsed:', { sourceSectionType, card: card?.name, uuid, targetSection: props.sectionType })
-        
-        if (!card) return
-        
-        if (sourceSectionType === 'search') {
-          console.log('Adding from search to:', props.sectionType)
-          if (props.sectionType === 'main' || props.sectionType === 'extra') {
-            deckStore.addCopyToMainOrExtra(card)
-          } else if (props.sectionType === 'side') {
-            deckStore.addCopyToSection(card, 'side')
-          } else if (props.sectionType === 'trash') {
-            // Ignore drop to trash from search
-          }
-        } else if (sourceSectionType === props.sectionType) {
-          // 同じセクション内での並び替え
-          console.log('Reordering within', props.sectionType, 'uuid:', uuid)
-          // TODO: ドロップ位置を判定して並び替え
-          // 現在は未実装のため何もしない
-        } else {
-          // 異なるセクション間での移動
-          console.log('Moving from', sourceSectionType, 'to', props.sectionType, 'uuid:', uuid)
-          deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, uuid)
+    const handleShuffle = () => {
+      deckStore.shuffleSection(props.sectionType)
+    }
+
+    const handleSort = () => {
+      deckStore.sortSection(props.sectionType)
+    }
+
+    // ドラッグ中のカードが移動可能なセクションか判定（ストアのcanMoveCardを使用）
+    const canDropToSection = () => {
+      const dragging = deckStore.draggingCard
+      if (!dragging) {
+        console.log('[canDropToSection] No dragging card')
+        return true // draggingCardがない場合はtrueを返す（後方互換性）
+      }
+
+      const { card, sectionType: from } = dragging
+      const to = props.sectionType
+
+      console.log('[canDropToSection]', { from, to, cardName: card.name })
+
+      const canMove = deckStore.canMoveCard(from, to, card)
+      console.log('[canDropToSection] result:', canMove)
+      return canMove
+    }
+
+    const handleSectionDragOver = (event) => {
+      // 移動可能かチェック
+      const canDrop = canDropToSection()
+
+      if (canDrop) {
+        // 移動可能な場合のみpreventDefaultを呼んでドロップを有効化
+        event.preventDefault()
+        if (!isSectionDragOver.value) {
+          isSectionDragOver.value = true
         }
-      } catch (e) {
-        console.error('Drop error:', e)
+      } else {
+        // 移動不可の場合はpreventDefaultを呼ばない（ドロップ無効）
+        if (isSectionDragOver.value) {
+          isSectionDragOver.value = false
+        }
       }
     }
 
+    const handleSectionDragLeave = (event) => {
+      // セクション境界を出た時のみdrag-overを解除
+      if (event.currentTarget === event.target || !event.currentTarget.contains(event.relatedTarget)) {
+        isSectionDragOver.value = false
+      }
+    }
+
+    const handleDragEnd = () => {
+      // ドラッグ終了時にセクションのハイライトを確実にリセット
+      isSectionDragOver.value = false
+    }
+
+    // グローバルなdragendイベントをリスン
+    onMounted(() => {
+      window.addEventListener('dragend', handleDragEnd)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('dragend', handleDragEnd)
+    })
+
     return {
-      handleDrop,
-      handleSectionDrop,
       handleEndDrop,
+      handleEndZoneDragOver,
+      handleEndZoneDragLeave,
+      handleShuffle,
+      handleSort,
+      handleSectionDragOver,
+      handleSectionDragLeave,
+      handleDragEnd,
       cardGridRef,
       displayCards,
-      getCardInfo
+      getCardInfo,
+      isSectionDragOver,
+      showSearchInTitle,
+      mdiShuffle,
+      mdiSort
     }
   }
 }
@@ -164,50 +290,110 @@ export default {
 
 <style lang="scss" scoped>
 .deck-section {
-  background: white;
+  background: var(--bg-primary, white);
   border-radius: 8px;
   padding: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   width: 100%;
   box-sizing: border-box;
+  transition: background 0.2s ease, outline 0.2s ease;
+
+  &.section-drag-over {
+    background: rgba(0, 150, 255, 0.15);
+    outline: 2px dashed #0096ff;
+    outline-offset: -2px;
+  }
+
+  &.has-search-in-title {
+    min-height: 280px;
+  }
   
   h3 {
     margin: 0 0 6px 0;
     padding: 2px 0;
     font-size: 13px;
     font-weight: bold;
-    color: #333;
-    border-bottom: 1px solid #ddd;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
     line-height: 18px;
-    
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .title-group {
+      font-weight: bold;
+    }
+
     .count {
       margin-left: 8px;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 12px;
       font-weight: normal;
     }
+
+    .section-buttons {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .btn-section {
+      background: transparent;
+      border: 1px solid var(--border-primary);
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:hover {
+        background: var(--bg-secondary);
+        border-color: var(--border-secondary);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    &.with-search {
+      height: 36px;
+      padding: 6px 0;
+    }
+  }
+
+  .section-search-container {
+    flex: 1 1 auto;
+    margin: 0 12px;
+    min-width: 150px;
   }
   
   .card-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
-    min-height: 60px;
+    // 最後の1枚をドラッグ中でもドロップ可能にするため、カード1枚分の高さを確保
+    min-height: var(--card-height-deck);
     align-content: flex-start;
     justify-content: flex-start;
   }
-  
+
   .drop-zone-end {
     min-width: 59px;
-    min-height: 0;
-    border: 2px dashed transparent;
-    border-radius: 4px;
-    transition: border-color 0.2s;
+    // ドラッグ中のカードがposition:absoluteになるため、
+    // drop-zone-endでグリッドの高さを維持する必要がある
+    min-height: var(--card-height-deck);
     flex-shrink: 0;
+    // 視覚的なフィードバックは不要（セクション全体の背景色で十分）
   }
 }
 
-// カード追加/削除のトランジション
+// TransitionGroupのアニメーションを完全に無効化
+// カスタムFLIPアニメーションのみを使用
 .card-list-enter-active {
   transition: all 0.3s ease;
 }
@@ -242,15 +428,17 @@ export default {
 
 .trash-deck {
   flex: none;
-  height: 100px;
-  min-height: 100px;
-  max-height: 100px;
-  
+  // カードの高さ + パディング + ヘッダー分を考慮
+  // --card-height-deck は設定で変更される可能性があるため、calc()で計算
+  height: calc(var(--card-height-deck) + 50px);
+  min-height: calc(var(--card-height-deck) + 50px);
+  max-height: calc(var(--card-height-deck) + 50px);
+
   .card-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
-    min-height: 70px;
+    min-height: var(--card-height-deck);
   }
 }
 </style>

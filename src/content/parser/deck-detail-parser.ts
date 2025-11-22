@@ -31,14 +31,17 @@ export function parseDeckDetail(doc: Document): DeckInfo {
   // 画像情報を抽出（JavaScriptから）
   const imageInfoMap = extractImageInfo(doc);
 
+  // ciidごとの枚数情報を抽出（HTMLの<img>タグから）
+  const ciidCountMap = extractCiidCounts(doc);
+
   // メインデッキのカードを抽出
-  const mainDeck = parseCardSection(doc, imageInfoMap, 'main');
+  const mainDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'main');
 
   // エクストラデッキのカードを抽出
-  const extraDeck = parseCardSection(doc, imageInfoMap, 'extra');
+  const extraDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'extra');
 
   // サイドデッキのカードを抽出
-  const sideDeck = parseCardSection(doc, imageInfoMap, 'side');
+  const sideDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'side');
 
   // 公開/非公開をタイトルから取得
   const isPublic = extractIsPublicFromTitle(doc);
@@ -182,16 +185,74 @@ function validateDeckDetailPageStructure(doc: Document): void {
 }
 
 /**
+ * HTMLの<img>タグからciidごとの枚数情報とimgHash情報を抽出する
+ *
+ * @param doc ドキュメント
+ * @returns cid -> ciid -> { count, imgHash } のマップ
+ */
+function extractCiidCounts(doc: Document): Map<string, Map<string, { count: number; imgHash: string }>> {
+  const ciidCountMap = new Map<string, Map<string, { count: number; imgHash: string }>>();
+
+  // カードタイプごとのクラス名
+  const cardTypes = ['monster', 'spell', 'trap', 'extra'];
+
+  cardTypes.forEach(type => {
+    const imgs = doc.querySelectorAll(`img[class*="card_image_${type}_"]`);
+
+    imgs.forEach(img => {
+      const htmlImg = img as HTMLImageElement;
+      const className = htmlImg.className;
+      const regex = new RegExp(`card_image_${type}_(\\d+)_(\\d+)`);
+      const match = className.match(regex);
+
+      if (match && match[1] && match[2]) {
+        const index = match[1];
+        const ciid = match[2];
+
+        // このindexのカードのcidとimgHashをスクリプトから取得
+        const scripts = doc.querySelectorAll('script');
+        scripts.forEach(script => {
+          const content = script.textContent || '';
+          // パターン: .card_image_TYPE_INDEX_CIID ... cid=123&ciid=1&enc=xxxxx
+          const cidRegex = new RegExp(`\\.card_image_${type}_${index}_${ciid}.*?cid=(\\d+)&ciid=${ciid}(?:&(?:amp;)?enc=([^&'"\\s]+))?`, 'g');
+          const cidMatch = cidRegex.exec(content);
+
+          if (cidMatch && cidMatch[1]) {
+            const cid = cidMatch[1];
+            const imgHash = cidMatch[2] || `${cid}_1_1_1`;
+
+            if (!ciidCountMap.has(cid)) {
+              ciidCountMap.set(cid, new Map());
+            }
+            const ciidMap = ciidCountMap.get(cid)!;
+            const existing = ciidMap.get(ciid);
+            if (existing) {
+              ciidMap.set(ciid, { count: existing.count + 1, imgHash: existing.imgHash });
+            } else {
+              ciidMap.set(ciid, { count: 1, imgHash });
+            }
+          }
+        });
+      }
+    });
+  });
+
+  return ciidCountMap;
+}
+
+/**
  * カードセクションからカード情報を抽出する
  *
  * @param doc ドキュメント
  * @param imageInfoMap 画像情報マップ
+ * @param ciidCountMap ciidごとの枚数情報マップ
  * @param sectionId セクションID ('main' | 'extra' | 'side')
  * @returns デッキ内カード配列
  */
 function parseCardSection(
   doc: Document,
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>,
+  ciidCountMap: Map<string, Map<string, { count: number; imgHash: string }>>,
   sectionId: 'main' | 'extra' | 'side'
 ): DeckCard[] {
   const deckCards: DeckCard[] = [];
@@ -236,14 +297,45 @@ function parseCardSection(
           return;
         }
 
-        // 枚数を取得
-        const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
-        const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
+        const cid = cardInfo.cardId;
+        const ciidCounts = ciidCountMap.get(cid);
 
-        deckCards.push({
-          card: cardInfo,
-          quantity
-        });
+        if (!ciidCounts || ciidCounts.size === 0) {
+          // ciid情報がない場合は、従来通り1レコードとして追加
+          const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
+          const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
+
+          deckCards.push({
+            card: cardInfo,
+            quantity
+          });
+        } else if (ciidCounts.size === 1) {
+          // 単一ciidの場合も1レコード
+          const entry = Array.from(ciidCounts.entries())[0];
+          if (entry) {
+            const [ciid, info] = entry;
+            deckCards.push({
+              card: {
+                ...cardInfo,
+                ciid,
+                imgs: [{ ciid, imgHash: info.imgHash }]
+              },
+              quantity: info.count
+            });
+          }
+        } else {
+          // 複数ciidの場合、ciidごとに別レコードとして追加
+          ciidCounts.forEach((info, ciid) => {
+            deckCards.push({
+              card: {
+                ...cardInfo,
+                ciid,
+                imgs: [{ ciid, imgHash: info.imgHash }]
+              },
+              quantity: info.count
+            });
+          });
+        }
       });
     });
   });

@@ -31,450 +31,3625 @@
       "label": "コンセプト"
     }
   ],
-  "categories": {
-    "1": "アーティファクト",
-    "2": "A・O・J",
-    "4": "アクアアクトレス",
-    "9": "アマゾネス",
-    "10": "アモルファージ",
-    "12": "アルカナフォース",
-    "14": "アロマ",
-    "15": "暗黒界",
-    "17": "アンティーク・ギア",
-    "18": "アンブラル",
-    "20": "イグナイト",
-    "21": "インヴェルズ",
-    "22": "甲虫装機",
-    "23": "インフェルニティ",
-    "24": "インフェルノイド",
-    "25": "ヴァイロン",
-    "26": "ヴァレット",
-    "28": "ヴァンパイア",
-    "29": "WW",
-    "30": "ヴェノム",
-    "31": "ヴェルズ",
-    "32": "ヴェンデット",
-    "34": "ヴォルカニック",
-    "35": "U.A.",
-    "38": "エヴォル",
-    "39": "エーリアン",
-    "43": "X－セイバー",
-    "46": "エレキ",
-    "47": "E・HERO",
-    "49": "炎王",
-    "51": "炎星",
-    "52": "Em",
-    "53": "EM",
-    "58": "先史遺産",
-    "59": "おジャマ",
-    "60": "オッドアイズ",
-    "61": "オルターガイスト",
-    "62": "花札衛",
-    "63": "ガーディアン",
-    "64": "海皇",
-    "65": "壊獣",
-    "67": "ガエル",
-    "73": "ガガガ",
-    "74": "化合獣",
-    "75": "ガジェット",
-    "76": "ガスタ",
-    "78": "カラクリ",
-    "80": "ギアギア",
-    "82": "機皇",
-    "85": "希望皇ホープ",
-    "86": "ギミック・パペット",
-    "87": "ギャラクシー",
-    "93": "極星",
-    "98": "巨大戦艦",
-    "99": "雲魔物",
-    "100": "剣闘獣",
-    "102": "クリストロン",
-    "103": "クリフォート",
-    "104": "グレイドル",
-    "105": "クローラー",
-    "108": "幻煌龍",
-    "109": "幻獣",
-    "110": "幻獣機",
-    "111": "幻奏",
-    "114": "コアキメイル",
-    "115": "剛鬼",
-    "116": "ゴーストリック",
-    "117": "コード・トーカー",
-    "119": "ゴゴゴ",
-    "122": "蟲惑魔",
-    "123": "PSYフレーム",
-    "124": "サイバー",
-    "125": "サイバー・エンジェル",
-    "126": "サイバー・ダーク",
-    "130": "サイファー",
-    "133": "音響戦士",
-    "134": "サブテラー",
-    "136": "ジェネクス",
-    "139": "ジェムナイト",
-    "141": "時械神",
-    "143": "地縛神",
-    "144": "ジャックナイツ",
-    "145": "シャドール",
-    "146": "ジャンク",
-    "148": "十二獣",
-    "149": "ジュラック",
-    "150": "召喚獣",
-    "151": "不知火",
-    "152": "Sin",
-    "155": "シンクロン",
-    "156": "人造人間",
-    "157": "森羅",
-    "159": "真竜",
-    "160": "SDロボ",
-    "161": "スクラップ",
-    "165": "SPYRAL",
-    "167": "ズババ",
-    "169": "スピードロイド",
-    "172": "Kozmo",
-    "173": "／バスター",
-    "175": "星遺物",
-    "177": "���騎士",
-    "178": "セイクリッド",
-    "180": "聖刻",
-    "182": "星杯",
-    "185": "セフィラ",
-    "186": "占術姫",
-    "187": "ゼンマイ",
-    "188": "代行者",
-    "189": "ダイナミスト",
-    "190": "竹光",
-    "191": "ダストン",
-    "192": "堕天使",
-    "194": "C（コクーン）",
-    "196": "超重武者",
-    "198": "超量",
-    "201": "DD（ディーディー）",
-    "203": "帝王",
-    "204": "Ｄ（ディフォーマー）",
-    "205": "ティンダングル",
-    "206": "デーモン",
-    "207": "D-HERO",
-    "209": "TG（テックジーナス）",
-    "210": "テラナイト",
-    "211": "天気",
-    "214": "電池メン",
-    "215": "トゥーン",
-    "217": "ドドド",
-    "219": "ドラグニティ",
-    "220": "トラミッド",
-    "221": "トリックスター",
-    "223": "ナチュル",
-    "224": "No.",
-    "226": "忍者",
-    "229": "N（ネオスペーシアン）",
-    "230": "影霊衣",
-    "232": "パーシアス",
-    "233": "バージェストマ",
-    "234": "BK（バーニングナックラー）",
-    "235": "ハーピィ",
-    "237": "覇王眷竜",
-    "239": "破壊剣",
-    "240": "墓守",
-    "245": "彼岸",
-    "247": "氷結界",
-    "248": "ヒロイック",
-    "250": "ファーニマル",
-    "252": "幻影騎士団",
-    "255": "フォーチュンレディ",
-    "256": "F.A.",
-    "257": "フォトン",
-    "259": "武神",
-    "262": "ブラック・マジシャン",
-    "264": "BF",
-    "265": "ブルーアイズ",
-    "268": "捕食植物",
-    "269": "フレムベル",
-    "270": "ブンボーグ",
-    "272": "陽炎獣",
-    "273": "ペンギン",
-    "277": "方界",
-    "279": "宝玉獣",
-    "281": "光天使",
-    "284": "水精鱗",
-    "285": "魔界劇団",
-    "287": "魔轟神",
-    "288": "マジェスペクター",
-    "289": "マジシャン・ガール",
-    "290": "魔導獣",
-    "291": "魔術師",
-    "293": "マシンナーズ",
-    "294": "M・HERO",
-    "295": "魔装戦士",
-    "296": "魔弾",
-    "299": "魔導書",
-    "300": "マドルチェ",
-    "302": "霞の谷（ミスト・バレー）",
-    "303": "ムーンライト",
-    "304": "メタファイズ",
-    "306": "メタルフォーゼ",
-    "307": "紋章獣",
-    "309": "妖仙獣",
-    "310": "ライトロード",
-    "311": "ラヴァル",
-    "316": "リチュア",
-    "317": "竜剣士",
-    "318": "竜星",
-    "320": "LL",
-    "322": "霊獣",
-    "325": "霊使い",
-    "326": "RR",
-    "327": "レッド・デーモン",
-    "328": "レッドアイズ",
-    "329": "レプティレス",
-    "332": "ロイド",
-    "333": "六武衆",
-    "334": "ワーム",
-    "335": "影六武衆",
-    "336": "アームド・ドラゴン",
-    "337": "トロイメア",
-    "338": "霊神",
-    "339": "閃刀姫",
-    "340": "空牙団",
-    "341": "パラディオン",
-    "342": "エレメントセイバー",
-    "343": "魔神儀",
-    "344": "サイバネット",
-    "345": "ダイナレスラー",
-    "346": "サラマン���レイト",
-    "347": "オルフェゴール",
-    "348": "禁じられた",
-    "349": "サンダー・ドラゴン",
-    "350": "ネフティス",
-    "351": "プランキッズ",
-    "352": "魔妖",
-    "353": "守護竜",
-    "354": "ローズ・ドラゴン",
-    "355": "スマイル",
-    "356": "ウィッチクラフト",
-    "357": "無限起動",
-    "358": "呪眼",
-    "359": "エンディミオン",
-    "360": "マリンセス",
-    "361": "シムルグ",
-    "362": "天威",
-    "363": "V・HERO",
-    "364": "占い魔女",
-    "365": "B・F",
-    "366": "破械",
-    "367": "斬機",
-    "368": "ドラゴンメイド",
-    "369": "ジェネレイド",
-    "370": "ワルキューレ",
-    "371": "クロノダイバー",
-    "372": "未界域",
-    "373": "＠イグニスター",
-    "374": "戦華",
-    "375": "メガリス",
-    "376": "守護神官",
-    "377": "未来皇ホープ",
-    "378": "オノマト",
-    "379": "コードブレイカー",
-    "380": "ネメシス",
-    "381": "バルバロス",
-    "382": "VS",
-    "383": "アダマシア",
-    "384": "エルドリッチ",
-    "385": "六花",
-    "386": "幻魔",
-    "387": "ドラグマ",
-    "388": "メルフィー",
-    "389": "ポータン",
-    "390": "焔聖騎士",
-    "391": "化石",
-    "392": "機塊",
-    "393": "ヌメロン",
-    "394": "電脳堺",
-    "395": "トライブリゲード",
-    "396": "双天",
-    "397": "マギストス",
-    "398": "イビルツイン",
-    "399": "ドライトロン",
-    "400": "海造賊",
-    "401": "夢魔鏡",
-    "402": "スプリガンズ",
-    "403": "ワイト",
-    "404": "S－Force",
-    "405": "��惑の女王",
-    "406": "暗黒騎士ガイア",
-    "407": "カオス・ソルジャー",
-    "408": "クリボー",
-    "409": "幻魔皇ラビエル",
-    "410": "降雷皇ハモン",
-    "411": "混沌幻魔アーミタイル",
-    "412": "サイレント・ソードマン",
-    "413": "サイレント・マジシャン",
-    "414": "神炎皇ウリア",
-    "415": "ホルスの黒炎竜",
-    "416": "ラーの翼神竜",
-    "417": "竜騎士ガイア",
-    "418": "サンアバロン",
-    "419": "ホーリーナイツ",
-    "420": "オベリスクの巨神兵",
-    "421": "オシリスの天空竜",
-    "422": "サクリファイス",
-    "423": "プリンセス・コロン",
-    "424": "邪神ドレッド・ルート",
-    "425": "邪神イレイザー",
-    "426": "邪神アバター",
-    "427": "電子光虫",
-    "429": "ゼアル",
-    "430": "アルバスの落胤",
-    "431": "ZW（ゼアル・ウェポン）",
-    "432": "アメイズメント",
-    "433": "天魔神",
-    "434": "マリスボラス",
-    "435": "憑依装着",
-    "436": "妖精伝姫",
-    "437": "エスプリット",
-    "463": "マグネット・ウォリアー",
-    "464": "リゾネーター",
-    "465": "深海",
-    "466": "シャーク",
-    "467": "ニトロ",
-    "468": "溟界",
-    "469": "ドレミコード",
-    "470": "ベアルクティ",
-    "471": "ゴヨウ",
-    "472": "素早い",
-    "473": "C（チェーン）",
-    "474": "ハネクリボー",
-    "475": "バウンサー",
-    "476": "バスター・ブレイダー",
-    "477": "デストーイ",
-    "478": "エッジインプ",
-    "479": "ABC",
-    "480": "XYZ",
-    "481": "VWXYZ",
-    "482": "もけもけ",
-    "483": "セイヴァー",
-    "484": "スターダスト",
-    "485": "機巧",
-    "486": "デスピア",
-    "487": "烙印",
-    "488": "魔鍵",
-    "489": "軍貫",
-    "490": "森の聖獣",
-    "491": "森の聖霊",
-    "492": "サイバー・ドラゴン",
-    "493": "E-HERO",
-    "494": "RUM",
-    "495": "ヌメロニアス",
-    "500": "相剣",
-    "501": "氷水",
-    "502": "ふわんだりぃず",
-    "503": "ヴァレル",
-    "504": "トポロジック",
-    "505": "P.U.N.K.",
-    "506": "エクソシスター",
-    "507": "勇者",
-    "513": "ミュートリア",
-    "514": "ウォークライ",
-    "515": "マテリアクトル",
-    "517": "悪魔嬢",
-    "518": "ダイノルフィア",
-    "519": "七皇",
-    "520": "海",
-    "521": "シー・ステルス",
-    "524": "パペット",
-    "525": "セリオンズ",
-    "526": "スケアクロー",
-    "527": "ヴィサス＝スタフロスト",
-    "528": "バーバリアン",
-    "529": "覇王龍ズァーク",
-    "530": "ヴァリアンツ",
-    "531": "ラビュリンス",
-    "532": "神碑",
-    "533": "E・HERO ネオス",
-    "534": "スプライト",
-    "535": "ティアラメンツ",
-    "536": "春化精",
-    "541": "現世と冥界の逆転",
-    "543": "A宝玉獣",
-    "544": "らくがきじゅう",
-    "545": "Gゴーレム",
-    "546": "ビートルーパー",
-    "547": "リブロマンサー",
-    "548": "ビーステッド",
-    "549": "クシャトリラ",
-    "561": "R－ACE",
-    "562": "ピュアリィ",
-    "563": "御巫",
-    "564": "ヌーベルズ",
-    "565": "超越竜",
-    "566": "列車",
-    "567": "封印されしエクゾディア",
-    "576": "ファイアウォール",
-    "577": "マナドゥム",
-    "578": "ネムレリア",
-    "582": "ハングリーバーガー",
-    "583": "赤き竜",
-    "584": "有翼幻獣キマイラ",
-    "587": "トライアングル－O",
-    "588": "地縛",
-    "591": "ヴェーダ",
-    "592": "ディアベルスター",
-    "593": "スネークアイ",
-    "594": "ホルス",
-    "595": "アーマード・エクシーズ",
-    "597": "メメント",
-    "598": "センチュリオン",
-    "599": "ヴァルモニカ",
-    "606": "ゲート・ガーディアン",
-    "607": "ゴーティス",
-    "608": "GP",
-    "609": "ユベル",
-    "610": "白闘気",
-    "611": "ゴブリンライダー",
-    "613": "粛声",
-    "614": "ゴブリン",
-    "620": "トイ",
-    "623": "光の黄金櫃",
-    "624": "蕾禍",
-    "625": "天盃龍",
-    "630": "千年",
-    "631": "白き森",
-    "632": "デモンスミス",
-    "636": "タキオン",
-    "642": "クリアー・ワールド",
-    "643": "メタル化",
-    "644": "原石",
-    "645": "アザミナ",
-    "646": "ライゼオル",
-    "647": "M∀LICE",
-    "648": "竜華",
-    "655": "炎の剣士",
-    "656": "ティスティナ",
-    "657": "灰滅",
-    "658": "巳剣",
-    "660": "ディアベル",
-    "661": "ARG☆S",
-    "664": "ミミグル",
-    "668": "エンシェント・フェアリー・ドラゴン",
-    "669": "征竜",
-    "670": "リジェネシス",
-    "671": "ドミナス",
-    "677": "アポピス",
-    "678": "王家の神殿",
-    "679": "ドラゴンテイル",
-    "680": "ヤミー",
-    "681": "K９",
-    "682": "黒蠍",
-    "683": "獄神",
-    "684": "アルトメギア",
-    "685": "モルガナイト",
-    "752": "ウォーター・ドラゴン",
-    "757": "ドゥームズ",
-    "758": "絢嵐",
-    "759": "ヘカトンケイル",
-    "760": "糾罪巧",
-    "761": "キラーチューン",
-    "765": "コアラ",
-    "766": "エルフェンノーツ"
+  "categories": [
+    {
+      "value": "678",
+      "label": "王家の神殿",
+      "originalIndex": 0,
+      "group": [
+        "ruby_オ"
+      ]
+    },
+    {
+      "value": "583",
+      "label": "赤き竜",
+      "originalIndex": 1,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "4",
+      "label": "アクアアクトレス",
+      "originalIndex": 2,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "517",
+      "label": "悪魔嬢",
+      "originalIndex": 3,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "645",
+      "label": "アザミナ",
+      "originalIndex": 4,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "383",
+      "label": "アダマシア",
+      "originalIndex": 5,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "373",
+      "label": "＠イグニスター",
+      "originalIndex": 6,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "543",
+      "label": "A宝玉獣",
+      "originalIndex": 7,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "677",
+      "label": "アポピス",
+      "originalIndex": 8,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "9",
+      "label": "アマゾネス",
+      "originalIndex": 9,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "432",
+      "label": "アメイズメント",
+      "originalIndex": 10,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "10",
+      "label": "アモルファージ",
+      "originalIndex": 11,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "405",
+      "label": "魅惑の女王",
+      "originalIndex": 12,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "12",
+      "label": "アルカナフォース",
+      "originalIndex": 13,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "661",
+      "label": "ARG☆S",
+      "originalIndex": 14,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "684",
+      "label": "アルトメギア",
+      "originalIndex": 15,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "430",
+      "label": "アルバスの落胤",
+      "originalIndex": 16,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "14",
+      "label": "アロマ",
+      "originalIndex": 17,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "15",
+      "label": "暗黒界",
+      "originalIndex": 18,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "406",
+      "label": "暗黒騎士ガイア",
+      "originalIndex": 19,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "17",
+      "label": "アンティーク・ギア",
+      "originalIndex": 20,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "18",
+      "label": "アンブラル",
+      "originalIndex": 21,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "1",
+      "label": "アーティファクト",
+      "originalIndex": 22,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "595",
+      "label": "アーマード・エクシーズ",
+      "originalIndex": 23,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "336",
+      "label": "アームド・ドラゴン",
+      "originalIndex": 24,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "2",
+      "label": "A・O・J",
+      "originalIndex": 25,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "20",
+      "label": "イグナイト",
+      "originalIndex": 26,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "398",
+      "label": "イビルツイン",
+      "originalIndex": 27,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "22",
+      "label": "甲虫装機",
+      "originalIndex": 28,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "23",
+      "label": "インフェルニティ",
+      "originalIndex": 29,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "24",
+      "label": "インフェルノイド",
+      "originalIndex": 30,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "21",
+      "label": "インヴェルズ",
+      "originalIndex": 31,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "493",
+      "label": "E-HERO",
+      "originalIndex": 32,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "356",
+      "label": "ウィッチクラフト",
+      "originalIndex": 33,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "29",
+      "label": "WW",
+      "originalIndex": 34,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "514",
+      "label": "ウォークライ",
+      "originalIndex": 35,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "752",
+      "label": "ウォーター・ドラゴン",
+      "originalIndex": 36,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "520",
+      "label": "海",
+      "originalIndex": 37,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "364",
+      "label": "占い魔女",
+      "originalIndex": 38,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "35",
+      "label": "U.A.",
+      "originalIndex": 39,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "506",
+      "label": "エクソシスター",
+      "originalIndex": 40,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "437",
+      "label": "エスプリット",
+      "originalIndex": 41,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "480",
+      "label": "XYZ",
+      "originalIndex": 42,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "43",
+      "label": "X－セイバー",
+      "originalIndex": 43,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "478",
+      "label": "エッジインプ",
+      "originalIndex": 44,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "760",
+      "label": "糾罪巧",
+      "originalIndex": 45,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "384",
+      "label": "エルドリッチ",
+      "originalIndex": 46,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "766",
+      "label": "エルフェンノーツ",
+      "originalIndex": 47,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "46",
+      "label": "エレキ",
+      "originalIndex": 48,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "47",
+      "label": "E・HERO",
+      "originalIndex": 49,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "533",
+      "label": "E・HERO ネオス",
+      "originalIndex": 50,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "342",
+      "label": "エレメントセイバー",
+      "originalIndex": 51,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "49",
+      "label": "炎王",
+      "originalIndex": 52,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "668",
+      "label": "エンシェント・フェアリー・ドラゴン",
+      "originalIndex": 53,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "51",
+      "label": "炎星",
+      "originalIndex": 54,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "390",
+      "label": "焔聖騎士",
+      "originalIndex": 55,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "52",
+      "label": "Em",
+      "originalIndex": 56,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "53",
+      "label": "EM",
+      "originalIndex": 57,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "359",
+      "label": "エンディミオン",
+      "originalIndex": 58,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "38",
+      "label": "エヴォル",
+      "originalIndex": 59,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "479",
+      "label": "ABC",
+      "originalIndex": 60,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "39",
+      "label": "エーリアン",
+      "originalIndex": 61,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "421",
+      "label": "オシリスの天空竜",
+      "originalIndex": 62,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "59",
+      "label": "おジャマ",
+      "originalIndex": 63,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "60",
+      "label": "オッドアイズ",
+      "originalIndex": 64,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "378",
+      "label": "オノマト",
+      "originalIndex": 65,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "420",
+      "label": "オベリスクの巨神兵",
+      "originalIndex": 66,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "61",
+      "label": "オルターガイスト",
+      "originalIndex": 67,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "347",
+      "label": "オルフェゴール",
+      "originalIndex": 68,
+      "group": [
+        "ruby_ア"
+      ]
+    },
+    {
+      "value": "58",
+      "label": "先史遺産",
+      "originalIndex": 69,
+      "group": [
+        "ruby_ア",
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "64",
+      "label": "海皇",
+      "originalIndex": 70,
+      "group": [
+        "ruby_ア",
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "65",
+      "label": "壊獣",
+      "originalIndex": 71,
+      "group": [
+        "ruby_ア",
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "657",
+      "label": "灰滅",
+      "originalIndex": 72,
+      "group": [
+        "ruby_ア",
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "407",
+      "label": "カオス・ソルジャー",
+      "originalIndex": 73,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "335",
+      "label": "影六武衆",
+      "originalIndex": 74,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "74",
+      "label": "化合獣",
+      "originalIndex": 75,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "391",
+      "label": "化石",
+      "originalIndex": 76,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "78",
+      "label": "カラクリ",
+      "originalIndex": 77,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "62",
+      "label": "花札衛",
+      "originalIndex": 78,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "67",
+      "label": "ガエル",
+      "originalIndex": 79,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "73",
+      "label": "ガガガ",
+      "originalIndex": 80,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "75",
+      "label": "ガジェット",
+      "originalIndex": 81,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "76",
+      "label": "ガスタ",
+      "originalIndex": 82,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "63",
+      "label": "ガーディアン",
+      "originalIndex": 83,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "392",
+      "label": "機塊",
+      "originalIndex": 84,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "485",
+      "label": "機巧",
+      "originalIndex": 85,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "82",
+      "label": "機皇",
+      "originalIndex": 86,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "85",
+      "label": "希望皇ホープ",
+      "originalIndex": 87,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "93",
+      "label": "極星",
+      "originalIndex": 88,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "98",
+      "label": "巨大戦艦",
+      "originalIndex": 89,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "761",
+      "label": "キラーチューン",
+      "originalIndex": 90,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "348",
+      "label": "禁じられた",
+      "originalIndex": 91,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "80",
+      "label": "ギアギア",
+      "originalIndex": 92,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "86",
+      "label": "ギミック・パペット",
+      "originalIndex": 93,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "87",
+      "label": "ギャラクシー",
+      "originalIndex": 94,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "340",
+      "label": "空牙団",
+      "originalIndex": 95,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "549",
+      "label": "クシャトリラ",
+      "originalIndex": 96,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "99",
+      "label": "雲魔物",
+      "originalIndex": 97,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "642",
+      "label": "クリアー・ワールド",
+      "originalIndex": 98,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "102",
+      "label": "クリストロン",
+      "originalIndex": 99,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "103",
+      "label": "クリフォート",
+      "originalIndex": 100,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "408",
+      "label": "クリボー",
+      "originalIndex": 101,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "682",
+      "label": "黒蠍",
+      "originalIndex": 102,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "371",
+      "label": "クロノダイバー",
+      "originalIndex": 103,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "105",
+      "label": "クローラー",
+      "originalIndex": 104,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "100",
+      "label": "剣闘獣",
+      "originalIndex": 105,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "104",
+      "label": "グレイドル",
+      "originalIndex": 106,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "489",
+      "label": "軍貫",
+      "originalIndex": 107,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "758",
+      "label": "絢嵐",
+      "originalIndex": 108,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "681",
+      "label": "K９",
+      "originalIndex": 109,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "108",
+      "label": "幻煌龍",
+      "originalIndex": 110,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "109",
+      "label": "幻獣",
+      "originalIndex": 111,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "110",
+      "label": "幻獣機",
+      "originalIndex": 112,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "644",
+      "label": "原石",
+      "originalIndex": 113,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "541",
+      "label": "現世と冥界の逆転",
+      "originalIndex": 114,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "111",
+      "label": "幻奏",
+      "originalIndex": 115,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "386",
+      "label": "幻魔",
+      "originalIndex": 116,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "409",
+      "label": "幻魔皇ラビエル",
+      "originalIndex": 117,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "606",
+      "label": "ゲート・ガーディアン",
+      "originalIndex": 118,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "114",
+      "label": "コアキメイル",
+      "originalIndex": 119,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "765",
+      "label": "コアラ",
+      "originalIndex": 120,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "410",
+      "label": "降雷皇ハモン",
+      "originalIndex": 121,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "194",
+      "label": "C（コクーン）",
+      "originalIndex": 122,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "172",
+      "label": "Kozmo",
+      "originalIndex": 123,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "122",
+      "label": "蟲惑魔",
+      "originalIndex": 124,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "411",
+      "label": "混沌幻魔アーミタイル",
+      "originalIndex": 125,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "379",
+      "label": "コードブレイカー",
+      "originalIndex": 126,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "117",
+      "label": "コード・トーカー",
+      "originalIndex": 127,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "115",
+      "label": "剛鬼",
+      "originalIndex": 128,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "683",
+      "label": "獄神",
+      "originalIndex": 129,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "119",
+      "label": "ゴゴゴ",
+      "originalIndex": 130,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "614",
+      "label": "ゴブリン",
+      "originalIndex": 131,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "611",
+      "label": "ゴブリンライダー",
+      "originalIndex": 132,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "471",
+      "label": "ゴヨウ",
+      "originalIndex": 133,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "116",
+      "label": "ゴーストリック",
+      "originalIndex": 134,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "607",
+      "label": "ゴーティス",
+      "originalIndex": 135,
+      "group": [
+        "ruby_カ"
+      ]
+    },
+    {
+      "value": "608",
+      "label": "GP",
+      "originalIndex": 136,
+      "group": [
+        "ruby_カ",
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "123",
+      "label": "PSYフレーム",
+      "originalIndex": 137,
+      "group": [
+        "ruby_カ",
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "344",
+      "label": "サイバネット",
+      "originalIndex": 138,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "124",
+      "label": "サイバー",
+      "originalIndex": 139,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "125",
+      "label": "サイバー・エンジェル",
+      "originalIndex": 140,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "126",
+      "label": "サイバー・ダーク",
+      "originalIndex": 141,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "492",
+      "label": "サイバー・ドラゴン",
+      "originalIndex": 142,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "130",
+      "label": "サイファー",
+      "originalIndex": 143,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "412",
+      "label": "サイレント・ソードマン",
+      "originalIndex": 144,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "413",
+      "label": "サイレント・マジシャン",
+      "originalIndex": 145,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "133",
+      "label": "音響戦士",
+      "originalIndex": 146,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "422",
+      "label": "サクリファイス",
+      "originalIndex": 147,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "134",
+      "label": "サブテラー",
+      "originalIndex": 148,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "346",
+      "label": "サラマングレイト",
+      "originalIndex": 149,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "418",
+      "label": "サンアバロン",
+      "originalIndex": 150,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "349",
+      "label": "サンダー・ドラゴン",
+      "originalIndex": 151,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "367",
+      "label": "斬機",
+      "originalIndex": 152,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "361",
+      "label": "シムルグ",
+      "originalIndex": 153,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "145",
+      "label": "シャドール",
+      "originalIndex": 154,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "466",
+      "label": "シャーク",
+      "originalIndex": 155,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "613",
+      "label": "粛声",
+      "originalIndex": 156,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "376",
+      "label": "守護神官",
+      "originalIndex": 157,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "353",
+      "label": "守護竜",
+      "originalIndex": 158,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "150",
+      "label": "召喚獣",
+      "originalIndex": 159,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "151",
+      "label": "不知火",
+      "originalIndex": 160,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "631",
+      "label": "白き森",
+      "originalIndex": 161,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "152",
+      "label": "Sin",
+      "originalIndex": 162,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "414",
+      "label": "神炎皇ウリア",
+      "originalIndex": 163,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "465",
+      "label": "深海",
+      "originalIndex": 164,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "155",
+      "label": "シンクロン",
+      "originalIndex": 165,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "157",
+      "label": "森羅",
+      "originalIndex": 166,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "159",
+      "label": "真竜",
+      "originalIndex": 167,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "521",
+      "label": "シー・ステルス",
+      "originalIndex": 168,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "136",
+      "label": "ジェネクス",
+      "originalIndex": 169,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "369",
+      "label": "ジェネレイド",
+      "originalIndex": 170,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "139",
+      "label": "ジェムナイト",
+      "originalIndex": 171,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "141",
+      "label": "時械神",
+      "originalIndex": 172,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "588",
+      "label": "地縛",
+      "originalIndex": 173,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "143",
+      "label": "地縛神",
+      "originalIndex": 174,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "426",
+      "label": "邪神アバター",
+      "originalIndex": 175,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "425",
+      "label": "邪神イレイザー",
+      "originalIndex": 176,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "424",
+      "label": "邪神ドレッド・ルート",
+      "originalIndex": 177,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "144",
+      "label": "ジャックナイツ",
+      "originalIndex": 178,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "146",
+      "label": "ジャンク",
+      "originalIndex": 179,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "148",
+      "label": "十二獣",
+      "originalIndex": 180,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "358",
+      "label": "呪眼",
+      "originalIndex": 181,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "149",
+      "label": "ジュラック",
+      "originalIndex": 182,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "156",
+      "label": "人造人間",
+      "originalIndex": 183,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "545",
+      "label": "Gゴーレム",
+      "originalIndex": 184,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "161",
+      "label": "スクラップ",
+      "originalIndex": 185,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "526",
+      "label": "スケアクロー",
+      "originalIndex": 186,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "484",
+      "label": "スターダスト",
+      "originalIndex": 187,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "593",
+      "label": "スネークアイ",
+      "originalIndex": 188,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "472",
+      "label": "素早い",
+      "originalIndex": 189,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "165",
+      "label": "SPYRAL",
+      "originalIndex": 190,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "169",
+      "label": "スピードロイド",
+      "originalIndex": 191,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "534",
+      "label": "スプライト",
+      "originalIndex": 192,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "402",
+      "label": "スプリガンズ",
+      "originalIndex": 193,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "355",
+      "label": "スマイル",
+      "originalIndex": 194,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "173",
+      "label": "／バスター",
+      "originalIndex": 195,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "160",
+      "label": "SDロボ",
+      "originalIndex": 196,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "167",
+      "label": "ズババ",
+      "originalIndex": 197,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "175",
+      "label": "星遺物",
+      "originalIndex": 198,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "177",
+      "label": "聖騎士",
+      "originalIndex": 199,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "178",
+      "label": "セイクリッド",
+      "originalIndex": 200,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "180",
+      "label": "聖刻",
+      "originalIndex": 201,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "182",
+      "label": "星杯",
+      "originalIndex": 202,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "669",
+      "label": "征竜",
+      "originalIndex": 203,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "483",
+      "label": "セイヴァー",
+      "originalIndex": 204,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "404",
+      "label": "S－Force",
+      "originalIndex": 205,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "185",
+      "label": "セフィラ",
+      "originalIndex": 206,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "519",
+      "label": "七皇",
+      "originalIndex": 207,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "525",
+      "label": "セリオンズ",
+      "originalIndex": 208,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "374",
+      "label": "戦華",
+      "originalIndex": 209,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "186",
+      "label": "占術姫",
+      "originalIndex": 210,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "598",
+      "label": "センチュリオン",
+      "originalIndex": 211,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "339",
+      "label": "閃刀姫",
+      "originalIndex": 212,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "630",
+      "label": "千年",
+      "originalIndex": 213,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "429",
+      "label": "ゼアル",
+      "originalIndex": 214,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "431",
+      "label": "ZW（ゼアル・ウェポン）",
+      "originalIndex": 215,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "187",
+      "label": "ゼンマイ",
+      "originalIndex": 216,
+      "group": [
+        "ruby_サ"
+      ]
+    },
+    {
+      "value": "500",
+      "label": "相剣",
+      "originalIndex": 217,
+      "group": [
+        "ruby_サ",
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "396",
+      "label": "双天",
+      "originalIndex": 218,
+      "group": [
+        "ruby_サ",
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "636",
+      "label": "タキオン",
+      "originalIndex": 219,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "190",
+      "label": "竹光",
+      "originalIndex": 220,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "188",
+      "label": "代行者",
+      "originalIndex": 221,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "189",
+      "label": "ダイナミスト",
+      "originalIndex": 222,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "345",
+      "label": "ダイナレスラー",
+      "originalIndex": 223,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "518",
+      "label": "ダイノルフィア",
+      "originalIndex": 224,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "191",
+      "label": "ダストン",
+      "originalIndex": 225,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "192",
+      "label": "堕天使",
+      "originalIndex": 226,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "473",
+      "label": "C（チェーン）",
+      "originalIndex": 227,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "565",
+      "label": "超越竜",
+      "originalIndex": 228,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "196",
+      "label": "超重武者",
+      "originalIndex": 229,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "198",
+      "label": "超量",
+      "originalIndex": 230,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "535",
+      "label": "ティアラメンツ",
+      "originalIndex": 231,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "656",
+      "label": "ティスティナ",
+      "originalIndex": 232,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "205",
+      "label": "ティンダングル",
+      "originalIndex": 233,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "203",
+      "label": "帝王",
+      "originalIndex": 234,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "209",
+      "label": "TG（テックジーナス）",
+      "originalIndex": 235,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "210",
+      "label": "テラナイト",
+      "originalIndex": 236,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "362",
+      "label": "天威",
+      "originalIndex": 237,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "211",
+      "label": "天気",
+      "originalIndex": 238,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "625",
+      "label": "天盃龍",
+      "originalIndex": 239,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "433",
+      "label": "天魔神",
+      "originalIndex": 240,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "660",
+      "label": "ディアベル",
+      "originalIndex": 241,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "592",
+      "label": "ディアベルスター",
+      "originalIndex": 242,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "204",
+      "label": "Ｄ（ディフォーマー）",
+      "originalIndex": 243,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "201",
+      "label": "DD（ディーディー）",
+      "originalIndex": 244,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "427",
+      "label": "電子光虫",
+      "originalIndex": 245,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "207",
+      "label": "D-HERO",
+      "originalIndex": 246,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "477",
+      "label": "デストーイ",
+      "originalIndex": 247,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "486",
+      "label": "デスピア",
+      "originalIndex": 248,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "343",
+      "label": "魔神儀",
+      "originalIndex": 249,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "632",
+      "label": "デモンスミス",
+      "originalIndex": 250,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "214",
+      "label": "電池メン",
+      "originalIndex": 251,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "394",
+      "label": "電脳堺",
+      "originalIndex": 252,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "206",
+      "label": "デーモン",
+      "originalIndex": 253,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "620",
+      "label": "トイ",
+      "originalIndex": 254,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "215",
+      "label": "トゥーン",
+      "originalIndex": 255,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "504",
+      "label": "トポロジック",
+      "originalIndex": 256,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "587",
+      "label": "トライアングル－O",
+      "originalIndex": 257,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "395",
+      "label": "トライブリゲード",
+      "originalIndex": 258,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "220",
+      "label": "トラミッド",
+      "originalIndex": 259,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "221",
+      "label": "トリックスター",
+      "originalIndex": 260,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "337",
+      "label": "トロイメア",
+      "originalIndex": 261,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "757",
+      "label": "ドゥームズ",
+      "originalIndex": 262,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "217",
+      "label": "ドドド",
+      "originalIndex": 263,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "671",
+      "label": "ドミナス",
+      "originalIndex": 264,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "399",
+      "label": "ドライトロン",
+      "originalIndex": 265,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "219",
+      "label": "ドラグニティ",
+      "originalIndex": 266,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "387",
+      "label": "ドラグマ",
+      "originalIndex": 267,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "679",
+      "label": "ドラゴンテイル",
+      "originalIndex": 268,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "368",
+      "label": "ドラゴンメイド",
+      "originalIndex": 269,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "469",
+      "label": "ドレミコード",
+      "originalIndex": 270,
+      "group": [
+        "ruby_タ"
+      ]
+    },
+    {
+      "value": "223",
+      "label": "ナチュル",
+      "originalIndex": 271,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "224",
+      "label": "No.",
+      "originalIndex": 272,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "467",
+      "label": "ニトロ",
+      "originalIndex": 273,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "226",
+      "label": "忍者",
+      "originalIndex": 274,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "495",
+      "label": "ヌメロニアス",
+      "originalIndex": 275,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "393",
+      "label": "ヌメロン",
+      "originalIndex": 276,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "564",
+      "label": "ヌーベルズ",
+      "originalIndex": 277,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "229",
+      "label": "N（ネオスペーシアン）",
+      "originalIndex": 278,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "230",
+      "label": "影霊衣",
+      "originalIndex": 279,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "350",
+      "label": "ネフティス",
+      "originalIndex": 280,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "578",
+      "label": "ネムレリア",
+      "originalIndex": 281,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "380",
+      "label": "ネメシス",
+      "originalIndex": 282,
+      "group": [
+        "ruby_ナ"
+      ]
+    },
+    {
+      "value": "237",
+      "label": "覇王眷竜",
+      "originalIndex": 283,
+      "group": [
+        "ruby_ナ",
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "529",
+      "label": "覇王龍ズァーク",
+      "originalIndex": 284,
+      "group": [
+        "ruby_ナ",
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "366",
+      "label": "破械",
+      "originalIndex": 285,
+      "group": [
+        "ruby_ナ",
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "239",
+      "label": "破壊剣",
+      "originalIndex": 286,
+      "group": [
+        "ruby_ナ",
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "240",
+      "label": "墓守",
+      "originalIndex": 287,
+      "group": [
+        "ruby_ナ",
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "474",
+      "label": "ハネクリボー",
+      "originalIndex": 288,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "536",
+      "label": "春化精",
+      "originalIndex": 289,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "582",
+      "label": "ハングリーバーガー",
+      "originalIndex": 290,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "235",
+      "label": "ハーピィ",
+      "originalIndex": 291,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "475",
+      "label": "バウンサー",
+      "originalIndex": 292,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "476",
+      "label": "バスター・ブレイダー",
+      "originalIndex": 293,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "381",
+      "label": "バルバロス",
+      "originalIndex": 294,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "233",
+      "label": "バージェストマ",
+      "originalIndex": 295,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "234",
+      "label": "BK（バーニングナックラー）",
+      "originalIndex": 296,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "528",
+      "label": "バーバリアン",
+      "originalIndex": 297,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "524",
+      "label": "パペット",
+      "originalIndex": 298,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "341",
+      "label": "パラディオン",
+      "originalIndex": 299,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "505",
+      "label": "P.U.N.K.",
+      "originalIndex": 300,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "232",
+      "label": "パーシアス",
+      "originalIndex": 301,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "623",
+      "label": "光の黄金櫃",
+      "originalIndex": 302,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "245",
+      "label": "彼岸",
+      "originalIndex": 303,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "501",
+      "label": "氷水",
+      "originalIndex": 304,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "435",
+      "label": "憑依装着",
+      "originalIndex": 305,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "247",
+      "label": "氷結界",
+      "originalIndex": 306,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "248",
+      "label": "ヒロイック",
+      "originalIndex": 307,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "548",
+      "label": "ビーステッド",
+      "originalIndex": 308,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "546",
+      "label": "ビートルーパー",
+      "originalIndex": 309,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "365",
+      "label": "B・F",
+      "originalIndex": 310,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "562",
+      "label": "ピュアリィ",
+      "originalIndex": 311,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "576",
+      "label": "ファイアウォール",
+      "originalIndex": 312,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "252",
+      "label": "幻影騎士団",
+      "originalIndex": 313,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "250",
+      "label": "ファーニマル",
+      "originalIndex": 314,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "567",
+      "label": "封印されしエクゾディア",
+      "originalIndex": 315,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "436",
+      "label": "妖精伝姫",
+      "originalIndex": 316,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "257",
+      "label": "フォトン",
+      "originalIndex": 317,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "255",
+      "label": "フォーチュンレディ",
+      "originalIndex": 318,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "256",
+      "label": "F.A.",
+      "originalIndex": 319,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "269",
+      "label": "フレムベル",
+      "originalIndex": 320,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "502",
+      "label": "ふわんだりぃず",
+      "originalIndex": 321,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "259",
+      "label": "武神",
+      "originalIndex": 322,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "264",
+      "label": "BF",
+      "originalIndex": 323,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "262",
+      "label": "ブラック・マジシャン",
+      "originalIndex": 324,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "265",
+      "label": "ブルーアイズ",
+      "originalIndex": 325,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "270",
+      "label": "ブンボーグ",
+      "originalIndex": 326,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "351",
+      "label": "プランキッズ",
+      "originalIndex": 327,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "400",
+      "label": "海造賊",
+      "originalIndex": 328,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "423",
+      "label": "プリンセス・コロン",
+      "originalIndex": 329,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "268",
+      "label": "捕食植物",
+      "originalIndex": 330,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "272",
+      "label": "陽炎獣",
+      "originalIndex": 331,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "759",
+      "label": "ヘカトンケイル",
+      "originalIndex": 332,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "470",
+      "label": "ベアルクティ",
+      "originalIndex": 333,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "273",
+      "label": "ペンギン",
+      "originalIndex": 334,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "277",
+      "label": "方界",
+      "originalIndex": 335,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "279",
+      "label": "宝玉獣",
+      "originalIndex": 336,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "655",
+      "label": "炎の剣士",
+      "originalIndex": 337,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "594",
+      "label": "ホルス",
+      "originalIndex": 338,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "415",
+      "label": "ホルスの黒炎竜",
+      "originalIndex": 339,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "610",
+      "label": "白闘気",
+      "originalIndex": 340,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "419",
+      "label": "ホーリーナイツ",
+      "originalIndex": 341,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "281",
+      "label": "光天使",
+      "originalIndex": 342,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "389",
+      "label": "ポータン",
+      "originalIndex": 343,
+      "group": [
+        "ruby_ハ"
+      ]
+    },
+    {
+      "value": "285",
+      "label": "魔界劇団",
+      "originalIndex": 344,
+      "group": [
+        "ruby_ハ",
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "397",
+      "label": "マギストス",
+      "originalIndex": 345,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "463",
+      "label": "マグネット・ウォリアー",
+      "originalIndex": 346,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "488",
+      "label": "魔鍵",
+      "originalIndex": 347,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "287",
+      "label": "魔轟神",
+      "originalIndex": 348,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "293",
+      "label": "マシンナーズ",
+      "originalIndex": 349,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "288",
+      "label": "マジェスペクター",
+      "originalIndex": 350,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "289",
+      "label": "マジシャン・ガール",
+      "originalIndex": 351,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "290",
+      "label": "魔導獣",
+      "originalIndex": 352,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "291",
+      "label": "魔術師",
+      "originalIndex": 353,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "294",
+      "label": "M・HERO",
+      "originalIndex": 354,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "295",
+      "label": "魔装戦士",
+      "originalIndex": 355,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "296",
+      "label": "魔弾",
+      "originalIndex": 356,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "515",
+      "label": "マテリアクトル",
+      "originalIndex": 357,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "299",
+      "label": "魔導書",
+      "originalIndex": 358,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "300",
+      "label": "マドルチェ",
+      "originalIndex": 359,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "577",
+      "label": "マナドゥム",
+      "originalIndex": 360,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "352",
+      "label": "魔妖",
+      "originalIndex": 361,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "647",
+      "label": "M∀LICE",
+      "originalIndex": 362,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "434",
+      "label": "マリスボラス",
+      "originalIndex": 363,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "360",
+      "label": "マリンセス",
+      "originalIndex": 364,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "284",
+      "label": "水精鱗",
+      "originalIndex": 365,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "372",
+      "label": "未界域",
+      "originalIndex": 366,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "563",
+      "label": "御巫",
+      "originalIndex": 367,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "302",
+      "label": "霞の谷（ミスト・バレー）",
+      "originalIndex": 368,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "658",
+      "label": "巳剣",
+      "originalIndex": 369,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "664",
+      "label": "ミミグル",
+      "originalIndex": 370,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "513",
+      "label": "ミュートリア",
+      "originalIndex": 371,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "377",
+      "label": "未来皇ホープ",
+      "originalIndex": 372,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "357",
+      "label": "無限起動",
+      "originalIndex": 373,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "303",
+      "label": "ムーンライト",
+      "originalIndex": 374,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "468",
+      "label": "溟界",
+      "originalIndex": 375,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "375",
+      "label": "メガリス",
+      "originalIndex": 376,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "304",
+      "label": "メタファイズ",
+      "originalIndex": 377,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "643",
+      "label": "メタル化",
+      "originalIndex": 378,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "306",
+      "label": "メタルフォーゼ",
+      "originalIndex": 379,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "597",
+      "label": "メメント",
+      "originalIndex": 380,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "388",
+      "label": "メルフィー",
+      "originalIndex": 381,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "482",
+      "label": "もけもけ",
+      "originalIndex": 382,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "490",
+      "label": "森の聖獣",
+      "originalIndex": 383,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "491",
+      "label": "森の聖霊",
+      "originalIndex": 384,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "685",
+      "label": "モルガナイト",
+      "originalIndex": 385,
+      "group": [
+        "ruby_マ"
+      ]
+    },
+    {
+      "value": "307",
+      "label": "紋章獣",
+      "originalIndex": 386,
+      "group": [
+        "ruby_マ",
+        "ruby_ヤ"
+      ]
+    },
+    {
+      "value": "680",
+      "label": "ヤミー",
+      "originalIndex": 387,
+      "group": [
+        "ruby_ヤ"
+      ]
+    },
+    {
+      "value": "507",
+      "label": "勇者",
+      "originalIndex": 388,
+      "group": [
+        "ruby_ヤ"
+      ]
+    },
+    {
+      "value": "584",
+      "label": "有翼幻獣キマイラ",
+      "originalIndex": 389,
+      "group": [
+        "ruby_ヤ"
+      ]
+    },
+    {
+      "value": "609",
+      "label": "ユベル",
+      "originalIndex": 390,
+      "group": [
+        "ruby_ヤ"
+      ]
+    },
+    {
+      "value": "401",
+      "label": "夢魔鏡",
+      "originalIndex": 391,
+      "group": [
+        "ruby_ヤ",
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "309",
+      "label": "妖仙獣",
+      "originalIndex": 392,
+      "group": [
+        "ruby_ヤ",
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "624",
+      "label": "蕾禍",
+      "originalIndex": 393,
+      "group": [
+        "ruby_ヤ",
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "646",
+      "label": "ライゼオル",
+      "originalIndex": 394,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "310",
+      "label": "ライトロード",
+      "originalIndex": 395,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "487",
+      "label": "烙印",
+      "originalIndex": 396,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "544",
+      "label": "らくがきじゅう",
+      "originalIndex": 397,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "531",
+      "label": "ラビュリンス",
+      "originalIndex": 398,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "494",
+      "label": "RUM",
+      "originalIndex": 399,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "311",
+      "label": "ラヴァル",
+      "originalIndex": 400,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "416",
+      "label": "ラーの翼神竜",
+      "originalIndex": 401,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "670",
+      "label": "リジェネシス",
+      "originalIndex": 402,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "464",
+      "label": "リゾネーター",
+      "originalIndex": 403,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "316",
+      "label": "リチュア",
+      "originalIndex": 404,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "385",
+      "label": "六花",
+      "originalIndex": 405,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "547",
+      "label": "リブロマンサー",
+      "originalIndex": 406,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "417",
+      "label": "竜騎士ガイア",
+      "originalIndex": 407,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "317",
+      "label": "竜剣士",
+      "originalIndex": 408,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "648",
+      "label": "竜華",
+      "originalIndex": 409,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "318",
+      "label": "竜星",
+      "originalIndex": 410,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "320",
+      "label": "LL",
+      "originalIndex": 411,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "532",
+      "label": "神碑",
+      "originalIndex": 412,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "338",
+      "label": "霊神",
+      "originalIndex": 413,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "322",
+      "label": "霊獣",
+      "originalIndex": 414,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "325",
+      "label": "霊使い",
+      "originalIndex": 415,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "326",
+      "label": "RR",
+      "originalIndex": 416,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "561",
+      "label": "R－ACE",
+      "originalIndex": 417,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "566",
+      "label": "列車",
+      "originalIndex": 418,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "328",
+      "label": "レッドアイズ",
+      "originalIndex": 419,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "327",
+      "label": "レッド・デーモン",
+      "originalIndex": 420,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "329",
+      "label": "レプティレス",
+      "originalIndex": 421,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "332",
+      "label": "ロイド",
+      "originalIndex": 422,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "333",
+      "label": "六武衆",
+      "originalIndex": 423,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "354",
+      "label": "ローズ・ドラゴン",
+      "originalIndex": 424,
+      "group": [
+        "ruby_ラ"
+      ]
+    },
+    {
+      "value": "403",
+      "label": "ワイト",
+      "originalIndex": 425,
+      "group": [
+        "ruby_ワ"
+      ]
+    },
+    {
+      "value": "370",
+      "label": "ワルキューレ",
+      "originalIndex": 426,
+      "group": [
+        "ruby_ワ"
+      ]
+    },
+    {
+      "value": "334",
+      "label": "ワーム",
+      "originalIndex": 427,
+      "group": [
+        "ruby_ワ"
+      ]
+    },
+    {
+      "value": "25",
+      "label": "ヴァイロン",
+      "originalIndex": 428,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "530",
+      "label": "ヴァリアンツ",
+      "originalIndex": 429,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "599",
+      "label": "ヴァルモニカ",
+      "originalIndex": 430,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "26",
+      "label": "ヴァレット",
+      "originalIndex": 431,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "503",
+      "label": "ヴァレル",
+      "originalIndex": 432,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "382",
+      "label": "VS",
+      "originalIndex": 433,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "28",
+      "label": "ヴァンパイア",
+      "originalIndex": 434,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "527",
+      "label": "ヴィサス＝スタフロスト",
+      "originalIndex": 435,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "363",
+      "label": "V・HERO",
+      "originalIndex": 436,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "481",
+      "label": "VWXYZ",
+      "originalIndex": 437,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "30",
+      "label": "ヴェノム",
+      "originalIndex": 438,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "31",
+      "label": "ヴェルズ",
+      "originalIndex": 439,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "32",
+      "label": "ヴェンデット",
+      "originalIndex": 440,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "591",
+      "label": "ヴェーダ",
+      "originalIndex": 441,
+      "group": [
+        "ruby_ヴ"
+      ]
+    },
+    {
+      "value": "34",
+      "label": "ヴォルカニック",
+      "originalIndex": 442,
+      "group": [
+        "ruby_ヴ"
+      ]
+    }
+  ],
+  "tags": {
+    "1": "闇属性",
+    "2": "光属性",
+    "3": "水属性",
+    "4": "炎属性",
+    "5": "地属性",
+    "6": "風属性",
+    "7": "神属性",
+    "8": "リンク",
+    "9": "ペンデュラム",
+    "10": "エクシーズ",
+    "11": "シンクロ",
+    "12": "チューナー",
+    "13": "デュアル",
+    "14": "ユニオン",
+    "15": "スピリット",
+    "16": "トゥーン",
+    "17": "儀式",
+    "18": "融合",
+    "20": "ドラゴン族",
+    "21": "アンデット族",
+    "22": "悪魔族",
+    "23": "炎族",
+    "24": "海竜族",
+    "25": "岩石族",
+    "26": "機械族",
+    "27": "魚族",
+    "28": "恐竜族",
+    "29": "昆虫族",
+    "30": "獣族",
+    "31": "獣戦士族",
+    "32": "植物族",
+    "33": "水族",
+    "34": "戦士族",
+    "35": "鳥獣族",
+    "36": "天使族",
+    "37": "魔法使い族",
+    "38": "雷族",
+    "39": "爬虫類族",
+    "40": "サイキック族",
+    "41": "幻神獣族",
+    "42": "幻竜族",
+    "43": "サイバース族",
+    "44": "公式大会用",
+    "45": "プライベート",
+    "46": "インストラクターデッキ",
+    "47": "大会優勝デッキ/入賞デッキ",
+    "50": "YCSJ",
+    "93": "マスターデュエル用",
+    "97": "日本選手権",
+    "100": "幻想魔族",
+    "101": "エリアチャンピオンシップ",
+    "104": "ランキングデュエル",
+    "108": "公式紹介デッキ",
+    "110": "リバース"
   },
-  "lastUpdated": "2025-11-08T05:29:51.155Z"
+  "lastUpdated": "2025-11-20T06:01:00.732Z"
 }

@@ -1,33 +1,84 @@
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { sessionManager, getCgid } from '../session';
 
 /**
  * SessionManager のテスト
- *
- * 注意: SessionManagerはfetchを使用してサーバーからHTMLを取得するため、
- * 実際のネットワークリクエストが必要。モックが必要な場合は別途実装。
  */
 describe('SessionManager', () => {
+  beforeEach(() => {
+    // キャッシュをリセット
+    sessionManager['cgid'] = null;
+    // DOMをクリア
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('getCgid', () => {
-    it('サーバーからcgidを取得できる（統合テスト）', async () => {
-      // 実際のサーバーにリクエストを送る統合テスト
-      // CI環境では skip することを推奨
+    it('フッターリンクからcgidを取得できる', async () => {
+      const mockCgid = 'a'.repeat(32);
+      document.body.innerHTML = `
+        <a href="https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=${mockCgid}">マイデッキ</a>
+      `;
 
       const result = await sessionManager.getCgid();
 
-      // cgidは32文字のhex文字列
-      expect(result).toMatch(/^[a-f0-9]{32}$/);
+      expect(result).toBe(mockCgid);
+    });
+
+    it('任意のcgidリンクからcgidを取得できる', async () => {
+      const mockCgid = 'b'.repeat(32);
+      document.body.innerHTML = `
+        <a href="https://example.com/page?cgid=${mockCgid}">リンク</a>
+      `;
+
+      const result = await sessionManager.getCgid();
+
+      expect(result).toBe(mockCgid);
+    });
+
+    it('キャッシュされたcgidを返す', async () => {
+      const mockCgid = 'c'.repeat(32);
+      sessionManager['cgid'] = mockCgid;
+
+      const result = await sessionManager.getCgid();
+
+      expect(result).toBe(mockCgid);
+    });
+
+    it('cgidが見つからない場合はエラーをスローする', async () => {
+      document.body.innerHTML = '<a href="https://example.com">リンク</a>';
+
+      await expect(sessionManager.getCgid()).rejects.toThrow('cgid not found in page');
+    });
+
+    it('リンクがない場合はエラーをスローする', async () => {
+      document.body.innerHTML = '';
+
+      await expect(sessionManager.getCgid()).rejects.toThrow('cgid not found in page');
     });
   });
 
   describe('後方互換性', () => {
     it('getCgid関数がsessionManager経由で動作する', async () => {
-      // 後方互換性のためのgetCgid関数のテスト
+      const mockCgid = 'd'.repeat(32);
+      document.body.innerHTML = `
+        <a href="https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=${mockCgid}">マイデッキ</a>
+      `;
+
       const result = await getCgid();
 
-      // cgidは32文字のhex文字列、またはnull（エラー時）
-      if (result !== null) {
-        expect(result).toMatch(/^[a-f0-9]{32}$/);
-      }
+      expect(result).toBe(mockCgid);
+    });
+
+    it('getCgid関数はエラー時にnullを返す', async () => {
+      document.body.innerHTML = '';
+
+      const result = await getCgid();
+
+      expect(result).toBeNull();
     });
   });
 });

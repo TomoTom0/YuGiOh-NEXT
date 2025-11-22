@@ -50,12 +50,12 @@ describe('DeckSection.vue', () => {
     it('カード枚数が表示される', () => {
       // storeのdisplayOrderとdeckInfoを設定
       store.displayOrder.main = [
-        { cid: '4011', uuid: 'uuid-1' },
-        { cid: '4012', uuid: 'uuid-2' },
+        { cid: '4011', ciid: '1', uuid: 'uuid-1' },
+        { cid: '4012', ciid: '1', uuid: 'uuid-2' },
       ];
       store.deckInfo.mainDeck = [
-        { card: mockCards[0], count: 1 },
-        { card: mockCards[1], count: 1 },
+        { card: mockCards[0], quantity: 1 },
+        { card: mockCards[1], quantity: 1 },
       ];
 
       const wrapper = mount(DeckSection, {
@@ -108,12 +108,12 @@ describe('DeckSection.vue', () => {
   describe('カード表示', () => {
     it('displayOrderのカードが表示される', () => {
       store.displayOrder.main = [
-        { cid: '4011', uuid: 'uuid-1' },
-        { cid: '4012', uuid: 'uuid-2' },
+        { cid: '4011', ciid: '1', uuid: 'uuid-1' },
+        { cid: '4012', ciid: '1', uuid: 'uuid-2' },
       ];
       store.deckInfo.mainDeck = [
-        { card: mockCards[0] },
-        { card: mockCards[1] },
+        { card: mockCards[0], quantity: 1 },
+        { card: mockCards[1], quantity: 1 },
       ];
 
       const wrapper = mount(DeckSection, {
@@ -152,8 +152,8 @@ describe('DeckSection.vue', () => {
 
   describe('デッキタイプ別', () => {
     it('mainデッキが正しく表示される', () => {
-      store.displayOrder.main = [{ cid: '4011', uuid: 'uuid-1' }];
-      store.deckInfo.mainDeck = [{ card: mockCards[0] }];
+      store.displayOrder.main = [{ cid: '4011', ciid: '1', uuid: 'uuid-1' }];
+      store.deckInfo.mainDeck = [{ card: mockCards[0], quantity: 1 }];
 
       const wrapper = mount(DeckSection, {
         props: {
@@ -171,8 +171,8 @@ describe('DeckSection.vue', () => {
     });
 
     it('extraデッキが正しく表示される', () => {
-      store.displayOrder.extra = [{ cid: '4011', uuid: 'uuid-1' }];
-      store.deckInfo.extraDeck = [{ card: mockCards[0] }];
+      store.displayOrder.extra = [{ cid: '4011', ciid: '1', uuid: 'uuid-1' }];
+      store.deckInfo.extraDeck = [{ card: mockCards[0], quantity: 1 }];
 
       const wrapper = mount(DeckSection, {
         props: {
@@ -190,8 +190,8 @@ describe('DeckSection.vue', () => {
     });
 
     it('sideデッキが正しく表示される', () => {
-      store.displayOrder.side = [{ cid: '4011', uuid: 'uuid-1' }];
-      store.deckInfo.sideDeck = [{ card: mockCards[0] }];
+      store.displayOrder.side = [{ cid: '4011', ciid: '1', uuid: 'uuid-1' }];
+      store.deckInfo.sideDeck = [{ card: mockCards[0], quantity: 1 }];
 
       const wrapper = mount(DeckSection, {
         props: {
@@ -244,9 +244,9 @@ describe('DeckSection.vue', () => {
   describe('TransitionGroup', () => {
     it('TransitionGroupが正しく設定されている', () => {
       store.displayOrder.main = [
-        { cid: '4011', uuid: 'uuid-1' },
+        { cid: '4011', ciid: '1', uuid: 'uuid-1' },
       ];
-      store.deckInfo.mainDeck = [{ card: mockCards[0] }];
+      store.deckInfo.mainDeck = [{ card: mockCards[0], quantity: 1 }];
 
       const wrapper = mount(DeckSection, {
         props: {

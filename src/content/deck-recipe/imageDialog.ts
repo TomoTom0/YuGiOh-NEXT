@@ -63,7 +63,8 @@ function createPopupHTML(
   backgroundImageUrl: string,
   imageWidth: number,
   imageHeight: number,
-  deckName: string
+  deckName: string,
+  hasSideDeck: boolean
 ): string {
   const top = buttonRect.bottom + window.scrollY + 8;
   const left = buttonRect.left + window.scrollX;
@@ -141,7 +142,7 @@ function createPopupHTML(
           left: 12px;
           right: 12px;
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           justify-content: space-between;
         ">
         <button id="ygo-download-btn" style="
@@ -162,25 +163,54 @@ function createPopupHTML(
         </button>
         <button id="ygo-qr-toggle" class="ygo-qr-active" style="
           padding: 8px 12px;
-          border: 2px solid rgba(255, 255, 255, 0.4);
+          border: 2px solid rgba(200, 200, 200, 0.5);
           border-radius: 6px;
           cursor: pointer;
           position: relative;
-          width: 60px;
-          height: 60px;
-          font-size: 14px;
-          font-weight: 700;
+          width: 80px;
+          height: 70px;
+          font-size: 12px;
+          font-weight: 600;
           transition: all 0.3s;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 2px;
         " onclick="event.stopPropagation()">
-          <div style="position: absolute; width: 48px; height: 48px; opacity: 0.3;">
+          <div style="position: absolute; width: 48px; height: 48px; opacity: 0.15;">
             ${QR_ICON}
           </div>
-          <span style="position: relative; z-index: 1;">QR</span>
+          <span style="position: relative; z-index: 1; line-height: 1.2;">Include</span>
+          <span style="position: relative; z-index: 1; line-height: 1.2;">QR</span>
         </button>
         </div>
+        ${hasSideDeck ? `
+        <!-- include side トグル（右中央） -->
+        <button id="ygo-side-toggle" class="ygo-side-active" style="
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          padding: 8px 12px;
+          border: 2px solid rgba(200, 200, 200, 0.5);
+          border-radius: 6px;
+          cursor: pointer;
+          width: 80px;
+          height: 70px;
+          font-size: 12px;
+          font-weight: 600;
+          transition: all 0.3s;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 2px;
+        " onclick="event.stopPropagation()">
+          <span style="line-height: 1.2;">Include</span>
+          <span style="line-height: 1.2;">Side</span>
+        </button>
+        ` : ''}
       </div>
     </div>
     <style>
@@ -227,34 +257,68 @@ function createPopupHTML(
 
       /* QRボタン ON時 */
       #ygo-qr-toggle.ygo-qr-active {
-        background: rgba(120, 150, 255, 0.7);
-        color: #fff;
-        border-color: rgba(100, 130, 255, 0.9);
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border-color: rgba(200, 200, 200, 0.7);
       }
 
       /* QRボタン OFF時 */
       #ygo-qr-toggle.ygo-qr-inactive {
-        background: rgba(150, 150, 150, 0.1);
+        background: rgba(150, 150, 150, 0.3);
         color: #999;
-        border-color: rgba(150, 150, 150, 0.3);
-        opacity: 0.7;
+        border-color: rgba(150, 150, 150, 0.5);
+        opacity: 0.6;
+      }
+
+      /* Sideボタン ON時 */
+      #ygo-side-toggle.ygo-side-active {
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border-color: rgba(200, 200, 200, 0.7);
+      }
+
+      /* Sideボタン OFF時 */
+      #ygo-side-toggle.ygo-side-inactive {
+        background: rgba(150, 150, 150, 0.3);
+        color: #999;
+        border-color: rgba(150, 150, 150, 0.5);
+        opacity: 0.6;
       }
 
       #ygo-download-btn:hover {
-        background: rgba(220, 220, 220, 1);
+        background: rgba(70, 120, 255, 0.15);
+        border-color: rgba(70, 120, 255, 0.5);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        opacity: 1;
       }
       #ygo-qr-toggle:hover {
         opacity: 1 !important;
       }
       #ygo-qr-toggle.ygo-qr-active:hover {
-        background: rgba(100, 100, 255, 0.3);
-        border-color: rgba(100, 100, 255, 0.7);
+        background: rgba(255, 255, 255, 1);
+        border-color: rgba(150, 150, 150, 0.9);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
       #ygo-qr-toggle.ygo-qr-inactive:hover {
-        background: rgba(150, 150, 150, 0.2);
+        background: rgba(150, 150, 150, 0.4);
+      }
+      #ygo-side-toggle:hover {
+        opacity: 1 !important;
+      }
+      #ygo-side-toggle.ygo-side-active:hover {
+        background: rgba(255, 255, 255, 1);
+        border-color: rgba(150, 150, 150, 0.9);
+        transform: translateY(-1px) translateX(0);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      #ygo-side-toggle.ygo-side-inactive:hover {
+        background: rgba(150, 150, 150, 0.4);
       }
       #ygo-download-btn:active,
-      #ygo-qr-toggle:active {
+      #ygo-qr-toggle:active,
+      #ygo-side-toggle:active {
         transform: scale(0.98);
       }
 
@@ -335,9 +399,18 @@ async function generateBackgroundImage(
 }
 
 /**
- * ポップアップメニューを表示
+ * ポップアップメニューを表示（汎用版）
+ * @param cgid ユーザーID
+ * @param dno デッキ番号
+ * @param deckData デッキデータ
+ * @param buttonRect ボタンの位置（nullの場合は画面中央に表示）
  */
-export async function showImageDialog(): Promise<void> {
+export async function showImageDialogWithData(
+  cgid: string,
+  dno: string,
+  deckData: DeckInfo,
+  buttonRect: DOMRect | null = null
+): Promise<void> {
   // 既存のポップアップがあれば削除
   const existingPopup = document.getElementById('ygo-image-popup-overlay');
   if (existingPopup) {
@@ -348,48 +421,32 @@ export async function showImageDialog(): Promise<void> {
     existingMenu.remove();
   }
 
-  // ボタンの位置を取得
-  const button = document.getElementById('ygo-deck-image-btn');
-  if (!button) {
-    console.error('[YGO Helper] Button not found');
-    return;
-  }
-
-  const buttonRect = button.getBoundingClientRect();
-
-  // URLからデッキ番号とユーザーIDを取得
-  const url = window.location.href;
-  const dnoMatch = url.match(/dno=(\d+)/);
-  const cgidMatch = url.match(/cgid=([a-f0-9]+)/);
-  if (!dnoMatch || !dnoMatch[1]) {
-    console.error('[YGO Helper] Failed to get deck number from URL');
-    return;
-  }
-  if (!cgidMatch || !cgidMatch[1]) {
-    console.error('[YGO Helper] Failed to get user ID from URL');
-    return;
-  }
-  const dno = dnoMatch[1];
-  const cgid = cgidMatch[1];
-
-  // 現在のページのDOMからデッキデータを取得
-  let deckData: DeckInfo;
-  try {
-    deckData = parseDeckDetail(document);
-  } catch (error) {
-    console.error('[YGO Helper] Failed to parse deck data from current page:', error);
-    return;
-  }
+  // buttonRectがnullの場合は、画面中央に表示するためのダミーRectを作成
+  const rect = buttonRect || {
+    bottom: window.innerHeight / 2 - 200,
+    left: window.innerWidth / 2 - 200,
+    top: 0,
+    right: 0,
+    width: 0,
+    height: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({})
+  } as DOMRect;
 
   // 状態管理
   let selectedColor: ColorVariant = 'red';
   let includeQR = true;
+  let includeSide = true;
 
   // 背景画像を生成
   const backgroundImage = await generateBackgroundImage(cgid, dno, deckData, selectedColor);
 
+  // サイドデッキが存在するかチェック
+  const hasSideDeck = deckData.sideDeck.length > 0;
+
   // ポップアップHTML を挿入
-  const popupHTML = createPopupHTML(buttonRect, backgroundImage.dataUrl, backgroundImage.width, backgroundImage.height, deckData.name);
+  const popupHTML = createPopupHTML(rect, backgroundImage.dataUrl, backgroundImage.width, backgroundImage.height, deckData.name, hasSideDeck);
   document.body.insertAdjacentHTML('beforeend', popupHTML);
 
   // イベントハンドラを登録
@@ -397,6 +454,7 @@ export async function showImageDialog(): Promise<void> {
   const popup = document.getElementById('ygo-image-popup');
   const backgroundImageDiv = document.getElementById('ygo-background-image');
   const qrToggle = document.getElementById('ygo-qr-toggle');
+  const sideToggle = document.getElementById('ygo-side-toggle');
   const downloadBtn = document.getElementById('ygo-download-btn');
 
   /**
@@ -443,6 +501,31 @@ export async function showImageDialog(): Promise<void> {
     }
   });
 
+  // Sideトグルのクリック（サイドデッキが存在する場合のみ）
+  if (hasSideDeck) {
+    sideToggle?.addEventListener('click', async () => {
+      includeSide = !includeSide;
+      if (includeSide) {
+        sideToggle.classList.remove('ygo-side-inactive');
+        sideToggle.classList.add('ygo-side-active');
+      } else {
+        sideToggle.classList.remove('ygo-side-active');
+        sideToggle.classList.add('ygo-side-inactive');
+      }
+
+      // 背景画像を再生成（sideDeckの有無で高さが変わる）
+      const deckDataForPreview = includeSide ? deckData : {
+        ...deckData,
+        sideDeck: []
+      };
+      const newBackgroundImage = await generateBackgroundImage(cgid, dno, deckDataForPreview, selectedColor);
+      if (backgroundImageDiv) {
+        backgroundImageDiv.style.background = `url('${newBackgroundImage.dataUrl}') no-repeat center center`;
+        backgroundImageDiv.style.backgroundSize = 'contain';
+      }
+    });
+  }
+
   // ダウンロードボタン
   downloadBtn?.addEventListener('click', async () => {
     if (!downloadBtn) return;
@@ -460,13 +543,15 @@ export async function showImageDialog(): Promise<void> {
       const deckNameInput = document.getElementById('ygo-deck-name-input') as HTMLInputElement;
       const currentDeckName = deckNameInput?.value || deckData.name;
 
-      // デッキ名を更新したdeckDataを作成
+      // デッキ名を更新し、includeSideに応じてsideDeckを設定したdeckDataを作成
+      // サイドデッキが存在しない場合は常に空配列
       const updatedDeckData: DeckInfo = {
         ...deckData,
-        name: currentDeckName
+        name: currentDeckName,
+        sideDeck: (hasSideDeck && includeSide) ? deckData.sideDeck : []
       };
 
-      console.log('[YGO Helper] Creating deck recipe image...', { dno, color: selectedColor, includeQR, scale, name: currentDeckName });
+      console.log('[YGO Helper] Creating deck recipe image...', { dno, color: selectedColor, includeQR, includeSide: hasSideDeck && includeSide, scale, name: currentDeckName });
 
       // ダウンロード実行（更新されたdeckDataを渡す）
       await downloadDeckRecipeImage({
@@ -492,4 +577,45 @@ export async function showImageDialog(): Promise<void> {
   });
 
   console.log('[YGO Helper] Image popup shown');
+}
+
+/**
+ * ポップアップメニューを表示（デッキ表示画面用）
+ */
+export async function showImageDialog(): Promise<void> {
+  // ボタンの位置を取得
+  const button = document.getElementById('ygo-deck-image-btn');
+  if (!button) {
+    console.error('[YGO Helper] Button not found');
+    return;
+  }
+
+  const buttonRect = button.getBoundingClientRect();
+
+  // URLからデッキ番号とユーザーIDを取得
+  const url = window.location.href;
+  const dnoMatch = url.match(/dno=(\d+)/);
+  const cgidMatch = url.match(/cgid=([a-f0-9]+)/);
+  if (!dnoMatch || !dnoMatch[1]) {
+    console.error('[YGO Helper] Failed to get deck number from URL');
+    return;
+  }
+  if (!cgidMatch || !cgidMatch[1]) {
+    console.error('[YGO Helper] Failed to get user ID from URL');
+    return;
+  }
+  const dno = dnoMatch[1];
+  const cgid = cgidMatch[1];
+
+  // 現在のページのDOMからデッキデータを取得
+  let deckData: DeckInfo;
+  try {
+    deckData = parseDeckDetail(document);
+  } catch (error) {
+    console.error('[YGO Helper] Failed to parse deck data from current page:', error);
+    return;
+  }
+
+  // 汎用版を呼び出し
+  await showImageDialogWithData(cgid, dno, deckData, buttonRect);
 }
