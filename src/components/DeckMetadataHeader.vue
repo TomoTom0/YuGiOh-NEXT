@@ -158,3 +158,259 @@ defineExpose({
   deckStyleDropdown
 })
 </script>
+
+<style scoped lang="scss">
+.metadata-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.row-main {
+  height: 24px;
+  align-items: center;
+}
+
+.button-group {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+}
+
+.button-group > *,
+.button-group > .deck-type-selector,
+.button-group > .deck-style-selector {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.deck-type-selector,
+.deck-style-selector {
+  position: relative;
+}
+
+.deck-type-button,
+.deck-style-button,
+.action-button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #999;
+    background: #f9f9f9;
+  }
+
+  &:active {
+    background: #f0f0f0;
+  }
+}
+
+.deck-type-button {
+  min-width: 50px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+
+  &:hover {
+    background: transparent;
+    opacity: 0.8;
+  }
+
+  &:active {
+    background: transparent;
+    opacity: 0.6;
+  }
+}
+
+.deck-style-button {
+  min-width: 50px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #42a5f5;
+  border-radius: 12px;
+  font-weight: 500;
+
+  &:hover {
+    background: #bbdefb;
+    border-color: #1976d2;
+  }
+
+  &:active {
+    background: #90caf9;
+  }
+}
+
+.action-button {
+  min-width: 36px;
+  flex-shrink: 0;
+}
+
+.public-button {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef5350;
+  border-radius: 12px;
+  font-weight: 500;
+  min-width: 44px;
+
+  &:hover {
+    background: #ffcdd2;
+    border-color: #e53935;
+  }
+
+  &:active {
+    background: #ef9a9a;
+  }
+
+  &.is-public {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border-color: #66bb6a;
+
+    &:hover {
+      background: #c8e6c9;
+      border-color: #4caf50;
+    }
+
+    &:active {
+      background: #a5d6a7;
+    }
+  }
+}
+
+.tag-button {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #66bb6a;
+  border-radius: 12px;
+  font-weight: 500;
+
+  &:hover {
+    background: #c8e6c9;
+    border-color: #4caf50;
+  }
+
+  &:active {
+    background: #a5d6a7;
+  }
+}
+
+.category-button {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ff9800;
+  border-radius: 12px;
+  font-weight: 500;
+
+  &:hover {
+    background: #ffe0b2;
+    border-color: #f57c00;
+  }
+
+  &:active {
+    background: #ffcc80;
+  }
+}
+
+.deck-type-icon {
+  height: 20px;
+  width: auto;
+  display: block;
+  border-radius: 3px;
+}
+
+.deck-type-placeholder {
+  font-size: 10px;
+  color: #999;
+  padding: 0 4px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: white;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.text-bold {
+  font-weight: 700;
+}
+
+.deck-type-unset {
+  font-size: 13px;
+  color: #666;
+  padding: 0 8px;
+}
+
+.deck-type-dropdown,
+.deck-style-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 240px;
+  max-height: 300px;
+  overflow-y: auto;
+
+  &.align-right {
+    left: auto;
+    right: 0;
+  }
+}
+
+.deck-type-option,
+.deck-style-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+
+  &:hover {
+    background: #f5f5f5;
+  }
+}
+
+.deck-type-icon-small {
+  width: 36px;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.dropdown-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.dropdown-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
+}
+</style>
