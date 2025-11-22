@@ -241,11 +241,17 @@ export default {
     // 各カードにUUIDを付与し、ソートして返す
     const cardsWithUuid = computed(() => {
       const sorted = sortCards(props.cards, localSortOrder.value)
-      return sorted.map((card, index) => ({
-        card,
-        // cardId、ciid、インデックスを組み合わせてユニークなキーを生成
-        uuid: `${card.cardId}-${card.ciid || '0'}-${index}`
-      }))
+      // 同じcardId-ciidの出現回数をカウントしてユニークなキーを生成
+      const countMap = new Map()
+      return sorted.map((card) => {
+        const baseKey = `${card.cardId}-${card.ciid || '0'}`
+        const count = countMap.get(baseKey) || 0
+        countMap.set(baseKey, count + 1)
+        return {
+          card,
+          uuid: `${baseKey}-${count}`
+        }
+      })
     })
 
     watch(() => props.sortOrder, (val) => {
