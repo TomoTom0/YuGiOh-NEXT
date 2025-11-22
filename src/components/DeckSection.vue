@@ -68,6 +68,7 @@ import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { mdiShuffle, mdiSort } from '@mdi/js'
+import { getCardInfo as getCardInfoUtil } from '../utils/card-utils'
 
 export default {
   name: 'DeckSection',
@@ -118,21 +119,12 @@ export default {
     
     // (cid, ciid)ペアでカード情報を取得
     const getCardInfo = (cid, ciid) => {
-      const allDecks = [
-        ...deckStore.deckInfo.mainDeck,
-        ...deckStore.deckInfo.extraDeck,
-        ...deckStore.deckInfo.sideDeck,
-        ...deckStore.trashDeck
-      ]
-
-      // (cid, ciid)ペアで検索
-      const deckCard = allDecks.find(dc =>
-        dc.card.cardId === cid && dc.card.ciid === String(ciid)
-      )
-      if (!deckCard) return null
-
-      // カード情報をそのまま返す（ciidは既に正しい値）
-      return deckCard.card
+      return getCardInfoUtil(cid, ciid, {
+        mainDeck: deckStore.deckInfo.mainDeck,
+        extraDeck: deckStore.deckInfo.extraDeck,
+        sideDeck: deckStore.deckInfo.sideDeck,
+        trashDeck: deckStore.trashDeck
+      })
     }
 
     const handleEndZoneDragOver = (event) => {
