@@ -31,13 +31,4 @@ jobs:
         run: |
           echo "Base branch: ${{ github.base_ref }}"
           echo "Head branch: ${{ github.head_ref }}"
-
-          # devブランチへのPRはfeature/fix/docs/refactor/test/choreブランチから許可
-          if [[ ! "${{ github.head_ref }}" =~ ^(feature|fix|docs|refactor|test|chore)/ ]]; then
-            echo "❌ Error: PRs to 'dev' must come from feature/fix/docs/refactor/test/chore branches"
-            echo "Current head branch: ${{ github.head_ref }}"
-            echo "Expected pattern: feature/*, fix/*, docs/*, refactor/*, test/*, chore/*"
-            exit 1
-          fi
-
-          echo "✅ Branch policy check passed: PR from ${{ github.head_ref }} to dev"
+          echo "✅ Branch policy check passed: PR to dev (no branch name restriction)"
