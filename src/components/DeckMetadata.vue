@@ -2,17 +2,10 @@
   <div class="deck-metadata">
     <!-- 1行目: 公開/非公開 + デッキタイプアイコン + Style + Tag + Cat -->
     <DeckMetadataHeader
-      ref="headerRef"
       :is-public="localIsPublic"
       :deck-type="localDeckType"
       :deck-style="localDeckStyle"
-      :show-deck-type-dropdown="showDeckTypeDropdown"
-      :show-deck-style-dropdown="showDeckStyleDropdown"
-      :deck-type-dropdown-align-right="deckTypeDropdownAlignRight"
-      :deck-style-dropdown-align-right="deckStyleDropdownAlignRight"
       @toggle-public="togglePublicStatus"
-      @toggle-deck-type-dropdown="toggleDeckTypeDropdown"
-      @toggle-deck-style-dropdown="toggleDeckStyleDropdown"
       @select-deck-type="selectDeckType"
       @select-deck-style="selectDeckStyle"
       @show-tag-dialog="showTagDialog = true"
@@ -55,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
@@ -84,42 +77,15 @@ const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
 
 // ダイアログ表示状態
-const showDeckTypeDropdown = ref(false);
-const showDeckStyleDropdown = ref(false);
 const showCategoryDialog = ref(false);
 const showTagDialog = ref(false);
-
-// ドロップダウン位置調整
-const deckTypeDropdownAlignRight = ref(false);
-const deckStyleDropdownAlignRight = ref(false);
-
-// ヘッダーコンポーネント参照
-const headerRef = ref<InstanceType<typeof DeckMetadataHeader> | null>(null);
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {
   const metadata = await getDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
-  
-  // 外クリックでドロップダウンを閉じる
-  document.addEventListener('click', handleClickOutside);
 });
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
-
-// 外クリックでドロップダウンを閉じる
-function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement;
-  if (!target.closest('.deck-type-selector')) {
-    showDeckTypeDropdown.value = false;
-  }
-  if (!target.closest('.deck-style-selector')) {
-    showDeckStyleDropdown.value = false;
-  }
-}
 
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
@@ -137,61 +103,14 @@ function togglePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
-// デッキタイプ・スタイルドロップダウンの右寄せ調整
-async function adjustAlignRight(
-  selector: HTMLElement | null,
-  dropdown: HTMLElement | null,
-  alignRightRef: { value: boolean }
-) {
-  if (!selector || !dropdown) return;
-  
-  await nextTick();
-  setTimeout(() => {
-    const rect = selector.getBoundingClientRect();
-    const dropdownRect = dropdown.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    
-    // 右端からはみ出る場合
-    if (rect.left + dropdownRect.width > viewportWidth) {
-      alignRightRef.value = true;
-    } else {
-      alignRightRef.value = false;
-    }
-  }, 10);
-}
-
-function toggleDeckTypeDropdown() {
-  showDeckTypeDropdown.value = !showDeckTypeDropdown.value;
-  if (showDeckTypeDropdown.value && headerRef.value) {
-    adjustAlignRight(
-      headerRef.value.deckTypeSelector,
-      headerRef.value.deckTypeDropdown,
-      deckTypeDropdownAlignRight
-    );
-  }
-}
-
-function toggleDeckStyleDropdown() {
-  showDeckStyleDropdown.value = !showDeckStyleDropdown.value;
-  if (showDeckStyleDropdown.value && headerRef.value) {
-    adjustAlignRight(
-      headerRef.value.deckStyleSelector,
-      headerRef.value.deckStyleDropdown,
-      deckStyleDropdownAlignRight
-    );
-  }
-}
-
 function selectDeckType(value: string) {
   localDeckType.value = value as DeckTypeValue;
   deckStore.deckInfo.deckType = localDeckType.value;
-  showDeckTypeDropdown.value = false;
 }
 
 function selectDeckStyle(value: string) {
   localDeckStyle.value = value as DeckStyleValue;
   deckStore.deckInfo.deckStyle = localDeckStyle.value;
-  showDeckStyleDropdown.value = false;
 }
 
 function updateComment() {

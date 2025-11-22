@@ -11,7 +11,7 @@
       <div class="deck-type-selector" ref="deckTypeSelector">
         <button
           class="deck-type-button"
-          @click="$emit('toggle-deck-type-dropdown')"
+          @click="toggleDeckTypeDropdown"
         >
           <div v-if="deckType === '-1'" class="deck-type-placeholder">type</div>
           <svg v-else-if="deckType === '0'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
@@ -42,10 +42,10 @@
             class="deck-type-dropdown"
             :class="{ 'align-right': deckTypeDropdownAlignRight }"
           >
-            <div class="deck-type-option" @click="$emit('select-deck-type', '-1')">
+            <div class="deck-type-option" @click="selectDeckType('-1')">
               <div class="deck-type-unset">未設定</div>
             </div>
-            <div class="deck-type-option" @click="$emit('select-deck-type', '0')">
+            <div class="deck-type-option" @click="selectDeckType('0')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
                 <polygon fill="#00204b" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
@@ -53,7 +53,7 @@
               </svg>
               OCG（マスタールール）
             </div>
-            <div class="deck-type-option" @click="$emit('select-deck-type', '1')">
+            <div class="deck-type-option" @click="selectDeckType('1')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#6ec300" width="148" height="108" rx="11.25"></rect>
                 <polygon fill="#2a4a00" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
@@ -61,7 +61,7 @@
               </svg>
               OCG（スピードルール）
             </div>
-            <div class="deck-type-option" @click="$emit('select-deck-type', '2')">
+            <div class="deck-type-option" @click="selectDeckType('2')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#00b9da" width="148" height="108" rx="11.25"></rect>
                 <path fill="#004c59" d="M101.37,66.88l-6.05-6V20h-23V33.3L58.74,20H7.85V89.85H58.74l14.14-14,13.72,14h39.81l13.24-15v-8Zm-50.92-6-5.76,6H30.82V42.93H44.69l5.76,5.75Z"></path>
@@ -69,7 +69,7 @@
               </svg>
               デュエルリンクス
             </div>
-            <div class="deck-type-option" @click="$emit('select-deck-type', '3')">
+            <div class="deck-type-option" @click="selectDeckType('3')">
               <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
                 <rect fill="#5c00da" width="148" height="108" rx="11.25"></rect>
                 <path fill="#2b0067" d="M120.12,16.12H63.72L43.56,45.4,23.39,16.12h-8v88.81h8L37,85H71.72L71.63,38h38.88v21h-8.46v-18H80.21V85h39.91c4.79,0,12.53-5.16,12.53-12.53V28.65C132.65,21.28,124.54,16.12,120.12,16.12Z"></path>
@@ -84,7 +84,7 @@
       <div class="deck-style-selector" ref="deckStyleSelector">
         <button
           class="deck-style-button"
-          @click="$emit('toggle-deck-style-dropdown')"
+          @click="toggleDeckStyleDropdown"
         >
           <span :class="{ 'text-bold': deckStyle !== '-1' }">{{ deckStyleLabel }}</span>
         </button>
@@ -95,9 +95,9 @@
             class="deck-style-dropdown"
             :class="{ 'align-right': deckStyleDropdownAlignRight }"
           >
-            <div class="deck-style-option" @click="$emit('select-deck-style', '0')">Character</div>
-            <div class="deck-style-option" @click="$emit('select-deck-style', '1')">Tournament</div>
-            <div class="deck-style-option" @click="$emit('select-deck-style', '2')">Concept</div>
+            <div class="deck-style-option" @click="selectDeckStyle('0')">Character</div>
+            <div class="deck-style-option" @click="selectDeckStyle('1')">Tournament</div>
+            <div class="deck-style-option" @click="selectDeckStyle('2')">Concept</div>
           </div>
         </Transition>
       </div>
@@ -114,33 +114,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 
 const props = defineProps<{
   isPublic: boolean
   deckType: '-1' | '0' | '1' | '2' | '3'
   deckStyle: '-1' | '0' | '1' | '2'
-  showDeckTypeDropdown: boolean
-  showDeckStyleDropdown: boolean
-  deckTypeDropdownAlignRight: boolean
-  deckStyleDropdownAlignRight: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'toggle-public'): void
-  (e: 'toggle-deck-type-dropdown'): void
-  (e: 'toggle-deck-style-dropdown'): void
   (e: 'select-deck-type', value: string): void
   (e: 'select-deck-style', value: string): void
   (e: 'show-tag-dialog'): void
   (e: 'show-category-dialog'): void
 }>()
 
-// DOM参照（親からのドロップダウン位置調整用）
+// DOM参照
 const deckTypeSelector = ref<HTMLElement | null>(null)
 const deckTypeDropdown = ref<HTMLElement | null>(null)
 const deckStyleSelector = ref<HTMLElement | null>(null)
 const deckStyleDropdown = ref<HTMLElement | null>(null)
+
+// ドロップダウン表示状態（内部管理）
+const showDeckTypeDropdown = ref(false)
+const showDeckStyleDropdown = ref(false)
+const deckTypeDropdownAlignRight = ref(false)
+const deckStyleDropdownAlignRight = ref(false)
 
 const deckStyleLabel = computed(() => {
   if (props.deckStyle === '-1') return 'Style'
@@ -150,13 +150,79 @@ const deckStyleLabel = computed(() => {
   return 'Style'
 })
 
-// 親コンポーネントがDOM要素にアクセスできるようにexpose
-defineExpose({
-  deckTypeSelector,
-  deckTypeDropdown,
-  deckStyleSelector,
-  deckStyleDropdown
+// ライフサイクル
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
 })
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// 外クリックでドロップダウンを閉じる
+function handleClickOutside(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  if (!target.closest('.deck-type-selector')) {
+    showDeckTypeDropdown.value = false
+  }
+  if (!target.closest('.deck-style-selector')) {
+    showDeckStyleDropdown.value = false
+  }
+}
+
+// ドロップダウン位置調整
+async function adjustAlignRight(
+  selector: HTMLElement | null,
+  dropdown: HTMLElement | null,
+  alignRightRef: { value: boolean }
+) {
+  if (!selector || !dropdown) return
+
+  await nextTick()
+  setTimeout(() => {
+    const rect = selector.getBoundingClientRect()
+    const dropdownRect = dropdown.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+
+    if (rect.left + dropdownRect.width > viewportWidth) {
+      alignRightRef.value = true
+    } else {
+      alignRightRef.value = false
+    }
+  }, 10)
+}
+
+function toggleDeckTypeDropdown() {
+  showDeckTypeDropdown.value = !showDeckTypeDropdown.value
+  if (showDeckTypeDropdown.value) {
+    adjustAlignRight(
+      deckTypeSelector.value,
+      deckTypeDropdown.value,
+      deckTypeDropdownAlignRight
+    )
+  }
+}
+
+function toggleDeckStyleDropdown() {
+  showDeckStyleDropdown.value = !showDeckStyleDropdown.value
+  if (showDeckStyleDropdown.value) {
+    adjustAlignRight(
+      deckStyleSelector.value,
+      deckStyleDropdown.value,
+      deckStyleDropdownAlignRight
+    )
+  }
+}
+
+function selectDeckType(value: string) {
+  emit('select-deck-type', value)
+  showDeckTypeDropdown.value = false
+}
+
+function selectDeckStyle(value: string) {
+  emit('select-deck-style', value)
+  showDeckStyleDropdown.value = false
+}
 </script>
 
 <style scoped lang="scss">
