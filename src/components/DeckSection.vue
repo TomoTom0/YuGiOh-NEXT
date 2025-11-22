@@ -268,7 +268,6 @@ export default {
     })
 
     return {
-      deckStore,
       handleEndDrop,
       handleEndZoneDragOver,
       handleEndZoneDragLeave,

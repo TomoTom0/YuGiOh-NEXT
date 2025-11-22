@@ -70,8 +70,8 @@ export default defineComponent({
       default: false
     }
   },
-  emits: ['search', 'escape'],
-  setup(props, { emit, expose }) {
+  emits: ['escape'],
+  setup(props, { expose }) {
     const deckStore = useDeckEditStore()
     const inputRef = ref<HTMLInputElement | null>(null)
     const searchMode = ref('name')
@@ -177,8 +177,6 @@ export default defineComponent({
         if (f.linkNumbers.length > 0) searchOptions.linkNumbers = f.linkNumbers
 
         const results = await searchCards(searchOptions)
-
-        emit('search', results)
 
         // 検索結果をstore用の形式に変換
         deckStore.searchResults = results as unknown as typeof deckStore.searchResults
