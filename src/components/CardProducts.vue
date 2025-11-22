@@ -39,7 +39,9 @@
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
+              :showCollapseButton="true"
               @scroll-to-top="handleScrollToTop"
+              @collapse="collapsePack(pack.packId)"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -185,7 +187,7 @@ export default {
     const updatePackSortOrder = (packId, value) => {
       packSortOrders.value = { ...packSortOrders.value, [packId]: value }
     }
-    
+
     const updatePackViewMode = (packId, value) => {
       packViewModes.value = { ...packViewModes.value, [packId]: value }
     }
