@@ -266,6 +266,9 @@ PRのレビューコメントに返信する際は、`gh-reply`コマンドを�
 ### 基本的な使い方
 
 ```bash
+# PRの詳細を確認
+gh-reply show <PR番号>
+
 # PRのレビューコメント一覧を取得
 gh-reply comment list <PR番号>
 
