@@ -205,10 +205,47 @@ export default defineComponent({
       return count
     })
 
-    // 表示用フィルターアイコン（最大3個）- 元の実装を復元
+    // レベル/リンク数を統合表示するヘルパー関数
+    const formatNumberRange = (numbers: number[], prefix: string): string => {
+      if (numbers.length === 0) return ''
+      const sorted = [...numbers].sort((a, b) => a - b)
+
+      // 連続した数値をグループ化
+      const groups: number[][] = []
+      let currentGroup: number[] = [sorted[0]]
+
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === sorted[i - 1] + 1) {
+          currentGroup.push(sorted[i])
+        } else {
+          groups.push(currentGroup)
+          currentGroup = [sorted[i]]
+        }
+      }
+      groups.push(currentGroup)
+
+      // グループを文字列に変換
+      const parts = groups.map(group => {
+        if (group.length >= 3) {
+          return `${group[0]}-${group[group.length - 1]}`
+        } else {
+          return group.join(',')
+        }
+      })
+
+      return `${prefix}${parts.join(',')}`
+    }
+
+    // 表示用フィルターアイコン - 画面サイズに応じて表示
     const displayFilterIcons = computed(() => {
       const icons: { type: string; label: string }[] = []
       const f = searchFilters.value
+
+      // カードタイプ
+      if (f.cardType) {
+        const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
+        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
+      }
 
       // 属性
       const attrLabels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
@@ -218,25 +255,19 @@ export default defineComponent({
 
       // 種族（短縮表示）
       const raceLabels: Record<string, string> = {
-        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械', fiend: '悪魔', fairy: '天使',
-        zombie: '不死', beast: '獣', beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
-        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜', windbeast: '鳥獣', rock: '岩石',
-        pyro: '炎', thunder: '雷', psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-        divine: '神獣', creatorgod: '創造'
+        dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
+        zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
+        fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
+        pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
+        divine: '神', creatorgod: '創'
       }
       f.races.forEach(race => {
-        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 2) })
+        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 1) })
       })
 
-      // レベル
-      f.levels.forEach(level => {
-        icons.push({ type: 'level', label: `★${level}` })
-      })
-
-      // カードタイプ
-      if (f.cardType) {
-        const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
-        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
+      // レベル（統合表示）
+      if (f.levels.length > 0) {
+        icons.push({ type: 'level', label: formatNumberRange(f.levels, '★') })
       }
 
       // ATK/DEF
@@ -257,13 +288,12 @@ export default defineComponent({
         icons.push({ type: 'monsterType', label: monsterTypeLabels[mtype] || mtype.slice(0, 1) })
       })
 
-      // リンク数
-      f.linkNumbers.forEach(link => {
-        icons.push({ type: 'link', label: `L${link}` })
-      })
+      // リンク数（統合表示）
+      if (f.linkNumbers.length > 0) {
+        icons.push({ type: 'link', label: formatNumberRange(f.linkNumbers, 'L') })
+      }
 
-      // 最大3個まで表示
-      return icons.slice(0, 3)
+      return icons
     })
 
     // コマンドモードの検出
@@ -543,15 +573,32 @@ export default defineComponent({
   width: 100%;
 }
 
-/* 元の実装のフィルターアイコンスタイル */
+/* フィルターアイコンスタイル - 二行構成・画面サイズ対応 */
 .filter-icons {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  align-content: center;
   gap: 2px;
   margin-right: 4px;
   flex-shrink: 1;
   min-width: 0;
+  max-width: 120px;
+  max-height: 24px;
   overflow: hidden;
+}
+
+/* 画面サイズに応じて表示幅を調整 */
+@media (min-width: 400px) {
+  .filter-icons {
+    max-width: 160px;
+  }
+}
+
+@media (min-width: 500px) {
+  .filter-icons {
+    max-width: 200px;
+  }
 }
 
 .filter-icon-item {
@@ -566,10 +613,12 @@ export default defineComponent({
   color: var(--text-secondary, #666);
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
-  max-width: 24px;
+  max-width: 48px;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+  line-height: 1;
+  height: 10px;
 }
 
 .filter-more {
@@ -577,7 +626,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   width: 12px;
-  height: 12px;
+  height: 10px;
   font-size: 8px;
   font-weight: 600;
   border-radius: 2px;
