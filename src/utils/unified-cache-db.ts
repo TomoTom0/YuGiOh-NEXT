@@ -31,11 +31,15 @@ const STORAGE_KEYS = {
   productTableB: 'productTableB',
   faqTableA: 'faqTableA',
   faqTableB: 'faqTableB',
+  lastCleanupAt: 'lastCleanupAt',
   // CardTableC, ProductTableB, FAQTableBは個別キー形式
   cardTableCPrefix: 'cardTableC:',
   productTableBPrefix: 'productTableB:',
   faqTableBPrefix: 'faqTableB:'
 } as const;
+
+// クリーンアップ間隔（24時間）
+const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000;
 
 /**
  * Tier計算ロジック
@@ -109,6 +113,30 @@ class UnifiedCacheDB {
 
     this.initialized = true;
     console.log('[UnifiedCacheDB] Initialized');
+
+    // 自動クリーンアップチェック
+    await this.checkAndRunCleanup();
+  }
+
+  /**
+   * 最終クリーンアップ時刻をチェックし、必要なら実行
+   */
+  private async checkAndRunCleanup(): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.lastCleanupAt);
+      const lastCleanupAt = result[STORAGE_KEYS.lastCleanupAt] as number | undefined;
+      const now = Date.now();
+
+      // 前回クリーンアップから24時間以上経過していれば実行
+      if (!lastCleanupAt || (now - lastCleanupAt) > CLEANUP_INTERVAL) {
+        console.log('[UnifiedCacheDB] Running automatic cleanup...');
+        await this.cleanup();
+        await chrome.storage.local.set({ [STORAGE_KEYS.lastCleanupAt]: now });
+        console.log('[UnifiedCacheDB] Automatic cleanup completed');
+      }
+    } catch (error) {
+      console.error('[UnifiedCacheDB] Auto cleanup failed:', error);
+    }
   }
 
   private async loadCardTierTable(): Promise<void> {
