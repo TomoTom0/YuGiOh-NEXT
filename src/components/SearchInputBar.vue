@@ -255,6 +255,20 @@ export default defineComponent({
         { value: 'spell', label: '魔法' },
         { value: 'trap', label: '罠' }
       ],
+      races: [
+        { value: 'dragon', label: 'ドラゴン' }, { value: 'spellcaster', label: '魔法使い' },
+        { value: 'warrior', label: '戦士' }, { value: 'machine', label: '機械' },
+        { value: 'fiend', label: '悪魔' }, { value: 'fairy', label: '天使' },
+        { value: 'zombie', label: 'アンデット' }, { value: 'beast', label: '獣' },
+        { value: 'beastwarrior', label: '獣戦士' }, { value: 'plant', label: '植物' },
+        { value: 'insect', label: '昆虫' }, { value: 'aqua', label: '水' },
+        { value: 'fish', label: '魚' }, { value: 'seaserpent', label: '海竜' },
+        { value: 'reptile', label: '爬虫類' }, { value: 'dinosaur', label: '恐竜' },
+        { value: 'windbeast', label: '鳥獣' }, { value: 'rock', label: '岩石' },
+        { value: 'pyro', label: '炎' }, { value: 'thunder', label: '雷' },
+        { value: 'psychic', label: 'サイキック' }, { value: 'wyrm', label: '幻竜' },
+        { value: 'cyberse', label: 'サイバース' }
+      ],
       monsterTypes: [
         { value: 'normal', label: '通常' }, { value: 'effect', label: '効果' },
         { value: 'fusion', label: '融合' }, { value: 'ritual', label: '儀式' },
@@ -1391,7 +1405,7 @@ export default defineComponent({
   align-items: center;
   padding: 2px 6px;
   margin-right: 4px;
-  background: var(--theme-color-start, #00d9b8);
+  background: #1565c0;
   color: white;
   border-radius: 4px;
   font-size: 11px;
