@@ -11,6 +11,9 @@ build/
 # Temporary files
 tmp/
 *.tmp
+
+# Tasks (managed in separate git repository)
+tasks/
 *.log
 *.swp
 *.swo

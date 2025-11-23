@@ -8,6 +8,7 @@ import { getDeckDetail } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
+import { getCardInfo as getCardInfoUtil } from '../utils/card-utils';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -1128,16 +1129,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // (cid, ciid)ペアからカード情報を取得するヘルパー関数
     const getCardInfo = (cid: string, ciid: number) => {
-      const allDecks = [
-        ...deckInfo.value.mainDeck,
-        ...deckInfo.value.extraDeck,
-        ...deckInfo.value.sideDeck,
-        ...trashDeck.value
-      ];
-      const deckCard = allDecks.find(dc =>
-        dc.card.cardId === cid && dc.card.ciid === String(ciid)
-      );
-      return deckCard ? deckCard.card : null;
+      return getCardInfoUtil(cid, ciid, {
+        mainDeck: deckInfo.value.mainDeck,
+        extraDeck: deckInfo.value.extraDeck,
+        sideDeck: deckInfo.value.sideDeck,
+        trashDeck: trashDeck.value
+      });
     };
 
     // ソート優先順位
