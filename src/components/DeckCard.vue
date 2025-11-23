@@ -87,6 +87,7 @@ import { useDeckEditStore } from '../stores/deck-edit'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
+import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
   name: 'DeckCard',
@@ -294,7 +295,7 @@ export default {
         console.error('Card drop error:', e)
       }
     },
-    handleInfo() {
+    async handleInfo() {
       // infoセクションの場合は新しいタブで公式ページを開く
       if (this.sectionType === 'info') {
         const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
@@ -302,12 +303,25 @@ export default {
         return
       }
 
-      // 押下元のカードをselectedCardに設定（imgs配列もコピーして独立させる）
-      this.deckStore.selectedCard = {
-        ...this.card,
-        imgs: [...this.card.imgs],
-        ciid: this.card.ciid
+      // 詳細データをキャッシュ対応で取得してからselectedCardに設定
+      try {
+        const result = await getCardDetailWithCache(this.card.cardId)
+        const fullCard = result?.detail?.card || this.card
+
+        this.deckStore.selectedCard = {
+          ...fullCard,
+          imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
+          ciid: fullCard.ciid || this.card.ciid
+        }
+      } catch (e) {
+        console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
+        this.deckStore.selectedCard = {
+          ...this.card,
+          imgs: [...this.card.imgs],
+          ciid: this.card.ciid
+        }
       }
+
       this.deckStore.activeTab = 'card'
       this.deckStore.cardTab = 'info'
     },
