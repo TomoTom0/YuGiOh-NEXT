@@ -37,15 +37,15 @@
           @keydown="handleKeydown"
         >
       </div>
-      <!-- フィルター条件表示（元の実装を復元） -->
+      <!-- フィルター条件表示 -->
       <div v-if="hasActiveFilters" class="filter-icons">
         <span
-          v-for="(icon, index) in displayFilterIcons"
+          v-for="(icon, index) in visibleFilterIcons"
           :key="index"
           class="filter-icon-item"
           :class="icon.type"
         >{{ icon.label }}</span>
-        <span v-if="filterCount > 3" class="filter-more">+</span>
+        <span v-if="displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
       </div>
 
       <button
@@ -294,6 +294,14 @@ export default defineComponent({
       }
 
       return icons
+    })
+
+    // 表示可能な最大アイコン数（二行分）
+    const maxVisibleIcons = 6
+
+    // 表示するアイコン（最大数まで）
+    const visibleFilterIcons = computed(() => {
+      return displayFilterIcons.value.slice(0, maxVisibleIcons)
     })
 
     // コマンドモードの検出
@@ -553,6 +561,8 @@ export default defineComponent({
       hasActiveFilters,
       filterCount,
       displayFilterIcons,
+      visibleFilterIcons,
+      maxVisibleIcons,
       isCommandMode,
       commandPrefix,
       selectSearchMode,
