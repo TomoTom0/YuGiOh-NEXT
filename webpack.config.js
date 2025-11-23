@@ -36,7 +36,7 @@ module.exports = (env, argv) => {
           exclude: [/node_modules/, /__tests__/],
           options: {
             appendTsSuffixTo: [/\.vue$/],
-            transpileOnly: false,
+            transpileOnly: true,
             compilerOptions: {
               noUnusedParameters: false,  // Vueの自動生成コードのため
               noImplicitAny: false,  // Vueのrefコールバックのため
