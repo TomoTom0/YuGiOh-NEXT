@@ -1,47 +1,68 @@
 <template>
-  <div class="search-input-bar" :class="{ compact: compact }">
-    <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
-      <span class="menu-icon">...</span>
-      <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
-    </button>
-    <button class="search-mode-btn" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
-      <span class="mode-icon">▼</span>
-      <span class="mode-text">{{ searchModeLabel }}</span>
-    </button>
-    <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
-    <Transition name="dropdown">
-      <div v-if="showSearchModeDropdown" class="mode-dropdown">
-        <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
-        <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
-        <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
+  <div class="search-input-wrapper">
+    <div class="search-input-bar" :class="{ compact: compact }">
+      <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+        <span class="menu-icon">...</span>
+        <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
+      </button>
+      <button class="search-mode-btn" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
+        <span class="mode-icon">▼</span>
+        <span class="mode-text">{{ searchModeLabel }}</span>
+      </button>
+      <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
+      <Transition name="dropdown">
+        <div v-if="showSearchModeDropdown" class="mode-dropdown">
+          <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
+          <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
+          <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
+        </div>
+      </Transition>
+      <button class="search-btn" @click="handleSearch">
+        <svg width="14" height="14" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+        </svg>
+      </button>
+      <div class="input-container" :class="{ 'command-mode': isCommandMode }">
+        <span v-if="commandPrefix" class="command-prefix">{{ commandPrefix }}</span>
+        <input
+          ref="inputRef"
+          v-model="deckStore.searchQuery"
+          type="text"
+          class="search-input"
+          :class="{ 'has-prefix': commandPrefix }"
+          :placeholder="placeholder"
+          @input="handleInput"
+          @keyup.enter="handleSearch"
+          @keydown.escape="$emit('escape')"
+          @keydown="handleKeydown"
+        >
       </div>
-    </Transition>
-    <button class="search-btn" @click="handleSearch">
-      <svg width="14" height="14" viewBox="0 0 24 24">
-        <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
-      </svg>
-    </button>
-    <input
-      ref="inputRef"
-      v-model="deckStore.searchQuery"
-      type="text"
-      class="search-input"
-      :placeholder="placeholder"
-      @keyup.enter="handleSearch"
-      @keydown.escape="$emit('escape')"
-    >
-    <button
-      v-if="deckStore.searchQuery"
-      class="clear-btn"
-      @click="deckStore.searchQuery = ''"
-    >x</button>
+      <button
+        v-if="deckStore.searchQuery"
+        class="clear-btn"
+        @click="deckStore.searchQuery = ''"
+      >x</button>
 
-    <SearchFilterDialog
-      :is-visible="showFilterDialog"
-      :initial-filters="searchFilters"
-      @close="showFilterDialog = false"
-      @apply="handleFilterApply"
-    />
+      <SearchFilterDialog
+        :is-visible="showFilterDialog"
+        :initial-filters="searchFilters"
+        @close="showFilterDialog = false"
+        @apply="handleFilterApply"
+      />
+    </div>
+
+    <!-- フィルタチップ表示エリア -->
+    <div v-if="filterChips.length > 0" class="filter-chips">
+      <div
+        v-for="chip in filterChips"
+        :key="chip.key"
+        class="filter-chip"
+        :class="chip.type"
+      >
+        <span class="chip-label">{{ chip.label }}</span>
+        <button class="chip-remove" @click="removeFilter(chip)">x</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -50,6 +71,75 @@ import { ref, computed, nextTick, defineComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import SearchFilterDialog from './SearchFilterDialog.vue'
+import { getAttributeLabel, getRaceLabel, getMonsterTypeLabel } from '../utils/label-utils'
+
+interface FilterChip {
+  key: string
+  label: string
+  type: string
+  filterType: string
+  value: string | number
+}
+
+interface SearchFilters {
+  cardType: string | null
+  attributes: string[]
+  races: string[]
+  levels: number[]
+  atk: { from: number | undefined; to: number | undefined }
+  def: { from: number | undefined; to: number | undefined }
+  monsterTypes: string[]
+  linkNumbers: number[]
+}
+
+// コマンド定義
+const COMMANDS: Record<string, { filterType: string; description: string }> = {
+  '/attr': { filterType: 'attributes', description: '属性' },
+  '/race': { filterType: 'races', description: '種族' },
+  '/level': { filterType: 'levels', description: 'レベル/ランク' },
+  '/atk': { filterType: 'atk', description: 'ATK' },
+  '/def': { filterType: 'def', description: 'DEF' },
+  '/type': { filterType: 'cardType', description: 'カードタイプ' },
+  '/link': { filterType: 'linkNumbers', description: 'リンク数' },
+  '/mtype': { filterType: 'monsterTypes', description: 'モンスタータイプ' }
+}
+
+// 属性マッピング（日本語/英語 -> APIキー）
+const ATTRIBUTE_MAP: Record<string, string> = {
+  '光': 'light', 'light': 'light',
+  '闇': 'dark', 'dark': 'dark',
+  '炎': 'fire', 'fire': 'fire',
+  '水': 'water', 'water': 'water',
+  '風': 'wind', 'wind': 'wind',
+  '地': 'earth', 'earth': 'earth',
+  '神': 'divine', 'divine': 'divine'
+}
+
+// カードタイプマッピング
+const CARD_TYPE_MAP: Record<string, string> = {
+  'モンスター': 'monster', 'monster': 'monster', 'm': 'monster',
+  '魔法': 'spell', 'spell': 'spell', 's': 'spell',
+  '罠': 'trap', 'trap': 'trap', 't': 'trap'
+}
+
+// モンスタータイプマッピング
+const MONSTER_TYPE_MAP: Record<string, string> = {
+  '通常': 'normal', 'normal': 'normal',
+  '効果': 'effect', 'effect': 'effect',
+  'チューナー': 'tuner', 'tuner': 'tuner',
+  'スピリット': 'spirit', 'spirit': 'spirit',
+  'ユニオン': 'union', 'union': 'union',
+  'デュアル': 'dual', 'dual': 'dual',
+  'リバース': 'reverse', 'reverse': 'reverse',
+  'トゥーン': 'toon', 'toon': 'toon',
+  '特殊召喚': 'special', 'special': 'special',
+  'ペンデュラム': 'pendulum', 'pendulum': 'pendulum',
+  '儀式': 'ritual', 'ritual': 'ritual',
+  '融合': 'fusion', 'fusion': 'fusion',
+  'シンクロ': 'synchro', 'synchro': 'synchro',
+  'エクシーズ': 'xyz', 'xyz': 'xyz',
+  'リンク': 'link', 'link': 'link'
+}
 
 export default defineComponent({
   name: 'SearchInputBar',
@@ -77,15 +167,15 @@ export default defineComponent({
     const searchMode = ref('name')
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
-    const searchFilters = ref({
-      cardType: null as string | null,
-      attributes: [] as string[],
-      races: [] as string[],
-      levels: [] as number[],
-      atk: { from: undefined as number | undefined, to: undefined as number | undefined },
-      def: { from: undefined as number | undefined, to: undefined as number | undefined },
-      monsterTypes: [] as string[],
-      linkNumbers: [] as number[]
+    const searchFilters = ref<SearchFilters>({
+      cardType: null,
+      attributes: [],
+      races: [],
+      levels: [],
+      atk: { from: undefined, to: undefined },
+      def: { from: undefined, to: undefined },
+      monsterTypes: [],
+      linkNumbers: []
     })
 
     const searchModeLabel = computed(() => {
@@ -125,6 +215,274 @@ export default defineComponent({
       return count
     })
 
+    // コマンドモードの検出
+    const commandMatch = computed(() => {
+      const query = deckStore.searchQuery
+      if (!query.startsWith('/')) return null
+
+      // コマンド + スペースのパターンを検索
+      for (const cmd of Object.keys(COMMANDS)) {
+        if (query.startsWith(cmd + ' ')) {
+          return {
+            command: cmd,
+            value: query.substring(cmd.length + 1)
+          }
+        }
+      }
+      return null
+    })
+
+    const isCommandMode = computed(() => commandMatch.value !== null)
+    const commandPrefix = computed(() => commandMatch.value?.command || '')
+
+    // 入力ハンドラ
+    const handleInput = () => {
+      // コマンドモードの検出と処理はここで行う
+    }
+
+    // キー入力ハンドラ（backspaceでコマンドモード解除の検出用）
+    const handleKeydown = (event: KeyboardEvent) => {
+      // backspaceでスペースが削除されるとコマンドモードが解除される
+      // これは自動的にcommandMatchのcomputedで検出される
+    }
+
+    // コマンドからフィルタを適用
+    const applyCommandFilter = () => {
+      const match = commandMatch.value
+      if (!match) return
+
+      const cmd = COMMANDS[match.command]
+      if (!cmd) return
+
+      const value = match.value.trim().toLowerCase()
+      if (!value) return
+
+      const f = searchFilters.value
+
+      switch (cmd.filterType) {
+        case 'attributes': {
+          const attr = ATTRIBUTE_MAP[value]
+          if (attr && !f.attributes.includes(attr)) {
+            f.attributes.push(attr)
+          }
+          break
+        }
+        case 'races': {
+          // 種族は部分一致で検索（TODO: 種族マッピングを追加）
+          // 型安全のためにstringとしてキャスト
+          const raceValue = value as string
+          if (raceValue && !f.races.includes(raceValue)) {
+            f.races.push(raceValue)
+          }
+          break
+        }
+        case 'levels': {
+          const level = parseInt(value)
+          if (!isNaN(level) && level >= 1 && level <= 12 && !f.levels.includes(level)) {
+            f.levels.push(level)
+          }
+          break
+        }
+        case 'atk': {
+          // ATK:1000-2000 または ATK:1000 形式
+          const parts = value.split('-')
+          if (parts.length === 2) {
+            const from = parts[0] ? parseInt(parts[0]) : undefined
+            const to = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(from as number)) f.atk.from = from
+            if (!isNaN(to as number)) f.atk.to = to
+          } else if (parts.length === 1) {
+            const val = parseInt(parts[0])
+            if (!isNaN(val)) {
+              f.atk.from = val
+              f.atk.to = val
+            }
+          }
+          break
+        }
+        case 'def': {
+          const parts = value.split('-')
+          if (parts.length === 2) {
+            const from = parts[0] ? parseInt(parts[0]) : undefined
+            const to = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(from as number)) f.def.from = from
+            if (!isNaN(to as number)) f.def.to = to
+          } else if (parts.length === 1) {
+            const val = parseInt(parts[0])
+            if (!isNaN(val)) {
+              f.def.from = val
+              f.def.to = val
+            }
+          }
+          break
+        }
+        case 'cardType': {
+          const type = CARD_TYPE_MAP[value]
+          if (type) {
+            f.cardType = type
+          }
+          break
+        }
+        case 'linkNumbers': {
+          const link = parseInt(value)
+          if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkNumbers.includes(link)) {
+            f.linkNumbers.push(link)
+          }
+          break
+        }
+        case 'monsterTypes': {
+          const mtype = MONSTER_TYPE_MAP[value]
+          if (mtype && !f.monsterTypes.includes(mtype)) {
+            f.monsterTypes.push(mtype)
+          }
+          break
+        }
+      }
+
+      // コマンドをクリアして検索クエリを空に
+      deckStore.searchQuery = ''
+    }
+
+    // フィルタチップの生成
+    const filterChips = computed(() => {
+      const chips: FilterChip[] = []
+      const f = searchFilters.value
+
+      // カードタイプ
+      if (f.cardType) {
+        const typeLabels: Record<string, string> = {
+          'monster': 'モンスター',
+          'spell': '魔法',
+          'trap': '罠'
+        }
+        chips.push({
+          key: `cardType-${f.cardType}`,
+          label: typeLabels[f.cardType] || f.cardType,
+          type: 'cardType',
+          filterType: 'cardType',
+          value: f.cardType
+        })
+      }
+
+      // 属性
+      f.attributes.forEach(attr => {
+        chips.push({
+          key: `attr-${attr}`,
+          label: getAttributeLabel(attr),
+          type: 'attribute',
+          filterType: 'attributes',
+          value: attr
+        })
+      })
+
+      // 種族
+      f.races.forEach((race) => {
+        chips.push({
+          key: `race-${race}`,
+          label: getRaceLabel(race!),
+          type: 'race',
+          filterType: 'races',
+          value: race
+        })
+      })
+
+      // レベル/ランク
+      f.levels.forEach(level => {
+        chips.push({
+          key: `level-${level}`,
+          label: `Lv.${level}`,
+          type: 'level',
+          filterType: 'levels',
+          value: level
+        })
+      })
+
+      // ATK
+      if (f.atk.from !== undefined || f.atk.to !== undefined) {
+        const fromStr = f.atk.from !== undefined ? f.atk.from : '?'
+        const toStr = f.atk.to !== undefined ? f.atk.to : '?'
+        chips.push({
+          key: 'atk',
+          label: `ATK:${fromStr}-${toStr}`,
+          type: 'stat',
+          filterType: 'atk',
+          value: 'atk'
+        })
+      }
+
+      // DEF
+      if (f.def.from !== undefined || f.def.to !== undefined) {
+        const fromStr = f.def.from !== undefined ? f.def.from : '?'
+        const toStr = f.def.to !== undefined ? f.def.to : '?'
+        chips.push({
+          key: 'def',
+          label: `DEF:${fromStr}-${toStr}`,
+          type: 'stat',
+          filterType: 'def',
+          value: 'def'
+        })
+      }
+
+      // モンスタータイプ
+      f.monsterTypes.forEach((mtype) => {
+        chips.push({
+          key: `mtype-${mtype}`,
+          label: getMonsterTypeLabel(mtype!),
+          type: 'monsterType',
+          filterType: 'monsterTypes',
+          value: mtype
+        })
+      })
+
+      // リンク数
+      f.linkNumbers.forEach(link => {
+        chips.push({
+          key: `link-${link}`,
+          label: `LINK-${link}`,
+          type: 'link',
+          filterType: 'linkNumbers',
+          value: link
+        })
+      })
+
+      return chips
+    })
+
+    // フィルタチップの削除
+    const removeFilter = (chip: FilterChip) => {
+      const f = searchFilters.value
+      switch (chip.filterType) {
+        case 'cardType':
+          f.cardType = null
+          break
+        case 'attributes':
+          f.attributes = f.attributes.filter(v => v !== chip.value)
+          break
+        case 'races':
+          f.races = f.races.filter(v => v !== String(chip.value))
+          break
+        case 'levels':
+          f.levels = f.levels.filter(v => v !== chip.value)
+          break
+        case 'atk':
+          f.atk = { from: undefined, to: undefined }
+          break
+        case 'def':
+          f.def = { from: undefined, to: undefined }
+          break
+        case 'monsterTypes':
+          f.monsterTypes = f.monsterTypes.filter(v => v !== String(chip.value))
+          break
+        case 'linkNumbers':
+          f.linkNumbers = f.linkNumbers.filter(v => v !== chip.value)
+          break
+      }
+      // フィルタ変更後に再検索
+      if (deckStore.searchQuery.trim() || hasActiveFilters.value) {
+        handleSearch()
+      }
+    }
+
     const selectSearchMode = (mode: string) => {
       searchMode.value = mode
       showSearchModeDropdown.value = false
@@ -138,6 +496,17 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
+      // コマンドモードの場合はフィルタを適用
+      if (isCommandMode.value) {
+        applyCommandFilter()
+        // フィルタ適用後に検索を実行
+        if (hasActiveFilters.value) {
+          // 検索クエリがクリアされているので、フィルタのみで検索
+        } else {
+          return
+        }
+      }
+
       if (!deckStore.searchQuery.trim() && !hasActiveFilters.value) {
         deckStore.searchResults = []
         deckStore.allResults = []
@@ -242,15 +611,137 @@ export default defineComponent({
       searchFilters,
       hasActiveFilters,
       filterCount,
+      filterChips,
+      isCommandMode,
+      commandPrefix,
       selectSearchMode,
       handleFilterApply,
-      handleSearch
+      handleSearch,
+      handleInput,
+      handleKeydown,
+      removeFilter
     }
   }
 })
 </script>
 
 <style lang="scss" scoped>
+.search-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-primary, #333);
+  border: 1px solid var(--border-primary, #ddd);
+
+  &.cardType {
+    background: linear-gradient(90deg, #e8f4fd 0%, #f0e8fd 100%);
+    border-color: #c8d8e8;
+  }
+
+  &.attribute {
+    background: linear-gradient(90deg, #fff3e0 0%, #ffecb3 100%);
+    border-color: #ffcc80;
+  }
+
+  &.race {
+    background: linear-gradient(90deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-color: #a5d6a7;
+  }
+
+  &.level {
+    background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+    border-color: #90caf9;
+  }
+
+  &.stat {
+    background: linear-gradient(90deg, #fce4ec 0%, #f8bbd0 100%);
+    border-color: #f48fb1;
+  }
+
+  &.monsterType {
+    background: linear-gradient(90deg, #f3e5f5 0%, #e1bee7 100%);
+    border-color: #ce93d8;
+  }
+
+  &.link {
+    background: linear-gradient(90deg, #e0f7fa 0%, #b2ebf2 100%);
+    border-color: #80deea;
+  }
+
+  .chip-label {
+    white-space: nowrap;
+  }
+
+  .chip-remove {
+    background: none;
+    border: none;
+    padding: 0 2px;
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    cursor: pointer;
+    line-height: 1;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.1);
+      color: var(--text-primary, #333);
+    }
+  }
+}
+
+.input-container {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+
+  &.command-mode {
+    background: rgba(0, 217, 184, 0.1);
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: 0 4px;
+  }
+}
+
+.command-prefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  margin-right: 4px;
+  background: var(--theme-color-start, #00d9b8);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 .search-input-bar {
   display: flex;
   align-items: center;

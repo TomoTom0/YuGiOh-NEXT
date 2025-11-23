@@ -99,11 +99,13 @@
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">
               <span class="stat-item attribute">{{ getAttributeLabel(item.card.attribute) }}</span>
-              <span class="stat-item race">{{ getRaceLabel(item.card.race) }}</span>
+              <span class="stat-item race" v-if="item.card.race">{{ getRaceLabel(item.card.race) }}</span>
               <span class="stat-item level">{{ getLevelLabel(item.card) }}</span>
               <span class="stat-item atk">ATK {{ item.card.atk ?? '?' }}</span>
               <span class="stat-item def" v-if="item.card.levelType !== 'link'">DEF {{ item.card.def ?? '?' }}</span>
-              <span class="stat-item type" v-for="type in item.card.types" :key="type">{{ getMonsterTypeLabel(type) }}</span>
+              <template v-for="type in item.card.types" :key="type">
+                <span class="stat-item type" v-if="type">{{ getMonsterTypeLabel(type) }}</span>
+              </template>
             </template>
             <!-- 魔法カード -->
             <template v-else-if="item.card.cardType === 'spell'">
