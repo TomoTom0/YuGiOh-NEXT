@@ -127,6 +127,7 @@ import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { CardInfo } from '../types/card'
+import { getTempCardDB } from '../utils/temp-card-db'
 
 interface SearchFilters {
   cardType: string | null
@@ -1051,11 +1052,21 @@ export default defineComponent({
           return
         }
 
-        // 全カードを収集
+        // 全カードを収集（TempCardDBから取得）
+        const tempCardDB = getTempCardDB()
         const allCards: CardInfo[] = []
-        deckDetail.mainDeck.forEach(dc => allCards.push(dc.card))
-        deckDetail.extraDeck.forEach(dc => allCards.push(dc.card))
-        deckDetail.sideDeck.forEach(dc => allCards.push(dc.card))
+        deckDetail.mainDeck.forEach(dc => {
+          const card = tempCardDB.get(dc.cid)
+          if (card) allCards.push(card)
+        })
+        deckDetail.extraDeck.forEach(dc => {
+          const card = tempCardDB.get(dc.cid)
+          if (card) allCards.push(card)
+        })
+        deckDetail.sideDeck.forEach(dc => {
+          const card = tempCardDB.get(dc.cid)
+          if (card) allCards.push(card)
+        })
 
         // ciidで重複排除（各カード1枚ずつ）
         const seenCiids = new Set<string>()

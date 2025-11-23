@@ -75,6 +75,7 @@
         v-for="(item, idx) in cardsWithUuid"
         :key="item.uuid"
         class="card-result-item"
+        :class="{ 'text-expanded': expandedCards.has(item.uuid) }"
       >
         <div class="card-wrapper">
           <DeckCard
@@ -544,6 +545,10 @@ export default {
     /* グリッド表示用のCSS変数を使用 */
     width: var(--card-width-grid);
   }
+
+  &.text-expanded {
+    min-height: auto;
+  }
 }
 
 .card-wrapper {
@@ -595,9 +600,26 @@ export default {
     border-radius: 4px;
     padding: 4px;
     margin: -4px;
+    position: relative;
+
+    // 展開可能インジケーター（グラデーションフェード）
+    &:not(.expanded)::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      height: 20px;
+      background: linear-gradient(transparent, var(--card-bg, #fff));
+      pointer-events: none;
+    }
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+
+      &:not(.expanded)::after {
+        background: linear-gradient(transparent, var(--bg-secondary, #f5f5f5));
+      }
     }
   }
 

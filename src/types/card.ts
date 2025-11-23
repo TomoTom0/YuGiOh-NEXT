@@ -137,6 +137,31 @@ export interface DeckCard {
 }
 
 /**
+ * デッキ内カード参照（軽量版）
+ * カードの完全な情報はTempCardDBから取得する
+ */
+export interface DeckCardRef {
+  /** カードID (cid) */
+  cid: string;
+  /** 画像識別子 (ciid) */
+  ciid: string;
+  /** 枚数 */
+  quantity: number;
+}
+
+/**
+ * カード参照（軽量版）
+ * 検索結果やカード選択等で使用
+ * カードの完全な情報はTempCardDBから取得する
+ */
+export interface CardRef {
+  /** カードID (cid) */
+  cid: string;
+  /** 画像識別子 (ciid) */
+  ciid: string;
+}
+
+/**
  * 収録シリーズ情報
  */
 export interface PackInfo {
