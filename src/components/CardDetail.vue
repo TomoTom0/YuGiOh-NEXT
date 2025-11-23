@@ -165,6 +165,17 @@ export default {
 
       console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
+
+      // 既知の情報を先に表示（カード名、画像、ステータス、テキスト）
+      // 未知の情報（packs, relatedCards, qaList）は空で表示
+      detail.value = {
+        card: props.card,
+        packs: [],
+        relatedCards: [],
+        qaList: []
+      }
+      faqListData.value = null
+
       try {
         // キャッシュ対応のカード詳細取得
         const cacheResult = await getCardDetailWithCache(props.card)
@@ -181,7 +192,7 @@ export default {
             isFresh: cacheResult.isFresh
           }))
 
-          // まずキャッシュデータを表示
+          // 詳細データで更新
           detail.value = cacheResult.detail
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
