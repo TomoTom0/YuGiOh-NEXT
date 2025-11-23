@@ -438,7 +438,7 @@ export default defineComponent({
       return props.placeholder
     })
 
-    // チップのラベルを取得
+    // チップのラベルを取得（右側のフィルターアイコンと同じ形式）
     const getChipLabel = (type: string, value: string): string => {
       switch (type) {
         case 'attributes': {
@@ -458,15 +458,23 @@ export default defineComponent({
           return labels[value] || value
         }
         case 'levels':
-          return `Lv${value}`
+          return `★${value}`
         case 'linkNumbers':
           return `L${value}`
         case 'atk':
-          return `ATK:${value}`
+          return 'ATK'
         case 'def':
-          return `DEF:${value}`
-        case 'races':
-          return value
+          return 'DEF'
+        case 'races': {
+          const raceLabels: Record<string, string> = {
+            dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
+            zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
+            fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
+            pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
+            divine: '神', creatorgod: '創'
+          }
+          return raceLabels[value] || value.slice(0, 1)
+        }
         default:
           return value
       }
@@ -1046,26 +1054,28 @@ export default defineComponent({
   align-items: center;
   gap: 2px;
   padding: 2px 6px;
-  background: var(--theme-color-start, #00d9b8);
-  color: white;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-primary, #333);
+  border: 1px solid var(--border-primary, #ddd);
   border-radius: 4px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 
   &:hover {
-    background: var(--theme-color-end, #00b894);
+    background: var(--bg-tertiary, #e0e0e0);
+    border-color: var(--text-tertiary, #999);
   }
 
   .chip-remove {
     font-size: 10px;
-    opacity: 0.7;
+    color: var(--text-tertiary, #999);
     margin-left: 2px;
 
     &:hover {
-      opacity: 1;
+      color: var(--text-primary, #333);
     }
   }
 }
