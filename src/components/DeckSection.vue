@@ -68,7 +68,7 @@ import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { mdiShuffle, mdiSort } from '@mdi/js'
-import { getCardInfo as getCardInfoUtil } from '../utils/card-utils'
+import { getTempCardDB } from '../utils/temp-card-db'
 
 export default {
   name: 'DeckSection',
@@ -118,13 +118,9 @@ export default {
     })
     
     // (cid, ciid)ペアでカード情報を取得
-    const getCardInfo = (cid, ciid) => {
-      return getCardInfoUtil(cid, ciid, {
-        mainDeck: deckStore.deckInfo.mainDeck,
-        extraDeck: deckStore.deckInfo.extraDeck,
-        sideDeck: deckStore.deckInfo.sideDeck,
-        trashDeck: deckStore.trashDeck
-      })
+    const getCardInfo = (cid: string, _ciid: number) => {
+      const tempCardDB = getTempCardDB()
+      return tempCardDB.get(cid) || null
     }
 
     const handleEndZoneDragOver = (event) => {

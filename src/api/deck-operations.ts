@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
-import { DeckCard } from '@/types/card';
+import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/deck';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
+import { getTempCardDB } from '@/utils/temp-card-db';
 
 const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 
@@ -129,11 +129,16 @@ export async function saveDeckInternal(
     const TOTAL_MAIN_SLOTS = 65;  // メイン: モンスター/魔法/罠それぞれ65枠
     const TOTAL_EXTRA_SLOTS = 20;  // エクストラ: 20枠
     const TOTAL_SIDE_SLOTS = 20;   // サイド: 20枠
-    
+
+    const tempCardDB = getTempCardDB();
+
     // メインデッキ: モンスター（実カード→空き枠）
-    const mainMonsters = deckData.mainDeck.filter(c => c.card.cardType === 'monster');
-    mainMonsters.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainMonsters = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'monster';
+    });
+    mainMonsters.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
       params.append('monm', '');
@@ -141,11 +146,14 @@ export async function saveDeckInternal(
       params.append('monsterCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // メインデッキ: 魔法（実カード→空き枠）
-    const mainSpells = deckData.mainDeck.filter(c => c.card.cardType === 'spell');
-    mainSpells.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainSpells = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'spell';
+    });
+    mainSpells.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
       params.append('spnm', '');
@@ -153,11 +161,14 @@ export async function saveDeckInternal(
       params.append('spellCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // メインデッキ: 罠（実カード→空き枠）
-    const mainTraps = deckData.mainDeck.filter(c => c.card.cardType === 'trap');
-    mainTraps.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainTraps = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'trap';
+    });
+    mainTraps.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
       params.append('trnm', '');
@@ -165,10 +176,10 @@ export async function saveDeckInternal(
       params.append('trapCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // エクストラデッキ（実カード→空き枠）
-    deckData.extraDeck.forEach(card => {
-      appendCardToFormData(params, card, 'extra');
+    deckData.extraDeck.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'extra');
     });
     for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
       params.append('exnm', '');
@@ -176,10 +187,10 @@ export async function saveDeckInternal(
       params.append('extraCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // サイドデッキ（実カード→空き枠）
-    deckData.sideDeck.forEach(card => {
-      appendCardToFormData(params, card, 'side');
+    deckData.sideDeck.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'side');
     });
     for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
       params.append('sinm', '');
@@ -305,10 +316,17 @@ export async function deleteDeckInternal(
  */
 function appendCardToFormData(
   target: FormData | URLSearchParams,
-  deckCard: DeckCard,
+  deckCardRef: DeckCardRef,
   deckType: 'main' | 'extra' | 'side'
 ): void {
-  const { card, quantity } = deckCard;
+  const { cid, ciid, quantity } = deckCardRef;
+  const tempCardDB = getTempCardDB();
+  const card = tempCardDB.get(cid);
+
+  if (!card) {
+    console.error(`[appendCardToFormData] Card not found in TempCardDB: ${cid}`);
+    return;
+  }
 
   if (deckType === 'main') {
     // メインデッキ: カードタイプ別のフィールド名
@@ -333,22 +351,22 @@ function appendCardToFormData(
 
     target.append(nameField, card.name);
     target.append(numField, quantity.toString());
-    target.append(cardIdField, card.cardId);
-    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
-    
+    target.append(cardIdField, cid);
+    target.append('imgs', `${cid}_${ciid}_1_1`);
+
   } else if (deckType === 'extra') {
     // エクストラデッキ: 統一フィールド名
     target.append('exnm', card.name);
     target.append('exnum', quantity.toString());
-    target.append('extraCardId', card.cardId);
-    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
-    
+    target.append('extraCardId', cid);
+    target.append('imgs', `${cid}_${ciid}_1_1`);
+
   } else {
     // サイドデッキ: 統一フィールド名（imgsフィールド名が異なる）
     target.append('sinm', card.name);
     target.append('sinum', quantity.toString());
-    target.append('sideCardId', card.cardId);
-    target.append('imgsSide', `${card.cardId}_${card.ciid}_1_1`);
+    target.append('sideCardId', cid);
+    target.append('imgsSide', `${cid}_${ciid}_1_1`);
   }
 }
 

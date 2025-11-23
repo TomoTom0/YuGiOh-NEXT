@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, nextTick, watch } from 'vue';
-import type { DeckInfo, DeckCard } from '../types/deck';
+import type { DeckInfo, DeckCardRef } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import type { MonsterType } from '../types/card-maps';
 import { sessionManager } from '../content/session/session';
@@ -8,7 +8,7 @@ import { getDeckDetail } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
-import { getCardInfo as getCardInfoUtil } from '../utils/card-utils';
+import { getTempCardDB } from '../utils/temp-card-db';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -23,7 +23,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deckCode: ''
   });
 
-  const trashDeck = ref<DeckCard[]>([]);
+  const trashDeck = ref<DeckCardRef[]>([]);
 
   // 枚数制限エラー表示用のcardId
   const limitErrorCardId = ref<string | null>(null);
@@ -142,10 +142,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       deck.forEach(deckCard => {
         for (let i = 0; i < deckCard.quantity; i++) {
           // 各カードのciid（Card Image ID）を使用
-          const ciid = parseInt(String(deckCard.card.ciid), 10);
+          const ciid = parseInt(String(deckCard.ciid), 10);
           const newUuid = generateUUID();
           displayOrder.value[section].push({
-            cid: deckCard.card.cardId,
+            cid: deckCard.cid,
             ciid: isNaN(ciid) ? 0 : ciid,
             uuid: newUuid
           });
@@ -184,13 +184,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                    deckInfo.value.sideDeck;
       
       // カード情報を取得してタイプ判定用マップを作成
+      const tempCardDB = getTempCardDB();
       const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
       deck.forEach(dc => {
-        const type = dc.card.cardType;
+        const card = tempCardDB.get(dc.cid);
+        const type = card?.cardType;
         let priority = 0;
         if (type === 'spell') priority = 1;
         else if (type === 'trap') priority = 2;
-        cardTypeMap.set(dc.card.cardId, priority);
+        cardTypeMap.set(dc.cid, priority);
       });
       
       // 最初の登場順を記録
@@ -220,7 +222,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       displayOrder.value[section] = sorted;
       
       // deckInfoを並び替え（displayOrderの順序に合わせる）
-      const newDeck: DeckCard[] = [];
+      const newDeck: DeckCardRef[] = [];
       const seenCards = new Set<string>();
 
       sorted.forEach(dc => {
@@ -228,7 +230,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (!seenCards.has(key)) {
           seenCards.add(key);
           const deckCard = deck.find(d =>
-            d.card.cardId === dc.cid && d.card.ciid === String(dc.ciid)
+            d.cid === dc.cid && d.ciid === String(dc.ciid)
           );
           if (deckCard) {
             newDeck.push(deckCard);
@@ -330,16 +332,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                        section === 'side' ? deckInfo.value.sideDeck :
                        trashDeck.value;
 
-    // deckInfo更新: (cardId, ciid)ペアで既存カードを検索
+    // deckInfo更新: (cid, ciid)ペアで既存カードを検索
     const existingCard = targetDeck.find(dc =>
-      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
+      dc.cid === card.cardId && dc.ciid === card.ciid
     );
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      // cardオブジェクトをディープコピーして保存（参照を共有しないため）
-      const cardCopy = JSON.parse(JSON.stringify(card)) as CardInfo;
-      targetDeck.push({ card: cardCopy, quantity: 1 });
+      // TempCardDBにカード情報を登録
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set(card.cardId, card);
+      targetDeck.push({ cid: card.cardId, ciid: card.ciid, quantity: 1 });
     }
     
     // displayOrder更新
@@ -446,12 +449,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // deckInfo更新
     const existingCard = targetDeck.find(dc =>
-      dc.card.cardId === card.cardId && dc.card.ciid === card.ciid
+      dc.cid === card.cardId && dc.ciid === card.ciid
     );
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      targetDeck.push({ card, quantity: 1 });
+      // TempCardDBにカード情報を登録
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set(card.cardId, card);
+      targetDeck.push({ cid: card.cardId, ciid: card.ciid, quantity: 1 });
     }
 
     // displayOrder更新
@@ -492,9 +498,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // deckInfo更新（ciidが指定されている場合はciidも条件に含める）
     const index = targetDeck.findIndex(dc => {
       if (ciid !== undefined) {
-        return dc.card.cardId === cardId && dc.card.ciid === ciid;
+        return dc.cid === cardId && dc.ciid === ciid;
       }
-      return dc.card.cardId === cardId;
+      return dc.cid === cardId;
     });
     if (index !== -1) {
       const deckCard = targetDeck[index];
@@ -581,14 +587,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // (cid, ciid)ペアでdeckCardを取得
     const fromIndex = fromDeck.findIndex(dc =>
-      dc.card.cardId === cardId && dc.card.ciid === String(movingDisplayCard.ciid)
+      dc.cid === cardId && dc.ciid === String(movingDisplayCard.ciid)
     );
     if (fromIndex === -1) return;
 
     const deckCard = fromDeck[fromIndex];
     if (!deckCard) return;
-    const card = deckCard.card;
-    
+
     // fromのdisplayOrderから削除
     fromOrder.splice(moveCardIndex, 1);
 
@@ -597,7 +602,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // toのdisplayOrderに末尾追加
     const toOrder = displayOrder.value[to];
     toOrder.push(movingDisplayCard);
-    
+
     // deckInfo更新
     // fromから削除
     const fromDeckCard = fromDeck[fromIndex];
@@ -606,15 +611,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } else {
       fromDeck.splice(fromIndex, 1);
     }
-    
+
     // toに追加（ciidも考慮）
     const existingCard = toDeck.find(dc =>
-      dc.card.cardId === cardId && dc.card.ciid === String(movingDisplayCard.ciid)
+      dc.cid === cardId && dc.ciid === String(movingDisplayCard.ciid)
     );
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      toDeck.push({ card, quantity: 1 });
+      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), quantity: 1 });
     }
   }
   
@@ -669,7 +674,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       ...deckInfo.value.sideDeck
     ];
     const totalCount = allDecks
-      .filter(dc => dc.card.cardId === card.cardId)
+      .filter(dc => dc.cid === card.cardId)
       .reduce((sum, dc) => sum + dc.quantity, 0);
 
     // 枚数制限をチェック
@@ -704,7 +709,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
     
-    const fromIndex = fromDeck.findIndex(dc => dc.card.cardId === cardId);
+    const fromIndex = fromDeck.findIndex(dc => dc.cid === cardId);
     if (fromIndex === -1) return { success: false, error: 'カードが見つかりません' };
     
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
@@ -861,7 +866,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         ...deckInfo.value.sideDeck
       ];
       const totalCount = allDecks
-        .filter(dc => dc.card.cardId === card.cardId)
+        .filter(dc => dc.cid === card.cardId)
         .reduce((sum, dc) => sum + dc.quantity, 0);
 
       const settingsStore = useSettingsStore();
@@ -888,7 +893,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         ...deckInfo.value.sideDeck
       ];
       const totalCount = allDecks
-        .filter(dc => dc.card.cardId === card.cardId)
+        .filter(dc => dc.cid === card.cardId)
         .reduce((sum, dc) => sum + dc.quantity, 0);
 
       const settingsStore = useSettingsStore();
@@ -935,12 +940,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      trashDeck.value;
 
     const deckCard = fromDeck.find(dc =>
-      dc.card.cardId === cardId && dc.card.ciid === String(sourceCard.ciid)
+      dc.cid === cardId && dc.ciid === String(sourceCard.ciid)
     );
     if (!deckCard) return { success: false, error: 'カードが見つかりません' };
 
-    // カード情報を保存（削除前に）
-    const cardInfo = deckCard.card;
+    // カード情報を取得（TempCardDBから）
+    const tempCardDB = getTempCardDB();
+    const cardInfo = tempCardDB.get(cardId);
+    if (!cardInfo) return { success: false, error: 'カード情報が見つかりません' };
 
     // displayOrder操作関数を使用してデータを更新
     // 1. 移動元から削除
@@ -1128,13 +1135,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const firstPositions = recordAllCardPositionsByUUID();
 
     // (cid, ciid)ペアからカード情報を取得するヘルパー関数
-    const getCardInfo = (cid: string, ciid: number) => {
-      return getCardInfoUtil(cid, ciid, {
-        mainDeck: deckInfo.value.mainDeck,
-        extraDeck: deckInfo.value.extraDeck,
-        sideDeck: deckInfo.value.sideDeck,
-        trashDeck: trashDeck.value
-      });
+    const tempCardDB = getTempCardDB();
+    const getCardInfo = (cid: string, _ciid: number) => {
+      return tempCardDB.get(cid) || null;
     };
 
     // ソート優先順位
