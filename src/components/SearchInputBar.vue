@@ -15,6 +15,7 @@
           <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
           <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
           <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
+          <div class="mode-option" @click="selectSearchMode('mydeck')">マイデッキから選択</div>
         </div>
       </Transition>
       <button class="search-btn" @click="handleSearch">
@@ -66,6 +67,18 @@
             <span class="suggestion-label">{{ suggestion.label }}</span>
           </div>
         </div>
+        <!-- mydeckモード用の候補リスト -->
+        <div v-if="searchMode === 'mydeck' && !pendingCommand && mydeckSuggestions.length > 0" class="suggestions-dropdown mydeck-suggestions">
+          <div
+            v-for="(deck, index) in mydeckSuggestions"
+            :key="deck.dno"
+            class="suggestion-item"
+            :class="{ selected: index === selectedMydeckIndex }"
+            @click="selectMydeck(deck)"
+          >
+            <span class="suggestion-label">{{ deck.name }}</span>
+          </div>
+        </div>
       </div>
       <!-- フィルター条件表示（二行均等配置） -->
       <div v-if="hasActiveFilters" class="filter-icons">
@@ -110,7 +123,10 @@
 import { ref, computed, nextTick, defineComponent, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
+import { getDeckDetail } from '../api/deck-operations'
+import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
+import type { CardInfo } from '../types/card'
 
 interface SearchFilters {
   cardType: string | null
@@ -338,6 +354,7 @@ export default defineComponent({
         case 'name': return 'name'
         case 'text': return 'text'
         case 'pendulum': return 'pend'
+        case 'mydeck': return 'deck'
         default: return 'name'
       }
     })
@@ -586,8 +603,28 @@ export default defineComponent({
           return `${cmd.description}を入力...`
         }
       }
+      if (searchMode.value === 'mydeck') {
+        return 'デッキ名を入力...'
+      }
       return props.placeholder
     })
+
+    // mydeckモード用の候補リスト
+    const mydeckSuggestions = computed(() => {
+      if (searchMode.value !== 'mydeck') return []
+      const input = deckStore.searchQuery.trim().toLowerCase()
+      const decks = deckStore.deckList.map(d => ({
+        dno: d.dno,
+        name: d.name
+      }))
+      if (!input) return decks
+      return decks.filter(d =>
+        d.name.toLowerCase().includes(input)
+      )
+    })
+
+    // mydeckモードで選択中のインデックス
+    const selectedMydeckIndex = ref(-1)
 
     // チップのラベルを取得（右側のフィルターアイコンと同じ形式）
     const getChipLabel = (type: string, value: string): string => {
@@ -658,6 +695,45 @@ export default defineComponent({
 
     // キー入力ハンドラ
     const handleKeydown = (event: KeyboardEvent) => {
+      // mydeckモードのTab/Arrow処理
+      if (searchMode.value === 'mydeck' && !pendingCommand.value && mydeckSuggestions.value.length > 0) {
+        if (event.key === 'Tab') {
+          event.preventDefault()
+          if (event.shiftKey) {
+            selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
+              ? mydeckSuggestions.value.length - 1
+              : selectedMydeckIndex.value - 1
+          } else {
+            selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
+          }
+          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
+          if (selected) {
+            deckStore.searchQuery = selected.name
+          }
+          return
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
+          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
+          if (selected) {
+            deckStore.searchQuery = selected.name
+          }
+          return
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
+            ? mydeckSuggestions.value.length - 1
+            : selectedMydeckIndex.value - 1
+          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
+          if (selected) {
+            deckStore.searchQuery = selected.name
+          }
+          return
+        }
+      }
+
       // Tabキーで候補を選択
       if (event.key === 'Tab' && pendingCommand.value && filteredSuggestions.value.length > 0) {
         event.preventDefault()
@@ -956,8 +1032,85 @@ export default defineComponent({
       })
     }
 
+    // mydeckモードでデッキを選択
+    const selectMydeck = (deck: { dno: number; name: string }) => {
+      loadMydeckCards(deck.dno)
+    }
+
+    // デッキのカードを読み込んで検索結果に表示（重複排除）
+    const loadMydeckCards = async (dno: number) => {
+      deckStore.isLoading = true
+      deckStore.activeTab = 'search'
+
+      try {
+        const cgid = await sessionManager.getCgid()
+        const deckDetail = await getDeckDetail(dno, cgid)
+
+        if (!deckDetail) {
+          console.error('Failed to load deck detail')
+          return
+        }
+
+        // 全カードを収集
+        const allCards: CardInfo[] = []
+        deckDetail.mainDeck.forEach(dc => allCards.push(dc.card))
+        deckDetail.extraDeck.forEach(dc => allCards.push(dc.card))
+        deckDetail.sideDeck.forEach(dc => allCards.push(dc.card))
+
+        // ciidで重複排除（各カード1枚ずつ）
+        const seenCiids = new Set<string>()
+        const uniqueCards: CardInfo[] = []
+        for (const card of allCards) {
+          if (!seenCiids.has(card.ciid)) {
+            seenCiids.add(card.ciid)
+            uniqueCards.push(card)
+          }
+        }
+
+        // 検索結果に設定
+        deckStore.searchResults = uniqueCards as unknown as typeof deckStore.searchResults
+        deckStore.allResults = uniqueCards
+        deckStore.hasMore = false
+        deckStore.currentPage = 0
+
+        // 入力をクリア
+        deckStore.searchQuery = ''
+        selectedMydeckIndex.value = -1
+      } catch (error) {
+        console.error('Failed to load mydeck cards:', error)
+      } finally {
+        deckStore.isLoading = false
+      }
+    }
+
     // Enterキーハンドラ
     const handleEnter = () => {
+      // mydeckモードの場合
+      if (searchMode.value === 'mydeck' && !pendingCommand.value) {
+        // 選択中のデッキがある場合
+        if (selectedMydeckIndex.value >= 0) {
+          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
+          if (selected) {
+            loadMydeckCards(selected.dno)
+            return
+          }
+        }
+        // 入力に一致するデッキがある場合
+        const matchedDeck = mydeckSuggestions.value.find(d =>
+          d.name.toLowerCase() === deckStore.searchQuery.trim().toLowerCase()
+        )
+        if (matchedDeck) {
+          loadMydeckCards(matchedDeck.dno)
+          return
+        }
+        // 候補が1つだけの場合はそれを選択
+        if (mydeckSuggestions.value.length === 1) {
+          loadMydeckCards(mydeckSuggestions.value[0].dno)
+          return
+        }
+        return
+      }
+
       // 候補が選択されている場合はその候補をチップに変換
       if (pendingCommand.value && selectedSuggestionIndex.value >= 0) {
         const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
@@ -1220,6 +1373,8 @@ export default defineComponent({
       currentPlaceholder,
       filteredSuggestions,
       selectedSuggestionIndex,
+      mydeckSuggestions,
+      selectedMydeckIndex,
       selectSearchMode,
       handleFilterApply,
       handleSearch,
@@ -1228,7 +1383,8 @@ export default defineComponent({
       handleEnter,
       handleEscape,
       removeFilterChip,
-      selectSuggestion
+      selectSuggestion,
+      selectMydeck
     }
   }
 })
