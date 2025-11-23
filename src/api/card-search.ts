@@ -175,13 +175,13 @@ export interface SearchOptions {
   // ============================================================================
   // 基本検索条件
   // ============================================================================
-  
+
   /** 検索キーワード */
   keyword: string;
-  
+
   /** カードタイプ（モンスター/魔法/罠） */
   cardType?: CardType;
-  
+
   /** 
    * 検索対象フィールド
    * - 1: カード名検索（デフォルト）
@@ -190,83 +190,83 @@ export interface SearchOptions {
    * - 4: カード番号検索
    */
   searchType?: '1' | '2' | '3' | '4';
-  
+
   // ============================================================================
   // モンスターフィルタ
   // ============================================================================
-  
+
   /** 属性フィルタ（複数選択可） */
   attributes?: Attribute[];
-  
+
   /** 種族フィルタ（複数選択可） */
   races?: Race[];
-  
+
   /** 
    * モンスタータイプフィルタ（複数選択可）
    * 例: ['effect', 'fusion'] = 効果または融合モンスター
    */
   monsterTypes?: MonsterType[];
-  
+
   /** 
    * モンスタータイプの論理演算
    * - 'AND': すべてのタイプを持つカード
    * - 'OR': いずれかのタイプを持つカード（デフォルト）
    */
   monsterTypeLogic?: 'AND' | 'OR';
-  
+
   /** 除外するモンスタータイプ（複数選択可） */
   excludeMonsterTypes?: MonsterType[];
-  
+
   // ============================================================================
   // レベル・ステータス
   // ============================================================================
-  
+
   /** レベル/ランクフィルタ（0-13、複数選択可） */
   levels?: number[];
-  
+
   /** 攻撃力範囲 */
   atk?: { from?: number; to?: number };
-  
+
   /** 守備力範囲 */
   def?: { from?: number; to?: number };
-  
+
   // ============================================================================
   // ペンデュラム・リンク
   // ============================================================================
-  
+
   /** ペンデュラムスケールフィルタ（0-13、複数選択可） */
   pendulumScales?: number[];
-  
+
   /** リンク数フィルタ（1-6、複数選択可） */
   linkNumbers?: number[];
-  
+
   /** 
    * リンクマーカー方向フィルタ（複数選択可）
    * 方向番号: 1=左下, 2=下, 3=右下, 4=左, 6=右, 7=左上, 8=上, 9=右上
    */
   linkMarkers?: number[];
-  
+
   /** 
    * リンクマーカーの論理演算
    * - 'AND': すべての方向を持つカード
    * - 'OR': いずれかの方向を持つカード（デフォルト）
    */
   linkMarkerLogic?: 'AND' | 'OR';
-  
+
   // ============================================================================
   // 魔法・罠フィルタ
   // ============================================================================
-  
+
   /** 魔法効果タイプフィルタ（複数選択可） */
   spellEffectTypes?: SpellEffectType[];
-  
+
   /** 罠効果タイプフィルタ（複数選択可） */
   trapEffectTypes?: TrapEffectType[];
-  
+
   // ============================================================================
   // その他オプション
   // ============================================================================
-  
+
   /** 
    * ソート順
    * 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 
@@ -274,16 +274,16 @@ export interface SearchOptions {
    * デフォルト: 1
    */
   sort?: number;
-  
+
   /** ページあたりの結果数（デフォルト: 99） */
   resultsPerPage?: number;
-  
+
   /** 
    * 表示モード
    * 1=画像表示, 2=テキスト表示
    */
   mode?: number;
-  
+
   /** 発売日範囲 */
   releaseDate?: {
     start?: { year: number; month: number; day: number };
@@ -340,7 +340,7 @@ function cardTypeToCtype(cardType?: CardType): string {
  */
 function buildSearchParams(options: SearchOptions): URLSearchParams {
   const params = new URLSearchParams();
-  
+
   // ============================================================================
   // 基本パラメータ
   // ============================================================================
@@ -348,50 +348,50 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   params.append('sess', '1'); // セッション: 1=初回ロード
   params.append('keyword', options.keyword);
   params.append('stype', options.searchType || '1'); // デフォルト: カード名検索
-  
+
   // カードタイプ
   const ctypeValue = cardTypeToCtype(options.cardType);
   params.append('ctype', ctypeValue);
-  
+
   // ============================================================================
   // モンスターフィルタ
   // ============================================================================
-  
+
   // 属性
   if (options.attributes) {
     options.attributes.forEach(attr => {
       params.append('attr', ATTRIBUTE_TO_ATTR_VALUE[attr]);
     });
   }
-  
+
   // 種族
   if (options.races) {
     options.races.forEach(race => {
       params.append('species', RACE_TO_SPECIES_VALUE[race]);
     });
   }
-  
+
   // モンスタータイプ
   if (options.monsterTypes) {
     options.monsterTypes.forEach(type => {
       params.append('other', MONSTER_TYPE_TO_OTHER_VALUE[type]);
     });
   }
-  
+
   // モンスタータイプの論理演算（AND/OR）
   params.append('othercon', options.monsterTypeLogic === 'AND' ? '1' : '2');
-  
+
   // 除外条件
   if (options.excludeMonsterTypes) {
     options.excludeMonsterTypes.forEach(type => {
       params.append('jogai', MONSTER_TYPE_TO_OTHER_VALUE[type]);
     });
   }
-  
+
   // ============================================================================
   // レベル・ステータス
   // ============================================================================
-  
+
   // レベル/ランク
   if (options.levels) {
     options.levels.forEach(level => {
@@ -400,19 +400,19 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
       }
     });
   }
-  
+
   // 攻撃力範囲
   params.append('atkfr', options.atk?.from?.toString() || '');
   params.append('atkto', options.atk?.to?.toString() || '');
-  
+
   // 守備力範囲
   params.append('deffr', options.def?.from?.toString() || '');
   params.append('defto', options.def?.to?.toString() || '');
-  
+
   // ============================================================================
   // ペンデュラム・リンク
   // ============================================================================
-  
+
   // ペンデュラムスケール
   if (options.pendulumScales) {
     options.pendulumScales.forEach(scale => {
@@ -421,7 +421,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
       }
     });
   }
-  
+
   // リンク数
   if (options.linkNumbers) {
     options.linkNumbers.forEach(num => {
@@ -430,7 +430,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
       }
     });
   }
-  
+
   // リンクマーカー方向
   if (options.linkMarkers) {
     options.linkMarkers.forEach(direction => {
@@ -440,54 +440,54 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
       }
     });
   }
-  
+
   // リンクマーカーの論理演算（AND/OR）
   params.append('link_m', options.linkMarkerLogic === 'AND' ? '1' : '2');
-  
+
   // ============================================================================
   // 魔法・罠フィルタ
   // ============================================================================
-  
+
   // 魔法効果タイプ
   if (options.spellEffectTypes) {
     options.spellEffectTypes.forEach(type => {
       params.append('effe', SPELL_EFFECT_TYPE_TO_EFFE_VALUE[type]);
     });
   }
-  
+
   // 罠効果タイプ
   if (options.trapEffectTypes) {
     options.trapEffectTypes.forEach(type => {
       params.append('effe', TRAP_EFFECT_TYPE_TO_EFFE_VALUE[type]);
     });
   }
-  
+
   // ============================================================================
   // 範囲検索パラメータ（空文字列で送信）
   // ============================================================================
-  const emptyRangeParams = ['starfr', 'starto', 'pscalefr', 'pscaleto', 
-                             'linkmarkerfr', 'linkmarkerto'];
+  const emptyRangeParams = ['starfr', 'starto', 'pscalefr', 'pscaleto',
+    'linkmarkerfr', 'linkmarkerto'];
   emptyRangeParams.forEach(param => {
     params.append(param, '');
   });
-  
+
   // ============================================================================
   // その他オプション
   // ============================================================================
-  
+
   // ソート順（デフォルト: 1=50音順）
   params.append('sort', (options.sort || 1).toString());
-  
+
   // ページあたり件数（デフォルト: 99）
   params.append('rp', (options.resultsPerPage || 99).toString());
-  
+
   // 表示モード
   if (options.mode) {
     params.append('mode', options.mode.toString());
   } else {
     params.append('mode', '');
   }
-  
+
   // 発売日範囲
   if (options.releaseDate) {
     if (options.releaseDate.start) {
@@ -501,7 +501,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
       params.append('releaseDEnd', options.releaseDate.end.day.toString());
     }
   }
-  
+
   return params;
 }
 
@@ -538,20 +538,20 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
 export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
   try {
     const params = buildSearchParams(options);
-    
+
     const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });
-    
+
     if (!response.ok) {
       return [];
     }
-    
+
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    
+
     return parseSearchResults(doc);
   } catch (error) {
     console.error('Failed to search cards:', error);
@@ -692,7 +692,7 @@ export function buildCardImageUrl(card: CardBase): string | undefined {
  */
 export function parseSearchResults(doc: Document): CardInfo[] {
   const cards: CardInfo[] = [];
-  
+
   // #main980 > #article_body > #card_list の階層を使用
   const main980 = doc.querySelector('#main980');
   if (!main980) {
@@ -751,7 +751,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   if (!match || !match[1]) {
     return null;
   }
-  
+
   const cardId = match[1];
 
   // ふりがな（オプション）
@@ -764,7 +764,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
   const imgHash = imageInfo?.imgHash || `${cardId}_1_1_1`;
 
   // imgs配列を構築
-  const imgs = [{ciid, imgHash}];
+  const imgs = [{ ciid, imgHash }];
 
   // 効果テキスト（オプション）
   const textElem = row.querySelector('.box_card_text');
@@ -1167,7 +1167,7 @@ export function parseSearchResultRow(
  */
 function parsePackInfo(doc: Document): PackInfo[] {
   const packs: PackInfo[] = [];
-  
+
   // #update_list 配下の .t_row を探す
   const updateList = doc.querySelector('#update_list');
   if (!updateList) {
@@ -1175,22 +1175,22 @@ function parsePackInfo(doc: Document): PackInfo[] {
   }
 
   const rows = updateList.querySelectorAll('.t_row');
-  
+
   rows.forEach(row => {
     const rowElement = row as HTMLElement;
-    
+
     // 発売日を取得
     const timeElem = rowElement.querySelector('.time');
     const releaseDate = timeElem?.textContent?.trim() || undefined;
-    
+
     // カード番号を取得
     const cardNumberElem = rowElement.querySelector('.card_number');
     const code = cardNumberElem?.textContent?.trim() || undefined;
-    
+
     // パック名を取得
     const packNameElem = rowElement.querySelector('.pack_name');
     const name = packNameElem?.textContent?.trim() || '';
-    
+
     // パックIDを取得
     const linkValueInput = rowElement.querySelector('input.link_value') as HTMLInputElement;
     let packId: string | undefined;
@@ -1200,7 +1200,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
         packId = pidMatch[1];
       }
     }
-    
+
     // レアリティを取得
     const rarityElem = rowElement.querySelector('.lr_icon');
     let rarity = '';
@@ -1217,7 +1217,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
         rarityColor = bgColor;
       }
     }
-    
+
     // 少なくともパック名がある場合のみ追加
     if (name) {
       packs.push({
@@ -1230,7 +1230,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
       });
     }
   });
-  
+
   return packs;
 }
 
@@ -1242,7 +1242,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
  */
 function parseRelatedCards(doc: Document): CardInfo[] {
   const relatedCards: CardInfo[] = [];
-  
+
   // 関連カードセクションは検索結果と同じ構造
   // カード詳細ページでは .list_style.list 配下の .t_row を探す
   // 検索結果ページでは #card_list 配下の .t_row を探す
@@ -1251,23 +1251,23 @@ function parseRelatedCards(doc: Document): CardInfo[] {
     // カード詳細ページの場合
     cardList = doc.querySelector('.list_style.list');
   }
-  
+
   if (!cardList) {
     return relatedCards;
   }
 
   const rows = cardList.querySelectorAll('.t_row');
-  
+
   // 画像情報を事前に抽出
   const imageInfoMap = extractImageInfo(doc);
-  
+
   rows.forEach(row => {
     const card = parseSearchResultRow(row as HTMLElement, imageInfoMap);
     if (card) {
       relatedCards.push(card);
     }
   });
-  
+
   return relatedCards;
 }
 
@@ -1289,10 +1289,10 @@ export async function getCardDetail(
   try {
     // CardInfoまたはcidから実際のcidを取得
     const cid = typeof cardOrId === 'string' ? cardOrId : cardOrId.cardId;
-    
+
     // 言語が指定されていない場合は現在のページから検出
     const requestLocale = lang || detectLanguage(document);
-    
+
     const params = new URLSearchParams({
       ope: '2',
       cid: cid,
@@ -1312,6 +1312,11 @@ export async function getCardDetail(
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
+    console.log('[getCardDetail] cardOrId type:', typeof cardOrId);
+    if (typeof cardOrId === 'object') {
+      console.log('[getCardDetail] cardOrId is object:', JSON.stringify(cardOrId));
+    }
+
     // 詳細ページからCardInfoをパース（ruby等の情報を取得するため常に実行）
     const parsedCard = parseCardInfoFromDetailPage(doc, cid);
     if (!parsedCard) {
@@ -1326,16 +1331,17 @@ export async function getCardDetail(
       card = parsedCard;
     } else {
       // CardInfoが渡された場合：詳細ページから取得した情報（ruby等）で補完
+      // 特にrubyは検索結果には含まれない場合があるため、詳細ページの情報を使用する
       card = {
         ...cardOrId,
-        ruby: cardOrId.ruby || parsedCard.ruby,
-        text: cardOrId.text || parsedCard.text
+        ruby: parsedCard.ruby, // 詳細ページのルビを使用
+        text: parsedCard.text || cardOrId.text // テキストも詳細ページ優先（整形されているため）
       };
     }
 
     // 複数画像情報を取得（2枚目以降がある場合）
     const additionalImgs = parseAdditionalImages(doc);
-    
+
     // カード情報に複数画像をマージ
     const mergedCard = { ...card };
     if (additionalImgs.length > 1) {
@@ -1345,7 +1351,7 @@ export async function getCardDetail(
     // 収録シリーズと関連カードをパース
     const packs = parsePackInfo(doc);
     const relatedCards = parseRelatedCards(doc);
-    
+
     // Q&A情報を取得（既存のAPI関数を使用）
     const faqList = await getCardFAQList(cid);
     const qaList = faqList?.faqs || [];
@@ -1412,7 +1418,7 @@ export async function getCardDetailWithCache(
       const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cid, cachedTableC);
 
       if (cachedDetail) {
-        console.log(`[getCardDetailWithCache] Cache hit for ${cid}, fresh=${isFresh}, age=${Math.round(age/1000)}s`);
+        console.log(`[getCardDetailWithCache] Cache hit for ${cid}, fresh=${isFresh}, age=${Math.round(age / 1000)}s`);
 
         // fetchedAtを更新（キャッシュヒット時も更新）
         await unifiedDB.updateCardTableCFetchedAt(cid);
@@ -1518,15 +1524,15 @@ async function saveCardDetailToCache(
 /**
  * 複数画像情報のみ取得（詳細ページから）
  */
-function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: string}> {
-  const imgs: Array<{ciid: string, imgHash: string}> = [];
-  
+function parseAdditionalImages(doc: Document): Array<{ ciid: string, imgHash: string }> {
+  const imgs: Array<{ ciid: string, imgHash: string }> = [];
+
   // HTML全体を文字列として取得
   const html = doc.documentElement.outerHTML;
-  
+
   // JavaScriptコード内の $('#thumbnail_card_image_X').attr('src', '...') パターンを抽出
   const pattern = /\$\(['"]#thumbnail_card_image_\d+['"]\)\.attr\(['"]src['"],\s*['"]([^'"]+)['"]\)/g;
-  
+
   let match;
   while ((match = pattern.exec(html)) !== null) {
     const url = match[1];
@@ -1542,7 +1548,7 @@ function parseAdditionalImages(doc: Document): Array<{ciid: string, imgHash: str
       });
     }
   }
-  
+
   return imgs;
 }
 
@@ -1566,7 +1572,7 @@ function parseCardInfoFromDetailPage(doc: Document, cid: string): CardInfo | nul
     // ふりがな（ruby）を除外してカード名を取得
     const rubyElem = cardNameElem.querySelector('.ruby');
     const ruby = rubyElem?.textContent?.trim();
-    
+
     // カード名はh1のテキストからrubyと英語名を除外
     const clonedH1 = cardNameElem.cloneNode(true) as HTMLElement;
     // rubyと最後のspanを削除
@@ -1647,7 +1653,7 @@ function parseCardInfoFromDetailPage(doc: Document, cid: string): CardInfo | nul
 function parseSpellCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): SpellCard {
   // 効果タイプを判定（通常/速攻/永続/フィールド/装備/儀式）
   let effectType: SpellEffectType = 'normal';
-  
+
   if (typeText.includes('速攻') || typeText.includes('Quick-Play')) {
     effectType = 'quick';
   } else if (typeText.includes('永続') || typeText.includes('Continuous')) {
@@ -1673,7 +1679,7 @@ function parseSpellCardFromDetailPage(_doc: Document, base: CardBase, typeText: 
 function parseTrapCardFromDetailPage(_doc: Document, base: CardBase, typeText: string): TrapCard {
   // 効果タイプを判定（通常/永続/カウンター）
   let effectType: TrapEffectType = 'normal';
-  
+
   if (typeText.includes('永続') || typeText.includes('Continuous')) {
     effectType = 'continuous';
   } else if (typeText.includes('カウンター') || typeText.includes('Counter')) {
@@ -1801,12 +1807,12 @@ function parseMonsterCardFromDetailPage(doc: Document, base: CardBase): MonsterC
     itemBoxes.forEach(box => {
       const titleElem = box.querySelector('.item_box_title');
       const valueElem = box.querySelector('.item_box_value');
-      
+
       if (!titleElem || !valueElem) return;
-      
+
       const title = titleElem.textContent?.trim();
       const value = valueElem.textContent?.trim();
-      
+
       if (title === 'ATK' && value) {
         atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
       } else if (title === 'DEF' && value) {
@@ -1842,7 +1848,7 @@ function parseMonsterCardFromDetailPage(doc: Document, base: CardBase): MonsterC
     }
 
     // エクストラデッキ判定
-    const isExtraDeck = types.some(t => 
+    const isExtraDeck = types.some(t =>
       t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
     );
 
