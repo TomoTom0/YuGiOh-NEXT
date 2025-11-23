@@ -669,8 +669,9 @@ export class UnifiedCacheDB {
     };
 
     // カードタイプに応じて構築
+    let resultCard: CardInfo
     if (tableB.cardType === 'monster') {
-      return {
+      resultCard = {
         ...baseInfo,
         cardType: 'monster',
         attribute: tableB.attribute || 'dark',
@@ -684,18 +685,36 @@ export class UnifiedCacheDB {
         isExtraDeck: tableB.isExtraDeck || false
       } as CardInfo;
     } else if (tableB.cardType === 'spell') {
-      return {
+      resultCard = {
         ...baseInfo,
         cardType: 'spell',
         effectType: tableB.effectType
       } as CardInfo;
     } else {
-      return {
+      resultCard = {
         ...baseInfo,
         cardType: 'trap',
         effectType: tableB.effectType
       } as CardInfo;
     }
+
+    // Synchronous merge: if CardTableC for this card is present in the in-memory cache,
+    // copy detail fields (text / pendText) into the reconstructed CardInfo.
+    // This is purely in-memory (Map lookup) and does not perform async storage access,
+    // so it introduces negligible latency.
+    try {
+      const tableC = this.cardTableCCache.get(cardId)
+      if (tableC) {
+        const anyCard: any = resultCard as any
+        if (tableC.text) anyCard.text = tableC.text
+        if (tableC.pendText) anyCard.pendulumEffect = tableC.pendText
+      }
+    } catch (e) {
+      // Defensive: don't break reconstruction on merge errors
+      console.warn('[UnifiedCacheDB] Failed to merge CardTableC into reconstructed CardInfo', cardId, e)
+    }
+
+    return resultCard
   }
 
   /**
