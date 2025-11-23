@@ -289,7 +289,8 @@ export default defineComponent({
       const options = FILTER_OPTIONS[pendingCommand.value.filterType]
       if (!options) return []
 
-      const input = deckStore.searchQuery.trim().toLowerCase()
+      // -プレフィックスを除去した実際の値でフィルタリング
+      const input = actualInputValue.value
       if (!input) return options
 
       return options.filter(opt =>
@@ -484,10 +485,25 @@ export default defineComponent({
     const isCommandMode = computed(() => commandMatch.value !== null)
     const commandPrefix = computed(() => commandMatch.value?.command || '')
 
+    // 入力値がNOT条件かどうかを判定（-プレフィックス）
+    const isNegatedInput = computed(() => {
+      const value = deckStore.searchQuery.trim()
+      return value.startsWith('-') && value.length > 1
+    })
+
+    // 実際の値（-プレフィックスを除去）
+    const actualInputValue = computed(() => {
+      const value = deckStore.searchQuery.trim().toLowerCase()
+      if (value.startsWith('-')) {
+        return value.substring(1)
+      }
+      return value
+    })
+
     // 現在の入力が有効かどうかを判定
     const isValidCommandInput = computed(() => {
       if (!pendingCommand.value) return false
-      const value = deckStore.searchQuery.trim().toLowerCase()
+      const value = actualInputValue.value
       if (!value) return false
 
       switch (pendingCommand.value.filterType) {
@@ -609,10 +625,11 @@ export default defineComponent({
           // Tabで次の候補
           selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
         }
-        // 選択した候補を入力に反映
+        // 選択した候補を入力に反映（-プレフィックスを保持）
         const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
         if (selected) {
-          deckStore.searchQuery = selected.value
+          const prefix = isNegatedInput.value ? '-' : ''
+          deckStore.searchQuery = prefix + selected.value
         }
         return
       }
@@ -649,7 +666,8 @@ export default defineComponent({
           selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
           const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
           if (selected) {
-            deckStore.searchQuery = selected.value
+            const prefix = isNegatedInput.value ? '-' : ''
+            deckStore.searchQuery = prefix + selected.value
           }
           return
         }
@@ -660,7 +678,8 @@ export default defineComponent({
             : selectedSuggestionIndex.value - 1
           const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
           if (selected) {
-            deckStore.searchQuery = selected.value
+            const prefix = isNegatedInput.value ? '-' : ''
+            deckStore.searchQuery = prefix + selected.value
           }
           return
         }
@@ -671,7 +690,7 @@ export default defineComponent({
     const addFilterChip = () => {
       if (!pendingCommand.value) return
 
-      const value = deckStore.searchQuery.trim().toLowerCase()
+      const value = actualInputValue.value
       if (!value) return
 
       const filterType = pendingCommand.value.filterType
@@ -702,7 +721,8 @@ export default defineComponent({
           break
       }
 
-      const isNot = pendingCommand.value.isNot || false
+      // コマンド自体がNOTか、または-プレフィックスが付いているか
+      const isNot = pendingCommand.value.isNot || isNegatedInput.value
 
       // チップを追加
       filterChips.value.push({
@@ -863,7 +883,9 @@ export default defineComponent({
 
     // 候補を選択
     const selectSuggestion = (suggestion: { value: string; label: string }) => {
-      deckStore.searchQuery = suggestion.value
+      // -プレフィックスを保持
+      const prefix = isNegatedInput.value ? '-' : ''
+      deckStore.searchQuery = prefix + suggestion.value
       selectedSuggestionIndex.value = -1
       // 選択したら即チップに変換
       nextTick(() => {
@@ -877,7 +899,9 @@ export default defineComponent({
       if (pendingCommand.value && selectedSuggestionIndex.value >= 0) {
         const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
         if (selected) {
-          deckStore.searchQuery = selected.value
+          // -プレフィックスを保持
+          const prefix = isNegatedInput.value ? '-' : ''
+          deckStore.searchQuery = prefix + selected.value
           selectedSuggestionIndex.value = -1
           nextTick(() => {
             addFilterChip()
