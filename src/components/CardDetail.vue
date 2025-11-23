@@ -73,7 +73,7 @@ import CardInfo from './CardInfo.vue'
 import CardQA from './CardQA.vue'
 import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
-import { getCardDetail } from '../api/card-search'
+import { getCardDetail, getCardDetailWithCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -166,25 +166,82 @@ export default {
       console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
       try {
-        const detailResult = await getCardDetail(props.card)
-        const faqResult = await getCardFAQList(props.card.cardId)
-        console.log('[CardDetail] Card detail fetched:', JSON.stringify({
-          cardId: detailResult.card.cardId,
-          name: detailResult.card.name,
-          ciid: detailResult.card.ciid,
-          imgsLength: detailResult.card.imgs?.length || 0,
-          imgs: detailResult.card.imgs?.map(img => ({ ciid: img.ciid })) || []
-        }))
-        console.log('FAQ fetched:', faqResult)
-        detail.value = detailResult
-        faqListData.value = faqResult
-        // selectedCardの更新はwatchで行う
+        // キャッシュ対応のカード詳細取得
+        const cacheResult = await getCardDetailWithCache(props.card)
+
+        if (cacheResult.detail) {
+          // キャッシュから取得した場合（または新規取得）
+          console.log('[CardDetail] Card detail fetched:', JSON.stringify({
+            cardId: cacheResult.detail.card.cardId,
+            name: cacheResult.detail.card.name,
+            ciid: cacheResult.detail.card.ciid,
+            imgsLength: cacheResult.detail.card.imgs?.length || 0,
+            imgs: cacheResult.detail.card.imgs?.map(img => ({ ciid: img.ciid })) || [],
+            fromCache: cacheResult.fromCache,
+            isFresh: cacheResult.isFresh
+          }))
+
+          // まずキャッシュデータを表示
+          detail.value = cacheResult.detail
+
+          // FAQデータも取得（キャッシュに含まれている場合はそれを使用）
+          if (cacheResult.detail.qaList && cacheResult.detail.qaList.length > 0) {
+            // キャッシュにqaListがある場合はそれを使用
+            faqListData.value = await getCardFAQList(props.card.cardId)
+            console.log('[CardDetail] FAQ fetched from API')
+          } else {
+            const faqResult = await getCardFAQList(props.card.cardId)
+            console.log('[CardDetail] FAQ fetched:', faqResult)
+            faqListData.value = faqResult
+          }
+
+          // キャッシュが期限切れの場合はバックグラウンドで再取得
+          if (cacheResult.fromCache && !cacheResult.isFresh) {
+            console.log('[CardDetail] Cache is stale, revalidating in background')
+            // バックグラウンドで再取得（UIをブロックしない）
+            revalidateInBackground(props.card.cardId).catch(err => {
+              console.error('[CardDetail] Background revalidation failed:', err)
+            })
+          }
+        } else {
+          detail.value = null
+          faqListData.value = null
+        }
       } catch (error) {
         console.error('Failed to fetch card detail:', error)
         detail.value = null
         faqListData.value = null
       } finally {
         loading.value = false
+      }
+    }
+
+    // バックグラウンドでキャッシュを再検証
+    const revalidateInBackground = async (cardId) => {
+      try {
+        // APIから最新データを取得
+        const freshDetail = await getCardDetail(cardId)
+        if (!freshDetail) return
+
+        // 現在表示中のカードと同じか確認
+        if (detail.value && detail.value.card.cardId === cardId) {
+          // 差分があるか確認（簡易チェック）
+          const currentName = detail.value.card.name
+          const freshName = freshDetail.card.name
+          const currentPacks = detail.value.packs.length
+          const freshPacks = freshDetail.packs.length
+          const currentRelated = detail.value.relatedCards.length
+          const freshRelated = freshDetail.relatedCards.length
+
+          if (currentName !== freshName || currentPacks !== freshPacks || currentRelated !== freshRelated) {
+            console.log('[CardDetail] Revalidation found differences, updating view')
+            detail.value = freshDetail
+          } else {
+            console.log('[CardDetail] Revalidation found no differences')
+          }
+        }
+      } catch (error) {
+        console.error('[CardDetail] Revalidation error:', error)
       }
     }
     
