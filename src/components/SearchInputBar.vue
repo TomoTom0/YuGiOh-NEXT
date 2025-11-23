@@ -77,7 +77,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent } from 'vue'
+import { ref, computed, nextTick, defineComponent, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import SearchFilterDialog from './SearchFilterDialog.vue'
@@ -307,26 +307,42 @@ export default defineComponent({
       return icons
     })
 
-    // 表示制限の目安（二行×幅に応じた数）
-    // 120px: 8個, 160px: 10個, 200px: 12個 程度
-    const maxVisibleIcons = 12
+    // 画面幅に応じた一行あたりの表示数
+    // 実際の幅はCSSで制御、ここでは目安を設定
+    const iconsPerRow = ref(4) // デフォルト値
 
-    // 表示するアイコン（最大数まで）
-    const visibleFilterIcons = computed(() => {
-      return displayFilterIcons.value.slice(0, maxVisibleIcons)
+    // 画面幅を監視して一行あたりの表示数を更新
+    const updateIconsPerRow = () => {
+      const width = window.innerWidth
+      if (width >= 500) {
+        iconsPerRow.value = 6
+      } else if (width >= 400) {
+        iconsPerRow.value = 5
+      } else {
+        iconsPerRow.value = 4
+      }
+    }
+
+    // マウント時とリサイズ時に更新
+    onMounted(() => {
+      updateIconsPerRow()
+      window.addEventListener('resize', updateIconsPerRow)
+    })
+    onUnmounted(() => {
+      window.removeEventListener('resize', updateIconsPerRow)
     })
 
-    // 二行に均等分配
+    // 最大表示数（二行分）
+    const maxVisibleIcons = computed(() => iconsPerRow.value * 2)
+
+    // 一行目（一行分をフル表示）
     const filterIconsRow1 = computed(() => {
-      const icons = visibleFilterIcons.value
-      const half = Math.ceil(icons.length / 2)
-      return icons.slice(0, half)
+      return displayFilterIcons.value.slice(0, iconsPerRow.value)
     })
 
+    // 二行目（残りを表示）
     const filterIconsRow2 = computed(() => {
-      const icons = visibleFilterIcons.value
-      const half = Math.ceil(icons.length / 2)
-      return icons.slice(half)
+      return displayFilterIcons.value.slice(iconsPerRow.value, maxVisibleIcons.value)
     })
 
     // コマンドモードの検出
