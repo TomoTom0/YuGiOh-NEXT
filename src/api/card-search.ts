@@ -1397,7 +1397,9 @@ export async function getCardDetailWithCache(
     // packsとqaListは空配列の可能性があるので、存在チェックのみ（undefinedでないこと）
     if (cachedTableC && cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined) {
       const now = Date.now();
-      const age = now - cachedTableC.fetchedAt;
+      // fetchedAtがundefinedの場合は現在時刻として扱う（初回取得扱い）
+      const fetchedAt = cachedTableC.fetchedAt || now;
+      const age = now - fetchedAt;
       const isFresh = age < CARD_DETAIL_CACHE_TTL;
 
       // キャッシュからCardDetailを再構築
@@ -1491,14 +1493,16 @@ async function saveCardDetailToCache(
   // CardTableCを作成して保存
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardAny = detail.card as any;
+  const packs = detail.packs || [];
+  const qaList = detail.qaList || [];
   const tableC: CardTableC = {
     cardId: cid,
     text: cardAny.text,
     pendText: cardAny.pendText,
     relatedCards: detail.relatedCards.map(c => c.cardId),
-    relatedProducts: detail.packs.map(p => p.packId).filter((id): id is string => id !== undefined),
-    packs: detail.packs,
-    qaList: detail.qaList || [],
+    relatedProducts: packs.map(p => p.packId).filter((id): id is string => id !== undefined),
+    packs: packs,
+    qaList: qaList,
     fetchedAt: Date.now()
   };
 
