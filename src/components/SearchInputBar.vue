@@ -22,18 +22,34 @@
           <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
         </svg>
       </button>
-      <div class="input-container" :class="{ 'command-mode': isCommandMode }">
-        <span v-if="commandPrefix" class="command-prefix">{{ commandPrefix }}</span>
+      <div class="input-container" :class="{ 'command-mode': isCommandMode || pendingCommand }">
+        <!-- 適用済みフィルターチップ -->
+        <div v-if="filterChips.length > 0" class="filter-chips">
+          <span
+            v-for="(chip, index) in filterChips"
+            :key="index"
+            class="filter-chip"
+            @click="removeFilterChip(index)"
+          >
+            {{ chip.label }}
+            <span class="chip-remove">x</span>
+          </span>
+        </div>
+        <!-- コマンドモード表示 -->
+        <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
         <input
           ref="inputRef"
           v-model="deckStore.searchQuery"
           type="text"
           class="search-input"
-          :class="{ 'has-prefix': commandPrefix }"
-          :placeholder="placeholder"
+          :class="{
+            'has-prefix': pendingCommand,
+            'valid-input': isValidCommandInput
+          }"
+          :placeholder="currentPlaceholder"
           @input="handleInput"
           @keyup.enter="handleSearch"
-          @keydown.escape="$emit('escape')"
+          @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
         >
       </div>
@@ -178,6 +194,21 @@ export default defineComponent({
       monsterTypes: [],
       linkNumbers: []
     })
+
+    // チップベースフィルターシステム
+    interface FilterChip {
+      type: string
+      value: string
+      label: string
+    }
+
+    interface PendingCommand {
+      command: string
+      filterType: string
+    }
+
+    const filterChips = ref<FilterChip[]>([])
+    const pendingCommand = ref<PendingCommand | null>(null)
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
@@ -365,15 +396,304 @@ export default defineComponent({
     const isCommandMode = computed(() => commandMatch.value !== null)
     const commandPrefix = computed(() => commandMatch.value?.command || '')
 
-    // 入力ハンドラ
-    const handleInput = () => {
-      // コマンドモードの検出と処理はここで行う
+    // 現在の入力が有効かどうかを判定
+    const isValidCommandInput = computed(() => {
+      if (!pendingCommand.value) return false
+      const value = deckStore.searchQuery.trim().toLowerCase()
+      if (!value) return false
+
+      switch (pendingCommand.value.filterType) {
+        case 'attributes':
+          return ATTRIBUTE_MAP[value] !== undefined
+        case 'cardType':
+          return CARD_TYPE_MAP[value] !== undefined
+        case 'monsterTypes':
+          return MONSTER_TYPE_MAP[value] !== undefined
+        case 'levels':
+          const level = parseInt(value)
+          return !isNaN(level) && level >= 1 && level <= 12
+        case 'linkNumbers':
+          const link = parseInt(value)
+          return !isNaN(link) && link >= 1 && link <= 6
+        case 'atk':
+        case 'def':
+          // 数値または範囲形式（1000-2000）
+          return /^\d+(-\d+)?$/.test(value)
+        case 'races':
+          // 種族は何でも受け入れる（後で検証）
+          return value.length > 0
+        default:
+          return false
+      }
+    })
+
+    // 動的プレースホルダー
+    const currentPlaceholder = computed(() => {
+      if (pendingCommand.value) {
+        const cmd = COMMANDS[pendingCommand.value.command]
+        if (cmd) {
+          return `${cmd.description}を入力...`
+        }
+      }
+      return props.placeholder
+    })
+
+    // チップのラベルを取得
+    const getChipLabel = (type: string, value: string): string => {
+      switch (type) {
+        case 'attributes': {
+          const labels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
+          return labels[value] || value
+        }
+        case 'cardType': {
+          const labels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
+          return labels[value] || value
+        }
+        case 'monsterTypes': {
+          const labels: Record<string, string> = {
+            normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
+            pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
+            union: 'U', gemini: 'D', special: '特'
+          }
+          return labels[value] || value
+        }
+        case 'levels':
+          return `Lv${value}`
+        case 'linkNumbers':
+          return `L${value}`
+        case 'atk':
+          return `ATK:${value}`
+        case 'def':
+          return `DEF:${value}`
+        case 'races':
+          return value
+        default:
+          return value
+      }
     }
 
-    // キー入力ハンドラ（backspaceでコマンドモード解除の検出用）
+    // 入力ハンドラ
+    const handleInput = () => {
+      const query = deckStore.searchQuery
+
+      // ペンディングコマンドがある場合は値入力モード
+      if (pendingCommand.value) {
+        return
+      }
+
+      // コマンドパターンを検出：/cmd + スペース
+      for (const cmd of Object.keys(COMMANDS)) {
+        if (query === cmd + ' ') {
+          // コマンド + スペースで値入力モードに移行
+          pendingCommand.value = {
+            command: cmd,
+            filterType: COMMANDS[cmd].filterType
+          }
+          deckStore.searchQuery = ''
+          return
+        }
+      }
+    }
+
+    // キー入力ハンドラ
     const handleKeydown = (event: KeyboardEvent) => {
-      // backspaceでスペースが削除されるとコマンドモードが解除される
-      // これは自動的にcommandMatchのcomputedで検出される
+      // Spaceキーで有効な入力をチップに変換
+      if (event.key === ' ' && pendingCommand.value && isValidCommandInput.value) {
+        event.preventDefault()
+        addFilterChip()
+        return
+      }
+
+      // Backspaceで空の入力時にチップを削除
+      if (event.key === 'Backspace') {
+        if (deckStore.searchQuery === '' && pendingCommand.value) {
+          // ペンディングコマンドをキャンセル
+          event.preventDefault()
+          pendingCommand.value = null
+          return
+        }
+        if (deckStore.searchQuery === '' && !pendingCommand.value && filterChips.value.length > 0) {
+          // 最後のチップを削除
+          event.preventDefault()
+          removeFilterChip(filterChips.value.length - 1)
+          return
+        }
+      }
+    }
+
+    // フィルターチップを追加
+    const addFilterChip = () => {
+      if (!pendingCommand.value) return
+
+      const value = deckStore.searchQuery.trim().toLowerCase()
+      if (!value) return
+
+      const filterType = pendingCommand.value.filterType
+      let mappedValue = value
+
+      // 値をマッピング
+      switch (filterType) {
+        case 'attributes':
+          mappedValue = ATTRIBUTE_MAP[value] || value
+          break
+        case 'cardType':
+          mappedValue = CARD_TYPE_MAP[value] || value
+          break
+        case 'monsterTypes':
+          mappedValue = MONSTER_TYPE_MAP[value] || value
+          break
+      }
+
+      // チップを追加
+      filterChips.value.push({
+        type: filterType,
+        value: mappedValue,
+        label: getChipLabel(filterType, mappedValue)
+      })
+
+      // 実際のフィルターにも適用
+      applyChipToFilters(filterType, mappedValue)
+
+      // 入力をクリア
+      deckStore.searchQuery = ''
+      pendingCommand.value = null
+    }
+
+    // チップをフィルターに適用
+    const applyChipToFilters = (type: string, value: string) => {
+      const f = searchFilters.value
+
+      switch (type) {
+        case 'attributes':
+          if (!f.attributes.includes(value)) {
+            f.attributes.push(value)
+          }
+          break
+        case 'races':
+          if (!f.races.includes(value)) {
+            f.races.push(value)
+          }
+          break
+        case 'levels': {
+          const level = parseInt(value)
+          if (!isNaN(level) && !f.levels.includes(level)) {
+            f.levels.push(level)
+          }
+          break
+        }
+        case 'atk': {
+          const parts = value.split('-')
+          if (parts.length === 2) {
+            const from = parts[0] ? parseInt(parts[0]) : undefined
+            const to = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(from as number)) f.atk.from = from
+            if (!isNaN(to as number)) f.atk.to = to
+          } else {
+            const val = parseInt(value)
+            if (!isNaN(val)) {
+              f.atk.from = val
+              f.atk.to = val
+            }
+          }
+          break
+        }
+        case 'def': {
+          const parts = value.split('-')
+          if (parts.length === 2) {
+            const from = parts[0] ? parseInt(parts[0]) : undefined
+            const to = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(from as number)) f.def.from = from
+            if (!isNaN(to as number)) f.def.to = to
+          } else {
+            const val = parseInt(value)
+            if (!isNaN(val)) {
+              f.def.from = val
+              f.def.to = val
+            }
+          }
+          break
+        }
+        case 'cardType':
+          f.cardType = value
+          break
+        case 'linkNumbers': {
+          const link = parseInt(value)
+          if (!isNaN(link) && !f.linkNumbers.includes(link)) {
+            f.linkNumbers.push(link)
+          }
+          break
+        }
+        case 'monsterTypes':
+          if (!f.monsterTypes.includes(value)) {
+            f.monsterTypes.push(value)
+          }
+          break
+      }
+    }
+
+    // チップを削除
+    const removeFilterChip = (index: number) => {
+      const chip = filterChips.value[index]
+      if (!chip) return
+
+      // フィルターから削除
+      removeChipFromFilters(chip.type, chip.value)
+
+      // チップ配列から削除
+      filterChips.value.splice(index, 1)
+    }
+
+    // チップをフィルターから削除
+    const removeChipFromFilters = (type: string, value: string) => {
+      const f = searchFilters.value
+
+      switch (type) {
+        case 'attributes': {
+          const idx = f.attributes.indexOf(value)
+          if (idx !== -1) f.attributes.splice(idx, 1)
+          break
+        }
+        case 'races': {
+          const idx = f.races.indexOf(value)
+          if (idx !== -1) f.races.splice(idx, 1)
+          break
+        }
+        case 'levels': {
+          const level = parseInt(value)
+          const idx = f.levels.indexOf(level)
+          if (idx !== -1) f.levels.splice(idx, 1)
+          break
+        }
+        case 'atk':
+          f.atk = { from: undefined, to: undefined }
+          break
+        case 'def':
+          f.def = { from: undefined, to: undefined }
+          break
+        case 'cardType':
+          f.cardType = null
+          break
+        case 'linkNumbers': {
+          const link = parseInt(value)
+          const idx = f.linkNumbers.indexOf(link)
+          if (idx !== -1) f.linkNumbers.splice(idx, 1)
+          break
+        }
+        case 'monsterTypes': {
+          const idx = f.monsterTypes.indexOf(value)
+          if (idx !== -1) f.monsterTypes.splice(idx, 1)
+          break
+        }
+      }
+    }
+
+    // エスケープハンドラ
+    const handleEscape = () => {
+      if (pendingCommand.value) {
+        pendingCommand.value = null
+        deckStore.searchQuery = ''
+      }
+      // 常に親コンポーネントに伝播（emit('escape')はテンプレートで処理）
     }
 
     // コマンドからフィルタを適用
@@ -607,11 +927,17 @@ export default defineComponent({
       maxVisibleIcons,
       isCommandMode,
       commandPrefix,
+      filterChips,
+      pendingCommand,
+      isValidCommandInput,
+      currentPlaceholder,
       selectSearchMode,
       handleFilterApply,
       handleSearch,
       handleInput,
-      handleKeydown
+      handleKeydown,
+      handleEscape,
+      removeFilterChip
     }
   }
 })
@@ -703,6 +1029,51 @@ export default defineComponent({
     padding: 2px 4px;
     margin: 0 4px;
   }
+}
+
+/* フィルターチップ */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-right: 4px;
+  max-width: 50%;
+  overflow: hidden;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: var(--theme-color-start, #00d9b8);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: var(--theme-color-end, #00b894);
+  }
+
+  .chip-remove {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 2px;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+/* 有効入力の視覚フィードバック */
+.search-input.valid-input {
+  color: var(--theme-color-start, #00d9b8);
+  font-weight: 600;
 }
 
 .command-prefix {
