@@ -49,7 +49,7 @@
           }"
           :placeholder="currentPlaceholder"
           @input="handleInput"
-          @keyup.enter="handleSearch"
+          @keydown.enter.prevent="handleEnter"
           @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
         >
@@ -871,6 +871,31 @@ export default defineComponent({
       })
     }
 
+    // Enterキーハンドラ
+    const handleEnter = () => {
+      // 候補が選択されている場合はその候補をチップに変換
+      if (pendingCommand.value && selectedSuggestionIndex.value >= 0) {
+        const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
+        if (selected) {
+          deckStore.searchQuery = selected.value
+          selectedSuggestionIndex.value = -1
+          nextTick(() => {
+            addFilterChip()
+          })
+          return
+        }
+      }
+
+      // 有効な入力がある場合はチップに変換
+      if (pendingCommand.value && isValidCommandInput.value) {
+        addFilterChip()
+        return
+      }
+
+      // それ以外は検索実行
+      handleSearch()
+    }
+
     // コマンドからフィルタを適用
     const applyCommandFilter = () => {
       const match = commandMatch.value
@@ -1113,6 +1138,7 @@ export default defineComponent({
       handleSearch,
       handleInput,
       handleKeydown,
+      handleEnter,
       handleEscape,
       removeFilterChip,
       selectSuggestion
