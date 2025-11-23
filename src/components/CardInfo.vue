@@ -123,9 +123,12 @@
         </div>
       </div>
 
-      <div v-show="card.text" class="card-effect-section">
+      <div v-if="card" class="card-effect-section">
         <div class="section-title">Card Text</div>
-        <div class="effect-text">{{ card.text }}</div>
+        <div class="effect-text">
+          <template v-if="card.text && card.text.trim() !== ''">{{ card.text }}</template>
+          <template v-else><span class="no-data">テキスト情報がありません</span></template>
+        </div>
       </div>
 
       <div v-if="supplementInfo" class="card-effect-section">
