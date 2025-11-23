@@ -1394,7 +1394,8 @@ export async function getCardDetailWithCache(
   if (unifiedDB.isInitialized()) {
     const cachedTableC = await unifiedDB.getCardTableC(cid);
 
-    if (cachedTableC && cachedTableC.packs && cachedTableC.qaList) {
+    // packsとqaListは空配列の可能性があるので、存在チェックのみ（undefinedでないこと）
+    if (cachedTableC && cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined) {
       const now = Date.now();
       const age = now - cachedTableC.fetchedAt;
       const isFresh = age < CARD_DETAIL_CACHE_TTL;
