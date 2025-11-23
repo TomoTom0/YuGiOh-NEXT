@@ -1494,6 +1494,23 @@ async function saveCardDetailToCache(
   const cardAny = detail.card as any;
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
+  // Diagnostic: if text is missing but other detail fields exist, log a warning to help trace where text becomes empty
+  if (!cardAny.text && (detail.relatedCards.length > 0 || packs.length > 0 || qaList.length > 0)) {
+    try {
+      console.warn('[saveCardDetailToCache] Warning: saving CardTableC with empty text', {
+        cardId: cid,
+        name: cardAny.name,
+        hasRelated: detail.relatedCards.length > 0,
+        packsLength: packs.length,
+        qaListLength: qaList.length
+      })
+      // provide stack trace for debugging
+      console.trace()
+    } catch (e) {
+      console.warn('[saveCardDetailToCache] Warning: missing text when saving cache (trace unavailable) for', cid)
+    }
+  }
+
   const tableC: CardTableC = {
     cardId: cid,
     text: cardAny.text,
