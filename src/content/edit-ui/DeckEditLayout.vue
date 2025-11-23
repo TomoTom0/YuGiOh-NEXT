@@ -517,6 +517,12 @@ export default {
 
   &.vertical-layout {
     flex-direction: column;
+
+    // 縦並び時はextra/sideセクションを全幅に拡張
+    :deep(.extra-deck),
+    :deep(.side-deck) {
+      max-width: 100%;
+    }
   }
 }
 
