@@ -123,6 +123,14 @@
 <script>
 import { ref, watch, computed, reactive } from 'vue'
 import DeckCard from './DeckCard.vue'
+import {
+  getAttributeLabel,
+  getRaceLabel,
+  getMonsterTypeLabel,
+  getLevelLabel,
+  getSpellTypeLabel,
+  getTrapTypeLabel
+} from '@/utils/label-utils'
 
 export default {
   name: 'CardList',
@@ -295,63 +303,6 @@ export default {
 
     const toggleSortDirection = () => {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-    }
-
-    // ラベル変換関数
-    const getAttributeLabel = (attr) => {
-      const labels = {
-        light: '光', dark: '闇', water: '水', fire: '炎',
-        earth: '地', wind: '風', divine: '神'
-      }
-      return labels[attr] || attr
-    }
-
-    const getRaceLabel = (race) => {
-      const labels = {
-        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
-        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
-        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
-        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
-        windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
-        psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-        divine: '神獣', creatorgod: '創造'
-      }
-      return labels[race] || race
-    }
-
-    const getMonsterTypeLabel = (type) => {
-      const labels = {
-        normal: '通常', effect: '効果', fusion: '融合', ritual: '儀式',
-        synchro: 'シンクロ', xyz: 'エクシーズ', pendulum: 'ペンデュラム', link: 'リンク',
-        tuner: 'チューナー', flip: 'リバース', toon: 'トゥーン', spirit: 'スピリット',
-        union: 'ユニオン', gemini: 'デュアル', special: '特殊召喚'
-      }
-      return labels[type] || type
-    }
-
-    const getLevelLabel = (card) => {
-      const value = card.levelValue
-      switch (card.levelType) {
-        case 'level': return `Lv.${value}`
-        case 'rank': return `Rank ${value}`
-        case 'link': return `LINK-${value}`
-        default: return `Lv.${value}`
-      }
-    }
-
-    const getSpellTypeLabel = (effectType) => {
-      const labels = {
-        normal: '通常魔法', continuous: '永続魔法', equip: '装備魔法',
-        quickplay: '速攻魔法', field: 'フィールド魔法', ritual: '儀式魔法'
-      }
-      return labels[effectType] || '魔法'
-    }
-
-    const getTrapTypeLabel = (effectType) => {
-      const labels = {
-        normal: '通常罠', continuous: '永続罠', counter: 'カウンター罠'
-      }
-      return labels[effectType] || '罠'
     }
 
     return {
