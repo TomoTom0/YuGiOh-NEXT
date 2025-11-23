@@ -78,7 +78,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
-import { getCardImageUrl } from '../types/card'
+import { getCardDetailWithCache } from '../api/card-search'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 import DeckMetadata from './DeckMetadata.vue'
@@ -188,8 +188,15 @@ export default {
       }
     }
 
-    const showCardDetail = (card) => {
-      deckStore.selectedCard = card
+    const showCardDetail = async (card) => {
+      try {
+        const result = await getCardDetailWithCache(card.cardId)
+        const fullCard = result?.detail?.card || card
+        deckStore.selectedCard = fullCard
+      } catch (e) {
+        console.error('[RightArea] Failed to fetch full card detail:', e)
+        deckStore.selectedCard = card
+      }
       deckStore.activeTab = 'card'
       deckStore.cardTab = 'info'
     }

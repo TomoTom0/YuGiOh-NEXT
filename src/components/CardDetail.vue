@@ -157,28 +157,12 @@ export default {
         return
       }
 
-      // 既に同じカードの詳細を取得済みなら再取得しない
-      if (detail.value && detail.value.card.cardId === props.card.cardId) {
-        console.log('[CardDetail] fetchDetail: skipping (already fetched)', detail.value.card.cardId)
-        return
-      }
-
       console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
 
-      // 既知の情報を先に表示（カード名、画像、ステータス、テキスト）
-      // 未知の情報（packs, relatedCards, qaList）は空で表示
-      detail.value = {
-        card: props.card,
-        packs: [],
-        relatedCards: [],
-        qaList: []
-      }
-      faqListData.value = null
-
       try {
         // キャッシュ対応のカード詳細取得
-        const cacheResult = await getCardDetailWithCache(props.card)
+        const cacheResult = await getCardDetailWithCache(props.card.cardId)
 
         if (cacheResult.detail) {
           // キャッシュから取得した場合（または新規取得）
@@ -192,17 +176,25 @@ export default {
             isFresh: cacheResult.isFresh
           }))
 
-          // 詳細データで更新
+          // 詳細データを設定（一度だけ）
           detail.value = cacheResult.detail
+          
+          // selectedCardを同期的に更新（watchを待たずに即座に反映）
+          const oldCiid = deckStore.selectedCard?.ciid
+          deckStore.selectedCard = {
+            ...cacheResult.detail.card,
+            imgs: [...cacheResult.detail.card.imgs],
+            ciid: (deckStore.selectedCard?.cardId === cacheResult.detail.card.cardId && oldCiid) || cacheResult.detail.card.ciid
+          }
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
           const faqResult = await getCardFAQList(props.card.cardId)
           console.log('[CardDetail] FAQ fetched:', faqResult)
           faqListData.value = faqResult
 
-          // キャッシュが期限切れの場合はバックグラウンドで再取得
-          if (cacheResult.fromCache && !cacheResult.isFresh) {
-            console.log('[CardDetail] Cache is stale, revalidating in background')
+          // キャッシュが期限切れ、またはルビがない場合はバックグラウンドで再取得
+          if (cacheResult.fromCache && (!cacheResult.isFresh || !cacheResult.detail.card.ruby)) {
+            console.log('[CardDetail] Cache is stale or missing ruby, revalidating in background')
             // バックグラウンドで再取得（UIをブロックしない）
             revalidateInBackground(props.card.cardId).catch(err => {
               console.error('[CardDetail] Background revalidation failed:', err)
@@ -233,12 +225,14 @@ export default {
           // 差分があるか確認（簡易チェック）
           const currentName = detail.value.card.name
           const freshName = freshDetail.card.name
+          const currentRuby = detail.value.card.ruby
+          const freshRuby = freshDetail.card.ruby
           const currentPacks = detail.value.packs.length
           const freshPacks = freshDetail.packs.length
           const currentRelated = detail.value.relatedCards.length
           const freshRelated = freshDetail.relatedCards.length
 
-          if (currentName !== freshName || currentPacks !== freshPacks || currentRelated !== freshRelated) {
+          if (currentName !== freshName || currentRuby !== freshRuby || currentPacks !== freshPacks || currentRelated !== freshRelated) {
             console.log('[CardDetail] Revalidation found differences, updating view')
             detail.value = freshDetail
           } else {
@@ -250,25 +244,13 @@ export default {
       }
     }
     
-    // カードIDが変わったら詳細を取得（オブジェクト参照ではなくIDで判定）
-    watch(() => props.card?.cardId, () => {
-      relatedCurrentPage.value = 0
-      fetchDetail()
-    }, { immediate: true })
-
-    // detailが更新されたらselectedCardを同期
-    watch(() => detail.value, (newDetail) => {
-      if (newDetail && newDetail.card) {
-        // 詳細情報で selectedCard を更新（imgs配列も新しい配列として設定）
-        const oldCiid = deckStore.selectedCard?.ciid
-        deckStore.selectedCard = {
-          ...newDetail.card,
-          imgs: [...newDetail.card.imgs],  // 配列も新しくコピー
-          ciid: (deckStore.selectedCard?.cardId === newDetail.card.cardId && oldCiid) || newDetail.card.ciid
-        }
-        console.log('[CardDetail] selectedCard synced with detail')
+    
+    // Watch for card prop changes and refetch detail when cardId changes
+    watch(() => props.card && props.card.cardId, (newVal, oldVal) => {
+      if (newVal !== oldVal) {
+        fetchDetail()
       }
-    }, { deep: false })
+    }, { immediate: true })
 
     return {
       detail,
