@@ -1312,19 +1312,25 @@ export async function getCardDetail(
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // CardInfoを取得（文字列の場合は詳細ページからパース、それ以外は引数を使用）
+    // 詳細ページからCardInfoをパース（ruby等の情報を取得するため常に実行）
+    const parsedCard = parseCardInfoFromDetailPage(doc, cid);
+    if (!parsedCard) {
+      console.error('[getCardDetail] Failed to parse card info from detail page');
+      return null;
+    }
+
+    // CardInfoを取得（渡された場合は詳細ページのデータで補完）
     let card: CardInfo;
     if (typeof cardOrId === 'string') {
-      // cidのみの場合：カード詳細ページからCardInfoをパース
-      const parsedCard = parseCardInfoFromDetailPage(doc, cid);
-      if (!parsedCard) {
-        console.error('[getCardDetail] Failed to parse card info from detail page');
-        return null;
-      }
+      // cidのみの場合：詳細ページからパースしたCardInfoを使用
       card = parsedCard;
     } else {
-      // CardInfoが渡された場合：既存の処理
-      card = cardOrId;
+      // CardInfoが渡された場合：詳細ページから取得した情報（ruby等）で補完
+      card = {
+        ...cardOrId,
+        ruby: cardOrId.ruby || parsedCard.ruby,
+        text: cardOrId.text || parsedCard.text
+      };
     }
 
     // 複数画像情報を取得（2枚目以降がある場合）

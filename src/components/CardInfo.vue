@@ -1,6 +1,13 @@
 <template>
   <div class="card-info-layout">
-    <h3 class="card-name-large">{{ card?.name }}</h3>
+    <h3
+      class="card-name-large"
+      :class="{ clickable: card?.ruby }"
+      @click="card?.ruby && toggleRuby()"
+    >{{ card?.name }}</h3>
+    <transition name="ruby-expand">
+      <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
+    </transition>
     <div class="card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
@@ -141,7 +148,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
@@ -176,9 +183,20 @@ export default {
     const deckStore = useDeckEditStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
+    const showRuby = ref(false)
 
     // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
     const card = computed(() => deckStore.selectedCard)
+
+    // ルビ表示の切り替え
+    const toggleRuby = () => {
+      showRuby.value = !showRuby.value
+    }
+
+    // カードが変わったらルビ表示をリセット
+    watch(() => card.value?.cardId, () => {
+      showRuby.value = false
+    })
 
     // cardが変わるたびに新しいUUIDを生成
     const cardUuid = computed(() => {
@@ -228,7 +246,9 @@ export default {
       toggleImageDialog,
       selectImage,
       getImageUrl,
-      mdiImageMultiple
+      mdiImageMultiple,
+      showRuby,
+      toggleRuby
     }
   },
   methods: {
@@ -318,6 +338,58 @@ export default {
   color: var(--text-primary);
   margin: 0;
   width: 100%;
+
+  &.clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--theme-color-start, #00d9b8);
+    }
+  }
+}
+
+.card-ruby {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 2px 0 6px 0;
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+// ルビ展開アニメーション
+.ruby-expand-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.ruby-expand-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ruby-expand-enter-from {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ruby-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ruby-expand-enter-to,
+.ruby-expand-leave-from {
+  opacity: 1;
+  max-height: 100px;
 }
 
 .card-info-top {
