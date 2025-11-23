@@ -37,6 +37,19 @@
           @keydown="handleKeydown"
         >
       </div>
+      <!-- フィルタチップ（検索バー内右端） -->
+      <div v-if="filterChips.length > 0" class="filter-chips-inline">
+        <div
+          v-for="chip in filterChips"
+          :key="chip.key"
+          class="filter-chip"
+          :class="chip.type"
+        >
+          <span class="chip-label">{{ chip.label }}</span>
+          <button class="chip-remove" @click="removeFilter(chip)">x</button>
+        </div>
+      </div>
+
       <button
         v-if="deckStore.searchQuery"
         class="clear-btn"
@@ -51,18 +64,6 @@
       />
     </div>
 
-    <!-- フィルタチップ表示エリア -->
-    <div v-if="filterChips.length > 0" class="filter-chips">
-      <div
-        v-for="chip in filterChips"
-        :key="chip.key"
-        class="filter-chip"
-        :class="chip.type"
-      >
-        <span class="chip-label">{{ chip.label }}</span>
-        <button class="chip-remove" @click="removeFilter(chip)">x</button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -633,11 +634,17 @@ export default defineComponent({
   width: 100%;
 }
 
-.filter-chips {
+.filter-chips-inline {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: 4px;
   padding: 0 4px;
+  overflow-x: auto;
+  max-width: 200px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .filter-chip {
