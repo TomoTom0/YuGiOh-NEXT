@@ -256,19 +256,30 @@ export default defineComponent({
         { value: 'trap', label: '罠' }
       ],
       races: [
-        { value: 'dragon', label: 'ドラゴン' }, { value: 'spellcaster', label: '魔法使い' },
-        { value: 'warrior', label: '戦士' }, { value: 'machine', label: '機械' },
-        { value: 'fiend', label: '悪魔' }, { value: 'fairy', label: '天使' },
-        { value: 'zombie', label: 'アンデット' }, { value: 'beast', label: '獣' },
-        { value: 'beastwarrior', label: '獣戦士' }, { value: 'plant', label: '植物' },
-        { value: 'insect', label: '昆虫' }, { value: 'aqua', label: '水' },
-        { value: 'fish', label: '魚' }, { value: 'seaserpent', label: '海竜' },
-        { value: 'reptile', label: '爬虫類' }, { value: 'dinosaur', label: '恐竜' },
-        { value: 'windbeast', label: '鳥獣' }, { value: 'rock', label: '岩石' },
-        { value: 'pyro', label: '炎' }, { value: 'thunder', label: '雷' },
-        { value: 'psychic', label: 'サイキック' }, { value: 'wyrm', label: '幻竜' },
-        { value: 'cyberse', label: 'サイバース' }
-      ],
+        { value: 'dragon', label: 'ドラゴン', aliases: ['どらごん', '龍', '竜'] },
+        { value: 'spellcaster', label: '魔法使い', aliases: ['まほうつかい', '魔'] },
+        { value: 'warrior', label: '戦士', aliases: ['せんし', '戦'] },
+        { value: 'machine', label: '機械', aliases: ['きかい', '機'] },
+        { value: 'fiend', label: '悪魔', aliases: ['あくま', '悪'] },
+        { value: 'fairy', label: '天使', aliases: ['てんし', '天'] },
+        { value: 'zombie', label: 'アンデット', aliases: ['あんでっと', '不死', 'ゾンビ'] },
+        { value: 'beast', label: '獣', aliases: ['けもの', 'じゅう'] },
+        { value: 'beastwarrior', label: '獣戦士', aliases: ['じゅうせんし', '獣戦'] },
+        { value: 'plant', label: '植物', aliases: ['しょくぶつ', '植'] },
+        { value: 'insect', label: '昆虫', aliases: ['こんちゅう', '昆', '虫'] },
+        { value: 'aqua', label: '水族', aliases: ['すいぞく', '水'] },
+        { value: 'fish', label: '魚族', aliases: ['ぎょぞく', '魚'] },
+        { value: 'seaserpent', label: '海竜族', aliases: ['かいりゅうぞく', '海竜', '海'] },
+        { value: 'reptile', label: '爬虫類', aliases: ['はちゅうるい', '爬虫', '爬'] },
+        { value: 'dinosaur', label: '恐竜', aliases: ['きょうりゅう', '恐'] },
+        { value: 'windbeast', label: '鳥獣', aliases: ['ちょうじゅう', '鳥'] },
+        { value: 'rock', label: '岩石', aliases: ['がんせき', '岩'] },
+        { value: 'pyro', label: '炎族', aliases: ['ほのおぞく', '炎'] },
+        { value: 'thunder', label: '雷族', aliases: ['かみなりぞく', '雷'] },
+        { value: 'psychic', label: 'サイキック', aliases: ['さいきっく', '念動', '念'] },
+        { value: 'wyrm', label: '幻竜族', aliases: ['げんりゅうぞく', '幻竜', '幻'] },
+        { value: 'cyberse', label: 'サイバース', aliases: ['さいばーす', '電脳', '電'] }
+      ] as { value: string; label: string; aliases?: string[] }[],
       monsterTypes: [
         { value: 'normal', label: '通常' }, { value: 'effect', label: '効果' },
         { value: 'fusion', label: '融合' }, { value: 'ritual', label: '儀式' },
@@ -307,10 +318,19 @@ export default defineComponent({
       const input = actualInputValue.value
       if (!input) return options
 
-      return options.filter(opt =>
-        opt.value.toLowerCase().includes(input) ||
-        opt.label.toLowerCase().includes(input)
-      )
+      return options.filter(opt => {
+        // value, label をチェック
+        if (opt.value.toLowerCase().includes(input) ||
+            opt.label.toLowerCase().includes(input)) {
+          return true
+        }
+        // aliases があればチェック
+        const aliases = (opt as { aliases?: string[] }).aliases
+        if (aliases) {
+          return aliases.some(alias => alias.toLowerCase().includes(input))
+        }
+        return false
+      })
     })
 
     const searchModeLabel = computed(() => {
@@ -537,9 +557,20 @@ export default defineComponent({
         case 'def':
           // 数値または範囲形式（1000-2000）
           return /^\d+(-\d+)?$/.test(value)
-        case 'races':
-          // 種族は何でも受け入れる（後で検証）
-          return value.length > 0
+        case 'races': {
+          // 種族オプションの中で一致するものがあるかチェック
+          const raceOptions = FILTER_OPTIONS.races
+          return raceOptions.some(opt => {
+            if (opt.value.toLowerCase() === value || opt.label.toLowerCase() === value) {
+              return true
+            }
+            const aliases = (opt as { aliases?: string[] }).aliases
+            if (aliases) {
+              return aliases.some(alias => alias.toLowerCase() === value)
+            }
+            return false
+          })
+        }
         case 'searchMode':
           return SEARCH_MODE_MAP[value] !== undefined
         default:
@@ -733,6 +764,24 @@ export default defineComponent({
         case 'monsterTypes':
           mappedValue = MONSTER_TYPE_MAP[value] || value
           break
+        case 'races': {
+          // 種族オプションから内部値を検索
+          const raceOptions = FILTER_OPTIONS.races
+          const found = raceOptions.find(opt => {
+            if (opt.value.toLowerCase() === value || opt.label.toLowerCase() === value) {
+              return true
+            }
+            const aliases = (opt as { aliases?: string[] }).aliases
+            if (aliases) {
+              return aliases.some(alias => alias.toLowerCase() === value)
+            }
+            return false
+          })
+          if (found) {
+            mappedValue = found.value
+          }
+          break
+        }
       }
 
       // コマンド自体がNOTか、または-プレフィックスが付いているか
