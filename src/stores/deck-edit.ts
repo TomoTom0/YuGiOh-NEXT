@@ -632,6 +632,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
   const selectedCard = ref<CardInfo | null>(null);
 
+  // Debug: warn if selectedCard is set but text is missing (helps track where incomplete CardInfo comes from)
+  watch(selectedCard, (val) => {
+    if (val && !(val as any).text) {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn('[deck-edit] selectedCard has no text:', { cardId: val.cardId, name: val.name })
+        // eslint-disable-next-line no-console
+        console.trace()
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[deck-edit] selectedCard missing text (trace not available)')
+      }
+    }
+  })
+
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではsearch）
   const isMobile = window.innerWidth <= 768;
   const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(isMobile ? 'deck' : 'card');
