@@ -242,6 +242,255 @@ export interface CardTypeFields {
   imgsPrefix: string;
 }
 
+/**
+ * カード詳細情報（card tabで表示される追加情報）
+ * card-detail-dbで使用
+ */
+export interface CardDetailInfo {
+  /** カードID */
+  cardId: string;
+  /** カードテキストの補足情報 */
+  supplementInfo?: string;
+  /** 補足情報の日付 */
+  supplementDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendulumSupplementInfo?: string;
+  /** ペンデュラム補足情報の日付 */
+  pendulumSupplementDate?: string;
+  /** 関連カード一覧 */
+  relatedCards?: Array<{
+    cardId: string;
+    name: string;
+    imageUrl?: string;
+  }>;
+  /** 関連FAQ一覧 */
+  relatedQA?: CardFAQ[];
+  /** 収録パック情報 */
+  relatedProducts?: PackInfo[];
+}
+
+/**
+ * FAQ詳細情報
+ * qa-dbで使用
+ */
+export interface FAQDetail {
+  /** FAQ ID */
+  faqId: string;
+  /** 質問 */
+  question: string;
+  /** 回答 */
+  answer: string;
+  /** 更新日 */
+  updatedAt?: string;
+  /** 関連カードID */
+  cardId?: string;
+}
+
+
+// =========================================
+// Cache DB 用型定義
+// =========================================
+
+/**
+ * カードTier管理テーブル
+ * 使用頻度に基づいてキャッシュの保持・破棄を制御
+ */
+export interface CardTier {
+  /** カードID (PK) */
+  cardId: string;
+  /** 最後にデッキに追加された日時 (timestamp) */
+  lastAddedToDeck: number;
+  /** 最後に詳細表示された日時 (timestamp) */
+  lastShownDetail: number;
+  /** 最後に検索で表示された日時 (timestamp) */
+  lastSearched: number;
+}
+
+/**
+ * デッキオープン履歴
+ * Tier 5（直近5回で開いたデッキに含まれるカード）の判定に使用
+ */
+export interface DeckOpenHistory {
+  /** 直近5回のデッキ（新しい順） */
+  recentDecks: Array<{
+    /** デッキ番号 */
+    dno: number;
+    /** 開いた日時 (timestamp) */
+    openedAt: number;
+    /** デッキ内カードID一覧 */
+    cardIds: string[];
+  }>;
+}
+
+/**
+ * CardTableA: 基本識別情報
+ * 対象: Tier 1以上
+ * 用途: 検索結果表示、デッキ一覧表示
+ */
+export interface CardTableA {
+  /** カードID (PK) */
+  cardId: string;
+  /** カード名 */
+  name: string;
+  /** 画像情報 */
+  imgs: Array<{
+    ciid: string;
+    imgHash: string;
+  }>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * CardTableB: カードステータス
+ * 対象: Tier 1以上
+ * 用途: フィルタリング、ソート、カード情報表示
+ */
+export interface CardTableB {
+  /** カードID (PK) */
+  cardId: string;
+  /** ふりがな */
+  ruby?: string;
+  /** カードタイプ */
+  cardType: 'monster' | 'spell' | 'trap';
+
+  // モンスター専用
+  /** 属性 */
+  attribute?: string;
+  /** 種族 */
+  race?: string;
+  /** レベル/ランク/リンクの種別 */
+  levelType?: 'level' | 'rank' | 'link';
+  /** レベル/ランク/リンク値 */
+  levelValue?: number;
+  /** 攻撃力（null = '?'） */
+  atk?: number | null;
+  /** 守備力（null = '?'） */
+  def?: number | null;
+  /** ペンデュラムスケール */
+  scale?: number;
+  /** エクストラデッキかどうか */
+  isExtraDeck?: boolean;
+  /** タイプ（効果、チューナー等） */
+  types?: string[];
+
+  // 魔法・罠専用
+  /** 効果種類（通常、速攻、永続等） */
+  effectType?: string;
+
+  // 共通
+  /** 禁止制限 */
+  limitRegulation?: 'forbidden' | 'limited' | 'semi-limited';
+
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * CardTableC: テキスト・関連情報
+ * 対象: Tier 3以上（詳細表示したカード）
+ * 用途: カード詳細タブ表示
+ */
+export interface CardTableC {
+  /** カードID (PK) */
+  cardId: string;
+  /** 効果テキスト */
+  text?: string;
+  /** ペンデュラムテキスト */
+  pendText?: string;
+
+  // 補足情報
+  /** カードテキストの補足情報 */
+  supplInfo?: string;
+  /** 補足情報の日付 */
+  supplDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendSupplInfo?: string;
+  /** ペンデュラム補足情報の日付 */
+  pendSupplDate?: string;
+
+  // 関連情報
+  /** 関連カードID一覧 */
+  relatedCards?: string[];
+  /** 関連パックID一覧 */
+  relatedProducts?: string[];
+
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * ProductTableA: パック基本情報
+ * 対象: related-productで取得された情報
+ * 用途: カード詳細の収録情報表示
+ */
+export interface ProductTableA {
+  /** パックID (PK) */
+  packId: string;
+  /** パック名 */
+  name: string;
+  /** 発売日（例: "2025-10-25"） */
+  releaseDate?: string;
+  /** パックコード（例: "DP30-JP001"） */
+  code?: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * ProductTableB: パック詳細情報
+ * 対象: パック詳細を展開した場合
+ * 用途: パック内カードリスト表示
+ */
+export interface ProductTableB {
+  /** パックID (PK) */
+  packId: string;
+  /** パック内カード一覧 */
+  cards: Array<{
+    cardId: string;
+    rarity?: string;
+    rarityColor?: string;
+  }>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * FAQTableA: 質問一覧
+ * 対象: 表示したFAQの質問
+ * 用途: カードQAタブの質問リスト
+ */
+export interface FAQTableA {
+  /** FAQ ID (PK) */
+  faqId: string;
+  /** 質問 */
+  question: string;
+  /** 更新日 */
+  updatedAt?: string;
+  /** 関連カードID */
+  cardId?: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+  /** アクセス時刻（破棄判定用） */
+  lastAccessedAt: number;
+}
+
+/**
+ * FAQTableB: 回答詳細
+ * 対象: 展開したFAQの回答
+ * 用途: FAQ回答表示
+ */
+export interface FAQTableB {
+  /** FAQ ID (PK) */
+  faqId: string;
+  /** 回答 */
+  answer: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+  /** アクセス時刻（破棄判定用） */
+  lastAccessedAt: number;
+}
+
 // card-maps.tsから再エクスポート
 export type {
   Attribute,

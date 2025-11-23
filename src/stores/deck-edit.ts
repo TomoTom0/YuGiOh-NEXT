@@ -8,7 +8,7 @@ import { getDeckDetail } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
-import { getTempCardDB } from '../utils/temp-card-db';
+import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -694,6 +694,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // データ追加
     addToDisplayOrder(card, section);
 
+    // TempCardDBをChrome Storageに保存（非同期で実行）
+    saveTempCardDBToStorage().catch(error => {
+      console.error('Failed to save TempCardDB to storage:', error);
+    });
+
     // 新規追加されたカードは位置情報がないため、単純なフェードイン
     // FLIPアニメーションは移動のみに使用
     return { success: true };
@@ -992,14 +997,27 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
         // URLにdnoを同期
         URLStateManager.setDno(dno);
-        
+
         // displayOrderを初期化
         initializeDisplayOrder();
-        
+
         // ロード時はアニメーション不要（新規表示のため）
-        
+
         lastUsedDno.value = dno;
         localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
+
+        // デッキオープンを記録（Tier 5管理用）
+        const allCardIds = [
+          ...loadedDeck.mainDeck.map(card => card.cid),
+          ...loadedDeck.extraDeck.map(card => card.cid),
+          ...loadedDeck.sideDeck.map(card => card.cid)
+        ];
+        recordDeckOpen(dno, allCardIds);
+
+        // TempCardDBをChrome Storageに保存（非同期で実行）
+        saveTempCardDBToStorage().catch(error => {
+          console.error('Failed to save TempCardDB to storage:', error);
+        });
       }
     } catch (error) {
       console.error('Failed to load deck:', error);
@@ -1023,6 +1041,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function initializeOnPageLoad() {
     try {
+      // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
+      await initTempCardDBFromStorage();
+
       // 設定ストアを初期化
       await settingsStore.loadSettings();
 
