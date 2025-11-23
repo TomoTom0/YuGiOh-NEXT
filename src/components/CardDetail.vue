@@ -184,16 +184,10 @@ export default {
           // まずキャッシュデータを表示
           detail.value = cacheResult.detail
 
-          // FAQデータも取得（キャッシュに含まれている場合はそれを使用）
-          if (cacheResult.detail.qaList && cacheResult.detail.qaList.length > 0) {
-            // キャッシュにqaListがある場合はそれを使用
-            faqListData.value = await getCardFAQList(props.card.cardId)
-            console.log('[CardDetail] FAQ fetched from API')
-          } else {
-            const faqResult = await getCardFAQList(props.card.cardId)
-            console.log('[CardDetail] FAQ fetched:', faqResult)
-            faqListData.value = faqResult
-          }
+          // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
+          const faqResult = await getCardFAQList(props.card.cardId)
+          console.log('[CardDetail] FAQ fetched:', faqResult)
+          faqListData.value = faqResult
 
           // キャッシュが期限切れの場合はバックグラウンドで再取得
           if (cacheResult.fromCache && !cacheResult.isFresh) {
@@ -245,8 +239,8 @@ export default {
       }
     }
     
-    // カードが変わったら詳細を取得
-    watch(() => props.card, () => {
+    // カードIDが変わったら詳細を取得（オブジェクト参照ではなくIDで判定）
+    watch(() => props.card?.cardId, () => {
       relatedCurrentPage.value = 0
       fetchDetail()
     }, { immediate: true })
