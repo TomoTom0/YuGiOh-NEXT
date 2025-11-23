@@ -351,6 +351,35 @@ class UnifiedCacheDB {
     this.updateCardTier(data.cardId, { lastShownDetail: now });
   }
 
+  /**
+   * CardTableCのfetchedAtのみを更新
+   * キャッシュヒット時に呼び出す
+   */
+  async updateCardTableCFetchedAt(cardId: string): Promise<void> {
+    const cached = this.cardTableCCache.get(cardId);
+    if (!cached) {
+      // メモリにない場合はストレージから読み込み
+      const key = STORAGE_KEYS.cardTableCPrefix + cardId;
+      const result = await chrome.storage.local.get(key);
+      const data = result[key];
+      if (data) {
+        data.fetchedAt = Date.now();
+        this.cardTableCCache.set(cardId, data);
+        await chrome.storage.local.set({ [key]: data });
+      }
+      return;
+    }
+
+    // メモリキャッシュとストレージの両方を更新
+    const now = Date.now();
+    cached.fetchedAt = now;
+    const key = STORAGE_KEYS.cardTableCPrefix + cardId;
+    await chrome.storage.local.set({ [key]: cached });
+
+    // Tierテーブルも更新
+    this.updateCardTier(cardId, { lastShownDetail: now });
+  }
+
   // =========================================
   // Tier管理
   // =========================================

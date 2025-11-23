@@ -415,6 +415,12 @@ export interface CardTableC {
   /** 関連パックID一覧 */
   relatedProducts?: string[];
 
+  // キャッシュ用の追加情報
+  /** 収録シリーズ情報 */
+  packs?: PackInfo[];
+  /** Q&A情報 */
+  qaList?: CardFAQ[];
+
   /** 取得日時 (timestamp) */
   fetchedAt: number;
 }

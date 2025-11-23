@@ -13,9 +13,11 @@ import {
   TrapEffectType,
   CardDetail,
   PackInfo,
-  LimitRegulation
+  LimitRegulation,
+  CardTableC
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
@@ -1352,6 +1354,154 @@ export async function getCardDetail(
     console.error('Failed to get card detail:', error);
     return null;
   }
+}
+
+// キャッシュの有効期限（ミリ秒）- デフォルト24時間
+const CARD_DETAIL_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+/**
+ * キャッシュ付きカード詳細取得の結果
+ */
+export interface CardDetailCacheResult {
+  /** カード詳細（null=取得失敗） */
+  detail: CardDetail | null;
+  /** キャッシュから取得したか */
+  fromCache: boolean;
+  /** キャッシュが有効期間内か */
+  isFresh: boolean;
+  /** キャッシュの取得日時 */
+  fetchedAt: number;
+}
+
+/**
+ * キャッシュ対応のカード詳細取得
+ * - キャッシュが有効期間内ならAPIをスキップ
+ * - キャッシュが期限切れならキャッシュを返しつつ、バックグラウンド更新用のフラグを設定
+ * - キャッシュがなければAPI呼び出し
+ *
+ * @param cardOrId CardInfoまたはcid
+ * @param lang 言語（省略時は現在のページから検出）
+ * @returns キャッシュ結果
+ */
+export async function getCardDetailWithCache(
+  cardOrId: CardInfo | string,
+  lang?: string
+): Promise<CardDetailCacheResult> {
+  const cid = typeof cardOrId === 'string' ? cardOrId : cardOrId.cardId;
+  const unifiedDB = getUnifiedCacheDB();
+
+  // キャッシュを確認
+  if (unifiedDB.isInitialized()) {
+    const cachedTableC = await unifiedDB.getCardTableC(cid);
+
+    if (cachedTableC && cachedTableC.packs && cachedTableC.qaList) {
+      const now = Date.now();
+      const age = now - cachedTableC.fetchedAt;
+      const isFresh = age < CARD_DETAIL_CACHE_TTL;
+
+      // キャッシュからCardDetailを再構築
+      const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cid, cachedTableC);
+
+      if (cachedDetail) {
+        console.log(`[getCardDetailWithCache] Cache hit for ${cid}, fresh=${isFresh}, age=${Math.round(age/1000)}s`);
+
+        // fetchedAtを更新（キャッシュヒット時も更新）
+        await unifiedDB.updateCardTableCFetchedAt(cid);
+
+        // キャッシュが有効期間内ならそのまま返す
+        // 期限切れの場合もキャッシュを返す（呼び出し側でバックグラウンド更新を判断）
+        return {
+          detail: cachedDetail,
+          fromCache: true,
+          isFresh,
+          fetchedAt: Date.now() // 更新後の時刻
+        };
+      }
+    }
+  }
+
+  // キャッシュがない、または不完全な場合はAPIを呼び出し
+  console.log(`[getCardDetailWithCache] Cache miss for ${cid}, fetching from API`);
+  const detail = await getCardDetail(cardOrId, lang);
+
+  if (detail && unifiedDB.isInitialized()) {
+    // キャッシュに保存
+    await saveCardDetailToCache(unifiedDB, detail);
+  }
+
+  return {
+    detail,
+    fromCache: false,
+    isFresh: true,
+    fetchedAt: Date.now()
+  };
+}
+
+/**
+ * キャッシュからCardDetailを再構築
+ */
+async function reconstructCardDetailFromCache(
+  unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
+  cid: string,
+  tableC: CardTableC
+): Promise<CardDetail | null> {
+  // CardInfoを再構築
+  const cardInfo = unifiedDB.reconstructCardInfo(cid);
+  if (!cardInfo) {
+    return null;
+  }
+
+  // relatedCardsを再構築
+  const relatedCards: CardInfo[] = [];
+  if (tableC.relatedCards) {
+    for (const relatedCid of tableC.relatedCards) {
+      const relatedInfo = unifiedDB.reconstructCardInfo(relatedCid);
+      if (relatedInfo) {
+        relatedCards.push(relatedInfo);
+      }
+    }
+  }
+
+  return {
+    card: cardInfo,
+    packs: tableC.packs || [],
+    relatedCards,
+    qaList: tableC.qaList || []
+  };
+}
+
+/**
+ * CardDetailをキャッシュに保存
+ */
+async function saveCardDetailToCache(
+  unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
+  detail: CardDetail
+): Promise<void> {
+  const cid = detail.card.cardId;
+
+  // CardInfoをTableA, Bに保存
+  unifiedDB.setCardInfo(detail.card);
+
+  // 関連カードもTableA, Bに保存
+  for (const relatedCard of detail.relatedCards) {
+    unifiedDB.setCardInfo(relatedCard);
+  }
+
+  // CardTableCを作成して保存
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cardAny = detail.card as any;
+  const tableC: CardTableC = {
+    cardId: cid,
+    text: cardAny.text,
+    pendText: cardAny.pendText,
+    relatedCards: detail.relatedCards.map(c => c.cardId),
+    relatedProducts: detail.packs.map(p => p.packId).filter((id): id is string => id !== undefined),
+    packs: detail.packs,
+    qaList: detail.qaList || [],
+    fetchedAt: Date.now()
+  };
+
+  await unifiedDB.setCardTableC(tableC);
 }
 
 /**
