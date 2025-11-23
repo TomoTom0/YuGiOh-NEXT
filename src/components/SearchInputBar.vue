@@ -37,17 +37,15 @@
           @keydown="handleKeydown"
         >
       </div>
-      <!-- フィルタチップ（検索バー内右端） -->
-      <div v-if="filterChips.length > 0" class="filter-chips-inline">
-        <div
-          v-for="chip in filterChips"
-          :key="chip.key"
-          class="filter-chip"
-          :class="chip.type"
-        >
-          <span class="chip-label">{{ chip.label }}</span>
-          <button class="chip-remove" @click="removeFilter(chip)">x</button>
-        </div>
+      <!-- フィルター条件表示（元の実装を復元） -->
+      <div v-if="hasActiveFilters" class="filter-icons">
+        <span
+          v-for="(icon, index) in displayFilterIcons"
+          :key="index"
+          class="filter-icon-item"
+          :class="icon.type"
+        >{{ icon.label }}</span>
+        <span v-if="filterCount > 3" class="filter-more">+</span>
       </div>
 
       <button
@@ -72,15 +70,6 @@ import { ref, computed, nextTick, defineComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import SearchFilterDialog from './SearchFilterDialog.vue'
-import { getAttributeLabel, getRaceLabel, getMonsterTypeLabel } from '../utils/label-utils'
-
-interface FilterChip {
-  key: string
-  label: string
-  type: string
-  filterType: string
-  value: string | number
-}
 
 interface SearchFilters {
   cardType: string | null
@@ -216,6 +205,67 @@ export default defineComponent({
       return count
     })
 
+    // 表示用フィルターアイコン（最大3個）- 元の実装を復元
+    const displayFilterIcons = computed(() => {
+      const icons: { type: string; label: string }[] = []
+      const f = searchFilters.value
+
+      // 属性
+      const attrLabels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
+      f.attributes.forEach(attr => {
+        icons.push({ type: 'attr', label: attrLabels[attr] || attr })
+      })
+
+      // 種族（短縮表示）
+      const raceLabels: Record<string, string> = {
+        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械', fiend: '悪魔', fairy: '天使',
+        zombie: '不死', beast: '獣', beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
+        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜', windbeast: '鳥獣', rock: '岩石',
+        pyro: '炎', thunder: '雷', psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
+        divine: '神獣', creatorgod: '創造'
+      }
+      f.races.forEach(race => {
+        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 2) })
+      })
+
+      // レベル
+      f.levels.forEach(level => {
+        icons.push({ type: 'level', label: `★${level}` })
+      })
+
+      // カードタイプ
+      if (f.cardType) {
+        const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
+        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
+      }
+
+      // ATK/DEF
+      if (f.atk.from !== undefined || f.atk.to !== undefined) {
+        icons.push({ type: 'atk', label: 'ATK' })
+      }
+      if (f.def.from !== undefined || f.def.to !== undefined) {
+        icons.push({ type: 'def', label: 'DEF' })
+      }
+
+      // モンスタータイプ
+      const monsterTypeLabels: Record<string, string> = {
+        normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
+        pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
+        union: 'U', gemini: 'D', special: '特'
+      }
+      f.monsterTypes.forEach(mtype => {
+        icons.push({ type: 'monsterType', label: monsterTypeLabels[mtype] || mtype.slice(0, 1) })
+      })
+
+      // リンク数
+      f.linkNumbers.forEach(link => {
+        icons.push({ type: 'link', label: `L${link}` })
+      })
+
+      // 最大3個まで表示
+      return icons.slice(0, 3)
+    })
+
     // コマンドモードの検出
     const commandMatch = computed(() => {
       const query = deckStore.searchQuery
@@ -342,146 +392,6 @@ export default defineComponent({
 
       // コマンドをクリアして検索クエリを空に
       deckStore.searchQuery = ''
-    }
-
-    // フィルタチップの生成
-    const filterChips = computed(() => {
-      const chips: FilterChip[] = []
-      const f = searchFilters.value
-
-      // カードタイプ
-      if (f.cardType) {
-        const typeLabels: Record<string, string> = {
-          'monster': 'モンスター',
-          'spell': '魔法',
-          'trap': '罠'
-        }
-        chips.push({
-          key: `cardType-${f.cardType}`,
-          label: typeLabels[f.cardType] || f.cardType,
-          type: 'cardType',
-          filterType: 'cardType',
-          value: f.cardType
-        })
-      }
-
-      // 属性
-      f.attributes.forEach(attr => {
-        chips.push({
-          key: `attr-${attr}`,
-          label: getAttributeLabel(attr),
-          type: 'attribute',
-          filterType: 'attributes',
-          value: attr
-        })
-      })
-
-      // 種族
-      f.races.forEach((race) => {
-        chips.push({
-          key: `race-${race}`,
-          label: getRaceLabel(race!),
-          type: 'race',
-          filterType: 'races',
-          value: race
-        })
-      })
-
-      // レベル/ランク
-      f.levels.forEach(level => {
-        chips.push({
-          key: `level-${level}`,
-          label: `Lv.${level}`,
-          type: 'level',
-          filterType: 'levels',
-          value: level
-        })
-      })
-
-      // ATK
-      if (f.atk.from !== undefined || f.atk.to !== undefined) {
-        const fromStr = f.atk.from !== undefined ? f.atk.from : '?'
-        const toStr = f.atk.to !== undefined ? f.atk.to : '?'
-        chips.push({
-          key: 'atk',
-          label: `ATK:${fromStr}-${toStr}`,
-          type: 'stat',
-          filterType: 'atk',
-          value: 'atk'
-        })
-      }
-
-      // DEF
-      if (f.def.from !== undefined || f.def.to !== undefined) {
-        const fromStr = f.def.from !== undefined ? f.def.from : '?'
-        const toStr = f.def.to !== undefined ? f.def.to : '?'
-        chips.push({
-          key: 'def',
-          label: `DEF:${fromStr}-${toStr}`,
-          type: 'stat',
-          filterType: 'def',
-          value: 'def'
-        })
-      }
-
-      // モンスタータイプ
-      f.monsterTypes.forEach((mtype) => {
-        chips.push({
-          key: `mtype-${mtype}`,
-          label: getMonsterTypeLabel(mtype!),
-          type: 'monsterType',
-          filterType: 'monsterTypes',
-          value: mtype
-        })
-      })
-
-      // リンク数
-      f.linkNumbers.forEach(link => {
-        chips.push({
-          key: `link-${link}`,
-          label: `LINK-${link}`,
-          type: 'link',
-          filterType: 'linkNumbers',
-          value: link
-        })
-      })
-
-      return chips
-    })
-
-    // フィルタチップの削除
-    const removeFilter = (chip: FilterChip) => {
-      const f = searchFilters.value
-      switch (chip.filterType) {
-        case 'cardType':
-          f.cardType = null
-          break
-        case 'attributes':
-          f.attributes = f.attributes.filter(v => v !== chip.value)
-          break
-        case 'races':
-          f.races = f.races.filter(v => v !== String(chip.value))
-          break
-        case 'levels':
-          f.levels = f.levels.filter(v => v !== chip.value)
-          break
-        case 'atk':
-          f.atk = { from: undefined, to: undefined }
-          break
-        case 'def':
-          f.def = { from: undefined, to: undefined }
-          break
-        case 'monsterTypes':
-          f.monsterTypes = f.monsterTypes.filter(v => v !== String(chip.value))
-          break
-        case 'linkNumbers':
-          f.linkNumbers = f.linkNumbers.filter(v => v !== chip.value)
-          break
-      }
-      // フィルタ変更後に再検索
-      if (deckStore.searchQuery.trim() || hasActiveFilters.value) {
-        handleSearch()
-      }
     }
 
     const selectSearchMode = (mode: string) => {
@@ -612,15 +522,14 @@ export default defineComponent({
       searchFilters,
       hasActiveFilters,
       filterCount,
-      filterChips,
+      displayFilterIcons,
       isCommandMode,
       commandPrefix,
       selectSearchMode,
       handleFilterApply,
       handleSearch,
       handleInput,
-      handleKeydown,
-      removeFilter
+      handleKeydown
     }
   }
 })
@@ -634,90 +543,48 @@ export default defineComponent({
   width: 100%;
 }
 
-.filter-chips-inline {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  padding: 0 4px;
-  overflow-x: auto;
-  max-width: 200px;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.filter-chip {
+/* 元の実装のフィルターアイコンスタイル */
+.filter-icons {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-primary, #333);
+  gap: 2px;
+  margin-right: 4px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.filter-icon-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 3px;
+  font-size: 8px;
+  font-weight: 500;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
   border: 1px solid var(--border-primary, #ddd);
+  white-space: nowrap;
+  max-width: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
 
-  &.cardType {
-    background: linear-gradient(90deg, #e8f4fd 0%, #f0e8fd 100%);
-    border-color: #c8d8e8;
-  }
-
-  &.attribute {
-    background: linear-gradient(90deg, #fff3e0 0%, #ffecb3 100%);
-    border-color: #ffcc80;
-  }
-
-  &.race {
-    background: linear-gradient(90deg, #e8f5e9 0%, #c8e6c9 100%);
-    border-color: #a5d6a7;
-  }
-
-  &.level {
-    background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
-    border-color: #90caf9;
-  }
-
-  &.stat {
-    background: linear-gradient(90deg, #fce4ec 0%, #f8bbd0 100%);
-    border-color: #f48fb1;
-  }
-
-  &.monsterType {
-    background: linear-gradient(90deg, #f3e5f5 0%, #e1bee7 100%);
-    border-color: #ce93d8;
-  }
-
-  &.link {
-    background: linear-gradient(90deg, #e0f7fa 0%, #b2ebf2 100%);
-    border-color: #80deea;
-  }
-
-  .chip-label {
-    white-space: nowrap;
-  }
-
-  .chip-remove {
-    background: none;
-    border: none;
-    padding: 0 2px;
-    margin: 0;
-    font-size: 12px;
-    color: var(--text-secondary, #666);
-    cursor: pointer;
-    line-height: 1;
-    border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover {
-      background: rgba(0, 0, 0, 0.1);
-      color: var(--text-primary, #333);
-    }
-  }
+.filter-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  font-size: 8px;
+  font-weight: 600;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
+  flex-shrink: 0;
 }
 
 .input-container {
