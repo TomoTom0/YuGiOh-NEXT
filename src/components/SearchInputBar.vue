@@ -296,13 +296,13 @@ export default defineComponent({
       return icons
     })
 
-    // 表示可能な最大アイコン数（二行分）
-    const maxVisibleIcons = 6
+    // 表示するアイコン - CSSのoverflow:hiddenで自動的に省略
+    // 全アイコンを返し、CSSで収まらない分は非表示になる
+    const visibleFilterIcons = computed(() => displayFilterIcons.value)
 
-    // 表示するアイコン（最大数まで）
-    const visibleFilterIcons = computed(() => {
-      return displayFilterIcons.value.slice(0, maxVisibleIcons)
-    })
+    // 表示制限の目安（二行×幅に応じた数）
+    // 120px: 8個, 160px: 10個, 200px: 12個 程度
+    const maxVisibleIcons = 12
 
     // コマンドモードの検出
     const commandMatch = computed(() => {
