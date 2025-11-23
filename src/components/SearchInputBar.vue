@@ -29,9 +29,10 @@
             v-for="(chip, index) in filterChips"
             :key="index"
             class="filter-chip"
+            :class="{ 'not-condition': chip.isNot }"
             @click="removeFilterChip(index)"
           >
-            {{ chip.label }}
+            <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
             <span class="chip-remove">x</span>
           </span>
         </div>
@@ -52,6 +53,19 @@
           @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
         >
+        <!-- 候補リスト -->
+        <div v-if="pendingCommand && filteredSuggestions.length > 0" class="suggestions-dropdown">
+          <div
+            v-for="(suggestion, index) in filteredSuggestions"
+            :key="suggestion.value"
+            class="suggestion-item"
+            :class="{ selected: index === selectedSuggestionIndex }"
+            @click="selectSuggestion(suggestion)"
+          >
+            <span class="suggestion-value">{{ suggestion.value }}</span>
+            <span class="suggestion-label">{{ suggestion.label }}</span>
+          </div>
+        </div>
       </div>
       <!-- フィルター条件表示（二行均等配置） -->
       <div v-if="hasActiveFilters" class="filter-icons">
@@ -110,7 +124,7 @@ interface SearchFilters {
 }
 
 // コマンド定義
-const COMMANDS: Record<string, { filterType: string; description: string }> = {
+const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
   '/attr': { filterType: 'attributes', description: '属性' },
   '/race': { filterType: 'races', description: '種族' },
   '/level': { filterType: 'levels', description: 'レベル/ランク' },
@@ -118,7 +132,22 @@ const COMMANDS: Record<string, { filterType: string; description: string }> = {
   '/def': { filterType: 'def', description: 'DEF' },
   '/type': { filterType: 'cardType', description: 'カードタイプ' },
   '/link': { filterType: 'linkNumbers', description: 'リンク数' },
-  '/mtype': { filterType: 'monsterTypes', description: 'モンスタータイプ' }
+  '/mtype': { filterType: 'monsterTypes', description: 'モンスタータイプ' },
+  '/search': { filterType: 'searchMode', description: '検索モード' },
+  // NOT条件
+  '/attr-not': { filterType: 'attributes', description: '属性(除外)', isNot: true },
+  '/race-not': { filterType: 'races', description: '種族(除外)', isNot: true },
+  '/level-not': { filterType: 'levels', description: 'レベル(除外)', isNot: true },
+  '/type-not': { filterType: 'cardType', description: 'タイプ(除外)', isNot: true },
+  '/link-not': { filterType: 'linkNumbers', description: 'リンク(除外)', isNot: true },
+  '/mtype-not': { filterType: 'monsterTypes', description: 'Mタイプ(除外)', isNot: true }
+}
+
+// 検索モードマッピング
+const SEARCH_MODE_MAP: Record<string, string> = {
+  'name': 'name', 'カード名': 'name', 'n': 'name',
+  'text': 'text', 'テキスト': 'text', 't': 'text',
+  'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum'
 }
 
 // 属性マッピング（日本語/英語 -> APIキー）
@@ -200,15 +229,74 @@ export default defineComponent({
       type: string
       value: string
       label: string
+      isNot?: boolean
     }
 
     interface PendingCommand {
       command: string
       filterType: string
+      isNot?: boolean
     }
 
     const filterChips = ref<FilterChip[]>([])
     const pendingCommand = ref<PendingCommand | null>(null)
+    const selectedSuggestionIndex = ref(-1)
+
+    // 各フィルタータイプの選択肢
+    const FILTER_OPTIONS: Record<string, { value: string; label: string }[]> = {
+      attributes: [
+        { value: 'light', label: '光' }, { value: 'dark', label: '闇' },
+        { value: 'water', label: '水' }, { value: 'fire', label: '炎' },
+        { value: 'earth', label: '地' }, { value: 'wind', label: '風' },
+        { value: 'divine', label: '神' }
+      ],
+      cardType: [
+        { value: 'monster', label: 'モンスター' },
+        { value: 'spell', label: '魔法' },
+        { value: 'trap', label: '罠' }
+      ],
+      monsterTypes: [
+        { value: 'normal', label: '通常' }, { value: 'effect', label: '効果' },
+        { value: 'fusion', label: '融合' }, { value: 'ritual', label: '儀式' },
+        { value: 'synchro', label: 'シンクロ' }, { value: 'xyz', label: 'エクシーズ' },
+        { value: 'pendulum', label: 'ペンデュラム' }, { value: 'link', label: 'リンク' },
+        { value: 'tuner', label: 'チューナー' }, { value: 'flip', label: 'リバース' },
+        { value: 'toon', label: 'トゥーン' }, { value: 'spirit', label: 'スピリット' },
+        { value: 'union', label: 'ユニオン' }, { value: 'gemini', label: 'デュアル' },
+        { value: 'special', label: '特殊召喚' }
+      ],
+      levels: [
+        { value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' },
+        { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' },
+        { value: '7', label: '7' }, { value: '8', label: '8' }, { value: '9', label: '9' },
+        { value: '10', label: '10' }, { value: '11', label: '11' }, { value: '12', label: '12' }
+      ],
+      linkNumbers: [
+        { value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' },
+        { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' }
+      ],
+      searchMode: [
+        { value: 'name', label: 'カード名' },
+        { value: 'text', label: 'テキスト' },
+        { value: 'pend', label: 'ペンデュラム' }
+      ]
+    }
+
+    // 現在の入力に基づいてフィルタリングされた候補
+    const filteredSuggestions = computed(() => {
+      if (!pendingCommand.value) return []
+
+      const options = FILTER_OPTIONS[pendingCommand.value.filterType]
+      if (!options) return []
+
+      const input = deckStore.searchQuery.trim().toLowerCase()
+      if (!input) return options
+
+      return options.filter(opt =>
+        opt.value.toLowerCase().includes(input) ||
+        opt.label.toLowerCase().includes(input)
+      )
+    })
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
@@ -422,6 +510,8 @@ export default defineComponent({
         case 'races':
           // 種族は何でも受け入れる（後で検証）
           return value.length > 0
+        case 'searchMode':
+          return SEARCH_MODE_MAP[value] !== undefined
         default:
           return false
       }
@@ -493,9 +583,11 @@ export default defineComponent({
       for (const cmd of Object.keys(COMMANDS)) {
         if (query === cmd + ' ') {
           // コマンド + スペースで値入力モードに移行
+          const cmdDef = COMMANDS[cmd]
           pendingCommand.value = {
             command: cmd,
-            filterType: COMMANDS[cmd].filterType
+            filterType: cmdDef.filterType,
+            isNot: cmdDef.isNot
           }
           deckStore.searchQuery = ''
           return
@@ -505,10 +597,31 @@ export default defineComponent({
 
     // キー入力ハンドラ
     const handleKeydown = (event: KeyboardEvent) => {
+      // Tabキーで候補を選択
+      if (event.key === 'Tab' && pendingCommand.value && filteredSuggestions.value.length > 0) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          // Shift+Tabで前の候補
+          selectedSuggestionIndex.value = selectedSuggestionIndex.value <= 0
+            ? filteredSuggestions.value.length - 1
+            : selectedSuggestionIndex.value - 1
+        } else {
+          // Tabで次の候補
+          selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
+        }
+        // 選択した候補を入力に反映
+        const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
+        if (selected) {
+          deckStore.searchQuery = selected.value
+        }
+        return
+      }
+
       // Spaceキーで有効な入力をチップに変換
       if (event.key === ' ' && pendingCommand.value && isValidCommandInput.value) {
         event.preventDefault()
         addFilterChip()
+        selectedSuggestionIndex.value = -1
         return
       }
 
@@ -518,12 +631,37 @@ export default defineComponent({
           // ペンディングコマンドをキャンセル
           event.preventDefault()
           pendingCommand.value = null
+          selectedSuggestionIndex.value = -1
           return
         }
         if (deckStore.searchQuery === '' && !pendingCommand.value && filterChips.value.length > 0) {
           // 最後のチップを削除
           event.preventDefault()
           removeFilterChip(filterChips.value.length - 1)
+          return
+        }
+      }
+
+      // 上下キーで候補を選択
+      if (pendingCommand.value && filteredSuggestions.value.length > 0) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
+          const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
+          if (selected) {
+            deckStore.searchQuery = selected.value
+          }
+          return
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          selectedSuggestionIndex.value = selectedSuggestionIndex.value <= 0
+            ? filteredSuggestions.value.length - 1
+            : selectedSuggestionIndex.value - 1
+          const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
+          if (selected) {
+            deckStore.searchQuery = selected.value
+          }
           return
         }
       }
@@ -537,6 +675,18 @@ export default defineComponent({
       if (!value) return
 
       const filterType = pendingCommand.value.filterType
+
+      // 検索モードは特別処理（チップにしない）
+      if (filterType === 'searchMode') {
+        const newMode = SEARCH_MODE_MAP[value]
+        if (newMode) {
+          searchMode.value = newMode
+        }
+        deckStore.searchQuery = ''
+        pendingCommand.value = null
+        return
+      }
+
       let mappedValue = value
 
       // 値をマッピング
@@ -552,15 +702,18 @@ export default defineComponent({
           break
       }
 
+      const isNot = pendingCommand.value.isNot || false
+
       // チップを追加
       filterChips.value.push({
         type: filterType,
         value: mappedValue,
-        label: getChipLabel(filterType, mappedValue)
+        label: getChipLabel(filterType, mappedValue),
+        isNot
       })
 
       // 実際のフィルターにも適用
-      applyChipToFilters(filterType, mappedValue)
+      applyChipToFilters(filterType, mappedValue, isNot)
 
       // 入力をクリア
       deckStore.searchQuery = ''
@@ -568,7 +721,10 @@ export default defineComponent({
     }
 
     // チップをフィルターに適用
-    const applyChipToFilters = (type: string, value: string) => {
+    const applyChipToFilters = (type: string, value: string, isNot: boolean = false) => {
+      // NOT条件はクライアントサイドフィルタリングで処理（APIには送らない）
+      if (isNot) return
+
       const f = searchFilters.value
 
       switch (type) {
@@ -700,8 +856,19 @@ export default defineComponent({
       if (pendingCommand.value) {
         pendingCommand.value = null
         deckStore.searchQuery = ''
+        selectedSuggestionIndex.value = -1
       }
       // 常に親コンポーネントに伝播（emit('escape')はテンプレートで処理）
+    }
+
+    // 候補を選択
+    const selectSuggestion = (suggestion: { value: string; label: string }) => {
+      deckStore.searchQuery = suggestion.value
+      selectedSuggestionIndex.value = -1
+      // 選択したら即チップに変換
+      nextTick(() => {
+        addFilterChip()
+      })
     }
 
     // コマンドからフィルタを適用
@@ -939,13 +1106,16 @@ export default defineComponent({
       pendingCommand,
       isValidCommandInput,
       currentPlaceholder,
+      filteredSuggestions,
+      selectedSuggestionIndex,
       selectSearchMode,
       handleFilterApply,
       handleSearch,
       handleInput,
       handleKeydown,
       handleEscape,
-      removeFilterChip
+      removeFilterChip,
+      selectSuggestion
     }
   }
 })
@@ -1069,6 +1239,30 @@ export default defineComponent({
     border-color: var(--text-tertiary, #999);
   }
 
+  &.not-condition {
+    background: #ffebee;
+    border-color: #ef9a9a;
+    color: #c62828;
+
+    &:hover {
+      background: #ffcdd2;
+      border-color: #e57373;
+    }
+
+    .not-prefix {
+      font-weight: 700;
+      margin-right: 1px;
+    }
+
+    .chip-remove {
+      color: #e57373;
+
+      &:hover {
+        color: #c62828;
+      }
+    }
+  }
+
   .chip-remove {
     font-size: 10px;
     color: var(--text-tertiary, #999);
@@ -1084,6 +1278,62 @@ export default defineComponent({
 .search-input.valid-input {
   color: var(--theme-color-start, #00d9b8);
   font-weight: 600;
+}
+
+/* 候補リストドロップダウン */
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-primary, #ddd);
+  border-radius: 8px;
+  margin-top: 4px;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+  }
+
+  &.selected {
+    background: var(--theme-color-start, #00d9b8);
+    color: white;
+
+    .suggestion-label {
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+.suggestion-value {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.suggestion-label {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
 }
 
 .command-prefix {
