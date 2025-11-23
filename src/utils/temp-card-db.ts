@@ -205,9 +205,21 @@ export class TempCardDB {
       this.cards.clear();
 
       for (const [cardId, cardInfo] of allCardInfos) {
-        // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）
+        // Try to load CardTableC (detail) and merge text/pendulum info if available
+        let mergedCard = { ...cardInfo } as any
+        try {
+          const tableC = await unifiedDB.getCardTableC(cardId)
+          if (tableC) {
+            if (tableC.text) mergedCard.text = tableC.text
+            if (tableC.pendText) mergedCard.pendulumEffect = tableC.pendText
+          }
+        } catch (e) {
+          console.warn('[TempCardDB] Failed to load CardTableC for', cardId, e)
+        }
+
+        // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）。
         this.cards.set(cardId, {
-          card: cardInfo,
+          card: mergedCard,
           lastUpdated: now
         });
       }
