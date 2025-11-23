@@ -123,7 +123,7 @@
         </div>
       </div>
 
-      <div v-if="card.text" class="card-effect-section">
+      <div v-show="card.text" class="card-effect-section">
         <div class="section-title">Card Text</div>
         <div class="effect-text">{{ card.text }}</div>
       </div>
@@ -183,7 +183,7 @@ export default {
     const deckStore = useDeckEditStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
-    const showRuby = ref(false)
+    const showRuby = ref(false) // Default to hidden
 
     // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
     const card = computed(() => deckStore.selectedCard)
@@ -193,15 +193,15 @@ export default {
       showRuby.value = !showRuby.value
     }
 
-    // カードが変わったらルビ表示をリセット
+    // カードが変わったらルビ表示をデフォルトに戻す
     watch(() => card.value?.cardId, () => {
       showRuby.value = false
     })
 
-    // cardが変わるたびに新しいUUIDを生成
+    // cardIdをキーとして安定したUUIDを生成（同じカードなら同じUUID）
     const cardUuid = computed(() => {
-      if (!card.value) return crypto.randomUUID()
-      return crypto.randomUUID()
+      if (!card.value) return 'no-card'
+      return card.value.cardId
     })
 
     // 画像選択ボタンを表示するかどうか

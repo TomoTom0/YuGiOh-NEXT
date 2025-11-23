@@ -75,7 +75,7 @@ export function calculateTier(
 /**
  * 統合キャッシュDBクラス
  */
-class UnifiedCacheDB {
+export class UnifiedCacheDB {
   // メモリ内データ
   private cardTierTable: Map<string, CardTier> = new Map();
   private deckOpenHistory: DeckOpenHistory = { recentDecks: [] };

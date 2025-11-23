@@ -288,41 +288,46 @@ onMounted(() => {
 <style scoped>
 .options-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
 
 .header {
-  background-color: white;
-  color: #333;
-  padding: 16px 24px;
-  border-bottom: 3px solid #008cff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(90deg, #00d9b8 0%, #008cff 50%, #b84fc9 100%);
+  color: white;
+  padding: 20px 24px;
+  box-shadow: 0 4px 12px rgba(0, 140, 255, 0.3);
 }
 
 .header h1 {
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .tabs {
   display: flex;
   background-color: white;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 2px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .tab {
-  padding: 12px 24px;
+  padding: 14px 28px;
   border: none;
   background: none;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 500;
   color: #666;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
   transition: all 0.2s;
+  margin-bottom: -2px;
 }
 
 .tab:hover:not(:disabled) {
-  background-color: #f5f5f5;
+  background-color: #f0f7ff;
+  color: #008cff;
 }
 
 .tab:disabled {
@@ -333,6 +338,7 @@ onMounted(() => {
 .tab.active {
   color: #008cff;
   border-bottom-color: #008cff;
+  background-color: #f0f7ff;
 }
 
 .tab-content {
@@ -358,18 +364,26 @@ onMounted(() => {
 
 .section-title {
   font-size: 24px;
+  font-weight: 600;
   color: #333;
   margin-bottom: 24px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #008cff;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #00d9b8, #008cff, #b84fc9) 1;
 }
 
 .screen-section {
   background-color: white;
   padding: 24px;
-  border-radius: 8px;
+  border-radius: 12px;
   margin-bottom: 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
+  transition: box-shadow 0.3s;
+}
+
+.screen-section:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
 }
 
 .screen-header {
@@ -381,7 +395,11 @@ onMounted(() => {
 
 .screen-title {
   font-size: 20px;
-  color: #008cff;
+  font-weight: 600;
+  background: linear-gradient(90deg, #00d9b8, #008cff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
 }
 
@@ -549,7 +567,7 @@ onMounted(() => {
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch {
-  background-color: #1976d2;
+  background: linear-gradient(90deg, #00d9b8, #008cff);
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
