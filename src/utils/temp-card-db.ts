@@ -8,9 +8,6 @@
 import type { CardInfo } from '../types/card';
 import { getUnifiedCacheDB, initUnifiedCacheDB, saveUnifiedCacheDB } from './unified-cache-db';
 
-// Chrome Storage用のキー
-const STORAGE_KEY = 'cardCache';
-
 // キャッシュの有効期限（ミリ秒）- デフォルト24時間
 const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 
@@ -18,11 +15,6 @@ const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 interface CachedCardInfo {
   card: CardInfo;
   lastUpdated: number; // Unix timestamp in milliseconds
-}
-
-// ストレージ形式の型定義
-interface CardCacheStorage {
-  [cid: string]: CachedCardInfo;
 }
 
 /**
@@ -182,24 +174,14 @@ export class TempCardDB {
   }
 
   /**
-   * Chrome Storageに現在のキャッシュを保存
-   * UnifiedCacheDBも保存する
+   * UnifiedCacheDBに現在のキャッシュを保存
    * @returns Promise<void>
    */
   async saveToStorage(): Promise<void> {
     try {
-      // MapをプレーンオブジェクトにシリアライズJSON.stringify互換形式
-      const cacheData: CardCacheStorage = {};
-      for (const [cid, card] of this.cards.entries()) {
-        cacheData[cid] = card;
-      }
-
-      // TempCardDBとUnifiedCacheDBを並行保存
-      await Promise.all([
-        chrome.storage.local.set({ [STORAGE_KEY]: cacheData }),
-        saveUnifiedCacheDB()
-      ]);
-      console.log(`[TempCardDB] Saved ${this.cards.size} cards to storage`);
+      // UnifiedCacheDBのみに保存（TempCardDBのデータはset()時に既に同期済み）
+      await saveUnifiedCacheDB();
+      console.log(`[TempCardDB] Saved to UnifiedCacheDB (${this.cards.size} cards in session)`);
     } catch (error) {
       console.error('[TempCardDB] Failed to save to storage:', error);
       throw error;
@@ -207,8 +189,7 @@ export class TempCardDB {
   }
 
   /**
-   * Chrome Storageからキャッシュを読み込む
-   * UnifiedCacheDBも初期化する
+   * UnifiedCacheDBからキャッシュを読み込む
    * @returns Promise<number> 読み込んだカード数
    */
   async loadFromStorage(): Promise<number> {
@@ -216,33 +197,23 @@ export class TempCardDB {
       // UnifiedCacheDBを初期化
       await initUnifiedCacheDB();
 
-      const result = await chrome.storage.local.get([STORAGE_KEY]);
-      const cacheData = result[STORAGE_KEY] as CardCacheStorage | Record<string, CardInfo> | undefined;
+      // UnifiedCacheDBからCardInfoを再構築して読み込む
+      const unifiedDB = getUnifiedCacheDB();
+      const allCardInfos = unifiedDB.getAllCardInfos();
+      const now = Date.now();
 
-      if (cacheData && typeof cacheData === 'object') {
-        // 既存のデータをクリアして新しいデータをロード
-        this.cards.clear();
-        const now = Date.now();
+      this.cards.clear();
 
-        for (const [cid, data] of Object.entries(cacheData)) {
-          // 後方互換性: 古い形式（CardInfo直接）と新しい形式（CachedCardInfo）の両方に対応
-          if ('card' in data && 'lastUpdated' in data) {
-            // 新形式: CachedCardInfo
-            this.cards.set(cid, data as CachedCardInfo);
-          } else {
-            // 旧形式: CardInfo直接 → CachedCardInfoに変換（古いデータとしてマーク）
-            this.cards.set(cid, {
-              card: data as CardInfo,
-              lastUpdated: now - this.cacheTTL // 即座に更新対象となるよう古いタイムスタンプを設定
-            });
-          }
-        }
-        console.log(`[TempCardDB] Loaded ${this.cards.size} cards from storage`);
-        return this.cards.size;
+      for (const [cardId, cardInfo] of allCardInfos) {
+        // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）
+        this.cards.set(cardId, {
+          card: cardInfo,
+          lastUpdated: now
+        });
       }
 
-      console.log('[TempCardDB] No cached data found in storage');
-      return 0;
+      console.log(`[TempCardDB] Loaded ${this.cards.size} cards from UnifiedCacheDB`);
+      return this.cards.size;
     } catch (error) {
       console.error('[TempCardDB] Failed to load from storage:', error);
       return 0;
@@ -250,13 +221,15 @@ export class TempCardDB {
   }
 
   /**
-   * Chrome Storageのキャッシュをクリア
+   * キャッシュをクリア（UnifiedCacheDB経由）
    * @returns Promise<void>
    */
   async clearStorage(): Promise<void> {
     try {
-      await chrome.storage.local.remove(STORAGE_KEY);
-      console.log('[TempCardDB] Cleared storage cache');
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.clearAll();
+      this.cards.clear();
+      console.log('[TempCardDB] Cleared all cache');
     } catch (error) {
       console.error('[TempCardDB] Failed to clear storage:', error);
       throw error;

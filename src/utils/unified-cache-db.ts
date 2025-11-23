@@ -619,6 +619,79 @@ class UnifiedCacheDB {
   // =========================================
 
   /**
+   * TableA+BからCardInfoを再構築
+   * @param cardId カードID
+   * @returns CardInfo（基本情報のみ、text等は含まない）
+   */
+  reconstructCardInfo(cardId: string): CardInfo | undefined {
+    const tableA = this.cardTableA.get(cardId);
+    const tableB = this.cardTableB.get(cardId);
+
+    if (!tableA || !tableB) return undefined;
+
+    // 基本情報
+    const baseInfo = {
+      cardId: tableA.cardId,
+      name: tableA.name,
+      imgs: tableA.imgs,
+      ciid: tableA.imgs[0]?.ciid || '',
+      ruby: tableB.ruby,
+      limitRegulation: tableB.limitRegulation
+    };
+
+    // カードタイプに応じて構築
+    if (tableB.cardType === 'monster') {
+      return {
+        ...baseInfo,
+        cardType: 'monster',
+        attribute: tableB.attribute || 'dark',
+        race: tableB.race || 'warrior',
+        levelType: tableB.levelType || 'level',
+        levelValue: tableB.levelValue || 1,
+        types: tableB.types || [],
+        atk: tableB.atk ?? undefined,
+        def: tableB.def ?? undefined,
+        pendulumScale: tableB.scale,
+        isExtraDeck: tableB.isExtraDeck || false
+      } as CardInfo;
+    } else if (tableB.cardType === 'spell') {
+      return {
+        ...baseInfo,
+        cardType: 'spell',
+        effectType: tableB.effectType
+      } as CardInfo;
+    } else {
+      return {
+        ...baseInfo,
+        cardType: 'trap',
+        effectType: tableB.effectType
+      } as CardInfo;
+    }
+  }
+
+  /**
+   * 全カードIDを取得
+   */
+  getAllCardIds(): string[] {
+    return Array.from(this.cardTableA.keys());
+  }
+
+  /**
+   * 全CardInfoを再構築して取得
+   * @returns Map<cardId, CardInfo>
+   */
+  getAllCardInfos(): Map<string, CardInfo> {
+    const result = new Map<string, CardInfo>();
+    for (const cardId of this.cardTableA.keys()) {
+      const cardInfo = this.reconstructCardInfo(cardId);
+      if (cardInfo) {
+        result.set(cardId, cardInfo);
+      }
+    }
+    return result;
+  }
+
+  /**
    * 統計情報を取得
    */
   getStats(): {
