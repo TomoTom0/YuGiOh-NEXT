@@ -1326,7 +1326,7 @@ export default defineComponent({
 
 /* 有効入力の視覚フィードバック */
 .search-input.valid-input {
-  color: var(--theme-color-start, #00d9b8);
+  color: #2e7d32;
   font-weight: 600;
 }
 
