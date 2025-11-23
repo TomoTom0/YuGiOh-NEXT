@@ -37,15 +37,26 @@
           @keydown="handleKeydown"
         >
       </div>
-      <!-- フィルター条件表示 -->
+      <!-- フィルター条件表示（二行均等配置） -->
       <div v-if="hasActiveFilters" class="filter-icons">
-        <span
-          v-for="(icon, index) in visibleFilterIcons"
-          :key="index"
-          class="filter-icon-item"
-          :class="icon.type"
-        >{{ icon.label }}</span>
-        <span v-if="displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
+        <div class="filter-row">
+          <span
+            v-for="(icon, index) in filterIconsRow1"
+            :key="'r1-' + index"
+            class="filter-icon-item"
+            :class="icon.type"
+          >{{ icon.label }}</span>
+        </div>
+        <div v-if="filterIconsRow2.length > 0" class="filter-row">
+          <span
+            v-for="(icon, index) in filterIconsRow2"
+            :key="'r2-' + index"
+            class="filter-icon-item"
+            :class="icon.type"
+          >{{ icon.label }}</span>
+          <span v-if="displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
+        </div>
+        <span v-if="filterIconsRow2.length === 0 && displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
       </div>
 
       <button
@@ -296,13 +307,27 @@ export default defineComponent({
       return icons
     })
 
-    // 表示するアイコン - CSSのoverflow:hiddenで自動的に省略
-    // 全アイコンを返し、CSSで収まらない分は非表示になる
-    const visibleFilterIcons = computed(() => displayFilterIcons.value)
-
     // 表示制限の目安（二行×幅に応じた数）
     // 120px: 8個, 160px: 10個, 200px: 12個 程度
     const maxVisibleIcons = 12
+
+    // 表示するアイコン（最大数まで）
+    const visibleFilterIcons = computed(() => {
+      return displayFilterIcons.value.slice(0, maxVisibleIcons)
+    })
+
+    // 二行に均等分配
+    const filterIconsRow1 = computed(() => {
+      const icons = visibleFilterIcons.value
+      const half = Math.ceil(icons.length / 2)
+      return icons.slice(0, half)
+    })
+
+    const filterIconsRow2 = computed(() => {
+      const icons = visibleFilterIcons.value
+      const half = Math.ceil(icons.length / 2)
+      return icons.slice(half)
+    })
 
     // コマンドモードの検出
     const commandMatch = computed(() => {
@@ -561,7 +586,8 @@ export default defineComponent({
       hasActiveFilters,
       filterCount,
       displayFilterIcons,
-      visibleFilterIcons,
+      filterIconsRow1,
+      filterIconsRow2,
       maxVisibleIcons,
       isCommandMode,
       commandPrefix,
@@ -583,31 +609,33 @@ export default defineComponent({
   width: 100%;
 }
 
-/* フィルターアイコンスタイル - 二行構成・画面サイズ対応 */
+/* フィルターアイコンスタイル - 二行均等配置 */
 .filter-icons {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  align-content: center;
-  gap: 2px;
+  flex-direction: column;
+  gap: 1px;
   margin-right: 4px;
   flex-shrink: 1;
   min-width: 0;
-  max-width: 120px;
-  max-height: 24px;
+  max-width: 80px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 2px;
   overflow: hidden;
 }
 
 /* 画面サイズに応じて表示幅を調整 */
 @media (min-width: 400px) {
   .filter-icons {
-    max-width: 160px;
+    max-width: 120px;
   }
 }
 
 @media (min-width: 500px) {
   .filter-icons {
-    max-width: 200px;
+    max-width: 160px;
   }
 }
 
