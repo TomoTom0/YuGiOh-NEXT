@@ -1,6 +1,7 @@
 import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import {
   DeckTypeValue,
   DeckStyleValue,
@@ -317,6 +318,31 @@ function parseCardSection(
 
           // TempCardDBにカード情報を登録
           tempCardDB.set(cid, cardInfo);
+
+          // Also proactively save detail (text/pend) into unified cache TableC so
+          // subsequent cache-hits can reconstruct text. Do not await to avoid
+          // blocking parsing; log failures silently.
+          try {
+            const unifiedDB = getUnifiedCacheDB();
+            if (unifiedDB.isInitialized()) {
+              const tableC = {
+                cardId: cid,
+                text: (cardInfo as any).text,
+                pendText: (cardInfo as any).pendulumEffect,
+                relatedCards: [],
+                relatedProducts: [],
+                packs: [],
+                qaList: [],
+                fetchedAt: Date.now()
+              } as any;
+              // fire-and-forget
+              unifiedDB.setCardTableC(tableC).catch((e: any) => {
+                console.warn('[parseCardSection] Failed to save CardTableC for', cid, e)
+              })
+            }
+          } catch (e) {
+            console.warn('[parseCardSection] Failed to enqueue CardTableC save for', cid, e)
+          }
 
           deckCardRefs.push({
             cid,
