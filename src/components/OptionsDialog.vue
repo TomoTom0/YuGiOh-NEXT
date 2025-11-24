@@ -48,21 +48,39 @@
           <!-- 左下: Search Input -->
           <div class="setting-block">
             <div class="block-title">Search</div>
-            <div class="toggle-col">
-              <button
-                class="toggle-btn"
-                :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
-                @click="settingsStore.setSearchInputPosition('section-title')"
-              >
-                Top
-              </button>
-              <button
-                class="toggle-btn"
-                :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
-                @click="settingsStore.setSearchInputPosition('default')"
-              >
-                Bottom
-              </button>
+            <div class="search-position-grid">
+              <div class="position-col">
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
+                  @click="settingsStore.setSearchInputPosition('section-title')"
+                >
+                  L-Top
+                </button>
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                  @click="settingsStore.setSearchInputPosition('default')"
+                >
+                  L-Bottom
+                </button>
+              </div>
+              <div class="position-col">
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+                  @click="settingsStore.setSearchInputPosition('right-top')"
+                >
+                  R-Top
+                </button>
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+                  @click="settingsStore.setSearchInputPosition('right-bottom')"
+                >
+                  R-Bottom
+                </button>
+              </div>
             </div>
           </div>
 
@@ -278,6 +296,19 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   flex-direction: column;
   gap: 6px;
   flex: 1;
+}
+
+.search-position-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+  
+  .position-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
 }
 
 .toggle-btn {

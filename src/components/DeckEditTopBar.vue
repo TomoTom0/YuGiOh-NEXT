@@ -1,41 +1,37 @@
 <template>
-  <div>
+  <div class="top-bar-wrapper">
     <div class="top-bar">
       <div class="top-bar-left">
         <button
-          class="btn-undo-redo"
+          class="btn-action"
           :disabled="!deckStore.canUndo"
           title="Undo (Ctrl+Z)"
           @click="handleUndo"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiUndo" />
           </svg>
         </button>
         <button
-          class="btn-undo-redo"
+          class="btn-action"
           :disabled="!deckStore.canRedo"
           title="Redo (Ctrl+Y)"
           @click="handleRedo"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiRedo" />
           </svg>
         </button>
-        <div class="dno-display">{{ localDno || '-' }}</div>
         <div class="deck-name-group">
+          <span class="dno-chip">{{ localDno || '-' }}</span>
           <input
             v-model="localDeckName"
             type="text"
-            placeholder="デッキ名"
+            :placeholder="originalDeckName || 'デッキ名'"
             class="deck-name-input"
           >
-          <div v-if="lastSavedDeckName" class="last-saved-name">
-            {{ lastSavedDeckName }}
-          </div>
         </div>
       </div>
-      <div class="spacer"></div>
       <div class="top-bar-right">
         <button
           class="btn-action"
@@ -155,7 +151,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
 import ExportDialog from './ExportDialog.vue'
@@ -185,7 +181,7 @@ export default {
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
-    const lastSavedDeckName = ref('')
+    const originalDeckName = ref('')
     const showMenu = ref(false)
     const showExportDialog = ref(false)
     const showImportDialog = ref(false)
@@ -207,6 +203,13 @@ export default {
       get: () => deckStore.deckInfo.name || '',
       set: (value: string) => deckStore.setDeckName(value)
     })
+    
+    // デッキ読み込み時の名前を監視して保存
+    watch(() => deckStore.deckInfo.dno, () => {
+      if (deckStore.deckInfo.name) {
+        originalDeckName.value = deckStore.deckInfo.name
+      }
+    }, { immediate: true })
 
     const handleSaveClick = () => {
       if (savingState.value) {
@@ -239,12 +242,12 @@ export default {
               return
             }
             
-            // デッキ名を更新してから保存
-            deckStore.setDeckName(localDeckName.value)
+            // デッキ名が空白の場合は元のデッキ名を使う
+            const nameToSave = localDeckName.value || originalDeckName.value
+            deckStore.setDeckName(nameToSave)
             
             const result = await deckStore.saveDeck(localDno.value)
             if (result.success) {
-              lastSavedDeckName.value = localDeckName.value
               showToast('保存しました', 'success')
               // 保存成功時はバックアップをクリア（並び替えたままにする）
             } else {
@@ -281,7 +284,9 @@ export default {
           return
         }
         await deckStore.loadDeck(selectedDeckDno.value)
-        lastSavedDeckName.value = deckStore.deckInfo.name
+        originalDeckName.value = deckStore.deckInfo.name
+        // デッキ名を空にする
+        deckStore.setDeckName('')
         showLoadDialog.value = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
@@ -293,7 +298,9 @@ export default {
     const loadDeck = async (dno: number) => {
       try {
         await deckStore.loadDeck(dno)
-        lastSavedDeckName.value = deckStore.deckInfo.name
+        originalDeckName.value = deckStore.deckInfo.name
+        // デッキ名を空にする
+        deckStore.setDeckName('')
         showLoadDialog.value = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
@@ -414,7 +421,7 @@ export default {
       showLoadDialog,
       selectedDeckDno,
       savingState,
-      lastSavedDeckName,
+      originalDeckName,
       showMenu,
       showExportDialog,
       showImportDialog,
@@ -451,56 +458,37 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.top-bar-wrapper {
+  margin: 0;
+  padding: 0;
+}
+
 .top-bar {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin: 0;
+  padding: 0;
 }
 
 .top-bar-left {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  align-items: flex-start;
-  flex: 0 0 auto;
-}
-
-.btn-undo-redo {
-  padding: 6px 8px;
-  background: #3d3d3d;
-  border: 1px solid #4d4d4d;
-  border-radius: 4px;
-  color: #ccc;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-
-  &:hover:not(:disabled) {
-    background: #4d4d4d;
-    border-color: #5d5d5d;
-    color: #fff;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-}
-
-.spacer {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .top-bar-right {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+  min-width: 0;
   position: relative;
 }
 
@@ -563,44 +551,37 @@ export default {
   flex-direction: column;
   gap: 2px;
   position: relative;
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 300px;
+}
+
+.dno-chip {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #e0e0e0;
+  color: #666;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .deck-name-input {
-  padding: 6px 10px;
+  padding: 6px 10px 6px 50px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  min-width: 200px;
   text-align: left;
   background: white;
   color: #000;
 }
 
-.last-saved-name {
-  position: absolute;
-  top: 100%;
-  left: 4px;
-  font-size: 10px;
-  color: #aaa;
-  white-space: nowrap;
-  margin-top: 2px;
-}
 
-.dno-display {
-  width: 60px;
-  padding: 6px 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 14px;
-  background: var(--bg-secondary);
-  color: #666;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-weight: 600;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-}
 
 .btn-menu,
 .btn-action {
@@ -617,8 +598,13 @@ export default {
   flex-shrink: 0;
   position: relative;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--bg-secondary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   svg {

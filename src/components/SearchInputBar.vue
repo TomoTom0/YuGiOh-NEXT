@@ -1,17 +1,18 @@
 <template>
   <div class="search-input-wrapper">
     <div class="search-input-bar" :class="{ compact: compact }">
-      <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
-        <span class="menu-icon">...</span>
-        <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
-      </button>
-      <button class="search-mode-btn" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
-        <span class="mode-icon">▼</span>
-        <span class="mode-text">{{ searchModeLabel }}</span>
-      </button>
+      <div class="left-buttons">
+        <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+          <span class="menu-icon">...</span>
+          <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
+        </button>
+        <button class="search-mode-btn" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
+          <span class="mode-text">{{ searchModeLabel }}</span>
+        </button>
+      </div>
       <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
       <Transition name="dropdown">
-        <div v-if="showSearchModeDropdown" class="mode-dropdown">
+        <div v-if="showSearchModeDropdown" class="mode-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
           <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
           <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
           <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
@@ -54,8 +55,21 @@
           @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
         >
+        <!-- コマンド候補リスト -->
+        <div v-if="commandSuggestions.length > 0 && !pendingCommand" class="suggestions-dropdown command-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
+          <div
+            v-for="(cmd, index) in commandSuggestions"
+            :key="cmd.command"
+            class="suggestion-item"
+            :class="{ selected: index === selectedCommandIndex }"
+            @click="selectCommand(cmd)"
+          >
+            <span class="suggestion-value">{{ cmd.command }}</span>
+            <span class="suggestion-label">{{ cmd.description }}</span>
+          </div>
+        </div>
         <!-- 候補リスト -->
-        <div v-if="pendingCommand && filteredSuggestions.length > 0" class="suggestions-dropdown">
+        <div v-if="pendingCommand && filteredSuggestions.length > 0" class="suggestions-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
           <div
             v-for="(suggestion, index) in filteredSuggestions"
             :key="suggestion.value"
@@ -68,7 +82,7 @@
           </div>
         </div>
         <!-- mydeckモード用の候補リスト -->
-        <div v-if="searchMode === 'mydeck' && !pendingCommand && mydeckSuggestions.length > 0" class="suggestions-dropdown mydeck-suggestions">
+        <div v-if="searchMode === 'mydeck' && !pendingCommand && mydeckSuggestions.length > 0" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
           <div
             v-for="(deck, index) in mydeckSuggestions"
             :key="deck.dno"
@@ -221,6 +235,10 @@ export default defineComponent({
     autoFocus: {
       type: Boolean,
       default: false
+    },
+    position: {
+      type: String as () => 'top' | 'bottom' | 'default',
+      default: 'default'
     }
   },
   emits: ['escape'],
@@ -230,6 +248,17 @@ export default defineComponent({
     const searchMode = ref('name')
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
+    
+    // 検索入力欄の位置を自動検出
+    const isBottomPosition = computed(() => {
+      if (props.position !== 'default') return props.position === 'bottom'
+      // 親要素のクラス名から位置を判定
+      const wrapper = inputRef.value?.closest('.search-input-wrapper')
+      const parent = wrapper?.parentElement
+      if (!parent) return false
+      return parent.classList.contains('search-input-bottom-fixed') || 
+             parent.classList.contains('search-input-bottom')
+    })
     const searchFilters = ref<SearchFilters>({
       cardType: null,
       attributes: [],
@@ -258,6 +287,7 @@ export default defineComponent({
     const filterChips = ref<FilterChip[]>([])
     const pendingCommand = ref<PendingCommand | null>(null)
     const selectedSuggestionIndex = ref(-1)
+    const selectedCommandIndex = ref(-1)
 
     // 各フィルタータイプの選択肢
     const FILTER_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -323,6 +353,35 @@ export default defineComponent({
         { value: 'pend', label: 'ペンデュラム' }
       ]
     }
+
+    // コマンド候補（/ で始まる入力時）
+    const commandSuggestions = computed(() => {
+      const query = deckStore.searchQuery.trim()
+      if (!query.startsWith('/') || pendingCommand.value) return []
+      
+      const input = query.substring(1).toLowerCase()
+      if (!input) {
+        // 主要コマンドのみ表示
+        return [
+          { command: '/attr', description: '属性' },
+          { command: '/race', description: '種族' },
+          { command: '/level', description: 'レベル/ランク' },
+          { command: '/atk', description: 'ATK' },
+          { command: '/def', description: 'DEF' },
+          { command: '/type', description: 'カードタイプ' },
+          { command: '/link', description: 'リンク数' },
+          { command: '/mtype', description: 'モンスタータイプ' }
+        ]
+      }
+      
+      // 入力に一致するコマンドをフィルタ
+      return Object.entries(COMMANDS)
+        .filter(([cmd, info]) => 
+          cmd.toLowerCase().includes(input) || 
+          info.description.toLowerCase().includes(input)
+        )
+        .map(([cmd, info]) => ({ command: cmd, description: info.description }))
+    })
 
     // 現在の入力に基づいてフィルタリングされた候補
     const filteredSuggestions = computed(() => {
@@ -673,8 +732,14 @@ export default defineComponent({
     const handleInput = () => {
       const query = deckStore.searchQuery
 
+      // コマンド候補のインデックスをリセット（ペンディングコマンドがない場合のみ）
+      if (!pendingCommand.value) {
+        selectedCommandIndex.value = -1
+      }
+
       // ペンディングコマンドがある場合は値入力モード
       if (pendingCommand.value) {
+        // 候補選択中の入力変更は無視（キーボード操作で値が変わる）
         return
       }
 
@@ -696,6 +761,33 @@ export default defineComponent({
 
     // キー入力ハンドラ
     const handleKeydown = (event: KeyboardEvent) => {
+      // コマンド候補のTab/Arrow処理
+      if (commandSuggestions.value.length > 0 && !pendingCommand.value) {
+        if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault()
+          if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
+            selectedCommandIndex.value = selectedCommandIndex.value < 0
+              ? commandSuggestions.value.length - 1
+              : selectedCommandIndex.value <= 0
+              ? commandSuggestions.value.length - 1
+              : selectedCommandIndex.value - 1
+          } else {
+            selectedCommandIndex.value = selectedCommandIndex.value < 0
+              ? 0
+              : (selectedCommandIndex.value + 1) % commandSuggestions.value.length
+          }
+          return
+        }
+        if (event.key === 'Enter' && selectedCommandIndex.value >= 0) {
+          event.preventDefault()
+          const selected = commandSuggestions.value[selectedCommandIndex.value]
+          if (selected) {
+            selectCommand(selected)
+          }
+          return
+        }
+      }
+
       // mydeckモードのTab/Arrow処理
       if (searchMode.value === 'mydeck' && !pendingCommand.value && mydeckSuggestions.value.length > 0) {
         if (event.key === 'Tab') {
@@ -781,27 +873,35 @@ export default defineComponent({
         }
       }
 
-      // 上下キーで候補を選択
+      // 上下キーで候補を選択（入力を更新しない）
       if (pendingCommand.value && filteredSuggestions.value.length > 0) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
-          selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
-          const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
-          if (selected) {
-            const prefix = isNegatedInput.value ? '-' : ''
-            deckStore.searchQuery = prefix + selected.value
-          }
+          selectedSuggestionIndex.value = selectedSuggestionIndex.value < 0
+            ? 0
+            : (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
           return
         }
         if (event.key === 'ArrowUp') {
           event.preventDefault()
-          selectedSuggestionIndex.value = selectedSuggestionIndex.value <= 0
+          selectedSuggestionIndex.value = selectedSuggestionIndex.value < 0
+            ? filteredSuggestions.value.length - 1
+            : selectedSuggestionIndex.value <= 0
             ? filteredSuggestions.value.length - 1
             : selectedSuggestionIndex.value - 1
+          return
+        }
+        // Enterキーで選択を確定
+        if (event.key === 'Enter' && selectedSuggestionIndex.value >= 0) {
+          event.preventDefault()
           const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
           if (selected) {
             const prefix = isNegatedInput.value ? '-' : ''
             deckStore.searchQuery = prefix + selected.value
+            // チップに変換
+            nextTick(() => {
+              addFilterChip()
+            })
           }
           return
         }
@@ -1022,6 +1122,23 @@ export default defineComponent({
     }
 
     // 候補を選択
+    // コマンド選択
+    const selectCommand = (cmd: { command: string; description: string }) => {
+      deckStore.searchQuery = cmd.command + ' '
+      selectedCommandIndex.value = -1
+      // コマンドモードに移行
+      const cmdDef = COMMANDS[cmd.command]
+      if (cmdDef) {
+        pendingCommand.value = {
+          command: cmd.command,
+          filterType: cmdDef.filterType,
+          isNot: cmdDef.isNot
+        }
+        deckStore.searchQuery = ''
+      }
+      inputRef.value?.focus()
+    }
+
     const selectSuggestion = (suggestion: { value: string; label: string }) => {
       // -プレフィックスを保持
       const prefix = isNegatedInput.value ? '-' : ''
@@ -1386,6 +1503,10 @@ export default defineComponent({
       selectedSuggestionIndex,
       mydeckSuggestions,
       selectedMydeckIndex,
+      isBottomPosition,
+      commandSuggestions,
+      selectedCommandIndex,
+      selectCommand,
       selectSearchMode,
       handleFilterApply,
       handleSearch,
@@ -1407,6 +1528,8 @@ export default defineComponent({
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* フィルターアイコンスタイル - 二行均等配置 */
@@ -1570,10 +1693,17 @@ export default defineComponent({
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
   margin-top: 4px;
-  z-index: 200;
+  z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-height: 200px;
   overflow-y: auto;
+
+  &.dropdown-above {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 4px;
+  }
 }
 
 .suggestion-item {
@@ -1589,11 +1719,11 @@ export default defineComponent({
   }
 
   &.selected {
-    background: var(--theme-color-start, #00d9b8);
-    color: white;
+    background: #4caf50;
+    color: #f5f5f5;
 
     .suggestion-label {
-      color: rgba(255, 255, 255, 0.8);
+      color: #f5f5f5;
     }
   }
 
@@ -1607,13 +1737,15 @@ export default defineComponent({
 }
 
 .suggestion-value {
-  font-weight: 500;
-  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  font-size: 12px;
 }
 
 .suggestion-label {
-  font-size: 11px;
-  color: var(--text-tertiary, #999);
+  color: var(--text-primary, #333);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .command-prefix {
@@ -1641,6 +1773,9 @@ export default defineComponent({
   height: 44px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 
   &:hover,
   &:focus-within {
@@ -1723,15 +1858,22 @@ export default defineComponent({
   }
 }
 
+.left-buttons {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  flex-shrink: 0;
+}
+
 .menu-btn {
   background: transparent;
   border: none;
   color: var(--text-secondary, #666);
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 2px 8px;
   border-radius: 4px;
   transition: all 0.2s;
-  flex-shrink: 0;
+  flex: 1;
   position: relative;
   display: flex;
   align-items: center;
@@ -1772,33 +1914,27 @@ export default defineComponent({
 .search-mode-btn {
   background: transparent;
   border: none;
-  padding: 4px 8px;
+  padding: 2px 8px;
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text-secondary, #666);
   border-radius: 4px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: 48px;
-  min-width: 48px;
-  flex-shrink: 0;
+  justify-content: center;
+  flex: 1;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
     color: var(--text-primary);
   }
 
-  .mode-icon {
+  .mode-text {
     font-size: 10px;
     line-height: 1;
-  }
-
-  .mode-text {
-    font-size: 8px;
-    line-height: 1;
-    color: var(--text-tertiary, #999);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
@@ -1808,20 +1944,27 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
+  z-index: 99998;
 }
 
 .mode-dropdown {
   position: absolute;
-  bottom: 100%;
-  left: 40px;
+  top: 100%;
+  left: 0;
   background: white;
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
-  margin-bottom: 4px;
-  z-index: 101;
+  margin-top: 4px;
+  z-index: 99999;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   min-width: 160px;
+
+  &.dropdown-above {
+    top: auto;
+    bottom: 100%;
+    margin-top: 0;
+    margin-bottom: 4px;
+  }
 }
 
 .dropdown-enter-active {

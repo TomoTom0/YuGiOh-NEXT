@@ -239,6 +239,7 @@ export default {
   align-items: center;
   margin-bottom: 8px;
   min-height: 24px;
+  position: relative;
 }
 
 .qa-date {
@@ -249,6 +250,8 @@ export default {
 }
 
 .qa-expand-btn {
+  position: absolute;
+  left: 0;
   width: 24px;
   height: 24px;
   border: 1px solid #ddd;
@@ -305,7 +308,7 @@ export default {
 .qa-collapse-btn-sticky {
   position: sticky;
   bottom: 8px;
-  left: 8px;
+  left: 0px;
   width: 32px;
   height: 32px;
   border: 1px solid #ddd;

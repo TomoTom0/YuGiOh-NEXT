@@ -90,7 +90,7 @@ export type MiddleDecksLayout = 'horizontal' | 'vertical';
 /**
  * カード検索入力欄の位置
  */
-export type SearchInputPosition = 'default' | 'section-title';
+export type SearchInputPosition = 'default' | 'section-title' | 'right-top' | 'right-bottom';
 
 /**
  * アプリ全体設定
@@ -174,7 +174,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
   language: 'auto',
   middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
-  searchInputPosition: 'default',   // カード検索入力欄: デフォルト位置
+  searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
   enableBanlistCheck: false,
 };
 
