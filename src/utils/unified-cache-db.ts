@@ -34,6 +34,8 @@ const STORAGE_KEYS = {
   lastCleanupAt: 'lastCleanupAt',
   // CardTableC, ProductTableB, FAQTableBは個別キー形式
   cardTableCPrefix: 'cardTableC:',
+  // move history (for deck edit actions)
+  moveHistory: 'moveHistory',
   productTableBPrefix: 'productTableB:',
   faqTableBPrefix: 'faqTableB:'
 } as const;
@@ -89,6 +91,9 @@ export class UnifiedCacheDB {
   // CardTableCはメモリにはキャッシュしない（個別キーで遅延読み込み）
   private cardTableCCache: Map<string, CardTableC> = new Map();
 
+  // Move history for undo/redo
+  private moveHistory: any[] = [];
+
   private cacheTTL: number = DEFAULT_CACHE_TTL;
   private initialized: boolean = false;
 
@@ -108,7 +113,8 @@ export class UnifiedCacheDB {
       this.loadCardTableA(),
       this.loadCardTableB(),
       this.loadProductTableA(),
-      this.loadFAQTableA()
+      this.loadFAQTableA(),
+      this.loadMoveHistory()
     ]);
 
     this.initialized = true;
@@ -193,6 +199,19 @@ export class UnifiedCacheDB {
     }
   }
 
+  private async loadMoveHistory(): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.moveHistory);
+      const data = result[STORAGE_KEYS.moveHistory];
+      if (Array.isArray(data)) {
+        this.moveHistory = data;
+        console.log(`[UnifiedCacheDB] Loaded ${this.moveHistory.length} move history items`);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
   // =========================================
   // 保存
   // =========================================
@@ -208,8 +227,17 @@ export class UnifiedCacheDB {
       this.saveCardTableB(),
       this.saveProductTableA(),
       this.saveFAQTableA()
+      , this.saveMoveHistory()
     ]);
     console.log('[UnifiedCacheDB] All data saved');
+  }
+
+  private async saveMoveHistory(): Promise<void> {
+    try {
+      await chrome.storage.local.set({ [STORAGE_KEYS.moveHistory]: this.moveHistory });
+    } catch (e) {
+      // ignore
+    }
   }
 
   private async saveCardTierTable(): Promise<void> {
@@ -253,6 +281,26 @@ export class UnifiedCacheDB {
       tableA: this.cardTableA.get(cardId),
       tableB: this.cardTableB.get(cardId)
     };
+  }
+
+  // move history APIs
+  recordMove(entry: { action: string; cardId?: string; from?: string; to?: string; uuid?: string; info?: any }) {
+    const record = { ...entry, ts: Date.now() };
+    this.moveHistory.push(record);
+    // cap history to last 1000 entries
+    if (this.moveHistory.length > 1000) this.moveHistory.splice(0, this.moveHistory.length - 1000);
+    // persist asynchronously
+    this.saveMoveHistory().catch(() => {});
+  }
+
+  getMoveHistory(limit?: number) {
+    if (typeof limit === 'number') return this.moveHistory.slice(-limit);
+    return [...this.moveHistory];
+  }
+
+  clearMoveHistory() {
+    this.moveHistory = [];
+    this.saveMoveHistory().catch(() => {});
   }
 
   /**

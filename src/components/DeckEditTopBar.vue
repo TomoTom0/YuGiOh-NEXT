@@ -2,6 +2,26 @@
   <div>
     <div class="top-bar">
       <div class="top-bar-left">
+        <button
+          class="btn-undo-redo"
+          :disabled="!deckStore.canUndo"
+          title="Undo (Ctrl+Z)"
+          @click="handleUndo"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiUndo" />
+          </svg>
+        </button>
+        <button
+          class="btn-undo-redo"
+          :disabled="!deckStore.canRedo"
+          title="Redo (Ctrl+Y)"
+          @click="handleRedo"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiRedo" />
+          </svg>
+        </button>
         <div class="dno-display">{{ localDno || '-' }}</div>
         <div class="deck-name-group">
           <input
@@ -143,7 +163,7 @@ import ImportDialog from './ImportDialog.vue'
 import OptionsDialog from './OptionsDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -381,6 +401,14 @@ export default {
       showToast(`デッキを${action}`, 'success')
     }
 
+    const handleUndo = () => {
+      deckStore.undo()
+    }
+
+    const handleRedo = () => {
+      deckStore.redo()
+    }
+
     return {
       deckStore,
       showLoadDialog,
@@ -406,13 +434,17 @@ export default {
       handleImportDeck,
       handleImported,
       handleOptions,
+      handleUndo,
+      handleRedo,
       mdiContentSave,
       mdiFolderOpen,
       mdiSortVariant,
       mdiImageOutline,
       mdiExport,
       mdiImport,
-      mdiCog
+      mdiCog,
+      mdiUndo,
+      mdiRedo
     }
   }
 }
@@ -432,6 +464,32 @@ export default {
   gap: 8px;
   align-items: flex-start;
   flex: 0 0 auto;
+}
+
+.btn-undo-redo {
+  padding: 6px 8px;
+  background: #3d3d3d;
+  border: 1px solid #4d4d4d;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+
+  &:hover:not(:disabled) {
+    background: #4d4d4d;
+    border-color: #5d5d5d;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .spacer {
