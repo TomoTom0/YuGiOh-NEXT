@@ -210,13 +210,7 @@ export default {
     // 画像選択ボタンを表示するかどうか
     const showImageSelectButton = computed(() => {
       const result = !!(card.value && card.value.imgs && card.value.imgs.length > 1)
-      console.log('[CardInfo] showImageSelectButton computed:', JSON.stringify({
-        hasCard: !!card.value,
-        cardId: card.value?.cardId,
-        hasImgs: !!card.value?.imgs,
-        imgsLength: card.value?.imgs?.length || 0,
-        result: result
-      }))
+      // debug logging removed
       return result
     })
 
@@ -228,7 +222,7 @@ export default {
       // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
       if (deckStore.selectedCard) {
         deckStore.selectedCard.ciid = String(ciid)
-        console.log('[CardInfo] selectImage: ciid updated to', String(ciid))
+      // debug logging removed
       }
       showImageDialog.value = false
     }

@@ -711,7 +711,6 @@ export class UnifiedCacheDB {
       }
     } catch (e) {
       // Defensive: don't break reconstruction on merge errors
-      console.warn('[UnifiedCacheDB] Failed to merge CardTableC into reconstructed CardInfo', cardId, e)
     }
 
     return resultCard

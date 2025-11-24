@@ -301,12 +301,7 @@ function parseCardSection(
         }
 
         // Diagnostic logging: confirm whether parsed CardInfo contains text
-        try {
-          // eslint-disable-next-line no-console
-          console.log('[parseCardSection] parsed card:', { cid: cardInfo.cardId, name: cardInfo.name, hasText: !!(cardInfo as any).text });
-        } catch (e) {
-          // ignore logging errors
-        }
+        // no-op: parsing verified in earlier debugging
 
         const cid = cardInfo.cardId;
         const ciidCounts = ciidCountMap.get(cid);
