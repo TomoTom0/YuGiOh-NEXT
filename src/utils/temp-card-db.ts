@@ -214,7 +214,7 @@ export class TempCardDB {
             if (tableC.pendText) mergedCard.pendulumEffect = tableC.pendText
           }
         } catch (e) {
-          console.warn('[TempCardDB] Failed to load CardTableC for', cardId, e)
+          // ignore
         }
 
         // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）。

@@ -325,7 +325,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 同じカードが既に存在する場合、最初に登場する位置の直後に挿入
    */
   function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
-    console.log('[deck-edit] addToDisplayOrder:', 'cardId=', card.cardId, 'ciid=', card.ciid, 'hasImgs=', !!card.imgs, 'imgsLength=', card.imgs?.length);
+    // debug logging removed
 
     const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
                        section === 'extra' ? deckInfo.value.extraDeck :
@@ -364,7 +364,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
       }
       
-      console.log('[deck-edit] addToDisplayOrder: adding to', section, 'cardId=', card.cardId, 'ciid=', targetCiid, 'after existing');
+      // debug logging removed
 
       // 最後の同じ(cid, ciid)ペアの直後に挿入
       sectionOrder.splice(lastSameCardIndex + 1, 0, {
@@ -379,7 +379,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         ? parseInt(String(card.ciid), 10)
         : 0;
 
-      console.log('[deck-edit] addToDisplayOrder: adding new to', section, 'cardId=', card.cardId, 'ciid=', ciid);
+      // debug logging removed
 
       if (sameCidCards.length > 0) {
         // 同じcidのカードがある場合、その最後の位置の後に挿入
@@ -632,20 +632,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
   const selectedCard = ref<CardInfo | null>(null);
 
-  // Debug: warn if selectedCard is set but text is missing (helps track where incomplete CardInfo comes from)
-  watch(selectedCard, (val) => {
-    if (val && !(val as any).text) {
-      try {
-        // eslint-disable-next-line no-console
-        console.warn('[deck-edit] selectedCard has no text:', { cardId: val.cardId, name: val.name })
-        // eslint-disable-next-line no-console
-        console.trace()
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[deck-edit] selectedCard missing text (trace not available)')
-      }
-    }
-  })
+  // no debug watcher
 
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではsearch）
   const isMobile = window.innerWidth <= 768;
