@@ -5,7 +5,17 @@ import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
 
-const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+const API_ENDPOINT_OCG = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+const API_ENDPOINT_RUSH = 'https://www.db.yugioh-card.com/rushdb/member_deck.action';
+
+/**
+ * 現在のURLからRush/OCGを判定してAPIエンドポイントを返す
+ */
+function getApiEndpoint(): string {
+  const pathname = window.location.pathname;
+  const isRush = pathname.startsWith('/rushdb/');
+  return isRush ? API_ENDPOINT_RUSH : API_ENDPOINT_OCG;
+}
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -16,6 +26,7 @@ const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
+    const API_ENDPOINT = getApiEndpoint();
     const response = await axios.get(`${API_ENDPOINT}?ope=6&cgid=${cgid}`, {
       withCredentials: true
     });
@@ -44,6 +55,7 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
  */
 export async function duplicateDeckInternal(cgid: string, dno: number): Promise<number> {
   try {
+    const API_ENDPOINT = getApiEndpoint();
     const response = await axios.get(`${API_ENDPOINT}?ope=8&cgid=${cgid}&dno=${dno}`, {
       withCredentials: true
     });
@@ -200,6 +212,7 @@ export async function saveDeckInternal(
     }
 
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
     const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
     
@@ -266,6 +279,7 @@ export async function deleteDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
+    const API_ENDPOINT = getApiEndpoint();
     const formData = new FormData();
     formData.append('ope', '7');
     formData.append('cgid', cgid);
@@ -390,6 +404,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
   try {
     console.log('[getDeckDetail] Loading deck:', dno, 'cgid:', cgid);
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
 
     // URLパラメータを構築
     const params = new URLSearchParams({
@@ -452,6 +467,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
   try {
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
     
     // URLパラメータを構築
     const params = new URLSearchParams({

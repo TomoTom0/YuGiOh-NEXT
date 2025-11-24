@@ -219,15 +219,9 @@ export default {
 
     // カードサイズに応じた動的padding
     const deckAreasStyle = computed(() => {
-      const cardHeight = settingsStore.deckEditCardSizePixels.height
-      // TopBarとの間隔を確保（カードサイズが大きいほど間隔を広げる）
-      // smallサイズでも最低32pxの間隔を確保
-      const marginTop = Math.max(32, Math.ceil((cardHeight - 53) / 2))
-      // カード高さに基づいてbottom paddingを計算
       // 検索入力欄との適切な間隔を確保（固定値150px: 入力欄47px + bottom位置20px + 余裕83px）
       const paddingBottom = 150
       return {
-        marginTop: `${marginTop}px`,
         paddingBottom: `${paddingBottom}px`
       }
     })
@@ -479,11 +473,16 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* padding-bottomは動的に設定 */
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   min-height: 0;
-  max-height: 100%; /* 親コンテナの高さを超えないように制限 */
+  max-height: 100%;
+  
+  // DeckEditTopBarは固定、スクロールしない
+  > :first-child {
+    flex-shrink: 0;
+    z-index: 10;
+    margin: 0;
+  }
 }
 
 .mobile-deck-content {
@@ -501,11 +500,11 @@ export default {
   flex-direction: column;
   gap: 10px;
   margin: 0;
-  padding: 0;
-  flex: 1; /* .main-content内で残りスペースを使用 */
-  min-height: fit-content; /* 子要素+paddingの全体を表示 */
-  overflow: visible; /* 子要素がはみ出ることを許可 */
-  /* marginTopとpaddingBottomは動的に設定 */
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .middle-decks {

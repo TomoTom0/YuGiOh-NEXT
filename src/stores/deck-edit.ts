@@ -460,6 +460,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
+    // 元の位置を事前に記録
+    const sectionOrder = displayOrder.value[section];
+    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
+    if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
+    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1].uuid : null;
+    
     const result = reorderWithinSectionInternal(section, sourceUuid, targetUuid);
     
     if (result.success) {
@@ -469,7 +475,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         },
         undo: () => {
           // 並び替えの逆操作は元の位置に戻す
-          reorderWithinSectionInternal(section, sourceUuid, result.originalTargetUuid || null);
+          reorderWithinSectionInternal(section, sourceUuid, originalTargetUuid);
         }
       };
       
@@ -558,7 +564,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param to 移動先セクション
    * @param uuid 移動する特定のカードのUUID（省略時は最後の1枚）
    */
-  function moveInDisplayOrderInternal(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string): string | undefined {
+  function moveInDisplayOrderInternal(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string, targetIndex?: number): string | undefined {
     const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
@@ -623,9 +629,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // fromのciidは変更しない（画像IDは保持）
 
-    // toのdisplayOrderに末尾追加
+    // toのdisplayOrderに追加
     const toOrder = displayOrder.value[to];
-    toOrder.push(movingDisplayCard);
+    if (targetIndex !== undefined && targetIndex >= 0 && targetIndex <= toOrder.length) {
+      // 指定された位置に挿入
+      toOrder.splice(targetIndex, 0, movingDisplayCard);
+      console.log('[moveInDisplayOrder] Inserted at position:', targetIndex);
+    } else {
+      // 末尾に追加
+      toOrder.push(movingDisplayCard);
+      console.log('[moveInDisplayOrder] Added to end');
+    }
 
     // deckInfo更新
     // fromから削除
@@ -651,6 +665,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
+    // 元の位置を保存
+    const fromOrder = displayOrder.value[from];
+    let originalIndex = -1;
+    if (uuid) {
+      originalIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
+    } else {
+      originalIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
+    }
+    
     const movedUuid = moveInDisplayOrderInternal(cardId, from, to, uuid);
     
     const command: Command = {
@@ -658,9 +681,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         moveInDisplayOrderInternal(cardId, from, to, uuid);
       },
       undo: () => {
-        // 移動の逆操作は逆方向への移動
+        // 移動の逆操作は元の位置への移動
         if (movedUuid) {
-          moveInDisplayOrderInternal(cardId, to, from, movedUuid);
+          moveInDisplayOrderInternal(cardId, to, from, movedUuid, originalIndex);
         }
       }
     };
@@ -1062,7 +1085,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // ドラッグ移動全体を1つのコマンドとして記録
     const insertedUuid = newDisplayCard.uuid;
-    console.log('[moveCardWithPosition] Creating command, insertedUuid:', insertedUuid);
+    const originalSourceIndex = fromOrder.indexOf(sourceCard);
+    if (originalSourceIndex === -1) {
+      console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
+      return { success: false, error: 'カードの位置が見つかりません' };
+    }
+    console.log('[moveCardWithPosition] Creating command, insertedUuid:', insertedUuid, 'originalSourceIndex:', originalSourceIndex);
     
     const command: Command = {
       execute: () => {
@@ -1115,14 +1143,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
         
         const fromOrder2 = displayOrder.value[from];
-        const newCard = { uuid: generateUUID(cardId, ciid), cid: cardId, ciid: ciid };
-        if (sourceUuid) {
-          const idx = fromOrder2.findIndex(dc => dc.uuid === sourceUuid);
-          if (idx !== -1) fromOrder2.splice(idx, 0, newCard);
-          else fromOrder2.push(newCard);
-        } else {
-          fromOrder2.push(newCard);
-        }
+        const newCard = { uuid: sourceUuid, cid: cardId, ciid: ciid };
+        
+        // 元の位置に挿入（コマンド作成時に保存したインデックスを使用）
+        const insertPosition = Math.min(originalSourceIndex, fromOrder2.length);
+        fromOrder2.splice(insertPosition, 0, newCard);
+        console.log('[undo] Restored to original position:', insertPosition, 'in', from, 'originalSourceIndex:', originalSourceIndex)
         
         nextTick(() => {
           requestAnimationFrame(() => {

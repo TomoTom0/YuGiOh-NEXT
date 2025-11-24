@@ -602,15 +602,20 @@ export default {
     margin: -4px;
     position: relative;
 
-    // 展開可能インジケーター（グラデーションフェード）
+    // 展開可能インジケーター（右下三角のみフェード）
     &:not(.expanded)::after {
       content: '';
       position: absolute;
       bottom: 4px;
-      left: 4px;
       right: 4px;
-      height: 20px;
-      background: linear-gradient(transparent, var(--card-bg, #fff));
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        transparent 40%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        rgba(255, 255, 255, 0.7) 70%, 
+        var(--card-bg, #fff) 100%);
       pointer-events: none;
     }
 
@@ -618,7 +623,12 @@ export default {
       background: var(--bg-secondary, #f5f5f5);
 
       &:not(.expanded)::after {
-        background: linear-gradient(transparent, var(--bg-secondary, #f5f5f5));
+        background: linear-gradient(135deg, 
+          transparent 0%, 
+          transparent 40%, 
+          rgba(245, 245, 245, 0.3) 50%, 
+          rgba(245, 245, 245, 0.7) 70%, 
+          var(--bg-secondary, #f5f5f5) 100%);
       }
     }
   }

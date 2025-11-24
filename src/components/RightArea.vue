@@ -1,5 +1,13 @@
 <template>
-  <div class="right-area">
+  <div class="right-area" :class="{ 
+    'has-top-input': showSearchInputTop,
+    'has-bottom-input': showSearchInputRightBottom
+  }">
+    <!-- 検索入力欄: right-top（全タブ共通） -->
+    <div v-if="showSearchInputTop" class="search-input-top-global">
+      <SearchInputBar />
+    </div>
+    
     <div class="tabs">
       <button
         class="deck-tab"
@@ -65,11 +73,17 @@
     <!-- グローバル検索モード用オーバーレイ -->
     <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
 
+    <!-- 検索入力欄: default位置（画面下部） -->
     <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
       <SearchInputBar
         ref="searchInputBarRef"
         @escape="closeGlobalSearch"
       />
+    </div>
+    
+    <!-- 検索入力欄: right-bottom（全タブ共通） -->
+    <div v-if="showSearchInputRightBottom" class="search-input-bottom-fixed">
+      <SearchInputBar />
     </div>
   </div>
 </template>
@@ -97,9 +111,25 @@ export default {
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
 
-    // 検索入力欄をデフォルト位置（下部）に表示するかどうか
+    // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
-      return settingsStore.appSettings.searchInputPosition === 'default'
+      const result = settingsStore.appSettings.searchInputPosition === 'default'
+      console.log('[RightArea] showSearchInputBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
+    })
+    
+    // 検索入力欄をRight Area上部に表示するかどうか
+    const showSearchInputTop = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-top'
+      console.log('[RightArea] showSearchInputTop:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
+    })
+    
+    // 検索入力欄をRight Area下部に表示するかどうか
+    const showSearchInputRightBottom = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
+      console.log('[RightArea] showSearchInputRightBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
     })
 
     // グローバル検索モードを閉じる
@@ -204,6 +234,8 @@ export default {
     return {
       deckStore,
       showSearchInputBottom,
+      showSearchInputTop,
+      showSearchInputRightBottom,
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
@@ -335,6 +367,23 @@ export default {
   width: 100%;
   box-sizing: border-box;
   padding: 15px;
+}
+
+.search-input-top-global {
+  flex-shrink: 0;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.search-input-bottom-fixed {
+  flex-shrink: 0;
+  z-index: 10;
+  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
 }
 
 .card-detail-content {
