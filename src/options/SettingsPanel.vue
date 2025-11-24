@@ -211,32 +211,28 @@ const handleReset = async () => {
 
 // キャッシュ削除ハンドラー
 const handleClearCache = async () => {
-  try {
-    // UnifiedCacheDBとTempCardDBのキーを削除
-    const keysToRemove = [
-      'unifiedCacheDB_cardTiers',
-      'unifiedCacheDB_deckHistory',
-      'unifiedCacheDB_cardsTableA',
-      'unifiedCacheDB_cardsTableB',
-      'unifiedCacheDB_cardsTableC',
-      'unifiedCacheDB_productsTableA',
-      'unifiedCacheDB_faqsTableA',
-      'tempCardDB'
-    ];
+    try {
+      // Use UnifiedCacheDB and TempCardDB APIs to clear caches properly
+      const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
+      const { getTempCardDB } = await import('@/utils/temp-card-db');
 
-    await chrome.storage.local.remove(keysToRemove);
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.clearAll();
 
-    cacheInfo.value = 'キャッシュを削除しました';
-    setTimeout(() => {
-      cacheInfo.value = '';
-    }, 3000);
-  } catch (error) {
-    console.error('Failed to clear cache:', error);
-    cacheInfo.value = 'キャッシュの削除に失敗しました';
-    setTimeout(() => {
-      cacheInfo.value = '';
-    }, 3000);
-  }
+      const tempDB = getTempCardDB();
+      await tempDB.clearStorage();
+
+      cacheInfo.value = 'キャッシュを削除しました';
+      setTimeout(() => {
+        cacheInfo.value = '';
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      cacheInfo.value = 'キャッシュの削除に失敗しました';
+      setTimeout(() => {
+        cacheInfo.value = '';
+      }, 3000);
+    }
 };
 
 // 保存ステータスを表示
