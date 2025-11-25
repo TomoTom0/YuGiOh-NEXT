@@ -96,6 +96,17 @@ class SessionManager {
   }
 
   /**
+   * デッキを削除
+   *
+   * @param dno デッキ番号
+   * @returns 成功時true、失敗時false
+   */
+  async deleteDeck(dno: number): Promise<boolean> {
+    const cgid = await this.ensureCgid();
+    return deleteDeckInternal(cgid, dno);
+  }
+
+  /**
    * デッキを保存
    *
    * @param dno デッキ番号
@@ -110,22 +121,6 @@ class SessionManager {
       throw new Error('ytkn not found for saveDeck');
     }
     return saveDeckInternal(cgid, dno, deckData, ytkn);
-  }
-
-  /**
-   * デッキを削除
-   *
-   * @param dno デッキ番号
-   * @returns 操作結果
-   */
-  async deleteDeck(dno: number): Promise<OperationResult> {
-    const cgid = await this.ensureCgid();
-    // CSRFトークンは使い捨てのため毎回新規取得
-    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
-    if (!ytkn) {
-      throw new Error('ytkn not found for deleteDeck');
-    }
-    return deleteDeckInternal(cgid, dno, ytkn);
   }
 
   /**

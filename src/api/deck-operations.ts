@@ -4,7 +4,7 @@ import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
-import { fetchYtknFromDeckList } from '@/utils/ytkn-fetcher';
+import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 
 const API_ENDPOINT_OCG = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 const API_ENDPOINT_RUSH = 'https://www.db.yugioh-card.com/rushdb/member_deck.action';
@@ -27,11 +27,9 @@ function getApiEndpoint(): string {
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
-    console.log('[createNewDeckInternal] Creating new deck with cgid:', cgid.substring(0, 16) + '...');
     const API_ENDPOINT = getApiEndpoint();
     
     // デッキ一覧（ope=4）からytknを取得
-    console.log('[createNewDeckInternal] Fetching ytkn from deck list (ope=4)...');
     const ytkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
     
     if (!ytkn) {
@@ -39,13 +37,10 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
       return 0;
     }
     
-    console.log('[createNewDeckInternal] Found ytkn:', ytkn.substring(0, 16) + '...');
-    
     const wname = 'MemberDeck';
     
     // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
     const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
-    console.log('[createNewDeckInternal] Request URL:', url);
     
     const response = await axios.get(url, {
       withCredentials: true
@@ -57,16 +52,13 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     
     // デッキ一覧をパースして最大のdnoを取得
     const deckList = parseDeckList(doc);
-    console.log('[createNewDeckInternal] Parsed deck list:', deckList.length, 'decks');
     
     if (deckList.length === 0) {
-      console.warn('[createNewDeckInternal] No decks found in list');
+      console.error('[createNewDeckInternal] No decks found in list after creation');
       return 0;
     }
     
     const maxDno = Math.max(...deckList.map(deck => deck.dno));
-    console.log('[createNewDeckInternal] Max dno (newly created):', maxDno);
-
     return maxDno;
   } catch (error) {
     console.error('[createNewDeckInternal] Failed to create new deck:', error);
@@ -87,6 +79,52 @@ export async function duplicateDeckInternal(cgid: string, dno: number): Promise<
   // TODO: デッキ保存を使って複製を実装する必要がある
   console.error('[duplicateDeckInternal] Not implemented yet. Use deck save to duplicate.');
   return 0;
+}
+
+/**
+ * デッキを削除する
+ * 
+ * @param cgid ユーザー識別子
+ * @param dno デッキ番号
+ * @returns 成功時true、失敗時false
+ * @internal SessionManager経由で呼び出すこと
+ */
+export async function deleteDeckInternal(cgid: string, dno: number): Promise<boolean> {
+  try {
+    const API_ENDPOINT = getApiEndpoint();
+    
+    // デッキ詳細（ope=1）からytknを取得
+    const ytkn = await fetchYtknFromEditForm(cgid, dno, API_ENDPOINT);
+    
+    if (!ytkn) {
+      console.error('[deleteDeckInternal] Failed to fetch ytkn');
+      return false;
+    }
+    
+    const wname = 'MemberDeck';
+    const requestLocale = detectLanguage(document);
+    
+    // URLを構築
+    const params = new URLSearchParams({
+      cgid,
+      request_locale: requestLocale,
+      dno: dno.toString(),
+      ope: '7',
+      wname,
+      ytkn
+    });
+    
+    const url = `${API_ENDPOINT}?${params.toString()}`;
+    
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
+    
+    return response.status === 200;
+  } catch (error) {
+    console.error('[deleteDeckInternal] Failed to delete deck:', error);
+    return false;
+  }
 }
 
 /**
@@ -231,10 +269,7 @@ export async function saveDeckInternal(
     const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
     
-    console.log('[saveDeckInternal] POST URL:', postUrl);
-    console.log('[saveDeckInternal] POST data:', encoded_params);
-    //console.log('[saveDeckInternal] Total length:', params.toString().length);
-    //console.log('[saveDeckInternal] Sending request...');
+
     
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
@@ -247,13 +282,10 @@ export async function saveDeckInternal(
       }
     });
 
-    console.log('[saveDeckInternal] Response received');
-    
     const data = response.data;
     
     // 公式の判定方法に合わせる
     if (data.result) {
-      console.log('[saveDeckInternal] ✅ Save successful');
       return { success: true };
     } else {
       if (data.error) {
@@ -272,56 +304,6 @@ export async function saveDeckInternal(
     }
   } catch (error) {
     console.error('[saveDeckInternal] Exception:', error);
-    return {
-      success: false,
-      error: [error instanceof Error ? error.message : 'Unknown error']
-    };
-  }
-}
-
-/**
- * デッキを削除する（内部関数）
- *
- * @param cgid ユーザー識別子
- * @param dno デッキ番号
- * @param ytkn CSRFトークン
- * @returns 操作結果
- * @internal SessionManager経由で呼び出すこと
- */
-export async function deleteDeckInternal(
-  cgid: string,
-  dno: number,
-  ytkn: string
-): Promise<OperationResult> {
-  try {
-    const API_ENDPOINT = getApiEndpoint();
-    const formData = new FormData();
-    formData.append('ope', '7');
-    formData.append('cgid', cgid);
-    formData.append('dno', dno.toString());
-    formData.append('ytkn', ytkn);
-
-    const response = await axios.post(API_ENDPOINT, formData, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // エラーチェック
-    const errorElements = doc.querySelectorAll('.error');
-    if (errorElements.length > 0) {
-      const errors = Array.from(errorElements).map(el => el.textContent?.trim() || '');
-      return {
-        success: false,
-        error: errors
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to delete deck:', error);
     return {
       success: false,
       error: [error instanceof Error ? error.message : 'Unknown error']
