@@ -24,13 +24,13 @@ echo "✓ Updated version.dat"
 
 # package.json を更新
 if [ -f "$ROOT_DIR/package.json" ]; then
-  sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" "$ROOT_DIR/package.json"
+  perl -pi -e "s/(\"version\":\s*)\"[^\"]*\"/\$1\"$NEW_VERSION\"/" "$ROOT_DIR/package.json"
   echo "✓ Updated package.json"
 fi
 
 # public/manifest.json を更新
 if [ -f "$ROOT_DIR/public/manifest.json" ]; then
-  sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" "$ROOT_DIR/public/manifest.json"
+  perl -pi -e "s/(\"version\":\s*)\"[^\"]*\"/\$1\"$NEW_VERSION\"/" "$ROOT_DIR/public/manifest.json"
   echo "✓ Updated public/manifest.json"
 fi
 
