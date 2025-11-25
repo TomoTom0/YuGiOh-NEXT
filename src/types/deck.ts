@@ -1,8 +1,8 @@
-import { DeckCard } from './card';
+import { DeckCard, DeckCardRef, CardRef } from './card';
 import { DeckTypeValue, DeckStyleValue, DeckCategory, DeckTags } from './deck-metadata';
 
 // Re-export for convenience
-export type { DeckCard };
+export type { DeckCard, DeckCardRef, CardRef };
 
 /**
  * デッキ情報
@@ -12,12 +12,14 @@ export interface DeckInfo {
   dno: number;
   /** デッキ名 */
   name: string;
+  /** 元のデッキ名（load時点のデッキ名、placeholderとして使用） */
+  originalName?: string;
   /** メインデッキ */
-  mainDeck: DeckCard[];
+  mainDeck: DeckCardRef[];
   /** エクストラデッキ */
-  extraDeck: DeckCard[];
+  extraDeck: DeckCardRef[];
   /** サイドデッキ */
-  sideDeck: DeckCard[];
+  sideDeck: DeckCardRef[];
   /** 公開/非公開 */
   isPublic?: boolean;
   /** cgid（公開デッキURL用） */

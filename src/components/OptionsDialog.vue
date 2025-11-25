@@ -48,28 +48,73 @@
           <!-- 左下: Search Input -->
           <div class="setting-block">
             <div class="block-title">Search</div>
-            <div class="toggle-col">
-              <button
-                class="toggle-btn"
-                :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
-                @click="settingsStore.setSearchInputPosition('section-title')"
-              >
-                Top
-              </button>
-              <button
-                class="toggle-btn"
-                :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
-                @click="settingsStore.setSearchInputPosition('default')"
-              >
-                Bottom
-              </button>
+            <div class="search-position-grid">
+              <div class="position-col">
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
+                  @click="settingsStore.setSearchInputPosition('section-title')"
+                >
+                  L-Top
+                </button>
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                  @click="settingsStore.setSearchInputPosition('default')"
+                >
+                  L-Bottom
+                </button>
+              </div>
+              <div class="position-col">
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+                  @click="settingsStore.setSearchInputPosition('right-top')"
+                >
+                  R-Top
+                </button>
+                <button
+                  class="toggle-btn"
+                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+                  @click="settingsStore.setSearchInputPosition('right-bottom')"
+                >
+                  R-Bottom
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- 右下: Reserved -->
-          <div class="setting-block reserved">
-            <div class="block-title">-</div>
+          <!-- 右下: Extra/Side Layout -->
+          <div class="setting-block">
+            <div class="block-title">Layout</div>
+            <div class="toggle-row">
+              <button
+                class="toggle-btn"
+                :class="{ active: settingsStore.appSettings.middleDecksLayout === 'horizontal' }"
+                @click="settingsStore.setMiddleDecksLayout('horizontal')"
+              >
+                H
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: settingsStore.appSettings.middleDecksLayout === 'vertical' }"
+                @click="settingsStore.setMiddleDecksLayout('vertical')"
+              >
+                V
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- Tips Section -->
+        <div class="tips-section">
+          <div class="tips-title">Tips</div>
+          <ul class="tips-list">
+            <li><strong>Command Mode:</strong> Type <code>/attr</code>, <code>/race</code>, <code>/level</code>, <code>/atk</code>, <code>/def</code>, <code>/type</code>, <code>/link</code>, <code>/mtype</code> + space to filter</li>
+            <li><strong>Drag & Drop:</strong> Drag cards between sections to move them</li>
+            <li><strong>Shuffle/Sort:</strong> Use the buttons in section headers</li>
+            <li><strong>Filter Chips:</strong> Click X on filter chips to remove individual filters</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -253,6 +298,19 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   flex: 1;
 }
 
+.search-position-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+  
+  .position-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
 .toggle-btn {
   flex: 1;
   padding: 8px 12px;
@@ -273,6 +331,50 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
     background: var(--text-primary);
     color: var(--bg-primary);
     border-color: var(--text-primary);
+  }
+}
+
+.tips-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.tips-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+
+.tips-list {
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+
+  li {
+    margin-bottom: 8px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  strong {
+    color: var(--text-primary);
+  }
+
+  code {
+    background: var(--bg-primary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 11px;
   }
 }
 </style>

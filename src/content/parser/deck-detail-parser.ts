@@ -1,5 +1,7 @@
-import { DeckCard } from '@/types/card';
+import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from '@/utils/temp-card-db';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import {
   DeckTypeValue,
   DeckStyleValue,
@@ -254,13 +256,14 @@ function parseCardSection(
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>,
   ciidCountMap: Map<string, Map<string, { count: number; imgHash: string }>>,
   sectionId: 'main' | 'extra' | 'side'
-): DeckCard[] {
-  const deckCards: DeckCard[] = [];
+): DeckCardRef[] {
+  const deckCardRefs: DeckCardRef[] = [];
+  const tempCardDB = getTempCardDB();
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
   const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
   if (!deckDetailtext) {
-    return deckCards;
+    return deckCardRefs;
   }
 
   // セクションごとに異なる親要素を使用
@@ -275,7 +278,7 @@ function parseCardSection(
 
   const parentElement = deckDetailtext.querySelector(parentSelector);
   if (!parentElement) {
-    return deckCards;
+    return deckCardRefs;
   }
 
   // すべての.listを取得
@@ -297,6 +300,9 @@ function parseCardSection(
           return;
         }
 
+        // Diagnostic logging: confirm whether parsed CardInfo contains text
+        // no-op: parsing verified in earlier debugging
+
         const cid = cardInfo.cardId;
         const ciidCounts = ciidCountMap.get(cid);
 
@@ -305,8 +311,37 @@ function parseCardSection(
           const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
           const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
 
-          deckCards.push({
-            card: cardInfo,
+          // TempCardDBにカード情報を登録
+          tempCardDB.set(cid, cardInfo);
+
+          // Also proactively save detail (text/pend) into unified cache TableC so
+          // subsequent cache-hits can reconstruct text. Do not await to avoid
+          // blocking parsing; log failures silently.
+          try {
+            const unifiedDB = getUnifiedCacheDB();
+            if (unifiedDB.isInitialized()) {
+              const tableC = {
+                cardId: cid,
+                text: (cardInfo as any).text,
+                pendText: (cardInfo as any).pendulumEffect,
+                relatedCards: [],
+                relatedProducts: [],
+                packs: [],
+                qaList: [],
+                fetchedAt: Date.now()
+              } as any;
+              // fire-and-forget
+              unifiedDB.setCardTableC(tableC).catch((e: any) => {
+                console.warn('[parseCardSection] Failed to save CardTableC for', cid, e)
+              })
+            }
+          } catch (e) {
+            console.warn('[parseCardSection] Failed to enqueue CardTableC save for', cid, e)
+          }
+
+          deckCardRefs.push({
+            cid,
+            ciid: cardInfo.ciid,
             quantity
           });
         } else if (ciidCounts.size === 1) {
@@ -314,24 +349,39 @@ function parseCardSection(
           const entry = Array.from(ciidCounts.entries())[0];
           if (entry) {
             const [ciid, info] = entry;
-            deckCards.push({
-              card: {
-                ...cardInfo,
-                ciid,
-                imgs: [{ ciid, imgHash: info.imgHash }]
-              },
+            
+            // TempCardDBにカード情報を登録（imgs情報を更新）
+            const cardWithImgs = {
+              ...cardInfo,
+              ciid,
+              imgs: [{ ciid, imgHash: info.imgHash }]
+            };
+            tempCardDB.set(cid, cardWithImgs);
+
+            deckCardRefs.push({
+              cid,
+              ciid,
               quantity: info.count
             });
           }
         } else {
           // 複数ciidの場合、ciidごとに別レコードとして追加
+          // imgsには全ciidの情報を含める
+          const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({
+            ciid,
+            imgHash: info.imgHash
+          }));
+          
+          const cardWithAllImgs = {
+            ...cardInfo,
+            imgs: allImgs
+          };
+          tempCardDB.set(cid, cardWithAllImgs);
+
           ciidCounts.forEach((info, ciid) => {
-            deckCards.push({
-              card: {
-                ...cardInfo,
-                ciid,
-                imgs: [{ ciid, imgHash: info.imgHash }]
-              },
+            deckCardRefs.push({
+              cid,
+              ciid,
               quantity: info.count
             });
           });
@@ -340,7 +390,7 @@ function parseCardSection(
     });
   });
 
-  return deckCards;
+  return deckCardRefs;
 }
 
 /**

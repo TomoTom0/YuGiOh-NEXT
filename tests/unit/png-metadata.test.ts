@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from '@/utils/temp-card-db';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,45 +15,68 @@ const fixturesDir = path.join(__dirname, '../fixtures/png');
 const sampleDeckInfo: DeckInfo = {
   mainDeck: [
     {
-      card: {
-        cardId: '12950',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-      } as any,
+      cid: '12950',
+      ciid: '1',
       quantity: 2
     },
     {
-      card: {
-        cardId: '4861',
-        ciid: '2',
-        imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
-      } as any,
+      cid: '4861',
+      ciid: '2',
       quantity: 1
     }
   ],
   extraDeck: [
     {
-      card: {
-        cardId: '9753',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
-      } as any,
+      cid: '9753',
+      ciid: '1',
       quantity: 1
     }
   ],
   sideDeck: [
     {
-      card: {
-        cardId: '14558',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
-      } as any,
+      cid: '14558',
+      ciid: '1',
       quantity: 3
     }
   ]
 };
 
 describe('png-metadata', () => {
+  // 各テスト前にTempCardDBをセットアップ
+  beforeEach(() => {
+    const tempCardDB = getTempCardDB();
+    tempCardDB.clear();
+    // サンプルデッキのカード情報を登録
+    tempCardDB.set('12950', {
+      cardId: '12950',
+      ciid: '1',
+      name: '灰流うらら',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
+    } as any);
+    tempCardDB.set('4861', {
+      cardId: '4861',
+      ciid: '2',
+      name: 'Test Card 2',
+      cardType: 'monster',
+      imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
+    } as any);
+    tempCardDB.set('9753', {
+      cardId: '9753',
+      ciid: '1',
+      name: 'Test Extra Card',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
+    } as any);
+    tempCardDB.set('14558', {
+      cardId: '14558',
+      ciid: '1',
+      name: 'Test Side Card',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
+    } as any);
+  });
+
   describe('embedDeckInfoToPNG', () => {
     it('should embed deck info into a valid PNG', async () => {
       const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
@@ -197,14 +221,22 @@ describe('png-metadata', () => {
     });
 
     it('should handle special characters in enc field', async () => {
+      // TempCardDBにカード情報を登録
+      const { getTempCardDB } = await import('@/utils/temp-card-db');
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('12950', {
+        cardId: '12950',
+        ciid: '1',
+        name: 'Test Card',
+        cardType: 'monster',
+        imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
+      } as any);
+
       const specialDeck: DeckInfo = {
         mainDeck: [
           {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
-            } as any,
+            cid: '12950',
+            ciid: '1',
             quantity: 1
           }
         ],

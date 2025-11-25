@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   createNewDeckInternal,
   duplicateDeckInternal,
@@ -6,6 +5,7 @@ import {
   deleteDeckInternal,
   getDeckListInternal
 } from '@/api/deck-operations';
+import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 
 /**
@@ -62,21 +62,9 @@ class SessionManager {
    * @returns ytkn、取得失敗時はnull
    */
   private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
-    const edit_url = `/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&${request_locale}`;
-    
-    try {
-      const response = await axios.get(edit_url, { withCredentials: true });
-      const html = response.data;
-      
-      const parser = new DOMParser();
-      const htmlDoc = parser.parseFromString(html, 'text/html');
-      const ytkn_input = htmlDoc.querySelector('input#ytkn') as HTMLInputElement | null;
-      
-      return ytkn_input ? ytkn_input.value : null;
-    } catch (error) {
-      console.error('[SessionManager] Failed to fetch ytkn:', error);
-      return null;
-    }
+    // 共通util関数を使用
+    const apiEndpoint = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+    return fetchYtknFromEditForm(cgid, dno, apiEndpoint);
   }
 
   /**
@@ -108,6 +96,17 @@ class SessionManager {
   }
 
   /**
+   * デッキを削除
+   *
+   * @param dno デッキ番号
+   * @returns 成功時true、失敗時false
+   */
+  async deleteDeck(dno: number): Promise<boolean> {
+    const cgid = await this.ensureCgid();
+    return deleteDeckInternal(cgid, dno);
+  }
+
+  /**
    * デッキを保存
    *
    * @param dno デッキ番号
@@ -122,22 +121,6 @@ class SessionManager {
       throw new Error('ytkn not found for saveDeck');
     }
     return saveDeckInternal(cgid, dno, deckData, ytkn);
-  }
-
-  /**
-   * デッキを削除
-   *
-   * @param dno デッキ番号
-   * @returns 操作結果
-   */
-  async deleteDeck(dno: number): Promise<OperationResult> {
-    const cgid = await this.ensureCgid();
-    // CSRFトークンは使い捨てのため毎回新規取得
-    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
-    if (!ytkn) {
-      throw new Error('ytkn not found for deleteDeck');
-    }
-    return deleteDeckInternal(cgid, dno, ytkn);
   }
 
   /**

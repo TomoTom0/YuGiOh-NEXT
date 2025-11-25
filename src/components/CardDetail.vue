@@ -73,7 +73,7 @@ import CardInfo from './CardInfo.vue'
 import CardQA from './CardQA.vue'
 import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
-import { getCardDetail } from '../api/card-search'
+import { getCardDetail, getCardDetailWithCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -157,28 +157,53 @@ export default {
         return
       }
 
-      // 既に同じカードの詳細を取得済みなら再取得しない
-      if (detail.value && detail.value.card.cardId === props.card.cardId) {
-        console.log('[CardDetail] fetchDetail: skipping (already fetched)', detail.value.card.cardId)
-        return
-      }
-
       console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
+
       try {
-        const detailResult = await getCardDetail(props.card)
-        const faqResult = await getCardFAQList(props.card.cardId)
-        console.log('[CardDetail] Card detail fetched:', JSON.stringify({
-          cardId: detailResult.card.cardId,
-          name: detailResult.card.name,
-          ciid: detailResult.card.ciid,
-          imgsLength: detailResult.card.imgs?.length || 0,
-          imgs: detailResult.card.imgs?.map(img => ({ ciid: img.ciid })) || []
-        }))
-        console.log('FAQ fetched:', faqResult)
-        detail.value = detailResult
-        faqListData.value = faqResult
-        // selectedCardの更新はwatchで行う
+        // キャッシュ対応のカード詳細取得
+        const cacheResult = await getCardDetailWithCache(props.card.cardId)
+
+        if (cacheResult.detail) {
+          // キャッシュから取得した場合（または新規取得）
+          console.log('[CardDetail] Card detail fetched:', JSON.stringify({
+            cardId: cacheResult.detail.card.cardId,
+            name: cacheResult.detail.card.name,
+            ciid: cacheResult.detail.card.ciid,
+            imgsLength: cacheResult.detail.card.imgs?.length || 0,
+            imgs: cacheResult.detail.card.imgs?.map(img => ({ ciid: img.ciid })) || [],
+            fromCache: cacheResult.fromCache,
+            isFresh: cacheResult.isFresh
+          }))
+
+          // 詳細データを設定（一度だけ）
+          detail.value = cacheResult.detail
+          
+          // selectedCardを同期的に更新（watchを待たずに即座に反映）
+          const oldCiid = deckStore.selectedCard?.ciid
+          deckStore.selectedCard = {
+            ...cacheResult.detail.card,
+            imgs: [...cacheResult.detail.card.imgs],
+            ciid: (deckStore.selectedCard?.cardId === cacheResult.detail.card.cardId && oldCiid) || cacheResult.detail.card.ciid
+          }
+
+          // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
+          const faqResult = await getCardFAQList(props.card.cardId)
+          console.log('[CardDetail] FAQ fetched:', faqResult)
+          faqListData.value = faqResult
+
+          // キャッシュが期限切れ、またはルビがない場合はバックグラウンドで再取得
+          if (cacheResult.fromCache && (!cacheResult.isFresh || !cacheResult.detail.card.ruby)) {
+            console.log('[CardDetail] Cache is stale or missing ruby, revalidating in background')
+            // バックグラウンドで再取得（UIをブロックしない）
+            revalidateInBackground(props.card.cardId).catch(err => {
+              console.error('[CardDetail] Background revalidation failed:', err)
+            })
+          }
+        } else {
+          detail.value = null
+          faqListData.value = null
+        }
       } catch (error) {
         console.error('Failed to fetch card detail:', error)
         detail.value = null
@@ -187,26 +212,45 @@ export default {
         loading.value = false
       }
     }
-    
-    // カードが変わったら詳細を取得
-    watch(() => props.card, () => {
-      relatedCurrentPage.value = 0
-      fetchDetail()
-    }, { immediate: true })
 
-    // detailが更新されたらselectedCardを同期
-    watch(() => detail.value, (newDetail) => {
-      if (newDetail && newDetail.card) {
-        // 詳細情報で selectedCard を更新（imgs配列も新しい配列として設定）
-        const oldCiid = deckStore.selectedCard?.ciid
-        deckStore.selectedCard = {
-          ...newDetail.card,
-          imgs: [...newDetail.card.imgs],  // 配列も新しくコピー
-          ciid: (deckStore.selectedCard?.cardId === newDetail.card.cardId && oldCiid) || newDetail.card.ciid
+    // バックグラウンドでキャッシュを再検証
+    const revalidateInBackground = async (cardId) => {
+      try {
+        // APIから最新データを取得
+        const freshDetail = await getCardDetail(cardId)
+        if (!freshDetail) return
+
+        // 現在表示中のカードと同じか確認
+        if (detail.value && detail.value.card.cardId === cardId) {
+          // 差分があるか確認（簡易チェック）
+          const currentName = detail.value.card.name
+          const freshName = freshDetail.card.name
+          const currentRuby = detail.value.card.ruby
+          const freshRuby = freshDetail.card.ruby
+          const currentPacks = detail.value.packs.length
+          const freshPacks = freshDetail.packs.length
+          const currentRelated = detail.value.relatedCards.length
+          const freshRelated = freshDetail.relatedCards.length
+
+          if (currentName !== freshName || currentRuby !== freshRuby || currentPacks !== freshPacks || currentRelated !== freshRelated) {
+            console.log('[CardDetail] Revalidation found differences, updating view')
+            detail.value = freshDetail
+          } else {
+            console.log('[CardDetail] Revalidation found no differences')
+          }
         }
-        console.log('[CardDetail] selectedCard synced with detail')
+      } catch (error) {
+        console.error('[CardDetail] Revalidation error:', error)
       }
-    }, { deep: false })
+    }
+    
+    
+    // Watch for card prop changes and refetch detail when cardId changes
+    watch(() => props.card && props.card.cardId, (newVal, oldVal) => {
+      if (newVal !== oldVal) {
+        fetchDetail()
+      }
+    }, { immediate: true })
 
     return {
       detail,

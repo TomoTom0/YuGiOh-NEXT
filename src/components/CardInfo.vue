@@ -1,6 +1,13 @@
 <template>
   <div class="card-info-layout">
-    <h3 class="card-name-large">{{ card?.name }}</h3>
+    <h3
+      class="card-name-large"
+      :class="{ clickable: card?.ruby }"
+      @click="card?.ruby && toggleRuby()"
+    >{{ card?.name }}</h3>
+    <transition name="ruby-expand">
+      <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
+    </transition>
     <div class="card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
@@ -116,9 +123,12 @@
         </div>
       </div>
 
-      <div v-if="card.text" class="card-effect-section">
+      <div v-if="card" class="card-effect-section">
         <div class="section-title">Card Text</div>
-        <div class="effect-text">{{ card.text }}</div>
+        <div class="effect-text">
+          <template v-if="card.text && card.text.trim() !== ''">{{ card.text }}</template>
+          <template v-else><span class="no-data">テキスト情報がありません</span></template>
+        </div>
       </div>
 
       <div v-if="supplementInfo" class="card-effect-section">
@@ -141,7 +151,7 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
@@ -176,26 +186,31 @@ export default {
     const deckStore = useDeckEditStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
+    const showRuby = ref(false) // Default to hidden
 
     // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
     const card = computed(() => deckStore.selectedCard)
 
-    // cardが変わるたびに新しいUUIDを生成
+    // ルビ表示の切り替え
+    const toggleRuby = () => {
+      showRuby.value = !showRuby.value
+    }
+
+    // カードが変わったらルビ表示をデフォルトに戻す
+    watch(() => card.value?.cardId, () => {
+      showRuby.value = false
+    })
+
+    // cardIdをキーとして安定したUUIDを生成（同じカードなら同じUUID）
     const cardUuid = computed(() => {
-      if (!card.value) return crypto.randomUUID()
-      return crypto.randomUUID()
+      if (!card.value) return 'no-card'
+      return card.value.cardId
     })
 
     // 画像選択ボタンを表示するかどうか
     const showImageSelectButton = computed(() => {
       const result = !!(card.value && card.value.imgs && card.value.imgs.length > 1)
-      console.log('[CardInfo] showImageSelectButton computed:', JSON.stringify({
-        hasCard: !!card.value,
-        cardId: card.value?.cardId,
-        hasImgs: !!card.value?.imgs,
-        imgsLength: card.value?.imgs?.length || 0,
-        result: result
-      }))
+      // debug logging removed
       return result
     })
 
@@ -207,7 +222,7 @@ export default {
       // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
       if (deckStore.selectedCard) {
         deckStore.selectedCard.ciid = String(ciid)
-        console.log('[CardInfo] selectImage: ciid updated to', String(ciid))
+      // debug logging removed
       }
       showImageDialog.value = false
     }
@@ -228,7 +243,9 @@ export default {
       toggleImageDialog,
       selectImage,
       getImageUrl,
-      mdiImageMultiple
+      mdiImageMultiple,
+      showRuby,
+      toggleRuby
     }
   },
   methods: {
@@ -318,6 +335,58 @@ export default {
   color: var(--text-primary);
   margin: 0;
   width: 100%;
+
+  &.clickable {
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--theme-color-start, #00d9b8);
+    }
+  }
+}
+
+.card-ruby {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin: 2px 0 6px 0;
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+// ルビ展開アニメーション
+.ruby-expand-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.ruby-expand-leave-active {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ruby-expand-enter-from {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ruby-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ruby-expand-enter-to,
+.ruby-expand-leave-from {
+  opacity: 1;
+  max-height: 100px;
 }
 
 .card-info-top {

@@ -35,12 +35,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // デッキ編集(ラッシュ)ボタン
+  const deckRushButton = createMenuButton('Rushデッキ編集', () => {
+    chrome.tabs.create({
+      url: 'https://www.db.yugioh-card.com/rushdb/#/ytomo/edit'
+    });
+  });
+
   // オプションボタン
   const optionsButton = createMenuButton('オプション', () => {
     chrome.runtime.openOptionsPage();
   });
 
   menu.appendChild(deckButton);
+  menu.appendChild(deckRushButton);
   menu.appendChild(optionsButton);
 
   container.appendChild(header);
