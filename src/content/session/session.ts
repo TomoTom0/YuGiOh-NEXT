@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   createNewDeckInternal,
   duplicateDeckInternal,
@@ -6,6 +5,7 @@ import {
   deleteDeckInternal,
   getDeckListInternal
 } from '@/api/deck-operations';
+import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 
 /**
@@ -62,21 +62,9 @@ class SessionManager {
    * @returns ytkn、取得失敗時はnull
    */
   private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
-    const edit_url = `/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&${request_locale}`;
-    
-    try {
-      const response = await axios.get(edit_url, { withCredentials: true });
-      const html = response.data;
-      
-      const parser = new DOMParser();
-      const htmlDoc = parser.parseFromString(html, 'text/html');
-      const ytkn_input = htmlDoc.querySelector('input#ytkn') as HTMLInputElement | null;
-      
-      return ytkn_input ? ytkn_input.value : null;
-    } catch (error) {
-      console.error('[SessionManager] Failed to fetch ytkn:', error);
-      return null;
-    }
+    // 共通util関数を使用
+    const apiEndpoint = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+    return fetchYtknFromEditForm(cgid, dno, apiEndpoint);
   }
 
   /**

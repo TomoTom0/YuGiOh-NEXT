@@ -4,6 +4,7 @@ import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { fetchYtknFromDeckList } from '@/utils/ytkn-fetcher';
 
 const API_ENDPOINT_OCG = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
 const API_ENDPOINT_RUSH = 'https://www.db.yugioh-card.com/rushdb/member_deck.action';
@@ -26,21 +27,49 @@ function getApiEndpoint(): string {
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
+    console.log('[createNewDeckInternal] Creating new deck with cgid:', cgid.substring(0, 16) + '...');
     const API_ENDPOINT = getApiEndpoint();
-    const response = await axios.get(`${API_ENDPOINT}?ope=6&cgid=${cgid}`, {
+    
+    // デッキ一覧（ope=4）からytknを取得
+    console.log('[createNewDeckInternal] Fetching ytkn from deck list (ope=4)...');
+    const ytkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
+    
+    if (!ytkn) {
+      console.error('[createNewDeckInternal] Failed to fetch ytkn');
+      return 0;
+    }
+    
+    console.log('[createNewDeckInternal] Found ytkn:', ytkn.substring(0, 16) + '...');
+    
+    const wname = 'MemberDeck';
+    
+    // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
+    const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
+    console.log('[createNewDeckInternal] Request URL:', url);
+    
+    const response = await axios.get(url, {
       withCredentials: true
     });
 
     const html = response.data;
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+    
+    // デッキ一覧をパースして最大のdnoを取得
+    const deckList = parseDeckList(doc);
+    console.log('[createNewDeckInternal] Parsed deck list:', deckList.length, 'decks');
+    
+    if (deckList.length === 0) {
+      console.warn('[createNewDeckInternal] No decks found in list');
+      return 0;
+    }
+    
+    const maxDno = Math.max(...deckList.map(deck => deck.dno));
+    console.log('[createNewDeckInternal] Max dno (newly created):', maxDno);
 
-    const dnoInput = doc.querySelector('input[name="dno"]') as HTMLInputElement;
-    const dno = dnoInput?.value ? parseInt(dnoInput.value, 10) : 0;
-
-    return dno;
+    return maxDno;
   } catch (error) {
-    console.error('Failed to create new deck:', error);
+    console.error('[createNewDeckInternal] Failed to create new deck:', error);
     return 0;
   }
 }
@@ -54,24 +83,10 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
  * @internal SessionManager経由で呼び出すこと
  */
 export async function duplicateDeckInternal(cgid: string, dno: number): Promise<number> {
-  try {
-    const API_ENDPOINT = getApiEndpoint();
-    const response = await axios.get(`${API_ENDPOINT}?ope=8&cgid=${cgid}&dno=${dno}`, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const dnoInput = doc.querySelector('input[name="dno"]') as HTMLInputElement;
-    const newDno = dnoInput?.value ? parseInt(dnoInput.value, 10) : 0;
-
-    return newDno;
-  } catch (error) {
-    console.error('Failed to duplicate deck:', error);
-    return 0;
-  }
+  // ope=8は複製後の編集画面を開くだけで、実際の複製は行わない
+  // TODO: デッキ保存を使って複製を実装する必要がある
+  console.error('[duplicateDeckInternal] Not implemented yet. Use deck save to duplicate.');
+  return 0;
 }
 
 /**

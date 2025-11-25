@@ -1530,6 +1530,52 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     console.log('[redo] Executed, command index:', commandIndex.value);
   }
 
+  async function createNewDeck() {
+    try {
+      // サーバーに新規デッキを作成
+      console.log('[createNewDeck] Creating new deck...');
+      const newDno = await sessionManager.createDeck();
+      console.log('[createNewDeck] Server returned dno:', newDno);
+      
+      if (!newDno || newDno === 0) {
+        throw new Error('Failed to create new deck: server returned invalid dno');
+      }
+      
+      // 新規デッキを読み込む
+      console.log('[createNewDeck] Loading new deck:', newDno);
+      await loadDeck(newDno);
+      console.log('[createNewDeck] Successfully loaded new deck');
+    } catch (error) {
+      console.error('[createNewDeck] Error:', error);
+      throw error;
+    }
+  }
+
+  async function copyCurrentDeck() {
+    try {
+      if (!deckInfo.value.dno) {
+        throw new Error('No deck loaded');
+      }
+      
+      console.log('[copyCurrentDeck] Copying deck:', deckInfo.value.dno);
+      // サーバーでデッキを複製
+      const newDno = await sessionManager.duplicateDeck(deckInfo.value.dno);
+      console.log('[copyCurrentDeck] Server returned dno:', newDno);
+      
+      if (!newDno || newDno === 0) {
+        throw new Error('Failed to copy deck: server returned invalid dno');
+      }
+      
+      // 複製されたデッキを読み込む
+      console.log('[copyCurrentDeck] Loading copied deck:', newDno);
+      await loadDeck(newDno);
+      console.log('[copyCurrentDeck] Successfully loaded copied deck');
+    } catch (error) {
+      console.error('[copyCurrentDeck] Error:', error);
+      throw error;
+    }
+  }
+
   return {
     deckInfo,
     trashDeck,
@@ -1578,6 +1624,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     sortSection,
     sortAllSections,
     undo,
-    redo
+    redo,
+    createNewDeck,
+    copyCurrentDeck
   };
 });
