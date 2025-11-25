@@ -52,6 +52,19 @@
 
         <!-- Menu Dropdown -->
         <div v-if="showMenu" class="menu-dropdown" @click.stop>
+          <button @click="handleNewDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiPlusBox" />
+            </svg>
+            New Deck
+          </button>
+          <button @click="handleCopyDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiContentCopy" />
+            </svg>
+            Copy Deck
+          </button>
+          <div class="menu-divider"></div>
           <button @click="handleSortAll" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiSortVariant" />
@@ -159,7 +172,7 @@ import ImportDialog from './ImportDialog.vue'
 import OptionsDialog from './OptionsDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -416,6 +429,28 @@ export default {
       deckStore.redo()
     }
 
+    const handleNewDeck = async () => {
+      showMenu.value = false
+      try {
+        await deckStore.createNewDeck()
+        showToast('新しいデッキを作成しました', 'success')
+      } catch (error) {
+        console.error('Create new deck error:', error)
+        showToast('新しいデッキの作成に失敗しました', 'error')
+      }
+    }
+
+    const handleCopyDeck = async () => {
+      showMenu.value = false
+      try {
+        await deckStore.copyCurrentDeck()
+        showToast('デッキをコピーしました', 'success')
+      } catch (error) {
+        console.error('Copy deck error:', error)
+        showToast('デッキのコピーに失敗しました', 'error')
+      }
+    }
+
     return {
       deckStore,
       showLoadDialog,
@@ -443,6 +478,8 @@ export default {
       handleOptions,
       handleUndo,
       handleRedo,
+      handleNewDeck,
+      handleCopyDeck,
       mdiContentSave,
       mdiFolderOpen,
       mdiSortVariant,
@@ -451,7 +488,9 @@ export default {
       mdiImport,
       mdiCog,
       mdiUndo,
-      mdiRedo
+      mdiRedo,
+      mdiPlusBox,
+      mdiContentCopy
     }
   }
 }

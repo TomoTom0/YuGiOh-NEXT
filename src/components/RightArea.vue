@@ -1,7 +1,8 @@
 <template>
   <div class="right-area" :class="{ 
     'has-top-input': showSearchInputTop,
-    'has-bottom-input': showSearchInputRightBottom
+    'has-bottom-input': showSearchInputRightBottom,
+    'has-left-top-input': showSearchInputLeftTop
   }">
     <!-- 検索入力欄: right-top（全タブ共通） -->
     <div v-if="showSearchInputTop" class="search-input-top-global">
@@ -131,6 +132,11 @@ export default {
       console.log('[RightArea] showSearchInputRightBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
+    
+    // 検索入力欄が左上（section-title）にあるかどうか
+    const showSearchInputLeftTop = computed(() => {
+      return settingsStore.appSettings.searchInputPosition === 'section-title'
+    })
 
     // グローバル検索モードを閉じる
     const closeGlobalSearch = () => {
@@ -236,6 +242,7 @@ export default {
       showSearchInputBottom,
       showSearchInputTop,
       showSearchInputRightBottom,
+      showSearchInputLeftTop,
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
@@ -265,6 +272,16 @@ export default {
     width: 100% !important;
     margin: 0 !important;
     border-left: none !important;
+  }
+  
+  /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
+  .right-area.has-left-top-input {
+    height: calc(100% - 65px) !important;
+    margin-top: 65px !important;
+  }
+  
+  /* 検索入力欄が下部にある場合：下に隙間 */
+  .right-area.has-bottom-input {
     height: calc(100% - 65px) !important;
   }
 }
