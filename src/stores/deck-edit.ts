@@ -1166,6 +1166,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return { success: true };
   }
 
+  function getDeckName(): string {
+    return deckInfo.value.name || deckInfo.value.originalName || '';
+  }
+
   function setDeckName(name: string) {
     deckInfo.value.name = name;
   }
@@ -1173,6 +1177,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function saveDeck(dno: number) {
     try {
       deckInfo.value.dno = dno;
+      // デッキ名が空の場合は元のデッキ名を使用
+      if (!deckInfo.value.name && deckInfo.value.originalName) {
+        deckInfo.value.name = deckInfo.value.originalName;
+      }
       const result = await sessionManager.saveDeck(dno, deckInfo.value);
       return result;
     } catch (error) {
@@ -1187,7 +1195,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const loadedDeck = await getDeckDetail(dno, cgid);
 
       if (loadedDeck) {
-        deckInfo.value = loadedDeck;
+        // originalNameを保存してからdeckInfoを更新
+        deckInfo.value = {
+          ...loadedDeck,
+          originalName: loadedDeck.name,
+          name: '' // デッキ名を空にする
+        };
 
         // URLにdnoを同期
         URLStateManager.setDno(dno);
@@ -1533,18 +1546,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function createNewDeck() {
     try {
       // サーバーに新規デッキを作成
-      console.log('[createNewDeck] Creating new deck...');
       const newDno = await sessionManager.createDeck();
-      console.log('[createNewDeck] Server returned dno:', newDno);
       
       if (!newDno || newDno === 0) {
         throw new Error('Failed to create new deck: server returned invalid dno');
       }
       
       // 新規デッキを読み込む
-      console.log('[createNewDeck] Loading new deck:', newDno);
       await loadDeck(newDno);
-      console.log('[createNewDeck] Successfully loaded new deck');
     } catch (error) {
       console.error('[createNewDeck] Error:', error);
       throw error;
@@ -1557,21 +1566,63 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         throw new Error('No deck loaded');
       }
       
-      console.log('[copyCurrentDeck] Copying deck:', deckInfo.value.dno);
-      // サーバーでデッキを複製
-      const newDno = await sessionManager.duplicateDeck(deckInfo.value.dno);
-      console.log('[copyCurrentDeck] Server returned dno:', newDno);
+      // 新規デッキを作成
+      const newDno = await sessionManager.createDeck();
       
       if (!newDno || newDno === 0) {
-        throw new Error('Failed to copy deck: server returned invalid dno');
+        throw new Error('Failed to create new deck for copy');
       }
       
+      // 現在のデッキデータをコピー（dnoだけ新しいものに変更）
+      const currentDeckData: DeckInfo = {
+        ...deckInfo.value,
+        dno: newDno,
+        name: `COPY_${deckInfo.value.name}`
+      };
+      
+      // 新規デッキに現在のデータを保存
+      await sessionManager.saveDeck(newDno, currentDeckData);
+      
       // 複製されたデッキを読み込む
-      console.log('[copyCurrentDeck] Loading copied deck:', newDno);
       await loadDeck(newDno);
-      console.log('[copyCurrentDeck] Successfully loaded copied deck');
     } catch (error) {
       console.error('[copyCurrentDeck] Error:', error);
+      throw error;
+    }
+  }
+
+  async function deleteCurrentDeck() {
+    try {
+      if (!deckInfo.value.dno) {
+        throw new Error('No deck loaded');
+      }
+      
+      const dnoToDelete = deckInfo.value.dno;
+      
+      // デッキを削除
+      const success = await sessionManager.deleteDeck(dnoToDelete);
+      
+      if (!success) {
+        throw new Error('Failed to delete deck');
+      }
+      
+      // デッキ一覧を取得して、別のデッキを読み込む
+      const deckList = await sessionManager.getDeckList();
+      
+      if (deckList.length > 0) {
+        // 削除したデッキより小さいdnoがあればそれを、なければ最大のdnoを読み込む
+        const smallerDecks = deckList.filter(d => d.dno < dnoToDelete);
+        const newDno = smallerDecks.length > 0 
+          ? Math.max(...smallerDecks.map(d => d.dno))
+          : Math.max(...deckList.map(d => d.dno));
+        
+        await loadDeck(newDno);
+      } else {
+        // デッキが1つもない場合は新規作成
+        await createNewDeck();
+      }
+    } catch (error) {
+      console.error('[deleteCurrentDeck] Error:', error);
       throw error;
     }
   }
@@ -1615,6 +1666,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     addCopyToSection,
     addCopyToMainOrExtra,
     moveCardWithPosition,
+    getDeckName,
     setDeckName,
     saveDeck,
     loadDeck,
@@ -1626,6 +1678,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     undo,
     redo,
     createNewDeck,
-    copyCurrentDeck
+    copyCurrentDeck,
+    deleteCurrentDeck
   };
 });
