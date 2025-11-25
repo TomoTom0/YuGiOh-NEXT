@@ -40,6 +40,7 @@ module.exports = (env, argv) => {
             compilerOptions: {
               noUnusedParameters: false,  // Vueの自動生成コードのため
               noImplicitAny: false,  // Vueのrefコールバックのため
+              noUncheckedIndexedAccess: false,  // Vue配列操作の型エラー回避
             },
           },
         },

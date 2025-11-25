@@ -45,8 +45,8 @@ describe('deck-import', () => {
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
 
       const firstMain = result.deckInfo!.mainDeck[0];
-      expect(firstMain.card.cardId).toBe('12950');
-      expect(firstMain.card.ciid).toBe('1');
+      expect(firstMain.cid).toBe('12950');
+      expect(firstMain.ciid).toBe('1');
       expect(firstMain.quantity).toBe(2);
     });
 
@@ -95,7 +95,7 @@ main,"Card, Name",12950,1,2`;
       const result = importFromCSV(csv);
 
       expect(result.success).toBe(true);
-      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
     });
 
     it('should validate section values', () => {
@@ -175,21 +175,15 @@ invalid line format
       const sampleDeck: DeckInfo = {
         mainDeck: [
           {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-            } as any,
+            cid: '12950',
+            ciid: '1',
             quantity: 2
           }
         ],
         extraDeck: [
           {
-            card: {
-              cardId: '9753',
-              ciid: '1',
-              imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
-            } as any,
+            cid: '9753',
+            ciid: '1',
             quantity: 1
           }
         ],
@@ -211,7 +205,7 @@ invalid line format
       expect(result.deckInfo).toBeDefined();
       expect(result.deckInfo!.mainDeck).toHaveLength(1);
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
-      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
     });
 
     it('should return error for PNG without embedded data', async () => {

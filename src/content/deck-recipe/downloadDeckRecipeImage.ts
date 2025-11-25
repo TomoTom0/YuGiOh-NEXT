@@ -6,6 +6,7 @@ import { sessionManager } from '../session/session';
 import { embedDeckInfoToPNG } from '../../utils/png-metadata';
 import { detectCardGameType } from '../../utils/page-detector';
 import { getDeckDisplayUrl } from '../../utils/url-builder';
+import { getTempCardDB } from '../../utils/temp-card-db';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -38,10 +39,13 @@ export async function downloadDeckRecipeImage(
     deckData = parseDeckDetail(doc);
 
     // デバッグログ
+    const tempCardDB = getTempCardDB();
     console.log('[downloadDeckRecipeImage] mainDeckCount:', deckData.mainDeck.length);
     deckData.mainDeck.forEach((d, i) => {
-      const imgHash = d.card.imgs?.find(img => img.ciid === d.card.ciid)?.imgHash;
-      console.log(`  [${i}] ${d.card.name} (${d.card.cardType}) x${d.quantity} - ciid:${d.card.ciid}, hash:${imgHash}`);
+      const card = tempCardDB.get(d.cid);
+      if (!card) return;
+      const imgHash = card.imgs?.find(img => img.ciid === d.ciid)?.imgHash;
+      console.log(`  [${i}] ${card.name} (${card.cardType}) x${d.quantity} - ciid:${d.ciid}, hash:${imgHash}`);
     });
   }
 

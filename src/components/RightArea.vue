@@ -1,5 +1,14 @@
 <template>
-  <div class="right-area">
+  <div class="right-area" :class="{ 
+    'has-top-input': showSearchInputTop,
+    'has-bottom-input': showSearchInputRightBottom,
+    'has-left-top-input': showSearchInputLeftTop
+  }">
+    <!-- 検索入力欄: right-top（全タブ共通） -->
+    <div v-if="showSearchInputTop" class="search-input-top-global">
+      <SearchInputBar />
+    </div>
+    
     <div class="tabs">
       <button
         class="deck-tab"
@@ -65,11 +74,17 @@
     <!-- グローバル検索モード用オーバーレイ -->
     <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
 
+    <!-- 検索入力欄: default位置（画面下部） -->
     <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
       <SearchInputBar
         ref="searchInputBarRef"
         @escape="closeGlobalSearch"
       />
+    </div>
+    
+    <!-- 検索入力欄: right-bottom（全タブ共通） -->
+    <div v-if="showSearchInputRightBottom" class="search-input-bottom-fixed">
+      <SearchInputBar />
     </div>
   </div>
 </template>
@@ -78,7 +93,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
-import { getCardImageUrl } from '../types/card'
+import { getCardDetailWithCache } from '../api/card-search'
 import CardList from './CardList.vue'
 import CardDetail from './CardDetail.vue'
 import DeckMetadata from './DeckMetadata.vue'
@@ -97,9 +112,30 @@ export default {
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
 
-    // 検索入力欄をデフォルト位置（下部）に表示するかどうか
+    // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
-      return settingsStore.appSettings.searchInputPosition === 'default'
+      const result = settingsStore.appSettings.searchInputPosition === 'default'
+      console.log('[RightArea] showSearchInputBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
+    })
+    
+    // 検索入力欄をRight Area上部に表示するかどうか
+    const showSearchInputTop = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-top'
+      console.log('[RightArea] showSearchInputTop:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
+    })
+    
+    // 検索入力欄をRight Area下部に表示するかどうか
+    const showSearchInputRightBottom = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
+      console.log('[RightArea] showSearchInputRightBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
+      return result
+    })
+    
+    // 検索入力欄が左上（section-title）にあるかどうか
+    const showSearchInputLeftTop = computed(() => {
+      return settingsStore.appSettings.searchInputPosition === 'section-title'
     })
 
     // グローバル検索モードを閉じる
@@ -188,8 +224,15 @@ export default {
       }
     }
 
-    const showCardDetail = (card) => {
-      deckStore.selectedCard = card
+    const showCardDetail = async (card) => {
+      try {
+        const result = await getCardDetailWithCache(card.cardId)
+        const fullCard = result?.detail?.card || card
+        deckStore.selectedCard = fullCard
+      } catch (e) {
+        console.error('[RightArea] Failed to fetch full card detail:', e)
+        deckStore.selectedCard = card
+      }
       deckStore.activeTab = 'card'
       deckStore.cardTab = 'info'
     }
@@ -197,6 +240,9 @@ export default {
     return {
       deckStore,
       showSearchInputBottom,
+      showSearchInputTop,
+      showSearchInputRightBottom,
+      showSearchInputLeftTop,
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
@@ -226,6 +272,16 @@ export default {
     width: 100% !important;
     margin: 0 !important;
     border-left: none !important;
+  }
+  
+  /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
+  .right-area.has-left-top-input {
+    height: calc(100% - 65px) !important;
+    margin-top: 65px !important;
+  }
+  
+  /* 検索入力欄が下部にある場合：下に隙間 */
+  .right-area.has-bottom-input {
     height: calc(100% - 65px) !important;
   }
 }
@@ -328,6 +384,23 @@ export default {
   width: 100%;
   box-sizing: border-box;
   padding: 15px;
+}
+
+.search-input-top-global {
+  flex-shrink: 0;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.search-input-bottom-fixed {
+  flex-shrink: 0;
+  z-index: 10;
+  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
 }
 
 .card-detail-content {

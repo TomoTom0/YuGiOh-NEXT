@@ -1,4 +1,5 @@
 import type { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from './temp-card-db';
 
 /**
  * エクスポートオプション
@@ -26,40 +27,47 @@ interface ExportRow {
 function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): ExportRow[] {
   const rows: ExportRow[] = [];
   const { includeSide = true } = options;
+  const tempCardDB = getTempCardDB();
 
   // Main Deck
-  deckInfo.mainDeck.forEach(({ card, quantity }) => {
+  deckInfo.mainDeck.forEach(({ cid, ciid, quantity }) => {
+    const card = tempCardDB.get(cid);
+    if (!card) return;
     rows.push({
       section: 'main',
       name: card.name,
-      cid: card.cardId,
-      ciid: card.ciid,
-      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
+      cid,
+      ciid,
+      enc: card.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
       quantity
     });
   });
 
   // Extra Deck
-  deckInfo.extraDeck.forEach(({ card, quantity }) => {
+  deckInfo.extraDeck.forEach(({ cid, ciid, quantity }) => {
+    const card = tempCardDB.get(cid);
+    if (!card) return;
     rows.push({
       section: 'extra',
       name: card.name,
-      cid: card.cardId,
-      ciid: card.ciid,
-      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
+      cid,
+      ciid,
+      enc: card.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
       quantity
     });
   });
 
   // Side Deck
   if (includeSide) {
-    deckInfo.sideDeck.forEach(({ card, quantity }) => {
+    deckInfo.sideDeck.forEach(({ cid, ciid, quantity }) => {
+      const card = tempCardDB.get(cid);
+      if (!card) return;
       rows.push({
         section: 'side',
         name: card.name,
-        cid: card.cardId,
-        ciid: card.ciid,
-        enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
+        cid,
+        ciid,
+        enc: card.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
         quantity
       });
     });

@@ -63,6 +63,57 @@ export function addDeckImageButton(): HTMLElement | null {
   bottomBtnSet.appendChild(button);
 
   console.log('[YGO Helper] Deck image button added');
+  
+  // NEXT編集ボタンも追加
+  addNextEditButton(bottomBtnSet);
+  
+  return button;
+}
+
+/**
+ * NEXT編集ボタンを追加
+ */
+function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
+  // 既にボタンが追加されていないか確認
+  if (document.querySelector('#ygo-next-edit-btn')) {
+    console.log('[YGO Helper] Next edit button already exists');
+    return null;
+  }
+
+  // URLからdnoを取得
+  const urlParams = new URLSearchParams(window.location.search);
+  const dno = urlParams.get('dno');
+  
+  if (!dno) {
+    console.warn('[YGO Helper] dno not found in URL');
+    return null;
+  }
+
+  // ボタンを作成
+  const button = document.createElement('a');
+  button.id = 'ygo-next-edit-btn';
+  button.className = 'btn hex orn ytomo-neuron-btn';
+  button.href = '#';
+  button.style.cssText = 'margin-left: 10px;';
+
+  const span = document.createElement('span');
+  span.textContent = 'NEXT編集';
+
+  button.appendChild(span);
+
+  // クリックイベント
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log('[YGO Helper] Next edit button clicked, dno:', dno);
+    
+    // 独自デッキ編集画面へ遷移
+    window.location.hash = `/ytomo/edit?dno=${dno}`;
+  });
+
+  // #bottom_btn_set の右側に追加
+  bottomBtnSet.appendChild(button);
+
+  console.log('[YGO Helper] Next edit button added');
   return button;
 }
 

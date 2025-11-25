@@ -29,19 +29,8 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        card: {
-          name: 'ブラック・マジシャン',
-          cardId: '12345',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
-          cardType: 'monster',
-          attribute: 'light',
-          levelType: 'level',
-          levelValue: 0,
-          race: 'dragon',
-          types: [],
-          isExtraDeck: false
-        },
+        cid: '12345',
+        ciid: '1',
         quantity: 2
       });
     });
@@ -69,13 +58,8 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        card: {
-          name: 'ブラック・マジック',
-          cardId: '67890',
-          ciid: '2',
-          imgs: [{ ciid: '2', imgHash: '67890_2_1_1' }],
-          cardType: 'spell'
-        },
+        cid: '67890',
+        ciid: '2',
         quantity: 3
       });
     });
@@ -103,13 +87,8 @@ describe('デッキページパーサー', () => {
       const result = parseCardRow(row);
 
       expect(result).toEqual({
-        card: {
-          name: '聖なるバリア -ミラーフォース-',
-          cardId: '11111',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '11111_1_1_1' }],
-          cardType: 'trap'
-        },
+        cid: '11111',
+        ciid: '1',
         quantity: 1
       });
     });
@@ -135,7 +114,7 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result?.card.ciid).toBe('1');
+      expect(result?.ciid).toBe('1');
     });
 
     it('必要な情報が欠けている場合はnullを返す', () => {
@@ -209,19 +188,8 @@ describe('デッキページパーサー', () => {
       });
       expect(result.mainDeck).toHaveLength(1);
       expect(result.mainDeck[0]).toEqual({
-        card: {
-          name: 'ブラック・マジシャン',
-          cardId: '12345',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
-          cardType: 'monster',
-          attribute: 'light',
-          levelType: 'level',
-          levelValue: 0,
-          race: 'dragon',
-          types: [],
-          isExtraDeck: false
-        },
+        cid: '12345',
+        ciid: '1',
         quantity: 2
       });
       expect(result.extraDeck).toHaveLength(0);
