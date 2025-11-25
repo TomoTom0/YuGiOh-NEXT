@@ -8,9 +8,11 @@
    - DOM更新後は `nextTick()` を必ず待つ
    - UUID は `crypto.randomUUID()` を使用
    - `any` 型禁止、型ガードを使用
+   - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
 4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 6. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
+7. **git操作**: git push / PR作成は明示的な指示がない限り実行しない
 
 ---
 

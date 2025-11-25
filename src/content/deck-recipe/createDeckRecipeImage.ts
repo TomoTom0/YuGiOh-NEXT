@@ -14,6 +14,7 @@ import { getCardImageUrl } from '../../types/card';
 import QRCode from 'qrcode';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl } from '../../utils/url-builder';
+import { getTempCardDB } from '../../utils/temp-card-db';
 
 /**
  * デッキレシピ画像を作成する
@@ -64,11 +65,15 @@ export async function createDeckRecipeImage(
     return url;
   };
 
+  const tempCardDB = getTempCardDB();
+
   const sections: CardSection[] = [
     {
       name: 'main',
       displayName: 'メイン',
-      cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.mainDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
@@ -76,7 +81,9 @@ export async function createDeckRecipeImage(
     {
       name: 'extra',
       displayName: 'エクストラ',
-      cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.extraDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
@@ -84,7 +91,9 @@ export async function createDeckRecipeImage(
     {
       name: 'side',
       displayName: 'サイド',
-      cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.sideDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })

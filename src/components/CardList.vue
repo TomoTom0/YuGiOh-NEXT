@@ -75,6 +75,7 @@
         v-for="(item, idx) in cardsWithUuid"
         :key="item.uuid"
         class="card-result-item"
+        :class="{ 'text-expanded': expandedCards.has(item.uuid) }"
       >
         <div class="card-wrapper">
           <DeckCard
@@ -99,11 +100,13 @@
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">
               <span class="stat-item attribute">{{ getAttributeLabel(item.card.attribute) }}</span>
-              <span class="stat-item race">{{ getRaceLabel(item.card.race) }}</span>
+              <span class="stat-item race" v-if="item.card.race">{{ getRaceLabel(item.card.race) }}</span>
               <span class="stat-item level">{{ getLevelLabel(item.card) }}</span>
               <span class="stat-item atk">ATK {{ item.card.atk ?? '?' }}</span>
               <span class="stat-item def" v-if="item.card.levelType !== 'link'">DEF {{ item.card.def ?? '?' }}</span>
-              <span class="stat-item type" v-for="type in item.card.types" :key="type">{{ getMonsterTypeLabel(type) }}</span>
+              <template v-for="type in item.card.types" :key="type">
+                <span class="stat-item type" v-if="type">{{ getMonsterTypeLabel(type) }}</span>
+              </template>
             </template>
             <!-- 魔法カード -->
             <template v-else-if="item.card.cardType === 'spell'">
@@ -542,6 +545,10 @@ export default {
     /* グリッド表示用のCSS変数を使用 */
     width: var(--card-width-grid);
   }
+
+  &.text-expanded {
+    min-height: auto;
+  }
 }
 
 .card-wrapper {
@@ -593,9 +600,36 @@ export default {
     border-radius: 4px;
     padding: 4px;
     margin: -4px;
+    position: relative;
+
+    // 展開可能インジケーター（右下三角のみフェード）
+    &:not(.expanded)::after {
+      content: '';
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, 
+        transparent 0%, 
+        transparent 40%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        rgba(255, 255, 255, 0.7) 70%, 
+        var(--card-bg, #fff) 100%);
+      pointer-events: none;
+    }
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+
+      &:not(.expanded)::after {
+        background: linear-gradient(135deg, 
+          transparent 0%, 
+          transparent 40%, 
+          rgba(245, 245, 245, 0.3) 50%, 
+          rgba(245, 245, 245, 0.7) 70%, 
+          var(--bg-secondary, #f5f5f5) 100%);
+      }
     }
   }
 

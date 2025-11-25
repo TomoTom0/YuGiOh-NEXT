@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import DeckSection from '../../../src/components/DeckSection.vue';
 import { useDeckEditStore } from '../../../src/stores/deck-edit';
+import { getTempCardDB } from '../../../src/utils/temp-card-db';
 
 describe('DeckSection.vue', () => {
   let pinia: any;
@@ -12,6 +13,24 @@ describe('DeckSection.vue', () => {
     pinia = createPinia();
     setActivePinia(pinia);
     store = useDeckEditStore();
+
+    // TempCardDBにカード情報を登録
+    const tempCardDB = getTempCardDB();
+    tempCardDB.clear();
+    tempCardDB.set('4011', {
+      cardId: '4011',
+      ciid: '1',
+      name: 'ブラック・マジシャン',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: 'hash1' }],
+    } as any);
+    tempCardDB.set('4012', {
+      cardId: '4012',
+      ciid: '1',
+      name: 'ブラック・マジシャン・ガール',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: 'hash2' }],
+    } as any);
   });
 
   const mockCards = [
@@ -50,12 +69,12 @@ describe('DeckSection.vue', () => {
     it('カード枚数が表示される', () => {
       // storeのdisplayOrderとdeckInfoを設定
       store.displayOrder.main = [
-        { cid: '4011', ciid: '1', uuid: 'uuid-1' },
-        { cid: '4012', ciid: '1', uuid: 'uuid-2' },
+        { cid: '4011', ciid: 1, uuid: 'uuid-1' },
+        { cid: '4012', ciid: 1, uuid: 'uuid-2' },
       ];
       store.deckInfo.mainDeck = [
-        { card: mockCards[0], quantity: 1 },
-        { card: mockCards[1], quantity: 1 },
+        { cid: '4011', ciid: '1', quantity: 1 },
+        { cid: '4012', ciid: '1', quantity: 1 },
       ];
 
       const wrapper = mount(DeckSection, {

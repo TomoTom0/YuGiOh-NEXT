@@ -1,11 +1,22 @@
 import axios from 'axios';
-import { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
-import { DeckCard } from '@/types/card';
+import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/deck';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { detectLanguage } from '@/utils/language-detector';
+import { getTempCardDB } from '@/utils/temp-card-db';
+import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 
-const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+const API_ENDPOINT_OCG = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
+const API_ENDPOINT_RUSH = 'https://www.db.yugioh-card.com/rushdb/member_deck.action';
+
+/**
+ * 現在のURLからRush/OCGを判定してAPIエンドポイントを返す
+ */
+function getApiEndpoint(): string {
+  const pathname = window.location.pathname;
+  const isRush = pathname.startsWith('/rushdb/');
+  return isRush ? API_ENDPOINT_RUSH : API_ENDPOINT_OCG;
+}
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -16,20 +27,41 @@ const API_ENDPOINT = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
-    const response = await axios.get(`${API_ENDPOINT}?ope=6&cgid=${cgid}`, {
+    const API_ENDPOINT = getApiEndpoint();
+    
+    // デッキ一覧（ope=4）からytknを取得
+    const ytkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
+    
+    if (!ytkn) {
+      console.error('[createNewDeckInternal] Failed to fetch ytkn');
+      return 0;
+    }
+    
+    const wname = 'MemberDeck';
+    
+    // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
+    const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
+    
+    const response = await axios.get(url, {
       withCredentials: true
     });
 
     const html = response.data;
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-
-    const dnoInput = doc.querySelector('input[name="dno"]') as HTMLInputElement;
-    const dno = dnoInput?.value ? parseInt(dnoInput.value, 10) : 0;
-
-    return dno;
+    
+    // デッキ一覧をパースして最大のdnoを取得
+    const deckList = parseDeckList(doc);
+    
+    if (deckList.length === 0) {
+      console.error('[createNewDeckInternal] No decks found in list after creation');
+      return 0;
+    }
+    
+    const maxDno = Math.max(...deckList.map(deck => deck.dno));
+    return maxDno;
   } catch (error) {
-    console.error('Failed to create new deck:', error);
+    console.error('[createNewDeckInternal] Failed to create new deck:', error);
     return 0;
   }
 }
@@ -43,22 +75,55 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
  * @internal SessionManager経由で呼び出すこと
  */
 export async function duplicateDeckInternal(cgid: string, dno: number): Promise<number> {
+  // ope=8は複製後の編集画面を開くだけで、実際の複製は行わない
+  // TODO: デッキ保存を使って複製を実装する必要がある
+  console.error('[duplicateDeckInternal] Not implemented yet. Use deck save to duplicate.');
+  return 0;
+}
+
+/**
+ * デッキを削除する
+ * 
+ * @param cgid ユーザー識別子
+ * @param dno デッキ番号
+ * @returns 成功時true、失敗時false
+ * @internal SessionManager経由で呼び出すこと
+ */
+export async function deleteDeckInternal(cgid: string, dno: number): Promise<boolean> {
   try {
-    const response = await axios.get(`${API_ENDPOINT}?ope=8&cgid=${cgid}&dno=${dno}`, {
+    const API_ENDPOINT = getApiEndpoint();
+    
+    // デッキ詳細（ope=1）からytknを取得
+    const ytkn = await fetchYtknFromEditForm(cgid, dno, API_ENDPOINT);
+    
+    if (!ytkn) {
+      console.error('[deleteDeckInternal] Failed to fetch ytkn');
+      return false;
+    }
+    
+    const wname = 'MemberDeck';
+    const requestLocale = detectLanguage(document);
+    
+    // URLを構築
+    const params = new URLSearchParams({
+      cgid,
+      request_locale: requestLocale,
+      dno: dno.toString(),
+      ope: '7',
+      wname,
+      ytkn
+    });
+    
+    const url = `${API_ENDPOINT}?${params.toString()}`;
+    
+    const response = await axios.get(url, {
       withCredentials: true
     });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const dnoInput = doc.querySelector('input[name="dno"]') as HTMLInputElement;
-    const newDno = dnoInput?.value ? parseInt(dnoInput.value, 10) : 0;
-
-    return newDno;
+    
+    return response.status === 200;
   } catch (error) {
-    console.error('Failed to duplicate deck:', error);
-    return 0;
+    console.error('[deleteDeckInternal] Failed to delete deck:', error);
+    return false;
   }
 }
 
@@ -129,11 +194,16 @@ export async function saveDeckInternal(
     const TOTAL_MAIN_SLOTS = 65;  // メイン: モンスター/魔法/罠それぞれ65枠
     const TOTAL_EXTRA_SLOTS = 20;  // エクストラ: 20枠
     const TOTAL_SIDE_SLOTS = 20;   // サイド: 20枠
-    
+
+    const tempCardDB = getTempCardDB();
+
     // メインデッキ: モンスター（実カード→空き枠）
-    const mainMonsters = deckData.mainDeck.filter(c => c.card.cardType === 'monster');
-    mainMonsters.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainMonsters = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'monster';
+    });
+    mainMonsters.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
       params.append('monm', '');
@@ -141,11 +211,14 @@ export async function saveDeckInternal(
       params.append('monsterCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // メインデッキ: 魔法（実カード→空き枠）
-    const mainSpells = deckData.mainDeck.filter(c => c.card.cardType === 'spell');
-    mainSpells.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainSpells = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'spell';
+    });
+    mainSpells.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
       params.append('spnm', '');
@@ -153,11 +226,14 @@ export async function saveDeckInternal(
       params.append('spellCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // メインデッキ: 罠（実カード→空き枠）
-    const mainTraps = deckData.mainDeck.filter(c => c.card.cardType === 'trap');
-    mainTraps.forEach(card => {
-      appendCardToFormData(params, card, 'main');
+    const mainTraps = deckData.mainDeck.filter(c => {
+      const card = tempCardDB.get(c.cid);
+      return card?.cardType === 'trap';
+    });
+    mainTraps.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'main');
     });
     for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
       params.append('trnm', '');
@@ -165,10 +241,10 @@ export async function saveDeckInternal(
       params.append('trapCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // エクストラデッキ（実カード→空き枠）
-    deckData.extraDeck.forEach(card => {
-      appendCardToFormData(params, card, 'extra');
+    deckData.extraDeck.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'extra');
     });
     for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
       params.append('exnm', '');
@@ -176,10 +252,10 @@ export async function saveDeckInternal(
       params.append('extraCardId', '');
       params.append('imgs', 'null_null_null_null');
     }
-    
+
     // サイドデッキ（実カード→空き枠）
-    deckData.sideDeck.forEach(card => {
-      appendCardToFormData(params, card, 'side');
+    deckData.sideDeck.forEach(cardRef => {
+      appendCardToFormData(params, cardRef, 'side');
     });
     for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
       params.append('sinm', '');
@@ -189,13 +265,11 @@ export async function saveDeckInternal(
     }
 
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
     const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
     
-    console.log('[saveDeckInternal] POST URL:', postUrl);
-    console.log('[saveDeckInternal] POST data:', encoded_params);
-    //console.log('[saveDeckInternal] Total length:', params.toString().length);
-    //console.log('[saveDeckInternal] Sending request...');
+
     
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
@@ -208,13 +282,10 @@ export async function saveDeckInternal(
       }
     });
 
-    console.log('[saveDeckInternal] Response received');
-    
     const data = response.data;
     
     // 公式の判定方法に合わせる
     if (data.result) {
-      console.log('[saveDeckInternal] ✅ Save successful');
       return { success: true };
     } else {
       if (data.error) {
@@ -241,55 +312,6 @@ export async function saveDeckInternal(
 }
 
 /**
- * デッキを削除する（内部関数）
- *
- * @param cgid ユーザー識別子
- * @param dno デッキ番号
- * @param ytkn CSRFトークン
- * @returns 操作結果
- * @internal SessionManager経由で呼び出すこと
- */
-export async function deleteDeckInternal(
-  cgid: string,
-  dno: number,
-  ytkn: string
-): Promise<OperationResult> {
-  try {
-    const formData = new FormData();
-    formData.append('ope', '7');
-    formData.append('cgid', cgid);
-    formData.append('dno', dno.toString());
-    formData.append('ytkn', ytkn);
-
-    const response = await axios.post(API_ENDPOINT, formData, {
-      withCredentials: true
-    });
-
-    const html = response.data;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // エラーチェック
-    const errorElements = doc.querySelectorAll('.error');
-    if (errorElements.length > 0) {
-      const errors = Array.from(errorElements).map(el => el.textContent?.trim() || '');
-      return {
-        success: false,
-        error: errors
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to delete deck:', error);
-    return {
-      success: false,
-      error: [error instanceof Error ? error.message : 'Unknown error']
-    };
-  }
-}
-
-/**
  * FormDataにカード情報を追加する
  *
  * @param formData FormDataオブジェクト
@@ -305,10 +327,17 @@ export async function deleteDeckInternal(
  */
 function appendCardToFormData(
   target: FormData | URLSearchParams,
-  deckCard: DeckCard,
+  deckCardRef: DeckCardRef,
   deckType: 'main' | 'extra' | 'side'
 ): void {
-  const { card, quantity } = deckCard;
+  const { cid, ciid, quantity } = deckCardRef;
+  const tempCardDB = getTempCardDB();
+  const card = tempCardDB.get(cid);
+
+  if (!card) {
+    console.error(`[appendCardToFormData] Card not found in TempCardDB: ${cid}`);
+    return;
+  }
 
   if (deckType === 'main') {
     // メインデッキ: カードタイプ別のフィールド名
@@ -333,22 +362,22 @@ function appendCardToFormData(
 
     target.append(nameField, card.name);
     target.append(numField, quantity.toString());
-    target.append(cardIdField, card.cardId);
-    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
-    
+    target.append(cardIdField, cid);
+    target.append('imgs', `${cid}_${ciid}_1_1`);
+
   } else if (deckType === 'extra') {
     // エクストラデッキ: 統一フィールド名
     target.append('exnm', card.name);
     target.append('exnum', quantity.toString());
-    target.append('extraCardId', card.cardId);
-    target.append('imgs', `${card.cardId}_${card.ciid}_1_1`);
-    
+    target.append('extraCardId', cid);
+    target.append('imgs', `${cid}_${ciid}_1_1`);
+
   } else {
     // サイドデッキ: 統一フィールド名（imgsフィールド名が異なる）
     target.append('sinm', card.name);
     target.append('sinum', quantity.toString());
-    target.append('sideCardId', card.cardId);
-    target.append('imgsSide', `${card.cardId}_${card.ciid}_1_1`);
+    target.append('sideCardId', cid);
+    target.append('imgsSide', `${cid}_${ciid}_1_1`);
   }
 }
 
@@ -372,6 +401,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
   try {
     console.log('[getDeckDetail] Loading deck:', dno, 'cgid:', cgid);
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
 
     // URLパラメータを構築
     const params = new URLSearchParams({
@@ -434,6 +464,7 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
   try {
     const requestLocale = detectLanguage(document);
+    const API_ENDPOINT = getApiEndpoint();
     
     // URLパラメータを構築
     const params = new URLSearchParams({

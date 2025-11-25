@@ -1,102 +1,18 @@
 <template>
   <div class="settings-panel">
     <div class="settings-section">
-      <h3 class="section-title">カードサイズ設定</h3>
-
-      <!-- デッキ編集用 -->
-      <div class="size-subsection">
-        <h4 class="subsection-title">デッキ編集</h4>
-        <div class="radio-group">
-          <label
-            v-for="size in cardSizes"
-            :key="`deck-${size.value}`"
-            class="radio-label"
-            :class="{ active: settingsStore.appSettings.deckEditCardSize === size.value }"
-          >
-            <input
-              type="radio"
-              :value="size.value"
-              v-model="settingsStore.appSettings.deckEditCardSize"
-              @change="handleDeckEditCardSizeChange"
-            />
-            <span class="radio-text">
-              {{ size.label }}
-              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
-            </span>
-          </label>
-        </div>
-      </div>
-
-      <!-- カード詳細用 -->
-      <div class="size-subsection">
-        <h4 class="subsection-title">カード詳細パネル</h4>
-        <div class="radio-group">
-          <label
-            v-for="size in cardSizes"
-            :key="`info-${size.value}`"
-            class="radio-label"
-            :class="{ active: settingsStore.appSettings.infoCardSize === size.value }"
-          >
-            <input
-              type="radio"
-              :value="size.value"
-              v-model="settingsStore.appSettings.infoCardSize"
-              @change="handleInfoCardSizeChange"
-            />
-            <span class="radio-text">
-              {{ size.label }}
-              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
-            </span>
-          </label>
-        </div>
-      </div>
-
-      <!-- グリッド表示用 -->
-      <div class="size-subsection">
-        <h4 class="subsection-title">グリッド表示</h4>
-        <div class="radio-group">
-          <label
-            v-for="size in cardSizes"
-            :key="`grid-${size.value}`"
-            class="radio-label"
-            :class="{ active: settingsStore.appSettings.gridCardSize === size.value }"
-          >
-            <input
-              type="radio"
-              :value="size.value"
-              v-model="settingsStore.appSettings.gridCardSize"
-              @change="handleGridCardSizeChange"
-            />
-            <span class="radio-text">
-              {{ size.label }}
-              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
-            </span>
-          </label>
-        </div>
-      </div>
-
-      <!-- リスト表示用 -->
-      <div class="size-subsection">
-        <h4 class="subsection-title">リスト表示</h4>
-        <div class="radio-group">
-          <label
-            v-for="size in cardSizes"
-            :key="`list-${size.value}`"
-            class="radio-label"
-            :class="{ active: settingsStore.appSettings.listCardSize === size.value }"
-          >
-            <input
-              type="radio"
-              :value="size.value"
-              v-model="settingsStore.appSettings.listCardSize"
-              @change="handleListCardSizeChange"
-            />
-            <span class="radio-text">
-              {{ size.label }}
-              <span class="size-info">{{ size.width }}×{{ size.height }}px</span>
-            </span>
-          </label>
-        </div>
+      <h3 class="section-title">カードサイズ</h3>
+      <div class="preset-grid">
+        <button
+          v-for="preset in sizePresets"
+          :key="preset.value"
+          class="preset-button"
+          :class="{ active: currentPreset === preset.value }"
+          @click="handlePresetChange(preset.value)"
+        >
+          <span class="preset-name">{{ preset.label }}</span>
+          <span class="preset-desc">{{ preset.description }}</span>
+        </button>
       </div>
     </div>
 
@@ -165,6 +81,19 @@
       </div>
     </div>
 
+    <div class="settings-section danger-section">
+      <h3 class="section-title">キャッシュ管理</h3>
+      <p class="section-description">
+        カード情報やデッキデータのキャッシュを削除します。動作が不安定な場合にお試しください。
+      </p>
+      <div class="cache-actions">
+        <button class="danger-button" @click="handleClearCache">
+          キャッシュを削除
+        </button>
+        <span class="cache-info" v-if="cacheInfo">{{ cacheInfo }}</span>
+      </div>
+    </div>
+
     <div class="settings-actions">
       <button class="reset-button" @click="handleReset">
         設定をリセット
@@ -177,19 +106,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
-import type { CardSize, Theme, Language, MiddleDecksLayout } from '../types/settings';
-import { CARD_SIZE_MAP } from '../types/settings';
+import type { Theme, Language, MiddleDecksLayout } from '../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveStatus = ref<string>('');
+const cacheInfo = ref<string>('');
 
-interface CardSizeOption {
-  value: CardSize;
+type SizePreset = 's' | 'm' | 'l' | 'xl';
+
+interface PresetOption {
+  value: SizePreset;
   label: string;
-  width: number;
-  height: number;
+  description: string;
 }
 
 interface ThemeOption {
@@ -208,12 +138,17 @@ interface LayoutOption {
   label: string;
 }
 
-const cardSizes = ref<CardSizeOption[]>([
-  { value: 'small', label: '小', ...CARD_SIZE_MAP.small },
-  { value: 'medium', label: '中', ...CARD_SIZE_MAP.medium },
-  { value: 'large', label: '大', ...CARD_SIZE_MAP.large },
-  { value: 'xlarge', label: '特大', ...CARD_SIZE_MAP.xlarge },
+const sizePresets = ref<PresetOption[]>([
+  { value: 's', label: 'S', description: '小さめ' },
+  { value: 'm', label: 'M', description: '標準' },
+  { value: 'l', label: 'L', description: '大きめ' },
+  { value: 'xl', label: 'XL', description: '特大' }
 ]);
+
+// 現在のプリセットを取得
+const currentPreset = computed<SizePreset | null>(() => {
+  return settingsStore.getCurrentPreset();
+});
 
 const themes = ref<ThemeOption[]>([
   { value: 'light', label: 'ライト', icon: '' },
@@ -240,28 +175,13 @@ const layouts = ref<LayoutOption[]>([
   { value: 'vertical', label: '縦並び（Extra / Side）' },
 ]);
 
-// カードサイズ変更時のハンドラー（デッキ編集用）
-const handleDeckEditCardSizeChange = () => {
-  settingsStore.setDeckEditCardSize(settingsStore.appSettings.deckEditCardSize);
-  showSaveStatus('デッキ編集のカードサイズを変更しました');
-};
+// プリセット変更時のハンドラー
+const handlePresetChange = (presetValue: SizePreset) => {
+  const preset = sizePresets.value.find(p => p.value === presetValue);
+  if (!preset) return;
 
-// カードサイズ変更時のハンドラー（カード詳細用）
-const handleInfoCardSizeChange = () => {
-  settingsStore.setInfoCardSize(settingsStore.appSettings.infoCardSize);
-  showSaveStatus('カード詳細のカードサイズを変更しました');
-};
-
-// カードサイズ変更時のハンドラー（グリッド表示用）
-const handleGridCardSizeChange = () => {
-  settingsStore.setGridCardSize(settingsStore.appSettings.gridCardSize);
-  showSaveStatus('グリッド表示のカードサイズを変更しました');
-};
-
-// カードサイズ変更時のハンドラー（リスト表示用）
-const handleListCardSizeChange = () => {
-  settingsStore.setListCardSize(settingsStore.appSettings.listCardSize);
-  showSaveStatus('リスト表示のカードサイズを変更しました');
+  settingsStore.setCardSizePreset(presetValue);
+  showSaveStatus(`カードサイズを「${preset.label}」に変更しました`);
 };
 
 // テーマ変更時のハンドラー
@@ -285,10 +205,34 @@ const handleLayoutChange = () => {
 
 // リセットハンドラー
 const handleReset = async () => {
-  if (confirm('すべての設定を初期値に戻します。よろしいですか？')) {
-    await settingsStore.resetSettings();
-    showSaveStatus('設定をリセットしました');
-  }
+  await settingsStore.resetSettings();
+  showSaveStatus('設定をリセットしました');
+};
+
+// キャッシュ削除ハンドラー
+const handleClearCache = async () => {
+    try {
+      // Use UnifiedCacheDB and TempCardDB APIs to clear caches properly
+      const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
+      const { getTempCardDB } = await import('@/utils/temp-card-db');
+
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.clearAll();
+
+      const tempDB = getTempCardDB();
+      await tempDB.clearStorage();
+
+      cacheInfo.value = 'キャッシュを削除しました';
+      setTimeout(() => {
+        cacheInfo.value = '';
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      cacheInfo.value = 'キャッシュの削除に失敗しました';
+      setTimeout(() => {
+        cacheInfo.value = '';
+      }, 3000);
+    }
 };
 
 // 保存ステータスを表示
@@ -326,6 +270,47 @@ onMounted(async () => {
   color: var(--text-primary);
   margin: 0 0 16px 0;
   font-weight: 500;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.preset-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--card-bg);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #00d9b8;
+    background: linear-gradient(135deg, rgba(0, 217, 184, 0.05) 0%, rgba(0, 140, 255, 0.05) 100%);
+  }
+
+  &.active {
+    border-color: #00d9b8;
+    background: linear-gradient(135deg, rgba(0, 217, 184, 0.1) 0%, rgba(0, 140, 255, 0.1) 100%);
+    box-shadow: 0 2px 8px rgba(0, 217, 184, 0.2);
+  }
+}
+
+.preset-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.preset-desc {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .size-subsection {
@@ -498,5 +483,44 @@ onMounted(async () => {
   to {
     opacity: 1;
   }
+}
+
+.danger-section {
+  border-color: #ffcdd2;
+  background-color: #fff8f8;
+}
+
+.section-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.cache-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.danger-button {
+  padding: 10px 20px;
+  font-size: 14px;
+  color: white;
+  background-color: #d32f2f;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #b71c1c;
+  }
+}
+
+.cache-info {
+  font-size: 13px;
+  color: var(--color-success);
+  animation: fadeIn 0.3s ease;
 }
 </style>
