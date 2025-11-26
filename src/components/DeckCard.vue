@@ -311,7 +311,7 @@ export default {
         this.deckStore.selectedCard = {
           ...fullCard,
           imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
-          ciid: fullCard.ciid || this.card.ciid
+          ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
       } catch (e) {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
