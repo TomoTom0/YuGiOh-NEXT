@@ -387,17 +387,29 @@ export interface CardTableB {
 }
 
 /**
- * CardTableC: テキスト・関連情報
- * 対象: Tier 3以上（詳細表示したカード）
- * 用途: カード詳細タブ表示
+ * CardTableB2: カードテキスト
+ * 対象: Tier 0以上
+ * 用途: カード効果テキストの表示
  */
-export interface CardTableC {
+export interface CardTableB2 {
   /** カードID (PK) */
   cardId: string;
   /** 効果テキスト */
   text?: string;
   /** ペンデュラムテキスト */
   pendText?: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * CardTableC: テキスト補足・関連情報
+ * 対象: Tier 3以上（詳細表示したカード）
+ * 用途: カード詳細タブ表示
+ */
+export interface CardTableC {
+  /** カードID (PK) */
+  cardId: string;
 
   // 補足情報
   /** カードテキストの補足情報 */

@@ -8,6 +8,7 @@ import type {
   DeckOpenHistory,
   CardTableA,
   CardTableB,
+  CardTableB2,
   CardTableC,
   ProductTableA,
   ProductTableB,
@@ -27,6 +28,7 @@ const STORAGE_KEYS = {
   deckOpenHistory: 'deckOpenHistory',
   cardTableA: 'cardTableA',
   cardTableB: 'cardTableB',
+  cardTableB2: 'cardTableB2',
   productTableA: 'productTableA',
   productTableB: 'productTableB',
   faqTableA: 'faqTableA',
@@ -83,6 +85,7 @@ export class UnifiedCacheDB {
   private deckOpenHistory: DeckOpenHistory = { recentDecks: [] };
   private cardTableA: Map<string, CardTableA> = new Map();
   private cardTableB: Map<string, CardTableB> = new Map();
+  private cardTableB2: Map<string, CardTableB2> = new Map();
   private productTableA: Map<string, ProductTableA> = new Map();
   private productTableB: Map<string, ProductTableB> = new Map();
   private faqTableA: Map<string, FAQTableA> = new Map();
@@ -112,6 +115,7 @@ export class UnifiedCacheDB {
       this.loadDeckOpenHistory(),
       this.loadCardTableA(),
       this.loadCardTableB(),
+      this.loadCardTableB2(),
       this.loadProductTableA(),
       this.loadFAQTableA(),
       this.loadMoveHistory()
@@ -156,7 +160,7 @@ export class UnifiedCacheDB {
 
   private async loadDeckOpenHistory(): Promise<void> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.deckOpenHistory);
-    const data = result[STORAGE_KEYS.deckOpenHistory];
+    const data = result[STORAGE_KEYS.deckOpenHistory] as DeckOpenHistory | undefined;
     if (data) {
       this.deckOpenHistory = data;
       console.log(`[UnifiedCacheDB] Loaded deck history with ${this.deckOpenHistory.recentDecks.length} decks`);
@@ -178,6 +182,15 @@ export class UnifiedCacheDB {
     if (data && typeof data === 'object') {
       this.cardTableB = new Map(Object.entries(data));
       console.log(`[UnifiedCacheDB] Loaded ${this.cardTableB.size} cards (TableB)`);
+    }
+  }
+
+  private async loadCardTableB2(): Promise<void> {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.cardTableB2);
+    const data = result[STORAGE_KEYS.cardTableB2];
+    if (data && typeof data === 'object') {
+      this.cardTableB2 = new Map(Object.entries(data));
+      console.log(`[UnifiedCacheDB] Loaded ${this.cardTableB2.size} cards (TableB2)`);
     }
   }
 
@@ -225,6 +238,7 @@ export class UnifiedCacheDB {
       this.saveDeckOpenHistory(),
       this.saveCardTableA(),
       this.saveCardTableB(),
+      this.saveCardTableB2(),
       this.saveProductTableA(),
       this.saveFAQTableA()
       , this.saveMoveHistory()
@@ -257,6 +271,11 @@ export class UnifiedCacheDB {
   private async saveCardTableB(): Promise<void> {
     const data = Object.fromEntries(this.cardTableB);
     await chrome.storage.local.set({ [STORAGE_KEYS.cardTableB]: data });
+  }
+
+  private async saveCardTableB2(): Promise<void> {
+    const data = Object.fromEntries(this.cardTableB2);
+    await chrome.storage.local.set({ [STORAGE_KEYS.cardTableB2]: data });
   }
 
   private async saveProductTableA(): Promise<void> {
@@ -354,6 +373,18 @@ export class UnifiedCacheDB {
 
     this.cardTableB.set(card.cardId, tableB);
 
+    // TableB2 (text, pendText)
+    const cardAny = card as any;
+    if (cardAny.text || cardAny.pendulumEffect) {
+      const tableB2: CardTableB2 = {
+        cardId: card.cardId,
+        text: cardAny.text,
+        pendText: cardAny.pendulumEffect,
+        fetchedAt: now
+      };
+      this.cardTableB2.set(card.cardId, tableB2);
+    }
+
     // Tierテーブル更新（検索表示として記録）
     this.updateCardTier(card.cardId, { lastSearched: now });
 
@@ -372,7 +403,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as CardTableC | undefined;
     if (data) {
       this.cardTableCCache.set(cardId, data);
       return data;
@@ -409,7 +440,7 @@ export class UnifiedCacheDB {
       // メモリにない場合はストレージから読み込み
       const key = STORAGE_KEYS.cardTableCPrefix + cardId;
       const result = await chrome.storage.local.get(key);
-      const data = result[key];
+      const data = result[key] as CardTableC | undefined;
       if (data) {
         data.fetchedAt = Date.now();
         this.cardTableCCache.set(cardId, data);
@@ -521,7 +552,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.productTableBPrefix + packId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as ProductTableB | undefined;
     if (data) {
       this.productTableB.set(packId, data);
       return data;
@@ -581,7 +612,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.faqTableBPrefix + faqId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as FAQTableB | undefined;
     if (data) {
       data.lastAccessedAt = Date.now();
       this.faqTableB.set(faqId, data);
@@ -746,16 +777,23 @@ export class UnifiedCacheDB {
       } as CardInfo;
     }
 
+    // TableB2からtext/pendTextをマージ
+    const tableB2 = this.cardTableB2.get(cardId);
+    if (tableB2) {
+      const anyCard: any = resultCard as any;
+      if (tableB2.text) anyCard.text = tableB2.text;
+      if (tableB2.pendText) anyCard.pendulumEffect = tableB2.pendText;
+    }
+
     // Synchronous merge: if CardTableC for this card is present in the in-memory cache,
-    // copy detail fields (text / pendText) into the reconstructed CardInfo.
+    // copy detail fields into the reconstructed CardInfo.
     // This is purely in-memory (Map lookup) and does not perform async storage access,
     // so it introduces negligible latency.
     try {
       const tableC = this.cardTableCCache.get(cardId)
       if (tableC) {
-        const anyCard: any = resultCard as any
-        if (tableC.text) anyCard.text = tableC.text
-        if (tableC.pendText) anyCard.pendulumEffect = tableC.pendText
+        // TableCにはtext/pendTextは含まれなくなったので、ここでは何もしない
+        // 将来的にTableCに他のフィールドが追加されたらここでマージ
       }
     } catch (e) {
       // Defensive: don't break reconstruction on merge errors

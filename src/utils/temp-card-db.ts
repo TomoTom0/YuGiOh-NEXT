@@ -205,21 +205,12 @@ export class TempCardDB {
       this.cards.clear();
 
       for (const [cardId, cardInfo] of allCardInfos) {
-        // Try to load CardTableC (detail) and merge text/pendulum info if available
-        let mergedCard = { ...cardInfo } as any
-        try {
-          const tableC = await unifiedDB.getCardTableC(cardId)
-          if (tableC) {
-            if (tableC.text) mergedCard.text = tableC.text
-            if (tableC.pendText) mergedCard.pendulumEffect = tableC.pendText
-          }
-        } catch (e) {
-          // ignore
-        }
+        // cardInfoには既にTableB2からtext/pendTextがマージされている
+        // （reconstructCardInfo()内で処理済み）
 
         // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）。
         this.cards.set(cardId, {
-          card: mergedCard,
+          card: cardInfo,
           lastUpdated: now
         });
       }

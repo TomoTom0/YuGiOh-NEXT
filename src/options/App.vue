@@ -266,14 +266,15 @@ const saveSettings = () => {
 // 設定の読み込み
 const loadSettings = () => {
   chrome.storage.local.get(['featureSettings'], (result) => {
-    if (result.featureSettings) {
-      Object.keys(result.featureSettings).forEach(key => {
+    const featureSettings = result.featureSettings as Record<string, boolean> | undefined;
+    if (featureSettings) {
+      Object.keys(featureSettings).forEach(key => {
         const feature = deckDisplayFeatures.find(f => f.id === key);
         if (feature) {
-          feature.enabled = result.featureSettings[key];
+          feature.enabled = featureSettings[key];
         } else if (key === deckEditScreen.id || key === 'deck-edit') {
           // 旧ID 'deck-edit' との互換性を保つ
-          deckEditScreen.enabled = result.featureSettings[key];
+          deckEditScreen.enabled = featureSettings[key];
         }
       });
     }

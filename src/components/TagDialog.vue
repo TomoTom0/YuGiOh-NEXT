@@ -12,67 +12,76 @@
               :key="id"
               class="tag-chip"
               :data-type="getTagType(id)"
+              :data-value="id"
+              :data-label="getTagLabel(id)"
               @click="toggleTag(id)"
             >
               {{ getTagLabel(id) }}
               <span class="chip-remove">×</span>
             </span>
           </div>
+          <!-- クリアボタン（選択済みチップがある場合のみ表示） -->
+          <button v-if="selectedTags.length > 0" class="btn-icon btn-clear-action" @click="clearAll" title="Clear All">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
           <button class="close-btn" @click="close" title="Close">×</button>
         </div>
       </div>
 
-      <!-- フィルタタブとアクションボタン -->
-      <div class="filter-and-actions">
-        <div class="action-buttons-left">
-          <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Reset Filter">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
-            </svg>
-          </button>
-          <button class="btn btn-icon" @click="clearAll" title="Clear All">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
-            </svg>
-          </button>
-        </div>
-        <div class="filter-tabs">
-          <button
-            class="tab-btn"
-            :class="{ active: selectedGroup === 'all' }"
-            @click="selectedGroup = 'all'"
-          >
-            all
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: selectedGroup === 'others' }"
-            @click="selectedGroup = 'others'"
-          >
-            others
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: selectedGroup === 'attr' }"
-            @click="selectedGroup = 'attr'"
-          >
-            attr
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: selectedGroup === 'race' }"
-            @click="selectedGroup = 'race'"
-          >
-            race
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: selectedGroup === 'type' }"
-            @click="selectedGroup = 'type'"
-          >
-            type
-          </button>
-        </div>
+      <!-- 検索行 -->
+      <div class="search-row">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Search tags..."
+        />
+        <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="toggleFilter" title="Filter (枚数基準)">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- タブ -->
+      <div class="filter-tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: selectedGroup === 'all' }"
+          @click="selectedGroup = 'all'"
+        >
+          all
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: selectedGroup === 'others' }"
+          @click="selectedGroup = 'others'"
+        >
+          others
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: selectedGroup === 'attr' }"
+          @click="selectedGroup = 'attr'"
+        >
+          attr
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: selectedGroup === 'race' }"
+          @click="selectedGroup = 'race'"
+        >
+          race
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: selectedGroup === 'type' }"
+          @click="selectedGroup = 'type'"
+        >
+          type
+        </button>
       </div>
 
       <!-- タグリスト -->
@@ -102,13 +111,21 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
-import { classifyTagById, getMonsterTypeFromLabel, type TagGroup } from '@/constants/tag-master-data';
+import { 
+  classifyTagById, 
+  getMonsterTypeFromLabel, 
+  type TagGroup,
+  TAG_ID_TO_ATTR,
+  TAG_ID_TO_RACE,
+  TAG_ID_TO_MONSTER_TYPE
+} from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
 
 const props = defineProps<{
   isVisible: boolean;
   tags: Array<{ value: string; label: string }>;
   modelValue: string[];
+  deckCards: any[];
 }>();
 
 const emit = defineEmits<{
@@ -118,16 +135,35 @@ const emit = defineEmits<{
 
 const selectedTags = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<TagGroup | 'all'>('all');
+const isFilterEnabled = ref<boolean>(false);
+const searchQuery = ref<string>('');
+
+// ダイアログが開かれた時にフィルタをリセット
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    isFilterEnabled.value = false;
+    searchQuery.value = '';
+  }
+});
+
+// デッキ内のモンスター総数を取得
+const totalMonsterCount = computed(() => {
+  return props.deckCards.filter(card => card.cardType === 'monster').length;
+});
 
 // グループの表示順序
 const GROUP_ORDER: (TagGroup | 'all')[] = ['attr', 'race', 'type', 'others'];
 
-// タグにグループ情報を付与し、グループごとにソート
+// タグにグループ情報と内部キーを付与し、グループごとにソート
 const tagsWithGroups = computed<TagEntry[]>(() => {
-  const tagged = props.tags.map(tag => ({
-    ...tag,
-    group: classifyTagById(tag.value)
-  }));
+  const tagged = props.tags.map(tag => {
+    const group = classifyTagById(tag.value);
+    return {
+      ...tag,
+      group,
+      internalKey: getInternalKey(tag.value, group)
+    };
+  });
 
   // グループ順でソート
   return tagged.sort((a, b) => {
@@ -137,13 +173,119 @@ const tagsWithGroups = computed<TagEntry[]>(() => {
   });
 });
 
+// タグIDから内部キー（英語キー）を取得
+function getInternalKey(tagValue: string, group: TagGroup): string | undefined {
+  switch (group) {
+    case 'attr':
+      return TAG_ID_TO_ATTR[tagValue];
+    case 'race':
+      return TAG_ID_TO_RACE[tagValue];
+    case 'type':
+      return TAG_ID_TO_MONSTER_TYPE[tagValue];
+    default:
+      return undefined;
+  }
+}
+
+// タグに一致するモンスターの枚数をカウント
+function countMonstersWithTag(tag: TagEntry): number {
+  return props.deckCards.filter(card => {
+    if (card.cardType !== 'monster') return false;
+    
+    const monsterCard = card as any;
+    
+    // internalKeyを使って直接比較
+    switch (tag.group) {
+      case 'attr':
+        return tag.internalKey ? monsterCard.attribute === tag.internalKey : false;
+      case 'race':
+        return tag.internalKey ? monsterCard.race === tag.internalKey : false;
+      case 'type':
+        // typesは英語キーの配列なので、internalKeyで比較
+        return tag.internalKey ? (monsterCard.types && monsterCard.types.includes(tag.internalKey)) : false;
+      default:
+        return false;
+    }
+  }).length;
+}
+
 // フィルタされたタグ
 const filteredTags = computed(() => {
-  if (selectedGroup.value === 'all') {
-    return tagsWithGroups.value;
+  let tags = tagsWithGroups.value;
+  
+  // グループフィルタ
+  if (selectedGroup.value !== 'all') {
+    tags = tags.filter(tag => tag.group === selectedGroup.value);
   }
-  return tagsWithGroups.value.filter(tag => tag.group === selectedGroup.value);
+  
+  // 検索フィルタ
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase();
+    tags = tags.filter(tag => tag.label.toLowerCase().includes(query));
+  }
+  
+  // 枚数フィルタ: 各グループごとに基準を満たすもののみ表示
+  if (isFilterEnabled.value) {
+    tags = tags.filter(tag => {
+      // モンスター関連以外のタグは除外
+      if (tag.group === 'others') {
+        return false;
+      }
+      
+      const count = countMonstersWithTag(tag);
+      
+      switch (tag.group) {
+        case 'attr':
+          // 神属性かつ1枚以上、または全体の1/4以上
+          if (tag.internalKey === 'divine') {
+            return count >= 1;
+          }
+          return count >= totalMonsterCount.value / 4;
+          
+        case 'race':
+          // 幻神獣族または創造神族かつ1枚以上、または全体の1/4以上
+          if (tag.internalKey === 'divine' || tag.internalKey === 'creatorgod') {
+            return count >= 1;
+          }
+          return count >= totalMonsterCount.value / 4;
+          
+        case 'type': {
+          // モンスタータイプ別の処理
+          const monsterType = getMonsterTypeFromLabel(tag.label);
+          
+          // エクストラデッキタイプ: エクストラデッキで7枚以上
+          if (['fusion', 'synchro', 'xyz', 'link'].includes(monsterType)) {
+            // エクストラデッキのこのタイプの枚数をカウント
+            const extraCount = props.deckCards.filter(card => {
+              if (card.cardType !== 'monster') return false;
+              const monsterCard = card as any;
+              if (!monsterCard.isExtraDeck) return false;
+              
+              // tag.internalKey（英語キー）と一致するかチェック
+              const cardTypes = monsterCard.types || [];
+              return tag.internalKey && cardTypes.includes(tag.internalKey);
+            }).length;
+            return extraCount >= 7;
+          }
+          
+          // その他のモンスタータイプ: 7枚以上
+          return count >= 7;
+        }
+        
+        default:
+          return false;
+      }
+    });
+  }
+  
+  return tags;
 });
+
+// フィルタトグル
+function toggleFilter(): void {
+  isFilterEnabled.value = !isFilterEnabled.value;
+  console.log('Tag filter:', isFilterEnabled.value ? 'ON' : 'OFF');
+}
 
 // タグラベルを取得
 function getTagLabel(tagId: string): string {
@@ -255,11 +397,45 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 28px;
   align-items: center;
   overflow-y: auto;
   flex: 1;
   max-height: 56px;
+}
+
+.btn-clear-action {
+  background: #f5f5f5;
+  border-color: #e0e0e0;
+}
+
+.btn-clear-action:hover {
+  background: #ffebee;
+  border-color: #ef5350;
+  color: #c62828;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--bg-color, #fff);
+  color: var(--text-color, #333);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .tag-chip {
@@ -408,6 +584,18 @@ watch(() => props.modelValue, (newVal) => {
   color: #333;
 }
 
+.btn-icon.active {
+  background: #1976d2;
+  border-color: #1565c0;
+  color: #ffffff;
+}
+
+.btn-icon.active:hover {
+  background: #1565c0;
+  border-color: #0d47a1;
+  color: #ffffff;
+}
+
 .btn-icon svg {
   width: 16px;
   height: 16px;
@@ -419,7 +607,8 @@ watch(() => props.modelValue, (newVal) => {
 .filter-tabs {
   display: flex;
   gap: 8px;
-  flex: 1;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
 }
 
 .tab-btn {

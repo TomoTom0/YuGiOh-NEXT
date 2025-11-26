@@ -1,26 +1,24 @@
 <template>
   <div class="card-list-wrapper">
-    <div class="floating-buttons">
-      <button
-        class="floating-btn"
-        @click="$emit('scroll-to-top')"
-        title="トップへ"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
-        </svg>
-      </button>
-      <button
-        v-if="showCollapseButton"
-        class="floating-btn"
-        @click="$emit('collapse')"
-        title="縮小"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M19,13H5V11H19V13Z" />
-        </svg>
-      </button>
-    </div>
+    <button
+      v-if="showCollapseButton"
+      class="floating-btn collapse-btn"
+      @click="$emit('collapse')"
+      title="縮小"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+      </svg>
+    </button>
+    <button
+      class="floating-btn scroll-top-btn"
+      @click="$emit('scroll-to-top')"
+      title="トップへ"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+      </svg>
+    </button>
     <div class="card-list-toolbar">
       <div class="toolbar-left">
         <div class="sort-wrapper">
@@ -337,16 +335,20 @@ export default {
   position: relative;
 }
 
-.floating-buttons {
+.collapse-btn {
   position: sticky;
-  top: 8px;
-  left: 8px;
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-  z-index: 20;
-  margin: 0 0 -28px 8px;
-  width: 52px;
+  top: 4px;
+  left: 4px;
+  z-index: 5;
+  margin: 0 0 -28px 0;
+}
+
+.scroll-top-btn {
+  position: sticky;
+  top: 4px;
+  left: 40px;
+  z-index: 5;
+  margin: 0 0 -28px 0;
 }
 
 .floating-btn {

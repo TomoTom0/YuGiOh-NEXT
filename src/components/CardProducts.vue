@@ -339,7 +339,7 @@ export default {
 .pack-collapse-btn-sticky {
   position: sticky;
   bottom: 8px;
-  left: 8px;
+  left: 4px;
   width: 32px;
   height: 32px;
   border: 1px solid #ddd;

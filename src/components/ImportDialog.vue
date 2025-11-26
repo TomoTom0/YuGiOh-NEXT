@@ -1,10 +1,9 @@
 <template>
-  <div v-if="isVisible" class="import-dialog-overlay" @click.self="close">
-    <div class="import-dialog">
-      <div class="dialog-header">
-        <h3>Import Deck</h3>
-        <button class="close-btn" @click="close" title="Close">×</button>
-      </div>
+  <div v-if="isVisible" class="import-dialog">
+    <div class="dialog-header">
+      <h3>Import Deck</h3>
+      <button class="close-btn" @click="close" title="Close">×</button>
+    </div>
 
       <div class="dialog-body">
         <!-- ファイル選択 -->
@@ -68,13 +67,13 @@
           Import
         </button>
       </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { importDeckFromFile } from '@/utils/deck-import';
+import { useDeckEditStore } from '@/stores/deck-edit';
 // @ts-ignore - Used in defineEmits type
 import type { DeckInfo } from '@/types/deck';
 
@@ -114,7 +113,9 @@ const errorMessage = ref<string>('');
 const replaceExisting = ref(true);
 
 // ダイアログが閉じられたらリセット
+const deckStore = useDeckEditStore();
 watch(() => props.isVisible, (visible) => {
+  deckStore.overlayVisible = visible;
   if (!visible) {
     resetDialog();
   }
@@ -194,20 +195,12 @@ function handleImport() {
 </script>
 
 <style scoped>
-.import-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
 .import-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10010;
   background: var(--bg-primary, #ffffff);
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
