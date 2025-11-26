@@ -121,6 +121,13 @@ const selectedTags = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<TagGroup | 'all'>('all');
 const isFilterEnabled = ref<boolean>(false);
 
+// ダイアログが開かれた時にフィルタをリセット
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    isFilterEnabled.value = false;
+  }
+});
+
 // フィルタの枚数基準（後から変更可能）
 const FILTER_THRESHOLD_ATTR = ref<number>(3);
 const FILTER_THRESHOLD_RACE = ref<number>(3);
@@ -176,6 +183,11 @@ const filteredTags = computed(() => {
   // 枚数フィルタ: 各グループごとに基準枚数以上のみ表示
   if (isFilterEnabled.value) {
     tags = tags.filter(tag => {
+      // モンスター関連以外のタグは除外
+      if (tag.group === 'others') {
+        return false;
+      }
+      
       const count = countMonstersWithTag(tag);
       switch (tag.group) {
         case 'attr':
@@ -185,7 +197,7 @@ const filteredTags = computed(() => {
         case 'type':
           return count >= FILTER_THRESHOLD_TYPE.value;
         default:
-          return true; // 'others'は常に表示
+          return false;
       }
     });
   }
@@ -460,6 +472,18 @@ watch(() => props.modelValue, (newVal) => {
   background: #e0e0e0;
   border-color: #999;
   color: #333;
+}
+
+.btn-icon.active {
+  background: #1976d2;
+  border-color: #1565c0;
+  color: #ffffff;
+}
+
+.btn-icon.active:hover {
+  background: #1565c0;
+  border-color: #0d47a1;
+  color: #ffffff;
 }
 
 .btn-icon svg {
