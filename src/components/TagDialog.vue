@@ -270,14 +270,14 @@ const filteredTags = computed(() => {
       switch (tag.group) {
         case 'attr':
           // 神属性かつ1枚以上、または全体の1/4以上
-          if (tag.value === '7') { // 神属性
+          if (tag.internalKey === 'divine') {
             return count >= 1;
           }
           return count >= totalMonsterCount.value / 4;
           
         case 'race':
-          // 幻獣神族または創造神族かつ1枚以上、または全体の1/4以上
-          if (tag.value === '23' || tag.value === '27') { // 幻獣神族、創造神族
+          // 幻神獣族または創造神族かつ1枚以上、または全体の1/4以上
+          if (tag.internalKey === 'divine' || tag.internalKey === 'creatorgod') {
             return count >= 1;
           }
           return count >= totalMonsterCount.value / 4;
