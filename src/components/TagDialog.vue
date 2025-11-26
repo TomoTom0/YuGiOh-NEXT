@@ -113,7 +113,46 @@ import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
 import { classifyTagById, getMonsterTypeFromLabel, type TagGroup } from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
-import { ATTRIBUTE_MAP, RACE_MAP } from '@/types/card-maps';
+import type { Attribute, Race } from '@/types/card-maps';
+
+// タグID→英語キーへの変換マップ
+const TAG_ID_TO_ATTR: Record<string, Attribute> = {
+  '1': 'dark',
+  '2': 'light',
+  '3': 'water',
+  '4': 'fire',
+  '5': 'earth',
+  '6': 'wind',
+  '7': 'divine'
+};
+
+const TAG_ID_TO_RACE: Record<string, Race> = {
+  '20': 'warrior',
+  '21': 'spellcaster',
+  '22': 'fairy',
+  '23': 'fiend',
+  '24': 'zombie',
+  '25': 'machine',
+  '26': 'aqua',
+  '27': 'pyro',
+  '28': 'rock',
+  '29': 'windbeast',
+  '30': 'plant',
+  '31': 'insect',
+  '32': 'thunder',
+  '33': 'dragon',
+  '34': 'beast',
+  '35': 'beastwarrior',
+  '36': 'dinosaur',
+  '37': 'fish',
+  '38': 'seaserpent',
+  '39': 'reptile',
+  '40': 'psychic',
+  '41': 'divine',
+  '42': 'creatorgod',
+  '43': 'wyrm',
+  '100': 'illusion'
+};
 
 const props = defineProps<{
   isVisible: boolean;
@@ -170,21 +209,12 @@ function countMonstersWithTag(tag: TagEntry): number {
     
     const monsterCard = card as any;
     
-    // ラベル（日本語）で比較
+    // tag.valueから直接英語キーに変換して比較
     switch (tag.group) {
-      case 'attr': {
-        // attributeは英語キーなので、日本語ラベルから変換が必要
-        // しかし、deckCardsの各カードに日本語属性が含まれていないため、
-        // ラベルでの比較は不可能。代わりにmapping-updater.tsで設定される
-        // 日本語表示名と比較する必要がある
-        // 暫定的にlabelとattributeの日本語表示を比較
-        const attrLabel = getAttributeLabel(monsterCard.attribute);
-        return attrLabel === tag.label;
-      }
-      case 'race': {
-        const raceLabel = getRaceLabel(monsterCard.race);
-        return raceLabel === tag.label;
-      }
+      case 'attr':
+        return monsterCard.attribute === TAG_ID_TO_ATTR[tag.value];
+      case 'race':
+        return monsterCard.race === TAG_ID_TO_RACE[tag.value];
       case 'type':
         // typesは日本語の配列なので、ラベルで比較
         return monsterCard.types && monsterCard.types.includes(tag.label);
@@ -192,16 +222,6 @@ function countMonstersWithTag(tag: TagEntry): number {
         return false;
     }
   }).length;
-}
-
-// 属性の英語キーから日本語ラベルを取得
-function getAttributeLabel(attr: string): string {
-  return ATTRIBUTE_MAP[attr as keyof typeof ATTRIBUTE_MAP] || attr;
-}
-
-// 種族の英語キーから日本語ラベルを取得
-function getRaceLabel(race: string): string {
-  return RACE_MAP[race as keyof typeof RACE_MAP] || race;
 }
 
 // フィルタされたタグ
