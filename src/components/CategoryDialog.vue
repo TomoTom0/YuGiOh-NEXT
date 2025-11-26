@@ -5,26 +5,25 @@
       <div class="dialog-header">
         <div class="header-row">
           <h3>Category</h3>
+          <!-- 選択済みチップ（タイトルの右に配置） -->
+          <div class="selected-chips-row">
+            <span
+              v-for="id in selectedCategories"
+              :key="id"
+              class="category-chip"
+              @click="toggleCategory(id)"
+            >
+              {{ getCategoryLabel(id) }}
+              <span class="chip-remove">×</span>
+            </span>
+          </div>
           <!-- クリアボタン（選択済みチップがある場合のみ表示） -->
-          <button v-if="selectedCategories.length > 0" class="btn-clear" @click="clearAll" title="Clear All">
+          <button v-if="selectedCategories.length > 0" class="btn-icon btn-clear-action" @click="clearAll" title="Clear All">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
-            Clear
           </button>
           <button class="close-btn" @click="close" title="Close">×</button>
-        </div>
-        <!-- 選択済みチップ -->
-        <div v-if="selectedCategories.length > 0" class="selected-chips-row">
-          <span
-            v-for="id in selectedCategories"
-            :key="id"
-            class="category-chip"
-            @click="toggleCategory(id)"
-          >
-            {{ getCategoryLabel(id) }}
-            <span class="chip-remove">×</span>
-          </span>
         </div>
       </div>
 
@@ -277,37 +276,21 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
   align-items: center;
   overflow-y: auto;
+  flex: 1;
   max-height: 56px;
 }
 
-.btn-clear {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
+.btn-clear-action {
   background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: auto;
-  margin-right: 8px;
+  border-color: #e0e0e0;
 }
 
-.btn-clear:hover {
+.btn-clear-action:hover {
   background: #ffebee;
   border-color: #ef5350;
   color: #c62828;
-}
-
-.btn-clear svg {
-  width: 16px;
-  height: 16px;
 }
 
 .search-row {
