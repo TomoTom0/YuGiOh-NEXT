@@ -231,7 +231,7 @@ describe('deck-export', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
 
-      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
@@ -245,39 +245,32 @@ describe('deck-export', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
 
-      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
     it('should handle special characters through CSV round-trip', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('77777', {
-        name: 'Card, "Name"',
-        cardId: '77777',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }],
-        cardType: 'monster'
-      } as any);
-      
       const specialDeck: DeckInfo = {
-        dno: 5,
-        name: 'Special Deck',
         mainDeck: [
-          { cid: '77777', ciid: '1', quantity: 2 }
+          {
+            card: {
+              cardId: '12950',
+              ciid: '1',
+              name: 'Card, "Name"',
+              imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
+            } as any,
+            quantity: 2
+          }
         ],
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       const csv = exportToCSV(specialDeck);
       const result = importFromCSV(csv);
 
       expect(result.success).toBe(true);
-      expect(result.deckInfo!.mainDeck[0].cid).toBe('77777');
+      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
     });
 
     it('should maintain quantity and card order', () => {
@@ -295,15 +288,9 @@ describe('deck-export', () => {
   describe('edge cases', () => {
     it('should handle deck with only main deck', () => {
       const mainOnlyDeck: DeckInfo = {
-        dno: 6,
-        name: 'Main Only',
         mainDeck: sampleDeck.mainDeck,
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       const csv = exportToCSV(mainOnlyDeck);
@@ -319,47 +306,42 @@ describe('deck-export', () => {
     });
 
     it('should handle cards without imgHash', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('66666', {
-        name: '灰流うらら',
-        cardId: '66666',
-        ciid: '1',
-        imgs: [],
-        cardType: 'monster'
-      } as any);
-      
       const noHashDeck: DeckInfo = {
-        dno: 7,
-        name: 'No Hash',
         mainDeck: [
-          { cid: '66666', ciid: '1', quantity: 1 }
+          {
+            card: {
+              cardId: '12950',
+              ciid: '1',
+              name: '灰流うらら',
+              imgs: []
+            } as any,
+            quantity: 1
+          }
         ],
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       const csv = exportToCSV(noHashDeck);
 
-      expect(csv).toContain('main,灰流うらら,66666,1,,1');
+      expect(csv).toContain('main,灰流うらら,12950,1,,1');
     });
 
     it('should handle large quantities', () => {
       const largeDeck: DeckInfo = {
-        dno: 8,
-        name: 'Large Quantity',
         mainDeck: [
-          { cid: '12950', ciid: '1', quantity: 3 }
+          {
+            card: {
+              cardId: '12950',
+              ciid: '1',
+              name: '灰流うらら',
+              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
+            } as any,
+            quantity: 3
+          }
         ],
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       const csv = exportToCSV(largeDeck);

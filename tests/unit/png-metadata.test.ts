@@ -2,14 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
 import { getTempCardDB } from '@/utils/temp-card-db';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // テスト用フィクスチャのパス
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const fixturesDir = path.join(__dirname, '../fixtures/png');
+const fixturesDir = path.resolve(process.cwd(), 'tests/fixtures/png');
 
 // テスト用デッキ情報
 const sampleDeckInfo: DeckInfo = {
