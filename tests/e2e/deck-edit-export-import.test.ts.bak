@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { exportToCSV, exportToTXT } from '@/utils/deck-export';
 import { importFromCSV, importFromTXT, importFromPNG } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
-import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import type { DeckInfo, DeckEntry } from '@/types/deck';
+import type { CardInfo } from '@/types/card';
 
 /**
  * E2E Test: Deck Edit → Export → Import Flow
@@ -15,68 +15,59 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
   let sampleDeck: DeckInfo;
 
   beforeEach(() => {
-    const tempCardDB = getTempCardDB();
-    
-    // テスト用カードを登録
-    tempCardDB.set('12950', {
-      name: '灰流うらら',
-      cardId: '12950',
-      ciid: '1',
-      imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }],
-      cardType: 'monster'
-    } as any);
-    
-    tempCardDB.set('4861', {
-      name: '増殖するG',
-      cardId: '4861',
-      ciid: '2',
-      imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }],
-      cardType: 'monster'
-    } as any);
-    
-    tempCardDB.set('9753', {
-      name: 'PSYフレームロード・Λ',
-      cardId: '9753',
-      ciid: '1',
-      imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }],
-      cardType: 'monster'
-    } as any);
-    
-    tempCardDB.set('6172', {
-      name: '閃刀姫－カガリ',
-      cardId: '6172',
-      ciid: '1',
-      imgs: [{ ciid: '1', imgHash: '6172_1_1_1' }],
-      cardType: 'monster'
-    } as any);
-    
-    tempCardDB.set('14558', {
-      name: '屋敷わらし',
-      cardId: '14558',
-      ciid: '1',
-      imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }],
-      cardType: 'monster'
-    } as any);
-    
     // テスト用のデッキ情報を準備
     sampleDeck = {
-      dno: 1,
-      name: 'Test Deck',
       mainDeck: [
-        { cid: '12950', ciid: '1', quantity: 3 },
-        { cid: '4861', ciid: '2', quantity: 2 }
+        {
+          card: {
+            cardId: '12950',
+            ciid: '1',
+            name: '灰流うらら',
+            imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
+          } as CardInfo,
+          quantity: 3
+        },
+        {
+          card: {
+            cardId: '4861',
+            ciid: '2',
+            name: '増殖するG',
+            imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
+          } as CardInfo,
+          quantity: 2
+        }
       ],
       extraDeck: [
-        { cid: '9753', ciid: '1', quantity: 1 },
-        { cid: '6172', ciid: '1', quantity: 2 }
+        {
+          card: {
+            cardId: '9753',
+            ciid: '1',
+            name: 'PSYフレームロード・Λ',
+            imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
+          } as CardInfo,
+          quantity: 1
+        },
+        {
+          card: {
+            cardId: '6172',
+            ciid: '1',
+            name: '閃刀姫－カガリ',
+            imgs: [{ ciid: '1', imgHash: '6172_1_1_1' }]
+          } as CardInfo,
+          quantity: 2
+        }
       ],
       sideDeck: [
-        { cid: '14558', ciid: '1', quantity: 3 }
-      ],
-      category: [],
-      tags: [],
-      comment: '',
-      deckCode: ''
+        {
+          card: {
+            cardId: '14558',
+            ciid: '1',
+            name: '屋敷わらし',
+            imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
+          } as CardInfo,
+          quantity: 3
+        }
+      ]
     };
   });
 
@@ -106,18 +97,18 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       expect(imported.sideDeck).toHaveLength(1);
 
       // メインデッキの検証
-      const mainCard1 = imported.mainDeck.find(e => e.cid === '12950');
+      const mainCard1 = imported.mainDeck.find(e => e.card.cardId === '12950');
       expect(mainCard1).toBeDefined();
       expect(mainCard1!.quantity).toBe(3);
-      expect(mainCard1!.ciid).toBe('1');
+      expect(mainCard1!.card.ciid).toBe('1');
 
       // エクストラデッキの検証
-      const extraCard1 = imported.extraDeck.find(e => e.cid === '9753');
+      const extraCard1 = imported.extraDeck.find(e => e.card.cardId === '9753');
       expect(extraCard1).toBeDefined();
       expect(extraCard1!.quantity).toBe(1);
 
       // サイドデッキの検証
-      const sideCard1 = imported.sideDeck.find(e => e.cid === '14558');
+      const sideCard1 = imported.sideDeck.find(e => e.card.cardId === '14558');
       expect(sideCard1).toBeDefined();
       expect(sideCard1!.quantity).toBe(3);
     });
@@ -214,11 +205,11 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       expect(imported.extraDeck).toHaveLength(2);
       expect(imported.sideDeck).toHaveLength(1);
 
-      // 詳細な内容検証
-      const mainCard1 = imported.mainDeck.find(e => e.cid === '12950');
+      // 詳細な内容検証（nameはインポート時に'Card {cid}'形式になる場合がある）
+      const mainCard1 = imported.mainDeck.find(e => e.card.cardId === '12950');
       expect(mainCard1).toBeDefined();
       expect(mainCard1!.quantity).toBe(3);
-      expect(mainCard1!.cid).toBe('12950');
+      expect(mainCard1!.card.cardId).toBe('12950');
     });
 
     it('should handle PNG without deck metadata', async () => {
@@ -274,10 +265,10 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       // カードIDと枚数が保持されていることを確認
       expect(imported.success).toBe(true);
       
-      const mainCard = imported.deckInfo!.mainDeck.find(e => e.cid === '12950');
+      const mainCard = imported.deckInfo!.mainDeck.find(e => e.card.cardId === '12950');
       expect(mainCard!.quantity).toBe(3);
       
-      const extraCard = imported.deckInfo!.extraDeck.find(e => e.cid === '9753');
+      const extraCard = imported.deckInfo!.extraDeck.find(e => e.card.cardId === '9753');
       expect(extraCard!.quantity).toBe(1);
     });
   });
@@ -285,15 +276,9 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
   describe('Edge Cases', () => {
     it('should handle empty deck sections', () => {
       const emptyExtraDeck: DeckInfo = {
-        dno: 9,
-        name: 'Empty Extra',
         mainDeck: sampleDeck.mainDeck,
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       // CSV
@@ -311,27 +296,20 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
     });
 
     it('should handle cards with special characters in names', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('123', {
-        name: 'カード名に"引用符"と,カンマ',
-        cardId: '123',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '123_1_1_1' }],
-        cardType: 'monster'
-      } as any);
-      
       const specialDeck: DeckInfo = {
-        dno: 10,
-        name: 'Special Characters',
         mainDeck: [
-          { cid: '123', ciid: '1', quantity: 1 }
+          {
+            card: {
+              cardId: '123',
+              ciid: '1',
+              name: 'カード名に"引用符"と,カンマ',
+              imgs: [{ ciid: '1', imgHash: '123_1_1_1' }]
+            } as CardInfo,
+            quantity: 1
+          }
         ],
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       // CSV
@@ -339,23 +317,24 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       const result = importFromCSV(csv);
       
       expect(result.success).toBe(true);
-      expect(result.deckInfo!.mainDeck.length).toBe(1);
-      expect(result.deckInfo!.mainDeck[0].cid).toBe('123');
+      expect(result.deckInfo!.mainDeck[0].card.name).toContain('引用符');
     });
 
     it('should handle maximum quantity per card', () => {
       const maxQuantityDeck: DeckInfo = {
-        dno: 11,
-        name: 'Max Quantity',
         mainDeck: [
-          { cid: '12950', ciid: '1', quantity: 3 }
+          {
+            card: {
+              cardId: '12950',
+              ciid: '1',
+              name: '灰流うらら',
+              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
+            } as CardInfo,
+            quantity: 3
+          }
         ],
         extraDeck: [],
-        sideDeck: [],
-        category: [],
-        tags: [],
-        comment: '',
-        deckCode: ''
+        sideDeck: []
       };
 
       const csv = exportToCSV(maxQuantityDeck, { includeSide: false });
