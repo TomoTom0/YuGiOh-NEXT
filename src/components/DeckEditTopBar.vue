@@ -43,7 +43,7 @@
             <path fill="currentColor" :d="mdiContentSave" />
           </svg>
         </button>
-        <button class="btn-action" title="load" @click="toggleLoadDialog">
+        <button class="btn-action" title="load" @click="handleLoadClick">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiFolderOpen" />
           </svg>
@@ -78,26 +78,32 @@
             Deck Image
           </button>
           <div class="menu-divider"></div>
-          <button @click="handleExportDeck" class="menu-item">
+          <button @click="handleReloadDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiReload" />
+            </svg>
+            Reload Deck
+          </button>
+          <button @click="handleExportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiExport" />
             </svg>
             Export Deck
           </button>
-          <button @click="handleImportDeck" class="menu-item">
+          <button @click="handleImportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiImport" />
             </svg>
             Import Deck
           </button>
           <div class="menu-divider"></div>
-          <button @click="handleNewDeck" class="menu-item">
+          <button @click="handleNewClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiPlusBox" />
             </svg>
             New Deck
           </button>
-          <button @click="handleCopyDeck" class="menu-item">
+          <button @click="handleCopyClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiContentCopy" />
             </svg>
@@ -127,6 +133,15 @@
 
 
 
+    <!-- Unsaved Changes Dialog -->
+    <ConfirmDialog
+      :show="deckStore.showUnsavedChangesDialog"
+      :title="unsavedChangesTitle"
+      :message="unsavedChangesMessage"
+      :buttons="unsavedChangesButtons"
+      @cancel="cancelUnsavedChanges"
+    />
+
     <Toast
       :show="toast.show"
       :message="toast.message"
@@ -142,9 +157,10 @@
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -155,7 +171,8 @@ interface ToastState {
 export default {
   name: 'DeckEditTopBar',
   components: {
-    Toast
+    Toast,
+    ConfirmDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -169,11 +186,75 @@ export default {
       message: '',
       type: 'info'
     })
+    
+    // Unsaved changes handling
+    const pendingAction = ref<(() => void) | null>(null)
+    const unsavedChangesTitle = ref('未保存の変更')
+    const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
     const showToast = (message: string, type = 'info') => {
       toast.message = message
       toast.type = type
       toast.show = true
+    }
+    
+    const checkUnsavedChanges = (action: () => void, actionName: string) => {
+      if (deckStore.hasUnsavedChanges()) {
+        unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
+        pendingAction.value = action
+        deckStore.showUnsavedChangesDialog = true
+      } else {
+        action()
+      }
+    }
+    
+    const unsavedChangesButtons = computed(() => [
+      {
+        label: '処理を中断',
+        class: 'secondary',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          pendingAction.value = null
+        }
+      },
+      {
+        label: '保存して続ける',
+        class: 'primary',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          try {
+            const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
+            if (result.success) {
+              showToast('保存しました', 'success')
+              if (pendingAction.value) {
+                pendingAction.value()
+              }
+            } else {
+              showToast('保存に失敗しました', 'error')
+            }
+          } catch (error) {
+            showToast('保存エラーが発生しました', 'error')
+          } finally {
+            pendingAction.value = null
+          }
+        }
+      },
+      {
+        label: '保存せず続ける',
+        class: 'danger',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          if (pendingAction.value) {
+            pendingAction.value()
+          }
+          pendingAction.value = null
+        }
+      }
+    ])
+    
+    const cancelUnsavedChanges = () => {
+      deckStore.showUnsavedChangesDialog = false
+      pendingAction.value = null
     }
 
     const localDno = computed(() => deckStore.deckInfo.dno || 0)
@@ -238,13 +319,14 @@ export default {
       }
     }
 
-    const toggleLoadDialog = async () => {
-      if (!deckStore.showLoadDialog) {
-        // ダイアログを開く前にデッキ一覧を取得
-        await deckStore.fetchDeckList()
-        selectedDeckDno.value = null
-      }
-      deckStore.showLoadDialog = !deckStore.showLoadDialog
+    const handleLoadClick = () => {
+      checkUnsavedChanges(async () => {
+        if (!deckStore.showLoadDialog) {
+          await deckStore.fetchDeckList()
+          selectedDeckDno.value = null
+        }
+        deckStore.showLoadDialog = !deckStore.showLoadDialog
+      }, 'ロード')
     }
 
     const handleLoadSelected = async () => {
@@ -254,7 +336,6 @@ export default {
           return
         }
         await deckStore.loadDeck(selectedDeckDno.value)
-        // デッキ名を空にする（placeholderとしてoriginalNameが表示される）
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
@@ -267,7 +348,6 @@ export default {
     const loadDeck = async (dno: number) => {
       try {
         await deckStore.loadDeck(dno)
-        // デッキ名を空にする（placeholderとしてoriginalNameが表示される）
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
@@ -275,6 +355,20 @@ export default {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
       }
+    }
+    
+    const handleReloadDeck = () => {
+      showMenu.value = false
+      checkUnsavedChanges(async () => {
+        try {
+          await deckStore.reloadDeck()
+          deckStore.setDeckName('')
+          showToast('デッキを再読み込みしました', 'success')
+        } catch (error) {
+          console.error('Reload error:', error)
+          showToast('再読み込みエラーが発生しました', 'error')
+        }
+      }, '再読み込み')
     }
 
     const toggleMenu = () => {
@@ -326,14 +420,16 @@ export default {
       }
     }
 
-    const handleExportDeck = () => {
+    const handleExportClick = () => {
       showMenu.value = false
       deckStore.showExportDialog = true
     }
 
-    const handleImportDeck = () => {
+    const handleImportClick = () => {
       showMenu.value = false
-      deckStore.showImportDialog = true
+      checkUnsavedChanges(() => {
+        deckStore.showImportDialog = true
+      }, 'インポート')
     }
 
     const handleOptions = () => {
@@ -382,32 +478,36 @@ export default {
       deckStore.redo()
     }
 
-    const handleNewDeck = async () => {
+    const handleNewClick = () => {
       showMenu.value = false
-      menuLoading.value = true
-      try {
-        await deckStore.createNewDeck()
-        showToast('新しいデッキを作成しました', 'success')
-      } catch (error) {
-        console.error('Create new deck error:', error)
-        showToast('新しいデッキの作成に失敗しました', 'error')
-      } finally {
-        menuLoading.value = false
-      }
+      checkUnsavedChanges(async () => {
+        menuLoading.value = true
+        try {
+          await deckStore.createNewDeck()
+          showToast('新しいデッキを作成しました', 'success')
+        } catch (error) {
+          console.error('Create new deck error:', error)
+          showToast('新しいデッキの作成に失敗しました', 'error')
+        } finally {
+          menuLoading.value = false
+        }
+      }, '新規作成')
     }
 
-    const handleCopyDeck = async () => {
+    const handleCopyClick = () => {
       showMenu.value = false
-      menuLoading.value = true
-      try {
-        await deckStore.copyCurrentDeck()
-        showToast('デッキをコピーしました', 'success')
-      } catch (error) {
-        console.error('Copy deck error:', error)
-        showToast('デッキのコピーに失敗しました', 'error')
-      } finally {
-        menuLoading.value = false
-      }
+      checkUnsavedChanges(async () => {
+        menuLoading.value = true
+        try {
+          await deckStore.copyCurrentDeck()
+          showToast('デッキをコピーしました', 'success')
+        } catch (error) {
+          console.error('Copy deck error:', error)
+          showToast('デッキのコピーに失敗しました', 'error')
+        } finally {
+          menuLoading.value = false
+        }
+      }, 'コピー')
     }
 
     const handleDeleteDeck = () => {
@@ -445,24 +545,30 @@ export default {
       localDeckName,
       displayDeckName,
       toast,
+      unsavedChangesTitle,
+      unsavedChangesMessage,
+      unsavedChangesButtons,
       handleSaveClick,
-      toggleLoadDialog,
+      handleLoadClick,
       handleLoadSelected,
+      handleReloadDeck,
       loadDeck,
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
-      handleExportDeck,
-      handleImportDeck,
+      handleExportClick,
+      handleImportClick,
       handleImported,
       handleOptions,
       handleUndo,
       handleRedo,
-      handleNewDeck,
-      handleCopyDeck,
+      handleNewClick,
+      handleCopyClick,
       handleDeleteDeck,
+      cancelUnsavedChanges,
       mdiContentSave,
       mdiFolderOpen,
+      mdiReload,
       mdiSortVariant,
       mdiImageOutline,
       mdiExport,

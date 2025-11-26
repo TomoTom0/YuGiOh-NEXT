@@ -730,6 +730,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const showOptionsDialog = ref(false);
   const showLoadDialog = ref(false);
   const showDeleteConfirm = ref(false);
+  const showUnsavedChangesDialog = ref(false);
+  
+  // Load時点でのデッキ情報を保存（変更検知用）
+  const savedDeckSnapshot = ref<string | null>(null);
 
   // 設定ストアを取得
   const settingsStore = useSettingsStore();
@@ -877,20 +881,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
     const allCards: Array<{ element: HTMLElement; distance: number }> = [];
 
-    console.log('[animateCardMoveByUUID] affectedSections:', Array.from(affectedSections));
-    console.log('[animateCardMoveByUUID] firstPositions size:', firstPositions.size);
-
     affectedSections.forEach(section => {
       const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) {
-        console.log(`[animateCardMoveByUUID] section ${section} not found`);
-        return;
-      }
+      if (!sectionElement) return;
 
       const cards = sectionElement.querySelectorAll('.deck-card');
-      console.log(`[animateCardMoveByUUID] section ${section} has ${cards.length} cards`);
 
-      let movedCount = 0;
       cards.forEach((card) => {
         const cardElement = card as HTMLElement;
         const uuid = cardElement.getAttribute('data-uuid');
@@ -903,12 +899,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           const deltaX = first.left - last.left;
           const deltaY = first.top - last.top;
 
-          console.log(`[animateCardMoveByUUID] uuid=${uuid}, deltaX=${deltaX}, deltaY=${deltaY}`);
-
           // 1ピクセル未満の移動は誤差として無視
           if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
 
-          movedCount++;
           // 移動距離を計算（横方向の移動を重視）
           // 横方向は視覚的に目立ちにくいため、係数を大きくする
           const weightedDeltaX = deltaX * 1.5;
@@ -920,7 +913,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           allCards.push({ element: cardElement, distance });
         }
       });
-      console.log(`[animateCardMoveByUUID] section ${section}: ${movedCount} cards will animate`);
     });
 
     if (allCards.length === 0) return;
@@ -1195,11 +1187,35 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       
       
       const result = await sessionManager.saveDeck(dno, deckInfo.value);
+      
+      if (result.success) {
+        // 保存成功時にスナップショットを更新
+        savedDeckSnapshot.value = captureDeckSnapshot();
+      }
+      
       return result;
     } catch (error) {
       console.error('Failed to save deck:', error);
       return { success: false, error: String(error) };
     }
+  }
+
+  function captureDeckSnapshot(): string {
+    return JSON.stringify({
+      dno: deckInfo.value.dno,
+      name: deckInfo.value.name,
+      mainDeck: deckInfo.value.mainDeck,
+      extraDeck: deckInfo.value.extraDeck,
+      sideDeck: deckInfo.value.sideDeck,
+      category: deckInfo.value.category,
+      tags: deckInfo.value.tags,
+      comment: deckInfo.value.comment
+    });
+  }
+
+  function hasUnsavedChanges(): boolean {
+    if (!savedDeckSnapshot.value) return false;
+    return savedDeckSnapshot.value !== captureDeckSnapshot();
   }
 
   async function loadDeck(dno: number) {
@@ -1242,11 +1258,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // コマンド履歴をリセット
         commandHistory.value = [];
         commandIndex.value = -1;
+        
+        // Load時点のスナップショットを保存
+        savedDeckSnapshot.value = captureDeckSnapshot();
       }
     } catch (error) {
       console.error('Failed to load deck:', error);
       throw error;
     }
+  }
+  
+  async function reloadDeck() {
+    const currentDno = deckInfo.value.dno;
+    if (!currentDno) {
+      throw new Error('No deck loaded');
+    }
+    await loadDeck(currentDno);
   }
 
   async function fetchDeckList() {
@@ -1668,6 +1695,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showOptionsDialog,
     showLoadDialog,
     showDeleteConfirm,
+    showUnsavedChangesDialog,
     canUndo,
     canRedo,
     canMoveCard,
@@ -1690,6 +1718,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     setDeckName,
     saveDeck,
     loadDeck,
+    reloadDeck,
     fetchDeckList,
     initializeOnPageLoad,
     shuffleSection,
@@ -1699,6 +1728,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     redo,
     createNewDeck,
     copyCurrentDeck,
-    deleteCurrentDeck
+    deleteCurrentDeck,
+    hasUnsavedChanges,
+    captureDeckSnapshot
   };
 });
