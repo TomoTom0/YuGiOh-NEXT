@@ -24,7 +24,7 @@
       <!-- フィルタタブとアクションボタン -->
       <div class="filter-and-actions">
         <div class="action-buttons-left">
-          <button class="btn btn-icon" @click="onFilterClick" title="Filter">
+          <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="onFilterClick" title="Filter (7枚超え)">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
             </svg>
@@ -96,6 +96,7 @@ const props = defineProps<{
     group: string[];
   }>;
   modelValue: string[];
+  deckCards: any[];
 }>();
 
 const emit = defineEmits<{
@@ -105,6 +106,7 @@ const emit = defineEmits<{
 
 const selectedCategories = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<string>('all');
+const isFilterEnabled = ref<boolean>(false);
 
 // タブグループ（二行表示用）
 const firstRowGroups = ['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ', 'ruby_ナ'];
@@ -125,16 +127,36 @@ const rowToCharsMap: Record<string, string[]> = {
   'ruby_ヴ': ['ruby_ヴ']
 };
 
+// カテゴリ名を含むカードの総数をカウント
+function countCardsWithCategory(categoryLabel: string): number {
+  return props.deckCards.filter(card => {
+    const cardAny = card as any;
+    const cardName = card.name || '';
+    const cardText = cardAny.text || '';
+    return cardName.includes(categoryLabel) || cardText.includes(categoryLabel);
+  }).length;
+}
+
 // フィルタされたカテゴリ
 const filteredCategories = computed(() => {
-  if (selectedGroup.value === 'all') {
-    return props.categories;
+  let categories = props.categories;
+  
+  // グループフィルタ
+  if (selectedGroup.value !== 'all') {
+    const chars = rowToCharsMap[selectedGroup.value] || [selectedGroup.value];
+    categories = categories.filter(cat =>
+      cat.group.some(g => chars.includes(g))
+    );
   }
-  // 選択された行に属する全ての文字にマッチ
-  const chars = rowToCharsMap[selectedGroup.value] || [selectedGroup.value];
-  return props.categories.filter(cat =>
-    cat.group.some(g => chars.includes(g))
-  );
+  
+  // カテゴリ名フィルタ: 7枚超えのみ表示
+  if (isFilterEnabled.value) {
+    categories = categories.filter(cat => 
+      countCardsWithCategory(cat.label) > 7
+    );
+  }
+  
+  return categories;
 });
 
 // カテゴリラベルを取得
@@ -162,10 +184,10 @@ function clearAll(): void {
   emit('update:modelValue', []);
 }
 
-// フィルタボタン（後で実装）
+// フィルタボタン
 function onFilterClick(): void {
-  console.log('Filter button clicked');
-  // TODO: フィルタ機能を実装
+  isFilterEnabled.value = !isFilterEnabled.value;
+  console.log('Category filter:', isFilterEnabled.value ? 'ON' : 'OFF');
 }
 
 // 閉じる
