@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import * as path from 'path';
 import { importFromCSV, importFromTXT, importFromPNG } from '@/utils/deck-import';
 import type { ImportResult } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
 
 // テストフィクスチャディレクトリ
-const fixturesDir = join(__dirname, '../fixtures');
+const fixturesDir = path.join(__dirname, '../fixtures');
 
 // Test fixtures (inline data because happy-dom doesn't support fs module)
 const validCSV = `section,name,cid,ciid,quantity

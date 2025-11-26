@@ -4,7 +4,14 @@ import { DeckInfo } from '@/types/deck';
 import axios from 'axios';
 
 // axiosをモック
-vi.mock('axios');
+vi.mock('axios', () => {
+  return {
+    default: {
+      get: vi.fn(),
+      post: vi.fn(),
+    },
+  };
+});
 
 /**
  * デッキ操作API関数のテスト
