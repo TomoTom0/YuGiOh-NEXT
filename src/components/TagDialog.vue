@@ -12,6 +12,8 @@
               :key="id"
               class="tag-chip"
               :data-type="getTagType(id)"
+              :data-value="id"
+              :data-label="getTagLabel(id)"
               @click="toggleTag(id)"
             >
               {{ getTagLabel(id) }}
@@ -111,6 +113,7 @@ import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
 import { classifyTagById, getMonsterTypeFromLabel, type TagGroup } from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
+import { ATTRIBUTE_MAP, RACE_MAP } from '@/types/card-maps';
 
 const props = defineProps<{
   isVisible: boolean;
@@ -166,18 +169,39 @@ function countMonstersWithTag(tag: TagEntry): number {
     if (card.cardType !== 'monster') return false;
     
     const monsterCard = card as any;
+    
+    // ラベル（日本語）で比較
     switch (tag.group) {
-      case 'attr':
-        return monsterCard.attribute === tag.value;
-      case 'race':
-        return monsterCard.race === tag.value;
+      case 'attr': {
+        // attributeは英語キーなので、日本語ラベルから変換が必要
+        // しかし、deckCardsの各カードに日本語属性が含まれていないため、
+        // ラベルでの比較は不可能。代わりにmapping-updater.tsで設定される
+        // 日本語表示名と比較する必要がある
+        // 暫定的にlabelとattributeの日本語表示を比較
+        const attrLabel = getAttributeLabel(monsterCard.attribute);
+        return attrLabel === tag.label;
+      }
+      case 'race': {
+        const raceLabel = getRaceLabel(monsterCard.race);
+        return raceLabel === tag.label;
+      }
       case 'type':
-        // typesは配列なので、含まれているかチェック
-        return monsterCard.types && monsterCard.types.includes(tag.value);
+        // typesは日本語の配列なので、ラベルで比較
+        return monsterCard.types && monsterCard.types.includes(tag.label);
       default:
         return false;
     }
   }).length;
+}
+
+// 属性の英語キーから日本語ラベルを取得
+function getAttributeLabel(attr: string): string {
+  return ATTRIBUTE_MAP[attr as keyof typeof ATTRIBUTE_MAP] || attr;
+}
+
+// 種族の英語キーから日本語ラベルを取得
+function getRaceLabel(race: string): string {
+  return RACE_MAP[race as keyof typeof RACE_MAP] || race;
 }
 
 // フィルタされたタグ
