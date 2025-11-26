@@ -111,63 +111,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import type { TagEntry } from '@/types/dialog';
-import { classifyTagById, getMonsterTypeFromLabel, type TagGroup } from '@/constants/tag-master-data';
+import { 
+  classifyTagById, 
+  getMonsterTypeFromLabel, 
+  type TagGroup,
+  TAG_ID_TO_ATTR,
+  TAG_ID_TO_RACE,
+  TAG_ID_TO_MONSTER_TYPE
+} from '@/constants/tag-master-data';
 import { getAttributeIconUrl } from '@/api/image-utils';
-import type { Attribute, Race } from '@/types/card-maps';
-
-// タグID→英語キーへの変換マップ
-const TAG_ID_TO_ATTR: Record<string, Attribute> = {
-  '1': 'dark',
-  '2': 'light',
-  '3': 'water',
-  '4': 'fire',
-  '5': 'earth',
-  '6': 'wind',
-  '7': 'divine'
-};
-
-const TAG_ID_TO_MONSTER_TYPE: Record<string, string> = {
-  '8': 'link',       // リンク
-  '9': 'pendulum',   // ペンデュラム
-  '10': 'xyz',       // エクシーズ
-  '11': 'synchro',   // シンクロ
-  '12': 'tuner',     // チューナー
-  '13': 'gemini',    // デュアル
-  '14': 'union',     // ユニオン
-  '15': 'spirit',    // スピリット
-  '16': 'toon',      // トゥーン
-  '17': 'ritual',    // 儀式
-  '18': 'fusion',    // 融合
-  '110': 'flip'      // リバース（推測）
-};
-
-const TAG_ID_TO_RACE: Record<string, Race> = {
-  '20': 'dragon',        // ドラゴン族
-  '21': 'zombie',        // アンデット族
-  '22': 'fiend',         // 悪魔族
-  '23': 'pyro',          // 炎族
-  '24': 'seaserpent',    // 海竜族
-  '25': 'rock',          // 岩石族
-  '26': 'machine',       // 機械族
-  '27': 'fish',          // 魚族
-  '28': 'dinosaur',      // 恐竜族
-  '29': 'insect',        // 昆虫族
-  '30': 'beast',         // 獣族
-  '31': 'beastwarrior',  // 獣戦士族
-  '32': 'plant',         // 植物族
-  '33': 'aqua',          // 水族
-  '34': 'warrior',       // 戦士族
-  '35': 'windbeast',     // 鳥獣族
-  '36': 'fairy',         // 天使族
-  '37': 'spellcaster',   // 魔法使い族
-  '38': 'thunder',       // 雷族
-  '39': 'reptile',       // 爬虫類族
-  '40': 'psychic',       // サイキック族
-  '41': 'divine',        // 幻神獣族
-  '42': 'wyrm',          // 幻竜族
-  '43': 'cyberse',       // サイバース族
-  '100': 'illusion'      // 幻想魔族
-};
 
 const props = defineProps<{
   isVisible: boolean;

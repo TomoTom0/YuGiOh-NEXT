@@ -5,7 +5,64 @@
  * タグを race/attr/type/others の4グループに分類する。
  */
 
-import { MONSTER_TYPE_MAP } from '../types/card-maps';
+import { MONSTER_TYPE_MAP, type Attribute, type Race } from '../types/card-maps';
+
+/**
+ * タグID → 内部キーへの変換マップ
+ * deck-metadata.jsonの実際のマッピングに基づく
+ */
+export const TAG_ID_TO_ATTR: Record<string, Attribute> = {
+  '1': 'dark',
+  '2': 'light',
+  '3': 'water',
+  '4': 'fire',
+  '5': 'earth',
+  '6': 'wind',
+  '7': 'divine'
+};
+
+export const TAG_ID_TO_RACE: Record<string, Race> = {
+  '20': 'dragon',
+  '21': 'zombie',
+  '22': 'fiend',
+  '23': 'pyro',
+  '24': 'seaserpent',
+  '25': 'rock',
+  '26': 'machine',
+  '27': 'fish',
+  '28': 'dinosaur',
+  '29': 'insect',
+  '30': 'beast',
+  '31': 'beastwarrior',
+  '32': 'plant',
+  '33': 'aqua',
+  '34': 'warrior',
+  '35': 'windbeast',
+  '36': 'fairy',
+  '37': 'spellcaster',
+  '38': 'thunder',
+  '39': 'reptile',
+  '40': 'psychic',
+  '41': 'divine',
+  '42': 'wyrm',
+  '43': 'cyberse',
+  '100': 'illusion'
+};
+
+export const TAG_ID_TO_MONSTER_TYPE: Record<string, string> = {
+  '8': 'link',
+  '9': 'pendulum',
+  '10': 'xyz',
+  '11': 'synchro',
+  '12': 'tuner',
+  '13': 'gemini',
+  '14': 'union',
+  '15': 'spirit',
+  '16': 'toon',
+  '17': 'ritual',
+  '18': 'fusion',
+  '110': 'flip'
+};
 
 export const TAG_GROUPS = {
   // 属性（7個）
