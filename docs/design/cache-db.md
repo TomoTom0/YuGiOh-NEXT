@@ -34,6 +34,7 @@ tier 0以上
 
 tier 0以上
 
+- card id, pk
 - type
 - attr
 - race
@@ -44,6 +45,14 @@ tier 0以上
 - limit-status
 - fetched-at
 
+### table b2
+
+tier 0以上
+
+- card id, pk
+- text
+- pend-text
+
 ### table c
 
 - tier: 3以上なら確保
@@ -53,8 +62,6 @@ tier 0以上
 以下、構造
 
 - card id, pk
-- text
-- pend-text
 - suppl
 - pend-suppl
 - suppl-date

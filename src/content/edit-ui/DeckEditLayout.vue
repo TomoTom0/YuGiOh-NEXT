@@ -69,6 +69,74 @@
         </div>
       </template>
     </RightArea>
+
+    <!-- 統一オーバーレイ -->
+    <div v-if="deckStore.overlayVisible" class="unified-overlay" :style="{ zIndex: deckStore.overlayZIndex }"></div>
+
+    <!-- ダイアログ -->
+    <ExportDialog
+      :isVisible="deckStore.showExportDialog"
+      :deckInfo="deckStore.deckInfo"
+      :dno="String(deckStore.dno)"
+      @close="deckStore.showExportDialog = false"
+      @exported="handleExported"
+    />
+
+    <ImportDialog
+      :isVisible="deckStore.showImportDialog"
+      @close="deckStore.showImportDialog = false"
+      @imported="handleImported"
+    />
+
+    <OptionsDialog
+      :isVisible="deckStore.showOptionsDialog"
+      @close="deckStore.showOptionsDialog = false"
+    />
+
+    <!-- Load Dialog -->
+    <div v-if="deckStore.showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
+      <div class="load-dialog" @click.stop>
+        <div class="load-dialog-header">
+          <h2>Load Deck</h2>
+          <button class="close-btn" @click="toggleLoadDialog">×</button>
+        </div>
+        <div class="load-dialog-content">
+          <div v-if="deckStore.deckList.length === 0" class="no-decks">
+            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
+              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
+            </svg>
+            <p>デッキがありません</p>
+          </div>
+          <div v-else class="deck-grid">
+            <div
+              v-for="deck in deckStore.deckList"
+              :key="deck.dno"
+              class="deck-card"
+              @click="loadDeck(deck.dno)"
+            >
+              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <div v-if="deckStore.showDeleteConfirm" class="dialog-overlay" @click="cancelDelete">
+      <div class="delete-confirm-dialog" @click.stop>
+        <div class="delete-confirm-header">
+          <h3>デッキを削除</h3>
+        </div>
+        <div class="delete-confirm-body">
+          <p>本当に「{{ deckStore.getDeckName() || '(名称未設定)' }}」を削除しますか？</p>
+          <p class="warning">この操作は取り消せません。</p>
+        </div>
+        <div class="delete-confirm-footer">
+          <button @click="cancelDelete" class="btn-cancel">キャンセル</button>
+          <button @click="confirmDelete" class="btn-delete">削除</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -80,6 +148,9 @@ import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
+import ExportDialog from '../../components/ExportDialog.vue'
+import ImportDialog from '../../components/ImportDialog.vue'
+import OptionsDialog from '../../components/OptionsDialog.vue'
 import { searchCardsByName } from '../../api/card-search'
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
@@ -90,7 +161,10 @@ export default {
     DeckCard,
     DeckSection,
     DeckEditTopBar,
-    RightArea
+    RightArea,
+    ExportDialog,
+    ImportDialog,
+    OptionsDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -101,6 +175,49 @@ export default {
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
+
+    // ダイアログイベントハンドラ
+    const handleExported = (message) => {
+      deckStore.showExportDialog = false
+      console.log(message)
+    }
+
+    const handleImported = (message) => {
+      deckStore.showImportDialog = false
+      console.log(message)
+    }
+
+    const toggleLoadDialog = async () => {
+      if (!deckStore.showLoadDialog) {
+        await deckStore.fetchDeckList()
+      }
+      deckStore.showLoadDialog = !deckStore.showLoadDialog
+    }
+
+    const loadDeck = async (dno) => {
+      try {
+        await deckStore.loadDeck(dno)
+        deckStore.setDeckName('')
+        deckStore.showLoadDialog = false
+        console.log('デッキを読み込みました')
+      } catch (error) {
+        console.error('Load error:', error)
+      }
+    }
+
+    const confirmDelete = async () => {
+      deckStore.showDeleteConfirm = false
+      try {
+        await deckStore.deleteCurrentDeck()
+        console.log('デッキを削除しました')
+      } catch (error) {
+        console.error('Delete deck error:', error)
+      }
+    }
+
+    const cancelDelete = () => {
+      deckStore.showDeleteConfirm = false
+    }
 
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
@@ -429,6 +546,12 @@ export default {
       onSearchInput,
       toggleDetail,
       addToMain,
+      handleExported,
+      handleImported,
+      toggleLoadDialog,
+      loadDeck,
+      confirmDelete,
+      cancelDelete,
       addToExtra,
       addToSide,
       onDragStart,
@@ -844,5 +967,212 @@ export default {
   padding: 20px;
   text-align: center;
   color: #999;
+}
+
+.unified-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+.load-dialog {
+  background: var(--bg-primary, white);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.load-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  background: var(--bg-primary, white);
+
+  h2 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--text-tertiary, #999);
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary, #333);
+    }
+  }
+}
+
+.load-dialog-content {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+
+  .no-decks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-tertiary, #999);
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.deck-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f5f5f5);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--text-tertiary, #999);
+    background: var(--bg-primary, white);
+  }
+
+  .deck-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary, #333);
+    line-height: 1.3;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.delete-confirm-dialog {
+  background: var(--bg-primary, white);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 400px;
+  max-width: 90vw;
+}
+
+.delete-confirm-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+}
+
+.delete-confirm-body {
+  padding: 24px;
+
+  p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+  }
+
+  .warning {
+    color: #f44336;
+    font-weight: 500;
+  }
+}
+
+.delete-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+
+    &.btn-cancel {
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary, #333);
+
+      &:hover {
+        background: var(--bg-tertiary, #e0e0e0);
+      }
+    }
+
+    &.btn-delete {
+      background: #f44336;
+      color: white;
+
+      &:hover {
+        background: #d32f2f;
+      }
+    }
+  }
 }
 </style>

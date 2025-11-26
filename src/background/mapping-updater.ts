@@ -9,8 +9,9 @@ import {
   RACE_MAP,
   MONSTER_TYPE_MAP,
 } from '@/types/card-maps';
+import { getCardSearchFormUrl } from '@/utils/url-builder';
+import type { CardGameType } from '@/types/settings';
 
-const SEARCH_FORM_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1';
 const LANGUAGES = ['ja', 'ko', 'ae', 'cn', 'en', 'de', 'fr', 'it', 'es', 'pt'];
 
 interface Mapping {
@@ -110,10 +111,13 @@ function extractMonsterTypeMapping(doc: Document): Mapping {
 
 /**
  * 1言語の検索フォームを取得してマッピングを抽出
+ * @param lang 言語コード
+ * @param gameType ゲームタイプ（省略時はOCG）
  */
-async function fetchMappingForLanguage(lang: string): Promise<{ race: Mapping; monsterType: Mapping } | null> {
+async function fetchMappingForLanguage(lang: string, gameType: CardGameType = 'ocg'): Promise<{ race: Mapping; monsterType: Mapping } | null> {
   try {
-    const url = `${SEARCH_FORM_URL}&request_locale=${lang}`;
+    const baseUrl = getCardSearchFormUrl(gameType);
+    const url = `${baseUrl}&request_locale=${lang}`;
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -247,7 +251,7 @@ export async function getMappingForLanguage(lang: string): Promise<LanguageMappi
   try {
     const storageKey = `card_mappings_${lang}`;
     const result = await chrome.storage.local.get(storageKey);
-    return result[storageKey] || null;
+    return (result[storageKey] as LanguageMappings | undefined) || null;
   } catch (error) {
     console.error(`[Mapping Updater] Failed to get ${lang} mapping:`, error);
     return null;
@@ -319,7 +323,7 @@ export async function updateAllMappings(): Promise<boolean> {
 export async function getMappings(): Promise<StoredMappings | null> {
   try {
     const result = await chrome.storage.local.get('card_mappings');
-    return result.card_mappings || null;
+    return (result.card_mappings as StoredMappings | undefined) || null;
   } catch (error) {
     console.error('[Mapping Updater] Failed to get mappings:', error);
     return null;

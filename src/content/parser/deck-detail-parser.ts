@@ -1,7 +1,6 @@
 import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { getTempCardDB } from '@/utils/temp-card-db';
-import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import {
   DeckTypeValue,
   DeckStyleValue,
@@ -10,6 +9,39 @@ import {
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
 import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
+import { getDeckMetadata } from '@/utils/deck-metadata-loader';
+
+/**
+ * カテゴリラベル（日本語）をIDに変換
+ */
+function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
+  if (!metadata || !metadata.categories) {
+    return [];
+  }
+  
+  const labelToId: Record<string, string> = {};
+  metadata.categories.forEach((cat: any) => {
+    labelToId[cat.label] = cat.value;
+  });
+  
+  return labels.map(label => labelToId[label]).filter(id => id !== undefined);
+}
+
+/**
+ * タグラベル（日本語）をIDに変換
+ */
+function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
+  if (!metadata || !metadata.tags) {
+    return [];
+  }
+  
+  const labelToId: Record<string, string> = {};
+  Object.entries(metadata.tags).forEach(([id, label]) => {
+    labelToId[label as string] = id;
+  });
+  
+  return labels.map(label => labelToId[label]).filter(id => id !== undefined);
+}
 
 /**
  * デッキ詳細ページ（表示ページ、ope=1）からデッキ情報を抽出する
@@ -20,7 +52,7 @@ import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
  * 注意: 表示ページのHTMLから情報を取得します。
  * カード情報は検索結果ページと同じ構造（tr.row）からパースします。
  */
-export function parseDeckDetail(doc: Document): DeckInfo {
+export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // デッキ表示ページのDOM構造を検証
   validateDeckDetailPageStructure(doc);
 
@@ -56,10 +88,15 @@ export function parseDeckDetail(doc: Document): DeckInfo {
   const deckStyle = extractDeckStyle(doc);
 
   // カテゴリ、タグ、コメント、デッキコード（必須）
-  const category = extractCategory(doc);
-  const tags = extractTags(doc);
+  const categoryLabels = extractCategory(doc);
+  const tagLabels = extractTags(doc);
   const comment = extractComment(doc);
   const deckCode = extractDeckCode(doc);
+  
+  // 日本語ラベル→IDに変換（メタデータは1回だけ取得）
+  const metadata = await getDeckMetadata();
+  const category = convertCategoryLabelsToIds(categoryLabels, metadata);
+  const tags = convertTagLabelsToIds(tagLabels, metadata);
 
   return {
     dno,
@@ -313,31 +350,6 @@ function parseCardSection(
 
           // TempCardDBにカード情報を登録
           tempCardDB.set(cid, cardInfo);
-
-          // Also proactively save detail (text/pend) into unified cache TableC so
-          // subsequent cache-hits can reconstruct text. Do not await to avoid
-          // blocking parsing; log failures silently.
-          try {
-            const unifiedDB = getUnifiedCacheDB();
-            if (unifiedDB.isInitialized()) {
-              const tableC = {
-                cardId: cid,
-                text: (cardInfo as any).text,
-                pendText: (cardInfo as any).pendulumEffect,
-                relatedCards: [],
-                relatedProducts: [],
-                packs: [],
-                qaList: [],
-                fetchedAt: Date.now()
-              } as any;
-              // fire-and-forget
-              unifiedDB.setCardTableC(tableC).catch((e: any) => {
-                console.warn('[parseCardSection] Failed to save CardTableC for', cid, e)
-              })
-            }
-          } catch (e) {
-            console.warn('[parseCardSection] Failed to enqueue CardTableC save for', cid, e)
-          }
 
           deckCardRefs.push({
             cid,

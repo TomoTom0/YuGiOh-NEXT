@@ -8,6 +8,7 @@
 // テーマCSSをインポート
 import '../../styles/themes.css';
 import { isVueEditPage } from '../../utils/page-detector';
+import { getDeckMetadata } from '../../utils/deck-metadata-loader';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -166,4 +167,9 @@ async function initVueApp(): Promise<void> {
 }
 
 // Content Script起動時に実行
+// メタデータを事前に読み込み開始（非同期、結果を待たない）
+getDeckMetadata().catch(error => {
+  console.error('Failed to preload deck metadata:', error);
+});
+
 watchUrlChanges();

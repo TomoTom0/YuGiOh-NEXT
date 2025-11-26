@@ -8,6 +8,8 @@
 import initialMetadata from '@/data/deck-metadata.json';
 import type { CategoryEntry } from '@/types/dialog';
 import { assignCategoryGroups } from './category-grouping';
+import { getDeckSearchPageUrl } from './url-builder';
+import type { CardGameType } from '@/types/settings';
 
 /**
  * デッキメタデータの型定義
@@ -27,6 +29,9 @@ export interface DeckMetadata {
 
 const STORAGE_KEY = 'deck_metadata';
 
+// メモリキャッシュ
+let cachedMetadata: DeckMetadata | null = null;
+
 /**
  * chrome.storage.localからメタデータを取得
  */
@@ -37,7 +42,7 @@ async function getStoredMetadata(): Promise<DeckMetadata | null> {
 
   try {
     const result = await chrome.storage.local.get(STORAGE_KEY);
-    return result[STORAGE_KEY] || null;
+    return (result[STORAGE_KEY] as DeckMetadata | undefined) || null;
   } catch (error) {
     console.error('Failed to load metadata from chrome.storage:', error);
     return null;
@@ -49,12 +54,20 @@ async function getStoredMetadata(): Promise<DeckMetadata | null> {
  *
  * chrome.storage.localに保存されたデータを優先し、
  * なければ初期JSONファイルから読み込む
+ * 
+ * 一度読み込んだデータはメモリにキャッシュされ、2回目以降は即座に返される
  */
 export async function getDeckMetadata(): Promise<DeckMetadata> {
+  // キャッシュがあれば即座に返す
+  if (cachedMetadata) {
+    return cachedMetadata;
+  }
+
   const stored = await getStoredMetadata();
 
   if (stored) {
     console.log('Using deck metadata from chrome.storage (last updated:', stored.lastUpdated, ')');
+    cachedMetadata = stored;
     return stored;
   }
 
@@ -70,7 +83,8 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
     initial.categories = assignCategoryGroups(categoriesArray);
   }
   
-  return initial as DeckMetadata;
+  cachedMetadata = initial as DeckMetadata;
+  return cachedMetadata;
 }
 
 /**
@@ -84,6 +98,7 @@ export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {
 
   try {
     await chrome.storage.local.set({ [STORAGE_KEY]: metadata });
+    cachedMetadata = metadata; // キャッシュを更新
     console.log('Saved deck metadata to chrome.storage');
   } catch (error) {
     console.error('Failed to save metadata to chrome.storage:', error);
@@ -125,12 +140,13 @@ function extractOptionsFromSelect(
 
 /**
  * デッキ検索ページからメタデータを取得して更新
+ * @param gameType ゲームタイプ（省略時はOCG）
  */
-export async function updateDeckMetadata(): Promise<DeckMetadata> {
-  const SEARCH_PAGE_URL = 'https://www.db.yugioh-card.com/yugiohdb/deck_search.action?request_locale=ja';
+export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promise<DeckMetadata> {
+  const searchPageUrl = getDeckSearchPageUrl(gameType, 'ja');
 
   try {
-    const response = await fetch(SEARCH_PAGE_URL);
+    const response = await fetch(searchPageUrl);
     const html = await response.text();
 
     const parser = new DOMParser();

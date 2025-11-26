@@ -26,8 +26,18 @@ import {
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
+import { isSameDay } from '@/utils/date-utils';
+import { detectCardGameType } from '@/utils/page-detector';
+import { getCardSearchEndpoint } from '@/utils/url-builder';
 
-const SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action';
+/**
+ * カード検索APIのURLを取得
+ * 現在のページのゲームタイプ（OCG/Rush）に応じたURLを返す
+ */
+function getSearchUrl(): string {
+  const gameType = detectCardGameType();
+  return getCardSearchEndpoint(gameType);
+}
 
 // ============================================================================
 // APIパラメータ値マッピング
@@ -539,7 +549,7 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
   try {
     const params = buildSearchParams(options);
 
-    const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -587,7 +597,7 @@ export async function searchCardsByName(
       params.append(param, '');
     });
 
-    const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -621,7 +631,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
       request_locale: 'ja'
     });
 
-    const url = `${SEARCH_URL}?${params.toString()}`;
+    const url = `${getSearchUrl()}?${params.toString()}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -1296,7 +1306,7 @@ export async function getCardDetail(
       request_locale: requestLocale
     });
 
-    const response = await fetch(`${SEARCH_URL}?${params.toString()}`, {
+    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -1321,7 +1331,7 @@ export async function getCardDetail(
 
     // カード情報に複数画像をマージ
     const mergedCard = { ...card };
-    if (additionalImgs.length > 1) {
+    if (additionalImgs.length > 0) {
       mergedCard.imgs = additionalImgs;
     }
 
@@ -1345,9 +1355,6 @@ export async function getCardDetail(
   }
 }
 
-// キャッシュの有効期限（ミリ秒）- デフォルト24時間
-const CARD_DETAIL_CACHE_TTL = 24 * 60 * 60 * 1000;
-
 /**
  * キャッシュ付きカード詳細取得の結果
  */
@@ -1360,21 +1367,25 @@ export interface CardDetailCacheResult {
   isFresh: boolean;
   /** キャッシュの取得日時 */
   fetchedAt: number;
+  /** バックグラウンド更新のPromise（autoRefresh=trueかつisFresh=falseの場合のみ存在） */
+  refreshPromise?: Promise<CardDetail | null>;
 }
 
 /**
  * キャッシュ対応のカード詳細取得
- * - キャッシュが有効期間内ならAPIをスキップ
- * - キャッシュが期限切れならキャッシュを返しつつ、バックグラウンド更新用のフラグを設定
+ * - fetch-atが今日の日付ならAPIをスキップ
+ * - fetch-atが今日の日付でなければキャッシュを返しつつ、バックグラウンド更新を開始
  * - キャッシュがなければAPI呼び出し
  *
  * @param cardOrId CardInfoまたはcid
  * @param lang 言語（省略時は現在のページから検出）
+ * @param autoRefresh キャッシュが古い場合にバックグラウンドで自動更新するか（デフォルト: true）
  * @returns キャッシュ結果
  */
 export async function getCardDetailWithCache(
   cardId: string,
-  lang?: string
+  lang?: string,
+  autoRefresh: boolean = true
 ): Promise<CardDetailCacheResult> {
   const unifiedDB = getUnifiedCacheDB();
 
@@ -1387,26 +1398,56 @@ export async function getCardDetailWithCache(
       const now = Date.now();
       // fetchedAtがundefinedの場合は現在時刻として扱う（初回取得扱い）
       const fetchedAt = cachedTableC.fetchedAt || now;
-      const age = now - fetchedAt;
-      const isFresh = age < CARD_DETAIL_CACHE_TTL;
+      
+      // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
+      const isSameDayToday = isSameDay(fetchedAt, now);
+      
+      // related-productsの存在チェック
+      const hasRelatedProducts = !!(cachedTableC.relatedProducts && cachedTableC.relatedProducts.length > 0);
+      
+      // isFresh条件: 今日の日付 AND related-productsが存在する
+      const isFresh = isSameDayToday && hasRelatedProducts;
 
       // キャッシュからCardDetailを再構築
       const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC);
 
       if (cachedDetail) {
-        console.log(`[getCardDetailWithCache] Cache hit for ${cardId}, fresh=${isFresh}, age=${Math.round(age / 1000)}s`);
+        const daysDiff = Math.floor((now - fetchedAt) / (24 * 60 * 60 * 1000));
+        console.log(`[getCardDetailWithCache] Cache hit for ${cardId}, fresh=${isFresh}, age=${daysDiff}days, hasRelatedProducts=${hasRelatedProducts}`);
 
-        // fetchedAtを更新（キャッシュヒット時も更新）
-        await unifiedDB.updateCardTableCFetchedAt(cardId);
+        // fetchedAtを更新（今日の日付でない場合のみ）
+        if (!isSameDayToday) {
+          await unifiedDB.updateCardTableCFetchedAt(cardId);
+        }
 
-        // キャッシュが有効期間内ならそのまま返す
-        // 期限切れの場合もキャッシュを返す（呼び出し側でバックグラウンド更新を判断）
-        return {
+        const result: CardDetailCacheResult = {
           detail: cachedDetail,
           fromCache: true,
           isFresh,
-          fetchedAt: Date.now() // 更新後の時刻
+          fetchedAt: !isSameDayToday ? Date.now() : fetchedAt // 更新した場合は新しい時刻
         };
+
+        // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
+        if (!isFresh && autoRefresh) {
+          console.log(`[getCardDetailWithCache] Starting background refresh for ${cardId}`);
+          result.refreshPromise = (async () => {
+            try {
+              const freshDetail = await getCardDetail(cardId, lang);
+              if (freshDetail && unifiedDB.isInitialized()) {
+                await saveCardDetailToCache(unifiedDB, freshDetail, true);
+                // ストレージに永続化
+                await unifiedDB.saveAll();
+                console.log(`[getCardDetailWithCache] Background refresh completed for ${cardId}`);
+              }
+              return freshDetail;
+            } catch (error) {
+              console.error(`[getCardDetailWithCache] Background refresh failed for ${cardId}:`, error);
+              return null;
+            }
+          })();
+        }
+
+        return result;
       }
     }
   }
@@ -1416,8 +1457,10 @@ export async function getCardDetailWithCache(
   const detail = await getCardDetail(cardId, lang);
 
   if (detail && unifiedDB.isInitialized()) {
-    // キャッシュに保存
-    await saveCardDetailToCache(unifiedDB, detail);
+    // キャッシュに保存（forceUpdate=trueで強制更新）
+    await saveCardDetailToCache(unifiedDB, detail, true);
+    // ストレージに永続化
+    await unifiedDB.saveAll();
   }
 
   return {
@@ -1442,16 +1485,8 @@ async function reconstructCardDetailFromCache(
     return null;
   }
 
-  // CardTableCに保存されているtext等をCardInfoへ反映する（キャッシュ復元時にtextが欠落する問題への対処）
-  // tableC は CardTableC 型で text / pendText 等を持っているため、それらを復元先のCardInfoにセットする
-  const cardWithText: any = { ...cardInfo };
-  if (tableC.text) {
-    cardWithText.text = tableC.text;
-  }
-  if (tableC.pendText) {
-    // 旧APIではpendTextというフィールド名を使用していたため互換性を確保
-    cardWithText.pendulumEffect = tableC.pendText;
-  }
+  // cardInfoには既にTableB2からtext/pendTextがマージされている
+  // （reconstructCardInfo()内で処理済み）
 
   // relatedCardsを再構築
   const relatedCards: CardInfo[] = [];
@@ -1465,7 +1500,7 @@ async function reconstructCardDetailFromCache(
   }
 
   return {
-    card: cardWithText as CardInfo,
+    card: cardInfo,
     packs: tableC.packs || [],
     relatedCards,
     qaList: tableC.qaList || []
@@ -1475,29 +1510,27 @@ async function reconstructCardDetailFromCache(
 /**
  * CardDetailをキャッシュに保存
  */
-async function saveCardDetailToCache(
+export async function saveCardDetailToCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
-  detail: CardDetail
+  detail: CardDetail,
+  forceUpdate: boolean = false
 ): Promise<void> {
   const cid = detail.card.cardId;
 
   // CardInfoをTableA, Bに保存
-  unifiedDB.setCardInfo(detail.card);
+  unifiedDB.setCardInfo(detail.card, forceUpdate);
 
   // 関連カードもTableA, Bに保存
   for (const relatedCard of detail.relatedCards) {
-    unifiedDB.setCardInfo(relatedCard);
+    unifiedDB.setCardInfo(relatedCard, forceUpdate);
   }
 
   // CardTableCを作成して保存
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cardAny = detail.card as any;
+  // TableCを作成して保存（text/pendTextはTableB2に保存されるので含めない）
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
   const tableC: CardTableC = {
     cardId: cid,
-    text: cardAny.text,
-    pendText: cardAny.pendText,
     relatedCards: detail.relatedCards.map(c => c.cardId),
     relatedProducts: packs.map(p => p.packId).filter((id): id is string => id !== undefined),
     packs: packs,
