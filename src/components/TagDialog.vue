@@ -187,12 +187,16 @@ const totalMonsterCount = computed(() => {
 // グループの表示順序
 const GROUP_ORDER: (TagGroup | 'all')[] = ['attr', 'race', 'type', 'others'];
 
-// タグにグループ情報を付与し、グループごとにソート
+// タグにグループ情報と内部キーを付与し、グループごとにソート
 const tagsWithGroups = computed<TagEntry[]>(() => {
-  const tagged = props.tags.map(tag => ({
-    ...tag,
-    group: classifyTagById(tag.value)
-  }));
+  const tagged = props.tags.map(tag => {
+    const group = classifyTagById(tag.value);
+    return {
+      ...tag,
+      group,
+      internalKey: getInternalKey(tag.value, group)
+    };
+  });
 
   // グループ順でソート
   return tagged.sort((a, b) => {
@@ -202,6 +206,20 @@ const tagsWithGroups = computed<TagEntry[]>(() => {
   });
 });
 
+// タグIDから内部キー（英語キー）を取得
+function getInternalKey(tagValue: string, group: TagGroup): string | undefined {
+  switch (group) {
+    case 'attr':
+      return TAG_ID_TO_ATTR[tagValue];
+    case 'race':
+      return TAG_ID_TO_RACE[tagValue];
+    case 'type':
+      return undefined; // typeは日本語ラベルを使用
+    default:
+      return undefined;
+  }
+}
+
 // タグに一致するモンスターの枚数をカウント
 function countMonstersWithTag(tag: TagEntry): number {
   return props.deckCards.filter(card => {
@@ -209,12 +227,12 @@ function countMonstersWithTag(tag: TagEntry): number {
     
     const monsterCard = card as any;
     
-    // tag.valueから直接英語キーに変換して比較
+    // internalKeyを使って直接比較
     switch (tag.group) {
       case 'attr':
-        return monsterCard.attribute === TAG_ID_TO_ATTR[tag.value];
+        return tag.internalKey ? monsterCard.attribute === tag.internalKey : false;
       case 'race':
-        return monsterCard.race === TAG_ID_TO_RACE[tag.value];
+        return tag.internalKey ? monsterCard.race === tag.internalKey : false;
       case 'type':
         // typesは日本語の配列なので、ラベルで比較
         return monsterCard.types && monsterCard.types.includes(tag.label);

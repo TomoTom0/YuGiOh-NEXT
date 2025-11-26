@@ -21,4 +21,5 @@ export interface TagEntry {
   value: string;   // タグID
   label: string;   // タグ名
   group: TagGroup; // グループ（自動分類される）
+  internalKey?: string; // 内部キー（属性・種族の英語キー）
 }
