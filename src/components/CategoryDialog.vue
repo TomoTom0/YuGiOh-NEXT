@@ -143,14 +143,17 @@ const rowToCharsMap: Record<string, string[]> = {
   'ruby_ヴ': ['ruby_ヴ']
 };
 
-// カテゴリ名を含むカードの総数をカウント
+// カテゴリ名を含むカードの総数（実枚数）をカウント
 function countCardsWithCategory(categoryLabel: string): number {
-  return props.deckCards.filter(card => {
+  return props.deckCards.reduce((count, card) => {
     const cardAny = card as any;
     const cardName = card.name || '';
     const cardText = cardAny.text || '';
-    return cardName.includes(categoryLabel) || cardText.includes(categoryLabel);
-  }).length;
+    if (cardName.includes(categoryLabel) || cardText.includes(categoryLabel)) {
+      return count + (card.count || 1);
+    }
+    return count;
+  }, 0);
 }
 
 // フィルタされたカテゴリ

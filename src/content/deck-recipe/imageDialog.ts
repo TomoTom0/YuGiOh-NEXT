@@ -596,7 +596,7 @@ export async function showImageDialog(): Promise<void> {
   // 現在のページのDOMからデッキデータを取得
   let deckData: DeckInfo;
   try {
-    deckData = parseDeckDetail(document);
+    deckData = await parseDeckDetail(document);
   } catch (error) {
     console.error('[YGO Helper] Failed to parse deck data from current page:', error);
     return;

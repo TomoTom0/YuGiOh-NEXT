@@ -177,11 +177,19 @@ export async function saveDeckInternal(
     // デッキスタイル
     params.append('deckStyle', deckData.deckStyle !== undefined ? deckData.deckStyle.toString() : '-1');
 
-    // カテゴリー（txt_のみ送信、配列は送信しない）
+    // カテゴリー（個別のIDを複数回送信 + 空のtxt_フィールド + フラグ）
+    const categories = deckData.category || [];
+    categories.forEach(id => {
+      params.append('dckCategoryMst', id);
+    });
     params.append('txt_dctCategoryMst', '');
     params.append('category_serch_flg', 'on');
 
-    // タグ（txt_のみ送信、配列は送信しない）
+    // タグ（個別のIDを複数回送信 + 空のtxt_フィールド + フラグ）
+    const tags = deckData.tags || [];
+    tags.forEach(id => {
+      params.append('dckTagMst', id);
+    });
     params.append('txt_dctTagMst', '');
     params.append('serch_flg', 'on');
 
@@ -269,7 +277,6 @@ export async function saveDeckInternal(
     const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
     
-
     
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
@@ -399,7 +406,6 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
-    console.log('[getDeckDetail] Loading deck:', dno, 'cgid:', cgid);
     const requestLocale = detectLanguage(document);
     const API_ENDPOINT = getApiEndpoint();
 
@@ -415,31 +421,16 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       params.append('cgid', cgid);
     }
 
-    console.log('[getDeckDetail] Fetching:', `${API_ENDPOINT}?${params.toString()}`);
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });
 
     const html = response.data;
-    console.log('[getDeckDetail] HTML length:', html.length);
-
-    // imgsパラメータのサンプルを抽出
-    const imgsMatches = html.match(/imgs[^>]{0,100}/g) || [];
-    console.log('[getDeckDetail] imgs samples (first 5):', imgsMatches.slice(0, 5));
-
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
     // parseDeckDetailを使用してデッキ情報を抽出
-    console.log('[getDeckDetail] Parsing deck detail...');
-    const deckInfo = parseDeckDetail(doc);
-    console.log('[getDeckDetail] Parsed:', {
-      dno: deckInfo.dno,
-      name: deckInfo.name,
-      mainCount: deckInfo.mainDeck.length,
-      extraCount: deckInfo.extraDeck.length,
-      sideCount: deckInfo.sideDeck.length
-    });
+    const deckInfo = await parseDeckDetail(doc);
 
     return deckInfo;
   } catch (error) {

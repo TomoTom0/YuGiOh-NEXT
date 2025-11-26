@@ -36,7 +36,7 @@ export async function downloadDeckRecipeImage(
     });
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
-    deckData = parseDeckDetail(doc);
+    deckData = await parseDeckDetail(doc);
 
     // デバッグログ
     const tempCardDB = getTempCardDB();
