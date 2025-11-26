@@ -17,6 +17,7 @@
       :model-value="localTags"
       :is-visible="showTagDialog"
       :tags="tagList"
+      :deck-cards="allDeckCards"
       @update:model-value="updateTags"
       @close="showTagDialog = false"
     />
@@ -25,6 +26,7 @@
       :model-value="localCategory"
       :is-visible="showCategoryDialog"
       :categories="categories"
+      :deck-cards="allDeckCards"
       @update:model-value="updateCategories"
       @close="showCategoryDialog = false"
     />
@@ -58,6 +60,7 @@ import TagDialog from './TagDialog.vue';
 import DeckMetadataDescription from './DeckMetadataDescription.vue';
 import DeckMetadataTags from './DeckMetadataTags.vue';
 import DeckMetadataHeader from './DeckMetadataHeader.vue';
+import { getTempCardDB } from '../utils/temp-card-db';
 
 const deckStore = useDeckEditStore();
 
@@ -79,6 +82,30 @@ const localComment = ref(deckStore.deckInfo.comment ?? '');
 // ダイアログ表示状態
 const showCategoryDialog = ref(false);
 const showTagDialog = ref(false);
+
+// デッキ内の全カード情報を取得
+const allDeckCards = computed(() => {
+  const cards: any[] = [];
+  const tempCardDB = getTempCardDB();
+  
+  // mainDeck, extraDeck, sideDeckからカードIDを取得
+  const allCardRefs = [
+    ...deckStore.deckInfo.mainDeck,
+    ...deckStore.deckInfo.extraDeck,
+    ...deckStore.deckInfo.sideDeck
+  ];
+  
+  // 重複を除いてCardInfoを取得
+  const uniqueCardIds = new Set(allCardRefs.map(ref => ref.cid));
+  for (const cid of uniqueCardIds) {
+    const cardInfo = tempCardDB.get(cid);
+    if (cardInfo) {
+      cards.push(cardInfo);
+    }
+  }
+  
+  return cards;
+});
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {

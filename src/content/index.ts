@@ -22,6 +22,9 @@ import { isFeatureEnabled } from '../utils/settings';
 // マッピングマネージャー
 import { initializeMappingManager } from '../utils/mapping-manager';
 
+// デッキメタデータローダー
+import { getDeckMetadata } from '../utils/deck-metadata-loader';
+
 /**
  * 機能設定に基づいて、各機能を初期化する
  */
@@ -29,6 +32,9 @@ async function initializeFeatures(): Promise<void> {
   try {
     // マッピングマネージャーを初期化（パーサーより先に実行）
     await initializeMappingManager();
+    
+    // デッキメタデータを事前ロード（パース時の遅延を防ぐ）
+    getDeckMetadata().catch(err => console.warn('Failed to preload deck metadata:', err));
 
     // デッキ画像作成機能の初期化（設定で有効な場合のみ）
     if (await isFeatureEnabled('deck-image')) {
