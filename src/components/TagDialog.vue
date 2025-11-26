@@ -138,10 +138,10 @@ watch(() => props.isVisible, (newVal) => {
   }
 });
 
-// フィルタの枚数基準（後から変更可能）
-const FILTER_THRESHOLD_ATTR = ref<number>(3);
-const FILTER_THRESHOLD_RACE = ref<number>(3);
-const FILTER_THRESHOLD_TYPE = ref<number>(3);
+// デッキ内のモンスター総数を取得
+const totalMonsterCount = computed(() => {
+  return props.deckCards.filter(card => card.cardType === 'monster').length;
+});
 
 // グループの表示順序
 const GROUP_ORDER: (TagGroup | 'all')[] = ['attr', 'race', 'type', 'others'];
@@ -196,7 +196,7 @@ const filteredTags = computed(() => {
     tags = tags.filter(tag => tag.label.toLowerCase().includes(query));
   }
   
-  // 枚数フィルタ: 各グループごとに基準枚数以上のみ表示
+  // 枚数フィルタ: 各グループごとに基準を満たすもののみ表示
   if (isFilterEnabled.value) {
     tags = tags.filter(tag => {
       // モンスター関連以外のタグは除外
@@ -205,13 +205,55 @@ const filteredTags = computed(() => {
       }
       
       const count = countMonstersWithTag(tag);
+      
       switch (tag.group) {
         case 'attr':
-          return count >= FILTER_THRESHOLD_ATTR.value;
+          // 神属性かつ1枚以上、または全体の1/4以上
+          if (tag.value === '7') { // 神属性
+            return count >= 1;
+          }
+          return count >= totalMonsterCount.value / 4;
+          
         case 'race':
-          return count >= FILTER_THRESHOLD_RACE.value;
-        case 'type':
-          return count >= FILTER_THRESHOLD_TYPE.value;
+          // 幻獣神族または創造神族かつ1枚以上、または全体の1/4以上
+          if (tag.value === '23' || tag.value === '27') { // 幻獣神族、創造神族
+            return count >= 1;
+          }
+          return count >= totalMonsterCount.value / 4;
+          
+        case 'type': {
+          // モンスタータイプ別の処理
+          const monsterType = getMonsterTypeFromLabel(tag.label);
+          
+          // エクストラデッキタイプ: エクストラデッキで7枚以上
+          if (['fusion', 'synchro', 'xyz', 'link'].includes(monsterType)) {
+            // エクストラデッキのこのタイプの枚数をカウント
+            const extraCount = props.deckCards.filter(card => {
+              if (card.cardType !== 'monster') return false;
+              const monsterCard = card as any;
+              if (!monsterCard.isExtraDeck) return false;
+              
+              const cardTypes = monsterCard.types || [];
+              switch (monsterType) {
+                case 'fusion':
+                  return cardTypes.includes('融合');
+                case 'synchro':
+                  return cardTypes.includes('シンクロ');
+                case 'xyz':
+                  return cardTypes.includes('エクシーズ');
+                case 'link':
+                  return cardTypes.includes('リンク');
+                default:
+                  return false;
+              }
+            }).length;
+            return extraCount >= 7;
+          }
+          
+          // その他のモンスタータイプ: 7枚以上
+          return count >= 7;
+        }
+        
         default:
           return false;
       }
