@@ -25,7 +25,7 @@
       <!-- フィルタタブとアクションボタン -->
       <div class="filter-and-actions">
         <div class="action-buttons-left">
-          <button class="btn btn-icon" @click="selectedGroup = 'all'" title="Reset Filter">
+          <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="toggleFilter" title="Filter (枚数基準)">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
             </svg>
@@ -109,6 +109,7 @@ const props = defineProps<{
   isVisible: boolean;
   tags: Array<{ value: string; label: string }>;
   modelValue: string[];
+  deckCards: any[];
 }>();
 
 const emit = defineEmits<{
@@ -118,6 +119,12 @@ const emit = defineEmits<{
 
 const selectedTags = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<TagGroup | 'all'>('all');
+const isFilterEnabled = ref<boolean>(false);
+
+// フィルタの枚数基準（後から変更可能）
+const FILTER_THRESHOLD_ATTR = ref<number>(3);
+const FILTER_THRESHOLD_RACE = ref<number>(3);
+const FILTER_THRESHOLD_TYPE = ref<number>(3);
 
 // グループの表示順序
 const GROUP_ORDER: (TagGroup | 'all')[] = ['attr', 'race', 'type', 'others'];
@@ -137,13 +144,60 @@ const tagsWithGroups = computed<TagEntry[]>(() => {
   });
 });
 
+// タグに一致するモンスターの枚数をカウント
+function countMonstersWithTag(tag: TagEntry): number {
+  return props.deckCards.filter(card => {
+    if (card.cardType !== 'monster') return false;
+    
+    const monsterCard = card as any;
+    switch (tag.group) {
+      case 'attr':
+        return monsterCard.attribute === tag.value;
+      case 'race':
+        return monsterCard.race === tag.value;
+      case 'type':
+        // typesは配列なので、含まれているかチェック
+        return monsterCard.types && monsterCard.types.includes(tag.value);
+      default:
+        return false;
+    }
+  }).length;
+}
+
 // フィルタされたタグ
 const filteredTags = computed(() => {
-  if (selectedGroup.value === 'all') {
-    return tagsWithGroups.value;
+  let tags = tagsWithGroups.value;
+  
+  // グループフィルタ
+  if (selectedGroup.value !== 'all') {
+    tags = tags.filter(tag => tag.group === selectedGroup.value);
   }
-  return tagsWithGroups.value.filter(tag => tag.group === selectedGroup.value);
+  
+  // 枚数フィルタ: 各グループごとに基準枚数以上のみ表示
+  if (isFilterEnabled.value) {
+    tags = tags.filter(tag => {
+      const count = countMonstersWithTag(tag);
+      switch (tag.group) {
+        case 'attr':
+          return count >= FILTER_THRESHOLD_ATTR.value;
+        case 'race':
+          return count >= FILTER_THRESHOLD_RACE.value;
+        case 'type':
+          return count >= FILTER_THRESHOLD_TYPE.value;
+        default:
+          return true; // 'others'は常に表示
+      }
+    });
+  }
+  
+  return tags;
 });
+
+// フィルタトグル
+function toggleFilter(): void {
+  isFilterEnabled.value = !isFilterEnabled.value;
+  console.log('Tag filter:', isFilterEnabled.value ? 'ON' : 'OFF');
+}
 
 // タグラベルを取得
 function getTagLabel(tagId: string): string {
