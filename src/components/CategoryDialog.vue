@@ -108,6 +108,13 @@ const selectedCategories = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<string>('all');
 const isFilterEnabled = ref<boolean>(false);
 
+// ダイアログが開かれた時にフィルタをリセット
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    isFilterEnabled.value = false;
+  }
+});
+
 // タブグループ（二行表示用）
 const firstRowGroups = ['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ', 'ruby_ナ'];
 const secondRowGroups = ['ruby_ハ', 'ruby_マ', 'ruby_ヤ', 'ruby_ラ', 'ruby_ワ', 'ruby_ヴ'];
@@ -314,7 +321,7 @@ watch(() => props.modelValue, (newVal) => {
   padding: 6px 16px;
   border-bottom: 1px solid var(--border-color, #e0e0e0);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
@@ -324,6 +331,7 @@ watch(() => props.modelValue, (newVal) => {
   flex-direction: row;
   gap: 6px;
   flex-shrink: 0;
+  align-items: center;
 }
 
 .filter-tabs {
@@ -428,6 +436,18 @@ watch(() => props.modelValue, (newVal) => {
   background: #e0e0e0;
   border-color: #999;
   color: #333;
+}
+
+.btn-icon.active {
+  background: #1976d2;
+  border-color: #1565c0;
+  color: #ffffff;
+}
+
+.btn-icon.active:hover {
+  background: #1565c0;
+  border-color: #0d47a1;
+  color: #ffffff;
 }
 
 .btn-icon svg {
