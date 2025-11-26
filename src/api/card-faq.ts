@@ -1,6 +1,15 @@
 import { CardFAQ, CardFAQList } from '@/types/card';
+import { detectCardGameType } from '@/utils/page-detector';
+import { getFaqSearchEndpoint } from '@/utils/url-builder';
 
-const FAQ_SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/faq_search.action';
+/**
+ * FAQ検索APIのURLを取得
+ * 現在のページのゲームタイプ（OCG/Rush）に応じたURLを返す
+ */
+function getFaqSearchUrl(): string {
+  const gameType = detectCardGameType();
+  return getFaqSearchEndpoint(gameType);
+}
 
 /**
  * カードQA一覧を取得する
@@ -23,7 +32,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
       request_locale: 'ja'
     });
 
-    const response = await fetch(`${FAQ_SEARCH_URL}?${params.toString()}`, {
+    const response = await fetch(`${getFaqSearchUrl()}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -195,7 +204,7 @@ export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
       request_locale: 'ja'
     });
 
-    const response = await fetch(`${FAQ_SEARCH_URL}?${params.toString()}`, {
+    const response = await fetch(`${getFaqSearchUrl()}?${params.toString()}`, {
       method: 'GET',
       credentials: 'include'
     });

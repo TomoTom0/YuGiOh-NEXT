@@ -73,7 +73,7 @@ import CardInfo from './CardInfo.vue'
 import CardQA from './CardQA.vue'
 import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
-import { getCardDetail, getCardDetailWithCache } from '../api/card-search'
+import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
 import { useDeckEditStore } from '../stores/deck-edit'
 
@@ -179,12 +179,13 @@ export default {
           // 詳細データを設定（一度だけ）
           detail.value = cacheResult.detail
           
-          // selectedCardを同期的に更新（watchを待たずに即座に反映）
-          const oldCiid = deckStore.selectedCard?.ciid
+          // selectedCardを更新（詳細情報をマージ、imgsとciidはprops.cardを優先）
+          console.log('[CardDetail] props.card.imgs:', props.card.imgs, 'cache.imgs:', cacheResult.detail.card.imgs)
           deckStore.selectedCard = {
+            ...props.card,
             ...cacheResult.detail.card,
-            imgs: [...cacheResult.detail.card.imgs],
-            ciid: (deckStore.selectedCard?.cardId === cacheResult.detail.card.cardId && oldCiid) || cacheResult.detail.card.ciid
+            imgs: props.card.imgs || cacheResult.detail.card.imgs,
+            ciid: props.card.ciid || cacheResult.detail.card.ciid
           }
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
@@ -192,13 +193,11 @@ export default {
           console.log('[CardDetail] FAQ fetched:', faqResult)
           faqListData.value = faqResult
 
-          // キャッシュが期限切れ、またはルビがない場合はバックグラウンドで再取得
-          if (cacheResult.fromCache && (!cacheResult.isFresh || !cacheResult.detail.card.ruby)) {
-            console.log('[CardDetail] Cache is stale or missing ruby, revalidating in background')
-            // バックグラウンドで再取得（UIをブロックしない）
-            revalidateInBackground(props.card.cardId).catch(err => {
-              console.error('[CardDetail] Background revalidation failed:', err)
-            })
+          // キャッシュが期限切れの場合は同期的に再取得
+          if (cacheResult.fromCache && !cacheResult.isFresh) {
+            console.log('[CardDetail] Cache is stale, revalidating synchronously')
+            // 同期的に再取得
+            await revalidateInBackground(props.card.cardId)
           }
         } else {
           detail.value = null
@@ -219,22 +218,41 @@ export default {
         // APIから最新データを取得
         const freshDetail = await getCardDetail(cardId)
         if (!freshDetail) return
+        
+        // 共通関数でキャッシュに保存（強制更新）
+        const { getUnifiedCacheDB } = await import('../utils/unified-cache-db')
+        const unifiedDB = getUnifiedCacheDB()
+        if (unifiedDB.isInitialized()) {
+          await saveCardDetailToCache(unifiedDB, freshDetail, true)
+        }
 
         // 現在表示中のカードと同じか確認
         if (detail.value && detail.value.card.cardId === cardId) {
-          // 差分があるか確認（簡易チェック）
-          const currentName = detail.value.card.name
-          const freshName = freshDetail.card.name
-          const currentRuby = detail.value.card.ruby
-          const freshRuby = freshDetail.card.ruby
-          const currentPacks = detail.value.packs.length
-          const freshPacks = freshDetail.packs.length
-          const currentRelated = detail.value.relatedCards.length
-          const freshRelated = freshDetail.relatedCards.length
+          // キー単位で差分を検出して更新
+          const changedKeys = []
+          
+          for (const key of Object.keys(freshDetail)) {
+            const currentVal = JSON.stringify(detail.value[key])
+            const freshVal = JSON.stringify(freshDetail[key])
+            
+            if (currentVal !== freshVal) {
+              changedKeys.push(key)
+              detail.value[key] = freshDetail[key]
+            }
+          }
 
-          if (currentName !== freshName || currentRuby !== freshRuby || currentPacks !== freshPacks || currentRelated !== freshRelated) {
-            console.log('[CardDetail] Revalidation found differences, updating view')
-            detail.value = freshDetail
+          if (changedKeys.length > 0) {
+            console.log('[CardDetail] Revalidation found differences in keys:', changedKeys)
+            
+            // cardが更新された場合はselectedCardも更新（ただしciidは保持）
+            if (changedKeys.includes('card')) {
+              const currentCiid = deckStore.selectedCard?.ciid
+              deckStore.selectedCard = {
+                ...freshDetail.card,
+                imgs: [...freshDetail.card.imgs],
+                ciid: currentCiid || freshDetail.card.ciid
+              }
+            }
           } else {
             console.log('[CardDetail] Revalidation found no differences')
           }

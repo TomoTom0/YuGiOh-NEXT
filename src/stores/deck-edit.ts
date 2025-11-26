@@ -719,6 +719,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   // グローバル検索モード（検索入力欄を画面中央に大きく表示）
   const isGlobalSearchMode = ref(false);
+  
+  // オーバーレイ表示状態（z-index統一管理）
+  const overlayVisible = ref(false);
+  const overlayZIndex = ref(10000);
+
+  // ダイアログ表示状態
+  const showExportDialog = ref(false);
+  const showImportDialog = ref(false);
+  const showOptionsDialog = ref(false);
+  const showLoadDialog = ref(false);
+  const showDeleteConfirm = ref(false);
 
   // 設定ストアを取得
   const settingsStore = useSettingsStore();
@@ -1648,6 +1659,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     currentPage,
     hasMore,
     isGlobalSearchMode,
+    overlayVisible,
+    overlayZIndex,
+    showExportDialog,
+    showImportDialog,
+    showOptionsDialog,
+    showLoadDialog,
+    showDeleteConfirm,
     canUndo,
     canRedo,
     canMoveCard,

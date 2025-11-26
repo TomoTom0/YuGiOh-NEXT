@@ -156,7 +156,7 @@ export class UnifiedCacheDB {
 
   private async loadDeckOpenHistory(): Promise<void> {
     const result = await chrome.storage.local.get(STORAGE_KEYS.deckOpenHistory);
-    const data = result[STORAGE_KEYS.deckOpenHistory];
+    const data = result[STORAGE_KEYS.deckOpenHistory] as DeckOpenHistory | undefined;
     if (data) {
       this.deckOpenHistory = data;
       console.log(`[UnifiedCacheDB] Loaded deck history with ${this.deckOpenHistory.recentDecks.length} decks`);
@@ -372,7 +372,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as CardTableC | undefined;
     if (data) {
       this.cardTableCCache.set(cardId, data);
       return data;
@@ -409,7 +409,7 @@ export class UnifiedCacheDB {
       // メモリにない場合はストレージから読み込み
       const key = STORAGE_KEYS.cardTableCPrefix + cardId;
       const result = await chrome.storage.local.get(key);
-      const data = result[key];
+      const data = result[key] as CardTableC | undefined;
       if (data) {
         data.fetchedAt = Date.now();
         this.cardTableCCache.set(cardId, data);
@@ -521,7 +521,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.productTableBPrefix + packId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as ProductTableB | undefined;
     if (data) {
       this.productTableB.set(packId, data);
       return data;
@@ -581,7 +581,7 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.faqTableBPrefix + faqId;
     const result = await chrome.storage.local.get(key);
-    const data = result[key];
+    const data = result[key] as FAQTableB | undefined;
     if (data) {
       data.lastAccessedAt = Date.now();
       this.faqTableB.set(faqId, data);

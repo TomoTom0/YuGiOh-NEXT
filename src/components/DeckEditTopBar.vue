@@ -123,55 +123,9 @@
     <!-- Menu Overlay (外側クリックで閉じる用) -->
     <div v-if="showMenu" class="menu-overlay" @click="toggleMenu"></div>
 
-    <!-- Export Dialog -->
-    <ExportDialog
-      :isVisible="showExportDialog"
-      :deckInfo="deckStore.deckInfo"
-      :dno="String(localDno)"
-      @close="showExportDialog = false"
-      @exported="handleExported"
-    />
 
-    <!-- Import Dialog -->
-    <ImportDialog
-      :isVisible="showImportDialog"
-      @close="showImportDialog = false"
-      @imported="handleImported"
-    />
 
-    <!-- Options Dialog -->
-    <OptionsDialog
-      :isVisible="showOptionsDialog"
-      @close="showOptionsDialog = false"
-    />
 
-    <!-- Load Dialog -->
-    <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
-      <div class="load-dialog" @click.stop>
-        <div class="load-dialog-header">
-          <h2>Load Deck</h2>
-          <button class="close-btn" @click="toggleLoadDialog">×</button>
-        </div>
-        <div class="load-dialog-content">
-          <div v-if="deckStore.deckList.length === 0" class="no-decks">
-            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
-              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-            </svg>
-            <p>デッキがありません</p>
-          </div>
-          <div v-else class="deck-grid">
-            <div
-              v-for="deck in deckStore.deckList"
-              :key="deck.dno"
-              class="deck-card"
-              @click="loadDeck(deck.dno)"
-            >
-              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <Toast
       :show="toast.show"
@@ -180,22 +134,7 @@
       @close="toast.show = false"
     />
 
-    <!-- Delete Confirmation Dialog -->
-    <div v-if="showDeleteConfirm" class="dialog-overlay" @click="cancelDelete">
-      <div class="delete-confirm-dialog" @click.stop>
-        <div class="delete-confirm-header">
-          <h3>デッキを削除</h3>
-        </div>
-        <div class="delete-confirm-body">
-          <p>本当に「{{ deckStore.getDeckName() || '(名称未設定)' }}」を削除しますか？</p>
-          <p class="warning">この操作は取り消せません。</p>
-        </div>
-        <div class="delete-confirm-footer">
-          <button @click="cancelDelete" class="btn-cancel">キャンセル</button>
-          <button @click="confirmDelete" class="btn-delete">削除</button>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -203,9 +142,6 @@
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import Toast from './Toast.vue'
-import ExportDialog from './ExportDialog.vue'
-import ImportDialog from './ImportDialog.vue'
-import OptionsDialog from './OptionsDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
 import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
@@ -219,23 +155,15 @@ interface ToastState {
 export default {
   name: 'DeckEditTopBar',
   components: {
-    Toast,
-    ExportDialog,
-    ImportDialog,
-    OptionsDialog
+    Toast
   },
   setup() {
     const deckStore = useDeckEditStore()
-    const showLoadDialog = ref(false)
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
     const showMenu = ref(false)
     const menuLoading = ref(false)
-    const showExportDialog = ref(false)
-    const showImportDialog = ref(false)
-    const showOptionsDialog = ref(false)
-    const showDeleteConfirm = ref(false)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -311,12 +239,12 @@ export default {
     }
 
     const toggleLoadDialog = async () => {
-      if (!showLoadDialog.value) {
+      if (!deckStore.showLoadDialog) {
         // ダイアログを開く前にデッキ一覧を取得
         await deckStore.fetchDeckList()
         selectedDeckDno.value = null
       }
-      showLoadDialog.value = !showLoadDialog.value
+      deckStore.showLoadDialog = !deckStore.showLoadDialog
     }
 
     const handleLoadSelected = async () => {
@@ -328,7 +256,7 @@ export default {
         await deckStore.loadDeck(selectedDeckDno.value)
         // デッキ名を空にする（placeholderとしてoriginalNameが表示される）
         deckStore.setDeckName('')
-        showLoadDialog.value = false
+        deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
         console.error('Load error:', error)
@@ -341,7 +269,7 @@ export default {
         await deckStore.loadDeck(dno)
         // デッキ名を空にする（placeholderとしてoriginalNameが表示される）
         deckStore.setDeckName('')
-        showLoadDialog.value = false
+        deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
         console.error('Load error:', error)
@@ -394,28 +322,26 @@ export default {
         await showImageDialogWithData(cgid, dno, deckData, null)
       } catch (error) {
         console.error('Download image error:', error)
-        showToast('画像作成ダイアログの表示に失敗しました', 'error')
+        showToast('画像の生成に失敗しました', 'error')
       }
     }
 
     const handleExportDeck = () => {
       showMenu.value = false
-      showExportDialog.value = true
-    }
-
-    const handleExported = (format: string) => {
-      showToast(`デッキを${format.toUpperCase()}形式でエクスポートしました`, 'success')
+      deckStore.showExportDialog = true
     }
 
     const handleImportDeck = () => {
       showMenu.value = false
-      showImportDialog.value = true
+      deckStore.showImportDialog = true
     }
 
     const handleOptions = () => {
       showMenu.value = false
-      showOptionsDialog.value = true
+      deckStore.showOptionsDialog = true
     }
+
+
 
     const handleImported = (deckInfo: any, replaceExisting: boolean) => {
       if (replaceExisting) {
@@ -486,11 +412,11 @@ export default {
 
     const handleDeleteDeck = () => {
       showMenu.value = false
-      showDeleteConfirm.value = true
+      deckStore.showDeleteConfirm = true
     }
 
     const confirmDelete = async () => {
-      showDeleteConfirm.value = false
+      deckStore.showDeleteConfirm = false
       menuLoading.value = true
       try {
         await deckStore.deleteCurrentDeck()
@@ -504,19 +430,14 @@ export default {
     }
 
     const cancelDelete = () => {
-      showDeleteConfirm.value = false
+      deckStore.showDeleteConfirm = false
     }
 
     return {
       deckStore,
-      showLoadDialog,
       selectedDeckDno,
       savingState,
       showMenu,
-      showExportDialog,
-      showImportDialog,
-      showOptionsDialog,
-      showDeleteConfirm,
       confirmDelete,
       cancelDelete,
       menuLoading,
@@ -532,7 +453,6 @@ export default {
       handleSortAll,
       handleDownloadImage,
       handleExportDeck,
-      handleExported,
       handleImportDeck,
       handleImported,
       handleOptions,

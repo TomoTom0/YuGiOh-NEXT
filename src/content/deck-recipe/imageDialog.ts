@@ -77,14 +77,6 @@ function createPopupHTML(
   const padding = 12; // 左右下の余白
 
   return `
-    <div id="ygo-image-popup-overlay" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 9999;
-    "></div>
     <div id="ygo-image-popup" style="
       position: absolute;
       top: ${top}px;
@@ -450,7 +442,6 @@ export async function showImageDialogWithData(
   document.body.insertAdjacentHTML('beforeend', popupHTML);
 
   // イベントハンドラを登録
-  const overlay = document.getElementById('ygo-image-popup-overlay');
   const popup = document.getElementById('ygo-image-popup');
   const backgroundImageDiv = document.getElementById('ygo-background-image');
   const qrToggle = document.getElementById('ygo-qr-toggle');
@@ -462,18 +453,13 @@ export async function showImageDialogWithData(
    */
   const closePopup = () => {
     // クローズアニメーション開始
-    overlay?.classList.add('closing');
     popup?.classList.add('closing');
 
     // アニメーション終了後に削除
     setTimeout(() => {
-      overlay?.remove();
       popup?.remove();
     }, 200); // アニメーション時間と同じ
   };
-
-  // オーバーレイクリックで閉じる
-  overlay?.addEventListener('click', closePopup);
 
   // ポップアップ全体をクリックで色切り替え
   popup?.addEventListener('click', async () => {
