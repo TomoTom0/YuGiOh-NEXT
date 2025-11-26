@@ -127,31 +127,31 @@ const TAG_ID_TO_ATTR: Record<string, Attribute> = {
 };
 
 const TAG_ID_TO_RACE: Record<string, Race> = {
-  '20': 'warrior',
-  '21': 'spellcaster',
-  '22': 'fairy',
-  '23': 'fiend',
-  '24': 'zombie',
-  '25': 'machine',
-  '26': 'aqua',
-  '27': 'pyro',
-  '28': 'rock',
-  '29': 'windbeast',
-  '30': 'plant',
-  '31': 'insect',
-  '32': 'thunder',
-  '33': 'dragon',
-  '34': 'beast',
-  '35': 'beastwarrior',
-  '36': 'dinosaur',
-  '37': 'fish',
-  '38': 'seaserpent',
-  '39': 'reptile',
-  '40': 'psychic',
-  '41': 'divine',
-  '42': 'creatorgod',
-  '43': 'wyrm',
-  '100': 'illusion'
+  '20': 'dragon',        // ドラゴン族
+  '21': 'zombie',        // アンデット族
+  '22': 'fiend',         // 悪魔族
+  '23': 'pyro',          // 炎族
+  '24': 'seaserpent',    // 海竜族
+  '25': 'rock',          // 岩石族
+  '26': 'machine',       // 機械族
+  '27': 'fish',          // 魚族
+  '28': 'dinosaur',      // 恐竜族
+  '29': 'insect',        // 昆虫族
+  '30': 'beast',         // 獣族
+  '31': 'beastwarrior',  // 獣戦士族
+  '32': 'plant',         // 植物族
+  '33': 'aqua',          // 水族
+  '34': 'warrior',       // 戦士族
+  '35': 'windbeast',     // 鳥獣族
+  '36': 'fairy',         // 天使族
+  '37': 'spellcaster',   // 魔法使い族
+  '38': 'thunder',       // 雷族
+  '39': 'reptile',       // 爬虫類族
+  '40': 'psychic',       // サイキック族
+  '41': 'divine',        // 幻神獣族
+  '42': 'wyrm',          // 幻竜族
+  '43': 'cyberse',       // サイバース族
+  '100': 'illusion'      // 幻想魔族
 };
 
 const props = defineProps<{
