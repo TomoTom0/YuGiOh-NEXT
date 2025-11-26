@@ -126,6 +126,21 @@ const TAG_ID_TO_ATTR: Record<string, Attribute> = {
   '7': 'divine'
 };
 
+const TAG_ID_TO_MONSTER_TYPE: Record<string, string> = {
+  '8': 'link',       // リンク
+  '9': 'pendulum',   // ペンデュラム
+  '10': 'xyz',       // エクシーズ
+  '11': 'synchro',   // シンクロ
+  '12': 'tuner',     // チューナー
+  '13': 'gemini',    // デュアル
+  '14': 'union',     // ユニオン
+  '15': 'spirit',    // スピリット
+  '16': 'toon',      // トゥーン
+  '17': 'ritual',    // 儀式
+  '18': 'fusion',    // 融合
+  '110': 'flip'      // リバース（推測）
+};
+
 const TAG_ID_TO_RACE: Record<string, Race> = {
   '20': 'dragon',        // ドラゴン族
   '21': 'zombie',        // アンデット族
@@ -214,7 +229,7 @@ function getInternalKey(tagValue: string, group: TagGroup): string | undefined {
     case 'race':
       return TAG_ID_TO_RACE[tagValue];
     case 'type':
-      return undefined; // typeは日本語ラベルを使用
+      return TAG_ID_TO_MONSTER_TYPE[tagValue];
     default:
       return undefined;
   }
@@ -234,8 +249,8 @@ function countMonstersWithTag(tag: TagEntry): number {
       case 'race':
         return tag.internalKey ? monsterCard.race === tag.internalKey : false;
       case 'type':
-        // typesは日本語の配列なので、ラベルで比較
-        return monsterCard.types && monsterCard.types.includes(tag.label);
+        // typesは英語キーの配列なので、internalKeyで比較
+        return tag.internalKey ? (monsterCard.types && monsterCard.types.includes(tag.internalKey)) : false;
       default:
         return false;
     }
@@ -294,9 +309,9 @@ const filteredTags = computed(() => {
               const monsterCard = card as any;
               if (!monsterCard.isExtraDeck) return false;
               
-              // tag.label（日本語）と一致するかチェック
+              // tag.internalKey（英語キー）と一致するかチェック
               const cardTypes = monsterCard.types || [];
-              return cardTypes.includes(tag.label);
+              return tag.internalKey && cardTypes.includes(tag.internalKey);
             }).length;
             return extraCount >= 7;
           }
