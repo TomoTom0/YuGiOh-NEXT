@@ -209,14 +209,7 @@ export default {
 
     // 画像選択ボタンを表示するかどうか
     const showImageSelectButton = computed(() => {
-      console.log('[CardInfo] showImageSelectButton check:', {
-        hasCard: !!card.value,
-        hasImgs: !!card.value?.imgs,
-        imgsLength: card.value?.imgs?.length || 0,
-        imgs: card.value?.imgs
-      })
-      const result = !!(card.value && card.value.imgs && card.value.imgs.length > 1)
-      return result
+      return !!(card.value && card.value.imgs && card.value.imgs.length > 1)
     })
 
     const toggleImageDialog = () => {
