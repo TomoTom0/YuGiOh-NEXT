@@ -1192,6 +1192,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!deckInfo.value.name && deckInfo.value.originalName) {
         deckInfo.value.name = deckInfo.value.originalName;
       }
+      
+      
       const result = await sessionManager.saveDeck(dno, deckInfo.value);
       return result;
     } catch (error) {

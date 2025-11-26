@@ -29,6 +29,9 @@ export interface DeckMetadata {
 
 const STORAGE_KEY = 'deck_metadata';
 
+// メモリキャッシュ
+let cachedMetadata: DeckMetadata | null = null;
+
 /**
  * chrome.storage.localからメタデータを取得
  */
@@ -51,12 +54,20 @@ async function getStoredMetadata(): Promise<DeckMetadata | null> {
  *
  * chrome.storage.localに保存されたデータを優先し、
  * なければ初期JSONファイルから読み込む
+ * 
+ * 一度読み込んだデータはメモリにキャッシュされ、2回目以降は即座に返される
  */
 export async function getDeckMetadata(): Promise<DeckMetadata> {
+  // キャッシュがあれば即座に返す
+  if (cachedMetadata) {
+    return cachedMetadata;
+  }
+
   const stored = await getStoredMetadata();
 
   if (stored) {
     console.log('Using deck metadata from chrome.storage (last updated:', stored.lastUpdated, ')');
+    cachedMetadata = stored;
     return stored;
   }
 
@@ -72,7 +83,8 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
     initial.categories = assignCategoryGroups(categoriesArray);
   }
   
-  return initial as DeckMetadata;
+  cachedMetadata = initial as DeckMetadata;
+  return cachedMetadata;
 }
 
 /**
@@ -86,6 +98,7 @@ export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {
 
   try {
     await chrome.storage.local.set({ [STORAGE_KEY]: metadata });
+    cachedMetadata = metadata; // キャッシュを更新
     console.log('Saved deck metadata to chrome.storage');
   } catch (error) {
     console.error('Failed to save metadata to chrome.storage:', error);
