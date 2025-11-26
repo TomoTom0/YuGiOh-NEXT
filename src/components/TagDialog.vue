@@ -288,16 +288,15 @@ const filteredTags = computed(() => {
           
           // エクストラデッキタイプ: エクストラデッキで7枚以上
           if (['fusion', 'synchro', 'xyz', 'link'].includes(monsterType)) {
-            // countMonstersWithTag()がtag.valueで判定しているため、
-            // エクストラデッキのこのタイプの枚数を再カウント
+            // エクストラデッキのこのタイプの枚数をカウント
             const extraCount = props.deckCards.filter(card => {
               if (card.cardType !== 'monster') return false;
               const monsterCard = card as any;
               if (!monsterCard.isExtraDeck) return false;
               
-              // tag.valueと一致するかチェック
+              // tag.label（日本語）と一致するかチェック
               const cardTypes = monsterCard.types || [];
-              return cardTypes.includes(tag.value);
+              return cardTypes.includes(tag.label);
             }).length;
             return extraCount >= 7;
           }
