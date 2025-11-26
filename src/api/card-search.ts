@@ -1485,16 +1485,8 @@ async function reconstructCardDetailFromCache(
     return null;
   }
 
-  // CardTableCに保存されているtext等をCardInfoへ反映する（キャッシュ復元時にtextが欠落する問題への対処）
-  // tableC は CardTableC 型で text / pendText 等を持っているため、それらを復元先のCardInfoにセットする
-  const cardWithText: any = { ...cardInfo };
-  if (tableC.text) {
-    cardWithText.text = tableC.text;
-  }
-  if (tableC.pendText) {
-    // 旧APIではpendTextというフィールド名を使用していたため互換性を確保
-    cardWithText.pendulumEffect = tableC.pendText;
-  }
+  // cardInfoには既にTableB2からtext/pendTextがマージされている
+  // （reconstructCardInfo()内で処理済み）
 
   // relatedCardsを再構築
   const relatedCards: CardInfo[] = [];
@@ -1508,7 +1500,7 @@ async function reconstructCardDetailFromCache(
   }
 
   return {
-    card: cardWithText as CardInfo,
+    card: cardInfo,
     packs: tableC.packs || [],
     relatedCards,
     qaList: tableC.qaList || []
@@ -1534,14 +1526,11 @@ export async function saveCardDetailToCache(
   }
 
   // CardTableCを作成して保存
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cardAny = detail.card as any;
+  // TableCを作成して保存（text/pendTextはTableB2に保存されるので含めない）
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
   const tableC: CardTableC = {
     cardId: cid,
-    text: cardAny.text,
-    pendText: cardAny.pendText,
     relatedCards: detail.relatedCards.map(c => c.cardId),
     relatedProducts: packs.map(p => p.packId).filter((id): id is string => id !== undefined),
     packs: packs,
