@@ -5,39 +5,112 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - 2025-11-22
+詳細な変更履歴は [docs/changelog/](./docs/changelog/) を参照してください。
+
+---
+
+## [0.4.2] - 2025-11-27
 
 ### Added
+- オプションページUI/UX改善（2層タブ構成、視覚的プレビュー）
+- UX設定機能（未保存時の警告、高度なマウス操作）
+- キーボードショートカット設定機能（グローバル検索、Undo/Redo）
 
-#### Rush Duel対応（OCG/Rush Duel両対応化）
-- **基盤整備**
-  - 型定義追加: `CardGameType = 'ocg' | 'rush'`
-  - ページ判定ユーティリティ: `detectCardGameType()`, `getGamePath()`
-  - URLビルダー: 11個のURL生成関数（`buildApiUrl()`, `buildImageUrl()`, `getDeckDisplayUrl()` など）
-  
-- **デッキ表示機能のRush Duel対応**
-  - シャッフル・ソート機能: ゲームタイプ自動判定
-  - デッキ画像作成機能: ゲームタイプ自動判定、QRコードURL動的生成
+### Changed
+- Chrome Web Store用画像を追加（WebP形式、3枚）
+
+詳細: [v0.4.2 変更履歴](./docs/changelog/v0.4.2.md)
+
+---
+
+## [0.4.1] - 2025-11-25
+
+### Added
+- デッキ操作機能（新規作成・複製・削除・NEXT編集ボタン・Undo/Redo）
+- キャッシュシステム刷新（UnifiedCacheDB、stale-while-revalidate戦略）
+- 検索機能大幅強化（コマンドモード、マイデッキ選択、チップフィルター）
+- タグ・カテゴリフィルタ強化（ダイアログ内検索、詳細条件）
+- UI/UX改善（Reloadボタン、未保存時確認ダイアログ）
+
+### Changed
+- タグマッピングの一元化、内部キー判定への変更
 
 ### Fixed
+- CardListのuuid永続化、CardDetail再フェッチ問題、キャッシュ判定条件
 
-#### Rush Duel対応のバグ修正
-- `getCardImageUrl()`: `/yugiohdb/` 固定問題を修正、`gameType`パラメータを追加
-- `isDeckDisplayPage()`: `ope=1`省略時も正しくデッキ表示ページと判定
-- 全コンポーネント（DeckCard, RightArea, DeckEditLayout）で画像URL動的生成
+詳細: [v0.4.1 変更履歴](./docs/changelog/v0.4.1.md)
 
-### Technical Details
+---
 
-**影響範囲**
-- 修正ファイル: 13個
-- 新規ファイル: 1個 (`src/utils/url-builder.ts`)
-- コミット: 3件（565a848, 0b88de8, c0389e8）
+## [0.3.11] - 2025-11-20
 
-**動作確認**
-- ✅ Rush Duelページでシャッフル・ソートボタン表示
-- ✅ Rush Duelページでデッキ画像作成動作
-- ✅ 画像URLが正しく `/rushdb/` を使用
-- ✅ `ope=1` 省略時も動作
+### Added
+- 内部レビュー対応（Phase 1-3完了）
+
+---
+
+## [0.3.10] - 2025-11-19
+
+### Fixed
+- ボタン押下時のアニメーション開始位置を修正
+
+---
+
+## [0.3.9] - 2025-11-18
+
+### Added
+- PNG画像へのデッキ情報埋め込み機能（tEXtチャンク、enc/imgHash対応）
+
+---
+
+## [0.3.8] - 2025-11-17
+
+### Added
+- デッキインポート機能（CSV/TXT/PNG形式）
+
+---
+
+## [0.3.7] - 2025-11-16
+
+### Added
+- メタデータUI改善（カテゴリダイアログ、グリッドレイアウト）
+
+---
+
+## [0.3.6] - 2025-11-16
+
+### Added
+- カード枚数制限超過時の警告表示
+
+---
+
+## [0.3.5] - 2025-11-15
+
+### Added
+- カード情報タブに複数画像選択機能（イラスト違い対応）
+
+---
+
+## [0.3.4] - 2025-11-15
+
+### Added
+- 禁止制限カード表示機能（アイコンと色）
+
+---
+
+## [0.3.3] - 2025-11-14
+
+### Fixed
+- デッキ編集画面のレイアウト問題修正
+
+---
+
+## [0.3.2] - 2025-11-14
+
+### Added
+- 設定管理システム構築（カードサイズ、Extra/Side配置、CSS変数）
+- ブランディング改善（「遊戯王NEXT」への統一、公式アイコン）
+- URLパラメータdnoでデッキを直接開く機能
 
 ---
 
@@ -75,20 +148,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Q&A・収録パック展開機能
 - 自動スクロール調整機能
 
-#### テスト
-- ユニットテスト: 47 tests（language-detector, mapping-manager, card-animation等）
-- 結合テスト: 34 tests（パーサー、API等）
-- コンポーネントテスト: 54 tests（CardList, DeckCard, DeckSection等）
-
-#### ドキュメント
-- ユーザー向けドキュメント
-  - `docs/usage/deck-edit.md`: デッキ編集機能の使い方
-  - `README.md`: v0.3.0新機能の説明
-- 開発者向けドキュメント
-  - `docs/dev/architecture.md`: アーキテクチャ概要
-  - `docs/dev/i18n.md`: 多言語対応の実装詳細
-  - `docs/api/card-search.md`: カード検索APIの仕様
-
 ### Changed
 - Card型の`imageId`を`ciid`に統一
 - `ciid`と`imgs`を必須プロパティに変更
@@ -100,9 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CardListコンポーネントのスタイル統一
 - テストファイルの`__dirname`問題修正（vitest対応）
 
-### Known Issues
-- Search areaのカードボックスは可変サイズではなく4行省略表示（一時対応）
-  - 将来的にはRelated tabと同様に可変サイズにする予定
+詳細: [v0.3.0 変更履歴](./docs/changelog/v0.3.0.md)
 
 ---
 
