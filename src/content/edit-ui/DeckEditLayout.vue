@@ -663,6 +663,7 @@ export default {
   gap: 10px;
   flex: 0 0 auto;
   width: 100%;
+  align-items: flex-start;
 
   // デフォルト（横並び）時はextra/sideを50%幅に制限
   :deep(.extra-deck),
