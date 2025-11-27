@@ -450,6 +450,7 @@ import {
   RACE_OPTIONS,
   MONSTER_TYPE_OPTIONS
 } from '../constants/filter-options';
+import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter';
 
 defineProps<{
   isVisible: boolean;
@@ -481,37 +482,6 @@ const filters = reactive<SearchFilters>({
 });
 
 const activeStatTab = ref<'atk' | 'def'>('atk');
-
-// レベル/リンク数を統合表示するヘルパー関数（SearchInputBarと同じ）
-const formatNumberRange = (numbers: number[], prefix: string): string => {
-  if (numbers.length === 0) return '';
-  const sorted = [...numbers].sort((a, b) => a - b);
-
-  // 連続した数値をグループ化
-  const groups: number[][] = [];
-  let currentGroup: number[] = [sorted[0]];
-
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] === sorted[i - 1] + 1) {
-      currentGroup.push(sorted[i]);
-    } else {
-      groups.push(currentGroup);
-      currentGroup = [sorted[i]];
-    }
-  }
-  groups.push(currentGroup);
-
-  // グループを文字列に変換
-  const parts = groups.map(group => {
-    if (group.length >= 3) {
-      return `${group[0]}-${group[group.length - 1]}`;
-    } else {
-      return group.join(',');
-    }
-  });
-
-  return `${prefix}${parts.join(',')}`;
-};
 
 // 種族の順序（名前順、幻神獣族と創造神族は最後）
 const racesOrdered: Race[] = [
@@ -575,31 +545,17 @@ const selectedLinkChips = computed(() => {
 
 const selectedScaleChips = computed(() => {
   if (filters.scaleValues.length === 0) return [];
-  return [formatNumberRange(filters.scaleValues, 'Scale')];
+  return [formatNumberRange(filters.scaleValues, 'PS')];
 });
 
 const selectedAtkChips = computed(() => {
-  const f = filters.atk;
-  // SearchInputBarと同じ形式：? が選択されている場合は「ATK?」、それ以外は「ATK」
-  if (f.unknown) {
-    return ['ATK?'];
-  }
-  if (f.exact || f.min !== undefined || f.max !== undefined) {
-    return ['ATK'];
-  }
-  return [];
+  const label = formatStatLabel('ATK', filters.atk);
+  return label ? [label] : [];
 });
 
 const selectedDefChips = computed(() => {
-  const f = filters.def;
-  // SearchInputBarと同じ形式：? が選択されている場合は「DEF?」、それ以外は「DEF」
-  if (f.unknown) {
-    return ['DEF?'];
-  }
-  if (f.exact || f.min !== undefined || f.max !== undefined) {
-    return ['DEF'];
-  }
-  return [];
+  const label = formatStatLabel('DEF', filters.def);
+  return label ? [label] : [];
 });
 
 // 選択中の条件チップ
@@ -616,7 +572,10 @@ const activeConditionChips = computed(() => {
   if (filters.monsterTypes.length > 0) chips.push(`タイプ:${filters.monsterTypes.length}件`);
   const levelCount = filters.levelValues.length + filters.linkValues.length + filters.scaleValues.length;
   if (levelCount > 0) chips.push(`レベル等:${levelCount}件`);
-  if (filters.linkMarkers.length > 0) chips.push(`マーカー:${filters.linkMarkers.length}件`);
+  const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
+  if (linkMarkerLabel) {
+    chips.push(linkMarkerLabel);
+  }
   if (filters.atk.exact || filters.atk.unknown || filters.atk.min !== undefined || filters.atk.max !== undefined) {
     chips.push('ATK指定');
   }
@@ -1351,9 +1310,9 @@ function clearFilters() {
       border-color: #ba68c8;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-      border-color: #9c27b0;
-      color: #4a148c;
+      background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+      border-color: #7b1fa2;
+      color: #fff;
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
@@ -1405,9 +1364,9 @@ function clearFilters() {
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #757575 0%, #616161 100%);
+      background: linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%);
       border-color: #9e9e9e;
-      color: #fff;
+      color: #424242;
     }
     &.active:not(:disabled) {
       background: linear-gradient(135deg, #616161 0%, #424242 100%);
@@ -1415,9 +1374,9 @@ function clearFilters() {
       color: #fff;
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #616161 0%, #616161 40%, #e57373 70%, #d32f2f 100%);
+      background: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
       border: 1.5px solid #b71c1c;
-      color: #fff;
+      color: #424242;
     }
   }
 
@@ -1427,9 +1386,9 @@ function clearFilters() {
       border-color: #64b5f6;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-      border-color: #1976d2;
-      color: #0d47a1;
+      background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+      border-color: #0d47a1;
+      color: #fff;
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
@@ -1444,9 +1403,9 @@ function clearFilters() {
       border-color: #4dd0e1;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-      border-color: #0097a7;
-      color: #006064;
+      background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+      border-color: #00838f;
+      color: #fff;
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
@@ -1467,13 +1426,13 @@ function clearFilters() {
     }
     &.active:not(:disabled) {
       background: linear-gradient(180deg,
-        #ffcc80 0%,
-        #ffcc80 30%,
-        #4db6ac 70%,
-        #4db6ac 100%
+        #ff9800 0%,
+        #ff9800 30%,
+        #00897b 70%,
+        #00897b 100%
       );
-      border-color: #ff9800;
-      color: #4a148c;
+      border-color: #e65100;
+      color: #fff;
     }
     &.not:not(:disabled) {
       background: linear-gradient(180deg,
@@ -1733,6 +1692,10 @@ function clearFilters() {
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 1;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-size: 9px;
+      font-weight: 700;
     }
   }
 }

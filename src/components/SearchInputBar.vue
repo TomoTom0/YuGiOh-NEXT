@@ -143,6 +143,8 @@ import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
 import { getTempCardDB } from '../utils/temp-card-db'
+import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter'
+import { getRaceLabel } from '../utils/filter-label'
 
 // コマンド定義
 const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
@@ -447,37 +449,6 @@ export default defineComponent({
       return count
     })
 
-    // レベル/リンク数を統合表示するヘルパー関数
-    const formatNumberRange = (numbers: number[], prefix: string): string => {
-      if (numbers.length === 0) return ''
-      const sorted = [...numbers].sort((a, b) => a - b)
-
-      // 連続した数値をグループ化
-      const groups: number[][] = []
-      let currentGroup: number[] = [sorted[0]]
-
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] === sorted[i - 1] + 1) {
-          currentGroup.push(sorted[i])
-        } else {
-          groups.push(currentGroup)
-          currentGroup = [sorted[i]]
-        }
-      }
-      groups.push(currentGroup)
-
-      // グループを文字列に変換
-      const parts = groups.map(group => {
-        if (group.length >= 3) {
-          return `${group[0]}-${group[group.length - 1]}`
-        } else {
-          return group.join(',')
-        }
-      })
-
-      return `${prefix}${parts.join(',')}`
-    }
-
     // 表示用フィルターアイコン - 画面サイズに応じて表示
     const displayFilterIcons = computed(() => {
       const icons: { type: string; label: string }[] = []
@@ -496,15 +467,8 @@ export default defineComponent({
       })
 
       // 種族（短縮表示）
-      const raceLabels: Record<string, string> = {
-        dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
-        zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
-        fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
-        pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
-        divine: '神', creatorgod: '創'
-      }
       f.races.forEach(race => {
-        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 1) })
+        icons.push({ type: 'race', label: getRaceLabel(race) })
       })
 
       // レベル（統合表示）
@@ -513,28 +477,13 @@ export default defineComponent({
       }
 
       // ATK/DEF
-      if (f.atk.unknown) {
-        icons.push({ type: 'atk', label: 'ATK=?' })
-      } else if (f.atk.exact && f.atk.min !== undefined) {
-        icons.push({ type: 'atk', label: `ATK=${f.atk.min}` })
-      } else if (f.atk.min !== undefined && f.atk.max !== undefined) {
-        icons.push({ type: 'atk', label: `ATK:${f.atk.min}-${f.atk.max}` })
-      } else if (f.atk.min !== undefined) {
-        icons.push({ type: 'atk', label: `ATK≥${f.atk.min}` })
-      } else if (f.atk.max !== undefined) {
-        icons.push({ type: 'atk', label: `ATK≤${f.atk.max}` })
+      const atkLabel = formatStatLabel('ATK', f.atk)
+      if (atkLabel) {
+        icons.push({ type: 'atk', label: atkLabel })
       }
-
-      if (f.def.unknown) {
-        icons.push({ type: 'def', label: 'DEF=?' })
-      } else if (f.def.exact && f.def.min !== undefined) {
-        icons.push({ type: 'def', label: `DEF=${f.def.min}` })
-      } else if (f.def.min !== undefined && f.def.max !== undefined) {
-        icons.push({ type: 'def', label: `DEF:${f.def.min}-${f.def.max}` })
-      } else if (f.def.min !== undefined) {
-        icons.push({ type: 'def', label: `DEF≥${f.def.min}` })
-      } else if (f.def.max !== undefined) {
-        icons.push({ type: 'def', label: `DEF≤${f.def.max}` })
+      const defLabel = formatStatLabel('DEF', f.def)
+      if (defLabel) {
+        icons.push({ type: 'def', label: defLabel })
       }
 
       // モンスタータイプ
@@ -550,6 +499,17 @@ export default defineComponent({
       // リンク数（統合表示）
       if (f.linkValues.length > 0) {
         icons.push({ type: 'link', label: formatNumberRange(f.linkValues, 'L') })
+      }
+
+      // ペンデュラムスケール（統合表示）
+      if (f.scaleValues.length > 0) {
+        icons.push({ type: 'scale', label: formatNumberRange(f.scaleValues, 'PS') })
+      }
+
+      // リンクマーカー
+      const linkMarkerLabel = formatLinkMarkerLabel(f.linkMarkers)
+      if (linkMarkerLabel) {
+        icons.push({ type: 'linkMarker', label: linkMarkerLabel })
       }
 
       return icons
@@ -730,16 +690,8 @@ export default defineComponent({
           return 'ATK'
         case 'def':
           return 'DEF'
-        case 'races': {
-          const raceLabels: Record<string, string> = {
-            dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
-            zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
-            fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
-            pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
-            divine: '神', creatorgod: '創'
-          }
-          return raceLabels[value] || value.slice(0, 1)
-        }
+        case 'races':
+          return getRaceLabel(value)
         default:
           return value
       }
