@@ -265,6 +265,8 @@ export default {
   padding: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   width: 100%;
+  height: auto;
+  overflow: visible;
   box-sizing: border-box;
   transition: background 0.2s ease, outline 0.2s ease;
 
@@ -333,6 +335,7 @@ export default {
     gap: 2px;
     // 最後の1枚をドラッグ中でもドロップ可能にするため、カード1枚分の高さを確保
     min-height: var(--card-height-deck);
+    height: auto;
     align-content: flex-start;
     justify-content: flex-start;
   }
