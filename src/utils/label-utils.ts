@@ -21,13 +21,13 @@ export const getAttributeLabel = (attr: string): string => {
  */
 export const getRaceLabel = (race: string): string => {
   const labels: Record<string, string> = {
-    dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
-    fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
-    beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
-    fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
+    dragon: 'ドラゴン', spellcaster: '魔法使い', warrior: '戦士', machine: '機械',
+    fiend: '悪魔', fairy: '天使', zombie: 'アンデット', beast: '獣',
+    beastwarrior: '獣戦士', plant: '植物', insect: '昆虫', aqua: '水',
+    fish: '魚', seaserpent: '海竜', reptile: '爬虫類', dinosaur: '恐竜',
     windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
-    psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-    divine: '神獣', creatorgod: '創造'
+    psychic: 'サイキック', wyrm: '幻竜', cyberse: 'サイバース', illusion: '幻想魔',
+    divine: '幻神獣', creatorgod: '創造神'
   }
   return labels[race] || race
 }

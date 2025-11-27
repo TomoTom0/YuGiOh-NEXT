@@ -59,11 +59,11 @@ export function getMonsterTypeLabel(value: string): string {
 export function getRaceLabel(value: string): string {
   const labels: Record<string, string> = {
     dragon: '龍',
-    spellcaster: '魔',
-    warrior: '戦',
-    machine: '機',
-    fiend: '悪',
-    fairy: '天',
+    spellcaster: '魔使',
+    warrior: '戦士',
+    machine: '機械',
+    fiend: '悪魔',
+    fairy: '天使',
     zombie: '不死',
     beast: '獣',
     beastwarrior: '獣戦',
