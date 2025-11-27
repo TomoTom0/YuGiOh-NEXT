@@ -92,8 +92,8 @@ export interface MonsterCard extends CardBase {
 
   /** ペンデュラムスケール（オプション、ペンデュラムモンスターのみ） */
   pendulumScale?: number;
-  /** ペンデュラム効果（オプション、ペンデュラムモンスターのみ） */
-  pendulumEffect?: string;
+  /** ペンデュラムテキスト（オプション、ペンデュラムモンスターのみ） */
+  pendulumText?: string;
 
   /** エクストラデッキに入るかどうか */
   isExtraDeck: boolean;
@@ -367,8 +367,12 @@ export interface CardTableB {
   atk?: number | null;
   /** 守備力（null = '?'） */
   def?: number | null;
+  /** リンクマーカー（9bit整数） */
+  linkMarkers?: number;
   /** ペンデュラムスケール */
   scale?: number;
+  /** ペンデュラムテキスト */
+  pendulumText?: string;
   /** エクストラデッキかどうか */
   isExtraDeck?: boolean;
   /** タイプ（効果、チューナー等） */

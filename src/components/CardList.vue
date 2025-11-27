@@ -86,14 +86,14 @@
         <div class="card-info" v-if="localViewMode === 'list'">
           <div class="card-name">{{ item.card.name }}</div>
           <div
-            v-if="item.card.text || item.card.pendulumEffect"
+            v-if="item.card.text || item.card.pendulumText"
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
             @click="toggleCardExpand(item.uuid)"
-          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumEffect">
+          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
 ------
 [Pendulum]
-{{ item.card.pendulumEffect }}</template></div>
+{{ item.card.pendulumText }}</template></div>
           <div class="card-stats">
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">

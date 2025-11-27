@@ -102,9 +102,9 @@
     </div>
     
     <div class="card-info-bottom">
-      <div v-if="card.pendulumEffect" class="card-effect-section">
+      <div v-if="card.pendulumText" class="card-effect-section">
         <div class="section-title">Pend. Text</div>
-        <div class="effect-text">{{ card.pendulumEffect }}</div>
+        <div class="effect-text">{{ card.pendulumText }}</div>
       </div>
 
       <div v-if="pendulumSupplementInfo" class="card-effect-section">
