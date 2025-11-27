@@ -332,6 +332,8 @@ export interface CardTableA {
   cardId: string;
   /** カード名 */
   name: string;
+  /** ふりがな */
+  ruby?: string;
   /** 画像情報 */
   imgs: Array<{
     ciid: string;
@@ -371,8 +373,6 @@ export interface CardTableB {
   linkMarkers?: number;
   /** ペンデュラムスケール */
   scale?: number;
-  /** ペンデュラムテキスト */
-  pendulumText?: string;
   /** エクストラデッキかどうか */
   isExtraDeck?: boolean;
   /** タイプ（効果、チューナー等） */

@@ -42,6 +42,7 @@ tier 0以上
 - atk
 - def
 - scale
+- link-markers
 - limit-status
 - fetched-at
 

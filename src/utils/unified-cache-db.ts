@@ -341,6 +341,7 @@ export class UnifiedCacheDB {
     const tableA: CardTableA = {
       cardId: card.cardId,
       name: card.name,
+      ruby: card.ruby,
       imgs: card.imgs,
       fetchedAt: now
     };
@@ -349,7 +350,6 @@ export class UnifiedCacheDB {
     // TableB
     const tableB: CardTableB = {
       cardId: card.cardId,
-      ruby: card.ruby,
       cardType: card.cardType,
       limitRegulation: card.limitRegulation,
       fetchedAt: now
@@ -365,7 +365,6 @@ export class UnifiedCacheDB {
       tableB.def = typeof card.def === 'number' ? card.def : null;
       tableB.linkMarkers = card.linkMarkers;
       tableB.scale = card.pendulumScale;
-      tableB.pendulumText = card.pendulumText;
       tableB.isExtraDeck = card.isExtraDeck;
       tableB.types = card.types;
     } else {
@@ -745,7 +744,7 @@ export class UnifiedCacheDB {
       name: tableA.name,
       imgs: tableA.imgs,
       ciid: tableA.imgs[0]?.ciid || '',
-      ruby: tableB.ruby,
+      ruby: tableA.ruby,
       limitRegulation: tableB.limitRegulation
     };
 

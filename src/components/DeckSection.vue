@@ -377,8 +377,8 @@ export default {
 .extra-deck,
 .side-deck {
   flex: 1;
-  min-height: 160px;
-  max-width: 50%;
+  height: auto;
+  // max-widthは親コンテナ（middle-decks）で制御
 }
 
 .trash-deck {
