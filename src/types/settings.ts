@@ -93,6 +93,11 @@ export type MiddleDecksLayout = 'horizontal' | 'vertical';
 export type SearchInputPosition = 'default' | 'section-title' | 'right-top' | 'right-bottom';
 
 /**
+ * 未保存時の警告モード
+ */
+export type UnsavedWarning = 'always' | 'without-sorting-only' | 'never';
+
+/**
  * アプリ全体設定
  */
 export interface AppSettings {
@@ -114,6 +119,10 @@ export interface AppSettings {
   searchInputPosition: SearchInputPosition;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
+  /** 未保存時の警告モード */
+  unsavedWarning: UnsavedWarning;
+  /** 右クリック・中クリック操作の有効化 */
+  enableMouseOperations: boolean;
 }
 
 /**
@@ -176,6 +185,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
   enableBanlistCheck: false,
+  // UX設定
+  unsavedWarning: 'always',
+  enableMouseOperations: false,
 };
 
 /**
