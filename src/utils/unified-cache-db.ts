@@ -363,7 +363,9 @@ export class UnifiedCacheDB {
       tableB.levelValue = card.levelValue;
       tableB.atk = typeof card.atk === 'number' ? card.atk : null;
       tableB.def = typeof card.def === 'number' ? card.def : null;
+      tableB.linkMarkers = card.linkMarkers;
       tableB.scale = card.pendulumScale;
+      tableB.pendulumText = card.pendulumText;
       tableB.isExtraDeck = card.isExtraDeck;
       tableB.types = card.types;
     } else {
