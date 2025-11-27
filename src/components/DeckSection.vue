@@ -376,8 +376,7 @@ export default {
 
 .extra-deck,
 .side-deck {
-  flex: 1;
-  height: auto;
+  flex: 1 1 auto;
   // max-widthは親コンテナ（middle-decks）で制御
 }
 
