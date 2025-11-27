@@ -63,6 +63,7 @@
 <script>
 import { ref, computed } from 'vue'
 import CardList from './CardList.vue'
+import { detectCardGameType, getGamePath } from '../utils/page-detector'
 
 export default {
   name: 'CardProducts',
@@ -85,12 +86,12 @@ export default {
     const packCards = ref({})
     const packViewModes = ref({})
     const packSortOrders = ref({})
-    
+
     const groupedPacks = computed(() => {
       if (!props.detail || !props.detail.packs) return []
-      
+
       const packMap = new Map()
-      
+
       props.detail.packs.forEach(pack => {
         const key = `${pack.code}_${pack.name}`
         if (!packMap.has(key)) {
@@ -111,41 +112,43 @@ export default {
           })
         }
       })
-      
+
       return Array.from(packMap.values())
     })
-    
+
     const expandPack = async (packId) => {
       if (expandedPacks.value[packId]) return
-      
+
       loadingPacks.value[packId] = true
       expandedPacks.value[packId] = true
-      
+
       if (!packViewModes.value[packId]) {
         packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
         packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
       }
-      
+
       try {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
+        const gameType = detectCardGameType()
+        const gamePath = getGamePath(gameType)
+        const url = `https://www.db.yugioh-card.com/${gamePath}/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
         const response = await fetch(url, {
           method: 'GET',
           credentials: 'include'
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch pack cards')
         }
-        
+
         const html = await response.text()
         const parser = new DOMParser()
         const doc = parser.parseFromString(html, 'text/html')
-        
+
         const { parseSearchResults } = await import('../api/card-search')
         const cards = parseSearchResults(doc)
-        
+
         packCards.value[packId] = cards
       } catch (error) {
         console.error('Failed to fetch pack cards:', error)
