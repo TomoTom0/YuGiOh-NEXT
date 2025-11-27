@@ -7,6 +7,7 @@ import type {
   Language,
   MiddleDecksLayout,
   SearchInputPosition,
+  KeyboardShortcut,
   FeatureSettings,
   StorageSettings
 } from '../types/settings';
@@ -251,6 +252,16 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  function setMouseOperations(enabled: boolean): void {
+    appSettings.value.enableMouseOperations = enabled;
+    saveSettings();
+  }
+
+  function setKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', shortcut: KeyboardShortcut): void {
+    appSettings.value.keyboardShortcuts[name] = shortcut;
+    saveSettings();
+  }
+
   /**
    * 検索入力欄の位置を変更
    */
@@ -388,6 +399,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setMouseOperations,
+    setKeyboardShortcut,
     setSearchInputPosition,
     toggleFeature,
     resetSettings,

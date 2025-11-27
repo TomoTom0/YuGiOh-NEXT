@@ -219,6 +219,18 @@ export default {
       deckStore.showDeleteConfirm = false
     }
 
+    // キーボードショートカットのマッチング関数
+    const matchesShortcut = (event, shortcut) => {
+      if (!shortcut) return false
+
+      return (
+        event.key.toLowerCase() === shortcut.key &&
+        event.ctrlKey === shortcut.ctrl &&
+        event.shiftKey === shortcut.shift &&
+        event.altKey === shortcut.alt
+      )
+    }
+
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
       // 入力要素にフォーカスがある場合は無視
@@ -231,11 +243,27 @@ export default {
 
       if (isInputFocused) return
 
-      // '/' キーまたは Ctrl+J でグローバル検索モードを有効化
-      if (event.key === '/' || (event.ctrlKey && event.key === 'j')) {
+      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+
+      // グローバル検索モードを有効化
+      if (matchesShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
-        // グローバル検索モードを有効化（タブは切り替えない）
         deckStore.isGlobalSearchMode = true
+        return
+      }
+
+      // Undo
+      if (matchesShortcut(event, shortcuts.undo)) {
+        event.preventDefault()
+        deckStore.undo()
+        return
+      }
+
+      // Redo
+      if (matchesShortcut(event, shortcuts.redo)) {
+        event.preventDefault()
+        deckStore.redo()
+        return
       }
     }
     

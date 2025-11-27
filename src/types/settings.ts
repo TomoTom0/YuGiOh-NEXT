@@ -90,12 +90,26 @@ export type MiddleDecksLayout = 'horizontal' | 'vertical';
 /**
  * カード検索入力欄の位置
  */
-export type SearchInputPosition = 'default' | 'section-title' | 'right-top' | 'right-bottom';
+export type SearchInputPosition = 'default' | 'right-top' | 'right-bottom';
 
 /**
  * 未保存時の警告モード
  */
 export type UnsavedWarning = 'always' | 'without-sorting-only' | 'never';
+
+/**
+ * キーボードショートカット
+ */
+export interface KeyboardShortcut {
+  /** Ctrlキーが押されているか */
+  ctrl: boolean;
+  /** Shiftキーが押されているか */
+  shift: boolean;
+  /** Altキーが押されているか */
+  alt: boolean;
+  /** 押されたキー（小文字） */
+  key: string;
+}
 
 /**
  * アプリ全体設定
@@ -123,6 +137,15 @@ export interface AppSettings {
   unsavedWarning: UnsavedWarning;
   /** 右クリック・中クリック操作の有効化 */
   enableMouseOperations: boolean;
+  /** キーボードショートカット設定 */
+  keyboardShortcuts: {
+    /** グローバル検索呼び出しキー */
+    globalSearch: KeyboardShortcut;
+    /** Undoキー */
+    undo: KeyboardShortcut;
+    /** Redoキー */
+    redo: KeyboardShortcut;
+  };
 }
 
 /**
@@ -188,6 +211,12 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // UX設定
   unsavedWarning: 'always',
   enableMouseOperations: false,
+  // キーボードショートカット
+  keyboardShortcuts: {
+    globalSearch: { ctrl: false, shift: false, alt: false, key: '/' },
+    undo: { ctrl: true, shift: false, alt: false, key: 'z' },
+    redo: { ctrl: true, shift: false, alt: false, key: 'y' },
+  },
 };
 
 /**
