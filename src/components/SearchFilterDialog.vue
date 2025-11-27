@@ -429,6 +429,11 @@
             <input v-model="filters.releaseDate.to" type="date" min="1999-01-01" :max="maxDate">
           </div>
         </div>
+
+        <!-- 閉じるボタン -->
+        <div class="dialog-footer">
+          <button class="close-button" @click="$emit('close')">閉じる</button>
+        </div>
       </div>
     </div>
   </div>
@@ -539,8 +544,15 @@ const selectedLevelChips = computed(() => {
 });
 
 const selectedLinkChips = computed(() => {
-  if (filters.linkValues.length === 0) return [];
-  return [formatNumberRange(filters.linkValues, 'L')];
+  const chips: string[] = [];
+  if (filters.linkValues.length > 0) {
+    chips.push(formatNumberRange(filters.linkValues, 'L'));
+  }
+  const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
+  if (linkMarkerLabel) {
+    chips.push(linkMarkerLabel);
+  }
+  return chips;
 });
 
 const selectedScaleChips = computed(() => {
@@ -1218,7 +1230,7 @@ function clearFilters() {
     width: 85px;
     font-weight: 700;
     background: #fff3e0;
-    border: 2px solid #ff9800;
+    border: 1.5px solid #ff9800;
     color: #e65100;
 
     &:hover:not(:disabled) {
@@ -1230,13 +1242,13 @@ function clearFilters() {
     &.active:not(:disabled) {
       background: #ff9800;
       color: white;
-      border-color: #f57c00;
+      border: 1.5px solid #f57c00;
       box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
     }
   }
 
   &.chip-mode-small {
-    padding: 2px 8px;
+    padding: 2px 6px;
     font-size: 9px;
     font-weight: 700;
     width: auto;
@@ -1901,6 +1913,37 @@ function clearFilters() {
     color: #5f6368;
     font-weight: 600;
     font-size: 14px;
+  }
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  margin-top: 8px;
+
+  .close-button {
+    padding: 10px 32px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+
+    &:hover {
+      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+    }
   }
 }
 </style>
