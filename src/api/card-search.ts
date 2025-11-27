@@ -1039,7 +1039,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 
   // ペンデュラム情報取得（オプション）
   let pendulumScale: number | undefined;
-  let pendulumEffect: string | undefined;
+  let pendulumText: string | undefined;
 
   const pendulumScaleElem = row.querySelector('.box_card_pen_scale');
   if (pendulumScaleElem?.textContent) {
@@ -1049,14 +1049,14 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     }
   }
 
-  const pendulumEffectElem = row.querySelector('.box_card_pen_effect');
-  if (pendulumEffectElem) {
+  const pendulumTextElem = row.querySelector('.box_card_pen_effect');
+  if (pendulumTextElem) {
     // <br>を改行に変換
-    const cloned = pendulumEffectElem.cloneNode(true) as HTMLElement;
+    const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
     cloned.querySelectorAll('br').forEach(br => {
       br.replaceWith('\n');
     });
-    pendulumEffect = cloned.textContent?.trim();
+    pendulumText = cloned.textContent?.trim();
   }
 
   // リンクマーカー取得
@@ -1083,7 +1083,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     def,
     linkMarkers,
     pendulumScale,
-    pendulumEffect,
+    pendulumText,
     isExtraDeck
   };
 }
@@ -1350,8 +1350,8 @@ function parseRuby(doc: Document): string | undefined {
 /**
  * カード詳細ページからテキストとペンデュラム効果を取得
  */
-function parseTextData(doc: Document): { text?: string; pendulumEffect?: string } | null {
-  const result: { text?: string; pendulumEffect?: string } = {};
+function parseTextData(doc: Document): { text?: string; pendulumText?: string } | null {
+  const result: { text?: string; pendulumText?: string } = {};
 
   // テキストを取得
   const cardTextElem = doc.querySelector('.item_box_text');
@@ -1364,15 +1364,14 @@ function parseTextData(doc: Document): { text?: string; pendulumEffect?: string 
     result.text = cloned.textContent?.trim() || undefined;
   }
 
-  // ペンデュラム効果を取得
-  const pendulumTextElem = doc.querySelector('.item_box_text_2');
+  // ペンデュラム効果を取得（検索結果ページと同じセレクタを使用）
+  const pendulumTextElem = doc.querySelector('.box_card_pen_effect');
   if (pendulumTextElem) {
     const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
-    cloned.querySelector('.text_title')?.remove();
     cloned.querySelectorAll('br').forEach(br => {
       br.replaceWith('\n');
     });
-    result.pendulumEffect = cloned.textContent?.trim() || undefined;
+    result.pendulumText = cloned.textContent?.trim() || undefined;
   }
 
   return result;
@@ -1395,6 +1394,15 @@ export async function getCardDetail(
       console.error('[getCardDetail] Base card info not found in cache for', cardId);
       return null;
     }
+
+    console.log('[getCardDetail] Base card from cache:', {
+      cardId,
+      name: baseCard.name,
+      cardType: baseCard.cardType,
+      levelType: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelType : undefined,
+      levelValue: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelValue : undefined,
+      linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
+    })
 
     // 詳細ページを取得
     const requestLocale = lang || detectLanguage(document);
@@ -1436,9 +1444,9 @@ export async function getCardDetail(
       text: textData?.text || baseCard.text
     };
 
-    // pendulumEffectはMonsterCardのみに存在
-    if (mergedCard.cardType === 'monster' && textData?.pendulumEffect) {
-      (mergedCard as MonsterCard).pendulumEffect = textData.pendulumEffect;
+    // pendulumTextはMonsterCardのみに存在
+    if (mergedCard.cardType === 'monster' && textData?.pendulumText) {
+      (mergedCard as MonsterCard).pendulumText = textData.pendulumText;
     }
 
     return {

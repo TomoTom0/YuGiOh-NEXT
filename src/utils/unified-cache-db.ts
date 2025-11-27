@@ -375,11 +375,11 @@ export class UnifiedCacheDB {
 
     // TableB2 (text, pendText)
     const cardAny = card as any;
-    if (cardAny.text || cardAny.pendulumEffect) {
+    if (cardAny.text || cardAny.pendulumText) {
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
         text: cardAny.text,
-        pendText: cardAny.pendulumEffect,
+        pendText: cardAny.pendulumText,
         fetchedAt: now
       };
       this.cardTableB2.set(card.cardId, tableB2);
@@ -760,6 +760,7 @@ export class UnifiedCacheDB {
         types: tableB.types || [],
         atk: tableB.atk ?? undefined,
         def: tableB.def ?? undefined,
+        linkMarkers: tableB.linkMarkers,
         pendulumScale: tableB.scale,
         isExtraDeck: tableB.isExtraDeck || false
       } as CardInfo;
@@ -782,7 +783,7 @@ export class UnifiedCacheDB {
     if (tableB2) {
       const anyCard: any = resultCard as any;
       if (tableB2.text) anyCard.text = tableB2.text;
-      if (tableB2.pendText) anyCard.pendulumEffect = tableB2.pendText;
+      if (tableB2.pendText) anyCard.pendulumText = tableB2.pendText;
     }
 
     // Synchronous merge: if CardTableC for this card is present in the in-memory cache,
