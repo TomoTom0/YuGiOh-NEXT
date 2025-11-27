@@ -661,9 +661,14 @@ export default {
 .middle-decks {
   display: flex;
   gap: 10px;
-  flex: none;
-  min-height: 120px;
+  flex: 0 0 auto;
   width: 100%;
+
+  // デフォルト（横並び）時はextra/sideを50%幅に制限
+  :deep(.extra-deck),
+  :deep(.side-deck) {
+    max-width: 50%;
+  }
 
   &.vertical-layout {
     flex-direction: column;
