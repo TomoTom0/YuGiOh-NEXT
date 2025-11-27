@@ -75,7 +75,7 @@
         class="card-result-item"
         :class="{ 'text-expanded': expandedCards.has(item.uuid) }"
       >
-        <div class="card-wrapper">
+        <div class="card-wrapper" @auxclick="handleAuxClick($event, item.card)">
           <DeckCard
             :card="item.card"
             :section-type="sectionType"
@@ -124,6 +124,8 @@
 <script>
 import { ref, watch, computed, reactive } from 'vue'
 import DeckCard from './DeckCard.vue'
+import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import {
   getAttributeLabel,
   getRaceLabel,
@@ -166,6 +168,8 @@ export default {
   },
   emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
   setup(props, { emit }) {
+    const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const localViewMode = ref(props.viewMode)
 
     // 展開状態のカードUUIDセット
@@ -306,6 +310,24 @@ export default {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     }
 
+    const handleAuxClick = (event, card) => {
+      // 高度なマウス操作が無効の場合は何もしない
+      if (!settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 中クリック（button === 1）のみ処理
+      if (event.button !== 1) {
+        return
+      }
+
+      // デフォルトの動作（新しいタブで開く等）を抑制
+      event.preventDefault()
+
+      // カードをデッキに追加（Main/Extraを自動判定）
+      deckStore.addCopyToMainOrExtra(card)
+    }
+
     return {
       sortBase,
       sortDirection,
@@ -316,6 +338,7 @@ export default {
       handleSortChange,
       toggleSortDirection,
       toggleCardExpand,
+      handleAuxClick,
       getAttributeLabel,
       getRaceLabel,
       getMonsterTypeLabel,

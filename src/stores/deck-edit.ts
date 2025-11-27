@@ -1213,6 +1213,68 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     });
   }
 
+  /**
+   * ソート順を除外したデッキスナップショットを作成
+   * カード配列をcid+ciidでソートして、順序の影響を除外
+   */
+  function captureDeckSnapshotWithoutOrder(): string {
+    // カード配列をソートする補助関数
+    const sortCards = (cards: DeckCardRef[]) => {
+      return [...cards].sort((a, b) => {
+        const cidDiff = Number(a.cid) - Number(b.cid);
+        if (cidDiff !== 0) return cidDiff;
+        return Number(a.ciid) - Number(b.ciid);
+      });
+    };
+
+    return JSON.stringify({
+      dno: deckInfo.value.dno,
+      name: deckInfo.value.name,
+      mainDeck: sortCards(deckInfo.value.mainDeck),
+      extraDeck: sortCards(deckInfo.value.extraDeck),
+      sideDeck: sortCards(deckInfo.value.sideDeck),
+      category: deckInfo.value.category,
+      tags: deckInfo.value.tags,
+      comment: deckInfo.value.comment
+    });
+  }
+
+  /**
+   * ソート順のみの変更があるかチェック
+   * @returns true: ソート順のみの変更, false: その他の変更あり
+   */
+  function hasOnlySortOrderChanges(): boolean {
+    if (!savedDeckSnapshot.value) return false;
+    
+    // スナップショット全体が一致していれば変更なし
+    const currentSnapshot = captureDeckSnapshot();
+    if (savedDeckSnapshot.value === currentSnapshot) {
+      return false;
+    }
+    
+    // ソート順を除外したスナップショットを比較
+    // これが一致していれば、ソート順のみの変更
+    const savedSnapshotObj = JSON.parse(savedDeckSnapshot.value);
+    const sortCards = (cards: DeckCardRef[]) => {
+      return [...cards].sort((a, b) => {
+        const cidDiff = Number(a.cid) - Number(b.cid);
+        if (cidDiff !== 0) return cidDiff;
+        return Number(a.ciid) - Number(b.ciid);
+      });
+    };
+    
+    const savedNormalized = JSON.stringify({
+      ...savedSnapshotObj,
+      mainDeck: sortCards(savedSnapshotObj.mainDeck),
+      extraDeck: sortCards(savedSnapshotObj.extraDeck),
+      sideDeck: sortCards(savedSnapshotObj.sideDeck)
+    });
+    
+    const currentNormalized = captureDeckSnapshotWithoutOrder();
+    
+    return savedNormalized === currentNormalized;
+  }
+
   function hasUnsavedChanges(): boolean {
     if (!savedDeckSnapshot.value) return false;
     return savedDeckSnapshot.value !== captureDeckSnapshot();
@@ -1730,6 +1792,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     copyCurrentDeck,
     deleteCurrentDeck,
     hasUnsavedChanges,
+    hasOnlySortOrderChanges,
     captureDeckSnapshot
   };
 });
