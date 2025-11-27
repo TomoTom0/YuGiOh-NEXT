@@ -114,18 +114,106 @@
       </label>
     </div>
 
+    <!-- キーボードショートカット -->
+    <div class="setting-group">
+      <h3 class="setting-title">キーボードショートカット</h3>
+      <p class="setting-desc">各機能のキーボードショートカットを設定（各機能に最大3つまで登録可能）</p>
+      <div class="shortcut-list">
+        <div class="shortcut-item">
+          <div class="shortcut-info">
+            <span class="shortcut-label">グローバル検索</span>
+            <div class="shortcut-tags">
+              <span
+                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.globalSearch"
+                :key="index"
+                class="shortcut-tag"
+              >
+                {{ formatShortcut(shortcut) }}
+              </span>
+              <span v-if="settingsStore.appSettings.keyboardShortcuts.globalSearch.length === 0" class="no-shortcut">
+                未設定
+              </span>
+            </div>
+          </div>
+          <button class="config-button" @click="openKeyDialog('globalSearch', 'グローバル検索')">
+            設定
+          </button>
+        </div>
+        <div class="shortcut-item">
+          <div class="shortcut-info">
+            <span class="shortcut-label">Undo</span>
+            <div class="shortcut-tags">
+              <span
+                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.undo"
+                :key="index"
+                class="shortcut-tag"
+              >
+                {{ formatShortcut(shortcut) }}
+              </span>
+              <span v-if="settingsStore.appSettings.keyboardShortcuts.undo.length === 0" class="no-shortcut">
+                未設定
+              </span>
+            </div>
+          </div>
+          <button class="config-button" @click="openKeyDialog('undo', 'Undo')">
+            設定
+          </button>
+        </div>
+        <div class="shortcut-item">
+          <div class="shortcut-info">
+            <span class="shortcut-label">Redo</span>
+            <div class="shortcut-tags">
+              <span
+                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.redo"
+                :key="index"
+                class="shortcut-tag"
+              >
+                {{ formatShortcut(shortcut) }}
+              </span>
+              <span v-if="settingsStore.appSettings.keyboardShortcuts.redo.length === 0" class="no-shortcut">
+                未設定
+              </span>
+            </div>
+          </div>
+          <button class="config-button" @click="openKeyDialog('redo', 'Redo')">
+            設定
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="saveMessage" class="save-message">
       {{ saveMessage }}
     </div>
+
+    <KeyInputDialog
+      :isVisible="dialogVisible"
+      :title="dialogTitle"
+      :shortcuts="currentShortcuts"
+      @add="handleAddShortcut"
+      @remove="handleRemoveShortcut"
+      @cancel="dialogVisible = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import KeyInputDialog from '../KeyInputDialog.vue';
+import type { KeyboardShortcut } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveMessage = ref('');
+
+const dialogVisible = ref(false);
+const dialogTitle = ref('');
+const editingKey = ref<'globalSearch' | 'undo' | 'redo' | null>(null);
+
+const currentShortcuts = computed(() => {
+  if (!editingKey.value) return [];
+  return settingsStore.appSettings.keyboardShortcuts[editingKey.value];
+});
 
 const handleDeckLimitChange = () => {
   settingsStore.saveSettings();
@@ -140,6 +228,35 @@ const handleWarningChange = () => {
 const handleMouseOpsChange = () => {
   settingsStore.saveSettings();
   showSaveMessage('マウス操作設定を変更しました');
+};
+
+const formatShortcut = (shortcut: KeyboardShortcut): string => {
+  const parts: string[] = [];
+  if (shortcut.ctrl) parts.push('Ctrl');
+  if (shortcut.shift) parts.push('Shift');
+  if (shortcut.alt) parts.push('Alt');
+  parts.push(shortcut.key.toUpperCase());
+  return parts.join('+');
+};
+
+const openKeyDialog = (key: 'globalSearch' | 'undo' | 'redo', title: string) => {
+  editingKey.value = key;
+  dialogTitle.value = title;
+  dialogVisible.value = true;
+};
+
+const handleAddShortcut = (shortcut: KeyboardShortcut) => {
+  if (editingKey.value) {
+    settingsStore.addKeyboardShortcut(editingKey.value, shortcut);
+    showSaveMessage('ショートカットを追加しました');
+  }
+};
+
+const handleRemoveShortcut = (index: number) => {
+  if (editingKey.value) {
+    settingsStore.removeKeyboardShortcut(editingKey.value, index);
+    showSaveMessage('ショートカットを削除しました');
+  }
 };
 
 const showSaveMessage = (message: string) => {
@@ -290,6 +407,75 @@ const showSaveMessage = (message: string) => {
   border-radius: 4px;
   font-size: 14px;
   animation: fadeIn 0.3s ease;
+}
+
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: white;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+}
+
+.shortcut-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.shortcut-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shortcut-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Courier New', monospace;
+}
+
+.no-shortcut {
+  color: #9aa0a6;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.config-button {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a73e8;
+  background: transparent;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e8f0fe;
+  }
 }
 
 @keyframes fadeIn {

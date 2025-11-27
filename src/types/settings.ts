@@ -137,14 +137,14 @@ export interface AppSettings {
   unsavedWarning: UnsavedWarning;
   /** 右クリック・中クリック操作の有効化 */
   enableMouseOperations: boolean;
-  /** キーボードショートカット設定 */
+  /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
   keyboardShortcuts: {
     /** グローバル検索呼び出しキー */
-    globalSearch: KeyboardShortcut;
+    globalSearch: KeyboardShortcut[];
     /** Undoキー */
-    undo: KeyboardShortcut;
+    undo: KeyboardShortcut[];
     /** Redoキー */
-    redo: KeyboardShortcut;
+    redo: KeyboardShortcut[];
   };
 }
 
@@ -211,11 +211,18 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // UX設定
   unsavedWarning: 'always',
   enableMouseOperations: false,
-  // キーボードショートカット
+  // キーボードショートカット（各機能に最大3つまで登録可能、0個も許容）
   keyboardShortcuts: {
-    globalSearch: { ctrl: false, shift: false, alt: false, key: '/' },
-    undo: { ctrl: true, shift: false, alt: false, key: 'z' },
-    redo: { ctrl: true, shift: false, alt: false, key: 'y' },
+    globalSearch: [
+      { ctrl: false, shift: false, alt: false, key: '/' },
+      { ctrl: true, shift: false, alt: false, key: 'j' }
+    ],
+    undo: [
+      { ctrl: true, shift: false, alt: false, key: 'z' }
+    ],
+    redo: [
+      { ctrl: true, shift: false, alt: false, key: 'y' }
+    ],
   },
 };
 

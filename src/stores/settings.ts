@@ -257,9 +257,28 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
-  function setKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', shortcut: KeyboardShortcut): void {
-    appSettings.value.keyboardShortcuts[name] = shortcut;
+  /**
+   * キーボードショートカットを追加（最大3つまで）
+   */
+  function addKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', shortcut: KeyboardShortcut): void {
+    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    if (shortcuts.length >= 3) {
+      console.warn(`[Settings] Cannot add more than 3 shortcuts for ${name}`);
+      return;
+    }
+    shortcuts.push(shortcut);
     saveSettings();
+  }
+
+  /**
+   * キーボードショートカットを削除
+   */
+  function removeKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', index: number): void {
+    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    if (index >= 0 && index < shortcuts.length) {
+      shortcuts.splice(index, 1);
+      saveSettings();
+    }
   }
 
   /**
@@ -400,7 +419,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setLanguage,
     setMiddleDecksLayout,
     setMouseOperations,
-    setKeyboardShortcut,
+    addKeyboardShortcut,
+    removeKeyboardShortcut,
     setSearchInputPosition,
     toggleFeature,
     resetSettings,
