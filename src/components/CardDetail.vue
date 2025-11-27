@@ -178,13 +178,12 @@ export default {
 
           // 詳細データを設定（一度だけ）
           detail.value = cacheResult.detail
-          
-          // selectedCardを更新（詳細情報をマージ、imgsとciidはprops.cardを優先）
-          console.log('[CardDetail] props.card.imgs:', props.card.imgs, 'cache.imgs:', cacheResult.detail.card.imgs)
+
+          // selectedCardを更新
+          // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
+          // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
           deckStore.selectedCard = {
-            ...props.card,
             ...cacheResult.detail.card,
-            imgs: props.card.imgs || cacheResult.detail.card.imgs,
             ciid: props.card.ciid || cacheResult.detail.card.ciid
           }
 
@@ -249,7 +248,6 @@ export default {
               const currentCiid = deckStore.selectedCard?.ciid
               deckStore.selectedCard = {
                 ...freshDetail.card,
-                imgs: [...freshDetail.card.imgs],
                 ciid: currentCiid || freshDetail.card.ciid
               }
             }
