@@ -140,19 +140,9 @@ import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card
 import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
-import type { CardInfo } from '../types/card'
+import type { SearchFilters } from '../types/search-filters'
+import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
 import { getTempCardDB } from '../utils/temp-card-db'
-
-interface SearchFilters {
-  cardType: string | null
-  attributes: string[]
-  races: string[]
-  levels: number[]
-  atk: { from: number | undefined; to: number | undefined }
-  def: { from: number | undefined; to: number | undefined }
-  monsterTypes: string[]
-  linkNumbers: number[]
-}
 
 // コマンド定義
 const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
@@ -262,12 +252,20 @@ export default defineComponent({
     const searchFilters = ref<SearchFilters>({
       cardType: null,
       attributes: [],
+      spellTypes: [],
+      trapTypes: [],
       races: [],
-      levels: [],
-      atk: { from: undefined, to: undefined },
-      def: { from: undefined, to: undefined },
       monsterTypes: [],
-      linkNumbers: []
+      monsterTypeMatchMode: 'or',
+      levelType: 'level',
+      levelValues: [],
+      linkValues: [],
+      scaleValues: [],
+      linkMarkers: [],
+      linkMarkerMatchMode: 'or',
+      atk: { exact: false, unknown: false },
+      def: { exact: false, unknown: false },
+      releaseDate: {}
     })
 
     // チップベースフィルターシステム
@@ -424,13 +422,15 @@ export default defineComponent({
       return f.cardType !== null ||
         f.attributes.length > 0 ||
         f.races.length > 0 ||
-        f.levels.length > 0 ||
-        f.atk.from !== undefined ||
-        f.atk.to !== undefined ||
-        f.def.from !== undefined ||
-        f.def.to !== undefined ||
+        f.levelValues.length > 0 ||
+        f.atk.unknown ||
+        f.atk.min !== undefined ||
+        f.atk.max !== undefined ||
+        f.def.unknown ||
+        f.def.min !== undefined ||
+        f.def.max !== undefined ||
         f.monsterTypes.length > 0 ||
-        f.linkNumbers.length > 0
+        f.linkValues.length > 0
     })
 
     const filterCount = computed(() => {
@@ -439,11 +439,11 @@ export default defineComponent({
       if (f.cardType) count++
       count += f.attributes.length
       count += f.races.length
-      count += f.levels.length
-      if (f.atk.from !== undefined || f.atk.to !== undefined) count++
-      if (f.def.from !== undefined || f.def.to !== undefined) count++
+      count += f.levelValues.length
+      if (f.atk.unknown || f.atk.min !== undefined || f.atk.max !== undefined) count++
+      if (f.def.unknown || f.def.min !== undefined || f.def.max !== undefined) count++
       count += f.monsterTypes.length
-      count += f.linkNumbers.length
+      count += f.linkValues.length
       return count
     })
 
@@ -508,16 +508,33 @@ export default defineComponent({
       })
 
       // レベル（統合表示）
-      if (f.levels.length > 0) {
-        icons.push({ type: 'level', label: formatNumberRange(f.levels, '★') })
+      if (f.levelValues.length > 0) {
+        icons.push({ type: 'level', label: formatNumberRange(f.levelValues, '★') })
       }
 
       // ATK/DEF
-      if (f.atk.from !== undefined || f.atk.to !== undefined) {
-        icons.push({ type: 'atk', label: 'ATK' })
+      if (f.atk.unknown) {
+        icons.push({ type: 'atk', label: 'ATK=?' })
+      } else if (f.atk.exact && f.atk.min !== undefined) {
+        icons.push({ type: 'atk', label: `ATK=${f.atk.min}` })
+      } else if (f.atk.min !== undefined && f.atk.max !== undefined) {
+        icons.push({ type: 'atk', label: `ATK:${f.atk.min}-${f.atk.max}` })
+      } else if (f.atk.min !== undefined) {
+        icons.push({ type: 'atk', label: `ATK≥${f.atk.min}` })
+      } else if (f.atk.max !== undefined) {
+        icons.push({ type: 'atk', label: `ATK≤${f.atk.max}` })
       }
-      if (f.def.from !== undefined || f.def.to !== undefined) {
-        icons.push({ type: 'def', label: 'DEF' })
+
+      if (f.def.unknown) {
+        icons.push({ type: 'def', label: 'DEF=?' })
+      } else if (f.def.exact && f.def.min !== undefined) {
+        icons.push({ type: 'def', label: `DEF=${f.def.min}` })
+      } else if (f.def.min !== undefined && f.def.max !== undefined) {
+        icons.push({ type: 'def', label: `DEF:${f.def.min}-${f.def.max}` })
+      } else if (f.def.min !== undefined) {
+        icons.push({ type: 'def', label: `DEF≥${f.def.min}` })
+      } else if (f.def.max !== undefined) {
+        icons.push({ type: 'def', label: `DEF≤${f.def.max}` })
       }
 
       // モンスタータイプ
@@ -526,13 +543,13 @@ export default defineComponent({
         pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
         union: 'U', gemini: 'D', special: '特'
       }
-      f.monsterTypes.forEach(mtype => {
-        icons.push({ type: 'monsterType', label: monsterTypeLabels[mtype] || mtype.slice(0, 1) })
+      f.monsterTypes.forEach(mt => {
+        icons.push({ type: 'monsterType', label: monsterTypeLabels[mt.type] || mt.type.slice(0, 1) })
       })
 
       // リンク数（統合表示）
-      if (f.linkNumbers.length > 0) {
-        icons.push({ type: 'link', label: formatNumberRange(f.linkNumbers, 'L') })
+      if (f.linkValues.length > 0) {
+        icons.push({ type: 'link', label: formatNumberRange(f.linkValues, 'L') })
       }
 
       return icons
@@ -989,34 +1006,35 @@ export default defineComponent({
 
       switch (type) {
         case 'attributes':
-          if (!f.attributes.includes(value)) {
-            f.attributes.push(value)
+          if (!f.attributes.includes(value as Attribute)) {
+            f.attributes.push(value as Attribute)
           }
           break
         case 'races':
-          if (!f.races.includes(value)) {
-            f.races.push(value)
+          if (!f.races.includes(value as Race)) {
+            f.races.push(value as Race)
           }
           break
         case 'levels': {
           const level = parseInt(value)
-          if (!isNaN(level) && !f.levels.includes(level)) {
-            f.levels.push(level)
+          if (!isNaN(level) && !f.levelValues.includes(level)) {
+            f.levelValues.push(level)
           }
           break
         }
         case 'atk': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.atk.from = from
-            if (!isNaN(to as number)) f.atk.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.atk.min = min
+            if (!isNaN(max as number)) f.atk.max = max
           } else {
             const val = parseInt(value)
             if (!isNaN(val)) {
-              f.atk.from = val
-              f.atk.to = val
+              f.atk.exact = true
+              f.atk.min = val
+              f.atk.max = val
             }
           }
           break
@@ -1024,32 +1042,33 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.def.from = from
-            if (!isNaN(to as number)) f.def.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.def.min = min
+            if (!isNaN(max as number)) f.def.max = max
           } else {
             const val = parseInt(value)
             if (!isNaN(val)) {
-              f.def.from = val
-              f.def.to = val
+              f.def.exact = true
+              f.def.min = val
+              f.def.max = val
             }
           }
           break
         }
         case 'cardType':
-          f.cardType = value
+          f.cardType = value as CardType
           break
         case 'linkNumbers': {
           const link = parseInt(value)
-          if (!isNaN(link) && !f.linkNumbers.includes(link)) {
-            f.linkNumbers.push(link)
+          if (!isNaN(link) && !f.linkValues.includes(link)) {
+            f.linkValues.push(link)
           }
           break
         }
         case 'monsterTypes':
-          if (!f.monsterTypes.includes(value)) {
-            f.monsterTypes.push(value)
+          if (!f.monsterTypes.some(mt => mt.type === value)) {
+            f.monsterTypes.push({ type: value as MonsterType, state: 'normal' })
           }
           break
       }
@@ -1073,38 +1092,38 @@ export default defineComponent({
 
       switch (type) {
         case 'attributes': {
-          const idx = f.attributes.indexOf(value)
+          const idx = f.attributes.indexOf(value as Attribute)
           if (idx !== -1) f.attributes.splice(idx, 1)
           break
         }
         case 'races': {
-          const idx = f.races.indexOf(value)
+          const idx = f.races.indexOf(value as Race)
           if (idx !== -1) f.races.splice(idx, 1)
           break
         }
         case 'levels': {
           const level = parseInt(value)
-          const idx = f.levels.indexOf(level)
-          if (idx !== -1) f.levels.splice(idx, 1)
+          const idx = f.levelValues.indexOf(level)
+          if (idx !== -1) f.levelValues.splice(idx, 1)
           break
         }
         case 'atk':
-          f.atk = { from: undefined, to: undefined }
+          f.atk = { exact: false, unknown: false }
           break
         case 'def':
-          f.def = { from: undefined, to: undefined }
+          f.def = { exact: false, unknown: false }
           break
         case 'cardType':
           f.cardType = null
           break
         case 'linkNumbers': {
           const link = parseInt(value)
-          const idx = f.linkNumbers.indexOf(link)
-          if (idx !== -1) f.linkNumbers.splice(idx, 1)
+          const idx = f.linkValues.indexOf(link)
+          if (idx !== -1) f.linkValues.splice(idx, 1)
           break
         }
         case 'monsterTypes': {
-          const idx = f.monsterTypes.indexOf(value)
+          const idx = f.monsterTypes.findIndex(mt => mt.type === value)
           if (idx !== -1) f.monsterTypes.splice(idx, 1)
           break
         }
@@ -1280,15 +1299,14 @@ export default defineComponent({
       switch (cmd.filterType) {
         case 'attributes': {
           const attr = ATTRIBUTE_MAP[value]
-          if (attr && !f.attributes.includes(attr)) {
-            f.attributes.push(attr)
+          if (attr && !f.attributes.includes(attr as Attribute)) {
+            f.attributes.push(attr as Attribute)
           }
           break
         }
         case 'races': {
           // 種族は部分一致で検索（TODO: 種族マッピングを追加）
-          // 型安全のためにstringとしてキャスト
-          const raceValue = value as string
+          const raceValue = value as Race
           if (raceValue && !f.races.includes(raceValue)) {
             f.races.push(raceValue)
           }
@@ -1296,8 +1314,8 @@ export default defineComponent({
         }
         case 'levels': {
           const level = parseInt(value)
-          if (!isNaN(level) && level >= 1 && level <= 12 && !f.levels.includes(level)) {
-            f.levels.push(level)
+          if (!isNaN(level) && level >= 1 && level <= 12 && !f.levelValues.includes(level)) {
+            f.levelValues.push(level)
           }
           break
         }
@@ -1305,15 +1323,16 @@ export default defineComponent({
           // ATK:1000-2000 または ATK:1000 形式
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.atk.from = from
-            if (!isNaN(to as number)) f.atk.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.atk.min = min
+            if (!isNaN(max as number)) f.atk.max = max
           } else if (parts.length === 1) {
             const val = parseInt(parts[0])
             if (!isNaN(val)) {
-              f.atk.from = val
-              f.atk.to = val
+              f.atk.exact = true
+              f.atk.min = val
+              f.atk.max = val
             }
           }
           break
@@ -1321,15 +1340,16 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.def.from = from
-            if (!isNaN(to as number)) f.def.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.def.min = min
+            if (!isNaN(max as number)) f.def.max = max
           } else if (parts.length === 1) {
             const val = parseInt(parts[0])
             if (!isNaN(val)) {
-              f.def.from = val
-              f.def.to = val
+              f.def.exact = true
+              f.def.min = val
+              f.def.max = val
             }
           }
           break
@@ -1337,21 +1357,21 @@ export default defineComponent({
         case 'cardType': {
           const type = CARD_TYPE_MAP[value]
           if (type) {
-            f.cardType = type
+            f.cardType = type as CardType
           }
           break
         }
         case 'linkNumbers': {
           const link = parseInt(value)
-          if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkNumbers.includes(link)) {
-            f.linkNumbers.push(link)
+          if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkValues.includes(link)) {
+            f.linkValues.push(link)
           }
           break
         }
         case 'monsterTypes': {
           const mtype = MONSTER_TYPE_MAP[value]
-          if (mtype && !f.monsterTypes.includes(mtype)) {
-            f.monsterTypes.push(mtype)
+          if (mtype && !f.monsterTypes.some(mt => mt.type === mtype)) {
+            f.monsterTypes.push({ type: mtype as MonsterType, state: 'normal' })
           }
           break
         }
@@ -1417,11 +1437,15 @@ export default defineComponent({
         if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
         if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
         if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-        if (f.levels.length > 0) searchOptions.levels = f.levels
-        if (f.atk.from !== undefined || f.atk.to !== undefined) searchOptions.atk = f.atk
-        if (f.def.from !== undefined || f.def.to !== undefined) searchOptions.def = f.def
-        if (f.monsterTypes.length > 0) searchOptions.monsterTypes = f.monsterTypes as SearchOptions['monsterTypes']
-        if (f.linkNumbers.length > 0) searchOptions.linkNumbers = f.linkNumbers
+        if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
+        if (f.atk.min !== undefined || f.atk.max !== undefined) {
+          searchOptions.atk = { from: f.atk.min, to: f.atk.max }
+        }
+        if (f.def.min !== undefined || f.def.max !== undefined) {
+          searchOptions.def = { from: f.def.min, to: f.def.max }
+        }
+        if (f.monsterTypes.length > 0) searchOptions.monsterTypes = f.monsterTypes.map(mt => mt.type) as SearchOptions['monsterTypes']
+        if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
 
         const results = await searchCards(searchOptions)
 

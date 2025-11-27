@@ -84,3 +84,23 @@ atk,defはtab titleの見た目で表示
 発売日を　1999-1-1から来年の年末までで指定できるようにする。
 終了日は省略可能
 開始日は省略した場合は1999-1-1になる。
+
+## disable組み合わせ
+
+- card typeでspellかtrapを選択した場合、race,monster type,level-rank,link,p-scale,atk,defはdisable
+- card typeでmonsterを選択した場合、spell type,trap typeはdisable
+
+- monster typeでandの場合は以下は排他
+    - 通常、融合、シンクロ、エクシーズ、リンク、儀式
+    - 通常、効果
+    - 通常、特殊召喚
+
+- linkマーカーまたはlink数指定した際はmonster typeはlinkを必須
+    - orならlinkを指定する
+    - andでlinkと排他が指定済みならlinkがdisable
+- p-scale指定した際はmonster typeはペンデュラムを必須
+    - orならペンデュラムを指定する
+    - ペンデュラムと排他はない
+
+- level-rankとlink数は排他
+
