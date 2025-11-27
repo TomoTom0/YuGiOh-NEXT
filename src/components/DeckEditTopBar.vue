@@ -156,6 +156,7 @@
 <script lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import Toast from './Toast.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
@@ -176,6 +177,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
@@ -199,13 +201,32 @@ export default {
     }
     
     const checkUnsavedChanges = (action: () => void, actionName: string) => {
-      if (deckStore.hasUnsavedChanges()) {
-        unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
-        pendingAction.value = action
-        deckStore.showUnsavedChangesDialog = true
-      } else {
+      const unsavedWarning = settingsStore.appSettings.unsavedWarning
+
+      // 'never': 警告を表示しない
+      if (unsavedWarning === 'never') {
         action()
+        return
       }
+
+      // 変更がない場合は常に実行
+      if (!deckStore.hasUnsavedChanges()) {
+        action()
+        return
+      }
+
+      // 'without-sorting-only': ソート順のみの変更なら警告しない
+      if (unsavedWarning === 'without-sorting-only') {
+        if (deckStore.hasOnlySortOrderChanges()) {
+          action()
+          return
+        }
+      }
+
+      // 'always' または 'without-sorting-only' でソート順以外の変更がある場合
+      unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
+      pendingAction.value = action
+      deckStore.showUnsavedChangesDialog = true
     }
     
     const unsavedChangesButtons = computed(() => [

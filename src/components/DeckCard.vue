@@ -12,6 +12,7 @@
     @drop="handleDrop"
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
+    @contextmenu="handleContextMenu"
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
@@ -84,6 +85,7 @@
 <script>
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
@@ -107,6 +109,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
@@ -129,6 +132,7 @@ export default {
     
     return {
       deckStore,
+      settingsStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
@@ -393,27 +397,59 @@ export default {
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]
       const addedCards = displayOrder.filter(dc => dc.cid === this.card.cardId)
-      
+
       if (addedCards.length === 0) return
-      
+
       const lastAdded = addedCards[addedCards.length - 1]
       const targetEl = document.querySelector(`[data-uuid="${lastAdded.uuid}"]`)
-      
+
       if (!targetEl) return
-      
+
       const targetRect = targetEl.getBoundingClientRect()
-      
+
       // FLIPアニメーション: 移動元から移動先へ
       const deltaX = sourceRect.left - targetRect.left
       const deltaY = sourceRect.top - targetRect.top
-      
+
       targetEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`
       targetEl.style.transition = 'none'
-      
+
       requestAnimationFrame(() => {
         targetEl.style.transform = ''
         targetEl.style.transition = 'transform 0.3s ease'
       })
+    },
+    handleContextMenu(event) {
+      // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
+      if (!this.settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 右クリックメニューを抑制
+      event.preventDefault()
+
+      // infoセクションでは動作しない
+      if (this.sectionType === 'info') {
+        return
+      }
+
+      // 空カードの場合は何もしない
+      if (this.card.empty) {
+        return
+      }
+
+      // カード移動ロジック:
+      // - main, side, extraから → trash
+      // - trash, searchから → main/extra
+      if (this.sectionType === 'main' || this.sectionType === 'side' || this.sectionType === 'extra') {
+        // main/side/extra → trash
+        const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'trash' || this.sectionType === 'search') {
+        // trash/search → main/extra
+        const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      }
     }
   }
 }
