@@ -63,7 +63,7 @@
 <script>
 import { ref, computed } from 'vue'
 import CardList from './CardList.vue'
-import { detectCardGameType, getGamePath } from '../utils/page-detector'
+import { searchCardsByPackId } from '../api/card-search'
 
 export default {
   name: 'CardProducts',
@@ -130,25 +130,7 @@ export default {
       }
 
       try {
-        const gameType = detectCardGameType()
-        const gamePath = getGamePath(gameType)
-        const url = `https://www.db.yugioh-card.com/${gamePath}/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
-        const response = await fetch(url, {
-          method: 'GET',
-          credentials: 'include'
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch pack cards')
-        }
-
-        const html = await response.text()
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, 'text/html')
-
-        const { parseSearchResults } = await import('../api/card-search')
-        const cards = parseSearchResults(doc)
-
+        const cards = await searchCardsByPackId(packId)
         packCards.value[packId] = cards
       } catch (error) {
         console.error('Failed to fetch pack cards:', error)

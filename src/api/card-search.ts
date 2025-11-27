@@ -657,6 +657,50 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
 }
 
 /**
+ * パックIDからカード一覧を取得
+ * 
+ * @param packId パックID（例: "1000009524000"）
+ * @returns カード情報の配列
+ * 
+ * @example
+ * ```typescript
+ * const cards = await searchCardsByPackId('1000009524000');
+ * console.log(`${cards.length}枚のカードが見つかりました`);
+ * ```
+ */
+export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
+  try {
+    const params = new URLSearchParams({
+      ope: '1',
+      sess: '1',
+      pid: packId,
+      rp: '99999'
+    });
+
+    const url = `${getSearchUrl()}?${params.toString()}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.error('[searchCardsByPackId] HTTP error:', response.status);
+      return [];
+    }
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    return parseSearchResults(doc);
+  } catch (error) {
+    console.error('[searchCardsByPackId] Error:', error);
+    return [];
+  }
+}
+
+/**
  * HTMLから画像URL情報（ciid, imgHash）を抽出する
  * JavaScriptコード内の画像URL設定からcidごとのマッピングを作成
  */
