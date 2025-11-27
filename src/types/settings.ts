@@ -205,7 +205,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   listCardSize: 'large',
   theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
   language: 'auto',
-  middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
+  middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
   enableBanlistCheck: false,
   // UX設定
