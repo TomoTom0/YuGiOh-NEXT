@@ -13,6 +13,9 @@
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
     @contextmenu="handleContextMenu"
+    @mousedown="handleMouseDown"
+    @mouseup="handleMouseUp"
+    @auxclick.prevent
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
@@ -449,6 +452,48 @@ export default {
         // trash/search → main/extra
         const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
+      }
+    },
+    handleMouseDown(event) {
+      // 中クリック（button === 1）の場合のみ処理
+      if (event.button === 1) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    },
+    handleMouseUp(event) {
+      // 中クリック（button === 1）の場合のみ処理
+      if (event.button === 1) {
+        event.preventDefault()
+        event.stopPropagation()
+
+        // 高度なマウス操作が無効の場合は何もしない
+        if (!this.settingsStore.appSettings.enableMouseOperations) {
+          return
+        }
+
+        // 空カードの場合は何もしない
+        if (this.card.empty) {
+          return
+        }
+
+        console.log('[DeckCard] Middle-click:', this.card.name, 'from section:', this.sectionType)
+
+        // セクションに応じてコピーを追加
+        if (this.sectionType === 'main') {
+          // Mainデッキのカード → Mainに追加
+          this.deckStore.addCopyToSection(this.card, 'main')
+        } else if (this.sectionType === 'side') {
+          // Sideデッキのカード → Sideに追加
+          this.deckStore.addCopyToSection(this.card, 'side')
+        } else if (this.sectionType === 'extra') {
+          // Extraデッキのカード → Extraに追加
+          this.deckStore.addCopyToSection(this.card, 'extra')
+        } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+          // 検索結果/カード詳細 → Main/Extraに追加（カードタイプで自動判定）
+          this.deckStore.addCopyToMainOrExtra(this.card)
+        }
+        // trash, その他のセクションでは何もしない
       }
     }
   }

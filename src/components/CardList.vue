@@ -75,7 +75,7 @@
         class="card-result-item"
         :class="{ 'text-expanded': expandedCards.has(item.uuid) }"
       >
-        <div class="card-wrapper" @auxclick="handleAuxClick($event, item.card)">
+        <div class="card-wrapper">
           <DeckCard
             :card="item.card"
             :section-type="sectionType"
@@ -310,24 +310,6 @@ export default {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     }
 
-    const handleAuxClick = (event, card) => {
-      // 高度なマウス操作が無効の場合は何もしない
-      if (!settingsStore.appSettings.enableMouseOperations) {
-        return
-      }
-
-      // 中クリック（button === 1）のみ処理
-      if (event.button !== 1) {
-        return
-      }
-
-      // デフォルトの動作（新しいタブで開く等）を抑制
-      event.preventDefault()
-
-      // カードをデッキに追加（Main/Extraを自動判定）
-      deckStore.addCopyToMainOrExtra(card)
-    }
-
     return {
       sortBase,
       sortDirection,
@@ -338,7 +320,6 @@ export default {
       handleSortChange,
       toggleSortDirection,
       toggleCardExpand,
-      handleAuxClick,
       getAttributeLabel,
       getRaceLabel,
       getMonsterTypeLabel,
