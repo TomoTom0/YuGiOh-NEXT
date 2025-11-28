@@ -39,7 +39,7 @@
                     :key="attr"
                     class="chip chip-attr"
                     :class="{ active: filters.attributes.includes(attr) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                    :disabled="isFieldDisabled('attribute')"
                     @click="toggleAttribute(attr)"
                   >
                     <img :src="getAttributeIconUrl(attr)" class="attr-icon" :alt="getAttributeLabel(attr)">
@@ -73,7 +73,8 @@
                     :key="type"
                     class="chip"
                     :class="{ active: filters.spellTypes.includes(type) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'spell'"
+                    :disabled="isFieldDisabled('spell-type')"
+                    :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
                     @click="toggleSpellType(type)"
                   >
                     {{ getSpellTypeLabel(type) }}
@@ -85,7 +86,8 @@
                     :key="type"
                     class="chip"
                     :class="{ active: filters.spellTypes.includes(type) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'spell'"
+                    :disabled="isFieldDisabled('spell-type')"
+                    :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
                     @click="toggleSpellType(type)"
                   >
                     {{ getSpellTypeLabel(type) }}
@@ -118,7 +120,8 @@
                     :key="type"
                     class="chip"
                     :class="{ active: filters.trapTypes.includes(type) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'trap'"
+                    :disabled="isFieldDisabled('trap-type')"
+                    :title="isFieldDisabled('trap-type') ? getFieldDisabledReason('trap-type') : undefined"
                     @click="toggleTrapType(type)"
                   >
                     {{ getTrapTypeLabel(type) }}
@@ -132,7 +135,7 @@
         <!-- 種族 -->
         <div class="filter-section">
           <div class="section-header">
-            <span class="section-title" :class="{ disabled: filters.cardType !== null && filters.cardType !== 'monster' }">種族</span>
+            <span class="section-title" :class="{ disabled: isFieldDisabled('race') }">種族</span>
             <div v-if="selectedRaceChips.length > 0" class="selected-chips-inline">
               <span v-for="chip in selectedRaceChips" :key="chip" class="selected-chip-inline">
                 {{ chip }}
@@ -145,7 +148,7 @@
               :key="race"
               class="chip chip-fixed"
               :class="{ active: filters.races.includes(race) }"
-              :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+              :disabled="isFieldDisabled('race')"
               @click="toggleRace(race)"
             >
               {{ getRaceButtonLabel(race) }}
@@ -156,7 +159,7 @@
         <!-- モンスタータイプ -->
         <div class="filter-section">
           <div class="section-header">
-            <span class="section-title" :class="{ disabled: filters.cardType !== null && filters.cardType !== 'monster' }">モンスタータイプ</span>
+            <span class="section-title" :class="{ disabled: isMonsterTypeFieldDisabled }">モンスタータイプ</span>
             <div v-if="selectedMonsterTypeChips.length > 0" class="selected-chips-inline">
               <span v-for="chip in selectedMonsterTypeChips" :key="chip" class="selected-chip-inline">
                 {{ chip }}
@@ -168,7 +171,7 @@
               <button
                 class="chip chip-mode"
                 :class="{ active: filters.monsterTypeMatchMode === 'and' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isMonsterTypeFieldDisabled"
                 @click="filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and'"
               >
                 {{ filters.monsterTypeMatchMode === 'and' ? 'AND' : 'OR' }}
@@ -178,7 +181,8 @@
                 :key="type"
                 class="chip chip-fixed"
                 :class="getMonsterTypeClass(type)"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isMonsterTypeAttributeDisabled(type)"
+                :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
                 @click="cycleMonsterTypeState(type)"
               >
                 {{ getMonsterTypeButtonLabel(type) }}
@@ -191,7 +195,8 @@
                 class="chip chip-fixed"
                 :class="getMonsterTypeClass(type)"
                 :data-type="type"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isMonsterTypeAttributeDisabled(type)"
+                :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
                 @click="cycleMonsterTypeState(type)"
               >
                 {{ getMonsterTypeButtonLabel(type) }}
@@ -203,7 +208,8 @@
                 :key="type"
                 class="chip chip-fixed"
                 :class="getMonsterTypeClass(type)"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isMonsterTypeAttributeDisabled(type)"
+                :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
                 @click="cycleMonsterTypeState(type)"
               >
                 {{ getMonsterTypeButtonLabel(type) }}
@@ -220,7 +226,8 @@
               <button
                 class="level-tab"
                 :class="{ active: filters.levelType === 'level' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isFieldDisabled('level-rank')"
+                :title="isFieldDisabled('level-rank') ? getFieldDisabledReason('level-rank') : undefined"
                 @click="filters.levelType = 'level'"
               >
                 レベル/ランク
@@ -235,7 +242,8 @@
               <button
                 class="level-tab"
                 :class="{ active: filters.levelType === 'link' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isFieldDisabled('link-value') && isFieldDisabled('link-marker')"
+                :title="(isFieldDisabled('link-value') && isFieldDisabled('link-marker')) ? (getFieldDisabledReason('link-value') || getFieldDisabledReason('link-marker')) : undefined"
                 @click="filters.levelType = 'link'"
               >
                 リンク
@@ -250,7 +258,8 @@
               <button
                 class="level-tab"
                 :class="{ active: filters.levelType === 'scale' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isFieldDisabled('p-scale')"
+                :title="isFieldDisabled('p-scale') ? getFieldDisabledReason('p-scale') : undefined"
                 @click="filters.levelType = 'scale'"
               >
                 Pスケール
@@ -271,7 +280,7 @@
                 :key="num"
                 class="chip chip-num"
                 :class="{ active: isLevelValueActive(num) }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="filters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
                 @click="toggleLevelValue(num)"
               >
                 {{ num }}
@@ -283,7 +292,7 @@
                 :key="num"
                 class="chip chip-num"
                 :class="{ active: isLevelValueActive(num) }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="filters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
                 @click="toggleLevelValue(num)"
               >
                 {{ num }}
@@ -301,7 +310,7 @@
                     :key="num"
                     class="chip chip-num"
                     :class="{ active: filters.linkValues.includes(num) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                    :disabled="isFieldDisabled('link-value')"
                     @click="toggleLinkValue(num)"
                   >
                     {{ num }}
@@ -313,7 +322,7 @@
                     :key="num"
                     class="chip chip-num"
                     :class="{ active: filters.linkValues.includes(num) }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                    :disabled="isFieldDisabled('link-value')"
                     @click="toggleLinkValue(num)"
                   >
                     {{ num }}
@@ -321,17 +330,17 @@
                 </div>
               </div>
               <div class="link-markers-container">
-                <div class="icon_img_set" :class="{ disabled: filters.cardType !== null && filters.cardType !== 'monster' }">
+                <div class="icon_img_set" :class="{ disabled: isFieldDisabled('link-marker') }">
                   <span
                     v-for="pos in [7, 8, 9, 4, 6, 1, 2, 3]"
                     :key="pos"
                     :class="['i_i_' + pos, { active: isLinkMarkerActive(pos) }]"
-                    @click="(filters.cardType === null || filters.cardType === 'monster') && toggleLinkMarker(pos)"
+                    @click="!isFieldDisabled('link-marker') && toggleLinkMarker(pos)"
                   ></span>
                   <button
                     class="chip chip-mode-small link-mode-btn"
                     :class="{ active: filters.linkMarkerMatchMode === 'and' }"
-                    :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                    :disabled="isFieldDisabled('link-marker')"
                     @click="filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and'"
                   >
                     {{ filters.linkMarkerMatchMode === 'and' ? 'AND' : 'OR' }}
@@ -351,7 +360,7 @@
               <button
                 class="stat-tab"
                 :class="{ active: activeStatTab === 'atk' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isFieldDisabled('atk')"
                 @click="activeStatTab = 'atk'"
               >
                 ATK
@@ -366,7 +375,8 @@
               <button
                 class="stat-tab"
                 :class="{ active: activeStatTab === 'def' }"
-                :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                :disabled="isFieldDisabled('def')"
+                :title="isFieldDisabled('def') ? getFieldDisabledReason('def') : undefined"
                 @click="activeStatTab = 'def'"
               >
                 DEF
@@ -385,7 +395,7 @@
                 <button
                   class="chip chip-toggle"
                   :class="{ active: getStatFilter(activeStatTab).exact }"
-                  :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                  :disabled="isFieldDisabled(activeStatTab)"
                   @click="toggleStatExact(activeStatTab)"
                 >
                   完全一致
@@ -393,7 +403,7 @@
                 <button
                   class="chip chip-toggle"
                   :class="{ active: getStatFilter(activeStatTab).unknown }"
-                  :disabled="filters.cardType !== null && filters.cardType !== 'monster'"
+                  :disabled="isFieldDisabled(activeStatTab)"
                   @click="toggleStatUnknown(activeStatTab)"
                 >
                   ?
@@ -404,7 +414,7 @@
                   :value="getStatFilter(activeStatTab).min ?? ''"
                   type="text"
                   placeholder="Min"
-                  :disabled="filters.cardType === 'spell' || filters.cardType === 'trap' || getStatFilter(activeStatTab).unknown"
+                  :disabled="isFieldDisabled(activeStatTab) || getStatFilter(activeStatTab).unknown"
                   @input="validateStatInput($event, activeStatTab, 'min')"
                 >
                 <span>-</span>
@@ -412,7 +422,7 @@
                   :value="getStatFilter(activeStatTab).max ?? ''"
                   type="text"
                   placeholder="Max"
-                  :disabled="filters.cardType === 'spell' || filters.cardType === 'trap' || getStatFilter(activeStatTab).unknown || getStatFilter(activeStatTab).exact"
+                  :disabled="isFieldDisabled(activeStatTab) || getStatFilter(activeStatTab).unknown || getStatFilter(activeStatTab).exact"
                   @input="validateStatInput($event, activeStatTab, 'max')"
                 >
               </div>
@@ -456,6 +466,8 @@ import {
   MONSTER_TYPE_OPTIONS
 } from '../constants/filter-options';
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter';
+import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-engine';
+import { toSearchConditionState } from '../utils/search-exclusion-adapter';
 
 defineProps<{
   isVisible: boolean;
@@ -487,6 +499,159 @@ const filters = reactive<SearchFilters>({
 });
 
 const activeStatTab = ref<'atk' | 'def'>('atk');
+
+// 推論エンジンのルールをロード
+const exclusionRules = loadExclusionRules();
+
+// 推論結果を計算
+const exclusionResult = computed(() => {
+  const state = toSearchConditionState(filters);
+  return inferExclusions(state, exclusionRules);
+});
+
+// モンスタータイプ関連フィールドの無効化状態
+const isMonsterTypeFieldDisabled = computed(() => {
+  const attrState = exclusionResult.value.attributeStates.get('card-type_monster');
+  if (attrState) {
+    return !attrState.enabled;
+  }
+  // フォールバック: cardTypeがmonster以外の場合は無効
+  return filters.cardType !== null && filters.cardType !== 'monster';
+});
+
+/**
+ * 属性IDが無効化されているか判定
+ */
+function isAttributeDisabled(attrId: string): boolean {
+  const attrState = exclusionResult.value.attributeStates.get(attrId);
+  return attrState ? !attrState.enabled : false;
+}
+
+/**
+ * モンスタータイプ属性が無効化されているか判定
+ */
+function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
+  const attrId = `monster-type_${type}`;
+  // 推論エンジンの結果で無効化されているか
+  if (isAttributeDisabled(attrId)) {
+    return true;
+  }
+  // フィールド全体が無効化されているか
+  return isMonsterTypeFieldDisabled.value;
+}
+
+/**
+ * フィールド名を日本語ラベルに変換
+ */
+function getFieldLabel(fieldId: string): string {
+  const labels: Record<string, string> = {
+    'level-rank': 'レベル/ランク',
+    'link-value': 'リンク数',
+    'link-marker': 'リンクマーカー',
+    'p-scale': 'Pスケール',
+    'def': 'DEF',
+    'atk': 'ATK',
+    'attribute': '属性',
+    'race': '種族',
+    'spell-type': '魔法タイプ',
+    'trap-type': '罠タイプ',
+  };
+  return labels[fieldId] || fieldId;
+}
+
+/**
+ * モンスタータイプ名を日本語ラベルに変換
+ */
+function getMonsterTypeJaLabel(type: string): string {
+  const labels: Record<string, string> = {
+    'normal': '通常',
+    'effect': '効果',
+    'fusion': '融合',
+    'ritual': '儀式',
+    'synchro': 'シンクロ',
+    'xyz': 'エクシーズ',
+    'link': 'リンク',
+    'pend': 'ペンデュラム',
+    'pendulum': 'ペンデュラム',
+    'special-summon': '特殊召喚',
+  };
+  return labels[type] || type;
+}
+
+/**
+ * 無効化理由をユーザーフレンドリーな日本語に変換
+ */
+function formatDisabledReason(reason: string | undefined): string | undefined {
+  if (!reason) return undefined;
+
+  // 「項目から属性への決定性」パターン: "monster-type_has-level-rank-necessary: level-rank,defにより無効"
+  const fieldToAttrMatch = reason.match(/^[^:]+:\s*([^に]+)により無効$/);
+  if (fieldToAttrMatch) {
+    const fields = fieldToAttrMatch[1].split(',').map(f => f.trim());
+    const labels = fields.slice(0, 2).map(f => getFieldLabel(f));
+    if (fields.length > 2) {
+      return `${labels.join('、')}などに入力があるため`;
+    }
+    return `${labels.join('、')}に入力があるため`;
+  }
+
+  // 「属性同士の排他」パターン: "monster-type-near-extraグループ: monster-type_normalと排他"
+  const attrExclusionMatch = reason.match(/グループ:\s*monster-type_([^\s]+)と排他$/);
+  if (attrExclusionMatch) {
+    const excludingType = attrExclusionMatch[1];
+    return `${getMonsterTypeJaLabel(excludingType)}モンスターが選択されているため`;
+  }
+
+  // 「属性から項目への無効化」パターン: "monster-type_linkにより無効化"
+  const attrToFieldMatch = reason.match(/^monster-type_([^\s]+)により無効化$/);
+  if (attrToFieldMatch) {
+    const monsterType = attrToFieldMatch[1];
+    return `${getMonsterTypeJaLabel(monsterType)}モンスターが選択されているため`;
+  }
+
+  // 「必須属性が選択不可」パターン: "monster-type_linkが選択不可のため無効"
+  const requiredUnavailableMatch = reason.match(/^monster-type_([^\s]+)が選択不可のため無効$/);
+  if (requiredUnavailableMatch) {
+    const monsterType = requiredUnavailableMatch[1];
+    return `${getMonsterTypeJaLabel(monsterType)}モンスターが選択できないため`;
+  }
+
+  // その他の場合はそのまま返す
+  return reason;
+}
+
+/**
+ * フィールドの無効化理由を取得
+ */
+function getFieldDisabledReason(field: string): string | undefined {
+  const fieldState = exclusionResult.value.fieldStates.get(field);
+  return formatDisabledReason(fieldState?.disabledReason);
+}
+
+/**
+ * 属性の無効化理由を取得
+ */
+function getAttributeDisabledReason(attrId: string): string | undefined {
+  const attrState = exclusionResult.value.attributeStates.get(attrId);
+  return formatDisabledReason(attrState?.disabledReason);
+}
+
+/**
+ * モンスタータイプ属性の無効化理由を取得
+ */
+function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
+  const attrId = `monster-type_${type}`;
+  const attrReason = getAttributeDisabledReason(attrId);
+  if (attrReason) {
+    return attrReason;
+  }
+  // フィールド全体が無効化されている場合
+  if (isMonsterTypeFieldDisabled.value) {
+    const cardTypeReason = getAttributeDisabledReason('card-type_monster');
+    return cardTypeReason || 'モンスターカードタイプが選択されていません';
+  }
+  return undefined;
+}
 
 // 種族の順序（名前順、幻神獣族と創造神族は最後）
 const racesOrdered: Race[] = [
@@ -600,41 +765,46 @@ const activeConditionChips = computed(() => {
 
 const hasActiveFilters = computed(() => activeConditionChips.value.length > 0);
 
-// タブボタンの disabled 状態（排他的に制御）
-const hasMonsterOnlyFilters = computed(() => {
-  return filters.attributes.length > 0 ||
-    filters.races.length > 0 ||
-    filters.monsterTypes.length > 0 ||
-    filters.levelValues.length > 0 ||
-    filters.linkValues.length > 0 ||
-    filters.scaleValues.length > 0 ||
-    filters.linkMarkers.length > 0 ||
-    filters.atk.exact || filters.atk.unknown || filters.atk.min !== undefined || filters.atk.max !== undefined ||
-    filters.def.exact || filters.def.unknown || filters.def.min !== undefined || filters.def.max !== undefined;
-});
-
-const hasSpellOnlyFilters = computed(() => {
-  return filters.spellTypes.length > 0;
-});
-
-const hasTrapOnlyFilters = computed(() => {
-  return filters.trapTypes.length > 0;
-});
-
+// タブボタンの disabled 状態（推論エンジンの結果から計算）
 const isMonsterTabDisabled = computed(() => {
-  if (filters.cardType === 'spell' || filters.cardType === 'trap') return true;
-  return hasSpellOnlyFilters.value || hasTrapOnlyFilters.value;
+  const attrState = exclusionResult.value.attributeStates.get('card-type_monster');
+  return attrState ? !attrState.enabled : false;
 });
 
 const isSpellTabDisabled = computed(() => {
-  if (filters.cardType === 'monster' || filters.cardType === 'trap') return true;
-  return hasMonsterOnlyFilters.value || hasTrapOnlyFilters.value;
+  const attrState = exclusionResult.value.attributeStates.get('card-type_spell');
+  return attrState ? !attrState.enabled : false;
 });
 
 const isTrapTabDisabled = computed(() => {
-  if (filters.cardType === 'monster' || filters.cardType === 'spell') return true;
-  return hasMonsterOnlyFilters.value || hasSpellOnlyFilters.value;
+  const attrState = exclusionResult.value.attributeStates.get('card-type_trap');
+  return attrState ? !attrState.enabled : false;
 });
+
+// 各フィールドのdisabled状態を計算
+function isFieldDisabled(field: string): boolean {
+  const fieldState = exclusionResult.value.fieldStates.get(field);
+  if (fieldState) {
+    return !fieldState.enabled;
+  }
+  // フィールドが存在しない場合は、card-typeから推論
+  if (filters.cardType !== null) {
+    // monsterカードタイプ専用フィールド
+    const monsterOnlyFields = ['attribute', 'race', 'level-rank', 'link-value', 'link-marker', 'p-scale', 'atk', 'def'];
+    if (monsterOnlyFields.includes(field) && filters.cardType !== 'monster') {
+      return true;
+    }
+    // spellカードタイプ専用フィールド
+    if (field === 'spell-type' && filters.cardType !== 'spell') {
+      return true;
+    }
+    // trapカードタイプ専用フィールド
+    if (field === 'trap-type' && filters.cardType !== 'trap') {
+      return true;
+    }
+  }
+  return false;
+}
 
 function getStatFilter(stat: 'atk' | 'def') {
   return filters[stat];
@@ -1215,6 +1385,39 @@ function clearFilters() {
     background: #f5f5f5;
     color: #9aa0a6;
     border-color: #dadce0;
+    position: relative;
+  }
+
+  &:disabled[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 10001;
+    pointer-events: none;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &:disabled[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    margin-bottom: 1px;
+    z-index: 10001;
+    pointer-events: none;
   }
 
   &.chip-fixed {
@@ -1554,6 +1757,39 @@ function clearFilters() {
     background: transparent;
     color: #9aa0a6;
     cursor: not-allowed;
+    position: relative;
+  }
+
+  &:disabled[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 10001;
+    pointer-events: none;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &:disabled[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    margin-bottom: 1px;
+    z-index: 10001;
+    pointer-events: none;
   }
 }
 
@@ -1806,6 +2042,39 @@ function clearFilters() {
     background: transparent;
     color: #9aa0a6;
     cursor: not-allowed;
+    position: relative;
+  }
+
+  &:disabled[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 10001;
+    pointer-events: none;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  &:disabled[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    margin-bottom: 1px;
+    z-index: 10001;
+    pointer-events: none;
   }
 }
 
