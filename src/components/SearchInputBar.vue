@@ -1335,7 +1335,10 @@ export default defineComponent({
           const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
           if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
           if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
-          searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+          // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
+          if (normalTypes.length > 0 || notTypes.length > 0) {
+            searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+          }
         }
         if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
         if (f.linkMarkers.length > 0) {

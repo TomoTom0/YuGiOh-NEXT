@@ -18,8 +18,9 @@ async function testFilterNotCondition() {
   const cdp = await connectCDP();
 
   try {
-    // デッキ編集ページに移動
+    // デッキ編集ページに移動（キャッシュをクリアしてリロード）
     console.log('デッキ編集ページにアクセス中...');
+    await cdp.sendCommand('Network.clearBrowserCache');
     await cdp.navigate(DECK_URL);
     await cdp.wait(5000); // 拡張機能のロード待機
 
@@ -34,29 +35,58 @@ async function testFilterNotCondition() {
     `);
     await cdp.wait(500);
 
-    // モンスタータイプタブを選択
+    // フィルターをクリア（前回のテスト実行の影響を除去）
     await cdp.evaluate(`
       (() => {
-        const monsterTab = document.querySelector('.card-type-tab');
-        if (monsterTab) monsterTab.click();
+        const clearBtn = document.querySelector('.clear-btn');
+        if (clearBtn) clearBtn.click();
       })()
     `);
     await cdp.wait(300);
 
-    // 融合モンスターを除外条件に追加（NOTボタンをクリック）
-    await cdp.evaluate(`
+    // 融合モンスターのボタンの現在の状態を確認して、NOT状態にする
+    const initialState = await cdp.evaluate(`
       (() => {
-        const rows = Array.from(document.querySelectorAll('.monster-type-row'));
-        const fusionRow = rows.find(row => {
-          const label = row.querySelector('.monster-type-label');
-          return label && label.textContent.includes('融合');
-        });
-        if (fusionRow) {
-          const notBtn = fusionRow.querySelector('.chip-not');
-          if (notBtn) notBtn.click();
-        }
+        const fusionBtn = document.querySelector('.chip.chip-fixed[data-type="fusion"]');
+        return {
+          hasActive: fusionBtn ? fusionBtn.classList.contains('active') : false,
+          hasNot: fusionBtn ? fusionBtn.classList.contains('not') : false
+        };
       })()
     `);
+
+    // 状態に応じて必要な回数クリック
+    // 空 → 1回クリック → normal → 2回クリック → not
+    // normal → 1回クリック → not
+    // not → そのまま
+    if (!initialState.hasActive && !initialState.hasNot) {
+      // 空の状態: 2回クリックが必要
+      await cdp.evaluate(`
+        (() => {
+          const fusionBtn = document.querySelector('.chip.chip-fixed[data-type="fusion"]');
+          if (fusionBtn) fusionBtn.click();
+        })()
+      `);
+      await cdp.wait(100);
+      await cdp.evaluate(`
+        (() => {
+          const fusionBtn = document.querySelector('.chip.chip-fixed[data-type="fusion"]');
+          if (fusionBtn) fusionBtn.click();
+        })()
+      `);
+      await cdp.wait(100);
+    } else if (initialState.hasActive && !initialState.hasNot) {
+      // normal状態: 1回クリックが必要
+      await cdp.evaluate(`
+        (() => {
+          const fusionBtn = document.querySelector('.chip.chip-fixed[data-type="fusion"]');
+          if (fusionBtn) fusionBtn.click();
+        })()
+      `);
+      await cdp.wait(100);
+    }
+    // not状態の場合は何もしない
+
     await cdp.wait(300);
 
     // AND/ORを「AND」に変更
@@ -70,43 +100,34 @@ async function testFilterNotCondition() {
     `);
     await cdp.wait(300);
 
-    // フィルターの状態を確認
+    // フィルターの状態を確認（DOMから直接）
     const filterState = await cdp.evaluate(`
       (() => {
-        const store = window.__VUE_APP__?.$pinia?._s?.get('deck-edit');
-        if (!store) return null;
-
-        // SearchFilterDialog コンポーネントのフィルター状態を取得
-        const dialog = document.querySelector('.dialog-overlay');
-        if (!dialog) return null;
-
-        // Vueインスタンスからフィルター状態を取得
-        const vueInstance = dialog.__vueParentComponent;
-        if (!vueInstance) return null;
-
-        const filters = vueInstance.ctx.filters || vueInstance.ctx.$data?.filters;
-        if (!filters) return null;
+        const fusionBtn = document.querySelector('.chip.chip-fixed[data-type="fusion"]');
+        const chipMode = document.querySelector('.chip-mode');
 
         return {
-          monsterTypes: filters.monsterTypes,
-          monsterTypeMatchMode: filters.monsterTypeMatchMode
+          fusionHasNotClass: fusionBtn ? fusionBtn.classList.contains('not') : false,
+          fusionHasActiveClass: fusionBtn ? fusionBtn.classList.contains('active') : false,
+          chipModeText: chipMode ? chipMode.textContent.trim() : '',
+          fusionExists: fusionBtn !== null,
+          chipModeExists: chipMode !== null
         };
       })()
     `);
 
-    if (filterState) {
+    if (filterState.fusionExists) {
       console.log('フィルター状態:');
-      console.log('  monsterTypes:', JSON.stringify(filterState.monsterTypes, null, 2));
-      console.log('  monsterTypeMatchMode:', filterState.monsterTypeMatchMode);
+      console.log(`  融合ボタン: ${filterState.fusionHasActiveClass ? 'active' : ''} ${filterState.fusionHasNotClass ? 'not' : ''}`);
+      console.log(`  AND/OR: ${filterState.chipModeText}`);
 
-      const hasNotCondition = filterState.monsterTypes.some(mt => mt.state === 'not');
-      if (hasNotCondition) {
-        console.log('  ✅ NOT条件（state: "not"）が設定されています');
+      if (filterState.fusionHasNotClass) {
+        console.log('  ✅ NOT条件（notクラス）が設定されています');
       } else {
-        console.log('  ❌ NOT条件（state: "not"）が設定されていません');
+        console.log('  ❌ NOT条件（notクラス）が設定されていません');
       }
 
-      if (filterState.monsterTypeMatchMode === 'and') {
+      if (filterState.chipModeText === 'AND') {
         console.log('  ✅ AND/ORが「AND」に設定されています');
       } else {
         console.log('  ❌ AND/ORが「AND」に設定されていません');
@@ -125,6 +146,18 @@ async function testFilterNotCondition() {
     await cdp.wait(300);
 
     console.log('\n=== 検索実行とAPIパラメータの確認 ===\n');
+
+    // コンソールログの監視を開始
+    const consoleLogs = [];
+    cdp.on('Runtime.consoleAPICalled', (params) => {
+      if (params.args && params.args.length > 0) {
+        const logMessage = params.args.map(arg => arg.value).join(' ');
+        if (logMessage.includes('[SearchInputBar]')) {
+          consoleLogs.push(logMessage);
+        }
+      }
+    });
+    await cdp.sendCommand('Runtime.enable');
 
     // ネットワークリクエストの監視を開始
     await cdp.sendCommand('Network.enable');
@@ -158,6 +191,14 @@ async function testFilterNotCondition() {
     `);
 
     const searchParams = await requestPromise;
+
+    // コンソールログを表示
+    if (consoleLogs.length > 0) {
+      console.log('\nブラウザのコンソールログ:');
+      consoleLogs.forEach(log => console.log('  ' + log));
+      console.log('');
+    }
+
     console.log('検索APIパラメータ:');
 
     // jogai（除外モンスタータイプ）が含まれているか確認

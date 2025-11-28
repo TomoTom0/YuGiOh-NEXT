@@ -184,7 +184,7 @@
                 class="chip chip-mode"
                 :class="{ active: filters.monsterTypeMatchMode === 'and' }"
                 :disabled="isMonsterTypeFieldDisabled"
-                @click="filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and'"
+                @click="toggleMonsterTypeMatchMode"
               >
                 {{ filters.monsterTypeMatchMode === 'and' ? 'AND' : 'OR' }}
               </button>
@@ -353,7 +353,7 @@
                     class="chip chip-mode-small link-mode-btn"
                     :class="{ active: filters.linkMarkerMatchMode === 'and' }"
                     :disabled="isFieldDisabled('link-marker')"
-                    @click="filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and'"
+                    @click="toggleLinkMarkerMatchMode"
                   >
                     {{ filters.linkMarkerMatchMode === 'and' ? 'AND' : 'OR' }}
                   </button>
@@ -968,6 +968,16 @@ function cycleMonsterTypeState(type: MonsterType) {
   } else {
     filters.monsterTypes.push({ type, state: 'normal' });
   }
+  emit('apply', { ...filters });
+}
+
+function toggleMonsterTypeMatchMode() {
+  filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
+  emit('apply', { ...filters });
+}
+
+function toggleLinkMarkerMatchMode() {
+  filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
   emit('apply', { ...filters });
 }
 
