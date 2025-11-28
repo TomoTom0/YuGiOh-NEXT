@@ -13,7 +13,8 @@
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
     @contextmenu="handleContextMenu"
-    @auxclick="handleAuxClick"
+    @mousedown.capture="handleMouseDown"
+    @auxclick.capture="handleAuxClick"
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
@@ -450,6 +451,12 @@ export default {
         // search/info → main/extra（コピー）
         const result = this.deckStore.addCopyToMainOrExtra(this.card)
         this.handleMoveResult(result)
+      }
+    },
+    handleMouseDown(event) {
+      // 中クリック（button === 1）のデフォルト動作（スクロールモード）を防ぐ
+      if (event.button === 1) {
+        event.preventDefault()
       }
     },
     handleAuxClick(event) {
