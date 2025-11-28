@@ -43,7 +43,8 @@ function connectCDP() {
     async evaluate(expression) {
       const result = await this.sendCommand('Runtime.evaluate', {
         expression,
-        returnByValue: true
+        returnByValue: true,
+        awaitPromise: true
       });
       return result.result && result.result.result ? result.result.result.value : undefined;
     },
