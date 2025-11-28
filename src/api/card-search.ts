@@ -1377,9 +1377,81 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string } 
   return result;
 }
 
+/**
+ * 関連カードを2000件ずつ全件取得する（バックグラウンド処理用）
+ *
+ * @param cardId カードID
+ * @param lang 言語コード
+ * @param sortOrder ソート順
+ * @returns 全件を含むカード配列のPromise
+ */
+function fetchAdditionalRelatedCards(
+  cardId: string,
+  lang: string,
+  sortOrder: string
+): Promise<CardInfo[]> {
+  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+
+  return (async () => {
+    const allCards: CardInfo[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const params = new URLSearchParams({
+        ope: '2',
+        cid: cardId,
+        request_locale: lang,
+        sort: sortValue.toString(),
+        rp: '2000',
+        page: page.toString()
+      });
+
+      try {
+        const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          console.error(`[fetchAdditionalRelatedCards] Failed to fetch page ${page}`);
+          break;
+        }
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const cards = parseRelatedCards(doc);
+
+        console.log(`[fetchAdditionalRelatedCards] Page ${page}: ${cards.length} cards`);
+
+        if (cards.length === 0) {
+          hasMore = false;
+        } else {
+          allCards.push(...cards);
+
+          // 2000件未満なら最終ページ
+          if (cards.length < 2000) {
+            hasMore = false;
+          } else {
+            page++;
+          }
+        }
+      } catch (error) {
+        console.error(`[fetchAdditionalRelatedCards] Error fetching page ${page}:`, error);
+        break;
+      }
+    }
+
+    console.log(`[fetchAdditionalRelatedCards] Total cards fetched: ${allCards.length}`);
+    return allCards;
+  })();
+}
+
 export async function getCardDetail(
   cardId: string,
-  lang?: string
+  lang?: string,
+  sortOrder: string = 'release_desc'
 ): Promise<CardDetail | null> {
   try {
     // 仕様: card-info-cache.md line 41-50
@@ -1404,12 +1476,16 @@ export async function getCardDetail(
       linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
     })
 
-    // 詳細ページを取得
+    // 詳細ページを取得（初回100件）
     const requestLocale = lang || detectLanguage(document);
+    const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
     const params = new URLSearchParams({
       ope: '2',
       cid: cardId,
-      request_locale: requestLocale
+      request_locale: requestLocale,
+      sort: sortValue.toString(),
+      rp: '100', // 初回100件のみ取得
+      page: '1'
     });
 
     const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
@@ -1430,7 +1506,15 @@ export async function getCardDetail(
     const ruby = parseRuby(doc);
     const textData = parseTextData(doc);
     const packs = parsePackInfo(doc);
+
+    // 関連カードを取得済みHTMLからパース
     const relatedCards = parseRelatedCards(doc);
+
+    // 100件以上あれば、バックグラウンドで全件を2000件ずつ取得
+    let fetchMorePromise: Promise<CardInfo[]> | undefined;
+    if (relatedCards.length >= 100) {
+      fetchMorePromise = fetchAdditionalRelatedCards(cardId, requestLocale, sortOrder);
+    }
 
     // Q&A情報を取得
     const faqList = await getCardFAQList(cardId);
@@ -1453,7 +1537,8 @@ export async function getCardDetail(
       card: mergedCard,
       packs,
       relatedCards,
-      qaList
+      qaList,
+      fetchMorePromise
     };
   } catch (error) {
     console.error('Failed to get card detail:', error);
@@ -1491,7 +1576,8 @@ export interface CardDetailCacheResult {
 export async function getCardDetailWithCache(
   cardId: string,
   lang?: string,
-  autoRefresh: boolean = true
+  autoRefresh: boolean = true,
+  sortOrder: string = 'release_desc'
 ): Promise<CardDetailCacheResult> {
   const unifiedDB = getUnifiedCacheDB();
 
@@ -1538,7 +1624,7 @@ export async function getCardDetailWithCache(
           console.log(`[getCardDetailWithCache] Starting background refresh for ${cardId}`);
           result.refreshPromise = (async () => {
             try {
-              const freshDetail = await getCardDetail(cardId, lang);
+              const freshDetail = await getCardDetail(cardId, lang, sortOrder);
               if (freshDetail && unifiedDB.isInitialized()) {
                 await saveCardDetailToCache(unifiedDB, freshDetail, true);
                 // ストレージに永続化
@@ -1560,7 +1646,7 @@ export async function getCardDetailWithCache(
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
   console.log(`[getCardDetailWithCache] Cache miss for ${cardId}, fetching from API`);
-  const detail = await getCardDetail(cardId, lang);
+  const detail = await getCardDetail(cardId, lang, sortOrder);
 
   if (detail && unifiedDB.isInitialized()) {
     // キャッシュに保存（forceUpdate=trueで強制更新）
