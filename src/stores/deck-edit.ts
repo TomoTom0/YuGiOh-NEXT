@@ -1180,19 +1180,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function saveDeck(dno: number) {
     try {
       deckInfo.value.dno = dno;
-      // デッキ名が空の場合は元のデッキ名を使用
-      if (!deckInfo.value.name && deckInfo.value.originalName) {
-        deckInfo.value.name = deckInfo.value.originalName;
-      }
-      
-      
-      const result = await sessionManager.saveDeck(dno, deckInfo.value);
-      
+
+      // 保存用のデータを作成（deckInfo自体は変更しない）
+      const dataToSave = {
+        ...deckInfo.value,
+        name: deckInfo.value.name || deckInfo.value.originalName || ''
+      };
+
+      const result = await sessionManager.saveDeck(dno, dataToSave);
+
       if (result.success) {
         // 保存成功時にスナップショットを更新
         savedDeckSnapshot.value = captureDeckSnapshot();
       }
-      
+
       return result;
     } catch (error) {
       console.error('Failed to save deck:', error);
