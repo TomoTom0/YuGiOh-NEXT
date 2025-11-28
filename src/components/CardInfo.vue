@@ -47,17 +47,22 @@
       <div class="card-details">
 
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
-          <div class="stat-box stat-box-type">
-            <span class="stat-text">{{ getMonsterTypesText(card.types) }}</span>
+          <div class="stat-box-row">
+            <div v-for="type in card.types" :key="type" class="stat-box stat-box-type-chip">
+              <span class="stat-text">{{ getMonsterTypeText(type) }}</span>
+            </div>
           </div>
-          
-          <div class="stat-box">
-            <span class="stat-text">
-              <img v-if="card.attribute" :src="getAttributeIcon(card.attribute)" class="attribute-icon" :alt="card.attribute">
-              {{ getAttributeText(card.attribute) }} / {{ getRaceText(card.race) }}
-            </span>
+
+          <div class="stat-box-row">
+            <div v-if="card.attribute" class="stat-box">
+              <img :src="getAttributeIcon(card.attribute)" class="attribute-icon" :alt="card.attribute">
+              <span class="stat-text">{{ getAttributeText(card.attribute) }}</span>
+            </div>
+            <div v-if="card.race" class="stat-box">
+              <span class="stat-text">{{ getRaceText(card.race) }}</span>
+            </div>
           </div>
-          
+
           <div class="stat-box-row">
             <div class="stat-box">
               <img v-if="card.levelType === 'level'" :src="getLevelIcon()" class="level-icon" alt="Level">
@@ -78,12 +83,14 @@
               </span>
             </div>
           </div>
-          
-          <div class="stat-box">
-            <span class="stat-text">
-              ATK {{ card.atk }}
-              <template v-if="card.def !== undefined"> / DEF {{ card.def }}</template>
-            </span>
+
+          <div class="stat-box-row">
+            <div class="stat-box">
+              <span class="stat-text">ATK {{ card.atk }}</span>
+            </div>
+            <div v-if="card.def !== undefined" class="stat-box">
+              <span class="stat-text">DEF {{ card.def }}</span>
+            </div>
           </div>
         </div>
         
@@ -272,6 +279,9 @@ export default {
     getMonsterTypesText(types) {
       if (!types || !Array.isArray(types)) return ''
       return types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ')
+    },
+    getMonsterTypeText(type) {
+      return MONSTER_TYPE_MAP[type] || type
     },
     isLinkMarkerActive(linkMarkers, posDisplay) {
       if (!linkMarkers || posDisplay === 5) return false
@@ -566,6 +576,7 @@ export default {
 .stat-box-row {
   display: flex;
   gap: 3px;
+  flex-wrap: wrap;
 }
 
 .stat-box {
@@ -577,7 +588,14 @@ export default {
   border-radius: 4px;
   background: var(--bg-secondary);
   font-size: 11px;
-  
+  min-width: 0;
+
+  &.stat-box-type-chip {
+    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
   &.stat-box-type {
     width: 95%;
     box-sizing: border-box;
@@ -585,19 +603,20 @@ export default {
     background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
     justify-content: center;
     flex-shrink: 0;
-    
+
     .card-type-icon {
       width: 16px;
       height: 16px;
       transform: skewX(10deg);
       flex-shrink: 0;
     }
-    
+
     .stat-text {
       transform: skewX(10deg);
       text-align: center;
       line-height: 1.4;
-      white-space: nowrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
   }
   
