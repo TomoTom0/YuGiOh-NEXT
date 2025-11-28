@@ -1680,7 +1680,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const currentDeckData: DeckInfo = {
         ...deckInfo.value,
         dno: newDno,
-        name: `COPY_${deckInfo.value.name}`
+        name: `COPY_${getDeckName()}`
       };
       
       // 新規デッキに現在のデータを保存
