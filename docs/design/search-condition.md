@@ -85,7 +85,7 @@ atk,defはtab titleの見た目で表示
 終了日は省略可能
 開始日は省略した場合は1999-1-1になる。
 
-## disable組み合わせ
+## 排他 disable組み合わせ
 
 - card typeでspellかtrapを選択した場合、race,monster type,level-rank,link,p-scale,atk,defはdisable
 - card typeでmonsterを選択した場合、spell type,trap typeはdisable
@@ -103,4 +103,5 @@ atk,defはtab titleの見た目で表示
     - ペンデュラムと排他はない
 
 - level-rankとlink数は排他
+- defはlinkと排他
 
