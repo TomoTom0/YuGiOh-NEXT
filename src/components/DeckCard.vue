@@ -347,22 +347,24 @@ export default {
         this.handleMoveResult(result)
       }
     },
-    handleBottomLeft() {
-      // 移動元の位置を記録
+    addCardFromSearchToMainOrExtra() {
+      // 検索結果・カード詳細からMain/Extraへカードを追加（アニメーション付き）
       const sourceRect = this.$el?.getBoundingClientRect()
+      const result = this.deckStore.addCopyToMainOrExtra(this.card)
+      if (!this.handleMoveResult(result, 'left')) return
 
+      if (sourceRect && this.sectionType === 'search') {
+        this.$nextTick(() => {
+          this.animateFromSource(sourceRect)
+        })
+      }
+    },
+    handleBottomLeft() {
       if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        const result = this.deckStore.addCopyToMainOrExtra(this.card)
-        if (!this.handleMoveResult(result, 'left')) return
-
-        if (sourceRect && this.sectionType === 'search') {
-          this.$nextTick(() => {
-            this.animateFromSource(sourceRect)
-          })
-        }
+        this.addCardFromSearchToMainOrExtra()
       } else {
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
@@ -448,8 +450,8 @@ export default {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // search/info → main/extra（コピー）- 左下ボタンと同じ処理を呼び出す
-        this.handleBottomLeft()
+        // search/info → main/extra（コピー）
+        this.addCardFromSearchToMainOrExtra()
       }
     },
     handleMouseDown(event) {
@@ -491,8 +493,8 @@ export default {
         // Extraデッキのカード → Extraに追加
         this.deckStore.addCopyToSection(this.card, 'extra')
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // 検索結果/カード詳細 → Main/Extraに追加 - 左下ボタンと同じ処理を呼び出す
-        this.handleBottomLeft()
+        // 検索結果/カード詳細 → Main/Extraに追加
+        this.addCardFromSearchToMainOrExtra()
       }
       // trash, その他のセクションでは何もしない
     }
