@@ -1663,31 +1663,48 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  /**
+   * デッキ情報を複製する（一般化関数）
+   *
+   * @param deckData 複製元のデッキ情報
+   * @returns 新しいデッキ番号
+   */
+  async function pseudoCopyDeck(deckData: DeckInfo): Promise<number> {
+    try {
+      // 新規デッキを作成
+      const newDno = await sessionManager.createDeck();
+
+      if (!newDno || newDno === 0) {
+        throw new Error('Failed to create new deck for copy');
+      }
+
+      // デッキデータをコピー（dnoだけ新しいものに変更）
+      const copiedDeckData: DeckInfo = {
+        ...deckData,
+        dno: newDno,
+        name: `COPY_${deckData.name || deckData.originalName || ''}`
+      };
+
+      // 新規デッキに現在のデータを保存
+      await sessionManager.saveDeck(newDno, copiedDeckData);
+
+      // 複製されたデッキを読み込む
+      await loadDeck(newDno);
+
+      return newDno;
+    } catch (error) {
+      console.error('[pseudoCopyDeck] Error:', error);
+      throw error;
+    }
+  }
+
   async function copyCurrentDeck() {
     try {
       if (!deckInfo.value.dno) {
         throw new Error('No deck loaded');
       }
-      
-      // 新規デッキを作成
-      const newDno = await sessionManager.createDeck();
-      
-      if (!newDno || newDno === 0) {
-        throw new Error('Failed to create new deck for copy');
-      }
-      
-      // 現在のデッキデータをコピー（dnoだけ新しいものに変更）
-      const currentDeckData: DeckInfo = {
-        ...deckInfo.value,
-        dno: newDno,
-        name: `COPY_${getDeckName()}`
-      };
-      
-      // 新規デッキに現在のデータを保存
-      await sessionManager.saveDeck(newDno, currentDeckData);
-      
-      // 複製されたデッキを読み込む
-      await loadDeck(newDno);
+
+      await pseudoCopyDeck(deckInfo.value);
     } catch (error) {
       console.error('[copyCurrentDeck] Error:', error);
       throw error;
@@ -1790,6 +1807,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     undo,
     redo,
     createNewDeck,
+    pseudoCopyDeck,
     copyCurrentDeck,
     deleteCurrentDeck,
     hasUnsavedChanges,

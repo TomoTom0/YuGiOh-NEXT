@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createNewDeckInternal, saveDeckInternal, duplicateDeckInternal, deleteDeckInternal } from '../deck-operations';
+import { createNewDeckInternal, saveDeckInternal, deleteDeckInternal } from '../deck-operations';
 import { DeckInfo } from '@/types/deck';
 import axios from 'axios';
 
@@ -95,29 +95,6 @@ describe('デッキ操作API', () => {
     });
   });
 
-  describe('duplicateDeckInternal', () => {
-    // SKIP: 未実装機能（実装はdeck saveを使った複製を想定）
-    it.skip('デッキを複製し、新しいデッキ番号を返す', async () => {
-      const mockResponse = `
-        <html>
-          <body>
-            <input type="hidden" name="dno" value="11">
-          </body>
-        </html>
-      `;
-      vi.mocked(axios.get).mockResolvedValue({
-        data: mockResponse
-      });
-
-      const result = await duplicateDeckInternal(testCgid, 5);
-
-      expect(axios.get).toHaveBeenCalledWith(
-        `${BASE_URL}?ope=8&cgid=${testCgid}&dno=5`,
-        expect.any(Object)
-      );
-      expect(result).toBe(11);
-    });
-  });
 
   describe('saveDeckInternal', () => {
     it('デッキを保存し、成功結果を返す', async () => {

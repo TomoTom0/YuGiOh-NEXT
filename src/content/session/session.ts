@@ -1,6 +1,5 @@
 import {
   createNewDeckInternal,
-  duplicateDeckInternal,
   saveDeckInternal,
   deleteDeckInternal,
   getDeckListInternal
@@ -84,16 +83,6 @@ class SessionManager {
     return createNewDeckInternal(cgid);
   }
 
-  /**
-   * デッキを複製
-   *
-   * @param dno 複製元のデッキ番号
-   * @returns 新しいデッキ番号、失敗時は0
-   */
-  async duplicateDeck(dno: number): Promise<number> {
-    const cgid = await this.ensureCgid();
-    return duplicateDeckInternal(cgid, dno);
-  }
 
   /**
    * デッキを削除
