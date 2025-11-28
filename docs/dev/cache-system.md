@@ -1,7 +1,7 @@
 # キャッシュシステム設計
 
-**バージョン**: v0.4.1以降  
-**最終更新**: 2025-11-27
+**バージョン**: v0.4.4以降
+**最終更新**: 2025-11-28
 
 ## 概要
 
@@ -166,6 +166,79 @@ UnifiedCacheDBにTempCardDBを統合し、データ構造を統一。
 2. **重複排除**: 同じカード情報を複数箇所に保存しない
 3. **メモリ効率**: 無駄なメモリ使用を削減
 4. **同期不要**: 常に最新のデータ構造
+
+### v0.4.4でのTempCardDB自動保存機能
+
+検索結果、関連カード、商品展開から取得したカード情報を、TempCardDBに自動保存する機能を追加しました。
+
+#### 自動保存されるタイミング
+
+1. **検索結果から**
+   - `parseSearchResults()`でカード一覧を取得した際に自動保存
+   - 対象: 検索画面のカード一覧
+
+2. **関連カードから**
+   - `saveCardDetailToCache()`でカード詳細をキャッシュする際、関連カードも自動保存
+   - 対象: Relatedタブで表示されるカード
+
+3. **商品展開から**
+   - `searchCardsByPackId()`でパック内カードを取得した際に自動保存
+   - 対象: Productsタブのパック展開で取得されるカード
+
+#### 実装詳細
+
+```typescript
+// 検索結果からの自動保存
+export function parseSearchResults(doc: Document): CardInfo[] {
+  const cards: CardInfo[] = [];
+
+  // ... カードのパース処理 ...
+
+  // TempCardDBに保存（検索結果として取得したカードを保存）
+  const tempCardDB = getTempCardDB();
+  for (const card of cards) {
+    tempCardDB.set(card.cardId, card);
+  }
+
+  return cards;
+}
+
+// カード詳細保存時の自動保存
+export async function saveCardDetailToCache(
+  unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
+  detail: CardDetail,
+  forceUpdate: boolean = false
+): Promise<void> {
+  // UnifiedCacheDBに保存
+  unifiedDB.setCardInfo(detail.card, forceUpdate);
+  for (const relatedCard of detail.relatedCards) {
+    unifiedDB.setCardInfo(relatedCard, forceUpdate);
+  }
+
+  // ... TableC保存処理 ...
+
+  // TempCardDBにも保存（detail.cardと関連カード）
+  const tempCardDB = getTempCardDB();
+  tempCardDB.set(detail.card.cardId, detail.card);
+  for (const relatedCard of detail.relatedCards) {
+    tempCardDB.set(relatedCard.cardId, relatedCard);
+  }
+}
+```
+
+#### メリット
+
+1. **デッキエクスポート時の高速化**
+   - カード情報が既にメモリにあるため、ネットワークアクセス不要
+   - エクスポート処理が即座に完了
+
+2. **ネットワークアクセスの削減**
+   - 一度取得したカード情報を再利用
+   - 通信量の削減によるパフォーマンス向上
+
+3. **シームレスなUX**
+   - ユーザーは意識せずに高速な操作を体験
+   - 検索→デッキ追加→エクスポートの流れがスムーズ
 
 ## パフォーマンス
 
