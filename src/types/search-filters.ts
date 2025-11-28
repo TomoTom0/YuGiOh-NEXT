@@ -11,7 +11,7 @@ export interface SearchFilters {
   spellTypes: SpellEffectType[];
   trapTypes: TrapEffectType[];
   races: Race[];
-  monsterTypes: { type: MonsterType; state: 'normal' | 'not' }[];
+  monsterTypes: { type: MonsterType; state: 'normal' | 'not'; source?: 'user' | 'required' }[];
   monsterTypeMatchMode: 'and' | 'or';
   levelType: 'level' | 'link' | 'scale';
   levelValues: number[];

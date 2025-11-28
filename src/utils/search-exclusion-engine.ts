@@ -221,20 +221,20 @@ function applyAttributeExclusion(
     if (!shouldApply) continue;
 
     // 複数のactive属性がある場合、優先順位を付ける
-    // 優先順位: selected（直接選択、必須でない） > required（項目から必須）
+    // 優先順位: required（項目から必須） > selected（直接選択、必須でない）
     let primaryAttr: string | null = null;
     if (activeAttrs.length > 1) {
-      // 直接選択されている属性を優先
-      const directlySelected = activeAttrs.filter((attr) => {
+      // 項目から必須化された属性を最優先
+      const requiredAttrs = activeAttrs.filter((attr) => {
         const attrState = result.attributeStates.get(attr);
-        return attrState?.selected && !attrState.required;
+        return attrState?.required;
       });
 
-      if (directlySelected.length > 0) {
-        // 複数の直接選択がある場合は最初の1つを優先（ORモードの場合のみ発生）
-        primaryAttr = directlySelected[0];
+      if (requiredAttrs.length > 0) {
+        // 必須属性がある場合は最初の1つを優先
+        primaryAttr = requiredAttrs[0];
       } else {
-        // すべて必須の場合は最初の1つを優先
+        // すべて直接選択の場合は最初の1つを優先（ORモードの場合のみ発生）
         primaryAttr = activeAttrs[0];
       }
     } else {
@@ -296,27 +296,13 @@ function shouldApplyExclusionForGroup(
     return true;
   }
 
-  // ORモード: 必須属性（項目から決まった）が含まれる場合のみ適用
-  // ただし、グループ内のアクティブ属性が全て必須で、かつそれらが全て同じ項目から来ている場合は適用しない
-  const requiredAttrs = activeAttrs.filter((attr) => {
+  // ORモード: 必須属性（項目から決まった）が含まれる場合は適用
+  const hasRequiredAttr = activeAttrs.some((attr) => {
     const attrState = result.attributeStates.get(attr);
     return attrState?.required;
   });
 
-  if (requiredAttrs.length === 0) {
-    return false;
-  }
-
-  // アクティブ属性が全て必須の場合、それらがグループ内で他の属性と排他すべきかチェック
-  // 例: link-markerに入力 → linkが必須 → グループ内にlinkしかアクティブでない場合は排他不要
-  if (requiredAttrs.length === activeAttrs.length) {
-    // グループ内でアクティブな属性が1つだけの場合、排他は不要
-    if (activeAttrs.length === 1) {
-      return false;
-    }
-  }
-
-  return true;
+  return hasRequiredAttr;
 }
 
 /**
@@ -335,7 +321,11 @@ function applyAttributeToField(
   for (const rule of rules.attributeToField) {
     const attrState = result.attributeStates.get(rule.trigger);
 
-    if (attrState && attrState.selected) {
+    // ORモードの場合、直接選択された属性（required=false）は項目を無効化しない
+    const shouldApplyToField = attrState && attrState.selected &&
+      (state.monsterTypeMode === 'and' || attrState.required);
+
+    if (shouldApplyToField) {
       for (const field of rule.negative) {
         let fieldState = result.fieldStates.get(field);
         if (!fieldState) {

@@ -6,7 +6,16 @@
     </div>
     <div v-else class="pack-list">
       <div v-for="pack in groupedPacks" :key="`${pack.code}_${pack.name}`" class="pack-item" :data-pack-id="pack.packId">
-        <div class="pack-name">{{ pack.name }}</div>
+        <a
+          v-if="pack.packId"
+          :href="getPackUrl(pack.packId)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pack-name"
+        >
+          {{ pack.name }}
+        </a>
+        <div v-else class="pack-name">{{ pack.name }}</div>
         <div class="pack-details">
           <div class="pack-date">{{ pack.releaseDate || '-' }}</div>
           <div class="pack-code">{{ pack.code || '-' }}</div>
@@ -183,7 +192,16 @@ export default {
         cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
-    
+
+    const getPackUrl = (packId) => {
+      const baseUrl = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
+      const params = new URLSearchParams({
+        ope: '1',
+        pid: packId
+      })
+      return `${baseUrl}?${params.toString()}`
+    }
+
     return {
       groupedPacks,
       expandedPacks,
@@ -195,7 +213,8 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
-      handleScrollToTop
+      handleScrollToTop,
+      getPackUrl
     }
   }
 }
@@ -237,6 +256,18 @@ export default {
   color: var(--text-primary);
   margin-bottom: 6px;
   width: 100%;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+
+  &:hover {
+    color: #0066cc;
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--text-primary);
+  }
 }
 
 .pack-details {
