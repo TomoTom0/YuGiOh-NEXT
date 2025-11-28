@@ -64,6 +64,26 @@ function connectCDP() {
     },
 
     /**
+     * イベントリスナーを追加
+     */
+    on(eventName, callback) {
+      ws.on('message', (data) => {
+        const message = JSON.parse(data);
+        if (message.method === eventName) {
+          callback(message.params);
+        }
+      });
+    },
+
+    /**
+     * イベントリスナーを削除
+     */
+    off(eventName, callback) {
+      // WebSocketのイベントリスナーを削除
+      ws.off('message', callback);
+    },
+
+    /**
      * 接続を閉じる
      */
     close() {
