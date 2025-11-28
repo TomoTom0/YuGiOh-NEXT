@@ -51,23 +51,15 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
-    if (appSettings.value.theme === 'system') {
-      // prefers-color-schemeを検出
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
-    }
-    return appSettings.value.theme;
-  });
+    // 一時的に常にライトテーマを強制
+    return 'light';
+  });;
 
   /** 実効言語（autoの場合は検出した言語を返す） */
   const effectiveLanguage = computed<string>(() => {
-    if (appSettings.value.language === 'auto') {
-      // 言語検出ロジック（既存のdetectLanguageを使用）
-      return detectCurrentLanguage();
-    }
-    return appSettings.value.language;
-  });
+    // 一時的に常に自動検出を強制
+    return detectCurrentLanguage();
+  });;
 
   // ===== アクション =====
 
