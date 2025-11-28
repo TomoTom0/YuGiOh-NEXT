@@ -249,6 +249,11 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  function setChangeFavicon(enabled: boolean): void {
+    appSettings.value.changeFavicon = enabled;
+    saveSettings();
+  }
+
   /**
    * キーボードショートカットを追加（最大3つまで）
    */
@@ -411,6 +416,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setLanguage,
     setMiddleDecksLayout,
     setMouseOperations,
+    setChangeFavicon,
     addKeyboardShortcut,
     removeKeyboardShortcut,
     setSearchInputPosition,

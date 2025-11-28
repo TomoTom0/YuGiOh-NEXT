@@ -306,7 +306,43 @@ export default {
       await deckStore.initializeOnPageLoad()
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
+
+      // 設定に応じてファビコンを変更
+      if (settingsStore.appSettings.changeFavicon) {
+        changeFavicon()
+      }
     })
+
+    /**
+     * ファビコンを拡張機能のアイコンに変更
+     */
+    function changeFavicon() {
+      try {
+        // 既存のファビコンを削除
+        const existingLinks = document.querySelectorAll("link[rel*='icon']")
+        existingLinks.forEach(link => link.remove())
+
+        // 新しいファビコンを追加
+        const iconSizes = [
+          { size: '16x16', path: chrome.runtime.getURL('icons/icon16.png') },
+          { size: '48x48', path: chrome.runtime.getURL('icons/icon48.png') },
+          { size: '128x128', path: chrome.runtime.getURL('icons/icon128.png') }
+        ]
+
+        iconSizes.forEach(({ size, path }) => {
+          const link = document.createElement('link')
+          link.rel = 'icon'
+          link.type = 'image/png'
+          link.sizes = size
+          link.href = path
+          document.head.appendChild(link)
+        })
+
+        console.log('Favicon changed successfully')
+      } catch (error) {
+        console.error('Failed to change favicon:', error)
+      }
+    }
 
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)

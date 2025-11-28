@@ -137,6 +137,8 @@ export interface AppSettings {
   unsavedWarning: UnsavedWarning;
   /** 右クリック・中クリック操作の有効化 */
   enableMouseOperations: boolean;
+  /** デッキ編集画面でファビコンを変更 */
+  changeFavicon: boolean;
   /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
   keyboardShortcuts: {
     /** グローバル検索呼び出しキー */
@@ -211,6 +213,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // UX設定
   unsavedWarning: 'always',
   enableMouseOperations: false,
+  changeFavicon: true,
   // キーボードショートカット（各機能に最大3つまで登録可能、0個も許容）
   keyboardShortcuts: {
     globalSearch: [

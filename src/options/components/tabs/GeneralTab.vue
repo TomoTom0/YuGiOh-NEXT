@@ -2,6 +2,21 @@
   <div class="general-tab">
     <div class="section-content">
       <div class="section">
+        <h3 class="section-title">タブアイコン</h3>
+        <p class="section-desc">
+          デッキ編集画面のタブアイコンを拡張機能のアイコンに変更します。
+        </p>
+        <label class="toggle-item">
+          <input
+            type="checkbox"
+            :checked="settingsStore.appSettings.changeFavicon"
+            @change="handleChangeFaviconToggle"
+          />
+          <span class="toggle-label">タブアイコンを変更する</span>
+        </label>
+      </div>
+
+      <div class="section">
         <h3 class="section-title">設定リセット</h3>
         <p class="section-desc">
           全ての設定を初期値に戻します。この操作は取り消せません。
@@ -43,6 +58,11 @@ const settingsStore = useSettingsStore();
 const resetMessage = ref('');
 const updateDate = ref('2025-11-27');
 const version = ref('0.4.2');
+
+const handleChangeFaviconToggle = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  settingsStore.setChangeFavicon(target.checked);
+};
 
 const handleReset = async () => {
   if (confirm('本当に全ての設定をリセットしますか？この操作は取り消せません。')) {
@@ -98,6 +118,25 @@ const handleReset = async () => {
   color: #5f6368;
   line-height: 1.6;
   margin: 0 0 20px 0;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: #202124;
+  cursor: pointer;
 }
 
 .danger-button {
