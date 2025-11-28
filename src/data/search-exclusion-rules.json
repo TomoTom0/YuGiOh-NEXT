@@ -20,6 +20,13 @@
       ]
     },
     {
+      "title": "monster-type-link-pendulum",
+      "items": [
+        "monster-type_link",
+        "monster-type_pendulum"
+      ]
+    },
+    {
       "title": "monster-type-normal",
       "items": [
         "monster-type_normal",
@@ -56,12 +63,12 @@
       ]
     },
     {
-      "title": "monster-type_pend-necessary",
+      "title": "monster-type_pendulum-necessary",
       "triggerItems": [
         "p-scale"
       ],
       "target": [
-        "monster-type_pend"
+        "monster-type_pendulum"
       ]
     },
     {

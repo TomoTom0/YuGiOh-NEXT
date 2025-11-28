@@ -18,6 +18,7 @@ import {
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { getTempCardDB } from '@/utils/temp-card-db';
 import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
@@ -774,6 +775,12 @@ export function parseSearchResults(doc: Document): CardInfo[] {
       cards.push(cardInfo);
     }
   });
+
+  // TempCardDBに保存（検索結果として取得したカードを保存）
+  const tempCardDB = getTempCardDB();
+  for (const card of cards) {
+    tempCardDB.set(card.cardId, card);
+  }
 
   return cards;
 }
@@ -1731,6 +1738,13 @@ export async function saveCardDetailToCache(
   };
 
   await unifiedDB.setCardTableC(tableC);
+
+  // TempCardDBにも保存（detail.cardと関連カード）
+  const tempCardDB = getTempCardDB();
+  tempCardDB.set(detail.card.cardId, detail.card);
+  for (const relatedCard of detail.relatedCards) {
+    tempCardDB.set(relatedCard.cardId, relatedCard);
+  }
 }
 
 /**
