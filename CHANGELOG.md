@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- 検索フィルターダイアログのヘッダーに選択中のフィルターチップを表示
+
+### Changed
+- 検索フィルターダイアログのクリア/閉じるボタンをアイコン化
+- AND/ORチップのスタイル改善（リンクマーカー、モンスタータイプ）
+- セクションタイトルに無効状態のスタイル追加
+- 設定関連のリファクタリング（deepMerge、keyboardShortcuts検証）
+
+---
+
 ## [0.4.2] - 2025-11-27
 
 ### Added
