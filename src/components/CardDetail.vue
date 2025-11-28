@@ -136,12 +136,12 @@ export default {
     
     const loadMoreRelatedCards = () => {
       if (relatedLoadingMore.value) return
-      
-      const totalCards = sortedRelatedCards.value.length
+
+      const totalCards = detail.value?.relatedCards?.length || 0
       const currentDisplayed = displayedRelatedCards.value.length
-      
+
       if (currentDisplayed >= totalCards) return
-      
+
       relatedLoadingMore.value = true
       setTimeout(() => {
         relatedCurrentPage.value++
