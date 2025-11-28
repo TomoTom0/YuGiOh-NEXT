@@ -431,11 +431,6 @@ export default {
       // 右クリックメニューを抑制
       event.preventDefault()
 
-      // infoセクションでは動作しない
-      if (this.sectionType === 'info') {
-        return
-      }
-
       // 空カードの場合は何もしない
       if (this.card.empty) {
         return
@@ -443,14 +438,19 @@ export default {
 
       // カード移動ロジック:
       // - main, side, extraから → trash
-      // - trash, searchから → main/extra
+      // - trashから → main/extra（移動）
+      // - search/infoから → main/extra（コピー）
       if (this.sectionType === 'main' || this.sectionType === 'side' || this.sectionType === 'extra') {
         // main/side/extra → trash
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
-      } else if (this.sectionType === 'trash' || this.sectionType === 'search') {
-        // trash/search → main/extra
+      } else if (this.sectionType === 'trash') {
+        // trash → main/extra（移動）
         const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+        // search/info → main/extra（コピー）
+        const result = this.deckStore.addCopyToMainOrExtra(this.card)
         this.handleMoveResult(result)
       }
     },
