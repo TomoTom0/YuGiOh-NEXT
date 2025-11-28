@@ -25,22 +25,33 @@
         </svg>
       </button>
       <div class="input-container" :class="{ 'command-mode': isCommandMode || pendingCommand }">
-        <!-- 適用済みフィルターチップ -->
-        <div v-if="filterChips.length > 0" class="filter-chips">
+        <!-- SearchFilterDialogで選択した条件（上部） -->
+        <div v-if="hasActiveFilters" class="filter-icons-top">
           <span
-            v-for="(chip, index) in filterChips"
+            v-for="(icon, index) in displayFilterIcons"
             :key="index"
-            class="filter-chip"
-            :class="{ 'not-condition': chip.isNot }"
-            @click="removeFilterChip(index)"
-          >
-            <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
-            <span class="chip-remove">x</span>
-          </span>
+            class="filter-icon-item"
+            :class="icon.type"
+          >{{ icon.label }}</span>
         </div>
-        <!-- コマンドモード表示 -->
-        <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
-        <input
+        <!-- 入力行 -->
+        <div class="input-row">
+          <!-- スラッシュコマンドで追加したチップ（左側） -->
+          <div v-if="filterChips.length > 0" class="filter-chips">
+            <span
+              v-for="(chip, index) in filterChips"
+              :key="index"
+              class="filter-chip"
+              :class="{ 'not-condition': chip.isNot }"
+              @click="removeFilterChip(index)"
+            >
+              <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
+              <span class="chip-remove">x</span>
+            </span>
+          </div>
+          <!-- コマンドモード表示 -->
+          <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
+          <input
           ref="inputRef"
           v-model="deckStore.searchQuery"
           type="text"
@@ -94,26 +105,6 @@
           </div>
         </div>
       </div>
-      <!-- フィルター条件表示（二行均等配置） -->
-      <div v-if="hasActiveFilters" class="filter-icons">
-        <div class="filter-row">
-          <span
-            v-for="(icon, index) in filterIconsRow1"
-            :key="'r1-' + index"
-            class="filter-icon-item"
-            :class="icon.type"
-          >{{ icon.label }}</span>
-        </div>
-        <div v-if="filterIconsRow2.length > 0" class="filter-row">
-          <span
-            v-for="(icon, index) in filterIconsRow2"
-            :key="'r2-' + index"
-            class="filter-icon-item"
-            :class="icon.type"
-          >{{ icon.label }}</span>
-          <span v-if="displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
-        </div>
-        <span v-if="filterIconsRow2.length === 0 && displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
       </div>
 
       <button
@@ -134,7 +125,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, defineComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
@@ -143,7 +134,7 @@ import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
 import { getTempCardDB } from '../utils/temp-card-db'
-import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter'
+import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
 
 // コマンド定義
@@ -449,109 +440,18 @@ export default defineComponent({
       return count
     })
 
-    // 表示用フィルターアイコン - 画面サイズに応じて表示
+    // 表示用フィルターアイコン - filterChipsと重複しないものを表示
     const displayFilterIcons = computed(() => {
-      const icons: { type: string; label: string }[] = []
-      const f = searchFilters.value
+      // 共通関数で全アイコンを取得
+      const allIcons = convertFiltersToIcons(searchFilters.value)
 
-      // カードタイプ
-      if (f.cardType) {
-        const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
-        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
-      }
+      // filterChipsで追加された条件を除外するためのセット
+      const chipTypes = new Set(filterChips.value.map(chip => chip.type))
 
-      // 属性
-      const attrLabels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
-      f.attributes.forEach(attr => {
-        icons.push({ type: 'attr', label: attrLabels[attr] || attr })
-      })
-
-      // 種族（短縮表示）
-      f.races.forEach(race => {
-        icons.push({ type: 'race', label: getRaceLabel(race) })
-      })
-
-      // レベル（統合表示）
-      if (f.levelValues.length > 0) {
-        icons.push({ type: 'level', label: formatNumberRange(f.levelValues, '★') })
-      }
-
-      // ATK/DEF
-      const atkLabel = formatStatLabel('ATK', f.atk)
-      if (atkLabel) {
-        icons.push({ type: 'atk', label: atkLabel })
-      }
-      const defLabel = formatStatLabel('DEF', f.def)
-      if (defLabel) {
-        icons.push({ type: 'def', label: defLabel })
-      }
-
-      // モンスタータイプ
-      const monsterTypeLabels: Record<string, string> = {
-        normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
-        pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
-        union: 'U', gemini: 'D', special: '特'
-      }
-      f.monsterTypes.forEach(mt => {
-        icons.push({ type: 'monsterType', label: monsterTypeLabels[mt.type] || mt.type.slice(0, 1) })
-      })
-
-      // リンク数（統合表示）
-      if (f.linkValues.length > 0) {
-        icons.push({ type: 'link', label: formatNumberRange(f.linkValues, 'L') })
-      }
-
-      // ペンデュラムスケール（統合表示）
-      if (f.scaleValues.length > 0) {
-        icons.push({ type: 'scale', label: formatNumberRange(f.scaleValues, 'PS') })
-      }
-
-      // リンクマーカー
-      const linkMarkerLabel = formatLinkMarkerLabel(f.linkMarkers)
-      if (linkMarkerLabel) {
-        icons.push({ type: 'linkMarker', label: linkMarkerLabel })
-      }
-
-      return icons
+      // filterChipsと重複しないアイコンのみを返す
+      return allIcons.filter(icon => !chipTypes.has(icon.type))
     })
 
-    // 画面幅に応じた一行あたりの表示数
-    // 実際の幅はCSSで制御、ここでは目安を設定
-    const iconsPerRow = ref(4) // デフォルト値
-
-    // 画面幅を監視して一行あたりの表示数を更新
-    const updateIconsPerRow = () => {
-      const width = window.innerWidth
-      if (width >= 500) {
-        iconsPerRow.value = 6
-      } else if (width >= 400) {
-        iconsPerRow.value = 5
-      } else {
-        iconsPerRow.value = 4
-      }
-    }
-
-    // マウント時とリサイズ時に更新
-    onMounted(() => {
-      updateIconsPerRow()
-      window.addEventListener('resize', updateIconsPerRow)
-    })
-    onUnmounted(() => {
-      window.removeEventListener('resize', updateIconsPerRow)
-    })
-
-    // 最大表示数（二行分）
-    const maxVisibleIcons = computed(() => iconsPerRow.value * 2)
-
-    // 一行目（一行分をフル表示）
-    const filterIconsRow1 = computed(() => {
-      return displayFilterIcons.value.slice(0, iconsPerRow.value)
-    })
-
-    // 二行目（残りを表示）
-    const filterIconsRow2 = computed(() => {
-      return displayFilterIcons.value.slice(iconsPerRow.value, maxVisibleIcons.value)
-    })
 
     // コマンドモードの検出
     const commandMatch = computed(() => {
@@ -572,6 +472,12 @@ export default defineComponent({
 
     const isCommandMode = computed(() => commandMatch.value !== null)
     const commandPrefix = computed(() => commandMatch.value?.command || '')
+
+    // コマンド名を入力中かどうか（/で始まるがまだスペースがない状態）
+    const isTypingCommand = computed(() => {
+      const query = deckStore.searchQuery
+      return query.startsWith('/') && !pendingCommand.value && !commandMatch.value
+    })
 
     // 入力値がNOT条件かどうかを判定（-プレフィックス）
     const isNegatedInput = computed(() => {
@@ -643,7 +549,13 @@ export default defineComponent({
       if (searchMode.value === 'mydeck') {
         return 'デッキ名を入力...'
       }
-      return props.placeholder
+      // 検索モードに応じたプレースホルダー
+      const placeholders: Record<string, string> = {
+        'name': 'カード名を検索...',
+        'text': 'テキストを検索...',
+        'pendulum': 'ペンデュラムテキストを検索...'
+      }
+      return placeholders[searchMode.value] || props.placeholder
     })
 
     // mydeckモード用の候補リスト
@@ -1184,6 +1096,13 @@ export default defineComponent({
 
     // Enterキーハンドラ
     const handleEnter = () => {
+      console.log('[SearchInputBar] handleEnter called', {
+        searchMode: searchMode.value,
+        pendingCommand: pendingCommand.value,
+        searchQuery: deckStore.searchQuery,
+        isGlobalSearchMode: deckStore.isGlobalSearchMode
+      })
+
       // mydeckモードの場合
       if (searchMode.value === 'mydeck' && !pendingCommand.value) {
         // 選択中のデッキがある場合
@@ -1227,11 +1146,27 @@ export default defineComponent({
 
       // 有効な入力がある場合はチップに変換
       if (pendingCommand.value && isValidCommandInput.value) {
+        console.log('[SearchInputBar] Adding filter chip')
         addFilterChip()
         return
       }
 
+      // コマンド入力中の場合は何もしない
+      if (isTypingCommand.value) {
+        console.log('[SearchInputBar] Command input in progress, ignoring Enter')
+        return
+      }
+
+      // コマンドモードの場合はフィルタを適用
+      if (isCommandMode.value) {
+        console.log('[SearchInputBar] Command mode, applying filter')
+        applyCommandFilter()
+        deckStore.searchQuery = '' // コマンド部分をクリア
+        return
+      }
+
       // それ以外は検索実行
+      console.log('[SearchInputBar] Calling handleSearch')
       handleSearch()
     }
 
@@ -1346,18 +1281,16 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
-      // コマンドモードの場合はフィルタを適用
-      if (isCommandMode.value) {
-        applyCommandFilter()
-        // フィルタ適用後に検索を実行
-        if (hasActiveFilters.value) {
-          // 検索クエリがクリアされているので、フィルタのみで検索
-        } else {
-          return
-        }
-      }
+      console.log('[SearchInputBar] handleSearch called', {
+        searchQuery: deckStore.searchQuery,
+        hasActiveFilters: hasActiveFilters.value,
+        isGlobalSearchMode: deckStore.isGlobalSearchMode
+      })
 
-      if (!deckStore.searchQuery.trim() && !hasActiveFilters.value) {
+      const query = deckStore.searchQuery.trim()
+
+      if (!query && !hasActiveFilters.value) {
+        console.log('[SearchInputBar] Empty query and no filters, returning without closing global search')
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -1365,6 +1298,7 @@ export default defineComponent({
         return
       }
 
+      console.log('[SearchInputBar] Executing search, will close global search after API call')
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
 
@@ -1401,6 +1335,10 @@ export default defineComponent({
 
         const results = await searchCards(searchOptions)
 
+        // 検索APIを呼び出したのでグローバル検索モードを終了
+        console.log('[SearchInputBar] Search completed, closing global search mode')
+        deckStore.isGlobalSearchMode = false
+
         // 検索結果をstore用の形式に変換
         deckStore.searchResults = results as unknown as typeof deckStore.searchResults
         deckStore.allResults = results as unknown as typeof deckStore.allResults
@@ -1436,7 +1374,6 @@ export default defineComponent({
         deckStore.hasMore = false
       } finally {
         deckStore.isLoading = false
-        deckStore.isGlobalSearchMode = false
       }
     }
 
@@ -1466,9 +1403,6 @@ export default defineComponent({
       hasActiveFilters,
       filterCount,
       displayFilterIcons,
-      filterIconsRow1,
-      filterIconsRow2,
-      maxVisibleIcons,
       isCommandMode,
       commandPrefix,
       filterChips,
@@ -1575,10 +1509,12 @@ export default defineComponent({
 
 .input-container {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   position: relative;
+  overflow: hidden;
+  justify-content: center;
 
   &.command-mode {
     background: rgba(0, 217, 184, 0.1);
@@ -1588,7 +1524,31 @@ export default defineComponent({
   }
 }
 
-/* フィルターチップ */
+/* SearchFilterDialogで選択した条件（上部） */
+.filter-icons-top {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  padding: 0 4px;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* compactモード（right側）では最大幅を制限 */
+.compact .filter-icons-top {
+  max-width: 150px;
+}
+
+/* 入力行 */
+.input-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+/* スラッシュコマンドのチップ（左側） */
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1745,7 +1705,7 @@ export default defineComponent({
   background: white;
   border: 2px solid transparent;
   border-radius: 20px;
-  padding: 0 10px;
+  padding: 2px 10px;
   height: 44px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -1822,11 +1782,10 @@ export default defineComponent({
   border: none;
   outline: none;
   font-size: 14px;
-  padding: 8px;
+  padding: 4px 8px;
   background: transparent;
   color: var(--text-primary, #333);
-  height: 100%;
-  line-height: 1.5;
+  line-height: 1.2;
   min-width: 80px;
 
   &::placeholder {

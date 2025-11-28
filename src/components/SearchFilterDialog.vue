@@ -5,9 +5,21 @@
       <div class="dialog-header">
         <div class="dialog-header-inner">
           <h2>検索条件指定</h2>
+          <div class="header-selected-chips">
+            <span
+              v-for="(icon, index) in headerFilterIcons"
+              :key="index"
+              class="header-chip"
+              :class="icon.type"
+            >{{ icon.label }}</span>
+          </div>
           <div class="header-actions">
-            <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters">クリア</button>
-            <button class="close-btn" @click="$emit('close')">×</button>
+            <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+              </svg>
+            </button>
+            <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
           </div>
         </div>
       </div>
@@ -466,6 +478,7 @@ import {
   MONSTER_TYPE_OPTIONS
 } from '../constants/filter-options';
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter';
+import { convertFiltersToIcons } from '../utils/filter-icons';
 import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-engine';
 import { toSearchConditionState } from '../utils/search-exclusion-adapter';
 
@@ -733,6 +746,11 @@ const selectedAtkChips = computed(() => {
 const selectedDefChips = computed(() => {
   const label = formatStatLabel('DEF', filters.def);
   return label ? [label] : [];
+});
+
+// ヘッダー用フィルターアイコン（共通関数を使用）
+const headerFilterIcons = computed(() => {
+  return convertFiltersToIcons(filters);
 });
 
 // 選択中の条件チップ
@@ -1052,15 +1070,14 @@ function clearFilters() {
 }
 
 .dialog-header {
-  border-bottom: 1px solid #e0e0e0;
   width: 100%;
 }
 
 .dialog-header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 16px;
+  gap: 12px;
 
   h2 {
     margin: 0;
@@ -1068,37 +1085,74 @@ function clearFilters() {
     font-weight: 600;
     color: #202124;
     white-space: nowrap;
+    flex-shrink: 0;
   }
+}
+
+.header-selected-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  flex: 1;
+}
+
+.header-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 3px;
+  font-size: 8px;
+  font-weight: 500;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
+  white-space: nowrap;
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  line-height: 1;
+  height: 10px;
 }
 
 .header-actions {
   display: flex;
-  gap: 6px;
-  width: 100%;
-  justify-content: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .clear-btn,
 .close-btn {
   background: transparent;
-  border: 1px solid #dadce0;
-  color: #5f6368;
+  border: none;
+  color: var(--text-secondary, #666);
   cursor: pointer;
-  padding: 4px 12px;
+  padding: 6px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 
   &:hover {
-    background: #f8f9fa;
-    border-color: #4caf50;
-    color: #4caf50;
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-primary, #333);
+  }
+}
+
+.clear-btn {
+  svg {
+    display: block;
   }
 }
 
 .close-btn {
-  font-size: 16px;
+  font-size: 20px;
+  font-weight: 300;
 }
 
 .dialog-content {
@@ -1321,6 +1375,11 @@ function clearFilters() {
   font-weight: 700;
   color: #202124;
   white-space: nowrap;
+
+  &.disabled {
+    color: #9aa0a6;
+    opacity: 0.6;
+  }
 }
 
 .filter-title {
@@ -1434,6 +1493,7 @@ function clearFilters() {
     font-weight: 700;
     background: #fff3e0;
     border: 1.5px solid #ff9800;
+    border-radius: 12px;
     color: #e65100;
 
     &:hover:not(:disabled) {
@@ -1445,7 +1505,7 @@ function clearFilters() {
     &.active:not(:disabled) {
       background: #ff9800;
       color: white;
-      border: 1.5px solid #f57c00;
+      border-color: #f57c00;
       box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
     }
   }
@@ -1455,7 +1515,8 @@ function clearFilters() {
     font-size: 9px;
     font-weight: 700;
     width: auto;
-    min-width: 32px;
+    min-width: 22px;
+    max-width: 22px;
     background: #fff3e0;
     border: 1.5px solid #ff9800;
     border-radius: 12px;
