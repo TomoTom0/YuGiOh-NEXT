@@ -438,7 +438,7 @@ export default {
       // カード移動ロジック:
       // - main, side, extraから → trash
       // - trashから → main/extra（移動）
-      // - search/infoから → main/extra（コピー）
+      // - search/infoから → main/extra（コピー）- handleBottomLeftと同じ処理
       if (this.sectionType === 'main' || this.sectionType === 'side' || this.sectionType === 'extra') {
         // main/side/extra → trash
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
@@ -448,9 +448,8 @@ export default {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // search/info → main/extra（コピー）
-        const result = this.deckStore.addCopyToMainOrExtra(this.card)
-        this.handleMoveResult(result)
+        // search/info → main/extra（コピー）- 左下ボタンと同じ処理を呼び出す
+        this.handleBottomLeft()
       }
     },
     handleMouseDown(event) {
@@ -492,8 +491,8 @@ export default {
         // Extraデッキのカード → Extraに追加
         this.deckStore.addCopyToSection(this.card, 'extra')
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        // 検索結果/カード詳細 → Main/Extraに追加（カードタイプで自動判定）
-        this.deckStore.addCopyToMainOrExtra(this.card)
+        // 検索結果/カード詳細 → Main/Extraに追加 - 左下ボタンと同じ処理を呼び出す
+        this.handleBottomLeft()
       }
       // trash, その他のセクションでは何もしない
     }

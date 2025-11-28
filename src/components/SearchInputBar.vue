@@ -1330,8 +1330,32 @@ export default defineComponent({
         if (f.def.min !== undefined || f.def.max !== undefined) {
           searchOptions.def = { from: f.def.min, to: f.def.max }
         }
-        if (f.monsterTypes.length > 0) searchOptions.monsterTypes = f.monsterTypes.map(mt => mt.type) as SearchOptions['monsterTypes']
+        if (f.monsterTypes.length > 0) {
+          const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
+          const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
+          if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
+          if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
+          searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+        }
         if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
+        if (f.linkMarkers.length > 0) {
+          searchOptions.linkMarkers = f.linkMarkers
+          searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
+        }
+        if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
+        if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
+        if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
+        if (f.releaseDate.from || f.releaseDate.to) {
+          searchOptions.releaseDate = {}
+          if (f.releaseDate.from) {
+            const [year, month, day] = f.releaseDate.from.split('-').map(Number)
+            searchOptions.releaseDate.start = { year, month, day }
+          }
+          if (f.releaseDate.to) {
+            const [year, month, day] = f.releaseDate.to.split('-').map(Number)
+            searchOptions.releaseDate.end = { year, month, day }
+          }
+        }
 
         const results = await searchCards(searchOptions)
 
