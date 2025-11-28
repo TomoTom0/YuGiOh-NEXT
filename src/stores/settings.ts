@@ -64,17 +64,72 @@ export const useSettingsStore = defineStore('settings', () => {
   // ===== アクション =====
 
   /**
+   * オブジェクトをディープマージ
+   * 配列の場合: 保存された配列が空でなければそれを使用、空なら対象の配列を使用
+   * オブジェクトの場合: 再帰的にマージ
+   */
+  function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+    const result = { ...target };
+    for (const key in source) {
+      if (source[key] !== undefined && source[key] !== null) {
+        if (Array.isArray(source[key])) {
+          // 配列の場合: 保存された配列が空でなければそれを使用、空ならターゲットの配列を使用
+          const sourceArray = source[key] as any[];
+          result[key] = (sourceArray.length > 0 ? sourceArray : (target[key] || sourceArray)) as any;
+        } else if (typeof source[key] === 'object') {
+          // オブジェクトの場合: 再帰的にマージ
+          result[key] = deepMerge((target[key] || {}) as any, source[key] as any) as any;
+        } else {
+          result[key] = source[key] as any;
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
    * chrome.storageから設定を読み込み
    */
   async function loadSettings(): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.get(['appSettings', 'featureSettings'], (result: StorageSettings) => {
-        if (result.appSettings) {
-          appSettings.value = { ...DEFAULT_APP_SETTINGS, ...result.appSettings };
+        console.log('[Settings] Raw storage data:', result);
+
+        // keyboardShortcutsの検証と修正
+        let needsFixing = false;
+        if (result.appSettings?.keyboardShortcuts) {
+          const shortcuts = result.appSettings.keyboardShortcuts;
+          console.log('[Settings] Stored shortcuts:', shortcuts);
+          console.log('[Settings] globalSearch is array?', Array.isArray(shortcuts.globalSearch));
+          console.log('[Settings] undo is array?', Array.isArray(shortcuts.undo));
+          console.log('[Settings] redo is array?', Array.isArray(shortcuts.redo));
+
+          // 配列でない場合はデフォルトに置き換える
+          if (!Array.isArray(shortcuts.globalSearch)) {
+            console.warn('[Settings] globalSearch is not an array, using default');
+            shortcuts.globalSearch = DEFAULT_APP_SETTINGS.keyboardShortcuts.globalSearch;
+            needsFixing = true;
+          }
+          if (!Array.isArray(shortcuts.undo)) {
+            console.warn('[Settings] undo is not an array, using default');
+            shortcuts.undo = DEFAULT_APP_SETTINGS.keyboardShortcuts.undo;
+            needsFixing = true;
+          }
+          if (!Array.isArray(shortcuts.redo)) {
+            console.warn('[Settings] redo is not an array, using default');
+            shortcuts.redo = DEFAULT_APP_SETTINGS.keyboardShortcuts.redo;
+            needsFixing = true;
+          }
         }
-        if (result.featureSettings) {
-          featureSettings.value = { ...DEFAULT_FEATURE_SETTINGS, ...result.featureSettings };
-        }
+
+        // デフォルト設定をベースに、保存された設定をディープマージ
+        appSettings.value = result.appSettings
+          ? deepMerge(DEFAULT_APP_SETTINGS, result.appSettings)
+          : { ...DEFAULT_APP_SETTINGS };
+
+        featureSettings.value = result.featureSettings
+          ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
+          : { ...DEFAULT_FEATURE_SETTINGS };
 
         isLoaded.value = true;
 
@@ -83,7 +138,18 @@ export const useSettingsStore = defineStore('settings', () => {
         applyCardSize();
 
         console.log('[Settings] Loaded:', { appSettings: appSettings.value, featureSettings: featureSettings.value });
-        resolve();
+        console.log('[Settings] Final globalSearch:', appSettings.value.keyboardShortcuts.globalSearch);
+
+        // 修正が必要だった場合は保存
+        if (needsFixing) {
+          console.log('[Settings] Fixing and saving corrected settings');
+          saveSettings().then(() => {
+            console.log('[Settings] Corrected settings saved');
+            resolve();
+          });
+        } else {
+          resolve();
+        }
       });
     });
   }

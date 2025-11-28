@@ -115,7 +115,7 @@
     </div>
 
     <!-- キーボードショートカット -->
-    <div class="setting-group">
+    <div v-if="settingsStore.isLoaded" class="setting-group">
       <h3 class="setting-title">キーボードショートカット</h3>
       <p class="setting-desc">各機能のキーボードショートカットを設定（各機能に最大3つまで登録可能）</p>
       <div class="shortcut-list">
@@ -126,18 +126,20 @@
               <span
                 v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.globalSearch"
                 :key="index"
-                class="shortcut-tag"
+                class="shortcut-tag clickable"
+                @click="openKeyDialog('globalSearch', 'グローバル検索')"
               >
                 {{ formatShortcut(shortcut) }}
               </span>
-              <span v-if="settingsStore.appSettings.keyboardShortcuts.globalSearch.length === 0" class="no-shortcut">
-                未設定
-              </span>
+              <button
+                v-if="settingsStore.appSettings.keyboardShortcuts.globalSearch.length < 3"
+                class="add-button"
+                @click="openKeyDialog('globalSearch', 'グローバル検索')"
+              >
+                + 追加
+              </button>
             </div>
           </div>
-          <button class="config-button" @click="openKeyDialog('globalSearch', 'グローバル検索')">
-            設定
-          </button>
         </div>
         <div class="shortcut-item">
           <div class="shortcut-info">
@@ -146,18 +148,20 @@
               <span
                 v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.undo"
                 :key="index"
-                class="shortcut-tag"
+                class="shortcut-tag clickable"
+                @click="openKeyDialog('undo', 'Undo')"
               >
                 {{ formatShortcut(shortcut) }}
               </span>
-              <span v-if="settingsStore.appSettings.keyboardShortcuts.undo.length === 0" class="no-shortcut">
-                未設定
-              </span>
+              <button
+                v-if="settingsStore.appSettings.keyboardShortcuts.undo.length < 3"
+                class="add-button"
+                @click="openKeyDialog('undo', 'Undo')"
+              >
+                + 追加
+              </button>
             </div>
           </div>
-          <button class="config-button" @click="openKeyDialog('undo', 'Undo')">
-            設定
-          </button>
         </div>
         <div class="shortcut-item">
           <div class="shortcut-info">
@@ -166,18 +170,20 @@
               <span
                 v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.redo"
                 :key="index"
-                class="shortcut-tag"
+                class="shortcut-tag clickable"
+                @click="openKeyDialog('redo', 'Redo')"
               >
                 {{ formatShortcut(shortcut) }}
               </span>
-              <span v-if="settingsStore.appSettings.keyboardShortcuts.redo.length === 0" class="no-shortcut">
-                未設定
-              </span>
+              <button
+                v-if="settingsStore.appSettings.keyboardShortcuts.redo.length < 3"
+                class="add-button"
+                @click="openKeyDialog('redo', 'Redo')"
+              >
+                + 追加
+              </button>
             </div>
           </div>
-          <button class="config-button" @click="openKeyDialog('redo', 'Redo')">
-            設定
-          </button>
         </div>
       </div>
     </div>
@@ -190,7 +196,7 @@
       :isVisible="dialogVisible"
       :title="dialogTitle"
       :shortcuts="currentShortcuts"
-      @add="handleAddShortcut"
+      @save="handleSaveShortcut"
       @remove="handleRemoveShortcut"
       @cancel="dialogVisible = false"
     />
@@ -198,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
 import KeyInputDialog from '../KeyInputDialog.vue';
 import type { KeyboardShortcut } from '../../../types/settings';
@@ -213,6 +219,12 @@ const editingKey = ref<'globalSearch' | 'undo' | 'redo' | null>(null);
 const currentShortcuts = computed(() => {
   if (!editingKey.value) return [];
   return settingsStore.appSettings.keyboardShortcuts[editingKey.value];
+});
+
+onMounted(() => {
+  console.log('[UXSettings] Settings loaded:', settingsStore.isLoaded);
+  console.log('[UXSettings] Keyboard shortcuts:', settingsStore.appSettings.keyboardShortcuts);
+  console.log('[UXSettings] globalSearch length:', settingsStore.appSettings.keyboardShortcuts.globalSearch?.length);
 });
 
 const handleDeckLimitChange = () => {
@@ -245,9 +257,10 @@ const openKeyDialog = (key: 'globalSearch' | 'undo' | 'redo', title: string) => 
   dialogVisible.value = true;
 };
 
-const handleAddShortcut = (shortcut: KeyboardShortcut) => {
+const handleSaveShortcut = (shortcut: KeyboardShortcut) => {
   if (editingKey.value) {
     settingsStore.addKeyboardShortcut(editingKey.value, shortcut);
+    dialogVisible.value = false;
     showSaveMessage('ショートカットを追加しました');
   }
 };
@@ -417,8 +430,8 @@ const showSaveMessage = (message: string) => {
 
 .shortcut-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
   padding: 14px 16px;
   background: white;
   border: 1px solid #d0d0d0;
@@ -426,10 +439,10 @@ const showSaveMessage = (message: string) => {
 }
 
 .shortcut-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  width: 100%;
 }
 
 .shortcut-label {
@@ -454,27 +467,35 @@ const showSaveMessage = (message: string) => {
   font-size: 12px;
   font-weight: 500;
   font-family: 'Courier New', monospace;
+
+  &.clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #1a73e8;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+  }
 }
 
-.no-shortcut {
-  color: #9aa0a6;
+.add-button {
+  padding: 4px 10px;
   font-size: 12px;
-  font-style: italic;
-}
-
-.config-button {
-  padding: 6px 16px;
-  font-size: 13px;
   font-weight: 500;
-  color: #1a73e8;
-  background: transparent;
-  border: 1px solid #1a73e8;
+  color: #5f6368;
+  background: #ffffff;
+  border: 1px dashed #9aa0a6;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #e8f0fe;
+    color: #1a73e8;
+    border-color: #1a73e8;
+    background: #f0f7ff;
   }
 }
 

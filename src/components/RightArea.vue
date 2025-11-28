@@ -142,6 +142,7 @@ export default {
 
     // グローバル検索モードを閉じる
     const closeGlobalSearch = () => {
+      console.log('[RightArea] closeGlobalSearch called', new Error().stack)
       deckStore.isGlobalSearchMode = false
     }
 

@@ -6,25 +6,10 @@
         <button class="close-btn" @click="$emit('cancel')">×</button>
       </div>
       <div class="dialog-content">
-        <!-- 既存のショートカット一覧 -->
-        <div v-if="shortcuts.length > 0" class="existing-shortcuts">
-          <p class="section-label">登録済みショートカット</p>
-          <div class="shortcut-list">
-            <div v-for="(shortcut, index) in shortcuts" :key="index" class="shortcut-item">
-              <span class="shortcut-display">{{ formatShortcut(shortcut) }}</span>
-              <button class="delete-btn" @click="handleDelete(index)">削除</button>
-            </div>
-          </div>
-        </div>
-        <div v-else class="no-shortcuts">
-          <p>ショートカットが登録されていません</p>
-        </div>
-
-        <!-- 新規追加セクション -->
-        <div v-if="shortcuts.length < 3" class="add-section">
-          <p class="section-label">新しいショートカットを追加（{{ shortcuts.length }}/3）</p>
-          <div class="key-capture">
-            <p class="instruction">キーを押してください</p>
+        <!-- ショートカット入力欄 -->
+        <div class="key-input-section">
+          <p class="instruction">キーを押してください</p>
+          <div class="key-display-box">
             <div class="key-display">
               <span v-if="capturedKey.ctrl" class="modifier-key">Ctrl</span>
               <span v-if="capturedKey.shift" class="modifier-key">Shift</span>
@@ -34,19 +19,30 @@
             </div>
           </div>
         </div>
-        <div v-else class="max-reached">
-          <p>最大3つまで登録できます</p>
+
+        <!-- 登録済みショートカット一覧 -->
+        <div v-if="otherShortcuts.length > 0" class="existing-shortcuts">
+          <p class="existing-label">登録済みショートカット</p>
+          <div class="existing-list">
+            <div
+              v-for="(shortcut, index) in otherShortcuts"
+              :key="index"
+              class="existing-item"
+            >
+              <span class="existing-tag">{{ formatShortcut(shortcut) }}</span>
+              <button class="delete-btn" @click="handleRemove(index)">削除</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="dialog-footer">
-        <button class="secondary-button" @click="$emit('cancel')">閉じる</button>
+        <button class="secondary-button" @click="$emit('cancel')">Cancel</button>
         <button
-          v-if="shortcuts.length < 3"
           class="primary-button"
           :disabled="!capturedKey.key"
-          @click="handleAdd"
+          @click="handleSave"
         >
-          追加
+          Save
         </button>
       </div>
     </div>
@@ -54,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import type { KeyboardShortcut } from '../../types/settings';
 
 const props = defineProps<{
@@ -64,7 +60,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  add: [shortcut: KeyboardShortcut];
+  save: [shortcut: KeyboardShortcut];
   remove: [index: number];
   cancel: [];
 }>();
@@ -76,6 +72,9 @@ const capturedKey = ref<KeyboardShortcut>({
   key: ''
 });
 
+// 既存のショートカット（参考表示用）
+const otherShortcuts = computed(() => props.shortcuts);
+
 const formatShortcut = (shortcut: KeyboardShortcut): string => {
   const parts: string[] = [];
   if (shortcut.ctrl) parts.push('Ctrl');
@@ -86,8 +85,8 @@ const formatShortcut = (shortcut: KeyboardShortcut): string => {
 };
 
 const handleKeyDown = (event: KeyboardEvent) => {
-  // ダイアログが表示されていない、または最大数に達している場合は無視
-  if (!props.isVisible || props.shortcuts.length >= 3) {
+  // ダイアログが表示されていない場合は無視
+  if (!props.isVisible) {
     return;
   }
 
@@ -107,14 +106,14 @@ const handleKeyDown = (event: KeyboardEvent) => {
   };
 };
 
-const handleAdd = () => {
-  if (capturedKey.value.key && props.shortcuts.length < 3) {
-    emit('add', { ...capturedKey.value });
+const handleSave = () => {
+  if (capturedKey.value.key) {
+    emit('save', { ...capturedKey.value });
     reset();
   }
 };
 
-const handleDelete = (index: number | string) => {
+const handleRemove = (index: number | string) => {
   const numIndex = typeof index === 'string' ? parseInt(index, 10) : index;
   emit('remove', numIndex);
 };
@@ -213,90 +212,8 @@ onUnmounted(() => {
   flex: 1;
 }
 
-.section-label {
-  margin: 0 0 12px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #5f6368;
-}
-
-.existing-shortcuts {
-  margin-bottom: 24px;
-}
-
-.shortcut-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.shortcut-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-}
-
-.shortcut-display {
-  font-size: 13px;
-  font-weight: 500;
-  color: #202124;
-  font-family: 'Courier New', monospace;
-}
-
-.delete-btn {
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #d93025;
-  background: transparent;
-  border: 1px solid #d93025;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #d93025;
-    color: white;
-  }
-}
-
-.no-shortcuts {
-  padding: 20px;
-  text-align: center;
-  color: #9aa0a6;
-  font-size: 13px;
-  background: #f8f9fa;
-  border-radius: 4px;
-  margin-bottom: 24px;
-
-  p {
-    margin: 0;
-  }
-}
-
-.add-section {
-  .key-capture {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 16px;
-  }
-}
-
-.max-reached {
-  padding: 16px;
-  text-align: center;
-  color: #9aa0a6;
-  font-size: 13px;
-  background: #f8f9fa;
-  border-radius: 4px;
-
-  p {
-    margin: 0;
-  }
+.key-input-section {
+  margin-bottom: 20px;
 }
 
 .instruction {
@@ -306,26 +223,32 @@ onUnmounted(() => {
   text-align: center;
 }
 
+.key-display-box {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
 .key-display {
   display: flex;
   gap: 8px;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 24px;
   background: white;
   border-radius: 8px;
-  min-height: 60px;
+  min-height: 70px;
   border: 2px dashed #dadce0;
 }
 
 .modifier-key,
 .main-key {
   display: inline-block;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background: #ffffff;
   border: 1px solid #dadce0;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: #202124;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -342,6 +265,60 @@ onUnmounted(() => {
   color: #9aa0a6;
   font-size: 14px;
   font-style: italic;
+}
+
+.existing-shortcuts {
+  margin-top: 20px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.existing-label {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5f6368;
+}
+
+.existing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.existing-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.existing-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a73e8;
+  font-family: 'Courier New', monospace;
+}
+
+.delete-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #d93025;
+  background: transparent;
+  border: 1px solid #d93025;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #d93025;
+    color: white;
+  }
 }
 
 .dialog-footer {

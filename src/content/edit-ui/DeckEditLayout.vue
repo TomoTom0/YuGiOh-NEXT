@@ -233,12 +233,17 @@ export default {
 
     // キーボードショートカット配列のいずれかにマッチするかチェック
     const matchesAnyShortcut = (event, shortcuts) => {
-      if (!shortcuts || shortcuts.length === 0) return false
+      if (!shortcuts) return false
+      if (!Array.isArray(shortcuts)) return false
+      if (shortcuts.length === 0) return false
       return shortcuts.some(shortcut => matchesShortcut(event, shortcut))
     }
 
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
+      // グローバル検索モードが有効な場合は無視（入力欄で処理される）
+      if (deckStore.isGlobalSearchMode) return
+
       // 入力要素にフォーカスがある場合は無視
       const activeElement = document.activeElement
       const isInputFocused = activeElement && (
@@ -251,9 +256,19 @@ export default {
 
       const shortcuts = settingsStore.appSettings.keyboardShortcuts
 
+      console.log('[handleGlobalKeydown]', {
+        key: event.key,
+        ctrl: event.ctrlKey,
+        shift: event.shiftKey,
+        alt: event.altKey,
+        globalSearchShortcuts: shortcuts.globalSearch
+      })
+
       // グローバル検索モードを有効化
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
+        console.log('[handleGlobalKeydown] Global search triggered!')
         event.preventDefault()
+        event.stopPropagation()
         deckStore.isGlobalSearchMode = true
         return
       }
