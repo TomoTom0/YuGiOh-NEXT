@@ -219,16 +219,22 @@ export default {
       deckStore.showDeleteConfirm = false
     }
 
-    // キーボードショートカットのマッチング関数
+    // キーボードショートカットのマッチング関数（単一のショートカット）
     const matchesShortcut = (event, shortcut) => {
       if (!shortcut) return false
 
       return (
-        event.key.toLowerCase() === shortcut.key &&
+        event.key.toLowerCase() === shortcut.key.toLowerCase() &&
         event.ctrlKey === shortcut.ctrl &&
         event.shiftKey === shortcut.shift &&
         event.altKey === shortcut.alt
       )
+    }
+
+    // キーボードショートカット配列のいずれかにマッチするかチェック
+    const matchesAnyShortcut = (event, shortcuts) => {
+      if (!shortcuts || shortcuts.length === 0) return false
+      return shortcuts.some(shortcut => matchesShortcut(event, shortcut))
     }
 
     // グローバルキーボードイベント
@@ -246,21 +252,21 @@ export default {
       const shortcuts = settingsStore.appSettings.keyboardShortcuts
 
       // グローバル検索モードを有効化
-      if (matchesShortcut(event, shortcuts.globalSearch)) {
+      if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
         deckStore.isGlobalSearchMode = true
         return
       }
 
       // Undo
-      if (matchesShortcut(event, shortcuts.undo)) {
+      if (matchesAnyShortcut(event, shortcuts.undo)) {
         event.preventDefault()
         deckStore.undo()
         return
       }
 
       // Redo
-      if (matchesShortcut(event, shortcuts.redo)) {
+      if (matchesAnyShortcut(event, shortcuts.redo)) {
         event.preventDefault()
         deckStore.redo()
         return
