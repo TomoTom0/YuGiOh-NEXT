@@ -725,19 +725,6 @@ export default {
   }
 }
 
-.right-area {
-  width: 320px;
-  height: 100%;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--border-primary);
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 0 10px;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
 .tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

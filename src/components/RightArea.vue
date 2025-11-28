@@ -8,67 +8,69 @@
     <div v-if="showSearchInputTop" class="search-input-top-global">
       <SearchInputBar />
     </div>
-    
-    <div class="tabs">
-      <button
-        class="deck-tab"
-        :class="{ active: deckStore.activeTab === 'deck' }"
-        @click="deckStore.activeTab = 'deck'"
-      >
-        Deck
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'card' }"
-        @click="deckStore.activeTab = 'card'"
-      >
-        Card
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'search' }"
-        @click="deckStore.activeTab = 'search'"
-      >
-        Search
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'metadata' }"
-        @click="deckStore.activeTab = 'metadata'"
-      >
-        Metadata
-      </button>
-    </div>
 
-    <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
-      <slot name="deck-tab"></slot>
-    </div>
-
-    <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
-      <CardDetail 
-        v-if="deckStore.selectedCard" 
-        :card="deckStore.selectedCard"
-        :card-tab="deckStore.cardTab"
-        @tab-change="deckStore.cardTab = $event"
-      />
-      <div v-else class="no-card-selected">
-        <p>カードを選択してください</p>
+    <div class="right-area-main">
+      <div class="tabs">
+        <button
+          class="deck-tab"
+          :class="{ active: deckStore.activeTab === 'deck' }"
+          @click="deckStore.activeTab = 'deck'"
+        >
+          Deck
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'card' }"
+          @click="deckStore.activeTab = 'card'"
+        >
+          Card
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'search' }"
+          @click="deckStore.activeTab = 'search'"
+        >
+          Search
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'metadata' }"
+          @click="deckStore.activeTab = 'metadata'"
+        >
+          Metadata
+        </button>
       </div>
-    </div>
 
-    <div v-show="deckStore.activeTab === 'search'" class="search-content">
-      <CardList
-        :cards="deckStore.searchResults"
-        :sort-order="deckStore.sortOrder"
-        :view-mode="deckStore.viewMode"
-        section-type="search"
-        @scroll="handleScroll"
-        @scroll-to-top="handleScrollToTop"
-        @update:sortOrder="deckStore.sortOrder = $event"
-        @update:viewMode="deckStore.viewMode = $event"
-      />
-      <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
-    </div>
+      <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
+        <slot name="deck-tab"></slot>
+      </div>
 
-    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
-      <DeckMetadata />
+      <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
+        <CardDetail
+          v-if="deckStore.selectedCard"
+          :card="deckStore.selectedCard"
+          :card-tab="deckStore.cardTab"
+          @tab-change="deckStore.cardTab = $event"
+        />
+        <div v-else class="no-card-selected">
+          <p>カードを選択してください</p>
+        </div>
+      </div>
+
+      <div v-show="deckStore.activeTab === 'search'" class="search-content">
+        <CardList
+          :cards="deckStore.searchResults"
+          :sort-order="deckStore.sortOrder"
+          :view-mode="deckStore.viewMode"
+          section-type="search"
+          @scroll="handleScroll"
+          @scroll-to-top="handleScrollToTop"
+          @update:sortOrder="deckStore.sortOrder = $event"
+          @update:viewMode="deckStore.viewMode = $event"
+        />
+        <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
+      </div>
+
+      <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+        <DeckMetadata />
+      </div>
     </div>
 
     <!-- グローバル検索モード用オーバーレイ -->
@@ -257,8 +259,6 @@ export default {
 .right-area {
   width: 320px;
   height: 100%;
-  background: white;
-  border-left: 1px solid #ddd;
   display: flex;
   flex-direction: column;
   margin: 0 0 0 10px;
@@ -267,11 +267,20 @@ export default {
   overflow: hidden;
 }
 
+.right-area-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .right-area {
     width: 100% !important;
     margin: 0 !important;
-    border-left: none !important;
   }
   
   /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
