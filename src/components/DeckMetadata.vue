@@ -431,7 +431,7 @@ function removeTag(tagId: string) {
 }
 
 .chip.tag-chip[data-type="synchro"] {
-  background: 
+  background:
     repeating-linear-gradient(
       135deg,
       transparent,
@@ -439,9 +439,9 @@ function removeTag(tagId: string) {
       rgba(158, 158, 158, 0.12) 8px,
       rgba(158, 158, 158, 0.12) 9px
     ),
-    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  color: #424242;
-  border-color: #9e9e9e;
+    linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+  border-color: var(--border-secondary);
 }
 
 .chip.tag-chip[data-type="xyz"] {

@@ -783,7 +783,7 @@ export default {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      border: 3px solid #e0e0e0;
+      border: 3px solid var(--border-primary);
       border-top-color: var(--theme-color-start, #00d9b8);
       animation: save-progress 2s linear;
     }
@@ -940,7 +940,7 @@ export default {
     margin: 0 0 15px 0;
     font-size: 16px;
     color: var(--text-primary);
-    border-bottom: 2px solid #4CAF50;
+    border-bottom: 2px solid var(--color-success);
     padding-bottom: 8px;
   }
 }

@@ -608,7 +608,7 @@ export default {
         transparent 8px,
         rgba(158, 158, 158, 0.12) 8px,
         rgba(158, 158, 158, 0.12) 9px
-      ), linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+      ), linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
       border-color: var(--border-primary);
     }
 
@@ -639,7 +639,7 @@ export default {
     width: 95%;
     box-sizing: border-box;
     transform: skewX(-10deg);
-    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
+    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
     justify-content: center;
     flex-shrink: 0;
 
