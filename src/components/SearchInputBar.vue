@@ -1885,6 +1885,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   flex: 1;
+  min-width: 48px;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
