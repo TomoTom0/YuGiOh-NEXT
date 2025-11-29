@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.5] - 2025-11-30
+
+### Fixed
+- scroll-to-top機能の修正と全タブでの動作保証
+  - search tabでscroll-to-topボタンが機能しない問題を修正
+  - CardDetail.vue (related tab)とCardProducts.vue (products tab)のscroll-to-top機能を復元
+  - 各タブで適切なスクロールコンテナを指定（search: `.card-list-results`, related/products: `.card-tab-content`）
+
+---
+
+## [0.4.4] - 2025-11-29
+
 ### Added
 - 検索フィルターダイアログのヘッダーに選択中のフィルターチップを表示
 - 右クリック・中クリックでカード追加時のアニメーション
