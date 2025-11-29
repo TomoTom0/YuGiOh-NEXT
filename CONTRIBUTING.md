@@ -24,7 +24,7 @@ YGO Deck Helper（遊戯王デッキヘルパー）へのコントリビュー�
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-username/ygo-deck-helper.git
+git clone https://github.com/TomoTom0/YuGiOh-NEXT.git
 cd ygo-deck-helper
 
 # 依存関係をインストール
