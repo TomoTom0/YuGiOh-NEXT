@@ -90,7 +90,26 @@ export type MiddleDecksLayout = 'horizontal' | 'vertical';
 /**
  * カード検索入力欄の位置
  */
-export type SearchInputPosition = 'default' | 'section-title' | 'right-top' | 'right-bottom';
+export type SearchInputPosition = 'default' | 'right-top' | 'right-bottom';
+
+/**
+ * 未保存時の警告モード
+ */
+export type UnsavedWarning = 'always' | 'without-sorting-only' | 'never';
+
+/**
+ * キーボードショートカット
+ */
+export interface KeyboardShortcut {
+  /** Ctrlキーが押されているか */
+  ctrl: boolean;
+  /** Shiftキーが押されているか */
+  shift: boolean;
+  /** Altキーが押されているか */
+  alt: boolean;
+  /** 押されたキー（小文字） */
+  key: string;
+}
 
 /**
  * アプリ全体設定
@@ -114,6 +133,21 @@ export interface AppSettings {
   searchInputPosition: SearchInputPosition;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
+  /** 未保存時の警告モード */
+  unsavedWarning: UnsavedWarning;
+  /** 右クリック・中クリック操作の有効化 */
+  enableMouseOperations: boolean;
+  /** デッキ編集画面でファビコンを変更 */
+  changeFavicon: boolean;
+  /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
+  keyboardShortcuts: {
+    /** グローバル検索呼び出しキー */
+    globalSearch: KeyboardShortcut[];
+    /** Undoキー */
+    undo: KeyboardShortcut[];
+    /** Redoキー */
+    redo: KeyboardShortcut[];
+  };
 }
 
 /**
@@ -173,9 +207,26 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   listCardSize: 'large',
   theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
   language: 'auto',
-  middleDecksLayout: 'horizontal',  // Extra/Sideデッキ: 横並び
+  middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
   enableBanlistCheck: false,
+  // UX設定
+  unsavedWarning: 'always',
+  enableMouseOperations: false,
+  changeFavicon: true,
+  // キーボードショートカット（各機能に最大3つまで登録可能、0個も許容）
+  keyboardShortcuts: {
+    globalSearch: [
+      { ctrl: false, shift: false, alt: false, key: '/' },
+      { ctrl: true, shift: false, alt: false, key: 'j' }
+    ],
+    undo: [
+      { ctrl: true, shift: false, alt: false, key: 'z' }
+    ],
+    redo: [
+      { ctrl: true, shift: false, alt: false, key: 'y' }
+    ],
+  },
 };
 
 /**

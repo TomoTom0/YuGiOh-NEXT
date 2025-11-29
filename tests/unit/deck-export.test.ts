@@ -1,53 +1,66 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { exportToCSV, exportToTXT } from '@/utils/deck-export';
 import { importFromCSV, importFromTXT } from '@/utils/deck-import';
 import type { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from '@/utils/temp-card-db';
 
 // テスト用デッキ情報
 const sampleDeck: DeckInfo = {
+  dno: 1,
+  name: 'Test Deck',
   mainDeck: [
-    {
-      card: {
-        cardId: '12950',
-        ciid: '1',
-        name: '灰流うらら',
-        imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-      } as any,
-      quantity: 2
-    },
-    {
-      card: {
-        cardId: '4861',
-        ciid: '2',
-        name: '増殖するG',
-        imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
-      } as any,
-      quantity: 1
-    }
+    { cid: '12950', ciid: '1', quantity: 2 },
+    { cid: '4861', ciid: '2', quantity: 1 }
   ],
   extraDeck: [
-    {
-      card: {
-        cardId: '9753',
-        ciid: '1',
-        name: 'PSYフレームロード・Λ',
-        imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
-      } as any,
-      quantity: 1
-    }
+    { cid: '9753', ciid: '1', quantity: 1 }
   ],
   sideDeck: [
-    {
-      card: {
-        cardId: '14558',
-        ciid: '1',
-        name: '屋敷わらし',
-        imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
-      } as any,
-      quantity: 3
-    }
-  ]
+    { cid: '14558', ciid: '1', quantity: 3 }
+  ],
+  category: [],
+  tags: [],
+  comment: '',
+  deckCode: ''
 };
+
+// テスト用カードデータをTempCardDBに登録
+beforeEach(() => {
+  const tempCardDB = getTempCardDB();
+  
+  // テスト用カードを登録
+  tempCardDB.set('12950', {
+    name: '灰流うらら',
+    cardId: '12950',
+    ciid: '1',
+    imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }],
+    cardType: 'monster'
+  } as any);
+  
+  tempCardDB.set('4861', {
+    name: '増殖するG',
+    cardId: '4861',
+    ciid: '2',
+    imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }],
+    cardType: 'monster'
+  } as any);
+  
+  tempCardDB.set('9753', {
+    name: 'PSYフレームロード・Λ',
+    cardId: '9753',
+    ciid: '1',
+    imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }],
+    cardType: 'monster'
+  } as any);
+  
+  tempCardDB.set('14558', {
+    name: '屋敷わらし',
+    cardId: '14558',
+    ciid: '1',
+    imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }],
+    cardType: 'monster'
+  } as any);
+});
 
 describe('deck-export', () => {
   describe('exportToCSV', () => {
@@ -72,9 +85,15 @@ describe('deck-export', () => {
 
     it('should handle empty deck', () => {
       const emptyDeck: DeckInfo = {
+        dno: 2,
+        name: 'Empty Deck',
         mainDeck: [],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(emptyDeck);
@@ -83,20 +102,27 @@ describe('deck-export', () => {
     });
 
     it('should escape card names with commas', () => {
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('99999', {
+        name: 'Card, Name',
+        cardId: '99999',
+        ciid: '1',
+        imgs: [{ ciid: '1', imgHash: '99999_1_1_1' }],
+        cardType: 'monster'
+      } as any);
+      
       const deckWithComma: DeckInfo = {
+        dno: 3,
+        name: 'Comma Deck',
         mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              name: 'Card, Name',
-              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-            } as any,
-            quantity: 1
-          }
+          { cid: '99999', ciid: '1', quantity: 1 }
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(deckWithComma);
@@ -105,20 +131,27 @@ describe('deck-export', () => {
     });
 
     it('should escape card names with double quotes', () => {
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('88888', {
+        name: 'Card "Name"',
+        cardId: '88888',
+        ciid: '1',
+        imgs: [{ ciid: '1', imgHash: '88888_1_1_1' }],
+        cardType: 'monster'
+      } as any);
+      
       const deckWithQuote: DeckInfo = {
+        dno: 4,
+        name: 'Quote Deck',
         mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              name: 'Card "Name"',
-              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-            } as any,
-            quantity: 1
-          }
+          { cid: '88888', ciid: '1', quantity: 1 }
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(deckWithQuote);
@@ -198,7 +231,7 @@ describe('deck-export', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
 
-      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
@@ -212,32 +245,39 @@ describe('deck-export', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
 
-      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
     it('should handle special characters through CSV round-trip', () => {
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('77777', {
+        name: 'Card, "Name"',
+        cardId: '77777',
+        ciid: '1',
+        imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }],
+        cardType: 'monster'
+      } as any);
+      
       const specialDeck: DeckInfo = {
+        dno: 5,
+        name: 'Special Deck',
         mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              name: 'Card, "Name"',
-              imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
-            } as any,
-            quantity: 2
-          }
+          { cid: '77777', ciid: '1', quantity: 2 }
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(specialDeck);
       const result = importFromCSV(csv);
 
       expect(result.success).toBe(true);
-      expect(result.deckInfo!.mainDeck[0].card.cardId).toBe('12950');
+      expect(result.deckInfo!.mainDeck[0].cid).toBe('77777');
     });
 
     it('should maintain quantity and card order', () => {
@@ -255,9 +295,15 @@ describe('deck-export', () => {
   describe('edge cases', () => {
     it('should handle deck with only main deck', () => {
       const mainOnlyDeck: DeckInfo = {
+        dno: 6,
+        name: 'Main Only',
         mainDeck: sampleDeck.mainDeck,
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(mainOnlyDeck);
@@ -273,42 +319,47 @@ describe('deck-export', () => {
     });
 
     it('should handle cards without imgHash', () => {
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('66666', {
+        name: '灰流うらら',
+        cardId: '66666',
+        ciid: '1',
+        imgs: [],
+        cardType: 'monster'
+      } as any);
+      
       const noHashDeck: DeckInfo = {
+        dno: 7,
+        name: 'No Hash',
         mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              name: '灰流うらら',
-              imgs: []
-            } as any,
-            quantity: 1
-          }
+          { cid: '66666', ciid: '1', quantity: 1 }
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(noHashDeck);
 
-      expect(csv).toContain('main,灰流うらら,12950,1,,1');
+      expect(csv).toContain('main,灰流うらら,66666,1,,1');
     });
 
     it('should handle large quantities', () => {
       const largeDeck: DeckInfo = {
+        dno: 8,
+        name: 'Large Quantity',
         mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              name: '灰流うらら',
-              imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-            } as any,
-            quantity: 3
-          }
+          { cid: '12950', ciid: '1', quantity: 3 }
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const csv = exportToCSV(largeDeck);

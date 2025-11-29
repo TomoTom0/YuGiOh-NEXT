@@ -1180,19 +1180,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function saveDeck(dno: number) {
     try {
       deckInfo.value.dno = dno;
-      // デッキ名が空の場合は元のデッキ名を使用
-      if (!deckInfo.value.name && deckInfo.value.originalName) {
-        deckInfo.value.name = deckInfo.value.originalName;
-      }
-      
-      
-      const result = await sessionManager.saveDeck(dno, deckInfo.value);
-      
+
+      // 保存用のデータを作成（deckInfo自体は変更しない）
+      const dataToSave = {
+        ...deckInfo.value,
+        name: deckInfo.value.name || deckInfo.value.originalName || ''
+      };
+
+      const result = await sessionManager.saveDeck(dno, dataToSave);
+
       if (result.success) {
         // 保存成功時にスナップショットを更新
         savedDeckSnapshot.value = captureDeckSnapshot();
       }
-      
+
       return result;
     } catch (error) {
       console.error('Failed to save deck:', error);
@@ -1211,6 +1212,68 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       tags: deckInfo.value.tags,
       comment: deckInfo.value.comment
     });
+  }
+
+  /**
+   * ソート順を除外したデッキスナップショットを作成
+   * カード配列をcid+ciidでソートして、順序の影響を除外
+   */
+  function captureDeckSnapshotWithoutOrder(): string {
+    // カード配列をソートする補助関数
+    const sortCards = (cards: DeckCardRef[]) => {
+      return [...cards].sort((a, b) => {
+        const cidDiff = Number(a.cid) - Number(b.cid);
+        if (cidDiff !== 0) return cidDiff;
+        return Number(a.ciid) - Number(b.ciid);
+      });
+    };
+
+    return JSON.stringify({
+      dno: deckInfo.value.dno,
+      name: deckInfo.value.name,
+      mainDeck: sortCards(deckInfo.value.mainDeck),
+      extraDeck: sortCards(deckInfo.value.extraDeck),
+      sideDeck: sortCards(deckInfo.value.sideDeck),
+      category: deckInfo.value.category,
+      tags: deckInfo.value.tags,
+      comment: deckInfo.value.comment
+    });
+  }
+
+  /**
+   * ソート順のみの変更があるかチェック
+   * @returns true: ソート順のみの変更, false: その他の変更あり
+   */
+  function hasOnlySortOrderChanges(): boolean {
+    if (!savedDeckSnapshot.value) return false;
+    
+    // スナップショット全体が一致していれば変更なし
+    const currentSnapshot = captureDeckSnapshot();
+    if (savedDeckSnapshot.value === currentSnapshot) {
+      return false;
+    }
+    
+    // ソート順を除外したスナップショットを比較
+    // これが一致していれば、ソート順のみの変更
+    const savedSnapshotObj = JSON.parse(savedDeckSnapshot.value);
+    const sortCards = (cards: DeckCardRef[]) => {
+      return [...cards].sort((a, b) => {
+        const cidDiff = Number(a.cid) - Number(b.cid);
+        if (cidDiff !== 0) return cidDiff;
+        return Number(a.ciid) - Number(b.ciid);
+      });
+    };
+    
+    const savedNormalized = JSON.stringify({
+      ...savedSnapshotObj,
+      mainDeck: sortCards(savedSnapshotObj.mainDeck),
+      extraDeck: sortCards(savedSnapshotObj.extraDeck),
+      sideDeck: sortCards(savedSnapshotObj.sideDeck)
+    });
+    
+    const currentNormalized = captureDeckSnapshotWithoutOrder();
+    
+    return savedNormalized === currentNormalized;
   }
 
   function hasUnsavedChanges(): boolean {
@@ -1600,31 +1663,48 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  /**
+   * デッキ情報を複製する（一般化関数）
+   *
+   * @param deckData 複製元のデッキ情報
+   * @returns 新しいデッキ番号
+   */
+  async function pseudoCopyDeck(deckData: DeckInfo): Promise<number> {
+    try {
+      // 新規デッキを作成
+      const newDno = await sessionManager.createDeck();
+
+      if (!newDno || newDno === 0) {
+        throw new Error('Failed to create new deck for copy');
+      }
+
+      // デッキデータをコピー（dnoだけ新しいものに変更）
+      const copiedDeckData: DeckInfo = {
+        ...deckData,
+        dno: newDno,
+        name: `COPY_${deckData.name || deckData.originalName || ''}`
+      };
+
+      // 新規デッキに現在のデータを保存
+      await sessionManager.saveDeck(newDno, copiedDeckData);
+
+      // 複製されたデッキを読み込む
+      await loadDeck(newDno);
+
+      return newDno;
+    } catch (error) {
+      console.error('[pseudoCopyDeck] Error:', error);
+      throw error;
+    }
+  }
+
   async function copyCurrentDeck() {
     try {
       if (!deckInfo.value.dno) {
         throw new Error('No deck loaded');
       }
-      
-      // 新規デッキを作成
-      const newDno = await sessionManager.createDeck();
-      
-      if (!newDno || newDno === 0) {
-        throw new Error('Failed to create new deck for copy');
-      }
-      
-      // 現在のデッキデータをコピー（dnoだけ新しいものに変更）
-      const currentDeckData: DeckInfo = {
-        ...deckInfo.value,
-        dno: newDno,
-        name: `COPY_${deckInfo.value.name}`
-      };
-      
-      // 新規デッキに現在のデータを保存
-      await sessionManager.saveDeck(newDno, currentDeckData);
-      
-      // 複製されたデッキを読み込む
-      await loadDeck(newDno);
+
+      await pseudoCopyDeck(deckInfo.value);
     } catch (error) {
       console.error('[copyCurrentDeck] Error:', error);
       throw error;
@@ -1727,9 +1807,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     undo,
     redo,
     createNewDeck,
+    pseudoCopyDeck,
     copyCurrentDeck,
     deleteCurrentDeck,
     hasUnsavedChanges,
+    hasOnlySortOrderChanges,
     captureDeckSnapshot
   };
 });

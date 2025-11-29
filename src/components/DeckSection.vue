@@ -1,24 +1,17 @@
 <template>
   <div
     class="deck-section"
-    :class="[`${sectionType}-deck`, { 'section-drag-over': isSectionDragOver, 'has-search-in-title': showSearchInTitle }]"
+    :class="[`${sectionType}-deck`, { 'section-drag-over': isSectionDragOver }]"
     @dragover.prevent="handleSectionDragOver"
     @dragleave="handleSectionDragLeave"
     @drop="handleEndDrop"
     @dragend="handleDragEnd"
   >
-    <h3 :class="{ 'with-search': showSearchInTitle }">
+    <h3>
       <span class="title-group">
         {{ title }}
         <span v-if="showCount" class="count">{{ displayCards.length }}</span>
       </span>
-      <!-- section-title配置時の検索入力欄 -->
-      <div v-if="showSearchInTitle" class="section-search-container">
-        <SearchInputBar
-          :compact="true"
-          placeholder="検索..."
-        />
-      </div>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
           class="btn-section"
@@ -64,17 +57,14 @@
 <script lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
-import SearchInputBar from './SearchInputBar.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { useSettingsStore } from '../stores/settings'
 import { mdiShuffle, mdiSort } from '@mdi/js'
 import { getTempCardDB } from '../utils/temp-card-db'
 
 export default {
   name: 'DeckSection',
   components: {
-    DeckCard,
-    SearchInputBar
+    DeckCard
   },
   props: {
     title: {
@@ -96,15 +86,8 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
-    const settingsStore = useSettingsStore()
     const cardGridRef = ref(null)
     const isSectionDragOver = ref(false)
-
-    // 検索入力欄をsection-titleに表示するかどうか
-    const showSearchInTitle = computed(() => {
-      return props.sectionType === 'main' &&
-             settingsStore.appSettings.searchInputPosition === 'section-title'
-    })
 
     const handleMoveResult = (result) => {
       if (!result || result.success) return true
@@ -268,7 +251,6 @@ export default {
       displayCards,
       getCardInfo,
       isSectionDragOver,
-      showSearchInTitle,
       mdiShuffle,
       mdiSort
     }
@@ -283,6 +265,8 @@ export default {
   padding: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   width: 100%;
+  height: auto;
+  overflow: visible;
   box-sizing: border-box;
   transition: background 0.2s ease, outline 0.2s ease;
 
@@ -292,10 +276,6 @@ export default {
     outline-offset: -2px;
   }
 
-  &.has-search-in-title {
-    min-height: 280px;
-  }
-  
   h3 {
     margin: 0 0 6px 0;
     padding: 2px 0;
@@ -347,25 +327,15 @@ export default {
         transform: scale(0.95);
       }
     }
-
-    &.with-search {
-      height: 36px;
-      padding: 6px 0;
-    }
   }
 
-  .section-search-container {
-    flex: 1 1 auto;
-    margin: 0 12px;
-    min-width: 150px;
-  }
-  
   .card-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 2px;
     // 最後の1枚をドラッグ中でもドロップ可能にするため、カード1枚分の高さを確保
     min-height: var(--card-height-deck);
+    height: auto;
     align-content: flex-start;
     justify-content: flex-start;
   }
@@ -409,9 +379,8 @@ export default {
 
 .extra-deck,
 .side-deck {
-  flex: 1;
-  min-height: 160px;
-  max-width: 50%;
+  flex: 1 1 auto;
+  // max-widthは親コンテナ（middle-decks）で制御
 }
 
 .trash-deck {

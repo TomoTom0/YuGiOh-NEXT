@@ -76,6 +76,7 @@ import CardList from './CardList.vue'
 import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 
 export default {
   name: 'CardDetail',
@@ -136,12 +137,12 @@ export default {
     
     const loadMoreRelatedCards = () => {
       if (relatedLoadingMore.value) return
-      
-      const totalCards = sortedRelatedCards.value.length
+
+      const totalCards = detail.value?.relatedCards?.length || 0
       const currentDisplayed = displayedRelatedCards.value.length
-      
+
       if (currentDisplayed >= totalCards) return
-      
+
       relatedLoadingMore.value = true
       setTimeout(() => {
         relatedCurrentPage.value++
@@ -161,8 +162,8 @@ export default {
       loading.value = true
 
       try {
-        // キャッシュ対応のカード詳細取得
-        const cacheResult = await getCardDetailWithCache(props.card.cardId)
+        // キャッシュ対応のカード詳細取得（関連カードのソートはクライアント側で実行）
+        const cacheResult = await getCardDetailWithCache(props.card.cardId, undefined, true, 'release_desc')
 
         if (cacheResult.detail) {
           // キャッシュから取得した場合（または新規取得）
@@ -178,13 +179,12 @@ export default {
 
           // 詳細データを設定（一度だけ）
           detail.value = cacheResult.detail
-          
-          // selectedCardを更新（詳細情報をマージ、imgsとciidはprops.cardを優先）
-          console.log('[CardDetail] props.card.imgs:', props.card.imgs, 'cache.imgs:', cacheResult.detail.card.imgs)
+
+          // selectedCardを更新
+          // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
+          // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
           deckStore.selectedCard = {
-            ...props.card,
             ...cacheResult.detail.card,
-            imgs: props.card.imgs || cacheResult.detail.card.imgs,
             ciid: props.card.ciid || cacheResult.detail.card.ciid
           }
 
@@ -192,6 +192,26 @@ export default {
           const faqResult = await getCardFAQList(props.card.cardId)
           console.log('[CardDetail] FAQ fetched:', faqResult)
           faqListData.value = faqResult
+
+          // バックグラウンドで関連カードの追加取得（100件以上ある場合）
+          if (cacheResult.detail.fetchMorePromise) {
+            console.log('[CardDetail] Fetching more related cards in background...')
+            cacheResult.detail.fetchMorePromise.then(async (allCards) => {
+              // 現在表示中のカードと同じか確認
+              if (detail.value && detail.value.card.cardId === props.card.cardId) {
+                console.log(`[CardDetail] Background fetch completed: ${allCards.length} total cards`)
+                detail.value.relatedCards = allCards
+
+                // キャッシュにも保存
+                const unifiedDB = getUnifiedCacheDB()
+                if (unifiedDB.isInitialized()) {
+                  await saveCardDetailToCache(unifiedDB, detail.value, true)
+                }
+              }
+            }).catch(error => {
+              console.error('[CardDetail] Background fetch error:', error)
+            })
+          }
 
           // キャッシュが期限切れの場合は同期的に再取得
           if (cacheResult.fromCache && !cacheResult.isFresh) {
@@ -215,12 +235,11 @@ export default {
     // バックグラウンドでキャッシュを再検証
     const revalidateInBackground = async (cardId) => {
       try {
-        // APIから最新データを取得
-        const freshDetail = await getCardDetail(cardId)
+        // APIから最新データを取得（関連カードのソートはクライアント側で実行）
+        const freshDetail = await getCardDetail(cardId, undefined, 'release_desc')
         if (!freshDetail) return
         
         // 共通関数でキャッシュに保存（強制更新）
-        const { getUnifiedCacheDB } = await import('../utils/unified-cache-db')
         const unifiedDB = getUnifiedCacheDB()
         if (unifiedDB.isInitialized()) {
           await saveCardDetailToCache(unifiedDB, freshDetail, true)
@@ -249,7 +268,6 @@ export default {
               const currentCiid = deckStore.selectedCard?.ciid
               deckStore.selectedCard = {
                 ...freshDetail.card,
-                imgs: [...freshDetail.card.imgs],
                 ciid: currentCiid || freshDetail.card.ciid
               }
             }

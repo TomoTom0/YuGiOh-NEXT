@@ -66,20 +66,6 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
   }
 }
 
-/**
- * デッキを複製する（内部関数）
- *
- * @param cgid ユーザー識別子
- * @param dno 複製元のデッキ番号
- * @returns 新しいデッキ番号、失敗時は0
- * @internal SessionManager経由で呼び出すこと
- */
-export async function duplicateDeckInternal(cgid: string, dno: number): Promise<number> {
-  // ope=8は複製後の編集画面を開くだけで、実際の複製は行わない
-  // TODO: デッキ保存を使って複製を実装する必要がある
-  console.error('[duplicateDeckInternal] Not implemented yet. Use deck save to duplicate.');
-  return 0;
-}
 
 /**
  * デッキを削除する

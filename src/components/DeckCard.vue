@@ -12,6 +12,9 @@
     @drop="handleDrop"
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
+    @contextmenu="handleContextMenu"
+    @mousedown.capture="handleMouseDown"
+    @auxclick.capture="handleAuxClick"
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
@@ -84,6 +87,7 @@
 <script>
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
@@ -107,6 +111,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
@@ -129,6 +134,7 @@ export default {
     
     return {
       deckStore,
+      settingsStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
@@ -341,22 +347,24 @@ export default {
         this.handleMoveResult(result)
       }
     },
-    handleBottomLeft() {
-      // 移動元の位置を記録
+    addCardFromSearchToMainOrExtra() {
+      // 検索結果・カード詳細からMain/Extraへカードを追加（アニメーション付き）
       const sourceRect = this.$el?.getBoundingClientRect()
+      const result = this.deckStore.addCopyToMainOrExtra(this.card)
+      if (!this.handleMoveResult(result, 'left')) return
 
+      if (sourceRect && this.sectionType === 'search') {
+        this.$nextTick(() => {
+          this.animateFromSource(sourceRect)
+        })
+      }
+    },
+    handleBottomLeft() {
       if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        const result = this.deckStore.addCopyToMainOrExtra(this.card)
-        if (!this.handleMoveResult(result, 'left')) return
-
-        if (sourceRect && this.sectionType === 'search') {
-          this.$nextTick(() => {
-            this.animateFromSource(sourceRect)
-          })
-        }
+        this.addCardFromSearchToMainOrExtra()
       } else {
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
@@ -393,27 +401,102 @@ export default {
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]
       const addedCards = displayOrder.filter(dc => dc.cid === this.card.cardId)
-      
+
       if (addedCards.length === 0) return
-      
+
       const lastAdded = addedCards[addedCards.length - 1]
       const targetEl = document.querySelector(`[data-uuid="${lastAdded.uuid}"]`)
-      
+
       if (!targetEl) return
-      
+
       const targetRect = targetEl.getBoundingClientRect()
-      
+
       // FLIPアニメーション: 移動元から移動先へ
       const deltaX = sourceRect.left - targetRect.left
       const deltaY = sourceRect.top - targetRect.top
-      
+
       targetEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`
       targetEl.style.transition = 'none'
-      
+
       requestAnimationFrame(() => {
         targetEl.style.transform = ''
         targetEl.style.transition = 'transform 0.3s ease'
       })
+    },
+    handleContextMenu(event) {
+      // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
+      if (!this.settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 右クリックメニューを抑制
+      event.preventDefault()
+
+      // 空カードの場合は何もしない
+      if (this.card.empty) {
+        return
+      }
+
+      // カード移動ロジック:
+      // - main, side, extraから → trash
+      // - trashから → main/extra（移動）
+      // - search/infoから → main/extra（コピー）- handleBottomLeftと同じ処理
+      if (this.sectionType === 'main' || this.sectionType === 'side' || this.sectionType === 'extra') {
+        // main/side/extra → trash
+        const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'trash') {
+        // trash → main/extra（移動）
+        const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+        // search/info → main/extra（コピー）
+        this.addCardFromSearchToMainOrExtra()
+      }
+    },
+    handleMouseDown(event) {
+      // 中クリック（button === 1）のデフォルト動作（スクロールモード）を防ぐ
+      if (event.button === 1) {
+        event.preventDefault()
+      }
+    },
+    handleAuxClick(event) {
+      // auxclickイベント: 中クリック（button === 1）または右クリック（button === 2）
+      // 右クリックはcontextmenuで処理しているため、ここでは中クリックのみ処理
+      if (event.button !== 1) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      // 高度なマウス操作が無効の場合は何もしない
+      if (!this.settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 空カードの場合は何もしない
+      if (this.card.empty) {
+        return
+      }
+
+      console.log('[DeckCard] Middle-click:', this.card.name, 'from section:', this.sectionType)
+
+      // セクションに応じてコピーを追加
+      if (this.sectionType === 'main') {
+        // Mainデッキのカード → Mainに追加
+        this.deckStore.addCopyToSection(this.card, 'main')
+      } else if (this.sectionType === 'side') {
+        // Sideデッキのカード → Sideに追加
+        this.deckStore.addCopyToSection(this.card, 'side')
+      } else if (this.sectionType === 'extra') {
+        // Extraデッキのカード → Extraに追加
+        this.deckStore.addCopyToSection(this.card, 'extra')
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+        // 検索結果/カード詳細 → Main/Extraに追加
+        this.addCardFromSearchToMainOrExtra()
+      }
+      // trash, その他のセクションでは何もしない
     }
   }
 }

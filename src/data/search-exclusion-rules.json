@@ -1,0 +1,120 @@
+{
+  "attributeExclusionGroups": [
+    {
+      "title": "card-type",
+      "items": [
+        "card-type_monster",
+        "card-type_spell",
+        "card-type_trap"
+      ]
+    },
+    {
+      "title": "monster-type-near-extra",
+      "items": [
+        "monster-type_fusion",
+        "monster-type_ritual",
+        "monster-type_synchro",
+        "monster-type_xyz",
+        "monster-type_link",
+        "monster-type_normal"
+      ]
+    },
+    {
+      "title": "monster-type-link-pendulum",
+      "items": [
+        "monster-type_link",
+        "monster-type_pendulum"
+      ]
+    },
+    {
+      "title": "monster-type-normal",
+      "items": [
+        "monster-type_normal",
+        "monster-type_effect"
+      ]
+    },
+    {
+      "title": "monster-type-special",
+      "items": [
+        "monster-type_special-summon",
+        "monster-type_normal"
+      ]
+    }
+  ],
+  "attributeToField": [
+    {
+      "title": "monster-type_link-negative",
+      "trigger": "monster-type_link",
+      "negative": [
+        "def",
+        "level-rank"
+      ]
+    }
+  ],
+  "fieldToAttribute": [
+    {
+      "title": "monster-type_link-necessary",
+      "triggerItems": [
+        "link-value",
+        "link-marker"
+      ],
+      "target": [
+        "monster-type_link"
+      ]
+    },
+    {
+      "title": "monster-type_pendulum-necessary",
+      "triggerItems": [
+        "p-scale"
+      ],
+      "target": [
+        "monster-type_pendulum"
+      ]
+    },
+    {
+      "title": "monster-type_has-level-rank-necessary",
+      "triggerItems": [
+        "level-rank",
+        "def"
+      ],
+      "notTarget": [
+        "monster-type_link"
+      ]
+    },
+    {
+      "title": "card-type_monster-necessary",
+      "triggerItems": [
+        "monster-type*",
+        "attribute",
+        "race",
+        "level-rank",
+        "link-value",
+        "link-marker",
+        "p-scale",
+        "atk",
+        "def"
+      ],
+      "target": [
+        "card-type_monster"
+      ]
+    },
+    {
+      "title": "card-type_spell-necessary",
+      "triggerItems": [
+        "spell-type*"
+      ],
+      "target": [
+        "card-type_spell"
+      ]
+    },
+    {
+      "title": "card-type_trap-necessary",
+      "triggerItems": [
+        "trap-type*"
+      ],
+      "target": [
+        "card-type_trap"
+      ]
+    }
+  ]
+}

@@ -341,6 +341,7 @@ export class UnifiedCacheDB {
     const tableA: CardTableA = {
       cardId: card.cardId,
       name: card.name,
+      ruby: card.ruby,
       imgs: card.imgs,
       fetchedAt: now
     };
@@ -349,7 +350,6 @@ export class UnifiedCacheDB {
     // TableB
     const tableB: CardTableB = {
       cardId: card.cardId,
-      ruby: card.ruby,
       cardType: card.cardType,
       limitRegulation: card.limitRegulation,
       fetchedAt: now
@@ -363,6 +363,7 @@ export class UnifiedCacheDB {
       tableB.levelValue = card.levelValue;
       tableB.atk = typeof card.atk === 'number' ? card.atk : null;
       tableB.def = typeof card.def === 'number' ? card.def : null;
+      tableB.linkMarkers = card.linkMarkers;
       tableB.scale = card.pendulumScale;
       tableB.isExtraDeck = card.isExtraDeck;
       tableB.types = card.types;
@@ -375,11 +376,11 @@ export class UnifiedCacheDB {
 
     // TableB2 (text, pendText)
     const cardAny = card as any;
-    if (cardAny.text || cardAny.pendulumEffect) {
+    if (cardAny.text || cardAny.pendulumText) {
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
         text: cardAny.text,
-        pendText: cardAny.pendulumEffect,
+        pendText: cardAny.pendulumText,
         fetchedAt: now
       };
       this.cardTableB2.set(card.cardId, tableB2);
@@ -743,7 +744,7 @@ export class UnifiedCacheDB {
       name: tableA.name,
       imgs: tableA.imgs,
       ciid: tableA.imgs[0]?.ciid || '',
-      ruby: tableB.ruby,
+      ruby: tableA.ruby,
       limitRegulation: tableB.limitRegulation
     };
 
@@ -760,6 +761,7 @@ export class UnifiedCacheDB {
         types: tableB.types || [],
         atk: tableB.atk ?? undefined,
         def: tableB.def ?? undefined,
+        linkMarkers: tableB.linkMarkers,
         pendulumScale: tableB.scale,
         isExtraDeck: tableB.isExtraDeck || false
       } as CardInfo;
@@ -782,7 +784,7 @@ export class UnifiedCacheDB {
     if (tableB2) {
       const anyCard: any = resultCard as any;
       if (tableB2.text) anyCard.text = tableB2.text;
-      if (tableB2.pendText) anyCard.pendulumEffect = tableB2.pendText;
+      if (tableB2.pendText) anyCard.pendulumText = tableB2.pendText;
     }
 
     // Synchronous merge: if CardTableC for this card is present in the in-memory cache,

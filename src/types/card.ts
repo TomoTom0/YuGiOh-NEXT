@@ -92,8 +92,8 @@ export interface MonsterCard extends CardBase {
 
   /** ペンデュラムスケール（オプション、ペンデュラムモンスターのみ） */
   pendulumScale?: number;
-  /** ペンデュラム効果（オプション、ペンデュラムモンスターのみ） */
-  pendulumEffect?: string;
+  /** ペンデュラムテキスト（オプション、ペンデュラムモンスターのみ） */
+  pendulumText?: string;
 
   /** エクストラデッキに入るかどうか */
   isExtraDeck: boolean;
@@ -191,6 +191,8 @@ export interface CardDetail {
   relatedCards: CardInfo[];
   /** Q&A情報 */
   qaList?: CardFAQ[];
+  /** 関連カード追加取得Promise（初回100件取得時に100件以上ある場合のみ） */
+  fetchMorePromise?: Promise<CardInfo[]>;
 }
 
 /**
@@ -332,6 +334,8 @@ export interface CardTableA {
   cardId: string;
   /** カード名 */
   name: string;
+  /** ふりがな */
+  ruby?: string;
   /** 画像情報 */
   imgs: Array<{
     ciid: string;
@@ -367,6 +371,8 @@ export interface CardTableB {
   atk?: number | null;
   /** 守備力（null = '?'） */
   def?: number | null;
+  /** リンクマーカー（9bit整数） */
+  linkMarkers?: number;
   /** ペンデュラムスケール */
   scale?: number;
   /** エクストラデッキかどうか */
