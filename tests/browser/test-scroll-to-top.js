@@ -9,8 +9,8 @@
 
 const { connectCDP } = require('./cdp-helper');
 
-// デッキ編集ページURL
-const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
+// デッキ編集ページURL（日本語）
+const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit';
 
 async function testScrollToTop() {
   console.log('【scroll-to-top機能テスト】\n');
@@ -25,24 +25,17 @@ async function testScrollToTop() {
 
     console.log('\n=== 1. search tabでのscroll-to-topテスト ===\n');
 
-    // 現在のタブを確認してSearch tabに移動
-    const currentTab = await cdp.evaluate(`
-      Array.from(document.querySelectorAll('.tabs button')).findIndex(btn => btn.classList.contains('active'))
+    // Search tabに移動
+    await cdp.evaluate(`
+      document.querySelectorAll('.tabs button')[2].click();
     `);
-    console.log(`現在のタブ: ${currentTab}`);
+    await cdp.wait(500);
 
-    if (currentTab !== 2) {
-      await cdp.evaluate(`
-        document.querySelectorAll('.tabs button')[2].click();
-      `);
-      await cdp.wait(500);
-    }
-
-    // カード検索を実行（より多くの結果が得られるように「効果」で検索）
-    console.log('カード検索を実行中...');
+    // カード検索を実行（関連カードが多いカードを使用）
+    console.log('カード検索を実行中（ブラック・マジシャン）...');
     await cdp.evaluate(`
       const searchInput = document.querySelector('.search-input-bar input[type="text"]');
-      searchInput.value = '効果';
+      searchInput.value = 'ブラック・マジシャン';
       searchInput.dispatchEvent(new Event('input', { bubbles: true }));
     `);
     await cdp.wait(500);
@@ -51,7 +44,7 @@ async function testScrollToTop() {
     await cdp.evaluate(`
       document.querySelector('.search-input-bar .search-btn').click();
     `);
-    await cdp.wait(3000); // 検索結果の読み込み待機（多数の結果があるため長めに）
+    await cdp.wait(3000); // 検索結果の読み込み待機
 
     // 検索結果の件数を確認
     const resultCount = await cdp.evaluate(`
@@ -113,21 +106,15 @@ async function testScrollToTop() {
 
     console.log('\n=== 2. related tabでのscroll-to-topテスト ===\n');
 
-    // Card tabに移動
+    // 最初のカードの情報ボタンをクリック（左上のボタン）
+    console.log('カード詳細を開く...');
     await cdp.evaluate(`
-      document.querySelector('.tabs button:nth-child(2)').click();
-    `);
-    await cdp.wait(500);
-
-    // 最初のカードをクリック
-    console.log('カードを選択中...');
-    await cdp.evaluate(`
-      const firstCard = document.querySelector('.search-content .card-result-item .card-wrapper');
-      if (firstCard) {
-        firstCard.click();
+      const firstCardInfo = document.querySelector('.search-content .card-result-item .card-btn.top-left');
+      if (firstCardInfo) {
+        firstCardInfo.click();
       }
     `);
-    await cdp.wait(2000); // カード詳細の読み込み待機
+    await cdp.wait(3000); // カード詳細の読み込み待機
 
     // Related tabに移動
     await cdp.evaluate(`
@@ -136,7 +123,7 @@ async function testScrollToTop() {
         relatedTabBtn.click();
       }
     `);
-    await cdp.wait(1000);
+    await cdp.wait(2000);
 
     // スクロール要素を確認
     const relatedScrollInfo = await cdp.evaluate(`
@@ -172,13 +159,18 @@ async function testScrollToTop() {
 
       // scroll-to-topボタンをクリック
       console.log('scroll-to-topボタンをクリック...');
-      await cdp.evaluate(`
-        const scrollTopBtn = document.querySelector('.card-tab-content .scroll-top-btn');
-        if (scrollTopBtn) {
-          scrollTopBtn.click();
-        }
+      const btnClicked = await cdp.evaluate(`
+        (() => {
+          const scrollTopBtn = document.querySelector('.card-tab-content .scroll-top-btn');
+          if (scrollTopBtn) {
+            scrollTopBtn.click();
+            return true;
+          }
+          return false;
+        })()
       `);
-      await cdp.wait(1000); // スムーズスクロール待機
+      console.log(`ボタンクリック: ${btnClicked ? '成功' : '失敗'}`);
+      await cdp.wait(2000); // スムーズスクロール待機
 
       const scrollTopAfter = await cdp.evaluate(`
         document.querySelector('.card-tab-content').scrollTop
@@ -255,13 +247,18 @@ async function testScrollToTop() {
 
         // scroll-to-topボタンをクリック
         console.log('scroll-to-topボタンをクリック...');
-        await cdp.evaluate(`
-          const scrollTopBtn = document.querySelector('.pack-cards-wrapper .scroll-top-btn');
-          if (scrollTopBtn) {
-            scrollTopBtn.click();
-          }
+        const btnClicked = await cdp.evaluate(`
+          (() => {
+            const scrollTopBtn = document.querySelector('.pack-cards-wrapper .scroll-top-btn');
+            if (scrollTopBtn) {
+              scrollTopBtn.click();
+              return true;
+            }
+            return false;
+          })()
         `);
-        await cdp.wait(1000); // スムーズスクロール待機
+        console.log(`ボタンクリック: ${btnClicked ? '成功' : '失敗'}`);
+        await cdp.wait(2000); // スムーズスクロール待機
 
         const scrollTopAfter = await cdp.evaluate(`
           document.querySelector('.card-tab-content').scrollTop

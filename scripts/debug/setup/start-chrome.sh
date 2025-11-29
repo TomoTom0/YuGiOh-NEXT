@@ -35,6 +35,7 @@ else
     --enable-logging=stderr \
     --v=1 \
     --window-size=1280,900 \
+    "https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja" \
     > "${CHROME_LOG}" 2>&1 &
   
   # 起動を待つ
@@ -52,6 +53,6 @@ fi
 
 echo ""
 echo "次の手順:"
-echo "1. ブラウザで https://www.db.yugioh-card.com/yugiohdb/ にアクセス"
-echo "2. ログインしてください"
-echo "3. ログイン状態はプロファイルに保存されます"
+echo "1. ブラウザで日本語トップページが開かれます"
+echo "2. ログインしてください（初回のみ）"
+echo "3. ログイン状態と言語設定はプロファイルに保存されます"
