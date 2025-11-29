@@ -49,8 +49,8 @@
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
               :showCollapseButton="true"
-              @scroll-to-top="handleScrollToTop"
               @collapse="collapsePack(pack.packId)"
+              @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -186,13 +186,6 @@ export default {
       packViewModes.value = { ...packViewModes.value, [packId]: value }
     }
     
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
     const getPackUrl = (packId) => {
       const baseUrl = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
       const params = new URLSearchParams({
@@ -200,6 +193,13 @@ export default {
         pid: packId
       })
       return `${baseUrl}?${params.toString()}`
+    }
+
+    const handleScrollToTop = () => {
+      const cardTabContent = document.querySelector('.card-tab-content')
+      if (cardTabContent) {
+        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
 
     return {
@@ -213,8 +213,8 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
-      handleScrollToTop,
-      getPackUrl
+      getPackUrl,
+      handleScrollToTop
     }
   }
 }
@@ -240,7 +240,7 @@ export default {
 }
 
 .pack-item {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   padding: 8px 10px;
   background: var(--bg-secondary);
@@ -261,7 +261,7 @@ export default {
   cursor: pointer;
 
   &:hover {
-    color: #0066cc;
+    color: var(--color-link);
     text-decoration: underline;
   }
 
@@ -314,7 +314,7 @@ export default {
   border-radius: 3px;
   font-size: 9px;
   font-weight: bold;
-  color: white;
+  color: var(--button-text);
   border: 1px solid;
   white-space: nowrap;
 }
@@ -326,8 +326,8 @@ export default {
   left: 4px;
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -337,8 +337,8 @@ export default {
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
   }
   
   svg {
@@ -349,7 +349,7 @@ export default {
 }
 
 .pack-collapse-btn {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .pack-collapse-btn-sticky {
@@ -358,8 +358,8 @@ export default {
   left: 4px;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -370,8 +370,8 @@ export default {
   z-index: 5;
   
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
   

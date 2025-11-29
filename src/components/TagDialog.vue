@@ -409,9 +409,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-clear-action:hover {
-  background: #ffebee;
-  border-color: #ef5350;
-  color: #c62828;
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error-text);
 }
 
 .search-row {
@@ -443,9 +443,9 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -454,8 +454,8 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip:hover {
-  background: #c8e6c9;
-  border-color: #4caf50;
+  background: var(--color-success-hover-bg);
+  border-color: var(--color-success);
 }
 
 .tag-chip[data-type="fusion"] {
@@ -474,26 +474,26 @@ watch(() => props.modelValue, (newVal) => {
       rgba(158, 158, 158, 0.12) 9px
     ),
     linear-gradient(135deg, #ffffff 0%, var(--bg-secondary) 100%);
-  color: #424242;
-  border-color: #9e9e9e;
+  color: var(--text-primary);
+  border-color: var(--border-primary);
 }
 
 .tag-chip[data-type="xyz"] {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: #fff;
-  border-color: #757575;
+  color: var(--button-text);
+  border-color: var(--border-secondary);
 }
 
 .tag-chip[data-type="link"] {
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: #0d47a1;
+  color: var(--color-info);
   border-color: var(--button-bg);
 }
 
 .tag-chip[data-type="ritual"] {
 
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: #0d47a1;
+  color: var(--color-info);
   border-color: var(--button-bg);
 }
 
@@ -521,7 +521,7 @@ watch(() => props.modelValue, (newVal) => {
 .chip-remove {
   font-size: 14px;
   font-weight: bold;
-  color: #2e7d32;
+  color: var(--color-success);
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -580,20 +580,20 @@ watch(() => props.modelValue, (newVal) => {
 
 .btn-icon:hover {
   background: var(--border-primary);
-  border-color: #999;
+  border-color: var(--text-tertiary);
   color: var(--text-primary);
 }
 
 .btn-icon.active {
   background: var(--button-bg);
   border-color: var(--button-hover-bg);
-  color: #ffffff;
+  color: var(--button-text);
 }
 
 .btn-icon.active:hover {
   background: var(--button-hover-bg);
-  border-color: #0d47a1;
-  color: #ffffff;
+  border-color: var(--color-info);
+  color: var(--button-text);
 }
 
 .btn-icon svg {
@@ -659,7 +659,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .tag-item {
   padding: 12px 16px;
-  background: #ffffff;
+  background: var(--bg-primary);
   border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
@@ -715,13 +715,13 @@ watch(() => props.modelValue, (newVal) => {
 
 /* 共通のホバー・選択スタイル（個別スタイルがないもの） */
 .tag-item:hover {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-color: var(--button-bg);
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
 .tag-item.selected {
-  background: #e3f2fd;
+  background: var(--color-info-bg);
   border-color: var(--button-bg);
   color: var(--button-hover-bg);
   font-weight: 500;
@@ -772,7 +772,7 @@ watch(() => props.modelValue, (newVal) => {
       rgba(117, 117, 117, 0.15) 9px
     ),
     linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: #757575;
+  border-color: var(--border-secondary);
   box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
 }
 
@@ -786,29 +786,29 @@ watch(() => props.modelValue, (newVal) => {
       rgba(117, 117, 117, 0.2) 9px
     ),
     linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: #757575;
-  color: #424242;
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3), inset 0 0 0 1px #757575;
 }
 
 .tag-item[data-type="xyz"] {
   background: linear-gradient(135deg, #757575 0%, #616161 100%);
-  border-color: #9e9e9e;
+  border-color: var(--border-primary);
   border-radius: 21px;
-  color: #fff;
+  color: var(--button-text);
 }
 
 .tag-item[data-type="xyz"]:hover {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: #757575;
+  border-color: var(--border-secondary);
   box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
 }
 
 .tag-item[data-type="xyz"].selected {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: #757575;
-  color: #fff;
+  border-color: var(--border-secondary);
+  color: var(--button-text);
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3), inset 0 0 0 1px #757575;
 }
@@ -828,7 +828,7 @@ watch(() => props.modelValue, (newVal) => {
 .tag-item[data-type="link"].selected {
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
   border-color: var(--button-bg);
-  color: #0d47a1;
+  color: var(--color-info);
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px var(--button-bg);
 }
@@ -908,7 +908,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .btn-primary {
   background: var(--button-bg);
-  color: white;
+  color: var(--button-text);
 }
 
 .btn-primary:hover {

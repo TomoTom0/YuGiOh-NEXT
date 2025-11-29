@@ -39,8 +39,11 @@ export function toSearchConditionState(filters: SearchFilters): SearchConditionS
 
   // monster types
   for (const mt of filters.monsterTypes) {
-    // 'normal'状態も'not'状態も、選択されているものとして扱う
-    selectedAttributes.add(`monster-type_${mt.type}`);
+    // 'normal'（選択）のみを属性として扱う
+    // 'not'（除外）は排他ルールの対象外なので、selectedAttributesに追加しない
+    if (mt.state === 'normal') {
+      selectedAttributes.add(`monster-type_${mt.type}`);
+    }
   }
 
   // 項目の入力状況

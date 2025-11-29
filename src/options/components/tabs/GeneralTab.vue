@@ -60,7 +60,7 @@ const handleReset = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
   margin: 24px 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -71,15 +71,15 @@ const handleReset = async () => {
   flex: 1;
   padding: 40px 48px;
   overflow-y: auto;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
 }
 
 .section {
   margin-bottom: 32px;
   padding: 24px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  background-color: #fafafa;
+  background-color: var(--bg-secondary);
 
   &:last-child {
     margin-bottom: 0;
@@ -89,13 +89,13 @@ const handleReset = async () => {
 .section-title {
   font-size: 18px;
   font-weight: 600;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 12px 0;
 }
 
 .section-desc {
   font-size: 14px;
-  color: #5f6368;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 20px 0;
 }
@@ -115,7 +115,7 @@ const handleReset = async () => {
 
 .toggle-label {
   font-size: 14px;
-  color: #202124;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -123,8 +123,8 @@ const handleReset = async () => {
   padding: 10px 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
-  background-color: #d93025;
+  color: var(--button-text);
+  background-color: var(--color-error);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -132,7 +132,7 @@ const handleReset = async () => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 
   &:hover {
-    background-color: #c5221f;
+    background-color: var(--color-error-hover);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16);
   }
 }
@@ -145,9 +145,9 @@ const handleReset = async () => {
   animation: fadeIn 0.3s ease;
 
   &.success {
-    background-color: #e6f4ea;
-    color: #137333;
-    border: 1px solid #a8dab5;
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
   }
 }
 

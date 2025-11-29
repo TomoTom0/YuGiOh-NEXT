@@ -315,12 +315,12 @@ function handleExport() {
 }
 
 .btn-export {
-  background: #4678ff;
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 .btn-export:hover {
-  background: #3565e8;
+  background: var(--button-hover-bg);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
 }

@@ -115,28 +115,28 @@ const handleFaviconToggle = () => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 24px 0;
 }
 
 .setting-group {
   margin-bottom: 24px;
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
 }
 
 .setting-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .setting-desc {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
@@ -144,7 +144,7 @@ const handleFaviconToggle = () => {
 .danger-button {
   padding: 10px 20px;
   font-size: 14px;
-  color: white;
+  color: var(--button-text);
   background-color: #d32f2f;
   border: none;
   border-radius: 4px;
@@ -162,12 +162,12 @@ const handleFaviconToggle = () => {
   border-radius: 4px;
   font-size: 13px;
   animation: fadeIn 0.3s ease;
-  background-color: #d1f4e0;
-  color: #0f5132;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 
   &.error {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: var(--color-error-bg);
+    color: var(--color-error-text);
   }
 }
 
@@ -186,7 +186,7 @@ const handleFaviconToggle = () => {
   position: relative;
   width: 44px;
   height: 24px;
-  background-color: #ccc;
+  background-color: var(--border-primary);
   border-radius: 12px;
   transition: background-color 0.2s;
 }
@@ -198,13 +198,13 @@ const handleFaviconToggle = () => {
   left: 3px;
   width: 18px;
   height: 18px;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch {
-  background-color: #1a73e8;
+  background-color: var(--color-info);
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
@@ -213,7 +213,7 @@ const handleFaviconToggle = () => {
 
 .toggle-text {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 

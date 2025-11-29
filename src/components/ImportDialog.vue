@@ -339,14 +339,14 @@ function handleImport() {
 .warnings {
   margin-top: 12px;
   padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffc107;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
   border-radius: 4px;
 }
 
 .warning-header {
   font-weight: 600;
-  color: #856404;
+  color: var(--color-warning);
   margin-bottom: 8px;
   font-size: 13px;
 }
@@ -354,7 +354,7 @@ function handleImport() {
 .warnings ul {
   margin: 0;
   padding-left: 20px;
-  color: #856404;
+  color: var(--color-warning);
   font-size: 12px;
 }
 
@@ -364,10 +364,10 @@ function handleImport() {
 
 .error-message {
   padding: 12px;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-bg);
   border-radius: 4px;
-  color: #721c24;
+  color: var(--color-error-text);
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 16px;
@@ -425,18 +425,18 @@ function handleImport() {
 }
 
 .btn-import {
-  background: #4678ff;
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 .btn-import:hover:not(:disabled) {
-  background: #3565e8;
+  background: var(--button-hover-bg);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
 }
 
 .btn-import:disabled {
-  background: #ccc;
+  background: var(--bg-tertiary);
   cursor: not-allowed;
   opacity: 0.6;
 }

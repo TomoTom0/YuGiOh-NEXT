@@ -1002,17 +1002,17 @@ export default {
     
     .icon {
       padding: 4px 8px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-primary);
       border-radius: 4px;
-      background: white;
-      color: #666;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
       font-size: 16px;
     }
     
     input:checked + .icon {
-      background: #008cff;
-      color: white;
-      border-color: #008cff;
+      background: var(--color-info);
+      color: var(--button-text);
+      border-color: var(--color-info);
     }
   }
 }
@@ -1020,19 +1020,19 @@ export default {
 .card-detail-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--color-info);
   
   button {
     padding: 8px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
-    color: #333;
+    color: var(--text-primary);
     
     &.active {
-      background: #008cff;
-      color: white;
+      background: var(--color-info);
+      color: var(--button-text);
     }
   }
 }
@@ -1044,7 +1044,7 @@ export default {
 .no-card-selected {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .unified-overlay {
@@ -1189,7 +1189,7 @@ export default {
 
 .delete-confirm-header {
   padding: 16px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
 
   h3 {
     margin: 0;
@@ -1239,11 +1239,11 @@ export default {
     }
 
     &.btn-delete {
-      background: #f44336;
-      color: white;
+      background: var(--color-error);
+      color: var(--button-text);
 
       &:hover {
-        background: #d32f2f;
+        background: var(--color-error-hover);
       }
     }
   }

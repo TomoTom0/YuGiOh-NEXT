@@ -644,8 +644,8 @@ export default {
   position: absolute;
   top: 40px;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
@@ -657,12 +657,12 @@ export default {
     width: 100%;
     padding: 12px 16px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
     text-align: left;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.2s;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-primary);
 
     &:last-child {
       border-bottom: none;
@@ -673,25 +673,25 @@ export default {
     }
 
     &:active {
-      background: #e8e8e8;
+      background: var(--bg-tertiary);
     }
 
     &.danger {
-      color: #d32f2f;
+      color: var(--color-error-text);
 
       &:hover {
-        background: #ffebee;
+        background: var(--color-error-bg);
       }
 
       &:active {
-        background: #ffcdd2;
+        background: var(--color-error-hover-bg);
       }
     }
   }
 
   .menu-divider {
     height: 1px;
-    background: #e0e0e0;
+    background: var(--border-secondary);
     margin: 4px 0;
   }
 }
@@ -721,8 +721,8 @@ export default {
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: #e0e0e0;
-  color: #666;
+  background: var(--border-secondary);
+  color: var(--text-secondary);
   padding: 3px 8px;
   border-radius: 3px;
   font-size: 11px;
@@ -733,12 +733,12 @@ export default {
 
 .deck-name-input {
   padding: 6px 10px 6px 50px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   text-align: left;
-  background: white;
-  color: #000;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 
@@ -746,8 +746,8 @@ export default {
 .btn-menu,
 .btn-action {
   padding: 4px 8px;
-  border: 1px solid #ccc;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 3px;
   cursor: pointer;
   width: 40px;
@@ -815,7 +815,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -929,7 +929,7 @@ export default {
 
 
 .dialog-box {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -952,14 +952,14 @@ export default {
     display: block;
     margin-bottom: 5px;
     font-size: 14px;
-    color: #666;
+    color: var(--text-secondary);
   }
 }
 
 .dialog-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
@@ -980,11 +980,11 @@ export default {
     transition: background 0.2s;
 
     &.btn-primary {
-      background: #4CAF50;
-      color: white;
+      background: var(--color-success);
+      color: var(--button-text);
 
       &:hover {
-        background: #45a049;
+        background: var(--color-success-hover-bg);
       }
     }
 
@@ -1009,7 +1009,7 @@ export default {
 
 .delete-confirm-header {
   padding: 16px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
 
   h3 {
     margin: 0;
@@ -1030,7 +1030,7 @@ export default {
   }
 
   .warning {
-    color: #d32f2f;
+    color: var(--color-error-text);
     font-weight: 500;
     margin-top: 16px;
   }
@@ -1041,7 +1041,7 @@ export default {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-secondary);
 
   button {
     padding: 8px 16px;
@@ -1052,20 +1052,20 @@ export default {
     transition: all 0.2s;
 
     &.btn-cancel {
-      background: #f5f5f5;
-      color: #333;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
 
       &:hover {
-        background: #e0e0e0;
+        background: var(--bg-tertiary);
       }
     }
 
     &.btn-delete {
-      background: #d32f2f;
-      color: white;
+      background: var(--color-error-text);
+      color: var(--button-text);
 
       &:hover {
-        background: #b71c1c;
+        background: var(--color-error-bg);
       }
     }
   }

@@ -56,13 +56,13 @@ const value = computed({
 .metadata-label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   text-align: left;
 }
 
 .char-count {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   text-align: right;
 }
 
@@ -70,12 +70,12 @@ const value = computed({
   width: 100%;
   max-width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
   font-size: 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: #333;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   resize: none;
   flex: 1;
   min-height: 0;
@@ -91,11 +91,11 @@ const value = computed({
   }
 
   &:hover {
-    border-color: #999;
+    border-color: var(--text-tertiary);
   }
 
   &::placeholder {
-    color: #aaa;
+    color: var(--text-tertiary);
   }
 }
 </style>

@@ -408,7 +408,7 @@ export default {
   top: -4px;
   right: -8px;
   background: var(--text-secondary, #666);
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   min-width: 12px;
   height: 12px;
@@ -616,12 +616,12 @@ export default {
       right: 4px;
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, 
-        transparent 0%, 
-        transparent 40%, 
-        rgba(255, 255, 255, 0.3) 50%, 
-        rgba(255, 255, 255, 0.7) 70%, 
-        var(--card-bg, #fff) 100%);
+      background: linear-gradient(135deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(160, 170, 180, 0.3) 50%,
+        rgba(160, 170, 180, 0.7) 70%,
+        rgba(160, 170, 180, 1) 100%);
       pointer-events: none;
     }
 
@@ -629,12 +629,12 @@ export default {
       background: var(--bg-secondary, #f5f5f5);
 
       &:not(.expanded)::after {
-        background: linear-gradient(135deg, 
-          transparent 0%, 
-          transparent 40%, 
-          rgba(245, 245, 245, 0.3) 50%, 
-          rgba(245, 245, 245, 0.7) 70%, 
-          var(--bg-secondary, #f5f5f5) 100%);
+        background: linear-gradient(135deg,
+          transparent 0%,
+          transparent 40%,
+          rgba(160, 170, 180, 0.3) 50%,
+          rgba(160, 170, 180, 0.7) 70%,
+          rgba(160, 170, 180, 1) 100%);
       }
     }
   }
@@ -660,8 +660,8 @@ export default {
   white-space: nowrap;
 
   &.attribute {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--color-info-bg);
+    color: var(--color-info);
   }
 
   &.race {
@@ -670,13 +670,13 @@ export default {
   }
 
   &.type {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
   }
 
   &.level {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.atk, &.def {
@@ -685,13 +685,13 @@ export default {
   }
 
   &.spell-type {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.trap-type {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
   }
 }
 

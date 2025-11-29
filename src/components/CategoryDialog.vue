@@ -291,9 +291,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-clear-action:hover {
-  background: #ffebee;
-  border-color: #ef5350;
-  color: #c62828;
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error-text);
 }
 
 .search-row {
@@ -325,9 +325,9 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -336,14 +336,14 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-chip:hover {
-  background: #ffe0b2;
-  border-color: #f57c00;
+  background: var(--color-warning-hover-bg);
+  border-color: var(--color-warning);
 }
 
 .chip-remove {
   font-size: 14px;
   font-weight: bold;
-  color: #e65100;
+  color: var(--color-warning);
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -425,7 +425,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .category-item {
   padding: 12px 16px;
-  background: #ffffff;
+  background: var(--bg-primary);
   border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
@@ -440,13 +440,13 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item:hover {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-color: var(--button-bg);
   box-shadow: 0 2px 4px rgba(var(--button-bg-rgb, 25, 118, 210), 0.1);
 }
 
 .category-item.selected {
-  background: #e3f2fd;
+  background: var(--color-info-bg);
   border-color: var(--button-bg);
   color: var(--button-hover-bg);
   font-weight: 500;
@@ -470,20 +470,20 @@ watch(() => props.modelValue, (newVal) => {
 
 .btn-icon:hover {
   background: var(--border-primary);
-  border-color: #999;
+  border-color: var(--text-tertiary);
   color: var(--text-primary);
 }
 
 .btn-icon.active {
   background: var(--button-bg);
   border-color: var(--button-hover-bg);
-  color: #ffffff;
+  color: var(--button-text);
 }
 
 .btn-icon.active:hover {
   background: var(--button-hover-bg);
-  border-color: #0d47a1;
-  color: #ffffff;
+  border-color: var(--color-info);
+  color: var(--button-text);
 }
 
 .btn-icon svg {
@@ -514,7 +514,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .btn-primary {
   background: var(--button-bg);
-  color: white;
+  color: var(--button-text);
 }
 
 .btn-primary:hover {

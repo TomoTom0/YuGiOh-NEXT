@@ -10,9 +10,6 @@ import '../styles/common.scss';
 import { createPinia } from 'pinia';
 import { useSettingsStore } from '../stores/settings';
 
-// FOUC防止: デフォルトテーマを即座に適用
-document.documentElement.setAttribute('data-theme', 'light');
-
 // Piniaを初期化してテーマを適用
 const pinia = createPinia();
 const settingsStore = useSettingsStore(pinia);

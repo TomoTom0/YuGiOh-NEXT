@@ -53,15 +53,15 @@ onMounted(async () => {
 <style scoped lang="scss">
 .options-page {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .main-tabs {
   display: flex;
-  background-color: #ffffff;
-  border-bottom: 2px solid #dadce0;
+  background-color: var(--bg-primary);
+  border-bottom: 2px solid var(--border-primary);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 0;
@@ -75,20 +75,20 @@ onMounted(async () => {
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
-  color: #5f6368;
+  color: var(--text-secondary);
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
   margin-bottom: -2px;
 
   &:hover:not(.active) {
-    background-color: #f8f9fa;
-    color: #202124;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   &.active {
-    color: #1a73e8;
-    border-bottom-color: #1a73e8;
-    background-color: #fff;
+    color: var(--color-info);
+    border-bottom-color: var(--color-info);
+    background-color: var(--bg-primary);
   }
 }
 

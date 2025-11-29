@@ -48,7 +48,7 @@
 
         <div v-if="card.cardType === 'monster'" class="card-stats-layout">
           <div class="stat-box-row">
-            <div v-for="type in card.types" :key="type" class="stat-box stat-box-type-chip">
+            <div v-for="type in card.types" :key="type" class="stat-box stat-box-type-chip" :data-type="type">
               <span class="stat-text">{{ getMonsterTypeText(type) }}</span>
             </div>
           </div>
@@ -431,7 +431,7 @@ export default {
   margin-top: 4px;
   padding: 6px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-  color: white;
+  color: var(--button-text);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -462,8 +462,8 @@ export default {
   top: 100%;
   left: 0;
   margin-top: 4px;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
   padding: 10px;
@@ -509,7 +509,7 @@ export default {
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 
   &:hover {
     border-color: var(--theme-color-start, #00d9b8);
@@ -534,7 +534,7 @@ export default {
     bottom: 3px;
     right: 3px;
     background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-    color: white;
+    color: var(--button-text);
     padding: 2px 6px;
     border-radius: 10px;
     font-size: 10px;
@@ -584,16 +584,55 @@ export default {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   background: var(--bg-secondary);
   font-size: 11px;
   min-width: 0;
 
   &.stat-box-type-chip {
-    background: linear-gradient(135deg, #e0e0e0 0%, #f5f5f5 100%);
     flex-shrink: 0;
     white-space: nowrap;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+
+    &[data-type="fusion"] {
+      background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+      border-color: #ba68c8;
+    }
+
+    &[data-type="synchro"] {
+      background: repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 8px,
+        rgba(158, 158, 158, 0.12) 8px,
+        rgba(158, 158, 158, 0.12) 9px
+      ), linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+      border-color: var(--border-primary);
+    }
+
+    &[data-type="xyz"] {
+      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+      color: var(--button-text);
+      border-color: var(--border-secondary);
+    }
+
+    &[data-type="link"] {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      border-color: var(--color-info);
+    }
+
+    &[data-type="ritual"] {
+      background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+      border-color: #4dd0e1;
+    }
+
+    &[data-type="pendulum"] {
+      background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
+      color: var(--button-text);
+      border-color: #ff9800;
+    }
   }
 
   &.stat-box-type {
@@ -623,7 +662,7 @@ export default {
   &.stat-box-subtype {
     width: 100%;
     background: var(--bg-secondary);
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-primary);
     
     .effect-type-icon {
       width: 16px;
@@ -732,7 +771,7 @@ export default {
 .marker-cell {
   width: 16px;
   height: 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -741,7 +780,7 @@ export default {
   
   &.active {
     background: var(--button-bg);
-    color: white;
+    color: var(--button-text);
     font-weight: bold;
   }
   
@@ -797,7 +836,7 @@ export default {
   line-height: 1.6;
   white-space: pre-line;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 0 0 4px 4px;
   background: var(--bg-primary);
   width: 100%;
@@ -811,7 +850,7 @@ export default {
   line-height: 1.6;
   white-space: pre-line;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 0 0 4px 4px;
   background: var(--bg-secondary);
   width: 100%;
@@ -820,13 +859,13 @@ export default {
 }
 
 .card-link {
-  color: #0066cc;
+  color: var(--color-link);
   text-decoration: underline;
   cursor: pointer;
   transition: color 0.2s;
 
   &:hover {
-    color: #0052a3;
+    color: var(--color-link-hover);
     text-decoration: underline;
   }
 }

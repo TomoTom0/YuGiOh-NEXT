@@ -518,7 +518,7 @@ export default {
   margin: 0;
 
   &.error-state {
-    border-color: #ff0000;
+    border-color: var(--color-error);
     
     &::before {
       content: '';
@@ -608,7 +608,7 @@ export default {
   }
 
   svg {
-    color: white;
+    color: var(--button-text);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   }
 }
@@ -632,7 +632,7 @@ export default {
   cursor: pointer;
   padding: 0;
   display: flex;
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   font-weight: bold;
   transition: all 0.15s;
@@ -696,7 +696,7 @@ export default {
     svg {
       width: 10px;
       height: 10px;
-      fill: white;
+      fill: var(--button-text);
     }
   }
 
@@ -863,7 +863,7 @@ export default {
 .btn-text {
   font-size: 12px;
   font-weight: bold;
-  color: white;
+  color: var(--button-text);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   line-height: 1;
 }
@@ -893,7 +893,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   font-weight: bold;
   transition: all 0.15s;
