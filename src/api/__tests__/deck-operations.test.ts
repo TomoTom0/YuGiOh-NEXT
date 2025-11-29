@@ -1,10 +1,41 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createNewDeckInternal, saveDeckInternal, duplicateDeckInternal, deleteDeckInternal } from '../deck-operations';
+import { createNewDeckInternal, saveDeckInternal, deleteDeckInternal } from '../deck-operations';
 import { DeckInfo } from '@/types/deck';
 import axios from 'axios';
 
 // axiosをモック
-vi.mock('axios');
+vi.mock('axios', () => {
+  return {
+    default: {
+      get: vi.fn(),
+      post: vi.fn(),
+    },
+  };
+});
+
+// ytkn-fetcherをモック
+vi.mock('@/utils/ytkn-fetcher', () => {
+  return {
+    fetchYtknFromDeckList: vi.fn().mockResolvedValue('mock-ytkn'),
+    fetchYtknFromEditForm: vi.fn().mockResolvedValue('mock-ytkn'),
+  };
+});
+
+// parseDeckListをモック
+vi.mock('@/content/parser/deck-list-parser', () => {
+  return {
+    parseDeckList: vi.fn().mockReturnValue([
+      { dno: 10, name: 'Test Deck' }
+    ]),
+  };
+});
+
+// detectLanguageをモック
+vi.mock('@/utils/language-detector', () => {
+  return {
+    detectLanguage: vi.fn().mockReturnValue('ja'),
+  };
+});
 
 /**
  * デッキ操作API関数のテスト
@@ -38,7 +69,7 @@ describe('デッキ操作API', () => {
       const result = await createNewDeckInternal(testCgid);
 
       expect(axios.get).toHaveBeenCalledWith(
-        `${BASE_URL}?ope=6&cgid=${testCgid}`,
+        expect.stringContaining(`${BASE_URL}?ope=6&wname=MemberDeck&cgid=${testCgid}`),
         expect.any(Object)
       );
       expect(result).toBe(10);
@@ -64,28 +95,6 @@ describe('デッキ操作API', () => {
     });
   });
 
-  describe('duplicateDeckInternal', () => {
-    it('デッキを複製し、新しいデッキ番号を返す', async () => {
-      const mockResponse = `
-        <html>
-          <body>
-            <input type="hidden" name="dno" value="11">
-          </body>
-        </html>
-      `;
-      vi.mocked(axios.get).mockResolvedValue({
-        data: mockResponse
-      });
-
-      const result = await duplicateDeckInternal(testCgid, 5);
-
-      expect(axios.get).toHaveBeenCalledWith(
-        `${BASE_URL}?ope=8&cgid=${testCgid}&dno=5`,
-        expect.any(Object)
-      );
-      expect(result).toBe(11);
-    });
-  });
 
   describe('saveDeckInternal', () => {
     it('デッキを保存し、成功結果を返す', async () => {
@@ -151,6 +160,10 @@ describe('デッキ操作API', () => {
 
   describe('deleteDeckInternal', () => {
     it('デッキを削除し、成功結果を返す', async () => {
+      // fetchYtknFromEditFormが成功するようにモック
+      const { fetchYtknFromEditForm } = await import('@/utils/ytkn-fetcher');
+      vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('test-ytkn');
+      
       const mockResponse = `
         <html>
           <body>
@@ -158,23 +171,23 @@ describe('デッキ操作API', () => {
           </body>
         </html>
       `;
-      vi.mocked(axios.post).mockResolvedValue({
-        data: mockResponse
-      });
+      vi.mocked(axios.get).mockResolvedValue({
+        data: mockResponse,
+        status: 200
+      } as any);
 
-      const result = await deleteDeckInternal(testCgid, 4, testYtkn);
+      const result = await deleteDeckInternal(testCgid, 4);
 
-      expect(axios.post).toHaveBeenCalled();
-      expect(result.success).toBe(true);
+      expect(result).toBe(true);
     });
 
-    it('axiosが失敗した場合は失敗結果を返す', async () => {
-      vi.mocked(axios.post).mockRejectedValue(new Error('Network error'));
+    it('ytknの取得に失敗した場合はfalseを返す', async () => {
+      const { fetchYtknFromEditForm } = await import('@/utils/ytkn-fetcher');
+      vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('');
 
-      const result = await deleteDeckInternal(testCgid, 4, testYtkn);
+      const result = await deleteDeckInternal(testCgid, 4);
 
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result).toBe(false);
     });
   });
 });

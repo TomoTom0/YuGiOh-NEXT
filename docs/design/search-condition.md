@@ -1,0 +1,107 @@
+# intro
+
+カード検索の条件指定ダイアログの現在のデザインはひどいので、修正する
+
+# ダイアログ構成
+
+## top title bar
+
+左から
+- title: 検索条件指定(左端)
+- 指定済み条件のチップ
+- clearボタン(選択済みチップがあれば)
+- close button(右端)
+
+## content
+
+### 1: card type
+左からtab titleの見た目で以下の項目
+- monster
+- spell
+- trap
+
+実際にはすべて選択なし(これは絞り込みなしの意味になる)か一つだけ選択
+幅は2:1:1
+
+### 2: card attribute / spell type / trap type
+
+monsterの部分の下部は属性を二行で表示
+- 水、炎、風、地
+- 光、闇、神
+
+spellの部分はspell typeを二行で表示
+- 通常、速攻、儀式
+- 永続、装備、フィールド
+
+trapの部分はtrap typeを一行で表示
+- 通常、永続、カウンター
+
+### 3: race
+
+ここからしばらくはモンスター限定の要素が並ぶ
+
+monsterの種族を名前順で並べる。ただし、幻獣神族と創造神族は最後に配置する。
+チップの大きさはそろえる。一行には六個程度並べる。
+
+### 4: mosnter type
+
+monster typeを並べる
+チップの大きさをそろえる。一行には六個以内にする。
+また、and/orも選べるので、一つ目に配置する。
+
+- and/or、通常、効果、特殊召喚
+- 融合、シンクロ、エクシーズ、リンク、ペンデュラム、儀式
+- その他monster typeを名前順で並べる
+
+monster typeは二回押下するとnot条件になる。三回目でリセットされる。
+
+### 5: level,rank / link / p-scale
+
+level,rank / link / p-scaleをtab titleの見た目で表示
+それぞれの下には選択済みの条件をチップで表示する
+
+その下にはlevel,rank or p-scaleのときは0-13の数字のチップが2行に並んでいる。
+
+linkの時は1-6の数字のチップが2行に並んでいる。
+その右には8方向のリンクマーカーのアイコンがあり、中央にはand/orのチップがある。
+リンクマーカーアイコンの表現はinfoタブを参照、ただし少し大きくする。
+
+### 6: atk/def
+
+atk,defはtab titleの見た目で表示
+その下には選択済みの条件をチップで表示する
+
+左側には完全一致か、?かのチェックボックス
+?なら数値入力欄は両方無効
+そうでなく完全一致なら、数値入力欄はminのみ有効
+そうでもないなら、min,max両方有効
+
+完全一致の場合、内部的にはminとmaxを同じ値に設定する
+?の場合、minとmaxを?にする。
+
+### 7: date
+
+発売日を　1999-1-1から来年の年末までで指定できるようにする。
+終了日は省略可能
+開始日は省略した場合は1999-1-1になる。
+
+## 排他 disable組み合わせ
+
+- card typeでspellかtrapを選択した場合、race,monster type,level-rank,link,p-scale,atk,defはdisable
+- card typeでmonsterを選択した場合、spell type,trap typeはdisable
+
+- monster typeでandの場合は以下は排他
+    - 通常、融合、シンクロ、エクシーズ、リンク、儀式
+    - 通常、効果
+    - 通常、特殊召喚
+
+- linkマーカーまたはlink数指定した際はmonster typeはlinkを必須
+    - orならlinkを指定する
+    - andでlinkと排他が指定済みならlinkがdisable
+- p-scale指定した際はmonster typeはペンデュラムを必須
+    - orならペンデュラムを指定する
+    - ペンデュラムと排他はない
+
+- level-rankとlink数は排他
+- defはlinkと排他
+

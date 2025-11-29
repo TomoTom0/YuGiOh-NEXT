@@ -24,23 +24,23 @@
             </div>
           </div>
 
-          <!-- 右上: Count Check -->
+          <!-- 右上: Mouse Operations -->
           <div class="setting-block">
-            <div class="block-title">Count</div>
+            <div class="block-title">Mouse</div>
             <div class="toggle-row">
               <button
                 class="toggle-btn"
-                :class="{ active: settingsStore.cardLimitMode === 'all-3' }"
-                @click="settingsStore.cardLimitMode = 'all-3'"
+                :class="{ active: !settingsStore.appSettings.enableMouseOperations }"
+                @click="settingsStore.setMouseOperations(false)"
               >
-                No Limit
+                OFF
               </button>
               <button
                 class="toggle-btn"
-                :class="{ active: settingsStore.cardLimitMode === 'limit-reg' }"
-                @click="settingsStore.cardLimitMode = 'limit-reg'"
+                :class="{ active: settingsStore.appSettings.enableMouseOperations }"
+                @click="settingsStore.setMouseOperations(true)"
               >
-                Limit
+                ON
               </button>
             </div>
           </div>
@@ -50,13 +50,6 @@
             <div class="block-title">Search</div>
             <div class="search-position-grid">
               <div class="position-col">
-                <button
-                  class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'section-title' }"
-                  @click="settingsStore.setSearchInputPosition('section-title')"
-                >
-                  L-Top
-                </button>
                 <button
                   class="toggle-btn"
                   :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
@@ -86,28 +79,28 @@
 
           <!-- 右下: Extra/Side Layout -->
           <div class="setting-block">
-            <div class="block-title">Layout</div>
+            <div class="block-title">Extra/Side</div>
             <div class="toggle-row">
               <button
                 class="toggle-btn"
                 :class="{ active: settingsStore.appSettings.middleDecksLayout === 'horizontal' }"
                 @click="settingsStore.setMiddleDecksLayout('horizontal')"
               >
-                H
+                横並び
               </button>
               <button
                 class="toggle-btn"
                 :class="{ active: settingsStore.appSettings.middleDecksLayout === 'vertical' }"
                 @click="settingsStore.setMiddleDecksLayout('vertical')"
               >
-                V
+                縦並び
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Tips Section -->
-        <div class="tips-section">
+        <!-- Tips Section (一時的に非表示) -->
+        <!-- <div class="tips-section">
           <div class="tips-title">Tips</div>
           <ul class="tips-list">
             <li><strong>Command Mode:</strong> Type <code>/attr</code>, <code>/race</code>, <code>/level</code>, <code>/atk</code>, <code>/def</code>, <code>/type</code>, <code>/link</code>, <code>/mtype</code> + space to filter</li>
@@ -115,7 +108,7 @@
             <li><strong>Shuffle/Sort:</strong> Use the buttons in section headers</li>
             <li><strong>Filter Chips:</strong> Click X on filter chips to remove individual filters</li>
           </ul>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>

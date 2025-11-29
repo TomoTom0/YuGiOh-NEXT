@@ -1,0 +1,74 @@
+- title: 属性同士の排他
+  items:
+    - title: card-type
+      items:
+        - card-type_monster
+        - card-type_spell
+        - card-type_trap
+    - title: monster-type-near-extra
+      items:
+        - monster-type_fusion
+        - monster-type_ritual
+        - monster-type_synchro
+        - monster-type_xyz
+        - monster-type_link
+        - monster-type_normal
+    - title: monster-type-normal
+      items:
+        - monster-type_normal
+        - monster-type_effect
+    - title: monster-type-special
+      items:
+        - monster-type_special-summon
+        - monster-type_normal
+
+- title: 属性から項目への決定性
+  items:
+    - title: monster-type_link-negative
+      trigger: monster-type_link
+      not-target-items:
+        - def
+        - level-rank
+
+- title: 項目から属性への決定性
+  items:
+    - title: monster-type_link-neccessary
+      trigger-items:
+        - link-value
+        - link-marker
+      target:
+        - monster-type_link
+    - title: monster-type_pend-neccessary
+      trigger-items:
+        - p-scale
+      target:
+        - monster-type_pend
+    - title: monster-type_has-level-rank-neccessary
+      trigger-items:
+        - level-rank
+        - def
+      not-target:
+        - monster-type_link
+    - title: card-type_monster-neccessary
+      trigger-items:
+        - monster-type*
+        - attribute
+        - race
+        - level-rank
+        - link-value
+        - link-marker
+        - p-scale
+        - atk
+        - def
+      target:
+        - card-type_monster
+    - title: card-type_spell-neccessary
+      trigger-items:
+        - spell-type*
+      target:
+        - card-type_spell
+    - title: card-type_trap-neccessary
+      trigger-items:
+        - trap-type*
+      target:
+        - card-type_trap
