@@ -1394,9 +1394,9 @@ function clearFilters() {
 
 .chip {
   padding: 6px 12px;
-  border: 1.5px solid #5f6368;
+  border: 1.5px solid var(--border-secondary, #9e9e9e);
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-secondary, #666);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;

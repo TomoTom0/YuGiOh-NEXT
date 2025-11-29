@@ -346,6 +346,12 @@ export default {
       border-right: none;
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--color-success, #4caf50);
+      outline-offset: -2px;
+      z-index: 1;
+    }
+
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
       color: var(--button-text);
