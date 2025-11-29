@@ -159,7 +159,7 @@ onUnmounted(() => {
 }
 
 .dialog {
-  background: #ffffff;
+  background: var(--bg-primary);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 480px;
@@ -175,13 +175,13 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
 
   h3 {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: #202124;
+    color: var(--text-primary);
   }
 }
 
@@ -189,7 +189,7 @@ onUnmounted(() => {
   background: none;
   border: none;
   font-size: 24px;
-  color: #5f6368;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 24px;
@@ -201,8 +201,8 @@ onUnmounted(() => {
   transition: all 0.2s;
 
   &:hover {
-    background: #f1f3f4;
-    color: #202124;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 }
 
@@ -219,12 +219,12 @@ onUnmounted(() => {
 .instruction {
   margin: 0 0 12px 0;
   font-size: 13px;
-  color: #5f6368;
+  color: var(--text-secondary);
   text-align: center;
 }
 
 .key-display-box {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 16px;
 }
@@ -235,34 +235,34 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   padding: 24px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 8px;
   min-height: 70px;
-  border: 2px dashed #dadce0;
+  border: 2px dashed var(--border-primary);
 }
 
 .modifier-key,
 .main-key {
   display: inline-block;
   padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 15px;
   font-weight: 500;
-  color: #202124;
+  color: var(--text-primary);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .main-key {
-  background: #1a73e8;
-  color: #ffffff;
-  border-color: #1a73e8;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border-color: var(--color-info);
   font-weight: 600;
 }
 
 .placeholder {
-  color: #9aa0a6;
+  color: var(--text-tertiary);
   font-size: 14px;
   font-style: italic;
 }
@@ -270,7 +270,7 @@ onUnmounted(() => {
 .existing-shortcuts {
   margin-top: 20px;
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 6px;
 }
 
@@ -278,7 +278,7 @@ onUnmounted(() => {
   margin: 0 0 10px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #5f6368;
+  color: var(--text-secondary);
 }
 
 .existing-list {
@@ -292,15 +292,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 10px;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
 }
 
 .existing-tag {
   font-size: 12px;
   font-weight: 500;
-  color: #1a73e8;
+  color: var(--color-info);
   font-family: 'Courier New', monospace;
 }
 
@@ -308,16 +308,16 @@ onUnmounted(() => {
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 500;
-  color: #d93025;
+  color: var(--color-error-text);
   background: transparent;
-  border: 1px solid #d93025;
+  border: 1px solid var(--color-error);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: #d93025;
-    color: white;
+    background: var(--color-error);
+    color: var(--button-text);
   }
 }
 
@@ -326,8 +326,8 @@ onUnmounted(() => {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
 }
 
 .primary-button,
@@ -347,21 +347,21 @@ onUnmounted(() => {
 }
 
 .primary-button {
-  background: #1a73e8;
-  color: #ffffff;
+  background: var(--button-bg);
+  color: var(--button-text);
 
   &:not(:disabled):hover {
-    background: #1765cc;
+    background: var(--button-hover-bg);
   }
 }
 
 .secondary-button {
   background: transparent;
-  color: #5f6368;
-  border: 1px solid #dadce0;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
 
   &:hover {
-    background: #f1f3f4;
+    background: var(--bg-secondary);
   }
 }
 </style>

@@ -2,6 +2,25 @@
   <div class="cache-management-section">
     <h2 class="main-title">General</h2>
 
+    <!-- タブアイコン -->
+    <div class="setting-group">
+      <h3 class="setting-title">タブアイコン</h3>
+      <p class="setting-desc">
+        デッキ編集画面のタブアイコンを拡張機能のアイコンに変更します。
+      </p>
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          v-model="changeFavicon"
+          @change="handleFaviconToggle"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">
+          タブアイコンを{{ changeFavicon ? '変更する' : '変更しない' }}
+        </span>
+      </label>
+    </div>
+
     <!-- キャッシュ管理 -->
     <div class="setting-group">
       <h3 class="setting-title">キャッシュ管理</h3>
@@ -45,10 +64,12 @@ const settingsStore = useSettingsStore();
 const cacheMessage = ref('');
 const cacheError = ref(false);
 const deckEditEnabled = ref(true);
+const changeFavicon = ref(false);
 
 onMounted(() => {
   // 機能設定を読み込み
   deckEditEnabled.value = settingsStore.featureSettings['deck-edit'];
+  changeFavicon.value = settingsStore.appSettings.changeFavicon;
 });
 
 const handleClearCache = async () => {
@@ -80,6 +101,10 @@ const handleClearCache = async () => {
 const handleFeatureToggle = () => {
   settingsStore.toggleFeature('deck-edit', deckEditEnabled.value);
 };
+
+const handleFaviconToggle = () => {
+  settingsStore.setChangeFavicon(changeFavicon.value);
+};
 </script>
 
 <style scoped lang="scss">
@@ -90,28 +115,28 @@ const handleFeatureToggle = () => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 24px 0;
 }
 
 .setting-group {
   margin-bottom: 24px;
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
 }
 
 .setting-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .setting-desc {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
@@ -119,7 +144,7 @@ const handleFeatureToggle = () => {
 .danger-button {
   padding: 10px 20px;
   font-size: 14px;
-  color: white;
+  color: var(--button-text);
   background-color: #d32f2f;
   border: none;
   border-radius: 4px;
@@ -137,12 +162,12 @@ const handleFeatureToggle = () => {
   border-radius: 4px;
   font-size: 13px;
   animation: fadeIn 0.3s ease;
-  background-color: #d1f4e0;
-  color: #0f5132;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
 
   &.error {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: var(--color-error-bg);
+    color: var(--color-error-text);
   }
 }
 
@@ -161,7 +186,7 @@ const handleFeatureToggle = () => {
   position: relative;
   width: 44px;
   height: 24px;
-  background-color: #ccc;
+  background-color: var(--border-primary);
   border-radius: 12px;
   transition: background-color 0.2s;
 }
@@ -173,13 +198,13 @@ const handleFeatureToggle = () => {
   left: 3px;
   width: 18px;
   height: 18px;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch {
-  background-color: #1a73e8;
+  background-color: var(--color-info);
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
@@ -188,7 +213,7 @@ const handleFeatureToggle = () => {
 
 .toggle-text {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 

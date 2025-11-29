@@ -18,10 +18,10 @@ defineProps<{
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background-color: #f5f5f5;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-top: auto;
 }
 
@@ -31,6 +31,6 @@ defineProps<{
 
 .version {
   font-weight: 600;
-  color: #008cff;
+  color: var(--color-info);
 }
 </style>

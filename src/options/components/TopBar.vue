@@ -17,7 +17,7 @@
   gap: 16px;
   padding: 16px 24px;
   background: linear-gradient(90deg, #00d9b8 0%, #008cff 50%, #b84fc9 100%);
-  color: white;
+  color: var(--button-text);
   box-shadow: 0 4px 12px rgba(0, 140, 255, 0.3);
 }
 

@@ -1606,13 +1606,13 @@ export default defineComponent({
   }
 
   &.not-condition {
-    background: #ffebee;
-    border-color: #ef9a9a;
-    color: #c62828;
+    background: var(--color-error-bg);
+    border-color: var(--color-error);
+    color: var(--color-error-text);
 
     &:hover {
-      background: #ffcdd2;
-      border-color: #e57373;
+      background: var(--color-error-hover-bg);
+      border-color: var(--color-error);
     }
 
     .not-prefix {
@@ -1621,10 +1621,10 @@ export default defineComponent({
     }
 
     .chip-remove {
-      color: #e57373;
+      color: var(--color-error);
 
       &:hover {
-        color: #c62828;
+        color: var(--color-error-text);
       }
     }
   }
@@ -1642,7 +1642,7 @@ export default defineComponent({
 
 /* 有効入力の視覚フィードバック */
 .search-input.valid-input {
-  color: #2e7d32;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -1652,7 +1652,7 @@ export default defineComponent({
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--bg-primary);
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
   margin-top: 4px;
@@ -1682,11 +1682,11 @@ export default defineComponent({
   }
 
   &.selected {
-    background: #4caf50;
-    color: #f5f5f5;
+    background: var(--color-success);
+    color: var(--button-text);
 
     .suggestion-label {
-      color: #f5f5f5;
+      color: var(--button-text);
     }
   }
 
@@ -1716,8 +1716,8 @@ export default defineComponent({
   align-items: center;
   padding: 2px 6px;
   margin-right: 4px;
-  background: #1565c0;
-  color: white;
+  background: var(--color-info);
+  color: var(--button-text);
   border-radius: 4px;
   font-size: 11px;
   font-family: monospace;
@@ -1729,7 +1729,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   position: relative;
-  background: white;
+  background: var(--bg-primary);
   border: 2px solid transparent;
   border-radius: 20px;
   padding: 2px 10px;
@@ -1869,7 +1869,7 @@ export default defineComponent({
   line-height: 12px;
   text-align: center;
   background: var(--text-secondary, #666);
-  color: white;
+  color: var(--button-text);
   border-radius: 6px;
 }
 
@@ -1913,7 +1913,7 @@ export default defineComponent({
   position: absolute;
   top: 100%;
   left: 0;
-  background: white;
+  background: var(--bg-primary);
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
   margin-top: 4px;

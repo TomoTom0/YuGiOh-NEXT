@@ -103,13 +103,13 @@ const images = computed(() => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 .description {
   font-size: 15px;
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 32px 0;
 }
@@ -121,10 +121,10 @@ const images = computed(() => {
 .subtitle {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-primary);
 }
 
 .access-list {
@@ -136,10 +136,10 @@ const images = computed(() => {
     padding: 6px 0;
     font-size: 14px;
     line-height: 1.6;
-    color: #333;
+    color: var(--text-primary);
 
     strong {
-      color: #202124;
+      color: var(--text-primary);
       font-weight: 600;
     }
 
@@ -147,12 +147,12 @@ const images = computed(() => {
       display: block;
       margin-top: 4px;
       padding: 6px 8px;
-      background-color: #f5f5f5;
-      border: 1px solid #e0e0e0;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
       border-radius: 3px;
       font-family: 'Courier New', monospace;
       font-size: 12px;
-      color: #333;
+      color: var(--text-primary);
       overflow-x: auto;
     }
   }

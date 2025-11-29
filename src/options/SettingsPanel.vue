@@ -290,12 +290,12 @@ onMounted(async () => {
   transition: all 0.2s;
 
   &:hover {
-    border-color: #00d9b8;
+    border-color: var(--color-info);
     background: linear-gradient(135deg, rgba(0, 217, 184, 0.05) 0%, rgba(0, 140, 255, 0.05) 100%);
   }
 
   &.active {
-    border-color: #00d9b8;
+    border-color: var(--color-info);
     background: linear-gradient(135deg, rgba(0, 217, 184, 0.1) 0%, rgba(0, 140, 255, 0.1) 100%);
     box-shadow: 0 2px 8px rgba(0, 217, 184, 0.2);
   }
@@ -486,8 +486,8 @@ onMounted(async () => {
 }
 
 .danger-section {
-  border-color: #ffcdd2;
-  background-color: #fff8f8;
+  border-color: var(--color-error-hover-bg);
+  background-color: var(--color-error-bg);
 }
 
 .section-description {
@@ -506,15 +506,15 @@ onMounted(async () => {
 .danger-button {
   padding: 10px 20px;
   font-size: 14px;
-  color: white;
-  background-color: #d32f2f;
+  color: var(--button-text);
+  background-color: var(--color-error);
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #b71c1c;
+    background-color: var(--color-error-hover);
   }
 }
 

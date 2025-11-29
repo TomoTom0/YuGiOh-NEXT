@@ -67,13 +67,13 @@ const handleFeatureToggle = () => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 .description {
   font-size: 15px;
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 32px 0;
 }
@@ -81,15 +81,15 @@ const handleFeatureToggle = () => {
 .setting-group {
   margin-bottom: 32px;
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
 }
 
 .setting-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
@@ -108,7 +108,7 @@ const handleFeatureToggle = () => {
   position: relative;
   width: 44px;
   height: 24px;
-  background-color: #ccc;
+  background-color: var(--border-primary);
   border-radius: 12px;
   transition: background-color 0.2s;
 }
@@ -120,13 +120,13 @@ const handleFeatureToggle = () => {
   left: 3px;
   width: 18px;
   height: 18px;
-  background-color: white;
+  background-color: var(--bg-primary);
   border-radius: 50%;
   transition: transform 0.2s;
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch {
-  background-color: #1a73e8;
+  background-color: var(--color-info);
 }
 
 .toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
@@ -135,7 +135,7 @@ const handleFeatureToggle = () => {
 
 .toggle-text {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -146,10 +146,10 @@ const handleFeatureToggle = () => {
 .subtitle {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-primary);
 }
 
 .usage-list {
@@ -160,13 +160,13 @@ const handleFeatureToggle = () => {
   li {
     padding: 12px 16px;
     margin-bottom: 8px;
-    background-color: #f8f9fa;
+    background-color: var(--bg-secondary);
     border-radius: 4px;
     font-size: 14px;
     line-height: 1.6;
 
     strong {
-      color: #008cff;
+      color: var(--color-info);
     }
   }
 }
