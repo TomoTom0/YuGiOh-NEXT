@@ -608,7 +608,7 @@ export default {
     margin: -4px;
     position: relative;
 
-    // 展開可能インジケーター（右下三角のみフェード）
+    // 展開可能インジケーター（右下三角フェード）
     &:not(.expanded)::after {
       content: '';
       position: absolute;
@@ -616,12 +616,19 @@ export default {
       right: 4px;
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg,
+      background: var(--card-bg);
+      mask-image: linear-gradient(135deg,
         transparent 0%,
         transparent 40%,
-        rgba(160, 170, 180, 0.3) 50%,
-        rgba(160, 170, 180, 0.7) 70%,
-        rgba(160, 170, 180, 1) 100%);
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 1) 100%);
+      -webkit-mask-image: linear-gradient(135deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 1) 100%);
       pointer-events: none;
     }
 
@@ -629,12 +636,7 @@ export default {
       background: var(--bg-secondary, #f5f5f5);
 
       &:not(.expanded)::after {
-        background: linear-gradient(135deg,
-          transparent 0%,
-          transparent 40%,
-          rgba(160, 170, 180, 0.3) 50%,
-          rgba(160, 170, 180, 0.7) 70%,
-          rgba(160, 170, 180, 1) 100%);
+        background: var(--bg-secondary, #f5f5f5);
       }
     }
   }
