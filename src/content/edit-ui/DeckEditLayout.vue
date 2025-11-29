@@ -219,8 +219,31 @@ export default {
       deckStore.showDeleteConfirm = false
     }
 
+    // キーボードショートカットのマッチング関数（単一のショートカット）
+    const matchesShortcut = (event, shortcut) => {
+      if (!shortcut) return false
+
+      return (
+        event.key.toLowerCase() === shortcut.key.toLowerCase() &&
+        event.ctrlKey === shortcut.ctrl &&
+        event.shiftKey === shortcut.shift &&
+        event.altKey === shortcut.alt
+      )
+    }
+
+    // キーボードショートカット配列のいずれかにマッチするかチェック
+    const matchesAnyShortcut = (event, shortcuts) => {
+      if (!shortcuts) return false
+      if (!Array.isArray(shortcuts)) return false
+      if (shortcuts.length === 0) return false
+      return shortcuts.some(shortcut => matchesShortcut(event, shortcut))
+    }
+
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
+      // グローバル検索モードが有効な場合は無視（入力欄で処理される）
+      if (deckStore.isGlobalSearchMode) return
+
       // 入力要素にフォーカスがある場合は無視
       const activeElement = document.activeElement
       const isInputFocused = activeElement && (
@@ -231,11 +254,37 @@ export default {
 
       if (isInputFocused) return
 
-      // '/' キーまたは Ctrl+J でグローバル検索モードを有効化
-      if (event.key === '/' || (event.ctrlKey && event.key === 'j')) {
+      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+
+      console.log('[handleGlobalKeydown]', {
+        key: event.key,
+        ctrl: event.ctrlKey,
+        shift: event.shiftKey,
+        alt: event.altKey,
+        globalSearchShortcuts: shortcuts.globalSearch
+      })
+
+      // グローバル検索モードを有効化
+      if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
+        console.log('[handleGlobalKeydown] Global search triggered!')
         event.preventDefault()
-        // グローバル検索モードを有効化（タブは切り替えない）
+        event.stopPropagation()
         deckStore.isGlobalSearchMode = true
+        return
+      }
+
+      // Undo
+      if (matchesAnyShortcut(event, shortcuts.undo)) {
+        event.preventDefault()
+        deckStore.undo()
+        return
+      }
+
+      // Redo
+      if (matchesAnyShortcut(event, shortcuts.redo)) {
+        event.preventDefault()
+        deckStore.redo()
+        return
       }
     }
     
@@ -278,7 +327,43 @@ export default {
       await deckStore.initializeOnPageLoad()
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
+
+      // 設定に応じてファビコンを変更
+      if (settingsStore.appSettings.changeFavicon) {
+        changeFavicon()
+      }
     })
+
+    /**
+     * ファビコンを拡張機能のアイコンに変更
+     */
+    function changeFavicon() {
+      try {
+        // 既存のファビコンを削除
+        const existingLinks = document.querySelectorAll("link[rel*='icon']")
+        existingLinks.forEach(link => link.remove())
+
+        // 新しいファビコンを追加
+        const iconSizes = [
+          { size: '16x16', path: chrome.runtime.getURL('icons/icon16.png') },
+          { size: '48x48', path: chrome.runtime.getURL('icons/icon48.png') },
+          { size: '128x128', path: chrome.runtime.getURL('icons/icon128.png') }
+        ]
+
+        iconSizes.forEach(({ size, path }) => {
+          const link = document.createElement('link')
+          link.rel = 'icon'
+          link.type = 'image/png'
+          link.sizes = size
+          link.href = path
+          document.head.appendChild(link)
+        })
+
+        console.log('Favicon changed successfully')
+      } catch (error) {
+        console.error('Failed to change favicon:', error)
+      }
+    }
 
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)
@@ -633,9 +718,15 @@ export default {
 .middle-decks {
   display: flex;
   gap: 10px;
-  flex: none;
-  min-height: 120px;
+  flex: 0 0 auto;
   width: 100%;
+  align-items: flex-start;
+
+  // デフォルト（横並び）時はextra/sideを50%幅に制限
+  :deep(.extra-deck),
+  :deep(.side-deck) {
+    max-width: 50%;
+  }
 
   &.vertical-layout {
     flex-direction: column;
@@ -689,19 +780,6 @@ export default {
   &:hover {
     color: var(--text-primary);
   }
-}
-
-.right-area {
-  width: 320px;
-  height: 100%;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--border-primary);
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 0 10px;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 .tabs {

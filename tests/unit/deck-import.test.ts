@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+// import { readFileSync } from 'fs';
+// import * as path from 'path';
 import { importFromCSV, importFromTXT, importFromPNG } from '@/utils/deck-import';
 import type { ImportResult } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
 
-// テストフィクスチャディレクトリ
-const fixturesDir = join(__dirname, '../fixtures');
+// テストフィクスチャディレクトリ（未使用）
+// const fixturesDir = path.join(__dirname, '../fixtures');
 
 // Test fixtures (inline data because happy-dom doesn't support fs module)
 const validCSV = `section,name,cid,ciid,quantity
@@ -170,29 +170,34 @@ invalid line format
   });
 
   describe('importFromPNG', () => {
+    // 最小限の有効な1x1 PNG画像
+    const validPNG = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde,
+      0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54,
+      0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
+      0x18, 0xdd, 0x8d, 0xb4, 0x00, 0x00, 0x00, 0x00,
+      0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+    ]);
+
     it('should import deck info from PNG with embedded data', async () => {
       // サンプルデッキ情報
       const sampleDeck: DeckInfo = {
-        mainDeck: [
-          {
-            cid: '12950',
-            ciid: '1',
-            quantity: 2
-          }
-        ],
-        extraDeck: [
-          {
-            cid: '9753',
-            ciid: '1',
-            quantity: 1
-          }
-        ],
-        sideDeck: []
+        dno: 1,
+        name: 'Test Deck',
+        mainDeck: [{ cid: '12950', ciid: '1', quantity: 2 }],
+        extraDeck: [{ cid: '9753', ciid: '1', quantity: 1 }],
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       // PNG画像にデッキ情報を埋め込む
-      const pngBuffer = readFileSync(fixturesDir + '/png/valid-1x1.png');
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+      const pngBlob = new Blob([validPNG], { type: 'image/png' });
       const embeddedBlob = await embedDeckInfoToPNG(pngBlob, sampleDeck);
 
       // Fileオブジェクトを作成
@@ -209,8 +214,7 @@ invalid line format
     });
 
     it('should return error for PNG without embedded data', async () => {
-      const pngBuffer = readFileSync(fixturesDir + '/png/valid-1x1.png');
-      const file = new File([pngBuffer], 'deck.png', { type: 'image/png' });
+      const file = new File([validPNG], 'deck.png', { type: 'image/png' });
 
       const result = await importFromPNG(file);
 
@@ -219,8 +223,8 @@ invalid line format
     });
 
     it('should handle invalid PNG file', async () => {
-      const pngBuffer = readFileSync(fixturesDir + '/png/invalid-signature.png');
-      const file = new File([pngBuffer], 'invalid.png', { type: 'image/png' });
+      const invalidBuffer = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
+      const file = new File([invalidBuffer], 'invalid.png', { type: 'image/png' });
 
       const result = await importFromPNG(file);
 
@@ -230,13 +234,18 @@ invalid line format
 
     it('should handle empty deck in PNG', async () => {
       const emptyDeck: DeckInfo = {
+        dno: 1,
+        name: 'Empty',
         mainDeck: [],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
-      const pngBuffer = readFileSync(fixturesDir + '/png/valid-1x1.png');
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+      const pngBlob = new Blob([validPNG], { type: 'image/png' });
       const embeddedBlob = await embedDeckInfoToPNG(pngBlob, emptyDeck);
 
       const file = new File([embeddedBlob], 'empty-deck.png', { type: 'image/png' });

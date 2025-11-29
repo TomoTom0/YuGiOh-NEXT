@@ -25,22 +25,33 @@
         </svg>
       </button>
       <div class="input-container" :class="{ 'command-mode': isCommandMode || pendingCommand }">
-        <!-- 適用済みフィルターチップ -->
-        <div v-if="filterChips.length > 0" class="filter-chips">
+        <!-- SearchFilterDialogで選択した条件（上部） -->
+        <div v-if="hasActiveFilters" class="filter-icons-top">
           <span
-            v-for="(chip, index) in filterChips"
+            v-for="(icon, index) in displayFilterIcons"
             :key="index"
-            class="filter-chip"
-            :class="{ 'not-condition': chip.isNot }"
-            @click="removeFilterChip(index)"
-          >
-            <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
-            <span class="chip-remove">x</span>
-          </span>
+            class="filter-icon-item"
+            :class="icon.type"
+          >{{ icon.label }}</span>
         </div>
-        <!-- コマンドモード表示 -->
-        <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
-        <input
+        <!-- 入力行 -->
+        <div class="input-row">
+          <!-- スラッシュコマンドで追加したチップ（左側） -->
+          <div v-if="filterChips.length > 0" class="filter-chips">
+            <span
+              v-for="(chip, index) in filterChips"
+              :key="index"
+              class="filter-chip"
+              :class="{ 'not-condition': chip.isNot }"
+              @click="removeFilterChip(index)"
+            >
+              <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
+              <span class="chip-remove">x</span>
+            </span>
+          </div>
+          <!-- コマンドモード表示 -->
+          <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
+          <input
           ref="inputRef"
           v-model="deckStore.searchQuery"
           type="text"
@@ -94,26 +105,6 @@
           </div>
         </div>
       </div>
-      <!-- フィルター条件表示（二行均等配置） -->
-      <div v-if="hasActiveFilters" class="filter-icons">
-        <div class="filter-row">
-          <span
-            v-for="(icon, index) in filterIconsRow1"
-            :key="'r1-' + index"
-            class="filter-icon-item"
-            :class="icon.type"
-          >{{ icon.label }}</span>
-        </div>
-        <div v-if="filterIconsRow2.length > 0" class="filter-row">
-          <span
-            v-for="(icon, index) in filterIconsRow2"
-            :key="'r2-' + index"
-            class="filter-icon-item"
-            :class="icon.type"
-          >{{ icon.label }}</span>
-          <span v-if="displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
-        </div>
-        <span v-if="filterIconsRow2.length === 0 && displayFilterIcons.length > maxVisibleIcons" class="filter-more">+</span>
       </div>
 
       <button
@@ -134,25 +125,17 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, defineComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
-import type { CardInfo } from '../types/card'
+import type { SearchFilters } from '../types/search-filters'
+import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
 import { getTempCardDB } from '../utils/temp-card-db'
-
-interface SearchFilters {
-  cardType: string | null
-  attributes: string[]
-  races: string[]
-  levels: number[]
-  atk: { from: number | undefined; to: number | undefined }
-  def: { from: number | undefined; to: number | undefined }
-  monsterTypes: string[]
-  linkNumbers: number[]
-}
+import { convertFiltersToIcons } from '../utils/filter-icons'
+import { getRaceLabel } from '../utils/filter-label'
 
 // コマンド定義
 const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
@@ -262,12 +245,20 @@ export default defineComponent({
     const searchFilters = ref<SearchFilters>({
       cardType: null,
       attributes: [],
+      spellTypes: [],
+      trapTypes: [],
       races: [],
-      levels: [],
-      atk: { from: undefined, to: undefined },
-      def: { from: undefined, to: undefined },
       monsterTypes: [],
-      linkNumbers: []
+      monsterTypeMatchMode: 'or',
+      levelType: 'level',
+      levelValues: [],
+      linkValues: [],
+      scaleValues: [],
+      linkMarkers: [],
+      linkMarkerMatchMode: 'or',
+      atk: { exact: false, unknown: false },
+      def: { exact: false, unknown: false },
+      releaseDate: {}
     })
 
     // チップベースフィルターシステム
@@ -424,13 +415,15 @@ export default defineComponent({
       return f.cardType !== null ||
         f.attributes.length > 0 ||
         f.races.length > 0 ||
-        f.levels.length > 0 ||
-        f.atk.from !== undefined ||
-        f.atk.to !== undefined ||
-        f.def.from !== undefined ||
-        f.def.to !== undefined ||
+        f.levelValues.length > 0 ||
+        f.atk.unknown ||
+        f.atk.min !== undefined ||
+        f.atk.max !== undefined ||
+        f.def.unknown ||
+        f.def.min !== undefined ||
+        f.def.max !== undefined ||
         f.monsterTypes.length > 0 ||
-        f.linkNumbers.length > 0
+        f.linkValues.length > 0
     })
 
     const filterCount = computed(() => {
@@ -439,142 +432,26 @@ export default defineComponent({
       if (f.cardType) count++
       count += f.attributes.length
       count += f.races.length
-      count += f.levels.length
-      if (f.atk.from !== undefined || f.atk.to !== undefined) count++
-      if (f.def.from !== undefined || f.def.to !== undefined) count++
+      count += f.levelValues.length
+      if (f.atk.unknown || f.atk.min !== undefined || f.atk.max !== undefined) count++
+      if (f.def.unknown || f.def.min !== undefined || f.def.max !== undefined) count++
       count += f.monsterTypes.length
-      count += f.linkNumbers.length
+      count += f.linkValues.length
       return count
     })
 
-    // レベル/リンク数を統合表示するヘルパー関数
-    const formatNumberRange = (numbers: number[], prefix: string): string => {
-      if (numbers.length === 0) return ''
-      const sorted = [...numbers].sort((a, b) => a - b)
-
-      // 連続した数値をグループ化
-      const groups: number[][] = []
-      let currentGroup: number[] = [sorted[0]]
-
-      for (let i = 1; i < sorted.length; i++) {
-        if (sorted[i] === sorted[i - 1] + 1) {
-          currentGroup.push(sorted[i])
-        } else {
-          groups.push(currentGroup)
-          currentGroup = [sorted[i]]
-        }
-      }
-      groups.push(currentGroup)
-
-      // グループを文字列に変換
-      const parts = groups.map(group => {
-        if (group.length >= 3) {
-          return `${group[0]}-${group[group.length - 1]}`
-        } else {
-          return group.join(',')
-        }
-      })
-
-      return `${prefix}${parts.join(',')}`
-    }
-
-    // 表示用フィルターアイコン - 画面サイズに応じて表示
+    // 表示用フィルターアイコン - filterChipsと重複しないものを表示
     const displayFilterIcons = computed(() => {
-      const icons: { type: string; label: string }[] = []
-      const f = searchFilters.value
+      // 共通関数で全アイコンを取得
+      const allIcons = convertFiltersToIcons(searchFilters.value)
 
-      // カードタイプ
-      if (f.cardType) {
-        const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
-        icons.push({ type: 'cardType', label: typeLabels[f.cardType] || f.cardType })
-      }
+      // filterChipsで追加された条件を除外するためのセット
+      const chipTypes = new Set(filterChips.value.map(chip => chip.type))
 
-      // 属性
-      const attrLabels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
-      f.attributes.forEach(attr => {
-        icons.push({ type: 'attr', label: attrLabels[attr] || attr })
-      })
-
-      // 種族（短縮表示）
-      const raceLabels: Record<string, string> = {
-        dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
-        zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
-        fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
-        pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
-        divine: '神', creatorgod: '創'
-      }
-      f.races.forEach(race => {
-        icons.push({ type: 'race', label: raceLabels[race] || race.slice(0, 1) })
-      })
-
-      // レベル（統合表示）
-      if (f.levels.length > 0) {
-        icons.push({ type: 'level', label: formatNumberRange(f.levels, '★') })
-      }
-
-      // ATK/DEF
-      if (f.atk.from !== undefined || f.atk.to !== undefined) {
-        icons.push({ type: 'atk', label: 'ATK' })
-      }
-      if (f.def.from !== undefined || f.def.to !== undefined) {
-        icons.push({ type: 'def', label: 'DEF' })
-      }
-
-      // モンスタータイプ
-      const monsterTypeLabels: Record<string, string> = {
-        normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
-        pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
-        union: 'U', gemini: 'D', special: '特'
-      }
-      f.monsterTypes.forEach(mtype => {
-        icons.push({ type: 'monsterType', label: monsterTypeLabels[mtype] || mtype.slice(0, 1) })
-      })
-
-      // リンク数（統合表示）
-      if (f.linkNumbers.length > 0) {
-        icons.push({ type: 'link', label: formatNumberRange(f.linkNumbers, 'L') })
-      }
-
-      return icons
+      // filterChipsと重複しないアイコンのみを返す
+      return allIcons.filter(icon => !chipTypes.has(icon.type))
     })
 
-    // 画面幅に応じた一行あたりの表示数
-    // 実際の幅はCSSで制御、ここでは目安を設定
-    const iconsPerRow = ref(4) // デフォルト値
-
-    // 画面幅を監視して一行あたりの表示数を更新
-    const updateIconsPerRow = () => {
-      const width = window.innerWidth
-      if (width >= 500) {
-        iconsPerRow.value = 6
-      } else if (width >= 400) {
-        iconsPerRow.value = 5
-      } else {
-        iconsPerRow.value = 4
-      }
-    }
-
-    // マウント時とリサイズ時に更新
-    onMounted(() => {
-      updateIconsPerRow()
-      window.addEventListener('resize', updateIconsPerRow)
-    })
-    onUnmounted(() => {
-      window.removeEventListener('resize', updateIconsPerRow)
-    })
-
-    // 最大表示数（二行分）
-    const maxVisibleIcons = computed(() => iconsPerRow.value * 2)
-
-    // 一行目（一行分をフル表示）
-    const filterIconsRow1 = computed(() => {
-      return displayFilterIcons.value.slice(0, iconsPerRow.value)
-    })
-
-    // 二行目（残りを表示）
-    const filterIconsRow2 = computed(() => {
-      return displayFilterIcons.value.slice(iconsPerRow.value, maxVisibleIcons.value)
-    })
 
     // コマンドモードの検出
     const commandMatch = computed(() => {
@@ -595,6 +472,12 @@ export default defineComponent({
 
     const isCommandMode = computed(() => commandMatch.value !== null)
     const commandPrefix = computed(() => commandMatch.value?.command || '')
+
+    // コマンド名を入力中かどうか（/で始まるがまだスペースがない状態）
+    const isTypingCommand = computed(() => {
+      const query = deckStore.searchQuery
+      return query.startsWith('/') && !pendingCommand.value && !commandMatch.value
+    })
 
     // 入力値がNOT条件かどうかを判定（-プレフィックス）
     const isNegatedInput = computed(() => {
@@ -666,7 +549,13 @@ export default defineComponent({
       if (searchMode.value === 'mydeck') {
         return 'デッキ名を入力...'
       }
-      return props.placeholder
+      // 検索モードに応じたプレースホルダー
+      const placeholders: Record<string, string> = {
+        'name': 'カード名を検索...',
+        'text': 'テキストを検索...',
+        'pendulum': 'ペンデュラムテキストを検索...'
+      }
+      return placeholders[searchMode.value] || props.placeholder
     })
 
     // mydeckモード用の候補リスト
@@ -713,16 +602,8 @@ export default defineComponent({
           return 'ATK'
         case 'def':
           return 'DEF'
-        case 'races': {
-          const raceLabels: Record<string, string> = {
-            dragon: '龍', spellcaster: '魔', warrior: '戦', machine: '機', fiend: '悪', fairy: '天',
-            zombie: '死', beast: '獣', beastwarrior: '獣戦', plant: '植', insect: '昆', aqua: '水',
-            fish: '魚', seaserpent: '海', reptile: '爬', dinosaur: '恐', windbeast: '鳥', rock: '岩',
-            pyro: '炎', thunder: '雷', psychic: '念', wyrm: '幻', cyberse: '電', illusion: '幻想',
-            divine: '神', creatorgod: '創'
-          }
-          return raceLabels[value] || value.slice(0, 1)
-        }
+        case 'races':
+          return getRaceLabel(value)
         default:
           return value
       }
@@ -989,34 +870,35 @@ export default defineComponent({
 
       switch (type) {
         case 'attributes':
-          if (!f.attributes.includes(value)) {
-            f.attributes.push(value)
+          if (!f.attributes.includes(value as Attribute)) {
+            f.attributes.push(value as Attribute)
           }
           break
         case 'races':
-          if (!f.races.includes(value)) {
-            f.races.push(value)
+          if (!f.races.includes(value as Race)) {
+            f.races.push(value as Race)
           }
           break
         case 'levels': {
           const level = parseInt(value)
-          if (!isNaN(level) && !f.levels.includes(level)) {
-            f.levels.push(level)
+          if (!isNaN(level) && !f.levelValues.includes(level)) {
+            f.levelValues.push(level)
           }
           break
         }
         case 'atk': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.atk.from = from
-            if (!isNaN(to as number)) f.atk.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.atk.min = min
+            if (!isNaN(max as number)) f.atk.max = max
           } else {
             const val = parseInt(value)
             if (!isNaN(val)) {
-              f.atk.from = val
-              f.atk.to = val
+              f.atk.exact = true
+              f.atk.min = val
+              f.atk.max = val
             }
           }
           break
@@ -1024,32 +906,33 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.def.from = from
-            if (!isNaN(to as number)) f.def.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.def.min = min
+            if (!isNaN(max as number)) f.def.max = max
           } else {
             const val = parseInt(value)
             if (!isNaN(val)) {
-              f.def.from = val
-              f.def.to = val
+              f.def.exact = true
+              f.def.min = val
+              f.def.max = val
             }
           }
           break
         }
         case 'cardType':
-          f.cardType = value
+          f.cardType = value as CardType
           break
         case 'linkNumbers': {
           const link = parseInt(value)
-          if (!isNaN(link) && !f.linkNumbers.includes(link)) {
-            f.linkNumbers.push(link)
+          if (!isNaN(link) && !f.linkValues.includes(link)) {
+            f.linkValues.push(link)
           }
           break
         }
         case 'monsterTypes':
-          if (!f.monsterTypes.includes(value)) {
-            f.monsterTypes.push(value)
+          if (!f.monsterTypes.some(mt => mt.type === value)) {
+            f.monsterTypes.push({ type: value as MonsterType, state: 'normal' })
           }
           break
       }
@@ -1073,38 +956,38 @@ export default defineComponent({
 
       switch (type) {
         case 'attributes': {
-          const idx = f.attributes.indexOf(value)
+          const idx = f.attributes.indexOf(value as Attribute)
           if (idx !== -1) f.attributes.splice(idx, 1)
           break
         }
         case 'races': {
-          const idx = f.races.indexOf(value)
+          const idx = f.races.indexOf(value as Race)
           if (idx !== -1) f.races.splice(idx, 1)
           break
         }
         case 'levels': {
           const level = parseInt(value)
-          const idx = f.levels.indexOf(level)
-          if (idx !== -1) f.levels.splice(idx, 1)
+          const idx = f.levelValues.indexOf(level)
+          if (idx !== -1) f.levelValues.splice(idx, 1)
           break
         }
         case 'atk':
-          f.atk = { from: undefined, to: undefined }
+          f.atk = { exact: false, unknown: false }
           break
         case 'def':
-          f.def = { from: undefined, to: undefined }
+          f.def = { exact: false, unknown: false }
           break
         case 'cardType':
           f.cardType = null
           break
         case 'linkNumbers': {
           const link = parseInt(value)
-          const idx = f.linkNumbers.indexOf(link)
-          if (idx !== -1) f.linkNumbers.splice(idx, 1)
+          const idx = f.linkValues.indexOf(link)
+          if (idx !== -1) f.linkValues.splice(idx, 1)
           break
         }
         case 'monsterTypes': {
-          const idx = f.monsterTypes.indexOf(value)
+          const idx = f.monsterTypes.findIndex(mt => mt.type === value)
           if (idx !== -1) f.monsterTypes.splice(idx, 1)
           break
         }
@@ -1213,6 +1096,13 @@ export default defineComponent({
 
     // Enterキーハンドラ
     const handleEnter = () => {
+      console.log('[SearchInputBar] handleEnter called', {
+        searchMode: searchMode.value,
+        pendingCommand: pendingCommand.value,
+        searchQuery: deckStore.searchQuery,
+        isGlobalSearchMode: deckStore.isGlobalSearchMode
+      })
+
       // mydeckモードの場合
       if (searchMode.value === 'mydeck' && !pendingCommand.value) {
         // 選択中のデッキがある場合
@@ -1256,11 +1146,27 @@ export default defineComponent({
 
       // 有効な入力がある場合はチップに変換
       if (pendingCommand.value && isValidCommandInput.value) {
+        console.log('[SearchInputBar] Adding filter chip')
         addFilterChip()
         return
       }
 
+      // コマンド入力中の場合は何もしない
+      if (isTypingCommand.value) {
+        console.log('[SearchInputBar] Command input in progress, ignoring Enter')
+        return
+      }
+
+      // コマンドモードの場合はフィルタを適用
+      if (isCommandMode.value) {
+        console.log('[SearchInputBar] Command mode, applying filter')
+        applyCommandFilter()
+        deckStore.searchQuery = '' // コマンド部分をクリア
+        return
+      }
+
       // それ以外は検索実行
+      console.log('[SearchInputBar] Calling handleSearch')
       handleSearch()
     }
 
@@ -1280,15 +1186,14 @@ export default defineComponent({
       switch (cmd.filterType) {
         case 'attributes': {
           const attr = ATTRIBUTE_MAP[value]
-          if (attr && !f.attributes.includes(attr)) {
-            f.attributes.push(attr)
+          if (attr && !f.attributes.includes(attr as Attribute)) {
+            f.attributes.push(attr as Attribute)
           }
           break
         }
         case 'races': {
           // 種族は部分一致で検索（TODO: 種族マッピングを追加）
-          // 型安全のためにstringとしてキャスト
-          const raceValue = value as string
+          const raceValue = value as Race
           if (raceValue && !f.races.includes(raceValue)) {
             f.races.push(raceValue)
           }
@@ -1296,8 +1201,8 @@ export default defineComponent({
         }
         case 'levels': {
           const level = parseInt(value)
-          if (!isNaN(level) && level >= 1 && level <= 12 && !f.levels.includes(level)) {
-            f.levels.push(level)
+          if (!isNaN(level) && level >= 1 && level <= 12 && !f.levelValues.includes(level)) {
+            f.levelValues.push(level)
           }
           break
         }
@@ -1305,15 +1210,16 @@ export default defineComponent({
           // ATK:1000-2000 または ATK:1000 形式
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.atk.from = from
-            if (!isNaN(to as number)) f.atk.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.atk.min = min
+            if (!isNaN(max as number)) f.atk.max = max
           } else if (parts.length === 1) {
             const val = parseInt(parts[0])
             if (!isNaN(val)) {
-              f.atk.from = val
-              f.atk.to = val
+              f.atk.exact = true
+              f.atk.min = val
+              f.atk.max = val
             }
           }
           break
@@ -1321,15 +1227,16 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const from = parts[0] ? parseInt(parts[0]) : undefined
-            const to = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(from as number)) f.def.from = from
-            if (!isNaN(to as number)) f.def.to = to
+            const min = parts[0] ? parseInt(parts[0]) : undefined
+            const max = parts[1] ? parseInt(parts[1]) : undefined
+            if (!isNaN(min as number)) f.def.min = min
+            if (!isNaN(max as number)) f.def.max = max
           } else if (parts.length === 1) {
             const val = parseInt(parts[0])
             if (!isNaN(val)) {
-              f.def.from = val
-              f.def.to = val
+              f.def.exact = true
+              f.def.min = val
+              f.def.max = val
             }
           }
           break
@@ -1337,21 +1244,21 @@ export default defineComponent({
         case 'cardType': {
           const type = CARD_TYPE_MAP[value]
           if (type) {
-            f.cardType = type
+            f.cardType = type as CardType
           }
           break
         }
         case 'linkNumbers': {
           const link = parseInt(value)
-          if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkNumbers.includes(link)) {
-            f.linkNumbers.push(link)
+          if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkValues.includes(link)) {
+            f.linkValues.push(link)
           }
           break
         }
         case 'monsterTypes': {
           const mtype = MONSTER_TYPE_MAP[value]
-          if (mtype && !f.monsterTypes.includes(mtype)) {
-            f.monsterTypes.push(mtype)
+          if (mtype && !f.monsterTypes.some(mt => mt.type === mtype)) {
+            f.monsterTypes.push({ type: mtype as MonsterType, state: 'normal' })
           }
           break
         }
@@ -1374,18 +1281,16 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
-      // コマンドモードの場合はフィルタを適用
-      if (isCommandMode.value) {
-        applyCommandFilter()
-        // フィルタ適用後に検索を実行
-        if (hasActiveFilters.value) {
-          // 検索クエリがクリアされているので、フィルタのみで検索
-        } else {
-          return
-        }
-      }
+      console.log('[SearchInputBar] handleSearch called', {
+        searchQuery: deckStore.searchQuery,
+        hasActiveFilters: hasActiveFilters.value,
+        isGlobalSearchMode: deckStore.isGlobalSearchMode
+      })
 
-      if (!deckStore.searchQuery.trim() && !hasActiveFilters.value) {
+      const query = deckStore.searchQuery.trim()
+
+      if (!query && !hasActiveFilters.value) {
+        console.log('[SearchInputBar] Empty query and no filters, returning without closing global search')
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -1393,6 +1298,7 @@ export default defineComponent({
         return
       }
 
+      console.log('[SearchInputBar] Executing search, will close global search after API call')
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
 
@@ -1417,13 +1323,48 @@ export default defineComponent({
         if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
         if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
         if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-        if (f.levels.length > 0) searchOptions.levels = f.levels
-        if (f.atk.from !== undefined || f.atk.to !== undefined) searchOptions.atk = f.atk
-        if (f.def.from !== undefined || f.def.to !== undefined) searchOptions.def = f.def
-        if (f.monsterTypes.length > 0) searchOptions.monsterTypes = f.monsterTypes as SearchOptions['monsterTypes']
-        if (f.linkNumbers.length > 0) searchOptions.linkNumbers = f.linkNumbers
+        if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
+        if (f.atk.min !== undefined || f.atk.max !== undefined) {
+          searchOptions.atk = { from: f.atk.min, to: f.atk.max }
+        }
+        if (f.def.min !== undefined || f.def.max !== undefined) {
+          searchOptions.def = { from: f.def.min, to: f.def.max }
+        }
+        if (f.monsterTypes.length > 0) {
+          const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
+          const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
+          if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
+          if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
+          // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
+          if (normalTypes.length > 0 || notTypes.length > 0) {
+            searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+          }
+        }
+        if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
+        if (f.linkMarkers.length > 0) {
+          searchOptions.linkMarkers = f.linkMarkers
+          searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
+        }
+        if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
+        if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
+        if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
+        if (f.releaseDate.from || f.releaseDate.to) {
+          searchOptions.releaseDate = {}
+          if (f.releaseDate.from) {
+            const [year, month, day] = f.releaseDate.from.split('-').map(Number)
+            searchOptions.releaseDate.start = { year, month, day }
+          }
+          if (f.releaseDate.to) {
+            const [year, month, day] = f.releaseDate.to.split('-').map(Number)
+            searchOptions.releaseDate.end = { year, month, day }
+          }
+        }
 
         const results = await searchCards(searchOptions)
+
+        // 検索APIを呼び出したのでグローバル検索モードを終了
+        console.log('[SearchInputBar] Search completed, closing global search mode')
+        deckStore.isGlobalSearchMode = false
 
         // 検索結果をstore用の形式に変換
         deckStore.searchResults = results as unknown as typeof deckStore.searchResults
@@ -1460,7 +1401,6 @@ export default defineComponent({
         deckStore.hasMore = false
       } finally {
         deckStore.isLoading = false
-        deckStore.isGlobalSearchMode = false
       }
     }
 
@@ -1490,9 +1430,6 @@ export default defineComponent({
       hasActiveFilters,
       filterCount,
       displayFilterIcons,
-      filterIconsRow1,
-      filterIconsRow2,
-      maxVisibleIcons,
       isCommandMode,
       commandPrefix,
       filterChips,
@@ -1599,10 +1536,12 @@ export default defineComponent({
 
 .input-container {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   position: relative;
+  overflow: hidden;
+  justify-content: center;
 
   &.command-mode {
     background: rgba(0, 217, 184, 0.1);
@@ -1612,7 +1551,31 @@ export default defineComponent({
   }
 }
 
-/* フィルターチップ */
+/* SearchFilterDialogで選択した条件（上部） */
+.filter-icons-top {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  padding: 0 4px;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* compactモード（right側）では最大幅を制限 */
+.compact .filter-icons-top {
+  max-width: 150px;
+}
+
+/* 入力行 */
+.input-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+/* スラッシュコマンドのチップ（左側） */
 .filter-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1769,7 +1732,7 @@ export default defineComponent({
   background: white;
   border: 2px solid transparent;
   border-radius: 20px;
-  padding: 0 10px;
+  padding: 2px 10px;
   height: 44px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -1846,11 +1809,10 @@ export default defineComponent({
   border: none;
   outline: none;
   font-size: 14px;
-  padding: 8px;
+  padding: 4px 8px;
   background: transparent;
   color: var(--text-primary, #333);
-  height: 100%;
-  line-height: 1.5;
+  line-height: 1.2;
   min-width: 80px;
 
   &::placeholder {

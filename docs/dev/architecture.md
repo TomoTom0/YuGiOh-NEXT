@@ -19,6 +19,13 @@ YGO Deck Helper は Chrome拡張機能として、遊戯王公式カードデー
 │  Background Service Worker          │
 │  └─ background.ts                   │
 │                                     │
+│  Cache Layer (v0.4.1追加)          │
+│  ├─ UnifiedCacheDB                  │
+│  │  ├─ TableA (カード基本情報)    │
+│  │  ├─ TableB2 (テキスト分離)     │
+│  │  └─ TableC (カード詳細)        │
+│  └─ stale-while-revalidate戦略    │
+│                                     │
 │  API Layer                          │
 │  ├─ card-search.ts                  │
 │  ├─ deck-detail-parser.ts           │
@@ -113,6 +120,28 @@ interface DeckDetail {
   sideDeck: Card[];
 }
 ```
+
+### Cache Layer (v0.4.1追加)
+
+#### UnifiedCacheDB
+カード情報を効率的にキャッシュするためのデータベースシステム。
+
+**テーブル構成:**
+- **TableA**: カード基本情報（cid, name, ruby, imgs等）
+- **TableB2**: カードテキスト・ペンデュラムテキスト（text, pendText分離）
+- **TableC**: カード詳細情報（関連カード、Q&A、収録パック等）
+
+**キャッシュ戦略:**
+- **stale-while-revalidate**: キャッシュを即座に返しつつバックグラウンドで更新
+- **自動クリーンアップ**: 古いキャッシュの定期削除
+
+**利点:**
+- 高速なカード情報取得
+- ネットワーク負荷の軽減
+- オフライン対応の基盤
+- データ構造の統一（TempCardDBとの統合）
+
+詳細: [キャッシュシステム設計](./cache-system.md)
 
 ### Utilities
 

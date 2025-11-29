@@ -6,7 +6,16 @@
     </div>
     <div v-else class="pack-list">
       <div v-for="pack in groupedPacks" :key="`${pack.code}_${pack.name}`" class="pack-item" :data-pack-id="pack.packId">
-        <div class="pack-name">{{ pack.name }}</div>
+        <a
+          v-if="pack.packId"
+          :href="getPackUrl(pack.packId)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pack-name"
+        >
+          {{ pack.name }}
+        </a>
+        <div v-else class="pack-name">{{ pack.name }}</div>
         <div class="pack-details">
           <div class="pack-date">{{ pack.releaseDate || '-' }}</div>
           <div class="pack-code">{{ pack.code || '-' }}</div>
@@ -63,6 +72,7 @@
 <script>
 import { ref, computed } from 'vue'
 import CardList from './CardList.vue'
+import { searchCardsByPackId } from '../api/card-search'
 
 export default {
   name: 'CardProducts',
@@ -85,12 +95,12 @@ export default {
     const packCards = ref({})
     const packViewModes = ref({})
     const packSortOrders = ref({})
-    
+
     const groupedPacks = computed(() => {
       if (!props.detail || !props.detail.packs) return []
-      
+
       const packMap = new Map()
-      
+
       props.detail.packs.forEach(pack => {
         const key = `${pack.code}_${pack.name}`
         if (!packMap.has(key)) {
@@ -111,41 +121,25 @@ export default {
           })
         }
       })
-      
+
       return Array.from(packMap.values())
     })
-    
+
     const expandPack = async (packId) => {
       if (expandedPacks.value[packId]) return
-      
+
       loadingPacks.value[packId] = true
       expandedPacks.value[packId] = true
-      
+
       if (!packViewModes.value[packId]) {
         packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
         packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
       }
-      
+
       try {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
-        const response = await fetch(url, {
-          method: 'GET',
-          credentials: 'include'
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch pack cards')
-        }
-        
-        const html = await response.text()
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, 'text/html')
-        
-        const { parseSearchResults } = await import('../api/card-search')
-        const cards = parseSearchResults(doc)
-        
+        const cards = await searchCardsByPackId(packId)
         packCards.value[packId] = cards
       } catch (error) {
         console.error('Failed to fetch pack cards:', error)
@@ -198,7 +192,16 @@ export default {
         cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
-    
+
+    const getPackUrl = (packId) => {
+      const baseUrl = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
+      const params = new URLSearchParams({
+        ope: '1',
+        pid: packId
+      })
+      return `${baseUrl}?${params.toString()}`
+    }
+
     return {
       groupedPacks,
       expandedPacks,
@@ -210,7 +213,8 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
-      handleScrollToTop
+      handleScrollToTop,
+      getPackUrl
     }
   }
 }
@@ -252,6 +256,18 @@ export default {
   color: var(--text-primary);
   margin-bottom: 6px;
   width: 100%;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+
+  &:hover {
+    color: #0066cc;
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--text-primary);
+  }
 }
 
 .pack-details {

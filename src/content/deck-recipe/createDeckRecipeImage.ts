@@ -343,11 +343,16 @@ async function drawCardSection(
   try {
     let cardBackImg: any = null;
 
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-      // Chrome拡張機能環境
-      const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
-      cardBackImg = await loadImage(cardBackUrl, gamePath);
-    } else {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL && chrome.runtime.id) {
+      // Chrome拡張機能環境（コンテキストが有効な場合のみ）
+      try {
+        const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
+        cardBackImg = await loadImage(cardBackUrl, gamePath);
+      } catch (error) {
+        // Extension context invalidatedエラーの場合は警告のみ表示
+        console.warn('Extension context invalidated, skipping card back image');
+      }
+    } else if (typeof chrome === 'undefined') {
       // Node.js環境 - ローカルファイルパスを使用
       const path = await import('path');
       const { fileURLToPath } = await import('url');
@@ -360,8 +365,8 @@ async function drawCardSection(
       ctx.drawImage(cardBackImg, 8 * scale, currentY + 9 * scale, 14 * scale, 17 * scale);
     }
   } catch (error) {
-    console.error('Failed to load card back image:', error);
-    // カードバック画像の読み込みに失敗しても処理は継続
+    // カードバック画像の読み込みに失敗しても処理は継続（警告のみ）
+    console.warn('Failed to load card back image:', error);
   }
 
   // 3. セクション名とカード数（旧実装: line 2013, 2034-2037）
