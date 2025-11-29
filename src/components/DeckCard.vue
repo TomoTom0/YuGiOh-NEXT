@@ -586,10 +586,10 @@ export default {
 
 .limit-regulation {
   position: absolute;
-  bottom: 0;
+  bottom: 5.56%; /* カードの下1/18（100% / 18 = 5.56%）を空ける */
   left: 0;
   width: 100%;
-  height: 16.67%;
+  height: 19.44%; /* 7/36（1/6 + 1/36 = 6/36 + 1/36 = 7/36 = 19.44%） */
   display: flex;
   align-items: center;
   justify-content: center;

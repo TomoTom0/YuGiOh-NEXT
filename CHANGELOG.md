@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - mask-imageを使用してライト/ダークモード対応
   - var(--card-bg)とvar(--bg-secondary)で背景色を継承
   - 右下40px×40pxのグラデーション三角形
+- 禁止制限の帯の表示位置とサイズを調整
+  - カード下部から5.56%（1/18）の位置に配置
+  - 高さを19.44%（7/36）に調整して視認性を向上
 
 ### Fixed
 - scroll-to-top機能の修正と全タブでの動作保証
