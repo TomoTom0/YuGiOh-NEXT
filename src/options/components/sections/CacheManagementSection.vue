@@ -2,6 +2,25 @@
   <div class="cache-management-section">
     <h2 class="main-title">General</h2>
 
+    <!-- タブアイコン -->
+    <div class="setting-group">
+      <h3 class="setting-title">タブアイコン</h3>
+      <p class="setting-desc">
+        デッキ編集画面のタブアイコンを拡張機能のアイコンに変更します。
+      </p>
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          v-model="changeFavicon"
+          @change="handleFaviconToggle"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">
+          タブアイコンを{{ changeFavicon ? '変更する' : '変更しない' }}
+        </span>
+      </label>
+    </div>
+
     <!-- キャッシュ管理 -->
     <div class="setting-group">
       <h3 class="setting-title">キャッシュ管理</h3>
@@ -45,10 +64,12 @@ const settingsStore = useSettingsStore();
 const cacheMessage = ref('');
 const cacheError = ref(false);
 const deckEditEnabled = ref(true);
+const changeFavicon = ref(false);
 
 onMounted(() => {
   // 機能設定を読み込み
   deckEditEnabled.value = settingsStore.featureSettings['deck-edit'];
+  changeFavicon.value = settingsStore.appSettings.changeFavicon;
 });
 
 const handleClearCache = async () => {
@@ -79,6 +100,10 @@ const handleClearCache = async () => {
 
 const handleFeatureToggle = () => {
   settingsStore.toggleFeature('deck-edit', deckEditEnabled.value);
+};
+
+const handleFaviconToggle = () => {
+  settingsStore.setChangeFavicon(changeFavicon.value);
 };
 </script>
 

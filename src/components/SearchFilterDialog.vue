@@ -1,30 +1,28 @@
 <template>
   <div v-if="isVisible" class="dialog-overlay" @click="$emit('close')">
-    <div class="dialog" @click.stop>
+    <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
-      <div class="dialog-header">
-        <div class="dialog-header-inner">
-          <h2>検索条件指定</h2>
-          <div class="header-selected-chips">
-            <span
-              v-for="(icon, index) in headerFilterIcons"
-              :key="index"
-              class="header-chip"
-              :class="icon.type"
-            >{{ icon.label }}</span>
-          </div>
-          <div class="header-actions">
-            <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
-              </svg>
-            </button>
-            <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
-          </div>
+      <div class="dialog-header triple">
+        <h2 class="dialog-title">検索条件指定</h2>
+        <div class="header-selected-chips">
+          <span
+            v-for="(icon, index) in headerFilterIcons"
+            :key="index"
+            class="header-chip"
+            :class="icon.type"
+          >{{ icon.label }}</span>
+        </div>
+        <div class="header-actions">
+          <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
+          <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
         </div>
       </div>
 
-      <div class="dialog-content">
+      <div class="dialog-body">
         <!-- カードタイプタブと属性/魔法タイプ/罠タイプ -->
         <div class="card-type-section">
           <div class="card-type-tabs">
@@ -765,8 +763,9 @@ const activeConditionChips = computed(() => {
   if (filters.trapTypes.length > 0) chips.push(`罠:${filters.trapTypes.length}件`);
   if (filters.races.length > 0) chips.push(`種族:${filters.races.length}件`);
   if (filters.monsterTypes.length > 0) chips.push(`タイプ:${filters.monsterTypes.length}件`);
-  const levelCount = filters.levelValues.length + filters.linkValues.length + filters.scaleValues.length;
-  if (levelCount > 0) chips.push(`レベル等:${levelCount}件`);
+  if (filters.levelValues.length > 0) chips.push(`レベル:${filters.levelValues.length}件`);
+  if (filters.linkValues.length > 0) chips.push(`リンク数:${filters.linkValues.length}件`);
+  if (filters.scaleValues.length > 0) chips.push(`Pスケール:${filters.scaleValues.length}件`);
   const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
   if (linkMarkerLabel) {
     chips.push(linkMarkerLabel);
@@ -1068,10 +1067,11 @@ function clearFilters() {
   z-index: 10000;
 }
 
-.dialog {
-  background: #ffffff;
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
   width: 90%;
   max-width: 800px;
   max-height: 85vh;
@@ -1080,20 +1080,11 @@ function clearFilters() {
 }
 
 .dialog-header {
-  width: 100%;
-}
-
-.dialog-header-inner {
-  display: flex;
-  align-items: center;
   padding: 12px 16px;
-  gap: 12px;
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
 
-  h2 {
-    margin: 0;
+  .dialog-title {
     font-size: 14px;
-    font-weight: 600;
-    color: #202124;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -1116,7 +1107,7 @@ function clearFilters() {
   font-weight: 500;
   border-radius: 2px;
   background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
   max-width: 48px;
@@ -1138,7 +1129,7 @@ function clearFilters() {
 .close-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
@@ -1149,8 +1140,8 @@ function clearFilters() {
   line-height: 1;
 
   &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-    color: var(--text-primary, #333);
+    background: var(--bg-secondary, var(--bg-secondary));
+    color: var(--text-primary, var(--text-primary));
   }
 }
 
@@ -1165,7 +1156,7 @@ function clearFilters() {
   font-weight: 300;
 }
 
-.dialog-content {
+.dialog-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
@@ -1221,7 +1212,7 @@ function clearFilters() {
 }
 
 .card-type-tab-wrapper .tab-header:hover:not(:has(.card-type-tab:disabled)) {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active) {
@@ -1284,7 +1275,7 @@ function clearFilters() {
   gap: 2px;
   padding: 2px 6px;
   background: #f0f0f0;
-  color: #333;
+  color: var(--text-primary);
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 11px;
@@ -1398,7 +1389,7 @@ function clearFilters() {
   color: #202124;
   margin: 0 0 8px 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .chip {
@@ -1451,7 +1442,7 @@ function clearFilters() {
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: #f5f5f5;
+    background: var(--bg-secondary);
     color: #9aa0a6;
     border-color: #dadce0;
     position: relative;
@@ -1629,7 +1620,7 @@ function clearFilters() {
           rgba(117, 117, 117, 0.2) 8px,
           rgba(117, 117, 117, 0.2) 9px
         ),
-        linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+        linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
       border-color: #757575;
       color: #424242;
     }
@@ -1642,7 +1633,7 @@ function clearFilters() {
           rgba(211, 47, 47, 0.15) 8px,
           rgba(211, 47, 47, 0.15) 9px
         ),
-        linear-gradient(135deg, #f5f5f5 0%, #f5f5f5 40%, #ffcdd2 70%, #ef5350 100%);
+        linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
       border: 1.5px solid #d32f2f;
       color: #424242;
     }
@@ -1650,7 +1641,7 @@ function clearFilters() {
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%);
+      background: linear-gradient(135deg, var(--border-primary) 0%, #bdbdbd 100%);
       border-color: #9e9e9e;
       color: #424242;
     }
@@ -1672,7 +1663,7 @@ function clearFilters() {
       border-color: #64b5f6;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+      background: linear-gradient(135deg, #42a5f5 0%, var(--button-bg) 100%);
       border-color: #0d47a1;
       color: #fff;
     }
@@ -1787,7 +1778,7 @@ function clearFilters() {
     }
 
     &:hover:not(:has(.level-tab:disabled)) {
-      background: #f5f5f5;
+      background: var(--bg-secondary);
     }
 
     &:has(.level-tab.active):hover {
@@ -2072,7 +2063,7 @@ function clearFilters() {
     }
 
     &:hover:not(:has(.stat-tab:disabled)) {
-      background: #f5f5f5;
+      background: var(--bg-secondary);
     }
 
     &:has(.stat-tab.active):hover {

@@ -233,7 +233,7 @@ watch(() => props.modelValue, (newVal) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -241,9 +241,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-dialog {
-  background: var(--bg-color, #fff);
+  background: var(--dialog-bg);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   width: 90%;
   max-width: 600px;
   height: 80vh;
@@ -256,7 +256,7 @@ watch(() => props.modelValue, (newVal) => {
   width: 100%;
   padding: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
   box-sizing: border-box;
 }
@@ -271,7 +271,7 @@ watch(() => props.modelValue, (newVal) => {
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
   flex-shrink: 0;
 }
 
@@ -286,8 +286,8 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-clear-action {
-  background: #f5f5f5;
-  border-color: #e0e0e0;
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
 }
 
 .btn-clear-action:hover {
@@ -300,24 +300,24 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
   align-items: center;
 }
 
 .search-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   background: var(--bg-color, #fff);
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+  border-color: var(--button-bg);
+  box-shadow: 0 0 0 2px rgba(var(--button-bg-rgb, 25, 118, 210), 0.1);
 }
 
 .category-chip {
@@ -357,7 +357,7 @@ watch(() => props.modelValue, (newVal) => {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--text-color, #666);
+  color: var(--text-color, var(--text-secondary));
   padding: 0;
   width: 30px;
   height: 30px;
@@ -366,7 +366,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .close-btn:hover {
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
 }
 
 .filter-tabs {
@@ -374,7 +374,7 @@ watch(() => props.modelValue, (newVal) => {
   flex-direction: column;
   gap: 4px;
   padding: 6px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
 }
 
 .tab-row {
@@ -386,12 +386,12 @@ watch(() => props.modelValue, (newVal) => {
   padding: 6px 12px;
   background: transparent;
   border: none;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-primary);
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s;
   flex: 1;
   white-space: nowrap;
@@ -403,14 +403,14 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tab-btn:hover {
-  background: rgba(25, 118, 210, 0.08);
-  color: #1976d2;
+  background: rgba(var(--button-bg-rgb, 25, 118, 210), 0.08);
+  color: var(--button-bg);
 }
 
 .tab-btn.active {
-  color: #1976d2;
-  border-bottom-color: #1976d2;
-  background: rgba(25, 118, 210, 0.08);
+  color: var(--button-bg);
+  border-bottom-color: var(--button-bg);
+  background: rgba(var(--button-bg-rgb, 25, 118, 210), 0.08);
 }
 
 .category-list {
@@ -426,11 +426,11 @@ watch(() => props.modelValue, (newVal) => {
 .category-item {
   padding: 12px 16px;
   background: #ffffff;
-  border: 1.5px solid #e0e0e0;
+  border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   text-align: left;
   transition: all 0.2s;
   min-height: 42px;
@@ -441,16 +441,16 @@ watch(() => props.modelValue, (newVal) => {
 
 .category-item:hover {
   background: #f8f9fa;
-  border-color: #1976d2;
-  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
+  border-color: var(--button-bg);
+  box-shadow: 0 2px 4px rgba(var(--button-bg-rgb, 25, 118, 210), 0.1);
 }
 
 .category-item.selected {
   background: #e3f2fd;
-  border-color: #1976d2;
-  color: #1565c0;
+  border-color: var(--button-bg);
+  color: var(--button-hover-bg);
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px #1976d2;
+  box-shadow: 0 2px 6px rgba(var(--button-bg-rgb, 25, 118, 210), 0.2), inset 0 0 0 1px var(--button-bg);
 }
 
 .btn-icon {
@@ -461,27 +461,27 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   transition: all 0.2s;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .btn-icon:hover {
-  background: #e0e0e0;
+  background: var(--border-primary);
   border-color: #999;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .btn-icon.active {
-  background: #1976d2;
-  border-color: #1565c0;
+  background: var(--button-bg);
+  border-color: var(--button-hover-bg);
   color: #ffffff;
 }
 
 .btn-icon.active:hover {
-  background: #1565c0;
+  background: var(--button-hover-bg);
   border-color: #0d47a1;
   color: #ffffff;
 }
@@ -504,20 +504,20 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-color, #666);
+  background: var(--bg-secondary, var(--bg-secondary));
+  color: var(--text-color, var(--text-secondary));
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: var(--bg-hover, var(--border-primary));
 }
 
 .btn-primary {
-  background: #1976d2;
+  background: var(--button-bg);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1565c0;
+  background: var(--button-hover-bg);
 }
 </style>

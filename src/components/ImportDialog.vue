@@ -1,9 +1,10 @@
 <template>
-  <div v-if="isVisible" class="import-dialog">
-    <div class="dialog-header">
-      <h3>Import Deck</h3>
-      <button class="close-btn" @click="close" title="Close">×</button>
-    </div>
+  <div v-if="isVisible" class="dialog-overlay" @click.self="close">
+    <div class="dialog-content" @click.stop>
+      <div class="dialog-header common">
+        <h3 class="dialog-title">Import Deck</h3>
+        <button class="close-btn" @click="close" title="Close">×</button>
+      </div>
 
       <div class="dialog-body">
         <!-- ファイル選択 -->
@@ -67,6 +68,7 @@
           Import
         </button>
       </div>
+    </div>
   </div>
 </template>
 
@@ -195,35 +197,36 @@ function handleImport() {
 </script>
 
 <style scoped>
-.import-dialog {
+.dialog-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--dialog-overlay-bg, rgba(0, 0, 0, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 10010;
-  background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-primary, #ddd);
+}
+
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
+  border: 1px solid var(--dialog-border, #e0e0e0);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
   width: 90%;
   max-width: 520px;
   max-height: 90vh;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-secondary, #eee);
-}
-
-.dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #000);
+  flex-shrink: 0;
 }
 
 .close-btn {
@@ -231,7 +234,7 @@ function handleImport() {
   border: none;
   font-size: 28px;
   line-height: 1;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -244,11 +247,13 @@ function handleImport() {
 }
 
 .close-btn:hover {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   color: var(--text-primary, #000);
 }
 
 .dialog-body {
+  flex: 1;
+  overflow-y: auto;
   padding: 20px;
 }
 
@@ -276,7 +281,7 @@ function handleImport() {
 
 .btn-select-file {
   padding: 8px 16px;
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 4px;
   font-size: 14px;
@@ -288,7 +293,7 @@ function handleImport() {
 }
 
 .btn-select-file:hover {
-  background: var(--bg-tertiary, #e0e0e0);
+  background: var(--bg-tertiary, var(--border-primary));
 }
 
 .file-name {
@@ -308,7 +313,7 @@ function handleImport() {
 .preview-section {
   margin-top: 20px;
   padding: 16px;
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   border-radius: 4px;
 }
 
@@ -324,7 +329,7 @@ function handleImport() {
   gap: 16px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
 }
 
 .preview-info span {
@@ -380,7 +385,7 @@ function handleImport() {
 }
 
 .checkbox-label:hover {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -411,12 +416,12 @@ function handleImport() {
 }
 
 .btn-cancel {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   color: var(--text-primary, #000);
 }
 
 .btn-cancel:hover {
-  background: var(--bg-tertiary, #e0e0e0);
+  background: var(--bg-tertiary, var(--border-primary));
 }
 
 .btn-import {

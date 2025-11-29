@@ -3,6 +3,22 @@
     <h2 class="main-title">UI設定</h2>
     <p class="description">デッキ編集画面の表示設定</p>
 
+    <!-- カラーテーマ -->
+    <div class="setting-group">
+      <h3 class="setting-title">カラーテーマ</h3>
+      <div class="theme-buttons">
+        <button
+          v-for="themeOption in themeOptions"
+          :key="themeOption.value"
+          class="theme-button"
+          :class="{ active: settingsStore.appSettings.theme === themeOption.value }"
+          @click="handleThemeChange(themeOption.value)"
+        >
+          {{ themeOption.label }}
+        </button>
+      </div>
+    </div>
+
     <!-- 画像サイズ -->
     <div class="setting-group">
       <h3 class="setting-title">表示する画像の大きさ</h3>
@@ -92,12 +108,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { SearchInputPosition, MiddleDecksLayout } from '../../../types/settings';
+import type { SearchInputPosition, MiddleDecksLayout, Theme } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveMessage = ref('');
 
 type SizePreset = 's' | 'm' | 'l' | 'xl';
+
+const themeOptions = [
+  { value: 'light' as Theme, label: 'Light' },
+  { value: 'dark' as Theme, label: 'Dark' },
+  { value: 'system' as Theme, label: 'System' }
+];
 
 const sizePresets = ref([
   { value: 's', label: 'S' },
@@ -125,6 +147,11 @@ const handleLayoutChange = (layout: MiddleDecksLayout) => {
   settingsStore.appSettings.middleDecksLayout = layout;
   settingsStore.setMiddleDecksLayout(layout);
   showSaveMessage('デッキレイアウトを変更しました');
+};
+
+const handleThemeChange = (theme: Theme) => {
+  settingsStore.setTheme(theme);
+  showSaveMessage(`テーマを「${theme}」に変更しました`);
 };
 
 const showSaveMessage = (message: string) => {
@@ -167,6 +194,36 @@ const showSaveMessage = (message: string) => {
   font-weight: 600;
   color: #333;
   margin: 0 0 16px 0;
+}
+
+.theme-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 500px;
+}
+
+.theme-button {
+  padding: 16px 20px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+
+  &:hover {
+    border-color: #1a73e8;
+    background: #f8fbff;
+  }
+
+  &.active {
+    border-color: #1a73e8;
+    background: #e8f0fe;
+    color: #1a73e8;
+  }
 }
 
 .preset-grid {
