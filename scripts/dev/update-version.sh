@@ -18,10 +18,6 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
 echo "Updating version to: $NEW_VERSION"
 
-# version.dat を更新
-echo "$NEW_VERSION" > "$ROOT_DIR/version.dat"
-echo "✓ Updated version.dat"
-
 # package.json を更新
 if [ -f "$ROOT_DIR/package.json" ]; then
   perl -pi -e "s/(\"version\":\s*)\"[^\"]*\"/\$1\"$NEW_VERSION\"/" "$ROOT_DIR/package.json"
@@ -38,6 +34,5 @@ echo ""
 echo "Version updated successfully to $NEW_VERSION"
 echo ""
 echo "Updated files:"
-echo "  - version.dat"
 echo "  - package.json"
 echo "  - public/manifest.json"
