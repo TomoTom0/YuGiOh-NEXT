@@ -11,7 +11,8 @@ import {
   CardSection
 } from '../../types/deck-recipe-image';
 import { getCardImageUrl } from '../../types/card';
-import QRCode from 'qrcode';
+// QRCodeは動的importに変更（画像作成時のみロード）
+// import QRCode from 'qrcode';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl } from '../../utils/url-builder';
 import { getTempCardDB } from '../../utils/temp-card-db';
@@ -489,8 +490,11 @@ async function drawQRCode(
   try {
     console.log('[drawQRCode] isPublic:', isPublic, 'dno:', dno);
 
+    // QRCodeを動的import（QRコード生成時のみロード）
+    const QRCode = await import('qrcode');
+
     // QRコードを生成（Data URL形式）
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+    const qrDataUrl = await QRCode.default.toDataURL(qrUrl, {
       errorCorrectionLevel: QR_CODE_SETTINGS.correctLevel,
       width: QR_CODE_SETTINGS.size * scale,
       margin: 1,

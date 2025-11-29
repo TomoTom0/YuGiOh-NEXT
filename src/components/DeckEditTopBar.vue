@@ -159,7 +159,8 @@ import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import Toast from './Toast.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
-import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
+// 画像作成機能は動的importに変更（メニュー選択時のみロード）
+// import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
 import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
@@ -432,6 +433,9 @@ export default {
 
         // dnoを文字列に変換
         const dno = String(dnoNum)
+
+        // 画像作成機能を動的import（メニュー選択時のみロード）
+        const { showImageDialogWithData } = await import('../content/deck-recipe/imageDialog')
 
         // ダイアログを表示
         await showImageDialogWithData(cgid, dno, deckData, null)

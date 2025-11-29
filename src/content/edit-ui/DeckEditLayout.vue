@@ -141,16 +141,17 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
-import ExportDialog from '../../components/ExportDialog.vue'
-import ImportDialog from '../../components/ImportDialog.vue'
-import OptionsDialog from '../../components/OptionsDialog.vue'
+// ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
+const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
+const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
 import { searchCardsByName } from '../../api/card-search'
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'

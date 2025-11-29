@@ -11,14 +11,11 @@ import '../styles/themes.scss';
 // デッキ編集ページ用の処理をインポート
 import './edit-ui';
 
-// デッキ画像作成ボタンの初期化
-import { initDeckImageButton } from './deck-recipe';
-
-// シャッフル機能の初期化
-import { initShuffle } from './shuffle';
-
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';
+
+// ページ判定
+import { detectCardGameType, isDeckDisplayPage } from '../utils/page-detector';
 
 // マッピングマネージャー
 import { initializeMappingManager } from '../utils/mapping-manager';
@@ -37,14 +34,20 @@ async function initializeFeatures(): Promise<void> {
     // デッキメタデータを事前ロード（パース時の遅延を防ぐ）
     getDeckMetadata().catch(err => console.warn('Failed to preload deck metadata:', err));
 
-    // デッキ画像作成機能の初期化（設定で有効な場合のみ）
-    if (await isFeatureEnabled('deck-image')) {
-      initDeckImageButton();
-    }
+    // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
+    const gameType = detectCardGameType();
+    if (isDeckDisplayPage(gameType)) {
+      // デッキ画像作成機能の初期化（設定で有効な場合のみ）
+      if (await isFeatureEnabled('deck-image')) {
+        const { initDeckImageButton } = await import('./deck-recipe');
+        initDeckImageButton();
+      }
 
-    // シャッフル機能の初期化（設定で有効な場合のみ）
-    if (await isFeatureEnabled('shuffle-sort')) {
-      initShuffle();
+      // シャッフル機能の初期化（設定で有効な場合のみ）
+      if (await isFeatureEnabled('shuffle-sort')) {
+        const { initShuffle } = await import('./shuffle');
+        initShuffle();
+      }
     }
   } catch (error) {
     console.error('Failed to initialize features:', error);
