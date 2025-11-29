@@ -3,12 +3,12 @@
     <div class="dialog-content">
       <h3 class="dialog-title">{{ title }}</h3>
       <p class="dialog-message">{{ message }}</p>
-      <div class="dialog-buttons">
+      <div class="dialog-footer">
         <button
           v-for="(button, index) in buttons"
           :key="index"
-          class="dialog-button"
-          :class="button.class"
+          class="btn"
+          :class="getButtonClass(button.class)"
           @click="button.onClick"
         >
           {{ button.label }}
@@ -53,81 +53,38 @@ export default defineComponent({
       emit('cancel');
     };
 
+    const getButtonClass = (customClass?: string) => {
+      if (!customClass) return 'btn-secondary';
+      if (customClass === 'primary') return 'btn-primary';
+      if (customClass === 'danger') return 'btn-danger';
+      if (customClass === 'secondary') return 'btn-secondary';
+      return customClass;
+    };
+
     return {
-      onCancel
+      onCancel,
+      getButtonClass
     };
   }
 });
 </script>
 
 <style scoped lang="scss">
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
+/* 共通スタイル（common.scss）を使用: .dialog-overlay, .dialog-content, .dialog-title, .dialog-footer, .btn */
 
 .dialog-content {
-  background: var(--bg-primary, #fff);
-  border-radius: 8px;
   padding: 24px;
   min-width: 400px;
-  max-width: 90vw;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .dialog-title {
-  margin: 0 0 12px 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--text-primary, #000);
+  margin-bottom: 16px;
 }
 
 .dialog-message {
   margin: 0 0 20px 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--text-secondary, #666);
-}
-
-.dialog-buttons {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.dialog-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-primary, #000);
-  
-  &:hover {
-    opacity: 0.8;
-  }
-  
-  &.primary {
-    background: var(--accent-color, #007bff);
-    color: #fff;
-  }
-  
-  &.danger {
-    background: #dc3545;
-    color: #fff;
-  }
-  
-  &.secondary {
-    background: var(--bg-tertiary, #e0e0e0);
-  }
+  color: var(--text-secondary);
 }
 </style>

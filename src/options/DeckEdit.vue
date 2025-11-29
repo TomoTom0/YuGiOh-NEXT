@@ -105,14 +105,14 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.deck-edit{background:white;padding:16px;border-radius:8px}
-.desc{color:#666}
+.deck-edit{background: var(--bg-primary);padding:16px;border-radius:8px}
+.desc{color: var(--text-secondary)}
 .row{margin-bottom:12px;display:flex;gap:8px;align-items:center}
 .card-list{margin-bottom:12px}
 .card-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.card-row input{padding:6px;border:1px solid #ccc;border-radius:4px}
+.card-row input{padding:6px;border: 1px solid var(--border-primary);border-radius:4px}
 .card-row .num{width:48px}
 .actions{display:flex;gap:8px}
-.primary{background:#0b66ff;color:white;border:none;padding:8px 12px;border-radius:6px}
-.out{background:#f6f8fa;padding:12px;border-radius:6px;white-space:pre-wrap}
+.primary{background: var(--button-bg);color: var(--button-text);border:none;padding:8px 12px;border-radius:6px}
+.out{background: var(--bg-secondary);padding:12px;border-radius:6px;white-space:pre-wrap}
 </style>

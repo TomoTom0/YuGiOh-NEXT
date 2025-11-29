@@ -89,7 +89,7 @@
             v-if="item.card.text || item.card.pendulumText"
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
-            @click="toggleCardExpand(item.uuid)"
+            @click="toggleCardExpand(item.uuid, $event)"
           >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
 ------
 [Pendulum]
@@ -122,7 +122,7 @@
 </template>
 
 <script>
-import { ref, watch, computed, reactive } from 'vue'
+import { ref, watch, computed, reactive, nextTick } from 'vue'
 import DeckCard from './DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
@@ -182,11 +182,30 @@ export default {
     const maxIndexMap = reactive(new Map())
 
     // カードテキストの展開/折りたたみ切り替え
-    const toggleCardExpand = (uuid) => {
+    const toggleCardExpand = async (uuid, event) => {
+      const textElement = event.currentTarget
+
       if (expandedCards.has(uuid)) {
+        // 折りたたみ: 実際の高さから制限された高さへ
+        const currentHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${currentHeight}px`
+
+        // reflow強制
+        textElement.offsetHeight
+
+        // CSS変数の値に戻す
+        textElement.style.maxHeight = null
         expandedCards.delete(uuid)
       } else {
+        // 展開: まず状態を更新
         expandedCards.add(uuid)
+
+        // DOM更新を待つ
+        await nextTick()
+
+        // 実際の高さを測定して設定
+        const targetHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${targetHeight}px`
       }
     }
 
@@ -408,7 +427,7 @@ export default {
   top: -4px;
   right: -8px;
   background: var(--text-secondary, #666);
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   min-width: 12px;
   height: 12px;
@@ -599,7 +618,8 @@ export default {
   max-height: calc(var(--card-height-list) - 51px);
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
+  transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+  will-change: max-height;
 
   &.clickable {
     cursor: pointer;
@@ -608,7 +628,7 @@ export default {
     margin: -4px;
     position: relative;
 
-    // 展開可能インジケーター（右下三角のみフェード）
+    // 展開可能インジケーター（右下三角フェード）
     &:not(.expanded)::after {
       content: '';
       position: absolute;
@@ -616,12 +636,19 @@ export default {
       right: 4px;
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, 
-        transparent 0%, 
-        transparent 40%, 
-        rgba(255, 255, 255, 0.3) 50%, 
-        rgba(255, 255, 255, 0.7) 70%, 
-        var(--card-bg, #fff) 100%);
+      background: var(--card-bg);
+      mask-image: linear-gradient(135deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 1) 100%);
+      -webkit-mask-image: linear-gradient(135deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.7) 70%,
+        rgba(0, 0, 0, 1) 100%);
       pointer-events: none;
     }
 
@@ -629,18 +656,12 @@ export default {
       background: var(--bg-secondary, #f5f5f5);
 
       &:not(.expanded)::after {
-        background: linear-gradient(135deg, 
-          transparent 0%, 
-          transparent 40%, 
-          rgba(245, 245, 245, 0.3) 50%, 
-          rgba(245, 245, 245, 0.7) 70%, 
-          var(--bg-secondary, #f5f5f5) 100%);
+        background: var(--bg-secondary, #f5f5f5);
       }
     }
   }
 
   &.expanded {
-    max-height: none;
     overflow: visible;
     background: var(--bg-secondary, #f5f5f5);
   }
@@ -660,8 +681,8 @@ export default {
   white-space: nowrap;
 
   &.attribute {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--color-info-bg);
+    color: var(--color-info);
   }
 
   &.race {
@@ -670,13 +691,13 @@ export default {
   }
 
   &.type {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
   }
 
   &.level {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.atk, &.def {
@@ -685,13 +706,13 @@ export default {
   }
 
   &.spell-type {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.trap-type {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
   }
 }
 

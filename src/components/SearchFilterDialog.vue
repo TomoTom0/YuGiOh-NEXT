@@ -1,30 +1,28 @@
 <template>
   <div v-if="isVisible" class="dialog-overlay" @click="$emit('close')">
-    <div class="dialog" @click.stop>
+    <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
-      <div class="dialog-header">
-        <div class="dialog-header-inner">
-          <h2>検索条件指定</h2>
-          <div class="header-selected-chips">
-            <span
-              v-for="(icon, index) in headerFilterIcons"
-              :key="index"
-              class="header-chip"
-              :class="icon.type"
-            >{{ icon.label }}</span>
-          </div>
-          <div class="header-actions">
-            <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
-              </svg>
-            </button>
-            <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
-          </div>
+      <div class="dialog-header triple">
+        <h2 class="dialog-title">検索条件指定</h2>
+        <div class="header-selected-chips">
+          <span
+            v-for="(icon, index) in headerFilterIcons"
+            :key="index"
+            class="header-chip"
+            :class="icon.type"
+          >{{ icon.label }}</span>
+        </div>
+        <div class="header-actions">
+          <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
+          <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
         </div>
       </div>
 
-      <div class="dialog-content">
+      <div class="dialog-body">
         <!-- カードタイプタブと属性/魔法タイプ/罠タイプ -->
         <div class="card-type-section">
           <div class="card-type-tabs">
@@ -765,8 +763,9 @@ const activeConditionChips = computed(() => {
   if (filters.trapTypes.length > 0) chips.push(`罠:${filters.trapTypes.length}件`);
   if (filters.races.length > 0) chips.push(`種族:${filters.races.length}件`);
   if (filters.monsterTypes.length > 0) chips.push(`タイプ:${filters.monsterTypes.length}件`);
-  const levelCount = filters.levelValues.length + filters.linkValues.length + filters.scaleValues.length;
-  if (levelCount > 0) chips.push(`レベル等:${levelCount}件`);
+  if (filters.levelValues.length > 0) chips.push(`レベル:${filters.levelValues.length}件`);
+  if (filters.linkValues.length > 0) chips.push(`リンク数:${filters.linkValues.length}件`);
+  if (filters.scaleValues.length > 0) chips.push(`Pスケール:${filters.scaleValues.length}件`);
   const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
   if (linkMarkerLabel) {
     chips.push(linkMarkerLabel);
@@ -1061,17 +1060,18 @@ function clearFilters() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 10000;
 }
 
-.dialog {
-  background: #ffffff;
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
   width: 90%;
   max-width: 800px;
   max-height: 85vh;
@@ -1080,20 +1080,11 @@ function clearFilters() {
 }
 
 .dialog-header {
-  width: 100%;
-}
-
-.dialog-header-inner {
-  display: flex;
-  align-items: center;
   padding: 12px 16px;
-  gap: 12px;
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
 
-  h2 {
-    margin: 0;
+  .dialog-title {
     font-size: 14px;
-    font-weight: 600;
-    color: #202124;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -1116,7 +1107,7 @@ function clearFilters() {
   font-weight: 500;
   border-radius: 2px;
   background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
   max-width: 48px;
@@ -1138,7 +1129,7 @@ function clearFilters() {
 .close-btn {
   background: transparent;
   border: none;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
@@ -1149,8 +1140,8 @@ function clearFilters() {
   line-height: 1;
 
   &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-    color: var(--text-primary, #333);
+    background: var(--bg-secondary, var(--bg-secondary));
+    color: var(--text-primary, var(--text-primary));
   }
 }
 
@@ -1165,7 +1156,7 @@ function clearFilters() {
   font-weight: 300;
 }
 
-.dialog-content {
+.dialog-body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
@@ -1173,9 +1164,9 @@ function clearFilters() {
 
 .card-type-section {
   margin-bottom: 16px;
-  border: 1px solid #dadce0;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--bg-primary);
   overflow: hidden;
 }
 
@@ -1192,7 +1183,7 @@ function clearFilters() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  border-right: 2px solid #dadce0;
+  border-right: 2px solid var(--border-primary);
   background: transparent;
   position: relative;
 
@@ -1221,7 +1212,7 @@ function clearFilters() {
 }
 
 .card-type-tab-wrapper .tab-header:hover:not(:has(.card-type-tab:disabled)) {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active) {
@@ -1283,9 +1274,9 @@ function clearFilters() {
   align-items: center;
   gap: 2px;
   padding: 2px 6px;
-  background: #f0f0f0;
-  color: #333;
-  border: 1px solid #ddd;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
@@ -1296,7 +1287,7 @@ function clearFilters() {
   padding: 8px;
   border: none;
   background: transparent;
-  color: #3c4043;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -1315,13 +1306,13 @@ function clearFilters() {
 
   &:disabled {
     background: transparent;
-    color: #9aa0a6;
+    color: var(--text-tertiary);
     cursor: not-allowed;
   }
 
   &.active {
     background: transparent;
-    color: #3c4043;
+    color: var(--text-primary);
   }
 
   .tab-icon {
@@ -1334,7 +1325,7 @@ function clearFilters() {
 
 .type-detail-content {
   padding: 8px;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 .type-detail-grid {
@@ -1376,18 +1367,18 @@ function clearFilters() {
     left: 0;
     right: 0;
     height: 2px;
-    background: #008cff;
+    background: var(--button-bg);
   }
 }
 
 .section-title {
   font-size: 13px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   white-space: nowrap;
 
   &.disabled {
-    color: #9aa0a6;
+    color: var(--text-tertiary);
     opacity: 0.6;
   }
 }
@@ -1395,17 +1386,17 @@ function clearFilters() {
 .filter-title {
   font-size: 13px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   padding-bottom: 4px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .chip {
   padding: 6px 12px;
   border: 1.5px solid #5f6368;
-  background: #ffffff;
-  color: #202124;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -1420,15 +1411,15 @@ function clearFilters() {
   user-select: text;
 
   &:hover:not(:disabled) {
-    background: #e8f5e9;
-    border-color: #4caf50;
+    background: var(--color-success-bg);
+    border-color: var(--color-success);
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(76, 175, 80, 0.25);
   }
 
   &.active:not(:disabled) {
     background: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
-    color: white;
+    color: var(--button-text);
     border: 1.5px solid #1b5e20;
     box-shadow: 0 3px 10px rgba(46, 125, 50, 0.5);
     font-weight: 700;
@@ -1436,7 +1427,7 @@ function clearFilters() {
 
   &.not:not(:disabled) {
     background: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
-    color: white;
+    color: var(--button-text);
     border: 1.5px solid #b71c1c;
     box-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
     font-weight: 700;
@@ -1451,9 +1442,9 @@ function clearFilters() {
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background: #f5f5f5;
-    color: #9aa0a6;
-    border-color: #dadce0;
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    border-color: var(--border-primary);
     position: relative;
   }
 
@@ -1464,7 +1455,7 @@ function clearFilters() {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
-    color: white;
+    color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 11px;
@@ -1501,21 +1492,21 @@ function clearFilters() {
   &.chip-mode {
     width: 85px;
     font-weight: 700;
-    background: #fff3e0;
+    background: var(--color-warning-bg);
     border: 1.5px solid #ff9800;
     border-radius: 12px;
-    color: #e65100;
+    color: var(--color-warning);
 
     &:hover:not(:disabled) {
-      background: #ffe0b2;
-      border-color: #f57c00;
+      background: var(--color-warning-hover-bg);
+      border-color: var(--color-warning);
       box-shadow: 0 3px 8px rgba(255, 152, 0, 0.35);
     }
 
     &.active:not(:disabled) {
-      background: #ff9800;
-      color: white;
-      border-color: #f57c00;
+      background: var(--color-warning);
+      color: var(--button-text);
+      border-color: var(--color-warning);
       box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
     }
   }
@@ -1527,20 +1518,20 @@ function clearFilters() {
     width: auto;
     min-width: 22px;
     max-width: 22px;
-    background: #fff3e0;
+    background: var(--color-warning-bg);
     border: 1.5px solid #ff9800;
     border-radius: 12px;
-    color: #e65100;
+    color: var(--color-warning);
 
     &:hover:not(:disabled) {
-      background: #ffe0b2;
-      border-color: #f57c00;
+      background: var(--color-warning-hover-bg);
+      border-color: var(--color-warning);
       box-shadow: 0 3px 8px rgba(255, 152, 0, 0.35);
     }
 
     &.active:not(:disabled) {
       background: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
-      color: white;
+      color: var(--button-text);
       border: 1.5px solid #e65100;
       box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
     }
@@ -1570,8 +1561,8 @@ function clearFilters() {
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-top: none;
   border-radius: 0 0 6px 6px;
 
@@ -1585,8 +1576,8 @@ function clearFilters() {
   flex-direction: column;
   gap: 6px;
   padding: 8px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-top: none;
   border-radius: 0 0 6px 6px;
 
@@ -1598,7 +1589,7 @@ function clearFilters() {
     &.active:not(:disabled) {
       background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
       border-color: #7b1fa2;
-      color: #fff;
+      color: var(--button-text);
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
@@ -1618,7 +1609,7 @@ function clearFilters() {
           rgba(189, 189, 189, 0.12) 9px
         ),
         linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-      border-color: #bdbdbd;
+      border-color: var(--border-primary);
     }
     &.active:not(:disabled) {
       background:
@@ -1629,9 +1620,9 @@ function clearFilters() {
           rgba(117, 117, 117, 0.2) 8px,
           rgba(117, 117, 117, 0.2) 9px
         ),
-        linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
-      border-color: #757575;
-      color: #424242;
+        linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
+      border-color: var(--border-secondary);
+      color: var(--text-primary);
     }
     &.not:not(:disabled) {
       background:
@@ -1642,44 +1633,44 @@ function clearFilters() {
           rgba(211, 47, 47, 0.15) 8px,
           rgba(211, 47, 47, 0.15) 9px
         ),
-        linear-gradient(135deg, #f5f5f5 0%, #f5f5f5 40%, #ffcdd2 70%, #ef5350 100%);
+        linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
       border: 1.5px solid #d32f2f;
-      color: #424242;
+      color: var(--text-primary);
     }
   }
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%);
+      background: linear-gradient(135deg, var(--border-primary) 0%, #bdbdbd 100%);
       border-color: #9e9e9e;
-      color: #424242;
+      color: var(--text-primary);
     }
     &.active:not(:disabled) {
       background: linear-gradient(135deg, #616161 0%, #424242 100%);
-      border-color: #757575;
-      color: #fff;
+      border-color: var(--border-secondary);
+      color: var(--button-text);
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
       border: 1.5px solid #b71c1c;
-      color: #424242;
+      color: var(--text-primary);
     }
   }
 
   .chip[data-type="link"] {
     &:not(:disabled) {
       background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-      border-color: #64b5f6;
+      border-color: var(--color-info);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
-      border-color: #0d47a1;
-      color: #fff;
+      background: linear-gradient(135deg, #42a5f5 0%, var(--button-bg) 100%);
+      border-color: var(--color-info);
+      color: var(--button-text);
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
       border: 1.5px solid #d32f2f;
-      color: #0d47a1;
+      color: var(--color-info);
     }
   }
 
@@ -1691,7 +1682,7 @@ function clearFilters() {
     &.active:not(:disabled) {
       background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
       border-color: #00838f;
-      color: #fff;
+      color: var(--button-text);
     }
     &.not:not(:disabled) {
       background: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
@@ -1717,8 +1708,8 @@ function clearFilters() {
         #00897b 70%,
         #00897b 100%
       );
-      border-color: #e65100;
-      color: #fff;
+      border-color: var(--color-warning);
+      color: var(--button-text);
     }
     &.not:not(:disabled) {
       background: linear-gradient(180deg,
@@ -1729,7 +1720,7 @@ function clearFilters() {
         #ef5350 100%
       );
       border: 1.5px solid #d32f2f;
-      color: #e65100;
+      color: var(--color-warning);
     }
   }
 }
@@ -1742,8 +1733,8 @@ function clearFilters() {
 
 .level-section-wrapper {
   border-radius: 6px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
 }
 
 .level-type-tabs {
@@ -1763,7 +1754,7 @@ function clearFilters() {
     left: 0;
     right: 0;
     height: 2px;
-    background: #008cff;
+    background: var(--button-bg);
   }
 
   .tab-header {
@@ -1774,7 +1765,7 @@ function clearFilters() {
     min-height: 24px;
     padding: 0;
     background: transparent;
-    border-right: 2px solid #dadce0;
+    border-right: 2px solid var(--border-primary);
     cursor: pointer;
     position: relative;
 
@@ -1787,7 +1778,7 @@ function clearFilters() {
     }
 
     &:hover:not(:has(.level-tab:disabled)) {
-      background: #f5f5f5;
+      background: var(--bg-secondary);
     }
 
     &:has(.level-tab.active):hover {
@@ -1804,7 +1795,7 @@ function clearFilters() {
   padding: 8px;
   border: none;
   background: transparent;
-  color: #3c4043;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -1821,12 +1812,12 @@ function clearFilters() {
 
   &.active {
     background: transparent;
-    color: #3c4043;
+    color: var(--text-primary);
   }
 
   &:disabled {
     background: transparent;
-    color: #9aa0a6;
+    color: var(--text-tertiary);
     cursor: not-allowed;
     position: relative;
   }
@@ -1838,7 +1829,7 @@ function clearFilters() {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
-    color: white;
+    color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 11px;
@@ -1870,16 +1861,16 @@ function clearFilters() {
   gap: 4px;
   margin-bottom: 8px;
   padding: 6px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   min-height: 30px;
 }
 
 .selected-chip {
   padding: 2px 8px;
-  background: #4caf50;
-  color: white;
+  background: var(--color-success);
+  color: var(--button-text);
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
@@ -1935,7 +1926,7 @@ function clearFilters() {
       cursor: not-allowed;
 
       &:hover {
-        background: #dadce0;
+        background: var(--border-secondary);
       }
     }
 
@@ -1944,15 +1935,15 @@ function clearFilters() {
       width: 16px;
       height: 16px;
       clip-path: polygon(0 0, 100% 100%, 0 100%);
-      background: #dadce0;
+      background: var(--border-secondary);
       cursor: pointer;
 
       &.active {
-        background: #4caf50;
+        background: var(--color-success);
       }
 
       &:hover {
-        background: #81c784;
+        background: var(--color-success);
       }
 
       // 位置1: 左下 (中心から左下向き ↙) bit 0
@@ -2021,12 +2012,12 @@ function clearFilters() {
 
 .atk-def-section-wrapper {
   border-radius: 6px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
 
   &.stat-type-atk,
   &.stat-type-def {
-    background: #ffffff;
+    background: var(--bg-primary);
   }
 }
 
@@ -2047,7 +2038,7 @@ function clearFilters() {
     left: 0;
     right: 0;
     height: 2px;
-    background: #008cff;
+    background: var(--button-bg);
   }
 
   .tab-header {
@@ -2058,7 +2049,7 @@ function clearFilters() {
     min-height: 24px;
     padding: 0;
     background: transparent;
-    border-right: 2px solid #dadce0;
+    border-right: 2px solid var(--border-primary);
     cursor: pointer;
     position: relative;
     width: 100%;
@@ -2072,7 +2063,7 @@ function clearFilters() {
     }
 
     &:hover:not(:has(.stat-tab:disabled)) {
-      background: #f5f5f5;
+      background: var(--bg-secondary);
     }
 
     &:has(.stat-tab.active):hover {
@@ -2089,7 +2080,7 @@ function clearFilters() {
   padding: 8px;
   border: none;
   background: transparent;
-  color: #3c4043;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -2106,12 +2097,12 @@ function clearFilters() {
 
   &.active {
     background: transparent;
-    color: #3c4043;
+    color: var(--text-primary);
   }
 
   &:disabled {
     background: transparent;
-    color: #9aa0a6;
+    color: var(--text-tertiary);
     cursor: not-allowed;
     position: relative;
   }
@@ -2123,7 +2114,7 @@ function clearFilters() {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
-    color: white;
+    color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 11px;
@@ -2174,7 +2165,7 @@ function clearFilters() {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #5f6368;
+  color: var(--text-secondary);
   cursor: pointer;
   font-weight: 500;
 
@@ -2182,7 +2173,7 @@ function clearFilters() {
     cursor: pointer;
     width: 16px;
     height: 16px;
-    accent-color: #4caf50;
+    accent-color: var(--color-success);
     border-radius: 3px;
   }
 
@@ -2199,27 +2190,27 @@ function clearFilters() {
   input {
     flex: 1;
     padding: 6px 8px;
-    border: 1px solid #dadce0;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     font-size: 12px;
-    background: #ffffff;
-    color: #3c4043;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     text-align: center;
 
     &:disabled {
-      background: #f1f3f4;
-      color: #9aa0a6;
+      background: var(--bg-secondary);
+      color: var(--text-tertiary);
       cursor: not-allowed;
     }
 
     &:focus {
       outline: none;
-      border-color: #4caf50;
+      border-color: var(--color-success);
     }
   }
 
   span {
-    color: #5f6368;
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
   }
@@ -2230,27 +2221,27 @@ function clearFilters() {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
 
   input {
     flex: 1;
     padding: 6px 8px;
-    border: 1px solid #dadce0;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     font-size: 12px;
-    background: #ffffff;
+    background: var(--bg-primary);
     text-align: center;
 
     &:focus {
       outline: none;
-      border-color: #4caf50;
+      border-color: var(--color-success);
     }
   }
 
   span {
-    color: #5f6368;
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
   }
@@ -2266,7 +2257,7 @@ function clearFilters() {
     padding: 10px 32px;
     font-size: 14px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--button-text);
     background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
     border: none;
     border-radius: 6px;

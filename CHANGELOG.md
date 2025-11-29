@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.5] - 2025-11-30
+
+### Added
+- テキスト展開の動的高さ測定によるスムーズなアニメーション
+  - scrollHeightを使って実際のコンテンツ高さを測定
+  - 0.25s cubic-bezier(0.4, 0, 0.2, 1)のイージング
+  - コンテンツの長さに関わらず常に最適なアニメーション速度
+
+### Changed
+- テキストあふれインジケーターをテーマ対応グラデーションに改善
+  - mask-imageを使用してライト/ダークモード対応
+  - var(--card-bg)とvar(--bg-secondary)で背景色を継承
+  - 右下40px×40pxのグラデーション三角形
+- 禁止制限の帯の表示位置とサイズを調整
+  - カード下部から5.56%（1/18）の位置に配置
+  - 高さを19.44%（7/36）に調整して視認性を向上
+
+### Fixed
+- scroll-to-top機能の修正と全タブでの動作保証
+  - search tabでscroll-to-topボタンが機能しない問題を修正
+  - CardDetail.vue (related tab)とCardProducts.vue (products tab)のscroll-to-top機能を復元
+  - 各タブで適切なスクロールコンテナを指定（search: `.card-list-results`, related/products: `.card-tab-content`）
+- scroll-to-topテストの修正とブラウザ起動時の日本語設定
+  - ブラック・マジシャンで検索統一（関連カードが多いカードを使用）
+  - ブラウザ起動時に日本語ページを開くよう修正
+
+---
+
+## [0.4.4] - 2025-11-29
+
 ### Added
 - 検索フィルターダイアログのヘッダーに選択中のフィルターチップを表示
 - 右クリック・中クリックでカード追加時のアニメーション

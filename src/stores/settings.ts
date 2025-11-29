@@ -16,7 +16,6 @@ import {
   DEFAULT_FEATURE_SETTINGS,
   CARD_SIZE_MAP
 } from '../types/settings';
-import { getThemeColors } from '../styles/themes';
 import { detectLanguage } from '../utils/language-detector';
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -51,9 +50,15 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
-    // 一時的に常にライトテーマを強制
-    return 'light';
-  });;
+    if (appSettings.value.theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'light';
+    }
+    return appSettings.value.theme as 'light' | 'dark';
+  });
 
   /** 実効言語（autoの場合は検出した言語を返す） */
   const effectiveLanguage = computed<string>(() => {
@@ -379,13 +384,6 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme(): void {
     const theme = effectiveTheme.value;
     document.documentElement.setAttribute('data-theme', theme);
-
-    // CSS変数を更新（テーマ定義から読み込み）
-    const themeColors = getThemeColors(theme);
-    Object.entries(themeColors).forEach(([key, value]) => {
-      document.documentElement.style.setProperty(key, value);
-    });
-
     console.log('[Settings] Applied theme:', theme);
   }
 

@@ -6,6 +6,7 @@
 
 // 共通スタイル
 import './styles/buttons.css';
+import '../styles/themes.scss';
 
 // デッキ編集ページ用の処理をインポート
 import './edit-ui';

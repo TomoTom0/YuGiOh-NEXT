@@ -288,13 +288,13 @@ const showSaveMessage = (message: string) => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 .description {
   font-size: 15px;
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 32px 0;
 }
@@ -302,21 +302,21 @@ const showSaveMessage = (message: string) => {
 .setting-group {
   margin-bottom: 32px;
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
 }
 
 .setting-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .setting-desc {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 16px 0;
   line-height: 1.5;
 }
@@ -331,20 +331,20 @@ const showSaveMessage = (message: string) => {
   display: flex;
   align-items: flex-start;
   padding: 14px 16px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
+  background-color: var(--bg-primary);
 
   &:hover {
-    border-color: #008cff;
-    background-color: #f0f7ff;
+    border-color: var(--color-info);
+    background-color: var(--color-info-bg);
   }
 
   &.active {
-    border-color: #008cff;
-    background-color: #f0f7ff;
+    border-color: var(--color-info);
+    background-color: var(--color-info-bg);
   }
 
   input[type="radio"] {
@@ -361,12 +361,12 @@ const showSaveMessage = (message: string) => {
 
     strong {
       font-size: 14px;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .radio-desc {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       line-height: 1.4;
     }
   }
@@ -376,15 +376,15 @@ const showSaveMessage = (message: string) => {
   display: flex;
   align-items: flex-start;
   padding: 14px 16px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
+  background-color: var(--bg-primary);
 
   &:hover {
-    border-color: #008cff;
-    background-color: #f0f7ff;
+    border-color: var(--color-info);
+    background-color: var(--color-info-bg);
   }
 
   input[type="checkbox"] {
@@ -401,12 +401,12 @@ const showSaveMessage = (message: string) => {
 
     strong {
       font-size: 14px;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .checkbox-desc {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       line-height: 1.5;
     }
   }
@@ -415,8 +415,8 @@ const showSaveMessage = (message: string) => {
 .save-message {
   margin-top: 16px;
   padding: 12px 16px;
-  background-color: #d1f4e0;
-  color: #0f5132;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
   border-radius: 4px;
   font-size: 14px;
   animation: fadeIn 0.3s ease;
@@ -433,8 +433,8 @@ const showSaveMessage = (message: string) => {
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  background: white;
-  border: 1px solid #d0d0d0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
 }
 
@@ -448,7 +448,7 @@ const showSaveMessage = (message: string) => {
 .shortcut-label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .shortcut-tags {
@@ -460,9 +460,9 @@ const showSaveMessage = (message: string) => {
 .shortcut-tag {
   display: inline-block;
   padding: 4px 10px;
-  background: #e8f0fe;
-  color: #1a73e8;
-  border: 1px solid #1a73e8;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
@@ -473,8 +473,8 @@ const showSaveMessage = (message: string) => {
     transition: all 0.2s;
 
     &:hover {
-      background: #1a73e8;
-      color: #ffffff;
+      background: var(--button-bg);
+      color: var(--button-text);
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
@@ -485,17 +485,17 @@ const showSaveMessage = (message: string) => {
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 500;
-  color: #5f6368;
-  background: #ffffff;
-  border: 1px dashed #9aa0a6;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px dashed var(--text-tertiary);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    color: #1a73e8;
-    border-color: #1a73e8;
-    background: #f0f7ff;
+    color: var(--color-info);
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 }
 

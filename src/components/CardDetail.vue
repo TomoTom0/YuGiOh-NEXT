@@ -102,7 +102,7 @@ export default {
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
-    
+
     const relatedSortOrder = ref('release_desc')
     const relatedViewMode = ref('list')
     const relatedCurrentPage = ref(0)
@@ -128,13 +128,6 @@ export default {
       }
     }
     
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-    
     const loadMoreRelatedCards = () => {
       if (relatedLoadingMore.value) return
 
@@ -149,7 +142,14 @@ export default {
         relatedLoadingMore.value = false
       }, 300)
     }
-    
+
+    const handleScrollToTop = () => {
+      const cardTabContent = document.querySelector('.card-tab-content')
+      if (cardTabContent) {
+        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+
     const fetchDetail = async () => {
       if (!props.card || !props.card.cardId) {
         console.log('[CardDetail] fetchDetail: no card')
@@ -336,7 +336,7 @@ export default {
     padding: 8px;
     border: none;
     border-right: 1px solid var(--border-primary, #e0e0e0);
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
@@ -348,7 +348,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--button-text);
       border-right-color: transparent;
     }
   }

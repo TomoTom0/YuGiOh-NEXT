@@ -5,8 +5,13 @@
  * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
  */
 
-// テーマCSSをインポート
-import '../../styles/themes.css';
+// テーマSCSSをインポート
+import '../../styles/themes.scss';
+import '../../styles/common.scss';
+
+// FOUC防止: デフォルトテーマを即座に適用
+document.documentElement.setAttribute('data-theme', 'light');
+
 import { isVueEditPage } from '../../utils/page-detector';
 import { getDeckMetadata } from '../../utils/deck-metadata-loader';
 
