@@ -184,7 +184,7 @@ export default {
 .loading, .no-data {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -195,7 +195,7 @@ export default {
 .qa-card-name {
   font-weight: bold;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .qa-list {
@@ -207,28 +207,28 @@ export default {
 .qa-item {
   width: 100%;
   padding: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: white;
+  background: var(--bg-primary);
   position: relative;
 }
 
 .qa-question {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
   margin-bottom: 4px;
   line-height: 1.5;
 }
 
 .card-link {
-  color: #0066cc;
+  color: var(--color-link);
   text-decoration: underline;
   cursor: pointer;
   transition: color 0.2s;
 
   &:hover {
-    color: #0052a3;
+    color: var(--color-link-hover);
     text-decoration: underline;
   }
 }
@@ -244,7 +244,7 @@ export default {
 
 .qa-date {
   font-size: 10px;
-  color: #999;
+  color: var(--text-tertiary);
   flex: 1;
   text-align: right;
 }
@@ -254,8 +254,8 @@ export default {
   left: 0;
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -266,8 +266,8 @@ export default {
   flex-shrink: 0;
 
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
     transform: scale(1.05);
   }
 
@@ -289,16 +289,16 @@ export default {
 .qa-loading {
   padding: 10px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 11px;
 }
 
 .qa-answer {
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   padding: 10px;
-  background: #f9f9f9;
+  background: var(--bg-secondary);
   border-radius: 4px;
   white-space: pre-wrap;
   position: relative;
@@ -311,8 +311,8 @@ export default {
   left: 0px;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -323,8 +323,8 @@ export default {
   margin-top: 8px;
 
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     transform: scale(1.08);
   }

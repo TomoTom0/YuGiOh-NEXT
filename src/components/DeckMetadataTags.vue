@@ -8,7 +8,6 @@
         :data-type="getTagType(tagId)"
       >
         {{ tags[tagId] }}
-        <button class="chip-remove" @click="$emit('remove-tag', tagId)">×</button>
       </span>
       <span
         v-for="catId in modelCategories"
@@ -16,7 +15,6 @@
         class="chip category-chip"
       >
         {{ getCategoryLabel(catId) }}
-        <button class="chip-remove" @click="$emit('remove-category', catId)">×</button>
       </span>
     </div>
   </div>
@@ -82,24 +80,22 @@ const getCategoryLabel = (catId: string): string => {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
   transition: all 0.2s;
 }
 
 .chip.tag-chip {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 }
 
 .chip.tag-chip:hover {
-  background: #c8e6c9;
-  border-color: #4caf50;
+  background: var(--color-success-hover-bg);
+  border-color: var(--color-success);
 }
 
 .chip.tag-chip[data-type="fusion"] {
   background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  color: #4a148c;
   border-color: #ba68c8;
 }
 
@@ -113,58 +109,39 @@ const getCategoryLabel = (catId: string): string => {
       rgba(158, 158, 158, 0.12) 9px
     ),
     linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  color: #424242;
-  border-color: #9e9e9e;
+  border-color: var(--border-primary);
 }
 
 .chip.tag-chip[data-type="xyz"] {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: #fff;
-  border-color: #757575;
+  color: var(--button-text);
+  border-color: var(--border-secondary);
 }
 
 .chip.tag-chip[data-type="link"] {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #0d47a1;
-  border-color: #64b5f6;
+  border-color: var(--color-info);
 }
 
 .chip.tag-chip[data-type="ritual"] {
   background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  color: #006064;
   border-color: #4dd0e1;
 }
 
 .chip.tag-chip[data-type="pendulum"] {
   background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-  color: #4a148c;
+  color: var(--button-text);
   border-color: #ff9800;
 }
 
 .chip.category-chip {
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .chip.category-chip:hover {
-  background: #ffe0b2;
-  border-color: #f57c00;
-}
-
-.chip-remove {
-  font-size: 14px;
-  font-weight: bold;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-
-.chip-remove:hover {
-  opacity: 1;
+  background: var(--color-warning-hover-bg);
+  border-color: var(--color-warning);
 }
 </style>

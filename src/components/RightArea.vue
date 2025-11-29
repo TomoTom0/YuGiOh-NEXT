@@ -220,13 +220,6 @@ export default {
       }
     }
     
-    const handleScrollToTop = () => {
-      const searchContent = document.querySelector('.search-content')
-      if (searchContent) {
-        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
     const showCardDetail = async (card) => {
       try {
         const result = await getCardDetailWithCache(card.cardId)
@@ -240,6 +233,13 @@ export default {
       deckStore.cardTab = 'info'
     }
 
+    const handleScrollToTop = () => {
+      const cardListResults = document.querySelector('.search-content .card-list-results')
+      if (cardListResults) {
+        cardListResults.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+
     return {
       deckStore,
       showSearchInputBottom,
@@ -249,8 +249,8 @@ export default {
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
-      handleScrollToTop,
-      showCardDetail
+      showCardDetail,
+      handleScrollToTop
     }
   }
 }
@@ -272,8 +272,8 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border: 1px solid #dadce0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
   margin: 0;
 }
@@ -306,7 +306,7 @@ export default {
     padding: 8px;
     border: none;
     border-right: 1px solid #e0e0e0;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 13px;
     color: var(--text-primary);
@@ -317,13 +317,13 @@ export default {
     }
 
     &:hover:not(.active):not(.tab-header) {
-      background: #f5f5f5;
-      color: #1976d2;
+      background: var(--bg-secondary);
+      color: var(--color-info);
     }
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--text-primary);
     }
 
     &.tab-header {
@@ -444,7 +444,7 @@ export default {
   font-size: 11px;
   margin-bottom: 2px;
   word-break: break-word;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .card-text {
@@ -467,7 +467,7 @@ export default {
     padding: 8px;
     border: none;
     border-right: 1px solid var(--border-primary, #e0e0e0);
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
@@ -478,7 +478,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--button-text);
       border-right-color: transparent;
     }
   }
@@ -601,7 +601,7 @@ export default {
   
   &.active {
     background: var(--button-bg);
-    color: white;
+    color: var(--button-text);
     font-weight: bold;
   }
   
@@ -612,7 +612,7 @@ export default {
 
 .stat-label {
   font-size: 9px;
-  color: #999;
+  color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
@@ -653,7 +653,7 @@ export default {
   font-size: 12px;
   color: var(--text-secondary);
   padding: 4px 8px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
@@ -671,7 +671,7 @@ export default {
 
 .stat-label {
   font-weight: bold;
-  color: #555;
+  color: var(--text-secondary);
   min-width: 80px;
 }
 
@@ -709,7 +709,7 @@ export default {
 .no-card-selected {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .search-input-bottom {
@@ -753,7 +753,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   z-index: 10000;
   animation: fadeIn 0.2s ease;
 }

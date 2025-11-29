@@ -3,6 +3,22 @@
     <h2 class="main-title">UI設定</h2>
     <p class="description">デッキ編集画面の表示設定</p>
 
+    <!-- カラーテーマ -->
+    <div class="setting-group">
+      <h3 class="setting-title">カラーテーマ</h3>
+      <div class="theme-buttons">
+        <button
+          v-for="themeOption in themeOptions"
+          :key="themeOption.value"
+          class="theme-button"
+          :class="{ active: settingsStore.appSettings.theme === themeOption.value }"
+          @click="handleThemeChange(themeOption.value)"
+        >
+          {{ themeOption.label }}
+        </button>
+      </div>
+    </div>
+
     <!-- 画像サイズ -->
     <div class="setting-group">
       <h3 class="setting-title">表示する画像の大きさ</h3>
@@ -92,12 +108,18 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { SearchInputPosition, MiddleDecksLayout } from '../../../types/settings';
+import type { SearchInputPosition, MiddleDecksLayout, Theme } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveMessage = ref('');
 
 type SizePreset = 's' | 'm' | 'l' | 'xl';
+
+const themeOptions = [
+  { value: 'light' as Theme, label: 'Light' },
+  { value: 'dark' as Theme, label: 'Dark' },
+  { value: 'system' as Theme, label: 'System' }
+];
 
 const sizePresets = ref([
   { value: 's', label: 'S' },
@@ -127,6 +149,11 @@ const handleLayoutChange = (layout: MiddleDecksLayout) => {
   showSaveMessage('デッキレイアウトを変更しました');
 };
 
+const handleThemeChange = (theme: Theme) => {
+  settingsStore.setTheme(theme);
+  showSaveMessage(`テーマを「${theme}」に変更しました`);
+};
+
 const showSaveMessage = (message: string) => {
   saveMessage.value = message;
   setTimeout(() => {
@@ -143,13 +170,13 @@ const showSaveMessage = (message: string) => {
 .main-title {
   font-size: 24px;
   font-weight: 700;
-  color: #202124;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
 }
 
 .description {
   font-size: 15px;
-  color: #555;
+  color: var(--text-secondary);
   line-height: 1.7;
   margin: 0 0 32px 0;
 }
@@ -157,16 +184,46 @@ const showSaveMessage = (message: string) => {
 .setting-group {
   margin-bottom: 32px;
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
 }
 
 .setting-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 16px 0;
+}
+
+.theme-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 500px;
+}
+
+.theme-button {
+  padding: 16px 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+
+  &:hover {
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
+  }
+
+  &.active {
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
+    color: var(--color-info);
+  }
 }
 
 .preset-grid {
@@ -177,24 +234,24 @@ const showSaveMessage = (message: string) => {
 
 .preset-button {
   padding: 12px 20px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: white;
+  background: var(--bg-primary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 
   &:hover {
-    border-color: #1a73e8;
-    background: #f8fbff;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    border-color: #1a73e8;
-    background: #e8f0fe;
-    color: #1a73e8;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
+    color: var(--color-info);
   }
 }
 
@@ -211,24 +268,24 @@ const showSaveMessage = (message: string) => {
 
 .position-button {
   padding: 16px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: white;
+  background: var(--bg-primary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 
   &:hover {
-    border-color: #1a73e8;
-    background: #f8fbff;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    border-color: #1a73e8;
-    background: #e8f0fe;
-    color: #1a73e8;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
+    color: var(--color-info);
     font-weight: 600;
   }
 }
@@ -241,9 +298,9 @@ const showSaveMessage = (message: string) => {
 .layout-button {
   flex: 1;
   padding: 16px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: white;
+  background: var(--bg-primary);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -252,16 +309,16 @@ const showSaveMessage = (message: string) => {
   align-items: center;
 
   &:hover {
-    border-color: #1a73e8;
-    background: #f8fbff;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    border-color: #1a73e8;
-    background: #e8f0fe;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
 
     .layout-label {
-      color: #1a73e8;
+      color: var(--color-info);
       font-weight: 600;
     }
   }
@@ -270,7 +327,7 @@ const showSaveMessage = (message: string) => {
 .layout-label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .layout-preview-vertical {
@@ -286,18 +343,18 @@ const showSaveMessage = (message: string) => {
 
 .preview-box {
   padding: 6px 12px;
-  background: #f0f0f0;
-  border: 1px solid #d0d0d0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 3px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: center;
   min-width: 40px;
 
   &.highlight {
-    background: #e8f0fe;
-    border: 2px solid #1a73e8;
-    color: #1a73e8;
+    background: var(--color-info-bg);
+    border: 2px solid var(--color-info);
+    color: var(--color-info);
     font-weight: 600;
   }
 }
@@ -305,8 +362,8 @@ const showSaveMessage = (message: string) => {
 .save-message {
   margin-top: 16px;
   padding: 12px 16px;
-  background-color: #d1f4e0;
-  color: #0f5132;
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
   border-radius: 4px;
   font-size: 14px;
   animation: fadeIn 0.3s ease;

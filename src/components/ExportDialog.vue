@@ -1,8 +1,8 @@
 <template>
   <div v-if="isVisible" class="export-dialog-overlay" @click.self="close">
     <div class="export-dialog">
-      <div class="dialog-header">
-        <h3>Export Deck</h3>
+      <div class="dialog-header common">
+        <h3 class="dialog-title">Export Deck</h3>
         <button class="close-btn" @click="close" title="Close">×</button>
       </div>
 
@@ -134,7 +134,7 @@ function handleExport() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,18 +153,8 @@ function handleExport() {
 }
 
 .dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-secondary, #eee);
-}
-
-.dialog-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary, #000);
 }
 
 .close-btn {
@@ -172,7 +162,7 @@ function handleExport() {
   border: none;
   font-size: 28px;
   line-height: 1;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -185,7 +175,7 @@ function handleExport() {
 }
 
 .close-btn:hover {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   color: var(--text-primary, #000);
 }
 
@@ -222,7 +212,7 @@ function handleExport() {
 }
 
 .radio-label:hover {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
 }
 
 .radio-label input[type="radio"] {
@@ -246,7 +236,7 @@ function handleExport() {
 }
 
 .checkbox-label:hover {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -278,7 +268,7 @@ function handleExport() {
 }
 
 .file-extension {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
   font-size: 14px;
   font-weight: 500;
 }
@@ -287,10 +277,10 @@ function handleExport() {
   display: flex;
   gap: 16px;
   padding: 12px;
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   border-radius: 4px;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, var(--text-secondary));
 }
 
 .preview-info span {
@@ -316,21 +306,21 @@ function handleExport() {
 }
 
 .btn-cancel {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-secondary, var(--bg-secondary));
   color: var(--text-primary, #000);
 }
 
 .btn-cancel:hover {
-  background: var(--bg-tertiary, #e0e0e0);
+  background: var(--bg-tertiary, var(--border-primary));
 }
 
 .btn-export {
-  background: #4678ff;
-  color: #fff;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 .btn-export:hover {
-  background: #3565e8;
+  background: var(--button-hover-bg);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
 }

@@ -58,7 +58,7 @@ const version = ref('0.4.1');
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
   margin: 24px 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -67,8 +67,8 @@ const version = ref('0.4.1');
 
 .sub-tabs {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #fafafa;
+  border-bottom: 1px solid var(--border-primary);
+  background-color: var(--bg-secondary);
 }
 
 .sub-tab {
@@ -78,20 +78,20 @@ const version = ref('0.4.1');
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  color: #5f6368;
+  color: var(--text-secondary);
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
   margin-bottom: -1px;
 
   &:hover:not(.active) {
-    background-color: #f5f5f5;
-    color: #202124;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   &.active {
-    color: #1a73e8;
-    border-bottom-color: #1a73e8;
-    background-color: #ffffff;
+    color: var(--color-info);
+    border-bottom-color: var(--color-info);
+    background-color: var(--bg-primary);
   }
 }
 
@@ -99,6 +99,6 @@ const version = ref('0.4.1');
   flex: 1;
   padding: 40px 48px;
   overflow-y: auto;
-  background-color: #ffffff;
+  background-color: var(--bg-primary);
 }
 </style>

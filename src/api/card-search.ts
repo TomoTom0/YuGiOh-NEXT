@@ -447,7 +447,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
     options.linkMarkers.forEach(direction => {
       // 方向番号: 1-9（5は除く）
       if (direction >= 1 && direction <= 9 && direction !== 5) {
-        params.append(`linkbtn${direction}`, 'on');
+        params.append(`linkbtn${direction}`, direction.toString());
       }
     });
   }

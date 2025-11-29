@@ -351,7 +351,7 @@ watch(() => props.modelValue, (newVal) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -361,7 +361,7 @@ watch(() => props.modelValue, (newVal) => {
 .tag-dialog {
   background: var(--bg-color, #fff);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   width: 90%;
   max-width: 600px;
   height: 80vh;
@@ -374,7 +374,7 @@ watch(() => props.modelValue, (newVal) => {
   width: 100%;
   padding: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
   flex-shrink: 0;
   box-sizing: border-box;
 }
@@ -389,7 +389,7 @@ watch(() => props.modelValue, (newVal) => {
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
   flex-shrink: 0;
 }
 
@@ -404,37 +404,37 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-clear-action {
-  background: #f5f5f5;
-  border-color: #e0e0e0;
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
 }
 
 .btn-clear-action:hover {
-  background: #ffebee;
-  border-color: #ef5350;
-  color: #c62828;
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error-text);
 }
 
 .search-row {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
   align-items: center;
 }
 
 .search-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   background: var(--bg-color, #fff);
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--button-bg);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -443,9 +443,9 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -454,8 +454,8 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip:hover {
-  background: #c8e6c9;
-  border-color: #4caf50;
+  background: var(--color-success-hover-bg);
+  border-color: var(--color-success);
 }
 
 .tag-chip[data-type="fusion"] {
@@ -473,28 +473,28 @@ watch(() => props.modelValue, (newVal) => {
       rgba(158, 158, 158, 0.12) 8px,
       rgba(158, 158, 158, 0.12) 9px
     ),
-    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  color: #424242;
-  border-color: #9e9e9e;
+    linear-gradient(135deg, #ffffff 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
 }
 
 .tag-chip[data-type="xyz"] {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: #fff;
-  border-color: #757575;
+  color: var(--button-text);
+  border-color: var(--border-secondary);
 }
 
 .tag-chip[data-type="link"] {
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: #0d47a1;
-  border-color: #1976d2;
+  color: var(--color-info);
+  border-color: var(--button-bg);
 }
 
 .tag-chip[data-type="ritual"] {
 
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: #0d47a1;
-  border-color: #1976d2;
+  color: var(--color-info);
+  border-color: var(--button-bg);
 }
 
 .tag-chip[data-type="pendulum"] {
@@ -521,7 +521,7 @@ watch(() => props.modelValue, (newVal) => {
 .chip-remove {
   font-size: 14px;
   font-weight: bold;
-  color: #2e7d32;
+  color: var(--color-success);
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -535,7 +535,7 @@ watch(() => props.modelValue, (newVal) => {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--text-color, #666);
+  color: var(--text-color, var(--text-secondary));
   padding: 0;
   width: 30px;
   height: 30px;
@@ -544,12 +544,12 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .close-btn:hover {
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
 }
 
 .filter-and-actions {
   padding: 6px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -571,29 +571,29 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   transition: all 0.2s;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .btn-icon:hover {
-  background: #e0e0e0;
-  border-color: #999;
-  color: #333;
+  background: var(--border-primary);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
 }
 
 .btn-icon.active {
-  background: #1976d2;
-  border-color: #1565c0;
-  color: #ffffff;
+  background: var(--button-bg);
+  border-color: var(--button-hover-bg);
+  color: var(--button-text);
 }
 
 .btn-icon.active:hover {
-  background: #1565c0;
-  border-color: #0d47a1;
-  color: #ffffff;
+  background: var(--button-hover-bg);
+  border-color: var(--color-info);
+  color: var(--button-text);
 }
 
 .btn-icon svg {
@@ -608,19 +608,19 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   gap: 8px;
   padding: 6px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
 }
 
 .tab-btn {
   padding: 10px 20px;
   background: transparent;
   border: none;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-primary);
   border-bottom: 3px solid transparent;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s;
   white-space: nowrap;
   flex-shrink: 0;
@@ -632,12 +632,12 @@ watch(() => props.modelValue, (newVal) => {
 
 .tab-btn:hover {
   background: rgba(25, 118, 210, 0.08);
-  color: #1976d2;
+  color: var(--button-bg);
 }
 
 .tab-btn.active {
-  color: #1976d2;
-  border-bottom-color: #1976d2;
+  color: var(--button-bg);
+  border-bottom-color: var(--button-bg);
   background: rgba(25, 118, 210, 0.08);
 }
 
@@ -659,12 +659,12 @@ watch(() => props.modelValue, (newVal) => {
 
 .tag-item {
   padding: 12px 16px;
-  background: #ffffff;
-  border: 1.5px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   text-align: left;
   transition: all 0.2s;
   height: 42px;
@@ -715,17 +715,17 @@ watch(() => props.modelValue, (newVal) => {
 
 /* 共通のホバー・選択スタイル（個別スタイルがないもの） */
 .tag-item:hover {
-  background: #f8f9fa;
-  border-color: #1976d2;
+  background: var(--bg-secondary);
+  border-color: var(--button-bg);
   box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
 }
 
 .tag-item.selected {
-  background: #e3f2fd;
-  border-color: #1976d2;
-  color: #1565c0;
+  background: var(--color-info-bg);
+  border-color: var(--button-bg);
+  color: var(--button-hover-bg);
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px #1976d2;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px var(--button-bg);
 }
 
 .tag-item[data-type="fusion"] {
@@ -771,8 +771,8 @@ watch(() => props.modelValue, (newVal) => {
       rgba(117, 117, 117, 0.15) 8px,
       rgba(117, 117, 117, 0.15) 9px
     ),
-    linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
-  border-color: #757575;
+    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
+  border-color: var(--border-secondary);
   box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
 }
 
@@ -785,30 +785,30 @@ watch(() => props.modelValue, (newVal) => {
       rgba(117, 117, 117, 0.2) 8px,
       rgba(117, 117, 117, 0.2) 9px
     ),
-    linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
-  border-color: #757575;
-  color: #424242;
+    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3), inset 0 0 0 1px #757575;
 }
 
 .tag-item[data-type="xyz"] {
   background: linear-gradient(135deg, #757575 0%, #616161 100%);
-  border-color: #9e9e9e;
+  border-color: var(--border-primary);
   border-radius: 21px;
-  color: #fff;
+  color: var(--button-text);
 }
 
 .tag-item[data-type="xyz"]:hover {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: #757575;
+  border-color: var(--border-secondary);
   box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
 }
 
 .tag-item[data-type="xyz"].selected {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: #757575;
-  color: #fff;
+  border-color: var(--border-secondary);
+  color: var(--button-text);
   font-weight: 500;
   box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3), inset 0 0 0 1px #757575;
 }
@@ -821,16 +821,16 @@ watch(() => props.modelValue, (newVal) => {
 
 .tag-item[data-type="link"]:hover {
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: #1976d2;
+  border-color: var(--button-bg);
   box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
 }
 
 .tag-item[data-type="link"].selected {
   background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: #1976d2;
-  color: #0d47a1;
+  border-color: var(--button-bg);
+  color: var(--color-info);
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px #1976d2;
+  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px var(--button-bg);
 }
 
 .tag-item[data-type="ritual"] {
@@ -898,20 +898,20 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-color, #666);
+  background: var(--bg-secondary, var(--bg-secondary));
+  color: var(--text-color, var(--text-secondary));
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: var(--bg-hover, var(--border-primary));
 }
 
 .btn-primary {
-  background: #1976d2;
-  color: white;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 .btn-primary:hover {
-  background: #1565c0;
+  background: var(--button-hover-bg);
 }
 </style>

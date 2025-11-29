@@ -194,9 +194,26 @@ node tmp/test-*.js
 
 ## バージョン管理
 
-現在のバージョン番号は `version.dat` に記載されています。
+**package.jsonのversionフィールドで管理する**
 
-更新時の基準：
+- `package.json` の `"version"` フィールドで管理（`version.dat` は廃止済み）
+- バージョン更新は**必ずスクリプトを使用**すること
+
+```bash
+# バージョン更新スクリプト
+./scripts/dev/update-version.sh <新バージョン>
+
+# 例
+./scripts/dev/update-version.sh 0.4.5   # パッチバージョンアップ
+./scripts/dev/update-version.sh 0.5.0   # マイナーバージョンアップ
+./scripts/dev/update-version.sh 1.0.0   # メジャーバージョンアップ
+```
+
+**スクリプトが自動更新するファイル:**
+- `package.json` の `version`
+- `public/manifest.json` の `version`
+
+**更新時の基準（セマンティックバージョニング）:**
 - **メジャー**: 大きな変更や互換性のない変更
 - **マイナー**: 新機能の追加や改善
 - **パッチ**: バグ修正や小さな変更
