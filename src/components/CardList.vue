@@ -89,7 +89,7 @@
             v-if="item.card.text || item.card.pendulumText"
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
-            @click="toggleCardExpand(item.uuid)"
+            @click="toggleCardExpand(item.uuid, $event)"
           >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
 ------
 [Pendulum]
@@ -122,7 +122,7 @@
 </template>
 
 <script>
-import { ref, watch, computed, reactive } from 'vue'
+import { ref, watch, computed, reactive, nextTick } from 'vue'
 import DeckCard from './DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
@@ -182,11 +182,30 @@ export default {
     const maxIndexMap = reactive(new Map())
 
     // カードテキストの展開/折りたたみ切り替え
-    const toggleCardExpand = (uuid) => {
+    const toggleCardExpand = async (uuid, event) => {
+      const textElement = event.currentTarget
+
       if (expandedCards.has(uuid)) {
+        // 折りたたみ: 実際の高さから制限された高さへ
+        const currentHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${currentHeight}px`
+
+        // reflow強制
+        textElement.offsetHeight
+
+        // CSS変数の値に戻す
+        textElement.style.maxHeight = null
         expandedCards.delete(uuid)
       } else {
+        // 展開: まず状態を更新
         expandedCards.add(uuid)
+
+        // DOM更新を待つ
+        await nextTick()
+
+        // 実際の高さを測定して設定
+        const targetHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${targetHeight}px`
       }
     }
 
@@ -599,7 +618,8 @@ export default {
   max-height: calc(var(--card-height-list) - 51px);
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
+  transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+  will-change: max-height;
 
   &.clickable {
     cursor: pointer;
@@ -642,7 +662,6 @@ export default {
   }
 
   &.expanded {
-    max-height: none;
     overflow: visible;
     background: var(--bg-secondary, #f5f5f5);
   }
