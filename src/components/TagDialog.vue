@@ -721,12 +721,12 @@ watch(() => props.modelValue, (newVal) => {
   }
 
   &.selected {
-    filter: brightness(0.9);
     font-weight: 500;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 0 0 2px var(--button-bg);
 
     &:hover {
-      filter: brightness(0.85);
+      filter: brightness(0.95);
+      box-shadow: inset 0 0 0 2px var(--button-bg), 0 2px 4px rgba(0, 0, 0, 0.1);
     }
   }
 }
