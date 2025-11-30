@@ -461,37 +461,37 @@ watch(() => props.modelValue, (newVal) => {
 .tag-chip[data-type="fusion"] {
   background: var(--monster-fusion-chip-active-bg);
   color: var(--monster-fusion-chip-active-text);
-  border-color: var(--monster-fusion-chip-active-border);
+  border: 1px solid var(--monster-fusion-chip-active-border);
 }
 
 .tag-chip[data-type="synchro"] {
   background: var(--monster-synchro-chip-active-bg);
   color: var(--monster-synchro-chip-active-text);
-  border-color: var(--monster-synchro-chip-active-border);
+  border: 1px solid var(--monster-synchro-chip-active-border);
 }
 
 .tag-chip[data-type="xyz"] {
   background: var(--monster-xyz-chip-active-bg);
   color: var(--monster-xyz-chip-active-text);
-  border-color: var(--monster-xyz-chip-active-border);
+  border: 1px solid var(--monster-xyz-chip-active-border);
 }
 
 .tag-chip[data-type="link"] {
   background: var(--monster-link-chip-active-bg);
   color: var(--monster-link-chip-active-text);
-  border-color: var(--monster-link-chip-active-border);
+  border: 1px solid var(--monster-link-chip-active-border);
 }
 
 .tag-chip[data-type="ritual"] {
   background: var(--monster-ritual-chip-active-bg);
   color: var(--monster-ritual-chip-active-text);
-  border-color: var(--monster-ritual-chip-active-border);
+  border: 1px solid var(--monster-ritual-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"] {
   background: var(--monster-pendulum-chip-active-bg);
   color: var(--monster-pendulum-chip-active-text);
-  border-color: var(--monster-pendulum-chip-active-border);
+  border: 1px solid var(--monster-pendulum-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"]:hover {
@@ -725,6 +725,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-fusion-chip-hover-border);
     color: var(--monster-fusion-chip-hover-text);
     box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
@@ -754,6 +755,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-synchro-chip-hover-border);
     color: var(--monster-synchro-chip-hover-text);
     box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
@@ -783,6 +785,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-xyz-chip-hover-border);
     color: var(--monster-xyz-chip-hover-text);
     box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
@@ -812,6 +815,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-link-chip-hover-border);
     color: var(--monster-link-chip-hover-text);
     box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
@@ -841,6 +845,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-ritual-chip-hover-border);
     color: var(--monster-ritual-chip-hover-text);
     box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
@@ -870,6 +875,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-pendulum-chip-hover-border);
     color: var(--monster-pendulum-chip-hover-text);
     box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+    filter: brightness(1.1);
   }
 
   &.selected {
