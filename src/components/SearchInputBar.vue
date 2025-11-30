@@ -130,7 +130,8 @@
 <script lang="ts">
 import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
+import type { SearchOptions } from '../api/card-search'
+import { SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
@@ -1392,6 +1393,8 @@ export default defineComponent({
           }
         }
 
+        // 検索実行時に動的import
+        const { searchCards } = await import('../api/card-search')
         const results = await searchCards(searchOptions)
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
@@ -1406,6 +1409,7 @@ export default defineComponent({
           deckStore.hasMore = true
           setTimeout(async () => {
             try {
+              const { searchCards } = await import('../api/card-search')
               const moreResults = await searchCards({
                 ...searchOptions,
                 resultsPerPage: 2000

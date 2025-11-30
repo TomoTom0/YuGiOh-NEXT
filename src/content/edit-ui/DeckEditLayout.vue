@@ -152,7 +152,6 @@ import RightArea from '../../components/RightArea.vue'
 const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
 const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
-import { searchCardsByName } from '../../api/card-search'
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 
@@ -447,8 +446,10 @@ export default {
         searchResults.length = 0
         return
       }
-      
+
       try {
+        // Load Dialog検索時に動的import
+        const { searchCardsByName } = await import('../../api/card-search')
         const results = await searchCardsByName(query.trim())
         const gameType = detectCardGameType()
         searchResults.length = 0
