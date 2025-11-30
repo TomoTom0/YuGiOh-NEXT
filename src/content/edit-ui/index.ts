@@ -5,10 +5,6 @@
  * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
  */
 
-// テーマSCSSをインポート
-import '../../styles/themes.scss';
-import '../../styles/common.scss';
-
 // FOUC防止: デフォルトテーマを即座に適用
 document.documentElement.setAttribute('data-theme', 'light');
 

@@ -1082,6 +1082,19 @@ function clearFilters() {
 .dialog-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  &.common {
+    justify-content: space-between;
+  }
+
+  &.triple {
+    justify-content: flex-start;
+    gap: 12px;
+  }
 
   .dialog-title {
     font-size: 14px;

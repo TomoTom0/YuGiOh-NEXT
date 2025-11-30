@@ -662,6 +662,7 @@ export default {
     padding: 12px 16px;
     border: none;
     background: var(--bg-primary);
+    color: var(--text-primary);
     text-align: left;
     cursor: pointer;
     font-size: 14px;
@@ -674,10 +675,12 @@ export default {
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary);
     }
 
     &:active {
       background: var(--bg-tertiary);
+      color: var(--text-primary);
     }
 
     &.danger {
@@ -752,6 +755,7 @@ export default {
   padding: 4px 8px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 3px;
   cursor: pointer;
   width: 40px;
@@ -764,11 +768,13 @@ export default {
 
   &:hover:not(:disabled) {
     background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    color: var(--text-tertiary);
   }
 
   svg {

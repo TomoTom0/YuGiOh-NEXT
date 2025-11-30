@@ -256,6 +256,7 @@ export default {
   height: 24px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -268,6 +269,7 @@ export default {
   &:hover {
     background: var(--bg-tertiary);
     border-color: var(--text-tertiary);
+    color: var(--text-primary);
     transform: scale(1.05);
   }
 
@@ -313,6 +315,7 @@ export default {
   height: 32px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -325,6 +328,7 @@ export default {
   &:hover {
     background: var(--bg-tertiary);
     border-color: var(--text-tertiary);
+    color: var(--text-primary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     transform: scale(1.08);
   }

@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container">
+  <div class="deck-edit-container" :data-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -657,6 +657,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import '../../styles/themes.scss';
+@import '../../styles/common.scss';
+
 // Hide page top button
 :global(.menu_btn_pagetop) {
   display: none !important;

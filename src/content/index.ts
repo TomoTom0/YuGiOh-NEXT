@@ -9,7 +9,6 @@ import './public-path';
 
 // 共通スタイル
 import './styles/buttons.css';
-import '../styles/themes.scss';
 
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';
