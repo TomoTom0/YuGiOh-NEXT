@@ -1274,15 +1274,15 @@ function clearFilters() {
 }
 
 .monster-wrapper .selected-chips-inline {
-  background: rgba(255, 249, 230, 0.9);
+  background: var(--selected-chips-monster-bg);
 }
 
 .spell-wrapper .selected-chips-inline {
-  background: rgba(178, 223, 219, 0.9);
+  background: var(--selected-chips-spell-bg);
 }
 
 .trap-wrapper .selected-chips-inline {
-  background: rgba(248, 187, 208, 0.9);
+  background: var(--selected-chips-trap-bg);
 }
 
 .selected-chip-inline {

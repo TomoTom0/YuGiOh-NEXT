@@ -11,6 +11,7 @@
   --theme-gradient: linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%);
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
+  --command-mode-bg: rgba(0, 217, 184, 0.1);
   --color-success: #4caf50;
   --color-success-bg: #e8f5e9;
   --color-success-hover-bg: #c8e6c9;
@@ -21,6 +22,7 @@
   --color-error-text: #d32f2f;
   --color-error-bg: #ffebee;
   --color-error-hover-bg: #ffcdd2;
+  --error-overlay-bg: rgba(255, 0, 0, 0.5);
   --color-info: #2196f3;
   --color-info-bg: #e3f2fd;
   --color-info-hover-bg: #bbdefb;
@@ -96,6 +98,11 @@
   --tab-spell-active-bg: #b2dfdb;
   --tab-trap-active-bg: #f8bbd0;
   --tab-border: #008cff;
+
+  // Selected Chips Inline Background Colors
+  --selected-chips-monster-bg: rgba(255, 249, 230, 0.9);
+  --selected-chips-spell-bg: rgba(178, 223, 219, 0.9);
+  --selected-chips-trap-bg: rgba(248, 187, 208, 0.9);
 
   // Chip Colors
   --chip-race-bg: #f3e5f5;
@@ -201,6 +208,7 @@
   --theme-gradient: linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%);
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
+  --command-mode-bg: rgba(0, 217, 184, 0.15);
   --color-success: #66bb6a;
   --color-success-bg: #1b5e20;
   --color-success-hover-bg: #2e7d32;
@@ -211,6 +219,7 @@
   --color-error-text: #ef5350;
   --color-error-bg: #b71c1c;
   --color-error-hover-bg: #c62828;
+  --error-overlay-bg: rgba(255, 0, 0, 0.6);
   --color-info: #42a5f5;
   --color-info-bg: #0d47a1;
   --color-info-hover-bg: #1565c0;
@@ -286,6 +295,11 @@
   --tab-spell-active-bg: #1a4a4a;
   --tab-trap-active-bg: #4a1a2a;
   --tab-border: #008cff;
+
+  // Selected Chips Inline Background Colors (Dark Theme)
+  --selected-chips-monster-bg: rgba(76, 76, 25, 0.9);
+  --selected-chips-spell-bg: rgba(25, 76, 76, 0.9);
+  --selected-chips-trap-bg: rgba(76, 25, 51, 0.9);
 
   // Chip Colors (Dark Theme)
   --chip-race-bg: #4a1a6a;

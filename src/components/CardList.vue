@@ -686,8 +686,8 @@ export default {
   }
 
   &.race {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: var(--chip-race-bg);
+    color: var(--chip-race-text);
   }
 
   &.type {

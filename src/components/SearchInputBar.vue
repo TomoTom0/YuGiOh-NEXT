@@ -1588,7 +1588,7 @@ export default defineComponent({
   justify-content: center;
 
   &.command-mode {
-    background: rgba(0, 217, 184, 0.1);
+    background: var(--command-mode-bg);
     border-radius: 4px;
     padding: 2px 4px;
     margin: 0 4px;
