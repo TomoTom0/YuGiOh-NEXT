@@ -142,7 +142,7 @@
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
   --monster-fusion-chip-default-text: var(--text-primary);
   --monster-fusion-chip-default-border: var(--monster-fusion-border);
-  --monster-fusion-chip-hover-bg: rgba(156, 39, 176, 0.2);
+  --monster-fusion-chip-hover-bg: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   --monster-fusion-chip-hover-text: var(--text-primary);
   --monster-fusion-chip-hover-border: var(--monster-fusion-border);
   --monster-fusion-chip-active-bg: var(--monster-fusion-active);
@@ -162,7 +162,7 @@
   --monster-synchro-chip-default-bg: var(--monster-synchro-bg);
   --monster-synchro-chip-default-text: var(--text-primary);
   --monster-synchro-chip-default-border: var(--monster-synchro-border);
-  --monster-synchro-chip-hover-bg: rgba(189, 189, 189, 0.15);
+  --monster-synchro-chip-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
   --monster-synchro-chip-hover-text: var(--text-primary);
   --monster-synchro-chip-hover-border: var(--monster-synchro-border);
   --monster-synchro-chip-active-bg: linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
@@ -459,7 +459,7 @@
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
   --monster-fusion-chip-default-text: var(--text-primary);
   --monster-fusion-chip-default-border: var(--monster-fusion-border);
-  --monster-fusion-chip-hover-bg: rgba(156, 39, 176, 0.2);
+  --monster-fusion-chip-hover-bg: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
   --monster-fusion-chip-hover-text: var(--text-primary);
   --monster-fusion-chip-hover-border: var(--monster-fusion-border);
   --monster-fusion-chip-active-bg: var(--monster-fusion-active);
@@ -479,7 +479,7 @@
   --monster-synchro-chip-default-bg: var(--monster-synchro-bg);
   --monster-synchro-chip-default-text: var(--text-primary);
   --monster-synchro-chip-default-border: var(--monster-synchro-border);
-  --monster-synchro-chip-hover-bg: rgba(189, 189, 189, 0.15);
+  --monster-synchro-chip-hover-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #424242 0%, #303030 100%);
   --monster-synchro-chip-hover-text: var(--text-primary);
   --monster-synchro-chip-hover-border: var(--monster-synchro-border);
   --monster-synchro-chip-active-bg: linear-gradient(135deg, #616161 0%, #424242 100%);
