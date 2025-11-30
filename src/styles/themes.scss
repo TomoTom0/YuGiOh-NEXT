@@ -100,6 +100,62 @@
   --monster-ritual-active-border: #00838f;
   --monster-pendulum-border: #ffb74d;
   --monster-pendulum-active-border: #f57c00;
+
+  // DeckCard Button Colors
+  --deck-card-limit-forbidden-bg: rgba(220, 20, 20, 0.9);
+  --deck-card-limit-limited-bg: rgba(255, 140, 0, 0.9);
+  --deck-card-limit-semi-limited-bg: rgba(255, 180, 0, 0.9);
+
+  --deck-card-btn-top-left-bg: rgba(255, 165, 0, 0.8);
+  --deck-card-btn-top-left-hover-bg: rgba(255, 140, 0, 0.95);
+  --deck-card-btn-top-left-hover-border: rgba(255, 140, 0, 1);
+
+  --deck-card-btn-top-left-link-bg: rgba(100, 180, 255, 0.8);
+  --deck-card-btn-top-left-link-hover-bg: rgba(80, 160, 255, 0.95);
+  --deck-card-btn-top-left-link-hover-border: rgba(80, 160, 255, 1);
+
+  --deck-card-btn-top-right-bg: rgba(180, 180, 180, 0.3);
+  --deck-card-btn-top-right-hover-bg: rgba(180, 180, 180, 0.5);
+  --deck-card-btn-top-right-hover-border: rgba(180, 180, 180, 0.7);
+
+  --deck-card-btn-top-right-me-bg: rgba(100, 150, 255, 0.6);
+  --deck-card-btn-top-right-me-hover-bg: rgba(100, 150, 255, 0.95);
+  --deck-card-btn-top-right-me-hover-border: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-top-right-s-bg: rgba(150, 100, 255, 0.6);
+  --deck-card-btn-top-right-s-hover-bg: rgba(150, 100, 255, 0.95);
+  --deck-card-btn-top-right-s-hover-border: rgba(150, 100, 255, 1);
+
+  --deck-card-btn-bottom-left-bg: rgba(255, 100, 100, 0.6);
+  --deck-card-btn-bottom-left-hover-bg: rgba(255, 100, 100, 0.95);
+  --deck-card-btn-bottom-left-hover-border: rgba(255, 100, 100, 1);
+
+  --deck-card-btn-bottom-left-me-bg: rgba(100, 150, 255, 0.6);
+  --deck-card-btn-bottom-left-me-hover-bg: rgba(100, 150, 255, 0.95);
+  --deck-card-btn-bottom-left-me-hover-border: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-bottom-left-error-bg: rgba(255, 0, 0, 0.9);
+  --deck-card-btn-bottom-left-error-border: rgba(255, 0, 0, 1);
+
+  --deck-card-btn-bottom-right-bg: rgba(100, 200, 100, 0.6);
+  --deck-card-btn-bottom-right-hover-bg: rgba(100, 200, 100, 0.95);
+  --deck-card-btn-bottom-right-hover-border: rgba(100, 200, 100, 1);
+
+  --deck-card-btn-bottom-right-side-bg: rgba(150, 100, 255, 0.6);
+  --deck-card-btn-bottom-right-side-hover-bg: rgba(150, 100, 255, 0.95);
+  --deck-card-btn-bottom-right-side-hover-border: rgba(150, 100, 255, 1);
+
+  --deck-card-btn-bottom-right-error-bg: rgba(255, 0, 0, 0.9);
+  --deck-card-btn-bottom-right-error-border: rgba(255, 0, 0, 1);
+
+  --deck-card-drag-over-outline: rgba(100, 150, 255, 0.8);
+  --deck-card-drag-over-bg: rgba(100, 150, 255, 0.1);
+
+  --deck-card-btn-me-bg: rgba(100, 150, 255, 0.7);
+  --deck-card-btn-me-hover-bg: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-side-bg: rgba(150, 100, 255, 0.7);
+  --deck-card-btn-side-hover-bg: rgba(150, 100, 255, 1);
 }
 
 // ダークテーマ
