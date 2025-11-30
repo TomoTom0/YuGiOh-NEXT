@@ -713,7 +713,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--tag-item-active-bg);
     border-color: var(--tag-item-active-border);
     color: var(--tag-item-active-text);
-    font-weight: 500;
+    font-weight: 700;
     box-shadow: inset 0 0 0 1px var(--tag-item-active-border);
 
     &:hover {
@@ -746,7 +746,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-fusion-chip-active-bg);
     border-color: var(--monster-fusion-chip-active-border);
     color: var(--monster-fusion-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-border);
 
     &:hover {
@@ -779,7 +778,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-synchro-chip-active-bg);
     border-color: var(--monster-synchro-chip-active-border);
     color: var(--monster-synchro-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-border);
 
     &:hover {
@@ -812,7 +810,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-xyz-chip-active-bg);
     border-color: var(--monster-xyz-chip-active-border);
     color: var(--monster-xyz-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-border);
 
     &:hover {
@@ -845,7 +842,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-link-chip-active-bg);
     border-color: var(--monster-link-chip-active-border);
     color: var(--monster-link-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-border);
 
     &:hover {
@@ -878,7 +874,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-ritual-chip-active-bg);
     border-color: var(--monster-ritual-chip-active-border);
     color: var(--monster-ritual-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-border);
 
     &:hover {
@@ -911,7 +906,6 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-pendulum-chip-active-bg);
     border-color: var(--monster-pendulum-chip-active-border);
     color: var(--monster-pendulum-chip-active-text);
-    font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-border);
 
     &:hover {
