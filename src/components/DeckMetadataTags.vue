@@ -95,7 +95,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  background: var(--monster-fusion-bg);
   border-color: #ba68c8;
   color: white;
 
@@ -106,15 +106,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="synchro"] {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  background: var(--monster-synchro-bg);
   border-color: var(--border-primary);
   color: var(--text-primary);
 
@@ -125,7 +117,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  background: var(--monster-xyz-active);
   color: #ffffff;
   border-color: #757575;
 
@@ -136,7 +128,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: var(--monster-link-bg);
   border-color: #64b5f6;
   color: #1565c0;
 
@@ -147,7 +139,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  background: var(--monster-ritual-bg);
   border-color: #4dd0e1;
   color: #00838f;
 

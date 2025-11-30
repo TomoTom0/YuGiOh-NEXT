@@ -1229,27 +1229,30 @@ function clearFilters() {
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #fff9e6;
+  background: var(--tab-monster-active-bg);
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(255, 249, 230, 0.7);
+  background: var(--tab-monster-active-bg);
+  opacity: 0.85;
 }
 
 .spell-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #b2dfdb;
+  background: var(--tab-spell-active-bg);
 }
 
 .spell-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(178, 223, 219, 0.7);
+  background: var(--tab-spell-active-bg);
+  opacity: 0.85;
 }
 
 .trap-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #f8bbd0;
+  background: var(--tab-trap-active-bg);
 }
 
 .trap-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(248, 187, 208, 0.7);
+  background: var(--tab-trap-active-bg);
+  opacity: 0.85;
 }
 
 .selected-chips-inline {
@@ -1368,7 +1371,7 @@ function clearFilters() {
   gap: 12px;
   padding: 4px 12px;
   min-height: 24px;
-  background: #fff9e6;
+  background: var(--tab-monster-active-bg);
   border-radius: 6px 6px 0 0;
   margin-bottom: 0;
   position: relative;
@@ -1596,16 +1599,16 @@ function clearFilters() {
 
   .chip[data-type="fusion"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+      background: var(--monster-fusion-bg);
       border-color: #ba68c8;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+      background: var(--monster-fusion-active);
       border-color: #7b1fa2;
       color: var(--button-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
+      background: var(--monster-fusion-not);
       border: 1.5px solid #d32f2f;
       color: #4a148c;
     }
@@ -1654,12 +1657,12 @@ function clearFilters() {
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, var(--border-primary) 0%, #bdbdbd 100%);
+      background: var(--monster-xyz-bg);
       border-color: #9e9e9e;
       color: var(--text-primary);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+      background: var(--monster-xyz-active);
       border-color: var(--border-secondary);
       color: var(--button-text);
     }
@@ -1672,11 +1675,11 @@ function clearFilters() {
 
   .chip[data-type="link"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      background: var(--monster-link-bg);
       border-color: var(--color-info);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #42a5f5 0%, var(--button-bg) 100%);
+      background: var(--monster-link-active);
       border-color: var(--color-info);
       color: var(--button-text);
     }
@@ -1689,11 +1692,11 @@ function clearFilters() {
 
   .chip[data-type="ritual"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+      background: var(--monster-ritual-bg);
       border-color: #4dd0e1;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+      background: var(--monster-ritual-active);
       border-color: #00838f;
       color: var(--button-text);
     }
@@ -1706,21 +1709,11 @@ function clearFilters() {
 
   .chip[data-type="pendulum"] {
     &:not(:disabled) {
-      background: linear-gradient(180deg,
-        #fff3e0 0%,
-        #fff3e0 30%,
-        #b2dfdb 70%,
-        #b2dfdb 100%
-      );
+      background: var(--monster-pendulum-bg);
       border-color: #ffb74d;
     }
     &.active:not(:disabled) {
-      background: linear-gradient(180deg,
-        #ff9800 0%,
-        #ff9800 30%,
-        #00897b 70%,
-        #00897b 100%
-      );
+      background: var(--monster-pendulum-active);
       border-color: var(--color-warning);
       color: var(--button-text);
     }
@@ -1787,7 +1780,7 @@ function clearFilters() {
     }
 
     &:has(.level-tab.active) {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
     }
 
     &:hover:not(:has(.level-tab:disabled)) {
@@ -1795,11 +1788,12 @@ function clearFilters() {
     }
 
     &:has(.level-tab.active):hover {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
+      opacity: 0.85;
     }
 
     .selected-chips-inline {
-      background: rgba(255, 249, 230, 0.9);
+      background: var(--tab-monster-active-bg);
     }
   }
 }

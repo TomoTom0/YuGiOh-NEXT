@@ -734,7 +734,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  background: var(--monster-fusion-bg);
   border-color: #ba68c8;
   border-radius: 21px;
 
@@ -757,15 +757,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="synchro"] {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(189, 189, 189, 0.12) 8px,
-      rgba(189, 189, 189, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: var(--monster-synchro-bg);
   border-color: #bdbdbd;
   border-radius: 21px;
 
@@ -788,7 +780,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="xyz"] {
-  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  background: var(--monster-xyz-bg);
   border-color: #757575;
   border-radius: 21px;
   color: #ffffff;
@@ -812,7 +804,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: var(--monster-link-bg);
   border-color: #64b5f6;
   border-radius: 21px;
 
@@ -835,7 +827,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  background: var(--monster-ritual-bg);
   border-color: #4dd0e1;
   border-radius: 21px;
 
@@ -858,12 +850,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="pendulum"] {
-  background: linear-gradient(180deg,
-    #fff3e0 0%,
-    #fff3e0 30%,
-    #b2dfdb 70%,
-    #b2dfdb 100%
-  );
+  background: var(--monster-pendulum-bg);
   border-color: #ffb74d;
   border-radius: 21px;
 

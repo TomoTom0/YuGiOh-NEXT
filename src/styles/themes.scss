@@ -52,6 +52,40 @@
   --scrollbar-thumb-hover: #a8a8a8;
   --color-success-hover: #45a049;
   --color-error-hover: #d32f2f;
+
+  // Monster Type Gradients - Fusion
+  --monster-fusion-bg: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  --monster-fusion-active: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+  --monster-fusion-not: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
+
+  // Monster Type Gradients - Synchro
+  --monster-synchro-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  --monster-synchro-active: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0, rgba(0, 0, 0, 0.1) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #eeeeee 0%, #eeeeee 100%);
+
+  // Monster Type Gradients - XYZ
+  --monster-xyz-bg: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 100%);
+  --monster-xyz-active: linear-gradient(135deg, #616161 0%, #424242 100%);
+
+  // Monster Type Gradients - Link
+  --monster-link-bg: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  --monster-link-active: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+
+  // Monster Type Gradients - Ritual
+  --monster-ritual-bg: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  --monster-ritual-active: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+
+  // Monster Type Gradients - Pendulum
+  --monster-pendulum-bg: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  --monster-pendulum-active: linear-gradient(180deg, #ff9800 0%, #ff9800 30%, #00897b 70%, #00897b 100%);
+
+  // Tab Active Background Colors
+  --tab-monster-active-bg: #fff9e6;
+  --tab-spell-active-bg: #b2dfdb;
+  --tab-trap-active-bg: #f8bbd0;
+
+  // Chip Colors
+  --chip-race-bg: #f3e5f5;
+  --chip-race-text: #7b1fa2;
 }
 
 // ダークテーマ
@@ -108,4 +142,38 @@
   --scrollbar-thumb-hover: #5a5a5a;
   --color-success-hover: #4caf50;
   --color-error-hover: #f44336;
+
+  // Monster Type Gradients - Fusion (Dark Theme)
+  --monster-fusion-bg: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
+  --monster-fusion-active: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+  --monster-fusion-not: linear-gradient(135deg, #6a1b9a 0%, #6a1b9a 40%, #d32f2f 70%, #b71c1c 100%);
+
+  // Monster Type Gradients - Synchro (Dark Theme)
+  --monster-synchro-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #424242 0%, #303030 100%);
+  --monster-synchro-active: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0, rgba(255, 255, 255, 0.1) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #616161 0%, #424242 100%);
+
+  // Monster Type Gradients - XYZ (Dark Theme)
+  --monster-xyz-bg: linear-gradient(135deg, #424242 0%, #303030 100%);
+  --monster-xyz-active: linear-gradient(135deg, #757575 0%, #616161 100%);
+
+  // Monster Type Gradients - Link (Dark Theme)
+  --monster-link-bg: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+  --monster-link-active: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+
+  // Monster Type Gradients - Ritual (Dark Theme)
+  --monster-ritual-bg: linear-gradient(135deg, #00838f 0%, #0097a7 100%);
+  --monster-ritual-active: linear-gradient(135deg, #00bcd4 0%, #00acc1 100%);
+
+  // Monster Type Gradients - Pendulum (Dark Theme)
+  --monster-pendulum-bg: linear-gradient(180deg, #e65100 0%, #e65100 30%, #00695c 70%, #00695c 100%);
+  --monster-pendulum-active: linear-gradient(180deg, #ff9800 0%, #ff9800 30%, #00897b 70%, #00897b 100%);
+
+  // Tab Active Background Colors (Dark Theme)
+  --tab-monster-active-bg: #4a4a1a;
+  --tab-spell-active-bg: #1a4a4a;
+  --tab-trap-active-bg: #4a1a2a;
+
+  // Chip Colors (Dark Theme)
+  --chip-race-bg: #4a1a6a;
+  --chip-race-text: #ce93d8;
 }
