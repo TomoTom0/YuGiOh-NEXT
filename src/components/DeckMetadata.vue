@@ -823,4 +823,39 @@ function removeTag(tagId: string) {
     color: var(--text-tertiary);
   }
 }
+
+/* ダークモード用: 背景色グラデーションのみ変更 */
+:global(.dark-theme) {
+  .chip.tag-chip[data-type="fusion"] {
+    background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+  }
+
+  .chip.tag-chip[data-type="synchro"] {
+    background:
+      repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 8px,
+        rgba(255, 255, 255, 0.12) 8px,
+        rgba(255, 255, 255, 0.12) 9px
+      ),
+      linear-gradient(135deg, #757575 0%, #616161 100%);
+  }
+
+  .chip.tag-chip[data-type="xyz"] {
+    background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  }
+
+  .chip.tag-chip[data-type="link"] {
+    background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
+  }
+
+  .chip.tag-chip[data-type="ritual"] {
+    background: linear-gradient(135deg, #0097a7 0%, #00838f 100%);
+  }
+
+  .chip.tag-chip[data-type="pendulum"] {
+    background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
+  }
+}
 </style>
