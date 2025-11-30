@@ -721,12 +721,15 @@ watch(() => props.modelValue, (newVal) => {
   }
 
   &.selected {
+    background: var(--color-success-bg);
+    border-color: var(--color-success);
+    color: var(--color-success);
     font-weight: 500;
-    box-shadow: inset 0 0 0 2px var(--button-bg);
+    box-shadow: inset 0 0 0 2px var(--color-success);
 
     &:hover {
       filter: brightness(0.95);
-      box-shadow: inset 0 0 0 2px var(--button-bg), 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: inset 0 0 0 2px var(--color-success), 0 2px 4px rgba(76, 175, 80, 0.1);
     }
   }
 }
