@@ -146,6 +146,10 @@ export interface AppSettings {
   enableMouseOperations: boolean;
   /** デッキ編集画面でファビコンを変更 */
   changeFavicon: boolean;
+  /** デッキ表示ページでCardDetail情報を表示 */
+  showCardDetailInDeckDisplay: boolean;
+  /** デッキ表示ページのカード画像サイズ */
+  deckDisplayCardImageSize: CardSize;
   /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
   keyboardShortcuts: {
     /** グローバル検索呼び出しキー */
@@ -222,6 +226,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   unsavedWarning: 'always',
   enableMouseOperations: false,
   changeFavicon: true,
+  // デッキ表示ページ設定
+  showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
+  deckDisplayCardImageSize: 'large',   // デッキ表示ページのカード画像: large
   // キーボードショートカット（各機能に最大3つまで登録可能、0個も許容）
   keyboardShortcuts: {
     globalSearch: [

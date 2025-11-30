@@ -310,7 +310,7 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
-  background: var(--bg-color, #fff);
+  background: var(--bg-primary);
   color: var(--text-color, var(--text-primary));
 }
 

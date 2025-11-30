@@ -367,6 +367,22 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * デッキ表示ページでCardDetail情報を表示するかを変更
+   */
+  function setShowCardDetailInDeckDisplay(enabled: boolean): void {
+    appSettings.value.showCardDetailInDeckDisplay = enabled;
+    saveSettings();
+  }
+
+  /**
+   * デッキ表示ページのカード画像サイズを変更
+   */
+  function setDeckDisplayCardImageSize(size: CardSize): void {
+    appSettings.value.deckDisplayCardImageSize = size;
+    saveSettings();
+  }
+
+  /**
    * 機能のON/OFF切り替え
    */
   function toggleFeature(featureId: string, enabled: boolean): void {
@@ -494,6 +510,8 @@ export const useSettingsStore = defineStore('settings', () => {
     removeKeyboardShortcut,
     setSearchInputPosition,
     setDefaultSearchMode,
+    setShowCardDetailInDeckDisplay,
+    setDeckDisplayCardImageSize,
     toggleFeature,
     resetSettings,
     applyTheme,

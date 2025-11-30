@@ -1012,9 +1012,10 @@ export default {
     }
     
     input:checked + .icon {
-      background: var(--color-info);
-      color: var(--button-text);
-      border-color: var(--color-info);
+      background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+      color: white;
+      border-color: #0068d9;
+      box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
     }
   }
 }

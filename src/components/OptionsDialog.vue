@@ -10,7 +10,7 @@
         <div class="settings-grid">
           <!-- 左上: Image Size -->
           <div class="setting-block">
-            <div class="block-title">Image</div>
+            <div class="block-title">Image Size</div>
             <div class="size-grid">
               <button
                 v-for="preset in presets"
@@ -24,30 +24,9 @@
             </div>
           </div>
 
-          <!-- 右上: Mouse Operations -->
+          <!-- 右上: Search Position -->
           <div class="setting-block">
-            <div class="block-title">Mouse</div>
-            <div class="toggle-row">
-              <button
-                class="toggle-btn"
-                :class="{ active: !settingsStore.appSettings.enableMouseOperations }"
-                @click="settingsStore.setMouseOperations(false)"
-              >
-                OFF
-              </button>
-              <button
-                class="toggle-btn"
-                :class="{ active: settingsStore.appSettings.enableMouseOperations }"
-                @click="settingsStore.setMouseOperations(true)"
-              >
-                ON
-              </button>
-            </div>
-          </div>
-
-          <!-- 左下: Search Input -->
-          <div class="setting-block">
-            <div class="block-title">Search</div>
+            <div class="block-title">Search Position</div>
             <div class="search-position-grid">
               <div class="position-col">
                 <button
@@ -77,7 +56,7 @@
             </div>
           </div>
 
-          <!-- 右下: Extra/Side Layout -->
+          <!-- 左下: Extra/Side Layout -->
           <div class="setting-block">
             <div class="block-title">Extra/Side</div>
             <div class="toggle-row">
@@ -86,14 +65,14 @@
                 :class="{ active: settingsStore.appSettings.middleDecksLayout === 'horizontal' }"
                 @click="settingsStore.setMiddleDecksLayout('horizontal')"
               >
-                横並び
+                Horizontal
               </button>
               <button
                 class="toggle-btn"
                 :class="{ active: settingsStore.appSettings.middleDecksLayout === 'vertical' }"
                 @click="settingsStore.setMiddleDecksLayout('vertical')"
               >
-                縦並び
+                Vertical
               </button>
             </div>
           </div>
@@ -268,13 +247,16 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   transition: all 0.15s;
 
   &:hover {
-    border-color: var(--text-tertiary);
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    border-color: var(--text-primary);
+    background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+    color: white;
+    border-color: #0068d9;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
   }
 }
 
@@ -317,13 +299,16 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   transition: all 0.15s;
 
   &:hover {
-    border-color: var(--text-tertiary);
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    background: var(--text-primary);
-    color: var(--bg-primary);
-    border-color: var(--text-primary);
+    background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+    color: white;
+    border-color: #0068d9;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
   }
 }
 

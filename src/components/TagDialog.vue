@@ -359,7 +359,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-dialog {
-  background: var(--bg-color, #fff);
+  background: var(--dialog-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-lg);
   width: 90%;
@@ -428,8 +428,8 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
-  background: var(--bg-color, #fff);
-  color: var(--text-color, var(--text-primary));
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .search-input:focus {
