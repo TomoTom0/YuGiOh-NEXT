@@ -417,24 +417,10 @@ function removeTag(tagId: string) {
   background: var(--color-success-bg);
   color: var(--color-success);
   border: 1px solid var(--color-success);
-}
 
-.chip.tag-chip:hover {
-  background: var(--color-success-hover-bg);
-  border-color: var(--color-success);
-}
-
-.chip.tag-chip {
-  &[data-type="fusion"],
-  &[data-type="synchro"],
-  &[data-type="xyz"],
-  &[data-type="link"],
-  &[data-type="ritual"],
-  &[data-type="pendulum"] {
-    &:hover {
-      filter: brightness(0.9);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    }
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   &[data-type="fusion"] {
@@ -443,6 +429,11 @@ function removeTag(tagId: string) {
     border-color: #9c27b0;
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
+
+    &:hover {
+      filter: brightness(0.9);
+      box-shadow: 0 2px 6px rgba(156, 39, 176, 0.5);
+    }
   }
 
   &[data-type="synchro"] {
@@ -458,6 +449,10 @@ function removeTag(tagId: string) {
     color: var(--text-primary);
     border-color: var(--border-secondary);
     font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
   }
 
   &[data-type="xyz"] {
@@ -465,6 +460,10 @@ function removeTag(tagId: string) {
     color: var(--button-text);
     border-color: #757575;
     font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.9);
+    }
   }
 
   &[data-type="link"] {
@@ -472,6 +471,10 @@ function removeTag(tagId: string) {
     color: #1565c0;
     border-color: #64b5f6;
     font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
   }
 
   &[data-type="ritual"] {
@@ -479,6 +482,10 @@ function removeTag(tagId: string) {
     color: #00838f;
     border-color: #4dd0e1;
     font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
   }
 
   &[data-type="pendulum"] {
@@ -487,6 +494,10 @@ function removeTag(tagId: string) {
     border-color: #ff9800;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      filter: brightness(0.95);
+    }
   }
 }
 

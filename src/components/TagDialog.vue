@@ -713,19 +713,22 @@ watch(() => props.modelValue, (newVal) => {
   border-radius: 21px;
 }
 
-/* 共通のホバー・選択スタイル（個別スタイルがないもの） */
-.tag-item:hover {
-  background: var(--bg-secondary);
-  border-color: var(--button-bg);
-  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
-}
+/* 共通のホバー・選択スタイル（個別スタイルがないもの用） */
+.tag-item {
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 
-.tag-item.selected {
-  background: var(--color-info-bg);
-  border-color: var(--button-bg);
-  color: var(--button-hover-bg);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px var(--button-bg);
+  &.selected {
+    filter: brightness(0.9);
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+
+    &:hover {
+      filter: brightness(0.85);
+    }
+  }
 }
 
 .tag-item[data-type="fusion"] {
