@@ -746,6 +746,11 @@ watch(() => props.modelValue, (newVal) => {
     color: #4a148c;
     font-weight: 500;
     box-shadow: inset 0 0 0 1px #9c27b0;
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px #9c27b0, 0 2px 4px rgba(156, 39, 176, 0.3);
+    }
   }
 }
 
@@ -772,6 +777,11 @@ watch(() => props.modelValue, (newVal) => {
     color: var(--text-primary);
     font-weight: 500;
     box-shadow: inset 0 0 0 1px #757575;
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px #757575, 0 2px 4px rgba(117, 117, 117, 0.2);
+    }
   }
 }
 
@@ -791,6 +801,11 @@ watch(() => props.modelValue, (newVal) => {
     color: var(--button-text);
     font-weight: 500;
     box-shadow: inset 0 0 0 1px #757575;
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px #757575, 0 2px 4px rgba(97, 97, 97, 0.2);
+    }
   }
 }
 
@@ -809,6 +824,11 @@ watch(() => props.modelValue, (newVal) => {
     color: var(--color-info);
     font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--button-bg);
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px var(--button-bg), 0 2px 4px rgba(25, 118, 210, 0.2);
+    }
   }
 }
 
@@ -827,6 +847,11 @@ watch(() => props.modelValue, (newVal) => {
     color: #006064;
     font-weight: 500;
     box-shadow: inset 0 0 0 1px #0097a7;
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px #0097a7, 0 2px 4px rgba(0, 151, 167, 0.2);
+    }
   }
 }
 
@@ -850,6 +875,11 @@ watch(() => props.modelValue, (newVal) => {
     color: #4a148c;
     font-weight: 500;
     box-shadow: inset 0 0 0 1px #ff9800;
+
+    &:hover {
+      filter: brightness(0.85);
+      box-shadow: inset 0 0 0 1px #ff9800, 0 2px 4px rgba(255, 152, 0, 0.2);
+    }
   }
 }
 

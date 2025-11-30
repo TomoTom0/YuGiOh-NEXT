@@ -442,12 +442,12 @@ function removeTag(tagId: string) {
         135deg,
         transparent,
         transparent 8px,
-        rgba(158, 158, 158, 0.12) 8px,
-        rgba(158, 158, 158, 0.12) 9px
+        rgba(189, 189, 189, 0.12) 8px,
+        rgba(189, 189, 189, 0.12) 9px
       ),
-      linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
     color: var(--text-primary);
-    border-color: var(--border-secondary);
+    border-color: #bdbdbd;
     font-weight: 600;
 
     &:hover {
