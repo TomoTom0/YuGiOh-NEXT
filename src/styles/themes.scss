@@ -46,6 +46,15 @@
   --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.1);
   --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
+  --filter-button-active-bg: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+  --filter-button-active-border: #1b5e20;
+  --filter-button-active-shadow: 0 3px 10px rgba(46, 125, 50, 0.5);
+  --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+  --filter-button-not-border: #b71c1c;
+  --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
+  --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
+  --filter-button-pendulum-active-border: #e65100;
+  --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
   --toast-bg: #ffffff;
   --toast-success-bg: #f1f8f4;
   --toast-error-bg: #fef1f0;
@@ -105,6 +114,22 @@
   --monster-ritual-active-border: #00838f;
   --monster-pendulum-border: #ffb74d;
   --monster-pendulum-active-border: #f57c00;
+
+  // Monster Type Text Colors
+  --monster-fusion-text: #4a148c;
+  --monster-synchro-text: var(--text-primary);
+  --monster-xyz-text: #ffffff;
+  --monster-link-text: #0d47a1;
+  --monster-ritual-text: #006064;
+  --monster-pendulum-text: #ffffff;
+
+  // Monster Type Badge Text Colors
+  --monster-fusion-badge-text: #ffffff;
+  --monster-synchro-badge-text: var(--text-primary);
+  --monster-xyz-badge-text: #ffffff;
+  --monster-link-badge-text: #1565c0;
+  --monster-ritual-badge-text: #00838f;
+  --monster-pendulum-badge-text: #ffffff;
 
   // DeckCard Button Colors
   --deck-card-limit-forbidden-bg: rgba(220, 20, 20, 0.9);
@@ -211,6 +236,15 @@
   --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.2);
   --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.5);
+  --filter-button-active-bg: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+  --filter-button-active-border: #1b5e20;
+  --filter-button-active-shadow: 0 3px 10px rgba(46, 125, 50, 0.7);
+  --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+  --filter-button-not-border: #b71c1c;
+  --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.8);
+  --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
+  --filter-button-pendulum-active-border: #e65100;
+  --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.7);
   --toast-bg: #2a2a2a;
   --toast-success-bg: #1b3a1b;
   --toast-error-bg: #3a1b1b;
@@ -270,4 +304,20 @@
   --monster-ritual-active-border: #80deea;
   --monster-pendulum-border: #ffb74d;
   --monster-pendulum-active-border: #ffd54f;
+
+  // Monster Type Text Colors (Dark Theme)
+  --monster-fusion-text: #e1bee7;
+  --monster-synchro-text: var(--text-primary);
+  --monster-xyz-text: #ffffff;
+  --monster-link-text: #bbdefb;
+  --monster-ritual-text: #b2ebf2;
+  --monster-pendulum-text: #ffffff;
+
+  // Monster Type Badge Text Colors (Dark Theme)
+  --monster-fusion-badge-text: #f8bbd0;
+  --monster-synchro-badge-text: var(--text-primary);
+  --monster-xyz-badge-text: #ffffff;
+  --monster-link-badge-text: #90caf9;
+  --monster-ritual-badge-text: #80deea;
+  --monster-pendulum-badge-text: #ffffff;
 }

@@ -424,9 +424,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="fusion"] {
-    background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-    color: white;
-    border-color: #9c27b0;
+    background: var(--monster-fusion-bg);
+    color: var(--monster-fusion-badge-text);
+    border-color: var(--monster-fusion-border);
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
 
@@ -437,17 +437,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="synchro"] {
-    background:
-      repeating-linear-gradient(
-        135deg,
-        transparent,
-        transparent 8px,
-        rgba(189, 189, 189, 0.12) 8px,
-        rgba(189, 189, 189, 0.12) 9px
-      ),
-      linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-    color: var(--text-primary);
-    border-color: #bdbdbd;
+    background: var(--monster-synchro-bg);
+    color: var(--monster-synchro-badge-text);
+    border-color: var(--monster-synchro-border);
     font-weight: 600;
 
     &:hover {
@@ -456,9 +448,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="xyz"] {
-    background: linear-gradient(135deg, #616161 0%, #424242 100%);
-    color: var(--button-text);
-    border-color: #757575;
+    background: var(--monster-xyz-active);
+    color: var(--monster-xyz-badge-text);
+    border-color: var(--monster-xyz-active-border);
     font-weight: 600;
 
     &:hover {
@@ -467,9 +459,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="link"] {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-    color: #1565c0;
-    border-color: #64b5f6;
+    background: var(--monster-link-bg);
+    color: var(--monster-link-badge-text);
+    border-color: var(--monster-link-border);
     font-weight: 600;
 
     &:hover {
@@ -478,9 +470,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="ritual"] {
-    background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-    color: #00838f;
-    border-color: #4dd0e1;
+    background: var(--monster-ritual-bg);
+    color: var(--monster-ritual-badge-text);
+    border-color: var(--monster-ritual-border);
     font-weight: 600;
 
     &:hover {
@@ -489,9 +481,9 @@ function removeTag(tagId: string) {
   }
 
   &[data-type="pendulum"] {
-    background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-    color: white;
-    border-color: #ff9800;
+    background: var(--monster-pendulum-bg);
+    color: var(--monster-pendulum-badge-text);
+    border-color: var(--monster-pendulum-border);
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 
