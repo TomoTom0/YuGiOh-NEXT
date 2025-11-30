@@ -97,6 +97,12 @@ const getCategoryLabel = (catId: string): string => {
 .chip.tag-chip[data-type="fusion"] {
   background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   border-color: #ba68c8;
+  color: white;
+
+  &:hover {
+    filter: brightness(0.9);
+    box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+  }
 }
 
 .chip.tag-chip[data-type="synchro"] {
@@ -110,28 +116,56 @@ const getCategoryLabel = (catId: string): string => {
     ),
     linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
   border-color: var(--border-primary);
+  color: var(--text-primary);
+
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
+  }
 }
 
 .chip.tag-chip[data-type="xyz"] {
   background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: var(--button-text);
-  border-color: var(--border-secondary);
+  color: #ffffff;
+  border-color: #757575;
+
+  &:hover {
+    filter: brightness(0.9);
+    box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
+  }
 }
 
 .chip.tag-chip[data-type="link"] {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-color: var(--color-info);
+  border-color: #64b5f6;
+  color: #1565c0;
+
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+  }
 }
 
 .chip.tag-chip[data-type="ritual"] {
   background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
   border-color: #4dd0e1;
+  color: #00838f;
+
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
+  }
 }
 
 .chip.tag-chip[data-type="pendulum"] {
   background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-  color: var(--button-text);
+  color: white;
   border-color: #ff9800;
+
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+  }
 }
 
 .chip.category-chip {

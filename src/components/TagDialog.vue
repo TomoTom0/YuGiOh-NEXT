@@ -723,7 +723,6 @@ watch(() => props.modelValue, (newVal) => {
   &.selected {
     background: var(--color-success-bg);
     border-color: var(--color-success);
-    color: var(--color-success);
     font-weight: 500;
     box-shadow: inset 0 0 0 2px var(--color-success);
 
