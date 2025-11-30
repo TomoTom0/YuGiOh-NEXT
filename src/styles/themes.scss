@@ -138,6 +138,20 @@
   --monster-ritual-badge-text: #00838f;
   --monster-pendulum-badge-text: #ffffff;
 
+  // Tag Item States - Basic Tags (non-monster-type)
+  --tag-item-default-bg: transparent;
+  --tag-item-default-text: var(--text-primary);
+  --tag-item-default-border: var(--border-secondary);
+  --tag-item-hover-bg: var(--color-success-hover-bg);
+  --tag-item-hover-text: var(--text-primary);
+  --tag-item-hover-border: var(--color-success);
+  --tag-item-active-bg: var(--color-success-bg);
+  --tag-item-active-text: var(--text-primary);
+  --tag-item-active-border: var(--color-success);
+  --tag-item-active-hover-bg: var(--color-success);
+  --tag-item-active-hover-text: #ffffff;
+  --tag-item-active-hover-border: var(--color-success);
+
   // Monster Type Chip States - Fusion
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
   --monster-fusion-chip-default-text: var(--text-primary);
@@ -454,6 +468,20 @@
   --monster-link-badge-text: #90caf9;
   --monster-ritual-badge-text: #80deea;
   --monster-pendulum-badge-text: #ffffff;
+
+  // Tag Item States - Basic Tags (non-monster-type) (Dark Theme)
+  --tag-item-default-bg: transparent;
+  --tag-item-default-text: var(--text-primary);
+  --tag-item-default-border: var(--border-secondary);
+  --tag-item-hover-bg: rgba(102, 187, 106, 0.2);
+  --tag-item-hover-text: var(--text-primary);
+  --tag-item-hover-border: var(--color-success);
+  --tag-item-active-bg: var(--color-success-bg);
+  --tag-item-active-text: #ffffff;
+  --tag-item-active-border: var(--color-success);
+  --tag-item-active-hover-bg: var(--color-success);
+  --tag-item-active-hover-text: #ffffff;
+  --tag-item-active-hover-border: var(--color-success);
 
   // Monster Type Chip States - Fusion (Dark Theme)
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);

@@ -696,22 +696,29 @@ watch(() => props.modelValue, (newVal) => {
 
 /* 共通のホバー・選択スタイル（個別スタイルがないもの用） */
 .tag-item {
-  &:hover {
-    filter: brightness(0.9) saturate(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    transform: translateY(-2px);
+  background: var(--tag-item-default-bg);
+  border-color: var(--tag-item-default-border);
+  color: var(--tag-item-default-text);
+
+  &:hover:not(.selected) {
+    background: var(--tag-item-hover-bg);
+    border-color: var(--tag-item-hover-border);
+    color: var(--tag-item-hover-text);
+    box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2);
   }
 
   &.selected {
-    background: var(--color-success-bg);
-    border-color: var(--color-success);
+    background: var(--tag-item-active-bg);
+    border-color: var(--tag-item-active-border);
+    color: var(--tag-item-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 2px var(--color-success);
+    box-shadow: inset 0 0 0 1px var(--tag-item-active-border);
 
     &:hover {
-      filter: brightness(0.85) saturate(1.15);
-      box-shadow: inset 0 0 0 2px var(--color-success), 0 4px 8px rgba(76, 175, 80, 0.2);
-      transform: translateY(-2px);
+      background: var(--tag-item-active-hover-bg);
+      border-color: var(--tag-item-active-hover-border);
+      color: var(--tag-item-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--tag-item-active-hover-border), 0 2px 4px rgba(76, 175, 80, 0.2);
     }
   }
 }
