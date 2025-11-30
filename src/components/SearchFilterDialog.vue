@@ -1607,6 +1607,7 @@ function clearFilters() {
       background: var(--monster-fusion-chip-hover-bg);
       border-color: var(--monster-fusion-chip-hover-border);
       color: var(--monster-fusion-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-fusion-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-fusion-chip-active-bg);
@@ -1640,6 +1641,7 @@ function clearFilters() {
       background: var(--monster-synchro-chip-hover-bg);
       border-color: var(--monster-synchro-chip-hover-border);
       color: var(--monster-synchro-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-synchro-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-synchro-chip-active-bg);
@@ -1673,6 +1675,7 @@ function clearFilters() {
       background: var(--monster-xyz-chip-hover-bg);
       border-color: var(--monster-xyz-chip-hover-border);
       color: var(--monster-xyz-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-xyz-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-xyz-chip-active-bg);
@@ -1706,6 +1709,7 @@ function clearFilters() {
       background: var(--monster-link-chip-hover-bg);
       border-color: var(--monster-link-chip-hover-border);
       color: var(--monster-link-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-link-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-link-chip-active-bg);
@@ -1739,6 +1743,7 @@ function clearFilters() {
       background: var(--monster-ritual-chip-hover-bg);
       border-color: var(--monster-ritual-chip-hover-border);
       color: var(--monster-ritual-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-ritual-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-ritual-chip-active-bg);
@@ -1772,6 +1777,7 @@ function clearFilters() {
       background: var(--monster-pendulum-chip-hover-bg);
       border-color: var(--monster-pendulum-chip-hover-border);
       color: var(--monster-pendulum-chip-hover-text);
+      box-shadow: 0 4px 12px var(--monster-pendulum-tag-hover-color);
     }
     &.active:not(:disabled) {
       background: var(--monster-pendulum-chip-active-bg);
