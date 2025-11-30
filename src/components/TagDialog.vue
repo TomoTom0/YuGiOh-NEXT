@@ -735,7 +735,7 @@ watch(() => props.modelValue, (newVal) => {
 
 .tag-item[data-type="fusion"] {
   background: var(--monster-fusion-bg);
-  border-color: #ba68c8;
+  border-color: var(--monster-fusion-border);
   border-radius: 21px;
 
   &:hover {
@@ -747,18 +747,18 @@ watch(() => props.modelValue, (newVal) => {
     filter: brightness(0.9);
     color: #4a148c;
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #9c27b0;
+    box-shadow: inset 0 0 0 1px var(--monster-fusion-active-border);
 
     &:hover {
       filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px #9c27b0, 0 2px 4px rgba(156, 39, 176, 0.3);
+      box-shadow: inset 0 0 0 1px var(--monster-fusion-active-border), 0 2px 4px rgba(156, 39, 176, 0.3);
     }
   }
 }
 
 .tag-item[data-type="synchro"] {
   background: var(--monster-synchro-bg);
-  border-color: #bdbdbd;
+  border-color: var(--monster-synchro-border);
   border-radius: 21px;
 
   &:hover {
@@ -770,18 +770,18 @@ watch(() => props.modelValue, (newVal) => {
     filter: brightness(0.9);
     color: var(--text-primary);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #757575;
+    box-shadow: inset 0 0 0 1px var(--monster-synchro-active-border);
 
     &:hover {
       filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px #757575, 0 2px 4px rgba(117, 117, 117, 0.2);
+      box-shadow: inset 0 0 0 1px var(--monster-synchro-active-border), 0 2px 4px rgba(117, 117, 117, 0.2);
     }
   }
 }
 
 .tag-item[data-type="xyz"] {
   background: var(--monster-xyz-bg);
-  border-color: #757575;
+  border-color: var(--monster-xyz-border);
   border-radius: 21px;
   color: #ffffff;
 
@@ -794,18 +794,18 @@ watch(() => props.modelValue, (newVal) => {
     background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
     color: #000000;
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #616161;
+    box-shadow: inset 0 0 0 1px var(--monster-xyz-active-border);
 
     &:hover {
       filter: brightness(0.95);
-      box-shadow: inset 0 0 0 1px #616161, 0 2px 4px rgba(97, 97, 97, 0.2);
+      box-shadow: inset 0 0 0 1px var(--monster-xyz-active-border), 0 2px 4px rgba(97, 97, 97, 0.2);
     }
   }
 }
 
 .tag-item[data-type="link"] {
   background: var(--monster-link-bg);
-  border-color: #64b5f6;
+  border-color: var(--monster-link-border);
   border-radius: 21px;
 
   &:hover {
@@ -817,18 +817,18 @@ watch(() => props.modelValue, (newVal) => {
     filter: brightness(0.9);
     color: var(--color-info);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--button-bg);
+    box-shadow: inset 0 0 0 1px var(--monster-link-active-border);
 
     &:hover {
       filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--button-bg), 0 2px 4px rgba(25, 118, 210, 0.2);
+      box-shadow: inset 0 0 0 1px var(--monster-link-active-border), 0 2px 4px rgba(25, 118, 210, 0.2);
     }
   }
 }
 
 .tag-item[data-type="ritual"] {
   background: var(--monster-ritual-bg);
-  border-color: #4dd0e1;
+  border-color: var(--monster-ritual-border);
   border-radius: 21px;
 
   &:hover {
@@ -840,18 +840,18 @@ watch(() => props.modelValue, (newVal) => {
     filter: brightness(0.9);
     color: #006064;
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #0097a7;
+    box-shadow: inset 0 0 0 1px var(--monster-ritual-active-border);
 
     &:hover {
       filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px #0097a7, 0 2px 4px rgba(0, 151, 167, 0.2);
+      box-shadow: inset 0 0 0 1px var(--monster-ritual-active-border), 0 2px 4px rgba(0, 151, 167, 0.2);
     }
   }
 }
 
 .tag-item[data-type="pendulum"] {
   background: var(--monster-pendulum-bg);
-  border-color: #ffb74d;
+  border-color: var(--monster-pendulum-border);
   border-radius: 21px;
 
   &:hover {
@@ -863,11 +863,11 @@ watch(() => props.modelValue, (newVal) => {
     filter: brightness(0.9);
     color: #4a148c;
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #ff9800;
+    box-shadow: inset 0 0 0 1px var(--monster-pendulum-active-border);
 
     &:hover {
       filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px #ff9800, 0 2px 4px rgba(255, 152, 0, 0.2);
+      box-shadow: inset 0 0 0 1px var(--monster-pendulum-active-border), 0 2px 4px rgba(255, 152, 0, 0.2);
     }
   }
 }

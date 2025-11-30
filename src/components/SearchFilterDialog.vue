@@ -1600,11 +1600,11 @@ function clearFilters() {
   .chip[data-type="fusion"] {
     &:not(:disabled) {
       background: var(--monster-fusion-bg);
-      border-color: #ba68c8;
+      border-color: var(--monster-fusion-border);
     }
     &.active:not(:disabled) {
       background: var(--monster-fusion-active);
-      border-color: #7b1fa2;
+      border-color: var(--monster-fusion-active-border);
       color: var(--button-text);
     }
     &.not:not(:disabled) {
@@ -1625,7 +1625,7 @@ function clearFilters() {
           rgba(189, 189, 189, 0.12) 9px
         ),
         linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-      border-color: var(--border-primary);
+      border-color: var(--monster-synchro-border);
     }
     &.active:not(:disabled) {
       background:
@@ -1637,7 +1637,7 @@ function clearFilters() {
           rgba(117, 117, 117, 0.2) 9px
         ),
         linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-      border-color: var(--border-secondary);
+      border-color: var(--monster-synchro-active-border);
       color: var(--text-primary);
     }
     &.not:not(:disabled) {
@@ -1658,12 +1658,12 @@ function clearFilters() {
   .chip[data-type="xyz"] {
     &:not(:disabled) {
       background: var(--monster-xyz-bg);
-      border-color: #9e9e9e;
+      border-color: var(--monster-xyz-border);
       color: var(--text-primary);
     }
     &.active:not(:disabled) {
       background: var(--monster-xyz-active);
-      border-color: var(--border-secondary);
+      border-color: var(--monster-xyz-active-border);
       color: var(--button-text);
     }
     &.not:not(:disabled) {
@@ -1676,11 +1676,11 @@ function clearFilters() {
   .chip[data-type="link"] {
     &:not(:disabled) {
       background: var(--monster-link-bg);
-      border-color: var(--color-info);
+      border-color: var(--monster-link-border);
     }
     &.active:not(:disabled) {
       background: var(--monster-link-active);
-      border-color: var(--color-info);
+      border-color: var(--monster-link-active-border);
       color: var(--button-text);
     }
     &.not:not(:disabled) {
@@ -1693,11 +1693,11 @@ function clearFilters() {
   .chip[data-type="ritual"] {
     &:not(:disabled) {
       background: var(--monster-ritual-bg);
-      border-color: #4dd0e1;
+      border-color: var(--monster-ritual-border);
     }
     &.active:not(:disabled) {
       background: var(--monster-ritual-active);
-      border-color: #00838f;
+      border-color: var(--monster-ritual-active-border);
       color: var(--button-text);
     }
     &.not:not(:disabled) {
@@ -1710,11 +1710,11 @@ function clearFilters() {
   .chip[data-type="pendulum"] {
     &:not(:disabled) {
       background: var(--monster-pendulum-bg);
-      border-color: #ffb74d;
+      border-color: var(--monster-pendulum-border);
     }
     &.active:not(:disabled) {
       background: var(--monster-pendulum-active);
-      border-color: var(--color-warning);
+      border-color: var(--monster-pendulum-active-border);
       color: var(--button-text);
     }
     &.not:not(:disabled) {

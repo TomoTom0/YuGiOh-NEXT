@@ -86,6 +86,20 @@
   // Chip Colors
   --chip-race-bg: #f3e5f5;
   --chip-race-text: #7b1fa2;
+
+  // Monster Type Border Colors
+  --monster-fusion-border: #ba68c8;
+  --monster-fusion-active-border: #7b1fa2;
+  --monster-synchro-border: #bdbdbd;
+  --monster-synchro-active-border: #757575;
+  --monster-xyz-border: #9e9e9e;
+  --monster-xyz-active-border: #757575;
+  --monster-link-border: #64b5f6;
+  --monster-link-active-border: #2196f3;
+  --monster-ritual-border: #4dd0e1;
+  --monster-ritual-active-border: #00838f;
+  --monster-pendulum-border: #ffb74d;
+  --monster-pendulum-active-border: #f57c00;
 }
 
 // ダークテーマ
@@ -176,4 +190,18 @@
   // Chip Colors (Dark Theme)
   --chip-race-bg: #4a1a6a;
   --chip-race-text: #ce93d8;
+
+  // Monster Type Border Colors (Dark Theme)
+  --monster-fusion-border: #ce93d8;
+  --monster-fusion-active-border: #e1bee7;
+  --monster-synchro-border: #9e9e9e;
+  --monster-synchro-active-border: #bdbdbd;
+  --monster-xyz-border: #757575;
+  --monster-xyz-active-border: #9e9e9e;
+  --monster-link-border: #42a5f5;
+  --monster-link-active-border: #64b5f6;
+  --monster-ritual-border: #4dd0e1;
+  --monster-ritual-active-border: #80deea;
+  --monster-pendulum-border: #ffb74d;
+  --monster-pendulum-active-border: #ffd54f;
 }
