@@ -714,13 +714,13 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--tag-item-active-border);
     color: var(--tag-item-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--tag-item-active-border);
+    box-shadow: inset 0 0 0 1px var(--tag-item-active-border);
 
     &:hover {
       background: var(--tag-item-active-hover-bg);
       border-color: var(--tag-item-active-hover-border);
       color: var(--tag-item-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--tag-item-active-hover-border), 0 4px 8px rgba(76, 175, 80, 0.3);
+      box-shadow: inset 0 0 0 1px var(--tag-item-active-hover-border), 0 4px 8px rgba(76, 175, 80, 0.3);
       filter: brightness(0.92) saturate(1.1);
       transform: translateY(-1px);
     }
@@ -737,8 +737,8 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-fusion-chip-hover-bg);
     border-color: var(--monster-fusion-chip-hover-border);
     color: var(--monster-fusion-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
-    filter: brightness(0.92) saturate(1.15);
+    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.5);
+    filter: brightness(0.82) saturate(1.2);
     transform: translateY(-2px);
   }
 
@@ -747,14 +747,14 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-fusion-chip-active-border);
     color: var(--monster-fusion-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-fusion-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-border);
 
     &:hover {
       background: var(--monster-fusion-chip-active-hover-bg);
       border-color: var(--monster-fusion-chip-active-hover-border);
       color: var(--monster-fusion-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-fusion-chip-active-hover-border), 0 4px 8px rgba(156, 39, 176, 0.3);
-      filter: brightness(0.9) saturate(1.15);
+      box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-hover-border), 0 4px 8px rgba(156, 39, 176, 0.4);
+      filter: brightness(0.8) saturate(1.2);
       transform: translateY(-1px);
     }
   }
@@ -770,8 +770,8 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-synchro-chip-hover-bg);
     border-color: var(--monster-synchro-chip-hover-border);
     color: var(--monster-synchro-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(117, 117, 117, 0.4);
-    filter: brightness(0.92) saturate(1.12);
+    box-shadow: 0 4px 12px rgba(117, 117, 117, 0.5);
+    filter: brightness(0.82) saturate(1.18);
     transform: translateY(-2px);
   }
 
@@ -780,14 +780,14 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-synchro-chip-active-border);
     color: var(--monster-synchro-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-synchro-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-border);
 
     &:hover {
       background: var(--monster-synchro-chip-active-hover-bg);
       border-color: var(--monster-synchro-chip-active-hover-border);
       color: var(--monster-synchro-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-synchro-chip-active-hover-border), 0 4px 8px rgba(117, 117, 117, 0.3);
-      filter: brightness(0.9) saturate(1.15);
+      box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-hover-border), 0 4px 8px rgba(117, 117, 117, 0.4);
+      filter: brightness(0.8) saturate(1.18);
       transform: translateY(-1px);
     }
   }
@@ -813,13 +813,13 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-xyz-chip-active-border);
     color: var(--monster-xyz-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-xyz-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-border);
 
     &:hover {
       background: var(--monster-xyz-chip-active-hover-bg);
       border-color: var(--monster-xyz-chip-active-hover-border);
       color: var(--monster-xyz-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-xyz-chip-active-hover-border), 0 4px 8px rgba(97, 97, 97, 0.3);
+      box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-hover-border), 0 4px 8px rgba(97, 97, 97, 0.3);
       filter: brightness(0.9) saturate(1.15);
       transform: translateY(-1px);
     }
@@ -846,13 +846,13 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-link-chip-active-border);
     color: var(--monster-link-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-link-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-border);
 
     &:hover {
       background: var(--monster-link-chip-active-hover-bg);
       border-color: var(--monster-link-chip-active-hover-border);
       color: var(--monster-link-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-link-chip-active-hover-border), 0 4px 8px rgba(25, 118, 210, 0.3);
+      box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-hover-border), 0 4px 8px rgba(25, 118, 210, 0.3);
       filter: brightness(0.9) saturate(1.15);
       transform: translateY(-1px);
     }
@@ -879,13 +879,13 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-ritual-chip-active-border);
     color: var(--monster-ritual-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-ritual-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-border);
 
     &:hover {
       background: var(--monster-ritual-chip-active-hover-bg);
       border-color: var(--monster-ritual-chip-active-hover-border);
       color: var(--monster-ritual-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-ritual-chip-active-hover-border), 0 4px 8px rgba(0, 151, 167, 0.3);
+      box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-hover-border), 0 4px 8px rgba(0, 151, 167, 0.3);
       filter: brightness(0.9) saturate(1.15);
       transform: translateY(-1px);
     }
@@ -912,13 +912,13 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--monster-pendulum-chip-active-border);
     color: var(--monster-pendulum-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1.5px var(--monster-pendulum-chip-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-border);
 
     &:hover {
       background: var(--monster-pendulum-chip-active-hover-bg);
       border-color: var(--monster-pendulum-chip-active-hover-border);
       color: var(--monster-pendulum-chip-active-hover-text);
-      box-shadow: inset 0 0 0 1.5px var(--monster-pendulum-chip-active-hover-border), 0 4px 8px rgba(255, 152, 0, 0.3);
+      box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-hover-border), 0 4px 8px rgba(255, 152, 0, 0.3);
       filter: brightness(0.9) saturate(1.15);
       transform: translateY(-1px);
     }
