@@ -732,20 +732,18 @@ watch(() => props.modelValue, (newVal) => {
   background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   border-color: #ba68c8;
   border-radius: 21px;
-}
 
-.tag-item[data-type="fusion"]:hover {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
+  }
 
-.tag-item[data-type="fusion"].selected {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  color: #4a148c;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3), inset 0 0 0 1px #9c27b0;
+  &.selected {
+    filter: brightness(0.9);
+    color: #4a148c;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #9c27b0;
+  }
 }
 
 .tag-item[data-type="synchro"] {
@@ -760,36 +758,18 @@ watch(() => props.modelValue, (newVal) => {
     linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
   border-color: #bdbdbd;
   border-radius: 21px;
-}
 
-.tag-item[data-type="synchro"]:hover {
-  background: 
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(117, 117, 117, 0.15) 8px,
-      rgba(117, 117, 117, 0.15) 9px
-    ),
-    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: var(--border-secondary);
-  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
+  }
 
-.tag-item[data-type="synchro"].selected {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(117, 117, 117, 0.2) 8px,
-      rgba(117, 117, 117, 0.2) 9px
-    ),
-    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: var(--border-secondary);
-  color: var(--text-primary);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3), inset 0 0 0 1px #757575;
+  &.selected {
+    filter: brightness(0.9);
+    color: var(--text-primary);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #757575;
+  }
 }
 
 .tag-item[data-type="xyz"] {
@@ -797,60 +777,54 @@ watch(() => props.modelValue, (newVal) => {
   border-color: var(--border-primary);
   border-radius: 21px;
   color: var(--button-text);
-}
 
-.tag-item[data-type="xyz"]:hover {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: var(--border-secondary);
-  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
+  }
 
-.tag-item[data-type="xyz"].selected {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: var(--border-secondary);
-  color: var(--button-text);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3), inset 0 0 0 1px #757575;
+  &.selected {
+    filter: brightness(0.9);
+    color: var(--button-text);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #757575;
+  }
 }
 
 .tag-item[data-type="link"] {
   background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   border-color: #64b5f6;
   border-radius: 21px;
-}
 
-.tag-item[data-type="link"]:hover {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: var(--button-bg);
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
+  }
 
-.tag-item[data-type="link"].selected {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: var(--button-bg);
-  color: var(--color-info);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px var(--button-bg);
+  &.selected {
+    filter: brightness(0.9);
+    color: var(--color-info);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--button-bg);
+  }
 }
 
 .tag-item[data-type="ritual"] {
   background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
   border-color: #4dd0e1;
   border-radius: 21px;
-}
 
-.tag-item[data-type="ritual"]:hover {
-  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-  border-color: #0097a7;
-  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
+  }
 
-.tag-item[data-type="ritual"].selected {
-  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-  border-color: #0097a7;
-  color: #006064;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3), inset 0 0 0 1px #0097a7;
+  &.selected {
+    filter: brightness(0.9);
+    color: #006064;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #0097a7;
+  }
 }
 
 .tag-item[data-type="pendulum"] {
@@ -862,30 +836,18 @@ watch(() => props.modelValue, (newVal) => {
   );
   border-color: #ffb74d;
   border-radius: 21px;
-}
 
-.tag-item[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, 
-    #ffcc80 0%, 
-    #ffcc80 30%, 
-    #80cbc4 70%, 
-    #80cbc4 100%
-  );
-  border-color: #ff9800;
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+  }
 
-.tag-item[data-type="pendulum"].selected {
-  background: linear-gradient(180deg,
-    #ffcc80 0%,
-    #ffcc80 30%,
-    #4db6ac 70%,
-    #4db6ac 100%
-  );
-  border-color: #ff9800;
-  color: #4a148c;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3), inset 0 0 0 1px #ff9800;
+  &.selected {
+    filter: brightness(0.9);
+    color: #4a148c;
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px #ff9800;
+  }
 }
 
 .btn {
@@ -932,30 +894,6 @@ watch(() => props.modelValue, (newVal) => {
           rgba(255, 255, 255, 0.12) 9px
         ),
         linear-gradient(135deg, #757575 0%, #616161 100%);
-
-      &:hover {
-        background:
-          repeating-linear-gradient(
-            135deg,
-            transparent,
-            transparent 8px,
-            rgba(255, 255, 255, 0.15) 8px,
-            rgba(255, 255, 255, 0.15) 9px
-          ),
-          linear-gradient(135deg, #616161 0%, #424242 100%);
-      }
-
-      &.selected {
-        background:
-          repeating-linear-gradient(
-            135deg,
-            transparent,
-            transparent 8px,
-            rgba(255, 255, 255, 0.2) 8px,
-            rgba(255, 255, 255, 0.2) 9px
-          ),
-          linear-gradient(135deg, #616161 0%, #424242 100%);
-      }
     }
 
     &[data-type="xyz"] {
