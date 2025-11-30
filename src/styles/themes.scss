@@ -152,6 +152,14 @@
   --tag-item-active-hover-text: #ffffff;
   --tag-item-active-hover-border: var(--color-success);
 
+  // Monster Type Chip Tag Dialog Effects (Light Theme)
+  --monster-fusion-tag-hover-color: rgba(156, 39, 176, 0.5);
+  --monster-synchro-tag-hover-color: rgba(117, 117, 117, 0.5);
+  --monster-xyz-tag-hover-color: rgba(97, 97, 97, 0.4);
+  --monster-link-tag-hover-color: rgba(25, 118, 210, 0.4);
+  --monster-ritual-tag-hover-color: rgba(0, 151, 167, 0.4);
+  --monster-pendulum-tag-hover-color: rgba(255, 152, 0, 0.4);
+
   // Monster Type Chip States - Fusion
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
   --monster-fusion-chip-default-text: var(--text-primary);
@@ -482,6 +490,14 @@
   --tag-item-active-hover-bg: var(--color-success);
   --tag-item-active-hover-text: #ffffff;
   --tag-item-active-hover-border: var(--color-success);
+
+  // Monster Type Chip Tag Dialog Effects (Dark Theme)
+  --monster-fusion-tag-hover-color: rgba(186, 104, 200, 0.5);
+  --monster-synchro-tag-hover-color: rgba(142, 142, 142, 0.5);
+  --monster-xyz-tag-hover-color: rgba(124, 124, 124, 0.4);
+  --monster-link-tag-hover-color: rgba(66, 165, 245, 0.4);
+  --monster-ritual-tag-hover-color: rgba(77, 208, 225, 0.4);
+  --monster-pendulum-tag-hover-color: rgba(255, 183, 77, 0.4);
 
   // Monster Type Chip States - Fusion (Dark Theme)
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);

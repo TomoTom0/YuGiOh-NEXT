@@ -737,7 +737,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-fusion-chip-hover-bg);
     border-color: var(--monster-fusion-chip-hover-border);
     color: var(--monster-fusion-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.5);
+    box-shadow: 0 4px 12px var(--monster-fusion-tag-hover-color);
     filter: brightness(0.82) saturate(1.2);
     transform: translateY(-2px);
   }
@@ -770,7 +770,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-synchro-chip-hover-bg);
     border-color: var(--monster-synchro-chip-hover-border);
     color: var(--monster-synchro-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(117, 117, 117, 0.5);
+    box-shadow: 0 4px 12px var(--monster-synchro-tag-hover-color);
     filter: brightness(0.82) saturate(1.18);
     transform: translateY(-2px);
   }
@@ -803,7 +803,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-xyz-chip-hover-bg);
     border-color: var(--monster-xyz-chip-hover-border);
     color: var(--monster-xyz-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(97, 97, 97, 0.4);
+    box-shadow: 0 4px 12px var(--monster-xyz-tag-hover-color);
     filter: brightness(0.92) saturate(1.12);
     transform: translateY(-2px);
   }
@@ -836,7 +836,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-link-chip-hover-bg);
     border-color: var(--monster-link-chip-hover-border);
     color: var(--monster-link-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+    box-shadow: 0 4px 12px var(--monster-link-tag-hover-color);
     filter: brightness(0.92) saturate(1.1);
     transform: translateY(-2px);
   }
@@ -869,7 +869,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-ritual-chip-hover-bg);
     border-color: var(--monster-ritual-chip-hover-border);
     color: var(--monster-ritual-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(0, 151, 167, 0.4);
+    box-shadow: 0 4px 12px var(--monster-ritual-tag-hover-color);
     filter: brightness(0.92) saturate(1.1);
     transform: translateY(-2px);
   }
@@ -902,7 +902,7 @@ watch(() => props.modelValue, (newVal) => {
     background: var(--monster-pendulum-chip-hover-bg);
     border-color: var(--monster-pendulum-chip-hover-border);
     color: var(--monster-pendulum-chip-hover-text);
-    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+    box-shadow: 0 4px 12px var(--monster-pendulum-tag-hover-color);
     filter: brightness(0.92) saturate(1.12);
     transform: translateY(-2px);
   }
