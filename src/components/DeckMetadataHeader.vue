@@ -480,4 +480,41 @@ function selectDeckStyle(value: string) {
   opacity: 0;
   transform: translateY(-5px);
 }
+
+/* ダークモード用: デッキタイプアイコンの背景色を明るくする */
+:global(.dark-theme) {
+  .deck-type-icon {
+    rect {
+      &[fill="#0053c3"] {
+        fill: #1976d2;
+      }
+      &[fill="#6ec300"] {
+        fill: #7cb342;
+      }
+      &[fill="#00b9da"] {
+        fill: #00bcd4;
+      }
+      &[fill="#5c00da"] {
+        fill: #7c3aed;
+      }
+    }
+  }
+
+  .deck-type-icon-small {
+    rect {
+      &[fill="#0053c3"] {
+        fill: #1976d2;
+      }
+      &[fill="#6ec300"] {
+        fill: #7cb342;
+      }
+      &[fill="#00b9da"] {
+        fill: #00bcd4;
+      }
+      &[fill="#5c00da"] {
+        fill: #7c3aed;
+      }
+    }
+  }
+}
 </style>
