@@ -599,6 +599,13 @@ export default {
     &[data-type="fusion"] {
       background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
       border-color: #ba68c8;
+      color: #4a148c;
+
+      [data-theme="dark"] & {
+        background: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
+        color: #e1bee7;
+        border-color: #ba68c8;
+      }
     }
 
     &[data-type="synchro"] {
@@ -610,27 +617,42 @@ export default {
         rgba(158, 158, 158, 0.12) 9px
       ), linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
       border-color: var(--border-primary);
+      color: var(--text-primary);
     }
 
     &[data-type="xyz"] {
       background: linear-gradient(135deg, #616161 0%, #424242 100%);
-      color: var(--button-text);
+      color: #ffffff;
       border-color: var(--border-secondary);
     }
 
     &[data-type="link"] {
       background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
       border-color: var(--color-info);
+      color: #0d47a1;
+
+      [data-theme="dark"] & {
+        background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
+        color: #bbdefb;
+        border-color: #42a5f5;
+      }
     }
 
     &[data-type="ritual"] {
       background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
       border-color: #4dd0e1;
+      color: #006064;
+
+      [data-theme="dark"] & {
+        background: linear-gradient(135deg, #006064 0%, #00838f 100%);
+        color: #b2ebf2;
+        border-color: #4dd0e1;
+      }
     }
 
     &[data-type="pendulum"] {
       background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-      color: var(--button-text);
+      color: #ffffff;
       border-color: #ff9800;
     }
   }

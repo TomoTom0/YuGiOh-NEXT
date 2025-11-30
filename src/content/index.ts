@@ -23,6 +23,9 @@ import { initializeMappingManager } from '../utils/mapping-manager';
 // デッキメタデータローダー
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 
+// 禁止制限キャッシュ
+import { forbiddenLimitedCache } from '../utils/forbidden-limited-cache';
+
 /**
  * 編集UI読み込みフラグ（二重読み込み防止）
  */
@@ -78,9 +81,12 @@ async function initializeFeatures(): Promise<void> {
   try {
     // マッピングマネージャーを初期化（パーサーより先に実行）
     await initializeMappingManager();
-    
+
     // デッキメタデータを事前ロード（パース時の遅延を防ぐ）
     getDeckMetadata().catch(err => console.warn('Failed to preload deck metadata:', err));
+
+    // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
+    forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));
 
     // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
     const gameType = detectCardGameType();

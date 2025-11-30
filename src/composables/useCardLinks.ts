@@ -1,4 +1,4 @@
-import { getCardDetail } from '@/api/card-search'
+import { getCardDetailWithCache } from '@/api/card-search'
 import { useDeckEditStore } from '@/stores/deck-edit'
 
 /**
@@ -81,14 +81,15 @@ export function useCardLinks() {
   const handleCardLinkClick = async (cardId: string): Promise<void> => {
     try {
       // カード詳細を取得（cidのみからCardInfo全体をパース）
-      const cardDetail = await getCardDetail(cardId)
-      if (!cardDetail || !cardDetail.card) {
+      // FAQページからのリンクなので、fromFAQ=trueを渡す
+      const { detail } = await getCardDetailWithCache(cardId, undefined, true, 'release_desc', true)
+      if (!detail || !detail.card) {
         console.error('カード情報の取得に失敗しました:', cardId)
         return
       }
 
       // deckStoreにカードをセットしてCardタブのinfoを表示
-      deckStore.selectedCard = cardDetail.card
+      deckStore.selectedCard = detail.card
       deckStore.activeTab = 'card'
       deckStore.cardTab = 'info'
     } catch (error) {
