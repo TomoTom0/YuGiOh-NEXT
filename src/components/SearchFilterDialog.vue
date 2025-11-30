@@ -1599,134 +1599,199 @@ function clearFilters() {
 
   .chip[data-type="fusion"] {
     &:not(:disabled) {
-      background: var(--monster-fusion-bg);
-      border-color: var(--monster-fusion-border);
+      background: var(--monster-fusion-chip-default-bg);
+      border-color: var(--monster-fusion-chip-default-border);
+      color: var(--monster-fusion-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-hover-bg);
+      border-color: var(--monster-fusion-chip-hover-border);
+      color: var(--monster-fusion-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: var(--monster-fusion-active);
-      border-color: var(--monster-fusion-active-border);
-      color: var(--button-text);
+      background: var(--monster-fusion-chip-active-bg);
+      border-color: var(--monster-fusion-chip-active-border);
+      color: var(--monster-fusion-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-active-hover-bg);
+      border-color: var(--monster-fusion-chip-active-hover-border);
+      color: var(--monster-fusion-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: var(--monster-fusion-not);
-      border: 1.5px solid #d32f2f;
-      color: #4a148c;
+      background: var(--monster-fusion-chip-not-bg);
+      border: 1.5px solid var(--monster-fusion-chip-not-border);
+      color: var(--monster-fusion-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-fusion-chip-not-hover-border);
+      color: var(--monster-fusion-chip-not-hover-text);
     }
   }
 
   .chip[data-type="synchro"] {
     &:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(189, 189, 189, 0.12) 8px,
-          rgba(189, 189, 189, 0.12) 9px
-        ),
-        linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-      border-color: var(--monster-synchro-border);
+      background: var(--monster-synchro-chip-default-bg);
+      border-color: var(--monster-synchro-chip-default-border);
+      color: var(--monster-synchro-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-hover-bg);
+      border-color: var(--monster-synchro-chip-hover-border);
+      color: var(--monster-synchro-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(117, 117, 117, 0.2) 8px,
-          rgba(117, 117, 117, 0.2) 9px
-        ),
-        linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-      border-color: var(--monster-synchro-active-border);
-      color: var(--text-primary);
+      background: var(--monster-synchro-chip-active-bg);
+      border-color: var(--monster-synchro-chip-active-border);
+      color: var(--monster-synchro-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-active-hover-bg);
+      border-color: var(--monster-synchro-chip-active-hover-border);
+      color: var(--monster-synchro-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(211, 47, 47, 0.15) 8px,
-          rgba(211, 47, 47, 0.15) 9px
-        ),
-        linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: var(--text-primary);
+      background: var(--monster-synchro-chip-not-bg);
+      border: 1.5px solid var(--monster-synchro-chip-not-border);
+      color: var(--monster-synchro-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-synchro-chip-not-hover-border);
+      color: var(--monster-synchro-chip-not-hover-text);
     }
   }
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: var(--monster-xyz-bg);
-      border-color: var(--monster-xyz-border);
-      color: var(--text-primary);
+      background: var(--monster-xyz-chip-default-bg);
+      border-color: var(--monster-xyz-chip-default-border);
+      color: var(--monster-xyz-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-hover-bg);
+      border-color: var(--monster-xyz-chip-hover-border);
+      color: var(--monster-xyz-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: var(--monster-xyz-active);
-      border-color: var(--monster-xyz-active-border);
-      color: var(--button-text);
+      background: var(--monster-xyz-chip-active-bg);
+      border-color: var(--monster-xyz-chip-active-border);
+      color: var(--monster-xyz-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-active-hover-bg);
+      border-color: var(--monster-xyz-chip-active-hover-border);
+      color: var(--monster-xyz-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
-      border: 1.5px solid #b71c1c;
-      color: var(--text-primary);
+      background: var(--monster-xyz-chip-not-bg);
+      border: 1.5px solid var(--monster-xyz-chip-not-border);
+      color: var(--monster-xyz-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-xyz-chip-not-hover-border);
+      color: var(--monster-xyz-chip-not-hover-text);
     }
   }
 
   .chip[data-type="link"] {
     &:not(:disabled) {
-      background: var(--monster-link-bg);
-      border-color: var(--monster-link-border);
+      background: var(--monster-link-chip-default-bg);
+      border-color: var(--monster-link-chip-default-border);
+      color: var(--monster-link-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-link-chip-hover-bg);
+      border-color: var(--monster-link-chip-hover-border);
+      color: var(--monster-link-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: var(--monster-link-active);
-      border-color: var(--monster-link-active-border);
-      color: var(--button-text);
+      background: var(--monster-link-chip-active-bg);
+      border-color: var(--monster-link-chip-active-border);
+      color: var(--monster-link-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-link-chip-active-hover-bg);
+      border-color: var(--monster-link-chip-active-hover-border);
+      color: var(--monster-link-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: var(--color-info);
+      background: var(--monster-link-chip-not-bg);
+      border: 1.5px solid var(--monster-link-chip-not-border);
+      color: var(--monster-link-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-link-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-link-chip-not-hover-border);
+      color: var(--monster-link-chip-not-hover-text);
     }
   }
 
   .chip[data-type="ritual"] {
     &:not(:disabled) {
-      background: var(--monster-ritual-bg);
-      border-color: var(--monster-ritual-border);
+      background: var(--monster-ritual-chip-default-bg);
+      border-color: var(--monster-ritual-chip-default-border);
+      color: var(--monster-ritual-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-hover-bg);
+      border-color: var(--monster-ritual-chip-hover-border);
+      color: var(--monster-ritual-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: var(--monster-ritual-active);
-      border-color: var(--monster-ritual-active-border);
-      color: var(--button-text);
+      background: var(--monster-ritual-chip-active-bg);
+      border-color: var(--monster-ritual-chip-active-border);
+      color: var(--monster-ritual-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-active-hover-bg);
+      border-color: var(--monster-ritual-chip-active-hover-border);
+      color: var(--monster-ritual-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: #006064;
+      background: var(--monster-ritual-chip-not-bg);
+      border: 1.5px solid var(--monster-ritual-chip-not-border);
+      color: var(--monster-ritual-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-ritual-chip-not-hover-border);
+      color: var(--monster-ritual-chip-not-hover-text);
     }
   }
 
   .chip[data-type="pendulum"] {
     &:not(:disabled) {
-      background: var(--monster-pendulum-bg);
-      border-color: var(--monster-pendulum-border);
+      background: var(--monster-pendulum-chip-default-bg);
+      border-color: var(--monster-pendulum-chip-default-border);
+      color: var(--monster-pendulum-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-hover-bg);
+      border-color: var(--monster-pendulum-chip-hover-border);
+      color: var(--monster-pendulum-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: var(--monster-pendulum-active);
-      border-color: var(--monster-pendulum-active-border);
-      color: var(--button-text);
+      background: var(--monster-pendulum-chip-active-bg);
+      border-color: var(--monster-pendulum-chip-active-border);
+      color: var(--monster-pendulum-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-active-hover-bg);
+      border-color: var(--monster-pendulum-chip-active-hover-border);
+      color: var(--monster-pendulum-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(180deg,
-        #ffcc80 0%,
-        #ffcc80 25%,
-        #ffcdd2 50%,
-        #ef5350 75%,
-        #ef5350 100%
-      );
-      border: 1.5px solid #d32f2f;
-      color: var(--color-warning);
+      background: var(--monster-pendulum-chip-not-bg);
+      border: 1.5px solid var(--monster-pendulum-chip-not-border);
+      color: var(--monster-pendulum-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-not-hover-bg);
+      border: 1.5px solid var(--monster-pendulum-chip-not-hover-border);
+      color: var(--monster-pendulum-chip-not-hover-text);
     }
   }
 }

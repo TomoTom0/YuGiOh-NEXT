@@ -459,63 +459,44 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  color: #4a148c;
-  border-color: #9c27b0;
+  background: var(--monster-fusion-chip-active-bg);
+  color: var(--monster-fusion-chip-active-text);
+  border-color: var(--monster-fusion-chip-active-border);
 }
 
 .tag-chip[data-type="synchro"] {
-  background: 
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, var(--bg-secondary) 100%);
-  color: var(--text-primary);
-  border-color: var(--border-primary);
+  background: var(--monster-synchro-chip-active-bg);
+  color: var(--monster-synchro-chip-active-text);
+  border-color: var(--monster-synchro-chip-active-border);
 }
 
 .tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: var(--button-text);
-  border-color: var(--border-secondary);
+  background: var(--monster-xyz-chip-active-bg);
+  color: var(--monster-xyz-chip-active-text);
+  border-color: var(--monster-xyz-chip-active-border);
 }
 
 .tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: var(--color-info);
-  border-color: var(--button-bg);
+  background: var(--monster-link-chip-active-bg);
+  color: var(--monster-link-chip-active-text);
+  border-color: var(--monster-link-chip-active-border);
 }
 
 .tag-chip[data-type="ritual"] {
-
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: var(--color-info);
-  border-color: var(--button-bg);
+  background: var(--monster-ritual-chip-active-bg);
+  color: var(--monster-ritual-chip-active-text);
+  border-color: var(--monster-ritual-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, 
-    #ffb74d 0%, 
-    #ffb74d 30%, 
-    #4db6ac 70%,
-    #4db6ac 100%
-  );
-  color: #4a148c;
-  border-color: #ff9800;
+  background: var(--monster-pendulum-chip-active-bg);
+  color: var(--monster-pendulum-chip-active-text);
+  border-color: var(--monster-pendulum-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, 
-    #ff9800 0%, 
-    #ff9800 30%, 
-    #00897b 70%,
-    #00897b 100%
-  );
-  border-color: #f57c00;
+  background: var(--monster-pendulum-chip-active-hover-bg);
+  border-color: var(--monster-pendulum-chip-active-hover-border);
 }
 
 .chip-remove {
@@ -734,140 +715,175 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-item[data-type="fusion"] {
-  background: var(--monster-fusion-bg);
-  border-color: var(--monster-fusion-border);
+  background: var(--monster-fusion-chip-default-bg);
+  border-color: var(--monster-fusion-chip-default-border);
   border-radius: 21px;
+  color: var(--monster-fusion-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-fusion-chip-hover-bg);
+    border-color: var(--monster-fusion-chip-hover-border);
+    color: var(--monster-fusion-chip-hover-text);
     box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: #4a148c;
+    background: var(--monster-fusion-chip-active-bg);
+    border-color: var(--monster-fusion-chip-active-border);
+    color: var(--monster-fusion-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-fusion-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-border);
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--monster-fusion-active-border), 0 2px 4px rgba(156, 39, 176, 0.3);
+      background: var(--monster-fusion-chip-active-hover-bg);
+      border-color: var(--monster-fusion-chip-active-hover-border);
+      color: var(--monster-fusion-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-hover-border), 0 2px 4px rgba(156, 39, 176, 0.3);
     }
   }
 }
 
 .tag-item[data-type="synchro"] {
-  background: var(--monster-synchro-bg);
-  border-color: var(--monster-synchro-border);
+  background: var(--monster-synchro-chip-default-bg);
+  border-color: var(--monster-synchro-chip-default-border);
   border-radius: 21px;
+  color: var(--monster-synchro-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-synchro-chip-hover-bg);
+    border-color: var(--monster-synchro-chip-hover-border);
+    color: var(--monster-synchro-chip-hover-text);
     box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: var(--text-primary);
+    background: var(--monster-synchro-chip-active-bg);
+    border-color: var(--monster-synchro-chip-active-border);
+    color: var(--monster-synchro-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-synchro-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-border);
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--monster-synchro-active-border), 0 2px 4px rgba(117, 117, 117, 0.2);
+      background: var(--monster-synchro-chip-active-hover-bg);
+      border-color: var(--monster-synchro-chip-active-hover-border);
+      color: var(--monster-synchro-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-hover-border), 0 2px 4px rgba(117, 117, 117, 0.2);
     }
   }
 }
 
 .tag-item[data-type="xyz"] {
-  background: var(--monster-xyz-bg);
-  border-color: var(--monster-xyz-border);
+  background: var(--monster-xyz-chip-default-bg);
+  border-color: var(--monster-xyz-chip-default-border);
   border-radius: 21px;
-  color: #ffffff;
+  color: var(--monster-xyz-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-xyz-chip-hover-bg);
+    border-color: var(--monster-xyz-chip-hover-border);
+    color: var(--monster-xyz-chip-hover-text);
     box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
   }
 
   &.selected {
-    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
-    color: #000000;
+    background: var(--monster-xyz-chip-active-bg);
+    border-color: var(--monster-xyz-chip-active-border);
+    color: var(--monster-xyz-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-xyz-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-border);
 
     &:hover {
-      filter: brightness(0.95);
-      box-shadow: inset 0 0 0 1px var(--monster-xyz-active-border), 0 2px 4px rgba(97, 97, 97, 0.2);
+      background: var(--monster-xyz-chip-active-hover-bg);
+      border-color: var(--monster-xyz-chip-active-hover-border);
+      color: var(--monster-xyz-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-hover-border), 0 2px 4px rgba(97, 97, 97, 0.2);
     }
   }
 }
 
 .tag-item[data-type="link"] {
-  background: var(--monster-link-bg);
-  border-color: var(--monster-link-border);
+  background: var(--monster-link-chip-default-bg);
+  border-color: var(--monster-link-chip-default-border);
   border-radius: 21px;
+  color: var(--monster-link-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-link-chip-hover-bg);
+    border-color: var(--monster-link-chip-hover-border);
+    color: var(--monster-link-chip-hover-text);
     box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: var(--color-info);
+    background: var(--monster-link-chip-active-bg);
+    border-color: var(--monster-link-chip-active-border);
+    color: var(--monster-link-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-link-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-border);
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--monster-link-active-border), 0 2px 4px rgba(25, 118, 210, 0.2);
+      background: var(--monster-link-chip-active-hover-bg);
+      border-color: var(--monster-link-chip-active-hover-border);
+      color: var(--monster-link-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-hover-border), 0 2px 4px rgba(25, 118, 210, 0.2);
     }
   }
 }
 
 .tag-item[data-type="ritual"] {
-  background: var(--monster-ritual-bg);
-  border-color: var(--monster-ritual-border);
+  background: var(--monster-ritual-chip-default-bg);
+  border-color: var(--monster-ritual-chip-default-border);
   border-radius: 21px;
+  color: var(--monster-ritual-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-ritual-chip-hover-bg);
+    border-color: var(--monster-ritual-chip-hover-border);
+    color: var(--monster-ritual-chip-hover-text);
     box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: #006064;
+    background: var(--monster-ritual-chip-active-bg);
+    border-color: var(--monster-ritual-chip-active-border);
+    color: var(--monster-ritual-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-ritual-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-border);
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--monster-ritual-active-border), 0 2px 4px rgba(0, 151, 167, 0.2);
+      background: var(--monster-ritual-chip-active-hover-bg);
+      border-color: var(--monster-ritual-chip-active-hover-border);
+      color: var(--monster-ritual-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-hover-border), 0 2px 4px rgba(0, 151, 167, 0.2);
     }
   }
 }
 
 .tag-item[data-type="pendulum"] {
-  background: var(--monster-pendulum-bg);
-  border-color: var(--monster-pendulum-border);
+  background: var(--monster-pendulum-chip-default-bg);
+  border-color: var(--monster-pendulum-chip-default-border);
   border-radius: 21px;
+  color: var(--monster-pendulum-chip-default-text);
 
-  &:hover {
-    filter: brightness(0.95);
+  &:hover:not(.selected) {
+    background: var(--monster-pendulum-chip-hover-bg);
+    border-color: var(--monster-pendulum-chip-hover-border);
+    color: var(--monster-pendulum-chip-hover-text);
     box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: #4a148c;
+    background: var(--monster-pendulum-chip-active-bg);
+    border-color: var(--monster-pendulum-chip-active-border);
+    color: var(--monster-pendulum-chip-active-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--monster-pendulum-active-border);
+    box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-border);
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px var(--monster-pendulum-active-border), 0 2px 4px rgba(255, 152, 0, 0.2);
+      background: var(--monster-pendulum-chip-active-hover-bg);
+      border-color: var(--monster-pendulum-chip-active-hover-border);
+      color: var(--monster-pendulum-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-hover-border), 0 2px 4px rgba(255, 152, 0, 0.2);
     }
   }
 }
