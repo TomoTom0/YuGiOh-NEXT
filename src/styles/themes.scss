@@ -42,6 +42,10 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --input-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.1);
+  --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
   --toast-bg: #ffffff;
   --toast-success-bg: #f1f8f4;
   --toast-error-bg: #fef1f0;
@@ -82,6 +86,7 @@
   --tab-monster-active-bg: #fff9e6;
   --tab-spell-active-bg: #b2dfdb;
   --tab-trap-active-bg: #f8bbd0;
+  --tab-border: #008cff;
 
   // Chip Colors
   --chip-race-bg: #f3e5f5;
@@ -202,6 +207,10 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.7);
+  --input-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.2);
+  --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.5);
   --toast-bg: #2a2a2a;
   --toast-success-bg: #1b3a1b;
   --toast-error-bg: #3a1b1b;
@@ -242,6 +251,7 @@
   --tab-monster-active-bg: #4a4a1a;
   --tab-spell-active-bg: #1a4a4a;
   --tab-trap-active-bg: #4a1a2a;
+  --tab-border: #008cff;
 
   // Chip Colors (Dark Theme)
   --chip-race-bg: #4a1a6a;
