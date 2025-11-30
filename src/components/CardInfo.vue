@@ -700,8 +700,15 @@ export default {
   
   &.stat-box-link {
     padding: 4px 6px;
-    background: transparent;
+    background: var(--button-default-bg);
     border: none;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--bg-secondary);
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -724,9 +731,15 @@ export default {
   position: relative;
   width: 24px;
   height: 24px;
-  background: transparent;
+  background: var(--button-default-bg);
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
   
   span {
     position: absolute;

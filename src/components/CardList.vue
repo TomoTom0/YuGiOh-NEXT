@@ -496,13 +496,13 @@ export default {
   padding: 0;
   border: none;
   border-radius: 4px;
-  background: transparent;
+  background: var(--button-default-bg);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: var(--bg-secondary);
+    background: var(--color-success-bg);
     color: var(--text-primary);
   }
 
