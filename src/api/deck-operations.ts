@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/deck';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
@@ -41,7 +40,9 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     
     // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
     const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
-    
+
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
     });
@@ -101,11 +102,13 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
     });
     
     const url = `${API_ENDPOINT}?${params.toString()}`;
-    
+
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
     });
-    
+
     return response.status === 200;
   } catch (error) {
     console.error('[deleteDeckInternal] Failed to delete deck:', error);
@@ -262,11 +265,14 @@ export async function saveDeckInternal(
     const API_ENDPOINT = getApiEndpoint();
     const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
-    
-    
+
+
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
     // paramsはurl encodeされる必要がある, +は%20に変換されるべき
+
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.post(postUrl, encoded_params, {
       withCredentials: true,
       headers: {
@@ -407,6 +413,8 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       params.append('cgid', cgid);
     }
 
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });
@@ -450,6 +458,8 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
       request_locale: requestLocale
     });
 
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
     });

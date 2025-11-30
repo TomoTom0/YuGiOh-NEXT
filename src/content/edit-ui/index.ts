@@ -13,7 +13,6 @@ import '../../styles/common.scss';
 document.documentElement.setAttribute('data-theme', 'light');
 
 import { isVueEditPage } from '../../utils/page-detector';
-import { getDeckMetadata } from '../../utils/deck-metadata-loader';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -153,12 +152,15 @@ function loadEditUI(): void {
 /**
  * Vue アプリケーションを初期化
  */
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import DeckEditLayout from './DeckEditLayout.vue';
-
 async function initVueApp(): Promise<void> {
   try {
+    // Vue/Pinia/コンポーネントを動的インポート
+    const [{ createApp }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
+      import('vue'),
+      import('pinia'),
+      import('./DeckEditLayout.vue')
+    ]);
+
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
 
@@ -171,10 +173,6 @@ async function initVueApp(): Promise<void> {
   }
 }
 
-// Content Script起動時に実行
-// メタデータを事前に読み込み開始（非同期、結果を待たない）
-getDeckMetadata().catch(error => {
-  console.error('Failed to preload deck metadata:', error);
-});
-
+// このモジュールが動的インポートされた時点で編集ページにいることが確定
+// URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
 watchUrlChanges();

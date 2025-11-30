@@ -4,24 +4,72 @@
  * 全ページで読み込まれ、ページの種類に応じて適切な機能を初期化する
  */
 
+// 最初に__webpack_public_path__を設定（動的インポートより前に実行される必要がある）
+import './public-path';
+
 // 共通スタイル
 import './styles/buttons.css';
 import '../styles/themes.scss';
-
-// デッキ編集ページ用の処理をインポート
-import './edit-ui';
 
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';
 
 // ページ判定
-import { detectCardGameType, isDeckDisplayPage } from '../utils/page-detector';
+import { detectCardGameType, isDeckDisplayPage, isVueEditPage } from '../utils/page-detector';
 
 // マッピングマネージャー
 import { initializeMappingManager } from '../utils/mapping-manager';
 
 // デッキメタデータローダー
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
+
+/**
+ * 編集UI読み込みフラグ（二重読み込み防止）
+ */
+let editUILoaded = false;
+
+/**
+ * 編集UIモジュールのプリフェッチ用Promise（キャッシュ）
+ */
+let editUIModulePromise: Promise<any> | null = null;
+
+/**
+ * 編集ページ用UIモジュールをプリフェッチ（アイドル時にバックグラウンドロード）
+ */
+function prefetchEditUI(): void {
+  if (editUIModulePromise) return; // 既にプリフェッチ済み
+
+  // requestIdleCallbackがサポートされていない場合はsetTimeoutで代用
+  const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
+
+  scheduleTask(() => {
+    console.log('[Prefetch] Starting background load of edit-ui module...');
+    editUIModulePromise = import('./edit-ui');
+    editUIModulePromise
+      .then(() => console.log('[Prefetch] Edit UI module loaded successfully'))
+      .catch(err => {
+        console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
+        editUIModulePromise = null; // エラー時はキャッシュをクリア
+      });
+  });
+}
+
+/**
+ * 編集ページ用UIを動的にロード
+ */
+async function loadEditUIIfNeeded(): Promise<void> {
+  if (!isVueEditPage() || editUILoaded) return;
+
+  editUILoaded = true;
+  try {
+    // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
+    await (editUIModulePromise || import('./edit-ui'));
+    console.log('Edit UI loaded dynamically');
+  } catch (error) {
+    console.error('Failed to load edit UI:', error);
+    editUILoaded = false;
+  }
+}
 
 /**
  * 機能設定に基づいて、各機能を初期化する
@@ -56,3 +104,20 @@ async function initializeFeatures(): Promise<void> {
 
 // 機能を初期化
 initializeFeatures();
+
+// 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', prefetchEditUI);
+} else {
+  prefetchEditUI();
+}
+
+// 編集ページ用UI読み込み（DOMContentLoaded時）
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadEditUIIfNeeded);
+} else {
+  loadEditUIIfNeeded();
+}
+
+// 編集ページ用UI読み込み（hashchange時）
+window.addEventListener('hashchange', loadEditUIIfNeeded);
