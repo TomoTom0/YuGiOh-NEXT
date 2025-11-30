@@ -787,9 +787,9 @@ watch(() => props.modelValue, (newVal) => {
 
 .tag-item[data-type="xyz"] {
   background: linear-gradient(135deg, #757575 0%, #616161 100%);
-  border-color: var(--border-primary);
+  border-color: #757575;
   border-radius: 21px;
-  color: var(--button-text);
+  color: #ffffff;
 
   &:hover {
     filter: brightness(0.95);
@@ -797,14 +797,14 @@ watch(() => props.modelValue, (newVal) => {
   }
 
   &.selected {
-    filter: brightness(0.9);
-    color: var(--button-text);
+    background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+    color: #000000;
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px #757575;
+    box-shadow: inset 0 0 0 1px #616161;
 
     &:hover {
-      filter: brightness(0.85);
-      box-shadow: inset 0 0 0 1px #757575, 0 2px 4px rgba(97, 97, 97, 0.2);
+      filter: brightness(0.95);
+      box-shadow: inset 0 0 0 1px #616161, 0 2px 4px rgba(97, 97, 97, 0.2);
     }
   }
 }

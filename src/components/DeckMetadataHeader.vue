@@ -289,6 +289,7 @@ function selectDeckStyle(value: string) {
   padding: 2px 4px;
   border: none;
   background: transparent;
+  color: var(--text-primary);
 
   &:hover {
     background: transparent;
