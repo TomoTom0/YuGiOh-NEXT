@@ -7,6 +7,7 @@ import type {
   Language,
   MiddleDecksLayout,
   SearchInputPosition,
+  SearchMode,
   KeyboardShortcut,
   FeatureSettings,
   StorageSettings
@@ -358,6 +359,14 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 検索モードのデフォルトを変更
+   */
+  function setDefaultSearchMode(mode: SearchMode): void {
+    appSettings.value.defaultSearchMode = mode;
+    saveSettings();
+  }
+
+  /**
    * 機能のON/OFF切り替え
    */
   function toggleFeature(featureId: string, enabled: boolean): void {
@@ -484,6 +493,7 @@ export const useSettingsStore = defineStore('settings', () => {
     addKeyboardShortcut,
     removeKeyboardShortcut,
     setSearchInputPosition,
+    setDefaultSearchMode,
     toggleFeature,
     resetSettings,
     applyTheme,

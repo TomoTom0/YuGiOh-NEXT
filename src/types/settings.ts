@@ -93,6 +93,11 @@ export type MiddleDecksLayout = 'horizontal' | 'vertical';
 export type SearchInputPosition = 'default' | 'right-top' | 'right-bottom';
 
 /**
+ * 検索モード
+ */
+export type SearchMode = 'name' | 'text' | 'pendulum' | 'mydeck';
+
+/**
  * 未保存時の警告モード
  */
 export type UnsavedWarning = 'always' | 'without-sorting-only' | 'never';
@@ -131,6 +136,8 @@ export interface AppSettings {
   middleDecksLayout: MiddleDecksLayout;
   /** カード検索入力欄の位置 */
   searchInputPosition: SearchInputPosition;
+  /** 検索モードのデフォルト */
+  defaultSearchMode: SearchMode;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
   /** 未保存時の警告モード */
@@ -209,6 +216,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'auto',
   middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
+  defaultSearchMode: 'name',    // 検索モードのデフォルト: カード名
   enableBanlistCheck: false,
   // UX設定
   unsavedWarning: 'always',

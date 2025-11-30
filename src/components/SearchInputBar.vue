@@ -130,6 +130,7 @@
 <script lang="ts">
 import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
 import type { SearchOptions } from '../api/card-search'
 import { SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
@@ -137,6 +138,7 @@ import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
+import type { SearchMode } from '../types/settings'
 import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
@@ -233,7 +235,11 @@ export default defineComponent({
   setup(props, { expose }) {
     const deckStore = useDeckEditStore()
     const inputRef = ref<HTMLInputElement | null>(null)
-    const searchMode = ref('name')
+
+    // 設定からデフォルト検索モードを取得
+    const settingsStore = useSettingsStore()
+    const searchMode = ref<SearchMode>(settingsStore.appSettings.defaultSearchMode || 'name')
+
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
     const showMydeckDropdown = ref(false)
@@ -809,7 +815,7 @@ export default defineComponent({
       if (filterType === 'searchMode') {
         const newMode = SEARCH_MODE_MAP[value]
         if (newMode) {
-          searchMode.value = newMode
+          searchMode.value = newMode as SearchMode
           // mydeckモードに切り替えた場合はドロップダウンを表示
           if (newMode === 'mydeck') {
             nextTick(() => {
@@ -1301,7 +1307,7 @@ export default defineComponent({
       deckStore.searchQuery = ''
     }
 
-    const selectSearchMode = (mode: string) => {
+    const selectSearchMode = (mode: SearchMode) => {
       searchMode.value = mode
       showSearchModeDropdown.value = false
     }
