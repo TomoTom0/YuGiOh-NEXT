@@ -68,6 +68,10 @@
   --color-success-hover: #45a049;
   --color-error-hover: #d32f2f;
 
+  // Filter Dialog - ATK/DEF Tab
+  --filter-atk-tab-active-bg: #fff9e6;
+  --filter-date-input-text: #333333;
+
   // Monster Type Gradients - Fusion
   --monster-fusion-bg: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
   --monster-fusion-active: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
@@ -498,6 +502,10 @@
   --monster-link-tag-hover-color: rgba(66, 165, 245, 0.4);
   --monster-ritual-tag-hover-color: rgba(77, 208, 225, 0.4);
   --monster-pendulum-tag-hover-color: rgba(255, 183, 77, 0.4);
+
+  // Filter Dialog - ATK/DEF Tab (Dark Theme)
+  --filter-atk-tab-active-bg: #4a4530;
+  --filter-date-input-text: #e0e0e0;
 
   // Monster Type Chip States - Fusion (Dark Theme)
   --monster-fusion-chip-default-bg: var(--monster-fusion-bg);

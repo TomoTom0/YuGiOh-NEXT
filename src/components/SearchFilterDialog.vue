@@ -2137,7 +2137,7 @@ function clearFilters() {
     }
 
     &:has(.stat-tab.active) {
-      background: #fff9e6;
+      background: var(--filter-atk-tab-active-bg);
     }
 
     &:hover:not(:has(.stat-tab:disabled)) {
@@ -2145,7 +2145,7 @@ function clearFilters() {
     }
 
     &:has(.stat-tab.active):hover {
-      background: #fff9e6;
+      background: var(--filter-atk-tab-active-bg);
     }
 
     .selected-chips-inline {
@@ -2310,6 +2310,7 @@ function clearFilters() {
     border-radius: 4px;
     font-size: 12px;
     background: var(--bg-primary);
+    color: var(--filter-date-input-text);
     text-align: center;
 
     &:focus {
