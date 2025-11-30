@@ -714,6 +714,7 @@ watch(() => props.modelValue, (newVal) => {
     border-color: var(--tag-item-active-border);
     color: var(--tag-item-active-text);
     font-weight: 700;
+    -webkit-text-stroke: 0.5px var(--tag-item-active-border);
     box-shadow: inset 0 0 0 1px var(--tag-item-active-border);
 
     &:hover {
