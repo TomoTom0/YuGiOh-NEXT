@@ -143,3 +143,53 @@ export function isYugiohDBSite(gameType?: CardGameType): boolean {
   const path = getGamePath(type);
   return new RegExp(`^https:\\/\\/www\\.db\\.yugioh-card\\.com\\/${path}\\/`).test(url);
 }
+
+/**
+ * ページのHTMLから自分の cgid を取得
+ * フッターメニューの「マイデッキ」リンクから取得する
+ * @returns 自分の cgid、または null（未取得の場合）
+ */
+export function getMyDeckCgid(): string | null {
+  // フッターメニューの「マイデッキ」リンクから cgid を取得
+  // セレクタ：#footer_menu > ul > li.my.menu_my_decks.sab_menu > ul > li:nth-child(1) > a
+  const myDeckLink = document.querySelector('#footer_menu > ul > li.my.menu_my_decks.sab_menu > ul > li:nth-child(1) > a');
+
+  if (myDeckLink) {
+    const href = myDeckLink.getAttribute('href');
+    if (href) {
+      const match = href.match(/cgid=([a-f0-9]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+  }
+
+  console.warn('[YGO Helper] Unable to determine current user cgid from footer menu');
+  return null;
+}
+
+/**
+ * URLから表示しているデッキの cgid を取得
+ * @returns デッキの cgid、または null
+ */
+export function getDeckCgid(): string | null {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('cgid');
+}
+
+/**
+ * 現在表示しているデッキが自分のものかどうかを判定
+ * @returns 自分のデッキの場合は true、他人のデッキの場合は false、判定できない場合は false
+ */
+export function isOwnDeck(): boolean {
+  const myCgid = getMyDeckCgid();
+  const deckCgid = getDeckCgid();
+
+  // cgid が取得できない場合は保守的に false を返す
+  if (!myCgid || !deckCgid) {
+    console.warn('[YGO Helper] Cannot determine deck ownership', { myCgid, deckCgid });
+    return false;
+  }
+
+  return myCgid === deckCgid;
+}
