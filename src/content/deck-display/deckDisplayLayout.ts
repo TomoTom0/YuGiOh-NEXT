@@ -13,11 +13,13 @@ export function applyDeckDisplayLayout(): void {
   // CSSを注入
   const style = document.createElement('style');
   style.textContent = `
+    /* デッキ表示ページのメインレイアウト */
     #deck_image {
-      display: flex;
-      flex-direction: row;
+      display: flex !important;
+      flex-direction: row !important;
       gap: 20px;
       align-items: flex-start;
+      width: 100%;
     }
 
     #ygo-deck-sections-container {
@@ -25,19 +27,22 @@ export function applyDeckDisplayLayout(): void {
       flex-direction: column;
       gap: 20px;
       flex: 0 0 auto;
+      order: 1;
     }
 
     #ygo-card-detail-container {
       flex: 1;
       min-width: 300px;
+      max-width: 400px;
       background: white;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
       padding: 15px;
       overflow-y: auto;
-      max-height: 100vh;
+      max-height: calc(100vh - 40px);
       position: sticky;
       top: 20px;
+      order: 2;
     }
 
     #ygo-card-detail-container h2 {
@@ -258,7 +263,7 @@ export function initDeckDisplayLayout(): void {
   // chrome.storage から設定を読み込み
   chrome.storage.local.get(['appSettings'], (result) => {
     const appSettings = (result.appSettings as Partial<AppSettings>) || {};
-    const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'large') as CardSize;
+    const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as CardSize;
 
     // CSSを適用
     applyDeckDisplayLayout();
