@@ -22,7 +22,9 @@ import { getTempCardDB } from '@/utils/temp-card-db';
 import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
-  TRAP_EFFECT_PATH_TO_ID
+  TRAP_EFFECT_PATH_TO_ID,
+  SPELL_EFFECT_TYPE_MAP,
+  TRAP_EFFECT_TYPE_MAP
 } from '@/types/card-maps';
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
@@ -1381,13 +1383,11 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
 }
 
 function isSpellEffectType(value: string): value is SpellEffectType {
-  const validTypes: SpellEffectType[] = ['normal', 'quick', 'continuous', 'equip', 'field', 'ritual'];
-  return validTypes.includes(value as SpellEffectType);
+  return value in SPELL_EFFECT_TYPE_MAP;
 }
 
 function isTrapEffectType(value: string): value is TrapEffectType {
-  const validTypes: TrapEffectType[] = ['normal', 'continuous', 'counter'];
-  return validTypes.includes(value as TrapEffectType);
+  return value in TRAP_EFFECT_TYPE_MAP;
 }
 
 function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
