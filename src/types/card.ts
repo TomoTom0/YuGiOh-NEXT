@@ -515,6 +515,19 @@ export interface FAQTableB {
   lastAccessedAt: number;
 }
 
+/**
+ * 禁止制限リスト情報
+ * 各適用日における禁止制限状態を保持
+ */
+export interface ForbiddenLimitedList {
+  /** 適用日（YYYY-MM-DD形式、例: "2025-10-01"） */
+  effectiveDate: string;
+  /** カードIDごとの制限状態マップ */
+  regulations: Record<string, LimitRegulation>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
 // card-maps.tsから再エクスポート
 export type {
   Attribute,

@@ -81,13 +81,13 @@ const value = computed({
   min-height: 0;
   line-height: 1.6;
   box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--input-shadow, 0 1px 3px rgba(0,0,0,0.05));
   transition: all 0.2s;
 
   &:focus {
     outline: none;
     border-color: var(--theme-gradient-start, #00d9b8);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 3px rgba(0, 217, 184, 0.1);
+    box-shadow: var(--input-shadow, 0 1px 3px rgba(0,0,0,0.05)), var(--input-focus-ring, 0 0 0 3px rgba(0, 217, 184, 0.1));
   }
 
   &:hover {

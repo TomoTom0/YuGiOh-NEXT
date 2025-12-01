@@ -1,35 +1,33 @@
 /* ===== 共通スタイル ===== */
 /* レポート: docs/internal-reviews/reports/16_theme_implementation_analysis.md */
 
-/* ===== 基本要素スタイル ===== */
-
 /* ボタンの基本スタイル - SVGアイコンの色継承のため */
 button {
   color: var(--text-primary);
 }
 
-/* グローバルスクロールバースタイル */
+/* スクロールバースタイル */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-*::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
+  &::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
 
-*::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
-}
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
 
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
+    &:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+  }
 }
 
 /* ===== ユーティリティクラス ===== */

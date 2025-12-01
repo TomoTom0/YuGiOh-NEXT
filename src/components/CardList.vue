@@ -379,6 +379,7 @@ export default {
   height: 24px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -392,6 +393,7 @@ export default {
     background: var(--bg-secondary);
     border-color: var(--border-secondary);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    color: var(--text-primary);
   }
 
   svg {
@@ -465,7 +467,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 3px;
   background: var(--bg-primary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 
@@ -494,14 +496,14 @@ export default {
   padding: 0;
   border: none;
   border-radius: 4px;
-  background: transparent;
-  color: var(--text-tertiary);
+  background: var(--button-default-bg);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    background: var(--color-success-bg);
+    color: var(--text-primary);
   }
 
   &.active {
@@ -632,23 +634,21 @@ export default {
     &:not(.expanded)::after {
       content: '';
       position: absolute;
-      bottom: 4px;
-      right: 4px;
-      width: 40px;
-      height: 40px;
+      bottom: 0;
+      right: 0;
+      width: 35px;
+      height: 35px;
       background: var(--card-bg);
-      mask-image: linear-gradient(135deg,
-        transparent 0%,
-        transparent 40%,
-        rgba(0, 0, 0, 0.3) 50%,
-        rgba(0, 0, 0, 0.7) 70%,
-        rgba(0, 0, 0, 1) 100%);
-      -webkit-mask-image: linear-gradient(135deg,
-        transparent 0%,
-        transparent 40%,
-        rgba(0, 0, 0, 0.3) 50%,
-        rgba(0, 0, 0, 0.7) 70%,
-        rgba(0, 0, 0, 1) 100%);
+      mask-image: linear-gradient(to top left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.8) 20%,
+        rgba(0, 0, 0, 0.4) 50%,
+        transparent 80%);
+      -webkit-mask-image: linear-gradient(to top left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.8) 20%,
+        rgba(0, 0, 0, 0.4) 50%,
+        transparent 80%);
       pointer-events: none;
     }
 
@@ -686,8 +686,8 @@ export default {
   }
 
   &.race {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: var(--chip-race-bg);
+    color: var(--chip-race-text);
   }
 
   &.type {

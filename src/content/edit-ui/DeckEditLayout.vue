@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container">
+  <div class="deck-edit-container" :data-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -141,17 +141,17 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
-import ExportDialog from '../../components/ExportDialog.vue'
-import ImportDialog from '../../components/ImportDialog.vue'
-import OptionsDialog from '../../components/OptionsDialog.vue'
-import { searchCardsByName } from '../../api/card-search'
+// ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
+const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
+const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 
@@ -446,8 +446,10 @@ export default {
         searchResults.length = 0
         return
       }
-      
+
       try {
+        // Load Dialog検索時に動的import
+        const { searchCardsByName } = await import('../../api/card-search')
         const results = await searchCardsByName(query.trim())
         const gameType = detectCardGameType()
         searchResults.length = 0
@@ -655,6 +657,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import '../../styles/themes.scss';
+@import '../../styles/common.scss';
+
 // Hide page top button
 :global(.menu_btn_pagetop) {
   display: none !important;
@@ -1010,9 +1015,10 @@ export default {
     }
     
     input:checked + .icon {
-      background: var(--color-info);
-      color: var(--button-text);
-      border-color: var(--color-info);
+      background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+      color: white;
+      border-color: #0068d9;
+      box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
     }
   }
 }

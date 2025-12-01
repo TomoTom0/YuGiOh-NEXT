@@ -95,43 +95,75 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  border-color: #ba68c8;
+  background: var(--monster-fusion-chip-active-bg);
+  border-color: var(--monster-fusion-chip-active-border);
+  color: var(--monster-fusion-chip-active-text);
+
+  &:hover {
+    background: var(--monster-fusion-chip-active-hover-bg);
+    color: var(--monster-fusion-chip-active-hover-text);
+    border-color: var(--monster-fusion-chip-active-border);
+  }
 }
 
 .chip.tag-chip[data-type="synchro"] {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  border-color: var(--border-primary);
+  background: var(--monster-synchro-chip-active-bg);
+  border-color: var(--monster-synchro-chip-active-border);
+  color: var(--monster-synchro-chip-active-text);
+
+  &:hover {
+    background: var(--monster-synchro-chip-active-hover-bg);
+    color: var(--monster-synchro-chip-active-hover-text);
+    border-color: var(--monster-synchro-chip-active-border);
+  }
 }
 
 .chip.tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: var(--button-text);
-  border-color: var(--border-secondary);
+  background: var(--monster-xyz-chip-active-bg);
+  border-color: var(--monster-xyz-chip-active-border);
+  color: var(--monster-xyz-chip-active-text);
+
+  &:hover {
+    background: var(--monster-xyz-chip-active-hover-bg);
+    color: var(--monster-xyz-chip-active-hover-text);
+    border-color: var(--monster-xyz-chip-active-border);
+  }
 }
 
 .chip.tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-color: var(--color-info);
+  background: var(--monster-link-chip-active-bg);
+  border-color: var(--monster-link-chip-active-border);
+  color: var(--monster-link-chip-active-text);
+
+  &:hover {
+    background: var(--monster-link-chip-active-hover-bg);
+    color: var(--monster-link-chip-active-hover-text);
+    border-color: var(--monster-link-chip-active-border);
+  }
 }
 
 .chip.tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  border-color: #4dd0e1;
+  background: var(--monster-ritual-chip-active-bg);
+  border-color: var(--monster-ritual-chip-active-border);
+  color: var(--monster-ritual-chip-active-text);
+
+  &:hover {
+    background: var(--monster-ritual-chip-active-hover-bg);
+    color: var(--monster-ritual-chip-active-hover-text);
+    border-color: var(--monster-ritual-chip-active-border);
+  }
 }
 
 .chip.tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-  color: var(--button-text);
-  border-color: #ff9800;
+  background: var(--monster-pendulum-chip-active-bg);
+  border-color: var(--monster-pendulum-chip-active-border);
+  color: var(--monster-pendulum-chip-active-text);
+
+  &:hover {
+    background: var(--monster-pendulum-chip-active-hover-bg);
+    color: var(--monster-pendulum-chip-active-hover-text);
+    border-color: var(--monster-pendulum-chip-active-border);
+  }
 }
 
 .chip.category-chip {
@@ -142,6 +174,5 @@ const getCategoryLabel = (catId: string): string => {
 
 .chip.category-chip:hover {
   background: var(--color-warning-hover-bg);
-  border-color: var(--color-warning);
 }
 </style>

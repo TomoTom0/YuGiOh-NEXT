@@ -286,7 +286,7 @@ export interface SearchOptions {
    */
   sort?: number;
 
-  /** ページあたりの結果数（デフォルト: 99） */
+  /** ページあたりの結果数（デフォルト: 100） */
   resultsPerPage?: number;
 
   /** 
@@ -489,8 +489,8 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // ソート順（デフォルト: 1=50音順）
   params.append('sort', (options.sort || 1).toString());
 
-  // ページあたり件数（デフォルト: 99）
-  params.append('rp', (options.resultsPerPage || 99).toString());
+  // ページあたり件数（デフォルト: 100）
+  params.append('rp', (options.resultsPerPage || 100).toString());
 
   // 表示モード
   if (options.mode) {
@@ -584,7 +584,7 @@ export async function searchCardsByName(
       stype: '1',
       othercon: '2',
       link_m: '2',
-      rp: (limit || 99).toString()
+      rp: (limit || 100).toString()
     });
 
     if (ctypeValue) {
@@ -1333,16 +1333,215 @@ function parseRelatedCards(doc: Document): CardInfo[] {
 }
 
 /**
- * カード詳細ページから基本カード情報をパースする
- * カード詳細ページの構造は検索結果ページと異なるため、専用のパーサーが必要
- */
-/**
- * カード詳細情報を取得する
+ * カード詳細ページから基本カード情報をパースする（FAQリンク用）
  *
- * @param cardOrId 既存のCardInfoまたはcardId文字列
- * @param lang 言語コード（省略時は現在のページから自動検出）
- * @returns カード詳細情報
+ * @param doc 詳細ページのDocument
+ * @param cardId カードID
+ * @returns 基本カード情報、パースできない場合はnull
  */
+function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | null {
+  const cardNameElem = doc.querySelector('#cardname h1, .cardname h1');
+  if (!cardNameElem) {
+    console.error('[parseCardDetailBasicInfo] Card name element not found');
+    return null;
+  }
+
+  let cardName = '';
+  cardNameElem.childNodes.forEach(node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        cardName += text;
+      }
+    }
+  });
+
+  if (!cardName) {
+    console.error('[parseCardDetailBasicInfo] Card name is empty');
+    return null;
+  }
+
+  const base: CardBase = {
+    name: cardName,
+    cardId,
+    ciid: '1',
+    imgs: [{ ciid: '1', imgHash: '' }]
+  };
+
+  // カードタイプを判定（属性アイコンがあればモンスター、なければ魔法・罠）
+  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+
+  if (attrImg) {
+    // モンスターカード
+    return parseMonsterDetailBasicInfo(doc, base);
+  } else {
+    // 魔法・罠カード
+    return parseSpellTrapDetailBasicInfo(doc, base);
+  }
+}
+
+function isSpellEffectType(value: string): value is SpellEffectType {
+  const validTypes: SpellEffectType[] = ['通常', '速攻', '永続', '装備', 'フィールド', '儀式'];
+  return validTypes.includes(value as SpellEffectType);
+}
+
+function isTrapEffectType(value: string): value is TrapEffectType {
+  const validTypes: TrapEffectType[] = ['通常', '永続', 'カウンター'];
+  return validTypes.includes(value as TrapEffectType);
+}
+
+function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
+  const frameElems = doc.querySelectorAll('.CardText .frame .item_box');
+  let cardType: 'spell' | 'trap' | null = null;
+  let effectType: string | undefined;
+
+  for (const elem of frameElems) {
+    const title = elem.querySelector('.item_box_title')?.textContent?.trim();
+    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+
+    if (title === '効果' && value) {
+      if (value.includes('魔法')) {
+        cardType = 'spell';
+        effectType = value.replace('魔法', '').trim() || undefined;
+      } else if (value.includes('罠')) {
+        cardType = 'trap';
+        effectType = value.replace('罠', '').trim() || undefined;
+      }
+    }
+  }
+
+  if (!cardType) {
+    console.error('[parseSpellTrapDetailBasicInfo] Cannot determine card type');
+    return null;
+  }
+
+  if (cardType === 'spell') {
+    const finalEffectType = effectType && isSpellEffectType(effectType) ? effectType : undefined;
+    return {
+      ...base,
+      cardType: 'spell',
+      effectType: finalEffectType
+    } as SpellCard;
+  } else {
+    const finalEffectType = effectType && isTrapEffectType(effectType) ? effectType : undefined;
+    return {
+      ...base,
+      cardType: 'trap',
+      effectType: finalEffectType
+    } as TrapCard;
+  }
+}
+
+function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard | null {
+  // 属性を取得
+  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+  if (!attrImg || !attrImg.src) {
+    console.error('[parseMonsterDetailBasicInfo] Attribute not found');
+    return null;
+  }
+
+  const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
+  if (!attrMatch) {
+    console.error('[parseMonsterDetailBasicInfo] Cannot parse attribute');
+    return null;
+  }
+
+  const attribute = ATTRIBUTE_PATH_TO_ID[attrMatch[1]];
+  if (!attribute) {
+    console.error('[parseMonsterDetailBasicInfo] Unknown attribute:', attrMatch[1]);
+    return null;
+  }
+
+  // レベル/ランク/リンクを取得
+  const frameElems = doc.querySelectorAll('.CardText .frame .item_box');
+  let levelType: LevelType = 'level';
+  let levelValue: number = 0;
+
+  for (const elem of frameElems) {
+    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+    if (!value) continue;
+
+    if (value.includes('レベル')) {
+      levelType = 'level';
+      const match = value.match(/(\d+)/);
+      if (match) levelValue = parseInt(match[1], 10);
+    } else if (value.includes('ランク')) {
+      levelType = 'rank';
+      const match = value.match(/(\d+)/);
+      if (match) levelValue = parseInt(match[1], 10);
+    } else if (value.includes('リンク')) {
+      levelType = 'link';
+      const match = value.match(/(\d+)/);
+      if (match) levelValue = parseInt(match[1], 10);
+    }
+  }
+
+  // ATK/DEFを取得
+  let atk: number | string | undefined;
+  let def: number | string | undefined;
+
+  for (const elem of frameElems) {
+    const title = elem.querySelector('.item_box_title')?.textContent?.trim();
+    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+
+    if (title === 'ATK' && value) {
+      const trimmed = value.trim();
+      atk = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
+    } else if (title === 'DEF' && value) {
+      const trimmed = value.trim();
+      def = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
+    }
+  }
+
+  // 種族・タイプを取得
+  const speciesElem = doc.querySelector('.CardText .frame .item_box .species');
+  if (!speciesElem) {
+    console.error('[parseMonsterDetailBasicInfo] Species not found');
+    return null;
+  }
+
+  const spans = Array.from(speciesElem.querySelectorAll('span'));
+  const parts = spans.map(span => span.textContent?.trim()).filter(t => t && t !== '／');
+
+  if (parts.length === 0) {
+    console.error('[parseMonsterDetailBasicInfo] No species/types found');
+    return null;
+  }
+
+  const raceText = parts[0];
+  const typeTexts = parts.slice(1);
+
+  const lang = detectLanguage(doc);
+  const raceMap = mappingManager.getRaceTextToId(lang);
+  const typeMap = mappingManager.getMonsterTypeTextToId(lang);
+
+  const race = raceMap[raceText];
+  if (!race) {
+    console.error('[parseMonsterDetailBasicInfo] Unknown race:', raceText);
+    return null;
+  }
+
+  const types: MonsterType[] = [];
+  for (const typeText of typeTexts) {
+    const type = typeMap[typeText];
+    if (type) {
+      types.push(type);
+    }
+  }
+
+  return {
+    ...base,
+    cardType: 'monster',
+    attribute,
+    levelType,
+    levelValue,
+    race,
+    types,
+    atk,
+    def
+  } as MonsterCard;
+}
+
 /**
  * カード詳細ページからruby（ふりがな）を取得
  */
@@ -1458,30 +1657,16 @@ function fetchAdditionalRelatedCards(
 export async function getCardDetail(
   cardId: string,
   lang?: string,
-  sortOrder: string = 'release_desc'
+  sortOrder: string = 'release_desc',
+  fromFAQ: boolean = false
 ): Promise<CardDetail | null> {
   try {
     // 仕様: card-info-cache.md line 41-50
     // 基本情報は検索結果/デッキ読み込みから取得済みでキャッシュにあるはず
     // 詳細ページからは補足情報のみ取得: 複数画像、ruby、supply、pend-supply、related-cards、related-faq、related-products
+    // ただし、FAQリンクからの場合はキャッシュにない可能性があるため、詳細ページから基本情報も取得
 
     const unifiedDB = getUnifiedCacheDB();
-
-    // 基本情報をキャッシュから取得
-    const baseCard = unifiedDB.reconstructCardInfo(cardId);
-    if (!baseCard) {
-      console.error('[getCardDetail] Base card info not found in cache for', cardId);
-      return null;
-    }
-
-    console.log('[getCardDetail] Base card from cache:', {
-      cardId,
-      name: baseCard.name,
-      cardType: baseCard.cardType,
-      levelType: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelType : undefined,
-      levelValue: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelValue : undefined,
-      linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
-    })
 
     // 詳細ページを取得（初回100件）
     const requestLocale = lang || detectLanguage(document);
@@ -1508,6 +1693,45 @@ export async function getCardDetail(
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
+    // 基本情報をキャッシュから取得
+    let baseCard: CardInfo | undefined = unifiedDB.reconstructCardInfo(cardId);
+
+    // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
+    // 同時にカード名検索を並行実行して完全な情報を取得
+    let searchPromise: Promise<CardInfo[]> | null = null;
+    
+    if (fromFAQ && !baseCard) {
+      console.log('[getCardDetail] FAQ link access, parsing base info from detail page for', cardId);
+      const parsed = parseCardDetailBasicInfo(doc, cardId);
+      if (!parsed) {
+        console.error('[getCardDetail] Failed to parse base card info from detail page for', cardId);
+        return null;
+      }
+      baseCard = parsed;
+
+      // カード名で検索（並行実行）- 完全な情報（リンクマーカー、ペンデュラム等）を取得
+      console.log('[getCardDetail] Starting parallel search for card:', parsed.name);
+      searchPromise = searchCards({ keyword: parsed.name })
+        .catch(err => {
+          console.warn('[getCardDetail] Card name search failed:', err);
+          return [];
+        });
+    }
+
+    if (!baseCard) {
+      console.error('[getCardDetail] Base card info not available for', cardId);
+      return null;
+    }
+
+    console.log('[getCardDetail] Base card info:', {
+      cardId,
+      name: baseCard.name,
+      cardType: baseCard.cardType,
+      levelType: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelType : undefined,
+      levelValue: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelValue : undefined,
+      linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
+    });
+
     // 補足情報のみ取得
     const additionalImgs = parseAdditionalImages(doc);
     const ruby = parseRuby(doc);
@@ -1515,7 +1739,20 @@ export async function getCardDetail(
     const packs = parsePackInfo(doc);
 
     // 関連カードを取得済みHTMLからパース
-    const relatedCards = parseRelatedCards(doc);
+    let relatedCards = parseRelatedCards(doc);
+
+    // Related カードに限制規制情報を付与（禁止制限キャッシュから取得）
+    const { forbiddenLimitedCache } = await import('@/utils/forbidden-limited-cache');
+    relatedCards = relatedCards.map(card => {
+      const limitRegulation = forbiddenLimitedCache.getRegulation(card.cardId);
+      if (limitRegulation && !card.limitRegulation) {
+        return {
+          ...card,
+          limitRegulation
+        };
+      }
+      return card;
+    });
 
     // 100件以上あれば、バックグラウンドで全件を2000件ずつ取得
     let fetchMorePromise: Promise<CardInfo[]> | undefined;
@@ -1527,6 +1764,33 @@ export async function getCardDetail(
     const faqList = await getCardFAQList(cardId);
     const qaList = faqList?.faqs || [];
 
+    // 並行検索が実行されている場合、結果を待ってマージ
+    if (searchPromise) {
+      const searchResults = await searchPromise;
+      const fullCard = searchResults.find(c => c.cardId === cardId);
+      
+      if (fullCard) {
+        console.log('[getCardDetail] Found full card info from search:', {
+          cardId: fullCard.cardId,
+          name: fullCard.name,
+          linkMarkers: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).linkMarkers : undefined,
+          pendulumScale: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).pendulumScale : undefined
+        });
+        
+        // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
+        baseCard = {
+          ...fullCard,
+          text: textData?.text || fullCard.text
+        };
+        
+        if (baseCard.cardType === 'monster' && textData?.pendulumText) {
+          (baseCard as MonsterCard).pendulumText = textData.pendulumText;
+        }
+      } else {
+        console.warn('[getCardDetail] Card not found in search results, using parsed info');
+      }
+    }
+
     // 基本情報に補足情報をマージ
     const mergedCard: CardInfo = {
       ...baseCard,
@@ -1535,8 +1799,8 @@ export async function getCardDetail(
       text: textData?.text || baseCard.text
     };
 
-    // pendulumTextはMonsterCardのみに存在
-    if (mergedCard.cardType === 'monster' && textData?.pendulumText) {
+    // pendulumTextはMonsterCardのみに存在（既にマージ済みの場合はスキップ）
+    if (mergedCard.cardType === 'monster' && textData?.pendulumText && !searchPromise) {
       (mergedCard as MonsterCard).pendulumText = textData.pendulumText;
     }
 
@@ -1584,7 +1848,8 @@ export async function getCardDetailWithCache(
   cardId: string,
   lang?: string,
   autoRefresh: boolean = true,
-  sortOrder: string = 'release_desc'
+  sortOrder: string = 'release_desc',
+  fromFAQ: boolean = false
 ): Promise<CardDetailCacheResult> {
   const unifiedDB = getUnifiedCacheDB();
 
@@ -1631,7 +1896,7 @@ export async function getCardDetailWithCache(
           console.log(`[getCardDetailWithCache] Starting background refresh for ${cardId}`);
           result.refreshPromise = (async () => {
             try {
-              const freshDetail = await getCardDetail(cardId, lang, sortOrder);
+              const freshDetail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
               if (freshDetail && unifiedDB.isInitialized()) {
                 await saveCardDetailToCache(unifiedDB, freshDetail, true);
                 // ストレージに永続化
@@ -1653,7 +1918,7 @@ export async function getCardDetailWithCache(
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
   console.log(`[getCardDetailWithCache] Cache miss for ${cardId}, fetching from API`);
-  const detail = await getCardDetail(cardId, lang, sortOrder);
+  const detail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
 
   if (detail && unifiedDB.isInitialized()) {
     // キャッシュに保存（forceUpdate=trueで強制更新）

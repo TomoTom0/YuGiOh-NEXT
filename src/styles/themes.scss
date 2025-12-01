@@ -11,6 +11,7 @@
   --theme-gradient: linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%);
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
+  --command-mode-bg: rgba(0, 217, 184, 0.1);
   --color-success: #4caf50;
   --color-success-bg: #e8f5e9;
   --color-success-hover-bg: #c8e6c9;
@@ -21,6 +22,7 @@
   --color-error-text: #d32f2f;
   --color-error-bg: #ffebee;
   --color-error-hover-bg: #ffcdd2;
+  --error-overlay-bg: rgba(255, 0, 0, 0.5);
   --color-info: #2196f3;
   --color-info-bg: #e3f2fd;
   --color-info-hover-bg: #bbdefb;
@@ -33,6 +35,7 @@
   --button-bg-rgb: 74, 158, 255;
   --button-hover-bg: #3a8eef;
   --button-text: #ffffff;
+  --button-default-bg: #f0f0f0;
   --input-bg: #ffffff;
   --input-border: #ddd;
   --input-text: #333;
@@ -42,6 +45,19 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --input-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.1);
+  --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
+  --filter-button-active-bg: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+  --filter-button-active-border: #1b5e20;
+  --filter-button-active-shadow: 0 3px 10px rgba(46, 125, 50, 0.5);
+  --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+  --filter-button-not-border: #b71c1c;
+  --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
+  --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
+  --filter-button-pendulum-active-border: #e65100;
+  --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
   --toast-bg: #ffffff;
   --toast-success-bg: #f1f8f4;
   --toast-error-bg: #fef1f0;
@@ -52,6 +68,274 @@
   --scrollbar-thumb-hover: #a8a8a8;
   --color-success-hover: #45a049;
   --color-error-hover: #d32f2f;
+
+  // Monster Type Gradients - Fusion
+  --monster-fusion-bg: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+  --monster-fusion-active: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+  --monster-fusion-not: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
+
+  // Monster Type Gradients - Synchro
+  --monster-synchro-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  --monster-synchro-active: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.1) 0, rgba(0, 0, 0, 0.1) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #eeeeee 0%, #eeeeee 100%);
+
+  // Monster Type Gradients - XYZ
+  --monster-xyz-bg: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 100%);
+  --monster-xyz-active: linear-gradient(135deg, #616161 0%, #424242 100%);
+
+  // Monster Type Gradients - Link
+  --monster-link-bg: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  --monster-link-active: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+
+  // Monster Type Gradients - Ritual
+  --monster-ritual-bg: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  --monster-ritual-active: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
+
+  // Monster Type Gradients - Pendulum
+  --monster-pendulum-bg: linear-gradient(180deg, #fff3e0 0%, #fff3e0 30%, #b2dfdb 70%, #b2dfdb 100%);
+  --monster-pendulum-active: linear-gradient(180deg, #ff9800 0%, #ff9800 30%, #00897b 70%, #00897b 100%);
+
+  // Tab Active Background Colors
+  --tab-monster-active-bg: #fff9e6;
+  --tab-spell-active-bg: #b2dfdb;
+  --tab-trap-active-bg: #f8bbd0;
+  --tab-border: #008cff;
+
+  // Selected Chips Inline Background Colors
+  --selected-chips-monster-bg: rgba(255, 249, 230, 0.9);
+  --selected-chips-spell-bg: rgba(178, 223, 219, 0.9);
+  --selected-chips-trap-bg: rgba(248, 187, 208, 0.9);
+
+  // Chip Colors
+  --chip-race-bg: #f3e5f5;
+  --chip-race-text: #7b1fa2;
+
+  // Monster Type Border Colors
+  --monster-fusion-border: #ba68c8;
+  --monster-fusion-active-border: #7b1fa2;
+  --monster-synchro-border: #bdbdbd;
+  --monster-synchro-active-border: #757575;
+  --monster-xyz-border: #9e9e9e;
+  --monster-xyz-active-border: #757575;
+  --monster-link-border: #64b5f6;
+  --monster-link-active-border: #2196f3;
+  --monster-ritual-border: #4dd0e1;
+  --monster-ritual-active-border: #00838f;
+  --monster-pendulum-border: #ffb74d;
+  --monster-pendulum-active-border: #f57c00;
+
+  // Monster Type Text Colors
+  --monster-fusion-text: #4a148c;
+  --monster-synchro-text: var(--text-primary);
+  --monster-xyz-text: #ffffff;
+  --monster-link-text: #0d47a1;
+  --monster-ritual-text: #006064;
+  --monster-pendulum-text: #ffffff;
+
+  // Monster Type Badge Text Colors
+  --monster-fusion-badge-text: #ffffff;
+  --monster-synchro-badge-text: var(--text-primary);
+  --monster-xyz-badge-text: #ffffff;
+  --monster-link-badge-text: #1565c0;
+  --monster-ritual-badge-text: #00838f;
+  --monster-pendulum-badge-text: #ffffff;
+
+  // Tag Item States - Basic Tags (non-monster-type)
+  --tag-item-default-bg: transparent;
+  --tag-item-default-text: var(--text-primary);
+  --tag-item-default-border: var(--border-secondary);
+  --tag-item-hover-bg: var(--color-success-hover-bg);
+  --tag-item-hover-text: var(--text-primary);
+  --tag-item-hover-border: var(--color-success);
+  --tag-item-active-bg: var(--color-success-bg);
+  --tag-item-active-text: var(--text-primary);
+  --tag-item-active-border: var(--color-success);
+  --tag-item-active-hover-bg: var(--color-success);
+  --tag-item-active-hover-text: #ffffff;
+  --tag-item-active-hover-border: var(--color-success);
+
+  // Monster Type Chip Tag Dialog Effects (Light Theme)
+  --monster-fusion-tag-hover-color: rgba(156, 39, 176, 0.5);
+  --monster-synchro-tag-hover-color: rgba(117, 117, 117, 0.5);
+  --monster-xyz-tag-hover-color: rgba(97, 97, 97, 0.4);
+  --monster-link-tag-hover-color: rgba(25, 118, 210, 0.4);
+  --monster-ritual-tag-hover-color: rgba(0, 151, 167, 0.4);
+  --monster-pendulum-tag-hover-color: rgba(255, 152, 0, 0.4);
+
+  // Monster Type Chip States - Fusion
+  --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
+  --monster-fusion-chip-default-text: #000000;
+  --monster-fusion-chip-default-border: var(--monster-fusion-border);
+  --monster-fusion-chip-hover-bg: linear-gradient(135deg, #f8d4f4 0%, #f0c6e8 100%);
+  --monster-fusion-chip-hover-text: #000000;
+  --monster-fusion-chip-hover-border: var(--monster-fusion-border);
+  --monster-fusion-chip-active-bg: var(--monster-fusion-active);
+  --monster-fusion-chip-active-text: #ffffff;
+  --monster-fusion-chip-active-border: var(--monster-fusion-active-border);
+  --monster-fusion-chip-active-hover-bg: var(--monster-fusion-active);
+  --monster-fusion-chip-active-hover-text: #ffffff;
+  --monster-fusion-chip-active-hover-border: var(--monster-fusion-active-border);
+  --monster-fusion-chip-not-bg: var(--monster-fusion-not);
+  --monster-fusion-chip-not-text: #ffffff;
+  --monster-fusion-chip-not-border: #d32f2f;
+  --monster-fusion-chip-not-hover-bg: var(--monster-fusion-not);
+  --monster-fusion-chip-not-hover-text: #ffffff;
+  --monster-fusion-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Synchro
+  --monster-synchro-chip-default-bg: var(--monster-synchro-bg);
+  --monster-synchro-chip-default-text: #000000;
+  --monster-synchro-chip-default-border: var(--monster-synchro-border);
+  --monster-synchro-chip-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #fcfcfc 0%, #f5f5f5 100%);
+  --monster-synchro-chip-hover-text: #000000;
+  --monster-synchro-chip-hover-border: var(--monster-synchro-border);
+  --monster-synchro-chip-active-bg: linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
+  --monster-synchro-chip-active-text: #ffffff;
+  --monster-synchro-chip-active-border: var(--monster-synchro-active-border);
+  --monster-synchro-chip-active-hover-bg: linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
+  --monster-synchro-chip-active-hover-text: #ffffff;
+  --monster-synchro-chip-active-hover-border: var(--monster-synchro-active-border);
+  --monster-synchro-chip-not-bg: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-synchro-chip-not-text: #ffffff;
+  --monster-synchro-chip-not-border: #d32f2f;
+  --monster-synchro-chip-not-hover-bg: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-synchro-chip-not-hover-text: #ffffff;
+  --monster-synchro-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - XYZ
+  --monster-xyz-chip-default-bg: var(--monster-xyz-bg);
+  --monster-xyz-chip-default-text: #000000;
+  --monster-xyz-chip-default-border: var(--monster-xyz-border);
+  --monster-xyz-chip-hover-bg: linear-gradient(135deg, #d4d4d4 0%, #d4d4d4 100%);
+  --monster-xyz-chip-hover-text: #000000;
+  --monster-xyz-chip-hover-border: var(--monster-xyz-border);
+  --monster-xyz-chip-active-bg: var(--monster-xyz-active);
+  --monster-xyz-chip-active-text: #ffffff;
+  --monster-xyz-chip-active-border: var(--monster-xyz-active-border);
+  --monster-xyz-chip-active-hover-bg: var(--monster-xyz-active);
+  --monster-xyz-chip-active-hover-text: #ffffff;
+  --monster-xyz-chip-active-hover-border: var(--monster-xyz-active-border);
+  --monster-xyz-chip-not-bg: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
+  --monster-xyz-chip-not-text: #ffffff;
+  --monster-xyz-chip-not-border: #b71c1c;
+  --monster-xyz-chip-not-hover-bg: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
+  --monster-xyz-chip-not-hover-text: #ffffff;
+  --monster-xyz-chip-not-hover-border: #b71c1c;
+
+  // Monster Type Chip States - Link
+  --monster-link-chip-default-bg: var(--monster-link-bg);
+  --monster-link-chip-default-text: #000000;
+  --monster-link-chip-default-border: var(--monster-link-border);
+  --monster-link-chip-hover-bg: linear-gradient(135deg, #f0f8ff 0%, #e3f2fd 100%);
+  --monster-link-chip-hover-text: #000000;
+  --monster-link-chip-hover-border: var(--monster-link-border);
+  --monster-link-chip-active-bg: var(--monster-link-active);
+  --monster-link-chip-active-text: #ffffff;
+  --monster-link-chip-active-border: var(--monster-link-active-border);
+  --monster-link-chip-active-hover-bg: var(--monster-link-active);
+  --monster-link-chip-active-hover-text: #ffffff;
+  --monster-link-chip-active-hover-border: var(--monster-link-active-border);
+  --monster-link-chip-not-bg: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-link-chip-not-text: #ffffff;
+  --monster-link-chip-not-border: #d32f2f;
+  --monster-link-chip-not-hover-bg: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-link-chip-not-hover-text: #ffffff;
+  --monster-link-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Ritual
+  --monster-ritual-chip-default-bg: var(--monster-ritual-bg);
+  --monster-ritual-chip-default-text: #000000;
+  --monster-ritual-chip-default-border: var(--monster-ritual-border);
+  --monster-ritual-chip-hover-bg: linear-gradient(135deg, #e8fbfc 0%, #c5f4f8 100%);
+  --monster-ritual-chip-hover-text: #000000;
+  --monster-ritual-chip-hover-border: var(--monster-ritual-border);
+  --monster-ritual-chip-active-bg: var(--monster-ritual-active);
+  --monster-ritual-chip-active-text: #ffffff;
+  --monster-ritual-chip-active-border: var(--monster-ritual-active-border);
+  --monster-ritual-chip-active-hover-bg: var(--monster-ritual-active);
+  --monster-ritual-chip-active-hover-text: #ffffff;
+  --monster-ritual-chip-active-hover-border: var(--monster-ritual-active-border);
+  --monster-ritual-chip-not-bg: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-ritual-chip-not-text: #ffffff;
+  --monster-ritual-chip-not-border: #d32f2f;
+  --monster-ritual-chip-not-hover-bg: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
+  --monster-ritual-chip-not-hover-text: #ffffff;
+  --monster-ritual-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Pendulum
+  --monster-pendulum-chip-default-bg: var(--monster-pendulum-bg);
+  --monster-pendulum-chip-default-text: #000000;
+  --monster-pendulum-chip-default-border: var(--monster-pendulum-border);
+  --monster-pendulum-chip-hover-bg: linear-gradient(180deg, #fff8eb 0%, #fff8eb 30%, #d0ebe8 70%, #d0ebe8 100%);
+  --monster-pendulum-chip-hover-text: #000000;
+  --monster-pendulum-chip-hover-border: var(--monster-pendulum-border);
+  --monster-pendulum-chip-active-bg: var(--monster-pendulum-active);
+  --monster-pendulum-chip-active-text: #ffffff;
+  --monster-pendulum-chip-active-border: var(--monster-pendulum-active-border);
+  --monster-pendulum-chip-active-hover-bg: var(--monster-pendulum-active);
+  --monster-pendulum-chip-active-hover-text: #ffffff;
+  --monster-pendulum-chip-active-hover-border: var(--monster-pendulum-active-border);
+  --monster-pendulum-chip-not-bg: linear-gradient(180deg, #ffcc80 0%, #ffcc80 25%, #ffcdd2 50%, #ef5350 75%, #ef5350 100%);
+  --monster-pendulum-chip-not-text: #ffffff;
+  --monster-pendulum-chip-not-border: #d32f2f;
+  --monster-pendulum-chip-not-hover-bg: linear-gradient(180deg, #ffcc80 0%, #ffcc80 25%, #ffcdd2 50%, #ef5350 75%, #ef5350 100%);
+  --monster-pendulum-chip-not-hover-text: #ffffff;
+  --monster-pendulum-chip-not-hover-border: #d32f2f;
+
+  // DeckCard Button Colors
+  --deck-card-limit-forbidden-bg: rgba(220, 20, 20, 0.9);
+  --deck-card-limit-limited-bg: rgba(255, 140, 0, 0.9);
+  --deck-card-limit-semi-limited-bg: rgba(255, 180, 0, 0.9);
+
+  --deck-card-btn-top-left-bg: rgba(255, 165, 0, 0.8);
+  --deck-card-btn-top-left-hover-bg: rgba(255, 140, 0, 0.95);
+  --deck-card-btn-top-left-hover-border: rgba(255, 140, 0, 1);
+
+  --deck-card-btn-top-left-link-bg: rgba(100, 180, 255, 0.8);
+  --deck-card-btn-top-left-link-hover-bg: rgba(80, 160, 255, 0.95);
+  --deck-card-btn-top-left-link-hover-border: rgba(80, 160, 255, 1);
+
+  --deck-card-btn-top-right-bg: rgba(180, 180, 180, 0.3);
+  --deck-card-btn-top-right-hover-bg: rgba(180, 180, 180, 0.5);
+  --deck-card-btn-top-right-hover-border: rgba(180, 180, 180, 0.7);
+
+  --deck-card-btn-top-right-me-bg: rgba(100, 150, 255, 0.6);
+  --deck-card-btn-top-right-me-hover-bg: rgba(100, 150, 255, 0.95);
+  --deck-card-btn-top-right-me-hover-border: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-top-right-s-bg: rgba(150, 100, 255, 0.6);
+  --deck-card-btn-top-right-s-hover-bg: rgba(150, 100, 255, 0.95);
+  --deck-card-btn-top-right-s-hover-border: rgba(150, 100, 255, 1);
+
+  --deck-card-btn-bottom-left-bg: rgba(255, 100, 100, 0.6);
+  --deck-card-btn-bottom-left-hover-bg: rgba(255, 100, 100, 0.95);
+  --deck-card-btn-bottom-left-hover-border: rgba(255, 100, 100, 1);
+
+  --deck-card-btn-bottom-left-me-bg: rgba(100, 150, 255, 0.6);
+  --deck-card-btn-bottom-left-me-hover-bg: rgba(100, 150, 255, 0.95);
+  --deck-card-btn-bottom-left-me-hover-border: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-bottom-left-error-bg: rgba(255, 0, 0, 0.9);
+  --deck-card-btn-bottom-left-error-border: rgba(255, 0, 0, 1);
+
+  --deck-card-btn-bottom-right-bg: rgba(100, 200, 100, 0.6);
+  --deck-card-btn-bottom-right-hover-bg: rgba(100, 200, 100, 0.95);
+  --deck-card-btn-bottom-right-hover-border: rgba(100, 200, 100, 1);
+
+  --deck-card-btn-bottom-right-side-bg: rgba(150, 100, 255, 0.6);
+  --deck-card-btn-bottom-right-side-hover-bg: rgba(150, 100, 255, 0.95);
+  --deck-card-btn-bottom-right-side-hover-border: rgba(150, 100, 255, 1);
+
+  --deck-card-btn-bottom-right-error-bg: rgba(255, 0, 0, 0.9);
+  --deck-card-btn-bottom-right-error-border: rgba(255, 0, 0, 1);
+
+  --deck-card-drag-over-outline: rgba(100, 150, 255, 0.8);
+  --deck-card-drag-over-bg: rgba(100, 150, 255, 0.1);
+
+  --deck-card-btn-me-bg: rgba(100, 150, 255, 0.7);
+  --deck-card-btn-me-hover-bg: rgba(100, 150, 255, 1);
+
+  --deck-card-btn-side-bg: rgba(150, 100, 255, 0.7);
+  --deck-card-btn-side-hover-bg: rgba(150, 100, 255, 1);
 }
 
 // ダークテーマ
@@ -67,6 +351,7 @@
   --theme-gradient: linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%);
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
+  --command-mode-bg: rgba(0, 217, 184, 0.15);
   --color-success: #66bb6a;
   --color-success-bg: #1b5e20;
   --color-success-hover-bg: #2e7d32;
@@ -77,6 +362,7 @@
   --color-error-text: #ef5350;
   --color-error-bg: #b71c1c;
   --color-error-hover-bg: #c62828;
+  --error-overlay-bg: rgba(255, 0, 0, 0.6);
   --color-info: #42a5f5;
   --color-info-bg: #0d47a1;
   --color-info-hover-bg: #1565c0;
@@ -89,6 +375,7 @@
   --button-bg-rgb: 74, 158, 255;
   --button-hover-bg: #3a8eef;
   --button-text: #ffffff;
+  --button-default-bg: #3a3a3a;
   --input-bg: #2a2a2a;
   --input-border: #444;
   --input-text: #e0e0e0;
@@ -98,6 +385,19 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.7);
+  --input-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --input-focus-ring: 0 0 0 3px rgba(0, 217, 184, 0.2);
+  --dialog-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --button-export-hover-shadow: 0 2px 8px rgba(70, 120, 255, 0.5);
+  --filter-button-active-bg: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+  --filter-button-active-border: #1b5e20;
+  --filter-button-active-shadow: 0 3px 10px rgba(46, 125, 50, 0.7);
+  --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+  --filter-button-not-border: #b71c1c;
+  --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.8);
+  --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
+  --filter-button-pendulum-active-border: #e65100;
+  --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.7);
   --toast-bg: #2a2a2a;
   --toast-success-bg: #1b3a1b;
   --toast-error-bg: #3a1b1b;
@@ -108,4 +408,261 @@
   --scrollbar-thumb-hover: #5a5a5a;
   --color-success-hover: #4caf50;
   --color-error-hover: #f44336;
+
+  // Filter Dialog - ATK/DEF Tab (Dark Theme)
+  --filter-date-input-text: #e0e0e0;
+
+  // Monster Type Gradients - Fusion (Dark Theme)
+  --monster-fusion-bg: linear-gradient(135deg, #4a148c 0%, #6a1b9a 100%);
+  --monster-fusion-active: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
+  --monster-fusion-not: linear-gradient(135deg, #6a1b9a 0%, #6a1b9a 40%, #d32f2f 70%, #b71c1c 100%);
+
+  // Monster Type Gradients - Synchro (Dark Theme)
+  --monster-synchro-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #424242 0%, #303030 100%);
+  --monster-synchro-active: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0, rgba(255, 255, 255, 0.1) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #616161 0%, #424242 100%);
+
+  // Monster Type Gradients - XYZ (Dark Theme)
+  --monster-xyz-bg: linear-gradient(135deg, #424242 0%, #303030 100%);
+  --monster-xyz-active: linear-gradient(135deg, #757575 0%, #616161 100%);
+
+  // Monster Type Gradients - Link (Dark Theme)
+  --monster-link-bg: linear-gradient(135deg, #1565c0 0%, #1976d2 100%);
+  --monster-link-active: linear-gradient(135deg, #42a5f5 0%, #2196f3 100%);
+
+  // Monster Type Gradients - Ritual (Dark Theme)
+  --monster-ritual-bg: linear-gradient(135deg, #00838f 0%, #0097a7 100%);
+  --monster-ritual-active: linear-gradient(135deg, #00bcd4 0%, #00acc1 100%);
+
+  // Monster Type Gradients - Pendulum (Dark Theme)
+  --monster-pendulum-bg: linear-gradient(180deg, #e65100 0%, #e65100 30%, #00695c 70%, #00695c 100%);
+  --monster-pendulum-active: linear-gradient(180deg, #ff9800 0%, #ff9800 30%, #00897b 70%, #00897b 100%);
+
+  // Tab Active Background Colors (Dark Theme)
+  --tab-monster-active-bg: #4a4a1a;
+  --tab-spell-active-bg: #1a4a4a;
+  --tab-trap-active-bg: #4a1a2a;
+  --tab-border: #008cff;
+
+  // Selected Chips Inline Background Colors (Dark Theme)
+  --selected-chips-monster-bg: rgba(76, 76, 25, 0.9);
+  --selected-chips-spell-bg: rgba(25, 76, 76, 0.9);
+  --selected-chips-trap-bg: rgba(76, 25, 51, 0.9);
+
+  // Chip Colors (Dark Theme)
+  --chip-race-bg: #4a1a6a;
+  --chip-race-text: #ce93d8;
+
+  // Monster Type Border Colors (Dark Theme)
+  --monster-fusion-border: #ce93d8;
+  --monster-fusion-active-border: #e1bee7;
+  --monster-synchro-border: #9e9e9e;
+  --monster-synchro-active-border: #bdbdbd;
+  --monster-xyz-border: #757575;
+  --monster-xyz-active-border: #9e9e9e;
+  --monster-link-border: #42a5f5;
+  --monster-link-active-border: #64b5f6;
+  --monster-ritual-border: #4dd0e1;
+  --monster-ritual-active-border: #80deea;
+  --monster-pendulum-border: #ffb74d;
+  --monster-pendulum-active-border: #ffd54f;
+
+  // Monster Type Text Colors (Dark Theme)
+  --monster-fusion-text: #e1bee7;
+  --monster-synchro-text: var(--text-primary);
+  --monster-xyz-text: #ffffff;
+  --monster-link-text: #bbdefb;
+  --monster-ritual-text: #b2ebf2;
+  --monster-pendulum-text: #ffffff;
+
+  // Monster Type Badge Text Colors (Dark Theme)
+  --monster-fusion-badge-text: #f8bbd0;
+  --monster-synchro-badge-text: var(--text-primary);
+  --monster-xyz-badge-text: #ffffff;
+  --monster-link-badge-text: #90caf9;
+  --monster-ritual-badge-text: #80deea;
+  --monster-pendulum-badge-text: #ffffff;
+
+  // Tag Item States - Basic Tags (non-monster-type) (Dark Theme)
+  --tag-item-default-bg: transparent;
+  --tag-item-default-text: var(--text-primary);
+  --tag-item-default-border: var(--border-secondary);
+  --tag-item-hover-bg: rgba(102, 187, 106, 0.2);
+  --tag-item-hover-text: var(--text-primary);
+  --tag-item-hover-border: var(--color-success);
+  --tag-item-active-bg: var(--color-success-bg);
+  --tag-item-active-text: #ffffff;
+  --tag-item-active-border: var(--color-success);
+  --tag-item-active-hover-bg: var(--color-success);
+  --tag-item-active-hover-text: #ffffff;
+  --tag-item-active-hover-border: var(--color-success);
+
+  // Monster Type Chip Tag Dialog Effects (Dark Theme)
+  --monster-fusion-tag-hover-color: rgba(186, 104, 200, 0.5);
+  --monster-synchro-tag-hover-color: rgba(142, 142, 142, 0.5);
+  --monster-xyz-tag-hover-color: rgba(124, 124, 124, 0.4);
+  --monster-link-tag-hover-color: rgba(66, 165, 245, 0.4);
+  --monster-ritual-tag-hover-color: rgba(77, 208, 225, 0.4);
+  --monster-pendulum-tag-hover-color: rgba(255, 183, 77, 0.4);
+
+  // Deck Card Limit Regulation Badges (Dark Theme)
+  --deck-card-limit-forbidden-bg: rgba(220, 20, 20, 0.9);
+  --deck-card-limit-limited-bg: rgba(255, 140, 0, 0.9);
+  --deck-card-limit-semi-limited-bg: rgba(255, 180, 0, 0.9);
+
+  // Deck Card Buttons (Dark Theme)
+  --deck-card-btn-top-left-bg: rgba(255, 165, 0, 0.9);
+  --deck-card-btn-top-left-hover-bg: rgba(255, 140, 0, 1);
+  --deck-card-btn-top-left-hover-border: rgba(255, 140, 0, 1);
+  --deck-card-btn-top-left-link-bg: rgba(100, 180, 255, 0.9);
+  --deck-card-btn-top-left-link-hover-bg: rgba(80, 160, 255, 1);
+  --deck-card-btn-top-left-link-hover-border: rgba(80, 160, 255, 1);
+  --deck-card-btn-top-right-bg: rgba(180, 180, 180, 0.6);
+  --deck-card-btn-top-right-hover-bg: rgba(180, 180, 180, 0.85);
+  --deck-card-btn-top-right-hover-border: rgba(180, 180, 180, 1);
+  --deck-card-btn-top-right-me-bg: rgba(100, 150, 255, 0.8);
+  --deck-card-btn-top-right-me-hover-bg: rgba(100, 150, 255, 1);
+  --deck-card-btn-top-right-me-hover-border: rgba(100, 150, 255, 1);
+  --deck-card-btn-top-right-s-bg: rgba(150, 100, 255, 0.8);
+  --deck-card-btn-top-right-s-hover-bg: rgba(150, 100, 255, 1);
+  --deck-card-btn-top-right-s-hover-border: rgba(150, 100, 255, 1);
+  --deck-card-btn-bottom-left-bg: rgba(255, 100, 100, 0.8);
+  --deck-card-btn-bottom-left-hover-bg: rgba(255, 100, 100, 1);
+  --deck-card-btn-bottom-left-hover-border: rgba(255, 100, 100, 1);
+  --deck-card-btn-bottom-left-me-bg: rgba(100, 150, 255, 0.8);
+  --deck-card-btn-bottom-left-me-hover-bg: rgba(100, 150, 255, 1);
+  --deck-card-btn-bottom-left-me-hover-border: rgba(100, 150, 255, 1);
+  --deck-card-btn-bottom-left-error-bg: rgba(255, 0, 0, 1);
+  --deck-card-btn-bottom-left-error-border: rgba(255, 0, 0, 1);
+  --deck-card-btn-bottom-right-bg: rgba(100, 200, 100, 0.8);
+  --deck-card-btn-bottom-right-hover-bg: rgba(100, 200, 100, 1);
+  --deck-card-btn-bottom-right-hover-border: rgba(100, 200, 100, 1);
+  --deck-card-btn-bottom-right-side-bg: rgba(150, 100, 255, 0.8);
+  --deck-card-btn-bottom-right-side-hover-bg: rgba(150, 100, 255, 1);
+  --deck-card-btn-bottom-right-side-hover-border: rgba(150, 100, 255, 1);
+  --deck-card-btn-bottom-right-error-bg: rgba(255, 0, 0, 1);
+  --deck-card-btn-bottom-right-error-border: rgba(255, 0, 0, 1);
+  --deck-card-btn-me-bg: rgba(100, 150, 255, 0.8);
+  --deck-card-btn-me-hover-bg: rgba(100, 150, 255, 1);
+  --deck-card-btn-side-bg: rgba(150, 100, 255, 0.8);
+  --deck-card-btn-side-hover-bg: rgba(150, 100, 255, 1);
+
+  // Monster Type Chip States - Fusion (Dark Theme)
+  --monster-fusion-chip-default-bg: var(--monster-fusion-bg);
+  --monster-fusion-chip-default-text: #ffffff;
+  --monster-fusion-chip-default-border: var(--monster-fusion-border);
+  --monster-fusion-chip-hover-bg: linear-gradient(135deg, #6a1b9a 0%, #8b3a8b 100%);
+  --monster-fusion-chip-hover-text: #ffffff;
+  --monster-fusion-chip-hover-border: var(--monster-fusion-border);
+  --monster-fusion-chip-active-bg: var(--monster-fusion-active);
+  --monster-fusion-chip-active-text: #000000;
+  --monster-fusion-chip-active-border: var(--monster-fusion-active-border);
+  --monster-fusion-chip-active-hover-bg: linear-gradient(135deg, #d896e8 0%, #ba68c8 100%);
+  --monster-fusion-chip-active-hover-text: #000000;
+  --monster-fusion-chip-active-hover-border: #6a1b9a;
+  --monster-fusion-chip-not-bg: var(--monster-fusion-not);
+  --monster-fusion-chip-not-text: #000000;
+  --monster-fusion-chip-not-border: #d32f2f;
+  --monster-fusion-chip-not-hover-bg: linear-gradient(135deg, #6a1b9a 0%, #6a1b9a 40%, #e64545 70%, #d32f2f 100%);
+  --monster-fusion-chip-not-hover-text: #000000;
+  --monster-fusion-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Synchro (Dark Theme)
+  --monster-synchro-chip-default-bg: var(--monster-synchro-bg);
+  --monster-synchro-chip-default-text: #ffffff;
+  --monster-synchro-chip-default-border: var(--monster-synchro-border);
+  --monster-synchro-chip-hover-bg: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #555555 0%, #424242 100%);
+  --monster-synchro-chip-hover-text: #ffffff;
+  --monster-synchro-chip-hover-border: var(--monster-synchro-border);
+  --monster-synchro-chip-active-bg: linear-gradient(135deg, #616161 0%, #424242 100%);
+  --monster-synchro-chip-active-text: #000000;
+  --monster-synchro-chip-active-border: var(--monster-synchro-active-border);
+  --monster-synchro-chip-active-hover-bg: linear-gradient(135deg, #8a8a8a 0%, #6b6b6b 100%);
+  --monster-synchro-chip-active-hover-text: #000000;
+  --monster-synchro-chip-active-hover-border: #ffffff;
+  --monster-synchro-chip-not-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #d32f2f 70%, #b71c1c 100%);
+  --monster-synchro-chip-not-text: #000000;
+  --monster-synchro-chip-not-border: #d32f2f;
+  --monster-synchro-chip-not-hover-bg: linear-gradient(135deg, #555555 0%, #555555 40%, #e64545 70%, #d32f2f 100%);
+  --monster-synchro-chip-not-hover-text: #000000;
+  --monster-synchro-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - XYZ (Dark Theme)
+  --monster-xyz-chip-default-bg: var(--monster-xyz-bg);
+  --monster-xyz-chip-default-text: #ffffff;
+  --monster-xyz-chip-default-border: var(--monster-xyz-border);
+  --monster-xyz-chip-hover-bg: linear-gradient(135deg, #4a4a4a 0%, #3d3d3d 100%);
+  --monster-xyz-chip-hover-text: #ffffff;
+  --monster-xyz-chip-hover-border: var(--monster-xyz-border);
+  --monster-xyz-chip-active-bg: var(--monster-xyz-active);
+  --monster-xyz-chip-active-text: #000000;
+  --monster-xyz-chip-active-border: var(--monster-xyz-active-border);
+  --monster-xyz-chip-active-hover-bg: linear-gradient(135deg, #8b8b8b 0%, #7d7d7d 100%);
+  --monster-xyz-chip-active-hover-text: #000000;
+  --monster-xyz-chip-active-hover-border: #bdbdbd;
+  --monster-xyz-chip-not-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #d32f2f 70%, #b71c1c 100%);
+  --monster-xyz-chip-not-text: #000000;
+  --monster-xyz-chip-not-border: #b71c1c;
+  --monster-xyz-chip-not-hover-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #e64545 70%, #d32f2f 100%);
+  --monster-xyz-chip-not-hover-text: #000000;
+  --monster-xyz-chip-not-hover-border: #b71c1c;
+
+  // Monster Type Chip States - Link (Dark Theme)
+  --monster-link-chip-default-bg: var(--monster-link-bg);
+  --monster-link-chip-default-text: #ffffff;
+  --monster-link-chip-default-border: var(--monster-link-border);
+  --monster-link-chip-hover-bg: linear-gradient(135deg, #1c5ca5 0%, #2470be 100%);
+  --monster-link-chip-hover-text: #ffffff;
+  --monster-link-chip-hover-border: var(--monster-link-border);
+  --monster-link-chip-active-bg: var(--monster-link-active);
+  --monster-link-chip-active-text: #000000;
+  --monster-link-chip-active-border: var(--monster-link-active-border);
+  --monster-link-chip-active-hover-bg: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  --monster-link-chip-active-hover-text: #000000;
+  --monster-link-chip-active-hover-border: #0d47a1;
+  --monster-link-chip-not-bg: linear-gradient(135deg, #1565c0 0%, #1565c0 40%, #d32f2f 70%, #b71c1c 100%);
+  --monster-link-chip-not-text: #000000;
+  --monster-link-chip-not-border: #d32f2f;
+  --monster-link-chip-not-hover-bg: linear-gradient(135deg, #1565c0 0%, #1565c0 40%, #e64545 70%, #d32f2f 100%);
+  --monster-link-chip-not-hover-text: #000000;
+  --monster-link-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Ritual (Dark Theme)
+  --monster-ritual-chip-default-bg: var(--monster-ritual-bg);
+  --monster-ritual-chip-default-text: #ffffff;
+  --monster-ritual-chip-default-border: var(--monster-ritual-border);
+  --monster-ritual-chip-hover-bg: linear-gradient(135deg, #007380 0%, #009399 100%);
+  --monster-ritual-chip-hover-text: #ffffff;
+  --monster-ritual-chip-hover-border: var(--monster-ritual-border);
+  --monster-ritual-chip-active-bg: var(--monster-ritual-active);
+  --monster-ritual-chip-active-text: #000000;
+  --monster-ritual-chip-active-border: var(--monster-ritual-active-border);
+  --monster-ritual-chip-active-hover-bg: linear-gradient(135deg, #26d4e0 0%, #00bcd4 100%);
+  --monster-ritual-chip-active-hover-text: #000000;
+  --monster-ritual-chip-active-hover-border: #006064;
+  --monster-ritual-chip-not-bg: linear-gradient(135deg, #00695c 0%, #00695c 40%, #d32f2f 70%, #b71c1c 100%);
+  --monster-ritual-chip-not-text: #000000;
+  --monster-ritual-chip-not-border: #d32f2f;
+  --monster-ritual-chip-not-hover-bg: linear-gradient(135deg, #00838f 0%, #00838f 40%, #e64545 70%, #d32f2f 100%);
+  --monster-ritual-chip-not-hover-text: #000000;
+  --monster-ritual-chip-not-hover-border: #d32f2f;
+
+  // Monster Type Chip States - Pendulum (Dark Theme)
+  --monster-pendulum-chip-default-bg: var(--monster-pendulum-bg);
+  --monster-pendulum-chip-default-text: #ffffff;
+  --monster-pendulum-chip-default-border: var(--monster-pendulum-border);
+  --monster-pendulum-chip-hover-bg: linear-gradient(180deg, #cc6600 0%, #dd7700 30%, #006655 70%, #004433 100%);
+  --monster-pendulum-chip-hover-text: #ffffff;
+  --monster-pendulum-chip-hover-border: var(--monster-pendulum-border);
+  --monster-pendulum-chip-active-bg: var(--monster-pendulum-active);
+  --monster-pendulum-chip-active-text: #000000;
+  --monster-pendulum-chip-active-border: var(--monster-pendulum-active-border);
+  --monster-pendulum-chip-active-hover-bg: linear-gradient(180deg, #ffaa33 0%, #ffb74d 100%);
+  --monster-pendulum-chip-active-hover-text: #000000;
+  --monster-pendulum-chip-active-hover-border: #e65100;
+  --monster-pendulum-chip-not-bg: linear-gradient(180deg, #e65100 0%, #e65100 25%, #d32f2f 50%, #b71c1c 75%, #b71c1c 100%);
+  --monster-pendulum-chip-not-text: #000000;
+  --monster-pendulum-chip-not-border: #d32f2f;
+  --monster-pendulum-chip-not-hover-bg: linear-gradient(180deg, #e65100 0%, #e65100 30%, #e64545 50%, #d32f2f 75%, #d32f2f 100%);
+  --monster-pendulum-chip-not-hover-text: #000000;
+  --monster-pendulum-chip-not-hover-border: #d32f2f;
 }
