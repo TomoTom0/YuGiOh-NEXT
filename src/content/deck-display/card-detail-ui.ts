@@ -11,7 +11,7 @@
 import { useCardDetailStore } from '@/stores/card-detail'
 import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
-import { DeckCardRef } from '@/types/card'
+import { getTempCardDB } from '@/utils/temp-card-db'
 
 interface SelectedCard {
   cardId?: number;
@@ -46,7 +46,9 @@ let parsedDeckInfo: DeckInfo | null = null;
  */
 export async function initCardDetailUI(): Promise<void> {
   try {
-    // まずデッキ情報をページのDOMから全て抽出
+    // デッキ情報をページのDOMから全て抽出
+    // 注: parseDeckDetail()内でparseCardSection()が呼ばれ、
+    // すべてのカード情報がTempCardDBに保存される
     parsedDeckInfo = await parseDeckDetail(document);
     console.log('[CardDetailUI] Deck info parsed:', parsedDeckInfo);
   } catch (error) {
@@ -223,8 +225,9 @@ function setupCardClickListeners(): void {
 
 /**
  * パースされたデッキ情報からcidに基づいてカード情報を検索
+ * TempCardDBからカード詳細を取得（parseCardSection()で既に保存済み）
  */
-function findCardInParsedDeck(cid: string): DeckCardRef | null {
+function findCardInParsedDeck(cid: string): any | null {
   if (!parsedDeckInfo) {
     return null;
   }
@@ -236,7 +239,25 @@ function findCardInParsedDeck(cid: string): DeckCardRef | null {
     ...parsedDeckInfo.sideDeck
   ];
 
-  return allCards.find(card => card.cid === cid) || null;
+  const deckCardRef = allCards.find(card => card.cid === cid);
+  if (!deckCardRef) {
+    return null;
+  }
+
+  // TempCardDBからカード詳細情報を取得
+  // 注: parseCardSection()で既に保存済みなので、見つからないことはない
+  const tempCardDB = getTempCardDB();
+  const cardDetail = tempCardDB.get(deckCardRef.cid);
+
+  if (!cardDetail) {
+    console.error('[CardDetailUI] Card not found in TempCardDB:', deckCardRef.cid);
+    return null;
+  }
+
+  return {
+    ...cardDetail,
+    ciid: deckCardRef.ciid
+  };
 }
 
 /**
@@ -262,17 +283,13 @@ function attachCardClickHandlers(): void {
         if (cardIdMatch) {
           const cid = cardIdMatch[1];
 
-          // パースされたデッキ情報からカード情報を検索
+          // パースされたデッキ情報からカード情報を検索（TempCardDBから詳細情報を取得）
           const cardInfo = findCardInParsedDeck(cid);
           if (cardInfo) {
             // 検索したカード情報でselectCard()を呼び出し
-            await selectCard({
-              cardId: parseInt(cid, 10),
-              name: img.getAttribute('alt') || 'Unknown',
-              ...cardInfo
-            });
+            await selectCard(cardInfo);
           } else {
-            console.warn('[CardDetailUI] Card not found in parsed deck:', cid);
+            console.error('[CardDetailUI] Card not found in parsed deck:', cid);
           }
         }
       });
@@ -282,33 +299,56 @@ function attachCardClickHandlers(): void {
 
 /**
  * カードを選択
- * cardIdをcardDetailStoreに設定するのみ
- * 詳細情報取得はCardDetailコンポーネント側で行われる
+ * TempCardDBから取得したカード情報をcardDetailStoreに設定
  */
-function selectCard(card: SelectedCard): void {
+async function selectCard(cardInfo: any): Promise<void> {
   const cardDetailStore = useCardDetailStore();
 
-  // cardIdのみをcardDetailStoreに設定
-  if (card.cardId) {
-    // cardDetailStoreに設定するのはcardId情報だけ
-    cardDetailStore.setSelectedCard({
-      cardId: card.cardId,
-      name: card.name
-    } as any);
+  if (!cardInfo || !cardInfo.cardId) {
+    return;
+  }
+
+  try {
+    // cardIdを文字列に変換（cardDetailStore.setSelectedCardの要件）
+    const cardIdStr = String(cardInfo.cardId);
+
+    // 詳細情報を取得
+    const { getCardDetailWithCache } = await import('../../api/card-search');
+    const result = await getCardDetailWithCache(cardIdStr);
+    const fullCard = result?.detail?.card || cardInfo;
+
+    // デッキ情報とマージしたカード情報を設定
+    const cardData = {
+      ...fullCard,
+      cardId: cardIdStr,
+      imgs: fullCard.imgs ? [...fullCard.imgs] : (cardInfo.imgs ? [...cardInfo.imgs] : []),
+      ciid: cardInfo.ciid || fullCard.ciid || '0'
+    };
+
+    cardDetailStore.setSelectedCard(cardData);
     cardDetailStore.setCardTab('info');
     currentTab = 'info';
 
-    // Tab ボタンのアクティブ状態をリセット
-    const tabButtons = document.querySelectorAll('#ygo-next-card-detail-container .ygo-next.tab-btn');
-    tabButtons.forEach(button => {
-      button.classList.remove('ygo-next-active');
-      if (button.getAttribute('data-tab') === 'info') {
-        button.classList.add('ygo-next-active');
-      }
+    console.log('[DeckDisplayUI] Card selected:', cardIdStr, cardInfo.name);
+  } catch (error) {
+    console.error('[DeckDisplayUI] Failed to select card:', error);
+    // フォールバック：取得できたデータだけで設定
+    cardDetailStore.setSelectedCard({
+      ...cardInfo,
+      cardId: String(cardInfo.cardId)
     });
-
-    console.log('[DeckDisplayUI] Card selected:', card.cardId, card.name);
+    cardDetailStore.setCardTab('info');
+    currentTab = 'info';
   }
+
+  // Tab ボタンのアクティブ状態をリセット
+  const tabButtons = document.querySelectorAll('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  tabButtons.forEach(button => {
+    button.classList.remove('ygo-next-active');
+    if (button.getAttribute('data-tab') === 'info') {
+      button.classList.add('ygo-next-active');
+    }
+  });
 }
 
 /**

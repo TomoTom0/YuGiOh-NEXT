@@ -197,7 +197,7 @@ export default {
     const showImageDialog = ref(false)
     const showRuby = ref(false) // Default to hidden
 
-    // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
+    // cardDetailStoreから selectedCard を取得
     const card = computed(() => cardDetailStore.selectedCard)
 
     // ルビ表示の切り替え
@@ -226,10 +226,9 @@ export default {
     }
 
     const selectImage = (ciid) => {
-      // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
+      // selectedCardのciidを直接更新
       if (cardDetailStore.selectedCard) {
         cardDetailStore.selectedCard.ciid = String(ciid)
-      // debug logging removed
       }
       showImageDialog.value = false
     }

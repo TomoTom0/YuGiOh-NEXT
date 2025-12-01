@@ -144,6 +144,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
+import { useCardDetailStore } from '../../stores/card-detail'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
@@ -169,6 +170,7 @@ export default {
   setup() {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const cardDetailStore = useCardDetailStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)

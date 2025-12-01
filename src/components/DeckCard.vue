@@ -316,15 +316,12 @@ export default {
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
 
-        // デッキ表示画面とデッキ編集画面で異なるストアに設定
-        if (this.sectionType === 'info') {
-          // デッキ表示画面: CardDetailストアに設定
-          this.cardDetailStore.setSelectedCard(cardData)
-        } else {
-          // デッキ編集画面: DeckEditストアに設定してタブを切り替え
-          this.deckStore.selectedCard = cardData
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
           this.deckStore.activeTab = 'card'
-          this.deckStore.cardTab = 'info'
         }
       } catch (e) {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
@@ -334,15 +331,12 @@ export default {
           ciid: this.card.ciid
         }
 
-        // デッキ表示画面とデッキ編集画面で異なるストアに設定
-        if (this.sectionType === 'info') {
-          // デッキ表示画面: CardDetailストアに設定
-          this.cardDetailStore.setSelectedCard(cardData)
-        } else {
-          // デッキ編集画面: DeckEditストアに設定してタブを切り替え
-          this.deckStore.selectedCard = cardData
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
           this.deckStore.activeTab = 'card'
-          this.deckStore.cardTab = 'info'
         }
       }
     },
