@@ -1727,7 +1727,19 @@ export async function getCardDetail(
     const packs = parsePackInfo(doc);
 
     // 関連カードを取得済みHTMLからパース
-    const relatedCards = parseRelatedCards(doc);
+    let relatedCards = parseRelatedCards(doc);
+
+    // Related カードに限制規制情報を付与（キャッシュから取得）
+    relatedCards = relatedCards.map(card => {
+      const cachedInfo = unifiedDB.reconstructCardInfo(card.cardId);
+      if (cachedInfo?.limitRegulation && !card.limitRegulation) {
+        return {
+          ...card,
+          limitRegulation: cachedInfo.limitRegulation
+        };
+      }
+      return card;
+    });
 
     // 100件以上あれば、バックグラウンドで全件を2000件ずつ取得
     let fetchMorePromise: Promise<CardInfo[]> | undefined;
