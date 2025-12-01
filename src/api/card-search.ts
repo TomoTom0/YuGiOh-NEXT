@@ -1380,6 +1380,16 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
   }
 }
 
+function isSpellEffectType(value: string): value is SpellEffectType {
+  const validTypes: SpellEffectType[] = ['通常', '速攻', '永続', '装備', 'フィールド', '儀式'];
+  return validTypes.includes(value as SpellEffectType);
+}
+
+function isTrapEffectType(value: string): value is TrapEffectType {
+  const validTypes: TrapEffectType[] = ['通常', '永続', 'カウンター'];
+  return validTypes.includes(value as TrapEffectType);
+}
+
 function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
   const frameElems = doc.querySelectorAll('.CardText .frame .item_box');
   let cardType: 'spell' | 'trap' | null = null;
@@ -1406,16 +1416,18 @@ function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo 
   }
 
   if (cardType === 'spell') {
+    const finalEffectType = effectType && isSpellEffectType(effectType) ? effectType : undefined;
     return {
       ...base,
       cardType: 'spell',
-      effectType: effectType as any
+      effectType: finalEffectType
     } as SpellCard;
   } else {
+    const finalEffectType = effectType && isTrapEffectType(effectType) ? effectType : undefined;
     return {
       ...base,
       cardType: 'trap',
-      effectType: effectType as any
+      effectType: finalEffectType
     } as TrapCard;
   }
 }

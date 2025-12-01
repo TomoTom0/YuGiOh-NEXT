@@ -160,10 +160,7 @@ export function getNextEffectiveDate(currentDate?: Date): string {
   let nextMonth: number;
   let nextYear: number;
 
-  if (month < 1) {
-    nextMonth = 1;
-    nextYear = year;
-  } else if (month < 4) {
+  if (month < 4) {
     nextMonth = 4;
     nextYear = year;
   } else if (month < 7) {
