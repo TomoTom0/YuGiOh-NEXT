@@ -621,6 +621,92 @@ export async function searchCardsByName(
 }
 
 /**
+ * 「auto」検索モード: キーワードの長さに応じて最適な検索方式を自動選択
+ *
+ * 検索ロジック:
+ * - 1文字: カード名検索のみ
+ * - 2文字以上: カード名・テキスト・ペンデュラムテキストを同時検索して結果をマージ
+ *
+ * @param keyword 検索キーワード
+ * @param limit 結果の上限（デフォルト: 100）
+ * @param ctype カードタイプフィルタ（オプション）
+ * @returns マージされたカード情報の配列
+ *
+ * @example
+ * ```typescript
+ * const results = await searchCardsAuto('光');
+ * // 1文字のため、カード名検索のみを実行
+ *
+ * const results2 = await searchCardsAuto('融合');
+ * // 2文字のため、カード名・テキスト・ペンデュラムテキストを並列検索
+ * ```
+ */
+export async function searchCardsAuto(
+  keyword: string,
+  limit?: number,
+  ctype?: CardType
+): Promise<CardInfo[]> {
+  // 1文字の場合はカード名検索のみ
+  if (keyword.length === 1) {
+    console.log('[searchCardsAuto] Single character query, using name search only');
+    return searchCardsByName(keyword, limit, ctype);
+  }
+
+  // 2文字以上の場合は3つの検索を並列実行
+  console.log('[searchCardsAuto] Multi-character query, performing parallel search (name/text/pendulum)');
+
+  try {
+    // 3つの検索オプションを構築（リミットなし、後でマージ時に制限）
+    const searchLimit = limit || 100;
+
+    // 並列実行
+    const [nameResults, textResults, pendulumResults] = await Promise.all([
+      searchCardsByName(keyword, searchLimit, ctype),
+      searchCards({
+        keyword,
+        searchType: '2',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      }),
+      searchCards({
+        keyword,
+        searchType: '3',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      })
+    ]);
+
+    // 結果をマージしてcardIdで重複排除
+    const mergedMap = new Map<string, CardInfo>();
+
+    // 各検索結果を追加（順序: name > text > pendulum）
+    nameResults.forEach(card => {
+      mergedMap.set(card.cardId, card);
+    });
+
+    textResults.forEach(card => {
+      if (!mergedMap.has(card.cardId)) {
+        mergedMap.set(card.cardId, card);
+      }
+    });
+
+    pendulumResults.forEach(card => {
+      if (!mergedMap.has(card.cardId)) {
+        mergedMap.set(card.cardId, card);
+      }
+    });
+
+    const merged = Array.from(mergedMap.values());
+    console.log(`[searchCardsAuto] Merged ${nameResults.length} + ${textResults.length} + ${pendulumResults.length} = ${merged.length} unique results`);
+
+    return merged;
+  } catch (error) {
+    console.error('[searchCardsAuto] Failed to perform auto search:', error);
+    return [];
+  }
+}
+
+/**
  * カードIDで検索する
  *
  * @param cardId カードID
