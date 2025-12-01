@@ -27,6 +27,14 @@ export default defineComponent({
 <style lang="scss">
 @import '../../styles/themes.scss';
 
+* {
+  min-height: auto;
+}
+
+.subcategory h3 {
+  min-width: auto;
+}
+
 #main980 {
   gap: 0;
 }
@@ -47,11 +55,13 @@ export default defineComponent({
   transition: opacity 0.2s ease-in-out;
 }
 
-#main > div.image_set > a.ygo-next-hover-overlay-active .ygo-next.ygo-next-card-hover-overlay {
+#main > div.image_set > a.ygo-next-hover-overlay-active .ygo-next.ygo-next-card-hover-overlay,
+#side > div.image_set > a.ygo-next-hover-overlay-active .ygo-next.ygo-next-card-hover-overlay {
   opacity: 0.3;
 }
 
-#main > div.image_set > a.ygo-next-cursor-in-area .ygo-next.ygo-next-card-hover-overlay {
+#main > div.image_set > a.ygo-next-cursor-in-area .ygo-next.ygo-next-card-hover-overlay,
+#side > div.image_set > a.ygo-next-cursor-in-area .ygo-next.ygo-next-card-hover-overlay {
   opacity: 0.6;
   pointer-events: auto;
 }
@@ -60,7 +70,7 @@ export default defineComponent({
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #ff9500;
+  background: #ff6500;
   color: white;
   border: none;
   font-size: 20px;
@@ -75,23 +85,52 @@ export default defineComponent({
 }
 
 .ygo-next.ygo-next-card-info-btn:hover {
-  background: #ff8000;
+  background: #ff5500;
 }
 
 .ygo-next.ygo-next-card-info-btn:active {
   transform: scale(0.95);
 }
+
+.ygo-next.card-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.ygo-next.card-detail .ygo-next.card-detail-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+div.ygo-next.card-tab-content,
+div.ygo-next.tab-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+  min-height: auto !important;
+  height: calc(100vh - 140px);
+}
+
+div.ygo-next.card-tab-content {
+  width: 310px;
+}
+
+.ygo-next.card-info-top {
+  min-height: auto !important;
+}
 </style>
 
 <style scoped>
 #ygo-next-card-detail-container {
-  max-height: 600px;
+  max-height: calc(100vh - 100px);
   position: sticky;
-  top: 100px;
-  overflow-y: auto;
-}
-
-.ygo-next.card-detail-view {
+  top: 80px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }

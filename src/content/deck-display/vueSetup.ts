@@ -9,9 +9,6 @@ import DeckDisplayApp from './DeckDisplayApp.vue'
  * Vue アプリケーションをセットアップして、#main980 に Card Detail をマウント
  */
 export async function setupVueApp(): Promise<void> {
-  // テーマ属性を設定（CSS変数の解決のため）
-  document.documentElement.setAttribute('data-ygo-next-theme', 'light')
-
   const main980 = document.querySelector('#main980')
   if (!main980) {
     console.warn('[DeckDisplay] #main980 not found')
@@ -36,12 +33,22 @@ export async function setupVueApp(): Promise<void> {
   // コンポーネントをマウント
   app.mount(appContainer)
 
+  // Settings store を初期化してスタイルを適用
+  const { useSettingsStore } = await import('../../stores/settings')
+  const settingsStore = useSettingsStore(pinia)
+  await settingsStore.loadSettings()
+  document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme)
+
   // Card Detail UI を初期化（デッキ情報のパースとカード画像クリックハンドラのセットアップ）
   const { initCardDetailUI } = await import('./card-detail-ui')
   await initCardDetailUI()
 
   // カード画像のホバー UI をセットアップ
   await setupCardImageHoverUI()
+
+  // シャッフル・ソートボタンを初期化
+  const { initShuffle } = await import('../shuffle')
+  initShuffle()
 
   console.log('[DeckDisplay] Vue app mounted')
 }
@@ -69,8 +76,8 @@ async function setupCardImageHoverUI(): Promise<void> {
     return
   }
 
-  // #main > div.image_set > a のセレクタでカードリンクを取得
-  const cardLinks = document.querySelectorAll('#main > div.image_set > a')
+  // #main と #side の div.image_set > a のセレクタでカードリンクを取得
+  const cardLinks = document.querySelectorAll('#main > div.image_set > a, #side > div.image_set > a')
 
   cardLinks.forEach(link => {
     if (!link.hasAttribute('data-hover-handler-added')) {

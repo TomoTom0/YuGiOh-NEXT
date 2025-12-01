@@ -89,17 +89,6 @@ export function applyCardDetailStyles(): void {
       border-right-color: transparent;
     }
 
-    /* CardDetail.vue の card-tab-content */
-    .ygo-next.card-detail div[class*="card-tab-content"] {
-      flex: 1;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 15px;
-      box-sizing: border-box;
-      min-height: 0;
-      height: 600px;
-    }
-
     /* no-card-selected */
     .ygo-next.card-detail .no-card-selected {
       display: flex;

@@ -19,7 +19,7 @@
       >Products</button>
     </div>
 
-    <div class="card-tab-content">
+    <div class="ygo-next card-tab-content">
       <CardInfo
         v-show="cardDetailStore.cardTab === 'info'"
         v-if="detail && detail.card"
@@ -38,7 +38,7 @@
         :loading="loading"
       />
 
-      <div v-show="cardDetailStore.cardTab === 'related'" class="tab-content">
+      <div v-show="cardDetailStore.cardTab === 'related'" class="ygo-next tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!detail || !detail.relatedCards || detail.relatedCards.length === 0" class="no-data">
           関連カード情報がありません

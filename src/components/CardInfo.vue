@@ -8,7 +8,7 @@
     <transition name="ruby-expand">
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
-    <div class="card-info-top">
+    <div class="ygo-next card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
           v-if="card"
