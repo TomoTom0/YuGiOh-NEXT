@@ -1,0 +1,69 @@
+/**
+ * デッキ表示ページのレイアウト調整
+ * #deck_imageを横並び（左：デッキセクション、右：CardDetail）にする
+ */
+
+#deck_image {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  min-height: 100vh;
+}
+
+#deck_image > #main,
+#deck_image > #extra,
+#deck_image > #side {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/**
+ * デッキセクションのコンテナ
+ */
+#ygo-deck-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 0 0 auto;
+}
+
+#ygo-deck-sections-container #main,
+#ygo-deck-sections-container #extra,
+#ygo-deck-sections-container #side {
+  width: auto;
+}
+
+/**
+ * CardDetailエリア
+ */
+#ygo-card-detail-container {
+  flex: 1;
+  min-width: 300px;
+  max-width: 600px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 15px;
+  overflow-y: auto;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+/**
+ * カード画像サイズ変数
+ */
+:root {
+  --deck-display-card-size-small: 36px;
+  --deck-display-card-size-medium: 60px;
+  --deck-display-card-size-large: 90px;
+}
+
+/**
+ * デッキ表示ページのカード画像サイズ
+ */
+#deck_image img[class*="card_image"] {
+  width: var(--deck-display-card-width, 90px);
+  height: auto;
+  aspect-ratio: 65 / 95;
+}

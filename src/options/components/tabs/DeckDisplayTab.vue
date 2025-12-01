@@ -8,6 +8,12 @@
         概要とアクセス
       </button>
       <button
+        :class="['sub-tab', { active: activeSubTab === 'card-detail' }]"
+        @click="activeSubTab = 'card-detail'"
+      >
+        カード詳細
+      </button>
+      <button
         :class="['sub-tab', { active: activeSubTab === 'shuffle' }]"
         @click="activeSubTab = 'shuffle'"
       >
@@ -23,6 +29,7 @@
 
     <div class="section-content">
       <OverviewSection v-if="activeSubTab === 'overview'" type="deck-display" />
+      <DeckDisplayCardDetailSection v-if="activeSubTab === 'card-detail'" />
       <ShuffleSection v-if="activeSubTab === 'shuffle'" />
       <ImageCreationSection v-if="activeSubTab === 'image-creation'" />
     </div>
@@ -35,14 +42,15 @@
 import { ref } from 'vue';
 import VersionFooter from '../VersionFooter.vue';
 import OverviewSection from '../sections/OverviewSection.vue';
+import DeckDisplayCardDetailSection from '../sections/DeckDisplayCardDetailSection.vue';
 import ShuffleSection from '../sections/ShuffleSection.vue';
 import ImageCreationSection from '../sections/ImageCreationSection.vue';
 
-type SubTab = 'overview' | 'shuffle' | 'image-creation';
+type SubTab = 'overview' | 'card-detail' | 'shuffle' | 'image-creation';
 
 const activeSubTab = ref<SubTab>('overview');
 const updateDate = ref('2025-11-27');
-const version = ref('0.4.1');
+const version = ref('0.5.0');
 </script>
 
 <style scoped lang="scss">

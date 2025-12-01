@@ -310,7 +310,7 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
-  background: var(--bg-color, #fff);
+  background: var(--bg-primary);
   color: var(--text-color, var(--text-primary));
 }
 
@@ -446,11 +446,11 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item.selected {
-  background: var(--color-info-bg);
-  border-color: var(--button-bg);
-  color: var(--button-hover-bg);
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(var(--button-bg-rgb, 25, 118, 210), 0.2), inset 0 0 0 1px var(--button-bg);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2), inset 0 0 0 2px var(--color-success);
 }
 
 .btn-icon {

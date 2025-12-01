@@ -329,7 +329,7 @@ export default {
 .card-detail-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--tab-border, #008cff);
   width: 100%;
 
   button {
@@ -344,6 +344,12 @@ export default {
 
     &:last-child {
       border-right: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-success, #4caf50);
+      outline-offset: -2px;
+      z-index: 1;
     }
 
     &.active {

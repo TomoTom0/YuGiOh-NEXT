@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
@@ -31,6 +30,9 @@ export async function downloadDeckRecipeImage(
     const cgid = await sessionManager.getCgid();
     const gameType = detectCardGameType();
     const url = getDeckDisplayUrl(cgid, parseInt(options.dno), gameType);
+
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
     });

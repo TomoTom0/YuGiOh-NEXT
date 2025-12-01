@@ -59,6 +59,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { getTempCardDB } from '@/utils/temp-card-db';
 
 const settingsStore = useSettingsStore();
 const cacheMessage = ref('');
@@ -74,8 +76,6 @@ onMounted(() => {
 
 const handleClearCache = async () => {
   try {
-    const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
-    const { getTempCardDB } = await import('@/utils/temp-card-db');
 
     const unifiedDB = getUnifiedCacheDB();
     await unifiedDB.clearAll();

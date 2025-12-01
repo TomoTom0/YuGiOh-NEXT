@@ -92,12 +92,11 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
-import { getCardDetailWithCache } from '../api/card-search'
 import CardList from './CardList.vue'
-import CardDetail from './CardDetail.vue'
+const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
 import SearchInputBar from './SearchInputBar.vue'
 
@@ -222,6 +221,8 @@ export default {
     
     const showCardDetail = async (card) => {
       try {
+        // カードクリック時に動的import
+        const { getCardDetailWithCache } = await import('../api/card-search')
         const result = await getCardDetailWithCache(card.cardId)
         const fullCard = result?.detail?.card || card
         deckStore.selectedCard = fullCard
