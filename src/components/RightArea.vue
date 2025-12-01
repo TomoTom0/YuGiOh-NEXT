@@ -46,8 +46,6 @@
         <CardDetail
           v-if="deckStore.selectedCard"
           :card="deckStore.selectedCard"
-          :card-tab="deckStore.cardTab"
-          @tab-change="deckStore.cardTab = $event"
         />
         <div v-else class="no-card-selected">
           <p>カードを選択してください</p>
@@ -94,6 +92,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
@@ -110,6 +109,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
 
@@ -231,7 +231,7 @@ export default {
         deckStore.selectedCard = card
       }
       deckStore.activeTab = 'card'
-      deckStore.cardTab = 'info'
+      cardDetailStore.setCardTab('info')
     }
 
     const handleScrollToTop = () => {

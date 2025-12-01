@@ -1,44 +1,44 @@
 <template>
   <div class="card-detail-view">
     <div class="card-detail-tabs">
-      <button 
-        :class="{ active: cardTab === 'info' }"
-        @click="$emit('tab-change', 'info')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'info' }"
+        @click="cardDetailStore.setCardTab('info')"
       >Info</button>
-      <button 
-        :class="{ active: cardTab === 'qa' }"
-        @click="$emit('tab-change', 'qa')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'qa' }"
+        @click="cardDetailStore.setCardTab('qa')"
       >Q&A</button>
-      <button 
-        :class="{ active: cardTab === 'related' }"
-        @click="$emit('tab-change', 'related')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'related' }"
+        @click="cardDetailStore.setCardTab('related')"
       >Related</button>
-      <button 
-        :class="{ active: cardTab === 'products' }"
-        @click="$emit('tab-change', 'products')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'products' }"
+        @click="cardDetailStore.setCardTab('products')"
       >Products</button>
     </div>
-    
+
     <div class="card-tab-content">
       <CardInfo
-        v-show="cardTab === 'info'"
+        v-show="cardDetailStore.cardTab === 'info'"
         v-if="detail && detail.card"
         :supplement-info="faqListData?.supplementInfo"
         :supplement-date="faqListData?.supplementDate"
         :pendulum-supplement-info="faqListData?.pendulumSupplementInfo"
         :pendulum-supplement-date="faqListData?.pendulumSupplementDate"
       />
-      <div v-show="cardTab === 'info' && (!detail || !detail.card)">
+      <div v-show="cardDetailStore.cardTab === 'info' && (!detail || !detail.card)">
         <p class="no-card-selected">カードを選択してください</p>
       </div>
-      
+
       <CardQA
-        v-show="cardTab === 'qa'"
+        v-show="cardDetailStore.cardTab === 'qa'"
         :faqListData="faqListData"
         :loading="loading"
       />
-      
-      <div v-show="cardTab === 'related'" class="tab-content">
+
+      <div v-show="cardDetailStore.cardTab === 'related'" class="tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!detail || !detail.relatedCards || detail.relatedCards.length === 0" class="no-data">
           関連カード情報がありません
@@ -59,7 +59,7 @@
       </div>
       
       <CardProducts
-        v-show="cardTab === 'products'"
+        v-show="cardDetailStore.cardTab === 'products'"
         :detail="detail"
         :loading="loading"
       />
@@ -75,7 +75,7 @@ import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
 import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
-import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 
 export default {
@@ -90,15 +90,10 @@ export default {
     card: {
       type: Object,
       default: null
-    },
-    cardTab: {
-      type: String,
-      default: 'info'
     }
   },
-  emits: ['tab-change'],
   setup(props) {
-    const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
@@ -183,10 +178,10 @@ export default {
           // selectedCardを更新
           // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
           // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
-          deckStore.selectedCard = {
+          cardDetailStore.setSelectedCard({
             ...cacheResult.detail.card,
             ciid: props.card.ciid || cacheResult.detail.card.ciid
-          }
+          })
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
           const faqResult = await getCardFAQList(props.card.cardId)
@@ -265,11 +260,11 @@ export default {
             
             // cardが更新された場合はselectedCardも更新（ただしciidは保持）
             if (changedKeys.includes('card')) {
-              const currentCiid = deckStore.selectedCard?.ciid
-              deckStore.selectedCard = {
+              const currentCiid = cardDetailStore.selectedCard?.ciid
+              cardDetailStore.setSelectedCard({
                 ...freshDetail.card,
                 ciid: currentCiid || freshDetail.card.ciid
-              }
+              })
             }
           } else {
             console.log('[CardDetail] Revalidation found no differences')
@@ -289,6 +284,7 @@ export default {
     }, { immediate: true })
 
     return {
+      cardDetailStore,
       detail,
       loading,
       faqListData,
