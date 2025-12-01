@@ -122,6 +122,21 @@ async function setupCardImageHoverUI(): Promise<void> {
         htmlLink.classList.remove('ygo-next-hover-overlay-active', 'ygo-next-cursor-in-area')
       })
 
+      // リンク要素全体のクリックハンドラ（左上1/4でのデフォルト動作を防ぐ）
+      link.addEventListener('click', (e) => {
+        const imgRect = img.getBoundingClientRect()
+        const x = (e as MouseEvent).clientX - imgRect.left
+        const y = (e as MouseEvent).clientY - imgRect.top
+
+        // 左上1/4の領域かチェック（左半分かつ上半分）
+        const isLeftTop = x < imgRect.width / 2 && y < imgRect.height / 2
+
+        if (isLeftTop) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }, true)
+
       // Info ボタンのクリックハンドラ
       const infoBtn = overlay.querySelector('.ygo-next-card-info-btn') as HTMLButtonElement
       infoBtn.addEventListener('click', async (e) => {
@@ -141,7 +156,6 @@ async function setupCardImageHoverUI(): Promise<void> {
 
         if (isLeftTop) {
           console.log('[DeckDisplay] Click is in left-top area, fetching card detail')
-          e.preventDefault()
 
           // リンクの href からカード ID を抽出（cid パラメータから）
           const href = link.getAttribute('href') || ''
