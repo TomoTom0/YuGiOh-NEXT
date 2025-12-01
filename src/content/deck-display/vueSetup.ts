@@ -122,28 +122,8 @@ async function setupCardImageHoverUI(): Promise<void> {
         htmlLink.classList.remove('ygo-next-hover-overlay-active', 'ygo-next-cursor-in-area')
       })
 
-      // リンク要素全体のクリックハンドラ（左上1/4でのデフォルト動作を防ぐ）
-      link.addEventListener('click', (e) => {
-        const imgRect = img.getBoundingClientRect()
-        const x = (e as MouseEvent).clientX - imgRect.left
-        const y = (e as MouseEvent).clientY - imgRect.top
-
-        // 左上1/4の領域かチェック（左半分かつ上半分）
-        const isLeftTop = x < imgRect.width / 2 && y < imgRect.height / 2
-
-        if (isLeftTop) {
-          e.preventDefault()
-        }
-      }, true)
-
-      // Info ボタンのクリックハンドラ
-      const infoBtn = overlay.querySelector('.ygo-next-card-info-btn') as HTMLButtonElement
-      infoBtn.addEventListener('click', async (e) => {
-        console.log('[DeckDisplay] Info button clicked')
-        e.preventDefault()
-        e.stopPropagation()
-
-        // 画像の位置を基準に判定
+      // リンク要素全体のクリックハンドラ（左上1/4での処理）
+      link.addEventListener('click', async (e) => {
         const imgRect = img.getBoundingClientRect()
         const x = (e as MouseEvent).clientX - imgRect.left
         const y = (e as MouseEvent).clientY - imgRect.top
@@ -154,7 +134,9 @@ async function setupCardImageHoverUI(): Promise<void> {
         console.log('[DeckDisplay] Click position check:', { x, y, imgWidth: imgRect.width, imgHeight: imgRect.height, isLeftTop })
 
         if (isLeftTop) {
-          console.log('[DeckDisplay] Click is in left-top area, fetching card detail')
+          console.log('[DeckDisplay] Click is in left-top area')
+          e.preventDefault()
+          e.stopPropagation()
 
           // リンクの href からカード ID を抽出（cid パラメータから）
           const href = link.getAttribute('href') || ''
@@ -183,8 +165,6 @@ async function setupCardImageHoverUI(): Promise<void> {
           } else {
             console.warn('[DeckDisplay] No card ID found in href')
           }
-        } else {
-          console.log('[DeckDisplay] Click is NOT in left-top area, ignoring')
         }
       }, true)
     }
