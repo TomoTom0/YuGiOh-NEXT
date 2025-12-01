@@ -277,7 +277,28 @@ function findCardInParsedDeck(cid: string): any | null {
  */
 function attachCardClickHandlers(): void {
   // デッキセクション内のカード画像を取得
-  const cardImages = document.querySelectorAll('#deck_image img[src*="/card/"]');
+  const deckImageContainer = document.querySelector('#deck_image');
+  if (!deckImageContainer) {
+    console.warn('[CardDetailUI] #deck_image element not found');
+    return;
+  }
+
+  // #deck_image内の全ての img を取得して確認
+  const allImagesInDeck = deckImageContainer.querySelectorAll('img');
+  console.log('[CardDetailUI] All images in #deck_image:', allImagesInDeck.length);
+  allImagesInDeck.forEach((img, index) => {
+    console.log(`[CardDetailUI] Image ${index}:`, { src: img.src, alt: img.alt });
+  });
+
+  // /card/ を含む画像を探す
+  let cardImages = Array.from(allImagesInDeck).filter(img => img.src.includes('/card/'));
+  console.log('[CardDetailUI] Card images with /card/ in src:', cardImages.length);
+
+  // 見つからない場合は全ての img を使用
+  if (cardImages.length === 0) {
+    console.warn('[CardDetailUI] No images with /card/ found, using all images in #deck_image');
+    cardImages = Array.from(allImagesInDeck);
+  }
 
   cardImages.forEach(imgElement => {
     const img = imgElement as HTMLImageElement;
@@ -317,17 +338,32 @@ async function selectCard(cardInfo: any): Promise<void> {
   const cardDetailStore = useCardDetailStore();
 
   if (!cardInfo || !cardInfo.cardId) {
+    console.warn('[CardDetailUI] selectCard: no cardInfo or cardId');
     return;
   }
 
   try {
+    console.log('[CardDetailUI] selectCard called with:', { cardId: cardInfo.cardId, name: cardInfo.name });
+
     // cardIdを文字列に変換（cardDetailStore.setSelectedCardの要件）
     const cardIdStr = String(cardInfo.cardId);
 
     // 詳細情報を取得
     const { getCardDetailWithCache } = await import('../../api/card-search');
+    console.log('[CardDetailUI] Calling getCardDetailWithCache for:', cardIdStr);
     const result = await getCardDetailWithCache(cardIdStr);
+    console.log('[CardDetailUI] getCardDetailWithCache result:', {
+      hasDetail: !!result?.detail,
+      hasCard: !!result?.detail?.card,
+      detail: result?.detail
+    });
+
     const fullCard = result?.detail?.card || cardInfo;
+    console.log('[CardDetailUI] Using card data:', {
+      source: result?.detail?.card ? 'API' : 'TempCardDB',
+      cardId: fullCard.cardId,
+      name: fullCard.name
+    });
 
     // デッキ情報とマージしたカード情報を設定
     const cardData = {
@@ -337,14 +373,16 @@ async function selectCard(cardInfo: any): Promise<void> {
       ciid: cardInfo.ciid || fullCard.ciid || '0'
     };
 
+    console.log('[CardDetailUI] Setting selected card:', { cardId: cardIdStr, ciid: cardData.ciid });
     cardDetailStore.setSelectedCard(cardData);
     cardDetailStore.setCardTab('info');
     currentTab = 'info';
 
-    console.log('[DeckDisplayUI] Card selected:', cardIdStr, cardInfo.name);
+    console.log('[CardDetailUI] Card selected successfully:', cardIdStr);
   } catch (error) {
-    console.error('[DeckDisplayUI] Failed to select card:', error);
+    console.error('[CardDetailUI] Failed to select card:', error);
     // フォールバック：取得できたデータだけで設定
+    console.log('[CardDetailUI] Using fallback - setting card from cardInfo');
     cardDetailStore.setSelectedCard({
       ...cardInfo,
       cardId: String(cardInfo.cardId)

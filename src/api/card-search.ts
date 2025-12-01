@@ -1782,10 +1782,19 @@ export async function getCardDetail(
     // 基本情報をキャッシュから取得
     let baseCard: CardInfo | undefined = unifiedDB.reconstructCardInfo(cardId);
 
+    // キャッシュにない場合、TempCardDB から取得を試みる（デッキ表示ページ等で使用）
+    if (!baseCard) {
+      const tempCardDB = getTempCardDB();
+      baseCard = tempCardDB.get(cardId);
+      if (baseCard) {
+        console.log('[getCardDetail] Found base card info in TempCardDB for', cardId);
+      }
+    }
+
     // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
     // 同時にカード名検索を並行実行して完全な情報を取得
     let searchPromise: Promise<CardInfo[]> | null = null;
-    
+
     if (fromFAQ && !baseCard) {
       console.log('[getCardDetail] FAQ link access, parsing base info from detail page for', cardId);
       const parsed = parseCardDetailBasicInfo(doc, cardId);
