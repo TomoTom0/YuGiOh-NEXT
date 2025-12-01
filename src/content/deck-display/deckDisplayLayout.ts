@@ -40,6 +40,7 @@ export function applyDeckDisplayLayout(): void {
     #main980 article {
       flex: 1;
       margin: 0 !important;
+      min-width: min(980px, calc(90vw - 320px));
     }
 
     #ygo-next-deck-display-app {
