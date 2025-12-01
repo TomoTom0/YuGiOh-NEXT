@@ -100,9 +100,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-fusion-chip-active-text);
 
   &:hover {
-    background: var(--monster-fusion-chip-active-hover-bg);
-    border-color: var(--monster-fusion-chip-active-hover-border);
-    color: var(--monster-fusion-chip-active-hover-text);
+    filter: brightness(0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -112,9 +111,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-synchro-chip-active-text);
 
   &:hover {
-    background: var(--monster-synchro-chip-active-hover-bg);
-    border-color: var(--monster-synchro-chip-active-hover-border);
-    color: var(--monster-synchro-chip-active-hover-text);
+    filter: brightness(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -124,9 +122,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-xyz-chip-active-text);
 
   &:hover {
-    background: var(--monster-xyz-chip-active-hover-bg);
-    border-color: var(--monster-xyz-chip-active-hover-border);
-    color: var(--monster-xyz-chip-active-hover-text);
+    filter: brightness(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -136,9 +133,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-link-chip-active-text);
 
   &:hover {
-    background: var(--monster-link-chip-active-hover-bg);
-    border-color: var(--monster-link-chip-active-hover-border);
-    color: var(--monster-link-chip-active-hover-text);
+    filter: brightness(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -148,9 +144,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-ritual-chip-active-text);
 
   &:hover {
-    background: var(--monster-ritual-chip-active-hover-bg);
-    border-color: var(--monster-ritual-chip-active-hover-border);
-    color: var(--monster-ritual-chip-active-hover-text);
+    filter: brightness(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -160,9 +155,8 @@ const getCategoryLabel = (catId: string): string => {
   color: var(--monster-pendulum-chip-active-text);
 
   &:hover {
-    background: var(--monster-pendulum-chip-active-hover-bg);
-    border-color: var(--monster-pendulum-chip-active-hover-border);
-    color: var(--monster-pendulum-chip-active-hover-text);
+    filter: brightness(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -173,7 +167,7 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.category-chip:hover {
-  background: var(--color-warning-hover-bg);
-  border-color: var(--color-warning);
+  filter: brightness(0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
