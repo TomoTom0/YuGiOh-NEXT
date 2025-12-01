@@ -42,11 +42,11 @@
     "dotenv": "^17.2.3",
     "happy-dom": "^15.11.7",
     "html-webpack-plugin": "^5.6.5",
-    "playwright": "^1.56.1",
+    "playwright": "^1.57.0",
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.0",
+    "typescript": "^5.9.3",
     "vitest": "^2.1.9",
     "vue": "^3.5.24",
     "vue-loader": "^17.4.2",
@@ -60,7 +60,7 @@
     "jsdom": "^27.1.0",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
-    "sass": "^1.93.3",
+    "sass": "^1.94.2",
     "sass-loader": "^16.0.6",
     "ws": "^8.18.3"
   }
