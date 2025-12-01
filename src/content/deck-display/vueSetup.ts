@@ -33,10 +33,10 @@ export async function setupVueApp(): Promise<void> {
   // コンポーネントをマウント
   app.mount(appContainer)
 
-  // Settings store を初期化してスタイルを適用
+  // Settings store を初期化（共通設定のみ）
   const { useSettingsStore } = await import('../../stores/settings')
   const settingsStore = useSettingsStore(pinia)
-  await settingsStore.loadSettings()
+  await settingsStore.loadCommonSettings()
   document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme)
 
   // Card Detail UI を初期化（デッキ情報のパースとカード画像クリックハンドラのセットアップ）
@@ -49,8 +49,6 @@ export async function setupVueApp(): Promise<void> {
   // シャッフル・ソートボタンを初期化
   const { initShuffle } = await import('../shuffle')
   initShuffle()
-
-  console.log('[DeckDisplay] Vue app mounted')
 }
 
 
@@ -131,30 +129,23 @@ async function setupCardImageHoverUI(): Promise<void> {
         // 左上1/4の領域かチェック（左半分かつ上半分）
         const isLeftTop = x < imgRect.width / 2 && y < imgRect.height / 2
 
-        console.log('[DeckDisplay] Click position check:', { x, y, imgWidth: imgRect.width, imgHeight: imgRect.height, isLeftTop })
-
         if (isLeftTop) {
-          console.log('[DeckDisplay] Click is in left-top area')
           e.preventDefault()
           e.stopPropagation()
 
           // リンクの href からカード ID を抽出（cid パラメータから）
           const href = link.getAttribute('href') || ''
           const cardIdMatch = href.match(/[?&]cid=(\d+)/)
-          console.log('[DeckDisplay] Card ID extraction:', { href, cardIdMatch })
 
           if (cardIdMatch) {
             const cardId = parseInt(cardIdMatch[1], 10)
-            console.log('[DeckDisplay] Fetching card detail for ID:', cardId)
 
             try {
               // カード詳細を取得
               const result = await getCardDetailWithCache(cardId.toString())
-              console.log('[DeckDisplay] Card detail result:', result)
 
               // カード詳細を表示
               if (result?.detail?.card) {
-                console.log('[DeckDisplay] Setting selected card:', result.detail.card)
                 cardDetailStore.setSelectedCard(result.detail.card as any)
               } else {
                 console.warn('[DeckDisplay] No card data in result')

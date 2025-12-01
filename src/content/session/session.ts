@@ -20,11 +20,8 @@ class SessionManager {
    */
   private async ensureCgid(): Promise<string> {
     if (this.cgid) {
-      console.log('[SessionManager] Using cached cgid:', this.cgid.substring(0, 16) + '...');
       return this.cgid;
     }
-
-    console.log('[SessionManager] Fetching cgid from page...');
 
     // フッターの「マイデッキ」リンクからcgidを取得
     const mydeckLink = document.querySelector<HTMLAnchorElement>('a[href*="member_deck.action"][href*="cgid="]');
@@ -33,7 +30,6 @@ class SessionManager {
       const match = mydeckLink.href.match(/cgid=([a-f0-9]{32})/);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[SessionManager] ✅ cgid found from footer link');
         return this.cgid;
       }
     }
@@ -44,7 +40,6 @@ class SessionManager {
       const match = anyLink.href.match(/cgid=([a-f0-9]{32})/);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[SessionManager] ✅ cgid found from page link');
         return this.cgid;
       }
     }

@@ -116,21 +116,18 @@ export default {
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'default'
-      console.log('[RightArea] showSearchInputBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
     // 検索入力欄をRight Area上部に表示するかどうか
     const showSearchInputTop = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'right-top'
-      console.log('[RightArea] showSearchInputTop:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
     // 検索入力欄をRight Area下部に表示するかどうか
     const showSearchInputRightBottom = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
-      console.log('[RightArea] showSearchInputRightBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
@@ -141,7 +138,6 @@ export default {
 
     // グローバル検索モードを閉じる
     const closeGlobalSearch = () => {
-      console.log('[RightArea] closeGlobalSearch called', new Error().stack)
       deckStore.isGlobalSearchMode = false
     }
 

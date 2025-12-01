@@ -1363,8 +1363,8 @@ export default defineComponent({
         let searchOptions: SearchOptions | null = null
 
         if (searchMode.value === 'auto') {
-          console.log('[SearchInputBar] Using auto search mode')
-          results = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
+          const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
+          results = autoResult.cards
         } else {
           // 通常の検索
           searchOptions = {

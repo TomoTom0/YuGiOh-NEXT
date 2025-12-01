@@ -66,12 +66,10 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
   const stored = await getStoredMetadata();
 
   if (stored) {
-    console.log('Using deck metadata from chrome.storage (last updated:', stored.lastUpdated, ')');
     cachedMetadata = stored;
     return stored;
   }
 
-  console.log('Using initial deck metadata from JSON file');
   const initial = initialMetadata as any;
   
   // 初期JSONのcategoriesがRecord形式の場合は配列に変換

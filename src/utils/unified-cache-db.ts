@@ -123,7 +123,6 @@ export class UnifiedCacheDB {
     ]);
 
     this.initialized = true;
-    console.log('[UnifiedCacheDB] Initialized');
 
     // 自動クリーンアップチェック
     await this.checkAndRunCleanup();
@@ -140,10 +139,8 @@ export class UnifiedCacheDB {
 
       // 前回クリーンアップから24時間以上経過していれば実行
       if (!lastCleanupAt || (now - lastCleanupAt) > CLEANUP_INTERVAL) {
-        console.log('[UnifiedCacheDB] Running automatic cleanup...');
         await this.cleanup();
         await chrome.storage.local.set({ [STORAGE_KEYS.lastCleanupAt]: now });
-        console.log('[UnifiedCacheDB] Automatic cleanup completed');
       }
     } catch (error) {
       console.error('[UnifiedCacheDB] Auto cleanup failed:', error);
@@ -155,7 +152,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.cardTier];
     if (data && typeof data === 'object') {
       this.cardTierTable = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.cardTierTable.size} card tiers`);
     }
   }
 
@@ -164,7 +160,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.deckOpenHistory] as DeckOpenHistory | undefined;
     if (data) {
       this.deckOpenHistory = data;
-      console.log(`[UnifiedCacheDB] Loaded deck history with ${this.deckOpenHistory.recentDecks.length} decks`);
     }
   }
 
@@ -173,7 +168,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.cardTableA];
     if (data && typeof data === 'object') {
       this.cardTableA = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.cardTableA.size} cards (TableA)`);
     }
   }
 
@@ -182,7 +176,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.cardTableB];
     if (data && typeof data === 'object') {
       this.cardTableB = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.cardTableB.size} cards (TableB)`);
     }
   }
 
@@ -191,7 +184,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.cardTableB2];
     if (data && typeof data === 'object') {
       this.cardTableB2 = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.cardTableB2.size} cards (TableB2)`);
     }
   }
 
@@ -200,7 +192,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.productTableA];
     if (data && typeof data === 'object') {
       this.productTableA = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.productTableA.size} products (TableA)`);
     }
   }
 
@@ -209,7 +200,6 @@ export class UnifiedCacheDB {
     const data = result[STORAGE_KEYS.faqTableA];
     if (data && typeof data === 'object') {
       this.faqTableA = new Map(Object.entries(data));
-      console.log(`[UnifiedCacheDB] Loaded ${this.faqTableA.size} FAQs (TableA)`);
     }
   }
 
@@ -219,7 +209,6 @@ export class UnifiedCacheDB {
       const data = result[STORAGE_KEYS.moveHistory];
       if (Array.isArray(data)) {
         this.moveHistory = data;
-        console.log(`[UnifiedCacheDB] Loaded ${this.moveHistory.length} move history items`);
       }
     } catch (e) {
       // ignore
@@ -244,7 +233,6 @@ export class UnifiedCacheDB {
       this.saveFAQTableA()
       , this.saveMoveHistory()
     ]);
-    console.log('[UnifiedCacheDB] All data saved');
   }
 
   private async saveMoveHistory(): Promise<void> {
@@ -646,7 +634,6 @@ export class UnifiedCacheDB {
    */
   async cleanup(): Promise<void> {
     const now = Date.now();
-    console.log('[UnifiedCacheDB] Starting cleanup...');
 
     // 1. CardTierの再計算とTier判定
     const tier0Cards: string[] = [];
@@ -666,7 +653,6 @@ export class UnifiedCacheDB {
     for (const cardId of tier0Cards) {
       this.cardTierTable.delete(cardId);
     }
-    console.log(`[UnifiedCacheDB] Removed ${tier0Cards.length} tier 0 cards from tier table`);
 
     // 3. CardTableCからTier 2以下を削除
     const keysToRemove: string[] = [];
@@ -677,7 +663,6 @@ export class UnifiedCacheDB {
     if (keysToRemove.length > 0) {
       await chrome.storage.local.remove(keysToRemove);
     }
-    console.log(`[UnifiedCacheDB] Removed ${tier2OrLessCards.length} card details (TableC)`);
 
     // 4. FAQテーブルのクリーンアップ（アクセス時刻ベース）
     const expiredFaqIds: string[] = [];
@@ -697,11 +682,9 @@ export class UnifiedCacheDB {
     if (faqKeysToRemove.length > 0) {
       await chrome.storage.local.remove(faqKeysToRemove);
     }
-    console.log(`[UnifiedCacheDB] Removed ${expiredFaqIds.length} expired FAQs`);
 
     // 5. 保存
     await this.saveAll();
-    console.log('[UnifiedCacheDB] Cleanup completed');
   }
 
   /**
@@ -744,7 +727,6 @@ export class UnifiedCacheDB {
     );
 
     await chrome.storage.local.remove([...keysToRemove, ...prefixedKeysToRemove]);
-    console.log('[UnifiedCacheDB] All cache cleared');
   }
 
   // =========================================

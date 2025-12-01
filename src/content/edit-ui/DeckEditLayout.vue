@@ -418,8 +418,6 @@ export default {
           link.href = path
           document.head.appendChild(link)
         })
-
-        console.log('Favicon changed successfully')
       } catch (error) {
         console.error('Failed to change favicon:', error)
       }

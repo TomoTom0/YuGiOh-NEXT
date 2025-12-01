@@ -67,10 +67,22 @@ export function isDeckListPage(gameType?: CardGameType): boolean {
 /**
  * Vue.jsベースのデッキ編集UIページかどうかを判定
  * URL例: https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit
+ *
+ * パス部分を正確に判定する（query stringやfragmentなし）
+ * /yugiohdb/ または /rushdb/ の直後に #/ytomo/edit が来ることが条件
  */
 export function isVueEditPage(): boolean {
   const hashBase = window.location.hash.split('?')[0];
-  return hashBase === '#/ytomo/edit';
+
+  // ハッシュが #/ytomo/edit で始まることを確認
+  if (hashBase !== '#/ytomo/edit') {
+    return false;
+  }
+
+  // パス部分を確認（query stringやfragmentは含まない）
+  // /yugiohdb/ または /rushdb/ で終わることが条件
+  const pathname = window.location.pathname;
+  return /^\/(yugiohdb|rushdb)\/$/.test(pathname);
 }
 
 /**

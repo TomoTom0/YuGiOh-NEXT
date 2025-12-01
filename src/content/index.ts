@@ -45,10 +45,8 @@ function prefetchEditUI(): void {
   const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
 
   scheduleTask(() => {
-    console.log('[Prefetch] Starting background load of edit-ui module...');
     editUIModulePromise = import('./edit-ui');
     editUIModulePromise
-      .then(() => console.log('[Prefetch] Edit UI module loaded successfully'))
       .catch(err => {
         console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
         editUIModulePromise = null; // エラー時はキャッシュをクリア
@@ -66,7 +64,6 @@ async function loadEditUIIfNeeded(): Promise<void> {
   try {
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
     await (editUIModulePromise || import('./edit-ui'));
-    console.log('Edit UI loaded dynamically');
   } catch (error) {
     console.error('Failed to load edit UI:', error);
     editUILoaded = false;

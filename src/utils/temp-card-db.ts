@@ -181,7 +181,6 @@ export class TempCardDB {
     try {
       // UnifiedCacheDBのみに保存（TempCardDBのデータはset()時に既に同期済み）
       await saveUnifiedCacheDB();
-      console.log(`[TempCardDB] Saved to UnifiedCacheDB (${this.cards.size} cards in session)`);
     } catch (error) {
       console.error('[TempCardDB] Failed to save to storage:', error);
       throw error;
@@ -215,7 +214,6 @@ export class TempCardDB {
         });
       }
 
-      console.log(`[TempCardDB] Loaded ${this.cards.size} cards from UnifiedCacheDB`);
       return this.cards.size;
     } catch (error) {
       console.error('[TempCardDB] Failed to load from storage:', error);
@@ -232,7 +230,6 @@ export class TempCardDB {
       const unifiedDB = getUnifiedCacheDB();
       await unifiedDB.clearAll();
       this.cards.clear();
-      console.log('[TempCardDB] Cleared all cache');
     } catch (error) {
       console.error('[TempCardDB] Failed to clear storage:', error);
       throw error;

@@ -50,19 +50,6 @@ export async function initCardDetailUI(): Promise<void> {
     // 注: parseDeckDetail()内でparseCardSection()が呼ばれ、
     // すべてのカード情報がTempCardDBに保存される
     parsedDeckInfo = await parseDeckDetail(document);
-
-    // 詳細なログ出力
-    if (parsedDeckInfo) {
-      console.log('[CardDetailUI] Deck info parsed successfully');
-      console.log('[CardDetailUI] Main Deck cards:', parsedDeckInfo.mainDeck.length);
-      console.log('[CardDetailUI] Extra Deck cards:', parsedDeckInfo.extraDeck.length);
-      console.log('[CardDetailUI] Side Deck cards:', parsedDeckInfo.sideDeck.length);
-      const tempCardDB = getTempCardDB();
-      console.log('[CardDetailUI] Cards in TempCardDB:', tempCardDB.size);
-      console.log('[CardDetailUI] Full parsed deck info:', parsedDeckInfo);
-    } else {
-      console.warn('[CardDetailUI] parseDeckInfo is null after parsing');
-    }
   } catch (error) {
     console.error('[CardDetailUI] Failed to parse deck info:', error);
     parsedDeckInfo = null;
@@ -82,8 +69,6 @@ export async function initCardDetailUI(): Promise<void> {
 
   // デッキ内のカード要素にクリックイベントを追加
   setupCardClickListeners();
-
-  console.log('[DeckDisplayUI] Card Detail UI initialized');
 }
 
 /**
@@ -285,18 +270,12 @@ function attachCardClickHandlers(): void {
 
   // #deck_image内の全ての img を取得して確認
   const allImagesInDeck = deckImageContainer.querySelectorAll('img');
-  console.log('[CardDetailUI] All images in #deck_image:', allImagesInDeck.length);
-  allImagesInDeck.forEach((img, index) => {
-    console.log(`[CardDetailUI] Image ${index}:`, { src: img.src, alt: img.alt });
-  });
 
   // /card/ を含む画像を探す
   let cardImages = Array.from(allImagesInDeck).filter(img => img.src.includes('/card/'));
-  console.log('[CardDetailUI] Card images with /card/ in src:', cardImages.length);
 
   // 見つからない場合は全ての img を使用
   if (cardImages.length === 0) {
-    console.warn('[CardDetailUI] No images with /card/ found, using all images in #deck_image');
     cardImages = Array.from(allImagesInDeck);
   }
 
@@ -343,27 +322,14 @@ async function selectCard(cardInfo: any): Promise<void> {
   }
 
   try {
-    console.log('[CardDetailUI] selectCard called with:', { cardId: cardInfo.cardId, name: cardInfo.name });
-
     // cardIdを文字列に変換（cardDetailStore.setSelectedCardの要件）
     const cardIdStr = String(cardInfo.cardId);
 
     // 詳細情報を取得
     const { getCardDetailWithCache } = await import('../../api/card-search');
-    console.log('[CardDetailUI] Calling getCardDetailWithCache for:', cardIdStr);
     const result = await getCardDetailWithCache(cardIdStr);
-    console.log('[CardDetailUI] getCardDetailWithCache result:', {
-      hasDetail: !!result?.detail,
-      hasCard: !!result?.detail?.card,
-      detail: result?.detail
-    });
 
     const fullCard = result?.detail?.card || cardInfo;
-    console.log('[CardDetailUI] Using card data:', {
-      source: result?.detail?.card ? 'API' : 'TempCardDB',
-      cardId: fullCard.cardId,
-      name: fullCard.name
-    });
 
     // デッキ情報とマージしたカード情報を設定
     const cardData = {
@@ -373,16 +339,12 @@ async function selectCard(cardInfo: any): Promise<void> {
       ciid: cardInfo.ciid || fullCard.ciid || '0'
     };
 
-    console.log('[CardDetailUI] Setting selected card:', { cardId: cardIdStr, ciid: cardData.ciid });
     cardDetailStore.setSelectedCard(cardData);
     cardDetailStore.setCardTab('info');
     currentTab = 'info';
-
-    console.log('[CardDetailUI] Card selected successfully:', cardIdStr);
   } catch (error) {
     console.error('[CardDetailUI] Failed to select card:', error);
     // フォールバック：取得できたデータだけで設定
-    console.log('[CardDetailUI] Using fallback - setting card from cardInfo');
     cardDetailStore.setSelectedCard({
       ...cardInfo,
       cardId: String(cardInfo.cardId)

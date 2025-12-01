@@ -48,7 +48,6 @@ class MappingManager {
    */
   private async loadLanguageMapping(lang: string): Promise<void> {
     // Content script では動的更新は行わず、静的マッピングのみ使用
-    console.log(`[MappingManager] Using static mappings for ${lang}`);
   }
 
   /**

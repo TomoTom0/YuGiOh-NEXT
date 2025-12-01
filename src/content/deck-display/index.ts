@@ -28,7 +28,5 @@ export async function initDeckDisplay(): Promise<void> {
 
   // カード画像サイズを設定
   setCardImageSize(cardImageSize)
-
-  console.log('[DeckDisplay] Initialized')
 }
 

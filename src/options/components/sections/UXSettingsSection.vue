@@ -290,9 +290,7 @@ const currentShortcuts = computed(() => {
 });
 
 onMounted(() => {
-  console.log('[UXSettings] Settings loaded:', settingsStore.isLoaded);
-  console.log('[UXSettings] Keyboard shortcuts:', settingsStore.appSettings.keyboardShortcuts);
-  console.log('[UXSettings] globalSearch length:', settingsStore.appSettings.keyboardShortcuts.globalSearch?.length);
+  // Settings loaded and ready to use
 });
 
 const handleDeckLimitChange = () => {

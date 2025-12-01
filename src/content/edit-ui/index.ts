@@ -28,8 +28,6 @@ function isEditUrl(): boolean {
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
-  console.log('watchUrlChanges called');
-  
   // DOMが読み込まれてから実行
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -46,16 +44,13 @@ function watchUrlChanges(): void {
 
   // hashchangeイベントを監視（一度だけ登録）
   if (!isEventListenerRegistered) {
-    console.log('Registering hashchange listener');
     isEventListenerRegistered = true;
-    
+
     window.addEventListener('hashchange', () => {
-      console.log('hashchange event fired, hash =', window.location.hash);
       if (isEditUrl() && !isEditUILoaded) {
         loadEditUI();
       } else if (!isEditUrl() && isEditUILoaded) {
         // 編集URL以外に移動した場合はフラグをリセット
-        console.log('Resetting isEditUILoaded flag');
         isEditUILoaded = false;
       }
     });
@@ -66,18 +61,12 @@ function watchUrlChanges(): void {
  * 編集用UIを読み込んで表示
  */
 function loadEditUI(): void {
-  console.log('loadEditUI called, isEditUILoaded =', isEditUILoaded);
-  
   if (isEditUILoaded) {
-    console.log('Edit UI already loaded, skipping...');
     return;
   }
 
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
-  console.log('Set isEditUILoaded = true');
-
-  console.log('Loading edit UI...');
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
@@ -86,8 +75,6 @@ function loadEditUI(): void {
     isEditUILoaded = false;
     return;
   }
-
-  console.log('Found #bg, replacing content...');
 
   // ヘッダーの高さを計算してCSS変数に設定
   const headerElement = document.querySelector('header') || document.querySelector('#header');
@@ -137,12 +124,8 @@ function loadEditUI(): void {
   // div#bgの内容を完全に置き換え
   bgElement.innerHTML = '<div id="vue-edit-app"></div>';
 
-  console.log('Content replaced, initializing Vue app...');
-
   // Vue アプリケーションを起動
   initVueApp();
-
-  console.log('Edit UI loaded successfully');
 }
 
 /**
@@ -162,8 +145,6 @@ async function initVueApp(): Promise<void> {
 
     app.use(pinia);
     app.mount('#vue-edit-app');
-
-    console.log('Vue app mounted successfully');
   } catch (error) {
     console.error('Failed to initialize Vue app:', error);
   }

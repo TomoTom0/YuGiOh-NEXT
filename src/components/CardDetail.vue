@@ -147,13 +147,10 @@ export default {
 
     const fetchDetail = async () => {
       if (!props.card || !props.card.cardId) {
-        console.log('[CardDetail] fetchDetail: no card')
         detail.value = null
         faqListData.value = null
         return
       }
-
-      console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
 
       try {
@@ -162,16 +159,6 @@ export default {
 
         if (cacheResult.detail) {
           // キャッシュから取得した場合（または新規取得）
-          console.log('[CardDetail] Card detail fetched:', JSON.stringify({
-            cardId: cacheResult.detail.card.cardId,
-            name: cacheResult.detail.card.name,
-            ciid: cacheResult.detail.card.ciid,
-            imgsLength: cacheResult.detail.card.imgs?.length || 0,
-            imgs: cacheResult.detail.card.imgs?.map(img => ({ ciid: img.ciid })) || [],
-            fromCache: cacheResult.fromCache,
-            isFresh: cacheResult.isFresh
-          }))
-
           // 詳細データを設定（一度だけ）
           detail.value = cacheResult.detail
 
@@ -185,16 +172,13 @@ export default {
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
           const faqResult = await getCardFAQList(props.card.cardId)
-          console.log('[CardDetail] FAQ fetched:', faqResult)
           faqListData.value = faqResult
 
           // バックグラウンドで関連カードの追加取得（100件以上ある場合）
           if (cacheResult.detail.fetchMorePromise) {
-            console.log('[CardDetail] Fetching more related cards in background...')
             cacheResult.detail.fetchMorePromise.then(async (allCards) => {
               // 現在表示中のカードと同じか確認
               if (detail.value && detail.value.card.cardId === props.card.cardId) {
-                console.log(`[CardDetail] Background fetch completed: ${allCards.length} total cards`)
                 detail.value.relatedCards = allCards
 
                 // キャッシュにも保存
@@ -210,7 +194,6 @@ export default {
 
           // キャッシュが期限切れの場合は同期的に再取得
           if (cacheResult.fromCache && !cacheResult.isFresh) {
-            console.log('[CardDetail] Cache is stale, revalidating synchronously')
             // 同期的に再取得
             await revalidateInBackground(props.card.cardId)
           }
@@ -256,8 +239,6 @@ export default {
           }
 
           if (changedKeys.length > 0) {
-            console.log('[CardDetail] Revalidation found differences in keys:', changedKeys)
-            
             // cardが更新された場合はselectedCardも更新（ただしciidは保持）
             if (changedKeys.includes('card')) {
               const currentCiid = cardDetailStore.selectedCard?.ciid
@@ -266,8 +247,6 @@ export default {
                 ciid: currentCiid || freshDetail.card.ciid
               })
             }
-          } else {
-            console.log('[CardDetail] Revalidation found no differences')
           }
         }
       } catch (error) {
@@ -357,7 +336,7 @@ export default {
 }
 
 .card-tab-content {
-  padding: 15px;
+  padding: 5px;
   flex: 1;
   overflow-y: scroll;
   width: 100%;

@@ -641,25 +641,28 @@ export async function searchCardsByName(
  * // 2文字のため、カード名・テキスト・ペンデュラムテキストを並列検索
  * ```
  */
+export interface SearchAutoResult {
+  cards: CardInfo[];
+  fetchMorePromise?: Promise<CardInfo[]>;
+}
+
 export async function searchCardsAuto(
   keyword: string,
   limit?: number,
   ctype?: CardType
-): Promise<CardInfo[]> {
+): Promise<SearchAutoResult> {
   // 1文字の場合はカード名検索のみ
   if (keyword.length === 1) {
-    console.log('[searchCardsAuto] Single character query, using name search only');
-    return searchCardsByName(keyword, limit, ctype);
+    return {
+      cards: await searchCardsByName(keyword, limit, ctype)
+    };
   }
 
-  // 2文字以上の場合は3つの検索を並列実行
-  console.log('[searchCardsAuto] Multi-character query, performing parallel search (name/text/pendulum)');
-
+  // 2文字以上の場合：3つの検索を並列実行
   try {
-    // 3つの検索オプションを構築（リミットなし、後でマージ時に制限）
     const searchLimit = limit || 100;
 
-    // 並列実行
+    // 3つの検索を並列実行
     const [nameResults, textResults, pendulumResults] = await Promise.all([
       searchCardsByName(keyword, searchLimit, ctype),
       searchCards({
@@ -676,7 +679,29 @@ export async function searchCardsAuto(
       })
     ]);
 
-    // 結果をマージしてcardIdで重複排除
+    // name検索が100件以上ならname検索のみを返す（追加取得Promiseあり）
+    if (nameResults.length >= 100) {
+      const baseParams = {
+        ope: '1',
+        sess: '1',
+        keyword: keyword,
+        stype: '1',
+        othercon: '2',
+        link_m: '2'
+      };
+
+      const ctypeValue = cardTypeToCtype(ctype);
+      if (ctypeValue) {
+        baseParams['ctype'] = ctypeValue;
+      }
+
+      return {
+        cards: nameResults,
+        fetchMorePromise: fetchAdditionalPages(baseParams, parseSearchResults, 'searchCardsAuto')
+      };
+    }
+
+    // name検索が100件未満なら、すべての結果をマージ
     const mergedMap = new Map<string, CardInfo>();
 
     // 各検索結果を追加（順序: name > text > pendulum）
@@ -697,12 +722,15 @@ export async function searchCardsAuto(
     });
 
     const merged = Array.from(mergedMap.values());
-    console.log(`[searchCardsAuto] Merged ${nameResults.length} + ${textResults.length} + ${pendulumResults.length} = ${merged.length} unique results`);
 
-    return merged;
+    return {
+      cards: merged
+    };
   } catch (error) {
     console.error('[searchCardsAuto] Failed to perform auto search:', error);
-    return [];
+    return {
+      cards: []
+    };
   }
 }
 
@@ -1671,20 +1699,18 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string } 
 }
 
 /**
- * 関連カードを2000件ずつ全件取得する（バックグラウンド処理用）
+ * 2000件ずつページング取得する共通関数（バックグラウンド処理用）
  *
- * @param cardId カードID
- * @param lang 言語コード
- * @param sortOrder ソート順
+ * @param baseParams ベースとなるURLパラメータ
+ * @param parseFunc ページのHTMLをパースしてCardInfo[]を返す関数
+ * @param logPrefix ログに出力するプリフィックス
  * @returns 全件を含むカード配列のPromise
  */
-function fetchAdditionalRelatedCards(
-  cardId: string,
-  lang: string,
-  sortOrder: string
+export function fetchAdditionalPages(
+  baseParams: Record<string, string>,
+  parseFunc: (doc: Document) => CardInfo[],
+  logPrefix: string
 ): Promise<CardInfo[]> {
-  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
-
   return (async () => {
     const allCards: CardInfo[] = [];
     let page = 1;
@@ -1692,10 +1718,7 @@ function fetchAdditionalRelatedCards(
 
     while (hasMore) {
       const params = new URLSearchParams({
-        ope: '2',
-        cid: cardId,
-        request_locale: lang,
-        sort: sortValue.toString(),
+        ...baseParams,
         rp: '2000',
         page: page.toString()
       });
@@ -1707,16 +1730,14 @@ function fetchAdditionalRelatedCards(
         });
 
         if (!response.ok) {
-          console.error(`[fetchAdditionalRelatedCards] Failed to fetch page ${page}`);
+          console.error(`[${logPrefix}] Failed to fetch page ${page}`);
           break;
         }
 
         const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const cards = parseRelatedCards(doc);
-
-        console.log(`[fetchAdditionalRelatedCards] Page ${page}: ${cards.length} cards`);
+        const cards = parseFunc(doc);
 
         if (cards.length === 0) {
           hasMore = false;
@@ -1731,14 +1752,38 @@ function fetchAdditionalRelatedCards(
           }
         }
       } catch (error) {
-        console.error(`[fetchAdditionalRelatedCards] Error fetching page ${page}:`, error);
+        console.error(`[${logPrefix}] Error fetching page ${page}:`, error);
         break;
       }
     }
 
-    console.log(`[fetchAdditionalRelatedCards] Total cards fetched: ${allCards.length}`);
     return allCards;
   })();
+}
+
+/**
+ * 関連カードを2000件ずつ全件取得する（バックグラウンド処理用）
+ *
+ * @param cardId カードID
+ * @param lang 言語コード
+ * @param sortOrder ソート順
+ * @returns 全件を含むカード配列のPromise
+ */
+function fetchAdditionalRelatedCards(
+  cardId: string,
+  lang: string,
+  sortOrder: string
+): Promise<CardInfo[]> {
+  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+
+  const baseParams = {
+    ope: '2',
+    cid: cardId,
+    request_locale: lang,
+    sort: sortValue.toString()
+  };
+
+  return fetchAdditionalPages(baseParams, parseRelatedCards, 'fetchAdditionalRelatedCards');
 }
 
 export async function getCardDetail(

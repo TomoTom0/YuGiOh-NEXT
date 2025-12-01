@@ -30,7 +30,6 @@ export function addDeckImageButton(): HTMLElement | null {
 
   // 既にボタンが追加されていないか確認
   if (document.querySelector('#ygo-deck-image-btn')) {
-    console.log('[YGO Helper] Deck image button already exists');
     return null;
   }
 
@@ -51,7 +50,6 @@ export function addDeckImageButton(): HTMLElement | null {
   // クリックイベント
   button.addEventListener('click', async (e) => {
     e.preventDefault();
-    console.log('[YGO Helper] Deck image button clicked');
     try {
       await showImageDialog();
     } catch (error) {
@@ -62,8 +60,6 @@ export function addDeckImageButton(): HTMLElement | null {
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
 
-  console.log('[YGO Helper] Deck image button added');
-  
   // NEXT編集ボタンも追加
   addNextEditButton(bottomBtnSet);
   
@@ -76,7 +72,6 @@ export function addDeckImageButton(): HTMLElement | null {
 function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // 既にボタンが追加されていないか確認
   if (document.querySelector('#ygo-next-edit-btn')) {
-    console.log('[YGO Helper] Next edit button already exists');
     return null;
   }
 
@@ -109,7 +104,6 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // クリックイベント
   button.addEventListener('click', (e) => {
     e.preventDefault();
-    console.log('[YGO Helper] Next edit button clicked, dno:', dno, 'isOwnDeck:', isOwnDeckFlag);
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
@@ -128,7 +122,6 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
 
-  console.log('[YGO Helper] Next edit button added, isOwnDeck:', isOwnDeckFlag);
   return button;
 }
 
