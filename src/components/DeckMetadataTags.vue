@@ -101,6 +101,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-fusion-chip-active-hover-bg);
+    color: var(--monster-fusion-chip-active-hover-text);
+    border-color: var(--monster-fusion-chip-active-border);
   }
 }
 
@@ -111,6 +113,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-synchro-chip-active-hover-bg);
+    color: var(--monster-synchro-chip-active-hover-text);
+    border-color: var(--monster-synchro-chip-active-border);
   }
 }
 
@@ -121,6 +125,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-xyz-chip-active-hover-bg);
+    color: var(--monster-xyz-chip-active-hover-text);
+    border-color: var(--monster-xyz-chip-active-border);
   }
 }
 
@@ -131,6 +137,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-link-chip-active-hover-bg);
+    color: var(--monster-link-chip-active-hover-text);
+    border-color: var(--monster-link-chip-active-border);
   }
 }
 
@@ -141,6 +149,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-ritual-chip-active-hover-bg);
+    color: var(--monster-ritual-chip-active-hover-text);
+    border-color: var(--monster-ritual-chip-active-border);
   }
 }
 
@@ -151,6 +161,8 @@ const getCategoryLabel = (catId: string): string => {
 
   &:hover {
     background: var(--monster-pendulum-chip-active-hover-bg);
+    color: var(--monster-pendulum-chip-active-hover-text);
+    border-color: var(--monster-pendulum-chip-active-border);
   }
 }
 
