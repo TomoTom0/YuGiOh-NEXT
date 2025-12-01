@@ -87,6 +87,7 @@
 <script>
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
@@ -111,6 +112,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
@@ -134,6 +136,7 @@ export default {
     
     return {
       deckStore,
+      cardDetailStore,
       settingsStore,
       showErrorLeft,
       showErrorRight,
@@ -302,34 +305,46 @@ export default {
       }
     },
     async handleInfo() {
-      // infoセクションの場合は新しいタブで公式ページを開く
-      if (this.sectionType === 'info') {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
-        window.open(url, '_blank')
-        return
-      }
-
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
         const result = await getCardDetailWithCache(this.card.cardId)
         const fullCard = result?.detail?.card || this.card
 
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...fullCard,
           imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
+
+        // デッキ表示画面とデッキ編集画面で異なるストアに設定
+        if (this.sectionType === 'info') {
+          // デッキ表示画面: CardDetailストアに設定
+          this.cardDetailStore.setSelectedCard(cardData)
+        } else {
+          // デッキ編集画面: DeckEditストアに設定してタブを切り替え
+          this.deckStore.selectedCard = cardData
+          this.deckStore.activeTab = 'card'
+          this.deckStore.cardTab = 'info'
+        }
       } catch (e) {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...this.card,
           imgs: [...this.card.imgs],
           ciid: this.card.ciid
         }
-      }
 
-      this.deckStore.activeTab = 'card'
-      this.deckStore.cardTab = 'info'
+        // デッキ表示画面とデッキ編集画面で異なるストアに設定
+        if (this.sectionType === 'info') {
+          // デッキ表示画面: CardDetailストアに設定
+          this.cardDetailStore.setSelectedCard(cardData)
+        } else {
+          // デッキ編集画面: DeckEditストアに設定してタブを切り替え
+          this.deckStore.selectedCard = cardData
+          this.deckStore.activeTab = 'card'
+          this.deckStore.cardTab = 'info'
+        }
+      }
     },
     handleTopRight() {
       console.log('[DeckCard.handleTopRight]', {
