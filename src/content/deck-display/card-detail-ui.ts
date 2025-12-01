@@ -2,7 +2,6 @@
  * デッキ表示ページの Card Detail UI 管理
  * - タブ切り替え機能
  * - カード選択イベント処理
- * - Vue コンポーネント統合（future）
  */
 
 interface SelectedCard {
