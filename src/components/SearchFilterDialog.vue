@@ -1425,6 +1425,8 @@ function clearFilters() {
   gap: 4px;
   justify-content: center;
   user-select: text;
+  height: 28px;
+  line-height: 1;
 
   &:hover:not(:disabled) {
     background: var(--color-success-bg);
