@@ -28,6 +28,7 @@ import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
+import { forbiddenLimitedCache } from '@/utils/forbidden-limited-cache';
 import { detectCardGameType } from '@/utils/page-detector';
 import { getCardSearchEndpoint } from '@/utils/url-builder';
 
@@ -1729,13 +1730,13 @@ export async function getCardDetail(
     // 関連カードを取得済みHTMLからパース
     let relatedCards = parseRelatedCards(doc);
 
-    // Related カードに限制規制情報を付与（キャッシュから取得）
+    // Related カードに限制規制情報を付与（禁止制限キャッシュから取得）
     relatedCards = relatedCards.map(card => {
-      const cachedInfo = unifiedDB.reconstructCardInfo(card.cardId);
-      if (cachedInfo?.limitRegulation && !card.limitRegulation) {
+      const limitRegulation = forbiddenLimitedCache.getRegulation(card.cardId);
+      if (limitRegulation && !card.limitRegulation) {
         return {
           ...card,
-          limitRegulation: cachedInfo.limitRegulation
+          limitRegulation
         };
       }
       return card;
