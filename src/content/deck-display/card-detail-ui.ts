@@ -10,8 +10,24 @@ interface SelectedCard {
   [key: string]: any;
 }
 
+interface CardFAQList {
+  cardId: string;
+  cardName: string;
+  supplementInfo?: string;
+  supplementDate?: string;
+  pendulumSupplementInfo?: string;
+  pendulumSupplementDate?: string;
+  faqs: Array<{
+    faqId: string;
+    question: string;
+    answer?: string;
+    updatedAt?: string;
+  }>;
+}
+
 let selectedCard: SelectedCard | null = null;
 let currentTab: 'info' | 'qa' = 'info';
+let cachedFAQData: Map<number, CardFAQList> = new Map();
 
 /**
  * Card Detail タブ機能を初期化
@@ -20,11 +36,11 @@ export function initCardDetailUI(): void {
   // タブボタンのクリックイベント
   const tabButtons = document.querySelectorAll('#ygo-card-detail-container .tab-btn');
   tabButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
+    button.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       const tabName = target.getAttribute('data-tab') as 'info' | 'qa';
       if (tabName) {
-        switchTab(tabName);
+        await switchTab(tabName);
       }
     });
   });
@@ -38,7 +54,7 @@ export function initCardDetailUI(): void {
 /**
  * タブを切り替え
  */
-function switchTab(tabName: 'info' | 'qa'): void {
+async function switchTab(tabName: 'info' | 'qa'): Promise<void> {
   currentTab = tabName;
 
   // ボタンのアクティブ状態を更新
@@ -51,13 +67,86 @@ function switchTab(tabName: 'info' | 'qa'): void {
   });
 
   // タブコンテンツを更新
-  updateTabContent();
+  await updateTabContent();
+}
+
+/**
+ * FAQ データを取得
+ */
+async function fetchFAQData(cardId: number): Promise<CardFAQList | null> {
+  // キャッシュをチェック
+  if (cachedFAQData.has(cardId)) {
+    return cachedFAQData.get(cardId) || null;
+  }
+
+  try {
+    // 動的に card-faq.ts をインポート
+    const { getCardFAQList } = await import('../../api/card-faq');
+    const faqData = await getCardFAQList(cardId.toString());
+
+    if (faqData) {
+      cachedFAQData.set(cardId, faqData);
+    }
+
+    return faqData;
+  } catch (error) {
+    console.error('[CardDetailUI] Failed to fetch FAQ data:', error);
+    return null;
+  }
+}
+
+/**
+ * FAQ コンテンツを HTML に変換
+ */
+function renderFAQContent(faqData: CardFAQList): string {
+  let html = '<div class="card-qa-content">';
+
+  // 補足情報を表示（テキスト用）
+  if (faqData.supplementInfo) {
+    html += `
+      <div class="supplement-section">
+        <div class="supplement-title">テキスト補足情報</div>
+        <div class="supplement-text">${faqData.supplementInfo.replace(/\n/g, '<br>')}</div>
+        ${faqData.supplementDate ? `<div class="supplement-date">${faqData.supplementDate}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // ペンデュラム補足情報を表示
+  if (faqData.pendulumSupplementInfo) {
+    html += `
+      <div class="supplement-section">
+        <div class="supplement-title">ペンデュラム補足情報</div>
+        <div class="supplement-text">${faqData.pendulumSupplementInfo.replace(/\n/g, '<br>')}</div>
+        ${faqData.pendulumSupplementDate ? `<div class="supplement-date">${faqData.pendulumSupplementDate}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // FAQ 一覧を表示
+  if (faqData.faqs.length > 0) {
+    html += '<div class="faq-list-section"><div class="supplement-title">関連Q&A</div>';
+    faqData.faqs.forEach(faq => {
+      html += `
+        <div class="faq-item" data-faq-id="${faq.faqId}">
+          <div class="faq-question">${faq.question}</div>
+          ${faq.updatedAt ? `<div class="faq-updated">更新日: ${faq.updatedAt}</div>` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  } else if (!faqData.supplementInfo && !faqData.pendulumSupplementInfo) {
+    html += '<p style="text-align: center; color: #999;">Q&A情報がありません</p>';
+  }
+
+  html += '</div>';
+  return html;
 }
 
 /**
  * タブコンテンツを更新
  */
-function updateTabContent(): void {
+async function updateTabContent(): Promise<void> {
   const contentContainer = document.getElementById('card-info-content');
   if (!contentContainer) return;
 
@@ -78,8 +167,15 @@ function updateTabContent(): void {
       </div>
     `;
   } else if (currentTab === 'qa') {
-    // Q&A タブ: プレースホルダー
-    contentContainer.innerHTML = '<p>Q&A information will be loaded here</p>';
+    // Q&A タブ: FAQ データを取得して表示
+    contentContainer.innerHTML = '<p style="text-align: center; color: #999;">読み込み中...</p>';
+
+    const faqData = await fetchFAQData(selectedCard.cardId);
+    if (faqData) {
+      contentContainer.innerHTML = renderFAQContent(faqData);
+    } else {
+      contentContainer.innerHTML = '<p style="text-align: center; color: #999;">Q&A情報を読み込めません</p>';
+    }
   }
 }
 
@@ -118,7 +214,7 @@ function attachCardClickHandlers(): void {
       img.setAttribute('data-click-handler-added', 'true');
       img.style.cursor = 'pointer';
 
-      img.addEventListener('click', (e) => {
+      img.addEventListener('click', async (e) => {
         e.stopPropagation();
 
         // カード画像から cardId を抽出
@@ -129,7 +225,7 @@ function attachCardClickHandlers(): void {
           // 画像のalt属性からカード名を取得
           const cardName = img.getAttribute('alt') || 'Unknown';
 
-          selectCard({ cardId, name: cardName });
+          await selectCard({ cardId, name: cardName });
         }
       });
     }
@@ -139,7 +235,7 @@ function attachCardClickHandlers(): void {
 /**
  * カードを選択
  */
-function selectCard(card: SelectedCard): void {
+async function selectCard(card: SelectedCard): Promise<void> {
   selectedCard = card;
   currentTab = 'info';
 
@@ -153,7 +249,7 @@ function selectCard(card: SelectedCard): void {
   });
 
   // コンテンツを更新
-  updateTabContent();
+  await updateTabContent();
 
   console.log('[DeckDisplayUI] Card selected:', card);
 }

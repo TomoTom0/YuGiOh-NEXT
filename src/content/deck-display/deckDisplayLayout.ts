@@ -112,6 +112,70 @@ export function applyDeckDisplayLayout(): void {
       transform: scale(1.05);
       filter: brightness(1.1);
     }
+
+    /* Q&A タブのスタイル */
+    #ygo-card-detail-container .card-qa-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #ygo-card-detail-container .supplement-section {
+      padding: 10px;
+      background: #f9f9f9;
+      border-left: 3px solid #008cff;
+      border-radius: 2px;
+      font-size: 12px;
+    }
+
+    #ygo-card-detail-container .supplement-title {
+      font-weight: bold;
+      color: #008cff;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    #ygo-card-detail-container .supplement-text {
+      color: #333;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    #ygo-card-detail-container .supplement-date {
+      font-size: 10px;
+      color: #999;
+      margin-top: 6px;
+    }
+
+    #ygo-card-detail-container .faq-list-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #ygo-card-detail-container .faq-item {
+      padding: 8px;
+      background: #f5f5f5;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #ygo-card-detail-container .faq-item:hover {
+      background: #efefef;
+    }
+
+    #ygo-card-detail-container .faq-question {
+      font-size: 12px;
+      color: #333;
+      word-break: break-word;
+    }
+
+    #ygo-card-detail-container .faq-updated {
+      font-size: 10px;
+      color: #999;
+      margin-top: 4px;
+    }
   `;
   document.head.appendChild(style);
 }
