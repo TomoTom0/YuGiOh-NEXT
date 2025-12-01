@@ -48,7 +48,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 149, 0, 0.3);
+  background: rgba(255, 101, 0, 0.5);
   pointer-events: none;
   z-index: 10;
   opacity: 0;
