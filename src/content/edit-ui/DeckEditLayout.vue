@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container" :data-theme="settingsStore.effectiveTheme">
+  <div class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 

@@ -34,6 +34,11 @@ export interface CardBase {
   ciid: string;
   /** 複数画像情報 */
   imgs: Array<{ciid: string; imgHash: string}>;
+  /** 複数画像の有無を確認した日時（オプション）
+   * - undefined = 未確認（複数画像情報がない）
+   * - 日時 = その日付で複数画像の有無を確認済み
+   */
+  imagesCheckedAt?: number;
   /** 効果テキスト（オプション） */
   text?: string;
   /** 禁止制限（オプション） */

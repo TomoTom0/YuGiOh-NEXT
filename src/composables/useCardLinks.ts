@@ -1,4 +1,5 @@
 import { getCardDetailWithCache } from '@/api/card-search'
+import { useCardDetailStore } from '@/stores/card-detail'
 import { useDeckEditStore } from '@/stores/deck-edit'
 
 /**
@@ -15,6 +16,7 @@ export interface CardLinkPart {
  */
 export function useCardLinks() {
   const deckStore = useDeckEditStore()
+  const cardDetailStore = useCardDetailStore()
 
   /**
    * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
@@ -88,10 +90,10 @@ export function useCardLinks() {
         return
       }
 
-      // deckStoreにカードをセットしてCardタブのinfoを表示
-      deckStore.selectedCard = detail.card
+      // cardDetailStoreにカードをセットしてCardタブのinfoを表示
+      cardDetailStore.setSelectedCard(detail.card)
       deckStore.activeTab = 'card'
-      deckStore.cardTab = 'info'
+      cardDetailStore.setCardTab('info')
     } catch (error) {
       console.error('カードリンククリック処理に失敗しました:', error)
     }

@@ -698,7 +698,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // Search and UI state
   const searchQuery = ref('');
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
-  const selectedCard = ref<CardInfo | null>(null);
 
   // no debug watcher
 
@@ -1757,7 +1756,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     lastUsedDno,
     searchQuery,
     searchResults,
-    selectedCard,
     activeTab,
     showDetail,
     viewMode,

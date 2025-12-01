@@ -44,8 +44,8 @@
 
       <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
         <CardDetail
-          v-if="deckStore.selectedCard"
-          :card="deckStore.selectedCard"
+          v-if="cardDetailStore.selectedCard"
+          :card="cardDetailStore.selectedCard"
         />
         <div v-else class="no-card-selected">
           <p>カードを選択してください</p>
@@ -170,7 +170,7 @@ export default {
     })
 
     // 選択カード変更時にcard-detail-content内のスクロールをリセット
-    watch(() => deckStore.selectedCard, () => {
+    watch(() => cardDetailStore.selectedCard, () => {
       nextTick(() => {
         const cardDetailContent = document.querySelector('.card-detail-content')
         if (cardDetailContent) {
@@ -225,10 +225,10 @@ export default {
         const { getCardDetailWithCache } = await import('../api/card-search')
         const result = await getCardDetailWithCache(card.cardId)
         const fullCard = result?.detail?.card || card
-        deckStore.selectedCard = fullCard
+        cardDetailStore.setSelectedCard(fullCard)
       } catch (e) {
         console.error('[RightArea] Failed to fetch full card detail:', e)
-        deckStore.selectedCard = card
+        cardDetailStore.setSelectedCard(card)
       }
       deckStore.activeTab = 'card'
       cardDetailStore.setCardTab('info')

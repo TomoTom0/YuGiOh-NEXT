@@ -4,7 +4,22 @@
  * - カード画像サイズを変更
  */
 
-import type { CardSize, AppSettings } from '../../types/settings';
+/**
+ * カード画像サイズを変更
+ */
+export function setCardImageSize(size: 'small' | 'medium' | 'large' | 'xlarge'): void {
+  const sizeMap: Record<string, string> = {
+    small: '36px',
+    medium: '60px',
+    large: '90px',
+    xlarge: '120px'
+  }
+
+  document.documentElement.style.setProperty(
+    '--deck-display-card-width',
+    sizeMap[size] || '60px'
+  )
+}
 
 /**
  * レイアウトCSSを適用
@@ -14,284 +29,54 @@ export function applyDeckDisplayLayout(): void {
   const style = document.createElement('style');
   style.textContent = `
     /* デッキ表示ページのメインレイアウト */
-    #deck_image {
-      display: flex !important;
-      flex-direction: row !important;
-      gap: 20px;
-      align-items: flex-start;
-      width: 100%;
-    }
-
-    #ygo-deck-sections-container {
+    #main980 {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       gap: 20px;
-      flex: 0 0 auto;
-      order: 1;
-      flex-wrap: wrap;
+      align-items: stretch;
+      min-height: calc(100vh - 100px);
     }
 
-    /* デッキセクション（Main, Extra, Side）のスタイル */
-    #ygo-deck-sections-container #main,
-    #ygo-deck-sections-container #extra,
-    #ygo-deck-sections-container #side {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      width: 100%;
-    }
-
-    #ygo-card-detail-container {
+    #main980 article {
       flex: 1;
-      min-width: 300px;
-      max-width: 400px;
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 15px;
-      overflow-y: auto;
-      max-height: calc(100vh - 40px);
-      position: sticky;
-      top: 20px;
-      order: 2;
+      margin: 0 !important;
     }
 
-    #ygo-card-detail-container h2 {
-      margin: 0 0 15px 0;
-      font-size: 16px;
-      border-bottom: 2px solid #008cff;
-      padding-bottom: 8px;
-    }
-
-    #ygo-card-detail-container .card-detail-tabs {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      border-bottom: 2px solid #008cff;
-      margin-bottom: 15px;
-    }
-
-    #ygo-card-detail-container .card-detail-tabs button {
-      padding: 8px;
-      border: none;
-      border-right: 1px solid #e0e0e0;
-      background: white;
-      cursor: pointer;
-      font-size: 12px;
-      color: #333;
-      transition: background 0.2s;
-    }
-
-    #ygo-card-detail-container .card-detail-tabs button:hover {
-      background: #f5f5f5;
-    }
-
-    #ygo-card-detail-container .card-detail-tabs button.active {
-      background: #008cff;
-      color: white;
-    }
-
-    #ygo-card-detail-container .card-tab-content {
-      padding: 10px 0;
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    #ygo-card-detail-container .card-detail-info {
+    #ygo-next-deck-display-app {
+      flex: 0 0 320px;
+      min-width: 0;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    #ygo-card-detail-container .card-name {
-      font-size: 14px;
-      font-weight: bold;
-      color: #000;
-    }
-
-    #ygo-card-detail-container .card-id,
-    #ygo-card-detail-container .card-type,
-    #ygo-card-detail-container .card-attribute,
-    #ygo-card-detail-container .card-race {
-      font-size: 11px;
-      color: #666;
-      padding: 4px 8px;
-      background: #f5f5f5;
-      border-radius: 2px;
     }
 
     /* デッキセクション内のカード画像サイズ制御 */
-    #ygo-deck-sections-container img[src*="/card/"] {
+    #deck_image img[src*="/card/"] {
       width: var(--deck-display-card-width, 60px);
       height: auto;
       transition: transform 0.1s, filter 0.1s;
     }
 
-    #ygo-deck-sections-container img[src*="/card/"]:hover {
+    #deck_image img[src*="/card/"]:hover {
       transform: scale(1.05);
       filter: brightness(1.1);
     }
 
-    /* Q&A タブのスタイル */
-    #ygo-card-detail-container .card-qa-content {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    /* レスポンシブ対応：768px以下で full width */
+    @media (max-width: 768px) {
+      #main980 {
+        flex-direction: column;
+        gap: 10px;
+      }
 
-    #ygo-card-detail-container .supplement-section {
-      padding: 10px;
-      background: #f9f9f9;
-      border-left: 3px solid #008cff;
-      border-radius: 2px;
-      font-size: 12px;
-    }
+      #main980 article {
+        width: 100%;
+      }
 
-    #ygo-card-detail-container .supplement-title {
-      font-weight: bold;
-      color: #008cff;
-      margin-bottom: 6px;
-      font-size: 12px;
-    }
-
-    #ygo-card-detail-container .supplement-text {
-      color: #333;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-
-    #ygo-card-detail-container .supplement-date {
-      font-size: 10px;
-      color: #999;
-      margin-top: 6px;
-    }
-
-    #ygo-card-detail-container .faq-list-section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    #ygo-card-detail-container .faq-item {
-      padding: 8px;
-      background: #f5f5f5;
-      border-radius: 2px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    #ygo-card-detail-container .faq-item:hover {
-      background: #efefef;
-    }
-
-    #ygo-card-detail-container .faq-question {
-      font-size: 12px;
-      color: #333;
-      word-break: break-word;
-    }
-
-    #ygo-card-detail-container .faq-updated {
-      font-size: 10px;
-      color: #999;
-      margin-top: 4px;
+      #ygo-next-deck-display-app {
+        flex: 0 0 auto;
+        width: 100%;
+      }
     }
   `;
   document.head.appendChild(style);
 }
 
-/**
- * #deck_imageの構造を変更（セクションコンテナを作成）
- */
-export function restructureDeckImageLayout(): void {
-  const deckImage = document.querySelector('#deck_image');
-  if (!deckImage) {
-    return;
-  }
-
-  // 既に変更されていれば返す
-  if (deckImage.querySelector('#ygo-deck-sections-container')) {
-    return;
-  }
-
-  // デッキセクション（#main, #extra, #side）を取得
-  const sections = Array.from(
-    deckImage.querySelectorAll(':scope > #main, :scope > #extra, :scope > #side')
-  );
-
-  if (sections.length === 0) {
-    return;
-  }
-
-  // コンテナを作成
-  const container = document.createElement('div');
-  container.id = 'ygo-deck-sections-container';
-
-  // セクションをコンテナに移動
-  sections.forEach(section => {
-    container.appendChild(section);
-  });
-
-  // コンテナを #deck_image に追加
-  deckImage.insertBefore(container, deckImage.firstChild);
-}
-
-/**
- * CardDetailコンテナを作成
- */
-export function createCardDetailContainer(): HTMLDivElement {
-  const container = document.createElement('div');
-  container.id = 'ygo-card-detail-container';
-  container.innerHTML = `
-    <h2>Card Detail</h2>
-    <div class="card-detail-tabs">
-      <button class="tab-btn active" data-tab="info">Info</button>
-      <button class="tab-btn" data-tab="qa">Q&A</button>
-    </div>
-    <div class="card-tab-content" id="card-info-content">
-      <p>カードを選択してください</p>
-    </div>
-  `;
-  return container;
-}
-
-/**
- * カード画像サイズを変更
- */
-export function setCardImageSize(size: CardSize): void {
-  const sizeMap = {
-    small: '36px',
-    medium: '60px',
-    large: '90px'
-  };
-
-  document.documentElement.style.setProperty(
-    '--deck-display-card-width',
-    sizeMap[size]
-  );
-}
-
-/**
- * デッキ表示ページのレイアウトを初期化（chrome.storage から設定を読み込み）
- */
-export function initDeckDisplayLayout(): void {
-  // chrome.storage から設定を読み込み
-  chrome.storage.local.get(['appSettings'], (result) => {
-    const appSettings = (result.appSettings as Partial<AppSettings>) || {};
-    const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as CardSize;
-
-    // CSSを適用
-    applyDeckDisplayLayout();
-
-    // 構造を変更
-    restructureDeckImageLayout();
-
-    // CardDetailエリアを常に追加
-    const deckImage = document.querySelector('#deck_image');
-    if (deckImage) {
-      const detailContainer = createCardDetailContainer();
-      deckImage.appendChild(detailContainer);
-    }
-
-    // カード画像サイズを設定
-    setCardImageSize(cardImageSize);
-  });
-}

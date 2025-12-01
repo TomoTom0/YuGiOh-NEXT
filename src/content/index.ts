@@ -90,13 +90,9 @@ async function initializeFeatures(): Promise<void> {
     // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
     const gameType = detectCardGameType();
     if (isDeckDisplayPage(gameType)) {
-      // デッキ表示ページのレイアウトを初期化
-      const { initDeckDisplayLayout } = await import('./deck-display/deckDisplayLayout');
-      initDeckDisplayLayout();
-
-      // Card Detail UI を初期化
-      const { initCardDetailUI } = await import('./deck-display/card-detail-ui');
-      initCardDetailUI();
+      // Vue Card Detail UI を初期化
+      const { initDeckDisplay } = await import('./deck-display');
+      await initDeckDisplay();
 
       // デッキ画像作成機能の初期化（設定で有効な場合のみ）
       if (await isFeatureEnabled('deck-image')) {

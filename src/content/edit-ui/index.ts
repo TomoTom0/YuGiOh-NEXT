@@ -6,7 +6,7 @@
  */
 
 // FOUC防止: デフォルトテーマを即座に適用
-document.documentElement.setAttribute('data-theme', 'light');
+document.documentElement.setAttribute('data-ygo-next-theme', 'light');
 
 import { isVueEditPage } from '../../utils/page-detector';
 
