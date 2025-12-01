@@ -567,7 +567,7 @@
   --monster-fusion-chip-not-bg: var(--monster-fusion-not);
   --monster-fusion-chip-not-text: #000000;
   --monster-fusion-chip-not-border: #d32f2f;
-  --monster-fusion-chip-not-hover-bg: linear-gradient(135deg, #9c2f7a 0%, #872160 100%);
+  --monster-fusion-chip-not-hover-bg: linear-gradient(135deg, #6a1b9a 0%, #6a1b9a 40%, #e64545 70%, #d32f2f 100%);
   --monster-fusion-chip-not-hover-text: #000000;
   --monster-fusion-chip-not-hover-border: #d32f2f;
 
@@ -607,7 +607,7 @@
   --monster-xyz-chip-not-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #d32f2f 70%, #b71c1c 100%);
   --monster-xyz-chip-not-text: #000000;
   --monster-xyz-chip-not-border: #b71c1c;
-  --monster-xyz-chip-not-hover-bg: linear-gradient(135deg, #555555 0%, #555555 40%, #e64545 70%, #d32f2f 100%);
+  --monster-xyz-chip-not-hover-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #e64545 70%, #d32f2f 100%);
   --monster-xyz-chip-not-hover-text: #000000;
   --monster-xyz-chip-not-hover-border: #b71c1c;
 
@@ -627,7 +627,7 @@
   --monster-link-chip-not-bg: linear-gradient(135deg, #1565c0 0%, #1565c0 40%, #d32f2f 70%, #b71c1c 100%);
   --monster-link-chip-not-text: #000000;
   --monster-link-chip-not-border: #d32f2f;
-  --monster-link-chip-not-hover-bg: linear-gradient(135deg, #2979d0 0%, #2979d0 40%, #e64545 70%, #d32f2f 100%);
+  --monster-link-chip-not-hover-bg: linear-gradient(135deg, #1565c0 0%, #1565c0 40%, #e64545 70%, #d32f2f 100%);
   --monster-link-chip-not-hover-text: #000000;
   --monster-link-chip-not-hover-border: #d32f2f;
 
@@ -647,7 +647,7 @@
   --monster-ritual-chip-not-bg: linear-gradient(135deg, #00695c 0%, #00695c 40%, #d32f2f 70%, #b71c1c 100%);
   --monster-ritual-chip-not-text: #000000;
   --monster-ritual-chip-not-border: #d32f2f;
-  --monster-ritual-chip-not-hover-bg: linear-gradient(135deg, #009688 0%, #009688 40%, #e64545 70%, #d32f2f 100%);
+  --monster-ritual-chip-not-hover-bg: linear-gradient(135deg, #00838f 0%, #00838f 40%, #e64545 70%, #d32f2f 100%);
   --monster-ritual-chip-not-hover-text: #000000;
   --monster-ritual-chip-not-hover-border: #d32f2f;
 
@@ -667,7 +667,7 @@
   --monster-pendulum-chip-not-bg: linear-gradient(180deg, #e65100 0%, #e65100 25%, #d32f2f 50%, #b71c1c 75%, #b71c1c 100%);
   --monster-pendulum-chip-not-text: #000000;
   --monster-pendulum-chip-not-border: #d32f2f;
-  --monster-pendulum-chip-not-hover-bg: linear-gradient(180deg, #ff6d00 0%, #ff6d00 25%, #e64545 50%, #d32f2f 75%, #d32f2f 100%);
+  --monster-pendulum-chip-not-hover-bg: linear-gradient(180deg, #e65100 0%, #e65100 30%, #e64545 50%, #d32f2f 75%, #d32f2f 100%);
   --monster-pendulum-chip-not-hover-text: #000000;
   --monster-pendulum-chip-not-hover-border: #d32f2f;
 }
