@@ -50,7 +50,13 @@ onMounted(async () => {
 });
 </script>
 
+<style lang="scss">
+@import '../styles/themes.scss';
+</style>
+
 <style scoped lang="scss">
+@import '../styles/common.scss';
+
 .options-page {
   min-height: 100vh;
   background: var(--bg-secondary);

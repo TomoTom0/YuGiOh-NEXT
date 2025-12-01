@@ -62,6 +62,7 @@
           }"
           :placeholder="currentPlaceholder"
           @input="handleInput"
+          @focus="handleFocus"
           @keydown.enter.prevent="handleEnter"
           @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
@@ -93,7 +94,8 @@
           </div>
         </div>
         <!-- mydeckモード用の候補リスト -->
-        <div v-if="searchMode === 'mydeck' && !pendingCommand && mydeckSuggestions.length > 0" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
+        <div v-if="showMydeckDropdown" class="mode-dropdown-overlay" @click="showMydeckDropdown = false"></div>
+        <div v-if="showMydeckDropdown" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
           <div
             v-for="(deck, index) in mydeckSuggestions"
             :key="deck.dno"
@@ -101,6 +103,7 @@
             :class="{ selected: index === selectedMydeckIndex }"
             @click="selectMydeck(deck)"
           >
+            <span class="suggestion-value">dno:{{ deck.dno }}</span>
             <span class="suggestion-label">{{ deck.name }}</span>
           </div>
         </div>
@@ -125,14 +128,17 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent } from 'vue'
+import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
+import { useSettingsStore } from '../stores/settings'
+import type { SearchOptions } from '../api/card-search'
+import { SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
+import type { SearchMode } from '../types/settings'
 import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
@@ -161,7 +167,8 @@ const COMMANDS: Record<string, { filterType: string; description: string; isNot?
 const SEARCH_MODE_MAP: Record<string, string> = {
   'name': 'name', 'カード名': 'name', 'n': 'name',
   'text': 'text', 'テキスト': 'text', 't': 'text',
-  'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum'
+  'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum',
+  'mydeck': 'mydeck', 'マイデッキ': 'mydeck', 'd': 'mydeck'
 }
 
 // 属性マッピング（日本語/英語 -> APIキー）
@@ -228,9 +235,14 @@ export default defineComponent({
   setup(props, { expose }) {
     const deckStore = useDeckEditStore()
     const inputRef = ref<HTMLInputElement | null>(null)
-    const searchMode = ref('name')
+
+    // 設定からデフォルト検索モードを取得
+    const settingsStore = useSettingsStore()
+    const searchMode = ref<SearchMode>(settingsStore.appSettings.defaultSearchMode || 'name')
+
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
+    const showMydeckDropdown = ref(false)
     
     // 検索入力欄の位置を自動検出
     const isBottomPosition = computed(() => {
@@ -341,7 +353,8 @@ export default defineComponent({
       searchMode: [
         { value: 'name', label: 'カード名' },
         { value: 'text', label: 'テキスト' },
-        { value: 'pend', label: 'ペンデュラム' }
+        { value: 'pend', label: 'ペンデュラム' },
+        { value: 'mydeck', label: 'マイデッキ' }
       ]
     }
 
@@ -405,7 +418,7 @@ export default defineComponent({
         case 'name': return 'name'
         case 'text': return 'text'
         case 'pendulum': return 'pend'
-        case 'mydeck': return 'deck'
+        case 'mydeck': return 'mydeck'
         default: return 'name'
       }
     })
@@ -609,6 +622,14 @@ export default defineComponent({
       }
     }
 
+    // フォーカスハンドラ
+    const handleFocus = () => {
+      // mydeckモードの場合は候補を表示
+      if (searchMode.value === 'mydeck') {
+        showMydeckDropdown.value = true
+      }
+    }
+
     // 入力ハンドラ
     const handleInput = () => {
       const query = deckStore.searchQuery
@@ -641,69 +662,61 @@ export default defineComponent({
     }
 
     // キー入力ハンドラ
+    // 共通の候補選択処理
+    const handleSuggestionNavigation = (
+      event: KeyboardEvent,
+      selectedIndex: Ref<number>,
+      suggestions: any[],
+      onSelect: (item: any) => void,
+      containerSelector: string
+    ) => {
+      if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
+          selectedIndex.value = selectedIndex.value < 0
+            ? suggestions.length - 1
+            : selectedIndex.value <= 0
+            ? suggestions.length - 1
+            : selectedIndex.value - 1
+        } else {
+          selectedIndex.value = selectedIndex.value < 0
+            ? 0
+            : (selectedIndex.value + 1) % suggestions.length
+        }
+        // 選択中の項目を表示領域内にスクロール（前後2個程度も表示）
+        nextTick(() => {
+          const container = document.querySelector(containerSelector)
+          if (container) {
+            const selectedItem = container.querySelector('.suggestion-item.selected')
+            if (selectedItem) {
+              selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' })
+            }
+          }
+        })
+        return true
+      }
+      if (event.key === 'Enter' && selectedIndex.value >= 0) {
+        event.preventDefault()
+        const selected = suggestions[selectedIndex.value]
+        if (selected) {
+          onSelect(selected)
+        }
+        return true
+      }
+      return false
+    }
+
     const handleKeydown = (event: KeyboardEvent) => {
       // コマンド候補のTab/Arrow処理
       if (commandSuggestions.value.length > 0 && !pendingCommand.value) {
-        if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-          event.preventDefault()
-          if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
-            selectedCommandIndex.value = selectedCommandIndex.value < 0
-              ? commandSuggestions.value.length - 1
-              : selectedCommandIndex.value <= 0
-              ? commandSuggestions.value.length - 1
-              : selectedCommandIndex.value - 1
-          } else {
-            selectedCommandIndex.value = selectedCommandIndex.value < 0
-              ? 0
-              : (selectedCommandIndex.value + 1) % commandSuggestions.value.length
-          }
-          return
-        }
-        if (event.key === 'Enter' && selectedCommandIndex.value >= 0) {
-          event.preventDefault()
-          const selected = commandSuggestions.value[selectedCommandIndex.value]
-          if (selected) {
-            selectCommand(selected)
-          }
+        if (handleSuggestionNavigation(event, selectedCommandIndex, commandSuggestions.value, selectCommand, '.command-suggestions')) {
           return
         }
       }
 
       // mydeckモードのTab/Arrow処理
-      if (searchMode.value === 'mydeck' && !pendingCommand.value && mydeckSuggestions.value.length > 0) {
-        if (event.key === 'Tab') {
-          event.preventDefault()
-          if (event.shiftKey) {
-            selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
-              ? mydeckSuggestions.value.length - 1
-              : selectedMydeckIndex.value - 1
-          } else {
-            selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
-          }
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
-          return
-        }
-        if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
-          return
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault()
-          selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
-            ? mydeckSuggestions.value.length - 1
-            : selectedMydeckIndex.value - 1
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
+      if (showMydeckDropdown.value) {
+        if (handleSuggestionNavigation(event, selectedMydeckIndex, mydeckSuggestions.value, selectMydeck, '.mydeck-suggestions')) {
           return
         }
       }
@@ -802,7 +815,13 @@ export default defineComponent({
       if (filterType === 'searchMode') {
         const newMode = SEARCH_MODE_MAP[value]
         if (newMode) {
-          searchMode.value = newMode
+          searchMode.value = newMode as SearchMode
+          // mydeckモードに切り替えた場合はドロップダウンを表示
+          if (newMode === 'mydeck') {
+            nextTick(() => {
+              showMydeckDropdown.value = true
+            })
+          }
         }
         deckStore.searchQuery = ''
         pendingCommand.value = null
@@ -1035,10 +1054,14 @@ export default defineComponent({
 
     // mydeckモードでデッキを選択
     const selectMydeck = (deck: { dno: number; name: string }) => {
+      // デッキ名を入力欄に設定
+      deckStore.searchQuery = deck.name
       loadMydeckCards(deck.dno)
+      // ドロップダウンを閉じる
+      showMydeckDropdown.value = false
     }
 
-    // デッキのカードを読み込んで検索結果に表示（重複排除）
+    // デッキのカードを読み込んで検索結果に表示
     const loadMydeckCards = async (dno: number) => {
       deckStore.isLoading = true
       deckStore.activeTab = 'search'
@@ -1053,39 +1076,55 @@ export default defineComponent({
         }
 
         // 全カードを収集（TempCardDBから取得）
+        // cid-ciidのペアで重複排除（イラスト違いは別々に表示）
         const tempCardDB = getTempCardDB()
-        const allCards: CardInfo[] = []
+        const seenCards = new Set<string>()
+        const uniqueCards: CardInfo[] = []
+
         deckDetail.mainDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
         deckDetail.extraDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
         deckDetail.sideDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
 
-        // ciidで重複排除（各カード1枚ずつ）
-        const seenCiids = new Set<string>()
-        const uniqueCards: CardInfo[] = []
-        for (const card of allCards) {
-          if (!seenCiids.has(card.ciid)) {
-            seenCiids.add(card.ciid)
-            uniqueCards.push(card)
-          }
-        }
-
-        // 検索結果に設定
+        // 検索結果に設定（各カード種類1つずつ）
         deckStore.searchResults = uniqueCards as unknown as typeof deckStore.searchResults
         deckStore.allResults = uniqueCards
         deckStore.hasMore = false
         deckStore.currentPage = 0
 
-        // 入力をクリア
-        deckStore.searchQuery = ''
+        // 選択インデックスをリセット
         selectedMydeckIndex.value = -1
       } catch (error) {
         console.error('Failed to load mydeck cards:', error)
@@ -1268,7 +1307,7 @@ export default defineComponent({
       deckStore.searchQuery = ''
     }
 
-    const selectSearchMode = (mode: string) => {
+    const selectSearchMode = (mode: SearchMode) => {
       searchMode.value = mode
       showSearchModeDropdown.value = false
     }
@@ -1360,6 +1399,8 @@ export default defineComponent({
           }
         }
 
+        // 検索実行時に動的import
+        const { searchCards } = await import('../api/card-search')
         const results = await searchCards(searchOptions)
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
@@ -1374,6 +1415,7 @@ export default defineComponent({
           deckStore.hasMore = true
           setTimeout(async () => {
             try {
+              const { searchCards } = await import('../api/card-search')
               const moreResults = await searchCards({
                 ...searchOptions,
                 resultsPerPage: 2000
@@ -1426,6 +1468,7 @@ export default defineComponent({
       searchModeLabel,
       showSearchModeDropdown,
       showFilterDialog,
+      showMydeckDropdown,
       searchFilters,
       hasActiveFilters,
       filterCount,
@@ -1448,6 +1491,7 @@ export default defineComponent({
       handleFilterApply,
       handleSearch,
       handleInput,
+      handleFocus,
       handleKeydown,
       handleEnter,
       handleEscape,
@@ -1540,11 +1584,11 @@ export default defineComponent({
   flex: 1;
   min-width: 0;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   justify-content: center;
 
   &.command-mode {
-    background: rgba(0, 217, 184, 0.1);
+    background: var(--command-mode-bg);
     border-radius: 4px;
     padding: 2px 4px;
     margin: 0 4px;
@@ -1684,6 +1728,10 @@ export default defineComponent({
   &.selected {
     background: var(--color-success);
     color: var(--button-text);
+
+    .suggestion-value {
+      color: var(--button-text);
+    }
 
     .suggestion-label {
       color: var(--button-text);
@@ -1885,6 +1933,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   flex: 1;
+  min-width: 48px;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
@@ -1907,6 +1956,10 @@ export default defineComponent({
   right: 0;
   bottom: 0;
   z-index: 99998;
+}
+
+.mydeck-suggestions {
+  z-index: 99999;
 }
 
 .mode-dropdown {

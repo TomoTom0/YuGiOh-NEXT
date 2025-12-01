@@ -1082,6 +1082,19 @@ function clearFilters() {
 .dialog-header {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+
+  &.common {
+    justify-content: space-between;
+  }
+
+  &.triple {
+    justify-content: flex-start;
+    gap: 12px;
+  }
 
   .dialog-title {
     font-size: 14px;
@@ -1216,27 +1229,30 @@ function clearFilters() {
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #fff9e6;
+  background: var(--tab-monster-active-bg);
 }
 
 .monster-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(255, 249, 230, 0.7);
+  background: var(--tab-monster-active-bg);
+  opacity: 0.85;
 }
 
 .spell-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #b2dfdb;
+  background: var(--tab-spell-active-bg);
 }
 
 .spell-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(178, 223, 219, 0.7);
+  background: var(--tab-spell-active-bg);
+  opacity: 0.85;
 }
 
 .trap-wrapper .tab-header:has(.card-type-tab.active) {
-  background: #f8bbd0;
+  background: var(--tab-trap-active-bg);
 }
 
 .trap-wrapper .tab-header:has(.card-type-tab.active):hover {
-  background: rgba(248, 187, 208, 0.7);
+  background: var(--tab-trap-active-bg);
+  opacity: 0.85;
 }
 
 .selected-chips-inline {
@@ -1258,15 +1274,15 @@ function clearFilters() {
 }
 
 .monster-wrapper .selected-chips-inline {
-  background: rgba(255, 249, 230, 0.9);
+  background: var(--selected-chips-monster-bg);
 }
 
 .spell-wrapper .selected-chips-inline {
-  background: rgba(178, 223, 219, 0.9);
+  background: var(--selected-chips-spell-bg);
 }
 
 .trap-wrapper .selected-chips-inline {
-  background: rgba(248, 187, 208, 0.9);
+  background: var(--selected-chips-trap-bg);
 }
 
 .selected-chip-inline {
@@ -1355,7 +1371,7 @@ function clearFilters() {
   gap: 12px;
   padding: 4px 12px;
   min-height: 24px;
-  background: #fff9e6;
+  background: var(--tab-monster-active-bg);
   border-radius: 6px 6px 0 0;
   margin-bottom: 0;
   position: relative;
@@ -1394,9 +1410,9 @@ function clearFilters() {
 
 .chip {
   padding: 6px 12px;
-  border: 1.5px solid #5f6368;
+  border: 1.5px solid var(--border-secondary, #9e9e9e);
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-secondary, #666);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -1409,6 +1425,8 @@ function clearFilters() {
   gap: 4px;
   justify-content: center;
   user-select: text;
+  height: 28px;
+  line-height: 1;
 
   &:hover:not(:disabled) {
     background: var(--color-success-bg);
@@ -1418,18 +1436,18 @@ function clearFilters() {
   }
 
   &.active:not(:disabled) {
-    background: linear-gradient(135deg, #66bb6a 0%, #43a047 50%, #2e7d32 100%);
+    background: var(--filter-button-active-bg);
     color: var(--button-text);
-    border: 1.5px solid #1b5e20;
-    box-shadow: 0 3px 10px rgba(46, 125, 50, 0.5);
+    border: 1.5px solid var(--filter-button-active-border);
+    box-shadow: var(--filter-button-active-shadow);
     font-weight: 700;
   }
 
   &.not:not(:disabled) {
-    background: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+    background: var(--filter-button-not-bg);
     color: var(--button-text);
-    border: 1.5px solid #b71c1c;
-    box-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
+    border: 1.5px solid var(--filter-button-not-border);
+    box-shadow: var(--filter-button-not-shadow);
     font-weight: 700;
     font-size: 10px;
 
@@ -1530,10 +1548,10 @@ function clearFilters() {
     }
 
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
+      background: var(--filter-button-pendulum-active-bg);
       color: var(--button-text);
-      border: 1.5px solid #e65100;
-      box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
+      border: 1.5px solid var(--filter-button-pendulum-active-border);
+      box-shadow: var(--filter-button-pendulum-active-shadow);
     }
   }
 
@@ -1583,144 +1601,199 @@ function clearFilters() {
 
   .chip[data-type="fusion"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-      border-color: #ba68c8;
+      background: var(--monster-fusion-chip-default-bg);
+      border-color: var(--monster-fusion-chip-default-border);
+      color: var(--monster-fusion-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-hover-bg);
+      border-color: var(--monster-fusion-chip-hover-border);
+      color: var(--monster-fusion-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%);
-      border-color: #7b1fa2;
-      color: var(--button-text);
+      background: var(--monster-fusion-chip-active-bg);
+      border-color: var(--monster-fusion-chip-active-border);
+      color: var(--monster-fusion-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-active-hover-bg);
+      border-color: var(--monster-fusion-chip-active-border);
+      color: var(--monster-fusion-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #e1bee7 0%, #e1bee7 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: #4a148c;
+      background: var(--monster-fusion-chip-not-bg);
+      border-color: var(--monster-fusion-chip-not-border);
+      color: var(--monster-fusion-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-fusion-chip-not-hover-bg);
+      border-color: var(--monster-fusion-chip-not-hover-border);
+      color: var(--monster-fusion-chip-not-hover-text);
     }
   }
 
   .chip[data-type="synchro"] {
     &:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(189, 189, 189, 0.12) 8px,
-          rgba(189, 189, 189, 0.12) 9px
-        ),
-        linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-      border-color: var(--border-primary);
+      background: var(--monster-synchro-chip-default-bg);
+      border-color: var(--monster-synchro-chip-default-border);
+      color: var(--monster-synchro-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-hover-bg);
+      border-color: var(--monster-synchro-chip-hover-border);
+      color: var(--monster-synchro-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(117, 117, 117, 0.2) 8px,
-          rgba(117, 117, 117, 0.2) 9px
-        ),
-        linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-      border-color: var(--border-secondary);
-      color: var(--text-primary);
+      background: var(--monster-synchro-chip-active-bg);
+      border-color: var(--monster-synchro-chip-active-border);
+      color: var(--monster-synchro-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-active-hover-bg);
+      border-color: var(--monster-synchro-chip-active-border);
+      color: var(--monster-synchro-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(211, 47, 47, 0.15) 8px,
-          rgba(211, 47, 47, 0.15) 9px
-        ),
-        linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: var(--text-primary);
+      background: var(--monster-synchro-chip-not-bg);
+      border-color: var(--monster-synchro-chip-not-border);
+      color: var(--monster-synchro-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-synchro-chip-not-hover-bg);
+      border-color: var(--monster-synchro-chip-not-hover-border);
+      color: var(--monster-synchro-chip-not-hover-text);
     }
   }
 
   .chip[data-type="xyz"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, var(--border-primary) 0%, #bdbdbd 100%);
-      border-color: #9e9e9e;
-      color: var(--text-primary);
+      background: var(--monster-xyz-chip-default-bg);
+      border-color: var(--monster-xyz-chip-default-border);
+      color: var(--monster-xyz-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-hover-bg);
+      border-color: var(--monster-xyz-chip-hover-border);
+      color: var(--monster-xyz-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #616161 0%, #424242 100%);
-      border-color: var(--border-secondary);
-      color: var(--button-text);
+      background: var(--monster-xyz-chip-active-bg);
+      border-color: var(--monster-xyz-chip-active-border);
+      color: var(--monster-xyz-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-active-hover-bg);
+      border-color: var(--monster-xyz-chip-active-border);
+      color: var(--monster-xyz-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
-      border: 1.5px solid #b71c1c;
-      color: var(--text-primary);
+      background: var(--monster-xyz-chip-not-bg);
+      border-color: var(--monster-xyz-chip-not-border);
+      color: var(--monster-xyz-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-xyz-chip-not-hover-bg);
+      border-color: var(--monster-xyz-chip-not-hover-border);
+      color: var(--monster-xyz-chip-not-hover-text);
     }
   }
 
   .chip[data-type="link"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-      border-color: var(--color-info);
+      background: var(--monster-link-chip-default-bg);
+      border-color: var(--monster-link-chip-default-border);
+      color: var(--monster-link-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-link-chip-hover-bg);
+      border-color: var(--monster-link-chip-hover-border);
+      color: var(--monster-link-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #42a5f5 0%, var(--button-bg) 100%);
-      border-color: var(--color-info);
-      color: var(--button-text);
+      background: var(--monster-link-chip-active-bg);
+      border-color: var(--monster-link-chip-active-border);
+      color: var(--monster-link-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-link-chip-active-hover-bg);
+      border-color: var(--monster-link-chip-active-border);
+      color: var(--monster-link-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: var(--color-info);
+      background: var(--monster-link-chip-not-bg);
+      border-color: var(--monster-link-chip-not-border);
+      color: var(--monster-link-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-link-chip-not-hover-bg);
+      border-color: var(--monster-link-chip-not-hover-border);
+      color: var(--monster-link-chip-not-hover-text);
     }
   }
 
   .chip[data-type="ritual"] {
     &:not(:disabled) {
-      background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-      border-color: #4dd0e1;
+      background: var(--monster-ritual-chip-default-bg);
+      border-color: var(--monster-ritual-chip-default-border);
+      color: var(--monster-ritual-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-hover-bg);
+      border-color: var(--monster-ritual-chip-hover-border);
+      color: var(--monster-ritual-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
-      border-color: #00838f;
-      color: var(--button-text);
+      background: var(--monster-ritual-chip-active-bg);
+      border-color: var(--monster-ritual-chip-active-border);
+      color: var(--monster-ritual-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-active-hover-bg);
+      border-color: var(--monster-ritual-chip-active-border);
+      color: var(--monster-ritual-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
-      border: 1.5px solid #d32f2f;
-      color: #006064;
+      background: var(--monster-ritual-chip-not-bg);
+      border-color: var(--monster-ritual-chip-not-border);
+      color: var(--monster-ritual-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-ritual-chip-not-hover-bg);
+      border-color: var(--monster-ritual-chip-not-hover-border);
+      color: var(--monster-ritual-chip-not-hover-text);
     }
   }
 
   .chip[data-type="pendulum"] {
     &:not(:disabled) {
-      background: linear-gradient(180deg,
-        #fff3e0 0%,
-        #fff3e0 30%,
-        #b2dfdb 70%,
-        #b2dfdb 100%
-      );
-      border-color: #ffb74d;
+      background: var(--monster-pendulum-chip-default-bg);
+      border-color: var(--monster-pendulum-chip-default-border);
+      color: var(--monster-pendulum-chip-default-text);
+    }
+    &:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-hover-bg);
+      border-color: var(--monster-pendulum-chip-hover-border);
+      color: var(--monster-pendulum-chip-hover-text);
     }
     &.active:not(:disabled) {
-      background: linear-gradient(180deg,
-        #ff9800 0%,
-        #ff9800 30%,
-        #00897b 70%,
-        #00897b 100%
-      );
-      border-color: var(--color-warning);
-      color: var(--button-text);
+      background: var(--monster-pendulum-chip-active-bg);
+      border-color: var(--monster-pendulum-chip-active-border);
+      color: var(--monster-pendulum-chip-active-text);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-active-hover-bg);
+      border-color: var(--monster-pendulum-chip-active-border);
+      color: var(--monster-pendulum-chip-active-hover-text);
     }
     &.not:not(:disabled) {
-      background: linear-gradient(180deg,
-        #ffcc80 0%,
-        #ffcc80 25%,
-        #ffcdd2 50%,
-        #ef5350 75%,
-        #ef5350 100%
-      );
-      border: 1.5px solid #d32f2f;
-      color: var(--color-warning);
+      background: var(--monster-pendulum-chip-not-bg);
+      border-color: var(--monster-pendulum-chip-not-border);
+      color: var(--monster-pendulum-chip-not-text);
+    }
+    &.not:hover:not(:disabled) {
+      background: var(--monster-pendulum-chip-not-hover-bg);
+      border-color: var(--monster-pendulum-chip-not-hover-border);
+      color: var(--monster-pendulum-chip-not-hover-text);
     }
   }
 }
@@ -1774,7 +1847,7 @@ function clearFilters() {
     }
 
     &:has(.level-tab.active) {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
     }
 
     &:hover:not(:has(.level-tab:disabled)) {
@@ -1782,11 +1855,12 @@ function clearFilters() {
     }
 
     &:has(.level-tab.active):hover {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
+      opacity: 0.85;
     }
 
     .selected-chips-inline {
-      background: rgba(255, 249, 230, 0.9);
+      background: var(--tab-monster-active-bg);
     }
   }
 }
@@ -2059,7 +2133,7 @@ function clearFilters() {
     }
 
     &:has(.stat-tab.active) {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
     }
 
     &:hover:not(:has(.stat-tab:disabled)) {
@@ -2067,7 +2141,7 @@ function clearFilters() {
     }
 
     &:has(.stat-tab.active):hover {
-      background: #fff9e6;
+      background: var(--tab-monster-active-bg);
     }
 
     .selected-chips-inline {
@@ -2232,6 +2306,7 @@ function clearFilters() {
     border-radius: 4px;
     font-size: 12px;
     background: var(--bg-primary);
+    color: var(--input-text);
     text-align: center;
 
     &:focus {

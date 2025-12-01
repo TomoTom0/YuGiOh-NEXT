@@ -308,6 +308,7 @@ export default {
     .btn-section {
       background: transparent;
       border: 1px solid var(--border-primary);
+      color: var(--text-primary);
       border-radius: 4px;
       padding: 2px 6px;
       cursor: pointer;
@@ -321,6 +322,7 @@ export default {
       &:hover {
         background: var(--bg-secondary);
         border-color: var(--border-secondary);
+        color: var(--text-primary);
       }
 
       &:active {

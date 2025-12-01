@@ -16,6 +16,7 @@ import type {
   FAQTableB,
   CardInfo
 } from '../types/card';
+import { safeStorageGet, safeStorageSet } from './extension-context-checker';
 
 // 定数
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -403,7 +404,7 @@ export class UnifiedCacheDB {
 
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
-    const result = await chrome.storage.local.get(key);
+    const result = await safeStorageGet(key);
     const data = result[key] as CardTableC | undefined;
     if (data) {
       this.cardTableCCache.set(cardId, data);
@@ -425,7 +426,7 @@ export class UnifiedCacheDB {
 
     // ストレージに保存
     const key = STORAGE_KEYS.cardTableCPrefix + data.cardId;
-    await chrome.storage.local.set({ [key]: data });
+    await safeStorageSet({ [key]: data });
 
     // Tierテーブル更新（詳細表示として記録）
     this.updateCardTier(data.cardId, { lastShownDetail: now });
@@ -718,8 +719,31 @@ export class UnifiedCacheDB {
     this.faqTableB.clear();
     this.cardTableCCache.clear();
 
-    // ストレージクリア
-    await chrome.storage.local.clear();
+    // ストレージクリア（Cache DB関連キーのみ削除、設定は保護）
+    const keysToRemove = [
+      STORAGE_KEYS.cardTier,
+      STORAGE_KEYS.deckOpenHistory,
+      STORAGE_KEYS.cardTableA,
+      STORAGE_KEYS.cardTableB,
+      STORAGE_KEYS.cardTableB2,
+      STORAGE_KEYS.productTableA,
+      STORAGE_KEYS.productTableB,
+      STORAGE_KEYS.faqTableA,
+      STORAGE_KEYS.faqTableB,
+      STORAGE_KEYS.moveHistory,
+      STORAGE_KEYS.lastCleanupAt
+    ];
+
+    // プレフィックス付きキーの削除（cardTableC:*, productTableB:*, faqTableB:*）
+    const allStorage = await chrome.storage.local.get();
+    const prefixedKeysToRemove = Object.keys(allStorage).filter(
+      key =>
+        key.startsWith(STORAGE_KEYS.cardTableCPrefix) ||
+        key.startsWith(STORAGE_KEYS.productTableBPrefix) ||
+        key.startsWith(STORAGE_KEYS.faqTableBPrefix)
+    );
+
+    await chrome.storage.local.remove([...keysToRemove, ...prefixedKeysToRemove]);
     console.log('[UnifiedCacheDB] All cache cleared');
   }
 

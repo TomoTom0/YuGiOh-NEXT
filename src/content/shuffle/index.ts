@@ -3,7 +3,14 @@
  */
 
 import { addShuffleButtons, initShuffleButtons } from './addShuffleButtons';
-import { shuffleCards, sortCards } from './shuffleCards';
+import {
+  shuffleCards,
+  sortCards,
+  shuffleCardsExtra,
+  sortCardsExtra,
+  shuffleCardsSide,
+  sortCardsSide
+} from './shuffleCards';
 import { initSortfixForCards } from './sortfixCards';
 
 /**
@@ -29,23 +36,52 @@ export function initShuffle(): void {
  * イベントリスナーを登録
  */
 function attachEventListeners(): void {
-  const shuffleBtn = document.getElementById('ygo-shuffle-btn');
-  const sortBtn = document.getElementById('ygo-sort-btn');
+  // メインデッキ
+  const shuffleBtnMain = document.getElementById('ygo-shuffle-btn-main');
+  const sortBtnMain = document.getElementById('ygo-sort-btn-main');
 
-  if (!shuffleBtn || !sortBtn) {
+  if (!shuffleBtnMain || !sortBtnMain) {
     setTimeout(attachEventListeners, 100);
     return;
   }
 
-  // シャッフルボタン
-  shuffleBtn.addEventListener('click', () => {
+  // メインデッキのシャッフルボタン
+  shuffleBtnMain.addEventListener('click', () => {
     shuffleCards();
   });
 
-  // ソートボタン
-  sortBtn.addEventListener('click', () => {
+  // メインデッキのソートボタン
+  sortBtnMain.addEventListener('click', () => {
     sortCards();
   });
+
+  // エクストラデッキ
+  const shuffleBtnExtra = document.getElementById('ygo-shuffle-btn-extra');
+  const sortBtnExtra = document.getElementById('ygo-sort-btn-extra');
+
+  if (shuffleBtnExtra && sortBtnExtra) {
+    shuffleBtnExtra.addEventListener('click', () => {
+      shuffleCardsExtra();
+    });
+
+    sortBtnExtra.addEventListener('click', () => {
+      sortCardsExtra();
+    });
+  }
+
+  // サイドデッキ
+  const shuffleBtnSide = document.getElementById('ygo-shuffle-btn-side');
+  const sortBtnSide = document.getElementById('ygo-sort-btn-side');
+
+  if (shuffleBtnSide && sortBtnSide) {
+    shuffleBtnSide.addEventListener('click', () => {
+      shuffleCardsSide();
+    });
+
+    sortBtnSide.addEventListener('click', () => {
+      sortCardsSide();
+    });
+  }
 }
 
 // 再エクスポート

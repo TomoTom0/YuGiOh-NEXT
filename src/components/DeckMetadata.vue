@@ -417,55 +417,80 @@ function removeTag(tagId: string) {
   background: var(--color-success-bg);
   color: var(--color-success);
   border: 1px solid var(--color-success);
-}
 
-.chip.tag-chip:hover {
-  background: var(--color-success-hover-bg);
-  border-color: var(--color-success);
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 
-.chip.tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  color: #4a148c;
-  border-color: #ba68c8;
-}
+  &[data-type="fusion"] {
+    background: var(--monster-fusion-bg);
+    color: var(--monster-fusion-badge-text);
+    border-color: var(--monster-fusion-border);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
 
-.chip.tag-chip[data-type="synchro"] {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-  color: var(--text-primary);
-  border-color: var(--border-secondary);
-}
+    &:hover {
+      filter: brightness(0.9);
+      box-shadow: 0 2px 6px rgba(156, 39, 176, 0.5);
+    }
+  }
 
-.chip.tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: var(--button-text);
-  border-color: #757575;
-}
+  &[data-type="synchro"] {
+    background: var(--monster-synchro-bg);
+    color: var(--monster-synchro-badge-text);
+    border-color: var(--monster-synchro-border);
+    font-weight: 600;
 
-.chip.tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #0d47a1;
-  border-color: #64b5f6;
-}
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
 
-.chip.tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  color: #006064;
-  border-color: #4dd0e1;
-}
+  &[data-type="xyz"] {
+    background: var(--monster-xyz-active);
+    color: var(--monster-xyz-badge-text);
+    border-color: var(--monster-xyz-active-border);
+    font-weight: 600;
 
-.chip.tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-  color: #4a148c;
-  border-color: #ff9800;
+    &:hover {
+      filter: brightness(0.9);
+    }
+  }
+
+  &[data-type="link"] {
+    background: var(--monster-link-bg);
+    color: var(--monster-link-badge-text);
+    border-color: var(--monster-link-border);
+    font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
+
+  &[data-type="ritual"] {
+    background: var(--monster-ritual-bg);
+    color: var(--monster-ritual-badge-text);
+    border-color: var(--monster-ritual-border);
+    font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
+
+  &[data-type="pendulum"] {
+    background: var(--monster-pendulum-bg);
+    color: var(--monster-pendulum-badge-text);
+    border-color: var(--monster-pendulum-border);
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
 }
 
 .chip.category-chip {
@@ -813,6 +838,43 @@ function removeTag(tagId: string) {
   
   &::placeholder {
     color: var(--text-tertiary);
+  }
+}
+
+/* ダークモード用: 背景色グラデーションのみ変更 */
+:global(.dark-theme) {
+  .tag-chip {
+    &[data-type="fusion"] {
+      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+    }
+
+    &[data-type="synchro"] {
+      background:
+        repeating-linear-gradient(
+          135deg,
+          transparent,
+          transparent 8px,
+          rgba(255, 255, 255, 0.12) 8px,
+          rgba(255, 255, 255, 0.12) 9px
+        ),
+        linear-gradient(135deg, #757575 0%, #616161 100%);
+    }
+
+    &[data-type="xyz"] {
+      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+    }
+
+    &[data-type="link"] {
+      background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
+    }
+
+    &[data-type="ritual"] {
+      background: linear-gradient(135deg, #0097a7 0%, #00838f 100%);
+    }
+
+    &[data-type="pendulum"] {
+      background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
+    }
   }
 }
 </style>
