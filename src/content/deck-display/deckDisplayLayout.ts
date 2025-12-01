@@ -28,6 +28,17 @@ export function applyDeckDisplayLayout(): void {
       gap: 20px;
       flex: 0 0 auto;
       order: 1;
+      flex-wrap: wrap;
+    }
+
+    /* デッキセクション（Main, Extra, Side）のスタイル */
+    #ygo-deck-sections-container #main,
+    #ygo-deck-sections-container #extra,
+    #ygo-deck-sections-container #side {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      width: 100%;
     }
 
     #ygo-card-detail-container {
