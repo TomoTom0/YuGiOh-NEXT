@@ -324,7 +324,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: var(--text-primary);
+      color: var(--theme-text-on-gradient);
     }
 
     &.tab-header {

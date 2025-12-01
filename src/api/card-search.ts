@@ -1381,12 +1381,12 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
 }
 
 function isSpellEffectType(value: string): value is SpellEffectType {
-  const validTypes: SpellEffectType[] = ['通常', '速攻', '永続', '装備', 'フィールド', '儀式'];
+  const validTypes: SpellEffectType[] = ['normal', 'quick', 'continuous', 'equip', 'field', 'ritual'];
   return validTypes.includes(value as SpellEffectType);
 }
 
 function isTrapEffectType(value: string): value is TrapEffectType {
-  const validTypes: TrapEffectType[] = ['通常', '永続', 'カウンター'];
+  const validTypes: TrapEffectType[] = ['normal', 'continuous', 'counter'];
   return validTypes.includes(value as TrapEffectType);
 }
 

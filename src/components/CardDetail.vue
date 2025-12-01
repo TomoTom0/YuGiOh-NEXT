@@ -354,7 +354,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: var(--button-text);
+      color: var(--theme-text-on-gradient);
       border-right-color: transparent;
     }
   }
