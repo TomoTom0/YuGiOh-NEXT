@@ -719,8 +719,31 @@ export class UnifiedCacheDB {
     this.faqTableB.clear();
     this.cardTableCCache.clear();
 
-    // ストレージクリア
-    await chrome.storage.local.clear();
+    // ストレージクリア（Cache DB関連キーのみ削除、設定は保護）
+    const keysToRemove = [
+      STORAGE_KEYS.cardTier,
+      STORAGE_KEYS.deckOpenHistory,
+      STORAGE_KEYS.cardTableA,
+      STORAGE_KEYS.cardTableB,
+      STORAGE_KEYS.cardTableB2,
+      STORAGE_KEYS.productTableA,
+      STORAGE_KEYS.productTableB,
+      STORAGE_KEYS.faqTableA,
+      STORAGE_KEYS.faqTableB,
+      STORAGE_KEYS.moveHistory,
+      STORAGE_KEYS.lastCleanupAt
+    ];
+
+    // プレフィックス付きキーの削除（cardTableC:*, productTableB:*, faqTableB:*）
+    const allStorage = await chrome.storage.local.get();
+    const prefixedKeysToRemove = Object.keys(allStorage).filter(
+      key =>
+        key.startsWith(STORAGE_KEYS.cardTableCPrefix) ||
+        key.startsWith(STORAGE_KEYS.productTableBPrefix) ||
+        key.startsWith(STORAGE_KEYS.faqTableBPrefix)
+    );
+
+    await chrome.storage.local.remove([...keysToRemove, ...prefixedKeysToRemove]);
     console.log('[UnifiedCacheDB] All cache cleared');
   }
 
