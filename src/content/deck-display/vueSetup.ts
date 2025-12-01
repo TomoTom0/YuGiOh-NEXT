@@ -187,7 +187,7 @@ async function setupCardImageHoverUI(): Promise<void> {
         } else {
           console.log('[DeckDisplay] Click is NOT in left-top area, ignoring')
         }
-      })
+      }, true)
     }
   })
 }
