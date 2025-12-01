@@ -94,6 +94,10 @@ async function initializeFeatures(): Promise<void> {
       const { initDeckDisplayLayout } = await import('./deck-display/deckDisplayLayout');
       initDeckDisplayLayout();
 
+      // Card Detail UI を初期化
+      const { initCardDetailUI } = await import('./deck-display/card-detail-ui');
+      initCardDetailUI();
+
       // デッキ画像作成機能の初期化（設定で有効な場合のみ）
       if (await isFeatureEnabled('deck-image')) {
         const { initDeckImageButton } = await import('./deck-recipe');

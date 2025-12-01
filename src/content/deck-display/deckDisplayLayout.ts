@@ -79,6 +79,39 @@ export function applyDeckDisplayLayout(): void {
       font-size: 12px;
       line-height: 1.5;
     }
+
+    #ygo-card-detail-container .card-detail-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #ygo-card-detail-container .card-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    #ygo-card-detail-container .card-id,
+    #ygo-card-detail-container .card-type,
+    #ygo-card-detail-container .card-attribute,
+    #ygo-card-detail-container .card-race {
+      font-size: 11px;
+      color: #666;
+      padding: 4px 8px;
+      background: #f5f5f5;
+      border-radius: 2px;
+    }
+
+    /* デッキセクション内のカード画像をホバー時に強調 */
+    #ygo-deck-sections-container img[src*="/card/"] {
+      transition: transform 0.1s, filter 0.1s;
+    }
+
+    #ygo-deck-sections-container img[src*="/card/"]:hover {
+      transform: scale(1.05);
+      filter: brightness(1.1);
+    }
   `;
   document.head.appendChild(style);
 }
@@ -161,7 +194,6 @@ export function initDeckDisplayLayout(): void {
   // chrome.storage から設定を読み込み
   chrome.storage.local.get(['appSettings'], (result) => {
     const appSettings = (result.appSettings as Partial<AppSettings>) || {};
-    const showCardDetail = appSettings.showCardDetailInDeckDisplay ?? false;
     const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'large') as CardSize;
 
     // CSSを適用
@@ -170,13 +202,11 @@ export function initDeckDisplayLayout(): void {
     // 構造を変更
     restructureDeckImageLayout();
 
-    // CardDetailエリアを追加
-    if (showCardDetail) {
-      const deckImage = document.querySelector('#deck_image');
-      if (deckImage) {
-        const detailContainer = createCardDetailContainer();
-        deckImage.appendChild(detailContainer);
-      }
+    // CardDetailエリアを常に追加
+    const deckImage = document.querySelector('#deck_image');
+    if (deckImage) {
+      const detailContainer = createCardDetailContainer();
+      deckImage.appendChild(detailContainer);
     }
 
     // カード画像サイズを設定
