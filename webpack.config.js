@@ -114,11 +114,12 @@ module.exports = (env, argv) => {
         chunks: ['popup'],
       }),
 
-      // Options HTMLを生成
+      // Options HTMLを生成（ES Moduleスクリプト対応）
       new HtmlWebpackPlugin({
         template: './src/options/index.html',
         filename: 'options.html',
         chunks: ['options'],
+        scriptLoading: 'module',
       }),
     ],
 

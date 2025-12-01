@@ -28,7 +28,6 @@ import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
-import { forbiddenLimitedCache } from '@/utils/forbidden-limited-cache';
 import { detectCardGameType } from '@/utils/page-detector';
 import { getCardSearchEndpoint } from '@/utils/url-builder';
 
@@ -1731,6 +1730,7 @@ export async function getCardDetail(
     let relatedCards = parseRelatedCards(doc);
 
     // Related カードに限制規制情報を付与（禁止制限キャッシュから取得）
+    const { forbiddenLimitedCache } = await import('@/utils/forbidden-limited-cache');
     relatedCards = relatedCards.map(card => {
       const limitRegulation = forbiddenLimitedCache.getRegulation(card.cardId);
       if (limitRegulation && !card.limitRegulation) {
