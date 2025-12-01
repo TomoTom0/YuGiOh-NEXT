@@ -133,7 +133,6 @@ async function setupCardImageHoverUI(): Promise<void> {
 
         if (isLeftTop) {
           e.preventDefault()
-          e.stopPropagation()
         }
       }, true)
 
