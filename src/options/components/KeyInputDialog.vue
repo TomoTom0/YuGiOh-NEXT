@@ -36,13 +36,13 @@
         </div>
       </div>
       <div class="dialog-footer">
-        <button class="secondary-button" @click="$emit('cancel')">Cancel</button>
+        <button class="secondary-button" @click="$emit('cancel')">キャンセル</button>
         <button
           class="primary-button"
           :disabled="!capturedKey.key"
           @click="handleSave"
         >
-          Save
+          保存
         </button>
       </div>
     </div>
@@ -255,10 +255,11 @@ onUnmounted(() => {
 }
 
 .main-key {
-  background: var(--button-bg);
-  color: var(--button-text);
-  border-color: var(--color-info);
+  background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+  color: white;
+  border-color: #0068d9;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
 }
 
 .placeholder {
@@ -347,11 +348,12 @@ onUnmounted(() => {
 }
 
 .primary-button {
-  background: var(--button-bg);
-  color: var(--button-text);
+  background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 137, 255, 0.2);
 
   &:not(:disabled):hover {
-    background: var(--button-hover-bg);
+    background: linear-gradient(135deg, #0096ff 0%, #0075e6 100%);
   }
 }
 

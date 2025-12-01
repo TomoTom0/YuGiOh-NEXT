@@ -108,7 +108,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../stores/settings';
-import type { Theme, Language, MiddleDecksLayout } from '../types/settings';
+import type { Theme, Language, MiddleDecksLayout, CardSize } from '../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveStatus = ref<string>('');

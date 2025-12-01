@@ -10,6 +10,14 @@ module.exports = (env, argv) => {
     mode: isProduction ? 'production' : 'development',
     devtool: isProduction ? false : 'inline-source-map',
 
+    // ES Module出力を有効化（チャンク用）
+    experiments: {
+      outputModule: true,
+    },
+
+    // ESM環境であることを明示
+    target: ['web', 'es2020'],
+
     entry: {
       content: './src/content/index.ts',
       background: './src/background/main.ts',
@@ -20,7 +28,11 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
+      chunkFilename: '[name].chunk.js',
+      // publicPathは実行時に__webpack_public_path__で動的設定するため空に
       publicPath: '',
+      // チャンクの読み込み方式をネイティブimportに変更（チャンクのみES module）
+      chunkFormat: 'module',
       clean: true,
     },
 
@@ -102,11 +114,12 @@ module.exports = (env, argv) => {
         chunks: ['popup'],
       }),
 
-      // Options HTMLを生成
+      // Options HTMLを生成（ES Moduleスクリプト対応）
       new HtmlWebpackPlugin({
         template: './src/options/index.html',
         filename: 'options.html',
         chunks: ['options'],
+        scriptLoading: 'module',
       }),
     ],
 

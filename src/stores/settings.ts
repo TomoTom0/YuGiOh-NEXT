@@ -7,6 +7,7 @@ import type {
   Language,
   MiddleDecksLayout,
   SearchInputPosition,
+  SearchMode,
   KeyboardShortcut,
   FeatureSettings,
   StorageSettings
@@ -358,6 +359,30 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 検索モードのデフォルトを変更
+   */
+  function setDefaultSearchMode(mode: SearchMode): void {
+    appSettings.value.defaultSearchMode = mode;
+    saveSettings();
+  }
+
+  /**
+   * デッキ表示ページでCardDetail情報を表示するかを変更
+   */
+  function setShowCardDetailInDeckDisplay(enabled: boolean): void {
+    appSettings.value.showCardDetailInDeckDisplay = enabled;
+    saveSettings();
+  }
+
+  /**
+   * デッキ表示ページのカード画像サイズを変更
+   */
+  function setDeckDisplayCardImageSize(size: CardSize): void {
+    appSettings.value.deckDisplayCardImageSize = size;
+    saveSettings();
+  }
+
+  /**
    * 機能のON/OFF切り替え
    */
   function toggleFeature(featureId: string, enabled: boolean): void {
@@ -484,6 +509,9 @@ export const useSettingsStore = defineStore('settings', () => {
     addKeyboardShortcut,
     removeKeyboardShortcut,
     setSearchInputPosition,
+    setDefaultSearchMode,
+    setShowCardDetailInDeckDisplay,
+    setDeckDisplayCardImageSize,
     toggleFeature,
     resetSettings,
     applyTheme,

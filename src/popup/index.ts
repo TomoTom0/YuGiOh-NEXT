@@ -4,9 +4,8 @@
  * 独自デッキ編集画面とオプションページへのリンクを表示
  */
 
-// テーマSCSSをインポート
 import '../styles/themes.scss';
-import '../styles/common.scss';
+import './popup.css';
 import { createPinia } from 'pinia';
 import { useSettingsStore } from '../stores/settings';
 

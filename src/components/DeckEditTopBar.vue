@@ -159,7 +159,8 @@ import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import Toast from './Toast.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
-import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
+// 画像作成機能は動的importに変更（メニュー選択時のみロード）
+// import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
 import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
@@ -433,6 +434,9 @@ export default {
         // dnoを文字列に変換
         const dno = String(dnoNum)
 
+        // 画像作成機能を動的import（メニュー選択時のみロード）
+        const { showImageDialogWithData } = await import('../content/deck-recipe/imageDialog')
+
         // ダイアログを表示
         await showImageDialogWithData(cgid, dno, deckData, null)
       } catch (error) {
@@ -658,6 +662,7 @@ export default {
     padding: 12px 16px;
     border: none;
     background: var(--bg-primary);
+    color: var(--text-primary);
     text-align: left;
     cursor: pointer;
     font-size: 14px;
@@ -670,10 +675,12 @@ export default {
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary);
     }
 
     &:active {
       background: var(--bg-tertiary);
+      color: var(--text-primary);
     }
 
     &.danger {
@@ -748,6 +755,7 @@ export default {
   padding: 4px 8px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 3px;
   cursor: pointer;
   width: 40px;
@@ -760,11 +768,13 @@ export default {
 
   &:hover:not(:disabled) {
     background: var(--bg-secondary);
+    color: var(--text-primary);
   }
 
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+    color: var(--text-tertiary);
   }
 
   svg {
