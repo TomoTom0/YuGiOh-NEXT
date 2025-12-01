@@ -108,8 +108,10 @@ export function applyDeckDisplayLayout(): void {
       border-radius: 2px;
     }
 
-    /* デッキセクション内のカード画像をホバー時に強調 */
+    /* デッキセクション内のカード画像サイズ制御 */
     #ygo-deck-sections-container img[src*="/card/"] {
+      width: var(--deck-display-card-width, 60px);
+      height: auto;
       transition: transform 0.1s, filter 0.1s;
     }
 
