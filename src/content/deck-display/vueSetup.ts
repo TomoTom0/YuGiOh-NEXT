@@ -51,9 +51,23 @@ export async function setupVueApp(): Promise<void> {
  * カード画像のホバー UI を設定（info ボタンを表示）
  */
 async function setupCardImageHoverUI(): Promise<void> {
-  const { useCardDetailStore } = await import('../../stores/card-detail')
-  const { getCardDetailWithCache } = await import('../../api/card-search')
-  const cardDetailStore = useCardDetailStore()
+  let cardDetailStore
+  let getCardDetailWithCache
+
+  try {
+    const { useCardDetailStore } = await import('../../stores/card-detail')
+    const cardSearchModule = await import('../../api/card-search')
+    getCardDetailWithCache = cardSearchModule.getCardDetailWithCache
+    cardDetailStore = useCardDetailStore()
+
+    if (!cardDetailStore) {
+      console.warn('[DeckDisplay] Card detail store is not initialized')
+      return
+    }
+  } catch (error) {
+    console.warn('[DeckDisplay] Failed to initialize hover UI setup:', error)
+    return
+  }
 
   // #main > div.image_set > a のセレクタでカードリンクを取得
   const cardLinks = document.querySelectorAll('#main > div.image_set > a')
@@ -122,9 +136,9 @@ async function setupCardImageHoverUI(): Promise<void> {
           console.log('[DeckDisplay] Click is in left-top area, fetching card detail')
           e.preventDefault()
 
-          // リンクの href からカード ID を抽出
+          // リンクの href からカード ID を抽出（cid パラメータから）
           const href = link.getAttribute('href') || ''
-          const cardIdMatch = href.match(/\/card\/(\d+)/)
+          const cardIdMatch = href.match(/[?&]cid=(\d+)/)
           console.log('[DeckDisplay] Card ID extraction:', { href, cardIdMatch })
 
           if (cardIdMatch) {
