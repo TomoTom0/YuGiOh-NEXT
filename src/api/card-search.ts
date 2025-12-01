@@ -763,7 +763,8 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
       ope: '1',
       sess: '1',
       pid: packId,
-      rp: '99999'
+      rp: '99999',
+      sort: '1'
     });
 
     const url = `${getSearchUrl()}?${params.toString()}`;
