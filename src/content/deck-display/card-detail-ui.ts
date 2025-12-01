@@ -50,7 +50,19 @@ export async function initCardDetailUI(): Promise<void> {
     // 注: parseDeckDetail()内でparseCardSection()が呼ばれ、
     // すべてのカード情報がTempCardDBに保存される
     parsedDeckInfo = await parseDeckDetail(document);
-    console.log('[CardDetailUI] Deck info parsed:', parsedDeckInfo);
+
+    // 詳細なログ出力
+    if (parsedDeckInfo) {
+      console.log('[CardDetailUI] Deck info parsed successfully');
+      console.log('[CardDetailUI] Main Deck cards:', parsedDeckInfo.mainDeck.length);
+      console.log('[CardDetailUI] Extra Deck cards:', parsedDeckInfo.extraDeck.length);
+      console.log('[CardDetailUI] Side Deck cards:', parsedDeckInfo.sideDeck.length);
+      const tempCardDB = getTempCardDB();
+      console.log('[CardDetailUI] Cards in TempCardDB:', tempCardDB.size);
+      console.log('[CardDetailUI] Full parsed deck info:', parsedDeckInfo);
+    } else {
+      console.warn('[CardDetailUI] parseDeckInfo is null after parsing');
+    }
   } catch (error) {
     console.error('[CardDetailUI] Failed to parse deck info:', error);
     parsedDeckInfo = null;
