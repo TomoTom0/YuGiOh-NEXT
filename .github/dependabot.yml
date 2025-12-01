@@ -18,3 +18,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    # 複数の依存関係更新を1つのPRに集約する
+    groups:
+      dependencies:
+        patterns:
+          - "*"  # 全ての依存関係を1つのPRにまとめる
