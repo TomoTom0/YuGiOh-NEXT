@@ -6,6 +6,7 @@
  * @param apiEndpoint APIエンドポイント
  * @returns ytkn、取得失敗時はnull
  */
+
 export async function fetchYtknFromEditForm(
   cgid: string,
   dno: number,
@@ -39,7 +40,8 @@ export async function fetchYtknFromDeckList(
   apiEndpoint: string
 ): Promise<string | null> {
   try {
-    const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}`;
+    // fetchYtknFromEditFormと同じ要領でrequest_localeを含める
+    const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}&request_locale=ja`;
 
     // axiosを動的インポート
     const { default: axios } = await import('axios');
