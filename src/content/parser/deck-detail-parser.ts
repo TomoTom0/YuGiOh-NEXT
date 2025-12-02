@@ -1,6 +1,7 @@
 import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { detectLanguage } from '@/utils/language-detector';
 import {
   DeckTypeValue,
   DeckStyleValue,
@@ -354,6 +355,7 @@ function parseCardSection(
           deckCardRefs.push({
             cid,
             ciid: cardInfo.ciid,
+            lang: detectLanguage(document),
             quantity
           });
         } else if (ciidCounts.size === 1) {
@@ -373,6 +375,7 @@ function parseCardSection(
             deckCardRefs.push({
               cid,
               ciid,
+              lang: detectLanguage(document),
               quantity: info.count
             });
           }
@@ -394,6 +397,7 @@ function parseCardSection(
             deckCardRefs.push({
               cid,
               ciid,
+              lang: detectLanguage(document),
               quantity: info.count
             });
           });

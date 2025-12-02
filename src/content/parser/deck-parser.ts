@@ -2,6 +2,7 @@ import { DeckCardRef, CardInfo, MonsterCard, SpellCard, TrapCard } from '@/types
 import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { detectLanguage } from '@/utils/language-detector';
 
 /**
  * カードタイプ別のフィールド名マッピング
@@ -94,6 +95,7 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'monster',
       attribute: 'light', // デッキページからは取得不可、後で更新が必要
@@ -109,6 +111,7 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'spell'
     } as SpellCard;
@@ -118,6 +121,7 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'trap'
     } as TrapCard;
@@ -130,6 +134,7 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
   return {
     cid: cardId,
     ciid,
+    lang: detectLanguage(document),
     quantity
   };
 }

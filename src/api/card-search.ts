@@ -974,6 +974,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     ruby,
     cardId,
     ciid,
+    lang: detectLanguage(document),
     imgs,
     text,
     limitRegulation
@@ -1482,6 +1483,7 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
     name: cardName,
     cardId,
     ciid: '1',
+    lang: detectLanguage(document),
     imgs: [{ ciid: '1', imgHash: '' }]
   };
 

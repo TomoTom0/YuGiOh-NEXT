@@ -32,6 +32,8 @@ export interface CardBase {
   cardId: string;
   /** 画像識別子 (ciid) */
   ciid: string;
+  /** 言語コード（取得時の言語を記録） */
+  lang: string;
   /** 複数画像情報 */
   imgs: Array<{ciid: string; imgHash: string}>;
   /** 複数画像の有無を確認した日時（オプション）
@@ -150,6 +152,8 @@ export interface DeckCardRef {
   cid: string;
   /** 画像識別子 (ciid) */
   ciid: string;
+  /** 言語コード（カード取得時の言語を記録） */
+  lang: string;
   /** 枚数 */
   quantity: number;
 }
@@ -337,8 +341,8 @@ export interface DeckOpenHistory {
 export interface CardTableA {
   /** カードID (PK) */
   cardId: string;
-  /** カード名 */
-  name: string;
+  /** カード名（多言語対応: {lang: name} 形式） */
+  langsName: Record<string, string>;
   /** ふりがな */
   ruby?: string;
   /** 画像情報 */
@@ -405,10 +409,10 @@ export interface CardTableB {
 export interface CardTableB2 {
   /** カードID (PK) */
   cardId: string;
-  /** 効果テキスト */
-  text?: string;
-  /** ペンデュラムテキスト */
-  pendText?: string;
+  /** 効果テキスト（多言語対応: {lang: text} 形式） */
+  langsText?: Record<string, string>;
+  /** ペンデュラムテキスト（多言語対応: {lang: text} 形式） */
+  langsPendText?: Record<string, string>;
   /** 取得日時 (timestamp) */
   fetchedAt: number;
 }

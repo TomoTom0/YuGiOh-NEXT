@@ -10,6 +10,7 @@ import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
+import { detectLanguage } from '../utils/language-detector';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -342,7 +343,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       } catch (e) {
         // ignore
       }
-      targetDeck.push({ cid: card.cardId, ciid: card.ciid, quantity: 1 });
+      targetDeck.push({ cid: card.cardId, ciid: card.ciid, lang: detectLanguage(document), quantity: 1 });
     }
     
     // displayOrder更新
@@ -636,7 +637,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), quantity: 1 });
+      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: detectLanguage(document), quantity: 1 });
     }
     
     // 移動したカードのuuidを返す
@@ -1032,7 +1033,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       existingCard.quantity++;
     } else {
       tempCardDB.set(cardId, cardInfo);
-      targetDeck.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+      targetDeck.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
     }
     
     // displayOrder更新（targetUuidの位置に挿入）
@@ -1083,7 +1084,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          targetDeck2.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+          targetDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const toOrder2 = displayOrder.value[to];
@@ -1116,7 +1117,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          fromDeck2.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+          fromDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const fromOrder2 = displayOrder.value[from];

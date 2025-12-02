@@ -17,6 +17,7 @@ import type {
   CardInfo
 } from '../types/card';
 import { safeStorageGet, safeStorageSet } from './extension-context-checker';
+import { detectLanguage } from './language-detector';
 
 // 定数
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -326,10 +327,16 @@ export class UnifiedCacheDB {
       }
     }
 
+    // 言語を取得（CardInfo.langまたはドキュメントから）
+    const lang = card.lang || detectLanguage(document);
+
     // TableA
     const tableA: CardTableA = {
       cardId: card.cardId,
-      name: card.name,
+      langsName: {
+        ...existing?.langsName,
+        [lang]: card.name
+      },
       ruby: card.ruby,
       imgs: card.imgs,
       fetchedAt: now
@@ -363,13 +370,21 @@ export class UnifiedCacheDB {
 
     this.cardTableB.set(card.cardId, tableB);
 
-    // TableB2 (text, pendText)
+    // TableB2 (langsText, langsPendText)
     const cardAny = card as any;
     if (cardAny.text || cardAny.pendulumText) {
+      const existingB2 = this.cardTableB2.get(card.cardId);
+      const langsText = cardAny.text
+        ? { ...existingB2?.langsText, [lang]: cardAny.text }
+        : existingB2?.langsText;
+      const langsPendText = cardAny.pendulumText
+        ? { ...existingB2?.langsPendText, [lang]: cardAny.pendulumText }
+        : existingB2?.langsPendText;
+
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
-        text: cardAny.text,
-        pendText: cardAny.pendulumText,
+        langsText: langsText && Object.keys(langsText).length > 0 ? langsText : undefined,
+        langsPendText: langsPendText && Object.keys(langsPendText).length > 0 ? langsPendText : undefined,
         fetchedAt: now
       };
       this.cardTableB2.set(card.cardId, tableB2);
@@ -744,10 +759,29 @@ export class UnifiedCacheDB {
 
     if (!tableA || !tableB) return undefined;
 
+    // 言語を取得（ドキュメントから）
+    const lang = detectLanguage(document);
+
+    // langsNameから適切な言語を抽出
+    let name: string | undefined;
+    if (tableA.langsName && tableA.langsName[lang]) {
+      name = tableA.langsName[lang];
+    } else if (tableA.langsName) {
+      // 指定言語がない場合は最初の言語を使用
+      const firstLang = Object.keys(tableA.langsName)[0];
+      name = firstLang ? tableA.langsName[firstLang] : undefined;
+    }
+
+    if (!name) {
+      console.warn(`[reconstructCardInfo] No name found for cardId=${cardId}`);
+      return undefined;
+    }
+
     // 基本情報
     const baseInfo = {
       cardId: tableA.cardId,
-      name: tableA.name,
+      name,
+      lang,
       imgs: tableA.imgs,
       ciid: tableA.imgs[0]?.ciid || '',
       ruby: tableA.ruby,
@@ -785,12 +819,30 @@ export class UnifiedCacheDB {
       } as CardInfo;
     }
 
-    // TableB2からtext/pendTextをマージ
+    // TableB2からlangsText/langsPendTextをマージ
     const tableB2 = this.cardTableB2.get(cardId);
     if (tableB2) {
       const anyCard: any = resultCard as any;
-      if (tableB2.text) anyCard.text = tableB2.text;
-      if (tableB2.pendText) anyCard.pendulumText = tableB2.pendText;
+
+      // langsTextから適切な言語を抽出
+      if (tableB2.langsText) {
+        if (tableB2.langsText[lang]) {
+          anyCard.text = tableB2.langsText[lang];
+        } else {
+          const firstLang = Object.keys(tableB2.langsText)[0];
+          if (firstLang) anyCard.text = tableB2.langsText[firstLang];
+        }
+      }
+
+      // langsPendTextから適切な言語を抽出
+      if (tableB2.langsPendText) {
+        if (tableB2.langsPendText[lang]) {
+          anyCard.pendulumText = tableB2.langsPendText[lang];
+        } else {
+          const firstLang = Object.keys(tableB2.langsPendText)[0];
+          if (firstLang) anyCard.pendulumText = tableB2.langsPendText[firstLang];
+        }
+      }
     }
 
     // Synchronous merge: if CardTableC for this card is present in the in-memory cache,
