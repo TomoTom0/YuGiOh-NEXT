@@ -14,8 +14,6 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      // Vitest形式ではないテストファイル（describe/itを使用していない）
-      'tests/combine/**',
       'tests/unit/stores/deck-edit.test.ts',
       'ref/**',
     ],
