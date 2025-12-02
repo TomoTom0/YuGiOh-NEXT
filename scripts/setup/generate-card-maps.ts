@@ -1,8 +1,20 @@
 import * as fs from 'fs';
 
 // マッピングデータを読み込み
-const raceMappingsAll = JSON.parse(fs.readFileSync('./tmp/race-mappings-all.json', 'utf-8'));
-const monsterTypeMappingsAll = JSON.parse(fs.readFileSync('./tmp/monster-type-mappings-all.json', 'utf-8'));
+let raceMappingsAll: any = {};
+let monsterTypeMappingsAll: any = {};
+
+try {
+  raceMappingsAll = JSON.parse(fs.readFileSync('./tmp/race-mappings-all.json', 'utf-8'));
+} catch (error) {
+  console.warn('Warning: ./tmp/race-mappings-all.json not found, using empty mapping');
+}
+
+try {
+  monsterTypeMappingsAll = JSON.parse(fs.readFileSync('./tmp/monster-type-mappings-all.json', 'utf-8'));
+} catch (error) {
+  console.warn('Warning: ./tmp/monster-type-mappings-all.json not found, using empty mapping');
+}
 
 // 全言語リスト
 const languages = ['ja', 'ko', 'ae', 'cn', 'en', 'de', 'fr', 'it', 'es', 'pt'];
@@ -56,6 +68,35 @@ const RACE_MAP = {
   illusion: '幻想魔族',
 };
 
+const RACE_SHORT_NAME_MAP = {
+  dragon: 'ドラゴン',
+  warrior: '戦士',
+  spellcaster: '魔法使い',
+  fairy: '天使',
+  fiend: '悪魔',
+  zombie: 'アンデット',
+  machine: '機械',
+  aqua: '水',
+  pyro: '炎',
+  rock: '岩石',
+  windbeast: '鳥獣',
+  plant: '植物',
+  insect: '昆虫',
+  thunder: '雷',
+  beast: '獣',
+  beastwarrior: '獣戦士',
+  dinosaur: '恐竜',
+  fish: '魚',
+  seaserpent: '海竜',
+  reptile: '爬虫類',
+  psychic: 'サイキック',
+  divine: '幻神獣',
+  creatorgod: '創造神',
+  wyrm: '幻竜',
+  cyberse: 'サイバース',
+  illusion: '幻想魔族',
+};
+
 const MONSTER_TYPE_MAP = {
   normal: '通常',
   effect: '効果',
@@ -72,6 +113,25 @@ const MONSTER_TYPE_MAP = {
   flip: 'リバース',
   toon: 'トゥーン',
   special: '特殊召喚',
+};
+
+// VALUE_TO_MONSTER_TYPE マッピング（整数値→内部ID）
+const VALUE_TO_MONSTER_TYPE: { [key: string]: string } = {
+  '1': 'normal',
+  '2': 'effect',
+  '3': 'fusion',
+  '4': 'ritual',
+  '5': 'synchro',
+  '6': 'xyz',
+  '7': 'pendulum',
+  '8': 'link',
+  '9': 'tuner',
+  '10': 'spirit',
+  '11': 'union',
+  '12': 'gemini',
+  '13': 'flip',
+  '14': 'toon',
+  '15': 'special',
 };
 
 const SPELL_EFFECT_TYPE_MAP = {
@@ -93,13 +153,24 @@ const TRAP_EFFECT_TYPE_MAP = {
 // マッピング生成
 // ============================================================================
 
-// 日本語→内部IDのマッピングを作成
-const jaRaceMapping = raceMappingsAll['ja'];
-const jaMonsterTypeMapping = monsterTypeMappingsAll['ja'];
+// 内部ID→整数IDのマッピング（逆引き）
+const internalIdToRaceId: { [key: string]: number } = {};
+for (const [strId, internalId] of Object.entries(VALUE_TO_RACE_ID)) {
+  internalIdToRaceId[internalId] = parseInt(strId, 10);
+}
+
+const internalIdToMonsterTypeId: { [key: string]: number } = {};
+for (const [strId, internalId] of Object.entries(VALUE_TO_MONSTER_TYPE)) {
+  internalIdToMonsterTypeId[internalId] = parseInt(strId, 10);
+}
 
 // 数値ID→内部IDのマッピングを作成
 const raceIdToInternalId: { [key: string]: string } = {};
 const monsterTypeIdToInternalId: { [key: string]: string } = {};
+
+// Chrome Storage から取得したマッピングデータを使用
+const jaRaceMapping = raceMappingsAll['ja'] || {};
+const jaMonsterTypeMapping = monsterTypeMappingsAll['ja'] || {};
 
 for (const [internalId, jaText] of Object.entries(RACE_MAP)) {
   const numericId = jaRaceMapping[jaText];
@@ -183,6 +254,16 @@ export const RACE_MAP = ${JSON.stringify(RACE_MAP, null, 2)} as const;
 export type Race = keyof typeof RACE_MAP;
 
 /**
+ * 種族の日本語短名称（族の字なし）
+ */
+export const RACE_SHORT_NAME_MAP = ${JSON.stringify(RACE_SHORT_NAME_MAP, null, 2)} as const;
+
+/**
+ * 種族の整数ID（内部値→ID）
+ */
+export const RACE_ID_MAP = ${JSON.stringify(internalIdToRaceId, null, 2)} as const;
+
+/**
  * 各言語のテキスト → 識別子への変換マップ
  */
 `;
@@ -235,6 +316,11 @@ export const RACE_TEXT_TO_ID = RACE_TEXT_TO_ID_JA;
 export const MONSTER_TYPE_MAP = ${JSON.stringify(MONSTER_TYPE_MAP, null, 2)} as const;
 
 export type MonsterType = keyof typeof MONSTER_TYPE_MAP;
+
+/**
+ * モンスタータイプの整数ID（内部値→ID）
+ */
+export const MONSTER_TYPE_ID_MAP = ${JSON.stringify(internalIdToMonsterTypeId, null, 2)} as const;
 
 /**
  * 各言語のテキスト → 識別子への変換マップ

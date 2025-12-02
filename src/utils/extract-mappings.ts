@@ -9,6 +9,7 @@ import {
   SpellEffectType,
   TrapEffectType,
   RACE_ID_TO_INT,
+  MONSTER_TYPE_VALUE_TO_ID,
   ATTRIBUTE_ID_TO_INT,
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT,
@@ -323,22 +324,5 @@ function valueToTrapEffectId(value: string): TrapEffectType | null {
  */
 function valueToMonsterTypeId(value: string): MonsterType | null {
   const numValue = parseInt(value, 10);
-  // HTML value 属性 → 内部ID マッピング
-  const valueToTypeMap: { [key: number]: MonsterType } = {
-    0: 'normal',      // Normal
-    1: 'effect',      // Effect
-    2: 'fusion',      // Fusion
-    3: 'ritual',      // Ritual
-    4: 'toon',        // Toon
-    5: 'spirit',      // Spirit
-    6: 'union',       // Union
-    7: 'gemini',      // Gemini
-    8: 'tuner',       // Tuner
-    9: 'synchro',     // Synchro
-    10: 'xyz',        // Xyz
-    14: 'flip',       // Flip
-    15: 'pendulum',   // Pendulum
-    17: 'link',       // Link
-  };
-  return valueToTypeMap[numValue] || null;
+  return (MONSTER_TYPE_VALUE_TO_ID as Record<number, MonsterType>)[numValue] || null;
 }
