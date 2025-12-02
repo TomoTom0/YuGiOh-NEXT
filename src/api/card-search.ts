@@ -998,9 +998,15 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
   const raceMap = mappingManager.getRaceTextToId(lang);
   const typeMap = mappingManager.getMonsterTypeTextToId(lang);
 
-  // 括弧を除去してスラッシュで分割（日本語【】、英語[]に対応）
-  const cleaned = speciesText.replace(/【|】|\[|\]/g, '').trim();
-  const parts = cleaned.split('／').map(p => p.trim()).filter(p => p);
+  // 括弧を除去し、複数の改行・スペースを単一スペースに統一してからスラッシュで分割
+  // （日本語【】、英語[]に対応、全角スラッシュ・半角スラッシュに対応）
+  let cleaned = speciesText
+    .replace(/【|】|\[|\]/g, '') // 括弧を除去
+    .replace(/\s+/g, ' ') // 複数のホワイトスペース（改行含む）を単一スペースに統一
+    .trim();
+
+  // スラッシュで分割（全角・半角両方に対応）
+  const parts = cleaned.split(/[／\/]/).map(p => p.trim()).filter(p => p);
 
   if (parts.length === 0) return null;
 
@@ -1012,6 +1018,7 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
   // テキスト → 識別子に変換（言語別マッピングを使用）
   const race = raceMap[raceText];
   if (!race) {
+    console.error(`[parseSpeciesAndTypes] Race text not found in mapping: "${raceText}" (lang: ${lang})`);
     return null;
   }
 
@@ -1021,6 +1028,7 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
     if (type) {
       types.push(type);
     } else {
+      console.warn(`[parseSpeciesAndTypes] Monster type text not found in mapping: "${typeText}" (lang: ${lang})`);
     }
   }
 
@@ -1039,12 +1047,14 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   // 属性取得（必須）
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
   if (!attrImg?.src) {
+    console.error('[parseMonsterCard] Attribute image not found for card:', base.name);
     return null;
   }
 
   // src属性から属性名を抽出: "attribute_icon_light.png" → "light"
   const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
   if (!attrMatch || !attrMatch[1]) {
+    console.error('[parseMonsterCard] Failed to parse attribute from image src:', attrImg.src, 'for card:', base.name);
     return null;
   }
   const attrPath = attrMatch[1];
@@ -1052,6 +1062,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   // パス → 識別子に変換
   const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
   if (!attribute) {
+    console.error('[parseMonsterCard] Unknown attribute path:', attrPath, 'for card:', base.name);
     return null;
   }
 
@@ -1088,9 +1099,11 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
       if (match) {
         levelValue = parseInt(match[0], 10);
       } else {
+        console.error('[parseMonsterCard] Failed to extract level/rank value from:', levelSpan.textContent, 'for card:', base.name);
         return null; // レベル/ランク値が取得できない
       }
     } else {
+      console.error('[parseMonsterCard] Level/rank span text not found for card:', base.name);
       return null;
     }
   } else if (linkMarkerElem) {
@@ -1104,9 +1117,11 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
       if (match) {
         levelValue = parseInt(match[0], 10);
       } else {
+        console.error('[parseMonsterCard] Failed to extract link value from:', linkSpan.textContent, 'for card:', base.name);
         return null; // リンク数が取得できない
       }
     } else {
+      console.error('[parseMonsterCard] Link marker span text not found for card:', base.name);
       return null;
     }
 
@@ -1121,17 +1136,20 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     }
   } else {
     // レベル/ランク/リンク要素が存在しない
+    console.error('[parseMonsterCard] Level/rank/link element not found for card:', base.name);
     return null;
   }
 
   // 種族・タイプ取得（必須）
   const speciesElem = row.querySelector('.card_info_species_and_other_item');
   if (!speciesElem?.textContent) {
+    console.error('[parseMonsterCard] Species element not found for card:', base.name);
     return null;
   }
 
   const parsed = parseSpeciesAndTypes(row.ownerDocument!, speciesElem.textContent);
   if (!parsed) {
+    console.error('[parseMonsterCard] Failed to parse species and types from:', speciesElem.textContent, 'for card:', base.name);
     return null;
   }
   const { race, types } = parsed;
@@ -1143,23 +1161,36 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 
   if (specElem) {
     const spans = Array.from(specElem.querySelectorAll('span'));
+    let atkFound = false;
+    let defFound = false;
+
     spans.forEach(span => {
       const text = span.textContent || '';
+      // 複数のホワイトスペース（改行含む）を単一スペースに統一
+      const normalized = text.replace(/\s+/g, ' ').trim();
 
-      // "攻撃力 3000" → 3000
-      const atkMatch = text.match(/攻撃力[:\s]*([0-9X?]+)/);
-      if (atkMatch && atkMatch[1]) {
-        const value = atkMatch[1];
+      // 日本語: "攻撃力 3000" または英語: "ATK 3000"
+      const atkMatch = normalized.match(/(攻撃力|ATK)[:\s]*([0-9X?]+)/);
+      if (atkMatch && atkMatch[2]) {
+        const value = atkMatch[2];
         atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+        atkFound = true;
       }
 
-      // "守備力 2500" → 2500
-      const defMatch = text.match(/守備力[:\s]*([0-9X?]+)/);
-      if (defMatch && defMatch[1]) {
-        const value = defMatch[1];
+      // 日本語: "守備力 2500" または英語: "DEF 2500"
+      const defMatch = normalized.match(/(守備力|DEF)[:\s]*([0-9X?]+)/);
+      if (defMatch && defMatch[2]) {
+        const value = defMatch[2];
         def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+        defFound = true;
       }
     });
+
+    if (!atkFound || !defFound) {
+      console.warn('[parseMonsterCard] ATK/DEF not fully parsed for card:', base.name, 'ATK:', atkFound ? atk : 'NOT FOUND', 'DEF:', defFound ? def : 'NOT FOUND', 'Spec content:', specElem.textContent);
+    }
+  } else {
+    console.warn('[parseMonsterCard] Spec element not found for card:', base.name);
   }
 
   // ペンデュラム情報取得（オプション）
@@ -1223,7 +1254,10 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   // 魔法であることを確認
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
-  if (!attrImg?.src?.includes('attribute_icon_spell')) return null;
+  if (!attrImg?.src?.includes('attribute_icon_spell')) {
+    console.error('[parseSpellCard] Attribute is not spell for card:', base.name, 'src:', attrImg?.src);
+    return null;
+  }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
@@ -1261,7 +1295,10 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
 function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   // 罠であることを確認
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
-  if (!attrImg?.src?.includes('attribute_icon_trap')) return null;
+  if (!attrImg?.src?.includes('attribute_icon_trap')) {
+    console.error('[parseTrapCard] Attribute is not trap for card:', base.name, 'src:', attrImg?.src);
+    return null;
+  }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
@@ -1303,12 +1340,16 @@ export function parseSearchResultRow(
   // 1. 共通情報を取得
   const base = parseCardBase(row, imageInfoMap);
   if (!base) {
+    const cardNameElem = row.querySelector('.card_info_name');
+    const cardName = cardNameElem?.textContent || 'UNKNOWN';
+    console.error('[parseSearchResultRow] Failed to parse card base for card:', cardName);
     return null;
   }
 
   // 2. カードタイプを判定
   const cardType = detectCardType(row);
   if (!cardType) {
+    console.error('[parseSearchResultRow] Could not detect card type for card:', base.name);
     return null;
   }
 
@@ -1321,6 +1362,7 @@ export function parseSearchResultRow(
     case 'trap':
       return parseTrapCard(row, base);
     default:
+      console.error('[parseSearchResultRow] Unknown card type:', cardType, 'for card:', base.name);
       return null;
   }
 }
@@ -1575,18 +1617,21 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   let levelValue: number = 0;
 
   for (const elem of frameElems) {
-    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+    let value = elem.querySelector('.item_box_value')?.textContent?.trim();
     if (!value) continue;
 
-    if (value.includes('レベル')) {
+    // ホワイトスペース正規化
+    value = value.replace(/\s+/g, ' ').trim();
+
+    if (value.includes('レベル') || value.includes('Level')) {
       levelType = 'level';
       const match = value.match(/(\d+)/);
       if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('ランク')) {
+    } else if (value.includes('ランク') || value.includes('Rank')) {
       levelType = 'rank';
       const match = value.match(/(\d+)/);
       if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('リンク')) {
+    } else if (value.includes('リンク') || value.includes('Link')) {
       levelType = 'link';
       const match = value.match(/(\d+)/);
       if (match) levelValue = parseInt(match[1], 10);
@@ -1599,14 +1644,17 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
 
   for (const elem of frameElems) {
     const title = elem.querySelector('.item_box_title')?.textContent?.trim();
-    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+    let value = elem.querySelector('.item_box_value')?.textContent?.trim();
+
+    // ホワイトスペース正規化（複数の改行・スペースを単一スペースに統一）
+    if (value) {
+      value = value.replace(/\s+/g, ' ').trim();
+    }
 
     if (title === 'ATK' && value) {
-      const trimmed = value.trim();
-      atk = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
+      atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
     } else if (title === 'DEF' && value) {
-      const trimmed = value.trim();
-      def = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
+      def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
     }
   }
 

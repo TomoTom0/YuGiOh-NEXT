@@ -335,6 +335,10 @@ function parseCardSection(
       rows.forEach((row) => {
         const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
         if (!cardInfo) {
+          // カード名を取得してエラーログ出力
+          const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
+          const cardName = cardNameElem?.textContent || 'UNKNOWN';
+          console.error(`[parseCardSection] Failed to parse card: ${cardName} (section: ${sectionId})`);
           return;
         }
 

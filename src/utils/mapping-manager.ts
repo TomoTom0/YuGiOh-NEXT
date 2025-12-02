@@ -4,16 +4,26 @@
  * ストレージから動的マッピングを取得し、静的マッピングより優先して使用
  */
 
-import { Race, MonsterType } from '@/types/card';
 import {
-  RACE_TEXT_TO_ID_BY_LANG as STATIC_RACE,
-  MONSTER_TYPE_TEXT_TO_ID_BY_LANG as STATIC_MONSTER_TYPE,
+  Race,
+  MonsterType,
+  Attribute,
+  SpellEffectType,
+  TrapEffectType,
+  RACE_ID_TO_NAME,
+  ATTRIBUTE_ID_TO_NAME,
+  MONSTER_TYPE_ID_TO_NAME,
+  SPELL_EFFECT_TYPE_ID_TO_NAME,
+  TRAP_EFFECT_TYPE_ID_TO_NAME,
 } from '@/types/card-maps';
 import { detectLanguage } from './language-detector';
 
 interface DynamicMappings {
-  race: Record<string, Race>;
-  monsterType: Record<string, MonsterType>;
+  race: Partial<Record<Race, string>>;
+  monsterType: Partial<Record<MonsterType, string>>;
+  attribute: Partial<Record<Attribute, string>>;
+  spellEffect: Partial<Record<SpellEffectType, string>>;
+  trapEffect: Partial<Record<TrapEffectType, string>>;
   updatedAt: number;
   quarter: string;
 }
@@ -43,43 +53,194 @@ class MappingManager {
   }
 
   /**
-   * 指定言語のマッピングをロード（必要なら更新も実行）
-   * Content script では background の updater は使用できないため、静的マッピングのみ使用
+   * 指定言語のマッピングをロード（キャッシュがなければ非同期で取得）
    */
   private async loadLanguageMapping(lang: string): Promise<void> {
-    // Content script では動的更新は行わず、静的マッピングのみ使用
+    try {
+      // Chrome Storage からマッピング情報を読み込み
+      const storageKey = `ygo-mappings:${lang}`;
+      const stored = await chrome.storage.local.get(storageKey);
+
+      if (stored[storageKey]) {
+        const dynamicMapping = stored[storageKey] as DynamicMappings;
+        this.dynamicMappings.set(lang, dynamicMapping);
+        console.log(`[MappingManager] Loaded dynamic mappings for ${lang} from storage`);
+      } else {
+        // キャッシュがなければ requestIdleCallback で非同期取得
+        this.scheduleAsyncFetch(lang);
+      }
+    } catch (error) {
+      console.warn(`[MappingManager] Failed to load mappings for ${lang}:`, error);
+      // エラーの場合は静的マッピングを使用
+    }
   }
 
   /**
-   * 言語コードから種族マッピングテーブルを取得
-   *
-   * 優先順位：動的マッピング > 静的マッピング
+   * requestIdleCallback を使ってidle時にマッピング情報を非同期取得
    */
-  getRaceTextToId(lang: string): Record<string, Race> {
-    // 動的マッピングがある場合、それを使用
+  private scheduleAsyncFetch(lang: string): void {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        this.fetchAndStoreMappings(lang).catch(error => {
+          console.error(`[MappingManager] Failed to fetch mappings for ${lang}:`, error);
+        });
+      });
+    } else {
+      // requestIdleCallback が利用できない場合は setTimeout でスケジュール
+      setTimeout(() => {
+        this.fetchAndStoreMappings(lang).catch(error => {
+          console.error(`[MappingManager] Failed to fetch mappings for ${lang}:`, error);
+        });
+      }, 5000);
+    }
+  }
+
+  /**
+   * カード検索ページからマッピング情報を取得して保存
+   */
+  private async fetchAndStoreMappings(lang: string): Promise<void> {
+    try {
+      const { extractMappingsFromSearchPage } = await import('./extract-mappings');
+      const mappings = await extractMappingsFromSearchPage(lang);
+
+      if (mappings) {
+        const dynamicMapping: DynamicMappings = {
+          ...mappings,
+          updatedAt: Date.now(),
+          quarter: new Date().toISOString().split('T')[0]
+        };
+
+        this.dynamicMappings.set(lang, dynamicMapping);
+
+        // Chrome Storage に保存
+        const storageKey = `ygo-mappings:${lang}`;
+        await chrome.storage.local.set({ [storageKey]: dynamicMapping });
+        console.log(`[MappingManager] Stored dynamic mappings for ${lang}`);
+      }
+    } catch (error) {
+      console.error(`[MappingManager] Error fetching mappings for ${lang}:`, error);
+    }
+  }
+
+  /**
+   * 言語コードから種族マッピングテーブルを取得（表示テキスト → 内部値）
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング（逆引き）
+   * - その他：動的マッピング > なし（動的取得を促す）
+   */
+  getRaceTextToId(lang: string): Partial<Record<Race, string>> {
+    if (lang === 'ja') {
+      // 日本語は常に静的マッピングの逆引きを返す
+      const result: Partial<Record<Race, string>> = {};
+      for (const [internalId, jaText] of Object.entries(RACE_ID_TO_NAME)) {
+        result[jaText as Race] = internalId;
+      }
+      return result;
+    }
+
+    // 日本語以外は動的マッピングを返す
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping) {
+    if (dynamicMapping && Object.keys(dynamicMapping.race).length > 0) {
       return dynamicMapping.race;
     }
 
-    // 静的マッピングをフォールバック（jaは必ず存在）
-    return STATIC_RACE[lang] || STATIC_RACE['ja']!;
+    return {};
   }
 
   /**
-   * 言語コードからモンスタータイプマッピングテーブルを取得
+   * 言語コードからモンスタータイプマッピングテーブルを取得（表示テキスト → 内部値）
    *
-   * 優先順位：動的マッピング > 静的マッピング
+   * 優先順位：
+   * - ja：常に日本語静的マッピング（逆引き）
+   * - その他：動的マッピング > なし（動的取得を促す）
    */
   getMonsterTypeTextToId(lang: string): Record<string, MonsterType> {
-    // 動的マッピングがある場合、それを使用
-    const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping) {
-      return dynamicMapping.monsterType;
+    if (lang === 'ja') {
+      const result: Record<string, MonsterType> = {};
+      for (const [internalId, text] of Object.entries(MONSTER_TYPE_ID_TO_NAME)) {
+        result[text] = internalId as MonsterType;
+      }
+      return result;
     }
 
-    // 静的マッピングをフォールバック（jaは必ず存在）
-    return STATIC_MONSTER_TYPE[lang] || STATIC_MONSTER_TYPE['ja']!;
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping && Object.keys(dynamicMapping.monsterType).length > 0) {
+      return dynamicMapping.monsterType as Record<string, MonsterType>;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから属性マッピングテーブルを取得（表示テキスト → 内部値）
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング（逆引き）
+   * - その他：動的マッピング > なし（動的取得を促す）
+   */
+  getAttributeTextToId(lang: string): Partial<Record<Attribute, string>> {
+    if (lang === 'ja') {
+      // 日本語は常に静的マッピングの逆引きを返す
+      const result: Partial<Record<Attribute, string>> = {};
+      for (const [internalId, jaText] of Object.entries(ATTRIBUTE_ID_TO_NAME)) {
+        result[jaText as Attribute] = internalId;
+      }
+      return result;
+    }
+
+    // 日本語以外は動的マッピングを返す
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping && Object.keys(dynamicMapping.attribute).length > 0) {
+      return dynamicMapping.attribute;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから魔法効果種類マッピングテーブルを取得（表示テキスト → 内部値）
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング（逆引き）
+   * - その他：動的マッピング > なし（動的取得を促す）
+   */
+  getSpellEffectTextToId(lang: string): Partial<Record<SpellEffectType, string>> {
+    if (lang === 'ja') {
+      // 日本語は常に静的マッピングの逆引きを返す
+      const result: Partial<Record<SpellEffectType, string>> = {};
+      for (const [internalId, jaText] of Object.entries(SPELL_EFFECT_TYPE_ID_TO_NAME)) {
+        result[jaText as SpellEffectType] = internalId;
+      }
+      return result;
+    }
+
+    // 日本語以外は動的マッピングを返す
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping && Object.keys(dynamicMapping.spellEffect).length > 0) {
+      return dynamicMapping.spellEffect;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから罠効果種類マッピングテーブルを取得（日本語表示名 → 内部値）
+   *
+   * 優先順位：動的マッピング > 日本語静的マッピング（逆引き）
+   */
+  getTrapEffectTextToId(lang: string): Partial<Record<TrapEffectType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping && Object.keys(dynamicMapping.trapEffect).length > 0) {
+      return dynamicMapping.trapEffect;
+    }
+
+    // 動的マッピングがない場合は日本語静的マッピングの逆引きを返す
+    const result: Partial<Record<TrapEffectType, string>> = {};
+    for (const [internalId, jaText] of Object.entries(TRAP_EFFECT_TYPE_ID_TO_NAME)) {
+      result[jaText as TrapEffectType] = internalId;
+    }
+    return result;
   }
 
   /**
