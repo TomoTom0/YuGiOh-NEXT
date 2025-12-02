@@ -9,7 +9,6 @@ import {
   SpellEffectType,
   TrapEffectType,
   RACE_ID_TO_INT,
-  MONSTER_TYPE_ID_TO_INT,
   ATTRIBUTE_ID_TO_INT,
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT,
@@ -77,13 +76,43 @@ export async function extractMappingsFromSearchPage(lang: string): Promise<Mappi
 
 /**
  * MonsterType（モンスタータイプ）マッピングを抽出
- *
- * YGO公式カード検索ページのHTMLには、Normal/Effect/Fusion等のMonsterType
- * フィルタが提供されていないため、searchページからは抽出できない。
- * 代わりに静的マッピング（MONSTER_TYPE_ID_TO_NAME）を使用する。
+ * HTML から内部ID → 表示テキスト のマッピングを作成
  */
 function extractMonsterTypeMapping(doc: Document): Partial<Record<MonsterType, string>> {
   const monsterTypeMap: Partial<Record<MonsterType, string>> = {};
+
+  // Card Type フィルタで MonsterType 項目を抽出
+  const cardTypeFilters = doc.querySelectorAll('[id*="filter_other"]');
+
+  cardTypeFilters.forEach((filter) => {
+    // Card Type フィルタ（最初のfilter_other）を特定
+    const title = filter.querySelector('h3');
+    if (!title || !title.textContent?.includes('Card Type')) {
+      return;
+    }
+
+    const listItems = filter.querySelectorAll('li');
+
+    listItems.forEach((li) => {
+      const span = li.querySelector('span');
+      const input = li.querySelector('input[name="other"]');
+
+      if (span && input) {
+        // ホワイトスペース正規化
+        const displayText = span.textContent?.replace(/\s+/g, ' ').trim();
+        const value = input.getAttribute('value');
+
+        if (displayText && value) {
+          const typeId = valueToMonsterTypeId(value);
+          if (typeId) {
+            // 内部値 → その言語での表示テキスト
+            monsterTypeMap[typeId] = displayText;
+          }
+        }
+      }
+    });
+  });
+
   return monsterTypeMap;
 }
 
@@ -286,4 +315,30 @@ function valueToTrapEffectId(value: string): TrapEffectType | null {
     }
   }
   return null;
+}
+
+/**
+ * value 属性をMonsterType IDに変換
+ * HTMLの"other"フィルタの値から内部IDへマッピング
+ */
+function valueToMonsterTypeId(value: string): MonsterType | null {
+  const numValue = parseInt(value, 10);
+  // HTML value 属性 → 内部ID マッピング
+  const valueToTypeMap: { [key: number]: MonsterType } = {
+    0: 'normal',      // Normal
+    1: 'effect',      // Effect
+    2: 'fusion',      // Fusion
+    3: 'ritual',      // Ritual
+    4: 'toon',        // Toon
+    5: 'spirit',      // Spirit
+    6: 'union',       // Union
+    7: 'gemini',      // Gemini
+    8: 'tuner',       // Tuner
+    9: 'synchro',     // Synchro
+    10: 'xyz',        // Xyz
+    14: 'flip',       // Flip
+    15: 'pendulum',   // Pendulum
+    17: 'link',       // Link
+  };
+  return valueToTypeMap[numValue] || null;
 }
