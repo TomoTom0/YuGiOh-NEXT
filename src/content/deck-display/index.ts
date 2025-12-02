@@ -17,14 +17,17 @@ export async function initDeckDisplay(): Promise<void> {
   })
 
   const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as 'small' | 'medium' | 'large' | 'xlarge'
+  const showCardDetail = appSettings.showCardDetailInDeckDisplay ?? false
 
   // CSS を適用
   applyDeckDisplayLayout()
   applyCardDetailStyles()
 
-  // Vue アプリをマウント
-  const { setupVueApp } = await import('./vueSetup')
-  await setupVueApp()
+  // showCardDetailInDeckDisplay が有効な場合のみ Vue アプリをマウント
+  if (showCardDetail) {
+    const { setupVueApp } = await import('./vueSetup')
+    await setupVueApp()
+  }
 
   // カード画像サイズを設定
   setCardImageSize(cardImageSize)

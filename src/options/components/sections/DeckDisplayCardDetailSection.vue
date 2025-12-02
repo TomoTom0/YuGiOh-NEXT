@@ -15,7 +15,7 @@
         />
         <span class="toggle-switch"></span>
         <span class="toggle-text">
-          カード詳細エリアを{{ settingsStore.appSettings.showCardDetailInDeckDisplay ? '表示' : '非表示' }}にする
+          カード詳細エリアを表示する
         </span>
       </label>
     </div>

@@ -393,7 +393,7 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   function applyTheme(): void {
     const theme = effectiveTheme.value;
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-ygo-next-theme', theme);
   }
 
   /**
