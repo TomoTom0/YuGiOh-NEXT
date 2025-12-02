@@ -342,7 +342,9 @@ export interface CardTableA {
   /** カードID (PK) */
   cardId: string;
   /** カード名（多言語対応: {lang: name} 形式） */
-  langsName: Record<string, string>;
+  langsName?: Record<string, string>;
+  /** カード名（旧形式、互換性保持用） */
+  name?: string;
   /** ふりがな */
   ruby?: string;
   /** 画像情報 */
@@ -411,8 +413,12 @@ export interface CardTableB2 {
   cardId: string;
   /** 効果テキスト（多言語対応: {lang: text} 形式） */
   langsText?: Record<string, string>;
+  /** 効果テキスト（旧形式、互換性保持用） */
+  text?: string;
   /** ペンデュラムテキスト（多言語対応: {lang: text} 形式） */
   langsPendText?: Record<string, string>;
+  /** ペンデュラムテキスト（旧形式、互換性保持用） */
+  pendText?: string;
   /** 取得日時 (timestamp) */
   fetchedAt: number;
 }

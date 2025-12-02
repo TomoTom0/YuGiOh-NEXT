@@ -330,11 +330,18 @@ export class UnifiedCacheDB {
     // 言語を取得（CardInfo.langまたはドキュメントから）
     const lang = card.lang || detectLanguage(document);
 
+    // 既存のlangsNameを取得（旧形式のnameもサポート）
+    let langsName = existing?.langsName || {};
+    if (!existing?.langsName && existing?.name) {
+      // 旧形式のnameから langsName に変換（マイグレーション）
+      langsName = { [lang]: existing.name };
+    }
+
     // TableA
     const tableA: CardTableA = {
       cardId: card.cardId,
       langsName: {
-        ...existing?.langsName,
+        ...langsName,
         [lang]: card.name
       },
       ruby: card.ruby,
@@ -374,17 +381,31 @@ export class UnifiedCacheDB {
     const cardAny = card as any;
     if (cardAny.text || cardAny.pendulumText) {
       const existingB2 = this.cardTableB2.get(card.cardId);
-      const langsText = cardAny.text
-        ? { ...existingB2?.langsText, [lang]: cardAny.text }
-        : existingB2?.langsText;
-      const langsPendText = cardAny.pendulumText
-        ? { ...existingB2?.langsPendText, [lang]: cardAny.pendulumText }
-        : existingB2?.langsPendText;
+
+      // 既存のlangsTextを取得（旧形式のtextもサポート）
+      let langsText = existingB2?.langsText || {};
+      if (!existingB2?.langsText && existingB2?.text) {
+        // 旧形式のtextから langsText に変換（マイグレーション）
+        langsText = { [lang]: existingB2.text };
+      }
+      if (cardAny.text) {
+        langsText = { ...langsText, [lang]: cardAny.text };
+      }
+
+      // 既存のlangsPendTextを取得（旧形式のpendTextもサポート）
+      let langsPendText = existingB2?.langsPendText || {};
+      if (!existingB2?.langsPendText && existingB2?.pendText) {
+        // 旧形式のpendTextから langsPendText に変換（マイグレーション）
+        langsPendText = { [lang]: existingB2.pendText };
+      }
+      if (cardAny.pendulumText) {
+        langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
+      }
 
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
-        langsText: langsText && Object.keys(langsText).length > 0 ? langsText : undefined,
-        langsPendText: langsPendText && Object.keys(langsPendText).length > 0 ? langsPendText : undefined,
+        langsText: Object.keys(langsText).length > 0 ? langsText : undefined,
+        langsPendText: Object.keys(langsPendText).length > 0 ? langsPendText : undefined,
         fetchedAt: now
       };
       this.cardTableB2.set(card.cardId, tableB2);
@@ -762,7 +783,7 @@ export class UnifiedCacheDB {
     // 言語を取得（ドキュメントから）
     const lang = detectLanguage(document);
 
-    // langsNameから適切な言語を抽出
+    // langsNameから適切な言語を抽出（新形式）
     let name: string | undefined;
     if (tableA.langsName && tableA.langsName[lang]) {
       name = tableA.langsName[lang];
@@ -770,6 +791,9 @@ export class UnifiedCacheDB {
       // 指定言語がない場合は最初の言語を使用
       const firstLang = Object.keys(tableA.langsName)[0];
       name = firstLang ? tableA.langsName[firstLang] : undefined;
+    } else if (tableA.name) {
+      // フォールバック: 旧形式のnameを使用（互換性保持）
+      name = tableA.name;
     }
 
     if (!name) {
@@ -824,7 +848,7 @@ export class UnifiedCacheDB {
     if (tableB2) {
       const anyCard: any = resultCard as any;
 
-      // langsTextから適切な言語を抽出
+      // langsTextから適切な言語を抽出（新形式）
       if (tableB2.langsText) {
         if (tableB2.langsText[lang]) {
           anyCard.text = tableB2.langsText[lang];
@@ -832,9 +856,12 @@ export class UnifiedCacheDB {
           const firstLang = Object.keys(tableB2.langsText)[0];
           if (firstLang) anyCard.text = tableB2.langsText[firstLang];
         }
+      } else if (tableB2.text) {
+        // フォールバック: 旧形式のtextを使用（互換性保持）
+        anyCard.text = tableB2.text;
       }
 
-      // langsPendTextから適切な言語を抽出
+      // langsPendTextから適切な言語を抽出（新形式）
       if (tableB2.langsPendText) {
         if (tableB2.langsPendText[lang]) {
           anyCard.pendulumText = tableB2.langsPendText[lang];
@@ -842,6 +869,9 @@ export class UnifiedCacheDB {
           const firstLang = Object.keys(tableB2.langsPendText)[0];
           if (firstLang) anyCard.pendulumText = tableB2.langsPendText[firstLang];
         }
+      } else if (tableB2.pendText) {
+        // フォールバック: 旧形式のpendTextを使用（互換性保持）
+        anyCard.pendulumText = tableB2.pendText;
       }
     }
 
