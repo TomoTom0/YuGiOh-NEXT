@@ -74,8 +74,14 @@ function watchUrlChanges(): void {
     isEventListenerRegistered = true;
 
     window.addEventListener('hashchange', () => {
-      if (isEditUrl() && !isEditUILoaded) {
-        loadEditUI();
+      if (isEditUrl()) {
+        // 編集URLに遷移した場合は、毎回テーマを適用
+        applyThemeFromSettings();
+
+        // UI が未読み込みの場合のみ読み込み実行
+        if (!isEditUILoaded) {
+          loadEditUI();
+        }
       } else if (!isEditUrl() && isEditUILoaded) {
         // 編集URL以外に移動した場合はフラグをリセット
         isEditUILoaded = false;
