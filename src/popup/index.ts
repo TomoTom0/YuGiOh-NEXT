@@ -15,6 +15,9 @@ const settingsStore = useSettingsStore(pinia);
 // 設定を読み込んでテーマを適用
 settingsStore.loadSettings();
 
+// テーマ属性を設定（CSS変数の解決のため）
+document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme);
+
 document.addEventListener('DOMContentLoaded', () => {
   // コンテナ
   const container = document.createElement('div');

@@ -212,7 +212,6 @@ function clearAll(): void {
 // フィルタボタン
 function onFilterClick(): void {
   isFilterEnabled.value = !isFilterEnabled.value;
-  console.log('Category filter:', isFilterEnabled.value ? 'ON' : 'OFF');
 }
 
 // 閉じる

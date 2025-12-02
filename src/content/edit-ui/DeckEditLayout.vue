@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container" :data-theme="settingsStore.effectiveTheme">
+  <div class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -144,6 +144,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
+import { useCardDetailStore } from '../../stores/card-detail'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
@@ -169,6 +170,7 @@ export default {
   setup() {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const cardDetailStore = useCardDetailStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -179,12 +181,10 @@ export default {
     // ダイアログイベントハンドラ
     const handleExported = (message) => {
       deckStore.showExportDialog = false
-      console.log(message)
     }
 
     const handleImported = (message) => {
       deckStore.showImportDialog = false
-      console.log(message)
     }
 
     const toggleLoadDialog = async () => {
@@ -199,7 +199,6 @@ export default {
         await deckStore.loadDeck(dno)
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
-        console.log('デッキを読み込みました')
       } catch (error) {
         console.error('Load error:', error)
       }
@@ -209,7 +208,6 @@ export default {
       deckStore.showDeleteConfirm = false
       try {
         await deckStore.deleteCurrentDeck()
-        console.log('デッキを削除しました')
       } catch (error) {
         console.error('Delete deck error:', error)
       }
@@ -256,17 +254,8 @@ export default {
 
       const shortcuts = settingsStore.appSettings.keyboardShortcuts
 
-      console.log('[handleGlobalKeydown]', {
-        key: event.key,
-        ctrl: event.ctrlKey,
-        shift: event.shiftKey,
-        alt: event.altKey,
-        globalSearchShortcuts: shortcuts.globalSearch
-      })
-
       // グローバル検索モードを有効化
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
-        console.log('[handleGlobalKeydown] Global search triggered!')
         event.preventDefault()
         event.stopPropagation()
         deckStore.isGlobalSearchMode = true
@@ -299,10 +288,20 @@ export default {
       }
     }
     
-    // dnoパラメータを取得する関数
+    // URLパラメータを取得する関数
     const getCurrentDno = () => {
       const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
       return urlParams.get('dno') || ''
+    }
+
+    const getCopyFromDno = () => {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      return urlParams.get('copy-from-dno') || ''
+    }
+
+    const getCopyFromCgid = () => {
+      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
+      return urlParams.get('copy-from-cgid') || ''
     }
 
     // 現在のdnoを追跡
@@ -312,7 +311,6 @@ export default {
     const checkDnoChange = () => {
       const newDno = getCurrentDno()
       if (newDno !== currentDno.value) {
-        console.log('[DeckEditLayout] dno changed from', currentDno.value, 'to', newDno)
         currentDno.value = newDno
         // デッキデータを再ロード
         deckStore.initializeOnPageLoad()
@@ -324,7 +322,49 @@ export default {
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
-      await deckStore.initializeOnPageLoad()
+      const copyFromDno = getCopyFromDno()
+      const copyFromCgid = getCopyFromCgid()
+
+      if (copyFromDno && copyFromCgid) {
+        // copy-from-dnoとcopy-from-cgidパラメータがある場合：他人のデッキをコピーして新規作成
+        try {
+          // getDeckDetailをインポート
+          const { getDeckDetail } = await import('../../api/deck-operations')
+
+          // 指定されたcgidとdnoでデッキ情報を取得
+          const deckToCopy = await getDeckDetail(parseInt(copyFromDno), copyFromCgid)
+
+          if (!deckToCopy) {
+            throw new Error('Failed to fetch deck details')
+          }
+
+          // deckStoreにデータを設定（pseudoCopyDeckに渡すため）
+          deckStore.deckInfo.mainDeck = deckToCopy.mainDeck
+          deckStore.deckInfo.extraDeck = deckToCopy.extraDeck
+          deckStore.deckInfo.sideDeck = deckToCopy.sideDeck
+          deckStore.deckInfo.category = deckToCopy.category
+          deckStore.deckInfo.tags = deckToCopy.tags
+          deckStore.deckInfo.comment = deckToCopy.comment
+          deckStore.deckInfo.deckCode = deckToCopy.deckCode
+          deckStore.deckInfo.name = deckToCopy.name
+          deckStore.deckInfo.originalName = deckToCopy.originalName
+
+          // デッキをコピーして新規作成
+          // pseudoCopyDeck 内で loadDeck() も呼ばれるため、返り値の newDno を使用して URL を更新するだけ
+          const newDno = await deckStore.pseudoCopyDeck(deckStore.deckInfo)
+
+          // URLを更新して copy-from-cgid と copy-from-dno を削除
+          window.location.hash = `/ytomo/edit?dno=${newDno}`
+        } catch (error) {
+          console.error('[DeckEditLayout] Failed to copy deck:', error)
+          // エラーの場合は通常のページ初期化を実行
+          await deckStore.initializeOnPageLoad()
+        }
+      } else {
+        // 通常のページ初期化
+        await deckStore.initializeOnPageLoad()
+      }
+
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
@@ -358,8 +398,6 @@ export default {
           link.href = path
           document.head.appendChild(link)
         })
-
-        console.log('Favicon changed successfully')
       } catch (error) {
         console.error('Failed to change favicon:', error)
       }
@@ -470,57 +508,46 @@ export default {
     }
 
     const toggleDetail = (card) => {
-      console.log('Toggle detail:', card.name)
     }
 
     const dragData = ref(null)
 
     const onDragStart = (event, deckType, index, card) => {
-      console.log('=== Drag start ===')
-      console.log('deckType:', deckType, 'index:', index, 'card:', card)
       if (card.empty) {
         event.preventDefault()
         return false
       }
-      
+
       dragData.value = { deckType, index, card }
       event.dataTransfer.effectAllowed = deckType === 'search' ? 'copy' : 'move'
       event.dataTransfer.setData('text/plain', JSON.stringify({ deckType, index }))
-      console.log('dragData set:', dragData.value)
     }
 
     const handleDragOver = (event) => {
       event.preventDefault()
-      console.log('Drag over event fired')
       return false
     }
 
     const onAreaDrop = (event, targetDeckType) => {
-      console.log('=== Area drop ===')
-      console.log('targetDeckType:', targetDeckType)
-      console.log('dragData before check:', dragData.value)
       event.preventDefault()
       event.stopPropagation()
       if (!dragData.value) {
-        console.log('ERROR: No drag data!')
+        console.error('ERROR: No drag data!')
         return
       }
 
       const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-      console.log('sourceDeckType:', sourceDeckType, 'card:', card)
-      
+
       if (sourceDeckType === 'search') {
-        console.log('Adding from search to:', targetDeckType)
         if (targetDeckType === 'main' || targetDeckType === 'extra') {
           deckStore.addCopyToMainOrExtra(card)
         } else if (targetDeckType === 'side') {
           deckStore.addCopyToSection(card, 'side')
         }
       } else if (sourceDeckType !== targetDeckType) {
-        console.log('Moving from', sourceDeckType, 'to', targetDeckType)
         deckStore.moveCard(card.cardId, sourceDeckType, targetDeckType)
       }
-      
+
       dragData.value = null
     }
 
@@ -532,26 +559,22 @@ export default {
     const onDrop = (event, targetDeckType, targetIndex) => {
       event.preventDefault()
       event.stopPropagation()
-      console.log('Drop:', targetDeckType, targetIndex, 'dragData:', dragData.value)
       if (!dragData.value) {
-        console.log('No drag data!')
         return
       }
 
       const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-      
+
       if (sourceDeckType === 'search') {
-        console.log('Adding from search at index:', targetIndex)
         if (targetDeckType === 'main' || targetDeckType === 'extra') {
           deckStore.insertCard(card, card.isExtraDeck ? 'extra' : 'main', targetIndex)
         } else if (targetDeckType === 'side') {
           deckStore.insertCard(card, 'side', targetIndex)
         }
       } else {
-        console.log('Moving card with position')
         deckStore.moveCardWithPosition(card.cardId, sourceDeckType, sourceIndex, targetDeckType, targetIndex)
       }
-      
+
       dragData.value = null
     }
 

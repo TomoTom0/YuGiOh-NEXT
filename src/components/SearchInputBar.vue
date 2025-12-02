@@ -13,6 +13,7 @@
       <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
       <Transition name="dropdown">
         <div v-if="showSearchModeDropdown" class="mode-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
+          <div class="mode-option" @click="selectSearchMode('auto')">自動選択</div>
           <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
           <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
           <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
@@ -415,6 +416,7 @@ export default defineComponent({
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
+        case 'auto': return 'auto'
         case 'name': return 'name'
         case 'text': return 'text'
         case 'pendulum': return 'pend'
@@ -1135,13 +1137,6 @@ export default defineComponent({
 
     // Enterキーハンドラ
     const handleEnter = () => {
-      console.log('[SearchInputBar] handleEnter called', {
-        searchMode: searchMode.value,
-        pendingCommand: pendingCommand.value,
-        searchQuery: deckStore.searchQuery,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       // mydeckモードの場合
       if (searchMode.value === 'mydeck' && !pendingCommand.value) {
         // 選択中のデッキがある場合
@@ -1185,27 +1180,23 @@ export default defineComponent({
 
       // 有効な入力がある場合はチップに変換
       if (pendingCommand.value && isValidCommandInput.value) {
-        console.log('[SearchInputBar] Adding filter chip')
         addFilterChip()
         return
       }
 
       // コマンド入力中の場合は何もしない
       if (isTypingCommand.value) {
-        console.log('[SearchInputBar] Command input in progress, ignoring Enter')
         return
       }
 
       // コマンドモードの場合はフィルタを適用
       if (isCommandMode.value) {
-        console.log('[SearchInputBar] Command mode, applying filter')
         applyCommandFilter()
         deckStore.searchQuery = '' // コマンド部分をクリア
         return
       }
 
       // それ以外は検索実行
-      console.log('[SearchInputBar] Calling handleSearch')
       handleSearch()
     }
 
@@ -1320,16 +1311,9 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
-      console.log('[SearchInputBar] handleSearch called', {
-        searchQuery: deckStore.searchQuery,
-        hasActiveFilters: hasActiveFilters.value,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       const query = deckStore.searchQuery.trim()
 
       if (!query && !hasActiveFilters.value) {
-        console.log('[SearchInputBar] Empty query and no filters, returning without closing global search')
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -1337,11 +1321,11 @@ export default defineComponent({
         return
       }
 
-      console.log('[SearchInputBar] Executing search, will close global search after API call')
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
 
       const searchTypeMap: Record<string, string> = {
+        'auto': '1', // autoモードはsearchCardsAutoで処理するため、ここでは使われない
         'name': '1',
         'text': '2',
         'pendulum': '3'
@@ -1350,61 +1334,72 @@ export default defineComponent({
 
       try {
         const apiSort = SORT_ORDER_TO_API_VALUE[deckStore.sortOrder] || 1
-
-        const searchOptions: SearchOptions = {
-          keyword: deckStore.searchQuery.trim(),
-          searchType: searchType as '1' | '2' | '3' | '4',
-          resultsPerPage: 100,
-          sort: apiSort
-        }
-
-        const f = searchFilters.value
-        if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
-        if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
-        if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-        if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
-        if (f.atk.min !== undefined || f.atk.max !== undefined) {
-          searchOptions.atk = { from: f.atk.min, to: f.atk.max }
-        }
-        if (f.def.min !== undefined || f.def.max !== undefined) {
-          searchOptions.def = { from: f.def.min, to: f.def.max }
-        }
-        if (f.monsterTypes.length > 0) {
-          const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
-          const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
-          if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
-          if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
-          // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
-          if (normalTypes.length > 0 || notTypes.length > 0) {
-            searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
-          }
-        }
-        if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
-        if (f.linkMarkers.length > 0) {
-          searchOptions.linkMarkers = f.linkMarkers
-          searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
-        }
-        if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
-        if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
-        if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
-        if (f.releaseDate.from || f.releaseDate.to) {
-          searchOptions.releaseDate = {}
-          if (f.releaseDate.from) {
-            const [year, month, day] = f.releaseDate.from.split('-').map(Number)
-            searchOptions.releaseDate.start = { year, month, day }
-          }
-          if (f.releaseDate.to) {
-            const [year, month, day] = f.releaseDate.to.split('-').map(Number)
-            searchOptions.releaseDate.end = { year, month, day }
-          }
-        }
+        const keyword = deckStore.searchQuery.trim()
 
         // 検索実行時に動的import
-        const { searchCards } = await import('../api/card-search')
-        const results = await searchCards(searchOptions)
+        const { searchCards, searchCardsAuto } = await import('../api/card-search')
+
+        // autoモードの場合は専用の関数を使用
+        let results: CardInfo[]
+        let searchOptions: SearchOptions | null = null
+
+        if (searchMode.value === 'auto') {
+          const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
+          results = autoResult.cards
+        } else {
+          // 通常の検索
+          searchOptions = {
+            keyword,
+            searchType: searchType as '1' | '2' | '3' | '4',
+            resultsPerPage: 100,
+            sort: apiSort
+          }
+
+          const f = searchFilters.value
+          if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
+          if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
+          if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
+          if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
+          if (f.atk.min !== undefined || f.atk.max !== undefined) {
+            searchOptions.atk = { from: f.atk.min, to: f.atk.max }
+          }
+          if (f.def.min !== undefined || f.def.max !== undefined) {
+            searchOptions.def = { from: f.def.min, to: f.def.max }
+          }
+          if (f.monsterTypes.length > 0) {
+            const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
+            const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
+            if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
+            if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
+            // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
+            if (normalTypes.length > 0 || notTypes.length > 0) {
+              searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+            }
+          }
+          if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
+          if (f.linkMarkers.length > 0) {
+            searchOptions.linkMarkers = f.linkMarkers
+            searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
+          }
+          if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
+          if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
+          if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
+          if (f.releaseDate.from || f.releaseDate.to) {
+            searchOptions.releaseDate = {}
+            if (f.releaseDate.from) {
+              const [year, month, day] = f.releaseDate.from.split('-').map(Number)
+              searchOptions.releaseDate.start = { year, month, day }
+            }
+            if (f.releaseDate.to) {
+              const [year, month, day] = f.releaseDate.to.split('-').map(Number)
+              searchOptions.releaseDate.end = { year, month, day }
+            }
+          }
+
+          results = await searchCards(searchOptions)
+        }
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
-        console.log('[SearchInputBar] Search completed, closing global search mode')
         deckStore.isGlobalSearchMode = false
 
         // 検索結果をstore用の形式に変換
@@ -1413,26 +1408,29 @@ export default defineComponent({
 
         if (results.length >= 100) {
           deckStore.hasMore = true
-          setTimeout(async () => {
-            try {
-              const { searchCards } = await import('../api/card-search')
-              const moreResults = await searchCards({
-                ...searchOptions,
-                resultsPerPage: 2000
-              })
-              if (moreResults.length > 100) {
-                deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
-                deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
-                deckStore.hasMore = moreResults.length >= 2000
-                deckStore.currentPage = 1
-              } else {
+          // autoモード以外の場合のみ、拡張検索を実行
+          if (searchOptions !== null) {
+            setTimeout(async () => {
+              try {
+                const { searchCards } = await import('../api/card-search')
+                const moreResults = await searchCards({
+                  ...searchOptions,
+                  resultsPerPage: 2000
+                })
+                if (moreResults.length > 100) {
+                  deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
+                  deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
+                  deckStore.hasMore = moreResults.length >= 2000
+                  deckStore.currentPage = 1
+                } else {
+                  deckStore.hasMore = false
+                }
+              } catch (error) {
+                console.error('Extended search error:', error)
                 deckStore.hasMore = false
               }
-            } catch (error) {
-              console.error('Extended search error:', error)
-              deckStore.hasMore = false
-            }
-          }, 1000)
+            }, 1000)
+          }
         } else {
           deckStore.hasMore = false
         }

@@ -79,7 +79,6 @@ describe('禁止制限リストAPI', () => {
         expect(hasForbidden).toBe(true);
       } catch (err) {
         // ファイルが存在しない場合はスキップ
-        console.log('Sample HTML file not found, skipping test');
       }
     });
   });

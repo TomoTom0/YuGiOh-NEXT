@@ -7,6 +7,3 @@
 // eslint-disable-next-line no-undef, @typescript-eslint/ban-ts-comment
 // @ts-ignore
 __webpack_public_path__ = chrome.runtime.getURL('');
-
-// デバッグ用ログ
-console.log('[public-path] __webpack_public_path__ set to:', chrome.runtime.getURL(''));

@@ -66,12 +66,10 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
   const stored = await getStoredMetadata();
 
   if (stored) {
-    console.log('Using deck metadata from chrome.storage (last updated:', stored.lastUpdated, ')');
     cachedMetadata = stored;
     return stored;
   }
 
-  console.log('Using initial deck metadata from JSON file');
   const initial = initialMetadata as any;
   
   // 初期JSONのcategoriesがRecord形式の場合は配列に変換
@@ -99,7 +97,6 @@ export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {
   try {
     await chrome.storage.local.set({ [STORAGE_KEY]: metadata });
     cachedMetadata = metadata; // キャッシュを更新
-    console.log('Saved deck metadata to chrome.storage');
   } catch (error) {
     console.error('Failed to save metadata to chrome.storage:', error);
     throw error;
@@ -201,13 +198,6 @@ export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promis
 
     // chrome.storage.localに保存
     await saveDeckMetadata(metadata);
-
-    console.log('Updated deck metadata:', {
-      deckTypes: metadata.deckTypes.length,
-      deckStyles: metadata.deckStyles.length,
-      categories: Object.keys(metadata.categories).length,
-      tags: Object.keys(metadata.tags).length
-    });
 
     return metadata;
   } catch (error) {

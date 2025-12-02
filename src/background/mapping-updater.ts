@@ -202,8 +202,6 @@ function convertToInternalIds<T extends string>(numericMapping: Mapping, convers
  * 単一言語のマッピングを更新してストレージに保存
  */
 export async function updateMappingForLanguage(lang: string): Promise<boolean> {
-  console.log(`[Mapping Updater] Updating mapping for ${lang}...`);
-
   try {
     // 日本語マッピングから変換マップを初期化（まだの場合）
     if (raceNumericToInternal.size === 0 || monsterTypeNumericToInternal.size === 0) {
@@ -235,8 +233,7 @@ export async function updateMappingForLanguage(lang: string): Promise<boolean> {
 
     const storageKey = `card_mappings_${lang}`;
     await chrome.storage.local.set({ [storageKey]: mappings });
-    
-    console.log(`[Mapping Updater] Successfully saved ${lang} mappings (Race=${Object.keys(raceMappings).length}, MonsterType=${Object.keys(monsterTypeMappings).length})`);
+
     return true;
   } catch (error) {
     console.error(`[Mapping Updater] Failed to update ${lang}:`, error);
@@ -271,8 +268,6 @@ export async function needsUpdate(lang: string): Promise<boolean> {
 }
 
 export async function updateAllMappings(): Promise<boolean> {
-  console.log('[Mapping Updater] Starting update for all languages...');
-
   // 変換マップを初期化
   const initialized = await initializeConversionMaps();
   if (!initialized) {
@@ -290,8 +285,6 @@ export async function updateAllMappings(): Promise<boolean> {
       // 数値ID → 内部ID に変換
       allRaceMappings[lang] = convertToInternalIds<Race>(result.race, raceNumericToInternal);
       allMonsterTypeMappings[lang] = convertToInternalIds<MonsterType>(result.monsterType, monsterTypeNumericToInternal);
-
-      console.log(`[Mapping Updater] ${lang}: Race=${Object.keys(allRaceMappings[lang]).length}, MonsterType=${Object.keys(allMonsterTypeMappings[lang]).length}`);
     } else {
       console.warn(`[Mapping Updater] Failed to fetch ${lang}, skipping`);
     }
@@ -309,7 +302,6 @@ export async function updateAllMappings(): Promise<boolean> {
 
   try {
     await chrome.storage.local.set({ 'card_mappings': mappings });
-    console.log('[Mapping Updater] Successfully saved mappings to storage (internal ID format)');
     return true;
   } catch (error) {
     console.error('[Mapping Updater] Failed to save mappings:', error);

@@ -579,41 +579,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const fromOrder = displayOrder.value[from];
     let moveCardIndex: number;
 
-    console.log('[moveInDisplayOrder]', { cardId, from, to, uuid, fromOrderLength: fromOrder.length });
-
     if (uuid) {
       // UUIDが指定されている場合は、そのUUIDのカードを移動
       moveCardIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
-      console.log('[moveInDisplayOrder] UUID search:', { uuid, foundIndex: moveCardIndex });
     } else {
       // UUIDが未指定の場合は最後の1枚を移動
       moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
-      console.log('[moveInDisplayOrder] fallback search:', { cardId, foundIndex: moveCardIndex });
     }
 
     if (moveCardIndex === -1) {
-      console.log('[moveInDisplayOrder] Card not found in displayOrder!');
       return;
     }
 
     const movingDisplayCard = fromOrder[moveCardIndex];
     if (!movingDisplayCard) {
-      console.log('[moveInDisplayOrder] movingDisplayCard is undefined!');
       return;
     }
-
-    console.log('[moveInDisplayOrder] movingDisplayCard:', {
-      cid: movingDisplayCard.cid,
-      ciid: movingDisplayCard.ciid,
-      uuid: movingDisplayCard.uuid
-    });
-
-    // displayOrderの全体を確認
-    console.log('[moveInDisplayOrder] All cards in fromOrder:', fromOrder.map(dc => ({
-      cid: dc.cid,
-      ciid: dc.ciid,
-      uuid: dc.uuid
-    })));
 
     // (cid, ciid)ペアでdeckCardを取得
     const fromIndex = fromDeck.findIndex(dc =>
@@ -634,11 +615,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (targetIndex !== undefined && targetIndex >= 0 && targetIndex <= toOrder.length) {
       // 指定された位置に挿入
       toOrder.splice(targetIndex, 0, movingDisplayCard);
-      console.log('[moveInDisplayOrder] Inserted at position:', targetIndex);
     } else {
       // 末尾に追加
       toOrder.push(movingDisplayCard);
-      console.log('[moveInDisplayOrder] Added to end');
     }
 
     // deckInfo更新
@@ -698,7 +677,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // Search and UI state
   const searchQuery = ref('');
   const searchResults = ref<Array<{ card: CardInfo }>>([]);
-  const selectedCard = ref<CardInfo | null>(null);
 
   // no debug watcher
 
@@ -1024,9 +1002,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function moveCardWithPosition(cardId: string, from: 'main' | 'extra' | 'side' | 'trash',
                                 to: 'main' | 'extra' | 'side' | 'trash',
                                 sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
-    console.log('[moveCardWithPosition] Called with:', { cardId, from, to, sourceUuid, targetUuid });
-    console.log('[moveCardWithPosition] commandHistory before:', commandHistory.value.length, 'commandIndex:', commandIndex.value);
-    
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
@@ -1093,8 +1068,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
       return { success: false, error: 'カードの位置が見つかりません' };
     }
-    console.log('[moveCardWithPosition] Creating command, insertedUuid:', insertedUuid, 'originalSourceIndex:', originalSourceIndex);
-    
+
     const command: Command = {
       execute: () => {
         const firstPos = recordAllCardPositionsByUUID();
@@ -1151,8 +1125,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // 元の位置に挿入（コマンド作成時に保存したインデックスを使用）
         const insertPosition = Math.min(originalSourceIndex, fromOrder2.length);
         fromOrder2.splice(insertPosition, 0, newCard);
-        console.log('[undo] Restored to original position:', insertPosition, 'in', from, 'originalSourceIndex:', originalSourceIndex)
-        
+
         nextTick(() => {
           requestAnimationFrame(() => {
             animateCardMoveByUUID(firstPos, new Set([from, to]));
@@ -1160,11 +1133,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         });
       }
     };
-    
+
     pushCommand(command);
-    
-    console.log('[moveCardWithPosition] commandHistory after:', commandHistory.value.length, 'commandIndex:', commandIndex.value);
-    console.log('[moveCardWithPosition] canUndo:', canUndo.value, 'canRedo:', canRedo.value);
 
     return { success: true };
   }
@@ -1628,22 +1598,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   function undo() {
     if (!canUndo.value) return;
-    
+
     const command = commandHistory.value[commandIndex.value];
     command.undo();
     commandIndex.value--;
-    
-    console.log('[undo] Executed, command index:', commandIndex.value);
   }
 
   function redo() {
     if (!canRedo.value) return;
-    
+
     commandIndex.value++;
     const command = commandHistory.value[commandIndex.value];
     command.execute();
-    
-    console.log('[redo] Executed, command index:', commandIndex.value);
   }
 
   async function createNewDeck() {
@@ -1757,7 +1723,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     lastUsedDno,
     searchQuery,
     searchResults,
-    selectedCard,
     activeTab,
     showDetail,
     viewMode,
