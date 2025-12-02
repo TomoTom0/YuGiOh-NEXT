@@ -13,7 +13,11 @@ export async function fetchYtknFromEditForm(
   apiEndpoint: string
 ): Promise<string | null> {
   try {
-    const editUrl = `${apiEndpoint}?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&request_locale=ja`;
+    // ope=2 は要件の除外対象（デッキ新規作成・デッキリスト取得）ではないため request_locale 付与
+    // FAQ系統ではないため ja ではなく現在の言語を付与
+    const { detectLanguage } = await import('./language-detector');
+    const lang = detectLanguage(document);
+    const editUrl = `${apiEndpoint}?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&request_locale=${lang}`;
 
     const { default: axios } = await import('axios');
     const response = await axios.get(editUrl, { withCredentials: true });

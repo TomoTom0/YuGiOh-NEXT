@@ -16,15 +16,23 @@ const BASE_URL = 'https://www.db.yugioh-card.com';
 /**
  * APIパスのタイプ定義
  */
-type ApiPathType = 'card_search' | 'faq_search' | 'member_deck' | 'forbidden_limited' | 'deck_search' | 'other';
+type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_deck_other' | 'forbidden_limited' | 'deck_search' | 'other';
 
 /**
  * APIパスからタイプを判定
+ * member_deck は ope パラメータで区別：
+ * - ope=6（新規作成）: member_deck_new -> request_locale なし
+ * - その他: member_deck_other -> request_locale 付与
  */
 function getApiPathType(path: string): ApiPathType {
   if (path.includes('card_search')) return 'card_search';
   if (path.includes('faq_search')) return 'faq_search';
-  if (path.includes('member_deck')) return 'member_deck';
+  if (path.includes('member_deck')) {
+    // ope=6 の場合は新規作成（request_locale なし）
+    if (path.includes('ope=6')) return 'member_deck_new';
+    // それ以外は表示等（request_locale 付与）
+    return 'member_deck_other';
+  }
   if (path.includes('forbidden_limited')) return 'forbidden_limited';
   if (path.includes('deck_search')) return 'deck_search';
   return 'other';
@@ -34,12 +42,12 @@ function getApiPathType(path: string): ApiPathType {
  * APIのベースURLを取得（request_locale を自動付与）
  *
  * request_locale 付与ルール：
- * - デッキ新規作成（member_deck, ope=2）: 付与しない
- * - デッキリスト取得（deck_search）: 付与しない
+ * - デッキ新規作成（member_deck.action?ope=2）: 付与しない
+ * - デッキリスト取得（deck_search.action）: 付与しない
  * - FAQ系統（faq_search）: 必ず 'ja' を付与
  * - その他: 現在の言語を自動付与
  *
- * @param path APIパス（例: 'member_deck.action' や 'member_deck.action?ope=1'）
+ * @param path APIパス（例: 'member_deck.action?ope=1' や 'card_search.action'）
  * @param gameType カードゲームタイプ
  * @returns 完全なURL（必要に応じて request_locale を含む）
  */
@@ -47,9 +55,11 @@ export function buildApiUrl(path: string, gameType: CardGameType): string {
   const gamePath = getGamePath(gameType);
   const apiPathType = getApiPathType(path);
 
-  // リクエストローカルを付与するかどうかを判定
+  // リクエストローカルを付与しないケース：
+  // - デッキ新規作成（member_deck_new）
+  // - デッキリスト取得（deck_search）
   const shouldAddLocale =
-    apiPathType !== 'member_deck' &&
+    apiPathType !== 'member_deck_new' &&
     apiPathType !== 'deck_search';
 
   const url = new URL(`${BASE_URL}/${gamePath}/${path}`);
