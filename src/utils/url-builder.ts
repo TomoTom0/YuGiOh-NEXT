@@ -16,7 +16,7 @@ const BASE_URL = 'https://www.db.yugioh-card.com';
 /**
  * APIパスのタイプ定義
  */
-type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_deck_other' | 'forbidden_limited' | 'deck_search' | 'other';
+type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_deck_other' | 'forbidden_limited' | 'deck_search' | 'get_image' | 'other';
 
 /**
  * APIパスからタイプを判定
@@ -24,10 +24,14 @@ type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_de
  * - ope=6（新規作成）: member_deck_new -> request_locale なし
  * - ope=4（デッキ一覧取得）: deck_search -> request_locale なし
  * - その他: member_deck_other -> request_locale 付与
+ *
+ * その他のエンドポイント：
+ * - get_image.action: request_locale 付与
  */
 function getApiPathType(path: string): ApiPathType {
   if (path.includes('card_search')) return 'card_search';
   if (path.includes('faq_search')) return 'faq_search';
+  if (path.includes('get_image')) return 'get_image';
   if (path.includes('member_deck')) {
     // ope=6 の場合は新規作成（request_locale なし）
     if (path.includes('ope=6')) return 'member_deck_new';
@@ -97,7 +101,7 @@ export function buildApiUrl(path: string, gameType: CardGameType): string {
  * @param ciid カード画像ID
  * @param imgHash 画像ハッシュ
  * @param gameType カードゲームタイプ
- * @returns 画像URL
+ * @returns 画像URL（request_locale付与）
  */
 export function buildImageUrl(
   cid: number,
@@ -105,8 +109,9 @@ export function buildImageUrl(
   imgHash: string,
   gameType: CardGameType
 ): string {
-  const gamePath = getGamePath(gameType);
-  return `${BASE_URL}/${gamePath}/get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+  // get_image.action も buildApiUrl 経由で request_locale を付与
+  const path = `get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+  return buildApiUrl(path, gameType);
 }
 
 /**
@@ -238,7 +243,7 @@ export function getForbiddenLimitedEndpoint(gameType: CardGameType): string {
  * @param ciid カード画像ID（number または string）
  * @param imgHash 画像ハッシュ
  * @param gameType カードゲームタイプ
- * @returns 画像URL
+ * @returns 画像URL（request_locale付与）
  */
 export function getCardImageUrl(
   cid: number | string,
@@ -246,8 +251,9 @@ export function getCardImageUrl(
   imgHash: string,
   gameType: CardGameType
 ): string {
-  const gamePath = getGamePath(gameType);
-  return `${BASE_URL}/${gamePath}/get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+  // get_image.action も buildApiUrl 経由で request_locale を付与
+  const path = `get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+  return buildApiUrl(path, gameType);
 }
 
 /**
