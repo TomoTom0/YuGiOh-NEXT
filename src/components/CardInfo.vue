@@ -8,7 +8,7 @@
     <transition name="ruby-expand">
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
-    <div class="card-info-top">
+    <div class="ygo-next card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
           v-if="card"
@@ -162,6 +162,7 @@ import { ref, computed, watch } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
@@ -191,12 +192,13 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
     const showRuby = ref(false) // Default to hidden
 
-    // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
-    const card = computed(() => deckStore.selectedCard)
+    // cardDetailStoreから selectedCard を取得
+    const card = computed(() => cardDetailStore.selectedCard)
 
     // ルビ表示の切り替え
     const toggleRuby = () => {
@@ -224,10 +226,9 @@ export default {
     }
 
     const selectImage = (ciid) => {
-      // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
-      if (deckStore.selectedCard) {
-        deckStore.selectedCard.ciid = String(ciid)
-      // debug logging removed
+      // selectedCardのciidを直接更新
+      if (cardDetailStore.selectedCard) {
+        cardDetailStore.selectedCard.ciid = String(ciid)
       }
       showImageDialog.value = false
     }

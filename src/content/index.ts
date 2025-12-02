@@ -45,10 +45,8 @@ function prefetchEditUI(): void {
   const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
 
   scheduleTask(() => {
-    console.log('[Prefetch] Starting background load of edit-ui module...');
     editUIModulePromise = import('./edit-ui');
     editUIModulePromise
-      .then(() => console.log('[Prefetch] Edit UI module loaded successfully'))
       .catch(err => {
         console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
         editUIModulePromise = null; // エラー時はキャッシュをクリア
@@ -66,7 +64,6 @@ async function loadEditUIIfNeeded(): Promise<void> {
   try {
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
     await (editUIModulePromise || import('./edit-ui'));
-    console.log('Edit UI loaded dynamically');
   } catch (error) {
     console.error('Failed to load edit UI:', error);
     editUILoaded = false;
@@ -90,9 +87,9 @@ async function initializeFeatures(): Promise<void> {
     // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
     const gameType = detectCardGameType();
     if (isDeckDisplayPage(gameType)) {
-      // デッキ表示ページのレイアウトを初期化
-      const { initDeckDisplayLayout } = await import('./deck-display/deckDisplayLayout');
-      initDeckDisplayLayout();
+      // Vue Card Detail UI を初期化
+      const { initDeckDisplay } = await import('./deck-display');
+      await initDeckDisplay();
 
       // デッキ画像作成機能の初期化（設定で有効な場合のみ）
       if (await isFeatureEnabled('deck-image')) {

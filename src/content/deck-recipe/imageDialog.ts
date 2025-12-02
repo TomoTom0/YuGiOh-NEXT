@@ -415,13 +415,11 @@ async function generateBackgroundImage(
   const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
     const img = new Image();
     img.onload = () => {
-      console.log('[YGO Helper] Background image size:', img.naturalWidth, 'x', img.naturalHeight);
       resolve({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.src = dataUrl;
   });
 
-  console.log('[YGO Helper] Generated background image:', width, 'x', height);
   return { dataUrl, width, height };
 }
 
@@ -599,8 +597,6 @@ export async function showImageDialogWithData(
         sideDeck: (hasSideDeck && includeSide) ? deckData.sideDeck : []
       };
 
-      console.log('[YGO Helper] Creating deck recipe image...', { dno, color: selectedColor, includeQR, includeSide: hasSideDeck && includeSide, scale, name: currentDeckName });
-
       // ダウンロード実行（更新されたdeckDataを渡す）
       await downloadDeckRecipeImage({
         cgid,
@@ -610,8 +606,6 @@ export async function showImageDialogWithData(
         scale,
         deckData: updatedDeckData
       });
-
-      console.log('[YGO Helper] Download completed');
 
       // ポップアップを閉じる（アニメーション付き）
       closePopup();
@@ -623,8 +617,6 @@ export async function showImageDialogWithData(
       (downloadBtn as HTMLButtonElement).disabled = false;
     }
   });
-
-  console.log('[YGO Helper] Image popup shown');
 }
 
 /**

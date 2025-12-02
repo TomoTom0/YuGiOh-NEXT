@@ -87,6 +87,7 @@
 <script>
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
@@ -111,6 +112,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
@@ -134,6 +136,7 @@ export default {
     
     return {
       deckStore,
+      cardDetailStore,
       settingsStore,
       showErrorLeft,
       showErrorRight,
@@ -273,27 +276,22 @@ export default {
       event.preventDefault()
       event.stopPropagation()
       this.isDragOver = false
-      console.log('[DeckCard.handleDrop] Called for card:', this.card.name)
 
       try {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
 
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        console.log('[DeckCard.handleDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: this.sectionType })
 
         // 移動可否チェック
         if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
-          console.log('[DeckCard.handleDrop] Move not allowed, returning')
           return
         }
 
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
-          console.log('[DeckCard.handleDrop] Reordering within same section')
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
           this.handleMoveResult(result)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
-          console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
           const result = this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
           this.handleMoveResult(result)
         }
@@ -302,43 +300,42 @@ export default {
       }
     },
     async handleInfo() {
-      // infoセクションの場合は新しいタブで公式ページを開く
-      if (this.sectionType === 'info') {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
-        window.open(url, '_blank')
-        return
-      }
-
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
         const result = await getCardDetailWithCache(this.card.cardId)
         const fullCard = result?.detail?.card || this.card
 
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...fullCard,
           imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
+
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
       } catch (e) {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...this.card,
           imgs: [...this.card.imgs],
           ciid: this.card.ciid
         }
-      }
 
-      this.deckStore.activeTab = 'card'
-      this.deckStore.cardTab = 'info'
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
+      }
     },
     handleTopRight() {
-      console.log('[DeckCard.handleTopRight]', {
-        cardName: this.card.name,
-        cardId: this.card.cardId,
-        ciid: this.card.ciid,
-        uuid: this.uuid,
-        sectionType: this.sectionType
-      })
       if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
@@ -479,8 +476,6 @@ export default {
       if (this.card.empty) {
         return
       }
-
-      console.log('[DeckCard] Middle-click:', this.card.name, 'from section:', this.sectionType)
 
       // セクションに応じてコピーを追加
       if (this.sectionType === 'main') {

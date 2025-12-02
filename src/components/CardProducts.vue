@@ -44,11 +44,12 @@
           <div v-else-if="packCards[pack.packId]" class="pack-cards-wrapper">
             <CardList
               :cards="packCards[pack.packId]"
-              :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
+              :sortOrder="packSortOrders[pack.packId] || 'code_asc'"
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
               :showCollapseButton="true"
+              :showCodeSort="true"
               @collapse="collapsePack(pack.packId)"
               @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
@@ -135,7 +136,7 @@ export default {
         packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
-        packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
+        packSortOrders.value = { ...packSortOrders.value, [packId]: 'code_asc' }
       }
 
       try {

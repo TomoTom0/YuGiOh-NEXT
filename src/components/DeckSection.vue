@@ -122,33 +122,26 @@ export default {
       event.preventDefault()
       event.stopPropagation()
       isSectionDragOver.value = false
-      console.log('[handleEndDrop] Called for section:', props.sectionType)
 
       // 移動可能かチェック
       if (!canDropToSection()) {
-        console.log('[handleEndDrop] Drop not allowed, returning')
         return
       }
 
       try {
         const data = event.dataTransfer.getData('text/plain')
-        console.log('[handleEndDrop] Drop data:', data)
         if (!data) {
-          console.log('[handleEndDrop] No data, returning')
           return
         }
 
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        console.log('[handleEndDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: props.sectionType })
 
         if (!card) {
-          console.log('[handleEndDrop] No card, returning')
           return
         }
 
         // searchセクションからのドロップ
         if (sourceSectionType === 'search') {
-          console.log('[handleEndDrop] Adding from search')
           if (props.sectionType === 'main' || props.sectionType === 'extra') {
             deckStore.addCopyToMainOrExtra(card)
           } else if (props.sectionType === 'side') {
@@ -159,12 +152,10 @@ export default {
         }
 
         if (sourceSectionType === props.sectionType && sourceUuid) {
-          console.log('[handleEndDrop] Reordering within same section')
           const result = deckStore.reorderWithinSection(props.sectionType, sourceUuid, null)
           handleMoveResult(result)
         }
         else if (sourceSectionType !== props.sectionType) {
-          console.log('[handleEndDrop] Moving from', sourceSectionType, 'to', props.sectionType)
           const result = deckStore.moveCard(card.cardId, sourceSectionType, props.sectionType, sourceUuid)
           handleMoveResult(result)
         }
@@ -185,17 +176,13 @@ export default {
     const canDropToSection = () => {
       const dragging = deckStore.draggingCard
       if (!dragging) {
-        console.log('[canDropToSection] No dragging card')
         return true // draggingCardがない場合はtrueを返す（後方互換性）
       }
 
       const { card, sectionType: from } = dragging
       const to = props.sectionType
 
-      console.log('[canDropToSection]', { from, to, cardName: card.name })
-
       const canMove = deckStore.canMoveCard(from, to, card)
-      console.log('[canDropToSection] result:', canMove)
       return canMove
     }
 

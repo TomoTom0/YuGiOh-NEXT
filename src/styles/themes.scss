@@ -1,5 +1,5 @@
 // ライトテーマ
-[data-theme="light"] {
+[data-ygo-next-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
   --bg-tertiary: #e0e0e0;
@@ -99,6 +99,7 @@
   --tab-spell-active-bg: #b2dfdb;
   --tab-trap-active-bg: #f8bbd0;
   --tab-border: #008cff;
+  --theme-text-on-gradient: #ffffff;
 
   // Selected Chips Inline Background Colors
   --selected-chips-monster-bg: rgba(255, 249, 230, 0.9);
@@ -171,7 +172,7 @@
   --monster-fusion-chip-active-bg: var(--monster-fusion-active);
   --monster-fusion-chip-active-text: #ffffff;
   --monster-fusion-chip-active-border: var(--monster-fusion-active-border);
-  --monster-fusion-chip-active-hover-bg: var(--monster-fusion-active);
+  --monster-fusion-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
   --monster-fusion-chip-active-hover-text: #ffffff;
   --monster-fusion-chip-active-hover-border: var(--monster-fusion-active-border);
   --monster-fusion-chip-not-bg: var(--monster-fusion-not);
@@ -189,10 +190,10 @@
   --monster-synchro-chip-hover-text: #000000;
   --monster-synchro-chip-hover-border: var(--monster-synchro-border);
   --monster-synchro-chip-active-bg: linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  --monster-synchro-chip-active-text: #ffffff;
+  --monster-synchro-chip-active-text: #ff9800;
   --monster-synchro-chip-active-border: var(--monster-synchro-active-border);
-  --monster-synchro-chip-active-hover-bg: linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  --monster-synchro-chip-active-hover-text: #ffffff;
+  --monster-synchro-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #e0e0e0 0%, #d5d5d5 100%);
+  --monster-synchro-chip-active-hover-text: #ff9800;
   --monster-synchro-chip-active-hover-border: var(--monster-synchro-active-border);
   --monster-synchro-chip-not-bg: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 40%, #ffcdd2 70%, #ef5350 100%);
   --monster-synchro-chip-not-text: #ffffff;
@@ -211,7 +212,7 @@
   --monster-xyz-chip-active-bg: var(--monster-xyz-active);
   --monster-xyz-chip-active-text: #ffffff;
   --monster-xyz-chip-active-border: var(--monster-xyz-active-border);
-  --monster-xyz-chip-active-hover-bg: var(--monster-xyz-active);
+  --monster-xyz-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #424242 0%, #212121 100%);
   --monster-xyz-chip-active-hover-text: #ffffff;
   --monster-xyz-chip-active-hover-border: var(--monster-xyz-active-border);
   --monster-xyz-chip-not-bg: linear-gradient(135deg, #bdbdbd 0%, #bdbdbd 40%, #e57373 70%, #d32f2f 100%);
@@ -231,7 +232,7 @@
   --monster-link-chip-active-bg: var(--monster-link-active);
   --monster-link-chip-active-text: #ffffff;
   --monster-link-chip-active-border: var(--monster-link-active-border);
-  --monster-link-chip-active-hover-bg: var(--monster-link-active);
+  --monster-link-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   --monster-link-chip-active-hover-text: #ffffff;
   --monster-link-chip-active-hover-border: var(--monster-link-active-border);
   --monster-link-chip-not-bg: linear-gradient(135deg, #bbdefb 0%, #bbdefb 40%, #ffcdd2 70%, #ef5350 100%);
@@ -251,7 +252,7 @@
   --monster-ritual-chip-active-bg: var(--monster-ritual-active);
   --monster-ritual-chip-active-text: #ffffff;
   --monster-ritual-chip-active-border: var(--monster-ritual-active-border);
-  --monster-ritual-chip-active-hover-bg: var(--monster-ritual-active);
+  --monster-ritual-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(135deg, #0097a7 0%, #006064 100%);
   --monster-ritual-chip-active-hover-text: #ffffff;
   --monster-ritual-chip-active-hover-border: var(--monster-ritual-active-border);
   --monster-ritual-chip-not-bg: linear-gradient(135deg, #b2ebf2 0%, #b2ebf2 40%, #ffcdd2 70%, #ef5350 100%);
@@ -271,7 +272,7 @@
   --monster-pendulum-chip-active-bg: var(--monster-pendulum-active);
   --monster-pendulum-chip-active-text: #ffffff;
   --monster-pendulum-chip-active-border: var(--monster-pendulum-active-border);
-  --monster-pendulum-chip-active-hover-bg: var(--monster-pendulum-active);
+  --monster-pendulum-chip-active-hover-bg: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.05) 2px, transparent 2px, transparent 4px), linear-gradient(180deg, #f57c00 0%, #f57c00 30%, #00695c 70%, #00695c 100%);
   --monster-pendulum-chip-active-hover-text: #ffffff;
   --monster-pendulum-chip-active-hover-border: var(--monster-pendulum-active-border);
   --monster-pendulum-chip-not-bg: linear-gradient(180deg, #ffcc80 0%, #ffcc80 25%, #ffcdd2 50%, #ef5350 75%, #ef5350 100%);
@@ -339,7 +340,7 @@
 }
 
 // ダークテーマ
-[data-theme="dark"] {
+[data-ygo-next-theme="dark"] {
   --bg-primary: #1a1a1a;
   --bg-secondary: #2a2a2a;
   --bg-tertiary: #3a3a3a;
@@ -442,6 +443,7 @@
   --tab-spell-active-bg: #1a4a4a;
   --tab-trap-active-bg: #4a1a2a;
   --tab-border: #008cff;
+  --theme-text-on-gradient: #ffffff;
 
   // Selected Chips Inline Background Colors (Dark Theme)
   --selected-chips-monster-bg: rgba(76, 76, 25, 0.9);
@@ -574,10 +576,10 @@
   --monster-synchro-chip-hover-text: #ffffff;
   --monster-synchro-chip-hover-border: var(--monster-synchro-border);
   --monster-synchro-chip-active-bg: linear-gradient(135deg, #616161 0%, #424242 100%);
-  --monster-synchro-chip-active-text: #000000;
+  --monster-synchro-chip-active-text: #ff9800;
   --monster-synchro-chip-active-border: var(--monster-synchro-active-border);
   --monster-synchro-chip-active-hover-bg: linear-gradient(135deg, #8a8a8a 0%, #6b6b6b 100%);
-  --monster-synchro-chip-active-hover-text: #000000;
+  --monster-synchro-chip-active-hover-text: #ff9800;
   --monster-synchro-chip-active-hover-border: #ffffff;
   --monster-synchro-chip-not-bg: linear-gradient(135deg, #424242 0%, #424242 40%, #d32f2f 70%, #b71c1c 100%);
   --monster-synchro-chip-not-text: #000000;

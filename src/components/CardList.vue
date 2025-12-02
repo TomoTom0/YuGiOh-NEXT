@@ -30,6 +30,7 @@
             <option value="level">Lv/Rank</option>
             <option value="attribute">属性</option>
             <option value="race">種族</option>
+            <option v-if="showCodeSort" value="code">コード順</option>
           </select>
           <button class="sort-direction-btn" @click="toggleSortDirection" :title="sortDirection === 'asc' ? '昇順' : '降順'">
             <svg width="10" height="10" viewBox="0 0 24 24">
@@ -164,6 +165,10 @@ export default {
     showCollapseButton: {
       type: Boolean,
       default: false
+    },
+    showCodeSort: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
@@ -271,6 +276,12 @@ export default {
             const cmp = (b.race || '').localeCompare(a.race || '')
             return cmp !== 0 ? cmp : getCid(b) - getCid(a)
           })
+        case 'code_asc':
+          // コード順（昇順）: 元の配列順序をそのまま使用
+          return sorted
+        case 'code_desc':
+          // コード順（逆順）: 元の配列順序を反転
+          return sorted.reverse()
         default:
           return sorted
       }

@@ -12,3 +12,6 @@ app.mount('#app');
 // 設定を読み込んでテーマを適用
 const settingsStore = useSettingsStore();
 settingsStore.loadSettings();
+
+// テーマ属性を設定（CSS変数の解決のため）
+document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme);

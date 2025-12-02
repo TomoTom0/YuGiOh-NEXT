@@ -94,8 +94,15 @@ export type SearchInputPosition = 'default' | 'right-top' | 'right-bottom';
 
 /**
  * 検索モード
+ * - 'name': カード名で検索
+ * - 'text': カードテキストで検索
+ * - 'pendulum': ペンデュラムテキストで検索
+ * - 'auto': 自動モード（クエリ長に応じて最適な検索方式を自動選択）
+ *   - 1文字: カード名のみで検索
+ *   - 2文字以上: カード名・テキスト・ペンデュラムテキストを同時検索して結果を結合
+ * - 'mydeck': マイデッキから選択
  */
-export type SearchMode = 'name' | 'text' | 'pendulum' | 'mydeck';
+export type SearchMode = 'name' | 'text' | 'pendulum' | 'auto' | 'mydeck';
 
 /**
  * 未保存時の警告モード

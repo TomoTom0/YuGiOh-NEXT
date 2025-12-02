@@ -22,7 +22,9 @@ import { getTempCardDB } from '@/utils/temp-card-db';
 import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
-  TRAP_EFFECT_PATH_TO_ID
+  TRAP_EFFECT_PATH_TO_ID,
+  SPELL_EFFECT_TYPE_MAP,
+  TRAP_EFFECT_TYPE_MAP
 } from '@/types/card-maps';
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
@@ -619,6 +621,120 @@ export async function searchCardsByName(
 }
 
 /**
+ * 「auto」検索モード: キーワードの長さに応じて最適な検索方式を自動選択
+ *
+ * 検索ロジック:
+ * - 1文字: カード名検索のみ
+ * - 2文字以上: カード名・テキスト・ペンデュラムテキストを同時検索して結果をマージ
+ *
+ * @param keyword 検索キーワード
+ * @param limit 結果の上限（デフォルト: 100）
+ * @param ctype カードタイプフィルタ（オプション）
+ * @returns マージされたカード情報の配列
+ *
+ * @example
+ * ```typescript
+ * const results = await searchCardsAuto('光');
+ * // 1文字のため、カード名検索のみを実行
+ *
+ * const results2 = await searchCardsAuto('融合');
+ * // 2文字のため、カード名・テキスト・ペンデュラムテキストを並列検索
+ * ```
+ */
+export interface SearchAutoResult {
+  cards: CardInfo[];
+  fetchMorePromise?: Promise<CardInfo[]>;
+}
+
+export async function searchCardsAuto(
+  keyword: string,
+  limit?: number,
+  ctype?: CardType
+): Promise<SearchAutoResult> {
+  // 1文字の場合はカード名検索のみ
+  if (keyword.length === 1) {
+    return {
+      cards: await searchCardsByName(keyword, limit, ctype)
+    };
+  }
+
+  // 2文字以上の場合：3つの検索を並列実行
+  try {
+    const searchLimit = limit || 100;
+
+    // 3つの検索を並列実行
+    const [nameResults, textResults, pendulumResults] = await Promise.all([
+      searchCardsByName(keyword, searchLimit, ctype),
+      searchCards({
+        keyword,
+        searchType: '2',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      }),
+      searchCards({
+        keyword,
+        searchType: '3',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      })
+    ]);
+
+    // name検索が100件以上ならname検索のみを返す（追加取得Promiseあり）
+    if (nameResults.length >= 100) {
+      const baseParams = {
+        ope: '1',
+        sess: '1',
+        keyword: keyword,
+        stype: '1',
+        othercon: '2',
+        link_m: '2'
+      };
+
+      const ctypeValue = cardTypeToCtype(ctype);
+      if (ctypeValue) {
+        baseParams['ctype'] = ctypeValue;
+      }
+
+      return {
+        cards: nameResults,
+        fetchMorePromise: fetchAdditionalPages(baseParams, parseSearchResults, 'searchCardsAuto')
+      };
+    }
+
+    // name検索が100件未満なら、すべての結果をマージ
+    const mergedMap = new Map<string, CardInfo>();
+
+    // 各検索結果を追加（順序: name > text > pendulum）
+    nameResults.forEach(card => {
+      mergedMap.set(card.cardId, card);
+    });
+
+    textResults.forEach(card => {
+      if (!mergedMap.has(card.cardId)) {
+        mergedMap.set(card.cardId, card);
+      }
+    });
+
+    pendulumResults.forEach(card => {
+      if (!mergedMap.has(card.cardId)) {
+        mergedMap.set(card.cardId, card);
+      }
+    });
+
+    const merged = Array.from(mergedMap.values());
+
+    return {
+      cards: merged
+    };
+  } catch (error) {
+    console.error('[searchCardsAuto] Failed to perform auto search:', error);
+    return {
+      cards: []
+    };
+  }
+}
+
+/**
  * カードIDで検索する
  *
  * @param cardId カードID
@@ -675,7 +791,8 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
       ope: '1',
       sess: '1',
       pid: packId,
-      rp: '99999'
+      rp: '99999',
+      sort: '1'
     });
 
     const url = `${getSearchUrl()}?${params.toString()}`;
@@ -1381,13 +1498,11 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
 }
 
 function isSpellEffectType(value: string): value is SpellEffectType {
-  const validTypes: SpellEffectType[] = ['通常', '速攻', '永続', '装備', 'フィールド', '儀式'];
-  return validTypes.includes(value as SpellEffectType);
+  return value in SPELL_EFFECT_TYPE_MAP;
 }
 
 function isTrapEffectType(value: string): value is TrapEffectType {
-  const validTypes: TrapEffectType[] = ['通常', '永続', 'カウンター'];
-  return validTypes.includes(value as TrapEffectType);
+  return value in TRAP_EFFECT_TYPE_MAP;
 }
 
 function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
@@ -1584,20 +1699,18 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string } 
 }
 
 /**
- * 関連カードを2000件ずつ全件取得する（バックグラウンド処理用）
+ * 2000件ずつページング取得する共通関数（バックグラウンド処理用）
  *
- * @param cardId カードID
- * @param lang 言語コード
- * @param sortOrder ソート順
+ * @param baseParams ベースとなるURLパラメータ
+ * @param parseFunc ページのHTMLをパースしてCardInfo[]を返す関数
+ * @param logPrefix ログに出力するプリフィックス
  * @returns 全件を含むカード配列のPromise
  */
-function fetchAdditionalRelatedCards(
-  cardId: string,
-  lang: string,
-  sortOrder: string
+export function fetchAdditionalPages(
+  baseParams: Record<string, string>,
+  parseFunc: (doc: Document) => CardInfo[],
+  logPrefix: string
 ): Promise<CardInfo[]> {
-  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
-
   return (async () => {
     const allCards: CardInfo[] = [];
     let page = 1;
@@ -1605,10 +1718,7 @@ function fetchAdditionalRelatedCards(
 
     while (hasMore) {
       const params = new URLSearchParams({
-        ope: '2',
-        cid: cardId,
-        request_locale: lang,
-        sort: sortValue.toString(),
+        ...baseParams,
         rp: '2000',
         page: page.toString()
       });
@@ -1620,16 +1730,14 @@ function fetchAdditionalRelatedCards(
         });
 
         if (!response.ok) {
-          console.error(`[fetchAdditionalRelatedCards] Failed to fetch page ${page}`);
+          console.error(`[${logPrefix}] Failed to fetch page ${page}`);
           break;
         }
 
         const html = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const cards = parseRelatedCards(doc);
-
-        console.log(`[fetchAdditionalRelatedCards] Page ${page}: ${cards.length} cards`);
+        const cards = parseFunc(doc);
 
         if (cards.length === 0) {
           hasMore = false;
@@ -1644,14 +1752,38 @@ function fetchAdditionalRelatedCards(
           }
         }
       } catch (error) {
-        console.error(`[fetchAdditionalRelatedCards] Error fetching page ${page}:`, error);
+        console.error(`[${logPrefix}] Error fetching page ${page}:`, error);
         break;
       }
     }
 
-    console.log(`[fetchAdditionalRelatedCards] Total cards fetched: ${allCards.length}`);
     return allCards;
   })();
+}
+
+/**
+ * 関連カードを2000件ずつ全件取得する（バックグラウンド処理用）
+ *
+ * @param cardId カードID
+ * @param lang 言語コード
+ * @param sortOrder ソート順
+ * @returns 全件を含むカード配列のPromise
+ */
+function fetchAdditionalRelatedCards(
+  cardId: string,
+  lang: string,
+  sortOrder: string
+): Promise<CardInfo[]> {
+  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+
+  const baseParams = {
+    ope: '2',
+    cid: cardId,
+    request_locale: lang,
+    sort: sortValue.toString()
+  };
+
+  return fetchAdditionalPages(baseParams, parseRelatedCards, 'fetchAdditionalRelatedCards');
 }
 
 export async function getCardDetail(
@@ -1696,12 +1828,17 @@ export async function getCardDetail(
     // 基本情報をキャッシュから取得
     let baseCard: CardInfo | undefined = unifiedDB.reconstructCardInfo(cardId);
 
+    // キャッシュにない場合、TempCardDB から取得を試みる（デッキ表示ページ等で使用）
+    if (!baseCard) {
+      const tempCardDB = getTempCardDB();
+      baseCard = tempCardDB.get(cardId);
+    }
+
     // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
     // 同時にカード名検索を並行実行して完全な情報を取得
     let searchPromise: Promise<CardInfo[]> | null = null;
-    
+
     if (fromFAQ && !baseCard) {
-      console.log('[getCardDetail] FAQ link access, parsing base info from detail page for', cardId);
       const parsed = parseCardDetailBasicInfo(doc, cardId);
       if (!parsed) {
         console.error('[getCardDetail] Failed to parse base card info from detail page for', cardId);
@@ -1710,7 +1847,6 @@ export async function getCardDetail(
       baseCard = parsed;
 
       // カード名で検索（並行実行）- 完全な情報（リンクマーカー、ペンデュラム等）を取得
-      console.log('[getCardDetail] Starting parallel search for card:', parsed.name);
       searchPromise = searchCards({ keyword: parsed.name })
         .catch(err => {
           console.warn('[getCardDetail] Card name search failed:', err);
@@ -1722,15 +1858,6 @@ export async function getCardDetail(
       console.error('[getCardDetail] Base card info not available for', cardId);
       return null;
     }
-
-    console.log('[getCardDetail] Base card info:', {
-      cardId,
-      name: baseCard.name,
-      cardType: baseCard.cardType,
-      levelType: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelType : undefined,
-      levelValue: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelValue : undefined,
-      linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
-    });
 
     // 補足情報のみ取得
     const additionalImgs = parseAdditionalImages(doc);
@@ -1770,13 +1897,6 @@ export async function getCardDetail(
       const fullCard = searchResults.find(c => c.cardId === cardId);
       
       if (fullCard) {
-        console.log('[getCardDetail] Found full card info from search:', {
-          cardId: fullCard.cardId,
-          name: fullCard.name,
-          linkMarkers: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).linkMarkers : undefined,
-          pendulumScale: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).pendulumScale : undefined
-        });
-        
         // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
         baseCard = {
           ...fullCard,
@@ -1876,9 +1996,6 @@ export async function getCardDetailWithCache(
       const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC);
 
       if (cachedDetail) {
-        const daysDiff = Math.floor((now - fetchedAt) / (24 * 60 * 60 * 1000));
-        console.log(`[getCardDetailWithCache] Cache hit for ${cardId}, fresh=${isFresh}, age=${daysDiff}days, hasRelatedProducts=${hasRelatedProducts}`);
-
         // fetchedAtを更新（今日の日付でない場合のみ）
         if (!isSameDayToday) {
           await unifiedDB.updateCardTableCFetchedAt(cardId);
@@ -1893,7 +2010,6 @@ export async function getCardDetailWithCache(
 
         // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
         if (!isFresh && autoRefresh) {
-          console.log(`[getCardDetailWithCache] Starting background refresh for ${cardId}`);
           result.refreshPromise = (async () => {
             try {
               const freshDetail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
@@ -1901,7 +2017,6 @@ export async function getCardDetailWithCache(
                 await saveCardDetailToCache(unifiedDB, freshDetail, true);
                 // ストレージに永続化
                 await unifiedDB.saveAll();
-                console.log(`[getCardDetailWithCache] Background refresh completed for ${cardId}`);
               }
               return freshDetail;
             } catch (error) {
@@ -1917,7 +2032,6 @@ export async function getCardDetailWithCache(
   }
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
-  console.log(`[getCardDetailWithCache] Cache miss for ${cardId}, fetching from API`);
   const detail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
 
   if (detail && unifiedDB.isInitialized()) {
