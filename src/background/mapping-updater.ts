@@ -9,7 +9,6 @@ import {
   RACE_MAP,
   MONSTER_TYPE_MAP,
 } from '@/types/card-maps';
-import { getCardSearchFormUrl } from '@/utils/url-builder';
 import type { CardGameType } from '@/types/settings';
 
 const LANGUAGES = ['ja', 'ko', 'ae', 'cn', 'en', 'de', 'fr', 'it', 'es', 'pt'];
@@ -116,8 +115,11 @@ function extractMonsterTypeMapping(doc: Document): Mapping {
  */
 async function fetchMappingForLanguage(lang: string, gameType: CardGameType = 'ocg'): Promise<{ race: Mapping; monsterType: Mapping } | null> {
   try {
-    const baseUrl = getCardSearchFormUrl(gameType);
-    const url = `${baseUrl}&request_locale=${lang}`;
+    // getCardSearchFormUrl経由で request_locale が自動付与されるため、
+    // 特定の言語が必要な場合は buildApiUrl を直接使用
+    const { buildApiUrl } = await import('@/utils/url-builder');
+    const path = `card_search.action?ope=1&request_locale=${lang}`;
+    const url = buildApiUrl(path, gameType);
     const response = await fetch(url);
 
     if (!response.ok) {
