@@ -3,7 +3,7 @@
  */
 
 import { showImageDialog } from './imageDialog';
-import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
+import { isDeckDisplayPage, detectCardGameType, isOwnDeck, getDeckCgid } from '../../utils/page-detector';
 
 /**
  * カメラアイコンのSVG
@@ -30,7 +30,6 @@ export function addDeckImageButton(): HTMLElement | null {
 
   // 既にボタンが追加されていないか確認
   if (document.querySelector('#ygo-deck-image-btn')) {
-    console.log('[YGO Helper] Deck image button already exists');
     return null;
   }
 
@@ -51,7 +50,6 @@ export function addDeckImageButton(): HTMLElement | null {
   // クリックイベント
   button.addEventListener('click', async (e) => {
     e.preventDefault();
-    console.log('[YGO Helper] Deck image button clicked');
     try {
       await showImageDialog();
     } catch (error) {
@@ -62,8 +60,6 @@ export function addDeckImageButton(): HTMLElement | null {
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
 
-  console.log('[YGO Helper] Deck image button added');
-  
   // NEXT編集ボタンも追加
   addNextEditButton(bottomBtnSet);
   
@@ -71,49 +67,61 @@ export function addDeckImageButton(): HTMLElement | null {
 }
 
 /**
- * NEXT編集ボタンを追加
+ * NEXT編集/コピー編集ボタンを追加
  */
 function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // 既にボタンが追加されていないか確認
   if (document.querySelector('#ygo-next-edit-btn')) {
-    console.log('[YGO Helper] Next edit button already exists');
     return null;
   }
 
   // URLからdnoを取得
   const urlParams = new URLSearchParams(window.location.search);
   const dno = urlParams.get('dno');
-  
+
   if (!dno) {
     console.warn('[YGO Helper] dno not found in URL');
     return null;
   }
 
+  // 自分のデッキかどうかで処理を分岐
+  const isOwnDeckFlag = isOwnDeck();
+  const buttonText = isOwnDeckFlag ? 'NEXT編集' : 'NEXTコピー編集';
+  const buttonId = 'ygo-next-edit-btn';
+
   // ボタンを作成
   const button = document.createElement('a');
-  button.id = 'ygo-next-edit-btn';
+  button.id = buttonId;
   button.className = 'btn hex orn ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
 
   const span = document.createElement('span');
-  span.textContent = 'NEXT編集';
+  span.textContent = buttonText;
 
   button.appendChild(span);
 
   // クリックイベント
   button.addEventListener('click', (e) => {
     e.preventDefault();
-    console.log('[YGO Helper] Next edit button clicked, dno:', dno);
-    
-    // 独自デッキ編集画面へ遷移
-    window.location.hash = `/ytomo/edit?dno=${dno}`;
+
+    if (isOwnDeckFlag) {
+      // 自分のデッキの場合：通常の編集画面を開く
+      window.location.hash = `/ytomo/edit?dno=${dno}`;
+    } else {
+      // 他人のデッキの場合：コピー編集モードで編集画面を開く
+      const deckCgid = getDeckCgid();
+      if (deckCgid) {
+        window.location.hash = `/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+      } else {
+        console.warn('[YGO Helper] Failed to get deck cgid');
+      }
+    }
   });
 
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
 
-  console.log('[YGO Helper] Next edit button added');
   return button;
 }
 

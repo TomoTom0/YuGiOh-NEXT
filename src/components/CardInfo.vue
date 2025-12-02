@@ -8,7 +8,7 @@
     <transition name="ruby-expand">
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
-    <div class="card-info-top">
+    <div class="ygo-next card-info-top">
       <div class="card-image-wrapper">
         <DeckCard
           v-if="card"
@@ -162,6 +162,7 @@ import { ref, computed, watch } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_MAP, RACE_MAP, SPELL_EFFECT_TYPE_MAP, TRAP_EFFECT_TYPE_MAP, MONSTER_TYPE_MAP } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
@@ -191,12 +192,13 @@ export default {
   },
   setup(props) {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
     const showRuby = ref(false) // Default to hidden
 
-    // selectedCardをそのまま使用（detail取得後に全imgs含む完全なデータに更新される）
-    const card = computed(() => deckStore.selectedCard)
+    // cardDetailStoreから selectedCard を取得
+    const card = computed(() => cardDetailStore.selectedCard)
 
     // ルビ表示の切り替え
     const toggleRuby = () => {
@@ -224,10 +226,9 @@ export default {
     }
 
     const selectImage = (ciid) => {
-      // selectedCardのciidを直接更新（ref内のオブジェクトなので反応性は保たれる）
-      if (deckStore.selectedCard) {
-        deckStore.selectedCard.ciid = String(ciid)
-      // debug logging removed
+      // selectedCardのciidを直接更新
+      if (cardDetailStore.selectedCard) {
+        cardDetailStore.selectedCard.ciid = String(ciid)
       }
       showImageDialog.value = false
     }
@@ -597,8 +598,15 @@ export default {
     color: var(--text-primary);
 
     &[data-type="fusion"] {
-      background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-      border-color: #ba68c8;
+      background: var(--monster-fusion-bg);
+      border-color: var(--monster-fusion-border);
+      color: var(--monster-fusion-text);
+
+      [data-theme="dark"] & {
+        background: var(--monster-fusion-active);
+        color: var(--monster-fusion-text);
+        border-color: var(--monster-fusion-border);
+      }
     }
 
     &[data-type="synchro"] {
@@ -610,28 +618,49 @@ export default {
         rgba(158, 158, 158, 0.12) 9px
       ), linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
       border-color: var(--border-primary);
+      color: var(--text-primary);
     }
 
     &[data-type="xyz"] {
-      background: linear-gradient(135deg, #616161 0%, #424242 100%);
-      color: var(--button-text);
-      border-color: var(--border-secondary);
+      background: var(--monster-xyz-active);
+      color: var(--monster-xyz-text);
+      border-color: var(--monster-xyz-active-border);
     }
 
     &[data-type="link"] {
-      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-      border-color: var(--color-info);
+      background: var(--monster-link-bg);
+      border-color: var(--monster-link-border);
+      color: var(--monster-link-text);
+
+      [data-theme="dark"] & {
+        background: var(--monster-link-active);
+        color: var(--monster-link-text);
+        border-color: var(--monster-link-active-border);
+      }
     }
 
     &[data-type="ritual"] {
-      background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-      border-color: #4dd0e1;
+      background: var(--monster-ritual-bg);
+      border-color: var(--monster-ritual-border);
+      color: var(--monster-ritual-text);
+
+      [data-theme="dark"] & {
+        background: var(--monster-ritual-active);
+        color: var(--monster-ritual-text);
+        border-color: var(--monster-ritual-active-border);
+      }
     }
 
     &[data-type="pendulum"] {
-      background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-      color: var(--button-text);
-      border-color: #ff9800;
+      background: var(--monster-pendulum-bg);
+      color: var(--monster-pendulum-text);
+      border-color: var(--monster-pendulum-border);
+
+      [data-theme="dark"] & {
+        background: var(--monster-pendulum-active);
+        color: var(--monster-pendulum-text);
+        border-color: var(--monster-pendulum-active-border);
+      }
     }
   }
 
@@ -672,8 +701,15 @@ export default {
   
   &.stat-box-link {
     padding: 4px 6px;
-    background: transparent;
+    background: var(--button-default-bg);
     border: none;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--bg-secondary);
+      transform: translateY(-1px);
+    }
   }
 }
 
@@ -696,9 +732,15 @@ export default {
   position: relative;
   width: 24px;
   height: 24px;
-  background: transparent;
+  background: var(--button-default-bg);
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
   
   span {
     position: absolute;

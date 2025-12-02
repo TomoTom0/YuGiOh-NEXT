@@ -44,10 +44,8 @@
 
       <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
         <CardDetail
-          v-if="deckStore.selectedCard"
-          :card="deckStore.selectedCard"
-          :card-tab="deckStore.cardTab"
-          @tab-change="deckStore.cardTab = $event"
+          v-if="cardDetailStore.selectedCard"
+          :card="cardDetailStore.selectedCard"
         />
         <div v-else class="no-card-selected">
           <p>カードを選択してください</p>
@@ -92,12 +90,12 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
-import { getCardDetailWithCache } from '../api/card-search'
 import CardList from './CardList.vue'
-import CardDetail from './CardDetail.vue'
+const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
 import SearchInputBar from './SearchInputBar.vue'
 
@@ -111,27 +109,25 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
 
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'default'
-      console.log('[RightArea] showSearchInputBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
     // 検索入力欄をRight Area上部に表示するかどうか
     const showSearchInputTop = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'right-top'
-      console.log('[RightArea] showSearchInputTop:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
     // 検索入力欄をRight Area下部に表示するかどうか
     const showSearchInputRightBottom = computed(() => {
       const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
-      console.log('[RightArea] showSearchInputRightBottom:', result, 'position:', settingsStore.appSettings.searchInputPosition)
       return result
     })
     
@@ -142,7 +138,6 @@ export default {
 
     // グローバル検索モードを閉じる
     const closeGlobalSearch = () => {
-      console.log('[RightArea] closeGlobalSearch called', new Error().stack)
       deckStore.isGlobalSearchMode = false
     }
 
@@ -171,7 +166,7 @@ export default {
     })
 
     // 選択カード変更時にcard-detail-content内のスクロールをリセット
-    watch(() => deckStore.selectedCard, () => {
+    watch(() => cardDetailStore.selectedCard, () => {
       nextTick(() => {
         const cardDetailContent = document.querySelector('.card-detail-content')
         if (cardDetailContent) {
@@ -202,7 +197,6 @@ export default {
       
       deckStore.isLoading = true
       try {
-        console.log('Loading more results, page:', deckStore.currentPage + 1)
         deckStore.hasMore = false
       } catch (error) {
         console.error('Error loading more results:', error)
@@ -222,15 +216,17 @@ export default {
     
     const showCardDetail = async (card) => {
       try {
+        // カードクリック時に動的import
+        const { getCardDetailWithCache } = await import('../api/card-search')
         const result = await getCardDetailWithCache(card.cardId)
         const fullCard = result?.detail?.card || card
-        deckStore.selectedCard = fullCard
+        cardDetailStore.setSelectedCard(fullCard)
       } catch (e) {
         console.error('[RightArea] Failed to fetch full card detail:', e)
-        deckStore.selectedCard = card
+        cardDetailStore.setSelectedCard(card)
       }
       deckStore.activeTab = 'card'
-      deckStore.cardTab = 'info'
+      cardDetailStore.setCardTab('info')
     }
 
     const handleScrollToTop = () => {
@@ -242,6 +238,7 @@ export default {
 
     return {
       deckStore,
+      cardDetailStore,
       showSearchInputBottom,
       showSearchInputTop,
       showSearchInputRightBottom,
@@ -323,7 +320,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: var(--text-primary);
+      color: var(--theme-text-on-gradient);
     }
 
     &.tab-header {

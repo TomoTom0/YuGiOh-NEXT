@@ -145,7 +145,7 @@ function handleExport() {
   background: var(--bg-primary, #ffffff);
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--dialog-shadow, 0 4px 16px rgba(0, 0, 0, 0.2));
   width: 90%;
   max-width: 480px;
   max-height: 90vh;
@@ -322,6 +322,6 @@ function handleExport() {
 .btn-export:hover {
   background: var(--button-hover-bg);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
+  box-shadow: var(--button-export-hover-shadow, 0 2px 8px rgba(70, 120, 255, 0.3));
 }
 </style>

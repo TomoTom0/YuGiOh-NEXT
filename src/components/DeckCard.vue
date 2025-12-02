@@ -87,6 +87,7 @@
 <script>
 import { ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
@@ -111,6 +112,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
@@ -134,6 +136,7 @@ export default {
     
     return {
       deckStore,
+      cardDetailStore,
       settingsStore,
       showErrorLeft,
       showErrorRight,
@@ -273,27 +276,22 @@ export default {
       event.preventDefault()
       event.stopPropagation()
       this.isDragOver = false
-      console.log('[DeckCard.handleDrop] Called for card:', this.card.name)
 
       try {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
 
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        console.log('[DeckCard.handleDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: this.sectionType })
 
         // 移動可否チェック
         if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
-          console.log('[DeckCard.handleDrop] Move not allowed, returning')
           return
         }
 
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
-          console.log('[DeckCard.handleDrop] Reordering within same section')
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
           this.handleMoveResult(result)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
-          console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
           const result = this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
           this.handleMoveResult(result)
         }
@@ -302,43 +300,42 @@ export default {
       }
     },
     async handleInfo() {
-      // infoセクションの場合は新しいタブで公式ページを開く
-      if (this.sectionType === 'info') {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
-        window.open(url, '_blank')
-        return
-      }
-
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
         const result = await getCardDetailWithCache(this.card.cardId)
         const fullCard = result?.detail?.card || this.card
 
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...fullCard,
           imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
+
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
       } catch (e) {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
-        this.deckStore.selectedCard = {
+        const cardData = {
           ...this.card,
           imgs: [...this.card.imgs],
           ciid: this.card.ciid
         }
-      }
 
-      this.deckStore.activeTab = 'card'
-      this.deckStore.cardTab = 'info'
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
+      }
     },
     handleTopRight() {
-      console.log('[DeckCard.handleTopRight]', {
-        cardName: this.card.name,
-        cardId: this.card.cardId,
-        ciid: this.card.ciid,
-        uuid: this.uuid,
-        sectionType: this.sectionType
-      })
       if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
@@ -480,8 +477,6 @@ export default {
         return
       }
 
-      console.log('[DeckCard] Middle-click:', this.card.name, 'from section:', this.sectionType)
-
       // セクションに応じてコピーを追加
       if (this.sectionType === 'main') {
         // Mainデッキのカード → Mainに追加
@@ -527,7 +522,7 @@ export default {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 0, 0, 0.5);
+      background: var(--error-overlay-bg);
       pointer-events: none;
       z-index: 1;
     }
@@ -596,15 +591,15 @@ export default {
   pointer-events: none;
 
   &.limit-forbidden {
-    background: rgba(220, 20, 20, 0.9);
+    background: var(--deck-card-limit-forbidden-bg);
   }
 
   &.limit-limited {
-    background: rgba(255, 140, 0, 0.9);
+    background: var(--deck-card-limit-limited-bg);
   }
 
   &.limit-semi-limited {
-    background: rgba(255, 180, 0, 0.9);
+    background: var(--deck-card-limit-semi-limited-bg);
   }
 
   svg {
@@ -668,24 +663,24 @@ export default {
       left: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(255, 165, 0, 0.8);
+      background: var(--deck-card-btn-top-left-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(255, 140, 0, 0.95);
-      border: 1px solid rgba(255, 140, 0, 1);
+      background: var(--deck-card-btn-top-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-left-hover-border);
     }
-    
+
     &.is-link {
       &::before {
-        background: rgba(100, 180, 255, 0.8);
+        background: var(--deck-card-btn-top-left-link-bg);
       }
-      
+
       &:hover::before {
-        background: rgba(80, 160, 255, 0.95);
-        border: 1px solid rgba(80, 160, 255, 1);
+        background: var(--deck-card-btn-top-left-link-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-left-link-hover-border);
       }
     }
     
@@ -712,35 +707,35 @@ export default {
       right: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(180, 180, 180, 0.3);
+      background: var(--deck-card-btn-top-right-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(180, 180, 180, 0.5);
-      border: 1px solid rgba(180, 180, 180, 0.7);
+      background: var(--deck-card-btn-top-right-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-right-hover-border);
     }
 
     &.card-btn-me {
       &::before {
-        background: rgba(100, 150, 255, 0.6);
+        background: var(--deck-card-btn-top-right-me-bg);
       }
 
       &:hover::before {
-        background: rgba(100, 150, 255, 0.95);
-        border: 1px solid rgba(100, 150, 255, 1);
+        background: var(--deck-card-btn-top-right-me-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-right-me-hover-border);
       }
     }
 
     &.card-btn-s {
       &::before {
-        background: rgba(150, 100, 255, 0.6);
+        background: var(--deck-card-btn-top-right-s-bg);
       }
 
       &:hover::before {
-        background: rgba(150, 100, 255, 0.95);
-        border: 1px solid rgba(150, 100, 255, 1);
+        background: var(--deck-card-btn-top-right-s-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-right-s-hover-border);
       }
     }
 
@@ -766,31 +761,31 @@ export default {
       left: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(255, 100, 100, 0.6);
+      background: var(--deck-card-btn-bottom-left-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(255, 100, 100, 0.95);
-      border: 1px solid rgba(255, 100, 100, 1);
+      background: var(--deck-card-btn-bottom-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-bottom-left-hover-border);
     }
 
     &.card-btn-me {
       &::before {
-        background: rgba(100, 150, 255, 0.6);
+        background: var(--deck-card-btn-bottom-left-me-bg);
       }
 
       &:hover::before {
-        background: rgba(100, 150, 255, 0.95);
-        border: 1px solid rgba(100, 150, 255, 1);
+        background: var(--deck-card-btn-bottom-left-me-hover-bg);
+        border: 1px solid var(--deck-card-btn-bottom-left-me-hover-border);
       }
     }
 
     &.error-btn {
       &::before {
-        background: rgba(255, 0, 0, 0.9) !important;
-        border: 1px solid rgba(255, 0, 0, 1) !important;
+        background: var(--deck-card-btn-bottom-left-error-bg) !important;
+        border: 1px solid var(--deck-card-btn-bottom-left-error-border) !important;
       }
     }
 
@@ -816,31 +811,31 @@ export default {
       right: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(100, 200, 100, 0.6);
+      background: var(--deck-card-btn-bottom-right-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(100, 200, 100, 0.95);
-      border: 1px solid rgba(100, 200, 100, 1);
+      background: var(--deck-card-btn-bottom-right-hover-bg);
+      border: 1px solid var(--deck-card-btn-bottom-right-hover-border);
     }
 
     &.card-btn-side {
       &::before {
-        background: rgba(150, 100, 255, 0.6);
+        background: var(--deck-card-btn-bottom-right-side-bg);
       }
 
       &:hover::before {
-        background: rgba(150, 100, 255, 0.95);
-        border: 1px solid rgba(150, 100, 255, 1);
+        background: var(--deck-card-btn-bottom-right-side-hover-bg);
+        border: 1px solid var(--deck-card-btn-bottom-right-side-hover-border);
       }
     }
 
     &.error-btn {
       &::before {
-        background: rgba(255, 0, 0, 0.9) !important;
-        border: 1px solid rgba(255, 0, 0, 1) !important;
+        background: var(--deck-card-btn-bottom-right-error-bg) !important;
+        border: 1px solid var(--deck-card-btn-bottom-right-error-border) !important;
       }
     }
 
@@ -901,28 +896,28 @@ export default {
   &.bottom-left {
     grid-column: 1;
     grid-row: 1;
-    background: rgba(100, 150, 255, 0.7);
+    background: var(--deck-card-btn-me-bg);
 
     &:hover {
-      background: rgba(100, 150, 255, 1);
+      background: var(--deck-card-btn-me-hover-bg);
     }
   }
 
   &.bottom-right {
     grid-column: 2;
     grid-row: 1;
-    background: rgba(150, 100, 255, 0.7);
+    background: var(--deck-card-btn-side-bg);
 
     &:hover {
-      background: rgba(150, 100, 255, 1);
+      background: var(--deck-card-btn-side-hover-bg);
     }
   }
 }
 
 /* ドラッグオーバー時のスタイル */
 .deck-card.drag-over {
-  outline: 2px solid rgba(100, 150, 255, 0.8);
+  outline: 2px solid var(--deck-card-drag-over-outline);
   outline-offset: -2px;
-  background: rgba(100, 150, 255, 0.1);
+  background: var(--deck-card-drag-over-bg);
 }
 </style>

@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { DownloadDeckRecipeImageOptions } from '../../types/deck-recipe-image';
 import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
@@ -6,7 +5,6 @@ import { sessionManager } from '../session/session';
 import { embedDeckInfoToPNG } from '../../utils/png-metadata';
 import { detectCardGameType } from '../../utils/page-detector';
 import { getDeckDisplayUrl } from '../../utils/url-builder';
-import { getTempCardDB } from '../../utils/temp-card-db';
 
 /**
  * デッキレシピ画像を作成してダウンロードする
@@ -31,6 +29,9 @@ export async function downloadDeckRecipeImage(
     const cgid = await sessionManager.getCgid();
     const gameType = detectCardGameType();
     const url = getDeckDisplayUrl(cgid, parseInt(options.dno), gameType);
+
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
     });
@@ -38,15 +39,6 @@ export async function downloadDeckRecipeImage(
     const doc = parser.parseFromString(response.data, 'text/html');
     deckData = await parseDeckDetail(doc);
 
-    // デバッグログ
-    const tempCardDB = getTempCardDB();
-    console.log('[downloadDeckRecipeImage] mainDeckCount:', deckData.mainDeck.length);
-    deckData.mainDeck.forEach((d, i) => {
-      const card = tempCardDB.get(d.cid);
-      if (!card) return;
-      const imgHash = card.imgs?.find(img => img.ciid === d.ciid)?.imgHash;
-      console.log(`  [${i}] ${card.name} (${card.cardType}) x${d.quantity} - ciid:${d.ciid}, hash:${imgHash}`);
-    });
   }
 
   // 2. 画像を作成
@@ -62,7 +54,6 @@ export async function downloadDeckRecipeImage(
   if (deckData) {
     try {
       blob = await embedDeckInfoToPNG(blob, deckData);
-      console.log('[downloadDeckRecipeImage] Deck info embedded into PNG');
     } catch (error) {
       console.error('[downloadDeckRecipeImage] Failed to embed deck info:', error);
       // 埋め込み失敗時は元の画像をダウンロード

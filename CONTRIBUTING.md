@@ -25,7 +25,7 @@ YGO Deck Helper（遊戯王デッキヘルパー）へのコントリビュー�
 ```bash
 # リポジトリをクローン
 git clone https://github.com/TomoTom0/YuGiOh-NEXT.git
-cd ygo-deck-helper
+cd YuGiOh-NEXT
 
 # 依存関係をインストール
 npm install
@@ -432,7 +432,7 @@ SNSでデッキを共有しやすくしたい
 
 ### Q: どこから始めればいい？
 
-A: [`tasks/testing-and-documentation.md`](tasks/testing-and-documentation.md) の未完了タスクから選ぶか、[Good First Issue](https://github.com/your-username/ygo-deck-helper/labels/good%20first%20issue) ラベルのIssueを探してください。
+A: [`tasks/testing-and-documentation.md`](tasks/testing-and-documentation.md) の未完了タスクから選ぶか、[Good First Issue](https://github.com/TomoTom0/YuGiOh-NEXT/labels/good%20first%20issue) ラベルのIssueを探してください。
 
 ### Q: テストの書き方がわからない
 
@@ -455,8 +455,8 @@ A: ブラウザの開発者ツールでコンソールログを確認できま�
 
 ## 連絡先
 
-- Issue: [GitHub Issues](https://github.com/your-username/ygo-deck-helper/issues)
-- Discussion: [GitHub Discussions](https://github.com/your-username/ygo-deck-helper/discussions)
+- Issue: [GitHub Issues](https://github.com/TomoTom0/YuGiOh-NEXT/issues)
+- Discussion: [GitHub Discussions](https://github.com/TomoTom0/YuGiOh-NEXT/discussions)
 
 ---
 

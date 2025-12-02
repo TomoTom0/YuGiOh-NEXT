@@ -284,7 +284,6 @@ const filteredTags = computed(() => {
 // フィルタトグル
 function toggleFilter(): void {
   isFilterEnabled.value = !isFilterEnabled.value;
-  console.log('Tag filter:', isFilterEnabled.value ? 'ON' : 'OFF');
 }
 
 // タグラベルを取得
@@ -359,7 +358,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-dialog {
-  background: var(--bg-color, #fff);
+  background: var(--dialog-bg);
   border-radius: 8px;
   box-shadow: var(--shadow-lg);
   width: 90%;
@@ -428,8 +427,8 @@ watch(() => props.modelValue, (newVal) => {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
-  background: var(--bg-color, #fff);
-  color: var(--text-color, var(--text-primary));
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .search-input:focus {
@@ -459,63 +458,44 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  color: #4a148c;
-  border-color: #9c27b0;
+  background: var(--monster-fusion-chip-active-bg);
+  color: var(--monster-fusion-chip-active-text);
+  border: 1px solid var(--monster-fusion-chip-active-border);
 }
 
 .tag-chip[data-type="synchro"] {
-  background: 
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, var(--bg-secondary) 100%);
-  color: var(--text-primary);
-  border-color: var(--border-primary);
+  background: var(--monster-synchro-chip-active-bg);
+  color: var(--monster-synchro-chip-active-text);
+  border: 1px solid var(--monster-synchro-chip-active-border);
 }
 
 .tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: var(--button-text);
-  border-color: var(--border-secondary);
+  background: var(--monster-xyz-chip-active-bg);
+  color: var(--monster-xyz-chip-active-text);
+  border: 1px solid var(--monster-xyz-chip-active-border);
 }
 
 .tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: var(--color-info);
-  border-color: var(--button-bg);
+  background: var(--monster-link-chip-active-bg);
+  color: var(--monster-link-chip-active-text);
+  border: 1px solid var(--monster-link-chip-active-border);
 }
 
 .tag-chip[data-type="ritual"] {
-
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  color: var(--color-info);
-  border-color: var(--button-bg);
+  background: var(--monster-ritual-chip-active-bg);
+  color: var(--monster-ritual-chip-active-text);
+  border: 1px solid var(--monster-ritual-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, 
-    #ffb74d 0%, 
-    #ffb74d 30%, 
-    #4db6ac 70%,
-    #4db6ac 100%
-  );
-  color: #4a148c;
-  border-color: #ff9800;
+  background: var(--monster-pendulum-chip-active-bg);
+  color: var(--monster-pendulum-chip-active-text);
+  border: 1px solid var(--monster-pendulum-chip-active-border);
 }
 
 .tag-chip[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, 
-    #ff9800 0%, 
-    #ff9800 30%, 
-    #00897b 70%,
-    #00897b 100%
-  );
-  border-color: #f57c00;
+  background: var(--monster-pendulum-chip-active-hover-bg);
+  border-color: var(--monster-pendulum-chip-active-hover-border);
 }
 
 .chip-remove {
@@ -713,179 +693,229 @@ watch(() => props.modelValue, (newVal) => {
   border-radius: 21px;
 }
 
-/* 共通のホバー・選択スタイル（個別スタイルがないもの） */
-.tag-item:hover {
-  background: var(--bg-secondary);
-  border-color: var(--button-bg);
-  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
-}
+/* 共通のホバー・選択スタイル（個別スタイルがないもの用） */
+.tag-item {
+  background: var(--tag-item-default-bg);
+  border-color: var(--tag-item-default-border);
+  color: var(--tag-item-default-text);
 
-.tag-item.selected {
-  background: var(--color-info-bg);
-  border-color: var(--button-bg);
-  color: var(--button-hover-bg);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px var(--button-bg);
+  &:hover:not(.selected) {
+    background: var(--tag-item-hover-bg);
+    border-color: var(--tag-item-hover-border);
+    color: var(--tag-item-hover-text);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+    filter: brightness(0.95) saturate(1.05);
+    transform: translateY(-1px);
+  }
+
+  &.selected {
+    background: var(--tag-item-active-bg);
+    border-color: var(--tag-item-active-border);
+    color: var(--tag-item-active-text);
+    font-weight: 700;
+    box-shadow: inset 0 0 0 1px var(--tag-item-active-border);
+
+    &:hover {
+      background: var(--tag-item-active-hover-bg);
+      border-color: var(--tag-item-active-hover-border);
+      color: var(--tag-item-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--tag-item-active-hover-border), 0 4px 8px rgba(76, 175, 80, 0.3);
+      filter: brightness(0.92) saturate(1.1);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  border-color: #ba68c8;
+  background: var(--monster-fusion-chip-default-bg);
+  border-color: var(--monster-fusion-chip-default-border);
   border-radius: 21px;
-}
+  color: var(--monster-fusion-chip-default-text);
 
-.tag-item[data-type="fusion"]:hover {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-fusion-chip-hover-bg);
+    border-color: var(--monster-fusion-chip-hover-border);
+    color: var(--monster-fusion-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-fusion-tag-hover-color);
+    filter: brightness(0.82) saturate(1.2);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="fusion"].selected {
-  background: linear-gradient(135deg, #e1bee7 0%, #ba68c8 100%);
-  border-color: #9c27b0;
-  color: #4a148c;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(156, 39, 176, 0.3), inset 0 0 0 1px #9c27b0;
+  &.selected {
+    background: var(--monster-fusion-chip-active-bg);
+    border-color: var(--monster-fusion-chip-active-border);
+    color: var(--monster-fusion-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-border);
+
+    &:hover {
+      background: var(--monster-fusion-chip-active-hover-bg);
+      border-color: var(--monster-fusion-chip-active-hover-border);
+      color: var(--monster-fusion-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-fusion-chip-active-hover-border), 0 4px 8px rgba(156, 39, 176, 0.4);
+      filter: brightness(0.8) saturate(1.2);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="synchro"] {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(189, 189, 189, 0.12) 8px,
-      rgba(189, 189, 189, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-  border-color: #bdbdbd;
+  background: var(--monster-synchro-chip-default-bg);
+  border-color: var(--monster-synchro-chip-default-border);
   border-radius: 21px;
-}
+  color: var(--monster-synchro-chip-default-text);
 
-.tag-item[data-type="synchro"]:hover {
-  background: 
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(117, 117, 117, 0.15) 8px,
-      rgba(117, 117, 117, 0.15) 9px
-    ),
-    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: var(--border-secondary);
-  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-synchro-chip-hover-bg);
+    border-color: var(--monster-synchro-chip-hover-border);
+    color: var(--monster-synchro-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-synchro-tag-hover-color);
+    filter: brightness(0.82) saturate(1.18);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="synchro"].selected {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(117, 117, 117, 0.2) 8px,
-      rgba(117, 117, 117, 0.2) 9px
-    ),
-    linear-gradient(135deg, var(--bg-secondary) 0%, #eeeeee 100%);
-  border-color: var(--border-secondary);
-  color: var(--text-primary);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3), inset 0 0 0 1px #757575;
+  &.selected {
+    background: var(--monster-synchro-chip-active-bg);
+    border-color: var(--monster-synchro-chip-active-border);
+    color: var(--monster-synchro-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-border);
+
+    &:hover {
+      background: var(--monster-synchro-chip-active-hover-bg);
+      border-color: var(--monster-synchro-chip-active-hover-border);
+      color: var(--monster-synchro-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-synchro-chip-active-hover-border), 0 4px 8px rgba(117, 117, 117, 0.4);
+      filter: brightness(0.8) saturate(1.18);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="xyz"] {
-  background: linear-gradient(135deg, #757575 0%, #616161 100%);
-  border-color: var(--border-primary);
+  background: var(--monster-xyz-chip-default-bg);
+  border-color: var(--monster-xyz-chip-default-border);
   border-radius: 21px;
-  color: var(--button-text);
-}
+  color: var(--monster-xyz-chip-default-text);
 
-.tag-item[data-type="xyz"]:hover {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: var(--border-secondary);
-  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-xyz-chip-hover-bg);
+    border-color: var(--monster-xyz-chip-hover-border);
+    color: var(--monster-xyz-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-xyz-tag-hover-color);
+    filter: brightness(0.92) saturate(1.12);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="xyz"].selected {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  border-color: var(--border-secondary);
-  color: var(--button-text);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(97, 97, 97, 0.3), inset 0 0 0 1px #757575;
+  &.selected {
+    background: var(--monster-xyz-chip-active-bg);
+    border-color: var(--monster-xyz-chip-active-border);
+    color: var(--monster-xyz-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-border);
+
+    &:hover {
+      background: var(--monster-xyz-chip-active-hover-bg);
+      border-color: var(--monster-xyz-chip-active-hover-border);
+      color: var(--monster-xyz-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-xyz-chip-active-hover-border), 0 4px 8px rgba(97, 97, 97, 0.3);
+      filter: brightness(0.9) saturate(1.15);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  border-color: #64b5f6;
+  background: var(--monster-link-chip-default-bg);
+  border-color: var(--monster-link-chip-default-border);
   border-radius: 21px;
-}
+  color: var(--monster-link-chip-default-text);
 
-.tag-item[data-type="link"]:hover {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: var(--button-bg);
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-link-chip-hover-bg);
+    border-color: var(--monster-link-chip-hover-border);
+    color: var(--monster-link-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-link-tag-hover-color);
+    filter: brightness(0.92) saturate(1.1);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="link"].selected {
-  background: linear-gradient(135deg, #bbdefb 0%, #42a5f5 100%);
-  border-color: var(--button-bg);
-  color: var(--color-info);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.3), inset 0 0 0 1px var(--button-bg);
+  &.selected {
+    background: var(--monster-link-chip-active-bg);
+    border-color: var(--monster-link-chip-active-border);
+    color: var(--monster-link-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-border);
+
+    &:hover {
+      background: var(--monster-link-chip-active-hover-bg);
+      border-color: var(--monster-link-chip-active-hover-border);
+      color: var(--monster-link-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-link-chip-active-hover-border), 0 4px 8px rgba(25, 118, 210, 0.3);
+      filter: brightness(0.9) saturate(1.15);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  border-color: #4dd0e1;
+  background: var(--monster-ritual-chip-default-bg);
+  border-color: var(--monster-ritual-chip-default-border);
   border-radius: 21px;
-}
+  color: var(--monster-ritual-chip-default-text);
 
-.tag-item[data-type="ritual"]:hover {
-  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-  border-color: #0097a7;
-  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-ritual-chip-hover-bg);
+    border-color: var(--monster-ritual-chip-hover-border);
+    color: var(--monster-ritual-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-ritual-tag-hover-color);
+    filter: brightness(0.92) saturate(1.1);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="ritual"].selected {
-  background: linear-gradient(135deg, #b2ebf2 0%, #00bcd4 100%);
-  border-color: #0097a7;
-  color: #006064;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(0, 151, 167, 0.3), inset 0 0 0 1px #0097a7;
+  &.selected {
+    background: var(--monster-ritual-chip-active-bg);
+    border-color: var(--monster-ritual-chip-active-border);
+    color: var(--monster-ritual-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-border);
+
+    &:hover {
+      background: var(--monster-ritual-chip-active-hover-bg);
+      border-color: var(--monster-ritual-chip-active-hover-border);
+      color: var(--monster-ritual-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-ritual-chip-active-hover-border), 0 4px 8px rgba(0, 151, 167, 0.3);
+      filter: brightness(0.9) saturate(1.15);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .tag-item[data-type="pendulum"] {
-  background: linear-gradient(180deg,
-    #fff3e0 0%,
-    #fff3e0 30%,
-    #b2dfdb 70%,
-    #b2dfdb 100%
-  );
-  border-color: #ffb74d;
+  background: var(--monster-pendulum-chip-default-bg);
+  border-color: var(--monster-pendulum-chip-default-border);
   border-radius: 21px;
-}
+  color: var(--monster-pendulum-chip-default-text);
 
-.tag-item[data-type="pendulum"]:hover {
-  background: linear-gradient(180deg, 
-    #ffcc80 0%, 
-    #ffcc80 30%, 
-    #80cbc4 70%, 
-    #80cbc4 100%
-  );
-  border-color: #ff9800;
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
-}
+  &:hover:not(.selected) {
+    background: var(--monster-pendulum-chip-hover-bg);
+    border-color: var(--monster-pendulum-chip-hover-border);
+    color: var(--monster-pendulum-chip-hover-text);
+    box-shadow: 0 4px 12px var(--monster-pendulum-tag-hover-color);
+    filter: brightness(0.92) saturate(1.12);
+    transform: translateY(-2px);
+  }
 
-.tag-item[data-type="pendulum"].selected {
-  background: linear-gradient(180deg,
-    #ffcc80 0%,
-    #ffcc80 30%,
-    #4db6ac 70%,
-    #4db6ac 100%
-  );
-  border-color: #ff9800;
-  color: #4a148c;
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3), inset 0 0 0 1px #ff9800;
+  &.selected {
+    background: var(--monster-pendulum-chip-active-bg);
+    border-color: var(--monster-pendulum-chip-active-border);
+    color: var(--monster-pendulum-chip-active-text);
+    box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-border);
+
+    &:hover {
+      background: var(--monster-pendulum-chip-active-hover-bg);
+      border-color: var(--monster-pendulum-chip-active-hover-border);
+      color: var(--monster-pendulum-chip-active-hover-text);
+      box-shadow: inset 0 0 0 1px var(--monster-pendulum-chip-active-hover-border), 0 4px 8px rgba(255, 152, 0, 0.3);
+      filter: brightness(0.9) saturate(1.15);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .btn {
@@ -913,5 +943,46 @@ watch(() => props.modelValue, (newVal) => {
 
 .btn-primary:hover {
   background: var(--button-hover-bg);
+}
+
+/* ダークモード用: 背景色グラデーションのみ変更 */
+:global(.dark-theme) {
+  .tag-item {
+    &[data-type="fusion"] {
+      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+    }
+
+    &[data-type="synchro"] {
+      background:
+        repeating-linear-gradient(
+          135deg,
+          transparent,
+          transparent 8px,
+          rgba(255, 255, 255, 0.12) 8px,
+          rgba(255, 255, 255, 0.12) 9px
+        ),
+        linear-gradient(135deg, #757575 0%, #616161 100%);
+    }
+
+    &[data-type="xyz"] {
+      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+    }
+
+    &[data-type="link"] {
+      background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
+    }
+
+    &[data-type="ritual"] {
+      background: linear-gradient(135deg, #0097a7 0%, #00838f 100%);
+    }
+
+    &[data-type="pendulum"] {
+      background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
+    }
+  }
+
+  .tab-btn.active {
+    background: rgba(0, 137, 255, 0.2);
+  }
 }
 </style>

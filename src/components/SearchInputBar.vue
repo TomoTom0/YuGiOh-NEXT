@@ -13,6 +13,7 @@
       <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
       <Transition name="dropdown">
         <div v-if="showSearchModeDropdown" class="mode-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
+          <div class="mode-option" @click="selectSearchMode('auto')">自動選択</div>
           <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
           <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
           <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
@@ -62,6 +63,7 @@
           }"
           :placeholder="currentPlaceholder"
           @input="handleInput"
+          @focus="handleFocus"
           @keydown.enter.prevent="handleEnter"
           @keydown.escape="handleEscape(); $emit('escape')"
           @keydown="handleKeydown"
@@ -93,7 +95,8 @@
           </div>
         </div>
         <!-- mydeckモード用の候補リスト -->
-        <div v-if="searchMode === 'mydeck' && !pendingCommand && mydeckSuggestions.length > 0" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
+        <div v-if="showMydeckDropdown" class="mode-dropdown-overlay" @click="showMydeckDropdown = false"></div>
+        <div v-if="showMydeckDropdown" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
           <div
             v-for="(deck, index) in mydeckSuggestions"
             :key="deck.dno"
@@ -101,6 +104,7 @@
             :class="{ selected: index === selectedMydeckIndex }"
             @click="selectMydeck(deck)"
           >
+            <span class="suggestion-value">dno:{{ deck.dno }}</span>
             <span class="suggestion-label">{{ deck.name }}</span>
           </div>
         </div>
@@ -125,14 +129,17 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent } from 'vue'
+import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { searchCards, SearchOptions, SORT_ORDER_TO_API_VALUE } from '../api/card-search'
+import { useSettingsStore } from '../stores/settings'
+import type { SearchOptions } from '../api/card-search'
+import { SORT_ORDER_TO_API_VALUE } from '../api/card-search'
 import { getDeckDetail } from '../api/deck-operations'
 import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
+import type { SearchMode } from '../types/settings'
 import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
@@ -161,7 +168,8 @@ const COMMANDS: Record<string, { filterType: string; description: string; isNot?
 const SEARCH_MODE_MAP: Record<string, string> = {
   'name': 'name', 'カード名': 'name', 'n': 'name',
   'text': 'text', 'テキスト': 'text', 't': 'text',
-  'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum'
+  'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum',
+  'mydeck': 'mydeck', 'マイデッキ': 'mydeck', 'd': 'mydeck'
 }
 
 // 属性マッピング（日本語/英語 -> APIキー）
@@ -228,9 +236,14 @@ export default defineComponent({
   setup(props, { expose }) {
     const deckStore = useDeckEditStore()
     const inputRef = ref<HTMLInputElement | null>(null)
-    const searchMode = ref('name')
+
+    // 設定からデフォルト検索モードを取得
+    const settingsStore = useSettingsStore()
+    const searchMode = ref<SearchMode>(settingsStore.appSettings.defaultSearchMode || 'name')
+
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
+    const showMydeckDropdown = ref(false)
     
     // 検索入力欄の位置を自動検出
     const isBottomPosition = computed(() => {
@@ -341,7 +354,8 @@ export default defineComponent({
       searchMode: [
         { value: 'name', label: 'カード名' },
         { value: 'text', label: 'テキスト' },
-        { value: 'pend', label: 'ペンデュラム' }
+        { value: 'pend', label: 'ペンデュラム' },
+        { value: 'mydeck', label: 'マイデッキ' }
       ]
     }
 
@@ -402,10 +416,11 @@ export default defineComponent({
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
+        case 'auto': return 'auto'
         case 'name': return 'name'
         case 'text': return 'text'
         case 'pendulum': return 'pend'
-        case 'mydeck': return 'deck'
+        case 'mydeck': return 'mydeck'
         default: return 'name'
       }
     })
@@ -609,6 +624,14 @@ export default defineComponent({
       }
     }
 
+    // フォーカスハンドラ
+    const handleFocus = () => {
+      // mydeckモードの場合は候補を表示
+      if (searchMode.value === 'mydeck') {
+        showMydeckDropdown.value = true
+      }
+    }
+
     // 入力ハンドラ
     const handleInput = () => {
       const query = deckStore.searchQuery
@@ -641,69 +664,61 @@ export default defineComponent({
     }
 
     // キー入力ハンドラ
+    // 共通の候補選択処理
+    const handleSuggestionNavigation = (
+      event: KeyboardEvent,
+      selectedIndex: Ref<number>,
+      suggestions: any[],
+      onSelect: (item: any) => void,
+      containerSelector: string
+    ) => {
+      if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
+          selectedIndex.value = selectedIndex.value < 0
+            ? suggestions.length - 1
+            : selectedIndex.value <= 0
+            ? suggestions.length - 1
+            : selectedIndex.value - 1
+        } else {
+          selectedIndex.value = selectedIndex.value < 0
+            ? 0
+            : (selectedIndex.value + 1) % suggestions.length
+        }
+        // 選択中の項目を表示領域内にスクロール（前後2個程度も表示）
+        nextTick(() => {
+          const container = document.querySelector(containerSelector)
+          if (container) {
+            const selectedItem = container.querySelector('.suggestion-item.selected')
+            if (selectedItem) {
+              selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' })
+            }
+          }
+        })
+        return true
+      }
+      if (event.key === 'Enter' && selectedIndex.value >= 0) {
+        event.preventDefault()
+        const selected = suggestions[selectedIndex.value]
+        if (selected) {
+          onSelect(selected)
+        }
+        return true
+      }
+      return false
+    }
+
     const handleKeydown = (event: KeyboardEvent) => {
       // コマンド候補のTab/Arrow処理
       if (commandSuggestions.value.length > 0 && !pendingCommand.value) {
-        if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-          event.preventDefault()
-          if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
-            selectedCommandIndex.value = selectedCommandIndex.value < 0
-              ? commandSuggestions.value.length - 1
-              : selectedCommandIndex.value <= 0
-              ? commandSuggestions.value.length - 1
-              : selectedCommandIndex.value - 1
-          } else {
-            selectedCommandIndex.value = selectedCommandIndex.value < 0
-              ? 0
-              : (selectedCommandIndex.value + 1) % commandSuggestions.value.length
-          }
-          return
-        }
-        if (event.key === 'Enter' && selectedCommandIndex.value >= 0) {
-          event.preventDefault()
-          const selected = commandSuggestions.value[selectedCommandIndex.value]
-          if (selected) {
-            selectCommand(selected)
-          }
+        if (handleSuggestionNavigation(event, selectedCommandIndex, commandSuggestions.value, selectCommand, '.command-suggestions')) {
           return
         }
       }
 
       // mydeckモードのTab/Arrow処理
-      if (searchMode.value === 'mydeck' && !pendingCommand.value && mydeckSuggestions.value.length > 0) {
-        if (event.key === 'Tab') {
-          event.preventDefault()
-          if (event.shiftKey) {
-            selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
-              ? mydeckSuggestions.value.length - 1
-              : selectedMydeckIndex.value - 1
-          } else {
-            selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
-          }
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
-          return
-        }
-        if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          selectedMydeckIndex.value = (selectedMydeckIndex.value + 1) % mydeckSuggestions.value.length
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
-          return
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault()
-          selectedMydeckIndex.value = selectedMydeckIndex.value <= 0
-            ? mydeckSuggestions.value.length - 1
-            : selectedMydeckIndex.value - 1
-          const selected = mydeckSuggestions.value[selectedMydeckIndex.value]
-          if (selected) {
-            deckStore.searchQuery = selected.name
-          }
+      if (showMydeckDropdown.value) {
+        if (handleSuggestionNavigation(event, selectedMydeckIndex, mydeckSuggestions.value, selectMydeck, '.mydeck-suggestions')) {
           return
         }
       }
@@ -802,7 +817,13 @@ export default defineComponent({
       if (filterType === 'searchMode') {
         const newMode = SEARCH_MODE_MAP[value]
         if (newMode) {
-          searchMode.value = newMode
+          searchMode.value = newMode as SearchMode
+          // mydeckモードに切り替えた場合はドロップダウンを表示
+          if (newMode === 'mydeck') {
+            nextTick(() => {
+              showMydeckDropdown.value = true
+            })
+          }
         }
         deckStore.searchQuery = ''
         pendingCommand.value = null
@@ -1035,10 +1056,14 @@ export default defineComponent({
 
     // mydeckモードでデッキを選択
     const selectMydeck = (deck: { dno: number; name: string }) => {
+      // デッキ名を入力欄に設定
+      deckStore.searchQuery = deck.name
       loadMydeckCards(deck.dno)
+      // ドロップダウンを閉じる
+      showMydeckDropdown.value = false
     }
 
-    // デッキのカードを読み込んで検索結果に表示（重複排除）
+    // デッキのカードを読み込んで検索結果に表示
     const loadMydeckCards = async (dno: number) => {
       deckStore.isLoading = true
       deckStore.activeTab = 'search'
@@ -1053,39 +1078,55 @@ export default defineComponent({
         }
 
         // 全カードを収集（TempCardDBから取得）
+        // cid-ciidのペアで重複排除（イラスト違いは別々に表示）
         const tempCardDB = getTempCardDB()
-        const allCards: CardInfo[] = []
+        const seenCards = new Set<string>()
+        const uniqueCards: CardInfo[] = []
+
         deckDetail.mainDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
         deckDetail.extraDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
         deckDetail.sideDeck.forEach(dc => {
-          const card = tempCardDB.get(dc.cid)
-          if (card) allCards.push(card)
+          const key = `${dc.cid}-${dc.ciid}`
+          if (!seenCards.has(key)) {
+            const card = tempCardDB.get(dc.cid)
+            if (card) {
+              seenCards.add(key)
+              // ciidを正しく設定
+              const cardWithCiid = { ...card, ciid: dc.ciid }
+              uniqueCards.push(cardWithCiid)
+            }
+          }
         })
 
-        // ciidで重複排除（各カード1枚ずつ）
-        const seenCiids = new Set<string>()
-        const uniqueCards: CardInfo[] = []
-        for (const card of allCards) {
-          if (!seenCiids.has(card.ciid)) {
-            seenCiids.add(card.ciid)
-            uniqueCards.push(card)
-          }
-        }
-
-        // 検索結果に設定
+        // 検索結果に設定（各カード種類1つずつ）
         deckStore.searchResults = uniqueCards as unknown as typeof deckStore.searchResults
         deckStore.allResults = uniqueCards
         deckStore.hasMore = false
         deckStore.currentPage = 0
 
-        // 入力をクリア
-        deckStore.searchQuery = ''
+        // 選択インデックスをリセット
         selectedMydeckIndex.value = -1
       } catch (error) {
         console.error('Failed to load mydeck cards:', error)
@@ -1096,13 +1137,6 @@ export default defineComponent({
 
     // Enterキーハンドラ
     const handleEnter = () => {
-      console.log('[SearchInputBar] handleEnter called', {
-        searchMode: searchMode.value,
-        pendingCommand: pendingCommand.value,
-        searchQuery: deckStore.searchQuery,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       // mydeckモードの場合
       if (searchMode.value === 'mydeck' && !pendingCommand.value) {
         // 選択中のデッキがある場合
@@ -1146,27 +1180,23 @@ export default defineComponent({
 
       // 有効な入力がある場合はチップに変換
       if (pendingCommand.value && isValidCommandInput.value) {
-        console.log('[SearchInputBar] Adding filter chip')
         addFilterChip()
         return
       }
 
       // コマンド入力中の場合は何もしない
       if (isTypingCommand.value) {
-        console.log('[SearchInputBar] Command input in progress, ignoring Enter')
         return
       }
 
       // コマンドモードの場合はフィルタを適用
       if (isCommandMode.value) {
-        console.log('[SearchInputBar] Command mode, applying filter')
         applyCommandFilter()
         deckStore.searchQuery = '' // コマンド部分をクリア
         return
       }
 
       // それ以外は検索実行
-      console.log('[SearchInputBar] Calling handleSearch')
       handleSearch()
     }
 
@@ -1268,7 +1298,7 @@ export default defineComponent({
       deckStore.searchQuery = ''
     }
 
-    const selectSearchMode = (mode: string) => {
+    const selectSearchMode = (mode: SearchMode) => {
       searchMode.value = mode
       showSearchModeDropdown.value = false
     }
@@ -1281,16 +1311,9 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
-      console.log('[SearchInputBar] handleSearch called', {
-        searchQuery: deckStore.searchQuery,
-        hasActiveFilters: hasActiveFilters.value,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       const query = deckStore.searchQuery.trim()
 
       if (!query && !hasActiveFilters.value) {
-        console.log('[SearchInputBar] Empty query and no filters, returning without closing global search')
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -1298,11 +1321,11 @@ export default defineComponent({
         return
       }
 
-      console.log('[SearchInputBar] Executing search, will close global search after API call')
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
 
       const searchTypeMap: Record<string, string> = {
+        'auto': '1', // autoモードはsearchCardsAutoで処理するため、ここでは使われない
         'name': '1',
         'text': '2',
         'pendulum': '3'
@@ -1311,59 +1334,72 @@ export default defineComponent({
 
       try {
         const apiSort = SORT_ORDER_TO_API_VALUE[deckStore.sortOrder] || 1
+        const keyword = deckStore.searchQuery.trim()
 
-        const searchOptions: SearchOptions = {
-          keyword: deckStore.searchQuery.trim(),
-          searchType: searchType as '1' | '2' | '3' | '4',
-          resultsPerPage: 100,
-          sort: apiSort
-        }
+        // 検索実行時に動的import
+        const { searchCards, searchCardsAuto } = await import('../api/card-search')
 
-        const f = searchFilters.value
-        if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
-        if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
-        if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-        if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
-        if (f.atk.min !== undefined || f.atk.max !== undefined) {
-          searchOptions.atk = { from: f.atk.min, to: f.atk.max }
-        }
-        if (f.def.min !== undefined || f.def.max !== undefined) {
-          searchOptions.def = { from: f.def.min, to: f.def.max }
-        }
-        if (f.monsterTypes.length > 0) {
-          const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
-          const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
-          if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
-          if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
-          // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
-          if (normalTypes.length > 0 || notTypes.length > 0) {
-            searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
-          }
-        }
-        if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
-        if (f.linkMarkers.length > 0) {
-          searchOptions.linkMarkers = f.linkMarkers
-          searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
-        }
-        if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
-        if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
-        if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
-        if (f.releaseDate.from || f.releaseDate.to) {
-          searchOptions.releaseDate = {}
-          if (f.releaseDate.from) {
-            const [year, month, day] = f.releaseDate.from.split('-').map(Number)
-            searchOptions.releaseDate.start = { year, month, day }
-          }
-          if (f.releaseDate.to) {
-            const [year, month, day] = f.releaseDate.to.split('-').map(Number)
-            searchOptions.releaseDate.end = { year, month, day }
-          }
-        }
+        // autoモードの場合は専用の関数を使用
+        let results: CardInfo[]
+        let searchOptions: SearchOptions | null = null
 
-        const results = await searchCards(searchOptions)
+        if (searchMode.value === 'auto') {
+          const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
+          results = autoResult.cards
+        } else {
+          // 通常の検索
+          searchOptions = {
+            keyword,
+            searchType: searchType as '1' | '2' | '3' | '4',
+            resultsPerPage: 100,
+            sort: apiSort
+          }
+
+          const f = searchFilters.value
+          if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
+          if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
+          if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
+          if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
+          if (f.atk.min !== undefined || f.atk.max !== undefined) {
+            searchOptions.atk = { from: f.atk.min, to: f.atk.max }
+          }
+          if (f.def.min !== undefined || f.def.max !== undefined) {
+            searchOptions.def = { from: f.def.min, to: f.def.max }
+          }
+          if (f.monsterTypes.length > 0) {
+            const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
+            const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
+            if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
+            if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
+            // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
+            if (normalTypes.length > 0 || notTypes.length > 0) {
+              searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
+            }
+          }
+          if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
+          if (f.linkMarkers.length > 0) {
+            searchOptions.linkMarkers = f.linkMarkers
+            searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
+          }
+          if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
+          if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
+          if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
+          if (f.releaseDate.from || f.releaseDate.to) {
+            searchOptions.releaseDate = {}
+            if (f.releaseDate.from) {
+              const [year, month, day] = f.releaseDate.from.split('-').map(Number)
+              searchOptions.releaseDate.start = { year, month, day }
+            }
+            if (f.releaseDate.to) {
+              const [year, month, day] = f.releaseDate.to.split('-').map(Number)
+              searchOptions.releaseDate.end = { year, month, day }
+            }
+          }
+
+          results = await searchCards(searchOptions)
+        }
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
-        console.log('[SearchInputBar] Search completed, closing global search mode')
         deckStore.isGlobalSearchMode = false
 
         // 検索結果をstore用の形式に変換
@@ -1372,25 +1408,29 @@ export default defineComponent({
 
         if (results.length >= 100) {
           deckStore.hasMore = true
-          setTimeout(async () => {
-            try {
-              const moreResults = await searchCards({
-                ...searchOptions,
-                resultsPerPage: 2000
-              })
-              if (moreResults.length > 100) {
-                deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
-                deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
-                deckStore.hasMore = moreResults.length >= 2000
-                deckStore.currentPage = 1
-              } else {
+          // autoモード以外の場合のみ、拡張検索を実行
+          if (searchOptions !== null) {
+            setTimeout(async () => {
+              try {
+                const { searchCards } = await import('../api/card-search')
+                const moreResults = await searchCards({
+                  ...searchOptions,
+                  resultsPerPage: 2000
+                })
+                if (moreResults.length > 100) {
+                  deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
+                  deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
+                  deckStore.hasMore = moreResults.length >= 2000
+                  deckStore.currentPage = 1
+                } else {
+                  deckStore.hasMore = false
+                }
+              } catch (error) {
+                console.error('Extended search error:', error)
                 deckStore.hasMore = false
               }
-            } catch (error) {
-              console.error('Extended search error:', error)
-              deckStore.hasMore = false
-            }
-          }, 1000)
+            }, 1000)
+          }
         } else {
           deckStore.hasMore = false
         }
@@ -1426,6 +1466,7 @@ export default defineComponent({
       searchModeLabel,
       showSearchModeDropdown,
       showFilterDialog,
+      showMydeckDropdown,
       searchFilters,
       hasActiveFilters,
       filterCount,
@@ -1448,6 +1489,7 @@ export default defineComponent({
       handleFilterApply,
       handleSearch,
       handleInput,
+      handleFocus,
       handleKeydown,
       handleEnter,
       handleEscape,
@@ -1540,11 +1582,11 @@ export default defineComponent({
   flex: 1;
   min-width: 0;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   justify-content: center;
 
   &.command-mode {
-    background: rgba(0, 217, 184, 0.1);
+    background: var(--command-mode-bg);
     border-radius: 4px;
     padding: 2px 4px;
     margin: 0 4px;
@@ -1684,6 +1726,10 @@ export default defineComponent({
   &.selected {
     background: var(--color-success);
     color: var(--button-text);
+
+    .suggestion-value {
+      color: var(--button-text);
+    }
 
     .suggestion-label {
       color: var(--button-text);
@@ -1885,6 +1931,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   flex: 1;
+  min-width: 48px;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
@@ -1907,6 +1954,10 @@ export default defineComponent({
   right: 0;
   bottom: 0;
   z-index: 99998;
+}
+
+.mydeck-suggestions {
+  z-index: 99999;
 }
 
 .mode-dropdown {

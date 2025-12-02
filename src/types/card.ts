@@ -34,6 +34,11 @@ export interface CardBase {
   ciid: string;
   /** 複数画像情報 */
   imgs: Array<{ciid: string; imgHash: string}>;
+  /** 複数画像の有無を確認した日時（オプション）
+   * - undefined = 未確認（複数画像情報がない）
+   * - 日時 = その日付で複数画像の有無を確認済み
+   */
+  imagesCheckedAt?: number;
   /** 効果テキスト（オプション） */
   text?: string;
   /** 禁止制限（オプション） */
@@ -50,7 +55,7 @@ import type { CardGameType } from './settings';
 export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
   if (!imageInfo) {
-    console.log('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
+    console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
   const gamePath = gameType === 'rush' ? 'rushdb' : 'yugiohdb';
@@ -513,6 +518,19 @@ export interface FAQTableB {
   fetchedAt: number;
   /** アクセス時刻（破棄判定用） */
   lastAccessedAt: number;
+}
+
+/**
+ * 禁止制限リスト情報
+ * 各適用日における禁止制限状態を保持
+ */
+export interface ForbiddenLimitedList {
+  /** 適用日（YYYY-MM-DD形式、例: "2025-10-01"） */
+  effectiveDate: string;
+  /** カードIDごとの制限状態マップ */
+  regulations: Record<string, LimitRegulation>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
 }
 
 // card-maps.tsから再エクスポート

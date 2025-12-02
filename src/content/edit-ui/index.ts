@@ -5,15 +5,10 @@
  * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
  */
 
-// テーマSCSSをインポート
-import '../../styles/themes.scss';
-import '../../styles/common.scss';
-
 // FOUC防止: デフォルトテーマを即座に適用
-document.documentElement.setAttribute('data-theme', 'light');
+document.documentElement.setAttribute('data-ygo-next-theme', 'light');
 
 import { isVueEditPage } from '../../utils/page-detector';
-import { getDeckMetadata } from '../../utils/deck-metadata-loader';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -33,8 +28,6 @@ function isEditUrl(): boolean {
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
-  console.log('watchUrlChanges called');
-  
   // DOMが読み込まれてから実行
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -51,16 +44,13 @@ function watchUrlChanges(): void {
 
   // hashchangeイベントを監視（一度だけ登録）
   if (!isEventListenerRegistered) {
-    console.log('Registering hashchange listener');
     isEventListenerRegistered = true;
-    
+
     window.addEventListener('hashchange', () => {
-      console.log('hashchange event fired, hash =', window.location.hash);
       if (isEditUrl() && !isEditUILoaded) {
         loadEditUI();
       } else if (!isEditUrl() && isEditUILoaded) {
         // 編集URL以外に移動した場合はフラグをリセット
-        console.log('Resetting isEditUILoaded flag');
         isEditUILoaded = false;
       }
     });
@@ -71,18 +61,12 @@ function watchUrlChanges(): void {
  * 編集用UIを読み込んで表示
  */
 function loadEditUI(): void {
-  console.log('loadEditUI called, isEditUILoaded =', isEditUILoaded);
-  
   if (isEditUILoaded) {
-    console.log('Edit UI already loaded, skipping...');
     return;
   }
 
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
-  console.log('Set isEditUILoaded = true');
-
-  console.log('Loading edit UI...');
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
@@ -91,8 +75,6 @@ function loadEditUI(): void {
     isEditUILoaded = false;
     return;
   }
-
-  console.log('Found #bg, replacing content...');
 
   // ヘッダーの高さを計算してCSS変数に設定
   const headerElement = document.querySelector('header') || document.querySelector('#header');
@@ -142,39 +124,32 @@ function loadEditUI(): void {
   // div#bgの内容を完全に置き換え
   bgElement.innerHTML = '<div id="vue-edit-app"></div>';
 
-  console.log('Content replaced, initializing Vue app...');
-
   // Vue アプリケーションを起動
   initVueApp();
-
-  console.log('Edit UI loaded successfully');
 }
 
 /**
  * Vue アプリケーションを初期化
  */
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import DeckEditLayout from './DeckEditLayout.vue';
-
 async function initVueApp(): Promise<void> {
   try {
+    // Vue/Pinia/コンポーネントを動的インポート
+    const [{ createApp }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
+      import('vue'),
+      import('pinia'),
+      import('./DeckEditLayout.vue')
+    ]);
+
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
 
     app.use(pinia);
     app.mount('#vue-edit-app');
-
-    console.log('Vue app mounted successfully');
   } catch (error) {
     console.error('Failed to initialize Vue app:', error);
   }
 }
 
-// Content Script起動時に実行
-// メタデータを事前に読み込み開始（非同期、結果を待たない）
-getDeckMetadata().catch(error => {
-  console.error('Failed to preload deck metadata:', error);
-});
-
+// このモジュールが動的インポートされた時点で編集ページにいることが確定
+// URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
 watchUrlChanges();

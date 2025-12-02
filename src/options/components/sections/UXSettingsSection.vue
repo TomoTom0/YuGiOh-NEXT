@@ -114,6 +114,74 @@
       </label>
     </div>
 
+    <!-- 検索モードのデフォルト -->
+    <div class="setting-group">
+      <h3 class="setting-title">検索モードのデフォルト</h3>
+      <p class="setting-desc">検索入力欄の検索対象の初期値</p>
+      <div class="radio-group">
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'name' }"
+        >
+          <input
+            type="radio"
+            value="name"
+            v-model="settingsStore.appSettings.defaultSearchMode"
+            @change="handleSearchModeChange"
+          />
+          <span class="radio-text">
+            <strong>カード名で検索（デフォルト）</strong>
+            <span class="radio-desc">カード名で検索</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'text' }"
+        >
+          <input
+            type="radio"
+            value="text"
+            v-model="settingsStore.appSettings.defaultSearchMode"
+            @change="handleSearchModeChange"
+          />
+          <span class="radio-text">
+            <strong>テキストで検索</strong>
+            <span class="radio-desc">カードテキストで検索</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'pendulum' }"
+        >
+          <input
+            type="radio"
+            value="pendulum"
+            v-model="settingsStore.appSettings.defaultSearchMode"
+            @change="handleSearchModeChange"
+          />
+          <span class="radio-text">
+            <strong>ペンデュラムテキストで検索</strong>
+            <span class="radio-desc">ペンデュラム効果で検索</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'mydeck' }"
+        >
+          <input
+            type="radio"
+            value="mydeck"
+            v-model="settingsStore.appSettings.defaultSearchMode"
+            @change="handleSearchModeChange"
+          />
+          <span class="radio-text">
+            <strong>マイデッキから選択</strong>
+            <span class="radio-desc">保存されているデッキから選択</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
     <!-- キーボードショートカット -->
     <div v-if="settingsStore.isLoaded" class="setting-group">
       <h3 class="setting-title">キーボードショートカット</h3>
@@ -222,9 +290,7 @@ const currentShortcuts = computed(() => {
 });
 
 onMounted(() => {
-  console.log('[UXSettings] Settings loaded:', settingsStore.isLoaded);
-  console.log('[UXSettings] Keyboard shortcuts:', settingsStore.appSettings.keyboardShortcuts);
-  console.log('[UXSettings] globalSearch length:', settingsStore.appSettings.keyboardShortcuts.globalSearch?.length);
+  // Settings loaded and ready to use
 });
 
 const handleDeckLimitChange = () => {
@@ -240,6 +306,11 @@ const handleWarningChange = () => {
 const handleMouseOpsChange = () => {
   settingsStore.saveSettings();
   showSaveMessage('マウス操作設定を変更しました');
+};
+
+const handleSearchModeChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('検索モードのデフォルトを変更しました');
 };
 
 const formatShortcut = (shortcut: KeyboardShortcut): string => {

@@ -44,11 +44,12 @@
           <div v-else-if="packCards[pack.packId]" class="pack-cards-wrapper">
             <CardList
               :cards="packCards[pack.packId]"
-              :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
+              :sortOrder="packSortOrders[pack.packId] || 'code_asc'"
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
               :showCollapseButton="true"
+              :showCodeSort="true"
               @collapse="collapsePack(pack.packId)"
               @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
@@ -135,7 +136,7 @@ export default {
         packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
-        packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
+        packSortOrders.value = { ...packSortOrders.value, [packId]: 'code_asc' }
       }
 
       try {
@@ -328,6 +329,7 @@ export default {
   height: 24px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -335,12 +337,13 @@ export default {
   justify-content: center;
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  
+
   &:hover {
     background: var(--bg-tertiary);
     border-color: var(--text-tertiary);
+    color: var(--text-primary);
   }
-  
+
   svg {
     display: block;
     width: 14px;
@@ -350,6 +353,7 @@ export default {
 
 .pack-collapse-btn {
   background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .pack-collapse-btn-sticky {
@@ -360,6 +364,7 @@ export default {
   height: 32px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -368,13 +373,14 @@ export default {
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   z-index: 5;
-  
+
   &:hover {
     background: var(--bg-tertiary);
     border-color: var(--text-tertiary);
+    color: var(--text-primary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
-  
+
   svg {
     display: block;
     width: 16px;
