@@ -34,11 +34,14 @@
               v-for="(img, index) in card?.imgs"
               :key="img.ciid"
               class="image-option"
-              :class="{ active: img.ciid === card?.ciid }"
-              @click="selectImage(img.ciid)"
+              :class="{ active: img.ciid === card?.ciid, invalid: !isCiidValid(img.ciid) }"
+              @click="isCiidValid(img.ciid) && selectImage(img.ciid)"
             >
               <img :src="getImageUrl(img)" :alt="`画像 ${index + 1}`">
               <span class="image-label">{{ index + 1 }}</span>
+              <div v-if="!isCiidValid(img.ciid)" class="invalid-overlay">
+                <span class="invalid-mark">×</span>
+              </div>
             </div>
           </div>
           </div>
@@ -166,6 +169,7 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
+import { getCardImageUrlAuto } from '../utils/url-builder'
 
 export default {
   name: 'CardInfo',
@@ -235,7 +239,28 @@ export default {
 
     const getImageUrl = (img) => {
       if (!card.value) return ''
-      return `https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+      return getCardImageUrlAuto(card.value.cardId, img.ciid, img.imgHash)
+    }
+
+    // 言語ごとの利用可能ciidをチェック
+    const getValidCiidsForCurrentLang = () => {
+      if (!card.value?.cardId) return [];
+      // UnifiedCacheDBから langs_ciids を取得
+      const { getUnifiedCacheDB } = require('../utils/unified-cache-db');
+      const unifiedDB = getUnifiedCacheDB();
+      if (!unifiedDB.isInitialized()) return [];
+
+      // detectLanguage を import
+      const { detectLanguage } = require('../utils/language-detector');
+      const lang = detectLanguage(document);
+      return unifiedDB.getValidCiidsForLang(card.value.cardId, lang);
+    }
+
+    // ciidが現在の言語で有効かチェック
+    const isCiidValid = (ciid) => {
+      const validCiids = getValidCiidsForCurrentLang();
+      if (validCiids.length === 0) return true; // ciidsリストが空の場合はすべて有効と判定
+      return validCiids.includes(String(ciid));
     }
 
     return {
@@ -251,7 +276,9 @@ export default {
       getImageUrl,
       mdiImageMultiple,
       showRuby,
-      toggleRuby
+      toggleRuby,
+      isCiidValid,
+      getValidCiidsForCurrentLang
     }
   },
   methods: {
@@ -541,6 +568,37 @@ export default {
     font-size: 10px;
     font-weight: bold;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  &.invalid {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+
+    &:hover {
+      border-color: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  .invalid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .invalid-mark {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--text-primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 }
 

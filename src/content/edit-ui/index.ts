@@ -52,6 +52,46 @@ async function applyThemeFromSettings(): Promise<void> {
 }
 
 /**
+ * 言語を変更（ページ遷移）
+ * Vue側でオーバーライド可能な実装
+ */
+function performLanguageChange(lang: string): void {
+  const hash = location.hash;
+  let search = location.search.replace(/[?&]request_locale=[^&]*/, '');
+
+  let newSearch = `?request_locale=${lang}`;
+  if (search.substring(1).length > 0) {
+    newSearch += `&${search.substring(1)}`;
+  }
+
+  const newUrl = location.pathname + newSearch + hash;
+  location.href = newUrl;
+}
+
+/**
+ * 言語切り替えボタンを差し替え（window.ygoChangeLanguage をコール）
+ */
+function replaceLanguageChangeLinks(): void {
+  // 言語リンクのhref属性を空のjavascriptに置き換え
+  document.querySelectorAll('a[href*="javascript:ChangeLanguage"]').forEach((link) => {
+    const href = link.getAttribute('href');
+    const match = href?.match(/ChangeLanguage\('(\w+)'\)/);
+    if (match) {
+      const lang = match[1];
+      link.setAttribute('href', 'javascript:void(0)');
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        // window.ygoChangeLanguage は Vue側でオーバーライド可能
+        (window as any).ygoChangeLanguage?.(lang);
+      });
+    }
+  });
+}
+
+// window.ygoChangeLanguage のデフォルト実装
+(window as any).ygoChangeLanguage = performLanguageChange;
+
+/**
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
@@ -161,7 +201,10 @@ async function loadEditUI(): Promise<void> {
   bgElement.innerHTML = '<div id="vue-edit-app"></div>';
 
   // Vue アプリケーションを起動
-  initVueApp();
+  await initVueApp();
+
+  // 言語切り替えボタンを差し替え（Vue初期化後）
+  replaceLanguageChangeLinks();
 }
 
 /**

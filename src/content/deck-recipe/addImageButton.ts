@@ -4,6 +4,8 @@
 
 import { showImageDialog } from './imageDialog';
 import { isDeckDisplayPage, detectCardGameType, isOwnDeck, getDeckCgid } from '../../utils/page-detector';
+import { getVueEditUrl } from '../../utils/url-builder';
+import { detectLanguage } from '../../utils/language-detector';
 
 /**
  * カメラアイコンのSVG
@@ -111,15 +113,21 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
     console.log('[YGO Helper] Next edit button clicked');
     e.preventDefault();
 
+    const gameType = detectCardGameType();
+    const locale = detectLanguage(document);
+
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      window.location.href = `/yugiohdb/#/ytomo/edit?dno=${dno}`;
+      const baseUrl = getVueEditUrl(gameType, parseInt(dno), locale);
+      window.location.href = baseUrl;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        window.location.href = `/yugiohdb/#/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        const baseUrl = getVueEditUrl(gameType, undefined, locale);
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        window.location.href = `${baseUrl}${separator}copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }

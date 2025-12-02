@@ -26,10 +26,10 @@ function getFaqSearchUrl(): string {
 export async function getCardFAQList(cardId: string): Promise<CardFAQList | null> {
   try {
     // URLパラメータを構築
+    // 注: request_locale は buildApiUrl で自動付与される（FAQ系統は必ず 'ja'）
     const params = new URLSearchParams({
       ope: '4',
-      cid: cardId,
-      request_locale: 'ja'
+      cid: cardId
     });
 
     const response = await fetch(`${getFaqSearchUrl()}?${params.toString()}`, {

@@ -14,6 +14,8 @@ import {
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT,
 } from '@/types/card-maps';
+import { getCardSearchEndpoint } from './url-builder';
+import { detectCardGameType } from './page-detector';
 
 interface MappingsData {
   race: Partial<Record<Race, string>>;
@@ -31,8 +33,10 @@ interface MappingsData {
 export async function extractMappingsFromSearchPage(lang: string): Promise<MappingsData | null> {
   try {
     // カード検索ページを取得
-    const locale = lang === 'ja' ? '' : `?request_locale=${lang}`;
-    const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action${locale}`;
+    const gameType = detectCardGameType();
+    const baseUrl = getCardSearchEndpoint(gameType);
+    const locale = lang === 'ja' ? '' : `&request_locale=${lang}`;
+    const url = `${baseUrl}${locale}`;
 
     const response = await fetch(url);
     if (!response.ok) {

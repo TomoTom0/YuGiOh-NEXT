@@ -165,10 +165,11 @@ export default {
           // selectedCardを更新
           // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
           // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
-          cardDetailStore.setSelectedCard({
+          const selectedCardData = {
             ...cacheResult.detail.card,
             ciid: props.card.ciid || cacheResult.detail.card.ciid
-          })
+          }
+          cardDetailStore.setSelectedCard(selectedCardData)
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
           const faqResult = await getCardFAQList(props.card.cardId)

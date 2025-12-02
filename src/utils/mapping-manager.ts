@@ -34,7 +34,7 @@ class MappingManager {
 
   /**
    * ストレージから動的マッピングをロード
-   * 
+   *
    * @param lang 現在の言語（指定した場合、その言語のみチェック・更新）
    */
   async initialize(lang?: string): Promise<void> {
@@ -44,6 +44,16 @@ class MappingManager {
       // 言語が指定されている場合、その言語のマッピングを確認
       if (lang) {
         await this.loadLanguageMapping(lang);
+
+        // マッピングがない場合は、同期的にfetchAndStoreMappingsを待つ
+        if (!this.dynamicMappings.has(lang)) {
+          console.log(`[MappingManager] Mapping not found for ${lang}, fetching now...`);
+          try {
+            await this.fetchAndStoreMappings(lang);
+          } catch (error) {
+            console.warn(`[MappingManager] Failed to fetch mappings for ${lang}:`, error);
+          }
+        }
       }
     } catch (error) {
       console.error('[MappingManager] Failed to initialize:', error);
@@ -141,7 +151,7 @@ class MappingManager {
 
     // 日本語以外は動的マッピングを返す
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping && Object.keys(dynamicMapping.race).length > 0) {
+    if (dynamicMapping?.race && Object.keys(dynamicMapping.race).length > 0) {
       // 動的マッピングは ID-to-text なので、逆引きして text-to-ID に変換
       const result: Record<string, Race> = {};
       for (const [internalId, text] of Object.entries(dynamicMapping.race)) {
@@ -172,7 +182,7 @@ class MappingManager {
     }
 
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping && Object.keys(dynamicMapping.monsterType).length > 0) {
+    if (dynamicMapping?.monsterType && Object.keys(dynamicMapping.monsterType).length > 0) {
       return dynamicMapping.monsterType as Record<string, MonsterType>;
     }
 
@@ -198,7 +208,7 @@ class MappingManager {
 
     // 日本語以外は動的マッピングを返す
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping && Object.keys(dynamicMapping.attribute).length > 0) {
+    if (dynamicMapping?.attribute && Object.keys(dynamicMapping.attribute).length > 0) {
       return dynamicMapping.attribute;
     }
 
@@ -224,7 +234,7 @@ class MappingManager {
 
     // 日本語以外は動的マッピングを返す
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping && Object.keys(dynamicMapping.spellEffect).length > 0) {
+    if (dynamicMapping?.spellEffect && Object.keys(dynamicMapping.spellEffect).length > 0) {
       return dynamicMapping.spellEffect;
     }
 
@@ -238,7 +248,7 @@ class MappingManager {
    */
   getTrapEffectTextToId(lang: string): Partial<Record<TrapEffectType, string>> {
     const dynamicMapping = this.dynamicMappings.get(lang);
-    if (dynamicMapping && Object.keys(dynamicMapping.trapEffect).length > 0) {
+    if (dynamicMapping?.trapEffect && Object.keys(dynamicMapping.trapEffect).length > 0) {
       return dynamicMapping.trapEffect;
     }
 

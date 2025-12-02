@@ -357,6 +357,8 @@ export interface CardTableA {
     ciid: string;
     imgHash: string;
   }>;
+  /** 言語ごとに利用可能なciidのリスト（{lang: ciid[]} 形式） */
+  langs_ciids?: Record<string, string[]>;
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;
   /** 取得日時（旧形式、互換性保持用） */

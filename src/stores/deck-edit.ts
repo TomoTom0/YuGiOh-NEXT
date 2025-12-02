@@ -731,6 +731,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
     const settingsStore = useSettingsStore();
 
+    // 言語ごとの利用可能ciidをチェック
+    const unifiedDB = getUnifiedCacheDB();
+    if (unifiedDB.isInitialized()) {
+      const { detectLanguage } = require('@/utils/language-detector');
+      const lang = detectLanguage(document);
+      const validCiids = unifiedDB.getValidCiidsForLang(card.cardId, lang);
+
+      // validCiidsが存在する場合、ciidが含まれているかチェック
+      if (validCiids.length > 0 && !validCiids.includes(String(card.ciid || card.imgs?.[0]?.ciid))) {
+        // 無効なciid - 追加を拒否
+        limitErrorCardId.value = card.cardId;
+        setTimeout(() => {
+          limitErrorCardId.value = null;
+        }, 1000);
+        return { success: false, error: 'invalid_ciid_for_language' };
+      }
+    }
+
     // main, extra, sideで同じcidのカードの合計枚数をカウント
     const allDecks = [
       ...deckInfo.value.mainDeck,
@@ -784,10 +802,31 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
-    
+
     const fromIndex = fromDeck.findIndex(dc => dc.cid === cardId);
     if (fromIndex === -1) return { success: false, error: 'カードが見つかりません' };
-    
+
+    // 移動先がmain/extra/sideの場合、言語ごとの利用可能ciidをチェック
+    if (to === 'main' || to === 'extra' || to === 'side') {
+      const movingCard = fromDeck[fromIndex];
+      const unifiedDB = getUnifiedCacheDB();
+      if (unifiedDB.isInitialized()) {
+        const { detectLanguage } = require('@/utils/language-detector');
+        const lang = detectLanguage(document);
+        const validCiids = unifiedDB.getValidCiidsForLang(cardId, lang);
+
+        // validCiidsが存在する場合、ciidが含まれているかチェック
+        if (validCiids.length > 0 && !validCiids.includes(String(movingCard.ciid))) {
+          // 無効なciid - 移動を拒否
+          limitErrorCardId.value = cardId;
+          setTimeout(() => {
+            limitErrorCardId.value = null;
+          }, 1000);
+          return { success: false, error: 'invalid_ciid_for_language' };
+        }
+      }
+    }
+
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
     

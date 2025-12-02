@@ -347,6 +347,21 @@ export class UnifiedCacheDB {
       langsImgs = { [lang]: existing.imgs };
     }
 
+    // 既存の langs_ciids を取得（言語ごとの利用可能ciidリスト）
+    let langs_ciids = existing?.langs_ciids || {};
+
+    // 現在の言語で利用可能なciidを抽出してマージ
+    if (card.imgs && card.imgs.length > 0) {
+      const currentCiids = card.imgs.map(img => img.ciid);
+      // 既存のciidと新しいciidをマージ（重複を排除）
+      const existingCiids = langs_ciids[lang] || [];
+      const mergedCiids = Array.from(new Set([...existingCiids, ...currentCiids]));
+      langs_ciids = {
+        ...langs_ciids,
+        [lang]: mergedCiids
+      };
+    }
+
     // 既存の langsFetchedAt を取得
     const langsFetchedAt = existing?.langsFetchedAt || {};
 
@@ -363,6 +378,7 @@ export class UnifiedCacheDB {
         [lang]: card.imgs
       },
       imgs: card.imgs,  // フォールバック用（古いコードとの互換性）
+      langs_ciids,  // 言語ごとの利用可能ciidリスト
       langsFetchedAt: {
         ...langsFetchedAt,
         [lang]: now
@@ -946,6 +962,15 @@ export class UnifiedCacheDB {
    */
   getAllCardIds(): string[] {
     return Array.from(this.cardTableA.keys());
+  }
+
+  /**
+   * 指定した言語で利用可能なciidのリストを取得
+   */
+  getValidCiidsForLang(cardId: string, lang: string): string[] {
+    const tableA = this.cardTableA.get(cardId);
+    if (!tableA?.langs_ciids) return [];
+    return tableA.langs_ciids[lang] || [];
   }
 
   /**

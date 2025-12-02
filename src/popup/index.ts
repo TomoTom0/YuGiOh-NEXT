@@ -8,6 +8,7 @@ import '../styles/themes.scss';
 import './popup.css';
 import { createPinia } from 'pinia';
 import { useSettingsStore } from '../stores/settings';
+import { getVueEditUrl } from '../utils/url-builder';
 
 // Piniaを初期化してテーマを適用
 const pinia = createPinia();
@@ -17,6 +18,34 @@ settingsStore.loadSettings();
 
 // テーマ属性を設定（CSS変数の解決のため）
 document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme);
+
+/**
+ * URLから request_locale を抽出
+ */
+function extractLocaleFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.searchParams.get('request_locale');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 現在のアクティブなタブから request_locale を取得
+ */
+async function getLocaleFromActiveTab(): Promise<string | undefined> {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs[0]?.url) {
+      const locale = extractLocaleFromUrl(tabs[0].url);
+      return locale || undefined;
+    }
+  } catch (error) {
+    console.error('[YGO Helper] Failed to get active tab:', error);
+  }
+  return undefined;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   // コンテナ
@@ -43,16 +72,18 @@ document.addEventListener('DOMContentLoaded', () => {
   menu.className = 'popup-menu';
 
   // デッキ編集ボタン
-  const deckButton = createMenuButton('デッキ編集画面', () => {
+  const deckButton = createMenuButton('デッキ編集画面', async () => {
+    const locale = await getLocaleFromActiveTab();
     chrome.tabs.create({
-      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+      url: getVueEditUrl('ocg', undefined, locale)
     });
   });
 
   // デッキ編集(ラッシュ)ボタン
-  const deckRushButton = createMenuButton('Rushデッキ編集', () => {
+  const deckRushButton = createMenuButton('Rushデッキ編集', async () => {
+    const locale = await getLocaleFromActiveTab();
     chrome.tabs.create({
-      url: 'https://www.db.yugioh-card.com/rushdb/#/ytomo/edit'
+      url: getVueEditUrl('rush', undefined, locale)
     });
   });
 
@@ -73,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * メニューボタンを作成
  */
-function createMenuButton(title: string, onClick: () => void): HTMLElement {
+function createMenuButton(title: string, onClick: () => void | Promise<void>): HTMLElement {
   const button = document.createElement('button');
   button.className = 'menu-button';
   button.textContent = title;

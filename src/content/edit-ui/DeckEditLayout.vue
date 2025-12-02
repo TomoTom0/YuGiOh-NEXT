@@ -140,7 +140,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
@@ -177,6 +177,9 @@ export default {
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
+
+    // 言語変更待機中フラグ
+    let pendingLanguageChange: (() => void) | null = null;
 
     // ダイアログイベントハンドラ
     const handleExported = (message) => {
@@ -368,6 +371,24 @@ export default {
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
+      // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
+      const originalChangeLanguage = (window as any).ygoChangeLanguage
+      ;(window as any).ygoChangeLanguage = (lang: string) => {
+        const performChange = () => {
+          originalChangeLanguage(lang)
+        }
+
+        // 編集中の場合はダイアログを表示
+        if (deckStore.hasUnsavedChanges()) {
+          unsavedChangesMessage.value = '言語を変更するとページが再読み込みされます。保存してから変更しますか？'
+          pendingLanguageChange = performChange
+          pendingAction.value = performChange
+          deckStore.showUnsavedChangesDialog = true
+        } else {
+          performChange()
+        }
+      }
+
       // 設定に応じてファビコンを変更
       if (settingsStore.appSettings.changeFavicon) {
         changeFavicon()
@@ -407,6 +428,7 @@ export default {
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('hashchange', checkDnoChange)
       window.removeEventListener('keydown', handleGlobalKeydown)
+      pendingLanguageChange = null
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {

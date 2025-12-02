@@ -74,6 +74,8 @@
 import { ref, computed } from 'vue'
 import CardList from './CardList.vue'
 import { searchCardsByPackId } from '../api/card-search'
+import { getCardSearchEndpoint } from '../utils/url-builder'
+import { detectCardGameType } from '../utils/page-detector'
 
 export default {
   name: 'CardProducts',
@@ -188,12 +190,13 @@ export default {
     }
     
     const getPackUrl = (packId) => {
-      const baseUrl = 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
+      const gameType = detectCardGameType()
+      const baseUrl = getCardSearchEndpoint(gameType)
       const params = new URLSearchParams({
         ope: '1',
         pid: packId
       })
-      return `${baseUrl}?${params.toString()}`
+      return `${baseUrl}&${params.toString()}`
     }
 
     const handleScrollToTop = () => {

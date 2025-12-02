@@ -5,6 +5,7 @@
  */
 
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
+import { getVueEditUrl } from '@/utils/url-builder';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -42,7 +43,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 chrome.contextMenus.onClicked.addListener((info, _tab) => {
   if (info.menuItemId === 'open-deck-edit') {
     chrome.tabs.create({
-      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+      url: getVueEditUrl('ocg')
     });
   }
 });

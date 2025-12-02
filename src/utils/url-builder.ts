@@ -1,11 +1,12 @@
 /**
  * URLビルダーユーティリティ
- * 
+ *
  * OCG/Rush Duel両対応のURL生成関数を提供
  */
 
 import type { CardGameType } from '../types/settings';
 import { getGamePath } from './page-detector';
+import { detectLanguage } from './language-detector';
 
 /**
  * ベースURL
@@ -13,14 +14,68 @@ import { getGamePath } from './page-detector';
 const BASE_URL = 'https://www.db.yugioh-card.com';
 
 /**
- * APIのベースURLを取得
- * @param path APIパス（例: 'member_deck.action'）
+ * APIパスのタイプ定義
+ */
+type ApiPathType = 'card_search' | 'faq_search' | 'member_deck' | 'forbidden_limited' | 'deck_search' | 'other';
+
+/**
+ * APIパスからタイプを判定
+ */
+function getApiPathType(path: string): ApiPathType {
+  if (path.includes('card_search')) return 'card_search';
+  if (path.includes('faq_search')) return 'faq_search';
+  if (path.includes('member_deck')) return 'member_deck';
+  if (path.includes('forbidden_limited')) return 'forbidden_limited';
+  if (path.includes('deck_search')) return 'deck_search';
+  return 'other';
+}
+
+/**
+ * APIのベースURLを取得（request_locale を自動付与）
+ *
+ * request_locale 付与ルール：
+ * - デッキ新規作成（member_deck, ope=2）: 付与しない
+ * - デッキリスト取得（deck_search）: 付与しない
+ * - FAQ系統（faq_search）: 必ず 'ja' を付与
+ * - その他: 現在の言語を自動付与
+ *
+ * @param path APIパス（例: 'member_deck.action' や 'member_deck.action?ope=1'）
  * @param gameType カードゲームタイプ
- * @returns 完全なURL
+ * @returns 完全なURL（必要に応じて request_locale を含む）
  */
 export function buildApiUrl(path: string, gameType: CardGameType): string {
   const gamePath = getGamePath(gameType);
-  return `${BASE_URL}/${gamePath}/${path}`;
+  const apiPathType = getApiPathType(path);
+
+  // リクエストローカルを付与するかどうかを判定
+  const shouldAddLocale =
+    apiPathType !== 'member_deck' &&
+    apiPathType !== 'deck_search';
+
+  const url = new URL(`${BASE_URL}/${gamePath}/${path}`);
+
+  if (!shouldAddLocale) {
+    // request_locale を付与しない（既に存在する場合は削除）
+    url.searchParams.delete('request_locale');
+    return url.toString();
+  }
+
+  // request_locale が既に存在する場合はスキップ
+  if (url.searchParams.has('request_locale')) {
+    return url.toString();
+  }
+
+  // request_locale を付与
+  if (apiPathType === 'faq_search') {
+    // FAQ系統は必ず 'ja' を付与
+    url.searchParams.set('request_locale', 'ja');
+  } else {
+    // その他は現在の言語を付与
+    const lang = detectLanguage(document);
+    url.searchParams.set('request_locale', lang);
+  }
+
+  return url.toString();
 }
 
 /**
@@ -113,12 +168,31 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * Vue編集画面のURLを取得
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
+ * @param locale ロケール（オプション）。指定されない場合は detectLanguage() で自動取得すること
  * @returns Vue編集画面URL
+ *
+ * 例：
+ * - getVueEditUrl('ocg') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+ * - getVueEditUrl('ocg', 1) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
+ * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit'
+ * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&dno=1#/ytomo/edit'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string): string {
   const gamePath = getGamePath(gameType);
-  const base = `${BASE_URL}/${gamePath}/#/ytomo/edit`;
-  return dno ? `${base}?dno=${dno}` : base;
+  const params = new URLSearchParams();
+
+  if (locale) {
+    params.append('request_locale', locale);
+  }
+  if (dno) {
+    params.append('dno', dno.toString());
+  }
+
+  const base = `${BASE_URL}/${gamePath}`;
+  const queryString = params.toString();
+  const hash = '#/ytomo/edit';
+
+  return queryString ? `${base}?${queryString}${hash}` : `${base}${hash}`;
 }
 
 /**
@@ -134,4 +208,48 @@ export function getDeckDisplayUrl(
   gameType: CardGameType
 ): string {
   return buildApiUrl(`member_deck.action?ope=1&cgid=${cgid}&dno=${dno}`, gameType);
+}
+
+/**
+ * 禁止・制限リストAPIのエンドポイントを取得
+ * @param gameType カードゲームタイプ
+ * @returns APIエンドポイントURL
+ */
+export function getForbiddenLimitedEndpoint(gameType: CardGameType): string {
+  return buildApiUrl('forbidden_limited.action', gameType);
+}
+
+/**
+ * カード画像URLを生成（文字列版、stringを受け入れる）
+ * @param cid カードID（number または string）
+ * @param ciid カード画像ID（number または string）
+ * @param imgHash 画像ハッシュ
+ * @param gameType カードゲームタイプ
+ * @returns 画像URL
+ */
+export function getCardImageUrl(
+  cid: number | string,
+  ciid: number | string,
+  imgHash: string,
+  gameType: CardGameType
+): string {
+  const gamePath = getGamePath(gameType);
+  return `${BASE_URL}/${gamePath}/get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+}
+
+/**
+ * カード画像URLを生成（引数フリー版、現在のページのゲームタイプから自動判定）
+ * @param cid カードID（number または string）
+ * @param ciid カード画像ID（number または string）
+ * @param imgHash 画像ハッシュ
+ * @returns 画像URL
+ */
+export function getCardImageUrlAuto(
+  cid: number | string,
+  ciid: number | string,
+  imgHash: string
+): string {
+  const { detectCardGameType } = require('./page-detector');
+  const gameType = detectCardGameType();
+  return getCardImageUrl(cid, ciid, imgHash, gameType);
 }

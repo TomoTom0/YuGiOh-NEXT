@@ -91,6 +91,7 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
+import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
 
@@ -156,7 +157,7 @@ export default {
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
-        return `https://www.db.yugioh-card.com${relativeUrl}`
+        return buildFullUrl(relativeUrl)
       }
       return chrome.runtime.getURL('images/card_back.png')
     },

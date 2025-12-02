@@ -98,6 +98,7 @@ import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
 import SearchInputBar from './SearchInputBar.vue'
+import { buildFullUrl } from '../utils/url-builder'
 
 export default {
   name: 'RightArea',
@@ -184,7 +185,7 @@ export default {
       const gameType = detectCardGameType()
       return cards.map(card => {
         const relativeUrl = getCardImageUrl(card, gameType)
-        const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
+        const imageUrl = relativeUrl ? buildFullUrl(relativeUrl) : undefined
         return {
           ...card,
           imageUrl
@@ -220,6 +221,7 @@ export default {
         const { getCardDetailWithCache } = await import('../api/card-search')
         const result = await getCardDetailWithCache(card.cardId)
         const fullCard = result?.detail?.card || card
+
         cardDetailStore.setSelectedCard(fullCard)
       } catch (e) {
         console.error('[RightArea] Failed to fetch full card detail:', e)
