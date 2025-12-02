@@ -352,8 +352,10 @@ export interface CardTableA {
     ciid: string;
     imgHash: string;
   }>;
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+  /** 取得日時（旧形式、互換性保持用） */
+  fetchedAt?: number;
 }
 
 /**
@@ -419,8 +421,10 @@ export interface CardTableB2 {
   langsPendText?: Record<string, string>;
   /** ペンデュラムテキスト（旧形式、互換性保持用） */
   pendText?: string;
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+  /** 取得日時（旧形式、互換性保持用） */
+  fetchedAt?: number;
 }
 
 /**

@@ -319,16 +319,19 @@ export class UnifiedCacheDB {
     const now = Date.now();
     const existing = this.cardTableA.get(card.cardId);
 
-    // TTLチェック
-    if (existing && !forceUpdate) {
-      const age = now - existing.fetchedAt;
-      if (age < this.cacheTTL) {
-        return false;
-      }
-    }
-
     // 言語を取得（CardInfo.langまたはドキュメントから）
     const lang = card.lang || detectLanguage(document);
+
+    // 言語ごとの TTLチェック
+    if (existing && !forceUpdate) {
+      const langFetchedAt = existing.langsFetchedAt?.[lang] || existing.fetchedAt;
+      if (langFetchedAt) {
+        const age = now - langFetchedAt;
+        if (age < this.cacheTTL) {
+          return false;
+        }
+      }
+    }
 
     // 既存のlangsNameを取得（旧形式のnameもサポート）
     let langsName = existing?.langsName || {};
@@ -336,6 +339,9 @@ export class UnifiedCacheDB {
       // 旧形式のnameから langsName に変換（マイグレーション）
       langsName = { [lang]: existing.name };
     }
+
+    // 既存の langsFetchedAt を取得
+    const langsFetchedAt = existing?.langsFetchedAt || {};
 
     // TableA
     const tableA: CardTableA = {
@@ -346,7 +352,11 @@ export class UnifiedCacheDB {
       },
       ruby: card.ruby,
       imgs: card.imgs,
-      fetchedAt: now
+      langsFetchedAt: {
+        ...langsFetchedAt,
+        [lang]: now
+      },
+      fetchedAt: existing?.fetchedAt || now
     };
     this.cardTableA.set(card.cardId, tableA);
 
@@ -402,11 +412,18 @@ export class UnifiedCacheDB {
         langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
       }
 
+      // 既存の langsFetchedAt を取得
+      const langsFetchedAt = existingB2?.langsFetchedAt || {};
+
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
         langsText: Object.keys(langsText).length > 0 ? langsText : undefined,
         langsPendText: Object.keys(langsPendText).length > 0 ? langsPendText : undefined,
-        fetchedAt: now
+        langsFetchedAt: {
+          ...langsFetchedAt,
+          [lang]: now
+        },
+        fetchedAt: existingB2?.fetchedAt || now
       };
       this.cardTableB2.set(card.cardId, tableB2);
     }
@@ -778,7 +795,10 @@ export class UnifiedCacheDB {
     const tableA = this.cardTableA.get(cardId);
     const tableB = this.cardTableB.get(cardId);
 
-    if (!tableA || !tableB) return undefined;
+    if (!tableA || !tableB) {
+      console.debug(`[reconstructCardInfo] Missing tableA or tableB for cardId=${cardId}`);
+      return undefined;
+    }
 
     // 言語を取得（ドキュメントから）
     const lang = detectLanguage(document);
@@ -797,8 +817,13 @@ export class UnifiedCacheDB {
     }
 
     if (!name) {
-      console.warn(`[reconstructCardInfo] No name found for cardId=${cardId}`);
+      console.warn(`[reconstructCardInfo] No name found for cardId=${cardId}, langsName=${JSON.stringify(tableA.langsName)}, name=${tableA.name}`);
       return undefined;
+    }
+
+    // デバッグ: imgs情報を確認
+    if (!tableA.imgs || tableA.imgs.length === 0) {
+      console.warn(`[reconstructCardInfo] No images found for cardId=${cardId}`, tableA.imgs);
     }
 
     // 基本情報
