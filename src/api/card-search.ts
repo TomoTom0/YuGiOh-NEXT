@@ -1132,18 +1132,22 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
       const normalized = text.replace(/\s+/g, ' ').trim();
 
       // 日本語: "攻撃力 3000" または英語: "ATK 3000"
-      const atkMatch = normalized.match(/(攻撃力|ATK)[:\s]*([0-9X?]+)/);
+      // ハイフン(-) もサポート（リンクモンスターはATKも-の場合がある）
+      const atkMatch = normalized.match(/(攻撃力|ATK)[:\s]*([0-9X?-]+)/);
       if (atkMatch && atkMatch[2]) {
         const value = atkMatch[2];
-        atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+        // ハイフンのみの場合は undefined、そうでなければパース
+        atk = value === '-' ? undefined : /^\d+$/.test(value) ? parseInt(value, 10) : value;
         atkFound = true;
       }
 
       // 日本語: "守備力 2500" または英語: "DEF 2500"
-      const defMatch = normalized.match(/(守備力|DEF)[:\s]*([0-9X?]+)/);
+      // ハイフン(-) もサポート（リンクモンスターはDEF無し）
+      const defMatch = normalized.match(/(守備力|DEF)[:\s]*([0-9X?-]+)/);
       if (defMatch && defMatch[2]) {
         const value = defMatch[2];
-        def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+        // ハイフンのみの場合は undefined、そうでなければパース
+        def = value === '-' ? undefined : /^\d+$/.test(value) ? parseInt(value, 10) : value;
         defFound = true;
       }
     });
