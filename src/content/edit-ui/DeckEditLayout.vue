@@ -560,7 +560,7 @@ export default {
       event.preventDefault()
       event.stopPropagation()
       if (!dragData.value) {
-        console.log('ERROR: No drag data!')
+        console.error('ERROR: No drag data!')
         return
       }
 
