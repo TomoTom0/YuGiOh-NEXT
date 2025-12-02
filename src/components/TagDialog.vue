@@ -284,7 +284,6 @@ const filteredTags = computed(() => {
 // フィルタトグル
 function toggleFilter(): void {
   isFilterEnabled.value = !isFilterEnabled.value;
-  console.log('Tag filter:', isFilterEnabled.value ? 'ON' : 'OFF');
 }
 
 // タグラベルを取得

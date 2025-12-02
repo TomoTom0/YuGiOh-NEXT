@@ -1832,9 +1832,6 @@ export async function getCardDetail(
     if (!baseCard) {
       const tempCardDB = getTempCardDB();
       baseCard = tempCardDB.get(cardId);
-      if (baseCard) {
-        console.log('[getCardDetail] Found base card info in TempCardDB for', cardId);
-      }
     }
 
     // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
@@ -1842,7 +1839,6 @@ export async function getCardDetail(
     let searchPromise: Promise<CardInfo[]> | null = null;
 
     if (fromFAQ && !baseCard) {
-      console.log('[getCardDetail] FAQ link access, parsing base info from detail page for', cardId);
       const parsed = parseCardDetailBasicInfo(doc, cardId);
       if (!parsed) {
         console.error('[getCardDetail] Failed to parse base card info from detail page for', cardId);
@@ -1851,7 +1847,6 @@ export async function getCardDetail(
       baseCard = parsed;
 
       // カード名で検索（並行実行）- 完全な情報（リンクマーカー、ペンデュラム等）を取得
-      console.log('[getCardDetail] Starting parallel search for card:', parsed.name);
       searchPromise = searchCards({ keyword: parsed.name })
         .catch(err => {
           console.warn('[getCardDetail] Card name search failed:', err);
@@ -1863,15 +1858,6 @@ export async function getCardDetail(
       console.error('[getCardDetail] Base card info not available for', cardId);
       return null;
     }
-
-    console.log('[getCardDetail] Base card info:', {
-      cardId,
-      name: baseCard.name,
-      cardType: baseCard.cardType,
-      levelType: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelType : undefined,
-      levelValue: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).levelValue : undefined,
-      linkMarkers: baseCard.cardType === 'monster' ? (baseCard as MonsterCard).linkMarkers : undefined
-    });
 
     // 補足情報のみ取得
     const additionalImgs = parseAdditionalImages(doc);
@@ -1911,13 +1897,6 @@ export async function getCardDetail(
       const fullCard = searchResults.find(c => c.cardId === cardId);
       
       if (fullCard) {
-        console.log('[getCardDetail] Found full card info from search:', {
-          cardId: fullCard.cardId,
-          name: fullCard.name,
-          linkMarkers: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).linkMarkers : undefined,
-          pendulumScale: fullCard.cardType === 'monster' ? (fullCard as MonsterCard).pendulumScale : undefined
-        });
-        
         // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
         baseCard = {
           ...fullCard,
@@ -2017,9 +1996,6 @@ export async function getCardDetailWithCache(
       const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC);
 
       if (cachedDetail) {
-        const daysDiff = Math.floor((now - fetchedAt) / (24 * 60 * 60 * 1000));
-        console.log(`[getCardDetailWithCache] Cache hit for ${cardId}, fresh=${isFresh}, age=${daysDiff}days, hasRelatedProducts=${hasRelatedProducts}`);
-
         // fetchedAtを更新（今日の日付でない場合のみ）
         if (!isSameDayToday) {
           await unifiedDB.updateCardTableCFetchedAt(cardId);
@@ -2034,7 +2010,6 @@ export async function getCardDetailWithCache(
 
         // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
         if (!isFresh && autoRefresh) {
-          console.log(`[getCardDetailWithCache] Starting background refresh for ${cardId}`);
           result.refreshPromise = (async () => {
             try {
               const freshDetail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
@@ -2042,7 +2017,6 @@ export async function getCardDetailWithCache(
                 await saveCardDetailToCache(unifiedDB, freshDetail, true);
                 // ストレージに永続化
                 await unifiedDB.saveAll();
-                console.log(`[getCardDetailWithCache] Background refresh completed for ${cardId}`);
               }
               return freshDetail;
             } catch (error) {
@@ -2058,7 +2032,6 @@ export async function getCardDetailWithCache(
   }
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
-  console.log(`[getCardDetailWithCache] Cache miss for ${cardId}, fetching from API`);
   const detail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
 
   if (detail && unifiedDB.isInitialized()) {

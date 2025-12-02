@@ -129,14 +129,10 @@ export class ForbiddenLimitedCache {
    * 強制的にキャッシュを更新
    */
   async forceUpdate(): Promise<void> {
-    console.log('[ForbiddenLimitedCache] Updating forbidden/limited list...');
-
     const newData = await fetchForbiddenLimitedList();
     this.cache = newData;
 
     await safeStorageSet({ [STORAGE_KEY]: newData });
-
-    console.log(`[ForbiddenLimitedCache] Updated: ${newData.effectiveDate}, ${Object.keys(newData.regulations).length} cards`);
   }
 
   /**

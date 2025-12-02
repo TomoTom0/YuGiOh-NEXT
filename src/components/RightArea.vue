@@ -197,7 +197,6 @@ export default {
       
       deckStore.isLoading = true
       try {
-        console.log('Loading more results, page:', deckStore.currentPage + 1)
         deckStore.hasMore = false
       } catch (error) {
         console.error('Error loading more results:', error)
