@@ -6,7 +6,8 @@
  */
 
 // FOUC防止: デフォルトテーマを即座に適用
-document.documentElement.setAttribute('data-ygo-next-theme', 'light');
+// 注: テーマはwatchUrlChanges()の前にapplyThemeFromSettings()で適用するため、
+// ここではハードコードされた'light'を設定しない
 
 import { isVueEditPage } from '../../utils/page-detector';
 
@@ -181,4 +182,8 @@ async function initVueApp(): Promise<void> {
 
 // このモジュールが動的インポートされた時点で編集ページにいることが確定
 // URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
-watchUrlChanges();
+(async () => {
+  // モジュール読み込み時にテーマを設定（FOUC防止）
+  await applyThemeFromSettings();
+  watchUrlChanges();
+})();
