@@ -113,17 +113,13 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      const newHash = `/ytomo/edit?dno=${dno}`;
-      console.log('[YGO Helper] Setting hash to:', newHash);
-      window.location.hash = newHash;
+      window.location.href = `#/ytomo/edit?dno=${dno}`;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        const newHash = `/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
-        console.log('[YGO Helper] Setting hash to:', newHash);
-        window.location.hash = newHash;
+        window.location.href = `#/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }
