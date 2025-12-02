@@ -680,8 +680,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import '../../styles/themes.scss';
-@import '../../styles/common.scss';
+@use '../../styles/themes.scss' as *;
+@use '../../styles/common.scss' as *;
 
 // Hide page top button
 :global(.menu_btn_pagetop) {
