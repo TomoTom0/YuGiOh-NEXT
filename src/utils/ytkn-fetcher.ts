@@ -3,21 +3,21 @@
  *
  * @param cgid ユーザー識別子
  * @param dno デッキ番号
- * @param apiEndpoint APIエンドポイント
+ * @param gameType カードゲームタイプ
  * @returns ytkn、取得失敗時はnull
  */
 
 export async function fetchYtknFromEditForm(
   cgid: string,
   dno: number,
-  apiEndpoint: string
+  gameType: import('@/types/settings').CardGameType
 ): Promise<string | null> {
   try {
-    // ope=2 は要件の除外対象（デッキ新規作成・デッキリスト取得）ではないため request_locale 付与
-    // FAQ系統ではないため ja ではなく現在の言語を付与
-    const { detectLanguage } = await import('./language-detector');
-    const lang = detectLanguage(document);
-    const editUrl = `${apiEndpoint}?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&request_locale=${lang}`;
+    // ope=2 はデッキ編集フォーム取得で、request_locale 付与対象
+    // buildApiUrl経由で自動付与される
+    const { buildApiUrl } = await import('./url-builder');
+    const path = `member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}`;
+    const editUrl = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
     const response = await axios.get(editUrl, { withCredentials: true });
@@ -35,15 +35,19 @@ export async function fetchYtknFromEditForm(
  * デッキ一覧ページ（ope=4）からytknを取得
  *
  * @param cgid ユーザー識別子
- * @param apiEndpoint APIエンドポイント
+ * @param gameType カードゲームタイプ
  * @returns ytkn、取得失敗時はnull
  */
 export async function fetchYtknFromDeckList(
   cgid: string,
-  apiEndpoint: string
+  gameType: import('@/types/settings').CardGameType
 ): Promise<string | null> {
   try {
-    const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}`;
+    // ope=4 はデッキリスト取得で、request_locale 不付与
+    // buildApiUrl経由で自動削除される
+    const { buildApiUrl } = await import('./url-builder');
+    const path = `member_deck.action?ope=4&wname=MemberDeck&cgid=${cgid}`;
+    const listUrl = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
     const response = await axios.get(listUrl, { withCredentials: true });

@@ -22,6 +22,7 @@ type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_de
  * APIパスからタイプを判定
  * member_deck は ope パラメータで区別：
  * - ope=6（新規作成）: member_deck_new -> request_locale なし
+ * - ope=4（デッキ一覧取得）: deck_search -> request_locale なし
  * - その他: member_deck_other -> request_locale 付与
  */
 function getApiPathType(path: string): ApiPathType {
@@ -30,6 +31,8 @@ function getApiPathType(path: string): ApiPathType {
   if (path.includes('member_deck')) {
     // ope=6 の場合は新規作成（request_locale なし）
     if (path.includes('ope=6')) return 'member_deck_new';
+    // ope=4 の場合はデッキ一覧取得（request_locale なし）
+    if (path.includes('ope=4')) return 'deck_search';
     // それ以外は表示等（request_locale 付与）
     return 'member_deck_other';
   }

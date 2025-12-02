@@ -1,21 +1,10 @@
 import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/deck';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
-import { detectLanguage } from '@/utils/language-detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
-
-const API_ENDPOINT_OCG = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
-const API_ENDPOINT_RUSH = 'https://www.db.yugioh-card.com/rushdb/member_deck.action';
-
-/**
- * 現在のURLからRush/OCGを判定してAPIエンドポイントを返す
- */
-function getApiEndpoint(): string {
-  const pathname = window.location.pathname;
-  const isRush = pathname.startsWith('/rushdb/');
-  return isRush ? API_ENDPOINT_RUSH : API_ENDPOINT_OCG;
-}
+import { buildApiUrl } from '@/utils/url-builder';
+import { detectCardGameType } from '@/utils/page-detector';
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -26,20 +15,21 @@ function getApiEndpoint(): string {
  */
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
-    const API_ENDPOINT = getApiEndpoint();
-    
+    const gameType = detectCardGameType();
+
     // デッキ一覧（ope=4）からytknを取得
-    const ytkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
-    
+    const ytkn = await fetchYtknFromDeckList(cgid, gameType);
+
     if (!ytkn) {
       console.error('[createNewDeckInternal] Failed to fetch ytkn');
       return 0;
     }
-    
+
     const wname = 'MemberDeck';
 
-    // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
-    const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
+    // URLを構築（buildApiUrl経由、ope=6は request_locale なし）
+    const path = `member_deck.action?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
+    const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
     const response = await axios.get(url, {
@@ -77,30 +67,21 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
  */
 export async function deleteDeckInternal(cgid: string, dno: number): Promise<boolean> {
   try {
-    const API_ENDPOINT = getApiEndpoint();
-    
-    // デッキ詳細（ope=1）からytknを取得
-    const ytkn = await fetchYtknFromEditForm(cgid, dno, API_ENDPOINT);
-    
+    const gameType = detectCardGameType();
+
+    // デッキ詳細（ope=2）からytknを取得
+    const ytkn = await fetchYtknFromEditForm(cgid, dno, gameType);
+
     if (!ytkn) {
       console.error('[deleteDeckInternal] Failed to fetch ytkn');
       return false;
     }
-    
+
     const wname = 'MemberDeck';
-    const requestLocale = detectLanguage(document);
-    
-    // URLを構築
-    const params = new URLSearchParams({
-      cgid,
-      request_locale: requestLocale,
-      dno: dno.toString(),
-      ope: '7',
-      wname,
-      ytkn
-    });
-    
-    const url = `${API_ENDPOINT}?${params.toString()}`;
+
+    // URLを構築（buildApiUrl経由、ope=7は request_locale 付与）
+    const path = `member_deck.action?ope=7&cgid=${cgid}&dno=${dno}&wname=${wname}&ytkn=${ytkn}`;
+    const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
     const response = await axios.get(url, {
@@ -251,9 +232,10 @@ export async function saveDeckInternal(
       params.append('imgsSide', 'null_null_null_null');
     }
 
-    const requestLocale = detectLanguage(document);
-    const API_ENDPOINT = getApiEndpoint();
-    const postUrl = `${API_ENDPOINT}?cgid=${cgid}&request_locale=${requestLocale}`;
+    const gameType = detectCardGameType();
+    // buildApiUrl経由、ope=3は request_locale 付与
+    const path = `member_deck.action?cgid=${cgid}`;
+    const postUrl = buildApiUrl(path, gameType);
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
 
 
@@ -387,23 +369,21 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
-    const requestLocale = detectLanguage(document);
-    const API_ENDPOINT = getApiEndpoint();
+    const gameType = detectCardGameType();
 
     // URLパラメータを構築
-    const params = new URLSearchParams({
-      ope: '1',
-      dno: dno.toString(),
-      request_locale: requestLocale
-    });
+    let path = `member_deck.action?ope=1&dno=${dno}`;
 
     // cgidが指定されている場合は追加
     if (cgid) {
-      params.append('cgid', cgid);
+      path += `&cgid=${cgid}`;
     }
 
+    // buildApiUrl経由、ope=1は request_locale 付与
+    const url = buildApiUrl(path, gameType);
+
     const { default: axios } = await import('axios');
-    const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
+    const response = await axios.get(url, {
       withCredentials: true
     });
 
@@ -436,18 +416,14 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
  */
 export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]> {
   try {
-    const requestLocale = detectLanguage(document);
-    const API_ENDPOINT = getApiEndpoint();
-    
-    // URLパラメータを構築
-    const params = new URLSearchParams({
-      ope: '4',
-      cgid: cgid,
-      request_locale: requestLocale
-    });
+    const gameType = detectCardGameType();
+
+    // buildApiUrl経由、ope=4は request_locale なし
+    const path = `member_deck.action?ope=4&cgid=${cgid}`;
+    const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
+    const response = await axios.get(url, {
       withCredentials: true
     });
 

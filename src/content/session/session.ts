@@ -59,16 +59,17 @@ class SessionManager {
 
   /**
    * ytknを取得（CSRFトークンのため毎回新規取得）
-   * 
+   *
    * @param cgid ユーザー識別子
    * @param dno デッキ番号
    * @param request_locale リクエストロケール（例: 'request_locale=ja'）
    * @returns ytkn、取得失敗時はnull
    */
   private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
-    // 共通util関数を使用
-    const apiEndpoint = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action';
-    return fetchYtknFromEditForm(cgid, dno, apiEndpoint);
+    // 共通util関数を使用（buildApiUrl経由で自動で request_locale が付与される）
+    const { detectCardGameType } = await import('@/utils/page-detector');
+    const gameType = detectCardGameType();
+    return fetchYtknFromEditForm(cgid, dno, gameType);
   }
 
   /**
