@@ -55,7 +55,7 @@ import type { CardGameType } from './settings';
 export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
   if (!imageInfo) {
-    console.log('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
+    console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
   const gamePath = gameType === 'rush' ? 'rushdb' : 'yugiohdb';

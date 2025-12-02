@@ -133,14 +133,6 @@ export async function saveDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
-    console.log('[saveDeckInternal] Saving deck:', {
-      dno,
-      deckName: deckData.name,
-      mainDeckCount: deckData.mainDeck.length,
-      extraDeckCount: deckData.extraDeck.length,
-      sideDeckCount: deckData.sideDeck.length
-    });
-
     // URL-encoded形式でデータを構築（公式と同じ順序で）
     const params = new URLSearchParams();
     

@@ -1137,13 +1137,6 @@ export default defineComponent({
 
     // Enterキーハンドラ
     const handleEnter = () => {
-      console.log('[SearchInputBar] handleEnter called', {
-        searchMode: searchMode.value,
-        pendingCommand: pendingCommand.value,
-        searchQuery: deckStore.searchQuery,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       // mydeckモードの場合
       if (searchMode.value === 'mydeck' && !pendingCommand.value) {
         // 選択中のデッキがある場合
@@ -1187,27 +1180,23 @@ export default defineComponent({
 
       // 有効な入力がある場合はチップに変換
       if (pendingCommand.value && isValidCommandInput.value) {
-        console.log('[SearchInputBar] Adding filter chip')
         addFilterChip()
         return
       }
 
       // コマンド入力中の場合は何もしない
       if (isTypingCommand.value) {
-        console.log('[SearchInputBar] Command input in progress, ignoring Enter')
         return
       }
 
       // コマンドモードの場合はフィルタを適用
       if (isCommandMode.value) {
-        console.log('[SearchInputBar] Command mode, applying filter')
         applyCommandFilter()
         deckStore.searchQuery = '' // コマンド部分をクリア
         return
       }
 
       // それ以外は検索実行
-      console.log('[SearchInputBar] Calling handleSearch')
       handleSearch()
     }
 
@@ -1322,16 +1311,9 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
-      console.log('[SearchInputBar] handleSearch called', {
-        searchQuery: deckStore.searchQuery,
-        hasActiveFilters: hasActiveFilters.value,
-        isGlobalSearchMode: deckStore.isGlobalSearchMode
-      })
-
       const query = deckStore.searchQuery.trim()
 
       if (!query && !hasActiveFilters.value) {
-        console.log('[SearchInputBar] Empty query and no filters, returning without closing global search')
         deckStore.searchResults = []
         deckStore.allResults = []
         deckStore.hasMore = false
@@ -1339,7 +1321,6 @@ export default defineComponent({
         return
       }
 
-      console.log('[SearchInputBar] Executing search, will close global search after API call')
       deckStore.activeTab = 'search'
       deckStore.isLoading = true
 
@@ -1419,7 +1400,6 @@ export default defineComponent({
         }
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
-        console.log('[SearchInputBar] Search completed, closing global search mode')
         deckStore.isGlobalSearchMode = false
 
         // 検索結果をstore用の形式に変換
