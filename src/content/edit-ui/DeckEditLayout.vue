@@ -235,9 +235,13 @@ export default {
     // キーボードショートカット配列のいずれかにマッチするかチェック
     const matchesAnyShortcut = (event, shortcuts) => {
       if (!shortcuts) return false
-      if (!Array.isArray(shortcuts)) return false
-      if (shortcuts.length === 0) return false
-      return shortcuts.some(shortcut => matchesShortcut(event, shortcut))
+
+      // Pinia の reactive で変換された場合、オブジェクトになる可能性があるため、
+      // Object.values() で値の配列に変換する（元々配列でも問題ない）
+      const shortcutsArray = Array.isArray(shortcuts) ? shortcuts : Object.values(shortcuts)
+
+      if (shortcutsArray.length === 0) return false
+      return shortcutsArray.some(shortcut => matchesShortcut(event, shortcut))
     }
 
     // グローバルキーボードイベント
