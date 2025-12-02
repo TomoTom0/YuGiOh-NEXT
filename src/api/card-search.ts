@@ -31,7 +31,7 @@ import {
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT
 } from '@/types/card-maps';
-import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
+import { detectCardType } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
@@ -643,7 +643,7 @@ export async function searchCardsAuto(
 
     // name検索が100件以上ならname検索のみを返す（追加取得Promiseあり）
     if (nameResults.length >= 100) {
-      const baseParams = {
+      const baseParams: Record<string, string> = {
         ope: '1',
         sess: '1',
         keyword: keyword,
@@ -998,6 +998,14 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
 }
 
 /**
+ * モンスターのタイプ配列からエクストラデッキ判定
+ * Fusion, Synchro, Xyz, Link が含まれればエクストラデッキ
+ */
+function isMonsterExtraDeckCard(types: MonsterType[]): boolean {
+  return types.some(t => ['fusion', 'synchro', 'xyz', 'link'].includes(t));
+}
+
+/**
  * モンスターカード固有情報を抽出する
  *
  * @param row 検索結果行のHTML要素
@@ -1117,46 +1125,28 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   const { race, types } = parsed;
 
   // ATK/DEF取得
-  const specElem = row.querySelector('.box_card_spec');
+  // クラス名で言語に依存しない判定
   let atk: number | string | undefined;
   let def: number | string | undefined;
 
-  if (specElem) {
-    const spans = Array.from(specElem.querySelectorAll('span'));
-    let atkFound = false;
-    let defFound = false;
-
-    spans.forEach(span => {
-      const text = span.textContent || '';
-      // 複数のホワイトスペース（改行含む）を単一スペースに統一
-      const normalized = text.replace(/\s+/g, ' ').trim();
-
-      // 日本語: "攻撃力 3000" または英語: "ATK 3000"
-      // ハイフン(-) もサポート（リンクモンスターはATKも-の場合がある）
-      const atkMatch = normalized.match(/(攻撃力|ATK)[:\s]*([0-9X?-]+)/);
-      if (atkMatch && atkMatch[2]) {
-        const value = atkMatch[2];
-        // ハイフンのみの場合は undefined、そうでなければパース
-        atk = value === '-' ? undefined : /^\d+$/.test(value) ? parseInt(value, 10) : value;
-        atkFound = true;
-      }
-
-      // 日本語: "守備力 2500" または英語: "DEF 2500"
-      // ハイフン(-) もサポート（リンクモンスターはDEF無し）
-      const defMatch = normalized.match(/(守備力|DEF)[:\s]*([0-9X?-]+)/);
-      if (defMatch && defMatch[2]) {
-        const value = defMatch[2];
-        // ハイフンのみの場合は undefined、そうでなければパース
-        def = value === '-' ? undefined : /^\d+$/.test(value) ? parseInt(value, 10) : value;
-        defFound = true;
-      }
-    });
-
-    if (!atkFound || !defFound) {
-      console.warn('[parseMonsterCard] ATK/DEF not fully parsed for card:', base.name, 'ATK:', atkFound ? atk : 'NOT FOUND', 'DEF:', defFound ? def : 'NOT FOUND', 'Spec content:', specElem.textContent);
+  // ATK: .atk_power クラスから取得
+  const atkElem = row.querySelector('.atk_power');
+  if (atkElem?.textContent) {
+    const value = atkElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const atkValue = value[1];
+      atk = atkValue === '-' ? undefined : /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
     }
-  } else {
-    console.warn('[parseMonsterCard] Spec element not found for card:', base.name);
+  }
+
+  // DEF: .def_power クラスから取得
+  const defElem = row.querySelector('.def_power');
+  if (defElem?.textContent) {
+    const value = defElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const defValue = value[1];
+      def = defValue === '-' ? undefined : /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
+    }
   }
 
   // ペンデュラム情報取得（オプション）
@@ -1189,10 +1179,6 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     linkMarkers = parseLinkValue(extractedLinkValue);
   }
 
-  // エクストラデッキ判定
-  const isExtraDeck = isExtraDeckMonster(row);
-
-
   return {
     ...base,
     cardType: 'monster',
@@ -1206,7 +1192,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     linkMarkers,
     pendulumScale,
     pendulumText,
-    isExtraDeck
+    isExtraDeck: isMonsterExtraDeckCard(types)
   };
 }
 
@@ -1566,7 +1552,7 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
-  if (!attrMatch) {
+  if (!attrMatch || !attrMatch[1]) {
     console.error('[parseMonsterDetailBasicInfo] Cannot parse attribute');
     return null;
   }
@@ -1578,49 +1564,62 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   // レベル/ランク/リンクを取得
-  const frameElems = doc.querySelectorAll('.CardText .frame .item_box');
+  // クラス名で言語に依存しない判定
   let levelType: LevelType = 'level';
   let levelValue: number = 0;
 
-  for (const elem of frameElems) {
-    let value = elem.querySelector('.item_box_value')?.textContent?.trim();
-    if (!value) continue;
-
-    // ホワイトスペース正規化
-    value = value.replace(/\s+/g, ' ').trim();
-
-    if (value.includes('レベル') || value.includes('Level')) {
+  // レベル判定: .box_card_level_rank.level クラスで判定
+  const levelElem = doc.querySelector('.box_card_level_rank.level');
+  if (levelElem?.textContent) {
+    const match = levelElem.textContent.match(/(\d+)/);
+    if (match && match[1]) {
       levelType = 'level';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('ランク') || value.includes('Rank')) {
-      levelType = 'rank';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('リンク') || value.includes('Link')) {
-      levelType = 'link';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
+      levelValue = parseInt(match[1], 10);
+    }
+  } else {
+    // ランク判定: .box_card_level_rank.rank クラスで判定
+    const rankElem = doc.querySelector('.box_card_level_rank.rank');
+    if (rankElem?.textContent) {
+      const match = rankElem.textContent.match(/(\d+)/);
+      if (match && match[1]) {
+        levelType = 'rank';
+        levelValue = parseInt(match[1], 10);
+      }
+    } else {
+      // リンク判定: .box_card_linkmarker クラスで判定
+      const linkElem = doc.querySelector('.box_card_linkmarker');
+      if (linkElem?.textContent) {
+        const match = linkElem.textContent.match(/(\d+)/);
+        if (match && match[1]) {
+          levelType = 'link';
+          levelValue = parseInt(match[1], 10);
+        }
+      }
     }
   }
 
   // ATK/DEFを取得
+  // クラス名で言語に依存しない判定
   let atk: number | string | undefined;
   let def: number | string | undefined;
 
-  for (const elem of frameElems) {
-    const title = elem.querySelector('.item_box_title')?.textContent?.trim();
-    let value = elem.querySelector('.item_box_value')?.textContent?.trim();
-
-    // ホワイトスペース正規化（複数の改行・スペースを単一スペースに統一）
-    if (value) {
-      value = value.replace(/\s+/g, ' ').trim();
+  // ATK: .atk_power クラスから取得
+  const atkElem = doc.querySelector('.atk_power');
+  if (atkElem?.textContent) {
+    const value = atkElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const atkValue = value[1];
+      atk = atkValue === '-' ? undefined : /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
     }
+  }
 
-    if (title === 'ATK' && value) {
-      atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
-    } else if (title === 'DEF' && value) {
-      def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
+  // DEF: .def_power クラスから取得
+  const defElem = doc.querySelector('.def_power');
+  if (defElem?.textContent) {
+    const value = defElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const defValue = value[1];
+      def = defValue === '-' ? undefined : /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
     }
   }
 
@@ -1632,14 +1631,14 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   const spans = Array.from(speciesElem.querySelectorAll('span'));
-  const parts = spans.map(span => span.textContent?.trim()).filter(t => t && t !== '／');
+  const parts = spans.map(span => span.textContent?.trim()).filter((t): t is string => t != null && t !== '／');
 
   if (parts.length === 0) {
     console.error('[parseMonsterDetailBasicInfo] No species/types found');
     return null;
   }
 
-  const raceText = parts[0];
+  const raceText = parts[0]!;
   const typeTexts = parts.slice(1);
 
   const lang = detectLanguage(doc);
@@ -1790,7 +1789,7 @@ function fetchAdditionalRelatedCards(
   lang: string,
   sortOrder: string
 ): Promise<CardInfo[]> {
-  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] ?? SORT_ORDER_TO_API_VALUE['release_desc']!;
 
   const baseParams = {
     ope: '2',
@@ -1818,7 +1817,7 @@ export async function getCardDetail(
 
     // 詳細ページを取得（初回100件）
     const requestLocale = lang || detectLanguage(document);
-    const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+    const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] ?? SORT_ORDER_TO_API_VALUE['release_desc']!;
     const params = new URLSearchParams({
       ope: '2',
       cid: cardId,

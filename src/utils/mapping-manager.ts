@@ -107,7 +107,7 @@ class MappingManager {
         const dynamicMapping: DynamicMappings = {
           ...mappings,
           updatedAt: Date.now(),
-          quarter: new Date().toISOString().split('T')[0]
+          quarter: new Date().toISOString().split('T')[0]!
         };
 
         this.dynamicMappings.set(lang, dynamicMapping);
@@ -129,12 +129,12 @@ class MappingManager {
    * - ja：常に日本語静的マッピング（逆引き）
    * - その他：動的マッピング > なし（動的取得を促す）
    */
-  getRaceTextToId(lang: string): Partial<Record<Race, string>> {
+  getRaceTextToId(lang: string): Record<string, Race> {
     if (lang === 'ja') {
       // 日本語は常に静的マッピングの逆引きを返す
-      const result: Partial<Record<Race, string>> = {};
+      const result: Record<string, Race> = {};
       for (const [internalId, jaText] of Object.entries(RACE_ID_TO_NAME)) {
-        result[jaText as Race] = internalId;
+        result[jaText] = internalId as Race;
       }
       return result;
     }
@@ -142,7 +142,14 @@ class MappingManager {
     // 日本語以外は動的マッピングを返す
     const dynamicMapping = this.dynamicMappings.get(lang);
     if (dynamicMapping && Object.keys(dynamicMapping.race).length > 0) {
-      return dynamicMapping.race;
+      // 動的マッピングは ID-to-text なので、逆引きして text-to-ID に変換
+      const result: Record<string, Race> = {};
+      for (const [internalId, text] of Object.entries(dynamicMapping.race)) {
+        if (text) {
+          result[text] = internalId as Race;
+        }
+      }
+      return result;
     }
 
     return {};

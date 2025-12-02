@@ -101,9 +101,12 @@ export default {
     })
     
     // (cid, ciid)ペアでカード情報を取得
-    const getCardInfo = (cid: string, _ciid: number) => {
+    const getCardInfo = (cid: string, ciid: number) => {
       const tempCardDB = getTempCardDB()
-      return tempCardDB.get(cid) || null
+      const cardInfo = tempCardDB.get(cid)
+      if (!cardInfo) return null
+      // ciidを反映させて返す（TempCardDB は cid をキーにしているため、ciid を別途設定）
+      return { ...cardInfo, ciid: String(ciid) }
     }
 
     const handleEndZoneDragOver = (event) => {
