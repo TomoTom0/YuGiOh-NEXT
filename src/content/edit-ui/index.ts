@@ -25,6 +25,32 @@ function isEditUrl(): boolean {
 }
 
 /**
+ * テーマを設定ストアから読み込んで適用
+ */
+async function applyThemeFromSettings(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['appSettings'], (result: any) => {
+      const appSettings = result.appSettings || {};
+      const theme = appSettings.theme ?? 'system';
+
+      let effectiveTheme: 'light' | 'dark' = 'light';
+
+      if (theme === 'system') {
+        // システム設定を確認
+        if (typeof window !== 'undefined' && window.matchMedia) {
+          effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+      } else {
+        effectiveTheme = (theme as any) ?? 'light';
+      }
+
+      document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
+      resolve();
+    });
+  });
+}
+
+/**
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
@@ -60,13 +86,16 @@ function watchUrlChanges(): void {
 /**
  * 編集用UIを読み込んで表示
  */
-function loadEditUI(): void {
+async function loadEditUI(): Promise<void> {
   if (isEditUILoaded) {
     return;
   }
 
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
+
+  // テーマを設定ストアから読み込んで適用
+  await applyThemeFromSettings();
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
