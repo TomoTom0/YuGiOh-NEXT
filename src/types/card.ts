@@ -347,8 +347,13 @@ export interface CardTableA {
   name?: string;
   /** ふりがな */
   ruby?: string;
-  /** 画像情報 */
-  imgs: Array<{
+  /** 画像情報（多言語対応: {lang: imgs[]} 形式） */
+  langsImgs?: Record<string, Array<{
+    ciid: string;
+    imgHash: string;
+  }>>;
+  /** 画像情報（旧形式、互換性保持用） */
+  imgs?: Array<{
     ciid: string;
     imgHash: string;
   }>;

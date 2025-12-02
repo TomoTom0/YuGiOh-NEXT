@@ -340,6 +340,13 @@ export class UnifiedCacheDB {
       langsName = { [lang]: existing.name };
     }
 
+    // 既存の langsImgs を取得（旧形式のimgsもサポート）
+    let langsImgs = existing?.langsImgs || {};
+    if (!existing?.langsImgs && existing?.imgs) {
+      // 旧形式のimgsから langsImgs に変換（マイグレーション）
+      langsImgs = { [lang]: existing.imgs };
+    }
+
     // 既存の langsFetchedAt を取得
     const langsFetchedAt = existing?.langsFetchedAt || {};
 
@@ -351,7 +358,11 @@ export class UnifiedCacheDB {
         [lang]: card.name
       },
       ruby: card.ruby,
-      imgs: card.imgs,
+      langsImgs: {
+        ...langsImgs,
+        [lang]: card.imgs
+      },
+      imgs: card.imgs,  // フォールバック用（古いコードとの互換性）
       langsFetchedAt: {
         ...langsFetchedAt,
         [lang]: now
@@ -821,9 +832,22 @@ export class UnifiedCacheDB {
       return undefined;
     }
 
-    // デバッグ: imgs情報を確認
-    if (!tableA.imgs || tableA.imgs.length === 0) {
-      console.warn(`[reconstructCardInfo] No images found for cardId=${cardId}`, tableA.imgs);
+    // langsImgsから適切な言語の画像情報を抽出（新形式）
+    let imgs: Array<{ciid: string; imgHash: string}>;
+    if (tableA.langsImgs && tableA.langsImgs[lang]) {
+      imgs = tableA.langsImgs[lang];
+    } else if (tableA.langsImgs) {
+      // 指定言語がない場合は最初の言語を使用
+      const firstLang = Object.keys(tableA.langsImgs)[0];
+      imgs = firstLang ? tableA.langsImgs[firstLang] : tableA.imgs || [];
+    } else {
+      // フォールバック: 旧形式のimgsを使用（互換性保持）
+      imgs = tableA.imgs || [];
+    }
+
+    if (!imgs || imgs.length === 0) {
+      console.warn(`[reconstructCardInfo] No images found for cardId=${cardId}, langsImgs=${JSON.stringify(tableA.langsImgs)}, imgs=${tableA.imgs}`);
+      return undefined;
     }
 
     // 基本情報
@@ -831,8 +855,8 @@ export class UnifiedCacheDB {
       cardId: tableA.cardId,
       name,
       lang,
-      imgs: tableA.imgs,
-      ciid: tableA.imgs[0]?.ciid || '',
+      imgs,
+      ciid: imgs[0]?.ciid || '',
       ruby: tableA.ruby,
       limitRegulation: tableB.limitRegulation
     };
