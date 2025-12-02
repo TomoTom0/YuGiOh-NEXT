@@ -15,7 +15,6 @@ export async function fetchYtknFromEditForm(
   try {
     const editUrl = `${apiEndpoint}?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&request_locale=ja`;
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(editUrl, { withCredentials: true });
     const parser = new DOMParser();
@@ -42,7 +41,6 @@ export async function fetchYtknFromDeckList(
   try {
     const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}`;
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(listUrl, { withCredentials: true });
     const parser = new DOMParser();

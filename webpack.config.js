@@ -125,7 +125,18 @@ module.exports = (env, argv) => {
 
     optimization: {
       minimize: isProduction,
-      splitChunks: false,
+      splitChunks: {
+        cacheGroups: {
+          // session/sessionManager を共有モジュールとして扱う
+          sessionManager: {
+            test: /[\\/]src[\\/]content[\\/]session[\\/]/,
+            name: 'session',
+            priority: 20,
+            reuseExistingChunk: true,
+            enforce: true,
+          },
+        },
+      },
     },
   };
 };

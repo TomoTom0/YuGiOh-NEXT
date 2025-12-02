@@ -37,11 +37,10 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     }
     
     const wname = 'MemberDeck';
-    
+
     // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
     const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
@@ -103,7 +102,6 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
     
     const url = `${API_ENDPOINT}?${params.toString()}`;
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(url, {
       withCredentials: true
@@ -263,7 +261,6 @@ export async function saveDeckInternal(
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
     // paramsはurl encodeされる必要がある, +は%20に変換されるべき
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.post(postUrl, encoded_params, {
       withCredentials: true,
@@ -405,7 +402,6 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       params.append('cgid', cgid);
     }
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
@@ -450,7 +446,6 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
       request_locale: requestLocale
     });
 
-    // axiosを動的インポート
     const { default: axios } = await import('axios');
     const response = await axios.get(`${API_ENDPOINT}?${params.toString()}`, {
       withCredentials: true
