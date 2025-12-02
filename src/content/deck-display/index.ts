@@ -18,6 +18,10 @@ export async function initDeckDisplay(): Promise<void> {
 
   const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as 'small' | 'medium' | 'large' | 'xlarge'
   const showCardDetail = appSettings.showCardDetailInDeckDisplay ?? false
+  const theme = appSettings.theme ?? 'system'
+
+  // テーマを適用（ダークモード対応）
+  applyTheme(theme)
 
   // CSS を適用
   applyDeckDisplayLayout()
@@ -33,3 +37,20 @@ export async function initDeckDisplay(): Promise<void> {
   setCardImageSize(cardImageSize)
 }
 
+/**
+ * テーマをDOMに適用
+ */
+function applyTheme(theme: string): void {
+  let effectiveTheme: 'light' | 'dark' = 'light'
+
+  if (theme === 'system') {
+    // システム設定を確認
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    }
+  } else {
+    effectiveTheme = (theme as any) ?? 'light'
+  }
+
+  document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme)
+}

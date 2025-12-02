@@ -79,6 +79,9 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const urlParams = new URLSearchParams(window.location.search);
   const dno = urlParams.get('dno');
 
+  console.log('[YGO Helper] URL:', window.location.href);
+  console.log('[YGO Helper] dno from URL:', dno);
+
   if (!dno) {
     console.warn('[YGO Helper] dno not found in URL');
     return null;
@@ -88,6 +91,8 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const isOwnDeckFlag = isOwnDeck();
   const buttonText = isOwnDeckFlag ? 'NEXT編集' : 'NEXTコピー編集';
   const buttonId = 'ygo-next-edit-btn';
+
+  console.log('[YGO Helper] isOwnDeck:', isOwnDeckFlag);
 
   // ボタンを作成
   const button = document.createElement('a');
@@ -103,16 +108,22 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
   // クリックイベント
   button.addEventListener('click', (e) => {
+    console.log('[YGO Helper] Next edit button clicked');
     e.preventDefault();
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      window.location.hash = `/ytomo/edit?dno=${dno}`;
+      const newHash = `/ytomo/edit?dno=${dno}`;
+      console.log('[YGO Helper] Setting hash to:', newHash);
+      window.location.hash = newHash;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
+      console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        window.location.hash = `/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        const newHash = `/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        console.log('[YGO Helper] Setting hash to:', newHash);
+        window.location.hash = newHash;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }
@@ -121,6 +132,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
+  console.log('[YGO Helper] Next edit button added');
 
   return button;
 }
