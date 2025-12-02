@@ -18,8 +18,7 @@
     "test:components": "vitest run tests/unit/components",
     "setup:download-forms": "bash scripts/setup/download-search-forms.sh",
     "setup:extract-mappings": "npx tsx scripts/setup/extract-mappings.ts",
-    "setup:generate-card-maps": "npx tsx scripts/setup/generate-card-maps.ts",
-    "setup:all": "npm run setup:download-forms && npm run setup:extract-mappings && npm run setup:generate-card-maps"
+    "setup:all": "npm run setup:download-forms && npm run setup:extract-mappings"
   },
   "keywords": [
     "yugioh",
