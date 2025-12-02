@@ -27,53 +27,40 @@ function getApiEndpoint(): string {
 export async function createNewDeckInternal(cgid: string): Promise<number> {
   try {
     const API_ENDPOINT = getApiEndpoint();
-    const { default: axios } = await import('axios');
-    const parser = new DOMParser();
-
-    // 1. 作成前の最大 dno を取得
-    const beforeYtkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
-    if (!beforeYtkn) {
+    
+    // デッキ一覧（ope=4）からytknを取得
+    const ytkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
+    
+    if (!ytkn) {
       console.error('[createNewDeckInternal] Failed to fetch ytkn');
       return 0;
     }
-
-    const beforeUrl = `${API_ENDPOINT}?ope=4&cgid=${cgid}&ytkn=${beforeYtkn}`;
-    let response = await axios.get(beforeUrl, { withCredentials: true });
-    let doc = parser.parseFromString(response.data, 'text/html');
-    const beforeDeckList = parseDeckList(doc);
-    const beforeMaxDno = beforeDeckList.length > 0 ? Math.max(...beforeDeckList.map(deck => deck.dno)) : 0;
-
-    // 2. 新規デッキ作成 (ope=6)
-    const createYtkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
-    if (!createYtkn) {
-      console.error('[createNewDeckInternal] Failed to fetch ytkn for creation');
-      return 0;
-    }
-
+    
     const wname = 'MemberDeck';
-    const createUrl = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${createYtkn}`;
-    await axios.get(createUrl, { withCredentials: true });
+    
+    // URLを構築（パラメータ順序: ope, wname, cgid, ytkn）
+    const url = `${API_ENDPOINT}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
 
-    // 3. 作成後の最大 dno を取得
-    const afterYtkn = await fetchYtknFromDeckList(cgid, API_ENDPOINT);
-    if (!afterYtkn) {
-      console.error('[createNewDeckInternal] Failed to fetch ytkn for after list');
+    // axiosを動的インポート
+    const { default: axios } = await import('axios');
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
+
+    const html = response.data;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // デッキ一覧をパースして最大のdnoを取得
+    const deckList = parseDeckList(doc);
+    
+    if (deckList.length === 0) {
+      console.error('[createNewDeckInternal] No decks found in list after creation');
       return 0;
     }
-
-    const afterUrl = `${API_ENDPOINT}?ope=4&cgid=${cgid}&ytkn=${afterYtkn}`;
-    response = await axios.get(afterUrl, { withCredentials: true });
-    doc = parser.parseFromString(response.data, 'text/html');
-    const afterDeckList = parseDeckList(doc);
-    const afterMaxDno = Math.max(...afterDeckList.map(deck => deck.dno));
-
-    // 4. 最大 dno が増えたか確認（新規デッキは必ず最大になる）
-    if (afterMaxDno <= beforeMaxDno) {
-      console.error('[createNewDeckInternal] No new deck found after creation');
-      return 0;
-    }
-
-    return afterMaxDno;
+    
+    const maxDno = Math.max(...deckList.map(deck => deck.dno));
+    return maxDno;
   } catch (error) {
     console.error('[createNewDeckInternal] Failed to create new deck:', error);
     return 0;
