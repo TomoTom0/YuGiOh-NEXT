@@ -138,5 +138,11 @@ module.exports = (env, argv) => {
         },
       },
     },
+
+    performance: {
+      maxEntrypointSize: 300000, // 300KB - options.js 用
+      maxAssetSize: 300000, // 300KB - 977.chunk.js と MP4 動画用
+      hints: isProduction ? 'warning' : false,
+    },
   };
 };
