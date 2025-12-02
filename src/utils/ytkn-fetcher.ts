@@ -40,8 +40,7 @@ export async function fetchYtknFromDeckList(
   apiEndpoint: string
 ): Promise<string | null> {
   try {
-    // fetchYtknFromEditFormと同じ要領でrequest_localeを含める
-    const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}&request_locale=ja`;
+    const listUrl = `${apiEndpoint}?ope=4&wname=MemberDeck&cgid=${cgid}`;
 
     // axiosを動的インポート
     const { default: axios } = await import('axios');
