@@ -24,7 +24,12 @@ import {
   SPELL_EFFECT_PATH_TO_ID,
   TRAP_EFFECT_PATH_TO_ID,
   SPELL_EFFECT_TYPE_MAP,
-  TRAP_EFFECT_TYPE_MAP
+  TRAP_EFFECT_TYPE_MAP,
+  ATTRIBUTE_ID_TO_INT,
+  RACE_ID_TO_INT,
+  MONSTER_TYPE_VALUE_TO_ID,
+  SPELL_EFFECT_TYPE_ID_TO_INT,
+  TRAP_EFFECT_TYPE_ID_TO_INT
 } from '@/types/card-maps';
 import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
@@ -43,100 +48,57 @@ function getSearchUrl(): string {
 }
 
 // ============================================================================
-// APIパラメータ値マッピング
+// APIパラメータ値マッピング関数
 // ============================================================================
+// 注: 実際の値は @/types/card-maps の *_ID_TO_INT マッピングで定義
+// 以下は便利関数で、internal ID → API値に変換する
 
 /**
  * 属性 → attr値のマッピング
- * 調査結果より: 11=光, 12=闇, 13=水, 14=炎, 15=地, 16=風, 17=神
+ * card-maps.ts の ATTRIBUTE_ID_TO_INT から動的に生成
  */
-const ATTRIBUTE_TO_ATTR_VALUE: Record<Attribute, string> = {
-  light: '11',
-  dark: '12',
-  water: '13',
-  fire: '14',
-  earth: '15',
-  wind: '16',
-  divine: '17'
-};
+function getAttributeAttrValue(attr: Attribute): string {
+  return (ATTRIBUTE_ID_TO_INT as Record<Attribute, number>)[attr]?.toString() || '';
+}
 
 /**
  * 種族 → species値のマッピング
- * HTMLの表示順序から推測（要検証）
+ * card-maps.ts の RACE_ID_TO_INT から動的に生成
  */
-const RACE_TO_SPECIES_VALUE: Record<Race, string> = {
-  dragon: '1',
-  zombie: '2',
-  fiend: '3',
-  pyro: '4',
-  seaserpent: '5',
-  rock: '6',
-  machine: '7',
-  fish: '8',
-  dinosaur: '9',
-  insect: '10',
-  beast: '11',
-  beastwarrior: '12',
-  plant: '13',
-  aqua: '14',
-  warrior: '15',
-  windbeast: '16',
-  fairy: '17',
-  spellcaster: '18',
-  thunder: '19',
-  reptile: '20',
-  psychic: '21',
-  divine: '22',
-  creatorgod: '23',
-  wyrm: '26',
-  cyberse: '27',
-  illusion: '34'
-};
+function getRaceSpeciesValue(race: Race): string {
+  return (RACE_ID_TO_INT as Record<Race, number>)[race]?.toString() || '';
+}
 
 /**
  * モンスタータイプ → other値のマッピング
- * 調査結果より: 0-17の値
+ * card-maps.ts の MONSTER_TYPE_VALUE_TO_ID の逆引き
+ * HTMLフォーム値（整数）から内部IDへのマッピングを逆引き
  */
-const MONSTER_TYPE_TO_OTHER_VALUE: Record<MonsterType, string> = {
-  normal: '0',
-  effect: '1',
-  fusion: '2',
-  ritual: '3',
-  toon: '4',
-  spirit: '5',
-  union: '6',
-  gemini: '7',
-  tuner: '8',
-  synchro: '9',
-  xyz: '10',
-  flip: '14',
-  pendulum: '15',
-  special: '16',
-  link: '17'
-};
+function getMonsterTypeOtherValue(type: MonsterType): string {
+  // MONSTER_TYPE_VALUE_TO_ID は value → id なので、逆引きして id → value を取得
+  for (const [value, id] of Object.entries(MONSTER_TYPE_VALUE_TO_ID)) {
+    if (id === type) {
+      return value;
+    }
+  }
+  return '';
+}
 
 /**
  * 魔法効果タイプ → effe値のマッピング
- * 調査結果より: 20=通常, 21=カウンター, 22=フィールド, 23=装備, 24=永続, 25=速攻, 26=儀式
+ * card-maps.ts の SPELL_EFFECT_TYPE_ID_TO_INT から動的に生成
  */
-const SPELL_EFFECT_TYPE_TO_EFFE_VALUE: Record<SpellEffectType, string> = {
-  normal: '20',
-  quick: '25',
-  continuous: '24',
-  equip: '23',
-  field: '22',
-  ritual: '26'
-};
+function getSpellEffectTypeEffeValue(type: SpellEffectType): string {
+  return (SPELL_EFFECT_TYPE_ID_TO_INT as Record<SpellEffectType, number>)[type]?.toString() || '';
+}
 
 /**
  * 罠効果タイプ → effe値のマッピング
- * 調査結果より: 20=通常, 21=カウンター, 24=永続
+ * card-maps.ts の TRAP_EFFECT_TYPE_ID_TO_INT から動的に生成
  */
-const TRAP_EFFECT_TYPE_TO_EFFE_VALUE: Record<TrapEffectType, string> = {
-  normal: '20',
-  continuous: '24',
-  counter: '21'
-};
+function getTrapEffectTypeEffeValue(type: TrapEffectType): string {
+  return (TRAP_EFFECT_TYPE_ID_TO_INT as Record<TrapEffectType, number>)[type]?.toString() || '';
+}
 
 /**
  * 内部sortOrder → API sortパラメータのマッピング
@@ -373,21 +335,21 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 属性
   if (options.attributes) {
     options.attributes.forEach(attr => {
-      params.append('attr', ATTRIBUTE_TO_ATTR_VALUE[attr]);
+      params.append('attr', getAttributeAttrValue(attr));
     });
   }
 
   // 種族
   if (options.races) {
     options.races.forEach(race => {
-      params.append('species', RACE_TO_SPECIES_VALUE[race]);
+      params.append('species', getRaceSpeciesValue(race));
     });
   }
 
   // モンスタータイプ
   if (options.monsterTypes) {
     options.monsterTypes.forEach(type => {
-      params.append('other', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+      params.append('other', getMonsterTypeOtherValue(type));
     });
   }
 
@@ -397,7 +359,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 除外条件
   if (options.excludeMonsterTypes) {
     options.excludeMonsterTypes.forEach(type => {
-      params.append('jogai', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+      params.append('jogai', getMonsterTypeOtherValue(type));
     });
   }
 
@@ -464,14 +426,14 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 魔法効果タイプ
   if (options.spellEffectTypes) {
     options.spellEffectTypes.forEach(type => {
-      params.append('effe', SPELL_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+      params.append('effe', getSpellEffectTypeEffeValue(type));
     });
   }
 
   // 罠効果タイプ
   if (options.trapEffectTypes) {
     options.trapEffectTypes.forEach(type => {
-      params.append('effe', TRAP_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+      params.append('effe', getTrapEffectTypeEffeValue(type));
     });
   }
 
