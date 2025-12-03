@@ -955,11 +955,7 @@ export class UnifiedCacheDB {
     }
 
     // langsLimitRegulationから言語別の禁止制限を取得
-    let limitRegulation = tableB.langsLimitRegulation?.[targetLang];
-    // フォールバック: 旧形式の limitRegulation を使用（古いキャッシュとの互換性）
-    if (!limitRegulation) {
-      limitRegulation = tableB.limitRegulation;
-    }
+    const limitRegulation = tableB.langsLimitRegulation?.[targetLang];
 
     // 基本情報
     const baseInfo = {
