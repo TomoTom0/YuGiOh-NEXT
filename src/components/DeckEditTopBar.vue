@@ -141,11 +141,13 @@
       :buttons="unsavedChangesButtons"
       @cancel="cancelUnsavedChanges"
     />
+
+    <!-- Toast Container teleported to body (outside stacking context) -->
+    <Teleport to="body">
+      <ToastContainer />
+    </Teleport>
   </div>
 </template>
-
-<!-- Toast Container at root level (outside top-bar-wrapper) -->
-<ToastContainer />
 
 <script lang="ts">
 import { ref, computed, reactive } from 'vue'
