@@ -361,6 +361,11 @@ export default {
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
+
+        // 未発売カードがスキップされた場合は追加通知
+        if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
+          showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+        }
       } catch (error) {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
@@ -373,6 +378,11 @@ export default {
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
+
+        // 未発売カードがスキップされた場合は追加通知
+        if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
+          showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+        }
       } catch (error) {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
@@ -386,6 +396,11 @@ export default {
           await deckStore.reloadDeck()
           deckStore.setDeckName('')
           showToast('デッキを再読み込みしました', 'success')
+
+          // 未発売カードがスキップされた場合は追加通知
+          if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
+            showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+          }
         } catch (error) {
           console.error('Reload error:', error)
           showToast('再読み込みエラーが発生しました', 'error')
