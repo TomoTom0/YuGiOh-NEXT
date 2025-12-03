@@ -2110,10 +2110,10 @@ async function reconstructCardDetailFromCache(
   // 言語別パック詳細情報を取得（新形式：langsRelatedProductDetail）
   const packs = tableC.langsRelatedProductDetail?.[targetLang];
 
-  // 言語別Q&A情報を取得（新形式：langsQaList）
-  const qaList = tableC.langsQaList?.[targetLang];
+  // Q&A情報を取得（日本語のみ）
+  const qaList = tableC.qaList;
 
-  // packsまたはqaListが存在しない場合はnullを返す
+  // packsが存在しない場合はnullを返す
   // キャッシュの形式がリセットされている場合は、APIから再取得する
   if (!packs) {
     return null;
@@ -2170,13 +2170,12 @@ export async function saveCardDetailToCache(
     langsRelatedProducts: {
       [targetLang]: relatedProductIds
     },
-    // 言語別パック・Q&A情報
+    // 言語別パック詳細情報
     langsRelatedProductDetail: {
       [targetLang]: packs
     },
-    langsQaList: {
-      [targetLang]: qaList
-    }
+    // Q&A情報（日本語のみ）
+    qaList
   };
 
   // Tier 3以上のカードのみTableCをUnifiedCacheDBに永続保存

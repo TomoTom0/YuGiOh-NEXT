@@ -451,8 +451,8 @@ export interface CardTableC {
   // キャッシュ用の追加情報（多言語対応）
   /** 収録シリーズ詳細情報（多言語対応: {lang: PackInfo[]} 形式） */
   langsRelatedProductDetail?: Record<string, PackInfo[]>;
-  /** Q&A情報（多言語対応: {lang: CardFAQ[]} 形式） */
-  langsQaList?: Record<string, CardFAQ[]>;
+  /** Q&A情報（日本語のみ） */
+  qaList?: CardFAQ[];
 
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;

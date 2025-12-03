@@ -493,7 +493,6 @@ export class UnifiedCacheDB {
     const langsRelatedCards = existing?.langsRelatedCards || {};
     const langsRelatedProducts = existing?.langsRelatedProducts || {};
     const langsRelatedProductDetail = existing?.langsRelatedProductDetail || {};
-    const langsQaList = existing?.langsQaList || {};
 
     // 言語ごとのデータを更新（既存データをマージ）
     data.langsFetchedAt = {
@@ -529,16 +528,6 @@ export class UnifiedCacheDB {
       };
     } else {
       data.langsRelatedProductDetail = langsRelatedProductDetail;
-    }
-
-    // 言語別Q&A情報をマージ（新規データで該当言語を上書き）
-    if (data.langsQaList) {
-      data.langsQaList = {
-        ...langsQaList,
-        ...data.langsQaList
-      };
-    } else {
-      data.langsQaList = langsQaList;
     }
 
     // メモリキャッシュに保存
