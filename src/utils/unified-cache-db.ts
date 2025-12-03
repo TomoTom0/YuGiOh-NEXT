@@ -505,9 +505,7 @@ export class UnifiedCacheDB {
     const langsFetchedAt = existing?.langsFetchedAt || {};
     const langsRelatedCards = existing?.langsRelatedCards || {};
     const langsRelatedProducts = existing?.langsRelatedProducts || {};
-    // マイグレーション: 古い langsPacks または新しい langsRelatedProductDetail
-    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || 
-      (existing as any)?.langsPacks || {};
+    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || {};
     const langsQaList = existing?.langsQaList || {};
 
     // 言語ごとのデータを更新（既存データをマージ）

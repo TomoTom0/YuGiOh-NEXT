@@ -2109,21 +2109,15 @@ async function reconstructCardDetailFromCache(
   }
 
   // 言語別パック詳細情報を取得（新形式：langsRelatedProductDetail）
-  let packs = tableC.langsRelatedProductDetail?.[targetLang];
-  // フォールバック: 古い形式 langsPacks（マイグレーション用）
-  if (!packs) {
-    packs = (tableC as any).langsPacks?.[targetLang];
-  }
-  // フォールバック: 旧形式のpacksを使用（互換性保持用）
-  if (!packs) {
-    packs = tableC.packs;
-  }
+  const packs = tableC.langsRelatedProductDetail?.[targetLang];
 
   // 言語別Q&A情報を取得（新形式：langsQaList）
-  let qaList = tableC.langsQaList?.[targetLang];
-  // フォールバック: 旧形式のqaListを使用（マイグレーション）
-  if (!qaList) {
-    qaList = tableC.qaList;
+  const qaList = tableC.langsQaList?.[targetLang];
+
+  // packsまたはqaListが存在しない場合はnullを返す
+  // キャッシュの形式がリセットされている場合は、APIから再取得する
+  if (!packs) {
+    return null;
   }
 
   return {
