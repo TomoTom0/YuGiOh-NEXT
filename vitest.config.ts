@@ -14,6 +14,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
+      '.npm-cache/**',
       'tests/unit/stores/deck-edit.test.ts',
       'ref/**',
     ],
