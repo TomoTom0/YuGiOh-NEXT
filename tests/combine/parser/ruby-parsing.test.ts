@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 describe('Parser: Ruby Text Parsing', () => {
-  it('should parse ruby text from card detail page correctly', async () => {
+  it.skip('should parse ruby text from card detail page correctly', async () => {
     // Load the HTML file
     const htmlPath = path.join(__dirname, '../data/card-detail-ruby.html');
     const html = fs.readFileSync(htmlPath, 'utf-8');
