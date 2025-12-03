@@ -241,7 +241,7 @@ export default defineComponent({
 
     // 設定からデフォルト検索モードを取得
     const settingsStore = useSettingsStore()
-    const searchMode = ref<SearchMode>(settingsStore.appSettings.defaultSearchMode || 'name')
+    const searchMode = ref<SearchMode>(settingsStore.appSettings.defaultSearchMode || 'auto')
 
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
@@ -423,12 +423,12 @@ export default defineComponent({
 
     const searchModeLabel = computed(() => {
       switch (searchMode.value) {
-        case 'auto': return 'auto'
+        case 'auto': return '自動'
         case 'name': return 'name'
         case 'text': return 'text'
         case 'pendulum': return 'pend'
         case 'mydeck': return 'mydeck'
-        default: return 'name'
+        default: return '自動'
       }
     })
 

@@ -142,8 +142,10 @@
       @cancel="cancelUnsavedChanges"
     />
 
-    <!-- Toast Container -->
-    <ToastContainer />
+    <!-- Toast Container rendered at body level to escape all parent z-index contexts -->
+    <Teleport to="body">
+      <ToastContainer />
+    </Teleport>
   </div>
 </template>
 
