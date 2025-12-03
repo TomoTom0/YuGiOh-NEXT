@@ -142,10 +142,8 @@
       @cancel="cancelUnsavedChanges"
     />
 
-    <!-- Toast Container teleported to body (outside stacking context) -->
-    <Teleport to="body">
-      <ToastContainer />
-    </Teleport>
+    <!-- Toast Container -->
+    <ToastContainer />
   </div>
 </template>
 
