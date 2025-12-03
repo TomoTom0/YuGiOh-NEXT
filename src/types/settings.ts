@@ -227,7 +227,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'auto',
   middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
-  defaultSearchMode: 'name',    // 検索モードのデフォルト: カード名
+  defaultSearchMode: 'auto',    // 検索モードのデフォルト: 自動
   enableBanlistCheck: false,
   // UX設定
   unsavedWarning: 'always',
