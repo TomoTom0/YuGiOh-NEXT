@@ -475,8 +475,12 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     const result = await safeStorageGet(key);
-    const data = result[key] as CardTableC | undefined;
+    let data = result[key] as CardTableC | undefined;
     if (data) {
+      // マイグレーション: 古い langsPacks を新しい langsRelatedProductDetail にコピー
+      if ((data as any).langsPacks && !data.langsRelatedProductDetail) {
+        data.langsRelatedProductDetail = (data as any).langsPacks;
+      }
       this.cardTableCCache.set(cardId, data);
       return data;
     }
@@ -501,7 +505,9 @@ export class UnifiedCacheDB {
     const langsFetchedAt = existing?.langsFetchedAt || {};
     const langsRelatedCards = existing?.langsRelatedCards || {};
     const langsRelatedProducts = existing?.langsRelatedProducts || {};
-    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || {};
+    // マイグレーション: 古い langsPacks または新しい langsRelatedProductDetail
+    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || 
+      (existing as any)?.langsPacks || {};
     const langsQaList = existing?.langsQaList || {};
 
     // 言語ごとのデータを更新（既存データをマージ）
