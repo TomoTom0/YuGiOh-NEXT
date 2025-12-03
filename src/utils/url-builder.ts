@@ -46,7 +46,7 @@ function getApiPathType(path: string): ApiPathType {
 }
 
 /**
- * APIのベースURLを取得（request_locale を自動付与）
+ * APIのURLを構築（request_locale を自動付与）
  *
  * request_locale 付与ルール：
  * - デッキ新規作成（member_deck.action?ope=2）: 付与しない
@@ -54,11 +54,12 @@ function getApiPathType(path: string): ApiPathType {
  * - FAQ系統（faq_search）: 必ず 'ja' を付与
  * - その他: 現在の言語を自動付与
  *
- * @param path APIパス（例: 'member_deck.action?ope=1' や 'card_search.action'）
+ * @param path APIパス（例: 'faq_search.action' や 'card_search.action'）
  * @param gameType カードゲームタイプ
+ * @param params URLSearchParams（オプション、既存パラメータがあれば渡す）
  * @returns 完全なURL（必要に応じて request_locale を含む）
  */
-export function buildApiUrl(path: string, gameType: CardGameType): string {
+export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
   const apiPathType = getApiPathType(path);
 
@@ -70,6 +71,13 @@ export function buildApiUrl(path: string, gameType: CardGameType): string {
     apiPathType !== 'deck_search';
 
   const url = new URL(`${BASE_URL}/${gamePath}/${path}`);
+
+  // 呼び出し側から提供されたパラメータをマージ
+  if (params) {
+    for (const [key, value] of params.entries()) {
+      url.searchParams.set(key, value);
+    }
+  }
 
   if (!shouldAddLocale) {
     // request_locale を付与しない（既に存在する場合は削除）
@@ -95,24 +103,6 @@ export function buildApiUrl(path: string, gameType: CardGameType): string {
   return url.toString();
 }
 
-/**
- * カード画像URLを生成
- * @param cid カードID
- * @param ciid カード画像ID
- * @param imgHash 画像ハッシュ
- * @param gameType カードゲームタイプ
- * @returns 画像URL（request_locale付与）
- */
-export function buildImageUrl(
-  cid: number,
-  ciid: number,
-  imgHash: string,
-  gameType: CardGameType
-): string {
-  // get_image.action も buildApiUrl 経由で request_locale を付与
-  const path = `get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
-  return buildApiUrl(path, gameType);
-}
 
 /**
  * 相対URLパスから完全なURLを生成
@@ -237,38 +227,3 @@ export function getForbiddenLimitedEndpoint(gameType: CardGameType): string {
   return buildApiUrl('forbidden_limited.action', gameType);
 }
 
-/**
- * カード画像URLを生成（文字列版、stringを受け入れる）
- * @param cid カードID（number または string）
- * @param ciid カード画像ID（number または string）
- * @param imgHash 画像ハッシュ
- * @param gameType カードゲームタイプ
- * @returns 画像URL（request_locale付与）
- */
-export function getCardImageUrl(
-  cid: number | string,
-  ciid: number | string,
-  imgHash: string,
-  gameType: CardGameType
-): string {
-  // get_image.action も buildApiUrl 経由で request_locale を付与
-  const path = `get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
-  return buildApiUrl(path, gameType);
-}
-
-/**
- * カード画像URLを生成（引数フリー版、現在のページのゲームタイプから自動判定）
- * @param cid カードID（number または string）
- * @param ciid カード画像ID（number または string）
- * @param imgHash 画像ハッシュ
- * @returns 画像URL
- */
-export function getCardImageUrlAuto(
-  cid: number | string,
-  ciid: number | string,
-  imgHash: string
-): string {
-  const { detectCardGameType } = require('./page-detector');
-  const gameType = detectCardGameType();
-  return getCardImageUrl(cid, ciid, imgHash, gameType);
-}

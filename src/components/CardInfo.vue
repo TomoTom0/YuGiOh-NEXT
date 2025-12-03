@@ -169,7 +169,6 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
-import { getCardImageUrlAuto } from '../utils/url-builder'
 
 export default {
   name: 'CardInfo',
@@ -195,6 +194,7 @@ export default {
     }
   },
   setup(props) {
+    console.log('[CardInfo] setup props:', props)
     const deckStore = useDeckEditStore()
     const cardDetailStore = useCardDetailStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
@@ -239,7 +239,12 @@ export default {
 
     const getImageUrl = (img) => {
       if (!card.value) return ''
-      return getCardImageUrlAuto(card.value.cardId, img.ciid, img.imgHash)
+      // buildApiUrl経由で request_locale を自動付与
+      const { buildApiUrl } = require('../utils/url-builder')
+      const { detectCardGameType } = require('../utils/page-detector')
+      const path = `get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+      const gameType = detectCardGameType()
+      return buildApiUrl(path, gameType)
     }
 
     // 言語ごとの利用可能ciidをチェック

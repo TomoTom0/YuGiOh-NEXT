@@ -14,7 +14,7 @@ import {
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT,
 } from '@/types/card-maps';
-import { getCardSearchEndpoint } from './url-builder';
+import { buildApiUrl } from './url-builder';
 import { detectCardGameType } from './page-detector';
 
 interface MappingsData {
@@ -32,11 +32,10 @@ interface MappingsData {
  */
 export async function extractMappingsFromSearchPage(lang: string): Promise<MappingsData | null> {
   try {
-    // カード検索ページを取得
+    // カード検索ページを取得（指定言語のマッピングを抽出するため、request_locale を明示的に付与）
     const gameType = detectCardGameType();
-    const baseUrl = getCardSearchEndpoint(gameType);
-    const locale = lang === 'ja' ? '' : `&request_locale=${lang}`;
-    const url = `${baseUrl}${locale}`;
+    const path = `card_search.action?ope=1&request_locale=${lang}`;
+    const url = buildApiUrl(path, gameType);
 
     const response = await fetch(url);
     if (!response.ok) {

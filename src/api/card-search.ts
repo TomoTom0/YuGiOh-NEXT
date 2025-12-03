@@ -36,16 +36,7 @@ import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
 import { detectCardGameType } from '@/utils/page-detector';
-import { getCardSearchEndpoint } from '@/utils/url-builder';
-
-/**
- * カード検索APIのURLを取得
- * 現在のページのゲームタイプ（OCG/Rush）に応じたURLを返す
- */
-function getSearchUrl(): string {
-  const gameType = detectCardGameType();
-  return getCardSearchEndpoint(gameType);
-}
+import { buildApiUrl } from '@/utils/url-builder';
 
 // ============================================================================
 // APIパラメータ値マッピング関数
@@ -512,9 +503,11 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
  */
 export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
   try {
+    const gameType = detectCardGameType();
     const params = buildSearchParams(options);
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const url = buildApiUrl('card_search.action', gameType, params);
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -562,7 +555,9 @@ export async function searchCardsByName(
       params.append(param, '');
     });
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const gameType = detectCardGameType();
+    const url = buildApiUrl('card_search.action', gameType, params);
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -704,13 +699,13 @@ export async function searchCardsAuto(
  */
 export async function searchCardById(cardId: string): Promise<CardInfo | null> {
   try {
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '2',
-      cid: cardId,
-      request_locale: 'ja'
+      cid: cardId
     });
 
-    const url = `${getSearchUrl()}?${params.toString()}`;
+    const url = buildApiUrl('card_search.action', gameType, params);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -749,6 +744,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
  */
 export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
   try {
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '1',
       sess: '1',
@@ -757,7 +753,7 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
       sort: '1'
     });
 
-    const url = `${getSearchUrl()}?${params.toString()}`;
+    const url = buildApiUrl('card_search.action', gameType, params);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -1727,6 +1723,7 @@ export function fetchAdditionalPages(
   logPrefix: string
 ): Promise<CardInfo[]> {
   return (async () => {
+    const gameType = detectCardGameType();
     const allCards: CardInfo[] = [];
     let page = 1;
     let hasMore = true;
@@ -1739,7 +1736,8 @@ export function fetchAdditionalPages(
       });
 
       try {
-        const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+        const url = buildApiUrl('card_search.action', gameType, params);
+        const response = await fetch(url, {
           method: 'GET',
           credentials: 'include'
         });
@@ -1816,18 +1814,20 @@ export async function getCardDetail(
     const unifiedDB = getUnifiedCacheDB();
 
     // 詳細ページを取得（初回100件）
+    const gameType = detectCardGameType();
     const requestLocale = lang || detectLanguage(document);
     const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] ?? SORT_ORDER_TO_API_VALUE['release_desc']!;
     const params = new URLSearchParams({
       ope: '2',
       cid: cardId,
-      request_locale: requestLocale,
       sort: sortValue.toString(),
       rp: '100', // 初回100件のみ取得
       page: '1'
     });
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const url = buildApiUrl('card_search.action', gameType, params);
+
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });

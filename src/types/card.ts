@@ -53,6 +53,7 @@ import type { CardGameType } from './settings';
  * CardInfoにimageUrlゲッターを追加するヘルパー
  * @param card カード情報
  * @param gameType ゲームタイプ（省略時は'ocg'）
+ * @returns 画像URL（request_locale付与）
  */
 export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
@@ -60,8 +61,11 @@ export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'):
     console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
-  const gamePath = gameType === 'rush' ? 'rushdb' : 'yugiohdb';
-  return `/${gamePath}/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+
+  // buildApiUrl を使用して request_locale を自動付与
+  const { buildApiUrl } = require('../utils/url-builder');
+  const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+  return buildApiUrl(path, gameType);
 }
 
 /**

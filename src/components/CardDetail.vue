@@ -259,6 +259,7 @@ export default {
     // Watch for card prop changes and refetch detail when cardId changes
     watch(() => props.card && props.card.cardId, (newVal, oldVal) => {
       if (newVal !== oldVal) {
+        cardDetailStore.setCardTab('info')
         fetchDetail()
       }
     }, { immediate: true })
