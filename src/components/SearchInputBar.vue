@@ -1975,11 +1975,11 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99998;
+  z-index: 999;
 }
 
 .mydeck-suggestions {
-  z-index: 99999;
+  z-index: 1000;
 }
 
 .mode-dropdown {
@@ -1990,7 +1990,7 @@ export default defineComponent({
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 8px;
   margin-top: 4px;
-  z-index: 99999;
+  z-index: 1000;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   min-width: 160px;
 
