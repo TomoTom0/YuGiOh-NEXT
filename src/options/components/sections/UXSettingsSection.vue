@@ -121,6 +121,21 @@
       <div class="radio-group">
         <label
           class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'auto' }"
+        >
+          <input
+            type="radio"
+            value="auto"
+            v-model="settingsStore.appSettings.defaultSearchMode"
+            @change="handleSearchModeChange"
+          />
+          <span class="radio-text">
+            <strong>自動（カード名+テキスト+Pテキスト）</strong>
+            <span class="radio-desc">すべてのフィールドで検索</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
           :class="{ active: settingsStore.appSettings.defaultSearchMode === 'name' }"
         >
           <input
@@ -130,8 +145,8 @@
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
-            <strong>カード名で検索（デフォルト）</strong>
-            <span class="radio-desc">カード名で検索</span>
+            <strong>カード名で検索</strong>
+            <span class="radio-desc">カード名のみで検索</span>
           </span>
         </label>
         <label
