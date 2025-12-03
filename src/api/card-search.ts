@@ -1994,11 +1994,11 @@ export async function getCardDetailWithCache(
   if (unifiedDB.isInitialized()) {
     const cachedTableC = await unifiedDB.getCardTableC(cardId);
 
-    // 言語別パック情報が存在するかチェック
-    // packs は絶対に必須（qaList や relatedCards は空でも OK）
+    // 言語別関連製品（products ID）が存在するかチェック
+    // relatedProducts は必須（qaList、relatedCards、packs の詳細情報は空でも OK）
     if (cachedTableC &&
-        (cachedTableC.langsPacks?.[targetLang] !== undefined ||
-         cachedTableC.packs !== undefined)) {
+        (cachedTableC.langsRelatedProducts?.[targetLang] !== undefined ||
+         cachedTableC.relatedProducts !== undefined)) {
       const now = Date.now();
 
       // 言語別のfetchedAtを取得（langsFetchedAtのみ使用）
@@ -2009,14 +2009,14 @@ export async function getCardDetailWithCache(
         // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
         const isSameDayToday = isSameDay(fetchedAt, now);
 
-        // 言語別パック情報の存在チェック（langsPacks）
-        // packs は絶対に空であってはいけない（products 情報として必須）
-        const hasPacks = !!(cachedTableC.langsPacks?.[targetLang] &&
-                            cachedTableC.langsPacks[targetLang].length > 0);
+        // 言語別の関連製品（products ID）の存在チェック
+        // relatedProducts は絶対に空であってはいけない（products 情報として必須）
+        const hasRelatedProducts = !!(cachedTableC.langsRelatedProducts?.[targetLang] &&
+                                       cachedTableC.langsRelatedProducts[targetLang].length > 0);
 
-        // isFresh条件: 今日の日付 AND 言語別パック情報が存在する
-        // qaList や relatedCards は空でも OK（そういうカードもある）
-        const isFresh = isSameDayToday && hasPacks;
+        // isFresh条件: 今日の日付 AND 言語別関連製品が存在する
+        // packs の詳細情報、qaList や relatedCards は空でも OK（そういうカードもある）
+        const isFresh = isSameDayToday && hasRelatedProducts;
 
         // キャッシュからCardDetailを再構築
         const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, targetLang);
