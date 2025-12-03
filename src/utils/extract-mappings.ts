@@ -9,7 +9,7 @@ import {
   SpellEffectType,
   TrapEffectType,
   RACE_ID_TO_INT,
-  MONSTER_TYPE_ID_TO_INT,
+  MONSTER_TYPE_VALUE_TO_ID,
   ATTRIBUTE_ID_TO_INT,
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT,
@@ -337,11 +337,5 @@ function valueToTrapEffectId(value: string): TrapEffectType | null {
  */
 function valueToMonsterTypeId(value: string): MonsterType | null {
   const numValue = parseInt(value, 10);
-  // ID_TO_INT の逆引きで value → 内部ID に変換
-  for (const [id, intValue] of Object.entries(MONSTER_TYPE_ID_TO_INT)) {
-    if (intValue === numValue) {
-      return id as MonsterType;
-    }
-  }
-  return null;
+  return (MONSTER_TYPE_VALUE_TO_ID as Record<number, MonsterType>)[numValue] || null;
 }
