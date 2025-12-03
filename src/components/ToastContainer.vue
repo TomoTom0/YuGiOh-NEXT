@@ -49,13 +49,13 @@ const getIcon = (type: string): string => {
 }
 
 .toast {
-  min-width: 300px;
-  max-width: 420px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 280px;
+  max-width: 380px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   background: var(--toast-bg);
-  border-left: 5px solid;
+  border-left: 4px solid;
   overflow: hidden;
 
   &.success {
@@ -94,14 +94,14 @@ const getIcon = (type: string): string => {
 .toast-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 8px 12px;
   color: #ffffff;
   font-weight: 500;
 }
 
 .toast-icon {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   flex-shrink: 0;
   display: flex;
@@ -110,22 +110,22 @@ const getIcon = (type: string): string => {
 }
 
 .toast-title {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.2;
   flex: 1;
 }
 
 .toast-close {
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: 18px;
   cursor: pointer;
   color: #ffffff;
   padding: 0;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,10 +136,10 @@ const getIcon = (type: string): string => {
 }
 
 .toast-body {
-  padding: 0 16px 12px 40px;
-  font-size: 13px;
+  padding: 0 12px 8px 32px;
+  font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.4;
   background: var(--toast-bg);
 }
 

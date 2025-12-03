@@ -585,11 +585,9 @@ export default {
 
     // 未発売カード通知イベントをリッスン
     const handleUnreleasedCardsSkipped = (event: Event) => {
-      console.debug('[DeckEditTopBar] handleUnreleasedCardsSkipped called')
       const customEvent = event as CustomEvent
       const { count, cards } = customEvent.detail || {}
       if (count > 0) {
-        console.debug(`[DeckEditTopBar] Showing toast for ${count} unreleased cards`)
         // メッセージを構造化して送信
         let cardList = ''
         if (cards && cards.length > 0) {
@@ -614,12 +612,10 @@ export default {
     }
 
     onMounted(() => {
-      console.debug('[DeckEditTopBar] Mounted: adding event listener for ygo-unreleased-cards-skipped')
       window.addEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
     })
 
     onUnmounted(() => {
-      console.debug('[DeckEditTopBar] Unmounted: removing event listener for ygo-unreleased-cards-skipped')
       window.removeEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
     })
 
