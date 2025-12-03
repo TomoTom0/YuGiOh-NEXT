@@ -5,7 +5,7 @@
  * タグを race/attr/type/others の4グループに分類する。
  */
 
-import { MONSTER_TYPE_MAP, type Attribute, type Race } from '../types/card-maps';
+import { MONSTER_TYPE_ID_TO_NAME, type Attribute, type Race } from '../types/card-maps';
 
 /**
  * タグID → 内部キーへの変換マップ
@@ -102,13 +102,13 @@ export function classifyTagById(tagId: string): TagGroup {
 
 /**
  * タグラベルからモンスタータイプを取得
- * card-maps.tsのMONSTER_TYPE_MAPを逆引きして使用
+ * MONSTER_TYPE_ID_TO_NAMEを逆引きして使用
  *
  * @param tagLabel - タグのラベル（例: "融合", "シンクロ"）
  * @returns モンスタータイプ（fusion, synchro, xyz など）、該当しない場合は空文字
  */
 export function getMonsterTypeFromLabel(tagLabel: string): string {
-  for (const [type, label] of Object.entries(MONSTER_TYPE_MAP)) {
+  for (const [type, label] of Object.entries(MONSTER_TYPE_ID_TO_NAME)) {
     if (tagLabel.includes(label)) {
       return type;
     }

@@ -329,10 +329,29 @@ export const TRAP_EFFECT_PATH_TO_ID: Record<string, TrapEffectType> = {
   'counter': 'counter',
 };
 
-
 // ============================================================================
 // カードタイプ（CardType）
 // ============================================================================
+
+/**
+ * カードタイプの内部ID → 整数ID マッピング
+ */
+export const CARD_TYPE_ID_TO_INT = {
+  'monster': 1,
+  'spell': 2,
+  'trap': 3,
+} as const;
+
+export type CardType = keyof typeof CARD_TYPE_ID_TO_INT;
+
+/**
+ * カードタイプの内部ID → 日本語表示名 マッピング
+ */
+export const CARD_TYPE_ID_TO_NAME = {
+  'monster': 'モンスター',
+  'spell': '魔法',
+  'trap': '罠',
+} as const;
 
 /**
  * カードタイプの内部ID → 日本語短名称 マッピング（チップ用超短縮形）
@@ -342,50 +361,3 @@ export const CARD_TYPE_ID_TO_SHORTNAME = {
   'spell': '魔',
   'trap': '罠'
 } as const;
-
-// ============================================================================
-// レガシーマッピング（互換性用、廃止予定）
-// ============================================================================
-
-/**
- * @deprecated 代わりに RACE_ID_TO_NAME を使用してください
- */
-export const RACE_MAP = RACE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに MONSTER_TYPE_ID_TO_NAME を使用してください
- */
-export const MONSTER_TYPE_MAP = MONSTER_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに SPELL_EFFECT_TYPE_ID_TO_NAME を使用してください
- */
-export const SPELL_EFFECT_TYPE_MAP = SPELL_EFFECT_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに TRAP_EFFECT_TYPE_ID_TO_NAME を使用してください
- */
-export const TRAP_EFFECT_TYPE_MAP = TRAP_EFFECT_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに ATTRIBUTE_ID_TO_NAME を使用してください
- */
-export const ATTRIBUTE_MAP = ATTRIBUTE_ID_TO_NAME;
-
-/**
- * @deprecated 言語別マッピングは extract-mappings.ts で動的に取得してください
- */
-export const CARD_TYPE_MAP = {
-  'monster': 'モンスター',
-  'spell': '魔法',
-  'trap': '罠',
-} as const;
-
-export type CardType = keyof typeof CARD_TYPE_MAP;
-
-/**
- * @deprecated 言語別マッピングは extract-mappings.ts で動的に取得してください
- */
-export const CARD_TYPE_TEXT_TO_ID = Object.fromEntries(
-  Object.entries(CARD_TYPE_MAP).map(([id, text]) => [text, id as CardType])
-) as Record<string, CardType>;

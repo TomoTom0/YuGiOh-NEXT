@@ -24,8 +24,8 @@ import {
   ATTRIBUTE_PATH_TO_ID,
   SPELL_EFFECT_PATH_TO_ID,
   TRAP_EFFECT_PATH_TO_ID,
-  SPELL_EFFECT_TYPE_MAP,
-  TRAP_EFFECT_TYPE_MAP,
+  SPELL_EFFECT_TYPE_ID_TO_NAME,
+  TRAP_EFFECT_TYPE_ID_TO_NAME,
   ATTRIBUTE_ID_TO_INT,
   RACE_ID_TO_INT,
   MONSTER_TYPE_ID_TO_INT,
@@ -1484,11 +1484,11 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
 }
 
 function isSpellEffectType(value: string): value is SpellEffectType {
-  return value in SPELL_EFFECT_TYPE_MAP;
+  return value in SPELL_EFFECT_TYPE_ID_TO_NAME;
 }
 
 function isTrapEffectType(value: string): value is TrapEffectType {
-  return value in TRAP_EFFECT_TYPE_MAP;
+  return value in TRAP_EFFECT_TYPE_ID_TO_NAME;
 }
 
 function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
