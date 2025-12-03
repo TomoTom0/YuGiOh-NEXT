@@ -16,7 +16,7 @@ import { mappingManager } from '@/utils/mapping-manager';
 /**
  * カテゴリラベル（日本語）をIDに変換
  */
-function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
+export function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
   if (!metadata || !metadata.categories) {
     return [];
   }
@@ -32,7 +32,7 @@ function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
 /**
  * タグラベル（日本語）をIDに変換
  */
-function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
+export function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
   if (!metadata || !metadata.tags) {
     return [];
   }
@@ -130,7 +130,7 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
  * @param doc ドキュメント
  * @throws デッキ表示ページでない場合はエラー
  */
-function validateDeckDetailPageStructure(doc: Document): void {
+export function validateDeckDetailPageStructure(doc: Document): void {
   // 1. #main980 > #article_body > #deck_detailtext > #detailtext_main の階層を検証
   const main980 = doc.querySelector('#main980');
   if (!main980) {
@@ -238,7 +238,7 @@ function validateDeckDetailPageStructure(doc: Document): void {
  * @param doc ドキュメント
  * @returns cid -> ciid -> { count, imgHash } のマップ
  */
-function extractCiidCounts(doc: Document): Map<string, Map<string, { count: number; imgHash: string }>> {
+export function extractCiidCounts(doc: Document): Map<string, Map<string, { count: number; imgHash: string }>> {
   const ciidCountMap = new Map<string, Map<string, { count: number; imgHash: string }>>();
 
   // カードタイプごとのクラス名
@@ -297,7 +297,7 @@ function extractCiidCounts(doc: Document): Map<string, Map<string, { count: numb
  * @param sectionId セクションID ('main' | 'extra' | 'side')
  * @returns デッキ内カード配列
  */
-function parseCardSection(
+export function parseCardSection(
   doc: Document,
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>,
   ciidCountMap: Map<string, Map<string, { count: number; imgHash: string }>>,
@@ -438,7 +438,7 @@ function parseCardSection(
  * @param doc ドキュメント
  * @returns デッキ番号
  */
-function extractDnoFromPage(doc: Document): number {
+export function extractDnoFromPage(doc: Document): number {
   // JavaScriptコードから $('#dno').val('4') を探す
   const scriptText = doc.documentElement.innerHTML;
   const dnoMatch = scriptText.match(/\$\('#dno'\)\.val\('(\d+)'\)/);
@@ -462,7 +462,7 @@ function extractDnoFromPage(doc: Document): number {
  * @param doc ドキュメント
  * @returns デッキ名
  */
-function extractDeckNameFromMeta(doc: Document): string {
+export function extractDeckNameFromMeta(doc: Document): string {
   // <meta name="description" content="完全版テスト成功/ "> から取得
   const descriptionMeta = doc.querySelector('meta[name="description"]');
   if (descriptionMeta) {
@@ -501,7 +501,7 @@ function extractDeckNameFromMeta(doc: Document): string {
  * @param doc ドキュメント
  * @returns 公開デッキの場合true
  */
-function extractIsPublicFromTitle(doc: Document): boolean {
+export function extractIsPublicFromTitle(doc: Document): boolean {
   // <h1>【 非公開 】</h1> の存在を確認
   const h1Elements = doc.querySelectorAll('h1');
   for (const h1 of h1Elements) {
@@ -524,7 +524,7 @@ function extractIsPublicFromTitle(doc: Document): boolean {
  * @param doc ドキュメント
  * @returns cgid（見つからない場合はundefined）
  */
-function extractCgidFromPage(doc: Document): string | undefined {
+export function extractCgidFromPage(doc: Document): string | undefined {
   // HTMLのテキストコンテンツからcgid=...を探す
   const scriptText = doc.documentElement.innerHTML;
   const cgidMatch = scriptText.match(/cgid=([a-f0-9]+)/);
@@ -542,7 +542,7 @@ function extractCgidFromPage(doc: Document): string | undefined {
  * @param doc ドキュメント
  * @returns デッキタイプ
  */
-function extractDeckType(doc: Document): DeckTypeValue | undefined {
+export function extractDeckType(doc: Document): DeckTypeValue | undefined {
   // <dt><span>デッキタイプ</span></dt><dd class="text_set"><span>OCG（マスタールール）</span></dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
@@ -567,7 +567,7 @@ function extractDeckType(doc: Document): DeckTypeValue | undefined {
  * @param doc ドキュメント
  * @returns デッキスタイル
  */
-function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
+export function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
   // <dl class="MD_deck_style"><dt><span>デッキスタイル</span></dt><dd class="text_set">...</dd></dl>
   const dl = doc.querySelector('dl.MD_deck_style');
   if (dl) {
@@ -587,7 +587,7 @@ function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
  * @param _doc ドキュメント
  * @returns カテゴリID配列
  */
-function extractCategory(doc: Document): DeckCategory {
+export function extractCategory(doc: Document): DeckCategory {
   // <dd class="regist_category"><span>マジェスペクター</span><span>竜剣士</span></dd>
   const dd = doc.querySelector('dd.regist_category');
   if (dd) {
@@ -612,7 +612,7 @@ function extractCategory(doc: Document): DeckCategory {
  * @param doc ドキュメント
  * @returns 登録タグ（タグ名の配列）
  */
-function extractTags(doc: Document): string[] {
+export function extractTags(doc: Document): string[] {
   // <dd class="regist_tag"><span>大会優勝デッキ</span><span>...</span></dd>
   const dd = doc.querySelector('dd.regist_tag');
   if (dd) {
@@ -637,7 +637,7 @@ function extractTags(doc: Document): string[] {
  * @param doc ドキュメント
  * @returns コメント
  */
-function extractComment(doc: Document): string {
+export function extractComment(doc: Document): string {
   // <dt><span>コメント</span></dt><dd class="text_set"><span class="biko">...</span></dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
@@ -662,7 +662,7 @@ function extractComment(doc: Document): string {
  * @param _doc ドキュメント
  * @returns デッキコード
  */
-function extractDeckCode(doc: Document): string {
+export function extractDeckCode(doc: Document): string {
   // <dt><span>デッキコード</span></dt><dd class="a_set">...</dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
