@@ -324,13 +324,15 @@ export class UnifiedCacheDB {
 
     // 言語ごとの TTLチェック
     if (existing && !forceUpdate) {
-      const langFetchedAt = existing.langsFetchedAt?.[lang] || existing.fetchedAt;
-      if (langFetchedAt) {
+      // 既にこの言語で取得済みの場合のみ TTL チェック
+      const langFetchedAt = existing.langsFetchedAt?.[lang];
+      if (langFetchedAt !== undefined) {
         const age = now - langFetchedAt;
         if (age < this.cacheTTL) {
-          return false;
+          return false;  // キャッシュ有効
         }
       }
+      // langsFetchedAt[lang] が存在しない場合（新規言語）は、新規取得 (true を返す)
     }
 
     // 既存のlangsNameを取得（旧形式のnameもサポート）
