@@ -133,20 +133,19 @@
 
 
 
-    <!-- Unsaved Changes Dialog -->
-    <ConfirmDialog
-      :show="deckStore.showUnsavedChangesDialog"
-      :title="unsavedChangesTitle"
-      :message="unsavedChangesMessage"
-      :buttons="unsavedChangesButtons"
-      @cancel="cancelUnsavedChanges"
-    />
-
-    <!-- Toast Container rendered at body level to escape all parent z-index contexts -->
-    <Teleport to="body">
-      <ToastContainer />
-    </Teleport>
   </div>
+
+  <!-- Unsaved Changes Dialog (outside top-bar-wrapper) -->
+  <ConfirmDialog
+    :show="deckStore.showUnsavedChangesDialog"
+    :title="unsavedChangesTitle"
+    :message="unsavedChangesMessage"
+    :buttons="unsavedChangesButtons"
+    @cancel="cancelUnsavedChanges"
+  />
+
+  <!-- Toast Container (outside top-bar-wrapper) -->
+  <ToastContainer />
 </template>
 
 <script lang="ts">

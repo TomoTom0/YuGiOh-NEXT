@@ -42,7 +42,7 @@ const getIcon = (type: string): string => {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 2000;
+  z-index: 1100;
   pointer-events: none;
 
   > div {
