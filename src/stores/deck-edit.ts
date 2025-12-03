@@ -7,6 +7,7 @@ import { sessionManager } from '../content/session/session';
 import { getDeckDetail } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
+import { useToastStore } from './toast-notification';
 import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
@@ -1353,16 +1354,30 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // Load時点のスナップショットを保存
         savedDeckSnapshot.value = captureDeckSnapshot();
 
-        // 未発売カード通知を発火（skippedCards があれば）
+        // 未発売カード通知を表示（skippedCards があれば）
         if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
           const skippedCards = loadedDeck.skippedCards || [];
-          // カスタムイベントで Vue アプリにトースト通知を発火
-          window.dispatchEvent(new CustomEvent('ygo-unreleased-cards-skipped', {
-            detail: {
-              count: loadedDeck.skippedCardsCount,
-              cards: skippedCards
+          const toastStore = useToastStore();
+
+          // 最大3枚までのカード名を表示（改行で区切る）
+          const bodyLines: string[] = [];
+          if (skippedCards.length > 0) {
+            const displayCards = skippedCards.slice(0, 3);
+            displayCards.forEach((card: any) => {
+              bodyLines.push(card.name);
+            });
+
+            const remainCount = skippedCards.length - displayCards.length;
+            if (remainCount > 0) {
+              bodyLines.push(`ほか${remainCount}枚`);
             }
-          }));
+          }
+
+          toastStore.showToast(
+            `${loadedDeck.skippedCardsCount}枚の未発売カードをスキップしました`,
+            'warning',
+            bodyLines.join('\n')
+          );
         }
       }
     } catch (error) {

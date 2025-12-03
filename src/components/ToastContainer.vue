@@ -13,7 +13,9 @@
           <button class="toast-close" @click="toastStore.removeToast(notification.id)">×</button>
         </div>
         <div v-if="notification.body" class="toast-body">
-          {{ notification.body }}
+          <div v-for="(line, index) in notification.body.split('\n')" :key="index" class="toast-body-line">
+            {{ line }}
+          </div>
         </div>
       </div>
     </transition-group>
@@ -40,7 +42,6 @@ const getIcon = (type: string): string => {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 100000;
   pointer-events: none;
 
   > div {
@@ -136,11 +137,23 @@ const getIcon = (type: string): string => {
 }
 
 .toast-body {
-  padding: 0 12px 8px 32px;
+  padding: 8px 12px 8px 32px;
   font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.5;
   background: var(--toast-bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+
+  .toast-body-line {
+    padding: 2px 0;
+    word-break: break-word;
+
+    &:not(:last-child) {
+      margin-bottom: 2px;
+      padding-bottom: 2px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+  }
 }
 
 .toast-enter-active,

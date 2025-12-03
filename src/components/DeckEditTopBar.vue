@@ -141,16 +141,14 @@
       :buttons="unsavedChangesButtons"
       @cancel="cancelUnsavedChanges"
     />
-
-    <!-- Toast Container for displaying notifications from store -->
-    <ToastContainer />
-
-
   </div>
 </template>
 
+<!-- Toast Container at root level (outside top-bar-wrapper) -->
+<ToastContainer />
+
 <script lang="ts">
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
@@ -195,34 +193,13 @@ export default {
     const unsavedChangesTitle = ref('未保存の変更')
     const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
-    const showToast = (messageOrObj: string | { title: string; body: string; type: string }, type = 'info') => {
-      let finalMessage: string
-      let finalType: string
-
-      if (typeof messageOrObj === 'string') {
-        finalMessage = messageOrObj
-        finalType = type
-      } else {
-        // オブジェクト形式：title と body を改行で連結
-        finalMessage = messageOrObj.body
-          ? `${messageOrObj.title}\n${messageOrObj.body}`
-          : messageOrObj.title
-        finalType = messageOrObj.type
-
-        // ストアに構造化データとして渡す
-        dispatchToast(messageOrObj.title, messageOrObj.type as any, messageOrObj.body)
-        toast.message = finalMessage
-        toast.type = finalType
-        toast.show = true
-        return
-      }
-
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
       // ストアを使用してトースト通知を表示
-      dispatchToast(finalMessage, finalType as 'success' | 'error' | 'info' | 'warning')
+      dispatchToast(message, type)
 
       // 従来の toast オブジェクト（既に使用されている可能性）もサポート
-      toast.message = finalMessage
-      toast.type = finalType
+      toast.message = message
+      toast.type = type
       toast.show = true
     }
     
@@ -582,42 +559,6 @@ export default {
     const cancelDelete = () => {
       deckStore.showDeleteConfirm = false
     }
-
-    // 未発売カード通知イベントをリッスン
-    const handleUnreleasedCardsSkipped = (event: Event) => {
-      const customEvent = event as CustomEvent
-      const { count, cards } = customEvent.detail || {}
-      if (count > 0) {
-        // メッセージを構造化して送信
-        let cardList = ''
-        if (cards && cards.length > 0) {
-          // 最大3枚までのカード名を表示
-          const displayCards = cards.slice(0, 3)
-          const cardNames = displayCards.map((c: any) => c.name).join('、')
-          const remainCount = cards.length - displayCards.length
-
-          if (remainCount > 0) {
-            cardList = `${cardNames} ほか${remainCount}枚`
-          } else {
-            cardList = cardNames
-          }
-        }
-
-        showToast({
-          title: `${count}枚の未発売カードをスキップしました`,
-          body: cardList,
-          type: 'warning'
-        } as any)
-      }
-    }
-
-    onMounted(() => {
-      window.addEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
-    })
-
-    onUnmounted(() => {
-      window.removeEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
-    })
 
     return {
       deckStore,
