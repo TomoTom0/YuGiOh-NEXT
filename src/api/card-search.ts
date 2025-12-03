@@ -1988,6 +1988,7 @@ export async function getCardDetailWithCache(
   fromFAQ: boolean = false
 ): Promise<CardDetailCacheResult> {
   const unifiedDB = getUnifiedCacheDB();
+  const targetLang = lang || detectLanguage(document);
 
   // キャッシュを確認
   if (unifiedDB.isInitialized()) {
@@ -1996,63 +1997,68 @@ export async function getCardDetailWithCache(
     // packsとqaListは空配列の可能性があるので、存在チェックのみ（undefinedでないこと）
     if (cachedTableC && cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined) {
       const now = Date.now();
-      // fetchedAtがundefinedの場合は現在時刻として扱う（初回取得扱い）
-      const fetchedAt = cachedTableC.fetchedAt || now;
-      
-      // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
-      const isSameDayToday = isSameDay(fetchedAt, now);
-      
-      // related-productsの存在チェック
-      const hasRelatedProducts = !!(cachedTableC.relatedProducts && cachedTableC.relatedProducts.length > 0);
-      
-      // isFresh条件: 今日の日付 AND related-productsが存在する
-      const isFresh = isSameDayToday && hasRelatedProducts;
 
-      // キャッシュからCardDetailを再構築
-      const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, lang);
+      // 言語別のfetchedAtを取得（langsFetchedAtのみ使用）
+      const fetchedAt = cachedTableC.langsFetchedAt?.[targetLang];
 
-      if (cachedDetail) {
-        // fetchedAtを更新（今日の日付でない場合のみ）
-        if (!isSameDayToday) {
-          await unifiedDB.updateCardTableCFetchedAt(cardId);
-        }
+      // fetchedAtが存在する場合のみキャッシュヒット判定
+      if (fetchedAt !== undefined) {
+        // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
+        const isSameDayToday = isSameDay(fetchedAt, now);
 
-        const result: CardDetailCacheResult = {
-          detail: cachedDetail,
-          fromCache: true,
-          isFresh,
-          fetchedAt: !isSameDayToday ? Date.now() : fetchedAt // 更新した場合は新しい時刻
-        };
+        // 言語別の関連製品の存在チェック（langsRelatedProductsのみ使用）
+        const hasRelatedProducts = !!(cachedTableC.langsRelatedProducts?.[targetLang] &&
+                                       cachedTableC.langsRelatedProducts[targetLang].length > 0);
 
-        // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
-        if (!isFresh && autoRefresh) {
-          result.refreshPromise = (async () => {
-            try {
-              const freshDetail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
-              if (freshDetail && unifiedDB.isInitialized()) {
-                await saveCardDetailToCache(unifiedDB, freshDetail, true);
-                // ストレージに永続化
-                await unifiedDB.saveAll();
+        // isFresh条件: 今日の日付 AND 言語別の関連製品が存在する
+        const isFresh = isSameDayToday && hasRelatedProducts;
+
+        // キャッシュからCardDetailを再構築
+        const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, targetLang);
+
+        if (cachedDetail) {
+          // fetchedAtを更新（今日の日付でない場合のみ）
+          if (!isSameDayToday) {
+            await unifiedDB.updateCardTableCFetchedAt(cardId, targetLang);
+          }
+
+          const result: CardDetailCacheResult = {
+            detail: cachedDetail,
+            fromCache: true,
+            isFresh,
+            fetchedAt: !isSameDayToday ? Date.now() : fetchedAt // 更新した場合は新しい時刻
+          };
+
+          // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
+          if (!isFresh && autoRefresh) {
+            result.refreshPromise = (async () => {
+              try {
+                const freshDetail = await getCardDetail(cardId, targetLang, sortOrder, fromFAQ);
+                if (freshDetail && unifiedDB.isInitialized()) {
+                  await saveCardDetailToCache(unifiedDB, freshDetail, true, targetLang);
+                  // ストレージに永続化
+                  await unifiedDB.saveAll();
+                }
+                return freshDetail;
+              } catch (error) {
+                console.error(`[getCardDetailWithCache] Background refresh failed for ${cardId}:`, error);
+                return null;
               }
-              return freshDetail;
-            } catch (error) {
-              console.error(`[getCardDetailWithCache] Background refresh failed for ${cardId}:`, error);
-              return null;
-            }
-          })();
-        }
+            })();
+          }
 
-        return result;
+          return result;
+        }
       }
     }
   }
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
-  const detail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
+  const detail = await getCardDetail(cardId, targetLang, sortOrder, fromFAQ);
 
   if (detail && unifiedDB.isInitialized()) {
     // キャッシュに保存（forceUpdate=trueで強制更新）
-    await saveCardDetailToCache(unifiedDB, detail, true);
+    await saveCardDetailToCache(unifiedDB, detail, true, targetLang);
     // ストレージに永続化
     await unifiedDB.saveAll();
   }
@@ -2074,8 +2080,10 @@ async function reconstructCardDetailFromCache(
   tableC: CardTableC,
   lang?: string
 ): Promise<CardDetail | null> {
+  const targetLang = lang || detectLanguage(document);
+
   // CardInfoを再構築（指定言語で）
-  const cardInfo = unifiedDB.reconstructCardInfo(cid, lang);
+  const cardInfo = unifiedDB.reconstructCardInfo(cid, targetLang);
   if (!cardInfo) {
     return null;
   }
@@ -2083,11 +2091,12 @@ async function reconstructCardDetailFromCache(
   // cardInfoには既にTableB2からtext/pendTextがマージされている
   // （reconstructCardInfo()内で処理済み）
 
-  // relatedCardsを再構築
+  // langsRelatedCardsから言語別の関連カードを取得
   const relatedCards: CardInfo[] = [];
-  if (tableC.relatedCards) {
-    for (const relatedCid of tableC.relatedCards) {
-      const relatedInfo = unifiedDB.reconstructCardInfo(relatedCid);
+  const relatedCardIds = tableC.langsRelatedCards?.[targetLang];
+  if (relatedCardIds) {
+    for (const relatedCid of relatedCardIds) {
+      const relatedInfo = unifiedDB.reconstructCardInfo(relatedCid, targetLang);
       if (relatedInfo) {
         relatedCards.push(relatedInfo);
       }
@@ -2111,11 +2120,14 @@ async function reconstructCardDetailFromCache(
 export async function saveCardDetailToCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
   detail: CardDetail,
-  forceUpdate: boolean = false
+  forceUpdate: boolean = false,
+  lang?: string
 ): Promise<void> {
   const cid = detail.card.cardId;
+  const targetLang = lang || detectLanguage(document);
 
   // CardInfoをTableA, Bに保存（全Tierで常に保存）
+  // setCardInfoは内部でdetectLanguageを呼び出すので、langパラメータは不要
   unifiedDB.setCardInfo(detail.card, forceUpdate);
 
   // 関連カードもTableA, Bに保存（全Tierで常に保存）
@@ -2130,18 +2142,25 @@ export async function saveCardDetailToCache(
   // TableCを作成（text/pendTextはTableB2に保存されるので含めない）
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
+  const relatedCardIds = detail.relatedCards.map(c => c.cardId);
+  const relatedProductIds = packs.map(p => p.packId).filter((id): id is string => id !== undefined);
+
   const tableC: CardTableC = {
     cardId: cid,
-    relatedCards: detail.relatedCards.map(c => c.cardId),
-    relatedProducts: packs.map(p => p.packId).filter((id): id is string => id !== undefined),
+    // 言語別の関連カード・製品（langsFetchedAtのみ使用）
+    langsRelatedCards: {
+      [targetLang]: relatedCardIds
+    },
+    langsRelatedProducts: {
+      [targetLang]: relatedProductIds
+    },
     packs: packs,
-    qaList: qaList,
-    fetchedAt: Date.now()
+    qaList: qaList
   };
 
   // Tier 3以上のカードのみTableCをUnifiedCacheDBに永続保存
   if (tier >= 3) {
-    await unifiedDB.setCardTableC(tableC);
+    await unifiedDB.setCardTableC(tableC, targetLang);
   }
 
   // TempCardDBに保存（detail.cardと関連カード）

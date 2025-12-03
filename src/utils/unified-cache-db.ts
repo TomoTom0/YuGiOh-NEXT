@@ -486,10 +486,25 @@ export class UnifiedCacheDB {
 
   /**
    * CardTableCを保存
+   * @param data 保存するCardTableC
+   * @param lang 言語コード（未指定時はドキュメントから検出）
    */
-  async setCardTableC(data: CardTableC): Promise<void> {
+  async setCardTableC(data: CardTableC, lang?: string): Promise<void> {
     const now = Date.now();
-    data.fetchedAt = now;
+    const targetLang = lang || detectLanguage(document);
+
+    // 既存のデータを取得
+    const existing = this.cardTableCCache.get(data.cardId) ||
+      (await this.getCardTableC(data.cardId));
+
+    // 既存の langsFetchedAt を取得
+    const langsFetchedAt = existing?.langsFetchedAt || {};
+
+    // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+    data.langsFetchedAt = {
+      ...langsFetchedAt,
+      [targetLang]: now
+    };
 
     // メモリキャッシュに保存
     this.cardTableCCache.set(data.cardId, data);
@@ -503,10 +518,15 @@ export class UnifiedCacheDB {
   }
 
   /**
-   * CardTableCのfetchedAtのみを更新
+   * CardTableCの言語別fetchedAtを更新
    * キャッシュヒット時に呼び出す
+   * @param cardId カードID
+   * @param lang 言語コード（未指定時はドキュメントから検出）
    */
-  async updateCardTableCFetchedAt(cardId: string): Promise<void> {
+  async updateCardTableCFetchedAt(cardId: string, lang?: string): Promise<void> {
+    const now = Date.now();
+    const targetLang = lang || detectLanguage(document);
+
     const cached = this.cardTableCCache.get(cardId);
     if (!cached) {
       // メモリにない場合はストレージから読み込み
@@ -514,7 +534,13 @@ export class UnifiedCacheDB {
       const result = await chrome.storage.local.get(key);
       const data = result[key] as CardTableC | undefined;
       if (data) {
-        data.fetchedAt = Date.now();
+        // 既存の langsFetchedAt を取得
+        const langsFetchedAt = data.langsFetchedAt || {};
+        // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+        data.langsFetchedAt = {
+          ...langsFetchedAt,
+          [targetLang]: now
+        };
         this.cardTableCCache.set(cardId, data);
         await chrome.storage.local.set({ [key]: data });
       }
@@ -522,8 +548,14 @@ export class UnifiedCacheDB {
     }
 
     // メモリキャッシュとストレージの両方を更新
-    const now = Date.now();
-    cached.fetchedAt = now;
+    // 既存の langsFetchedAt を取得
+    const langsFetchedAt = cached.langsFetchedAt || {};
+    // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+    cached.langsFetchedAt = {
+      ...langsFetchedAt,
+      [targetLang]: now
+    };
+
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     await chrome.storage.local.set({ [key]: cached });
 
