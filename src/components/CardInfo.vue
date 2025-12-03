@@ -173,6 +173,7 @@ import { buildApiUrl } from '../utils/url-builder'
 import { detectCardGameType } from '../utils/page-detector'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 import { detectLanguage } from '../utils/language-detector'
+import { mappingManager } from '../utils/mapping-manager'
 
 export default {
   name: 'CardInfo',
@@ -287,32 +288,95 @@ export default {
   },
   methods: {
     getCardTypeText(cardType) {
-      if (cardType === 'spell') return '魔法'
-      if (cardType === 'trap') return '罠'
+      const lang = detectLanguage(document)
+      if (cardType === 'spell') {
+        return lang === 'ja' ? '魔法' : 'Spell'
+      }
+      if (cardType === 'trap') {
+        return lang === 'ja' ? '罠' : 'Trap'
+      }
       return cardType
     },
     getSpellIconUrl,
     getTrapIconUrl,
     getEffectTypeIconUrl,
     getAttributeText(attribute) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return ATTRIBUTE_MAP[attribute] || attribute
+      }
+      // その他の言語は MappingManager から取得
+      const attrMap = mappingManager.getAttributeTextToId(lang)
+      // attrMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(attrMap)) {
+        if (id === attribute) {
+          return text
+        }
+      }
       return ATTRIBUTE_MAP[attribute] || attribute
     },
     getRaceText(race) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return RACE_MAP[race] || race
+      }
+      // その他の言語は MappingManager から取得
+      const raceMap = mappingManager.getRaceTextToId(lang)
+      // raceMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(raceMap)) {
+        if (id === race) {
+          return text
+        }
+      }
       return RACE_MAP[race] || race
     },
     getEffectTypeText(effectType, cardType) {
+      const lang = detectLanguage(document)
       if (cardType === 'spell') {
+        if (lang === 'ja') {
+          return SPELL_EFFECT_TYPE_MAP[effectType] || effectType
+        }
+        const spellMap = mappingManager.getSpellEffectTextToId(lang)
+        for (const [text, id] of Object.entries(spellMap)) {
+          if (id === effectType) {
+            return text
+          }
+        }
         return SPELL_EFFECT_TYPE_MAP[effectType] || effectType
       } else if (cardType === 'trap') {
+        if (lang === 'ja') {
+          return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
+        }
+        const trapMap = mappingManager.getTrapEffectTextToId(lang)
+        for (const [text, id] of Object.entries(trapMap)) {
+          if (id === effectType) {
+            return text
+          }
+        }
         return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
       }
       return effectType
     },
     getMonsterTypesText(types) {
       if (!types || !Array.isArray(types)) return ''
-      return types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ')
+      return types.map(t => this.getMonsterTypeText(t)).join(' / ')
     },
     getMonsterTypeText(type) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return MONSTER_TYPE_MAP[type] || type
+      }
+      // その他の言語は MappingManager から取得
+      const typeMap = mappingManager.getMonsterTypeTextToId(lang)
+      // typeMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(typeMap)) {
+        if (id === type) {
+          return text
+        }
+      }
       return MONSTER_TYPE_MAP[type] || type
     },
     isLinkMarkerActive(linkMarkers, posDisplay) {

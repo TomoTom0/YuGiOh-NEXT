@@ -1,0 +1,4586 @@
+
+
+<!-- ///CardResultNormal  -->
+
+<!DOCTYPE html>
+<html>
+<head>
+
+
+
+<!-- ///MetaCardResultNormal  -->
+
+	
+
+<!-- ///MetaComon  -->
+
+	
+	<meta http-equiv="x-ua-compatible" content="IE=10" >
+	<meta http-equiv="x-ua-compatible" content="IE=EmulateIE10" >
+
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Content-Language" content="ko">
+	<meta http-equiv="Content-Style-Type" content="text/css">
+	<meta http-equiv="Content-Script-Type" content="text/javascript">
+	<meta http-equiv="imagetoolbar" content="no">
+	<meta name="format-detection" content="telephone=no">
+
+	<meta property="og:site_name" content="Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)">
+
+	<meta property="og:image" content="http://www.db.yugioh-card.com/sns/logo_ocg_f.png" />
+	<meta property="og:type" content="product" />
+	<meta property="og:locale" content="ko_KR" />
+
+	<meta name="twitter:card" content="summary"/>
+
+	<meta name="twitter:image" content="http://www.db.yugioh-card.com/sns/logo_ocg_t.png" />
+	<script type="text/javascript" src="/yugiohdb/ga.js"></script>
+	<meta name="copyright" content="KONAMI">
+	<link rel="shortcut icon" href="external/image/yugioh.ico">
+	<link rel="apple-touch-icon" href="external/image/apple-touch-icon.png">
+
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+
+	
+
+<!-- ///Keywords  -->
+
+
+
+	
+
+<!-- ///MetaRealURL  -->
+
+
+	
+
+
+	
+	
+	
+	<meta name="keywords" content=" 카드 검색결과(이미지 표시) | Yu-Gi-Oh! Neuron(오피셜 카드게임 카드 데이터 베이스) 유희왕,덱,듀얼 몬스터즈,VRAINS,브레인즈,금지,제한,팩,금지 카드,카드,수록,룰,오피셜 카드게임,코나미,KONAM" />
+	<meta name="description" content="Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)는 유희왕 오피셜 카드게임의 코나미 공식 사이트입니다." />
+
+	<meta property="og:title" content=" 카드 검색결과(이미지 표시) | Yu-Gi-Oh! Neuron(오피셜 카드게임 카드 데이터 베이스)" />
+	<meta property="og:url" content="https%3A%2F%2Fwww.db.yugioh-card.com%2Fyugiohdb%2Fcard_search.action%3Fope%3D1%26sess%3D1%26stype%3D1%26othercon%3D2%26releaseYStart%3D1999%26releaseMStart%3D02%26releaseDStart%3D04%26rp%3D10%26page%3D1%26request_locale%3Dko"/>
+
+	<meta property="og:description" content="Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)는 유희왕 오피셜 카드게임의 코나미 공식 사이트입니다." />
+
+	<meta name="twitter:title" content=" 카드 검색결과(이미지 표시) | Yu-Gi-Oh! Neuron(오피셜 카드게임 카드 데이터 베이스)" />
+	<meta name="twitter:description" content=" Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)는 유희왕 오피셜 카드게임의 코나미 공식 사이트입니다." />
+
+	<meta name="twitter:url" content="https%3A%2F%2Fwww.db.yugioh-card.com%2Fyugiohdb%2Fcard_search.action%3Fope%3D1%26sess%3D1%26stype%3D1%26othercon%3D2%26releaseYStart%3D1999%26releaseMStart%3D02%26releaseDStart%3D04%26rp%3D10%26page%3D1%26request_locale%3Dko" />
+
+
+
+<!-- ///MetaRealURL  -->
+
+
+	
+
+<title>카드 검색결과(이미지 표시) | Yu-Gi-Oh! Neuron(오피셜 카드게임 카드 데이터 베이스)</title>
+
+
+
+<!-- ///Js  -->
+
+<!--[if lt IE 9]>
+	<script type="text/javascript" src="external/html5/js/html5shiv.js"></script>
+<![endif]-->
+	<script type="text/javascript" src="external/jquery/jquery-3.6.0.js"></script>
+
+	<script type="text/javascript" src="external/jquery/jquery-ui-1.13.1.custom/jquery-ui.js"></script>
+
+	<script type="text/javascript" src="external/js/common.js"></script>
+
+	<script type="text/javascript" src="external/jquery/scrolltopcontrol.js"></script>
+
+
+
+
+
+<!-- ///Css  -->
+
+	<!--link type="text/css" rel="stylesheet" href="external/jquery/jquery-ui-1.8.16.custom/css/ui-lightness/jquery-ui-1.8.16.custom.css"-->
+	<link type="text/css" rel="stylesheet" href="external/jquery/jquery-ui-1.13.1.custom/jquery-ui.css">
+
+	<link type="text/css" rel="stylesheet" href="external/css/common.css?20171030">
+	<link type="text/css" rel="stylesheet" href="external/css/css_headerfooter.css?20171030">
+	<link type="text/css" rel="stylesheet" href="external/css/css_yugiohdb.css?20171030">
+
+	<link rel="stylesheet" type="text/css" href="external/css/CardResultNormal.css">
+
+	<script type="text/javascript">
+	<!--
+
+	$(function() {
+		
+
+		
+		$("#ctype").val("").trigger("change");
+		
+			$('#starfr').val('');
+			$('#starto').val('');
+			$('#pscalefr').val('');
+			$('#pscaleto').val('');
+			
+			
+			
+			
+			
+			
+			
+			
+			$('#linkmarkerfr').val('');
+			$('#linkmarkerto').val('');
+			$('#atkfr').val('');
+			$('#atkto').val('');
+			$('#deffr').val('');
+			$('#defto').val('');
+			$('#pscale').val('');
+
+			
+
+			
+
+			
+
+			
+
+			
+			
+				$('#and_or').css("background-position","50% 100%");
+				$('#othercon_and').prop('checked', false);
+				$('#othercon_or').prop('checked', true);
+			
+			
+			
+		
+
+
+		
+		
+			
+		
+
+		
+		
+			
+		
+		
+			$("#ctype").val("").trigger("change");
+		
+
+		$('#sort').val('1');
+		$('#rp').val('10');
+		$('#mode').val('1');
+
+		$('#sort').change(function() {
+			var value = $(this).val();
+			theme: 'sort_ko',
+
+				
+				location.href = '/yugiohdb/card_search.action'
+					+ '?ope=1'
+					+ '&sess=2'
+					
+					+ '&sort=' + encodeURIComponent($('#sort').val())
+					+ '&page=1'
+					+ '&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&rp=10&page=1';
+
+		});
+
+		$('#rp').change(function() {
+			var value = $(this).val();
+			theme: 'rp_ko',
+
+				
+				location.href = '/yugiohdb/card_search.action'
+					+ '?ope=1'
+					+ '&sess=2'
+					+ '&rp=' + encodeURIComponent($('#rp').val())
+					+ '&page=1'
+					+ '&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&sort=1&page=1';
+
+		});
+
+		$('#mode').change(function() {
+			var value = $(this).val();
+			theme: 'mode_ko',
+
+				
+				location.href = '/yugiohdb/card_search.action'
+							+ '?ope=1'
+							+ '&sess=4'
+							
+							+ '&mode=' + value
+							+ '&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&sort=1&rp=10&page=1';
+
+		});
+		$('#mode_set li.1').addClass("now");
+		$('#mode_set li').click(function(){
+			$('.tablink li').removeClass("now");
+			clm = $(this).attr("class");
+
+			$('#mode').val(clm);
+			$('#mode').trigger('change');
+		});
+
+		
+
+	
+		$('#card_image_0_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=7315&ciid=1&enc=8I1JTnbgWPv55PVG_WVZtg').show();
+	
+
+	
+		$('#card_image_1_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=12653&ciid=1&enc=Zq-CxLq5lW1Spqr3kPWHxg').show();
+	
+
+	
+		$('#card_image_2_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=6994&ciid=1&enc=9f9xH1Xh3GIU0-1NL4QvGA').show();
+	
+
+	
+		$('#card_image_3_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=7128&ciid=1&enc=Sfl4OZyZVr1EW3fAF-5t1g').show();
+	
+
+	
+		$('#card_image_4_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=12824&ciid=1&enc=RwR9jy1qBZ4AiiHfSPX7FA').show();
+	
+
+	
+		$('#card_image_5_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=4138&ciid=1&enc=mgPqj52Pj5H_EYnfbuPw8Q').show();
+	
+
+	
+		$('#card_image_6_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=6053&ciid=1&enc=mBGbqDtg30NK5LYexPF0bg').show();
+	
+
+	
+		$('#card_image_7_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=4806&ciid=1&enc=705eZaKB8EaQTvpZQiQf1A').show();
+	
+
+	
+		$('#card_image_8_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=5324&ciid=1&enc=1UlVBRdRhMuIJdlR61Ygkg').show();
+	
+
+	
+		$('#card_image_9_1').attr('src', '/yugiohdb/get_image.action?type=1&osplang=1&cid=5617&ciid=1&enc=D0E78v1uqtW84fh-JLIHog').show();
+	
+
+
+		
+		$('.t_row.open').click(function() {
+			window.open($('.link_value', this).val());
+			return false
+		});
+
+	
+		
+		var rseen = {};
+		$('#icon_sort div').each(function() {
+			var txt = $(this).find('p').text() + $(this).find('span').text();
+			if (rseen[txt]) $(this).remove();
+			else rseen[txt] = true;
+		}).show().css('display','flex');
+
+		
+		$('#icon_sort').html(
+			$('#icon_sort > div').sort(function(a, b) {
+				return parseInt($(a).attr('id'), 10) - parseInt($(b).attr('id'), 10);
+			})
+		);
+
+
+
+		
+		$('#icon_sort div').click(function(){
+			$('#icon_sort div').removeClass("r_none");
+			cla = $(this).attr("class");
+			$('#icon_sort div').addClass("r_none");
+			$(this).removeClass("r_none");
+			$('.rarity_on .t_row').hide();
+			if(cla != ''){
+				$('.rarity_on .'+cla).show();
+			}else{
+				$('.rarity_on .t_row').show();
+			}
+		});
+		$
+	
+
+	});
+
+	
+	function ChangePage(page) {
+		location.href = '/yugiohdb/card_search.action'
+					+ '?ope=1'
+					+ '&sess=3'
+					+ '&page=' + page
+					+ '&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&sort=1&rp=10';
+	}
+
+	</script>
+</head>
+
+
+
+	
+
+<!-- ///Header  -->
+
+<body class="ko">
+	<script type="text/javascript">
+	<!--
+	$(function(){
+
+		
+		$('.rush').remove();
+
+
+	
+
+	});
+
+
+	//-->
+	</script>
+<div id="wrapper">
+	<header>
+		<div id="header_meta">
+			<a href="https://www.konami.com/games/?menu=1" target="_blank"><img src="https://www.yugioh-card.com/ci/logo/konami_logo_normal.png" alt="KONAMI" id="konami" class="ui-draggable"></a>
+			<div class="roginlanguage">
+
+				<div id="roginlogout">
+	
+	
+					
+					<a class="btn my" href="/yugiohdb/member_login.action"><span>로그인</span></a>
+	
+	
+	
+				</div>
+				
+				<nav id="language">
+					
+					<div id="nowlanguage" class="waku orn">
+						
+						
+						
+						
+						
+						
+				 		
+				 		한글
+				 		
+				 		
+					</div>
+					
+					<div id="lang_mane">
+						<div class="rush">
+							<ul>
+								<li><a href="javascript:ChangeLanguage('ja')" >日本語</a></li>
+								<li><a href="javascript:ChangeLanguage('ko')" class="current">한글</a></li>
+							</ul>
+						</div>
+						<div class="ocg ocgtcg">
+							<p>OCG</p>
+							<ul>
+								<li><a href="javascript:ChangeLanguage('ja')" >日本語</a></li>
+								<li><a href="javascript:ChangeLanguage('ko')" class="current">한글</a></li>
+								<li class="ae"><a href="javascript:ChangeLanguage('ae')" >English(Asia)</a></li>
+								<li class="cn"><a href="javascript:ChangeLanguage('cn')" >簡体字</a></li>
+							</ul>
+						</div>
+						<div class="ocg ocgtcg">
+							<p>TCG</p>
+							<ul>
+								<li><a href="javascript:ChangeLanguage('en')" >English</a></li>
+								<li><a href="javascript:ChangeLanguage('de')" >Deutsch</a></li>
+								<li><a href="javascript:ChangeLanguage('fr')" >Fran&ccedil;ais</a></li>
+								<li><a href="javascript:ChangeLanguage('it')" >Italiano</a></li>
+								<li><a href="javascript:ChangeLanguage('es')" >Espa&ntilde;ol</a></li>
+								<li><a href="javascript:ChangeLanguage('pt')" >Portugues</a></li>
+							</ul>
+						</div>
+
+					</div>
+				</nav>
+
+			</div>
+		</div><!--#header_meta-->
+
+
+		<div id="header_menu">
+			<nav>
+				
+				<div class="logo">
+					<a href="/yugiohdb/"><h1>Yu-Gi-Oh! Neuron(오피셜 카드게임 카드 데이터 베이스)</h1></a>
+				</div>
+				
+				<div id="spnav_btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41.59 31"><defs></defs><path  d="M2.63,0H39a2.64,2.64,0,0,1,2.64,2.63h0A2.63,2.63,0,0,1,39,5.26H2.63A2.63,2.63,0,0,1,0,2.63H0A2.63,2.63,0,0,1,2.63,0Z"/><path  d="M2.63,12.87H39a2.64,2.64,0,0,1,2.64,2.63h0A2.64,2.64,0,0,1,39,18.13H2.63A2.63,2.63,0,0,1,0,15.5H0A2.63,2.63,0,0,1,2.63,12.87Z"/><path d="M2.63,25.74H39a2.63,2.63,0,0,1,2.64,2.63h0A2.64,2.64,0,0,1,39,31H2.63A2.63,2.63,0,0,1,0,28.37H0A2.63,2.63,0,0,1,2.63,25.74Z"/></svg></div>
+				
+
+<!-- ///nav_m  -->
+
+				<ul class="main_menu">
+					
+					<li class="menu_top"><a href="/yugiohdb/"><?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42.6 33.7"><path d="M23.4,0h-3.9L0,18l3.5,3.7,4.5-4.2,3,16.2H31.6l3-16.2,4.5,4.2,3.5-3.8L23.4,0Zm-1.8,25.6c-3.9,.1-7-3-7.1-6.9s3-7.1,6.9-7.1,7.1,3.2,7.1,7-3.1,7-6.9,7Z"/></svg><h3>홈</h3></a></li>
+
+					
+					<li class="menu_card_search">
+						<a class="main" href="/yugiohdb/card_search.action?wname=CardSearch"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardssvg">
+      <path class="svg_stroke_bold" d="M386.99,88.65c59.21,53.03,64.22,144.02,11.17,203.24-53.03,59.21-144.03,64.22-203.24,11.17-59.21-53.03-64.22-144.03-11.17-203.24,53.03-59.21,144.03-64.22,203.24-11.17h0Z"/>
+      <path class="svg_stroke_bold" d="M65.11,448.08l130.1-145.25"/>
+    </g>
+  </g>
+</svg><h3>카드 검색</h3></a>
+
+					</li>
+
+					
+					<li class="menu_cardlist sab_menu">
+						<a class="bg main" href="/yugiohdb/card_list.action?wname=CardSearch">
+							<span class="ocg"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistocgtcgsvg">
+      <path id="pass" class="svg_stroke_normal" d="M289.72,331.77l-156.04,33.93-98.64-86.97c-.14-.12-.08-.35.1-.38l231.31-44.82"/>
+      <path id="pass-2" data-name="pass" class="svg_stroke_normal" d="M134.59,428.35l-.36-62.64"/>
+      <path id="pass-3" data-name="pass" class="svg_stroke_normal" d="M289.72,397.09l-155.31,30.9-100.43-95.6v-189.02l17.62-5.79s29.45-105.01,101.15-102.11c0,0,81.11-5.07,90.53,79.66l19.55.73,4.35,117.32,22.54,9.45"/>
+      <path id="pass-4" data-name="pass" class="svg_stroke_normal" d="M287.62,476.19V119.05h178.57v357.14h-178.57ZM379.42,166.08c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<span class="rush"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistrushsvg">
+      <path class="svg_stroke_normal" d="M157.48,49.38l-115.37,9.08c-.24.02-.28.36-.04.43l69.93,20.62h.04l142.44-11.96c.12,0,.13-.18,0-.2l-96.97-17.97h-.03,0Z"/>
+      <path class="svg_stroke_normal" d="M111.8,405.59l-70.48-46.17c-.24-.16-.39-.43-.39-.72V59.72c0-.58.56-.99,1.11-.83l69.82,20.58c.1.03.21.04.32.03l142.1-11.94c.51-.04.94.36.94.86v306.39c0,.41-.29.76-.69.85l-142.07,30.04c-.23.05-.46,0-.65-.12h0Z"/>
+      <path class="svg_stroke_normal" d="M112.01,79.52l.09,326.26"/>
+      <path class="svg_stroke_normal" d="M278.71,452.38V95.24h178.57v357.14h-178.57ZM370.51,142.27c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<h3>수록</h3>
+						</a>
+						<ul>
+							<li><a href="/yugiohdb/card_list.action?clm=3&wname=CardSearch">발매일 최신 순</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=1&wname=CardSearch">일반상품</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=2&wname=CardSearch">특전 / 동봉계열</a></li>
+				
+						</ul>
+					</li>
+
+					
+					<li class="menu_decks">
+						<a href="/yugiohdb/deck_search.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="decksvg">
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+      <path class="svg_stroke_bold" d="M283.54,83.48c42.29,37.88,45.87,102.87,7.98,145.17-37.88,42.29-102.88,45.87-145.17,7.98-42.29-37.88-45.87-102.88-7.98-145.17,37.88-42.29,102.88-45.87,145.17-7.98h0Z"/>
+      <path class="svg_stroke_bold" d="M53.63,340.22l92.93-103.75"/>
+    </g>
+  </g>
+</svg><h3>덱 검색</h3></a>
+					</li>
+
+					
+			
+			
+					<li class="menu_trends sab_menu ocg">
+						<a class="bg main" href="/yugiohdb/trends_search.action?ope=1"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="trendssvg">
+      <path class="svg_stroke_bold" d="M319.81,95.49l77.67,2.33-2.49,77.81"/>
+      <path class="svg_stroke_bold" d="M39.07,321.57l150.98-142.19,56.56,60.05,148.07-139.45"/>
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+    </g>
+  </g>
+</svg><h3>트렌드</h3></a>
+						<ul>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=1">인기 덱 랭킹</a></li>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=2">주목할 카테고리 랭킹</a></li>
+						</ul>
+					</li>
+			
+			
+
+
+
+	
+	
+				
+
+					
+					<li class="my menu_my_decks">
+						<a href="/yugiohdb/member_login.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="MyDecksscg">
+      <path id="pass" class="svg_stroke_normal" d="M277.53,128.06l91.52-14.14v142.86l-91.52,14.14v-142.86h0Z"/>
+      <path id="pass-2" class="svg_stroke_normal" d="M240.04,453.74l.1-128.18"/>
+      <path id="pass-3" class="svg_stroke_normal" d="M408.1,288.91v123.93l-168.06,43.89-157.64-43.45V74.05l175.76-22.2,155.93,18.03-.29,216.51-36.72,7.28-.62,50.44-98.78,20.74.04-51.5-46.91,9.29-.58-218.81-147.82-24.5"/>
+    </g>
+  </g>
+</svg><h3>마이덱</h3></a>
+					</li>
+
+					
+					<li class="my menu_my_cardlist">
+						<a href="/yugiohdb/member_login.action?wname=MyCard"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistsvg">
+      <path class="svg_stroke_normal" d="M366.92,116.77l93.49,21.99-70.86,301.3-153.36-36.07M364.38,177.32l-6.1,145.32,21.04,4.95,32.7-139.06-47.64-11.2h0Z"/>
+      <path class="svg_stroke_normal" d="M252.76,86.1l115.25,4.84-12.99,309.25-94.07-3.95M152.91,105.73l1-23.78,66.06,2.78M317.05,291.36l6.78.29,6-142.73-58.16-2.44"/>
+      <path class="svg_stroke_normal" d="M44.95,139.55l204.49-64.06,92.52,295.37-204.49,64.06L44.95,139.55Z"/>
+      <path class="svg_stroke_normal" d="M96.82,185.68l136.33-42.7,42.7,136.33-136.33,42.7-42.7-136.33h0Z"/>
+    </g>
+  </g>
+</svg><h3>마이카드 리스트</h3></a>
+					</li>
+	
+	
+	
+
+				
+					
+					<li class="menu_forbidden">
+						<a href="/yugiohdb/forbidden_limited.action"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="svg_stroke_boldddensvg">
+      <path class="svg_stroke_bold" d="M101.53,126.77l299.51,251.32"/>
+      <path class="svg_stroke_bold" d="M251.55,56.58c108.01,0,195.56,87.56,195.56,195.56s-87.56,195.56-195.56,195.56S55.99,360.14,55.99,252.14,143.55,56.58,251.55,56.58Z"/>
+    </g>
+  </g>
+</svg><h3><span class="type1">리미트 레귤레이션</span><span class="type2">리미트 레귤레이션</span></h3></a>
+					</li>
+
+				</ul><!--#main_menu-->
+
+
+			</nav>
+		</div><!-- #header_menu-->
+	</header>
+	<div id="spnav">
+		<ul class="main_menu">
+
+	
+	
+			<li class="rogout">
+				
+					
+				
+				<a class="btn hex my" href="/yugiohdb/member_login.action"><span>로그인</span></a>
+			</li>
+	
+	
+	
+		</ul>
+		
+
+<!-- ///nav_m  -->
+
+				<ul class="main_menu">
+					
+					<li class="menu_top"><a href="/yugiohdb/"><?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42.6 33.7"><path d="M23.4,0h-3.9L0,18l3.5,3.7,4.5-4.2,3,16.2H31.6l3-16.2,4.5,4.2,3.5-3.8L23.4,0Zm-1.8,25.6c-3.9,.1-7-3-7.1-6.9s3-7.1,6.9-7.1,7.1,3.2,7.1,7-3.1,7-6.9,7Z"/></svg><h3>홈</h3></a></li>
+
+					
+					<li class="menu_card_search">
+						<a class="main" href="/yugiohdb/card_search.action?wname=CardSearch"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardssvg">
+      <path class="svg_stroke_bold" d="M386.99,88.65c59.21,53.03,64.22,144.02,11.17,203.24-53.03,59.21-144.03,64.22-203.24,11.17-59.21-53.03-64.22-144.03-11.17-203.24,53.03-59.21,144.03-64.22,203.24-11.17h0Z"/>
+      <path class="svg_stroke_bold" d="M65.11,448.08l130.1-145.25"/>
+    </g>
+  </g>
+</svg><h3>카드 검색</h3></a>
+
+					</li>
+
+					
+					<li class="menu_cardlist sab_menu">
+						<a class="bg main" href="/yugiohdb/card_list.action?wname=CardSearch">
+							<span class="ocg"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistocgtcgsvg">
+      <path id="pass" class="svg_stroke_normal" d="M289.72,331.77l-156.04,33.93-98.64-86.97c-.14-.12-.08-.35.1-.38l231.31-44.82"/>
+      <path id="pass-2" data-name="pass" class="svg_stroke_normal" d="M134.59,428.35l-.36-62.64"/>
+      <path id="pass-3" data-name="pass" class="svg_stroke_normal" d="M289.72,397.09l-155.31,30.9-100.43-95.6v-189.02l17.62-5.79s29.45-105.01,101.15-102.11c0,0,81.11-5.07,90.53,79.66l19.55.73,4.35,117.32,22.54,9.45"/>
+      <path id="pass-4" data-name="pass" class="svg_stroke_normal" d="M287.62,476.19V119.05h178.57v357.14h-178.57ZM379.42,166.08c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<span class="rush"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistrushsvg">
+      <path class="svg_stroke_normal" d="M157.48,49.38l-115.37,9.08c-.24.02-.28.36-.04.43l69.93,20.62h.04l142.44-11.96c.12,0,.13-.18,0-.2l-96.97-17.97h-.03,0Z"/>
+      <path class="svg_stroke_normal" d="M111.8,405.59l-70.48-46.17c-.24-.16-.39-.43-.39-.72V59.72c0-.58.56-.99,1.11-.83l69.82,20.58c.1.03.21.04.32.03l142.1-11.94c.51-.04.94.36.94.86v306.39c0,.41-.29.76-.69.85l-142.07,30.04c-.23.05-.46,0-.65-.12h0Z"/>
+      <path class="svg_stroke_normal" d="M112.01,79.52l.09,326.26"/>
+      <path class="svg_stroke_normal" d="M278.71,452.38V95.24h178.57v357.14h-178.57ZM370.51,142.27c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<h3>수록</h3>
+						</a>
+						<ul>
+							<li><a href="/yugiohdb/card_list.action?clm=3&wname=CardSearch">발매일 최신 순</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=1&wname=CardSearch">일반상품</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=2&wname=CardSearch">특전 / 동봉계열</a></li>
+				
+						</ul>
+					</li>
+
+					
+					<li class="menu_decks">
+						<a href="/yugiohdb/deck_search.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="decksvg">
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+      <path class="svg_stroke_bold" d="M283.54,83.48c42.29,37.88,45.87,102.87,7.98,145.17-37.88,42.29-102.88,45.87-145.17,7.98-42.29-37.88-45.87-102.88-7.98-145.17,37.88-42.29,102.88-45.87,145.17-7.98h0Z"/>
+      <path class="svg_stroke_bold" d="M53.63,340.22l92.93-103.75"/>
+    </g>
+  </g>
+</svg><h3>덱 검색</h3></a>
+					</li>
+
+					
+			
+			
+					<li class="menu_trends sab_menu ocg">
+						<a class="bg main" href="/yugiohdb/trends_search.action?ope=1"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="trendssvg">
+      <path class="svg_stroke_bold" d="M319.81,95.49l77.67,2.33-2.49,77.81"/>
+      <path class="svg_stroke_bold" d="M39.07,321.57l150.98-142.19,56.56,60.05,148.07-139.45"/>
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+    </g>
+  </g>
+</svg><h3>트렌드</h3></a>
+						<ul>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=1">인기 덱 랭킹</a></li>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=2">주목할 카테고리 랭킹</a></li>
+						</ul>
+					</li>
+			
+			
+
+
+
+	
+	
+				
+
+					
+					<li class="my menu_my_decks">
+						<a href="/yugiohdb/member_login.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="MyDecksscg">
+      <path id="pass" class="svg_stroke_normal" d="M277.53,128.06l91.52-14.14v142.86l-91.52,14.14v-142.86h0Z"/>
+      <path id="pass-2" class="svg_stroke_normal" d="M240.04,453.74l.1-128.18"/>
+      <path id="pass-3" class="svg_stroke_normal" d="M408.1,288.91v123.93l-168.06,43.89-157.64-43.45V74.05l175.76-22.2,155.93,18.03-.29,216.51-36.72,7.28-.62,50.44-98.78,20.74.04-51.5-46.91,9.29-.58-218.81-147.82-24.5"/>
+    </g>
+  </g>
+</svg><h3>마이덱</h3></a>
+					</li>
+
+					
+					<li class="my menu_my_cardlist">
+						<a href="/yugiohdb/member_login.action?wname=MyCard"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistsvg">
+      <path class="svg_stroke_normal" d="M366.92,116.77l93.49,21.99-70.86,301.3-153.36-36.07M364.38,177.32l-6.1,145.32,21.04,4.95,32.7-139.06-47.64-11.2h0Z"/>
+      <path class="svg_stroke_normal" d="M252.76,86.1l115.25,4.84-12.99,309.25-94.07-3.95M152.91,105.73l1-23.78,66.06,2.78M317.05,291.36l6.78.29,6-142.73-58.16-2.44"/>
+      <path class="svg_stroke_normal" d="M44.95,139.55l204.49-64.06,92.52,295.37-204.49,64.06L44.95,139.55Z"/>
+      <path class="svg_stroke_normal" d="M96.82,185.68l136.33-42.7,42.7,136.33-136.33,42.7-42.7-136.33h0Z"/>
+    </g>
+  </g>
+</svg><h3>마이카드 리스트</h3></a>
+					</li>
+	
+	
+	
+
+				
+					
+					<li class="menu_forbidden">
+						<a href="/yugiohdb/forbidden_limited.action"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="svg_stroke_boldddensvg">
+      <path class="svg_stroke_bold" d="M101.53,126.77l299.51,251.32"/>
+      <path class="svg_stroke_bold" d="M251.55,56.58c108.01,0,195.56,87.56,195.56,195.56s-87.56,195.56-195.56,195.56S55.99,360.14,55.99,252.14,143.55,56.58,251.55,56.58Z"/>
+    </g>
+  </g>
+</svg><h3><span class="type1">리미트 레귤레이션</span><span class="type2">리미트 레귤레이션</span></h3></a>
+					</li>
+
+				</ul><!--#main_menu-->
+
+		<div class="close"><span>&#10005;</span>닫기</div>
+	</div>
+	<div id="bg">
+
+
+
+	<nav id="pan_nav"><div>
+		<ul>
+			<li><a href="/yugiohdb/">홈</a></li><!--
+		 --><li>&raquo;</li><!--
+
+
+		 --><li>카드 검색결과</li>
+
+		</ul>
+		<div class="btn hex orn"><span>?</span></div>
+	</div></nav><!--#pan_nav-->
+
+
+
+
+
+	
+
+<!-- ///MsgCardResultNormal  -->
+
+	
+
+
+
+
+
+<!-- ///CardResultH1  -->
+
+
+
+
+
+<div id="main980">
+	<article>
+		<div id="article_body">
+
+
+	
+	
+		
+
+<!-- ///CardSearchCondition  -->
+
+	<script type="text/javascript">
+			<!--
+
+			$(document).ready(function(){
+				
+				$('#legend_type').val('').change();
+				
+
+				var isTouch = ('ontouchstart' in window);
+				
+				var star_array	= new Array("","0","1","2","3","4","5","6","7","8","9","10","11","12","");
+				
+				var atk_array	= new Array("","?","0","100","200","300","400","500","600","700","800","900","1000","1100","1200","1300","1400","1500","1600","1700","1800","1900","2000","2100","2200","2300","2400","2500","2600","2700","2800","2900","3000","3100","3200","3300","3400","3500","3600","3700","3800","3900","4000","4100","4200","4300","4400","4500","4600","4700","4800","4900","5000","");
+				var def_array	= new Array("","?","0","100","200","300","400","500","600","700","800","900","1000","1100","1200","1300","1400","1500","1600","1700","1800","1900","2000","2100","2200","2300","2400","2500","2600","2700","2800","2900","3000","3100","3200","3300","3400","3500","3600","3700","3800","3900","4000","4100","4200","4300","4400","4500","4600","4700","4800","4900","5000","");
+				var link_array	= new Array("","1","2","3","4","5","6","7","8","");
+				var pscale_array	= new Array("","0","1","2","3","4","5","6","7","8","9","10","11","12","13","");
+				var focus_flg	= false;
+				var c_search = "0";
+				cc_num = "4"; 
+
+				
+				var eventset = function(event){
+
+					if (!focus_flg) {
+						$("#ctype").val("").trigger("change");
+						focus_flg = true;
+					}else{
+						cc_num = "4";
+					}
+				}
+
+				
+				var footerclose = function(event){
+					$("#contents").hide();
+					$("footer").hide();
+					$("#tsl_notice").hide();
+				}
+
+
+				
+				$("#keyword_delete").click(function(){
+					$(this).parent().children("input").val("");
+				});
+
+				
+				$("#closely_check").click(function(){
+					if ($("#ctype_show").is(':hidden')) {
+						if(cc_num == "4"){
+							$("#ctype").val("").trigger("change"); 
+						}else{
+							$("#ctype").val(cc_num).trigger("change");
+						}
+					} else {
+
+						if(cc_num == "4"){
+						}else{
+							$('#filter_set_monster').find(':input').prop('disabled', true);
+							$('#filter_set_magic').find(':input').prop('disabled', true);
+							$('#filter_set_trap').find(':input').prop('disabled', true);
+						}
+					}
+				});
+
+				
+				$(".fliter_btns li:not(.untick)").click(function(){
+					if($(this).hasClass("check")){
+						$(this).removeClass("check");
+						$(':checkbox', this).prop('checked', false);
+					}else{
+						$(this).addClass("check");
+						$(':checkbox', this).prop('checked', true);
+					}
+				});
+
+				
+				$(".type1").click(function(){
+					$(this).parents().nextAll(".fliter_btns").children("li").removeClass("check");
+					$(this).parents().nextAll(".fliter_btns").children("li").find(':checkbox').prop('checked', false);
+				});
+
+				
+				$("#close_search_area span").click(function(){
+					$(".filter_set_area").slideUp("fast");
+					$("#submit_area").slideUp("fast");
+					$("#close_search_area").slideUp("fast");
+					$("#search_area_mask").hide();
+					$("#choice_card_area").hide();
+					//$("#first_search").hide();
+					$("#contents").show();
+					$("footer").show();
+					$("#tsl_notice").show();
+					$('html, body').scrollTop(0);
+				});
+
+
+				
+				$(".min_tab").bind({
+
+					"touchstart mousedown":function(e){
+						event.preventDefault();
+						$(this).addClass("ontouch");
+						$(this).css("z-index","13");
+						$(this).next(".max_tab").css("z-index","12");
+						this.touched = true;
+
+						box_id = $(this).parent().parent().parent().parent().attr("id");
+
+						scale_wid = get_scale(box_id);
+
+						min_X = this.pageX = (isTouch ? event.changedTouches[0].pageX : e.pageX);
+						this.left = $(this).position().left;
+					},
+
+					"touchmove mousemove":function(e){
+						if(!this.touched){return;}
+						e.preventDefault();
+						this.left = this.left - (min_X - (isTouch ? event.changedTouches[0].pageX : e.pageX) );
+
+						if(this.left<= 0){ this.left = 0;}
+						if(this.left>= bar_width){ this.left = bar_width;}
+						$(this).css("left",this.left);
+
+						min_X = this.pageX = (isTouch ? event.changedTouches[0].pageX : e.pageX);
+
+						
+						if(this.left >= $(this).next(".max_tab").position().left){
+							$(this).next(".max_tab").css("left",this.left);
+							change_values(this.left,box_id,"max");
+						}
+						change_values(this.left,box_id,"min");
+					},
+
+					"touchend mouseup":function(e){
+						if(!this.touched){return;}
+						this.touched = false;
+						$(this).removeClass("ontouch");
+					}
+				});
+
+
+				$(".max_tab").bind({
+
+					"touchstart mousedown":function(e){
+						event.preventDefault();
+						$(this).addClass("ontouch");
+						$(this).css("z-index","13");
+						$(this).prev(".min_tab").css("z-index","12");
+						this.touched = true;
+
+						box_id = $(this).parent().parent().parent().parent().attr("id");
+
+						scale_wid = get_scale(box_id);
+
+						max_X = (isTouch ? event.changedTouches[0].pageX : e.pageX);
+						this.left = $(this).position().left;
+					},
+
+					"touchmove mousemove":function(e){
+						if(!this.touched){return;}
+						e.preventDefault();
+						this.left = this.left - (max_X - (isTouch ? event.changedTouches[0].pageX : e.pageX) );
+
+						if(this.left<= 0){ this.left = 0;}
+						if(this.left>= bar_width){ this.left = bar_width;}
+						$(this).css("left",this.left);
+
+						max_X = (isTouch ? event.changedTouches[0].pageX : e.pageX);
+
+						
+						if(this.left <= $(this).prev(".min_tab").position().left){
+							$(this).prev(".min_tab").css("left",this.left);
+							change_values(this.left,box_id,"min");
+						}
+						change_values(this.left,box_id,"max");
+					},
+
+					"touchend mouseup":function(e){
+						if(!this.touched){return;}
+						this.touched = false;
+						$(this).removeClass("ontouch");
+					}
+				});
+
+
+				
+				var resizeTimer = null;
+				$(window).bind("resize", function() {
+				if (resizeTimer) clearTimeout(resizeTimer);
+					resizeTimer = setTimeout(bar_set,50);
+
+				});
+
+				
+				function bar_set(){
+					bar_width = $(".bar").width();
+
+					now_star_min = $("#starfr").val();
+					now_star_max = $("#starto").val();
+					now_atk_min  = $("#atkfr").val();
+					now_atk_max  = $("#atkto").val();
+					now_def_min  = $("#deffr").val();
+					now_def_max  = $("#defto").val();
+
+					now_link_min  = $("#linkmarkerfr").val();
+					now_link_max  = $("#linkmarkerto").val();
+					now_pscale_min  = $("#pscalefr").val();
+					now_pscale_max  = $("#pscaleto").val();
+
+					$("#starfr_view").text(now_star_min);
+					$("#starto_view").text(now_star_max);
+					$("#atkfr_view").text(now_atk_min);
+					$("#atkto_view").text(now_atk_max);
+					$("#deffr_view").text(now_def_min);
+					$("#defto_view").text(now_def_max);
+					$("#linkfr_view").text(now_link_min);
+					$("#linkto_view").text(now_link_max);
+					$("#pscalefr_view").text(now_pscale_min);
+					$("#pscaleto_view").text(now_pscale_max);
+
+					
+					
+
+
+
+					
+
+
+					
+					atk_scale_wid = get_scale("filter_atk");
+					for(i=0 ; i <= atk_array.length - 1 ; i++){
+						if(atk_array[i] == now_atk_min){
+							if(i == 0){pos_atk_min = 0;
+							}else if(i == atk_array.length-1){pos_atk_min = bar_width;
+							}else{pos_atk_min = (i * atk_scale_wid) - (atk_scale_wid / 2);
+							}
+							break;
+						}
+					}
+					for(i=atk_array.length - 1 ; 0 <= i ; i--){
+						if(atk_array[i] == now_atk_max){
+							if(i == 0){pos_atk_max = 0;
+							}else if(i == atk_array.length-1){pos_atk_max = bar_width;
+							}else{pos_atk_max = (i * atk_scale_wid) - (atk_scale_wid / 2);
+							}
+							break;
+						}
+					}
+					
+					def_scale_wid = get_scale("filter_def");
+					for(i=0 ; i <= def_array.length - 1 ; i++){
+						if(def_array[i] == now_def_min){
+							if(i == 0){pos_def_min = 0;
+							}else if(i == def_array.length-1){pos_def_min = bar_width;
+							}else{pos_def_min = (i * def_scale_wid) - (def_scale_wid / 2);
+							}
+							break;
+						}
+
+					}
+					for(i=def_array.length - 1 ; 0 <= i  ; i--){
+						if(def_array[i] == now_def_max){
+							if(i == 0){pos_def_max = 0;
+							}else if(i == def_array.length-1){pos_def_max = bar_width;
+							}else{pos_def_max = (i * def_scale_wid) - (def_scale_wid / 2);
+							}
+							break;
+						}
+					}
+
+					pscale_scale_wid = get_scale("filter_pscale");
+					for(i=0 ; i <= pscale_array.length - 1 ; i++){
+						if(pscale_array[i] == now_pscale_min){
+							if(i == 0){pos_pscale_min = 0;
+							}else if(i == pscale_array.length-1){pos_pscale_min = bar_width;
+							}else{pos_pscale_min = (i * pscale_scale_wid) - (pscale_scale_wid / 2);
+							}
+							break;
+						}
+					}
+					for(i= pscale_array.length - 1 ; 0 <= i ; i--){
+						if(pscale_array[i] == now_pscale_max){
+							if(i == 0){pos_pscale_max = 0;
+							}else if(i == pscale_array.length-1){pos_pscale_max = bar_width;
+							}else{pos_pscale_max = (i * pscale_scale_wid) - (pscale_scale_wid / 2);
+							}
+							break;
+						}
+					}
+
+
+					$("#filter_atk .min_tab").css("left",pos_atk_min);
+					$("#filter_atk .max_tab").css("left",pos_atk_max);
+					$("#filter_def .min_tab").css("left",pos_def_min);
+					$("#filter_def .max_tab").css("left",pos_def_max);
+
+
+				}
+
+				function get_scale(box_id){
+					switch(box_id){
+						case "filter_star": scale_count = star_array.length; break;
+						case "filter_atk" : scale_count = atk_array.length; break;
+						case "filter_def" : scale_count = def_array.length; break;
+
+					}
+					return bar_width / (scale_count-2);
+				}
+
+
+				function change_values(leftpos,box_id,type){
+
+					if(leftpos == 0){
+						now_value = 0;
+					}else if(leftpos == bar_width){
+						now_value = scale_count-1;
+					}else{
+						now_value = Math.ceil(leftpos / scale_wid);
+					}
+
+					if(box_id == "filter_star" && type == "min"){
+						$("#starfr").val(star_array[now_value]);
+//						$("#starfr_view").text(star_array[now_value]);
+					}else if(box_id == "filter_star" && type == "max"){
+						$("#starto").val(star_array[now_value]);
+//						$("#starto_view").text(star_array[now_value]);
+					}else if(box_id == "filter_atk" && type == "min"){
+						$("#atkfr").val(atk_array[now_value]);
+						$("#atkfr_view").text(atk_array[now_value]);
+					}else if(box_id == "filter_atk" && type == "max"){
+						$("#atkto").val(atk_array[now_value]);
+						$("#atkto_view").text(atk_array[now_value]);
+					}else if(box_id == "filter_def" && type == "min"){
+						$("#deffr").val(def_array[now_value]);
+						$("#deffr_view").text(def_array[now_value]);
+					}else if(box_id == "filter_def" && type == "max"){
+						$("#defto").val(def_array[now_value]);
+						$("#defto_view").text(def_array[now_value]);
+
+					}
+				}
+
+				
+				
+					
+					var input_atkfr = document.getElementById("atkfr");
+					input_atkfr.addEventListener("change",function(){ bar_set(); });
+					input_atkfr.addEventListener("input",function(){ bar_set(); });
+
+					var input_atkto = document.getElementById("atkto");
+					input_atkto.addEventListener("change",function(){ bar_set(); });
+					input_atkto.addEventListener("input",function(){ bar_set(); });
+
+					
+					var input_deffr = document.getElementById("deffr");
+					input_deffr.addEventListener("change",function(){ bar_set(); });
+					input_deffr.addEventListener("input",function(){ bar_set(); });
+
+					var input_defto = document.getElementById("defto");
+					input_defto.addEventListener("change",function(){ bar_set(); });
+					input_defto.addEventListener("input",function(){ bar_set(); });
+				
+
+				$(".type2").on("click", function (evt) {
+					
+					$(this).parents().nextAll(".sab").children().children("input").prop('checked', false).change();
+				});
+				$("#link_set .type2").click(function(){
+
+					$(this).parents().nextAll(".sab").children(".search_m_set").find(':checkbox').prop('checked', false);
+				});
+
+
+				
+				
+				$("#ctype").change(function hoge(){
+
+					view_search_type = $("option:selected",this).attr("value");
+
+					$("#ctype_show_set div").removeClass('choice');
+					$('#ctype_set li').removeClass("now");
+
+					if(c_search == "1") {
+						
+						$('#search input[type="checkbox"]').prop('checked', false);
+						$('#search *').removeClass("check");
+
+					}else{
+						c_search = "1"; 
+					}
+
+					$('.filter_set_monster,.filter_effect').find(':input').prop('disabled', false);
+					$("#filter_effect_set,.filter_set_monster,.filter_effect,.f_e_magic,.f_e_trap").show();
+
+					
+					switch(view_search_type){
+						case "" : 
+							cc_num = "4";
+							bar_set();
+
+							$('#ctype_set li:first-child').addClass("now");
+							break;
+						case "1" : 
+							cc_num = "1";
+							bar_set();
+
+							$('#filter_effect_set').hide();
+							$('.filter_effect').find(':input').prop('disabled', true);
+
+							$('#ctype_set li.1').addClass("now");
+							break;
+						case "2" : 
+							cc_num = "2";
+
+							$('.filter_set_monster,.f_e_trap').hide();
+							$('.filter_set_monster,.f_e_trap').find(':input').prop('disabled', true);
+
+							$('#ctype_set li.2').addClass("now");
+							break;
+						case "3": 
+							cc_num = "3";
+
+							$('.filter_set_monster,.f_e_magic').hide();
+							$('.filter_set_monster,.f_e_magic').find(':input').prop('disabled', true);
+
+							$('#ctype_set li.3').addClass("now");
+							break;
+					}
+					$("option:selected",this).addClass('choice');
+
+				}).trigger("change");
+
+				
+				$('#ctype_set li').click(function(){
+					$('#ctype_set li').removeClass("now");
+					clm = $(this).attr("class");
+
+					$('#ctype').val(clm).trigger('change');
+				});
+
+				
+				$('#form_search input:text').keypress(function(e){
+					if (e.keyCode == 13) {
+						Search();
+					}
+				});
+
+				$('#choice_card_area').click(function(){
+					bar_set();
+				});
+
+			});
+
+			
+
+			
+			function Search(value) {
+				if ($('#keyword').css('color') == '#849faf' || $('#keyword').css('color') == 'rgb(132, 159, 175)') {
+					$('#keyword').val('');
+				}
+
+				$('#form_search').get(0).submit();
+			}
+
+			//-->
+	</script>
+
+			<form id="form_search" action="/yugiohdb/card_search.action" method="GET" autocomplete="off">
+				<input type="hidden" name="ope" value="1">
+				<input type="hidden" name="sess" value="1">
+				<input type="hidden" name="rp" value="10">
+				<input type="hidden" name="mode" value="">
+				<input type="hidden" name="sort" value="1">
+
+				<div id="search" class="card_s">
+					<div class="search_btn_set">
+						<div class="search">
+							<div id="first_search" class="decoration">
+								<input type="text" id="keyword" name="keyword" value="" maxlength="50" class='keyword_ko' placeholder='키워드 입력' >
+								<img src="external/image/parts/keyword_delete.png" id="keyword_delete" alt="">
+							</div>
+
+							
+							<span class="select_df">
+								<select id="stype" name="stype" style="">
+									<option value="1" selected>카드명으로 검색</option>
+									<option value="2" >카드 텍스트로 검색</option>
+									<option value="3" class="ocg" >펜듈럼 효과로 검색</option>
+									<option value="4" >카드 No로 검색</option>
+								</select>
+							</span>
+						</div>
+
+						
+						<div id="submit_area">
+							<div class="btn hex orn" onclick="javascript:Search(4)"><span>검 색</span></div>
+						</div><!--#submit_area-->
+					</div><!-- .search_btn_set -->
+
+
+					
+					<div id="choice_card_area">
+						<span></span>
+						<span class="text">
+							결과 내 검색
+						</span>
+						<span class="yaji">&and;</span>
+					</div><!--#choice_card_area-->
+					
+
+						<div id="card_set" class="filter_set_area none">
+						
+						<div id="ctype_set" class="tablink" >
+							<ul>
+								<li class=""><span>모든 카드에서 검색</span></li>
+						
+								<li class="1"><span>몬스터 카드</span></li>
+						
+								<li class="2"><span>마법 카드</span></li>
+						
+								<li class="3"><span>함정 카드</span></li>
+						
+							</ul>
+							<select id="ctype" name="ctype" >
+								<option value="" class="tabset">모든 카드에서 검색</option>
+						
+								<option value="1" class="tabset">몬스터 카드</option>
+						
+								<option value="2" class="tabset">마법 카드</option>
+						
+								<option value="3" class="tabset">함정 카드</option>
+						
+							</select>
+						</div>
+							
+							<div id="filter_set_monster" class="filter_set">
+								
+								<div id="filter_attribute" class="filter_set_monster">
+									<div class="title">
+										<div class="Question">
+											<h3>속성<span>?</span></h3>
+											<p>결과 내 검색하고 싶은 속성을 선택해 주세요</p>
+										</div>
+										<div class="btn red untick type1"><span>x</span></div>
+									</div>
+									<ul class="fliter_btns">
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_dark.png" />
+						
+												어둠
+											<input type="checkbox" name="attr" class="none" value="12">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_light.png" />
+						
+												빛
+											<input type="checkbox" name="attr" class="none" value="11">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_earth.png" />
+						
+												땅
+											<input type="checkbox" name="attr" class="none" value="15">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_water.png" />
+						
+												물
+											<input type="checkbox" name="attr" class="none" value="13">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_fire.png" />
+						
+												화염
+											<input type="checkbox" name="attr" class="none" value="14">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_wind.png" />
+						
+												바람
+											<input type="checkbox" name="attr" class="none" value="16">
+										</span></li>
+			
+										<li><span class="effimg">
+						
+											<img class="" src="external/image/parts/attribute/attribute_icon_divine.png" />
+						
+												신
+											<input type="checkbox" name="attr" class="none" value="17">
+										</span></li>
+			
+									</ul>
+								</div>
+								
+							
+							
+								
+								<div id="filter_effect_set">
+									<div class="title">
+										<div class="Question">
+											<h3>효과<span>?</span></h3>
+											<p>결과 내 검색하고 싶은 효과를 선택해 주세요</p>
+										</div>
+										<div class="btn red untick type1"><span>x</span></div>
+									</div>
+									<ul class="fliter_btns filter_effect">
+			
+										<li class="f_e_magic"><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_equip.png" />
+						
+											장착
+											<input type="checkbox" name="effe" class="none check_trap" value="23">
+										</span></li>
+			
+										<li class="f_e_magic"><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_field.png" />
+						
+											필드
+											<input type="checkbox" name="effe" class="none check_trap" value="22">
+										</span></li>
+			
+										<li class="f_e_magic"><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_quickplay.png" />
+						
+											속공
+											<input type="checkbox" name="effe" class="none check_trap" value="25">
+										</span></li>
+			
+										<li class="f_e_magic"><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_ritual.png" />
+						
+											의식
+											<input type="checkbox" name="effe" class="none check_trap" value="26">
+										</span></li>
+			
+										<li class=""><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_continuous.png" />
+						
+											지속
+											<input type="checkbox" name="effe" class="none check_trap" value="24">
+										</span></li>
+			
+										<li class="f_e_trap"><span class="effimg">
+						
+											<img class="" src="external/image/parts/effect/effect_icon_counter.png" />
+						
+											카운터
+											<input type="checkbox" name="effe" class="none check_trap" value="21">
+										</span></li>
+			
+										<li class=""><span >
+						
+											일반
+											<input type="checkbox" name="effe" class="none check_trap" value="20">
+										</span></li>
+			
+									</ul>
+								</div>
+								
+							
+
+								
+								<div id="filter_specis" class="filter_set_monster">
+									<div class="title">
+										<div class="Question">
+											<h3>종족<span>?</span></h3>
+											<p>결과 내 검색하고 싶은 종족을 선택해 주세요</p>
+										</div>
+										<div class="btn red untick type1"><span>x</span></div>
+									</div>
+									<ul class="fliter_btns">
+			
+										<li class="species_1_ko"><span>
+											마법사족
+											<input type="checkbox" name="species" class="none" value="18">
+										</span></li>
+			
+										<li class="species_2_ko"><span>
+											드래곤족
+											<input type="checkbox" name="species" class="none" value="1">
+										</span></li>
+			
+										<li class="species_3_ko"><span>
+											언데드족
+											<input type="checkbox" name="species" class="none" value="2">
+										</span></li>
+			
+										<li class="species_4_ko"><span>
+											전사족
+											<input type="checkbox" name="species" class="none" value="15">
+										</span></li>
+			
+										<li class="species_5_ko"><span>
+											야수전사족
+											<input type="checkbox" name="species" class="none" value="12">
+										</span></li>
+			
+										<li class="species_6_ko"><span>
+											야수족
+											<input type="checkbox" name="species" class="none" value="11">
+										</span></li>
+			
+										<li class="species_7_ko"><span>
+											비행야수족
+											<input type="checkbox" name="species" class="none" value="16">
+										</span></li>
+			
+										<li class="species_8_ko"><span>
+											악마족
+											<input type="checkbox" name="species" class="none" value="3">
+										</span></li>
+			
+										<li class="species_9_ko"><span>
+											천사족
+											<input type="checkbox" name="species" class="none" value="17">
+										</span></li>
+			
+										<li class="species_10_ko"><span>
+											곤충족
+											<input type="checkbox" name="species" class="none" value="10">
+										</span></li>
+			
+										<li class="species_11_ko"><span>
+											공룡족
+											<input type="checkbox" name="species" class="none" value="9">
+										</span></li>
+			
+										<li class="species_12_ko"><span>
+											파충류족
+											<input type="checkbox" name="species" class="none" value="20">
+										</span></li>
+			
+										<li class="species_13_ko"><span>
+											어류족
+											<input type="checkbox" name="species" class="none" value="8">
+										</span></li>
+			
+										<li class="species_14_ko"><span>
+											해룡족
+											<input type="checkbox" name="species" class="none" value="5">
+										</span></li>
+			
+										<li class="species_15_ko"><span>
+											물족
+											<input type="checkbox" name="species" class="none" value="14">
+										</span></li>
+			
+										<li class="species_16_ko"><span>
+											화염족
+											<input type="checkbox" name="species" class="none" value="4">
+										</span></li>
+			
+										<li class="species_17_ko"><span>
+											번개족
+											<input type="checkbox" name="species" class="none" value="19">
+										</span></li>
+			
+										<li class="species_18_ko"><span>
+											암석족
+											<input type="checkbox" name="species" class="none" value="6">
+										</span></li>
+			
+										<li class="species_19_ko"><span>
+											식물족
+											<input type="checkbox" name="species" class="none" value="13">
+										</span></li>
+			
+										<li class="species_20_ko"><span>
+											기계족
+											<input type="checkbox" name="species" class="none" value="7">
+										</span></li>
+			
+										<li class="species_21_ko"><span>
+											사이킥족
+											<input type="checkbox" name="species" class="none" value="21">
+										</span></li>
+			
+										<li class="species_22_ko"><span>
+											환신야수족
+											<input type="checkbox" name="species" class="none" value="22">
+										</span></li>
+			
+										<li class="species_23_ko"><span>
+											환룡족
+											<input type="checkbox" name="species" class="none" value="26">
+										</span></li>
+			
+										<li class="species_24_ko"><span>
+											사이버스족
+											<input type="checkbox" name="species" class="none" value="27">
+										</span></li>
+			
+										<li class="species_25_ko"><span>
+											환상마족
+											<input type="checkbox" name="species" class="none" value="34">
+										</span></li>
+			
+
+									</ul>
+								</div>
+								
+
+								
+								<div id="filter_other" class="filter_set_monster">
+									<div class="title">
+										<div class="Question">
+											<h3>기타 항목<span>?</span></h3>
+											<p>결과 내 검색하고 싶은 기타 항목을 선택해 주세요. and 또는 or 로 검색합니다.</p>
+										</div>
+										<div class="btn red untick type1"><span>x</span></div>
+										<div class="bottom">
+											<div id="and_or" class="and_or hex"><span>
+												<label>
+													<input type="radio" id="othercon_and" name="othercon" value="1">
+													<span>and</span>
+												</label>
+												<label>
+													<input type="radio" id="othercon_or"  name="othercon" value="2"  checked>
+													<span>or</span>
+												</label>
+
+											</span></div>
+										</div>
+
+									</div>
+									<ul class="fliter_btns">
+			
+										<li><span>
+											일반
+											<input type="checkbox" name="other" class="none" value="0">
+										</span></li>
+			
+										<li><span>
+											효과
+											<input type="checkbox" name="other" class="none" value="1">
+										</span></li>
+			
+										<li><span>
+											의식
+											<input type="checkbox" name="other" class="none" value="3">
+										</span></li>
+			
+										<li><span>
+											융합
+											<input type="checkbox" name="other" class="none" value="2">
+										</span></li>
+			
+										<li><span>
+											싱크로
+											<input type="checkbox" name="other" class="none" value="9">
+										</span></li>
+			
+										<li><span>
+											엑시즈
+											<input type="checkbox" name="other" class="none" value="10">
+										</span></li>
+			
+										<li><span>
+											툰
+											<input type="checkbox" name="other" class="none" value="4">
+										</span></li>
+			
+										<li><span>
+											스피릿
+											<input type="checkbox" name="other" class="none" value="5">
+										</span></li>
+			
+										<li><span>
+											유니온
+											<input type="checkbox" name="other" class="none" value="6">
+										</span></li>
+			
+										<li><span>
+											듀얼
+											<input type="checkbox" name="other" class="none" value="7">
+										</span></li>
+			
+										<li><span>
+											튜너
+											<input type="checkbox" name="other" class="none" value="8">
+										</span></li>
+			
+										<li><span>
+											리버스
+											<input type="checkbox" name="other" class="none" value="14">
+										</span></li>
+			
+										<li><span>
+											펜듈럼
+											<input type="checkbox" name="other" class="none" value="15">
+										</span></li>
+			
+										<li><span>
+											특수 소환
+											<input type="checkbox" name="other" class="none" value="16">
+										</span></li>
+			
+										<li><span>
+											링크
+											<input type="checkbox" name="other" class="none" value="17">
+										</span></li>
+			
+
+									</ul>
+								</div>
+								
+
+								
+								<div id="filter_other" class="filter_set_monster">
+									<div class="title">
+										<div class="Question">
+											<h3>제외 항목<span>?</span></h3>
+											<p>제외하고 싶은 항목을 선택해 주세요</p>
+										</div>
+										<div class="btn red untick type1"><span>x</span></div>
+									</div>
+									<ul class="fliter_btns">
+			
+										<li><span>
+											일반
+											<input type="checkbox" name="jogai" class="none" value="0">
+										</span></li>
+			
+										<li><span>
+											효과
+											<input type="checkbox" name="jogai" class="none" value="1">
+										</span></li>
+			
+										<li><span>
+											의식
+											<input type="checkbox" name="jogai" class="none" value="3">
+										</span></li>
+			
+										<li><span>
+											융합
+											<input type="checkbox" name="jogai" class="none" value="2">
+										</span></li>
+			
+										<li><span>
+											싱크로
+											<input type="checkbox" name="jogai" class="none" value="9">
+										</span></li>
+			
+										<li><span>
+											엑시즈
+											<input type="checkbox" name="jogai" class="none" value="10">
+										</span></li>
+			
+										<li><span>
+											툰
+											<input type="checkbox" name="jogai" class="none" value="4">
+										</span></li>
+			
+										<li><span>
+											스피릿
+											<input type="checkbox" name="jogai" class="none" value="5">
+										</span></li>
+			
+										<li><span>
+											유니온
+											<input type="checkbox" name="jogai" class="none" value="6">
+										</span></li>
+			
+										<li><span>
+											듀얼
+											<input type="checkbox" name="jogai" class="none" value="7">
+										</span></li>
+			
+										<li><span>
+											튜너
+											<input type="checkbox" name="jogai" class="none" value="8">
+										</span></li>
+			
+										<li><span>
+											리버스
+											<input type="checkbox" name="jogai" class="none" value="14">
+										</span></li>
+			
+										<li><span>
+											펜듈럼
+											<input type="checkbox" name="jogai" class="none" value="15">
+										</span></li>
+			
+										<li><span>
+											특수 소환
+											<input type="checkbox" name="jogai" class="none" value="16">
+										</span></li>
+			
+										<li><span>
+											링크
+											<input type="checkbox" name="jogai" class="none" value="17">
+										</span></li>
+			
+
+									</ul>
+								</div>
+								
+
+								
+								<div id="filter_star" class=" filter_set_monster">
+									<div class="title">
+										<div class="Question">
+											<h3>레벨 / 랭크<span>?</span></h3>
+											<p>0에서 13까지의 레벨 또는 랭크를 검색합니다</p>
+										</div>
+										<div class="btn red untick type2"><span>x</span></div>
+									</div>
+		  							<div class="sab">
+										<div class="updw">
+											<input type="hidden" name="starfr" id="starfr" value="">
+											<input type="hidden" name="starto" id="starto" value="">
+
+											<input id="level_0" type="checkbox" name="level0" class="" value="on" >
+												<label for="level_0"><span>0</span></label>
+											<input id="level_1" type="checkbox" name="level1" class="" value="on"  >
+												<label for="level_1"><span>1</span></label>
+											<input id="level_2" type="checkbox" name="level2" class="" value="on" >
+												<label for="level_2"><span>2</span></label>
+											<input id="level_3" type="checkbox" name="level3" class="" value="on" >
+												<label for="level_3"><span>3</span></label>
+											<input id="level_4" type="checkbox" name="level4" class="" value="on" >
+												<label for="level_4"><span>4</span></label>
+											<input id="level_5" type="checkbox" name="level5" class="" value="on" >
+												<label for="level_5"><span>5</span></label>
+											<input id="level_6" type="checkbox" name="level6" class="" value="on" >
+												<label for="level_6"><span>6</span></label>
+											<input id="level_7" type="checkbox" name="level7" class="" value="on" >
+												<label for="level_7"><span>7</span></label>
+											<input id="level_8" type="checkbox" name="level8" class="" value="on" >
+												<label for="level_8"><span>8</span></label>
+											<input id="level_9" type="checkbox" name="level9" class="" value="on" >
+												<label for="level_9"><span>9</span></label>
+											<input id="level_10" type="checkbox" name="level10" class="" value="on" >
+												<label for="level_10"><span>10</span></label>
+											<input id="level_11" type="checkbox" name="level11" class="" value="on" >
+												<label for="level_11"><span>11</span></label>
+											<input id="level_12" type="checkbox" name="level12" class="" value="on" >
+												<label for="level_12"><span>12</span></label>
+											<input id="level_13" type="checkbox" name="level13" class="ocg" value="on" >
+												<label for="level_13" class="ocg"><span>13</span></label>
+										</div>
+									</div>
+
+								</div>
+								
+
+								
+								<div class="search_bottom filter_set_monster ocg">
+									<div class="title">
+										<div class="Question">
+											<h3>펜듈럼<span>?</span></h3>
+											<p>펜듈럼 스케일로 검색합니다</p>
+										</div>
+										<div class="btn red untick type2"><span>x</span></div>
+									</div>
+									<div class="sab">
+										<div class="updw">
+											<input type="hidden" id="pscalefr" name="pscalefr" maxlength="2">
+											<input type="hidden" id="pscaleto" name="pscaleto" maxlength="2">
+
+
+											<input id="Pscale_0" type="checkbox" name="Pscale0" class="" value="on" >
+												<label for="Pscale_0"><span>0</span></label>
+											<input id="Pscale_1" type="checkbox" name="Pscale1" class="" value="on"  >
+												<label for="Pscale_1"><span>1</span></label>
+											<input id="Pscale_2" type="checkbox" name="Pscale2" class="" value="on" >
+												<label for="Pscale_2"><span>2</span></label>
+											<input id="Pscale_3" type="checkbox" name="Pscale3" class="" value="on" >
+												<label for="Pscale_3"><span>3</span></label>
+											<input id="Pscale_4" type="checkbox" name="Pscale4" class="" value="on" >
+												<label for="Pscale_4"><span>4</span></label>
+											<input id="Pscale_5" type="checkbox" name="Pscale5" class="" value="on" >
+												<label for="Pscale_5"><span>5</span></label>
+											<input id="Pscale_6" type="checkbox" name="Pscale6" class="" value="on" >
+												<label for="Pscale_6"><span>6</span></label>
+											<input id="Pscale_7" type="checkbox" name="Pscale7" class="" value="on" >
+												<label for="Pscale_7"><span>7</span></label>
+											<input id="Pscale_8" type="checkbox" name="Pscale8" class="" value="on" >
+												<label for="Pscale_8"><span>8</span></label>
+											<input id="Pscale_9" type="checkbox" name="Pscale9" class="" value="on" >
+												<label for="Pscale_9"><span>9</span></label>
+											<input id="Pscale_10" type="checkbox" name="Pscale10" class="" value="on" >
+												<label for="Pscale_10"><span>10</span></label>
+											<input id="Pscale_11" type="checkbox" name="Pscale11" class="" value="on" >
+												<label for="Pscale_11"><span>11</span></label>
+											<input id="Pscale_12" type="checkbox" name="Pscale12" class="" value="on" >
+												<label for="Pscale_12"><span>12</span></label>
+											<input id="Pscale_13" type="checkbox" name="Pscale13" class="" value="on" >
+												<label for="Pscale_13"><span>13</span></label>
+
+										</div>
+									</div>
+								</div>
+
+								<div id="link_set" class="search_m filter_set_monster ocg">
+									<div class="title">
+										<div class="Question">
+											<h3>링크<span>?</span></h3>
+											<p>링크를 수치 또는 마커의 위치로 검색합니다</p>
+										</div>
+										<div class="btn red untick type2"><span>x</span></div>
+									</div>
+									<div class="sab">
+										<div class="updw">
+												<input type="hidden" id="linkmarkerfr" name="linkmarkerfr" maxlength="2">
+												<input type="hidden" id="linkmarkerto" name="linkmarkerto" maxlength="2">
+												<input id="Link_1" type="checkbox" name="Link1" class="" value="on"  >
+													<label for="Link_1"><span>1</span></label>
+												<input id="Link_2" type="checkbox" name="Link2" class="" value="on" >
+													<label for="Link_2"><span>2</span></label>
+												<input id="Link_3" type="checkbox" name="Link3" class="" value="on" >
+													<label for="Link_3"><span>3</span></label>
+												<input id="Link_4" type="checkbox" name="Link4" class="" value="on" >
+													<label for="Link_4"><span>4</span></label>
+												<input id="Link_5" type="checkbox" name="Link5" class="" value="on" >
+													<label for="Link_5"><span>5</span></label>
+												<input id="Link_6" type="checkbox" name="Link6" class="" value="on" >
+													<label for="Link_6"><span>6</span></label>
+										</div>
+										<div class="search_m_set">
+											<div class="link_m">
+												<input type="checkbox" id="linkbtn7" name="linkbtn7" value="7"><label class="linkbtn7" for="linkbtn7"></label>
+													<input type="checkbox" id="linkbtn8" name="linkbtn8" value="8"><label class="linkbtn8" for="linkbtn8"></label>
+													<input type="checkbox" id="linkbtn9" name="linkbtn9" value="9"><label class="linkbtn9" for="linkbtn9"></label>
+													<input type="checkbox" id="linkbtn4" name="linkbtn4" value="4"><label class="linkbtn4" for="linkbtn4"></label>
+													<input type="checkbox" id="linkbtn6" name="linkbtn6" value="6"><label class="linkbtn6" for="linkbtn6"></label>
+													<input type="checkbox" id="linkbtn1" name="linkbtn1" value="1"><label class="linkbtn1" for="linkbtn1"></label>
+													<input type="checkbox" id="linkbtn2" name="linkbtn2" value="2"><label class="linkbtn2" for="linkbtn2"></label>
+													<input type="checkbox" id="linkbtn3" name="linkbtn3" value="3"><label class="linkbtn3" for="linkbtn3"></label>
+											</div>
+											<div id="and_or2" class="and_or hex">
+												<span><a href="javascript:void(0);" class="link_left radio_off_left">
+													<label>
+														<input type="radio" id="link_and" name="link_m" value="1" class="">
+														<span>and</span>
+													</label>
+												</a>
+												<a href="javascript:void(0);" class="link_right radio_off_right" style="">
+													<label>
+														<input type="radio" id="link_or"  name="link_m" value="2" class="">
+														<span>or</span>
+													</label>
+												</a></span>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div id="atk_def">
+									
+									<div id="filter_atk" class="filter_set_monster slider">
+										<div class="title">
+											<div class="Question">
+												<h3>공격력<span>?</span></h3>
+												<p>공격력으로 검색합니다, 최대 5000입니다</p>
+											</div>
+										</div>
+										<div class="fliter_btns">
+											<div class="updw">
+												<input type="text" name="atkfr" id="atkfr" value="">
+												<input type="text" name="atkto" id="atkto" class="to" value="">
+											</div>
+											<div class="bar_area"><div>
+												<div class="min_tab tab"></div><div class="max_tab tab"></div><div class="bar"></div>
+											</div></div>
+										</div>
+									</div>
+									
+
+									
+									<div id="filter_def" class="filter_set_monster slider">
+										<div class="title">
+											<div class="Question">
+												<h3>수비력<span>?</span></h3>
+												<p>수비력으로 검색합니다, 최대 5000입니다</p>
+											</div>
+										</div>
+										<div class="fliter_btns">
+											<div class="updw">
+												<input type="text" name="deffr" id="deffr" value="">
+												<input type="text" name="defto" id="defto" class="to" value="">
+											</div>
+											<div class="bar_area"><div>
+												<div class="min_tab tab"></div><div class="max_tab tab"></div><div class="bar"></div>
+											</div></div>
+										</div>
+									</div>
+									
+								</div>
+
+
+								
+								<div id="date_set" class="search_m">
+									<div class="title">
+										<div class="Question">
+											<h3>초회 발매일<span>?</span></h3>
+											<p>카드가 처음 발매된 날 및 등장한 날로 범위를 좁힙니다.</p>
+										</div>
+										<div class="btn red untick type2"><span>x</span></div>
+									</div>
+									<div class="sab">
+										<div class="starttime">
+											<p>개시일</p>
+											<div class="date_select">
+												
+												<span class="dd select_df">
+													<select id="releaseDStart" name="releaseDStart" style="">
+
+			
+														<option value="1" >01</option>
+			
+														<option value="2" >02</option>
+			
+														<option value="3" >03</option>
+			
+														<option value="4" >04</option>
+			
+														<option value="5" >05</option>
+			
+														<option value="6" >06</option>
+			
+														<option value="7" >07</option>
+			
+														<option value="8" >08</option>
+			
+														<option value="9" >09</option>
+			
+														<option value="10" >10</option>
+			
+														<option value="11" >11</option>
+			
+														<option value="12" >12</option>
+			
+														<option value="13" >13</option>
+			
+														<option value="14" >14</option>
+			
+														<option value="15" >15</option>
+			
+														<option value="16" >16</option>
+			
+														<option value="17" >17</option>
+			
+														<option value="18" >18</option>
+			
+														<option value="19" >19</option>
+			
+														<option value="20" >20</option>
+			
+														<option value="21" >21</option>
+			
+														<option value="22" >22</option>
+			
+														<option value="23" >23</option>
+			
+														<option value="24" >24</option>
+			
+														<option value="25" >25</option>
+			
+														<option value="26" >26</option>
+			
+														<option value="27" >27</option>
+			
+														<option value="28" >28</option>
+			
+														<option value="29" >29</option>
+			
+														<option value="30" >30</option>
+			
+														<option value="31" >31</option>
+			
+													</select>
+												</span>
+
+												<span class="s_1">/</span>
+												
+												<span class="mm select_df">
+													<select id="releaseMStart" name="releaseMStart" style="">
+			
+														<option value="1" >01</option>
+			
+														<option value="2" >02</option>
+			
+														<option value="3" >03</option>
+			
+														<option value="4" >04</option>
+			
+														<option value="5" >05</option>
+			
+														<option value="6" >06</option>
+			
+														<option value="7" >07</option>
+			
+														<option value="8" >08</option>
+			
+														<option value="9" >09</option>
+			
+														<option value="10" >10</option>
+			
+														<option value="11" >11</option>
+			
+														<option value="12" >12</option>
+			
+													</select>
+												</span>
+
+												<span class="s_2">/</span>
+												
+												<span class="yyyy select_df">
+													<select id="releaseYStart" name="releaseYStart" style="">
+			
+														<option value="1999" selected>1999</option>
+			
+														<option value="2000" >2000</option>
+			
+														<option value="2001" >2001</option>
+			
+														<option value="2002" >2002</option>
+			
+														<option value="2003" >2003</option>
+			
+														<option value="2004" >2004</option>
+			
+														<option value="2005" >2005</option>
+			
+														<option value="2006" >2006</option>
+			
+														<option value="2007" >2007</option>
+			
+														<option value="2008" >2008</option>
+			
+														<option value="2009" >2009</option>
+			
+														<option value="2010" >2010</option>
+			
+														<option value="2011" >2011</option>
+			
+														<option value="2012" >2012</option>
+			
+														<option value="2013" >2013</option>
+			
+														<option value="2014" >2014</option>
+			
+														<option value="2015" >2015</option>
+			
+														<option value="2016" >2016</option>
+			
+														<option value="2017" >2017</option>
+			
+														<option value="2018" >2018</option>
+			
+														<option value="2019" >2019</option>
+			
+														<option value="2020" >2020</option>
+			
+														<option value="2021" >2021</option>
+			
+														<option value="2022" >2022</option>
+			
+														<option value="2023" >2023</option>
+			
+														<option value="2024" >2024</option>
+			
+														<option value="2025" >2025</option>
+			
+														<option value="2026" >2026</option>
+			
+													</select>
+												</span>
+											</div>
+										</div>
+										<span> ～ </span>
+										<div class="endtime">
+											<p>종료일</p>
+											<div class="date_select">
+												
+												<span class="dd select_df">
+													<select id="releaseDEnd" name="releaseDEnd" style="">
+			
+														<option value="" ></option>
+			
+														<option value="1" >01</option>
+			
+														<option value="2" >02</option>
+			
+														<option value="3" >03</option>
+			
+														<option value="4" >04</option>
+			
+														<option value="5" >05</option>
+			
+														<option value="6" >06</option>
+			
+														<option value="7" >07</option>
+			
+														<option value="8" >08</option>
+			
+														<option value="9" >09</option>
+			
+														<option value="10" >10</option>
+			
+														<option value="11" >11</option>
+			
+														<option value="12" >12</option>
+			
+														<option value="13" >13</option>
+			
+														<option value="14" >14</option>
+			
+														<option value="15" >15</option>
+			
+														<option value="16" >16</option>
+			
+														<option value="17" >17</option>
+			
+														<option value="18" >18</option>
+			
+														<option value="19" >19</option>
+			
+														<option value="20" >20</option>
+			
+														<option value="21" >21</option>
+			
+														<option value="22" >22</option>
+			
+														<option value="23" >23</option>
+			
+														<option value="24" >24</option>
+			
+														<option value="25" >25</option>
+			
+														<option value="26" >26</option>
+			
+														<option value="27" >27</option>
+			
+														<option value="28" >28</option>
+			
+														<option value="29" >29</option>
+			
+														<option value="30" >30</option>
+			
+														<option value="31" >31</option>
+			
+													</select>
+												</span>
+												<span class="s_1">/</span>
+												
+												<span class="mm select_df">
+													<select id="releaseMEnd" name="releaseMEnd" style="">
+			
+														<option value="" ></option>
+			
+														<option value="1" >01</option>
+			
+														<option value="2" >02</option>
+			
+														<option value="3" >03</option>
+			
+														<option value="4" >04</option>
+			
+														<option value="5" >05</option>
+			
+														<option value="6" >06</option>
+			
+														<option value="7" >07</option>
+			
+														<option value="8" >08</option>
+			
+														<option value="9" >09</option>
+			
+														<option value="10" >10</option>
+			
+														<option value="11" >11</option>
+			
+														<option value="12" >12</option>
+			
+													</select>
+												</span>
+												<span class="s_2">/</span>
+												
+												<span class="yyyy select_df">
+													<select id="releaseYEnd" name="releaseYEnd" style="">
+			
+														<option value="" ></option>
+			
+														<option value="1999" >1999</option>
+			
+														<option value="2000" >2000</option>
+			
+														<option value="2001" >2001</option>
+			
+														<option value="2002" >2002</option>
+			
+														<option value="2003" >2003</option>
+			
+														<option value="2004" >2004</option>
+			
+														<option value="2005" >2005</option>
+			
+														<option value="2006" >2006</option>
+			
+														<option value="2007" >2007</option>
+			
+														<option value="2008" >2008</option>
+			
+														<option value="2009" >2009</option>
+			
+														<option value="2010" >2010</option>
+			
+														<option value="2011" >2011</option>
+			
+														<option value="2012" >2012</option>
+			
+														<option value="2013" >2013</option>
+			
+														<option value="2014" >2014</option>
+			
+														<option value="2015" >2015</option>
+			
+														<option value="2016" >2016</option>
+			
+														<option value="2017" >2017</option>
+			
+														<option value="2018" >2018</option>
+			
+														<option value="2019" >2019</option>
+			
+														<option value="2020" >2020</option>
+			
+														<option value="2021" >2021</option>
+			
+														<option value="2022" >2022</option>
+			
+														<option value="2023" >2023</option>
+			
+														<option value="2024" >2024</option>
+			
+														<option value="2025" >2025</option>
+			
+														<option value="2026" >2026</option>
+			
+													</select>
+												</span>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+
+
+
+								
+								<div id="date_set" class="search_m rush">
+									<div class="title">
+										<div class="Question">
+											<h3>레전드</h3>
+											<p>카드가 처음 발매된 날 및 등장한 날로 범위를 좁힙니다.</p>
+										</div>
+									</div>
+									<div class="sab">
+										<div class="select_df">
+											<select name="legend_type" id="legend_type" >
+												<option value="">----</option>
+												<option value="0" >일반 카드</option>
+												<option value="1" >레전드 카드</option>
+											</select>
+										</div>
+									</div>
+								</div>
+								
+
+							</div><!--#filter_set_monster-->
+							
+
+
+
+						</div><!--.filter_set_area-->
+						
+						<div id="bottombtn" class=" none">
+							<div class="btn hex orn" onclick="javascript:Search(4)"><span>검 색</span></div>
+						</div>
+
+					
+					
+				</div><!--#search-->
+			</form><!--#form_search-->
+	
+
+
+
+<!--シェア追加-->
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/ko_KR/sdk.js#xfbml=1&version=v2.9";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+</script>
+<!--シェア追加-->
+	<div class="sns_btn">
+		<div class="sns">
+			
+			<iframe src="//platform.twitter.com/widgets/tweet_button.html?url=https%3A%2F%2Fwww.db.yugioh-card.com%2Fyugiohdb%2Fcard_search.action%3Fope%3D1%26sess%3D1%26stype%3D1%26othercon%3D2%26releaseYStart%3D1999%26releaseMStart%3D02%26releaseDStart%3D04%26rp%3D10%26page%3D1%26request_locale%3Dko&amp;lang=ko&amp;count=horizontal&amp;hashtags=YugiohDB_KO" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:100px; height:20px;" allowTransparency="true"></iframe>
+
+			
+			<iframe src="//www.facebook.com/plugins/like.php?href=https%3A%2F%2Fwww.db.yugioh-card.com%2Fyugiohdb%2Fcard_search.action%3Fope%3D1%26sess%3D1%26stype%3D1%26othercon%3D2%26releaseYStart%3D1999%26releaseMStart%3D02%26releaseDStart%3D04%26rp%3D10%26page%3D1%26request_locale%3Dko&amp;send=false&amp;layout=button_count&amp;show_faces=false&amp;action=like&amp;colorscheme=light&amp;locale=ko_KR" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:100px; height:20px;" allowTransparency="true"></iframe>
+
+			
+			<div class="fb-share-button" data-href="https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&rp=10&page=1&request_locale=ko" data-layout="button_count" data-size="small" ></div>
+
+			
+			<div class="line-it-button" style="display: none;" data-lang="ko" data-type="share-a" data-url="https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&stype=1&othercon=2&releaseYStart=1999&releaseMStart=02&releaseDStart=04&rp=10&page=1&request_locale=ko"></div>
+			<script src="https://d.line-scdn.net/r/web/social-plugin/js/thirdparty/loader.min.js" async="async" defer="defer"></script>
+		</div>
+	</div>
+
+
+
+
+
+
+
+
+
+
+
+<!-- ///CardResultSort  -->
+
+
+	<div class="sort_set">
+		<div class="text">
+
+
+				검색결과 13,210건 중 1～10건을 표시
+
+		</div>
+
+
+
+		<div class="pulldown">
+	
+	
+			<span class="select_df">
+				<select id="rp" name="rp" >
+					<option value="10">10건씩 표시</option>
+					<option value="50">50건씩 표시</option>
+					<option value="100">100건씩 표시</option>
+				</select>
+			</span>
+
+			<span class="select_df">
+				<select id="sort" name="sort">
+					<option value="1">가나다순</option>
+					<option value="2">레벨 / 랭크순(높은 순)</option>
+					<option value="3">레벨 / 랭크순(낮은 순)</option>
+					<option value="4">공격력순(높은 순)</option>
+					<option value="5">공격력순(낮은 순)</option>
+					<option value="6">수비력순(높은 순)</option>
+					<option value="7">수비력순(낮은 순)</option>
+					<option class="ocg" value="8">펜듈럼 스케일순(높은 순)</option>
+					<option class="ocg" value="9">펜듈럼 스케일순(낮은 순)</option>
+					<option class="ocg" value="11">링크 수(많은 순)</option>
+					<option class="ocg" value="12">링크 수(적은 순)</option>
+					<option value="20">발매일 오래된 순</option>
+					<option value="21">발매일 최신 순</option>
+				</select>
+			</span>
+	
+		</div>
+	</div>
+
+
+
+
+
+		<div id="mode_set" class="tablink" >
+				<ul >
+					<li class="1"><span>이미지 표시</span></li>
+					<li class="2"><span>텍스트 표시</span></li>
+				</ul>
+				<select id="mode" name="mode" >
+					<option value="1">이미지 표시</option>
+					<option value="2">텍스트 표시</option>
+				</select>
+		</div>
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+			<div id="card_list" class="list">
+
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_0_1" alt="&quot;A&quot; 세포 배양 장치" title="&quot;A&quot; 세포 배양 장치" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										&quot;A&quot; 세포 배양 장치
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="7315">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_continuous.png" alt="지속" title="지속">
+										<span>지속</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									필드 위에서 A 카운터가 제거될 때마다, 이 카드에 A 카운터를 1개 놓는다. 이 카드가 파괴되었을 때, 이 카드에 얹혀 있는 모든 A 카운터를 필드 위에 앞면 표시로 존재하는 몬스터에 놓는다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='&quot;A&quot; 세포 배양 장치'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=7315">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_1_1" alt="&quot;A&quot; 세포 변환 장치" title="&quot;A&quot; 세포 변환 장치" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										&quot;A&quot; 세포 변환 장치
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="12653">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_quickplay.png" alt="속공" title="속공">
+										<span>속공</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									①: 필드의 앞면 표시 몬스터 1장을 대상으로 하고 발동할 수 있다. 덱에서 "에일리언" 몬스터 1장을 묘지로 보내고, 묘지로 보낸 몬스터의 레벨의 수만큼, 대상의 몬스터에 A 카운터를 놓는다. ②: 자신 메인 페이즈에 묘지의 이 카드를 제외하고 발동할 수 있다. 덱에서 "에일리언" 몬스터 1장을 패에 넣는다. 이 효과는 이 카드가 묘지로 보내진 턴에는 발동할 수 없다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='&quot;A&quot; 세포 변환 장치'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=12653">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_2_1" alt="&quot;A&quot; 세포 산포 폭탄" title="&quot;A&quot; 세포 산포 폭탄" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										&quot;A&quot; 세포 산포 폭탄
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="6994">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_quickplay.png" alt="속공" title="속공">
+										<span>속공</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									자신 필드 위의 "에일리언"이라는 이름이 붙은 몬스터 1장을 선택하고 발동할 수 있다. 선택한 앞면 표시 몬스터를 파괴하고, 그 몬스터의 레벨 수만큼 A 카운터를 상대 필드 위에 앞면 표시로 존재하는 몬스터에 놓는다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='&quot;A&quot; 세포 산포 폭탄'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=6994">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_3_1" alt="&quot;A&quot; 세포 증식 장치" title="&quot;A&quot; 세포 증식 장치" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										&quot;A&quot; 세포 증식 장치
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="7128">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_continuous.png" alt="지속" title="지속">
+										<span>지속</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									자신의 스텐바이 페이즈시, 상대 필드 위에 앞면 표시로 존재하는 몬스터 1장을 선택하고, A 카운터를 1개 놓는다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='&quot;A&quot; 세포 증식 장치'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=7128">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_4_1" alt="&quot;RESORT&quot; STAFF－차밍" title="&quot;RESORT&quot; STAFF－차밍" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										&quot;RESORT&quot; STAFF－차밍
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="12824">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_light.png" alt="빛" title="빛">
+										<span>빛</span>
+									</span>
+		
+		
+
+		
+		
+			
+			
+									<span class="box_card_level_rank level">
+										<img class="icon_img" src="external/image/parts/icon_level.png" alt="레벨" title="레벨">
+										<span>레벨 3</span>
+									</span>
+			
+		
+
+		
+									<span class="card_info_species_and_other_item"><span>
+										[
+										천사족<!--
+			--><!--
+										-->／효과<!--
+			--><!--
+			--><!--
+			-->
+										]
+									</span></span>
+<div class="atkdef">
+			
+
+									<span class="atk_power">
+										<span>공격력 300</span>
+									</span>
+
+
+									<span class="def_power"><span>
+			
+			
+										수비력 200
+			
+									</span></span>
+</div>
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									①: 자신의 "SPYRAL(스파이랄)－댄디"가 상대의 앞면 표시 몬스터와 전투를 실행하는 공격 선언시에 발동할 수 있다. 그 상대 몬스터의 공격력을 0 으로 한다. ②: 이 카드가 전투 / 효과로 파괴되었을 경우에 발동할 수 있다. 덱에서 "SPYRAL(스파이랄)－댄디" 1장을 특수 소환한다. ③: 이 카드가 묘지에 존재하고, 자신 필드의 앞면 표시의 "SPYRAL(스파이랄)－댄디"가, 전투로 파괴되었을 경우, 또는 묘지로 보내졌을 경우, 묘지의 이 카드를 제외하고 발동할 수 있다. 자신 묘지의 "SPYRAL(스파이랄)－댄디" 1장을 고르고 패에 넣는다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='&quot;RESORT&quot; STAFF－차밍'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=12824">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_5_1" alt="13번째 매장자" title="13번째 매장자" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										13번째 매장자
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="4138">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_dark.png" alt="어둠" title="어둠">
+										<span>어둠</span>
+									</span>
+		
+		
+
+		
+		
+			
+			
+									<span class="box_card_level_rank level">
+										<img class="icon_img" src="external/image/parts/icon_level.png" alt="레벨" title="레벨">
+										<span>레벨 3</span>
+									</span>
+			
+		
+
+		
+									<span class="card_info_species_and_other_item"><span>
+										[
+										언데드족<!--
+			--><!--
+										-->／일반<!--
+			--><!--
+			--><!--
+			-->
+										]
+									</span></span>
+<div class="atkdef">
+			
+
+									<span class="atk_power">
+										<span>공격력 1200</span>
+									</span>
+
+
+									<span class="def_power"><span>
+			
+			
+										수비력 900
+			
+									</span></span>
+</div>
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									아무도 없는 텅빈 13번째의 무덤에서 갑자기 출현한 좀비.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='13번째 매장자'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=4138">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_6_1" alt="7" title="7" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										7
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="6053">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_continuous.png" alt="지속" title="지속">
+										<span>지속</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									"7"이 자신 필드 위에 앞면 표시로 3장 모였을 때, 자신은 덱에서 카드를 3장 드로우한다. 그 후 모든 "7"을 파괴한다. 이 카드가 필드에서 묘지로 보내졌을 때, 자신은 700 라이프 포인트를 회복한다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='7'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=6053">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_7_1" alt="7 카드" title="7 카드" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										7 카드
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="4806">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_spell.png" alt="마법" title="마법">
+										<span>마법</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_equip.png" alt="장착" title="장착">
+										<span>장착</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									기계족 몬스터 1장의 공격력이나 수비력을 선택한다. 선택한 수치는 700 포인트 올린다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='7 카드'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=4806">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_8_1" alt="7가지 무기를 가진 헌터" title="7가지 무기를 가진 헌터" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										7가지 무기를 가진 헌터
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="5324">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_earth.png" alt="땅" title="땅">
+										<span>땅</span>
+									</span>
+		
+		
+
+		
+		
+			
+			
+									<span class="box_card_level_rank level">
+										<img class="icon_img" src="external/image/parts/icon_level.png" alt="레벨" title="레벨">
+										<span>레벨 3</span>
+									</span>
+			
+		
+
+		
+									<span class="card_info_species_and_other_item"><span>
+										[
+										전사족<!--
+			--><!--
+										-->／효과<!--
+			--><!--
+			--><!--
+			-->
+										]
+									</span></span>
+<div class="atkdef">
+			
+
+									<span class="atk_power">
+										<span>공격력 1000</span>
+									</span>
+
+
+									<span class="def_power"><span>
+			
+			
+										수비력 600
+			
+									</span></span>
+</div>
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									이 카드가 일반 소환에 성공했을 때, 종족을 1개 선언하고 발동한다. 이 카드가 선언한 종족의 몬스터와 전투를 실행할 경우, 이 카드의 공격력은 데미지 계산시에만 1000 포인트 올린다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='7가지 무기를 가진 헌터'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=5324">
+						</div><!-- .t_row c_normal -->
+
+	
+		
+
+<!-- ///CardDisplay_Normal  -->
+
+
+						<div class="t_row c_normal open">
+
+							<div class="box_card_img icon">
+								<div class="cardimg">
+		
+		
+								<img id="card_image_9_1" alt="8식대 마법다중결계" title="8식대 마법다중결계" class="none">
+		
+								</div>
+		
+
+							</div>
+							<dl class="flex_1">
+								<dd class="box_card_name flex_1 top_set">
+									<span class="card_ruby"></span>
+									<span class="card_name">
+										8식대 마법다중결계
+					
+									</span>
+
+								</dd>
+
+
+								
+								<dd class="remove_btn top_set">
+									<a href="javascript:void(0);" class="btn hex red"  title="이 카드를 리스트에서 삭제">
+										<span>X</span>
+										<input type="hidden" class="lang" value="">
+										<input type="hidden" class="cid" value="5617">
+									</a>
+								</dd>
+								
+
+								<dd class="box_card_spec flex_1">
+		
+									<span class="box_card_attribute">
+										<img class="icon_img" src="external/image/parts/attribute/attribute_icon_trap.png" alt="함정" title="함정">
+										<span>함정</span>
+									</span>
+		
+		
+									<span class="box_card_effect">
+										<img class="icon_img" src="external/image/parts/effect/effect_icon_counter.png" alt="카운터" title="카운터">
+										<span>카운터</span>
+
+
+									</span>
+		
+
+		
+		
+
+		
+
+								</dd>
+		
+		
+								<dd class="box_card_text c_text flex_1">
+									다음 효과에서 1개를 선택하고 발동한다.<br>●필드 위의 몬스터 1장을 대상으로 한 마법의 발동과 효과를 무효로 하여, 그 카드를 파괴한다.<br>●패에서 마법 카드 1장을 묘지로 보내는 것으로 마법의 발동과 효과를 무효로 하여, 그 카드를 파괴한다.
+								</dd>
+		
+		
+
+
+
+
+
+							</dl>
+
+
+		
+
+
+								<input type="hidden" class="cnm" value='8식대 마법다중결계'>
+								<input type="hidden" class="fltype" value=''>
+							<input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=5617">
+						</div><!-- .t_row c_normal -->
+
+	
+			</div><!-- #card_list.list -->
+
+
+
+
+
+
+
+
+
+	
+
+
+<!-- ///count  -->
+
+
+	<div class="page_num ">
+
+	
+	
+		
+			<p class="nowpage">1</p>
+		
+		
+	
+		
+		
+			<a href="javascript:ChangePage(2)" title="2페이지">2</a>
+		
+	
+		
+		
+			<a href="javascript:ChangePage(3)" title="3페이지">3</a>
+		
+	
+		
+		
+			<a href="javascript:ChangePage(4)" title="4페이지">4</a>
+		
+	
+		
+		
+			<a href="javascript:ChangePage(5)" title="5페이지">5</a>
+		
+	
+	
+			<a class="yaji" href="javascript:ChangePage(6)" title="6페이지">&rsaquo;</a>
+			<a class="yaji max" href="javascript:ChangePage(1321)" title="1,321페이지">&raquo;</a>
+	
+
+	</div>
+
+
+
+
+
+
+		</div><!--#article_body-->
+	</article>
+
+<input type="hidden" name="sv" value="ycdb-prd-ap02">
+
+
+
+
+
+<!-- ///Footer  -->
+
+	</div><!--#bg--></div><!--#main980-->
+
+	
+
+<!-- ///MsgHome  -->
+
+	
+		<nav id="title_top_msg" class="nav_home">
+				<div class="title_btn rush">
+					<div class="titleset">
+						<div class="sankaku"></div>
+						<div class="title"><span>&and;</span>Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)란<span>&and;</span></div>
+						<div class="sankaku"></div>
+					</div>
+					<div class="tokki"></div>
+					<div class="tokki2"></div>
+				</div>
+			<div class="in_bg">
+				<div class="title_btn ocg">
+					<span class="title">Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)란</span>
+					<div class="batu"><span>&and;</span></div>
+				</div>
+				<div class="in">
+					<div class="in_btn">
+						<p>유희왕 오피셜 카드게임의 공식 사이트입니다. <br>Yu-Gi-Oh! OCG의 모든 카드를 검색하거나 세부 규칙, 금지 및 제한 카드를 참조할 수 있습니다. <br>이미 소지하고 있는 카드나 덱을 마이덱에 등록해서 관리하거나 공개된 덱 레시피를 검색해서 자신의 덱을 구축하는 데 참고할 수도 있습니다.</p>
+						<a class="btn" href="https://www.yugioh.co.kr/site/game_method.php" target="_blank">
+							<img class="ocg" src="external/image/ko/00_logo_ocgtcg.png" />
+							<img class="rush" src="external/image/ko/00_logo_rush.png" />
+							<span>게임하는 방법</span>
+						</a>
+					</div>
+
+
+					<div id="nav_bottom">
+						
+						<a class="top_main_card_search" href="/yugiohdb/card_search.action">
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardssvg">
+      <path class="svg_stroke_bold" d="M386.99,88.65c59.21,53.03,64.22,144.02,11.17,203.24-53.03,59.21-144.03,64.22-203.24,11.17-59.21-53.03-64.22-144.03-11.17-203.24,53.03-59.21,144.03-64.22,203.24-11.17h0Z"/>
+      <path class="svg_stroke_bold" d="M65.11,448.08l130.1-145.25"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>카드 검색</h3>
+							</div>
+							<div class="tex_bottom">
+								Yu-Gi-Oh! OCG의 모든 카드를 검색할 수 있습니다. 카드 상세 정보 화면에서 그 카드를 사용한 덱을 검색할 수 있습니다. 발매일 이후에 카드를 검색할 수 있게 됩니다.
+							</div>
+						</a>
+
+						
+						<a class="top_main_cardlist" href="/yugiohdb/card_list.action">
+							<div class="tex_top">
+								<span class="icon ocg"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistocgtcgsvg">
+      <path id="pass" class="svg_stroke_normal" d="M289.72,331.77l-156.04,33.93-98.64-86.97c-.14-.12-.08-.35.1-.38l231.31-44.82"/>
+      <path id="pass-2" data-name="pass" class="svg_stroke_normal" d="M134.59,428.35l-.36-62.64"/>
+      <path id="pass-3" data-name="pass" class="svg_stroke_normal" d="M289.72,397.09l-155.31,30.9-100.43-95.6v-189.02l17.62-5.79s29.45-105.01,101.15-102.11c0,0,81.11-5.07,90.53,79.66l19.55.73,4.35,117.32,22.54,9.45"/>
+      <path id="pass-4" data-name="pass" class="svg_stroke_normal" d="M287.62,476.19V119.05h178.57v357.14h-178.57ZM379.42,166.08c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+								<span class="icon rush"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistrushsvg">
+      <path class="svg_stroke_normal" d="M157.48,49.38l-115.37,9.08c-.24.02-.28.36-.04.43l69.93,20.62h.04l142.44-11.96c.12,0,.13-.18,0-.2l-96.97-17.97h-.03,0Z"/>
+      <path class="svg_stroke_normal" d="M111.8,405.59l-70.48-46.17c-.24-.16-.39-.43-.39-.72V59.72c0-.58.56-.99,1.11-.83l69.82,20.58c.1.03.21.04.32.03l142.1-11.94c.51-.04.94.36.94.86v306.39c0,.41-.29.76-.69.85l-142.07,30.04c-.23.05-.46,0-.65-.12h0Z"/>
+      <path class="svg_stroke_normal" d="M112.01,79.52l.09,326.26"/>
+      <path class="svg_stroke_normal" d="M278.71,452.38V95.24h178.57v357.14h-178.57ZM370.51,142.27c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>수록</h3>
+							</div>
+							<div class="tex_bottom">
+								Yu-Gi-Oh! OCG 카드를 수록별(상품/특전 등)로 열람할 수 있습니다. <br>상품의 발매일을 기준으로 최신 정보를 게시합니다.
+							</div>
+						</a>
+
+						
+						<a class="top_main_decks" href="/yugiohdb/deck_search.action">
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="decksvg">
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+      <path class="svg_stroke_bold" d="M283.54,83.48c42.29,37.88,45.87,102.87,7.98,145.17-37.88,42.29-102.88,45.87-145.17,7.98-42.29-37.88-45.87-102.88-7.98-145.17,37.88-42.29,102.88-45.87,145.17-7.98h0Z"/>
+      <path class="svg_stroke_bold" d="M53.63,340.22l92.93-103.75"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>덱 검색</h3>
+							</div>
+							<div class="tex_bottom">
+								공개된 덱을 검색할 수 있습니다. <br>대회 우승 덱/대회 입상 덱이나 특정 카드를 사용하는 덱을 검색할 수 있습니다.
+							</div>
+						</a>
+
+
+						
+		
+			
+				
+						<a class="top_trends ocg" href="/yugiohdb/trends_search.action?ope=1">
+				
+				
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="trendssvg">
+      <path class="svg_stroke_bold" d="M319.81,95.49l77.67,2.33-2.49,77.81"/>
+      <path class="svg_stroke_bold" d="M39.07,321.57l150.98-142.19,56.56,60.05,148.07-139.45"/>
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>트렌드</h3>
+							</div>
+							<div class="tex_bottom">
+								새로 작성된 덱과 대회에서 사용된 덱을 기준으로 산출된 순위입니다.<br>현재 주목받고 있는 덱의 경향을 확인할 수 있습니다.
+							</div>
+						</a>
+		
+						
+							
+							
+						<a class="top_main_my menu_my_decks" href="/yugiohdb/member_login.action">
+							
+							
+							
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="MyDecksscg">
+      <path id="pass" class="svg_stroke_normal" d="M277.53,128.06l91.52-14.14v142.86l-91.52,14.14v-142.86h0Z"/>
+      <path id="pass-2" class="svg_stroke_normal" d="M240.04,453.74l.1-128.18"/>
+      <path id="pass-3" class="svg_stroke_normal" d="M408.1,288.91v123.93l-168.06,43.89-157.64-43.45V74.05l175.76-22.2,155.93,18.03-.29,216.51-36.72,7.28-.62,50.44-98.78,20.74.04-51.5-46.91,9.29-.58-218.81-147.82-24.5"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>마이덱</h3>
+
+							</div>
+							<div class="tex_bottom">
+								덱 레시피를 등록하거나 등록한 덱을 다른 사용자에게 공개할 수 있습니다(하프 덱이나 Duel Links 덱도 등록할 수 있습니다). 본인의 덱이나 카드를 관리하는 데 사용하면 좋은 기능입니다.
+							</div>
+						</a>
+
+						
+							
+							
+						<a class="top_main_my my_cardlist" href="/yugiohdb/member_login.action">
+							
+							
+							
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistsvg">
+      <path class="svg_stroke_normal" d="M366.92,116.77l93.49,21.99-70.86,301.3-153.36-36.07M364.38,177.32l-6.1,145.32,21.04,4.95,32.7-139.06-47.64-11.2h0Z"/>
+      <path class="svg_stroke_normal" d="M252.76,86.1l115.25,4.84-12.99,309.25-94.07-3.95M152.91,105.73l1-23.78,66.06,2.78M317.05,291.36l6.78.29,6-142.73-58.16-2.44"/>
+      <path class="svg_stroke_normal" d="M44.95,139.55l204.49-64.06,92.52,295.37-204.49,64.06L44.95,139.55Z"/>
+      <path class="svg_stroke_normal" d="M96.82,185.68l136.33-42.7,42.7,136.33-136.33,42.7-42.7-136.33h0Z"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>마이카드 리스트</h3>
+							</div>
+							<div class="tex_bottom">
+								자신이 갖고 있는 카드나 원하는 카드를 리스트로 관리할 수 있습니다. 로그인 후에 카드 상세화면에서 추가할 수 있습니다.
+							</div>
+						</a>
+
+
+
+					
+						
+						<a class="top_main_forbidden" href="/yugiohdb/forbidden_limited.action">
+							<div class="tex_top">
+								<span class="icon"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="svg_stroke_boldddensvg">
+      <path class="svg_stroke_bold" d="M101.53,126.77l299.51,251.32"/>
+      <path class="svg_stroke_bold" d="M251.55,56.58c108.01,0,195.56,87.56,195.56,195.56s-87.56,195.56-195.56,195.56S55.99,360.14,55.99,252.14,143.55,56.58,251.55,56.58Z"/>
+    </g>
+  </g>
+</svg></span>
+								<h3>
+									<span>리미트 레귤레이션</span>
+								</h3>
+
+							</div>
+							<div class="tex_bottom">
+								공식 대회에서 사용이 금지되어 있는 금지 카드나 매수 제한이 있는 제한 카드/준제한 카드를 정리한 리스트입니다.
+								<span class="history"></span>
+							</div>
+						</a>
+
+					</div>
+				</div>
+			</div>
+		</nav>
+	
+	<footer id="footer" class="ko">
+		<div id="content_copyright">&copy;2020 Studio Dice/SHUEISHA, TV TOKYO, KONAMI</div>
+		<div id="f_sns"></div>
+
+		
+
+		<div id="cdb_link_set">
+			<div class="game">
+				
+				<a class="link_ocg" title="유희왕 오피셜 카드게임" href="https://www.yugioh.co.kr/" target="_blank">
+	
+					<img class="" src="external/image/ko/00_logo_ocgtcg.png" title=유희왕 오피셜 카드게임" >
+	
+	
+				</a>
+
+	
+				
+				<a class="link_rush" title="유희왕 러시 듀얼" href="http://yugioh-rushduel.co.kr/" target="_blank">
+					<img class="" src="external/image/ko/00_logo_rush.png" title="유희왕 러시 듀얼" >
+				</a>
+	
+
+				
+				<a class="link_li" title="Yu-Gi-Oh! DUEL LINKS"
+					href="https://www.konami.com/yugioh/duel_links/" target="_blank">
+					<img class="" src="external/image/00_logo_DuelLinks.png" title="Yu-Gi-Oh! DUEL LINKS" >
+				</a>
+				
+				<a class="link_ms" title="Yu-Gi-Oh! MASTER DUEL"
+					href="https://www.konami.com/yugioh/masterduel/" target="_blank">
+					<img class="" src="external/image/00_logo_MasterDuel.png" title="Yu-Gi-Oh! MASTER DUEL" >
+				</a>
+			</div>
+			<a class="link_neuron" title="Yu-Gi-Oh! NEURON" href="https://www.konami.com/yugioh/neuron/ko/" target="_blank">
+				<div class="icon"><img class="" src="external/image/00_logo_neuron.png" title="Yu-Gi-Oh! NEURON" ></div>
+				<div class="title">
+					<p>‘Yu-Gi-Oh! OCG’ 공식 서포트 앱</p>
+					<p>듀얼리스트를 위한 편리한 기능이 가득합니다!</p>
+				</div>
+			</a>
+			<div class="connection">
+	
+				<a class="link_cgn" title="KONAMI CARD GAME NETWORK" href="//cardgame-network.konami.net/" target="_blank">
+					<img class="" src="external/image/footerimg/banner_top_cgn2.png" title="KONAMI CARD GAME NETWORK" ></a>
+	
+	
+				<a class="link_rushdb ocg" title="Yu-Gi-Oh! Neuron(러시 듀얼 카드 데이터베이스)" href="https://www.db.yugioh-card.com/rushdb/?request_locale=ko" target="_blank">
+		
+		
+					<img class="" src="external/image/footerimg/banner_top_rushdb_ko.png" title="Yu-Gi-Oh! Neuron(러시 듀얼 카드 데이터베이스)" >
+		
+				</a>
+	
+				<a class="link_ocgdb rush" title="Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)" href="https://www.db.yugioh-card.com/yugiohdb/?request_locale=ko" target="_blank">
+	
+	
+					<img class="" src="external/image/footerimg/banner_top_ocgdb_ko.png" title="Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)" >
+	
+				</a>
+
+			</div>
+		</div>
+
+
+
+
+
+
+
+
+
+
+
+		<div id="footer_menu">
+			
+
+<!-- ///nav_m  -->
+
+				<ul class="main_menu">
+					
+					<li class="menu_top"><a href="/yugiohdb/"><?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42.6 33.7"><path d="M23.4,0h-3.9L0,18l3.5,3.7,4.5-4.2,3,16.2H31.6l3-16.2,4.5,4.2,3.5-3.8L23.4,0Zm-1.8,25.6c-3.9,.1-7-3-7.1-6.9s3-7.1,6.9-7.1,7.1,3.2,7.1,7-3.1,7-6.9,7Z"/></svg><h3>홈</h3></a></li>
+
+					
+					<li class="menu_card_search">
+						<a class="main" href="/yugiohdb/card_search.action?wname=CardSearch"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardssvg">
+      <path class="svg_stroke_bold" d="M386.99,88.65c59.21,53.03,64.22,144.02,11.17,203.24-53.03,59.21-144.03,64.22-203.24,11.17-59.21-53.03-64.22-144.03-11.17-203.24,53.03-59.21,144.03-64.22,203.24-11.17h0Z"/>
+      <path class="svg_stroke_bold" d="M65.11,448.08l130.1-145.25"/>
+    </g>
+  </g>
+</svg><h3>카드 검색</h3></a>
+
+					</li>
+
+					
+					<li class="menu_cardlist sab_menu">
+						<a class="bg main" href="/yugiohdb/card_list.action?wname=CardSearch">
+							<span class="ocg"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistocgtcgsvg">
+      <path id="pass" class="svg_stroke_normal" d="M289.72,331.77l-156.04,33.93-98.64-86.97c-.14-.12-.08-.35.1-.38l231.31-44.82"/>
+      <path id="pass-2" data-name="pass" class="svg_stroke_normal" d="M134.59,428.35l-.36-62.64"/>
+      <path id="pass-3" data-name="pass" class="svg_stroke_normal" d="M289.72,397.09l-155.31,30.9-100.43-95.6v-189.02l17.62-5.79s29.45-105.01,101.15-102.11c0,0,81.11-5.07,90.53,79.66l19.55.73,4.35,117.32,22.54,9.45"/>
+      <path id="pass-4" data-name="pass" class="svg_stroke_normal" d="M287.62,476.19V119.05h178.57v357.14h-178.57ZM379.42,166.08c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<span class="rush"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistrushsvg">
+      <path class="svg_stroke_normal" d="M157.48,49.38l-115.37,9.08c-.24.02-.28.36-.04.43l69.93,20.62h.04l142.44-11.96c.12,0,.13-.18,0-.2l-96.97-17.97h-.03,0Z"/>
+      <path class="svg_stroke_normal" d="M111.8,405.59l-70.48-46.17c-.24-.16-.39-.43-.39-.72V59.72c0-.58.56-.99,1.11-.83l69.82,20.58c.1.03.21.04.32.03l142.1-11.94c.51-.04.94.36.94.86v306.39c0,.41-.29.76-.69.85l-142.07,30.04c-.23.05-.46,0-.65-.12h0Z"/>
+      <path class="svg_stroke_normal" d="M112.01,79.52l.09,326.26"/>
+      <path class="svg_stroke_normal" d="M278.71,452.38V95.24h178.57v357.14h-178.57ZM370.51,142.27c-7.6,0-13.77,6.16-13.77,13.76s6.16,13.76,13.77,13.76,13.76-6.16,13.76-13.76-6.16-13.76-13.76-13.76Z"/>
+    </g>
+  </g>
+</svg></span>
+							<h3>수록</h3>
+						</a>
+						<ul>
+							<li><a href="/yugiohdb/card_list.action?clm=3&wname=CardSearch">발매일 최신 순</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=1&wname=CardSearch">일반상품</a></li>
+							<li><a href="/yugiohdb/card_list.action?clm=2&wname=CardSearch">특전 / 동봉계열</a></li>
+				
+						</ul>
+					</li>
+
+					
+					<li class="menu_decks">
+						<a href="/yugiohdb/deck_search.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="decksvg">
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+      <path class="svg_stroke_bold" d="M283.54,83.48c42.29,37.88,45.87,102.87,7.98,145.17-37.88,42.29-102.88,45.87-145.17,7.98-42.29-37.88-45.87-102.88-7.98-145.17,37.88-42.29,102.88-45.87,145.17-7.98h0Z"/>
+      <path class="svg_stroke_bold" d="M53.63,340.22l92.93-103.75"/>
+    </g>
+  </g>
+</svg><h3>덱 검색</h3></a>
+					</li>
+
+					
+			
+			
+					<li class="menu_trends sab_menu ocg">
+						<a class="bg main" href="/yugiohdb/trends_search.action?ope=1"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="trendssvg">
+      <path class="svg_stroke_bold" d="M319.81,95.49l77.67,2.33-2.49,77.81"/>
+      <path class="svg_stroke_bold" d="M39.07,321.57l150.98-142.19,56.56,60.05,148.07-139.45"/>
+      <path class="svg_stroke_lighter" d="M411.08,369.05h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M411.08,333.33h27.7l-64.63,83.33h-202.38l33.53-35.71"/>
+      <path class="svg_stroke_lighter" d="M250,297.62h188.78l-64.63,83.33h-202.38l78.23-83.33Z"/>
+    </g>
+  </g>
+</svg><h3>트렌드</h3></a>
+						<ul>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=1">인기 덱 랭킹</a></li>
+							
+							<li><a href="/yugiohdb/trends_search.action?ope=2">주목할 카테고리 랭킹</a></li>
+						</ul>
+					</li>
+			
+			
+
+
+
+	
+	
+				
+
+					
+					<li class="my menu_my_decks">
+						<a href="/yugiohdb/member_login.action?wname=MemberDeck"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="MyDecksscg">
+      <path id="pass" class="svg_stroke_normal" d="M277.53,128.06l91.52-14.14v142.86l-91.52,14.14v-142.86h0Z"/>
+      <path id="pass-2" class="svg_stroke_normal" d="M240.04,453.74l.1-128.18"/>
+      <path id="pass-3" class="svg_stroke_normal" d="M408.1,288.91v123.93l-168.06,43.89-157.64-43.45V74.05l175.76-22.2,155.93,18.03-.29,216.51-36.72,7.28-.62,50.44-98.78,20.74.04-51.5-46.91,9.29-.58-218.81-147.82-24.5"/>
+    </g>
+  </g>
+</svg><h3>마이덱</h3></a>
+					</li>
+
+					
+					<li class="my menu_my_cardlist">
+						<a href="/yugiohdb/member_login.action?wname=MyCard"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="cardlistsvg">
+      <path class="svg_stroke_normal" d="M366.92,116.77l93.49,21.99-70.86,301.3-153.36-36.07M364.38,177.32l-6.1,145.32,21.04,4.95,32.7-139.06-47.64-11.2h0Z"/>
+      <path class="svg_stroke_normal" d="M252.76,86.1l115.25,4.84-12.99,309.25-94.07-3.95M152.91,105.73l1-23.78,66.06,2.78M317.05,291.36l6.78.29,6-142.73-58.16-2.44"/>
+      <path class="svg_stroke_normal" d="M44.95,139.55l204.49-64.06,92.52,295.37-204.49,64.06L44.95,139.55Z"/>
+      <path class="svg_stroke_normal" d="M96.82,185.68l136.33-42.7,42.7,136.33-136.33,42.7-42.7-136.33h0Z"/>
+    </g>
+  </g>
+</svg><h3>마이카드 리스트</h3></a>
+					</li>
+	
+	
+	
+
+				
+					
+					<li class="menu_forbidden">
+						<a href="/yugiohdb/forbidden_limited.action"><?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 500 500">
+  <!-- Generator: Adobe Illustrator 28.7.4, SVG Export Plug-In . SVG Version: 1.2.0 Build 166)  -->
+  <g>
+    <g id="svg_stroke_boldddensvg">
+      <path class="svg_stroke_bold" d="M101.53,126.77l299.51,251.32"/>
+      <path class="svg_stroke_bold" d="M251.55,56.58c108.01,0,195.56,87.56,195.56,195.56s-87.56,195.56-195.56,195.56S55.99,360.14,55.99,252.14,143.55,56.58,251.55,56.58Z"/>
+    </g>
+  </g>
+</svg><h3><span class="type1">리미트 레귤레이션</span><span class="type2">리미트 레귤레이션</span></h3></a>
+					</li>
+
+				</ul><!--#main_menu-->
+
+		</div>
+		<div id="footer_meta">
+			<nav>
+				<ul>
+
+					<li><a href="http://www.yugioh.co.kr/" target="_blank">문의</a></li>
+					<li><a href="https://legal.konami.com/games/neuron/terms/tou/ko/" target="_blank">이용 약관</a></li>
+					<li><a href="https://www.konami.com/siteinfo/en/" target="_blank">사이트정책</a></li>
+				
+				
+				
+					<li>
+						<!-- OneTrust Cookie 設定ボタンの始点 -->
+						<button id="ot-sdk-btn" class="ot-sdk-show-settings">Cookie 設定</button>
+						<!-- OneTrust Cookie 設定ボタンの終点 -->
+					</li>
+				</ul>
+			</nav>
+			<small>&copy;2025 Konami Digital Entertainment</small>
+
+		</div>
+	</footer>
+	<a class="menu_btn_pagetop" href="#"><?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 27.2"><defs></defs><path  d="M0,20.4v6.8H36v-6.8s-36,0-36,0ZM18,0L.1,17.7H35.8L18,0Z"/></svg></a>
+</div><!--wrapper-->
+<noscript>JavaScript를 유효하게 설정해 주세요</noscript>
+
+
+
+
+<!-- ///PrivacySettingsModal  -->
+
+
+
+
+<div id="require_confilem_legal_doc_modal" class="ps_modal">
+	<div class="ps_contents">
+		<div class="ps_header">
+			<p>Privacy Settings</p>
+		</div>
+		<div class="ps_body">
+			<p>Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)을 이용하려면 이용 약관에 동의해야 합니다. <br>이용 약관이 개정된 경우, 서비스를 계속 이용하시려면 개정된 내용에 다시 동의하셔야 합니다.</p>
+		</div>
+		<div class="ps_footer">
+			<div class="ps_button">
+				<a id="settings_confirm_close" class="btn hex orn" onclick="openLegalDocuments()">
+					확인한다
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<div id="privacy_settings_modal" class="ps_modal">
+	<div class="ps_contents">
+		<div class="ps_header">
+			<p>Privacy Settings</p>
+		</div>
+		<div class="ps_body">
+			<div class="ps_setting" id="setting_item_privacy_notice">
+				<div class="ps_setting_title" id="privacy_notice_link" >
+					<a id="privacy_notice_link_1" href="" target="_blank">
+						개인정보 처리방침
+					</a>
+				</div>
+				<div class="ps_setting_desc">
+					<p>개인정보 처리방침은 본 서비스를 이용함에 따라 개인정보가 어떻게 처리되는지를 규정한 문서입니다. 본 서비스에는 아래에 나열된 스마트폰 애플리케이션과 웹사이트가 포함됩니다。<br><ul><li>● Yu-Gi-Oh! Neuron</li><li>● Yu-Gi-Oh! Neuron(KONAMI CARD GAME NETWORK)</li><li>● Yu-Gi-Oh! Neuron(OFFICIAL CARD GAME CARD DATABASE)</li><li>● Yu-Gi-Oh! Neuron(RUSH DUEL CARD DATABASE)</li></ul></p>
+				</div>
+				<div class="ps_setting_input">
+					<label class="ps_setting_input_radio" for="privacy_notice_reject">
+						<input type="radio" name="privacy_notice" id="privacy_notice_reject" value="not_agree">
+						동의하지 않습니다
+					</label>
+					<label class="ps_setting_input_radio" for="privacy_notice_agree">
+						<input type="radio" name="privacy_notice" id="privacy_notice_agree" value="agree">
+						동의합니다
+					</label>
+				</div>
+				<div class="ps_setting_border"></div>
+			</div>
+			<div class="ps_setting" id="setting_item_location_tracking">
+				<div class="ps_setting_title" id="location_tracking_link">
+					<a id="location_tracking_link_1" href="" target="_blank">
+						상세 위치 정보를 이용하는 기능에 관해
+					</a>
+				</div>
+				<div class="ps_setting_desc">
+					<p>이 문서는 매장 검색 및 대회 검색 등의 기능에서 사용되는 위치 정보의 처리에 대해 규정합니다.</p>
+				</div>
+				<div class="ps_setting_input">
+					<label class="ps_setting_input_radio" for="location_tracking_reject">
+						<input type="radio" name="gps_info" id="location_tracking_reject" value="not_agree">
+						동의하지 않습니다
+					</label>
+					<label class="ps_setting_input_radio" for="location_tracking_agree">
+						<input type="radio" name="gps_info" id="location_tracking_agree" value="agree">
+						동의합니다
+					</label>
+				</div>
+				<div class="ps_setting_border"></div>
+			</div>
+		</div>
+		<div class="ps_footer">
+			<div class="ps_button">
+				<a id="settings_close" class="btn hex" onclick="confirmSettings()">
+					OK
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<div id="privacy_settings_confirm_modal" class="ps_modal">
+	<div class="ps_contents">
+		<div class="ps_header">
+			<p>Privacy Settings</p>
+		</div>
+		<div class="ps_body">
+			<div class="ps_setting_confirm_title">
+				<p>이 설정으로 괜찮으신가요?</p>
+			</div>
+			<div class="ps_setting_confirm_diff">
+				<div class="ps_setting_confirm_diff_item" id="item.privacy_notice">
+					<p>개인정보 처리방침</p>
+					<p>변경 전 :
+						<span id="diff.privacy_notice.before.agree">동의합니다</span>
+						<span id="diff.privacy_notice.before.reject">동의하지 않습니다</span>
+					</p>
+					<p>변경 후 :
+						<span id="diff.privacy_notice.after.agree">동의합니다</span>
+						<span id="diff.privacy_notice.after.reject">동의하지 않습니다</span>
+					</p>
+				</div>
+				<div class="ps_setting_confirm_diff_item" id="item.location_tracking">
+					<p>상세 위치 정보를 이용하는 기능에 관해</p>
+					<p>변경 전 :
+						<span id="diff.location_tracking.before.agree">동의합니다</span>
+						<span id="diff.location_tracking.before.reject">동의하지 않습니다</span>
+					</p>
+					<p>변경 후 :
+						<span id="diff.location_tracking.after.agree">동의합니다</span>
+						<span id="diff.location_tracking.after.reject">동의하지 않습니다</span>
+					</p>
+				</div>
+			</div>
+		</div>
+		<div class="ps_footer">
+			<div class="ps_button_set">
+				<div class="ps_button">
+					<a id="settings_confirm_close" class="btn hex orn" onclick="cancelSettingsChange()">
+						취소
+					</a>
+				</div>
+				<div class="ps_button">
+					<a id="settings_confirm_close" class="btn hex" onclick="updateSettings()">
+						OK
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="ps_form">
+	<form id="privacy_setting_form" name="privacy_setting_form" action="/yugiohdb/update_legal_document.action" method="post">
+<table class="wwFormTable">
+		<input type="hidden" id="agreementType" name="agreementType" value="">
+	</table></form>
+
+
+
+</div>
+
+
+
+<div id="alert_privacy_notice_reject_modal" class="ps_modal">
+	<div class="ps_contents">
+		<div class="ps_header">
+			<p>개인정보 보호 고지 철회</p>
+		</div>
+		<div class="ps_body">
+			<p>개인정보 보호 고지에 대한 동의를 철회하면 <span style="color: #ffba00; font-size: 1.4rem;">Yu-Gi-Oh! Neuron</span>을(를) 이용할 수 없습니다. <br>철회를 원하시는 경우 <span style="color: #ffba00; font-size: 1.4rem;">이용 중인 CARD GAME ID</span> 삭제 절차를 진행해 주세요.</p>
+			<p>ID 삭제는 Yu-Gi-Oh! Neuron(KONAMI CARD GAME NETWORK)에 로그인하고, 본 사이트의 마이 페이지 > 이용 중인 CARD GAME ID 삭제 관련 정보 에서 개인정보 보호 고지에 대한 동의를 철회하고, 제공된 개인정보를 삭제할 수 있습니다</p>
+		</div>
+		<div class="ps_footer">
+			<div class="ps_button">
+				<a id="settings_confirm_close" class="btn hex orn" onclick="returnSettingsChange()">
+					이전
+				</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<script type="text/javascript">
+
+	
+	var _monitor_tab = false;
+	var _display_privacy_notice = false;
+	var _display_location_tracking = false;
+	var _privacy_notice_agree = false;
+	var _location_tracking_agree = false;
+	var _url_Privacy_notice = [];
+	var _url_Location_tracking = [];
+
+	
+	window.addEventListener('DOMContentLoaded', loadCss, false);
+	function loadCss() {
+
+		// css追加
+		var link = document.createElement('link');
+		link.href = 'external/css/PrivacySettingsModal.css';
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		var head = document.getElementsByTagName('head')[0];
+		if (head) {
+			head.appendChild(link);
+		}
+
+	}
+
+	
+	window.addEventListener('load', validateLegalDocuments, false);
+	function validateLegalDocuments() {
+
+		// リクエスト
+		$.ajax({
+			type: "GET",
+			url: "/yugiohdb/validate_legal_document.action",
+			contentType: false,
+		    processData: false,
+			success: function(result) {
+
+				// 通知モーダル
+				if (result.requireConfirm) {
+
+					// 通知モーダルを開く
+					$("#require_confilem_legal_doc_modal").show().css('display','flex');
+					_monitor_tab = true;
+
+				} else {
+
+					// モーダルを閉じる
+					$("#require_confilem_legal_doc_modal").hide();
+					_monitor_tab = false;
+
+					// PrivacySettings
+					var settings = document.getElementById("footer_privacy_settings");
+					if (!settings && result.displaySettings) {
+						window.location.reload();
+					}
+
+				}
+
+			},
+			error: function(xhr, status, error) {
+				console.log("error");
+			}
+		});
+
+	}
+
+	
+	window.addEventListener('visibilitychange', monitorTab, false);
+	function monitorTab() {
+
+		if (_monitor_tab && document.visibilityState == 'visible') {
+			validateLegalDocuments();
+		}
+
+	}
+
+    
+	function openLegalDocuments() {
+
+		// 確認ページを開く
+		var opened = window.open("/yugiohdb/fetch_legal_document.action", "_blank");
+		if (opened == null) {
+			window.location.href = "/yugiohdb/fetch_legal_document.action";
+		}
+
+	}
+
+	
+	function openPrivacyNotice(url) {
+
+		if (!url) {
+			return;
+		}
+		var opened = window.open(url, "_blank");
+		if (opened == null) {
+			window.location.href = url;
+		}
+
+	}
+
+	
+	function openPrivacySettings() {
+
+		// リクエスト
+		$.ajax({
+			type: "GET",
+			url: "/yugiohdb/init_legal_document.action",
+			contentType: false,
+		    processData: false,
+			success: function(initResult) {
+
+				// 変数更新
+				_display_privacy_notice = initResult.display_privacy_notice;
+				_display_location_tracking = initResult.display_location_tracking;
+				_privacy_notice_agree = initResult.agree_Privacy_notice;
+				_location_tracking_agree = initResult.agree_Location_tracking;
+				_url_Privacy_notice = initResult.url_Privacy_notice;
+				_url_Location_tracking = initResult.url_Location_tracking;
+
+				// 表示制御
+				if (_display_privacy_notice) {
+					document.getElementById("setting_item_privacy_notice").style.display = "block";
+				} else {
+					document.getElementById("setting_item_privacy_notice").style.display = "none";
+				}
+				if (_display_location_tracking) {
+					document.getElementById("setting_item_location_tracking").style.display = "block";
+				} else {
+					document.getElementById("setting_item_location_tracking").style.display = "none";
+				}
+
+				// 選択状況の反映
+				document.getElementById("privacy_notice_agree").checked = _privacy_notice_agree;
+				document.getElementById("privacy_notice_reject").checked = !_privacy_notice_agree;
+				document.getElementById("location_tracking_agree").checked = _location_tracking_agree;
+				document.getElementById("location_tracking_reject").checked = !_location_tracking_agree;
+
+				// URL反映
+				if (initResult.url_Privacy_notice && initResult.url_Privacy_notice.length > 0) {
+
+					document.getElementById("privacy_notice_link_1").setAttribute('href', initResult.url_Privacy_notice[0]);
+					var linkList = document.getElementById("privacy_notice_link").children;
+					for (var i = linkList.length-1; i > 0; i--) {
+
+						if (linkList[i].id == "privacy_notice_link_1") {
+							continue;
+						}
+						linkList[i].remove();
+
+					}
+					if (initResult.url_Privacy_notice.length > 1) {
+						for (var i = 1; i < initResult.url_Privacy_notice.length; i++) {
+
+							var element_br = document.createElement("br");
+							document.getElementById("privacy_notice_link").append(element_br);
+
+							var number = i+1;
+							var element_a = document.createElement("a");
+							element_a.id = "privacy_notice_link_" + number;
+							element_a.href = initResult.url_Privacy_notice[i];
+							element_a.target = "_blank";
+							element_a.textContent = '개인정보 처리방침' + number;
+							document.getElementById("privacy_notice_link").append(element_a);
+
+						}
+					}
+
+				}
+				if (initResult.url_Privacy_notice && initResult.url_Location_tracking.length > 0) {
+
+					document.getElementById("location_tracking_link_1").setAttribute('href', initResult.url_Location_tracking[0]);
+					var linkList = document.getElementById("location_tracking_link").children;
+					for (var i = linkList.length-1; i > 0; i--) {
+
+						if (linkList[i].id == "location_tracking_link_1") {
+							continue;
+						}
+						linkList[i].remove();
+
+					}
+					if (initResult.url_Location_tracking.length > 1) {
+						for (var i = 1; i < initResult.url_Location_tracking.length; i++) {
+
+							var element_br = document.createElement("br");
+							document.getElementById("location_tracking_link").append(element_br);
+
+							var number = i+1;
+							var element_a = document.createElement("a");
+							element_a.id = "location_tracking_link_" + number;
+							element_a.href = initResult.url_Location_tracking[i];
+							element_a.target = "_blank";
+							element_a.textContent = '상세 위치 정보를 이용하는 기능에 관해' + number;
+							document.getElementById("location_tracking_link").append(element_a);
+
+						}
+					}
+
+				}
+
+				// ウィンドウを開く
+				openSettings();
+
+			},
+			error: function(xhr, status, error) {
+				console.log("error");
+			}
+		});
+
+	}
+
+	
+	function openSettings() {
+		$("#privacy_settings_modal").show().css('display','flex');
+	}
+
+	
+	function closeSettings() {
+		$("#privacy_settings_modal").hide();
+	}
+
+	
+	function confirmSettings() {
+
+		// 設定ウィンドウは閉じる
+		closeSettings();
+
+		// 差分検証
+		var hasDiff = false;
+		var privacy_notice_agree = document.getElementById("privacy_notice_agree");
+		if (_privacy_notice_agree != privacy_notice_agree.checked) {
+
+			hasDiff = true;
+			document.getElementById("item.privacy_notice").style.display = "block";
+
+			// privacy_notice: 変更前
+			if (_privacy_notice_agree) {
+				document.getElementById("diff.privacy_notice.before.agree").style.display = "inline";
+				document.getElementById("diff.privacy_notice.before.reject").style.display = "none";
+			} else {
+				document.getElementById("diff.privacy_notice.before.agree").style.display = "none";
+				document.getElementById("diff.privacy_notice.before.reject").style.display = "inline";
+			}
+
+			// privacy_notice: 変更後
+			if (privacy_notice_agree.checked) {
+				document.getElementById("diff.privacy_notice.after.agree").style.display = "inline";
+				document.getElementById("diff.privacy_notice.after.reject").style.display = "none";
+			} else {
+				document.getElementById("diff.privacy_notice.after.agree").style.display = "none";
+				document.getElementById("diff.privacy_notice.after.reject").style.display = "inline";
+			}
+
+		} else {
+			document.getElementById("item.privacy_notice").style.display = "none";
+		}
+
+		var location_tracking_agree = document.getElementById("location_tracking_agree");
+		if (_location_tracking_agree != location_tracking_agree.checked) {
+
+			hasDiff = true;
+			document.getElementById("item.location_tracking").style.display = "block";
+
+			// location_tracking: 変更前
+			if (_location_tracking_agree) {
+				document.getElementById("diff.location_tracking.before.agree").style.display = "inline";
+				document.getElementById("diff.location_tracking.before.reject").style.display = "none";
+			} else {
+				document.getElementById("diff.location_tracking.before.agree").style.display = "none";
+				document.getElementById("diff.location_tracking.before.reject").style.display = "inline";
+			}
+
+			// location_tracking: 変更後
+			if (location_tracking_agree.checked) {
+				document.getElementById("diff.location_tracking.after.agree").style.display = "inline";
+				document.getElementById("diff.location_tracking.after.reject").style.display = "none";
+			} else {
+				document.getElementById("diff.location_tracking.after.agree").style.display = "none";
+				document.getElementById("diff.location_tracking.after.reject").style.display = "inline";
+			}
+
+		} else {
+			document.getElementById("item.location_tracking").style.display = "none";
+		}
+
+		// 確認ウィンドウの表示判定
+		if (hasDiff) {
+			$("#privacy_settings_confirm_modal").show().css('display','flex');
+		}
+
+	}
+
+	
+	function cancelSettingsChange() {
+
+		// 確認ウィンドウを閉じる
+		$("#privacy_settings_confirm_modal").hide();
+
+		// 選択の初期化
+		document.getElementById("privacy_notice_agree").checked = _privacy_notice_agree;
+		document.getElementById("privacy_notice_reject").checked = !_privacy_notice_agree;
+		document.getElementById("location_tracking_agree").checked = _location_tracking_agree;
+		document.getElementById("location_tracking_reject").checked = !_location_tracking_agree;
+
+		// 設定ウィンドウを開く
+		openSettings();
+
+	}
+
+	
+	function updateSettings() {
+
+		// 確認ウィンドウを閉じる
+		$("#privacy_settings_confirm_modal").hide();
+
+		// プライバシーノーティスの確認
+		if (document.getElementById("privacy_notice_agree").checked == false) {
+			alertPrivacyNoticeReject();
+			return;
+		}
+
+		// 変更リクエスト
+		requestUpdateSettings();
+
+	}
+
+	
+	function requestUpdateSettings() {
+
+		// リクエストデータ生成
+		var requestData = new FormData();
+		if (document.getElementById("location_tracking_agree").checked) {
+			requestData.append("locationTrackingAgree", "true");
+		} else {
+			requestData.append("locationTrackingAgree", "false");
+		}
+
+		// リクエスト
+		$.ajax({
+			type: "POST",
+			url: "/yugiohdb/update_legal_document.action",
+			data: requestData,
+			dataType: "json",
+			contentType: false,
+		    processData: false,
+			success: function(updateResult) {
+
+				// 設定の更新
+				_privacy_notice_agree = document.getElementById("privacy_notice_agree").checked;
+				_location_tracking_agree = document.getElementById("location_tracking_agree").checked;
+
+			},
+			error: function(xhr, status, error) {
+
+				// 選択の初期化
+				document.getElementById("privacy_notice_agree").checked = _privacy_notice_agree;
+				document.getElementById("privacy_notice_reject").checked = !_privacy_notice_agree;
+				document.getElementById("location_tracking_agree").checked = _location_tracking_agree;
+				document.getElementById("location_tracking_reject").checked = !_location_tracking_agree;
+
+			}
+		});
+
+	}
+
+	
+	function alertPrivacyNoticeReject() {
+
+		// 選択状態のクリア
+		document.getElementById("privacy_notice_agree").checked = true;
+		document.getElementById("privacy_notice_reject").checked = false;
+
+		// 警告を表示
+		$("#alert_privacy_notice_reject_modal").show().css('display','flex');
+
+	}
+
+	
+	function returnSettingsChange() {
+
+		// 選択状態のクリア
+		document.getElementById("privacy_notice_agree").checked = true;
+		document.getElementById("privacy_notice_reject").checked = false;
+
+		// 警告を閉じる
+		$("#alert_privacy_notice_reject_modal").hide();
+
+		// 設定ウィンドウを開く
+		openSettings();
+
+	}
+
+</script>
+
+
+<script type="text/javascript" src="/_Incapsula_Resource?SWJIYLWA=719d34d31c8e3a6e6fffd425f7e032f3&ns=1&cb=1692616311" async></script></body>
+</html>
+

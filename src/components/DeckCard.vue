@@ -91,6 +91,7 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
+import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
@@ -303,7 +304,8 @@ export default {
     async handleInfo() {
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
-        const result = await getCardDetailWithCache(this.card.cardId)
+        const currentLang = detectLanguage(document)
+        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
         const fullCard = result?.detail?.card || this.card
 
         const cardData = {

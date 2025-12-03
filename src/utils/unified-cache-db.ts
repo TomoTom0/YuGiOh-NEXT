@@ -820,7 +820,7 @@ export class UnifiedCacheDB {
    * @param cardId カードID
    * @returns CardInfo（基本情報のみ、text等は含まない）
    */
-  reconstructCardInfo(cardId: string): CardInfo | undefined {
+  reconstructCardInfo(cardId: string, lang?: string): CardInfo | undefined {
     const tableA = this.cardTableA.get(cardId);
     const tableB = this.cardTableB.get(cardId);
 
@@ -829,38 +829,37 @@ export class UnifiedCacheDB {
       return undefined;
     }
 
-    // 言語を取得（ドキュメントから）
-    const lang = detectLanguage(document);
+    // 言語を取得（パラメータで指定されていればそれを使用、なければドキュメントから）
+    const targetLang = lang || detectLanguage(document);
 
     // langsNameから適切な言語を抽出（新形式）
+    // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
+    // これにより呼び出し元で API から再取得できる
     let name: string | undefined;
-    if (tableA.langsName && tableA.langsName[lang]) {
-      name = tableA.langsName[lang];
-    } else if (tableA.langsName) {
-      // 指定言語がない場合は最初の言語を使用
-      const firstLang = Object.keys(tableA.langsName)[0];
-      name = firstLang ? tableA.langsName[firstLang] : undefined;
-    } else if (tableA.name) {
-      // フォールバック: 旧形式のnameを使用（互換性保持）
+    if (tableA.langsName && tableA.langsName[targetLang]) {
+      name = tableA.langsName[targetLang];
+    } else if (!tableA.langsName && tableA.name) {
+      // langsName が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
       name = tableA.name;
     }
 
     if (!name) {
-      console.warn(`[reconstructCardInfo] No name found for cardId=${cardId}, langsName=${JSON.stringify(tableA.langsName)}, name=${tableA.name}`);
+      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in cache for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 
     // langsImgsから適切な言語の画像情報を抽出（新形式）
+    // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
     let imgs: Array<{ciid: string; imgHash: string}>;
-    if (tableA.langsImgs && tableA.langsImgs[lang]) {
-      imgs = tableA.langsImgs[lang];
-    } else if (tableA.langsImgs) {
-      // 指定言語がない場合は最初の言語を使用
-      const firstLang = Object.keys(tableA.langsImgs)[0];
-      imgs = firstLang ? tableA.langsImgs[firstLang] : tableA.imgs || [];
+    if (tableA.langsImgs && tableA.langsImgs[targetLang]) {
+      imgs = tableA.langsImgs[targetLang];
+    } else if (!tableA.langsImgs && tableA.imgs) {
+      // langsImgs が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
+      imgs = tableA.imgs;
     } else {
-      // フォールバック: 旧形式のimgsを使用（互換性保持）
-      imgs = tableA.imgs || [];
+      // 指定言語が見つからない場合は undefined を返す
+      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
+      return undefined;
     }
 
     if (!imgs || imgs.length === 0) {
@@ -872,7 +871,7 @@ export class UnifiedCacheDB {
     const baseInfo = {
       cardId: tableA.cardId,
       name,
-      lang,
+      lang: targetLang,
       imgs,
       ciid: imgs[0]?.ciid || '',
       ruby: tableA.ruby,
@@ -916,28 +915,20 @@ export class UnifiedCacheDB {
       const anyCard: any = resultCard as any;
 
       // langsTextから適切な言語を抽出（新形式）
-      if (tableB2.langsText) {
-        if (tableB2.langsText[lang]) {
-          anyCard.text = tableB2.langsText[lang];
-        } else {
-          const firstLang = Object.keys(tableB2.langsText)[0];
-          if (firstLang) anyCard.text = tableB2.langsText[firstLang];
-        }
-      } else if (tableB2.text) {
-        // フォールバック: 旧形式のtextを使用（互換性保持）
+      // 指定言語が存在しない場合はフォールバックしない
+      if (tableB2.langsText && tableB2.langsText[targetLang]) {
+        anyCard.text = tableB2.langsText[targetLang];
+      } else if (!tableB2.langsText && tableB2.text) {
+        // langsText が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
         anyCard.text = tableB2.text;
       }
 
       // langsPendTextから適切な言語を抽出（新形式）
-      if (tableB2.langsPendText) {
-        if (tableB2.langsPendText[lang]) {
-          anyCard.pendulumText = tableB2.langsPendText[lang];
-        } else {
-          const firstLang = Object.keys(tableB2.langsPendText)[0];
-          if (firstLang) anyCard.pendulumText = tableB2.langsPendText[firstLang];
-        }
-      } else if (tableB2.pendText) {
-        // フォールバック: 旧形式のpendTextを使用（互換性保持）
+      // 指定言語が存在しない場合はフォールバックしない
+      if (tableB2.langsPendText && tableB2.langsPendText[targetLang]) {
+        anyCard.pendulumText = tableB2.langsPendText[targetLang];
+      } else if (!tableB2.langsPendText && tableB2.pendText) {
+        // langsPendText が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
         anyCard.pendulumText = tableB2.pendText;
       }
     }

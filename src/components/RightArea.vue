@@ -99,6 +99,7 @@ const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
 import SearchInputBar from './SearchInputBar.vue'
 import { buildFullUrl } from '../utils/url-builder'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'RightArea',
@@ -219,7 +220,8 @@ export default {
       try {
         // カードクリック時に動的import
         const { getCardDetailWithCache } = await import('../api/card-search')
-        const result = await getCardDetailWithCache(card.cardId)
+        const currentLang = detectLanguage(document)
+        const result = await getCardDetailWithCache(card.cardId, currentLang)
         const fullCard = result?.detail?.card || card
 
         cardDetailStore.setSelectedCard(fullCard)

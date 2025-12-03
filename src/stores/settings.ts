@@ -18,6 +18,7 @@ import {
   CARD_SIZE_MAP
 } from '../types/settings';
 import { detectLanguage } from '../utils/language-detector';
+import { mappingManager } from '../utils/mapping-manager';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -288,6 +289,14 @@ export const useSettingsStore = defineStore('settings', () => {
   function setLanguage(language: Language): void {
     appSettings.value.language = language;
     saveSettings();
+
+    // 言語設定の場合、マッピング情報を確保する
+    if (language !== 'auto') {
+      // 非同期でマッピング情報を取得（言語切り替え時の待機を避けるため）
+      mappingManager.ensureMappingForLanguage(language).catch(error => {
+        console.error('[Settings] Failed to ensure mapping for language:', error);
+      });
+    }
 
     // 言語変更後はページリロードが必要
     // （APIリクエストのlocaleパラメータが変わるため）

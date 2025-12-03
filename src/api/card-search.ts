@@ -1929,6 +1929,7 @@ export async function getCardDetail(
     // 基本情報に補足情報をマージ
     const mergedCard: CardInfo = {
       ...baseCard,
+      lang: requestLocale,  // 重要: 取得した言語を明示的に設定
       imgs: additionalImgs.length > 0 ? additionalImgs : baseCard.imgs,
       ruby: ruby || baseCard.ruby,
       text: textData?.text || baseCard.text
@@ -2008,7 +2009,7 @@ export async function getCardDetailWithCache(
       const isFresh = isSameDayToday && hasRelatedProducts;
 
       // キャッシュからCardDetailを再構築
-      const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC);
+      const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, lang);
 
       if (cachedDetail) {
         // fetchedAtを更新（今日の日付でない場合のみ）
@@ -2070,10 +2071,11 @@ export async function getCardDetailWithCache(
 async function reconstructCardDetailFromCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
   cid: string,
-  tableC: CardTableC
+  tableC: CardTableC,
+  lang?: string
 ): Promise<CardDetail | null> {
-  // CardInfoを再構築
-  const cardInfo = unifiedDB.reconstructCardInfo(cid);
+  // CardInfoを再構築（指定言語で）
+  const cardInfo = unifiedDB.reconstructCardInfo(cid, lang);
   if (!cardInfo) {
     return null;
   }
@@ -2102,6 +2104,9 @@ async function reconstructCardDetailFromCache(
 
 /**
  * CardDetailをキャッシュに保存
+ * Tierに応じた保存先の振り分け：
+ * - Tier 3以上: Table C をUnifiedCacheDBに永続保存
+ * - Tier 0-2: Table C はTempCardDBのみ（セッション中のみ）
  */
 export async function saveCardDetailToCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
@@ -2110,16 +2115,19 @@ export async function saveCardDetailToCache(
 ): Promise<void> {
   const cid = detail.card.cardId;
 
-  // CardInfoをTableA, Bに保存
+  // CardInfoをTableA, Bに保存（全Tierで常に保存）
   unifiedDB.setCardInfo(detail.card, forceUpdate);
 
-  // 関連カードもTableA, Bに保存
+  // 関連カードもTableA, Bに保存（全Tierで常に保存）
   for (const relatedCard of detail.relatedCards) {
     unifiedDB.setCardInfo(relatedCard, forceUpdate);
   }
 
-  // CardTableCを作成して保存
-  // TableCを作成して保存（text/pendTextはTableB2に保存されるので含めない）
+  // Tier値を取得して保存先を決定
+  const tier = unifiedDB.getCardTier(cid);
+
+  // CardTableCを作成
+  // TableCを作成（text/pendTextはTableB2に保存されるので含めない）
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
   const tableC: CardTableC = {
@@ -2131,9 +2139,14 @@ export async function saveCardDetailToCache(
     fetchedAt: Date.now()
   };
 
-  await unifiedDB.setCardTableC(tableC);
+  // Tier 3以上のカードのみTableCをUnifiedCacheDBに永続保存
+  if (tier >= 3) {
+    await unifiedDB.setCardTableC(tableC);
+  }
 
-  // TempCardDBにも保存（detail.cardと関連カード）
+  // TempCardDBに保存（detail.cardと関連カード）
+  // Tier 0-2: Table C 相当のデータはセッション中のみメモリに保持
+  // Tier 3-5: メモリに保持（永続化はUnifiedCacheDB）
   const tempCardDB = getTempCardDB();
   tempCardDB.set(detail.card.cardId, detail.card);
   for (const relatedCard of detail.relatedCards) {

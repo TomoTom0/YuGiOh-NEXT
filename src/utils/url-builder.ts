@@ -95,7 +95,7 @@ export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSe
     // FAQ系統は必ず 'ja' を付与
     url.searchParams.set('request_locale', 'ja');
   } else {
-    // その他は現在の言語を付与
+    // その他はページの言語を付与
     const lang = detectLanguage(document);
     url.searchParams.set('request_locale', lang);
   }

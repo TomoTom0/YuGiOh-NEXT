@@ -11,6 +11,7 @@ import {
 } from '@/types/deck-metadata';
 import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
 import { getDeckMetadata } from '@/utils/deck-metadata-loader';
+import { mappingManager } from '@/utils/mapping-manager';
 
 /**
  * カテゴリラベル（日本語）をIDに変換
@@ -56,6 +57,13 @@ function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
 export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // デッキ表示ページのDOM構造を検証
   validateDeckDetailPageStructure(doc);
+
+  // **重要**: マッピング情報を確保してからカード解析を実行
+  // ページの言語を検出して、その言語のマッピングをロード
+  const lang = detectLanguage(doc);
+  console.log(`[parseDeckDetail] Ensuring mappings for language: ${lang}`);
+  await mappingManager.ensureMappingForLanguage(lang);
+  console.log(`[parseDeckDetail] Mappings ensured, proceeding with card parsing`);
 
   // デッキ番号をURLから取得
   const dno = extractDnoFromPage(doc);
@@ -297,6 +305,7 @@ function parseCardSection(
 ): DeckCardRef[] {
   const deckCardRefs: DeckCardRef[] = [];
   const tempCardDB = getTempCardDB();
+  const lang = detectLanguage(doc);
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
   const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
@@ -333,11 +342,21 @@ function parseCardSection(
       const rows = tBody.querySelectorAll('.t_row');
 
       rows.forEach((row) => {
+        // カード名を取得（エラーログ用）
+        const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
+        const cardName = cardNameElem?.textContent || 'UNKNOWN';
+
+        // 未発売カード（card_back.png）のチェック
+        const cardImgElem = (row as HTMLElement).querySelector('img[src*="card_back.png"]');
+        if (cardImgElem) {
+          console.warn(
+            `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
+          );
+          return;
+        }
+
         const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
         if (!cardInfo) {
-          // カード名を取得してエラーログ出力
-          const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
-          const cardName = cardNameElem?.textContent || 'UNKNOWN';
           console.error(`[parseCardSection] Failed to parse card: ${cardName} (section: ${sectionId})`);
           return;
         }
@@ -359,7 +378,7 @@ function parseCardSection(
           deckCardRefs.push({
             cid,
             ciid: cardInfo.ciid,
-            lang: detectLanguage(document),
+            lang,
             quantity
           });
         } else if (ciidCounts.size === 1) {
@@ -379,7 +398,7 @@ function parseCardSection(
             deckCardRefs.push({
               cid,
               ciid,
-              lang: detectLanguage(document),
+              lang,
               quantity: info.count
             });
           }
@@ -401,7 +420,7 @@ function parseCardSection(
             deckCardRefs.push({
               cid,
               ciid,
-              lang: detectLanguage(document),
+              lang,
               quantity: info.count
             });
           });

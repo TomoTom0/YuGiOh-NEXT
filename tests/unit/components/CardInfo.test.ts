@@ -360,7 +360,7 @@ describe('CardInfo.vue', () => {
       await cardLink.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(getCardDetailWithCache).toHaveBeenCalledWith('4007', undefined, true, 'release_desc', true);
+      expect(getCardDetailWithCache).toHaveBeenCalledWith('4007', 'ja', true, 'release_desc', true);
     });
 
     it('カードリンククリックでdeckStoreが更新される', async () => {

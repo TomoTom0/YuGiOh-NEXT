@@ -86,12 +86,15 @@ function extractMonsterTypeMapping(doc: Document): Partial<Record<MonsterType, s
   const monsterTypeMap: Partial<Record<MonsterType, string>> = {};
 
   // Card Type フィルタで MonsterType 項目を抽出
+  // 注意: 言語により h3 のテキストが異なるため、テキストチェックは行わず、
+  // input[name="other"] の存在で MonsterType フィルタを判定
   const cardTypeFilters = doc.querySelectorAll('[id*="filter_other"]');
 
   cardTypeFilters.forEach((filter) => {
-    // Card Type フィルタ（最初のfilter_other）を特定
-    const title = filter.querySelector('h3');
-    if (!title || !title.textContent?.includes('Card Type')) {
+    // input[name="other"] が存在するかをチェック（MonsterType フィルタを判定）
+    const sampleInput = filter.querySelector('input[name="other"]');
+    if (!sampleInput) {
+      // このフィルタには MonsterType データがない
       return;
     }
 
@@ -134,6 +137,10 @@ function extractRaceMapping(doc: Document): Partial<Record<Race, string>> {
   }
 
   const listItems = speciesFilter.querySelectorAll('li');
+  if (listItems.length === 0) {
+    console.warn('[extractRaceMapping] No list items found in species filter');
+    return raceMap;
+  }
 
   listItems.forEach((li) => {
     const span = li.querySelector('span');
@@ -150,11 +157,14 @@ function extractRaceMapping(doc: Document): Partial<Record<Race, string>> {
         if (raceId) {
           // 内部値 → その言語での表示テキスト のマッピング
           raceMap[raceId] = displayText;
+        } else {
+          console.debug(`[extractRaceMapping] Failed to convert value "${value}" to raceId for "${displayText}"`);
         }
       }
     }
   });
 
+  console.log(`[extractRaceMapping] Extracted ${Object.keys(raceMap).length} race mappings`);
   return raceMap;
 }
 

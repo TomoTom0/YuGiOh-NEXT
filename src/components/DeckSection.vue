@@ -59,7 +59,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { mdiShuffle, mdiSort } from '@mdi/js'
-import { getTempCardDB } from '../utils/temp-card-db'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'DeckSection',
@@ -101,11 +102,19 @@ export default {
     })
     
     // (cid, ciid)ペアでカード情報を取得
+    // デッキに格納された ciid を使用して正しい画像を参照させる
+    // UnifiedCacheDB から完全な CardInfo（複数画像含む）を取得
+    // Table A（複数画像情報）は UnifiedCacheDB にのみ保存されている
     const getCardInfo = (cid: string, ciid: number) => {
-      const tempCardDB = getTempCardDB()
-      const cardInfo = tempCardDB.get(cid)
+      const unifiedDB = getUnifiedCacheDB()
+      const lang = detectLanguage(document)
+
+      // UnifiedCacheDB から完全なカード情報を取得（複数画像情報を含む）
+      const cardInfo = unifiedDB.reconstructCardInfo(cid, lang)
+
       if (!cardInfo) return null
-      // ciidを反映させて返す（TempCardDB は cid をキーにしているため、ciid を別途設定）
+
+      // デッキに格納されている ciid に上書き（ユーザーが選択した画像を優先）
       return { ...cardInfo, ciid: String(ciid) }
     }
 
