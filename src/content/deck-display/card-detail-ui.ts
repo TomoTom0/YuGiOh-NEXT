@@ -68,8 +68,14 @@ export async function initCardDetailUI(): Promise<void> {
         );
       }
 
-      // deckStore へのアクセスは コンテンツスクリプト環境で制限されるため
-      // ここではコンソールログのみ出力
+      // カスタムイベントで Vue アプリにトースト通知を発火
+      // Vue アプリ側（DeckEditTopBar.vue など）が listen して showToast() を実行
+      window.dispatchEvent(new CustomEvent('ygo-unreleased-cards-skipped', {
+        detail: {
+          count: skippedCount,
+          cards: skippedDetails
+        }
+      }));
     }
   } catch (error) {
     console.error('[CardDetailUI] Failed to parse deck info:', error);

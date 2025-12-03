@@ -142,22 +142,20 @@
       @cancel="cancelUnsavedChanges"
     />
 
-    <Toast
-      :show="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="toast.show = false"
-    />
+    <!-- Toast Container for displaying notifications from store -->
+    <ToastContainer />
 
 
   </div>
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
+import { useToastStore } from '../stores/toast-notification'
 import Toast from './Toast.vue'
+import ToastContainer from './ToastContainer.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
@@ -174,11 +172,13 @@ export default {
   name: 'DeckEditTopBar',
   components: {
     Toast,
+    ToastContainer,
     ConfirmDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const { showToast: dispatchToast } = useToastStore()
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
@@ -189,13 +189,17 @@ export default {
       message: '',
       type: 'info'
     })
-    
+
     // Unsaved changes handling
     const pendingAction = ref<(() => void) | null>(null)
     const unsavedChangesTitle = ref('未保存の変更')
     const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
     const showToast = (message: string, type = 'info') => {
+      // ストアを使用してトースト通知を表示
+      dispatchToast(message, type as 'success' | 'error' | 'info' | 'warning')
+
+      // 従来の toast オブジェクト（既に使用されている可能性）もサポート
       toast.message = message
       toast.type = type
       toast.show = true
@@ -572,6 +576,28 @@ export default {
     const cancelDelete = () => {
       deckStore.showDeleteConfirm = false
     }
+
+    // Listen for unreleased cards skipped event from content script
+    onMounted(() => {
+      window.addEventListener('ygo-unreleased-cards-skipped', (event: Event) => {
+        const customEvent = event as CustomEvent
+        const detail = customEvent.detail || {}
+        const count = detail.count || 0
+        const cards = detail.cards || []
+
+        if (count > 0) {
+          dispatchToast(`${count}枚の未発売カードをスキップしました`, 'warning')
+
+          // Log skipped cards for debugging
+          if (cards.length > 0) {
+            console.info(
+              '[DeckEditTopBar] Unreleased cards skipped:',
+              cards.map((card: any) => `${card.name} (cid: ${card.cid}, lang: ${card.lang})`).join(', ')
+            )
+          }
+        }
+      })
+    })
 
     return {
       deckStore,
