@@ -168,43 +168,21 @@ export const ATTRIBUTE_PATH_TO_ID: Record<string, Attribute> = {
  * モンスタータイプの内部ID → 整数ID マッピング
  */
 export const MONSTER_TYPE_ID_TO_INT = {
-  'normal': 1,
-  'effect': 2,
-  'fusion': 3,
-  'ritual': 4,
-  'synchro': 5,
-  'xyz': 6,
-  'pendulum': 7,
-  'link': 8,
-  'tuner': 9,
-  'spirit': 10,
-  'union': 11,
-  'gemini': 12,
-  'flip': 13,
-  'toon': 14,
-  'special': 15,
-} as const;
-
-/**
- * HTMLのvalue属性 → 内部ID マッピング（MonsterTypeフィルタ用）
- * 検索ページの"other"フィルタのvalue値から内部IDへの逆引き
- */
-export const MONSTER_TYPE_VALUE_TO_ID = {
-  0: 'normal',      // Normal
-  1: 'effect',      // Effect
-  2: 'fusion',      // Fusion
-  3: 'ritual',      // Ritual
-  4: 'toon',        // Toon
-  5: 'spirit',      // Spirit
-  6: 'union',       // Union
-  7: 'gemini',      // Gemini
-  8: 'tuner',       // Tuner
-  9: 'synchro',     // Synchro
-  10: 'xyz',        // Xyz
-  14: 'flip',       // Flip
-  15: 'pendulum',   // Pendulum
-  16: 'special',    // Special Summon
-  17: 'link',       // Link
+  'normal': 0,
+  'effect': 1,
+  'fusion': 2,
+  'ritual': 3,
+  'toon': 4,
+  'spirit': 5,
+  'union': 6,
+  'gemini': 7,
+  'tuner': 8,
+  'synchro': 9,
+  'xyz': 10,
+  'flip': 14,
+  'pendulum': 15,
+  'special': 16,
+  'link': 17,
 } as const;
 
 export type MonsterType = keyof typeof MONSTER_TYPE_ID_TO_INT;

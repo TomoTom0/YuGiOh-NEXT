@@ -637,7 +637,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: movingDisplayCard.lang, quantity: 1 });
+      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: deckCard.lang, quantity: 1 });
     }
     
     // 移動したカードのuuidを返す

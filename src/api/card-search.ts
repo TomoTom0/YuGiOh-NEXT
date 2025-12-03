@@ -28,7 +28,7 @@ import {
   TRAP_EFFECT_TYPE_MAP,
   ATTRIBUTE_ID_TO_INT,
   RACE_ID_TO_INT,
-  MONSTER_TYPE_VALUE_TO_ID,
+  MONSTER_TYPE_ID_TO_INT,
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT
 } from '@/types/card-maps';
@@ -63,17 +63,11 @@ function getRaceSpeciesValue(race: Race): string {
 
 /**
  * モンスタータイプ → other値のマッピング
- * card-maps.ts の MONSTER_TYPE_VALUE_TO_ID の逆引き
- * HTMLフォーム値（整数）から内部IDへのマッピングを逆引き
+ * MONSTER_TYPE_ID_TO_INT から type に対応する値を取得
  */
 function getMonsterTypeOtherValue(type: MonsterType): string {
-  // MONSTER_TYPE_VALUE_TO_ID は value → id なので、逆引きして id → value を取得
-  for (const [value, id] of Object.entries(MONSTER_TYPE_VALUE_TO_ID)) {
-    if (id === type) {
-      return value;
-    }
-  }
-  return '';
+  const value = MONSTER_TYPE_ID_TO_INT[type];
+  return value !== undefined ? String(value) : '';
 }
 
 /**
