@@ -380,23 +380,30 @@ export function parseCardSection(
       rows.forEach((row) => {
         // カード名を取得（エラーログ用）
         const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
-        const cardName = cardNameElem?.textContent || 'UNKNOWN';
+        let cardName = cardNameElem?.textContent?.trim() || '';
 
         // 未発売カード（card_back.png）のチェック
         const cardImgElem = (row as HTMLElement).querySelector('img[src*="card_back.png"]');
         if (cardImgElem) {
+          // 未発売カードの場合、より詳細な情報を取得
+          // card_info_code セルからカード情報を取得
+          const cardCodeElem = (row as HTMLElement).querySelector('.card_info_code');
+          const cid = cardCodeElem?.textContent?.trim() || '';
+
+          // cardName が取得できなかった場合は、cid の代わりに"未発売カード"と表示
+          if (!cardName && cid) {
+            cardName = `カード(${cid})`;
+          } else if (!cardName) {
+            cardName = '未発売カード';
+          }
+
           console.warn(
             `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
           );
           skippedCount++;
 
           // スキップされたカード情報を記録
-          // 未発売カードは parseSearchResultRow をスキップ（マッピング不完全でエラーになる可能性）
-          // card_info_code から cid を取得
-          const cardCodeElem = (row as HTMLElement).querySelector('.card_info_code');
-          const cid = cardCodeElem?.textContent?.trim() || 'UNKNOWN';
-
-          if (cid !== 'UNKNOWN') {
+          if (cid) {
             skippedCards.push({
               cid,
               name: cardName,
