@@ -150,7 +150,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
@@ -365,21 +365,6 @@ export default {
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
-
-        // 未発売カードがスキップされた場合は追加通知
-        if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-          const skippedCards = deckStore.deckInfo.skippedCards || []
-          let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
-
-          // スキップされたカード名を通知に含める
-          if (skippedCards.length > 0) {
-            const cardNames = skippedCards.map(c => c.name).join('、')
-            message = `${message}\n[${cardNames}]`
-          }
-
-          showToast(message, 'warning')
-          console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
-        }
       } catch (error) {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
@@ -392,21 +377,6 @@ export default {
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
-
-        // 未発売カードがスキップされた場合は追加通知
-        if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-          const skippedCards = deckStore.deckInfo.skippedCards || []
-          let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
-
-          // スキップされたカード名を通知に含める
-          if (skippedCards.length > 0) {
-            const cardNames = skippedCards.map(c => c.name).join('、')
-            message = `${message}\n[${cardNames}]`
-          }
-
-          showToast(message, 'warning')
-          console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
-        }
       } catch (error) {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
@@ -420,21 +390,6 @@ export default {
           await deckStore.reloadDeck()
           deckStore.setDeckName('')
           showToast('デッキを再読み込みしました', 'success')
-
-          // 未発売カードがスキップされた場合は追加通知
-          if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-            const skippedCards = deckStore.deckInfo.skippedCards || []
-            let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
-
-            // スキップされたカード名を通知に含める
-            if (skippedCards.length > 0) {
-              const cardNames = skippedCards.map(c => c.name).join('、')
-              message = `${message}\n[${cardNames}]`
-            }
-
-            showToast(message, 'warning')
-            console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
-          }
         } catch (error) {
           console.error('Reload error:', error)
           showToast('再読み込みエラーが発生しました', 'error')
@@ -606,6 +561,22 @@ export default {
     const cancelDelete = () => {
       deckStore.showDeleteConfirm = false
     }
+
+    // 未発売カード通知イベントをリッスン
+    onMounted(() => {
+      window.addEventListener('ygo-unreleased-cards-skipped', (event: Event) => {
+        const customEvent = event as CustomEvent
+        const { count, cards } = customEvent.detail || {}
+        if (count > 0) {
+          let message = `${count}枚の未発売カードをスキップしました`
+          if (cards && cards.length > 0) {
+            const cardNames = cards.map((c: any) => c.name).join('、')
+            message = `${message}\n[${cardNames}]`
+          }
+          showToast(message, 'warning')
+        }
+      })
+    })
 
     return {
       deckStore,

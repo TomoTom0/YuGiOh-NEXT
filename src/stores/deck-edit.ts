@@ -1345,13 +1345,25 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         saveTempCardDBToStorage().catch(error => {
           console.error('Failed to save TempCardDB to storage:', error);
         });
-        
+
         // コマンド履歴をリセット
         commandHistory.value = [];
         commandIndex.value = -1;
-        
+
         // Load時点のスナップショットを保存
         savedDeckSnapshot.value = captureDeckSnapshot();
+
+        // 未発売カード通知を発火（skippedCards があれば）
+        if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
+          const skippedCards = loadedDeck.skippedCards || [];
+          // カスタムイベントで Vue アプリにトースト通知を発火
+          window.dispatchEvent(new CustomEvent('ygo-unreleased-cards-skipped', {
+            detail: {
+              count: loadedDeck.skippedCardsCount,
+              cards: skippedCards
+            }
+          }));
+        }
       }
     } catch (error) {
       console.error('Failed to load deck:', error);
