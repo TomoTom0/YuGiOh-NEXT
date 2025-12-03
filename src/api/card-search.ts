@@ -21,9 +21,9 @@ import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { getTempCardDB } from '@/utils/temp-card-db';
 import {
-  ATTRIBUTE_PATH_TO_ID,
-  SPELL_EFFECT_PATH_TO_ID,
-  TRAP_EFFECT_PATH_TO_ID,
+  ATTRIBUTE_ID_TO_PATH,
+  SPELL_EFFECT_TYPE_ID_TO_PATH,
+  TRAP_EFFECT_TYPE_ID_TO_PATH,
   SPELL_EFFECT_TYPE_ID_TO_NAME,
   TRAP_EFFECT_TYPE_ID_TO_NAME,
   ATTRIBUTE_ID_TO_INT,
@@ -1019,8 +1019,14 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   }
   const attrPath = attrMatch[1];
 
-  // パス → 識別子に変換
-  const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
+  // パス → 識別子に変換（逆引き）
+  let attribute: Attribute | null = null;
+  for (const [attr, path] of Object.entries(ATTRIBUTE_ID_TO_PATH)) {
+    if (path === attrPath) {
+      attribute = attr as Attribute;
+      break;
+    }
+  }
   if (!attribute) {
     console.error('[parseMonsterCard] Unknown attribute path:', attrPath, 'for card:', base.name);
     return null;
@@ -1210,7 +1216,13 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        effectType = SPELL_EFFECT_PATH_TO_ID[match[1]];
+        // パス → 識別子に変換（逆引き）
+        for (const [type, path] of Object.entries(SPELL_EFFECT_TYPE_ID_TO_PATH)) {
+          if (path === match[1]) {
+            effectType = type as SpellEffectType;
+            break;
+          }
+        }
       }
     }
   }
@@ -1251,7 +1263,13 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        effectType = TRAP_EFFECT_PATH_TO_ID[match[1]];
+        // パス → 識別子に変換（逆引き）
+        for (const [type, path] of Object.entries(TRAP_EFFECT_TYPE_ID_TO_PATH)) {
+          if (path === match[1]) {
+            effectType = type as TrapEffectType;
+            break;
+          }
+        }
       }
     }
   }
@@ -1547,7 +1565,14 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
     return null;
   }
 
-  const attribute = ATTRIBUTE_PATH_TO_ID[attrMatch[1]];
+  // パス → 識別子に変換（逆引き）
+  let attribute: Attribute | null = null;
+  for (const [attr, path] of Object.entries(ATTRIBUTE_ID_TO_PATH)) {
+    if (path === attrMatch[1]) {
+      attribute = attr as Attribute;
+      break;
+    }
+  }
   if (!attribute) {
     console.error('[parseMonsterDetailBasicInfo] Unknown attribute:', attrMatch[1]);
     return null;

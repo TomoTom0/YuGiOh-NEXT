@@ -146,11 +146,10 @@ export const ATTRIBUTE_ID_TO_NAME = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "attribute_icon_light.png" → "light" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 属性の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "attribute_icon_light.png" → "light" の部分に対応
  */
-export const ATTRIBUTE_PATH_TO_ID: Record<string, Attribute> = {
+export const ATTRIBUTE_ID_TO_PATH: Record<Attribute, string> = {
   'light': 'light',
   'dark': 'dark',
   'water': 'water',
@@ -273,12 +272,12 @@ export const SPELL_EFFECT_TYPE_ID_TO_LABEL = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 魔法効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分に対応
  */
-export const SPELL_EFFECT_PATH_TO_ID: Record<string, SpellEffectType> = {
-  'quickplay': 'quick',
+export const SPELL_EFFECT_TYPE_ID_TO_PATH: Record<SpellEffectType, string> = {
+  'normal': 'normal',
+  'quick': 'quickplay',
   'continuous': 'continuous',
   'equip': 'equip',
   'field': 'field',
@@ -320,11 +319,11 @@ export const TRAP_EFFECT_TYPE_ID_TO_LABEL = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 罠効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分に対応
  */
-export const TRAP_EFFECT_PATH_TO_ID: Record<string, TrapEffectType> = {
+export const TRAP_EFFECT_TYPE_ID_TO_PATH: Record<TrapEffectType, string> = {
+  'normal': 'normal',
   'continuous': 'continuous',
   'counter': 'counter',
 };
