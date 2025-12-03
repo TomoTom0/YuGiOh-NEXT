@@ -181,10 +181,10 @@ describe('stores/settings', () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      const setPropertySpy = vi.spyOn(document.documentElement.style, 'setProperty');
+      const setAttributeSpy = vi.spyOn(document.documentElement, 'setAttribute');
       store.setTheme('dark');
 
-      expect(setPropertySpy).toHaveBeenCalled();
+      expect(setAttributeSpy).toHaveBeenCalledWith('data-ygo-next-theme', 'dark');
     });
 
     it('should support system theme', async () => {
