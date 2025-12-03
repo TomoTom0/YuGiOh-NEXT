@@ -4,21 +4,66 @@
  * - saveCardDetailToCache()のTempCardDB自動保存
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { parseSearchResults, saveCardDetailToCache } from '@/api/card-search';
 import { getTempCardDB, resetTempCardDB } from '@/utils/temp-card-db';
-import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { getUnifiedCacheDB, resetUnifiedCacheDB } from '@/utils/unified-cache-db';
 import type { CardDetail } from '@/types/card';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('parseSearchResults - TempCardDB自動保存', () => {
+  let mockStorage: Record<string, any>;
+
   beforeEach(() => {
+    // chrome.storage.local のモック
+    mockStorage = {};
+    global.chrome = {
+      storage: {
+        local: {
+          get: vi.fn((keysOrNull, callback) => {
+            let result: Record<string, any> = {};
+            if (Array.isArray(keysOrNull)) {
+              keysOrNull.forEach(key => {
+                if (mockStorage[key]) {
+                  result[key] = mockStorage[key];
+                }
+              });
+            } else if (keysOrNull === null || keysOrNull === undefined) {
+              result = { ...mockStorage };
+            }
+            if (callback) {
+              callback(result);
+            }
+            return Promise.resolve(result);
+          }),
+          set: vi.fn((items, callback) => {
+            Object.assign(mockStorage, items);
+            if (callback) callback();
+            return Promise.resolve();
+          }),
+          remove: vi.fn((keys, callback) => {
+            if (Array.isArray(keys)) {
+              keys.forEach(key => {
+                delete mockStorage[key];
+              });
+            }
+            if (callback) callback();
+            return Promise.resolve();
+          })
+        }
+      },
+      runtime: {
+        id: 'test-extension-id'
+      }
+    } as any;
+
     resetTempCardDB();
+    resetUnifiedCacheDB();
   });
 
   it('検索結果のカードがTempCardDBに保存される', () => {
@@ -67,8 +112,53 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
 });
 
 describe('saveCardDetailToCache - TempCardDB自動保存', () => {
+  let mockStorage: Record<string, any>;
+
   beforeEach(() => {
+    // chrome.storage.local のモック
+    mockStorage = {};
+    global.chrome = {
+      storage: {
+        local: {
+          get: vi.fn((keysOrNull, callback) => {
+            let result: Record<string, any> = {};
+            if (Array.isArray(keysOrNull)) {
+              keysOrNull.forEach(key => {
+                if (mockStorage[key]) {
+                  result[key] = mockStorage[key];
+                }
+              });
+            } else if (keysOrNull === null || keysOrNull === undefined) {
+              result = { ...mockStorage };
+            }
+            if (callback) {
+              callback(result);
+            }
+            return Promise.resolve(result);
+          }),
+          set: vi.fn((items, callback) => {
+            Object.assign(mockStorage, items);
+            if (callback) callback();
+            return Promise.resolve();
+          }),
+          remove: vi.fn((keys, callback) => {
+            if (Array.isArray(keys)) {
+              keys.forEach(key => {
+                delete mockStorage[key];
+              });
+            }
+            if (callback) callback();
+            return Promise.resolve();
+          })
+        }
+      },
+      runtime: {
+        id: 'test-extension-id'
+      }
+    } as any;
+
     resetTempCardDB();
+    resetUnifiedCacheDB();
   });
 
   it('カード詳細と関連カードがTempCardDBに保存される', async () => {
