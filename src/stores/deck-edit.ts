@@ -1357,6 +1357,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
           const skippedCards = loadedDeck.skippedCards || [];
           // カスタムイベントで Vue アプリにトースト通知を発火
+          console.debug(`[deck-edit.ts] Dispatching ygo-unreleased-cards-skipped event for ${loadedDeck.skippedCardsCount} cards`);
           window.dispatchEvent(new CustomEvent('ygo-unreleased-cards-skipped', {
             detail: {
               count: loadedDeck.skippedCardsCount,

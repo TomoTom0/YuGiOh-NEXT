@@ -7,10 +7,13 @@
         class="toast"
         :class="notification.type"
       >
-        <div class="toast-content">
+        <div class="toast-header">
           <span class="toast-icon">{{ getIcon(notification.type) }}</span>
-          <span class="toast-message">{{ notification.message }}</span>
+          <span class="toast-title">{{ notification.title || notification.message }}</span>
           <button class="toast-close" @click="toastStore.removeToast(notification.id)">×</button>
+        </div>
+        <div v-if="notification.body" class="toast-body">
+          {{ notification.body }}
         </div>
       </div>
     </transition-group>
@@ -37,7 +40,7 @@ const getIcon = (type: string): string => {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 999999;
+  z-index: 100000;
   pointer-events: none;
 
   > div {
@@ -46,83 +49,98 @@ const getIcon = (type: string): string => {
 }
 
 .toast {
-  min-width: 280px;
-  max-width: 400px;
-  padding: 14px 18px;
+  min-width: 300px;
+  max-width: 420px;
   margin-bottom: 12px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   background: var(--toast-bg);
-  border-left: 4px solid;
+  border-left: 5px solid;
+  overflow: hidden;
 
   &.success {
     border-left-color: var(--color-success);
-    background: var(--toast-success-bg);
+
+    .toast-header {
+      background: linear-gradient(135deg, var(--color-success) 0%, rgba(76, 175, 80, 0.8) 100%);
+    }
   }
 
   &.error {
     border-left-color: var(--color-error);
-    background: var(--toast-error-bg);
+
+    .toast-header {
+      background: linear-gradient(135deg, var(--color-error) 0%, rgba(244, 67, 54, 0.8) 100%);
+    }
   }
 
   &.warning {
     border-left-color: var(--color-warning);
-    background: var(--toast-warning-bg);
+
+    .toast-header {
+      background: linear-gradient(135deg, var(--color-warning) 0%, rgba(255, 152, 0, 0.8) 100%);
+    }
   }
 
   &.info {
     border-left-color: var(--color-info);
-    background: var(--toast-info-bg);
+
+    .toast-header {
+      background: linear-gradient(135deg, var(--color-info) 0%, rgba(33, 150, 243, 0.8) 100%);
+    }
   }
 }
 
-.toast-content {
+.toast-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #ffffff;
+  font-weight: 500;
 }
 
 .toast-icon {
   font-size: 18px;
   font-weight: bold;
   flex-shrink: 0;
-
-  .success & {
-    color: var(--color-success);
-  }
-
-  .error & {
-    color: var(--color-error);
-  }
-
-  .warning & {
-    color: var(--color-warning);
-  }
-
-  .info & {
-    color: var(--color-info);
-  }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.toast-message {
-  font-size: 14px;
-  color: var(--text-primary);
-  line-height: 1.4;
+.toast-title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
   flex: 1;
 }
 
 .toast-close {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #ffffff;
   padding: 0;
   flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
-    color: var(--text-primary);
+    opacity: 0.8;
   }
+}
+
+.toast-body {
+  padding: 0 16px 12px 40px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  background: var(--toast-bg);
 }
 
 .toast-enter-active,

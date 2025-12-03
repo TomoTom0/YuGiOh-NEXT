@@ -6,6 +6,8 @@ export interface ToastNotification {
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
+  title?: string;
+  body?: string;
 }
 
 /**
@@ -27,12 +29,14 @@ export const useToastStore = defineStore('toast', () => {
    * トースト通知を表示
    * @param message 通知メッセージ
    * @param type 通知タイプ（success|error|info|warning）
+   * @param body 通知本文（オプション）
    * @param duration 表示時間（ミリ秒、デフォルト3000）
    * @returns 通知ID
    */
   const showToast = (
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' = 'info',
+    body?: string,
     duration: number = 3000
   ): string => {
     const id = `toast-${Date.now()}-${Math.random()}`;
@@ -40,7 +44,9 @@ export const useToastStore = defineStore('toast', () => {
       id,
       message,
       type,
-      duration
+      duration,
+      title: message,
+      body: body
     };
 
     toasts.value.push(toast);

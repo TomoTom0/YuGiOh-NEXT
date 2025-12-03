@@ -195,13 +195,34 @@ export default {
     const unsavedChangesTitle = ref('未保存の変更')
     const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
-    const showToast = (message: string, type = 'info') => {
+    const showToast = (messageOrObj: string | { title: string; body: string; type: string }, type = 'info') => {
+      let finalMessage: string
+      let finalType: string
+
+      if (typeof messageOrObj === 'string') {
+        finalMessage = messageOrObj
+        finalType = type
+      } else {
+        // オブジェクト形式：title と body を改行で連結
+        finalMessage = messageOrObj.body
+          ? `${messageOrObj.title}\n${messageOrObj.body}`
+          : messageOrObj.title
+        finalType = messageOrObj.type
+
+        // ストアに構造化データとして渡す
+        dispatchToast(messageOrObj.title, messageOrObj.type as any, messageOrObj.body)
+        toast.message = finalMessage
+        toast.type = finalType
+        toast.show = true
+        return
+      }
+
       // ストアを使用してトースト通知を表示
-      dispatchToast(message, type as 'success' | 'error' | 'info' | 'warning')
+      dispatchToast(finalMessage, finalType as 'success' | 'error' | 'info' | 'warning')
 
       // 従来の toast オブジェクト（既に使用されている可能性）もサポート
-      toast.message = message
-      toast.type = type
+      toast.message = finalMessage
+      toast.type = finalType
       toast.show = true
     }
     
@@ -564,10 +585,13 @@ export default {
 
     // 未発売カード通知イベントをリッスン
     const handleUnreleasedCardsSkipped = (event: Event) => {
+      console.debug('[DeckEditTopBar] handleUnreleasedCardsSkipped called')
       const customEvent = event as CustomEvent
       const { count, cards } = customEvent.detail || {}
       if (count > 0) {
-        let message = `${count}枚の未発売カードをスキップしました`
+        console.debug(`[DeckEditTopBar] Showing toast for ${count} unreleased cards`)
+        // メッセージを構造化して送信
+        let cardList = ''
         if (cards && cards.length > 0) {
           // 最大3枚までのカード名を表示
           const displayCards = cards.slice(0, 3)
@@ -575,20 +599,27 @@ export default {
           const remainCount = cards.length - displayCards.length
 
           if (remainCount > 0) {
-            message = `${message}\n${cardNames} ほか${remainCount}枚`
+            cardList = `${cardNames} ほか${remainCount}枚`
           } else {
-            message = `${message}\n${cardNames}`
+            cardList = cardNames
           }
         }
-        showToast(message, 'warning')
+
+        showToast({
+          title: `${count}枚の未発売カードをスキップしました`,
+          body: cardList,
+          type: 'warning'
+        } as any)
       }
     }
 
     onMounted(() => {
+      console.debug('[DeckEditTopBar] Mounted: adding event listener for ygo-unreleased-cards-skipped')
       window.addEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
     })
 
     onUnmounted(() => {
+      console.debug('[DeckEditTopBar] Unmounted: removing event listener for ygo-unreleased-cards-skipped')
       window.removeEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
     })
 
