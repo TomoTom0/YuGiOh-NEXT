@@ -13,7 +13,7 @@
       <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
       <Transition name="dropdown">
         <div v-if="showSearchModeDropdown" class="mode-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
-          <div class="mode-option" @click="selectSearchMode('auto')">自動(カード名+テキスト+Pテキスト)</div>
+          <div class="mode-option" @click="selectSearchMode('auto')">自動</div>
           <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
           <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
           <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>

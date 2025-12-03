@@ -130,8 +130,8 @@
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
-            <strong>自動（カード名+テキスト+Pテキスト）</strong>
-            <span class="radio-desc">すべてのフィールドで検索</span>
+            <strong>自動</strong>
+            <span class="radio-desc">カード名+テキスト+Pテキストで検索</span>
           </span>
         </label>
         <label
