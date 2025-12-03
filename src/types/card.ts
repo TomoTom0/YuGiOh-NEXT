@@ -412,8 +412,10 @@ export interface CardTableB {
   /** 禁止制限 */
   limitRegulation?: 'forbidden' | 'limited' | 'semi-limited';
 
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+  /** 取得日時（旧形式、互換性保持用） */
+  fetchedAt?: number;
 }
 
 /**
@@ -457,10 +459,14 @@ export interface CardTableC {
   /** ペンデュラム補足情報の日付 */
   pendSupplDate?: string;
 
-  // 関連情報
-  /** 関連カードID一覧 */
+  // 関連情報（多言語対応）
+  /** 関連カードID一覧（多言語対応: {lang: cardIds[]} 形式） */
+  langsRelatedCards?: Record<string, string[]>;
+  /** 関連カードID一覧（旧形式、互換性保持用） */
   relatedCards?: string[];
-  /** 関連パックID一覧 */
+  /** 関連パックID一覧（多言語対応: {lang: packIds[]} 形式） */
+  langsRelatedProducts?: Record<string, string[]>;
+  /** 関連パックID一覧（旧形式、互換性保持用） */
   relatedProducts?: string[];
 
   // キャッシュ用の追加情報
@@ -469,8 +475,10 @@ export interface CardTableC {
   /** Q&A情報 */
   qaList?: CardFAQ[];
 
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+  /** 取得日時（旧形式、互換性保持用） */
+  fetchedAt?: number;
 }
 
 /**
@@ -495,10 +503,13 @@ export interface ProductTableA {
  * ProductTableB: パック詳細情報
  * 対象: パック詳細を展開した場合
  * 用途: パック内カードリスト表示
+ * PK: packId + lang（言語別に管理）
  */
 export interface ProductTableB {
   /** パックID (PK) */
   packId: string;
+  /** 言語コード (PK) */
+  lang: string;
   /** パック内カード一覧 */
   cards: Array<{
     cardId: string;
