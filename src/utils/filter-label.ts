@@ -4,104 +4,54 @@
  */
 
 import {
-  ATTRIBUTE_OPTIONS,
-  SPELL_TYPE_OPTIONS,
-  TRAP_TYPE_OPTIONS
-} from '../constants/filter-options';
+  RACE_ID_TO_SHORTNAME,
+  ATTRIBUTE_ID_TO_NAME,
+  CARD_TYPE_ID_TO_SHORTNAME,
+  MONSTER_TYPE_ID_TO_SHORTNAME,
+  SPELL_EFFECT_TYPE_ID_TO_LABEL,
+  TRAP_EFFECT_TYPE_ID_TO_LABEL
+} from '@/types/card-maps';
 
 /**
  * 属性のラベルを取得（チップ用）
  */
 export function getAttributeLabel(value: string): string {
-  const option = ATTRIBUTE_OPTIONS.find(opt => opt.value === value);
-  return option ? option.label : value;
+  return (ATTRIBUTE_ID_TO_NAME as Record<string, string>)[value] || value;
 }
 
 /**
  * カードタイプのラベルを取得（チップ用短縮形）
  */
 export function getCardTypeLabel(value: string): string {
-  const labels: Record<string, string> = {
-    monster: 'M',
-    spell: '魔',
-    trap: '罠'
-  };
-  return labels[value] || value;
+  return (CARD_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
 }
 
 /**
  * モンスタータイプのラベルを取得（チップ用短縮形）
  */
 export function getMonsterTypeLabel(value: string): string {
-  const labels: Record<string, string> = {
-    normal: '通',
-    effect: '効',
-    fusion: '融',
-    ritual: '儀',
-    synchro: 'S',
-    xyz: 'X',
-    pendulum: 'P',
-    link: 'L',
-    tuner: 'T',
-    flip: 'R',
-    toon: 'ト',
-    spirit: 'ス',
-    union: 'U',
-    gemini: 'D',
-    special: '特'
-  };
-  return labels[value] || value;
+  return (MONSTER_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
 }
 
 /**
  * 種族のラベルを取得（チップ用短縮形）
  */
 export function getRaceLabel(value: string): string {
-  const labels: Record<string, string> = {
-    dragon: '龍',
-    spellcaster: '魔使',
-    warrior: '戦士',
-    machine: '機械',
-    fiend: '悪魔',
-    fairy: '天使',
-    zombie: '不死',
-    beast: '獣',
-    beastwarrior: '獣戦',
-    plant: '植物',
-    insect: '昆虫',
-    aqua: '水',
-    fish: '魚',
-    seaserpent: '海竜',
-    reptile: '爬虫',
-    dinosaur: '恐竜',
-    windbeast: '鳥獣',
-    rock: '岩石',
-    pyro: '炎',
-    thunder: '雷',
-    psychic: '念動',
-    wyrm: '幻竜',
-    cyberse: '電脳',
-    illusion: '幻想',
-    divine: '幻神',
-    creatorgod: '創造'
-  };
-  return labels[value] || value.slice(0, 1);
+  return (RACE_ID_TO_SHORTNAME as Record<string, string>)[value] || value.slice(0, 1);
 }
 
 /**
  * 魔法タイプのラベルを取得（フルネーム）
  */
 export function getSpellTypeLabel(value: string): string {
-  const option = SPELL_TYPE_OPTIONS.find(opt => opt.value === value);
-  return option ? option.label : value;
+  return (SPELL_EFFECT_TYPE_ID_TO_LABEL as Record<string, string>)[value] || value;
 }
 
 /**
  * 罠タイプのラベルを取得（フルネーム）
  */
 export function getTrapTypeLabel(value: string): string {
-  const option = TRAP_TYPE_OPTIONS.find(opt => opt.value === value);
-  return option ? option.label : value;
+  return (TRAP_EFFECT_TYPE_ID_TO_LABEL as Record<string, string>)[value] || value;
 }
 
 /**

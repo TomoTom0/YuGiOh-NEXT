@@ -34,11 +34,14 @@
               v-for="(img, index) in card?.imgs"
               :key="img.ciid"
               class="image-option"
-              :class="{ active: img.ciid === card?.ciid }"
-              @click="selectImage(img.ciid)"
+              :class="{ active: img.ciid === card?.ciid, invalid: !isCiidValid(img.ciid) }"
+              @click="isCiidValid(img.ciid) && selectImage(img.ciid)"
             >
               <img :src="getImageUrl(img)" :alt="`画像 ${index + 1}`">
               <span class="image-label">{{ index + 1 }}</span>
+              <div v-if="!isCiidValid(img.ciid)" class="invalid-overlay">
+                <span class="invalid-mark">×</span>
+              </div>
             </div>
           </div>
           </div>
@@ -166,6 +169,11 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
+import { buildApiUrl } from '../utils/url-builder'
+import { detectCardGameType } from '../utils/page-detector'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
+import { mappingManager } from '../utils/mapping-manager'
 
 export default {
   name: 'CardInfo',
@@ -191,6 +199,7 @@ export default {
     }
   },
   setup(props) {
+    console.log('[CardInfo] setup props:', props)
     const deckStore = useDeckEditStore()
     const cardDetailStore = useCardDetailStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
@@ -235,7 +244,28 @@ export default {
 
     const getImageUrl = (img) => {
       if (!card.value) return ''
-      return `https://www.db.yugioh-card.com/yugiohdb/get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+      // buildApiUrl経由で request_locale を自動付与
+      const path = `get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
+      const gameType = detectCardGameType()
+      return buildApiUrl(path, gameType)
+    }
+
+    // 言語ごとの利用可能ciidをチェック
+    const getValidCiidsForCurrentLang = () => {
+      if (!card.value?.cardId) return [];
+      // UnifiedCacheDBから langs_ciids を取得
+      const unifiedDB = getUnifiedCacheDB();
+      if (!unifiedDB.isInitialized()) return [];
+
+      const lang = detectLanguage(document);
+      return unifiedDB.getValidCiidsForLang(card.value.cardId, lang);
+    }
+
+    // ciidが現在の言語で有効かチェック
+    const isCiidValid = (ciid) => {
+      const validCiids = getValidCiidsForCurrentLang();
+      if (validCiids.length === 0) return true; // ciidsリストが空の場合はすべて有効と判定
+      return validCiids.includes(String(ciid));
     }
 
     return {
@@ -251,37 +281,102 @@ export default {
       getImageUrl,
       mdiImageMultiple,
       showRuby,
-      toggleRuby
+      toggleRuby,
+      isCiidValid,
+      getValidCiidsForCurrentLang
     }
   },
   methods: {
     getCardTypeText(cardType) {
-      if (cardType === 'spell') return '魔法'
-      if (cardType === 'trap') return '罠'
+      const lang = detectLanguage(document)
+      if (cardType === 'spell') {
+        return lang === 'ja' ? '魔法' : 'Spell'
+      }
+      if (cardType === 'trap') {
+        return lang === 'ja' ? '罠' : 'Trap'
+      }
       return cardType
     },
     getSpellIconUrl,
     getTrapIconUrl,
     getEffectTypeIconUrl,
     getAttributeText(attribute) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return ATTRIBUTE_MAP[attribute] || attribute
+      }
+      // その他の言語は MappingManager から取得
+      const attrMap = mappingManager.getAttributeTextToId(lang)
+      // attrMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(attrMap)) {
+        if (id === attribute) {
+          return text
+        }
+      }
       return ATTRIBUTE_MAP[attribute] || attribute
     },
     getRaceText(race) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return RACE_MAP[race] || race
+      }
+      // その他の言語は MappingManager から取得
+      const raceMap = mappingManager.getRaceTextToId(lang)
+      // raceMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(raceMap)) {
+        if (id === race) {
+          return text
+        }
+      }
       return RACE_MAP[race] || race
     },
     getEffectTypeText(effectType, cardType) {
+      const lang = detectLanguage(document)
       if (cardType === 'spell') {
+        if (lang === 'ja') {
+          return SPELL_EFFECT_TYPE_MAP[effectType] || effectType
+        }
+        const spellMap = mappingManager.getSpellEffectTextToId(lang)
+        for (const [text, id] of Object.entries(spellMap)) {
+          if (id === effectType) {
+            return text
+          }
+        }
         return SPELL_EFFECT_TYPE_MAP[effectType] || effectType
       } else if (cardType === 'trap') {
+        if (lang === 'ja') {
+          return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
+        }
+        const trapMap = mappingManager.getTrapEffectTextToId(lang)
+        for (const [text, id] of Object.entries(trapMap)) {
+          if (id === effectType) {
+            return text
+          }
+        }
         return TRAP_EFFECT_TYPE_MAP[effectType] || effectType
       }
       return effectType
     },
     getMonsterTypesText(types) {
       if (!types || !Array.isArray(types)) return ''
-      return types.map(t => MONSTER_TYPE_MAP[t] || t).join(' / ')
+      return types.map(t => this.getMonsterTypeText(t)).join(' / ')
     },
     getMonsterTypeText(type) {
+      const lang = detectLanguage(document)
+      // 日本語の場合は静的マップを使用
+      if (lang === 'ja') {
+        return MONSTER_TYPE_MAP[type] || type
+      }
+      // その他の言語は MappingManager から取得
+      const typeMap = mappingManager.getMonsterTypeTextToId(lang)
+      // typeMap は text->id なので、id->text の逆引きが必要
+      for (const [text, id] of Object.entries(typeMap)) {
+        if (id === type) {
+          return text
+        }
+      }
       return MONSTER_TYPE_MAP[type] || type
     },
     isLinkMarkerActive(linkMarkers, posDisplay) {
@@ -541,6 +636,37 @@ export default {
     font-size: 10px;
     font-weight: bold;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  &.invalid {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+
+    &:hover {
+      border-color: transparent;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  .invalid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .invalid-mark {
+    font-size: 48px;
+    font-weight: bold;
+    color: var(--text-primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 }
 

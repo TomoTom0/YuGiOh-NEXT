@@ -28,11 +28,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         cid: '12345',
         ciid: '1',
         quantity: 2
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('魔法カードの行を正しくパースできる', () => {
@@ -57,11 +58,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         cid: '67890',
         ciid: '2',
         quantity: 3
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('罠カードの行を正しくパースできる', () => {
@@ -86,11 +88,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         cid: '11111',
         ciid: '1',
         quantity: 1
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('画像IDが指定されていない場合はデフォルト値"1"を使用する', () => {
@@ -187,11 +190,12 @@ describe('デッキページパーサー', () => {
         comment: 'テストコメント'
       });
       expect(result.mainDeck).toHaveLength(1);
-      expect(result.mainDeck[0]).toEqual({
+      expect(result.mainDeck[0]).toMatchObject({
         cid: '12345',
         ciid: '1',
         quantity: 2
       });
+      expect(result.mainDeck[0]?.lang).toBeDefined();
       expect(result.extraDeck).toHaveLength(0);
       expect(result.sideDeck).toHaveLength(0);
     });

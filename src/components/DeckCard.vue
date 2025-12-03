@@ -91,6 +91,8 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
+import { detectLanguage } from '../utils/language-detector'
+import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
 
@@ -156,7 +158,7 @@ export default {
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
-        return `https://www.db.yugioh-card.com${relativeUrl}`
+        return buildFullUrl(relativeUrl)
       }
       return chrome.runtime.getURL('images/card_back.png')
     },
@@ -302,7 +304,8 @@ export default {
     async handleInfo() {
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
-        const result = await getCardDetailWithCache(this.card.cardId)
+        const currentLang = detectLanguage(document)
+        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
         const fullCard = result?.detail?.card || this.card
 
         const cardData = {

@@ -53,7 +53,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-@import '../../styles/themes.scss';
+@use '../../styles/themes.scss' as *;
 
 html.ygo-next.ygo-next-valid-card-tab-on-deck-display {
   * {
