@@ -1220,7 +1220,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       sideDeck: deckInfo.value.sideDeck,
       category: deckInfo.value.category,
       tags: deckInfo.value.tags,
-      comment: deckInfo.value.comment
+      comment: deckInfo.value.comment,
+      skippedCards: deckInfo.value.skippedCards
     });
   }
 
@@ -1246,7 +1247,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       sideDeck: sortCards(deckInfo.value.sideDeck),
       category: deckInfo.value.category,
       tags: deckInfo.value.tags,
-      comment: deckInfo.value.comment
+      comment: deckInfo.value.comment,
+      skippedCards: deckInfo.value.skippedCards
     });
   }
 
@@ -1256,16 +1258,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   function hasOnlySortOrderChanges(): boolean {
     if (!savedDeckSnapshot.value) return false;
-    
+
     // スナップショット全体が一致していれば変更なし
     const currentSnapshot = captureDeckSnapshot();
     if (savedDeckSnapshot.value === currentSnapshot) {
       return false;
     }
-    
+
     // ソート順を除外したスナップショットを比較
     // これが一致していれば、ソート順のみの変更
     const savedSnapshotObj = JSON.parse(savedDeckSnapshot.value);
+    const currentSnapshotObj = JSON.parse(currentSnapshot);
     const sortCards = (cards: DeckCardRef[]) => {
       return [...cards].sort((a, b) => {
         const cidDiff = Number(a.cid) - Number(b.cid);
@@ -1273,17 +1276,32 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         return Number(a.ciid) - Number(b.ciid);
       });
     };
-    
+
     const savedNormalized = JSON.stringify({
       ...savedSnapshotObj,
       mainDeck: sortCards(savedSnapshotObj.mainDeck),
       extraDeck: sortCards(savedSnapshotObj.extraDeck),
       sideDeck: sortCards(savedSnapshotObj.sideDeck)
     });
-    
+
     const currentNormalized = captureDeckSnapshotWithoutOrder();
-    
-    return savedNormalized === currentNormalized;
+
+    // ソート順のみの変更か、ソート順 + 未発売カード削除のみの変更かをチェック
+    if (savedNormalized === currentNormalized) {
+      // ソート順のみの変更
+      return true;
+    }
+
+    // 未発売カード削除のみが異なる場合もチェック
+    const savedWithoutSkipped = JSON.stringify({
+      ...savedSnapshotObj,
+      mainDeck: sortCards(savedSnapshotObj.mainDeck),
+      extraDeck: sortCards(savedSnapshotObj.extraDeck),
+      sideDeck: sortCards(savedSnapshotObj.sideDeck),
+      skippedCards: currentSnapshotObj.skippedCards
+    });
+
+    return savedWithoutSkipped === currentNormalized;
   }
 
   function hasUnsavedChanges(): boolean {

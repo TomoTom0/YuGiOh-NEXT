@@ -19,6 +19,7 @@ import { mappingManager } from '@/utils/mapping-manager';
 interface ParseCardSectionResult {
   cards: DeckCardRef[];
   skippedCount: number;
+  skippedCards: Array<{ cid: string; name: string; lang: string }>;
 }
 
 /**
@@ -97,6 +98,13 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // スキップされたカード数の合計
   const skippedCardsCount = mainDeckResult.skippedCount + extraDeckResult.skippedCount + sideDeckResult.skippedCount;
 
+  // スキップされたカード詳細情報の合計
+  const skippedCards = [
+    ...mainDeckResult.skippedCards,
+    ...extraDeckResult.skippedCards,
+    ...sideDeckResult.skippedCards
+  ];
+
   // 公開/非公開をタイトルから取得
   const isPublic = extractIsPublicFromTitle(doc);
 
@@ -125,6 +133,7 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
     extraDeck: extraDeckResult.cards,
     sideDeck: sideDeckResult.cards,
     skippedCardsCount,
+    skippedCards,
     isPublic,
     cgid,
     deckType,
@@ -322,6 +331,7 @@ export function parseCardSection(
 ): ParseCardSectionResult {
   const deckCardRefs: DeckCardRef[] = [];
   let skippedCount = 0;
+  const skippedCards: Array<{ cid: string; name: string; lang: string }> = [];
   const tempCardDB = getTempCardDB();
   const lang = detectLanguage(doc);
 
@@ -330,7 +340,8 @@ export function parseCardSection(
   if (!deckDetailtext) {
     return {
       cards: deckCardRefs,
-      skippedCount
+      skippedCount,
+      skippedCards
     };
   }
 
@@ -348,7 +359,8 @@ export function parseCardSection(
   if (!parentElement) {
     return {
       cards: deckCardRefs,
-      skippedCount
+      skippedCount,
+      skippedCards
     };
   }
 
@@ -377,6 +389,18 @@ export function parseCardSection(
             `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
           );
           skippedCount++;
+
+          // スキップされたカード情報を記録
+          // CardInfoを先にパースして ciid を取得（未発売でも基本情報は取得可能）
+          const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
+          if (cardInfo) {
+            skippedCards.push({
+              cid: cardInfo.cardId,
+              name: cardName,
+              lang
+            });
+          }
+
           return;
         }
 
@@ -456,7 +480,8 @@ export function parseCardSection(
 
   return {
     cards: deckCardRefs,
-    skippedCount
+    skippedCount,
+    skippedCards
   };
 }
 
