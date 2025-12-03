@@ -497,14 +497,36 @@ export class UnifiedCacheDB {
     const existing = this.cardTableCCache.get(data.cardId) ||
       (await this.getCardTableC(data.cardId));
 
-    // 既存の langsFetchedAt を取得
+    // 既存の言語別データをマージ
     const langsFetchedAt = existing?.langsFetchedAt || {};
+    const langsRelatedCards = existing?.langsRelatedCards || {};
+    const langsRelatedProducts = existing?.langsRelatedProducts || {};
 
-    // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+    // 言語ごとのデータを更新（既存データをマージ）
     data.langsFetchedAt = {
       ...langsFetchedAt,
       [targetLang]: now
     };
+
+    // 言語別関連カードをマージ（新規データで該当言語を上書き）
+    if (data.langsRelatedCards) {
+      data.langsRelatedCards = {
+        ...langsRelatedCards,
+        ...data.langsRelatedCards
+      };
+    } else {
+      data.langsRelatedCards = langsRelatedCards;
+    }
+
+    // 言語別関連製品をマージ（新規データで該当言語を上書き）
+    if (data.langsRelatedProducts) {
+      data.langsRelatedProducts = {
+        ...langsRelatedProducts,
+        ...data.langsRelatedProducts
+      };
+    } else {
+      data.langsRelatedProducts = langsRelatedProducts;
+    }
 
     // メモリキャッシュに保存
     this.cardTableCCache.set(data.cardId, data);
