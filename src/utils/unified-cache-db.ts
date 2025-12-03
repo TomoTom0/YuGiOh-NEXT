@@ -475,12 +475,8 @@ export class UnifiedCacheDB {
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     const result = await safeStorageGet(key);
-    let data = result[key] as CardTableC | undefined;
+    const data = result[key] as CardTableC | undefined;
     if (data) {
-      // マイグレーション: 古い langsPacks を新しい langsRelatedProductDetail にコピー
-      if ((data as any).langsPacks && !data.langsRelatedProductDetail) {
-        data.langsRelatedProductDetail = (data as any).langsPacks;
-      }
       this.cardTableCCache.set(cardId, data);
       return data;
     }
