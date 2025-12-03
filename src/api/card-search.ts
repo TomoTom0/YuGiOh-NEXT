@@ -1994,8 +1994,11 @@ export async function getCardDetailWithCache(
   if (unifiedDB.isInitialized()) {
     const cachedTableC = await unifiedDB.getCardTableC(cardId);
 
-    // packsとqaListは空配列の可能性があるので、存在チェックのみ（undefinedでないこと）
-    if (cachedTableC && cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined) {
+    // 言語別パック・Q&A情報が存在するかチェック
+    // 言語別データがない場合は旧形式（packs, qaList）を確認
+    if (cachedTableC &&
+        ((cachedTableC.langsPacks?.[targetLang] !== undefined && cachedTableC.langsQaList?.[targetLang] !== undefined) ||
+         (cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined))) {
       const now = Date.now();
 
       // 言語別のfetchedAtを取得（langsFetchedAtのみ使用）
@@ -2010,8 +2013,12 @@ export async function getCardDetailWithCache(
         const hasRelatedProducts = !!(cachedTableC.langsRelatedProducts?.[targetLang] &&
                                        cachedTableC.langsRelatedProducts[targetLang].length > 0);
 
-        // isFresh条件: 今日の日付 AND 言語別の関連製品が存在する
-        const isFresh = isSameDayToday && hasRelatedProducts;
+        // 言語別パック情報の存在チェック（langsPacks）
+        const hasPacks = !!(cachedTableC.langsPacks?.[targetLang] &&
+                            cachedTableC.langsPacks[targetLang].length > 0);
+
+        // isFresh条件: 今日の日付 AND 言語別の関連製品が存在する AND 言語別パック情報が存在する
+        const isFresh = isSameDayToday && hasRelatedProducts && hasPacks;
 
         // キャッシュからCardDetailを再構築
         const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, targetLang);
@@ -2103,11 +2110,25 @@ async function reconstructCardDetailFromCache(
     }
   }
 
+  // 言語別パック情報を取得（新形式：langsPacks）
+  let packs = tableC.langsPacks?.[targetLang];
+  // フォールバック: 旧形式のpacksを使用（マイグレーション）
+  if (!packs) {
+    packs = tableC.packs;
+  }
+
+  // 言語別Q&A情報を取得（新形式：langsQaList）
+  let qaList = tableC.langsQaList?.[targetLang];
+  // フォールバック: 旧形式のqaListを使用（マイグレーション）
+  if (!qaList) {
+    qaList = tableC.qaList;
+  }
+
   return {
     card: cardInfo,
-    packs: tableC.packs || [],
+    packs: packs || [],
     relatedCards,
-    qaList: tableC.qaList || []
+    qaList: qaList || []
   };
 }
 
@@ -2147,15 +2168,20 @@ export async function saveCardDetailToCache(
 
   const tableC: CardTableC = {
     cardId: cid,
-    // 言語別の関連カード・製品（langsFetchedAtのみ使用）
+    // 言語別の関連カード・製品
     langsRelatedCards: {
       [targetLang]: relatedCardIds
     },
     langsRelatedProducts: {
       [targetLang]: relatedProductIds
     },
-    packs: packs,
-    qaList: qaList
+    // 言語別パック・Q&A情報
+    langsPacks: {
+      [targetLang]: packs
+    },
+    langsQaList: {
+      [targetLang]: qaList
+    }
   };
 
   // Tier 3以上のカードのみTableCをUnifiedCacheDBに永続保存

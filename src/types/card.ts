@@ -469,10 +469,14 @@ export interface CardTableC {
   /** 関連パックID一覧（旧形式、互換性保持用） */
   relatedProducts?: string[];
 
-  // キャッシュ用の追加情報
-  /** 収録シリーズ情報 */
+  // キャッシュ用の追加情報（多言語対応）
+  /** 収録シリーズ情報（多言語対応: {lang: PackInfo[]} 形式） */
+  langsPacks?: Record<string, PackInfo[]>;
+  /** 収録シリーズ情報（旧形式、互換性保持用） */
   packs?: PackInfo[];
-  /** Q&A情報 */
+  /** Q&A情報（多言語対応: {lang: CardFAQ[]} 形式） */
+  langsQaList?: Record<string, CardFAQ[]>;
+  /** Q&A情報（旧形式、互換性保持用） */
   qaList?: CardFAQ[];
 
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
