@@ -390,10 +390,21 @@ export class UnifiedCacheDB {
     this.cardTableA.set(card.cardId, tableA);
 
     // TableB
+    const existingB = this.cardTableB.get(card.cardId);
+    
+    // 既存の langsLimitRegulation を取得
+    let langsLimitRegulation = existingB?.langsLimitRegulation || {};
+    if (card.limitRegulation) {
+      langsLimitRegulation = {
+        ...langsLimitRegulation,
+        [lang]: card.limitRegulation
+      };
+    }
+
     const tableB: CardTableB = {
       cardId: card.cardId,
       cardType: card.cardType,
-      limitRegulation: card.limitRegulation,
+      langsLimitRegulation,
       fetchedAt: now
     };
 
@@ -943,6 +954,13 @@ export class UnifiedCacheDB {
       return undefined;
     }
 
+    // langsLimitRegulationから言語別の禁止制限を取得
+    let limitRegulation = tableB.langsLimitRegulation?.[targetLang];
+    // フォールバック: 旧形式の limitRegulation を使用（古いキャッシュとの互換性）
+    if (!limitRegulation) {
+      limitRegulation = tableB.limitRegulation;
+    }
+
     // 基本情報
     const baseInfo = {
       cardId: tableA.cardId,
@@ -951,7 +969,7 @@ export class UnifiedCacheDB {
       imgs,
       ciid: imgs[0]?.ciid || '',
       ruby: tableA.ruby,
-      limitRegulation: tableB.limitRegulation
+      limitRegulation
     };
 
     // カードタイプに応じて構築

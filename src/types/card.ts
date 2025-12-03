@@ -409,7 +409,9 @@ export interface CardTableB {
   effectType?: string;
 
   // 共通
-  /** 禁止制限 */
+  /** 禁止制限（多言語対応: {lang: regulation} 形式） */
+  langsLimitRegulation?: Record<string, 'forbidden' | 'limited' | 'semi-limited'>;
+  /** 禁止制限（旧形式、互換性保持用） */
   limitRegulation?: 'forbidden' | 'limited' | 'semi-limited';
 
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
