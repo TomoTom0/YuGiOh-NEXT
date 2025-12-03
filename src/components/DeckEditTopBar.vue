@@ -569,8 +569,16 @@ export default {
       if (count > 0) {
         let message = `${count}枚の未発売カードをスキップしました`
         if (cards && cards.length > 0) {
-          const cardNames = cards.map((c: any) => c.name).join('、')
-          message = `${message}\n[${cardNames}]`
+          // 最大3枚までのカード名を表示
+          const displayCards = cards.slice(0, 3)
+          const cardNames = displayCards.map((c: any) => c.name).join('、')
+          const remainCount = cards.length - displayCards.length
+
+          if (remainCount > 0) {
+            message = `${message}\n${cardNames} ほか${remainCount}枚`
+          } else {
+            message = `${message}\n${cardNames}`
+          }
         }
         showToast(message, 'warning')
       }
