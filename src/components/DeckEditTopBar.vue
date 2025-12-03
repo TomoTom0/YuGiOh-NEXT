@@ -150,7 +150,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
@@ -576,28 +576,6 @@ export default {
     const cancelDelete = () => {
       deckStore.showDeleteConfirm = false
     }
-
-    // Listen for unreleased cards skipped event from content script
-    onMounted(() => {
-      window.addEventListener('ygo-unreleased-cards-skipped', (event: Event) => {
-        const customEvent = event as CustomEvent
-        const detail = customEvent.detail || {}
-        const count = detail.count || 0
-        const cards = detail.cards || []
-
-        if (count > 0) {
-          dispatchToast(`${count}枚の未発売カードをスキップしました`, 'warning')
-
-          // Log skipped cards for debugging
-          if (cards.length > 0) {
-            console.info(
-              '[DeckEditTopBar] Unreleased cards skipped:',
-              cards.map((card: any) => `${card.name} (cid: ${card.cid}, lang: ${card.lang})`).join(', ')
-            )
-          }
-        }
-      })
-    })
 
     return {
       deckStore,
