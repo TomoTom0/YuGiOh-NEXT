@@ -1131,7 +1131,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     const value = atkElem.textContent.match(/([0-9X?-]+)/);
     if (value && value[1]) {
       const atkValue = value[1];
-      atk = atkValue === '-' ? undefined : /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
+      atk = /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
     }
   }
 
@@ -1141,7 +1141,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     const value = defElem.textContent.match(/([0-9X?-]+)/);
     if (value && value[1]) {
       const defValue = value[1];
-      def = defValue === '-' ? undefined : /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
+      def = /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
     }
   }
 

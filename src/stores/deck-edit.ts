@@ -343,7 +343,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       } catch (e) {
         // ignore
       }
-      targetDeck.push({ cid: card.cardId, ciid: card.ciid, lang: detectLanguage(document), quantity: 1 });
+      targetDeck.push({ cid: card.cardId, ciid: card.ciid, lang: card.lang, quantity: 1 });
     }
     
     // displayOrder更新
@@ -637,7 +637,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: detectLanguage(document), quantity: 1 });
+      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: movingDisplayCard.lang, quantity: 1 });
     }
     
     // 移動したカードのuuidを返す

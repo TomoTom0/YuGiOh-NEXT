@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.2] - 2025-12-04
+
+### Fixed
+- ATK/DEFパースロジックの修正: `'-'`文字列をそのまま保持
+- 多言語カード追加・移動時の言語情報継承
+
+### Added
+- 包括的なユニットテストスイート追加（46個の新規テスト）
+  - Parser テスト: 27個
+  - API ユーティリティテスト: 4個
+  - Vue コンポーネントテスト: 15個
+
+詳細: [v0.5.2 変更履歴](./docs/changelog/v0.5.2.md)
+
+---
+
 ## [0.5.1] - 2025-12-02
 
 ### Changed
