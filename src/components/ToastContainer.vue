@@ -2,7 +2,7 @@
   <div class="toast-container">
     <transition-group name="toast" tag="div">
       <div
-        v-for="notification in toasts"
+        v-for="notification in toastStore.toasts"
         :key="notification.id"
         class="toast"
         :class="notification.type"
@@ -10,7 +10,7 @@
         <div class="toast-content">
           <span class="toast-icon">{{ getIcon(notification.type) }}</span>
           <span class="toast-message">{{ notification.message }}</span>
-          <button class="toast-close" @click="removeToast(notification.id)">×</button>
+          <button class="toast-close" @click="toastStore.removeToast(notification.id)">×</button>
         </div>
       </div>
     </transition-group>
@@ -18,12 +18,9 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
 import { useToastStore } from '@/stores/toast-notification'
 
 const toastStore = useToastStore()
-const { toasts } = storeToRefs(toastStore)
-const { removeToast } = toastStore
 
 const getIcon = (type: string): string => {
   switch (type) {
