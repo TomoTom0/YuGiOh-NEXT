@@ -18,10 +18,12 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { useToastStore } from '@/stores/toast-notification'
 
 const toastStore = useToastStore()
-const { toasts, removeToast } = toastStore
+const { toasts } = storeToRefs(toastStore)
+const { removeToast } = toastStore
 
 const getIcon = (type: string): string => {
   switch (type) {
