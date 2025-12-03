@@ -143,6 +143,8 @@ import type { SearchMode } from '../types/settings'
 import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
+import { detectLanguage } from '../utils/language-detector'
+import { mappingManager } from '../utils/mapping-manager'
 
 // コマンド定義
 const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
@@ -244,7 +246,12 @@ export default defineComponent({
     const showSearchModeDropdown = ref(false)
     const showFilterDialog = ref(false)
     const showMydeckDropdown = ref(false)
-    
+
+    // ページ言語を検出（多言語対応）
+    const pageLanguage = computed(() => {
+      return detectLanguage(document)
+    })
+
     // 検索入力欄の位置を自動検出
     const isBottomPosition = computed(() => {
       if (props.position !== 'default') return props.position === 'bottom'
@@ -590,10 +597,18 @@ export default defineComponent({
     // mydeckモードで選択中のインデックス
     const selectedMydeckIndex = ref(-1)
 
-    // チップのラベルを取得（右側のフィルターアイコンと同じ形式）
+    // チップのラベルを取得（右側のフィルターアイコンと同じ形式・言語対応版）
     const getChipLabel = (type: string, value: string): string => {
+      const lang = pageLanguage.value
       switch (type) {
         case 'attributes': {
+          const idToText = mappingManager.getAttributeIdToText(lang)
+          const dynamicLabel = (idToText as Record<string, string>)[value]
+          if (dynamicLabel) {
+            // 動的マッピングがある場合、最初の1文字を返す
+            return dynamicLabel.slice(0, 1)
+          }
+          // フォールバック：日本語ラベル
           const labels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
           return labels[value] || value
         }
@@ -602,6 +617,13 @@ export default defineComponent({
           return labels[value] || value
         }
         case 'monsterTypes': {
+          const idToText = mappingManager.getMonsterTypeIdToText(lang)
+          const dynamicLabel = (idToText as Record<string, string>)[value]
+          if (dynamicLabel) {
+            // 動的マッピングがある場合、最初の1文字を返す
+            return dynamicLabel.slice(0, 1)
+          }
+          // フォールバック：日本語ラベル
           const labels: Record<string, string> = {
             normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
             pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
@@ -618,7 +640,7 @@ export default defineComponent({
         case 'def':
           return 'DEF'
         case 'races':
-          return getRaceLabel(value)
+          return getRaceLabel(value, lang)
         default:
           return value
       }

@@ -50,6 +50,27 @@ export async function initCardDetailUI(): Promise<void> {
     // 注: parseDeckDetail()内でparseCardSection()が呼ばれ、
     // すべてのカード情報がTempCardDBに保存される
     parsedDeckInfo = await parseDeckDetail(document);
+
+    // スキップされたカード情報を通知
+    if (parsedDeckInfo && parsedDeckInfo.skippedCardsCount && parsedDeckInfo.skippedCardsCount > 0) {
+      const skippedCount = parsedDeckInfo.skippedCardsCount;
+      const skippedDetails = parsedDeckInfo.skippedCards || [];
+
+      console.warn(
+        `[CardDetailUI] ${skippedCount} unreleased cards were skipped during deck import`
+      );
+
+      // スキップされたカード詳細をログ出力
+      if (skippedDetails.length > 0) {
+        console.warn(
+          '[CardDetailUI] Skipped cards:',
+          skippedDetails.map(card => `${card.name} (cid: ${card.cid}, lang: ${card.lang})`).join(', ')
+        );
+      }
+
+      // deckStore へのアクセスは コンテンツスクリプト環境で制限されるため
+      // ここではコンソールログのみ出力
+    }
   } catch (error) {
     console.error('[CardDetailUI] Failed to parse deck info:', error);
     parsedDeckInfo = null;

@@ -391,11 +391,14 @@ export function parseCardSection(
           skippedCount++;
 
           // スキップされたカード情報を記録
-          // CardInfoを先にパースして ciid を取得（未発売でも基本情報は取得可能）
-          const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
-          if (cardInfo) {
+          // 未発売カードは parseSearchResultRow をスキップ（マッピング不完全でエラーになる可能性）
+          // card_info_code から cid を取得
+          const cardCodeElem = (row as HTMLElement).querySelector('.card_info_code');
+          const cid = cardCodeElem?.textContent?.trim() || 'UNKNOWN';
+
+          if (cid !== 'UNKNOWN') {
             skippedCards.push({
-              cid: cardInfo.cardId,
+              cid,
               name: cardName,
               lang
             });

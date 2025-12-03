@@ -371,6 +371,112 @@ class MappingManager {
   /**
    * 指定言語のマッピングが利用可能かチェック
    */
+  /**
+   * 言語コードから種族マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getRaceIdToText(lang: string): Partial<Record<Race, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.race && Object.keys(dynamicMapping.race).length > 0) {
+      return dynamicMapping.race;
+    }
+
+    // フォールバック：日本語静的マッピング（全言語で利用可能）
+    if (lang === 'ja') {
+      return RACE_ID_TO_NAME;
+    }
+
+    // 動的マッピングが利用できない場合は空オブジェクト
+    return {};
+  }
+
+  /**
+   * 言語コードからモンスタータイプマッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getMonsterTypeIdToText(lang: string): Partial<Record<MonsterType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.monsterType && Object.keys(dynamicMapping.monsterType).length > 0) {
+      return dynamicMapping.monsterType;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return MONSTER_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから属性マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getAttributeIdToText(lang: string): Partial<Record<Attribute, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.attribute && Object.keys(dynamicMapping.attribute).length > 0) {
+      return dynamicMapping.attribute;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return ATTRIBUTE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから魔法効果種類マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getSpellEffectIdToText(lang: string): Partial<Record<SpellEffectType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.spellEffect && Object.keys(dynamicMapping.spellEffect).length > 0) {
+      return dynamicMapping.spellEffect;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return SPELL_EFFECT_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから罠効果種類マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getTrapEffectIdToText(lang: string): Partial<Record<TrapEffectType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.trapEffect && Object.keys(dynamicMapping.trapEffect).length > 0) {
+      return dynamicMapping.trapEffect;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return TRAP_EFFECT_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
   hasDynamicMapping(lang: string): boolean {
     return this.dynamicMappings.has(lang);
   }

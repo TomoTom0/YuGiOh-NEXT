@@ -151,7 +151,7 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 **ソースコード更新後は必ず以下を実行すること：**
 
 ```bash
-npm run build-and-deploy
+bun run build-and-deploy
 ```
 
 このコマンドはビルドとデプロイを一括で行う。
@@ -164,11 +164,11 @@ npm run build-and-deploy
 ## テスト
 
 ```bash
-# ユニットテスト（Jest）
-npm test
+# ユニットテスト（Vitest）
+bun run test:vitest
 
 # E2Eテスト（Chrome CDP経由）
-node tmp/test-*.js
+bun run tmp/test-*.js
 ```
 
 ### デッキ編集ページ
@@ -183,7 +183,7 @@ node tmp/test-*.js
 - `tmp/` - 一時的なテストスクリプトやデバッグファイル
 - `.chrome_cache/` - Chromiumのユーザープロファイル
 - `dist/` - ビルド出力
-- `node_modules/` - npmパッケージ
+- `node_modules/` - bunパッケージキャッシュ
 
 ### `tasks/` ディレクトリの管理
 
