@@ -17,6 +17,7 @@ import type {
   CardInfo
 } from '../types/card';
 import { safeStorageGet, safeStorageSet } from './extension-context-checker';
+import { detectLanguage } from './language-detector';
 
 // 定数
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -318,30 +319,82 @@ export class UnifiedCacheDB {
     const now = Date.now();
     const existing = this.cardTableA.get(card.cardId);
 
-    // TTLチェック
+    // 言語を取得（CardInfo.langまたはドキュメントから）
+    const lang = card.lang || detectLanguage(document);
+
+    // 言語ごとの TTLチェック
     if (existing && !forceUpdate) {
-      const age = now - existing.fetchedAt;
-      if (age < this.cacheTTL) {
-        return false;
+      // 既にこの言語で取得済みの場合のみ TTL チェック
+      const langFetchedAt = existing.langsFetchedAt?.[lang];
+      if (langFetchedAt !== undefined) {
+        const age = now - langFetchedAt;
+        if (age < this.cacheTTL) {
+          return false;  // キャッシュ有効
+        }
       }
+      // langsFetchedAt[lang] が存在しない場合（新規言語）は、新規取得 (true を返す)
     }
+
+    // 既存のlangsNameを取得
+    const langsName = existing?.langsName || {};
+
+    // 既存の langsImgs を取得
+    const langsImgs = existing?.langsImgs || {};
+
+    // 既存の langs_ciids を取得（言語ごとの利用可能ciidリスト）
+    let langs_ciids = existing?.langs_ciids || {};
+
+    // 現在の言語で利用可能なciidを抽出してマージ
+    if (card.imgs && card.imgs.length > 0) {
+      const currentCiids = card.imgs.map(img => img.ciid);
+      // 既存のciidと新しいciidをマージ（重複を排除）
+      const existingCiids = langs_ciids[lang] || [];
+      const mergedCiids = Array.from(new Set([...existingCiids, ...currentCiids]));
+      langs_ciids = {
+        ...langs_ciids,
+        [lang]: mergedCiids
+      };
+    }
+
+    // 既存の langsFetchedAt を取得
+    const langsFetchedAt = existing?.langsFetchedAt || {};
 
     // TableA
     const tableA: CardTableA = {
       cardId: card.cardId,
-      name: card.name,
+      langsName: {
+        ...langsName,
+        [lang]: card.name
+      },
       ruby: card.ruby,
-      imgs: card.imgs,
-      fetchedAt: now
+      langsImgs: {
+        ...langsImgs,
+        [lang]: card.imgs
+      },
+      langs_ciids,  // 言語ごとの利用可能ciidリスト
+      langsFetchedAt: {
+        ...langsFetchedAt,
+        [lang]: now
+      }
     };
     this.cardTableA.set(card.cardId, tableA);
 
     // TableB
+    const existingB = this.cardTableB.get(card.cardId);
+    
+    // 既存の langsLimitRegulation を取得
+    let langsLimitRegulation = existingB?.langsLimitRegulation || {};
+    if (card.limitRegulation) {
+      langsLimitRegulation = {
+        ...langsLimitRegulation,
+        [lang]: card.limitRegulation
+      };
+    }
+
     const tableB: CardTableB = {
       cardId: card.cardId,
       cardType: card.cardType,
-      limitRegulation: card.limitRegulation,
-      fetchedAt: now
+      langsLimitRegulation
     };
 
     // モンスター固有フィールド
@@ -363,14 +416,34 @@ export class UnifiedCacheDB {
 
     this.cardTableB.set(card.cardId, tableB);
 
-    // TableB2 (text, pendText)
+    // TableB2 (langsText, langsPendText)
     const cardAny = card as any;
     if (cardAny.text || cardAny.pendulumText) {
+      const existingB2 = this.cardTableB2.get(card.cardId);
+
+      // 既存のlangsTextを取得
+      let langsText = existingB2?.langsText || {};
+      if (cardAny.text) {
+        langsText = { ...langsText, [lang]: cardAny.text };
+      }
+
+      // 既存のlangsPendTextを取得
+      let langsPendText = existingB2?.langsPendText || {};
+      if (cardAny.pendulumText) {
+        langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
+      }
+
+      // 既存の langsFetchedAt を取得
+      const langsFetchedAt = existingB2?.langsFetchedAt || {};
+
       const tableB2: CardTableB2 = {
         cardId: card.cardId,
-        text: cardAny.text,
-        pendText: cardAny.pendulumText,
-        fetchedAt: now
+        langsText: Object.keys(langsText).length > 0 ? langsText : undefined,
+        langsPendText: Object.keys(langsPendText).length > 0 ? langsPendText : undefined,
+        langsFetchedAt: {
+          ...langsFetchedAt,
+          [lang]: now
+        }
       };
       this.cardTableB2.set(card.cardId, tableB2);
     }
@@ -404,10 +477,58 @@ export class UnifiedCacheDB {
 
   /**
    * CardTableCを保存
+   * @param data 保存するCardTableC
+   * @param lang 言語コード（未指定時はドキュメントから検出）
    */
-  async setCardTableC(data: CardTableC): Promise<void> {
+  async setCardTableC(data: CardTableC, lang?: string): Promise<void> {
     const now = Date.now();
-    data.fetchedAt = now;
+    const targetLang = lang || detectLanguage(document);
+
+    // 既存のデータを取得
+    const existing = this.cardTableCCache.get(data.cardId) ||
+      (await this.getCardTableC(data.cardId));
+
+    // 既存の言語別データをマージ
+    const langsFetchedAt = existing?.langsFetchedAt || {};
+    const langsRelatedCards = existing?.langsRelatedCards || {};
+    const langsRelatedProducts = existing?.langsRelatedProducts || {};
+    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || {};
+
+    // 言語ごとのデータを更新（既存データをマージ）
+    data.langsFetchedAt = {
+      ...langsFetchedAt,
+      [targetLang]: now
+    };
+
+    // 言語別関連カードをマージ（新規データで該当言語を上書き）
+    if (data.langsRelatedCards) {
+      data.langsRelatedCards = {
+        ...langsRelatedCards,
+        ...data.langsRelatedCards
+      };
+    } else {
+      data.langsRelatedCards = langsRelatedCards;
+    }
+
+    // 言語別関連製品をマージ（新規データで該当言語を上書き）
+    if (data.langsRelatedProducts) {
+      data.langsRelatedProducts = {
+        ...langsRelatedProducts,
+        ...data.langsRelatedProducts
+      };
+    } else {
+      data.langsRelatedProducts = langsRelatedProducts;
+    }
+
+    // 言語別パック詳細情報をマージ（新規データで該当言語を上書き）
+    if (data.langsRelatedProductDetail) {
+      data.langsRelatedProductDetail = {
+        ...langsRelatedProductDetail,
+        ...data.langsRelatedProductDetail
+      };
+    } else {
+      data.langsRelatedProductDetail = langsRelatedProductDetail;
+    }
 
     // メモリキャッシュに保存
     this.cardTableCCache.set(data.cardId, data);
@@ -421,10 +542,15 @@ export class UnifiedCacheDB {
   }
 
   /**
-   * CardTableCのfetchedAtのみを更新
+   * CardTableCの言語別fetchedAtを更新
    * キャッシュヒット時に呼び出す
+   * @param cardId カードID
+   * @param lang 言語コード（未指定時はドキュメントから検出）
    */
-  async updateCardTableCFetchedAt(cardId: string): Promise<void> {
+  async updateCardTableCFetchedAt(cardId: string, lang?: string): Promise<void> {
+    const now = Date.now();
+    const targetLang = lang || detectLanguage(document);
+
     const cached = this.cardTableCCache.get(cardId);
     if (!cached) {
       // メモリにない場合はストレージから読み込み
@@ -432,7 +558,13 @@ export class UnifiedCacheDB {
       const result = await chrome.storage.local.get(key);
       const data = result[key] as CardTableC | undefined;
       if (data) {
-        data.fetchedAt = Date.now();
+        // 既存の langsFetchedAt を取得
+        const langsFetchedAt = data.langsFetchedAt || {};
+        // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+        data.langsFetchedAt = {
+          ...langsFetchedAt,
+          [targetLang]: now
+        };
         this.cardTableCCache.set(cardId, data);
         await chrome.storage.local.set({ [key]: data });
       }
@@ -440,8 +572,14 @@ export class UnifiedCacheDB {
     }
 
     // メモリキャッシュとストレージの両方を更新
-    const now = Date.now();
-    cached.fetchedAt = now;
+    // 既存の langsFetchedAt を取得
+    const langsFetchedAt = cached.langsFetchedAt || {};
+    // 言語ごとのfetchedAtを更新（langsFetchedAtのみ使用）
+    cached.langsFetchedAt = {
+      ...langsFetchedAt,
+      [targetLang]: now
+    };
+
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
     await chrome.storage.local.set({ [key]: cached });
 
@@ -738,20 +876,49 @@ export class UnifiedCacheDB {
    * @param cardId カードID
    * @returns CardInfo（基本情報のみ、text等は含まない）
    */
-  reconstructCardInfo(cardId: string): CardInfo | undefined {
+  reconstructCardInfo(cardId: string, lang?: string): CardInfo | undefined {
     const tableA = this.cardTableA.get(cardId);
     const tableB = this.cardTableB.get(cardId);
 
-    if (!tableA || !tableB) return undefined;
+    if (!tableA || !tableB) {
+      console.debug(`[reconstructCardInfo] Missing tableA or tableB for cardId=${cardId}`);
+      return undefined;
+    }
+
+    // 言語を取得（パラメータで指定されていればそれを使用、なければドキュメントから）
+    const targetLang = lang || detectLanguage(document);
+
+    // langsNameから適切な言語を抽出（新形式）
+    // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
+    // これにより呼び出し元で API から再取得できる
+    const name = tableA.langsName?.[targetLang];
+
+    if (!name) {
+      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in cache for cardId=${cardId}, will re-fetch from API`);
+      return undefined;
+    }
+
+    // langsImgsから適切な言語の画像情報を抽出（新形式）
+    // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
+    const imgs = tableA.langsImgs?.[targetLang];
+
+    if (!imgs || imgs.length === 0) {
+      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
+      return undefined;
+    }
+
+    // langsLimitRegulationから言語別の禁止制限を取得
+    const limitRegulation = tableB.langsLimitRegulation?.[targetLang];
 
     // 基本情報
     const baseInfo = {
       cardId: tableA.cardId,
-      name: tableA.name,
-      imgs: tableA.imgs,
-      ciid: tableA.imgs[0]?.ciid || '',
+      name,
+      lang: targetLang,
+      imgs,
+      ciid: imgs[0]?.ciid || '',
       ruby: tableA.ruby,
-      limitRegulation: tableB.limitRegulation
+      limitRegulation
     };
 
     // カードタイプに応じて構築
@@ -785,12 +952,22 @@ export class UnifiedCacheDB {
       } as CardInfo;
     }
 
-    // TableB2からtext/pendTextをマージ
+    // TableB2からlangsText/langsPendTextをマージ
     const tableB2 = this.cardTableB2.get(cardId);
     if (tableB2) {
       const anyCard: any = resultCard as any;
-      if (tableB2.text) anyCard.text = tableB2.text;
-      if (tableB2.pendText) anyCard.pendulumText = tableB2.pendText;
+
+      // langsTextから適切な言語を抽出（新形式）
+      const text = tableB2.langsText?.[targetLang];
+      if (text) {
+        anyCard.text = text;
+      }
+
+      // langsPendTextから適切な言語を抽出（新形式）
+      const pendulumText = tableB2.langsPendText?.[targetLang];
+      if (pendulumText) {
+        anyCard.pendulumText = pendulumText;
+      }
     }
 
     // Synchronous merge: if CardTableC for this card is present in the in-memory cache,
@@ -815,6 +992,15 @@ export class UnifiedCacheDB {
    */
   getAllCardIds(): string[] {
     return Array.from(this.cardTableA.keys());
+  }
+
+  /**
+   * 指定した言語で利用可能なciidのリストを取得
+   */
+  getValidCiidsForLang(cardId: string, lang: string): string[] {
+    const tableA = this.cardTableA.get(cardId);
+    if (!tableA?.langs_ciids) return [];
+    return tableA.langs_ciids[lang] || [];
   }
 
   /**

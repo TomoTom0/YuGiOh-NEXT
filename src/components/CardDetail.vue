@@ -77,6 +77,7 @@ import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '..
 import { getCardFAQList } from '../api/card-faq'
 import { useCardDetailStore } from '../stores/card-detail'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'CardDetail',
@@ -155,7 +156,8 @@ export default {
 
       try {
         // キャッシュ対応のカード詳細取得（関連カードのソートはクライアント側で実行）
-        const cacheResult = await getCardDetailWithCache(props.card.cardId, undefined, true, 'release_desc')
+        const currentLang = detectLanguage(document)
+        const cacheResult = await getCardDetailWithCache(props.card.cardId, currentLang, true, 'release_desc')
 
         if (cacheResult.detail) {
           // キャッシュから取得した場合（または新規取得）
@@ -165,10 +167,17 @@ export default {
           // selectedCardを更新
           // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
           // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
-          cardDetailStore.setSelectedCard({
-            ...cacheResult.detail.card,
+          // UnifiedCacheDB から複数画像情報を含む完全なカード情報を取得（複数画像ボタン表示用）
+          const unifiedDB = getUnifiedCacheDB()
+          const fullCardInfo = unifiedDB.isInitialized()
+            ? unifiedDB.reconstructCardInfo(props.card.cardId, currentLang)
+            : null
+
+          const selectedCardData = {
+            ...(fullCardInfo || cacheResult.detail.card),
             ciid: props.card.ciid || cacheResult.detail.card.ciid
-          })
+          }
+          cardDetailStore.setSelectedCard(selectedCardData)
 
           // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
           const faqResult = await getCardFAQList(props.card.cardId)
@@ -258,6 +267,7 @@ export default {
     // Watch for card prop changes and refetch detail when cardId changes
     watch(() => props.card && props.card.cardId, (newVal, oldVal) => {
       if (newVal !== oldVal) {
+        cardDetailStore.setCardTab('info')
         fetchDetail()
       }
     }, { immediate: true })

@@ -85,7 +85,7 @@ export default {
       default: false
     }
   },
-  setup() {
+  setup(props) {
     const deckStore = useDeckEditStore()
     const expandedQA = ref({})
     const loadingQA = ref({})

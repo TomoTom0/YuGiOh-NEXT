@@ -14,6 +14,8 @@ export interface DeckInfo {
   name: string;
   /** 元のデッキ名（load時点のデッキ名、placeholderとして使用） */
   originalName?: string;
+  /** デッキ内のカード取得時の言語コード */
+  lang?: string;
   /** メインデッキ */
   mainDeck: DeckCardRef[];
   /** エクストラデッキ */

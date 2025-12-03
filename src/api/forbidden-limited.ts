@@ -5,6 +5,8 @@
  */
 
 import type { ForbiddenLimitedList, LimitRegulation } from '../types/card';
+import { getForbiddenLimitedEndpoint } from '../utils/url-builder';
+import { detectCardGameType } from '../utils/page-detector';
 
 /**
  * 禁止制限ページのHTMLから制限情報を抽出する
@@ -82,16 +84,16 @@ function extractCardsFromSection(
  * @returns 禁止制限リスト情報
  */
 export async function fetchForbiddenLimitedList(effectiveDate?: string): Promise<ForbiddenLimitedList> {
-  const baseUrl = 'https://www.db.yugioh-card.com/yugiohdb/forbidden_limited.action';
-  const params = new URLSearchParams({
-    request_locale: 'ja'
-  });
+  // url-builder 経由でエンドポイントを取得（request_locale は自動付与）
+  const gameType = detectCardGameType();
+  const baseUrl = getForbiddenLimitedEndpoint(gameType);
 
+  const params = new URLSearchParams();
   if (effectiveDate) {
     params.set('forbiddenLimitedDate', effectiveDate);
   }
 
-  const url = `${baseUrl}?${params.toString()}`;
+  const url = params.toString() ? `${baseUrl}&${params.toString()}` : baseUrl;
 
   const response = await fetch(url);
   if (!response.ok) {

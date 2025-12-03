@@ -289,14 +289,28 @@ function attachCardClickHandlers(): void {
       img.addEventListener('click', async (e) => {
         e.stopPropagation();
 
-        // カード画像から cardId(cid) を抽出
-        const src = img.getAttribute('src') || '';
-        const cardIdMatch = src.match(/\/card\/(\d+)/);
-        if (cardIdMatch) {
-          const cid = cardIdMatch[1];
+        // img IDからciidを抽出
+        // img IDの形式: card_image_<index>_<ciid>
+        const imgId = img.getAttribute('id') || '';
+        const idMatch = imgId.match(/card_image_\d+_(\d+)/);
+        const ciid = idMatch ? idMatch[1] : undefined;
 
-          // パースされたデッキ情報からカード情報を検索（TempCardDBから詳細情報を取得）
-          const cardInfo = findCardInParsedDeck(cid);
+        // img のsrcからcidを抽出
+        const src = img.getAttribute('src') || '';
+        const cidMatch = src.match(/cid=(\d+)/);
+        if (cidMatch) {
+          const cid = cidMatch[1];
+
+          // パースされたデッキ情報からカード情報を検索
+          let cardInfo = findCardInParsedDeck(cid);
+          if (cardInfo && ciid) {
+            // 抽出したciidでカード情報を更新
+            cardInfo = {
+              ...cardInfo,
+              ciid
+            };
+          }
+
           if (cardInfo) {
             // 検索したカード情報でselectCard()を呼び出し
             await selectCard(cardInfo);
