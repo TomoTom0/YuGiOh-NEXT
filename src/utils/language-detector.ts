@@ -5,11 +5,12 @@
  * @returns 言語コード ('ja', 'en', etc.)
  */
 export function detectLanguage(doc: Document): string {
-  // 1. #nowlanguage 要素から検出（a.current がある場合）
+  // 1. #nowlanguage a.current の href から検出（javascript:ChangeLanguage('ja') パターン）
   const nowLanguageEl = doc.querySelector('#nowlanguage a.current');
   if (nowLanguageEl) {
     const href = nowLanguageEl.getAttribute('href');
-    const match = href?.match(/request_locale=([a-z]{2})/);
+    // javascript:ChangeLanguage('ja') パターンから言語コードを抽出
+    const match = href?.match(/ChangeLanguage\('([a-z]{2})'\)/);
     if (match && match[1]) {
       return match[1];
     }

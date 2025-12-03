@@ -2,6 +2,7 @@ import type { DeckInfo, DeckCardRef } from '@/types/deck';
 import type { CardInfo } from '@/types/card';
 import { extractDeckInfoFromPNG } from './png-metadata';
 import { getTempCardDB } from './temp-card-db';
+import { detectLanguage } from './language-detector';
 
 /**
  * インポート結果
@@ -386,6 +387,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         def: 0,
         cardId: row.cid,
         ciid: row.ciid,
+        lang: detectLanguage(document),
         name: row.name || `Card ${row.cid}`,
         imageUrl: '',
         effect: '',
@@ -406,7 +408,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
     // TempCardDBに登録
     tempCardDB.set(cid, card);
 
-    const ref: DeckCardRef = { cid, ciid, quantity };
+    const ref: DeckCardRef = { cid, ciid, lang: detectLanguage(document), quantity };
     if (section === 'main') {
       mainDeck.push(ref);
     } else if (section === 'extra') {

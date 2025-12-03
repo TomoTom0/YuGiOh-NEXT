@@ -10,6 +10,7 @@ import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
+import { detectLanguage } from '../utils/language-detector';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -342,7 +343,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       } catch (e) {
         // ignore
       }
-      targetDeck.push({ cid: card.cardId, ciid: card.ciid, quantity: 1 });
+      targetDeck.push({ cid: card.cardId, ciid: card.ciid, lang: card.lang, quantity: 1 });
     }
     
     // displayOrder更新
@@ -636,7 +637,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (existingCard) {
       existingCard.quantity++;
     } else {
-      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), quantity: 1 });
+      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: movingDisplayCard.lang, quantity: 1 });
     }
     
     // 移動したカードのuuidを返す
@@ -730,6 +731,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function addCard(card: CardInfo, section: 'main' | 'extra' | 'side') {
     const settingsStore = useSettingsStore();
 
+    // 言語ごとの利用可能ciidをチェック
+    const unifiedDB = getUnifiedCacheDB();
+    if (unifiedDB.isInitialized()) {
+      const { detectLanguage } = require('@/utils/language-detector');
+      const lang = detectLanguage(document);
+      const validCiids = unifiedDB.getValidCiidsForLang(card.cardId, lang);
+
+      // validCiidsが存在する場合、ciidが含まれているかチェック
+      if (validCiids.length > 0 && !validCiids.includes(String(card.ciid || card.imgs?.[0]?.ciid))) {
+        // 無効なciid - 追加を拒否
+        limitErrorCardId.value = card.cardId;
+        setTimeout(() => {
+          limitErrorCardId.value = null;
+        }, 1000);
+        return { success: false, error: 'invalid_ciid_for_language' };
+      }
+    }
+
     // main, extra, sideで同じcidのカードの合計枚数をカウント
     const allDecks = [
       ...deckInfo.value.mainDeck,
@@ -783,10 +802,31 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                      from === 'extra' ? deckInfo.value.extraDeck :
                      from === 'side' ? deckInfo.value.sideDeck :
                      trashDeck.value;
-    
+
     const fromIndex = fromDeck.findIndex(dc => dc.cid === cardId);
     if (fromIndex === -1) return { success: false, error: 'カードが見つかりません' };
-    
+
+    // 移動先がmain/extra/sideの場合、言語ごとの利用可能ciidをチェック
+    if (to === 'main' || to === 'extra' || to === 'side') {
+      const movingCard = fromDeck[fromIndex];
+      const unifiedDB = getUnifiedCacheDB();
+      if (unifiedDB.isInitialized()) {
+        const { detectLanguage } = require('@/utils/language-detector');
+        const lang = detectLanguage(document);
+        const validCiids = unifiedDB.getValidCiidsForLang(cardId, lang);
+
+        // validCiidsが存在する場合、ciidが含まれているかチェック
+        if (validCiids.length > 0 && !validCiids.includes(String(movingCard.ciid))) {
+          // 無効なciid - 移動を拒否
+          limitErrorCardId.value = cardId;
+          setTimeout(() => {
+            limitErrorCardId.value = null;
+          }, 1000);
+          return { success: false, error: 'invalid_ciid_for_language' };
+        }
+      }
+    }
+
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
     
@@ -1032,7 +1072,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       existingCard.quantity++;
     } else {
       tempCardDB.set(cardId, cardInfo);
-      targetDeck.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+      targetDeck.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
     }
     
     // displayOrder更新（targetUuidの位置に挿入）
@@ -1083,7 +1123,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          targetDeck2.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+          targetDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const toOrder2 = displayOrder.value[to];
@@ -1116,7 +1156,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          fromDeck2.push({ cid: cardId, ciid: cardInfo.ciid, quantity: 1 });
+          fromDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const fromOrder2 = displayOrder.value[from];

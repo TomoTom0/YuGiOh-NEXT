@@ -2,12 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import CardInfo from '../../../src/components/CardInfo.vue';
-import { getCardDetail } from '../../../src/api/card-search';
-import { useDeckEditStore } from '../../../src/stores/deck-edit';
+import { getCardDetail, getCardDetailWithCache } from '../../../src/api/card-search';
+import { useCardDetailStore } from '../../../src/stores/card-detail';
 
-// Mock getCardDetail
+// Mock getCardDetail and getCardDetailWithCache
 vi.mock('../../../src/api/card-search', () => ({
   getCardDetail: vi.fn(),
+  getCardDetailWithCache: vi.fn(),
 }));
 
 describe('CardInfo.vue', () => {
@@ -53,7 +54,7 @@ describe('CardInfo.vue', () => {
 
   describe('基本レンダリング', () => {
     it('モンスターカードの基本情報を表示できる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -74,7 +75,7 @@ describe('CardInfo.vue', () => {
         pendulumEffect: 'ペンデュラム効果', // pendulumTextではなくpendulumEffect
       };
 
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = cardWithPendulumEffect as any;
 
       const wrapper = mount(CardInfo, {
@@ -95,7 +96,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('DeckCardコンポーネントが正しくレンダリングされる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -113,7 +114,7 @@ describe('CardInfo.vue', () => {
 
   describe('補足情報の表示', () => {
     it('補足情報がある場合に表示される', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -141,7 +142,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('補足情報がない場合は表示されない', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -159,7 +160,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('ペンデュラム補足情報が表示される', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockPendulumCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -187,7 +188,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('補足情報の表示順序が正しい（Pend. Text → Pend. Detail → Card Text → Detail）', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockPendulumCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -227,7 +228,7 @@ describe('CardInfo.vue', () => {
 
   describe('カードリンクのパース', () => {
     it('parseCardLinksが{{カード名|cid}}形式をパースできる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -245,7 +246,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('複数のカードリンクをパースできる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -266,7 +267,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('カードリンクがない場合は通常テキストとして表示', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -286,7 +287,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('カードリンクと通常テキストが混在する場合', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -307,7 +308,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('ペンデュラム補足情報のカードリンクもパースされる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockPendulumCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -341,9 +342,9 @@ describe('CardInfo.vue', () => {
           imgs: [{ ciid: '1', imgHash: 'hash' }],
         },
       };
-      (getCardDetail as any).mockResolvedValue(mockCardDetail);
+      (getCardDetailWithCache as any).mockResolvedValue({ detail: mockCardDetail });
 
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -359,7 +360,7 @@ describe('CardInfo.vue', () => {
       await cardLink.trigger('click');
       await wrapper.vm.$nextTick();
 
-      expect(getCardDetail).toHaveBeenCalledWith('4007');
+      expect(getCardDetailWithCache).toHaveBeenCalledWith('4007', 'ja', true, 'release_desc', true);
     });
 
     it('カードリンククリックでdeckStoreが更新される', async () => {
@@ -372,10 +373,10 @@ describe('CardInfo.vue', () => {
           imgs: [{ ciid: '1', imgHash: 'hash' }],
         },
       };
-      (getCardDetail as any).mockResolvedValue(mockCardDetail);
+      (getCardDetailWithCache as any).mockResolvedValue({ detail: mockCardDetail });
 
-      const deckStore = useDeckEditStore();
-      deckStore.selectedCard = mockMonsterCard as any;
+      const cardDetailStore = useCardDetailStore();
+      cardDetailStore.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
         props: {
@@ -391,15 +392,14 @@ describe('CardInfo.vue', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
       await wrapper.vm.$nextTick();
 
-      expect(deckStore.selectedCard).toEqual(mockCardDetail.card);
-      expect(deckStore.activeTab).toBe('card');
-      expect(deckStore.cardTab).toBe('info');
+      expect(cardDetailStore.selectedCard).toEqual(mockCardDetail.card);
+      expect(cardDetailStore.cardTab).toBe('info');
     });
 
     it('getCardDetailがエラーを返した場合でもクラッシュしない', async () => {
       (getCardDetail as any).mockRejectedValue(new Error('API Error'));
 
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -424,7 +424,7 @@ describe('CardInfo.vue', () => {
     it('getCardDetailがnullを返した場合でもクラッシュしない', async () => {
       (getCardDetail as any).mockResolvedValue(null);
 
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -448,7 +448,7 @@ describe('CardInfo.vue', () => {
 
   describe('エッジケース', () => {
     it('空の補足情報でもエラーにならない', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -464,7 +464,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('undefined補足情報でもエラーにならない', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -480,7 +480,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('不正なカードリンク形式でもエラーにならない', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {
@@ -499,7 +499,7 @@ describe('CardInfo.vue', () => {
     });
 
     it('日付なしの補足情報も表示できる', () => {
-      const store = useDeckEditStore();
+      const store = useCardDetailStore();
       store.selectedCard = mockMonsterCard as any;
 
       const wrapper = mount(CardInfo, {

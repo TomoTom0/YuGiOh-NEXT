@@ -1,15 +1,6 @@
 import { CardFAQ, CardFAQList } from '@/types/card';
 import { detectCardGameType } from '@/utils/page-detector';
-import { getFaqSearchEndpoint } from '@/utils/url-builder';
-
-/**
- * FAQ検索APIのURLを取得
- * 現在のページのゲームタイプ（OCG/Rush）に応じたURLを返す
- */
-function getFaqSearchUrl(): string {
-  const gameType = detectCardGameType();
-  return getFaqSearchEndpoint(gameType);
-}
+import { buildApiUrl } from '@/utils/url-builder';
 
 /**
  * カードQA一覧を取得する
@@ -25,14 +16,15 @@ function getFaqSearchUrl(): string {
  */
 export async function getCardFAQList(cardId: string): Promise<CardFAQList | null> {
   try {
-    // URLパラメータを構築
+    // URLパラメータを別の辞書として buildApiUrl に渡す
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '4',
-      cid: cardId,
-      request_locale: 'ja'
+      cid: cardId
     });
+    const url = buildApiUrl('faq_search.action', gameType, params);
 
-    const response = await fetch(`${getFaqSearchUrl()}?${params.toString()}`, {
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -197,14 +189,14 @@ function convertCardLinksToTemplate(element: HTMLElement): string {
  */
 export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
   try {
-    // URLパラメータを構築
+    // URLパラメータを別の辞書として buildApiUrl に渡す
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '5',
-      fid: faqId,
-      request_locale: 'ja'
+      fid: faqId
     });
-
-    const response = await fetch(`${getFaqSearchUrl()}?${params.toString()}`, {
+    const url = buildApiUrl('faq_search.action', gameType, params);
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });

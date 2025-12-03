@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import DeckSection from '../../../src/components/DeckSection.vue';
 import { useDeckEditStore } from '../../../src/stores/deck-edit';
 import { getTempCardDB } from '../../../src/utils/temp-card-db';
+import { getUnifiedCacheDB } from '../../../src/utils/unified-cache-db';
 
 describe('DeckSection.vue', () => {
   let pinia: any;
@@ -14,23 +15,54 @@ describe('DeckSection.vue', () => {
     setActivePinia(pinia);
     store = useDeckEditStore();
 
-    // TempCardDBにカード情報を登録
+    // UnifiedCacheDB のモック化
+    const unifiedDB = getUnifiedCacheDB();
+
+    // reconstructCardInfo をモック（簡単にするため直接カード情報を返す）
+    vi.spyOn(unifiedDB, 'reconstructCardInfo').mockImplementation((cardId: string) => {
+      const cards: any = {
+        '4011': {
+          cardId: '4011',
+          ciid: '1',
+          lang: 'ja',
+          name: 'ブラック・マジシャン',
+          ruby: 'ブラック・マジシャン',
+          cardType: 'monster',
+          attribute: 'dark',
+          race: 'spellcaster',
+          levelType: 'level',
+          levelValue: 7,
+          atk: 2500,
+          def: 2100,
+          imgs: [
+            { ciid: '1', imgHash: 'hash1' },
+            { ciid: '2', imgHash: 'hash1b' }
+          ],
+          isExtraDeck: false,
+        },
+        '4012': {
+          cardId: '4012',
+          ciid: '1',
+          lang: 'ja',
+          name: 'ブラック・マジシャン・ガール',
+          ruby: 'ブラック・マジシャン・ガール',
+          cardType: 'monster',
+          attribute: 'dark',
+          race: 'spellcaster',
+          levelType: 'level',
+          levelValue: 6,
+          atk: 2000,
+          def: 1700,
+          imgs: [{ ciid: '1', imgHash: 'hash2' }],
+          isExtraDeck: false,
+        }
+      };
+      return cards[cardId];
+    });
+
+    // TempCardDBはクリア（使用されないことを確認）
     const tempCardDB = getTempCardDB();
     tempCardDB.clear();
-    tempCardDB.set('4011', {
-      cardId: '4011',
-      ciid: '1',
-      name: 'ブラック・マジシャン',
-      cardType: 'monster',
-      imgs: [{ ciid: '1', imgHash: 'hash1' }],
-    } as any);
-    tempCardDB.set('4012', {
-      cardId: '4012',
-      ciid: '1',
-      name: 'ブラック・マジシャン・ガール',
-      cardType: 'monster',
-      imgs: [{ ciid: '1', imgHash: 'hash2' }],
-    } as any);
   });
 
   const mockCards = [

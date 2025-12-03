@@ -1,6 +1,7 @@
 import { getCardDetailWithCache } from '@/api/card-search'
 import { useCardDetailStore } from '@/stores/card-detail'
 import { useDeckEditStore } from '@/stores/deck-edit'
+import { detectLanguage } from '@/utils/language-detector'
 
 /**
  * カードリンクの解析部分（type: 'text' | 'link'）
@@ -84,7 +85,8 @@ export function useCardLinks() {
     try {
       // カード詳細を取得（cidのみからCardInfo全体をパース）
       // FAQページからのリンクなので、fromFAQ=trueを渡す
-      const { detail } = await getCardDetailWithCache(cardId, undefined, true, 'release_desc', true)
+      const currentLang = detectLanguage(document)
+      const { detail } = await getCardDetailWithCache(cardId, currentLang, true, 'release_desc', true)
       if (!detail || !detail.card) {
         console.error('カード情報の取得に失敗しました:', cardId)
         return

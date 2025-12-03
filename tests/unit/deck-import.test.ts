@@ -32,6 +32,17 @@ const validTXT = `=== Main Deck ===
 === Side Deck ===
 3x 屋敷わらし (14558:1)`;
 
+// English card names test
+const validTXTEnglish = `=== Main Deck ===
+2x Dark Grepher (12950:1)
+1x Dimensional Eatos (4861:2)
+
+=== Extra Deck ===
+1x PSY-Framegear Λ (9753:1)
+
+=== Side Deck ===
+3x Ghost Belle & Haunted Mansion (14558:1)`;
+
 describe('deck-import', () => {
   describe('importFromCSV', () => {
     it('should import valid CSV with all fields', () => {

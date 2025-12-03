@@ -14,7 +14,8 @@ import {
   CardDetail,
   PackInfo,
   LimitRegulation,
-  CardTableC
+  CardTableC,
+  getCardImageUrl
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
@@ -24,119 +25,72 @@ import {
   SPELL_EFFECT_PATH_TO_ID,
   TRAP_EFFECT_PATH_TO_ID,
   SPELL_EFFECT_TYPE_MAP,
-  TRAP_EFFECT_TYPE_MAP
+  TRAP_EFFECT_TYPE_MAP,
+  ATTRIBUTE_ID_TO_INT,
+  RACE_ID_TO_INT,
+  MONSTER_TYPE_VALUE_TO_ID,
+  SPELL_EFFECT_TYPE_ID_TO_INT,
+  TRAP_EFFECT_TYPE_ID_TO_INT
 } from '@/types/card-maps';
-import { detectCardType, isExtraDeckMonster } from '@/content/card/detector';
+import { detectCardType } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
 import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
 import { detectCardGameType } from '@/utils/page-detector';
-import { getCardSearchEndpoint } from '@/utils/url-builder';
-
-/**
- * カード検索APIのURLを取得
- * 現在のページのゲームタイプ（OCG/Rush）に応じたURLを返す
- */
-function getSearchUrl(): string {
-  const gameType = detectCardGameType();
-  return getCardSearchEndpoint(gameType);
-}
+import { buildApiUrl } from '@/utils/url-builder';
 
 // ============================================================================
-// APIパラメータ値マッピング
+// APIパラメータ値マッピング関数
 // ============================================================================
+// 注: 実際の値は @/types/card-maps の *_ID_TO_INT マッピングで定義
+// 以下は便利関数で、internal ID → API値に変換する
 
 /**
  * 属性 → attr値のマッピング
- * 調査結果より: 11=光, 12=闇, 13=水, 14=炎, 15=地, 16=風, 17=神
+ * card-maps.ts の ATTRIBUTE_ID_TO_INT から動的に生成
  */
-const ATTRIBUTE_TO_ATTR_VALUE: Record<Attribute, string> = {
-  light: '11',
-  dark: '12',
-  water: '13',
-  fire: '14',
-  earth: '15',
-  wind: '16',
-  divine: '17'
-};
+function getAttributeAttrValue(attr: Attribute): string {
+  return (ATTRIBUTE_ID_TO_INT as Record<Attribute, number>)[attr]?.toString() || '';
+}
 
 /**
  * 種族 → species値のマッピング
- * HTMLの表示順序から推測（要検証）
+ * card-maps.ts の RACE_ID_TO_INT から動的に生成
  */
-const RACE_TO_SPECIES_VALUE: Record<Race, string> = {
-  dragon: '1',
-  zombie: '2',
-  fiend: '3',
-  pyro: '4',
-  seaserpent: '5',
-  rock: '6',
-  machine: '7',
-  fish: '8',
-  dinosaur: '9',
-  insect: '10',
-  beast: '11',
-  beastwarrior: '12',
-  plant: '13',
-  aqua: '14',
-  warrior: '15',
-  windbeast: '16',
-  fairy: '17',
-  spellcaster: '18',
-  thunder: '19',
-  reptile: '20',
-  psychic: '21',
-  divine: '22',
-  creatorgod: '23',
-  wyrm: '26',
-  cyberse: '27',
-  illusion: '34'
-};
+function getRaceSpeciesValue(race: Race): string {
+  return (RACE_ID_TO_INT as Record<Race, number>)[race]?.toString() || '';
+}
 
 /**
  * モンスタータイプ → other値のマッピング
- * 調査結果より: 0-17の値
+ * card-maps.ts の MONSTER_TYPE_VALUE_TO_ID の逆引き
+ * HTMLフォーム値（整数）から内部IDへのマッピングを逆引き
  */
-const MONSTER_TYPE_TO_OTHER_VALUE: Record<MonsterType, string> = {
-  normal: '0',
-  effect: '1',
-  fusion: '2',
-  ritual: '3',
-  toon: '4',
-  spirit: '5',
-  union: '6',
-  gemini: '7',
-  tuner: '8',
-  synchro: '9',
-  xyz: '10',
-  flip: '14',
-  pendulum: '15',
-  special: '16',
-  link: '17'
-};
+function getMonsterTypeOtherValue(type: MonsterType): string {
+  // MONSTER_TYPE_VALUE_TO_ID は value → id なので、逆引きして id → value を取得
+  for (const [value, id] of Object.entries(MONSTER_TYPE_VALUE_TO_ID)) {
+    if (id === type) {
+      return value;
+    }
+  }
+  return '';
+}
 
 /**
  * 魔法効果タイプ → effe値のマッピング
- * 調査結果より: 20=通常, 21=カウンター, 22=フィールド, 23=装備, 24=永続, 25=速攻, 26=儀式
+ * card-maps.ts の SPELL_EFFECT_TYPE_ID_TO_INT から動的に生成
  */
-const SPELL_EFFECT_TYPE_TO_EFFE_VALUE: Record<SpellEffectType, string> = {
-  normal: '20',
-  quick: '25',
-  continuous: '24',
-  equip: '23',
-  field: '22',
-  ritual: '26'
-};
+function getSpellEffectTypeEffeValue(type: SpellEffectType): string {
+  return (SPELL_EFFECT_TYPE_ID_TO_INT as Record<SpellEffectType, number>)[type]?.toString() || '';
+}
 
 /**
  * 罠効果タイプ → effe値のマッピング
- * 調査結果より: 20=通常, 21=カウンター, 24=永続
+ * card-maps.ts の TRAP_EFFECT_TYPE_ID_TO_INT から動的に生成
  */
-const TRAP_EFFECT_TYPE_TO_EFFE_VALUE: Record<TrapEffectType, string> = {
-  normal: '20',
-  continuous: '24',
-  counter: '21'
-};
+function getTrapEffectTypeEffeValue(type: TrapEffectType): string {
+  return (TRAP_EFFECT_TYPE_ID_TO_INT as Record<TrapEffectType, number>)[type]?.toString() || '';
+}
 
 /**
  * 内部sortOrder → API sortパラメータのマッピング
@@ -373,21 +327,21 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 属性
   if (options.attributes) {
     options.attributes.forEach(attr => {
-      params.append('attr', ATTRIBUTE_TO_ATTR_VALUE[attr]);
+      params.append('attr', getAttributeAttrValue(attr));
     });
   }
 
   // 種族
   if (options.races) {
     options.races.forEach(race => {
-      params.append('species', RACE_TO_SPECIES_VALUE[race]);
+      params.append('species', getRaceSpeciesValue(race));
     });
   }
 
   // モンスタータイプ
   if (options.monsterTypes) {
     options.monsterTypes.forEach(type => {
-      params.append('other', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+      params.append('other', getMonsterTypeOtherValue(type));
     });
   }
 
@@ -397,7 +351,7 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 除外条件
   if (options.excludeMonsterTypes) {
     options.excludeMonsterTypes.forEach(type => {
-      params.append('jogai', MONSTER_TYPE_TO_OTHER_VALUE[type]);
+      params.append('jogai', getMonsterTypeOtherValue(type));
     });
   }
 
@@ -464,14 +418,14 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
   // 魔法効果タイプ
   if (options.spellEffectTypes) {
     options.spellEffectTypes.forEach(type => {
-      params.append('effe', SPELL_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+      params.append('effe', getSpellEffectTypeEffeValue(type));
     });
   }
 
   // 罠効果タイプ
   if (options.trapEffectTypes) {
     options.trapEffectTypes.forEach(type => {
-      params.append('effe', TRAP_EFFECT_TYPE_TO_EFFE_VALUE[type]);
+      params.append('effe', getTrapEffectTypeEffeValue(type));
     });
   }
 
@@ -550,9 +504,11 @@ function buildSearchParams(options: SearchOptions): URLSearchParams {
  */
 export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
   try {
+    const gameType = detectCardGameType();
     const params = buildSearchParams(options);
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const url = buildApiUrl('card_search.action', gameType, params);
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -600,7 +556,9 @@ export async function searchCardsByName(
       params.append(param, '');
     });
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const gameType = detectCardGameType();
+    const url = buildApiUrl('card_search.action', gameType, params);
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -681,7 +639,7 @@ export async function searchCardsAuto(
 
     // name検索が100件以上ならname検索のみを返す（追加取得Promiseあり）
     if (nameResults.length >= 100) {
-      const baseParams = {
+      const baseParams: Record<string, string> = {
         ope: '1',
         sess: '1',
         keyword: keyword,
@@ -742,13 +700,13 @@ export async function searchCardsAuto(
  */
 export async function searchCardById(cardId: string): Promise<CardInfo | null> {
   try {
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '2',
-      cid: cardId,
-      request_locale: 'ja'
+      cid: cardId
     });
 
-    const url = `${getSearchUrl()}?${params.toString()}`;
+    const url = buildApiUrl('card_search.action', gameType, params);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -787,6 +745,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
  */
 export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
   try {
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '1',
       sess: '1',
@@ -795,7 +754,7 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
       sort: '1'
     });
 
-    const url = `${getSearchUrl()}?${params.toString()}`;
+    const url = buildApiUrl('card_search.action', gameType, params);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -852,7 +811,6 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
  */
 export function buildCardImageUrl(card: CardBase): string | undefined {
   // types/card.tsのgetCardImageUrlに委譲
-  const { getCardImageUrl } = require('../types/card');
   return getCardImageUrl(card);
 }
 
@@ -974,6 +932,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
     ruby,
     cardId,
     ciid,
+    lang: detectLanguage(document),
     imgs,
     text,
     limitRegulation
@@ -997,9 +956,15 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
   const raceMap = mappingManager.getRaceTextToId(lang);
   const typeMap = mappingManager.getMonsterTypeTextToId(lang);
 
-  // 括弧を除去してスラッシュで分割（日本語【】、英語[]に対応）
-  const cleaned = speciesText.replace(/【|】|\[|\]/g, '').trim();
-  const parts = cleaned.split('／').map(p => p.trim()).filter(p => p);
+  // 括弧を除去し、複数の改行・スペースを単一スペースに統一してからスラッシュで分割
+  // （日本語【】、英語[]に対応、全角スラッシュ・半角スラッシュに対応）
+  let cleaned = speciesText
+    .replace(/【|】|\[|\]/g, '') // 括弧を除去
+    .replace(/\s+/g, ' ') // 複数のホワイトスペース（改行含む）を単一スペースに統一
+    .trim();
+
+  // スラッシュで分割（全角・半角両方に対応）
+  const parts = cleaned.split(/[／\/]/).map(p => p.trim()).filter(p => p);
 
   if (parts.length === 0) return null;
 
@@ -1011,6 +976,7 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
   // テキスト → 識別子に変換（言語別マッピングを使用）
   const race = raceMap[raceText];
   if (!race) {
+    console.error(`[parseSpeciesAndTypes] Race text not found in mapping: "${raceText}" (lang: ${lang})`);
     return null;
   }
 
@@ -1020,10 +986,19 @@ function parseSpeciesAndTypes(doc: Document, speciesText: string): { race: Race;
     if (type) {
       types.push(type);
     } else {
+      console.warn(`[parseSpeciesAndTypes] Monster type text not found in mapping: "${typeText}" (lang: ${lang})`);
     }
   }
 
   return { race, types };
+}
+
+/**
+ * モンスターのタイプ配列からエクストラデッキ判定
+ * Fusion, Synchro, Xyz, Link が含まれればエクストラデッキ
+ */
+function isMonsterExtraDeckCard(types: MonsterType[]): boolean {
+  return types.some(t => ['fusion', 'synchro', 'xyz', 'link'].includes(t));
 }
 
 /**
@@ -1038,12 +1013,14 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   // 属性取得（必須）
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
   if (!attrImg?.src) {
+    console.error('[parseMonsterCard] Attribute image not found for card:', base.name);
     return null;
   }
 
   // src属性から属性名を抽出: "attribute_icon_light.png" → "light"
   const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
   if (!attrMatch || !attrMatch[1]) {
+    console.error('[parseMonsterCard] Failed to parse attribute from image src:', attrImg.src, 'for card:', base.name);
     return null;
   }
   const attrPath = attrMatch[1];
@@ -1051,6 +1028,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   // パス → 識別子に変換
   const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
   if (!attribute) {
+    console.error('[parseMonsterCard] Unknown attribute path:', attrPath, 'for card:', base.name);
     return null;
   }
 
@@ -1087,9 +1065,11 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
       if (match) {
         levelValue = parseInt(match[0], 10);
       } else {
+        console.error('[parseMonsterCard] Failed to extract level/rank value from:', levelSpan.textContent, 'for card:', base.name);
         return null; // レベル/ランク値が取得できない
       }
     } else {
+      console.error('[parseMonsterCard] Level/rank span text not found for card:', base.name);
       return null;
     }
   } else if (linkMarkerElem) {
@@ -1103,9 +1083,11 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
       if (match) {
         levelValue = parseInt(match[0], 10);
       } else {
+        console.error('[parseMonsterCard] Failed to extract link value from:', linkSpan.textContent, 'for card:', base.name);
         return null; // リンク数が取得できない
       }
     } else {
+      console.error('[parseMonsterCard] Link marker span text not found for card:', base.name);
       return null;
     }
 
@@ -1120,45 +1102,47 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     }
   } else {
     // レベル/ランク/リンク要素が存在しない
+    console.error('[parseMonsterCard] Level/rank/link element not found for card:', base.name);
     return null;
   }
 
   // 種族・タイプ取得（必須）
   const speciesElem = row.querySelector('.card_info_species_and_other_item');
   if (!speciesElem?.textContent) {
+    console.error('[parseMonsterCard] Species element not found for card:', base.name);
     return null;
   }
 
   const parsed = parseSpeciesAndTypes(row.ownerDocument!, speciesElem.textContent);
   if (!parsed) {
+    console.error('[parseMonsterCard] Failed to parse species and types from:', speciesElem.textContent, 'for card:', base.name);
     return null;
   }
   const { race, types } = parsed;
 
   // ATK/DEF取得
-  const specElem = row.querySelector('.box_card_spec');
+  // クラス名で言語に依存しない判定
   let atk: number | string | undefined;
   let def: number | string | undefined;
 
-  if (specElem) {
-    const spans = Array.from(specElem.querySelectorAll('span'));
-    spans.forEach(span => {
-      const text = span.textContent || '';
+  // ATK: .atk_power クラスから取得
+  const atkElem = row.querySelector('.atk_power');
+  if (atkElem?.textContent) {
+    const value = atkElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const atkValue = value[1];
+      atk = /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
+    }
+  }
 
-      // "攻撃力 3000" → 3000
-      const atkMatch = text.match(/攻撃力[:\s]*([0-9X?]+)/);
-      if (atkMatch && atkMatch[1]) {
-        const value = atkMatch[1];
-        atk = /^\d+$/.test(value) ? parseInt(value, 10) : value;
-      }
-
-      // "守備力 2500" → 2500
-      const defMatch = text.match(/守備力[:\s]*([0-9X?]+)/);
-      if (defMatch && defMatch[1]) {
-        const value = defMatch[1];
-        def = /^\d+$/.test(value) ? parseInt(value, 10) : value;
-      }
-    });
+  // DEF: .def_power クラスから取得
+  const defElem = row.querySelector('.def_power');
+  if (defElem?.textContent) {
+    const value = defElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const defValue = value[1];
+      def = /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
+    }
   }
 
   // ペンデュラム情報取得（オプション）
@@ -1191,10 +1175,6 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     linkMarkers = parseLinkValue(extractedLinkValue);
   }
 
-  // エクストラデッキ判定
-  const isExtraDeck = isExtraDeckMonster(row);
-
-
   return {
     ...base,
     cardType: 'monster',
@@ -1208,7 +1188,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     linkMarkers,
     pendulumScale,
     pendulumText,
-    isExtraDeck
+    isExtraDeck: isMonsterExtraDeckCard(types)
   };
 }
 
@@ -1222,7 +1202,10 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   // 魔法であることを確認
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
-  if (!attrImg?.src?.includes('attribute_icon_spell')) return null;
+  if (!attrImg?.src?.includes('attribute_icon_spell')) {
+    console.error('[parseSpellCard] Attribute is not spell for card:', base.name, 'src:', attrImg?.src);
+    return null;
+  }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
@@ -1260,7 +1243,10 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
 function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   // 罠であることを確認
   const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
-  if (!attrImg?.src?.includes('attribute_icon_trap')) return null;
+  if (!attrImg?.src?.includes('attribute_icon_trap')) {
+    console.error('[parseTrapCard] Attribute is not trap for card:', base.name, 'src:', attrImg?.src);
+    return null;
+  }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
   const effectElem = row.querySelector('.box_card_effect');
@@ -1302,12 +1288,16 @@ export function parseSearchResultRow(
   // 1. 共通情報を取得
   const base = parseCardBase(row, imageInfoMap);
   if (!base) {
+    const cardNameElem = row.querySelector('.card_info_name');
+    const cardName = cardNameElem?.textContent || 'UNKNOWN';
+    console.error('[parseSearchResultRow] Failed to parse card base for card:', cardName);
     return null;
   }
 
   // 2. カードタイプを判定
   const cardType = detectCardType(row);
   if (!cardType) {
+    console.error('[parseSearchResultRow] Could not detect card type for card:', base.name);
     return null;
   }
 
@@ -1320,6 +1310,7 @@ export function parseSearchResultRow(
     case 'trap':
       return parseTrapCard(row, base);
     default:
+      console.error('[parseSearchResultRow] Unknown card type:', cardType, 'for card:', base.name);
       return null;
   }
 }
@@ -1482,6 +1473,7 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
     name: cardName,
     cardId,
     ciid: '1',
+    lang: detectLanguage(document),
     imgs: [{ ciid: '1', imgHash: '' }]
   };
 
@@ -1556,7 +1548,7 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   const attrMatch = attrImg.src.match(/attribute_icon_([^.]+)\.png/);
-  if (!attrMatch) {
+  if (!attrMatch || !attrMatch[1]) {
     console.error('[parseMonsterDetailBasicInfo] Cannot parse attribute');
     return null;
   }
@@ -1568,43 +1560,62 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   // レベル/ランク/リンクを取得
-  const frameElems = doc.querySelectorAll('.CardText .frame .item_box');
+  // クラス名で言語に依存しない判定
   let levelType: LevelType = 'level';
   let levelValue: number = 0;
 
-  for (const elem of frameElems) {
-    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
-    if (!value) continue;
-
-    if (value.includes('レベル')) {
+  // レベル判定: .box_card_level_rank.level クラスで判定
+  const levelElem = doc.querySelector('.box_card_level_rank.level');
+  if (levelElem?.textContent) {
+    const match = levelElem.textContent.match(/(\d+)/);
+    if (match && match[1]) {
       levelType = 'level';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('ランク')) {
-      levelType = 'rank';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
-    } else if (value.includes('リンク')) {
-      levelType = 'link';
-      const match = value.match(/(\d+)/);
-      if (match) levelValue = parseInt(match[1], 10);
+      levelValue = parseInt(match[1], 10);
+    }
+  } else {
+    // ランク判定: .box_card_level_rank.rank クラスで判定
+    const rankElem = doc.querySelector('.box_card_level_rank.rank');
+    if (rankElem?.textContent) {
+      const match = rankElem.textContent.match(/(\d+)/);
+      if (match && match[1]) {
+        levelType = 'rank';
+        levelValue = parseInt(match[1], 10);
+      }
+    } else {
+      // リンク判定: .box_card_linkmarker クラスで判定
+      const linkElem = doc.querySelector('.box_card_linkmarker');
+      if (linkElem?.textContent) {
+        const match = linkElem.textContent.match(/(\d+)/);
+        if (match && match[1]) {
+          levelType = 'link';
+          levelValue = parseInt(match[1], 10);
+        }
+      }
     }
   }
 
   // ATK/DEFを取得
+  // クラス名で言語に依存しない判定
   let atk: number | string | undefined;
   let def: number | string | undefined;
 
-  for (const elem of frameElems) {
-    const title = elem.querySelector('.item_box_title')?.textContent?.trim();
-    const value = elem.querySelector('.item_box_value')?.textContent?.trim();
+  // ATK: .atk_power クラスから取得
+  const atkElem = doc.querySelector('.atk_power');
+  if (atkElem?.textContent) {
+    const value = atkElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const atkValue = value[1];
+      atk = atkValue === '-' ? undefined : /^\d+$/.test(atkValue) ? parseInt(atkValue, 10) : atkValue;
+    }
+  }
 
-    if (title === 'ATK' && value) {
-      const trimmed = value.trim();
-      atk = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
-    } else if (title === 'DEF' && value) {
-      const trimmed = value.trim();
-      def = /^\d+$/.test(trimmed) ? parseInt(trimmed, 10) : trimmed;
+  // DEF: .def_power クラスから取得
+  const defElem = doc.querySelector('.def_power');
+  if (defElem?.textContent) {
+    const value = defElem.textContent.match(/([0-9X?-]+)/);
+    if (value && value[1]) {
+      const defValue = value[1];
+      def = defValue === '-' ? undefined : /^\d+$/.test(defValue) ? parseInt(defValue, 10) : defValue;
     }
   }
 
@@ -1616,14 +1627,14 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
   }
 
   const spans = Array.from(speciesElem.querySelectorAll('span'));
-  const parts = spans.map(span => span.textContent?.trim()).filter(t => t && t !== '／');
+  const parts = spans.map(span => span.textContent?.trim()).filter((t): t is string => t != null && t !== '／');
 
   if (parts.length === 0) {
     console.error('[parseMonsterDetailBasicInfo] No species/types found');
     return null;
   }
 
-  const raceText = parts[0];
+  const raceText = parts[0]!;
   const typeTexts = parts.slice(1);
 
   const lang = detectLanguage(doc);
@@ -1712,6 +1723,7 @@ export function fetchAdditionalPages(
   logPrefix: string
 ): Promise<CardInfo[]> {
   return (async () => {
+    const gameType = detectCardGameType();
     const allCards: CardInfo[] = [];
     let page = 1;
     let hasMore = true;
@@ -1724,7 +1736,8 @@ export function fetchAdditionalPages(
       });
 
       try {
-        const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+        const url = buildApiUrl('card_search.action', gameType, params);
+        const response = await fetch(url, {
           method: 'GET',
           credentials: 'include'
         });
@@ -1774,7 +1787,7 @@ function fetchAdditionalRelatedCards(
   lang: string,
   sortOrder: string
 ): Promise<CardInfo[]> {
-  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+  const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] ?? SORT_ORDER_TO_API_VALUE['release_desc']!;
 
   const baseParams = {
     ope: '2',
@@ -1801,18 +1814,20 @@ export async function getCardDetail(
     const unifiedDB = getUnifiedCacheDB();
 
     // 詳細ページを取得（初回100件）
+    const gameType = detectCardGameType();
     const requestLocale = lang || detectLanguage(document);
-    const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] || SORT_ORDER_TO_API_VALUE['release_desc'];
+    const sortValue = SORT_ORDER_TO_API_VALUE[sortOrder] ?? SORT_ORDER_TO_API_VALUE['release_desc']!;
     const params = new URLSearchParams({
       ope: '2',
       cid: cardId,
-      request_locale: requestLocale,
       sort: sortValue.toString(),
       rp: '100', // 初回100件のみ取得
       page: '1'
     });
 
-    const response = await fetch(`${getSearchUrl()}?${params.toString()}`, {
+    const url = buildApiUrl('card_search.action', gameType, params);
+
+    const response = await fetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -1914,6 +1929,7 @@ export async function getCardDetail(
     // 基本情報に補足情報をマージ
     const mergedCard: CardInfo = {
       ...baseCard,
+      lang: requestLocale,  // 重要: 取得した言語を明示的に設定
       imgs: additionalImgs.length > 0 ? additionalImgs : baseCard.imgs,
       ruby: ruby || baseCard.ruby,
       text: textData?.text || baseCard.text
@@ -1972,71 +1988,81 @@ export async function getCardDetailWithCache(
   fromFAQ: boolean = false
 ): Promise<CardDetailCacheResult> {
   const unifiedDB = getUnifiedCacheDB();
+  const targetLang = lang || detectLanguage(document);
 
   // キャッシュを確認
   if (unifiedDB.isInitialized()) {
     const cachedTableC = await unifiedDB.getCardTableC(cardId);
 
-    // packsとqaListは空配列の可能性があるので、存在チェックのみ（undefinedでないこと）
-    if (cachedTableC && cachedTableC.packs !== undefined && cachedTableC.qaList !== undefined) {
+    // 言語別関連製品（products ID）が存在するかチェック
+    // langsRelatedProducts は必須（qaList、relatedCards の詳細情報は空でも OK）
+    if (cachedTableC &&
+        cachedTableC.langsRelatedProducts?.[targetLang] !== undefined) {
       const now = Date.now();
-      // fetchedAtがundefinedの場合は現在時刻として扱う（初回取得扱い）
-      const fetchedAt = cachedTableC.fetchedAt || now;
-      
-      // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
-      const isSameDayToday = isSameDay(fetchedAt, now);
-      
-      // related-productsの存在チェック
-      const hasRelatedProducts = !!(cachedTableC.relatedProducts && cachedTableC.relatedProducts.length > 0);
-      
-      // isFresh条件: 今日の日付 AND related-productsが存在する
-      const isFresh = isSameDayToday && hasRelatedProducts;
 
-      // キャッシュからCardDetailを再構築
-      const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC);
+      // 言語別のfetchedAtを取得（langsFetchedAtのみ使用）
+      const fetchedAt = cachedTableC.langsFetchedAt?.[targetLang];
 
-      if (cachedDetail) {
-        // fetchedAtを更新（今日の日付でない場合のみ）
-        if (!isSameDayToday) {
-          await unifiedDB.updateCardTableCFetchedAt(cardId);
-        }
+      // fetchedAtが存在する場合のみキャッシュヒット判定
+      if (fetchedAt !== undefined) {
+        // 日付ベースの判定: fetch-atが今日の日付と同じかどうか
+        const isSameDayToday = isSameDay(fetchedAt, now);
 
-        const result: CardDetailCacheResult = {
-          detail: cachedDetail,
-          fromCache: true,
-          isFresh,
-          fetchedAt: !isSameDayToday ? Date.now() : fetchedAt // 更新した場合は新しい時刻
-        };
+        // 言語別の関連製品（products ID）の存在チェック
+        // langsRelatedProducts は絶対に空であってはいけない（products 情報として必須）
+        const hasRelatedProducts = !!(cachedTableC.langsRelatedProducts?.[targetLang] &&
+                                       cachedTableC.langsRelatedProducts[targetLang].length > 0);
 
-        // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
-        if (!isFresh && autoRefresh) {
-          result.refreshPromise = (async () => {
-            try {
-              const freshDetail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
-              if (freshDetail && unifiedDB.isInitialized()) {
-                await saveCardDetailToCache(unifiedDB, freshDetail, true);
-                // ストレージに永続化
-                await unifiedDB.saveAll();
+        // isFresh条件: 今日の日付 AND 言語別関連製品が存在する
+        // langsRelatedProductDetail の詳細情報、langsQaList や langsRelatedCards は空でも OK（そういうカードもある）
+        const isFresh = isSameDayToday && hasRelatedProducts;
+
+        // キャッシュからCardDetailを再構築
+        const cachedDetail = await reconstructCardDetailFromCache(unifiedDB, cardId, cachedTableC, targetLang);
+
+        if (cachedDetail) {
+          // fetchedAtを更新（今日の日付でない場合のみ）
+          if (!isSameDayToday) {
+            await unifiedDB.updateCardTableCFetchedAt(cardId, targetLang);
+          }
+
+          const result: CardDetailCacheResult = {
+            detail: cachedDetail,
+            fromCache: true,
+            isFresh,
+            fetchedAt: !isSameDayToday ? Date.now() : fetchedAt // 更新した場合は新しい時刻
+          };
+
+          // キャッシュが古い、または関連製品がない場合、自動更新が有効ならバックグラウンドで更新
+          if (!isFresh && autoRefresh) {
+            result.refreshPromise = (async () => {
+              try {
+                const freshDetail = await getCardDetail(cardId, targetLang, sortOrder, fromFAQ);
+                if (freshDetail && unifiedDB.isInitialized()) {
+                  await saveCardDetailToCache(unifiedDB, freshDetail, true, targetLang);
+                  // ストレージに永続化
+                  await unifiedDB.saveAll();
+                }
+                return freshDetail;
+              } catch (error) {
+                console.error(`[getCardDetailWithCache] Background refresh failed for ${cardId}:`, error);
+                return null;
               }
-              return freshDetail;
-            } catch (error) {
-              console.error(`[getCardDetailWithCache] Background refresh failed for ${cardId}:`, error);
-              return null;
-            }
-          })();
-        }
+            })();
+          }
 
-        return result;
+          return result;
+        }
       }
     }
   }
 
   // キャッシュがない、または不完全な場合はAPIを呼び出し
-  const detail = await getCardDetail(cardId, lang, sortOrder, fromFAQ);
+  const detail = await getCardDetail(cardId, targetLang, sortOrder, fromFAQ);
 
   if (detail && unifiedDB.isInitialized()) {
     // キャッシュに保存（forceUpdate=trueで強制更新）
-    await saveCardDetailToCache(unifiedDB, detail, true);
+    await saveCardDetailToCache(unifiedDB, detail, true, targetLang);
     // ストレージに永続化
     await unifiedDB.saveAll();
   }
@@ -2055,10 +2081,13 @@ export async function getCardDetailWithCache(
 async function reconstructCardDetailFromCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
   cid: string,
-  tableC: CardTableC
+  tableC: CardTableC,
+  lang?: string
 ): Promise<CardDetail | null> {
-  // CardInfoを再構築
-  const cardInfo = unifiedDB.reconstructCardInfo(cid);
+  const targetLang = lang || detectLanguage(document);
+
+  // CardInfoを再構築（指定言語で）
+  const cardInfo = unifiedDB.reconstructCardInfo(cid, targetLang);
   if (!cardInfo) {
     return null;
   }
@@ -2066,59 +2095,97 @@ async function reconstructCardDetailFromCache(
   // cardInfoには既にTableB2からtext/pendTextがマージされている
   // （reconstructCardInfo()内で処理済み）
 
-  // relatedCardsを再構築
+  // langsRelatedCardsから言語別の関連カードを取得
   const relatedCards: CardInfo[] = [];
-  if (tableC.relatedCards) {
-    for (const relatedCid of tableC.relatedCards) {
-      const relatedInfo = unifiedDB.reconstructCardInfo(relatedCid);
+  const relatedCardIds = tableC.langsRelatedCards?.[targetLang];
+  if (relatedCardIds) {
+    for (const relatedCid of relatedCardIds) {
+      const relatedInfo = unifiedDB.reconstructCardInfo(relatedCid, targetLang);
       if (relatedInfo) {
         relatedCards.push(relatedInfo);
       }
     }
   }
 
+  // 言語別パック詳細情報を取得（新形式：langsRelatedProductDetail）
+  const packs = tableC.langsRelatedProductDetail?.[targetLang];
+
+  // Q&A情報を取得（日本語のみ）
+  const qaList = tableC.qaList;
+
+  // packsが存在しない場合はnullを返す
+  // キャッシュの形式がリセットされている場合は、APIから再取得する
+  if (!packs) {
+    return null;
+  }
+
   return {
     card: cardInfo,
-    packs: tableC.packs || [],
+    packs: packs || [],
     relatedCards,
-    qaList: tableC.qaList || []
+    qaList: qaList || []
   };
 }
 
 /**
  * CardDetailをキャッシュに保存
+ * Tierに応じた保存先の振り分け：
+ * - Tier 3以上: Table C をUnifiedCacheDBに永続保存
+ * - Tier 0-2: Table C はTempCardDBのみ（セッション中のみ）
  */
 export async function saveCardDetailToCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
   detail: CardDetail,
-  forceUpdate: boolean = false
+  forceUpdate: boolean = false,
+  lang?: string
 ): Promise<void> {
   const cid = detail.card.cardId;
+  const targetLang = lang || detectLanguage(document);
 
-  // CardInfoをTableA, Bに保存
+  // CardInfoをTableA, Bに保存（全Tierで常に保存）
+  // setCardInfoは内部でdetectLanguageを呼び出すので、langパラメータは不要
   unifiedDB.setCardInfo(detail.card, forceUpdate);
 
-  // 関連カードもTableA, Bに保存
+  // 関連カードもTableA, Bに保存（全Tierで常に保存）
   for (const relatedCard of detail.relatedCards) {
     unifiedDB.setCardInfo(relatedCard, forceUpdate);
   }
 
-  // CardTableCを作成して保存
-  // TableCを作成して保存（text/pendTextはTableB2に保存されるので含めない）
+  // Tier値を取得して保存先を決定
+  const tier = unifiedDB.getCardTier(cid);
+
+  // CardTableCを作成
+  // TableCを作成（text/pendTextはTableB2に保存されるので含めない）
   const packs = detail.packs || [];
   const qaList = detail.qaList || [];
+  const relatedCardIds = detail.relatedCards.map(c => c.cardId);
+  const relatedProductIds = packs.map(p => p.packId).filter((id): id is string => id !== undefined);
+
   const tableC: CardTableC = {
     cardId: cid,
-    relatedCards: detail.relatedCards.map(c => c.cardId),
-    relatedProducts: packs.map(p => p.packId).filter((id): id is string => id !== undefined),
-    packs: packs,
-    qaList: qaList,
-    fetchedAt: Date.now()
+    // 言語別の関連カード・製品
+    langsRelatedCards: {
+      [targetLang]: relatedCardIds
+    },
+    langsRelatedProducts: {
+      [targetLang]: relatedProductIds
+    },
+    // 言語別パック詳細情報
+    langsRelatedProductDetail: {
+      [targetLang]: packs
+    },
+    // Q&A情報（日本語のみ）
+    qaList
   };
 
-  await unifiedDB.setCardTableC(tableC);
+  // Tier 3以上のカードのみTableCをUnifiedCacheDBに永続保存
+  if (tier >= 3) {
+    await unifiedDB.setCardTableC(tableC, targetLang);
+  }
 
-  // TempCardDBにも保存（detail.cardと関連カード）
+  // TempCardDBに保存（detail.cardと関連カード）
+  // Tier 0-2: Table C 相当のデータはセッション中のみメモリに保持
+  // Tier 3-5: メモリに保持（永続化はUnifiedCacheDB）
   const tempCardDB = getTempCardDB();
   tempCardDB.set(detail.card.cardId, detail.card);
   for (const relatedCard of detail.relatedCards) {

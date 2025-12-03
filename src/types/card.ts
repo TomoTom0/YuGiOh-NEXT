@@ -6,6 +6,7 @@ import {
   SpellEffectType,
   TrapEffectType
 } from './card-maps';
+import { buildApiUrl } from '../utils/url-builder';
 
 // CardTypeはcard-maps.tsで定義
 export type { CardType };
@@ -32,6 +33,8 @@ export interface CardBase {
   cardId: string;
   /** 画像識別子 (ciid) */
   ciid: string;
+  /** 言語コード（取得時の言語を記録） */
+  lang: string;
   /** 複数画像情報 */
   imgs: Array<{ciid: string; imgHash: string}>;
   /** 複数画像の有無を確認した日時（オプション）
@@ -51,6 +54,7 @@ import type { CardGameType } from './settings';
  * CardInfoにimageUrlゲッターを追加するヘルパー
  * @param card カード情報
  * @param gameType ゲームタイプ（省略時は'ocg'）
+ * @returns 画像URL（request_locale付与）
  */
 export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
@@ -58,8 +62,10 @@ export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'):
     console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
-  const gamePath = gameType === 'rush' ? 'rushdb' : 'yugiohdb';
-  return `/${gamePath}/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+
+  // buildApiUrl を使用して request_locale を自動付与
+  const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+  return buildApiUrl(path, gameType);
 }
 
 /**
@@ -150,6 +156,8 @@ export interface DeckCardRef {
   cid: string;
   /** 画像識別子 (ciid) */
   ciid: string;
+  /** 言語コード（カード取得時の言語を記録） */
+  lang: string;
   /** 枚数 */
   quantity: number;
 }
@@ -337,17 +345,19 @@ export interface DeckOpenHistory {
 export interface CardTableA {
   /** カードID (PK) */
   cardId: string;
-  /** カード名 */
-  name: string;
+  /** カード名（多言語対応: {lang: name} 形式） */
+  langsName?: Record<string, string>;
   /** ふりがな */
   ruby?: string;
-  /** 画像情報 */
-  imgs: Array<{
+  /** 画像情報（多言語対応: {lang: imgs[]} 形式） */
+  langsImgs?: Record<string, Array<{
     ciid: string;
     imgHash: string;
-  }>;
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  }>>;
+  /** 言語ごとに利用可能なciidのリスト（{lang: ciid[]} 形式） */
+  langs_ciids?: Record<string, string[]>;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
 }
 
 /**
@@ -390,11 +400,11 @@ export interface CardTableB {
   effectType?: string;
 
   // 共通
-  /** 禁止制限 */
-  limitRegulation?: 'forbidden' | 'limited' | 'semi-limited';
+  /** 禁止制限（多言語対応: {lang: regulation} 形式） */
+  langsLimitRegulation?: Record<string, 'forbidden' | 'limited' | 'semi-limited'>;
 
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
 }
 
 /**
@@ -405,12 +415,12 @@ export interface CardTableB {
 export interface CardTableB2 {
   /** カードID (PK) */
   cardId: string;
-  /** 効果テキスト */
-  text?: string;
-  /** ペンデュラムテキスト */
-  pendText?: string;
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 効果テキスト（多言語対応: {lang: text} 形式） */
+  langsText?: Record<string, string>;
+  /** ペンデュラムテキスト（多言語対応: {lang: text} 形式） */
+  langsPendText?: Record<string, string>;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
 }
 
 /**
@@ -432,20 +442,20 @@ export interface CardTableC {
   /** ペンデュラム補足情報の日付 */
   pendSupplDate?: string;
 
-  // 関連情報
-  /** 関連カードID一覧 */
-  relatedCards?: string[];
-  /** 関連パックID一覧 */
-  relatedProducts?: string[];
+  // 関連情報（多言語対応）
+  /** 関連カードID一覧（多言語対応: {lang: cardIds[]} 形式） */
+  langsRelatedCards?: Record<string, string[]>;
+  /** 関連パックID一覧（多言語対応: {lang: packIds[]} 形式） */
+  langsRelatedProducts?: Record<string, string[]>;
 
-  // キャッシュ用の追加情報
-  /** 収録シリーズ情報 */
-  packs?: PackInfo[];
-  /** Q&A情報 */
+  // キャッシュ用の追加情報（多言語対応）
+  /** 収録シリーズ詳細情報（多言語対応: {lang: PackInfo[]} 形式） */
+  langsRelatedProductDetail?: Record<string, PackInfo[]>;
+  /** Q&A情報（日本語のみ） */
   qaList?: CardFAQ[];
 
-  /** 取得日時 (timestamp) */
-  fetchedAt: number;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
 }
 
 /**
@@ -470,10 +480,13 @@ export interface ProductTableA {
  * ProductTableB: パック詳細情報
  * 対象: パック詳細を展開した場合
  * 用途: パック内カードリスト表示
+ * PK: packId + lang（言語別に管理）
  */
 export interface ProductTableB {
   /** パックID (PK) */
   packId: string;
+  /** 言語コード (PK) */
+  lang: string;
   /** パック内カード一覧 */
   cards: Array<{
     cardId: string;

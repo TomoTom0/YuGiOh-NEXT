@@ -305,18 +305,107 @@ const sampleFusion: CardInfo = {
     store.addCard(sampleMonster, 'main');
     store.addCard(sampleFusion, 'extra');
     store.addCard(sampleSpell, 'side');
-    
+
     assertEquals(store.deckInfo.mainDeck.length, 1, 'mainDeckに1種類');
     assertEquals(store.deckInfo.extraDeck.length, 1, 'extraDeckに1種類');
     assertEquals(store.deckInfo.sideDeck.length, 1, 'sideDeckに1種類');
-    
+
     store.removeCard(sampleMonster.cardId, 'main');
     store.removeCard(sampleFusion.cardId, 'extra');
     store.removeCard(sampleSpell.cardId, 'side');
-    
+
     assertEquals(store.deckInfo.mainDeck.length, 0, 'mainDeckが空');
     assertEquals(store.deckInfo.extraDeck.length, 0, 'extraDeckが空');
     assertEquals(store.deckInfo.sideDeck.length, 0, 'sideDeckが空');
+  });
+
+  // ===== Undo/Redo テスト =====
+
+  await test('undo/redo: 基本的な動作確認', () => {
+    const store = useDeckEditStore();
+
+    // 初期状態: canUndo=false, canRedo=false
+    assertEquals(store.canUndo, false, '初期状態ではcanUndoがfalse');
+    assertEquals(store.canRedo, false, '初期状態ではcanRedoがfalse');
+
+    // カード追加（command記録される）
+    store.addCard(sampleMonster, 'main');
+    assertEquals(store.deckInfo.mainDeck.length, 1, 'カード追加後は1枚');
+    assertEquals(store.canUndo, true, 'addCard後はcanUndoがtrue');
+    assertEquals(store.canRedo, false, 'addCard後はcanRedoがfalse');
+
+    // Undo
+    store.undo();
+    assertEquals(store.deckInfo.mainDeck.length, 0, 'undo後は0枚');
+    assertEquals(store.canUndo, false, 'undo後はcanUndoがfalse');
+    assertEquals(store.canRedo, true, 'undo後はcanRedoがtrue');
+
+    // Redo
+    store.redo();
+    assertEquals(store.deckInfo.mainDeck.length, 1, 'redo後は1枚');
+    assertEquals(store.canUndo, true, 'redo後はcanUndoがtrue');
+    assertEquals(store.canRedo, false, 'redo後はcanRedoがfalse');
+  });
+
+  await test('undo/redo: 複数操作の状態遷移', () => {
+    const store = useDeckEditStore();
+
+    // addCard -> removeCard -> addCard
+    store.addCard(sampleMonster, 'main');
+    store.addCard(sampleSpell, 'main');
+    store.removeCard(sampleMonster.cardId, 'main');
+
+    assertEquals(store.deckInfo.mainDeck.length, 1, '操作後は1枚');
+    assertEquals(store.canUndo, true, 'canUndoがtrue');
+    assertEquals(store.canRedo, false, 'canRedoがfalse');
+
+    // 3回Undo
+    store.undo();
+    assertEquals(store.deckInfo.mainDeck.length, 2, '1回目Undo後は2枚');
+
+    store.undo();
+    assertEquals(store.deckInfo.mainDeck.length, 1, '2回目Undo後は1枚');
+
+    store.undo();
+    assertEquals(store.deckInfo.mainDeck.length, 0, '3回目Undo後は0枚');
+    assertEquals(store.canUndo, false, '完全にUndoするとcanUndoがfalse');
+    assertEquals(store.canRedo, true, 'canRedoがtrue');
+  });
+
+  await test('undo/redo: 100超過時のshift処理', () => {
+    const store = useDeckEditStore();
+
+    // 100個のコマンドを追加
+    for (let i = 0; i < 100; i++) {
+      store.addCard(sampleMonster, 'main');
+    }
+
+    assertEquals(store.canUndo, true, '100個後もcanUndoがtrue');
+
+    // 101個目を追加（shift が発生）
+    store.addCard(sampleSpell, 'main');
+    assertEquals(store.deckInfo.mainDeck.length, 100, '101個目追加後は100枚（オーバーフロー防止）');
+
+    // undoが正常に動作するか確認
+    store.undo();
+    assertEquals(store.deckInfo.mainDeck.length, 99, 'undo後は99枚');
+    assertEquals(store.canUndo, true, 'まだcanUndoがtrue');
+  });
+
+  await test('undo/redo: 新規操作時にredo履歴がクリアされる', () => {
+    const store = useDeckEditStore();
+
+    store.addCard(sampleMonster, 'main');
+    store.addCard(sampleSpell, 'main');
+
+    // Undo
+    store.undo();
+    assertEquals(store.canRedo, true, 'Undo後はcanRedoがtrue');
+
+    // 新規操作（removeCard）
+    store.removeCard(sampleMonster.cardId, 'main');
+    assertEquals(store.canRedo, false, '新規操作後はredoが不可（履歴クリア）');
+    assertEquals(store.deckInfo.mainDeck.length, 0, '新規操作が反映されている');
   });
 
   // 結果サマリー

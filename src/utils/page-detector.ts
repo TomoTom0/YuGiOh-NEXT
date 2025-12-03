@@ -66,23 +66,27 @@ export function isDeckListPage(gameType?: CardGameType): boolean {
 
 /**
  * Vue.jsベースのデッキ編集UIページかどうかを判定
- * URL例: https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit
+ * URL例:
+ * - https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit
+ * - https://www.db.yugioh-card.com/yugiohdb?request_locale=ja#/ytomo/edit
+ * - https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?request_locale=ja
  *
- * パス部分を正確に判定する（query stringやfragmentなし）
- * /yugiohdb/ または /rushdb/ の直後に #/ytomo/edit が来ることが条件
+ * パス部分は /yugiohdb または /yugiohdb/ の両方に対応
+ * ハッシュ直前のUSP（?request_locale=ja等）も許容
  */
 export function isVueEditPage(): boolean {
   const hashBase = window.location.hash.split('?')[0];
 
-  // ハッシュが #/ytomo/edit で始まることを確認
+  // ハッシュが #/ytomo/edit であることを確認（直前のUSPは許容）
   if (hashBase !== '#/ytomo/edit') {
     return false;
   }
 
-  // パス部分を確認（query stringやfragmentは含まない）
-  // /yugiohdb/ または /rushdb/ で終わることが条件
+  // パス部分を確認
+  // /yugiohdb または /yugiohdb/ （末尾の / は optional）
+  // /rushdb または /rushdb/ （末尾の / は optional）
   const pathname = window.location.pathname;
-  return /^\/(yugiohdb|rushdb)\/$/.test(pathname);
+  return /^\/(yugiohdb|rushdb)\/?$/.test(pathname);
 }
 
 /**

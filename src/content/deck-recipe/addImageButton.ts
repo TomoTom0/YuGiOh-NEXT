@@ -4,6 +4,8 @@
 
 import { showImageDialog } from './imageDialog';
 import { isDeckDisplayPage, detectCardGameType, isOwnDeck, getDeckCgid } from '../../utils/page-detector';
+import { getVueEditUrl } from '../../utils/url-builder';
+import { detectLanguage } from '../../utils/language-detector';
 
 /**
  * カメラアイコンのSVG
@@ -79,6 +81,9 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const urlParams = new URLSearchParams(window.location.search);
   const dno = urlParams.get('dno');
 
+  console.log('[YGO Helper] URL:', window.location.href);
+  console.log('[YGO Helper] dno from URL:', dno);
+
   if (!dno) {
     console.warn('[YGO Helper] dno not found in URL');
     return null;
@@ -88,6 +93,8 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const isOwnDeckFlag = isOwnDeck();
   const buttonText = isOwnDeckFlag ? 'NEXT編集' : 'NEXTコピー編集';
   const buttonId = 'ygo-next-edit-btn';
+
+  console.log('[YGO Helper] isOwnDeck:', isOwnDeckFlag);
 
   // ボタンを作成
   const button = document.createElement('a');
@@ -103,16 +110,24 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
   // クリックイベント
   button.addEventListener('click', (e) => {
+    console.log('[YGO Helper] Next edit button clicked');
     e.preventDefault();
+
+    const gameType = detectCardGameType();
+    const locale = detectLanguage(document);
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      window.location.hash = `/ytomo/edit?dno=${dno}`;
+      const baseUrl = getVueEditUrl(gameType, parseInt(dno), locale);
+      window.location.href = baseUrl;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
+      console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        window.location.hash = `/ytomo/edit?copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        const baseUrl = getVueEditUrl(gameType, undefined, locale);
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        window.location.href = `${baseUrl}${separator}copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }
@@ -121,6 +136,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
+  console.log('[YGO Helper] Next edit button added');
 
   return button;
 }
