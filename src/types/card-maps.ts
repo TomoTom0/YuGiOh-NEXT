@@ -203,6 +203,7 @@ export const MONSTER_TYPE_VALUE_TO_ID = {
   10: 'xyz',        // Xyz
   14: 'flip',       // Flip
   15: 'pendulum',   // Pendulum
+  16: 'special',    // Special Summon
   17: 'link',       // Link
 } as const;
 
