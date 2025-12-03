@@ -861,7 +861,7 @@ export function parseSearchResults(doc: Document): CardInfo[] {
  * @param imageInfoMap cidごとの画像情報マップ
  * @returns カード基本情報、パースできない場合はnull
  */
-function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>): CardBase | null {
+export function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>): CardBase | null {
   // カード名（必須）
   const nameElem = row.querySelector('.card_name');
   if (!nameElem?.textContent) {

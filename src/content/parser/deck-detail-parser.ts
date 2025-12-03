@@ -9,7 +9,7 @@ import {
   DECK_TYPE_LABEL_TO_VALUE,
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
-import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
+import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
 import { getDeckMetadata } from '@/utils/deck-metadata-loader';
 import { mappingManager } from '@/utils/mapping-manager';
 
@@ -378,58 +378,29 @@ export function parseCardSection(
       const rows = tBody.querySelectorAll('.t_row');
 
       rows.forEach((row) => {
-        // カード名を取得（エラーログ用）
-        const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
-        let cardName = cardNameElem?.textContent?.trim() || '';
-
         // 未発売カード（card_back.png）のチェック
         const cardImgElem = (row as HTMLElement).querySelector('img[src*="card_back.png"]');
         if (cardImgElem) {
-          // 未発売カードの場合、より詳細な情報を取得
-          // card_info_code セルからカード情報を取得
-          const cardCodeElem = (row as HTMLElement).querySelector('.card_info_code');
-          const cid = cardCodeElem?.textContent?.trim() || '';
+          // parseCardBase を使って通常通りカード名とカードIDを取得
+          const baseInfo = parseCardBase(row as HTMLElement, imageInfoMap);
 
-          // cardName が空の場合、行全体のテキストから推測を試みる
-          if (!cardName) {
-            // t_bodyの最初のセルから部分的に取得を試みる
-            const firstCell = (row as HTMLElement).querySelector('td');
-            if (firstCell) {
-              const cellText = firstCell.textContent?.trim() || '';
-              if (cellText) {
-                cardName = cellText.substring(0, 30); // 最初の30文字を使用
-              }
-            }
-          }
+          if (baseInfo) {
+            console.warn(
+              `[parseCardSection] Card "${baseInfo.name}" is not released in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
 
-          // それでも取得できない場合は cid を使用
-          if (!cardName && cid) {
-            cardName = `カード(${cid})`;
-          } else if (!cardName) {
-            cardName = '未発売カード';
-          }
-
-          console.warn(
-            `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
-          );
-
-          // デバッグ：セレクタの検証
-          if (!cardNameElem) {
-            console.debug('[parseCardSection] DEBUG: .card_info_name not found, row HTML:', (row as HTMLElement).innerHTML.substring(0, 200));
-          }
-          if (!cid) {
-            console.debug('[parseCardSection] DEBUG: .card_info_code not found or empty');
-          }
-
-          skippedCount++;
-
-          // スキップされたカード情報を記録
-          if (cid) {
+            // スキップされたカード情報を記録
             skippedCards.push({
-              cid,
-              name: cardName,
+              cid: baseInfo.cardId,
+              name: baseInfo.name,
               lang
             });
+          } else {
+            console.warn(
+              `[parseCardSection] Failed to parse unreleased card in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
           }
 
           return;
@@ -437,7 +408,7 @@ export function parseCardSection(
 
         const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
         if (!cardInfo) {
-          console.error(`[parseCardSection] Failed to parse card: ${cardName} (section: ${sectionId})`);
+          console.error(`[parseCardSection] Failed to parse card (section: ${sectionId})`);
           return;
         }
 
