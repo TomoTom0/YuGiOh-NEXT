@@ -347,8 +347,6 @@ export interface CardTableA {
   cardId: string;
   /** カード名（多言語対応: {lang: name} 形式） */
   langsName?: Record<string, string>;
-  /** カード名（旧形式、互換性保持用） */
-  name?: string;
   /** ふりがな */
   ruby?: string;
   /** 画像情報（多言語対応: {lang: imgs[]} 形式） */
@@ -356,17 +354,10 @@ export interface CardTableA {
     ciid: string;
     imgHash: string;
   }>>;
-  /** 画像情報（旧形式、互換性保持用） */
-  imgs?: Array<{
-    ciid: string;
-    imgHash: string;
-  }>;
   /** 言語ごとに利用可能なciidのリスト（{lang: ciid[]} 形式） */
   langs_ciids?: Record<string, string[]>;
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;
-  /** 取得日時（旧形式、互換性保持用） */
-  fetchedAt?: number;
 }
 
 /**
@@ -414,8 +405,6 @@ export interface CardTableB {
 
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;
-  /** 取得日時（旧形式、互換性保持用） */
-  fetchedAt?: number;
 }
 
 /**
@@ -428,16 +417,10 @@ export interface CardTableB2 {
   cardId: string;
   /** 効果テキスト（多言語対応: {lang: text} 形式） */
   langsText?: Record<string, string>;
-  /** 効果テキスト（旧形式、互換性保持用） */
-  text?: string;
   /** ペンデュラムテキスト（多言語対応: {lang: text} 形式） */
   langsPendText?: Record<string, string>;
-  /** ペンデュラムテキスト（旧形式、互換性保持用） */
-  pendText?: string;
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;
-  /** 取得日時（旧形式、互換性保持用） */
-  fetchedAt?: number;
 }
 
 /**
@@ -462,27 +445,17 @@ export interface CardTableC {
   // 関連情報（多言語対応）
   /** 関連カードID一覧（多言語対応: {lang: cardIds[]} 形式） */
   langsRelatedCards?: Record<string, string[]>;
-  /** 関連カードID一覧（旧形式、互換性保持用） */
-  relatedCards?: string[];
   /** 関連パックID一覧（多言語対応: {lang: packIds[]} 形式） */
   langsRelatedProducts?: Record<string, string[]>;
-  /** 関連パックID一覧（旧形式、互換性保持用） */
-  relatedProducts?: string[];
 
   // キャッシュ用の追加情報（多言語対応）
   /** 収録シリーズ詳細情報（多言語対応: {lang: PackInfo[]} 形式） */
   langsRelatedProductDetail?: Record<string, PackInfo[]>;
-  /** 収録シリーズ詳細情報（旧形式、互換性保持用） */
-  packs?: PackInfo[];
   /** Q&A情報（多言語対応: {lang: CardFAQ[]} 形式） */
   langsQaList?: Record<string, CardFAQ[]>;
-  /** Q&A情報（旧形式、互換性保持用） */
-  qaList?: CardFAQ[];
 
   /** 取得日時（言語ごと、{lang: timestamp} 形式） */
   langsFetchedAt?: Record<string, number>;
-  /** 取得日時（旧形式、互換性保持用） */
-  fetchedAt?: number;
 }
 
 /**

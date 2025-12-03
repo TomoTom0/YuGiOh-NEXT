@@ -335,19 +335,11 @@ export class UnifiedCacheDB {
       // langsFetchedAt[lang] が存在しない場合（新規言語）は、新規取得 (true を返す)
     }
 
-    // 既存のlangsNameを取得（旧形式のnameもサポート）
-    let langsName = existing?.langsName || {};
-    if (!existing?.langsName && existing?.name) {
-      // 旧形式のnameから langsName に変換（マイグレーション）
-      langsName = { [lang]: existing.name };
-    }
+    // 既存のlangsNameを取得
+    const langsName = existing?.langsName || {};
 
-    // 既存の langsImgs を取得（旧形式のimgsもサポート）
-    let langsImgs = existing?.langsImgs || {};
-    if (!existing?.langsImgs && existing?.imgs) {
-      // 旧形式のimgsから langsImgs に変換（マイグレーション）
-      langsImgs = { [lang]: existing.imgs };
-    }
+    // 既存の langsImgs を取得
+    const langsImgs = existing?.langsImgs || {};
 
     // 既存の langs_ciids を取得（言語ごとの利用可能ciidリスト）
     let langs_ciids = existing?.langs_ciids || {};
@@ -379,13 +371,11 @@ export class UnifiedCacheDB {
         ...langsImgs,
         [lang]: card.imgs
       },
-      imgs: card.imgs,  // フォールバック用（古いコードとの互換性）
       langs_ciids,  // 言語ごとの利用可能ciidリスト
       langsFetchedAt: {
         ...langsFetchedAt,
         [lang]: now
-      },
-      fetchedAt: existing?.fetchedAt || now
+      }
     };
     this.cardTableA.set(card.cardId, tableA);
 
@@ -404,8 +394,7 @@ export class UnifiedCacheDB {
     const tableB: CardTableB = {
       cardId: card.cardId,
       cardType: card.cardType,
-      langsLimitRegulation,
-      fetchedAt: now
+      langsLimitRegulation
     };
 
     // モンスター固有フィールド
@@ -432,22 +421,14 @@ export class UnifiedCacheDB {
     if (cardAny.text || cardAny.pendulumText) {
       const existingB2 = this.cardTableB2.get(card.cardId);
 
-      // 既存のlangsTextを取得（旧形式のtextもサポート）
+      // 既存のlangsTextを取得
       let langsText = existingB2?.langsText || {};
-      if (!existingB2?.langsText && existingB2?.text) {
-        // 旧形式のtextから langsText に変換（マイグレーション）
-        langsText = { [lang]: existingB2.text };
-      }
       if (cardAny.text) {
         langsText = { ...langsText, [lang]: cardAny.text };
       }
 
-      // 既存のlangsPendTextを取得（旧形式のpendTextもサポート）
+      // 既存のlangsPendTextを取得
       let langsPendText = existingB2?.langsPendText || {};
-      if (!existingB2?.langsPendText && existingB2?.pendText) {
-        // 旧形式のpendTextから langsPendText に変換（マイグレーション）
-        langsPendText = { [lang]: existingB2.pendText };
-      }
       if (cardAny.pendulumText) {
         langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
       }
@@ -462,8 +443,7 @@ export class UnifiedCacheDB {
         langsFetchedAt: {
           ...langsFetchedAt,
           [lang]: now
-        },
-        fetchedAt: existingB2?.fetchedAt || now
+        }
       };
       this.cardTableB2.set(card.cardId, tableB2);
     }
@@ -542,20 +522,20 @@ export class UnifiedCacheDB {
     }
 
     // 言語別パック詳細情報をマージ（新規データで該当言語を上書き）
-    if (data.packs) {
+    if (data.langsRelatedProductDetail) {
       data.langsRelatedProductDetail = {
         ...langsRelatedProductDetail,
-        [targetLang]: data.packs
+        ...data.langsRelatedProductDetail
       };
     } else {
       data.langsRelatedProductDetail = langsRelatedProductDetail;
     }
 
     // 言語別Q&A情報をマージ（新規データで該当言語を上書き）
-    if (data.qaList) {
+    if (data.langsQaList) {
       data.langsQaList = {
         ...langsQaList,
-        [targetLang]: data.qaList
+        ...data.langsQaList
       };
     } else {
       data.langsQaList = langsQaList;
@@ -922,13 +902,7 @@ export class UnifiedCacheDB {
     // langsNameから適切な言語を抽出（新形式）
     // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
     // これにより呼び出し元で API から再取得できる
-    let name: string | undefined;
-    if (tableA.langsName && tableA.langsName[targetLang]) {
-      name = tableA.langsName[targetLang];
-    } else if (!tableA.langsName && tableA.name) {
-      // langsName が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
-      name = tableA.name;
-    }
+    const name = tableA.langsName?.[targetLang];
 
     if (!name) {
       console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in cache for cardId=${cardId}, will re-fetch from API`);
@@ -937,20 +911,10 @@ export class UnifiedCacheDB {
 
     // langsImgsから適切な言語の画像情報を抽出（新形式）
     // 重要: 指定言語が存在しない場合はフォールバックせず undefined を返す
-    let imgs: Array<{ciid: string; imgHash: string}>;
-    if (tableA.langsImgs && tableA.langsImgs[targetLang]) {
-      imgs = tableA.langsImgs[targetLang];
-    } else if (!tableA.langsImgs && tableA.imgs) {
-      // langsImgs が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
-      imgs = tableA.imgs;
-    } else {
-      // 指定言語が見つからない場合は undefined を返す
-      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
-      return undefined;
-    }
+    const imgs = tableA.langsImgs?.[targetLang];
 
     if (!imgs || imgs.length === 0) {
-      console.warn(`[reconstructCardInfo] No images found for cardId=${cardId}, langsImgs=${JSON.stringify(tableA.langsImgs)}, imgs=${tableA.imgs}`);
+      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 
@@ -1005,21 +969,15 @@ export class UnifiedCacheDB {
       const anyCard: any = resultCard as any;
 
       // langsTextから適切な言語を抽出（新形式）
-      // 指定言語が存在しない場合はフォールバックしない
-      if (tableB2.langsText && tableB2.langsText[targetLang]) {
-        anyCard.text = tableB2.langsText[targetLang];
-      } else if (!tableB2.langsText && tableB2.text) {
-        // langsText が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
-        anyCard.text = tableB2.text;
+      const text = tableB2.langsText?.[targetLang];
+      if (text) {
+        anyCard.text = text;
       }
 
       // langsPendTextから適切な言語を抽出（新形式）
-      // 指定言語が存在しない場合はフォールバックしない
-      if (tableB2.langsPendText && tableB2.langsPendText[targetLang]) {
-        anyCard.pendulumText = tableB2.langsPendText[targetLang];
-      } else if (!tableB2.langsPendText && tableB2.pendText) {
-        // langsPendText が存在しない場合のみ旧形式を使用（古いキャッシュとの互換性）
-        anyCard.pendulumText = tableB2.pendText;
+      const pendulumText = tableB2.langsPendText?.[targetLang];
+      if (pendulumText) {
+        anyCard.pendulumText = pendulumText;
       }
     }
 
