@@ -368,7 +368,17 @@ export default {
 
         // 未発売カードがスキップされた場合は追加通知
         if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-          showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+          const skippedCards = deckStore.deckInfo.skippedCards || []
+          let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
+
+          // スキップされたカード名を通知に含める
+          if (skippedCards.length > 0) {
+            const cardNames = skippedCards.map(c => c.name).join('、')
+            message = `${message}\n[${cardNames}]`
+          }
+
+          showToast(message, 'warning')
+          console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
         }
       } catch (error) {
         console.error('Load error:', error)
@@ -385,7 +395,17 @@ export default {
 
         // 未発売カードがスキップされた場合は追加通知
         if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-          showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+          const skippedCards = deckStore.deckInfo.skippedCards || []
+          let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
+
+          // スキップされたカード名を通知に含める
+          if (skippedCards.length > 0) {
+            const cardNames = skippedCards.map(c => c.name).join('、')
+            message = `${message}\n[${cardNames}]`
+          }
+
+          showToast(message, 'warning')
+          console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
         }
       } catch (error) {
         console.error('Load error:', error)
@@ -403,7 +423,17 @@ export default {
 
           // 未発売カードがスキップされた場合は追加通知
           if (deckStore.deckInfo.skippedCardsCount && deckStore.deckInfo.skippedCardsCount > 0) {
-            showToast(`${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`, 'warning')
+            const skippedCards = deckStore.deckInfo.skippedCards || []
+            let message = `${deckStore.deckInfo.skippedCardsCount}枚の未発売カードをスキップしました`
+
+            // スキップされたカード名を通知に含める
+            if (skippedCards.length > 0) {
+              const cardNames = skippedCards.map(c => c.name).join('、')
+              message = `${message}\n[${cardNames}]`
+            }
+
+            showToast(message, 'warning')
+            console.info('[DeckEditTopBar] Skipped cards:', skippedCards)
           }
         } catch (error) {
           console.error('Reload error:', error)

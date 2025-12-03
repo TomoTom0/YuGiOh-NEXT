@@ -390,7 +390,19 @@ export function parseCardSection(
           const cardCodeElem = (row as HTMLElement).querySelector('.card_info_code');
           const cid = cardCodeElem?.textContent?.trim() || '';
 
-          // cardName が取得できなかった場合は、cid の代わりに"未発売カード"と表示
+          // cardName が空の場合、行全体のテキストから推測を試みる
+          if (!cardName) {
+            // t_bodyの最初のセルから部分的に取得を試みる
+            const firstCell = (row as HTMLElement).querySelector('td');
+            if (firstCell) {
+              const cellText = firstCell.textContent?.trim() || '';
+              if (cellText) {
+                cardName = cellText.substring(0, 30); // 最初の30文字を使用
+              }
+            }
+          }
+
+          // それでも取得できない場合は cid を使用
           if (!cardName && cid) {
             cardName = `カード(${cid})`;
           } else if (!cardName) {
