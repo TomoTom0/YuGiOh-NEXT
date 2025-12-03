@@ -150,7 +150,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
@@ -563,19 +563,25 @@ export default {
     }
 
     // 未発売カード通知イベントをリッスン
-    onMounted(() => {
-      window.addEventListener('ygo-unreleased-cards-skipped', (event: Event) => {
-        const customEvent = event as CustomEvent
-        const { count, cards } = customEvent.detail || {}
-        if (count > 0) {
-          let message = `${count}枚の未発売カードをスキップしました`
-          if (cards && cards.length > 0) {
-            const cardNames = cards.map((c: any) => c.name).join('、')
-            message = `${message}\n[${cardNames}]`
-          }
-          showToast(message, 'warning')
+    const handleUnreleasedCardsSkipped = (event: Event) => {
+      const customEvent = event as CustomEvent
+      const { count, cards } = customEvent.detail || {}
+      if (count > 0) {
+        let message = `${count}枚の未発売カードをスキップしました`
+        if (cards && cards.length > 0) {
+          const cardNames = cards.map((c: any) => c.name).join('、')
+          message = `${message}\n[${cardNames}]`
         }
-      })
+        showToast(message, 'warning')
+      }
+    }
+
+    onMounted(() => {
+      window.addEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('ygo-unreleased-cards-skipped', handleUnreleasedCardsSkipped)
     })
 
     return {

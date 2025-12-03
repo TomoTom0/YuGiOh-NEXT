@@ -412,6 +412,15 @@ export function parseCardSection(
           console.warn(
             `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
           );
+
+          // デバッグ：セレクタの検証
+          if (!cardNameElem) {
+            console.debug('[parseCardSection] DEBUG: .card_info_name not found, row HTML:', (row as HTMLElement).innerHTML.substring(0, 200));
+          }
+          if (!cid) {
+            console.debug('[parseCardSection] DEBUG: .card_info_code not found or empty');
+          }
+
           skippedCount++;
 
           // スキップされたカード情報を記録
