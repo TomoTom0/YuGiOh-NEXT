@@ -470,9 +470,9 @@ export interface CardTableC {
   relatedProducts?: string[];
 
   // キャッシュ用の追加情報（多言語対応）
-  /** 収録シリーズ情報（多言語対応: {lang: PackInfo[]} 形式） */
-  langsPacks?: Record<string, PackInfo[]>;
-  /** 収録シリーズ情報（旧形式、互換性保持用） */
+  /** 収録シリーズ詳細情報（多言語対応: {lang: PackInfo[]} 形式） */
+  langsRelatedProductDetail?: Record<string, PackInfo[]>;
+  /** 収録シリーズ詳細情報（旧形式、互換性保持用） */
   packs?: PackInfo[];
   /** Q&A情報（多言語対応: {lang: CardFAQ[]} 形式） */
   langsQaList?: Record<string, CardFAQ[]>;

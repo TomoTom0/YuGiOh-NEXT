@@ -2108,8 +2108,8 @@ async function reconstructCardDetailFromCache(
     }
   }
 
-  // 言語別パック情報を取得（新形式：langsPacks）
-  let packs = tableC.langsPacks?.[targetLang];
+  // 言語別パック詳細情報を取得（新形式：langsRelatedProductDetail）
+  let packs = tableC.langsRelatedProductDetail?.[targetLang];
   // フォールバック: 旧形式のpacksを使用（マイグレーション）
   if (!packs) {
     packs = tableC.packs;
@@ -2174,7 +2174,7 @@ export async function saveCardDetailToCache(
       [targetLang]: relatedProductIds
     },
     // 言語別パック・Q&A情報
-    langsPacks: {
+    langsRelatedProductDetail: {
       [targetLang]: packs
     },
     langsQaList: {

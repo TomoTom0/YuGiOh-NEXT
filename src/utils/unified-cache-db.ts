@@ -501,7 +501,7 @@ export class UnifiedCacheDB {
     const langsFetchedAt = existing?.langsFetchedAt || {};
     const langsRelatedCards = existing?.langsRelatedCards || {};
     const langsRelatedProducts = existing?.langsRelatedProducts || {};
-    const langsPacks = existing?.langsPacks || {};
+    const langsRelatedProductDetail = existing?.langsRelatedProductDetail || {};
     const langsQaList = existing?.langsQaList || {};
 
     // 言語ごとのデータを更新（既存データをマージ）
@@ -530,14 +530,14 @@ export class UnifiedCacheDB {
       data.langsRelatedProducts = langsRelatedProducts;
     }
 
-    // 言語別パック情報をマージ（新規データで該当言語を上書き）
+    // 言語別パック詳細情報をマージ（新規データで該当言語を上書き）
     if (data.packs) {
-      data.langsPacks = {
-        ...langsPacks,
+      data.langsRelatedProductDetail = {
+        ...langsRelatedProductDetail,
         [targetLang]: data.packs
       };
     } else {
-      data.langsPacks = langsPacks;
+      data.langsRelatedProductDetail = langsRelatedProductDetail;
     }
 
     // 言語別Q&A情報をマージ（新規データで該当言語を上書き）
