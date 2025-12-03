@@ -6,6 +6,7 @@ import {
   SpellEffectType,
   TrapEffectType
 } from './card-maps';
+import { buildApiUrl } from '../utils/url-builder';
 
 // CardTypeはcard-maps.tsで定義
 export type { CardType };
@@ -63,7 +64,6 @@ export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'):
   }
 
   // buildApiUrl を使用して request_locale を自動付与
-  const { buildApiUrl } = require('../utils/url-builder');
   const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
   return buildApiUrl(path, gameType);
 }

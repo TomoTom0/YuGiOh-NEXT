@@ -169,6 +169,10 @@ import { useCardDetailStore } from '../stores/card-detail'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
+import { buildApiUrl } from '../utils/url-builder'
+import { detectCardGameType } from '../utils/page-detector'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'CardInfo',
@@ -240,8 +244,6 @@ export default {
     const getImageUrl = (img) => {
       if (!card.value) return ''
       // buildApiUrl経由で request_locale を自動付与
-      const { buildApiUrl } = require('../utils/url-builder')
-      const { detectCardGameType } = require('../utils/page-detector')
       const path = `get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
       const gameType = detectCardGameType()
       return buildApiUrl(path, gameType)
@@ -251,12 +253,9 @@ export default {
     const getValidCiidsForCurrentLang = () => {
       if (!card.value?.cardId) return [];
       // UnifiedCacheDBから langs_ciids を取得
-      const { getUnifiedCacheDB } = require('../utils/unified-cache-db');
       const unifiedDB = getUnifiedCacheDB();
       if (!unifiedDB.isInitialized()) return [];
 
-      // detectLanguage を import
-      const { detectLanguage } = require('../utils/language-detector');
       const lang = detectLanguage(document);
       return unifiedDB.getValidCiidsForLang(card.value.cardId, lang);
     }
