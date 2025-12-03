@@ -94,7 +94,8 @@ import { detectCardGameType } from '../utils/page-detector'
 import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
-import { getCardDetailWithCache } from '../api/card-search'
+import { getCardDetail } from '../api/card-search'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 
 export default {
   name: 'DeckCard',
@@ -302,20 +303,31 @@ export default {
       }
     },
     async handleInfo() {
-      // 詳細データをキャッシュ対応で取得してからselectedCardに設定
+      // 個別ページのAPI取得を実行して詳細データを取得（複数画像、ruby等を含む）
       try {
         const currentLang = detectLanguage(document)
-        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
-        const fullCard = result?.detail?.card || this.card
+        // getCardDetail()で常に個別ページのAPI取得を実行
+        // 複数画像、ruby、supplement等を取得し、キャッシュに保存される
+        const detail = await getCardDetail(this.card.cardId, currentLang)
 
-        const cardData = {
-          ...fullCard,
-          imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
-          ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
+        if (detail && detail.card) {
+          const cardData = {
+            ...detail.card,
+            // クリックしたカードのciidを必ず使う
+            ciid: this.card.ciid
+          }
+
+          // CardDetailストアに設定（両画面で使用）
+          this.cardDetailStore.setSelectedCard(cardData)
+        } else {
+          // API取得失敗時はフォールバック
+          const cardData = {
+            ...this.card,
+            imgs: this.card.imgs ? [...this.card.imgs] : [],
+            ciid: this.card.ciid
+          }
+          this.cardDetailStore.setSelectedCard(cardData)
         }
-
-        // CardDetailストアに設定（両画面で使用）
-        this.cardDetailStore.setSelectedCard(cardData)
 
         // デッキ編集画面の場合のみ、アクティブタブを切り替え
         if (this.sectionType !== 'info') {
@@ -325,7 +337,7 @@ export default {
         console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
         const cardData = {
           ...this.card,
-          imgs: [...this.card.imgs],
+          imgs: this.card.imgs ? [...this.card.imgs] : [],
           ciid: this.card.ciid
         }
 
