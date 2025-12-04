@@ -3,6 +3,7 @@
  */
 
 import { getSortfixedCards } from './sortfixCards';
+import { safeQuery } from '../../utils/safe-dom-query';
 
 /**
  * 元の順序を保存する変数
@@ -94,7 +95,7 @@ function applyFlipAnimation(
  * 指定されたデッキセクションのカードをシャッフルする
  */
 function shuffleCardsBySection(sectionId: 'main' | 'extra' | 'side'): void {
-  const imageSet = document.querySelector(`#deck_image #${sectionId}.card_set div.image_set`);
+  const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
   if (!imageSet) {
     return;
   }
@@ -133,7 +134,7 @@ function shuffleCardsBySection(sectionId: 'main' | 'extra' | 'side'): void {
  * 指定されたデッキセクションのカードを元の順序に戻す
  */
 function sortCardsBySection(sectionId: 'main' | 'extra' | 'side'): void {
-  const imageSet = document.querySelector(`#deck_image #${sectionId}.card_set div.image_set`);
+  const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
   if (!imageSet) {
     return;
   }

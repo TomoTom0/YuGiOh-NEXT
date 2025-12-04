@@ -301,16 +301,6 @@ export default {
       return urlParams.get('dno') || ''
     }
 
-    const getCopyFromDno = () => {
-      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      return urlParams.get('copy-from-dno') || ''
-    }
-
-    const getCopyFromCgid = () => {
-      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      return urlParams.get('copy-from-cgid') || ''
-    }
-
     // 現在のdnoを追跡
     const currentDno = ref(getCurrentDno())
 
@@ -329,48 +319,8 @@ export default {
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
-      const copyFromDno = getCopyFromDno()
-      const copyFromCgid = getCopyFromCgid()
-
-      if (copyFromDno && copyFromCgid) {
-        // copy-from-dnoとcopy-from-cgidパラメータがある場合：他人のデッキをコピーして新規作成
-        try {
-          // getDeckDetailをインポート
-          const { getDeckDetail } = await import('../../api/deck-operations')
-
-          // 指定されたcgidとdnoでデッキ情報を取得
-          const deckToCopy = await getDeckDetail(parseInt(copyFromDno), copyFromCgid)
-
-          if (!deckToCopy) {
-            throw new Error('Failed to fetch deck details')
-          }
-
-          // deckStoreにデータを設定（pseudoCopyDeckに渡すため）
-          deckStore.deckInfo.mainDeck = deckToCopy.mainDeck
-          deckStore.deckInfo.extraDeck = deckToCopy.extraDeck
-          deckStore.deckInfo.sideDeck = deckToCopy.sideDeck
-          deckStore.deckInfo.category = deckToCopy.category
-          deckStore.deckInfo.tags = deckToCopy.tags
-          deckStore.deckInfo.comment = deckToCopy.comment
-          deckStore.deckInfo.deckCode = deckToCopy.deckCode
-          deckStore.deckInfo.name = deckToCopy.name
-          deckStore.deckInfo.originalName = deckToCopy.originalName
-
-          // デッキをコピーして新規作成
-          // pseudoCopyDeck 内で loadDeck() も呼ばれるため、返り値の newDno を使用して URL を更新するだけ
-          const newDno = await deckStore.pseudoCopyDeck(deckStore.deckInfo)
-
-          // URLを更新して copy-from-cgid と copy-from-dno を削除
-          window.location.hash = `/ytomo/edit?dno=${newDno}`
-        } catch (error) {
-          console.error('[DeckEditLayout] Failed to copy deck:', error)
-          // エラーの場合は通常のページ初期化を実行
-          await deckStore.initializeOnPageLoad()
-        }
-      } else {
-        // 通常のページ初期化
-        await deckStore.initializeOnPageLoad()
-      }
+      // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
+      await deckStore.initializeOnPageLoad()
 
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)

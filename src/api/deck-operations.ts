@@ -5,6 +5,7 @@ import { getTempCardDB } from '@/utils/temp-card-db';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
+import { globalRequestQueue } from '@/utils/request-queue';
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -27,19 +28,23 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
 
     const wname = 'MemberDeck';
 
-    // URLを構築（buildApiUrl経由、ope=6は request_locale なし）
-    const path = `member_deck.action?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
-    const url = buildApiUrl(path, gameType);
+    // buildApiUrl()でベースURLを取得し、パラメータを手動で追加
+    // パラメータ順序を保証するため、URLクラスの searchParams は使わない
+    // noLocale: true を指定して request_locale を絶対に付与しない
+    const baseUrl = buildApiUrl('member_deck.action', gameType, undefined, true);
+    const url = `${baseUrl}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
 
     const { default: axios } = await import('axios');
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
+    const response = await globalRequestQueue.enqueue(() =>
+      axios.get(url, {
+        withCredentials: true
+      })
+    );
 
     const html = response.data;
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    
+
     // デッキ一覧をパースして最大のdnoを取得
     const deckList = parseDeckList(doc);
     
@@ -84,9 +89,11 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
+    const response = await globalRequestQueue.enqueue(() =>
+      axios.get(url, {
+        withCredentials: true
+      })
+    );
 
     return response.status === 200;
   } catch (error) {
@@ -244,13 +251,15 @@ export async function saveDeckInternal(
     // paramsはurl encodeされる必要がある, +は%20に変換されるべき
 
     const { default: axios } = await import('axios');
-    const response = await axios.post(postUrl, encoded_params, {
-      withCredentials: true,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    });
+    const response = await globalRequestQueue.enqueue(() =>
+      axios.post(postUrl, encoded_params, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+    );
 
     const data = response.data;
     
@@ -383,9 +392,11 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
+    const response = await globalRequestQueue.enqueue(() =>
+      axios.get(url, {
+        withCredentials: true
+      })
+    );
 
     const html = response.data;
     const parser = new DOMParser();
@@ -423,9 +434,11 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await axios.get(url, {
-      withCredentials: true
-    });
+    const response = await globalRequestQueue.enqueue(() =>
+      axios.get(url, {
+        withCredentials: true
+      })
+    );
 
     const html = response.data;
     const parser = new DOMParser();

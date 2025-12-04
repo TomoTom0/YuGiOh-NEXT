@@ -75,7 +75,6 @@ class MappingManager {
 
         // マッピングがない場合は、同期的にfetchAndStoreMappingsを待つ
         if (!this.dynamicMappings.has(lang)) {
-          console.log(`[MappingManager] Mapping not found for ${lang}, fetching now...`);
           try {
             await this.fetchAndStoreMappings(lang);
           } catch (error) {
@@ -105,12 +104,6 @@ class MappingManager {
         // マッピングが有効か確認
         if (this.isValidMapping(dynamicMapping)) {
           this.dynamicMappings.set(lang, dynamicMapping);
-          console.log(
-            `[MappingManager] Loaded dynamic mappings for ${lang} from storage ` +
-            `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-            `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-            `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-          );
         } else {
           // 無効なマッピングの場合は、新しく取得
           console.warn(
@@ -167,12 +160,6 @@ class MappingManager {
         // Chrome Storage に保存
         const storageKey = `ygo-mappings:${lang}`;
         await chrome.storage.local.set({ [storageKey]: dynamicMapping });
-        console.log(
-          `[MappingManager] Stored dynamic mappings for ${lang} ` +
-          `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-          `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-          `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-        );
       } else {
         // null が返されたのは、ページ構造の問題か通信エラーの可能性
         console.warn(
@@ -371,6 +358,112 @@ class MappingManager {
   /**
    * 指定言語のマッピングが利用可能かチェック
    */
+  /**
+   * 言語コードから種族マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getRaceIdToText(lang: string): Partial<Record<Race, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.race && Object.keys(dynamicMapping.race).length > 0) {
+      return dynamicMapping.race;
+    }
+
+    // フォールバック：日本語静的マッピング（全言語で利用可能）
+    if (lang === 'ja') {
+      return RACE_ID_TO_NAME;
+    }
+
+    // 動的マッピングが利用できない場合は空オブジェクト
+    return {};
+  }
+
+  /**
+   * 言語コードからモンスタータイプマッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getMonsterTypeIdToText(lang: string): Partial<Record<MonsterType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.monsterType && Object.keys(dynamicMapping.monsterType).length > 0) {
+      return dynamicMapping.monsterType;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return MONSTER_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから属性マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getAttributeIdToText(lang: string): Partial<Record<Attribute, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.attribute && Object.keys(dynamicMapping.attribute).length > 0) {
+      return dynamicMapping.attribute;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return ATTRIBUTE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから魔法効果種類マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getSpellEffectIdToText(lang: string): Partial<Record<SpellEffectType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.spellEffect && Object.keys(dynamicMapping.spellEffect).length > 0) {
+      return dynamicMapping.spellEffect;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return SPELL_EFFECT_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
+  /**
+   * 言語コードから罠効果種類マッピング（ID → 表示テキスト）を取得
+   *
+   * 優先順位：
+   * - ja：常に日本語静的マッピング
+   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   */
+  getTrapEffectIdToText(lang: string): Partial<Record<TrapEffectType, string>> {
+    const dynamicMapping = this.dynamicMappings.get(lang);
+    if (dynamicMapping?.trapEffect && Object.keys(dynamicMapping.trapEffect).length > 0) {
+      return dynamicMapping.trapEffect;
+    }
+
+    // フォールバック：日本語静的マッピング
+    if (lang === 'ja') {
+      return TRAP_EFFECT_TYPE_ID_TO_NAME;
+    }
+
+    return {};
+  }
+
   hasDynamicMapping(lang: string): boolean {
     return this.dynamicMappings.has(lang);
   }
@@ -385,7 +478,6 @@ class MappingManager {
       if (this.dynamicMappings.has(lang)) {
         const mapping = this.dynamicMappings.get(lang);
         if (mapping && this.isValidMapping(mapping)) {
-          console.log(`[MappingManager] Mapping already available for ${lang}`);
           return;
         } else {
           // 無効なマッピングの場合は削除して新しく取得
@@ -396,7 +488,6 @@ class MappingManager {
 
       // 既に取得中の場合はスキップ（重複取得防止）
       if (this.fetchingLanguages.has(lang)) {
-        console.log(`[MappingManager] Mappings for ${lang} are already being fetched, skipping duplicate request`);
         return;
       }
 
@@ -410,12 +501,6 @@ class MappingManager {
         // マッピングが有効か確認
         if (this.isValidMapping(dynamicMapping)) {
           this.dynamicMappings.set(lang, dynamicMapping);
-          console.log(
-            `[MappingManager] Loaded dynamic mappings for ${lang} from storage (ensureMappingForLanguage) ` +
-            `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-            `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-            `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-          );
         } else {
           // 無効なマッピングの場合は新しく取得
           console.warn(
@@ -428,7 +513,6 @@ class MappingManager {
         }
       } else {
         // キャッシュがなければ同期的に取得
-        console.log(`[MappingManager] Mapping not found for ${lang}, fetching now...`);
         await this.fetchAndStoreMappings(lang);
       }
     } catch (error) {
@@ -460,7 +544,6 @@ export async function initializeMappingManager(): Promise<void> {
 
       if (appSettings?.language && appSettings.language !== 'auto') {
         const configLanguage = appSettings.language;
-        console.log(`[MappingManager] Ensuring mapping for configured language: ${configLanguage}`);
         await mappingManager.ensureMappingForLanguage(configLanguage);
       }
     } catch (error) {

@@ -70,7 +70,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
-/* 共通スタイル（common.scss）を使用: .dialog-overlay, .dialog-content, .dialog-title, .dialog-footer, .btn */
+@use '../styles/common.scss' as *;
 
 .dialog-content {
   padding: 24px;

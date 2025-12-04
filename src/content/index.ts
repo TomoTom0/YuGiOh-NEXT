@@ -8,7 +8,7 @@
 import './public-path';
 
 // 共通スタイル
-import './styles/buttons.css';
+import './styles/buttons.scss';
 
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';
@@ -25,6 +25,9 @@ import { getDeckMetadata } from '../utils/deck-metadata-loader';
 // 禁止制限キャッシュ
 import { forbiddenLimitedCache } from '../utils/forbidden-limited-cache';
 
+// タイムアウト管理
+import { withTimeout, TimeoutError } from '../utils/promise-timeout';
+
 /**
  * 編集UI読み込みフラグ（二重読み込み防止）
  */
@@ -33,23 +36,39 @@ let editUILoaded = false;
 /**
  * 編集UIモジュールのプリフェッチ用Promise（キャッシュ）
  */
-let editUIModulePromise: Promise<any> | null = null;
+let editUIModulePromise: Promise<typeof import('./edit-ui')> | null = null;
+
+/**
+ * プリフェッチ処理中フラグ（重複実行防止）
+ */
+let isPrefetching = false;
 
 /**
  * 編集ページ用UIモジュールをプリフェッチ（アイドル時にバックグラウンドロード）
  */
 function prefetchEditUI(): void {
-  if (editUIModulePromise) return; // 既にプリフェッチ済み
+  // 既にプリフェッチ済み、または処理中の場合は早期終了
+  if (editUIModulePromise || isPrefetching) return;
 
   // requestIdleCallbackがサポートされていない場合はsetTimeoutで代用
   const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
 
+  isPrefetching = true;
   scheduleTask(() => {
-    editUIModulePromise = import('./edit-ui');
-    editUIModulePromise
+    editUIModulePromise = withTimeout(import('./edit-ui'), {
+      ms: 30000, // 30秒のタイムアウト
+      message: 'Edit UI module import timeout'
+    })
       .catch(err => {
         console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
-        editUIModulePromise = null; // エラー時はキャッシュをクリア
+        // エラー時はPromiseをリセット（rejectされたPromiseキャッシュを防ぐ）
+        editUIModulePromise = null;
+        // エラーを再throw（呼び出し元で再試行可能に）
+        throw err;
+      })
+      .finally(() => {
+        // プリフェッチ処理完了フラグをリセット
+        isPrefetching = false;
       });
   });
 }
@@ -63,9 +82,17 @@ async function loadEditUIIfNeeded(): Promise<void> {
   editUILoaded = true;
   try {
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
-    await (editUIModulePromise || import('./edit-ui'));
+    const importPromise = editUIModulePromise || import('./edit-ui');
+    await withTimeout(importPromise, {
+      ms: 30000, // 30秒のタイムアウト
+      message: 'Edit UI module load timeout'
+    });
   } catch (error) {
-    console.error('Failed to load edit UI:', error);
+    if (TimeoutError.isTimeoutError(error)) {
+      console.error('Failed to load edit UI: Timeout', error);
+    } else {
+      console.error('Failed to load edit UI:', error);
+    }
     editUILoaded = false;
   }
 }

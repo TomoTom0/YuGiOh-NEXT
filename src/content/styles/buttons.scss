@@ -1,28 +1,42 @@
 /**
  * 遊戯王デッキヘルパー - 共通ボタンスタイル
+ * 独自画面以外での独自要素なので .ygo-next で nest
  */
 
-.ytomo-neuron-btn {
-  padding: 1px 2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(to bottom, #00CED1, #C71585) !important;
-  border: none !important;
-  line-height: 1;
-}
+.ygo-next {
+  &.ytomo-neuron-btn {
+    padding: 1px 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to bottom, #00CED1, #C71585) !important;
+    border: none !important;
+    line-height: 1;
 
-.ytomo-neuron-btn span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-.ytomo-neuron-btn svg {
-  width: 16px;
-  height: 16px;
-  fill: none !important;
-  stroke: currentColor !important;
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: none !important;
+      stroke: currentColor !important;
+    }
+
+    // ローディング状態
+    &.loading {
+      background: linear-gradient(to bottom, #81C784, #2E7D32) !important;
+      pointer-events: none;
+    }
+
+    &.loading2 {
+      background: linear-gradient(to bottom, #FFB74D, #E65100) !important;
+      pointer-events: none;
+    }
+  }
 }
 
 /**
@@ -92,3 +106,4 @@ a[data-sortfix].hover-overlay::before {
 #deck_image #main.card_set div.image_set.animating > a {
   transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
+

@@ -9,9 +9,10 @@
 </template>
 
 <script lang="ts">
-import { defineAsyncComponent, defineComponent, watch } from 'vue'
+import { defineAsyncComponent, defineComponent, onUnmounted, watch } from 'vue'
 import { useCardDetailStore } from '../../stores/card-detail'
 import { useSettingsStore } from '../../stores/settings'
+import { cleanupCardImageHoverUI } from './vueSetup'
 
 const CardDetail = defineAsyncComponent(() => import('../../components/CardDetail.vue'))
 
@@ -43,6 +44,12 @@ export default defineComponent({
       () => settingsStore.appSettings.showCardDetailInDeckDisplay,
       () => updateHtmlClass()
     )
+
+    // アンマウント時にイベントリスナーをクリーンアップ（メモリリーク防止）
+    onUnmounted(() => {
+      cleanupCardImageHoverUI()
+      console.debug('[DeckDisplayApp] Cleaned up card image hover UI on unmount')
+    })
 
     return {
       cardDetailStore,
