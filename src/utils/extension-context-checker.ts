@@ -67,14 +67,15 @@ export async function safeStorageGet<T = any>(keys: string | string[]): Promise<
       throw new Error('Extension context invalidated');
     }
 
-    const result = await chrome.storage.local.get(keys);
-
-    // chrome.runtime.lastError をチェック
-    if (chrome.runtime.lastError) {
-      throw new Error(chrome.runtime.lastError.message);
-    }
-
-    return result as Record<string, T>;
+    // Promiseチェーンで同期的にlastErrorをチェック（非同期処理直後）
+    return await chrome.storage.local.get(keys)
+      .then(result => {
+        // エラーは同期的にこの時点でチェック（次のAPI呼び出しの前）
+        if (chrome.runtime.lastError) {
+          throw new Error(`Storage get failed: ${chrome.runtime.lastError.message}`);
+        }
+        return result as Record<string, T>;
+      });
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       showReloadPrompt();
@@ -93,12 +94,14 @@ export async function safeStorageSet(items: Record<string, any>): Promise<void> 
       throw new Error('Extension context invalidated');
     }
 
-    await chrome.storage.local.set(items);
-
-    // chrome.runtime.lastError をチェック
-    if (chrome.runtime.lastError) {
-      throw new Error(chrome.runtime.lastError.message);
-    }
+    // Promiseチェーンで同期的にlastErrorをチェック（非同期処理直後）
+    return await chrome.storage.local.set(items)
+      .then(() => {
+        // エラーは同期的にこの時点でチェック（次のAPI呼び出しの前）
+        if (chrome.runtime.lastError) {
+          throw new Error(`Storage set failed: ${chrome.runtime.lastError.message}`);
+        }
+      });
   } catch (error) {
     if (isExtensionContextInvalidated(error)) {
       showReloadPrompt();
