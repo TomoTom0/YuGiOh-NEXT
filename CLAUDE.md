@@ -7,6 +7,7 @@
 3. **コード品質**:
    - DOM更新後は `nextTick()` を必ず待つ
    - UUID は `crypto.randomUUID()` を使用
+   - **型安全性**: `as` キャスト禁止。代わりに型ガード関数を使用（`src/utils/type-guards.ts`）
    - `any` 型禁止、型ガードを使用
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
    - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
@@ -510,4 +511,182 @@ console.log(document.body.innerHTML);
 // セレクタの構文を確認
 const valid = document.querySelector('valid-selector');
 const complex = document.querySelector('parent > child.class[attr]');
+```
+
+---
+
+## 型ガードの使用（as キャスト の代替）
+
+### 概要
+
+`as` キャストは TypeScript の型チェックを迂回し、実行時エラーの原因となります。本プロジェクトでは、型ガード関数を使用して安全な型変換を行います。
+
+### 問題となる 'as' キャストの例
+
+```typescript
+// 悪い例：null を HTMLInputElement として扱う
+const input = document.querySelector('input') as HTMLInputElement;
+if (input) {
+  console.log(input.value); // querySelector が null を返した場合、クラッシュ
+}
+
+// 悪い例：間違った型にキャスト
+const img = document.querySelector('div') as HTMLImageElement;
+const src = img.src; // img は div なので undefined
+
+// 悪い例：型情報が失われる
+const data: any = API.fetch();
+const result = data as { id: string };
+result.id.toString(); // data が null だったら実行時エラー
+```
+
+### 推奨パターン
+
+#### 1. HTML 要素の安全な取得
+
+```typescript
+import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/type-guards';
+
+// 良い例：型ガードを使用
+const input = safeQueryAs('#my-input', isHTMLInputElement);
+if (input) {
+  console.log(input.value); // 安全：input は確実に HTMLInputElement
+}
+
+// または直接型ガードを使用
+const element = document.querySelector('input');
+if (isHTMLInputElement(element)) {
+  console.log(element.value); // 安全：type guard で型が絞られた
+}
+```
+
+#### 2. オブジェクトの安全なキャスト
+
+```typescript
+import { safeCastAs, isRecord, hasProperty } from '@/utils/type-guards';
+
+// 良い例：型ガード関数で検証
+const data: unknown = API.fetch();
+const result = safeCastAs(data, isRecord);
+if (result && hasProperty(result, 'id') && hasProperty(result, 'name')) {
+  console.log(result.id, result.name); // 安全：プロパティの存在確認済み
+}
+```
+
+#### 3. 複合型チェック
+
+```typescript
+import { allGuards, anyGuard, isHTMLElement } from '@/utils/type-guards';
+
+// 複数条件を AND で結合
+if (allGuards(element, isHTMLElement, (el) => el.classList.contains('active'))) {
+  // element は HTMLElement かつ active クラスを持つ
+}
+
+// 複数条件を OR で結合
+if (anyGuard(value, isString, isNumber)) {
+  // value は string または number
+}
+```
+
+### 型ガード関数一覧
+
+#### HTML 要素関連
+
+| 関数 | チェック対象 |
+|------|-----------|
+| `isHTMLElement` | 汎用 HTML 要素 |
+| `isHTMLInputElement` | input 要素 |
+| `isHTMLImageElement` | img 要素 |
+| `isHTMLSelectElement` | select 要素 |
+| `isHTMLButtonElement` | button 要素 |
+| `isHTMLAnchorElement` | a 要素 |
+
+#### オブジェクト・値関連
+
+| 関数 | チェック対象 |
+|------|-----------|
+| `isRecord` | オブジェクト（`Record<string, any>`） |
+| `hasProperty` | オブジェクトのプロパティ存在確認 |
+| `isDefined` | null/undefined ではない |
+| `isString` | 文字列 |
+| `isNumber` | 数値（NaN を除く） |
+| `isBoolean` | 真偽値 |
+| `isArray` | 配列 |
+| `isEnumMember` | enum メンバーシップ確認 |
+
+#### 安全なクエリ・キャスト関数
+
+| 関数 | 用途 |
+|------|------|
+| `safeQueryAs` | querySelector と型ガードを組み合わせた安全な検索 |
+| `safeCastAs` | 型ガードを使用した安全なキャスト |
+| `allGuards` | 複数の型ガード条件を AND で結合 |
+| `anyGuard` | 複数の型ガード条件を OR で結合 |
+
+### コンバージョンガイド
+
+#### 悪い 'as' キャスト → 良い型ガード
+
+```typescript
+// Before（悪い）
+const input = document.querySelector('input') as HTMLInputElement;
+
+// After（良い）
+const input = safeQueryAs('input', isHTMLInputElement);
+// または
+const input = document.querySelector('input');
+if (isHTMLInputElement(input)) {
+  // 使用
+}
+```
+
+```typescript
+// Before（悪い）
+const data = response as { id: string; name: string };
+
+// After（良い）
+const data = safeCastAs(response, (obj) =>
+  isRecord(obj) &&
+  hasProperty(obj, 'id') &&
+  hasProperty(obj, 'name')
+);
+```
+
+### テスト
+
+`type-guards.ts` の全関数は 30 個のテストでカバーされています。
+
+```bash
+bun run test:vitest src/utils/__tests__/type-guards.test.ts
+```
+
+### 既存コード の段階的改善
+
+本プロジェクトの既存コードに含まれる 'as' キャストは、以下の段階的に改善されます：
+
+1. **Phase 1**（実施済み）: 型ガード関数の実装と基本的な使用例
+2. **Phase 2**（今後）: card-search.ts など API 関連ファイルの改善
+3. **Phase 3**（今後）: その他の utilities の改善
+
+### パフォーマンス考慮事項
+
+型ガード関数は実行時チェックを行うため、多数の呼び出しがある場合は以下のパターンを推奨：
+
+```typescript
+// Good: 一度だけチェックして結果を再利用
+const input = safeQueryAs('#my-input', isHTMLInputElement);
+if (input) {
+  // input を複数回使用
+  input.value = 'text';
+  input.addEventListener('change', handler);
+}
+
+// Avoid: 毎回チェック
+for (const selector of selectors) {
+  const element = safeQueryAs(selector, isHTMLElement);
+  if (element) {
+    element.style.display = 'none';
+  }
+}
 ```
