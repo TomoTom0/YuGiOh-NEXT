@@ -45,11 +45,13 @@ function prefetchEditUI(): void {
   const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
 
   scheduleTask(() => {
-    editUIModulePromise = import('./edit-ui');
-    editUIModulePromise
+    editUIModulePromise = import('./edit-ui')
       .catch(err => {
         console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
-        editUIModulePromise = null; // エラー時はキャッシュをクリア
+        // エラー時はPromiseをリセット（rejectされたPromiseキャッシュを防ぐ）
+        editUIModulePromise = null;
+        // エラーを再throw（呼び出し元で再試行可能に）
+        throw err;
       });
   });
 }
