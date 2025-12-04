@@ -18,64 +18,6 @@ const CAMERA_ICON = `
 `;
 
 /**
- * NEXTコピー編集ボタンのスタイルシート
- */
-const COPY_BUTTON_STYLES = `
-#ygo-next-edit-btn.ygo-copy-loading {
-  position: relative;
-  transition: background-color 0.3s ease;
-  pointer-events: none;
-  opacity: 0.9;
-}
-
-#ygo-next-edit-btn.ygo-copy-loading::before {
-  content: '';
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  animation: ygo-spinner 0.8s linear infinite;
-  vertical-align: middle;
-}
-
-#ygo-next-edit-btn.ygo-copy-generating {
-  background-color: #4CAF50 !important;
-  border-color: #4CAF50 !important;
-}
-
-#ygo-next-edit-btn.ygo-copy-generating::before {
-  border-top-color: rgba(255, 255, 255, 0.8);
-  border-right-color: rgba(255, 255, 255, 0.8);
-}
-
-#ygo-next-edit-btn.ygo-copy-copying {
-  background-color: #FF9800 !important;
-  border-color: #FF9800 !important;
-}
-
-#ygo-next-edit-btn.ygo-copy-copying::before {
-  border-top-color: rgba(255, 255, 255, 0.8);
-  border-right-color: rgba(255, 255, 255, 0.8);
-}
-
-@keyframes ygo-spinner {
-  to { transform: rotate(360deg); }
-}
-
-#ygo-next-edit-btn.ygo-copy-generating span {
-  color: white !important;
-  font-weight: bold;
-}
-
-#ygo-next-edit-btn.ygo-copy-copying span {
-  color: white !important;
-  font-weight: bold;
-}
-`;
-
-/**
  * デッキ画像作成ボタンを追加
  * @returns 追加されたボタン要素、または null
  */
@@ -176,8 +118,8 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
-        // ボタンをローディング状態にして状態表示を開始
-        button.classList.add('ygo-copy-loading', 'ygo-copy-generating');
+        // ボタンをローディング状態にして状態表示を開始（.loading = 緑色）
+        button.classList.add('loading');
         span.textContent = 'generating...';
 
         // デッキ表示ページで既にパースされた情報を使用してコピー作成
@@ -192,9 +134,9 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
             const newDno = await sessionManager.createDeck();
 
             if (newDno > 0) {
-              // 状態を copying に変更
-              button.classList.remove('ygo-copy-generating');
-              button.classList.add('ygo-copy-copying');
+              // 状態を copying に変更（.loading2 = オレンジ色）
+              button.classList.remove('loading');
+              button.classList.add('loading2');
               span.textContent = 'copying...';
 
               // 作成したデッキにデッキ情報を保存
@@ -218,20 +160,20 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
                 window.location.href = editUrl;
               } else {
                 // エラー時はボタンの状態をリセット
-                button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+                button.classList.remove('loading', 'loading2');
                 span.textContent = buttonText;
                 console.warn('[YGO Helper] Failed to save copied deck');
               }
             } else {
               // エラー時はボタンの状態をリセット
-              button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+              button.classList.remove('loading', 'loading2');
               span.textContent = buttonText;
               console.warn('[YGO Helper] Failed to create new deck');
             }
           }
         } catch (error) {
           // エラー時はボタンの状態をリセット
-          button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+          button.classList.remove('loading', 'loading2');
           span.textContent = buttonText;
           console.warn('[YGO Helper] Failed to copy deck:', error);
         }
@@ -263,11 +205,6 @@ export function initDeckImageButton(): void {
   const gameType = detectCardGameType();
 
   if (isDeckDisplayPage(gameType)) {
-    // スタイルシートを追加
-    const style = document.createElement('style');
-    style.textContent = COPY_BUTTON_STYLES;
-    document.head.appendChild(style);
-
     // DOMContentLoaded後に実行
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {

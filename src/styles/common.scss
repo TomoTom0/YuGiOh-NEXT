@@ -322,3 +322,20 @@ button {
 .shadow-lg {
   box-shadow: var(--shadow-lg);
 }
+
+/* ボタンローディングステート */
+.loading {
+  background-color: #4CAF50 !important;
+  color: white !important;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: background-color 0.3s ease;
+}
+
+.loading2 {
+  background-color: #FF9800 !important;
+  color: white !important;
+  pointer-events: none;
+  opacity: 0.9;
+  transition: background-color 0.3s ease;
+}
