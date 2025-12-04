@@ -149,8 +149,8 @@ describe('components/CategoryDialog', () => {
         wrapper.vm.toggleCategory('1');
         await wrapper.vm.$nextTick();
 
-        // emit が発火されたことを確認
-        expect(wrapper.emitted('update:model-value')).toBeTruthy();
+        // emit が発火されたことを確認（camelCase で確認）
+        expect(wrapper.emitted('update:modelValue')).toBeTruthy();
       }
     });
 
