@@ -4,6 +4,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import DeckDisplayApp from './DeckDisplayApp.vue'
+import type { CardDetailCacheResult } from '../../api/card-search'
 
 /**
  * Vue アプリケーションをセットアップして、#main980 に Card Detail をマウント
@@ -96,7 +97,7 @@ function cleanupCardImageHoverUI(): void {
  */
 async function setupCardImageHoverUI(): Promise<void> {
   let cardDetailStore
-  let getCardDetailWithCache
+  let getCardDetailWithCache: ((cid: string) => Promise<CardDetailCacheResult>) | undefined
 
   try {
     const { useCardDetailStore } = await import('../../stores/card-detail')
@@ -181,7 +182,7 @@ async function setupCardImageHoverUI(): Promise<void> {
 
             try {
               // カード詳細を取得
-              const result = await (getCardDetailWithCache as (cid: string) => Promise<any>)(cardId.toString())
+              const result = await getCardDetailWithCache(cardId.toString())
 
               // カード詳細を表示
               if (result?.detail?.card) {

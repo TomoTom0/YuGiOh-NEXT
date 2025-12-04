@@ -33,7 +33,7 @@ let editUILoaded = false;
 /**
  * 編集UIモジュールのプリフェッチ用Promise（キャッシュ）
  */
-let editUIModulePromise: Promise<any> | null = null;
+let editUIModulePromise: Promise<typeof import('./edit-ui')> | null = null;
 
 /**
  * 編集ページ用UIモジュールをプリフェッチ（アイドル時にバックグラウンドロード）
