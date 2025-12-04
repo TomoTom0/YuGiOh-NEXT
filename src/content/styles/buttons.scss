@@ -92,3 +92,16 @@ a[data-sortfix].hover-overlay::before {
 #deck_image #main.card_set div.image_set.animating > a {
   transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
+
+/**
+ * NEXTコピー編集ボタンのローディング状態
+ */
+.ytomo-neuron-btn.loading {
+  background: #4CAF50 !important;
+  pointer-events: none;
+}
+
+.ytomo-neuron-btn.loading2 {
+  background: #FF9800 !important;
+  pointer-events: none;
+}
