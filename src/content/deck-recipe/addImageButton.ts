@@ -119,7 +119,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       const deckCgid = getDeckCgid();
       if (deckCgid) {
         // ボタンをローディング状態にして状態表示を開始（緑色 #4CAF50）
-        button.style.backgroundColor = '#4CAF50';
+        button.style.background = '#4CAF50';
         button.style.pointerEvents = 'none';
         span.textContent = 'generating...';
 
@@ -136,7 +136,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
             if (newDno > 0) {
               // 状態を copying に変更（オレンジ色 #FF9800）
-              button.style.backgroundColor = '#FF9800';
+              button.style.background = '#FF9800';
               span.textContent = 'copying...';
 
               // 作成したデッキにデッキ情報を保存
@@ -160,14 +160,14 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
                 window.location.href = editUrl;
               } else {
                 // エラー時はボタンの状態をリセット
-                button.style.backgroundColor = '';
+                button.style.background = '';
                 button.style.pointerEvents = '';
                 span.textContent = buttonText;
                 console.warn('[YGO Helper] Failed to save copied deck');
               }
             } else {
               // エラー時はボタンの状態をリセット
-              button.style.backgroundColor = '';
+              button.style.background = '';
               button.style.pointerEvents = '';
               span.textContent = buttonText;
               console.warn('[YGO Helper] Failed to create new deck');
@@ -175,7 +175,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
           }
         } catch (error) {
           // エラー時はボタンの状態をリセット
-          button.style.backgroundColor = '';
+          button.style.background = '';
           button.style.pointerEvents = '';
           span.textContent = buttonText;
           console.warn('[YGO Helper] Failed to copy deck:', error);
