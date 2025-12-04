@@ -18,6 +18,62 @@ const CAMERA_ICON = `
 `;
 
 /**
+ * NEXTコピー編集ボタンのスタイルシート
+ */
+const COPY_BUTTON_STYLES = `
+.ygo-copy-loading {
+  position: relative;
+  transition: background-color 0.3s ease;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.ygo-copy-loading::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  animation: ygo-spinner 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+.ygo-copy-generating {
+  background-color: #4CAF50 !important;
+}
+
+.ygo-copy-generating::before {
+  border-top-color: rgba(255, 255, 255, 0.8);
+  border-right-color: rgba(255, 255, 255, 0.8);
+}
+
+.ygo-copy-copying {
+  background-color: #FF9800 !important;
+}
+
+.ygo-copy-copying::before {
+  border-top-color: rgba(255, 255, 255, 0.8);
+  border-right-color: rgba(255, 255, 255, 0.8);
+}
+
+@keyframes ygo-spinner {
+  to { transform: rotate(360deg); }
+}
+
+.ygo-copy-generating span {
+  color: white;
+  font-weight: bold;
+}
+
+.ygo-copy-copying span {
+  color: white;
+  font-weight: bold;
+}
+`;
+
+/**
  * デッキ画像作成ボタンを追加
  * @returns 追加されたボタン要素、または null
  */
@@ -118,6 +174,10 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
+        // ボタンをローディング状態にして状態表示を開始
+        button.classList.add('ygo-copy-loading', 'ygo-copy-generating');
+        span.textContent = 'generating...';
+
         // デッキ表示ページで既にパースされた情報を使用してコピー作成
         try {
           const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
@@ -130,6 +190,11 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
             const newDno = await sessionManager.createDeck();
 
             if (newDno > 0) {
+              // 状態を copying に変更
+              button.classList.remove('ygo-copy-generating');
+              button.classList.add('ygo-copy-copying');
+              span.textContent = 'copying...';
+
               // 作成したデッキにデッキ情報を保存
               const deckDataToCopy: any = {
                 mainDeck: parsedDeckInfo.mainDeck,
@@ -150,13 +215,22 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
                 const editUrl = getVueEditUrl(gameType, newDno, locale);
                 window.location.href = editUrl;
               } else {
+                // エラー時はボタンの状態をリセット
+                button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+                span.textContent = buttonText;
                 console.warn('[YGO Helper] Failed to save copied deck');
               }
             } else {
+              // エラー時はボタンの状態をリセット
+              button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+              span.textContent = buttonText;
               console.warn('[YGO Helper] Failed to create new deck');
             }
           }
         } catch (error) {
+          // エラー時はボタンの状態をリセット
+          button.classList.remove('ygo-copy-loading', 'ygo-copy-generating', 'ygo-copy-copying');
+          span.textContent = buttonText;
           console.warn('[YGO Helper] Failed to copy deck:', error);
         }
       } else {
@@ -185,8 +259,13 @@ export function isDeckPage(): boolean {
 export function initDeckImageButton(): void {
   // 現在のページのゲームタイプを検出
   const gameType = detectCardGameType();
-  
+
   if (isDeckDisplayPage(gameType)) {
+    // スタイルシートを追加
+    const style = document.createElement('style');
+    style.textContent = COPY_BUTTON_STYLES;
+    document.head.appendChild(style);
+
     // DOMContentLoaded後に実行
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
