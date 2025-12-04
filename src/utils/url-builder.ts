@@ -180,6 +180,7 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
  * @param locale ロケール（オプション）。指定されない場合は detectLanguage() で自動取得すること
+ * @param additionalParams 追加パラメータ（オプション、URLSearchParams）。copy-from-cgid, copy-from-dnoなど
  * @returns Vue編集画面URL
  *
  * 例：
@@ -187,8 +188,9 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * - getVueEditUrl('ocg', 1) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
  * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit'
  * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&dno=1#/ytomo/edit'
+ * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&copy-from-cgid=...&copy-from-dno=...#/ytomo/edit'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
   const params = new URLSearchParams();
 
@@ -197,6 +199,13 @@ export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: str
   }
   if (dno) {
     params.append('dno', dno.toString());
+  }
+
+  // 追加パラメータをマージ
+  if (additionalParams) {
+    for (const [key, value] of additionalParams.entries()) {
+      params.append(key, value);
+    }
   }
 
   const base = `${BASE_URL}/${gamePath}`;

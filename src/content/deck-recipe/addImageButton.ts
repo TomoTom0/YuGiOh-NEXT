@@ -118,16 +118,18 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      const baseUrl = getVueEditUrl(gameType, parseInt(dno), locale);
-      window.location.href = baseUrl;
+      const editUrl = getVueEditUrl(gameType, parseInt(dno), locale);
+      window.location.href = editUrl;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        const baseUrl = getVueEditUrl(gameType, undefined, locale);
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        window.location.href = `${baseUrl}${separator}copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        const additionalParams = new URLSearchParams();
+        additionalParams.append('copy-from-cgid', deckCgid);
+        additionalParams.append('copy-from-dno', dno);
+        const editUrl = getVueEditUrl(gameType, undefined, locale, additionalParams);
+        window.location.href = editUrl;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }
