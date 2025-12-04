@@ -118,12 +118,27 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
-        // デッキ表示ページで既にパースされた情報を sessionStorage に保存
+        // デッキ表示ページで既にパースされた情報と、TempCardDB のカード情報を sessionStorage に保存
         try {
           const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
+          const { getTempCardDB } = await import('../../utils/temp-card-db');
+
           const parsedDeckInfo = getParsedDeckInfo();
+          const tempCardDB = getTempCardDB();
+
           if (parsedDeckInfo) {
-            sessionStorage.setItem('ygo-copy-deck-info', JSON.stringify(parsedDeckInfo));
+            // TempCardDB のカード情報を全て取得
+            const cardData: Record<string, any> = {};
+            for (const [cid, cardInfo] of tempCardDB.entries()) {
+              cardData[cid] = cardInfo;
+            }
+
+            // DeckInfo とカード情報を一緒に保存
+            const copyData = {
+              deckInfo: parsedDeckInfo,
+              cardData: cardData
+            };
+            sessionStorage.setItem('ygo-copy-deck-info', JSON.stringify(copyData));
           }
         } catch (error) {
           console.warn('[YGO Helper] Failed to save parsed deck info:', error);

@@ -341,7 +341,23 @@ export default {
           const storedDeckInfo = sessionStorage.getItem('ygo-copy-deck-info')
           if (storedDeckInfo) {
             try {
-              deckToCopy = JSON.parse(storedDeckInfo)
+              const copyData = JSON.parse(storedDeckInfo)
+
+              // deckInfo と cardData が含まれている新しい形式
+              if (copyData.deckInfo && copyData.cardData) {
+                deckToCopy = copyData.deckInfo
+
+                // TempCardDB に cardData を復元
+                const { getTempCardDB } = await import('../../utils/temp-card-db')
+                const tempCardDB = getTempCardDB()
+                for (const [cid, cardInfo] of Object.entries(copyData.cardData)) {
+                  tempCardDB.set(cid, cardInfo)
+                }
+              } else {
+                // 旧形式（DeckInfo のみ）のサポート
+                deckToCopy = copyData
+              }
+
               sessionStorage.removeItem('ygo-copy-deck-info') // 使用済みなので削除
             } catch (parseError) {
               console.warn('[DeckEditLayout] Failed to parse stored deck info:', parseError)
