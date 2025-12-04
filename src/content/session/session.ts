@@ -25,35 +25,24 @@ class SessionManager {
 
     // フッターの「マイデッキ」リンクからcgidを取得
     const mydeckLink = document.querySelector<HTMLAnchorElement>('a[href*="member_deck.action"][href*="cgid="]');
-    console.log('[ensureCgid] Looking for mydeckLink with selector a[href*="member_deck.action"][href*="cgid="]');
-    console.log('[ensureCgid] mydeckLink found:', !!mydeckLink);
-
     if (mydeckLink) {
       const match = mydeckLink.href.match(/cgid=([a-f0-9]{32})/);
-      console.log('[ensureCgid] mydeckLink.href:', mydeckLink.href);
-      console.log('[ensureCgid] cgid match:', !!match && match[1]);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[ensureCgid] cgid found from footer link:', this.cgid.substring(0, 16) + '...');
         return this.cgid;
       }
     }
 
     // フッター以外の任意のcgidリンクからも取得を試みる
     const anyLink = document.querySelector<HTMLAnchorElement>('a[href*="cgid="]');
-    console.log('[ensureCgid] Looking for anyLink with selector a[href*="cgid="]');
-    console.log('[ensureCgid] anyLink found:', !!anyLink);
     if (anyLink) {
       const match = anyLink.href.match(/cgid=([a-f0-9]{32})/);
-      console.log('[ensureCgid] anyLink.href:', anyLink.href);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[ensureCgid] cgid found from page link:', this.cgid.substring(0, 16) + '...');
         return this.cgid;
       }
     }
 
-    console.log('[ensureCgid] cgid not found - throwing error');
     throw new Error('cgid not found in page');
   }
 
@@ -65,7 +54,7 @@ class SessionManager {
    * @param request_locale リクエストロケール（例: 'request_locale=ja'）
    * @returns ytkn、取得失敗時はnull
    */
-  private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
+  private async fetchYtkn(cgid: string, dno: number, _request_locale: string): Promise<string | null> {
     // 共通util関数を使用（buildApiUrl経由で自動で request_locale が付与される）
     const { detectCardGameType } = await import('@/utils/page-detector');
     const gameType = detectCardGameType();

@@ -86,18 +86,24 @@ export function useCardLinks() {
       // カード詳細を取得（cidのみからCardInfo全体をパース）
       // FAQページからのリンクなので、fromFAQ=trueを渡す
       const currentLang = detectLanguage(document)
-      const { detail } = await getCardDetailWithCache(cardId, currentLang, true, 'release_desc', true)
-      if (!detail || !detail.card) {
-        console.error('カード情報の取得に失敗しました:', cardId)
+      const result = await getCardDetailWithCache(cardId, currentLang, true, 'release_desc', true)
+
+      // エラーにより不完全な情報の場合は警告
+      if (result.isPartialFromError) {
+        console.warn('[useCardLinks] Card info may be incomplete due to search error for cardId:', cardId)
+      }
+
+      if (!result.detail || !result.detail.card) {
+        console.error('[useCardLinks] Failed to get card info for cardId:', cardId)
         return
       }
 
       // cardDetailStoreにカードをセットしてCardタブのinfoを表示
-      cardDetailStore.setSelectedCard(detail.card)
+      cardDetailStore.setSelectedCard(result.detail.card)
       deckStore.activeTab = 'card'
       cardDetailStore.setCardTab('info')
     } catch (error) {
-      console.error('カードリンククリック処理に失敗しました:', error)
+      console.error('[useCardLinks] Card link click handler failed for cardId:', cardId, error)
     }
   }
 

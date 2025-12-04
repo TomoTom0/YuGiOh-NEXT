@@ -471,14 +471,12 @@ import {
   getRaceLabel,
   getMonsterTypeLabel
 } from '../utils/filter-label';
-import {
-  RACE_OPTIONS,
-  MONSTER_TYPE_OPTIONS
-} from '../constants/filter-options';
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '../utils/filter-chip-formatter';
 import { convertFiltersToIcons } from '../utils/filter-icons';
 import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-engine';
 import { toSearchConditionState } from '../utils/search-exclusion-adapter';
+import { detectLanguage } from '../utils/language-detector';
+import { mappingManager } from '../utils/mapping-manager';
 
 defineProps<{
   isVisible: boolean;
@@ -510,6 +508,11 @@ const filters = reactive<SearchFilters>({
 });
 
 const activeStatTab = ref<'atk' | 'def'>('atk');
+
+// ページ言語を検出（多言語対応）
+const pageLanguage = computed(() => {
+  return detectLanguage(document);
+});
 
 // 推論エンジンのルールをロード
 const exclusionRules = loadExclusionRules();
@@ -569,24 +572,14 @@ function getFieldLabel(fieldId: string): string {
   };
   return labels[fieldId] || fieldId;
 }
-
 /**
- * モンスタータイプ名を日本語ラベルに変換
+ * モンスタータイプの表示ラベルを取得（言語対応版）
+ * 詳細テキスト用（例：「シンクロモンスターが選択されているため」）
  */
-function getMonsterTypeJaLabel(type: string): string {
-  const labels: Record<string, string> = {
-    'normal': '通常',
-    'effect': '効果',
-    'fusion': '融合',
-    'ritual': '儀式',
-    'synchro': 'シンクロ',
-    'xyz': 'エクシーズ',
-    'link': 'リンク',
-    'pend': 'ペンデュラム',
-    'pendulum': 'ペンデュラム',
-    'special-summon': '特殊召喚',
-  };
-  return labels[type] || type;
+function getMonsterTypeDisplayLabel(type: string): string {
+  const lang = pageLanguage.value;
+  const idToText = mappingManager.getMonsterTypeIdToText(lang);
+  return (idToText as Record<string, string>)[type] || type;
 }
 
 /**
@@ -610,21 +603,21 @@ function formatDisabledReason(reason: string | undefined): string | undefined {
   const attrExclusionMatch = reason.match(/グループ:\s*monster-type_([^\s]+)と排他$/);
   if (attrExclusionMatch) {
     const excludingType = attrExclusionMatch[1];
-    return `${getMonsterTypeJaLabel(excludingType)}モンスターが選択されているため`;
+    return `${getMonsterTypeDisplayLabel(excludingType)}モンスターが選択されているため`;
   }
 
   // 「属性から項目への無効化」パターン: "monster-type_linkにより無効化"
   const attrToFieldMatch = reason.match(/^monster-type_([^\s]+)により無効化$/);
   if (attrToFieldMatch) {
     const monsterType = attrToFieldMatch[1];
-    return `${getMonsterTypeJaLabel(monsterType)}モンスターが選択されているため`;
+    return `${getMonsterTypeDisplayLabel(monsterType)}モンスターが選択されているため`;
   }
 
   // 「必須属性が選択不可」パターン: "monster-type_linkが選択不可のため無効"
   const requiredUnavailableMatch = reason.match(/^monster-type_([^\s]+)が選択不可のため無効$/);
   if (requiredUnavailableMatch) {
     const monsterType = requiredUnavailableMatch[1];
-    return `${getMonsterTypeJaLabel(monsterType)}モンスターが選択できないため`;
+    return `${getMonsterTypeDisplayLabel(monsterType)}モンスターが選択できないため`;
   }
 
   // その他の場合はそのまま返す
@@ -672,15 +665,17 @@ const racesOrdered: Race[] = [
   'thunder', 'plant', 'divine', 'creatorgod'
 ];
 
-// ボタン表示用のラベル取得関数
+// ボタン表示用のラベル取得関数（言語対応版）
 const getRaceButtonLabel = (race: string) => {
-  const option = RACE_OPTIONS.find(opt => opt.value === race);
-  return option ? option.label : race;
+  const lang = pageLanguage.value;
+  const idToText = mappingManager.getRaceIdToText(lang);
+  return (idToText as Record<string, string>)[race] || race;
 };
 
 const getMonsterTypeButtonLabel = (type: string) => {
-  const option = MONSTER_TYPE_OPTIONS.find(opt => opt.value === type);
-  return option ? option.label : type;
+  const lang = pageLanguage.value;
+  const idToText = mappingManager.getMonsterTypeIdToText(lang);
+  return (idToText as Record<string, string>)[type] || type;
 };
 
 // 最大日付（来年末）
@@ -691,24 +686,24 @@ const maxDate = computed(() => {
 
 // タブタイトル横の選択済みチップ（共通関数を使用）
 const selectedAttributeChips = computed(() => {
-  return filters.attributes.map(attr => getAttributeLabel(attr));
+  return filters.attributes.map(attr => getAttributeLabel(attr, pageLanguage.value));
 });
 
 const selectedSpellTypeChips = computed(() => {
-  return filters.spellTypes.map(type => getSpellTypeLabel(type));
+  return filters.spellTypes.map(type => getSpellTypeLabel(type, pageLanguage.value));
 });
 
 const selectedTrapTypeChips = computed(() => {
-  return filters.trapTypes.map(type => getTrapTypeLabel(type));
+  return filters.trapTypes.map(type => getTrapTypeLabel(type, pageLanguage.value));
 });
 
 const selectedRaceChips = computed(() => {
-  return filters.races.map(race => getRaceLabel(race));
+  return filters.races.map(race => getRaceLabel(race, pageLanguage.value));
 });
 
 const selectedMonsterTypeChips = computed(() => {
   return filters.monsterTypes.map(mt => {
-    const label = getMonsterTypeLabel(mt.type);
+    const label = getMonsterTypeLabel(mt.type, pageLanguage.value);
     return mt.state === 'not' ? `N-${label}` : label;
   });
 });

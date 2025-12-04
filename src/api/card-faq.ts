@@ -1,6 +1,7 @@
 import { CardFAQ, CardFAQList } from '@/types/card';
 import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
+import { queuedFetch } from '@/utils/request-queue';
 
 /**
  * カードQA一覧を取得する
@@ -24,7 +25,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     });
     const url = buildApiUrl('faq_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -196,7 +197,7 @@ export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
       fid: faqId
     });
     const url = buildApiUrl('faq_search.action', gameType, params);
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });

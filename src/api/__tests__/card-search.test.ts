@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
-import { searchCardsByName, searchCardById } from '../card-search';
+import { searchCardsByName, searchCardById, buildCardImageUrl } from '../card-search';
 
 /**
  * カード検索API関数のテスト
@@ -218,6 +218,85 @@ describe('カード検索API', () => {
       const result = await searchCardById('12345');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('buildCardImageUrl', () => {
+    it('カード画像URLを正しく生成できる', () => {
+      const mockCard = {
+        cardId: '89631139',
+        name: 'ブラック・マジシャン',
+        imgs: [
+          {
+            ciid: '12345',
+            imgHash: 'abcdef123456'
+          }
+        ],
+        ciid: '12345'
+      };
+
+      const result = buildCardImageUrl(mockCard);
+
+      expect(result).toBeDefined();
+      expect(result).toContain('get_image.action');
+      expect(result).toContain('cid=89631139');
+      expect(result).toContain('ciid=12345');
+      expect(result).toContain('enc=abcdef123456');
+    });
+
+    it('複数のciidがある場合、指定されたciidに対応する画像URLを生成', () => {
+      const mockCard = {
+        cardId: '12345',
+        name: 'テストカード',
+        imgs: [
+          {
+            ciid: '10001',
+            imgHash: 'hash1'
+          },
+          {
+            ciid: '10002',
+            imgHash: 'hash2'
+          }
+        ],
+        ciid: '10002'
+      };
+
+      const result = buildCardImageUrl(mockCard);
+
+      expect(result).toBeDefined();
+      expect(result).toContain('ciid=10002');
+      expect(result).toContain('enc=hash2');
+    });
+
+    it('ciidが見つからない場合はundefinedを返す', () => {
+      const mockCard = {
+        cardId: '12345',
+        name: 'テストカード',
+        imgs: [
+          {
+            ciid: '10001',
+            imgHash: 'hash1'
+          }
+        ],
+        ciid: '99999' // 存在しないciid
+      };
+
+      const result = buildCardImageUrl(mockCard);
+
+      expect(result).toBeUndefined();
+    });
+
+    it('imgsが空配列の場合はundefinedを返す', () => {
+      const mockCard = {
+        cardId: '12345',
+        name: 'テストカード',
+        imgs: [],
+        ciid: '10001'
+      };
+
+      const result = buildCardImageUrl(mockCard);
+
+      expect(result).toBeUndefined();
     });
   });
 });

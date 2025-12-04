@@ -20,15 +20,17 @@ import {
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/type-guards';
+import { safeQuery } from '@/utils/safe-dom-query';
 import {
-  ATTRIBUTE_PATH_TO_ID,
-  SPELL_EFFECT_PATH_TO_ID,
-  TRAP_EFFECT_PATH_TO_ID,
-  SPELL_EFFECT_TYPE_MAP,
-  TRAP_EFFECT_TYPE_MAP,
+  ATTRIBUTE_ID_TO_PATH,
+  SPELL_EFFECT_TYPE_ID_TO_PATH,
+  TRAP_EFFECT_TYPE_ID_TO_PATH,
+  SPELL_EFFECT_TYPE_ID_TO_NAME,
+  TRAP_EFFECT_TYPE_ID_TO_NAME,
   ATTRIBUTE_ID_TO_INT,
   RACE_ID_TO_INT,
-  MONSTER_TYPE_VALUE_TO_ID,
+  MONSTER_TYPE_ID_TO_INT,
   SPELL_EFFECT_TYPE_ID_TO_INT,
   TRAP_EFFECT_TYPE_ID_TO_INT
 } from '@/types/card-maps';
@@ -38,6 +40,24 @@ import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
 import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
+import { queuedFetch } from '@/utils/request-queue';
+
+// ============================================================================
+// 逆引きマップの事前生成（パフォーマンス最適化）
+// ============================================================================
+// モジュール ロード時に一度だけ生成して、パース時の O(1) ルックアップを実現
+
+const ATTRIBUTE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(ATTRIBUTE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, Attribute>;
+
+const SPELL_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(SPELL_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, SpellEffectType>;
+
+const TRAP_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(TRAP_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, TrapEffectType>;
 
 // ============================================================================
 // APIパラメータ値マッピング関数
@@ -63,17 +83,11 @@ function getRaceSpeciesValue(race: Race): string {
 
 /**
  * モンスタータイプ → other値のマッピング
- * card-maps.ts の MONSTER_TYPE_VALUE_TO_ID の逆引き
- * HTMLフォーム値（整数）から内部IDへのマッピングを逆引き
+ * MONSTER_TYPE_ID_TO_INT から type に対応する値を取得
  */
 function getMonsterTypeOtherValue(type: MonsterType): string {
-  // MONSTER_TYPE_VALUE_TO_ID は value → id なので、逆引きして id → value を取得
-  for (const [value, id] of Object.entries(MONSTER_TYPE_VALUE_TO_ID)) {
-    if (id === type) {
-      return value;
-    }
-  }
-  return '';
+  const value = MONSTER_TYPE_ID_TO_INT[type];
+  return value !== undefined ? String(value) : '';
 }
 
 /**
@@ -508,7 +522,7 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
     const params = buildSearchParams(options);
 
     const url = buildApiUrl('card_search.action', gameType, params);
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -558,7 +572,7 @@ export async function searchCardsByName(
 
     const gameType = detectCardGameType();
     const url = buildApiUrl('card_search.action', gameType, params);
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -708,7 +722,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -756,7 +770,7 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -867,7 +881,7 @@ export function parseSearchResults(doc: Document): CardInfo[] {
  * @param imageInfoMap cidごとの画像情報マップ
  * @returns カード基本情報、パースできない場合はnull
  */
-function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>): CardBase | null {
+export function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>): CardBase | null {
   // カード名（必須）
   const nameElem = row.querySelector('.card_name');
   if (!nameElem?.textContent) {
@@ -877,7 +891,7 @@ function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid?: stri
 
   // カードID（必須）
   // input.link_value の値から cid= を抽出
-  const linkValueInput = row.querySelector('input.link_value') as HTMLInputElement;
+  const linkValueInput = safeQueryAs('input.link_value', isHTMLInputElement, row);
   if (!linkValueInput?.value) {
     return null;
   }
@@ -1011,7 +1025,7 @@ function isMonsterExtraDeckCard(types: MonsterType[]): boolean {
 function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null {
   let extractedLinkValue: string | null = null;
   // 属性取得（必須）
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src) {
     console.error('[parseMonsterCard] Attribute image not found for card:', base.name);
     return null;
@@ -1025,7 +1039,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   }
   const attrPath = attrMatch[1];
 
-  // パス → 識別子に変換
+  // パス → 識別子に変換（逆引きマップで O(1) ルックアップ）
   const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
   if (!attribute) {
     console.error('[parseMonsterCard] Unknown attribute path:', attrPath, 'for card:', base.name);
@@ -1049,7 +1063,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     }
 
     // アイコンからも種別を判定（二重チェック）
-    const levelImg = levelRankElem.querySelector('img') as HTMLImageElement;
+    const levelImg = safeQueryAs('img', isHTMLImageElement, levelRankElem);
     if (levelImg?.src) {
       if (levelImg.src.includes('icon_rank.png')) {
         levelType = 'rank';
@@ -1093,7 +1107,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 
     // リンクマーカー方向情報を画像パスから取得
     // 例: "external/image/parts/link_pc/link13.png" → "13" (方向1と3)
-    const linkImg = linkMarkerElem.querySelector('img') as HTMLImageElement;
+    const linkImg = safeQueryAs('img', isHTMLImageElement, linkMarkerElem);
     if (linkImg?.src) {
       const linkMatch = linkImg.src.match(/link(\d+)\.png/);
       if (linkMatch && linkMatch[1]) {
@@ -1201,22 +1215,23 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
  */
 function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   // 魔法であることを確認
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_spell')) {
     console.error('[parseSpellCard] Attribute is not spell for card:', base.name, 'src:', attrImg?.src);
     return null;
   }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
-  const effectElem = row.querySelector('.box_card_effect');
+  const effectElem = safeQuery('.box_card_effect', row);
   let effectType: SpellEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    const effectImg = safeQueryAs('img', isHTMLImageElement, effectElem);
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        effectType = SPELL_EFFECT_PATH_TO_ID[match[1]];
+        // パス → 識別子に変換（O(1) 逆引き）
+        effectType = SPELL_EFFECT_TYPE_PATH_TO_ID[match[1]];
       }
     }
   }
@@ -1242,22 +1257,23 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
  */
 function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   // 罠であることを確認
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_trap')) {
     console.error('[parseTrapCard] Attribute is not trap for card:', base.name, 'src:', attrImg?.src);
     return null;
   }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
-  const effectElem = row.querySelector('.box_card_effect');
+  const effectElem = safeQuery('.box_card_effect', row);
   let effectType: TrapEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    const effectImg = safeQueryAs('img', isHTMLImageElement, effectElem);
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        effectType = TRAP_EFFECT_PATH_TO_ID[match[1]];
+        // パス → 識別子に変換（O(1) 逆引き）
+        effectType = TRAP_EFFECT_TYPE_PATH_TO_ID[match[1]];
       }
     }
   }
@@ -1361,7 +1377,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
     const name = packNameElem?.textContent?.trim() || '';
 
     // パックIDを取得
-    const linkValueInput = rowElement.querySelector('input.link_value') as HTMLInputElement;
+    const linkValueInput = safeQueryAs('input.link_value', isHTMLInputElement, rowElement);
     let packId: string | undefined;
     if (linkValueInput?.value) {
       const pidMatch = linkValueInput.value.match(/pid=(\d+)/);
@@ -1478,7 +1494,7 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
   };
 
   // カードタイプを判定（属性アイコンがあればモンスター、なければ魔法・罠）
-  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+  const attrImg = safeQueryAs('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]', isHTMLImageElement, doc);
 
   if (attrImg) {
     // モンスターカード
@@ -1490,11 +1506,11 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
 }
 
 function isSpellEffectType(value: string): value is SpellEffectType {
-  return value in SPELL_EFFECT_TYPE_MAP;
+  return value in SPELL_EFFECT_TYPE_ID_TO_NAME;
 }
 
 function isTrapEffectType(value: string): value is TrapEffectType {
-  return value in TRAP_EFFECT_TYPE_MAP;
+  return value in TRAP_EFFECT_TYPE_ID_TO_NAME;
 }
 
 function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo | null {
@@ -1541,7 +1557,7 @@ function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo 
 
 function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard | null {
   // 属性を取得
-  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+  const attrImg = safeQueryAs('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]', isHTMLImageElement, doc);
   if (!attrImg || !attrImg.src) {
     console.error('[parseMonsterDetailBasicInfo] Attribute not found');
     return null;
@@ -1553,7 +1569,14 @@ function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard
     return null;
   }
 
-  const attribute = ATTRIBUTE_PATH_TO_ID[attrMatch[1]];
+  // パス → 識別子に変換（逆引き）
+  let attribute: Attribute | null = null;
+  for (const [attr, path] of Object.entries(ATTRIBUTE_ID_TO_PATH)) {
+    if (path === attrMatch[1]) {
+      attribute = attr as Attribute;
+      break;
+    }
+  }
   if (!attribute) {
     console.error('[parseMonsterDetailBasicInfo] Unknown attribute:', attrMatch[1]);
     return null;
@@ -1737,7 +1760,7 @@ export function fetchAdditionalPages(
 
       try {
         const url = buildApiUrl('card_search.action', gameType, params);
-        const response = await fetch(url, {
+        const response = await queuedFetch(url, {
           method: 'GET',
           credentials: 'include'
         });
@@ -1827,7 +1850,7 @@ export async function getCardDetail(
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -1851,7 +1874,12 @@ export async function getCardDetail(
 
     // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
     // 同時にカード名検索を並行実行して完全な情報を取得
-    let searchPromise: Promise<CardInfo[]> | null = null;
+    interface SearchPromiseResult {
+      success: boolean;
+      data: CardInfo[];
+      error?: Error;
+    }
+    let searchPromise: Promise<SearchPromiseResult> | null = null;
 
     if (fromFAQ && !baseCard) {
       const parsed = parseCardDetailBasicInfo(doc, cardId);
@@ -1863,9 +1891,14 @@ export async function getCardDetail(
 
       // カード名で検索（並行実行）- 完全な情報（リンクマーカー、ペンデュラム等）を取得
       searchPromise = searchCards({ keyword: parsed.name })
+        .then(results => {
+          return { success: true, data: results };
+        })
         .catch(err => {
-          console.warn('[getCardDetail] Card name search failed:', err);
-          return [];
+          // エラーを明示的に記録（エラーフラグを返す）
+          const error = err instanceof Error ? err : new Error(String(err));
+          console.error('[getCardDetail] Card name search failed for cardId:', cardId, 'name:', parsed.name, error);
+          return { success: false, data: [], error };
         });
     }
 
@@ -1907,22 +1940,30 @@ export async function getCardDetail(
     const qaList = faqList?.faqs || [];
 
     // 並行検索が実行されている場合、結果を待ってマージ
+    let searchHadError = false;
     if (searchPromise) {
-      const searchResults = await searchPromise;
-      const fullCard = searchResults.find(c => c.cardId === cardId);
-      
-      if (fullCard) {
-        // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
-        baseCard = {
-          ...fullCard,
-          text: textData?.text || fullCard.text
-        };
-        
-        if (baseCard.cardType === 'monster' && textData?.pendulumText) {
-          (baseCard as MonsterCard).pendulumText = textData.pendulumText;
-        }
+      const searchResult = await searchPromise;
+
+      if (!searchResult.success) {
+        // エラーが発生した場合は parsed な情報を使用することを明示
+        console.warn('[getCardDetail] Using fallback parsed info due to search failure for cardId:', cardId, 'error:', searchResult.error?.message);
+        searchHadError = true;
       } else {
-        console.warn('[getCardDetail] Card not found in search results, using parsed info');
+        const fullCard = searchResult.data.find(c => c.cardId === cardId);
+
+        if (fullCard) {
+          // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
+          baseCard = {
+            ...fullCard,
+            text: textData?.text || fullCard.text
+          };
+
+          if (baseCard.cardType === 'monster' && textData?.pendulumText) {
+            (baseCard as MonsterCard).pendulumText = textData.pendulumText;
+          }
+        } else {
+          console.warn('[getCardDetail] Card not found in search results, using parsed info');
+        }
       }
     }
 
@@ -1945,7 +1986,8 @@ export async function getCardDetail(
       packs,
       relatedCards,
       qaList,
-      fetchMorePromise
+      fetchMorePromise,
+      isPartialFromError: searchHadError ? true : undefined
     };
   } catch (error) {
     console.error('Failed to get card detail:', error);
@@ -1967,6 +2009,8 @@ export interface CardDetailCacheResult {
   fetchedAt: number;
   /** バックグラウンド更新のPromise（autoRefresh=trueかつisFresh=falseの場合のみ存在） */
   refreshPromise?: Promise<CardDetail | null>;
+  /** エラーにより不完全な情報である可能性（FAQ検索失敗時等）*/
+  isPartialFromError?: boolean;
 }
 
 /**
@@ -2071,7 +2115,8 @@ export async function getCardDetailWithCache(
     detail,
     fromCache: false,
     isFresh: true,
-    fetchedAt: Date.now()
+    fetchedAt: Date.now(),
+    isPartialFromError: detail?.isPartialFromError
   };
 }
 

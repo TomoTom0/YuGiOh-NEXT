@@ -38,6 +38,10 @@ export interface DeckInfo {
   comment: string;
   /** デッキコード */
   deckCode: string;
+  /** スキップされた未発売カード数 */
+  skippedCardsCount?: number;
+  /** スキップされた未発売カード詳細情報 */
+  skippedCards?: Array<{ cid: string; name: string; lang: string }>;
 }
 
 /**

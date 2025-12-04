@@ -133,31 +133,28 @@
 
 
 
-    <!-- Unsaved Changes Dialog -->
-    <ConfirmDialog
-      :show="deckStore.showUnsavedChangesDialog"
-      :title="unsavedChangesTitle"
-      :message="unsavedChangesMessage"
-      :buttons="unsavedChangesButtons"
-      @cancel="cancelUnsavedChanges"
-    />
-
-    <Toast
-      :show="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="toast.show = false"
-    />
-
-
   </div>
+
+  <!-- Unsaved Changes Dialog (outside top-bar-wrapper) -->
+  <ConfirmDialog
+    :show="deckStore.showUnsavedChangesDialog"
+    :title="unsavedChangesTitle"
+    :message="unsavedChangesMessage"
+    :buttons="unsavedChangesButtons"
+    @cancel="cancelUnsavedChanges"
+  />
+
+  <!-- Toast Container (outside top-bar-wrapper) -->
+  <ToastContainer />
 </template>
 
 <script lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
+import { useToastStore } from '../stores/toast-notification'
 import Toast from './Toast.vue'
+import ToastContainer from './ToastContainer.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
@@ -174,11 +171,13 @@ export default {
   name: 'DeckEditTopBar',
   components: {
     Toast,
+    ToastContainer,
     ConfirmDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const { showToast: dispatchToast } = useToastStore()
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
@@ -189,13 +188,17 @@ export default {
       message: '',
       type: 'info'
     })
-    
+
     // Unsaved changes handling
     const pendingAction = ref<(() => void) | null>(null)
     const unsavedChangesTitle = ref('未保存の変更')
     const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
-    const showToast = (message: string, type = 'info') => {
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+      // ストアを使用してトースト通知を表示
+      dispatchToast(message, type)
+
+      // 従来の toast オブジェクト（既に使用されている可能性）もサポート
       toast.message = message
       toast.type = type
       toast.show = true
