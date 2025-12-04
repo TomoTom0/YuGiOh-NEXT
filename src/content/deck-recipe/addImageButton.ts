@@ -104,7 +104,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   button.appendChild(span);
 
   // クリックイベント
-  button.addEventListener('click', (e) => {
+  button.addEventListener('click', async (e) => {
     e.preventDefault();
 
     const gameType = detectCardGameType();
@@ -118,6 +118,17 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
+        // デッキ表示ページで既にパースされた情報を sessionStorage に保存
+        try {
+          const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
+          const parsedDeckInfo = getParsedDeckInfo();
+          if (parsedDeckInfo) {
+            sessionStorage.setItem('ygo-copy-deck-info', JSON.stringify(parsedDeckInfo));
+          }
+        } catch (error) {
+          console.warn('[YGO Helper] Failed to save parsed deck info:', error);
+        }
+
         const additionalParams = new URLSearchParams();
         additionalParams.append('copy-from-cgid', deckCgid);
         additionalParams.append('copy-from-dno', dno);

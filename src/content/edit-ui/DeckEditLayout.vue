@@ -335,11 +335,25 @@ export default {
       if (copyFromDno && copyFromCgid) {
         // copy-from-dnoとcopy-from-cgidパラメータがある場合：他人のデッキをコピーして新規作成
         try {
-          // getDeckDetailをインポート
-          const { getDeckDetail } = await import('../../api/deck-operations')
+          let deckToCopy = null
 
-          // 指定されたcgidとdnoでデッキ情報を取得
-          const deckToCopy = await getDeckDetail(parseInt(copyFromDno), copyFromCgid)
+          // まずsessionStorageからパースされたデッキ情報を取得（デッキ表示ページから保存されたもの）
+          const storedDeckInfo = sessionStorage.getItem('ygo-copy-deck-info')
+          if (storedDeckInfo) {
+            try {
+              deckToCopy = JSON.parse(storedDeckInfo)
+              sessionStorage.removeItem('ygo-copy-deck-info') // 使用済みなので削除
+            } catch (parseError) {
+              console.warn('[DeckEditLayout] Failed to parse stored deck info:', parseError)
+              deckToCopy = null
+            }
+          }
+
+          // sessionStorageにない場合のみAPIから取得
+          if (!deckToCopy) {
+            const { getDeckDetail } = await import('../../api/deck-operations')
+            deckToCopy = await getDeckDetail(parseInt(copyFromDno), copyFromCgid)
+          }
 
           if (!deckToCopy) {
             throw new Error('Failed to fetch deck details')

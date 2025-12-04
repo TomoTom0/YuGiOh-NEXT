@@ -413,3 +413,10 @@ export function getSelectedCard(): SelectedCard | null {
 export function getCurrentTab(): 'info' | 'qa' {
   return currentTab;
 }
+
+/**
+ * パースされたデッキ情報を取得
+ */
+export function getParsedDeckInfo(): DeckInfo | null {
+  return parsedDeckInfo;
+}
