@@ -38,6 +38,7 @@ import { mappingManager } from '@/utils/mapping-manager';
 import { isSameDay } from '@/utils/date-utils';
 import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
+import { queuedFetch } from '@/utils/request-queue';
 
 // ============================================================================
 // APIパラメータ値マッピング関数
@@ -502,7 +503,7 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
     const params = buildSearchParams(options);
 
     const url = buildApiUrl('card_search.action', gameType, params);
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -552,7 +553,7 @@ export async function searchCardsByName(
 
     const gameType = detectCardGameType();
     const url = buildApiUrl('card_search.action', gameType, params);
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -702,7 +703,7 @@ export async function searchCardById(cardId: string): Promise<CardInfo | null> {
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -750,7 +751,7 @@ export async function searchCardsByPackId(packId: string): Promise<CardInfo[]> {
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -1756,7 +1757,7 @@ export function fetchAdditionalPages(
 
       try {
         const url = buildApiUrl('card_search.action', gameType, params);
-        const response = await fetch(url, {
+        const response = await queuedFetch(url, {
           method: 'GET',
           credentials: 'include'
         });
@@ -1846,7 +1847,7 @@ export async function getCardDetail(
 
     const url = buildApiUrl('card_search.action', gameType, params);
 
-    const response = await fetch(url, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
