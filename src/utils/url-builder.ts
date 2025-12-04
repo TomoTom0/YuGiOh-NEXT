@@ -179,39 +179,56 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * Vue編集画面のURLを取得
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
- * @param locale ロケール（オプション、未使用）。CHEX Vue画面では言語は別の方法で取得される
+ * @param locale ロケール（オプション）。公式サイトに伝えるrequest_localeパラメータ
  * @param additionalParams 追加パラメータ（オプション、URLSearchParams）。copy-from-cgid, copy-from-dnoなど
  * @returns Vue編集画面URL
  *
+ * URL構造：
+ * - ハッシュ前：request_locale（公式サイト向け）
+ * - ハッシュ後：dno, copy-from-cgid, copy-from-dno等（CHEX Vue向け）
+ *
  * 例：
  * - getVueEditUrl('ocg') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
- * - getVueEditUrl('ocg', 1) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
- * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
- * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
- * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?copy-from-cgid=...&copy-from-dno=...'
+ * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?dno=1'
+ * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?copy-from-cgid=...&copy-from-dno=...'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number, _locale?: string, additionalParams?: URLSearchParams): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
-  const params = new URLSearchParams();
+  const base = `${BASE_URL}/${gamePath}`;
 
+  // ハッシュ前のパラメータ（公式サイト向け）
+  const preHashParams = new URLSearchParams();
+  if (locale) {
+    preHashParams.append('request_locale', locale);
+  }
+
+  // ハッシュ後のパラメータ（CHEX Vue向け）
+  const postHashParams = new URLSearchParams();
   if (dno) {
-    params.append('dno', dno.toString());
+    postHashParams.append('dno', dno.toString());
   }
 
   // 追加パラメータをマージ（copy-from-cgid, copy-from-dnoなど）
   if (additionalParams) {
     for (const [key, value] of additionalParams.entries()) {
-      params.append(key, value);
+      postHashParams.append(key, value);
     }
   }
 
-  const base = `${BASE_URL}/${gamePath}`;
+  const preHashQueryString = preHashParams.toString();
+  const postHashQueryString = postHashParams.toString();
   const hash = '#/ytomo/edit';
-  const queryString = params.toString();
 
-  // CHEXのVue画面はハッシュの後ろのクエリパラメータを解析するため、
-  // ハッシュの後ろにパラメータを配置する
-  return queryString ? `${base}${hash}?${queryString}` : `${base}${hash}`;
+  // ハッシュ前のクエリがある場合は追加
+  let url = preHashQueryString ? `${base}?${preHashQueryString}` : base;
+  // ハッシュを追加
+  url += hash;
+  // ハッシュ後のクエリがある場合は追加
+  if (postHashQueryString) {
+    url += `?${postHashQueryString}`;
+  }
+
+  return url;
 }
 
 /**
