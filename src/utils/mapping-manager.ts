@@ -75,7 +75,6 @@ class MappingManager {
 
         // マッピングがない場合は、同期的にfetchAndStoreMappingsを待つ
         if (!this.dynamicMappings.has(lang)) {
-          console.log(`[MappingManager] Mapping not found for ${lang}, fetching now...`);
           try {
             await this.fetchAndStoreMappings(lang);
           } catch (error) {
@@ -105,12 +104,6 @@ class MappingManager {
         // マッピングが有効か確認
         if (this.isValidMapping(dynamicMapping)) {
           this.dynamicMappings.set(lang, dynamicMapping);
-          console.log(
-            `[MappingManager] Loaded dynamic mappings for ${lang} from storage ` +
-            `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-            `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-            `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-          );
         } else {
           // 無効なマッピングの場合は、新しく取得
           console.warn(
@@ -167,12 +160,6 @@ class MappingManager {
         // Chrome Storage に保存
         const storageKey = `ygo-mappings:${lang}`;
         await chrome.storage.local.set({ [storageKey]: dynamicMapping });
-        console.log(
-          `[MappingManager] Stored dynamic mappings for ${lang} ` +
-          `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-          `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-          `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-        );
       } else {
         // null が返されたのは、ページ構造の問題か通信エラーの可能性
         console.warn(
@@ -491,7 +478,6 @@ class MappingManager {
       if (this.dynamicMappings.has(lang)) {
         const mapping = this.dynamicMappings.get(lang);
         if (mapping && this.isValidMapping(mapping)) {
-          console.log(`[MappingManager] Mapping already available for ${lang}`);
           return;
         } else {
           // 無効なマッピングの場合は削除して新しく取得
@@ -502,7 +488,6 @@ class MappingManager {
 
       // 既に取得中の場合はスキップ（重複取得防止）
       if (this.fetchingLanguages.has(lang)) {
-        console.log(`[MappingManager] Mappings for ${lang} are already being fetched, skipping duplicate request`);
         return;
       }
 
@@ -516,12 +501,6 @@ class MappingManager {
         // マッピングが有効か確認
         if (this.isValidMapping(dynamicMapping)) {
           this.dynamicMappings.set(lang, dynamicMapping);
-          console.log(
-            `[MappingManager] Loaded dynamic mappings for ${lang} from storage (ensureMappingForLanguage) ` +
-            `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-            `monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-            `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-          );
         } else {
           // 無効なマッピングの場合は新しく取得
           console.warn(
@@ -534,7 +513,6 @@ class MappingManager {
         }
       } else {
         // キャッシュがなければ同期的に取得
-        console.log(`[MappingManager] Mapping not found for ${lang}, fetching now...`);
         await this.fetchAndStoreMappings(lang);
       }
     } catch (error) {
@@ -566,7 +544,6 @@ export async function initializeMappingManager(): Promise<void> {
 
       if (appSettings?.language && appSettings.language !== 'auto') {
         const configLanguage = appSettings.language;
-        console.log(`[MappingManager] Ensuring mapping for configured language: ${configLanguage}`);
         await mappingManager.ensureMappingForLanguage(configLanguage);
       }
     } catch (error) {
