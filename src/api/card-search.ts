@@ -1376,7 +1376,7 @@ function parsePackInfo(doc: Document): PackInfo[] {
     const name = packNameElem?.textContent?.trim() || '';
 
     // パックIDを取得
-    const linkValueInput = rowElement.querySelector('input.link_value') as HTMLInputElement;
+    const linkValueInput = safeQueryAs('input.link_value', isHTMLInputElement, rowElement);
     let packId: string | undefined;
     if (linkValueInput?.value) {
       const pidMatch = linkValueInput.value.match(/pid=(\d+)/);
