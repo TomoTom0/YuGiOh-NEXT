@@ -20,6 +20,8 @@ import {
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/type-guards';
+import { safeQuery } from '@/utils/safe-dom-query';
 import {
   ATTRIBUTE_ID_TO_PATH,
   SPELL_EFFECT_TYPE_ID_TO_PATH,
@@ -872,7 +874,7 @@ export function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid
 
   // カードID（必須）
   // input.link_value の値から cid= を抽出
-  const linkValueInput = row.querySelector('input.link_value') as HTMLInputElement;
+  const linkValueInput = safeQueryAs('input.link_value', isHTMLInputElement, row);
   if (!linkValueInput?.value) {
     return null;
   }
@@ -1006,7 +1008,7 @@ function isMonsterExtraDeckCard(types: MonsterType[]): boolean {
 function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null {
   let extractedLinkValue: string | null = null;
   // 属性取得（必須）
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src) {
     console.error('[parseMonsterCard] Attribute image not found for card:', base.name);
     return null;
@@ -1050,7 +1052,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
     }
 
     // アイコンからも種別を判定（二重チェック）
-    const levelImg = levelRankElem.querySelector('img') as HTMLImageElement;
+    const levelImg = safeQueryAs('img', isHTMLImageElement, levelRankElem);
     if (levelImg?.src) {
       if (levelImg.src.includes('icon_rank.png')) {
         levelType = 'rank';
@@ -1094,7 +1096,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
 
     // リンクマーカー方向情報を画像パスから取得
     // 例: "external/image/parts/link_pc/link13.png" → "13" (方向1と3)
-    const linkImg = linkMarkerElem.querySelector('img') as HTMLImageElement;
+    const linkImg = safeQueryAs('img', isHTMLImageElement, linkMarkerElem);
     if (linkImg?.src) {
       const linkMatch = linkImg.src.match(/link(\d+)\.png/);
       if (linkMatch && linkMatch[1]) {
@@ -1202,18 +1204,18 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
  */
 function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   // 魔法であることを確認
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_spell')) {
     console.error('[parseSpellCard] Attribute is not spell for card:', base.name, 'src:', attrImg?.src);
     return null;
   }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
-  const effectElem = row.querySelector('.box_card_effect');
+  const effectElem = safeQuery('.box_card_effect', row);
   let effectType: SpellEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    const effectImg = safeQueryAs('img', isHTMLImageElement, effectElem);
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
@@ -1249,18 +1251,18 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
  */
 function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   // 罠であることを確認
-  const attrImg = row.querySelector('.box_card_attribute img') as HTMLImageElement;
+  const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_trap')) {
     console.error('[parseTrapCard] Attribute is not trap for card:', base.name, 'src:', attrImg?.src);
     return null;
   }
 
   // 効果種類取得（box_card_effectのimg要素から判定）
-  const effectElem = row.querySelector('.box_card_effect');
+  const effectElem = safeQuery('.box_card_effect', row);
   let effectType: TrapEffectType | undefined = undefined;
 
   if (effectElem) {
-    const effectImg = effectElem.querySelector('img') as HTMLImageElement;
+    const effectImg = safeQueryAs('img', isHTMLImageElement, effectElem);
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
@@ -1491,7 +1493,7 @@ function parseCardDetailBasicInfo(doc: Document, cardId: string): CardInfo | nul
   };
 
   // カードタイプを判定（属性アイコンがあればモンスター、なければ魔法・罠）
-  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+  const attrImg = safeQueryAs('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]', isHTMLImageElement, doc);
 
   if (attrImg) {
     // モンスターカード
@@ -1554,7 +1556,7 @@ function parseSpellTrapDetailBasicInfo(doc: Document, base: CardBase): CardInfo 
 
 function parseMonsterDetailBasicInfo(doc: Document, base: CardBase): MonsterCard | null {
   // 属性を取得
-  const attrImg = doc.querySelector('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]') as HTMLImageElement;
+  const attrImg = safeQueryAs('.CardText .frame .item_box .item_box_title img[src*="attribute_icon"]', isHTMLImageElement, doc);
   if (!attrImg || !attrImg.src) {
     console.error('[parseMonsterDetailBasicInfo] Attribute not found');
     return null;
