@@ -13,6 +13,11 @@ import {
 } from './shuffleCards';
 import { initSortfixForCards } from './sortfixCards';
 
+// 重複実行防止フラグと再試行管理
+let isAttachingListeners = false;
+let attachRetryCount = 0;
+const MAX_ATTACH_RETRIES = 50; // 最大再試行回数（100ms * 50 = 5秒）
+
 /**
  * シャッフル機能を初期化
  */
@@ -36,14 +41,35 @@ export function initShuffle(): void {
  * イベントリスナーを登録
  */
 function attachEventListeners(): void {
+  // 重複実行を防ぐ
+  if (isAttachingListeners) {
+    console.debug('[Shuffle] attachEventListeners is already in progress, skipping');
+    return;
+  }
+
   // メインデッキ
   const shuffleBtnMain = document.getElementById('ygo-shuffle-btn-main');
   const sortBtnMain = document.getElementById('ygo-sort-btn-main');
 
   if (!shuffleBtnMain || !sortBtnMain) {
+    // 最大再試行回数を超えた場合はエラーをログして終了
+    if (attachRetryCount >= MAX_ATTACH_RETRIES) {
+      console.error('[Shuffle] Failed to attach event listeners after', MAX_ATTACH_RETRIES, 'retries. Main shuffle buttons not found.');
+      isAttachingListeners = false;
+      attachRetryCount = 0;
+      return;
+    }
+
+    // 再試行
+    attachRetryCount++;
+    isAttachingListeners = false; // 再試行前に フラグをリセット
     setTimeout(attachEventListeners, 100);
     return;
   }
+
+  // ボタンが見つかった場合、フラグとカウンタをリセット
+  isAttachingListeners = true;
+  attachRetryCount = 0;
 
   // メインデッキのシャッフルボタン
   shuffleBtnMain.addEventListener('click', () => {
@@ -82,6 +108,10 @@ function attachEventListeners(): void {
       sortCardsSide();
     });
   }
+
+  // 完了時にフラグをリセット
+  isAttachingListeners = false;
+  console.debug('[Shuffle] Event listeners attached successfully');
 }
 
 // 再エクスポート
