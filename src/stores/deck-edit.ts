@@ -412,12 +412,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // 追加の逆操作は削除
         // 追加されたカードのuuidを見つけて削除
         const sectionOrder = displayOrder.value[section];
-        const addedIndex = sectionOrder.findIndex(dc => 
+        const addedIndex = sectionOrder.findIndex(dc =>
           dc.cid === card.cardId && dc.ciid === parseInt(String(card.ciid), 10)
         );
         if (addedIndex !== -1) {
-          const uuid = sectionOrder[addedIndex].uuid;
-          removeFromDisplayOrderInternal(card.cardId, section, uuid);
+          const displayCard = sectionOrder[addedIndex];
+          if (displayCard) {
+            removeFromDisplayOrderInternal(card.cardId, section, displayCard.uuid);
+          }
         }
       }
     };
@@ -438,7 +440,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
 
     // 元の位置を記録（undo用）
-    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1].uuid : null;
+    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid ?? null : null;
     
     const movedCards = sectionOrder.splice(sourceIndex, 1);
     if (movedCards.length === 0) return { success: false, error: 'カードが見つかりません' };
@@ -466,7 +468,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const sectionOrder = displayOrder.value[section];
     const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
     if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
-    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1].uuid : null;
+    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid ?? null : null;
     
     const result = reorderWithinSectionInternal(section, sourceUuid, targetUuid);
     
@@ -530,7 +532,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     
     let removedCiid: number | undefined;
     if (removeIndex !== -1) {
-      removedCiid = sectionOrder[removeIndex].ciid;
+      const removedCard = sectionOrder[removeIndex];
+      if (removedCard) {
+        removedCiid = removedCard.ciid;
+      }
       sectionOrder.splice(removeIndex, 1);
       // ciidは変更しない（画像IDは保持）
     }
@@ -817,7 +822,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         const validCiids = unifiedDB.getValidCiidsForLang(cardId, lang);
 
         // validCiidsが存在する場合、ciidが含まれているかチェック
-        if (validCiids.length > 0 && !validCiids.includes(String(movingCard.ciid))) {
+        const currentCiid = movingCard?.ciid;
+        if (validCiids.length > 0 && currentCiid !== undefined && !validCiids.includes(String(currentCiid))) {
           // 無効なciid - 移動を拒否
           limitErrorCardId.value = cardId;
           setTimeout(() => {
@@ -1685,7 +1691,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (!canUndo.value) return;
 
     const command = commandHistory.value[commandIndex.value];
-    command.undo();
+    if (command) {
+      command.undo();
+    }
     commandIndex.value--;
   }
 
@@ -1694,7 +1702,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     commandIndex.value++;
     const command = commandHistory.value[commandIndex.value];
-    command.execute();
+    if (command) {
+      command.execute();
+    }
   }
 
   async function createNewDeck() {

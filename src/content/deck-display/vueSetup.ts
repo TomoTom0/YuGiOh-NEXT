@@ -137,12 +137,12 @@ async function setupCardImageHoverUI(): Promise<void> {
           const href = link.getAttribute('href') || ''
           const cardIdMatch = href.match(/[?&]cid=(\d+)/)
 
-          if (cardIdMatch) {
+          if (cardIdMatch && cardIdMatch[1]) {
             const cardId = parseInt(cardIdMatch[1], 10)
 
             try {
               // カード詳細を取得
-              const result = await getCardDetailWithCache(cardId.toString())
+              const result = await (getCardDetailWithCache as (cid: string) => Promise<any>)(cardId.toString())
 
               // カード詳細を表示
               if (result?.detail?.card) {

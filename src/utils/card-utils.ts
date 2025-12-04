@@ -40,7 +40,7 @@ export function getCardInfo(cid: string): CardInfo | null {
  */
 export function getCardInfoLegacy(
   cid: string,
-  ciid: number | string,
+  _ciid: number | string,
   _deckData: DeckData
 ): CardInfo | null {
   return getCardInfo(cid)

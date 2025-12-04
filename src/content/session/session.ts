@@ -65,7 +65,7 @@ class SessionManager {
    * @param request_locale リクエストロケール（例: 'request_locale=ja'）
    * @returns ytkn、取得失敗時はnull
    */
-  private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
+  private async fetchYtkn(cgid: string, dno: number, _request_locale: string): Promise<string | null> {
     // 共通util関数を使用（buildApiUrl経由で自動で request_locale が付与される）
     const { detectCardGameType } = await import('@/utils/page-detector');
     const gameType = detectCardGameType();

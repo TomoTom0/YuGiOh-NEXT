@@ -311,13 +311,13 @@ function attachCardClickHandlers(): void {
         // img IDの形式: card_image_<index>_<ciid>
         const imgId = img.getAttribute('id') || '';
         const idMatch = imgId.match(/card_image_\d+_(\d+)/);
-        const ciid = idMatch ? idMatch[1] : undefined;
+        const ciid: string | undefined = idMatch?.[1];
 
         // img のsrcからcidを抽出
         const src = img.getAttribute('src') || '';
         const cidMatch = src.match(/cid=(\d+)/);
-        if (cidMatch) {
-          const cid = cidMatch[1];
+        if (cidMatch && cidMatch[1]) {
+          const cid: string = cidMatch[1];
 
           // パースされたデッキ情報からカード情報を検索
           let cardInfo = findCardInParsedDeck(cid);
@@ -325,7 +325,7 @@ function attachCardClickHandlers(): void {
             // 抽出したciidでカード情報を更新
             cardInfo = {
               ...cardInfo,
-              ciid
+              ciid: ciid as string
             };
           }
 
