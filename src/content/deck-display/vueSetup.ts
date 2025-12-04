@@ -52,6 +52,45 @@ export async function setupVueApp(): Promise<void> {
 }
 
 
+// イベントリスナーを管理するための WeakMap（メモリリーク防止）
+const cardLinkHandlers = new WeakMap<Element, {
+  mousemoveHandler: (e: MouseEvent) => void
+  mouseleaveHandler: () => void
+  clickHandler: (e: MouseEvent) => void
+}>()
+
+/**
+ * カード画像のホバー UI をクリーンアップ（イベントリスナー削除）
+ */
+function cleanupCardImageHoverUI(): void {
+  const cardLinks = document.querySelectorAll('#main > div.image_set > a, #side > div.image_set > a')
+
+  cardLinks.forEach(link => {
+    if (link.hasAttribute('data-hover-handler-added')) {
+      const handlers = cardLinkHandlers.get(link)
+      if (handlers) {
+        link.removeEventListener('mousemove', handlers.mousemoveHandler as EventListener)
+        link.removeEventListener('mouseleave', handlers.mouseleaveHandler as EventListener)
+        link.removeEventListener('click', handlers.clickHandler as EventListener)
+
+        // ホバーオーバーレイを削除
+        const overlay = link.querySelector('.ygo-next-card-hover-overlay')
+        if (overlay) {
+          overlay.remove()
+        }
+
+        // 属性を削除（次回セットアップ時に再追加されるようにする）
+        link.removeAttribute('data-hover-handler-added')
+
+        // WeakMap から削除
+        cardLinkHandlers.delete(link)
+
+        console.debug('[DeckDisplay] Cleaned up hover UI for card link')
+      }
+    }
+  })
+}
+
 /**
  * カード画像のホバー UI を設定（info ボタンを表示）
  */
@@ -99,10 +138,10 @@ async function setupCardImageHoverUI(): Promise<void> {
       if (!img) return
 
       // マウスムーブイベント（位置判定）
-      link.addEventListener('mousemove', (e) => {
+      const mousemoveHandler = (e: MouseEvent) => {
         const imgRect = img.getBoundingClientRect()
-        const x = (e as MouseEvent).clientX - imgRect.left
-        const y = (e as MouseEvent).clientY - imgRect.top
+        const x = e.clientX - imgRect.left
+        const y = e.clientY - imgRect.top
 
         // 左上四分の一をチェック（左半分かつ上半分）
         const isLeftTop = x < imgRect.width / 2 && y < imgRect.height / 2
@@ -113,18 +152,18 @@ async function setupCardImageHoverUI(): Promise<void> {
         } else {
           htmlLink.classList.remove('ygo-next-cursor-in-area')
         }
-      })
+      }
 
       // マウスリーブイベント
-      link.addEventListener('mouseleave', () => {
+      const mouseleaveHandler = () => {
         htmlLink.classList.remove('ygo-next-hover-overlay-active', 'ygo-next-cursor-in-area')
-      })
+      }
 
       // リンク要素全体のクリックハンドラ（左上1/4での処理）
-      link.addEventListener('click', async (e) => {
+      const clickHandler = async (e: MouseEvent) => {
         const imgRect = img.getBoundingClientRect()
-        const x = (e as MouseEvent).clientX - imgRect.left
-        const y = (e as MouseEvent).clientY - imgRect.top
+        const x = e.clientX - imgRect.left
+        const y = e.clientY - imgRect.top
 
         // 左上1/4の領域かチェック（左半分かつ上半分）
         const isLeftTop = x < imgRect.width / 2 && y < imgRect.height / 2
@@ -157,7 +196,22 @@ async function setupCardImageHoverUI(): Promise<void> {
             console.warn('[DeckDisplay] No card ID found in href')
           }
         }
-      }, true)
+      }
+
+      // イベントリスナーを追加
+      link.addEventListener('mousemove', mousemoveHandler as EventListener)
+      link.addEventListener('mouseleave', mouseleaveHandler as EventListener)
+      link.addEventListener('click', clickHandler as unknown as EventListener, true)
+
+      // handlers を WeakMap に保存（cleanup 時に削除できるようにする）
+      cardLinkHandlers.set(link, {
+        mousemoveHandler,
+        mouseleaveHandler,
+        clickHandler
+      })
     }
   })
 }
+
+// cleanup 関数を export して、Vue アンマウント時に呼び出す
+export { cleanupCardImageHoverUI }
