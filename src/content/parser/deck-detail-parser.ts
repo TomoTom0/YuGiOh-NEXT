@@ -70,9 +70,7 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // **重要**: マッピング情報を確保してからカード解析を実行
   // ページの言語を検出して、その言語のマッピングをロード
   const lang = detectLanguage(doc);
-  console.log(`[parseDeckDetail] Ensuring mappings for language: ${lang}`);
   await mappingManager.ensureMappingForLanguage(lang);
-  console.log(`[parseDeckDetail] Mappings ensured, proceeding with card parsing`);
 
   // デッキ番号をURLから取得
   const dno = extractDnoFromPage(doc);
