@@ -43,6 +43,23 @@ import { buildApiUrl } from '@/utils/url-builder';
 import { queuedFetch } from '@/utils/request-queue';
 
 // ============================================================================
+// 逆引きマップの事前生成（パフォーマンス最適化）
+// ============================================================================
+// モジュール ロード時に一度だけ生成して、パース時の O(1) ルックアップを実現
+
+const ATTRIBUTE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(ATTRIBUTE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, Attribute>;
+
+const SPELL_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(SPELL_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, SpellEffectType>;
+
+const TRAP_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
+  Object.entries(TRAP_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
+) as Record<string, TrapEffectType>;
+
+// ============================================================================
 // APIパラメータ値マッピング関数
 // ============================================================================
 // 注: 実際の値は @/types/card-maps の *_ID_TO_INT マッピングで定義
@@ -1022,14 +1039,8 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
   }
   const attrPath = attrMatch[1];
 
-  // パス → 識別子に変換（逆引き）
-  let attribute: Attribute | null = null;
-  for (const [attr, path] of Object.entries(ATTRIBUTE_ID_TO_PATH)) {
-    if (path === attrPath) {
-      attribute = attr as Attribute;
-      break;
-    }
-  }
+  // パス → 識別子に変換（逆引きマップで O(1) ルックアップ）
+  const attribute = ATTRIBUTE_PATH_TO_ID[attrPath];
   if (!attribute) {
     console.error('[parseMonsterCard] Unknown attribute path:', attrPath, 'for card:', base.name);
     return null;
@@ -1219,13 +1230,8 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        // パス → 識別子に変換（逆引き）
-        for (const [type, path] of Object.entries(SPELL_EFFECT_TYPE_ID_TO_PATH)) {
-          if (path === match[1]) {
-            effectType = type as SpellEffectType;
-            break;
-          }
-        }
+        // パス → 識別子に変換（O(1) 逆引き）
+        effectType = SPELL_EFFECT_TYPE_PATH_TO_ID[match[1]];
       }
     }
   }
@@ -1266,13 +1272,8 @@ function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
     if (effectImg?.src) {
       const match = effectImg.src.match(/effect_icon_([^.]+)\.png/);
       if (match && match[1]) {
-        // パス → 識別子に変換（逆引き）
-        for (const [type, path] of Object.entries(TRAP_EFFECT_TYPE_ID_TO_PATH)) {
-          if (path === match[1]) {
-            effectType = type as TrapEffectType;
-            break;
-          }
-        }
+        // パス → 識別子に変換（O(1) 逆引き）
+        effectType = TRAP_EFFECT_TYPE_PATH_TO_ID[match[1]];
       }
     }
   }
