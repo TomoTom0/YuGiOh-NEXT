@@ -301,16 +301,6 @@ export default {
       return urlParams.get('dno') || ''
     }
 
-    const getCopyFromDno = () => {
-      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      return urlParams.get('copy-from-dno') || ''
-    }
-
-    const getCopyFromCgid = () => {
-      const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-      return urlParams.get('copy-from-cgid') || ''
-    }
-
     // 現在のdnoを追跡
     const currentDno = ref(getCurrentDno())
 
