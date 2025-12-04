@@ -13,6 +13,7 @@ import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
 import { getTempCardDB } from '@/utils/temp-card-db'
 import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
+import { escapeHtml } from '@/utils/safe-html-renderer'
 
 interface SelectedCard {
   cardId?: number;
@@ -142,22 +143,26 @@ function renderFAQContent(faqData: CardFAQList): string {
 
   // 補足情報を表示（テキスト用）
   if (faqData.supplementInfo) {
+    const escapedInfo = escapeHtml(faqData.supplementInfo).replace(/\n/g, '<br>');
+    const dateHtml = faqData.supplementDate ? `<div class="ygo-next supplement-date">${escapeHtml(faqData.supplementDate)}</div>` : '';
     html += `
       <div class="ygo-next supplement-section">
         <div class="ygo-next supplement-title">テキスト補足情報</div>
-        <div class="ygo-next supplement-text">${faqData.supplementInfo.replace(/\n/g, '<br>')}</div>
-        ${faqData.supplementDate ? `<div class="ygo-next supplement-date">${faqData.supplementDate}</div>` : ''}
+        <div class="ygo-next supplement-text">${escapedInfo}</div>
+        ${dateHtml}
       </div>
     `;
   }
 
   // ペンデュラム補足情報を表示
   if (faqData.pendulumSupplementInfo) {
+    const escapedInfo = escapeHtml(faqData.pendulumSupplementInfo).replace(/\n/g, '<br>');
+    const dateHtml = faqData.pendulumSupplementDate ? `<div class="ygo-next supplement-date">${escapeHtml(faqData.pendulumSupplementDate)}</div>` : '';
     html += `
       <div class="ygo-next supplement-section">
         <div class="ygo-next supplement-title">ペンデュラム補足情報</div>
-        <div class="ygo-next supplement-text">${faqData.pendulumSupplementInfo.replace(/\n/g, '<br>')}</div>
-        ${faqData.pendulumSupplementDate ? `<div class="ygo-next supplement-date">${faqData.pendulumSupplementDate}</div>` : ''}
+        <div class="ygo-next supplement-text">${escapedInfo}</div>
+        ${dateHtml}
       </div>
     `;
   }
@@ -166,10 +171,13 @@ function renderFAQContent(faqData: CardFAQList): string {
   if (faqData.faqs.length > 0) {
     html += '<div class="ygo-next faq-list-section"><div class="ygo-next supplement-title">関連Q&A</div>';
     faqData.faqs.forEach(faq => {
+      const escapedQuestion = escapeHtml(faq.question);
+      const escapedId = escapeHtml(faq.faqId);
+      const updatedHtml = faq.updatedAt ? `<div class="ygo-next faq-updated">更新日: ${escapeHtml(faq.updatedAt)}</div>` : '';
       html += `
-        <div class="ygo-next faq-item" data-faq-id="${faq.faqId}">
-          <div class="ygo-next faq-question">${faq.question}</div>
-          ${faq.updatedAt ? `<div class="ygo-next faq-updated">更新日: ${faq.updatedAt}</div>` : ''}
+        <div class="ygo-next faq-item" data-faq-id="${escapedId}">
+          <div class="ygo-next faq-question">${escapedQuestion}</div>
+          ${updatedHtml}
         </div>
       `;
     });
