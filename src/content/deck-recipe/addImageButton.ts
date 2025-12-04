@@ -38,7 +38,7 @@ export function addDeckImageButton(): HTMLElement | null {
   // ボタンを作成（アイコンのみ、グラデーション）
   const button = document.createElement('a');
   button.id = 'ygo-deck-image-btn';
-  button.className = 'btn hex ytomo-neuron-btn';
+  button.className = 'ygo-next btn hex ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
   button.title = 'デッキ画像作成';
@@ -94,7 +94,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // ボタンを作成
   const button = document.createElement('a');
   button.id = buttonId;
-  button.className = 'btn hex orn ytomo-neuron-btn';
+  button.className = 'ygo-next btn hex orn ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
 
