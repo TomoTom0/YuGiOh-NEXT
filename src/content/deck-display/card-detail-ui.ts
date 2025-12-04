@@ -361,6 +361,11 @@ async function selectCard(cardInfo: any): Promise<void> {
     const { getCardDetailWithCache } = await import('../../api/card-search');
     const result = await getCardDetailWithCache(cardIdStr);
 
+    // エラーにより不完全な情報の場合は警告
+    if (result?.isPartialFromError) {
+      console.warn('[CardDetailUI] Card info may be incomplete due to API error for cardId:', cardIdStr);
+    }
+
     const fullCard = result?.detail?.card || cardInfo;
 
     // デッキ情報とマージしたカード情報を設定

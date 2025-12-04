@@ -1870,7 +1870,12 @@ export async function getCardDetail(
 
     // FAQからのアクセスでキャッシュにない場合のみ、詳細ページから基本情報をパース
     // 同時にカード名検索を並行実行して完全な情報を取得
-    let searchPromise: Promise<CardInfo[]> | null = null;
+    interface SearchPromiseResult {
+      success: boolean;
+      data: CardInfo[];
+      error?: Error;
+    }
+    let searchPromise: Promise<SearchPromiseResult> | null = null;
 
     if (fromFAQ && !baseCard) {
       const parsed = parseCardDetailBasicInfo(doc, cardId);
@@ -1882,9 +1887,14 @@ export async function getCardDetail(
 
       // カード名で検索（並行実行）- 完全な情報（リンクマーカー、ペンデュラム等）を取得
       searchPromise = searchCards({ keyword: parsed.name })
+        .then(results => {
+          return { success: true, data: results };
+        })
         .catch(err => {
-          console.warn('[getCardDetail] Card name search failed:', err);
-          return [];
+          // エラーを明示的に記録（エラーフラグを返す）
+          const error = err instanceof Error ? err : new Error(String(err));
+          console.error('[getCardDetail] Card name search failed for cardId:', cardId, 'name:', parsed.name, error);
+          return { success: false, data: [], error };
         });
     }
 
@@ -1926,22 +1936,30 @@ export async function getCardDetail(
     const qaList = faqList?.faqs || [];
 
     // 並行検索が実行されている場合、結果を待ってマージ
+    let searchHadError = false;
     if (searchPromise) {
-      const searchResults = await searchPromise;
-      const fullCard = searchResults.find(c => c.cardId === cardId);
-      
-      if (fullCard) {
-        // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
-        baseCard = {
-          ...fullCard,
-          text: textData?.text || fullCard.text
-        };
-        
-        if (baseCard.cardType === 'monster' && textData?.pendulumText) {
-          (baseCard as MonsterCard).pendulumText = textData.pendulumText;
-        }
+      const searchResult = await searchPromise;
+
+      if (!searchResult.success) {
+        // エラーが発生した場合は parsed な情報を使用することを明示
+        console.warn('[getCardDetail] Using fallback parsed info due to search failure for cardId:', cardId, 'error:', searchResult.error?.message);
+        searchHadError = true;
       } else {
-        console.warn('[getCardDetail] Card not found in search results, using parsed info');
+        const fullCard = searchResult.data.find(c => c.cardId === cardId);
+
+        if (fullCard) {
+          // 検索結果の完全な情報で上書き（text/pendulumTextは詳細ページを優先）
+          baseCard = {
+            ...fullCard,
+            text: textData?.text || fullCard.text
+          };
+
+          if (baseCard.cardType === 'monster' && textData?.pendulumText) {
+            (baseCard as MonsterCard).pendulumText = textData.pendulumText;
+          }
+        } else {
+          console.warn('[getCardDetail] Card not found in search results, using parsed info');
+        }
       }
     }
 
@@ -1964,7 +1982,8 @@ export async function getCardDetail(
       packs,
       relatedCards,
       qaList,
-      fetchMorePromise
+      fetchMorePromise,
+      isPartialFromError: searchHadError ? true : undefined
     };
   } catch (error) {
     console.error('Failed to get card detail:', error);
@@ -1986,6 +2005,8 @@ export interface CardDetailCacheResult {
   fetchedAt: number;
   /** バックグラウンド更新のPromise（autoRefresh=trueかつisFresh=falseの場合のみ存在） */
   refreshPromise?: Promise<CardDetail | null>;
+  /** エラーにより不完全な情報である可能性（FAQ検索失敗時等）*/
+  isPartialFromError?: boolean;
 }
 
 /**
@@ -2090,7 +2111,8 @@ export async function getCardDetailWithCache(
     detail,
     fromCache: false,
     isFresh: true,
-    fetchedAt: Date.now()
+    fetchedAt: Date.now(),
+    isPartialFromError: detail?.isPartialFromError
   };
 }
 
