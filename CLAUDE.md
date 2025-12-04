@@ -9,6 +9,7 @@
    - UUID は `crypto.randomUUID()` を使用
    - `any` 型禁止、型ガードを使用
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
+   - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
    - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
 4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
@@ -364,3 +365,149 @@ button.style.background = '#4CAF50'; // NG
 - 独自画面要素と公式サイトの要素が混在するため、セレクタの特異性を明確に区分する必要がある
 - `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
 - SCSS の nest を使用することで、構造を明確に保つ
+
+---
+
+## querySelector 安全性パターン
+
+### 概要
+
+`querySelector` は null を返す可能性があるため、必ず null チェックを行う必要があります。本プロジェクトでは、安全で一貫性のあるパターンを提供しています。
+
+### 推奨パターン
+
+#### 1. シンプルな場合（単一の操作）
+
+直接 null チェックを行う：
+
+```typescript
+// 良い例：null チェック後に操作
+const elem = document.querySelector('#myElement');
+if (elem) {
+  elem.textContent = 'Hello';
+}
+
+// または Optional chaining を使用
+document.querySelector('#myElement')?.addEventListener('click', () => {
+  // ...
+});
+```
+
+#### 2. 複数の操作が必要な場合
+
+`src/utils/safe-dom-query.ts` の安全なユーティリティを使用：
+
+```typescript
+import { safeQuery, safeQueryAndRun, safeGetAttribute, safeAddClass } from '@/utils/safe-dom-query';
+
+// 単純な検索と操作
+const elem = safeQuery('#myElement');
+if (elem) {
+  elem.textContent = 'Updated';
+}
+
+// コールバック付き安全実行
+safeQueryAndRun('#myButton', (button) => {
+  button.addEventListener('click', () => {
+    console.log('Clicked');
+  });
+});
+
+// 属性値を安全に取得
+const href = safeGetAttribute('#myLink', 'href');
+if (href) {
+  window.location.href = href;
+}
+
+// クラスを安全に追加
+safeAddClass('#element', 'active');
+
+// 複数要素の検索
+const items = safeQueryAll('.item');
+items.forEach(item => {
+  // 処理
+});
+```
+
+### ユーティリティ関数一覧
+
+| 関数 | 用途 | 戻り値 |
+|------|------|--------|
+| `safeQuery` | 単一要素を検索 | `Element \| null` |
+| `safeQueryWithWarn` | 単一要素を検索（見つからない場合は警告） | `Element \| null` |
+| `safeQueryAll` | 複数要素を検索 | `Element[]` |
+| `safeQueryAndRun` | 要素を検索してコールバック実行 | `void` |
+| `safeGetAttribute` | 属性値を取得 | `string \| null` |
+| `safeGetText` | テキスト内容を取得 | `string \| null` |
+| `safeSetHTML` | HTML を設定 | `boolean` |
+| `safeSetAttribute` | 属性を設定 | `boolean` |
+| `safeAddClass` | クラスを追加 | `boolean` |
+| `safeRemoveClass` | クラスを削除 | `boolean` |
+| `safeAddEventListener` | イベントリスナーを追加 | `boolean` |
+
+### パターン別ガイド
+
+#### DOMの存在チェック
+
+```typescript
+// 良い例
+const elem = safeQuery('#element');
+if (!elem) {
+  console.warn('Element not found');
+  return;
+}
+// 以降、elem は安全に使用可能
+```
+
+#### querySelector のチェーン操作
+
+```typescript
+// 避けるべき：クラッシュの可能性がある
+const img = document.querySelector('#parent')?.querySelector('img');
+
+// 推奨：明示的に null チェック
+const parent = safeQuery('#parent');
+const img = parent?.querySelector('img');
+```
+
+#### querySelectorAll の安全な処理
+
+```typescript
+// 推奨：safeQueryAll を使用
+const items = safeQueryAll('.item');
+items.forEach(item => {
+  item.textContent = 'Updated';
+});
+
+// 代替案：null チェック付き
+const itemList = document.querySelectorAll('.item');
+if (itemList.length > 0) {
+  itemList.forEach(item => {
+    // 処理
+  });
+}
+```
+
+### テスト
+
+`safe-dom-query.ts` の全ユーティリティ関数は 32 個のテストでカバーされています。
+
+```bash
+bun run test:vitest src/utils/__tests__/safe-dom-query.test.ts
+```
+
+### デバッグ時のコツ
+
+null チェックの失敗を調査する場合：
+
+```typescript
+// セレクタが正しいか確認
+const elem = safeQueryWithWarn('#myElement', 'Custom error message');
+
+// HTMLを確認
+console.log(document.body.innerHTML);
+
+// セレクタの構文を確認
+const valid = document.querySelector('valid-selector');
+const complex = document.querySelector('parent > child.class[attr]');
+```
