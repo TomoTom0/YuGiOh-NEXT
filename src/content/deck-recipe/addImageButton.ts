@@ -21,14 +21,14 @@ const CAMERA_ICON = `
  * NEXTコピー編集ボタンのスタイルシート
  */
 const COPY_BUTTON_STYLES = `
-.ygo-copy-loading {
+#ygo-next-edit-btn.ygo-copy-loading {
   position: relative;
   transition: background-color 0.3s ease;
   pointer-events: none;
   opacity: 0.9;
 }
 
-.ygo-copy-loading::before {
+#ygo-next-edit-btn.ygo-copy-loading::before {
   content: '';
   display: inline-block;
   width: 12px;
@@ -40,20 +40,22 @@ const COPY_BUTTON_STYLES = `
   vertical-align: middle;
 }
 
-.ygo-copy-generating {
+#ygo-next-edit-btn.ygo-copy-generating {
   background-color: #4CAF50 !important;
+  border-color: #4CAF50 !important;
 }
 
-.ygo-copy-generating::before {
+#ygo-next-edit-btn.ygo-copy-generating::before {
   border-top-color: rgba(255, 255, 255, 0.8);
   border-right-color: rgba(255, 255, 255, 0.8);
 }
 
-.ygo-copy-copying {
+#ygo-next-edit-btn.ygo-copy-copying {
   background-color: #FF9800 !important;
+  border-color: #FF9800 !important;
 }
 
-.ygo-copy-copying::before {
+#ygo-next-edit-btn.ygo-copy-copying::before {
   border-top-color: rgba(255, 255, 255, 0.8);
   border-right-color: rgba(255, 255, 255, 0.8);
 }
@@ -62,13 +64,13 @@ const COPY_BUTTON_STYLES = `
   to { transform: rotate(360deg); }
 }
 
-.ygo-copy-generating span {
-  color: white;
+#ygo-next-edit-btn.ygo-copy-generating span {
+  color: white !important;
   font-weight: bold;
 }
 
-.ygo-copy-copying span {
-  color: white;
+#ygo-next-edit-btn.ygo-copy-copying span {
+  color: white !important;
   font-weight: bold;
 }
 `;
