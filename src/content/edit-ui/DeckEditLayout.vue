@@ -360,13 +360,6 @@ export default {
           // pseudoCopyDeck 内で loadDeck() も呼ばれるため、返り値の newDno を使用して URL を更新するだけ
           const newDno = await deckStore.pseudoCopyDeck(deckStore.deckInfo)
 
-          // デッキコピー直後に最初のカードを自動選択
-          // loadDeck() が完了した後、mainDeck の最初のカードを選択
-          await nextTick()
-          if (deckStore.deckInfo.mainDeck && deckStore.deckInfo.mainDeck.length > 0) {
-            selectedCard.value = deckStore.deckInfo.mainDeck[0]
-          }
-
           // URLを更新して copy-from-cgid と copy-from-dno を削除
           window.location.hash = `/ytomo/edit?dno=${newDno}`
         } catch (error) {
