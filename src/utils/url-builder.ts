@@ -179,29 +179,26 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * Vue編集画面のURLを取得
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
- * @param locale ロケール（オプション）。指定されない場合は detectLanguage() で自動取得すること
+ * @param locale ロケール（オプション、未使用）。CHEX Vue画面では言語は別の方法で取得される
  * @param additionalParams 追加パラメータ（オプション、URLSearchParams）。copy-from-cgid, copy-from-dnoなど
  * @returns Vue編集画面URL
  *
  * 例：
  * - getVueEditUrl('ocg') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
  * - getVueEditUrl('ocg', 1) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
- * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit'
- * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&dno=1#/ytomo/edit'
- * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&copy-from-cgid=...&copy-from-dno=...#/ytomo/edit'
+ * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+ * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
+ * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?copy-from-cgid=...&copy-from-dno=...'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, _locale?: string, additionalParams?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
   const params = new URLSearchParams();
 
-  if (locale) {
-    params.append('request_locale', locale);
-  }
   if (dno) {
     params.append('dno', dno.toString());
   }
 
-  // 追加パラメータをマージ
+  // 追加パラメータをマージ（copy-from-cgid, copy-from-dnoなど）
   if (additionalParams) {
     for (const [key, value] of additionalParams.entries()) {
       params.append(key, value);
@@ -209,10 +206,12 @@ export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: str
   }
 
   const base = `${BASE_URL}/${gamePath}`;
-  const queryString = params.toString();
   const hash = '#/ytomo/edit';
+  const queryString = params.toString();
 
-  return queryString ? `${base}?${queryString}${hash}` : `${base}${hash}`;
+  // CHEXのVue画面はハッシュの後ろのクエリパラメータを解析するため、
+  // ハッシュの後ろにパラメータを配置する
+  return queryString ? `${base}${hash}?${queryString}` : `${base}${hash}`;
 }
 
 /**
