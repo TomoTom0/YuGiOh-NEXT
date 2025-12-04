@@ -118,8 +118,9 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
-        // ボタンをローディング状態にして状態表示を開始（.loading = 緑色）
-        button.classList.add('loading');
+        // ボタンをローディング状態にして状態表示を開始（緑色 #4CAF50）
+        button.style.backgroundColor = '#4CAF50';
+        button.style.pointerEvents = 'none';
         span.textContent = 'generating...';
 
         // デッキ表示ページで既にパースされた情報を使用してコピー作成
@@ -134,9 +135,8 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
             const newDno = await sessionManager.createDeck();
 
             if (newDno > 0) {
-              // 状態を copying に変更（.loading2 = オレンジ色）
-              button.classList.remove('loading');
-              button.classList.add('loading2');
+              // 状態を copying に変更（オレンジ色 #FF9800）
+              button.style.backgroundColor = '#FF9800';
               span.textContent = 'copying...';
 
               // 作成したデッキにデッキ情報を保存
@@ -160,20 +160,23 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
                 window.location.href = editUrl;
               } else {
                 // エラー時はボタンの状態をリセット
-                button.classList.remove('loading', 'loading2');
+                button.style.backgroundColor = '';
+                button.style.pointerEvents = '';
                 span.textContent = buttonText;
                 console.warn('[YGO Helper] Failed to save copied deck');
               }
             } else {
               // エラー時はボタンの状態をリセット
-              button.classList.remove('loading', 'loading2');
+              button.style.backgroundColor = '';
+              button.style.pointerEvents = '';
               span.textContent = buttonText;
               console.warn('[YGO Helper] Failed to create new deck');
             }
           }
         } catch (error) {
           // エラー時はボタンの状態をリセット
-          button.classList.remove('loading', 'loading2');
+          button.style.backgroundColor = '';
+          button.style.pointerEvents = '';
           span.textContent = buttonText;
           console.warn('[YGO Helper] Failed to copy deck:', error);
         }
