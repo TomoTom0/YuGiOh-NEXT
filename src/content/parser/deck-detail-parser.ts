@@ -9,9 +9,18 @@ import {
   DECK_TYPE_LABEL_TO_VALUE,
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
-import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
+import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
 import { getDeckMetadata } from '@/utils/deck-metadata-loader';
 import { mappingManager } from '@/utils/mapping-manager';
+
+/**
+ * parseCardSection の戻り値型
+ */
+interface ParseCardSectionResult {
+  cards: DeckCardRef[];
+  skippedCount: number;
+  skippedCards: Array<{ cid: string; name: string; lang: string }>;
+}
 
 /**
  * カテゴリラベル（日本語）をIDに変換
@@ -61,9 +70,7 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // **重要**: マッピング情報を確保してからカード解析を実行
   // ページの言語を検出して、その言語のマッピングをロード
   const lang = detectLanguage(doc);
-  console.log(`[parseDeckDetail] Ensuring mappings for language: ${lang}`);
   await mappingManager.ensureMappingForLanguage(lang);
-  console.log(`[parseDeckDetail] Mappings ensured, proceeding with card parsing`);
 
   // デッキ番号をURLから取得
   const dno = extractDnoFromPage(doc);
@@ -78,13 +85,23 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const ciidCountMap = extractCiidCounts(doc);
 
   // メインデッキのカードを抽出
-  const mainDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'main');
+  const mainDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'main');
 
   // エクストラデッキのカードを抽出
-  const extraDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'extra');
+  const extraDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'extra');
 
   // サイドデッキのカードを抽出
-  const sideDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'side');
+  const sideDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'side');
+
+  // スキップされたカード数の合計
+  const skippedCardsCount = mainDeckResult.skippedCount + extraDeckResult.skippedCount + sideDeckResult.skippedCount;
+
+  // スキップされたカード詳細情報の合計
+  const skippedCards = [
+    ...mainDeckResult.skippedCards,
+    ...extraDeckResult.skippedCards,
+    ...sideDeckResult.skippedCards
+  ];
 
   // 公開/非公開をタイトルから取得
   const isPublic = extractIsPublicFromTitle(doc);
@@ -110,9 +127,11 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   return {
     dno,
     name,
-    mainDeck,
-    extraDeck,
-    sideDeck,
+    mainDeck: mainDeckResult.cards,
+    extraDeck: extraDeckResult.cards,
+    sideDeck: sideDeckResult.cards,
+    skippedCardsCount,
+    skippedCards,
     isPublic,
     cgid,
     deckType,
@@ -297,20 +316,31 @@ export function extractCiidCounts(doc: Document): Map<string, Map<string, { coun
  * @param sectionId セクションID ('main' | 'extra' | 'side')
  * @returns デッキ内カード配列
  */
+interface ParseCardSectionResult {
+  cards: DeckCardRef[];
+  skippedCount: number;
+}
+
 export function parseCardSection(
   doc: Document,
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>,
   ciidCountMap: Map<string, Map<string, { count: number; imgHash: string }>>,
   sectionId: 'main' | 'extra' | 'side'
-): DeckCardRef[] {
+): ParseCardSectionResult {
   const deckCardRefs: DeckCardRef[] = [];
+  let skippedCount = 0;
+  const skippedCards: Array<{ cid: string; name: string; lang: string }> = [];
   const tempCardDB = getTempCardDB();
   const lang = detectLanguage(doc);
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
   const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
   if (!deckDetailtext) {
-    return deckCardRefs;
+    return {
+      cards: deckCardRefs,
+      skippedCount,
+      skippedCards
+    };
   }
 
   // セクションごとに異なる親要素を使用
@@ -325,7 +355,11 @@ export function parseCardSection(
 
   const parentElement = deckDetailtext.querySelector(parentSelector);
   if (!parentElement) {
-    return deckCardRefs;
+    return {
+      cards: deckCardRefs,
+      skippedCount,
+      skippedCards
+    };
   }
 
   // すべての.listを取得
@@ -342,22 +376,37 @@ export function parseCardSection(
       const rows = tBody.querySelectorAll('.t_row');
 
       rows.forEach((row) => {
-        // カード名を取得（エラーログ用）
-        const cardNameElem = (row as HTMLElement).querySelector('.card_info_name');
-        const cardName = cardNameElem?.textContent || 'UNKNOWN';
-
         // 未発売カード（card_back.png）のチェック
         const cardImgElem = (row as HTMLElement).querySelector('img[src*="card_back.png"]');
         if (cardImgElem) {
-          console.warn(
-            `[parseCardSection] Card "${cardName}" is not released in ${lang}, skipping this card (showing card_back.png)`
-          );
+          // parseCardBase を使って通常通りカード名とカードIDを取得
+          const baseInfo = parseCardBase(row as HTMLElement, imageInfoMap);
+
+          if (baseInfo) {
+            console.warn(
+              `[parseCardSection] Card "${baseInfo.name}" is not released in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
+
+            // スキップされたカード情報を記録
+            skippedCards.push({
+              cid: baseInfo.cardId,
+              name: baseInfo.name,
+              lang
+            });
+          } else {
+            console.warn(
+              `[parseCardSection] Failed to parse unreleased card in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
+          }
+
           return;
         }
 
         const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
         if (!cardInfo) {
-          console.error(`[parseCardSection] Failed to parse card: ${cardName} (section: ${sectionId})`);
+          console.error(`[parseCardSection] Failed to parse card (section: ${sectionId})`);
           return;
         }
 
@@ -429,7 +478,11 @@ export function parseCardSection(
     });
   });
 
-  return deckCardRefs;
+  return {
+    cards: deckCardRefs,
+    skippedCount,
+    skippedCards
+  };
 }
 
 /**

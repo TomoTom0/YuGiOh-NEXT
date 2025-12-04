@@ -38,7 +38,7 @@ export function addDeckImageButton(): HTMLElement | null {
   // ボタンを作成（アイコンのみ、グラデーション）
   const button = document.createElement('a');
   button.id = 'ygo-deck-image-btn';
-  button.className = 'btn hex ytomo-neuron-btn';
+  button.className = 'ygo-next btn hex ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
   button.title = 'デッキ画像作成';
@@ -81,9 +81,6 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const urlParams = new URLSearchParams(window.location.search);
   const dno = urlParams.get('dno');
 
-  console.log('[YGO Helper] URL:', window.location.href);
-  console.log('[YGO Helper] dno from URL:', dno);
-
   if (!dno) {
     console.warn('[YGO Helper] dno not found in URL');
     return null;
@@ -94,12 +91,10 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   const buttonText = isOwnDeckFlag ? 'NEXT編集' : 'NEXTコピー編集';
   const buttonId = 'ygo-next-edit-btn';
 
-  console.log('[YGO Helper] isOwnDeck:', isOwnDeckFlag);
-
   // ボタンを作成
   const button = document.createElement('a');
   button.id = buttonId;
-  button.className = 'btn hex orn ytomo-neuron-btn';
+  button.className = 'ygo-next btn hex orn ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
 
@@ -109,8 +104,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   button.appendChild(span);
 
   // クリックイベント
-  button.addEventListener('click', (e) => {
-    console.log('[YGO Helper] Next edit button clicked');
+  button.addEventListener('click', async (e) => {
     e.preventDefault();
 
     const gameType = detectCardGameType();
@@ -118,16 +112,71 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
     if (isOwnDeckFlag) {
       // 自分のデッキの場合：通常の編集画面を開く
-      const baseUrl = getVueEditUrl(gameType, parseInt(dno), locale);
-      window.location.href = baseUrl;
+      const editUrl = getVueEditUrl(gameType, parseInt(dno), locale);
+      window.location.href = editUrl;
     } else {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
-      console.log('[YGO Helper] deckCgid:', deckCgid);
       if (deckCgid) {
-        const baseUrl = getVueEditUrl(gameType, undefined, locale);
-        const separator = baseUrl.includes('?') ? '&' : '?';
-        window.location.href = `${baseUrl}${separator}copy-from-cgid=${deckCgid}&copy-from-dno=${dno}`;
+        // ボタンをローディング状態にして状態表示を開始（.loading = 緑色 #4CAF50）
+        button.classList.add('loading');
+        span.textContent = 'generating...';
+
+        // デッキ表示ページで既にパースされた情報を使用してコピー作成
+        try {
+          const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
+          const { sessionManager } = await import('../../content/session/session');
+
+          const parsedDeckInfo = getParsedDeckInfo();
+
+          if (parsedDeckInfo) {
+            // 新規デッキを作成
+            const newDno = await sessionManager.createDeck();
+
+            if (newDno > 0) {
+              // 状態を copying に変更（.loading2 = オレンジ色 #FF9800）
+              button.classList.remove('loading');
+              button.classList.add('loading2');
+              span.textContent = 'copying...';
+
+              // 作成したデッキにデッキ情報を保存
+              const deckDataToCopy: any = {
+                mainDeck: parsedDeckInfo.mainDeck,
+                extraDeck: parsedDeckInfo.extraDeck,
+                sideDeck: parsedDeckInfo.sideDeck,
+                category: parsedDeckInfo.category || '',
+                tags: parsedDeckInfo.tags || [],
+                comment: parsedDeckInfo.comment || '',
+                deckCode: parsedDeckInfo.deckCode || '',
+                name: parsedDeckInfo.name || parsedDeckInfo.originalName || ''
+              };
+
+              // デッキを保存
+              const saveResult = await sessionManager.saveDeck(newDno, deckDataToCopy);
+
+              if (saveResult.success) {
+                // 新しいdnoで編集画面に遷移
+                const editUrl = getVueEditUrl(gameType, newDno, locale);
+                window.location.href = editUrl;
+              } else {
+                // エラー時はボタンの状態をリセット
+                button.classList.remove('loading', 'loading2');
+                span.textContent = buttonText;
+                console.warn('[YGO Helper] Failed to save copied deck');
+              }
+            } else {
+              // エラー時はボタンの状態をリセット
+              button.classList.remove('loading', 'loading2');
+              span.textContent = buttonText;
+              console.warn('[YGO Helper] Failed to create new deck');
+            }
+          }
+        } catch (error) {
+          // エラー時はボタンの状態をリセット
+          button.classList.remove('loading', 'loading2');
+          span.textContent = buttonText;
+          console.warn('[YGO Helper] Failed to copy deck:', error);
+        }
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }
@@ -136,7 +185,6 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
   // #bottom_btn_set の右側に追加
   bottomBtnSet.appendChild(button);
-  console.log('[YGO Helper] Next edit button added');
 
   return button;
 }
@@ -155,7 +203,7 @@ export function isDeckPage(): boolean {
 export function initDeckImageButton(): void {
   // 現在のページのゲームタイプを検出
   const gameType = detectCardGameType();
-  
+
   if (isDeckDisplayPage(gameType)) {
     // DOMContentLoaded後に実行
     if (document.readyState === 'loading') {

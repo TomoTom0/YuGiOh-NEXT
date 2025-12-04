@@ -299,7 +299,9 @@ export class UnifiedCacheDB {
     // cap history to last 1000 entries
     if (this.moveHistory.length > 1000) this.moveHistory.splice(0, this.moveHistory.length - 1000);
     // persist asynchronously
-    this.saveMoveHistory().catch(() => {});
+    this.saveMoveHistory().catch(err => {
+      console.error('[UnifiedCacheDB] Failed to save move history:', err);
+    });
   }
 
   getMoveHistory(limit?: number) {
@@ -309,7 +311,9 @@ export class UnifiedCacheDB {
 
   clearMoveHistory() {
     this.moveHistory = [];
-    this.saveMoveHistory().catch(() => {});
+    this.saveMoveHistory().catch(err => {
+      console.error('[UnifiedCacheDB] Failed to clear move history:', err);
+    });
   }
 
   /**

@@ -146,11 +146,10 @@ export const ATTRIBUTE_ID_TO_NAME = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "attribute_icon_light.png" → "light" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 属性の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "attribute_icon_light.png" → "light" の部分に対応
  */
-export const ATTRIBUTE_PATH_TO_ID: Record<string, Attribute> = {
+export const ATTRIBUTE_ID_TO_PATH: Record<Attribute, string> = {
   'light': 'light',
   'dark': 'dark',
   'water': 'water',
@@ -168,42 +167,21 @@ export const ATTRIBUTE_PATH_TO_ID: Record<string, Attribute> = {
  * モンスタータイプの内部ID → 整数ID マッピング
  */
 export const MONSTER_TYPE_ID_TO_INT = {
-  'normal': 1,
-  'effect': 2,
-  'fusion': 3,
-  'ritual': 4,
-  'synchro': 5,
-  'xyz': 6,
-  'pendulum': 7,
-  'link': 8,
-  'tuner': 9,
-  'spirit': 10,
-  'union': 11,
-  'gemini': 12,
-  'flip': 13,
-  'toon': 14,
-  'special': 15,
-} as const;
-
-/**
- * HTMLのvalue属性 → 内部ID マッピング（MonsterTypeフィルタ用）
- * 検索ページの"other"フィルタのvalue値から内部IDへの逆引き
- */
-export const MONSTER_TYPE_VALUE_TO_ID = {
-  0: 'normal',      // Normal
-  1: 'effect',      // Effect
-  2: 'fusion',      // Fusion
-  3: 'ritual',      // Ritual
-  4: 'toon',        // Toon
-  5: 'spirit',      // Spirit
-  6: 'union',       // Union
-  7: 'gemini',      // Gemini
-  8: 'tuner',       // Tuner
-  9: 'synchro',     // Synchro
-  10: 'xyz',        // Xyz
-  14: 'flip',       // Flip
-  15: 'pendulum',   // Pendulum
-  17: 'link',       // Link
+  'normal': 0,
+  'effect': 1,
+  'fusion': 2,
+  'ritual': 3,
+  'toon': 4,
+  'spirit': 5,
+  'union': 6,
+  'gemini': 7,
+  'tuner': 8,
+  'synchro': 9,
+  'xyz': 10,
+  'flip': 14,
+  'pendulum': 15,
+  'special': 16,
+  'link': 17,
 } as const;
 
 export type MonsterType = keyof typeof MONSTER_TYPE_ID_TO_INT;
@@ -294,12 +272,12 @@ export const SPELL_EFFECT_TYPE_ID_TO_LABEL = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 魔法効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分に対応
  */
-export const SPELL_EFFECT_PATH_TO_ID: Record<string, SpellEffectType> = {
-  'quickplay': 'quick',
+export const SPELL_EFFECT_TYPE_ID_TO_PATH: Record<SpellEffectType, string> = {
+  'normal': 'normal',
+  'quick': 'quickplay',
   'continuous': 'continuous',
   'equip': 'equip',
   'field': 'field',
@@ -341,19 +319,38 @@ export const TRAP_EFFECT_TYPE_ID_TO_LABEL = {
 } as const;
 
 /**
- * HTMLのimgパス → 識別子への変換マップ
- * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分を取り出した後、
- * このマップで識別子に変換する
+ * 罠効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分に対応
  */
-export const TRAP_EFFECT_PATH_TO_ID: Record<string, TrapEffectType> = {
+export const TRAP_EFFECT_TYPE_ID_TO_PATH: Record<TrapEffectType, string> = {
+  'normal': 'normal',
   'continuous': 'continuous',
   'counter': 'counter',
 };
 
-
 // ============================================================================
 // カードタイプ（CardType）
 // ============================================================================
+
+/**
+ * カードタイプの内部ID → 整数ID マッピング
+ */
+export const CARD_TYPE_ID_TO_INT = {
+  'monster': 1,
+  'spell': 2,
+  'trap': 3,
+} as const;
+
+export type CardType = keyof typeof CARD_TYPE_ID_TO_INT;
+
+/**
+ * カードタイプの内部ID → 日本語表示名 マッピング
+ */
+export const CARD_TYPE_ID_TO_NAME = {
+  'monster': 'モンスター',
+  'spell': '魔法',
+  'trap': '罠',
+} as const;
 
 /**
  * カードタイプの内部ID → 日本語短名称 マッピング（チップ用超短縮形）
@@ -363,50 +360,3 @@ export const CARD_TYPE_ID_TO_SHORTNAME = {
   'spell': '魔',
   'trap': '罠'
 } as const;
-
-// ============================================================================
-// レガシーマッピング（互換性用、廃止予定）
-// ============================================================================
-
-/**
- * @deprecated 代わりに RACE_ID_TO_NAME を使用してください
- */
-export const RACE_MAP = RACE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに MONSTER_TYPE_ID_TO_NAME を使用してください
- */
-export const MONSTER_TYPE_MAP = MONSTER_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに SPELL_EFFECT_TYPE_ID_TO_NAME を使用してください
- */
-export const SPELL_EFFECT_TYPE_MAP = SPELL_EFFECT_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに TRAP_EFFECT_TYPE_ID_TO_NAME を使用してください
- */
-export const TRAP_EFFECT_TYPE_MAP = TRAP_EFFECT_TYPE_ID_TO_NAME;
-
-/**
- * @deprecated 代わりに ATTRIBUTE_ID_TO_NAME を使用してください
- */
-export const ATTRIBUTE_MAP = ATTRIBUTE_ID_TO_NAME;
-
-/**
- * @deprecated 言語別マッピングは extract-mappings.ts で動的に取得してください
- */
-export const CARD_TYPE_MAP = {
-  'monster': 'モンスター',
-  'spell': '魔法',
-  'trap': '罠',
-} as const;
-
-export type CardType = keyof typeof CARD_TYPE_MAP;
-
-/**
- * @deprecated 言語別マッピングは extract-mappings.ts で動的に取得してください
- */
-export const CARD_TYPE_TEXT_TO_ID = Object.fromEntries(
-  Object.entries(CARD_TYPE_MAP).map(([id, text]) => [text, id as CardType])
-) as Record<string, CardType>;

@@ -81,11 +81,19 @@
         <span v-else class="btn-text">{{ bottomRightText }}</span>
       </button>
     </div>
+
+    <Toast
+      :show="toast.show"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.show = false"
+    />
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
+import Toast from './Toast.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
@@ -98,6 +106,9 @@ import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
   name: 'DeckCard',
+  components: {
+    Toast
+  },
   props: {
     card: {
       type: Object,
@@ -119,12 +130,28 @@ export default {
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
-    
+    const toast = reactive({
+      show: false,
+      message: '',
+      type: 'warning'
+    })
+
+    const showToast = (message, type = 'warning') => {
+      toast.message = message
+      toast.type = type
+      toast.show = true
+    }
+
     const handleMoveResult = (result, button = null) => {
       if (!result || result.success) return true
-      
+
       console.error('[DeckCard] 移動失敗:', result.error)
-      
+
+      // ciid が無効な言語の場合、トースト通知を表示
+      if (result.error === 'invalid_ciid_for_language') {
+        showToast('この言語ではこのバリエーションは販売されていません', 'warning')
+      }
+
       if (button === 'left') {
         showErrorLeft.value = true
         setTimeout(() => { showErrorLeft.value = false }, 500)
@@ -132,7 +159,7 @@ export default {
         showErrorRight.value = true
         setTimeout(() => { showErrorRight.value = false }, 500)
       }
-      
+
       return false
     }
     
@@ -143,6 +170,7 @@ export default {
       showErrorLeft,
       showErrorRight,
       isDragOver,
+      toast,
       handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,

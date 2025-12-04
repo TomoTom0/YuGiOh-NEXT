@@ -232,13 +232,13 @@ function applyAttributeExclusion(
 
       if (requiredAttrs.length > 0) {
         // 必須属性がある場合は最初の1つを優先
-        primaryAttr = requiredAttrs[0];
+        primaryAttr = requiredAttrs[0] ?? null;
       } else {
         // すべて直接選択の場合は最初の1つを優先（ORモードの場合のみ発生）
-        primaryAttr = activeAttrs[0];
+        primaryAttr = activeAttrs[0] ?? null;
       }
     } else {
-      primaryAttr = activeAttrs[0];
+      primaryAttr = activeAttrs[0] ?? null;
     }
 
     // グループ内の他の属性を無効化（primaryAttr以外）
@@ -258,10 +258,10 @@ function applyAttributeExclusion(
       if (attrState.enabled) {
         attrState.enabled = false;
         attrState.selected = false;
-        attrState.disabledReason = `${group.title}グループ: ${primaryAttr}と排他`;
+        attrState.disabledReason = `${group.title}グループ: ${primaryAttr ?? '不明'}と排他`;
         changed = true;
 
-        if (enableTrace) {
+        if (enableTrace && primaryAttr) {
           result.trace!.push({
             step: iteration,
             action: 'attribute-exclusion',

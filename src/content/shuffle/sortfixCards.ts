@@ -2,16 +2,18 @@
  * sortfix機能（カードの先頭固定）
  */
 
+import { safeQuery, safeQueryAll } from '../../utils/safe-dom-query';
+
 /**
  * カード要素にsortfix機能を追加
  */
 export function initSortfixForCards(): void {
-  const imageSet = document.querySelector('#deck_image #main.card_set div.image_set');
+  const imageSet = safeQuery<HTMLElement>('#deck_image #main.card_set div.image_set');
   if (!imageSet) {
     return;
   }
 
-  const cardLinks = imageSet.querySelectorAll(':scope > a');
+  const cardLinks = safeQueryAll<HTMLAnchorElement>(':scope > a', imageSet);
   cardLinks.forEach((cardLink) => {
     if (cardLink.hasAttribute('data-sortfix-initialized')) {
       return;
@@ -20,7 +22,7 @@ export function initSortfixForCards(): void {
     cardLink.setAttribute('data-sortfix-initialized', 'true');
 
     // カード画像要素を取得
-    const img = cardLink.querySelector('img');
+    const img = safeQuery<HTMLImageElement>('img', cardLink);
     if (!img) {
       return;
     }
@@ -87,11 +89,11 @@ function toggleSortfix(cardLink: HTMLElement): void {
  * sortfixされたカードを取得
  */
 export function getSortfixedCards(): Element[] {
-  const imageSet = document.querySelector('#deck_image #main.card_set div.image_set');
+  const imageSet = safeQuery<HTMLElement>('#deck_image #main.card_set div.image_set');
   if (!imageSet) {
     return [];
   }
 
-  const sortfixedCards = Array.from(imageSet.querySelectorAll(':scope > a[data-sortfix]'));
+  const sortfixedCards = safeQueryAll<HTMLAnchorElement>(':scope > a[data-sortfix]', imageSet);
   return sortfixedCards;
 }

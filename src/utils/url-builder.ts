@@ -57,16 +57,19 @@ function getApiPathType(path: string): ApiPathType {
  * @param path APIパス（例: 'faq_search.action' や 'card_search.action'）
  * @param gameType カードゲームタイプ
  * @param params URLSearchParams（オプション、既存パラメータがあれば渡す）
+ * @param noLocale request_locale を絶対に付与しない場合は true（オプション、デフォルト: false）
  * @returns 完全なURL（必要に応じて request_locale を含む）
  */
-export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams): string {
+export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams, noLocale?: boolean): string {
   const gamePath = getGamePath(gameType);
   const apiPathType = getApiPathType(path);
 
   // リクエストローカルを付与しないケース：
+  // - noLocale フラグが true の場合（呼び出し側で明示的に指定）
   // - デッキ新規作成（member_deck_new）
   // - デッキリスト取得（deck_search）
   const shouldAddLocale =
+    !noLocale &&
     apiPathType !== 'member_deck_new' &&
     apiPathType !== 'deck_search';
 
@@ -176,31 +179,56 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * Vue編集画面のURLを取得
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
- * @param locale ロケール（オプション）。指定されない場合は detectLanguage() で自動取得すること
+ * @param locale ロケール（オプション）。公式サイトに伝えるrequest_localeパラメータ
+ * @param additionalParams 追加パラメータ（オプション、URLSearchParams）。copy-from-cgid, copy-from-dnoなど
  * @returns Vue編集画面URL
+ *
+ * URL構造：
+ * - ハッシュ前：request_locale（公式サイト向け）
+ * - ハッシュ後：dno, copy-from-cgid, copy-from-dno等（CHEX Vue向け）
  *
  * 例：
  * - getVueEditUrl('ocg') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
- * - getVueEditUrl('ocg', 1) -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=1'
- * - getVueEditUrl('ocg', undefined, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit'
- * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja&dno=1#/ytomo/edit'
+ * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?dno=1'
+ * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?copy-from-cgid=...&copy-from-dno=...'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
-  const params = new URLSearchParams();
-
-  if (locale) {
-    params.append('request_locale', locale);
-  }
-  if (dno) {
-    params.append('dno', dno.toString());
-  }
-
   const base = `${BASE_URL}/${gamePath}`;
-  const queryString = params.toString();
+
+  // ハッシュ前のパラメータ（公式サイト向け）
+  const preHashParams = new URLSearchParams();
+  if (locale) {
+    preHashParams.append('request_locale', locale);
+  }
+
+  // ハッシュ後のパラメータ（CHEX Vue向け）
+  const postHashParams = new URLSearchParams();
+  if (dno) {
+    postHashParams.append('dno', dno.toString());
+  }
+
+  // 追加パラメータをマージ（copy-from-cgid, copy-from-dnoなど）
+  if (additionalParams) {
+    for (const [key, value] of additionalParams.entries()) {
+      postHashParams.append(key, value);
+    }
+  }
+
+  const preHashQueryString = preHashParams.toString();
+  const postHashQueryString = postHashParams.toString();
   const hash = '#/ytomo/edit';
 
-  return queryString ? `${base}?${queryString}${hash}` : `${base}${hash}`;
+  // ハッシュ前のクエリがある場合は追加
+  let url = preHashQueryString ? `${base}?${preHashQueryString}` : base;
+  // ハッシュを追加
+  url += hash;
+  // ハッシュ後のクエリがある場合は追加
+  if (postHashQueryString) {
+    url += `?${postHashQueryString}`;
+  }
+
+  return url;
 }
 
 /**

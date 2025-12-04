@@ -206,6 +206,8 @@ export interface CardDetail {
   qaList?: CardFAQ[];
   /** 関連カード追加取得Promise（初回100件取得時に100件以上ある場合のみ） */
   fetchMorePromise?: Promise<CardInfo[]>;
+  /** 検索エラーにより不完全な情報である可能性（FAQ検索失敗時等）*/
+  isPartialFromError?: boolean;
 }
 
 /**

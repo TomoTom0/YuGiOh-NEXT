@@ -416,9 +416,9 @@ async function drawCardSection(
  *
  * @param url - 画像URL
  * @param gamePath - ゲームパス（yugiohdb/rushdb）
- * @returns ロードされた画像
+ * @returns ロードされた画像（ブラウザではHTMLImageElement、Node.jsではCanvasImage）
  */
-async function loadImage(url: string, gamePath: string): Promise<any> {
+async function loadImage(url: string, gamePath: string): Promise<HTMLImageElement | any> {
   if (typeof document !== 'undefined') {
     // ブラウザ環境
     return new Promise((resolve, reject) => {

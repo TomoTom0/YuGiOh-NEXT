@@ -10,6 +10,7 @@
 // ここではハードコードされた'light'を設定しない
 
 import { isVueEditPage } from '../../utils/page-detector';
+import { callbackToPromise } from '../../utils/promise-timeout';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -29,26 +30,32 @@ function isEditUrl(): boolean {
  * テーマを設定ストアから読み込んで適用
  */
 async function applyThemeFromSettings(): Promise<void> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['appSettings'], (result: any) => {
-      const appSettings = result.appSettings || {};
-      const theme = appSettings.theme ?? 'system';
+  try {
+    const result = await callbackToPromise<any>(
+      (callback) => chrome.storage.local.get(['appSettings'], callback),
+      3000 // 3秒のタイムアウト
+    );
 
-      let effectiveTheme: 'light' | 'dark' = 'light';
+    const appSettings = result.appSettings || {};
+    const theme = appSettings.theme ?? 'system';
 
-      if (theme === 'system') {
-        // システム設定を確認
-        if (typeof window !== 'undefined' && window.matchMedia) {
-          effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        }
-      } else {
-        effectiveTheme = (theme as any) ?? 'light';
+    let effectiveTheme: 'light' | 'dark' = 'light';
+
+    if (theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
+    } else {
+      effectiveTheme = (theme as any) ?? 'light';
+    }
 
-      document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
-      resolve();
-    });
-  });
+    document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
+  } catch (error) {
+    // タイムアウトまたはエラー時は、デフォルトのテーマを使用
+    console.warn('[applyThemeFromSettings] Failed to load theme settings:', error);
+    document.documentElement.setAttribute('data-ygo-next-theme', 'light');
+  }
 }
 
 /**

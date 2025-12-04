@@ -3,6 +3,7 @@
  */
 
 import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
+import { safeQuery } from '../../utils/safe-dom-query';
 
 /**
  * シャッフルアイコン（ランダム/シャッフル）
@@ -34,24 +35,24 @@ const SORT_ICON = `
  */
 function addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side'): HTMLElement | null {
   // 既にボタンが存在する場合はスキップ
-  if (document.querySelector(`#ygo-shuffle-btn-${sectionId}`)) {
+  if (safeQuery(`#ygo-shuffle-btn-${sectionId}`)) {
     return null;
   }
 
   // #deck_image #main|extra|side.card_set を取得
-  const cardSet = document.querySelector(`#deck_image #${sectionId}.card_set`);
+  const cardSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set`);
   if (!cardSet) {
     return null;
   }
 
   // div.subcatergory > div.top を取得
-  const top = cardSet.querySelector('div.subcatergory > div.top');
+  const top = safeQuery<HTMLElement>('div.subcatergory > div.top', cardSet);
   if (!top) {
     return null;
   }
 
   // カード枚数のspan（nth-child(3)）を取得
-  const cardCountSpan = top.querySelector('span:nth-child(3)');
+  const cardCountSpan = safeQuery<HTMLElement>('span:nth-child(3)', top);
   if (!cardCountSpan) {
     return null;
   }

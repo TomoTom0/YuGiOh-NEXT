@@ -52,14 +52,18 @@ export function formatNumberRange(numbers: number[], prefix: string): string {
 
   // 連続した数値をグループ化
   const groups: number[][] = []
-  let currentGroup: number[] = [sorted[0]]
+  const first = sorted[0];
+  if (first === undefined) return ''
+  let currentGroup: number[] = [first]
 
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] === sorted[i - 1] + 1) {
-      currentGroup.push(sorted[i])
-    } else {
+    const current = sorted[i];
+    const previous = sorted[i - 1];
+    if (current !== undefined && previous !== undefined && current === previous + 1) {
+      currentGroup.push(current)
+    } else if (current !== undefined) {
       groups.push(currentGroup)
-      currentGroup = [sorted[i]]
+      currentGroup = [current]
     }
   }
   groups.push(currentGroup)
