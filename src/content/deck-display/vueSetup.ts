@@ -5,19 +5,19 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import DeckDisplayApp from './DeckDisplayApp.vue'
 import type { CardDetailCacheResult } from '../../api/card-search'
+import { safeQuery, safeQueryAll, safeQueryAndRun } from '../../utils/safe-dom-query'
 
 /**
  * Vue アプリケーションをセットアップして、#main980 に Card Detail をマウント
  */
 export async function setupVueApp(): Promise<void> {
-  const main980 = document.querySelector('#main980')
+  const main980 = safeQuery('#main980')
   if (!main980) {
-    console.warn('[DeckDisplay] #main980 not found')
     return
   }
 
   // 既に Card Detail が追加されていれば返す
-  if (main980.querySelector('#ygo-next-card-detail-container')) {
+  if (safeQuery('#ygo-next-card-detail-container', main980)) {
     return
   }
 
@@ -64,7 +64,7 @@ const cardLinkHandlers = new WeakMap<Element, {
  * カード画像のホバー UI をクリーンアップ（イベントリスナー削除）
  */
 function cleanupCardImageHoverUI(): void {
-  const cardLinks = document.querySelectorAll('#main > div.image_set > a, #side > div.image_set > a')
+  const cardLinks = safeQueryAll('#main > div.image_set > a, #side > div.image_set > a')
 
   cardLinks.forEach(link => {
     if (link.hasAttribute('data-hover-handler-added')) {
@@ -75,10 +75,7 @@ function cleanupCardImageHoverUI(): void {
         link.removeEventListener('click', handlers.clickHandler as EventListener)
 
         // ホバーオーバーレイを削除
-        const overlay = link.querySelector('.ygo-next-card-hover-overlay')
-        if (overlay) {
-          overlay.remove()
-        }
+        safeQueryAndRun<HTMLElement>('.ygo-next-card-hover-overlay', (el) => el.remove(), link)
 
         // 属性を削除（次回セットアップ時に再追加されるようにする）
         link.removeAttribute('data-hover-handler-added')
@@ -115,7 +112,7 @@ async function setupCardImageHoverUI(): Promise<void> {
   }
 
   // #main と #side の div.image_set > a のセレクタでカードリンクを取得
-  const cardLinks = document.querySelectorAll('#main > div.image_set > a, #side > div.image_set > a')
+  const cardLinks = safeQueryAll('#main > div.image_set > a, #side > div.image_set > a')
 
   cardLinks.forEach(link => {
     if (!link.hasAttribute('data-hover-handler-added')) {
@@ -135,7 +132,7 @@ async function setupCardImageHoverUI(): Promise<void> {
       htmlLink.appendChild(overlay)
 
       // 画像要素を取得
-      const img = link.querySelector('img')
+      const img = safeQuery<HTMLImageElement>('img', link)
       if (!img) return
 
       // マウスムーブイベント（位置判定）

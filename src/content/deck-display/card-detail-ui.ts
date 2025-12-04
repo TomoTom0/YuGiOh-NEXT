@@ -12,6 +12,7 @@ import { useCardDetailStore } from '@/stores/card-detail'
 import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
 import { getTempCardDB } from '@/utils/temp-card-db'
+import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
 
 interface SelectedCard {
   cardId?: number;
@@ -74,7 +75,7 @@ export async function initCardDetailUI(): Promise<void> {
   }
 
   // タブボタンのクリックイベント
-  const tabButtons = document.querySelectorAll('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
   tabButtons.forEach(button => {
     button.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
@@ -96,7 +97,7 @@ async function switchTab(tabName: 'info' | 'qa'): Promise<void> {
   currentTab = tabName;
 
   // ボタンのアクティブ状態を更新
-  const tabButtons = document.querySelectorAll('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
   tabButtons.forEach(button => {
     button.classList.remove('ygo-next-active');
     if (button.getAttribute('data-tab') === tabName) {
@@ -185,7 +186,7 @@ function renderFAQContent(faqData: CardFAQList): string {
  * タブコンテンツを更新
  */
 async function updateTabContent(): Promise<void> {
-  const contentContainer = document.getElementById('ygo-next-card-info-content');
+  const contentContainer = safeQuery<HTMLElement>('#ygo-next-card-info-content');
   if (!contentContainer) return;
 
   if (!selectedCard || !selectedCard.cardId) {
@@ -226,7 +227,7 @@ function setupCardClickListeners(): void {
     attachCardClickHandlers();
   });
 
-  const deckImage = document.querySelector('#deck_image');
+  const deckImage = safeQuery<HTMLElement>('#deck_image');
   if (deckImage) {
     observer.observe(deckImage, {
       childList: true,
@@ -280,21 +281,20 @@ function findCardInParsedDeck(cid: string): any | null {
  */
 function attachCardClickHandlers(): void {
   // デッキセクション内のカード画像を取得
-  const deckImageContainer = document.querySelector('#deck_image');
+  const deckImageContainer = safeQuery<HTMLElement>('#deck_image');
   if (!deckImageContainer) {
-    console.warn('[CardDetailUI] #deck_image element not found');
     return;
   }
 
   // #deck_image内の全ての img を取得して確認
-  const allImagesInDeck = deckImageContainer.querySelectorAll('img');
+  const allImagesInDeck = safeQueryAll<HTMLImageElement>('img', deckImageContainer);
 
   // /card/ を含む画像を探す
-  let cardImages = Array.from(allImagesInDeck).filter(img => img.src.includes('/card/'));
+  let cardImages = allImagesInDeck.filter(img => img.src.includes('/card/'));
 
   // 見つからない場合は全ての img を使用
   if (cardImages.length === 0) {
-    cardImages = Array.from(allImagesInDeck);
+    cardImages = allImagesInDeck;
   }
 
   cardImages.forEach(imgElement => {
@@ -391,7 +391,7 @@ async function selectCard(cardInfo: any): Promise<void> {
   }
 
   // Tab ボタンのアクティブ状態をリセット
-  const tabButtons = document.querySelectorAll('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
   tabButtons.forEach(button => {
     button.classList.remove('ygo-next-active');
     if (button.getAttribute('data-tab') === 'info') {
