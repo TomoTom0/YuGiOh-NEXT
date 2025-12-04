@@ -13,6 +13,9 @@ import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, reco
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
 
+// Undo/Redo履歴の最大保持数
+const MAX_COMMAND_HISTORY = 100;
+
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
     dno: 0,
@@ -1675,15 +1678,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (commandIndex.value < commandHistory.value.length - 1) {
       commandHistory.value.splice(commandIndex.value + 1);
     }
-    
+
     // 新しいコマンドを追加
     commandHistory.value.push(command);
     commandIndex.value = commandHistory.value.length - 1;
-    
-    // 履歴の上限を100に制限
-    if (commandHistory.value.length > 100) {
-      commandHistory.value.shift();
-      commandIndex.value--;
+
+    // 履歴の上限を超えたら古い履歴を削除（メモリ使用量を制限）
+    if (commandHistory.value.length > MAX_COMMAND_HISTORY) {
+      const deleteCount = commandHistory.value.length - MAX_COMMAND_HISTORY;
+      commandHistory.value.splice(0, deleteCount);
+      commandIndex.value -= deleteCount;
+      console.debug(`[DeckEditStore] Trimmed ${deleteCount} commands, history size now ${commandHistory.value.length}`);
     }
   }
 
