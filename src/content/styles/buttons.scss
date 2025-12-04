@@ -28,12 +28,12 @@
 
     // ローディング状態
     &.loading {
-      background: #4CAF50 !important;
+      background: linear-gradient(to bottom, #81C784, #2E7D32) !important;
       pointer-events: none;
     }
 
     &.loading2 {
-      background: #FF9800 !important;
+      background: linear-gradient(to bottom, #FFB74D, #E65100) !important;
       pointer-events: none;
     }
   }
