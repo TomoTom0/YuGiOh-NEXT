@@ -329,78 +329,8 @@ export default {
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
-      const copyFromDno = getCopyFromDno()
-      const copyFromCgid = getCopyFromCgid()
-
-      if (copyFromDno && copyFromCgid) {
-        // copy-from-dnoとcopy-from-cgidパラメータがある場合：他人のデッキをコピーして新規作成
-        try {
-          let deckToCopy = null
-
-          // まずsessionStorageからパースされたデッキ情報を取得（デッキ表示ページから保存されたもの）
-          const storedDeckInfo = sessionStorage.getItem('ygo-copy-deck-info')
-          if (storedDeckInfo) {
-            try {
-              const copyData = JSON.parse(storedDeckInfo)
-
-              // deckInfo と cardData が含まれている新しい形式
-              if (copyData.deckInfo && copyData.cardData) {
-                deckToCopy = copyData.deckInfo
-
-                // TempCardDB に cardData を復元
-                const { getTempCardDB } = await import('../../utils/temp-card-db')
-                const tempCardDB = getTempCardDB()
-                for (const [cid, cardInfo] of Object.entries(copyData.cardData)) {
-                  tempCardDB.set(cid, cardInfo)
-                }
-              } else {
-                // 旧形式（DeckInfo のみ）のサポート
-                deckToCopy = copyData
-              }
-
-              sessionStorage.removeItem('ygo-copy-deck-info') // 使用済みなので削除
-            } catch (parseError) {
-              console.warn('[DeckEditLayout] Failed to parse stored deck info:', parseError)
-              deckToCopy = null
-            }
-          }
-
-          // sessionStorageにない場合のみAPIから取得
-          if (!deckToCopy) {
-            const { getDeckDetail } = await import('../../api/deck-operations')
-            deckToCopy = await getDeckDetail(parseInt(copyFromDno), copyFromCgid)
-          }
-
-          if (!deckToCopy) {
-            throw new Error('Failed to fetch deck details')
-          }
-
-          // deckStoreにデータを設定（pseudoCopyDeckに渡すため）
-          deckStore.deckInfo.mainDeck = deckToCopy.mainDeck
-          deckStore.deckInfo.extraDeck = deckToCopy.extraDeck
-          deckStore.deckInfo.sideDeck = deckToCopy.sideDeck
-          deckStore.deckInfo.category = deckToCopy.category
-          deckStore.deckInfo.tags = deckToCopy.tags
-          deckStore.deckInfo.comment = deckToCopy.comment
-          deckStore.deckInfo.deckCode = deckToCopy.deckCode
-          deckStore.deckInfo.name = deckToCopy.name
-          deckStore.deckInfo.originalName = deckToCopy.originalName
-
-          // デッキをコピーして新規作成
-          // pseudoCopyDeck 内で loadDeck() も呼ばれるため、返り値の newDno を使用して URL を更新するだけ
-          const newDno = await deckStore.pseudoCopyDeck(deckStore.deckInfo)
-
-          // URLを更新して copy-from-cgid と copy-from-dno を削除
-          window.location.hash = `/ytomo/edit?dno=${newDno}`
-        } catch (error) {
-          console.error('[DeckEditLayout] Failed to copy deck:', error)
-          // エラーの場合は通常のページ初期化を実行
-          await deckStore.initializeOnPageLoad()
-        }
-      } else {
-        // 通常のページ初期化
-        await deckStore.initializeOnPageLoad()
-      }
+      // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
+      await deckStore.initializeOnPageLoad()
 
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)

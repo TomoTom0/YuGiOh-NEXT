@@ -118,37 +118,47 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
       // 他人のデッキの場合：コピー編集モードで編集画面を開く
       const deckCgid = getDeckCgid();
       if (deckCgid) {
-        // デッキ表示ページで既にパースされた情報と、TempCardDB のカード情報を sessionStorage に保存
+        // デッキ表示ページで既にパースされた情報を使用してコピー作成
         try {
           const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
-          const { getTempCardDB } = await import('../../utils/temp-card-db');
+          const { sessionManager } = await import('../../content/session/session');
 
           const parsedDeckInfo = getParsedDeckInfo();
-          const tempCardDB = getTempCardDB();
 
           if (parsedDeckInfo) {
-            // TempCardDB のカード情報を全て取得
-            const cardData: Record<string, any> = {};
-            for (const [cid, cardInfo] of tempCardDB.entries()) {
-              cardData[cid] = cardInfo;
-            }
+            // 新規デッキを作成
+            const newDno = await sessionManager.createDeck();
 
-            // DeckInfo とカード情報を一緒に保存
-            const copyData = {
-              deckInfo: parsedDeckInfo,
-              cardData: cardData
-            };
-            sessionStorage.setItem('ygo-copy-deck-info', JSON.stringify(copyData));
+            if (newDno > 0) {
+              // 作成したデッキにデッキ情報を保存
+              const deckDataToCopy: any = {
+                mainDeck: parsedDeckInfo.mainDeck,
+                extraDeck: parsedDeckInfo.extraDeck,
+                sideDeck: parsedDeckInfo.sideDeck,
+                category: parsedDeckInfo.category || '',
+                tags: parsedDeckInfo.tags || [],
+                comment: parsedDeckInfo.comment || '',
+                deckCode: parsedDeckInfo.deckCode || '',
+                name: parsedDeckInfo.name || parsedDeckInfo.originalName || ''
+              };
+
+              // デッキを保存
+              const saveResult = await sessionManager.saveDeck(newDno, deckDataToCopy);
+
+              if (saveResult.success) {
+                // 新しいdnoで編集画面に遷移
+                const editUrl = getVueEditUrl(gameType, newDno, locale);
+                window.location.href = editUrl;
+              } else {
+                console.warn('[YGO Helper] Failed to save copied deck');
+              }
+            } else {
+              console.warn('[YGO Helper] Failed to create new deck');
+            }
           }
         } catch (error) {
-          console.warn('[YGO Helper] Failed to save parsed deck info:', error);
+          console.warn('[YGO Helper] Failed to copy deck:', error);
         }
-
-        const additionalParams = new URLSearchParams();
-        additionalParams.append('copy-from-cgid', deckCgid);
-        additionalParams.append('copy-from-dno', dno);
-        const editUrl = getVueEditUrl(gameType, undefined, locale, additionalParams);
-        window.location.href = editUrl;
       } else {
         console.warn('[YGO Helper] Failed to get deck cgid');
       }

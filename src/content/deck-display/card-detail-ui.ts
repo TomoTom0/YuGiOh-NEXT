@@ -415,7 +415,7 @@ export function getCurrentTab(): 'info' | 'qa' {
 }
 
 /**
- * パースされたデッキ情報を取得
+ * パースされたデッキ情報を取得（NEXTコピー編集用）
  */
 export function getParsedDeckInfo(): DeckInfo | null {
   return parsedDeckInfo;
