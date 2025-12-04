@@ -27,9 +27,11 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
 
     const wname = 'MemberDeck';
 
-    // URLを構築（buildApiUrl経由、ope=6は request_locale なし）
-    const path = `member_deck.action?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
-    const url = buildApiUrl(path, gameType);
+    // buildApiUrl()でベースURLを取得し、パラメータを手動で追加
+    // パラメータ順序を保証するため、URLクラスの searchParams は使わない
+    // noLocale: true を指定して request_locale を絶対に付与しない
+    const baseUrl = buildApiUrl('member_deck.action', gameType, undefined, true);
+    const url = `${baseUrl}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
 
     const { default: axios } = await import('axios');
     const response = await axios.get(url, {

@@ -57,16 +57,19 @@ function getApiPathType(path: string): ApiPathType {
  * @param path APIパス（例: 'faq_search.action' や 'card_search.action'）
  * @param gameType カードゲームタイプ
  * @param params URLSearchParams（オプション、既存パラメータがあれば渡す）
+ * @param noLocale request_locale を絶対に付与しない場合は true（オプション、デフォルト: false）
  * @returns 完全なURL（必要に応じて request_locale を含む）
  */
-export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams): string {
+export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams, noLocale?: boolean): string {
   const gamePath = getGamePath(gameType);
   const apiPathType = getApiPathType(path);
 
   // リクエストローカルを付与しないケース：
+  // - noLocale フラグが true の場合（呼び出し側で明示的に指定）
   // - デッキ新規作成（member_deck_new）
   // - デッキリスト取得（deck_search）
   const shouldAddLocale =
+    !noLocale &&
     apiPathType !== 'member_deck_new' &&
     apiPathType !== 'deck_search';
 
