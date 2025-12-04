@@ -94,14 +94,16 @@ a[data-sortfix].hover-overlay::before {
 }
 
 /**
- * NEXTコピー編集ボタンのローディング状態
+ * 独自要素のスタイル（.ygo-nextクラスを含むセレクタのみ使用）
  */
-.ytomo-neuron-btn.loading {
-  background: #4CAF50 !important;
-  pointer-events: none;
-}
+.ygo-next {
+  &.ytomo-neuron-btn.loading {
+    background: #4CAF50 !important;
+    pointer-events: none;
+  }
 
-.ytomo-neuron-btn.loading2 {
-  background: #FF9800 !important;
-  pointer-events: none;
+  &.ytomo-neuron-btn.loading2 {
+    background: #FF9800 !important;
+    pointer-events: none;
+  }
 }

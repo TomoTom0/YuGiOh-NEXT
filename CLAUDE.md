@@ -9,6 +9,7 @@
    - UUID は `crypto.randomUUID()` を使用
    - `any` 型禁止、型ガードを使用
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
+   - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
 4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 6. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
@@ -316,3 +317,50 @@ gh-reply draft send <PR番号>
 2. 各コメントに対して `gh-reply draft add` でドラフト返信を作成
 3. 必要な修正をコードに反映してコミット・プッシュ
 4. `gh-reply draft send <PR番号>` でドラフトを一括送信
+
+## スタイル定義ルール
+
+### SCSS での独自要素スタイル定義
+
+**ルール**: 独自画面（デッキ表示ページなど）以外での独自要素のスタイル定義は、**必ず `.ygo-next` クラスまたは `ygo-next-*` IDを含むセレクタを使用する**。
+
+#### 正しい例（nest を使用）：
+
+```scss
+// src/content/styles/buttons.scss
+.ygo-next {
+  &.ytomo-neuron-btn.loading {
+    background: #4CAF50 !important;
+    pointer-events: none;
+  }
+
+  &.ytomo-neuron-btn.loading2 {
+    background: #FF9800 !important;
+    pointer-events: none;
+  }
+}
+
+// または ID セレクタを使用
+#ygo-next-edit-btn {
+  &.custom-state {
+    // スタイル定義
+  }
+}
+```
+
+#### 誤った例（使用禁止）：
+
+```scss
+// 誤り：.ygo-next を含まない
+.ytomo-neuron-btn.loading {
+  background: #4CAF50 !important;
+}
+
+// 誤り：インラインスタイルを使用
+button.style.background = '#4CAF50'; // NG
+```
+
+#### 理由：
+- 独自画面要素と公式サイトの要素が混在するため、セレクタの特異性を明確に区分する必要がある
+- `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
+- SCSS の nest を使用することで、構造を明確に保つ
