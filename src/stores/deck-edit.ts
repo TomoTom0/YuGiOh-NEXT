@@ -1341,8 +1341,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       try {
         console.time('[loadDeck] preload cache check');
 
-        // 50msごとに最大4回チェック（合計200ms）
-        for (let i = 0; i < 4; i++) {
+        // 50msごとに最大20回チェック（合計1000ms）
+        for (let i = 0; i < 20; i++) {
           const cached = await getFromStorageLocal(preloadKey);
 
           if (cached && typeof cached === 'string') {
@@ -1357,7 +1357,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           }
 
           // まだcacheがなければ50ms待つ（最後の試行では待たない）
-          if (i < 3 && !loadedDeck) {
+          if (i < 19 && !loadedDeck) {
             await new Promise(resolve => setTimeout(resolve, 50));
           }
         }
