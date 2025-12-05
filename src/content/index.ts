@@ -144,18 +144,20 @@ async function loadEditUIIfNeeded(): Promise<void> {
   // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
   let bgColor = '#ffffff'; // デフォルトはlight
   const cachedSettings = (window as any).ygoCurrentSettings;
+  let effectiveTheme: 'light' | 'dark' = 'light';
+
   if (cachedSettings && cachedSettings.theme) {
-    let effectiveTheme: 'light' | 'dark' = 'light';
     if (cachedSettings.theme === 'system') {
-      // システム設定を確認
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
+      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
       effectiveTheme = cachedSettings.theme;
     }
-    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  } else {
+    // キャッシュがない場合はsystemのprefers-color-schemeを使用
+    effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
+
+  bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'ygo-module-loading-overlay';
@@ -292,19 +294,24 @@ async function initializeFeatures(): Promise<void> {
 // 編集ページの場合、公式DOM読み込み前に即座にページを隠す（FOUC防止）
 if (isVueEditPage()) {
   // テーマを同期的に取得
+  // window.ygoCurrentSettingsがまだキャッシュされていない可能性があるため、
+  // systemのprefers-color-schemeを直接チェック
   let bgColor = '#ffffff'; // デフォルトはlight
   const cachedSettings = (window as any).ygoCurrentSettings;
+  let effectiveTheme: 'light' | 'dark' = 'light';
+
   if (cachedSettings && cachedSettings.theme) {
-    let effectiveTheme: 'light' | 'dark' = 'light';
     if (cachedSettings.theme === 'system') {
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
+      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
       effectiveTheme = cachedSettings.theme;
     }
-    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  } else {
+    // キャッシュがない場合はsystemのprefers-color-schemeを使用
+    effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
+
+  bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
   // 即座にページを隠すスタイルを追加
   const earlyHideStyle = document.createElement('style');

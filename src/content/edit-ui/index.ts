@@ -196,6 +196,13 @@ async function loadEditUI(): Promise<void> {
     return;
   }
 
+  // content/index.tsで追加した早期hideスタイルを削除
+  // （#wrapper/#bgを表示可能にする）
+  const earlyHideStyle = document.getElementById('ygo-early-hide');
+  if (earlyHideStyle) {
+    earlyHideStyle.remove();
+  }
+
   // ヘッダーの高さを計算してCSS変数に設定
   const headerElement = document.querySelector('header') || document.querySelector('#header');
   let headerHeight = 0;
@@ -252,13 +259,15 @@ async function loadEditUI(): Promise<void> {
   // FOUC防止：背景色を決定
   const bgColor2 = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
 
-  // 全ての層に背景色を設定（インラインスタイルで優先度を確保）
-  document.body.style.backgroundColor = bgColor2;
+  // #wrapperと#bgを明示的に表示し、背景色を設定
   const wrapperElement = document.getElementById('wrapper');
   if (wrapperElement) {
+    wrapperElement.style.display = 'flex';
     wrapperElement.style.backgroundColor = bgColor2;
   }
+  bgElement.style.display = 'block';
   bgElement.style.backgroundColor = bgColor2;
+  document.body.style.backgroundColor = bgColor2;
 
   // #bg の内容をすべて削除（古いコンテンツを確実に消す）
   bgElement.innerHTML = '';
