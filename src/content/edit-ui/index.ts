@@ -63,6 +63,7 @@ function isEditUrl(): boolean {
 /**
  * テーマを設定ストアから読み込んで適用
  * メモリキャッシュ（ygoCurrentSettings）から即座に取得、なければ Storage から読み込み
+ * FOUC 防止のため、背景色も同時に設定
  */
 async function applyThemeFromSettings(): Promise<void> {
   try {
@@ -98,10 +99,18 @@ async function applyThemeFromSettings(): Promise<void> {
     }
 
     document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
+
+    // FOUC（Flash of Unstyled Content）防止：背景色を事前に設定
+    const bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
   } catch (error) {
     // タイムアウトまたはエラー時は、デフォルトのテーマを使用
     console.warn('[applyThemeFromSettings] Failed to load theme settings:', error);
     document.documentElement.setAttribute('data-ygo-next-theme', 'light');
+    // エラー時もデフォルト背景色を設定
+    document.documentElement.style.backgroundColor = '#ffffff';
+    document.body.style.backgroundColor = '#ffffff';
   }
 }
 
