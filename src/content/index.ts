@@ -142,22 +142,22 @@ async function loadEditUIIfNeeded(): Promise<void> {
 
   // FOUC防止：オーバーレイを即座に作成（モジュールロード前に表示）
   // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
-  let bgColor = '#ffffff'; // デフォルトはlight
+  let overlayBgColor = '#ffffff'; // デフォルトはlight
   const cachedSettings = (window as any).ygoCurrentSettings;
-  let effectiveTheme: 'light' | 'dark' = 'light';
+  let overlayTheme: 'light' | 'dark' = 'light';
 
   if (cachedSettings && cachedSettings.theme) {
     if (cachedSettings.theme === 'system') {
-      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      overlayTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     } else {
-      effectiveTheme = cachedSettings.theme;
+      overlayTheme = cachedSettings.theme;
     }
   } else {
     // キャッシュがない場合はsystemのprefers-color-schemeを使用
-    effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    overlayTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
-  bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  overlayBgColor = overlayTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'ygo-module-loading-overlay';
@@ -166,30 +166,30 @@ async function loadEditUIIfNeeded(): Promise<void> {
   loadingOverlay.style.left = '0';
   loadingOverlay.style.width = '100%';
   loadingOverlay.style.height = '100%';
-  loadingOverlay.style.backgroundColor = bgColor;
+  loadingOverlay.style.backgroundColor = overlayBgColor;
   loadingOverlay.style.zIndex = '999999';
   loadingOverlay.style.pointerEvents = 'none';
   loadingOverlay.style.display = 'flex';
   loadingOverlay.style.flexDirection = 'column';
   loadingOverlay.style.alignItems = 'center';
   loadingOverlay.style.justifyContent = 'center';
-  loadingOverlay.style.gap = '20px';
 
   // ローディングスピナーを追加
   const spinner = document.createElement('div');
   spinner.style.width = '50px';
   spinner.style.height = '50px';
-  spinner.style.border = `4px solid ${effectiveTheme === 'dark' ? '#333' : '#e0e0e0'}`;
-  spinner.style.borderTop = `4px solid ${effectiveTheme === 'dark' ? '#fff' : '#333'}`;
+  spinner.style.border = `4px solid ${overlayTheme === 'dark' ? '#333' : '#e0e0e0'}`;
+  spinner.style.borderTop = `4px solid ${overlayTheme === 'dark' ? '#fff' : '#333'}`;
   spinner.style.borderRadius = '50%';
   spinner.style.animation = 'ygo-spin 1s linear infinite';
 
   // ローディングテキストを追加
   const loadingText = document.createElement('div');
   loadingText.textContent = 'デッキエディタを読み込み中...';
-  loadingText.style.color = effectiveTheme === 'dark' ? '#ccc' : '#666';
+  loadingText.style.color = overlayTheme === 'dark' ? '#ccc' : '#666';
   loadingText.style.fontSize = '16px';
   loadingText.style.fontFamily = 'sans-serif';
+  loadingText.style.marginTop = '20px';
 
   loadingOverlay.appendChild(spinner);
   loadingOverlay.appendChild(loadingText);
@@ -325,57 +325,66 @@ async function initializeFeatures(): Promise<void> {
   }
 }
 
-// 編集ページの場合、公式DOM読み込み前に即座にページを隠す（FOUC防止）
+// 編集ページの場合、設定を即座にキャッシュしてからページを隠す（FOUC防止）
 if (isVueEditPage()) {
-  // テーマを同期的に取得
-  // window.ygoCurrentSettingsがまだキャッシュされていない可能性があるため、
-  // systemのprefers-color-schemeを直接チェック
-  let bgColor = '#ffffff'; // デフォルトはlight
-  const cachedSettings = (window as any).ygoCurrentSettings;
-  let effectiveTheme: 'light' | 'dark' = 'light';
-
-  if (cachedSettings && cachedSettings.theme) {
-    if (cachedSettings.theme === 'system') {
-      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } else {
-      effectiveTheme = cachedSettings.theme;
-    }
-  } else {
-    // キャッシュがない場合はsystemのprefers-color-schemeを使用
-    effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
-
-  // 即座にページを隠すスタイルを追加
-  const earlyHideStyle = document.createElement('style');
-  earlyHideStyle.id = 'ygo-early-hide';
-  earlyHideStyle.textContent = `
-    html, body {
-      background-color: ${bgColor} !important;
-      overflow: hidden !important;
-    }
-    #wrapper, #bg {
-      display: none !important;
-    }
-  `;
-
-  // document.headがまだない場合もあるので対応
-  if (document.head) {
-    document.head.appendChild(earlyHideStyle);
-  } else {
-    // headが準備できるまで待つ
-    const observer = new MutationObserver(() => {
-      if (document.head) {
-        document.head.appendChild(earlyHideStyle);
-        observer.disconnect();
+  (async () => {
+    // 設定を即座にキャッシュ（待機）
+    try {
+      const appSettings = await getFromStorageLocal('appSettings');
+      if (appSettings) {
+        window.ygoCurrentSettings = appSettings;
       }
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-  }
+    } catch (err) {
+      console.warn('[Content] Failed to cache settings:', err);
+    }
 
-  // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
-  loadEditUIIfNeeded();
+    // テーマを取得
+    const cachedSettings = (window as any).ygoCurrentSettings;
+    let effectiveTheme: 'light' | 'dark' = 'light';
+
+    if (cachedSettings && cachedSettings.theme) {
+      if (cachedSettings.theme === 'system') {
+        effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } else {
+        effectiveTheme = cachedSettings.theme;
+      }
+    } else {
+      // キャッシュがない場合はsystemのprefers-color-schemeを使用
+      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    const earlyBgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+    // 即座にページを隠すスタイルを追加
+    const earlyHideStyle = document.createElement('style');
+    earlyHideStyle.id = 'ygo-early-hide';
+    earlyHideStyle.textContent = `
+      html, body {
+        background-color: ${earlyBgColor} !important;
+        overflow: hidden !important;
+      }
+      #wrapper, #bg {
+        display: none !important;
+      }
+    `;
+
+    // document.headがまだない場合もあるので対応
+    if (document.head) {
+      document.head.appendChild(earlyHideStyle);
+    } else {
+      // headが準備できるまで待つ
+      const observer = new MutationObserver(() => {
+        if (document.head) {
+          document.head.appendChild(earlyHideStyle);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
+
+    // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
+    loadEditUIIfNeeded();
+  })();
 } else {
   // 編集ページでない場合は通常の初期化
   // 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
