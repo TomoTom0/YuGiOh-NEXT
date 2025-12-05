@@ -21,6 +21,7 @@ import {
 } from '../types/settings';
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
+import { DEFAULT_TAIL_PLACEMENT_CARD_IDS } from '../config/default-tail-placement-cards';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -159,7 +160,13 @@ export const useSettingsStore = defineStore('settings', () => {
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
 
-        tailPlacementCardIds.value = result.tailPlacementCardIds || [];
+        // 初回起動時はデフォルトの末尾配置カードIDを使用
+        // 以降はユーザーの設定を保持
+        if (!result.tailPlacementCardIds || result.tailPlacementCardIds.length === 0) {
+          tailPlacementCardIds.value = [...DEFAULT_TAIL_PLACEMENT_CARD_IDS];
+        } else {
+          tailPlacementCardIds.value = result.tailPlacementCardIds;
+        }
 
         isLoaded.value = true;
 
