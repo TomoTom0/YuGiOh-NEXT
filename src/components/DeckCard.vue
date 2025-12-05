@@ -29,8 +29,8 @@
       </svg>
     </div>
     <div v-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
-      <svg width="24" height="24" viewBox="0 0 24 24">
-        <path fill="currentColor" d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M7,12.5C6.17,12.5 5.5,11.83 5.5,11C5.5,10.17 6.17,9.5 7,9.5C7.83,9.5 8.5,10.17 8.5,11C8.5,11.83 7.83,12.5 7,12.5M12,12.5C11.17,12.5 10.5,11.83 10.5,11C10.5,10.17 11.17,9.5 12,9.5C12.83,9.5 13.5,10.17 13.5,11C13.5,11.83 12.83,12.5 12,12.5M17,12.5C16.17,12.5 15.5,11.83 15.5,11C15.5,10.17 16.17,9.5 17,9.5C17.83,9.5 18.5,10.17 18.5,11C18.5,11.83 17.83,12.5 17,12.5Z" />
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowRightBold" />
       </svg>
     </div>
     <div v-if="!card.empty" class="card-controls">
@@ -106,7 +106,7 @@ import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
-import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
+import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
@@ -179,7 +179,9 @@ export default {
       handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,
-      mdiNumeric2Circle
+      mdiNumeric2Circle,
+      mdiArrowRightBold,
+      mdiArrowLeftBold
     }
   },
   computed: {
@@ -649,25 +651,21 @@ export default {
 
 .tail-placement-icon {
   position: absolute;
-  bottom: 8%;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 28px;
-  height: 28px;
+  width: 10px;
+  height: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-success, #4CAF50);
-  border-radius: 50%;
   pointer-events: none;
   z-index: 5;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 
   svg {
-    color: white;
-    width: 18px;
-    height: 18px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    color: var(--color-success, #4CAF50);
+    width: 8px;
+    height: 8px;
   }
 }
 
