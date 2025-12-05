@@ -271,6 +271,11 @@ async function loadEditUI(): Promise<void> {
     document.head.appendChild(style);
   }
 
+  // FOUC防止：背景色を inline style で直接設定してから内容を置き換え
+  // （CSS 変数が適用される前に白色がちらつくのを防ぐ）
+  const bgColor = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
+  bgElement.style.backgroundColor = bgColor;
+
   // div#bgの内容を完全に置き換え
   bgElement.innerHTML = '<div id="vue-edit-app"></div>';
 
