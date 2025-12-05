@@ -676,7 +676,7 @@ export default {
 
 .tail-placement-icon {
   position: absolute;
-  bottom: 4px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 18px;
@@ -686,9 +686,9 @@ export default {
   justify-content: center;
   pointer-events: none;
   z-index: 5;
-  border: 1px solid var(--color-success, #4CAF50);
   border-radius: 2px;
-  background: rgba(76, 175, 80, 0.1);
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 
   svg {
     color: var(--color-success, #4CAF50);
@@ -699,7 +699,7 @@ export default {
 
 .category-placement-icon {
   position: absolute;
-  bottom: 4px;
+  bottom: 0;
   right: 4px;
   width: 18px;
   height: 18px;
@@ -708,9 +708,9 @@ export default {
   justify-content: center;
   pointer-events: none;
   z-index: 5;
-  border: 1px solid var(--color-info, #2196F3);
   border-radius: 2px;
-  background: rgba(33, 150, 243, 0.1);
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 
   svg {
     color: var(--color-info, #2196F3);
