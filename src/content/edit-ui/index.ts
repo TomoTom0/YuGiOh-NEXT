@@ -11,7 +11,6 @@
 
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
-import { getFromStorageLocal } from '../../utils/chrome-storage-utils';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -25,53 +24,6 @@ const vueModulesPromise = Promise.all([
   import('pinia'),
   import('./DeckEditLayout.vue')
 ]);
-
-/**
- * background でデッキ詳細をプリロード（非同期、並行実行）
- */
-async function preloadDeckDetailInBackground(): Promise<void> {
-  try {
-    // URLから dno を抽出
-    const hash = window.location.hash;
-    const urlParams = new URLSearchParams(hash.split('?')[1] || '');
-    const dno = urlParams.get('dno');
-
-    if (!dno) {
-      return; // dno がない場合はスキップ
-    }
-
-    // Chrome Storage から cgid を読み込み
-    const cgid = await getFromStorageLocal('ygo-user-cgid');
-
-    if (!cgid) {
-      console.warn('[Edit UI] cgid not found in Storage, skipping preload');
-      return; // cgid がない場合はスキップ
-    }
-
-    // dno のバリデーション
-    const dnoNum = parseInt(dno, 10);
-    if (isNaN(dnoNum)) {
-      console.warn('[Edit UI] Invalid dno in URL, skipping preload:', dno);
-      return;
-    }
-
-    // background へメッセージを送信（非同期、await しない）
-    // デッキ詳細と デッキリストを並行プリロード
-    Promise.all([
-      chrome.runtime.sendMessage({
-        type: 'PRELOAD_DECK_DETAIL',
-        dno: dnoNum,
-        cgid: cgid
-      }),
-      chrome.runtime.sendMessage({
-        type: 'PRELOAD_DECK_LIST',
-        cgid: cgid
-      })
-    ]).catch(err => console.warn('[Edit UI] Failed to send preload messages:', err));
-  } catch (error) {
-    console.warn('[Edit UI] Failed to preload deck detail:', error);
-  }
-}
 
 /**
  * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
@@ -191,12 +143,8 @@ function replaceLanguageChangeLinks(): void {
 function watchUrlChanges(): void {
   // 公式DOM前初期化: DOMContentLoadedを待たず即座に初期化
   // オーバーレイを素早く表示し、ユーザー体感速度を向上
+  // 注: preloadはcontent/index.tsで既に実行されているため、ここでは不要
   if (isEditUrl() && !isEditUILoaded) {
-    // background でデッキ詳細をプリロード（並行実行）
-    preloadDeckDetailInBackground().catch(err =>
-      console.warn('[Edit UI] Preload failed:', err)
-    );
-
     // UI を即座にロード（オーバーレイ表示）
     loadEditUI();
   }
@@ -211,8 +159,7 @@ function watchUrlChanges(): void {
         // 編集URLに遷移した場合は、毎回テーマを適用
         applyThemeFromSettings();
 
-        // background でデッキ詳細をプリロード（並行実行）
-        preloadDeckDetailInBackground();
+        // 注: preloadはcontent/index.tsのhashchangeハンドラーで実行されるため、ここでは不要
 
         // UI が未読み込みの場合のみ読み込み実行
         if (!isEditUILoaded) {
@@ -390,13 +337,22 @@ async function initVueApp(): Promise<void> {
     return;
   }
 
-  // モジュール読み込み時にテーマを設定（FOUC防止）
-  // テーマをまず読み込んでから、オーバーレイを作成する
-  await applyThemeFromSettings();
-
-  // FOUC防止：テーマ読み込み後にオーバーレイを作成
-  const theme = document.documentElement.getAttribute('data-ygo-next-theme') || 'light';
-  const bgColor = theme === 'dark' ? '#1a1a1a' : '#ffffff';
+  // FOUC防止：オーバーレイを即座に作成（最速表示優先）
+  // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
+  let bgColor = '#ffffff'; // デフォルトはlight
+  const cachedSettings = (window as any).ygoCurrentSettings;
+  if (cachedSettings && cachedSettings.theme) {
+    let effectiveTheme: 'light' | 'dark' = 'light';
+    if (cachedSettings.theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } else {
+      effectiveTheme = cachedSettings.theme;
+    }
+    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  }
 
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'ygo-module-loading-overlay';
@@ -409,6 +365,11 @@ async function initVueApp(): Promise<void> {
   loadingOverlay.style.zIndex = '999999';
   loadingOverlay.style.pointerEvents = 'none';
   document.body.appendChild(loadingOverlay);
+
+  // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
+  applyThemeFromSettings().catch(err => {
+    console.warn('[Edit UI] Failed to apply theme:', err);
+  });
 
   watchUrlChanges();
 })();

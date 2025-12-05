@@ -86,12 +86,65 @@ function prefetchEditUI(): void {
 }
 
 /**
+ * background でデッキ詳細をプリロード（非同期、並行実行）
+ */
+async function preloadDeckDetailInBackground(): Promise<void> {
+  try {
+    // URLから dno を抽出
+    const hash = window.location.hash;
+    const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+    const dno = urlParams.get('dno');
+
+    if (!dno) {
+      return; // dno がない場合はスキップ
+    }
+
+    // Chrome Storage から cgid を読み込み
+    const cgid = await getFromStorageLocal('ygo-user-cgid');
+
+    if (!cgid) {
+      console.warn('[Content] cgid not found in Storage, skipping preload');
+      return; // cgid がない場合はスキップ
+    }
+
+    // dno のバリデーション
+    const dnoNum = parseInt(dno, 10);
+    if (isNaN(dnoNum)) {
+      console.warn('[Content] Invalid dno in URL, skipping preload:', dno);
+      return;
+    }
+
+    // background へメッセージを送信（非同期、await しない）
+    // デッキ詳細と デッキリストを並行プリロード
+    Promise.all([
+      chrome.runtime.sendMessage({
+        type: 'PRELOAD_DECK_DETAIL',
+        dno: dnoNum,
+        cgid: cgid
+      }),
+      chrome.runtime.sendMessage({
+        type: 'PRELOAD_DECK_LIST',
+        cgid: cgid
+      })
+    ]).catch(err => console.warn('[Content] Failed to send preload messages:', err));
+  } catch (error) {
+    console.warn('[Content] Failed to preload deck detail:', error);
+  }
+}
+
+/**
  * 編集ページ用UIを動的にロード
  */
 async function loadEditUIIfNeeded(): Promise<void> {
   if (!isVueEditPage() || editUILoaded) return;
 
   editUILoaded = true;
+
+  // background でデッキ詳細をプリロード（edit-ui/index.ts のロードと並行実行）
+  preloadDeckDetailInBackground().catch(err =>
+    console.warn('[Content] Preload failed:', err)
+  );
+
   try {
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
     const importPromise = editUIModulePromise || import('./edit-ui');
@@ -212,4 +265,5 @@ if (document.readyState === 'loading') {
 }
 
 // 編集ページ用UI読み込み（hashchange時）
+// 注: hashchangeでデッキ編集画面が始まることは原則としてないため、preloadは実行しない
 window.addEventListener('hashchange', loadEditUIIfNeeded);
