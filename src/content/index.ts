@@ -167,7 +167,20 @@ async function loadEditUIIfNeeded(): Promise<void> {
   loadingOverlay.style.backgroundColor = bgColor;
   loadingOverlay.style.zIndex = '999999';
   loadingOverlay.style.pointerEvents = 'none';
-  document.body.appendChild(loadingOverlay);
+
+  // document.bodyがまだない場合は準備できるまで待つ
+  if (document.body) {
+    document.body.appendChild(loadingOverlay);
+  } else {
+    // bodyが準備できるまで待つ
+    const observer = new MutationObserver(() => {
+      if (document.body) {
+        document.body.appendChild(loadingOverlay);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
 
   // background でデッキ詳細をプリロード（モジュールロードと並行実行）
   preloadDeckDetailInBackground().catch(err =>
@@ -276,22 +289,64 @@ async function initializeFeatures(): Promise<void> {
   }
 }
 
+// 編集ページの場合、公式DOM読み込み前に即座にページを隠す（FOUC防止）
+if (isVueEditPage()) {
+  // テーマを同期的に取得
+  let bgColor = '#ffffff'; // デフォルトはlight
+  const cachedSettings = (window as any).ygoCurrentSettings;
+  if (cachedSettings && cachedSettings.theme) {
+    let effectiveTheme: 'light' | 'dark' = 'light';
+    if (cachedSettings.theme === 'system') {
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } else {
+      effectiveTheme = cachedSettings.theme;
+    }
+    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  }
+
+  // 即座にページを隠すスタイルを追加
+  const earlyHideStyle = document.createElement('style');
+  earlyHideStyle.id = 'ygo-early-hide';
+  earlyHideStyle.textContent = `
+    html, body {
+      background-color: ${bgColor} !important;
+      overflow: hidden !important;
+    }
+    #wrapper, #bg {
+      display: none !important;
+    }
+  `;
+
+  // document.headがまだない場合もあるので対応
+  if (document.head) {
+    document.head.appendChild(earlyHideStyle);
+  } else {
+    // headが準備できるまで待つ
+    const observer = new MutationObserver(() => {
+      if (document.head) {
+        document.head.appendChild(earlyHideStyle);
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
+  loadEditUIIfNeeded();
+} else {
+  // 編集ページでない場合は通常の初期化
+  // 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', prefetchEditUI);
+  } else {
+    prefetchEditUI();
+  }
+}
+
 // 機能を初期化
 initializeFeatures();
-
-// 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', prefetchEditUI);
-} else {
-  prefetchEditUI();
-}
-
-// 編集ページ用UI読み込み（DOMContentLoaded時）
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', loadEditUIIfNeeded);
-} else {
-  loadEditUIIfNeeded();
-}
 
 // 編集ページ用UI読み込み（hashchange時）
 // 注: hashchangeでデッキ編集画面が始まることは原則としてないため、preloadは実行しない
