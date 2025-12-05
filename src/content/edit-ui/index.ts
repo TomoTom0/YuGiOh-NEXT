@@ -374,7 +374,14 @@ async function initVueApp(): Promise<void> {
 
 // このモジュールが動的インポートされた時点で編集ページにいることが確定
 // URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
+// ただし、プリフェッチ時は編集ページでない可能性があるため、isVueEditPage() で条件チェック
 (async () => {
+  // 編集ページでない場合はスキップ
+  if (!isVueEditPage()) {
+    console.log('[Edit UI] Module loaded but not on edit page, skipping initialization');
+    return;
+  }
+
   // モジュール読み込み時にテーマを設定（FOUC防止）
   // テーマをまず読み込んでから、オーバーレイを作成する
   await applyThemeFromSettings();

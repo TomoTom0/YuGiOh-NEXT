@@ -216,6 +216,8 @@ export interface StorageSettings {
   deckEditSettings?: DeckEditSettings;
   /** アプリ全体設定（v0.4.0で追加） */
   appSettings?: AppSettings;
+  /** グローバル末尾配置カードID リスト */
+  tailPlacementCardIds?: string[];
 }
 
 /**

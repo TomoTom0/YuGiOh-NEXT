@@ -723,6 +723,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const showLoadDialog = ref(false);
   const showDeleteConfirm = ref(false);
   const showUnsavedChangesDialog = ref(false);
+  const isFilterDialogVisible = ref(false);
   
   // Load時点でのデッキ情報を保存（変更検知用）
   const savedDeckSnapshot = ref<string | null>(null);
@@ -1606,8 +1607,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       return tempCardDB.get(cid) || null;
     };
 
-    // ソート優先順位
-    const sorted = [...section].sort((a, b) => {
+    // ソート用の内部関数：カード比較ロジック
+    const compareCards = (a: DisplayCard, b: DisplayCard): number => {
       const cardA = getCardInfo(a.cid, a.ciid);
       const cardB = getCardInfo(b.cid, b.ciid);
       if (!cardA || !cardB) return 0;
@@ -1660,6 +1661,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // 5. Card Name（昇順）
       return cardA.name.localeCompare(cardB.name, 'ja');
+    };
+
+    // ソート優先順位
+    const settingsStore = useSettingsStore();
+    const sorted = [...section].sort((a, b) => {
+      // 0. 末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
+      const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
+      const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
+      if (isTailA !== isTailB) return isTailA - isTailB;
+
+      // 同じ末尾配置状態であれば、既存のカード比較ロジックを適用
+      return compareCards(a, b);
     });
 
     displayOrder.value[sectionType] = sorted;
@@ -1876,6 +1889,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showLoadDialog,
     showDeleteConfirm,
     showUnsavedChangesDialog,
+    isFilterDialogVisible,
     canUndo,
     canRedo,
     canMoveCard,

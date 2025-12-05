@@ -43,6 +43,9 @@ export const useSettingsStore = defineStore('settings', () => {
   /** カード枚数制限モード */
   const cardLimitMode = ref<'all-3' | 'limit-reg'>('all-3');
 
+  /** グローバル末尾配置カードID リスト（デッキ横断的） */
+  const tailPlacementCardIds = ref<string[]>([]);
+
   // ===== 算出プロパティ =====
 
   /** 現在のカードサイズ（ピクセル） */
@@ -141,7 +144,7 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   async function loadCommonSettings(): Promise<void> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['appSettings', 'featureSettings'], (result: StorageSettings) => {
+      chrome.storage.local.get(['appSettings', 'featureSettings', 'tailPlacementCardIds'], (result: StorageSettings) => {
         // 古い形式の設定を新しい形式に移行
         let loadedSettings = result.appSettings ? migrateOldSettingsFormat(result.appSettings) : null;
 
@@ -155,6 +158,8 @@ export const useSettingsStore = defineStore('settings', () => {
         featureSettings.value = result.featureSettings
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
+
+        tailPlacementCardIds.value = result.tailPlacementCardIds || [];
 
         isLoaded.value = true;
 
@@ -195,6 +200,7 @@ export const useSettingsStore = defineStore('settings', () => {
       chrome.storage.local.set({
         appSettings: appSettings.value,
         featureSettings: featureSettings.value,
+        tailPlacementCardIds: tailPlacementCardIds.value,
       }, () => {
         resolve();
       });
@@ -425,6 +431,34 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 末尾配置リストにカードを追加
+   */
+  function addTailPlacementCard(cardId: string): void {
+    if (!tailPlacementCardIds.value.includes(cardId)) {
+      tailPlacementCardIds.value.push(cardId);
+      saveSettings();
+    }
+  }
+
+  /**
+   * 末尾配置リストからカードを削除
+   */
+  function removeTailPlacementCard(cardId: string): void {
+    const index = tailPlacementCardIds.value.indexOf(cardId);
+    if (index >= 0) {
+      tailPlacementCardIds.value.splice(index, 1);
+      saveSettings();
+    }
+  }
+
+  /**
+   * カードが末尾配置リストに含まれているか判定
+   */
+  function isTailPlacementCard(cardId: string): boolean {
+    return tailPlacementCardIds.value.includes(cardId);
+  }
+
+  /**
    * 設定をリセット
    */
   async function resetSettings(): Promise<void> {
@@ -520,6 +554,7 @@ export const useSettingsStore = defineStore('settings', () => {
     cardWidthList,
     cardWidthGrid,
     cardLimitMode,
+    tailPlacementCardIds,
 
     // 算出プロパティ
     deckEditCardSizePixels,
@@ -553,6 +588,9 @@ export const useSettingsStore = defineStore('settings', () => {
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
+    addTailPlacementCard,
+    removeTailPlacementCard,
+    isTailPlacementCard,
     resetSettings,
     applyTheme,
     applyCardSize,
