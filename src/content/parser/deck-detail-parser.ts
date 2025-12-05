@@ -127,6 +127,7 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const tags = convertTagLabelsToIds(tagLabels, metadata);
 
   // 3つのセクションから収集したcardInfoMapをマージして setCardInfo() に渡す
+  console.time('[parseDeckDetail] merge cardInfoMaps');
   const mergedCardInfoMap = new Map<string, CardInfo>();
 
   for (const result of [mainDeckResult, extraDeckResult, sideDeckResult]) {
@@ -143,12 +144,15 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
       }
     }
   }
+  console.timeEnd('[parseDeckDetail] merge cardInfoMaps');
 
   // マージされたカード情報を UnifiedCacheDB に保存
+  console.time('[parseDeckDetail] setCardInfo loop');
   const unifiedDB = getUnifiedCacheDB();
   for (const [, cardInfo] of mergedCardInfoMap.entries()) {
     unifiedDB.setCardInfo(cardInfo, true);
   }
+  console.timeEnd('[parseDeckDetail] setCardInfo loop');
 
   return {
     dno,

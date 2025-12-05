@@ -414,11 +414,11 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const deckInfo = await parseDeckDetail(doc);
     console.timeEnd('[getDeckDetail] parseDeckDetail');
 
-    // 複数ciidを含むカード情報をChrome Storageに永続化
+    // 複数ciidを含むカード情報をChrome Storageに永続化（非同期で実行、UIをブロックしない）
     const { saveUnifiedCacheDB } = await import('@/utils/unified-cache-db');
-    console.time('[getDeckDetail] saveUnifiedCacheDB');
-    await saveUnifiedCacheDB();
-    console.timeEnd('[getDeckDetail] saveUnifiedCacheDB');
+    saveUnifiedCacheDB().catch(error => {
+      console.error('[getDeckDetail] Failed to save UnifiedCacheDB:', error);
+    });
 
     console.timeEnd(`[getDeckDetail] total`);
     return deckInfo;
