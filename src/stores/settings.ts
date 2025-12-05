@@ -356,6 +356,14 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  /**
+   * カードリスト表示形式を設定（セクションごと）
+   */
+  function setCardListViewMode(section: 'search' | 'related' | 'products', mode: 'list' | 'grid'): void {
+    appSettings.value.ux.cardListViewMode[section] = mode;
+    saveSettings();
+  }
+
   function setMouseOperations(enabled: boolean): void {
     appSettings.value.ux.enableMouseOperations = enabled;
     saveSettings();
@@ -579,6 +587,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setCardListViewMode,
     setMouseOperations,
     setChangeFavicon,
     addKeyboardShortcut,

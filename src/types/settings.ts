@@ -144,6 +144,15 @@ export interface UXSettings {
     /** Redoキー */
     redo: KeyboardShortcut[];
   };
+  /** カードリスト表示形式（セクションごと）*/
+  cardListViewMode: {
+    /** 検索結果セクション */
+    search: 'list' | 'grid';
+    /** 関連カードセクション */
+    related: 'list' | 'grid';
+    /** 商品一覧セクション */
+    products: 'list' | 'grid';
+  };
 }
 
 /**
@@ -259,6 +268,11 @@ export const DEFAULT_UX_SETTINGS: UXSettings = {
     redo: [
       { ctrl: true, shift: false, alt: false, key: 'y' }
     ],
+  },
+  cardListViewMode: {
+    search: 'grid',    // 検索結果: グリッド表示（デフォルト）
+    related: 'grid',   // 関連カード: グリッド表示（デフォルト）
+    products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
   },
 };
 
