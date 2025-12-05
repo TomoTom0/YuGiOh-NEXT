@@ -262,7 +262,7 @@ async function loadEditUI(): Promise<void> {
   // #wrapperと#bgを明示的に表示し、背景色を設定
   const wrapperElement = document.getElementById('wrapper');
   if (wrapperElement) {
-    wrapperElement.style.display = 'flex';
+    wrapperElement.style.display = '';  // 元のスタイルに戻す（display: noneを解除）
     wrapperElement.style.backgroundColor = bgColor2;
   }
   bgElement.style.display = 'block';
