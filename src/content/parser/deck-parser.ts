@@ -1,6 +1,8 @@
-import { DeckCard, CardInfo, MonsterCard, SpellCard, TrapCard } from '@/types/card';
+import { DeckCardRef, CardInfo, MonsterCard, SpellCard, TrapCard } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
+import { getTempCardDB } from '@/utils/temp-card-db';
+import { detectLanguage } from '@/utils/language-detector';
 
 /**
  * カードタイプ別のフィールド名マッピング
@@ -33,7 +35,7 @@ const CARD_TYPE_FIELDS = {
  * CardInfoの多くのフィールドは未設定（undefined）となります。
  * 完全な情報が必要な場合は、カードIDを使ってカード検索APIから取得してください。
  */
-export function parseCardRow(row: HTMLElement): DeckCard | null {
+export function parseCardRow(row: HTMLElement): DeckCardRef | null {
   // カードタイプを検出
   const cardType = detectCardType(row);
   if (!cardType) {
@@ -83,7 +85,7 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
     return null;
   }
 
-  // CardInfo型のオブジェクトを作成
+  // CardInfo型のオブジェクトを作成してTempCardDBに登録
   // デッキページには限定的な情報しかないため、必須フィールドに仮の値を設定
   let card: CardInfo;
 
@@ -93,6 +95,7 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'monster',
       attribute: 'light', // デッキページからは取得不可、後で更新が必要
@@ -108,6 +111,7 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'spell'
     } as SpellCard;
@@ -117,13 +121,20 @@ export function parseCardRow(row: HTMLElement): DeckCard | null {
       name,
       cardId,
       ciid,
+      lang: detectLanguage(document),
       imgs: [{ciid, imgHash}],
       cardType: 'trap'
     } as TrapCard;
   }
 
+  // TempCardDBに登録
+  const tempCardDB = getTempCardDB();
+  tempCardDB.set(cardId, card);
+
   return {
-    card,
+    cid: cardId,
+    ciid,
+    lang: detectLanguage(document),
     quantity
   };
 }
@@ -149,7 +160,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
 
   // メインデッキのカードを抽出
   const mainDeckElement = doc.querySelector('#main-deck');
-  const mainDeck: DeckCard[] = [];
+  const mainDeck: DeckCardRef[] = [];
   if (mainDeckElement) {
     const rows = mainDeckElement.querySelectorAll('.card-row');
     rows.forEach((row) => {
@@ -162,7 +173,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
 
   // エクストラデッキのカードを抽出
   const extraDeckElement = doc.querySelector('#extra-deck');
-  const extraDeck: DeckCard[] = [];
+  const extraDeck: DeckCardRef[] = [];
   if (extraDeckElement) {
     const rows = extraDeckElement.querySelectorAll('.card-row');
     rows.forEach((row) => {
@@ -175,7 +186,7 @@ export function parseDeckPage(doc: Document): DeckInfo {
 
   // サイドデッキのカードを抽出
   const sideDeckElement = doc.querySelector('#side-deck');
-  const sideDeck: DeckCard[] = [];
+  const sideDeck: DeckCardRef[] = [];
   if (sideDeckElement) {
     const rows = sideDeckElement.querySelectorAll('.card-row');
     rows.forEach((row) => {

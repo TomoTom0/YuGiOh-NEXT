@@ -1,26 +1,24 @@
 <template>
   <div class="card-list-wrapper">
-    <div class="floating-buttons">
-      <button
-        class="floating-btn"
-        @click="$emit('scroll-to-top')"
-        title="トップへ"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
-        </svg>
-      </button>
-      <button
-        v-if="showCollapseButton"
-        class="floating-btn"
-        @click="$emit('collapse')"
-        title="縮小"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M19,13H5V11H19V13Z" />
-        </svg>
-      </button>
-    </div>
+    <button
+      v-if="showCollapseButton"
+      class="floating-btn collapse-btn"
+      @click="$emit('collapse')"
+      title="縮小"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+      </svg>
+    </button>
+    <button
+      class="floating-btn scroll-top-btn"
+      @click="$emit('scroll-to-top')"
+      title="トップへ"
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
+      </svg>
+    </button>
     <div class="card-list-toolbar">
       <div class="toolbar-left">
         <div class="sort-wrapper">
@@ -32,6 +30,7 @@
             <option value="level">Lv/Rank</option>
             <option value="attribute">属性</option>
             <option value="race">種族</option>
+            <option v-if="showCodeSort" value="code">コード順</option>
           </select>
           <button class="sort-direction-btn" @click="toggleSortDirection" :title="sortDirection === 'asc' ? '昇順' : '降順'">
             <svg width="10" height="10" viewBox="0 0 24 24">
@@ -75,6 +74,7 @@
         v-for="(item, idx) in cardsWithUuid"
         :key="item.uuid"
         class="card-result-item"
+        :class="{ 'text-expanded': expandedCards.has(item.uuid) }"
       >
         <div class="card-wrapper">
           <DeckCard
@@ -87,23 +87,25 @@
         <div class="card-info" v-if="localViewMode === 'list'">
           <div class="card-name">{{ item.card.name }}</div>
           <div
-            v-if="item.card.text || item.card.pendulumEffect"
+            v-if="item.card.text || item.card.pendulumText"
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
-            @click="toggleCardExpand(item.uuid)"
-          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumEffect">
+            @click="toggleCardExpand(item.uuid, $event)"
+          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
 ------
 [Pendulum]
-{{ item.card.pendulumEffect }}</template></div>
+{{ item.card.pendulumText }}</template></div>
           <div class="card-stats">
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">
               <span class="stat-item attribute">{{ getAttributeLabel(item.card.attribute) }}</span>
-              <span class="stat-item race">{{ getRaceLabel(item.card.race) }}</span>
+              <span class="stat-item race" v-if="item.card.race">{{ getRaceLabel(item.card.race) }}</span>
               <span class="stat-item level">{{ getLevelLabel(item.card) }}</span>
               <span class="stat-item atk">ATK {{ item.card.atk ?? '?' }}</span>
               <span class="stat-item def" v-if="item.card.levelType !== 'link'">DEF {{ item.card.def ?? '?' }}</span>
-              <span class="stat-item type" v-for="type in item.card.types" :key="type">{{ getMonsterTypeLabel(type) }}</span>
+              <template v-for="type in item.card.types" :key="type">
+                <span class="stat-item type" v-if="type">{{ getMonsterTypeLabel(type) }}</span>
+              </template>
             </template>
             <!-- 魔法カード -->
             <template v-else-if="item.card.cardType === 'spell'">
@@ -121,8 +123,18 @@
 </template>
 
 <script>
-import { ref, watch, computed, reactive } from 'vue'
+import { ref, watch, computed, reactive, nextTick } from 'vue'
 import DeckCard from './DeckCard.vue'
+import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
+import {
+  getAttributeLabel,
+  getRaceLabel,
+  getMonsterTypeLabel,
+  getLevelLabel,
+  getSpellTypeLabel,
+  getTrapTypeLabel
+} from '@/utils/label-utils'
 
 export default {
   name: 'CardList',
@@ -153,10 +165,16 @@ export default {
     showCollapseButton: {
       type: Boolean,
       default: false
+    },
+    showCodeSort: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
   setup(props, { emit }) {
+    const deckStore = useDeckEditStore()
+    const settingsStore = useSettingsStore()
     const localViewMode = ref(props.viewMode)
 
     // 展開状態のカードUUIDセット
@@ -169,11 +187,30 @@ export default {
     const maxIndexMap = reactive(new Map())
 
     // カードテキストの展開/折りたたみ切り替え
-    const toggleCardExpand = (uuid) => {
+    const toggleCardExpand = async (uuid, event) => {
+      const textElement = event.currentTarget
+
       if (expandedCards.has(uuid)) {
+        // 折りたたみ: 実際の高さから制限された高さへ
+        const currentHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${currentHeight}px`
+
+        // reflow強制
+        textElement.offsetHeight
+
+        // CSS変数の値に戻す
+        textElement.style.maxHeight = null
         expandedCards.delete(uuid)
       } else {
+        // 展開: まず状態を更新
         expandedCards.add(uuid)
+
+        // DOM更新を待つ
+        await nextTick()
+
+        // 実際の高さを測定して設定
+        const targetHeight = textElement.scrollHeight
+        textElement.style.maxHeight = `${targetHeight}px`
       }
     }
 
@@ -239,6 +276,12 @@ export default {
             const cmp = (b.race || '').localeCompare(a.race || '')
             return cmp !== 0 ? cmp : getCid(b) - getCid(a)
           })
+        case 'code_asc':
+          // コード順（昇順）: 元の配列順序をそのまま使用
+          return sorted
+        case 'code_desc':
+          // コード順（逆順）: 元の配列順序を反転
+          return sorted.reverse()
         default:
           return sorted
       }
@@ -297,63 +340,6 @@ export default {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     }
 
-    // ラベル変換関数
-    const getAttributeLabel = (attr) => {
-      const labels = {
-        light: '光', dark: '闇', water: '水', fire: '炎',
-        earth: '地', wind: '風', divine: '神'
-      }
-      return labels[attr] || attr
-    }
-
-    const getRaceLabel = (race) => {
-      const labels = {
-        dragon: '龍', spellcaster: '魔法', warrior: '戦士', machine: '機械',
-        fiend: '悪魔', fairy: '天使', zombie: '不死', beast: '獣',
-        beastwarrior: '獣戦', plant: '植物', insect: '昆虫', aqua: '水',
-        fish: '魚', seaserpent: '海竜', reptile: '爬虫', dinosaur: '恐竜',
-        windbeast: '鳥獣', rock: '岩石', pyro: '炎', thunder: '雷',
-        psychic: '念動', wyrm: '幻竜', cyberse: '電脳', illusion: '幻想',
-        divine: '神獣', creatorgod: '創造'
-      }
-      return labels[race] || race
-    }
-
-    const getMonsterTypeLabel = (type) => {
-      const labels = {
-        normal: '通常', effect: '効果', fusion: '融合', ritual: '儀式',
-        synchro: 'シンクロ', xyz: 'エクシーズ', pendulum: 'ペンデュラム', link: 'リンク',
-        tuner: 'チューナー', flip: 'リバース', toon: 'トゥーン', spirit: 'スピリット',
-        union: 'ユニオン', gemini: 'デュアル', special: '特殊召喚'
-      }
-      return labels[type] || type
-    }
-
-    const getLevelLabel = (card) => {
-      const value = card.levelValue
-      switch (card.levelType) {
-        case 'level': return `Lv.${value}`
-        case 'rank': return `Rank ${value}`
-        case 'link': return `LINK-${value}`
-        default: return `Lv.${value}`
-      }
-    }
-
-    const getSpellTypeLabel = (effectType) => {
-      const labels = {
-        normal: '通常魔法', continuous: '永続魔法', equip: '装備魔法',
-        quickplay: '速攻魔法', field: 'フィールド魔法', ritual: '儀式魔法'
-      }
-      return labels[effectType] || '魔法'
-    }
-
-    const getTrapTypeLabel = (effectType) => {
-      const labels = {
-        normal: '通常罠', continuous: '永続罠', counter: 'カウンター罠'
-      }
-      return labels[effectType] || '罠'
-    }
-
     return {
       sortBase,
       sortDirection,
@@ -383,16 +369,20 @@ export default {
   position: relative;
 }
 
-.floating-buttons {
+.collapse-btn {
   position: sticky;
-  top: 8px;
-  left: 8px;
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-  z-index: 20;
-  margin: 0 0 -28px 8px;
-  width: 52px;
+  top: 4px;
+  left: 4px;
+  z-index: 5;
+  margin: 0 0 -28px 0;
+}
+
+.scroll-top-btn {
+  position: sticky;
+  top: 4px;
+  left: 40px;
+  z-index: 5;
+  margin: 0 0 -28px 0;
 }
 
 .floating-btn {
@@ -400,6 +390,7 @@ export default {
   height: 24px;
   border: 1px solid var(--border-primary);
   background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -413,6 +404,7 @@ export default {
     background: var(--bg-secondary);
     border-color: var(--border-secondary);
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    color: var(--text-primary);
   }
 
   svg {
@@ -448,7 +440,7 @@ export default {
   top: -4px;
   right: -8px;
   background: var(--text-secondary, #666);
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   min-width: 12px;
   height: 12px;
@@ -486,7 +478,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 3px;
   background: var(--bg-primary);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 
@@ -515,14 +507,14 @@ export default {
   padding: 0;
   border: none;
   border-radius: 4px;
-  background: transparent;
-  color: var(--text-tertiary);
+  background: var(--button-default-bg);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    background: var(--color-success-bg);
+    color: var(--text-primary);
   }
 
   &.active {
@@ -591,6 +583,10 @@ export default {
     /* グリッド表示用のCSS変数を使用 */
     width: var(--card-width-grid);
   }
+
+  &.text-expanded {
+    min-height: auto;
+  }
 }
 
 .card-wrapper {
@@ -635,21 +631,48 @@ export default {
   max-height: calc(var(--card-height-list) - 51px);
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
+  transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s ease;
+  will-change: max-height;
 
   &.clickable {
     cursor: pointer;
     border-radius: 4px;
     padding: 4px;
     margin: -4px;
+    position: relative;
+
+    // 展開可能インジケーター（右下三角フェード）
+    &:not(.expanded)::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 35px;
+      height: 35px;
+      background: var(--card-bg);
+      mask-image: linear-gradient(to top left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.8) 20%,
+        rgba(0, 0, 0, 0.4) 50%,
+        transparent 80%);
+      -webkit-mask-image: linear-gradient(to top left,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 0.8) 20%,
+        rgba(0, 0, 0, 0.4) 50%,
+        transparent 80%);
+      pointer-events: none;
+    }
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+
+      &:not(.expanded)::after {
+        background: var(--bg-secondary, #f5f5f5);
+      }
     }
   }
 
   &.expanded {
-    max-height: none;
     overflow: visible;
     background: var(--bg-secondary, #f5f5f5);
   }
@@ -669,23 +692,23 @@ export default {
   white-space: nowrap;
 
   &.attribute {
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--color-info-bg);
+    color: var(--color-info);
   }
 
   &.race {
-    background: #f3e5f5;
-    color: #7b1fa2;
+    background: var(--chip-race-bg);
+    color: var(--chip-race-text);
   }
 
   &.type {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
   }
 
   &.level {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.atk, &.def {
@@ -694,13 +717,13 @@ export default {
   }
 
   &.spell-type {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success);
   }
 
   &.trap-type {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
   }
 }
 

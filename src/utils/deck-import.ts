@@ -1,6 +1,8 @@
-import type { DeckInfo } from '@/types/deck';
+import type { DeckInfo, DeckCardRef } from '@/types/deck';
 import type { CardInfo } from '@/types/card';
 import { extractDeckInfoFromPNG } from './png-metadata';
+import { getTempCardDB } from './temp-card-db';
+import { detectLanguage } from './language-detector';
 
 /**
  * インポート結果
@@ -357,7 +359,8 @@ function parseImportRow(fields: string[], lineNumber: number, warnings: string[]
  */
 function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
   // cid:ciidごとにカードを集約
-  const cardMap = new Map<string, { section: 'main' | 'extra' | 'side'; card: CardInfo; quantity: number }>();
+  const cardMap = new Map<string, { section: 'main' | 'extra' | 'side'; cid: string; ciid: string; card: CardInfo; quantity: number }>();
+  const tempCardDB = getTempCardDB();
 
   for (const row of rows) {
     const key = `${row.section}:${row.cid}:${row.ciid}`;
@@ -384,6 +387,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         def: 0,
         cardId: row.cid,
         ciid: row.ciid,
+        lang: detectLanguage(document),
         name: row.name || `Card ${row.cid}`,
         imageUrl: '',
         effect: '',
@@ -391,23 +395,26 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         imgs
       } as CardInfo;
 
-      cardMap.set(key, { section: row.section, card, quantity: row.quantity });
+      cardMap.set(key, { section: row.section, cid: row.cid, ciid: row.ciid, card, quantity: row.quantity });
     }
   }
 
-  // セクションごとに分類
-  const mainDeck: { card: CardInfo; quantity: number }[] = [];
-  const extraDeck: { card: CardInfo; quantity: number }[] = [];
-  const sideDeck: { card: CardInfo; quantity: number }[] = [];
+  // セクションごとに分類し、TempCardDBに登録
+  const mainDeck: DeckCardRef[] = [];
+  const extraDeck: DeckCardRef[] = [];
+  const sideDeck: DeckCardRef[] = [];
 
-  for (const { section, card, quantity } of cardMap.values()) {
-    const entry = { card, quantity };
+  for (const { section, cid, ciid, card, quantity } of cardMap.values()) {
+    // TempCardDBに登録
+    tempCardDB.set(cid, card);
+
+    const ref: DeckCardRef = { cid, ciid, lang: detectLanguage(document), quantity };
     if (section === 'main') {
-      mainDeck.push(entry);
+      mainDeck.push(ref);
     } else if (section === 'extra') {
-      extraDeck.push(entry);
+      extraDeck.push(ref);
     } else if (section === 'side') {
-      sideDeck.push(entry);
+      sideDeck.push(ref);
     }
   }
 

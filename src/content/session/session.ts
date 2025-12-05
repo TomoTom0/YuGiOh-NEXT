@@ -1,11 +1,10 @@
-import axios from 'axios';
 import {
   createNewDeckInternal,
-  duplicateDeckInternal,
   saveDeckInternal,
   deleteDeckInternal,
   getDeckListInternal
 } from '@/api/deck-operations';
+import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 
 /**
@@ -21,20 +20,15 @@ class SessionManager {
    */
   private async ensureCgid(): Promise<string> {
     if (this.cgid) {
-      console.log('[SessionManager] Using cached cgid:', this.cgid.substring(0, 16) + '...');
       return this.cgid;
     }
 
-    console.log('[SessionManager] Fetching cgid from page...');
-
     // フッターの「マイデッキ」リンクからcgidを取得
     const mydeckLink = document.querySelector<HTMLAnchorElement>('a[href*="member_deck.action"][href*="cgid="]');
-
     if (mydeckLink) {
       const match = mydeckLink.href.match(/cgid=([a-f0-9]{32})/);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[SessionManager] ✅ cgid found from footer link');
         return this.cgid;
       }
     }
@@ -45,7 +39,6 @@ class SessionManager {
       const match = anyLink.href.match(/cgid=([a-f0-9]{32})/);
       if (match && match[1]) {
         this.cgid = match[1];
-        console.log('[SessionManager] ✅ cgid found from page link');
         return this.cgid;
       }
     }
@@ -55,28 +48,17 @@ class SessionManager {
 
   /**
    * ytknを取得（CSRFトークンのため毎回新規取得）
-   * 
+   *
    * @param cgid ユーザー識別子
    * @param dno デッキ番号
    * @param request_locale リクエストロケール（例: 'request_locale=ja'）
    * @returns ytkn、取得失敗時はnull
    */
-  private async fetchYtkn(cgid: string, dno: number, request_locale: string): Promise<string | null> {
-    const edit_url = `/yugiohdb/member_deck.action?ope=2&wname=MemberDeck&cgid=${cgid}&dno=${dno}&${request_locale}`;
-    
-    try {
-      const response = await axios.get(edit_url, { withCredentials: true });
-      const html = response.data;
-      
-      const parser = new DOMParser();
-      const htmlDoc = parser.parseFromString(html, 'text/html');
-      const ytkn_input = htmlDoc.querySelector('input#ytkn') as HTMLInputElement | null;
-      
-      return ytkn_input ? ytkn_input.value : null;
-    } catch (error) {
-      console.error('[SessionManager] Failed to fetch ytkn:', error);
-      return null;
-    }
+  private async fetchYtkn(cgid: string, dno: number, _request_locale: string): Promise<string | null> {
+    // 共通util関数を使用（buildApiUrl経由で自動で request_locale が付与される）
+    const { detectCardGameType } = await import('@/utils/page-detector');
+    const gameType = detectCardGameType();
+    return fetchYtknFromEditForm(cgid, dno, gameType);
   }
 
   /**
@@ -96,15 +78,16 @@ class SessionManager {
     return createNewDeckInternal(cgid);
   }
 
+
   /**
-   * デッキを複製
+   * デッキを削除
    *
-   * @param dno 複製元のデッキ番号
-   * @returns 新しいデッキ番号、失敗時は0
+   * @param dno デッキ番号
+   * @returns 成功時true、失敗時false
    */
-  async duplicateDeck(dno: number): Promise<number> {
+  async deleteDeck(dno: number): Promise<boolean> {
     const cgid = await this.ensureCgid();
-    return duplicateDeckInternal(cgid, dno);
+    return deleteDeckInternal(cgid, dno);
   }
 
   /**
@@ -122,22 +105,6 @@ class SessionManager {
       throw new Error('ytkn not found for saveDeck');
     }
     return saveDeckInternal(cgid, dno, deckData, ytkn);
-  }
-
-  /**
-   * デッキを削除
-   *
-   * @param dno デッキ番号
-   * @returns 操作結果
-   */
-  async deleteDeck(dno: number): Promise<OperationResult> {
-    const cgid = await this.ensureCgid();
-    // CSRFトークンは使い捨てのため毎回新規取得
-    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
-    if (!ytkn) {
-      throw new Error('ytkn not found for deleteDeck');
-    }
-    return deleteDeckInternal(cgid, dno, ytkn);
   }
 
   /**

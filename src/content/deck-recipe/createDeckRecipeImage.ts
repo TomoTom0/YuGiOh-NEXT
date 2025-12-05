@@ -11,9 +11,11 @@ import {
   CardSection
 } from '../../types/deck-recipe-image';
 import { getCardImageUrl } from '../../types/card';
-import QRCode from 'qrcode';
+// QRCodeは動的importに変更（画像作成時のみロード）
+// import QRCode from 'qrcode';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl } from '../../utils/url-builder';
+import { getTempCardDB } from '../../utils/temp-card-db';
 
 /**
  * デッキレシピ画像を作成する
@@ -64,11 +66,15 @@ export async function createDeckRecipeImage(
     return url;
   };
 
+  const tempCardDB = getTempCardDB();
+
   const sections: CardSection[] = [
     {
       name: 'main',
       displayName: 'メイン',
-      cardImages: data.mainDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.mainDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
@@ -76,7 +82,9 @@ export async function createDeckRecipeImage(
     {
       name: 'extra',
       displayName: 'エクストラ',
-      cardImages: data.extraDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.extraDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
@@ -84,7 +92,9 @@ export async function createDeckRecipeImage(
     {
       name: 'side',
       displayName: 'サイド',
-      cardImages: data.sideDeck.flatMap(({ card, quantity }) => {
+      cardImages: data.sideDeck.flatMap(({ cid, quantity }) => {
+        const card = tempCardDB.get(cid);
+        if (!card) return [];
         const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
         return url ? Array(quantity).fill(url) : [];
       })
@@ -136,12 +146,8 @@ export async function createDeckRecipeImage(
   }
 
   // 7. QRコード描画（includeQRがtrueの場合）
-  console.log('[QRCode Debug] includeQR:', includeQR, 'data.isPublic:', data.isPublic);
   if (includeQR) {
-    console.log('[QRCode Debug] Drawing QR code...');
     await drawQRCode(ctx, cgid, dno, drawSettings, data.isPublic ?? false);
-  } else {
-    console.log('[QRCode Debug] Skipping QR code (includeQR is false)');
   }
 
   // 8. タイムスタンプ描画
@@ -334,11 +340,16 @@ async function drawCardSection(
   try {
     let cardBackImg: any = null;
 
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-      // Chrome拡張機能環境
-      const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
-      cardBackImg = await loadImage(cardBackUrl, gamePath);
-    } else {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL && chrome.runtime.id) {
+      // Chrome拡張機能環境（コンテキストが有効な場合のみ）
+      try {
+        const cardBackUrl = chrome.runtime.getURL('images/card_back.png');
+        cardBackImg = await loadImage(cardBackUrl, gamePath);
+      } catch (error) {
+        // Extension context invalidatedエラーの場合は警告のみ表示
+        console.warn('Extension context invalidated, skipping card back image');
+      }
+    } else if (typeof chrome === 'undefined') {
       // Node.js環境 - ローカルファイルパスを使用
       const path = await import('path');
       const { fileURLToPath } = await import('url');
@@ -351,8 +362,8 @@ async function drawCardSection(
       ctx.drawImage(cardBackImg, 8 * scale, currentY + 9 * scale, 14 * scale, 17 * scale);
     }
   } catch (error) {
-    console.error('Failed to load card back image:', error);
-    // カードバック画像の読み込みに失敗しても処理は継続
+    // カードバック画像の読み込みに失敗しても処理は継続（警告のみ）
+    console.warn('Failed to load card back image:', error);
   }
 
   // 3. セクション名とカード数（旧実装: line 2013, 2034-2037）
@@ -405,9 +416,9 @@ async function drawCardSection(
  *
  * @param url - 画像URL
  * @param gamePath - ゲームパス（yugiohdb/rushdb）
- * @returns ロードされた画像
+ * @returns ロードされた画像（ブラウザではHTMLImageElement、Node.jsではCanvasImage）
  */
-async function loadImage(url: string, gamePath: string): Promise<any> {
+async function loadImage(url: string, gamePath: string): Promise<HTMLImageElement | any> {
   if (typeof document !== 'undefined') {
     // ブラウザ環境
     return new Promise((resolve, reject) => {
@@ -473,10 +484,11 @@ async function drawQRCode(
   const qrUrl = getDeckDisplayUrl(cgid, parseInt(dno), gameType);
 
   try {
-    console.log('[drawQRCode] isPublic:', isPublic, 'dno:', dno);
+    // QRCodeを動的import（QRコード生成時のみロード）
+    const QRCode = await import('qrcode');
 
     // QRコードを生成（Data URL形式）
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+    const qrDataUrl = await QRCode.default.toDataURL(qrUrl, {
       errorCorrectionLevel: QR_CODE_SETTINGS.correctLevel,
       width: QR_CODE_SETTINGS.size * scale,
       margin: 1,
@@ -500,11 +512,9 @@ async function drawQRCode(
       QR_CODE_SETTINGS.size * scale,
       QR_CODE_SETTINGS.size * scale
     );
-    console.log('[drawQRCode] QR code drawn at', x, y);
 
     // 非公開デッキの場合は「HIDDEN」と表示
     if (!isPublic) {
-      console.log('[drawQRCode] Drawing HIDDEN text over QR code');
       // 「HIDDEN」テキストを二重縁取り付きで描画
       const centerX = x + (QR_CODE_SETTINGS.size * scale) / 2;
       const centerY = y + (QR_CODE_SETTINGS.size * scale) / 2;

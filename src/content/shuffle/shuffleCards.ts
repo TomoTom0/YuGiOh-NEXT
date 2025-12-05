@@ -3,11 +3,14 @@
  */
 
 import { getSortfixedCards } from './sortfixCards';
+import { safeQuery } from '../../utils/safe-dom-query';
 
 /**
  * 元の順序を保存する変数
  */
-let originalOrder: Element[] | null = null;
+let originalOrderMain: Element[] | null = null;
+let originalOrderExtra: Element[] | null = null;
+let originalOrderSide: Element[] | null = null;
 
 /**
  * Fisher-Yatesアルゴリズムで配列をシャッフル
@@ -89,17 +92,25 @@ function applyFlipAnimation(
 }
 
 /**
- * メインデッキのカードをシャッフルする
+ * 指定されたデッキセクションのカードをシャッフルする
  */
-export function shuffleCards(): void {
-  const imageSet = document.querySelector('#deck_image #main.card_set div.image_set');
+function shuffleCardsBySection(sectionId: 'main' | 'extra' | 'side'): void {
+  const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
   if (!imageSet) {
     return;
   }
 
   // 元の順序を保存（初回のみ）
-  if (originalOrder === null) {
-    originalOrder = Array.from(imageSet.querySelectorAll(':scope > a'));
+  const originalOrderMap = { main: originalOrderMain, extra: originalOrderExtra, side: originalOrderSide };
+  if (originalOrderMap[sectionId] === null) {
+    const newOrder = Array.from(imageSet.querySelectorAll(':scope > a'));
+    if (sectionId === 'main') {
+      originalOrderMain = newOrder;
+    } else if (sectionId === 'extra') {
+      originalOrderExtra = newOrder;
+    } else {
+      originalOrderSide = newOrder;
+    }
   }
 
   // 現在のカード要素を取得
@@ -120,14 +131,16 @@ export function shuffleCards(): void {
 }
 
 /**
- * メインデッキのカードを元の順序に戻す
+ * 指定されたデッキセクションのカードを元の順序に戻す
  */
-export function sortCards(): void {
-  const imageSet = document.querySelector('#deck_image #main.card_set div.image_set');
+function sortCardsBySection(sectionId: 'main' | 'extra' | 'side'): void {
+  const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
   if (!imageSet) {
     return;
   }
 
+  const originalOrderMap = { main: originalOrderMain, extra: originalOrderExtra, side: originalOrderSide };
+  const originalOrder = originalOrderMap[sectionId];
   if (originalOrder === null) {
     return;
   }
@@ -141,5 +154,47 @@ export function sortCards(): void {
 
   // FLIPアニメーションを適用
   applyFlipAnimation(imageSet, newOrder);
+}
+
+/**
+ * メインデッキのカードをシャッフルする
+ */
+export function shuffleCards(): void {
+  shuffleCardsBySection('main');
+}
+
+/**
+ * メインデッキのカードを元の順序に戻す
+ */
+export function sortCards(): void {
+  sortCardsBySection('main');
+}
+
+/**
+ * エクストラデッキのカードをシャッフルする
+ */
+export function shuffleCardsExtra(): void {
+  shuffleCardsBySection('extra');
+}
+
+/**
+ * エクストラデッキのカードを元の順序に戻す
+ */
+export function sortCardsExtra(): void {
+  sortCardsBySection('extra');
+}
+
+/**
+ * サイドデッキのカードをシャッフルする
+ */
+export function shuffleCardsSide(): void {
+  shuffleCardsBySection('side');
+}
+
+/**
+ * サイドデッキのカードを元の順序に戻す
+ */
+export function sortCardsSide(): void {
+  sortCardsBySection('side');
 }
 

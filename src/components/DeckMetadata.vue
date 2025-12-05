@@ -1,124 +1,23 @@
 <template>
   <div class="deck-metadata">
     <!-- 1行目: 公開/非公開 + デッキタイプアイコン + Style + Tag + Cat -->
-    <div class="metadata-row row-main">
-      <div class="button-group">
-        <button
-          class="action-button public-button"
-          :class="{ 'is-public': localIsPublic }"
-          @click="togglePublicStatus"
-        >
-          <span class="text-bold">{{ localIsPublic ? '公開' : '非公開' }}</span>
-        </button>
-        <div class="deck-type-selector" ref="deckTypeSelector">
-        <button 
-          class="deck-type-button"
-          @click="toggleDeckTypeDropdown"
-        >
-          <div v-if="localDeckType === '-1'" class="deck-type-placeholder">type</div>
-          <svg v-else-if="localDeckType === '0'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-            <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
-            <polygon fill="#00204b" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
-            <path fill="#fff" d="M40.94,65.78l-26.7-5.67V81.47l26.7,6.17,21-6.17V29.07l-21,6.17Zm-3.34-33,24-8L32.26,19.56,10.9,25.74V54.6l26.7,5.67ZM67,85h33V47H81V38h19V24H67ZM81,61h5V71H81Zm23-37V85h33V24Zm19,47h-5V38h5Z"></path>
-          </svg>
-          <svg v-else-if="localDeckType === '1'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-            <rect fill="#6ec300" width="148" height="108" rx="11.25"></rect>
-            <polygon fill="#2a4a00" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
-            <path fill="#fff" d="M67,38H86V48H67V85h33V71H81V62h19V24H67Zm37-14V85h33V24Zm19,47h-5V38h5ZM37.6,32.74l24-8L32.26,19.56,10.9,25.74V54.6l26.7,5.67Zm3.34,33-26.7-5.67V81.47l26.7,6.17,21-6.17V29.07l-21,6.17Z"></path>
-          </svg>
-          <svg v-else-if="localDeckType === '2'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-            <rect fill="#00b9da" width="148" height="108" rx="11.25"></rect>
-            <path fill="#004c59" d="M101.37,66.88l-6.05-6V20h-23V33.3L58.74,20H7.85V89.85H58.74l14.14-14,13.72,14h39.81l13.24-15v-8Zm-50.92-6-5.76,6H30.82V42.93H44.69l5.76,5.75Z"></path>
-            <path fill="#fff" d="M97.37,70.88l-6.05-6V24h-15v47.3L90.6,85.85h31.81l13.24-15ZM11.85,24V85.85H54.74L69.42,71.26V38.35L54.74,24Zm42.6,40.88-5.76,6H26.82V38.93H48.69l5.76,5.75Z"></path>
-          </svg>
-          <svg v-else-if="localDeckType === '3'" class="deck-type-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-            <rect fill="#5c00da" width="148" height="108" rx="11.25"></rect>
-            <path fill="#2b0067" d="M120.12,16.12H63.72L43.56,45.4,23.39,16.12h-8v88.81h8L37,85H71.72L71.63,38h38.88v21h-8.46v-18H80.21V85h39.91c4.79,0,12.53-5.16,12.53-12.53V28.65C132.65,21.28,124.54,16.12,120.12,16.12Z"></path>
-            <path fill="#fff" d="M19.39,20.12v80.81L33,81V66.15L43.56,80.27l5.74-7.71L67.72,45.82V20.12L43.56,55.21ZM54.09,81H67.72V58L54.09,77.78Zm62-60.86H70.86l7,13.92h36.63v29H98.05v-18H84.21V81h31.91c4.79,0,12.53-5.16,12.53-12.53V32.65C128.65,25.28,120.54,20.12,116.12,20.12Z"></path>
-          </svg>
-        </button>
-        <Transition name="dropdown">
-          <div 
-            v-if="showDeckTypeDropdown" 
-            ref="deckTypeDropdown"
-            class="deck-type-dropdown"
-            :class="{ 'align-right': deckTypeDropdownAlignRight }"
-          >
-            <div class="deck-type-option" @click="selectDeckType('-1')">
-              <div class="deck-type-unset">未設定</div>
-            </div>
-            <div class="deck-type-option" @click="selectDeckType('0')">
-              <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-                <rect fill="#0053c3" width="148" height="108" rx="11.25"></rect>
-                <polygon fill="#00204b" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
-                <path fill="#fff" d="M40.94,65.78l-26.7-5.67V81.47l26.7,6.17,21-6.17V29.07l-21,6.17Zm-3.34-33,24-8L32.26,19.56,10.9,25.74V54.6l26.7,5.67ZM67,85h33V47H81V38h19V24H67ZM81,61h5V71H81Zm23-37V85h33V24Zm19,47h-5V38h5Z"></path>
-              </svg>
-              OCG（マスタールール）
-            </div>
-            <div class="deck-type-option" @click="selectDeckType('1')">
-              <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-                <rect fill="#6ec300" width="148" height="108" rx="11.25"></rect>
-                <polygon fill="#2a4a00" points="63 20 63 20.27 36.26 15.56 28.26 15.56 6.9 21.74 6.9 58.6 10.24 59.31 10.24 85.47 36.94 91.64 44.94 91.64 63 86.34 63 89 141 89 141 20 63 20"></polygon>
-                <path fill="#fff" d="M67,38H86V48H67V85h33V71H81V62h19V24H67Zm37-14V85h33V24Zm19,47h-5V38h5ZM37.6,32.74l24-8L32.26,19.56,10.9,25.74V54.6l26.7,5.67Zm3.34,33-26.7-5.67V81.47l26.7,6.17,21-6.17V29.07l-21,6.17Z"></path>
-              </svg>
-              OCG（スピードルール）
-            </div>
-            <div class="deck-type-option" @click="selectDeckType('2')">
-              <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-                <rect fill="#00b9da" width="148" height="108" rx="11.25"></rect>
-                <path fill="#004c59" d="M101.37,66.88l-6.05-6V20h-23V33.3L58.74,20H7.85V89.85H58.74l14.14-14,13.72,14h39.81l13.24-15v-8Zm-50.92-6-5.76,6H30.82V42.93H44.69l5.76,5.75Z"></path>
-                <path fill="#fff" d="M97.37,70.88l-6.05-6V24h-15v47.3L90.6,85.85h31.81l13.24-15ZM11.85,24V85.85H54.74L69.42,71.26V38.35L54.74,24Zm42.6,40.88-5.76,6H26.82V38.93H48.69l5.76,5.75Z"></path>
-              </svg>
-              デュエルリンクス
-            </div>
-            <div class="deck-type-option" @click="selectDeckType('3')">
-              <svg class="deck-type-icon-small" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 148 108">
-                <rect fill="#5c00da" width="148" height="108" rx="11.25"></rect>
-                <path fill="#2b0067" d="M120.12,16.12H63.72L43.56,45.4,23.39,16.12h-8v88.81h8L37,85H71.72L71.63,38h38.88v21h-8.46v-18H80.21V85h39.91c4.79,0,12.53-5.16,12.53-12.53V28.65C132.65,21.28,124.54,16.12,120.12,16.12Z"></path>
-                <path fill="#fff" d="M19.39,20.12v80.81L33,81V66.15L43.56,80.27l5.74-7.71L67.72,45.82V20.12L43.56,55.21ZM54.09,81H67.72V58L54.09,77.78Zm62-60.86H70.86l7,13.92h36.63v29H98.05v-18H84.21V81h31.91c4.79,0,12.53-5.16,12.53-12.53V32.65C128.65,25.28,120.54,20.12,116.12,20.12Z"></path>
-              </svg>
-              マスターデュエル
-            </div>
-          </div>
-        </Transition>
-      </div>
-
-      <div class="deck-style-selector" ref="deckStyleSelector">
-        <button
-          class="deck-style-button"
-          @click="toggleDeckStyleDropdown"
-        >
-          <span :class="{ 'text-bold': localDeckStyle !== '-1' }">{{ getDeckStyleLabel() }}</span>
-        </button>
-        <Transition name="dropdown">
-          <div 
-            v-if="showDeckStyleDropdown" 
-            ref="deckStyleDropdown"
-            class="deck-style-dropdown"
-            :class="{ 'align-right': deckStyleDropdownAlignRight }"
-          >
-            <div class="deck-style-option" @click="selectDeckStyle('0')">Character</div>
-            <div class="deck-style-option" @click="selectDeckStyle('1')">Tournament</div>
-            <div class="deck-style-option" @click="selectDeckStyle('2')">Concept</div>
-          </div>
-        </Transition>
-      </div>
-        <button
-          class="action-button tag-button"
-          @click="showTagDialog = true"
-        >Tag</button>
-        <button
-          class="action-button category-button"
-          @click="showCategoryDialog = true"
-        >Cat</button>
-    </div>
-    </div>
+    <DeckMetadataHeader
+      :is-public="localIsPublic"
+      :deck-type="localDeckType"
+      :deck-style="localDeckStyle"
+      @toggle-public="togglePublicStatus"
+      @select-deck-type="selectDeckType"
+      @select-deck-style="selectDeckStyle"
+      @show-tag-dialog="showTagDialog = true"
+      @show-category-dialog="showCategoryDialog = true"
+    />
 
     <!-- ダイアログコンポーネント -->
     <TagDialog
       :model-value="localTags"
       :is-visible="showTagDialog"
       :tags="tagList"
+      :deck-cards="allDeckCards"
       @update:model-value="updateTags"
       @close="showTagDialog = false"
     />
@@ -127,59 +26,41 @@
       :model-value="localCategory"
       :is-visible="showCategoryDialog"
       :categories="categories"
+      :deck-cards="allDeckCards"
       @update:model-value="updateCategories"
       @close="showCategoryDialog = false"
     />
 
     <!-- 3行目: タグとカテゴリのチップ表示 -->
-    <div class="metadata-row chips-row">
-      <div class="chips-container">
-        <span
-          v-for="tagId in localTags"
-          :key="'tag-' + tagId"
-          class="chip tag-chip"
-          :data-type="getTagType(tagId)"
-        >
-          {{ tags[tagId] }}
-          <button class="chip-remove" @click="removeTag(tagId)">×</button>
-        </span>
-        <span
-          v-for="catId in localCategory"
-          :key="'cat-' + catId"
-          class="chip category-chip"
-        >
-          {{ getCategoryLabel(catId) }}
-          <button class="chip-remove" @click="removeCategory(catId)">×</button>
-        </span>
-      </div>
-    </div>
+    <DeckMetadataTags
+      :model-tags="localTags"
+      :model-categories="localCategory"
+      :tags="tags"
+      :categories="categories"
+      @remove-tag="removeTag"
+      @remove-category="removeCategory"
+    />
 
     <!-- 4行目: デッキ説明 -->
-    <div class="description-section">
-      <div class="description-header">
-        <label class="metadata-label">説明</label>
-        <span class="char-count">{{ localComment.length }}/1000</span>
-      </div>
-      <textarea
-        v-model="localComment"
-        class="metadata-textarea"
-        :maxlength="1000"
-        placeholder="デッキの説明を入力..."
-        @input="updateComment"
-      ></textarea>
-    </div>
+    <DeckMetadataDescription
+      v-model="localComment"
+      @update:model-value="updateComment"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 import type { CategoryEntry } from '../types/dialog';
-import { getMonsterTypeFromLabel } from '../constants/tag-master-data';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
+import DeckMetadataDescription from './DeckMetadataDescription.vue';
+import DeckMetadataTags from './DeckMetadataTags.vue';
+import DeckMetadataHeader from './DeckMetadataHeader.vue';
+import { getTempCardDB } from '../utils/temp-card-db';
 
 const deckStore = useDeckEditStore();
 
@@ -199,45 +80,39 @@ const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
 
 // ダイアログ表示状態
-const showDeckTypeDropdown = ref(false);
-const showDeckStyleDropdown = ref(false);
 const showCategoryDialog = ref(false);
 const showTagDialog = ref(false);
 
-// ドロップダウン位置調整
-const deckTypeDropdownAlignRight = ref(false);
-const deckStyleDropdownAlignRight = ref(false);
-
-// DOM参照
-const deckTypeSelector = ref<HTMLElement | null>(null);
-const deckTypeDropdown = ref<HTMLElement | null>(null);
-const deckStyleSelector = ref<HTMLElement | null>(null);
-const deckStyleDropdown = ref<HTMLElement | null>(null);
+// デッキ内の全カード情報を取得
+const allDeckCards = computed(() => {
+  const cards: any[] = [];
+  const tempCardDB = getTempCardDB();
+  
+  // mainDeck, extraDeck, sideDeckからカードIDを取得
+  const allCardRefs = [
+    ...deckStore.deckInfo.mainDeck,
+    ...deckStore.deckInfo.extraDeck,
+    ...deckStore.deckInfo.sideDeck
+  ];
+  
+  // 重複を除いてCardInfoを取得
+  const uniqueCardIds = new Set(allCardRefs.map(ref => ref.cid));
+  for (const cid of uniqueCardIds) {
+    const cardInfo = tempCardDB.get(cid);
+    if (cardInfo) {
+      cards.push(cardInfo);
+    }
+  }
+  
+  return cards;
+});
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {
   const metadata = await getDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
-  
-  // 外クリックでドロップダウンを閉じる
-  document.addEventListener('click', handleClickOutside);
 });
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
-});
-
-// 外クリックでドロップダウンを閉じる
-function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement;
-  if (!target.closest('.deck-type-selector')) {
-    showDeckTypeDropdown.value = false;
-  }
-  if (!target.closest('.deck-style-selector')) {
-    showDeckStyleDropdown.value = false;
-  }
-}
 
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
@@ -255,85 +130,18 @@ function togglePublicStatus() {
   deckStore.deckInfo.isPublic = localIsPublic.value;
 }
 
-// デッキタイプ・スタイルドロップダウンの右寄せ調整
-async function adjustAlignRight(
-  selector: HTMLElement | null,
-  dropdown: HTMLElement | null,
-  alignRightRef: { value: boolean }
-) {
-  if (!selector || !dropdown) return;
-  
-  await nextTick();
-  setTimeout(() => {
-    const rect = selector.getBoundingClientRect();
-    const dropdownRect = dropdown.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    
-    // 右端からはみ出る場合
-    if (rect.left + dropdownRect.width > viewportWidth) {
-      alignRightRef.value = true;
-    } else {
-      alignRightRef.value = false;
-    }
-  }, 10);
-}
-
-function toggleDeckTypeDropdown() {
-  showDeckTypeDropdown.value = !showDeckTypeDropdown.value;
-  if (showDeckTypeDropdown.value) {
-    adjustAlignRight(
-      deckTypeSelector.value,
-      deckTypeDropdown.value,
-      deckTypeDropdownAlignRight
-    );
-  }
-}
-
-function toggleDeckStyleDropdown() {
-  showDeckStyleDropdown.value = !showDeckStyleDropdown.value;
-  if (showDeckStyleDropdown.value) {
-    adjustAlignRight(
-      deckStyleSelector.value,
-      deckStyleDropdown.value,
-      deckStyleDropdownAlignRight
-    );
-  }
-}
-
 function selectDeckType(value: string) {
   localDeckType.value = value as DeckTypeValue;
   deckStore.deckInfo.deckType = localDeckType.value;
-  showDeckTypeDropdown.value = false;
 }
 
 function selectDeckStyle(value: string) {
   localDeckStyle.value = value as DeckStyleValue;
   deckStore.deckInfo.deckStyle = localDeckStyle.value;
-  showDeckStyleDropdown.value = false;
-}
-
-function getDeckStyleLabel() {
-  if (localDeckStyle.value === '-1') return 'Style';
-  if (localDeckStyle.value === '0') return 'Chara';
-  if (localDeckStyle.value === '1') return 'Tourn';
-  if (localDeckStyle.value === '2') return 'Concep';
-  return 'Style';
 }
 
 function updateComment() {
   deckStore.deckInfo.comment = localComment.value;
-}
-
-// カテゴリラベルを取得
-function getCategoryLabel(catId: string): string {
-  const category = categories.value.find(c => c.value === catId);
-  return category?.label || catId;
-}
-
-function getTagType(tagId: string): string {
-  const tagLabel = tags.value[tagId];
-  if (!tagLabel) return '';
-  return getMonsterTypeFromLabel(tagLabel);
 }
 
 // ダイアログからの更新（循環参照を防ぐため直接更新）
@@ -371,8 +179,8 @@ function removeTag(tagId: string) {
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  background: white;
-  color: #333;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -424,10 +232,10 @@ function removeTag(tagId: string) {
 .action-button {
   height: 24px;
   padding: 0 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: white;
-  color: #333;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 11px;
   transition: all 0.2s;
@@ -436,12 +244,12 @@ function removeTag(tagId: string) {
   justify-content: center;
 
   &:hover {
-    border-color: #999;
-    background: #f9f9f9;
+    border-color: var(--text-tertiary);
+    background: var(--bg-secondary);
   }
 
   &:active {
-    background: #f0f0f0;
+    background: var(--bg-tertiary);
   }
 }
 
@@ -472,86 +280,86 @@ function removeTag(tagId: string) {
 }
 
 .public-button {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef5350;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error);
   border-radius: 12px;
   font-weight: 500;
   min-width: 44px;
 
   &:hover {
-    background: #ffcdd2;
-    border-color: #e53935;
+    background: var(--color-error-hover-bg);
+    border-color: var(--color-error);
   }
 
   &:active {
-    background: #ef9a9a;
+    background: var(--color-error);
   }
 
   &.is-public {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border-color: #66bb6a;
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border-color: var(--color-success);
 
     &:hover {
-      background: #c8e6c9;
-      border-color: #4caf50;
+      background: var(--color-success-hover-bg);
+      border-color: var(--color-success);
     }
 
     &:active {
-      background: #a5d6a7;
+      background: var(--color-success);
     }
   }
 }
 
 .tag-button {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
   border-radius: 12px;
   font-weight: 500;
   
   &:hover {
-    background: #c8e6c9;
-    border-color: #4caf50;
+    background: var(--color-success-hover-bg);
+    border-color: var(--color-success);
   }
   
   &:active {
-    background: #a5d6a7;
+    background: var(--color-success);
   }
 }
 
 .category-button {
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
   border-radius: 12px;
   font-weight: 500;
   
   &:hover {
-    background: #ffe0b2;
-    border-color: #f57c00;
+    background: var(--color-warning-hover-bg);
+    border-color: var(--color-warning);
   }
   
   &:active {
-    background: #ffcc80;
+    background: var(--color-warning);
   }
 }
 
 .deck-style-button {
-  background: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #42a5f5;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
   border-radius: 12px;
   font-weight: 500;
   
   &:hover {
-    background: #bbdefb;
-    border-color: #1976d2;
+    background: var(--color-info-hover-bg);
+    border-color: var(--color-info);
   }
   
   &:active {
-    background: #90caf9;
+    background: var(--color-info);
   }
 }
 
@@ -564,11 +372,11 @@ function removeTag(tagId: string) {
 
 .deck-type-placeholder {
   font-size: 10px;
-  color: #999;
+  color: var(--text-tertiary);
   padding: 0 4px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 3px;
-  background: white;
+  background: var(--bg-primary);
   height: 20px;
   display: flex;
   align-items: center;
@@ -580,7 +388,7 @@ function removeTag(tagId: string) {
 
 .deck-type-unset {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   padding: 0 8px;
 }
 
@@ -606,69 +414,94 @@ function removeTag(tagId: string) {
 }
 
 .chip.tag-chip {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #66bb6a;
-}
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 
-.chip.tag-chip:hover {
-  background: #c8e6c9;
-  border-color: #4caf50;
-}
+  &:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 
-.chip.tag-chip[data-type="fusion"] {
-  background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-  color: #4a148c;
-  border-color: #ba68c8;
-}
+  &[data-type="fusion"] {
+    background: var(--monster-fusion-bg);
+    color: var(--monster-fusion-badge-text);
+    border-color: var(--monster-fusion-border);
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
 
-.chip.tag-chip[data-type="synchro"] {
-  background: 
-    repeating-linear-gradient(
-      135deg,
-      transparent,
-      transparent 8px,
-      rgba(158, 158, 158, 0.12) 8px,
-      rgba(158, 158, 158, 0.12) 9px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  color: #424242;
-  border-color: #9e9e9e;
-}
+    &:hover {
+      filter: brightness(0.9);
+      box-shadow: 0 2px 6px rgba(156, 39, 176, 0.5);
+    }
+  }
 
-.chip.tag-chip[data-type="xyz"] {
-  background: linear-gradient(135deg, #616161 0%, #424242 100%);
-  color: #fff;
-  border-color: #757575;
-}
+  &[data-type="synchro"] {
+    background: var(--monster-synchro-bg);
+    color: var(--monster-synchro-badge-text);
+    border-color: var(--monster-synchro-border);
+    font-weight: 600;
 
-.chip.tag-chip[data-type="link"] {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #0d47a1;
-  border-color: #64b5f6;
-}
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
 
-.chip.tag-chip[data-type="ritual"] {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  color: #006064;
-  border-color: #4dd0e1;
-}
+  &[data-type="xyz"] {
+    background: var(--monster-xyz-active);
+    color: var(--monster-xyz-badge-text);
+    border-color: var(--monster-xyz-active-border);
+    font-weight: 600;
 
-.chip.tag-chip[data-type="pendulum"] {
-  background: linear-gradient(180deg, #ffb74d 0%, #ffb74d 35%, #4db6ac 65%, #4db6ac 100%);
-  color: #4a148c;
-  border-color: #ff9800;
+    &:hover {
+      filter: brightness(0.9);
+    }
+  }
+
+  &[data-type="link"] {
+    background: var(--monster-link-bg);
+    color: var(--monster-link-badge-text);
+    border-color: var(--monster-link-border);
+    font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
+
+  &[data-type="ritual"] {
+    background: var(--monster-ritual-bg);
+    color: var(--monster-ritual-badge-text);
+    border-color: var(--monster-ritual-border);
+    font-weight: 600;
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
+
+  &[data-type="pendulum"] {
+    background: var(--monster-pendulum-bg);
+    color: var(--monster-pendulum-badge-text);
+    border-color: var(--monster-pendulum-border);
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+    &:hover {
+      filter: brightness(0.95);
+    }
+  }
 }
 
 .chip.category-chip {
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .chip.category-chip:hover {
-  background: #ffe0b2;
-  border-color: #f57c00;
+  background: var(--color-warning-hover-bg);
+  border-color: var(--color-warning);
 }
 
 .chip-remove {
@@ -693,8 +526,8 @@ function removeTag(tagId: string) {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 1000;
@@ -711,8 +544,8 @@ function removeTag(tagId: string) {
 .tag-dialog,
 .category-dialog {
   position: fixed;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   z-index: 10000;
@@ -733,8 +566,8 @@ function removeTag(tagId: string) {
 
 .filter-button {
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
@@ -747,12 +580,12 @@ function removeTag(tagId: string) {
     display: block;
     
     path {
-      fill: #333;
+      fill: var(--text-primary);
     }
   }
   
   &:hover {
-    background: #e8e8e8;
+    background: var(--bg-tertiary);
   }
 }
 
@@ -760,7 +593,7 @@ function removeTag(tagId: string) {
   flex: 1;
   display: flex;
   align-items: center;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   overflow: hidden;
   
@@ -775,19 +608,19 @@ function removeTag(tagId: string) {
   border: none;
   font-size: 12px;
   outline: none;
-  background: white;
-  color: #333;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   
   &:focus {
-    background: #f9f9f9;
+    background: var(--bg-secondary);
   }
 }
 
 .search-button {
   padding: 6px 12px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border: none;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border-primary);
   cursor: pointer;
   font-size: 14px;
   display: flex;
@@ -798,12 +631,12 @@ function removeTag(tagId: string) {
     display: block;
     
     path {
-      fill: #333;
+      fill: var(--text-primary);
     }
   }
   
   &:hover {
-    background: #e8e8e8;
+    background: var(--bg-tertiary);
   }
 }
 
@@ -813,7 +646,7 @@ function removeTag(tagId: string) {
   gap: 6px;
   min-height: 24px;
   padding: 6px;
-  background: #f9f9f9;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
@@ -831,16 +664,16 @@ function removeTag(tagId: string) {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #e8f0fe;
-  border: 1px solid #c5d9f7;
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-bg);
   border-radius: 4px;
   font-size: 11px;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
   
   &.selected {
     background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-    color: white;
+    color: var(--button-text);
     border-color: transparent;
   }
   
@@ -857,7 +690,7 @@ function removeTag(tagId: string) {
 .dialog-chip-remove {
   background: none;
   border: none;
-  color: white;
+  color: var(--button-text);
   cursor: pointer;
   padding: 0;
   width: 14px;
@@ -879,14 +712,14 @@ function removeTag(tagId: string) {
   padding: 10px 14px;
   cursor: pointer;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
+  background: var(--bg-primary);
   
   &:hover {
-    background: #f5f5f5;
+    background: var(--bg-secondary);
   }
   
   input[type="checkbox"] {
@@ -905,19 +738,19 @@ function removeTag(tagId: string) {
   width: 100%;
   padding: 10px;
   border: none;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-primary);
   font-size: 13px;
-  color: #333;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   box-sizing: border-box;
   
   &:focus {
     outline: none;
-    background: #f9f9f9;
+    background: var(--bg-secondary);
   }
   
   &::placeholder {
-    color: #999;
+    color: var(--text-tertiary);
   }
 }
 
@@ -965,13 +798,13 @@ function removeTag(tagId: string) {
 .metadata-label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   text-align: left;
 }
 
 .char-count {
   font-size: 12px;
-  color: #999;
+  color: var(--text-tertiary);
   text-align: right;
 }
 
@@ -979,12 +812,12 @@ function removeTag(tagId: string) {
   width: 100%;
   max-width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
   font-size: 14px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: #333;
-  background: white;
+  color: var(--text-primary);
+  background: var(--bg-primary);
   resize: none;
   flex: 1;
   min-height: 0;
@@ -1000,11 +833,48 @@ function removeTag(tagId: string) {
   }
   
   &:hover {
-    border-color: #999;
+    border-color: var(--text-tertiary);
   }
   
   &::placeholder {
-    color: #aaa;
+    color: var(--text-tertiary);
+  }
+}
+
+/* ダークモード用: 背景色グラデーションのみ変更 */
+:global(.dark-theme) {
+  .tag-chip {
+    &[data-type="fusion"] {
+      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
+    }
+
+    &[data-type="synchro"] {
+      background:
+        repeating-linear-gradient(
+          135deg,
+          transparent,
+          transparent 8px,
+          rgba(255, 255, 255, 0.12) 8px,
+          rgba(255, 255, 255, 0.12) 9px
+        ),
+        linear-gradient(135deg, #757575 0%, #616161 100%);
+    }
+
+    &[data-type="xyz"] {
+      background: linear-gradient(135deg, #616161 0%, #424242 100%);
+    }
+
+    &[data-type="link"] {
+      background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
+    }
+
+    &[data-type="ritual"] {
+      background: linear-gradient(135deg, #0097a7 0%, #00838f 100%);
+    }
+
+    &[data-type="pendulum"] {
+      background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
+    }
   }
 }
 </style>

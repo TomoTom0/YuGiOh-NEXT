@@ -77,27 +77,27 @@ export default {
   padding: 14px 18px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: white;
+  background: var(--toast-bg);
   border-left: 4px solid;
 
   &.success {
-    border-left-color: #4CAF50;
-    background: #f1f8f4;
+    border-left-color: var(--color-success);
+    background: var(--toast-success-bg);
   }
 
   &.error {
-    border-left-color: #f44336;
-    background: #fef1f0;
+    border-left-color: var(--color-error);
+    background: var(--toast-error-bg);
   }
 
   &.warning {
-    border-left-color: #ff9800;
-    background: #fff8f0;
+    border-left-color: var(--color-warning);
+    background: var(--toast-warning-bg);
   }
 
   &.info {
-    border-left-color: #2196F3;
-    background: #f0f7ff;
+    border-left-color: var(--color-info);
+    background: var(--toast-info-bg);
   }
 }
 
@@ -113,25 +113,25 @@ export default {
   flex-shrink: 0;
 
   .success & {
-    color: #4CAF50;
+    color: var(--color-success);
   }
 
   .error & {
-    color: #f44336;
+    color: var(--color-error);
   }
 
   .warning & {
-    color: #ff9800;
+    color: var(--color-warning);
   }
 
   .info & {
-    color: #2196F3;
+    color: var(--color-info);
   }
 }
 
 .toast-message {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.4;
 }
 

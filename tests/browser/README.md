@@ -107,6 +107,27 @@ node tests/browser/test-lock.js
 node tests/browser/test-dialog.js
 ```
 
+### `test-scroll-to-top.js`
+
+scroll-to-top機能の動作確認テストです。
+
+**確認項目**:
+1. search tabでのscroll-to-top動作
+   - カード検索後、スクロール可能であることを確認
+   - scroll-to-topボタンをクリックしてトップに戻ること
+2. related tabでのscroll-to-top動作
+   - 関連カードが多いカード（ブラック・マジシャン）で確認
+   - scroll-to-topボタンをクリックしてトップに戻ること
+3. products tabでのscroll-to-top動作
+   - パック展開後、scroll-to-topボタンをクリックしてトップに戻ること
+
+**実行方法**:
+```bash
+node tests/browser/test-scroll-to-top.js
+```
+
+**詳細**: [README-scroll-to-top.md](./README-scroll-to-top.md) を参照
+
 ## テスト対象URL
 
 すべてのテストは以下の公開デッキURLでテストを実行します（認証不要）：
@@ -123,7 +144,8 @@ https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDec
 node tests/browser/test-buttons.js && \
 node tests/browser/test-shuffle.js && \
 node tests/browser/test-lock.js && \
-node tests/browser/test-dialog.js
+node tests/browser/test-dialog.js && \
+node tests/browser/test-scroll-to-top.js
 ```
 
 ## トラブルシューティング

@@ -159,23 +159,23 @@ onMounted(() => {
 
 <style scoped>
 .deck-edit-settings {
-  background: white;
+  background: var(--bg-primary);
   padding: 20px;
   border-radius: 8px;
   max-width: 800px;
 }
 
 .desc {
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 24px;
 }
 
 .settings-group {
   margin-bottom: 32px;
   padding: 16px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
-  background: #f6f8fa;
+  background: var(--bg-secondary);
 }
 
 .settings-group.disabled {
@@ -185,7 +185,7 @@ onMounted(() => {
 .settings-group h3 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: #24292e;
+  color: var(--text-primary);
 }
 
 .setting-item {
@@ -200,7 +200,7 @@ onMounted(() => {
   display: block;
   margin-bottom: 6px;
   font-weight: 600;
-  color: #24292e;
+  color: var(--text-primary);
 }
 
 .checkbox-label {
@@ -223,27 +223,27 @@ onMounted(() => {
   width: 100%;
   max-width: 300px;
   padding: 8px 12px;
-  border: 1px solid #d1d5da;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
-  background: white;
+  background: var(--bg-primary);
   font-size: 14px;
 }
 
 .setting-item select:disabled {
-  background: #f6f8fa;
+  background: var(--bg-secondary);
   cursor: not-allowed;
 }
 
 .setting-desc {
   margin: 6px 0 0 0;
   font-size: 13px;
-  color: #586069;
+  color: var(--text-secondary);
 }
 
 .setting-note {
   margin: 0;
   font-size: 13px;
-  color: #0366d6;
+  color: var(--color-info);
   font-style: italic;
 }
 
@@ -252,15 +252,15 @@ onMounted(() => {
   gap: 12px;
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid #e1e4e8;
+  border-top: 1px solid var(--border-primary);
 }
 
 button {
   padding: 10px 20px;
-  border: 1px solid #d1d5da;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
-  background: white;
-  color: #24292e;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -268,8 +268,8 @@ button {
 }
 
 button:hover:not(:disabled) {
-  background: #f6f8fa;
-  border-color: #959da5;
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
 }
 
 button:disabled {
@@ -278,27 +278,27 @@ button:disabled {
 }
 
 button.primary {
-  background: #2ea44f;
-  color: white;
-  border-color: #2ea44f;
+  background: var(--color-success);
+  color: var(--button-text);
+  border-color: var(--color-success);
 }
 
 button.primary:hover:not(:disabled) {
-  background: #2c974b;
-  border-color: #2c974b;
+  background: var(--color-success-hover);
+  border-color: var(--color-success-hover);
 }
 
 .message {
   margin-top: 16px;
   padding: 12px 16px;
   border-radius: 6px;
-  background: #d1f4e0;
-  color: #0f5132;
+  background: var(--color-success-bg);
+  color: var(--color-success);
   font-size: 14px;
 }
 
 .message.error {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 </style>

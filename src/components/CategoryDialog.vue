@@ -17,54 +17,61 @@
               <span class="chip-remove">×</span>
             </span>
           </div>
+          <!-- クリアボタン（選択済みチップがある場合のみ表示） -->
+          <button v-if="selectedCategories.length > 0" class="btn-icon btn-clear-action" @click="clearAll" title="Clear All">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
           <button class="close-btn" @click="close" title="Close">×</button>
         </div>
       </div>
 
-      <!-- フィルタタブとアクションボタン -->
-      <div class="filter-and-actions">
-        <div class="action-buttons-left">
-          <button class="btn btn-icon" @click="onFilterClick" title="Filter">
-            <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
-            </svg>
+      <!-- 検索行 -->
+      <div class="search-row">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          placeholder="Search categories..."
+        />
+        <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="onFilterClick" title="Filter (7枚超え)">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- タブ -->
+      <div class="filter-tabs">
+        <div class="tab-row">
+          <button
+            class="tab-btn"
+            :class="{ active: selectedGroup === 'all' }"
+            @click="selectedGroup = 'all'"
+          >
+            all
           </button>
-          <button class="btn btn-icon" @click="clearAll" title="Clear All">
-            <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
-            </svg>
+          <button
+            v-for="group in firstRowGroups"
+            :key="group"
+            class="tab-btn"
+            :class="{ active: selectedGroup === group }"
+            @click="selectedGroup = group"
+          >
+            {{ group.replace('ruby_', '') }}
           </button>
         </div>
-        <div class="filter-tabs">
-          <div class="tab-row">
-            <button
-              class="tab-btn"
-              :class="{ active: selectedGroup === 'all' }"
-              @click="selectedGroup = 'all'"
-            >
-              all
-            </button>
-            <button
-              v-for="group in firstRowGroups"
-              :key="group"
-              class="tab-btn"
-              :class="{ active: selectedGroup === group }"
-              @click="selectedGroup = group"
-            >
-              {{ group.replace('ruby_', '') }}
-            </button>
-          </div>
-          <div class="tab-row">
-            <button
-              v-for="group in secondRowGroups"
-              :key="group"
-              class="tab-btn"
-              :class="{ active: selectedGroup === group }"
-              @click="selectedGroup = group"
-            >
-              {{ group.replace('ruby_', '') }}
-            </button>
-          </div>
+        <div class="tab-row">
+          <button
+            v-for="group in secondRowGroups"
+            :key="group"
+            class="tab-btn"
+            :class="{ active: selectedGroup === group }"
+            @click="selectedGroup = group"
+          >
+            {{ group.replace('ruby_', '') }}
+          </button>
         </div>
       </div>
 
@@ -96,6 +103,7 @@ const props = defineProps<{
     group: string[];
   }>;
   modelValue: string[];
+  deckCards: any[];
 }>();
 
 const emit = defineEmits<{
@@ -105,6 +113,16 @@ const emit = defineEmits<{
 
 const selectedCategories = ref<string[]>([...props.modelValue]);
 const selectedGroup = ref<string>('all');
+const isFilterEnabled = ref<boolean>(false);
+const searchQuery = ref<string>('');
+
+// ダイアログが開かれた時にフィルタをリセット
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    isFilterEnabled.value = false;
+    searchQuery.value = '';
+  }
+});
 
 // タブグループ（二行表示用）
 const firstRowGroups = ['ruby_ア', 'ruby_カ', 'ruby_サ', 'ruby_タ', 'ruby_ナ'];
@@ -125,16 +143,45 @@ const rowToCharsMap: Record<string, string[]> = {
   'ruby_ヴ': ['ruby_ヴ']
 };
 
+// カテゴリ名を含むカードの総数（実枚数）をカウント
+function countCardsWithCategory(categoryLabel: string): number {
+  return props.deckCards.reduce((count, card) => {
+    const cardAny = card as any;
+    const cardName = card.name || '';
+    const cardText = cardAny.text || '';
+    if (cardName.includes(categoryLabel) || cardText.includes(categoryLabel)) {
+      return count + (card.count || 1);
+    }
+    return count;
+  }, 0);
+}
+
 // フィルタされたカテゴリ
 const filteredCategories = computed(() => {
-  if (selectedGroup.value === 'all') {
-    return props.categories;
+  let categories = props.categories;
+  
+  // グループフィルタ
+  if (selectedGroup.value !== 'all') {
+    const chars = rowToCharsMap[selectedGroup.value] || [selectedGroup.value];
+    categories = categories.filter(cat =>
+      cat.group.some(g => chars.includes(g))
+    );
   }
-  // 選択された行に属する全ての文字にマッチ
-  const chars = rowToCharsMap[selectedGroup.value] || [selectedGroup.value];
-  return props.categories.filter(cat =>
-    cat.group.some(g => chars.includes(g))
-  );
+  
+  // 検索フィルタ
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase();
+    categories = categories.filter(cat => cat.label.toLowerCase().includes(query));
+  }
+  
+  // カテゴリ名フィルタ: 7枚超えのみ表示
+  if (isFilterEnabled.value) {
+    categories = categories.filter(cat => 
+      countCardsWithCategory(cat.label) > 7
+    );
+  }
+  
+  return categories;
 });
 
 // カテゴリラベルを取得
@@ -162,10 +209,9 @@ function clearAll(): void {
   emit('update:modelValue', []);
 }
 
-// フィルタボタン（後で実装）
+// フィルタボタン
 function onFilterClick(): void {
-  console.log('Filter button clicked');
-  // TODO: フィルタ機能を実装
+  isFilterEnabled.value = !isFilterEnabled.value;
 }
 
 // 閉じる
@@ -186,7 +232,7 @@ watch(() => props.modelValue, (newVal) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,9 +240,9 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-dialog {
-  background: var(--bg-color, #fff);
+  background: var(--dialog-bg);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   width: 90%;
   max-width: 600px;
   height: 80vh;
@@ -209,7 +255,7 @@ watch(() => props.modelValue, (newVal) => {
   width: 100%;
   padding: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  border-bottom: 1px solid var(--border-primary);
   flex-shrink: 0;
   box-sizing: border-box;
 }
@@ -224,7 +270,7 @@ watch(() => props.modelValue, (newVal) => {
 .dialog-header h3 {
   margin: 0;
   font-size: 18px;
-  color: var(--text-color, #333);
+  color: var(--text-color, var(--text-primary));
   flex-shrink: 0;
 }
 
@@ -232,11 +278,45 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: 28px;
   align-items: center;
   overflow-y: auto;
   flex: 1;
   max-height: 56px;
+}
+
+.btn-clear-action {
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
+}
+
+.btn-clear-action:hover {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error-text);
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-color, var(--text-primary));
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--button-bg);
+  box-shadow: 0 0 0 2px rgba(var(--button-bg-rgb, 25, 118, 210), 0.1);
 }
 
 .category-chip {
@@ -244,9 +324,9 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ff9800;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
@@ -255,14 +335,14 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-chip:hover {
-  background: #ffe0b2;
-  border-color: #f57c00;
+  background: var(--color-warning-hover-bg);
+  border-color: var(--color-warning);
 }
 
 .chip-remove {
   font-size: 14px;
   font-weight: bold;
-  color: #e65100;
+  color: var(--color-warning);
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -276,7 +356,7 @@ watch(() => props.modelValue, (newVal) => {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--text-color, #666);
+  color: var(--text-color, var(--text-secondary));
   padding: 0;
   width: 30px;
   height: 30px;
@@ -285,30 +365,15 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .close-btn:hover {
-  color: var(--text-color, #333);
-}
-
-.filter-and-actions {
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.action-buttons-left {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
-  flex-shrink: 0;
+  color: var(--text-color, var(--text-primary));
 }
 
 .filter-tabs {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--border-color, var(--border-primary));
 }
 
 .tab-row {
@@ -320,12 +385,12 @@ watch(() => props.modelValue, (newVal) => {
   padding: 6px 12px;
   background: transparent;
   border: none;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-primary);
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s;
   flex: 1;
   white-space: nowrap;
@@ -337,14 +402,14 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .tab-btn:hover {
-  background: rgba(25, 118, 210, 0.08);
-  color: #1976d2;
+  background: rgba(var(--button-bg-rgb, 25, 118, 210), 0.08);
+  color: var(--button-bg);
 }
 
 .tab-btn.active {
-  color: #1976d2;
-  border-bottom-color: #1976d2;
-  background: rgba(25, 118, 210, 0.08);
+  color: var(--button-bg);
+  border-bottom-color: var(--button-bg);
+  background: rgba(var(--button-bg-rgb, 25, 118, 210), 0.08);
 }
 
 .category-list {
@@ -359,12 +424,12 @@ watch(() => props.modelValue, (newVal) => {
 
 .category-item {
   padding: 12px 16px;
-  background: #ffffff;
-  border: 1.5px solid #e0e0e0;
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   text-align: left;
   transition: all 0.2s;
   min-height: 42px;
@@ -374,17 +439,17 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item:hover {
-  background: #f8f9fa;
-  border-color: #1976d2;
-  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.1);
+  background: var(--bg-secondary);
+  border-color: var(--button-bg);
+  box-shadow: 0 2px 4px rgba(var(--button-bg-rgb, 25, 118, 210), 0.1);
 }
 
 .category-item.selected {
-  background: #e3f2fd;
-  border-color: #1976d2;
-  color: #1565c0;
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
   font-weight: 500;
-  box-shadow: 0 2px 6px rgba(25, 118, 210, 0.2), inset 0 0 0 1px #1976d2;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2), inset 0 0 0 2px var(--color-success);
 }
 
 .btn-icon {
@@ -395,17 +460,29 @@ watch(() => props.modelValue, (newVal) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   transition: all 0.2s;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .btn-icon:hover {
-  background: #e0e0e0;
-  border-color: #999;
-  color: #333;
+  background: var(--border-primary);
+  border-color: var(--text-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-icon.active {
+  background: var(--button-bg);
+  border-color: var(--button-hover-bg);
+  color: var(--button-text);
+}
+
+.btn-icon.active:hover {
+  background: var(--button-hover-bg);
+  border-color: var(--color-info);
+  color: var(--button-text);
 }
 
 .btn-icon svg {
@@ -426,20 +503,20 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-color, #666);
+  background: var(--bg-secondary, var(--bg-secondary));
+  color: var(--text-color, var(--text-secondary));
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover, #e0e0e0);
+  background: var(--bg-hover, var(--border-primary));
 }
 
 .btn-primary {
-  background: #1976d2;
-  color: white;
+  background: var(--button-bg);
+  color: var(--button-text);
 }
 
 .btn-primary:hover {
-  background: #1565c0;
+  background: var(--button-hover-bg);
 }
 </style>

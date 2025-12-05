@@ -1,44 +1,44 @@
 <template>
   <div class="card-detail-view">
     <div class="card-detail-tabs">
-      <button 
-        :class="{ active: cardTab === 'info' }"
-        @click="$emit('tab-change', 'info')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'info' }"
+        @click="cardDetailStore.setCardTab('info')"
       >Info</button>
-      <button 
-        :class="{ active: cardTab === 'qa' }"
-        @click="$emit('tab-change', 'qa')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'qa' }"
+        @click="cardDetailStore.setCardTab('qa')"
       >Q&A</button>
-      <button 
-        :class="{ active: cardTab === 'related' }"
-        @click="$emit('tab-change', 'related')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'related' }"
+        @click="cardDetailStore.setCardTab('related')"
       >Related</button>
-      <button 
-        :class="{ active: cardTab === 'products' }"
-        @click="$emit('tab-change', 'products')"
+      <button
+        :class="{ active: cardDetailStore.cardTab === 'products' }"
+        @click="cardDetailStore.setCardTab('products')"
       >Products</button>
     </div>
-    
-    <div class="card-tab-content">
+
+    <div class="ygo-next card-tab-content">
       <CardInfo
-        v-show="cardTab === 'info'"
+        v-show="cardDetailStore.cardTab === 'info'"
         v-if="detail && detail.card"
         :supplement-info="faqListData?.supplementInfo"
         :supplement-date="faqListData?.supplementDate"
         :pendulum-supplement-info="faqListData?.pendulumSupplementInfo"
         :pendulum-supplement-date="faqListData?.pendulumSupplementDate"
       />
-      <div v-show="cardTab === 'info' && (!detail || !detail.card)">
+      <div v-show="cardDetailStore.cardTab === 'info' && (!detail || !detail.card)">
         <p class="no-card-selected">カードを選択してください</p>
       </div>
-      
+
       <CardQA
-        v-show="cardTab === 'qa'"
+        v-show="cardDetailStore.cardTab === 'qa'"
         :faqListData="faqListData"
         :loading="loading"
       />
-      
-      <div v-show="cardTab === 'related'" class="tab-content">
+
+      <div v-show="cardDetailStore.cardTab === 'related'" class="ygo-next tab-content">
         <div v-if="loading" class="loading">読み込み中...</div>
         <div v-else-if="!detail || !detail.relatedCards || detail.relatedCards.length === 0" class="no-data">
           関連カード情報がありません
@@ -59,7 +59,7 @@
       </div>
       
       <CardProducts
-        v-show="cardTab === 'products'"
+        v-show="cardDetailStore.cardTab === 'products'"
         :detail="detail"
         :loading="loading"
       />
@@ -73,9 +73,11 @@ import CardInfo from './CardInfo.vue'
 import CardQA from './CardQA.vue'
 import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
-import { getCardDetail } from '../api/card-search'
+import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
-import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'CardDetail',
@@ -89,19 +91,14 @@ export default {
     card: {
       type: Object,
       default: null
-    },
-    cardTab: {
-      type: String,
-      default: 'info'
     }
   },
-  emits: ['tab-change'],
   setup(props) {
-    const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
-    
+
     const relatedSortOrder = ref('release_desc')
     const relatedViewMode = ref('list')
     const relatedCurrentPage = ref(0)
@@ -127,58 +124,92 @@ export default {
       }
     }
     
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-    
     const loadMoreRelatedCards = () => {
       if (relatedLoadingMore.value) return
-      
-      const totalCards = sortedRelatedCards.value.length
+
+      const totalCards = detail.value?.relatedCards?.length || 0
       const currentDisplayed = displayedRelatedCards.value.length
-      
+
       if (currentDisplayed >= totalCards) return
-      
+
       relatedLoadingMore.value = true
       setTimeout(() => {
         relatedCurrentPage.value++
         relatedLoadingMore.value = false
       }, 300)
     }
-    
+
+    const handleScrollToTop = () => {
+      const cardTabContent = document.querySelector('.card-tab-content')
+      if (cardTabContent) {
+        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+
     const fetchDetail = async () => {
       if (!props.card || !props.card.cardId) {
-        console.log('[CardDetail] fetchDetail: no card')
         detail.value = null
         faqListData.value = null
         return
       }
-
-      // 既に同じカードの詳細を取得済みなら再取得しない
-      if (detail.value && detail.value.card.cardId === props.card.cardId) {
-        console.log('[CardDetail] fetchDetail: skipping (already fetched)', detail.value.card.cardId)
-        return
-      }
-
-      console.log('[CardDetail] fetchDetail: fetching for cardId', props.card.cardId)
       loading.value = true
+
       try {
-        const detailResult = await getCardDetail(props.card)
-        const faqResult = await getCardFAQList(props.card.cardId)
-        console.log('[CardDetail] Card detail fetched:', JSON.stringify({
-          cardId: detailResult.card.cardId,
-          name: detailResult.card.name,
-          ciid: detailResult.card.ciid,
-          imgsLength: detailResult.card.imgs?.length || 0,
-          imgs: detailResult.card.imgs?.map(img => ({ ciid: img.ciid })) || []
-        }))
-        console.log('FAQ fetched:', faqResult)
-        detail.value = detailResult
-        faqListData.value = faqResult
-        // selectedCardの更新はwatchで行う
+        // キャッシュ対応のカード詳細取得（関連カードのソートはクライアント側で実行）
+        const currentLang = detectLanguage(document)
+        const cacheResult = await getCardDetailWithCache(props.card.cardId, currentLang, true, 'release_desc')
+
+        if (cacheResult.detail) {
+          // キャッシュから取得した場合（または新規取得）
+          // 詳細データを設定（一度だけ）
+          detail.value = cacheResult.detail
+
+          // selectedCardを更新
+          // 仕様: card-info-cache.md line 52-53 - ciidはprops.cardを優先
+          // detail.cardには既に基本情報（キャッシュから）+ 補足情報（詳細ページから）がマージ済み
+          // UnifiedCacheDB から複数画像情報を含む完全なカード情報を取得（複数画像ボタン表示用）
+          const unifiedDB = getUnifiedCacheDB()
+          const fullCardInfo = unifiedDB.isInitialized()
+            ? unifiedDB.reconstructCardInfo(props.card.cardId, currentLang)
+            : null
+
+          const selectedCardData = {
+            ...(fullCardInfo || cacheResult.detail.card),
+            ciid: props.card.ciid || cacheResult.detail.card.ciid
+          }
+          cardDetailStore.setSelectedCard(selectedCardData)
+
+          // FAQデータを取得（常にAPIから取得 - キャッシュ済みデータは補足情報のみ）
+          const faqResult = await getCardFAQList(props.card.cardId)
+          faqListData.value = faqResult
+
+          // バックグラウンドで関連カードの追加取得（100件以上ある場合）
+          if (cacheResult.detail.fetchMorePromise) {
+            cacheResult.detail.fetchMorePromise.then(async (allCards) => {
+              // 現在表示中のカードと同じか確認
+              if (detail.value && detail.value.card.cardId === props.card.cardId) {
+                detail.value.relatedCards = allCards
+
+                // キャッシュにも保存
+                const unifiedDB = getUnifiedCacheDB()
+                if (unifiedDB.isInitialized()) {
+                  await saveCardDetailToCache(unifiedDB, detail.value, true)
+                }
+              }
+            }).catch(error => {
+              console.error('[CardDetail] Background fetch error:', error)
+            })
+          }
+
+          // キャッシュが期限切れの場合は同期的に再取得
+          if (cacheResult.fromCache && !cacheResult.isFresh) {
+            // 同期的に再取得
+            await revalidateInBackground(props.card.cardId)
+          }
+        } else {
+          detail.value = null
+          faqListData.value = null
+        }
       } catch (error) {
         console.error('Failed to fetch card detail:', error)
         detail.value = null
@@ -187,28 +218,62 @@ export default {
         loading.value = false
       }
     }
+
+    // バックグラウンドでキャッシュを再検証
+    const revalidateInBackground = async (cardId) => {
+      try {
+        // APIから最新データを取得（関連カードのソートはクライアント側で実行）
+        const freshDetail = await getCardDetail(cardId, undefined, 'release_desc')
+        if (!freshDetail) return
+        
+        // 共通関数でキャッシュに保存（強制更新）
+        const unifiedDB = getUnifiedCacheDB()
+        if (unifiedDB.isInitialized()) {
+          await saveCardDetailToCache(unifiedDB, freshDetail, true)
+        }
+
+        // 現在表示中のカードと同じか確認
+        if (detail.value && detail.value.card.cardId === cardId) {
+          // キー単位で差分を検出して更新
+          const changedKeys = []
+          
+          for (const key of Object.keys(freshDetail)) {
+            const currentVal = JSON.stringify(detail.value[key])
+            const freshVal = JSON.stringify(freshDetail[key])
+            
+            if (currentVal !== freshVal) {
+              changedKeys.push(key)
+              detail.value[key] = freshDetail[key]
+            }
+          }
+
+          if (changedKeys.length > 0) {
+            // cardが更新された場合はselectedCardも更新（ただしciidは保持）
+            if (changedKeys.includes('card')) {
+              const currentCiid = cardDetailStore.selectedCard?.ciid
+              cardDetailStore.setSelectedCard({
+                ...freshDetail.card,
+                ciid: currentCiid || freshDetail.card.ciid
+              })
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[CardDetail] Revalidation error:', error)
+      }
+    }
     
-    // カードが変わったら詳細を取得
-    watch(() => props.card, () => {
-      relatedCurrentPage.value = 0
-      fetchDetail()
+    
+    // Watch for card prop changes and refetch detail when cardId changes
+    watch(() => props.card && props.card.cardId, (newVal, oldVal) => {
+      if (newVal !== oldVal) {
+        cardDetailStore.setCardTab('info')
+        fetchDetail()
+      }
     }, { immediate: true })
 
-    // detailが更新されたらselectedCardを同期
-    watch(() => detail.value, (newDetail) => {
-      if (newDetail && newDetail.card) {
-        // 詳細情報で selectedCard を更新（imgs配列も新しい配列として設定）
-        const oldCiid = deckStore.selectedCard?.ciid
-        deckStore.selectedCard = {
-          ...newDetail.card,
-          imgs: [...newDetail.card.imgs],  // 配列も新しくコピー
-          ciid: (deckStore.selectedCard?.cardId === newDetail.card.cardId && oldCiid) || newDetail.card.ciid
-        }
-        console.log('[CardDetail] selectedCard synced with detail')
-      }
-    }, { deep: false })
-
     return {
+      cardDetailStore,
       detail,
       loading,
       faqListData,
@@ -249,14 +314,14 @@ export default {
 .card-detail-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--tab-border, #008cff);
   width: 100%;
 
   button {
     padding: 8px;
     border: none;
     border-right: 1px solid var(--border-primary, #e0e0e0);
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
@@ -266,16 +331,22 @@ export default {
       border-right: none;
     }
 
+    &:focus-visible {
+      outline: 2px solid var(--color-success, #4caf50);
+      outline-offset: -2px;
+      z-index: 1;
+    }
+
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--theme-text-on-gradient);
       border-right-color: transparent;
     }
   }
 }
 
 .card-tab-content {
-  padding: 15px;
+  padding: 5px;
   flex: 1;
   overflow-y: scroll;
   width: 100%;

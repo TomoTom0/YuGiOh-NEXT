@@ -7,6 +7,8 @@ import type {
   Language,
   MiddleDecksLayout,
   SearchInputPosition,
+  SearchMode,
+  KeyboardShortcut,
   FeatureSettings,
   StorageSettings
 } from '../types/settings';
@@ -15,8 +17,8 @@ import {
   DEFAULT_FEATURE_SETTINGS,
   CARD_SIZE_MAP
 } from '../types/settings';
-import { getThemeColors } from '../styles/themes';
 import { detectLanguage } from '../utils/language-detector';
+import { mappingManager } from '../utils/mapping-manager';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -51,48 +53,98 @@ export const useSettingsStore = defineStore('settings', () => {
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
     if (appSettings.value.theme === 'system') {
-      // prefers-color-schemeを検出
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return 'light';
     }
-    return appSettings.value.theme;
+    return appSettings.value.theme as 'light' | 'dark';
   });
 
   /** 実効言語（autoの場合は検出した言語を返す） */
   const effectiveLanguage = computed<string>(() => {
-    if (appSettings.value.language === 'auto') {
-      // 言語検出ロジック（既存のdetectLanguageを使用）
-      return detectCurrentLanguage();
-    }
-    return appSettings.value.language;
-  });
+    // 一時的に常に自動検出を強制
+    return detectCurrentLanguage();
+  });;
 
   // ===== アクション =====
 
   /**
-   * chrome.storageから設定を読み込み
+   * オブジェクトをディープマージ
+   * 配列の場合: 保存された配列が空でなければそれを使用、空なら対象の配列を使用
+   * オブジェクトの場合: 再帰的にマージ
    */
-  async function loadSettings(): Promise<void> {
+  function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
+    const result = { ...target };
+    for (const key in source) {
+      if (source[key] !== undefined && source[key] !== null) {
+        if (Array.isArray(source[key])) {
+          // 配列の場合: 保存された配列が空でなければそれを使用、空ならターゲットの配列を使用
+          const sourceArray = source[key] as any[];
+          result[key] = (sourceArray.length > 0 ? sourceArray : (target[key] || sourceArray)) as any;
+        } else if (typeof source[key] === 'object') {
+          // オブジェクトの場合: 再帰的にマージ
+          result[key] = deepMerge((target[key] || {}) as any, source[key] as any) as any;
+        } else {
+          result[key] = source[key] as any;
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 共通設定を読み込み（デッキ表示ページでも使用）
+   * - テーマ
+   * - カード詳細のカードサイズ
+   * - グリッド表示のカードサイズ
+   * - リスト表示のカードサイズ
+   * - キーボードショートカット（デッキ編集ページで使用）
+   */
+  async function loadCommonSettings(): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.get(['appSettings', 'featureSettings'], (result: StorageSettings) => {
-        if (result.appSettings) {
-          appSettings.value = { ...DEFAULT_APP_SETTINGS, ...result.appSettings };
-        }
-        if (result.featureSettings) {
-          featureSettings.value = { ...DEFAULT_FEATURE_SETTINGS, ...result.featureSettings };
-        }
+        // 保存された設定をデフォルト値とマージ（キーボードショートカットも含める）
+        const mergedAppSettings = result.appSettings
+          ? deepMerge(DEFAULT_APP_SETTINGS, result.appSettings)
+          : { ...DEFAULT_APP_SETTINGS };
+
+        appSettings.value = mergedAppSettings;
+
+        featureSettings.value = result.featureSettings
+          ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
+          : { ...DEFAULT_FEATURE_SETTINGS };
 
         isLoaded.value = true;
 
-        // 初回ロード時にテーマとカードサイズを適用
+        // テーマと共通のカードサイズ（info, grid, list）を適用
         applyTheme();
-        applyCardSize();
+        applyCommonCardSize();
 
-        console.log('[Settings] Loaded:', { appSettings: appSettings.value, featureSettings: featureSettings.value });
         resolve();
       });
     });
+  }
+
+  /**
+   * デッキ編集専用設定を読み込み
+   * - デッキ編集のカードサイズ
+   *
+   * 注：keyboardShortcutsは loadCommonSettings() で既に初期化済み
+   */
+  async function loadDeckEditSettings(): Promise<void> {
+    // デッキ編集のカードサイズを適用するだけ
+    applyDeckEditCardSize();
+  }
+
+  /**
+   * 全設定を読み込み（後方互換性のため）
+   * @deprecated 用途に応じて loadCommonSettings または loadDeckEditSettings を使用してください
+   */
+  async function loadSettings(): Promise<void> {
+    await loadCommonSettings();
+    await loadDeckEditSettings();
   }
 
   /**
@@ -104,7 +156,6 @@ export const useSettingsStore = defineStore('settings', () => {
         appSettings: appSettings.value,
         featureSettings: featureSettings.value,
       }, () => {
-        console.log('[Settings] Saved:', { appSettings: appSettings.value, featureSettings: featureSettings.value });
         resolve();
       });
     });
@@ -239,6 +290,14 @@ export const useSettingsStore = defineStore('settings', () => {
     appSettings.value.language = language;
     saveSettings();
 
+    // 言語設定の場合、マッピング情報を確保する
+    if (language !== 'auto') {
+      // 非同期でマッピング情報を取得（言語切り替え時の待機を避けるため）
+      mappingManager.ensureMappingForLanguage(language).catch(error => {
+        console.error('[Settings] Failed to ensure mapping for language:', error);
+      });
+    }
+
     // 言語変更後はページリロードが必要
     // （APIリクエストのlocaleパラメータが変わるため）
   }
@@ -251,11 +310,69 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  function setMouseOperations(enabled: boolean): void {
+    appSettings.value.enableMouseOperations = enabled;
+    saveSettings();
+  }
+
+  function setChangeFavicon(enabled: boolean): void {
+    appSettings.value.changeFavicon = enabled;
+    saveSettings();
+  }
+
+  /**
+   * キーボードショートカットを追加（最大3つまで）
+   */
+  function addKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', shortcut: KeyboardShortcut): void {
+    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    if (shortcuts.length >= 3) {
+      console.warn(`[Settings] Cannot add more than 3 shortcuts for ${name}`);
+      return;
+    }
+    shortcuts.push(shortcut);
+    saveSettings();
+  }
+
+  /**
+   * キーボードショートカットを削除
+   */
+  function removeKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', index: number): void {
+    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    if (index >= 0 && index < shortcuts.length) {
+      shortcuts.splice(index, 1);
+      saveSettings();
+    }
+  }
+
   /**
    * 検索入力欄の位置を変更
    */
   function setSearchInputPosition(position: SearchInputPosition): void {
     appSettings.value.searchInputPosition = position;
+    saveSettings();
+  }
+
+  /**
+   * 検索モードのデフォルトを変更
+   */
+  function setDefaultSearchMode(mode: SearchMode): void {
+    appSettings.value.defaultSearchMode = mode;
+    saveSettings();
+  }
+
+  /**
+   * デッキ表示ページでCardDetail情報を表示するかを変更
+   */
+  function setShowCardDetailInDeckDisplay(enabled: boolean): void {
+    appSettings.value.showCardDetailInDeckDisplay = enabled;
+    saveSettings();
+  }
+
+  /**
+   * デッキ表示ページのカード画像サイズを変更
+   */
+  function setDeckDisplayCardImageSize(size: CardSize): void {
+    appSettings.value.deckDisplayCardImageSize = size;
     saveSettings();
   }
 
@@ -285,26 +402,14 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   function applyTheme(): void {
     const theme = effectiveTheme.value;
-    document.documentElement.setAttribute('data-theme', theme);
-
-    // CSS変数を更新（テーマ定義から読み込み）
-    const themeColors = getThemeColors(theme);
-    Object.entries(themeColors).forEach(([key, value]) => {
-      document.documentElement.style.setProperty(key, value);
-    });
-
-    console.log('[Settings] Applied theme:', theme);
+    document.documentElement.setAttribute('data-ygo-next-theme', theme);
   }
 
   /**
-   * カードサイズをDOMに適用（4箇所それぞれ）
+   * 共通カードサイズをDOMに適用（info, grid, list）
+   * デッキ表示ページで使用
    */
-  function applyCardSize(): void {
-    // デッキ編集用
-    const deckEdit = deckEditCardSizePixels.value;
-    document.documentElement.style.setProperty('--card-width-deck', `${deckEdit.width}px`);
-    document.documentElement.style.setProperty('--card-height-deck', `${deckEdit.height}px`);
-
+  function applyCommonCardSize(): void {
     // カード詳細（info）用
     const info = infoCardSizePixels.value;
     document.documentElement.style.setProperty('--card-width-info', `${info.width}px`);
@@ -319,13 +424,23 @@ export const useSettingsStore = defineStore('settings', () => {
     const list = listCardSizePixels.value;
     document.documentElement.style.setProperty('--card-width-list', `${list.width}px`);
     document.documentElement.style.setProperty('--card-height-list', `${list.height}px`);
+  }
 
-    console.log('[Settings] Applied card sizes:', {
-      deckEdit: appSettings.value.deckEditCardSize,
-      info: appSettings.value.infoCardSize,
-      grid: appSettings.value.gridCardSize,
-      list: appSettings.value.listCardSize
-    });
+  /**
+   * デッキ編集のカードサイズをDOMに適用
+   */
+  function applyDeckEditCardSize(): void {
+    const deckEdit = deckEditCardSizePixels.value;
+    document.documentElement.style.setProperty('--card-width-deck', `${deckEdit.width}px`);
+    document.documentElement.style.setProperty('--card-height-deck', `${deckEdit.height}px`);
+  }
+
+  /**
+   * 全カードサイズをDOMに適用（後方互換性のため）
+   */
+  function applyCardSize(): void {
+    applyCommonCardSize();
+    applyDeckEditCardSize();
   }
 
   /**
@@ -335,7 +450,6 @@ export const useSettingsStore = defineStore('settings', () => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', () => {
       if (appSettings.value.theme === 'system') {
-        console.log('[Settings] System theme changed');
         applyTheme();
       }
     });
@@ -377,6 +491,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
     // アクション
     loadSettings,
+    loadCommonSettings,
+    loadDeckEditSettings,
     saveSettings,
     setDeckEditCardSize,
     setInfoCardSize,
@@ -388,7 +504,14 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setMouseOperations,
+    setChangeFavicon,
+    addKeyboardShortcut,
+    removeKeyboardShortcut,
     setSearchInputPosition,
+    setDefaultSearchMode,
+    setShowCardDetailInDeckDisplay,
+    setDeckDisplayCardImageSize,
     toggleFeature,
     resetSettings,
     applyTheme,

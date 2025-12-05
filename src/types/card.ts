@@ -6,6 +6,7 @@ import {
   SpellEffectType,
   TrapEffectType
 } from './card-maps';
+import { buildApiUrl } from '../utils/url-builder';
 
 // CardTypeはcard-maps.tsで定義
 export type { CardType };
@@ -32,8 +33,15 @@ export interface CardBase {
   cardId: string;
   /** 画像識別子 (ciid) */
   ciid: string;
+  /** 言語コード（取得時の言語を記録） */
+  lang: string;
   /** 複数画像情報 */
   imgs: Array<{ciid: string; imgHash: string}>;
+  /** 複数画像の有無を確認した日時（オプション）
+   * - undefined = 未確認（複数画像情報がない）
+   * - 日時 = その日付で複数画像の有無を確認済み
+   */
+  imagesCheckedAt?: number;
   /** 効果テキスト（オプション） */
   text?: string;
   /** 禁止制限（オプション） */
@@ -46,15 +54,18 @@ import type { CardGameType } from './settings';
  * CardInfoにimageUrlゲッターを追加するヘルパー
  * @param card カード情報
  * @param gameType ゲームタイプ（省略時は'ocg'）
+ * @returns 画像URL（request_locale付与）
  */
 export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
   const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
   if (!imageInfo) {
-    console.log('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
+    console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
-  const gamePath = gameType === 'rush' ? 'rushdb' : 'yugiohdb';
-  return `/${gamePath}/get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+
+  // buildApiUrl を使用して request_locale を自動付与
+  const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+  return buildApiUrl(path, gameType);
 }
 
 /**
@@ -92,8 +103,8 @@ export interface MonsterCard extends CardBase {
 
   /** ペンデュラムスケール（オプション、ペンデュラムモンスターのみ） */
   pendulumScale?: number;
-  /** ペンデュラム効果（オプション、ペンデュラムモンスターのみ） */
-  pendulumEffect?: string;
+  /** ペンデュラムテキスト（オプション、ペンデュラムモンスターのみ） */
+  pendulumText?: string;
 
   /** エクストラデッキに入るかどうか */
   isExtraDeck: boolean;
@@ -137,6 +148,33 @@ export interface DeckCard {
 }
 
 /**
+ * デッキ内カード参照（軽量版）
+ * カードの完全な情報はTempCardDBから取得する
+ */
+export interface DeckCardRef {
+  /** カードID (cid) */
+  cid: string;
+  /** 画像識別子 (ciid) */
+  ciid: string;
+  /** 言語コード（カード取得時の言語を記録） */
+  lang: string;
+  /** 枚数 */
+  quantity: number;
+}
+
+/**
+ * カード参照（軽量版）
+ * 検索結果やカード選択等で使用
+ * カードの完全な情報はTempCardDBから取得する
+ */
+export interface CardRef {
+  /** カードID (cid) */
+  cid: string;
+  /** 画像識別子 (ciid) */
+  ciid: string;
+}
+
+/**
  * 収録シリーズ情報
  */
 export interface PackInfo {
@@ -166,6 +204,10 @@ export interface CardDetail {
   relatedCards: CardInfo[];
   /** Q&A情報 */
   qaList?: CardFAQ[];
+  /** 関連カード追加取得Promise（初回100件取得時に100件以上ある場合のみ） */
+  fetchMorePromise?: Promise<CardInfo[]>;
+  /** 検索エラーにより不完全な情報である可能性（FAQ検索失敗時等）*/
+  isPartialFromError?: boolean;
 }
 
 /**
@@ -215,6 +257,295 @@ export interface CardTypeFields {
   cardIdPrefix: string;
   cardIdName: 'monsterCardId' | 'spellCardId' | 'trapCardId';
   imgsPrefix: string;
+}
+
+/**
+ * カード詳細情報（card tabで表示される追加情報）
+ * card-detail-dbで使用
+ */
+export interface CardDetailInfo {
+  /** カードID */
+  cardId: string;
+  /** カードテキストの補足情報 */
+  supplementInfo?: string;
+  /** 補足情報の日付 */
+  supplementDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendulumSupplementInfo?: string;
+  /** ペンデュラム補足情報の日付 */
+  pendulumSupplementDate?: string;
+  /** 関連カード一覧 */
+  relatedCards?: Array<{
+    cardId: string;
+    name: string;
+    imageUrl?: string;
+  }>;
+  /** 関連FAQ一覧 */
+  relatedQA?: CardFAQ[];
+  /** 収録パック情報 */
+  relatedProducts?: PackInfo[];
+}
+
+/**
+ * FAQ詳細情報
+ * qa-dbで使用
+ */
+export interface FAQDetail {
+  /** FAQ ID */
+  faqId: string;
+  /** 質問 */
+  question: string;
+  /** 回答 */
+  answer: string;
+  /** 更新日 */
+  updatedAt?: string;
+  /** 関連カードID */
+  cardId?: string;
+}
+
+
+// =========================================
+// Cache DB 用型定義
+// =========================================
+
+/**
+ * カードTier管理テーブル
+ * 使用頻度に基づいてキャッシュの保持・破棄を制御
+ */
+export interface CardTier {
+  /** カードID (PK) */
+  cardId: string;
+  /** 最後にデッキに追加された日時 (timestamp) */
+  lastAddedToDeck: number;
+  /** 最後に詳細表示された日時 (timestamp) */
+  lastShownDetail: number;
+  /** 最後に検索で表示された日時 (timestamp) */
+  lastSearched: number;
+}
+
+/**
+ * デッキオープン履歴
+ * Tier 5（直近5回で開いたデッキに含まれるカード）の判定に使用
+ */
+export interface DeckOpenHistory {
+  /** 直近5回のデッキ（新しい順） */
+  recentDecks: Array<{
+    /** デッキ番号 */
+    dno: number;
+    /** 開いた日時 (timestamp) */
+    openedAt: number;
+    /** デッキ内カードID一覧 */
+    cardIds: string[];
+  }>;
+}
+
+/**
+ * CardTableA: 基本識別情報
+ * 対象: Tier 1以上
+ * 用途: 検索結果表示、デッキ一覧表示
+ */
+export interface CardTableA {
+  /** カードID (PK) */
+  cardId: string;
+  /** カード名（多言語対応: {lang: name} 形式） */
+  langsName?: Record<string, string>;
+  /** ふりがな */
+  ruby?: string;
+  /** 画像情報（多言語対応: {lang: imgs[]} 形式） */
+  langsImgs?: Record<string, Array<{
+    ciid: string;
+    imgHash: string;
+  }>>;
+  /** 言語ごとに利用可能なciidのリスト（{lang: ciid[]} 形式） */
+  langs_ciids?: Record<string, string[]>;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+}
+
+/**
+ * CardTableB: カードステータス
+ * 対象: Tier 1以上
+ * 用途: フィルタリング、ソート、カード情報表示
+ */
+export interface CardTableB {
+  /** カードID (PK) */
+  cardId: string;
+  /** ふりがな */
+  ruby?: string;
+  /** カードタイプ */
+  cardType: 'monster' | 'spell' | 'trap';
+
+  // モンスター専用
+  /** 属性 */
+  attribute?: string;
+  /** 種族 */
+  race?: string;
+  /** レベル/ランク/リンクの種別 */
+  levelType?: 'level' | 'rank' | 'link';
+  /** レベル/ランク/リンク値 */
+  levelValue?: number;
+  /** 攻撃力（null = '?'） */
+  atk?: number | null;
+  /** 守備力（null = '?'） */
+  def?: number | null;
+  /** リンクマーカー（9bit整数） */
+  linkMarkers?: number;
+  /** ペンデュラムスケール */
+  scale?: number;
+  /** エクストラデッキかどうか */
+  isExtraDeck?: boolean;
+  /** タイプ（効果、チューナー等） */
+  types?: string[];
+
+  // 魔法・罠専用
+  /** 効果種類（通常、速攻、永続等） */
+  effectType?: string;
+
+  // 共通
+  /** 禁止制限（多言語対応: {lang: regulation} 形式） */
+  langsLimitRegulation?: Record<string, 'forbidden' | 'limited' | 'semi-limited'>;
+
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+}
+
+/**
+ * CardTableB2: カードテキスト
+ * 対象: Tier 0以上
+ * 用途: カード効果テキストの表示
+ */
+export interface CardTableB2 {
+  /** カードID (PK) */
+  cardId: string;
+  /** 効果テキスト（多言語対応: {lang: text} 形式） */
+  langsText?: Record<string, string>;
+  /** ペンデュラムテキスト（多言語対応: {lang: text} 形式） */
+  langsPendText?: Record<string, string>;
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+}
+
+/**
+ * CardTableC: テキスト補足・関連情報
+ * 対象: Tier 3以上（詳細表示したカード）
+ * 用途: カード詳細タブ表示
+ */
+export interface CardTableC {
+  /** カードID (PK) */
+  cardId: string;
+
+  // 補足情報
+  /** カードテキストの補足情報 */
+  supplInfo?: string;
+  /** 補足情報の日付 */
+  supplDate?: string;
+  /** ペンデュラムテキストの補足情報 */
+  pendSupplInfo?: string;
+  /** ペンデュラム補足情報の日付 */
+  pendSupplDate?: string;
+
+  // 関連情報（多言語対応）
+  /** 関連カードID一覧（多言語対応: {lang: cardIds[]} 形式） */
+  langsRelatedCards?: Record<string, string[]>;
+  /** 関連パックID一覧（多言語対応: {lang: packIds[]} 形式） */
+  langsRelatedProducts?: Record<string, string[]>;
+
+  // キャッシュ用の追加情報（多言語対応）
+  /** 収録シリーズ詳細情報（多言語対応: {lang: PackInfo[]} 形式） */
+  langsRelatedProductDetail?: Record<string, PackInfo[]>;
+  /** Q&A情報（日本語のみ） */
+  qaList?: CardFAQ[];
+
+  /** 取得日時（言語ごと、{lang: timestamp} 形式） */
+  langsFetchedAt?: Record<string, number>;
+}
+
+/**
+ * ProductTableA: パック基本情報
+ * 対象: related-productで取得された情報
+ * 用途: カード詳細の収録情報表示
+ */
+export interface ProductTableA {
+  /** パックID (PK) */
+  packId: string;
+  /** パック名 */
+  name: string;
+  /** 発売日（例: "2025-10-25"） */
+  releaseDate?: string;
+  /** パックコード（例: "DP30-JP001"） */
+  code?: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * ProductTableB: パック詳細情報
+ * 対象: パック詳細を展開した場合
+ * 用途: パック内カードリスト表示
+ * PK: packId + lang（言語別に管理）
+ */
+export interface ProductTableB {
+  /** パックID (PK) */
+  packId: string;
+  /** 言語コード (PK) */
+  lang: string;
+  /** パック内カード一覧 */
+  cards: Array<{
+    cardId: string;
+    rarity?: string;
+    rarityColor?: string;
+  }>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+}
+
+/**
+ * FAQTableA: 質問一覧
+ * 対象: 表示したFAQの質問
+ * 用途: カードQAタブの質問リスト
+ */
+export interface FAQTableA {
+  /** FAQ ID (PK) */
+  faqId: string;
+  /** 質問 */
+  question: string;
+  /** 更新日 */
+  updatedAt?: string;
+  /** 関連カードID */
+  cardId?: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+  /** アクセス時刻（破棄判定用） */
+  lastAccessedAt: number;
+}
+
+/**
+ * FAQTableB: 回答詳細
+ * 対象: 展開したFAQの回答
+ * 用途: FAQ回答表示
+ */
+export interface FAQTableB {
+  /** FAQ ID (PK) */
+  faqId: string;
+  /** 回答 */
+  answer: string;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+  /** アクセス時刻（破棄判定用） */
+  lastAccessedAt: number;
+}
+
+/**
+ * 禁止制限リスト情報
+ * 各適用日における禁止制限状態を保持
+ */
+export interface ForbiddenLimitedList {
+  /** 適用日（YYYY-MM-DD形式、例: "2025-10-01"） */
+  effectiveDate: string;
+  /** カードIDごとの制限状態マップ */
+  regulations: Record<string, LimitRegulation>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
 }
 
 // card-maps.tsから再エクスポート

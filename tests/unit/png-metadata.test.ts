@@ -1,62 +1,94 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { getTempCardDB } from '@/utils/temp-card-db';
+// import * as fs from 'fs';
+// import * as path from 'path';
 
-// テスト用フィクスチャのパス
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const fixturesDir = path.join(__dirname, '../fixtures/png');
+// テスト用フィクスチャのパス（未使用）
+// const fixturesDir = path.resolve(process.cwd(), 'tests/fixtures/png');
 
 // テスト用デッキ情報
 const sampleDeckInfo: DeckInfo = {
   mainDeck: [
     {
-      card: {
-        cardId: '12950',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
-      } as any,
+      cid: '12950',
+      ciid: '1',
       quantity: 2
     },
     {
-      card: {
-        cardId: '4861',
-        ciid: '2',
-        imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
-      } as any,
+      cid: '4861',
+      ciid: '2',
       quantity: 1
     }
   ],
   extraDeck: [
     {
-      card: {
-        cardId: '9753',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
-      } as any,
+      cid: '9753',
+      ciid: '1',
       quantity: 1
     }
   ],
   sideDeck: [
     {
-      card: {
-        cardId: '14558',
-        ciid: '1',
-        imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
-      } as any,
+      cid: '14558',
+      ciid: '1',
       quantity: 3
     }
   ]
 };
 
 describe('png-metadata', () => {
+  // 最小限の有効な1x1 PNG画像
+  const validPNG = new Uint8Array([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde,
+    0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54,
+    0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
+    0x18, 0xdd, 0x8d, 0xb4, 0x00, 0x00, 0x00, 0x00,
+    0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
+  ]);
+
+  // 各テスト前にTempCardDBをセットアップ
+  beforeEach(() => {
+    const tempCardDB = getTempCardDB();
+    tempCardDB.clear();
+    // サンプルデッキのカード情報を登録
+    tempCardDB.set('12950', {
+      cardId: '12950',
+      ciid: '1',
+      name: '灰流うらら',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
+    } as any);
+    tempCardDB.set('4861', {
+      cardId: '4861',
+      ciid: '2',
+      name: 'Test Card 2',
+      cardType: 'monster',
+      imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
+    } as any);
+    tempCardDB.set('9753', {
+      cardId: '9753',
+      ciid: '1',
+      name: 'Test Extra Card',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
+    } as any);
+    tempCardDB.set('14558', {
+      cardId: '14558',
+      ciid: '1',
+      name: 'Test Side Card',
+      cardType: 'monster',
+      imgs: [{ ciid: '1', imgHash: '14558_1_1_1' }]
+    } as any);
+  });
+
   describe('embedDeckInfoToPNG', () => {
     it('should embed deck info into a valid PNG', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+      const pngBlob = new Blob([validPNG], { type: 'image/png' });
 
       const result = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
 
@@ -66,8 +98,8 @@ describe('png-metadata', () => {
     });
 
     it('should throw error for invalid PNG (bad signature)', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'invalid-signature.png'));
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+      const invalidPNG = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07]);
+      const pngBlob = new Blob([invalidPNG], { type: 'image/png' });
 
       await expect(embedDeckInfoToPNG(pngBlob, sampleDeckInfo)).rejects.toThrow(
         'Invalid PNG file: signature mismatch'
@@ -75,7 +107,7 @@ describe('png-metadata', () => {
     });
 
     it('should handle PNG with existing tEXt chunks', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'multi-text.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const result = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -85,7 +117,7 @@ describe('png-metadata', () => {
     });
 
     it('should embed deck info with correct structure', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const result = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -107,7 +139,7 @@ describe('png-metadata', () => {
 
   describe('extractDeckInfoFromPNG', () => {
     it('should extract deck info from PNG with DeckInfo tEXt chunk', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -120,7 +152,7 @@ describe('png-metadata', () => {
     });
 
     it('should return null for PNG without DeckInfo tEXt chunk', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const extracted = await extractDeckInfoFromPNG(pngBlob);
@@ -129,7 +161,7 @@ describe('png-metadata', () => {
     });
 
     it('should return null for invalid PNG', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'invalid-signature.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const extracted = await extractDeckInfoFromPNG(pngBlob);
@@ -138,7 +170,7 @@ describe('png-metadata', () => {
     });
 
     it('should handle PNG with multiple tEXt chunks', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'multi-text.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -149,7 +181,7 @@ describe('png-metadata', () => {
     });
 
     it('should validate CRC correctly', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -162,7 +194,7 @@ describe('png-metadata', () => {
 
   describe('round-trip test', () => {
     it('should preserve deck info through embed and extract', async () => {
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -184,7 +216,7 @@ describe('png-metadata', () => {
         sideDeck: []
       };
 
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
+      const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, emptyDeck);
@@ -197,23 +229,29 @@ describe('png-metadata', () => {
     });
 
     it('should handle special characters in enc field', async () => {
+      // TempCardDBに特殊文字を含むカード情報を登録
+      const tempCardDB = getTempCardDB();
+      tempCardDB.set('99999', {
+        cardId: '99999',
+        ciid: '1',
+        name: 'Special Card',
+        cardType: 'monster',
+        imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
+      } as any);
+
       const specialDeck: DeckInfo = {
-        mainDeck: [
-          {
-            card: {
-              cardId: '12950',
-              ciid: '1',
-              imgs: [{ ciid: '1', imgHash: 'test_あいう_123' }]
-            } as any,
-            quantity: 1
-          }
-        ],
+        dno: 99,
+        name: 'Special',
+        mainDeck: [{ cid: '99999', ciid: '1', quantity: 1 }],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
-      const pngBuffer = fs.readFileSync(path.join(fixturesDir, 'valid-1x1.png'));
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
+      const pngBlob = new Blob([validPNG], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, specialDeck);
       const extracted = await extractDeckInfoFromPNG(embedded);

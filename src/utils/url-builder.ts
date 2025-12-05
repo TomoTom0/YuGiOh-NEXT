@@ -1,11 +1,12 @@
 /**
  * URLビルダーユーティリティ
- * 
+ *
  * OCG/Rush Duel両対応のURL生成関数を提供
  */
 
 import type { CardGameType } from '../types/settings';
 import { getGamePath } from './page-detector';
+import { detectLanguage } from './language-detector';
 
 /**
  * ベースURL
@@ -13,33 +14,98 @@ import { getGamePath } from './page-detector';
 const BASE_URL = 'https://www.db.yugioh-card.com';
 
 /**
- * APIのベースURLを取得
- * @param path APIパス（例: 'member_deck.action'）
- * @param gameType カードゲームタイプ
- * @returns 完全なURL
+ * APIパスのタイプ定義
  */
-export function buildApiUrl(path: string, gameType: CardGameType): string {
-  const gamePath = getGamePath(gameType);
-  return `${BASE_URL}/${gamePath}/${path}`;
+type ApiPathType = 'card_search' | 'faq_search' | 'member_deck_new' | 'member_deck_other' | 'forbidden_limited' | 'deck_search' | 'get_image' | 'other';
+
+/**
+ * APIパスからタイプを判定
+ * member_deck は ope パラメータで区別：
+ * - ope=6（新規作成）: member_deck_new -> request_locale なし
+ * - ope=4（デッキ一覧取得）: deck_search -> request_locale なし
+ * - その他: member_deck_other -> request_locale 付与
+ *
+ * その他のエンドポイント：
+ * - get_image.action: request_locale 付与
+ */
+function getApiPathType(path: string): ApiPathType {
+  if (path.includes('card_search')) return 'card_search';
+  if (path.includes('faq_search')) return 'faq_search';
+  if (path.includes('get_image')) return 'get_image';
+  if (path.includes('member_deck')) {
+    // ope=6 の場合は新規作成（request_locale なし）
+    if (path.includes('ope=6')) return 'member_deck_new';
+    // ope=4 の場合はデッキ一覧取得（request_locale なし）
+    if (path.includes('ope=4')) return 'deck_search';
+    // それ以外は表示等（request_locale 付与）
+    return 'member_deck_other';
+  }
+  if (path.includes('forbidden_limited')) return 'forbidden_limited';
+  if (path.includes('deck_search')) return 'deck_search';
+  return 'other';
 }
 
 /**
- * カード画像URLを生成
- * @param cid カードID
- * @param ciid カード画像ID
- * @param imgHash 画像ハッシュ
+ * APIのURLを構築（request_locale を自動付与）
+ *
+ * request_locale 付与ルール：
+ * - デッキ新規作成（member_deck.action?ope=2）: 付与しない
+ * - デッキリスト取得（deck_search.action）: 付与しない
+ * - FAQ系統（faq_search）: 必ず 'ja' を付与
+ * - その他: 現在の言語を自動付与
+ *
+ * @param path APIパス（例: 'faq_search.action' や 'card_search.action'）
  * @param gameType カードゲームタイプ
- * @returns 画像URL
+ * @param params URLSearchParams（オプション、既存パラメータがあれば渡す）
+ * @param noLocale request_locale を絶対に付与しない場合は true（オプション、デフォルト: false）
+ * @returns 完全なURL（必要に応じて request_locale を含む）
  */
-export function buildImageUrl(
-  cid: number,
-  ciid: number,
-  imgHash: string,
-  gameType: CardGameType
-): string {
+export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams, noLocale?: boolean): string {
   const gamePath = getGamePath(gameType);
-  return `${BASE_URL}/${gamePath}/get_image.action?type=1&cid=${cid}&ciid=${ciid}&enc=${imgHash}&osplang=1`;
+  const apiPathType = getApiPathType(path);
+
+  // リクエストローカルを付与しないケース：
+  // - noLocale フラグが true の場合（呼び出し側で明示的に指定）
+  // - デッキ新規作成（member_deck_new）
+  // - デッキリスト取得（deck_search）
+  const shouldAddLocale =
+    !noLocale &&
+    apiPathType !== 'member_deck_new' &&
+    apiPathType !== 'deck_search';
+
+  const url = new URL(`${BASE_URL}/${gamePath}/${path}`);
+
+  // 呼び出し側から提供されたパラメータをマージ
+  if (params) {
+    for (const [key, value] of params.entries()) {
+      url.searchParams.set(key, value);
+    }
+  }
+
+  if (!shouldAddLocale) {
+    // request_locale を付与しない（既に存在する場合は削除）
+    url.searchParams.delete('request_locale');
+    return url.toString();
+  }
+
+  // request_locale が既に存在する場合はスキップ
+  if (url.searchParams.has('request_locale')) {
+    return url.toString();
+  }
+
+  // request_locale を付与
+  if (apiPathType === 'faq_search') {
+    // FAQ系統は必ず 'ja' を付与
+    url.searchParams.set('request_locale', 'ja');
+  } else {
+    // その他はページの言語を付与
+    const lang = detectLanguage(document);
+    url.searchParams.set('request_locale', lang);
+  }
+
+  return url.toString();
 }
+
 
 /**
  * 相対URLパスから完全なURLを生成
@@ -113,12 +179,56 @@ export function getImagePartsBaseUrl(gameType: CardGameType): string {
  * Vue編集画面のURLを取得
  * @param gameType カードゲームタイプ
  * @param dno デッキ番号（オプション）
+ * @param locale ロケール（オプション）。公式サイトに伝えるrequest_localeパラメータ
+ * @param additionalParams 追加パラメータ（オプション、URLSearchParams）。copy-from-cgid, copy-from-dnoなど
  * @returns Vue編集画面URL
+ *
+ * URL構造：
+ * - ハッシュ前：request_locale（公式サイト向け）
+ * - ハッシュ後：dno, copy-from-cgid, copy-from-dno等（CHEX Vue向け）
+ *
+ * 例：
+ * - getVueEditUrl('ocg') -> 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+ * - getVueEditUrl('ocg', 1, 'ja') -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?dno=1'
+ * - getVueEditUrl('ocg', undefined, 'ja', params) -> 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit?copy-from-cgid=...&copy-from-dno=...'
  */
-export function getVueEditUrl(gameType: CardGameType, dno?: number): string {
+export function getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string {
   const gamePath = getGamePath(gameType);
-  const base = `${BASE_URL}/${gamePath}/#/ytomo/edit`;
-  return dno ? `${base}?dno=${dno}` : base;
+  const base = `${BASE_URL}/${gamePath}`;
+
+  // ハッシュ前のパラメータ（公式サイト向け）
+  const preHashParams = new URLSearchParams();
+  if (locale) {
+    preHashParams.append('request_locale', locale);
+  }
+
+  // ハッシュ後のパラメータ（CHEX Vue向け）
+  const postHashParams = new URLSearchParams();
+  if (dno) {
+    postHashParams.append('dno', dno.toString());
+  }
+
+  // 追加パラメータをマージ（copy-from-cgid, copy-from-dnoなど）
+  if (additionalParams) {
+    for (const [key, value] of additionalParams.entries()) {
+      postHashParams.append(key, value);
+    }
+  }
+
+  const preHashQueryString = preHashParams.toString();
+  const postHashQueryString = postHashParams.toString();
+  const hash = '#/ytomo/edit';
+
+  // ハッシュ前のクエリがある場合は追加
+  let url = preHashQueryString ? `${base}?${preHashQueryString}` : base;
+  // ハッシュを追加
+  url += hash;
+  // ハッシュ後のクエリがある場合は追加
+  if (postHashQueryString) {
+    url += `?${postHashQueryString}`;
+  }
+
+  return url;
 }
 
 /**
@@ -135,3 +245,13 @@ export function getDeckDisplayUrl(
 ): string {
   return buildApiUrl(`member_deck.action?ope=1&cgid=${cgid}&dno=${dno}`, gameType);
 }
+
+/**
+ * 禁止・制限リストAPIのエンドポイントを取得
+ * @param gameType カードゲームタイプ
+ * @returns APIエンドポイントURL
+ */
+export function getForbiddenLimitedEndpoint(gameType: CardGameType): string {
+  return buildApiUrl('forbidden_limited.action', gameType);
+}
+

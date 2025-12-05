@@ -43,7 +43,8 @@ function connectCDP() {
     async evaluate(expression) {
       const result = await this.sendCommand('Runtime.evaluate', {
         expression,
-        returnByValue: true
+        returnByValue: true,
+        awaitPromise: true
       });
       return result.result && result.result.result ? result.result.result.value : undefined;
     },
@@ -60,6 +61,26 @@ function connectCDP() {
      */
     async wait(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    /**
+     * イベントリスナーを追加
+     */
+    on(eventName, callback) {
+      ws.on('message', (data) => {
+        const message = JSON.parse(data);
+        if (message.method === eventName) {
+          callback(message.params);
+        }
+      });
+    },
+
+    /**
+     * イベントリスナーを削除
+     */
+    off(eventName, callback) {
+      // WebSocketのイベントリスナーを削除
+      ws.off('message', callback);
     },
 
     /**
