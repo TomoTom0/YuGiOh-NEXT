@@ -303,22 +303,15 @@ gh-reply show <PR番号>
 # PRのレビューコメント一覧を取得
 gh-reply comment list <PR番号>
 
-# ドラフト返信を追加 (comment listで取得したthreadIdを指定)
-gh-reply draft add <PR番号> <threadId> "返信内容"
-
-# ドラフト一覧を確認
-gh-reply draft show <PR番号>
-
-# ドラフトを送信
-gh-reply draft send <PR番号>
+# レビューコメントに返信
+gh-reply comment reply <PR番号> <threadId> "返信内容"
 ```
 
 ### ワークフロー
 
 1. `gh-reply comment list <PR番号>` でレビューコメントを確認
-2. 各コメントに対して `gh-reply draft add` でドラフト返信を作成
-3. 必要な修正をコードに反映してコミット・プッシュ
-4. `gh-reply draft send <PR番号>` でドラフトを一括送信
+2. 必要な修正をコードに反映
+3. `gh-reply comment reply <PR番号> <threadId> "返信内容"` で各コメントに返信
 
 ## スタイル定義ルール
 
