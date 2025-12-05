@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
+  <div v-show="isReady" class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -192,6 +192,10 @@ export default {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
+
+    // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
+    const isReady = ref(false)
+
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -412,6 +416,21 @@ export default {
     onMounted(async () => {
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
+
+      // デッキ読み込み完了後、Vue UIを表示
+      isReady.value = true
+
+      // Vue描画完了を待ってからオーバーレイを削除
+      await nextTick()
+      const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay')
+      if (moduleLoadingOverlay) {
+        // フェードアウトアニメーション
+        moduleLoadingOverlay.style.opacity = '0'
+        moduleLoadingOverlay.style.transition = 'opacity 300ms ease-out'
+        setTimeout(() => {
+          moduleLoadingOverlay.remove()
+        }, 300)
+      }
 
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
@@ -703,6 +722,7 @@ export default {
     }
 
     return {
+      isReady,
       deckStore,
       settingsStore,
       activeTab,

@@ -286,30 +286,8 @@ async function loadEditUI(): Promise<void> {
   // Vue アプリケーションを起動
   await initVueApp();
 
-  // Vue初期化完了後、モジュール読み込みオーバーレイを削除（FOUC防止を終了）
-  // ただし、Vue描画が完全に終わるまで少し待つ
-  const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay');
-
-  // Vue描画をトリガーさせるため、複数回requestAnimationFrameを実行
-  await new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          resolve(null);
-        });
-      });
-    });
-  });
-
-  if (moduleLoadingOverlay) {
-    // フェードアウトアニメーション
-    moduleLoadingOverlay.style.opacity = '0';
-    moduleLoadingOverlay.style.transition = 'opacity 300ms ease-out';
-
-    setTimeout(() => {
-      moduleLoadingOverlay.remove();
-    }, 300);
-  }
+  // オーバーレイはDeckEditLayout.vueのonMountedで削除される
+  // （デッキ読み込み完了後に削除）
 
   // 言語切り替えボタンを差し替え（Vue初期化後）
   replaceLanguageChangeLinks();

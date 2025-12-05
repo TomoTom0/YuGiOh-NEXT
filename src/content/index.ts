@@ -37,6 +37,8 @@ import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-
 declare global {
   interface Window {
     ygoCurrentSettings?: any;
+    ygoPreloadedDeckDetail?: any;
+    ygoPreloadedDeckList?: any;
   }
 }
 
@@ -86,49 +88,46 @@ function prefetchEditUI(): void {
 }
 
 /**
- * background でデッキ詳細をプリロード（非同期、並行実行）
+ * 編集ページで即座に必要なデッキデータのみを最速で取得
+ * （マッピングマネージャー等は initializeFeatures() で idle 時に実行される）
  */
-async function preloadDeckDetailInBackground(): Promise<void> {
+async function preloadEditPageData(): Promise<void> {
+  const startTime = performance.now();
+
+  // URLから dno を抽出
+  const hash = window.location.hash;
+  const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+  const dno = urlParams.get('dno');
+
+  if (!dno) {
+    console.log('[Preload] No dno in URL, skipping preload');
+    return;
+  }
+
+  const dnoNum = parseInt(dno, 10);
+  if (isNaN(dnoNum)) {
+    console.warn('[Preload] Invalid dno in URL:', dno);
+    return;
+  }
+
+  // cgid取得
+  const cgid = await getFromStorageLocal('ygo-user-cgid');
+
+  if (!cgid) {
+    console.warn('[Preload] cgid not found, skipping preload');
+    return;
+  }
+
   try {
-    // URLから dno を抽出
-    const hash = window.location.hash;
-    const urlParams = new URLSearchParams(hash.split('?')[1] || '');
-    const dno = urlParams.get('dno');
+    console.log('[Preload] Loading deck detail: dno=', dnoNum);
+    const { getDeckDetail } = await import('../api/deck-operations');
+    const deckInfo = await getDeckDetail(dnoNum, cgid);
+    window.ygoPreloadedDeckDetail = deckInfo;
 
-    if (!dno) {
-      return; // dno がない場合はスキップ
-    }
-
-    // Chrome Storage から cgid を読み込み
-    const cgid = await getFromStorageLocal('ygo-user-cgid');
-
-    if (!cgid) {
-      console.warn('[Content] cgid not found in Storage, skipping preload');
-      return; // cgid がない場合はスキップ
-    }
-
-    // dno のバリデーション
-    const dnoNum = parseInt(dno, 10);
-    if (isNaN(dnoNum)) {
-      console.warn('[Content] Invalid dno in URL, skipping preload:', dno);
-      return;
-    }
-
-    // background へメッセージを送信（非同期、await しない）
-    // デッキ詳細と デッキリストを並行プリロード
-    Promise.all([
-      chrome.runtime.sendMessage({
-        type: 'PRELOAD_DECK_DETAIL',
-        dno: dnoNum,
-        cgid: cgid
-      }),
-      chrome.runtime.sendMessage({
-        type: 'PRELOAD_DECK_LIST',
-        cgid: cgid
-      })
-    ]).catch(err => console.warn('[Content] Failed to send preload messages:', err));
+    const endTime = performance.now();
+    console.log(`[Preload] Deck detail loaded in ${(endTime - startTime).toFixed(2)}ms`);
   } catch (error) {
-    console.warn('[Content] Failed to preload deck detail:', error);
+    console.warn('[Preload] Deck detail load failed:', error);
   }
 }
 
@@ -218,10 +217,7 @@ async function loadEditUIIfNeeded(): Promise<void> {
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  // background でデッキ詳細をプリロード（モジュールロードと並行実行）
-  preloadDeckDetailInBackground().catch(err =>
-    console.warn('[Content] Preload failed:', err)
-  );
+  // preload はトップレベルで既に開始済み（二重実行防止）
 
   try {
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
@@ -370,6 +366,12 @@ if (isVueEditPage()) {
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
+
+  // 画面描画と無関係な全ての事前処理を最速で開始（Vue インポート・マウントと並行実行）
+  console.log('[Content] Starting preload at:', performance.now());
+  preloadEditPageData().catch(err =>
+    console.warn('[Content] Preload failed:', err)
+  );
 
   // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
   loadEditUIIfNeeded();
