@@ -450,8 +450,9 @@
           </div>
         </div>
 
-        <!-- 閉じるボタン -->
+        <!-- フッター：SearchInputBar と閉じるボタン -->
         <div class="dialog-footer">
+          <SearchInputBar position="bottom" />
           <button class="close-button" @click="$emit('close')">閉じる</button>
         </div>
       </div>
@@ -464,6 +465,7 @@ import { reactive, computed, ref } from 'vue';
 import type { Attribute, Race, MonsterType, CardType, SpellEffectType, TrapEffectType } from '../types/card';
 import type { SearchFilters } from '../types/search-filters';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '../api/image-utils';
+import SearchInputBar from './SearchInputBar.vue';
 import {
   getAttributeLabel,
   getSpellTypeLabel,
