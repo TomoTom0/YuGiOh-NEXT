@@ -162,10 +162,10 @@ export const useSettingsStore = defineStore('settings', () => {
 
         // 初回起動時はデフォルトの末尾配置カードIDを使用
         // 以降はユーザーの設定を保持
-        if (!result.tailPlacementCardIds || result.tailPlacementCardIds.length === 0) {
-          tailPlacementCardIds.value = [...DEFAULT_TAIL_PLACEMENT_CARD_IDS];
-        } else {
+        if (Array.isArray(result.tailPlacementCardIds) && result.tailPlacementCardIds.length > 0) {
           tailPlacementCardIds.value = result.tailPlacementCardIds;
+        } else {
+          tailPlacementCardIds.value = [...DEFAULT_TAIL_PLACEMENT_CARD_IDS];
         }
 
         isLoaded.value = true;
