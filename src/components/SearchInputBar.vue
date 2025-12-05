@@ -1339,6 +1339,9 @@ export default defineComponent({
     }
 
     const handleSearch = async () => {
+      // フィルターダイアログを自動クローズ
+      showFilterDialog.value = false
+
       const query = deckStore.searchQuery.trim()
 
       if (!query && !hasActiveFilters.value) {
