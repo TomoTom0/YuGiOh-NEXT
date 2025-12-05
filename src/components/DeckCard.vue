@@ -270,7 +270,13 @@ export default {
         this.card.pendulumText || ''
       ].join(' ')
 
-      return selectedCategories.some((categoryId) => searchTexts.includes(categoryId))
+      // categoryLabelMapを使用してカテゴリID -> ラベルに変換
+      const categoryLabelMap = this.deckStore.categoryLabelMap || {}
+      return selectedCategories.some((categoryId) => {
+        const categoryLabel = categoryLabelMap[categoryId]
+        if (!categoryLabel) return false
+        return searchTexts.includes(categoryLabel)
+      })
     }
   },
   methods: {
@@ -670,40 +676,46 @@ export default {
 
 .tail-placement-icon {
   position: absolute;
-  bottom: 0;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  width: 30px;
-  height: 30px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   z-index: 5;
+  border: 1px solid var(--color-success, #4CAF50);
+  border-radius: 2px;
+  background: rgba(76, 175, 80, 0.1);
 
   svg {
     color: var(--color-success, #4CAF50);
-    width: 24px;
-    height: 24px;
+    width: 14px;
+    height: 14px;
   }
 }
 
 .category-placement-icon {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 30px;
-  height: 30px;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   z-index: 5;
+  border: 1px solid var(--color-info, #2196F3);
+  border-radius: 2px;
+  background: rgba(33, 150, 243, 0.1);
 
   svg {
     color: var(--color-info, #2196F3);
-    width: 24px;
-    height: 24px;
+    width: 14px;
+    height: 14px;
   }
 }
 
