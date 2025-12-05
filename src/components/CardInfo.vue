@@ -9,7 +9,7 @@
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
     <div class="ygo-next card-info-top">
-      <div class="card-image-wrapper">
+      <div class="card-image-wrapper" @click="closeMenuIfOutside">
         <DeckCard
           v-if="card"
           :key="cardUuid"
@@ -40,7 +40,7 @@
           </button>
         </div>
         <Transition name="menu-fade">
-          <div v-if="showCardMenu" class="card-menu-dropdown">
+          <div v-if="showCardMenu" class="card-menu-dropdown" @click.stop>
             <button
               class="card-menu-item"
               :class="{ 'tail-placement-active': isTailPlaced }"
@@ -315,6 +315,18 @@ export default {
       showCardMenu.value = false
     }
 
+    // メニュー外をクリックしたときにメニューを閉じる
+    const closeMenuIfOutside = (event) => {
+      // メニューボタンやドロップダウン上をクリックしている場合は何もしない
+      const target = event.target
+      const isMenuBtn = target.closest('.card-menu-btn')
+      const isMenuDropdown = target.closest('.card-menu-dropdown')
+
+      if (!isMenuBtn && !isMenuDropdown && showCardMenu.value) {
+        showCardMenu.value = false
+      }
+    }
+
     return {
       deckStore,
       parseCardLinks,
@@ -333,7 +345,8 @@ export default {
       getValidCiidsForCurrentLang,
       showCardMenu,
       isTailPlaced,
-      toggleTailPlacement
+      toggleTailPlacement,
+      closeMenuIfOutside
     }
   },
   methods: {
@@ -1096,6 +1109,7 @@ export default {
   gap: 4px;
   width: 100%;
   flex-direction: column;
+  position: relative;
 }
 
 .card-menu-btn {
@@ -1154,6 +1168,10 @@ export default {
   cursor: pointer;
   transition: all 0.2s;
   font-size: 12px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 
   &:hover {
     background: var(--bg-secondary);
