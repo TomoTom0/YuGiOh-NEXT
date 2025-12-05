@@ -1623,20 +1623,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       return tempCardDB.get(cid) || null;
     };
 
-    // 優先度カテゴリに該当するかをチェック
-    const priorityCategories = deckInfo.value?.sortPriorityCategories ?? [];
+    // デッキメタデータのカテゴリに該当するかをチェック
+    const selectedCategories = deckInfo.value?.category ?? [];
     const matchesPriorityCategory = (card: CardInfo | null): boolean => {
-      if (!card || priorityCategories.length === 0) return false;
-      
-      // カード名、ルビ、テキスト、ペンデュラムテキストから優先度カテゴリに該当するかをチェック
+      if (!card || selectedCategories.length === 0) return false;
+
+      // カード名、ルビ、テキスト、ペンデュラムテキストからカテゴリに該当するかをチェック
       const searchTexts = [
         card.name,
         (card as any).ruby || '',
         card.text || '',
         (card as any).pendulumText || ''
       ].join(' ');
-      
-      return priorityCategories.some((category: string) => searchTexts.includes(category));
+
+      return selectedCategories.some((categoryId: string) => searchTexts.includes(categoryId));
     };
 
     // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）
@@ -1703,14 +1703,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
       if (isTailA !== isTailB) return isTailA - isTailB;
 
-      // 1. 優先度カテゴリ: 該当あり(0) < 該当なし(1)
+      // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1)
       const cardA = getCardInfo(a.cid, a.ciid);
       const cardB = getCardInfo(b.cid, b.ciid);
       const inPriorityA = matchesPriorityCategory(cardA) ? 0 : 1;
       const inPriorityB = matchesPriorityCategory(cardB) ? 0 : 1;
       if (inPriorityA !== inPriorityB) return inPriorityA - inPriorityB;
 
-      // 2. 優先度カテゴリ内での枚数による重み付け
+      // 2. カテゴリ内での枚数による重み付け
       if (deckInfo.value?.sortByQuantity && inPriorityA === 0 && inPriorityB === 0) {
         const quantityA = section.filter(card => card.cid === a.cid).length;
         const quantityB = section.filter(card => card.cid === b.cid).length;

@@ -33,6 +33,11 @@
         <path fill="currentColor" :d="mdiArrowRightBold" />
       </svg>
     </div>
+    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowLeftBold" />
+      </svg>
+    </div>
     <div v-if="!card.empty" class="card-controls">
       <button 
         class="card-btn top-left"
@@ -252,6 +257,20 @@ export default {
     },
     isTailPlaced() {
       return this.settingsStore.isTailPlacementCard(this.card.cardId)
+    },
+    isInCategory() {
+      const selectedCategories = this.deckStore.deckInfo?.category ?? []
+      if (selectedCategories.length === 0) return false
+
+      // カード名、ルビ、テキスト、ペンデュラムテキストから該当カテゴリをチェック
+      const searchTexts = [
+        this.card.name,
+        this.card.ruby || '',
+        this.card.text || '',
+        this.card.pendulumText || ''
+      ].join(' ')
+
+      return selectedCategories.some((categoryId) => searchTexts.includes(categoryId))
     }
   },
   methods: {
@@ -664,6 +683,25 @@ export default {
 
   svg {
     color: var(--color-success, #4CAF50);
+    width: 8px;
+    height: 8px;
+  }
+}
+
+.category-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+
+  svg {
+    color: var(--color-info, #2196F3);
     width: 8px;
     height: 8px;
   }
