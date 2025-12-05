@@ -49,11 +49,18 @@ async function preloadDeckDetailInBackground(): Promise<void> {
     }
 
     // background へメッセージを送信（非同期、await しない）
-    chrome.runtime.sendMessage({
-      type: 'PRELOAD_DECK_DETAIL',
-      dno: dnoNum,
-      cgid: cgid
-    }).catch(err => console.warn('[Edit UI] Failed to send preload message:', err));
+    // デッキ詳細と デッキリストを並行プリロード
+    Promise.all([
+      chrome.runtime.sendMessage({
+        type: 'PRELOAD_DECK_DETAIL',
+        dno: dnoNum,
+        cgid: cgid
+      }),
+      chrome.runtime.sendMessage({
+        type: 'PRELOAD_DECK_LIST',
+        cgid: cgid
+      })
+    ]).catch(err => console.warn('[Edit UI] Failed to send preload messages:', err));
   } catch (error) {
     console.warn('[Edit UI] Failed to preload deck detail:', error);
   }

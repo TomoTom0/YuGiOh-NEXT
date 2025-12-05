@@ -1468,12 +1468,35 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function fetchDeckList() {
     try {
-      const list = await sessionManager.getDeckList();
-      deckList.value = list.map(item => ({
+      let list: any[] | null = null;
+
+      // Background で事前取得済みのデッキリストを確認
+      try {
+        const { getFromStorageLocal } = await import('../utils/chrome-storage-utils');
+        const preloadedData = await getFromStorageLocal('ygo-deck-list-preload');
+
+        if (preloadedData && typeof preloadedData === 'string') {
+          const parsed = JSON.parse(preloadedData);
+          if (Array.isArray(parsed.deckList) && parsed.deckList.length > 0) {
+            list = parsed.deckList;
+          }
+        }
+      } catch (err) {
+        console.warn('[fetchDeckList] Failed to load preloaded deck list:', err);
+      }
+
+      // プリロードがない場合は API から取得
+      if (!list) {
+        list = await sessionManager.getDeckList();
+      }
+
+      // 変換して返す
+      const transformed = list.map(item => ({
         dno: item.dno,
         name: item.name
       }));
-      return deckList.value;
+
+      return transformed;
     } catch (error) {
       console.error('Failed to fetch deck list:', error);
       return [];
@@ -1507,46 +1530,33 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       settingsStore.applyTheme();
       settingsStore.applyCardSize();
 
-      // デッキ一覧を取得
-      const list = await fetchDeckList();
-
-      if (list.length === 0) {
-        // デッキがない場合は何もしない
-        return;
-      }
-
       // URLパラメータからdnoを取得（URLStateManagerを使用）
       const urlDno = URLStateManager.getDno();
-
-      if (urlDno !== null) {
-        // URLで指定されたdnoが一覧に存在するか確認
-        const exists = list.some(item => item.dno === urlDno);
-        if (exists) {
-          try {
-            await loadDeck(urlDno);
-            return;
-          } catch (error) {
-            console.error(`Failed to load deck with dno=${urlDno}, falling back to default:`, error);
-            // ロード失敗時は通常処理に続く
-          }
-        }
-      }
-
-      // URLパラメータがない、または失敗した場合、前回使用したdnoを取得
       const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
-      if (savedDno) {
-        const dno = parseInt(savedDno, 10);
-        // 前回使用したdnoが一覧に存在するか確認
-        const exists = list.some(item => item.dno === dno);
-        if (exists) {
-          await loadDeck(dno);
-          return;
+      const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
+
+      // fetchDeckListとloadDeckを並行実行（プリロードキャッシュで高速化）
+      // targetDnoが決定している場合は、その値を使用
+      if (targetDno !== null) {
+        // URL/localStorageからtargetDnoが決まっている場合は両方を並行実行
+        const [list] = await Promise.all([
+          fetchDeckList(),
+          loadDeck(targetDno)
+        ]);
+        deckList.value = list;
+      } else {
+        // targetDnoが決まっていない場合は、リストを取得してから決定
+        const list = await fetchDeckList();
+        deckList.value = list;
+
+        if (list.length > 0) {
+          // 最大のdnoを使用
+          const dnoToLoad = Math.max(...list.map(item => item.dno));
+          loadDeck(dnoToLoad).catch(error => {
+            console.error('Failed to load deck after initialization:', error);
+          });
         }
       }
-
-      // 前回使用したdnoがない、または存在しない場合、最大のdnoをload
-      const maxDno = Math.max(...list.map(item => item.dno));
-      await loadDeck(maxDno);
     } catch (error) {
       console.error('Failed to initialize deck on page load:', error);
     }

@@ -221,9 +221,10 @@ export default {
         await deckStore.fetchDeckList()
 
         // 各デッキのサムネイルを取得または生成（非同期、UI をブロックしない）
-        deckStore.deckList.forEach(deck => {
-          loadOrGenerateThumbnail(deck.dno)
-        })
+        // TODO: サムネイル生成は一時的に無効化（パフォーマンス測定中）
+        // deckStore.deckList.forEach(deck => {
+        //   loadOrGenerateThumbnail(deck.dno)
+        // })
       }
       deckStore.showLoadDialog = !deckStore.showLoadDialog
     }

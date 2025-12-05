@@ -679,8 +679,7 @@ export default {
 .tail-placement-icon {
   position: absolute;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 4px;
   width: 18px;
   height: 18px;
   display: flex;

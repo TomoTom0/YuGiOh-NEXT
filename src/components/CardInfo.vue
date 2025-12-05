@@ -589,8 +589,8 @@ export default {
 }
 
 .image-select-btn {
-  width: 100%;
-  margin-top: 4px;
+  width: auto;
+  margin-top: 0;
   padding: 6px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
   color: var(--button-text);
@@ -602,6 +602,7 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 217, 184, 0.3);
+  flex-shrink: 0;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 217, 184, 0.5);
@@ -1108,12 +1109,12 @@ export default {
   display: flex;
   gap: 4px;
   width: 100%;
-  flex-direction: column;
+  flex-direction: row;
   position: relative;
 }
 
 .card-menu-btn {
-  width: 100%;
+  width: auto;
   padding: 6px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
   color: var(--button-text);
@@ -1126,6 +1127,7 @@ export default {
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 217, 184, 0.3);
   position: relative;
+  flex-shrink: 0;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 217, 184, 0.5);

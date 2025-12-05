@@ -86,6 +86,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true; // sendResponse が非同期のため必須
   }
 
+  if (message.type === 'PRELOAD_DECK_LIST') {
+    const { cgid } = message;
+
+    // 非同期で実行
+    preloadDeckList(cgid)
+      .then(() => sendResponse({ success: true }))
+      .catch(err => sendResponse({
+        success: false,
+        error: {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        }
+      }));
+
+    return true; // sendResponse が非同期のため必須
+  }
+
   // 他のメッセージ型は処理しない
   return false;
 });
@@ -112,5 +129,31 @@ async function preloadDeckDetail(dno: number, cgid: string): Promise<void> {
     }
   } catch (error) {
     console.error('[Background] Failed to preload deck detail:', error);
+  }
+}
+
+/**
+ * getDeckList を実行して Chrome Storage に保存
+ */
+async function preloadDeckList(cgid: string): Promise<void> {
+  try {
+    const { getDeckListInternal } = await import('@/api/deck-operations');
+    const deckList = await getDeckListInternal(cgid);
+
+    if (Array.isArray(deckList) && deckList.length > 0) {
+      const key = 'ygo-deck-list-preload';
+      const data = {
+        deckList,
+        cgid,
+        timestamp: Date.now()
+      };
+
+      await setToStorageLocal(key, JSON.stringify(data));
+      console.log('[Background] Deck list preloaded:', deckList.length, 'decks');
+    } else {
+      console.warn('[Background] Failed to get deck list or empty list');
+    }
+  } catch (error) {
+    console.error('[Background] Failed to preload deck list:', error);
   }
 }
