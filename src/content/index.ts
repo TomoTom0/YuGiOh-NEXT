@@ -28,6 +28,18 @@ import { forbiddenLimitedCache } from '../utils/forbidden-limited-cache';
 // タイムアウト管理
 import { withTimeout, TimeoutError } from '../utils/promise-timeout';
 
+// Chrome Storage ユーティリティ
+import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-utils';
+
+/**
+ * グローバル変数拡張
+ */
+declare global {
+  interface Window {
+    ygoCurrentSettings?: any;
+  }
+}
+
 /**
  * 編集UI読み込みフラグ（二重読み込み防止）
  */
@@ -98,6 +110,39 @@ async function loadEditUIIfNeeded(): Promise<void> {
 }
 
 /**
+ * アプリケーション設定をメモリとChromeStorageにキャッシュ
+ * メモリキャッシュは同一Content Script内での高速アクセス用
+ */
+async function cacheSettingsGlobally(): Promise<void> {
+  try {
+    const appSettings = await getFromStorageLocal('appSettings');
+    if (appSettings) {
+      window.ygoCurrentSettings = appSettings;
+      console.log('[YGO Helper] Settings cached to memory');
+    }
+  } catch (error) {
+    console.warn('[YGO Helper] Failed to cache settings:', error);
+  }
+}
+
+/**
+ * cgid を DOM から抽出して Chrome Storage に保存
+ */
+async function cacheCgidInStorage(): Promise<void> {
+  try {
+    const { sessionManager } = await import('./session/session');
+    const cgid = await sessionManager.getCgid();
+
+    if (cgid) {
+      await setToStorageLocal('ygo-user-cgid', cgid);
+      console.log('[YGO Helper] cgid cached:', cgid);
+    }
+  } catch (error) {
+    console.warn('[YGO Helper] Failed to cache cgid:', error);
+  }
+}
+
+/**
  * 機能設定に基づいて、各機能を初期化する
  */
 async function initializeFeatures(): Promise<void> {
@@ -110,6 +155,16 @@ async function initializeFeatures(): Promise<void> {
 
     // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
     forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));
+
+    // アプリケーション設定をメモリにキャッシュ（画面遷移時に高速アクセス）
+    cacheSettingsGlobally().catch(err =>
+      console.warn('Failed to cache settings:', err)
+    );
+
+    // cgid をバックグラウンドで事前取得して Chrome Storage に保存
+    cacheCgidInStorage().catch(err =>
+      console.warn('Failed to cache cgid:', err)
+    );
 
     // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
     const gameType = detectCardGameType();

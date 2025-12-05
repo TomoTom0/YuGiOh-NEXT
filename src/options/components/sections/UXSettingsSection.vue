@@ -101,7 +101,7 @@
       <label class="checkbox-label">
         <input
           type="checkbox"
-          v-model="settingsStore.appSettings.enableMouseOperations"
+          v-model="settingsStore.appSettings.ux.enableMouseOperations"
           @change="handleMouseOpsChange"
         />
         <span class="checkbox-text">
@@ -121,12 +121,12 @@
       <div class="radio-group">
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'auto' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'auto' }"
         >
           <input
             type="radio"
             value="auto"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -136,12 +136,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'name' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'name' }"
         >
           <input
             type="radio"
             value="name"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -151,12 +151,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'text' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'text' }"
         >
           <input
             type="radio"
             value="text"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -166,12 +166,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'pendulum' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'pendulum' }"
         >
           <input
             type="radio"
             value="pendulum"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -181,12 +181,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'mydeck' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'mydeck' }"
         >
           <input
             type="radio"
             value="mydeck"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -207,7 +207,7 @@
             <span class="shortcut-label">グローバル検索</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.globalSearch"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.globalSearch"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('globalSearch', 'グローバル検索')"
@@ -215,7 +215,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.globalSearch.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.globalSearch.length < 3"
                 class="add-button"
                 @click="openKeyDialog('globalSearch', 'グローバル検索')"
               >
@@ -229,7 +229,7 @@
             <span class="shortcut-label">Undo</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.undo"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.undo"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('undo', 'Undo')"
@@ -237,7 +237,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.undo.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.undo.length < 3"
                 class="add-button"
                 @click="openKeyDialog('undo', 'Undo')"
               >
@@ -251,7 +251,7 @@
             <span class="shortcut-label">Redo</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.redo"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.redo"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('redo', 'Redo')"
@@ -259,7 +259,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.redo.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.redo.length < 3"
                 class="add-button"
                 @click="openKeyDialog('redo', 'Redo')"
               >
@@ -301,7 +301,7 @@ const editingKey = ref<'globalSearch' | 'undo' | 'redo' | null>(null);
 
 const currentShortcuts = computed(() => {
   if (!editingKey.value) return [];
-  return settingsStore.appSettings.keyboardShortcuts[editingKey.value];
+  return settingsStore.appSettings.ux.keyboardShortcuts[editingKey.value];
 });
 
 onMounted(() => {
