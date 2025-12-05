@@ -673,8 +673,8 @@ export default {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -683,8 +683,8 @@ export default {
 
   svg {
     color: var(--color-success, #4CAF50);
-    width: 8px;
-    height: 8px;
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -692,8 +692,8 @@ export default {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -702,8 +702,8 @@ export default {
 
   svg {
     color: var(--color-info, #2196F3);
-    width: 8px;
-    height: 8px;
+    width: 24px;
+    height: 24px;
   }
 }
 
