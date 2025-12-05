@@ -41,10 +41,17 @@ async function preloadDeckDetailInBackground(): Promise<void> {
       return; // cgid がない場合はスキップ
     }
 
+    // dno のバリデーション
+    const dnoNum = parseInt(dno, 10);
+    if (isNaN(dnoNum)) {
+      console.warn('[Edit UI] Invalid dno in URL, skipping preload:', dno);
+      return;
+    }
+
     // background へメッセージを送信（非同期、await しない）
     chrome.runtime.sendMessage({
       type: 'PRELOAD_DECK_DETAIL',
-      dno: parseInt(dno),
+      dno: dnoNum,
       cgid: cgid
     }).catch(err => console.warn('[Edit UI] Failed to send preload message:', err));
   } catch (error) {

@@ -75,7 +75,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     // 非同期で実行
     preloadDeckDetail(dno, cgid)
       .then(() => sendResponse({ success: true }))
-      .catch(err => sendResponse({ success: false, error: err.message }));
+      .catch(err => sendResponse({
+        success: false,
+        error: {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        }
+      }));
 
     return true; // sendResponse が非同期のため必須
   }

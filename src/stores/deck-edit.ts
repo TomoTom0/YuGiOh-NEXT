@@ -17,6 +17,9 @@ import { getFromStorageLocal, removeFromStorageLocal } from '../utils/chrome-sto
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
 
+// デッキ詳細情報のプリロードキャッシュ有効期限（1時間）
+const PRELOAD_CACHE_EXPIRATION_MS = 60 * 60 * 1000;
+
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
     dno: 0,
@@ -1334,9 +1337,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (cached && typeof cached === 'string') {
           const cachedData = JSON.parse(cached);
 
-          // タイムスタンプをチェック（1時間以内のみ使用）
-          const ONE_HOUR = 60 * 60 * 1000;
-          if (Date.now() - cachedData.timestamp < ONE_HOUR) {
+          // タイムスタンプをチェック（キャッシュ有効期限内のみ使用）
+          if (Date.now() - cachedData.timestamp < PRELOAD_CACHE_EXPIRATION_MS) {
             loadedDeck = cachedData.deckInfo;
             console.log('[DeckEditLayout] Using preloaded deck data:', preloadKey);
           } else {
