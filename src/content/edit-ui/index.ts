@@ -182,18 +182,16 @@ function replaceLanguageChangeLinks(): void {
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
-  // DOMが読み込まれてから実行
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (isEditUrl() && !isEditUILoaded) {
-        loadEditUI();
-      }
-    });
-  } else {
-    // すでに読み込まれている場合
-    if (isEditUrl() && !isEditUILoaded) {
-      loadEditUI();
-    }
+  // 公式DOM前初期化: DOMContentLoadedを待たず即座に初期化
+  // オーバーレイを素早く表示し、ユーザー体感速度を向上
+  if (isEditUrl() && !isEditUILoaded) {
+    // background でデッキ詳細をプリロード（並行実行）
+    preloadDeckDetailInBackground().catch(err =>
+      console.warn('[Edit UI] Preload failed:', err)
+    );
+
+    // UI を即座にロード（オーバーレイ表示）
+    loadEditUI();
   }
 
   // hashchangeイベントを監視（一度だけ登録）

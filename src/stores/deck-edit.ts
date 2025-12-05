@@ -1334,29 +1334,41 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const cgid = await sessionManager.getCgid();
 
       // Chrome Storage からプリロード済みデータを取得
+      // preload が完了するまで少し待つ（最大200ms）
       const preloadKey = `ygo-deck-preload:${dno}:${cgid}`;
       let loadedDeck: DeckInfo | null = null;
 
       try {
         console.time('[loadDeck] preload cache check');
-        const cached = await getFromStorageLocal(preloadKey);
 
-        if (cached && typeof cached === 'string') {
-          const cachedData = JSON.parse(cached);
+        // 50msごとに最大4回チェック（合計200ms）
+        for (let i = 0; i < 4; i++) {
+          const cached = await getFromStorageLocal(preloadKey);
 
-          // タイムスタンプをチェック（キャッシュ有効期限内のみ使用）
-          if (Date.now() - cachedData.timestamp < PRELOAD_CACHE_EXPIRATION_MS) {
-            loadedDeck = cachedData.deckInfo;
-            console.log('[DeckEditLayout] Using preloaded deck data:', preloadKey);
-          } else {
-            console.warn('[DeckEditLayout] Cached deck data expired, fetching fresh data');
+          if (cached && typeof cached === 'string') {
+            const cachedData = JSON.parse(cached);
+
+            // タイムスタンプをチェック（キャッシュ有効期限内のみ使用）
+            if (Date.now() - cachedData.timestamp < PRELOAD_CACHE_EXPIRATION_MS) {
+              loadedDeck = cachedData.deckInfo;
+              console.log('[DeckEditLayout] Using preloaded deck data (attempt', i + 1, '):', preloadKey);
+              break;
+            }
           }
 
-          // 使用済みキャッシュを削除
+          // まだcacheがなければ50ms待つ（最後の試行では待たない）
+          if (i < 3 && !loadedDeck) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+        }
+
+        // 使用済みキャッシュを削除
+        if (loadedDeck) {
           await removeFromStorageLocal(preloadKey).catch(err =>
             console.warn('[DeckEditLayout] Failed to remove preload cache:', err)
           );
         }
+
         console.timeEnd('[loadDeck] preload cache check');
       } catch (error) {
         console.warn('[DeckEditLayout] Failed to retrieve preloaded data:', error);
