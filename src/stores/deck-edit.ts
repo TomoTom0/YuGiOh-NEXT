@@ -35,6 +35,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   const trashDeck = ref<DeckCardRef[]>([]);
 
+  // カテゴリID → ラベルのマップ（DeckMetadata.vue で設定）
+  const categoryLabelMap = ref<Record<string, string>>({});
+
   // 枚数制限エラー表示用のcardId
   const limitErrorCardId = ref<string | null>(null);
 
@@ -1698,26 +1701,34 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // ソート優先順位
     const settingsStore = useSettingsStore();
     const sorted = [...section].sort((a, b) => {
-      // 0. 末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
+      const cardA = getCardInfo(a.cid, a.ciid);
+      const cardB = getCardInfo(b.cid, b.ciid);
+      if (!cardA || !cardB) return 0;
+
+      // 0. Card Type: Monster(0) > Spell(1) > Trap(2)
+      const typeOrder = { monster: 0, spell: 1, trap: 2 };
+      const typeA = typeOrder[cardA.cardType] ?? 999;
+      const typeB = typeOrder[cardB.cardType] ?? 999;
+      if (typeA !== typeB) return typeA - typeB;
+
+      // 1. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
       const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
       const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
       if (isTailA !== isTailB) return isTailA - isTailB;
 
-      // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1)
-      const cardA = getCardInfo(a.cid, a.ciid);
-      const cardB = getCardInfo(b.cid, b.ciid);
+      // 2. メタデータカテゴリ: 該当あり(0) < 該当なし(1)
       const inPriorityA = matchesPriorityCategory(cardA) ? 0 : 1;
       const inPriorityB = matchesPriorityCategory(cardB) ? 0 : 1;
       if (inPriorityA !== inPriorityB) return inPriorityA - inPriorityB;
 
-      // 2. カテゴリ内での枚数による重み付け
+      // 3. カテゴリ内での枚数による重み付け
       if (deckInfo.value?.sortByQuantity && inPriorityA === 0 && inPriorityB === 0) {
         const quantityA = section.filter(card => card.cid === a.cid).length;
         const quantityB = section.filter(card => card.cid === b.cid).length;
         if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
       }
 
-      // 3. その他のカード比較ロジックを適用
+      // 4. その他のカード比較ロジックを適用（Monster Type, Level, Name等）
       return compareCards(a, b);
     });
 
@@ -1910,6 +1921,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   return {
     deckInfo,
     trashDeck,
+    categoryLabelMap,
     displayOrder,
     limitErrorCardId,
     draggingCard,
