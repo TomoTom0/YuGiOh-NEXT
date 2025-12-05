@@ -169,6 +169,40 @@ async function loadEditUIIfNeeded(): Promise<void> {
   loadingOverlay.style.backgroundColor = bgColor;
   loadingOverlay.style.zIndex = '999999';
   loadingOverlay.style.pointerEvents = 'none';
+  loadingOverlay.style.display = 'flex';
+  loadingOverlay.style.flexDirection = 'column';
+  loadingOverlay.style.alignItems = 'center';
+  loadingOverlay.style.justifyContent = 'center';
+  loadingOverlay.style.gap = '20px';
+
+  // ローディングスピナーを追加
+  const spinner = document.createElement('div');
+  spinner.style.width = '50px';
+  spinner.style.height = '50px';
+  spinner.style.border = `4px solid ${effectiveTheme === 'dark' ? '#333' : '#e0e0e0'}`;
+  spinner.style.borderTop = `4px solid ${effectiveTheme === 'dark' ? '#fff' : '#333'}`;
+  spinner.style.borderRadius = '50%';
+  spinner.style.animation = 'ygo-spin 1s linear infinite';
+
+  // ローディングテキストを追加
+  const loadingText = document.createElement('div');
+  loadingText.textContent = 'デッキエディタを読み込み中...';
+  loadingText.style.color = effectiveTheme === 'dark' ? '#ccc' : '#666';
+  loadingText.style.fontSize = '16px';
+  loadingText.style.fontFamily = 'sans-serif';
+
+  loadingOverlay.appendChild(spinner);
+  loadingOverlay.appendChild(loadingText);
+
+  // スピナーアニメーションのCSSを追加
+  const spinnerStyle = document.createElement('style');
+  spinnerStyle.textContent = `
+    @keyframes ygo-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(spinnerStyle);
 
   // document.bodyがまだない場合は準備できるまで待つ
   if (document.body) {
