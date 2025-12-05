@@ -1329,6 +1329,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function loadDeck(dno: number) {
     try {
+      console.log(`[loadDeck] 開始: dno=${dno}`);
+
       const cgid = await sessionManager.getCgid();
 
       // Chrome Storage からプリロード済みデータを取得
@@ -1336,6 +1338,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       let loadedDeck: DeckInfo | null = null;
 
       try {
+        console.time('[loadDeck] preload cache check');
         const cached = await getFromStorageLocal(preloadKey);
 
         if (cached && typeof cached === 'string') {
@@ -1354,16 +1357,20 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
             console.warn('[DeckEditLayout] Failed to remove preload cache:', err)
           );
         }
+        console.timeEnd('[loadDeck] preload cache check');
       } catch (error) {
         console.warn('[DeckEditLayout] Failed to retrieve preloaded data:', error);
       }
 
       // キャッシュがなければ通常の getDeckDetailAPI を実行
       if (!loadedDeck) {
+        console.time('[loadDeck] getDeckDetailAPI');
         loadedDeck = await getDeckDetailAPI(dno, cgid);
+        console.timeEnd('[loadDeck] getDeckDetailAPI');
       }
 
       if (loadedDeck) {
+        console.time('[loadDeck] deckInfo update');
         // originalNameを保存してからdeckInfoを更新
         deckInfo.value = {
           ...loadedDeck,
@@ -1376,6 +1383,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
         // displayOrderを初期化
         initializeDisplayOrder();
+        console.timeEnd('[loadDeck] deckInfo update');
 
         // ロード時はアニメーション不要（新規表示のため）
 
@@ -1639,7 +1647,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         (card as any).pendulumText || ''
       ].join(' ');
 
-      return selectedCategories.some((categoryId: string) => searchTexts.includes(categoryId));
+      // categoryLabelMap（ID → ラベルのマップ）を使って、ID をカテゴリラベルに変換して検索
+      return selectedCategories.some((categoryId: string) => {
+        const categoryLabel = categoryLabelMap.value[categoryId];
+        if (!categoryLabel) return false; // マップにない場合はマッチなし
+        return searchTexts.includes(categoryLabel);
+      });
     };
 
     // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）

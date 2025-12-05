@@ -5,7 +5,6 @@ import { getTempCardDB } from '@/utils/temp-card-db';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
-import { globalRequestQueue } from '@/utils/request-queue';
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -35,11 +34,11 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     const url = `${baseUrl}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
 
     const { default: axios } = await import('axios');
-    const response = await globalRequestQueue.enqueue(() =>
-      axios.get(url, {
-        withCredentials: true
-      })
-    );
+    // NOTE: createNewDeckInternal はユーザー操作（新規デッキ作成）のクリティカルパスなため、
+    // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
 
     const html = response.data;
     const parser = new DOMParser();
@@ -47,12 +46,12 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
 
     // デッキ一覧をパースして最大のdnoを取得
     const deckList = parseDeckList(doc);
-    
+
     if (deckList.length === 0) {
       console.error('[createNewDeckInternal] No decks found in list after creation');
       return 0;
     }
-    
+
     const maxDno = Math.max(...deckList.map(deck => deck.dno));
     return maxDno;
   } catch (error) {
@@ -89,11 +88,11 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await globalRequestQueue.enqueue(() =>
-      axios.get(url, {
-        withCredentials: true
-      })
-    );
+    // NOTE: deleteDeckInternal はユーザー操作（デッキ削除）のクリティカルパスなため、
+    // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
 
     return response.status === 200;
   } catch (error) {
@@ -251,18 +250,18 @@ export async function saveDeckInternal(
     // paramsはurl encodeされる必要がある, +は%20に変換されるべき
 
     const { default: axios } = await import('axios');
-    const response = await globalRequestQueue.enqueue(() =>
-      axios.post(postUrl, encoded_params, {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      })
-    );
+    // NOTE: saveDeckInternal はユーザー操作（デッキ保存）のクリティカルパスなため、
+    // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const response = await axios.post(postUrl, encoded_params, {
+      withCredentials: true,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
 
     const data = response.data;
-    
+
     // 公式の判定方法に合わせる
     if (data.result) {
       return { success: true };
@@ -378,6 +377,9 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
+    console.log(`[getDeckDetail] 開始: dno=${dno}, cgid=${cgid ? 'set' : 'unset'}`);
+    console.time(`[getDeckDetail] total`);
+
     const gameType = detectCardGameType();
 
     // URLパラメータを構築
@@ -392,22 +394,31 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await globalRequestQueue.enqueue(() =>
-      axios.get(url, {
-        withCredentials: true
-      })
-    );
+    // NOTE: getDeckDetail はユーザーがデッキ遷移時に待つクリティカルパスなため、
+    // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    console.time('[getDeckDetail] axios.get');
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
+    console.timeEnd('[getDeckDetail] axios.get');
 
     const html = response.data;
+
+    console.time('[getDeckDetail] DOMParser.parseFromString');
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
+    console.timeEnd('[getDeckDetail] DOMParser.parseFromString');
 
     // parseDeckDetailを使用してデッキ情報を抽出
+    console.time('[getDeckDetail] parseDeckDetail');
     const deckInfo = await parseDeckDetail(doc);
+    console.timeEnd('[getDeckDetail] parseDeckDetail');
 
+    console.timeEnd(`[getDeckDetail] total`);
     return deckInfo;
   } catch (error) {
     console.error('Failed to get deck detail:', error);
+    console.timeEnd(`[getDeckDetail] total`);
     return null;
   }
 }
@@ -434,11 +445,11 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
-    const response = await globalRequestQueue.enqueue(() =>
-      axios.get(url, {
-        withCredentials: true
-      })
-    );
+    // NOTE: getDeckListInternal はページ初期化時に待つクリティカルパスなため、
+    // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const response = await axios.get(url, {
+      withCredentials: true
+    });
 
     const html = response.data;
     const parser = new DOMParser();
