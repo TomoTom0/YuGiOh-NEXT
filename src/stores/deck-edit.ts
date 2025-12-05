@@ -1399,8 +1399,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         recordDeckOpen(dno, allCardIds);
 
         // メモリ内に保存されたカード情報を Chrome Storage に同期（非同期で実行、UIをブロックしない）
-        saveTempCardDBToStorage().catch(error => {
-          console.error('Failed to save TempCardDB to storage:', error);
+        // Table A, B, B2 を cache db に保存
+        const { saveUnifiedCacheDB } = await import('../utils/unified-cache-db');
+        saveUnifiedCacheDB().catch(error => {
+          console.error('Failed to save UnifiedCacheDB to storage:', error);
         });
 
         // コマンド履歴をリセット

@@ -123,6 +123,11 @@ async function preloadDeckDetail(dno: number, cgid: string): Promise<void> {
       };
 
       await setToStorageLocal(key, JSON.stringify(data));
+
+      // parseCardSection() で設定された UnifiedCacheDB をChrome Storageに同期
+      const { saveUnifiedCacheDB } = await import('@/utils/unified-cache-db');
+      await saveUnifiedCacheDB();
+
       console.log('[Background] Deck preloaded:', key);
     } else {
       console.warn('[Background] Failed to get deck detail:', dno, cgid);
