@@ -251,6 +251,14 @@ async function loadEditUI(): Promise<void> {
         padding: 0;
         overflow: hidden;
       }
+      #bg,
+      #vue-edit-app {
+        background-color: var(--bg-primary);
+      }
+      #bg {
+        width: 100%;
+        height: 100%;
+      }
       #vue-edit-app {
         width: 100%;
         height: 100%;
