@@ -19,6 +19,13 @@ let isEditUILoaded = false;
 // イベントリスナーが登録済みかどうかのフラグ
 let isEventListenerRegistered = false;
 
+// 公式DOM読み込みと同時に、Vue関連モジュールを事前インポート開始
+const vueModulesPromise = Promise.all([
+  import('vue'),
+  import('pinia'),
+  import('./DeckEditLayout.vue')
+]);
+
 /**
  * background でデッキ詳細をプリロード（非同期、並行実行）
  */
@@ -357,12 +364,8 @@ async function loadEditUI(): Promise<void> {
  */
 async function initVueApp(): Promise<void> {
   try {
-    // Vue/Pinia/コンポーネントを動的インポート
-    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
-      import('vue'),
-      import('pinia'),
-      import('./DeckEditLayout.vue')
-    ]);
+    // トップレベルで既にインポート開始しているPromiseを使用
+    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await vueModulesPromise;
 
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
