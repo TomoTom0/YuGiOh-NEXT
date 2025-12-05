@@ -1607,7 +1607,23 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       return tempCardDB.get(cid) || null;
     };
 
-    // ソート用の内部関数：カード比較ロジック
+    // 優先度カテゴリに該当するかをチェック
+    const priorityCategories = deckInfo.value?.sortPriorityCategories ?? [];
+    const matchesPriorityCategory = (card: CardInfo | null): boolean => {
+      if (!card || priorityCategories.length === 0) return false;
+      
+      // カード名、ルビ、テキスト、ペンデュラムテキストから優先度カテゴリに該当するかをチェック
+      const searchTexts = [
+        card.name,
+        (card as any).ruby || '',
+        card.text || '',
+        (card as any).pendulumText || ''
+      ].join(' ');
+      
+      return priorityCategories.some((category: string) => searchTexts.includes(category));
+    };
+
+    // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）
     const compareCards = (a: DisplayCard, b: DisplayCard): number => {
       const cardA = getCardInfo(a.cid, a.ciid);
       const cardB = getCardInfo(b.cid, b.ciid);
@@ -1637,25 +1653,25 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           }
           return 999;
         };
-        const monsterTypeA = getMainType(cardA.types);
-        const monsterTypeB = getMainType(cardB.types);
+        const monsterTypeA = getMainType((cardA as any).types);
+        const monsterTypeB = getMainType((cardB as any).types);
         if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
 
         // 4. Level/Rank/Link（降順）
-        const levelA = cardA.levelValue ?? 0;
-        const levelB = cardB.levelValue ?? 0;
+        const levelA = (cardA as any).levelValue ?? 0;
+        const levelB = (cardB as any).levelValue ?? 0;
         if (levelA !== levelB) return levelB - levelA; // 降順
       }
 
       // 3. Spell Type / Trap Type
       if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
-        const spellTypeA = cardA.effectType ?? '';
-        const spellTypeB = cardB.effectType ?? '';
+        const spellTypeA = (cardA as any).effectType ?? '';
+        const spellTypeB = (cardB as any).effectType ?? '';
         if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
       }
       if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
-        const trapTypeA = cardA.effectType ?? '';
-        const trapTypeB = cardB.effectType ?? '';
+        const trapTypeA = (cardA as any).effectType ?? '';
+        const trapTypeB = (cardB as any).effectType ?? '';
         if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
       }
 
@@ -1671,7 +1687,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
       if (isTailA !== isTailB) return isTailA - isTailB;
 
-      // 同じ末尾配置状態であれば、既存のカード比較ロジックを適用
+      // 1. 優先度カテゴリ: 該当あり(0) < 該当なし(1)
+      const cardA = getCardInfo(a.cid, a.ciid);
+      const cardB = getCardInfo(b.cid, b.ciid);
+      const inPriorityA = matchesPriorityCategory(cardA) ? 0 : 1;
+      const inPriorityB = matchesPriorityCategory(cardB) ? 0 : 1;
+      if (inPriorityA !== inPriorityB) return inPriorityA - inPriorityB;
+
+      // 2. 優先度カテゴリ内での枚数による重み付け
+      if (deckInfo.value?.sortByQuantity && inPriorityA === 0 && inPriorityB === 0) {
+        const quantityA = section.filter(card => card.cid === a.cid).length;
+        const quantityB = section.filter(card => card.cid === b.cid).length;
+        if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
+      }
+
+      // 3. その他のカード比較ロジックを適用
       return compareCards(a, b);
     });
 

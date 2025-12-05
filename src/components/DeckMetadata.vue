@@ -46,6 +46,54 @@
       v-model="localComment"
       @update:model-value="updateComment"
     />
+
+    <!-- 5行目: ソート優先度設定 -->
+    <div class="sort-options-section">
+      <div class="sort-options-header">
+        <span class="sort-options-label">ソート優先度設定</span>
+      </div>
+
+      <!-- 優先度カテゴリ入力 -->
+      <div class="sort-priority-input-group">
+        <label class="sort-label">優先度カテゴリ（カンマまたは改行で区切る）:</label>
+        <textarea
+          :value="localSortPriorityCategories.join('\n')"
+          @input="updateSortPriorityCategories($event.target.value)"
+          class="sort-priority-textarea"
+          placeholder="例: ライロ&#10;スプライト&#10;トライブリガード"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <!-- 優先度カテゴリ表示 -->
+      <div v-if="localSortPriorityCategories.length > 0" class="sort-priority-chips">
+        <div
+          v-for="(category, index) in localSortPriorityCategories"
+          :key="index"
+          class="priority-chip"
+        >
+          <span>{{ category }}</span>
+          <button
+            class="chip-remove-btn"
+            @click="localSortPriorityCategories.splice(index, 1)"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <!-- 枚数による重み付けオプション -->
+      <div class="sort-quantity-option">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            :checked="localSortByQuantity"
+            @change="updateSortByQuantity(!localSortByQuantity)"
+          />
+          <span>優先度カテゴリ内で枚数の多いカードを先頭に配置</span>
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -78,6 +126,10 @@ const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? '-1')
 const localCategory = ref<string[]>([...(deckStore.deckInfo.category ?? [])]);
 const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
+
+// ソート優先度オプション
+const localSortPriorityCategories = ref<string[]>([...(deckStore.deckInfo.sortPriorityCategories ?? [])]);
+const localSortByQuantity = ref(deckStore.deckInfo.sortByQuantity ?? false);
 
 // ダイアログ表示状態
 const showCategoryDialog = ref(false);
@@ -122,6 +174,8 @@ watch(() => deckStore.deckInfo, (newDeckInfo) => {
   localCategory.value = [...(newDeckInfo.category ?? [])];
   localTags.value = [...(newDeckInfo.tags ?? [])];
   localComment.value = newDeckInfo.comment ?? '';
+  localSortPriorityCategories.value = [...(newDeckInfo.sortPriorityCategories ?? [])];
+  localSortByQuantity.value = newDeckInfo.sortByQuantity ?? false;
 }, { deep: true });
 
 // 更新関数
@@ -170,6 +224,22 @@ function removeTag(tagId: string) {
     localTags.value.splice(index, 1);
     deckStore.deckInfo.tags = [...localTags.value];
   }
+}
+
+// ソート優先度関数
+function updateSortPriorityCategories(input: string) {
+  // カンマまたは改行で分割、トリム、空文字列を除外
+  const categories = input
+    .split(/[,\n]/)
+    .map(cat => cat.trim())
+    .filter(cat => cat.length > 0);
+  localSortPriorityCategories.value = categories;
+  deckStore.deckInfo.sortPriorityCategories = categories;
+}
+
+function updateSortByQuantity(value: boolean) {
+  localSortByQuantity.value = value;
+  deckStore.deckInfo.sortByQuantity = value;
 }
 </script>
 
@@ -875,6 +945,132 @@ function removeTag(tagId: string) {
     &[data-type="pendulum"] {
       background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
     }
+  }
+}
+
+// ソート優先度セクションのスタイル
+.sort-options-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+}
+
+.sort-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sort-options-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sort-priority-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sort-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.sort-priority-textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  resize: vertical;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--theme-gradient-start, #00d9b8);
+    box-shadow: 0 0 0 2px rgba(0, 217, 184, 0.1);
+  }
+
+  &::placeholder {
+    color: var(--text-tertiary);
+  }
+}
+
+.sort-priority-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  min-height: 24px;
+}
+
+.priority-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.chip-remove-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.sort-quantity-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+
+  input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--theme-gradient-start, #00d9b8);
+  }
+
+  span {
+    flex: 1;
   }
 }
 </style>
