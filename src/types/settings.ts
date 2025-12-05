@@ -124,6 +124,29 @@ export interface KeyboardShortcut {
 }
 
 /**
+ * UX設定（色とユーザー体験）
+ */
+export interface UXSettings {
+  /** カード検索入力欄の位置 */
+  searchInputPosition: SearchInputPosition;
+  /** 検索モードのデフォルト */
+  defaultSearchMode: SearchMode;
+  /** 右クリック・中クリック操作の有効化 */
+  enableMouseOperations: boolean;
+  /** デッキ編集画面でファビコンを変更 */
+  changeFavicon: boolean;
+  /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
+  keyboardShortcuts: {
+    /** グローバル検索呼び出しキー */
+    globalSearch: KeyboardShortcut[];
+    /** Undoキー */
+    undo: KeyboardShortcut[];
+    /** Redoキー */
+    redo: KeyboardShortcut[];
+  };
+}
+
+/**
  * アプリ全体設定
  */
 export interface AppSettings {
@@ -141,29 +164,30 @@ export interface AppSettings {
   language: Language;
   /** Extra/Sideデッキの配置方向 */
   middleDecksLayout: MiddleDecksLayout;
-  /** カード検索入力欄の位置 */
-  searchInputPosition: SearchInputPosition;
-  /** 検索モードのデフォルト */
-  defaultSearchMode: SearchMode;
+  /** UX設定（色・ユーザー体験） */
+  ux: UXSettings;
   /** 禁止制限チェック有効化（Phase 3で使用） */
   enableBanlistCheck: boolean;
   /** 未保存時の警告モード */
   unsavedWarning: UnsavedWarning;
-  /** 右クリック・中クリック操作の有効化 */
-  enableMouseOperations: boolean;
-  /** デッキ編集画面でファビコンを変更 */
-  changeFavicon: boolean;
   /** デッキ表示ページでCardDetail情報を表示 */
   showCardDetailInDeckDisplay: boolean;
   /** デッキ表示ページのカード画像サイズ */
   deckDisplayCardImageSize: CardSize;
-  /** キーボードショートカット設定（各機能に最大3つまで登録可能） */
-  keyboardShortcuts: {
-    /** グローバル検索呼び出しキー */
+
+  // 後方互換性：deprecated（新規コードは ux.* を使用）
+  /** @deprecated ux.searchInputPosition を使用してください */
+  searchInputPosition?: SearchInputPosition;
+  /** @deprecated ux.defaultSearchMode を使用してください */
+  defaultSearchMode?: SearchMode;
+  /** @deprecated ux.enableMouseOperations を使用してください */
+  enableMouseOperations?: boolean;
+  /** @deprecated ux.changeFavicon を使用してください */
+  changeFavicon?: boolean;
+  /** @deprecated ux.keyboardShortcuts を使用してください */
+  keyboardShortcuts?: {
     globalSearch: KeyboardShortcut[];
-    /** Undoキー */
     undo: KeyboardShortcut[];
-    /** Redoキー */
     redo: KeyboardShortcut[];
   };
 }
@@ -215,28 +239,13 @@ export const DEFAULT_DECK_EDIT_SETTINGS: DeckEditSettings = {
 };
 
 /**
- * デフォルトのアプリ設定
+ * デフォルトのUX設定
  */
-export const DEFAULT_APP_SETTINGS: AppSettings = {
-  // デフォルトはLプリセット（deck/list=large, info=xlarge, grid=medium）
-  deckEditCardSize: 'large',
-  infoCardSize: 'xlarge',
-  gridCardSize: 'medium',
-  listCardSize: 'large',
-  theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
-  language: 'auto',
-  middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
+export const DEFAULT_UX_SETTINGS: UXSettings = {
   searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
   defaultSearchMode: 'auto',    // 検索モードのデフォルト: 自動
-  enableBanlistCheck: false,
-  // UX設定
-  unsavedWarning: 'always',
   enableMouseOperations: false,
   changeFavicon: true,
-  // デッキ表示ページ設定
-  showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
-  deckDisplayCardImageSize: 'large',   // デッキ表示ページのカード画像: large
-  // キーボードショートカット（各機能に最大3つまで登録可能、0個も許容）
   keyboardShortcuts: {
     globalSearch: [
       { ctrl: false, shift: false, alt: false, key: '/' },
@@ -249,6 +258,26 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
       { ctrl: true, shift: false, alt: false, key: 'y' }
     ],
   },
+};
+
+/**
+ * デフォルトのアプリ設定
+ */
+export const DEFAULT_APP_SETTINGS: AppSettings = {
+  // デフォルトはLプリセット（deck/list=large, info=xlarge, grid=medium）
+  deckEditCardSize: 'large',
+  infoCardSize: 'xlarge',
+  gridCardSize: 'medium',
+  listCardSize: 'large',
+  theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
+  language: 'auto',
+  middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
+  ux: DEFAULT_UX_SETTINGS,       // UX設定
+  enableBanlistCheck: false,
+  unsavedWarning: 'always',
+  // デッキ表示ページ設定
+  showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
+  deckDisplayCardImageSize: 'large',   // デッキ表示ページのカード画像: large
 };
 
 /**

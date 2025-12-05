@@ -617,13 +617,15 @@ describe('stores/settings', () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      // 配列をマージ
+      // 配列をマージ（新形式：ux オブジェクト内）
       mockStorage.appSettings = {
         theme: 'light',
-        keyboardShortcuts: {
-          globalSearch: [{ key: '/', ctrl: false, shift: false, alt: false }],
-          undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
-          redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+        ux: {
+          keyboardShortcuts: {
+            globalSearch: [{ key: '/', ctrl: false, shift: false, alt: false }],
+            undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+            redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+          }
         }
       };
 
@@ -631,61 +633,65 @@ describe('stores/settings', () => {
       await store.loadCommonSettings();
 
       // keyboardShortcuts は配列であることを確認
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.globalSearch)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.undo)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.redo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.globalSearch)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.undo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.redo)).toBe(true);
 
       // 配列メソッドが使用可能
-      expect(typeof store.appSettings.keyboardShortcuts.globalSearch.map).toBe('function');
-      expect(typeof store.appSettings.keyboardShortcuts.globalSearch.some).toBe('function');
+      expect(typeof store.appSettings.ux.keyboardShortcuts.globalSearch.map).toBe('function');
+      expect(typeof store.appSettings.ux.keyboardShortcuts.globalSearch.some).toBe('function');
     });
 
     it('空配列マージテスト: 空配列はターゲットの配列を使用', async () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      // ストレージに空配列を保存
+      // ストレージに空配列を保存（新形式：ux オブジェクト内）
       mockStorage.appSettings = {
         theme: 'light',
-        keyboardShortcuts: {
-          globalSearch: [],
-          undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
-          redo: []
+        ux: {
+          keyboardShortcuts: {
+            globalSearch: [],
+            undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+            redo: []
+          }
         }
       };
 
       await store.loadCommonSettings();
 
       // 空配列の場合、デフォルト値が使用される
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.globalSearch)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.undo)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.redo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.globalSearch)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.undo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.redo)).toBe(true);
 
       // undoは保存されたデータを使用
-      expect(store.appSettings.keyboardShortcuts.undo.length).toBeGreaterThan(0);
+      expect(store.appSettings.ux.keyboardShortcuts.undo.length).toBeGreaterThan(0);
     });
 
     it('ネストオブジェクトのマージテスト: 配列はオブジェクト化されない', async () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      // ネストされたオブジェクトに配列を含める
+      // ネストされたオブジェクトに配列を含める（新形式：ux オブジェクト内）
       mockStorage.appSettings = {
         theme: 'light',
-        keyboardShortcuts: {
-          globalSearch: [{ key: '/', ctrl: false, shift: false, alt: false }],
-          undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
-          redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+        ux: {
+          keyboardShortcuts: {
+            globalSearch: [{ key: '/', ctrl: false, shift: false, alt: false }],
+            undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+            redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+          }
         }
       };
 
       await store.loadCommonSettings();
 
-      // keyboardShortcuts オブジェクト内の各配列が配列のまま保持される
-      const { keyboardShortcuts } = store.appSettings;
+      // ux.keyboardShortcuts オブジェクト内の各配列が配列のまま保持される
+      const { keyboardShortcuts } = store.appSettings.ux;
 
       for (const [key, value] of Object.entries(keyboardShortcuts)) {
-        expect(Array.isArray(value)).toBe(true, `keyboardShortcuts.${key} should be an array`);
+        expect(Array.isArray(value)).toBe(true, `ux.keyboardShortcuts.${key} should be an array`);
       }
     });
   });
@@ -701,7 +707,9 @@ describe('stores/settings', () => {
       mockStorage.appSettings = {
         theme: originalTheme,
         language: null as any,
-        keyboardShortcuts: undefined as any
+        ux: {
+          keyboardShortcuts: undefined as any
+        }
       };
 
       await store.loadCommonSettings();
@@ -709,7 +717,7 @@ describe('stores/settings', () => {
       // null/undefined はスキップされ、デフォルト値が使用される
       expect(store.appSettings.theme).toBe(originalTheme);
       expect(store.appSettings.language).toBeDefined();
-      expect(store.appSettings.keyboardShortcuts).toBeDefined();
+      expect(store.appSettings.ux.keyboardShortcuts).toBeDefined();
     });
   });
 
@@ -726,18 +734,20 @@ describe('stores/settings', () => {
         alt: false
       });
 
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBeGreaterThan(0);
-      expect(mockStorage.appSettings.keyboardShortcuts.globalSearch).toBeDefined();
-      expect(Array.isArray(mockStorage.appSettings.keyboardShortcuts.globalSearch)).toBe(true);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBeGreaterThan(0);
+      expect(mockStorage.appSettings.ux.keyboardShortcuts.globalSearch).toBeDefined();
+      expect(Array.isArray(mockStorage.appSettings.ux.keyboardShortcuts.globalSearch)).toBe(true);
     });
 
     it('keyboardShortcuts 配列の復元テスト', async () => {
       mockStorage.appSettings = {
         theme: 'light',
-        keyboardShortcuts: {
-          globalSearch: [{ key: '?', ctrl: false, shift: true, alt: false }],
-          undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
-          redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+        ux: {
+          keyboardShortcuts: {
+            globalSearch: [{ key: '?', ctrl: false, shift: true, alt: false }],
+            undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+            redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+          }
         }
       };
 
@@ -745,13 +755,13 @@ describe('stores/settings', () => {
       await store.loadCommonSettings();
 
       // 復元後も配列は Array.isArray() で true
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.globalSearch)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.undo)).toBe(true);
-      expect(Array.isArray(store.appSettings.keyboardShortcuts.redo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.globalSearch)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.undo)).toBe(true);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.redo)).toBe(true);
 
       // 復元後の配列が deepMerge により正しく処理される
-      expect(store.appSettings.keyboardShortcuts.globalSearch[0].key).toBe('?');
-      expect(store.appSettings.keyboardShortcuts.undo[0].key).toBe('z');
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch[0].key).toBe('?');
+      expect(store.appSettings.ux.keyboardShortcuts.undo[0].key).toBe('z');
     });
 
     it('キーボードショートカット追加テスト: 最大3個まで追加可能', async () => {
@@ -759,7 +769,7 @@ describe('stores/settings', () => {
       await store.loadSettings();
 
       // 初期状態をクリア
-      store.appSettings.keyboardShortcuts.globalSearch = [];
+      store.appSettings.ux.keyboardShortcuts.globalSearch = [];
 
       // 1個目追加
       store.addKeyboardShortcut('globalSearch', {
@@ -768,7 +778,7 @@ describe('stores/settings', () => {
         shift: false,
         alt: false
       });
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(1);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(1);
 
       // 2個目追加
       store.addKeyboardShortcut('globalSearch', {
@@ -777,7 +787,7 @@ describe('stores/settings', () => {
         shift: false,
         alt: false
       });
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(2);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(2);
 
       // 3個目追加
       store.addKeyboardShortcut('globalSearch', {
@@ -786,7 +796,7 @@ describe('stores/settings', () => {
         shift: false,
         alt: false
       });
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(3);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(3);
     });
 
     it('キーボードショートカット追加テスト: 4個目は追加されない', async () => {
@@ -794,13 +804,13 @@ describe('stores/settings', () => {
       await store.loadSettings();
 
       // 初期状態を3個に設定
-      store.appSettings.keyboardShortcuts.globalSearch = [
+      store.appSettings.ux.keyboardShortcuts.globalSearch = [
         { key: '1', ctrl: false, shift: false, alt: false },
         { key: '2', ctrl: false, shift: false, alt: false },
         { key: '3', ctrl: false, shift: false, alt: false }
       ];
 
-      const initialLength = store.appSettings.keyboardShortcuts.globalSearch.length;
+      const initialLength = store.appSettings.ux.keyboardShortcuts.globalSearch.length;
       const consoleSpy = vi.spyOn(console, 'warn');
 
       // 4個目を追加しようとする
@@ -812,7 +822,7 @@ describe('stores/settings', () => {
       });
 
       // 追加されない
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(initialLength);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(initialLength);
       // 警告がログされる
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('Cannot add more than 3 shortcuts')
@@ -826,7 +836,7 @@ describe('stores/settings', () => {
       await store.loadSettings();
 
       // 初期状態を設定
-      store.appSettings.keyboardShortcuts.globalSearch = [
+      store.appSettings.ux.keyboardShortcuts.globalSearch = [
         { key: '1', ctrl: false, shift: false, alt: false },
         { key: '2', ctrl: false, shift: false, alt: false },
         { key: '3', ctrl: false, shift: false, alt: false }
@@ -835,27 +845,103 @@ describe('stores/settings', () => {
       // 1番目のショートカットを削除
       store.removeKeyboardShortcut('globalSearch', 1);
 
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(2);
-      expect(store.appSettings.keyboardShortcuts.globalSearch[0].key).toBe('1');
-      expect(store.appSettings.keyboardShortcuts.globalSearch[1].key).toBe('3');
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(2);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch[0].key).toBe('1');
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch[1].key).toBe('3');
     });
 
     it('キーボードショートカット削除テスト: 無効なインデックスは無視される', async () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      store.appSettings.keyboardShortcuts.globalSearch = [
+      store.appSettings.ux.keyboardShortcuts.globalSearch = [
         { key: '1', ctrl: false, shift: false, alt: false }
       ];
 
-      const initialLength = store.appSettings.keyboardShortcuts.globalSearch.length;
+      const initialLength = store.appSettings.ux.keyboardShortcuts.globalSearch.length;
 
       // 無効なインデックスで削除を試みる
       store.removeKeyboardShortcut('globalSearch', 10);
       store.removeKeyboardShortcut('globalSearch', -1);
 
       // 削除されない
-      expect(store.appSettings.keyboardShortcuts.globalSearch.length).toBe(initialLength);
+      expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(initialLength);
+    });
+  });
+
+  describe('後方互換性: 旧形式の設定を新形式に移行', () => {
+    it('旧形式の UX 設定を新しい ux オブジェクトに移行', async () => {
+      // 旧形式：UX 設定がトップレベルにある
+      mockStorage.appSettings = {
+        theme: 'dark',
+        language: 'ja',
+        searchInputPosition: 'right-bottom',
+        defaultSearchMode: 'text',
+        enableMouseOperations: true,
+        changeFavicon: false,
+        keyboardShortcuts: {
+          globalSearch: [{ key: '?', ctrl: false, shift: true, alt: false }],
+          undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+          redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+        }
+      };
+
+      const store = useSettingsStore();
+      await store.loadCommonSettings();
+
+      // 新形式で正しく読み込まれていることを確認
+      expect(store.appSettings.ux.searchInputPosition).toBe('right-bottom');
+      expect(store.appSettings.ux.defaultSearchMode).toBe('text');
+      expect(store.appSettings.ux.enableMouseOperations).toBe(true);
+      expect(store.appSettings.ux.changeFavicon).toBe(false);
+      expect(Array.isArray(store.appSettings.ux.keyboardShortcuts.globalSearch)).toBe(true);
+    });
+
+    it('新形式の設定はそのまま使用される', async () => {
+      // 新形式：UX 設定が ux オブジェクト内にある
+      mockStorage.appSettings = {
+        theme: 'dark',
+        language: 'ja',
+        ux: {
+          searchInputPosition: 'right-top',
+          defaultSearchMode: 'auto',
+          enableMouseOperations: false,
+          changeFavicon: true,
+          keyboardShortcuts: {
+            globalSearch: [{ key: '/', ctrl: false, shift: false, alt: false }],
+            undo: [{ key: 'z', ctrl: true, shift: false, alt: false }],
+            redo: [{ key: 'y', ctrl: true, shift: false, alt: false }]
+          }
+        }
+      };
+
+      const store = useSettingsStore();
+      await store.loadCommonSettings();
+
+      // 新形式でそのまま読み込まれていることを確認
+      expect(store.appSettings.ux.searchInputPosition).toBe('right-top');
+      expect(store.appSettings.ux.defaultSearchMode).toBe('auto');
+      expect(store.appSettings.ux.enableMouseOperations).toBe(false);
+      expect(store.appSettings.ux.changeFavicon).toBe(true);
+    });
+
+    it('部分的な旧形式設定はデフォルト値とマージされる', async () => {
+      // 旧形式：UX 設定の一部だけある
+      mockStorage.appSettings = {
+        theme: 'dark',
+        enableMouseOperations: true
+      };
+
+      const store = useSettingsStore();
+      await store.loadCommonSettings();
+
+      // マージされて正しく読み込まれることを確認
+      expect(store.appSettings.theme).toBe('dark');
+      expect(store.appSettings.ux.enableMouseOperations).toBe(true);
+      // 他のプロパティはデフォルト値
+      expect(store.appSettings.ux.searchInputPosition).toBe('right-top');
+      expect(store.appSettings.ux.defaultSearchMode).toBe('auto');
+      expect(store.appSettings.ux.changeFavicon).toBe(true);
     });
   });
 });

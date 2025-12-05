@@ -87,8 +87,21 @@ cp docs/dev/session.example.env .env.local
 
 ## 関連ドキュメント
 
+### 設計・アーキテクチャ
 - [公式API仕様](./official-api.md) - 遊戯王DB公式API のエンドポイント、パラメータ順序、注意事項
 - [アーキテクチャ](./architecture.md) - システム構成とコンポーネント設計
+- [キャッシュシステム](./cache-system.md) - 各種キャッシュの実装と管理方法
+
+### 機能実装ガイド
 - [多言語対応](./i18n.md) - 多言語対応の仕組みとマッピングテーブル
 - [スクレイピング手順](./scraping.md) - 公式サイトからのデータ取得方法
+
+### テスト・品質保証
 - [テスト](./testing.md) - テスト戦略と実行方法（作成予定）
+- [テスト戦略](./testing-strategy.md) - 段階的テスト実装計画
+
+### 進行中の機能
+- **デッキロード画面サムネイル表示機能** ([設計書](../../tasks/deck-thumbnail-cache-design.md)) - v0.5.4+
+  - 画像キャッシュ管理システム（Chrome Storage LRU）
+  - デッキハッシュ計算ユーティリティ
+  - WebP形式変換（Phase 4で実装予定）
