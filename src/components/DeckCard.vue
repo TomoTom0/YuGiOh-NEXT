@@ -28,14 +28,16 @@
         <path fill="currentColor" :d="mdiNumeric2Circle" />
       </svg>
     </div>
-    <div v-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
-      <svg width="8" height="8" viewBox="0 0 24 24">
-        <path fill="currentColor" :d="mdiArrowRightBold" />
-      </svg>
-    </div>
-    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ">
+    <!-- カテゴリ優先アイコン（最優先） -->
+    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
       <svg width="8" height="8" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiArrowLeftBold" />
+      </svg>
+    </div>
+    <!-- 末尾優先アイコン（カテゴリ優先が無い場合のみ表示） -->
+    <div v-else-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowRightBold" />
       </svg>
     </div>
     <div v-if="!card.empty" class="card-controls">

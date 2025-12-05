@@ -1,6 +1,6 @@
 import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import {
   DeckTypeValue,
@@ -330,7 +330,7 @@ export function parseCardSection(
   const deckCardRefs: DeckCardRef[] = [];
   let skippedCount = 0;
   const skippedCards: Array<{ cid: string; name: string; lang: string }> = [];
-  const tempCardDB = getTempCardDB();
+  const unifiedDB = getUnifiedCacheDB();
   const lang = detectLanguage(doc);
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
@@ -421,9 +421,6 @@ export function parseCardSection(
           const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
           const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
 
-          // TempCardDBにカード情報を登録
-          tempCardDB.set(cid, cardInfo);
-
           deckCardRefs.push({
             cid,
             ciid: cardInfo.ciid,
@@ -431,18 +428,19 @@ export function parseCardSection(
             quantity
           });
         } else if (ciidCounts.size === 1) {
-          // 単一ciidの場合も1レコード
+          // 単一ciidの場合
           const entry = Array.from(ciidCounts.entries())[0];
           if (entry) {
             const [ciid, info] = entry;
-            
-            // TempCardDBにカード情報を登録（imgs情報を更新）
+
+            // 複数画像情報（Table A, B, B2）をUnifiedCacheDBに保存
             const cardWithImgs = {
               ...cardInfo,
               ciid,
-              imgs: [{ ciid, imgHash: info.imgHash }]
+              imgs: [{ ciid, imgHash: info.imgHash }],
+              lang
             };
-            tempCardDB.set(cid, cardWithImgs);
+            unifiedDB.setCardInfo(cardWithImgs);
 
             deckCardRefs.push({
               cid,
@@ -453,17 +451,20 @@ export function parseCardSection(
           }
         } else {
           // 複数ciidの場合、ciidごとに別レコードとして追加
-          // imgsには全ciidの情報を含める
+          // 複数画像情報（Table A, B, B2）をUnifiedCacheDBに保存
           const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({
             ciid,
             imgHash: info.imgHash
           }));
-          
+
           const cardWithAllImgs = {
             ...cardInfo,
-            imgs: allImgs
+            imgs: allImgs,
+            lang
           };
-          tempCardDB.set(cid, cardWithAllImgs);
+
+          // UnifiedCacheDB に保存（Table A, B, B2に自動分類）
+          unifiedDB.setCardInfo(cardWithAllImgs);
 
           ciidCounts.forEach((info, ciid) => {
             deckCardRefs.push({

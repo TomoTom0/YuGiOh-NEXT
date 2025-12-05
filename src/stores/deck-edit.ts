@@ -1711,15 +1711,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const typeB = typeOrder[cardB.cardType] ?? 999;
       if (typeA !== typeB) return typeA - typeB;
 
-      // 1. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
-      const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
-      const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
-      if (isTailA !== isTailB) return isTailA - isTailB;
-
-      // 2. メタデータカテゴリ: 該当あり(0) < 該当なし(1)
+      // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1) ← カテゴリ優先が先頭
       const inPriorityA = matchesPriorityCategory(cardA) ? 0 : 1;
       const inPriorityB = matchesPriorityCategory(cardB) ? 0 : 1;
       if (inPriorityA !== inPriorityB) return inPriorityA - inPriorityB;
+
+      // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
+      const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
+      const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
+      if (isTailA !== isTailB) return isTailA - isTailB;
 
       // 3. カテゴリ内での枚数による重み付け
       if (deckInfo.value?.sortByQuantity && inPriorityA === 0 && inPriorityB === 0) {
