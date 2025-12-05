@@ -4,7 +4,7 @@ import type { DeckInfo, DeckCardRef } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import type { MonsterType } from '../types/card-maps';
 import { sessionManager } from '../content/session/session';
-import { getDeckDetail } from '../api/deck-operations';
+import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
 import { useToastStore } from './toast-notification';
@@ -1355,9 +1355,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         console.warn('[DeckEditLayout] Failed to retrieve preloaded data:', error);
       }
 
-      // キャッシュがなければ通常の getDeckDetail を実行
+      // キャッシュがなければ通常の getDeckDetailAPI を実行
       if (!loadedDeck) {
-        loadedDeck = await getDeckDetail(dno, cgid);
+        loadedDeck = await getDeckDetailAPI(dno, cgid);
       }
 
       if (loadedDeck) {
@@ -1428,6 +1428,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } catch (error) {
       console.error('Failed to load deck:', error);
       throw error;
+    }
+  }
+
+  /**
+   * デッキ情報を取得（IDから直接取得、キャッシュなし）
+   * @param dno - デッキ番号
+   * @returns デッキ情報、取得失敗時は null
+   */
+  async function getDeckDetail(dno: number): Promise<DeckInfo | null> {
+    try {
+      const cgid = await sessionManager.getCgid();
+      const deckDetail = await getDeckDetailAPI(dno, cgid);
+      return deckDetail;
+    } catch (error) {
+      console.error('Failed to fetch deck detail:', error);
+      return null;
     }
   }
   
@@ -1942,6 +1958,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     setDeckName,
     saveDeck,
     loadDeck,
+    getDeckDetail,
     reloadDeck,
     fetchDeckList,
     initializeOnPageLoad,
