@@ -1510,6 +1510,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
       await initTempCardDBFromStorage();
 
+      // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.initialize();
+
       // 設定ストアを初期化
       await settingsStore.loadSettings();
 
