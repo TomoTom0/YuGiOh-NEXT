@@ -1,5 +1,7 @@
-import { DeckCard } from '@/types/card';
+import { DeckCardRef } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from '@/utils/temp-card-db';
+import { detectLanguage } from '@/utils/language-detector';
 import {
   DeckTypeValue,
   DeckStyleValue,
@@ -7,7 +9,50 @@ import {
   DECK_TYPE_LABEL_TO_VALUE,
   DECK_STYLE_LABEL_TO_VALUE,
 } from '@/types/deck-metadata';
-import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
+import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
+import { getDeckMetadata } from '@/utils/deck-metadata-loader';
+import { mappingManager } from '@/utils/mapping-manager';
+
+/**
+ * parseCardSection の戻り値型
+ */
+interface ParseCardSectionResult {
+  cards: DeckCardRef[];
+  skippedCount: number;
+  skippedCards: Array<{ cid: string; name: string; lang: string }>;
+}
+
+/**
+ * カテゴリラベル（日本語）をIDに変換
+ */
+export function convertCategoryLabelsToIds(labels: string[], metadata: any): string[] {
+  if (!metadata || !metadata.categories) {
+    return [];
+  }
+  
+  const labelToId: Record<string, string> = {};
+  metadata.categories.forEach((cat: any) => {
+    labelToId[cat.label] = cat.value;
+  });
+  
+  return labels.map(label => labelToId[label]).filter(id => id !== undefined);
+}
+
+/**
+ * タグラベル（日本語）をIDに変換
+ */
+export function convertTagLabelsToIds(labels: string[], metadata: any): string[] {
+  if (!metadata || !metadata.tags) {
+    return [];
+  }
+  
+  const labelToId: Record<string, string> = {};
+  Object.entries(metadata.tags).forEach(([id, label]) => {
+    labelToId[label as string] = id;
+  });
+  
+  return labels.map(label => labelToId[label]).filter(id => id !== undefined);
+}
 
 /**
  * デッキ詳細ページ（表示ページ、ope=1）からデッキ情報を抽出する
@@ -18,9 +63,14 @@ import { parseSearchResultRow, extractImageInfo } from '@/api/card-search';
  * 注意: 表示ページのHTMLから情報を取得します。
  * カード情報は検索結果ページと同じ構造（tr.row）からパースします。
  */
-export function parseDeckDetail(doc: Document): DeckInfo {
+export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   // デッキ表示ページのDOM構造を検証
   validateDeckDetailPageStructure(doc);
+
+  // **重要**: マッピング情報を確保してからカード解析を実行
+  // ページの言語を検出して、その言語のマッピングをロード
+  const lang = detectLanguage(doc);
+  await mappingManager.ensureMappingForLanguage(lang);
 
   // デッキ番号をURLから取得
   const dno = extractDnoFromPage(doc);
@@ -35,13 +85,23 @@ export function parseDeckDetail(doc: Document): DeckInfo {
   const ciidCountMap = extractCiidCounts(doc);
 
   // メインデッキのカードを抽出
-  const mainDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'main');
+  const mainDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'main');
 
   // エクストラデッキのカードを抽出
-  const extraDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'extra');
+  const extraDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'extra');
 
   // サイドデッキのカードを抽出
-  const sideDeck = parseCardSection(doc, imageInfoMap, ciidCountMap, 'side');
+  const sideDeckResult = parseCardSection(doc, imageInfoMap, ciidCountMap, 'side');
+
+  // スキップされたカード数の合計
+  const skippedCardsCount = mainDeckResult.skippedCount + extraDeckResult.skippedCount + sideDeckResult.skippedCount;
+
+  // スキップされたカード詳細情報の合計
+  const skippedCards = [
+    ...mainDeckResult.skippedCards,
+    ...extraDeckResult.skippedCards,
+    ...sideDeckResult.skippedCards
+  ];
 
   // 公開/非公開をタイトルから取得
   const isPublic = extractIsPublicFromTitle(doc);
@@ -54,17 +114,24 @@ export function parseDeckDetail(doc: Document): DeckInfo {
   const deckStyle = extractDeckStyle(doc);
 
   // カテゴリ、タグ、コメント、デッキコード（必須）
-  const category = extractCategory(doc);
-  const tags = extractTags(doc);
+  const categoryLabels = extractCategory(doc);
+  const tagLabels = extractTags(doc);
   const comment = extractComment(doc);
   const deckCode = extractDeckCode(doc);
+  
+  // 日本語ラベル→IDに変換（メタデータは1回だけ取得）
+  const metadata = await getDeckMetadata();
+  const category = convertCategoryLabelsToIds(categoryLabels, metadata);
+  const tags = convertTagLabelsToIds(tagLabels, metadata);
 
   return {
     dno,
     name,
-    mainDeck,
-    extraDeck,
-    sideDeck,
+    mainDeck: mainDeckResult.cards,
+    extraDeck: extraDeckResult.cards,
+    sideDeck: sideDeckResult.cards,
+    skippedCardsCount,
+    skippedCards,
     isPublic,
     cgid,
     deckType,
@@ -82,7 +149,7 @@ export function parseDeckDetail(doc: Document): DeckInfo {
  * @param doc ドキュメント
  * @throws デッキ表示ページでない場合はエラー
  */
-function validateDeckDetailPageStructure(doc: Document): void {
+export function validateDeckDetailPageStructure(doc: Document): void {
   // 1. #main980 > #article_body > #deck_detailtext > #detailtext_main の階層を検証
   const main980 = doc.querySelector('#main980');
   if (!main980) {
@@ -190,7 +257,7 @@ function validateDeckDetailPageStructure(doc: Document): void {
  * @param doc ドキュメント
  * @returns cid -> ciid -> { count, imgHash } のマップ
  */
-function extractCiidCounts(doc: Document): Map<string, Map<string, { count: number; imgHash: string }>> {
+export function extractCiidCounts(doc: Document): Map<string, Map<string, { count: number; imgHash: string }>> {
   const ciidCountMap = new Map<string, Map<string, { count: number; imgHash: string }>>();
 
   // カードタイプごとのクラス名
@@ -249,18 +316,31 @@ function extractCiidCounts(doc: Document): Map<string, Map<string, { count: numb
  * @param sectionId セクションID ('main' | 'extra' | 'side')
  * @returns デッキ内カード配列
  */
-function parseCardSection(
+interface ParseCardSectionResult {
+  cards: DeckCardRef[];
+  skippedCount: number;
+}
+
+export function parseCardSection(
   doc: Document,
   imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>,
   ciidCountMap: Map<string, Map<string, { count: number; imgHash: string }>>,
   sectionId: 'main' | 'extra' | 'side'
-): DeckCard[] {
-  const deckCards: DeckCard[] = [];
+): ParseCardSectionResult {
+  const deckCardRefs: DeckCardRef[] = [];
+  let skippedCount = 0;
+  const skippedCards: Array<{ cid: string; name: string; lang: string }> = [];
+  const tempCardDB = getTempCardDB();
+  const lang = detectLanguage(doc);
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
   const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
   if (!deckDetailtext) {
-    return deckCards;
+    return {
+      cards: deckCardRefs,
+      skippedCount,
+      skippedCards
+    };
   }
 
   // セクションごとに異なる親要素を使用
@@ -275,7 +355,11 @@ function parseCardSection(
 
   const parentElement = deckDetailtext.querySelector(parentSelector);
   if (!parentElement) {
-    return deckCards;
+    return {
+      cards: deckCardRefs,
+      skippedCount,
+      skippedCards
+    };
   }
 
   // すべての.listを取得
@@ -292,10 +376,42 @@ function parseCardSection(
       const rows = tBody.querySelectorAll('.t_row');
 
       rows.forEach((row) => {
-        const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
-        if (!cardInfo) {
+        // 未発売カード（card_back.png）のチェック
+        const cardImgElem = (row as HTMLElement).querySelector('img[src*="card_back.png"]');
+        if (cardImgElem) {
+          // parseCardBase を使って通常通りカード名とカードIDを取得
+          const baseInfo = parseCardBase(row as HTMLElement, imageInfoMap);
+
+          if (baseInfo) {
+            console.warn(
+              `[parseCardSection] Card "${baseInfo.name}" is not released in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
+
+            // スキップされたカード情報を記録
+            skippedCards.push({
+              cid: baseInfo.cardId,
+              name: baseInfo.name,
+              lang
+            });
+          } else {
+            console.warn(
+              `[parseCardSection] Failed to parse unreleased card in ${lang}, skipping this card (showing card_back.png)`
+            );
+            skippedCount++;
+          }
+
           return;
         }
+
+        const cardInfo = parseSearchResultRow(row as HTMLElement, imageInfoMap);
+        if (!cardInfo) {
+          console.error(`[parseCardSection] Failed to parse card (section: ${sectionId})`);
+          return;
+        }
+
+        // Diagnostic logging: confirm whether parsed CardInfo contains text
+        // no-op: parsing verified in earlier debugging
 
         const cid = cardInfo.cardId;
         const ciidCounts = ciidCountMap.get(cid);
@@ -305,8 +421,13 @@ function parseCardSection(
           const quantitySpan = (row as HTMLElement).querySelector('.cards_num_set > span');
           const quantity = quantitySpan?.textContent ? parseInt(quantitySpan.textContent.trim(), 10) : 1;
 
-          deckCards.push({
-            card: cardInfo,
+          // TempCardDBにカード情報を登録
+          tempCardDB.set(cid, cardInfo);
+
+          deckCardRefs.push({
+            cid,
+            ciid: cardInfo.ciid,
+            lang,
             quantity
           });
         } else if (ciidCounts.size === 1) {
@@ -314,24 +435,41 @@ function parseCardSection(
           const entry = Array.from(ciidCounts.entries())[0];
           if (entry) {
             const [ciid, info] = entry;
-            deckCards.push({
-              card: {
-                ...cardInfo,
-                ciid,
-                imgs: [{ ciid, imgHash: info.imgHash }]
-              },
+            
+            // TempCardDBにカード情報を登録（imgs情報を更新）
+            const cardWithImgs = {
+              ...cardInfo,
+              ciid,
+              imgs: [{ ciid, imgHash: info.imgHash }]
+            };
+            tempCardDB.set(cid, cardWithImgs);
+
+            deckCardRefs.push({
+              cid,
+              ciid,
+              lang,
               quantity: info.count
             });
           }
         } else {
           // 複数ciidの場合、ciidごとに別レコードとして追加
+          // imgsには全ciidの情報を含める
+          const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({
+            ciid,
+            imgHash: info.imgHash
+          }));
+          
+          const cardWithAllImgs = {
+            ...cardInfo,
+            imgs: allImgs
+          };
+          tempCardDB.set(cid, cardWithAllImgs);
+
           ciidCounts.forEach((info, ciid) => {
-            deckCards.push({
-              card: {
-                ...cardInfo,
-                ciid,
-                imgs: [{ ciid, imgHash: info.imgHash }]
-              },
+            deckCardRefs.push({
+              cid,
+              ciid,
+              lang,
               quantity: info.count
             });
           });
@@ -340,7 +478,11 @@ function parseCardSection(
     });
   });
 
-  return deckCards;
+  return {
+    cards: deckCardRefs,
+    skippedCount,
+    skippedCards
+  };
 }
 
 /**
@@ -349,7 +491,7 @@ function parseCardSection(
  * @param doc ドキュメント
  * @returns デッキ番号
  */
-function extractDnoFromPage(doc: Document): number {
+export function extractDnoFromPage(doc: Document): number {
   // JavaScriptコードから $('#dno').val('4') を探す
   const scriptText = doc.documentElement.innerHTML;
   const dnoMatch = scriptText.match(/\$\('#dno'\)\.val\('(\d+)'\)/);
@@ -373,7 +515,7 @@ function extractDnoFromPage(doc: Document): number {
  * @param doc ドキュメント
  * @returns デッキ名
  */
-function extractDeckNameFromMeta(doc: Document): string {
+export function extractDeckNameFromMeta(doc: Document): string {
   // <meta name="description" content="完全版テスト成功/ "> から取得
   const descriptionMeta = doc.querySelector('meta[name="description"]');
   if (descriptionMeta) {
@@ -412,7 +554,7 @@ function extractDeckNameFromMeta(doc: Document): string {
  * @param doc ドキュメント
  * @returns 公開デッキの場合true
  */
-function extractIsPublicFromTitle(doc: Document): boolean {
+export function extractIsPublicFromTitle(doc: Document): boolean {
   // <h1>【 非公開 】</h1> の存在を確認
   const h1Elements = doc.querySelectorAll('h1');
   for (const h1 of h1Elements) {
@@ -435,7 +577,7 @@ function extractIsPublicFromTitle(doc: Document): boolean {
  * @param doc ドキュメント
  * @returns cgid（見つからない場合はundefined）
  */
-function extractCgidFromPage(doc: Document): string | undefined {
+export function extractCgidFromPage(doc: Document): string | undefined {
   // HTMLのテキストコンテンツからcgid=...を探す
   const scriptText = doc.documentElement.innerHTML;
   const cgidMatch = scriptText.match(/cgid=([a-f0-9]+)/);
@@ -453,7 +595,7 @@ function extractCgidFromPage(doc: Document): string | undefined {
  * @param doc ドキュメント
  * @returns デッキタイプ
  */
-function extractDeckType(doc: Document): DeckTypeValue | undefined {
+export function extractDeckType(doc: Document): DeckTypeValue | undefined {
   // <dt><span>デッキタイプ</span></dt><dd class="text_set"><span>OCG（マスタールール）</span></dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
@@ -478,7 +620,7 @@ function extractDeckType(doc: Document): DeckTypeValue | undefined {
  * @param doc ドキュメント
  * @returns デッキスタイル
  */
-function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
+export function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
   // <dl class="MD_deck_style"><dt><span>デッキスタイル</span></dt><dd class="text_set">...</dd></dl>
   const dl = doc.querySelector('dl.MD_deck_style');
   if (dl) {
@@ -498,7 +640,7 @@ function extractDeckStyle(doc: Document): DeckStyleValue | undefined {
  * @param _doc ドキュメント
  * @returns カテゴリID配列
  */
-function extractCategory(doc: Document): DeckCategory {
+export function extractCategory(doc: Document): DeckCategory {
   // <dd class="regist_category"><span>マジェスペクター</span><span>竜剣士</span></dd>
   const dd = doc.querySelector('dd.regist_category');
   if (dd) {
@@ -523,7 +665,7 @@ function extractCategory(doc: Document): DeckCategory {
  * @param doc ドキュメント
  * @returns 登録タグ（タグ名の配列）
  */
-function extractTags(doc: Document): string[] {
+export function extractTags(doc: Document): string[] {
   // <dd class="regist_tag"><span>大会優勝デッキ</span><span>...</span></dd>
   const dd = doc.querySelector('dd.regist_tag');
   if (dd) {
@@ -548,7 +690,7 @@ function extractTags(doc: Document): string[] {
  * @param doc ドキュメント
  * @returns コメント
  */
-function extractComment(doc: Document): string {
+export function extractComment(doc: Document): string {
   // <dt><span>コメント</span></dt><dd class="text_set"><span class="biko">...</span></dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {
@@ -573,7 +715,7 @@ function extractComment(doc: Document): string {
  * @param _doc ドキュメント
  * @returns デッキコード
  */
-function extractDeckCode(doc: Document): string {
+export function extractDeckCode(doc: Document): string {
   // <dt><span>デッキコード</span></dt><dd class="a_set">...</dd>
   const dtElements = doc.querySelectorAll('dt');
   for (const dt of dtElements) {

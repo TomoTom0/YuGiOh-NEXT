@@ -1,88 +1,105 @@
 <template>
-  <div class="right-area">
-    <div class="tabs">
-      <button
-        class="deck-tab"
-        :class="{ active: deckStore.activeTab === 'deck' }"
-        @click="deckStore.activeTab = 'deck'"
-      >
-        Deck
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'card' }"
-        @click="deckStore.activeTab = 'card'"
-      >
-        Card
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'search' }"
-        @click="deckStore.activeTab = 'search'"
-      >
-        Search
-      </button>
-      <button
-        :class="{ active: deckStore.activeTab === 'metadata' }"
-        @click="deckStore.activeTab = 'metadata'"
-      >
-        Metadata
-      </button>
+  <div class="right-area" :class="{ 
+    'has-top-input': showSearchInputTop,
+    'has-bottom-input': showSearchInputRightBottom,
+    'has-left-top-input': showSearchInputLeftTop
+  }">
+    <!-- 検索入力欄: right-top（全タブ共通） -->
+    <div v-if="showSearchInputTop" class="search-input-top-global">
+      <SearchInputBar />
     </div>
 
-    <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
-      <slot name="deck-tab"></slot>
-    </div>
-
-    <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
-      <CardDetail 
-        v-if="deckStore.selectedCard" 
-        :card="deckStore.selectedCard"
-        :card-tab="deckStore.cardTab"
-        @tab-change="deckStore.cardTab = $event"
-      />
-      <div v-else class="no-card-selected">
-        <p>カードを選択してください</p>
+    <div class="right-area-main">
+      <div class="tabs">
+        <button
+          class="deck-tab"
+          :class="{ active: deckStore.activeTab === 'deck' }"
+          @click="deckStore.activeTab = 'deck'"
+        >
+          Deck
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'card' }"
+          @click="deckStore.activeTab = 'card'"
+        >
+          Card
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'search' }"
+          @click="deckStore.activeTab = 'search'"
+        >
+          Search
+        </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'metadata' }"
+          @click="deckStore.activeTab = 'metadata'"
+        >
+          Metadata
+        </button>
       </div>
-    </div>
 
-    <div v-show="deckStore.activeTab === 'search'" class="search-content">
-      <CardList
-        :cards="deckStore.searchResults"
-        :sort-order="deckStore.sortOrder"
-        :view-mode="deckStore.viewMode"
-        section-type="search"
-        @scroll="handleScroll"
-        @scroll-to-top="handleScrollToTop"
-        @update:sortOrder="deckStore.sortOrder = $event"
-        @update:viewMode="deckStore.viewMode = $event"
-      />
-      <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
-    </div>
+      <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
+        <slot name="deck-tab"></slot>
+      </div>
 
-    <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
-      <DeckMetadata />
+      <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
+        <CardDetail
+          v-if="cardDetailStore.selectedCard"
+          :card="cardDetailStore.selectedCard"
+        />
+        <div v-else class="no-card-selected">
+          <p>カードを選択してください</p>
+        </div>
+      </div>
+
+      <div v-show="deckStore.activeTab === 'search'" class="search-content">
+        <CardList
+          :cards="deckStore.searchResults"
+          :sort-order="deckStore.sortOrder"
+          :view-mode="deckStore.viewMode"
+          section-type="search"
+          @scroll="handleScroll"
+          @scroll-to-top="handleScrollToTop"
+          @update:sortOrder="deckStore.sortOrder = $event"
+          @update:viewMode="deckStore.viewMode = $event"
+        />
+        <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
+      </div>
+
+      <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+        <DeckMetadata />
+      </div>
     </div>
 
     <!-- グローバル検索モード用オーバーレイ -->
     <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
 
+    <!-- 検索入力欄: default位置（画面下部） -->
     <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
       <SearchInputBar
         ref="searchInputBarRef"
         @escape="closeGlobalSearch"
       />
     </div>
+    
+    <!-- 検索入力欄: right-bottom（全タブ共通） -->
+    <div v-if="showSearchInputRightBottom" class="search-input-bottom-fixed">
+      <SearchInputBar />
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
-import { getCardImageUrl } from '../types/card'
 import CardList from './CardList.vue'
-import CardDetail from './CardDetail.vue'
+const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
 import SearchInputBar from './SearchInputBar.vue'
+import { buildFullUrl } from '../utils/url-builder'
+import { detectLanguage } from '../utils/language-detector'
 
 export default {
   name: 'RightArea',
@@ -94,12 +111,31 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
 
-    // 検索入力欄をデフォルト位置（下部）に表示するかどうか
+    // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
-      return settingsStore.appSettings.searchInputPosition === 'default'
+      const result = settingsStore.appSettings.searchInputPosition === 'default'
+      return result
+    })
+    
+    // 検索入力欄をRight Area上部に表示するかどうか
+    const showSearchInputTop = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-top'
+      return result
+    })
+    
+    // 検索入力欄をRight Area下部に表示するかどうか
+    const showSearchInputRightBottom = computed(() => {
+      const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
+      return result
+    })
+    
+    // 検索入力欄が左上（section-title）にあるかどうか
+    const showSearchInputLeftTop = computed(() => {
+      return settingsStore.appSettings.searchInputPosition === 'section-title'
     })
 
     // グローバル検索モードを閉じる
@@ -132,7 +168,7 @@ export default {
     })
 
     // 選択カード変更時にcard-detail-content内のスクロールをリセット
-    watch(() => deckStore.selectedCard, () => {
+    watch(() => cardDetailStore.selectedCard, () => {
       nextTick(() => {
         const cardDetailContent = document.querySelector('.card-detail-content')
         if (cardDetailContent) {
@@ -150,7 +186,7 @@ export default {
       const gameType = detectCardGameType()
       return cards.map(card => {
         const relativeUrl = getCardImageUrl(card, gameType)
-        const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
+        const imageUrl = relativeUrl ? buildFullUrl(relativeUrl) : undefined
         return {
           ...card,
           imageUrl
@@ -163,7 +199,6 @@ export default {
       
       deckStore.isLoading = true
       try {
-        console.log('Loading more results, page:', deckStore.currentPage + 1)
         deckStore.hasMore = false
       } catch (error) {
         console.error('Error loading more results:', error)
@@ -181,27 +216,42 @@ export default {
       }
     }
     
-    const handleScrollToTop = () => {
-      const searchContent = document.querySelector('.search-content')
-      if (searchContent) {
-        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
+    const showCardDetail = async (card) => {
+      try {
+        // カードクリック時に動的import
+        const { getCardDetailWithCache } = await import('../api/card-search')
+        const currentLang = detectLanguage(document)
+        const result = await getCardDetailWithCache(card.cardId, currentLang)
+        const fullCard = result?.detail?.card || card
+
+        cardDetailStore.setSelectedCard(fullCard)
+      } catch (e) {
+        console.error('[RightArea] Failed to fetch full card detail:', e)
+        cardDetailStore.setSelectedCard(card)
       }
+      deckStore.activeTab = 'card'
+      cardDetailStore.setCardTab('info')
     }
 
-    const showCardDetail = (card) => {
-      deckStore.selectedCard = card
-      deckStore.activeTab = 'card'
-      deckStore.cardTab = 'info'
+    const handleScrollToTop = () => {
+      const cardListResults = document.querySelector('.search-content .card-list-results')
+      if (cardListResults) {
+        cardListResults.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     }
 
     return {
       deckStore,
+      cardDetailStore,
       showSearchInputBottom,
+      showSearchInputTop,
+      showSearchInputRightBottom,
+      showSearchInputLeftTop,
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
-      handleScrollToTop,
-      showCardDetail
+      showCardDetail,
+      handleScrollToTop
     }
   }
 }
@@ -211,8 +261,6 @@ export default {
 .right-area {
   width: 320px;
   height: 100%;
-  background: white;
-  border-left: 1px solid #ddd;
   display: flex;
   flex-direction: column;
   margin: 0 0 0 10px;
@@ -221,11 +269,30 @@ export default {
   overflow: hidden;
 }
 
+.right-area-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  margin: 0;
+}
+
 @media (max-width: 768px) {
   .right-area {
     width: 100% !important;
     margin: 0 !important;
-    border-left: none !important;
+  }
+  
+  /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
+  .right-area.has-left-top-input {
+    height: calc(100% - 65px) !important;
+    margin-top: 65px !important;
+  }
+  
+  /* 検索入力欄が下部にある場合：下に隙間 */
+  .right-area.has-bottom-input {
     height: calc(100% - 65px) !important;
   }
 }
@@ -240,7 +307,7 @@ export default {
     padding: 8px;
     border: none;
     border-right: 1px solid #e0e0e0;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 13px;
     color: var(--text-primary);
@@ -251,13 +318,13 @@ export default {
     }
 
     &:hover:not(.active):not(.tab-header) {
-      background: #f5f5f5;
-      color: #1976d2;
+      background: var(--bg-secondary);
+      color: var(--color-info);
     }
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--theme-text-on-gradient);
     }
 
     &.tab-header {
@@ -330,6 +397,23 @@ export default {
   padding: 15px;
 }
 
+.search-input-top-global {
+  flex-shrink: 0;
+  z-index: 10;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.search-input-bottom-fixed {
+  flex-shrink: 0;
+  z-index: 10;
+  margin-top: auto;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+
 .card-detail-content {
   flex: 1;
   overflow-y: auto;
@@ -361,7 +445,7 @@ export default {
   font-size: 11px;
   margin-bottom: 2px;
   word-break: break-word;
-  color: #000;
+  color: var(--text-primary);
 }
 
 .card-text {
@@ -384,7 +468,7 @@ export default {
     padding: 8px;
     border: none;
     border-right: 1px solid var(--border-primary, #e0e0e0);
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
     color: var(--text-primary);
@@ -395,7 +479,7 @@ export default {
 
     &.active {
       background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: white;
+      color: var(--button-text);
       border-right-color: transparent;
     }
   }
@@ -518,7 +602,7 @@ export default {
   
   &.active {
     background: var(--button-bg);
-    color: white;
+    color: var(--button-text);
     font-weight: bold;
   }
   
@@ -529,7 +613,7 @@ export default {
 
 .stat-label {
   font-size: 9px;
-  color: #999;
+  color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
@@ -570,7 +654,7 @@ export default {
   font-size: 12px;
   color: var(--text-secondary);
   padding: 4px 8px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
@@ -588,7 +672,7 @@ export default {
 
 .stat-label {
   font-weight: bold;
-  color: #555;
+  color: var(--text-secondary);
   min-width: 80px;
 }
 
@@ -626,7 +710,7 @@ export default {
 .no-card-selected {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .search-input-bottom {
@@ -670,7 +754,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   z-index: 10000;
   animation: fadeIn 0.2s ease;
 }

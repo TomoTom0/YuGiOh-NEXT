@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import DeckSection from '../../../src/components/DeckSection.vue';
 import { useDeckEditStore } from '../../../src/stores/deck-edit';
+import { getTempCardDB } from '../../../src/utils/temp-card-db';
+import { getUnifiedCacheDB } from '../../../src/utils/unified-cache-db';
 
 describe('DeckSection.vue', () => {
   let pinia: any;
@@ -12,6 +14,55 @@ describe('DeckSection.vue', () => {
     pinia = createPinia();
     setActivePinia(pinia);
     store = useDeckEditStore();
+
+    // UnifiedCacheDB のモック化
+    const unifiedDB = getUnifiedCacheDB();
+
+    // reconstructCardInfo をモック（簡単にするため直接カード情報を返す）
+    vi.spyOn(unifiedDB, 'reconstructCardInfo').mockImplementation((cardId: string) => {
+      const cards: any = {
+        '4011': {
+          cardId: '4011',
+          ciid: '1',
+          lang: 'ja',
+          name: 'ブラック・マジシャン',
+          ruby: 'ブラック・マジシャン',
+          cardType: 'monster',
+          attribute: 'dark',
+          race: 'spellcaster',
+          levelType: 'level',
+          levelValue: 7,
+          atk: 2500,
+          def: 2100,
+          imgs: [
+            { ciid: '1', imgHash: 'hash1' },
+            { ciid: '2', imgHash: 'hash1b' }
+          ],
+          isExtraDeck: false,
+        },
+        '4012': {
+          cardId: '4012',
+          ciid: '1',
+          lang: 'ja',
+          name: 'ブラック・マジシャン・ガール',
+          ruby: 'ブラック・マジシャン・ガール',
+          cardType: 'monster',
+          attribute: 'dark',
+          race: 'spellcaster',
+          levelType: 'level',
+          levelValue: 6,
+          atk: 2000,
+          def: 1700,
+          imgs: [{ ciid: '1', imgHash: 'hash2' }],
+          isExtraDeck: false,
+        }
+      };
+      return cards[cardId];
+    });
+
+    // TempCardDBはクリア（使用されないことを確認）
+    const tempCardDB = getTempCardDB();
+    tempCardDB.clear();
   });
 
   const mockCards = [
@@ -50,12 +101,12 @@ describe('DeckSection.vue', () => {
     it('カード枚数が表示される', () => {
       // storeのdisplayOrderとdeckInfoを設定
       store.displayOrder.main = [
-        { cid: '4011', ciid: '1', uuid: 'uuid-1' },
-        { cid: '4012', ciid: '1', uuid: 'uuid-2' },
+        { cid: '4011', ciid: 1, uuid: 'uuid-1' },
+        { cid: '4012', ciid: 1, uuid: 'uuid-2' },
       ];
       store.deckInfo.mainDeck = [
-        { card: mockCards[0], quantity: 1 },
-        { card: mockCards[1], quantity: 1 },
+        { cid: '4011', ciid: '1', quantity: 1 },
+        { cid: '4012', ciid: '1', quantity: 1 },
       ];
 
       const wrapper = mount(DeckSection, {

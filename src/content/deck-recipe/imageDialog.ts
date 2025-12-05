@@ -74,31 +74,36 @@ function createPopupHTML(
   const displayHeight = imageHeight;
 
   const topMargin = 40; // 上部余白（タイトル入力欄用）
-  const padding = 12; // 左右下の余白
+  const padding = 12; // 左右の余白
+  const bottomButtonHeight = 50; // 下部ボタンエリアの高さ
 
   return `
+    <!-- オーバーレイ -->
     <div id="ygo-image-popup-overlay" style="
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 9999;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10001;
+      animation: ygo-overlay-in 0.2s ease;
     "></div>
+
+    <!-- ポップアップ -->
     <div id="ygo-image-popup" style="
       position: absolute;
       top: ${top}px;
       left: ${left}px;
-      background: #d8d8d8;
+      background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
       width: ${displayWidth + padding * 2}px;
-      height: ${displayHeight + topMargin + padding}px;
-      z-index: 10000;
+      z-index: 10002;
       animation: ygo-popup-in 0.2s ease;
-      padding: ${topMargin}px ${padding}px ${padding}px ${padding}px;
+      padding: ${topMargin}px ${padding}px ${bottomButtonHeight}px ${padding}px;
       cursor: pointer;
-      overflow: hidden;
+      overflow: visible;
     ">
       <!-- デッキ名入力欄（上部余白エリア） -->
       <input
@@ -122,61 +127,26 @@ function createPopupHTML(
           outline: none;
           transition: all 0.2s;
           box-sizing: border-box;
+          margin-bottom: 8px;
         "
         onclick="event.stopPropagation()"
       />
 
-      <!-- 背景画像（白い長方形の中に配置） -->
+      <!-- 背景画像 -->
       <div id="ygo-background-image" style="
         position: relative;
         width: 100%;
-        height: 100%;
+        height: ${displayHeight}px;
         background: url('${backgroundImageUrl}') no-repeat center center;
         background-size: contain;
         transition: background 0.5s ease;
+        margin-top: 8px;
       ">
-        <!-- フッター（画像の内側に固定） -->
-        <div style="
+        <!-- Include QRボタン（右下） -->
+        <button id="ygo-qr-toggle" class="ygo-toggle-btn ygo-qr-active" style="
           position: absolute;
-          bottom: 12px;
-          left: 12px;
           right: 12px;
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-        ">
-        <button id="ygo-download-btn" style="
-          padding: 10px 20px;
-          background: rgba(255, 255, 255, 0.9);
-          color: #333;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 13px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s;
-        " onclick="event.stopPropagation()">
-          ${DOWNLOAD_ICON}
-        </button>
-        <button id="ygo-qr-toggle" class="ygo-qr-active" style="
-          padding: 8px 12px;
-          border: 2px solid rgba(200, 200, 200, 0.5);
-          border-radius: 6px;
-          cursor: pointer;
-          position: relative;
-          width: 80px;
-          height: 70px;
-          font-size: 12px;
-          font-weight: 600;
-          transition: all 0.3s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 2px;
+          bottom: 12px;
         " onclick="event.stopPropagation()">
           <div style="position: absolute; width: 48px; height: 48px; opacity: 0.15;">
             ${QR_ICON}
@@ -184,36 +154,84 @@ function createPopupHTML(
           <span style="position: relative; z-index: 1; line-height: 1.2;">Include</span>
           <span style="position: relative; z-index: 1; line-height: 1.2;">QR</span>
         </button>
-        </div>
         ${hasSideDeck ? `
-        <!-- include side トグル（右中央） -->
-        <button id="ygo-side-toggle" class="ygo-side-active" style="
+        <!-- Include Sideボタン（右中央） -->
+        <button id="ygo-side-toggle" class="ygo-toggle-btn ygo-side-active" style="
           position: absolute;
           right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          padding: 8px 12px;
-          border: 2px solid rgba(200, 200, 200, 0.5);
-          border-radius: 6px;
-          cursor: pointer;
-          width: 80px;
-          height: 70px;
-          font-size: 12px;
-          font-weight: 600;
-          transition: all 0.3s;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 2px;
         " onclick="event.stopPropagation()">
           <span style="line-height: 1.2;">Include</span>
           <span style="line-height: 1.2;">Side</span>
         </button>
         ` : ''}
       </div>
+
+      <!-- 下部ボタンエリア -->
+      <div style="
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: ${bottomButtonHeight}px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 ${padding}px;
+        background: #ffffff;
+        border-radius: 0 0 8px 8px;
+      " onclick="event.stopPropagation()">
+        <button id="ygo-close-btn" class="ygo-dialog-btn" style="
+          background: #e0e0e0;
+          color: #555;
+        " onclick="event.stopPropagation()">
+          Close
+        </button>
+        <button id="ygo-download-btn" class="ygo-dialog-btn" style="
+          background: #4078ff;
+          color: #ffffff;
+        " onclick="event.stopPropagation()">
+          ${DOWNLOAD_ICON}
+          Download
+        </button>
+      </div>
     </div>
     <style>
+      /* ボタン共通スタイル */
+      .ygo-dialog-btn {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-width: 100px;
+        height: 36px;
+        transition: all 0.2s;
+      }
+
+      .ygo-toggle-btn {
+        padding: 8px 12px;
+        border: 2px solid rgba(200, 200, 200, 0.5);
+        border-radius: 6px;
+        cursor: pointer;
+        width: 80px;
+        height: 70px;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+
       @keyframes ygo-popup-in {
         from {
           opacity: 0;
@@ -232,6 +250,14 @@ function createPopupHTML(
         to {
           opacity: 0;
           transform: translateY(-8px);
+        }
+      }
+      @keyframes ygo-overlay-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
         }
       }
       @keyframes ygo-overlay-out {
@@ -264,10 +290,9 @@ function createPopupHTML(
 
       /* QRボタン OFF時 */
       #ygo-qr-toggle.ygo-qr-inactive {
-        background: rgba(150, 150, 150, 0.3);
-        color: #999;
-        border-color: rgba(150, 150, 150, 0.5);
-        opacity: 0.6;
+        background: rgba(80, 80, 80, 0.6);
+        color: #aaa;
+        border-color: rgba(80, 80, 80, 0.8);
       }
 
       /* Sideボタン ON時 */
@@ -279,22 +304,11 @@ function createPopupHTML(
 
       /* Sideボタン OFF時 */
       #ygo-side-toggle.ygo-side-inactive {
-        background: rgba(150, 150, 150, 0.3);
-        color: #999;
-        border-color: rgba(150, 150, 150, 0.5);
-        opacity: 0.6;
+        background: rgba(80, 80, 80, 0.6);
+        color: #aaa;
+        border-color: rgba(80, 80, 80, 0.8);
       }
 
-      #ygo-download-btn:hover {
-        background: rgba(70, 120, 255, 0.15);
-        border-color: rgba(70, 120, 255, 0.5);
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        opacity: 1;
-      }
-      #ygo-qr-toggle:hover {
-        opacity: 1 !important;
-      }
       #ygo-qr-toggle.ygo-qr-active:hover {
         background: rgba(255, 255, 255, 1);
         border-color: rgba(150, 150, 150, 0.9);
@@ -302,21 +316,33 @@ function createPopupHTML(
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
       #ygo-qr-toggle.ygo-qr-inactive:hover {
-        background: rgba(150, 150, 150, 0.4);
-      }
-      #ygo-side-toggle:hover {
-        opacity: 1 !important;
+        background: rgba(100, 100, 100, 0.7);
       }
       #ygo-side-toggle.ygo-side-active:hover {
         background: rgba(255, 255, 255, 1);
         border-color: rgba(150, 150, 150, 0.9);
-        transform: translateY(-1px) translateX(0);
+        transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
       #ygo-side-toggle.ygo-side-inactive:hover {
-        background: rgba(150, 150, 150, 0.4);
+        background: rgba(100, 100, 100, 0.7);
+      }
+
+      /* Closeボタン */
+      #ygo-close-btn:hover {
+        background: #d0d0d0;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Downloadボタン */
+      #ygo-download-btn:hover {
+        background: #2060e0;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
       #ygo-download-btn:active,
+      #ygo-close-btn:active,
       #ygo-qr-toggle:active,
       #ygo-side-toggle:active {
         transform: scale(0.98);
@@ -324,8 +350,9 @@ function createPopupHTML(
 
       /* ダウンロードボタン無効化時 */
       #ygo-download-btn:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: not-allowed;
+        background: #6090c0;
       }
 
       /* スピナーアニメーション */
@@ -388,13 +415,11 @@ async function generateBackgroundImage(
   const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
     const img = new Image();
     img.onload = () => {
-      console.log('[YGO Helper] Background image size:', img.naturalWidth, 'x', img.naturalHeight);
       resolve({ width: img.naturalWidth, height: img.naturalHeight });
     };
     img.src = dataUrl;
   });
 
-  console.log('[YGO Helper] Generated background image:', width, 'x', height);
   return { dataUrl, width, height };
 }
 
@@ -412,9 +437,9 @@ export async function showImageDialogWithData(
   buttonRect: DOMRect | null = null
 ): Promise<void> {
   // 既存のポップアップがあれば削除
-  const existingPopup = document.getElementById('ygo-image-popup-overlay');
-  if (existingPopup) {
-    existingPopup.remove();
+  const existingOverlay = document.getElementById('ygo-image-popup-overlay');
+  if (existingOverlay) {
+    existingOverlay.remove();
   }
   const existingMenu = document.getElementById('ygo-image-popup');
   if (existingMenu) {
@@ -456,6 +481,10 @@ export async function showImageDialogWithData(
   const qrToggle = document.getElementById('ygo-qr-toggle');
   const sideToggle = document.getElementById('ygo-side-toggle');
   const downloadBtn = document.getElementById('ygo-download-btn');
+  const closeBtn = document.getElementById('ygo-close-btn');
+
+  // Escapeキーハンドラを保持
+  let handleEscape: ((event: KeyboardEvent) => void) | null = null;
 
   /**
    * ポップアップを閉じる（アニメーション付き）
@@ -465,6 +494,12 @@ export async function showImageDialogWithData(
     overlay?.classList.add('closing');
     popup?.classList.add('closing');
 
+    // Escapeキーイベントリスナーを削除
+    if (handleEscape) {
+      document.removeEventListener('keydown', handleEscape);
+      handleEscape = null;
+    }
+
     // アニメーション終了後に削除
     setTimeout(() => {
       overlay?.remove();
@@ -472,8 +507,19 @@ export async function showImageDialogWithData(
     }, 200); // アニメーション時間と同じ
   };
 
-  // オーバーレイクリックで閉じる
+  // オーバーレイをクリックで閉じる
   overlay?.addEventListener('click', closePopup);
+
+  // Closeボタンで閉じる
+  closeBtn?.addEventListener('click', closePopup);
+
+  // Escapeキーで閉じる
+  handleEscape = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      closePopup();
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
 
   // ポップアップ全体をクリックで色切り替え
   popup?.addEventListener('click', async () => {
@@ -551,8 +597,6 @@ export async function showImageDialogWithData(
         sideDeck: (hasSideDeck && includeSide) ? deckData.sideDeck : []
       };
 
-      console.log('[YGO Helper] Creating deck recipe image...', { dno, color: selectedColor, includeQR, includeSide: hasSideDeck && includeSide, scale, name: currentDeckName });
-
       // ダウンロード実行（更新されたdeckDataを渡す）
       await downloadDeckRecipeImage({
         cgid,
@@ -562,8 +606,6 @@ export async function showImageDialogWithData(
         scale,
         deckData: updatedDeckData
       });
-
-      console.log('[YGO Helper] Download completed');
 
       // ポップアップを閉じる（アニメーション付き）
       closePopup();
@@ -575,8 +617,6 @@ export async function showImageDialogWithData(
       (downloadBtn as HTMLButtonElement).disabled = false;
     }
   });
-
-  console.log('[YGO Helper] Image popup shown');
 }
 
 /**
@@ -610,7 +650,7 @@ export async function showImageDialog(): Promise<void> {
   // 現在のページのDOMからデッキデータを取得
   let deckData: DeckInfo;
   try {
-    deckData = parseDeckDetail(document);
+    deckData = await parseDeckDetail(document);
   } catch (error) {
     console.error('[YGO Helper] Failed to parse deck data from current page:', error);
     return;

@@ -3,6 +3,7 @@
  */
 
 import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
+import { safeQuery } from '../../utils/safe-dom-query';
 
 /**
  * シャッフルアイコン（ランダム/シャッフル）
@@ -30,41 +31,63 @@ const SORT_ICON = `
 `;
 
 /**
- * シャッフルボタンを追加する
+ * 指定されたデッキセクションにシャッフルボタンを追加する
  */
-export function addShuffleButtons(): HTMLElement | null {
+function addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side'): HTMLElement | null {
   // 既にボタンが存在する場合はスキップ
-  if (document.querySelector('#ygo-shuffle-buttons')) {
+  if (safeQuery(`#ygo-shuffle-btn-${sectionId}`)) {
     return null;
   }
 
-  // #deck_image #main.card_set を取得
-  const mainCardSet = document.querySelector('#deck_image #main.card_set');
-  if (!mainCardSet) {
+  // #deck_image #main|extra|side.card_set を取得
+  const cardSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set`);
+  if (!cardSet) {
     return null;
   }
 
   // div.subcatergory > div.top を取得
-  const top = mainCardSet.querySelector('div.subcatergory > div.top');
+  const top = safeQuery<HTMLElement>('div.subcatergory > div.top', cardSet);
   if (!top) {
     return null;
   }
 
   // カード枚数のspan（nth-child(3)）を取得
-  const cardCountSpan = top.querySelector('span:nth-child(3)');
+  const cardCountSpan = safeQuery<HTMLElement>('span:nth-child(3)', top);
   if (!cardCountSpan) {
     return null;
   }
 
+  // カード枚数が0の場合はボタンを追加しない
+  const cardCount = parseInt(cardCountSpan.textContent || '0', 10);
+  if (cardCount === 0) {
+    return null;
+  }
+
   // シャッフルボタン
-  const shuffleBtn = createButton('ygo-shuffle-btn', SHUFFLE_ICON, 'シャッフル');
+  const shuffleBtn = createButton(`ygo-shuffle-btn-${sectionId}`, SHUFFLE_ICON, 'シャッフル');
   top.insertBefore(shuffleBtn, cardCountSpan);
 
   // ソートボタン
-  const sortBtn = createButton('ygo-sort-btn', SORT_ICON, '元に戻す');
+  const sortBtn = createButton(`ygo-sort-btn-${sectionId}`, SORT_ICON, '元に戻す');
   top.insertBefore(sortBtn, cardCountSpan);
 
   return shuffleBtn;
+}
+
+/**
+ * シャッフルボタンを追加する（すべてのデッキセクション）
+ */
+export function addShuffleButtons(): HTMLElement | null {
+  // メインデッキ
+  const mainBtn = addShuffleButtonsToSection('main');
+
+  // エクストラデッキ
+  addShuffleButtonsToSection('extra');
+
+  // サイドデッキ
+  addShuffleButtonsToSection('side');
+
+  return mainBtn;
 }
 
 /**

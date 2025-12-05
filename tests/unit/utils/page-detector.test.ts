@@ -21,10 +21,18 @@ describe('page-detector', () => {
   const setLocation = (href: string, hash = '') => {
     // @ts-ignore
     delete window.location;
+
+    // hrefからpathname, search, hashを抽出
+    const url = new URL(href);
+    const pathname = url.pathname;
+    const search = url.search;
+
     // @ts-ignore
     window.location = {
       href,
-      hash
+      hash: hash || url.hash,
+      pathname,
+      search
     };
   };
 

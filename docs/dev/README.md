@@ -87,6 +87,8 @@ cp docs/dev/session.example.env .env.local
 
 ## 関連ドキュメント
 
+- [公式API仕様](./official-api.md) - 遊戯王DB公式API のエンドポイント、パラメータ順序、注意事項
 - [アーキテクチャ](./architecture.md) - システム構成とコンポーネント設計
 - [多言語対応](./i18n.md) - 多言語対応の仕組みとマッピングテーブル
+- [スクレイピング手順](./scraping.md) - 公式サイトからのデータ取得方法
 - [テスト](./testing.md) - テスト戦略と実行方法（作成予定）

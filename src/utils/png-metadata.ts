@@ -1,4 +1,5 @@
 import type { DeckInfo } from '@/types/deck';
+import { getTempCardDB } from './temp-card-db';
 
 /**
  * PNG tEXtチャンクの構造
@@ -61,25 +62,36 @@ function isValidSimpleDeckInfo(obj: unknown): obj is SimpleDeckInfo {
  * DeckInfoを簡略形式に変換
  */
 function simplifyDeckInfo(deckInfo: DeckInfo): SimpleDeckInfo {
+  const tempCardDB = getTempCardDB();
+
   return {
-    main: deckInfo.mainDeck.map(({ card, quantity }) => ({
-      cid: card.cardId,
-      ciid: card.ciid,
-      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
-      quantity
-    })),
-    extra: deckInfo.extraDeck.map(({ card, quantity }) => ({
-      cid: card.cardId,
-      ciid: card.ciid,
-      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
-      quantity
-    })),
-    side: deckInfo.sideDeck.map(({ card, quantity }) => ({
-      cid: card.cardId,
-      ciid: card.ciid,
-      enc: card.imgs?.find(img => img.ciid === card.ciid)?.imgHash || '',
-      quantity
-    }))
+    main: deckInfo.mainDeck.map(({ cid, ciid, quantity }) => {
+      const card = tempCardDB.get(cid);
+      return {
+        cid,
+        ciid,
+        enc: card?.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
+        quantity
+      };
+    }),
+    extra: deckInfo.extraDeck.map(({ cid, ciid, quantity }) => {
+      const card = tempCardDB.get(cid);
+      return {
+        cid,
+        ciid,
+        enc: card?.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
+        quantity
+      };
+    }),
+    side: deckInfo.sideDeck.map(({ cid, ciid, quantity }) => {
+      const card = tempCardDB.get(cid);
+      return {
+        cid,
+        ciid,
+        enc: card?.imgs?.find(img => img.ciid === ciid)?.imgHash || '',
+        quantity
+      };
+    })
   };
 }
 

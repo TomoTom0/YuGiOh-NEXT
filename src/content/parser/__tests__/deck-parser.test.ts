@@ -28,22 +28,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
-        card: {
-          name: 'ブラック・マジシャン',
-          cardId: '12345',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
-          cardType: 'monster',
-          attribute: 'light',
-          levelType: 'level',
-          levelValue: 0,
-          race: 'dragon',
-          types: [],
-          isExtraDeck: false
-        },
+      expect(result).toMatchObject({
+        cid: '12345',
+        ciid: '1',
         quantity: 2
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('魔法カードの行を正しくパースできる', () => {
@@ -68,16 +58,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
-        card: {
-          name: 'ブラック・マジック',
-          cardId: '67890',
-          ciid: '2',
-          imgs: [{ ciid: '2', imgHash: '67890_2_1_1' }],
-          cardType: 'spell'
-        },
+      expect(result).toMatchObject({
+        cid: '67890',
+        ciid: '2',
         quantity: 3
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('罠カードの行を正しくパースできる', () => {
@@ -102,16 +88,12 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result).toEqual({
-        card: {
-          name: '聖なるバリア -ミラーフォース-',
-          cardId: '11111',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '11111_1_1_1' }],
-          cardType: 'trap'
-        },
+      expect(result).toMatchObject({
+        cid: '11111',
+        ciid: '1',
         quantity: 1
       });
+      expect(result?.lang).toBeDefined();
     });
 
     it('画像IDが指定されていない場合はデフォルト値"1"を使用する', () => {
@@ -135,7 +117,7 @@ describe('デッキページパーサー', () => {
 
       const result = parseCardRow(row);
 
-      expect(result?.card.ciid).toBe('1');
+      expect(result?.ciid).toBe('1');
     });
 
     it('必要な情報が欠けている場合はnullを返す', () => {
@@ -208,22 +190,12 @@ describe('デッキページパーサー', () => {
         comment: 'テストコメント'
       });
       expect(result.mainDeck).toHaveLength(1);
-      expect(result.mainDeck[0]).toEqual({
-        card: {
-          name: 'ブラック・マジシャン',
-          cardId: '12345',
-          ciid: '1',
-          imgs: [{ ciid: '1', imgHash: '12345_1_1_1' }],
-          cardType: 'monster',
-          attribute: 'light',
-          levelType: 'level',
-          levelValue: 0,
-          race: 'dragon',
-          types: [],
-          isExtraDeck: false
-        },
+      expect(result.mainDeck[0]).toMatchObject({
+        cid: '12345',
+        ciid: '1',
         quantity: 2
       });
+      expect(result.mainDeck[0]?.lang).toBeDefined();
       expect(result.extraDeck).toHaveLength(0);
       expect(result.sideDeck).toHaveLength(0);
     });

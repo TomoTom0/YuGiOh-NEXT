@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container">
+  <div class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -69,18 +69,90 @@
         </div>
       </template>
     </RightArea>
+
+    <!-- 統一オーバーレイ -->
+    <div v-if="deckStore.overlayVisible" class="unified-overlay" :style="{ zIndex: deckStore.overlayZIndex }"></div>
+
+    <!-- ダイアログ -->
+    <ExportDialog
+      :isVisible="deckStore.showExportDialog"
+      :deckInfo="deckStore.deckInfo"
+      :dno="String(deckStore.dno)"
+      @close="deckStore.showExportDialog = false"
+      @exported="handleExported"
+    />
+
+    <ImportDialog
+      :isVisible="deckStore.showImportDialog"
+      @close="deckStore.showImportDialog = false"
+      @imported="handleImported"
+    />
+
+    <OptionsDialog
+      :isVisible="deckStore.showOptionsDialog"
+      @close="deckStore.showOptionsDialog = false"
+    />
+
+    <!-- Load Dialog -->
+    <div v-if="deckStore.showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
+      <div class="dialog-content" @click.stop>
+        <div class="dialog-header common">
+          <h2 class="dialog-title">Load Deck</h2>
+          <button class="close-btn" @click="toggleLoadDialog">×</button>
+        </div>
+        <div class="dialog-body">
+          <div v-if="deckStore.deckList.length === 0" class="no-decks">
+            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
+              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
+            </svg>
+            <p>デッキがありません</p>
+          </div>
+          <div v-else class="deck-grid">
+            <div
+              v-for="deck in deckStore.deckList"
+              :key="deck.dno"
+              class="deck-card"
+              @click="loadDeck(deck.dno)"
+            >
+              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <div v-if="deckStore.showDeleteConfirm" class="dialog-overlay" @click="cancelDelete">
+      <div class="delete-confirm-dialog" @click.stop>
+        <div class="delete-confirm-header">
+          <h3>デッキを削除</h3>
+        </div>
+        <div class="delete-confirm-body">
+          <p>本当に「{{ deckStore.getDeckName() || '(名称未設定)' }}」を削除しますか？</p>
+          <p class="warning">この操作は取り消せません。</p>
+        </div>
+        <div class="delete-confirm-footer">
+          <button @click="cancelDelete" class="btn-cancel">キャンセル</button>
+          <button @click="confirmDelete" class="btn-delete">削除</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
-<script>
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+<script lang="ts">
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
+import { useCardDetailStore } from '../../stores/card-detail'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
-import { searchCardsByName } from '../../api/card-search'
+// ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
+const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
+const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 
@@ -90,11 +162,15 @@ export default {
     DeckCard,
     DeckSection,
     DeckEditTopBar,
-    RightArea
+    RightArea,
+    ExportDialog,
+    ImportDialog,
+    OptionsDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const cardDetailStore = useCardDetailStore()
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
@@ -102,8 +178,77 @@ export default {
     const viewMode = ref('list')
     const cardTab = ref('info')
 
+    // 言語変更待機中フラグ
+    let pendingLanguageChange: (() => void) | null = null;
+
+    // ダイアログイベントハンドラ
+    const handleExported = (message) => {
+      deckStore.showExportDialog = false
+    }
+
+    const handleImported = (message) => {
+      deckStore.showImportDialog = false
+    }
+
+    const toggleLoadDialog = async () => {
+      if (!deckStore.showLoadDialog) {
+        await deckStore.fetchDeckList()
+      }
+      deckStore.showLoadDialog = !deckStore.showLoadDialog
+    }
+
+    const loadDeck = async (dno) => {
+      try {
+        await deckStore.loadDeck(dno)
+        deckStore.setDeckName('')
+        deckStore.showLoadDialog = false
+      } catch (error) {
+        console.error('Load error:', error)
+      }
+    }
+
+    const confirmDelete = async () => {
+      deckStore.showDeleteConfirm = false
+      try {
+        await deckStore.deleteCurrentDeck()
+      } catch (error) {
+        console.error('Delete deck error:', error)
+      }
+    }
+
+    const cancelDelete = () => {
+      deckStore.showDeleteConfirm = false
+    }
+
+    // キーボードショートカットのマッチング関数（単一のショートカット）
+    const matchesShortcut = (event, shortcut) => {
+      if (!shortcut) return false
+
+      return (
+        event.key.toLowerCase() === shortcut.key.toLowerCase() &&
+        event.ctrlKey === shortcut.ctrl &&
+        event.shiftKey === shortcut.shift &&
+        event.altKey === shortcut.alt
+      )
+    }
+
+    // キーボードショートカット配列のいずれかにマッチするかチェック
+    const matchesAnyShortcut = (event, shortcuts) => {
+      if (!shortcuts) return false
+
+      // Pinia の reactive で変換された場合、オブジェクトになる可能性があるため、
+      // Object.values() で値の配列に変換する（元々配列でも問題ない）
+      const shortcutsArray = Array.isArray(shortcuts) ? shortcuts : Object.values(shortcuts)
+
+      if (shortcutsArray.length === 0) return false
+      return shortcutsArray.some(shortcut => matchesShortcut(event, shortcut))
+    }
+
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
+      // グローバル検索モードが有効な場合は無視（入力欄で処理される）
+      if (deckStore.isGlobalSearchMode) return
+
       // 入力要素にフォーカスがある場合は無視
       const activeElement = document.activeElement
       const isInputFocused = activeElement && (
@@ -114,11 +259,28 @@ export default {
 
       if (isInputFocused) return
 
-      // '/' キーまたは Ctrl+J でグローバル検索モードを有効化
-      if (event.key === '/' || (event.ctrlKey && event.key === 'j')) {
+      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+
+      // グローバル検索モードを有効化
+      if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
-        // グローバル検索モードを有効化（タブは切り替えない）
+        event.stopPropagation()
         deckStore.isGlobalSearchMode = true
+        return
+      }
+
+      // Undo
+      if (matchesAnyShortcut(event, shortcuts.undo)) {
+        event.preventDefault()
+        deckStore.undo()
+        return
+      }
+
+      // Redo
+      if (matchesAnyShortcut(event, shortcuts.redo)) {
+        event.preventDefault()
+        deckStore.redo()
+        return
       }
     }
     
@@ -133,7 +295,7 @@ export default {
       }
     }
     
-    // dnoパラメータを取得する関数
+    // URLパラメータを取得する関数
     const getCurrentDno = () => {
       const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
       return urlParams.get('dno') || ''
@@ -146,7 +308,6 @@ export default {
     const checkDnoChange = () => {
       const newDno = getCurrentDno()
       if (newDno !== currentDno.value) {
-        console.log('[DeckEditLayout] dno changed from', currentDno.value, 'to', newDno)
         currentDno.value = newDno
         // デッキデータを再ロード
         deckStore.initializeOnPageLoad()
@@ -158,15 +319,70 @@ export default {
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
+      // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
+
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
+
+      // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
+      const originalChangeLanguage = (window as any).ygoChangeLanguage
+      ;(window as any).ygoChangeLanguage = (lang: string) => {
+        const performChange = () => {
+          originalChangeLanguage(lang)
+        }
+
+        // 編集中の場合はダイアログを表示
+        if (deckStore.hasUnsavedChanges()) {
+          unsavedChangesMessage.value = '言語を変更するとページが再読み込みされます。保存してから変更しますか？'
+          pendingLanguageChange = performChange
+          pendingAction.value = performChange
+          deckStore.showUnsavedChangesDialog = true
+        } else {
+          performChange()
+        }
+      }
+
+      // 設定に応じてファビコンを変更
+      if (settingsStore.appSettings.changeFavicon) {
+        changeFavicon()
+      }
     })
+
+    /**
+     * ファビコンを拡張機能のアイコンに変更
+     */
+    function changeFavicon() {
+      try {
+        // 既存のファビコンを削除
+        const existingLinks = document.querySelectorAll("link[rel*='icon']")
+        existingLinks.forEach(link => link.remove())
+
+        // 新しいファビコンを追加
+        const iconSizes = [
+          { size: '16x16', path: chrome.runtime.getURL('icons/icon16.png') },
+          { size: '48x48', path: chrome.runtime.getURL('icons/icon48.png') },
+          { size: '128x128', path: chrome.runtime.getURL('icons/icon128.png') }
+        ]
+
+        iconSizes.forEach(({ size, path }) => {
+          const link = document.createElement('link')
+          link.rel = 'icon'
+          link.type = 'image/png'
+          link.sizes = size
+          link.href = path
+          document.head.appendChild(link)
+        })
+      } catch (error) {
+        console.error('Failed to change favicon:', error)
+      }
+    }
 
     onUnmounted(() => {
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('hashchange', checkDnoChange)
       window.removeEventListener('keydown', handleGlobalKeydown)
+      pendingLanguageChange = null
     })
 
     const createFilledCards = (count, prefix, isExtra = false) => {
@@ -219,15 +435,9 @@ export default {
 
     // カードサイズに応じた動的padding
     const deckAreasStyle = computed(() => {
-      const cardHeight = settingsStore.deckEditCardSizePixels.height
-      // TopBarとの間隔を確保（カードサイズが大きいほど間隔を広げる）
-      // smallサイズでも最低32pxの間隔を確保
-      const marginTop = Math.max(32, Math.ceil((cardHeight - 53) / 2))
-      // カード高さに基づいてbottom paddingを計算
       // 検索入力欄との適切な間隔を確保（固定値150px: 入力欄47px + bottom位置20px + 余裕83px）
       const paddingBottom = 150
       return {
-        marginTop: `${marginTop}px`,
         paddingBottom: `${paddingBottom}px`
       }
     })
@@ -250,8 +460,10 @@ export default {
         searchResults.length = 0
         return
       }
-      
+
       try {
+        // Load Dialog検索時に動的import
+        const { searchCardsByName } = await import('../../api/card-search')
         const results = await searchCardsByName(query.trim())
         const gameType = detectCardGameType()
         searchResults.length = 0
@@ -272,57 +484,46 @@ export default {
     }
 
     const toggleDetail = (card) => {
-      console.log('Toggle detail:', card.name)
     }
 
     const dragData = ref(null)
 
     const onDragStart = (event, deckType, index, card) => {
-      console.log('=== Drag start ===')
-      console.log('deckType:', deckType, 'index:', index, 'card:', card)
       if (card.empty) {
         event.preventDefault()
         return false
       }
-      
+
       dragData.value = { deckType, index, card }
       event.dataTransfer.effectAllowed = deckType === 'search' ? 'copy' : 'move'
       event.dataTransfer.setData('text/plain', JSON.stringify({ deckType, index }))
-      console.log('dragData set:', dragData.value)
     }
 
     const handleDragOver = (event) => {
       event.preventDefault()
-      console.log('Drag over event fired')
       return false
     }
 
     const onAreaDrop = (event, targetDeckType) => {
-      console.log('=== Area drop ===')
-      console.log('targetDeckType:', targetDeckType)
-      console.log('dragData before check:', dragData.value)
       event.preventDefault()
       event.stopPropagation()
       if (!dragData.value) {
-        console.log('ERROR: No drag data!')
+        console.error('ERROR: No drag data!')
         return
       }
 
       const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-      console.log('sourceDeckType:', sourceDeckType, 'card:', card)
-      
+
       if (sourceDeckType === 'search') {
-        console.log('Adding from search to:', targetDeckType)
         if (targetDeckType === 'main' || targetDeckType === 'extra') {
           deckStore.addCopyToMainOrExtra(card)
         } else if (targetDeckType === 'side') {
           deckStore.addCopyToSection(card, 'side')
         }
       } else if (sourceDeckType !== targetDeckType) {
-        console.log('Moving from', sourceDeckType, 'to', targetDeckType)
         deckStore.moveCard(card.cardId, sourceDeckType, targetDeckType)
       }
-      
+
       dragData.value = null
     }
 
@@ -334,26 +535,22 @@ export default {
     const onDrop = (event, targetDeckType, targetIndex) => {
       event.preventDefault()
       event.stopPropagation()
-      console.log('Drop:', targetDeckType, targetIndex, 'dragData:', dragData.value)
       if (!dragData.value) {
-        console.log('No drag data!')
         return
       }
 
       const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-      
+
       if (sourceDeckType === 'search') {
-        console.log('Adding from search at index:', targetIndex)
         if (targetDeckType === 'main' || targetDeckType === 'extra') {
           deckStore.insertCard(card, card.isExtraDeck ? 'extra' : 'main', targetIndex)
         } else if (targetDeckType === 'side') {
           deckStore.insertCard(card, 'side', targetIndex)
         }
       } else {
-        console.log('Moving card with position')
         deckStore.moveCardWithPosition(card.cardId, sourceDeckType, sourceIndex, targetDeckType, targetIndex)
       }
-      
+
       dragData.value = null
     }
 
@@ -435,6 +632,12 @@ export default {
       onSearchInput,
       toggleDetail,
       addToMain,
+      handleExported,
+      handleImported,
+      toggleLoadDialog,
+      loadDeck,
+      confirmDelete,
+      cancelDelete,
       addToExtra,
       addToSide,
       onDragStart,
@@ -453,6 +656,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use '../../styles/themes.scss' as *;
+@use '../../styles/common.scss' as *;
+
 // Hide page top button
 :global(.menu_btn_pagetop) {
   display: none !important;
@@ -479,11 +685,16 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* padding-bottomは動的に設定 */
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   min-height: 0;
-  max-height: 100%; /* 親コンテナの高さを超えないように制限 */
+  max-height: 100%;
+  
+  // DeckEditTopBarは固定、スクロールしない
+  > :first-child {
+    flex-shrink: 0;
+    z-index: 10;
+    margin: 0;
+  }
 }
 
 .mobile-deck-content {
@@ -501,22 +712,34 @@ export default {
   flex-direction: column;
   gap: 10px;
   margin: 0;
-  padding: 0;
-  flex: 1; /* .main-content内で残りスペースを使用 */
-  min-height: fit-content; /* 子要素+paddingの全体を表示 */
-  overflow: visible; /* 子要素がはみ出ることを許可 */
-  /* marginTopとpaddingBottomは動的に設定 */
+  padding: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .middle-decks {
   display: flex;
   gap: 10px;
-  flex: none;
-  min-height: 120px;
+  flex: 0 0 auto;
   width: 100%;
+  align-items: flex-start;
+
+  // デフォルト（横並び）時はextra/sideを50%幅に制限
+  :deep(.extra-deck),
+  :deep(.side-deck) {
+    max-width: 50%;
+  }
 
   &.vertical-layout {
     flex-direction: column;
+
+    // 縦並び時はextra/sideセクションを全幅に拡張
+    :deep(.extra-deck),
+    :deep(.side-deck) {
+      max-width: 100%;
+    }
   }
 }
 
@@ -561,19 +784,6 @@ export default {
   &:hover {
     color: var(--text-primary);
   }
-}
-
-.right-area {
-  width: 320px;
-  height: 100%;
-  background: var(--bg-primary);
-  border-left: 1px solid var(--border-primary);
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 0 10px;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 .tabs {
@@ -796,17 +1006,18 @@ export default {
     
     .icon {
       padding: 4px 8px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-primary);
       border-radius: 4px;
-      background: white;
-      color: #666;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
       font-size: 16px;
     }
     
     input:checked + .icon {
-      background: #008cff;
+      background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
       color: white;
-      border-color: #008cff;
+      border-color: #0068d9;
+      box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
     }
   }
 }
@@ -814,19 +1025,19 @@ export default {
 .card-detail-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  border-bottom: 2px solid #008cff;
+  border-bottom: 2px solid var(--color-info);
   
   button {
     padding: 8px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
     cursor: pointer;
     font-size: 12px;
-    color: #333;
+    color: var(--text-primary);
     
     &.active {
-      background: #008cff;
-      color: white;
+      background: var(--color-info);
+      color: var(--button-text);
     }
   }
 }
@@ -838,6 +1049,208 @@ export default {
 .no-card-selected {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-tertiary);
+}
+
+.unified-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+  pointer-events: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+.dialog-content {
+  background: var(--dialog-bg, white);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
+  width: 600px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  flex-shrink: 0;
+
+  .dialog-title {
+    font-size: 14px;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--text-tertiary, #999);
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary, #333);
+    }
+  }
+}
+
+.dialog-body {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+
+  .no-decks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-tertiary, #999);
+
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+  }
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.deck-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f5f5f5);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--text-tertiary, #999);
+    background: var(--bg-primary, white);
+  }
+
+  .deck-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary, #333);
+    line-height: 1.3;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+.delete-confirm-dialog {
+  background: var(--bg-primary, white);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 400px;
+  max-width: 90vw;
+}
+
+.delete-confirm-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-primary);
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+}
+
+.delete-confirm-body {
+  padding: 24px;
+
+  p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+  }
+
+  .warning {
+    color: #f44336;
+    font-weight: 500;
+  }
+}
+
+.delete-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+
+    &.btn-cancel {
+      background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary, #333);
+
+      &:hover {
+        background: var(--bg-tertiary, #e0e0e0);
+      }
+    }
+
+    &.btn-delete {
+      background: var(--color-error);
+      color: var(--button-text);
+
+      &:hover {
+        background: var(--color-error-hover);
+      }
+    }
+  }
 }
 </style>

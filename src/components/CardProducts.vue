@@ -6,7 +6,16 @@
     </div>
     <div v-else class="pack-list">
       <div v-for="pack in groupedPacks" :key="`${pack.code}_${pack.name}`" class="pack-item" :data-pack-id="pack.packId">
-        <div class="pack-name">{{ pack.name }}</div>
+        <a
+          v-if="pack.packId"
+          :href="getPackUrl(pack.packId)"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="pack-name"
+        >
+          {{ pack.name }}
+        </a>
+        <div v-else class="pack-name">{{ pack.name }}</div>
         <div class="pack-details">
           <div class="pack-date">{{ pack.releaseDate || '-' }}</div>
           <div class="pack-code">{{ pack.code || '-' }}</div>
@@ -35,13 +44,14 @@
           <div v-else-if="packCards[pack.packId]" class="pack-cards-wrapper">
             <CardList
               :cards="packCards[pack.packId]"
-              :sortOrder="packSortOrders[pack.packId] || 'release_desc'"
+              :sortOrder="packSortOrders[pack.packId] || 'code_asc'"
               :viewMode="packViewModes[pack.packId] || 'list'"
               sectionType="search"
               :uniqueId="`pack-${pack.packId}`"
               :showCollapseButton="true"
-              @scroll-to-top="handleScrollToTop"
+              :showCodeSort="true"
               @collapse="collapsePack(pack.packId)"
+              @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -63,6 +73,9 @@
 <script>
 import { ref, computed } from 'vue'
 import CardList from './CardList.vue'
+import { searchCardsByPackId } from '../api/card-search'
+import { getCardSearchEndpoint } from '../utils/url-builder'
+import { detectCardGameType } from '../utils/page-detector'
 
 export default {
   name: 'CardProducts',
@@ -85,12 +98,12 @@ export default {
     const packCards = ref({})
     const packViewModes = ref({})
     const packSortOrders = ref({})
-    
+
     const groupedPacks = computed(() => {
       if (!props.detail || !props.detail.packs) return []
-      
+
       const packMap = new Map()
-      
+
       props.detail.packs.forEach(pack => {
         const key = `${pack.code}_${pack.name}`
         if (!packMap.has(key)) {
@@ -111,41 +124,25 @@ export default {
           })
         }
       })
-      
+
       return Array.from(packMap.values())
     })
-    
+
     const expandPack = async (packId) => {
       if (expandedPacks.value[packId]) return
-      
+
       loadingPacks.value[packId] = true
       expandedPacks.value[packId] = true
-      
+
       if (!packViewModes.value[packId]) {
         packViewModes.value = { ...packViewModes.value, [packId]: 'list' }
       }
       if (!packSortOrders.value[packId]) {
-        packSortOrders.value = { ...packSortOrders.value, [packId]: 'release_desc' }
+        packSortOrders.value = { ...packSortOrders.value, [packId]: 'code_asc' }
       }
-      
+
       try {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=1&pid=${packId}&rp=99999`
-        const response = await fetch(url, {
-          method: 'GET',
-          credentials: 'include'
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch pack cards')
-        }
-        
-        const html = await response.text()
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, 'text/html')
-        
-        const { parseSearchResults } = await import('../api/card-search')
-        const cards = parseSearchResults(doc)
-        
+        const cards = await searchCardsByPackId(packId)
         packCards.value[packId] = cards
       } catch (error) {
         console.error('Failed to fetch pack cards:', error)
@@ -192,13 +189,23 @@ export default {
       packViewModes.value = { ...packViewModes.value, [packId]: value }
     }
     
+    const getPackUrl = (packId) => {
+      const gameType = detectCardGameType()
+      const baseUrl = getCardSearchEndpoint(gameType)
+      const params = new URLSearchParams({
+        ope: '1',
+        pid: packId
+      })
+      return `${baseUrl}&${params.toString()}`
+    }
+
     const handleScrollToTop = () => {
       const cardTabContent = document.querySelector('.card-tab-content')
       if (cardTabContent) {
         cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
-    
+
     return {
       groupedPacks,
       expandedPacks,
@@ -210,6 +217,7 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
+      getPackUrl,
       handleScrollToTop
     }
   }
@@ -236,7 +244,7 @@ export default {
 }
 
 .pack-item {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   padding: 8px 10px;
   background: var(--bg-secondary);
@@ -252,6 +260,18 @@ export default {
   color: var(--text-primary);
   margin-bottom: 6px;
   width: 100%;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-link);
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--text-primary);
+  }
 }
 
 .pack-details {
@@ -298,7 +318,7 @@ export default {
   border-radius: 3px;
   font-size: 9px;
   font-weight: bold;
-  color: white;
+  color: var(--button-text);
   border: 1px solid;
   white-space: nowrap;
 }
@@ -310,8 +330,9 @@ export default {
   left: 4px;
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -319,12 +340,13 @@ export default {
   justify-content: center;
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  
+
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
+    color: var(--text-primary);
   }
-  
+
   svg {
     display: block;
     width: 14px;
@@ -333,17 +355,19 @@ export default {
 }
 
 .pack-collapse-btn {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .pack-collapse-btn-sticky {
   position: sticky;
   bottom: 8px;
-  left: 8px;
+  left: 4px;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   display: flex;
@@ -352,13 +376,14 @@ export default {
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   z-index: 5;
-  
+
   &:hover {
-    background: #f0f0f0;
-    border-color: #999;
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
+    color: var(--text-primary);
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   }
-  
+
   svg {
     display: block;
     width: 16px;

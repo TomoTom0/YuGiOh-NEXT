@@ -1,6 +1,7 @@
 import { CardFAQ, CardFAQList } from '@/types/card';
-
-const FAQ_SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/faq_search.action';
+import { detectCardGameType } from '@/utils/page-detector';
+import { buildApiUrl } from '@/utils/url-builder';
+import { queuedFetch } from '@/utils/request-queue';
 
 /**
  * カードQA一覧を取得する
@@ -16,14 +17,15 @@ const FAQ_SEARCH_URL = 'https://www.db.yugioh-card.com/yugiohdb/faq_search.actio
  */
 export async function getCardFAQList(cardId: string): Promise<CardFAQList | null> {
   try {
-    // URLパラメータを構築
+    // URLパラメータを別の辞書として buildApiUrl に渡す
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '4',
-      cid: cardId,
-      request_locale: 'ja'
+      cid: cardId
     });
+    const url = buildApiUrl('faq_search.action', gameType, params);
 
-    const response = await fetch(`${FAQ_SEARCH_URL}?${params.toString()}`, {
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });
@@ -188,14 +190,14 @@ function convertCardLinksToTemplate(element: HTMLElement): string {
  */
 export async function getFAQDetail(faqId: string): Promise<CardFAQ | null> {
   try {
-    // URLパラメータを構築
+    // URLパラメータを別の辞書として buildApiUrl に渡す
+    const gameType = detectCardGameType();
     const params = new URLSearchParams({
       ope: '5',
-      fid: faqId,
-      request_locale: 'ja'
+      fid: faqId
     });
-
-    const response = await fetch(`${FAQ_SEARCH_URL}?${params.toString()}`, {
+    const url = buildApiUrl('faq_search.action', gameType, params);
+    const response = await queuedFetch(url, {
       method: 'GET',
       credentials: 'include'
     });

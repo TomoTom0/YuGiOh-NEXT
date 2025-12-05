@@ -5,9 +5,12 @@
  * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
  */
 
-// テーマCSSをインポート
-import '../../styles/themes.css';
+// FOUC防止: デフォルトテーマを即座に適用
+// 注: テーマはwatchUrlChanges()の前にapplyThemeFromSettings()で適用するため、
+// ここではハードコードされた'light'を設定しない
+
 import { isVueEditPage } from '../../utils/page-detector';
+import { callbackToPromise } from '../../utils/promise-timeout';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -24,11 +27,81 @@ function isEditUrl(): boolean {
 }
 
 /**
+ * テーマを設定ストアから読み込んで適用
+ */
+async function applyThemeFromSettings(): Promise<void> {
+  try {
+    const result = await callbackToPromise<any>(
+      (callback) => chrome.storage.local.get(['appSettings'], callback),
+      3000 // 3秒のタイムアウト
+    );
+
+    const appSettings = result.appSettings || {};
+    const theme = appSettings.theme ?? 'system';
+
+    let effectiveTheme: 'light' | 'dark' = 'light';
+
+    if (theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } else {
+      effectiveTheme = (theme as any) ?? 'light';
+    }
+
+    document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
+  } catch (error) {
+    // タイムアウトまたはエラー時は、デフォルトのテーマを使用
+    console.warn('[applyThemeFromSettings] Failed to load theme settings:', error);
+    document.documentElement.setAttribute('data-ygo-next-theme', 'light');
+  }
+}
+
+/**
+ * 言語を変更（ページ遷移）
+ * Vue側でオーバーライド可能な実装
+ */
+function performLanguageChange(lang: string): void {
+  const hash = location.hash;
+  let search = location.search.replace(/[?&]request_locale=[^&]*/, '');
+
+  let newSearch = `?request_locale=${lang}`;
+  if (search.substring(1).length > 0) {
+    newSearch += `&${search.substring(1)}`;
+  }
+
+  const newUrl = location.pathname + newSearch + hash;
+  location.href = newUrl;
+}
+
+/**
+ * 言語切り替えボタンを差し替え（window.ygoChangeLanguage をコール）
+ */
+function replaceLanguageChangeLinks(): void {
+  // 言語リンクのhref属性を空のjavascriptに置き換え
+  document.querySelectorAll('a[href*="javascript:ChangeLanguage"]').forEach((link) => {
+    const href = link.getAttribute('href');
+    const match = href?.match(/ChangeLanguage\('(\w+)'\)/);
+    if (match) {
+      const lang = match[1];
+      link.setAttribute('href', 'javascript:void(0)');
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        // window.ygoChangeLanguage は Vue側でオーバーライド可能
+        (window as any).ygoChangeLanguage?.(lang);
+      });
+    }
+  });
+}
+
+// window.ygoChangeLanguage のデフォルト実装
+(window as any).ygoChangeLanguage = performLanguageChange;
+
+/**
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
-  console.log('watchUrlChanges called');
-  
   // DOMが読み込まれてから実行
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -45,16 +118,19 @@ function watchUrlChanges(): void {
 
   // hashchangeイベントを監視（一度だけ登録）
   if (!isEventListenerRegistered) {
-    console.log('Registering hashchange listener');
     isEventListenerRegistered = true;
-    
+
     window.addEventListener('hashchange', () => {
-      console.log('hashchange event fired, hash =', window.location.hash);
-      if (isEditUrl() && !isEditUILoaded) {
-        loadEditUI();
+      if (isEditUrl()) {
+        // 編集URLに遷移した場合は、毎回テーマを適用
+        applyThemeFromSettings();
+
+        // UI が未読み込みの場合のみ読み込み実行
+        if (!isEditUILoaded) {
+          loadEditUI();
+        }
       } else if (!isEditUrl() && isEditUILoaded) {
         // 編集URL以外に移動した場合はフラグをリセット
-        console.log('Resetting isEditUILoaded flag');
         isEditUILoaded = false;
       }
     });
@@ -64,19 +140,16 @@ function watchUrlChanges(): void {
 /**
  * 編集用UIを読み込んで表示
  */
-function loadEditUI(): void {
-  console.log('loadEditUI called, isEditUILoaded =', isEditUILoaded);
-  
+async function loadEditUI(): Promise<void> {
   if (isEditUILoaded) {
-    console.log('Edit UI already loaded, skipping...');
     return;
   }
 
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
-  console.log('Set isEditUILoaded = true');
 
-  console.log('Loading edit UI...');
+  // テーマを設定ストアから読み込んで適用
+  await applyThemeFromSettings();
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
@@ -85,8 +158,6 @@ function loadEditUI(): void {
     isEditUILoaded = false;
     return;
   }
-
-  console.log('Found #bg, replacing content...');
 
   // ヘッダーの高さを計算してCSS変数に設定
   const headerElement = document.querySelector('header') || document.querySelector('#header');
@@ -136,34 +207,39 @@ function loadEditUI(): void {
   // div#bgの内容を完全に置き換え
   bgElement.innerHTML = '<div id="vue-edit-app"></div>';
 
-  console.log('Content replaced, initializing Vue app...');
-
   // Vue アプリケーションを起動
-  initVueApp();
+  await initVueApp();
 
-  console.log('Edit UI loaded successfully');
+  // 言語切り替えボタンを差し替え（Vue初期化後）
+  replaceLanguageChangeLinks();
 }
 
 /**
  * Vue アプリケーションを初期化
  */
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import DeckEditLayout from './DeckEditLayout.vue';
-
 async function initVueApp(): Promise<void> {
   try {
+    // Vue/Pinia/コンポーネントを動的インポート
+    const [{ createApp }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
+      import('vue'),
+      import('pinia'),
+      import('./DeckEditLayout.vue')
+    ]);
+
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
 
     app.use(pinia);
     app.mount('#vue-edit-app');
-
-    console.log('Vue app mounted successfully');
   } catch (error) {
     console.error('Failed to initialize Vue app:', error);
   }
 }
 
-// Content Script起動時に実行
-watchUrlChanges();
+// このモジュールが動的インポートされた時点で編集ページにいることが確定
+// URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
+(async () => {
+  // モジュール読み込み時にテーマを設定（FOUC防止）
+  await applyThemeFromSettings();
+  watchUrlChanges();
+})();

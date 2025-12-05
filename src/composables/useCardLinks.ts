@@ -1,5 +1,7 @@
-import { getCardDetail } from '@/api/card-search'
+import { getCardDetailWithCache } from '@/api/card-search'
+import { useCardDetailStore } from '@/stores/card-detail'
 import { useDeckEditStore } from '@/stores/deck-edit'
+import { detectLanguage } from '@/utils/language-detector'
 
 /**
  * カードリンクの解析部分（type: 'text' | 'link'）
@@ -15,6 +17,7 @@ export interface CardLinkPart {
  */
 export function useCardLinks() {
   const deckStore = useDeckEditStore()
+  const cardDetailStore = useCardDetailStore()
 
   /**
    * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
@@ -81,18 +84,26 @@ export function useCardLinks() {
   const handleCardLinkClick = async (cardId: string): Promise<void> => {
     try {
       // カード詳細を取得（cidのみからCardInfo全体をパース）
-      const cardDetail = await getCardDetail(cardId)
-      if (!cardDetail || !cardDetail.card) {
-        console.error('カード情報の取得に失敗しました:', cardId)
+      // FAQページからのリンクなので、fromFAQ=trueを渡す
+      const currentLang = detectLanguage(document)
+      const result = await getCardDetailWithCache(cardId, currentLang, true, 'release_desc', true)
+
+      // エラーにより不完全な情報の場合は警告
+      if (result.isPartialFromError) {
+        console.warn('[useCardLinks] Card info may be incomplete due to search error for cardId:', cardId)
+      }
+
+      if (!result.detail || !result.detail.card) {
+        console.error('[useCardLinks] Failed to get card info for cardId:', cardId)
         return
       }
 
-      // deckStoreにカードをセットしてCardタブのinfoを表示
-      deckStore.selectedCard = cardDetail.card
+      // cardDetailStoreにカードをセットしてCardタブのinfoを表示
+      cardDetailStore.setSelectedCard(result.detail.card)
       deckStore.activeTab = 'card'
-      deckStore.cardTab = 'info'
+      cardDetailStore.setCardTab('info')
     } catch (error) {
-      console.error('カードリンククリック処理に失敗しました:', error)
+      console.error('[useCardLinks] Card link click handler failed for cardId:', cardId, error)
     }
   }
 

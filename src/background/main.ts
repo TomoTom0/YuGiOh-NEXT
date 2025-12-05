@@ -5,8 +5,7 @@
  */
 
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
-
-console.log('Background service worker loaded');
+import { getVueEditUrl } from '@/utils/url-builder';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -15,9 +14,7 @@ const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
  */
 async function updateMetadata() {
   try {
-    console.log('Updating deck metadata...');
     await updateDeckMetadata();
-    console.log('Deck metadata updated successfully');
   } catch (error) {
     console.error('Failed to update deck metadata:', error);
   }
@@ -27,8 +24,6 @@ async function updateMetadata() {
  * 拡張機能インストール時の処理
  */
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('Extension installed/updated:', details.reason);
-
   // 初回インストール時にメタデータを更新
   if (details.reason === 'install') {
     await updateMetadata();
@@ -48,7 +43,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 chrome.contextMenus.onClicked.addListener((info, _tab) => {
   if (info.menuItemId === 'open-deck-edit') {
     chrome.tabs.create({
-      url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+      url: getVueEditUrl('ocg')
     });
   }
 });

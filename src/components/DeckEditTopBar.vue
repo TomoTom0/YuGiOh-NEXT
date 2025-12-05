@@ -1,21 +1,37 @@
 <template>
-  <div>
+  <div class="top-bar-wrapper">
     <div class="top-bar">
       <div class="top-bar-left">
-        <div class="dno-display">{{ localDno || '-' }}</div>
+        <button
+          class="btn-action"
+          :disabled="!deckStore.canUndo"
+          title="Undo (Ctrl+Z)"
+          @click="handleUndo"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiUndo" />
+          </svg>
+        </button>
+        <button
+          class="btn-action"
+          :disabled="!deckStore.canRedo"
+          title="Redo (Ctrl+Y)"
+          @click="handleRedo"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiRedo" />
+          </svg>
+        </button>
         <div class="deck-name-group">
+          <span class="dno-chip">{{ localDno || '-' }}</span>
           <input
             v-model="localDeckName"
             type="text"
-            placeholder="デッキ名"
+            :placeholder="displayDeckName || 'デッキ名'"
             class="deck-name-input"
           >
-          <div v-if="lastSavedDeckName" class="last-saved-name">
-            {{ lastSavedDeckName }}
-          </div>
         </div>
       </div>
-      <div class="spacer"></div>
       <div class="top-bar-right">
         <button
           class="btn-action"
@@ -27,12 +43,25 @@
             <path fill="currentColor" :d="mdiContentSave" />
           </svg>
         </button>
-        <button class="btn-action" title="load" @click="toggleLoadDialog">
+        <button class="btn-action" title="load" @click="handleLoadClick">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiFolderOpen" />
           </svg>
         </button>
-        <button class="btn-menu" @click="toggleMenu">⋮</button>
+        <button class="btn-menu" @click="toggleMenu" :class="{ loading: menuLoading }">
+          <span v-if="!menuLoading">⋮</span>
+          <svg v-else class="spinner" width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z">
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 12 12"
+                to="360 12 12"
+                dur="1s"
+                repeatCount="indefinite"/>
+            </path>
+          </svg>
+        </button>
 
         <!-- Menu Dropdown -->
         <div v-if="showMenu" class="menu-dropdown" @click.stop>
@@ -49,17 +78,42 @@
             Deck Image
           </button>
           <div class="menu-divider"></div>
-          <button @click="handleExportDeck" class="menu-item">
+          <button @click="handleReloadDeck" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiReload" />
+            </svg>
+            Reload Deck
+          </button>
+          <button @click="handleExportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiExport" />
             </svg>
             Export Deck
           </button>
-          <button @click="handleImportDeck" class="menu-item">
+          <button @click="handleImportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiImport" />
             </svg>
             Import Deck
+          </button>
+          <div class="menu-divider"></div>
+          <button @click="handleNewClick" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiPlusBox" />
+            </svg>
+            New Deck
+          </button>
+          <button @click="handleCopyClick" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiContentCopy" />
+            </svg>
+            Copy Deck
+          </button>
+          <button @click="handleDeleteDeck" class="menu-item danger">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiDelete" />
+            </svg>
+            Delete Deck
           </button>
           <div class="menu-divider"></div>
           <button @click="handleOptions" class="menu-item">
@@ -75,75 +129,37 @@
     <!-- Menu Overlay (外側クリックで閉じる用) -->
     <div v-if="showMenu" class="menu-overlay" @click="toggleMenu"></div>
 
-    <!-- Export Dialog -->
-    <ExportDialog
-      :isVisible="showExportDialog"
-      :deckInfo="deckStore.deckInfo"
-      :dno="String(localDno)"
-      @close="showExportDialog = false"
-      @exported="handleExported"
-    />
 
-    <!-- Import Dialog -->
-    <ImportDialog
-      :isVisible="showImportDialog"
-      @close="showImportDialog = false"
-      @imported="handleImported"
-    />
 
-    <!-- Options Dialog -->
-    <OptionsDialog
-      :isVisible="showOptionsDialog"
-      @close="showOptionsDialog = false"
-    />
 
-    <!-- Load Dialog -->
-    <div v-if="showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
-      <div class="load-dialog" @click.stop>
-        <div class="load-dialog-header">
-          <h2>Load Deck</h2>
-          <button class="close-btn" @click="toggleLoadDialog">×</button>
-        </div>
-        <div class="load-dialog-content">
-          <div v-if="deckStore.deckList.length === 0" class="no-decks">
-            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
-              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-            </svg>
-            <p>デッキがありません</p>
-          </div>
-          <div v-else class="deck-grid">
-            <div
-              v-for="deck in deckStore.deckList"
-              :key="deck.dno"
-              class="deck-card"
-              @click="loadDeck(deck.dno)"
-            >
-              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <Toast
-      :show="toast.show"
-      :message="toast.message"
-      :type="toast.type"
-      @close="toast.show = false"
-    />
   </div>
+
+  <!-- Unsaved Changes Dialog (outside top-bar-wrapper) -->
+  <ConfirmDialog
+    :show="deckStore.showUnsavedChangesDialog"
+    :title="unsavedChangesTitle"
+    :message="unsavedChangesMessage"
+    :buttons="unsavedChangesButtons"
+    @cancel="cancelUnsavedChanges"
+  />
+
+  <!-- Toast Container (outside top-bar-wrapper) -->
+  <ToastContainer />
 </template>
 
 <script lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSettingsStore } from '../stores/settings'
+import { useToastStore } from '../stores/toast-notification'
 import Toast from './Toast.vue'
-import ExportDialog from './ExportDialog.vue'
-import ImportDialog from './ImportDialog.vue'
-import OptionsDialog from './OptionsDialog.vue'
-import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
+import ToastContainer from './ToastContainer.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
+// 画像作成機能は動的importに変更（メニュー選択時のみロード）
+// import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -155,31 +171,115 @@ export default {
   name: 'DeckEditTopBar',
   components: {
     Toast,
-    ExportDialog,
-    ImportDialog,
-    OptionsDialog
+    ToastContainer,
+    ConfirmDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
-    const showLoadDialog = ref(false)
+    const settingsStore = useSettingsStore()
+    const { showToast: dispatchToast } = useToastStore()
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
     const saveTimer = ref<number | null>(null)
-    const lastSavedDeckName = ref('')
     const showMenu = ref(false)
-    const showExportDialog = ref(false)
-    const showImportDialog = ref(false)
-    const showOptionsDialog = ref(false)
+    const menuLoading = ref(false)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
       type: 'info'
     })
 
-    const showToast = (message: string, type = 'info') => {
+    // Unsaved changes handling
+    const pendingAction = ref<(() => void) | null>(null)
+    const unsavedChangesTitle = ref('未保存の変更')
+    const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+      // ストアを使用してトースト通知を表示
+      dispatchToast(message, type)
+
+      // 従来の toast オブジェクト（既に使用されている可能性）もサポート
       toast.message = message
       toast.type = type
       toast.show = true
+    }
+    
+    const checkUnsavedChanges = (action: () => void, actionName: string) => {
+      const unsavedWarning = settingsStore.appSettings.unsavedWarning
+
+      // 'never': 警告を表示しない
+      if (unsavedWarning === 'never') {
+        action()
+        return
+      }
+
+      // 変更がない場合は常に実行
+      if (!deckStore.hasUnsavedChanges()) {
+        action()
+        return
+      }
+
+      // 'without-sorting-only': ソート順のみの変更なら警告しない
+      if (unsavedWarning === 'without-sorting-only') {
+        if (deckStore.hasOnlySortOrderChanges()) {
+          action()
+          return
+        }
+      }
+
+      // 'always' または 'without-sorting-only' でソート順以外の変更がある場合
+      unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
+      pendingAction.value = action
+      deckStore.showUnsavedChangesDialog = true
+    }
+    
+    const unsavedChangesButtons = computed(() => [
+      {
+        label: '処理を中断',
+        class: 'secondary',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          pendingAction.value = null
+        }
+      },
+      {
+        label: '保存して続ける',
+        class: 'primary',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          try {
+            const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
+            if (result.success) {
+              showToast('保存しました', 'success')
+              if (pendingAction.value) {
+                pendingAction.value()
+              }
+            } else {
+              showToast('保存に失敗しました', 'error')
+            }
+          } catch (error) {
+            showToast('保存エラーが発生しました', 'error')
+          } finally {
+            pendingAction.value = null
+          }
+        }
+      },
+      {
+        label: '保存せず続ける',
+        class: 'danger',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          if (pendingAction.value) {
+            pendingAction.value()
+          }
+          pendingAction.value = null
+        }
+      }
+    ])
+    
+    const cancelUnsavedChanges = () => {
+      deckStore.showUnsavedChangesDialog = false
+      pendingAction.value = null
     }
 
     const localDno = computed(() => deckStore.deckInfo.dno || 0)
@@ -187,6 +287,7 @@ export default {
       get: () => deckStore.deckInfo.name || '',
       set: (value: string) => deckStore.setDeckName(value)
     })
+    const displayDeckName = computed(() => deckStore.getDeckName())
 
     const handleSaveClick = () => {
       if (savingState.value) {
@@ -219,12 +320,10 @@ export default {
               return
             }
             
-            // デッキ名を更新してから保存
-            deckStore.setDeckName(localDeckName.value)
+            // デッキ名が空白の場合はgetterが自動的にoriginalNameを返す
             
             const result = await deckStore.saveDeck(localDno.value)
             if (result.success) {
-              lastSavedDeckName.value = localDeckName.value
               showToast('保存しました', 'success')
               // 保存成功時はバックアップをクリア（並び替えたままにする）
             } else {
@@ -245,13 +344,14 @@ export default {
       }
     }
 
-    const toggleLoadDialog = async () => {
-      if (!showLoadDialog.value) {
-        // ダイアログを開く前にデッキ一覧を取得
-        await deckStore.fetchDeckList()
-        selectedDeckDno.value = null
-      }
-      showLoadDialog.value = !showLoadDialog.value
+    const handleLoadClick = () => {
+      checkUnsavedChanges(async () => {
+        if (!deckStore.showLoadDialog) {
+          await deckStore.fetchDeckList()
+          selectedDeckDno.value = null
+        }
+        deckStore.showLoadDialog = !deckStore.showLoadDialog
+      }, 'ロード')
     }
 
     const handleLoadSelected = async () => {
@@ -261,8 +361,8 @@ export default {
           return
         }
         await deckStore.loadDeck(selectedDeckDno.value)
-        lastSavedDeckName.value = deckStore.deckInfo.name
-        showLoadDialog.value = false
+        deckStore.setDeckName('')
+        deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
         console.error('Load error:', error)
@@ -273,13 +373,27 @@ export default {
     const loadDeck = async (dno: number) => {
       try {
         await deckStore.loadDeck(dno)
-        lastSavedDeckName.value = deckStore.deckInfo.name
-        showLoadDialog.value = false
+        deckStore.setDeckName('')
+        deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
         console.error('Load error:', error)
         showToast('読み込みエラーが発生しました', 'error')
       }
+    }
+    
+    const handleReloadDeck = () => {
+      showMenu.value = false
+      checkUnsavedChanges(async () => {
+        try {
+          await deckStore.reloadDeck()
+          deckStore.setDeckName('')
+          showToast('デッキを再読み込みしました', 'success')
+        } catch (error) {
+          console.error('Reload error:', error)
+          showToast('再読み込みエラーが発生しました', 'error')
+        }
+      }, '再読み込み')
     }
 
     const toggleMenu = () => {
@@ -310,7 +424,7 @@ export default {
         // DeckInfo形式のデータを構築
         const deckData = {
           dno: dnoNum,
-          name: deckStore.deckInfo.name || '',
+          name: deckStore.getDeckName(),
           mainDeck: deckStore.deckInfo.mainDeck,
           extraDeck: deckStore.deckInfo.extraDeck,
           sideDeck: deckStore.deckInfo.sideDeck,
@@ -323,32 +437,35 @@ export default {
         // dnoを文字列に変換
         const dno = String(dnoNum)
 
+        // 画像作成機能を動的import（メニュー選択時のみロード）
+        const { showImageDialogWithData } = await import('../content/deck-recipe/imageDialog')
+
         // ダイアログを表示
         await showImageDialogWithData(cgid, dno, deckData, null)
       } catch (error) {
         console.error('Download image error:', error)
-        showToast('画像作成ダイアログの表示に失敗しました', 'error')
+        showToast('画像の生成に失敗しました', 'error')
       }
     }
 
-    const handleExportDeck = () => {
+    const handleExportClick = () => {
       showMenu.value = false
-      showExportDialog.value = true
+      deckStore.showExportDialog = true
     }
 
-    const handleExported = (format: string) => {
-      showToast(`デッキを${format.toUpperCase()}形式でエクスポートしました`, 'success')
-    }
-
-    const handleImportDeck = () => {
+    const handleImportClick = () => {
       showMenu.value = false
-      showImportDialog.value = true
+      checkUnsavedChanges(() => {
+        deckStore.showImportDialog = true
+      }, 'インポート')
     }
 
     const handleOptions = () => {
       showMenu.value = false
-      showOptionsDialog.value = true
+      deckStore.showOptionsDialog = true
     }
+
+
 
     const handleImported = (deckInfo: any, replaceExisting: boolean) => {
       if (replaceExisting) {
@@ -381,68 +498,152 @@ export default {
       showToast(`デッキを${action}`, 'success')
     }
 
+    const handleUndo = () => {
+      deckStore.undo()
+    }
+
+    const handleRedo = () => {
+      deckStore.redo()
+    }
+
+    const handleNewClick = () => {
+      showMenu.value = false
+      checkUnsavedChanges(async () => {
+        menuLoading.value = true
+        try {
+          await deckStore.createNewDeck()
+          showToast('新しいデッキを作成しました', 'success')
+        } catch (error) {
+          console.error('Create new deck error:', error)
+          showToast('新しいデッキの作成に失敗しました', 'error')
+        } finally {
+          menuLoading.value = false
+        }
+      }, '新規作成')
+    }
+
+    const handleCopyClick = () => {
+      showMenu.value = false
+      checkUnsavedChanges(async () => {
+        menuLoading.value = true
+        try {
+          await deckStore.copyCurrentDeck()
+          showToast('デッキをコピーしました', 'success')
+        } catch (error) {
+          console.error('Copy deck error:', error)
+          showToast('デッキのコピーに失敗しました', 'error')
+        } finally {
+          menuLoading.value = false
+        }
+      }, 'コピー')
+    }
+
+    const handleDeleteDeck = () => {
+      showMenu.value = false
+      deckStore.showDeleteConfirm = true
+    }
+
+    const confirmDelete = async () => {
+      deckStore.showDeleteConfirm = false
+      menuLoading.value = true
+      try {
+        await deckStore.deleteCurrentDeck()
+        showToast('デッキを削除しました', 'success')
+      } catch (error) {
+        console.error('Delete deck error:', error)
+        showToast('デッキの削除に失敗しました', 'error')
+      } finally {
+        menuLoading.value = false
+      }
+    }
+
+    const cancelDelete = () => {
+      deckStore.showDeleteConfirm = false
+    }
+
     return {
       deckStore,
-      showLoadDialog,
       selectedDeckDno,
       savingState,
-      lastSavedDeckName,
       showMenu,
-      showExportDialog,
-      showImportDialog,
-      showOptionsDialog,
+      confirmDelete,
+      cancelDelete,
+      menuLoading,
       localDno,
       localDeckName,
+      displayDeckName,
       toast,
+      unsavedChangesTitle,
+      unsavedChangesMessage,
+      unsavedChangesButtons,
       handleSaveClick,
-      toggleLoadDialog,
+      handleLoadClick,
       handleLoadSelected,
+      handleReloadDeck,
       loadDeck,
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
-      handleExportDeck,
-      handleExported,
-      handleImportDeck,
+      handleExportClick,
+      handleImportClick,
       handleImported,
       handleOptions,
+      handleUndo,
+      handleRedo,
+      handleNewClick,
+      handleCopyClick,
+      handleDeleteDeck,
+      cancelUnsavedChanges,
       mdiContentSave,
       mdiFolderOpen,
+      mdiReload,
       mdiSortVariant,
       mdiImageOutline,
       mdiExport,
       mdiImport,
-      mdiCog
+      mdiCog,
+      mdiUndo,
+      mdiRedo,
+      mdiPlusBox,
+      mdiContentCopy,
+      mdiDelete
     }
   }
 }
 </script>
 
 <style scoped lang="scss">
+.top-bar-wrapper {
+  margin: 0;
+  padding: 0 0 8px 0;
+}
+
 .top-bar {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin: 0;
+  padding: 0;
 }
 
 .top-bar-left {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
-  align-items: flex-start;
-  flex: 0 0 auto;
-}
-
-.spacer {
-  flex: 1;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .top-bar-right {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+  min-width: 0;
   position: relative;
 }
 
@@ -450,12 +651,12 @@ export default {
   position: absolute;
   top: 40px;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
-  z-index: 100;
+  z-index: 10002;
   overflow: hidden;
 
   .menu-item {
@@ -463,12 +664,13 @@ export default {
     width: 100%;
     padding: 12px 16px;
     border: none;
-    background: white;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     text-align: left;
     cursor: pointer;
     font-size: 14px;
     transition: background 0.2s;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-primary);
 
     &:last-child {
       border-bottom: none;
@@ -476,16 +678,30 @@ export default {
 
     &:hover {
       background: var(--bg-secondary, #f5f5f5);
+      color: var(--text-primary);
     }
 
     &:active {
-      background: #e8e8e8;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    &.danger {
+      color: var(--color-error-text);
+
+      &:hover {
+        background: var(--color-error-bg);
+      }
+
+      &:active {
+        background: var(--color-error-hover-bg);
+      }
     }
   }
 
   .menu-divider {
     height: 1px;
-    background: #e0e0e0;
+    background: var(--border-secondary);
     margin: 4px 0;
   }
 }
@@ -496,7 +712,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99;
+  z-index: 10001;
   background: transparent;
 }
 
@@ -505,50 +721,44 @@ export default {
   flex-direction: column;
   gap: 2px;
   position: relative;
+  flex: 1 1 auto;
+  min-width: 80px;
+  max-width: 300px;
+}
+
+.dno-chip {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--border-secondary);
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .deck-name-input {
-  padding: 6px 10px;
-  border: 1px solid #ddd;
+  padding: 6px 10px 6px 50px;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
-  min-width: 200px;
   text-align: left;
-  background: white;
-  color: #000;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
-.last-saved-name {
-  position: absolute;
-  top: 100%;
-  left: 4px;
-  font-size: 10px;
-  color: #aaa;
-  white-space: nowrap;
-  margin-top: 2px;
-}
 
-.dno-display {
-  width: 60px;
-  padding: 6px 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 14px;
-  background: var(--bg-secondary);
-  color: #666;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-weight: 600;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-}
 
 .btn-menu,
 .btn-action {
   padding: 4px 8px;
-  border: 1px solid #ccc;
-  background: white;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 3px;
   cursor: pointer;
   width: 40px;
@@ -559,8 +769,15 @@ export default {
   flex-shrink: 0;
   position: relative;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: var(--text-tertiary);
   }
 
   svg {
@@ -579,7 +796,7 @@ export default {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      border: 3px solid #e0e0e0;
+      border: 3px solid var(--border-primary);
       border-top-color: var(--theme-color-start, #00d9b8);
       animation: save-progress 2s linear;
     }
@@ -611,7 +828,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--dialog-overlay-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -725,7 +942,7 @@ export default {
 
 
 .dialog-box {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -736,7 +953,7 @@ export default {
     margin: 0 0 15px 0;
     font-size: 16px;
     color: var(--text-primary);
-    border-bottom: 2px solid #4CAF50;
+    border-bottom: 2px solid var(--color-success);
     padding-bottom: 8px;
   }
 }
@@ -748,14 +965,14 @@ export default {
     display: block;
     margin-bottom: 5px;
     font-size: 14px;
-    color: #666;
+    color: var(--text-secondary);
   }
 }
 
 .dialog-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
@@ -776,11 +993,11 @@ export default {
     transition: background 0.2s;
 
     &.btn-primary {
-      background: #4CAF50;
-      color: white;
+      background: var(--color-success);
+      color: var(--button-text);
 
       &:hover {
-        background: #45a049;
+        background: var(--color-success-hover-bg);
       }
     }
 
@@ -792,6 +1009,88 @@ export default {
         background: var(--bg-tertiary);
       }
     }
+  }
+}
+
+.delete-confirm-dialog {
+  background: var(--bg-primary, white);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  width: 400px;
+  max-width: 90vw;
+}
+
+.delete-confirm-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-primary);
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+  }
+}
+
+.delete-confirm-body {
+  padding: 24px;
+
+  p {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary, #333);
+  }
+
+  .warning {
+    color: var(--color-error-text);
+    font-weight: 500;
+    margin-top: 16px;
+  }
+}
+
+.delete-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-secondary);
+
+  button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &.btn-cancel {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+
+      &:hover {
+        background: var(--bg-tertiary);
+      }
+    }
+
+    &.btn-delete {
+      background: var(--color-error-text);
+      color: var(--button-text);
+
+      &:hover {
+        background: var(--color-error-bg);
+      }
+    }
+  }
+}
+
+.btn-menu {
+  &.loading {
+    pointer-events: none;
+  }
+
+  .spinner {
+    display: block;
   }
 }
 </style>

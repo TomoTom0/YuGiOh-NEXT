@@ -4,23 +4,98 @@
  * 全ページで読み込まれ、ページの種類に応じて適切な機能を初期化する
  */
 
+// 最初に__webpack_public_path__を設定（動的インポートより前に実行される必要がある）
+import './public-path';
+
 // 共通スタイル
-import './styles/buttons.css';
-
-// デッキ編集ページ用の処理をインポート
-import './edit-ui';
-
-// デッキ画像作成ボタンの初期化
-import { initDeckImageButton } from './deck-recipe';
-
-// シャッフル機能の初期化
-import { initShuffle } from './shuffle';
+import './styles/buttons.scss';
 
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';
 
+// ページ判定
+import { detectCardGameType, isDeckDisplayPage, isVueEditPage } from '../utils/page-detector';
+
 // マッピングマネージャー
 import { initializeMappingManager } from '../utils/mapping-manager';
+
+// デッキメタデータローダー
+import { getDeckMetadata } from '../utils/deck-metadata-loader';
+
+// 禁止制限キャッシュ
+import { forbiddenLimitedCache } from '../utils/forbidden-limited-cache';
+
+// タイムアウト管理
+import { withTimeout, TimeoutError } from '../utils/promise-timeout';
+
+/**
+ * 編集UI読み込みフラグ（二重読み込み防止）
+ */
+let editUILoaded = false;
+
+/**
+ * 編集UIモジュールのプリフェッチ用Promise（キャッシュ）
+ */
+let editUIModulePromise: Promise<typeof import('./edit-ui')> | null = null;
+
+/**
+ * プリフェッチ処理中フラグ（重複実行防止）
+ */
+let isPrefetching = false;
+
+/**
+ * 編集ページ用UIモジュールをプリフェッチ（アイドル時にバックグラウンドロード）
+ */
+function prefetchEditUI(): void {
+  // 既にプリフェッチ済み、または処理中の場合は早期終了
+  if (editUIModulePromise || isPrefetching) return;
+
+  // requestIdleCallbackがサポートされていない場合はsetTimeoutで代用
+  const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
+
+  isPrefetching = true;
+  scheduleTask(() => {
+    editUIModulePromise = withTimeout(import('./edit-ui'), {
+      ms: 30000, // 30秒のタイムアウト
+      message: 'Edit UI module import timeout'
+    })
+      .catch(err => {
+        console.warn('[Prefetch] Failed to prefetch edit-ui:', err);
+        // エラー時はPromiseをリセット（rejectされたPromiseキャッシュを防ぐ）
+        editUIModulePromise = null;
+        // エラーを再throw（呼び出し元で再試行可能に）
+        throw err;
+      })
+      .finally(() => {
+        // プリフェッチ処理完了フラグをリセット
+        isPrefetching = false;
+      });
+  });
+}
+
+/**
+ * 編集ページ用UIを動的にロード
+ */
+async function loadEditUIIfNeeded(): Promise<void> {
+  if (!isVueEditPage() || editUILoaded) return;
+
+  editUILoaded = true;
+  try {
+    // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
+    const importPromise = editUIModulePromise || import('./edit-ui');
+    await withTimeout(importPromise, {
+      ms: 30000, // 30秒のタイムアウト
+      message: 'Edit UI module load timeout'
+    });
+  } catch (error) {
+    if (TimeoutError.isTimeoutError(error)) {
+      console.error('Failed to load edit UI: Timeout', error);
+    } else {
+      console.error('Failed to load edit UI:', error);
+    }
+    editUILoaded = false;
+  }
+}
 
 /**
  * 機能設定に基づいて、各機能を初期化する
@@ -30,14 +105,34 @@ async function initializeFeatures(): Promise<void> {
     // マッピングマネージャーを初期化（パーサーより先に実行）
     await initializeMappingManager();
 
-    // デッキ画像作成機能の初期化（設定で有効な場合のみ）
-    if (await isFeatureEnabled('deck-image')) {
-      initDeckImageButton();
-    }
+    // デッキメタデータを事前ロード（パース時の遅延を防ぐ）
+    getDeckMetadata().catch(err => console.warn('Failed to preload deck metadata:', err));
 
-    // シャッフル機能の初期化（設定で有効な場合のみ）
-    if (await isFeatureEnabled('shuffle-sort')) {
-      initShuffle();
+    // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
+    forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));
+
+    // デッキ表示ページでのみシャッフル・画像ボタン機能をロード
+    const gameType = detectCardGameType();
+    if (isDeckDisplayPage(gameType)) {
+      // Vue Card Detail UI を初期化
+      const { initDeckDisplay } = await import('./deck-display');
+      await initDeckDisplay();
+
+      // Card Detail UI を初期化
+      const { initCardDetailUI } = await import('./deck-display/card-detail-ui');
+      initCardDetailUI();
+
+      // デッキ画像作成機能の初期化（設定で有効な場合のみ）
+      if (await isFeatureEnabled('deck-image')) {
+        const { initDeckImageButton } = await import('./deck-recipe');
+        initDeckImageButton();
+      }
+
+      // シャッフル機能の初期化（設定で有効な場合のみ）
+      if (await isFeatureEnabled('shuffle-sort')) {
+        const { initShuffle } = await import('./shuffle');
+        initShuffle();
+      }
     }
   } catch (error) {
     console.error('Failed to initialize features:', error);
@@ -46,3 +141,20 @@ async function initializeFeatures(): Promise<void> {
 
 // 機能を初期化
 initializeFeatures();
+
+// 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', prefetchEditUI);
+} else {
+  prefetchEditUI();
+}
+
+// 編集ページ用UI読み込み（DOMContentLoaded時）
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadEditUIIfNeeded);
+} else {
+  loadEditUIIfNeeded();
+}
+
+// 編集ページ用UI読み込み（hashchange時）
+window.addEventListener('hashchange', loadEditUIIfNeeded);

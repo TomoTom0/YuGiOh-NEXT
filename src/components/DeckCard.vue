@@ -12,6 +12,9 @@
     @drop="handleDrop"
     @dragend="handleDragEnd"
     @click="$emit('click', card)"
+    @contextmenu="handleContextMenu"
+    @mousedown.capture="handleMouseDown"
+    @auxclick.capture="handleAuxClick"
   >
     <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
@@ -78,18 +81,34 @@
         <span v-else class="btn-text">{{ bottomRightText }}</span>
       </button>
     </div>
+
+    <Toast
+      :show="toast.show"
+      :message="toast.message"
+      :type="toast.type"
+      @close="toast.show = false"
+    />
   </div>
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
+import Toast from './Toast.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useCardDetailStore } from '../stores/card-detail'
+import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
+import { detectLanguage } from '../utils/language-detector'
+import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
+import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
   name: 'DeckCard',
+  components: {
+    Toast
+  },
   props: {
     card: {
       type: Object,
@@ -106,15 +125,33 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const cardDetailStore = useCardDetailStore()
+    const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
-    
+    const toast = reactive({
+      show: false,
+      message: '',
+      type: 'warning'
+    })
+
+    const showToast = (message, type = 'warning') => {
+      toast.message = message
+      toast.type = type
+      toast.show = true
+    }
+
     const handleMoveResult = (result, button = null) => {
       if (!result || result.success) return true
-      
+
       console.error('[DeckCard] 移動失敗:', result.error)
-      
+
+      // ciid が無効な言語の場合、トースト通知を表示
+      if (result.error === 'invalid_ciid_for_language') {
+        showToast('この言語ではこのバリエーションは販売されていません', 'warning')
+      }
+
       if (button === 'left') {
         showErrorLeft.value = true
         setTimeout(() => { showErrorLeft.value = false }, 500)
@@ -122,15 +159,18 @@ export default {
         showErrorRight.value = true
         setTimeout(() => { showErrorRight.value = false }, 500)
       }
-      
+
       return false
     }
     
     return {
       deckStore,
+      cardDetailStore,
+      settingsStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
+      toast,
       handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,
@@ -146,7 +186,7 @@ export default {
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
-        return `https://www.db.yugioh-card.com${relativeUrl}`
+        return buildFullUrl(relativeUrl)
       }
       return chrome.runtime.getURL('images/card_back.png')
     },
@@ -266,27 +306,22 @@ export default {
       event.preventDefault()
       event.stopPropagation()
       this.isDragOver = false
-      console.log('[DeckCard.handleDrop] Called for card:', this.card.name)
 
       try {
         const data = event.dataTransfer.getData('text/plain')
         if (!data) return
 
         const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-        console.log('[DeckCard.handleDrop] Parsed:', { sourceSectionType, sourceUuid, card: card?.name, targetSection: this.sectionType })
 
         // 移動可否チェック
         if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
-          console.log('[DeckCard.handleDrop] Move not allowed, returning')
           return
         }
 
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
-          console.log('[DeckCard.handleDrop] Reordering within same section')
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
           this.handleMoveResult(result)
         } else if (card && sourceSectionType !== this.sectionType && this.uuid) {
-          console.log('[DeckCard.handleDrop] Moving from', sourceSectionType, 'to', this.sectionType)
           const result = this.deckStore.moveCardWithPosition(card.cardId, sourceSectionType, this.sectionType, sourceUuid, this.uuid)
           this.handleMoveResult(result)
         }
@@ -294,31 +329,44 @@ export default {
         console.error('Card drop error:', e)
       }
     },
-    handleInfo() {
-      // infoセクションの場合は新しいタブで公式ページを開く
-      if (this.sectionType === 'info') {
-        const url = `https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}&request_locale=ja`
-        window.open(url, '_blank')
-        return
-      }
+    async handleInfo() {
+      // 詳細データをキャッシュ対応で取得してからselectedCardに設定
+      try {
+        const currentLang = detectLanguage(document)
+        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
+        const fullCard = result?.detail?.card || this.card
 
-      // 押下元のカードをselectedCardに設定（imgs配列もコピーして独立させる）
-      this.deckStore.selectedCard = {
-        ...this.card,
-        imgs: [...this.card.imgs],
-        ciid: this.card.ciid
+        const cardData = {
+          ...fullCard,
+          imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
+          ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
+        }
+
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
+      } catch (e) {
+        console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
+        const cardData = {
+          ...this.card,
+          imgs: [...this.card.imgs],
+          ciid: this.card.ciid
+        }
+
+        // CardDetailストアに設定（両画面で使用）
+        this.cardDetailStore.setSelectedCard(cardData)
+
+        // デッキ編集画面の場合のみ、アクティブタブを切り替え
+        if (this.sectionType !== 'info') {
+          this.deckStore.activeTab = 'card'
+        }
       }
-      this.deckStore.activeTab = 'card'
-      this.deckStore.cardTab = 'info'
     },
     handleTopRight() {
-      console.log('[DeckCard.handleTopRight]', {
-        cardName: this.card.name,
-        cardId: this.card.cardId,
-        ciid: this.card.ciid,
-        uuid: this.uuid,
-        sectionType: this.sectionType
-      })
       if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
@@ -327,22 +375,24 @@ export default {
         this.handleMoveResult(result)
       }
     },
-    handleBottomLeft() {
-      // 移動元の位置を記録
+    addCardFromSearchToMainOrExtra() {
+      // 検索結果・カード詳細からMain/Extraへカードを追加（アニメーション付き）
       const sourceRect = this.$el?.getBoundingClientRect()
+      const result = this.deckStore.addCopyToMainOrExtra(this.card)
+      if (!this.handleMoveResult(result, 'left')) return
 
+      if (sourceRect && this.sectionType === 'search') {
+        this.$nextTick(() => {
+          this.animateFromSource(sourceRect)
+        })
+      }
+    },
+    handleBottomLeft() {
       if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
-        const result = this.deckStore.addCopyToMainOrExtra(this.card)
-        if (!this.handleMoveResult(result, 'left')) return
-
-        if (sourceRect && this.sectionType === 'search') {
-          this.$nextTick(() => {
-            this.animateFromSource(sourceRect)
-          })
-        }
+        this.addCardFromSearchToMainOrExtra()
       } else {
         const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
         this.handleMoveResult(result)
@@ -379,27 +429,100 @@ export default {
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]
       const addedCards = displayOrder.filter(dc => dc.cid === this.card.cardId)
-      
+
       if (addedCards.length === 0) return
-      
+
       const lastAdded = addedCards[addedCards.length - 1]
       const targetEl = document.querySelector(`[data-uuid="${lastAdded.uuid}"]`)
-      
+
       if (!targetEl) return
-      
+
       const targetRect = targetEl.getBoundingClientRect()
-      
+
       // FLIPアニメーション: 移動元から移動先へ
       const deltaX = sourceRect.left - targetRect.left
       const deltaY = sourceRect.top - targetRect.top
-      
+
       targetEl.style.transform = `translate(${deltaX}px, ${deltaY}px)`
       targetEl.style.transition = 'none'
-      
+
       requestAnimationFrame(() => {
         targetEl.style.transform = ''
         targetEl.style.transition = 'transform 0.3s ease'
       })
+    },
+    handleContextMenu(event) {
+      // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
+      if (!this.settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 右クリックメニューを抑制
+      event.preventDefault()
+
+      // 空カードの場合は何もしない
+      if (this.card.empty) {
+        return
+      }
+
+      // カード移動ロジック:
+      // - main, side, extraから → trash
+      // - trashから → main/extra（移動）
+      // - search/infoから → main/extra（コピー）- handleBottomLeftと同じ処理
+      if (this.sectionType === 'main' || this.sectionType === 'side' || this.sectionType === 'extra') {
+        // main/side/extra → trash
+        const result = this.deckStore.moveCardToTrash(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'trash') {
+        // trash → main/extra（移動）
+        const result = this.deckStore.moveCardToMainOrExtra(this.card, this.sectionType, this.uuid)
+        this.handleMoveResult(result)
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+        // search/info → main/extra（コピー）
+        this.addCardFromSearchToMainOrExtra()
+      }
+    },
+    handleMouseDown(event) {
+      // 中クリック（button === 1）のデフォルト動作（スクロールモード）を防ぐ
+      if (event.button === 1) {
+        event.preventDefault()
+      }
+    },
+    handleAuxClick(event) {
+      // auxclickイベント: 中クリック（button === 1）または右クリック（button === 2）
+      // 右クリックはcontextmenuで処理しているため、ここでは中クリックのみ処理
+      if (event.button !== 1) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      // 高度なマウス操作が無効の場合は何もしない
+      if (!this.settingsStore.appSettings.enableMouseOperations) {
+        return
+      }
+
+      // 空カードの場合は何もしない
+      if (this.card.empty) {
+        return
+      }
+
+      // セクションに応じてコピーを追加
+      if (this.sectionType === 'main') {
+        // Mainデッキのカード → Mainに追加
+        this.deckStore.addCopyToSection(this.card, 'main')
+      } else if (this.sectionType === 'side') {
+        // Sideデッキのカード → Sideに追加
+        this.deckStore.addCopyToSection(this.card, 'side')
+      } else if (this.sectionType === 'extra') {
+        // Extraデッキのカード → Extraに追加
+        this.deckStore.addCopyToSection(this.card, 'extra')
+      } else if (this.sectionType === 'search' || this.sectionType === 'info') {
+        // 検索結果/カード詳細 → Main/Extraに追加
+        this.addCardFromSearchToMainOrExtra()
+      }
+      // trash, その他のセクションでは何もしない
     }
   }
 }
@@ -421,7 +544,7 @@ export default {
   margin: 0;
 
   &.error-state {
-    border-color: #ff0000;
+    border-color: var(--color-error);
     
     &::before {
       content: '';
@@ -430,7 +553,7 @@ export default {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 0, 0, 0.5);
+      background: var(--error-overlay-bg);
       pointer-events: none;
       z-index: 1;
     }
@@ -489,29 +612,29 @@ export default {
 
 .limit-regulation {
   position: absolute;
-  bottom: 0;
+  bottom: 5.56%; /* カードの下1/18（100% / 18 = 5.56%）を空ける */
   left: 0;
   width: 100%;
-  height: 16.67%;
+  height: 19.44%; /* 7/36（1/6 + 1/36 = 6/36 + 1/36 = 7/36 = 19.44%） */
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
 
   &.limit-forbidden {
-    background: rgba(220, 20, 20, 0.9);
+    background: var(--deck-card-limit-forbidden-bg);
   }
 
   &.limit-limited {
-    background: rgba(255, 140, 0, 0.9);
+    background: var(--deck-card-limit-limited-bg);
   }
 
   &.limit-semi-limited {
-    background: rgba(255, 180, 0, 0.9);
+    background: var(--deck-card-limit-semi-limited-bg);
   }
 
   svg {
-    color: white;
+    color: var(--button-text);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   }
 }
@@ -535,7 +658,7 @@ export default {
   cursor: pointer;
   padding: 0;
   display: flex;
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   font-weight: bold;
   transition: all 0.15s;
@@ -571,24 +694,24 @@ export default {
       left: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(255, 165, 0, 0.8);
+      background: var(--deck-card-btn-top-left-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(255, 140, 0, 0.95);
-      border: 1px solid rgba(255, 140, 0, 1);
+      background: var(--deck-card-btn-top-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-left-hover-border);
     }
-    
+
     &.is-link {
       &::before {
-        background: rgba(100, 180, 255, 0.8);
+        background: var(--deck-card-btn-top-left-link-bg);
       }
-      
+
       &:hover::before {
-        background: rgba(80, 160, 255, 0.95);
-        border: 1px solid rgba(80, 160, 255, 1);
+        background: var(--deck-card-btn-top-left-link-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-left-link-hover-border);
       }
     }
     
@@ -599,7 +722,7 @@ export default {
     svg {
       width: 10px;
       height: 10px;
-      fill: white;
+      fill: var(--button-text);
     }
   }
 
@@ -615,35 +738,35 @@ export default {
       right: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(180, 180, 180, 0.3);
+      background: var(--deck-card-btn-top-right-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(180, 180, 180, 0.5);
-      border: 1px solid rgba(180, 180, 180, 0.7);
+      background: var(--deck-card-btn-top-right-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-right-hover-border);
     }
 
     &.card-btn-me {
       &::before {
-        background: rgba(100, 150, 255, 0.6);
+        background: var(--deck-card-btn-top-right-me-bg);
       }
 
       &:hover::before {
-        background: rgba(100, 150, 255, 0.95);
-        border: 1px solid rgba(100, 150, 255, 1);
+        background: var(--deck-card-btn-top-right-me-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-right-me-hover-border);
       }
     }
 
     &.card-btn-s {
       &::before {
-        background: rgba(150, 100, 255, 0.6);
+        background: var(--deck-card-btn-top-right-s-bg);
       }
 
       &:hover::before {
-        background: rgba(150, 100, 255, 0.95);
-        border: 1px solid rgba(150, 100, 255, 1);
+        background: var(--deck-card-btn-top-right-s-hover-bg);
+        border: 1px solid var(--deck-card-btn-top-right-s-hover-border);
       }
     }
 
@@ -669,31 +792,31 @@ export default {
       left: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(255, 100, 100, 0.6);
+      background: var(--deck-card-btn-bottom-left-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(255, 100, 100, 0.95);
-      border: 1px solid rgba(255, 100, 100, 1);
+      background: var(--deck-card-btn-bottom-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-bottom-left-hover-border);
     }
 
     &.card-btn-me {
       &::before {
-        background: rgba(100, 150, 255, 0.6);
+        background: var(--deck-card-btn-bottom-left-me-bg);
       }
 
       &:hover::before {
-        background: rgba(100, 150, 255, 0.95);
-        border: 1px solid rgba(100, 150, 255, 1);
+        background: var(--deck-card-btn-bottom-left-me-hover-bg);
+        border: 1px solid var(--deck-card-btn-bottom-left-me-hover-border);
       }
     }
 
     &.error-btn {
       &::before {
-        background: rgba(255, 0, 0, 0.9) !important;
-        border: 1px solid rgba(255, 0, 0, 1) !important;
+        background: var(--deck-card-btn-bottom-left-error-bg) !important;
+        border: 1px solid var(--deck-card-btn-bottom-left-error-border) !important;
       }
     }
 
@@ -719,31 +842,31 @@ export default {
       right: 0;
       width: 66.67%;
       height: 66.67%;
-      background: rgba(100, 200, 100, 0.6);
+      background: var(--deck-card-btn-bottom-right-bg);
       border: none;
       transition: all 0.15s;
     }
 
     &:hover::before {
-      background: rgba(100, 200, 100, 0.95);
-      border: 1px solid rgba(100, 200, 100, 1);
+      background: var(--deck-card-btn-bottom-right-hover-bg);
+      border: 1px solid var(--deck-card-btn-bottom-right-hover-border);
     }
 
     &.card-btn-side {
       &::before {
-        background: rgba(150, 100, 255, 0.6);
+        background: var(--deck-card-btn-bottom-right-side-bg);
       }
 
       &:hover::before {
-        background: rgba(150, 100, 255, 0.95);
-        border: 1px solid rgba(150, 100, 255, 1);
+        background: var(--deck-card-btn-bottom-right-side-hover-bg);
+        border: 1px solid var(--deck-card-btn-bottom-right-side-hover-border);
       }
     }
 
     &.error-btn {
       &::before {
-        background: rgba(255, 0, 0, 0.9) !important;
-        border: 1px solid rgba(255, 0, 0, 1) !important;
+        background: var(--deck-card-btn-bottom-right-error-bg) !important;
+        border: 1px solid var(--deck-card-btn-bottom-right-error-border) !important;
       }
     }
 
@@ -766,7 +889,7 @@ export default {
 .btn-text {
   font-size: 12px;
   font-weight: bold;
-  color: white;
+  color: var(--button-text);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   line-height: 1;
 }
@@ -796,7 +919,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--button-text);
   font-size: 8px;
   font-weight: bold;
   transition: all 0.15s;
@@ -804,28 +927,28 @@ export default {
   &.bottom-left {
     grid-column: 1;
     grid-row: 1;
-    background: rgba(100, 150, 255, 0.7);
+    background: var(--deck-card-btn-me-bg);
 
     &:hover {
-      background: rgba(100, 150, 255, 1);
+      background: var(--deck-card-btn-me-hover-bg);
     }
   }
 
   &.bottom-right {
     grid-column: 2;
     grid-row: 1;
-    background: rgba(150, 100, 255, 0.7);
+    background: var(--deck-card-btn-side-bg);
 
     &:hover {
-      background: rgba(150, 100, 255, 1);
+      background: var(--deck-card-btn-side-hover-bg);
     }
   }
 }
 
 /* ドラッグオーバー時のスタイル */
 .deck-card.drag-over {
-  outline: 2px solid rgba(100, 150, 255, 0.8);
+  outline: 2px solid var(--deck-card-drag-over-outline);
   outline-offset: -2px;
-  background: rgba(100, 150, 255, 0.1);
+  background: var(--deck-card-drag-over-bg);
 }
 </style>
