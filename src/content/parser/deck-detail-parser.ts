@@ -1,4 +1,4 @@
-import { DeckCardRef } from '@/types/card';
+import { DeckCardRef, CardInfo } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
@@ -20,6 +20,8 @@ interface ParseCardSectionResult {
   cards: DeckCardRef[];
   skippedCount: number;
   skippedCards: Array<{ cid: string; name: string; lang: string }>;
+  /** cid単位でマージされたCardInfo（このデッキに含まれる全ciidを imgs に含む） */
+  cardInfoMap: Map<string, CardInfo>;
 }
 
 /**
@@ -123,6 +125,30 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const metadata = await getDeckMetadata();
   const category = convertCategoryLabelsToIds(categoryLabels, metadata);
   const tags = convertTagLabelsToIds(tagLabels, metadata);
+
+  // 3つのセクションから収集したcardInfoMapをマージして setCardInfo() に渡す
+  const mergedCardInfoMap = new Map<string, CardInfo>();
+
+  for (const result of [mainDeckResult, extraDeckResult, sideDeckResult]) {
+    for (const [cid, cardInfo] of result.cardInfoMap.entries()) {
+      const existing = mergedCardInfoMap.get(cid);
+      if (existing) {
+        // 既に存在する場合、imgs をマージ
+        const existingCiidSet = new Set(existing.imgs.map(img => img.ciid));
+        const newImgs = cardInfo.imgs.filter(img => !existingCiidSet.has(img.ciid));
+        existing.imgs.push(...newImgs);
+      } else {
+        // 新規追加
+        mergedCardInfoMap.set(cid, cardInfo);
+      }
+    }
+  }
+
+  // マージされたカード情報を UnifiedCacheDB に保存
+  const unifiedDB = getUnifiedCacheDB();
+  for (const [, cardInfo] of mergedCardInfoMap.entries()) {
+    unifiedDB.setCardInfo(cardInfo, true);
+  }
 
   return {
     dno,
@@ -330,8 +356,10 @@ export function parseCardSection(
   const deckCardRefs: DeckCardRef[] = [];
   let skippedCount = 0;
   const skippedCards: Array<{ cid: string; name: string; lang: string }> = [];
-  const unifiedDB = getUnifiedCacheDB();
   const lang = detectLanguage(doc);
+
+  // cid単位でこのデッキに含まれるciid情報を収集
+  const cardInfoMap = new Map<string, CardInfo>();
 
   // #main980 > #article_body > #deck_detailtext までの階層を取得
   const deckDetailtext = doc.querySelector('#main980 #article_body #deck_detailtext');
@@ -339,7 +367,8 @@ export function parseCardSection(
     return {
       cards: deckCardRefs,
       skippedCount,
-      skippedCards
+      skippedCards,
+      cardInfoMap
     };
   }
 
@@ -358,7 +387,8 @@ export function parseCardSection(
     return {
       cards: deckCardRefs,
       skippedCount,
-      skippedCards
+      skippedCards,
+      cardInfoMap
     };
   }
 
@@ -427,45 +457,32 @@ export function parseCardSection(
             lang,
             quantity
           });
-        } else if (ciidCounts.size === 1) {
-          // 単一ciidの場合
-          const entry = Array.from(ciidCounts.entries())[0];
-          if (entry) {
-            const [ciid, info] = entry;
+        } else {
+          // ciidCountsが1個以上の場合、このデッキに含まれる全ciid情報を収集
+          const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({
+            ciid,
+            imgHash: info.imgHash
+          }));
 
-            // 複数画像情報（Table A, B, B2）をUnifiedCacheDBに保存
-            const cardWithImgs = {
+          // cardInfoMap に保存（後で parseDeckDetail() でマージして setCardInfo() に渡す）
+          const existing = cardInfoMap.get(cid);
+          if (existing) {
+            // 既に存在する場合、imgs をマージ
+            const existingCiidSet = new Set(existing.imgs.map(img => img.ciid));
+            const newImgs = allImgs.filter(img => !existingCiidSet.has(img.ciid));
+            existing.imgs.push(...newImgs);
+          } else {
+            // 新規追加
+            cardInfoMap.set(cid, {
               ...cardInfo,
-              ciid,
-              imgs: [{ ciid, imgHash: info.imgHash }],
+              ciid: allImgs[0].ciid, // 最初のciidを仮設定
+              imgs: allImgs,
               lang
-            };
-            // forceUpdate=true でTTLチェックをスキップし、必ず更新する
-            unifiedDB.setCardInfo(cardWithImgs, true);
-
-            deckCardRefs.push({
-              cid,
-              ciid,
-              lang,
-              quantity: info.count
             });
           }
-        } else {
-          // 複数ciidの場合、ciidごとに別々に setCardInfo() を呼ぶ
-          // （各ciidは1つずつ、setCardInfo() で既存データとマージされる）
+
+          // DeckCardRef として各ciidを個別に追加
           ciidCounts.forEach((info, ciid) => {
-            const cardWithSingleImg = {
-              ...cardInfo,
-              ciid,
-              imgs: [{ ciid, imgHash: info.imgHash }],
-              lang
-            };
-
-            // UnifiedCacheDB に保存（Table A, B, B2に自動分類）
-            // setCardInfo() 内で既存の imgs とマージされる
-            // forceUpdate=true でTTLチェックをスキップし、必ず更新する
-            unifiedDB.setCardInfo(cardWithSingleImg, true);
-
             deckCardRefs.push({
               cid,
               ciid,
@@ -481,7 +498,8 @@ export function parseCardSection(
   return {
     cards: deckCardRefs,
     skippedCount,
-    skippedCards
+    skippedCards,
+    cardInfoMap
   };
 }
 
