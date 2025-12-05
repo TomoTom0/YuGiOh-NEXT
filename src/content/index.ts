@@ -140,7 +140,36 @@ async function loadEditUIIfNeeded(): Promise<void> {
 
   editUILoaded = true;
 
-  // background でデッキ詳細をプリロード（edit-ui/index.ts のロードと並行実行）
+  // FOUC防止：オーバーレイを即座に作成（モジュールロード前に表示）
+  // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
+  let bgColor = '#ffffff'; // デフォルトはlight
+  const cachedSettings = (window as any).ygoCurrentSettings;
+  if (cachedSettings && cachedSettings.theme) {
+    let effectiveTheme: 'light' | 'dark' = 'light';
+    if (cachedSettings.theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } else {
+      effectiveTheme = cachedSettings.theme;
+    }
+    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  }
+
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.id = 'ygo-module-loading-overlay';
+  loadingOverlay.style.position = 'fixed';
+  loadingOverlay.style.top = '0';
+  loadingOverlay.style.left = '0';
+  loadingOverlay.style.width = '100%';
+  loadingOverlay.style.height = '100%';
+  loadingOverlay.style.backgroundColor = bgColor;
+  loadingOverlay.style.zIndex = '999999';
+  loadingOverlay.style.pointerEvents = 'none';
+  document.body.appendChild(loadingOverlay);
+
+  // background でデッキ詳細をプリロード（モジュールロードと並行実行）
   preloadDeckDetailInBackground().catch(err =>
     console.warn('[Content] Preload failed:', err)
   );

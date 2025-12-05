@@ -330,41 +330,13 @@ async function initVueApp(): Promise<void> {
 // このモジュールが動的インポートされた時点で編集ページにいることが確定
 // URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
 // ただし、プリフェッチ時は編集ページでない可能性があるため、isVueEditPage() で条件チェック
+// 注: オーバーレイとpreloadはcontent/index.tsで既に実行されているため、ここでは不要
 (async () => {
   // 編集ページでない場合はスキップ
   if (!isVueEditPage()) {
     console.log('[Edit UI] Module loaded but not on edit page, skipping initialization');
     return;
   }
-
-  // FOUC防止：オーバーレイを即座に作成（最速表示優先）
-  // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
-  let bgColor = '#ffffff'; // デフォルトはlight
-  const cachedSettings = (window as any).ygoCurrentSettings;
-  if (cachedSettings && cachedSettings.theme) {
-    let effectiveTheme: 'light' | 'dark' = 'light';
-    if (cachedSettings.theme === 'system') {
-      // システム設定を確認
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-    } else {
-      effectiveTheme = cachedSettings.theme;
-    }
-    bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
-  }
-
-  const loadingOverlay = document.createElement('div');
-  loadingOverlay.id = 'ygo-module-loading-overlay';
-  loadingOverlay.style.position = 'fixed';
-  loadingOverlay.style.top = '0';
-  loadingOverlay.style.left = '0';
-  loadingOverlay.style.width = '100%';
-  loadingOverlay.style.height = '100%';
-  loadingOverlay.style.backgroundColor = bgColor;
-  loadingOverlay.style.zIndex = '999999';
-  loadingOverlay.style.pointerEvents = 'none';
-  document.body.appendChild(loadingOverlay);
 
   // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
   applyThemeFromSettings().catch(err => {
