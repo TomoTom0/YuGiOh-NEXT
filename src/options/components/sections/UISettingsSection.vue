@@ -64,6 +64,36 @@
       </div>
     </div>
 
+    <!-- カードリスト表示形式 -->
+    <div class="setting-group">
+      <h3 class="setting-title">カードリスト表示形式</h3>
+      <p class="sub-description">検索結果とカード関連の表示を選択</p>
+      <div class="view-mode-buttons">
+        <button
+          class="view-mode-button"
+          :class="{ active: settingsStore.appSettings.ux?.cardListViewMode?.search === 'list' }"
+          @click="handleViewModeChange('search', 'list')"
+          title="検索結果をリスト表示"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M3,5H21V7H3V5M3,11H21V13H3V11M3,17H21V19H3V17Z" />
+          </svg>
+          <span>リスト</span>
+        </button>
+        <button
+          class="view-mode-button"
+          :class="{ active: settingsStore.appSettings.ux?.cardListViewMode?.search === 'grid' }"
+          @click="handleViewModeChange('search', 'grid')"
+          title="検索結果をグリッド表示"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M3,3H11V11H3V3M13,3H21V11H13V3M3,13H11V21H3V13M13,13H21V21H13V13Z" />
+          </svg>
+          <span>グリッド</span>
+        </button>
+      </div>
+    </div>
+
     <!-- side/extraセクションの配置 -->
     <div class="setting-group">
       <h3 class="setting-title">Side/Extraセクションの配置</h3>
@@ -154,6 +184,12 @@ const handleThemeChange = (theme: Theme) => {
   showSaveMessage(`テーマを「${theme}」に変更しました`);
 };
 
+const handleViewModeChange = (section: 'search' | 'related' | 'products', mode: 'list' | 'grid') => {
+  settingsStore.setCardListViewMode(section, mode);
+  const modeLabel = mode === 'list' ? 'リスト' : 'グリッド';
+  showSaveMessage(`カードリスト表示を「${modeLabel}」に変更しました`);
+};
+
 const showSaveMessage = (message: string) => {
   saveMessage.value = message;
   setTimeout(() => {
@@ -196,6 +232,13 @@ const showSaveMessage = (message: string) => {
   margin: 0 0 16px 0;
 }
 
+.sub-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 12px 0;
+  font-weight: 400;
+}
+
 .theme-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -223,6 +266,56 @@ const showSaveMessage = (message: string) => {
     border-color: var(--color-info);
     background: var(--color-info-bg);
     color: var(--color-info);
+  }
+}
+
+.view-mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-width: 300px;
+}
+
+.view-mode-button {
+  padding: 14px 16px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-direction: column;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
+  }
+
+  &:hover {
+    border-color: var(--color-success, #4CAF50);
+    background: var(--bg-secondary);
+
+    svg {
+      color: var(--color-success, #4CAF50);
+    }
+  }
+
+  &.active {
+    border-color: var(--color-success, #4CAF50);
+    background: var(--color-success, #4CAF50);
+    color: white;
+
+    svg {
+      color: white;
+    }
   }
 }
 
