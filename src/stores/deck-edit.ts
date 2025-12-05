@@ -1398,7 +1398,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         ];
         recordDeckOpen(dno, allCardIds);
 
-        // TempCardDBをChrome Storageに保存（非同期で実行）
+        // メモリ内に保存されたカード情報を Chrome Storage に同期（非同期で実行、UIをブロックしない）
         saveTempCardDBToStorage().catch(error => {
           console.error('Failed to save TempCardDB to storage:', error);
         });
