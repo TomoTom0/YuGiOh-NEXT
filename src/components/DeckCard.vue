@@ -28,6 +28,11 @@
         <path fill="currentColor" :d="mdiNumeric2Circle" />
       </svg>
     </div>
+    <div v-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
+      <svg width="24" height="24" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M7,12.5C6.17,12.5 5.5,11.83 5.5,11C5.5,10.17 6.17,9.5 7,9.5C7.83,9.5 8.5,10.17 8.5,11C8.5,11.83 7.83,12.5 7,12.5M12,12.5C11.17,12.5 10.5,11.83 10.5,11C10.5,10.17 11.17,9.5 12,9.5C12.83,9.5 13.5,10.17 13.5,11C13.5,11.83 12.83,12.5 12,12.5M17,12.5C16.17,12.5 15.5,11.83 15.5,11C15.5,10.17 16.17,9.5 17,9.5C17.83,9.5 18.5,10.17 18.5,11C18.5,11.83 17.83,12.5 17,12.5Z" />
+      </svg>
+    </div>
     <div v-if="!card.empty" class="card-controls">
       <button 
         class="card-btn top-left"
@@ -242,6 +247,9 @@ export default {
     },
     showSearchButtons() {
       return this.sectionType === 'search'
+    },
+    isTailPlaced() {
+      return this.settingsStore.isTailPlacementCard(this.card.cardId)
     }
   },
   methods: {
@@ -636,6 +644,30 @@ export default {
   svg {
     color: var(--button-text);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.tail-placement-icon {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-success, #4CAF50);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  svg {
+    color: white;
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   }
 }
 
