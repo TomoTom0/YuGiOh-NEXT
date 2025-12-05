@@ -104,6 +104,16 @@ async function applyThemeFromSettings(): Promise<void> {
     const bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
     document.documentElement.style.backgroundColor = bgColor;
     document.body.style.backgroundColor = bgColor;
+
+    // 他の可能な要素にも背景色を設定（どれが露出するかわからないため）
+    const wrapper = document.getElementById('wrapper');
+    if (wrapper) {
+      wrapper.style.backgroundColor = bgColor;
+    }
+    const bg = document.getElementById('bg');
+    if (bg) {
+      bg.style.backgroundColor = bgColor;
+    }
   } catch (error) {
     // タイムアウトまたはエラー時は、デフォルトのテーマを使用
     console.warn('[applyThemeFromSettings] Failed to load theme settings:', error);
@@ -178,6 +188,7 @@ function watchUrlChanges(): void {
 
     window.addEventListener('hashchange', () => {
       if (isEditUrl()) {
+
         // 編集URLに遷移した場合は、毎回テーマを適用
         applyThemeFromSettings();
 
@@ -186,6 +197,7 @@ function watchUrlChanges(): void {
 
         // UI が未読み込みの場合のみ読み込み実行
         if (!isEditUILoaded) {
+          console.log('[Edit UI] Loading edit UI');
           loadEditUI();
         }
       } else if (!isEditUrl() && isEditUILoaded) {
@@ -271,16 +283,58 @@ async function loadEditUI(): Promise<void> {
     document.head.appendChild(style);
   }
 
-  // FOUC防止：背景色を inline style で直接設定してから内容を置き換え
-  // （CSS 変数が適用される前に白色がちらつくのを防ぐ）
-  const bgColor = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
-  bgElement.style.backgroundColor = bgColor;
+  // FOUC防止：背景色を決定
+  const bgColor2 = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
 
-  // div#bgの内容を完全に置き換え
-  bgElement.innerHTML = '<div id="vue-edit-app"></div>';
+  // 全ての層に背景色を設定（インラインスタイルで優先度を確保）
+  document.body.style.backgroundColor = bgColor2;
+  const wrapperElement = document.getElementById('wrapper');
+  if (wrapperElement) {
+    wrapperElement.style.backgroundColor = bgColor2;
+  }
+  bgElement.style.backgroundColor = bgColor2;
+
+  // #bg の内容をすべて削除（古いコンテンツを確実に消す）
+  bgElement.innerHTML = '';
+
+  // 新しい #vue-edit-app 要素を作成（背景色を先に設定）
+  const vueEditApp = document.createElement('div');
+  vueEditApp.id = 'vue-edit-app';
+  vueEditApp.style.width = '100%';
+  vueEditApp.style.height = '100%';
+  vueEditApp.style.overflow = 'hidden';
+  vueEditApp.style.backgroundColor = bgColor2;
+
+  // #bg に追加
+  bgElement.appendChild(vueEditApp);
 
   // Vue アプリケーションを起動
   await initVueApp();
+
+  // Vue初期化完了後、モジュール読み込みオーバーレイを削除（FOUC防止を終了）
+  // ただし、Vue描画が完全に終わるまで少し待つ
+  const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay');
+
+  // Vue描画をトリガーさせるため、複数回requestAnimationFrameを実行
+  await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve(null);
+        });
+      });
+    });
+  });
+
+  if (moduleLoadingOverlay) {
+    // フェードアウトアニメーション
+    moduleLoadingOverlay.style.opacity = '0';
+    moduleLoadingOverlay.style.transition = 'opacity 300ms ease-out';
+
+    setTimeout(() => {
+      moduleLoadingOverlay.remove();
+    }, 300);
+  }
 
   // 言語切り替えボタンを差し替え（Vue初期化後）
   replaceLanguageChangeLinks();
@@ -292,7 +346,7 @@ async function loadEditUI(): Promise<void> {
 async function initVueApp(): Promise<void> {
   try {
     // Vue/Pinia/コンポーネントを動的インポート
-    const [{ createApp }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
+    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
       import('vue'),
       import('pinia'),
       import('./DeckEditLayout.vue')
@@ -303,6 +357,9 @@ async function initVueApp(): Promise<void> {
 
     app.use(pinia);
     app.mount('#vue-edit-app');
+
+    // Vue描画が完全に完了するまで待機
+    await nextTick();
   } catch (error) {
     console.error('Failed to initialize Vue app:', error);
   }
@@ -312,6 +369,24 @@ async function initVueApp(): Promise<void> {
 // URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
 (async () => {
   // モジュール読み込み時にテーマを設定（FOUC防止）
+  // テーマをまず読み込んでから、オーバーレイを作成する
   await applyThemeFromSettings();
+
+  // FOUC防止：テーマ読み込み後にオーバーレイを作成
+  const theme = document.documentElement.getAttribute('data-ygo-next-theme') || 'light';
+  const bgColor = theme === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.id = 'ygo-module-loading-overlay';
+  loadingOverlay.style.position = 'fixed';
+  loadingOverlay.style.top = '0';
+  loadingOverlay.style.left = '0';
+  loadingOverlay.style.width = '100%';
+  loadingOverlay.style.height = '100%';
+  loadingOverlay.style.backgroundColor = bgColor;
+  loadingOverlay.style.zIndex = '999999';
+  loadingOverlay.style.pointerEvents = 'none';
+  document.body.appendChild(loadingOverlay);
+
   watchUrlChanges();
 })();
