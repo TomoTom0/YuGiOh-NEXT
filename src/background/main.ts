@@ -2,10 +2,12 @@
  * Background Service Worker
  *
  * - デッキメタデータの定期更新
+ * - デッキ詳細情報のプリロード
  */
 
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
 import { getVueEditUrl } from '@/utils/url-builder';
+import { setToStorageLocal } from '@/utils/chrome-storage-utils';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -61,3 +63,48 @@ async function scheduleMetadataUpdate() {
 
 // 起動時に更新スケジュールを開始
 scheduleMetadataUpdate();
+
+/**
+ * デッキ詳細情報をプリロード
+ * Content Script からのリクエストに応じて、DeckDetail を取得して Chrome Storage に保存
+ */
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'PRELOAD_DECK_DETAIL') {
+    const { dno, cgid } = message;
+
+    // 非同期で実行
+    preloadDeckDetail(dno, cgid)
+      .then(() => sendResponse({ success: true }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+
+    return true; // sendResponse が非同期のため必須
+  }
+
+  // 他のメッセージ型は処理しない
+  return false;
+});
+
+/**
+ * getDeckDetail + parseDeckDetail を実行して Chrome Storage に保存
+ */
+async function preloadDeckDetail(dno: number, cgid: string): Promise<void> {
+  try {
+    const { getDeckDetail } = await import('@/api/deck-operations');
+    const deckInfo = await getDeckDetail(dno, cgid);
+
+    if (deckInfo) {
+      const key = `ygo-deck-preload:${dno}:${cgid}`;
+      const data = {
+        deckInfo,
+        timestamp: Date.now()
+      };
+
+      await setToStorageLocal(key, JSON.stringify(data));
+      console.log('[Background] Deck preloaded:', key);
+    } else {
+      console.warn('[Background] Failed to get deck detail:', dno, cgid);
+    }
+  } catch (error) {
+    console.error('[Background] Failed to preload deck detail:', error);
+  }
+}

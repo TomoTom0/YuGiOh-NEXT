@@ -11,12 +11,46 @@
 
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
+import { getFromStorageLocal } from '../../utils/chrome-storage-utils';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
 
 // イベントリスナーが登録済みかどうかのフラグ
 let isEventListenerRegistered = false;
+
+/**
+ * background でデッキ詳細をプリロード（非同期、並行実行）
+ */
+async function preloadDeckDetailInBackground(): Promise<void> {
+  try {
+    // URLから dno を抽出
+    const hash = window.location.hash;
+    const urlParams = new URLSearchParams(hash.split('?')[1] || '');
+    const dno = urlParams.get('dno');
+
+    if (!dno) {
+      return; // dno がない場合はスキップ
+    }
+
+    // Chrome Storage から cgid を読み込み
+    const cgid = await getFromStorageLocal('ygo-user-cgid');
+
+    if (!cgid) {
+      console.warn('[Edit UI] cgid not found in Storage, skipping preload');
+      return; // cgid がない場合はスキップ
+    }
+
+    // background へメッセージを送信（非同期、await しない）
+    chrome.runtime.sendMessage({
+      type: 'PRELOAD_DECK_DETAIL',
+      dno: parseInt(dno),
+      cgid: cgid
+    }).catch(err => console.warn('[Edit UI] Failed to send preload message:', err));
+  } catch (error) {
+    console.warn('[Edit UI] Failed to preload deck detail:', error);
+  }
+}
 
 /**
  * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
@@ -28,15 +62,28 @@ function isEditUrl(): boolean {
 
 /**
  * テーマを設定ストアから読み込んで適用
+ * メモリキャッシュ（ygoCurrentSettings）から即座に取得、なければ Storage から読み込み
  */
 async function applyThemeFromSettings(): Promise<void> {
   try {
-    const result = await callbackToPromise<any>(
-      (callback) => chrome.storage.local.get(['appSettings'], callback),
-      3000 // 3秒のタイムアウト
-    );
+    // メモリキャッシュから即座に取得（0ms、待機なし）
+    let appSettings = window.ygoCurrentSettings;
 
-    const appSettings = result.appSettings || {};
+    // メモリにない場合は Storage から読み込み
+    if (!appSettings) {
+      const result = await callbackToPromise<any>(
+        (callback) => chrome.storage.local.get(['appSettings'], callback),
+        3000 // 3秒のタイムアウト
+      );
+
+      appSettings = result.appSettings || {};
+
+      // 読み込み後、メモリキャッシュに保存
+      if (appSettings) {
+        window.ygoCurrentSettings = appSettings;
+      }
+    }
+
     const theme = appSettings.theme ?? 'system';
 
     let effectiveTheme: 'light' | 'dark' = 'light';
@@ -124,6 +171,9 @@ function watchUrlChanges(): void {
       if (isEditUrl()) {
         // 編集URLに遷移した場合は、毎回テーマを適用
         applyThemeFromSettings();
+
+        // background でデッキ詳細をプリロード（並行実行）
+        preloadDeckDetailInBackground();
 
         // UI が未読み込みの場合のみ読み込み実行
         if (!isEditUILoaded) {

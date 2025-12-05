@@ -12,6 +12,7 @@ import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
+import { getFromStorageLocal, removeFromStorageLocal } from '../utils/chrome-storage-utils';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -1322,7 +1323,39 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function loadDeck(dno: number) {
     try {
       const cgid = await sessionManager.getCgid();
-      const loadedDeck = await getDeckDetail(dno, cgid);
+
+      // Chrome Storage からプリロード済みデータを取得
+      const preloadKey = `ygo-deck-preload:${dno}:${cgid}`;
+      let loadedDeck: DeckInfo | null = null;
+
+      try {
+        const cached = await getFromStorageLocal(preloadKey);
+
+        if (cached && typeof cached === 'string') {
+          const cachedData = JSON.parse(cached);
+
+          // タイムスタンプをチェック（1時間以内のみ使用）
+          const ONE_HOUR = 60 * 60 * 1000;
+          if (Date.now() - cachedData.timestamp < ONE_HOUR) {
+            loadedDeck = cachedData.deckInfo;
+            console.log('[DeckEditLayout] Using preloaded deck data:', preloadKey);
+          } else {
+            console.warn('[DeckEditLayout] Cached deck data expired, fetching fresh data');
+          }
+
+          // 使用済みキャッシュを削除
+          await removeFromStorageLocal(preloadKey).catch(err =>
+            console.warn('[DeckEditLayout] Failed to remove preload cache:', err)
+          );
+        }
+      } catch (error) {
+        console.warn('[DeckEditLayout] Failed to retrieve preloaded data:', error);
+      }
+
+      // キャッシュがなければ通常の getDeckDetail を実行
+      if (!loadedDeck) {
+        loadedDeck = await getDeckDetail(dno, cgid);
+      }
 
       if (loadedDeck) {
         // originalNameを保存してからdeckInfoを更新
