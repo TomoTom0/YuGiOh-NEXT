@@ -440,7 +440,8 @@ export function parseCardSection(
               imgs: [{ ciid, imgHash: info.imgHash }],
               lang
             };
-            unifiedDB.setCardInfo(cardWithImgs);
+            // forceUpdate=true でTTLチェックをスキップし、必ず更新する
+            unifiedDB.setCardInfo(cardWithImgs, true);
 
             deckCardRefs.push({
               cid,
@@ -462,7 +463,8 @@ export function parseCardSection(
 
             // UnifiedCacheDB に保存（Table A, B, B2に自動分類）
             // setCardInfo() 内で既存の imgs とマージされる
-            unifiedDB.setCardInfo(cardWithSingleImg);
+            // forceUpdate=true でTTLチェックをスキップし、必ず更新する
+            unifiedDB.setCardInfo(cardWithSingleImg, true);
 
             deckCardRefs.push({
               cid,
