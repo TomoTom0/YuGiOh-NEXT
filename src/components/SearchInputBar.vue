@@ -2,7 +2,7 @@
   <div class="search-input-wrapper">
     <div class="search-input-bar" :class="{ compact: compact }">
       <div class="left-buttons">
-        <button class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="showFilterDialog = true" title="フィルター">
+        <button v-show="!deckStore.isFilterDialogVisible" class="menu-btn" :class="{ active: hasActiveFilters }" @click.stop="deckStore.isFilterDialogVisible = true" title="フィルター">
           <span class="menu-icon">...</span>
           <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
         </button>
@@ -118,9 +118,8 @@
       >x</button>
 
       <SearchFilterDialog
-        :is-visible="showFilterDialog"
+        :is-visible="deckStore.isFilterDialogVisible"
         :initial-filters="searchFilters"
-        @close="showFilterDialog = false"
         @apply="handleFilterApply"
       />
     </div>
@@ -249,7 +248,6 @@ export default defineComponent({
     })
 
     const showSearchModeDropdown = ref(false)
-    const showFilterDialog = ref(false)
     const showMydeckDropdown = ref(false)
 
     // ページ言語を検出（多言語対応）
@@ -645,7 +643,7 @@ export default defineComponent({
         case 'def':
           return 'DEF'
         case 'races':
-          return getRaceLabel(value, lang)
+          return getRaceLabel(value)
         default:
           return value
       }
@@ -1333,6 +1331,8 @@ export default defineComponent({
 
     const handleFilterApply = (filters: typeof searchFilters.value) => {
       searchFilters.value = filters
+      // ダイアログを閉じる
+      deckStore.isFilterDialogVisible = false
       if (deckStore.searchQuery.trim()) {
         handleSearch()
       }
@@ -1340,7 +1340,7 @@ export default defineComponent({
 
     const handleSearch = async () => {
       // フィルターダイアログを自動クローズ
-      showFilterDialog.value = false
+      deckStore.isFilterDialogVisible = false
 
       const query = deckStore.searchQuery.trim()
 
@@ -1496,7 +1496,6 @@ export default defineComponent({
       searchMode,
       searchModeLabel,
       showSearchModeDropdown,
-      showFilterDialog,
       showMydeckDropdown,
       searchFilters,
       hasActiveFilters,

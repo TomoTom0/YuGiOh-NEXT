@@ -450,23 +450,20 @@ export function parseCardSection(
             });
           }
         } else {
-          // 複数ciidの場合、ciidごとに別レコードとして追加
-          // 複数画像情報（Table A, B, B2）をUnifiedCacheDBに保存
-          const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({
-            ciid,
-            imgHash: info.imgHash
-          }));
-
-          const cardWithAllImgs = {
-            ...cardInfo,
-            imgs: allImgs,
-            lang
-          };
-
-          // UnifiedCacheDB に保存（Table A, B, B2に自動分類）
-          unifiedDB.setCardInfo(cardWithAllImgs);
-
+          // 複数ciidの場合、ciidごとに別々に setCardInfo() を呼ぶ
+          // （各ciidは1つずつ、setCardInfo() で既存データとマージされる）
           ciidCounts.forEach((info, ciid) => {
+            const cardWithSingleImg = {
+              ...cardInfo,
+              ciid,
+              imgs: [{ ciid, imgHash: info.imgHash }],
+              lang
+            };
+
+            // UnifiedCacheDB に保存（Table A, B, B2に自動分類）
+            // setCardInfo() 内で既存の imgs とマージされる
+            unifiedDB.setCardInfo(cardWithSingleImg);
+
             deckCardRefs.push({
               cid,
               ciid,

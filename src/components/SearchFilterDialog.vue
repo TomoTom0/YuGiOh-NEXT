@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isVisible" class="dialog-overlay" @click="$emit('close')">
+  <div v-if="deckStore.isFilterDialogVisible" class="dialog-overlay" @click="deckStore.isFilterDialogVisible = false">
     <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
       <div class="dialog-header triple">
@@ -18,7 +18,7 @@
               <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
           </button>
-          <button class="close-btn" @click="$emit('close')" title="閉じる">×</button>
+          <button class="close-btn" @click="deckStore.isFilterDialogVisible = false" title="閉じる">×</button>
         </div>
       </div>
 
@@ -453,7 +453,7 @@
         <!-- フッター：SearchInputBar と閉じるボタン -->
         <div class="dialog-footer">
           <SearchInputBar position="bottom" />
-          <button class="close-button" @click="$emit('close')">閉じる</button>
+          <button class="close-button" @click="deckStore.isFilterDialogVisible = false">閉じる</button>
         </div>
       </div>
     </div>
@@ -462,6 +462,7 @@
 
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue';
+import { useDeckEditStore } from '../stores/deck-edit';
 import type { Attribute, Race, MonsterType, CardType, SpellEffectType, TrapEffectType } from '../types/card';
 import type { SearchFilters } from '../types/search-filters';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '../api/image-utils';
@@ -480,13 +481,13 @@ import { toSearchConditionState } from '../utils/search-exclusion-adapter';
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
 
+const deckStore = useDeckEditStore();
+
 defineProps<{
-  isVisible: boolean;
   initialFilters?: SearchFilters;
 }>();
 
 const emit = defineEmits<{
-  close: [];
   apply: [filters: SearchFilters];
 }>();
 
@@ -692,20 +693,20 @@ const selectedAttributeChips = computed(() => {
 });
 
 const selectedSpellTypeChips = computed(() => {
-  return filters.spellTypes.map(type => getSpellTypeLabel(type, pageLanguage.value));
+  return filters.spellTypes.map(type => getSpellTypeLabel(type));
 });
 
 const selectedTrapTypeChips = computed(() => {
-  return filters.trapTypes.map(type => getTrapTypeLabel(type, pageLanguage.value));
+  return filters.trapTypes.map(type => getTrapTypeLabel(type));
 });
 
 const selectedRaceChips = computed(() => {
-  return filters.races.map(race => getRaceLabel(race, pageLanguage.value));
+  return filters.races.map(race => getRaceLabel(race));
 });
 
 const selectedMonsterTypeChips = computed(() => {
   return filters.monsterTypes.map(mt => {
-    const label = getMonsterTypeLabel(mt.type, pageLanguage.value);
+    const label = getMonsterTypeLabel(mt.type);
     return mt.state === 'not' ? `N-${label}` : label;
   });
 });
@@ -1141,7 +1142,8 @@ function clearFilters() {
   border: none;
   color: var(--text-secondary, var(--text-secondary));
   cursor: pointer;
-  padding: 6px;
+  padding: 2px;
+  margin: 0;
   border-radius: 4px;
   transition: all 0.2s;
   display: flex;
@@ -2326,7 +2328,8 @@ function clearFilters() {
   margin-top: 8px;
 
   .close-button {
-    padding: 10px 32px;
+    padding: 6px 16px;
+    margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: var(--button-text);

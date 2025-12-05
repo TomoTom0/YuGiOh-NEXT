@@ -414,6 +414,12 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const deckInfo = await parseDeckDetail(doc);
     console.timeEnd('[getDeckDetail] parseDeckDetail');
 
+    // 複数ciidを含むカード情報をChrome Storageに永続化
+    const { saveUnifiedCacheDB } = await import('@/utils/unified-cache-db');
+    console.time('[getDeckDetail] saveUnifiedCacheDB');
+    await saveUnifiedCacheDB();
+    console.timeEnd('[getDeckDetail] saveUnifiedCacheDB');
+
     console.timeEnd(`[getDeckDetail] total`);
     return deckInfo;
   } catch (error) {
