@@ -182,6 +182,9 @@ async function setupCardImageHoverUI(): Promise<void> {
             const cardId = parseInt(cardIdMatch[1], 10)
 
             try {
+              // ローディング開始
+              cardDetailStore.startLoadingCard()
+
               // カード詳細を取得
               const result = await getCardDetailWithCache(cardId.toString())
 
@@ -193,6 +196,9 @@ async function setupCardImageHoverUI(): Promise<void> {
               }
             } catch (error) {
               console.warn('[DeckDisplay] Failed to fetch card detail:', error)
+            } finally {
+              // ローディング終了
+              cardDetailStore.endLoadingCard()
             }
           } else {
             console.warn('[DeckDisplay] No card ID found in href')

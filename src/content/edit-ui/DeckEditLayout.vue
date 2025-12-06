@@ -118,7 +118,8 @@
               <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
 
               <!-- サムネイル画像 -->
-              <div class="deck-thumbnail-container">
+              <!-- TODO: サムネイル機能は廃止済み -->
+              <!-- <div class="deck-thumbnail-container">
                 <img
                   v-if="deckThumbnails.has(deck.dno) && deckThumbnails.get(deck.dno)"
                   :src="deckThumbnails.get(deck.dno)"
@@ -133,7 +134,7 @@
                     <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
                   </svg>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -276,7 +277,8 @@ export default {
         deckStore.showLoadDialog = false
 
         // デッキロード後、サムネイルを生成・キャッシュに保存（非同期）
-        generateAndCacheThumbnail(dno)
+        // TODO: サムネイル生成は廃止済み
+        // generateAndCacheThumbnail(dno)
       } catch (error) {
         console.error('Load error:', error)
       }

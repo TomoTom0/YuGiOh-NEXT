@@ -273,6 +273,9 @@ export class UnifiedCacheDB {
         // Chrome Storage の langs_ciids をベースにする
         const mergedLangsCiids = { ...storageRecord.langs_ciids };
 
+        // Chrome Storage の langsRuby をベースにする
+        const mergedLangsRuby = { ...storageRecord.langsRuby, ...memoryRecord.langsRuby };
+
         // メモリのlangsImgsで各言語の imgs を確認
         for (const [lang, memoryImgs] of Object.entries(memoryRecord.langsImgs || {})) {
           const storageImgs = mergedLangsImgs[lang] || [];
@@ -305,11 +308,12 @@ export class UnifiedCacheDB {
           }
         }
 
-        // langsImgs と langs_ciids をマージして、他は新しいデータで上書き
+        // langsImgs、langs_ciids、langsRuby をマージして、他は新しいデータで上書き
         mergedData[cardId] = {
           ...memoryRecord,
           langsImgs: mergedLangsImgs,
-          langs_ciids: mergedLangsCiids
+          langs_ciids: mergedLangsCiids,
+          langsRuby: mergedLangsRuby
         };
       }
     }
@@ -444,6 +448,9 @@ export class UnifiedCacheDB {
     // 既存の langsFetchedAt を取得
     const langsFetchedAt = existing?.langsFetchedAt || {};
 
+    // 既存の langsRuby を取得
+    const langsRuby = existing?.langsRuby || {};
+
     // TableA
     const tableA: CardTableA = {
       cardId: card.cardId,
@@ -451,7 +458,10 @@ export class UnifiedCacheDB {
         ...langsName,
         [lang]: card.name
       },
-      ruby: card.ruby,
+      langsRuby: card.ruby ? {
+        ...langsRuby,
+        [lang]: card.ruby
+      } : langsRuby,  // ルビがない場合は既存のlangsRubyを保持
       langsImgs: {
         ...langsImgs,
         [lang]: mergedImgs
@@ -1002,7 +1012,7 @@ export class UnifiedCacheDB {
       lang: targetLang,
       imgs,
       ciid: imgs[0]?.ciid || '',
-      ruby: tableA.ruby,
+      ruby: tableA.langsRuby?.[targetLang],
       limitRegulation
     };
 

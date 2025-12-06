@@ -9,13 +9,14 @@
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
     <div class="ygo-next card-info-top">
-      <div class="card-image-wrapper" @click="closeMenuIfOutside">
+      <div class="card-image-wrapper" :class="{ loading: isLoadingCard }" @click="closeMenuIfOutside">
         <DeckCard
           v-if="card"
           :key="cardUuid"
           :card="card"
           :section-type="'info'"
           :uuid="cardUuid"
+          :class="{ 'loading-card': isLoadingCard }"
         />
         <div class="card-buttons-container">
           <button
@@ -24,8 +25,11 @@
             @click.stop="showCardMenu = !showCardMenu"
             title="カード操作メニュー"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24">
+            <svg v-if="!isLoadingCard" width="16" height="16" viewBox="0 0 24 24">
               <path fill="currentColor" d="M12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16Z" />
+            </svg>
+            <svg v-else class="loading-spinner" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" />
             </svg>
           </button>
           <button
@@ -234,8 +238,9 @@ export default {
     const showRuby = ref(false) // Default to hidden
     const showCardMenu = ref(false)
 
-    // cardDetailStoreから selectedCard を取得
+    // cardDetailStoreから selectedCard と isLoadingCard を取得
     const card = computed(() => cardDetailStore.selectedCard)
+    const isLoadingCard = computed(() => cardDetailStore.isLoadingCard)
 
     // ルビ表示の切り替え
     const toggleRuby = () => {
@@ -333,6 +338,7 @@ export default {
       handleCardLinkClick,
       card,
       cardUuid,
+      isLoadingCard,
       showImageDialog,
       showImageSelectButton,
       toggleImageDialog,
@@ -560,6 +566,7 @@ export default {
   display: flex;
   gap: 15px;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .card-info-bottom {
@@ -575,15 +582,20 @@ export default {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 4px;
 
   .deck-card {
     width: var(--card-width-info, 90px);
     height: var(--card-height-info, 132px);
+    transition: opacity 0.3s ease;
 
     img {
       width: 100%;
       height: 100%;
+    }
+
+    &.loading-card {
+      opacity: 0.5;
     }
   }
 }
@@ -1212,5 +1224,19 @@ export default {
 .menu-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+// ローディングスピナーアニメーション
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

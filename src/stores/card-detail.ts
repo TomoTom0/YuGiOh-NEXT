@@ -17,6 +17,9 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
   /** 現在のタブ */
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
 
+  /** カード読み込み中フラグ */
+  const isLoadingCard = ref(false);
+
   // ===== アクション =====
 
   /**
@@ -34,18 +37,36 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
   };
 
   /**
+   * カード読み込み開始
+   */
+  const startLoadingCard = () => {
+    isLoadingCard.value = true;
+  };
+
+  /**
+   * カード読み込み終了
+   */
+  const endLoadingCard = () => {
+    isLoadingCard.value = false;
+  };
+
+  /**
    * リセット（初期化）
    */
   const reset = () => {
     selectedCard.value = null;
     cardTab.value = 'info';
+    isLoadingCard.value = false;
   };
 
   return {
     selectedCard,
     cardTab,
+    isLoadingCard,
     setSelectedCard,
     setCardTab,
+    startLoadingCard,
+    endLoadingCard,
     reset
   };
 });

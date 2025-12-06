@@ -1520,6 +1520,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (uiState.cardTab) cardTab.value = uiState.cardTab;
         if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
 
+        // URLにsortOrderがない場合は設定から読み込む
+        if (!uiState.sortOrder) {
+          sortOrder.value = settingsStore.appSettings.defaultSortOrder;
+        }
+
         // URLから設定を復元（URLパラメータが設定ストアより優先）
         const urlSettings = URLStateManager.restoreSettingsFromURL();
         // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
@@ -1726,17 +1731,23 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (typeA !== typeB) return typeA - typeB;
 
       // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1) ← カテゴリ優先が先頭
-      const inPriorityA = matchesPriorityCategory(cardA) ? 0 : 1;
-      const inPriorityB = matchesPriorityCategory(cardB) ? 0 : 1;
-      if (inPriorityA !== inPriorityB) return inPriorityA - inPriorityB;
+      const categoryPriorityEnabled = settingsStore.appSettings.enableCategoryPriority ?? true;
+      const inPriorityA = categoryPriorityEnabled && matchesPriorityCategory(cardA) ? 0 : 1;
+      const inPriorityB = categoryPriorityEnabled && matchesPriorityCategory(cardB) ? 0 : 1;
+      if (categoryPriorityEnabled && inPriorityA !== inPriorityB) {
+        return inPriorityA - inPriorityB;
+      }
 
       // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
-      const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
-      const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
-      if (isTailA !== isTailB) return isTailA - isTailB;
+      const tailPlacementEnabled = settingsStore.appSettings.enableTailPlacement ?? true;
+      if (tailPlacementEnabled) {
+        const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
+        const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
+        if (isTailA !== isTailB) return isTailA - isTailB;
+      }
 
       // 3. カテゴリ内での枚数による重み付け
-      if (deckInfo.value?.sortByQuantity && inPriorityA === 0 && inPriorityB === 0) {
+      if (deckInfo.value?.sortByQuantity && categoryPriorityEnabled && inPriorityA === 0 && inPriorityB === 0) {
         const quantityA = section.filter(card => card.cid === a.cid).length;
         const quantityB = section.filter(card => card.cid === b.cid).length;
         if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）

@@ -739,6 +739,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 10;
 }
 
 .card-btn {

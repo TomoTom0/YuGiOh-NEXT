@@ -1,5 +1,5 @@
 <template>
-  <div v-if="deckStore.isFilterDialogVisible" class="dialog-overlay" @click="deckStore.isFilterDialogVisible = false">
+  <div v-if="deckStore.isFilterDialogVisible" class="dialog-overlay" @click.stop="deckStore.isFilterDialogVisible = false">
     <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
       <div class="dialog-header triple">
