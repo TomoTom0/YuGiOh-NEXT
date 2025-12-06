@@ -40,17 +40,7 @@
           >
             <span v-if="previewChip.isNot" class="not-prefix">!</span>{{ previewChip.label }}
           </span>
-          <!-- スラッシュコマンドで追加したチップ -->
-          <span
-            v-for="(chip, index) in filterChips"
-            :key="`chip-${index}`"
-            class="filter-icon-item filter-chip-top"
-            :class="{ 'not-condition': chip.isNot }"
-            @click="removeFilterChip(index)"
-            :title="`クリックで削除: ${chip.isNot ? '!' : ''}${chip.label}`"
-          >
-            <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
-          </span>
+
           <!-- SearchFilterDialogで選択した条件 -->
           <span
             v-for="(icon, index) in displayFilterIcons"
@@ -603,16 +593,7 @@ export default defineComponent({
     // 表示用フィルターアイコン - filterChipsと重複しないものを表示
     const displayFilterIcons = computed(() => {
       // 共通関数で全アイコンを取得
-      const allIcons = convertFiltersToIcons(searchFilters.value)
-
-      // filterChipsで追加された条件を除外するためのセット（type + label）
-      const chipKeys = new Set(filterChips.value.map(chip => `${chip.type}:${chip.label}`))
-
-      // filterChipsと重複しないアイコンのみを返す
-      return allIcons.filter(icon => {
-        const key = `${icon.type}:${icon.label}`
-        return !chipKeys.has(key)
-      })
+      return convertFiltersToIcons(searchFilters.value)
     })
 
 
@@ -1304,24 +1285,13 @@ export default defineComponent({
       // コマンド自体がNOTか、または-プレフィックスが付いているか
       const isNot = pendingCommand.value.isNot || isNegatedInput.value
 
-      // チップ情報を保存
-      const chipData = {
-        type: filterType,
-        value: mappedValue,
-        label: getChipLabel(filterType, mappedValue),
-        isNot
-      }
+      // 実際のフィルターに適用
+      applyChipToFilters(filterType, mappedValue, isNot)
 
-      // 先に入力をクリア（previewChipを消すため）
+      // 入力をクリア（previewChipを消すため）
       pendingCommand.value = null
       deckStore.searchQuery = ''
       selectedSuggestionIndex.value = -1
-
-      // チップを追加
-      filterChips.value.push(chipData)
-
-      // 実際のフィルターにも適用
-      applyChipToFilters(filterType, mappedValue, isNot)
     }
 
     // チップをフィルターに適用
@@ -1929,7 +1899,9 @@ export default defineComponent({
             }
           }
 
+          console.log('[handleSearch] searchOptions:', JSON.stringify(searchOptions, null, 2))
           results = await searchCards(searchOptions)
+          console.log('[handleSearch] results count:', results.length)
         }
 
         // 検索APIを呼び出したのでグローバル検索モードを終了
