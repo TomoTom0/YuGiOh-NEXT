@@ -831,7 +831,9 @@ export default defineComponent({
 
     // 予定チップ（入力が有効な場合のみ表示）
     const previewChip = computed<{ label: string; isNot: boolean; filterType: string; value: string } | null>(() => {
-      if (!pendingCommand.value || !isValidCommandInput.value) return null
+      // pendingCommandがnullの場合は確実にnullを返す
+      if (!pendingCommand.value) return null
+      if (!isValidCommandInput.value) return null
 
       const value = actualInputValue.value
       const filterType = pendingCommand.value.filterType
@@ -991,6 +993,8 @@ export default defineComponent({
             return
           }
 
+          // 前の状態をクリア（予定チップが残らないようにするため）
+          selectedSuggestionIndex.value = -1
           pendingCommand.value = {
             command: cmd,
             filterType: cmdDef.filterType,
@@ -1304,14 +1308,12 @@ export default defineComponent({
       }
 
       // 先に入力をクリア（previewChipを消すため）
-      console.log('[DEBUG] Before clear:', { pending: pendingCommand.value, query: deckStore.searchQuery })
       pendingCommand.value = null
       deckStore.searchQuery = ''
-      console.log('[DEBUG] After clear:', { pending: pendingCommand.value, query: deckStore.searchQuery })
+      selectedSuggestionIndex.value = -1
 
       // チップを追加
       filterChips.value.push(chipData)
-      console.log('[DEBUG] Chip added:', chipData)
 
       // 実際のフィルターにも適用
       applyChipToFilters(filterType, mappedValue, isNot)
