@@ -1804,6 +1804,44 @@ export default defineComponent({
       }
     }
 
+    // クライアント側でフィルター条件を適用
+    const applyClientSideFilters = (cards: CardInfo[], filters: SearchFilters): CardInfo[] => {
+      return cards.filter(card => {
+        // モンスターカードのみに適用されるフィルター
+        if (card.cardType === 'monster') {
+          // 属性フィルター
+          if (filters.attributes.length > 0) {
+            if (!('attribute' in card) || !filters.attributes.includes(card.attribute as Attribute)) {
+              return false
+            }
+          }
+          
+          // 種族フィルター
+          if (filters.races.length > 0) {
+            if (!('race' in card) || !filters.races.includes(card.race as Race)) {
+              return false
+            }
+          }
+          
+          // レベルフィルター
+          if (filters.levelValues.length > 0 && 'level' in card) {
+            if (typeof card.level === 'number' && !filters.levelValues.includes(card.level)) {
+              return false
+            }
+          }
+          
+          // リンク値フィルター
+          if (filters.linkValues.length > 0 && 'link' in card) {
+            if (typeof card.link === 'number' && !filters.linkValues.includes(card.link)) {
+              return false
+            }
+          }
+        }
+        
+        return true
+      })
+    }
+
     const handleSearch = async () => {
       // フィルターダイアログを自動クローズ
       deckStore.isFilterDialogVisible = false
@@ -1843,6 +1881,9 @@ export default defineComponent({
         if (searchMode.value === 'auto') {
           const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
           results = autoResult.cards
+          
+          // autoモードでもフィルター条件を適用（クライアント側でフィルタリング）
+          results = applyClientSideFilters(results, searchFilters.value)
         } else {
           // 通常の検索
           searchOptions = {

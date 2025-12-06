@@ -705,8 +705,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // no debug watcher
 
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではmetadata）
+  // ただし、URLにactiveTabがある場合はそれを優先
   const isMobile = window.innerWidth <= 768;
-  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(isMobile ? 'deck' : 'metadata');
+  const initialActiveTab = (() => {
+    const uiState = URLStateManager.restoreUIStateFromURL();
+    if (uiState.activeTab) return uiState.activeTab;
+    return isMobile ? 'deck' : 'metadata';
+  })();
+  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(initialActiveTab);
 
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
@@ -1519,11 +1525,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // 設定ストアを初期化
         await settingsStore.loadSettings();
 
-        // URLからUI状態を復元
+        // URLからUI状態を復元（activeTabは既に初期化時に設定済み）
         const uiState = URLStateManager.restoreUIStateFromURL();
         if (uiState.viewMode) viewMode.value = uiState.viewMode;
         if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
-        if (uiState.activeTab) activeTab.value = uiState.activeTab;
+        // activeTabは初期化時に設定済みなのでスキップ
         if (uiState.cardTab) cardTab.value = uiState.cardTab;
         if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
 
