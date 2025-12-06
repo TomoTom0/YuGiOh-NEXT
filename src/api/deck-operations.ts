@@ -2,6 +2,8 @@ import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/de
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
 import { getTempCardDB } from '@/utils/temp-card-db';
+import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { detectLanguage } from '@/utils/language-detector';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
@@ -309,11 +311,12 @@ function appendCardToFormData(
   deckType: 'main' | 'extra' | 'side'
 ): void {
   const { cid, ciid, quantity } = deckCardRef;
-  const tempCardDB = getTempCardDB();
-  const card = tempCardDB.get(cid);
+  const unifiedDB = getUnifiedCacheDB();
+  const lang = detectLanguage(document);
+  const card = unifiedDB.reconstructCardInfo(cid, lang);
 
   if (!card) {
-    console.error(`[appendCardToFormData] Card not found in TempCardDB: ${cid}`);
+    console.error(`[appendCardToFormData] Card not found in UnifiedCacheDB: ${cid}`);
     return;
   }
 

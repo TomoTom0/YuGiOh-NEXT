@@ -19,16 +19,6 @@
         />
         <div class="card-buttons-container">
           <button
-            v-if="showImageSelectButton"
-            class="image-select-btn"
-            @click="toggleImageDialog"
-            :title="`画像を選択 (${card.imgs?.length || 0}種類)`"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path fill="currentColor" :d="mdiImageMultiple" />
-            </svg>
-          </button>
-          <button
             v-if="card"
             class="card-menu-btn"
             @click.stop="showCardMenu = !showCardMenu"
@@ -36,6 +26,16 @@
           >
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path fill="currentColor" d="M12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16Z" />
+            </svg>
+          </button>
+          <button
+            v-if="showImageSelectButton"
+            class="image-select-btn"
+            @click="toggleImageDialog"
+            :title="`画像を選択 (${card.imgs?.length || 0}種類)`"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiImageMultiple" />
             </svg>
           </button>
         </div>
