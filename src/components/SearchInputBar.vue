@@ -605,11 +605,14 @@ export default defineComponent({
       // 共通関数で全アイコンを取得
       const allIcons = convertFiltersToIcons(searchFilters.value)
 
-      // filterChipsで追加された条件を除外するためのセット
-      const chipTypes = new Set(filterChips.value.map(chip => chip.type))
+      // filterChipsで追加された条件を除外するためのセット（type + label）
+      const chipKeys = new Set(filterChips.value.map(chip => `${chip.type}:${chip.label}`))
 
       // filterChipsと重複しないアイコンのみを返す
-      return allIcons.filter(icon => !chipTypes.has(icon.type))
+      return allIcons.filter(icon => {
+        const key = `${icon.type}:${icon.label}`
+        return !chipKeys.has(key)
+      })
     })
 
 
