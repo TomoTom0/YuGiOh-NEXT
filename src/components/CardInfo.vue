@@ -9,7 +9,7 @@
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
     <div class="ygo-next card-info-top">
-      <div class="card-image-wrapper" :class="{ loading: isLoadingCard }" @click="closeMenuIfOutside">
+      <div class="card-image-wrapper" :class="{ loading: isLoadingCard }">
         <DeckCard
           v-if="card"
           :key="cardUuid"
@@ -190,7 +190,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_ID_TO_NAME, RACE_ID_TO_NAME, SPELL_EFFECT_TYPE_ID_TO_NAME, TRAP_EFFECT_TYPE_ID_TO_NAME, MONSTER_TYPE_ID_TO_NAME } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
@@ -330,6 +330,15 @@ export default {
         showCardMenu.value = false
       }
     }
+
+    // グローバルクリックリスナーを登録
+    onMounted(() => {
+      document.addEventListener('click', closeMenuIfOutside)
+    })
+
+    onUnmounted(() => {
+      document.removeEventListener('click', closeMenuIfOutside)
+    })
 
     return {
       deckStore,
