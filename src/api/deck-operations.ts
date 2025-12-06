@@ -380,9 +380,6 @@ function appendCardToFormData(
  */
 export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> {
   try {
-    console.log(`[getDeckDetail] 開始: dno=${dno}, cgid=${cgid ? 'set' : 'unset'}`);
-    console.time(`[getDeckDetail] total`);
-
     const gameType = detectCardGameType();
 
     // URLパラメータを構築
@@ -399,23 +396,17 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const { default: axios } = await import('axios');
     // NOTE: getDeckDetail はユーザーがデッキ遷移時に待つクリティカルパスなため、
     // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
-    console.time('[getDeckDetail] axios.get');
     const response = await axios.get(url, {
       withCredentials: true
     });
-    console.timeEnd('[getDeckDetail] axios.get');
 
     const html = response.data;
 
-    console.time('[getDeckDetail] DOMParser.parseFromString');
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    console.timeEnd('[getDeckDetail] DOMParser.parseFromString');
 
     // parseDeckDetailを使用してデッキ情報を抽出
-    console.time('[getDeckDetail] parseDeckDetail');
     const deckInfo = await parseDeckDetail(doc);
-    console.timeEnd('[getDeckDetail] parseDeckDetail');
 
     // 複数ciidを含むカード情報をChrome Storageに永続化（非同期で実行、UIをブロックしない）
     const { saveUnifiedCacheDB } = await import('@/utils/unified-cache-db');
@@ -423,11 +414,9 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
       console.error('[getDeckDetail] Failed to save UnifiedCacheDB:', error);
     });
 
-    console.timeEnd(`[getDeckDetail] total`);
     return deckInfo;
   } catch (error) {
     console.error('Failed to get deck detail:', error);
-    console.timeEnd(`[getDeckDetail] total`);
     return null;
   }
 }

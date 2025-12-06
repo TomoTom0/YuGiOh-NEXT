@@ -1325,8 +1325,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function loadDeck(dno: number) {
     try {
-      console.log(`[loadDeck] 開始: dno=${dno}`);
-
       const cgid = await sessionManager.getCgid();
 
       // メモリからプリロード済みデータを取得
@@ -1353,13 +1351,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // プリロードデータがなければ通常の getDeckDetailAPI を実行
       if (!loadedDeck) {
-        console.time('[loadDeck] getDeckDetailAPI');
         loadedDeck = await getDeckDetailAPI(dno, cgid);
-        console.timeEnd('[loadDeck] getDeckDetailAPI');
       }
 
       if (loadedDeck) {
-        console.time('[loadDeck] deckInfo update');
         // originalNameを保存してからdeckInfoを更新
         deckInfo.value = {
           ...loadedDeck,
@@ -1372,7 +1367,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
         // displayOrderを初期化
         initializeDisplayOrder();
-        console.timeEnd('[loadDeck] deckInfo update');
 
         // ロード時はアニメーション不要（新規表示のため）
 

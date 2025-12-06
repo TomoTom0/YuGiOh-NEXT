@@ -229,7 +229,6 @@ export default {
     }
   },
   setup(props) {
-    console.log('[CardInfo] setup props:', props)
     const deckStore = useDeckEditStore()
     const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
