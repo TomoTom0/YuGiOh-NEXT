@@ -25,31 +25,48 @@
           <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
         </svg>
       </button>
-      <div class="input-container" :class="{ 'command-mode': isCommandMode || pendingCommand }">
-        <!-- SearchFilterDialogで選択した条件（上部） -->
-        <div v-if="hasActiveFilters" class="filter-icons-top">
+      <div class="input-container" :class="{
+        'command-mode': isCommandMode || pendingCommand,
+        'valid': pendingCommand && isValidCommandInput
+      }">
+        <!-- SearchFilterDialogで選択した条件（上部） - 常に表示 -->
+        <div class="filter-icons-top">
+          <!-- 予定チップ（入力が有効な場合のみ） -->
+          <span
+            v-if="previewChip"
+            class="filter-icon-item filter-chip-preview"
+            :class="{ 'not-condition': previewChip.isNot }"
+            title="Enter で追加"
+          >
+            <span v-if="previewChip.isNot" class="not-prefix">!</span>{{ previewChip.label }}
+          </span>
+          <!-- スラッシュコマンドで追加したチップ -->
+          <span
+            v-for="(chip, index) in filterChips"
+            :key="`chip-${index}`"
+            class="filter-icon-item filter-chip-top"
+            :class="{ 'not-condition': chip.isNot }"
+            @click="removeFilterChip(index)"
+            :title="`クリックで削除: ${chip.isNot ? '!' : ''}${chip.label}`"
+          >
+            <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
+          </span>
+          <!-- SearchFilterDialogで選択した条件 -->
           <span
             v-for="(icon, index) in displayFilterIcons"
-            :key="index"
+            :key="`icon-${index}`"
             class="filter-icon-item"
             :class="icon.type"
           >{{ icon.label }}</span>
+          <button
+            v-if="hasActiveFilters || filterChips.length > 0"
+            class="clear-filters-btn-top"
+            @click="clearAllFilters"
+            title="検索条件をクリア"
+          >×</button>
         </div>
         <!-- 入力行 -->
         <div class="input-row">
-          <!-- スラッシュコマンドで追加したチップ（左側） -->
-          <div v-if="filterChips.length > 0" class="filter-chips">
-            <span
-              v-for="(chip, index) in filterChips"
-              :key="index"
-              class="filter-chip"
-              :class="{ 'not-condition': chip.isNot }"
-              @click="removeFilterChip(index)"
-            >
-              <span v-if="chip.isNot" class="not-prefix">!</span>{{ chip.label }}
-              <span class="chip-remove">x</span>
-            </span>
-          </div>
           <!-- コマンドモード表示 -->
           <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
           <input
@@ -59,7 +76,7 @@
           class="search-input"
           :class="{
             'has-prefix': pendingCommand,
-            'valid-input': isValidCommandInput
+            [placeholderSizeClass]: true
           }"
           :placeholder="currentPlaceholder"
           @input="handleInput"
@@ -115,9 +132,16 @@
         v-if="deckStore.searchQuery"
         class="clear-btn"
         @click="deckStore.searchQuery = ''"
-      >x</button>
+        title="入力をクリア"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24">
+          <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+        </svg>
+      </button>
 
+      <!-- position="bottom"の場合はダイアログを表示しない（循環参照回避） -->
       <SearchFilterDialog
+        v-if="position !== 'bottom'"
         :is-visible="deckStore.isFilterDialogVisible"
         :initial-filters="searchFilters"
         @apply="handleFilterApply"
@@ -145,24 +169,59 @@ import { getRaceLabel } from '../utils/filter-label'
 import { detectLanguage } from '../utils/language-detector'
 import { mappingManager } from '../utils/mapping-manager'
 
+// 全角数字を半角に変換
+const toHalfWidth = (str: string): string => {
+  return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+}
+
+// 柔軟な日付解析（様々な区切り文字に対応）
+const parseFlexibleDate = (dateStr: string): string | null => {
+  // 区切りなしの特殊ケース: 20200101
+  if (/^\d{8}$/.test(dateStr)) {
+    return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
+  }
+
+  // 区切りありの場合：正規表現で数値と非数値を区別
+  // YYYY<sep>MM<sep>DD の形式（<sep>は任意の非数値文字）
+  const match = dateStr.match(/^(\d{4})\D(\d{2})\D(\d{2})$/)
+  if (match) {
+    const [, year, month, day] = match
+    return `${year}-${month}-${day}`
+  }
+
+  return null
+}
+
 // コマンド定義
-const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean }> = {
+const COMMANDS: Record<string, { filterType: string; description: string; isNot?: boolean; isAction?: boolean }> = {
   '/attr': { filterType: 'attributes', description: '属性' },
   '/race': { filterType: 'races', description: '種族' },
   '/level': { filterType: 'levels', description: 'レベル/ランク' },
+  '/rank': { filterType: 'levels', description: 'レベル/ランク' }, // levelのエイリアス
   '/atk': { filterType: 'atk', description: 'ATK' },
   '/def': { filterType: 'def', description: 'DEF' },
   '/type': { filterType: 'cardType', description: 'カードタイプ' },
   '/link': { filterType: 'linkNumbers', description: 'リンク数' },
+  '/lm': { filterType: 'linkMarkers', description: 'リンクマーカー' },
+  '/link-marker': { filterType: 'linkMarkers', description: 'リンクマーカー' },
   '/mtype': { filterType: 'monsterTypes', description: 'モンスタータイプ' },
+  '/pscale': { filterType: 'pendulumScales', description: 'Pスケール' },
+  '/ps': { filterType: 'pendulumScales', description: 'Pスケール' },
+  '/date': { filterType: 'releaseDate', description: '発売日' },
   '/search': { filterType: 'searchMode', description: '検索モード' },
   // NOT条件
   '/attr-not': { filterType: 'attributes', description: '属性(除外)', isNot: true },
   '/race-not': { filterType: 'races', description: '種族(除外)', isNot: true },
   '/level-not': { filterType: 'levels', description: 'レベル(除外)', isNot: true },
+  '/rank-not': { filterType: 'levels', description: 'レベル(除外)', isNot: true },
   '/type-not': { filterType: 'cardType', description: 'タイプ(除外)', isNot: true },
   '/link-not': { filterType: 'linkNumbers', description: 'リンク(除外)', isNot: true },
-  '/mtype-not': { filterType: 'monsterTypes', description: 'Mタイプ(除外)', isNot: true }
+  '/mtype-not': { filterType: 'monsterTypes', description: 'Mタイプ(除外)', isNot: true },
+  // クリアコマンド
+  '/clear': { filterType: 'action', description: '全てクリア', isAction: true },
+  '/clear-cond': { filterType: 'action', description: '条件クリア', isAction: true },
+  '/clear-text': { filterType: 'action', description: 'テキストクリア', isAction: true },
+  '/clear-one-cond': { filterType: 'action', description: '条件を選択して削除', isAction: true }
 }
 
 // 検索モードマッピング
@@ -303,6 +362,18 @@ export default defineComponent({
     const selectedSuggestionIndex = ref(-1)
     const selectedCommandIndex = ref(-1)
 
+    // リンクマーカーの文字列→数値マッピング
+    const LINK_MARKER_MAP: Record<string, number> = {
+      'bottom-left': 1,
+      'bottom': 2,
+      'bottom-right': 4,
+      'left': 8,
+      'right': 16,
+      'top-left': 32,
+      'top': 64,
+      'top-right': 128
+    }
+
     // 各フィルタータイプの選択肢
     const FILTER_OPTIONS: Record<string, { value: string; label: string }[]> = {
       attributes: [
@@ -361,6 +432,19 @@ export default defineComponent({
         { value: '1', label: '1' }, { value: '2', label: '2' }, { value: '3', label: '3' },
         { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' }
       ],
+      linkMarkers: [
+        { value: 'top', label: '上' }, { value: 'bottom', label: '下' },
+        { value: 'left', label: '左' }, { value: 'right', label: '右' },
+        { value: 'top-left', label: '左上' }, { value: 'top-right', label: '右上' },
+        { value: 'bottom-left', label: '左下' }, { value: 'bottom-right', label: '右下' }
+      ],
+      pendulumScales: [
+        { value: '0', label: '0' }, { value: '1', label: '1' }, { value: '2', label: '2' },
+        { value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5' },
+        { value: '6', label: '6' }, { value: '7', label: '7' }, { value: '8', label: '8' },
+        { value: '9', label: '9' }, { value: '10', label: '10' }, { value: '11', label: '11' },
+        { value: '12', label: '12' }, { value: '13', label: '13' }
+      ],
       searchMode: [
         { value: 'name', label: 'カード名' },
         { value: 'text', label: 'テキスト' },
@@ -398,9 +482,60 @@ export default defineComponent({
         .map(([cmd, info]) => ({ command: cmd, description: info.description }))
     })
 
+    // 現在設定されている条件のリストを生成
+    const activeFiltersOptions = computed(() => {
+      const options: { value: string; label: string }[] = []
+      const f = searchFilters.value
+
+      // チップから追加
+      filterChips.value.forEach((chip, index) => {
+        options.push({
+          value: `chip-${index}`,
+          label: `${chip.isNot ? '!' : ''}${chip.label} (チップ)`
+        })
+      })
+
+      // SearchFilterDialogから追加された条件
+      if (f.cardType) {
+        options.push({ value: 'cardType', label: `カードタイプ: ${f.cardType}` })
+      }
+      f.attributes.forEach(attr => {
+        options.push({ value: `attr-${attr}`, label: `属性: ${attr}` })
+      })
+      f.races.forEach(race => {
+        options.push({ value: `race-${race}`, label: `種族: ${getRaceLabel(race)}` })
+      })
+      f.levelValues.forEach(level => {
+        options.push({ value: `level-${level}`, label: `レベル: ${level}` })
+      })
+      f.linkValues.forEach(link => {
+        options.push({ value: `link-${link}`, label: `リンク: ${link}` })
+      })
+      f.monsterTypes.forEach(mt => {
+        options.push({ value: `mtype-${mt.type}`, label: `モンスタータイプ: ${mt.type}` })
+      })
+      if (f.atk.min !== undefined || f.atk.max !== undefined) {
+        options.push({ value: 'atk', label: `ATK条件` })
+      }
+      if (f.def.min !== undefined || f.def.max !== undefined) {
+        options.push({ value: 'def', label: `DEF条件` })
+      }
+
+      return options
+    })
+
     // 現在の入力に基づいてフィルタリングされた候補
     const filteredSuggestions = computed(() => {
       if (!pendingCommand.value) return []
+
+      // /clear-one-condの場合は現在の条件リストを返す
+      if (pendingCommand.value.command === '/clear-one-cond') {
+        const input = actualInputValue.value.toLowerCase()
+        if (!input) return activeFiltersOptions.value
+        return activeFiltersOptions.value.filter(opt =>
+          opt.label.toLowerCase().includes(input)
+        )
+      }
 
       const options = FILTER_OPTIONS[pendingCommand.value.filterType]
       if (!options) return []
@@ -532,14 +667,94 @@ export default defineComponent({
           return CARD_TYPE_MAP[value] !== undefined
         case 'monsterTypes':
           return MONSTER_TYPE_MAP[value] !== undefined
-        case 'levels':
-          const level = parseInt(value)
-          return !isNaN(level) && level >= 1 && level <= 12
-        case 'linkNumbers':
-          const link = parseInt(value)
-          return !isNaN(link) && link >= 1 && link <= 6
+        case 'levels': {
+          // 単一の数値、範囲（4-8）、カンマ区切り（3,5）を受け付ける
+          if (/^\d+$/.test(value)) {
+            const level = parseInt(value, 10)
+            return !isNaN(level) && level >= 1 && level <= 12
+          }
+          if (/^\d+-\d+$/.test(value)) {
+            const [start, end] = value.split('-').map(Number)
+            return start >= 1 && start <= 12 && end >= 1 && end <= 12 && start <= end
+          }
+          if (/^\d+(,\d+)+$/.test(value)) {
+            const levels = value.split(',').map(Number)
+            return levels.every(l => l >= 1 && l <= 12)
+          }
+          return false
+        }
+        case 'linkNumbers': {
+          // 単一の数値、カンマ区切り（2,4）を受け付ける
+          if (/^\d+$/.test(value)) {
+            const link = parseInt(value, 10)
+            return !isNaN(link) && link >= 1 && link <= 6
+          }
+          if (/^\d+(,\d+)+$/.test(value)) {
+            const links = value.split(',').map(Number)
+            return links.every(l => l >= 1 && l <= 6)
+          }
+          return false
+        }
+        case 'linkMarkers': {
+          // リンクマーカーの選択肢をチェック
+          const markerOptions = FILTER_OPTIONS.linkMarkers
+          return markerOptions.some(opt => opt.value.toLowerCase() === value || opt.label.toLowerCase() === value)
+        }
+        case 'pendulumScales': {
+          // 単一の数値、範囲（1-8）、カンマ区切り（1,8）を受け付ける
+          if (/^\d+$/.test(value)) {
+            const scale = parseInt(value, 10)
+            return !isNaN(scale) && scale >= 0 && scale <= 13
+          }
+          if (/^\d+-\d+$/.test(value)) {
+            const [start, end] = value.split('-').map(Number)
+            return start >= 0 && start <= 13 && end >= 0 && end <= 13 && start <= end
+          }
+          if (/^\d+(,\d+)+$/.test(value)) {
+            const scales = value.split(',').map(Number)
+            return scales.every(s => s >= 0 && s <= 13)
+          }
+          return false
+        }
+        case 'releaseDate': {
+          // 片方のみの範囲指定: 2020-01-01- or -2020-12-31
+          if (/^-/.test(value)) {
+            const dateStr = value.substring(1).trim()
+            return parseFlexibleDate(dateStr) !== null
+          }
+          if (/-$/.test(value)) {
+            const dateStr = value.substring(0, value.length - 1).trim()
+            return parseFlexibleDate(dateStr) !== null
+          }
+
+          // 範囲指定: チルダ、スペース、ハイフン（ドット区切りの場合）
+          // チルダ区切り: 2020-01-01~2020-12-31
+          if (value.includes('~')) {
+            const parts = value.split('~').map(s => s.trim())
+            return parts.length === 2 && parts.every(p => parseFlexibleDate(p) !== null)
+          }
+          // スペース区切り: 2020-01-01 2020-12-31
+          if (value.includes(' ')) {
+            const parts = value.split(/\s+/).filter(s => s.length > 0)
+            return parts.length === 2 && parts.every(p => parseFlexibleDate(p) !== null)
+          }
+          // ドット区切り日付同士のハイフン区切り: 2020.01.01-2020.12.31
+          if (value.includes('.') && value.includes('-')) {
+            const parts = value.split('-').map(s => s.trim())
+            if (parts.length === 2 && parts.every(p => /^\d{4}\.\d{2}\.\d{2}$/.test(p))) {
+              return parts.every(p => parseFlexibleDate(p) !== null)
+            }
+          }
+
+          // 単一の日付
+          return parseFlexibleDate(value) !== null
+        }
         case 'atk':
         case 'def':
+          // 片方のみの範囲指定: 1000- or -2000
+          if (/^\d+-$/.test(value) || /^-\d+$/.test(value)) {
+            return true
+          }
           // 数値または範囲形式（1000-2000）
           return /^\d+(-\d+)?$/.test(value)
         case 'races': {
@@ -566,10 +781,33 @@ export default defineComponent({
     // 動的プレースホルダー
     const currentPlaceholder = computed(() => {
       if (pendingCommand.value) {
-        const cmd = COMMANDS[pendingCommand.value.command]
-        if (cmd) {
-          return `${cmd.description}を入力...`
+        const cmd = pendingCommand.value.command
+        // コマンドごとに詳細なプレースホルダーを表示
+        const detailedPlaceholders: Record<string, string> = {
+          '/attr': '光, dark, 闇',
+          '/race': 'ドラゴン, warrior, 戦士',
+          '/level': '4, 8 or 4-8',
+          '/rank': '4, 8 or 4-8',
+          '/atk': '1000, 1000-, -2000, 1000-2000',
+          '/def': '2000, 2000-, -1000, 0-1000',
+          '/type': 'モンスター, spell, 魔法',
+          '/link': '2, 4',
+          '/lm': '上, top, 左上',
+          '/link-marker': '上, top, 左上',
+          '/mtype': '効果, fusion, シンクロ',
+          '/pscale': '1, 8 or 1-8',
+          '/ps': '1, 8 or 1-8',
+          '/date': '2020-01-01 or 2020-01-01~2020-12-31',
+          '/search': 'name, text, mydeck',
+          '/attr-not': '-光, -dark（除外）',
+          '/race-not': '-ドラゴン（除外）',
+          '/level-not': '-4（除外）',
+          '/rank-not': '-4（除外）',
+          '/type-not': '-魔法（除外）',
+          '/link-not': '-2（除外）',
+          '/mtype-not': '-効果（除外）'
         }
+        return detailedPlaceholders[cmd] || `${COMMANDS[cmd]?.description || '値'}を入力...`
       }
       if (searchMode.value === 'mydeck') {
         return 'デッキ名を入力...'
@@ -581,6 +819,64 @@ export default defineComponent({
         'pendulum': 'ペンデュラムテキストを検索...'
       }
       return placeholders[searchMode.value] || props.placeholder
+    })
+
+    // placeholderの長さに応じたクラスを返す
+    const placeholderSizeClass = computed(() => {
+      const length = currentPlaceholder.value.length
+      if (length > 20) return 'placeholder-small'
+      if (length > 15) return 'placeholder-medium'
+      return ''
+    })
+
+    // 予定チップ（入力が有効な場合のみ表示）
+    const previewChip = computed<{ label: string; isNot: boolean; filterType: string; value: string } | null>(() => {
+      if (!pendingCommand.value || !isValidCommandInput.value) return null
+
+      const value = actualInputValue.value
+      const filterType = pendingCommand.value.filterType
+      const isNot = isNegatedInput.value
+
+      let label = ''
+      let mappedValue = value
+
+      // 値をマッピング
+      switch (filterType) {
+        case 'attributes':
+          mappedValue = ATTRIBUTE_MAP[value] || value
+          break
+        case 'cardType':
+          mappedValue = CARD_TYPE_MAP[value] || value
+          break
+        case 'monsterTypes':
+          mappedValue = MONSTER_TYPE_MAP[value] || value
+          break
+        case 'races': {
+          const raceOptions = FILTER_OPTIONS.races
+          const option = raceOptions.find(opt => {
+            if (opt.value.toLowerCase() === value || opt.label.toLowerCase() === value) return true
+            const aliases = (opt as { aliases?: string[] }).aliases
+            return aliases?.some(alias => alias.toLowerCase() === value)
+          })
+          mappedValue = option?.value || value
+          break
+        }
+        case 'searchMode':
+          mappedValue = SEARCH_MODE_MAP[value] || value
+          break
+        case 'linkMarkers': {
+          const markerOptions = FILTER_OPTIONS.linkMarkers
+          const option = markerOptions.find(opt =>
+            opt.value.toLowerCase() === value || opt.label.toLowerCase() === value
+          )
+          mappedValue = option?.value || value
+          break
+        }
+      }
+
+      label = getChipLabel(filterType, mappedValue)
+
+      return { label, isNot, filterType, value: mappedValue }
     })
 
     // mydeckモード用の候補リスト
@@ -659,6 +955,12 @@ export default defineComponent({
 
     // 入力ハンドラ
     const handleInput = () => {
+      // 全角数字を半角に自動変換
+      if (deckStore.searchQuery !== toHalfWidth(deckStore.searchQuery)) {
+        deckStore.searchQuery = toHalfWidth(deckStore.searchQuery)
+        return
+      }
+
       const query = deckStore.searchQuery
 
       // コマンド候補のインデックスをリセット（ペンディングコマンドがない場合のみ）
@@ -677,6 +979,18 @@ export default defineComponent({
         if (query === cmd + ' ') {
           // コマンド + スペースで値入力モードに移行
           const cmdDef = COMMANDS[cmd]
+
+          // アクションコマンドで値入力が不要な場合は即座に実行
+          if (cmdDef.isAction && (cmd === '/clear' || cmd === '/clear-cond' || cmd === '/clear-text')) {
+            pendingCommand.value = {
+              command: cmd,
+              filterType: cmdDef.filterType,
+              isNot: cmdDef.isNot
+            }
+            addFilterChip() // 即座に実行
+            return
+          }
+
           pendingCommand.value = {
             command: cmd,
             filterType: cmdDef.filterType,
@@ -829,14 +1143,104 @@ export default defineComponent({
       }
     }
 
+    // 全ての検索条件をクリア
+    const clearAllFilters = () => {
+      searchFilters.value = {
+        cardType: null,
+        attributes: [],
+        spellTypes: [],
+        trapTypes: [],
+        races: [],
+        monsterTypes: [],
+        monsterTypeMatchMode: 'or',
+        levelType: 'level',
+        levelValues: [],
+        linkValues: [],
+        scaleValues: [],
+        linkMarkers: [],
+        linkMarkerMatchMode: 'or',
+        atk: { exact: false, unknown: false },
+        def: { exact: false, unknown: false },
+        releaseDate: {}
+      }
+      filterChips.value = []
+    }
+
     // フィルターチップを追加
     const addFilterChip = () => {
       if (!pendingCommand.value) return
 
       const value = actualInputValue.value
-      if (!value) return
-
       const filterType = pendingCommand.value.filterType
+
+      // アクションコマンドの処理
+      if (filterType === 'action') {
+        const cmd = pendingCommand.value.command
+        if (cmd === '/clear') {
+          // 全てクリア
+          clearAllFilters()
+          deckStore.searchQuery = ''
+        } else if (cmd === '/clear-cond') {
+          // 条件だけクリア
+          clearAllFilters()
+        } else if (cmd === '/clear-text') {
+          // テキストだけクリア
+          deckStore.searchQuery = ''
+        } else if (cmd === '/clear-one-cond') {
+          // 条件を選択して削除
+          if (!value) {
+            // 値が入力されていない場合は何もしない（候補リスト表示のみ）
+            pendingCommand.value = null
+            return
+          }
+
+          // 選択された条件を削除
+          const selectedValue = value
+          const f = searchFilters.value
+
+          if (selectedValue.startsWith('chip-')) {
+            // チップを削除
+            const index = parseInt(selectedValue.replace('chip-', ''), 10)
+            if (index >= 0 && index < filterChips.value.length) {
+              removeFilterChip(index)
+            }
+          } else if (selectedValue === 'cardType') {
+            f.cardType = null
+          } else if (selectedValue.startsWith('attr-')) {
+            const attr = selectedValue.replace('attr-', '')
+            const idx = f.attributes.indexOf(attr as Attribute)
+            if (idx !== -1) f.attributes.splice(idx, 1)
+          } else if (selectedValue.startsWith('race-')) {
+            const race = selectedValue.replace('race-', '')
+            const idx = f.races.indexOf(race as Race)
+            if (idx !== -1) f.races.splice(idx, 1)
+          } else if (selectedValue.startsWith('level-')) {
+            const level = parseInt(selectedValue.replace('level-', ''), 10)
+            const idx = f.levelValues.indexOf(level)
+            if (idx !== -1) f.levelValues.splice(idx, 1)
+          } else if (selectedValue.startsWith('link-')) {
+            const link = parseInt(selectedValue.replace('link-', ''), 10)
+            const idx = f.linkValues.indexOf(link)
+            if (idx !== -1) f.linkValues.splice(idx, 1)
+          } else if (selectedValue.startsWith('mtype-')) {
+            const mtype = selectedValue.replace('mtype-', '')
+            const idx = f.monsterTypes.findIndex(mt => mt.type === mtype)
+            if (idx !== -1) f.monsterTypes.splice(idx, 1)
+          } else if (selectedValue === 'atk') {
+            f.atk = { exact: false, unknown: false }
+          } else if (selectedValue === 'def') {
+            f.def = { exact: false, unknown: false }
+          }
+
+          pendingCommand.value = null
+          deckStore.searchQuery = ''
+        } else {
+          pendingCommand.value = null
+        }
+        return
+      }
+
+      if (!value) return
 
       // 検索モードは特別処理（チップにしない）
       if (filterType === 'searchMode') {
@@ -850,8 +1254,8 @@ export default defineComponent({
             })
           }
         }
-        deckStore.searchQuery = ''
         pendingCommand.value = null
+        deckStore.searchQuery = ''
         return
       }
 
@@ -891,20 +1295,26 @@ export default defineComponent({
       // コマンド自体がNOTか、または-プレフィックスが付いているか
       const isNot = pendingCommand.value.isNot || isNegatedInput.value
 
-      // チップを追加
-      filterChips.value.push({
+      // チップ情報を保存
+      const chipData = {
         type: filterType,
         value: mappedValue,
         label: getChipLabel(filterType, mappedValue),
         isNot
-      })
+      }
+
+      // 先に入力をクリア（previewChipを消すため）
+      console.log('[DEBUG] Before clear:', { pending: pendingCommand.value, query: deckStore.searchQuery })
+      pendingCommand.value = null
+      deckStore.searchQuery = ''
+      console.log('[DEBUG] After clear:', { pending: pendingCommand.value, query: deckStore.searchQuery })
+
+      // チップを追加
+      filterChips.value.push(chipData)
+      console.log('[DEBUG] Chip added:', chipData)
 
       // 実際のフィルターにも適用
       applyChipToFilters(filterType, mappedValue, isNot)
-
-      // 入力をクリア
-      deckStore.searchQuery = ''
-      pendingCommand.value = null
     }
 
     // チップをフィルターに適用
@@ -926,21 +1336,38 @@ export default defineComponent({
           }
           break
         case 'levels': {
-          const level = parseInt(value)
-          if (!isNaN(level) && !f.levelValues.includes(level)) {
-            f.levelValues.push(level)
+          // 範囲（4-8）、カンマ区切り（3,5）、単一の数値を処理
+          if (value.includes('-')) {
+            const [start, end] = value.split('-').map(v => parseInt(v, 10))
+            for (let i = start; i <= end; i++) {
+              if (!f.levelValues.includes(i)) {
+                f.levelValues.push(i)
+              }
+            }
+          } else if (value.includes(',')) {
+            const levels = value.split(',').map(v => parseInt(v, 10))
+            levels.forEach(level => {
+              if (!isNaN(level) && !f.levelValues.includes(level)) {
+                f.levelValues.push(level)
+              }
+            })
+          } else {
+            const level = parseInt(value, 10)
+            if (!isNaN(level) && !f.levelValues.includes(level)) {
+              f.levelValues.push(level)
+            }
           }
           break
         }
         case 'atk': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const min = parts[0] ? parseInt(parts[0]) : undefined
-            const max = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(min as number)) f.atk.min = min
-            if (!isNaN(max as number)) f.atk.max = max
+            const min = parts[0] ? parseInt(parts[0], 10) : undefined
+            const max = parts[1] ? parseInt(parts[1], 10) : undefined
+            if (min !== undefined && !isNaN(min)) f.atk.min = min
+            if (max !== undefined && !isNaN(max)) f.atk.max = max
           } else {
-            const val = parseInt(value)
+            const val = parseInt(value, 10)
             if (!isNaN(val)) {
               f.atk.exact = true
               f.atk.min = val
@@ -952,12 +1379,12 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const min = parts[0] ? parseInt(parts[0]) : undefined
-            const max = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(min as number)) f.def.min = min
-            if (!isNaN(max as number)) f.def.max = max
+            const min = parts[0] ? parseInt(parts[0], 10) : undefined
+            const max = parts[1] ? parseInt(parts[1], 10) : undefined
+            if (min !== undefined && !isNaN(min)) f.def.min = min
+            if (max !== undefined && !isNaN(max)) f.def.max = max
           } else {
-            const val = parseInt(value)
+            const val = parseInt(value, 10)
             if (!isNaN(val)) {
               f.def.exact = true
               f.def.min = val
@@ -970,9 +1397,63 @@ export default defineComponent({
           f.cardType = value as CardType
           break
         case 'linkNumbers': {
-          const link = parseInt(value)
-          if (!isNaN(link) && !f.linkValues.includes(link)) {
-            f.linkValues.push(link)
+          // カンマ区切り（2,4）、単一の数値を処理
+          if (value.includes(',')) {
+            const links = value.split(',').map(v => parseInt(v, 10))
+            links.forEach(link => {
+              if (!isNaN(link) && !f.linkValues.includes(link)) {
+                f.linkValues.push(link)
+              }
+            })
+          } else {
+            const link = parseInt(value, 10)
+            if (!isNaN(link) && !f.linkValues.includes(link)) {
+              f.linkValues.push(link)
+            }
+          }
+          break
+        }
+        case 'linkMarkers': {
+          // リンクマーカーの文字列を数値に変換
+          const markerValue = LINK_MARKER_MAP[value]
+          if (markerValue !== undefined && !f.linkMarkers.includes(markerValue)) {
+            f.linkMarkers.push(markerValue)
+          }
+          break
+        }
+        case 'pendulumScales': {
+          // 範囲（1-8）、カンマ区切り（1,8）、単一の数値を処理
+          if (value.includes('-')) {
+            const [start, end] = value.split('-').map(v => parseInt(v, 10))
+            for (let i = start; i <= end; i++) {
+              if (!f.scaleValues.includes(i)) {
+                f.scaleValues.push(i)
+              }
+            }
+          } else if (value.includes(',')) {
+            const scales = value.split(',').map(v => parseInt(v, 10))
+            scales.forEach(scale => {
+              if (!isNaN(scale) && !f.scaleValues.includes(scale)) {
+                f.scaleValues.push(scale)
+              }
+            })
+          } else {
+            const scale = parseInt(value, 10)
+            if (!isNaN(scale) && !f.scaleValues.includes(scale)) {
+              f.scaleValues.push(scale)
+            }
+          }
+          break
+        }
+        case 'releaseDate': {
+          // YYYY-MM-DD or YYYY-MM-DD~YYYY-MM-DD 形式
+          if (value.includes('~')) {
+            const [from, to] = value.split('~')
+            f.releaseDate.from = from
+            f.releaseDate.to = to
+          } else {
+            f.releaseDate.from = value
+            f.releaseDate.to = value
           }
           break
         }
@@ -1012,7 +1493,7 @@ export default defineComponent({
           break
         }
         case 'levels': {
-          const level = parseInt(value)
+          const level = parseInt(value, 10)
           const idx = f.levelValues.indexOf(level)
           if (idx !== -1) f.levelValues.splice(idx, 1)
           break
@@ -1027,9 +1508,17 @@ export default defineComponent({
           f.cardType = null
           break
         case 'linkNumbers': {
-          const link = parseInt(value)
+          const link = parseInt(value, 10)
           const idx = f.linkValues.indexOf(link)
           if (idx !== -1) f.linkValues.splice(idx, 1)
+          break
+        }
+        case 'linkMarkers': {
+          const markerValue = LINK_MARKER_MAP[value]
+          if (markerValue !== undefined) {
+            const idx = f.linkMarkers.indexOf(markerValue)
+            if (idx !== -1) f.linkMarkers.splice(idx, 1)
+          }
           break
         }
         case 'monsterTypes': {
@@ -1255,7 +1744,7 @@ export default defineComponent({
           break
         }
         case 'levels': {
-          const level = parseInt(value)
+          const level = parseInt(value, 10)
           if (!isNaN(level) && level >= 1 && level <= 12 && !f.levelValues.includes(level)) {
             f.levelValues.push(level)
           }
@@ -1265,12 +1754,12 @@ export default defineComponent({
           // ATK:1000-2000 または ATK:1000 形式
           const parts = value.split('-')
           if (parts.length === 2) {
-            const min = parts[0] ? parseInt(parts[0]) : undefined
-            const max = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(min as number)) f.atk.min = min
-            if (!isNaN(max as number)) f.atk.max = max
+            const min = parts[0] ? parseInt(parts[0], 10) : undefined
+            const max = parts[1] ? parseInt(parts[1], 10) : undefined
+            if (min !== undefined && !isNaN(min)) f.atk.min = min
+            if (max !== undefined && !isNaN(max)) f.atk.max = max
           } else if (parts.length === 1) {
-            const val = parseInt(parts[0])
+            const val = parseInt(parts[0], 10)
             if (!isNaN(val)) {
               f.atk.exact = true
               f.atk.min = val
@@ -1282,12 +1771,12 @@ export default defineComponent({
         case 'def': {
           const parts = value.split('-')
           if (parts.length === 2) {
-            const min = parts[0] ? parseInt(parts[0]) : undefined
-            const max = parts[1] ? parseInt(parts[1]) : undefined
-            if (!isNaN(min as number)) f.def.min = min
-            if (!isNaN(max as number)) f.def.max = max
+            const min = parts[0] ? parseInt(parts[0], 10) : undefined
+            const max = parts[1] ? parseInt(parts[1], 10) : undefined
+            if (min !== undefined && !isNaN(min)) f.def.min = min
+            if (max !== undefined && !isNaN(max)) f.def.max = max
           } else if (parts.length === 1) {
-            const val = parseInt(parts[0])
+            const val = parseInt(parts[0], 10)
             if (!isNaN(val)) {
               f.def.exact = true
               f.def.min = val
@@ -1304,7 +1793,7 @@ export default defineComponent({
           break
         }
         case 'linkNumbers': {
-          const link = parseInt(value)
+          const link = parseInt(value, 10)
           if (!isNaN(link) && link >= 1 && link <= 6 && !f.linkValues.includes(link)) {
             f.linkValues.push(link)
           }
@@ -1418,11 +1907,17 @@ export default defineComponent({
           if (f.releaseDate.from || f.releaseDate.to) {
             searchOptions.releaseDate = {}
             if (f.releaseDate.from) {
-              const [year, month, day] = f.releaseDate.from.split('-').map(Number)
+              const parts = f.releaseDate.from.split('-')
+              const year: number = parseInt(parts[0], 10)
+              const month: number = parseInt(parts[1], 10)
+              const day: number = parseInt(parts[2], 10)
               searchOptions.releaseDate.start = { year, month, day }
             }
             if (f.releaseDate.to) {
-              const [year, month, day] = f.releaseDate.to.split('-').map(Number)
+              const parts = f.releaseDate.to.split('-')
+              const year: number = parseInt(parts[0], 10)
+              const month: number = parseInt(parts[1], 10)
+              const day: number = parseInt(parts[2], 10)
               searchOptions.releaseDate.end = { year, month, day }
             }
           }
@@ -1507,6 +2002,8 @@ export default defineComponent({
       pendingCommand,
       isValidCommandInput,
       currentPlaceholder,
+      placeholderSizeClass,
+      previewChip,
       filteredSuggestions,
       selectedSuggestionIndex,
       mydeckSuggestions,
@@ -1525,7 +2022,8 @@ export default defineComponent({
       handleEscape,
       removeFilterChip,
       selectSuggestion,
-      selectMydeck
+      selectMydeck,
+      clearAllFilters
     }
   }
 })
@@ -1620,10 +2118,15 @@ export default defineComponent({
     border-radius: 4px;
     padding: 2px 4px;
     margin: 0 4px;
+
+    // 有効な入力時
+    &.valid {
+      background: var(--command-mode-valid-bg);
+    }
   }
 }
 
-/* SearchFilterDialogで選択した条件（上部） */
+/* SearchFilterDialogで選択した条件（上部） - 常に1行分の高さを確保 */
 .filter-icons-top {
   display: flex;
   flex-wrap: nowrap;
@@ -1632,11 +2135,40 @@ export default defineComponent({
   padding: 0 4px;
   align-items: center;
   overflow: hidden;
+  min-height: 14px;
+  position: relative;
 }
 
 /* compactモード（right側）では最大幅を制限 */
 .compact .filter-icons-top {
   max-width: 150px;
+}
+
+/* 検索条件クリアボタン（右側） */
+.clear-filters-btn-top {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #999);
+  font-size: 10px;
+  font-weight: 300;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-left: 4px;
+
+  &:hover {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    transform: scale(1.2);
+  }
 }
 
 /* 入力行 */
@@ -1647,75 +2179,60 @@ export default defineComponent({
   position: relative;
 }
 
-/* スラッシュコマンドのチップ（左側） */
-.filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-right: 4px;
-  max-width: 50%;
-  overflow: hidden;
-}
-
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 6px;
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-primary, #333);
-  border: 1px solid var(--border-primary, #ddd);
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
+/* スラッシュコマンドで追加されたチップ（上部表示用） */
+.filter-chip-top {
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: var(--bg-tertiary, #e0e0e0);
-    border-color: var(--text-tertiary, #999);
+    background: var(--bg-tertiary, #e0e0e0) !important;
+    transform: scale(1.1);
   }
 
   &.not-condition {
-    background: var(--color-error-bg);
-    border-color: var(--color-error);
-    color: var(--color-error-text);
+    background: var(--color-error-bg) !important;
+    border-color: var(--color-error) !important;
+    color: var(--color-error-text) !important;
 
     &:hover {
-      background: var(--color-error-hover-bg);
-      border-color: var(--color-error);
+      background: var(--color-error-hover-bg) !important;
+      border-color: var(--color-error) !important;
     }
 
     .not-prefix {
       font-weight: 700;
       margin-right: 1px;
     }
-
-    .chip-remove {
-      color: var(--color-error);
-
-      &:hover {
-        color: var(--color-error-text);
-      }
-    }
-  }
-
-  .chip-remove {
-    font-size: 10px;
-    color: var(--text-tertiary, #999);
-    margin-left: 2px;
-
-    &:hover {
-      color: var(--text-primary, #333);
-    }
   }
 }
 
-/* 有効入力の視覚フィードバック */
-.search-input.valid-input {
-  color: var(--color-success);
+/* 予定チップ（入力が有効な場合のみ表示） */
+.filter-chip-preview {
+  background: #c8e6c9 !important; // 明るい緑
+  border-color: #81c784 !important;
+  color: #2e7d32 !important;
   font-weight: 600;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  &.not-condition {
+    background: #ffcdd2 !important; // NOT条件の場合は赤系
+    border-color: #ef5350 !important;
+    color: #c62828 !important;
+  }
+
+  .not-prefix {
+    font-weight: 700;
+    margin-right: 1px;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 /* 候補リストドロップダウン */
@@ -1890,9 +2407,19 @@ export default defineComponent({
   color: var(--text-primary, #333);
   line-height: 1.2;
   min-width: 80px;
+  transition: background-color 0.2s ease;
 
   &::placeholder {
     color: var(--text-tertiary, #999);
+  }
+
+  // placeholderの長さに応じてフォントサイズを調整
+  &.placeholder-medium::placeholder {
+    font-size: 12px;
+  }
+
+  &.placeholder-small::placeholder {
+    font-size: 10px;
   }
 }
 
@@ -2081,17 +2608,22 @@ export default defineComponent({
   background: transparent;
   border: none;
   color: var(--text-tertiary, #999);
-  font-size: 18px;
-  font-weight: bold;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
   border-radius: 50%;
   transition: all 0.2s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
     color: var(--text-primary, #333);
+  }
+
+  svg {
+    display: block;
   }
 }
 </style>

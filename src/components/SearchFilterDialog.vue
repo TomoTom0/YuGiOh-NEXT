@@ -453,7 +453,7 @@
         <!-- フッター：SearchInputBar と閉じるボタン -->
         <div class="dialog-footer">
           <SearchInputBar position="bottom" />
-          <button class="close-button" @click="deckStore.isFilterDialogVisible = false">閉じる</button>
+          <button class="close-button" @click="deckStore.isFilterDialogVisible = false">×</button>
         </div>
       </div>
     </div>
@@ -2328,27 +2328,32 @@ function clearFilters() {
   margin-top: 8px;
 
   .close-button {
-    padding: 6px 16px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--button-text);
-    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-    border: none;
-    border-radius: 6px;
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
-      background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-      box-shadow: 0 4px 8px rgba(76, 175, 80, 0.4);
-      transform: translateY(-1px);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border-color: var(--text-secondary);
+      transform: scale(1.1);
     }
 
     &:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+      transform: scale(0.95);
     }
   }
 }
