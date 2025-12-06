@@ -831,12 +831,14 @@ export default defineComponent({
 
     // 予定チップ（入力が有効な場合のみ表示）
     const previewChip = computed<{ label: string; isNot: boolean; filterType: string; value: string } | null>(() => {
-      // pendingCommandがnullの場合は確実にnullを返す
-      if (!pendingCommand.value) return null
-      if (!isValidCommandInput.value) return null
+      // 両方の条件を明示的にチェック
+      const hasPendingCommand = !!pendingCommand.value
+      const hasValidInput = isValidCommandInput.value
+      
+      if (!hasPendingCommand || !hasValidInput) return null
 
       const value = actualInputValue.value
-      const filterType = pendingCommand.value.filterType
+      const filterType = pendingCommand.value!.filterType
       const isNot = isNegatedInput.value
 
       let label = ''
