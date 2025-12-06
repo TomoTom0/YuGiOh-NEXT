@@ -1334,14 +1334,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // getDeckDetail の完了を待つ（最大1秒）
       if (window.ygoNextPreloadedDeckDetailPromise && !window.ygoNextPreloadedDeckDetail) {
-        console.log('[loadDeck] Waiting for getDeckDetail preload to complete...');
-        const waitStart = performance.now();
         try {
           await Promise.race([
             window.ygoNextPreloadedDeckDetailPromise,
             new Promise((_, reject) => setTimeout(() => reject(new Error('Preload timeout')), 1000))
           ]);
-          console.log('[loadDeck] Preload wait completed in', (performance.now() - waitStart).toFixed(2), 'ms');
         } catch (error) {
           console.warn('[loadDeck] Preload wait failed or timed out:', error);
         }
@@ -1352,7 +1349,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (window.ygoNextPreloadedDeckDetail) {
         loadedDeck = window.ygoNextPreloadedDeckDetail;
         window.ygoNextPreloadedDeckDetail = null; // 使用後は削除
-        console.log('[loadDeck] Using preloaded deck data from memory');
       }
 
       // プリロードデータがなければ通常の getDeckDetailAPI を実行

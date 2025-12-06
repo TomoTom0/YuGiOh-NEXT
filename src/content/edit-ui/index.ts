@@ -163,7 +163,6 @@ function watchUrlChanges(): void {
 
         // UI が未読み込みの場合のみ読み込み実行
         if (!isEditUILoaded) {
-          console.log('[Edit UI] Loading edit UI');
           loadEditUI();
         }
       } else if (!isEditUrl() && isEditUILoaded) {
@@ -182,15 +181,11 @@ async function loadEditUI(): Promise<void> {
     return;
   }
 
-  const startTime = performance.now();
-  console.log('[loadEditUI (edit-ui)] 開始:', startTime.toFixed(2));
-
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
 
   // テーマを設定ストアから読み込んで適用
   await applyThemeFromSettings();
-  console.log('[loadEditUI (edit-ui)] テーマ適用完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
@@ -286,38 +281,29 @@ async function loadEditUI(): Promise<void> {
 
   // #bg に追加
   bgElement.appendChild(vueEditApp);
-  console.log('[loadEditUI (edit-ui)] DOM準備完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
   // Vue アプリケーションを起動
   await initVueApp();
-  console.log('[loadEditUI (edit-ui)] Vue初期化完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
   // オーバーレイはDeckEditLayout.vueのonMountedで削除される
   // （デッキ読み込み完了後に削除）
 
   // 言語切り替えボタンを差し替え（Vue初期化後）
   replaceLanguageChangeLinks();
-
-  console.log('[loadEditUI (edit-ui)] 終了:', (performance.now() - startTime).toFixed(2), 'ms');
 }
 
 /**
  * Vue アプリケーションを初期化
  */
 async function initVueApp(): Promise<void> {
-  const startTime = performance.now();
-  console.log('[initVueApp] 開始:', startTime.toFixed(2));
-
   try {
     // トップレベルで既にインポート開始しているPromiseを使用
     const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await vueModulesPromise;
-    console.log('[initVueApp] Vueモジュール取得完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
 
     app.use(pinia);
-    console.log('[initVueApp] Pinia適用完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
     // window.ygoNextCurrentSettings から即座に設定を読み込む（Chrome Storage 不要）
     const cachedSettings = (window as any).ygoNextCurrentSettings;
@@ -327,15 +313,12 @@ async function initVueApp(): Promise<void> {
       settingsStore.appSettings = { ...settingsStore.appSettings, ...cachedSettings };
       // CSS変数を即座に適用（カードサイズなど画面構造に影響）
       settingsStore.applyCardSize();
-      console.log('[initVueApp] Settings loaded from memory:', (performance.now() - startTime).toFixed(2), 'ms');
     }
 
     app.mount('#vue-edit-app');
-    console.log('[initVueApp] Vue マウント完了:', (performance.now() - startTime).toFixed(2), 'ms');
 
     // Vue描画が完全に完了するまで待機
     await nextTick();
-    console.log('[initVueApp] nextTick完了:', (performance.now() - startTime).toFixed(2), 'ms');
   } catch (error) {
     console.error('Failed to initialize Vue app:', error);
   }
@@ -348,7 +331,6 @@ async function initVueApp(): Promise<void> {
 (async () => {
   // 編集ページでない場合はスキップ
   if (!isVueEditPage()) {
-    console.log('[Edit UI] Module loaded but not on edit page, skipping initialization');
     return;
   }
 

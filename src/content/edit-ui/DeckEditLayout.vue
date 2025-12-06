@@ -414,20 +414,14 @@ export default {
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
-      const startTime = performance.now()
-      console.log('[DeckEditLayout] onMounted 開始:', startTime.toFixed(2))
-
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
-      console.log('[DeckEditLayout] initializeOnPageLoad完了:', (performance.now() - startTime).toFixed(2), 'ms')
 
       // デッキ読み込み完了後、Vue UIを表示
       isReady.value = true
-      console.log('[DeckEditLayout] isReady=true:', (performance.now() - startTime).toFixed(2), 'ms')
 
       // Vue描画完了を待ってからオーバーレイを削除
       await nextTick()
-      console.log('[DeckEditLayout] nextTick完了:', (performance.now() - startTime).toFixed(2), 'ms')
 
       // 短いフェードアウトで削除（途切れを防ぐ）
       const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay')
@@ -436,7 +430,6 @@ export default {
         moduleLoadingOverlay.style.transition = 'opacity 150ms ease-out'
         setTimeout(() => {
           moduleLoadingOverlay.remove()
-          console.log('[DeckEditLayout] オーバーレイ削除完了:', (performance.now() - startTime).toFixed(2), 'ms')
         }, 150)
       }
 

@@ -93,15 +93,12 @@ function prefetchEditUI(): void {
  * （マッピングマネージャー等は initializeFeatures() で idle 時に実行される）
  */
 async function preloadEditPageData(): Promise<void> {
-  const startTime = performance.now();
-
   // URLから dno を抽出
   const hash = window.location.hash;
   const urlParams = new URLSearchParams(hash.split('?')[1] || '');
   const dno = urlParams.get('dno');
 
   if (!dno) {
-    console.log('[Preload] No dno in URL, skipping preload');
     return;
   }
 
@@ -122,13 +119,9 @@ async function preloadEditPageData(): Promise<void> {
   // getDeckDetail の Promise を公開（loadDeck で await できるようにする）
   const deckDetailPromise = (async () => {
     try {
-      console.log('[Preload] Loading deck detail: dno=', dnoNum);
       const { getDeckDetail } = await import('../api/deck-operations');
       const deckInfo = await getDeckDetail(dnoNum, cgid);
       window.ygoNextPreloadedDeckDetail = deckInfo;
-
-      const endTime = performance.now();
-      console.log(`[Preload] Deck detail loaded in ${(endTime - startTime).toFixed(2)}ms`);
     } catch (error) {
       console.warn('[Preload] Deck detail load failed:', error);
     }
@@ -142,9 +135,6 @@ async function preloadEditPageData(): Promise<void> {
  */
 async function loadEditUIIfNeeded(): Promise<void> {
   if (!isVueEditPage() || editUILoaded) return;
-
-  const startTime = performance.now();
-  console.log('[loadEditUI] 開始:', startTime.toFixed(2));
 
   editUILoaded = true;
 
@@ -238,8 +228,6 @@ async function loadEditUIIfNeeded(): Promise<void> {
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  console.log('[loadEditUI] オーバーレイ作成完了:', (performance.now() - startTime).toFixed(2), 'ms');
-
   // preload はトップレベルで既に開始済み（二重実行防止）
 
   try {
@@ -249,7 +237,6 @@ async function loadEditUIIfNeeded(): Promise<void> {
       ms: 30000, // 30秒のタイムアウト
       message: 'Edit UI module load timeout'
     });
-    console.log('[loadEditUI] edit-ui インポート完了:', (performance.now() - startTime).toFixed(2), 'ms');
   } catch (error) {
     if (TimeoutError.isTimeoutError(error)) {
       console.error('Failed to load edit UI: Timeout', error);
@@ -258,8 +245,6 @@ async function loadEditUIIfNeeded(): Promise<void> {
     }
     editUILoaded = false;
   }
-
-  console.log('[loadEditUI] 終了:', (performance.now() - startTime).toFixed(2), 'ms');
 }
 
 /**
@@ -272,7 +257,6 @@ async function cacheSettingsGlobally(): Promise<void> {
     if (appSettings) {
       localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings));
       window.ygoNextCurrentSettings = appSettings;
-      console.log('[YGO Helper] Settings cached to localStorage');
     }
   } catch (error) {
     console.warn('[YGO Helper] Failed to cache settings:', error);
@@ -289,7 +273,6 @@ async function cacheCgidInStorage(): Promise<void> {
 
     if (cgid) {
       await setToStorageLocal('ygo-user-cgid', cgid);
-      console.log('[YGO Helper] cgid cached:', cgid);
     }
   } catch (error) {
     console.warn('[YGO Helper] Failed to cache cgid:', error);
@@ -412,7 +395,6 @@ if (isVueEditPage()) {
   }
 
   // 画面描画と無関係な全ての事前処理を最速で開始（Vue インポート・マウントと並行実行）
-  console.log('[Content] Starting preload at:', performance.now());
   preloadEditPageData().catch(err => {
     console.warn('[Content] Preload failed:', err);
   });
