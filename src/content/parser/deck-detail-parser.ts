@@ -457,6 +457,12 @@ export function parseCardSection(
             lang,
             quantity
           });
+
+          // cardInfoMapにも追加（UnifiedCacheDBに保存するため）
+          cardInfoMap.set(cid, {
+            ...cardInfo,
+            lang
+          });
         } else {
           // ciidCountsが1個以上の場合、このデッキに含まれる全ciid情報を収集
           const allImgs = Array.from(ciidCounts.entries()).map(([ciid, info]) => ({

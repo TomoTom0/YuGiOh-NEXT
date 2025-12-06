@@ -445,9 +445,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
     if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
 
+    // 削除前にtargetIndexを取得（元の位置関係を判定するため）
+    const originalTargetIndex = targetUuid !== null ? sectionOrder.findIndex(dc => dc.uuid === targetUuid) : -1;
+
     // 元の位置を記録（undo用）
     const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid ?? null : null;
-    
+
     const movedCards = sectionOrder.splice(sourceIndex, 1);
     if (movedCards.length === 0) return { success: false, error: 'カードが見つかりません' };
     const movedCard = movedCards[0];
@@ -457,10 +460,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 末尾に移動
       sectionOrder.push(movedCard);
     } else {
-      // targetUuidの直後に挿入
+      // targetUuidの位置を再検索（削除後のインデックス）
       const targetIndex = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
       if (targetIndex !== -1) {
-        sectionOrder.splice(targetIndex + 1, 0, movedCard);
+        // sourceがtargetより後ろにあった場合（削除前のsourceIndex > originalTargetIndex）
+        // → targetの位置に挿入（A, Bの順）
+        if (originalTargetIndex !== -1 && sourceIndex > originalTargetIndex) {
+          sectionOrder.splice(targetIndex, 0, movedCard);
+        } else {
+          // sourceがtargetより前にあった場合
+          // → targetの直後に挿入（B, Aの順）
+          sectionOrder.splice(targetIndex + 1, 0, movedCard);
+        }
       } else {
         // targetが見つからない場合は末尾に移動
         sectionOrder.push(movedCard);
@@ -1066,11 +1077,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('[moveCardWithPosition] sourceCard not found!');
       return { success: false, error: 'カードが見つかりません' };
     }
-    
+
+    // 削除前にインデックスを記録（undo用）
+    const originalSourceIndex = fromOrder.indexOf(sourceCard);
+    if (originalSourceIndex === -1) {
+      console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
+      return { success: false, error: 'カードの位置が見つかりません' };
+    }
+
     const tempCardDB = getTempCardDB();
     const cardInfo = tempCardDB.get(cardId);
     if (!cardInfo) return { success: false, error: 'カード情報が見つかりません' };
-    
+
     removeFromDisplayOrderInternal(cardId, from, sourceUuid, cardInfo.ciid);
 
     // 2. 移動先の指定位置に追加（内部処理のみ、コマンドは全体で1つ）
@@ -1117,11 +1135,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // ドラッグ移動全体を1つのコマンドとして記録
     const insertedUuid = newDisplayCard.uuid;
-    const originalSourceIndex = fromOrder.indexOf(sourceCard);
-    if (originalSourceIndex === -1) {
-      console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
-      return { success: false, error: 'カードの位置が見つかりません' };
-    }
 
     const command: Command = {
       execute: () => {
