@@ -36,9 +36,10 @@ import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-
  */
 declare global {
   interface Window {
-    ygoCurrentSettings?: any;
-    ygoPreloadedDeckDetail?: any;
-    ygoPreloadedDeckList?: any;
+    ygoNextCurrentSettings?: any;
+    ygoNextPreloadedDeckDetail?: any;
+    ygoNextPreloadedDeckList?: any;
+    ygoNextPreloadedDeckDetailPromise?: Promise<void> | null;
   }
 }
 
@@ -118,17 +119,22 @@ async function preloadEditPageData(): Promise<void> {
     return;
   }
 
-  try {
-    console.log('[Preload] Loading deck detail: dno=', dnoNum);
-    const { getDeckDetail } = await import('../api/deck-operations');
-    const deckInfo = await getDeckDetail(dnoNum, cgid);
-    window.ygoPreloadedDeckDetail = deckInfo;
+  // getDeckDetail の Promise を公開（loadDeck で await できるようにする）
+  const deckDetailPromise = (async () => {
+    try {
+      console.log('[Preload] Loading deck detail: dno=', dnoNum);
+      const { getDeckDetail } = await import('../api/deck-operations');
+      const deckInfo = await getDeckDetail(dnoNum, cgid);
+      window.ygoNextPreloadedDeckDetail = deckInfo;
 
-    const endTime = performance.now();
-    console.log(`[Preload] Deck detail loaded in ${(endTime - startTime).toFixed(2)}ms`);
-  } catch (error) {
-    console.warn('[Preload] Deck detail load failed:', error);
-  }
+      const endTime = performance.now();
+      console.log(`[Preload] Deck detail loaded in ${(endTime - startTime).toFixed(2)}ms`);
+    } catch (error) {
+      console.warn('[Preload] Deck detail load failed:', error);
+    }
+  })();
+
+  window.ygoNextPreloadedDeckDetailPromise = deckDetailPromise;
 }
 
 /**
@@ -137,12 +143,14 @@ async function preloadEditPageData(): Promise<void> {
 async function loadEditUIIfNeeded(): Promise<void> {
   if (!isVueEditPage() || editUILoaded) return;
 
+  const startTime = performance.now();
+  console.log('[loadEditUI] 開始:', startTime.toFixed(2));
+
   editUILoaded = true;
 
   // FOUC防止：オーバーレイを即座に作成（モジュールロード前に表示）
-  // window.ygoCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
-  let overlayBgColor = '#ffffff'; // デフォルトはlight
-  const cachedSettings = (window as any).ygoCurrentSettings;
+  // window.ygoNextCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
+  const cachedSettings = (window as any).ygoNextCurrentSettings;
   let overlayTheme: 'light' | 'dark' = 'light';
 
   if (cachedSettings && cachedSettings.theme) {
@@ -156,7 +164,8 @@ async function loadEditUIIfNeeded(): Promise<void> {
     overlayTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
 
-  overlayBgColor = overlayTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+  // シンプルな背景色
+  const bgColor = overlayTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'ygo-module-loading-overlay';
@@ -165,35 +174,47 @@ async function loadEditUIIfNeeded(): Promise<void> {
   loadingOverlay.style.left = '0';
   loadingOverlay.style.width = '100%';
   loadingOverlay.style.height = '100%';
-  loadingOverlay.style.backgroundColor = overlayBgColor;
+  loadingOverlay.style.backgroundColor = bgColor;
   loadingOverlay.style.zIndex = '999999';
   loadingOverlay.style.pointerEvents = 'none';
   loadingOverlay.style.display = 'flex';
   loadingOverlay.style.flexDirection = 'column';
   loadingOverlay.style.alignItems = 'center';
   loadingOverlay.style.justifyContent = 'center';
+  loadingOverlay.style.gap = '24px';
+
+  // タイトル "YuGiOh NEXT"を追加
+  const titleText = document.createElement('div');
+  titleText.textContent = 'YuGiOh NEXT';
+  titleText.style.fontSize = '42px';
+  titleText.style.fontWeight = '600';
+  titleText.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  titleText.style.color = overlayTheme === 'dark' ? '#ffffff' : '#1a1a1a';
+  titleText.style.letterSpacing = '1px';
 
   // ローディングスピナーを追加
   const spinner = document.createElement('div');
-  spinner.style.width = '50px';
-  spinner.style.height = '50px';
-  spinner.style.border = `4px solid ${overlayTheme === 'dark' ? '#333' : '#e0e0e0'}`;
-  spinner.style.borderTop = `4px solid ${overlayTheme === 'dark' ? '#fff' : '#333'}`;
+  spinner.style.width = '48px';
+  spinner.style.height = '48px';
+  spinner.style.border = `3px solid ${overlayTheme === 'dark' ? '#333' : '#ddd'}`;
+  spinner.style.borderTop = `3px solid ${overlayTheme === 'dark' ? '#888' : '#666'}`;
   spinner.style.borderRadius = '50%';
-  spinner.style.animation = 'ygo-spin 1s linear infinite';
+  spinner.style.animation = 'ygo-spin 0.8s linear infinite';
 
-  // ローディングテキストを追加
+  // サブテキストを追加
   const loadingText = document.createElement('div');
-  loadingText.textContent = 'デッキエディタを読み込み中...';
-  loadingText.style.color = overlayTheme === 'dark' ? '#ccc' : '#666';
-  loadingText.style.fontSize = '16px';
-  loadingText.style.fontFamily = 'sans-serif';
-  loadingText.style.marginTop = '20px';
+  loadingText.textContent = 'NEXT Deck Edit Page';
+  loadingText.style.color = overlayTheme === 'dark' ? '#888' : '#666';
+  loadingText.style.fontSize = '13px';
+  loadingText.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  loadingText.style.fontWeight = '400';
+  loadingText.style.letterSpacing = '0.5px';
 
+  loadingOverlay.appendChild(titleText);
   loadingOverlay.appendChild(spinner);
   loadingOverlay.appendChild(loadingText);
 
-  // スピナーアニメーションのCSSを追加
+  // アニメーションのCSSを追加
   const spinnerStyle = document.createElement('style');
   spinnerStyle.textContent = `
     @keyframes ygo-spin {
@@ -217,6 +238,8 @@ async function loadEditUIIfNeeded(): Promise<void> {
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
+  console.log('[loadEditUI] オーバーレイ作成完了:', (performance.now() - startTime).toFixed(2), 'ms');
+
   // preload はトップレベルで既に開始済み（二重実行防止）
 
   try {
@@ -226,6 +249,7 @@ async function loadEditUIIfNeeded(): Promise<void> {
       ms: 30000, // 30秒のタイムアウト
       message: 'Edit UI module load timeout'
     });
+    console.log('[loadEditUI] edit-ui インポート完了:', (performance.now() - startTime).toFixed(2), 'ms');
   } catch (error) {
     if (TimeoutError.isTimeoutError(error)) {
       console.error('Failed to load edit UI: Timeout', error);
@@ -234,18 +258,21 @@ async function loadEditUIIfNeeded(): Promise<void> {
     }
     editUILoaded = false;
   }
+
+  console.log('[loadEditUI] 終了:', (performance.now() - startTime).toFixed(2), 'ms');
 }
 
 /**
- * アプリケーション設定をメモリとChromeStorageにキャッシュ
- * メモリキャッシュは同一Content Script内での高速アクセス用
+ * アプリケーション設定をlocalStorageにキャッシュ
+ * localStorageはリロード後も保持され、同期的に高速アクセス可能
  */
 async function cacheSettingsGlobally(): Promise<void> {
   try {
     const appSettings = await getFromStorageLocal('appSettings');
     if (appSettings) {
-      window.ygoCurrentSettings = appSettings;
-      console.log('[YGO Helper] Settings cached to memory');
+      localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings));
+      window.ygoNextCurrentSettings = appSettings;
+      console.log('[YGO Helper] Settings cached to localStorage');
     }
   } catch (error) {
     console.warn('[YGO Helper] Failed to cache settings:', error);
@@ -283,10 +310,14 @@ async function initializeFeatures(): Promise<void> {
     // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
     forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));
 
-    // アプリケーション設定をメモリにキャッシュ（画面遷移時に高速アクセス）
-    cacheSettingsGlobally().catch(err =>
-      console.warn('Failed to cache settings:', err)
-    );
+    // アプリケーション設定をlocalStorageにキャッシュ（idle時に実行）
+    // localStorageはリロード後も保持され、編集ページで同期的に読み込める
+    const scheduleTask = (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
+    scheduleTask(() => {
+      cacheSettingsGlobally().catch(err =>
+        console.warn('Failed to cache settings:', err)
+      );
+    });
 
     // cgid をバックグラウンドで事前取得して Chrome Storage に保存
     cacheCgidInStorage().catch(err =>
@@ -323,9 +354,22 @@ async function initializeFeatures(): Promise<void> {
 
 // 編集ページの場合、即座にページを隠す（FOUC防止）
 if (isVueEditPage()) {
-  // テーマを即座に判定（window.ygoCurrentSettingsまたはprefers-color-scheme）
+  // テーマを即座に判定（localStorageから同期的に読み込み）
   let effectiveTheme: 'light' | 'dark' = 'light';
-  const cachedSettings = (window as any).ygoCurrentSettings;
+  let cachedSettings = window.ygoNextCurrentSettings;
+
+  // localStorageから同期的に読み込み（リロード後も保持される）
+  if (!cachedSettings) {
+    try {
+      const settingsStr = localStorage.getItem('ygo-next-settings');
+      if (settingsStr) {
+        cachedSettings = JSON.parse(settingsStr);
+        window.ygoNextCurrentSettings = cachedSettings;
+      }
+    } catch (error) {
+      console.warn('[Early Settings] Failed to load from localStorage:', error);
+    }
+  }
 
   if (cachedSettings && cachedSettings.theme) {
     if (cachedSettings.theme === 'system') {
@@ -369,9 +413,9 @@ if (isVueEditPage()) {
 
   // 画面描画と無関係な全ての事前処理を最速で開始（Vue インポート・マウントと並行実行）
   console.log('[Content] Starting preload at:', performance.now());
-  preloadEditPageData().catch(err =>
-    console.warn('[Content] Preload failed:', err)
-  );
+  preloadEditPageData().catch(err => {
+    console.warn('[Content] Preload failed:', err);
+  });
 
   // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
   loadEditUIIfNeeded();

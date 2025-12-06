@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="card"
     class="card-item deck-card"
     :class="[`section-${sectionType}`, { 'error-state': showError, 'drag-over': isDragOver }]"
     :data-card-id="card.cardId"
@@ -194,9 +195,12 @@ export default {
   computed: {
     showError() {
       // 枚数制限エラー時、同じcardIdのカードを全て赤背景で表示
-      return this.deckStore.limitErrorCardId === this.card.cardId
+      return this.card && this.deckStore.limitErrorCardId === this.card.cardId
     },
     cardImageUrl() {
+      if (!this.card) {
+        return chrome.runtime.getURL('images/card_back.png')
+      }
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
@@ -258,9 +262,11 @@ export default {
       return this.sectionType === 'search'
     },
     isTailPlaced() {
-      return this.settingsStore.isTailPlacementCard(this.card.cardId)
+      return this.card && this.settingsStore.isTailPlacementCard(this.card.cardId)
     },
     isInCategory() {
+      if (!this.card) return false
+
       const selectedCategories = this.deckStore.deckInfo?.category ?? []
       if (selectedCategories.length === 0) return false
 
@@ -315,7 +321,7 @@ export default {
         event.stopPropagation()
 
         // ドラッグ中のカードが自分自身でない場合のみハイライト
-        if (dragging && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
+        if (dragging && this.card && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
           // 自分自身の上ではハイライトしない
           this.isDragOver = false
         } else {
@@ -462,6 +468,8 @@ export default {
       }
     },
     animateFromSource(sourceRect, targetSection) {
+      if (!this.card) return
+
       // 追加されたカードを探す（最新のもの）
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]

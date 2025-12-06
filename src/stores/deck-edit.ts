@@ -1332,9 +1332,26 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // メモリからプリロード済みデータを取得
       let loadedDeck: DeckInfo | null = null;
 
-      if (window.ygoPreloadedDeckDetail) {
-        loadedDeck = window.ygoPreloadedDeckDetail;
-        window.ygoPreloadedDeckDetail = null; // 使用後は削除
+      // getDeckDetail の完了を待つ（最大1秒）
+      if (window.ygoNextPreloadedDeckDetailPromise && !window.ygoNextPreloadedDeckDetail) {
+        console.log('[loadDeck] Waiting for getDeckDetail preload to complete...');
+        const waitStart = performance.now();
+        try {
+          await Promise.race([
+            window.ygoNextPreloadedDeckDetailPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Preload timeout')), 1000))
+          ]);
+          console.log('[loadDeck] Preload wait completed in', (performance.now() - waitStart).toFixed(2), 'ms');
+        } catch (error) {
+          console.warn('[loadDeck] Preload wait failed or timed out:', error);
+        }
+        // 使用後は Promise を削除
+        window.ygoNextPreloadedDeckDetailPromise = null;
+      }
+
+      if (window.ygoNextPreloadedDeckDetail) {
+        loadedDeck = window.ygoNextPreloadedDeckDetail;
+        window.ygoNextPreloadedDeckDetail = null; // 使用後は削除
         console.log('[loadDeck] Using preloaded deck data from memory');
       }
 
@@ -1481,66 +1498,62 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
-  async function initializeOnPageLoad() {
-    try {
-      // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
-      await initTempCardDBFromStorage();
+  /**
+   * ページ読み込み時の初期化（非同期処理）
+   * 画面表示に必須なloadDeck()のPromiseのみを返し、他の初期化は非同期で実行
+   */
+  function initializeOnPageLoad(): Promise<void> {
+    // 非同期で実行（await しない）
+    (async () => {
+      try {
+        // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
+        await initTempCardDBFromStorage();
 
-      // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
-      const unifiedDB = getUnifiedCacheDB();
-      await unifiedDB.initialize();
+        // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
+        const unifiedDB = getUnifiedCacheDB();
+        await unifiedDB.initialize();
 
-      // 設定ストアを初期化
-      await settingsStore.loadSettings();
+        // 設定ストアを初期化
+        await settingsStore.loadSettings();
 
-      // URLからUI状態を復元
-      const uiState = URLStateManager.restoreUIStateFromURL();
-      if (uiState.viewMode) viewMode.value = uiState.viewMode;
-      if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
-      if (uiState.activeTab) activeTab.value = uiState.activeTab;
-      if (uiState.cardTab) cardTab.value = uiState.cardTab;
-      if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
+        // URLからUI状態を復元
+        const uiState = URLStateManager.restoreUIStateFromURL();
+        if (uiState.viewMode) viewMode.value = uiState.viewMode;
+        if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
+        if (uiState.activeTab) activeTab.value = uiState.activeTab;
+        if (uiState.cardTab) cardTab.value = uiState.cardTab;
+        if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
 
-      // URLから設定を復元（URLパラメータが設定ストアより優先）
-      const urlSettings = URLStateManager.restoreSettingsFromURL();
-      // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
-      // if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
-      if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
-      if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
+        // URLから設定を復元（URLパラメータが設定ストアより優先）
+        const urlSettings = URLStateManager.restoreSettingsFromURL();
+        // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
+        // if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
+        if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
+        if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
 
-      // 設定をDOMに適用
-      settingsStore.applyTheme();
-      settingsStore.applyCardSize();
+        // 設定をDOMに適用
+        settingsStore.applyTheme();
+        settingsStore.applyCardSize();
 
-      // URLパラメータからdnoを取得（URLStateManagerを使用）
-      const urlDno = URLStateManager.getDno();
-      const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
-      const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
-
-      // fetchDeckListとloadDeckを並行実行（プリロードキャッシュで高速化）
-      // targetDnoが決定している場合は、その値を使用
-      if (targetDno !== null) {
-        // URL/localStorageからtargetDnoが決まっている場合は両方を並行実行
-        const [list] = await Promise.all([
-          fetchDeckList(),
-          loadDeck(targetDno)
-        ]);
-        deckList.value = list;
-      } else {
-        // targetDnoが決まっていない場合は、リストを取得してから決定
+        // デッキリストを取得（非同期、画面表示に影響しない）
         const list = await fetchDeckList();
         deckList.value = list;
-
-        if (list.length > 0) {
-          // 最大のdnoを使用
-          const dnoToLoad = Math.max(...list.map(item => item.dno));
-          loadDeck(dnoToLoad).catch(error => {
-            console.error('Failed to load deck after initialization:', error);
-          });
-        }
+      } catch (error) {
+        console.error('Failed to initialize settings/deck list:', error);
       }
-    } catch (error) {
-      console.error('Failed to initialize deck on page load:', error);
+    })();
+
+    // URLパラメータからdnoを取得（URLStateManagerを使用）
+    const urlDno = URLStateManager.getDno();
+    const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
+    const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
+
+    // loadDeck()のPromiseだけを返す（画面表示に必須）
+    if (targetDno !== null) {
+      return loadDeck(targetDno);
+    } else {
+      // targetDnoがない場合は何もロードしない（fetchDeckListは非同期で実行中）
+      return Promise.resolve();
     }
   }
 
