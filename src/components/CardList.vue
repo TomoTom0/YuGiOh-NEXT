@@ -1,3 +1,86 @@
+<!--
+/**
+ * CardList - カードリスト表示コンポーネント
+ *
+ * カード検索結果やデッキ内カードのリスト表示を行うコンポーネント。
+ * 多様なソート機能、リスト/グリッド切り替え、カード詳細表示などの機能を持つ。
+ *
+ * @component
+ * @version v0.4.0
+ *
+ * ## 主要機能
+ *
+ * ### 1. 表示モード切り替え
+ * - **リスト表示**: カード詳細情報を含む縦一覧表示
+ * - **グリッド表示**: カード画像のみの格子状表示
+ *
+ * ### 2. ソート機能
+ *
+ * #### ソートキー（sortBase）
+ * - **release**: 発売日順（デフォルト）
+ * - **name**: カード名順（五十音順）
+ * - **atk**: ATK順（モンスターのみ）
+ * - **def**: DEF順（モンスターのみ）
+ * - **level**: レベル/ランク/リンク順
+ * - **attribute**: 属性順
+ * - **race**: 種族順
+ * - **code**: コード順（マイデッキ検索時のみ表示）
+ *
+ * #### ソート方向（sortDirection）
+ * - **asc**: 昇順（発売日: 古い→新しい、名前: あ→ん、ATK: 低い→高い）
+ * - **desc**: 降順（発売日: 新しい→古い、名前: ん→あ、ATK: 高い→低い）
+ *
+ * #### ソートロジック
+ * ```
+ * 1. カードタイプ優先（Monster > Spell > Trap）
+ * 2. 選択されたソートキーで比較
+ * 3. 同値の場合はカード名で比較（五十音順）
+ * ```
+ *
+ * #### ソート順序の保存
+ * - `settings.appSettings.sortOrder` にソートキーを保存
+ * - `settings.appSettings.sortDirection` にソート方向を保存
+ * - ページリロード時も設定を維持
+ *
+ * ### 3. フィルタリング
+ * - `FILTER_OPTIONS` による表示フィルター（カテゴリ、種族、属性、レベル等）
+ * - フィルターチップ表示と個別削除
+ * - 一括クリア機能
+ *
+ * ### 4. カード詳細表示
+ * - カードクリックで詳細情報を表示
+ * - ATK/DEF、レベル/ランク/リンク、属性、種族、モンスタータイプ等の表示
+ * - リスト表示時はカードテキストも表示
+ *
+ * ### 5. その他の機能
+ * - カード数表示（`{{ cards.length }}`）
+ * - スクロールトップボタン
+ * - 縮小ボタン（検索結果エリアを閉じる）
+ *
+ * ## Props
+ * - `cards` (Array): 表示するカード配列（必須）
+ * - `loading` (Boolean): ローディング状態（デフォルト: false）
+ * - `viewMode` (String): 表示モード（'list' または 'grid'、デフォルト: 'list'）
+ * - `showCollapseButton` (Boolean): 縮小ボタン表示（デフォルト: false）
+ * - `showCodeSort` (Boolean): コード順ソート表示（マイデッキ検索時: true）
+ *
+ * ## Events
+ * - `collapse`: 縮小ボタンクリック時
+ * - `scroll-to-top`: スクロールトップボタンクリック時
+ * - `update:viewMode`: 表示モード変更時
+ *
+ * ## 関連ユーティリティ
+ * - `src/utils/label-utils.ts`: ラベル変換関数（getAttributeLabel, getRaceLabel 等）
+ * - `src/stores/settings.ts`: ソート設定の永続化
+ *
+ * ## 実装履歴
+ * - v0.4.0: ソート機能の集約と共通化
+ * - v0.4.0: label-utils.ts からラベル変換関数をインポート（コード重複削減）
+ *
+ * @see src/utils/label-utils.ts
+ * @see src/stores/settings.ts
+ */
+-->
 <template>
   <div class="card-list-wrapper">
     <button

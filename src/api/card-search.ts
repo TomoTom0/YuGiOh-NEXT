@@ -14,8 +14,7 @@ import {
   CardDetail,
   PackInfo,
   LimitRegulation,
-  CardTableC,
-  getCardImageUrl
+  CardTableC
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
@@ -817,15 +816,6 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
   }
 
   return imageInfoMap;
-}
-
-/**
- * カード情報から画像URLを構築する（非推奨: getCardImageUrlを使用してください）
- * @deprecated types/card.tsのgetCardImageUrlを使用してください
- */
-export function buildCardImageUrl(card: CardBase): string | undefined {
-  // types/card.tsのgetCardImageUrlに委譲
-  return getCardImageUrl(card);
 }
 
 /**

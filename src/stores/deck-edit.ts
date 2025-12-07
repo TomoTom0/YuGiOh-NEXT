@@ -12,6 +12,7 @@ import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
+import { getCardInfo } from '../utils/card-utils';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -1647,12 +1648,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
-    // (cid, ciid)ペアからカード情報を取得するヘルパー関数
-    const tempCardDB = getTempCardDB();
-    const getCardInfo = (cid: string, _ciid: number) => {
-      return tempCardDB.get(cid) || null;
-    };
-
     // デッキメタデータのカテゴリに該当するかをチェック
     const selectedCategories = deckInfo.value?.category ?? [];
     const matchesPriorityCategory = (card: CardInfo | null): boolean => {
@@ -1676,8 +1671,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）
     const compareCards = (a: DisplayCard, b: DisplayCard): number => {
-      const cardA = getCardInfo(a.cid, a.ciid);
-      const cardB = getCardInfo(b.cid, b.ciid);
+      const cardA = getCardInfo(a.cid);
+      const cardB = getCardInfo(b.cid);
       if (!cardA || !cardB) return 0;
 
       // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
@@ -1733,8 +1728,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // ソート優先順位
     const settingsStore = useSettingsStore();
     const sorted = [...section].sort((a, b) => {
-      const cardA = getCardInfo(a.cid, a.ciid);
-      const cardB = getCardInfo(b.cid, b.ciid);
+      const cardA = getCardInfo(a.cid);
+      const cardB = getCardInfo(b.cid);
       if (!cardA || !cardB) return 0;
 
       // 0. Card Type: Monster(0) > Spell(1) > Trap(2)

@@ -209,6 +209,15 @@ export const useSettingsStore = defineStore('settings', () => {
         featureSettings: featureSettings.value,
         tailPlacementCardIds: tailPlacementCardIds.value,
       }, () => {
+        // localStorage にもキャッシュ（超早期読み込み用）
+        try {
+          localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings.value));
+          if (typeof window !== 'undefined') {
+            window.ygoNextCurrentSettings = appSettings.value;
+          }
+        } catch (error) {
+          console.warn('[Settings] Failed to update localStorage cache:', error);
+        }
         resolve();
       });
     });

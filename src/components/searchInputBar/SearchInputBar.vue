@@ -1,3 +1,89 @@
+<!--
+/**
+ * SearchInputBar - 検索入力バーコンポーネント
+ *
+ * 多機能な検索入力を提供するコンポーネント。
+ * スラッシュコマンド、フィルター管理、検索モード切り替え、候補リスト表示などの機能を持つ。
+ *
+ * @component
+ * @version v0.6.0 (Phase 6 リファクタリング完了)
+ *
+ * ## 主要機能
+ *
+ * ### 1. 検索入力
+ * - リアルタイム検索クエリ入力
+ * - Enter キーで検索実行
+ * - プレースホルダー自動生成（検索モードに応じて変化）
+ *
+ * ### 2. スラッシュコマンド
+ * - `/c:` - カテゴリフィルター追加
+ * - `/r:` - 種族フィルター追加
+ * - `/a:` - 属性フィルター追加
+ * - `/l:` - レベル/ランク/リンクフィルター追加
+ * - `/mydeck:` - マイデッキ検索
+ * - `/help` - ヘルプ表示
+ *
+ * ### 3. 検索モード
+ * - **title**: カード名検索（デフォルト）
+ * - **text**: カードテキスト検索
+ * - **all**: カード名+テキスト検索
+ * - **category**: カテゴリ検索
+ * - **race**: 種族検索
+ * - **attribute**: 属性検索
+ * - **level**: レベル/ランク/リンク検索
+ * - **mydeck**: マイデッキ検索
+ *
+ * ### 4. フィルターチップ管理
+ * - 選択されたフィルター条件をチップ表示
+ * - チップのクリックで個別削除
+ * - 一括クリア機能
+ * - フィルターアイコンのプレビュー
+ *
+ * ### 5. 候補リスト
+ * - コマンド候補表示（スラッシュコマンド入力時）
+ * - フィルター候補表示（カテゴリ/種族/属性/レベル）
+ * - マイデッキ候補表示（/mydeck: 入力時）
+ * - キーボードナビゲーション（↑↓ Enter Esc）
+ *
+ * ### 6. キーボードショートカット
+ * - `Ctrl+F` / `Cmd+F`: 検索バーにフォーカス
+ * - `Esc`: 候補リストを閉じる
+ * - `↑` / `↓`: 候補リストのナビゲーション
+ * - `Enter`: 候補選択または検索実行
+ *
+ * ## Composables 構成
+ *
+ * - **useSlashCommands**: スラッシュコマンド解析とバリデーション
+ * - **useSearchFilters**: フィルター管理とチップ操作
+ * - **useKeyboardNavigation**: キーボードナビゲーション管理
+ * - **useMydeckOperations**: マイデッキ操作管理
+ * - **useFilterInput**: フィルター入力とチップ管理
+ * - **useSearchExecution**: 検索実行ロジック
+ *
+ * ## Props
+ * - `compact` (boolean): コンパクトモード（デフォルト: false）
+ * - `isBottomPosition` (boolean): 検索バーが下部にあるか（デフォルト: false）
+ *
+ * ## リファクタリング履歴
+ * - Phase 1 (2025-12-07): 定数と静的データの分離
+ * - Phase 2 (2025-12-07): Composable化（スラッシュコマンド、フィルター管理）
+ * - Phase 3 (2025-12-07): UIコンポーネント分割（SearchFilterChips, SearchModeSelector, SuggestionList）
+ * - Phase 4 (2025-12-07): 統合とクリーンアップ、テスト追加
+ * - Phase 5 (2025-12-07): ファイル構造整理、新規Composable化
+ * - Phase 6 (2025-12-07): 最終整理、God Component脱却（2239行 → 1318行、41%削減）
+ * - スタイル移譲 (2025-12-07): 各コンポーネントのスタイルカプセル化（-349行）
+ *
+ * @see src/components/searchInputBar/composables/useSlashCommands.ts
+ * @see src/components/searchInputBar/composables/useSearchFilters.ts
+ * @see src/components/searchInputBar/composables/useKeyboardNavigation.ts
+ * @see src/components/searchInputBar/composables/useMydeckOperations.ts
+ * @see src/components/searchInputBar/composables/useFilterInput.ts
+ * @see src/components/searchInputBar/composables/useSearchExecution.ts
+ * @see src/components/searchInputBar/components/SearchFilterChips.vue
+ * @see src/components/searchInputBar/components/SearchModeSelector.vue
+ * @see src/components/searchInputBar/components/SuggestionList.vue
+ */
+-->
 <template>
   <div class="search-input-wrapper">
     <div class="search-input-bar" :class="{ compact: compact }">
@@ -9,6 +95,7 @@
         <SearchModeSelector
           v-model="searchMode"
           :is-bottom-position="isBottomPosition"
+          :compact="compact"
         />
       </div>
       <button class="search-btn" @click="handleSearch">
@@ -22,6 +109,7 @@
       }">
         <!-- SearchFilterDialogで選択した条件（上部） - 常に表示 -->
         <SearchFilterChips
+          :compact="compact"
           :preview-chip="previewChip"
           :display-filter-icons="displayFilterIcons"
           :has-active-filters="hasActiveFilters"
@@ -1638,43 +1726,6 @@ export default defineComponent({
   }
 }
 
-.filter-icon-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px 3px;
-  font-size: 8px;
-  font-weight: 500;
-  border-radius: 2px;
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, #666);
-  border: 1px solid var(--border-primary, #ddd);
-  white-space: nowrap;
-  max-width: 48px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex-shrink: 0;
-  line-height: 1;
-  height: 10px;
-
-  // クリック可能なチップのスタイル
-  &.clickable {
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: var(--danger-bg, #ffe6e6);
-      border-color: var(--danger-border, #ff4444);
-      color: var(--danger-text, #cc0000);
-      transform: scale(1.05);
-    }
-
-    &:active {
-      transform: scale(0.98);
-    }
-  }
-}
-
 .filter-more {
   display: inline-flex;
   align-items: center;
@@ -1712,220 +1763,12 @@ export default defineComponent({
   }
 }
 
-/* SearchFilterDialogで選択した条件（上部） - 常に1行分の高さを確保 */
-.filter-icons-top {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 4px;
-  width: 100%;
-  padding: 0 4px;
-  align-items: center;
-  overflow: hidden;
-  min-height: 14px;
-  position: relative;
-
-  // ダイアログ上部のチップは大きく、色を変える
-  .filter-icon-item {
-    font-size: 10px;
-    height: 14px;
-    padding: 2px 4px;
-    background: var(--filter-chip-top-bg, #e6f2ff);
-    border-color: var(--filter-chip-top-border, #b3d9ff);
-    color: var(--filter-chip-top-text, #0066cc);
-    max-width: 64px;
-
-    &.clickable:hover {
-      background: var(--danger-bg, #ffe6e6);
-      border-color: var(--danger-border, #ff4444);
-      color: var(--danger-text, #cc0000);
-    }
-  }
-}
-
-/* compactモード（right側）では最大幅を制限 */
-.compact .filter-icons-top {
-  max-width: 150px;
-}
-
-/* 検索条件クリアボタン（右側） */
-.clear-filters-btn-top {
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary, #999);
-  font-size: 10px;
-  font-weight: 300;
-  cursor: pointer;
-  padding: 0;
-  border-radius: 50%;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  width: 12px;
-  height: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  margin-left: 4px;
-
-  &:hover {
-    background: var(--color-error-bg);
-    color: var(--color-error);
-    transform: scale(1.2);
-  }
-}
-
 /* 入力行 */
 .input-row {
   display: flex;
   align-items: center;
   width: 100%;
   position: relative;
-}
-
-/* スラッシュコマンドで追加されたチップ（上部表示用） */
-.filter-chip-top {
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: var(--bg-tertiary, #e0e0e0) !important;
-    transform: scale(1.1);
-  }
-
-  &.not-condition {
-    background: var(--color-error-bg) !important;
-    border-color: var(--color-error) !important;
-    color: var(--color-error-text) !important;
-
-    &:hover {
-      background: var(--color-error-hover-bg) !important;
-      border-color: var(--color-error) !important;
-    }
-
-    .not-prefix {
-      font-weight: 700;
-      margin-right: 1px;
-    }
-  }
-}
-
-/* 予定チップ（入力が有効な場合のみ表示） */
-.filter-chip-preview {
-  background: #c8e6c9 !important; // 明るい緑
-  border-color: #81c784 !important;
-  color: #2e7d32 !important;
-  font-weight: 600;
-  animation: pulse 1.5s ease-in-out infinite;
-
-  &.not-condition {
-    background: #ffcdd2 !important; // NOT条件の場合は赤系
-    border-color: #ef5350 !important;
-    color: #c62828 !important;
-  }
-
-  .not-prefix {
-    font-weight: 700;
-    margin-right: 1px;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-/* 候補リストドロップダウン */
-.suggestions-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary, #ddd);
-  border-radius: 8px;
-  margin-top: 4px;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-height: 200px;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  will-change: scroll-position; // ブラウザにスクロール最適化を事前通知
-  transform: translateZ(0); // ハードウェアアクセラレーション有効化
-  contain: layout; // レイアウト計算の最適化
-
-  &.dropdown-above {
-    top: auto;
-    bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 4px;
-  }
-}
-
-.suggestion-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background 0.15s;
-  transform: translateZ(0); // ハードウェアアクセラレーション
-  will-change: background-color; // 背景色変更の最適化
-
-  &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-  }
-
-  &.selected {
-    transition: none; // キーボード操作時は即座に背景色を変更（ちらつき防止）
-    background: var(--color-success);
-    color: var(--button-text);
-
-    .suggestion-value {
-      color: var(--button-text);
-    }
-
-    .suggestion-label {
-      color: var(--button-text);
-    }
-  }
-
-  &:first-child {
-    border-radius: 8px 8px 0 0;
-  }
-
-  &:last-child {
-    border-radius: 0 0 8px 8px;
-  }
-}
-
-.suggestion-value {
-  font-weight: 600;
-  color: var(--text-secondary, #666);
-  font-size: 12px;
-}
-
-.suggestion-label {
-  color: var(--text-primary, #333);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.command-prefix {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  margin-right: 4px;
-  background: var(--color-info);
-  color: var(--button-text);
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: monospace;
-  font-weight: bold;
-  white-space: nowrap;
 }
 
 .search-input-bar {
@@ -1971,19 +1814,6 @@ export default defineComponent({
       font-size: 14px;
     }
 
-    .search-mode-btn {
-      padding: 2px 6px;
-      min-width: 36px;
-
-      .mode-icon {
-        font-size: 8px;
-      }
-
-      .mode-text {
-        font-size: 10px;
-      }
-    }
-
     .search-btn {
       padding: 4px;
 
@@ -1996,13 +1826,6 @@ export default defineComponent({
     .clear-btn {
       padding: 0 4px;
       font-size: 16px;
-    }
-
-    .mode-dropdown {
-      top: 100%;
-      bottom: auto;
-      margin-top: 2px;
-      margin-bottom: 0;
     }
   }
 }
@@ -2084,111 +1907,6 @@ export default defineComponent({
   background: var(--text-secondary, #666);
   color: var(--button-text);
   border-radius: 6px;
-}
-
-.search-mode-btn {
-  background: transparent;
-  border: none;
-  padding: 2px 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-  color: var(--text-secondary, #666);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  min-width: 48px;
-
-  &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-    color: var(--text-primary);
-  }
-
-  .mode-text {
-    font-size: 10px;
-    line-height: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-.mode-dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
-}
-
-.mydeck-suggestions {
-  z-index: 1000;
-}
-
-.mode-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary, #ddd);
-  border-radius: 8px;
-  margin-top: 4px;
-  z-index: 1000;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
-
-  &.dropdown-above {
-    top: auto;
-    bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 4px;
-  }
-}
-
-.dropdown-enter-active {
-  transition: all 0.2s ease-out;
-}
-
-.dropdown-leave-active {
-  transition: all 0.15s ease-in;
-}
-
-.dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(5px);
-}
-
-.dropdown-enter-to,
-.dropdown-leave-from {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.mode-option {
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  font-size: 13px;
-  color: var(--text-primary, #333);
-
-  &:hover {
-    background: var(--bg-secondary, #f5f5f5);
-  }
-
-  &:first-child {
-    border-radius: 8px 8px 0 0;
-  }
-
-  &:last-child {
-    border-radius: 0 0 8px 8px;
-  }
 }
 
 .search-btn {

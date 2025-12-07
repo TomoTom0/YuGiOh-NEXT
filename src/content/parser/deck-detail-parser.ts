@@ -470,6 +470,12 @@ export function parseCardSection(
             imgHash: info.imgHash
           }));
 
+          // allImgsが空でないことを確認
+          if (allImgs.length === 0) {
+            console.warn(`[deck-detail-parser] No ciid found for card ${cid}`);
+            return;
+          }
+
           // cardInfoMap に保存（後で parseDeckDetail() でマージして setCardInfo() に渡す）
           const existing = cardInfoMap.get(cid);
           if (existing) {
@@ -481,7 +487,7 @@ export function parseCardSection(
             // 新規追加
             cardInfoMap.set(cid, {
               ...cardInfo,
-              ciid: allImgs[0].ciid, // 最初のciidを仮設定
+              ciid: allImgs[0]!.ciid, // 最初のciidを仮設定（allImgs.length > 0 を確認済み）
               imgs: allImgs,
               lang
             });

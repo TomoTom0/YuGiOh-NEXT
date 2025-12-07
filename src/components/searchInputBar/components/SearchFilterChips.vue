@@ -1,5 +1,5 @@
 <template>
-  <div class="filter-icons-top">
+  <div class="filter-icons-top" :class="{ compact: compact }">
     <!-- 予定チップ（入力が有効な場合のみ） -->
     <span
       v-if="previewChip"
@@ -51,8 +51,170 @@ export default defineComponent({
     filterChipsCount: {
       type: Number,
       required: true
+    },
+    compact: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['remove-icon', 'clear-all']
 })
 </script>
+
+<style lang="scss" scoped>
+/* フィルターアイコン基本スタイル */
+.filter-icon-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 3px;
+  font-size: 8px;
+  font-weight: 500;
+  border-radius: 2px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
+  white-space: nowrap;
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  line-height: 1;
+  height: 10px;
+
+  // クリック可能なチップのスタイル
+  &.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--danger-bg, #ffe6e6);
+      border-color: var(--danger-border, #ff4444);
+      color: var(--danger-text, #cc0000);
+      transform: scale(1.05);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+/* SearchFilterDialogで選択した条件（上部） - 常に1行分の高さを確保 */
+.filter-icons-top {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  width: 100%;
+  padding: 0 4px;
+  align-items: center;
+  overflow: hidden;
+  min-height: 14px;
+  position: relative;
+
+  // ダイアログ上部のチップは大きく、色を変える
+  .filter-icon-item {
+    font-size: 10px;
+    height: 14px;
+    padding: 2px 4px;
+    background: var(--filter-chip-top-bg, #e6f2ff);
+    border-color: var(--filter-chip-top-border, #b3d9ff);
+    color: var(--filter-chip-top-text, #0066cc);
+    max-width: 64px;
+
+    &.clickable:hover {
+      background: var(--danger-bg, #ffe6e6);
+      border-color: var(--danger-border, #ff4444);
+      color: var(--danger-text, #cc0000);
+    }
+  }
+
+  /* compactモード（right側）では最大幅を制限 */
+  &.compact {
+    max-width: 150px;
+  }
+}
+
+/* 検索条件クリアボタン（右側） */
+.clear-filters-btn-top {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #999);
+  font-size: 10px;
+  font-weight: 300;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-left: 4px;
+
+  &:hover {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    transform: scale(1.2);
+  }
+}
+
+/* スラッシュコマンドで追加されたチップ（上部表示用） */
+.filter-chip-top {
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-tertiary, #e0e0e0) !important;
+    transform: scale(1.1);
+  }
+
+  &.not-condition {
+    background: var(--color-error-bg) !important;
+    border-color: var(--color-error) !important;
+    color: var(--color-error-text) !important;
+
+    &:hover {
+      background: var(--color-error-hover-bg) !important;
+      border-color: var(--color-error) !important;
+    }
+
+    .not-prefix {
+      font-weight: 700;
+      margin-right: 1px;
+    }
+  }
+}
+
+/* 予定チップ（入力が有効な場合のみ表示） */
+.filter-chip-preview {
+  background: #c8e6c9 !important; // 明るい緑
+  border-color: #81c784 !important;
+  color: #2e7d32 !important;
+  font-weight: 600;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  &.not-condition {
+    background: #ffcdd2 !important; // NOT条件の場合は赤系
+    border-color: #ef5350 !important;
+    color: #c62828 !important;
+  }
+
+  .not-prefix {
+    font-weight: 700;
+    margin-right: 1px;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+</style>
