@@ -67,20 +67,19 @@ export default defineComponent({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 3px;
-  font-size: 8px;
+  padding: 2px 6px;
+  font-size: 11px;
   font-weight: 500;
-  border-radius: 2px;
+  border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
   color: var(--text-secondary, #666);
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
-  max-width: 48px;
+  max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
-  line-height: 1;
-  height: 10px;
+  line-height: 1.3;
 
   // クリック可能なチップのスタイル
   &.clickable {
@@ -109,18 +108,18 @@ export default defineComponent({
   padding: 0 4px;
   align-items: center;
   overflow: hidden;
-  min-height: 14px;
+  min-height: 18px;
   position: relative;
 
   // ダイアログ上部のチップは大きく、色を変える
   .filter-icon-item {
-    font-size: 10px;
-    height: 14px;
-    padding: 2px 4px;
+    font-size: 11px;
+    padding: 2px 6px;
+    line-height: 1.3;
     background: var(--filter-chip-top-bg, #e6f2ff);
     border-color: var(--filter-chip-top-border, #b3d9ff);
     color: var(--filter-chip-top-text, #0066cc);
-    max-width: 64px;
+    max-width: 80px;
 
     &.clickable:hover {
       background: var(--danger-bg, #ffe6e6);

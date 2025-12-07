@@ -1,9 +1,10 @@
-import { type Ref } from 'vue'
+import { type Ref, computed } from 'vue'
 import type { CardInfo, Attribute, Race, CardType } from '../../../types/card'
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
 import { SORT_ORDER_TO_API_VALUE } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
+import { useSearchStore } from '../../../stores/search'
 import type { SortOrder } from '../../../types/settings'
 import { useSearchHistory } from '../../../composables/useSearchHistory'
 
@@ -15,10 +16,6 @@ export interface UseSearchExecutionOptions {
   deckStore: ReturnType<typeof useDeckEditStore>
   /** 検索モード */
   searchMode: Ref<string>
-  /** 検索フィルター */
-  searchFilters: Ref<SearchFilters>
-  /** アクティブなフィルターがあるかどうか */
-  hasActiveFilters: Ref<boolean>
 }
 
 /**
@@ -109,8 +106,30 @@ function buildSearchOptions(
  * 検索ロジックとクライアント側フィルタリングを提供
  */
 export function useSearchExecution(options: UseSearchExecutionOptions): UseSearchExecutionReturn {
-  const { deckStore, searchMode, searchFilters, hasActiveFilters } = options
+  const { deckStore, searchMode } = options
+  const searchStore = useSearchStore()
   const searchHistory = useSearchHistory()
+
+  // hasActiveFiltersを直接計算
+  const hasActiveFilters = computed(() => {
+    const f = searchStore.searchFilters
+    return f.cardType !== null ||
+      f.attributes.length > 0 ||
+      f.spellTypes.length > 0 ||
+      f.trapTypes.length > 0 ||
+      f.races.length > 0 ||
+      f.monsterTypes.length > 0 ||
+      f.levelValues.length > 0 ||
+      f.linkValues.length > 0 ||
+      f.scaleValues.length > 0 ||
+      f.linkMarkers.length > 0 ||
+      f.atk.min !== undefined ||
+      f.atk.max !== undefined ||
+      f.def.min !== undefined ||
+      f.def.max !== undefined ||
+      f.releaseDate.from !== undefined ||
+      f.releaseDate.to !== undefined
+  })
 
   /**
    * クライアント側でフィルターを適用
@@ -156,32 +175,42 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
    * 検索を実行
    */
   const handleSearch = async () => {
+    console.log('[handleSearch] START - query:', searchStore.searchQuery, 'hasActiveFilters:', hasActiveFilters.value)
+    console.log('[handleSearch] searchFilters:', JSON.stringify(searchStore.searchFilters, null, 2))
+
     // フィルターダイアログを自動クローズ
     deckStore.isFilterDialogVisible = false
 
-    const query = deckStore.searchQuery.trim()
+    const query = searchStore.searchQuery.trim()
 
+    // クエリもフィルターもない場合のみクリア
+    // （空文字列でもフィルターがあれば検索を実行する）
     if (!query && !hasActiveFilters.value) {
-      deckStore.searchResults = []
-      deckStore.allResults = []
-      deckStore.hasMore = false
-      deckStore.currentPage = 0
+      console.log('[handleSearch] クエリもフィルターもないのでクリア')
+      searchStore.searchResults = []
+      searchStore.allResults = []
+      searchStore.hasMore = false
+      searchStore.currentPage = 0
       return
     }
 
     deckStore.activeTab = 'search'
-    deckStore.isLoading = true
-
-    const searchTypeMap: Record<string, string> = {
-      'auto': '1', // autoモードはsearchCardsAutoで処理するため、ここでは使われない
-      'name': '1',
-      'text': '2',
-      'pendulum': '3'
-    }
-    let searchType = searchTypeMap[searchMode.value] || '1'  // autoモードから委譲する場合があるのでlet
+    searchStore.isLoading = true
 
     try {
-      const keyword = deckStore.searchQuery.trim()
+      const keyword = searchStore.searchQuery.trim()
+
+      // autoモードで2文字以下の場合はname検索として扱う
+      const effectiveSearchMode = (searchMode.value === 'auto' && keyword.length <= 2) ? 'name' : searchMode.value
+      console.log('[handleSearch] keyword:', keyword, 'searchMode:', searchMode.value, 'effectiveSearchMode:', effectiveSearchMode)
+
+      const searchTypeMap: Record<string, string> = {
+        'auto': '1',
+        'name': '1',
+        'text': '2',
+        'pendulum': '3'
+      }
+      let searchType = searchTypeMap[effectiveSearchMode] || '1'
 
       // 検索実行時に動的import
       const { searchCards, searchCardsAuto } = await import('@/api/card-search')
@@ -191,13 +220,13 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       let searchOptions: SearchOptions | null = null
       let delegatedToName = false  // autoモードからname検索に委譲したかどうか
 
-      if (searchMode.value === 'auto') {
-        const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
+      if (effectiveSearchMode === 'auto') {
+        const autoResult = await searchCardsAuto(keyword, 100, searchStore.searchFilters.cardType as CardType | undefined)
         results = autoResult.cards
         const autoResultCount = results.length  // フィルタリング前の件数を保存
 
         // autoモードでもフィルター条件を適用（クライアント側でフィルタリング）
-        results = applyClientSideFilters(results, searchFilters.value)
+        results = applyClientSideFilters(results, searchStore.searchFilters)
 
         // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
         if (autoResultCount >= 100) {
@@ -207,13 +236,13 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         }
       }
 
-      if (searchMode.value !== 'auto' || delegatedToName) {
+      if (effectiveSearchMode !== 'auto' || delegatedToName) {
         // 通常の検索（またはautoモードから委譲された場合）
         searchOptions = buildSearchOptions(
           keyword,
           searchType as '1' | '2' | '3' | '4',
           deckStore.sortOrder as SortOrder,
-          searchFilters.value
+          searchStore.searchFilters
         )
 
         console.log('[handleSearch] searchOptions:', JSON.stringify(searchOptions, null, 2))
@@ -222,21 +251,21 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       }
 
       // 検索APIを呼び出したのでグローバル検索モードを終了
-      deckStore.isGlobalSearchMode = false
+      searchStore.isGlobalSearchMode = false
 
       // 検索結果をstore用の形式に変換
-      deckStore.searchResults = results as unknown as typeof deckStore.searchResults
-      deckStore.allResults = results as unknown as typeof deckStore.allResults
+      searchStore.searchResults = results as unknown as typeof searchStore.searchResults
+      searchStore.allResults = results as unknown as typeof searchStore.allResults
 
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {
         const resultCids = results.map(card => card.cardId)
         console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
-        searchHistory.addToHistory(query, searchMode.value, searchFilters.value, resultCids)
+        searchHistory.addToHistory(query, searchMode.value, searchStore.searchFilters, resultCids)
       }
 
       if (results.length >= 100) {
-        deckStore.hasMore = true
+        searchStore.hasMore = true
         // autoモード以外の場合のみ、拡張検索を実行
         if (searchOptions !== null) {
           setTimeout(async () => {
@@ -247,29 +276,29 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
                 resultsPerPage: 2000
               })
               if (moreResults.length > 100) {
-                deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
-                deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
-                deckStore.hasMore = moreResults.length >= 2000
-                deckStore.currentPage = 1
+                searchStore.searchResults = moreResults as unknown as typeof searchStore.searchResults
+                searchStore.allResults = moreResults as unknown as typeof searchStore.allResults
+                searchStore.hasMore = moreResults.length >= 2000
+                searchStore.currentPage = 1
               } else {
-                deckStore.hasMore = false
+                searchStore.hasMore = false
               }
             } catch (error) {
               console.error('Extended search error:', error)
-              deckStore.hasMore = false
+              searchStore.hasMore = false
             }
           }, 1000)
         }
       } else {
-        deckStore.hasMore = false
+        searchStore.hasMore = false
       }
     } catch (error) {
       console.error('Search error:', error)
-      deckStore.searchResults = []
-      deckStore.allResults = []
-      deckStore.hasMore = false
+      searchStore.searchResults = []
+      searchStore.allResults = []
+      searchStore.hasMore = false
     } finally {
-      deckStore.isLoading = false
+      searchStore.isLoading = false
     }
   }
 

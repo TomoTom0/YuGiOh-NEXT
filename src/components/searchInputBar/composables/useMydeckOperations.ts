@@ -5,6 +5,7 @@
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
+import { useSearchStore } from '@/stores/search'
 import type { SearchMode } from '@/types/settings'
 import type { CardInfo } from '@/types/card'
 import { getDeckDetail } from '@/api/deck-operations'
@@ -27,6 +28,7 @@ export function useMydeckOperations(
   options: UseMydeckOperationsOptions
 ): UseMydeckOperationsReturn {
   const deckStore = useDeckEditStore()
+  const searchStore = useSearchStore()
   const { searchMode } = options
 
   const showMydeckDropdown = ref(false)
@@ -36,7 +38,7 @@ export function useMydeckOperations(
    */
   const mydeckSuggestions = computed<DeckSuggestion[]>(() => {
     if (searchMode.value !== 'mydeck') return []
-    const input = deckStore.searchQuery.trim().toLowerCase()
+    const input = searchStore.searchQuery.trim().toLowerCase()
     const decks = deckStore.deckList.map(d => ({
       dno: d.dno,
       name: d.name,
@@ -53,7 +55,7 @@ export function useMydeckOperations(
    * デッキ選択処理
    */
   const selectMydeck = (deck: { dno: number; name: string }) => {
-    deckStore.searchQuery = deck.name
+    searchStore.searchQuery = deck.name
     loadMydeckCards(deck.dno)
     showMydeckDropdown.value = false
   }
@@ -62,7 +64,7 @@ export function useMydeckOperations(
    * デッキのカードを読み込んで検索結果に表示
    */
   const loadMydeckCards = async (dno: number) => {
-    deckStore.isLoading = true
+    searchStore.isLoading = true
     deckStore.activeTab = 'search'
 
     try {
@@ -115,14 +117,14 @@ export function useMydeckOperations(
       })
 
       // 検索結果に設定（各カード種類1つずつ）
-      deckStore.searchResults = uniqueCards as unknown as typeof deckStore.searchResults
-      deckStore.allResults = uniqueCards
-      deckStore.hasMore = false
-      deckStore.currentPage = 0
+      searchStore.searchResults = uniqueCards as unknown as typeof searchStore.searchResults
+      searchStore.allResults = uniqueCards as unknown as typeof searchStore.allResults
+      searchStore.hasMore = false
+      searchStore.currentPage = 0
     } catch (error) {
       console.error('Failed to load mydeck cards:', error)
     } finally {
-      deckStore.isLoading = false
+      searchStore.isLoading = false
     }
   }
 

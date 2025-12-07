@@ -163,6 +163,7 @@
 <script lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
 import DeckCard from '../../components/DeckCard.vue'
@@ -193,6 +194,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
 
@@ -346,7 +348,7 @@ export default {
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
       // グローバル検索モードが有効な場合は無視（入力欄で処理される）
-      if (deckStore.isGlobalSearchMode) return
+      if (searchStore.isGlobalSearchMode) return
 
       // 入力要素にフォーカスがある場合は無視
       const activeElement = document.activeElement
@@ -364,7 +366,7 @@ export default {
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
         event.stopPropagation()
-        deckStore.isGlobalSearchMode = true
+        searchStore.isGlobalSearchMode = true
         return
       }
 

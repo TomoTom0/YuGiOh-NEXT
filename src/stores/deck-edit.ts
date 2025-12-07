@@ -779,9 +779,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckList = ref<Array<{ dno: number; name: string }>>([]);
   const lastUsedDno = ref<number | null>(null);
   
-  // Search and UI state
-  const searchQuery = ref('');
-  const searchResults = ref<Array<{ card: CardInfo }>>([]);
+  // UI state only (search state moved to search.ts)
 
   // no debug watcher
 
@@ -799,15 +797,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const viewMode = ref<'list' | 'grid'>('list');
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
 
-  // Search loading state
+  // Sort order (UI state, not search state)
   const sortOrder = ref<string>('release_desc');
-  const isLoading = ref(false);
-  const allResults = ref<CardInfo[]>([]);
-  const currentPage = ref(0);
-  const hasMore = ref(false);
-
-  // グローバル検索モード（検索入力欄を画面中央に大きく表示）
-  const isGlobalSearchMode = ref(false);
   
   // オーバーレイ表示状態（z-index統一管理）
   const overlayVisible = ref(false);
@@ -2027,18 +2018,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     draggingCard,
     deckList,
     lastUsedDno,
-    searchQuery,
-    searchResults,
     activeTab,
     showDetail,
     viewMode,
     cardTab,
     sortOrder,
-    isLoading,
-    allResults,
-    currentPage,
-    hasMore,
-    isGlobalSearchMode,
     overlayVisible,
     overlayZIndex,
     showExportDialog,

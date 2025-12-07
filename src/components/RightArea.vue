@@ -54,7 +54,7 @@
 
       <div v-show="deckStore.activeTab === 'search'" class="search-content">
         <CardList
-          :cards="deckStore.searchResults"
+          :cards="searchStore.searchResults"
           :sort-order="deckStore.sortOrder"
           :view-mode="deckStore.viewMode"
           section-type="search"
@@ -63,7 +63,7 @@
           @update:sortOrder="deckStore.sortOrder = $event"
           @update:viewMode="deckStore.viewMode = $event"
         />
-        <div v-if="deckStore.isLoading" class="loading-indicator">読み込み中...</div>
+        <div v-if="searchStore.isLoading" class="loading-indicator">読み込み中...</div>
       </div>
 
       <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
@@ -72,10 +72,10 @@
     </div>
 
     <!-- グローバル検索モード用オーバーレイ -->
-    <div v-if="deckStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
+    <div v-if="searchStore.isGlobalSearchMode" class="global-search-overlay" @click="closeGlobalSearch"></div>
 
     <!-- 検索入力欄: default位置（画面下部） -->
-    <div v-if="showSearchInputBottom || deckStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': deckStore.isGlobalSearchMode }">
+    <div v-if="showSearchInputBottom || searchStore.isGlobalSearchMode" class="search-input-bottom" :class="{ 'global-search-mode': searchStore.isGlobalSearchMode }">
       <SearchInputBar
         ref="searchInputBarRef"
         @escape="closeGlobalSearch"
@@ -92,6 +92,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
+import { useSearchStore } from '../stores/search'
 import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
@@ -111,6 +112,7 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const searchStore = useSearchStore()
     const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
@@ -140,11 +142,11 @@ export default {
 
     // グローバル検索モードを閉じる
     const closeGlobalSearch = () => {
-      deckStore.isGlobalSearchMode = false
+      searchStore.isGlobalSearchMode = false
     }
 
     // グローバル検索モードになったらinputにフォーカス
-    watch(() => deckStore.isGlobalSearchMode, (isActive) => {
+    watch(() => searchStore.isGlobalSearchMode, (isActive) => {
       if (isActive) {
         nextTick(() => {
           if (searchInputBarRef.value) {
@@ -195,15 +197,15 @@ export default {
     }
 
     const loadMoreResults = async () => {
-      if (!deckStore.hasMore || deckStore.isLoading) return
+      if (!searchStore.hasMore || searchStore.isLoading) return
       
-      deckStore.isLoading = true
+      searchStore.isLoading = true
       try {
-        deckStore.hasMore = false
+        searchStore.hasMore = false
       } catch (error) {
         console.error('Error loading more results:', error)
       } finally {
-        deckStore.isLoading = false
+        searchStore.isLoading = false
       }
     }
 
@@ -211,7 +213,7 @@ export default {
       const element = event.target
       const scrollBottom = element.scrollHeight - element.scrollTop - element.clientHeight
       
-      if (scrollBottom < 1000 * 60 && deckStore.hasMore && !deckStore.isLoading) {
+      if (scrollBottom < 1000 * 60 && searchStore.hasMore && !searchStore.isLoading) {
         loadMoreResults()
       }
     }
@@ -242,6 +244,7 @@ export default {
 
     return {
       deckStore,
+      searchStore,
       cardDetailStore,
       showSearchInputBottom,
       showSearchInputTop,

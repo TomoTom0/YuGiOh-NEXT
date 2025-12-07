@@ -123,7 +123,7 @@
           <span v-if="pendingCommand" class="command-prefix">{{ pendingCommand.command }}</span>
           <input
           ref="inputRef"
-          v-model="deckStore.searchQuery"
+          v-model="searchStore.searchQuery"
           type="text"
           class="search-input"
           :class="{
@@ -168,9 +168,9 @@
       </div>
 
       <button
-        v-if="deckStore.searchQuery"
+        v-if="searchStore.searchQuery"
         class="clear-btn"
-        @click="deckStore.searchQuery = ''"
+        @click="searchStore.searchQuery = ''"
         title="入力をクリア"
       >
         <svg width="14" height="14" viewBox="0 0 24 24">
@@ -182,7 +182,7 @@
       <SearchFilterDialog
         v-if="position !== 'bottom'"
         :is-visible="deckStore.isFilterDialogVisible"
-        :initial-filters="searchFilters"
+        :initial-filters="searchStore.searchFilters"
         @apply="handleFilterApply"
       />
     </div>
@@ -193,15 +193,13 @@
 <script lang="ts">
 import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
-import type { SearchOptions } from '../../api/card-search'
-import { SORT_ORDER_TO_API_VALUE } from '../../api/card-search'
 import { getDeckDetail } from '../../api/deck-operations'
 import { sessionManager } from '../../content/session/session'
 import SearchFilterDialog from '../SearchFilterDialog.vue'
-import type { SearchFilters } from '../../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../../types/card'
-import { useSearchHistory } from '../../composables/useSearchHistory'
+import type { SearchFilters } from '../../types/search-filters'
 import {
   MONSTER_TYPE_ID_TO_SHORTNAME,
   CARD_TYPE_ID_TO_SHORTNAME,
@@ -225,6 +223,7 @@ import {
 } from '../../constants/search-constants'
 import { useSlashCommands } from './composables/useSlashCommands'
 import { useSearchFilters } from './composables/useSearchFilters'
+import { useSearchExecution } from './composables/useSearchExecution'
 import SearchFilterChips from './components/SearchFilterChips.vue'
 import SearchModeSelector from './components/SearchModeSelector.vue'
 import SuggestionList from './components/SuggestionList.vue'
@@ -259,8 +258,8 @@ export default defineComponent({
   emits: ['escape'],
   setup(props, { expose }) {
     const deckStore = useDeckEditStore()
+    const searchStore = useSearchStore()
     const inputRef = ref<HTMLInputElement | null>(null)
-    const searchHistory = useSearchHistory()
 
     // 設定からデフォルト検索モードを取得
     const settingsStore = useSettingsStore()
@@ -289,12 +288,31 @@ export default defineComponent({
              parent.classList.contains('search-input-bottom')
     })
 
+    // hasActiveFiltersを直接計算
+    const hasActiveFilters = computed(() => {
+      const f = searchStore.searchFilters
+      return f.cardType !== null ||
+        f.attributes.length > 0 ||
+        f.spellTypes.length > 0 ||
+        f.trapTypes.length > 0 ||
+        f.races.length > 0 ||
+        f.monsterTypes.length > 0 ||
+        f.levelValues.length > 0 ||
+        f.linkValues.length > 0 ||
+        f.scaleValues.length > 0 ||
+        f.linkMarkers.length > 0 ||
+        f.atk.min !== undefined ||
+        f.atk.max !== undefined ||
+        f.def.min !== undefined ||
+        f.def.max !== undefined ||
+        f.releaseDate.from !== undefined ||
+        f.releaseDate.to !== undefined
+    })
+
     // Composableを使用してロジックを分離
     const {
-      searchFilters,
       filterChips,
       activeFiltersOptions,
-      hasActiveFilters,
       filterCount,
       clearAllFilters
     } = useSearchFilters()
@@ -306,7 +324,14 @@ export default defineComponent({
       actualInputValue,
       isNegatedInput,
       isCommandMode
-    } = useSlashCommands({ searchQuery: computed(() => deckStore.searchQuery) })
+    } = useSlashCommands({ searchQuery: computed(() => searchStore.searchQuery) })
+
+    const {
+      handleSearch
+    } = useSearchExecution({
+      deckStore,
+      searchMode
+    })
 
     // 候補選択のインデックス管理（composableには含まれていない）
     const selectedSuggestionIndex = ref(-1)
@@ -350,13 +375,13 @@ export default defineComponent({
     // 表示用フィルターアイコン - filterChipsと重複しないものを表示
     const displayFilterIcons = computed(() => {
       // 共通関数で全アイコンを取得
-      return convertFiltersToIcons(searchFilters.value)
+      return convertFiltersToIcons(searchStore.searchFilters)
     })
 
 
     // コマンドモードの検出
     const commandMatch = computed(() => {
-      const query = deckStore.searchQuery
+      const query = searchStore.searchQuery
       if (!query.startsWith('/')) return null
 
       // コマンド + スペースのパターンを検索
@@ -375,7 +400,7 @@ export default defineComponent({
 
     // コマンド名を入力中かどうか（/で始まるがまだスペースがない状態）
     const isTypingCommand = computed(() => {
-      const query = deckStore.searchQuery
+      const query = searchStore.searchQuery
       return query.startsWith('/') && !pendingCommand.value && !commandMatch.value
     })
 
@@ -487,7 +512,7 @@ export default defineComponent({
     // mydeckモード用の候補リスト
     const mydeckSuggestions = computed<DeckSuggestion[]>(() => {
       if (searchMode.value !== 'mydeck') return []
-      const input = deckStore.searchQuery.trim().toLowerCase()
+      const input = searchStore.searchQuery.trim().toLowerCase()
       const decks = deckStore.deckList.map(d => ({
         dno: d.dno,
         name: d.name,
@@ -550,12 +575,12 @@ export default defineComponent({
     // 入力ハンドラ
     const handleInput = () => {
       // 全角数字を半角に自動変換
-      if (deckStore.searchQuery !== toHalfWidth(deckStore.searchQuery)) {
-        deckStore.searchQuery = toHalfWidth(deckStore.searchQuery)
+      if (searchStore.searchQuery !== toHalfWidth(searchStore.searchQuery)) {
+        searchStore.searchQuery = toHalfWidth(searchStore.searchQuery)
         return
       }
 
-      const query = deckStore.searchQuery
+      const query = searchStore.searchQuery
 
       // コマンド候補のインデックスをリセット（ペンディングコマンドがない場合のみ）
       if (!pendingCommand.value) {
@@ -592,7 +617,7 @@ export default defineComponent({
             filterType: cmdDef.filterType,
             isNot: cmdDef.isNot
           }
-          deckStore.searchQuery = ''
+          searchStore.searchQuery = ''
           return
         }
       }
@@ -664,13 +689,13 @@ export default defineComponent({
           const selected = filteredSuggestions.value[index]
           if (selected) {
             const prefix = isNegatedInput.value ? '-' : ''
-            deckStore.searchQuery = prefix + selected.value
+            searchStore.searchQuery = prefix + selected.value
           }
         }
 
         const onConfirm = (suggestion: any) => {
           const prefix = isNegatedInput.value ? '-' : ''
-          deckStore.searchQuery = prefix + suggestion.value
+          searchStore.searchQuery = prefix + suggestion.value
           nextTick(() => {
             addFilterChip()
           })
@@ -703,14 +728,14 @@ export default defineComponent({
 
       // Backspaceで空の入力時にチップを削除
       if (event.key === 'Backspace') {
-        if (deckStore.searchQuery === '' && pendingCommand.value) {
+        if (searchStore.searchQuery === '' && pendingCommand.value) {
           // ペンディングコマンドをキャンセル
           event.preventDefault()
           pendingCommand.value = null
           selectedSuggestionIndex.value = -1
           return
         }
-        if (deckStore.searchQuery === '' && !pendingCommand.value && filterChips.value.length > 0) {
+        if (searchStore.searchQuery === '' && !pendingCommand.value && filterChips.value.length > 0) {
           // 最後のチップを削除
           event.preventDefault()
           removeFilterChip(filterChips.value.length - 1)
@@ -732,13 +757,13 @@ export default defineComponent({
         if (cmd === '/clear') {
           // 全てクリア
           clearAllFilters()
-          deckStore.searchQuery = ''
+          searchStore.searchQuery = ''
         } else if (cmd === '/clear-cond') {
           // 条件だけクリア
           clearAllFilters()
         } else if (cmd === '/clear-text') {
           // テキストだけクリア
-          deckStore.searchQuery = ''
+          searchStore.searchQuery = ''
         } else if (cmd === '/clear-one-cond') {
           // 条件を選択して削除
           if (!value) {
@@ -749,7 +774,7 @@ export default defineComponent({
 
           // 選択された条件を削除
           const selectedValue = value
-          const f = searchFilters.value
+          const f = searchStore.searchFilters
 
           if (selectedValue.startsWith('chip-')) {
             // チップを削除
@@ -786,7 +811,7 @@ export default defineComponent({
           }
 
           pendingCommand.value = null
-          deckStore.searchQuery = ''
+          searchStore.searchQuery = ''
         } else {
           pendingCommand.value = null
         }
@@ -808,7 +833,7 @@ export default defineComponent({
           }
         }
         pendingCommand.value = null
-        deckStore.searchQuery = ''
+        searchStore.searchQuery = ''
         return
       }
 
@@ -853,7 +878,7 @@ export default defineComponent({
 
       // 入力をクリア（previewChipを消すため）
       pendingCommand.value = null
-      deckStore.searchQuery = ''
+      searchStore.searchQuery = ''
       selectedSuggestionIndex.value = -1
     }
 
@@ -862,7 +887,7 @@ export default defineComponent({
       // NOT条件はクライアントサイドフィルタリングで処理（APIには送らない）
       if (isNot) return
 
-      const f = searchFilters.value
+      const f = searchStore.searchFilters
 
       switch (type) {
         case 'attributes':
@@ -1019,7 +1044,7 @@ export default defineComponent({
 
     // チップをフィルターから削除
     const removeChipFromFilters = (type: string, value: string) => {
-      const f = searchFilters.value
+      const f = searchStore.searchFilters
 
       switch (type) {
         case 'attributes': {
@@ -1071,7 +1096,7 @@ export default defineComponent({
 
     // displayFilterIcons のアイコンを削除
     const removeFilterIcon = (icon: FilterIcon) => {
-      const f = searchFilters.value
+      const f = searchStore.searchFilters
 
       if (!icon.value) return
 
@@ -1146,7 +1171,7 @@ export default defineComponent({
     const handleEscape = () => {
       if (pendingCommand.value) {
         pendingCommand.value = null
-        deckStore.searchQuery = ''
+        searchStore.searchQuery = ''
         selectedSuggestionIndex.value = -1
       }
       // 常に親コンポーネントに伝播（emit('escape')はテンプレートで処理）
@@ -1155,7 +1180,7 @@ export default defineComponent({
     // 候補を選択
     // コマンド選択
     const selectCommand = (cmd: { command: string; description: string }) => {
-      deckStore.searchQuery = cmd.command + ' '
+      searchStore.searchQuery = cmd.command + ' '
       selectedCommandIndex.value = -1
       // コマンドモードに移行
       const cmdDef = COMMANDS[cmd.command]
@@ -1165,7 +1190,7 @@ export default defineComponent({
           filterType: cmdDef.filterType,
           isNot: cmdDef.isNot
         }
-        deckStore.searchQuery = ''
+        searchStore.searchQuery = ''
       }
       inputRef.value?.focus()
     }
@@ -1173,7 +1198,7 @@ export default defineComponent({
     const selectSuggestion = (suggestion: { value: string; label: string }) => {
       // -プレフィックスを保持
       const prefix = isNegatedInput.value ? '-' : ''
-      deckStore.searchQuery = prefix + suggestion.value
+      searchStore.searchQuery = prefix + suggestion.value
       selectedSuggestionIndex.value = -1
       // 選択したら即チップに変換
       nextTick(() => {
@@ -1184,7 +1209,7 @@ export default defineComponent({
     // mydeckモードでデッキを選択
     const selectMydeck = (deck: { dno: number; name: string }) => {
       // デッキ名を入力欄に設定
-      deckStore.searchQuery = deck.name
+      searchStore.searchQuery = deck.name
       loadMydeckCards(deck.dno)
       // ドロップダウンを閉じる
       showMydeckDropdown.value = false
@@ -1192,7 +1217,7 @@ export default defineComponent({
 
     // デッキのカードを読み込んで検索結果に表示
     const loadMydeckCards = async (dno: number) => {
-      deckStore.isLoading = true
+      searchStore.isLoading = true
       deckStore.activeTab = 'search'
 
       try {
@@ -1248,17 +1273,17 @@ export default defineComponent({
         })
 
         // 検索結果に設定（各カード種類1つずつ）
-        deckStore.searchResults = uniqueCards as unknown as typeof deckStore.searchResults
-        deckStore.allResults = uniqueCards
-        deckStore.hasMore = false
-        deckStore.currentPage = 0
+        searchStore.searchResults = uniqueCards as unknown as typeof searchStore.searchResults
+        searchStore.allResults = uniqueCards as unknown as typeof searchStore.allResults
+        searchStore.hasMore = false
+        searchStore.currentPage = 0
 
         // 選択インデックスをリセット
         selectedMydeckIndex.value = -1
       } catch (error) {
         console.error('Failed to load mydeck cards:', error)
       } finally {
-        deckStore.isLoading = false
+        searchStore.isLoading = false
       }
     }
 
@@ -1276,7 +1301,7 @@ export default defineComponent({
         }
         // 入力に一致するデッキがある場合
         const matchedDeck = mydeckSuggestions.value.find(d =>
-          d.name.toLowerCase() === deckStore.searchQuery.trim().toLowerCase()
+          d.name.toLowerCase() === searchStore.searchQuery.trim().toLowerCase()
         )
         if (matchedDeck) {
           loadMydeckCards(matchedDeck.dno)
@@ -1296,7 +1321,7 @@ export default defineComponent({
         if (selected) {
           // -プレフィックスを保持
           const prefix = isNegatedInput.value ? '-' : ''
-          deckStore.searchQuery = prefix + selected.value
+          searchStore.searchQuery = prefix + selected.value
           selectedSuggestionIndex.value = -1
           nextTick(() => {
             addFilterChip()
@@ -1319,7 +1344,7 @@ export default defineComponent({
       // コマンドモードの場合はフィルタを適用
       if (isCommandMode.value) {
         applyCommandFilter()
-        deckStore.searchQuery = '' // コマンド部分をクリア
+        searchStore.searchQuery = '' // コマンド部分をクリア
         return
       }
 
@@ -1338,7 +1363,7 @@ export default defineComponent({
       const value = match.value.trim().toLowerCase()
       if (!value) return
 
-      const f = searchFilters.value
+      const f = searchStore.searchFilters
 
       switch (cmd.filterType) {
         case 'attributes': {
@@ -1422,223 +1447,19 @@ export default defineComponent({
       }
 
       // コマンドをクリアして検索クエリを空に
-      deckStore.searchQuery = ''
+      searchStore.searchQuery = ''
     }
 
-    const handleFilterApply = (filters: typeof searchFilters.value) => {
-      searchFilters.value = filters
+    const handleFilterApply = (filters: SearchFilters) => {
+      searchStore.searchFilters = filters
       // ダイアログは「×」ボタンで明示的に閉じる仕様（自動で閉じない）
       // deckStore.isFilterDialogVisible = false
-      if (deckStore.searchQuery.trim()) {
+      if (searchStore.searchQuery.trim()) {
         handleSearch()
       }
     }
 
     // クライアント側でフィルター条件を適用
-    const applyClientSideFilters = (cards: CardInfo[], filters: SearchFilters): CardInfo[] => {
-      return cards.filter(card => {
-        // モンスターカードのみに適用されるフィルター
-        if (card.cardType === 'monster') {
-          // 属性フィルター
-          if (filters.attributes.length > 0) {
-            if (!('attribute' in card) || !filters.attributes.includes(card.attribute as Attribute)) {
-              return false
-            }
-          }
-          
-          // 種族フィルター
-          if (filters.races.length > 0) {
-            if (!('race' in card) || !filters.races.includes(card.race as Race)) {
-              return false
-            }
-          }
-          
-          // レベルフィルター
-          if (filters.levelValues.length > 0 && 'level' in card) {
-            if (typeof card.level === 'number' && !filters.levelValues.includes(card.level)) {
-              return false
-            }
-          }
-          
-          // リンク値フィルター
-          if (filters.linkValues.length > 0 && 'link' in card) {
-            if (typeof card.link === 'number' && !filters.linkValues.includes(card.link)) {
-              return false
-            }
-          }
-        }
-        
-        return true
-      })
-    }
-
-    const handleSearch = async () => {
-      // フィルターダイアログを自動クローズ
-      deckStore.isFilterDialogVisible = false
-
-      const query = deckStore.searchQuery.trim()
-
-      if (!query && !hasActiveFilters.value) {
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-        deckStore.currentPage = 0
-        return
-      }
-
-      deckStore.activeTab = 'search'
-      deckStore.isLoading = true
-
-      const searchTypeMap: Record<string, string> = {
-        'auto': '1', // autoモードはsearchCardsAutoで処理するため、ここでは使われない
-        'name': '1',
-        'text': '2',
-        'pendulum': '3'
-      }
-      let searchType = searchTypeMap[searchMode.value] || '1'  // autoモードから委譲する場合があるのでlet
-
-      try {
-        const apiSort = SORT_ORDER_TO_API_VALUE[deckStore.sortOrder] || 1
-        const keyword = deckStore.searchQuery.trim()
-
-        // 検索実行時に動的import
-        const { searchCards, searchCardsAuto } = await import('../../api/card-search')
-
-        // autoモードの場合は専用の関数を使用
-        let results: CardInfo[] = []  // 初期化
-        let searchOptions: SearchOptions | null = null
-        let delegatedToName = false  // autoモードからname検索に委譲したかどうか
-
-        if (searchMode.value === 'auto') {
-          const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
-          results = autoResult.cards
-          const autoResultCount = results.length  // フィルタリング前の件数を保存
-
-          // autoモードでもフィルター条件を適用（クライアント側でフィルタリング）
-          results = applyClientSideFilters(results, searchFilters.value)
-
-          // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
-          if (autoResultCount >= 100) {
-            console.log('[handleSearch] autoモードで100件取得 → name検索に委譲')
-            delegatedToName = true
-            searchType = '1'  // name検索に切り替え
-          }
-        }
-
-        if (searchMode.value !== 'auto' || delegatedToName) {
-          // 通常の検索（またはautoモードから委譲された場合）
-          searchOptions = {
-            keyword,
-            searchType: searchType as '1' | '2' | '3' | '4',
-            resultsPerPage: 100,
-            sort: apiSort
-          }
-
-          const f = searchFilters.value
-          if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
-          if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
-          if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-          if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
-          if (f.atk.min !== undefined || f.atk.max !== undefined) {
-            searchOptions.atk = { from: f.atk.min, to: f.atk.max }
-          }
-          if (f.def.min !== undefined || f.def.max !== undefined) {
-            searchOptions.def = { from: f.def.min, to: f.def.max }
-          }
-          if (f.monsterTypes.length > 0) {
-            const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
-            const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
-            if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
-            if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
-            // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
-            if (normalTypes.length > 0 || notTypes.length > 0) {
-              searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
-            }
-          }
-          if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
-          if (f.linkMarkers.length > 0) {
-            searchOptions.linkMarkers = f.linkMarkers
-            searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
-          }
-          if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
-          if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
-          if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
-          if (f.releaseDate.from || f.releaseDate.to) {
-            searchOptions.releaseDate = {}
-            if (f.releaseDate.from) {
-              const parts = f.releaseDate.from.split('-')
-              const year: number = parseInt(parts[0], 10)
-              const month: number = parseInt(parts[1], 10)
-              const day: number = parseInt(parts[2], 10)
-              searchOptions.releaseDate.start = { year, month, day }
-            }
-            if (f.releaseDate.to) {
-              const parts = f.releaseDate.to.split('-')
-              const year: number = parseInt(parts[0], 10)
-              const month: number = parseInt(parts[1], 10)
-              const day: number = parseInt(parts[2], 10)
-              searchOptions.releaseDate.end = { year, month, day }
-            }
-          }
-
-          console.log('[handleSearch] searchOptions:', JSON.stringify(searchOptions, null, 2))
-          results = await searchCards(searchOptions)
-          console.log('[handleSearch] results count:', results.length)
-        }
-
-        // 検索APIを呼び出したのでグローバル検索モードを終了
-        deckStore.isGlobalSearchMode = false
-
-        // 検索結果をstore用の形式に変換
-        deckStore.searchResults = results as unknown as typeof deckStore.searchResults
-        deckStore.allResults = results as unknown as typeof deckStore.allResults
-
-        // 検索履歴に保存
-        const query = keyword.trim()
-        if (query || hasActiveFilters.value) {
-          const resultCids = results.map(card => card.cardId)
-          console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
-          searchHistory.addToHistory(query, searchMode.value, searchFilters.value, resultCids)
-        }
-
-        if (results.length >= 100) {
-          deckStore.hasMore = true
-          // autoモード以外の場合のみ、拡張検索を実行
-          if (searchOptions !== null) {
-            setTimeout(async () => {
-              try {
-                const { searchCards } = await import('../../api/card-search')
-                const moreResults = await searchCards({
-                  ...searchOptions,
-                  resultsPerPage: 2000
-                })
-                if (moreResults.length > 100) {
-                  deckStore.searchResults = moreResults as unknown as typeof deckStore.searchResults
-                  deckStore.allResults = moreResults as unknown as typeof deckStore.allResults
-                  deckStore.hasMore = moreResults.length >= 2000
-                  deckStore.currentPage = 1
-                } else {
-                  deckStore.hasMore = false
-                }
-              } catch (error) {
-                console.error('Extended search error:', error)
-                deckStore.hasMore = false
-              }
-            }, 1000)
-          }
-        } else {
-          deckStore.hasMore = false
-        }
-      } catch (error) {
-        console.error('Search error:', error)
-        deckStore.searchResults = []
-        deckStore.allResults = []
-        deckStore.hasMore = false
-      } finally {
-        deckStore.isLoading = false
-      }
-    }
-
     const focus = () => {
       nextTick(() => {
         if (inputRef.value) {
@@ -1656,10 +1477,10 @@ export default defineComponent({
 
     return {
       deckStore,
+      searchStore,
       inputRef,
       searchMode,
       showMydeckDropdown,
-      searchFilters,
       hasActiveFilters,
       filterCount,
       displayFilterIcons,

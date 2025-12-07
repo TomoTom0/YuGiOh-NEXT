@@ -464,12 +464,6 @@
             <input v-model="filters.releaseDate.to" type="date" min="1999-01-01" :max="maxDate">
           </div>
         </div>
-
-        <!-- フッター：SearchInputBar と閉じるボタン -->
-        <div class="dialog-footer">
-          <SearchInputBar position="bottom" />
-          <button class="close-button" @click="deckStore.isFilterDialogVisible = false">×</button>
-        </div>
       </div>
 
       <!-- 検索履歴タブ -->
@@ -477,46 +471,103 @@
         <div v-if="searchHistory.historyItems.value.length === 0" class="history-empty">
           検索履歴はありません
         </div>
-        <div v-else class="history-list">
-          <div
-            v-for="(item, index) in searchHistory.historyItems.value"
-            :key="index"
-            class="history-item"
-          >
-            <div class="history-item-content">
-              <div class="history-chips">
-                <span
-                  v-for="(icon, idx) in getHistoryFilterIcons(item.filters)"
-                  :key="idx"
-                  class="history-chip"
-                  :class="icon.type"
-                >{{ icon.label }}</span>
-              </div>
-              <div class="history-query">
-                <span class="history-mode">{{ item.searchMode }}</span>
-                <span class="history-text">{{ item.query || '(空)' }}</span>
-                <span class="history-count">{{ item.resultCount }}件</span>
+        <div v-else>
+          <!-- お気に入り履歴 -->
+          <div v-if="searchHistory.favoriteItems.value.length > 0" class="history-section">
+            <div class="history-section-title">Favorites</div>
+            <div class="history-list">
+              <div
+                v-for="(item, index) in searchHistory.favoriteItems.value"
+                :key="`fav-${index}`"
+                class="history-item"
+              >
+                <div class="history-item-content">
+                  <div class="history-chips">
+                    <span
+                      v-for="(icon, idx) in getHistoryFilterIcons(item.filters)"
+                      :key="idx"
+                      class="history-chip"
+                      :class="icon.type"
+                    >{{ icon.label }}</span>
+                  </div>
+                  <div class="history-query">
+                    <span class="history-mode">{{ item.searchMode }}</span>
+                    <span class="history-text">{{ item.query || '(空)' }}</span>
+                    <span class="history-count">{{ item.resultCount }}件</span>
+                  </div>
+                </div>
+                <div class="history-actions">
+                  <button class="history-btn search-btn" @click="executeHistorySearch(searchHistory.historyItems.value.indexOf(item))" title="検索">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="history-btn favorite-btn active" @click="searchHistory.toggleFavorite(searchHistory.historyItems.value.indexOf(item))" title="お気に入り">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" fill="currentColor" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </button>
+                  <button class="history-btn delete-btn" @click="searchHistory.removeFromHistory(searchHistory.historyItems.value.indexOf(item))" title="削除">
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="history-actions">
-              <button class="history-btn search-btn" @click="executeHistorySearch(index)" title="検索">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <button class="history-btn favorite-btn" :class="{ active: item.isFavorite }" @click="searchHistory.toggleFavorite(index)" title="お気に入り">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" :fill="item.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </button>
-              <button class="history-btn delete-btn" @click="searchHistory.removeFromHistory(index)" title="削除">
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
-                </svg>
-              </button>
+          </div>
+
+          <!-- 通常の履歴 -->
+          <div v-if="searchHistory.regularItems.value.length > 0" class="history-section">
+            <div v-if="searchHistory.favoriteItems.value.length > 0" class="history-section-title">Recent</div>
+            <div class="history-list">
+              <div
+                v-for="(item, index) in searchHistory.regularItems.value"
+                :key="`reg-${index}`"
+                class="history-item"
+              >
+                <div class="history-item-content">
+                  <div class="history-chips">
+                    <span
+                      v-for="(icon, idx) in getHistoryFilterIcons(item.filters)"
+                      :key="idx"
+                      class="history-chip"
+                      :class="icon.type"
+                    >{{ icon.label }}</span>
+                  </div>
+                  <div class="history-query">
+                    <span class="history-mode">{{ item.searchMode }}</span>
+                    <span class="history-text">{{ item.query || '(空)' }}</span>
+                    <span class="history-count">{{ item.resultCount }}件</span>
+                  </div>
+                </div>
+                <div class="history-actions">
+                  <button class="history-btn search-btn" @click="executeHistorySearch(searchHistory.historyItems.value.indexOf(item))" title="検索">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="history-btn favorite-btn" @click="searchHistory.toggleFavorite(searchHistory.historyItems.value.indexOf(item))" title="お気に入り">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </button>
+                  <button class="history-btn delete-btn" @click="searchHistory.removeFromHistory(searchHistory.historyItems.value.indexOf(item))" title="削除">
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 固定フッター：すべてのタブで共通 -->
+      <div class="dialog-footer">
+        <SearchInputBar position="bottom" />
+        <button class="footer-close-btn" @click="deckStore.isFilterDialogVisible = false" title="閉じる">×</button>
       </div>
     </div>
   </div>
@@ -525,6 +576,7 @@
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
+import { useSearchStore } from '../stores/search';
 import type { Attribute, Race, MonsterType, CardType, CardInfo, SpellEffectType, TrapEffectType } from '../types/card';
 import type { SearchFilters } from '../types/search-filters';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '../api/image-utils';
@@ -545,6 +597,7 @@ import { mappingManager } from '../utils/mapping-manager';
 import { useSearchHistory } from '../composables/useSearchHistory';
 
 const deckStore = useDeckEditStore();
+const searchStore = useSearchStore();
 const searchHistory = useSearchHistory();
 const activeDialogTab = ref<'filter' | 'history'>('filter');
 
@@ -1122,7 +1175,7 @@ async function executeHistorySearch(index: number) {
 
   // 検索条件を復元
   Object.assign(filters, item.filters);
-  deckStore.searchQuery = item.query;
+  searchStore.searchQuery = item.query;
 
   // ダイアログを閉じる
   deckStore.isFilterDialogVisible = false;
@@ -1142,9 +1195,9 @@ async function executeHistorySearch(index: number) {
 
   // キャッシュから復元できた結果を即座に表示
   if (cachedResults.length > 0) {
-    deckStore.searchResults = cachedResults as unknown as typeof deckStore.searchResults;
-    deckStore.allResults = cachedResults as unknown as typeof deckStore.allResults;
-    deckStore.isGlobalSearchMode = false;
+    searchStore.searchResults = cachedResults as unknown as typeof searchStore.searchResults;
+    searchStore.allResults = cachedResults as unknown as typeof searchStore.allResults;
+    searchStore.isGlobalSearchMode = false;
   }
 
   // 日付が異なる場合は、バックグラウンドで再検索して更新
@@ -1183,8 +1236,8 @@ async function executeHistorySearch(index: number) {
         const updated = searchHistory.updateResults(index, newResultCids);
 
         if (updated) {
-          deckStore.searchResults = newResults as unknown as typeof deckStore.searchResults;
-          deckStore.allResults = newResults as unknown as typeof deckStore.allResults;
+          searchStore.searchResults = newResults as unknown as typeof searchStore.searchResults;
+          searchStore.allResults = newResults as unknown as typeof searchStore.allResults;
           console.log('[YGO Helper] 検索履歴を更新しました（日付変更のため）');
         }
       } catch (error) {
@@ -1221,7 +1274,7 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
   box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
   width: 90%;
   max-width: 800px;
-  height: 85vh;
+  height: 90vh;
   display: flex;
   flex-direction: column;
 }
@@ -1262,20 +1315,19 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 3px;
-  font-size: 8px;
+  padding: 2px 6px;
+  font-size: 11px;
   font-weight: 500;
-  border-radius: 2px;
+  border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, var(--text-secondary));
+  color: var(--text-secondary, #666);
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
-  max-width: 48px;
+  max-width: 80px;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
-  line-height: 1;
-  height: 10px;
+  line-height: 1.3;
 }
 
 .dialog-tabs {
@@ -1348,6 +1400,7 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  padding-bottom: 80px; // フッター分のスペース確保
 }
 
 .card-type-section {
@@ -2498,12 +2551,19 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
 }
 
 .dialog-footer {
+  position: sticky;
+  bottom: 0;
   display: flex;
-  justify-content: center;
-  padding: 16px 0;
-  margin-top: 8px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--border-primary, #ddd);
 
-  .close-button {
+  .search-input-wrapper {
+    flex: 1;
+  }
+
+  .footer-close-btn {
     width: 32px;
     height: 32px;
     padding: 0;
@@ -2520,6 +2580,7 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 
     &:hover {
       background: var(--bg-secondary);
@@ -2547,6 +2608,22 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
   padding: 32px;
   color: var(--text-secondary, #666);
   font-size: 14px;
+}
+
+.history-section {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.history-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #666);
+  padding: 4px 8px;
+  margin-bottom: 8px;
 }
 
 .history-list {
@@ -2628,16 +2705,19 @@ function getHistoryFilterIcons(historyFilters: SearchFilters) {
   gap: 4px;
   align-items: flex-start;
   width: 100%;
+  min-height: 18px;
 }
 
 .history-chip {
   display: inline-flex;
   align-items: center;
-  padding: 3px 6px;
+  padding: 2px 6px;
   font-size: 11px;
+  font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
   color: var(--text-secondary, #666);
+  border: 1px solid var(--border-primary, #ddd);
   line-height: 1.3;
 }
 
