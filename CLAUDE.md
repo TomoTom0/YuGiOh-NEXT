@@ -2,9 +2,10 @@
 
 ## 📌 TL;DR（最重要事項）
 
-1. **ブラウザ操作**: Playwright MCP禁止 → `tmp/browser/` のNode.jsスクリプト + CDP経由で実行
-2. **よくあるミス**: [`.claude/common-mistakes.md`](.claude/common-mistakes.md) を必読
-3. **コード品質**:
+1. **タスク管理**: `tm` コマンドを使用（`tm list`, `tm update <ID> --status wip`, `tm finish <ID>`）
+2. **ブラウザ操作**: Playwright MCP禁止 → `tmp/browser/` のNode.jsスクリプト + CDP経由で実行
+3. **よくあるミス**: [`.claude/common-mistakes.md`](.claude/common-mistakes.md) を必読
+4. **コード品質**:
    - DOM更新後は `nextTick()` を必ず待つ
    - UUID は `crypto.randomUUID()` を使用
    - **型安全性**: `as` キャスト禁止。代わりに型ガード関数を使用（`src/utils/type-guards.ts`）
@@ -12,10 +13,10 @@
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
    - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
    - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
-4. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
-5. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
-6. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
-7. **git操作**: git push / PR作成は明示的な指示がない限り実行しない
+5. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
+6. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
+7. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
+8. **git操作**: git push / PR作成は明示的な指示がない限り実行しない
 
 ---
 
@@ -151,6 +152,76 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 ### 参考ドキュメント
 
 - **セットアップスクリプト**: `scripts/debug/setup/`
+
+## タスク管理
+
+**tmコマンドを使用してタスクを管理する**
+
+本プロジェクトでは、`tasks/` ディレクトリの代わりに `tm` コマンドラインツールを使用してタスクを管理します。
+
+### 基本的な使い方
+
+```bash
+# 新しいタスクを作成
+tm new "タスクのタイトル" --body "タスクの詳細説明" --status todo
+
+# タスク一覧を表示
+tm list
+
+# 特定のステータスのタスクのみ表示
+tm list --status todo
+tm list --status wip
+tm list --status done
+
+# タスクの詳細を表示
+tm get <タスクID>
+
+# タスクのステータスを変更
+tm update <タスクID> --status wip   # 作業中に変更
+tm update <タスクID> --status todo  # 未着手に戻す
+
+# タスクを完了としてマーク
+tm finish <タスクID>
+```
+
+### タスクステータス
+
+- `todo`: 未着手のタスク
+- `wip`: 作業中のタスク（Work In Progress）
+- `done`: 完了したタスク
+
+### ワークフロー
+
+1. **タスク開始前**: `tm list --status todo` で未着手タスクを確認
+2. **タスク開始**: `tm update <ID> --status wip` で作業中に変更
+3. **作業中**: タスクの詳細を確認したい場合は `tm get <ID>`
+4. **タスク完了**: `tm finish <ID>` で完了としてマーク
+5. **進捗確認**: `tm list` で全タスクの状態を確認
+
+### タスク作成時の注意事項
+
+- **タイトル**: 簡潔で分かりやすいタスク名（例: "REQ-18: CardList.vue のレビュー確認"）
+- **本文（--body）**: 詳細な説明、関連ファイル、レポートへのリンク等を記載
+- **優先度の記載**: タイトルに high/medium/low を含める（例: "high", "medium", "low"）
+
+### 例
+
+```bash
+# 高優先度のレビュータスクを作成
+tm new "REQ-18: CardList.vue のレビュー確認 high" --body "ソート複数キーの処理順序確認
+displayOrder との連携確認
+大量カード（200+）時のパフォーマンス確認
+
+関連:
+- ファイルサイズ: 707行
+- 変更回数: 32回" --status todo
+
+# タスクを作業中に変更
+tm update 1 --status wip
+
+# タスクを完了
+tm finish 1
+```
 
 ## Build & Deploy
 
