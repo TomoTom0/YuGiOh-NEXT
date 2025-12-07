@@ -158,6 +158,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   // displayOrderを初期化（deckInfoから生成）
   function initializeDisplayOrder() {
+    // maxIndexMapをクリア（新しいデッキロード時に以前のインデックスが引き継がれないように）
+    maxIndexMap.clear();
+
     const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
 
     sections.forEach(section => {
