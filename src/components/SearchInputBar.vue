@@ -173,12 +173,10 @@ import {
   MONSTER_TYPE_MAP,
   LINK_MARKER_MAP,
   FILTER_OPTIONS,
-  toHalfWidth,
-  parseFlexibleDate
+  toHalfWidth
 } from '../constants/search-constants'
-// TODO: Phase 2統合 - 次回実装時にコメント解除
-// import { useSlashCommands } from '../composables/search/useSlashCommands'
-// import { useSearchFilters } from '../composables/search/useSearchFilters'
+import { useSlashCommands } from '../composables/search/useSlashCommands'
+import { useSearchFilters } from '../composables/search/useSearchFilters'
 
 export default defineComponent({
   name: 'SearchInputBar',
@@ -232,117 +230,32 @@ export default defineComponent({
       const wrapper = inputRef.value?.closest('.search-input-wrapper')
       const parent = wrapper?.parentElement
       if (!parent) return false
-      return parent.classList.contains('search-input-bottom-fixed') || 
+      return parent.classList.contains('search-input-bottom-fixed') ||
              parent.classList.contains('search-input-bottom')
     })
-    const searchFilters = ref<SearchFilters>({
-      cardType: null,
-      attributes: [],
-      spellTypes: [],
-      trapTypes: [],
-      races: [],
-      monsterTypes: [],
-      monsterTypeMatchMode: 'or',
-      levelType: 'level',
-      levelValues: [],
-      linkValues: [],
-      scaleValues: [],
-      linkMarkers: [],
-      linkMarkerMatchMode: 'or',
-      atk: { exact: false, unknown: false },
-      def: { exact: false, unknown: false },
-      releaseDate: {}
-    })
 
-    // チップベースフィルターシステム
-    interface FilterChip {
-      type: string
-      value: string
-      label: string
-      isNot?: boolean
-    }
+    // Composableを使用してロジックを分離
+    const {
+      searchFilters,
+      filterChips,
+      activeFiltersOptions,
+      hasActiveFilters,
+      filterCount,
+      clearAllFilters
+    } = useSearchFilters()
 
-    interface PendingCommand {
-      command: string
-      filterType: string
-      isNot?: boolean
-    }
+    const {
+      pendingCommand,
+      commandSuggestions,
+      isValidCommandInput,
+      actualInputValue,
+      isNegatedInput,
+      isCommandMode
+    } = useSlashCommands({ searchQuery: computed(() => deckStore.searchQuery) })
 
-    const filterChips = ref<FilterChip[]>([])
-    const pendingCommand = ref<PendingCommand | null>(null)
+    // 候補選択のインデックス管理（composableには含まれていない）
     const selectedSuggestionIndex = ref(-1)
     const selectedCommandIndex = ref(-1)
-
-    // コマンド候補（/ で始まる入力時）
-    const commandSuggestions = computed(() => {
-      const query = deckStore.searchQuery.trim()
-      if (!query.startsWith('/') || pendingCommand.value) return []
-      
-      const input = query.substring(1).toLowerCase()
-      if (!input) {
-        // 主要コマンドのみ表示
-        return [
-          { command: '/attr', description: '属性' },
-          { command: '/race', description: '種族' },
-          { command: '/level', description: 'レベル/ランク' },
-          { command: '/atk', description: 'ATK' },
-          { command: '/def', description: 'DEF' },
-          { command: '/type', description: 'カードタイプ' },
-          { command: '/link', description: 'リンク数' },
-          { command: '/mtype', description: 'モンスタータイプ' }
-        ]
-      }
-      
-      // 入力に一致するコマンドをフィルタ
-      return Object.entries(COMMANDS)
-        .filter(([cmd, info]) => 
-          cmd.toLowerCase().includes(input) || 
-          info.description.toLowerCase().includes(input)
-        )
-        .map(([cmd, info]) => ({ command: cmd, description: info.description }))
-    })
-
-    // 現在設定されている条件のリストを生成
-    const activeFiltersOptions = computed(() => {
-      const options: { value: string; label: string }[] = []
-      const f = searchFilters.value
-
-      // チップから追加
-      filterChips.value.forEach((chip, index) => {
-        options.push({
-          value: `chip-${index}`,
-          label: `${chip.isNot ? '!' : ''}${chip.label} (チップ)`
-        })
-      })
-
-      // SearchFilterDialogから追加された条件
-      if (f.cardType) {
-        options.push({ value: 'cardType', label: `カードタイプ: ${f.cardType}` })
-      }
-      f.attributes.forEach(attr => {
-        options.push({ value: `attr-${attr}`, label: `属性: ${attr}` })
-      })
-      f.races.forEach(race => {
-        options.push({ value: `race-${race}`, label: `種族: ${getRaceLabel(race)}` })
-      })
-      f.levelValues.forEach(level => {
-        options.push({ value: `level-${level}`, label: `レベル: ${level}` })
-      })
-      f.linkValues.forEach(link => {
-        options.push({ value: `link-${link}`, label: `リンク: ${link}` })
-      })
-      f.monsterTypes.forEach(mt => {
-        options.push({ value: `mtype-${mt.type}`, label: `モンスタータイプ: ${mt.type}` })
-      })
-      if (f.atk.min !== undefined || f.atk.max !== undefined) {
-        options.push({ value: 'atk', label: `ATK条件` })
-      }
-      if (f.def.min !== undefined || f.def.max !== undefined) {
-        options.push({ value: 'def', label: `DEF条件` })
-      }
-
-      return options
-    })
 
     // 現在の入力に基づいてフィルタリングされた候補
     const filteredSuggestions = computed(() => {
@@ -390,36 +303,6 @@ export default defineComponent({
       }
     })
 
-    const hasActiveFilters = computed(() => {
-      const f = searchFilters.value
-      return f.cardType !== null ||
-        f.attributes.length > 0 ||
-        f.races.length > 0 ||
-        f.levelValues.length > 0 ||
-        f.atk.unknown ||
-        f.atk.min !== undefined ||
-        f.atk.max !== undefined ||
-        f.def.unknown ||
-        f.def.min !== undefined ||
-        f.def.max !== undefined ||
-        f.monsterTypes.length > 0 ||
-        f.linkValues.length > 0
-    })
-
-    const filterCount = computed(() => {
-      const f = searchFilters.value
-      let count = 0
-      if (f.cardType) count++
-      count += f.attributes.length
-      count += f.races.length
-      count += f.levelValues.length
-      if (f.atk.unknown || f.atk.min !== undefined || f.atk.max !== undefined) count++
-      if (f.def.unknown || f.def.min !== undefined || f.def.max !== undefined) count++
-      count += f.monsterTypes.length
-      count += f.linkValues.length
-      return count
-    })
-
     // 表示用フィルターアイコン - filterChipsと重複しないものを表示
     const displayFilterIcons = computed(() => {
       // 共通関数で全アイコンを取得
@@ -444,152 +327,12 @@ export default defineComponent({
       return null
     })
 
-    const isCommandMode = computed(() => commandMatch.value !== null)
     const commandPrefix = computed(() => commandMatch.value?.command || '')
 
     // コマンド名を入力中かどうか（/で始まるがまだスペースがない状態）
     const isTypingCommand = computed(() => {
       const query = deckStore.searchQuery
       return query.startsWith('/') && !pendingCommand.value && !commandMatch.value
-    })
-
-    // 入力値がNOT条件かどうかを判定（-プレフィックス）
-    const isNegatedInput = computed(() => {
-      const value = deckStore.searchQuery.trim()
-      return value.startsWith('-') && value.length > 1
-    })
-
-    // 実際の値（-プレフィックスを除去）
-    const actualInputValue = computed(() => {
-      const value = deckStore.searchQuery.trim().toLowerCase()
-      if (value.startsWith('-')) {
-        return value.substring(1)
-      }
-      return value
-    })
-
-    // 現在の入力が有効かどうかを判定
-    const isValidCommandInput = computed(() => {
-      if (!pendingCommand.value) return false
-      const value = actualInputValue.value
-      if (!value) return false
-
-      switch (pendingCommand.value.filterType) {
-        case 'attributes':
-          return ATTRIBUTE_MAP[value] !== undefined
-        case 'cardType':
-          return CARD_TYPE_MAP[value] !== undefined
-        case 'monsterTypes':
-          return MONSTER_TYPE_MAP[value] !== undefined
-        case 'levels': {
-          // 単一の数値、範囲（4-8）、カンマ区切り（3,5）を受け付ける
-          if (/^\d+$/.test(value)) {
-            const level = parseInt(value, 10)
-            return !isNaN(level) && level >= 1 && level <= 12
-          }
-          if (/^\d+-\d+$/.test(value)) {
-            const [start, end] = value.split('-').map(Number)
-            return start >= 1 && start <= 12 && end >= 1 && end <= 12 && start <= end
-          }
-          if (/^\d+(,\d+)+$/.test(value)) {
-            const levels = value.split(',').map(Number)
-            return levels.every(l => l >= 1 && l <= 12)
-          }
-          return false
-        }
-        case 'linkNumbers': {
-          // 単一の数値、カンマ区切り（2,4）を受け付ける
-          if (/^\d+$/.test(value)) {
-            const link = parseInt(value, 10)
-            return !isNaN(link) && link >= 1 && link <= 6
-          }
-          if (/^\d+(,\d+)+$/.test(value)) {
-            const links = value.split(',').map(Number)
-            return links.every(l => l >= 1 && l <= 6)
-          }
-          return false
-        }
-        case 'linkMarkers': {
-          // リンクマーカーの選択肢をチェック
-          const markerOptions = FILTER_OPTIONS.linkMarkers
-          return markerOptions.some(opt => opt.value.toLowerCase() === value || opt.label.toLowerCase() === value)
-        }
-        case 'pendulumScales': {
-          // 単一の数値、範囲（1-8）、カンマ区切り（1,8）を受け付ける
-          if (/^\d+$/.test(value)) {
-            const scale = parseInt(value, 10)
-            return !isNaN(scale) && scale >= 0 && scale <= 13
-          }
-          if (/^\d+-\d+$/.test(value)) {
-            const [start, end] = value.split('-').map(Number)
-            return start >= 0 && start <= 13 && end >= 0 && end <= 13 && start <= end
-          }
-          if (/^\d+(,\d+)+$/.test(value)) {
-            const scales = value.split(',').map(Number)
-            return scales.every(s => s >= 0 && s <= 13)
-          }
-          return false
-        }
-        case 'releaseDate': {
-          // 片方のみの範囲指定: 2020-01-01- or -2020-12-31
-          if (/^-/.test(value)) {
-            const dateStr = value.substring(1).trim()
-            return parseFlexibleDate(dateStr) !== null
-          }
-          if (/-$/.test(value)) {
-            const dateStr = value.substring(0, value.length - 1).trim()
-            return parseFlexibleDate(dateStr) !== null
-          }
-
-          // 範囲指定: チルダ、スペース、ハイフン（ドット区切りの場合）
-          // チルダ区切り: 2020-01-01~2020-12-31
-          if (value.includes('~')) {
-            const parts = value.split('~').map(s => s.trim())
-            return parts.length === 2 && parts.every(p => parseFlexibleDate(p) !== null)
-          }
-          // スペース区切り: 2020-01-01 2020-12-31
-          if (value.includes(' ')) {
-            const parts = value.split(/\s+/).filter(s => s.length > 0)
-            return parts.length === 2 && parts.every(p => parseFlexibleDate(p) !== null)
-          }
-          // ドット区切り日付同士のハイフン区切り: 2020.01.01-2020.12.31
-          if (value.includes('.') && value.includes('-')) {
-            const parts = value.split('-').map(s => s.trim())
-            if (parts.length === 2 && parts.every(p => /^\d{4}\.\d{2}\.\d{2}$/.test(p))) {
-              return parts.every(p => parseFlexibleDate(p) !== null)
-            }
-          }
-
-          // 単一の日付
-          return parseFlexibleDate(value) !== null
-        }
-        case 'atk':
-        case 'def':
-          // 片方のみの範囲指定: 1000- or -2000
-          if (/^\d+-$/.test(value) || /^-\d+$/.test(value)) {
-            return true
-          }
-          // 数値または範囲形式（1000-2000）
-          return /^\d+(-\d+)?$/.test(value)
-        case 'races': {
-          // 種族オプションの中で一致するものがあるかチェック
-          const raceOptions = FILTER_OPTIONS.races
-          return raceOptions.some(opt => {
-            if (opt.value.toLowerCase() === value || opt.label.toLowerCase() === value) {
-              return true
-            }
-            const aliases = (opt as { aliases?: string[] }).aliases
-            if (aliases) {
-              return aliases.some(alias => alias.toLowerCase() === value)
-            }
-            return false
-          })
-        }
-        case 'searchMode':
-          return SEARCH_MODE_MAP[value] !== undefined
-        default:
-          return false
-      }
     })
 
     // 動的プレースホルダー
@@ -928,29 +671,6 @@ export default defineComponent({
           return
         }
       }
-    }
-
-    // 全ての検索条件をクリア
-    const clearAllFilters = () => {
-      searchFilters.value = {
-        cardType: null,
-        attributes: [],
-        spellTypes: [],
-        trapTypes: [],
-        races: [],
-        monsterTypes: [],
-        monsterTypeMatchMode: 'or',
-        levelType: 'level',
-        levelValues: [],
-        linkValues: [],
-        scaleValues: [],
-        linkMarkers: [],
-        linkMarkerMatchMode: 'or',
-        atk: { exact: false, unknown: false },
-        def: { exact: false, unknown: false },
-        releaseDate: {}
-      }
-      filterChips.value = []
     }
 
     // フィルターチップを追加
