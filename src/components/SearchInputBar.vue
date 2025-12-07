@@ -162,6 +162,11 @@ import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
 import { getRaceLabel } from '../utils/filter-label'
 import { detectLanguage } from '../utils/language-detector'
+import {
+  ATTRIBUTE_REVERSE_MAP,
+  CARD_TYPE_REVERSE_MAP,
+  MONSTER_TYPE_REVERSE_MAP
+} from '../utils/reverse-map-generator'
 import { mappingManager } from '../utils/mapping-manager'
 
 // 全角数字を半角に変換
@@ -228,41 +233,10 @@ const SEARCH_MODE_MAP: Record<string, string> = {
 }
 
 // 属性マッピング（日本語/英語 -> APIキー）
-const ATTRIBUTE_MAP: Record<string, string> = {
-  '光': 'light', 'light': 'light',
-  '闇': 'dark', 'dark': 'dark',
-  '炎': 'fire', 'fire': 'fire',
-  '水': 'water', 'water': 'water',
-  '風': 'wind', 'wind': 'wind',
-  '地': 'earth', 'earth': 'earth',
-  '神': 'divine', 'divine': 'divine'
-}
-
-// カードタイプマッピング
-const CARD_TYPE_MAP: Record<string, string> = {
-  'モンスター': 'monster', 'monster': 'monster', 'm': 'monster',
-  '魔法': 'spell', 'spell': 'spell', 's': 'spell',
-  '罠': 'trap', 'trap': 'trap', 't': 'trap'
-}
-
-// モンスタータイプマッピング
-const MONSTER_TYPE_MAP: Record<string, string> = {
-  '通常': 'normal', 'normal': 'normal',
-  '効果': 'effect', 'effect': 'effect',
-  'チューナー': 'tuner', 'tuner': 'tuner',
-  'スピリット': 'spirit', 'spirit': 'spirit',
-  'ユニオン': 'union', 'union': 'union',
-  'デュアル': 'dual', 'dual': 'dual',
-  'リバース': 'reverse', 'reverse': 'reverse',
-  'トゥーン': 'toon', 'toon': 'toon',
-  '特殊召喚': 'special', 'special': 'special',
-  'ペンデュラム': 'pendulum', 'pendulum': 'pendulum',
-  '儀式': 'ritual', 'ritual': 'ritual',
-  '融合': 'fusion', 'fusion': 'fusion',
-  'シンクロ': 'synchro', 'synchro': 'synchro',
-  'エクシーズ': 'xyz', 'xyz': 'xyz',
-  'リンク': 'link', 'link': 'link'
-}
+// 逆引きマップは reverse-map-generator.ts から動的生成（REQ-20対応）
+const ATTRIBUTE_MAP = ATTRIBUTE_REVERSE_MAP
+const CARD_TYPE_MAP = CARD_TYPE_REVERSE_MAP
+const MONSTER_TYPE_MAP = MONSTER_TYPE_REVERSE_MAP
 
 export default defineComponent({
   name: 'SearchInputBar',
