@@ -177,6 +177,7 @@ import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 import { DeckThumbnailCache } from '../../utils/deck-thumbnail-cache'
 import { DeckThumbnailGenerator } from '../../utils/deck-thumbnail-generator'
+import { EXTENSION_IDS } from '../../utils/dom-selectors'
 
 export default {
   name: 'DeckEditLayout',
@@ -426,7 +427,7 @@ export default {
       await nextTick()
 
       // 短いフェードアウトで削除（途切れを防ぐ）
-      const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay')
+      const moduleLoadingOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay)
       if (moduleLoadingOverlay) {
         moduleLoadingOverlay.style.opacity = '0'
         moduleLoadingOverlay.style.transition = 'opacity 150ms ease-out'

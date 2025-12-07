@@ -7,6 +7,7 @@ import { createDeckRecipeImage } from './createDeckRecipeImage';
 import { parseDeckDetail } from '../parser/deck-detail-parser';
 import type { ColorVariant } from '@/types/deck-recipe-image';
 import type { DeckInfo } from '@/types/deck';
+import { EXTENSION_IDS, EXTENSION_CLASSES } from '../../utils/dom-selectors';
 
 /**
  * QRコードアイコンのSVG（小さいドット付き）
@@ -49,7 +50,7 @@ const DOWNLOAD_ICON = `
  * スピナーアイコンのSVG
  */
 const SPINNER_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ygo-spinner">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ygo-next-spinner">
   <circle cx="12" cy="12" r="10" opacity="0.25"></circle>
   <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75"></path>
 </svg>
@@ -79,7 +80,7 @@ function createPopupHTML(
 
   return `
     <!-- オーバーレイ -->
-    <div id="ygo-image-popup-overlay" style="
+    <div id="ygo-next-image-popup-overlay" style="
       position: fixed;
       top: 0;
       left: 0;
@@ -91,7 +92,7 @@ function createPopupHTML(
     "></div>
 
     <!-- ポップアップ -->
-    <div id="ygo-image-popup" style="
+    <div id="ygo-next-image-popup" style="
       position: absolute;
       top: ${top}px;
       left: ${left}px;
@@ -108,7 +109,7 @@ function createPopupHTML(
       <!-- デッキ名入力欄（上部余白エリア） -->
       <input
         type="text"
-        id="ygo-deck-name-input"
+        id="ygo-next-deck-name-input"
         value="${deckName}"
         placeholder="デッキ名を入力"
         style="
@@ -133,7 +134,7 @@ function createPopupHTML(
       />
 
       <!-- 背景画像 -->
-      <div id="ygo-background-image" style="
+      <div id="ygo-next-background-image" style="
         position: relative;
         width: 100%;
         height: ${displayHeight}px;
@@ -143,7 +144,7 @@ function createPopupHTML(
         margin-top: 8px;
       ">
         <!-- Include QRボタン（右下） -->
-        <button id="ygo-qr-toggle" class="ygo-toggle-btn ygo-qr-active" style="
+        <button id="ygo-next-qr-toggle" class="ygo-next-toggle-btn ygo-next-qr-active" style="
           position: absolute;
           right: 12px;
           bottom: 12px;
@@ -156,7 +157,7 @@ function createPopupHTML(
         </button>
         ${hasSideDeck ? `
         <!-- Include Sideボタン（右中央） -->
-        <button id="ygo-side-toggle" class="ygo-toggle-btn ygo-side-active" style="
+        <button id="ygo-next-side-toggle" class="ygo-next-toggle-btn ygo-next-side-active" style="
           position: absolute;
           right: 12px;
           top: 50%;
@@ -182,13 +183,13 @@ function createPopupHTML(
         background: #ffffff;
         border-radius: 0 0 8px 8px;
       " onclick="event.stopPropagation()">
-        <button id="ygo-close-btn" class="ygo-dialog-btn" style="
+        <button id="ygo-next-close-btn" class="ygo-next-dialog-btn" style="
           background: #e0e0e0;
           color: #555;
         " onclick="event.stopPropagation()">
           Close
         </button>
-        <button id="ygo-download-btn" class="ygo-dialog-btn" style="
+        <button id="ygo-next-download-btn" class="ygo-next-dialog-btn" style="
           background: #4078ff;
           color: #ffffff;
         " onclick="event.stopPropagation()">
@@ -199,7 +200,7 @@ function createPopupHTML(
     </div>
     <style>
       /* ボタン共通スタイル */
-      .ygo-dialog-btn {
+      .ygo-next-dialog-btn {
         padding: 8px 20px;
         border: none;
         border-radius: 6px;
@@ -215,7 +216,7 @@ function createPopupHTML(
         transition: all 0.2s;
       }
 
-      .ygo-toggle-btn {
+      .ygo-next-toggle-btn {
         padding: 8px 12px;
         border: 2px solid rgba(200, 200, 200, 0.5);
         border-radius: 6px;
@@ -268,95 +269,95 @@ function createPopupHTML(
           opacity: 0;
         }
       }
-      #ygo-image-popup.closing {
+      #ygo-next-image-popup.closing {
         animation: ygo-popup-out 0.2s ease forwards;
       }
-      #ygo-image-popup-overlay.closing {
+      #ygo-next-image-popup-overlay.closing {
         animation: ygo-overlay-out 0.2s ease forwards;
       }
-      #ygo-deck-name-input:hover {
+      #ygo-next-deck-name-input:hover {
         border-color: rgba(150, 150, 150, 0.7);
       }
-      #ygo-deck-name-input:focus {
+      #ygo-next-deck-name-input:focus {
         border-color: rgba(100, 100, 100, 0.8);
       }
 
       /* QRボタン ON時 */
-      #ygo-qr-toggle.ygo-qr-active {
+      #ygo-next-qr-toggle.ygo-next-qr-active {
         background: rgba(255, 255, 255, 0.9);
         color: #333;
         border-color: rgba(200, 200, 200, 0.7);
       }
 
       /* QRボタン OFF時 */
-      #ygo-qr-toggle.ygo-qr-inactive {
+      #ygo-next-qr-toggle.ygo-next-qr-inactive {
         background: rgba(80, 80, 80, 0.6);
         color: #aaa;
         border-color: rgba(80, 80, 80, 0.8);
       }
 
       /* Sideボタン ON時 */
-      #ygo-side-toggle.ygo-side-active {
+      #ygo-next-side-toggle.ygo-next-side-active {
         background: rgba(255, 255, 255, 0.9);
         color: #333;
         border-color: rgba(200, 200, 200, 0.7);
       }
 
       /* Sideボタン OFF時 */
-      #ygo-side-toggle.ygo-side-inactive {
+      #ygo-next-side-toggle.ygo-next-side-inactive {
         background: rgba(80, 80, 80, 0.6);
         color: #aaa;
         border-color: rgba(80, 80, 80, 0.8);
       }
 
-      #ygo-qr-toggle.ygo-qr-active:hover {
+      #ygo-next-qr-toggle.ygo-next-qr-active:hover {
         background: rgba(255, 255, 255, 1);
         border-color: rgba(150, 150, 150, 0.9);
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
-      #ygo-qr-toggle.ygo-qr-inactive:hover {
+      #ygo-next-qr-toggle.ygo-next-qr-inactive:hover {
         background: rgba(100, 100, 100, 0.7);
       }
-      #ygo-side-toggle.ygo-side-active:hover {
+      #ygo-next-side-toggle.ygo-next-side-active:hover {
         background: rgba(255, 255, 255, 1);
         border-color: rgba(150, 150, 150, 0.9);
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
-      #ygo-side-toggle.ygo-side-inactive:hover {
+      #ygo-next-side-toggle.ygo-next-side-inactive:hover {
         background: rgba(100, 100, 100, 0.7);
       }
 
       /* Closeボタン */
-      #ygo-close-btn:hover {
+      #ygo-next-close-btn:hover {
         background: #d0d0d0;
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
       /* Downloadボタン */
-      #ygo-download-btn:hover {
+      #ygo-next-download-btn:hover {
         background: #2060e0;
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       }
-      #ygo-download-btn:active,
-      #ygo-close-btn:active,
-      #ygo-qr-toggle:active,
-      #ygo-side-toggle:active {
+      #ygo-next-download-btn:active,
+      #ygo-next-close-btn:active,
+      #ygo-next-qr-toggle:active,
+      #ygo-next-side-toggle:active {
         transform: scale(0.98);
       }
 
       /* ダウンロードボタン無効化時 */
-      #ygo-download-btn:disabled {
+      #ygo-next-download-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         background: #6090c0;
       }
 
       /* スピナーアニメーション */
-      @keyframes ygo-spinner-rotate {
+      @keyframes ygo-next-spinner-rotate {
         from {
           transform: rotate(0deg);
         }
@@ -364,8 +365,8 @@ function createPopupHTML(
           transform: rotate(360deg);
         }
       }
-      .ygo-spinner {
-        animation: ygo-spinner-rotate 1s linear infinite;
+      .ygo-next-spinner {
+        animation: ygo-next-spinner-rotate 1s linear infinite;
       }
     </style>
   `;
@@ -437,11 +438,11 @@ export async function showImageDialogWithData(
   buttonRect: DOMRect | null = null
 ): Promise<void> {
   // 既存のポップアップがあれば削除
-  const existingOverlay = document.getElementById('ygo-image-popup-overlay');
+  const existingOverlay = document.getElementById(EXTENSION_IDS.deckImage.popupOverlay);
   if (existingOverlay) {
     existingOverlay.remove();
   }
-  const existingMenu = document.getElementById('ygo-image-popup');
+  const existingMenu = document.getElementById(EXTENSION_IDS.deckImage.popup);
   if (existingMenu) {
     existingMenu.remove();
   }
@@ -475,13 +476,13 @@ export async function showImageDialogWithData(
   document.body.insertAdjacentHTML('beforeend', popupHTML);
 
   // イベントハンドラを登録
-  const overlay = document.getElementById('ygo-image-popup-overlay');
-  const popup = document.getElementById('ygo-image-popup');
-  const backgroundImageDiv = document.getElementById('ygo-background-image');
-  const qrToggle = document.getElementById('ygo-qr-toggle');
-  const sideToggle = document.getElementById('ygo-side-toggle');
-  const downloadBtn = document.getElementById('ygo-download-btn');
-  const closeBtn = document.getElementById('ygo-close-btn');
+  const overlay = document.getElementById(EXTENSION_IDS.deckImage.popupOverlay);
+  const popup = document.getElementById(EXTENSION_IDS.deckImage.popup);
+  const backgroundImageDiv = document.getElementById(EXTENSION_IDS.deckImage.backgroundImage);
+  const qrToggle = document.getElementById(EXTENSION_IDS.deckImage.qrToggle);
+  const sideToggle = document.getElementById(EXTENSION_IDS.deckImage.sideToggle);
+  const downloadBtn = document.getElementById(EXTENSION_IDS.deckImage.downloadButton);
+  const closeBtn = document.getElementById(EXTENSION_IDS.deckImage.closeButton);
 
   // Escapeキーハンドラを保持
   let handleEscape: ((event: KeyboardEvent) => void) | null = null;
@@ -539,11 +540,11 @@ export async function showImageDialogWithData(
   qrToggle?.addEventListener('click', () => {
     includeQR = !includeQR;
     if (includeQR) {
-      qrToggle.classList.remove('ygo-qr-inactive');
-      qrToggle.classList.add('ygo-qr-active');
+      qrToggle.classList.remove(EXTENSION_CLASSES.deckImage.qrInactive);
+      qrToggle.classList.add(EXTENSION_CLASSES.deckImage.qrActive);
     } else {
-      qrToggle.classList.remove('ygo-qr-active');
-      qrToggle.classList.add('ygo-qr-inactive');
+      qrToggle.classList.remove(EXTENSION_CLASSES.deckImage.qrActive);
+      qrToggle.classList.add(EXTENSION_CLASSES.deckImage.qrInactive);
     }
   });
 
@@ -552,11 +553,11 @@ export async function showImageDialogWithData(
     sideToggle?.addEventListener('click', async () => {
       includeSide = !includeSide;
       if (includeSide) {
-        sideToggle.classList.remove('ygo-side-inactive');
-        sideToggle.classList.add('ygo-side-active');
+        sideToggle.classList.remove(EXTENSION_CLASSES.deckImage.sideInactive);
+        sideToggle.classList.add(EXTENSION_CLASSES.deckImage.sideActive);
       } else {
-        sideToggle.classList.remove('ygo-side-active');
-        sideToggle.classList.add('ygo-side-inactive');
+        sideToggle.classList.remove(EXTENSION_CLASSES.deckImage.sideActive);
+        sideToggle.classList.add(EXTENSION_CLASSES.deckImage.sideInactive);
       }
 
       // 背景画像を再生成（sideDeckの有無で高さが変わる）
@@ -586,7 +587,7 @@ export async function showImageDialogWithData(
       const scale = 2;
 
       // テキスト入力欄からデッキ名を取得
-      const deckNameInput = document.getElementById('ygo-deck-name-input') as HTMLInputElement;
+      const deckNameInput = document.getElementById(EXTENSION_IDS.deckImage.deckNameInput) as HTMLInputElement;
       const currentDeckName = deckNameInput?.value || deckData.name;
 
       // デッキ名を更新し、includeSideに応じてsideDeckを設定したdeckDataを作成
@@ -624,7 +625,7 @@ export async function showImageDialogWithData(
  */
 export async function showImageDialog(): Promise<void> {
   // ボタンの位置を取得
-  const button = document.getElementById('ygo-deck-image-btn');
+  const button = document.getElementById(EXTENSION_IDS.deckImage.deckImageButton);
   if (!button) {
     console.error('[YGO Helper] Button not found');
     return;

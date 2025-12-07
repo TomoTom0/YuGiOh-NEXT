@@ -11,6 +11,7 @@
 
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -197,7 +198,7 @@ async function loadEditUI(): Promise<void> {
 
   // content/index.tsで追加した早期hideスタイルを削除
   // （#wrapper/#bgを表示可能にする）
-  const earlyHideStyle = document.getElementById('ygo-early-hide');
+  const earlyHideStyle = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
   if (earlyHideStyle) {
     earlyHideStyle.remove();
   }
@@ -214,10 +215,9 @@ async function loadEditUI(): Promise<void> {
   // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）
 
   // スタイルを追加
-  const styleId = 'ygo-edit-ui-styles';
-  if (!document.getElementById(styleId)) {
+  if (!document.getElementById(EXTENSION_IDS.deckEdit.editUiStyles)) {
     const style = document.createElement('style');
-    style.id = styleId;
+    style.id = EXTENSION_IDS.deckEdit.editUiStyles;
     style.textContent = `
       html, body {
         margin: 0;

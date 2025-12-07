@@ -19,6 +19,9 @@ import { detectCardGameType, isDeckDisplayPage, isVueEditPage } from '../utils/p
 // マッピングマネージャー
 import { initializeMappingManager } from '../utils/mapping-manager';
 
+// DOMセレクタ
+import { EXTENSION_IDS } from '../utils/dom-selectors';
+
 // デッキメタデータローダー
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 
@@ -158,7 +161,7 @@ async function loadEditUIIfNeeded(): Promise<void> {
   const bgColor = overlayTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
   const loadingOverlay = document.createElement('div');
-  loadingOverlay.id = 'ygo-module-loading-overlay';
+  loadingOverlay.id = EXTENSION_IDS.loading.moduleLoadingOverlay;
   loadingOverlay.style.position = 'fixed';
   loadingOverlay.style.top = '0';
   loadingOverlay.style.left = '0';
@@ -369,7 +372,7 @@ if (isVueEditPage()) {
 
   // 即座にページを隠すスタイルを追加
   const earlyHideStyle = document.createElement('style');
-  earlyHideStyle.id = 'ygo-early-hide';
+  earlyHideStyle.id = EXTENSION_IDS.loading.earlyHideStyle;
   earlyHideStyle.textContent = `
     html, body {
       background-color: ${earlyBgColor} !important;
