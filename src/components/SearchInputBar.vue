@@ -176,6 +176,9 @@ import {
   toHalfWidth,
   parseFlexibleDate
 } from '../constants/search-constants'
+// TODO: Phase 2統合 - 次回実装時にコメント解除
+// import { useSlashCommands } from '../composables/search/useSlashCommands'
+// import { useSearchFilters } from '../composables/search/useSearchFilters'
 
 export default defineComponent({
   name: 'SearchInputBar',
