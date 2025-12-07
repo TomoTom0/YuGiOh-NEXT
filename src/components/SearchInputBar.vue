@@ -139,6 +139,7 @@ import { useSearchFilters } from '../composables/search/useSearchFilters'
 import SearchFilterChips from './SearchFilterChips.vue'
 import SearchModeSelector from './SearchModeSelector.vue'
 import SuggestionList from './SuggestionList.vue'
+import type { PreviewChip, DeckSuggestion } from '../types/search-ui'
 
 export default defineComponent({
   name: 'SearchInputBar',
@@ -340,7 +341,7 @@ export default defineComponent({
     })
 
     // 予定チップ（入力が有効な場合のみ表示）
-    const previewChip = computed<{ label: string; isNot: boolean; filterType: string; value: string } | null>(() => {
+    const previewChip = computed<PreviewChip | null>(() => {
       // 両方の条件を明示的にチェック
       const hasPendingCommand = !!pendingCommand.value
       const hasValidInput = isValidCommandInput.value
@@ -394,12 +395,14 @@ export default defineComponent({
     })
 
     // mydeckモード用の候補リスト
-    const mydeckSuggestions = computed(() => {
+    const mydeckSuggestions = computed<DeckSuggestion[]>(() => {
       if (searchMode.value !== 'mydeck') return []
       const input = deckStore.searchQuery.trim().toLowerCase()
       const decks = deckStore.deckList.map(d => ({
         dno: d.dno,
-        name: d.name
+        name: d.name,
+        value: `dno:${d.dno}`,
+        label: d.name
       }))
       if (!input) return decks
       return decks.filter(d =>
