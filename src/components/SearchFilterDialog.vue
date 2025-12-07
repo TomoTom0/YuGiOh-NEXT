@@ -466,7 +466,7 @@ import { useDeckEditStore } from '../stores/deck-edit';
 import type { Attribute, Race, MonsterType, CardType, SpellEffectType, TrapEffectType } from '../types/card';
 import type { SearchFilters } from '../types/search-filters';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '../api/image-utils';
-import SearchInputBar from './SearchInputBar.vue';
+import SearchInputBar from './searchInputBar/SearchInputBar.vue';
 import {
   getAttributeLabel,
   getSpellTypeLabel,

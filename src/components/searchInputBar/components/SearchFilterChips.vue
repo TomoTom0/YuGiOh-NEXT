@@ -30,8 +30,8 @@
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
-import type { FilterIcon } from '../utils/filter-icons'
-import type { PreviewChip } from '../types/search-ui'
+import type { FilterIcon } from '../../../utils/filter-icons'
+import type { PreviewChip } from '../../../types/search-ui'
 
 export default defineComponent({
   name: 'SearchFilterChips',

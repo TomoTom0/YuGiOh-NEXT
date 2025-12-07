@@ -18,7 +18,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
-import type { SearchMode } from '../types/settings'
+import type { SearchMode } from '../../../types/settings'
 
 export default defineComponent({
   name: 'SearchModeSelector',

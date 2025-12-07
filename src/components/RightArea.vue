@@ -97,7 +97,7 @@ import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
-import SearchInputBar from './SearchInputBar.vue'
+import SearchInputBar from './searchInputBar/SearchInputBar.vue'
 import { buildFullUrl } from '../utils/url-builder'
 import { detectLanguage } from '../utils/language-detector'
 

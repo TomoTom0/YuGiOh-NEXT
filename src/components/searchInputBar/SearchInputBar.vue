@@ -104,26 +104,26 @@
 
 <script lang="ts">
 import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
-import { useDeckEditStore } from '../stores/deck-edit'
-import { useSettingsStore } from '../stores/settings'
-import type { SearchOptions } from '../api/card-search'
-import { SORT_ORDER_TO_API_VALUE } from '../api/card-search'
-import { getDeckDetail } from '../api/deck-operations'
-import { sessionManager } from '../content/session/session'
-import SearchFilterDialog from './SearchFilterDialog.vue'
-import type { SearchFilters } from '../types/search-filters'
-import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
+import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSettingsStore } from '../../stores/settings'
+import type { SearchOptions } from '../../api/card-search'
+import { SORT_ORDER_TO_API_VALUE } from '../../api/card-search'
+import { getDeckDetail } from '../../api/deck-operations'
+import { sessionManager } from '../../content/session/session'
+import SearchFilterDialog from '../SearchFilterDialog.vue'
+import type { SearchFilters } from '../../types/search-filters'
+import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../../types/card'
 import {
   MONSTER_TYPE_ID_TO_SHORTNAME,
   CARD_TYPE_ID_TO_SHORTNAME,
   ATTRIBUTE_ID_TO_NAME
-} from '../types/card-maps'
-import type { SearchMode } from '../types/settings'
-import { getTempCardDB } from '../utils/temp-card-db'
-import { convertFiltersToIcons, type FilterIcon } from '../utils/filter-icons'
-import { getRaceLabel } from '../utils/filter-label'
-import { detectLanguage } from '../utils/language-detector'
-import { mappingManager } from '../utils/mapping-manager'
+} from '../../types/card-maps'
+import type { SearchMode } from '../../types/settings'
+import { getTempCardDB } from '../../utils/temp-card-db'
+import { convertFiltersToIcons, type FilterIcon } from '../../utils/filter-icons'
+import { getRaceLabel } from '../../utils/filter-label'
+import { detectLanguage } from '../../utils/language-detector'
+import { mappingManager } from '../../utils/mapping-manager'
 import {
   COMMANDS,
   SEARCH_MODE_MAP,
@@ -133,13 +133,13 @@ import {
   LINK_MARKER_MAP,
   FILTER_OPTIONS,
   toHalfWidth
-} from '../constants/search-constants'
-import { useSlashCommands } from '../composables/search/useSlashCommands'
-import { useSearchFilters } from '../composables/search/useSearchFilters'
-import SearchFilterChips from './SearchFilterChips.vue'
-import SearchModeSelector from './SearchModeSelector.vue'
-import SuggestionList from './SuggestionList.vue'
-import type { PreviewChip, DeckSuggestion } from '../types/search-ui'
+} from '../../constants/search-constants'
+import { useSlashCommands } from './composables/useSlashCommands'
+import { useSearchFilters } from './composables/useSearchFilters'
+import SearchFilterChips from './components/SearchFilterChips.vue'
+import SearchModeSelector from './components/SearchModeSelector.vue'
+import SuggestionList from './components/SuggestionList.vue'
+import type { PreviewChip, DeckSuggestion } from '../../types/search-ui'
 
 export default defineComponent({
   name: 'SearchInputBar',
@@ -1412,7 +1412,7 @@ export default defineComponent({
         const keyword = deckStore.searchQuery.trim()
 
         // 検索実行時に動的import
-        const { searchCards, searchCardsAuto } = await import('../api/card-search')
+        const { searchCards, searchCardsAuto } = await import('../../api/card-search')
 
         // autoモードの場合は専用の関数を使用
         let results: CardInfo[] = []  // 初期化
@@ -1509,7 +1509,7 @@ export default defineComponent({
           if (searchOptions !== null) {
             setTimeout(async () => {
               try {
-                const { searchCards } = await import('../api/card-search')
+                const { searchCards } = await import('../../api/card-search')
                 const moreResults = await searchCards({
                   ...searchOptions,
                   resultsPerPage: 2000
