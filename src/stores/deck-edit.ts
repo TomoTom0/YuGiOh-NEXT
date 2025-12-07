@@ -146,28 +146,37 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // 二段階目: 一段階目で見つかったカード名をテキストに含むcid（一段階目を除外）
     const secondStageMatched = new Set<string>();
-    for (const cid of allCids) {
-      if (firstStageMatched.has(cid)) continue; // 一段階目で見つかったものは除外
+    
+    // 最適化: firstStageCardNames が空なら二段階目をスキップ
+    if (firstStageCardNames.size > 0) {
+      for (const cid of allCids) {
+        if (firstStageMatched.has(cid)) continue; // 一段階目で見つかったものは除外
 
-      const card = tempCardDB.get(cid);
-      if (!card) continue;
+        const card = tempCardDB.get(cid);
+        if (!card) continue;
 
-      const textToSearch = [
-        card.text || '',
-        (card as any).pendulumText || ''
-      ].join(' ');
+        const textToSearch = [
+          card.text || '',
+          (card as any).pendulumText || ''
+        ].join(' ');
 
-      const matched = Array.from(firstStageCardNames).some(cardName =>
-        textToSearch.includes(cardName)
-      );
-      if (matched) {
-        secondStageMatched.add(cid);
+        // 最適化: Array.from を使わず、Set を直接 for-of で走査
+        let matched = false;
+        for (const cardName of firstStageCardNames) {
+          if (textToSearch.includes(cardName)) {
+            matched = true;
+            break; // 1つ見つかればすぐ抜ける
+          }
+        }
+        if (matched) {
+          secondStageMatched.add(cid);
+        }
       }
     }
 
     // 一段階目と二段階目をマージして返す
     return new Set([...firstStageMatched, ...secondStageMatched]);
-  });
+  });;
 
   // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
   function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
