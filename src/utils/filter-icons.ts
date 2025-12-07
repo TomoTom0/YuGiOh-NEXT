@@ -1,6 +1,11 @@
 import type { SearchFilters } from '../types/search-filters'
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from './filter-chip-formatter'
 import { getRaceLabel } from './filter-label'
+import {
+  CARD_TYPE_ID_TO_SHORTNAME,
+  ATTRIBUTE_ID_TO_NAME,
+  MONSTER_TYPE_ID_TO_SHORTNAME
+} from '../types/card-maps'
 
 /**
  * SearchFiltersをアイコン形式に変換する共通関数
@@ -10,14 +15,12 @@ export function convertFiltersToIcons(filters: SearchFilters): { type: string; l
 
   // カードタイプ
   if (filters.cardType) {
-    const typeLabels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
-    icons.push({ type: 'cardType', label: typeLabels[filters.cardType] || filters.cardType })
+    icons.push({ type: 'cardType', label: CARD_TYPE_ID_TO_SHORTNAME[filters.cardType] || filters.cardType })
   }
 
   // 属性
-  const attrLabels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
   filters.attributes.forEach(attr => {
-    icons.push({ type: 'attr', label: attrLabels[attr] || attr })
+    icons.push({ type: 'attr', label: ATTRIBUTE_ID_TO_NAME[attr] || attr })
   })
 
   // 種族（短縮表示）
@@ -41,13 +44,8 @@ export function convertFiltersToIcons(filters: SearchFilters): { type: string; l
   }
 
   // モンスタータイプ
-  const monsterTypeLabels: Record<string, string> = {
-    normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
-    pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
-    union: 'U', gemini: 'D', special: '特'
-  }
   filters.monsterTypes.forEach(mt => {
-    icons.push({ type: 'monsterType', label: monsterTypeLabels[mt.type] || mt.type.slice(0, 1) })
+    icons.push({ type: 'monsterType', label: MONSTER_TYPE_ID_TO_SHORTNAME[mt.type] || mt.type.slice(0, 1) })
   })
 
   // リンク数（統合表示）

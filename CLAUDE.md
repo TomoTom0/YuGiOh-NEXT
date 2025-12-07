@@ -430,12 +430,12 @@ items.forEach(item => {
 
 | 関数 | 用途 | 戻り値 |
 |------|------|--------|
-| `safeQuery` | 単一要素を検索 | `Element \| null` |
-| `safeQueryWithWarn` | 単一要素を検索（見つからない場合は警告） | `Element \| null` |
+| `safeQuery` | 単一要素を検索 | `Element | null` |
+| `safeQueryWithWarn` | 単一要素を検索（見つからない場合は警告） | `Element | null` |
 | `safeQueryAll` | 複数要素を検索 | `Element[]` |
 | `safeQueryAndRun` | 要素を検索してコールバック実行 | `void` |
-| `safeGetAttribute` | 属性値を取得 | `string \| null` |
-| `safeGetText` | テキスト内容を取得 | `string \| null` |
+| `safeGetAttribute` | 属性値を取得 | `string | null` |
+| `safeGetText` | テキスト内容を取得 | `string | null` |
 | `safeSetHTML` | HTML を設定 | `boolean` |
 | `safeSetAttribute` | 属性を設定 | `boolean` |
 | `safeAddClass` | クラスを追加 | `boolean` |
@@ -685,4 +685,21 @@ for (const selector of selectors) {
     element.style.display = 'none';
   }
 }
+```
+
+---
+
+## マッピング定数の使用ルール
+
+**禁止**: マッピング定数のハードコード
+
+❌ 悪い例:
+```typescript
+const labels = { monster: 'M', spell: '魔', trap: '罠' }
+```
+
+✅ 良い例:
+```typescript
+import { CARD_TYPE_ID_TO_SHORTNAME } from '@/types/card-maps'
+const label = CARD_TYPE_ID_TO_SHORTNAME[cardType]
 ```

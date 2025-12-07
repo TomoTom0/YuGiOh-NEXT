@@ -152,6 +152,11 @@ import { sessionManager } from '../content/session/session'
 import SearchFilterDialog from './SearchFilterDialog.vue'
 import type { SearchFilters } from '../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../types/card'
+import {
+  MONSTER_TYPE_ID_TO_SHORTNAME,
+  CARD_TYPE_ID_TO_SHORTNAME,
+  ATTRIBUTE_ID_TO_NAME
+} from '../types/card-maps'
 import type { SearchMode } from '../types/settings'
 import { getTempCardDB } from '../utils/temp-card-db'
 import { convertFiltersToIcons } from '../utils/filter-icons'
@@ -895,28 +900,15 @@ export default defineComponent({
             // 動的マッピングがある場合、最初の1文字を返す
             return dynamicLabel.slice(0, 1)
           }
-          // フォールバック：日本語ラベル
-          const labels: Record<string, string> = { light: '光', dark: '闇', water: '水', fire: '炎', earth: '地', wind: '風', divine: '神' }
-          return labels[value] || value
+          // フォールバック：card-maps.ts から取得
+          return ATTRIBUTE_ID_TO_NAME[value as keyof typeof ATTRIBUTE_ID_TO_NAME] || value
         }
         case 'cardType': {
-          const labels: Record<string, string> = { monster: 'M', spell: '魔', trap: '罠' }
-          return labels[value] || value
+          return CARD_TYPE_ID_TO_SHORTNAME[value as keyof typeof CARD_TYPE_ID_TO_SHORTNAME] || value
         }
         case 'monsterTypes': {
-          const idToText = mappingManager.getMonsterTypeIdToText(lang)
-          const dynamicLabel = (idToText as Record<string, string>)[value]
-          if (dynamicLabel) {
-            // 動的マッピングがある場合、最初の1文字を返す
-            return dynamicLabel.slice(0, 1)
-          }
-          // フォールバック：日本語ラベル
-          const labels: Record<string, string> = {
-            normal: '通', effect: '効', fusion: '融', ritual: '儀', synchro: 'S', xyz: 'X',
-            pendulum: 'P', link: 'L', tuner: 'T', flip: 'R', toon: 'ト', spirit: 'ス',
-            union: 'U', gemini: 'D', special: '特'
-          }
-          return labels[value] || value
+          // card-maps.ts の MONSTER_TYPE_ID_TO_SHORTNAME を使用
+          return MONSTER_TYPE_ID_TO_SHORTNAME[value as keyof typeof MONSTER_TYPE_ID_TO_SHORTNAME] || value
         }
         case 'levels':
           return `★${value}`
@@ -1052,25 +1044,39 @@ export default defineComponent({
         }
       }
 
-      // Tabキーで候補を選択
-      if (event.key === 'Tab' && pendingCommand.value && filteredSuggestions.value.length > 0) {
-        event.preventDefault()
-        if (event.shiftKey) {
-          // Shift+Tabで前の候補
-          selectedSuggestionIndex.value = selectedSuggestionIndex.value <= 0
-            ? filteredSuggestions.value.length - 1
-            : selectedSuggestionIndex.value - 1
-        } else {
-          // Tabで次の候補
-          selectedSuggestionIndex.value = (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
+      // スラッシュコマンドの選択肢のTab/Arrow処理
+      if (pendingCommand.value && filteredSuggestions.value.length > 0) {
+        const updateInput = (index: number) => {
+          const selected = filteredSuggestions.value[index]
+          if (selected) {
+            const prefix = isNegatedInput.value ? '-' : ''
+            deckStore.searchQuery = prefix + selected.value
+          }
         }
-        // 選択した候補を入力に反映（-プレフィックスを保持）
-        const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
-        if (selected) {
+
+        const onConfirm = (suggestion: any) => {
           const prefix = isNegatedInput.value ? '-' : ''
-          deckStore.searchQuery = prefix + selected.value
+          deckStore.searchQuery = prefix + suggestion.value
+          nextTick(() => {
+            addFilterChip()
+          })
         }
-        return
+
+        // Tabキーで候補を選択して入力に反映
+        if (event.key === 'Tab') {
+          if (handleSuggestionNavigation(event, selectedSuggestionIndex, filteredSuggestions.value, onConfirm, '.suggestions-dropdown')) {
+            // Tabでは入力に即座に反映
+            updateInput(selectedSuggestionIndex.value)
+          }
+          return
+        }
+
+        // ArrowUp/Downキーで候補を選択（入力は反映しない）
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          if (handleSuggestionNavigation(event, selectedSuggestionIndex, filteredSuggestions.value, onConfirm, '.suggestions-dropdown')) {
+            return
+          }
+        }
       }
 
       // Spaceキーで有効な入力をチップに変換
@@ -1094,40 +1100,6 @@ export default defineComponent({
           // 最後のチップを削除
           event.preventDefault()
           removeFilterChip(filterChips.value.length - 1)
-          return
-        }
-      }
-
-      // 上下キーで候補を選択（入力を更新しない）
-      if (pendingCommand.value && filteredSuggestions.value.length > 0) {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault()
-          selectedSuggestionIndex.value = selectedSuggestionIndex.value < 0
-            ? 0
-            : (selectedSuggestionIndex.value + 1) % filteredSuggestions.value.length
-          return
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault()
-          selectedSuggestionIndex.value = selectedSuggestionIndex.value < 0
-            ? filteredSuggestions.value.length - 1
-            : selectedSuggestionIndex.value <= 0
-            ? filteredSuggestions.value.length - 1
-            : selectedSuggestionIndex.value - 1
-          return
-        }
-        // Enterキーで選択を確定
-        if (event.key === 'Enter' && selectedSuggestionIndex.value >= 0) {
-          event.preventDefault()
-          const selected = filteredSuggestions.value[selectedSuggestionIndex.value]
-          if (selected) {
-            const prefix = isNegatedInput.value ? '-' : ''
-            deckStore.searchQuery = prefix + selected.value
-            // チップに変換
-            nextTick(() => {
-              addFilterChip()
-            })
-          }
           return
         }
       }
@@ -1865,7 +1837,7 @@ export default defineComponent({
         'text': '2',
         'pendulum': '3'
       }
-      const searchType = searchTypeMap[searchMode.value] || '1'
+      let searchType = searchTypeMap[searchMode.value] || '1'  // autoモードから委譲する場合があるのでlet
 
       try {
         const apiSort = SORT_ORDER_TO_API_VALUE[deckStore.sortOrder] || 1
@@ -1875,17 +1847,28 @@ export default defineComponent({
         const { searchCards, searchCardsAuto } = await import('../api/card-search')
 
         // autoモードの場合は専用の関数を使用
-        let results: CardInfo[]
+        let results: CardInfo[] = []  // 初期化
         let searchOptions: SearchOptions | null = null
+        let delegatedToName = false  // autoモードからname検索に委譲したかどうか
 
         if (searchMode.value === 'auto') {
           const autoResult = await searchCardsAuto(keyword, 100, searchFilters.value.cardType as CardType | undefined)
           results = autoResult.cards
-          
+          const autoResultCount = results.length  // フィルタリング前の件数を保存
+
           // autoモードでもフィルター条件を適用（クライアント側でフィルタリング）
           results = applyClientSideFilters(results, searchFilters.value)
-        } else {
-          // 通常の検索
+
+          // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
+          if (autoResultCount >= 100) {
+            console.log('[handleSearch] autoモードで100件取得 → name検索に委譲')
+            delegatedToName = true
+            searchType = '1'  // name検索に切り替え
+          }
+        }
+
+        if (searchMode.value !== 'auto' || delegatedToName) {
+          // 通常の検索（またはautoモードから委譲された場合）
           searchOptions = {
             keyword,
             searchType: searchType as '1' | '2' | '3' | '4',
@@ -2269,6 +2252,10 @@ export default defineComponent({
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-height: 200px;
   overflow-y: auto;
+  scroll-behavior: smooth;
+  will-change: scroll-position; // ブラウザにスクロール最適化を事前通知
+  transform: translateZ(0); // ハードウェアアクセラレーション有効化
+  contain: layout; // レイアウト計算の最適化
 
   &.dropdown-above {
     top: auto;
@@ -2285,12 +2272,15 @@ export default defineComponent({
   padding: 8px 12px;
   cursor: pointer;
   transition: background 0.15s;
+  transform: translateZ(0); // ハードウェアアクセラレーション
+  will-change: background-color; // 背景色変更の最適化
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
   }
 
   &.selected {
+    transition: none; // キーボード操作時は即座に背景色を変更（ちらつき防止）
     background: var(--color-success);
     color: var(--button-text);
 
