@@ -45,7 +45,7 @@ async function testShuffle() {
     console.log('\n=== シャッフルボタンをクリック ===\n');
 
     // シャッフルボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-shuffle-btn").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-shuffle-btn-main").click()`);
     await cdp.wait(2000); // アニメーション待機
 
     // シャッフル後のカード順序を取得
@@ -75,7 +75,7 @@ async function testShuffle() {
     console.log('\n=== ソートボタンをクリック ===\n');
 
     // ソートボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-sort-btn").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-sort-btn-main").click()`);
     await cdp.wait(2000); // アニメーション待機
 
     // ソート後のカード順序を取得
@@ -105,7 +105,7 @@ async function testShuffle() {
     console.log('\n=== アニメーションクラスの確認 ===\n');
 
     // アニメーションクラスが適用されるか確認
-    await cdp.evaluate(`document.getElementById("ygo-shuffle-btn").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-shuffle-btn-main").click()`);
     await cdp.wait(100); // アニメーション開始直後
 
     const hasAnimatingClass = await cdp.evaluate(`

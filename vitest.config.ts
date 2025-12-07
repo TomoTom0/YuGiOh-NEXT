@@ -6,6 +6,17 @@ export default defineConfig({
   plugins: [vue()],
   test: {
     environment: 'happy-dom',
+    environmentOptions: {
+      happyDOM: {
+        settings: {
+          disableJavaScriptEvaluation: true,
+          disableJavaScriptFileLoading: true,
+          disableCSSFileLoading: true,
+          disableIframePageLoading: true,
+          disableComputedStyleRendering: true,
+        },
+      },
+    },
     globals: true,
     setupFiles: ['./tests/setup.ts'],
     deps: {

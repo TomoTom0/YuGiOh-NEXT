@@ -21,6 +21,7 @@ import {
 } from '../types/settings';
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
+import { DEFAULT_TAIL_PLACEMENT_CARD_IDS } from '../config/default-tail-placement-cards';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -42,6 +43,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** カード枚数制限モード */
   const cardLimitMode = ref<'all-3' | 'limit-reg'>('all-3');
+
+  /** グローバル末尾配置カードID リスト（デッキ横断的） */
+  const tailPlacementCardIds = ref<string[]>([]);
 
   // ===== 算出プロパティ =====
 
@@ -141,7 +145,7 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   async function loadCommonSettings(): Promise<void> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['appSettings', 'featureSettings'], (result: StorageSettings) => {
+      chrome.storage.local.get(['appSettings', 'featureSettings', 'tailPlacementCardIds'], (result: StorageSettings) => {
         // 古い形式の設定を新しい形式に移行
         let loadedSettings = result.appSettings ? migrateOldSettingsFormat(result.appSettings) : null;
 
@@ -155,6 +159,14 @@ export const useSettingsStore = defineStore('settings', () => {
         featureSettings.value = result.featureSettings
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
+
+        // 初回起動時はデフォルトの末尾配置カードIDを使用
+        // 以降はユーザーの設定を保持
+        if (Array.isArray(result.tailPlacementCardIds) && result.tailPlacementCardIds.length > 0) {
+          tailPlacementCardIds.value = result.tailPlacementCardIds;
+        } else {
+          tailPlacementCardIds.value = [...DEFAULT_TAIL_PLACEMENT_CARD_IDS];
+        }
 
         isLoaded.value = true;
 
@@ -195,7 +207,17 @@ export const useSettingsStore = defineStore('settings', () => {
       chrome.storage.local.set({
         appSettings: appSettings.value,
         featureSettings: featureSettings.value,
+        tailPlacementCardIds: tailPlacementCardIds.value,
       }, () => {
+        // localStorage にもキャッシュ（超早期読み込み用）
+        try {
+          localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings.value));
+          if (typeof window !== 'undefined') {
+            window.ygoNextCurrentSettings = appSettings.value;
+          }
+        } catch (error) {
+          console.warn('[Settings] Failed to update localStorage cache:', error);
+        }
         resolve();
       });
     });
@@ -350,6 +372,14 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  /**
+   * カードリスト表示形式を設定（セクションごと）
+   */
+  function setCardListViewMode(section: 'search' | 'related' | 'products', mode: 'list' | 'grid'): void {
+    appSettings.value.ux.cardListViewMode[section] = mode;
+    saveSettings();
+  }
+
   function setMouseOperations(enabled: boolean): void {
     appSettings.value.ux.enableMouseOperations = enabled;
     saveSettings();
@@ -425,6 +455,34 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 末尾配置リストにカードを追加
+   */
+  function addTailPlacementCard(cardId: string): void {
+    if (!tailPlacementCardIds.value.includes(cardId)) {
+      tailPlacementCardIds.value.push(cardId);
+      saveSettings();
+    }
+  }
+
+  /**
+   * 末尾配置リストからカードを削除
+   */
+  function removeTailPlacementCard(cardId: string): void {
+    const index = tailPlacementCardIds.value.indexOf(cardId);
+    if (index >= 0) {
+      tailPlacementCardIds.value.splice(index, 1);
+      saveSettings();
+    }
+  }
+
+  /**
+   * カードが末尾配置リストに含まれているか判定
+   */
+  function isTailPlacementCard(cardId: string): boolean {
+    return tailPlacementCardIds.value.includes(cardId);
+  }
+
+  /**
    * 設定をリセット
    */
   async function resetSettings(): Promise<void> {
@@ -443,6 +501,16 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme(): void {
     const theme = effectiveTheme.value;
     document.documentElement.setAttribute('data-ygo-next-theme', theme);
+
+    // themes.ts から CSS variables を注入（Single Source of Truth）
+    import('../styles/themes').then(({ getThemeColors }) => {
+      const themeColors = getThemeColors(theme);
+
+      // 全ての CSS variables を document.documentElement に設定
+      Object.entries(themeColors).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(key, value);
+      });
+    });
   }
 
   /**
@@ -520,6 +588,7 @@ export const useSettingsStore = defineStore('settings', () => {
     cardWidthList,
     cardWidthGrid,
     cardLimitMode,
+    tailPlacementCardIds,
 
     // 算出プロパティ
     deckEditCardSizePixels,
@@ -544,6 +613,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setCardListViewMode,
     setMouseOperations,
     setChangeFavicon,
     addKeyboardShortcut,
@@ -553,6 +623,9 @@ export const useSettingsStore = defineStore('settings', () => {
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
+    addTailPlacementCard,
+    removeTailPlacementCard,
+    isTailPlacementCard,
     resetSettings,
     applyTheme,
     applyCardSize,

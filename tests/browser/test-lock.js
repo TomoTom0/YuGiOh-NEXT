@@ -115,7 +115,7 @@ async function testLock() {
     console.log('\n=== シャッフル時にロックが保持されるか確認 ===\n');
 
     // シャッフルボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-shuffle-btn").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-shuffle-btn-main").click()`);
     await cdp.wait(2000); // アニメーション待機
 
     // シャッフル後も先頭にあるか確認

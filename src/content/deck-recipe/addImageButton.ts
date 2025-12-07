@@ -6,6 +6,7 @@ import { showImageDialog } from './imageDialog';
 import { isDeckDisplayPage, detectCardGameType, isOwnDeck, getDeckCgid } from '../../utils/page-detector';
 import { getVueEditUrl } from '../../utils/url-builder';
 import { detectLanguage } from '../../utils/language-detector';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
 
 /**
  * カメラアイコンのSVG
@@ -31,13 +32,13 @@ export function addDeckImageButton(): HTMLElement | null {
   }
 
   // 既にボタンが追加されていないか確認
-  if (document.querySelector('#ygo-deck-image-btn')) {
+  if (document.getElementById(EXTENSION_IDS.deckImage.deckImageButton)) {
     return null;
   }
 
   // ボタンを作成（アイコンのみ、グラデーション）
   const button = document.createElement('a');
-  button.id = 'ygo-deck-image-btn';
+  button.id = EXTENSION_IDS.deckImage.deckImageButton;
   button.className = 'ygo-next btn hex ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
@@ -73,7 +74,7 @@ export function addDeckImageButton(): HTMLElement | null {
  */
 function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // 既にボタンが追加されていないか確認
-  if (document.querySelector('#ygo-next-edit-btn')) {
+  if (document.getElementById(EXTENSION_IDS.deckEdit.editButton)) {
     return null;
   }
 
@@ -89,11 +90,10 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
   // 自分のデッキかどうかで処理を分岐
   const isOwnDeckFlag = isOwnDeck();
   const buttonText = isOwnDeckFlag ? 'NEXT編集' : 'NEXTコピー編集';
-  const buttonId = 'ygo-next-edit-btn';
 
   // ボタンを作成
   const button = document.createElement('a');
-  button.id = buttonId;
+  button.id = EXTENSION_IDS.deckEdit.editButton;
   button.className = 'ygo-next btn hex orn ytomo-neuron-btn';
   button.href = '#';
   button.style.cssText = 'margin-left: 10px;';
