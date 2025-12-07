@@ -6,20 +6,11 @@
           <span class="menu-icon">...</span>
           <span v-if="filterCount > 0" class="filter-count-badge">{{ filterCount }}</span>
         </button>
-        <button class="search-mode-btn" @click.stop="showSearchModeDropdown = !showSearchModeDropdown">
-          <span class="mode-text">{{ searchModeLabel }}</span>
-        </button>
+        <SearchModeSelector
+          v-model="searchMode"
+          :is-bottom-position="isBottomPosition"
+        />
       </div>
-      <div v-if="showSearchModeDropdown" class="mode-dropdown-overlay" @click="showSearchModeDropdown = false"></div>
-      <Transition name="dropdown">
-        <div v-if="showSearchModeDropdown" class="mode-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
-          <div class="mode-option" @click="selectSearchMode('auto')">自動</div>
-          <div class="mode-option" @click="selectSearchMode('name')">カード名で検索</div>
-          <div class="mode-option" @click="selectSearchMode('text')">テキストで検索</div>
-          <div class="mode-option" @click="selectSearchMode('pendulum')">ペンデュラムテキストで検索</div>
-          <div class="mode-option" @click="selectSearchMode('mydeck')">マイデッキから選択</div>
-        </div>
-      </Transition>
       <button class="search-btn" @click="handleSearch">
         <svg width="14" height="14" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
@@ -30,33 +21,14 @@
         'valid': pendingCommand && isValidCommandInput
       }">
         <!-- SearchFilterDialogで選択した条件（上部） - 常に表示 -->
-        <div class="filter-icons-top">
-          <!-- 予定チップ（入力が有効な場合のみ） -->
-          <span
-            v-if="previewChip"
-            class="filter-icon-item filter-chip-preview"
-            :class="{ 'not-condition': previewChip.isNot }"
-            title="Enter で追加"
-          >
-            <span v-if="previewChip.isNot" class="not-prefix">!</span>{{ previewChip.label }}
-          </span>
-
-          <!-- SearchFilterDialogで選択した条件 -->
-          <span
-            v-for="(icon, index) in displayFilterIcons"
-            :key="`icon-${index}`"
-            class="filter-icon-item clickable"
-            :class="icon.type"
-            @click="removeFilterIcon(icon)"
-            :title="`クリックで削除: ${icon.label}`"
-          >{{ icon.label }}</span>
-          <button
-            v-if="hasActiveFilters || filterChips.length > 0"
-            class="clear-filters-btn-top"
-            @click="clearAllFilters"
-            title="検索条件をクリア"
-          >×</button>
-        </div>
+        <SearchFilterChips
+          :preview-chip="previewChip"
+          :display-filter-icons="displayFilterIcons"
+          :has-active-filters="hasActiveFilters"
+          :filter-chips-count="filterChips.length"
+          @remove-icon="removeFilterIcon"
+          @clear-all="clearAllFilters"
+        />
         <!-- 入力行 -->
         <div class="input-row">
           <!-- コマンドモード表示 -->
@@ -78,45 +50,32 @@
           @keydown="handleKeydown"
         >
         <!-- コマンド候補リスト -->
-        <div v-if="commandSuggestions.length > 0 && !pendingCommand" class="suggestions-dropdown command-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
-          <div
-            v-for="(cmd, index) in commandSuggestions"
-            :key="cmd.command"
-            class="suggestion-item"
-            :class="{ selected: index === selectedCommandIndex }"
-            @click="selectCommand(cmd)"
-          >
-            <span class="suggestion-value">{{ cmd.command }}</span>
-            <span class="suggestion-label">{{ cmd.description }}</span>
-          </div>
-        </div>
+        <SuggestionList
+          v-if="!pendingCommand"
+          :suggestions="commandSuggestions"
+          :selected-index="selectedCommandIndex"
+          :is-bottom-position="isBottomPosition"
+          variant="command"
+          @select="selectCommand"
+        />
         <!-- 候補リスト -->
-        <div v-if="pendingCommand && filteredSuggestions.length > 0" class="suggestions-dropdown" :class="{ 'dropdown-above': isBottomPosition }">
-          <div
-            v-for="(suggestion, index) in filteredSuggestions"
-            :key="suggestion.value"
-            class="suggestion-item"
-            :class="{ selected: index === selectedSuggestionIndex }"
-            @click="selectSuggestion(suggestion)"
-          >
-            <span class="suggestion-value">{{ suggestion.value }}</span>
-            <span class="suggestion-label">{{ suggestion.label }}</span>
-          </div>
-        </div>
+        <SuggestionList
+          v-if="pendingCommand"
+          :suggestions="filteredSuggestions"
+          :selected-index="selectedSuggestionIndex"
+          :is-bottom-position="isBottomPosition"
+          @select="selectSuggestion"
+        />
         <!-- mydeckモード用の候補リスト -->
         <div v-if="showMydeckDropdown" class="mode-dropdown-overlay" @click="showMydeckDropdown = false"></div>
-        <div v-if="showMydeckDropdown" class="suggestions-dropdown mydeck-suggestions" :class="{ 'dropdown-above': isBottomPosition }">
-          <div
-            v-for="(deck, index) in mydeckSuggestions"
-            :key="deck.dno"
-            class="suggestion-item"
-            :class="{ selected: index === selectedMydeckIndex }"
-            @click="selectMydeck(deck)"
-          >
-            <span class="suggestion-value">dno:{{ deck.dno }}</span>
-            <span class="suggestion-label">{{ deck.name }}</span>
-          </div>
-        </div>
+        <SuggestionList
+          v-if="showMydeckDropdown"
+          :suggestions="mydeckSuggestions"
+          :selected-index="selectedMydeckIndex"
+          :is-bottom-position="isBottomPosition"
+          variant="mydeck"
+          @select="selectMydeck"
+        />
       </div>
       </div>
 
@@ -177,11 +136,17 @@ import {
 } from '../constants/search-constants'
 import { useSlashCommands } from '../composables/search/useSlashCommands'
 import { useSearchFilters } from '../composables/search/useSearchFilters'
+import SearchFilterChips from './SearchFilterChips.vue'
+import SearchModeSelector from './SearchModeSelector.vue'
+import SuggestionList from './SuggestionList.vue'
 
 export default defineComponent({
   name: 'SearchInputBar',
   components: {
-    SearchFilterDialog
+    SearchFilterDialog,
+    SearchFilterChips,
+    SearchModeSelector,
+    SuggestionList
   },
   props: {
     compact: {
@@ -215,7 +180,6 @@ export default defineComponent({
       }
     })
 
-    const showSearchModeDropdown = ref(false)
     const showMydeckDropdown = ref(false)
 
     // ページ言語を検出（多言語対応）
@@ -290,17 +254,6 @@ export default defineComponent({
         }
         return false
       })
-    })
-
-    const searchModeLabel = computed(() => {
-      switch (searchMode.value) {
-        case 'auto': return 'auto'
-        case 'name': return 'name'
-        case 'text': return 'text'
-        case 'pendulum': return 'pend'
-        case 'mydeck': return 'mydeck'
-        default: return 'auto'
-      }
     })
 
     // 表示用フィルターアイコン - filterChipsと重複しないものを表示
@@ -1379,12 +1332,6 @@ export default defineComponent({
       deckStore.searchQuery = ''
     }
 
-    const selectSearchMode = (mode: SearchMode) => {
-      searchMode.value = mode
-      settingsStore.setDefaultSearchMode(mode)
-      showSearchModeDropdown.value = false
-    }
-
     const handleFilterApply = (filters: typeof searchFilters.value) => {
       searchFilters.value = filters
       // ダイアログは「×」ボタンで明示的に閉じる仕様（自動で閉じない）
@@ -1610,8 +1557,6 @@ export default defineComponent({
       deckStore,
       inputRef,
       searchMode,
-      searchModeLabel,
-      showSearchModeDropdown,
       showMydeckDropdown,
       searchFilters,
       hasActiveFilters,
@@ -1633,7 +1578,6 @@ export default defineComponent({
       commandSuggestions,
       selectedCommandIndex,
       selectCommand,
-      selectSearchMode,
       handleFilterApply,
       handleSearch,
       handleInput,
