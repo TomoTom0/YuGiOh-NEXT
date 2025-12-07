@@ -264,9 +264,9 @@ export default defineComponent({
     // 設定からデフォルト検索モードを取得
     const settingsStore = useSettingsStore()
     const searchMode = computed({
-      get: () => settingsStore.appSettings.defaultSearchMode || 'auto',
+      get: () => settingsStore.appSettings.ux.defaultSearchMode || 'auto',
       set: (value: SearchMode) => {
-        settingsStore.appSettings.defaultSearchMode = value
+        settingsStore.appSettings.ux.defaultSearchMode = value
       }
     })
 

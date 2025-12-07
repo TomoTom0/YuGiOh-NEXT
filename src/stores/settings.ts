@@ -126,8 +126,11 @@ export const useSettingsStore = defineStore('settings', () => {
         uxSettings.keyboardShortcuts = oldSettings.keyboardShortcuts;
       }
 
+      // 古いキーを削除した新しいオブジェクトを作成
+      const { searchInputPosition, defaultSearchMode, enableMouseOperations, changeFavicon, keyboardShortcuts, ...cleanedSettings } = oldSettings;
+
       return {
-        ...oldSettings,
+        ...cleanedSettings,
         ux: uxSettings as UXSettings
       };
     }

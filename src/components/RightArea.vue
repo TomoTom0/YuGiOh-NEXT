@@ -119,25 +119,25 @@ export default {
 
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'default'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'default'
       return result
     })
-    
+
     // 検索入力欄をRight Area上部に表示するかどうか
     const showSearchInputTop = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'right-top'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'right-top'
       return result
     })
-    
+
     // 検索入力欄をRight Area下部に表示するかどうか
     const showSearchInputRightBottom = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'right-bottom'
       return result
     })
-    
+
     // 検索入力欄が左上（section-title）にあるかどうか
     const showSearchInputLeftTop = computed(() => {
-      return settingsStore.appSettings.searchInputPosition === 'section-title'
+      return settingsStore.appSettings.ux.searchInputPosition === 'section-title'
     })
 
     // グローバル検索モードを閉じる

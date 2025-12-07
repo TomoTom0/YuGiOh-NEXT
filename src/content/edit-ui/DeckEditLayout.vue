@@ -360,7 +360,7 @@ export default {
 
       if (isInputFocused) return
 
-      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+      const shortcuts = settingsStore.appSettings.ux.keyboardShortcuts
 
       // グローバル検索モードを有効化
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
@@ -461,7 +461,7 @@ export default {
       }
 
       // 設定に応じてファビコンを変更
-      if (settingsStore.appSettings.changeFavicon) {
+      if (settingsStore.appSettings.ux.changeFavicon) {
         changeFavicon()
       }
     })
