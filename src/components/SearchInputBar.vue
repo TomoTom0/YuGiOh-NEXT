@@ -1743,8 +1743,8 @@ export default defineComponent({
 
     const handleFilterApply = (filters: typeof searchFilters.value) => {
       searchFilters.value = filters
-      // ダイアログを閉じる
-      deckStore.isFilterDialogVisible = false
+      // ダイアログは「×」ボタンで明示的に閉じる仕様（自動で閉じない）
+      // deckStore.isFilterDialogVisible = false
       if (deckStore.searchQuery.trim()) {
         handleSearch()
       }
