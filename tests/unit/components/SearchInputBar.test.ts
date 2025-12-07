@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import SearchInputBar from '@/components/SearchInputBar.vue';
+import SearchInputBar from '@/components/searchInputBar/SearchInputBar.vue';
+import { useDeckEditStore } from '@/stores/deck-edit';
 
 describe('components/SearchInputBar', () => {
   beforeEach(() => {
@@ -211,11 +212,12 @@ describe('components/SearchInputBar', () => {
         }
       });
 
+      const deckStore = useDeckEditStore();
       const filterBtn = wrapper.find('.menu-btn');
-      expect(wrapper.vm.showFilterDialog).toBe(false);
+      expect(deckStore.isFilterDialogVisible).toBe(false);
 
       await filterBtn.trigger('click');
-      expect(wrapper.vm.showFilterDialog).toBe(true);
+      expect(deckStore.isFilterDialogVisible).toBe(true);
     });
 
     it('should toggle filter dialog visibility', async () => {
@@ -227,16 +229,17 @@ describe('components/SearchInputBar', () => {
         }
       });
 
+      const deckStore = useDeckEditStore();
       const filterBtn = wrapper.find('.menu-btn');
 
       // 開く
       await filterBtn.trigger('click');
-      expect(wrapper.vm.showFilterDialog).toBe(true);
+      expect(deckStore.isFilterDialogVisible).toBe(true);
 
       // 閉じる（直接状態を変更）
-      wrapper.vm.showFilterDialog = false;
+      deckStore.isFilterDialogVisible = false;
       await wrapper.vm.$nextTick();
-      expect(wrapper.vm.showFilterDialog).toBe(false);
+      expect(deckStore.isFilterDialogVisible).toBe(false);
     });
   });
 
