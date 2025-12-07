@@ -101,7 +101,8 @@ cp docs/dev/session.example.env .env.local
 - [テスト戦略](./testing-strategy.md) - 段階的テスト実装計画
 
 ### 進行中の機能
-- **デッキロード画面サムネイル表示機能** ([設計書](../../tasks/deck-thumbnail-cache-design.md)) - v0.5.4+
+- **デッキロード画面サムネイル表示機能** - v0.5.4+
   - 画像キャッシュ管理システム（Chrome Storage LRU）
   - デッキハッシュ計算ユーティリティ
   - WebP形式変換（Phase 4で実装予定）
+  - 詳細は [v0.5.4 変更履歴](../changelog/v0.5.4.md) を参照

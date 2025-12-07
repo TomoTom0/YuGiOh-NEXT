@@ -206,4 +206,4 @@
 - [README.md](../../README.md) - プロジェクト概要
 - [docs/usage/](../usage/) - 使い方ガイド
 - [docs/dev/](../dev/) - 開発者向けドキュメント
-- [tasks/milestone.md](../../tasks/milestone.md) - マイルストーン
+- [GitHub Issues](https://github.com/TomoTom0/YuGiOh-NEXT/issues) - 機能要望・バグ報告
