@@ -76,6 +76,70 @@
               </button>
             </div>
           </div>
+
+          <!-- 右下: Card List View Mode -->
+          <div class="setting-block">
+            <div class="block-title">Card List View</div>
+            <div class="view-mode-sections">
+              <div class="view-mode-section">
+                <div class="section-label">Search</div>
+                <div class="toggle-row">
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.search === 'list' }"
+                    @click="settingsStore.setCardListViewMode('search', 'list')"
+                  >
+                    List
+                  </button>
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.search === 'grid' }"
+                    @click="settingsStore.setCardListViewMode('search', 'grid')"
+                  >
+                    Grid
+                  </button>
+                </div>
+              </div>
+              <div class="view-mode-section">
+                <div class="section-label">Related</div>
+                <div class="toggle-row">
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.related === 'list' }"
+                    @click="settingsStore.setCardListViewMode('related', 'list')"
+                  >
+                    List
+                  </button>
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.related === 'grid' }"
+                    @click="settingsStore.setCardListViewMode('related', 'grid')"
+                  >
+                    Grid
+                  </button>
+                </div>
+              </div>
+              <div class="view-mode-section">
+                <div class="section-label">Products</div>
+                <div class="toggle-row">
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.products === 'list' }"
+                    @click="settingsStore.setCardListViewMode('products', 'list')"
+                  >
+                    List
+                  </button>
+                  <button
+                    class="toggle-btn"
+                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.products === 'grid' }"
+                    @click="settingsStore.setCardListViewMode('products', 'grid')"
+                  >
+                    Grid
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Tips Section (一時的に非表示) -->
@@ -190,6 +254,7 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   gap: 16px;
   width: 100%;
   box-sizing: border-box;
+  grid-template-rows: auto auto;
 }
 
 .setting-block {
@@ -354,5 +419,26 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
     font-family: monospace;
     font-size: 11px;
   }
+}
+
+.view-mode-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.view-mode-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 </style>

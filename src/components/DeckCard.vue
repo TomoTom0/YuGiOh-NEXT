@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="card"
     class="card-item deck-card"
     :class="[`section-${sectionType}`, { 'error-state': showError, 'drag-over': isDragOver }]"
     :data-card-id="card.cardId"
@@ -26,6 +27,18 @@
       </svg>
       <svg v-else-if="card.limitRegulation === 'semi-limited'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiNumeric2Circle" />
+      </svg>
+    </div>
+    <!-- カテゴリ優先アイコン（最優先） -->
+    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowLeftBold" />
+      </svg>
+    </div>
+    <!-- 末尾優先アイコン（カテゴリ優先が無い場合のみ表示） -->
+    <div v-else-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowRightBold" />
       </svg>
     </div>
     <div v-if="!card.empty" class="card-controls">
@@ -101,7 +114,7 @@ import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
-import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
+import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
@@ -174,15 +187,20 @@ export default {
       handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,
-      mdiNumeric2Circle
+      mdiNumeric2Circle,
+      mdiArrowRightBold,
+      mdiArrowLeftBold
     }
   },
   computed: {
     showError() {
       // 枚数制限エラー時、同じcardIdのカードを全て赤背景で表示
-      return this.deckStore.limitErrorCardId === this.card.cardId
+      return this.card && this.deckStore.limitErrorCardId === this.card.cardId
     },
     cardImageUrl() {
+      if (!this.card) {
+        return chrome.runtime.getURL('images/card_back.png')
+      }
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
@@ -242,6 +260,15 @@ export default {
     },
     showSearchButtons() {
       return this.sectionType === 'search'
+    },
+    isTailPlaced() {
+      // 直接refを参照してVueのreactivityを機能させる
+      return this.card && this.settingsStore.tailPlacementCardIds.includes(this.card.cardId)
+    },
+    isInCategory() {
+      // 2段階検索の結果（cid単位でキャッシュ済み）を参照
+      if (!this.card) return false
+      return this.deckStore.categoryMatchedCardIds.has(this.card.cardId)
     }
   },
   methods: {
@@ -278,7 +305,7 @@ export default {
         event.stopPropagation()
 
         // ドラッグ中のカードが自分自身でない場合のみハイライト
-        if (dragging && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
+        if (dragging && this.card && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
           // 自分自身の上ではハイライトしない
           this.isDragOver = false
         } else {
@@ -425,6 +452,8 @@ export default {
       }
     },
     animateFromSource(sourceRect, targetSection) {
+      if (!this.card) return
+
       // 追加されたカードを探す（最新のもの）
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]
@@ -639,6 +668,50 @@ export default {
   }
 }
 
+.tail-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  svg {
+    color: var(--color-success, #4CAF50);
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.category-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  svg {
+    color: var(--color-info, #2196F3);
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .card-controls {
   position: absolute;
   top: 0;
@@ -650,6 +723,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 10;
 }
 
 .card-btn {

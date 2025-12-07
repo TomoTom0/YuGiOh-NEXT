@@ -112,6 +112,13 @@ onMounted(async () => {
   const metadata = await getDeckMetadata();
   categories.value = metadata.categories;
   tags.value = metadata.tags;
+
+  // categoryLabelMapを更新（CategoryID -> Label のマッピング）
+  const labelMap: Record<string, string> = {};
+  metadata.categories.forEach(cat => {
+    labelMap[cat.value] = cat.label;
+  });
+  deckStore.categoryLabelMap = labelMap;
 });
 
 // storeの変更を監視してローカル状態を更新

@@ -10,15 +10,18 @@ import type {
   SearchMode,
   KeyboardShortcut,
   FeatureSettings,
-  StorageSettings
+  StorageSettings,
+  UXSettings
 } from '../types/settings';
 import {
   DEFAULT_APP_SETTINGS,
   DEFAULT_FEATURE_SETTINGS,
-  CARD_SIZE_MAP
+  CARD_SIZE_MAP,
+  DEFAULT_UX_SETTINGS
 } from '../types/settings';
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
+import { DEFAULT_TAIL_PLACEMENT_CARD_IDS } from '../config/default-tail-placement-cards';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -40,6 +43,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
   /** カード枚数制限モード */
   const cardLimitMode = ref<'all-3' | 'limit-reg'>('all-3');
+
+  /** グローバル末尾配置カードID リスト（デッキ横断的） */
+  const tailPlacementCardIds = ref<string[]>([]);
 
   // ===== 算出プロパティ =====
 
@@ -95,6 +101,41 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 古い形式の設定を新しい形式に移行（後方互換性）
+   * 旧形式：トップレベルに searchInputPosition, defaultSearchMode などのプロパティ
+   * 新形式：ux オブジェクト内にこれらのプロパティを含む
+   */
+  function migrateOldSettingsFormat(oldSettings: any): AppSettings {
+    if (!oldSettings.ux && (oldSettings.searchInputPosition || oldSettings.defaultSearchMode || oldSettings.enableMouseOperations || oldSettings.changeFavicon)) {
+      // 旧形式の UX 設定を新しい ux オブジェクトに移行
+      const uxSettings: Partial<UXSettings> = { ...DEFAULT_UX_SETTINGS };
+
+      if (oldSettings.searchInputPosition) {
+        uxSettings.searchInputPosition = oldSettings.searchInputPosition;
+      }
+      if (oldSettings.defaultSearchMode) {
+        uxSettings.defaultSearchMode = oldSettings.defaultSearchMode;
+      }
+      if (oldSettings.enableMouseOperations !== undefined) {
+        uxSettings.enableMouseOperations = oldSettings.enableMouseOperations;
+      }
+      if (oldSettings.changeFavicon !== undefined) {
+        uxSettings.changeFavicon = oldSettings.changeFavicon;
+      }
+      if (oldSettings.keyboardShortcuts) {
+        uxSettings.keyboardShortcuts = oldSettings.keyboardShortcuts;
+      }
+
+      return {
+        ...oldSettings,
+        ux: uxSettings as UXSettings
+      };
+    }
+
+    return oldSettings;
+  }
+
+  /**
    * 共通設定を読み込み（デッキ表示ページでも使用）
    * - テーマ
    * - カード詳細のカードサイズ
@@ -104,10 +145,13 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   async function loadCommonSettings(): Promise<void> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['appSettings', 'featureSettings'], (result: StorageSettings) => {
+      chrome.storage.local.get(['appSettings', 'featureSettings', 'tailPlacementCardIds'], (result: StorageSettings) => {
+        // 古い形式の設定を新しい形式に移行
+        let loadedSettings = result.appSettings ? migrateOldSettingsFormat(result.appSettings) : null;
+
         // 保存された設定をデフォルト値とマージ（キーボードショートカットも含める）
-        const mergedAppSettings = result.appSettings
-          ? deepMerge(DEFAULT_APP_SETTINGS, result.appSettings)
+        const mergedAppSettings = loadedSettings
+          ? deepMerge(DEFAULT_APP_SETTINGS, loadedSettings)
           : { ...DEFAULT_APP_SETTINGS };
 
         appSettings.value = mergedAppSettings;
@@ -115,6 +159,14 @@ export const useSettingsStore = defineStore('settings', () => {
         featureSettings.value = result.featureSettings
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
+
+        // 初回起動時はデフォルトの末尾配置カードIDを使用
+        // 以降はユーザーの設定を保持
+        if (Array.isArray(result.tailPlacementCardIds) && result.tailPlacementCardIds.length > 0) {
+          tailPlacementCardIds.value = result.tailPlacementCardIds;
+        } else {
+          tailPlacementCardIds.value = [...DEFAULT_TAIL_PLACEMENT_CARD_IDS];
+        }
 
         isLoaded.value = true;
 
@@ -155,7 +207,17 @@ export const useSettingsStore = defineStore('settings', () => {
       chrome.storage.local.set({
         appSettings: appSettings.value,
         featureSettings: featureSettings.value,
+        tailPlacementCardIds: tailPlacementCardIds.value,
       }, () => {
+        // localStorage にもキャッシュ（超早期読み込み用）
+        try {
+          localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings.value));
+          if (typeof window !== 'undefined') {
+            window.ygoNextCurrentSettings = appSettings.value;
+          }
+        } catch (error) {
+          console.warn('[Settings] Failed to update localStorage cache:', error);
+        }
         resolve();
       });
     });
@@ -310,13 +372,21 @@ export const useSettingsStore = defineStore('settings', () => {
     saveSettings();
   }
 
+  /**
+   * カードリスト表示形式を設定（セクションごと）
+   */
+  function setCardListViewMode(section: 'search' | 'related' | 'products', mode: 'list' | 'grid'): void {
+    appSettings.value.ux.cardListViewMode[section] = mode;
+    saveSettings();
+  }
+
   function setMouseOperations(enabled: boolean): void {
-    appSettings.value.enableMouseOperations = enabled;
+    appSettings.value.ux.enableMouseOperations = enabled;
     saveSettings();
   }
 
   function setChangeFavicon(enabled: boolean): void {
-    appSettings.value.changeFavicon = enabled;
+    appSettings.value.ux.changeFavicon = enabled;
     saveSettings();
   }
 
@@ -324,7 +394,7 @@ export const useSettingsStore = defineStore('settings', () => {
    * キーボードショートカットを追加（最大3つまで）
    */
   function addKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', shortcut: KeyboardShortcut): void {
-    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    const shortcuts = appSettings.value.ux.keyboardShortcuts[name];
     if (shortcuts.length >= 3) {
       console.warn(`[Settings] Cannot add more than 3 shortcuts for ${name}`);
       return;
@@ -337,7 +407,7 @@ export const useSettingsStore = defineStore('settings', () => {
    * キーボードショートカットを削除
    */
   function removeKeyboardShortcut(name: 'globalSearch' | 'undo' | 'redo', index: number): void {
-    const shortcuts = appSettings.value.keyboardShortcuts[name];
+    const shortcuts = appSettings.value.ux.keyboardShortcuts[name];
     if (index >= 0 && index < shortcuts.length) {
       shortcuts.splice(index, 1);
       saveSettings();
@@ -348,7 +418,7 @@ export const useSettingsStore = defineStore('settings', () => {
    * 検索入力欄の位置を変更
    */
   function setSearchInputPosition(position: SearchInputPosition): void {
-    appSettings.value.searchInputPosition = position;
+    appSettings.value.ux.searchInputPosition = position;
     saveSettings();
   }
 
@@ -356,7 +426,7 @@ export const useSettingsStore = defineStore('settings', () => {
    * 検索モードのデフォルトを変更
    */
   function setDefaultSearchMode(mode: SearchMode): void {
-    appSettings.value.defaultSearchMode = mode;
+    appSettings.value.ux.defaultSearchMode = mode;
     saveSettings();
   }
 
@@ -385,6 +455,34 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * 末尾配置リストにカードを追加
+   */
+  function addTailPlacementCard(cardId: string): void {
+    if (!tailPlacementCardIds.value.includes(cardId)) {
+      tailPlacementCardIds.value.push(cardId);
+      saveSettings();
+    }
+  }
+
+  /**
+   * 末尾配置リストからカードを削除
+   */
+  function removeTailPlacementCard(cardId: string): void {
+    const index = tailPlacementCardIds.value.indexOf(cardId);
+    if (index >= 0) {
+      tailPlacementCardIds.value.splice(index, 1);
+      saveSettings();
+    }
+  }
+
+  /**
+   * カードが末尾配置リストに含まれているか判定
+   */
+  function isTailPlacementCard(cardId: string): boolean {
+    return tailPlacementCardIds.value.includes(cardId);
+  }
+
+  /**
    * 設定をリセット
    */
   async function resetSettings(): Promise<void> {
@@ -403,6 +501,16 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme(): void {
     const theme = effectiveTheme.value;
     document.documentElement.setAttribute('data-ygo-next-theme', theme);
+
+    // themes.ts から CSS variables を注入（Single Source of Truth）
+    import('../styles/themes').then(({ getThemeColors }) => {
+      const themeColors = getThemeColors(theme);
+
+      // 全ての CSS variables を document.documentElement に設定
+      Object.entries(themeColors).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(key, value);
+      });
+    });
   }
 
   /**
@@ -480,6 +588,7 @@ export const useSettingsStore = defineStore('settings', () => {
     cardWidthList,
     cardWidthGrid,
     cardLimitMode,
+    tailPlacementCardIds,
 
     // 算出プロパティ
     deckEditCardSizePixels,
@@ -504,6 +613,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setTheme,
     setLanguage,
     setMiddleDecksLayout,
+    setCardListViewMode,
     setMouseOperations,
     setChangeFavicon,
     addKeyboardShortcut,
@@ -513,6 +623,9 @@ export const useSettingsStore = defineStore('settings', () => {
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
+    addTailPlacementCard,
+    removeTailPlacementCard,
+    isTailPlacementCard,
     resetSettings,
     applyTheme,
     applyCardSize,

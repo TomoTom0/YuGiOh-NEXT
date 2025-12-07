@@ -22,7 +22,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 
 **遊戯王NEXT(Neuron EXTension)**は、遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
 
-**現在のバージョン**: v0.4.5 ([変更履歴](./docs/changelog/))
+**現在のバージョン**: v0.5.4 ([変更履歴](./docs/release-notes/))
 
 
 ## 主要機能

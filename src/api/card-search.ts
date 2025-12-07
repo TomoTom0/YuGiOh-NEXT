@@ -14,8 +14,7 @@ import {
   CardDetail,
   PackInfo,
   LimitRegulation,
-  CardTableC,
-  getCardImageUrl
+  CardTableC
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
@@ -820,15 +819,6 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
 }
 
 /**
- * カード情報から画像URLを構築する（非推奨: getCardImageUrlを使用してください）
- * @deprecated types/card.tsのgetCardImageUrlを使用してください
- */
-export function buildCardImageUrl(card: CardBase): string | undefined {
-  // types/card.tsのgetCardImageUrlに委譲
-  return getCardImageUrl(card);
-}
-
-/**
  * 検索結果ページからカード情報を抽出する
  *
  * @param doc パース済みのHTMLドキュメント
@@ -864,12 +854,6 @@ export function parseSearchResults(doc: Document): CardInfo[] {
       cards.push(cardInfo);
     }
   });
-
-  // TempCardDBに保存（検索結果として取得したカードを保存）
-  const tempCardDB = getTempCardDB();
-  for (const card of cards) {
-    tempCardDB.set(card.cardId, card);
-  }
 
   return cards;
 }
@@ -2228,14 +2212,6 @@ export async function saveCardDetailToCache(
     await unifiedDB.setCardTableC(tableC, targetLang);
   }
 
-  // TempCardDBに保存（detail.cardと関連カード）
-  // Tier 0-2: Table C 相当のデータはセッション中のみメモリに保持
-  // Tier 3-5: メモリに保持（永続化はUnifiedCacheDB）
-  const tempCardDB = getTempCardDB();
-  tempCardDB.set(detail.card.cardId, detail.card);
-  for (const relatedCard of detail.relatedCards) {
-    tempCardDB.set(relatedCard.cardId, relatedCard);
-  }
 }
 
 /**

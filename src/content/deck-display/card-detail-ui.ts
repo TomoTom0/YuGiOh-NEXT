@@ -362,6 +362,9 @@ async function selectCard(cardInfo: any): Promise<void> {
   }
 
   try {
+    // ローディング開始
+    cardDetailStore.startLoadingCard();
+
     // cardIdを文字列に変換（cardDetailStore.setSelectedCardの要件）
     const cardIdStr = String(cardInfo.cardId);
 
@@ -396,6 +399,9 @@ async function selectCard(cardInfo: any): Promise<void> {
     });
     cardDetailStore.setCardTab('info');
     currentTab = 'info';
+  } finally {
+    // ローディング終了
+    cardDetailStore.endLoadingCard();
   }
 
   // Tab ボタンのアクティブ状態をリセット
