@@ -18,6 +18,10 @@ describe('Parser: Card Search', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=1&sess=2&rp=100&page=1&mode=1&stype=1&request_locale=ja'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     // 検索結果を抽出
     const main980 = doc.querySelector('#main980');
