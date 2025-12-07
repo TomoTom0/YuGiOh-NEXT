@@ -261,15 +261,71 @@ DeckEditLayout.vue (メインレイアウト)
 
 #### SearchInputBar.vue
 検索入力バーの共通コンポーネント。DeckSectionとRightAreaで再利用。
+v0.6.0のリファクタリングで大幅に機能強化され、2239行から1318行へ削減（41%削減）。
+
+**主要機能:**
+
+1. **検索入力**
+   - リアルタイム検索クエリ入力
+   - Enter キーで検索実行
+   - プレースホルダー自動生成（検索モードに応じて変化）
+
+2. **スラッシュコマンド**
+   - `/c:` - カテゴリフィルター追加
+   - `/r:` - 種族フィルター追加
+   - `/a:` - 属性フィルター追加
+   - `/l:` - レベル/ランク/リンクフィルター追加
+   - `/mydeck:` - マイデッキ検索
+   - `/help` - ヘルプ表示
+
+3. **検索モード**
+   - **title**: カード名検索（デフォルト）
+   - **text**: カードテキスト検索
+   - **all**: カード名+テキスト検索
+   - **category**: カテゴリ検索
+   - **race**: 種族検索
+   - **attribute**: 属性検索
+   - **level**: レベル/ランク/リンク検索
+   - **mydeck**: マイデッキ検索
+
+4. **フィルターチップ管理**
+   - 選択されたフィルター条件をチップ表示
+   - チップのクリックで個別削除
+   - 一括クリア機能
+   - フィルターアイコンのプレビュー
+
+5. **候補リスト**
+   - コマンド候補表示（スラッシュコマンド入力時）
+   - フィルター候補表示（カテゴリ/種族/属性/レベル）
+   - マイデッキ候補表示（/mydeck: 入力時）
+   - キーボードナビゲーション（↑↓ Enter Esc）
+
+6. **キーボードショートカット**
+   - `Ctrl+F` / `Cmd+F`: 検索バーにフォーカス
+   - `Esc`: 候補リストを閉じる
+   - `↑` / `↓`: 候補リストのナビゲーション
+   - `Enter`: 候補選択または検索実行
+
+**Composables 構成:**
+- `useSlashCommands`: スラッシュコマンド解析とバリデーション
+- `useSearchFilters`: フィルター管理とチップ操作
+- `useKeyboardNavigation`: キーボードナビゲーション管理
+- `useMydeckOperations`: マイデッキ操作管理
+- `useFilterInput`: フィルター入力とチップ管理
+- `useSearchExecution`: 検索実行ロジック
+
+**子コンポーネント:**
+- `SearchFilterChips.vue`: フィルターチップの表示と管理
+- `SearchModeSelector.vue`: 検索モードの切り替え
+- `SuggestionList.vue`: 候補リストの表示とキーボードナビゲーション
 
 **Props:**
-- `modelValue`: 検索文字列
-- `placeholder`: プレースホルダーテキスト
-- `showFilterButton`: フィルターボタン表示
+- `compact` (boolean): コンパクトモード（デフォルト: false）
+- `isBottomPosition` (boolean): 検索バーが下部にあるか（デフォルト: false）
 
-**Events:**
-- `update:modelValue`: 入力値変更
-- `filter-click`: フィルターボタンクリック
+**リファクタリング履歴:**
+- Phase 1-6 (v0.6.0): God Component脱却（2239行 → 1318行、41%削減）
+- スタイル移譲: 各コンポーネントのスタイルカプセル化（-349行）
 
 #### SearchFilterDialog.vue
 検索フィルター条件を設定するダイアログ。
@@ -288,6 +344,69 @@ DeckEditLayout.vue (メインレイアウト)
 **Events:**
 - `update:filters`: フィルター条件変更
 - `close`: ダイアログ閉じる
+
+#### CardList.vue
+カードリスト表示コンポーネント。検索結果やデッキ内カードのリスト表示を行う。
+v0.4.0でソート機能を集約し、label-utils.tsからラベル変換関数をインポート（コード重複削減）。
+
+**主要機能:**
+
+1. **表示モード切り替え**
+   - **リスト表示**: カード詳細情報を含む縦一覧表示
+   - **グリッド表示**: カード画像のみの格子状表示
+
+2. **ソート機能**
+
+   **ソートキー（sortBase）:**
+   - **release**: 発売日順（デフォルト）
+   - **name**: カード名順（五十音順）
+   - **atk**: ATK順（モンスターのみ）
+   - **def**: DEF順（モンスターのみ）
+   - **level**: レベル/ランク/リンク順
+   - **attribute**: 属性順
+   - **race**: 種族順
+   - **code**: コード順（マイデッキ検索時のみ表示）
+
+   **ソート方向（sortDirection）:**
+   - **asc**: 昇順（発売日: 古い→新しい、名前: あ→ん、ATK: 低い→高い）
+   - **desc**: 降順（発売日: 新しい→古い、名前: ん→あ、ATK: 高い→低い）
+
+   **ソートロジック:**
+   ```
+   1. カードタイプ優先（Monster > Spell > Trap）
+   2. 選択されたソートキーで比較
+   3. 同値の場合はカード名で比較（五十音順）
+   ```
+
+   **ソート順序の保存:**
+   - `settings.appSettings.sortOrder` にソートキーを保存
+   - `settings.appSettings.sortDirection` にソート方向を保存
+   - ページリロード時も設定を維持
+
+3. **カード詳細表示**
+   - カードクリックで詳細情報を表示
+   - ATK/DEF、レベル/ランク/リンク、属性、種族、モンスタータイプ等
+   - リスト表示時はカードテキストも表示
+
+4. **その他の機能**
+   - カード数表示
+   - スクロールトップボタン
+   - 縮小ボタン（検索結果エリアを閉じる）
+
+**Props:**
+- `cards` (Array): 表示するカード配列（必須）
+- `loading` (Boolean): ローディング状態
+- `viewMode` (String): 表示モード（'list' または 'grid'）
+- `showCollapseButton` (Boolean): 縮小ボタン表示
+- `showCodeSort` (Boolean): コード順ソート表示（マイデッキ検索時）
+
+**Events:**
+- `collapse`: 縮小ボタンクリック時
+- `scroll-to-top`: スクロールトップボタンクリック時
+- `update:viewMode`: 表示モード変更時
+
+**関連ユーティリティ:**
+- `src/utils/label-utils.ts`: ラベル変換関数（getAttributeLabel, getRaceLabel 等）
 
 #### OptionsDialog.vue
 表示設定と機能設定を管理するダイアログ。

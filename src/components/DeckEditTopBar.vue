@@ -64,7 +64,8 @@
         </button>
 
         <!-- Menu Dropdown -->
-        <div v-if="showMenu" class="menu-dropdown" @click.stop>
+        <Transition name="menu-slide">
+          <div v-if="showMenu" class="menu-dropdown" @click.stop>
           <button @click="handleSortAll" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiSortVariant" />
@@ -123,6 +124,7 @@
             Options
           </button>
         </div>
+        </Transition>
       </div>
     </div>
 
@@ -204,25 +206,25 @@ export default {
       toast.show = true
     }
     
-    const checkUnsavedChanges = (action: () => void, actionName: string) => {
+    const checkUnsavedChanges = async (action: () => void | Promise<void>, actionName: string) => {
       const unsavedWarning = settingsStore.appSettings.unsavedWarning
 
       // 'never': 警告を表示しない
       if (unsavedWarning === 'never') {
-        action()
+        await action()
         return
       }
 
       // 変更がない場合は常に実行
       if (!deckStore.hasUnsavedChanges()) {
-        action()
+        await action()
         return
       }
 
       // 'without-sorting-only': ソート順のみの変更なら警告しない
       if (unsavedWarning === 'without-sorting-only') {
         if (deckStore.hasOnlySortOrderChanges()) {
-          action()
+          await action()
           return
         }
       }
@@ -252,7 +254,7 @@ export default {
             if (result.success) {
               showToast('保存しました', 'success')
               if (pendingAction.value) {
-                pendingAction.value()
+                await pendingAction.value()
               }
             } else {
               showToast('保存に失敗しました', 'error')
@@ -267,10 +269,10 @@ export default {
       {
         label: '保存せず続ける',
         class: 'danger',
-        onClick: () => {
+        onClick: async () => {
           deckStore.showUnsavedChangesDialog = false
           if (pendingAction.value) {
-            pendingAction.value()
+            await pendingAction.value()
           }
           pendingAction.value = null
         }
@@ -344,8 +346,8 @@ export default {
       }
     }
 
-    const handleLoadClick = () => {
-      checkUnsavedChanges(async () => {
+    const handleLoadClick = async () => {
+      await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
           await deckStore.fetchDeckList()
           selectedDeckDno.value = null
@@ -382,9 +384,9 @@ export default {
       }
     }
     
-    const handleReloadDeck = () => {
+    const handleReloadDeck = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         try {
           await deckStore.reloadDeck()
           deckStore.setDeckName('')
@@ -453,9 +455,9 @@ export default {
       deckStore.showExportDialog = true
     }
 
-    const handleImportClick = () => {
+    const handleImportClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(() => {
+      await checkUnsavedChanges(() => {
         deckStore.showImportDialog = true
       }, 'インポート')
     }
@@ -506,9 +508,9 @@ export default {
       deckStore.redo()
     }
 
-    const handleNewClick = () => {
+    const handleNewClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         menuLoading.value = true
         try {
           await deckStore.createNewDeck()
@@ -522,9 +524,9 @@ export default {
       }, '新規作成')
     }
 
-    const handleCopyClick = () => {
+    const handleCopyClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         menuLoading.value = true
         try {
           await deckStore.copyCurrentDeck()
@@ -704,6 +706,28 @@ export default {
     background: var(--border-secondary);
     margin: 4px 0;
   }
+}
+
+// メニューアニメーション
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.menu-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.menu-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.menu-slide-enter-to,
+.menu-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .menu-overlay {

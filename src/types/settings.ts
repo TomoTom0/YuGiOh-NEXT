@@ -144,6 +144,15 @@ export interface UXSettings {
     /** Redoキー */
     redo: KeyboardShortcut[];
   };
+  /** カードリスト表示形式（セクションごと）*/
+  cardListViewMode: {
+    /** 検索結果セクション */
+    search: 'list' | 'grid';
+    /** 関連カードセクション */
+    related: 'list' | 'grid';
+    /** 商品一覧セクション */
+    products: 'list' | 'grid';
+  };
 }
 
 /**
@@ -174,6 +183,12 @@ export interface AppSettings {
   showCardDetailInDeckDisplay: boolean;
   /** デッキ表示ページのカード画像サイズ */
   deckDisplayCardImageSize: CardSize;
+  /** デフォルトソート順序 */
+  defaultSortOrder: string;
+  /** カテゴリ優先を有効化 */
+  enableCategoryPriority: boolean;
+  /** 末尾配置を有効化 */
+  enableTailPlacement: boolean;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -216,6 +231,8 @@ export interface StorageSettings {
   deckEditSettings?: DeckEditSettings;
   /** アプリ全体設定（v0.4.0で追加） */
   appSettings?: AppSettings;
+  /** グローバル末尾配置カードID リスト */
+  tailPlacementCardIds?: string[];
 }
 
 /**
@@ -258,6 +275,11 @@ export const DEFAULT_UX_SETTINGS: UXSettings = {
       { ctrl: true, shift: false, alt: false, key: 'y' }
     ],
   },
+  cardListViewMode: {
+    search: 'grid',    // 検索結果: グリッド表示（デフォルト）
+    related: 'grid',   // 関連カード: グリッド表示（デフォルト）
+    products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
+  },
 };
 
 /**
@@ -278,6 +300,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // デッキ表示ページ設定
   showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
   deckDisplayCardImageSize: 'large',   // デッキ表示ページのカード画像: large
+  defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
+  enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
+  enableTailPlacement: true,           // 末尾配置: デフォルト有効
 };
 
 /**

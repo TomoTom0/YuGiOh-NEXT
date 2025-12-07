@@ -11,7 +11,7 @@
 
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
-import { getFromStorageLocal } from '../../utils/chrome-storage-utils';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -19,45 +19,12 @@ let isEditUILoaded = false;
 // イベントリスナーが登録済みかどうかのフラグ
 let isEventListenerRegistered = false;
 
-/**
- * background でデッキ詳細をプリロード（非同期、並行実行）
- */
-async function preloadDeckDetailInBackground(): Promise<void> {
-  try {
-    // URLから dno を抽出
-    const hash = window.location.hash;
-    const urlParams = new URLSearchParams(hash.split('?')[1] || '');
-    const dno = urlParams.get('dno');
-
-    if (!dno) {
-      return; // dno がない場合はスキップ
-    }
-
-    // Chrome Storage から cgid を読み込み
-    const cgid = await getFromStorageLocal('ygo-user-cgid');
-
-    if (!cgid) {
-      console.warn('[Edit UI] cgid not found in Storage, skipping preload');
-      return; // cgid がない場合はスキップ
-    }
-
-    // dno のバリデーション
-    const dnoNum = parseInt(dno, 10);
-    if (isNaN(dnoNum)) {
-      console.warn('[Edit UI] Invalid dno in URL, skipping preload:', dno);
-      return;
-    }
-
-    // background へメッセージを送信（非同期、await しない）
-    chrome.runtime.sendMessage({
-      type: 'PRELOAD_DECK_DETAIL',
-      dno: dnoNum,
-      cgid: cgid
-    }).catch(err => console.warn('[Edit UI] Failed to send preload message:', err));
-  } catch (error) {
-    console.warn('[Edit UI] Failed to preload deck detail:', error);
-  }
-}
+// 公式DOM読み込みと同時に、Vue関連モジュールを事前インポート開始
+const vueModulesPromise = Promise.all([
+  import('vue'),
+  import('pinia'),
+  import('./DeckEditLayout.vue')
+]);
 
 /**
  * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
@@ -69,13 +36,13 @@ function isEditUrl(): boolean {
 
 /**
  * テーマを設定ストアから読み込んで適用
- * メモリキャッシュ（ygoCurrentSettings）から即座に取得、なければ Storage から読み込み
+ * メモリキャッシュ（ygoNextCurrentSettings）から即座に取得、なければ Storage から読み込み
  * FOUC 防止のため、背景色も同時に設定
  */
 async function applyThemeFromSettings(): Promise<void> {
   try {
     // メモリキャッシュから即座に取得（0ms、待機なし）
-    let appSettings = window.ygoCurrentSettings;
+    let appSettings = window.ygoNextCurrentSettings;
 
     // メモリにない場合は Storage から読み込み
     if (!appSettings) {
@@ -88,7 +55,7 @@ async function applyThemeFromSettings(): Promise<void> {
 
       // 読み込み後、メモリキャッシュに保存
       if (appSettings) {
-        window.ygoCurrentSettings = appSettings;
+        window.ygoNextCurrentSettings = appSettings;
       }
     }
 
@@ -175,18 +142,12 @@ function replaceLanguageChangeLinks(): void {
  * URLの変更を監視
  */
 function watchUrlChanges(): void {
-  // DOMが読み込まれてから実行
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      if (isEditUrl() && !isEditUILoaded) {
-        loadEditUI();
-      }
-    });
-  } else {
-    // すでに読み込まれている場合
-    if (isEditUrl() && !isEditUILoaded) {
-      loadEditUI();
-    }
+  // 公式DOM前初期化: DOMContentLoadedを待たず即座に初期化
+  // オーバーレイを素早く表示し、ユーザー体感速度を向上
+  // 注: preloadはcontent/index.tsで既に実行されているため、ここでは不要
+  if (isEditUrl() && !isEditUILoaded) {
+    // UI を即座にロード（オーバーレイ表示）
+    loadEditUI();
   }
 
   // hashchangeイベントを監視（一度だけ登録）
@@ -199,12 +160,10 @@ function watchUrlChanges(): void {
         // 編集URLに遷移した場合は、毎回テーマを適用
         applyThemeFromSettings();
 
-        // background でデッキ詳細をプリロード（並行実行）
-        preloadDeckDetailInBackground();
+        // 注: preloadはcontent/index.tsのhashchangeハンドラーで実行されるため、ここでは不要
 
         // UI が未読み込みの場合のみ読み込み実行
         if (!isEditUILoaded) {
-          console.log('[Edit UI] Loading edit UI');
           loadEditUI();
         }
       } else if (!isEditUrl() && isEditUILoaded) {
@@ -237,6 +196,13 @@ async function loadEditUI(): Promise<void> {
     return;
   }
 
+  // content/index.tsで追加した早期hideスタイルを削除
+  // （#wrapper/#bgを表示可能にする）
+  const earlyHideStyle = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
+  if (earlyHideStyle) {
+    earlyHideStyle.remove();
+  }
+
   // ヘッダーの高さを計算してCSS変数に設定
   const headerElement = document.querySelector('header') || document.querySelector('#header');
   let headerHeight = 0;
@@ -249,10 +215,9 @@ async function loadEditUI(): Promise<void> {
   // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）
 
   // スタイルを追加
-  const styleId = 'ygo-edit-ui-styles';
-  if (!document.getElementById(styleId)) {
+  if (!document.getElementById(EXTENSION_IDS.deckEdit.editUiStyles)) {
     const style = document.createElement('style');
-    style.id = styleId;
+    style.id = EXTENSION_IDS.deckEdit.editUiStyles;
     style.textContent = `
       html, body {
         margin: 0;
@@ -293,13 +258,15 @@ async function loadEditUI(): Promise<void> {
   // FOUC防止：背景色を決定
   const bgColor2 = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
 
-  // 全ての層に背景色を設定（インラインスタイルで優先度を確保）
-  document.body.style.backgroundColor = bgColor2;
+  // #wrapperと#bgを明示的に表示し、背景色を設定
   const wrapperElement = document.getElementById('wrapper');
   if (wrapperElement) {
+    wrapperElement.style.display = '';  // 元のスタイルに戻す（display: noneを解除）
     wrapperElement.style.backgroundColor = bgColor2;
   }
+  bgElement.style.display = 'block';
   bgElement.style.backgroundColor = bgColor2;
+  document.body.style.backgroundColor = bgColor2;
 
   // #bg の内容をすべて削除（古いコンテンツを確実に消す）
   bgElement.innerHTML = '';
@@ -318,30 +285,8 @@ async function loadEditUI(): Promise<void> {
   // Vue アプリケーションを起動
   await initVueApp();
 
-  // Vue初期化完了後、モジュール読み込みオーバーレイを削除（FOUC防止を終了）
-  // ただし、Vue描画が完全に終わるまで少し待つ
-  const moduleLoadingOverlay = document.getElementById('ygo-module-loading-overlay');
-
-  // Vue描画をトリガーさせるため、複数回requestAnimationFrameを実行
-  await new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          resolve(null);
-        });
-      });
-    });
-  });
-
-  if (moduleLoadingOverlay) {
-    // フェードアウトアニメーション
-    moduleLoadingOverlay.style.opacity = '0';
-    moduleLoadingOverlay.style.transition = 'opacity 300ms ease-out';
-
-    setTimeout(() => {
-      moduleLoadingOverlay.remove();
-    }, 300);
-  }
+  // オーバーレイはDeckEditLayout.vueのonMountedで削除される
+  // （デッキ読み込み完了後に削除）
 
   // 言語切り替えボタンを差し替え（Vue初期化後）
   replaceLanguageChangeLinks();
@@ -352,17 +297,24 @@ async function loadEditUI(): Promise<void> {
  */
 async function initVueApp(): Promise<void> {
   try {
-    // Vue/Pinia/コンポーネントを動的インポート
-    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await Promise.all([
-      import('vue'),
-      import('pinia'),
-      import('./DeckEditLayout.vue')
-    ]);
+    // トップレベルで既にインポート開始しているPromiseを使用
+    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await vueModulesPromise;
 
     const app = createApp(DeckEditLayout);
     const pinia = createPinia();
 
     app.use(pinia);
+
+    // window.ygoNextCurrentSettings から即座に設定を読み込む（Chrome Storage 不要）
+    const cachedSettings = (window as any).ygoNextCurrentSettings;
+    if (cachedSettings) {
+      const { useSettingsStore } = await import('../../stores/settings');
+      const settingsStore = useSettingsStore(pinia);
+      settingsStore.appSettings = { ...settingsStore.appSettings, ...cachedSettings };
+      // CSS変数を即座に適用（カードサイズなど画面構造に影響）
+      settingsStore.applyCardSize();
+    }
+
     app.mount('#vue-edit-app');
 
     // Vue描画が完全に完了するまで待機
@@ -374,26 +326,18 @@ async function initVueApp(): Promise<void> {
 
 // このモジュールが動的インポートされた時点で編集ページにいることが確定
 // URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
+// ただし、プリフェッチ時は編集ページでない可能性があるため、isVueEditPage() で条件チェック
+// 注: オーバーレイとpreloadはcontent/index.tsで既に実行されているため、ここでは不要
 (async () => {
-  // モジュール読み込み時にテーマを設定（FOUC防止）
-  // テーマをまず読み込んでから、オーバーレイを作成する
-  await applyThemeFromSettings();
+  // 編集ページでない場合はスキップ
+  if (!isVueEditPage()) {
+    return;
+  }
 
-  // FOUC防止：テーマ読み込み後にオーバーレイを作成
-  const theme = document.documentElement.getAttribute('data-ygo-next-theme') || 'light';
-  const bgColor = theme === 'dark' ? '#1a1a1a' : '#ffffff';
-
-  const loadingOverlay = document.createElement('div');
-  loadingOverlay.id = 'ygo-module-loading-overlay';
-  loadingOverlay.style.position = 'fixed';
-  loadingOverlay.style.top = '0';
-  loadingOverlay.style.left = '0';
-  loadingOverlay.style.width = '100%';
-  loadingOverlay.style.height = '100%';
-  loadingOverlay.style.backgroundColor = bgColor;
-  loadingOverlay.style.zIndex = '999999';
-  loadingOverlay.style.pointerEvents = 'none';
-  document.body.appendChild(loadingOverlay);
+  // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
+  applyThemeFromSettings().catch(err => {
+    console.warn('[Edit UI] Failed to apply theme:', err);
+  });
 
   watchUrlChanges();
 })();

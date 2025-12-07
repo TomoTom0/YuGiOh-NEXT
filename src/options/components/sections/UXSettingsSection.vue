@@ -197,6 +197,125 @@
       </div>
     </div>
 
+    <!-- デフォルトソート順序 -->
+    <div class="setting-group">
+      <h3 class="setting-title">デフォルトソート順序</h3>
+      <p class="setting-desc">デッキ編集画面で最初に表示されるソート順序</p>
+      <div class="radio-group">
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_desc' }"
+        >
+          <input
+            type="radio"
+            value="release_desc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>リリース日降順（デフォルト）</strong>
+            <span class="radio-desc">新しいカードから順に表示</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_asc' }"
+        >
+          <input
+            type="radio"
+            value="release_asc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>リリース日昇順</strong>
+            <span class="radio-desc">古いカードから順に表示</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'official' }"
+        >
+          <input
+            type="radio"
+            value="official"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>公式順</strong>
+            <span class="radio-desc">公式サイトの並び順</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_asc' }"
+        >
+          <input
+            type="radio"
+            value="name_asc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>名前昇順</strong>
+            <span class="radio-desc">カード名の昇順（あいうえお順）</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_desc' }"
+        >
+          <input
+            type="radio"
+            value="name_desc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>名前降順</strong>
+            <span class="radio-desc">カード名の降順（んわをん順）</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ソート機能 -->
+    <div class="setting-group">
+      <h3 class="setting-title">ソート機能</h3>
+      <p class="setting-desc">デッキ編集画面のソート機能の有効/無効</p>
+
+      <!-- カテゴリ優先 -->
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.enableCategoryPriority"
+          @change="handleCategoryPriorityChange"
+        />
+        <span class="checkbox-text">
+          <strong>カテゴリ優先を有効化</strong>
+          <span class="checkbox-desc">
+            デッキメタデータで設定したカテゴリに該当するカードを先頭に配置
+          </span>
+        </span>
+      </label>
+
+      <!-- 末尾配置 -->
+      <label class="checkbox-label" style="margin-top: 12px;">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.enableTailPlacement"
+          @change="handleTailPlacementChange"
+        />
+        <span class="checkbox-text">
+          <strong>末尾配置を有効化</strong>
+          <span class="checkbox-desc">
+            末尾配置指定されたカードをデッキの最後に配置
+          </span>
+        </span>
+      </label>
+    </div>
+
     <!-- キーボードショートカット -->
     <div v-if="settingsStore.isLoaded" class="setting-group">
       <h3 class="setting-title">キーボードショートカット</h3>
@@ -326,6 +445,21 @@ const handleMouseOpsChange = () => {
 const handleSearchModeChange = () => {
   settingsStore.saveSettings();
   showSaveMessage('検索モードのデフォルトを変更しました');
+};
+
+const handleSortOrderChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('デフォルトソート順序を変更しました');
+};
+
+const handleCategoryPriorityChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('カテゴリ優先設定を変更しました');
+};
+
+const handleTailPlacementChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('末尾配置設定を変更しました');
 };
 
 const formatShortcut = (shortcut: KeyboardShortcut): string => {

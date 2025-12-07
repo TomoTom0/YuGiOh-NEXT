@@ -306,29 +306,47 @@ describe('デッキ操作API', () => {
         ]
       };
 
-      // TempCardDBをモック
+      // TempCardDB と UnifiedCacheDB をセットアップ
       const { getTempCardDB } = await import('@/utils/temp-card-db');
+      const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
       const tempDB = getTempCardDB();
-      tempDB.set('12345', {
-        name: 'モンスターA',
-        cardType: 'monster',
-        cardId: '12345',
-      } as any);
-      tempDB.set('54321', {
-        name: '呪文B',
-        cardType: 'spell',
-        cardId: '54321',
-      } as any);
-      tempDB.set('99999', {
-        name: '融合デッキC',
-        cardType: 'fusion',
-        cardId: '99999',
-      } as any);
-      tempDB.set('77777', {
-        name: 'サイドD',
-        cardType: 'spell',
-        cardId: '77777',
-      } as any);
+      const unifiedDB = getUnifiedCacheDB();
+
+      const cards = [
+        {
+          name: 'モンスターA',
+          cardType: 'monster',
+          cardId: '12345',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: 'hash1' }]
+        },
+        {
+          name: '呪文B',
+          cardType: 'spell',
+          cardId: '54321',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: 'hash2' }]
+        },
+        {
+          name: '融合デッキC',
+          cardType: 'monster',
+          cardId: '99999',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: 'hash3' }]
+        },
+        {
+          name: 'サイドD',
+          cardType: 'spell',
+          cardId: '77777',
+          ciid: '1',
+          imgs: [{ ciid: '1', imgHash: 'hash4' }]
+        }
+      ];
+
+      for (const card of cards) {
+        tempDB.set(card.cardId, card as any);
+        unifiedDB.setCardInfo(card as any);
+      }
 
       vi.mocked(axios.post).mockResolvedValue({
         data: { result: true }

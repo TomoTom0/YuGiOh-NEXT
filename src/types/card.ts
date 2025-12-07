@@ -349,8 +349,8 @@ export interface CardTableA {
   cardId: string;
   /** カード名（多言語対応: {lang: name} 形式） */
   langsName?: Record<string, string>;
-  /** ふりがな */
-  ruby?: string;
+  /** ふりがな（言語ごと、{lang: ruby} 形式） */
+  langsRuby?: Record<string, string>;
   /** 画像情報（多言語対応: {lang: imgs[]} 形式） */
   langsImgs?: Record<string, Array<{
     ciid: string;

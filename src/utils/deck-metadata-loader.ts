@@ -10,6 +10,7 @@ import type { CategoryEntry } from '@/types/dialog';
 import { assignCategoryGroups } from './category-grouping';
 import { getDeckSearchPageUrl } from './url-builder';
 import type { CardGameType } from '@/types/settings';
+import { parseHTML } from 'linkedom';
 
 /**
  * デッキメタデータの型定義
@@ -146,8 +147,8 @@ export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promis
     const response = await fetch(searchPageUrl);
     const html = await response.text();
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+    // linkedom を使用（background script でも動作）
+    const { document: doc } = parseHTML(html);
 
     // デッキタイプを抽出
     const deckTypes: DeckMetadataEntry[] = [];

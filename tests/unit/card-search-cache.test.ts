@@ -74,6 +74,10 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     const cards = parseSearchResults(doc);
 
@@ -96,6 +100,10 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     const cards = parseSearchResults(doc);
 
