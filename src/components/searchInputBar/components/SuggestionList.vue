@@ -10,6 +10,7 @@
     <div
       v-for="(suggestion, index) in suggestions"
       :key="suggestion.value"
+      :ref="el => { if (el) suggestionRefs[index] = el }"
       class="suggestion-item"
       :class="{ selected: index === selectedIndex }"
       @click="$emit('select', suggestion)"
@@ -21,7 +22,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, type PropType } from 'vue'
+import { defineComponent, computed, watch, ref, type PropType } from 'vue'
 
 export interface Suggestion {
   value: string
@@ -61,8 +62,26 @@ export default defineComponent({
       }
     })
 
+    // 候補項目のDOM要素への参照を保持
+    const suggestionRefs = ref<(HTMLElement | null)[]>([])
+
+    // selectedIndexが変更されたら、選択された項目までスムーズにスクロール
+    watch(() => props.selectedIndex, (newIndex) => {
+      if (newIndex >= 0 && newIndex < suggestionRefs.value.length) {
+        const selectedElement = suggestionRefs.value[newIndex]
+        if (selectedElement) {
+          selectedElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest'
+          })
+        }
+      }
+    })
+
     return {
-      variantClass
+      variantClass,
+      suggestionRefs
     }
   }
 })

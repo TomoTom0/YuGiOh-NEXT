@@ -101,7 +101,7 @@
           <button class="close-btn" @click="toggleLoadDialog">×</button>
         </div>
         <div class="dialog-body">
-          <div v-if="deckStore.deckList.length === 0" class="no-decks">
+          <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
             <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
               <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
             </svg>
@@ -178,6 +178,7 @@ import { detectCardGameType } from '../../utils/page-detector'
 import { DeckThumbnailCache } from '../../utils/deck-thumbnail-cache'
 import { DeckThumbnailGenerator } from '../../utils/deck-thumbnail-generator'
 import { EXTENSION_IDS } from '../../utils/dom-selectors'
+import { buildFullUrl } from '../../utils/url-builder'
 
 export default {
   name: 'DeckEditLayout',
@@ -583,7 +584,7 @@ export default {
         searchResults.length = 0
         searchResults.push(...results.map(card => {
           const relativeUrl = getCardImageUrl(card, gameType)
-          const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
+          const imageUrl = relativeUrl ? buildFullUrl(relativeUrl) : undefined
           return {
             card: {
               ...card,
@@ -1280,6 +1281,7 @@ export default {
 
 .deck-card {
   width: 160px;
+  min-height: 60px;
   border: 1px solid var(--border-primary, #e0e0e0);
   border-radius: 6px;
   background: var(--bg-secondary, #f5f5f5);
@@ -1294,22 +1296,17 @@ export default {
   }
 
   .deck-name {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 6px 8px;
-    font-size: 12px;
+    padding: 8px;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--theme-text-on-gradient, #fff);
-    line-height: 1.3;
+    color: var(--text-primary, #333);
+    line-height: 1.4;
     word-break: break-word;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    background-color: var(--dialog-overlay-bg, rgba(0, 0, 0, 0.5));
-    z-index: 10;
+    text-align: center;
   }
 
   .deck-thumbnail-container {

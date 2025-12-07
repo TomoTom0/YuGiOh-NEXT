@@ -3,7 +3,22 @@
     <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
       <div class="dialog-header triple">
-        <h2 class="dialog-title">検索条件指定</h2>
+        <div class="dialog-tabs">
+          <button
+            class="dialog-tab"
+            :class="{ active: activeDialogTab === 'filter' }"
+            @click="activeDialogTab = 'filter'"
+          >
+            検索条件
+          </button>
+          <button
+            class="dialog-tab"
+            :class="{ active: activeDialogTab === 'history' }"
+            @click="activeDialogTab = 'history'"
+          >
+            検索履歴
+          </button>
+        </div>
         <div class="header-selected-chips">
           <span
             v-for="(icon, index) in headerFilterIcons"
@@ -22,7 +37,7 @@
         </div>
       </div>
 
-      <div class="dialog-body">
+      <div v-if="activeDialogTab === 'filter'" class="dialog-body">
         <!-- カードタイプタブと属性/魔法タイプ/罠タイプ -->
         <div class="card-type-section">
           <div class="card-type-tabs">
@@ -456,6 +471,53 @@
           <button class="close-button" @click="deckStore.isFilterDialogVisible = false">×</button>
         </div>
       </div>
+
+      <!-- 検索履歴タブ -->
+      <div v-if="activeDialogTab === 'history'" class="dialog-body history-tab">
+        <div v-if="searchHistory.historyItems.value.length === 0" class="history-empty">
+          検索履歴はありません
+        </div>
+        <div v-else class="history-list">
+          <div
+            v-for="(item, index) in searchHistory.historyItems.value"
+            :key="index"
+            class="history-item"
+          >
+            <div class="history-item-content">
+              <div class="history-chips">
+                <span
+                  v-for="(icon, idx) in getHistoryFilterIcons(item.filters)"
+                  :key="idx"
+                  class="history-chip"
+                  :class="icon.type"
+                >{{ icon.label }}</span>
+              </div>
+              <div class="history-query">
+                <span class="history-mode">{{ item.searchMode }}</span>
+                <span class="history-text">{{ item.query || '(空)' }}</span>
+                <span class="history-count">{{ item.resultCount }}件</span>
+              </div>
+            </div>
+            <div class="history-actions">
+              <button class="history-btn search-btn" @click="executeHistorySearch(index)" title="検索">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button class="history-btn favorite-btn" :class="{ active: item.isFavorite }" @click="searchHistory.toggleFavorite(index)" title="お気に入り">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.04L12 21.35Z" :fill="item.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>
+              <button class="history-btn delete-btn" @click="searchHistory.removeFromHistory(index)" title="削除">
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -463,7 +525,7 @@
 <script setup lang="ts">
 import { reactive, computed, ref } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
-import type { Attribute, Race, MonsterType, CardType, SpellEffectType, TrapEffectType } from '../types/card';
+import type { Attribute, Race, MonsterType, CardType, CardInfo, SpellEffectType, TrapEffectType } from '../types/card';
 import type { SearchFilters } from '../types/search-filters';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '../api/image-utils';
 import SearchInputBar from './searchInputBar/SearchInputBar.vue';
@@ -480,8 +542,11 @@ import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-e
 import { toSearchConditionState } from '../utils/search-exclusion-adapter';
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
+import { useSearchHistory } from '../composables/useSearchHistory';
 
 const deckStore = useDeckEditStore();
+const searchHistory = useSearchHistory();
+const activeDialogTab = ref<'filter' | 'history'>('filter');
 
 defineProps<{
   initialFilters?: SearchFilters;
@@ -1049,6 +1114,90 @@ function clearFilters() {
   filters.releaseDate = {};
   emit('apply', { ...filters });
 }
+
+// 検索履歴から検索を実行（UnifiedCacheDBからの復元）
+async function executeHistorySearch(index: number) {
+  const item = searchHistory.historyItems.value[index];
+  if (!item) return;
+
+  // 検索条件を復元
+  Object.assign(filters, item.filters);
+  deckStore.searchQuery = item.query;
+
+  // ダイアログを閉じる
+  deckStore.isFilterDialogVisible = false;
+  deckStore.activeTab = 'search';
+
+  // UnifiedCacheDB (cache db) から検索結果を復元
+  const { getUnifiedCacheDB } = await import('../utils/unified-cache-db');
+  const cacheDB = getUnifiedCacheDB();
+
+  const cachedResults: CardInfo[] = [];
+  for (const cid of item.resultCids) {
+    const cardInfo = cacheDB.reconstructCardInfo(cid);
+    if (cardInfo) {
+      cachedResults.push(cardInfo);
+    }
+  }
+
+  // キャッシュから復元できた結果を即座に表示
+  if (cachedResults.length > 0) {
+    deckStore.searchResults = cachedResults as unknown as typeof deckStore.searchResults;
+    deckStore.allResults = cachedResults as unknown as typeof deckStore.allResults;
+    deckStore.isGlobalSearchMode = false;
+  }
+
+  // 日付が異なる場合は、バックグラウンドで再検索して更新
+  const today = new Date().toDateString();
+  const itemDate = new Date(item.timestamp).toDateString();
+
+  if (today !== itemDate) {
+    setTimeout(async () => {
+      try {
+        const { searchCards, searchCardsAuto } = await import('../api/card-search');
+        let newResults: CardInfo[] = [];
+
+        if (item.searchMode === 'auto') {
+          const autoResult = await searchCardsAuto(item.query, 100, item.filters.cardType ?? undefined);
+          newResults = autoResult.cards;
+        } else {
+          const searchTypeMap: Record<string, '1' | '2' | '3' | '4'> = {
+            name: '1',
+            text: '2',
+            pendulum: '3'
+          };
+          const searchType = searchTypeMap[item.searchMode] || '1';
+
+          const searchOptions = {
+            keyword: item.query,
+            searchType,
+            resultsPerPage: 100,
+            sort: 1
+          };
+
+          newResults = await searchCards(searchOptions);
+        }
+
+        // 結果が変わっていれば更新
+        const newResultCids = newResults.map(card => card.cardId);
+        const updated = searchHistory.updateResults(index, newResultCids);
+
+        if (updated) {
+          deckStore.searchResults = newResults as unknown as typeof deckStore.searchResults;
+          deckStore.allResults = newResults as unknown as typeof deckStore.allResults;
+          console.log('[YGO Helper] 検索履歴を更新しました（日付変更のため）');
+        }
+      } catch (error) {
+        console.error('[YGO Helper] 検索履歴のバックグラウンド更新に失敗しました:', error);
+      }
+    }, 100);
+  }
+}
+
+// 検索履歴のフィルターアイコンを取得
+function getHistoryFilterIcons(historyFilters: SearchFilters) {
+  return convertFiltersToIcons(historyFilters);
+}
 </script>
 
 <style scoped lang="scss">
@@ -1072,7 +1221,7 @@ function clearFilters() {
   box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.3));
   width: 90%;
   max-width: 800px;
-  max-height: 85vh;
+  height: 85vh;
   display: flex;
   flex-direction: column;
 }
@@ -1127,6 +1276,33 @@ function clearFilters() {
   flex-shrink: 0;
   line-height: 1;
   height: 10px;
+}
+
+.dialog-tabs {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dialog-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--text-primary, #000);
+  }
+
+  &.active {
+    color: var(--text-primary, #000);
+    border-bottom-color: var(--primary-color, #2196F3);
+  }
 }
 
 .header-actions {
@@ -2355,6 +2531,150 @@ function clearFilters() {
     &:active {
       transform: scale(0.95);
     }
+  }
+}
+
+// 検索履歴タブのスタイル
+.history-tab {
+  padding: 16px;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.history-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  border-radius: 4px;
+}
+
+.history-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-primary, #fff);
+  border-bottom: 1px solid var(--border-primary, #e0e0e0);
+  width: 100%;
+  box-sizing: border-box;
+  align-items: flex-start;
+  min-height: 40px;
+
+  &:hover {
+    background: var(--bg-secondary, #f5f5f5);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.history-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.history-query {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+}
+
+.history-mode {
+  color: var(--text-primary, #000);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  font-family: monospace;
+  background: var(--bg-secondary, #f0f0f0);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.history-text {
+  color: var(--text-primary, #333);
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.history-count {
+  color: var(--text-secondary, #999);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.history-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.history-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  background: var(--bg-secondary, #f0f0f0);
+  color: var(--text-secondary, #666);
+  line-height: 1.3;
+}
+
+.history-actions {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.history-btn {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary, #999);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: var(--bg-secondary, #f0f0f0);
+    color: var(--text-primary, #333);
+  }
+
+  &.favorite-btn.active {
+    color: var(--color-error, #f44336);
+  }
+
+  &.delete-btn:hover {
+    background: var(--color-error, #f44336);
+    color: #fff;
+    border-color: var(--color-error, #f44336);
   }
 }
 </style>

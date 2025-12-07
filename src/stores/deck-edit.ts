@@ -92,6 +92,83 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const canUndo = computed(() => commandIndex.value >= 0);
   const canRedo = computed(() => commandIndex.value < commandHistory.value.length - 1);
 
+  /**
+   * カテゴリ優先アイコン表示対象のcidセット（2段階検索）
+   *
+   * 一段階目: カテゴリラベルを名前/ルビ/テキスト/p-textに含むcid
+   * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
+   */
+  const categoryMatchedCardIds = computed(() => {
+    const selectedCategories = deckInfo.value?.category ?? [];
+    if (selectedCategories.length === 0) return new Set<string>();
+
+    // カテゴリID -> ラベルのマップ
+    const labelMap = categoryLabelMap.value || {};
+    const categoryLabels = selectedCategories
+      .map(catId => labelMap[catId])
+      .filter((label): label is string => Boolean(label));
+
+    if (categoryLabels.length === 0) return new Set<string>();
+
+    // 全セクションからユニークなcidを収集
+    const allCids = new Set<string>();
+    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
+    sections.forEach(section => {
+      const deck = section === 'main' ? deckInfo.value.mainDeck :
+                   section === 'extra' ? deckInfo.value.extraDeck :
+                   section === 'side' ? deckInfo.value.sideDeck :
+                   trashDeck.value;
+      deck.forEach(deckCard => allCids.add(deckCard.cid));
+    });
+
+    const tempCardDB = getTempCardDB();
+    const firstStageMatched = new Set<string>();
+    const firstStageCardNames = new Set<string>();
+
+    // 一段階目: カテゴリラベルを含むcidを検索
+    for (const cid of allCids) {
+      const card = tempCardDB.get(cid);
+      if (!card) continue;
+
+      const searchTexts = [
+        card.name,
+        (card as any).ruby || '',
+        card.text || '',
+        (card as any).pendulumText || ''
+      ].join(' ');
+
+      const matched = categoryLabels.some(label => searchTexts.includes(label));
+      if (matched) {
+        firstStageMatched.add(cid);
+        firstStageCardNames.add(card.name);
+      }
+    }
+
+    // 二段階目: 一段階目で見つかったカード名をテキストに含むcid（一段階目を除外）
+    const secondStageMatched = new Set<string>();
+    for (const cid of allCids) {
+      if (firstStageMatched.has(cid)) continue; // 一段階目で見つかったものは除外
+
+      const card = tempCardDB.get(cid);
+      if (!card) continue;
+
+      const textToSearch = [
+        card.text || '',
+        (card as any).pendulumText || ''
+      ].join(' ');
+
+      const matched = Array.from(firstStageCardNames).some(cardName =>
+        textToSearch.includes(cardName)
+      );
+      if (matched) {
+        secondStageMatched.add(cid);
+      }
+    }
+
+    // 一段階目と二段階目をマージして返す
+    return new Set([...firstStageMatched, ...secondStageMatched]);
+  });
+
   // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
   function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
     // searchからtrashへは移動不可
@@ -1498,15 +1575,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         list = await sessionManager.getDeckList();
       }
 
-      // 変換して返す
+      // 変換して deckList に代入
       const transformed = list.map(item => ({
         dno: item.dno,
         name: item.name
       }));
 
+      deckList.value = transformed;
       return transformed;
     } catch (error) {
-      console.error('Failed to fetch deck list:', error);
+      console.error('[fetchDeckList] ERROR:', error);
+      deckList.value = [];
       return [];
     }
   }
@@ -1651,25 +1730,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
-    // デッキメタデータのカテゴリに該当するかをチェック
-    const selectedCategories = deckInfo.value?.category ?? [];
+    // カテゴリマッチ判定（2段階検索の結果を利用）
     const matchesPriorityCategory = (card: CardInfo | null): boolean => {
-      if (!card || selectedCategories.length === 0) return false;
-
-      // カード名、ルビ、テキスト、ペンデュラムテキストからカテゴリに該当するかをチェック
-      const searchTexts = [
-        card.name,
-        (card as any).ruby || '',
-        card.text || '',
-        (card as any).pendulumText || ''
-      ].join(' ');
-
-      // categoryLabelMap（ID → ラベルのマップ）を使って、ID をカテゴリラベルに変換して検索
-      return selectedCategories.some((categoryId: string) => {
-        const categoryLabel = categoryLabelMap.value[categoryId];
-        if (!categoryLabel) return false; // マップにない場合はマッチなし
-        return searchTexts.includes(categoryLabel);
-      });
+      if (!card) return false;
+      return categoryMatchedCardIds.value.has(card.cardId);
     };
 
     // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）
@@ -1749,22 +1813,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         return inPriorityA - inPriorityB;
       }
 
-      // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
-      const tailPlacementEnabled = settingsStore.appSettings.enableTailPlacement ?? true;
-      if (tailPlacementEnabled) {
-        const isTailA = settingsStore.isTailPlacementCard(a.cid) ? 1 : 0;
-        const isTailB = settingsStore.isTailPlacementCard(b.cid) ? 1 : 0;
-        if (isTailA !== isTailB) return isTailA - isTailB;
-      }
-
-      // 3. カテゴリ内での枚数による重み付け
-      if (deckInfo.value?.sortByQuantity && categoryPriorityEnabled && inPriorityA === 0 && inPriorityB === 0) {
+      // 1-1. カテゴリ優先カード内での枚数による重み付け
+      if (categoryPriorityEnabled && inPriorityA === 0 && inPriorityB === 0) {
         const quantityA = section.filter(card => card.cid === a.cid).length;
         const quantityB = section.filter(card => card.cid === b.cid).length;
         if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
       }
 
-      // 4. その他のカード比較ロジックを適用（Monster Type, Level, Name等）
+      // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
+      const tailPlacementEnabled = settingsStore.appSettings.enableTailPlacement ?? true;
+      if (tailPlacementEnabled) {
+        const isTailA = settingsStore.tailPlacementCardIds.includes(a.cid) ? 1 : 0;
+        const isTailB = settingsStore.tailPlacementCardIds.includes(b.cid) ? 1 : 0;
+        if (isTailA !== isTailB) return isTailA - isTailB;
+      }
+
+      // 3. その他のカード比較ロジックを適用（Monster Type, Level, Name等）
       return compareCards(a, b);
     });
 
@@ -1986,6 +2050,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     isFilterDialogVisible,
     canUndo,
     canRedo,
+    categoryMatchedCardIds,
     canMoveCard,
     addCard,
     removeCard,

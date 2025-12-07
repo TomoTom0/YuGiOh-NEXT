@@ -5,6 +5,7 @@ import type { SearchOptions } from '../../../api/card-search'
 import { SORT_ORDER_TO_API_VALUE } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
 import type { SortOrder } from '../../../types/settings'
+import { useSearchHistory } from '../../../composables/useSearchHistory'
 
 /**
  * 検索実行composableのオプション
@@ -109,6 +110,7 @@ function buildSearchOptions(
  */
 export function useSearchExecution(options: UseSearchExecutionOptions): UseSearchExecutionReturn {
   const { deckStore, searchMode, searchFilters, hasActiveFilters } = options
+  const searchHistory = useSearchHistory()
 
   /**
    * クライアント側でフィルターを適用
@@ -225,6 +227,13 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索結果をstore用の形式に変換
       deckStore.searchResults = results as unknown as typeof deckStore.searchResults
       deckStore.allResults = results as unknown as typeof deckStore.allResults
+
+      // 検索履歴に保存
+      if (query || hasActiveFilters.value) {
+        const resultCids = results.map(card => card.cardId)
+        console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
+        searchHistory.addToHistory(query, searchMode.value, searchFilters.value, resultCids)
+      }
 
       if (results.length >= 100) {
         deckStore.hasMore = true

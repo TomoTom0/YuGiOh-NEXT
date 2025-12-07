@@ -855,12 +855,6 @@ export function parseSearchResults(doc: Document): CardInfo[] {
     }
   });
 
-  // TempCardDBに保存（検索結果として取得したカードを保存）
-  const tempCardDB = getTempCardDB();
-  for (const card of cards) {
-    tempCardDB.set(card.cardId, card);
-  }
-
   return cards;
 }
 
@@ -2218,14 +2212,6 @@ export async function saveCardDetailToCache(
     await unifiedDB.setCardTableC(tableC, targetLang);
   }
 
-  // TempCardDBに保存（detail.cardと関連カード）
-  // Tier 0-2: Table C 相当のデータはセッション中のみメモリに保持
-  // Tier 3-5: メモリに保持（永続化はUnifiedCacheDB）
-  const tempCardDB = getTempCardDB();
-  tempCardDB.set(detail.card.cardId, detail.card);
-  for (const relatedCard of detail.relatedCards) {
-    tempCardDB.set(relatedCard.cardId, relatedCard);
-  }
 }
 
 /**

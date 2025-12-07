@@ -201,6 +201,7 @@ import { sessionManager } from '../../content/session/session'
 import SearchFilterDialog from '../SearchFilterDialog.vue'
 import type { SearchFilters } from '../../types/search-filters'
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../../types/card'
+import { useSearchHistory } from '../../composables/useSearchHistory'
 import {
   MONSTER_TYPE_ID_TO_SHORTNAME,
   CARD_TYPE_ID_TO_SHORTNAME,
@@ -259,6 +260,7 @@ export default defineComponent({
   setup(props, { expose }) {
     const deckStore = useDeckEditStore()
     const inputRef = ref<HTMLInputElement | null>(null)
+    const searchHistory = useSearchHistory()
 
     // 設定からデフォルト検索モードを取得
     const settingsStore = useSettingsStore()
@@ -1590,6 +1592,14 @@ export default defineComponent({
         // 検索結果をstore用の形式に変換
         deckStore.searchResults = results as unknown as typeof deckStore.searchResults
         deckStore.allResults = results as unknown as typeof deckStore.allResults
+
+        // 検索履歴に保存
+        const query = keyword.trim()
+        if (query || hasActiveFilters.value) {
+          const resultCids = results.map(card => card.cardId)
+          console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
+          searchHistory.addToHistory(query, searchMode.value, searchFilters.value, resultCids)
+        }
 
         if (results.length >= 100) {
           deckStore.hasMore = true

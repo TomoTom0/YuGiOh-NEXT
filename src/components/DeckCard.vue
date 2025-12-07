@@ -262,29 +262,13 @@ export default {
       return this.sectionType === 'search'
     },
     isTailPlaced() {
-      return this.card && this.settingsStore.isTailPlacementCard(this.card.cardId)
+      // 直接refを参照してVueのreactivityを機能させる
+      return this.card && this.settingsStore.tailPlacementCardIds.includes(this.card.cardId)
     },
     isInCategory() {
+      // 2段階検索の結果（cid単位でキャッシュ済み）を参照
       if (!this.card) return false
-
-      const selectedCategories = this.deckStore.deckInfo?.category ?? []
-      if (selectedCategories.length === 0) return false
-
-      // カード名、ルビ、テキスト、ペンデュラムテキストから該当カテゴリをチェック
-      const searchTexts = [
-        this.card.name,
-        this.card.ruby || '',
-        this.card.text || '',
-        this.card.pendulumText || ''
-      ].join(' ')
-
-      // categoryLabelMapを使用してカテゴリID -> ラベルに変換
-      const categoryLabelMap = this.deckStore.categoryLabelMap || {}
-      return selectedCategories.some((categoryId) => {
-        const categoryLabel = categoryLabelMap[categoryId]
-        if (!categoryLabel) return false
-        return searchTexts.includes(categoryLabel)
-      })
+      return this.deckStore.categoryMatchedCardIds.has(this.card.cardId)
     }
   },
   methods: {
