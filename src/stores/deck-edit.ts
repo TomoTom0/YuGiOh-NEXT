@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch } from 'vue';
 import type { DeckInfo, DeckCardRef } from '../types/deck';
 import type { CardInfo } from '../types/card';
-import type { MonsterType } from '../types/card-maps';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
@@ -12,10 +11,10 @@ import { getCardLimit } from '../utils/card-limit';
 import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
-import { getCardInfo } from '../utils/card-utils';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 import { fisherYatesShuffle } from '../utils/array-shuffle';
+import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -1614,107 +1613,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
-    // カテゴリマッチ判定（2段階検索の結果を利用）
-    const matchesPriorityCategory = (card: CardInfo | null): boolean => {
-      if (!card) return false;
-      return categoryMatchedCardIds.value.has(card.cardId);
-    };
-
-    // ソート用の内部関数：カード比較ロジック（優先度カテゴリを考慮）
-    const compareCards = (a: DisplayCard, b: DisplayCard): number => {
-      const cardA = getCardInfo(a.cid);
-      const cardB = getCardInfo(b.cid);
-      if (!cardA || !cardB) return 0;
-
-      // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
-      const typeOrder = { monster: 0, spell: 1, trap: 2 };
-      const typeA = typeOrder[cardA.cardType] ?? 999;
-      const typeB = typeOrder[cardB.cardType] ?? 999;
-      if (typeA !== typeB) return typeA - typeB;
-
-      // 2. Monster Type: Fusion > Synchro > Xyz > Link > その他
-      if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
-        const monsterTypeOrder: Partial<Record<MonsterType, number>> = {
-          fusion: 0,
-          synchro: 1,
-          xyz: 2,
-          link: 3
-        };
-        // types配列から主要なタイプを抽出
-        const getMainType = (types: MonsterType[]) => {
-          for (const type of types) {
-            const order = monsterTypeOrder[type];
-            if (order !== undefined) {
-              return order;
-            }
-          }
-          return 999;
-        };
-        const monsterTypeA = getMainType((cardA as any).types);
-        const monsterTypeB = getMainType((cardB as any).types);
-        if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
-
-        // 4. Level/Rank/Link（降順）
-        const levelA = (cardA as any).levelValue ?? 0;
-        const levelB = (cardB as any).levelValue ?? 0;
-        if (levelA !== levelB) return levelB - levelA; // 降順
-      }
-
-      // 3. Spell Type / Trap Type
-      if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
-        const spellTypeA = (cardA as any).effectType ?? '';
-        const spellTypeB = (cardB as any).effectType ?? '';
-        if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
-      }
-      if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
-        const trapTypeA = (cardA as any).effectType ?? '';
-        const trapTypeB = (cardB as any).effectType ?? '';
-        if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
-      }
-
-      // 5. Card Name（昇順）
-      return cardA.name.localeCompare(cardB.name, 'ja');
-    };
-
-    // ソート優先順位
+    // ソート設定を準備
     const settingsStore = useSettingsStore();
-    const sorted = [...section].sort((a, b) => {
-      const cardA = getCardInfo(a.cid);
-      const cardB = getCardInfo(b.cid);
-      if (!cardA || !cardB) return 0;
-
-      // 0. Card Type: Monster(0) > Spell(1) > Trap(2)
-      const typeOrder = { monster: 0, spell: 1, trap: 2 };
-      const typeA = typeOrder[cardA.cardType] ?? 999;
-      const typeB = typeOrder[cardB.cardType] ?? 999;
-      if (typeA !== typeB) return typeA - typeB;
-
-      // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1) ← カテゴリ優先が先頭
-      const categoryPriorityEnabled = settingsStore.appSettings.enableCategoryPriority ?? true;
-      const inPriorityA = categoryPriorityEnabled && matchesPriorityCategory(cardA) ? 0 : 1;
-      const inPriorityB = categoryPriorityEnabled && matchesPriorityCategory(cardB) ? 0 : 1;
-      if (categoryPriorityEnabled && inPriorityA !== inPriorityB) {
-        return inPriorityA - inPriorityB;
-      }
-
-      // 1-1. カテゴリ優先カード内での枚数による重み付け
-      if (categoryPriorityEnabled && inPriorityA === 0 && inPriorityB === 0) {
-        const quantityA = section.filter(card => card.cid === a.cid).length;
-        const quantityB = section.filter(card => card.cid === b.cid).length;
-        if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
-      }
-
-      // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)
-      const tailPlacementEnabled = settingsStore.appSettings.enableTailPlacement ?? true;
-      if (tailPlacementEnabled) {
-        const isTailA = settingsStore.tailPlacementCardIds.includes(a.cid) ? 1 : 0;
-        const isTailB = settingsStore.tailPlacementCardIds.includes(b.cid) ? 1 : 0;
-        if (isTailA !== isTailB) return isTailA - isTailB;
-      }
-
-      // 3. その他のカード比較ロジックを適用（Monster Type, Level, Name等）
-      return compareCards(a, b);
+    const comparator = createDeckCardComparator(section, {
+      enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority ?? true,
+      priorityCategoryCardIds: categoryMatchedCardIds.value,
+      enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
+      tailPlacementCardIds: settingsStore.tailPlacementCardIds
     });
+
+    // ソート実行
+    const sorted = [...section].sort(comparator);
 
     displayOrder.value[sectionType] = sorted;
 
