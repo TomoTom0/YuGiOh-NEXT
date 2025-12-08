@@ -13,6 +13,7 @@ import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, reco
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
 import { getCardInfo } from '../utils/card-utils';
+import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -67,18 +68,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     side: DisplayCard[];
     trash: DisplayCard[];
   } | null>(null);
-  
-  // 各baseKey (cid-ciid) ごとの最大インデックスを追跡
-  const maxIndexMap = new Map<string, number>();
-
-  // UUID生成ヘルパー (cid-ciid-num形式)
-  function generateUUID(cid: string, ciid: number): string {
-    const baseKey = `${cid}-${ciid}`;
-    const currentMax = maxIndexMap.get(baseKey) ?? -1;
-    const newIndex = currentMax + 1;
-    maxIndexMap.set(baseKey, newIndex);
-    return `${baseKey}-${newIndex}`;
-  }
 
   // Undo/Redo用のコマンド履歴
   interface Command {
@@ -244,8 +233,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   // displayOrderを初期化（deckInfoから生成）
   function initializeDisplayOrder() {
-    // maxIndexMapをクリア（新しいデッキロード時に以前のインデックスが引き継がれないように）
-    maxIndexMap.clear();
+    // UUID生成器の状態をクリア（新しいデッキロード時に以前のインデックスが引き継がれないように）
+    clearDeckUUIDState();
 
     const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
 
@@ -262,7 +251,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           // 各カードのciid（Card Image ID）を使用
           const ciid = parseInt(String(deckCard.ciid), 10);
           const normalizedCiid = isNaN(ciid) ? 0 : ciid;
-          const newUuid = generateUUID(deckCard.cid, normalizedCiid);
+          const newUuid = generateDeckCardUUID(deckCard.cid, normalizedCiid);
           displayOrder.value[section].push({
             cid: deckCard.cid,
             ciid: normalizedCiid,
@@ -468,7 +457,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       sectionOrder.splice(lastSameCardIndex + 1, 0, {
         cid: card.cardId,
         ciid: targetCiid,
-        uuid: generateUUID(card.cardId, targetCiid)
+        uuid: generateDeckCardUUID(card.cardId, targetCiid)
       });
     } else {
       // 新しい(cid, ciid)ペアなので、同じcidの最後に追加
@@ -488,14 +477,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         sectionOrder.splice(lastSameCidIndex + 1, 0, {
           cid: card.cardId,
           ciid: ciid,
-          uuid: generateUUID(card.cardId, ciid)
+          uuid: generateDeckCardUUID(card.cardId, ciid)
         });
       } else {
         // 完全に新しいカードなので末尾に追加
         sectionOrder.push({
           cid: card.cardId,
           ciid: ciid,
-          uuid: generateUUID(card.cardId, ciid)
+          uuid: generateDeckCardUUID(card.cardId, ciid)
         });
       }
     }
@@ -1197,7 +1186,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // displayOrder更新（targetUuidの位置に挿入）
     const ciid = parseInt(String(cardInfo.ciid));
     const newDisplayCard = {
-      uuid: generateUUID(cardId, ciid),
+      uuid: generateDeckCardUUID(cardId, ciid),
       cid: cardId,
       ciid: ciid
     };
@@ -1241,7 +1230,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
         
         const toOrder2 = displayOrder.value[to];
-        const newCard = { uuid: generateUUID(cardId, ciid), cid: cardId, ciid: ciid };
+        const newCard = { uuid: generateDeckCardUUID(cardId, ciid), cid: cardId, ciid: ciid };
         if (targetUuid === null) {
           toOrder2.push(newCard);
         } else {
