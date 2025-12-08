@@ -15,6 +15,7 @@ import { detectLanguage } from '../utils/language-detector';
 import { getCardInfo } from '../utils/card-utils';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
+import { fisherYatesShuffle } from '../utils/array-shuffle';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -1547,18 +1548,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // targetDnoがない場合は何もロードしない（fetchDeckListは非同期で実行中）
       return Promise.resolve();
     }
-  }
-
-  /**
-   * Fisher-Yatesアルゴリズムで配列をシャッフル
-   */
-  function fisherYatesShuffle<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-    }
-    return shuffled;
   }
 
   /**
