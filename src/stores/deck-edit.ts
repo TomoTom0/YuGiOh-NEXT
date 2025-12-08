@@ -14,6 +14,7 @@ import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
 import { getCardInfo } from '../utils/card-utils';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
+import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -973,101 +974,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
     
     return result;
-  }
-  
-  // UUIDをキーにして全カード位置を記録
-  function recordAllCardPositionsByUUID(): Map<string, DOMRect> {
-    const positions = new Map<string, DOMRect>();
-    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
-    
-    sections.forEach(section => {
-      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) return;
-      
-      const cards = sectionElement.querySelectorAll('.deck-card');
-      cards.forEach((card) => {
-        const uuid = (card as HTMLElement).getAttribute('data-uuid');
-        if (uuid) {
-          positions.set(uuid, card.getBoundingClientRect());
-        }
-      });
-    });
-    
-    return positions;
-  }
-  
-  // UUIDベースでアニメーション実行
-  function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
-    const allCards: Array<{ element: HTMLElement; distance: number }> = [];
-
-    affectedSections.forEach(section => {
-      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) return;
-
-      const cards = sectionElement.querySelectorAll('.deck-card');
-
-      cards.forEach((card) => {
-        const cardElement = card as HTMLElement;
-        const uuid = cardElement.getAttribute('data-uuid');
-        if (!uuid) return;
-
-        const first = firstPositions.get(uuid);
-        const last = cardElement.getBoundingClientRect();
-
-        if (first && last) {
-          const deltaX = first.left - last.left;
-          const deltaY = first.top - last.top;
-
-          // 1ピクセル未満の移動は誤差として無視
-          if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
-
-          // 移動距離を計算（横方向の移動を重視）
-          // 横方向は視覚的に目立ちにくいため、係数を大きくする
-          const weightedDeltaX = deltaX * 1.5;
-          const distance = Math.sqrt(weightedDeltaX * weightedDeltaX + deltaY * deltaY);
-
-          cardElement.style.transition = 'none';
-          cardElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-          cardElement.style.zIndex = '1000';
-          allCards.push({ element: cardElement, distance });
-        }
-      });
-    });
-
-    if (allCards.length === 0) return;
-
-    document.body.getBoundingClientRect();
-
-    requestAnimationFrame(() => {
-      allCards.forEach(({ element, distance }) => {
-        // 移動距離に応じてアニメーション時間を調整（平方根で非線形）
-        // シャッフル/ソートと統一するため、基本を300msに設定
-        // 最小300ms、最大600ms
-        const baseDuration = 300;
-        const maxDuration = 600;
-        const distanceFactor = Math.sqrt(distance) * 12; // 調整係数
-        const duration = Math.min(maxDuration, baseDuration + distanceFactor);
-
-        element.style.transition = `transform ${duration}ms ease`;
-        element.style.transform = '';
-      });
-    });
-
-    // 最大のdurationを取得してタイムアウトに使用
-    const maxDuration = Math.max(...allCards.map(({ distance }) => {
-      const baseDuration = 300;
-      const maxDuration = 600;
-      const distanceFactor = Math.sqrt(distance) * 12;
-      return Math.min(maxDuration, baseDuration + distanceFactor);
-    }));
-
-    setTimeout(() => {
-      allCards.forEach(({ element }) => {
-        element.style.transition = '';
-        element.style.transform = '';
-        element.style.zIndex = '';
-      });
-    }, maxDuration);
   }
 
   function moveCardToTrash(card: CardInfo, from: 'main' | 'extra' | 'side', uuid?: string): { success: boolean; error?: string } {
