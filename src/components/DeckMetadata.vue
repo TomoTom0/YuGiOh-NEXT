@@ -229,287 +229,9 @@ function removeTag(tagId: string) {
   justify-content: center;
 }
 
-.deck-type-selector,
-.deck-style-selector {
-  position: relative;
-}
+/* DeckMetadataHeader.vue の子コンポーネントにスタイルが移譲済み */
 
-.deck-type-button,
-.deck-style-button,
-.action-button {
-  height: 24px;
-  padding: 0 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 11px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    border-color: var(--text-tertiary);
-    background: var(--bg-secondary);
-  }
-
-  &:active {
-    background: var(--bg-tertiary);
-  }
-}
-
-.deck-type-button {
-  min-width: 50px;
-  padding: 2px 4px;
-  border: none;
-  background: transparent;
-
-  &:hover {
-    background: transparent;
-    opacity: 0.8;
-  }
-
-  &:active {
-    background: transparent;
-    opacity: 0.6;
-  }
-}
-
-.deck-style-button {
-  min-width: 50px;
-}
-
-.action-button {
-  min-width: 36px;
-  flex-shrink: 0;
-}
-
-.public-button {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
-  border: 1px solid var(--color-error);
-  border-radius: 12px;
-  font-weight: 500;
-  min-width: 44px;
-
-  &:hover {
-    background: var(--color-error-hover-bg);
-    border-color: var(--color-error);
-  }
-
-  &:active {
-    background: var(--color-error);
-  }
-
-  &.is-public {
-    background: var(--color-success-bg);
-    color: var(--color-success);
-    border-color: var(--color-success);
-
-    &:hover {
-      background: var(--color-success-hover-bg);
-      border-color: var(--color-success);
-    }
-
-    &:active {
-      background: var(--color-success);
-    }
-  }
-}
-
-.tag-button {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-  border-radius: 12px;
-  font-weight: 500;
-  
-  &:hover {
-    background: var(--color-success-hover-bg);
-    border-color: var(--color-success);
-  }
-  
-  &:active {
-    background: var(--color-success);
-  }
-}
-
-.category-button {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-  border-radius: 12px;
-  font-weight: 500;
-  
-  &:hover {
-    background: var(--color-warning-hover-bg);
-    border-color: var(--color-warning);
-  }
-  
-  &:active {
-    background: var(--color-warning);
-  }
-}
-
-.deck-style-button {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
-  border-radius: 12px;
-  font-weight: 500;
-  
-  &:hover {
-    background: var(--color-info-hover-bg);
-    border-color: var(--color-info);
-  }
-  
-  &:active {
-    background: var(--color-info);
-  }
-}
-
-.deck-type-icon {
-  height: 20px;
-  width: auto;
-  display: block;
-  border-radius: 3px;
-}
-
-.deck-type-placeholder {
-  font-size: 10px;
-  color: var(--text-tertiary);
-  padding: 0 4px;
-  border: 1px solid var(--border-primary);
-  border-radius: 3px;
-  background: var(--bg-primary);
-  height: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.text-bold {
-  font-weight: 700;
-}
-
-.deck-type-unset {
-  font-size: 13px;
-  color: var(--text-secondary);
-  padding: 0 8px;
-}
-
-.chips-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex: 1;
-  align-items: flex-start;
-  padding-top: 4px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.chip.tag-chip {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-
-  &:hover {
-    filter: brightness(0.95);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  &[data-type="fusion"] {
-    background: var(--monster-fusion-bg);
-    color: var(--monster-fusion-badge-text);
-    border-color: var(--monster-fusion-border);
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
-
-    &:hover {
-      filter: brightness(0.9);
-      box-shadow: 0 2px 6px rgba(156, 39, 176, 0.5);
-    }
-  }
-
-  &[data-type="synchro"] {
-    background: var(--monster-synchro-bg);
-    color: var(--monster-synchro-badge-text);
-    border-color: var(--monster-synchro-border);
-    font-weight: 600;
-
-    &:hover {
-      filter: brightness(0.95);
-    }
-  }
-
-  &[data-type="xyz"] {
-    background: var(--monster-xyz-active);
-    color: var(--monster-xyz-badge-text);
-    border-color: var(--monster-xyz-active-border);
-    font-weight: 600;
-
-    &:hover {
-      filter: brightness(0.9);
-    }
-  }
-
-  &[data-type="link"] {
-    background: var(--monster-link-bg);
-    color: var(--monster-link-badge-text);
-    border-color: var(--monster-link-border);
-    font-weight: 600;
-
-    &:hover {
-      filter: brightness(0.95);
-    }
-  }
-
-  &[data-type="ritual"] {
-    background: var(--monster-ritual-bg);
-    color: var(--monster-ritual-badge-text);
-    border-color: var(--monster-ritual-border);
-    font-weight: 600;
-
-    &:hover {
-      filter: brightness(0.95);
-    }
-  }
-
-  &[data-type="pendulum"] {
-    background: var(--monster-pendulum-bg);
-    color: var(--monster-pendulum-badge-text);
-    border-color: var(--monster-pendulum-border);
-    font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-
-    &:hover {
-      filter: brightness(0.95);
-    }
-  }
-}
-
-.chip.category-chip {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
-.chip.category-chip:hover {
-  background: var(--color-warning-hover-bg);
-  border-color: var(--color-warning);
-}
+/* DeckMetadataTags.vue の子コンポーネントにスタイルが移譲済み */
 
 .chip-remove {
   font-size: 14px;
@@ -527,8 +249,8 @@ function removeTag(tagId: string) {
   opacity: 1;
 }
 
-.deck-type-dropdown,
-.deck-style-dropdown,
+/* DeckMetadataHeader.vue の子コンポーネントにスタイルが移譲済み */
+
 .tag-dropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -541,7 +263,7 @@ function removeTag(tagId: string) {
   min-width: 240px;
   max-height: 300px;
   overflow-y: auto;
-  
+
   &.align-right {
     left: auto;
     right: 0;
@@ -713,8 +435,8 @@ function removeTag(tagId: string) {
   }
 }
 
-.deck-type-option,
-.deck-style-option,
+/* DeckMetadataHeader.vue の子コンポーネントにスタイルが移譲済み */
+
 .dropdown-option {
   padding: 10px 14px;
   cursor: pointer;
@@ -724,21 +446,15 @@ function removeTag(tagId: string) {
   align-items: center;
   gap: 10px;
   background: var(--bg-primary);
-  
+
   &:hover {
     background: var(--bg-secondary);
   }
-  
+
   input[type="checkbox"] {
     margin: 0;
     cursor: pointer;
   }
-}
-
-.deck-type-icon-small {
-  width: 36px;
-  height: auto;
-  flex-shrink: 0;
 }
 
 .dropdown-search {
@@ -766,122 +482,9 @@ function removeTag(tagId: string) {
   overflow-y: auto;
 }
 
-.dropdown-enter-active {
-  transition: all 0.2s ease-out;
-}
+/* DeckMetadataHeader.vue の子コンポーネントにスタイルが移譲済み */
 
-.dropdown-leave-active {
-  transition: all 0.15s ease-in;
-}
+/* DeckMetadataDescription.vue の子コンポーネントにスタイルが移譲済み */
 
-.dropdown-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
-}
-
-.description-section {
-  margin-top: 8px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.description-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  width: 100%;
-}
-
-.metadata-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: left;
-}
-
-.char-count {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  text-align: right;
-}
-
-.metadata-textarea {
-  width: 100%;
-  max-width: 100%;
-  padding: 12px;
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-  font-size: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  resize: none;
-  flex: 1;
-  min-height: 0;
-  line-height: 1.6;
-  box-sizing: border-box;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: all 0.2s;
-  
-  &:focus {
-    outline: none;
-    border-color: var(--theme-gradient-start, #00d9b8);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 3px rgba(0, 217, 184, 0.1);
-  }
-  
-  &:hover {
-    border-color: var(--text-tertiary);
-  }
-  
-  &::placeholder {
-    color: var(--text-tertiary);
-  }
-}
-
-/* ダークモード用: 背景色グラデーションのみ変更 */
-:global(.dark-theme) {
-  .tag-chip {
-    &[data-type="fusion"] {
-      background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%);
-    }
-
-    &[data-type="synchro"] {
-      background:
-        repeating-linear-gradient(
-          135deg,
-          transparent,
-          transparent 8px,
-          rgba(255, 255, 255, 0.12) 8px,
-          rgba(255, 255, 255, 0.12) 9px
-        ),
-        linear-gradient(135deg, #757575 0%, #616161 100%);
-    }
-
-    &[data-type="xyz"] {
-      background: linear-gradient(135deg, #616161 0%, #424242 100%);
-    }
-
-    &[data-type="link"] {
-      background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
-    }
-
-    &[data-type="ritual"] {
-      background: linear-gradient(135deg, #0097a7 0%, #00838f 100%);
-    }
-
-    &[data-type="pendulum"] {
-      background: linear-gradient(180deg, #ff6f00 0%, #ff6f00 35%, #00796b 65%, #00796b 100%);
-    }
-  }
-}
+/* DeckMetadataTags.vue の子コンポーネントがテーマ変数で対応済み */
 </style>

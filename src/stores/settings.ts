@@ -504,16 +504,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function applyTheme(): void {
     const theme = effectiveTheme.value;
     document.documentElement.setAttribute('data-ygo-next-theme', theme);
-
-    // themes.ts から CSS variables を注入（Single Source of Truth）
-    import('../styles/themes').then(({ getThemeColors }) => {
-      const themeColors = getThemeColors(theme);
-
-      // 全ての CSS variables を document.documentElement に設定
-      Object.entries(themeColors).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(key, value);
-      });
-    });
+    // CSS変数はthemes.scssで定義されているため、動的注入不要
   }
 
   /**

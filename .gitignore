@@ -67,3 +67,4 @@ coverage/
 # Reference materials (old extension)
 ref/
 docs/_archived/
+.claude/

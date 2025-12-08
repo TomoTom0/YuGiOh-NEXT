@@ -17,6 +17,7 @@
 6. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 7. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
 8. **git操作**: git push / PR作成は明示的な指示がない限り実行しない
+9. **alcom使用時のgitコマンド**: `alcom`使用中は`git status`ではなく`alcom status`、`git diff`ではなく`alcom diff`を使用する（一時コミットの影響を除外）
 
 ---
 
@@ -188,7 +189,11 @@ tm finish <タスクID>
 
 - `todo`: 未着手のタスク
 - `wip`: 作業中のタスク（Work In Progress）
+- `pending`: 保留中のタスク（他のタスクの完了待ち、判断保留など）
+- `long`: 長期タスク（マイルストーン的なもの、複数のサブタスクを含む）
 - `done`: 完了したタスク
+
+**注意**: `tm list`は`todo`, `wip`, `pending`, `long`のタスクのみを表示します（`done`は表示されません）。
 
 ### ワークフロー
 
@@ -202,22 +207,41 @@ tm finish <タスクID>
 
 - **タイトル**: 簡潔で分かりやすいタスク名（例: "REQ-18: CardList.vue のレビュー確認"）
 - **本文（--body）**: 詳細な説明、関連ファイル、レポートへのリンク等を記載
-- **優先度の記載**: タイトルに high/medium/low を含める（例: "high", "medium", "low"）
+- **優先度（--priority）**: `high`, `medium`, `low` などを設定（タイトルに含めるのではなく、オプションで設定）
+- **ファイル参照**:
+  - `--add-file`: 編集対象のファイルを追加（タスクと関連ファイルを明確に紐付け）
+  - `--read-file`: 参考資料として読み取り専用ファイルを追加（ドキュメント、レポート等）
 
 ### 例
 
 ```bash
-# 高優先度のレビュータスクを作成
-tm new "REQ-18: CardList.vue のレビュー確認 high" --body "ソート複数キーの処理順序確認
+# 高優先度のレビュータスクを作成（ファイル参照付き）
+tm new "REQ-18: CardList.vue のレビュー確認" \
+  --priority high \
+  --status todo \
+  --add-file src/components/CardList.vue \
+  --read-file docs/internal-reviews/reports/CardList-review.md \
+  --body "ソート複数キーの処理順序確認
 displayOrder との連携確認
-大量カード（200+）時のパフォーマンス確認
+大量カード（200+）時のパフォーマンス確認"
 
-関連:
-- ファイルサイズ: 707行
-- 変更回数: 32回" --status todo
+# 長期タスクを作成
+tm new "REQ-20: 全体的なリファクタリング計画" --status long --priority high
+
+# 保留タスクを作成（他のタスク完了待ち）
+tm new "CardDetail.vue の最適化" --status pending --body "CardList.vue のリファクタリング完了後に実施"
 
 # タスクを作業中に変更
 tm update 1 --status wip
+
+# ファイルを追加
+tm update 1 --add-file src/components/CardDetail.vue
+
+# 複数タスクのステータスを一括変更（コンテキスト切り替え）
+tm update 1 --status done 2 --status wip --body "次のタスクに着手"
+
+# 履歴を含めてタスク詳細を表示
+tm get 1 --history
 
 # タスクを完了
 tm finish 1
@@ -303,6 +327,64 @@ bun run tmp/test-*.js
 - **メジャー**: 大きな変更や互換性のない変更
 - **マイナー**: 新機能の追加や改善
 - **パッチ**: バグ修正や小さな変更
+
+## alcom（always-commit）の使用
+
+**LLM支援コーディングセッション中の一時スナップショット管理ツール**
+
+本プロジェクトでは、`.claude/config.json`のhooks設定により、ユーザーメッセージ送信時に自動的に`alcom save`が実行されます。
+
+### 基本コマンド
+
+```bash
+# セッション中の変更を確認（git statusの代わり）
+alcom status
+
+# セッション開始以降の差分を確認（git diffの代わり）
+alcom diff
+
+# 一時スナップショットの履歴を確認
+alcom git log --oneline @base..HEAD
+
+# セッション開始時のコミットハッシュを取得
+alcom base-hash
+
+# セッション終了時：全ての一時スナップショットを1つのコミットにまとめる
+alcom finish "最終的なコミットメッセージ"
+
+# 最後のスナップショットを取り消す
+alcom undo
+```
+
+### 重要な注意事項
+
+**alcom使用中は通常のgitコマンドを使用しない**
+
+- ❌ `git status` → 一時コミットが大量に表示される
+- ❌ `git log` → 一時コミットが大量に表示される
+- ❌ `git diff` → 最後の一時コミットとの差分のみ表示
+
+- ✅ `alcom status` → セッション開始以降の実質的な変更を表示
+- ✅ `alcom diff` → セッション開始以降の実質的な差分を表示
+- ✅ `alcom git <args>` → `@base`プレースホルダーサポート付きでgitコマンドを実行
+
+### ワークフロー
+
+1. **セッション中**: 自動的に`alcom save`が実行される（hooks設定による）
+2. **進捗確認**: `alcom status`や`alcom diff`で変更を確認
+3. **セッション終了**: `alcom finish "feat: 実装した機能の説明"`で一時コミットをまとめる
+
+### `@base`プレースホルダー
+
+`alcom git`コマンドでは、`@base`がセッション開始時のコミットハッシュに自動展開されます。
+
+```bash
+# セッション開始以降の変更ファイルを表示
+alcom git diff --name-status @base
+
+# セッション開始以降のコミットログを表示
+alcom git log --oneline @base..HEAD
+```
 
 ## 通知
 
@@ -433,6 +515,33 @@ button.style.background = '#4CAF50'; // NG
 - 独自画面要素と公式サイトの要素が混在するため、セレクタの特異性を明確に区分する必要がある
 - `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
 - SCSS の nest を使用することで、構造を明確に保つ
+
+---
+
+## テーマシステム
+
+**テーマ定義は `src/styles/themes.scss` で一元管理**
+
+本プロジェクトでは、ライトテーマとダークテーマをSCSSで定義し、CSS変数（カスタムプロパティ）として提供しています。
+
+### テーマ切り替えの仕組み
+
+- ライトテーマ: `[data-ygo-next-theme="light"]`
+- ダークテーマ: `[data-ygo-next-theme="dark"]`
+- 約300個のCSS変数を定義
+- コンポーネントは `var(--変数名)` で参照
+
+### 変更方法
+
+1. `src/styles/themes.scss` を編集してテーマ変数を変更
+2. ビルド: `bun run build-and-deploy`
+3. オプション画面でテーマ切り替えを確認
+
+### 注意事項
+
+- **themes.tsは廃止済み**: 動的CSS変数注入は行わない（パフォーマンス改善のため）
+- **SCSSのみが信頼できる情報源**: themes.scssのみがテーマ定義
+- **型安全性の欠如**: CSS変数名のタイポ検出はIDE拡張やstylelintに依存
 
 ---
 
