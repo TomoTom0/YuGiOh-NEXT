@@ -17,6 +17,7 @@ import { fisherYatesShuffle } from '../utils/array-shuffle';
 import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
 import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
 import { canMoveCard as canMoveCardValidation } from '../composables/deck/useDeckValidation';
+import { sortDisplayOrderForOfficial as sortDisplayOrderForOfficialLogic } from '../composables/deck/useDeckSorting';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -156,82 +157,30 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function sortDisplayOrderForOfficial() {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
-    
+
     const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side'];
-    
+
     sections.forEach(section => {
       const sectionOrder = displayOrder.value[section];
-      if (sectionOrder.length === 0) return;
-      
       const deck = section === 'main' ? deckInfo.value.mainDeck :
                    section === 'extra' ? deckInfo.value.extraDeck :
                    deckInfo.value.sideDeck;
-      
-      // カード情報を取得してタイプ判定用マップを作成
-      const tempCardDB = getTempCardDB();
-      const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
-      deck.forEach(dc => {
-        const card = tempCardDB.get(dc.cid);
-        const type = card?.cardType;
-        let priority = 0;
-        if (type === 'spell') priority = 1;
-        else if (type === 'trap') priority = 2;
-        cardTypeMap.set(dc.cid, priority);
-      });
-      
-      // 最初の登場順を記録
-      const firstAppearance = new Map<string, number>();
-      sectionOrder.forEach((dc, index) => {
-        if (!firstAppearance.has(dc.cid)) {
-          firstAppearance.set(dc.cid, index);
-        }
-      });
-      
-      // ソート: 1. カードタイプ順、2. 最初の登場順
-      const sorted = [...sectionOrder].sort((a, b) => {
-        const typeA = cardTypeMap.get(a.cid) || 0;
-        const typeB = cardTypeMap.get(b.cid) || 0;
-        
-        if (typeA !== typeB) {
-          return typeA - typeB;
-        }
-        
-        const firstA = firstAppearance.get(a.cid) || 0;
-        const firstB = firstAppearance.get(b.cid) || 0;
-        return firstA - firstB;
-      });
-      
-      // ciidは変更しない（Card Image IDを保持）
-      
-      displayOrder.value[section] = sorted;
-      
-      // deckInfoを並び替え（displayOrderの順序に合わせる）
-      const newDeck: DeckCardRef[] = [];
-      const seenCards = new Set<string>();
 
-      sorted.forEach(dc => {
-        const key = `${dc.cid}_${dc.ciid}`;
-        if (!seenCards.has(key)) {
-          seenCards.add(key);
-          const deckCard = deck.find(d =>
-            d.cid === dc.cid && d.ciid === String(dc.ciid)
-          );
-          if (deckCard) {
-            newDeck.push(deckCard);
-          }
-        }
-      });
-      
-      // deckInfoを更新
+      // useDeckSorting composable を使用してソート
+      const result = sortDisplayOrderForOfficialLogic(sectionOrder, deck);
+
+      // 結果を反映
+      displayOrder.value[section] = result.sortedDisplayOrder;
+
       if (section === 'main') {
-        deckInfo.value.mainDeck = newDeck;
+        deckInfo.value.mainDeck = result.sortedDeck;
       } else if (section === 'extra') {
-        deckInfo.value.extraDeck = newDeck;
+        deckInfo.value.extraDeck = result.sortedDeck;
       } else {
-        deckInfo.value.sideDeck = newDeck;
+        deckInfo.value.sideDeck = result.sortedDeck;
       }
     });
-    
+
     // DOM更新後にアニメーション実行
     nextTick(() => {
       animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side']));
