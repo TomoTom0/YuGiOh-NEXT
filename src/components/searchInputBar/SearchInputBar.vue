@@ -191,13 +191,15 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, nextTick, defineComponent, type Ref } from 'vue'
+import { ref, computed, nextTick, defineComponent, type Ref, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { getDeckDetail } from '../../api/deck-operations'
 import { sessionManager } from '../../content/session/session'
-import SearchFilterDialog from '../SearchFilterDialog.vue'
+
+// 循環参照回避のため動的インポート
+const SearchFilterDialog = defineAsyncComponent(() => import('../SearchFilterDialog.vue'))
 import type { CardInfo, Attribute, Race, MonsterType, CardType } from '../../types/card'
 import type { SearchFilters } from '../../types/search-filters'
 import {
