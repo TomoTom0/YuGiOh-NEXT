@@ -247,6 +247,55 @@ tm get 1 --history
 tm finish 1
 ```
 
+### コードレビュー依頼
+
+**tm reviewコマンドでコードレビューを依頼できる**
+
+コードの品質チェックや改善提案を受けるために、レビューリクエストを作成できます。
+
+#### 基本的な使い方
+
+```bash
+# レビューリクエストを作成
+tm review new "リファクタリングの妥当性確認" --body "deck-edit.tsのリファクタリング内容をレビューしてください"
+
+# レビューリクエスト一覧を表示
+tm review list
+
+# レビューリクエストの詳細を表示
+tm review get <ID>
+
+# レビューリクエストの詳細を履歴込みで表示
+tm review get <ID> --history
+
+# レビューリクエストのステータスを更新
+tm review update <ID> --status reviewing --body "レビュー中です"
+
+# レビュー結果を返信
+tm review return <ID> --status reviewed --body "以下の点を改善してください..."
+
+# レビューを承認（新しいタスクを作成することも可能）
+tm review accept <ID> --new "指摘事項の修正" --new "追加のリファクタリング"
+
+# レビューを却下
+tm review reject <ID>
+```
+
+#### レビューステータス
+
+- `pending`: レビュー待ち
+- `reviewing`: レビュー中
+- `reviewed`: レビュー完了（フィードバック返信済み）
+- `accepted`: 承認済み
+- `rejected`: 却下
+
+#### ワークフロー
+
+1. **レビュー依頼**: `tm review new` でレビューリクエストを作成
+2. **レビュー実施**: レビュアーが内容を確認し、`tm review return` でフィードバック
+3. **対応**: 指摘事項を修正し、必要に応じて再レビュー依頼
+4. **承認/却下**: `tm review accept` または `tm review reject` で完了
+
 ## Build & Deploy
 
 **ソースコード更新後は必ず以下を実行すること：**
