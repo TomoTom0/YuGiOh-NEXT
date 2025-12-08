@@ -15,6 +15,7 @@ import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-gen
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 import { fisherYatesShuffle } from '../utils/array-shuffle';
 import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
+import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -89,84 +90,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
    */
   const categoryMatchedCardIds = computed(() => {
-    const selectedCategories = deckInfo.value?.category ?? [];
-    if (selectedCategories.length === 0) return new Set<string>();
-
-    // カテゴリID -> ラベルのマップ
-    const labelMap = categoryLabelMap.value || {};
-    const categoryLabels = selectedCategories
-      .map(catId => labelMap[catId])
-      .filter((label): label is string => Boolean(label));
-
-    if (categoryLabels.length === 0) return new Set<string>();
-
-    // 全セクションからユニークなcidを収集
-    const allCids = new Set<string>();
-    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
-    sections.forEach(section => {
-      const deck = section === 'main' ? deckInfo.value.mainDeck :
-                   section === 'extra' ? deckInfo.value.extraDeck :
-                   section === 'side' ? deckInfo.value.sideDeck :
-                   trashDeck.value;
-      deck.forEach(deckCard => allCids.add(deckCard.cid));
-    });
-
-    const tempCardDB = getTempCardDB();
-    const firstStageMatched = new Set<string>();
-    const firstStageCardNames = new Set<string>();
-
-    // 一段階目: カテゴリラベルを含むcidを検索
-    for (const cid of allCids) {
-      const card = tempCardDB.get(cid);
-      if (!card) continue;
-
-      const searchTexts = [
-        card.name,
-        (card as any).ruby || '',
-        card.text || '',
-        (card as any).pendulumText || ''
-      ].join(' ');
-
-      const matched = categoryLabels.some(label => searchTexts.includes(label));
-      if (matched) {
-        firstStageMatched.add(cid);
-        firstStageCardNames.add(card.name);
-      }
-    }
-
-    // 二段階目: 一段階目で見つかったカード名をテキストに含むcid（一段階目を除外）
-    const secondStageMatched = new Set<string>();
-    
-    // 最適化: firstStageCardNames が空なら二段階目をスキップ
-    if (firstStageCardNames.size > 0) {
-      for (const cid of allCids) {
-        if (firstStageMatched.has(cid)) continue; // 一段階目で見つかったものは除外
-
-        const card = tempCardDB.get(cid);
-        if (!card) continue;
-
-        const textToSearch = [
-          card.text || '',
-          (card as any).pendulumText || ''
-        ].join(' ');
-
-        // 最適化: Array.from を使わず、Set を直接 for-of で走査
-        let matched = false;
-        for (const cardName of firstStageCardNames) {
-          if (textToSearch.includes(cardName)) {
-            matched = true;
-            break; // 1つ見つかればすぐ抜ける
-          }
-        }
-        if (matched) {
-          secondStageMatched.add(cid);
-        }
-      }
-    }
-
-    // 一段階目と二段階目をマージして返す
-    return new Set([...firstStageMatched, ...secondStageMatched]);
-  });;
+    return computeCategoryMatchedCardIds(
+      deckInfo.value?.category ?? [],
+      categoryLabelMap.value || {},
+      {
+        main: deckInfo.value.mainDeck,
+        extra: deckInfo.value.extraDeck,
+        side: deckInfo.value.sideDeck,
+        trash: trashDeck.value
+      },
+      (cid) => getTempCardDB().get(cid)
+    );
+  });
 
   // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
   function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
