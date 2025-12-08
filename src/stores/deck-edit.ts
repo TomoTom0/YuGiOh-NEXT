@@ -16,6 +16,7 @@ import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composab
 import { fisherYatesShuffle } from '../utils/array-shuffle';
 import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
 import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
+import { canMoveCard as canMoveCardValidation } from '../composables/deck/useDeckValidation';
 
 // Undo/Redo履歴の最大保持数
 const MAX_COMMAND_HISTORY = 100;
@@ -103,69 +104,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     );
   });
 
-  // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
-  function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
-    // searchからtrashへは移動不可
-    if (fromSection === 'search' && toSection === 'trash') {
-      return false;
-    }
-
-    // searchから移動する場合
-    if (fromSection === 'search') {
-      // mainに移動する場合：extraデッキカードは不可
-      if (toSection === 'main') {
-        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-        );
-        return !isExtraDeckCard;
-      }
-      // extraに移動する場合：extraデッキカードのみ可
-      if (toSection === 'extra') {
-        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-        );
-        return isExtraDeckCard || false;
-      }
-      // sideへは常に許可
-      if (toSection === 'side') {
-        return true;
-      }
-      return false;
-    }
-
-    // trashへの移動は全て不可
-    if (toSection === 'trash') {
-      return false;
-    }
-
-    // trashからの移動は全て許可
-    if (fromSection === 'trash') {
-      return true;
-    }
-
-    // main/extra/side間の移動はカードタイプによる
-    const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-      t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-    );
-
-    // mainへの移動：extraデッキカードは不可
-    if (toSection === 'main') {
-      return !isExtraDeckCard;
-    }
-
-    // extraへの移動：extraデッキカードのみ可
-    if (toSection === 'extra') {
-      return isExtraDeckCard || false;
-    }
-
-    // sideへの移動：常に許可
-    if (toSection === 'side') {
-      return true;
-    }
-
-    // それ以外は許可
-    return true;
-  }
+  // カード移動可否判定（useDeckValidation.tsから import）
+  const canMoveCard = canMoveCardValidation;
 
   // displayOrderを初期化（deckInfoから生成）
   function initializeDisplayOrder() {

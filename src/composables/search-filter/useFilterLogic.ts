@@ -509,6 +509,11 @@ export function useFilterLogic(
     emit('apply', { ...filters });
   }
 
+  function setLevelType(levelType: 'level' | 'link' | 'scale') {
+    filters.levelType = levelType;
+    emit('apply', { ...filters });
+  }
+
   function clearFilters() {
     filters.cardType = null;
     filters.attributes = [];
@@ -574,6 +579,7 @@ export function useFilterLogic(
     toggleLinkValue,
     isLinkMarkerActive,
     toggleLinkMarker,
+    setLevelType,
     clearFilters,
   };
 }
