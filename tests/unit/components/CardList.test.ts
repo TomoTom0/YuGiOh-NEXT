@@ -230,6 +230,89 @@ describe('CardList.vue', () => {
 
       expect(wrapper.vm.localSortOrder).toBe('name_asc');
     });
+
+    describe('複数キーソート', () => {
+      const sortTestCards = [
+        { cardId: '1001', ciid: '1', name: 'アルファ', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '1002', ciid: '1', name: 'ベータ', atk: 2500, def: 1800, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '1003', ciid: '1', name: 'ガンマ', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '1004', ciid: '1', name: 'デルタ', atk: 2000, def: 1500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h4' }] },
+      ];
+
+      it('ATK降順ソート時、同値の場合はカード名で昇順にソートされる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: sortTestCards,
+            sectionType: 'search',
+            sortOrder: 'atk_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ATK 2500: アルファ, ベータ（カード名昇順）
+        // ATK 2000: ガンマ, デルタ（カード名昇順）
+        expect(cardNames).toEqual(['アルファ', 'ベータ', 'ガンマ', 'デルタ']);
+      });
+
+      it('DEF降順ソート時、同値の場合はカード名で昇順にソートされる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: sortTestCards,
+            sectionType: 'search',
+            sortOrder: 'def_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // DEF 2000: アルファ
+        // DEF 1800: ベータ
+        // DEF 1500: ガンマ, デルタ（カード名昇順）
+        expect(cardNames).toEqual(['アルファ', 'ベータ', 'ガンマ', 'デルタ']);
+      });
+
+      it('レベル降順ソート時、同値の場合はカード名で昇順にソートされる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: sortTestCards,
+            sectionType: 'search',
+            sortOrder: 'level_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // Level 7: アルファ, ベータ（カード名昇順）
+        // Level 5: デルタ
+        // Level 4: ガンマ
+        expect(cardNames).toEqual(['アルファ', 'ベータ', 'デルタ', 'ガンマ']);
+      });
+
+      it('ATK昇順ソート時、同値の場合はカード名で昇順にソートされる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: sortTestCards,
+            sectionType: 'search',
+            sortOrder: 'atk_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ATK 2000: ガンマ, デルタ（カード名昇順）
+        // ATK 2500: アルファ, ベータ（カード名昇順）
+        expect(cardNames).toEqual(['ガンマ', 'デルタ', 'アルファ', 'ベータ']);
+      });
+    });
   });
 
   describe('スクロールとナビゲーション', () => {
@@ -363,6 +446,44 @@ describe('CardList.vue', () => {
       });
 
       expect(wrapper.find('.sort-direction-btn').exists()).toBe(true);
+    });
+  });
+
+  describe('maxIndexMapのクリア処理', () => {
+    it('カード配列が変更されるとmaxIndexMapがクリアされる', async () => {
+      const wrapper = mount(CardList, {
+        props: {
+          cards: mockCards,
+          sectionType: 'search',
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      // 初期状態でUUIDが付与される
+      const initialUuids = wrapper.vm.cardsWithUuid.map((c: any) => c.uuid);
+      expect(initialUuids).toHaveLength(2);
+
+      // カード配列を変更
+      const newCards = [
+        {
+          cardId: '5001',
+          ciid: '1',
+          name: '青眼の白龍',
+          cardType: 'monster',
+          text: '高い攻撃力を誇る伝説のドラゴン。',
+          imgs: [{ ciid: '1', imgHash: 'hash3' }],
+        },
+      ];
+
+      await wrapper.setProps({ cards: newCards });
+
+      // 新しいカード配列でUUIDが再付与される
+      const newUuids = wrapper.vm.cardsWithUuid.map((c: any) => c.uuid);
+      expect(newUuids).toHaveLength(1);
+      // maxIndexMapがクリアされているため、新しいカードのインデックスは0から始まる
+      expect(newUuids[0]).toBe('5001-1-0');
     });
   });
 });

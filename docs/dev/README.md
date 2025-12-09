@@ -45,6 +45,35 @@ npm test -- --coverage
   - `deck-edit/` - デッキ編集機能テスト
   - `i18n/` - 多言語対応テスト
 
+## コーディング規約
+
+### デバッグログのルール
+
+本プロジェクトでは、ログレベルの使い分けを以下のように定めています：
+
+| ログレベル | 用途 | 本番環境 | 表示条件 |
+|-----------|------|---------|---------|
+| `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
+| `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
+| `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
+| `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+#### 推奨事項
+
+**デバッグ中:**
+```typescript
+// ✅ 推奨: console.debug() を使用（一時的に残してOK）
+console.debug('[MappingManager] Initializing for language:', lang);
+console.debug('[handleSearch] Query:', query, 'Filters:', filters);
+```
+
+**本番前:**
+- デバッグが完了したら、不要な `console.debug()` を削除
+- `console.log()` は必ず削除
+- `console.warn()` / `console.error()` は必要に応じて保持
+
+詳細は [CLAUDE.md - デバッグログのルール](../../CLAUDE.md#デバッグログのルール) を参照してください。
+
 ## 開発用ツール
 
 ### session.example.env
@@ -101,7 +130,8 @@ cp docs/dev/session.example.env .env.local
 - [テスト戦略](./testing-strategy.md) - 段階的テスト実装計画
 
 ### 進行中の機能
-- **デッキロード画面サムネイル表示機能** ([設計書](../../tasks/deck-thumbnail-cache-design.md)) - v0.5.4+
+- **デッキロード画面サムネイル表示機能** - v0.5.4+
   - 画像キャッシュ管理システム（Chrome Storage LRU）
   - デッキハッシュ計算ユーティリティ
   - WebP形式変換（Phase 4で実装予定）
+  - 詳細は [v0.5.4 変更履歴](../changelog/v0.5.4.md) を参照

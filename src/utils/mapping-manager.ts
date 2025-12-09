@@ -48,15 +48,6 @@ class MappingManager {
     // **全て揃っている場合のみ有効**（いずれか1つでも空なら無効）
     const isValid = hasRace && hasMonsterType && hasAttribute;
 
-    if (!isValid) {
-      console.debug(
-        `[MappingManager.isValidMapping] Incomplete mapping: ` +
-        `race=${Object.keys(mapping.race || {}).length}, ` +
-        `monsterType=${Object.keys(mapping.monsterType || {}).length}, ` +
-        `attribute=${Object.keys(mapping.attribute || {}).length}`
-      );
-    }
-
     return isValid;
   }
 
@@ -66,7 +57,9 @@ class MappingManager {
    * @param lang 現在の言語（指定した場合、その言語のみチェック・更新）
    */
   async initialize(lang?: string): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
 
     try {
       // 言語が指定されている場合、その言語のマッピングを確認
@@ -133,6 +126,8 @@ class MappingManager {
    * カード検索ページからマッピング情報を取得して保存
    */
   private async fetchAndStoreMappings(lang: string): Promise<void> {
+    this.fetchingLanguages.add(lang);
+
     try {
       const { extractMappingsFromSearchPage } = await import('./extract-mappings');
       const mappings = await extractMappingsFromSearchPage(lang);

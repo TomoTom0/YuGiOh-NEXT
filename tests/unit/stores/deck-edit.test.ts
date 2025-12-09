@@ -13,6 +13,28 @@ global.window = dom.window as any;
 global.document = dom.window.document as any;
 global.HTMLElement = dom.window.HTMLElement as any;
 
+// window.matchMediaのモック
+(global.window as any).matchMedia = (query: string) => ({
+  matches: false,
+  media: query,
+  onchange: null,
+  addListener: () => {},
+  removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => true,
+});
+
+// chrome APIのモック
+(global as any).chrome = {
+  storage: {
+    local: {
+      get: () => Promise.resolve({}),
+      set: () => Promise.resolve(),
+    },
+  },
+};
+
 console.log('=== Testing deck-edit.ts (store) ===\n');
 
 let testsPassed = 0;
@@ -96,7 +118,8 @@ const sampleFusion: CardInfo = {
   level: 12,
   race: 'dragon',
   atkDef: '4500/3800',
-  monsterTypes: ['fusion']
+  monsterTypes: ['fusion'],
+  types: ['fusion']
 };
 
 // テスト実行
@@ -406,6 +429,98 @@ const sampleFusion: CardInfo = {
     store.removeCard(sampleMonster.cardId, 'main');
     assertEquals(store.canRedo, false, '新規操作後はredoが不可（履歴クリア）');
     assertEquals(store.deckInfo.mainDeck.length, 0, '新規操作が反映されている');
+  });
+
+  // ===== canMoveCard テスト =====
+
+  await test('canMoveCard: searchからtrashへは移動不可', () => {
+    const store = useDeckEditStore();
+    const result = store.canMoveCard('search', 'trash', sampleMonster);
+    assertEquals(result, false, 'searchからtrashへの移動は不可');
+  });
+
+  await test('canMoveCard: searchからmainへ - 通常モンスターは可', () => {
+    const store = useDeckEditStore();
+    const result = store.canMoveCard('search', 'main', sampleMonster);
+    assertEquals(result, true, '通常モンスターはmainへ移動可能');
+  });
+
+  await test('canMoveCard: searchからmainへ - extraデッキカードは不可', () => {
+    const store = useDeckEditStore();
+    const result = store.canMoveCard('search', 'main', sampleFusion);
+    assertEquals(result, false, 'Fusionモンスターはmainへ移動不可');
+  });
+
+  await test('canMoveCard: searchからextraへ - extraデッキカードのみ可', () => {
+    const store = useDeckEditStore();
+    const fusionResult = store.canMoveCard('search', 'extra', sampleFusion);
+    assertEquals(fusionResult, true, 'Fusionモンスターはextraへ移動可能');
+
+    const monsterResult = store.canMoveCard('search', 'extra', sampleMonster);
+    assertEquals(monsterResult, false, '通常モンスターはextraへ移動不可');
+  });
+
+  await test('canMoveCard: searchからsideへは常に許可', () => {
+    const store = useDeckEditStore();
+    const monsterResult = store.canMoveCard('search', 'side', sampleMonster);
+    assertEquals(monsterResult, true, '通常モンスターはsideへ移動可能');
+
+    const fusionResult = store.canMoveCard('search', 'side', sampleFusion);
+    assertEquals(fusionResult, true, 'Fusionモンスターもsideへ移動可能');
+
+    const spellResult = store.canMoveCard('search', 'side', sampleSpell);
+    assertEquals(spellResult, true, '魔法カードもsideへ移動可能');
+  });
+
+  await test('canMoveCard: trashへの移動は全て不可', () => {
+    const store = useDeckEditStore();
+    const fromMain = store.canMoveCard('main', 'trash', sampleMonster);
+    assertEquals(fromMain, false, 'mainからtrashへは移動不可');
+
+    const fromExtra = store.canMoveCard('extra', 'trash', sampleFusion);
+    assertEquals(fromExtra, false, 'extraからtrashへは移動不可');
+
+    const fromSide = store.canMoveCard('side', 'trash', sampleSpell);
+    assertEquals(fromSide, false, 'sideからtrashへは移動不可');
+  });
+
+  await test('canMoveCard: trashからの移動は全て許可', () => {
+    const store = useDeckEditStore();
+    const toMain = store.canMoveCard('trash', 'main', sampleMonster);
+    assertEquals(toMain, true, 'trashからmainへは移動可能');
+
+    const toExtra = store.canMoveCard('trash', 'extra', sampleFusion);
+    assertEquals(toExtra, true, 'trashからextraへは移動可能');
+
+    const toSide = store.canMoveCard('trash', 'side', sampleSpell);
+    assertEquals(toSide, true, 'trashからsideへは移動可能');
+  });
+
+  await test('canMoveCard: main/extra/side間 - mainへはextraデッキカード不可', () => {
+    const store = useDeckEditStore();
+    const fromExtra = store.canMoveCard('extra', 'main', sampleFusion);
+    assertEquals(fromExtra, false, 'extraからmainへFusionは移動不可');
+
+    const fromSide = store.canMoveCard('side', 'main', sampleMonster);
+    assertEquals(fromSide, true, 'sideからmainへ通常モンスターは移動可能');
+  });
+
+  await test('canMoveCard: main/extra/side間 - extraへはextraデッキカードのみ可', () => {
+    const store = useDeckEditStore();
+    const fromMain = store.canMoveCard('main', 'extra', sampleMonster);
+    assertEquals(fromMain, false, 'mainからextraへ通常モンスターは移動不可');
+
+    const fromSide = store.canMoveCard('side', 'extra', sampleFusion);
+    assertEquals(fromSide, true, 'sideからextraへFusionは移動可能');
+  });
+
+  await test('canMoveCard: main/extra/side間 - sideへは常に許可', () => {
+    const store = useDeckEditStore();
+    const fromMain = store.canMoveCard('main', 'side', sampleMonster);
+    assertEquals(fromMain, true, 'mainからsideへは移動可能');
+
+    const fromExtra = store.canMoveCard('extra', 'side', sampleFusion);
+    assertEquals(fromExtra, true, 'extraからsideへは移動可能');
   });
 
   // 結果サマリー

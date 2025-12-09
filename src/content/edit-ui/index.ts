@@ -59,7 +59,7 @@ async function applyThemeFromSettings(): Promise<void> {
       }
     }
 
-    const theme = appSettings.theme ?? 'system';
+    const theme = appSettings?.theme ?? 'system';
 
     let effectiveTheme: 'light' | 'dark' = 'light';
 
@@ -123,20 +123,20 @@ function replaceLanguageChangeLinks(): void {
   document.querySelectorAll('a[href*="javascript:ChangeLanguage"]').forEach((link) => {
     const href = link.getAttribute('href');
     const match = href?.match(/ChangeLanguage\('(\w+)'\)/);
-    if (match) {
+    if (match && match[1]) {
       const lang = match[1];
       link.setAttribute('href', 'javascript:void(0)');
       link.addEventListener('click', (e) => {
         e.preventDefault();
         // window.ygoChangeLanguage は Vue側でオーバーライド可能
-        (window as any).ygoChangeLanguage?.(lang);
+        window.ygoChangeLanguage?.(lang);
       });
     }
   });
 }
 
 // window.ygoChangeLanguage のデフォルト実装
-(window as any).ygoChangeLanguage = performLanguageChange;
+window.ygoChangeLanguage = performLanguageChange;
 
 /**
  * URLの変更を監視
@@ -306,7 +306,7 @@ async function initVueApp(): Promise<void> {
     app.use(pinia);
 
     // window.ygoNextCurrentSettings から即座に設定を読み込む（Chrome Storage 不要）
-    const cachedSettings = (window as any).ygoNextCurrentSettings;
+    const cachedSettings = window.ygoNextCurrentSettings;
     if (cachedSettings) {
       const { useSettingsStore } = await import('../../stores/settings');
       const settingsStore = useSettingsStore(pinia);

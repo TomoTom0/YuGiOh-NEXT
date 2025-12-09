@@ -31,7 +31,7 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'default' }"
                   @click="settingsStore.setSearchInputPosition('default')"
                 >
                   L-Bottom
@@ -40,14 +40,14 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-top' }"
                   @click="settingsStore.setSearchInputPosition('right-top')"
                 >
                   R-Top
                 </button>
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-bottom' }"
                   @click="settingsStore.setSearchInputPosition('right-bottom')"
                 >
                   R-Bottom

@@ -13,10 +13,12 @@
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
    - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
    - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
+   - **デバッグログ**: `console.debug()` を使用（本番でも残してOK、ブラウザのVerboseレベルでのみ表示）
 5. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 6. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 7. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
 8. **git操作**: git push / PR作成は明示的な指示がない限り実行しない
+9. **alcom使用時のgitコマンド**: `alcom`使用中は`git status`ではなく`alcom status`、`git diff`ではなく`alcom diff`を使用する（一時コミットの影響を除外）
 
 ---
 
@@ -188,7 +190,11 @@ tm finish <タスクID>
 
 - `todo`: 未着手のタスク
 - `wip`: 作業中のタスク（Work In Progress）
+- `pending`: 保留中のタスク（他のタスクの完了待ち、判断保留など）
+- `long`: 長期タスク（マイルストーン的なもの、複数のサブタスクを含む）
 - `done`: 完了したタスク
+
+**注意**: `tm list`は`todo`, `wip`, `pending`, `long`のタスクのみを表示します（`done`は表示されません）。
 
 ### ワークフロー
 
@@ -202,26 +208,94 @@ tm finish <タスクID>
 
 - **タイトル**: 簡潔で分かりやすいタスク名（例: "REQ-18: CardList.vue のレビュー確認"）
 - **本文（--body）**: 詳細な説明、関連ファイル、レポートへのリンク等を記載
-- **優先度の記載**: タイトルに high/medium/low を含める（例: "high", "medium", "low"）
+- **優先度（--priority）**: `high`, `medium`, `low` などを設定（タイトルに含めるのではなく、オプションで設定）
+- **ファイル参照**:
+  - `--add-file`: 編集対象のファイルを追加（タスクと関連ファイルを明確に紐付け）
+  - `--read-file`: 参考資料として読み取り専用ファイルを追加（ドキュメント、レポート等）
 
 ### 例
 
 ```bash
-# 高優先度のレビュータスクを作成
-tm new "REQ-18: CardList.vue のレビュー確認 high" --body "ソート複数キーの処理順序確認
+# 高優先度のレビュータスクを作成（ファイル参照付き）
+tm new "REQ-18: CardList.vue のレビュー確認" \
+  --priority high \
+  --status todo \
+  --add-file src/components/CardList.vue \
+  --read-file docs/internal-reviews/reports/CardList-review.md \
+  --body "ソート複数キーの処理順序確認
 displayOrder との連携確認
-大量カード（200+）時のパフォーマンス確認
+大量カード（200+）時のパフォーマンス確認"
 
-関連:
-- ファイルサイズ: 707行
-- 変更回数: 32回" --status todo
+# 長期タスクを作成
+tm new "REQ-20: 全体的なリファクタリング計画" --status long --priority high
+
+# 保留タスクを作成（他のタスク完了待ち）
+tm new "CardDetail.vue の最適化" --status pending --body "CardList.vue のリファクタリング完了後に実施"
 
 # タスクを作業中に変更
 tm update 1 --status wip
 
+# ファイルを追加
+tm update 1 --add-file src/components/CardDetail.vue
+
+# 複数タスクのステータスを一括変更（コンテキスト切り替え）
+tm update 1 --status done 2 --status wip --body "次のタスクに着手"
+
+# 履歴を含めてタスク詳細を表示
+tm get 1 --history
+
 # タスクを完了
 tm finish 1
 ```
+
+### コードレビュー依頼
+
+**tm reviewコマンドでコードレビューを依頼できる**
+
+コードの品質チェックや改善提案を受けるために、レビューリクエストを作成できます。
+
+#### 基本的な使い方
+
+```bash
+# レビューリクエストを作成
+tm review new "リファクタリングの妥当性確認" --body "deck-edit.tsのリファクタリング内容をレビューしてください"
+
+# レビューリクエスト一覧を表示
+tm review list
+
+# レビューリクエストの詳細を表示
+tm review get <ID>
+
+# レビューリクエストの詳細を履歴込みで表示
+tm review get <ID> --history
+
+# レビューリクエストのステータスを更新
+tm review update <ID> --status reviewing --body "レビュー中です"
+
+# レビュー結果を返信
+tm review return <ID> --status reviewed --body "以下の点を改善してください..."
+
+# レビューを承認（新しいタスクを作成することも可能）
+tm review accept <ID> --new "指摘事項の修正" --new "追加のリファクタリング"
+
+# レビューを却下
+tm review reject <ID>
+```
+
+#### レビューステータス
+
+- `pending`: レビュー待ち
+- `reviewing`: レビュー中
+- `reviewed`: レビュー完了（フィードバック返信済み）
+- `accepted`: 承認済み
+- `rejected`: 却下
+
+#### ワークフロー
+
+1. **レビュー依頼**: `tm review new` でレビューリクエストを作成
+2. **レビュー実施**: レビュアーが内容を確認し、`tm review return` でフィードバック
+3. **対応**: 指摘事項を修正し、必要に応じて再レビュー依頼
+4. **承認/却下**: `tm review accept` または `tm review reject` で完了
 
 ## Build & Deploy
 
@@ -304,6 +378,64 @@ bun run tmp/test-*.js
 - **マイナー**: 新機能の追加や改善
 - **パッチ**: バグ修正や小さな変更
 
+## alcom（always-commit）の使用
+
+**LLM支援コーディングセッション中の一時スナップショット管理ツール**
+
+本プロジェクトでは、`.claude/config.json`のhooks設定により、ユーザーメッセージ送信時に自動的に`alcom save`が実行されます。
+
+### 基本コマンド
+
+```bash
+# セッション中の変更を確認（git statusの代わり）
+alcom status
+
+# セッション開始以降の差分を確認（git diffの代わり）
+alcom diff
+
+# 一時スナップショットの履歴を確認
+alcom git log --oneline @base..HEAD
+
+# セッション開始時のコミットハッシュを取得
+alcom base-hash
+
+# セッション終了時：全ての一時スナップショットを1つのコミットにまとめる
+alcom finish "最終的なコミットメッセージ"
+
+# 最後のスナップショットを取り消す
+alcom undo
+```
+
+### 重要な注意事項
+
+**alcom使用中は通常のgitコマンドを使用しない**
+
+- ❌ `git status` → 一時コミットが大量に表示される
+- ❌ `git log` → 一時コミットが大量に表示される
+- ❌ `git diff` → 最後の一時コミットとの差分のみ表示
+
+- ✅ `alcom status` → セッション開始以降の実質的な変更を表示
+- ✅ `alcom diff` → セッション開始以降の実質的な差分を表示
+- ✅ `alcom git <args>` → `@base`プレースホルダーサポート付きでgitコマンドを実行
+
+### ワークフロー
+
+1. **セッション中**: 自動的に`alcom save`が実行される（hooks設定による）
+2. **進捗確認**: `alcom status`や`alcom diff`で変更を確認
+3. **セッション終了**: `alcom finish "feat: 実装した機能の説明"`で一時コミットをまとめる
+
+### `@base`プレースホルダー
+
+`alcom git`コマンドでは、`@base`がセッション開始時のコミットハッシュに自動展開されます。
+
+```bash
+# セッション開始以降の変更ファイルを表示
+alcom git diff --name-status @base
+
+# セッション開始以降のコミットログを表示
+alcom git log --oneline @base..HEAD
+```
+
 ## 通知
 
 **beep音は使用禁止**
@@ -349,6 +481,75 @@ bun run tmp/test-*.js
 - ✅ 良い例: ソースコードで `.main-deck` クラスを確認してから `document.querySelector('.main-deck')` を使用
 - ❌ 悪い例: 「下ボタンはside移動だろう」と推測して `.bottom-right` をクリック
 - ✅ 良い例: DeckCard.vueで `handleTopRight()` が `moveCardToSide()` を呼ぶことを確認してから `.top-right` をクリック
+
+## デバッグログのルール
+
+**ログレベルの使い分け**
+
+本プロジェクトでは、以下のルールでconsoleログを使い分けます：
+
+| ログレベル | 用途 | 本番環境 | 表示条件 |
+|-----------|------|---------|---------|
+| `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
+| `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
+| `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
+| `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+### console.debug() の利点と注意事項
+
+**利点:**
+1. **本番環境でユーザーに見えない**: デフォルトでは非表示
+2. **必要な時だけ確認可能**: Chrome DevToolsの Console タブで "Verbose" レベルを有効化すれば表示される
+3. **一時的に残せる**: 本番ビルド前に即座に削除する必要がない（デバッグ中の利便性向上）
+
+**注意事項:**
+- **不要になったら削除する**: デバッグが完了したら、不要な `console.debug()` は削除すること
+- **長期的に必要なログではない**: 一時的なデバッグ用途のみ。長期的に残す理由がない場合は削除すべき
+- **コードレビュー時に確認**: PRレビュー時に、残されている `console.debug()` が本当に必要か確認する
+
+### 記述例
+
+```typescript
+// ✅ 良い例: デバッグログ（一時的に残してOK、デバッグ完了後は削除）
+console.debug('[MappingManager] Initializing for language:', lang);
+console.debug('[handleSearch] Query:', query, 'Filters:', filters);
+
+// ❌ 悪い例: console.log でデバッグ（本番前に削除が必要）
+console.log('[DEBUG] Initializing...');
+console.warn('[DEBUG] Query:', query); // warn をデバッグに使うのも不適切
+
+// ✅ 良い例: エラーログ（本番でも必要、削除しない）
+console.error('[MappingManager] Failed to initialize:', error);
+
+// ✅ 良い例: 警告ログ（本番でも必要、削除しない）
+console.warn('[MappingManager] Stored mappings are invalid, fetching fresh data...');
+```
+
+### デバッグログの削除タイミング
+
+以下の場合は `console.debug()` を削除すること：
+
+1. **デバッグ完了後**: 問題が解決し、ログが不要になった時
+2. **機能実装完了時**: その機能のデバッグが終わり、安定動作している時
+3. **PRマージ前**: コードレビューで不要と判断された時
+
+ただし、以下のような場合は一時的に残すことも可能：
+
+- 複雑な処理で、将来的なデバッグに役立つ可能性がある
+- 段階的な開発中で、次のフェーズでも使用する予定がある
+
+**原則**: 迷ったら削除する。必要になったら再度追加すればよい。
+
+### Chrome DevToolsでの表示方法
+
+デバッグログを確認する手順：
+
+1. Chrome DevToolsを開く（F12）
+2. Console タブを選択
+3. フィルターアイコン（漏斗マーク）をクリック
+4. "Verbose" にチェックを入れる
+
+これで `console.debug()` のログが表示されるようになります。
 
 ## 絵文字の使用禁止
 
@@ -433,6 +634,33 @@ button.style.background = '#4CAF50'; // NG
 - 独自画面要素と公式サイトの要素が混在するため、セレクタの特異性を明確に区分する必要がある
 - `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
 - SCSS の nest を使用することで、構造を明確に保つ
+
+---
+
+## テーマシステム
+
+**テーマ定義は `src/styles/themes.scss` で一元管理**
+
+本プロジェクトでは、ライトテーマとダークテーマをSCSSで定義し、CSS変数（カスタムプロパティ）として提供しています。
+
+### テーマ切り替えの仕組み
+
+- ライトテーマ: `[data-ygo-next-theme="light"]`
+- ダークテーマ: `[data-ygo-next-theme="dark"]`
+- 約300個のCSS変数を定義
+- コンポーネントは `var(--変数名)` で参照
+
+### 変更方法
+
+1. `src/styles/themes.scss` を編集してテーマ変数を変更
+2. ビルド: `bun run build-and-deploy`
+3. オプション画面でテーマ切り替えを確認
+
+### 注意事項
+
+- **themes.tsは廃止済み**: 動的CSS変数注入は行わない（パフォーマンス改善のため）
+- **SCSSのみが信頼できる情報源**: themes.scssのみがテーマ定義
+- **型安全性の欠如**: CSS変数名のタイポ検出はIDE拡張やstylelintに依存
 
 ---
 

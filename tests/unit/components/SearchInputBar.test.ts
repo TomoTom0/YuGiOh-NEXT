@@ -142,8 +142,8 @@ describe('components/SearchInputBar', () => {
       await input.setValue('テスト検索');
 
       // store に値が設定されることを確認
-      const deckStore = wrapper.vm.deckStore;
-      expect(deckStore.searchQuery).toBe('テスト検索');
+      const searchStore = wrapper.vm.searchStore;
+      expect(searchStore.searchQuery).toBe('テスト検索');
     });
 
     it('should clear search query when clear button is clicked', async () => {
@@ -164,7 +164,7 @@ describe('components/SearchInputBar', () => {
       const clearBtn = wrapper.find('.clear-btn');
       if (clearBtn.exists()) {
         await clearBtn.trigger('click');
-        expect(wrapper.vm.deckStore.searchQuery).toBe('');
+        expect(wrapper.vm.searchStore.searchQuery).toBe('');
       }
     });
 
@@ -182,7 +182,7 @@ describe('components/SearchInputBar', () => {
       await input.trigger('keydown.enter');
 
       // enter キーの処理が実行されたことを確認
-      expect(wrapper.vm.deckStore.searchQuery).toBe('テスト');
+      expect(wrapper.vm.searchStore.searchQuery).toBe('テスト');
     });
 
     it('should handle escape key press', async () => {
