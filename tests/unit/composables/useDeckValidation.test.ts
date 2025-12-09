@@ -1,42 +1,6 @@
+import { describe, it, expect } from 'vitest';
 import { canMoveCard } from '../../../src/composables/deck/useDeckValidation';
 import type { CardInfo } from '../../../src/types/card';
-
-/**
- * useDeckValidation のユニットテスト
- *
- * カードの移動可否判定ロジックをテスト
- */
-
-console.log('=== Testing useDeckValidation ===\n');
-
-let testsPassed = 0;
-let testsFailed = 0;
-
-function test(name: string, fn: () => void | Promise<void>) {
-  return (async () => {
-    try {
-      await fn();
-      console.log(`✅ ${name}`);
-      testsPassed++;
-    } catch (error) {
-      console.error(`❌ ${name}`);
-      console.error(`   ${error}`);
-      testsFailed++;
-    }
-  })();
-}
-
-function assertTrue(value: boolean, message?: string) {
-  if (!value) {
-    throw new Error(message || 'Expected true');
-  }
-}
-
-function assertFalse(value: boolean, message?: string) {
-  if (value) {
-    throw new Error(message || 'Expected false');
-  }
-}
 
 // テスト用のカードデータ
 const normalMonster: CardInfo = {
@@ -125,149 +89,144 @@ const trapCard: CardInfo = {
   trapType: 'normal'
 };
 
-// テスト実行
-(async () => {
-  // 1. searchからtrashへは移動不可
-  await test('searchからtrashへは移動不可', () => {
-    assertFalse(canMoveCard('search', 'trash', normalMonster));
+describe('useDeckValidation', () => {
+  describe('searchからの移動', () => {
+    it('searchからtrashへは移動不可', () => {
+      expect(canMoveCard('search', 'trash', normalMonster)).toBe(false);
+    });
+
+    describe('searchからmainへ', () => {
+      it('通常モンスターは可', () => {
+        expect(canMoveCard('search', 'main', normalMonster)).toBe(true);
+      });
+
+      it('融合モンスターは不可', () => {
+        expect(canMoveCard('search', 'main', fusionMonster)).toBe(false);
+      });
+
+      it('シンクロモンスターは不可', () => {
+        expect(canMoveCard('search', 'main', synchroMonster)).toBe(false);
+      });
+
+      it('エクシーズモンスターは不可', () => {
+        expect(canMoveCard('search', 'main', xyzMonster)).toBe(false);
+      });
+
+      it('リンクモンスターは不可', () => {
+        expect(canMoveCard('search', 'main', linkMonster)).toBe(false);
+      });
+
+      it('魔法カードは可', () => {
+        expect(canMoveCard('search', 'main', spellCard)).toBe(true);
+      });
+
+      it('罠カードは可', () => {
+        expect(canMoveCard('search', 'main', trapCard)).toBe(true);
+      });
+    });
+
+    describe('searchからextraへ', () => {
+      it('通常モンスターは不可', () => {
+        expect(canMoveCard('search', 'extra', normalMonster)).toBe(false);
+      });
+
+      it('融合モンスターは可', () => {
+        expect(canMoveCard('search', 'extra', fusionMonster)).toBe(true);
+      });
+
+      it('シンクロモンスターは可', () => {
+        expect(canMoveCard('search', 'extra', synchroMonster)).toBe(true);
+      });
+
+      it('エクシーズモンスターは可', () => {
+        expect(canMoveCard('search', 'extra', xyzMonster)).toBe(true);
+      });
+
+      it('リンクモンスターは可', () => {
+        expect(canMoveCard('search', 'extra', linkMonster)).toBe(true);
+      });
+    });
+
+    describe('searchからsideへは常に許可', () => {
+      it('通常モンスター', () => {
+        expect(canMoveCard('search', 'side', normalMonster)).toBe(true);
+      });
+
+      it('融合モンスター', () => {
+        expect(canMoveCard('search', 'side', fusionMonster)).toBe(true);
+      });
+
+      it('魔法カード', () => {
+        expect(canMoveCard('search', 'side', spellCard)).toBe(true);
+      });
+    });
   });
 
-  // 2. searchからmainへ - 通常モンスターは可
-  await test('searchからmainへ - 通常モンスターは可', () => {
-    assertTrue(canMoveCard('search', 'main', normalMonster));
+  describe('trashへの移動は全て不可', () => {
+    it('mainからtrashへは移動不可', () => {
+      expect(canMoveCard('main', 'trash', normalMonster)).toBe(false);
+    });
+
+    it('extraからtrashへは移動不可', () => {
+      expect(canMoveCard('extra', 'trash', fusionMonster)).toBe(false);
+    });
+
+    it('sideからtrashへは移動不可', () => {
+      expect(canMoveCard('side', 'trash', spellCard)).toBe(false);
+    });
   });
 
-  // 3. searchからmainへ - 融合モンスターは不可
-  await test('searchからmainへ - 融合モンスターは不可', () => {
-    assertFalse(canMoveCard('search', 'main', fusionMonster));
+  describe('trashからの移動は全て許可', () => {
+    it('trashからmainへは許可', () => {
+      expect(canMoveCard('trash', 'main', normalMonster)).toBe(true);
+    });
+
+    it('trashからextraへは許可', () => {
+      expect(canMoveCard('trash', 'extra', fusionMonster)).toBe(true);
+    });
+
+    it('trashからsideへは許可', () => {
+      expect(canMoveCard('trash', 'side', spellCard)).toBe(true);
+    });
   });
 
-  // 4. searchからmainへ - シンクロモンスターは不可
-  await test('searchからmainへ - シンクロモンスターは不可', () => {
-    assertFalse(canMoveCard('search', 'main', synchroMonster));
+  describe('main/extra/side間の移動', () => {
+    describe('mainへ', () => {
+      it('extraからmainへ - 通常モンスターは可', () => {
+        expect(canMoveCard('extra', 'main', normalMonster)).toBe(true);
+      });
+
+      it('extraからmainへ - 融合モンスターは不可', () => {
+        expect(canMoveCard('extra', 'main', fusionMonster)).toBe(false);
+      });
+
+      it('sideからmainへ - 魔法カードは可', () => {
+        expect(canMoveCard('side', 'main', spellCard)).toBe(true);
+      });
+    });
+
+    describe('extraへ', () => {
+      it('mainからextraへ - 通常モンスターは不可', () => {
+        expect(canMoveCard('main', 'extra', normalMonster)).toBe(false);
+      });
+
+      it('mainからextraへ - 融合モンスターは可', () => {
+        expect(canMoveCard('main', 'extra', fusionMonster)).toBe(true);
+      });
+
+      it('sideからextraへ - リンクモンスターは可', () => {
+        expect(canMoveCard('side', 'extra', linkMonster)).toBe(true);
+      });
+    });
+
+    describe('sideへは常に許可', () => {
+      it('mainからsideへは常に許可', () => {
+        expect(canMoveCard('main', 'side', normalMonster)).toBe(true);
+      });
+
+      it('extraからsideへは常に許可', () => {
+        expect(canMoveCard('extra', 'side', fusionMonster)).toBe(true);
+      });
+    });
   });
-
-  // 5. searchからmainへ - エクシーズモンスターは不可
-  await test('searchからmainへ - エクシーズモンスターは不可', () => {
-    assertFalse(canMoveCard('search', 'main', xyzMonster));
-  });
-
-  // 6. searchからmainへ - リンクモンスターは不可
-  await test('searchからmainへ - リンクモンスターは不可', () => {
-    assertFalse(canMoveCard('search', 'main', linkMonster));
-  });
-
-  // 7. searchからmainへ - 魔法カードは可
-  await test('searchからmainへ - 魔法カードは可', () => {
-    assertTrue(canMoveCard('search', 'main', spellCard));
-  });
-
-  // 8. searchからmainへ - 罠カードは可
-  await test('searchからmainへ - 罠カードは可', () => {
-    assertTrue(canMoveCard('search', 'main', trapCard));
-  });
-
-  // 9. searchからextraへ - 通常モンスターは不可
-  await test('searchからextraへ - 通常モンスターは不可', () => {
-    assertFalse(canMoveCard('search', 'extra', normalMonster));
-  });
-
-  // 10. searchからextraへ - 融合モンスターは可
-  await test('searchからextraへ - 融合モンスターは可', () => {
-    assertTrue(canMoveCard('search', 'extra', fusionMonster));
-  });
-
-  // 11. searchからextraへ - シンクロモンスターは可
-  await test('searchからextraへ - シンクロモンスターは可', () => {
-    assertTrue(canMoveCard('search', 'extra', synchroMonster));
-  });
-
-  // 12. searchからextraへ - エクシーズモンスターは可
-  await test('searchからextraへ - エクシーズモンスターは可', () => {
-    assertTrue(canMoveCard('search', 'extra', xyzMonster));
-  });
-
-  // 13. searchからextraへ - リンクモンスターは可
-  await test('searchからextraへ - リンクモンスターは可', () => {
-    assertTrue(canMoveCard('search', 'extra', linkMonster));
-  });
-
-  // 14. searchからsideへは常に許可
-  await test('searchからsideへは常に許可（通常モンスター）', () => {
-    assertTrue(canMoveCard('search', 'side', normalMonster));
-  });
-
-  await test('searchからsideへは常に許可（融合モンスター）', () => {
-    assertTrue(canMoveCard('search', 'side', fusionMonster));
-  });
-
-  await test('searchからsideへは常に許可（魔法カード）', () => {
-    assertTrue(canMoveCard('search', 'side', spellCard));
-  });
-
-  // 15. trashへの移動は全て不可
-  await test('mainからtrashへは移動不可', () => {
-    assertFalse(canMoveCard('main', 'trash', normalMonster));
-  });
-
-  await test('extraからtrashへは移動不可', () => {
-    assertFalse(canMoveCard('extra', 'trash', fusionMonster));
-  });
-
-  await test('sideからtrashへは移動不可', () => {
-    assertFalse(canMoveCard('side', 'trash', spellCard));
-  });
-
-  // 16. trashからの移動は全て許可
-  await test('trashからmainへは許可', () => {
-    assertTrue(canMoveCard('trash', 'main', normalMonster));
-  });
-
-  await test('trashからextraへは許可', () => {
-    assertTrue(canMoveCard('trash', 'extra', fusionMonster));
-  });
-
-  await test('trashからsideへは許可', () => {
-    assertTrue(canMoveCard('trash', 'side', spellCard));
-  });
-
-  // 17. main/extra/side間の移動 - mainへ
-  await test('extraからmainへ - 通常モンスターは可', () => {
-    assertTrue(canMoveCard('extra', 'main', normalMonster));
-  });
-
-  await test('extraからmainへ - 融合モンスターは不可', () => {
-    assertFalse(canMoveCard('extra', 'main', fusionMonster));
-  });
-
-  await test('sideからmainへ - 魔法カードは可', () => {
-    assertTrue(canMoveCard('side', 'main', spellCard));
-  });
-
-  // 18. main/extra/side間の移動 - extraへ
-  await test('mainからextraへ - 通常モンスターは不可', () => {
-    assertFalse(canMoveCard('main', 'extra', normalMonster));
-  });
-
-  await test('mainからextraへ - 融合モンスターは可', () => {
-    assertTrue(canMoveCard('main', 'extra', fusionMonster));
-  });
-
-  await test('sideからextraへ - リンクモンスターは可', () => {
-    assertTrue(canMoveCard('side', 'extra', linkMonster));
-  });
-
-  // 19. main/extra/side間の移動 - sideへは常に許可
-  await test('mainからsideへは常に許可', () => {
-    assertTrue(canMoveCard('main', 'side', normalMonster));
-  });
-
-  await test('extraからsideへは常に許可', () => {
-    assertTrue(canMoveCard('extra', 'side', fusionMonster));
-  });
-
-  console.log(`\n✅ Passed: ${testsPassed}`);
-  console.log(`❌ Failed: ${testsFailed}`);
-
-  process.exit(testsFailed > 0 ? 1 : 0);
-})();
+});
