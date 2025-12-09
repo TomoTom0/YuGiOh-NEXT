@@ -9,9 +9,10 @@ import { getGamePath } from './page-detector';
 import { detectLanguage } from './language-detector';
 
 /**
- * ベースURL
+ * ベースURL（エクスポート可能）
+ * 全てのURL構築はこの定数を使用してください
  */
-const BASE_URL = 'https://www.db.yugioh-card.com';
+export const BASE_URL = 'https://www.db.yugioh-card.com';
 
 /**
  * APIパスのタイプ定義

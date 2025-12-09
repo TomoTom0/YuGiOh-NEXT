@@ -328,17 +328,35 @@ export default {
         case 'name_desc':
           return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
         case 'atk_desc':
-          return sorted.sort((a, b) => (b.atk ?? -1) - (a.atk ?? -1))
+          return sorted.sort((a, b) => {
+            const cmp = (b.atk ?? -1) - (a.atk ?? -1)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'atk_asc':
-          return sorted.sort((a, b) => (a.atk ?? -1) - (b.atk ?? -1))
+          return sorted.sort((a, b) => {
+            const cmp = (a.atk ?? -1) - (b.atk ?? -1)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'def_desc':
-          return sorted.sort((a, b) => (b.def ?? -1) - (a.def ?? -1))
+          return sorted.sort((a, b) => {
+            const cmp = (b.def ?? -1) - (a.def ?? -1)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'def_asc':
-          return sorted.sort((a, b) => (a.def ?? -1) - (b.def ?? -1))
+          return sorted.sort((a, b) => {
+            const cmp = (a.def ?? -1) - (b.def ?? -1)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'level_desc':
-          return sorted.sort((a, b) => (b.levelValue || 0) - (a.levelValue || 0))
+          return sorted.sort((a, b) => {
+            const cmp = (b.levelValue || 0) - (a.levelValue || 0)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'level_asc':
-          return sorted.sort((a, b) => (a.levelValue || 0) - (b.levelValue || 0))
+          return sorted.sort((a, b) => {
+            const cmp = (a.levelValue || 0) - (b.levelValue || 0)
+            return cmp !== 0 ? cmp : (a.name || '').localeCompare(b.name || '')
+          })
         case 'attribute_asc':
           return sorted.sort((a, b) => {
             const cmp = (a.attribute || '').localeCompare(b.attribute || '')
@@ -390,6 +408,11 @@ export default {
           uuid
         }
       })
+    })
+
+    // カード配列が変更されたらmaxIndexMapをクリア
+    watch(() => props.cards, () => {
+      maxIndexMap.clear()
     })
 
     watch(() => props.sortOrder, (val) => {

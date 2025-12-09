@@ -16,10 +16,8 @@ let loaded = false
 function loadFromStorage() {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
-    console.log('[useSearchHistory] loadFromStorage:', data ? `${data.length} chars` : 'empty')
     if (data) {
       historyItems.value = JSON.parse(data)
-      console.log('[useSearchHistory] loaded items:', historyItems.value.length)
     }
   } catch (error) {
     console.error('[YGO Helper] Failed to load search history:', error)
@@ -59,8 +57,6 @@ export function useSearchHistory() {
     filters: SearchFilters,
     resultCids: string[]
   ) {
-    console.log('[useSearchHistory] addToHistory called:', { query, searchMode, resultCount: resultCids.length })
-
     const newItem: SearchHistoryItem = {
       query,
       searchMode,
@@ -83,7 +79,6 @@ export function useSearchHistory() {
 
     // 先頭に追加
     historyItems.value.unshift(newItem)
-    console.log('[useSearchHistory] 履歴に追加完了 total items:', historyItems.value.length)
 
     // サイズ制限（お気に入りを除く）
     const favorites = historyItems.value.filter(item => item.isFavorite)
@@ -93,7 +88,6 @@ export function useSearchHistory() {
     }
 
     saveToStorage()
-    console.log('[useSearchHistory] localStorage保存完了')
   }
 
   // お気に入りに追加/削除

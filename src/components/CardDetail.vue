@@ -326,9 +326,14 @@ export default {
     font-size: 12px;
     color: var(--text-primary);
     flex: 1;
+    transition: background 0.2s ease, color 0.2s ease;
 
     &:last-child {
       border-right: none;
+    }
+
+    &:hover:not(.active) {
+      background: var(--bg-hover, rgba(0, 140, 255, 0.1));
     }
 
     &:focus-visible {

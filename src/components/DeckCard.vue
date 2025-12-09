@@ -482,7 +482,7 @@ export default {
     },
     handleContextMenu(event) {
       // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
-      if (!this.settingsStore.appSettings.enableMouseOperations) {
+      if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
       }
 
@@ -528,7 +528,7 @@ export default {
       event.stopPropagation()
 
       // 高度なマウス操作が無効の場合は何もしない
-      if (!this.settingsStore.appSettings.enableMouseOperations) {
+      if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
       }
 
