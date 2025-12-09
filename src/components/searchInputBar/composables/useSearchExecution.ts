@@ -175,9 +175,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
    * 検索を実行
    */
   const handleSearch = async () => {
-    console.log('[handleSearch] START - query:', searchStore.searchQuery, 'hasActiveFilters:', hasActiveFilters.value)
-    console.log('[handleSearch] searchFilters:', JSON.stringify(searchStore.searchFilters, null, 2))
-
     // フィルターダイアログを自動クローズ
     deckStore.isFilterDialogVisible = false
 
@@ -186,7 +183,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
     // クエリもフィルターもない場合のみクリア
     // （空文字列でもフィルターがあれば検索を実行する）
     if (!query && !hasActiveFilters.value) {
-      console.log('[handleSearch] クエリもフィルターもないのでクリア')
       searchStore.searchResults = []
       searchStore.allResults = []
       searchStore.hasMore = false
@@ -202,7 +198,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
       // autoモードで2文字以下の場合はname検索として扱う
       const effectiveSearchMode = (searchMode.value === 'auto' && keyword.length <= 2) ? 'name' : searchMode.value
-      console.log('[handleSearch] keyword:', keyword, 'searchMode:', searchMode.value, 'effectiveSearchMode:', effectiveSearchMode)
 
       const searchTypeMap: Record<string, string> = {
         'auto': '1',
@@ -230,7 +225,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
         // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
         if (autoResultCount >= 100) {
-          console.log('[handleSearch] autoモードで100件取得 → name検索に委譲')
           delegatedToName = true
           searchType = '1'  // name検索に切り替え
         }
@@ -245,9 +239,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           searchStore.searchFilters
         )
 
-        console.log('[handleSearch] searchOptions:', JSON.stringify(searchOptions, null, 2))
         results = await searchCards(searchOptions)
-        console.log('[handleSearch] results count:', results.length)
       }
 
       // 検索APIを呼び出したのでグローバル検索モードを終了
@@ -260,7 +252,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {
         const resultCids = results.map(card => card.cardId)
-        console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
         searchHistory.addToHistory(query, searchMode.value, searchStore.searchFilters, resultCids)
       }
 

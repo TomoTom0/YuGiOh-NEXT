@@ -443,10 +443,10 @@ export default {
       window.addEventListener('keydown', handleGlobalKeydown)
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
-      const originalChangeLanguage = (window as any).ygoChangeLanguage
-      ;(window as any).ygoChangeLanguage = (lang: string) => {
+      const originalChangeLanguage = window.ygoChangeLanguage
+      window.ygoChangeLanguage = (lang: string) => {
         const performChange = () => {
-          originalChangeLanguage(lang)
+          originalChangeLanguage?.(lang)
         }
 
         // 編集中の場合はダイアログを表示

@@ -13,6 +13,7 @@
    - `alert()` / `confirm()` / `prompt()` 禁止（ブラウザネイティブダイアログ禁止）
    - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
    - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
+   - **デバッグログ**: `console.debug()` を使用（本番でも残してOK、ブラウザのVerboseレベルでのみ表示）
 5. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 6. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 7. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
@@ -480,6 +481,75 @@ alcom git log --oneline @base..HEAD
 - ✅ 良い例: ソースコードで `.main-deck` クラスを確認してから `document.querySelector('.main-deck')` を使用
 - ❌ 悪い例: 「下ボタンはside移動だろう」と推測して `.bottom-right` をクリック
 - ✅ 良い例: DeckCard.vueで `handleTopRight()` が `moveCardToSide()` を呼ぶことを確認してから `.top-right` をクリック
+
+## デバッグログのルール
+
+**ログレベルの使い分け**
+
+本プロジェクトでは、以下のルールでconsoleログを使い分けます：
+
+| ログレベル | 用途 | 本番環境 | 表示条件 |
+|-----------|------|---------|---------|
+| `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
+| `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
+| `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
+| `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+### console.debug() の利点と注意事項
+
+**利点:**
+1. **本番環境でユーザーに見えない**: デフォルトでは非表示
+2. **必要な時だけ確認可能**: Chrome DevToolsの Console タブで "Verbose" レベルを有効化すれば表示される
+3. **一時的に残せる**: 本番ビルド前に即座に削除する必要がない（デバッグ中の利便性向上）
+
+**注意事項:**
+- **不要になったら削除する**: デバッグが完了したら、不要な `console.debug()` は削除すること
+- **長期的に必要なログではない**: 一時的なデバッグ用途のみ。長期的に残す理由がない場合は削除すべき
+- **コードレビュー時に確認**: PRレビュー時に、残されている `console.debug()` が本当に必要か確認する
+
+### 記述例
+
+```typescript
+// ✅ 良い例: デバッグログ（一時的に残してOK、デバッグ完了後は削除）
+console.debug('[MappingManager] Initializing for language:', lang);
+console.debug('[handleSearch] Query:', query, 'Filters:', filters);
+
+// ❌ 悪い例: console.log でデバッグ（本番前に削除が必要）
+console.log('[DEBUG] Initializing...');
+console.warn('[DEBUG] Query:', query); // warn をデバッグに使うのも不適切
+
+// ✅ 良い例: エラーログ（本番でも必要、削除しない）
+console.error('[MappingManager] Failed to initialize:', error);
+
+// ✅ 良い例: 警告ログ（本番でも必要、削除しない）
+console.warn('[MappingManager] Stored mappings are invalid, fetching fresh data...');
+```
+
+### デバッグログの削除タイミング
+
+以下の場合は `console.debug()` を削除すること：
+
+1. **デバッグ完了後**: 問題が解決し、ログが不要になった時
+2. **機能実装完了時**: その機能のデバッグが終わり、安定動作している時
+3. **PRマージ前**: コードレビューで不要と判断された時
+
+ただし、以下のような場合は一時的に残すことも可能：
+
+- 複雑な処理で、将来的なデバッグに役立つ可能性がある
+- 段階的な開発中で、次のフェーズでも使用する予定がある
+
+**原則**: 迷ったら削除する。必要になったら再度追加すればよい。
+
+### Chrome DevToolsでの表示方法
+
+デバッグログを確認する手順：
+
+1. Chrome DevToolsを開く（F12）
+2. Console タブを選択
+3. フィルターアイコン（漏斗マーク）をクリック
+4. "Verbose" にチェックを入れる
+
+これで `console.debug()` のログが表示されるようになります。
 
 ## 絵文字の使用禁止
 

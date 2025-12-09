@@ -31,6 +31,23 @@
 - CardList.vue との重複カードスタイル削除（31行）
 - ファイルサイズ: 790行 → 519行（34.3%削減）
 
+### デバッグログの整理
+- 本番不要な `console.log()` と `[DEBUG]` プレフィックス付きログを削除
+- 削除対象ファイル:
+  - `src/utils/mapping-manager.ts` - 約20箇所のデバッグログ削除
+  - `src/components/searchInputBar/composables/useSearchExecution.ts` - 5箇所のデバッグログ削除
+  - `src/composables/useSearchHistory.ts` - 4箇所のデバッグログ削除
+- 削減効果: バンドルサイズ 1.86 MiB → 1.85 MiB（約11 KiB削減）
+
+### デバッグログ運用ルールの策定
+- `console.debug()` を推奨（ブラウザのVerboseレベルでのみ表示）
+- `console.log()` は本番前に削除必須
+- `console.warn()` / `console.error()` は本番でも保持
+- CLAUDE.md にデバッグログのルールを追加
+  - ログレベル使い分け表
+  - 削除タイミングのガイドライン
+  - Chrome DevToolsでの表示方法
+
 ## 技術的詳細
 
 ### 新規ファイル

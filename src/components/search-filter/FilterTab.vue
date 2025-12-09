@@ -440,6 +440,7 @@ import type { ExclusionResult } from '@/types/search-exclusion';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '@/api/image-utils';
 import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel } from '@/utils/filter-label';
 import { mappingManager } from '@/utils/mapping-manager';
+import { MONSTER_TYPE_ID_TO_NAME } from '@/types/card-maps';
 
 // Props
 // @ts-ignore - Used by defineProps
@@ -634,7 +635,14 @@ function getRaceButtonLabel(race: string) {
 function getMonsterTypeButtonLabel(type: string) {
   const lang = props.pageLanguage;
   const idToText = mappingManager.getMonsterTypeIdToText(lang);
-  return (idToText as Record<string, string>)[type] || type;
+  const label = (idToText as Record<string, string>)[type];
+
+  // mappingManagerから取得できない場合、MONSTER_TYPE_ID_TO_NAMEをフォールバックとして使用
+  if (!label) {
+    return (MONSTER_TYPE_ID_TO_NAME as Record<string, string>)[type] || type;
+  }
+
+  return label;
 }
 </script>
 

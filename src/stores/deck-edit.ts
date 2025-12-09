@@ -6,9 +6,8 @@ import { sessionManager } from '../content/session/session';
 import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
-import { useToastStore } from './toast-notification';
 import { getCardLimit } from '../utils/card-limit';
-import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
+import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
@@ -29,6 +28,7 @@ import {
   hasOnlySortOrderChanges as hasOnlySortOrderChangesLogic
 } from '../composables/deck/useDeckSnapshot';
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
+import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -92,6 +92,26 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     redo: redoCommand,
     clearHistory
   } = useDeckUndoRedo();
+
+  // デッキ永続化機能 (composableから取得)
+  // initializeDisplayOrder, captureDeckSnapshot は後で定義されるため、
+  // persistence の初期化は関数内で遅延して行う
+  let persistence: ReturnType<typeof useDeckPersistence> | null = null;
+
+  function getPersistence() {
+    if (!persistence) {
+      persistence = useDeckPersistence({
+        sessionManager,
+        deckInfo,
+        lastUsedDno,
+        initializeDisplayOrder,
+        clearHistory,
+        captureDeckSnapshot,
+        savedDeckSnapshot
+      });
+    }
+    return persistence;
+  }
 
   /**
    * カテゴリ優先アイコン表示対象のcidセット（2段階検索）
@@ -859,27 +879,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function saveDeck(dno: number) {
-    try {
-      deckInfo.value.dno = dno;
-
-      // 保存用のデータを作成（deckInfo自体は変更しない）
-      const dataToSave = {
-        ...deckInfo.value,
-        name: deckInfo.value.name || deckInfo.value.originalName || ''
-      };
-
-      const result = await sessionManager.saveDeck(dno, dataToSave);
-
-      if (result.success) {
-        // 保存成功時にスナップショットを更新
-        savedDeckSnapshot.value = captureDeckSnapshot();
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Failed to save deck:', error);
-      return { success: false, error: String(error) };
-    }
+    // useDeckPersistence composable に処理を委譲
+    return getPersistence().saveDeck(dno);
   }
 
   function captureDeckSnapshot(): string {
@@ -902,106 +903,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function loadDeck(dno: number) {
-    try {
-      const cgid = await sessionManager.getCgid();
-
-      // メモリからプリロード済みデータを取得
-      let loadedDeck: DeckInfo | null = null;
-
-      // getDeckDetail の完了を待つ（最大1秒）
-      if (window.ygoNextPreloadedDeckDetailPromise && !window.ygoNextPreloadedDeckDetail) {
-        try {
-          await Promise.race([
-            window.ygoNextPreloadedDeckDetailPromise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Preload timeout')), 1000))
-          ]);
-        } catch (error) {
-          console.warn('[loadDeck] Preload wait failed or timed out:', error);
-        }
-        // 使用後は Promise を削除
-        window.ygoNextPreloadedDeckDetailPromise = null;
-      }
-
-      if (window.ygoNextPreloadedDeckDetail) {
-        loadedDeck = window.ygoNextPreloadedDeckDetail;
-        window.ygoNextPreloadedDeckDetail = null; // 使用後は削除
-      }
-
-      // プリロードデータがなければ通常の getDeckDetailAPI を実行
-      if (!loadedDeck) {
-        loadedDeck = await getDeckDetailAPI(dno, cgid);
-      }
-
-      if (loadedDeck) {
-        // originalNameを保存してからdeckInfoを更新
-        deckInfo.value = {
-          ...loadedDeck,
-          originalName: loadedDeck.name,
-          name: '' // デッキ名を空にする
-        };
-
-        // URLにdnoを同期
-        URLStateManager.setDno(dno);
-
-        // displayOrderを初期化
-        initializeDisplayOrder();
-
-        // ロード時はアニメーション不要（新規表示のため）
-
-        lastUsedDno.value = dno;
-        localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
-
-        // デッキオープンを記録（Tier 5管理用）
-        const allCardIds = [
-          ...loadedDeck.mainDeck.map(card => card.cid),
-          ...loadedDeck.extraDeck.map(card => card.cid),
-          ...loadedDeck.sideDeck.map(card => card.cid)
-        ];
-        recordDeckOpen(dno, allCardIds);
-
-        // メモリ内に保存されたカード情報を Chrome Storage に同期（非同期で実行、UIをブロックしない）
-        // Table A, B, B2 を cache db に保存
-        const { saveUnifiedCacheDB } = await import('../utils/unified-cache-db');
-        saveUnifiedCacheDB().catch(error => {
-          console.error('Failed to save UnifiedCacheDB to storage:', error);
-        });
-
-        // コマンド履歴をリセット
-        clearHistory();
-
-        // Load時点のスナップショットを保存
-        savedDeckSnapshot.value = captureDeckSnapshot();
-
-        // 未発売カード通知を表示（skippedCards があれば）
-        if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
-          const skippedCards = loadedDeck.skippedCards || [];
-          const toastStore = useToastStore();
-
-          // 最大3枚までのカード名を表示（改行で区切る）
-          const bodyLines: string[] = [];
-          if (skippedCards.length > 0) {
-            const displayCards = skippedCards.slice(0, 3);
-            displayCards.forEach((card: any) => {
-              bodyLines.push(card.name);
-            });
-
-            const remainCount = skippedCards.length - displayCards.length;
-            if (remainCount > 0) {
-              bodyLines.push(`ほか${remainCount}枚`);
-            }
-          }
-
-          toastStore.showToast(
-            `${loadedDeck.skippedCardsCount}枚の未発売カードをスキップしました`,
-            'warning',
-            bodyLines.join('\n')
-          );
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load deck:', error);
-      throw error;
-    }
+    // useDeckPersistence composable に処理を委譲
+    return getPersistence().loadDeck(dno);
   }
 
   /**

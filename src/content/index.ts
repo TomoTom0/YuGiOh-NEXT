@@ -36,12 +36,10 @@ import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-
 
 /**
  * グローバル変数拡張
+ * 型定義は src/types/window.d.ts で管理
  */
 declare global {
   interface Window {
-    ygoNextCurrentSettings?: any;
-    ygoNextPreloadedDeckDetail?: any;
-    ygoNextPreloadedDeckList?: any;
     ygoNextPreloadedDeckDetailPromise?: Promise<void> | null;
   }
 }
@@ -143,7 +141,7 @@ async function loadEditUIIfNeeded(): Promise<void> {
 
   // FOUC防止：オーバーレイを即座に作成（モジュールロード前に表示）
   // window.ygoNextCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
-  const cachedSettings = (window as any).ygoNextCurrentSettings;
+  const cachedSettings = window.ygoNextCurrentSettings;
   let overlayTheme: 'light' | 'dark' = 'light';
 
   if (cachedSettings && cachedSettings.theme) {

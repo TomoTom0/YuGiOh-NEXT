@@ -39,7 +39,11 @@ export function getCardTypeLabel(value: string): string {
  */
 export function getMonsterTypeLabel(value: string): string {
   // card-maps.ts のハードコードされた shortname を使用
-  return (MONSTER_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
+  const result = (MONSTER_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
+  if (result === value) {
+    console.warn('[getMonsterTypeLabel] No mapping found for:', value, 'Available keys:', Object.keys(MONSTER_TYPE_ID_TO_SHORTNAME));
+  }
+  return result;
 }
 
 /**
