@@ -28,7 +28,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/chrome": "^0.1.31",
+    "@types/chrome": "^0.1.32",
     "@types/dotenv": "^6.1.1",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^22.19.1",
