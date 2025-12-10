@@ -233,8 +233,8 @@
             <button
               class="level-tab"
               :class="{ active: filters.levelType === 'link' }"
-              :disabled="isFieldDisabled('link-value') && isFieldDisabled('link-marker')"
-              :title="(isFieldDisabled('link-value') && isFieldDisabled('link-marker')) ? (getFieldDisabledReason('link-value') || getFieldDisabledReason('link-marker')) : undefined"
+              :disabled="isFieldDisabled('link-value') || isFieldDisabled('link-marker')"
+              :title="(isFieldDisabled('link-value') || isFieldDisabled('link-marker')) ? (getFieldDisabledReason('link-value') || getFieldDisabledReason('link-marker')) : undefined"
               @click="setLevelType('link')"
             >
               リンク
