@@ -591,23 +591,122 @@ function isFieldDisabled(field: string): boolean {
 
 function getFieldDisabledReason(field: string): string | undefined {
   const fieldState = props.exclusionResult.fieldStates.get(field);
-  return fieldState?.disabledReason;
+  const reason = fieldState?.disabledReason;
+
+  if (!reason) return undefined;
+
+  // 理由をユーザーフレンドリーな形式に変換
+  // パターン: "level-rank,defにより無効" -> "レベル/ランク、DEFが選択/入力されているため"
+  const fieldsMatch = reason.match(/^([^に]+)により無効$/);
+  if (fieldsMatch && fieldsMatch[1]) {
+    const fields = fieldsMatch[1].split(',').map(f => f.trim());
+    const labels = fields.map(f => {
+      const fieldLabels: Record<string, string> = {
+        'level-rank': 'レベル/ランク',
+        'link-value': 'リンク数',
+        'link-marker': 'リンクマーカー',
+        'p-scale': 'Pスケール',
+        'def': 'DEF',
+        'atk': 'ATK',
+        'attribute': '属性',
+        'race': '種族',
+        'spell-type': '魔法タイプ',
+        'trap-type': '罠タイプ'
+      };
+      return fieldLabels[f] || f;
+    });
+    if (labels.length > 1) {
+      return `${labels.slice(0, 2).join('、')}などが選択/入力されているため`;
+    }
+    return `${labels[0]}が選択/入力されているため`;
+  }
+
+  return reason;
 }
 
 function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
+  // フィールド全体が無効化されている場合（cardTypeがspell/trapの場合など）
+  if (props.isMonsterTypeFieldDisabled) {
+    return true;
+  }
+
+  // または個別のモンスタータイプ属性が無効化されているか
   const fieldState = props.exclusionResult.fieldStates.get(`monster-type-${type}`);
   return fieldState ? !fieldState.enabled : false;
 }
 
 function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
+  // フィールド全体が無効化されている場合
+  if (props.isMonsterTypeFieldDisabled) {
+    const fieldState = props.exclusionResult.fieldStates.get('monster-type');
+    const reason = fieldState?.disabledReason;
+
+    if (!reason) {
+      return 'カードタイプがモンスター以外に設定されているため';
+    }
+
+    // 理由をフォーマット（例："card-type_spell,trap~により無効化" -> "魔法、罠が選択されているため"）
+    const cardTypeMatch = reason.match(/^card-type_([^~]+)~により無効化$/);
+    if (cardTypeMatch && cardTypeMatch[1]) {
+      const types = cardTypeMatch[1].split(',').map(t => t.trim());
+      const labels = types.map(t => {
+        const typeLabels: Record<string, string> = {
+          'spell': '魔法',
+          'trap': '罠'
+        };
+        return typeLabels[t] || t;
+      });
+      if (labels.length > 1) {
+        return `${labels.join('、')}が選択されているため`;
+      }
+      return `${labels[0]}が選択されているため`;
+    }
+
+    return reason;
+  }
+
+  // または個別のモンスタータイプが無効化されている場合
   const fieldState = props.exclusionResult.fieldStates.get(`monster-type-${type}`);
-  return fieldState?.disabledReason;
+  const reason = fieldState?.disabledReason;
+
+  if (!reason) return undefined;
+
+  // 「～が選択不可のため無効」パターン: "monster-type_linkが選択不可のため無効" -> "Linkモンスターが選択されているため"
+  const requiredUnavailableMatch = reason.match(/^monster-type_([^\s]+)が選択不可のため無効$/);
+  if (requiredUnavailableMatch && requiredUnavailableMatch[1]) {
+    const monsterType = requiredUnavailableMatch[1];
+    const typeLabels: Record<string, string> = {
+      'link': 'Link',
+      'fusion': 'Fusion',
+      'synchro': 'Synchro',
+      'xyz': 'Xyz',
+      'pendulum': 'Pendulum',
+      'ritual': 'Ritual'
+    };
+    const label = typeLabels[monsterType] || monsterType;
+    return `${label}モンスターが選択されているため`;
+  }
+
+  // 「～と排他」パターン: "monster-type-near-extraグループ: monster-type_normalと排他" -> "通常モンスターが選択されているため"
+  const attrExclusionMatch = reason.match(/グループ:\s*monster-type_([^\s]+)と排他$/);
+  if (attrExclusionMatch && attrExclusionMatch[1]) {
+    const excludingType = attrExclusionMatch[1];
+    const typeLabels: Record<string, string> = {
+      'normal': '通常',
+      'effect': '効果',
+      'special': '特殊'
+    };
+    const label = typeLabels[excludingType] || excludingType;
+    return `${label}モンスターが選択されているため`;
+  }
+
+  return reason;
 }
 
 function getMonsterTypeClass(type: MonsterType) {
   const state = props.filters.monsterTypes.find(t => t.type === type);
   if (!state) return '';
-  return state.exclude ? 'not' : 'active';
+  return state.state === 'not' ? 'not' : 'active';
 }
 
 function isLevelValueActive(num: number): boolean {
@@ -943,7 +1042,7 @@ function getMonsterTypeButtonLabel(type: string) {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -953,7 +1052,7 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   &:disabled[title]:hover::before {
@@ -1268,48 +1367,6 @@ function getMonsterTypeButtonLabel(type: string) {
     }
   }
 
-  // Spirit, Tuner, Gemini, Toon, Union, Flip
-  .chip[data-type="spirit"],
-  .chip[data-type="tuner"],
-  .chip[data-type="gemini"],
-  .chip[data-type="toon"],
-  .chip[data-type="union"],
-  .chip[data-type="flip"] {
-    &:not(:disabled) {
-      background: var(--bg-secondary);
-      border-color: var(--border-primary);
-      color: var(--text-primary);
-    }
-    &:hover:not(:disabled) {
-      background: var(--bg-tertiary);
-      border-color: var(--border-primary);
-      color: var(--text-primary);
-    }
-    &.active:not(:disabled) {
-      background: var(--button-bg);
-      border-color: var(--accent-primary);
-      color: var(--button-text);
-      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
-    }
-    &.active:hover:not(:disabled) {
-      background: var(--button-bg);
-      border-color: var(--accent-primary);
-      color: var(--button-text);
-      opacity: 0.8;
-    }
-    &.not:not(:disabled) {
-      background: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
-      border-color: #b71c1c;
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(211, 47, 47, 0.4);
-    }
-    &.not:hover:not(:disabled) {
-      background: linear-gradient(135deg, #f44336 0%, #e64c3b 50%, #d32f2f 100%);
-      border-color: #b71c1c;
-      color: #ffffff;
-      opacity: 0.9;
-    }
-  }
 }
 
 .type-row {
@@ -1416,7 +1473,7 @@ function getMonsterTypeButtonLabel(type: string) {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -1426,7 +1483,7 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   &:disabled[title]:hover::before {
@@ -1680,7 +1737,7 @@ function getMonsterTypeButtonLabel(type: string) {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -1690,7 +1747,7 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }
 
   &:disabled[title]:hover::before {

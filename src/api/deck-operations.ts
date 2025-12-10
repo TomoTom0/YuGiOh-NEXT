@@ -313,7 +313,7 @@ export async function saveDeckInternal(
 
     // 公式の判定方法に合わせる
     if (data.result) {
-      handleSuccess('[saveDeckInternal]', 'デッキを保存しました');
+      handleSuccess('[saveDeckInternal]', 'デッキを保存しました', '', { showToast: false });
       return { success: true };
     } else {
       if (data.error) {

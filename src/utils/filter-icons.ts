@@ -1,6 +1,6 @@
 import type { SearchFilters } from '../types/search-filters'
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from './filter-chip-formatter'
-import { getRaceLabel } from './filter-label'
+import { getRaceLabel, getSpellTypeLabel, getTrapTypeLabel } from './filter-label'
 import {
   CARD_TYPE_ID_TO_SHORTNAME,
   ATTRIBUTE_ID_TO_NAME,
@@ -28,6 +28,24 @@ export function convertFiltersToIcons(filters: SearchFilters): FilterIcon[] {
       value: filters.cardType
     })
   }
+
+  // 魔法タイプ
+  filters.spellTypes.forEach(spellType => {
+    icons.push({
+      type: 'spellType',
+      label: getSpellTypeLabel(spellType),
+      value: spellType
+    })
+  })
+
+  // 罠タイプ
+  filters.trapTypes.forEach(trapType => {
+    icons.push({
+      type: 'trapType',
+      label: getTrapTypeLabel(trapType),
+      value: trapType
+    })
+  })
 
   // 属性
   filters.attributes.forEach(attr => {

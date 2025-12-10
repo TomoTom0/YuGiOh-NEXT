@@ -20,12 +20,14 @@
           </button>
         </div>
         <div class="header-selected-chips">
-          <span
+          <button
             v-for="(icon, index) in headerFilterIcons"
             :key="index"
             class="header-chip"
             :class="icon.type"
-          >{{ icon.label }}</span>
+            @click.stop="removeHeaderChip(index)"
+            :title="`${icon.label}を削除`"
+          >{{ icon.label }}</button>
         </div>
         <div class="header-actions">
           <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
@@ -297,6 +299,45 @@ function handleHistoryRemove(item: any) {
     searchHistory.removeFromHistory(index);
   }
 }
+
+// ヘッダーチップから対応するフィルターを削除
+function removeHeaderChip(index: number) {
+  const icon = headerFilterIcons[index];
+  if (!icon) return;
+
+  switch (icon.type) {
+    case 'cardType':
+      filters.cardType = null;
+      break;
+    case 'attr':
+      filters.attributes = filters.attributes.filter(a => a !== icon.value);
+      break;
+    case 'race':
+      filters.races = filters.races.filter(r => r !== icon.value);
+      break;
+    case 'level':
+      filters.levelValues = [];
+      break;
+    case 'atk':
+      filters.atk = { exact: false, unknown: false };
+      break;
+    case 'def':
+      filters.def = { exact: false, unknown: false };
+      break;
+    case 'mtype':
+      filters.monsterTypes = filters.monsterTypes.filter(mt => mt.type !== icon.value);
+      break;
+    case 'link':
+      filters.linkValues = [];
+      break;
+    case 'scale':
+      filters.scaleValues = [];
+      break;
+    case 'linkMarker':
+      filters.linkMarkers = [];
+      break;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -353,7 +394,7 @@ function handleHistoryRemove(item: any) {
 .dialog-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 16px 0 16px;
   box-sizing: border-box;
   width: 100%;
 }
@@ -383,6 +424,18 @@ function handleHistoryRemove(item: any) {
   text-overflow: ellipsis;
   flex-shrink: 0;
   line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-tertiary, #e0e0e0);
+    border-color: var(--text-secondary, #999);
+    color: var(--text-primary, #333);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .dialog-tabs {
@@ -456,8 +509,8 @@ function handleHistoryRemove(item: any) {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: 12px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-primary, #ddd);
   box-sizing: border-box;
 
@@ -467,11 +520,11 @@ function handleHistoryRemove(item: any) {
   }
 
   .footer-close-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     margin: 0;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 300;
     line-height: 1;
     color: var(--text-secondary);
@@ -484,7 +537,6 @@ function handleHistoryRemove(item: any) {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 
     &:hover {
       background: var(--bg-secondary);

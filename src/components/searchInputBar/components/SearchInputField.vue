@@ -64,7 +64,7 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
+  width: 100%;
   min-width: 0;
 }
 
@@ -78,6 +78,7 @@ defineExpose({
 
 .search-input {
   flex: 1;
+  width: 100%;
   border: none;
   outline: none;
   background: transparent;
