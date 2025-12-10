@@ -155,7 +155,7 @@ async function generateBackgroundImage(
     dno: props.dno,
     color,
     includeQR: false,
-    scale: 0.25,
+    scale: 0.5,
     deckData: deckDataWithoutTitle
   })
 

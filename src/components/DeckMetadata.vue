@@ -60,7 +60,7 @@ import TagDialog from './TagDialog.vue';
 import DeckMetadataDescription from './DeckMetadataDescription.vue';
 import DeckMetadataTags from './DeckMetadataTags.vue';
 import DeckMetadataHeader from './DeckMetadataHeader.vue';
-import { getTempCardDB } from '../utils/temp-card-db';
+import { getCardInfoFromUnifiedDB } from '../utils/card-utils';
 
 const deckStore = useDeckEditStore();
 
@@ -86,24 +86,24 @@ const showTagDialog = ref(false);
 // デッキ内の全カード情報を取得
 const allDeckCards = computed(() => {
   const cards: any[] = [];
-  const tempCardDB = getTempCardDB();
-  
+
   // mainDeck, extraDeck, sideDeckからカードIDを取得
   const allCardRefs = [
     ...deckStore.deckInfo.mainDeck,
     ...deckStore.deckInfo.extraDeck,
     ...deckStore.deckInfo.sideDeck
   ];
-  
-  // 重複を除いてCardInfoを取得
+
+  // 重複を除いてCardInfoを取得（Table B2=attribute, race, typesが必要）
   const uniqueCardIds = new Set(allCardRefs.map(ref => ref.cid));
   for (const cid of uniqueCardIds) {
-    const cardInfo = tempCardDB.get(cid);
+    // UnifiedCacheDBから取得（完全情報が必要）
+    const cardInfo = getCardInfoFromUnifiedDB(cid);
     if (cardInfo) {
       cards.push(cardInfo);
     }
   }
-  
+
   return cards;
 });
 

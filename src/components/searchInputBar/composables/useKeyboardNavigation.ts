@@ -43,36 +43,35 @@ export function useKeyboardNavigation(
   ): boolean => {
     if (suggestions.length === 0) return false
 
-    if (event.key === 'ArrowDown') {
+    // Tab, ArrowDown, ArrowUp のナビゲーション
+    if (event.key === 'Tab' || event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
-      if (selectedIndex.value < suggestions.length - 1) {
-        selectedIndex.value++
-        // スクロール処理
-        const container = document.querySelector(containerSelector)
-        if (container) {
-          const selectedItem = container.querySelector('.suggestion-item.selected')
-          if (selectedItem) {
-            selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' })
-          }
+
+      // ArrowUp または Shift+Tab で前の候補へ
+      if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
+        if (selectedIndex.value < 0) {
+          selectedIndex.value = suggestions.length - 1
+        } else if (selectedIndex.value <= 0) {
+          selectedIndex.value = suggestions.length - 1
+        } else {
+          selectedIndex.value--
+        }
+      } else {
+        // ArrowDown または Tab で次の候補へ
+        if (selectedIndex.value < 0) {
+          selectedIndex.value = 0
+        } else {
+          selectedIndex.value = (selectedIndex.value + 1) % suggestions.length
         }
       }
-      return true
-    }
 
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      if (selectedIndex.value > 0) {
-        selectedIndex.value--
-        // スクロール処理
-        const container = document.querySelector(containerSelector)
-        if (container) {
-          const selectedItem = container.querySelector('.suggestion-item.selected')
-          if (selectedItem) {
-            selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' })
-          }
+      // スクロール処理
+      const container = document.querySelector(containerSelector)
+      if (container) {
+        const selectedItem = container.querySelector('.suggestion-item.selected')
+        if (selectedItem) {
+          selectedItem.scrollIntoView({ block: 'center', behavior: 'smooth' })
         }
-      } else if (selectedIndex.value === 0) {
-        selectedIndex.value = -1
       }
       return true
     }

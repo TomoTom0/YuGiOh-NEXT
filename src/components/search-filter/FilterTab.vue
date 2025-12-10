@@ -198,6 +198,7 @@
             :key="type"
             class="chip chip-fixed"
             :class="getMonsterTypeClass(type)"
+            :data-type="type"
             :disabled="isMonsterTypeAttributeDisabled(type)"
             :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
             @click="cycleMonsterTypeState(type)"
@@ -1266,6 +1267,49 @@ function getMonsterTypeButtonLabel(type: string) {
       color: var(--monster-pendulum-chip-not-hover-text);
     }
   }
+
+  // Spirit, Tuner, Gemini, Toon, Union, Flip
+  .chip[data-type="spirit"],
+  .chip[data-type="tuner"],
+  .chip[data-type="gemini"],
+  .chip[data-type="toon"],
+  .chip[data-type="union"],
+  .chip[data-type="flip"] {
+    &:not(:disabled) {
+      background: var(--bg-secondary);
+      border-color: var(--border-primary);
+      color: var(--text-primary);
+    }
+    &:hover:not(:disabled) {
+      background: var(--bg-tertiary);
+      border-color: var(--border-primary);
+      color: var(--text-primary);
+    }
+    &.active:not(:disabled) {
+      background: var(--button-bg);
+      border-color: var(--accent-primary);
+      color: var(--button-text);
+      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    }
+    &.active:hover:not(:disabled) {
+      background: var(--button-bg);
+      border-color: var(--accent-primary);
+      color: var(--button-text);
+      opacity: 0.8;
+    }
+    &.not:not(:disabled) {
+      background: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
+      border-color: #b71c1c;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(211, 47, 47, 0.4);
+    }
+    &.not:hover:not(:disabled) {
+      background: linear-gradient(135deg, #f44336 0%, #e64c3b 50%, #d32f2f 100%);
+      border-color: #b71c1c;
+      color: #ffffff;
+      opacity: 0.9;
+    }
+  }
 }
 
 .type-row {
@@ -1594,7 +1638,7 @@ function getMonsterTypeButtonLabel(type: string) {
     }
 
     .selected-chips-inline {
-      background: rgba(255, 249, 230, 0.9);
+      background: transparent;
     }
   }
 }

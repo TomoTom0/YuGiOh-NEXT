@@ -3,6 +3,7 @@ import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
 import { getTempCardDB } from '@/utils/temp-card-db';
 import { detectLanguage } from '@/utils/language-detector';
+import { safeQueryAs, isHTMLInputElement, isHTMLSelectElement, isHTMLTextAreaElement } from '@/utils/type-guards';
 
 /**
  * カードタイプ別のフィールド名マッピング
@@ -46,8 +47,8 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
   const fields = CARD_TYPE_FIELDS[cardType];
 
   // カードIDを取得
-  const cardIdInput = row.querySelector(`input[name="${fields.cardIdName}"]`) as HTMLInputElement;
-  if (!cardIdInput || !cardIdInput.value) {
+  const cardIdInput = safeQueryAs(`input[name="${fields.cardIdName}"]`, isHTMLInputElement, row);
+  if (!cardIdInput?.value) {
     return null;
   }
   const cardId = cardIdInput.value;
@@ -60,8 +61,8 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
   const name = nameElement.textContent.trim();
 
   // 画像情報を取得（ciid_imgHash形式）
-  const imgsInput = row.querySelector(`input[name="${fields.imgsName}"]`) as HTMLInputElement;
-  const imgsValue = imgsInput?.value || '';
+  const imgsInput = safeQueryAs(`input[name="${fields.imgsName}"]`, isHTMLInputElement, row);
+  const imgsValue = imgsInput?.value ?? '';
   
   // ciidとimgHashを抽出（形式: "cardId_ciid_1_1"）
   let ciid: string = '1';
@@ -76,8 +77,8 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
   }
 
   // 枚数を取得
-  const numberInput = row.querySelector(`input[name="${fields.numberName}"]`) as HTMLInputElement;
-  if (!numberInput || !numberInput.value) {
+  const numberInput = safeQueryAs(`input[name="${fields.numberName}"]`, isHTMLInputElement, row);
+  if (!numberInput?.value) {
     return null;
   }
   const quantity = parseInt(numberInput.value, 10);
@@ -151,12 +152,12 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
  */
 export function parseDeckPage(doc: Document): DeckInfo {
   // デッキ番号を取得
-  const dnoInput = doc.querySelector('input[name="dno"]') as HTMLInputElement;
+  const dnoInput = safeQueryAs('input[name="dno"]', isHTMLInputElement, doc);
   const dno = dnoInput?.value ? parseInt(dnoInput.value, 10) : 0;
 
   // デッキ名を取得
-  const nameInput = doc.querySelector('input[name="deck_name"]') as HTMLInputElement;
-  const name = nameInput?.value || '';
+  const nameInput = safeQueryAs('input[name="deck_name"]', isHTMLInputElement, doc);
+  const name = nameInput?.value ?? '';
 
   // メインデッキのカードを抽出
   const mainDeckElement = doc.querySelector('#main-deck');
@@ -198,16 +199,16 @@ export function parseDeckPage(doc: Document): DeckInfo {
   }
 
   // 公開/非公開を取得
-  const isPublicCheckbox = doc.querySelector('input[name="is_public"]') as HTMLInputElement;
-  const isPublic = isPublicCheckbox?.checked || false;
+  const isPublicCheckbox = safeQueryAs('input[name="is_public"]', isHTMLInputElement, doc);
+  const isPublic = isPublicCheckbox?.checked ?? false;
 
   // デッキタイプを取得（value値として保存）
-  const deckTypeSelect = doc.querySelector('select[name="deck_type"]') as HTMLSelectElement;
-  const deckType = deckTypeSelect?.value || undefined;
+  const deckTypeSelect = safeQueryAs('select[name="deck_type"]', isHTMLSelectElement, doc);
+  const deckType = deckTypeSelect?.value ?? undefined;
 
   // コメントを取得
-  const commentTextarea = doc.querySelector('textarea[name="comment"]') as HTMLTextAreaElement;
-  const comment = commentTextarea?.value || "";
+  const commentTextarea = safeQueryAs('textarea[name="comment"]', isHTMLTextAreaElement, doc);
+  const comment = commentTextarea?.value ?? "";
 
   // カテゴリ、タグ、デッキコードを取得（編集ページでは未実装のため空の値）
   const category: string[] = [];

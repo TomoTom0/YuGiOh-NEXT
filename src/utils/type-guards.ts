@@ -84,6 +84,26 @@ export function isHTMLAnchorElement(element: any): element is HTMLAnchorElement 
 }
 
 /**
+ * 要素が HTMLOptionElement かどうかをチェック
+ *
+ * @param element 対象要素
+ * @returns HTMLOptionElement である場合は true
+ */
+export function isHTMLOptionElement(element: any): element is HTMLOptionElement {
+  return element instanceof HTMLOptionElement;
+}
+
+/**
+ * 要素が HTMLTextAreaElement かどうかをチェック
+ *
+ * @param element 対象要素
+ * @returns HTMLTextAreaElement である場合は true
+ */
+export function isHTMLTextAreaElement(element: any): element is HTMLTextAreaElement {
+  return element instanceof HTMLTextAreaElement;
+}
+
+/**
  * オブジェクトが Record<string, T> かどうかをチェック
  *
  * @param obj 対象オブジェクト

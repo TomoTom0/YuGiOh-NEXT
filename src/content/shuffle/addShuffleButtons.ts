@@ -4,6 +4,7 @@
 
 import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
 import { safeQuery } from '../../utils/safe-dom-query';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
 
 /**
  * シャッフルアイコン（ランダム/シャッフル）
@@ -34,8 +35,12 @@ const SORT_ICON = `
  * 指定されたデッキセクションにシャッフルボタンを追加する
  */
 function addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side'): HTMLElement | null {
+  // EXTENSION_IDS から対応するボタンIDを取得
+  const shuffleButtonId = EXTENSION_IDS.shuffle[`${sectionId}ShuffleButton` as const];
+  const sortButtonId = EXTENSION_IDS.shuffle[`${sectionId}SortButton` as const];
+
   // 既にボタンが存在する場合はスキップ
-  if (safeQuery(`#ygo-shuffle-btn-${sectionId}`)) {
+  if (safeQuery(`#${shuffleButtonId}`)) {
     return null;
   }
 
@@ -64,11 +69,11 @@ function addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side'): HTMLE
   }
 
   // シャッフルボタン
-  const shuffleBtn = createButton(`ygo-shuffle-btn-${sectionId}`, SHUFFLE_ICON, 'シャッフル');
+  const shuffleBtn = createButton(shuffleButtonId, SHUFFLE_ICON, 'シャッフル');
   top.insertBefore(shuffleBtn, cardCountSpan);
 
   // ソートボタン
-  const sortBtn = createButton(`ygo-sort-btn-${sectionId}`, SORT_ICON, '元に戻す');
+  const sortBtn = createButton(sortButtonId, SORT_ICON, '元に戻す');
   top.insertBefore(sortBtn, cardCountSpan);
 
   return shuffleBtn;
@@ -96,7 +101,7 @@ export function addShuffleButtons(): HTMLElement | null {
 function createButton(id: string, iconSvg: string, title: string): HTMLAnchorElement {
   const button = document.createElement('a');
   button.id = id;
-  button.className = 'ytomo-neuron-btn';
+  button.className = 'ygo-next ytomo-neuron-btn';
   button.href = '#';
   button.title = title;
   button.style.cssText = 'margin-right: 8px;';

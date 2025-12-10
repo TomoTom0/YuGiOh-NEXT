@@ -11,6 +11,7 @@ export interface FilterIcon {
   type: string;
   label: string;
   value?: string; // 削除時に使用する元の値
+  isNot?: boolean; // NOT条件（否定）
 }
 
 /**
@@ -76,9 +77,10 @@ export function convertFiltersToIcons(filters: SearchFilters): FilterIcon[] {
   // モンスタータイプ
   filters.monsterTypes.forEach(mt => {
     icons.push({
-      type: 'monsterType',
+      type: 'mtype',
       label: MONSTER_TYPE_ID_TO_SHORTNAME[mt.type] || mt.type.slice(0, 1),
-      value: mt.type
+      value: mt.type,
+      isNot: mt.state === 'not'
     })
   })
 

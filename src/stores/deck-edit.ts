@@ -316,9 +316,23 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
     // 元の位置を事前に記録
-    const sectionOrder = displayOrder.value[section];
-    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
-    if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
+    const sectionOrder = displayOrder.value?.[section];
+    if (!sectionOrder || !Array.isArray(sectionOrder)) {
+      console.error(`[reorderWithinSection] Invalid section order for section "${section}"`, { section, displayOrder: displayOrder.value });
+      return { success: false, error: `無効なセクション: ${section}` };
+    }
+
+    // sourceUuidとtargetUuidのバリデーション
+    if (!sourceUuid || typeof sourceUuid !== 'string') {
+      console.error('[reorderWithinSection] Invalid sourceUuid', { sourceUuid });
+      return { success: false, error: 'ソースUUIDが無効です' };
+    }
+
+    const sourceIndex = sectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
+    if (sourceIndex === -1) {
+      console.debug(`[reorderWithinSection] Source card not found: ${sourceUuid} in section ${section}`);
+      return { success: false, error: 'カードが見つかりません' };
+    }
 
     // targetIndexを計算
     let targetIndex: number;
@@ -326,8 +340,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 末尾に移動
       targetIndex = sectionOrder.length - 1;
     } else {
-      const targetIdx = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
-      if (targetIdx === -1) return { success: false, error: 'ターゲットカードが見つかりません' };
+      if (!targetUuid || typeof targetUuid !== 'string') {
+        console.error('[reorderWithinSection] Invalid targetUuid', { targetUuid });
+        return { success: false, error: 'ターゲットUUIDが無効です' };
+      }
+
+      const targetIdx = sectionOrder.findIndex(dc => dc?.uuid === targetUuid);
+      if (targetIdx === -1) {
+        console.debug(`[reorderWithinSection] Target card not found: ${targetUuid} in section ${section}`);
+        return { success: false, error: 'ターゲットカードが見つかりません' };
+      }
       // sourceがtargetより後ろにある場合は targetIdx、前にある場合は targetIdx + 1
       targetIndex = sourceIndex > targetIdx ? targetIdx : targetIdx + 1;
     }
@@ -991,15 +1013,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         // URLからUI状態を復元（activeTabは既に初期化時に設定済み）
         const uiState = URLStateManager.restoreUIStateFromURL();
         if (uiState.viewMode) viewMode.value = uiState.viewMode;
-        if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
+        // sortOrderは常にデフォルト値（release_desc）を使用（Search tab のデフォルトソート順序）
+        sortOrder.value = 'release_desc';
         // activeTabは初期化時に設定済みなのでスキップ
         if (uiState.cardTab) cardTab.value = uiState.cardTab;
         if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
-
-        // URLにsortOrderがない場合は設定から読み込む
-        if (!uiState.sortOrder) {
-          sortOrder.value = settingsStore.appSettings.defaultSortOrder;
-        }
 
         // URLから設定を復元（URLパラメータが設定ストアより優先）
         const urlSettings = URLStateManager.restoreSettingsFromURL();

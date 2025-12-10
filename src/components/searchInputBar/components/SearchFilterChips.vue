@@ -15,10 +15,12 @@
       v-for="(icon, index) in displayFilterIcons"
       :key="`icon-${index}`"
       class="filter-icon-item clickable"
-      :class="icon.type"
+      :class="[icon.type, { 'not-condition': icon.isNot }]"
       @click="$emit('remove-icon', icon)"
       :title="`クリックで削除: ${icon.label}`"
-    >{{ icon.label }}</span>
+    >
+      <span v-if="icon.isNot" class="not-prefix">!</span>{{ icon.label }}
+    </span>
     <button
       v-if="hasActiveFilters || filterChipsCount > 0"
       class="clear-filters-btn-top"

@@ -281,9 +281,20 @@ export default {
         // reflow強制
         textElement.offsetHeight
 
-        // CSS変数の値に戻す
-        textElement.style.maxHeight = null
+        // 制限された高さに設定（CSS変数から計算）
+        const computedStyle = getComputedStyle(textElement)
+        const cardHeight = parseInt(computedStyle.getPropertyValue('--card-height-list') || '200', 10)
+        const restrictedHeight = cardHeight - 51 // カード高さ - 名前(15px) - stats(26px) - margins(10px)
+        textElement.style.maxHeight = `${restrictedHeight}px`
+
         expandedCards.delete(uuid)
+
+        // transition終了後にインラインスタイルをクリア
+        const onTransitionEnd = () => {
+          textElement.style.maxHeight = null
+          textElement.removeEventListener('transitionend', onTransitionEnd)
+        }
+        textElement.addEventListener('transitionend', onTransitionEnd)
       } else {
         // 展開: まず状態を更新
         expandedCards.add(uuid)

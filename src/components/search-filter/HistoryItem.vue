@@ -89,10 +89,11 @@ const filterIcons = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 1rem 1.25rem;
   background: var(--bg-secondary);
   border-radius: 0.5rem;
   transition: background 0.2s;
+  gap: 1rem;
 
   &:hover {
     background: var(--bg-tertiary);
@@ -106,18 +107,19 @@ const filterIcons = computed(() => {
 
 .history-chips {
   display: flex;
-  gap: 0.25rem;
-  margin-bottom: 0.25rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
   flex-wrap: wrap;
 }
 
 .history-chip {
-  padding: 0.1rem 0.4rem;
-  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
   border-radius: 0.25rem;
   background: var(--chip-bg);
   color: var(--chip-text);
   font-weight: 500;
+  white-space: nowrap;
 
   &.type {
     background: var(--accent-primary);
@@ -142,22 +144,25 @@ const filterIcons = computed(() => {
 
 .history-query {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  flex-wrap: wrap;
 }
 
 .history-mode {
-  padding: 0.1rem 0.4rem;
+  padding: 0.25rem 0.6rem;
   background: var(--badge-bg);
   border-radius: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--badge-text);
+  white-space: nowrap;
 }
 
 .history-text {
   flex: 1;
+  min-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -165,23 +170,24 @@ const filterIcons = computed(() => {
 }
 
 .history-count {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .history-actions {
   display: flex;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .history-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.5rem;
+  height: 2.5rem;
   background: transparent;
   border: none;
   border-radius: 0.25rem;

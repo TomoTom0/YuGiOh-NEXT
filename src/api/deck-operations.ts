@@ -7,6 +7,8 @@ import { detectLanguage } from '@/utils/language-detector';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
+import { handleError, handleSuccess, handleDebug } from '@/utils/error-handler';
+import { DECK_OPE, WNAME, API_ENDPOINT } from '@/constants/api-params';
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -23,17 +25,20 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     const ytkn = await fetchYtknFromDeckList(cgid, gameType);
 
     if (!ytkn) {
-      console.error('[createNewDeckInternal] Failed to fetch ytkn');
+      handleError(
+        '[createNewDeckInternal]',
+        'デッキ作成に失敗しました',
+        new Error('Failed to fetch ytkn'),
+        { showToast: true }
+      );
       return 0;
     }
-
-    const wname = 'MemberDeck';
 
     // buildApiUrl()でベースURLを取得し、パラメータを手動で追加
     // パラメータ順序を保証するため、URLクラスの searchParams は使わない
     // noLocale: true を指定して request_locale を絶対に付与しない
-    const baseUrl = buildApiUrl('member_deck.action', gameType, undefined, true);
-    const url = `${baseUrl}?ope=6&wname=${wname}&cgid=${cgid}&ytkn=${ytkn}`;
+    const baseUrl = buildApiUrl(API_ENDPOINT.MEMBER_DECK, gameType, undefined, true);
+    const url = `${baseUrl}?ope=${DECK_OPE.CREATE}&wname=${WNAME.MEMBER_DECK}&cgid=${cgid}&ytkn=${ytkn}`;
 
     const { default: axios } = await import('axios');
     // NOTE: createNewDeckInternal はユーザー操作（新規デッキ作成）のクリティカルパスなため、
@@ -50,14 +55,25 @@ export async function createNewDeckInternal(cgid: string): Promise<number> {
     const deckList = parseDeckList(doc);
 
     if (deckList.length === 0) {
-      console.error('[createNewDeckInternal] No decks found in list after creation');
+      handleError(
+        '[createNewDeckInternal]',
+        'デッキ作成に失敗しました',
+        new Error('No decks found in list after creation'),
+        { showToast: true }
+      );
       return 0;
     }
 
     const maxDno = Math.max(...deckList.map(deck => deck.dno));
+    handleSuccess('[createNewDeckInternal]', 'デッキを作成しました');
     return maxDno;
   } catch (error) {
-    console.error('[createNewDeckInternal] Failed to create new deck:', error);
+    handleError(
+      '[createNewDeckInternal]',
+      'デッキ作成に失敗しました',
+      error,
+      { showToast: true }
+    );
     return 0;
   }
 }
@@ -79,14 +95,17 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
     const ytkn = await fetchYtknFromEditForm(cgid, dno, gameType);
 
     if (!ytkn) {
-      console.error('[deleteDeckInternal] Failed to fetch ytkn');
+      handleError(
+        '[deleteDeckInternal]',
+        'デッキ削除に失敗しました',
+        new Error('Failed to fetch ytkn'),
+        { showToast: true }
+      );
       return false;
     }
 
-    const wname = 'MemberDeck';
-
     // URLを構築（buildApiUrl経由、ope=7は request_locale 付与）
-    const path = `member_deck.action?ope=7&cgid=${cgid}&dno=${dno}&wname=${wname}&ytkn=${ytkn}`;
+    const path = `${API_ENDPOINT.MEMBER_DECK}?ope=${DECK_OPE.DELETE}&cgid=${cgid}&dno=${dno}&wname=${WNAME.MEMBER_DECK}&ytkn=${ytkn}`;
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
@@ -96,9 +115,25 @@ export async function deleteDeckInternal(cgid: string, dno: number): Promise<boo
       withCredentials: true
     });
 
-    return response.status === 200;
+    const success = response.status === 200;
+    if (success) {
+      handleSuccess('[deleteDeckInternal]', 'デッキを削除しました');
+    } else {
+      handleError(
+        '[deleteDeckInternal]',
+        'デッキ削除に失敗しました',
+        new Error(`HTTP ${response.status}`),
+        { showToast: true }
+      );
+    }
+    return success;
   } catch (error) {
-    console.error('[deleteDeckInternal] Failed to delete deck:', error);
+    handleError(
+      '[deleteDeckInternal]',
+      'デッキ削除に失敗しました',
+      error,
+      { showToast: true }
+    );
     return false;
   }
 }
@@ -123,11 +158,11 @@ export async function saveDeckInternal(
     // URL-encoded形式でデータを構築（公式と同じ順序で）
     const params = new URLSearchParams();
     
-    // ope=3を先頭に追加
-    params.append('ope', '3');
+    // ope=3（SAVE）を先頭に追加
+    params.append('ope', DECK_OPE.SAVE);
     
     // 基本情報
-    params.append('wname', 'MemberDeck');
+    params.append('wname', WNAME.MEMBER_DECK);
     params.append('ytkn', ytkn);
     params.append('dnm', deckData.name);
     params.append('dno', dno.toString());
@@ -172,11 +207,23 @@ export async function saveDeckInternal(
     const TOTAL_SIDE_SLOTS = 20;   // サイド: 20枠
 
     const tempCardDB = getTempCardDB();
+    const unifiedDB = getUnifiedCacheDB();
+
+    // cardType を取得するヘルパー関数（TempCardDB → UnifiedCacheDB フォールバック）
+    const getCardType = (cid: string): string | undefined => {
+      const card = tempCardDB.get(cid);
+      if (card?.cardType) {
+        return card.cardType;
+      }
+      // フォールバック: UnifiedCacheDB から再構築して取得
+      const unifiedCard = unifiedDB.reconstructCardInfo(cid);
+      return unifiedCard?.cardType;
+    };
 
     // メインデッキ: モンスター（実カード→空き枠）
     const mainMonsters = deckData.mainDeck.filter(c => {
-      const card = tempCardDB.get(c.cid);
-      return card?.cardType === 'monster';
+      const cardType = getCardType(c.cid);
+      return cardType === 'monster';
     });
     mainMonsters.forEach(cardRef => {
       appendCardToFormData(params, cardRef, 'main');
@@ -190,8 +237,8 @@ export async function saveDeckInternal(
 
     // メインデッキ: 魔法（実カード→空き枠）
     const mainSpells = deckData.mainDeck.filter(c => {
-      const card = tempCardDB.get(c.cid);
-      return card?.cardType === 'spell';
+      const cardType = getCardType(c.cid);
+      return cardType === 'spell';
     });
     mainSpells.forEach(cardRef => {
       appendCardToFormData(params, cardRef, 'main');
@@ -205,8 +252,8 @@ export async function saveDeckInternal(
 
     // メインデッキ: 罠（実カード→空き枠）
     const mainTraps = deckData.mainDeck.filter(c => {
-      const card = tempCardDB.get(c.cid);
-      return card?.cardType === 'trap';
+      const cardType = getCardType(c.cid);
+      return cardType === 'trap';
     });
     mainTraps.forEach(cardRef => {
       appendCardToFormData(params, cardRef, 'main');
@@ -241,8 +288,8 @@ export async function saveDeckInternal(
     }
 
     const gameType = detectCardGameType();
-    // buildApiUrl経由、ope=3は request_locale 付与
-    const path = `member_deck.action?cgid=${cgid}`;
+    // buildApiUrl経由、ope=SAVE は request_locale 付与
+    const path = `${API_ENDPOINT.MEMBER_DECK}?cgid=${cgid}`;
     const postUrl = buildApiUrl(path, gameType);
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
 
@@ -266,24 +313,40 @@ export async function saveDeckInternal(
 
     // 公式の判定方法に合わせる
     if (data.result) {
+      handleSuccess('[saveDeckInternal]', 'デッキを保存しました');
       return { success: true };
     } else {
       if (data.error) {
-        console.error('[saveDeckInternal] ❌ Save failed:', data.error);
+        handleError(
+          '[saveDeckInternal]',
+          'デッキ保存に失敗しました',
+          new Error(data.error.join(', ')),
+          { showToast: true, toastBody: data.error.join('\n') }
+        );
         return {
           success: false,
           error: data.error
         };
       }
       // data.resultがfalseでerrorもない場合
-      console.error('[saveDeckInternal] ❌ Save failed: Unknown error (no error message from server)');
+      handleError(
+        '[saveDeckInternal]',
+        'デッキ保存に失敗しました',
+        new Error('Unknown error (no error message from server)'),
+        { showToast: true }
+      );
       return {
         success: false,
         error: ['保存に失敗しました']
       };
     }
   } catch (error) {
-    console.error('[saveDeckInternal] Exception:', error);
+    handleError(
+      '[saveDeckInternal]',
+      'デッキ保存に失敗しました',
+      error,
+      { showToast: true }
+    );
     return {
       success: false,
       error: [error instanceof Error ? error.message : 'Unknown error']
@@ -316,7 +379,7 @@ function appendCardToFormData(
   const card = unifiedDB.reconstructCardInfo(cid, lang);
 
   if (!card) {
-    console.error(`[appendCardToFormData] Card not found in UnifiedCacheDB: ${cid}`);
+    handleDebug('[appendCardToFormData]', `Card not found in UnifiedCacheDB: ${cid}`);
     return;
   }
 
@@ -383,14 +446,14 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     const gameType = detectCardGameType();
 
     // URLパラメータを構築
-    let path = `member_deck.action?ope=1&dno=${dno}`;
+    let path = `${API_ENDPOINT.MEMBER_DECK}?ope=${DECK_OPE.VIEW}&dno=${dno}`;
 
     // cgidが指定されている場合は追加
     if (cgid) {
       path += `&cgid=${cgid}`;
     }
 
-    // buildApiUrl経由、ope=1は request_locale 付与
+    // buildApiUrl経由、ope=VIEW は request_locale 付与
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
@@ -411,12 +474,12 @@ export async function getDeckDetail(dno: number, cgid?: string): Promise<DeckInf
     // 複数ciidを含むカード情報をChrome Storageに永続化（非同期で実行、UIをブロックしない）
     const { saveUnifiedCacheDB } = await import('@/utils/unified-cache-db');
     saveUnifiedCacheDB().catch(error => {
-      console.error('[getDeckDetail] Failed to save UnifiedCacheDB:', error);
+      handleDebug('[getDeckDetail]', 'Failed to save UnifiedCacheDB:', error);
     });
 
     return deckInfo;
   } catch (error) {
-    console.error('Failed to get deck detail:', error);
+    handleError('[getDeckDetail]', 'デッキ詳細の取得に失敗しました', error, { showToast: true });
     return null;
   }
 }
@@ -438,8 +501,8 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
   try {
     const gameType = detectCardGameType();
 
-    // buildApiUrl経由、ope=4は request_locale なし
-    const path = `member_deck.action?ope=4&cgid=${cgid}`;
+    // buildApiUrl経由、ope=LIST は request_locale なし
+    const path = `${API_ENDPOINT.MEMBER_DECK}?ope=${DECK_OPE.LIST}&cgid=${cgid}`;
     const url = buildApiUrl(path, gameType);
 
     const { default: axios } = await import('axios');
@@ -458,7 +521,7 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
 
     return deckList;
   } catch (error) {
-    console.error('Failed to get deck list:', error);
+    handleError('[getDeckListInternal]', 'デッキ一覧の取得に失敗しました', error, { showToast: true });
     return [];
   }
 }
