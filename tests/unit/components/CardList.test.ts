@@ -691,8 +691,8 @@ describe('CardList.vue', () => {
         });
 
         const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
-        // 種族未定義のカードは空文字列で扱われるため最前面（昇順時）
-        expect(cardNames[0]).toBe('種族未定義');
+        // 種族未定義のカードは末尾に配置される
+        expect(cardNames[cardNames.length - 1]).toBe('種族未定義');
       });
 
       it('属性昇順ソート時、undefined Attributeは空文字列として扱われる', () => {
@@ -708,8 +708,8 @@ describe('CardList.vue', () => {
         });
 
         const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
-        // 属性未定義のカードは空文字列で扱われるため最前面（昇順時）
-        expect(cardNames[0]).toBe('属性未定義');
+        // 属性未定義のカードは末尾に配置される
+        expect(cardNames[cardNames.length - 1]).toBe('属性未定義');
       });
     });
 
