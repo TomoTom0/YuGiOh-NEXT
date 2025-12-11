@@ -87,32 +87,41 @@ function handleRemove(item: SearchHistoryItem) {
 
 <style scoped lang="scss">
 .history-tab {
-  overflow-y: auto;
-  max-height: 500px;
+  width: 100%;
+  padding: 0;
+  background: var(--bg-primary);
 }
 
 .history-empty {
   text-align: center;
   color: var(--text-secondary);
-  padding: 2rem;
-  font-size: 0.95rem;
+  padding: 3rem 2rem;
+  font-size: 1.1rem;
 }
 
 .history-section {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+
+  &:first-child {
+    margin-top: 0.75rem;
+  }
 }
 
 .history-section-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 0.5rem;
-  padding: 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0;
+  border-bottom: 2px solid var(--border-primary, #ddd);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 </style>

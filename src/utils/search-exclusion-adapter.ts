@@ -56,6 +56,7 @@ export function toSearchConditionState(filters: SearchFilters): SearchConditionS
     'atk': hasAtkInput(filters.atk),
     'attribute': filters.attributes.length > 0,
     'race': filters.races.length > 0,
+    'monster-type': filters.monsterTypes.length > 0,
     'spell-type': filters.spellTypes.length > 0,
     'trap-type': filters.trapTypes.length > 0,
   };

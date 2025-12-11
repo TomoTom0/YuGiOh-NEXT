@@ -63,7 +63,11 @@ export function useSlashCommands(options: UseSlashCommandsOptions): UseSlashComm
         { command: '/def', description: 'DEF' },
         { command: '/type', description: 'カードタイプ' },
         { command: '/link', description: 'リンク数' },
-        { command: '/mtype', description: 'モンスタータイプ' }
+        { command: '/mtype', description: 'モンスタータイプ' },
+        { command: '/search', description: '検索モード' },
+        { command: '/clear', description: '全てクリア' },
+        { command: '/clear-cond', description: '条件クリア' },
+        { command: '/clear-text', description: 'テキストクリア' }
       ]
     }
 

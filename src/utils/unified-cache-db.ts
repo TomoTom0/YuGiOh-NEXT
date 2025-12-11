@@ -1072,14 +1072,25 @@ export class UnifiedCacheDB {
     try {
       const tableC = this.cardTableCCache.get(cardId)
       if (tableC) {
-        // TableCにはtext/pendTextは含まれなくなったので、ここでは何もしない
-        // 将来的にTableCに他のフィールドが追加されたらここでマージ
+        const anyCard: any = resultCard as any
+        // CardTableCの補足情報をマージ
+        if (tableC.supplInfo !== undefined) anyCard.supplInfo = tableC.supplInfo
+        if (tableC.supplDate !== undefined) anyCard.supplDate = tableC.supplDate
+        if (tableC.pendSupplInfo !== undefined) anyCard.pendSupplInfo = tableC.pendSupplInfo
+        if (tableC.pendSupplDate !== undefined) anyCard.pendSupplDate = tableC.pendSupplDate
       }
     } catch (e) {
       // Defensive: don't break reconstruction on merge errors
     }
 
     return resultCard
+  }
+
+  /**
+   * CardTableCがマージされているか確認
+   */
+  hasCardTableC(cardId: string): boolean {
+    return this.cardTableCCache.has(cardId);
   }
 
   /**

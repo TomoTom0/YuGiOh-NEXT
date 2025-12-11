@@ -8,6 +8,8 @@
 import './public-path';
 
 // 共通スタイル
+import '../styles/themes.scss';
+import '../styles/common.scss';
 import './styles/buttons.scss';
 
 // 設定読み込み

@@ -124,6 +124,8 @@ export default defineComponent({
   transition: background 0.15s;
   transform: translateZ(0); // ハードウェアアクセラレーション
   will-change: background-color; // 背景色変更の最適化
+  // 親要素の色継承をリセット
+  color: var(--text-primary, #333);
 
   &:hover {
     background: var(--bg-secondary, #f5f5f5);
@@ -176,6 +178,10 @@ export default defineComponent({
   font-family: monospace;
   font-weight: bold;
   white-space: nowrap;
+}
+
+.command-suggestions {
+  /* コマンド候補リストは通常のドロップダウンと同じスタイル */
 }
 
 .mydeck-suggestions {

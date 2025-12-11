@@ -49,6 +49,20 @@
         "def",
         "level-rank"
       ]
+    },
+    {
+      "title": "spell-type-monster-type-exclude",
+      "trigger": "spell-type*",
+      "negative": [
+        "monster-type*"
+      ]
+    },
+    {
+      "title": "trap-type-monster-type-exclude",
+      "trigger": "trap-type*",
+      "negative": [
+        "monster-type*"
+      ]
     }
   ],
   "fieldToAttribute": [

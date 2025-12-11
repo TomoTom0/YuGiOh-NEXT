@@ -5,45 +5,79 @@
 ### 全テストの実行
 
 ```bash
-npm test
+bun run test:vitest
 ```
 
 ### 特定のテストスイートの実行
 
 ```bash
 # ユニットテストのみ
-npm test -- tests/unit/
+bun run test:vitest src/utils/__tests__/
 
 # 結合テストのみ
-npm test -- tests/combine/
+bun run test:vitest src/composables/__tests__/
 
 # 特定のファイル
-npm test -- tests/unit/language-detector.test.ts
+bun run test:vitest src/utils/__tests__/language-detector.test.ts
 ```
 
 ### ウォッチモード
 
 ```bash
-npm test -- --watch
+bun run test:vitest --watch
 ```
 
 ### カバレッジレポート
 
 ```bash
-npm test -- --coverage
+bun run test:vitest --coverage
 ```
 
 ## テスト構成
 
-- `tests/unit/` - ユニットテスト
-  - `language-detector.test.ts` - 言語検出機能
-  - `mapping-manager.test.ts` - マッピング管理機能
-  - `card-animation.test.ts` - カードアニメーション機能
-  
-- `tests/combine/` - 結合テスト
-  - `parser/` - HTMLパーサーテスト
+- `src/utils/__tests__/` - ユーティリティテスト
+  - `safe-dom-query.test.ts` - DOM クエリ安全ユーティリティテスト（32個のテスト）
+  - `type-guards.test.ts` - 型ガード関数テスト（30個のテスト）
+  - `language-detector.test.ts` - 言語検出機能テスト
+  - `mapping-manager.test.ts` - マッピング管理機能テスト
+  - `card-animation.test.ts` - カードアニメーション機能テスト
+
+- `src/composables/__tests__/` - Composable テスト
   - `deck-edit/` - デッキ編集機能テスト
-  - `i18n/` - 多言語対応テスト
+  - `search/` - 検索機能テスト
+
+- `tests/browser/` - ブラウザ自動テスト（CDP/Playwright経由）
+  - `test-buttons.js` - ボタン機能テスト
+  - `test-shuffle.js` - シャッフル機能テスト
+
+## コーディング規約
+
+### デバッグログのルール
+
+本プロジェクトでは、ログレベルの使い分けを以下のように定めています：
+
+| ログレベル | 用途 | 本番環境 | 表示条件 |
+|-----------|------|---------|---------|
+| `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
+| `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
+| `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
+| `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+#### 推奨事項
+
+**デバッグ中:**
+```typescript
+// ✅ 推奨: console.debug() を使用（一時的に残してOK）
+console.debug('[MappingManager] Initializing for language:', lang);
+console.debug('[handleSearch] Query:', query, 'Filters:', filters);
+```
+
+**本番前:**
+- デバッグが完了したら、不要な `console.debug()` を削除
+- `console.log()` は必ず削除
+- `console.warn()` / `console.error()` は必要に応じて保持
+
+詳細は [CLAUDE.md - デバッグログのルール](../../CLAUDE.md#デバッグログのルール) を参照してください。
 
 ## コーディング規約
 

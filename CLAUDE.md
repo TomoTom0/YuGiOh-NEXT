@@ -164,26 +164,36 @@ const browser = await chromium.launchPersistentContext(userDataDir, {
 ### 基本的な使い方
 
 ```bash
-# 新しいタスクを作成
+# 新しいタスクを作成（自動的に version: "tbd" が設定される）
 tm new "タスクのタイトル" --body "タスクの詳細説明" --status todo
 
-# タスク一覧を表示
+# タスク一覧を表示（todo, wipのみ）
 tm list
 
-# 特定のステータスのタスクのみ表示
-tm list --status todo
-tm list --status wip
-tm list --status done
+# 全てのオープンタスクを表示（todo, wip, pending, long）
+tm list --open
+
+# 全てのタスクを表示（done, closedも含む）
+tm list --status-all
 
 # タスクの詳細を表示
 tm get <タスクID>
+
+# タスクの詳細を履歴込みで表示
+tm get <タスクID> --history
 
 # タスクのステータスを変更
 tm update <タスクID> --status wip   # 作業中に変更
 tm update <タスクID> --status todo  # 未着手に戻す
 
-# タスクを完了としてマーク
-tm finish <タスクID>
+# タスクを完了としてマーク（CHANGELOG用の情報をbodyに記載）
+tm finish <タスクID> --body "CHANGELOG: Bug fix - カード名に特殊文字が含まれる場合のインポート失敗を修正"
+
+# バージョンを設定（CHANGELOG記載後）
+tm release <タスクID> --version 0.5.5
+
+# タスクをクローズ（キャンセル・不要になった場合）
+tm close <タスクID> --body "機能が不要になったためクローズ"
 ```
 
 ### タスクステータス
@@ -193,16 +203,73 @@ tm finish <タスクID>
 - `pending`: 保留中のタスク（他のタスクの完了待ち、判断保留など）
 - `long`: 長期タスク（マイルストーン的なもの、複数のサブタスクを含む）
 - `done`: 完了したタスク
+- `closed`: クローズされたタスク（キャンセル、不要になった等）
+
+**注意**:
+- `tm list` は `todo` と `wip` のタスクのみを表示します（デフォルト）
+- `tm list --open` で `todo, wip, pending, long` を含む全てのオープンタスクを表示
+- `tm list --status-all` で `done, closed` を含む全てのタスクを表示
+- 新規タスクには自動的に `version: "tbd"` が設定される
+
+### フィルタリングオプション
+
+`tm list` コマンドでは、以下の強力なフィルタリングオプションが使用できます：
+
+| オプション | 説明 | 使用例 |
+|-----------|------|--------|
+| `--open` | 全てのオープンタスク（todo, wip, pending, long）を表示 | `tm ls --open` |
+| `--status-all, -a` | 全てのタスク（done/closedを含む）を表示 | `tm ls --status-all` |
+| `--priority <p>` | 優先度でフィルタ | `tm ls --priority high` |
+| `--status <s>` | ステータスでフィルタ | `tm ls --status wip` |
+| `--version <v>` | バージョンでフィルタ | `tm ls --version 0.5.5` |
+| `--tbd` | **version='tbd'のタスクを表示（done/closedも含む）** | `tm ls --tbd` |
+| `--released` | **リリース済みタスクを表示（version≠tbd、done/closedも含む）** | `tm ls --released` |
 
 **注意**: `tm list`は`todo`, `wip`, `pending`, `long`のタスクのみを表示します（`done`は表示されません）。
 
 ### ワークフロー
 
-1. **タスク開始前**: `tm list --status todo` で未着手タスクを確認
+#### 通常のタスク管理
+
+1. **タスク開始前**: `tm list` または `tm list --open` でタスクを確認
 2. **タスク開始**: `tm update <ID> --status wip` で作業中に変更
-3. **作業中**: タスクの詳細を確認したい場合は `tm get <ID>`
-4. **タスク完了**: `tm finish <ID>` で完了としてマーク
-5. **進捗確認**: `tm list` で全タスクの状態を確認
+3. **作業中**: タスクの詳細を確認したい場合は `tm get <ID>` または `tm get <ID> --history`
+4. **タスク完了**: `tm finish <ID> --body "CHANGELOG: ..."` で完了としてマーク（CHANGELOG用の説明を追加）
+5. **進捗確認**: `tm list` または `tm list --open` で状態を確認
+
+#### リリース準備ワークフロー
+
+1. **CHANGELOG未記載タスクの確認**: `tm ls --tbd` で version='tbd' のタスクを全て表示
+2. **タスク詳細の確認**: `tm get <ID>` で各タスクのbodyからCHANGELOG項目を取得
+3. **CHANGELOGへの記載**: 各タスクの情報をCHANGELOG.mdに追記
+4. **バージョンの確定**: `tm release <ID> --version 0.5.5` で各タスクにバージョンを設定
+5. **リリース確認**: `tm ls --released --version 0.5.5` でリリース済みタスクを確認
+
+#### CHANGELOGとの連携
+
+新規タスクには自動的に `version: "tbd"` が設定されるため、以下のワークフローでCHANGELOG記載漏れを防げます：
+
+```bash
+# タスク完了時にCHANGELOG用の情報をbodyに記載
+tm finish 5 --body "CHANGELOG: Bug fix - デッキインポート時にカード名に特殊文字が含まれると失敗する問題を修正"
+
+# リリース準備時にversion='tbd'のタスクを確認
+tm ls --tbd
+
+# 各タスクの詳細を確認してCHANGELOGに記載
+tm get 5  # bodyからCHANGELOG項目をコピー
+
+# CHANGELOG記載後、バージョンを確定
+tm release 5 --version 0.5.5
+
+# リリース済みタスクの確認
+tm ls --released --version 0.5.5
+```
+
+**利点**:
+- ✅ **記載漏れ防止**: `tm ls --tbd` で未記載タスクを一発確認
+- ✅ **情報の集約**: bodyにCHANGELOG用の説明を書いておけば、履歴を遡る必要がない
+- ✅ **効率的なリリース作業**: 完了済みタスクも含めて全ての未記載タスクを確認可能
 
 ### タスク作成時の注意事項
 
@@ -235,8 +302,9 @@ tm new "CardDetail.vue の最適化" --status pending --body "CardList.vue の�
 # タスクを作業中に変更
 tm update 1 --status wip
 
-# ファイルを追加
+# ファイルを追加・削除
 tm update 1 --add-file src/components/CardDetail.vue
+tm update 1 --rm-file src/components/OldComponent.vue
 
 # 複数タスクのステータスを一括変更（コンテキスト切り替え）
 tm update 1 --status done 2 --status wip --body "次のタスクに着手"
@@ -244,8 +312,23 @@ tm update 1 --status done 2 --status wip --body "次のタスクに着手"
 # 履歴を含めてタスク詳細を表示
 tm get 1 --history
 
-# タスクを完了
-tm finish 1
+# タスクを完了（CHANGELOG情報を含む）
+tm finish 1 --body "CHANGELOG: Feature - カードリストのソート機能を強化"
+
+# バージョンを設定
+tm release 1 --version 0.5.5
+
+# CHANGELOG未記載のタスクを確認
+tm ls --tbd
+
+# 特定バージョンのリリース済みタスクを確認
+tm ls --released --version 0.5.5
+
+# 高優先度のオープンタスクのみ表示
+tm ls --open --priority high
+
+# 作業中のタスクのみ表示
+tm ls --status wip
 ```
 
 ### コードレビュー依頼
