@@ -54,6 +54,7 @@ import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
+import { filterValidCategoryIds, filterValidTagIds } from '../types/deck-metadata';
 import type { CategoryEntry } from '../types/dialog';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
@@ -71,10 +72,14 @@ const tagList = computed(() => {
   return Object.entries(tags.value).map(([value, label]) => ({ value, label }));
 });
 
+// デフォルト値の定義（統一）
+const DEFAULT_DECK_TYPE: DeckTypeValue = '-1';
+const DEFAULT_DECK_STYLE: DeckStyleValue = '-1';
+
 // ローカル状態
 const localIsPublic = ref(deckStore.deckInfo.isPublic ?? false);
-const localDeckType = ref<DeckTypeValue>(deckStore.deckInfo.deckType ?? '-1');
-const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? '-1');
+const localDeckType = ref<DeckTypeValue>(deckStore.deckInfo.deckType ?? DEFAULT_DECK_TYPE);
+const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? DEFAULT_DECK_STYLE);
 const localCategory = ref<string[]>([...(deckStore.deckInfo.category ?? [])]);
 const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
@@ -124,10 +129,19 @@ onMounted(async () => {
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
   localIsPublic.value = newDeckInfo.isPublic ?? false;
-  localDeckType.value = newDeckInfo.deckType ?? '0';
-  localDeckStyle.value = newDeckInfo.deckStyle ?? '-1';
-  localCategory.value = [...(newDeckInfo.category ?? [])];
-  localTags.value = [...(newDeckInfo.tags ?? [])];
+  localDeckType.value = newDeckInfo.deckType ?? DEFAULT_DECK_TYPE;
+  localDeckStyle.value = newDeckInfo.deckStyle ?? DEFAULT_DECK_STYLE;
+  // カテゴリ・タグは無効な ID をフィルタリング
+  const categoryMap: Record<string, string> = {};
+  categories.value.forEach(cat => {
+    categoryMap[cat.value] = cat.label;
+  });
+  const tagMap: Record<string, string> = {};
+  Object.entries(tags.value).forEach(([key, label]) => {
+    tagMap[key] = label;
+  });
+  localCategory.value = filterValidCategoryIds([...(newDeckInfo.category ?? [])], categoryMap);
+  localTags.value = filterValidTagIds([...(newDeckInfo.tags ?? [])], tagMap);
   localComment.value = newDeckInfo.comment ?? '';
 }, { deep: true });
 
