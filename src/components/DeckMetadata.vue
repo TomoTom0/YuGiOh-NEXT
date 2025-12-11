@@ -132,17 +132,31 @@ watch(() => deckStore.deckInfo, (newDeckInfo) => {
   localIsPublic.value = newDeckInfo.isPublic ?? false;
   localDeckType.value = newDeckInfo.deckType ?? DEFAULT_DECK_TYPE;
   localDeckStyle.value = newDeckInfo.deckStyle ?? DEFAULT_DECK_STYLE;
+
   // カテゴリ・タグは無効な ID をフィルタリング
-  const categoryMap: Record<string, string> = {};
-  categories.value.forEach(cat => {
-    categoryMap[cat.value] = cat.label;
-  });
-  const tagMap: Record<string, string> = {};
-  Object.entries(tags.value).forEach(([key, label]) => {
-    tagMap[key] = label;
-  });
-  localCategory.value = filterValidCategoryIds([...(newDeckInfo.category ?? [])], categoryMap);
-  localTags.value = filterValidTagIds([...(newDeckInfo.tags ?? [])], tagMap);
+  // ただし、categories/tags が初期化されていない場合はフィルタリングしない
+  if (categories.value && categories.value.length > 0) {
+    const categoryMap: Record<string, string> = {};
+    categories.value.forEach(cat => {
+      categoryMap[cat.value] = cat.label;
+    });
+    localCategory.value = filterValidCategoryIds([...(newDeckInfo.category ?? [])], categoryMap);
+  } else {
+    // categories がまだロードされていない場合は、フィルタリングなしで設定
+    localCategory.value = [...(newDeckInfo.category ?? [])];
+  }
+
+  if (tags.value && Object.keys(tags.value).length > 0) {
+    const tagMap: Record<string, string> = {};
+    Object.entries(tags.value).forEach(([key, label]) => {
+      tagMap[key] = label;
+    });
+    localTags.value = filterValidTagIds([...(newDeckInfo.tags ?? [])], tagMap);
+  } else {
+    // tags がまだロードされていない場合は、フィルタリングなしで設定
+    localTags.value = [...(newDeckInfo.tags ?? [])];
+  }
+
   localComment.value = newDeckInfo.comment ?? '';
 }, { deep: true });
 
