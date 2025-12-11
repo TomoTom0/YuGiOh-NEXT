@@ -415,8 +415,8 @@ export default {
       }
     }
 
-    // hashchangeイベントでdno変更を監視
-    window.addEventListener('hashchange', checkDnoChange)
+    // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
+    let checkDnoChangeHandler: (() => void) | null = null
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
@@ -439,6 +439,9 @@ export default {
         }, 150)
       }
 
+      // hashchangeイベントでdno変更を監視
+      checkDnoChangeHandler = () => checkDnoChange()
+      window.addEventListener('hashchange', checkDnoChangeHandler)
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
@@ -496,8 +499,11 @@ export default {
     }
 
     onUnmounted(() => {
+      // 全てのイベントリスナーを削除
+      if (checkDnoChangeHandler) {
+        window.removeEventListener('hashchange', checkDnoChangeHandler)
+      }
       window.removeEventListener('resize', handleResize)
-      window.removeEventListener('hashchange', checkDnoChange)
       window.removeEventListener('keydown', handleGlobalKeydown)
       pendingLanguageChange = null
     })
