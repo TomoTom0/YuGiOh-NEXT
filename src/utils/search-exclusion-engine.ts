@@ -9,6 +9,7 @@ import type {
   ExclusionGroup,
 } from '../types/search-exclusion';
 import exclusionRulesData from '../data/search-exclusion-rules.json';
+import { formatDisabledReason } from './disabled-reason-formatter';
 
 /**
  * 排他ルールを読み込む
@@ -174,7 +175,7 @@ function applyFieldToAttribute(
         if (attrState.enabled) {
           attrState.enabled = false;
           attrState.selected = false;
-          attrState.disabledReason = `${rule.title}: ${rule.triggerItems.join(',')}により無効`;
+          attrState.disabledReason = formatDisabledReason('field-to-attribute', rule.triggerItems);
           changed = true;
 
           if (enableTrace) {
@@ -258,7 +259,7 @@ function applyAttributeExclusion(
       if (attrState.enabled) {
         attrState.enabled = false;
         attrState.selected = false;
-        attrState.disabledReason = `${group.title}グループ: ${primaryAttr ?? '不明'}と排他`;
+        attrState.disabledReason = formatDisabledReason('attribute-exclusion', primaryAttr ?? '');
         changed = true;
 
         if (enableTrace && primaryAttr) {
@@ -338,7 +339,7 @@ function applyAttributeToField(
 
         if (fieldState.enabled) {
           fieldState.enabled = false;
-          fieldState.disabledReason = `${rule.title}: ${rule.trigger}により無効`;
+          fieldState.disabledReason = formatDisabledReason('attribute-to-field', rule.trigger);
           changed = true;
 
           if (enableTrace) {
@@ -390,7 +391,7 @@ function applyAttributeToField(
             fieldState.enabled = false;
             // 属性が無効な理由を引き継ぐ（あれば）
             const attrReason = attrState.disabledReason;
-            fieldState.disabledReason = attrReason || `${attr}が選択不可のため無効`;
+            fieldState.disabledReason = attrReason || formatDisabledReason('attribute-unavailable', attr);
             changed = true;
 
             if (enableTrace) {

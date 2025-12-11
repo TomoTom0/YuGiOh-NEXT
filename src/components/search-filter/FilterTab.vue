@@ -445,7 +445,7 @@ import type { ExclusionResult } from '@/types/search-exclusion';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '@/api/image-utils';
 import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel } from '@/utils/filter-label';
 import { mappingManager } from '@/utils/mapping-manager';
-import { MONSTER_TYPE_ID_TO_NAME, CARD_TYPE_ID_TO_NAME } from '@/types/card-maps';
+import { MONSTER_TYPE_ID_TO_NAME } from '@/types/card-maps';
 
 // Props
 // @ts-ignore - Used by defineProps
@@ -590,148 +590,15 @@ function isFieldDisabled(field: string): boolean {
       return true;
     }
   }
+
   return false;
 }
 
-function hasFieldInput(fieldName: string): boolean {
-  switch (fieldName) {
-    case 'level-rank':
-      return props.filters.levelValues.length > 0;
-    case 'link-value':
-      return props.filters.linkValues.length > 0;
-    case 'link-marker':
-      return props.filters.linkMarkers.length > 0;
-    case 'p-scale':
-      return props.filters.scaleValues.length > 0;
-    case 'def':
-      return props.filters.def.exact || props.filters.def.unknown ||
-             props.filters.def.min !== undefined || props.filters.def.max !== undefined;
-    case 'atk':
-      return props.filters.atk.exact || props.filters.atk.unknown ||
-             props.filters.atk.min !== undefined || props.filters.atk.max !== undefined;
-    case 'attribute':
-      return props.filters.attributes.length > 0;
-    case 'race':
-      return props.filters.races.length > 0;
-    case 'spell-type':
-      return props.filters.spellTypes.length > 0;
-    case 'trap-type':
-      return props.filters.trapTypes.length > 0;
-    default:
-      return false;
-  }
-}
 
-function getDisabledReasonAttributeLabel(attrId: string): string | undefined {
-  // monster-type_* 形式
-  const monsterTypeMatch = attrId.match(/^monster-type_(.+)$/);
-  if (monsterTypeMatch) {
-    return getMonsterTypeButtonLabel(monsterTypeMatch[1]);
-  }
-
-  // card-type_* 形式
-  const cardTypeMatch = attrId.match(/^card-type_(.+)$/);
-  if (cardTypeMatch) {
-    return (CARD_TYPE_ID_TO_NAME as Record<string, string>)[cardTypeMatch[1]] || cardTypeMatch[1];
-  }
-
-  // attribute_* 形式
-  const attributeMatch = attrId.match(/^attribute_(.+)$/);
-  if (attributeMatch) {
-    const attrLabel = mappingManager.getAttributeIdToText(props.pageLanguage);
-    const label = (attrLabel as Record<string, string>)[attributeMatch[1]];
-    return label || attributeMatch[1];
-  }
-
-  // race_* 形式
-  const raceMatch = attrId.match(/^race_(.+)$/);
-  if (raceMatch) {
-    return getRaceButtonLabel(raceMatch[1]);
-  }
-
-  return undefined;
-}
 
 function getFieldDisabledReason(field: string): string | undefined {
   const fieldState = props.exclusionResult.fieldStates.get(field);
-  const reason = fieldState?.disabledReason;
-
-  if (!reason) return undefined;
-
-  // パターン1: "～が選択不可のため無効" 形式
-  // 例: "monster-type_linkが選択不可のため無効" → "リンクモンスターが選択されているため"
-  const unavailableAttrMatch = reason.match(/^([^\s]+)が選択不可のため無効$/);
-  if (unavailableAttrMatch && unavailableAttrMatch[1]) {
-    const attrId = unavailableAttrMatch[1];
-    const label = getDisabledReasonAttributeLabel(attrId);
-    if (label) {
-      return `${label}が選択されているため`;
-    }
-    return reason;
-  }
-
-  // パターン2: "ルール名: 項目名により無効" 形式
-  // 例: "monster-type_has-level-rank-necessary: level-rank,defにより無効"
-  const ruleFieldMatch = reason.match(/^(.+?):\s*(.+?)により無効$/);
-  if (ruleFieldMatch && ruleFieldMatch[2]) {
-    const reasonFields = ruleFieldMatch[2].split(',').map(f => f.trim());
-
-    // 実際に入力されている項目だけをフィルタリング
-    const actualInputFields = reasonFields.filter(f => hasFieldInput(f));
-
-    const fieldLabels: Record<string, string> = {
-      'level-rank': 'レベル/ランク',
-      'link-value': 'リンク数',
-      'link-marker': 'リンクマーカー',
-      'p-scale': 'Pスケール',
-      'def': 'DEF',
-      'atk': 'ATK',
-      'attribute': '属性',
-      'race': '種族',
-      'spell-type': '魔法タイプ',
-      'trap-type': '罠タイプ'
-    };
-
-    // 実際に入力されている項目がある場合
-    if (actualInputFields.length > 0) {
-      const labels = actualInputFields.map(f => fieldLabels[f] || f);
-      if (labels.length > 1) {
-        return `${labels.join('、')}が選択/入力されているため`;
-      }
-      return `${labels[0]}が選択/入力されているため`;
-    }
-
-    // 入力されている項目がない場合は、元の理由フィールドをフォーマット
-    const labels = reasonFields.map(f => fieldLabels[f] || f);
-    if (labels.length > 1) {
-      return `${labels.join('、')}が選択/入力されているため`;
-    }
-    return `${labels[0]}が選択/入力されているため`;
-  }
-
-  // パターン3: "グループ: 属性名と排他" 形式（attributeState の disabledReason が fieldState に継承された場合）
-  // 例: "monster-type-near-extraグループ: monster-type_normalと排他"
-  const groupExclusionMatch = reason.match(/グループ:\s*([^\s]+)と排他$/);
-  if (groupExclusionMatch && groupExclusionMatch[1]) {
-    const attrId = groupExclusionMatch[1];
-    const label = getDisabledReasonAttributeLabel(attrId);
-    if (label) {
-      return `${label}が選択されているため`;
-    }
-  }
-
-  // パターン4: "ルール名: 属性名により無効" 形式（attributeToField ルール）
-  // 例: "monster-type_link-negative: monster-type_linkにより無効"
-  const ruleAttrMatch = reason.match(/^(.+?):\s*([^\s]+)により無効$/);
-  if (ruleAttrMatch && ruleAttrMatch[2]) {
-    const attrId = ruleAttrMatch[2];
-    const label = getDisabledReasonAttributeLabel(attrId);
-    if (label) {
-      return `${label}が選択されているため`;
-    }
-  }
-
-  return reason;
+  return fieldState?.disabledReason;
 }
 
 function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
@@ -749,93 +616,12 @@ function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
   // フィールド全体が無効化されている場合
   if (props.isMonsterTypeFieldDisabled) {
     const attrState = props.exclusionResult.attributeStates.get('card-type_monster');
-    const reason = attrState?.disabledReason;
-
-    if (!reason) {
-      return 'カードタイプがモンスター以外に設定されているため';
-    }
-
-    // 理由をフォーマット（例："card-type_spell,trap~により無効化" -> "魔法、罠が選択されているため"）
-    const cardTypeMatch = reason.match(/^card-type_([^~]+)~により無効化$/);
-    if (cardTypeMatch && cardTypeMatch[1]) {
-      const types = cardTypeMatch[1].split(',').map(t => t.trim());
-      const labels = types.map(t => {
-        const typeLabels: Record<string, string> = {
-          'spell': '魔法',
-          'trap': '罠'
-        };
-        return typeLabels[t] || t;
-      });
-      if (labels.length > 1) {
-        return `${labels.join('、')}が選択されているため`;
-      }
-      return `${labels[0]}が選択されているため`;
-    }
-
-    return reason;
+    return attrState?.disabledReason;
   }
 
   // または個別のモンスタータイプが無効化されている場合
   const attrState = props.exclusionResult.attributeStates.get(`monster-type_${type}`);
-  const reason = attrState?.disabledReason;
-
-  if (!reason) return undefined;
-
-  // 「～が選択不可のため無効」パターン: "monster-type_linkが選択不可のため無効" -> "リンクモンスターが選択されているため"
-  const requiredUnavailableMatch = reason.match(/^([^\s]+)が選択不可のため無効$/);
-  if (requiredUnavailableMatch && requiredUnavailableMatch[1]) {
-    const attrId = requiredUnavailableMatch[1];
-    const label = getDisabledReasonAttributeLabel(attrId);
-    if (label) {
-      return `${label}が選択されているため`;
-    }
-  }
-
-  // 「～と排他」パターン: "monster-type-near-extraグループ: monster-type_normalと排他" -> "通常モンスターが選択されているため"
-  const attrExclusionMatch = reason.match(/グループ:\s*([^\s]+)と排他$/);
-  if (attrExclusionMatch && attrExclusionMatch[1]) {
-    const attrId = attrExclusionMatch[1];
-    const label = getDisabledReasonAttributeLabel(attrId);
-    if (label) {
-      return `${label}が選択されているため`;
-    }
-  }
-
-  // パターン3: "ルール名: ...により無効" 形式（フィールド disabled reason と同様）
-  // 例: "monster-type_has-level-rank-necessary: level-rank,defにより無効"
-  const ruleFieldMatch = reason.match(/^(.+?):\s*([^に]+)により無効$/);
-  if (ruleFieldMatch && ruleFieldMatch[2]) {
-    const reasonFields = ruleFieldMatch[2].split(',').map(f => f.trim());
-
-    // 実際に入力されている項目だけをフィルタリング
-    const actualInputFields = reasonFields.filter(f => hasFieldInput(f));
-
-    const fieldLabels: Record<string, string> = {
-      'level-rank': 'レベル/ランク',
-      'link-value': 'リンク数',
-      'link-marker': 'リンクマーカー',
-      'p-scale': 'Pスケール',
-      'def': 'DEF',
-      'atk': 'ATK',
-      'attribute': '属性',
-      'race': '種族',
-      'spell-type': '魔法タイプ',
-      'trap-type': '罠タイプ'
-    };
-
-    // 実際に入力されている項目がない場合は、元の理由を表示
-    if (actualInputFields.length === 0) {
-      return reason;
-    }
-
-    const labels = actualInputFields.map(f => fieldLabels[f] || f);
-    if (labels.length > 1) {
-      return `${labels.join('、')}が選択/入力されているため`;
-    }
-    return `${labels[0]}が選択/入力されているため`;
-  }
-
-  return reason;
+  return attrState?.disabledReason;
 }
 
 function getMonsterTypeClass(type: MonsterType) {
@@ -1204,18 +990,11 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   &:disabled {
-    opacity: 0.4;
     cursor: not-allowed;
-    background: var(--bg-secondary);
-    color: var(--text-tertiary);
-    border-color: var(--border-primary);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-color: var(--border-secondary);
     position: relative;
-  }
-
-  // disabled 状態のボタンで tooltip は常に opacity: 1（title属性の有無に関わらず）
-  &:disabled::after,
-  &:disabled::before {
-    opacity: 1;
   }
 
   &:disabled:hover::after {
@@ -1738,11 +1517,12 @@ function getMonsterTypeButtonLabel(type: string) {
     background: transparent;
 
     &.disabled span {
-      opacity: 0.4;
       cursor: not-allowed;
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
 
       &:hover {
-        background: var(--border-secondary);
+        background: var(--bg-tertiary);
       }
     }
 

@@ -104,6 +104,7 @@ const props = defineProps<{
   }>;
   modelValue: string[];
   deckCards: any[];
+  deckCardRefs?: any[]; // DeckCardRef[] from all sections
 }>();
 
 const emit = defineEmits<{
@@ -145,14 +146,29 @@ const rowToCharsMap: Record<string, string[]> = {
 
 // カテゴリ名を含むカードの総数（実枚数）をカウント
 function countCardsWithCategory(categoryLabel: string): number {
-  return props.deckCards.reduce((count, card) => {
-    const cardAny = card as any;
-    const cardName = card.name || '';
-    const cardText = cardAny.text || '';
+  // deckCardRefs がない場合は、deckCards から単純にカウント（フォールバック）
+  if (!props.deckCardRefs || props.deckCardRefs.length === 0) {
+    return props.deckCards.filter(card => {
+      const cardName = card.name || '';
+      const cardText = card.text || '';
+      return cardName.includes(categoryLabel) || cardText.includes(categoryLabel);
+    }).length;
+  }
+
+  // deckCardRefs から実際の枚数をカウント
+  return props.deckCardRefs.reduce((total, cardRef) => {
+    // cardRef に対応する CardInfo を見つける
+    const cardInfo = props.deckCards.find(card => card.cardId === cardRef.cid);
+    if (!cardInfo) return total;
+
+    const cardName = cardInfo.name || '';
+    const cardText = cardInfo.text || '';
+
+    // カテゴリラベルを含むかチェック
     if (cardName.includes(categoryLabel) || cardText.includes(categoryLabel)) {
-      return count + (card.count || 1);
+      return total + (cardRef.quantity || 1);
     }
-    return count;
+    return total;
   }, 0);
 }
 

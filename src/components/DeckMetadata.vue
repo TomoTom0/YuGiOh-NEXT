@@ -27,6 +27,7 @@
       :is-visible="showCategoryDialog"
       :categories="categories"
       :deck-cards="allDeckCards"
+      :deck-card-refs="allDeckCardRefs"
       @update:model-value="updateCategories"
       @close="showCategoryDialog = false"
     />
@@ -88,6 +89,15 @@ const localComment = ref(deckStore.deckInfo.comment ?? '');
 // ダイアログ表示状態
 const showCategoryDialog = ref(false);
 const showTagDialog = ref(false);
+
+// デッキ内の全カード参照（主に数量情報のため）
+const allDeckCardRefs = computed(() => {
+  return [
+    ...deckStore.deckInfo.mainDeck,
+    ...deckStore.deckInfo.extraDeck,
+    ...deckStore.deckInfo.sideDeck
+  ];
+});
 
 // デッキ内の全カード情報を取得
 const allDeckCards = computed(() => {
