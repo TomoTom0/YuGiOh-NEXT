@@ -1204,12 +1204,11 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   &:disabled {
-    // opacity: 0.4 は削除（疑似要素の opacity: 1 が効かなくなるため）
-    // 代わりに背景色と文字色を rgba で透明度を指定
+    opacity: 0.4;
     cursor: not-allowed;
-    background: rgba(245, 245, 245, 0.4); // bg-secondary + 0.4 opacity
-    color: rgba(153, 153, 153, 0.4);      // text-tertiary + 0.4 opacity
-    border-color: rgba(221, 221, 221, 0.4); // border-primary + 0.4 opacity
+    background: var(--bg-secondary);
+    color: var(--text-tertiary);
+    border-color: var(--border-primary);
     position: relative;
   }
 
