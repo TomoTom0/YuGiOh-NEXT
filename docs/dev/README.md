@@ -79,6 +79,35 @@ console.debug('[handleSearch] Query:', query, 'Filters:', filters);
 
 詳細は [CLAUDE.md - デバッグログのルール](../../CLAUDE.md#デバッグログのルール) を参照してください。
 
+## コーディング規約
+
+### デバッグログのルール
+
+本プロジェクトでは、ログレベルの使い分けを以下のように定めています：
+
+| ログレベル | 用途 | 本番環境 | 表示条件 |
+|-----------|------|---------|---------|
+| `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
+| `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
+| `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
+| `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+#### 推奨事項
+
+**デバッグ中:**
+```typescript
+// ✅ 推奨: console.debug() を使用（一時的に残してOK）
+console.debug('[MappingManager] Initializing for language:', lang);
+console.debug('[handleSearch] Query:', query, 'Filters:', filters);
+```
+
+**本番前:**
+- デバッグが完了したら、不要な `console.debug()` を削除
+- `console.log()` は必ず削除
+- `console.warn()` / `console.error()` は必要に応じて保持
+
+詳細は [CLAUDE.md - デバッグログのルール](../../CLAUDE.md#デバッグログのルール) を参照してください。
+
 ## 開発用ツール
 
 ### session.example.env

@@ -225,6 +225,8 @@ tm close <タスクID> --body "機能が不要になったためクローズ"
 | `--tbd` | **version='tbd'のタスクを表示（done/closedも含む）** | `tm ls --tbd` |
 | `--released` | **リリース済みタスクを表示（version≠tbd、done/closedも含む）** | `tm ls --released` |
 
+**注意**: `tm list`は`todo`, `wip`, `pending`, `long`のタスクのみを表示します（`done`は表示されません）。
+
 ### ワークフロー
 
 #### 通常のタスク管理
