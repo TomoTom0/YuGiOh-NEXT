@@ -55,6 +55,7 @@ import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
 import { filterValidCategoryIds, filterValidTagIds } from '../types/deck-metadata';
+import { isDeckTypeValue, isDeckStyleValue } from '../utils/type-guards';
 import type { CategoryEntry } from '../types/dialog';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
@@ -152,13 +153,23 @@ function togglePublicStatus() {
 }
 
 function selectDeckType(value: string) {
-  localDeckType.value = value as DeckTypeValue;
-  deckStore.deckInfo.deckType = localDeckType.value;
+  // 型ガード関数で値を検証
+  if (isDeckTypeValue(value)) {
+    localDeckType.value = value;
+    deckStore.deckInfo.deckType = localDeckType.value;
+  } else {
+    console.error(`[DeckMetadata] Invalid deck type value: ${value}. Expected one of: 0, 1, 2, 3`);
+  }
 }
 
 function selectDeckStyle(value: string) {
-  localDeckStyle.value = value as DeckStyleValue;
-  deckStore.deckInfo.deckStyle = localDeckStyle.value;
+  // 型ガード関数で値を検証
+  if (isDeckStyleValue(value)) {
+    localDeckStyle.value = value;
+    deckStore.deckInfo.deckStyle = localDeckStyle.value;
+  } else {
+    console.error(`[DeckMetadata] Invalid deck style value: ${value}. Expected one of: -1, 0, 1, 2`);
+  }
 }
 
 function updateComment() {

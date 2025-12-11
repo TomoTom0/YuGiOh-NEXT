@@ -307,3 +307,33 @@ export function anyGuard<T>(
 ): value is T {
   return guards.some(guard => guard(value));
 }
+
+/**
+ * デッキタイプの有効な値かどうかをチェック
+ *
+ * @param value チェック対象の値
+ * @returns DeckTypeValue である場合は true
+ *
+ * @example
+ * if (isDeckTypeValue(value)) {
+ *   deckType = value;  // 安全に代入可能
+ * }
+ */
+export function isDeckTypeValue(value: any): value is '0' | '1' | '2' | '3' {
+  return typeof value === 'string' && ['0', '1', '2', '3'].includes(value);
+}
+
+/**
+ * デッキスタイルの有効な値かどうかをチェック
+ *
+ * @param value チェック対象の値
+ * @returns DeckStyleValue である場合は true
+ *
+ * @example
+ * if (isDeckStyleValue(value)) {
+ *   deckStyle = value;  // 安全に代入可能
+ * }
+ */
+export function isDeckStyleValue(value: any): value is '-1' | '0' | '1' | '2' {
+  return typeof value === 'string' && ['-1', '0', '1', '2'].includes(value);
+}
