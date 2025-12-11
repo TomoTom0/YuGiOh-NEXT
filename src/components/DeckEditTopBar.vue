@@ -656,7 +656,7 @@ export default {
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
-  z-index: 10002;
+  z-index: 6;
   overflow: hidden;
 
   .menu-item {
@@ -734,8 +734,9 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10001;
+  z-index: 5;
   background: transparent;
+  pointer-events: none;
 }
 
 .deck-name-group {

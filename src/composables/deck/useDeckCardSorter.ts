@@ -18,9 +18,19 @@ export interface DisplayCard {
 }
 
 /**
+ * ソートモード
+ */
+export type SortMode = 'default' | 'by-race' | 'by-attribute';
+
+/**
  * ソート設定オプション
  */
 export interface DeckSortOptions {
+  /**
+   * ソートモード
+   */
+  sortMode?: SortMode;
+
   /**
    * カテゴリ優先ソートを有効にするか
    */
@@ -76,6 +86,7 @@ export function createDeckCardComparator(
   options: DeckSortOptions = {}
 ): (a: DisplayCard, b: DisplayCard) => number {
   const {
+    sortMode = 'default',
     enableCategoryPriority = true,
     priorityCategoryCardIds = new Set<string>(),
     enableTailPlacement = true,
@@ -149,6 +160,72 @@ export function createDeckCardComparator(
   };
 
   /**
+   * 種族でソートする比較関数
+   */
+  const compareByRace = (a: DisplayCard, b: DisplayCard): number => {
+    const cardA = getCardInfo(a.cid);
+    const cardB = getCardInfo(b.cid);
+    if (!cardA || !cardB) return 0;
+
+    // モンスター < 魔法 < 罠の順
+    const typeOrder = { monster: 0, spell: 1, trap: 2 };
+    const typeA = typeOrder[cardA.cardType] ?? 999;
+    const typeB = typeOrder[cardB.cardType] ?? 999;
+
+    // モンスター同士の場合、種族でソート
+    if (typeA === 0 && typeB === 0) {
+      const raceA = (cardA as any).race ?? '';
+      const raceB = (cardB as any).race ?? '';
+      if (raceA !== raceB) {
+        return raceA.localeCompare(raceB, 'ja');
+      }
+    }
+
+    // 異なるカードタイプの場合、カードタイプの順序で判定
+    if (typeA !== typeB) {
+      return typeA - typeB;
+    }
+
+    // 同じカードタイプ内ではCIDでソート（数値ソート）
+    const cidA = parseInt(a.cid, 10) || 0;
+    const cidB = parseInt(b.cid, 10) || 0;
+    return cidA - cidB;
+  };
+
+  /**
+   * 属性でソートする比較関数
+   */
+  const compareByAttribute = (a: DisplayCard, b: DisplayCard): number => {
+    const cardA = getCardInfo(a.cid);
+    const cardB = getCardInfo(b.cid);
+    if (!cardA || !cardB) return 0;
+
+    // モンスター < 魔法 < 罠の順
+    const typeOrder = { monster: 0, spell: 1, trap: 2 };
+    const typeA = typeOrder[cardA.cardType] ?? 999;
+    const typeB = typeOrder[cardB.cardType] ?? 999;
+
+    // モンスター同士の場合、属性でソート
+    if (typeA === 0 && typeB === 0) {
+      const attrA = (cardA as any).attribute ?? '';
+      const attrB = (cardB as any).attribute ?? '';
+      if (attrA !== attrB) {
+        return attrA.localeCompare(attrB, 'ja');
+      }
+    }
+
+    // 異なるカードタイプの場合、カードタイプの順序で判定
+    if (typeA !== typeB) {
+      return typeA - typeB;
+    }
+
+    // 同じカードタイプ内ではCIDでソート（数値ソート）
+    const cidA = parseInt(a.cid, 10) || 0;
+    const cidB = parseInt(b.cid, 10) || 0;
+    return cidA - cidB;
+  };
+
+  /**
    * メイン比較関数（全ての優先順位を含む）
    */
   return (a: DisplayCard, b: DisplayCard): number => {
@@ -156,6 +233,15 @@ export function createDeckCardComparator(
     const cardB = getCardInfo(b.cid);
     if (!cardA || !cardB) return 0;
 
+    // ソートモードに応じた処理
+    if (sortMode === 'by-race') {
+      return compareByRace(a, b);
+    }
+    if (sortMode === 'by-attribute') {
+      return compareByAttribute(a, b);
+    }
+
+    // デフォルトソート
     // 0. Card Type: Monster(0) > Spell(1) > Trap(2)
     const typeOrder = { monster: 0, spell: 1, trap: 2 };
     const typeA = typeOrder[cardA.cardType] ?? 999;
