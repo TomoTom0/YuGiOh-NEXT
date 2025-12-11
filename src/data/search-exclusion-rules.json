@@ -43,15 +43,6 @@
   ],
   "attributeToField": [
     {
-      "title": "level-rank-negative-link",
-      "triggerItems": [
-        "level-rank"
-      ],
-      "notTarget": [
-        "monster-type_link"
-      ]
-    },
-    {
       "title": "monster-type_link-negative",
       "trigger": "monster-type_link",
       "negative": [

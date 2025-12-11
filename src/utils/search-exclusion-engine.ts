@@ -388,7 +388,9 @@ function applyAttributeToField(
 
           if (fieldState.enabled) {
             fieldState.enabled = false;
-            fieldState.disabledReason = `${attr}が選択不可のため無効`;
+            // 属性が無効な理由を引き継ぐ（あれば）
+            const attrReason = attrState.disabledReason;
+            fieldState.disabledReason = attrReason || `${attr}が選択不可のため無効`;
             changed = true;
 
             if (enableTrace) {
