@@ -233,10 +233,10 @@ describe('CardList.vue', () => {
 
     describe('複数キーソート', () => {
       const sortTestCards = [
-        { cardId: '1001', ciid: '1', name: 'アルファ', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
-        { cardId: '1002', ciid: '1', name: 'ベータ', atk: 2500, def: 1800, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
-        { cardId: '1003', ciid: '1', name: 'ガンマ', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
-        { cardId: '1004', ciid: '1', name: 'デルタ', atk: 2000, def: 1500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h4' }] },
+        { cardId: '1001', ciid: '1', name: 'アルファ', cardType: 'monster', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '1002', ciid: '1', name: 'ベータ', cardType: 'monster', atk: 2500, def: 1800, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '1003', ciid: '1', name: 'ガンマ', cardType: 'monster', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '1004', ciid: '1', name: 'デルタ', cardType: 'monster', atk: 2000, def: 1500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h4' }] },
       ];
 
       it('ATK降順ソート時、同値の場合はカード名で昇順にソートされる', () => {

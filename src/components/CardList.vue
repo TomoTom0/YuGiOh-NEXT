@@ -324,30 +324,30 @@ export default {
 
     const localSortOrder = computed(() => `${sortBase.value}_${sortDirection.value}`)
 
-    // モンスターのプロパティに基づいてソートするヘルパー関数
-    const createMonsterPropertySorter = (compareFn) => {
-      return (a, b) => {
-        // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-        const typeOrder = { monster: 0, spell: 1, trap: 2 }
-        const typeA = typeOrder[a.cardType] ?? 999
-        const typeB = typeOrder[b.cardType] ?? 999
-        if (typeA !== typeB) return typeA - typeB
-
-        // モンスター同士の場合は compareFn を使用してプロパティを比較
-        if (typeA === 0 && typeB === 0) {
-          const cmp = compareFn(a, b)
-          return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-        }
-
-        // 魔法・罠はCID順
-        return getCid(a) - getCid(b)
-      }
-    }
-
     // ソート関数
     const sortCards = (cards, sortOrder) => {
       const sorted = [...cards]
       const getCid = (card) => parseInt(card.cardId, 10) || 0
+
+      // モンスターのプロパティに基づいてソートするヘルパー関数
+      const createMonsterPropertySorter = (compareFn) => {
+        return (a, b) => {
+          // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
+          const typeOrder = { monster: 0, spell: 1, trap: 2 }
+          const typeA = typeOrder[a.cardType] ?? 999
+          const typeB = typeOrder[b.cardType] ?? 999
+          if (typeA !== typeB) return typeA - typeB
+
+          // モンスター同士の場合は compareFn を使用してプロパティを比較
+          if (typeA === 0 && typeB === 0) {
+            const cmp = compareFn(a, b)
+            return cmp !== 0 ? cmp : getCid(a) - getCid(b)
+          }
+
+          // 魔法・罠はCID順
+          return getCid(a) - getCid(b)
+        }
+      }
 
       switch (sortOrder) {
         case 'release_desc':
