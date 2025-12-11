@@ -5,45 +5,50 @@
 ### 全テストの実行
 
 ```bash
-npm test
+bun run test:vitest
 ```
 
 ### 特定のテストスイートの実行
 
 ```bash
 # ユニットテストのみ
-npm test -- tests/unit/
+bun run test:vitest src/utils/__tests__/
 
 # 結合テストのみ
-npm test -- tests/combine/
+bun run test:vitest src/composables/__tests__/
 
 # 特定のファイル
-npm test -- tests/unit/language-detector.test.ts
+bun run test:vitest src/utils/__tests__/language-detector.test.ts
 ```
 
 ### ウォッチモード
 
 ```bash
-npm test -- --watch
+bun run test:vitest --watch
 ```
 
 ### カバレッジレポート
 
 ```bash
-npm test -- --coverage
+bun run test:vitest --coverage
 ```
 
 ## テスト構成
 
-- `tests/unit/` - ユニットテスト
-  - `language-detector.test.ts` - 言語検出機能
-  - `mapping-manager.test.ts` - マッピング管理機能
-  - `card-animation.test.ts` - カードアニメーション機能
-  
-- `tests/combine/` - 結合テスト
-  - `parser/` - HTMLパーサーテスト
+- `src/utils/__tests__/` - ユーティリティテスト
+  - `safe-dom-query.test.ts` - DOM クエリ安全ユーティリティテスト（32個のテスト）
+  - `type-guards.test.ts` - 型ガード関数テスト（30個のテスト）
+  - `language-detector.test.ts` - 言語検出機能テスト
+  - `mapping-manager.test.ts` - マッピング管理機能テスト
+  - `card-animation.test.ts` - カードアニメーション機能テスト
+
+- `src/composables/__tests__/` - Composable テスト
   - `deck-edit/` - デッキ編集機能テスト
-  - `i18n/` - 多言語対応テスト
+  - `search/` - 検索機能テスト
+
+- `tests/browser/` - ブラウザ自動テスト（CDP/Playwright経由）
+  - `test-buttons.js` - ボタン機能テスト
+  - `test-shuffle.js` - シャッフル機能テスト
 
 ## コーディング規約
 
