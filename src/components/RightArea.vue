@@ -236,9 +236,9 @@ export default {
     }
 
     const handleScrollToTop = () => {
-      const cardListResults = document.querySelector('.search-content .card-list-results')
-      if (cardListResults) {
-        cardListResults.scrollTo({ top: 0, behavior: 'smooth' })
+      const searchContent = document.querySelector('.search-content')
+      if (searchContent) {
+        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
 

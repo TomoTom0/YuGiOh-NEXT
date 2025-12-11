@@ -74,6 +74,7 @@ export const COMMANDS: Record<string, { filterType: string; description: string;
  * 検索モードマッピング
  */
 export const SEARCH_MODE_MAP: Record<string, string> = {
+  'auto': 'auto', 'オート': 'auto', 'a': 'auto',
   'name': 'name', 'カード名': 'name', 'n': 'name',
   'text': 'text', 'テキスト': 'text', 't': 'text',
   'pend': 'pendulum', 'pendulum': 'pendulum', 'ペンデュラム': 'pendulum', 'p': 'pendulum',
@@ -184,9 +185,9 @@ export const FILTER_OPTIONS: Record<string, { value: string; label: string; alia
     { value: '12', label: '12' }, { value: '13', label: '13' }
   ],
   searchMode: [
-    { value: 'name', label: 'カード名' },
-    { value: 'text', label: 'テキスト' },
-    { value: 'pend', label: 'ペンデュラム' },
-    { value: 'mydeck', label: 'マイデッキ' }
+    { value: 'name', label: 'カード名', aliases: ['n', 'カード'] },
+    { value: 'text', label: 'テキスト', aliases: ['t', 'テキ'] },
+    { value: 'pend', label: 'ペンデュラム', aliases: ['p', 'ペン'] },
+    { value: 'mydeck', label: 'マイデッキ', aliases: ['m', 'マイ'] }
   ]
 }

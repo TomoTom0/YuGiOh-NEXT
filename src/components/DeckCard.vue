@@ -42,10 +42,10 @@
       </svg>
     </div>
     <div v-if="!card.empty" class="card-controls">
-      <button 
+      <button
         class="card-btn top-left"
         :class="{ 'is-link': sectionType === 'info' }"
-        @click.stop="handleInfo"
+        @click.stop="handleTopLeft"
       >
         <svg v-if="sectionType === 'info'" width="10" height="10" viewBox="0 0 24 24">
           <path fill="currentColor" d="M3.9,12C3.9,10.29 5.29,8.9 7,8.9H11V7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H11V15.1H7C5.29,15.1 3.9,13.71 3.9,12M8,13H16V11H8V13M17,7H13V8.9H17C18.71,8.9 20.1,10.29 20.1,12C20.1,13.71 18.71,15.1 17,15.1H13V17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7Z" />
@@ -175,7 +175,7 @@ export default {
 
       return false
     }
-    
+
     return {
       deckStore,
       cardDetailStore,
@@ -356,7 +356,18 @@ export default {
         console.error('Card drop error:', e)
       }
     },
-    async handleInfo() {
+    handleTopLeft() {
+      // Info tab の場合：カードのリンクを新しいタブで開く
+      if (this.sectionType === 'info') {
+        const cardUrl = buildFullUrl(`/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}`)
+        window.open(cardUrl, '_blank')
+        return
+      }
+
+      // デッキ編集画面の場合：詳細情報を表示する
+      this.getCardDetailAndDisplay()
+    },
+    async getCardDetailAndDisplay() {
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
         const currentLang = detectLanguage(document)
@@ -369,28 +380,24 @@ export default {
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
 
-        // CardDetailストアに設定（両画面で使用）
+        // CardDetailストアに設定
         this.cardDetailStore.setSelectedCard(cardData)
 
-        // デッキ編集画面の場合のみ、アクティブタブを切り替え
-        if (this.sectionType !== 'info') {
-          this.deckStore.activeTab = 'card'
-        }
+        // アクティブタブを切り替え
+        this.deckStore.activeTab = 'card'
       } catch (e) {
-        console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
+        console.error('[DeckCard.getCardDetailAndDisplay] Failed to fetch card detail:', e)
         const cardData = {
           ...this.card,
           imgs: [...this.card.imgs],
           ciid: this.card.ciid
         }
 
-        // CardDetailストアに設定（両画面で使用）
+        // CardDetailストアに設定
         this.cardDetailStore.setSelectedCard(cardData)
 
-        // デッキ編集画面の場合のみ、アクティブタブを切り替え
-        if (this.sectionType !== 'info') {
-          this.deckStore.activeTab = 'card'
-        }
+        // アクティブタブを切り替え
+        this.deckStore.activeTab = 'card'
       }
     },
     handleTopRight() {
@@ -723,7 +730,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 10;
+  z-index: 1;
 }
 
 .card-btn {

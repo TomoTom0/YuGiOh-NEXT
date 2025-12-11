@@ -136,6 +136,11 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
    */
   const applyClientSideFilters = (cards: CardInfo[], filters: SearchFilters): CardInfo[] => {
     return cards.filter(card => {
+      // カードタイプフィルター
+      if (filters.cardType !== null && card.cardType !== filters.cardType) {
+        return false
+      }
+
       // モンスターカードのみに適用されるフィルター
       if (card.cardType === 'monster') {
         // 属性フィルター
@@ -152,6 +157,23 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           }
         }
 
+        // モンスタータイプフィルター
+        if (filters.monsterTypes.length > 0 && 'types' in card) {
+          const cardTypes = (card as any).types || []
+          // AND条件（全てのtypesが含まれている）またはOR条件
+          const hasMatch = filters.monsterTypes.some(mt => {
+            if (mt.state === 'normal') {
+              return cardTypes.includes(mt.type)
+            } else if (mt.state === 'not') {
+              return !cardTypes.includes(mt.type)
+            }
+            return false
+          })
+          if (!hasMatch) {
+            return false
+          }
+        }
+
         // レベルフィルター
         if (filters.levelValues.length > 0 && 'level' in card) {
           if (typeof card.level === 'number' && !filters.levelValues.includes(card.level)) {
@@ -164,6 +186,63 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           if (typeof card.link === 'number' && !filters.linkValues.includes(card.link)) {
             return false
           }
+        }
+
+        // ペンデュラムスケールフィルター
+        if (filters.scaleValues.length > 0 && 'scale' in card) {
+          if (typeof card.scale === 'number' && !filters.scaleValues.includes(card.scale)) {
+            return false
+          }
+        }
+
+        // リンクマーカーフィルター
+        if (filters.linkMarkers.length > 0 && 'linkMarkers' in card) {
+          const cardMarkers = (card as any).linkMarkers || []
+          // 選択された全てのマーカーが含まれているか確認
+          const hasAllMarkers = filters.linkMarkers.every(marker => cardMarkers.includes(marker))
+          if (!hasAllMarkers) {
+            return false
+          }
+        }
+
+        // ATKフィルター
+        if ((filters.atk.min !== undefined || filters.atk.max !== undefined) && 'atk' in card) {
+          const atk = (card as any).atk
+          if (typeof atk === 'number') {
+            if (filters.atk.min !== undefined && atk < filters.atk.min) {
+              return false
+            }
+            if (filters.atk.max !== undefined && atk > filters.atk.max) {
+              return false
+            }
+          }
+        }
+
+        // DEFフィルター
+        if ((filters.def.min !== undefined || filters.def.max !== undefined) && 'def' in card) {
+          const def = (card as any).def
+          if (typeof def === 'number') {
+            if (filters.def.min !== undefined && def < filters.def.min) {
+              return false
+            }
+            if (filters.def.max !== undefined && def > filters.def.max) {
+              return false
+            }
+          }
+        }
+      }
+
+      // 魔法カードのみに適用されるフィルター
+      if (card.cardType === 'spell' && filters.spellTypes.length > 0) {
+        if (!('effectType' in card) || !filters.spellTypes.includes((card as any).effectType)) {
+          return false
+        }
+      }
+
+      // 罠カードのみに適用されるフィルター
+      if (card.cardType === 'trap' && filters.trapTypes.length > 0) {
+        if (!('effectType' in card) || !filters.trapTypes.includes((card as any).effectType)) {
+          return false
         }
       }
 

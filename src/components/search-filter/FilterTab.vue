@@ -10,6 +10,7 @@
               class="card-type-tab"
               :class="{ active: filters.cardType === 'monster' }"
               :disabled="isMonsterTabDisabled"
+              :title="isMonsterTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click="selectCardType('monster')"
             >
               モンスター
@@ -28,6 +29,7 @@
                 class="chip chip-attr"
                 :class="{ active: filters.attributes.includes(attr) }"
                 :disabled="isFieldDisabled('attribute')"
+                :title="isFieldDisabled('attribute') ? getFieldDisabledReason('attribute') : undefined"
                 @click="toggleAttribute(attr)"
               >
                 <img :src="getAttributeIconUrl(attr)" class="attr-icon" :alt="getAttributeLabel(attr)">
@@ -44,6 +46,7 @@
               class="card-type-tab"
               :class="{ active: filters.cardType === 'spell' }"
               :disabled="isSpellTabDisabled"
+              :title="isSpellTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click="selectCardType('spell')"
             >
               <img :src="getSpellIconUrl()" class="tab-icon" alt="魔法">
@@ -92,6 +95,7 @@
               class="card-type-tab"
               :class="{ active: filters.cardType === 'trap' }"
               :disabled="isTrapTabDisabled"
+              :title="isTrapTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click="selectCardType('trap')"
             >
               <img :src="getTrapIconUrl()" class="tab-icon" alt="罠">
@@ -198,6 +202,7 @@
             :key="type"
             class="chip chip-fixed"
             :class="getMonsterTypeClass(type)"
+            :data-type="type"
             :disabled="isMonsterTypeAttributeDisabled(type)"
             :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
             @click="cycleMonsterTypeState(type)"
@@ -585,8 +590,11 @@ function isFieldDisabled(field: string): boolean {
       return true;
     }
   }
+
   return false;
 }
+
+
 
 function getFieldDisabledReason(field: string): string | undefined {
   const fieldState = props.exclusionResult.fieldStates.get(field);
@@ -594,19 +602,32 @@ function getFieldDisabledReason(field: string): string | undefined {
 }
 
 function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
-  const fieldState = props.exclusionResult.fieldStates.get(`monster-type-${type}`);
-  return fieldState ? !fieldState.enabled : false;
+  // フィールド全体が無効化されている場合（cardTypeがspell/trapの場合など）
+  if (props.isMonsterTypeFieldDisabled) {
+    return true;
+  }
+
+  // または個別のモンスタータイプ属性が無効化されているか
+  const attrState = props.exclusionResult.attributeStates.get(`monster-type_${type}`);
+  return attrState ? !attrState.enabled : false;
 }
 
 function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
-  const fieldState = props.exclusionResult.fieldStates.get(`monster-type-${type}`);
-  return fieldState?.disabledReason;
+  // フィールド全体が無効化されている場合
+  if (props.isMonsterTypeFieldDisabled) {
+    const attrState = props.exclusionResult.attributeStates.get('card-type_monster');
+    return attrState?.disabledReason;
+  }
+
+  // または個別のモンスタータイプが無効化されている場合
+  const attrState = props.exclusionResult.attributeStates.get(`monster-type_${type}`);
+  return attrState?.disabledReason;
 }
 
 function getMonsterTypeClass(type: MonsterType) {
   const state = props.filters.monsterTypes.find(t => t.type === type);
   if (!state) return '';
-  return state.exclude ? 'not' : 'active';
+  return state.state === 'not' ? 'not' : 'active';
 }
 
 function isLevelValueActive(num: number): boolean {
@@ -803,6 +824,47 @@ function getMonsterTypeButtonLabel(type: string) {
     background: transparent;
     color: var(--text-tertiary);
     cursor: not-allowed;
+    position: relative;
+  }
+
+  // disabled 状態のボタンで tooltip は常に opacity: 1
+  &:disabled::after,
+  &:disabled::before {
+    opacity: 1;
+  }
+
+  &:disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: var(--button-text);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+    z-index: 10001;
+    pointer-events: none;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 1;
+  }
+
+  &:disabled:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    margin-bottom: 1px;
+    z-index: 10001;
+    pointer-events: none;
+    opacity: 1;
   }
 
   &.active {
@@ -928,21 +990,20 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   &:disabled {
-    opacity: 0.4;
     cursor: not-allowed;
-    background: var(--bg-secondary);
-    color: var(--text-tertiary);
-    border-color: var(--border-primary);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-color: var(--border-secondary);
     position: relative;
   }
 
-  &:disabled[title]:hover::after {
+  &:disabled:hover::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -952,10 +1013,11 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 1;
   }
 
-  &:disabled[title]:hover::before {
+  &:disabled:hover::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -966,6 +1028,7 @@ function getMonsterTypeButtonLabel(type: string) {
     margin-bottom: 1px;
     z-index: 10001;
     pointer-events: none;
+    opacity: 1;
   }
 
   &.chip-fixed {
@@ -1266,6 +1329,7 @@ function getMonsterTypeButtonLabel(type: string) {
       color: var(--monster-pendulum-chip-not-hover-text);
     }
   }
+
 }
 
 .type-row {
@@ -1366,13 +1430,19 @@ function getMonsterTypeButtonLabel(type: string) {
     position: relative;
   }
 
-  &:disabled[title]:hover::after {
+  // disabled 状態のボタンで tooltip は常に opacity: 1（title属性の有無に関わらず）
+  &:disabled::after,
+  &:disabled::before {
+    opacity: 1;
+  }
+
+  &:disabled:hover::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -1382,10 +1452,11 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 1;
   }
 
-  &:disabled[title]:hover::before {
+  &:disabled:hover::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -1396,6 +1467,7 @@ function getMonsterTypeButtonLabel(type: string) {
     margin-bottom: 1px;
     z-index: 10001;
     pointer-events: none;
+    opacity: 1;
   }
 }
 
@@ -1445,11 +1517,12 @@ function getMonsterTypeButtonLabel(type: string) {
     background: transparent;
 
     &.disabled span {
-      opacity: 0.4;
       cursor: not-allowed;
+      color: var(--text-secondary);
+      background: var(--bg-tertiary);
 
       &:hover {
-        background: var(--border-secondary);
+        background: var(--bg-tertiary);
       }
     }
 
@@ -1594,7 +1667,7 @@ function getMonsterTypeButtonLabel(type: string) {
     }
 
     .selected-chips-inline {
-      background: rgba(255, 249, 230, 0.9);
+      background: transparent;
     }
   }
 }
@@ -1630,13 +1703,19 @@ function getMonsterTypeButtonLabel(type: string) {
     position: relative;
   }
 
-  &:disabled[title]:hover::after {
+  // disabled 状態のボタンで tooltip は常に opacity: 1（title属性の有無に関わらず）
+  &:disabled::after,
+  &:disabled::before {
+    opacity: 1;
+  }
+
+  &:disabled:hover::after {
     content: attr(title);
     position: absolute;
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
+    background: #1a1a1a;
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
@@ -1646,10 +1725,11 @@ function getMonsterTypeButtonLabel(type: string) {
     z-index: 10001;
     pointer-events: none;
     margin-bottom: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 1;
   }
 
-  &:disabled[title]:hover::before {
+  &:disabled:hover::before {
     content: '';
     position: absolute;
     bottom: 100%;
@@ -1660,6 +1740,7 @@ function getMonsterTypeButtonLabel(type: string) {
     margin-bottom: 1px;
     z-index: 10001;
     pointer-events: none;
+    opacity: 1;
   }
 }
 

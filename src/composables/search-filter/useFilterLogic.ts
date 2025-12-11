@@ -5,7 +5,6 @@ import type { ExclusionResult } from '@/types/search-exclusion';
 import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel, getRaceLabel, getMonsterTypeLabel } from '@/utils/filter-label';
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '@/utils/filter-chip-formatter';
 import { convertFiltersToIcons } from '@/utils/filter-icons';
-import { mappingManager } from '@/utils/mapping-manager';
 
 /**
  * SearchFilterDialog のフィルタロジックを抽出した Composable
@@ -57,73 +56,9 @@ export function useFilterLogic(
   }
 
   /**
-   * フィールド名を日本語ラベルに変換
-   */
-  function getFieldLabel(fieldId: string): string {
-    const labels: Record<string, string> = {
-      'level-rank': 'レベル/ランク',
-      'link-value': 'リンク数',
-      'link-marker': 'リンクマーカー',
-      'p-scale': 'Pスケール',
-      'def': 'DEF',
-      'atk': 'ATK',
-      'attribute': '属性',
-      'race': '種族',
-      'spell-type': '魔法タイプ',
-      'trap-type': '罠タイプ',
-    };
-    return labels[fieldId] || fieldId;
-  }
-
-  /**
-   * モンスタータイプの表示ラベルを取得（言語対応版）
-   * 詳細テキスト用（例：「シンクロモンスターが選択されているため」）
-   */
-  function getMonsterTypeDisplayLabel(type: string): string {
-    const lang = pageLanguage.value;
-    const idToText = mappingManager.getMonsterTypeIdToText(lang);
-    return (idToText as Record<string, string>)[type] || type;
-  }
-
-  /**
-   * 無効化理由をユーザーフレンドリーな日本語に変換
+   * 無効化理由をそのまま返す（排外エンジンで既に日本語フォーマット済み）
    */
   function formatDisabledReason(reason: string | undefined): string | undefined {
-    if (!reason) return undefined;
-
-    // 「項目から属性への決定性」パターン: "monster-type_has-level-rank-necessary: level-rank,defにより無効"
-    const fieldToAttrMatch = reason.match(/^[^:]+:\s*([^に]+)により無効$/);
-    if (fieldToAttrMatch && fieldToAttrMatch[1]) {
-      const fields = fieldToAttrMatch[1].split(',').map(f => f.trim());
-      const labels = fields.slice(0, 2).map(f => getFieldLabel(f));
-      if (fields.length > 2) {
-        return `${labels.join('、')}などに入力があるため`;
-      }
-      return `${labels.join('、')}に入力があるため`;
-    }
-
-    // 「属性同士の排他」パターン: "monster-type-near-extraグループ: monster-type_normalと排他"
-    const attrExclusionMatch = reason.match(/グループ:\s*monster-type_([^\s]+)と排他$/);
-    if (attrExclusionMatch && attrExclusionMatch[1]) {
-      const excludingType = attrExclusionMatch[1];
-      return `${getMonsterTypeDisplayLabel(excludingType)}モンスターが選択されているため`;
-    }
-
-    // 「属性から項目への無効化」パターン: "monster-type_linkにより無効化"
-    const attrToFieldMatch = reason.match(/^monster-type_([^\s]+)により無効化$/);
-    if (attrToFieldMatch && attrToFieldMatch[1]) {
-      const monsterType = attrToFieldMatch[1];
-      return `${getMonsterTypeDisplayLabel(monsterType)}モンスターが選択されているため`;
-    }
-
-    // 「必須属性が選択不可」パターン: "monster-type_linkが選択不可のため無効"
-    const requiredUnavailableMatch = reason.match(/^monster-type_([^\s]+)が選択不可のため無効$/);
-    if (requiredUnavailableMatch && requiredUnavailableMatch[1]) {
-      const monsterType = requiredUnavailableMatch[1];
-      return `${getMonsterTypeDisplayLabel(monsterType)}モンスターが選択できないため`;
-    }
-
-    // その他の場合はそのまま返す
     return reason;
   }
 

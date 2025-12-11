@@ -379,20 +379,31 @@ class MappingManager {
    * 言語コードからモンスタータイプマッピング（ID → 表示テキスト）を取得
    *
    * 優先順位：
-   * - ja：常に日本語静的マッピング
-   * - その他：動的マッピング > 日本語静的マッピング（フォールバック）
+   * - ja：常に日本語静的マッピング（理由：公式サイトの検索ページからモンスタータイプマッピングの抽出が困難なため）
+   * - その他：動的マッピング（存在する場合） > 空オブジェクト
+   *
+   * @remarks
+   * - 日本語でも動的マッピングが存在する場合はメモリに保存されるが、このメソッドでは常に静的マッピングが返される
+   * - これは仕様であり、動的マッピングを優先する言語と異なり、日本語は信頼できる静的マッピングが提供されるため
    */
   getMonsterTypeIdToText(lang: string): Partial<Record<MonsterType, string>> {
     const dynamicMapping = this.dynamicMappings.get(lang);
     if (dynamicMapping?.monsterType && Object.keys(dynamicMapping.monsterType).length > 0) {
+      console.debug(`[MappingManager.getMonsterTypeIdToText] Dynamic mapping found for ${lang}`);
       return dynamicMapping.monsterType;
     }
 
     // フォールバック：日本語静的マッピング
     if (lang === 'ja') {
+      if (dynamicMapping?.monsterType) {
+        console.debug(`[MappingManager.getMonsterTypeIdToText] monsterType mapping exists for ja but is empty, using static fallback`);
+      } else {
+        console.debug(`[MappingManager.getMonsterTypeIdToText] No dynamic mapping for ja, using static fallback (MONSTER_TYPE_ID_TO_NAME)`);
+      }
       return MONSTER_TYPE_ID_TO_NAME;
     }
 
+    console.debug(`[MappingManager.getMonsterTypeIdToText] No mapping found for lang: ${lang}, returning empty object`);
     return {};
   }
 
@@ -531,6 +542,7 @@ export async function initializeMappingManager(): Promise<void> {
 
     // その言語のマッピングを初期化
     await mappingManager.initialize(pageLanguage);
+    console.debug(`[MappingManager] Initialized for page language: ${pageLanguage}`);
 
     // 設定言語のマッピングも確保する（Chrome Storage から直接読み込み）
     try {
@@ -539,7 +551,9 @@ export async function initializeMappingManager(): Promise<void> {
 
       if (appSettings?.language && appSettings.language !== 'auto') {
         const configLanguage = appSettings.language;
+        console.debug(`[MappingManager] Ensuring mapping for config language: ${configLanguage}`);
         await mappingManager.ensureMappingForLanguage(configLanguage);
+        console.debug(`[MappingManager] Successfully initialized for config language: ${configLanguage}`);
       }
     } catch (error) {
       console.warn('[MappingManager] Failed to load settings from storage:', error);

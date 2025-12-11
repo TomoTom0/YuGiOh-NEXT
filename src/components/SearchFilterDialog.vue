@@ -20,12 +20,14 @@
           </button>
         </div>
         <div class="header-selected-chips">
-          <span
+          <button
             v-for="(icon, index) in headerFilterIcons"
             :key="index"
             class="header-chip"
             :class="icon.type"
-          >{{ icon.label }}</span>
+            @click.stop="removeHeaderChip(index)"
+            :title="`${icon.label}を削除`"
+          >{{ icon.label }}</button>
         </div>
         <div class="header-actions">
           <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
@@ -37,51 +39,54 @@
         </div>
       </div>
 
-      <!-- フィルタタブ -->
-      <FilterTab
-        v-if="activeDialogTab === 'filter'"
-        :filters="filters"
-        :exclusion-result="exclusionResult"
-        :page-language="pageLanguage"
-        :is-monster-type-field-disabled="isMonsterTypeFieldDisabled"
-        :is-monster-tab-disabled="isMonsterTabDisabled"
-        :is-spell-tab-disabled="isSpellTabDisabled"
-        :is-trap-tab-disabled="isTrapTabDisabled"
-        :selected-attribute-chips="selectedAttributeChips"
-        :selected-spell-type-chips="selectedSpellTypeChips"
-        :selected-trap-type-chips="selectedTrapTypeChips"
-        :selected-race-chips="selectedRaceChips"
-        :selected-monster-type-chips="selectedMonsterTypeChips"
-        :selected-level-chips="selectedLevelChips"
-        :selected-link-chips="selectedLinkChips"
-        :selected-scale-chips="selectedScaleChips"
-        :selected-atk-chips="selectedAtkChips"
-        :selected-def-chips="selectedDefChips"
-        @select-card-type="selectCardType"
-        @toggle-attribute="toggleAttribute"
-        @toggle-spell-type="toggleSpellType"
-        @toggle-trap-type="toggleTrapType"
-        @toggle-race="toggleRace"
-        @cycle-monster-type-state="cycleMonsterTypeState"
-        @toggle-monster-type-match-mode="toggleMonsterTypeMatchMode"
-        @set-level-type="setLevelType"
-        @toggle-level-value="toggleLevelValue"
-        @toggle-link-value="toggleLinkValue"
-        @toggle-link-marker="toggleLinkMarker"
-        @toggle-link-marker-match-mode="toggleLinkMarkerMatchMode"
-        @toggle-stat-exact="toggleStatExact"
-        @toggle-stat-unknown="toggleStatUnknown"
-        @validate-stat-input="validateStatInput"
-      />
+      <!-- スクロール可能なボディー -->
+      <div class="dialog-body">
+        <!-- フィルタタブ -->
+        <FilterTab
+          v-if="activeDialogTab === 'filter'"
+          :filters="filters"
+          :exclusion-result="exclusionResult"
+          :page-language="pageLanguage"
+          :is-monster-type-field-disabled="isMonsterTypeFieldDisabled"
+          :is-monster-tab-disabled="isMonsterTabDisabled"
+          :is-spell-tab-disabled="isSpellTabDisabled"
+          :is-trap-tab-disabled="isTrapTabDisabled"
+          :selected-attribute-chips="selectedAttributeChips"
+          :selected-spell-type-chips="selectedSpellTypeChips"
+          :selected-trap-type-chips="selectedTrapTypeChips"
+          :selected-race-chips="selectedRaceChips"
+          :selected-monster-type-chips="selectedMonsterTypeChips"
+          :selected-level-chips="selectedLevelChips"
+          :selected-link-chips="selectedLinkChips"
+          :selected-scale-chips="selectedScaleChips"
+          :selected-atk-chips="selectedAtkChips"
+          :selected-def-chips="selectedDefChips"
+          @select-card-type="selectCardType"
+          @toggle-attribute="toggleAttribute"
+          @toggle-spell-type="toggleSpellType"
+          @toggle-trap-type="toggleTrapType"
+          @toggle-race="toggleRace"
+          @cycle-monster-type-state="cycleMonsterTypeState"
+          @toggle-monster-type-match-mode="toggleMonsterTypeMatchMode"
+          @set-level-type="setLevelType"
+          @toggle-level-value="toggleLevelValue"
+          @toggle-link-value="toggleLinkValue"
+          @toggle-link-marker="toggleLinkMarker"
+          @toggle-link-marker-match-mode="toggleLinkMarkerMatchMode"
+          @toggle-stat-exact="toggleStatExact"
+          @toggle-stat-unknown="toggleStatUnknown"
+          @validate-stat-input="validateStatInput"
+        />
 
-      <!-- 検索履歴タブ -->
-      <HistoryTab
-        v-if="activeDialogTab === 'history'"
-        :history-items="searchHistory.historyItems.value"
-        @execute="handleHistoryExecute"
-        @toggle-favorite="handleHistoryToggleFavorite"
-        @remove="handleHistoryRemove"
-      />
+        <!-- 検索履歴タブ -->
+        <HistoryTab
+          v-if="activeDialogTab === 'history'"
+          :history-items="searchHistory.historyItems.value"
+          @execute="handleHistoryExecute"
+          @toggle-favorite="handleHistoryToggleFavorite"
+          @remove="handleHistoryRemove"
+        />
+      </div>
 
       <!-- 固定フッター：すべてのタブで共通 -->
       <div class="dialog-footer">
@@ -294,6 +299,45 @@ function handleHistoryRemove(item: any) {
     searchHistory.removeFromHistory(index);
   }
 }
+
+// ヘッダーチップから対応するフィルターを削除
+function removeHeaderChip(index: number) {
+  const icon = headerFilterIcons[index];
+  if (!icon) return;
+
+  switch (icon.type) {
+    case 'cardType':
+      filters.cardType = null;
+      break;
+    case 'attr':
+      filters.attributes = filters.attributes.filter(a => a !== icon.value);
+      break;
+    case 'race':
+      filters.races = filters.races.filter(r => r !== icon.value);
+      break;
+    case 'level':
+      filters.levelValues = [];
+      break;
+    case 'atk':
+      filters.atk = { exact: false, unknown: false };
+      break;
+    case 'def':
+      filters.def = { exact: false, unknown: false };
+      break;
+    case 'mtype':
+      filters.monsterTypes = filters.monsterTypes.filter(mt => mt.type !== icon.value);
+      break;
+    case 'link':
+      filters.linkValues = [];
+      break;
+    case 'scale':
+      filters.scaleValues = [];
+      break;
+    case 'linkMarker':
+      filters.linkMarkers = [];
+      break;
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -329,6 +373,7 @@ function handleHistoryRemove(item: any) {
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  flex-shrink: 0;
 
   &.common {
     justify-content: space-between;
@@ -344,6 +389,14 @@ function handleHistoryRemove(item: any) {
     white-space: nowrap;
     flex-shrink: 0;
   }
+}
+
+.dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 0 16px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .header-selected-chips {
@@ -371,6 +424,18 @@ function handleHistoryRemove(item: any) {
   text-overflow: ellipsis;
   flex-shrink: 0;
   line-height: 1.3;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-tertiary, #e0e0e0);
+    border-color: var(--text-secondary, #999);
+    color: var(--text-primary, #333);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .dialog-tabs {
@@ -440,16 +505,18 @@ function handleHistoryRemove(item: any) {
 }
 
 .dialog-footer {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: 12px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-primary, #ddd);
+  box-sizing: border-box;
 
   .search-input-wrapper {
     flex: 1;
+    min-width: 0;
   }
 
   .footer-close-btn {
@@ -457,7 +524,7 @@ function handleHistoryRemove(item: any) {
     height: 32px;
     padding: 0;
     margin: 0;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 300;
     line-height: 1;
     color: var(--text-secondary);
@@ -466,10 +533,10 @@ function handleHistoryRemove(item: any) {
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 
     &:hover {
       background: var(--bg-secondary);

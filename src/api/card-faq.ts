@@ -2,6 +2,7 @@ import { CardFAQ, CardFAQList } from '@/types/card';
 import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
 import { queuedFetch } from '@/utils/request-queue';
+import { safeQueryAs, isHTMLInputElement } from '@/utils/type-guards';
 
 /**
  * カードQA一覧を取得する
@@ -97,7 +98,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
       }
 
       // FAQ IDを取得
-      const linkValueInput = rowElement.querySelector('input.link_value') as HTMLInputElement;
+      const linkValueInput = safeQueryAs('input.link_value', isHTMLInputElement, rowElement);
       if (!linkValueInput?.value) {
         return;
       }

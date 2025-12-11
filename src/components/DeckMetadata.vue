@@ -27,6 +27,7 @@
       :is-visible="showCategoryDialog"
       :categories="categories"
       :deck-cards="allDeckCards"
+      :deck-card-refs="allDeckCardRefs"
       @update:model-value="updateCategories"
       @close="showCategoryDialog = false"
     />
@@ -54,13 +55,15 @@ import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
 import { getDeckMetadata } from '../utils/deck-metadata-loader';
+import { filterValidCategoryIds, filterValidTagIds } from '../types/deck-metadata';
+import { isDeckTypeValue, isDeckStyleValue } from '../utils/type-guards';
 import type { CategoryEntry } from '../types/dialog';
 import CategoryDialog from './CategoryDialog.vue';
 import TagDialog from './TagDialog.vue';
 import DeckMetadataDescription from './DeckMetadataDescription.vue';
 import DeckMetadataTags from './DeckMetadataTags.vue';
 import DeckMetadataHeader from './DeckMetadataHeader.vue';
-import { getTempCardDB } from '../utils/temp-card-db';
+import { getCardInfoFromUnifiedDB } from '../utils/card-utils';
 
 const deckStore = useDeckEditStore();
 
@@ -71,10 +74,14 @@ const tagList = computed(() => {
   return Object.entries(tags.value).map(([value, label]) => ({ value, label }));
 });
 
+// デフォルト値の定義（統一）
+const DEFAULT_DECK_TYPE: DeckTypeValue = '-1';
+const DEFAULT_DECK_STYLE: DeckStyleValue = '-1';
+
 // ローカル状態
 const localIsPublic = ref(deckStore.deckInfo.isPublic ?? false);
-const localDeckType = ref<DeckTypeValue>(deckStore.deckInfo.deckType ?? '-1');
-const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? '-1');
+const localDeckType = ref<DeckTypeValue>(deckStore.deckInfo.deckType ?? DEFAULT_DECK_TYPE);
+const localDeckStyle = ref<DeckStyleValue>(deckStore.deckInfo.deckStyle ?? DEFAULT_DECK_STYLE);
 const localCategory = ref<string[]>([...(deckStore.deckInfo.category ?? [])]);
 const localTags = ref<string[]>([...(deckStore.deckInfo.tags ?? [])]);
 const localComment = ref(deckStore.deckInfo.comment ?? '');
@@ -83,27 +90,36 @@ const localComment = ref(deckStore.deckInfo.comment ?? '');
 const showCategoryDialog = ref(false);
 const showTagDialog = ref(false);
 
+// デッキ内の全カード参照（主に数量情報のため）
+const allDeckCardRefs = computed(() => {
+  return [
+    ...deckStore.deckInfo.mainDeck,
+    ...deckStore.deckInfo.extraDeck,
+    ...deckStore.deckInfo.sideDeck
+  ];
+});
+
 // デッキ内の全カード情報を取得
 const allDeckCards = computed(() => {
   const cards: any[] = [];
-  const tempCardDB = getTempCardDB();
-  
+
   // mainDeck, extraDeck, sideDeckからカードIDを取得
   const allCardRefs = [
     ...deckStore.deckInfo.mainDeck,
     ...deckStore.deckInfo.extraDeck,
     ...deckStore.deckInfo.sideDeck
   ];
-  
-  // 重複を除いてCardInfoを取得
+
+  // 重複を除いてCardInfoを取得（Table B2=attribute, race, typesが必要）
   const uniqueCardIds = new Set(allCardRefs.map(ref => ref.cid));
   for (const cid of uniqueCardIds) {
-    const cardInfo = tempCardDB.get(cid);
+    // UnifiedCacheDBから取得（完全情報が必要）
+    const cardInfo = getCardInfoFromUnifiedDB(cid);
     if (cardInfo) {
       cards.push(cardInfo);
     }
   }
-  
+
   return cards;
 });
 
@@ -124,10 +140,33 @@ onMounted(async () => {
 // storeの変更を監視してローカル状態を更新
 watch(() => deckStore.deckInfo, (newDeckInfo) => {
   localIsPublic.value = newDeckInfo.isPublic ?? false;
-  localDeckType.value = newDeckInfo.deckType ?? '0';
-  localDeckStyle.value = newDeckInfo.deckStyle ?? '-1';
-  localCategory.value = [...(newDeckInfo.category ?? [])];
-  localTags.value = [...(newDeckInfo.tags ?? [])];
+  localDeckType.value = newDeckInfo.deckType ?? DEFAULT_DECK_TYPE;
+  localDeckStyle.value = newDeckInfo.deckStyle ?? DEFAULT_DECK_STYLE;
+
+  // カテゴリ・タグは無効な ID をフィルタリング
+  // ただし、categories/tags が初期化されていない場合はフィルタリングしない
+  if (categories.value && categories.value.length > 0) {
+    const categoryMap: Record<string, string> = {};
+    categories.value.forEach(cat => {
+      categoryMap[cat.value] = cat.label;
+    });
+    localCategory.value = filterValidCategoryIds([...(newDeckInfo.category ?? [])], categoryMap);
+  } else {
+    // categories がまだロードされていない場合は、フィルタリングなしで設定
+    localCategory.value = [...(newDeckInfo.category ?? [])];
+  }
+
+  if (tags.value && Object.keys(tags.value).length > 0) {
+    const tagMap: Record<string, string> = {};
+    Object.entries(tags.value).forEach(([key, label]) => {
+      tagMap[key] = label;
+    });
+    localTags.value = filterValidTagIds([...(newDeckInfo.tags ?? [])], tagMap);
+  } else {
+    // tags がまだロードされていない場合は、フィルタリングなしで設定
+    localTags.value = [...(newDeckInfo.tags ?? [])];
+  }
+
   localComment.value = newDeckInfo.comment ?? '';
 }, { deep: true });
 
@@ -138,13 +177,23 @@ function togglePublicStatus() {
 }
 
 function selectDeckType(value: string) {
-  localDeckType.value = value as DeckTypeValue;
-  deckStore.deckInfo.deckType = localDeckType.value;
+  // 型ガード関数で値を検証
+  if (isDeckTypeValue(value)) {
+    localDeckType.value = value;
+    deckStore.deckInfo.deckType = localDeckType.value;
+  } else {
+    console.error(`[DeckMetadata] Invalid deck type value: ${value}. Expected one of: 0, 1, 2, 3`);
+  }
 }
 
 function selectDeckStyle(value: string) {
-  localDeckStyle.value = value as DeckStyleValue;
-  deckStore.deckInfo.deckStyle = localDeckStyle.value;
+  // 型ガード関数で値を検証
+  if (isDeckStyleValue(value)) {
+    localDeckStyle.value = value;
+    deckStore.deckInfo.deckStyle = localDeckStyle.value;
+  } else {
+    console.error(`[DeckMetadata] Invalid deck style value: ${value}. Expected one of: -1, 0, 1, 2`);
+  }
 }
 
 function updateComment() {

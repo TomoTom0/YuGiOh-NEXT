@@ -35,7 +35,7 @@
           class="search-input"
           placeholder="Search categories..."
         />
-        <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="onFilterClick" title="Filter (7枚超え)">
+        <button class="btn btn-icon" :class="{ active: isFilterEnabled }" @click="onFilterClick" title="Filter (7枚以上)">
           <svg viewBox="0 0 24 24">
             <path fill="currentColor" d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
           </svg>
@@ -104,6 +104,7 @@ const props = defineProps<{
   }>;
   modelValue: string[];
   deckCards: any[];
+  deckCardRefs?: any[]; // DeckCardRef[] from all sections
 }>();
 
 const emit = defineEmits<{
@@ -145,14 +146,29 @@ const rowToCharsMap: Record<string, string[]> = {
 
 // カテゴリ名を含むカードの総数（実枚数）をカウント
 function countCardsWithCategory(categoryLabel: string): number {
-  return props.deckCards.reduce((count, card) => {
-    const cardAny = card as any;
-    const cardName = card.name || '';
-    const cardText = cardAny.text || '';
+  // deckCardRefs がない場合は、deckCards から単純にカウント（フォールバック）
+  if (!props.deckCardRefs || props.deckCardRefs.length === 0) {
+    return props.deckCards.filter(card => {
+      const cardName = card.name || '';
+      const cardText = card.text || '';
+      return cardName.includes(categoryLabel) || cardText.includes(categoryLabel);
+    }).length;
+  }
+
+  // deckCardRefs から実際の枚数をカウント
+  return props.deckCardRefs.reduce((total, cardRef) => {
+    // cardRef に対応する CardInfo を見つける
+    const cardInfo = props.deckCards.find(card => card.cardId === cardRef.cid);
+    if (!cardInfo) return total;
+
+    const cardName = cardInfo.name || '';
+    const cardText = cardInfo.text || '';
+
+    // カテゴリラベルを含むかチェック
     if (cardName.includes(categoryLabel) || cardText.includes(categoryLabel)) {
-      return count + (card.count || 1);
+      return total + (cardRef.quantity || 1);
     }
-    return count;
+    return total;
   }, 0);
 }
 
@@ -174,10 +190,10 @@ const filteredCategories = computed(() => {
     categories = categories.filter(cat => cat.label.toLowerCase().includes(query));
   }
   
-  // カテゴリ名フィルタ: 7枚超えのみ表示
+  // カテゴリ名フィルタ: 7枚以上のみ表示
   if (isFilterEnabled.value) {
-    categories = categories.filter(cat => 
-      countCardsWithCategory(cat.label) > 7
+    categories = categories.filter(cat =>
+      countCardsWithCategory(cat.label) >= 7
     );
   }
   

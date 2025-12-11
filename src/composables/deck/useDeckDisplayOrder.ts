@@ -345,7 +345,8 @@ export function moveInDisplayOrder(
 }
 
 /**
- * セクション内でカードを並び替える
+ * セクション内でカードを並び替える（インデックスベース）
+ * deck-edit.ts の reorderWithinSectionInternal から呼ばれる内部用関数
  *
  * @param displayOrder - 表示順序の状態
  * @param section - 並び替えるセクション
@@ -361,13 +362,20 @@ export function reorderWithinSection(
 ): DisplayCardRef | undefined {
   const sectionOrder = displayOrder[section];
 
+  if (!sectionOrder || !Array.isArray(sectionOrder)) {
+    console.warn(`[reorderWithinSection] Invalid section order for ${section}`);
+    return;
+  }
+
   if (fromIndex < 0 || fromIndex >= sectionOrder.length ||
       toIndex < 0 || toIndex > sectionOrder.length) {
+    console.warn(`[reorderWithinSection] Invalid indices: fromIndex=${fromIndex}, toIndex=${toIndex}, length=${sectionOrder.length}`);
     return;
   }
 
   const movingCard = sectionOrder[fromIndex];
   if (!movingCard) {
+    console.warn(`[reorderWithinSection] No card at fromIndex=${fromIndex}`);
     return;
   }
 
@@ -379,6 +387,52 @@ export function reorderWithinSection(
   sectionOrder.splice(adjustedToIndex, 0, movingCard);
 
   return movingCard;
+}
+
+/**
+ * セクション内でカードを並び替える（UUIDベース）
+ * deck-edit.ts の reorderCard から呼ばれる外部用関数
+ *
+ * @param displayOrder - 表示順序の状態
+ * @param section - 並び替えるセクション
+ * @param sourceUuid - 移動するカードのUUID
+ * @param targetUuid - 移動先となるカードのUUID（末尾に追加する場合は空文字列）
+ * @returns 並び替え後のdisplayCard（失敗時はundefined）
+ */
+export function reorderWithinSectionByUUID(
+  displayOrder: DisplayOrderState,
+  section: SectionType,
+  sourceUuid: string,
+  targetUuid: string
+): DisplayCardRef | undefined {
+  const sectionOrder = displayOrder[section];
+
+  if (!sectionOrder || !Array.isArray(sectionOrder)) {
+    console.warn(`[reorderWithinSectionByUUID] Invalid section order for ${section}`);
+    return;
+  }
+
+  // UUIDからインデックスを取得
+  const fromIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+  if (fromIndex < 0) {
+    console.warn(`[reorderWithinSectionByUUID] Source card not found: ${sourceUuid}`);
+    return;
+  }
+
+  // 移動先のインデックスを取得（空文字列の場合は末尾）
+  let toIndex: number;
+  if (targetUuid === '') {
+    toIndex = sectionOrder.length - 1;
+  } else {
+    toIndex = sectionOrder.findIndex(card => card?.uuid === targetUuid);
+    if (toIndex < 0) {
+      console.warn(`[reorderWithinSectionByUUID] Target card not found: ${targetUuid}`);
+      return;
+    }
+  }
+
+  // インデックスベースの処理に委譲
+  return reorderWithinSection(displayOrder, section, fromIndex, toIndex);
 }
 
 /**

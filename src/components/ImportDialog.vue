@@ -224,6 +224,9 @@ function handleImport() {
 }
 
 .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-secondary, #eee);
   flex-shrink: 0;
