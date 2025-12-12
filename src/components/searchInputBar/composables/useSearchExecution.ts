@@ -1,4 +1,4 @@
-import { type Ref, computed } from 'vue'
+import { type Ref, computed, nextTick } from 'vue'
 import type { CardInfo, Attribute, Race, CardType } from '../../../types/card'
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
@@ -329,12 +329,12 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       searchStore.allResults = results as unknown as typeof searchStore.allResults
 
       // 検索実行時に search タブのスクロール位置を上に戻す（アニメーション付き）
-      setTimeout(() => {
+      nextTick(() => {
         const editUI = document.querySelector('#ytomo-edit-ui')
         if (editUI) {
           editUI.scrollTo({ top: 0, behavior: 'smooth' })
         }
-      }, 100)
+      })
 
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {

@@ -526,8 +526,6 @@ export const useSettingsStore = defineStore('settings', () => {
     const theme = effectiveTheme.value;
     document.documentElement.setAttribute('data-ygo-next-theme', theme);
     // CSS変数はthemes.scssで定義されているため、動的注入不要
-    // Right Areaのスタイルもここでまとめて適用
-    applyRightAreaStyles();
   }
 
   /**
