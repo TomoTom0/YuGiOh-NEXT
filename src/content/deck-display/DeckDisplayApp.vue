@@ -28,10 +28,8 @@ export default defineComponent({
     const updateHtmlClass = () => {
       const htmlElement = document.documentElement
       if (settingsStore.appSettings.showCardDetailInDeckDisplay) {
-        htmlElement.classList.add('ygo-next')
         htmlElement.classList.add('ygo-next-valid-card-tab-on-deck-display')
       } else {
-        htmlElement.classList.remove('ygo-next')
         htmlElement.classList.remove('ygo-next-valid-card-tab-on-deck-display')
       }
     }
@@ -62,7 +60,7 @@ export default defineComponent({
 <style lang="scss">
 @use '../../styles/themes.scss' as *;
 
-html.ygo-next.ygo-next-valid-card-tab-on-deck-display {
+html.ygo-next-valid-card-tab-on-deck-display {
   * {
     min-height: auto;
   }
@@ -86,15 +84,25 @@ html.ygo-next.ygo-next-valid-card-tab-on-deck-display {
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: 1fr 1fr;
-      opacity: 0;
-      transition: opacity 0.2s;
       z-index: 1;
     }
   }
 
-  #main > div.image_set > a:hover .ygo-next.ygo-next-card-controls,
-  #extra > div.image_set > a:hover .ygo-next.ygo-next-card-controls,
-  #side > div.image_set > a:hover .ygo-next.ygo-next-card-controls {
+  .ygo-next.ygo-next-card-btn {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  #main > div.image_set > a:hover .ygo-next.ygo-next-card-btn,
+  #extra > div.image_set > a:hover .ygo-next.ygo-next-card-btn,
+  #side > div.image_set > a:hover .ygo-next.ygo-next-card-btn {
+    opacity: 1;
+  }
+
+  /* ロック済みカードはロックアイコン（top-right）のみ常時表示 */
+  #main > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed,
+  #extra > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed,
+  #side > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed {
     opacity: 1;
   }
 

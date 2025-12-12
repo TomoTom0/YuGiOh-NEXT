@@ -127,7 +127,7 @@ const filterIcons = computed(() => {
 
 .history-chip {
   padding: 0.45rem 0.95rem;
-  font-size: 1.05rem;
+  font-size: 16.8px;
   border-radius: 0.35rem;
   background: var(--chip-bg);
   color: var(--chip-text);
@@ -166,7 +166,7 @@ const filterIcons = computed(() => {
   display: flex;
   gap: 0.75rem;
   align-items: center;
-  font-size: 1.1rem;
+  font-size: 17.6px;
   flex-wrap: wrap;
   min-height: 1.5rem;
   width: 100%;
@@ -176,7 +176,7 @@ const filterIcons = computed(() => {
   padding: 0.4rem 0.8rem;
   background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   border-radius: 0.35rem;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 700;
   color: white;
   white-space: nowrap;
@@ -190,13 +190,13 @@ const filterIcons = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
 
 .history-count {
-  font-size: 1rem;
+  font-size: 16px;
   color: var(--text-secondary);
   font-weight: 600;
   white-space: nowrap;

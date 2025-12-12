@@ -13,6 +13,14 @@
       color: #e0e0e0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
+    /* ポップアップが表示されるまで非表示 */
+    #app {
+      opacity: 0;
+      transition: opacity 0.15s ease-in;
+    }
+    #app.loaded {
+      opacity: 1;
+    }
   </style>
   <script defer src="popup.js"></script>
 </head>

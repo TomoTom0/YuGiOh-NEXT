@@ -71,7 +71,7 @@ defineExpose({
 .command-prefix {
   color: var(--ygo-next-color-primary);
   font-weight: 600;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -82,7 +82,7 @@ defineExpose({
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   color: var(--ygo-next-color-text);
   min-width: 0;
   text-align: left;
@@ -97,15 +97,15 @@ defineExpose({
   }
 
   &.compact {
-    font-size: 12px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   }
 
   &.large {
-    font-size: 14px;
+    font-size: var(--right-area-font-size, 14px);
   }
 
   &.small {
-    font-size: 12px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   }
 }
 </style>

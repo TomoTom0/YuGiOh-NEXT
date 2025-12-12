@@ -360,7 +360,7 @@ function removeHeaderChip(index: number) {
   }
 
   .dialog-title {
-    font-size: 14px;
+    font-size: var(--right-area-font-size, 14px);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -387,7 +387,7 @@ function removeHeaderChip(index: number) {
   align-items: center;
   justify-content: center;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
@@ -426,7 +426,7 @@ function removeHeaderChip(index: number) {
   color: var(--text-secondary, #666);
   cursor: pointer;
   padding: 4px 8px;
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: 500;
   transition: all 0.2s;
 

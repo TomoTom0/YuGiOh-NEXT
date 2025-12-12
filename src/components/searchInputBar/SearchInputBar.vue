@@ -719,6 +719,13 @@ export default defineComponent({
 
     expose({ focus, inputRef: inputFieldRef })
 
+    // removeFilterIcon をラップして onFilterApply を提供
+    const handleRemoveFilterIcon = (icon: any) => {
+      removeFilterIcon(icon, () => {
+        // フィルター削除後の処理（特になし、フィルター状態の更新のみ）
+      })
+    }
+
     return {
       deckStore,
       searchStore,
@@ -751,7 +758,7 @@ export default defineComponent({
       handleEnter,
       handleEscape,
       removeFilterChip,
-      removeFilterIcon,
+      removeFilterIcon: handleRemoveFilterIcon,
       selectSuggestion,
       selectMydeck,
       clearAllFilters
@@ -806,7 +813,7 @@ export default defineComponent({
   justify-content: center;
   width: 12px;
   height: 10px;
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: 600;
   border-radius: 2px;
   background: var(--bg-secondary, #f0f0f0);
@@ -873,7 +880,7 @@ export default defineComponent({
 
     .menu-btn {
       padding: 4px 6px;
-      font-size: 14px;
+      font-size: var(--right-area-font-size, 14px);
     }
 
     .search-btn {
@@ -887,7 +894,7 @@ export default defineComponent({
 
     .clear-btn {
       padding: 0 4px;
-      font-size: 16px;
+      font-size: calc(var(--right-area-font-size, 14px) * 1.14);
     }
   }
 }
@@ -923,7 +930,7 @@ export default defineComponent({
   }
 
   .menu-icon {
-    font-size: 16px;
+    font-size: calc(var(--right-area-font-size, 14px) * 1.14);
     font-weight: bold;
     line-height: 1;
   }
@@ -936,7 +943,7 @@ export default defineComponent({
   min-width: 12px;
   height: 12px;
   padding: 0 2px;
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: 600;
   line-height: 12px;
   text-align: center;

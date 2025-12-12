@@ -323,7 +323,7 @@ export default {
     border-right: 1px solid var(--border-primary, #e0e0e0);
     background: var(--bg-primary);
     cursor: pointer;
-    font-size: 12px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
     color: var(--text-primary);
     flex: 1;
     transition: background 0.2s ease, color 0.2s ease;
@@ -363,13 +363,13 @@ export default {
   padding: 20px;
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .loading {
   padding: 20px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 </style>

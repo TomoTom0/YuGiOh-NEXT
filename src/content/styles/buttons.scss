@@ -48,15 +48,17 @@ ul.main_menu > li * {
     }
   }
 
-  /**
-   * カードのアニメーション（デッキ表示画面内の image_set に限定）
-   */
-  #main.card_set div.image_set > a {
-    transition: transform 0.3s ease, opacity 0.3s ease;
-  }
+}
 
-  #main.card_set div.image_set.animating > a {
-    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-  }
+/**
+ * カードのアニメーション（デッキ表示画面内の image_set に限定）
+ * デッキ表示ページでシャッフルボタンを押したときのアニメーション
+ */
+.ygo-next#deck_image #main.card_set div.image_set > a {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.ygo-next#deck_image #main.card_set div.image_set.animating > a {
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 

@@ -268,7 +268,7 @@ function selectDeckStyle(value: string) {
   background: var(--bg-primary);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -399,7 +399,7 @@ function selectDeckStyle(value: string) {
 }
 
 .deck-type-placeholder {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-tertiary);
   padding: 0 4px;
   border: 1px solid var(--border-primary);
@@ -415,7 +415,7 @@ function selectDeckStyle(value: string) {
 }
 
 .deck-type-unset {
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   color: var(--text-secondary);
   padding: 0 8px;
 }
@@ -444,7 +444,7 @@ function selectDeckStyle(value: string) {
 .deck-style-option {
   padding: 10px 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   color: var(--text-primary);
   display: flex;
   align-items: center;

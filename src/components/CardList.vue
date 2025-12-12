@@ -556,7 +556,7 @@ export default {
   right: -8px;
   background: var(--text-secondary, #666);
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   min-width: 12px;
   height: 12px;
   border-radius: 6px;
@@ -571,7 +571,7 @@ export default {
   padding: 4px 8px;
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   background: var(--input-bg);
   color: var(--input-text);
   cursor: pointer;
@@ -727,14 +727,14 @@ export default {
 
 .card-name {
   font-weight: bold;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   margin-bottom: 4px;
   word-break: break-word;
 }
 
 .card-text {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-secondary);
   line-height: 1.4;
   word-break: break-word;
@@ -801,7 +801,7 @@ export default {
 }
 
 .stat-item {
-  font-size: 9px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.64);
   padding: 2px 4px;
   border-radius: 3px;
   white-space: nowrap;
