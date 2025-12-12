@@ -4,12 +4,13 @@
  */
 
 /**
- * 公式メニューのz-indexを上げて、独自メニューより前面に表示させる
- * 独自メニューのz-indexを低くするため、公式メニュー側で対応
+ * 公式メニューのz-indexを設定
+ * TASK-110: ダイアログのz-index問題を解決するまでの暫定対応として、z-indexを10に設定
+ * （本来はダイアログのスタッキングコンテキストを根本的に改善すべき）
  */
 ul.main_menu > li * {
   position: relative;
-  z-index: 30 !important;
+  z-index: 10 !important;
 }
 
 .ygo-next {
