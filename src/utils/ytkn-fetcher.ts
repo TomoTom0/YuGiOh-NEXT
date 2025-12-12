@@ -1,5 +1,6 @@
 import { buildApiUrl } from './url-builder';
 import type { CardGameType } from '@/types/settings';
+import { safeQueryAs, isHTMLInputElement } from './type-guards';
 
 /**
  * デッキ編集フォーム（ope=2）からytknを取得
@@ -25,8 +26,8 @@ export async function fetchYtknFromEditForm(
     const response = await axios.get(editUrl, { withCredentials: true });
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
-    const ytknInput = doc.querySelector('input#ytkn') as HTMLInputElement;
-    return ytknInput ? ytknInput.value : null;
+    const ytknInput = safeQueryAs('input#ytkn', isHTMLInputElement, doc);
+    return ytknInput?.value ?? null;
   } catch (error) {
     console.error('[fetchYtknFromEditForm] Failed to fetch ytkn:', error);
     return null;
@@ -55,8 +56,8 @@ export async function fetchYtknFromDeckList(
     const response = await axios.get(listUrl, { withCredentials: true });
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
-    const ytknInput = doc.querySelector('input[name="ytkn"]') as HTMLInputElement;
-    return ytknInput ? ytknInput.value : null;
+    const ytknInput = safeQueryAs('input[name="ytkn"]', isHTMLInputElement, doc);
+    return ytknInput?.value ?? null;
   } catch (error) {
     console.error('[fetchYtknFromDeckList] Failed to fetch ytkn:', error);
     return null;

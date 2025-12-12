@@ -42,21 +42,21 @@
         <div class="grid-spacer"></div>
         <button
           class="position-button"
-          :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+          :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-top' }"
           @click="handlePositionChange('right-top')"
         >
           右上（デフォルト）
         </button>
         <button
           class="position-button"
-          :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+          :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'default' }"
           @click="handlePositionChange('default')"
         >
           左下
         </button>
         <button
           class="position-button"
-          :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+          :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-bottom' }"
           @click="handlePositionChange('right-bottom')"
         >
           右下
@@ -168,7 +168,7 @@ const handlePresetChange = (preset: SizePreset) => {
 };
 
 const handlePositionChange = (position: SearchInputPosition) => {
-  settingsStore.appSettings.searchInputPosition = position;
+  settingsStore.appSettings.ux.searchInputPosition = position;
   settingsStore.setSearchInputPosition(position);
   showSaveMessage('検索入力欄の位置を変更しました');
 };

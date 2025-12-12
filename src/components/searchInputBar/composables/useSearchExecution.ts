@@ -136,6 +136,11 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
    */
   const applyClientSideFilters = (cards: CardInfo[], filters: SearchFilters): CardInfo[] => {
     return cards.filter(card => {
+      // カードタイプフィルター
+      if (filters.cardType !== null && card.cardType !== filters.cardType) {
+        return false
+      }
+
       // モンスターカードのみに適用されるフィルター
       if (card.cardType === 'monster') {
         // 属性フィルター
@@ -148,6 +153,23 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         // 種族フィルター
         if (filters.races.length > 0) {
           if (!('race' in card) || !filters.races.includes(card.race as Race)) {
+            return false
+          }
+        }
+
+        // モンスタータイプフィルター
+        if (filters.monsterTypes.length > 0 && 'types' in card) {
+          const cardTypes = (card as any).types || []
+          // AND条件（全てのtypesが含まれている）またはOR条件
+          const hasMatch = filters.monsterTypes.some(mt => {
+            if (mt.state === 'normal') {
+              return cardTypes.includes(mt.type)
+            } else if (mt.state === 'not') {
+              return !cardTypes.includes(mt.type)
+            }
+            return false
+          })
+          if (!hasMatch) {
             return false
           }
         }
@@ -165,6 +187,63 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
             return false
           }
         }
+
+        // ペンデュラムスケールフィルター
+        if (filters.scaleValues.length > 0 && 'scale' in card) {
+          if (typeof card.scale === 'number' && !filters.scaleValues.includes(card.scale)) {
+            return false
+          }
+        }
+
+        // リンクマーカーフィルター
+        if (filters.linkMarkers.length > 0 && 'linkMarkers' in card) {
+          const cardMarkers = (card as any).linkMarkers || []
+          // 選択された全てのマーカーが含まれているか確認
+          const hasAllMarkers = filters.linkMarkers.every(marker => cardMarkers.includes(marker))
+          if (!hasAllMarkers) {
+            return false
+          }
+        }
+
+        // ATKフィルター
+        if ((filters.atk.min !== undefined || filters.atk.max !== undefined) && 'atk' in card) {
+          const atk = (card as any).atk
+          if (typeof atk === 'number') {
+            if (filters.atk.min !== undefined && atk < filters.atk.min) {
+              return false
+            }
+            if (filters.atk.max !== undefined && atk > filters.atk.max) {
+              return false
+            }
+          }
+        }
+
+        // DEFフィルター
+        if ((filters.def.min !== undefined || filters.def.max !== undefined) && 'def' in card) {
+          const def = (card as any).def
+          if (typeof def === 'number') {
+            if (filters.def.min !== undefined && def < filters.def.min) {
+              return false
+            }
+            if (filters.def.max !== undefined && def > filters.def.max) {
+              return false
+            }
+          }
+        }
+      }
+
+      // 魔法カードのみに適用されるフィルター
+      if (card.cardType === 'spell' && filters.spellTypes.length > 0) {
+        if (!('effectType' in card) || !filters.spellTypes.includes((card as any).effectType)) {
+          return false
+        }
+      }
+
+      // 罠カードのみに適用されるフィルター
+      if (card.cardType === 'trap' && filters.trapTypes.length > 0) {
+        if (!('effectType' in card) || !filters.trapTypes.includes((card as any).effectType)) {
+          return false
+        }
       }
 
       return true
@@ -175,9 +254,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
    * 検索を実行
    */
   const handleSearch = async () => {
-    console.log('[handleSearch] START - query:', searchStore.searchQuery, 'hasActiveFilters:', hasActiveFilters.value)
-    console.log('[handleSearch] searchFilters:', JSON.stringify(searchStore.searchFilters, null, 2))
-
     // フィルターダイアログを自動クローズ
     deckStore.isFilterDialogVisible = false
 
@@ -186,7 +262,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
     // クエリもフィルターもない場合のみクリア
     // （空文字列でもフィルターがあれば検索を実行する）
     if (!query && !hasActiveFilters.value) {
-      console.log('[handleSearch] クエリもフィルターもないのでクリア')
       searchStore.searchResults = []
       searchStore.allResults = []
       searchStore.hasMore = false
@@ -202,7 +277,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
       // autoモードで2文字以下の場合はname検索として扱う
       const effectiveSearchMode = (searchMode.value === 'auto' && keyword.length <= 2) ? 'name' : searchMode.value
-      console.log('[handleSearch] keyword:', keyword, 'searchMode:', searchMode.value, 'effectiveSearchMode:', effectiveSearchMode)
 
       const searchTypeMap: Record<string, string> = {
         'auto': '1',
@@ -230,7 +304,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
         // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
         if (autoResultCount >= 100) {
-          console.log('[handleSearch] autoモードで100件取得 → name検索に委譲')
           delegatedToName = true
           searchType = '1'  // name検索に切り替え
         }
@@ -245,9 +318,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           searchStore.searchFilters
         )
 
-        console.log('[handleSearch] searchOptions:', JSON.stringify(searchOptions, null, 2))
         results = await searchCards(searchOptions)
-        console.log('[handleSearch] results count:', results.length)
       }
 
       // 検索APIを呼び出したのでグローバル検索モードを終了
@@ -260,7 +331,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {
         const resultCids = results.map(card => card.cardId)
-        console.log('[handleSearch] 検索履歴に追加:', { query, searchMode: searchMode.value, resultCount: resultCids.length })
         searchHistory.addToHistory(query, searchMode.value, searchStore.searchFilters, resultCids)
       }
 

@@ -7,7 +7,7 @@
       :class="{ 'not-condition': previewChip.isNot }"
       title="Enter で追加"
     >
-      <span v-if="previewChip.isNot" class="not-prefix">!</span>{{ previewChip.label }}
+      <span v-if="previewChip.isNot" class="not-prefix">N-</span>{{ previewChip.label }}
     </span>
 
     <!-- SearchFilterDialogで選択した条件 -->
@@ -15,10 +15,12 @@
       v-for="(icon, index) in displayFilterIcons"
       :key="`icon-${index}`"
       class="filter-icon-item clickable"
-      :class="icon.type"
+      :class="[icon.type, { 'not-condition': icon.isNot }]"
       @click="$emit('remove-icon', icon)"
       :title="`クリックで削除: ${icon.label}`"
-    >{{ icon.label }}</span>
+    >
+      <span v-if="icon.isNot" class="not-prefix">N-</span>{{ icon.label }}
+    </span>
     <button
       v-if="hasActiveFilters || filterChipsCount > 0"
       class="clear-filters-btn-top"
@@ -183,7 +185,7 @@ export default defineComponent({
 
     .not-prefix {
       font-weight: 700;
-      margin-right: 1px;
+      margin-right: 2px;
     }
   }
 }
@@ -204,7 +206,7 @@ export default defineComponent({
 
   .not-prefix {
     font-weight: 700;
-    margin-right: 1px;
+    margin-right: 2px;
   }
 }
 

@@ -9,7 +9,7 @@ export default defineConfig({
     environmentOptions: {
       happyDOM: {
         settings: {
-          disableJavaScriptEvaluation: true,
+          disableJavaScriptEvaluation: false,
           disableJavaScriptFileLoading: true,
           disableCSSFileLoading: true,
           disableIframePageLoading: true,

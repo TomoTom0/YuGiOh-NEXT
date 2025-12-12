@@ -119,25 +119,25 @@ export default {
 
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'default'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'default'
       return result
     })
-    
+
     // 検索入力欄をRight Area上部に表示するかどうか
     const showSearchInputTop = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'right-top'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'right-top'
       return result
     })
-    
+
     // 検索入力欄をRight Area下部に表示するかどうか
     const showSearchInputRightBottom = computed(() => {
-      const result = settingsStore.appSettings.searchInputPosition === 'right-bottom'
+      const result = settingsStore.appSettings.ux.searchInputPosition === 'right-bottom'
       return result
     })
-    
+
     // 検索入力欄が左上（section-title）にあるかどうか
     const showSearchInputLeftTop = computed(() => {
-      return settingsStore.appSettings.searchInputPosition === 'section-title'
+      return settingsStore.appSettings.ux.searchInputPosition === 'section-title'
     })
 
     // グローバル検索モードを閉じる
@@ -236,9 +236,9 @@ export default {
     }
 
     const handleScrollToTop = () => {
-      const cardListResults = document.querySelector('.search-content .card-list-results')
-      if (cardListResults) {
-        cardListResults.scrollTo({ top: 0, behavior: 'smooth' })
+      const searchContent = document.querySelector('.search-content')
+      if (searchContent) {
+        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
       }
     }
 
@@ -433,282 +433,11 @@ export default {
   grid-column: 1 / -1;
 }
 
-.card-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
+/* CardList.vue の子コンポーネントにスタイルが移譲済み */
 
-.card-info {
-  flex: 1;
-  min-width: 0;
-}
+/* CardDetail.vue の子コンポーネントにスタイルが移譲済み */
 
-.card-name {
-  font-weight: bold;
-  font-size: 11px;
-  margin-bottom: 2px;
-  word-break: break-word;
-  color: var(--text-primary);
-}
-
-.card-text {
-  font-size: 10px;
-  color: var(--text-secondary);
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-}
-
-.card-detail-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border-bottom: 2px solid #008cff;
-
-  button {
-    padding: 8px;
-    border: none;
-    border-right: 1px solid var(--border-primary, #e0e0e0);
-    background: var(--bg-primary);
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text-primary);
-
-    &:last-child {
-      border-right: none;
-    }
-
-    &.active {
-      background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
-      color: var(--button-text);
-      border-right-color: transparent;
-    }
-  }
-}
-
-.card-tab-content {
-  padding: 15px;
-}
-
-.card-info-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.card-info-top {
-  display: flex;
-  gap: 15px;
-}
-
-.card-info-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.card-image-large {
-  flex-shrink: 0;
-  width: 80px;
-  
-  img {
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  }
-}
-
-.card-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.card-name-large {
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
-}
-
-.card-stats-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.card-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 3px;
-}
-
-.stat-box {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  font-size: 11px;
-  
-  &.stat-box-full {
-    width: 100%;
-  }
-  
-  &.stat-box-type {
-    width: 100%;
-    transform: skewX(-10deg);
-    background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
-    justify-content: center;
-    
-    .stat-text {
-      transform: skewX(10deg);
-    }
-  }
-}
-
-.stat-text {
-  font-size: 11px;
-  font-weight: bold;
-  color: var(--text-primary);
-}
-
-.link-markers-box {
-  padding: 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-}
-
-.link-markers-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin-top: 6px;
-}
-
-.marker-cell {
-  width: 24px;
-  height: 24px;
-  border: 1px solid var(--border-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-primary);
-  font-size: 14px;
-  
-  &.active {
-    background: var(--button-bg);
-    color: var(--button-text);
-    font-weight: bold;
-  }
-  
-  &:nth-child(5) {
-    background: var(--bg-secondary);
-  }
-}
-
-.stat-label {
-  font-size: 9px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-}
-
-.stat-value {
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--text-primary);
-}
-
-.card-type-line {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  font-size: 11px;
-}
-
-.card-atk-def {
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--text-primary);
-  padding: 6px 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-}
-
-.card-ruby {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: -5px;
-}
-
-.card-type-info {
-  font-size: 12px;
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-}
-
-.card-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.stat-item {
-  display: flex;
-  gap: 8px;
-}
-
-.stat-label {
-  font-weight: bold;
-  color: var(--text-secondary);
-  min-width: 80px;
-}
-
-.stat-value {
-  color: var(--text-primary);
-}
-
-.card-pendulum-effect,
-.card-effect-text,
-.card-effect-section {
-  margin-top: 5px;
-}
-
-.section-title {
-  font-size: 11px;
-  font-weight: bold;
-  color: var(--text-primary);
-  margin-bottom: 6px;
-  padding: 4px 8px;
-  background: var(--bg-secondary);
-  border-radius: 4px 4px 0 0;
-}
-
-.effect-text {
-  font-size: 11px;
-  color: var(--text-primary);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  padding: 8px;
-  border: 1px solid var(--border-primary);
-  border-radius: 0 0 4px 4px;
-  background: var(--bg-primary);
-}
+/* CardInfoTab.vue（CardDetailの子コンポーネント）にスタイルが移譲済み */
 
 .no-card-selected {
   padding: 20px;

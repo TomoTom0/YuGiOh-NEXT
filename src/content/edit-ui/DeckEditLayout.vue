@@ -265,12 +265,21 @@ export default {
           }
         }
 
-        deckThumbnails.value.set(dno, thumbnail || null)
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          deckThumbnails.value.set(dno, thumbnail || null)
+        }
       } catch (error) {
         console.warn(`Failed to load or generate thumbnail for deck ${dno}:`, error)
-        deckThumbnails.value.set(dno, null)
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          deckThumbnails.value.set(dno, null)
+        }
       } finally {
-        thumbnailLoading.value.set(dno, false)
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          thumbnailLoading.value.set(dno, false)
+        }
       }
     }
 
@@ -300,8 +309,10 @@ export default {
         if (thumbnail) {
           // キャッシュに保存
           await DeckThumbnailCache.set(dno, thumbnail)
-          // UI に反映
-          deckThumbnails.value.set(dno, thumbnail)
+          // コンポーネントがまだマウントされている場合のみ UI に反映
+          if (isComponentMounted) {
+            deckThumbnails.value.set(dno, thumbnail)
+          }
         }
       } catch (error) {
         console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
@@ -360,7 +371,7 @@ export default {
 
       if (isInputFocused) return
 
-      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+      const shortcuts = settingsStore.appSettings.ux.keyboardShortcuts
 
       // グローバル検索モードを有効化
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
@@ -415,11 +426,15 @@ export default {
       }
     }
 
-    // hashchangeイベントでdno変更を監視
-    window.addEventListener('hashchange', checkDnoChange)
+    // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
+    let checkDnoChangeHandler: (() => void) | null = null
+
+    // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
+    let isComponentMounted = false
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
+      isComponentMounted = true
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
 
@@ -439,14 +454,17 @@ export default {
         }, 150)
       }
 
+      // hashchangeイベントでdno変更を監視
+      checkDnoChangeHandler = () => checkDnoChange()
+      window.addEventListener('hashchange', checkDnoChangeHandler)
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
-      const originalChangeLanguage = (window as any).ygoChangeLanguage
-      ;(window as any).ygoChangeLanguage = (lang: string) => {
+      const originalChangeLanguage = window.ygoChangeLanguage
+      window.ygoChangeLanguage = (lang: string) => {
         const performChange = () => {
-          originalChangeLanguage(lang)
+          originalChangeLanguage?.(lang)
         }
 
         // 編集中の場合はダイアログを表示
@@ -461,7 +479,7 @@ export default {
       }
 
       // 設定に応じてファビコンを変更
-      if (settingsStore.appSettings.changeFavicon) {
+      if (settingsStore.appSettings.ux.changeFavicon) {
         changeFavicon()
       }
     })
@@ -496,8 +514,12 @@ export default {
     }
 
     onUnmounted(() => {
+      isComponentMounted = false
+      // 全てのイベントリスナーを削除
+      if (checkDnoChangeHandler) {
+        window.removeEventListener('hashchange', checkDnoChangeHandler)
+      }
       window.removeEventListener('resize', handleResize)
-      window.removeEventListener('hashchange', checkDnoChange)
       window.removeEventListener('keydown', handleGlobalKeydown)
       pendingLanguageChange = null
     })

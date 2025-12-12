@@ -21,14 +21,60 @@ export interface DeckData {
 }
 
 /**
- * cidからカード情報を取得（TempCardDB経由）
+ * TempCardDBからのみカード情報を取得（検索キャッシュ）
+ *
+ * Table A,B,B2なし。検索結果のみ。
+ *
+ * @param cid カードID
+ * @returns カード情報、見つからない場合はnull
+ */
+export function getCardInfoFromTempDB(cid: string): CardInfo | null {
+  const tempCardDB = getTempCardDB()
+  return tempCardDB.get(cid) || null
+}
+
+/**
+ * UnifiedCacheDBからカード情報を取得（完全情報）
+ *
+ * Table A,B,B2を含む完全なカード情報。
+ *
+ * @param cid カードID
+ * @returns カード情報、見つからない場合はnull
+ */
+export function getCardInfoFromUnifiedDB(cid: string): CardInfo | null {
+  const unifiedDB = getUnifiedCacheDB()
+  const lang = detectLanguage(document)
+  return unifiedDB.reconstructCardInfo(cid, lang) || null
+}
+
+/**
+ * UnifiedCacheDB + TempCardDB から完全なカード情報を取得
+ *
+ * UnifiedCacheDBから優先取得（Table A,B,B2）し、
+ * UnifiedDBの結果にTable Cの情報がない場合、TempCardDBから補完する。
  *
  * @param cid カードID
  * @returns カード情報、見つからない場合はnull
  */
 export function getCardInfo(cid: string): CardInfo | null {
-  const tempCardDB = getTempCardDB()
-  return tempCardDB.get(cid) || null
+  const unifiedInfo = getCardInfoFromUnifiedDB(cid)
+  if (!unifiedInfo) {
+    // UnifiedDBにない場合、TempDBから取得（フォールバック）
+    return getCardInfoFromTempDB(cid)
+  }
+
+  // UnifiedDBの結果にTable Cがない場合、TempDBから補完
+  const unifiedDB = getUnifiedCacheDB()
+  const hasTableC = unifiedDB.hasCardTableC(cid)
+
+  if (!hasTableC) {
+    const tempInfo = getCardInfoFromTempDB(cid)
+    if (tempInfo) {
+      return { ...unifiedInfo, ...tempInfo } as CardInfo
+    }
+  }
+
+  return unifiedInfo
 }
 
 /**

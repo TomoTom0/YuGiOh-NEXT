@@ -31,7 +31,7 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'default' }"
                   @click="settingsStore.setSearchInputPosition('default')"
                 >
                   L-Bottom
@@ -40,14 +40,14 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-top' }"
                   @click="settingsStore.setSearchInputPosition('right-top')"
                 >
                   R-Top
                 </button>
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-bottom' }"
                   @click="settingsStore.setSearchInputPosition('right-bottom')"
                 >
                   R-Bottom
@@ -74,70 +74,6 @@
               >
                 Vertical
               </button>
-            </div>
-          </div>
-
-          <!-- 右下: Card List View Mode -->
-          <div class="setting-block">
-            <div class="block-title">Card List View</div>
-            <div class="view-mode-sections">
-              <div class="view-mode-section">
-                <div class="section-label">Search</div>
-                <div class="toggle-row">
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.search === 'list' }"
-                    @click="settingsStore.setCardListViewMode('search', 'list')"
-                  >
-                    List
-                  </button>
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.search === 'grid' }"
-                    @click="settingsStore.setCardListViewMode('search', 'grid')"
-                  >
-                    Grid
-                  </button>
-                </div>
-              </div>
-              <div class="view-mode-section">
-                <div class="section-label">Related</div>
-                <div class="toggle-row">
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.related === 'list' }"
-                    @click="settingsStore.setCardListViewMode('related', 'list')"
-                  >
-                    List
-                  </button>
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.related === 'grid' }"
-                    @click="settingsStore.setCardListViewMode('related', 'grid')"
-                  >
-                    Grid
-                  </button>
-                </div>
-              </div>
-              <div class="view-mode-section">
-                <div class="section-label">Products</div>
-                <div class="toggle-row">
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.products === 'list' }"
-                    @click="settingsStore.setCardListViewMode('products', 'list')"
-                  >
-                    List
-                  </button>
-                  <button
-                    class="toggle-btn"
-                    :class="{ active: settingsStore.appSettings.ux.cardListViewMode.products === 'grid' }"
-                    @click="settingsStore.setCardListViewMode('products', 'grid')"
-                  >
-                    Grid
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -189,7 +125,7 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
 }
 
 .dialog {

@@ -67,3 +67,6 @@ coverage/
 # Reference materials (old extension)
 ref/
 docs/_archived/
+.claude/
+.alcom-save.log
+.chrome_playwright_ws

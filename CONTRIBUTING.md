@@ -432,7 +432,7 @@ SNSでデッキを共有しやすくしたい
 
 ### Q: どこから始めればいい？
 
-A: [`tasks/testing-and-documentation.md`](tasks/testing-and-documentation.md) の未完了タスクから選ぶか、[Good First Issue](https://github.com/TomoTom0/YuGiOh-NEXT/labels/good%20first%20issue) ラベルのIssueを探してください。
+A: [GitHub Issues](https://github.com/TomoTom0/YuGiOh-NEXT/issues) から興味のあるIssueを選ぶか、[Good First Issue](https://github.com/TomoTom0/YuGiOh-NEXT/labels/good%20first%20issue) ラベルのIssueを探してください。
 
 ### Q: テストの書き方がわからない
 
