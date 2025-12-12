@@ -602,8 +602,12 @@ export default {
 
       try {
         // Load Dialog検索時に動的import
-        const { searchCardsByName } = await import('../../api/card-search')
-        const results = await searchCardsByName(query.trim())
+        const { searchCards } = await import('../../api/card-search')
+        const results = await searchCards({
+          keyword: query.trim(),
+          searchType: '1',
+          resultsPerPage: 100
+        })
         const gameType = detectCardGameType()
         searchResults.length = 0
         searchResults.push(...results.map(card => {

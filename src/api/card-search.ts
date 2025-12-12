@@ -80,7 +80,7 @@ export type { SearchOptions, SearchAutoResult, CardDetailCacheResult };
  */
 // SearchOptions は @/types/api/search-types.ts に移動しました
 
-function parseLinkValue(linkValue: string): number {
+export function parseLinkValue(linkValue: string): number {
   let result = 0;
 
   // 各文字を方向番号として解析
@@ -110,7 +110,7 @@ function parseLinkValue(linkValue: string): number {
  * @param options 検索オプション
  * @returns URLSearchParams
  */
-function buildSearchParams(options: SearchOptions): URLSearchParams {
+export function buildSearchParams(options: SearchOptions): URLSearchParams {
   const params = new URLSearchParams();
 
   // ============================================================================
@@ -333,56 +333,6 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
   }
 }
 
-export async function searchCardsByName(
-  keyword: string,
-  limit?: number,
-  ctype?: CardType
-): Promise<CardInfo[]> {
-  try {
-    const ctypeValue = cardTypeToCtype(ctype);
-    const params = new URLSearchParams({
-      ope: '1',
-      sess: '1',
-      keyword: keyword,
-      stype: '1',
-      othercon: '2',
-      link_m: '2',
-      rp: (limit || 100).toString()
-    });
-
-    if (ctypeValue) {
-      params.append('ctype', ctypeValue);
-    } else {
-      params.append('ctype', '');
-    }
-
-    const emptyParams = ['starfr', 'starto', 'pscalefr', 'pscaleto', 'linkmarkerfr', 'linkmarkerto', 'atkfr', 'atkto', 'deffr', 'defto'];
-    emptyParams.forEach(param => {
-      params.append(param, '');
-    });
-
-    const gameType = detectCardGameType();
-    const url = buildApiUrl('card_search.action', gameType, params);
-    const response = await queuedFetch(url, {
-      method: 'GET',
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const html = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    return parseSearchResults(doc);
-  } catch (error) {
-    console.error('Failed to search cards:', error);
-    return [];
-  }
-}
-
 /**
  * 「auto」検索モード: キーワードの長さに応じて最適な検索方式を自動選択
  *
@@ -414,7 +364,12 @@ export async function searchCardsAuto(
   // 1文字の場合はカード名検索のみ
   if (keyword.length === 1) {
     return {
-      cards: await searchCardsByName(keyword, limit, ctype)
+      cards: await searchCards({
+        keyword,
+        searchType: '1',
+        cardType: ctype,
+        resultsPerPage: limit || 100
+      })
     };
   }
 
@@ -424,7 +379,12 @@ export async function searchCardsAuto(
 
     // 3つの検索を並列実行
     const [nameResults, textResults, pendulumResults] = await Promise.all([
-      searchCardsByName(keyword, searchLimit, ctype),
+      searchCards({
+        keyword,
+        searchType: '1',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      }),
       searchCards({
         keyword,
         searchType: '2',
@@ -644,6 +604,14 @@ export function parseSearchResults(doc: Document): CardInfo[] {
     }
   });
 
+  // 検索結果のカードをUnifiedDBに登録（Table A, B, B2）
+  import('@/utils/unified-cache-db').then(({ getUnifiedCacheDB }) => {
+    const unifiedDB = getUnifiedCacheDB();
+    cards.forEach(card => {
+      unifiedDB.setCardInfo(card);
+    });
+  });
+
   return cards;
 }
 
@@ -795,7 +763,7 @@ function isMonsterExtraDeckCard(types: MonsterType[]): boolean {
  * @param base カード基本情報
  * @returns モンスターカード情報、パースできない場合はnull
  */
-function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null {
+export function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null {
   let extractedLinkValue: string | null = null;
   // 属性取得（必須）
   const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
@@ -986,7 +954,7 @@ function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard | null 
  * @param base カード基本情報
  * @returns 魔法カード情報、パースできない場合はnull
  */
-function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
+export function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
   // 魔法であることを確認
   const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_spell')) {
@@ -1028,7 +996,7 @@ function parseSpellCard(row: HTMLElement, base: CardBase): SpellCard | null {
  * @param base カード基本情報
  * @returns 罠カード情報、パースできない場合はnull
  */
-function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
+export function parseTrapCard(row: HTMLElement, base: CardBase): TrapCard | null {
   // 罠であることを確認
   const attrImg = safeQueryAs('.box_card_attribute img', isHTMLImageElement, row);
   if (!attrImg?.src?.includes('attribute_icon_trap')) {
