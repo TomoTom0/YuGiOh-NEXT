@@ -13,6 +13,7 @@ import {
   shuffleCardsSide,
   sortCardsSide
 } from './shuffleCards';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
 import { initSortfixForCards } from './sortfixCards';
 
 // 初期化済みフラグ（重複初期化防止）
@@ -62,8 +63,8 @@ export function initShuffle(): void {
  */
 function attachEventListeners(retryCount: number = 0): void {
   // メインデッキ
-  const shuffleBtnMain = document.getElementById('ygo-shuffle-btn-main');
-  const sortBtnMain = document.getElementById('ygo-sort-btn-main');
+  const shuffleBtnMain = document.getElementById(EXTENSION_IDS.shuffle.mainShuffleButton);
+  const sortBtnMain = document.getElementById(EXTENSION_IDS.shuffle.mainSortButton);
 
   if (!shuffleBtnMain || !sortBtnMain) {
     // 最大再試行回数を超えた場合はエラーをログして終了
@@ -78,55 +79,55 @@ function attachEventListeners(retryCount: number = 0): void {
   }
 
   // メインデッキのシャッフルボタン（重複登録防止）
-  if (!registeredListeners.has('ygo-shuffle-btn-main')) {
+  if (!registeredListeners.has(EXTENSION_IDS.shuffle.mainShuffleButton)) {
     shuffleBtnMain.addEventListener('click', () => {
       shuffleCards();
     });
-    registeredListeners.add('ygo-shuffle-btn-main');
+    registeredListeners.add(EXTENSION_IDS.shuffle.mainShuffleButton);
   }
 
   // メインデッキのソートボタン（重複登録防止）
-  if (!registeredListeners.has('ygo-sort-btn-main')) {
+  if (!registeredListeners.has(EXTENSION_IDS.shuffle.mainSortButton)) {
     sortBtnMain.addEventListener('click', () => {
       sortCards();
     });
-    registeredListeners.add('ygo-sort-btn-main');
+    registeredListeners.add(EXTENSION_IDS.shuffle.mainSortButton);
   }
 
   // エクストラデッキ
-  const shuffleBtnExtra = document.getElementById('ygo-shuffle-btn-extra');
-  const sortBtnExtra = document.getElementById('ygo-sort-btn-extra');
+  const shuffleBtnExtra = document.getElementById(EXTENSION_IDS.shuffle.extraShuffleButton);
+  const sortBtnExtra = document.getElementById(EXTENSION_IDS.shuffle.extraSortButton);
 
-  if (shuffleBtnExtra && !registeredListeners.has('ygo-shuffle-btn-extra')) {
+  if (shuffleBtnExtra && !registeredListeners.has(EXTENSION_IDS.shuffle.extraShuffleButton)) {
     shuffleBtnExtra.addEventListener('click', () => {
       shuffleCardsExtra();
     });
-    registeredListeners.add('ygo-shuffle-btn-extra');
+    registeredListeners.add(EXTENSION_IDS.shuffle.extraShuffleButton);
   }
 
-  if (sortBtnExtra && !registeredListeners.has('ygo-sort-btn-extra')) {
+  if (sortBtnExtra && !registeredListeners.has(EXTENSION_IDS.shuffle.extraSortButton)) {
     sortBtnExtra.addEventListener('click', () => {
       sortCardsExtra();
     });
-    registeredListeners.add('ygo-sort-btn-extra');
+    registeredListeners.add(EXTENSION_IDS.shuffle.extraSortButton);
   }
 
   // サイドデッキ
-  const shuffleBtnSide = document.getElementById('ygo-shuffle-btn-side');
-  const sortBtnSide = document.getElementById('ygo-sort-btn-side');
+  const shuffleBtnSide = document.getElementById(EXTENSION_IDS.shuffle.sideShuffleButton);
+  const sortBtnSide = document.getElementById(EXTENSION_IDS.shuffle.sideSortButton);
 
-  if (shuffleBtnSide && !registeredListeners.has('ygo-shuffle-btn-side')) {
+  if (shuffleBtnSide && !registeredListeners.has(EXTENSION_IDS.shuffle.sideShuffleButton)) {
     shuffleBtnSide.addEventListener('click', () => {
       shuffleCardsSide();
     });
-    registeredListeners.add('ygo-shuffle-btn-side');
+    registeredListeners.add(EXTENSION_IDS.shuffle.sideShuffleButton);
   }
 
-  if (sortBtnSide && !registeredListeners.has('ygo-sort-btn-side')) {
+  if (sortBtnSide && !registeredListeners.has(EXTENSION_IDS.shuffle.sideSortButton)) {
     sortBtnSide.addEventListener('click', () => {
       sortCardsSide();
     });
-    registeredListeners.add('ygo-sort-btn-side');
+    registeredListeners.add(EXTENSION_IDS.shuffle.sideSortButton);
   }
 
   console.debug('[Shuffle] Event listeners attached successfully');

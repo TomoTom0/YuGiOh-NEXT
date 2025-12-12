@@ -83,6 +83,9 @@ export function useCardLinks() {
    */
   const handleCardLinkClick = async (cardId: string): Promise<void> => {
     try {
+      // ローディング開始
+      cardDetailStore.startLoadingCard()
+
       // カード詳細を取得（cidのみからCardInfo全体をパース）
       // FAQページからのリンクなので、fromFAQ=trueを渡す
       const currentLang = detectLanguage(document)
@@ -104,6 +107,9 @@ export function useCardLinks() {
       cardDetailStore.setCardTab('info')
     } catch (error) {
       console.error('[useCardLinks] Card link click handler failed for cardId:', cardId, error)
+    } finally {
+      // ローディング終了
+      cardDetailStore.endLoadingCard()
     }
   }
 

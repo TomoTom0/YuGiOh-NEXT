@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useDeckEditStore } from '../deck-edit';
+import { useSearchStore } from '../search';
 import type { CardInfo } from '@/types/card';
 
 /**
  * deck-edit.ts の UI状態管理テスト
  *
  * 以下の状態を検証：
- * 1. 検索・フィルター状態（searchQuery, isGlobalSearchMode, currentPage, hasMore, isLoading）
+ * 1. 検索・フィルター状態（searchQuery, isGlobalSearchMode, currentPage, hasMore, isLoading） - useSearchStoreに移動済み
  * 2. ダイアログ表示状態（showDetail, overlayVisible, 各showXXXDialog）
  * 3. Undo/Redo状態（canUndo, canRedo）
  */
@@ -28,15 +29,17 @@ const mockCard = (id: string, name: string = 'Test Card'): CardInfo => ({
 
 describe('deck-edit store: UI状態管理', () => {
   let store: ReturnType<typeof useDeckEditStore>;
+  let searchStore: ReturnType<typeof useSearchStore>;
 
   beforeEach(() => {
     setActivePinia(createPinia());
     store = useDeckEditStore();
+    searchStore = useSearchStore();
   });
 
   describe('初期状態', () => {
     it('初期状態で検索クエリが空である', () => {
-      expect(store.searchQuery).toBe('');
+      expect(searchStore.searchQuery).toBe('');
     });
 
     it('初期状態で詳細表示がtrueである', () => {
@@ -44,19 +47,19 @@ describe('deck-edit store: UI状態管理', () => {
     });
 
     it('初期状態でローディングがfalseである', () => {
-      expect(store.isLoading).toBe(false);
+      expect(searchStore.isLoading).toBe(false);
     });
 
     it('初期状態で現在ページが0である', () => {
-      expect(store.currentPage).toBe(0);
+      expect(searchStore.currentPage).toBe(0);
     });
 
     it('初期状態で次ページがないである', () => {
-      expect(store.hasMore).toBe(false);
+      expect(searchStore.hasMore).toBe(false);
     });
 
     it('初期状態でグローバルサーチモードがfalseである', () => {
-      expect(store.isGlobalSearchMode).toBe(false);
+      expect(searchStore.isGlobalSearchMode).toBe(false);
     });
 
     it('初期状態でオーバーレイが非表示である', () => {
@@ -74,61 +77,61 @@ describe('deck-edit store: UI状態管理', () => {
 
   describe('検索状態管理', () => {
     it('searchQueryを設定できる', () => {
-      store.searchQuery = 'ブラック・マジシャン';
-      expect(store.searchQuery).toBe('ブラック・マジシャン');
+      searchStore.searchQuery = 'ブラック・マジシャン';
+      expect(searchStore.searchQuery).toBe('ブラック・マジシャン');
     });
 
     it('searchQueryを空にできる', () => {
-      store.searchQuery = 'テスト';
-      store.searchQuery = '';
-      expect(store.searchQuery).toBe('');
+      searchStore.searchQuery = 'テスト';
+      searchStore.searchQuery = '';
+      expect(searchStore.searchQuery).toBe('');
     });
 
     it('isGlobalSearchModeをtrueに設定できる', () => {
-      store.isGlobalSearchMode = true;
-      expect(store.isGlobalSearchMode).toBe(true);
+      searchStore.isGlobalSearchMode = true;
+      expect(searchStore.isGlobalSearchMode).toBe(true);
     });
 
     it('isGlobalSearchModeをfalseに戻せる', () => {
-      store.isGlobalSearchMode = true;
-      store.isGlobalSearchMode = false;
-      expect(store.isGlobalSearchMode).toBe(false);
+      searchStore.isGlobalSearchMode = true;
+      searchStore.isGlobalSearchMode = false;
+      expect(searchStore.isGlobalSearchMode).toBe(false);
     });
 
     it('currentPageをインクリメント可能', () => {
-      expect(store.currentPage).toBe(0);
-      store.currentPage = 1;
-      expect(store.currentPage).toBe(1);
-      store.currentPage = 2;
-      expect(store.currentPage).toBe(2);
+      expect(searchStore.currentPage).toBe(0);
+      searchStore.currentPage = 1;
+      expect(searchStore.currentPage).toBe(1);
+      searchStore.currentPage = 2;
+      expect(searchStore.currentPage).toBe(2);
     });
 
     it('currentPageをリセットできる', () => {
-      store.currentPage = 5;
-      store.currentPage = 0;
-      expect(store.currentPage).toBe(0);
+      searchStore.currentPage = 5;
+      searchStore.currentPage = 0;
+      expect(searchStore.currentPage).toBe(0);
     });
 
     it('hasMoreをtrueに設定できる', () => {
-      store.hasMore = true;
-      expect(store.hasMore).toBe(true);
+      searchStore.hasMore = true;
+      expect(searchStore.hasMore).toBe(true);
     });
 
     it('hasMoreをfalseに戻せる', () => {
-      store.hasMore = true;
-      store.hasMore = false;
-      expect(store.hasMore).toBe(false);
+      searchStore.hasMore = true;
+      searchStore.hasMore = false;
+      expect(searchStore.hasMore).toBe(false);
     });
 
     it('isLoadingをtrueに設定できる', () => {
-      store.isLoading = true;
-      expect(store.isLoading).toBe(true);
+      searchStore.isLoading = true;
+      expect(searchStore.isLoading).toBe(true);
     });
 
     it('isLoadingをfalseに戻せる', () => {
-      store.isLoading = true;
-      store.isLoading = false;
-      expect(store.isLoading).toBe(false);
+      searchStore.isLoading = true;
+      searchStore.isLoading = false;
+      expect(searchStore.isLoading).toBe(false);
     });
   });
 
@@ -147,9 +150,9 @@ describe('deck-edit store: UI状態管理', () => {
 
     it('showDetailとは独立して検索クエリを管理できる', () => {
       store.showDetail = false;
-      store.searchQuery = 'テスト';
+      searchStore.searchQuery = 'テスト';
       expect(store.showDetail).toBe(false);
-      expect(store.searchQuery).toBe('テスト');
+      expect(searchStore.searchQuery).toBe('テスト');
     });
   });
 
@@ -367,11 +370,11 @@ describe('deck-edit store: UI状態管理', () => {
 
   describe('UIと編集状態の同時管理', () => {
     it('カード追加しながら検索状態を変更できる', () => {
-      store.searchQuery = 'テスト';
+      searchStore.searchQuery = 'テスト';
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
-      expect(store.searchQuery).toBe('テスト');
+      expect(searchStore.searchQuery).toBe('テスト');
       expect(store.deckInfo.mainDeck).toHaveLength(1);
       expect(store.canUndo).toBe(true);
     });
@@ -389,11 +392,11 @@ describe('deck-edit store: UI状態管理', () => {
     });
 
     it('UIスクロール位置（currentPage）とカード操作は独立している', () => {
-      store.currentPage = 5;
+      searchStore.currentPage = 5;
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
-      expect(store.currentPage).toBe(5);
+      expect(searchStore.currentPage).toBe(5);
       expect(store.deckInfo.mainDeck).toHaveLength(1);
     });
 

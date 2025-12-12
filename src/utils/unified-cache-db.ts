@@ -25,7 +25,7 @@ const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
 const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24時間
 
 // ストレージキー
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   cardTier: 'cardTierTable',
   deckOpenHistory: 'deckOpenHistory',
   cardTableA: 'cardTableA',
@@ -254,8 +254,71 @@ export class UnifiedCacheDB {
   }
 
   private async saveCardTableA(): Promise<void> {
-    const data = Object.fromEntries(this.cardTableA);
-    await chrome.storage.local.set({ [STORAGE_KEYS.cardTableA]: data });
+    // 現在のメモリ内データ
+    const memoryData = Object.fromEntries(this.cardTableA);
+
+    // Chrome Storage の既存データを読み込み
+    const storageData = await safeStorageGet(STORAGE_KEYS.cardTableA) as Record<string, CardTableA>;
+
+    // cardId ごとに langsImgs と langs_ciids をマージ
+    const mergedData: Record<string, CardTableA> = { ...memoryData };
+
+    for (const [cardId, memoryRecord] of Object.entries(memoryData)) {
+      const storageRecord = storageData?.[cardId];
+
+      if (storageRecord) {
+        // 既存レコードがある場合、Chrome Storage の langsImgs をベースにする
+        const mergedLangsImgs = { ...storageRecord.langsImgs };
+
+        // Chrome Storage の langs_ciids をベースにする
+        const mergedLangsCiids = { ...storageRecord.langs_ciids };
+
+        // Chrome Storage の langsRuby をベースにする
+        const mergedLangsRuby = { ...storageRecord.langsRuby, ...memoryRecord.langsRuby };
+
+        // メモリのlangsImgsで各言語の imgs を確認
+        for (const [lang, memoryImgs] of Object.entries(memoryRecord.langsImgs || {})) {
+          const storageImgs = mergedLangsImgs[lang] || [];
+
+          if (memoryImgs && memoryImgs.length > 0) {
+            if (storageImgs.length > 0) {
+              // 既存の imgs に新しい ciid が含まれるかで判定
+              const existingCiidSet = new Set(storageImgs.map(img => img.ciid));
+              const newImgs = memoryImgs.filter(img => !existingCiidSet.has(img.ciid));
+
+              // 新しい ciid があれば追加（既存 imgs は保持）
+              if (newImgs.length > 0) {
+                mergedLangsImgs[lang] = [...storageImgs, ...newImgs];
+              }
+            } else {
+              // 既存 imgs がなければメモリのimgsをそのまま使用
+              mergedLangsImgs[lang] = memoryImgs;
+            }
+          }
+        }
+
+        // メモリの langs_ciids で各言語の ciid リストを確認
+        for (const [lang, memoryCiids] of Object.entries(memoryRecord.langs_ciids || {})) {
+          const storageCiids = mergedLangsCiids[lang] || [];
+
+          if (memoryCiids && memoryCiids.length > 0) {
+            // 既存の ciids と新しい ciids をマージ（重複を排除）
+            const mergedCiids = Array.from(new Set([...storageCiids, ...memoryCiids]));
+            mergedLangsCiids[lang] = mergedCiids;
+          }
+        }
+
+        // langsImgs、langs_ciids、langsRuby をマージして、他は新しいデータで上書き
+        mergedData[cardId] = {
+          ...memoryRecord,
+          langsImgs: mergedLangsImgs,
+          langs_ciids: mergedLangsCiids,
+          langsRuby: mergedLangsRuby
+        };
+      }
+    }
+
+    await chrome.storage.local.set({ [STORAGE_KEYS.cardTableA]: mergedData });
   }
 
   private async saveCardTableB(): Promise<void> {
@@ -326,9 +389,20 @@ export class UnifiedCacheDB {
     // 言語を取得（CardInfo.langまたはドキュメントから）
     const lang = card.lang || detectLanguage(document);
 
+    // 既存の langs_ciids を取得（言語ごとの利用可能ciidリスト）
+    let langs_ciids = existing?.langs_ciids || {};
+    const existingCiids = langs_ciids[lang] || [];
+
+    // 新しいciidが存在するかチェック
+    let hasNewCiids = false;
+    if (card.imgs && card.imgs.length > 0) {
+      const currentCiids = card.imgs.map(img => img.ciid);
+      hasNewCiids = currentCiids.some(ciid => !existingCiids.includes(ciid));
+    }
+
     // 言語ごとの TTLチェック
-    if (existing && !forceUpdate) {
-      // 既にこの言語で取得済みの場合のみ TTL チェック
+    if (existing && !forceUpdate && !hasNewCiids) {
+      // 既にこの言語で取得済みで、新しいciidがない場合のみ TTL チェック
       const langFetchedAt = existing.langsFetchedAt?.[lang];
       if (langFetchedAt !== undefined) {
         const age = now - langFetchedAt;
@@ -345,23 +419,37 @@ export class UnifiedCacheDB {
     // 既存の langsImgs を取得
     const langsImgs = existing?.langsImgs || {};
 
-    // 既存の langs_ciids を取得（言語ごとの利用可能ciidリスト）
-    let langs_ciids = existing?.langs_ciids || {};
-
     // 現在の言語で利用可能なciidを抽出してマージ
+    let mergedCiids: string[] = existingCiids;
     if (card.imgs && card.imgs.length > 0) {
       const currentCiids = card.imgs.map(img => img.ciid);
       // 既存のciidと新しいciidをマージ（重複を排除）
-      const existingCiids = langs_ciids[lang] || [];
-      const mergedCiids = Array.from(new Set([...existingCiids, ...currentCiids]));
+      mergedCiids = Array.from(new Set([...existingCiids, ...currentCiids]));
       langs_ciids = {
         ...langs_ciids,
         [lang]: mergedCiids
       };
     }
 
+    // 既存の langsImgs を取得
+    const existingImgs = langsImgs[lang] || [];
+
+    // 新しいciidに対応するimgをマージ（既存のimgと統合）
+    let mergedImgs = existingImgs;
+    if (card.imgs && card.imgs.length > 0) {
+      // 既存のimgのciid一覧を取得
+      const existingCiidSet = new Set(existingImgs.map(img => img.ciid));
+      
+      // 新しいimgを追加（既に存在しない場合のみ）
+      const newImgs = card.imgs.filter(img => !existingCiidSet.has(img.ciid));
+      mergedImgs = [...existingImgs, ...newImgs];
+    }
+
     // 既存の langsFetchedAt を取得
     const langsFetchedAt = existing?.langsFetchedAt || {};
+
+    // 既存の langsRuby を取得
+    const langsRuby = existing?.langsRuby || {};
 
     // TableA
     const tableA: CardTableA = {
@@ -370,10 +458,13 @@ export class UnifiedCacheDB {
         ...langsName,
         [lang]: card.name
       },
-      ruby: card.ruby,
+      langsRuby: card.ruby ? {
+        ...langsRuby,
+        [lang]: card.ruby
+      } : langsRuby,  // ルビがない場合は既存のlangsRubyを保持
       langsImgs: {
         ...langsImgs,
-        [lang]: card.imgs
+        [lang]: mergedImgs
       },
       langs_ciids,  // 言語ごとの利用可能ciidリスト
       langsFetchedAt: {
@@ -921,7 +1012,7 @@ export class UnifiedCacheDB {
       lang: targetLang,
       imgs,
       ciid: imgs[0]?.ciid || '',
-      ruby: tableA.ruby,
+      ruby: tableA.langsRuby?.[targetLang],
       limitRegulation
     };
 
@@ -981,14 +1072,25 @@ export class UnifiedCacheDB {
     try {
       const tableC = this.cardTableCCache.get(cardId)
       if (tableC) {
-        // TableCにはtext/pendTextは含まれなくなったので、ここでは何もしない
-        // 将来的にTableCに他のフィールドが追加されたらここでマージ
+        const anyCard: any = resultCard as any
+        // CardTableCの補足情報をマージ
+        if (tableC.supplInfo !== undefined) anyCard.supplInfo = tableC.supplInfo
+        if (tableC.supplDate !== undefined) anyCard.supplDate = tableC.supplDate
+        if (tableC.pendSupplInfo !== undefined) anyCard.pendSupplInfo = tableC.pendSupplInfo
+        if (tableC.pendSupplDate !== undefined) anyCard.pendSupplDate = tableC.pendSupplDate
       }
     } catch (e) {
       // Defensive: don't break reconstruction on merge errors
     }
 
     return resultCard
+  }
+
+  /**
+   * CardTableCがマージされているか確認
+   */
+  hasCardTableC(cardId: string): boolean {
+    return this.cardTableCCache.has(cardId);
   }
 
   /**

@@ -12,6 +12,7 @@
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
   --command-mode-bg: rgba(0, 217, 184, 0.1);
+  --command-mode-valid-bg: rgba(0, 217, 184, 0.5);
   --color-success: #4caf50;
   --color-success-bg: #e8f5e9;
   --color-success-hover-bg: #c8e6c9;
@@ -55,6 +56,9 @@
   --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
   --filter-button-not-border: #b71c1c;
   --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
+  --filter-button-disabled-bg: #e8e8e8;
+  --filter-button-disabled-text: #888888;
+  --filter-button-disabled-border: #cccccc;
   --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
   --filter-button-pendulum-active-border: #e65100;
   --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
@@ -353,6 +357,7 @@
   --theme-color-start: #00d9b8;
   --theme-color-end: #b84fc9;
   --command-mode-bg: rgba(0, 217, 184, 0.15);
+  --command-mode-valid-bg: rgba(0, 217, 184, 0.6);
   --color-success: #66bb6a;
   --color-success-bg: #1b5e20;
   --color-success-hover-bg: #2e7d32;
@@ -396,6 +401,9 @@
   --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
   --filter-button-not-border: #b71c1c;
   --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.8);
+  --filter-button-disabled-bg: #2a2a2a;
+  --filter-button-disabled-text: #666666;
+  --filter-button-disabled-border: #444444;
   --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
   --filter-button-pendulum-active-border: #e65100;
   --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.7);

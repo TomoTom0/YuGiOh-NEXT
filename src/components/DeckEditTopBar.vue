@@ -3,6 +3,7 @@
     <div class="top-bar">
       <div class="top-bar-left">
         <button
+          data-testid="undo-btn"
           class="btn-action"
           :disabled="!deckStore.canUndo"
           title="Undo (Ctrl+Z)"
@@ -13,6 +14,7 @@
           </svg>
         </button>
         <button
+          data-testid="redo-btn"
           class="btn-action"
           :disabled="!deckStore.canRedo"
           title="Redo (Ctrl+Y)"
@@ -34,6 +36,7 @@
       </div>
       <div class="top-bar-right">
         <button
+          data-testid="save-btn"
           class="btn-action"
           :class="{ saving: savingState }"
           :title="savingState ? 'キャンセル' : 'save'"
@@ -43,12 +46,12 @@
             <path fill="currentColor" :d="mdiContentSave" />
           </svg>
         </button>
-        <button class="btn-action" title="load" @click="handleLoadClick">
+        <button data-testid="load-btn" class="btn-action" title="load" @click="handleLoadClick">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiFolderOpen" />
           </svg>
         </button>
-        <button class="btn-menu" @click="toggleMenu" :class="{ loading: menuLoading }">
+        <button data-testid="menu-btn" class="btn-menu" @click="toggleMenu" :class="{ loading: menuLoading }">
           <span v-if="!menuLoading">⋮</span>
           <svg v-else class="spinner" width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z">
@@ -64,33 +67,34 @@
         </button>
 
         <!-- Menu Dropdown -->
-        <div v-if="showMenu" class="menu-dropdown" @click.stop>
-          <button @click="handleSortAll" class="menu-item">
+        <Transition name="menu-slide">
+          <div v-if="showMenu" class="menu-dropdown" @click.stop>
+          <button data-testid="sort-all-btn" @click="handleSortAll" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiSortVariant" />
             </svg>
             Sort All Sections
           </button>
-          <button @click="handleDownloadImage" class="menu-item">
+          <button data-testid="deck-image-btn" @click="handleDownloadImage" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiImageOutline" />
             </svg>
             Deck Image
           </button>
           <div class="menu-divider"></div>
-          <button @click="handleReloadDeck" class="menu-item">
+          <button data-testid="reload-deck-btn" @click="handleReloadDeck" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiReload" />
             </svg>
             Reload Deck
           </button>
-          <button @click="handleExportClick" class="menu-item">
+          <button data-testid="export-deck-btn" @click="handleExportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiExport" />
             </svg>
             Export Deck
           </button>
-          <button @click="handleImportClick" class="menu-item">
+          <button data-testid="import-deck-btn" @click="handleImportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiImport" />
             </svg>
@@ -123,6 +127,7 @@
             Options
           </button>
         </div>
+        </Transition>
       </div>
     </div>
 
@@ -195,34 +200,29 @@ export default {
     const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
-      // ストアを使用してトースト通知を表示
+      // useToastStore で統一してトースト通知を表示
       dispatchToast(message, type)
-
-      // 従来の toast オブジェクト（既に使用されている可能性）もサポート
-      toast.message = message
-      toast.type = type
-      toast.show = true
     }
     
-    const checkUnsavedChanges = (action: () => void, actionName: string) => {
+    const checkUnsavedChanges = async (action: () => void | Promise<void>, actionName: string) => {
       const unsavedWarning = settingsStore.appSettings.unsavedWarning
 
       // 'never': 警告を表示しない
       if (unsavedWarning === 'never') {
-        action()
+        await action()
         return
       }
 
       // 変更がない場合は常に実行
       if (!deckStore.hasUnsavedChanges()) {
-        action()
+        await action()
         return
       }
 
       // 'without-sorting-only': ソート順のみの変更なら警告しない
       if (unsavedWarning === 'without-sorting-only') {
         if (deckStore.hasOnlySortOrderChanges()) {
-          action()
+          await action()
           return
         }
       }
@@ -252,7 +252,7 @@ export default {
             if (result.success) {
               showToast('保存しました', 'success')
               if (pendingAction.value) {
-                pendingAction.value()
+                await pendingAction.value()
               }
             } else {
               showToast('保存に失敗しました', 'error')
@@ -267,10 +267,10 @@ export default {
       {
         label: '保存せず続ける',
         class: 'danger',
-        onClick: () => {
+        onClick: async () => {
           deckStore.showUnsavedChangesDialog = false
           if (pendingAction.value) {
-            pendingAction.value()
+            await pendingAction.value()
           }
           pendingAction.value = null
         }
@@ -344,8 +344,8 @@ export default {
       }
     }
 
-    const handleLoadClick = () => {
-      checkUnsavedChanges(async () => {
+    const handleLoadClick = async () => {
+      await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
           await deckStore.fetchDeckList()
           selectedDeckDno.value = null
@@ -382,9 +382,9 @@ export default {
       }
     }
     
-    const handleReloadDeck = () => {
+    const handleReloadDeck = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         try {
           await deckStore.reloadDeck()
           deckStore.setDeckName('')
@@ -453,9 +453,9 @@ export default {
       deckStore.showExportDialog = true
     }
 
-    const handleImportClick = () => {
+    const handleImportClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(() => {
+      await checkUnsavedChanges(() => {
         deckStore.showImportDialog = true
       }, 'インポート')
     }
@@ -506,9 +506,9 @@ export default {
       deckStore.redo()
     }
 
-    const handleNewClick = () => {
+    const handleNewClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         menuLoading.value = true
         try {
           await deckStore.createNewDeck()
@@ -522,9 +522,9 @@ export default {
       }, '新規作成')
     }
 
-    const handleCopyClick = () => {
+    const handleCopyClick = async () => {
       showMenu.value = false
-      checkUnsavedChanges(async () => {
+      await checkUnsavedChanges(async () => {
         menuLoading.value = true
         try {
           await deckStore.copyCurrentDeck()
@@ -656,7 +656,7 @@ export default {
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
-  z-index: 10002;
+  z-index: 6;
   overflow: hidden;
 
   .menu-item {
@@ -706,14 +706,37 @@ export default {
   }
 }
 
+// メニューアニメーション
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.menu-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.menu-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.menu-slide-enter-to,
+.menu-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .menu-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 10001;
+  z-index: 5;
   background: transparent;
+  pointer-events: none;
 }
 
 .deck-name-group {

@@ -24,6 +24,10 @@ describe('Parser: Card Detail', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=12976&request_locale=ja'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     // 収録シリーズのテスト
     const updateList = doc.querySelector('#update_list');

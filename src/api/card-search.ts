@@ -14,8 +14,7 @@ import {
   CardDetail,
   PackInfo,
   LimitRegulation,
-  CardTableC,
-  getCardImageUrl
+  CardTableC
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
@@ -24,15 +23,8 @@ import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/typ
 import { safeQuery } from '@/utils/safe-dom-query';
 import {
   ATTRIBUTE_ID_TO_PATH,
-  SPELL_EFFECT_TYPE_ID_TO_PATH,
-  TRAP_EFFECT_TYPE_ID_TO_PATH,
   SPELL_EFFECT_TYPE_ID_TO_NAME,
-  TRAP_EFFECT_TYPE_ID_TO_NAME,
-  ATTRIBUTE_ID_TO_INT,
-  RACE_ID_TO_INT,
-  MONSTER_TYPE_ID_TO_INT,
-  SPELL_EFFECT_TYPE_ID_TO_INT,
-  TRAP_EFFECT_TYPE_ID_TO_INT
+  TRAP_EFFECT_TYPE_ID_TO_NAME
 } from '@/types/card-maps';
 import { detectCardType } from '@/content/card/detector';
 import { detectLanguage } from '@/utils/language-detector';
@@ -41,91 +33,31 @@ import { isSameDay } from '@/utils/date-utils';
 import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
 import { queuedFetch } from '@/utils/request-queue';
+import {
+  ATTRIBUTE_PATH_TO_ID,
+  SPELL_EFFECT_TYPE_PATH_TO_ID,
+  TRAP_EFFECT_TYPE_PATH_TO_ID,
+  getAttributeAttrValue,
+  getRaceSpeciesValue,
+  getMonsterTypeOtherValue,
+  getSpellEffectTypeEffeValue,
+  getTrapEffectTypeEffeValue,
+  cardTypeToCtype,
+  SORT_ORDER_TO_API_VALUE
+} from './mappers/card-search-mapper';
+import {
+  SearchOptions,
+  SearchAutoResult,
+  CardDetailCacheResult
+} from '@/types/api/search-types';
+
+// 外部モジュールから使用されている定数と型を再エクスポート
+export { SORT_ORDER_TO_API_VALUE };
+export type { SearchOptions, SearchAutoResult, CardDetailCacheResult };
 
 // ============================================================================
-// 逆引きマップの事前生成（パフォーマンス最適化）
+// 以下のマッピング定数と関数は ./mappers/card-search-mapper.ts に移動しました
 // ============================================================================
-// モジュール ロード時に一度だけ生成して、パース時の O(1) ルックアップを実現
-
-const ATTRIBUTE_PATH_TO_ID = Object.fromEntries(
-  Object.entries(ATTRIBUTE_ID_TO_PATH).map(([id, path]) => [path, id])
-) as Record<string, Attribute>;
-
-const SPELL_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
-  Object.entries(SPELL_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
-) as Record<string, SpellEffectType>;
-
-const TRAP_EFFECT_TYPE_PATH_TO_ID = Object.fromEntries(
-  Object.entries(TRAP_EFFECT_TYPE_ID_TO_PATH).map(([id, path]) => [path, id])
-) as Record<string, TrapEffectType>;
-
-// ============================================================================
-// APIパラメータ値マッピング関数
-// ============================================================================
-// 注: 実際の値は @/types/card-maps の *_ID_TO_INT マッピングで定義
-// 以下は便利関数で、internal ID → API値に変換する
-
-/**
- * 属性 → attr値のマッピング
- * card-maps.ts の ATTRIBUTE_ID_TO_INT から動的に生成
- */
-function getAttributeAttrValue(attr: Attribute): string {
-  return (ATTRIBUTE_ID_TO_INT as Record<Attribute, number>)[attr]?.toString() || '';
-}
-
-/**
- * 種族 → species値のマッピング
- * card-maps.ts の RACE_ID_TO_INT から動的に生成
- */
-function getRaceSpeciesValue(race: Race): string {
-  return (RACE_ID_TO_INT as Record<Race, number>)[race]?.toString() || '';
-}
-
-/**
- * モンスタータイプ → other値のマッピング
- * MONSTER_TYPE_ID_TO_INT から type に対応する値を取得
- */
-function getMonsterTypeOtherValue(type: MonsterType): string {
-  const value = MONSTER_TYPE_ID_TO_INT[type];
-  return value !== undefined ? String(value) : '';
-}
-
-/**
- * 魔法効果タイプ → effe値のマッピング
- * card-maps.ts の SPELL_EFFECT_TYPE_ID_TO_INT から動的に生成
- */
-function getSpellEffectTypeEffeValue(type: SpellEffectType): string {
-  return (SPELL_EFFECT_TYPE_ID_TO_INT as Record<SpellEffectType, number>)[type]?.toString() || '';
-}
-
-/**
- * 罠効果タイプ → effe値のマッピング
- * card-maps.ts の TRAP_EFFECT_TYPE_ID_TO_INT から動的に生成
- */
-function getTrapEffectTypeEffeValue(type: TrapEffectType): string {
-  return (TRAP_EFFECT_TYPE_ID_TO_INT as Record<TrapEffectType, number>)[type]?.toString() || '';
-}
-
-/**
- * 内部sortOrder → API sortパラメータのマッピング
- * API値: 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 11-12=リンク数, 20-21=発売日
- */
-export const SORT_ORDER_TO_API_VALUE: Record<string, number> = {
-  'name_asc': 1,
-  'name_desc': 1, // APIは50音順のみ、descはクライアント側で反転
-  'release_desc': 20,
-  'release_asc': 21,
-  'level_desc': 2,
-  'level_asc': 3,
-  'atk_desc': 4,
-  'atk_asc': 5,
-  'def_desc': 6,
-  'def_asc': 7,
-  'attribute_asc': 1, // APIに属性ソートなし、50音順で代用
-  'attribute_desc': 1,
-  'race_asc': 1, // APIに種族ソートなし、50音順で代用
-  'race_desc': 1
-};
 
 /**
  * link値（例: "13"）を9bit整数に変換する
@@ -146,131 +78,7 @@ export const SORT_ORDER_TO_API_VALUE: Record<string, number> = {
  *
  * 例: "13" → 方向1と3 → bit 0とbit 2 → 0b000000101 = 5
  */
-/**
- * カード検索オプション
- * 
- * 設計仕様書（docs/design/functions/intro.md）に基づき、
- * 「queryや各種検索条件の辞書」として各種フィルタリング条件を指定可能にする
- */
-export interface SearchOptions {
-  // ============================================================================
-  // 基本検索条件
-  // ============================================================================
-
-  /** 検索キーワード */
-  keyword: string;
-
-  /** カードタイプ（モンスター/魔法/罠） */
-  cardType?: CardType;
-
-  /** 
-   * 検索対象フィールド
-   * - 1: カード名検索（デフォルト）
-   * - 2: カードテキスト検索
-   * - 3: ペンデュラム効果検索
-   * - 4: カード番号検索
-   */
-  searchType?: '1' | '2' | '3' | '4';
-
-  // ============================================================================
-  // モンスターフィルタ
-  // ============================================================================
-
-  /** 属性フィルタ（複数選択可） */
-  attributes?: Attribute[];
-
-  /** 種族フィルタ（複数選択可） */
-  races?: Race[];
-
-  /** 
-   * モンスタータイプフィルタ（複数選択可）
-   * 例: ['effect', 'fusion'] = 効果または融合モンスター
-   */
-  monsterTypes?: MonsterType[];
-
-  /** 
-   * モンスタータイプの論理演算
-   * - 'AND': すべてのタイプを持つカード
-   * - 'OR': いずれかのタイプを持つカード（デフォルト）
-   */
-  monsterTypeLogic?: 'AND' | 'OR';
-
-  /** 除外するモンスタータイプ（複数選択可） */
-  excludeMonsterTypes?: MonsterType[];
-
-  // ============================================================================
-  // レベル・ステータス
-  // ============================================================================
-
-  /** レベル/ランクフィルタ（0-13、複数選択可） */
-  levels?: number[];
-
-  /** 攻撃力範囲 */
-  atk?: { from?: number; to?: number };
-
-  /** 守備力範囲 */
-  def?: { from?: number; to?: number };
-
-  // ============================================================================
-  // ペンデュラム・リンク
-  // ============================================================================
-
-  /** ペンデュラムスケールフィルタ（0-13、複数選択可） */
-  pendulumScales?: number[];
-
-  /** リンク数フィルタ（1-6、複数選択可） */
-  linkNumbers?: number[];
-
-  /** 
-   * リンクマーカー方向フィルタ（複数選択可）
-   * 方向番号: 1=左下, 2=下, 3=右下, 4=左, 6=右, 7=左上, 8=上, 9=右上
-   */
-  linkMarkers?: number[];
-
-  /** 
-   * リンクマーカーの論理演算
-   * - 'AND': すべての方向を持つカード
-   * - 'OR': いずれかの方向を持つカード（デフォルト）
-   */
-  linkMarkerLogic?: 'AND' | 'OR';
-
-  // ============================================================================
-  // 魔法・罠フィルタ
-  // ============================================================================
-
-  /** 魔法効果タイプフィルタ（複数選択可） */
-  spellEffectTypes?: SpellEffectType[];
-
-  /** 罠効果タイプフィルタ（複数選択可） */
-  trapEffectTypes?: TrapEffectType[];
-
-  // ============================================================================
-  // その他オプション
-  // ============================================================================
-
-  /** 
-   * ソート順
-   * 1=50音順, 2-3=レベル/ランク, 4-7=攻守, 8-9=Pスケール, 
-   * 11-12=リンク数, 20-21=発売日
-   * デフォルト: 1
-   */
-  sort?: number;
-
-  /** ページあたりの結果数（デフォルト: 100） */
-  resultsPerPage?: number;
-
-  /** 
-   * 表示モード
-   * 1=画像表示, 2=テキスト表示
-   */
-  mode?: number;
-
-  /** 発売日範囲 */
-  releaseDate?: {
-    start?: { year: number; month: number; day: number };
-    end?: { year: number; month: number; day: number };
-  };
-}
+// SearchOptions は @/types/api/search-types.ts に移動しました
 
 function parseLinkValue(linkValue: string): number {
   let result = 0;
@@ -288,23 +96,6 @@ function parseLinkValue(linkValue: string): number {
   }
 
   return result;
-}
-
-/**
- * カードタイプをctypeパラメータに変換する
- */
-function cardTypeToCtype(cardType?: CardType): string {
-  if (!cardType) return '';
-  switch (cardType) {
-    case 'monster':
-      return '1';
-    case 'spell':
-      return '2';
-    case 'trap':
-      return '3';
-    default:
-      return '';
-  }
 }
 
 /**
@@ -613,10 +404,7 @@ export async function searchCardsByName(
  * // 2文字のため、カード名・テキスト・ペンデュラムテキストを並列検索
  * ```
  */
-export interface SearchAutoResult {
-  cards: CardInfo[];
-  fetchMorePromise?: Promise<CardInfo[]>;
-}
+// SearchAutoResult は @/types/api/search-types.ts に移動しました
 
 export async function searchCardsAuto(
   keyword: string,
@@ -820,15 +608,6 @@ export function extractImageInfo(doc: Document): Map<string, { ciid?: string; im
 }
 
 /**
- * カード情報から画像URLを構築する（非推奨: getCardImageUrlを使用してください）
- * @deprecated types/card.tsのgetCardImageUrlを使用してください
- */
-export function buildCardImageUrl(card: CardBase): string | undefined {
-  // types/card.tsのgetCardImageUrlに委譲
-  return getCardImageUrl(card);
-}
-
-/**
  * 検索結果ページからカード情報を抽出する
  *
  * @param doc パース済みのHTMLドキュメント
@@ -864,12 +643,6 @@ export function parseSearchResults(doc: Document): CardInfo[] {
       cards.push(cardInfo);
     }
   });
-
-  // TempCardDBに保存（検索結果として取得したカードを保存）
-  const tempCardDB = getTempCardDB();
-  for (const card of cards) {
-    tempCardDB.set(card.cardId, card);
-  }
 
   return cards;
 }
@@ -1995,23 +1768,7 @@ export async function getCardDetail(
   }
 }
 
-/**
- * キャッシュ付きカード詳細取得の結果
- */
-export interface CardDetailCacheResult {
-  /** カード詳細（null=取得失敗） */
-  detail: CardDetail | null;
-  /** キャッシュから取得したか */
-  fromCache: boolean;
-  /** キャッシュが有効期間内か */
-  isFresh: boolean;
-  /** キャッシュの取得日時 */
-  fetchedAt: number;
-  /** バックグラウンド更新のPromise（autoRefresh=trueかつisFresh=falseの場合のみ存在） */
-  refreshPromise?: Promise<CardDetail | null>;
-  /** エラーにより不完全な情報である可能性（FAQ検索失敗時等）*/
-  isPartialFromError?: boolean;
-}
+// CardDetailCacheResult は @/types/api/search-types.ts に移動しました
 
 /**
  * キャッシュ対応のカード詳細取得
@@ -2228,14 +1985,6 @@ export async function saveCardDetailToCache(
     await unifiedDB.setCardTableC(tableC, targetLang);
   }
 
-  // TempCardDBに保存（detail.cardと関連カード）
-  // Tier 0-2: Table C 相当のデータはセッション中のみメモリに保持
-  // Tier 3-5: メモリに保持（永続化はUnifiedCacheDB）
-  const tempCardDB = getTempCardDB();
-  tempCardDB.set(detail.card.cardId, detail.card);
-  for (const relatedCard of detail.relatedCards) {
-    tempCardDB.set(relatedCard.cardId, relatedCard);
-  }
 }
 
 /**

@@ -8,7 +8,9 @@
 import {
   RACE_ID_TO_SHORTNAME,
   CARD_TYPE_ID_TO_SHORTNAME,
-  MONSTER_TYPE_ID_TO_SHORTNAME
+  MONSTER_TYPE_ID_TO_SHORTNAME,
+  SPELL_EFFECT_TYPE_ID_TO_NAME,
+  TRAP_EFFECT_TYPE_ID_TO_NAME
 } from '@/types/card-maps';
 import { mappingManager } from './mapping-manager';
 import { detectLanguage } from './language-detector';
@@ -34,78 +36,55 @@ export function getCardTypeLabel(value: string): string {
 /**
  * モンスタータイプのラベルを取得（チップ用短縮形）
  * @param value モンスタータイプID（例: 'fusion', 'synchro'）
- * @param lang 言語コード（省略時はdetectLanguageで検出）
  */
-export function getMonsterTypeLabel(value: string, lang?: string): string {
-  const language = lang || (typeof document !== 'undefined' ? detectLanguage(document) : 'ja');
-  const idToText = mappingManager.getMonsterTypeIdToText(language);
-
-  // 動的マッピングから短縮形を取得、またはカード-maps の短縮形を使用
-  const dynamicLabel = (idToText as Record<string, string>)[value];
-  if (dynamicLabel) {
-    // 動的マッピングが見つかった場合、短縮形を作成（最初の2文字）
-    return dynamicLabel.slice(0, 2);
+export function getMonsterTypeLabel(value: string): string {
+  // card-maps.ts のハードコードされた shortname を使用
+  const result = (MONSTER_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
+  if (result === value) {
+    console.warn('[getMonsterTypeLabel] No mapping found for:', value, 'Available keys:', Object.keys(MONSTER_TYPE_ID_TO_SHORTNAME));
   }
-
-  // フォールバック：日本語静的マッピング
-  return (MONSTER_TYPE_ID_TO_SHORTNAME as Record<string, string>)[value] || value;
+  return result;
 }
 
 /**
  * 種族のラベルを取得（チップ用短縮形）
  * @param value 種族ID（例: 'dragon', 'zombie'）
- * @param lang 言語コード（省略時はdetectLanguageで検出）
  */
-export function getRaceLabel(value: string, lang?: string): string {
-  const language = lang || (typeof document !== 'undefined' ? detectLanguage(document) : 'ja');
-  const idToText = mappingManager.getRaceIdToText(language);
-
-  // 動的マッピングから短縮形を取得、またはカード-maps の短縮形を使用
-  const dynamicLabel = (idToText as Record<string, string>)[value];
-  if (dynamicLabel) {
-    // 動的マッピングが見つかった場合、短縮形を作成（最初の1文字）
-    return dynamicLabel.slice(0, 1);
-  }
-
-  // フォールバック：日本語静的マッピング
-  return (RACE_ID_TO_SHORTNAME as Record<string, string>)[value] || value.slice(0, 1);
+export function getRaceLabel(value: string): string {
+  // card-maps.ts のハードコードされた shortname を使用
+  return (RACE_ID_TO_SHORTNAME as Record<string, string>)[value] || value.slice(0, 2);
 }
 
 /**
- * 魔法タイプのラベルを取得（フルネーム）
+ * 魔法タイプのラベルを取得（短形式）
  * @param value 魔法効果タイプID（例: 'normal', 'quick'）
- * @param lang 言語コード（省略時はdetectLanguageで検出）
  */
-export function getSpellTypeLabel(value: string, lang?: string): string {
-  const language = lang || (typeof document !== 'undefined' ? detectLanguage(document) : 'ja');
-  const idToText = mappingManager.getSpellEffectIdToText(language);
-  return (idToText as Record<string, string>)[value] || value;
+export function getSpellTypeLabel(value: string): string {
+  // card-maps.ts の SPELL_EFFECT_TYPE_ID_TO_NAME を使用（「通常」「速攻」などの短形式）
+  return (SPELL_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[value] || value;
 }
 
 /**
- * 罠タイプのラベルを取得（フルネーム）
+ * 罠タイプのラベルを取得（短形式）
  * @param value 罠効果タイプID（例: 'normal', 'continuous'）
- * @param lang 言語コード（省略時はdetectLanguageで検出）
  */
-export function getTrapTypeLabel(value: string, lang?: string): string {
-  const language = lang || (typeof document !== 'undefined' ? detectLanguage(document) : 'ja');
-  const idToText = mappingManager.getTrapEffectIdToText(language);
-  return (idToText as Record<string, string>)[value] || value;
+export function getTrapTypeLabel(value: string): string {
+  // card-maps.ts の TRAP_EFFECT_TYPE_ID_TO_NAME を使用（「通常」「永続」などの短形式）
+  return (TRAP_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[value] || value;
 }
 
 /**
  * フィルターチップのラベルを取得（SearchInputBarで使用）
  * 注意: ATK/DEFについてはformatStatLabelを使用すること
- * @param lang 言語コード（省略時はdetectLanguageで検出）
  */
-export function getChipLabel(type: string, value: string, lang?: string): string {
+export function getChipLabel(type: string, value: string): string {
   switch (type) {
     case 'attributes':
-      return getAttributeLabel(value, lang);
+      return getAttributeLabel(value);
     case 'cardType':
       return getCardTypeLabel(value);
     case 'monsterTypes':
-      return getMonsterTypeLabel(value, lang);
+      return getMonsterTypeLabel(value);
     case 'levels':
       return `★${value}`;
     case 'linkNumbers':
@@ -115,7 +94,7 @@ export function getChipLabel(type: string, value: string, lang?: string): string
       // ATK/DEFは使用すべきでない - formatStatLabelを使うこと
       throw new Error(`getChipLabel should not be used for ${type}. Use formatStatLabel instead.`);
     case 'races':
-      return getRaceLabel(value, lang);
+      return getRaceLabel(value);
     default:
       return value;
   }

@@ -71,7 +71,7 @@ button {
 
 /* ===== コンポーネント共通スタイル ===== */
 
-/* ダイアログオーバーレイ */
+/* ダイアログオーバーレイ - 公式メニュー (z-index: 30) より前面に表示 */
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -82,7 +82,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
 }
 
 .dialog-content {

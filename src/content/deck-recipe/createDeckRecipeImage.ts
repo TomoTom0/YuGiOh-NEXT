@@ -14,7 +14,7 @@ import { getCardImageUrl } from '../../types/card';
 // QRCodeは動的importに変更（画像作成時のみロード）
 // import QRCode from 'qrcode';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
-import { getDeckDisplayUrl } from '../../utils/url-builder';
+import { getDeckDisplayUrl, buildFullUrl } from '../../utils/url-builder';
 import { getTempCardDB } from '../../utils/temp-card-db';
 
 /**
@@ -61,7 +61,7 @@ export async function createDeckRecipeImage(
   const toAbsoluteUrl = (url: string | undefined): string | undefined => {
     if (!url) return undefined;
     if (isNode && url.startsWith('/')) {
-      return `https://www.db.yugioh-card.com${url}`;
+      return buildFullUrl(url);
     }
     return url;
   };
@@ -441,7 +441,7 @@ async function loadImage(url: string, gamePath: string): Promise<HTMLImageElemen
       return new Promise((resolve, reject) => {
         https.default.get(url, {
           headers: {
-            'Referer': `https://www.db.yugioh-card.com/${gamePath}/`,
+            'Referer': buildFullUrl(`/${gamePath}/`),
             'User-Agent': 'Mozilla/5.0'
           }
         }, (res) => {

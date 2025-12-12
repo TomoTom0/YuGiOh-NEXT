@@ -48,7 +48,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'cardType', label: 'M' }]);
+    expect(result).toEqual([{ type: 'cardType', label: 'M', value: 'monster' }]);
   });
 
   it('属性のアイコンを生成する', () => {
@@ -73,8 +73,8 @@ describe('convertFiltersToIcons', () => {
 
     const result = convertFiltersToIcons(filters);
     expect(result).toEqual([
-      { type: 'attr', label: '光' },
-      { type: 'attr', label: '闇' }
+      { type: 'attr', label: '光', value: 'light' },
+      { type: 'attr', label: '闇', value: 'dark' }
     ]);
   });
 
@@ -99,7 +99,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toContainEqual({ type: 'race', label: expect.any(String) });
+    expect(result).toContainEqual({ type: 'race', label: expect.any(String), value: expect.any(String) });
     expect(result.length).toBe(2);
   });
 
@@ -124,7 +124,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'level', label: '★4-6' }]);
+    expect(result).toEqual([{ type: 'level', label: '★4-6', value: 'all' }]);
   });
 
   it('ATKのアイコンを生成する', () => {
@@ -148,7 +148,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'atk', label: 'ATK=2500' }]);
+    expect(result).toEqual([{ type: 'atk', label: 'ATK=2500', value: 'atk' }]);
   });
 
   it('DEFのアイコンを生成する', () => {
@@ -172,7 +172,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'def', label: 'DEF≥2000' }]);
+    expect(result).toEqual([{ type: 'def', label: 'DEF≥2000', value: 'def' }]);
   });
 
   it('モンスタータイプのアイコンを生成する', () => {
@@ -200,8 +200,8 @@ describe('convertFiltersToIcons', () => {
 
     const result = convertFiltersToIcons(filters);
     expect(result).toEqual([
-      { type: 'monsterType', label: '融' },
-      { type: 'monsterType', label: 'S' }
+      { type: 'monsterType', label: '融', value: 'fusion' },
+      { type: 'monsterType', label: 'S', value: 'synchro' }
     ]);
   });
 
@@ -226,7 +226,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'link', label: 'L2-4' }]);
+    expect(result).toEqual([{ type: 'link', label: 'L2-4', value: 'all' }]);
   });
 
   it('ペンデュラムスケールのアイコンを生成する', () => {
@@ -250,7 +250,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toEqual([{ type: 'scale', label: 'PS1,13' }]);
+    expect(result).toEqual([{ type: 'scale', label: 'PS1,13', value: 'all' }]);
   });
 
   it('リンクマーカーのアイコンを生成する', () => {
@@ -274,7 +274,7 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result).toContainEqual({ type: 'linkMarker', label: expect.any(String) });
+    expect(result).toContainEqual({ type: 'linkMarker', label: expect.any(String), value: 'all' });
   });
 
   it('複数のフィルターを組み合わせた場合、正しい順序でアイコンを生成する', () => {
@@ -298,11 +298,11 @@ describe('convertFiltersToIcons', () => {
     };
 
     const result = convertFiltersToIcons(filters);
-    expect(result[0]).toEqual({ type: 'cardType', label: 'M' });
-    expect(result[1]).toEqual({ type: 'attr', label: '光' });
-    expect(result).toContainEqual({ type: 'race', label: expect.any(String) });
-    expect(result).toContainEqual({ type: 'level', label: '★8' });
-    expect(result).toContainEqual({ type: 'atk', label: 'ATK=3000' });
-    expect(result).toContainEqual({ type: 'monsterType', label: 'S' });
+    expect(result[0]).toEqual({ type: 'cardType', label: 'M', value: 'monster' });
+    expect(result[1]).toEqual({ type: 'attr', label: '光', value: 'light' });
+    expect(result).toContainEqual({ type: 'race', label: expect.any(String), value: expect.any(String) });
+    expect(result).toContainEqual({ type: 'level', label: '★8', value: 'all' });
+    expect(result).toContainEqual({ type: 'atk', label: 'ATK=3000', value: 'atk' });
+    expect(result).toContainEqual({ type: 'monsterType', label: 'S', value: 'synchro' });
   });
 });

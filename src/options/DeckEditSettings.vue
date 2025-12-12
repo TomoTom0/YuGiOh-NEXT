@@ -112,19 +112,19 @@ async function loadSettings() {
   const loaded = await loadDeckEditSettings();
   Object.assign(settings, loaded);
   originalSettings.value = { ...loaded };
-  
+
   const appSettings = await loadAppSettings();
-  searchInputPosition.value = appSettings.searchInputPosition;
-  originalSearchInputPosition.value = appSettings.searchInputPosition;
+  searchInputPosition.value = appSettings.ux.searchInputPosition;
+  originalSearchInputPosition.value = appSettings.ux.searchInputPosition;
 }
 
 async function save() {
   try {
     await saveDeckEditSettings(settings);
     originalSettings.value = { ...settings };
-    
+
     const appSettings = await loadAppSettings();
-    appSettings.searchInputPosition = searchInputPosition.value;
+    appSettings.ux.searchInputPosition = searchInputPosition.value;
     await saveAppSettings(appSettings);
     originalSearchInputPosition.value = searchInputPosition.value;
     

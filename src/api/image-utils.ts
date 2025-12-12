@@ -2,7 +2,16 @@
  * Official Yu-Gi-Oh! DB image utilities
  */
 
-const BASE_IMAGE_URL = 'https://www.db.yugioh-card.com/yugiohdb/external/image/parts'
+import { detectCardGameType } from '../utils/page-detector'
+import { getImagePartsBaseUrl } from '../utils/url-builder'
+
+/**
+ * Get base image URL based on current game type
+ */
+function getBaseImageUrl(): string {
+  const gameType = detectCardGameType()
+  return getImagePartsBaseUrl(gameType)
+}
 
 /**
  * Get attribute icon URL
@@ -11,35 +20,35 @@ const BASE_IMAGE_URL = 'https://www.db.yugioh-card.com/yugiohdb/external/image/p
 export function getAttributeIconUrl(attribute: string): string {
   if (!attribute) return ''
   const attrLower = attribute.toLowerCase()
-  return `${BASE_IMAGE_URL}/attribute/attribute_icon_${attrLower}.png`
+  return `${getBaseImageUrl()}/attribute/attribute_icon_${attrLower}.png`
 }
 
 /**
  * Get level icon URL
  */
 export function getLevelIconUrl(): string {
-  return `${BASE_IMAGE_URL}/icon_level.png`
+  return `${getBaseImageUrl()}/icon_level.png`
 }
 
 /**
  * Get rank icon URL
  */
 export function getRankIconUrl(): string {
-  return `${BASE_IMAGE_URL}/icon_rank.png`
+  return `${getBaseImageUrl()}/icon_rank.png`
 }
 
 /**
  * Get spell card icon URL
  */
 export function getSpellIconUrl(): string {
-  return `${BASE_IMAGE_URL}/attribute/attribute_icon_spell.png`
+  return `${getBaseImageUrl()}/attribute/attribute_icon_spell.png`
 }
 
 /**
  * Get trap card icon URL
  */
 export function getTrapIconUrl(): string {
-  return `${BASE_IMAGE_URL}/attribute/attribute_icon_trap.png`
+  return `${getBaseImageUrl()}/attribute/attribute_icon_trap.png`
 }
 
 /**
@@ -60,8 +69,8 @@ export function getEffectTypeIconUrl(effectType: string): string | null {
   
   const path = pathMap[effectType.toLowerCase()]
   if (!path) return null
-  
-  return `${BASE_IMAGE_URL}/effect/effect_icon_${path}.png`
+
+  return `${getBaseImageUrl()}/effect/effect_icon_${path}.png`
 }
 
 /**

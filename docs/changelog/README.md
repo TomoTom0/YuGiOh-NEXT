@@ -4,7 +4,20 @@
 
 ## バージョン一覧
 
-- **[v0.5.3](./v0.5.3.md)** - 2025-12-05 - **最新版**
+- **[v0.5.5](./v0.5.5.md)** - 2025-12-09 - **最新版**
+  - 大規模リファクタリング（deck-edit.ts, DeckMetadata.vue, RightArea.vue）
+  - デバッグログ整理とコーディング規約策定
+  - バグ修正（設定マイグレーション、循環参照）
+  - 新機能（ソート複数キー、useDeckUndoRedo composable）
+  - テストカバレッジ拡充
+
+- **[v0.5.4](./v0.5.4.md)** - 2025-12-05
+  - デッキロード画面のサムネイル表示機能の設計・基盤実装（Phase 1-3）
+  - Chrome Storage キャッシュ管理システム
+  - デッキハッシュ計算ユーティリティ
+  - DeckEditLayout.vue UI統合
+
+- **[v0.5.3](./v0.5.3.md)** - 2025-12-04
   - URLパラメータ順序修正（デッキ新規作成ボタン問題解決）
   - 型安全性強化（as キャスト削除、型ガード関数実装）
   - Promise タイムアウト機構、API レート制限、querySelector 安全性ユーティリティ
@@ -200,4 +213,4 @@
 - [README.md](../../README.md) - プロジェクト概要
 - [docs/usage/](../usage/) - 使い方ガイド
 - [docs/dev/](../dev/) - 開発者向けドキュメント
-- [tasks/milestone.md](../../tasks/milestone.md) - マイルストーン
+- [GitHub Issues](https://github.com/TomoTom0/YuGiOh-NEXT/issues) - 機能要望・バグ報告

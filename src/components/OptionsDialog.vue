@@ -31,7 +31,7 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'default' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'default' }"
                   @click="settingsStore.setSearchInputPosition('default')"
                 >
                   L-Bottom
@@ -40,14 +40,14 @@
               <div class="position-col">
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-top' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-top' }"
                   @click="settingsStore.setSearchInputPosition('right-top')"
                 >
                   R-Top
                 </button>
                 <button
                   class="toggle-btn"
-                  :class="{ active: settingsStore.appSettings.searchInputPosition === 'right-bottom' }"
+                  :class="{ active: settingsStore.appSettings.ux.searchInputPosition === 'right-bottom' }"
                   @click="settingsStore.setSearchInputPosition('right-bottom')"
                 >
                   R-Bottom
@@ -125,7 +125,7 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
 }
 
 .dialog {
@@ -190,6 +190,7 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   gap: 16px;
   width: 100%;
   box-sizing: border-box;
+  grid-template-rows: auto auto;
 }
 
 .setting-block {
@@ -354,5 +355,26 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
     font-family: monospace;
     font-size: 11px;
   }
+}
+
+.view-mode-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.view-mode-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 </style>

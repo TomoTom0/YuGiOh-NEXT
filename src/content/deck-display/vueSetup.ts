@@ -21,24 +21,28 @@ export async function setupVueApp(): Promise<void> {
     return
   }
 
-  // 新しい div を作成してマウント
-  const appContainer = document.createElement('div')
-  appContainer.id = 'ygo-next-deck-display-app'
-  main980.appendChild(appContainer)
-
-  // Vue アプリを作成
+  // Vue アプリを作成（マウント前）
   const pinia = createPinia()
   const app = createApp(DeckDisplayApp)
   app.use(pinia)
 
-  // コンポーネントをマウント
-  app.mount(appContainer)
-
-  // Settings store を初期化（共通設定のみ）
+  // Settings store を初期化（Vueマウント前に設定を読み込む）
   const { useSettingsStore } = await import('../../stores/settings')
   const settingsStore = useSettingsStore(pinia)
   await settingsStore.loadCommonSettings()
   document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme)
+
+  // テーマに応じた背景色を設定
+  const bgColor = settingsStore.effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff'
+
+  // 新しい div を作成してマウント（背景色を先に設定）
+  const appContainer = document.createElement('div')
+  appContainer.id = 'ygo-next-deck-display-app'
+  appContainer.style.backgroundColor = bgColor
+  main980.appendChild(appContainer)
+
+  // コンポーネントをマウント
+  app.mount(appContainer)
 
   // Card Detail UI を初期化（デッキ情報のパースとカード画像クリックハンドラのセットアップ）
   const { initCardDetailUI } = await import('./card-detail-ui')
@@ -178,6 +182,9 @@ async function setupCardImageHoverUI(): Promise<void> {
             const cardId = parseInt(cardIdMatch[1], 10)
 
             try {
+              // ローディング開始
+              cardDetailStore.startLoadingCard()
+
               // カード詳細を取得
               const result = await getCardDetailWithCache(cardId.toString())
 
@@ -189,6 +196,9 @@ async function setupCardImageHoverUI(): Promise<void> {
               }
             } catch (error) {
               console.warn('[DeckDisplay] Failed to fetch card detail:', error)
+            } finally {
+              // ローディング終了
+              cardDetailStore.endLoadingCard()
             }
           } else {
             console.warn('[DeckDisplay] No card ID found in href')

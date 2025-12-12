@@ -18,6 +18,10 @@ describe('Parser: Deck Detail', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=214&request_locale=ja'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     // パーサーを実行
     const result = parseDeckDetail(doc);
