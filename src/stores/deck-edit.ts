@@ -21,7 +21,8 @@ import {
   addToDisplayOrder as addToDisplayOrderLogic,
   removeFromDisplayOrder as removeFromDisplayOrderLogic,
   moveInDisplayOrder as moveInDisplayOrderLogic,
-  reorderWithinSection as reorderWithinSectionLogic
+  reorderWithinSection as reorderWithinSectionLogic,
+  validateReorderParameters
 } from '../composables/deck/useDeckDisplayOrder';
 import {
   captureDeckSnapshot as captureDeckSnapshotLogic,
@@ -304,8 +305,29 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param sourceUuid 移動するカードのUUID
    * @param targetUuid 移動先の直前にあるカードのUUID（nullの場合は末尾に移動）
    */
-  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', fromIndex: number, toIndex: number) {
-    // useDeckDisplayOrder composable を使用
+  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null) {
+    // UUID ベースの並び替え（composable の低レベル関数を使用）
+    const sectionOrder = displayOrder.value[section];
+    if (!sectionOrder || !Array.isArray(sectionOrder)) {
+      return;
+    }
+
+    const fromIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    if (fromIndex === -1) {
+      return;
+    }
+
+    let toIndex: number;
+    if (targetUuid === null) {
+      toIndex = sectionOrder.length - 1;
+    } else {
+      const targetIdx = sectionOrder.findIndex(card => card?.uuid === targetUuid);
+      if (targetIdx === -1) {
+        return;
+      }
+      toIndex = fromIndex > targetIdx ? targetIdx : targetIdx + 1;
+    }
+
     reorderWithinSectionLogic(
       displayOrder.value,
       section,
@@ -315,57 +337,29 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
-    // 元の位置を事前に記録
-    const sectionOrder = displayOrder.value?.[section];
-    if (!sectionOrder || !Array.isArray(sectionOrder)) {
-      console.error(`[reorderWithinSection] Invalid section order for section "${section}"`, { section, displayOrder: displayOrder.value });
-      return { success: false, error: `無効なセクション: ${section}` };
+    // バリデーション（共通化関数を使用）
+    const validationError = validateReorderParameters(displayOrder.value, section, sourceUuid, targetUuid);
+    if (validationError) {
+      console.error(`[reorderWithinSection] ${validationError}`, { section, sourceUuid, targetUuid });
+      return { success: false, error: validationError };
     }
 
-    // sourceUuidとtargetUuidのバリデーション
-    if (!sourceUuid || typeof sourceUuid !== 'string') {
-      console.error('[reorderWithinSection] Invalid sourceUuid', { sourceUuid });
-      return { success: false, error: 'ソースUUIDが無効です' };
-    }
+    // 元の位置を記録（UUID の直前にあるカードを特定）
+    const sectionOrder = displayOrder.value[section];
+    const sourceIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    const originalPrevUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid || null : null;
 
-    const sourceIndex = sectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
-    if (sourceIndex === -1) {
-      console.debug(`[reorderWithinSection] Source card not found: ${sourceUuid} in section ${section}`);
-      return { success: false, error: 'カードが見つかりません' };
-    }
-
-    // targetIndexを計算
-    let targetIndex: number;
-    if (targetUuid === null) {
-      // 末尾に移動
-      targetIndex = sectionOrder.length - 1;
-    } else {
-      if (!targetUuid || typeof targetUuid !== 'string') {
-        console.error('[reorderWithinSection] Invalid targetUuid', { targetUuid });
-        return { success: false, error: 'ターゲットUUIDが無効です' };
-      }
-
-      const targetIdx = sectionOrder.findIndex(dc => dc?.uuid === targetUuid);
-      if (targetIdx === -1) {
-        console.debug(`[reorderWithinSection] Target card not found: ${targetUuid} in section ${section}`);
-        return { success: false, error: 'ターゲットカードが見つかりません' };
-      }
-      // sourceがtargetより後ろにある場合は targetIdx、前にある場合は targetIdx + 1
-      targetIndex = sourceIndex > targetIdx ? targetIdx : targetIdx + 1;
-    }
-
-    // Undo用に元のインデックスを記録
-    const originalSourceIndex = sourceIndex;
-
-    reorderWithinSectionInternal(section, sourceIndex, targetIndex);
+    // 初回実行
+    reorderWithinSectionInternal(section, sourceUuid, targetUuid);
 
     const command: Command = {
       execute: () => {
-        reorderWithinSectionInternal(section, sourceIndex, targetIndex);
+        // UUID ベースで実行（毎回 UUID から位置を計算）
+        reorderWithinSectionInternal(section, sourceUuid, targetUuid);
       },
       undo: () => {
-        // 並び替えの逆操作は元の位置に戻す
-        reorderWithinSectionInternal(section, targetIndex, originalSourceIndex);
+        // 元の位置に戻す（originalPrevUuid の直後に sourceUuid を配置）
+        reorderWithinSectionInternal(section, sourceUuid, originalPrevUuid);
       }
     };
 
@@ -656,7 +650,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return { success: true };
   }
 
-  function reorderCard(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
+  function reorderCard(sourceUuid: string, targetUuid: string | null, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 

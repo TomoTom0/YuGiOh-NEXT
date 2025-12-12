@@ -329,6 +329,34 @@ export default {
       const sorted = [...cards]
       const getCid = (card) => parseInt(card.cardId, 10) || 0
 
+      // モンスターのプロパティに基づいてソートするヘルパー関数
+      // undefinedなプロパティは末尾に配置される
+      const createMonsterPropertySorter = (compareFn, undefinedCheckFn) => {
+        return (a, b) => {
+          // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
+          const typeOrder = { monster: 0, spell: 1, trap: 2 }
+          const typeA = typeOrder[a.cardType] ?? 999
+          const typeB = typeOrder[b.cardType] ?? 999
+          if (typeA !== typeB) return typeA - typeB
+
+          // モンスター同士の場合は compareFn を使用してプロパティを比較
+          if (typeA === 0 && typeB === 0) {
+            // undefined チェック: undefinedなら末尾に配置
+            const aUndefined = undefinedCheckFn(a)
+            const bUndefined = undefinedCheckFn(b)
+            if (aUndefined && !bUndefined) return 1  // a が末尾
+            if (!aUndefined && bUndefined) return -1 // b が末尾
+            if (aUndefined && bUndefined) return getCid(a) - getCid(b) // 両方 undefined なら CID順
+
+            const cmp = compareFn(a, b)
+            return cmp !== 0 ? cmp : getCid(a) - getCid(b)
+          }
+
+          // 魔法・罠はCID順
+          return getCid(a) - getCid(b)
+        }
+      }
+
       switch (sortOrder) {
         case 'release_desc':
           return sorted.sort((a, b) => getCid(b) - getCid(a))
@@ -339,175 +367,25 @@ export default {
         case 'name_desc':
           return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
         case 'atk_desc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら ATK でソート（降順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (b.atk ?? -1) - (a.atk ?? -1)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.atk ?? -1) - (a.atk ?? -1), (card) => card.atk === undefined))
         case 'atk_asc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら ATK でソート（昇順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (a.atk ?? -1) - (b.atk ?? -1)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.atk ?? -1) - (b.atk ?? -1), (card) => card.atk === undefined))
         case 'def_desc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら DEF でソート（降順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (b.def ?? -1) - (a.def ?? -1)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.def ?? -1) - (a.def ?? -1), (card) => card.def === undefined))
         case 'def_asc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら DEF でソート（昇順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (a.def ?? -1) - (b.def ?? -1)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.def ?? -1) - (b.def ?? -1), (card) => card.def === undefined))
         case 'level_desc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら Level でソート（降順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (b.levelValue || 0) - (a.levelValue || 0)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.levelValue ?? 0) - (a.levelValue ?? 0), (card) => card.levelValue === undefined))
         case 'level_asc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら Level でソート（昇順）
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (a.levelValue || 0) - (b.levelValue || 0)
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.levelValue ?? 0) - (b.levelValue ?? 0), (card) => card.levelValue === undefined))
         case 'attribute_asc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら属性でソート、それ以外はCID順
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (a.attribute || '').localeCompare(b.attribute || '')
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.attribute || '').localeCompare(b.attribute || ''), (card) => card.attribute === undefined))
         case 'attribute_desc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら属性でソート（降順）、それ以外はCID順
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (b.attribute || '').localeCompare(a.attribute || '')
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.attribute || '').localeCompare(a.attribute || ''), (card) => card.attribute === undefined))
         case 'race_asc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら種族でソート、それ以外はCID順
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (a.race || '').localeCompare(b.race || '')
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.race || '').localeCompare(b.race || ''), (card) => card.race === undefined))
         case 'race_desc':
-          return sorted.sort((a, b) => {
-            // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-            const typeOrder = { monster: 0, spell: 1, trap: 2 }
-            const typeA = typeOrder[a.cardType] ?? 999
-            const typeB = typeOrder[b.cardType] ?? 999
-            if (typeA !== typeB) return typeA - typeB
-
-            // モンスター同士なら種族でソート（降順）、それ以外はCID順
-            if (typeA === 0 && typeB === 0) {
-              const cmp = (b.race || '').localeCompare(a.race || '')
-              return cmp !== 0 ? cmp : getCid(a) - getCid(b)
-            }
-
-            // 魔法・罠はCID順
-            return getCid(a) - getCid(b)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.race || '').localeCompare(a.race || ''), (card) => card.race === undefined))
         case 'code_asc':
           // コード順（昇順）: 元の配列順序をそのまま使用
           return sorted

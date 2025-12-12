@@ -143,6 +143,7 @@
           class="chip chip-fixed"
           :class="{ active: filters.races.includes(race) }"
           :disabled="isFieldDisabled('race')"
+          :title="isFieldDisabled('race') ? getFieldDisabledReason('race') : undefined"
           @click="toggleRace(race)"
         >
           {{ getRaceButtonLabel(race) }}
@@ -991,9 +992,9 @@ function getMonsterTypeButtonLabel(type: string) {
 
   &:disabled {
     cursor: not-allowed;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    border-color: var(--border-secondary);
+    background: var(--filter-button-disabled-bg);
+    color: var(--filter-button-disabled-text);
+    border: 1.5px dashed var(--filter-button-disabled-border);
     position: relative;
   }
 
