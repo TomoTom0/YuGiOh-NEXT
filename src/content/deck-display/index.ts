@@ -27,6 +27,12 @@ export async function initDeckDisplay(): Promise<void> {
   applyDeckDisplayLayout()
   applyCardDetailStyles()
 
+  // #deck_image に .ygo-next クラスを追加（カードアニメーション用）
+  const deckImage = document.querySelector('#deck_image')
+  if (deckImage) {
+    deckImage.classList.add('ygo-next')
+  }
+
   // showCardDetailInDeckDisplay が有効な場合のみ Vue アプリをマウント
   if (showCardDetail) {
     const { setupVueApp } = await import('./vueSetup')

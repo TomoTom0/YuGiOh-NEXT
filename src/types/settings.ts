@@ -22,6 +22,16 @@ export interface FeatureSettings {
 export type CardSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 /**
+ * Right Area の幅（4段階）
+ */
+export type RightAreaWidth = 'S' | 'M' | 'L' | 'XL';
+
+/**
+ * Right Area のフォントサイズ（4段階）
+ */
+export type RightAreaFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
  * テーマ
  */
 export type Theme = 'light' | 'dark' | 'system';
@@ -153,6 +163,10 @@ export interface UXSettings {
     /** 商品一覧セクション */
     products: 'list' | 'grid';
   };
+  /** Right Area の幅 */
+  rightAreaWidth: RightAreaWidth;
+  /** Right Area のフォントサイズ */
+  rightAreaFontSize: RightAreaFontSize;
 }
 
 /**
@@ -280,6 +294,8 @@ export const DEFAULT_UX_SETTINGS: UXSettings = {
     related: 'grid',   // 関連カード: グリッド表示（デフォルト）
     products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
   },
+  rightAreaWidth: 'M',      // Right Area の幅: M（デフォルト）
+  rightAreaFontSize: 'm',   // Right Area のフォントサイズ: m（デフォルト）
 };
 
 /**

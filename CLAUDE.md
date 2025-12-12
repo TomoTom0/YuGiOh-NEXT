@@ -718,6 +718,14 @@ button.style.background = '#4CAF50'; // NG
 - `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
 - SCSS の nest を使用することで、構造を明確に保つ
 
+#### 適用ファイル：
+
+**全てのSCSSファイルで `.ygo-next` スコープ必須**
+
+- `src/styles/common.scss` - グローバルスタイル（`button`, `*`, `.flex`, `.dialog-*`, `.btn` 等）は全て `.ygo-next` 内に定義
+- `src/content/styles/buttons.scss` - ボタン関連スタイル
+- `src/styles/themes.scss` - テーマ変数定義（`[data-ygo-next-theme="light"]` 属性セレクタを使用）
+
 ---
 
 ## テーマシステム

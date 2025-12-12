@@ -740,7 +740,7 @@ export default {
   padding: 0;
   display: flex;
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: bold;
   transition: all 0.15s;
   position: relative;
@@ -797,7 +797,7 @@ export default {
     }
     
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -852,7 +852,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -902,7 +902,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -952,7 +952,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -968,7 +968,7 @@ export default {
 }
 
 .btn-text {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: bold;
   color: var(--button-text);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -977,7 +977,7 @@ export default {
 
 .btn-text-multiline {
   line-height: 0.8;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .card-controls-search {
@@ -1001,7 +1001,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: bold;
   transition: all 0.15s;
 

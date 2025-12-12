@@ -11,7 +11,9 @@ import type {
   KeyboardShortcut,
   FeatureSettings,
   StorageSettings,
-  UXSettings
+  UXSettings,
+  RightAreaWidth,
+  RightAreaFontSize
 } from '../types/settings';
 import {
   DEFAULT_APP_SETTINGS,
@@ -176,6 +178,7 @@ export const useSettingsStore = defineStore('settings', () => {
         // テーマと共通のカードサイズ（info, grid, list）を適用
         applyTheme();
         applyCommonCardSize();
+        applyRightAreaStyles();
 
         resolve();
       });
@@ -434,6 +437,24 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * Right Area の幅を変更
+   */
+  function setRightAreaWidth(width: RightAreaWidth): void {
+    appSettings.value.ux.rightAreaWidth = width;
+    applyRightAreaStyles();
+    saveSettings();
+  }
+
+  /**
+   * Right Area のフォントサイズを変更
+   */
+  function setRightAreaFontSize(fontSize: RightAreaFontSize): void {
+    appSettings.value.ux.rightAreaFontSize = fontSize;
+    applyRightAreaStyles();
+    saveSettings();
+  }
+
+  /**
    * デッキ表示ページでCardDetail情報を表示するかを変更
    */
   function setShowCardDetailInDeckDisplay(enabled: boolean): void {
@@ -546,6 +567,33 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * Right Area のスタイルをDOMに適用
+   */
+  function applyRightAreaStyles(): void {
+    const width = appSettings.value.ux.rightAreaWidth;
+    const fontSize = appSettings.value.ux.rightAreaFontSize;
+
+    // Width のマッピング（ピクセル値）
+    const widthMap: Record<RightAreaWidth, string> = {
+      'S': '300px',
+      'M': '400px',
+      'L': '500px',
+      'XL': '600px'
+    };
+
+    // Font Size のマッピング
+    const fontSizeMap: Record<RightAreaFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    document.documentElement.style.setProperty('--right-area-width', widthMap[width]);
+    document.documentElement.style.setProperty('--right-area-font-size', fontSizeMap[fontSize]);
+  }
+
+  /**
    * システムテーマ変更を監視
    */
   function watchSystemTheme(): void {
@@ -614,6 +662,8 @@ export const useSettingsStore = defineStore('settings', () => {
     removeKeyboardShortcut,
     setSearchInputPosition,
     setDefaultSearchMode,
+    setRightAreaWidth,
+    setRightAreaFontSize,
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
@@ -623,5 +673,6 @@ export const useSettingsStore = defineStore('settings', () => {
     resetSettings,
     applyTheme,
     applyCardSize,
+    applyRightAreaStyles,
   };
 });

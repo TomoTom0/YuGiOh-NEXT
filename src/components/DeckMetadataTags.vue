@@ -78,7 +78,7 @@ const getCategoryLabel = (catId: string): string => {
   gap: 4px;
   padding: 4px 8px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: 500;
   transition: all 0.2s;
 }

@@ -11,7 +11,7 @@
               :class="{ active: filters.cardType === 'monster' }"
               :disabled="isMonsterTabDisabled"
               :title="isMonsterTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('monster')"
+              @click.stop="selectCardType('monster')"
             >
               モンスター
             </button>
@@ -30,7 +30,7 @@
                 :class="{ active: filters.attributes.includes(attr) }"
                 :disabled="isFieldDisabled('attribute')"
                 :title="isFieldDisabled('attribute') ? getFieldDisabledReason('attribute') : undefined"
-                @click="toggleAttribute(attr)"
+                @click.stop="toggleAttribute(attr)"
               >
                 <img :src="getAttributeIconUrl(attr)" class="attr-icon" :alt="getAttributeLabel(attr)">
                 {{ getAttributeLabel(attr) }}
@@ -47,7 +47,7 @@
               :class="{ active: filters.cardType === 'spell' }"
               :disabled="isSpellTabDisabled"
               :title="isSpellTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('spell')"
+              @click.stop="selectCardType('spell')"
             >
               <img :src="getSpellIconUrl()" class="tab-icon" alt="魔法">
               魔法
@@ -67,7 +67,7 @@
                 :class="{ active: filters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
-                @click="toggleSpellType(type)"
+                @click.stop="toggleSpellType(type)"
               >
                 {{ getSpellTypeLabel(type) }}
               </button>
@@ -80,7 +80,7 @@
                 :class="{ active: filters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
-                @click="toggleSpellType(type)"
+                @click.stop="toggleSpellType(type)"
               >
                 {{ getSpellTypeLabel(type) }}
               </button>
@@ -96,7 +96,7 @@
               :class="{ active: filters.cardType === 'trap' }"
               :disabled="isTrapTabDisabled"
               :title="isTrapTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('trap')"
+              @click.stop="selectCardType('trap')"
             >
               <img :src="getTrapIconUrl()" class="tab-icon" alt="罠">
               罠
@@ -116,7 +116,7 @@
                 :class="{ active: filters.trapTypes.includes(type) }"
                 :disabled="isFieldDisabled('trap-type')"
                 :title="isFieldDisabled('trap-type') ? getFieldDisabledReason('trap-type') : undefined"
-                @click="toggleTrapType(type)"
+                @click.stop="toggleTrapType(type)"
               >
                 {{ getTrapTypeLabel(type) }}
               </button>
@@ -795,7 +795,7 @@ function getMonsterTypeButtonLabel(type: string) {
   color: var(--text-primary);
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -806,7 +806,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   font-weight: 600;
   border-radius: 0;
   transition: all 0.2s;
@@ -844,7 +844,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -930,7 +930,7 @@ function getMonsterTypeButtonLabel(type: string) {
 }
 
 .section-title {
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
@@ -948,7 +948,7 @@ function getMonsterTypeButtonLabel(type: string) {
   color: var(--text-secondary, #666);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: 600;
   transition: all 0.2s;
   white-space: nowrap;
@@ -982,7 +982,7 @@ function getMonsterTypeButtonLabel(type: string) {
     border: 1.5px solid var(--filter-button-not-border);
     box-shadow: var(--filter-button-not-shadow);
     font-weight: 700;
-    font-size: 10px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.71);
 
     &::before {
       content: 'N-';
@@ -1008,7 +1008,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1065,7 +1065,7 @@ function getMonsterTypeButtonLabel(type: string) {
 
   &.chip-mode-small {
     padding: 2px 6px;
-    font-size: 9px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     font-weight: 700;
     width: auto;
     min-width: 22px;
@@ -1406,7 +1406,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   font-weight: 600;
   transition: all 0.2s;
   white-space: nowrap;
@@ -1447,7 +1447,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1601,7 +1601,7 @@ function getMonsterTypeButtonLabel(type: string) {
       z-index: 1;
       padding: 2px 6px;
       border-radius: 2px;
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
       font-weight: 700;
     }
   }
@@ -1679,7 +1679,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   font-weight: 600;
   transition: all 0.2s;
   flex: 1;
@@ -1720,7 +1720,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1775,7 +1775,7 @@ function getMonsterTypeButtonLabel(type: string) {
     padding: 6px 8px;
     border: 1px solid var(--border-primary);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
     background: var(--bg-primary);
     color: var(--text-primary);
     text-align: center;
@@ -1795,7 +1795,7 @@ function getMonsterTypeButtonLabel(type: string) {
   span {
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--right-area-font-size, 14px);
   }
 }
 
@@ -1813,7 +1813,7 @@ function getMonsterTypeButtonLabel(type: string) {
     padding: 6px 8px;
     border: 1px solid var(--border-primary);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
     background: var(--bg-primary);
     color: var(--input-text);
     text-align: center;
@@ -1827,7 +1827,7 @@ function getMonsterTypeButtonLabel(type: string) {
   span {
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 14px;
+    font-size: var(--right-area-font-size, 14px);
   }
 }
 </style>

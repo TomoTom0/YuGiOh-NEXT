@@ -67,7 +67,6 @@
     <!-- カードリスト表示形式 -->
     <div class="setting-group">
       <h3 class="setting-title">カードリスト表示形式</h3>
-      <p class="sub-description">検索結果とカード関連の表示を選択</p>
       <div class="view-mode-buttons">
         <button
           class="view-mode-button"
@@ -129,6 +128,38 @@
       </div>
     </div>
 
+    <!-- Right Area 幅 -->
+    <div class="setting-group">
+      <h3 class="setting-title">Right Area の幅</h3>
+      <div class="preset-grid">
+        <button
+          v-for="width in rightAreaWidths"
+          :key="width"
+          class="preset-button"
+          :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === width }"
+          @click="handleRightAreaWidthChange(width)"
+        >
+          {{ width }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Area フォントサイズ -->
+    <div class="setting-group">
+      <h3 class="setting-title">Right Area のフォントサイズ</h3>
+      <div class="preset-grid">
+        <button
+          v-for="fontSize in rightAreaFontSizes"
+          :key="fontSize"
+          class="preset-button"
+          :class="{ active: settingsStore.appSettings.ux.rightAreaFontSize === fontSize }"
+          @click="handleRightAreaFontSizeChange(fontSize)"
+        >
+          {{ fontSize.toUpperCase() }}
+        </button>
+      </div>
+    </div>
+
     <div v-if="saveMessage" class="save-message">
       {{ saveMessage }}
     </div>
@@ -138,7 +169,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { SearchInputPosition, MiddleDecksLayout, Theme } from '../../../types/settings';
+import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveMessage = ref('');
@@ -157,6 +188,9 @@ const sizePresets = ref([
   { value: 'l', label: 'L' },
   { value: 'xl', label: 'XL' }
 ] as const);
+
+const rightAreaWidths = ref<RightAreaWidth[]>(['S', 'M', 'L', 'XL']);
+const rightAreaFontSizes = ref<RightAreaFontSize[]>(['s', 'm', 'l', 'xl']);
 
 const currentPreset = computed<SizePreset | null>(() => {
   return settingsStore.getCurrentPreset();
@@ -188,6 +222,16 @@ const handleViewModeChange = (section: 'search' | 'related' | 'products', mode: 
   settingsStore.setCardListViewMode(section, mode);
   const modeLabel = mode === 'list' ? 'リスト' : 'グリッド';
   showSaveMessage(`カードリスト表示を「${modeLabel}」に変更しました`);
+};
+
+const handleRightAreaWidthChange = (width: RightAreaWidth) => {
+  settingsStore.setRightAreaWidth(width);
+  showSaveMessage(`Right Area の幅を「${width}」に変更しました`);
+};
+
+const handleRightAreaFontSizeChange = (fontSize: RightAreaFontSize) => {
+  settingsStore.setRightAreaFontSize(fontSize);
+  showSaveMessage(`Right Area のフォントサイズを「${fontSize.toUpperCase()}」に変更しました`);
 };
 
 const showSaveMessage = (message: string) => {
@@ -300,21 +344,17 @@ const showSaveMessage = (message: string) => {
   }
 
   &:hover {
-    border-color: var(--color-success, #4CAF50);
-    background: var(--bg-secondary);
-
-    svg {
-      color: var(--color-success, #4CAF50);
-    }
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
   }
 
   &.active {
-    border-color: var(--color-success, #4CAF50);
-    background: var(--color-success, #4CAF50);
-    color: white;
+    border-color: var(--color-info);
+    background: var(--color-info-bg);
+    color: var(--color-info);
 
     svg {
-      color: white;
+      color: var(--color-info);
     }
   }
 }

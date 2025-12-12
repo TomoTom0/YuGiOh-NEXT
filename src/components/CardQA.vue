@@ -185,7 +185,7 @@ export default {
   padding: 20px;
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .qa-header {
@@ -194,7 +194,7 @@ export default {
 
 .qa-card-name {
   font-weight: bold;
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   color: var(--text-primary);
 }
 
@@ -214,7 +214,7 @@ export default {
 }
 
 .qa-question {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   color: var(--text-primary);
   font-weight: 500;
   margin-bottom: 4px;
@@ -243,7 +243,7 @@ export default {
 }
 
 .qa-date {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-tertiary);
   flex: 1;
   text-align: right;
@@ -292,11 +292,11 @@ export default {
   padding: 10px;
   text-align: center;
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
 }
 
 .qa-answer {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   line-height: 1.6;
   padding: 10px;

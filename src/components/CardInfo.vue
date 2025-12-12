@@ -511,7 +511,7 @@ export default {
 }
 
 .card-name-large {
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: bold;
   color: var(--text-primary);
   margin: 0;
@@ -528,7 +528,7 @@ export default {
 }
 
 .card-ruby {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-secondary);
   margin: 2px 0 6px 0;
   padding: 4px 8px;
@@ -720,7 +720,7 @@ export default {
     color: var(--button-text);
     padding: 2px 6px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.71);
     font-weight: bold;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
@@ -750,7 +750,7 @@ export default {
   }
 
   .invalid-mark {
-    font-size: 48px;
+    font-size: calc(var(--right-area-font-size, 14px) * 3.43);
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -801,7 +801,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   background: var(--bg-secondary);
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   min-width: 0;
 
   &.stat-box-type-chip {
@@ -1031,7 +1031,7 @@ export default {
   align-items: center;
   justify-content: center;
   background: var(--bg-primary);
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   
   &.active {
     background: var(--button-bg);
@@ -1045,7 +1045,7 @@ export default {
 }
 
 .stat-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: bold;
   color: var(--text-primary);
 }
@@ -1056,13 +1056,13 @@ export default {
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.64);
   color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
 .stat-value {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: bold;
   color: var(--text-primary);
 }
@@ -1075,7 +1075,7 @@ export default {
 }
 
 .section-title {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: bold;
   color: var(--text-primary);
   margin-bottom: 6px;
@@ -1086,7 +1086,7 @@ export default {
 }
 
 .effect-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
@@ -1100,7 +1100,7 @@ export default {
 }
 
 .detail-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
@@ -1189,7 +1189,7 @@ export default {
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   min-height: 36px;
   display: flex;
   align-items: center;

@@ -70,7 +70,7 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
@@ -115,7 +115,7 @@ export default defineComponent({
 
   // ダイアログ上部のチップは大きく、色を変える
   .filter-icon-item {
-    font-size: 11px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
     padding: 2px 6px;
     line-height: 1.3;
     background: var(--filter-chip-top-bg, #e6f2ff);
@@ -141,7 +141,7 @@ export default defineComponent({
   background: transparent;
   border: none;
   color: var(--text-tertiary, #999);
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   font-weight: 300;
   cursor: pointer;
   padding: 0;

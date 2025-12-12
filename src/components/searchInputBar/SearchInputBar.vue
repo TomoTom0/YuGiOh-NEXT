@@ -163,8 +163,6 @@
       <SearchFilterDialog
         v-if="position !== 'bottom'"
         :is-visible="deckStore.isFilterDialogVisible"
-        :initial-filters="searchStore.searchFilters"
-        @apply="handleFilterApply"
       />
     </div>
 
@@ -180,7 +178,6 @@ import { useSettingsStore } from '../../stores/settings'
 // 循環参照回避のため動的インポート
 const SearchFilterDialog = defineAsyncComponent(() => import('../SearchFilterDialog.vue'))
 import type { Attribute, Race, MonsterType, CardType } from '../../types/card'
-import type { SearchFilters } from '../../types/search-filters'
 import type { SearchMode } from '../../types/settings'
 import {
   COMMANDS,
@@ -705,14 +702,6 @@ export default defineComponent({
       searchStore.searchQuery = ''
     }
 
-    const handleFilterApply = (filters: SearchFilters) => {
-      searchStore.searchFilters = filters
-      // ダイアログは「×」ボタンで明示的に閉じる仕様（自動で閉じない）
-      // deckStore.isFilterDialogVisible = false
-      if (searchStore.searchQuery.trim()) {
-        handleSearch()
-      }
-    }
 
     // クライアント側でフィルター条件を適用
     const focus = () => {
@@ -729,6 +718,13 @@ export default defineComponent({
     }
 
     expose({ focus, inputRef: inputFieldRef })
+
+    // removeFilterIcon をラップして onFilterApply を提供
+    const handleRemoveFilterIcon = (icon: any) => {
+      removeFilterIcon(icon, () => {
+        // フィルター削除後の処理（特になし、フィルター状態の更新のみ）
+      })
+    }
 
     return {
       deckStore,
@@ -755,7 +751,6 @@ export default defineComponent({
       formattedCommandSuggestions,
       selectedCommandIndex,
       selectCommand,
-      handleFilterApply,
       handleSearch,
       handleInput,
       handleFocus,
@@ -763,7 +758,7 @@ export default defineComponent({
       handleEnter,
       handleEscape,
       removeFilterChip,
-      removeFilterIcon,
+      removeFilterIcon: handleRemoveFilterIcon,
       selectSuggestion,
       selectMydeck,
       clearAllFilters
@@ -818,7 +813,7 @@ export default defineComponent({
   justify-content: center;
   width: 12px;
   height: 10px;
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: 600;
   border-radius: 2px;
   background: var(--bg-secondary, #f0f0f0);
@@ -885,7 +880,7 @@ export default defineComponent({
 
     .menu-btn {
       padding: 4px 6px;
-      font-size: 14px;
+      font-size: var(--right-area-font-size, 14px);
     }
 
     .search-btn {
@@ -899,7 +894,7 @@ export default defineComponent({
 
     .clear-btn {
       padding: 0 4px;
-      font-size: 16px;
+      font-size: calc(var(--right-area-font-size, 14px) * 1.14);
     }
   }
 }
@@ -935,7 +930,7 @@ export default defineComponent({
   }
 
   .menu-icon {
-    font-size: 16px;
+    font-size: calc(var(--right-area-font-size, 14px) * 1.14);
     font-weight: bold;
     line-height: 1;
   }
@@ -948,7 +943,7 @@ export default defineComponent({
   min-width: 12px;
   height: 12px;
   padding: 0 2px;
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: 600;
   line-height: 12px;
   text-align: center;

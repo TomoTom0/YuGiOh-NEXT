@@ -313,6 +313,8 @@ async function initVueApp(): Promise<void> {
       settingsStore.appSettings = { ...settingsStore.appSettings, ...cachedSettings };
       // CSS変数を即座に適用（カードサイズなど画面構造に影響）
       settingsStore.applyCardSize();
+      settingsStore.applyTheme();
+      settingsStore.applyRightAreaStyles();
     }
 
     app.mount('#vue-edit-app');

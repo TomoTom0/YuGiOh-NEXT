@@ -98,10 +98,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, computed, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import { useSearchStore } from '../stores/search';
-import type { SearchFilters } from '../types/search-filters';
 import type { CardInfo } from '../types/card';
 import SearchInputBar from './searchInputBar/SearchInputBar.vue';
 import FilterTab from './search-filter/FilterTab.vue';
@@ -117,32 +116,8 @@ const searchStore = useSearchStore();
 const searchHistory = useSearchHistory();
 const activeDialogTab = ref<'filter' | 'history'>('filter');
 
-defineProps<{
-  initialFilters?: SearchFilters;
-}>();
-
-const emit = defineEmits<{
-  apply: [filters: SearchFilters];
-}>();
-
-const filters = reactive<SearchFilters>({
-  cardType: null,
-  attributes: [],
-  spellTypes: [],
-  trapTypes: [],
-  races: [],
-  monsterTypes: [],
-  monsterTypeMatchMode: 'or',
-  levelType: 'level',
-  levelValues: [],
-  linkValues: [],
-  scaleValues: [],
-  linkMarkers: [],
-  linkMarkerMatchMode: 'or',
-  atk: { exact: false, unknown: false },
-  def: { exact: false, unknown: false },
-  releaseDate: {}
-});
+// searchStore.searchFilters を直接使用（watch 不要）
+const filters = searchStore.searchFilters;
 
 // ページ言語を検出（多言語対応）
 const pageLanguage = computed(() => {
@@ -159,7 +134,7 @@ const exclusionResult = computed(() => {
 });
 
 // useFilterLogic を使用してフィルタロジックを取得
-const filterLogic = useFilterLogic(filters, exclusionResult, pageLanguage, emit);
+const filterLogic = useFilterLogic(filters, exclusionResult, pageLanguage);
 
 // filterLogicから必要な関数と値を展開
 const {
@@ -385,7 +360,7 @@ function removeHeaderChip(index: number) {
   }
 
   .dialog-title {
-    font-size: 14px;
+    font-size: var(--right-area-font-size, 14px);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -412,7 +387,7 @@ function removeHeaderChip(index: number) {
   align-items: center;
   justify-content: center;
   padding: 2px 6px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
@@ -451,7 +426,7 @@ function removeHeaderChip(index: number) {
   color: var(--text-secondary, #666);
   cursor: pointer;
   padding: 4px 8px;
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: 500;
   transition: all 0.2s;
 

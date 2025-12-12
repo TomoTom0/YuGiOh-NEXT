@@ -262,7 +262,7 @@ export default {
 
 <style scoped lang="scss">
 .right-area {
-  width: 320px;
+  width: var(--right-area-width, 400px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -312,7 +312,7 @@ export default {
     border-right: 1px solid #e0e0e0;
     background: var(--bg-primary);
     cursor: pointer;
-    font-size: 13px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.93);
     color: var(--text-primary);
     transition: background 0.2s, color 0.2s;
 
@@ -429,7 +429,7 @@ export default {
   text-align: center;
   padding: 10px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   grid-column: 1 / -1;
 }
 
@@ -443,6 +443,7 @@ export default {
   padding: 20px;
   text-align: center;
   color: var(--text-tertiary);
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .search-input-bottom {
@@ -474,7 +475,7 @@ export default {
     }
 
     .search-input {
-      font-size: 18px;
+      font-size: calc(var(--right-area-font-size, 14px) * 1.29);
     }
   }
 }

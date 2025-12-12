@@ -19,8 +19,10 @@ export default defineConfig({
     },
     globals: true,
     setupFiles: ['./tests/setup.ts'],
-    deps: {
-      inline: ['node:url', 'node:fs', 'node:path'],
+    server: {
+      deps: {
+        inline: ['node:url', 'node:fs', 'node:path'],
+      },
     },
     exclude: [
       '**/node_modules/**',
