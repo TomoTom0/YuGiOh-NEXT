@@ -396,14 +396,14 @@ export function reorderWithinSection(
  * @param displayOrder - 表示順序の状態
  * @param section - 並び替えるセクション
  * @param sourceUuid - 移動するカードのUUID
- * @param targetUuid - 移動先となるカードのUUID（末尾に追加する場合は空文字列）
+ * @param targetUuid - 移動先となるカードのUUID（末尾に追加する場合はnull）
  * @returns 並び替え後のdisplayCard（失敗時はundefined）
  */
 export function reorderWithinSectionByUUID(
   displayOrder: DisplayOrderState,
   section: SectionType,
   sourceUuid: string,
-  targetUuid: string
+  targetUuid: string | null
 ): DisplayCardRef | undefined {
   const sectionOrder = displayOrder[section];
 
@@ -419,9 +419,9 @@ export function reorderWithinSectionByUUID(
     return;
   }
 
-  // 移動先のインデックスを取得（空文字列の場合は末尾）
+  // 移動先のインデックスを取得（nullの場合は末尾）
   let toIndex: number;
-  if (targetUuid === '') {
+  if (targetUuid === null) {
     toIndex = sectionOrder.length - 1;
   } else {
     toIndex = sectionOrder.findIndex(card => card?.uuid === targetUuid);

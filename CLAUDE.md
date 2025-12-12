@@ -215,15 +215,17 @@ tm close <タスクID> --body "機能が不要になったためクローズ"
 
 `tm list` コマンドでは、以下の強力なフィルタリングオプションが使用できます：
 
+**注**: `tm ls` は `tm list` の alias です。どちらでも使用可能です。
+
 | オプション | 説明 | 使用例 |
 |-----------|------|--------|
-| `--open` | 全てのオープンタスク（todo, wip, pending, long）を表示 | `tm ls --open` |
-| `--status-all, -a` | 全てのタスク（done/closedを含む）を表示 | `tm ls --status-all` |
-| `--priority <p>` | 優先度でフィルタ | `tm ls --priority high` |
-| `--status <s>` | ステータスでフィルタ | `tm ls --status wip` |
-| `--version <v>` | バージョンでフィルタ | `tm ls --version 0.5.5` |
-| `--tbd` | **version='tbd'のタスクを表示（done/closedも含む）** | `tm ls --tbd` |
-| `--released` | **リリース済みタスクを表示（version≠tbd、done/closedも含む）** | `tm ls --released` |
+| `--open` | 全てのオープンタスク（todo, wip, pending, long）を表示 | `tm list --open` |
+| `--status-all, -a` | 全てのタスク（done/closedを含む）を表示 | `tm list --status-all` |
+| `--priority <p>` | 優先度でフィルタ | `tm list --priority high` |
+| `--status <s>` | ステータスでフィルタ | `tm list --status wip` |
+| `--version <v>` | バージョンでフィルタ | `tm list --version 0.5.5` |
+| `--tbd` | **version='tbd'のタスクを表示（done/closedも含む）** | `tm list --tbd` |
+| `--released` | **リリース済みタスクを表示（version≠tbd、done/closedも含む）** | `tm list --released` |
 
 ### ワークフロー
 
@@ -317,16 +319,16 @@ tm finish 1 --body "CHANGELOG: Feature - カードリストのソート機能を
 tm release 1 --version 0.5.5
 
 # CHANGELOG未記載のタスクを確認
-tm ls --tbd
+tm list --tbd
 
 # 特定バージョンのリリース済みタスクを確認
-tm ls --released --version 0.5.5
+tm list --released --version 0.5.5
 
 # 高優先度のオープンタスクのみ表示
-tm ls --open --priority high
+tm list --open --priority high
 
 # 作業中のタスクのみ表示
-tm ls --status wip
+tm list --status wip
 ```
 
 ### コードレビュー依頼

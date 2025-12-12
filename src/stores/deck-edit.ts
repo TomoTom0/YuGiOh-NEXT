@@ -656,7 +656,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return { success: true };
   }
 
-  function reorderCard(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
+  function reorderCard(sourceUuid: string, targetUuid: string | null, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
