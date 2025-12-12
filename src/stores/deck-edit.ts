@@ -305,8 +305,29 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param sourceUuid 移動するカードのUUID
    * @param targetUuid 移動先の直前にあるカードのUUID（nullの場合は末尾に移動）
    */
-  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', fromIndex: number, toIndex: number) {
-    // useDeckDisplayOrder composable を使用
+  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null) {
+    // UUID ベースの並び替え（composable の低レベル関数を使用）
+    const sectionOrder = displayOrder.value[section];
+    if (!sectionOrder || !Array.isArray(sectionOrder)) {
+      return;
+    }
+
+    const fromIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    if (fromIndex === -1) {
+      return;
+    }
+
+    let toIndex: number;
+    if (targetUuid === null) {
+      toIndex = sectionOrder.length - 1;
+    } else {
+      const targetIdx = sectionOrder.findIndex(card => card?.uuid === targetUuid);
+      if (targetIdx === -1) {
+        return;
+      }
+      toIndex = fromIndex > targetIdx ? targetIdx : targetIdx + 1;
+    }
+
     reorderWithinSectionLogic(
       displayOrder.value,
       section,
@@ -323,66 +344,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       return { success: false, error: validationError };
     }
 
-    // 元の位置を事前に記録（バリデーション済み）
+    // 元の位置を記録（UUID の直前にあるカードを特定）
     const sectionOrder = displayOrder.value[section];
+    const sourceIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    const originalPrevUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid || null : null;
 
-    const sourceIndex = sectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
-
-    // targetIndexを計算
-    let targetIndex: number;
-    if (targetUuid === null) {
-      // 末尾に移動
-      targetIndex = sectionOrder.length - 1;
-    } else {
-      const targetIdx = sectionOrder.findIndex(dc => dc?.uuid === targetUuid);
-      // sourceがtargetより後ろにある場合は targetIdx、前にある場合は targetIdx + 1
-      targetIndex = sourceIndex > targetIdx ? targetIdx : targetIdx + 1;
-    }
-
-    reorderWithinSectionInternal(section, sourceIndex, targetIndex);
+    // 初回実行
+    reorderWithinSectionInternal(section, sourceUuid, targetUuid);
 
     const command: Command = {
       execute: () => {
-        // UUID ベースで再計算して実行（配列状態の変化に対応）
-        const currentSectionOrder = displayOrder.value[section];
-        const currentSourceIndex = currentSectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
-        if (currentSourceIndex === -1) return;
-
-        let currentTargetIndex: number;
-        if (targetUuid === null) {
-          currentTargetIndex = currentSectionOrder.length - 1;
-        } else {
-          const currentTargetIdx = currentSectionOrder.findIndex(dc => dc?.uuid === targetUuid);
-          if (currentTargetIdx === -1) return;
-          currentTargetIndex = currentSourceIndex > currentTargetIdx ? currentTargetIdx : currentTargetIdx + 1;
-        }
-
-        reorderWithinSectionInternal(section, currentSourceIndex, currentTargetIndex);
+        // UUID ベースで実行（毎回 UUID から位置を計算）
+        reorderWithinSectionInternal(section, sourceUuid, targetUuid);
       },
       undo: () => {
-        // 逆操作も UUID ベースで計算
-        const currentSectionOrder = displayOrder.value[section];
-        const currentSourceIndex = currentSectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
-        if (currentSourceIndex === -1) return;
-
-        // sourceUuid が元のインデックスに戻るような位置を計算
-        // execute で移動されたので、元の sourceUuid の位置（現在の sourceIndex）から
-        // 元の targetUuid の位置に対応するインデックスに移動させることで戻す
-        let undoTargetIndex: number;
-        if (targetUuid === null) {
-          // 末尾への移動を戻すには、もう一度末尾から sourceIndex に戻す
-          undoTargetIndex = sourceIndex;
-        } else {
-          const currentTargetIdx = currentSectionOrder.findIndex(dc => dc?.uuid === targetUuid);
-          if (currentTargetIdx === -1) {
-            undoTargetIndex = sourceIndex;
-          } else {
-            // sourceIndex が元の位置になるように計算
-            undoTargetIndex = currentSourceIndex > currentTargetIdx ? currentTargetIdx + 1 : currentTargetIdx;
-          }
-        }
-
-        reorderWithinSectionInternal(section, currentSourceIndex, undoTargetIndex);
+        // 元の位置に戻す（originalPrevUuid の直後に sourceUuid を配置）
+        reorderWithinSectionInternal(section, sourceUuid, originalPrevUuid);
       }
     };
 
