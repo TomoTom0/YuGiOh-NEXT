@@ -27,15 +27,15 @@ async function testButtons() {
     console.log('\n=== ボタンの存在確認 ===\n');
 
     // シャッフルボタンの確認
-    const shuffleExists = await cdp.evaluate('document.getElementById("ygo-shuffle-btn") !== null');
+    const shuffleExists = await cdp.evaluate('document.getElementById("ygo-next-shuffle-btn-main") !== null');
     console.log(`1. シャッフルボタン: ${shuffleExists ? '✅ 存在' : '❌ 存在しない'}`);
 
     // ソートボタンの確認
-    const sortExists = await cdp.evaluate('document.getElementById("ygo-sort-btn") !== null');
+    const sortExists = await cdp.evaluate('document.getElementById("ygo-next-sort-btn-main") !== null');
     console.log(`2. ソートボタン: ${sortExists ? '✅ 存在' : '❌ 存在しない'}`);
 
     // デッキ画像作成ボタンの確認
-    const imageExists = await cdp.evaluate('document.getElementById("ygo-deck-image-btn") !== null');
+    const imageExists = await cdp.evaluate('document.getElementById("ygo-next-deck-image-btn") !== null');
     console.log(`3. デッキ画像作成ボタン: ${imageExists ? '✅ 存在' : '❌ 存在しない'}`);
 
     if (imageExists) {
@@ -43,12 +43,12 @@ async function testButtons() {
 
       // SVGのfill属性を確認
       const svgFill = await cdp.evaluate(`
-        window.getComputedStyle(document.getElementById("ygo-deck-image-btn").querySelector("svg")).fill
+        window.getComputedStyle(document.getElementById("ygo-next-deck-image-btn").querySelector("svg")).fill
       `);
 
       // SVGのstroke属性を確認
       const svgStroke = await cdp.evaluate(`
-        window.getComputedStyle(document.getElementById("ygo-deck-image-btn").querySelector("svg")).stroke
+        window.getComputedStyle(document.getElementById("ygo-next-deck-image-btn").querySelector("svg")).stroke
       `);
 
       console.log(`fill: ${svgFill}`);
@@ -68,8 +68,8 @@ async function testButtons() {
     if (shuffleExists && sortExists) {
       const buttonPositions = await cdp.evaluate(`
         (() => {
-          const shuffle = document.getElementById("ygo-shuffle-btn");
-          const sort = document.getElementById("ygo-sort-btn");
+          const shuffle = document.getElementById("ygo-next-shuffle-btn-main");
+          const sort = document.getElementById("ygo-next-sort-btn-main");
           return {
             shuffleParent: shuffle.parentElement.className,
             sortParent: sort.parentElement.className,
@@ -88,7 +88,7 @@ async function testButtons() {
     if (imageExists) {
       const imagePosition = await cdp.evaluate(`
         (() => {
-          const btn = document.getElementById("ygo-deck-image-btn");
+          const btn = document.getElementById("ygo-next-deck-image-btn");
           return {
             parent: btn.parentElement.id,
             rect: btn.getBoundingClientRect()

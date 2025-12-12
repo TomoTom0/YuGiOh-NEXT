@@ -9,24 +9,53 @@
       <div v-if="showRuby && card?.ruby" class="card-ruby">{{ card.ruby }}</div>
     </transition>
     <div class="ygo-next card-info-top">
-      <div class="card-image-wrapper">
+      <div class="card-image-wrapper" :class="{ loading: isLoadingCard }">
         <DeckCard
           v-if="card"
           :key="cardUuid"
           :card="card"
           :section-type="'info'"
           :uuid="cardUuid"
+          :class="{ 'loading-card': isLoadingCard }"
         />
-        <button
-          v-if="showImageSelectButton"
-          class="image-select-btn"
-          @click="toggleImageDialog"
-          :title="`画像を選択 (${card.imgs?.length || 0}種類)`"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiImageMultiple" />
-          </svg>
-        </button>
+        <div class="card-buttons-container">
+          <button
+            v-if="card"
+            class="card-menu-btn"
+            @click.stop="showCardMenu = !showCardMenu"
+            title="カード操作メニュー"
+          >
+            <svg v-if="!isLoadingCard" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16Z" />
+            </svg>
+            <svg v-else class="loading-spinner" width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z" />
+            </svg>
+          </button>
+          <button
+            v-if="showImageSelectButton"
+            class="image-select-btn"
+            @click="toggleImageDialog"
+            :title="`画像を選択 (${card.imgs?.length || 0}種類)`"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiImageMultiple" />
+            </svg>
+          </button>
+        </div>
+        <Transition name="menu-fade">
+          <div v-if="showCardMenu" class="card-menu-dropdown" @click.stop>
+            <button
+              class="card-menu-item"
+              :class="{ 'tail-placement-active': isTailPlaced }"
+              @click="toggleTailPlacement"
+            >
+              <span class="menu-item-label">
+                {{ isTailPlaced ? '末尾配置を解除' : '末尾配置に追加' }}
+              </span>
+            </button>
+          </div>
+        </Transition>
         <transition name="dialog-fade">
           <div v-if="showImageDialog" class="image-select-dialog">
           <div class="image-grid">
@@ -161,11 +190,12 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
 import { ATTRIBUTE_ID_TO_NAME, RACE_ID_TO_NAME, SPELL_EFFECT_TYPE_ID_TO_NAME, TRAP_EFFECT_TYPE_ID_TO_NAME, MONSTER_TYPE_ID_TO_NAME } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useCardDetailStore } from '../stores/card-detail'
+import { useSettingsStore } from '../stores/settings'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
@@ -199,15 +229,17 @@ export default {
     }
   },
   setup(props) {
-    console.log('[CardInfo] setup props:', props)
     const deckStore = useDeckEditStore()
     const cardDetailStore = useCardDetailStore()
+    const settingsStore = useSettingsStore()
     const { parseCardLinks, handleCardLinkClick } = useCardLinks()
     const showImageDialog = ref(false)
     const showRuby = ref(false) // Default to hidden
+    const showCardMenu = ref(false)
 
-    // cardDetailStoreから selectedCard を取得
+    // cardDetailStoreから selectedCard と isLoadingCard を取得
     const card = computed(() => cardDetailStore.selectedCard)
+    const isLoadingCard = computed(() => cardDetailStore.isLoadingCard)
 
     // ルビ表示の切り替え
     const toggleRuby = () => {
@@ -268,12 +300,53 @@ export default {
       return validCiids.includes(String(ciid));
     }
 
+    // 末尾配置状態を確認
+    const isTailPlaced = computed(() => {
+      return card.value ? settingsStore.isTailPlacementCard(card.value.cardId) : false
+    })
+
+    // 末尾配置の追加/削除を切り替える
+    const toggleTailPlacement = () => {
+      if (!card.value) return
+
+      if (isTailPlaced.value) {
+        settingsStore.removeTailPlacementCard(card.value.cardId)
+      } else {
+        settingsStore.addTailPlacementCard(card.value.cardId)
+      }
+
+      // メニューを閉じる
+      showCardMenu.value = false
+    }
+
+    // メニュー外をクリックしたときにメニューを閉じる
+    const closeMenuIfOutside = (event) => {
+      // メニューボタンやドロップダウン上をクリックしている場合は何もしない
+      const target = event.target
+      const isMenuBtn = target.closest('.card-menu-btn')
+      const isMenuDropdown = target.closest('.card-menu-dropdown')
+
+      if (!isMenuBtn && !isMenuDropdown && showCardMenu.value) {
+        showCardMenu.value = false
+      }
+    }
+
+    // グローバルクリックリスナーを登録
+    onMounted(() => {
+      document.addEventListener('click', closeMenuIfOutside)
+    })
+
+    onUnmounted(() => {
+      document.removeEventListener('click', closeMenuIfOutside)
+    })
+
     return {
       deckStore,
       parseCardLinks,
       handleCardLinkClick,
       card,
       cardUuid,
+      isLoadingCard,
       showImageDialog,
       showImageSelectButton,
       toggleImageDialog,
@@ -283,7 +356,11 @@ export default {
       showRuby,
       toggleRuby,
       isCiidValid,
-      getValidCiidsForCurrentLang
+      getValidCiidsForCurrentLang,
+      showCardMenu,
+      isTailPlaced,
+      toggleTailPlacement,
+      closeMenuIfOutside
     }
   },
   methods: {
@@ -497,6 +574,7 @@ export default {
   display: flex;
   gap: 15px;
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .card-info-bottom {
@@ -510,21 +588,29 @@ export default {
   flex-shrink: 0;
   width: var(--card-width-info, 90px);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
   .deck-card {
     width: var(--card-width-info, 90px);
     height: var(--card-height-info, 132px);
+    transition: opacity 0.3s ease;
 
     img {
       width: 100%;
       height: 100%;
     }
+
+    &.loading-card {
+      opacity: 0.5;
+    }
   }
 }
 
 .image-select-btn {
-  width: 100%;
-  margin-top: 4px;
+  width: auto;
+  margin-top: 0;
   padding: 6px;
   background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
   color: var(--button-text);
@@ -536,6 +622,7 @@ export default {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 217, 184, 0.3);
+  flex-shrink: 0;
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 217, 184, 0.5);
@@ -1035,6 +1122,129 @@ export default {
   &:hover {
     color: var(--color-link-hover);
     text-decoration: underline;
+  }
+}
+
+.card-buttons-container {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  flex-direction: row;
+  position: relative;
+}
+
+.card-menu-btn {
+  width: auto;
+  padding: 6px;
+  background: var(--theme-gradient, linear-gradient(90deg, #00d9b8 0%, #b84fc9 100%));
+  color: var(--button-text);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 217, 184, 0.3);
+  position: relative;
+  flex-shrink: 0;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 217, 184, 0.5);
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 217, 184, 0.4);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.card-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.card-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--bg-secondary);
+  }
+
+  &:active {
+    background: var(--bg-tertiary);
+  }
+
+  &.tail-placement-active {
+    color: var(--color-success, #4CAF50);
+    font-weight: bold;
+
+    .menu-item-label::before {
+      content: '\2713';
+      margin-right: 6px;
+      color: var(--color-success, #4CAF50);
+    }
+  }
+
+  .menu-item-label {
+    display: block;
+  }
+}
+
+.menu-fade-enter-active,
+.menu-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.menu-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.menu-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+// ローディングスピナーアニメーション
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

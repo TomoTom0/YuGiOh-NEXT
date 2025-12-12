@@ -29,13 +29,13 @@ async function testDialog() {
     console.log('\n=== カメラボタンをクリック ===\n');
 
     // カメラボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-deck-image-btn").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-deck-image-btn").click()`);
     await cdp.wait(500); // ダイアログ表示待機
 
     // ポップアップが表示されたか確認
     const dialogVisible = await cdp.evaluate(`
       (() => {
-        const popup = document.getElementById('ygo-image-popup');
+        const popup = document.getElementById('ygo-next-image-popup');
         return popup !== null;
       })()
     `);
@@ -79,7 +79,7 @@ async function testDialog() {
     // ポップアップをクリック（背景色切り替え）
     await cdp.evaluate(`
       (() => {
-        const popup = document.getElementById('ygo-image-popup');
+        const popup = document.getElementById('ygo-next-image-popup');
         popup.click();
       })()
     `);
@@ -107,7 +107,7 @@ async function testDialog() {
     // QRトグルボタンの初期状態を確認
     const initialQrState = await cdp.evaluate(`
       (() => {
-        const btn = document.getElementById('ygo-qr-toggle');
+        const btn = document.getElementById('ygo-next-qr-toggle');
         return {
           exists: btn !== null,
           classes: btn ? btn.className : null,
@@ -120,13 +120,13 @@ async function testDialog() {
     console.log(`初期状態: ${initialQrState.isActive ? 'ON (active)' : 'OFF (inactive)'}`);
 
     // QRトグルボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-qr-toggle").click()`);
+    await cdp.evaluate(`document.getElementById("ygo-next-qr-toggle").click()`);
     await cdp.wait(300);
 
     // 切り替え後の状態を確認
     const toggledQrState = await cdp.evaluate(`
       (() => {
-        const btn = document.getElementById('ygo-qr-toggle');
+        const btn = document.getElementById('ygo-next-qr-toggle');
         return {
           classes: btn.className,
           isActive: btn.classList.contains('ygo-qr-active')
@@ -147,7 +147,7 @@ async function testDialog() {
     // ダウンロードボタンの存在確認
     const downloadBtn = await cdp.evaluate(`
       (() => {
-        const btn = document.getElementById('ygo-download-btn');
+        const btn = document.getElementById('ygo-next-download-btn');
         return {
           exists: btn !== null,
           text: btn ? btn.textContent : null
@@ -163,7 +163,7 @@ async function testDialog() {
     // オーバーレイをクリック
     await cdp.evaluate(`
       (() => {
-        const overlay = document.getElementById('ygo-image-popup-overlay');
+        const overlay = document.getElementById('ygo-next-image-popup-overlay');
         overlay.click();
       })()
     `);
@@ -173,7 +173,7 @@ async function testDialog() {
     // ポップアップが閉じたか確認
     const dialogClosed = await cdp.evaluate(`
       (() => {
-        const popup = document.getElementById('ygo-image-popup');
+        const popup = document.getElementById('ygo-next-image-popup');
         return popup === null;
       })()
     `);

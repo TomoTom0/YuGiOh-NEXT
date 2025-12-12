@@ -1,5 +1,5 @@
 <template>
-  <div class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
+  <div v-show="isReady" class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
@@ -101,7 +101,7 @@
           <button class="close-btn" @click="toggleLoadDialog">×</button>
         </div>
         <div class="dialog-body">
-          <div v-if="deckStore.deckList.length === 0" class="no-decks">
+          <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
             <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
               <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
             </svg>
@@ -114,7 +114,27 @@
               class="deck-card"
               @click="loadDeck(deck.dno)"
             >
+              <!-- デッキ名 -->
               <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
+
+              <!-- サムネイル画像 -->
+              <!-- TODO: サムネイル機能は廃止済み -->
+              <!-- <div class="deck-thumbnail-container">
+                <img
+                  v-if="deckThumbnails.has(deck.dno) && deckThumbnails.get(deck.dno)"
+                  :src="deckThumbnails.get(deck.dno)"
+                  :alt="`${deck.name}のサムネイル`"
+                  class="deck-thumbnail-image"
+                />
+                <div v-else-if="thumbnailLoading.get(deck.dno)" class="deck-thumbnail-loading">
+                  <div class="spinner"></div>
+                </div>
+                <div v-else class="deck-thumbnail-placeholder">
+                  <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.3;">
+                    <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
+                  </svg>
+                </div>
+              </div> -->
             </div>
           </div>
         </div>
@@ -143,6 +163,7 @@
 <script lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
+import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
 import DeckCard from '../../components/DeckCard.vue'
@@ -155,6 +176,10 @@ const ImportDialog = defineAsyncComponent(() => import('../../components/ImportD
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
+import { DeckThumbnailCache } from '../../utils/deck-thumbnail-cache'
+import { DeckThumbnailGenerator } from '../../utils/deck-thumbnail-generator'
+import { EXTENSION_IDS } from '../../utils/dom-selectors'
+import { buildFullUrl } from '../../utils/url-builder'
 
 export default {
   name: 'DeckEditLayout',
@@ -169,14 +194,23 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
+    const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
+
+    // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
+    const isReady = ref(false)
+
     const activeTab = ref('search')
     const searchQuery = ref('')
     const selectedCard = ref(null)
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
+
+    // デッキサムネイル画像（dno -> thumbnail URL or null）
+    const deckThumbnails = ref(new Map<number, string | null>())
+    const thumbnailLoading = ref(new Map<number, boolean>())
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
@@ -192,9 +226,61 @@ export default {
 
     const toggleLoadDialog = async () => {
       if (!deckStore.showLoadDialog) {
+        // デッキ一覧を取得
         await deckStore.fetchDeckList()
+
+        // 各デッキのサムネイルを取得または生成（非同期、UI をブロックしない）
+        // TODO: サムネイル生成は一時的に無効化（パフォーマンス測定中）
+        // deckStore.deckList.forEach(deck => {
+        //   loadOrGenerateThumbnail(deck.dno)
+        // })
       }
       deckStore.showLoadDialog = !deckStore.showLoadDialog
+    }
+
+    /**
+     * デッキサムネイルをキャッシュから取得、またはキャッシュにない場合は生成
+     */
+    const loadOrGenerateThumbnail = async (dno: number) => {
+      if (deckThumbnails.value.has(dno)) {
+        return // 既に読み込まれている
+      }
+
+      thumbnailLoading.value.set(dno, true)
+
+      try {
+        // キャッシュから取得
+        let thumbnail = await DeckThumbnailCache.get(dno)
+
+        // キャッシュにない場合は生成
+        if (!thumbnail) {
+          const deckDetail = await deckStore.getDeckDetail(dno)
+          if (deckDetail) {
+            const generator = new DeckThumbnailGenerator()
+            thumbnail = await generator.generateWebPThumbnail(deckDetail)
+            // キャッシュに保存
+            if (thumbnail) {
+              await DeckThumbnailCache.set(dno, thumbnail)
+            }
+          }
+        }
+
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          deckThumbnails.value.set(dno, thumbnail || null)
+        }
+      } catch (error) {
+        console.warn(`Failed to load or generate thumbnail for deck ${dno}:`, error)
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          deckThumbnails.value.set(dno, null)
+        }
+      } finally {
+        // コンポーネントがまだマウントされている場合のみ状態を更新
+        if (isComponentMounted) {
+          thumbnailLoading.value.set(dno, false)
+        }
+      }
     }
 
     const loadDeck = async (dno) => {
@@ -202,8 +288,34 @@ export default {
         await deckStore.loadDeck(dno)
         deckStore.setDeckName('')
         deckStore.showLoadDialog = false
+
+        // デッキロード後、サムネイルを生成・キャッシュに保存（非同期）
+        // TODO: サムネイル生成は廃止済み
+        // generateAndCacheThumbnail(dno)
       } catch (error) {
         console.error('Load error:', error)
+      }
+    }
+
+    /**
+     * デッキサムネイルを生成してキャッシュに保存
+     */
+    const generateAndCacheThumbnail = async (dno: number) => {
+      try {
+        // 現在のデッキ情報からサムネイルを生成
+        const generator = new DeckThumbnailGenerator()
+        const thumbnail = await generator.generateWebPThumbnail(deckStore.deckInfo)
+
+        if (thumbnail) {
+          // キャッシュに保存
+          await DeckThumbnailCache.set(dno, thumbnail)
+          // コンポーネントがまだマウントされている場合のみ UI に反映
+          if (isComponentMounted) {
+            deckThumbnails.value.set(dno, thumbnail)
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
       }
     }
 
@@ -247,7 +359,7 @@ export default {
     // グローバルキーボードイベント
     const handleGlobalKeydown = (event) => {
       // グローバル検索モードが有効な場合は無視（入力欄で処理される）
-      if (deckStore.isGlobalSearchMode) return
+      if (searchStore.isGlobalSearchMode) return
 
       // 入力要素にフォーカスがある場合は無視
       const activeElement = document.activeElement
@@ -259,13 +371,13 @@ export default {
 
       if (isInputFocused) return
 
-      const shortcuts = settingsStore.appSettings.keyboardShortcuts
+      const shortcuts = settingsStore.appSettings.ux.keyboardShortcuts
 
       // グローバル検索モードを有効化
       if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
         event.stopPropagation()
-        deckStore.isGlobalSearchMode = true
+        searchStore.isGlobalSearchMode = true
         return
       }
 
@@ -314,22 +426,45 @@ export default {
       }
     }
 
-    // hashchangeイベントでdno変更を監視
-    window.addEventListener('hashchange', checkDnoChange)
+    // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
+    let checkDnoChangeHandler: (() => void) | null = null
+
+    // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
+    let isComponentMounted = false
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
+      isComponentMounted = true
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
 
+      // デッキ読み込み完了後、Vue UIを表示
+      isReady.value = true
+
+      // Vue描画完了を待ってからオーバーレイを削除
+      await nextTick()
+
+      // 短いフェードアウトで削除（途切れを防ぐ）
+      const moduleLoadingOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay)
+      if (moduleLoadingOverlay) {
+        moduleLoadingOverlay.style.opacity = '0'
+        moduleLoadingOverlay.style.transition = 'opacity 150ms ease-out'
+        setTimeout(() => {
+          moduleLoadingOverlay.remove()
+        }, 150)
+      }
+
+      // hashchangeイベントでdno変更を監視
+      checkDnoChangeHandler = () => checkDnoChange()
+      window.addEventListener('hashchange', checkDnoChangeHandler)
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
-      const originalChangeLanguage = (window as any).ygoChangeLanguage
-      ;(window as any).ygoChangeLanguage = (lang: string) => {
+      const originalChangeLanguage = window.ygoChangeLanguage
+      window.ygoChangeLanguage = (lang: string) => {
         const performChange = () => {
-          originalChangeLanguage(lang)
+          originalChangeLanguage?.(lang)
         }
 
         // 編集中の場合はダイアログを表示
@@ -344,7 +479,7 @@ export default {
       }
 
       // 設定に応じてファビコンを変更
-      if (settingsStore.appSettings.changeFavicon) {
+      if (settingsStore.appSettings.ux.changeFavicon) {
         changeFavicon()
       }
     })
@@ -379,8 +514,12 @@ export default {
     }
 
     onUnmounted(() => {
+      isComponentMounted = false
+      // 全てのイベントリスナーを削除
+      if (checkDnoChangeHandler) {
+        window.removeEventListener('hashchange', checkDnoChangeHandler)
+      }
       window.removeEventListener('resize', handleResize)
-      window.removeEventListener('hashchange', checkDnoChange)
       window.removeEventListener('keydown', handleGlobalKeydown)
       pendingLanguageChange = null
     })
@@ -469,7 +608,7 @@ export default {
         searchResults.length = 0
         searchResults.push(...results.map(card => {
           const relativeUrl = getCardImageUrl(card, gameType)
-          const imageUrl = relativeUrl ? `https://www.db.yugioh-card.com${relativeUrl}` : undefined
+          const imageUrl = relativeUrl ? buildFullUrl(relativeUrl) : undefined
           return {
             card: {
               ...card,
@@ -612,6 +751,7 @@ export default {
     }
 
     return {
+      isReady,
       deckStore,
       settingsStore,
       activeTab,
@@ -649,7 +789,12 @@ export default {
       moveFromSide,
       moveFromTrash,
       addCopy,
-      addToMainOrExtra
+      addToMainOrExtra,
+      // サムネイル関連
+      deckThumbnails,
+      thumbnailLoading,
+      loadOrGenerateThumbnail,
+      generateAndCacheThumbnail
     }
   }
 }
@@ -1159,12 +1304,15 @@ export default {
 }
 
 .deck-card {
-  padding: 10px 12px;
+  width: 160px;
+  min-height: 60px;
   border: 1px solid var(--border-primary, #e0e0e0);
   border-radius: 6px;
   background: var(--bg-secondary, #f5f5f5);
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 
   &:hover {
     border-color: var(--text-tertiary, #999);
@@ -1172,15 +1320,67 @@ export default {
   }
 
   .deck-name {
-    font-size: 12px;
+    padding: 8px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary, #333);
-    line-height: 1.3;
+    line-height: 1.4;
     word-break: break-word;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    text-align: center;
+  }
+
+  .deck-thumbnail-container {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background: var(--bg-tertiary, #e0e0e0);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .deck-thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .deck-thumbnail-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-secondary, #ddd);
+      border-top-color: var(--text-primary, #333);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+  }
+
+  .deck-thumbnail-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--text-tertiary, #999);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 

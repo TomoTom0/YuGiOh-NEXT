@@ -3,6 +3,16 @@
  * 独自画面以外での独自要素なので .ygo-next で nest
  */
 
+/**
+ * 公式メニューのz-indexを設定
+ * TASK-110: ダイアログのz-index問題を解決するまでの暫定対応として、z-indexを10に設定
+ * （本来はダイアログのスタッキングコンテキストを根本的に改善すべき）
+ */
+ul.main_menu > li * {
+  position: relative;
+  z-index: 10 !important;
+}
+
 .ygo-next {
   &.ytomo-neuron-btn {
     padding: 1px 2px;

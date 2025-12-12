@@ -71,7 +71,7 @@ const changeFavicon = ref(false);
 onMounted(() => {
   // 機能設定を読み込み
   deckEditEnabled.value = settingsStore.featureSettings['deck-edit'];
-  changeFavicon.value = settingsStore.appSettings.changeFavicon;
+  changeFavicon.value = settingsStore.appSettings.ux.changeFavicon;
 });
 
 const handleClearCache = async () => {

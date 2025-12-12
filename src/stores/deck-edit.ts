@@ -2,19 +2,34 @@ import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch } from 'vue';
 import type { DeckInfo, DeckCardRef } from '../types/deck';
 import type { CardInfo } from '../types/card';
-import type { MonsterType } from '../types/card-maps';
 import { sessionManager } from '../content/session/session';
-import { getDeckDetail } from '../api/deck-operations';
+import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
-import { useToastStore } from './toast-notification';
 import { getCardLimit } from '../utils/card-limit';
-import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage, recordDeckOpen } from '../utils/temp-card-db';
+import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage } from '../utils/temp-card-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
-
-// Undo/Redo履歴の最大保持数
-const MAX_COMMAND_HISTORY = 100;
+import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
+import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
+import { fisherYatesShuffle } from '../utils/array-shuffle';
+import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
+import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
+import { canMoveCard as canMoveCardValidation } from '../composables/deck/useDeckValidation';
+import { sortDisplayOrderForOfficial as sortDisplayOrderForOfficialLogic } from '../composables/deck/useDeckSorting';
+import {
+  addToDisplayOrder as addToDisplayOrderLogic,
+  removeFromDisplayOrder as removeFromDisplayOrderLogic,
+  moveInDisplayOrder as moveInDisplayOrderLogic,
+  reorderWithinSection as reorderWithinSectionLogic,
+  validateReorderParameters
+} from '../composables/deck/useDeckDisplayOrder';
+import {
+  captureDeckSnapshot as captureDeckSnapshotLogic,
+  hasOnlySortOrderChanges as hasOnlySortOrderChangesLogic
+} from '../composables/deck/useDeckSnapshot';
+import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
+import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -30,6 +45,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   });
 
   const trashDeck = ref<DeckCardRef[]>([]);
+
+  // カテゴリID → ラベルのマップ（DeckMetadata.vue で設定）
+  const categoryLabelMap = ref<Record<string, string>>({});
 
   // 枚数制限エラー表示用のcardId
   const limitErrorCardId = ref<string | null>(null);
@@ -63,97 +81,67 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     side: DisplayCard[];
     trash: DisplayCard[];
   } | null>(null);
-  
-  // 各baseKey (cid-ciid) ごとの最大インデックスを追跡
-  const maxIndexMap = new Map<string, number>();
 
-  // UUID生成ヘルパー (cid-ciid-num形式)
-  function generateUUID(cid: string, ciid: number): string {
-    const baseKey = `${cid}-${ciid}`;
-    const currentMax = maxIndexMap.get(baseKey) ?? -1;
-    const newIndex = currentMax + 1;
-    maxIndexMap.set(baseKey, newIndex);
-    return `${baseKey}-${newIndex}`;
+  // Undo/Redo機能 (composableから取得)
+  const {
+    commandHistory,
+    commandIndex,
+    canUndo,
+    canRedo,
+    pushCommand,
+    undo: undoCommand,
+    redo: redoCommand,
+    clearHistory
+  } = useDeckUndoRedo();
+
+  // デッキ永続化機能 (composableから取得)
+  // initializeDisplayOrder, captureDeckSnapshot は後で定義されるため、
+  // persistence の初期化は関数内で遅延して行う
+  let persistence: ReturnType<typeof useDeckPersistence> | null = null;
+
+  function getPersistence() {
+    if (!persistence) {
+      persistence = useDeckPersistence({
+        sessionManager,
+        deckInfo,
+        lastUsedDno,
+        initializeDisplayOrder,
+        clearHistory,
+        captureDeckSnapshot,
+        savedDeckSnapshot
+      });
+    }
+    return persistence;
   }
 
-  // Undo/Redo用のコマンド履歴
-  interface Command {
-    execute: () => void;
-    undo: () => void;
-  }
-  
-  const commandHistory = ref<Command[]>([]);
-  const commandIndex = ref(-1);
-  
-  const canUndo = computed(() => commandIndex.value >= 0);
-  const canRedo = computed(() => commandIndex.value < commandHistory.value.length - 1);
-
-  // カード移動可否判定（DeckSection.vueのcanDropToSectionロジックと同一）
-  function canMoveCard(fromSection: string, toSection: string, card: CardInfo): boolean {
-    // searchからtrashへは移動不可
-    if (fromSection === 'search' && toSection === 'trash') {
-      return false;
-    }
-
-    // searchから移動する場合
-    if (fromSection === 'search') {
-      // mainに移動する場合：extraデッキカードは不可
-      if (toSection === 'main') {
-        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-        );
-        return !isExtraDeckCard;
-      }
-      // extraに移動する場合：extraデッキカードのみ可
-      if (toSection === 'extra') {
-        const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-          t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
-        );
-        return isExtraDeckCard || false;
-      }
-      // sideへは常に許可
-      if (toSection === 'side') {
-        return true;
-      }
-      return false;
-    }
-
-    // trashへの移動は全て不可
-    if (toSection === 'trash') {
-      return false;
-    }
-
-    // trashからの移動は全て許可
-    if (fromSection === 'trash') {
-      return true;
-    }
-
-    // main/extra/side間の移動はカードタイプによる
-    const isExtraDeckCard = card.cardType === 'monster' && card.types?.some(t =>
-      t === 'fusion' || t === 'synchro' || t === 'xyz' || t === 'link'
+  /**
+   * カテゴリ優先アイコン表示対象のcidセット（2段階検索）
+   *
+   * 一段階目: カテゴリラベルを名前/ルビ/テキスト/p-textに含むcid
+   * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
+   */
+  const categoryMatchedCardIds = computed(() => {
+    return computeCategoryMatchedCardIds(
+      deckInfo.value?.category ?? [],
+      categoryLabelMap.value || {},
+      {
+        main: deckInfo.value.mainDeck,
+        extra: deckInfo.value.extraDeck,
+        side: deckInfo.value.sideDeck,
+        trash: trashDeck.value
+      },
+      (cid) => getTempCardDB().get(cid)
     );
+  });
 
-    // mainへの移動：extraデッキカードは不可
-    if (toSection === 'main') {
-      return !isExtraDeckCard;
-    }
-
-    // extraへの移動：extraデッキカードのみ可
-    if (toSection === 'extra') {
-      return isExtraDeckCard || false;
-    }
-
-    // sideへの移動：常に許可
-    if (toSection === 'side') {
-      return true;
-    }
-
-    // それ以外は許可
-    return true;
-  }
+  // カード移動可否判定（useDeckValidation.tsから import）
+  const canMoveCard = canMoveCardValidation;
 
   // displayOrderを初期化（deckInfoから生成）
   function initializeDisplayOrder() {
+    // UUID生成器の状態をクリア（新しいデッキロード時に以前のインデックスが引き継がれないように）
+    clearDeckUUIDState();
+
     const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
 
     sections.forEach(section => {
@@ -169,7 +157,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
           // 各カードのciid（Card Image ID）を使用
           const ciid = parseInt(String(deckCard.ciid), 10);
           const normalizedCiid = isNaN(ciid) ? 0 : ciid;
-          const newUuid = generateUUID(deckCard.cid, normalizedCiid);
+          const newUuid = generateDeckCardUUID(deckCard.cid, normalizedCiid);
           displayOrder.value[section].push({
             cid: deckCard.cid,
             ciid: normalizedCiid,
@@ -198,82 +186,30 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function sortDisplayOrderForOfficial() {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
-    
+
     const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side'];
-    
+
     sections.forEach(section => {
       const sectionOrder = displayOrder.value[section];
-      if (sectionOrder.length === 0) return;
-      
       const deck = section === 'main' ? deckInfo.value.mainDeck :
                    section === 'extra' ? deckInfo.value.extraDeck :
                    deckInfo.value.sideDeck;
-      
-      // カード情報を取得してタイプ判定用マップを作成
-      const tempCardDB = getTempCardDB();
-      const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
-      deck.forEach(dc => {
-        const card = tempCardDB.get(dc.cid);
-        const type = card?.cardType;
-        let priority = 0;
-        if (type === 'spell') priority = 1;
-        else if (type === 'trap') priority = 2;
-        cardTypeMap.set(dc.cid, priority);
-      });
-      
-      // 最初の登場順を記録
-      const firstAppearance = new Map<string, number>();
-      sectionOrder.forEach((dc, index) => {
-        if (!firstAppearance.has(dc.cid)) {
-          firstAppearance.set(dc.cid, index);
-        }
-      });
-      
-      // ソート: 1. カードタイプ順、2. 最初の登場順
-      const sorted = [...sectionOrder].sort((a, b) => {
-        const typeA = cardTypeMap.get(a.cid) || 0;
-        const typeB = cardTypeMap.get(b.cid) || 0;
-        
-        if (typeA !== typeB) {
-          return typeA - typeB;
-        }
-        
-        const firstA = firstAppearance.get(a.cid) || 0;
-        const firstB = firstAppearance.get(b.cid) || 0;
-        return firstA - firstB;
-      });
-      
-      // ciidは変更しない（Card Image IDを保持）
-      
-      displayOrder.value[section] = sorted;
-      
-      // deckInfoを並び替え（displayOrderの順序に合わせる）
-      const newDeck: DeckCardRef[] = [];
-      const seenCards = new Set<string>();
 
-      sorted.forEach(dc => {
-        const key = `${dc.cid}_${dc.ciid}`;
-        if (!seenCards.has(key)) {
-          seenCards.add(key);
-          const deckCard = deck.find(d =>
-            d.cid === dc.cid && d.ciid === String(dc.ciid)
-          );
-          if (deckCard) {
-            newDeck.push(deckCard);
-          }
-        }
-      });
-      
-      // deckInfoを更新
+      // useDeckSorting composable を使用してソート
+      const result = sortDisplayOrderForOfficialLogic(sectionOrder, deck);
+
+      // 結果を反映
+      displayOrder.value[section] = result.sortedDisplayOrder;
+
       if (section === 'main') {
-        deckInfo.value.mainDeck = newDeck;
+        deckInfo.value.mainDeck = result.sortedDeck;
       } else if (section === 'extra') {
-        deckInfo.value.extraDeck = newDeck;
+        deckInfo.value.extraDeck = result.sortedDeck;
       } else {
-        deckInfo.value.sideDeck = newDeck;
+        deckInfo.value.sideDeck = result.sortedDeck;
       }
     });
-    
+
     // DOM更新後にアニメーション実行
     nextTick(() => {
       animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side']));
@@ -323,89 +259,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 同じカードが既に存在する場合、最初に登場する位置の直後に挿入
    */
   function addToDisplayOrderInternal(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
-    // debug logging removed
+    // useDeckDisplayOrder composable を使用
+    const deckState = {
+      mainDeck: deckInfo.value.mainDeck,
+      extraDeck: deckInfo.value.extraDeck,
+      sideDeck: deckInfo.value.sideDeck,
+      trashDeck: trashDeck.value
+    };
 
-    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
-                       section === 'extra' ? deckInfo.value.extraDeck :
-                       section === 'side' ? deckInfo.value.sideDeck :
-                       trashDeck.value;
-
-    // deckInfo更新: (cid, ciid)ペアで既存カードを検索
-    const existingCard = targetDeck.find(dc =>
-      dc.cid === card.cardId && dc.ciid === card.ciid
+    addToDisplayOrderLogic(
+      displayOrder.value,
+      deckState,
+      card,
+      section,
+      generateDeckCardUUID
     );
-    if (existingCard) {
-      existingCard.quantity++;
-    } else {
-      // TempCardDBにカード情報を登録
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set(card.cardId, card);
-      // record move history
-      try {
-        const unifiedDB = getUnifiedCacheDB();
-        unifiedDB.recordMove({ action: 'add_to_display', cardId: card.cardId, to: section });
-      } catch (e) {
-        // ignore
-      }
-      targetDeck.push({ cid: card.cardId, ciid: card.ciid, lang: card.lang, quantity: 1 });
-    }
-    
-    // displayOrder更新
-    const sectionOrder = displayOrder.value[section];
-    
-    // 同じ(cid, ciid)ペアが既に存在するか確認
-    const existingCardIndex = sectionOrder.findIndex(dc => 
-      dc.cid === card.cardId && dc.ciid === parseInt(String(card.ciid), 10)
-    );
-    
-    if (existingCardIndex !== -1) {
-      // 既存の同じ(cid, ciid)ペアの最後の位置を探す
-      const targetCiid = parseInt(String(card.ciid), 10);
-      let lastSameCardIndex = existingCardIndex;
-      for (let i = existingCardIndex + 1; i < sectionOrder.length; i++) {
-        const orderCard = sectionOrder[i];
-        if (orderCard && orderCard.cid === card.cardId && orderCard.ciid === targetCiid) {
-          lastSameCardIndex = i;
-        }
-      }
-      
-      // debug logging removed
-
-      // 最後の同じ(cid, ciid)ペアの直後に挿入
-      sectionOrder.splice(lastSameCardIndex + 1, 0, {
-        cid: card.cardId,
-        ciid: targetCiid,
-        uuid: generateUUID(card.cardId, targetCiid)
-      });
-    } else {
-      // 新しい(cid, ciid)ペアなので、同じcidの最後に追加
-      const sameCidCards = sectionOrder.filter(dc => dc.cid === card.cardId);
-      const ciid = (card.ciid !== undefined && card.ciid !== null)
-        ? parseInt(String(card.ciid), 10)
-        : 0;
-
-      // debug logging removed
-
-      if (sameCidCards.length > 0) {
-        // 同じcidのカードがある場合、その最後の位置の後に挿入
-        const lastSameCidIndex = sectionOrder.map((dc, idx) => ({ dc, idx }))
-          .filter(item => item.dc.cid === card.cardId)
-          .pop()!.idx;
-        
-        sectionOrder.splice(lastSameCidIndex + 1, 0, {
-          cid: card.cardId,
-          ciid: ciid,
-          uuid: generateUUID(card.cardId, ciid)
-        });
-      } else {
-        // 完全に新しいカードなので末尾に追加
-        sectionOrder.push({
-          cid: card.cardId,
-          ciid: ciid,
-          uuid: generateUUID(card.cardId, ciid)
-        });
-      }
-    }
   }
   
   function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
@@ -437,59 +305,67 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param sourceUuid 移動するカードのUUID
    * @param targetUuid 移動先の直前にあるカードのUUID（nullの場合は末尾に移動）
    */
-  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string; originalTargetUuid?: string | null } {
+  function reorderWithinSectionInternal(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null) {
+    // UUID ベースの並び替え（composable の低レベル関数を使用）
     const sectionOrder = displayOrder.value[section];
-    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
-    if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
-
-    // 元の位置を記録（undo用）
-    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid ?? null : null;
-    
-    const movedCards = sectionOrder.splice(sourceIndex, 1);
-    if (movedCards.length === 0) return { success: false, error: 'カードが見つかりません' };
-    const movedCard = movedCards[0];
-    if (!movedCard) return { success: false, error: 'カードが見つかりません' };
-
-    if (targetUuid === null) {
-      // 末尾に移動
-      sectionOrder.push(movedCard);
-    } else {
-      // targetUuidの直後に挿入
-      const targetIndex = sectionOrder.findIndex(dc => dc.uuid === targetUuid);
-      if (targetIndex !== -1) {
-        sectionOrder.splice(targetIndex + 1, 0, movedCard);
-      } else {
-        // targetが見つからない場合は末尾に移動
-        sectionOrder.push(movedCard);
-      }
+    if (!sectionOrder || !Array.isArray(sectionOrder)) {
+      return;
     }
-    return { success: true, originalTargetUuid };
+
+    const fromIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    if (fromIndex === -1) {
+      return;
+    }
+
+    let toIndex: number;
+    if (targetUuid === null) {
+      toIndex = sectionOrder.length - 1;
+    } else {
+      const targetIdx = sectionOrder.findIndex(card => card?.uuid === targetUuid);
+      if (targetIdx === -1) {
+        return;
+      }
+      toIndex = fromIndex > targetIdx ? targetIdx : targetIdx + 1;
+    }
+
+    reorderWithinSectionLogic(
+      displayOrder.value,
+      section,
+      fromIndex,
+      toIndex
+    );
   }
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
-    // 元の位置を事前に記録
-    const sectionOrder = displayOrder.value[section];
-    const sourceIndex = sectionOrder.findIndex(dc => dc.uuid === sourceUuid);
-    if (sourceIndex === -1) return { success: false, error: 'カードが見つかりません' };
-    const originalTargetUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid ?? null : null;
-    
-    const result = reorderWithinSectionInternal(section, sourceUuid, targetUuid);
-    
-    if (result.success) {
-      const command: Command = {
-        execute: () => {
-          reorderWithinSectionInternal(section, sourceUuid, targetUuid);
-        },
-        undo: () => {
-          // 並び替えの逆操作は元の位置に戻す
-          reorderWithinSectionInternal(section, sourceUuid, originalTargetUuid);
-        }
-      };
-      
-      pushCommand(command);
+    // バリデーション（共通化関数を使用）
+    const validationError = validateReorderParameters(displayOrder.value, section, sourceUuid, targetUuid);
+    if (validationError) {
+      console.error(`[reorderWithinSection] ${validationError}`, { section, sourceUuid, targetUuid });
+      return { success: false, error: validationError };
     }
-    
-    return result;
+
+    // 元の位置を記録（UUID の直前にあるカードを特定）
+    const sectionOrder = displayOrder.value[section];
+    const sourceIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
+    const originalPrevUuid = sourceIndex > 0 ? sectionOrder[sourceIndex - 1]?.uuid || null : null;
+
+    // 初回実行
+    reorderWithinSectionInternal(section, sourceUuid, targetUuid);
+
+    const command: Command = {
+      execute: () => {
+        // UUID ベースで実行（毎回 UUID から位置を計算）
+        reorderWithinSectionInternal(section, sourceUuid, targetUuid);
+      },
+      undo: () => {
+        // 元の位置に戻す（originalPrevUuid の直後に sourceUuid を配置）
+        reorderWithinSectionInternal(section, sourceUuid, originalPrevUuid);
+      }
+    };
+
+    pushCommand(command);
+
+    return { success: true };
   }
 
 
@@ -502,51 +378,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param uuid 削除する特定のカードのUUID（省略時は最後の1枚）
    */
   function removeFromDisplayOrderInternal(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string, ciid?: string): { removedCard?: CardInfo; removedCiid?: number } {
-    const targetDeck = section === 'main' ? deckInfo.value.mainDeck :
-                       section === 'extra' ? deckInfo.value.extraDeck :
-                       section === 'side' ? deckInfo.value.sideDeck :
-                       trashDeck.value;
+    // useDeckDisplayOrder composable を使用
+    const deckState = {
+      mainDeck: deckInfo.value.mainDeck,
+      extraDeck: deckInfo.value.extraDeck,
+      sideDeck: deckInfo.value.sideDeck,
+      trashDeck: trashDeck.value
+    };
 
-    // deckInfo更新（ciidが指定されている場合はciidも条件に含める）
-    const index = targetDeck.findIndex(dc => {
-      if (ciid !== undefined) {
-        return dc.cid === cardId && dc.ciid === ciid;
-      }
-      return dc.cid === cardId;
-    });
-    if (index !== -1) {
-      const deckCard = targetDeck[index];
-      if (deckCard && deckCard.quantity > 1) {
-        deckCard.quantity--;
-      } else {
-        targetDeck.splice(index, 1);
-      }
-    }
-    
-    // displayOrder更新（UUIDで特定、なければ最後の1枚を削除）
-    const sectionOrder = displayOrder.value[section];
-    let removeIndex = -1;
-    
-    if (uuid) {
-      removeIndex = sectionOrder.findIndex(dc => dc.uuid === uuid);
-    } else {
-      removeIndex = sectionOrder.map(dc => dc.cid).lastIndexOf(cardId);
-    }
-    
-    let removedCiid: number | undefined;
-    if (removeIndex !== -1) {
-      const removedCard = sectionOrder[removeIndex];
-      if (removedCard) {
-        removedCiid = removedCard.ciid;
-      }
-      sectionOrder.splice(removeIndex, 1);
-      // ciidは変更しない（画像IDは保持）
-    }
-    
-    // 削除されたカード情報を返す
-    const tempCardDB = getTempCardDB();
-    const removedCard = tempCardDB.get(cardId);
-    return { removedCard, removedCiid };
+    const result = removeFromDisplayOrderLogic(
+      displayOrder.value,
+      deckState,
+      cardId,
+      section,
+      uuid,
+      ciid
+    );
+
+    return { removedCard: result.removedCard, removedCiid: result.removedCiid };
   }
   
   function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string, ciid?: string) {
@@ -575,82 +424,25 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * @param uuid 移動する特定のカードのUUID（省略時は最後の1枚）
    */
   function moveInDisplayOrderInternal(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string, targetIndex?: number): string | undefined {
-    const fromDeck = from === 'main' ? deckInfo.value.mainDeck :
-                     from === 'extra' ? deckInfo.value.extraDeck :
-                     from === 'side' ? deckInfo.value.sideDeck :
-                     trashDeck.value;
+    // useDeckDisplayOrder composable を使用
+    const deckState = {
+      mainDeck: deckInfo.value.mainDeck,
+      extraDeck: deckInfo.value.extraDeck,
+      sideDeck: deckInfo.value.sideDeck,
+      trashDeck: trashDeck.value
+    };
 
-    const toDeck = to === 'main' ? deckInfo.value.mainDeck :
-                   to === 'extra' ? deckInfo.value.extraDeck :
-                   to === 'side' ? deckInfo.value.sideDeck :
-                   trashDeck.value;
-
-    // displayOrderから移動するカードを取得
-    const fromOrder = displayOrder.value[from];
-    let moveCardIndex: number;
-
-    if (uuid) {
-      // UUIDが指定されている場合は、そのUUIDのカードを移動
-      moveCardIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
-    } else {
-      // UUIDが未指定の場合は最後の1枚を移動
-      moveCardIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
-    }
-
-    if (moveCardIndex === -1) {
-      return;
-    }
-
-    const movingDisplayCard = fromOrder[moveCardIndex];
-    if (!movingDisplayCard) {
-      return;
-    }
-
-    // (cid, ciid)ペアでdeckCardを取得
-    const fromIndex = fromDeck.findIndex(dc =>
-      dc.cid === cardId && dc.ciid === String(movingDisplayCard.ciid)
+    const result = moveInDisplayOrderLogic(
+      displayOrder.value,
+      deckState,
+      cardId,
+      from,
+      to,
+      uuid,
+      targetIndex
     );
-    if (fromIndex === -1) return;
 
-    const deckCard = fromDeck[fromIndex];
-    if (!deckCard) return;
-
-    // fromのdisplayOrderから削除
-    fromOrder.splice(moveCardIndex, 1);
-
-    // fromのciidは変更しない（画像IDは保持）
-
-    // toのdisplayOrderに追加
-    const toOrder = displayOrder.value[to];
-    if (targetIndex !== undefined && targetIndex >= 0 && targetIndex <= toOrder.length) {
-      // 指定された位置に挿入
-      toOrder.splice(targetIndex, 0, movingDisplayCard);
-    } else {
-      // 末尾に追加
-      toOrder.push(movingDisplayCard);
-    }
-
-    // deckInfo更新
-    // fromから削除
-    const fromDeckCard = fromDeck[fromIndex];
-    if (fromDeckCard && fromDeckCard.quantity > 1) {
-      fromDeckCard.quantity--;
-    } else {
-      fromDeck.splice(fromIndex, 1);
-    }
-
-    // toに追加（ciidも考慮）
-    const existingCard = toDeck.find(dc =>
-      dc.cid === cardId && dc.ciid === String(movingDisplayCard.ciid)
-    );
-    if (existingCard) {
-      existingCard.quantity++;
-    } else {
-      toDeck.push({ cid: cardId, ciid: String(movingDisplayCard.ciid), lang: deckCard.lang, quantity: 1 });
-    }
-    
-    // 移動したカードのuuidを返す
-    return movingDisplayCard.uuid;
+    return result?.uuid;
   }
   
   function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
@@ -684,29 +476,26 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckList = ref<Array<{ dno: number; name: string }>>([]);
   const lastUsedDno = ref<number | null>(null);
   
-  // Search and UI state
-  const searchQuery = ref('');
-  const searchResults = ref<Array<{ card: CardInfo }>>([]);
+  // UI state only (search state moved to search.ts)
 
   // no debug watcher
 
   // 画面幅に応じて初期タブを設定（狭い画面ではdeck、広い画面ではmetadata）
+  // ただし、URLにactiveTabがある場合はそれを優先
   const isMobile = window.innerWidth <= 768;
-  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(isMobile ? 'deck' : 'metadata');
+  const initialActiveTab = (() => {
+    const uiState = URLStateManager.restoreUIStateFromURL();
+    if (uiState.activeTab) return uiState.activeTab;
+    return isMobile ? 'deck' : 'metadata';
+  })();
+  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(initialActiveTab);
 
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
   const cardTab = ref<'info' | 'qa' | 'related' | 'products'>('info');
 
-  // Search loading state
+  // Sort order (UI state, not search state)
   const sortOrder = ref<string>('release_desc');
-  const isLoading = ref(false);
-  const allResults = ref<CardInfo[]>([]);
-  const currentPage = ref(0);
-  const hasMore = ref(false);
-
-  // グローバル検索モード（検索入力欄を画面中央に大きく表示）
-  const isGlobalSearchMode = ref(false);
   
   // オーバーレイ表示状態（z-index統一管理）
   const overlayVisible = ref(false);
@@ -719,6 +508,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const showLoadDialog = ref(false);
   const showDeleteConfirm = ref(false);
   const showUnsavedChangesDialog = ref(false);
+  const isFilterDialogVisible = ref(false);
   
   // Load時点でのデッキ情報を保存（変更検知用）
   const savedDeckSnapshot = ref<string | null>(null);
@@ -860,7 +650,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     return { success: true };
   }
 
-  function reorderCard(sourceUuid: string, targetUuid: string, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
+  function reorderCard(sourceUuid: string, targetUuid: string | null, section: 'main' | 'extra' | 'side' | 'trash'): { success: boolean; error?: string } {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
@@ -882,101 +672,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
     
     return result;
-  }
-  
-  // UUIDをキーにして全カード位置を記録
-  function recordAllCardPositionsByUUID(): Map<string, DOMRect> {
-    const positions = new Map<string, DOMRect>();
-    const sections: Array<'main' | 'extra' | 'side' | 'trash'> = ['main', 'extra', 'side', 'trash'];
-    
-    sections.forEach(section => {
-      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) return;
-      
-      const cards = sectionElement.querySelectorAll('.deck-card');
-      cards.forEach((card) => {
-        const uuid = (card as HTMLElement).getAttribute('data-uuid');
-        if (uuid) {
-          positions.set(uuid, card.getBoundingClientRect());
-        }
-      });
-    });
-    
-    return positions;
-  }
-  
-  // UUIDベースでアニメーション実行
-  function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
-    const allCards: Array<{ element: HTMLElement; distance: number }> = [];
-
-    affectedSections.forEach(section => {
-      const sectionElement = document.querySelector(`.${section}-deck .card-grid`);
-      if (!sectionElement) return;
-
-      const cards = sectionElement.querySelectorAll('.deck-card');
-
-      cards.forEach((card) => {
-        const cardElement = card as HTMLElement;
-        const uuid = cardElement.getAttribute('data-uuid');
-        if (!uuid) return;
-
-        const first = firstPositions.get(uuid);
-        const last = cardElement.getBoundingClientRect();
-
-        if (first && last) {
-          const deltaX = first.left - last.left;
-          const deltaY = first.top - last.top;
-
-          // 1ピクセル未満の移動は誤差として無視
-          if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
-
-          // 移動距離を計算（横方向の移動を重視）
-          // 横方向は視覚的に目立ちにくいため、係数を大きくする
-          const weightedDeltaX = deltaX * 1.5;
-          const distance = Math.sqrt(weightedDeltaX * weightedDeltaX + deltaY * deltaY);
-
-          cardElement.style.transition = 'none';
-          cardElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-          cardElement.style.zIndex = '1000';
-          allCards.push({ element: cardElement, distance });
-        }
-      });
-    });
-
-    if (allCards.length === 0) return;
-
-    document.body.getBoundingClientRect();
-
-    requestAnimationFrame(() => {
-      allCards.forEach(({ element, distance }) => {
-        // 移動距離に応じてアニメーション時間を調整（平方根で非線形）
-        // シャッフル/ソートと統一するため、基本を300msに設定
-        // 最小300ms、最大600ms
-        const baseDuration = 300;
-        const maxDuration = 600;
-        const distanceFactor = Math.sqrt(distance) * 12; // 調整係数
-        const duration = Math.min(maxDuration, baseDuration + distanceFactor);
-
-        element.style.transition = `transform ${duration}ms ease`;
-        element.style.transform = '';
-      });
-    });
-
-    // 最大のdurationを取得してタイムアウトに使用
-    const maxDuration = Math.max(...allCards.map(({ distance }) => {
-      const baseDuration = 300;
-      const maxDuration = 600;
-      const distanceFactor = Math.sqrt(distance) * 12;
-      return Math.min(maxDuration, baseDuration + distanceFactor);
-    }));
-
-    setTimeout(() => {
-      allCards.forEach(({ element }) => {
-        element.style.transition = '';
-        element.style.transform = '';
-        element.style.zIndex = '';
-      });
-    }, maxDuration);
   }
 
   function moveCardToTrash(card: CardInfo, from: 'main' | 'extra' | 'side', uuid?: string): { success: boolean; error?: string } {
@@ -1062,11 +757,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('[moveCardWithPosition] sourceCard not found!');
       return { success: false, error: 'カードが見つかりません' };
     }
-    
+
+    // 削除前にインデックスを記録（undo用）
+    const originalSourceIndex = fromOrder.indexOf(sourceCard);
+    if (originalSourceIndex === -1) {
+      console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
+      return { success: false, error: 'カードの位置が見つかりません' };
+    }
+
     const tempCardDB = getTempCardDB();
     const cardInfo = tempCardDB.get(cardId);
     if (!cardInfo) return { success: false, error: 'カード情報が見つかりません' };
-    
+
     removeFromDisplayOrderInternal(cardId, from, sourceUuid, cardInfo.ciid);
 
     // 2. 移動先の指定位置に追加（内部処理のみ、コマンドは全体で1つ）
@@ -1088,7 +790,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // displayOrder更新（targetUuidの位置に挿入）
     const ciid = parseInt(String(cardInfo.ciid));
     const newDisplayCard = {
-      uuid: generateUUID(cardId, ciid),
+      uuid: generateDeckCardUUID(cardId, ciid),
       cid: cardId,
       ciid: ciid
     };
@@ -1113,11 +815,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // ドラッグ移動全体を1つのコマンドとして記録
     const insertedUuid = newDisplayCard.uuid;
-    const originalSourceIndex = fromOrder.indexOf(sourceCard);
-    if (originalSourceIndex === -1) {
-      console.error('[moveCardWithPosition] sourceCard not found in fromOrder! sourceUuid:', sourceUuid);
-      return { success: false, error: 'カードの位置が見つかりません' };
-    }
 
     const command: Command = {
       execute: () => {
@@ -1137,7 +834,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         }
         
         const toOrder2 = displayOrder.value[to];
-        const newCard = { uuid: generateUUID(cardId, ciid), cid: cardId, ciid: ciid };
+        const newCard = { uuid: generateDeckCardUUID(cardId, ciid), cid: cardId, ciid: ciid };
         if (targetUuid === null) {
           toOrder2.push(newCard);
         } else {
@@ -1198,68 +895,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function saveDeck(dno: number) {
-    try {
-      deckInfo.value.dno = dno;
-
-      // 保存用のデータを作成（deckInfo自体は変更しない）
-      const dataToSave = {
-        ...deckInfo.value,
-        name: deckInfo.value.name || deckInfo.value.originalName || ''
-      };
-
-      const result = await sessionManager.saveDeck(dno, dataToSave);
-
-      if (result.success) {
-        // 保存成功時にスナップショットを更新
-        savedDeckSnapshot.value = captureDeckSnapshot();
-      }
-
-      return result;
-    } catch (error) {
-      console.error('Failed to save deck:', error);
-      return { success: false, error: String(error) };
-    }
+    // useDeckPersistence composable に処理を委譲
+    return getPersistence().saveDeck(dno);
   }
 
   function captureDeckSnapshot(): string {
-    return JSON.stringify({
-      dno: deckInfo.value.dno,
-      name: deckInfo.value.name,
-      mainDeck: deckInfo.value.mainDeck,
-      extraDeck: deckInfo.value.extraDeck,
-      sideDeck: deckInfo.value.sideDeck,
-      category: deckInfo.value.category,
-      tags: deckInfo.value.tags,
-      comment: deckInfo.value.comment,
-      skippedCards: deckInfo.value.skippedCards
-    });
-  }
-
-  /**
-   * ソート順を除外したデッキスナップショットを作成
-   * カード配列をcid+ciidでソートして、順序の影響を除外
-   */
-  function captureDeckSnapshotWithoutOrder(): string {
-    // カード配列をソートする補助関数
-    const sortCards = (cards: DeckCardRef[]) => {
-      return [...cards].sort((a, b) => {
-        const cidDiff = Number(a.cid) - Number(b.cid);
-        if (cidDiff !== 0) return cidDiff;
-        return Number(a.ciid) - Number(b.ciid);
-      });
-    };
-
-    return JSON.stringify({
-      dno: deckInfo.value.dno,
-      name: deckInfo.value.name,
-      mainDeck: sortCards(deckInfo.value.mainDeck),
-      extraDeck: sortCards(deckInfo.value.extraDeck),
-      sideDeck: sortCards(deckInfo.value.sideDeck),
-      category: deckInfo.value.category,
-      tags: deckInfo.value.tags,
-      comment: deckInfo.value.comment,
-      skippedCards: deckInfo.value.skippedCards
-    });
+    return captureDeckSnapshotLogic(deckInfo.value);
   }
 
   /**
@@ -1268,50 +909,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   function hasOnlySortOrderChanges(): boolean {
     if (!savedDeckSnapshot.value) return false;
-
-    // スナップショット全体が一致していれば変更なし
     const currentSnapshot = captureDeckSnapshot();
-    if (savedDeckSnapshot.value === currentSnapshot) {
-      return false;
-    }
-
-    // ソート順を除外したスナップショットを比較
-    // これが一致していれば、ソート順のみの変更
-    const savedSnapshotObj = JSON.parse(savedDeckSnapshot.value);
-    const currentSnapshotObj = JSON.parse(currentSnapshot);
-    const sortCards = (cards: DeckCardRef[]) => {
-      return [...cards].sort((a, b) => {
-        const cidDiff = Number(a.cid) - Number(b.cid);
-        if (cidDiff !== 0) return cidDiff;
-        return Number(a.ciid) - Number(b.ciid);
-      });
-    };
-
-    const savedNormalized = JSON.stringify({
-      ...savedSnapshotObj,
-      mainDeck: sortCards(savedSnapshotObj.mainDeck),
-      extraDeck: sortCards(savedSnapshotObj.extraDeck),
-      sideDeck: sortCards(savedSnapshotObj.sideDeck)
-    });
-
-    const currentNormalized = captureDeckSnapshotWithoutOrder();
-
-    // ソート順のみの変更か、ソート順 + 未発売カード削除のみの変更かをチェック
-    if (savedNormalized === currentNormalized) {
-      // ソート順のみの変更
-      return true;
-    }
-
-    // 未発売カード削除のみが異なる場合もチェック
-    const savedWithoutSkipped = JSON.stringify({
-      ...savedSnapshotObj,
-      mainDeck: sortCards(savedSnapshotObj.mainDeck),
-      extraDeck: sortCards(savedSnapshotObj.extraDeck),
-      sideDeck: sortCards(savedSnapshotObj.sideDeck),
-      skippedCards: currentSnapshotObj.skippedCards
-    });
-
-    return savedWithoutSkipped === currentNormalized;
+    return hasOnlySortOrderChangesLogic(savedDeckSnapshot.value, currentSnapshot);
   }
 
   function hasUnsavedChanges(): boolean {
@@ -1320,78 +919,23 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function loadDeck(dno: number) {
+    // useDeckPersistence composable に処理を委譲
+    return getPersistence().loadDeck(dno);
+  }
+
+  /**
+   * デッキ情報を取得（IDから直接取得、キャッシュなし）
+   * @param dno - デッキ番号
+   * @returns デッキ情報、取得失敗時は null
+   */
+  async function getDeckDetail(dno: number): Promise<DeckInfo | null> {
     try {
       const cgid = await sessionManager.getCgid();
-      const loadedDeck = await getDeckDetail(dno, cgid);
-
-      if (loadedDeck) {
-        // originalNameを保存してからdeckInfoを更新
-        deckInfo.value = {
-          ...loadedDeck,
-          originalName: loadedDeck.name,
-          name: '' // デッキ名を空にする
-        };
-
-        // URLにdnoを同期
-        URLStateManager.setDno(dno);
-
-        // displayOrderを初期化
-        initializeDisplayOrder();
-
-        // ロード時はアニメーション不要（新規表示のため）
-
-        lastUsedDno.value = dno;
-        localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
-
-        // デッキオープンを記録（Tier 5管理用）
-        const allCardIds = [
-          ...loadedDeck.mainDeck.map(card => card.cid),
-          ...loadedDeck.extraDeck.map(card => card.cid),
-          ...loadedDeck.sideDeck.map(card => card.cid)
-        ];
-        recordDeckOpen(dno, allCardIds);
-
-        // TempCardDBをChrome Storageに保存（非同期で実行）
-        saveTempCardDBToStorage().catch(error => {
-          console.error('Failed to save TempCardDB to storage:', error);
-        });
-
-        // コマンド履歴をリセット
-        commandHistory.value = [];
-        commandIndex.value = -1;
-
-        // Load時点のスナップショットを保存
-        savedDeckSnapshot.value = captureDeckSnapshot();
-
-        // 未発売カード通知を表示（skippedCards があれば）
-        if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
-          const skippedCards = loadedDeck.skippedCards || [];
-          const toastStore = useToastStore();
-
-          // 最大3枚までのカード名を表示（改行で区切る）
-          const bodyLines: string[] = [];
-          if (skippedCards.length > 0) {
-            const displayCards = skippedCards.slice(0, 3);
-            displayCards.forEach((card: any) => {
-              bodyLines.push(card.name);
-            });
-
-            const remainCount = skippedCards.length - displayCards.length;
-            if (remainCount > 0) {
-              bodyLines.push(`ほか${remainCount}枚`);
-            }
-          }
-
-          toastStore.showToast(
-            `${loadedDeck.skippedCardsCount}枚の未発売カードをスキップしました`,
-            'warning',
-            bodyLines.join('\n')
-          );
-        }
-      }
+      const deckDetail = await getDeckDetailAPI(dno, cgid);
+      return deckDetail;
     } catch (error) {
-      console.error('Failed to load deck:', error);
-      throw error;
+      console.error('Failed to fetch deck detail:', error);
+      return null;
     }
   }
   
@@ -1405,100 +949,101 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function fetchDeckList() {
     try {
-      const list = await sessionManager.getDeckList();
-      deckList.value = list.map(item => ({
+      let list: any[] | null = null;
+
+      // Background で事前取得済みのデッキリストを確認
+      try {
+        const { getFromStorageLocal } = await import('../utils/chrome-storage-utils');
+        const preloadedData = await getFromStorageLocal('ygo-deck-list-preload');
+
+        if (preloadedData && typeof preloadedData === 'string') {
+          const parsed = JSON.parse(preloadedData);
+          if (Array.isArray(parsed.deckList) && parsed.deckList.length > 0) {
+            list = parsed.deckList;
+          }
+        }
+      } catch (err) {
+        console.warn('[fetchDeckList] Failed to load preloaded deck list:', err);
+      }
+
+      // プリロードがない場合は API から取得
+      if (!list) {
+        list = await sessionManager.getDeckList();
+      }
+
+      // 変換して deckList に代入
+      const transformed = list.map(item => ({
         dno: item.dno,
         name: item.name
       }));
-      return deckList.value;
+
+      deckList.value = transformed;
+      return transformed;
     } catch (error) {
-      console.error('Failed to fetch deck list:', error);
+      console.error('[fetchDeckList] ERROR:', error);
+      deckList.value = [];
       return [];
     }
   }
 
-  async function initializeOnPageLoad() {
-    try {
-      // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
-      await initTempCardDBFromStorage();
-
-      // 設定ストアを初期化
-      await settingsStore.loadSettings();
-
-      // URLからUI状態を復元
-      const uiState = URLStateManager.restoreUIStateFromURL();
-      if (uiState.viewMode) viewMode.value = uiState.viewMode;
-      if (uiState.sortOrder) sortOrder.value = uiState.sortOrder;
-      if (uiState.activeTab) activeTab.value = uiState.activeTab;
-      if (uiState.cardTab) cardTab.value = uiState.cardTab;
-      if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
-
-      // URLから設定を復元（URLパラメータが設定ストアより優先）
-      const urlSettings = URLStateManager.restoreSettingsFromURL();
-      // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
-      // if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
-      if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
-      if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
-
-      // 設定をDOMに適用
-      settingsStore.applyTheme();
-      settingsStore.applyCardSize();
-
-      // デッキ一覧を取得
-      const list = await fetchDeckList();
-
-      if (list.length === 0) {
-        // デッキがない場合は何もしない
-        return;
-      }
-
-      // URLパラメータからdnoを取得（URLStateManagerを使用）
-      const urlDno = URLStateManager.getDno();
-
-      if (urlDno !== null) {
-        // URLで指定されたdnoが一覧に存在するか確認
-        const exists = list.some(item => item.dno === urlDno);
-        if (exists) {
-          try {
-            await loadDeck(urlDno);
-            return;
-          } catch (error) {
-            console.error(`Failed to load deck with dno=${urlDno}, falling back to default:`, error);
-            // ロード失敗時は通常処理に続く
-          }
-        }
-      }
-
-      // URLパラメータがない、または失敗した場合、前回使用したdnoを取得
-      const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
-      if (savedDno) {
-        const dno = parseInt(savedDno, 10);
-        // 前回使用したdnoが一覧に存在するか確認
-        const exists = list.some(item => item.dno === dno);
-        if (exists) {
-          await loadDeck(dno);
-          return;
-        }
-      }
-
-      // 前回使用したdnoがない、または存在しない場合、最大のdnoをload
-      const maxDno = Math.max(...list.map(item => item.dno));
-      await loadDeck(maxDno);
-    } catch (error) {
-      console.error('Failed to initialize deck on page load:', error);
-    }
-  }
-
   /**
-   * Fisher-Yatesアルゴリズムで配列をシャッフル
+   * ページ読み込み時の初期化（非同期処理）
+   * 画面表示に必須なloadDeck()のPromiseのみを返し、他の初期化は非同期で実行
    */
-  function fisherYatesShuffle<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
+  function initializeOnPageLoad(): Promise<void> {
+    // 非同期で実行（await しない）
+    (async () => {
+      try {
+        // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
+        await initTempCardDBFromStorage();
+
+        // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
+        const unifiedDB = getUnifiedCacheDB();
+        await unifiedDB.initialize();
+
+        // 設定ストアを初期化
+        await settingsStore.loadSettings();
+
+        // URLからUI状態を復元（activeTabは既に初期化時に設定済み）
+        const uiState = URLStateManager.restoreUIStateFromURL();
+        if (uiState.viewMode) viewMode.value = uiState.viewMode;
+        // sortOrderは常にデフォルト値（release_desc）を使用（Search tab のデフォルトソート順序）
+        sortOrder.value = 'release_desc';
+        // activeTabは初期化時に設定済みなのでスキップ
+        if (uiState.cardTab) cardTab.value = uiState.cardTab;
+        if (uiState.showDetail !== undefined) showDetail.value = uiState.showDetail;
+
+        // URLから設定を復元（URLパラメータが設定ストアより優先）
+        const urlSettings = URLStateManager.restoreSettingsFromURL();
+        // TODO: カードサイズが4箇所に分割されたため、URL復元は将来対応
+        // if (urlSettings.size) settingsStore.setCardSize(urlSettings.size);
+        if (urlSettings.theme) settingsStore.setTheme(urlSettings.theme);
+        if (urlSettings.lang) settingsStore.setLanguage(urlSettings.lang);
+
+        // 設定をDOMに適用
+        settingsStore.applyTheme();
+        settingsStore.applyCardSize();
+
+        // デッキリストを取得（非同期、画面表示に影響しない）
+        const list = await fetchDeckList();
+        deckList.value = list;
+      } catch (error) {
+        console.error('Failed to initialize settings/deck list:', error);
+      }
+    })();
+
+    // URLパラメータからdnoを取得（URLStateManagerを使用）
+    const urlDno = URLStateManager.getDno();
+    const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
+    const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
+
+    // loadDeck()のPromiseだけを返す（画面表示に必須）
+    if (targetDno !== null) {
+      return loadDeck(targetDno);
+    } else {
+      // targetDnoがない場合は何もロードしない（fetchDeckListは非同期で実行中）
+      return Promise.resolve();
     }
-    return shuffled;
   }
 
   /**
@@ -1565,67 +1110,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
     const firstPositions = recordAllCardPositionsByUUID();
 
-    // (cid, ciid)ペアからカード情報を取得するヘルパー関数
-    const tempCardDB = getTempCardDB();
-    const getCardInfo = (cid: string, _ciid: number) => {
-      return tempCardDB.get(cid) || null;
-    };
-
-    // ソート優先順位
-    const sorted = [...section].sort((a, b) => {
-      const cardA = getCardInfo(a.cid, a.ciid);
-      const cardB = getCardInfo(b.cid, b.ciid);
-      if (!cardA || !cardB) return 0;
-
-      // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
-      const typeOrder = { monster: 0, spell: 1, trap: 2 };
-      const typeA = typeOrder[cardA.cardType] ?? 999;
-      const typeB = typeOrder[cardB.cardType] ?? 999;
-      if (typeA !== typeB) return typeA - typeB;
-
-      // 2. Monster Type: Fusion > Synchro > Xyz > Link > その他
-      if (cardA.cardType === 'monster' && cardB.cardType === 'monster') {
-        const monsterTypeOrder: Partial<Record<MonsterType, number>> = {
-          fusion: 0,
-          synchro: 1,
-          xyz: 2,
-          link: 3
-        };
-        // types配列から主要なタイプを抽出
-        const getMainType = (types: MonsterType[]) => {
-          for (const type of types) {
-            const order = monsterTypeOrder[type];
-            if (order !== undefined) {
-              return order;
-            }
-          }
-          return 999;
-        };
-        const monsterTypeA = getMainType(cardA.types);
-        const monsterTypeB = getMainType(cardB.types);
-        if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
-
-        // 4. Level/Rank/Link（降順）
-        const levelA = cardA.levelValue ?? 0;
-        const levelB = cardB.levelValue ?? 0;
-        if (levelA !== levelB) return levelB - levelA; // 降順
-      }
-
-      // 3. Spell Type / Trap Type
-      if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
-        const spellTypeA = cardA.effectType ?? '';
-        const spellTypeB = cardB.effectType ?? '';
-        if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
-      }
-      if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
-        const trapTypeA = cardA.effectType ?? '';
-        const trapTypeB = cardB.effectType ?? '';
-        if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
-      }
-
-      // 5. Card Name（昇順）
-      return cardA.name.localeCompare(cardB.name, 'ja');
+    // ソート設定を準備
+    const settingsStore = useSettingsStore();
+    const comparator = createDeckCardComparator(section, {
+      enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority ?? true,
+      priorityCategoryCardIds: categoryMatchedCardIds.value,
+      enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
+      tailPlacementCardIds: settingsStore.tailPlacementCardIds
     });
+
+    // ソート実行
+    const sorted = [...section].sort(comparator);
 
     displayOrder.value[sectionType] = sorted;
 
@@ -1673,44 +1168,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     sortSection('side');
   }
 
-  function pushCommand(command: Command) {
-    // 現在の位置より後ろのコマンドを削除
-    if (commandIndex.value < commandHistory.value.length - 1) {
-      commandHistory.value.splice(commandIndex.value + 1);
-    }
-
-    // 新しいコマンドを追加
-    commandHistory.value.push(command);
-    commandIndex.value = commandHistory.value.length - 1;
-
-    // 履歴の上限を超えたら古い履歴を削除（メモリ使用量を制限）
-    if (commandHistory.value.length > MAX_COMMAND_HISTORY) {
-      const deleteCount = commandHistory.value.length - MAX_COMMAND_HISTORY;
-      commandHistory.value.splice(0, deleteCount);
-      commandIndex.value -= deleteCount;
-      console.debug(`[DeckEditStore] Trimmed ${deleteCount} commands, history size now ${commandHistory.value.length}`);
-    }
-  }
-
-  function undo() {
-    if (!canUndo.value) return;
-
-    const command = commandHistory.value[commandIndex.value];
-    if (command) {
-      command.undo();
-    }
-    commandIndex.value--;
-  }
-
-  function redo() {
-    if (!canRedo.value) return;
-
-    commandIndex.value++;
-    const command = commandHistory.value[commandIndex.value];
-    if (command) {
-      command.execute();
-    }
-  }
+  // undo/redo関数はcomposableから取得（undoCommand/redoCommand）
+  // 外部公開用にエイリアスを提供
+  const undo = undoCommand;
+  const redo = redoCommand;
 
   async function createNewDeck() {
     try {
@@ -1816,23 +1277,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   return {
     deckInfo,
     trashDeck,
+    categoryLabelMap,
     displayOrder,
     limitErrorCardId,
     draggingCard,
     deckList,
     lastUsedDno,
-    searchQuery,
-    searchResults,
     activeTab,
     showDetail,
     viewMode,
     cardTab,
     sortOrder,
-    isLoading,
-    allResults,
-    currentPage,
-    hasMore,
-    isGlobalSearchMode,
     overlayVisible,
     overlayZIndex,
     showExportDialog,
@@ -1841,8 +1296,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showLoadDialog,
     showDeleteConfirm,
     showUnsavedChangesDialog,
+    isFilterDialogVisible,
+    commandHistory,
+    commandIndex,
     canUndo,
     canRedo,
+    categoryMatchedCardIds,
     canMoveCard,
     addCard,
     removeCard,
@@ -1863,6 +1322,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     setDeckName,
     saveDeck,
     loadDeck,
+    getDeckDetail,
     reloadDeck,
     fetchDeckList,
     initializeOnPageLoad,

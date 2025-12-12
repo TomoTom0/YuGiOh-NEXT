@@ -1,3 +1,86 @@
+<!--
+/**
+ * CardList - カードリスト表示コンポーネント
+ *
+ * カード検索結果やデッキ内カードのリスト表示を行うコンポーネント。
+ * 多様なソート機能、リスト/グリッド切り替え、カード詳細表示などの機能を持つ。
+ *
+ * @component
+ * @version v0.4.0
+ *
+ * ## 主要機能
+ *
+ * ### 1. 表示モード切り替え
+ * - **リスト表示**: カード詳細情報を含む縦一覧表示
+ * - **グリッド表示**: カード画像のみの格子状表示
+ *
+ * ### 2. ソート機能
+ *
+ * #### ソートキー（sortBase）
+ * - **release**: 発売日順（デフォルト）
+ * - **name**: カード名順（五十音順）
+ * - **atk**: ATK順（モンスターのみ）
+ * - **def**: DEF順（モンスターのみ）
+ * - **level**: レベル/ランク/リンク順
+ * - **attribute**: 属性順
+ * - **race**: 種族順
+ * - **code**: コード順（マイデッキ検索時のみ表示）
+ *
+ * #### ソート方向（sortDirection）
+ * - **asc**: 昇順（発売日: 古い→新しい、名前: あ→ん、ATK: 低い→高い）
+ * - **desc**: 降順（発売日: 新しい→古い、名前: ん→あ、ATK: 高い→低い）
+ *
+ * #### ソートロジック
+ * ```
+ * 1. カードタイプ優先（Monster > Spell > Trap）
+ * 2. 選択されたソートキーで比較
+ * 3. 同値の場合はカード名で比較（五十音順）
+ * ```
+ *
+ * #### ソート順序の保存
+ * - `settings.appSettings.sortOrder` にソートキーを保存
+ * - `settings.appSettings.sortDirection` にソート方向を保存
+ * - ページリロード時も設定を維持
+ *
+ * ### 3. フィルタリング
+ * - `FILTER_OPTIONS` による表示フィルター（カテゴリ、種族、属性、レベル等）
+ * - フィルターチップ表示と個別削除
+ * - 一括クリア機能
+ *
+ * ### 4. カード詳細表示
+ * - カードクリックで詳細情報を表示
+ * - ATK/DEF、レベル/ランク/リンク、属性、種族、モンスタータイプ等の表示
+ * - リスト表示時はカードテキストも表示
+ *
+ * ### 5. その他の機能
+ * - カード数表示（`{{ cards.length }}`）
+ * - スクロールトップボタン
+ * - 縮小ボタン（検索結果エリアを閉じる）
+ *
+ * ## Props
+ * - `cards` (Array): 表示するカード配列（必須）
+ * - `loading` (Boolean): ローディング状態（デフォルト: false）
+ * - `viewMode` (String): 表示モード（'list' または 'grid'、デフォルト: 'list'）
+ * - `showCollapseButton` (Boolean): 縮小ボタン表示（デフォルト: false）
+ * - `showCodeSort` (Boolean): コード順ソート表示（マイデッキ検索時: true）
+ *
+ * ## Events
+ * - `collapse`: 縮小ボタンクリック時
+ * - `scroll-to-top`: スクロールトップボタンクリック時
+ * - `update:viewMode`: 表示モード変更時
+ *
+ * ## 関連ユーティリティ
+ * - `src/utils/label-utils.ts`: ラベル変換関数（getAttributeLabel, getRaceLabel 等）
+ * - `src/stores/settings.ts`: ソート設定の永続化
+ *
+ * ## 実装履歴
+ * - v0.4.0: ソート機能の集約と共通化
+ * - v0.4.0: label-utils.ts からラベル変換関数をインポート（コード重複削減）
+ *
+ * @see src/utils/label-utils.ts
+ * @see src/stores/settings.ts
+ */
+-->
 <template>
   <div class="card-list-wrapper">
     <button
@@ -198,9 +281,20 @@ export default {
         // reflow強制
         textElement.offsetHeight
 
-        // CSS変数の値に戻す
-        textElement.style.maxHeight = null
+        // 制限された高さに設定（CSS変数から計算）
+        const computedStyle = getComputedStyle(textElement)
+        const cardHeight = parseInt(computedStyle.getPropertyValue('--card-height-list') || '200', 10)
+        const restrictedHeight = cardHeight - 51 // カード高さ - 名前(15px) - stats(26px) - margins(10px)
+        textElement.style.maxHeight = `${restrictedHeight}px`
+
         expandedCards.delete(uuid)
+
+        // transition終了後にインラインスタイルをクリア
+        const onTransitionEnd = () => {
+          textElement.style.maxHeight = null
+          textElement.removeEventListener('transitionend', onTransitionEnd)
+        }
+        textElement.addEventListener('transitionend', onTransitionEnd)
       } else {
         // 展開: まず状態を更新
         expandedCards.add(uuid)
@@ -235,6 +329,34 @@ export default {
       const sorted = [...cards]
       const getCid = (card) => parseInt(card.cardId, 10) || 0
 
+      // モンスターのプロパティに基づいてソートするヘルパー関数
+      // undefinedなプロパティは末尾に配置される
+      const createMonsterPropertySorter = (compareFn, undefinedCheckFn) => {
+        return (a, b) => {
+          // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
+          const typeOrder = { monster: 0, spell: 1, trap: 2 }
+          const typeA = typeOrder[a.cardType] ?? 999
+          const typeB = typeOrder[b.cardType] ?? 999
+          if (typeA !== typeB) return typeA - typeB
+
+          // モンスター同士の場合は compareFn を使用してプロパティを比較
+          if (typeA === 0 && typeB === 0) {
+            // undefined チェック: undefinedなら末尾に配置
+            const aUndefined = undefinedCheckFn(a)
+            const bUndefined = undefinedCheckFn(b)
+            if (aUndefined && !bUndefined) return 1  // a が末尾
+            if (!aUndefined && bUndefined) return -1 // b が末尾
+            if (aUndefined && bUndefined) return getCid(a) - getCid(b) // 両方 undefined なら CID順
+
+            const cmp = compareFn(a, b)
+            return cmp !== 0 ? cmp : getCid(a) - getCid(b)
+          }
+
+          // 魔法・罠はCID順
+          return getCid(a) - getCid(b)
+        }
+      }
+
       switch (sortOrder) {
         case 'release_desc':
           return sorted.sort((a, b) => getCid(b) - getCid(a))
@@ -245,37 +367,25 @@ export default {
         case 'name_desc':
           return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
         case 'atk_desc':
-          return sorted.sort((a, b) => (b.atk ?? -1) - (a.atk ?? -1))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.atk ?? -1) - (a.atk ?? -1), (card) => card.atk === undefined))
         case 'atk_asc':
-          return sorted.sort((a, b) => (a.atk ?? -1) - (b.atk ?? -1))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.atk ?? -1) - (b.atk ?? -1), (card) => card.atk === undefined))
         case 'def_desc':
-          return sorted.sort((a, b) => (b.def ?? -1) - (a.def ?? -1))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.def ?? -1) - (a.def ?? -1), (card) => card.def === undefined))
         case 'def_asc':
-          return sorted.sort((a, b) => (a.def ?? -1) - (b.def ?? -1))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.def ?? -1) - (b.def ?? -1), (card) => card.def === undefined))
         case 'level_desc':
-          return sorted.sort((a, b) => (b.levelValue || 0) - (a.levelValue || 0))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.levelValue ?? 0) - (a.levelValue ?? 0), (card) => card.levelValue === undefined))
         case 'level_asc':
-          return sorted.sort((a, b) => (a.levelValue || 0) - (b.levelValue || 0))
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.levelValue ?? 0) - (b.levelValue ?? 0), (card) => card.levelValue === undefined))
         case 'attribute_asc':
-          return sorted.sort((a, b) => {
-            const cmp = (a.attribute || '').localeCompare(b.attribute || '')
-            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.attribute || '').localeCompare(b.attribute || ''), (card) => card.attribute === undefined))
         case 'attribute_desc':
-          return sorted.sort((a, b) => {
-            const cmp = (b.attribute || '').localeCompare(a.attribute || '')
-            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.attribute || '').localeCompare(a.attribute || ''), (card) => card.attribute === undefined))
         case 'race_asc':
-          return sorted.sort((a, b) => {
-            const cmp = (a.race || '').localeCompare(b.race || '')
-            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (a.race || '').localeCompare(b.race || ''), (card) => card.race === undefined))
         case 'race_desc':
-          return sorted.sort((a, b) => {
-            const cmp = (b.race || '').localeCompare(a.race || '')
-            return cmp !== 0 ? cmp : getCid(b) - getCid(a)
-          })
+          return sorted.sort(createMonsterPropertySorter((a, b) => (b.race || '').localeCompare(a.race || ''), (card) => card.race === undefined))
         case 'code_asc':
           // コード順（昇順）: 元の配列順序をそのまま使用
           return sorted
@@ -307,6 +417,11 @@ export default {
           uuid
         }
       })
+    })
+
+    // カード配列が変更されたらmaxIndexMapをクリア
+    watch(() => props.cards, () => {
+      maxIndexMap.clear()
     })
 
     watch(() => props.sortOrder, (val) => {

@@ -7,6 +7,7 @@
 import type { ForbiddenLimitedList, LimitRegulation } from '../types/card';
 import { getForbiddenLimitedEndpoint } from '../utils/url-builder';
 import { detectCardGameType } from '../utils/page-detector';
+import { safeQueryAs, isHTMLInputElement, isHTMLOptionElement } from '../utils/type-guards';
 
 /**
  * 禁止制限ページのHTMLから制限情報を抽出する
@@ -62,8 +63,8 @@ function extractCardsFromSection(
 
   for (const row of cardRows) {
     // カード詳細ページへのリンクからcidを抽出
-    const linkInput = row.querySelector('input.link_value') as HTMLInputElement;
-    if (!linkInput || !linkInput.value) {
+    const linkInput = safeQueryAs('input.link_value', isHTMLInputElement, row);
+    if (!linkInput?.value) {
       continue;
     }
 
@@ -119,8 +120,8 @@ function extractEffectiveDateFromHtml(html: string): string {
   const doc = parser.parseFromString(html, 'text/html');
 
   // selectタグから選択されているoptionを探す
-  const selectedOption = doc.querySelector('select option[selected]') as HTMLOptionElement;
-  if (selectedOption && selectedOption.value) {
+  const selectedOption = safeQueryAs('select option[selected]', isHTMLOptionElement, doc);
+  if (selectedOption?.value) {
     return selectedOption.value;
   }
 

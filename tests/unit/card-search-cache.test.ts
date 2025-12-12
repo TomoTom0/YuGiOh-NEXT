@@ -1,7 +1,7 @@
 /**
  * カード検索・キャッシュ機能のテスト
- * - parseSearchResults()のTempCardDB自動保存
- * - saveCardDetailToCache()のTempCardDB自動保存
+ * - parseSearchResults()のカード情報パース
+ * - saveCardDetailToCache()のUnifiedCacheDB保存
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -16,7 +16,7 @@ import type { CardDetail } from '@/types/card';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-describe('parseSearchResults - TempCardDB自動保存', () => {
+describe('parseSearchResults - カード情報パース', () => {
   let mockStorage: Record<string, any>;
 
   beforeEach(() => {
@@ -66,7 +66,7 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
     resetUnifiedCacheDB();
   });
 
-  it('検索結果のカードがTempCardDBに保存される', () => {
+  it('検索結果のカードを正しくパースできる', () => {
     const htmlPath = path.join(__dirname, '../combine/data/card-search-result.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -74,21 +74,24 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     const cards = parseSearchResults(doc);
 
     expect(cards.length).toBeGreaterThan(0);
 
-    const tempCardDB = getTempCardDB();
+    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
+    // 保存は呼び出し側（CardList.vueなど）で行う
     const firstCard = cards[0];
-    const savedCard = tempCardDB.get(firstCard!.cardId);
-
-    expect(savedCard).toBeDefined();
-    expect(savedCard?.cardId).toBe(firstCard!.cardId);
-    expect(savedCard?.name).toBe(firstCard!.name);
+    expect(firstCard).toBeDefined();
+    expect(firstCard!.cardId).toBeDefined();
+    expect(firstCard!.name).toBeDefined();
   });
 
-  it('複数のカードが全てTempCardDBに保存される', () => {
+  it('複数のカードを正しくパースできる', () => {
     const htmlPath = path.join(__dirname, '../combine/data/card-search-result.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
@@ -96,22 +99,25 @@ describe('parseSearchResults - TempCardDB自動保存', () => {
       url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
     });
     const doc = dom.window.document as unknown as Document;
+    global.document = doc as any;
+    global.HTMLInputElement = dom.window.HTMLInputElement as any;
+    global.HTMLImageElement = dom.window.HTMLImageElement as any;
+    global.HTMLElement = dom.window.HTMLElement as any;
 
     const cards = parseSearchResults(doc);
 
     expect(cards.length).toBeGreaterThan(1);
 
-    const tempCardDB = getTempCardDB();
-
+    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
     for (const card of cards) {
-      const savedCard = tempCardDB.get(card.cardId);
-      expect(savedCard).toBeDefined();
-      expect(savedCard?.cardId).toBe(card.cardId);
+      expect(card).toBeDefined();
+      expect(card.cardId).toBeDefined();
+      expect(card.name).toBeDefined();
     }
   });
 });
 
-describe('saveCardDetailToCache - TempCardDB自動保存', () => {
+describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
   let mockStorage: Record<string, any>;
 
   beforeEach(() => {
@@ -161,7 +167,7 @@ describe('saveCardDetailToCache - TempCardDB自動保存', () => {
     resetUnifiedCacheDB();
   });
 
-  it('カード詳細と関連カードがTempCardDBに保存される', async () => {
+  it('カード詳細と関連カードがUnifiedCacheDBに保存される', async () => {
     const unifiedDB = getUnifiedCacheDB();
 
     const detail: CardDetail = {
@@ -207,13 +213,12 @@ describe('saveCardDetailToCache - TempCardDB自動保存', () => {
 
     await saveCardDetailToCache(unifiedDB, detail, true);
 
-    const tempCardDB = getTempCardDB();
-
-    const mainCard = tempCardDB.get('4011');
+    // UnifiedCacheDB に保存されることを確認
+    const mainCard = unifiedDB.reconstructCardInfo('4011');
     expect(mainCard).toBeDefined();
     expect(mainCard?.name).toBe('青眼の白竜');
 
-    const relatedCard = tempCardDB.get('5678');
+    const relatedCard = unifiedDB.reconstructCardInfo('5678');
     expect(relatedCard).toBeDefined();
     expect(relatedCard?.name).toBe('青眼の究極竜');
   });
@@ -281,10 +286,9 @@ describe('saveCardDetailToCache - TempCardDB自動保存', () => {
 
     await saveCardDetailToCache(unifiedDB, detail, true);
 
-    const tempCardDB = getTempCardDB();
-
-    expect(tempCardDB.get('4011')).toBeDefined();
-    expect(tempCardDB.get('5678')).toBeDefined();
-    expect(tempCardDB.get('9999')).toBeDefined();
+    // UnifiedCacheDB に保存されることを確認
+    expect(unifiedDB.reconstructCardInfo('4011')).toBeDefined();
+    expect(unifiedDB.reconstructCardInfo('5678')).toBeDefined();
+    expect(unifiedDB.reconstructCardInfo('9999')).toBeDefined();
   });
 });

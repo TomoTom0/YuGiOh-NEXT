@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="card"
     class="card-item deck-card"
     :class="[`section-${sectionType}`, { 'error-state': showError, 'drag-over': isDragOver }]"
     :data-card-id="card.cardId"
@@ -28,11 +29,23 @@
         <path fill="currentColor" :d="mdiNumeric2Circle" />
       </svg>
     </div>
+    <!-- カテゴリ優先アイコン（最優先） -->
+    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowLeftBold" />
+      </svg>
+    </div>
+    <!-- 末尾優先アイコン（カテゴリ優先が無い場合のみ表示） -->
+    <div v-else-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
+      <svg width="8" height="8" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiArrowRightBold" />
+      </svg>
+    </div>
     <div v-if="!card.empty" class="card-controls">
-      <button 
+      <button
         class="card-btn top-left"
         :class="{ 'is-link': sectionType === 'info' }"
-        @click.stop="handleInfo"
+        @click.stop="handleTopLeft"
       >
         <svg v-if="sectionType === 'info'" width="10" height="10" viewBox="0 0 24 24">
           <path fill="currentColor" d="M3.9,12C3.9,10.29 5.29,8.9 7,8.9H11V7H7A5,5 0 0,0 2,12A5,5 0 0,0 7,17H11V15.1H7C5.29,15.1 3.9,13.71 3.9,12M8,13H16V11H8V13M17,7H13V8.9H17C18.71,8.9 20.1,10.29 20.1,12C20.1,13.71 18.71,15.1 17,15.1H13V17H17A5,5 0 0,0 22,12A5,5 0 0,0 17,7Z" />
@@ -101,7 +114,7 @@ import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
-import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle } from '@mdi/js'
+import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold } from '@mdi/js'
 import { getCardDetailWithCache } from '../api/card-search'
 
 export default {
@@ -162,7 +175,7 @@ export default {
 
       return false
     }
-    
+
     return {
       deckStore,
       cardDetailStore,
@@ -174,15 +187,20 @@ export default {
       handleMoveResult,
       mdiCloseCircle,
       mdiNumeric1Circle,
-      mdiNumeric2Circle
+      mdiNumeric2Circle,
+      mdiArrowRightBold,
+      mdiArrowLeftBold
     }
   },
   computed: {
     showError() {
       // 枚数制限エラー時、同じcardIdのカードを全て赤背景で表示
-      return this.deckStore.limitErrorCardId === this.card.cardId
+      return this.card && this.deckStore.limitErrorCardId === this.card.cardId
     },
     cardImageUrl() {
+      if (!this.card) {
+        return chrome.runtime.getURL('images/card_back.png')
+      }
       const gameType = detectCardGameType()
       const relativeUrl = getCardImageUrl(this.card, gameType)
       if (relativeUrl) {
@@ -242,6 +260,15 @@ export default {
     },
     showSearchButtons() {
       return this.sectionType === 'search'
+    },
+    isTailPlaced() {
+      // 直接refを参照してVueのreactivityを機能させる
+      return this.card && this.settingsStore.tailPlacementCardIds.includes(this.card.cardId)
+    },
+    isInCategory() {
+      // 2段階検索の結果（cid単位でキャッシュ済み）を参照
+      if (!this.card) return false
+      return this.deckStore.categoryMatchedCardIds.has(this.card.cardId)
     }
   },
   methods: {
@@ -278,7 +305,7 @@ export default {
         event.stopPropagation()
 
         // ドラッグ中のカードが自分自身でない場合のみハイライト
-        if (dragging && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
+        if (dragging && this.card && dragging.card.cardId === this.card.cardId && dragging.sectionType === this.sectionType) {
           // 自分自身の上ではハイライトしない
           this.isDragOver = false
         } else {
@@ -329,7 +356,18 @@ export default {
         console.error('Card drop error:', e)
       }
     },
-    async handleInfo() {
+    handleTopLeft() {
+      // Info tab の場合：カードのリンクを新しいタブで開く
+      if (this.sectionType === 'info') {
+        const cardUrl = buildFullUrl(`/yugiohdb/card_search.action?ope=2&cid=${this.card.cardId}`)
+        window.open(cardUrl, '_blank')
+        return
+      }
+
+      // デッキ編集画面の場合：詳細情報を表示する
+      this.getCardDetailAndDisplay()
+    },
+    async getCardDetailAndDisplay() {
       // 詳細データをキャッシュ対応で取得してからselectedCardに設定
       try {
         const currentLang = detectLanguage(document)
@@ -342,28 +380,24 @@ export default {
           ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
         }
 
-        // CardDetailストアに設定（両画面で使用）
+        // CardDetailストアに設定
         this.cardDetailStore.setSelectedCard(cardData)
 
-        // デッキ編集画面の場合のみ、アクティブタブを切り替え
-        if (this.sectionType !== 'info') {
-          this.deckStore.activeTab = 'card'
-        }
+        // アクティブタブを切り替え
+        this.deckStore.activeTab = 'card'
       } catch (e) {
-        console.error('[DeckCard.handleInfo] Failed to fetch card detail:', e)
+        console.error('[DeckCard.getCardDetailAndDisplay] Failed to fetch card detail:', e)
         const cardData = {
           ...this.card,
           imgs: [...this.card.imgs],
           ciid: this.card.ciid
         }
 
-        // CardDetailストアに設定（両画面で使用）
+        // CardDetailストアに設定
         this.cardDetailStore.setSelectedCard(cardData)
 
-        // デッキ編集画面の場合のみ、アクティブタブを切り替え
-        if (this.sectionType !== 'info') {
-          this.deckStore.activeTab = 'card'
-        }
+        // アクティブタブを切り替え
+        this.deckStore.activeTab = 'card'
       }
     },
     handleTopRight() {
@@ -425,6 +459,8 @@ export default {
       }
     },
     animateFromSource(sourceRect, targetSection) {
+      if (!this.card) return
+
       // 追加されたカードを探す（最新のもの）
       const section = targetSection || ((this.card.cardType === 'monster' && this.card.isExtraDeck) ? 'extra' : 'main')
       const displayOrder = this.deckStore.displayOrder[section]
@@ -453,7 +489,7 @@ export default {
     },
     handleContextMenu(event) {
       // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
-      if (!this.settingsStore.appSettings.enableMouseOperations) {
+      if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
       }
 
@@ -499,7 +535,7 @@ export default {
       event.stopPropagation()
 
       // 高度なマウス操作が無効の場合は何もしない
-      if (!this.settingsStore.appSettings.enableMouseOperations) {
+      if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
       }
 
@@ -639,6 +675,50 @@ export default {
   }
 }
 
+.tail-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  svg {
+    color: var(--color-success, #4CAF50);
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.category-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+
+  svg {
+    color: var(--color-info, #2196F3);
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .card-controls {
   position: absolute;
   top: 0;
@@ -650,6 +730,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 1;
 }
 
 .card-btn {

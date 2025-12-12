@@ -1,0 +1,138 @@
+================================================================================
+                Part 2 ロジック - フロー図
+================================================================================
+
+シナリオ: level-rank入力時の連鎖的な無効化
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ユーザー入力                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ fieldInputs: { 'level-rank': true }                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Step 1: applyFieldToAttribute()                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ level-rank に入力がある                                                      │
+│   ↓                                                                          │
+│ ルール検索: level-rank → どの属性を決定するか?                                 │
+│   ↓                                                                          │
+│ マッチしたルール:                                                             │
+│   "monster-type_has-level-rank-necessary"                                    │
+│   - triggerItems: ["level-rank", "def"]                                     │
+│   - notTarget: ["monster-type_link"]  ← monster-type_link を排除             │
+│   ↓                                                                          │
+│ monster-type_link.enabled = false に設定                                    │
+│ disabledReason: "level-rankにより無効"                                       │
+│   ↓                                                                          │
+│ 変更フラグ: changed = true                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Step 2: applyAttributeExclusion()                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ monster-type_link は disabled のため処理対象外                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Step 3: applyAttributeToField() - Part 1                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ monster-type_link は disabled なので処理対象外                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Step 3: applyAttributeToField() - Part 2 ← ここが重要                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ for (const [attr, attrState] of result.attributeStates) {                   │
+│   if (attrState.enabled) continue;  // disabled なので処理対象                │
+│   ↓                                                                          │
+│   attr = "monster-type_link"                                                │
+│   attrState.enabled = false                                                 │
+│   ↓                                                                          │
+│   requiresThisAttr を検索:                                                   │
+│     rules.fieldToAttribute.filter((r) => r.target?.includes(attr))          │
+│   ↓                                                                          │
+│   マッチしたルール:                                                           │
+│     "monster-type_link-necessary"                                            │
+│     - triggerItems: ["link-value", "link-marker"]                           │
+│     - target: ["monster-type_link"]                                         │
+│   ↓                                                                          │
+│   ループ処理:                                                                │
+│   ├─ fieldPattern = "link-value"                                            │
+│   │  ├─ ワイルドカード判定: NO (不含む "*")                                  │
+│   │  ├─ fields = ["link-value"]                                             │
+│   │  └─ link-value.enabled = false に設定                                    │
+│   │     disabledReason: "monster-type_linkが選択不可のため無効"              │
+│   │                                                                          │
+│   └─ fieldPattern = "link-marker"                                           │
+│      ├─ ワイルドカード判定: NO (不含む "*")                                  │
+│      ├─ fields = ["link-marker"]                                            │
+│      └─ link-marker.enabled = false に設定                                   │
+│         disabledReason: "monster-type_linkが選択不可のため無効"              │
+│   ↓                                                                          │
+│ changed = true                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 推論結果 (ExclusionResult)                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ attributeStates:                                                             │
+│   "monster-type_link":                                                       │
+│     enabled: false                                                          │
+│     disabledReason: "level-rankにより無効"                                   │
+│                                                                              │
+│ fieldStates:                                                                 │
+│   "link-value":                                                              │
+│     enabled: false                                                          │
+│     disabledReason: "monster-type_linkが選択不可のため無効"                  │
+│                                                                              │
+│   "link-marker":                                                             │
+│     enabled: false                                                          │
+│     disabledReason: "monster-type_linkが選択不可のため無効"                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                        ワイルドカード対応の例
+================================================================================
+
+ルール例: "monster-type*" パターン
+
+fieldPattern = "monster-type*"
+
+if (fieldPattern.endsWith('*')) {
+  const prefix = "monster-type";
+  for (const field of result.fieldStates.keys()) {
+    if (field.startsWith(prefix)) {
+      fields.push(field);
+    }
+  }
+}
+
+マッチ例:
+  ✓ "monster-type_normal"
+  ✓ "monster-type_fusion"
+  ✓ "monster-type_link"
+  ✗ "link-value" (prefix "monster-type" で始まらない)
+  ✗ "race_dragon" (prefix "monster-type" で始まらない)
+
+
+================================================================================
+                    Part 2 ロジックの役割
+================================================================================
+
+【概念】
+  属性が無効化されたときに、その属性が「必須」だった項目も
+  無効化する必要がある。これを「連鎖的な無効化」という。
+
+【理由】
+  例：link-value入力 → monster-type_linkが必須
+      ↓（後でlink-valueが無効化された）
+      link-valueは必須なのに入力できない矛盾 → つまりmonster-type_linkが無効なら
+      最初から入力できないはずのlink-value/link-markerも無効化する
+
+【処理フロー】
+  1. disabled な属性を探す
+  2. その属性を target とするルール（fieldToAttribute）を検索
+  3. ルールの triggerItems 項目を無効化
+

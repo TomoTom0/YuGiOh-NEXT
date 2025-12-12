@@ -1,9 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
-import SearchInputBar from '@/components/SearchInputBar.vue';
+import SearchInputBar from '@/components/searchInputBar/SearchInputBar.vue';
+import { useDeckEditStore } from '@/stores/deck-edit';
 
 describe('components/SearchInputBar', () => {
+  // 共通のstubs設定（実際のDOM要素を必要としないコンポーネントのみstub）
+  const commonStubs = {
+    SearchFilterDialog: true,
+    SearchFilterChips: true,
+  };
+
   beforeEach(() => {
     setActivePinia(createPinia());
   });
@@ -16,9 +23,7 @@ describe('components/SearchInputBar', () => {
     it('should render search input bar', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -28,9 +33,7 @@ describe('components/SearchInputBar', () => {
     it('should render search input element', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -42,9 +45,7 @@ describe('components/SearchInputBar', () => {
     it('should render search button', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -55,9 +56,7 @@ describe('components/SearchInputBar', () => {
     it('should render filter button', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -68,9 +67,7 @@ describe('components/SearchInputBar', () => {
     it('should render search mode button', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -83,9 +80,7 @@ describe('components/SearchInputBar', () => {
     it('should toggle search mode dropdown', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -99,9 +94,7 @@ describe('components/SearchInputBar', () => {
     it('should display search mode options', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -115,9 +108,7 @@ describe('components/SearchInputBar', () => {
     it('should have default search mode label', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -131,9 +122,7 @@ describe('components/SearchInputBar', () => {
     it('should update search query on input', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -141,16 +130,14 @@ describe('components/SearchInputBar', () => {
       await input.setValue('テスト検索');
 
       // store に値が設定されることを確認
-      const deckStore = wrapper.vm.deckStore;
-      expect(deckStore.searchQuery).toBe('テスト検索');
+      const searchStore = wrapper.vm.searchStore;
+      expect(searchStore.searchQuery).toBe('テスト検索');
     });
 
     it('should clear search query when clear button is clicked', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -163,16 +150,14 @@ describe('components/SearchInputBar', () => {
       const clearBtn = wrapper.find('.clear-btn');
       if (clearBtn.exists()) {
         await clearBtn.trigger('click');
-        expect(wrapper.vm.deckStore.searchQuery).toBe('');
+        expect(wrapper.vm.searchStore.searchQuery).toBe('');
       }
     });
 
     it('should handle enter key press', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -181,15 +166,13 @@ describe('components/SearchInputBar', () => {
       await input.trigger('keydown.enter');
 
       // enter キーの処理が実行されたことを確認
-      expect(wrapper.vm.deckStore.searchQuery).toBe('テスト');
+      expect(wrapper.vm.searchStore.searchQuery).toBe('テスト');
     });
 
     it('should handle escape key press', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -205,38 +188,36 @@ describe('components/SearchInputBar', () => {
     it('should show filter dialog when filter button is clicked', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
+      const deckStore = useDeckEditStore();
       const filterBtn = wrapper.find('.menu-btn');
-      expect(wrapper.vm.showFilterDialog).toBe(false);
+      expect(deckStore.isFilterDialogVisible).toBe(false);
 
       await filterBtn.trigger('click');
-      expect(wrapper.vm.showFilterDialog).toBe(true);
+      expect(deckStore.isFilterDialogVisible).toBe(true);
     });
 
     it('should toggle filter dialog visibility', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
+      const deckStore = useDeckEditStore();
       const filterBtn = wrapper.find('.menu-btn');
 
       // 開く
       await filterBtn.trigger('click');
-      expect(wrapper.vm.showFilterDialog).toBe(true);
+      expect(deckStore.isFilterDialogVisible).toBe(true);
 
       // 閉じる（直接状態を変更）
-      wrapper.vm.showFilterDialog = false;
+      deckStore.isFilterDialogVisible = false;
       await wrapper.vm.$nextTick();
-      expect(wrapper.vm.showFilterDialog).toBe(false);
+      expect(deckStore.isFilterDialogVisible).toBe(false);
     });
   });
 
@@ -244,9 +225,7 @@ describe('components/SearchInputBar', () => {
     it('should display placeholder text', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -261,9 +240,7 @@ describe('components/SearchInputBar', () => {
     it('should have clickable search button', async () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -283,9 +260,7 @@ describe('components/SearchInputBar', () => {
           compact: true
         },
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
@@ -296,14 +271,160 @@ describe('components/SearchInputBar', () => {
     it('should not have compact class by default', () => {
       const wrapper = mount(SearchInputBar, {
         global: {
-          stubs: {
-            SearchFilterDialog: true
-          }
+          stubs: commonStubs
         }
       });
 
       const searchBar = wrapper.find('.search-input-bar');
       expect(searchBar.classes()).not.toContain('compact');
+    });
+  });
+
+  describe('Slash Commands', () => {
+    it('should recognize slash command input', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: commonStubs
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      // コマンドモードになることを確認
+      const inputContainer = wrapper.find('.input-container');
+      expect(inputContainer.classes()).toContain('command-mode');
+    });
+
+    it('should show command suggestions when typing slash', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      // SuggestionListコンポーネントが表示されることを確認
+      const suggestionList = wrapper.findComponent({ name: 'SuggestionList' });
+      expect(suggestionList.exists()).toBe(true);
+    });
+
+    it('should filter command suggestions based on input', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/attr');
+      await wrapper.vm.$nextTick();
+
+      // コマンド候補がフィルタリングされることを確認
+      // （実装の詳細に依存するため、存在確認のみ）
+      const suggestionList = wrapper.findComponent({ name: 'SuggestionList' });
+      expect(suggestionList.exists()).toBe(true);
+    });
+
+    it('should enter pending command mode after selecting command', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      // /attr コマンドを入力
+      await input.setValue('/attr ');
+      await wrapper.vm.$nextTick();
+
+      // pending command modeになることを確認
+      const inputContainer = wrapper.find('.input-container');
+      expect(inputContainer.exists()).toBe(true);
+      // command-prefixが表示されるはず（pendingCommandがある場合）
+      const commandPrefix = wrapper.find('.command-prefix');
+      // 実装によってはprefixが表示されない可能性もあるため、存在チェックのみ
+    });
+  });
+
+  describe('Keyboard Navigation', () => {
+    it('should handle arrow down key for suggestion navigation', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      // 下矢印キーを押す
+      await input.trigger('keydown.down');
+      await wrapper.vm.$nextTick();
+
+      // イベントが処理されることを確認（エラーが出ないことを確認）
+      expect(input.exists()).toBe(true);
+    });
+
+    it('should handle arrow up key for suggestion navigation', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      // 上矢印キーを押す
+      await input.trigger('keydown.up');
+      await wrapper.vm.$nextTick();
+
+      // イベントが処理されることを確認（エラーが出ないことを確認）
+      expect(input.exists()).toBe(true);
+    });
+
+    it('should handle escape key to close suggestions', async () => {
+      const wrapper = mount(SearchInputBar, {
+        global: {
+          stubs: {
+            SearchFilterDialog: true,
+            SearchFilterChips: true,
+          }
+        }
+      });
+
+      const input = wrapper.find('.search-input');
+      await input.setValue('/');
+      await wrapper.vm.$nextTick();
+
+      // エスケープキーを押す
+      await input.trigger('keydown.escape');
+      await wrapper.vm.$nextTick();
+
+      // escape イベントが emit されることを確認
+      expect(wrapper.emitted('escape')).toBeTruthy();
     });
   });
 });

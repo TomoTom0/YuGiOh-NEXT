@@ -101,7 +101,7 @@
       <label class="checkbox-label">
         <input
           type="checkbox"
-          v-model="settingsStore.appSettings.enableMouseOperations"
+          v-model="settingsStore.appSettings.ux.enableMouseOperations"
           @change="handleMouseOpsChange"
         />
         <span class="checkbox-text">
@@ -121,12 +121,12 @@
       <div class="radio-group">
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'auto' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'auto' }"
         >
           <input
             type="radio"
             value="auto"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -136,12 +136,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'name' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'name' }"
         >
           <input
             type="radio"
             value="name"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -151,12 +151,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'text' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'text' }"
         >
           <input
             type="radio"
             value="text"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -166,12 +166,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'pendulum' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'pendulum' }"
         >
           <input
             type="radio"
             value="pendulum"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -181,12 +181,12 @@
         </label>
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSearchMode === 'mydeck' }"
+          :class="{ active: settingsStore.appSettings.ux.defaultSearchMode === 'mydeck' }"
         >
           <input
             type="radio"
             value="mydeck"
-            v-model="settingsStore.appSettings.defaultSearchMode"
+            v-model="settingsStore.appSettings.ux.defaultSearchMode"
             @change="handleSearchModeChange"
           />
           <span class="radio-text">
@@ -195,6 +195,125 @@
           </span>
         </label>
       </div>
+    </div>
+
+    <!-- デフォルトソート順序 -->
+    <div class="setting-group">
+      <h3 class="setting-title">デフォルトソート順序</h3>
+      <p class="setting-desc">デッキ編集画面で最初に表示されるソート順序</p>
+      <div class="radio-group">
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_desc' }"
+        >
+          <input
+            type="radio"
+            value="release_desc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>リリース日降順（デフォルト）</strong>
+            <span class="radio-desc">新しいカードから順に表示</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_asc' }"
+        >
+          <input
+            type="radio"
+            value="release_asc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>リリース日昇順</strong>
+            <span class="radio-desc">古いカードから順に表示</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'official' }"
+        >
+          <input
+            type="radio"
+            value="official"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>公式順</strong>
+            <span class="radio-desc">公式サイトの並び順</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_asc' }"
+        >
+          <input
+            type="radio"
+            value="name_asc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>名前昇順</strong>
+            <span class="radio-desc">カード名の昇順（あいうえお順）</span>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_desc' }"
+        >
+          <input
+            type="radio"
+            value="name_desc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>名前降順</strong>
+            <span class="radio-desc">カード名の降順（んわをん順）</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ソート機能 -->
+    <div class="setting-group">
+      <h3 class="setting-title">ソート機能</h3>
+      <p class="setting-desc">デッキ編集画面のソート機能の有効/無効</p>
+
+      <!-- カテゴリ優先 -->
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.enableCategoryPriority"
+          @change="handleCategoryPriorityChange"
+        />
+        <span class="checkbox-text">
+          <strong>カテゴリ優先を有効化</strong>
+          <span class="checkbox-desc">
+            デッキメタデータで設定したカテゴリに該当するカードを先頭に配置
+          </span>
+        </span>
+      </label>
+
+      <!-- 末尾配置 -->
+      <label class="checkbox-label" style="margin-top: 12px;">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.enableTailPlacement"
+          @change="handleTailPlacementChange"
+        />
+        <span class="checkbox-text">
+          <strong>末尾配置を有効化</strong>
+          <span class="checkbox-desc">
+            末尾配置指定されたカードをデッキの最後に配置
+          </span>
+        </span>
+      </label>
     </div>
 
     <!-- キーボードショートカット -->
@@ -207,7 +326,7 @@
             <span class="shortcut-label">グローバル検索</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.globalSearch"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.globalSearch"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('globalSearch', 'グローバル検索')"
@@ -215,7 +334,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.globalSearch.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.globalSearch.length < 3"
                 class="add-button"
                 @click="openKeyDialog('globalSearch', 'グローバル検索')"
               >
@@ -229,7 +348,7 @@
             <span class="shortcut-label">Undo</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.undo"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.undo"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('undo', 'Undo')"
@@ -237,7 +356,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.undo.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.undo.length < 3"
                 class="add-button"
                 @click="openKeyDialog('undo', 'Undo')"
               >
@@ -251,7 +370,7 @@
             <span class="shortcut-label">Redo</span>
             <div class="shortcut-tags">
               <span
-                v-for="(shortcut, index) in settingsStore.appSettings.keyboardShortcuts.redo"
+                v-for="(shortcut, index) in settingsStore.appSettings.ux.keyboardShortcuts.redo"
                 :key="index"
                 class="shortcut-tag clickable"
                 @click="openKeyDialog('redo', 'Redo')"
@@ -259,7 +378,7 @@
                 {{ formatShortcut(shortcut) }}
               </span>
               <button
-                v-if="settingsStore.appSettings.keyboardShortcuts.redo.length < 3"
+                v-if="settingsStore.appSettings.ux.keyboardShortcuts.redo.length < 3"
                 class="add-button"
                 @click="openKeyDialog('redo', 'Redo')"
               >
@@ -301,7 +420,7 @@ const editingKey = ref<'globalSearch' | 'undo' | 'redo' | null>(null);
 
 const currentShortcuts = computed(() => {
   if (!editingKey.value) return [];
-  return settingsStore.appSettings.keyboardShortcuts[editingKey.value];
+  return settingsStore.appSettings.ux.keyboardShortcuts[editingKey.value];
 });
 
 onMounted(() => {
@@ -326,6 +445,21 @@ const handleMouseOpsChange = () => {
 const handleSearchModeChange = () => {
   settingsStore.saveSettings();
   showSaveMessage('検索モードのデフォルトを変更しました');
+};
+
+const handleSortOrderChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('デフォルトソート順序を変更しました');
+};
+
+const handleCategoryPriorityChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('カテゴリ優先設定を変更しました');
+};
+
+const handleTailPlacementChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('末尾配置設定を変更しました');
 };
 
 const formatShortcut = (shortcut: KeyboardShortcut): string => {
