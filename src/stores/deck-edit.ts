@@ -339,19 +339,50 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       targetIndex = sourceIndex > targetIdx ? targetIdx : targetIdx + 1;
     }
 
-    // Undo用に元のインデックスを記録
-    const originalSourceIndex = sourceIndex;
-
     reorderWithinSectionInternal(section, sourceIndex, targetIndex);
 
     const command: Command = {
       execute: () => {
-        reorderWithinSectionInternal(section, sourceIndex, targetIndex);
+        // UUID ベースで再計算して実行（配列状態の変化に対応）
+        const currentSectionOrder = displayOrder.value[section];
+        const currentSourceIndex = currentSectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
+        if (currentSourceIndex === -1) return;
+
+        let currentTargetIndex: number;
+        if (targetUuid === null) {
+          currentTargetIndex = currentSectionOrder.length - 1;
+        } else {
+          const currentTargetIdx = currentSectionOrder.findIndex(dc => dc?.uuid === targetUuid);
+          if (currentTargetIdx === -1) return;
+          currentTargetIndex = currentSourceIndex > currentTargetIdx ? currentTargetIdx : currentTargetIdx + 1;
+        }
+
+        reorderWithinSectionInternal(section, currentSourceIndex, currentTargetIndex);
       },
       undo: () => {
-        // 並び替えの逆操作は元の位置に戻す
-        // executeで sourceIndex→targetIndex に移動したので、targetIndex→sourceIndex に戻す
-        reorderWithinSectionInternal(section, targetIndex, sourceIndex);
+        // 逆操作も UUID ベースで計算
+        const currentSectionOrder = displayOrder.value[section];
+        const currentSourceIndex = currentSectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
+        if (currentSourceIndex === -1) return;
+
+        // sourceUuid が元のインデックスに戻るような位置を計算
+        // execute で移動されたので、元の sourceUuid の位置（現在の sourceIndex）から
+        // 元の targetUuid の位置に対応するインデックスに移動させることで戻す
+        let undoTargetIndex: number;
+        if (targetUuid === null) {
+          // 末尾への移動を戻すには、もう一度末尾から sourceIndex に戻す
+          undoTargetIndex = sourceIndex;
+        } else {
+          const currentTargetIdx = currentSectionOrder.findIndex(dc => dc?.uuid === targetUuid);
+          if (currentTargetIdx === -1) {
+            undoTargetIndex = sourceIndex;
+          } else {
+            // sourceIndex が元の位置になるように計算
+            undoTargetIndex = currentSourceIndex > currentTargetIdx ? currentTargetIdx + 1 : currentTargetIdx;
+          }
+        }
+
+        reorderWithinSectionInternal(section, currentSourceIndex, undoTargetIndex);
       }
     };
 
