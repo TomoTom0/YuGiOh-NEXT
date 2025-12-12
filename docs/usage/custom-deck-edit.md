@@ -173,19 +173,19 @@
 
 関連カード（同じシリーズ、サポートカードなど）を表示します。
 
-![カード詳細 - Related](./images/deck-edit/04-card-detail-related.png)
+![カード詳細 - Related](./images/deck-edit/04-card-detail-related.webp)
 
 #### Products タブ
 
 このカードが収録されているパック・商品の一覧を表示します。
 
-![カード詳細 - Products](./images/deck-edit/05-card-detail-products.png)
+![カード詳細 - Products](./images/deck-edit/05-card-detail-products.webp)
 
 #### Q&A タブ
 
 このカードに関する公式Q&Aを表示します。質問の展開ボタン（+）をクリックすると回答が展開されます。
 
-![カード詳細 - Q&A](./images/deck-edit/06-card-detail-qa.png)
+![カード詳細 - Q&A](./images/deck-edit/06-card-detail-qa.webp)
 
 **主な機能:**
 - **FAQ一覧表示**: カードに関する質問と更新日を一覧表示
@@ -230,7 +230,7 @@
 2. デッキ編集UIが自動的に表示される
 3. Headerタブでデッキ名を編集
 
-![デッキ名の入力](./images/deck-edit/02-deck-name-input.png)
+![デッキ名の入力](./images/deck-edit/02-deck-name-input.webp)
 
 4. 検索エリアでカードを検索
 5. 検索結果から `M` ボタン（メイン/エクストラ）または `S` ボタン（サイド）でデッキに追加
