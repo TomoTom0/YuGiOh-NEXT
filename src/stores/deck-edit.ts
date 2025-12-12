@@ -350,7 +350,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       },
       undo: () => {
         // 並び替えの逆操作は元の位置に戻す
-        reorderWithinSectionInternal(section, targetIndex, originalSourceIndex);
+        // executeで sourceIndex→targetIndex に移動したので、targetIndex→sourceIndex に戻す
+        reorderWithinSectionInternal(section, targetIndex, sourceIndex);
       }
     };
 
