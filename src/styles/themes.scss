@@ -56,6 +56,9 @@
   --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
   --filter-button-not-border: #b71c1c;
   --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.6);
+  --filter-button-disabled-bg: #e8e8e8;
+  --filter-button-disabled-text: #888888;
+  --filter-button-disabled-border: #cccccc;
   --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
   --filter-button-pendulum-active-border: #e65100;
   --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.5);
@@ -398,6 +401,9 @@
   --filter-button-not-bg: linear-gradient(135deg, #ef5350 0%, #e53935 50%, #d32f2f 100%);
   --filter-button-not-border: #b71c1c;
   --filter-button-not-shadow: 0 3px 10px rgba(211, 47, 47, 0.8);
+  --filter-button-disabled-bg: #2a2a2a;
+  --filter-button-disabled-text: #666666;
+  --filter-button-disabled-border: #444444;
   --filter-button-pendulum-active-bg: linear-gradient(135deg, #ffb74d 0%, #ff9800 50%, #f57c00 100%);
   --filter-button-pendulum-active-border: #e65100;
   --filter-button-pendulum-active-shadow: 0 2px 6px rgba(255, 152, 0, 0.7);

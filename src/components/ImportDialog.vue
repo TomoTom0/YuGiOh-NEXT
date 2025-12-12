@@ -207,7 +207,7 @@ function handleImport() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10010;
+  z-index: 100;
 }
 
 .dialog-content {

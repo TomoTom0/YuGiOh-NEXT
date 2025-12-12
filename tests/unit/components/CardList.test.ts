@@ -233,10 +233,10 @@ describe('CardList.vue', () => {
 
     describe('複数キーソート', () => {
       const sortTestCards = [
-        { cardId: '1001', ciid: '1', name: 'アルファ', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
-        { cardId: '1002', ciid: '1', name: 'ベータ', atk: 2500, def: 1800, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
-        { cardId: '1003', ciid: '1', name: 'ガンマ', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
-        { cardId: '1004', ciid: '1', name: 'デルタ', atk: 2000, def: 1500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h4' }] },
+        { cardId: '1001', ciid: '1', name: 'アルファ', cardType: 'monster', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '1002', ciid: '1', name: 'ベータ', cardType: 'monster', atk: 2500, def: 1800, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '1003', ciid: '1', name: 'ガンマ', cardType: 'monster', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '1004', ciid: '1', name: 'デルタ', cardType: 'monster', atk: 2000, def: 1500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h4' }] },
       ];
 
       it('ATK降順ソート時、同値の場合はカード名で昇順にソートされる', () => {
@@ -446,6 +446,397 @@ describe('CardList.vue', () => {
       });
 
       expect(wrapper.find('.sort-direction-btn').exists()).toBe(true);
+    });
+  });
+
+  describe('ソート機能 - 包括的テスト', () => {
+    describe('種族（Race）ソート', () => {
+      const raceTestCards = [
+        { cardId: '2001', ciid: '1', name: 'ドラゴン族A', cardType: 'monster', race: 'ドラゴン族', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '2002', ciid: '1', name: 'ドラゴン族B', cardType: 'monster', race: 'ドラゴン族', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '2003', ciid: '1', name: '魔法使い族', cardType: 'monster', race: '魔法使い族', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '2004', ciid: '1', name: '戦士族', cardType: 'monster', race: '戦士族', atk: 1800, def: 1200, levelValue: 3, imgs: [{ ciid: '1', imgHash: 'h4' }] },
+      ];
+
+      it('種族昇順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: raceTestCards,
+            sectionType: 'search',
+            sortOrder: 'race_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: ドラゴン族 < 戦士族 < 魔法使い族
+        expect(cardNames).toEqual(['ドラゴン族A', 'ドラゴン族B', '戦士族', '魔法使い族']);
+      });
+
+      it('種族降順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: raceTestCards,
+            sectionType: 'search',
+            sortOrder: 'race_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: 魔法使い族 > 戦士族 > ドラゴン族
+        expect(cardNames).toEqual(['魔法使い族', '戦士族', 'ドラゴン族A', 'ドラゴン族B']);
+      });
+    });
+
+    describe('属性（Attribute）ソート', () => {
+      const attributeTestCards = [
+        { cardId: '3001', ciid: '1', name: '光属性A', cardType: 'monster', attribute: '光', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '3002', ciid: '1', name: '光属性B', cardType: 'monster', attribute: '光', atk: 2500, def: 2000, levelValue: 7, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '3003', ciid: '1', name: '暗属性', cardType: 'monster', attribute: '暗', atk: 2000, def: 1500, levelValue: 4, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '3004', ciid: '1', name: '水属性', cardType: 'monster', attribute: '水', atk: 1800, def: 1200, levelValue: 3, imgs: [{ ciid: '1', imgHash: 'h4' }] },
+      ];
+
+      it('属性昇順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: attributeTestCards,
+            sectionType: 'search',
+            sortOrder: 'attribute_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: 光 < 暗 < 水
+        expect(cardNames).toEqual(['光属性A', '光属性B', '暗属性', '水属性']);
+      });
+
+      it('属性降順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: attributeTestCards,
+            sectionType: 'search',
+            sortOrder: 'attribute_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: 水 > 暗 > 光
+        expect(cardNames).toEqual(['水属性', '暗属性', '光属性A', '光属性B']);
+      });
+    });
+
+    describe('モンスター・魔法・罠の混在ソート', () => {
+      const mixedTypeCards = [
+        { cardId: '4001', ciid: '1', name: 'モンスターA', cardType: 'monster', atk: 2500, def: 2000, levelValue: 7, race: 'ドラゴン族', attribute: '光', imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '4002', ciid: '1', name: '魔法カードX', cardType: 'spell', imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '4003', ciid: '1', name: 'モンスターB', cardType: 'monster', atk: 1800, def: 1200, levelValue: 3, race: '戦士族', attribute: '暗', imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '4004', ciid: '1', name: 'トラップカードY', cardType: 'trap', imgs: [{ ciid: '1', imgHash: 'h4' }] },
+      ];
+
+      it('ATK降順ソート時、モンスターが最前面、魔法・罠が末尾', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: mixedTypeCards,
+            sectionType: 'search',
+            sortOrder: 'atk_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // モンスターが最前面: モンスターA（ATK 2500）, モンスターB（ATK 1800）
+        // その後、魔法・罠がCID順: 魔法カードX（CID 4002）, トラップカードY（CID 4004）
+        expect(cardNames).toEqual(['モンスターA', 'モンスターB', '魔法カードX', 'トラップカードY']);
+      });
+
+      it('種族昇順ソート時、モンスターのみがソートされ魔法・罠は末尾', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: mixedTypeCards,
+            sectionType: 'search',
+            sortOrder: 'race_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // モンスターのみ種族でソート: ドラゴン族（モンスターA）, 戦士族（モンスターB）
+        // その後、魔法・罠がCID順: 魔法カードX（CID 4002）, トラップカードY（CID 4004）
+        expect(cardNames).toEqual(['モンスターA', 'モンスターB', '魔法カードX', 'トラップカードY']);
+      });
+
+      it('属性昇順ソート時、モンスターのみがソートされ魔法・罠は末尾', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: mixedTypeCards,
+            sectionType: 'search',
+            sortOrder: 'attribute_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // モンスターのみ属性でソート: 光（モンスターA）, 暗（モンスターB）
+        // その後、魔法・罠がCID順: 魔法カードX（CID 4002）, トラップカードY（CID 4004）
+        expect(cardNames).toEqual(['モンスターA', 'モンスターB', '魔法カードX', 'トラップカードY']);
+      });
+    });
+
+    describe('エッジケース - null/undefined プロパティ', () => {
+      const edgeCaseCards = [
+        { cardId: '5001', ciid: '1', name: 'ATK定義済み', cardType: 'monster', atk: 2500, def: 2000, levelValue: 7, race: 'ドラゴン族', attribute: '光', imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '5002', ciid: '1', name: 'ATK未定義', cardType: 'monster', atk: undefined, def: 1800, levelValue: 7, race: 'ドラゴン族', attribute: '光', imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '5003', ciid: '1', name: 'DEF未定義', cardType: 'monster', atk: 2000, def: undefined, levelValue: 4, race: 'ドラゴン族', attribute: '光', imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '5004', ciid: '1', name: 'Level未定義', cardType: 'monster', atk: 1800, def: 1200, levelValue: undefined, race: 'ドラゴン族', attribute: '光', imgs: [{ ciid: '1', imgHash: 'h4' }] },
+        { cardId: '5005', ciid: '1', name: '種族未定義', cardType: 'monster', atk: 1500, def: 1000, levelValue: 3, race: undefined, attribute: '光', imgs: [{ ciid: '1', imgHash: 'h5' }] },
+        { cardId: '5006', ciid: '1', name: '属性未定義', cardType: 'monster', atk: 1200, def: 900, levelValue: 2, race: 'ドラゴン族', attribute: undefined, imgs: [{ ciid: '1', imgHash: 'h6' }] },
+      ];
+
+      it('ATK降順ソート時、undefined ATKは-1として扱われる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: edgeCaseCards,
+            sectionType: 'search',
+            sortOrder: 'atk_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ATK 2500: ATK定義済み
+        // ATK 2000: DEF未定義
+        // ATK 1800: Level未定義
+        // ATK 1500: 種族未定義
+        // ATK 1200: 属性未定義
+        // ATK -1: ATK未定義
+        expect(cardNames).toEqual(['ATK定義済み', 'DEF未定義', 'Level未定義', '種族未定義', '属性未定義', 'ATK未定義']);
+      });
+
+      it('DEF降順ソート時、undefined DEFは-1として扱われる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: edgeCaseCards,
+            sectionType: 'search',
+            sortOrder: 'def_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // DEF 2000: ATK定義済み
+        // DEF 1800: ATK未定義
+        // DEF 1200: Level未定義
+        // DEF 1000: 種族未定義
+        // DEF 900: 属性未定義
+        // DEF -1: DEF未定義
+        expect(cardNames).toEqual(['ATK定義済み', 'ATK未定義', 'Level未定義', '種族未定義', '属性未定義', 'DEF未定義']);
+      });
+
+      it('Level降順ソート時、undefined Levelは0として扱われる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: edgeCaseCards,
+            sectionType: 'search',
+            sortOrder: 'level_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // Level 7: ATK定義済み, ATK未定義
+        // Level 4: DEF未定義
+        // Level 3: 種族未定義
+        // Level 2: 属性未定義
+        // Level 0: Level未定義
+        const topThree = cardNames.slice(0, 3);
+        expect(topThree[0]).toBe('ATK定義済み');
+        expect(topThree[1]).toBe('ATK未定義');
+        expect(topThree[2]).toBe('DEF未定義');
+        expect(cardNames[cardNames.length - 1]).toBe('Level未定義');
+      });
+
+      it('種族昇順ソート時、undefined Raceは空文字列として扱われる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: edgeCaseCards,
+            sectionType: 'search',
+            sortOrder: 'race_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // 種族未定義のカードは末尾に配置される
+        expect(cardNames[cardNames.length - 1]).toBe('種族未定義');
+      });
+
+      it('属性昇順ソート時、undefined Attributeは空文字列として扱われる', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: edgeCaseCards,
+            sectionType: 'search',
+            sortOrder: 'attribute_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // 属性未定義のカードは末尾に配置される
+        expect(cardNames[cardNames.length - 1]).toBe('属性未定義');
+      });
+    });
+
+    describe('コード順ソート', () => {
+      const codeOrderCards = [
+        { cardId: '6001', ciid: '1', name: 'カード1', cardType: 'monster', atk: 1000, def: 1000, levelValue: 1, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '6003', ciid: '1', name: 'カード3', cardType: 'monster', atk: 3000, def: 3000, levelValue: 3, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '6002', ciid: '1', name: 'カード2', cardType: 'monster', atk: 2000, def: 2000, levelValue: 2, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+      ];
+
+      it('コード昇順ソート（元の配列順序を保持）', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: codeOrderCards,
+            sectionType: 'search',
+            sortOrder: 'code_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // 元の配列順序: カード1, カード3, カード2
+        expect(cardNames).toEqual(['カード1', 'カード3', 'カード2']);
+      });
+
+      it('コード降順ソート（元の配列順序を反転）', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: codeOrderCards,
+            sectionType: 'search',
+            sortOrder: 'code_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // 元の配列順序を反転: カード2, カード3, カード1
+        expect(cardNames).toEqual(['カード2', 'カード3', 'カード1']);
+      });
+    });
+
+    describe('リリース順ソート', () => {
+      const releaseOrderCards = [
+        { cardId: '7001', ciid: '1', name: 'カード1', cardType: 'monster', atk: 1000, def: 1000, levelValue: 1, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '7003', ciid: '1', name: 'カード3', cardType: 'monster', atk: 3000, def: 3000, levelValue: 3, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+        { cardId: '7002', ciid: '1', name: 'カード2', cardType: 'monster', atk: 2000, def: 2000, levelValue: 2, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+      ];
+
+      it('リリース順降順ソート（CID降順）', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: releaseOrderCards,
+            sectionType: 'search',
+            sortOrder: 'release_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // CID 7003, 7002, 7001
+        expect(cardNames).toEqual(['カード3', 'カード2', 'カード1']);
+      });
+
+      it('リリース順昇順ソート（CID昇順）', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: releaseOrderCards,
+            sectionType: 'search',
+            sortOrder: 'release_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // CID 7001, 7002, 7003
+        expect(cardNames).toEqual(['カード1', 'カード2', 'カード3']);
+      });
+    });
+
+    describe('カード名ソート', () => {
+      const nameOrderCards = [
+        { cardId: '8001', ciid: '1', name: 'ゾアーク', cardType: 'monster', atk: 2800, def: 2000, levelValue: 8, imgs: [{ ciid: '1', imgHash: 'h1' }] },
+        { cardId: '8002', ciid: '1', name: 'アルファベット', cardType: 'monster', atk: 1000, def: 1000, levelValue: 1, imgs: [{ ciid: '1', imgHash: 'h2' }] },
+        { cardId: '8003', ciid: '1', name: 'マドルチェ', cardType: 'monster', atk: 2500, def: 2500, levelValue: 5, imgs: [{ ciid: '1', imgHash: 'h3' }] },
+      ];
+
+      it('カード名昇順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: nameOrderCards,
+            sectionType: 'search',
+            sortOrder: 'name_asc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: アルファベット < ゾアーク < マドルチェ
+        expect(cardNames).toEqual(['アルファベット', 'ゾアーク', 'マドルチェ']);
+      });
+
+      it('カード名降順ソート', () => {
+        const wrapper = mount(CardList, {
+          props: {
+            cards: nameOrderCards,
+            sectionType: 'search',
+            sortOrder: 'name_desc',
+          },
+          global: {
+            plugins: [pinia],
+          },
+        });
+
+        const cardNames = wrapper.vm.cardsWithUuid.map((c: any) => c.card.name);
+        // ソート順: マドルチェ > ゾアーク > アルファベット
+        expect(cardNames).toEqual(['マドルチェ', 'ゾアーク', 'アルファベット']);
+      });
     });
   });
 

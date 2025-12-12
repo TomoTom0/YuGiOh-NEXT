@@ -125,7 +125,7 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
 }
 
 .dialog {

@@ -396,39 +396,36 @@ export function reorderWithinSection(
  * @param displayOrder - 表示順序の状態
  * @param section - 並び替えるセクション
  * @param sourceUuid - 移動するカードのUUID
- * @param targetUuid - 移動先となるカードのUUID（末尾に追加する場合は空文字列）
+ * @param targetUuid - 移動先となるカードのUUID（末尾に追加する場合はnull）
  * @returns 並び替え後のdisplayCard（失敗時はundefined）
  */
 export function reorderWithinSectionByUUID(
   displayOrder: DisplayOrderState,
   section: SectionType,
   sourceUuid: string,
-  targetUuid: string
+  targetUuid: string | null
 ): DisplayCardRef | undefined {
+  // バリデーション
+  const validationError = validateReorderParameters(displayOrder, section, sourceUuid, targetUuid);
+  if (validationError) {
+    console.warn(`[reorderWithinSectionByUUID] ${validationError}`);
+    return;
+  }
+
   const sectionOrder = displayOrder[section];
-
   if (!sectionOrder || !Array.isArray(sectionOrder)) {
-    console.warn(`[reorderWithinSectionByUUID] Invalid section order for ${section}`);
     return;
   }
 
-  // UUIDからインデックスを取得
+  // UUIDからインデックスを取得（バリデーション済み）
   const fromIndex = sectionOrder.findIndex(card => card?.uuid === sourceUuid);
-  if (fromIndex < 0) {
-    console.warn(`[reorderWithinSectionByUUID] Source card not found: ${sourceUuid}`);
-    return;
-  }
 
-  // 移動先のインデックスを取得（空文字列の場合は末尾）
+  // 移動先のインデックスを取得（nullの場合は末尾）
   let toIndex: number;
-  if (targetUuid === '') {
+  if (targetUuid === null) {
     toIndex = sectionOrder.length - 1;
   } else {
     toIndex = sectionOrder.findIndex(card => card?.uuid === targetUuid);
-    if (toIndex < 0) {
-      console.warn(`[reorderWithinSectionByUUID] Target card not found: ${targetUuid}`);
-      return;
-    }
   }
 
   // インデックスベースの処理に委譲
@@ -468,4 +465,52 @@ function getDeckBySection(deckState: DeckState, section: SectionType): DeckCardR
     case 'trash':
       return deckState.trashDeck;
   }
+}
+
+/**
+ * セクション、sourceUuid、targetUuid の バリデーション
+ *
+ * @param displayOrder - 表示順序の状態
+ * @param section - セクション種別
+ * @param sourceUuid - 移動するカードのUUID
+ * @param targetUuid - 移動先となるカードのUUID（null の場合は末尾）
+ * @returns エラーメッセージ（エラーが無い場合は null）
+ */
+export function validateReorderParameters(
+  displayOrder: DisplayOrderState,
+  section: SectionType,
+  sourceUuid: string,
+  targetUuid: string | null
+): string | null {
+  // セクション順序の妥当性チェック
+  const sectionOrder = displayOrder[section];
+  if (!sectionOrder || !Array.isArray(sectionOrder)) {
+    return `無効なセクション: ${section}`;
+  }
+
+  // sourceUuid の妥当性チェック
+  if (!sourceUuid || typeof sourceUuid !== 'string') {
+    return 'ソースUUIDが無効です';
+  }
+
+  // sourceUuid の存在チェック
+  const sourceIndex = sectionOrder.findIndex(dc => dc?.uuid === sourceUuid);
+  if (sourceIndex === -1) {
+    return 'カードが見つかりません';
+  }
+
+  // targetUuid の妥当性チェック（null は有効）
+  if (targetUuid !== null) {
+    if (!targetUuid || typeof targetUuid !== 'string') {
+      return 'ターゲットUUIDが無効です';
+    }
+
+    // targetUuid の存在チェック
+    const targetIndex = sectionOrder.findIndex(dc => dc?.uuid === targetUuid);
+    if (targetIndex === -1) {
+      return 'ターゲットカードが見つかりません';
+    }
+  }
+
+  return null;
 }

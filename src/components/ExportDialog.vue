@@ -138,7 +138,7 @@ function handleExport() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 100;
 }
 
 .export-dialog {
