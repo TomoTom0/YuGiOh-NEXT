@@ -11,7 +11,7 @@
               :class="{ active: filters.cardType === 'monster' }"
               :disabled="isMonsterTabDisabled"
               :title="isMonsterTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('monster')"
+              @click.stop="selectCardType('monster')"
             >
               モンスター
             </button>
@@ -30,7 +30,7 @@
                 :class="{ active: filters.attributes.includes(attr) }"
                 :disabled="isFieldDisabled('attribute')"
                 :title="isFieldDisabled('attribute') ? getFieldDisabledReason('attribute') : undefined"
-                @click="toggleAttribute(attr)"
+                @click.stop="toggleAttribute(attr)"
               >
                 <img :src="getAttributeIconUrl(attr)" class="attr-icon" :alt="getAttributeLabel(attr)">
                 {{ getAttributeLabel(attr) }}
@@ -47,7 +47,7 @@
               :class="{ active: filters.cardType === 'spell' }"
               :disabled="isSpellTabDisabled"
               :title="isSpellTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('spell')"
+              @click.stop="selectCardType('spell')"
             >
               <img :src="getSpellIconUrl()" class="tab-icon" alt="魔法">
               魔法
@@ -67,7 +67,7 @@
                 :class="{ active: filters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
-                @click="toggleSpellType(type)"
+                @click.stop="toggleSpellType(type)"
               >
                 {{ getSpellTypeLabel(type) }}
               </button>
@@ -80,7 +80,7 @@
                 :class="{ active: filters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
-                @click="toggleSpellType(type)"
+                @click.stop="toggleSpellType(type)"
               >
                 {{ getSpellTypeLabel(type) }}
               </button>
@@ -96,7 +96,7 @@
               :class="{ active: filters.cardType === 'trap' }"
               :disabled="isTrapTabDisabled"
               :title="isTrapTabDisabled ? '他のカードタイプが選択されています' : undefined"
-              @click="selectCardType('trap')"
+              @click.stop="selectCardType('trap')"
             >
               <img :src="getTrapIconUrl()" class="tab-icon" alt="罠">
               罠
@@ -116,7 +116,7 @@
                 :class="{ active: filters.trapTypes.includes(type) }"
                 :disabled="isFieldDisabled('trap-type')"
                 :title="isFieldDisabled('trap-type') ? getFieldDisabledReason('trap-type') : undefined"
-                @click="toggleTrapType(type)"
+                @click.stop="toggleTrapType(type)"
               >
                 {{ getTrapTypeLabel(type) }}
               </button>

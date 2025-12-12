@@ -163,8 +163,6 @@
       <SearchFilterDialog
         v-if="position !== 'bottom'"
         :is-visible="deckStore.isFilterDialogVisible"
-        :initial-filters="searchStore.searchFilters"
-        @apply="handleFilterApply"
       />
     </div>
 
@@ -180,7 +178,6 @@ import { useSettingsStore } from '../../stores/settings'
 // 循環参照回避のため動的インポート
 const SearchFilterDialog = defineAsyncComponent(() => import('../SearchFilterDialog.vue'))
 import type { Attribute, Race, MonsterType, CardType } from '../../types/card'
-import type { SearchFilters } from '../../types/search-filters'
 import type { SearchMode } from '../../types/settings'
 import {
   COMMANDS,
@@ -705,14 +702,6 @@ export default defineComponent({
       searchStore.searchQuery = ''
     }
 
-    const handleFilterApply = (filters: SearchFilters) => {
-      searchStore.searchFilters = filters
-      // ダイアログは「×」ボタンで明示的に閉じる仕様（自動で閉じない）
-      // deckStore.isFilterDialogVisible = false
-      if (searchStore.searchQuery.trim()) {
-        handleSearch()
-      }
-    }
 
     // クライアント側でフィルター条件を適用
     const focus = () => {
@@ -755,7 +744,6 @@ export default defineComponent({
       formattedCommandSuggestions,
       selectedCommandIndex,
       selectCommand,
-      handleFilterApply,
       handleSearch,
       handleInput,
       handleFocus,

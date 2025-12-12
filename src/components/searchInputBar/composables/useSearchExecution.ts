@@ -328,6 +328,14 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       searchStore.searchResults = results as unknown as typeof searchStore.searchResults
       searchStore.allResults = results as unknown as typeof searchStore.allResults
 
+      // 検索実行時に search タブのスクロール位置を上に戻す（アニメーション付き）
+      setTimeout(() => {
+        const editUI = document.querySelector('#ytomo-edit-ui')
+        if (editUI) {
+          editUI.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      }, 100)
+
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {
         const resultCids = results.map(card => card.cardId)

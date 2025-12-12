@@ -17,8 +17,7 @@ import { convertFiltersToIcons } from '@/utils/filter-icons';
 export function useFilterLogic(
   filters: Reactive<SearchFilters>,
   exclusionResult: { value: ExclusionResult },
-  pageLanguage: { value: string },
-  emit: (event: 'apply', filters: SearchFilters) => void
+  pageLanguage: { value: string }
 ) {
   // ===== 無効化状態の判定 =====
 
@@ -245,7 +244,6 @@ export function useFilterLogic(
         filters[stat].max = filters[stat].min;
       }
     }
-    emit('apply', { ...filters });
   }
 
   function toggleStatUnknown(stat: 'atk' | 'def') {
@@ -255,7 +253,6 @@ export function useFilterLogic(
       filters[stat].min = undefined;
       filters[stat].max = undefined;
     }
-    emit('apply', { ...filters });
   }
 
   function validateStatInput(event: Event, stat: 'atk' | 'def', field: 'min' | 'max') {
@@ -265,8 +262,7 @@ export function useFilterLogic(
     // 空文字列は許可
     if (value === '') {
       filters[stat][field] = undefined;
-      emit('apply', { ...filters });
-      return;
+        return;
     }
 
     // 非負整数のみ許可（数字以外の文字を削除）
@@ -290,7 +286,6 @@ export function useFilterLogic(
       filters[stat][field] = undefined;
     }
 
-    emit('apply', { ...filters });
   }
 
   function selectCardType(type: CardType) {
@@ -316,7 +311,6 @@ export function useFilterLogic(
         filters.trapTypes = [];
       }
     }
-    emit('apply', { ...filters });
   }
 
   function toggleAttribute(attr: Attribute) {
@@ -326,7 +320,6 @@ export function useFilterLogic(
     } else {
       filters.attributes.push(attr);
     }
-    emit('apply', { ...filters });
   }
 
   function toggleSpellType(type: SpellEffectType) {
@@ -336,7 +329,6 @@ export function useFilterLogic(
     } else {
       filters.spellTypes.push(type);
     }
-    emit('apply', { ...filters });
   }
 
   function toggleTrapType(type: TrapEffectType) {
@@ -346,7 +338,6 @@ export function useFilterLogic(
     } else {
       filters.trapTypes.push(type);
     }
-    emit('apply', { ...filters });
   }
 
   function toggleRace(race: Race) {
@@ -356,7 +347,6 @@ export function useFilterLogic(
     } else {
       filters.races.push(race);
     }
-    emit('apply', { ...filters });
   }
 
   function getMonsterTypeClass(type: MonsterType) {
@@ -379,17 +369,14 @@ export function useFilterLogic(
     } else {
       filters.monsterTypes.push({ type, state: 'normal' });
     }
-    emit('apply', { ...filters });
   }
 
   function toggleMonsterTypeMatchMode() {
     filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
-    emit('apply', { ...filters });
   }
 
   function toggleLinkMarkerMatchMode() {
     filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
-    emit('apply', { ...filters });
   }
 
   function isLevelValueActive(num: number): boolean {
@@ -416,7 +403,6 @@ export function useFilterLogic(
         filters.scaleValues.push(num);
       }
     }
-    emit('apply', { ...filters });
   }
 
   function toggleLinkValue(num: number) {
@@ -426,7 +412,6 @@ export function useFilterLogic(
     } else {
       filters.linkValues.push(num);
     }
-    emit('apply', { ...filters });
   }
 
   function isLinkMarkerActive(pos: number): boolean {
@@ -441,12 +426,10 @@ export function useFilterLogic(
     } else {
       filters.linkMarkers.push(pos);
     }
-    emit('apply', { ...filters });
   }
 
   function setLevelType(levelType: 'level' | 'link' | 'scale') {
     filters.levelType = levelType;
-    emit('apply', { ...filters });
   }
 
   function clearFilters() {
@@ -466,7 +449,6 @@ export function useFilterLogic(
     filters.atk = { exact: false, unknown: false };
     filters.def = { exact: false, unknown: false };
     filters.releaseDate = {};
-    emit('apply', { ...filters });
   }
 
   return {
