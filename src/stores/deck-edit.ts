@@ -121,16 +121,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
    */
   const categoryMatchedCardIds = computed(() => {
+    const categories = deckInfo.value?.category ?? [];
+    const labelMap = categoryLabelMap.value || {};
+    const unifiedDB = getUnifiedCacheDB();
+    const lang = detectLanguage(document);
+
     return computeCategoryMatchedCardIds(
-      deckInfo.value?.category ?? [],
-      categoryLabelMap.value || {},
+      categories,
+      labelMap,
       {
         main: deckInfo.value.mainDeck,
         extra: deckInfo.value.extraDeck,
         side: deckInfo.value.sideDeck,
         trash: trashDeck.value
       },
-      (cid) => getTempCardDB().get(cid)
+      (cid) => unifiedDB.reconstructCardInfo(cid, lang) || undefined
     );
   });
 
@@ -990,16 +995,33 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * ページ読み込み時の初期化（非同期処理）
    * 画面表示に必須なloadDeck()のPromiseのみを返し、他の初期化は非同期で実行
    */
-  function initializeOnPageLoad(): Promise<void> {
+  async function initializeOnPageLoad(): Promise<void> {
+    // カテゴリラベルマップを事前に読み込み（カテゴリ優先アイコン表示に必要）
+    try {
+      const { getDeckMetadata } = await import('../utils/deck-metadata-loader');
+      const metadata = await getDeckMetadata();
+      const labelMap: Record<string, string> = {};
+      metadata.categories.forEach(cat => {
+        labelMap[cat.value] = cat.label;
+      });
+      categoryLabelMap.value = labelMap;
+    } catch (error) {
+      console.error('Failed to load category label map:', error);
+    }
+
+    // UnifiedCacheDBを事前に初期化（カテゴリマッチングに必要）
+    try {
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.initialize();
+    } catch (error) {
+      console.error('Failed to initialize UnifiedCacheDB:', error);
+    }
+
     // 非同期で実行（await しない）
     (async () => {
       try {
         // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
         await initTempCardDBFromStorage();
-
-        // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
-        const unifiedDB = getUnifiedCacheDB();
-        await unifiedDB.initialize();
 
         // 設定ストアを初期化
         await settingsStore.loadSettings();

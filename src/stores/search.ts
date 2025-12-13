@@ -41,6 +41,29 @@ export const useSearchStore = defineStore('search', () => {
   // グローバル検索モード
   const isGlobalSearchMode = ref(false)
 
+  // 全てのフィルター条件をクリア
+  const clearAllFilters = () => {
+    searchFilters.value = {
+      cardType: null,
+      attributes: [],
+      spellTypes: [],
+      trapTypes: [],
+      races: [],
+      monsterTypes: [],
+      monsterTypeMatchMode: 'or',
+      levelType: 'level',
+      levelValues: [],
+      linkValues: [],
+      scaleValues: [],
+      linkMarkers: [],
+      linkMarkerMatchMode: 'or',
+      atk: { exact: false, unknown: false },
+      def: { exact: false, unknown: false },
+      releaseDate: {}
+    }
+    searchQuery.value = ''
+  }
+
   return {
     searchQuery,
     searchResults,
@@ -49,6 +72,7 @@ export const useSearchStore = defineStore('search', () => {
     hasMore,
     isLoading,
     searchFilters,
-    isGlobalSearchMode
+    isGlobalSearchMode,
+    clearAllFilters
   }
 })

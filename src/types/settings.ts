@@ -294,8 +294,8 @@ export const DEFAULT_UX_SETTINGS: UXSettings = {
     related: 'grid',   // 関連カード: グリッド表示（デフォルト）
     products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
   },
-  rightAreaWidth: 'M',      // Right Area の幅: M（デフォルト）
-  rightAreaFontSize: 'm',   // Right Area のフォントサイズ: m（デフォルト）
+  rightAreaWidth: 'L',      // Right Area の幅: L（デフォルト）
+  rightAreaFontSize: 'l',   // Right Area のフォントサイズ: l（デフォルト）
 };
 
 /**

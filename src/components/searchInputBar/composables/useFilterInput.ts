@@ -20,6 +20,7 @@ import { convertFiltersToIcons } from '@/utils/filter-icons'
 import { getRaceLabel } from '@/utils/filter-label'
 import { detectLanguage } from '@/utils/language-detector'
 import { mappingManager } from '@/utils/mapping-manager'
+import { useSearchHistory } from '@/composables/useSearchHistory'
 import {
   COMMANDS,
   SEARCH_MODE_MAP,
@@ -36,7 +37,6 @@ import {
   MONSTER_TYPE_ID_TO_SHORTNAME
 } from '@/types/card-maps'
 import type { PendingCommand } from './useSlashCommands'
-import type { FilterChip } from './useSearchFilters'
 
 export interface UseFilterInputOptions {
   searchQuery: Ref<string>
@@ -45,7 +45,6 @@ export interface UseFilterInputOptions {
   actualInputValue: ComputedRef<string>
   isNegatedInput: ComputedRef<boolean>
   searchFilters: Ref<SearchFilters>
-  filterChips: Ref<FilterChip[]>
   activeFiltersOptions: ComputedRef<{ value: string; label: string }[]>
   clearAllFilters: () => void
   searchMode: Ref<SearchMode>
@@ -59,7 +58,6 @@ export interface UseFilterInputReturn {
   handleInput: () => void
   handleFocus: () => void
   addFilterChip: () => void
-  removeFilterChip: (index: number) => void
   removeFilterIcon: (icon: FilterIcon, onFilterApply: (filters: SearchFilters) => void) => void
   getChipLabel: (type: string, value: string) => string
 }
@@ -75,12 +73,14 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
     actualInputValue,
     isNegatedInput,
     searchFilters,
-    filterChips,
     activeFiltersOptions,
     clearAllFilters,
     searchMode,
     showMydeckDropdown
   } = options
+
+  // 検索履歴の取得
+  const { favoriteItems, regularItems } = useSearchHistory()
 
   // ページ言語を検出（多言語対応）
   const pageLanguage = computed(() => {
@@ -190,6 +190,28 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
    */
   const filteredSuggestions = computed(() => {
     if (!pendingCommand.value) return []
+
+    // /history-searchの場合は通常の履歴を返す
+    if (pendingCommand.value.command === '/history-search') {
+      const input = actualInputValue.value.toLowerCase()
+      const items = regularItems.value.map((item, index) => ({
+        value: `history-${index}`,
+        label: item.query || '(クエリなし)'
+      }))
+      if (!input) return items
+      return items.filter(opt => opt.label.toLowerCase().includes(input))
+    }
+
+    // /favorite-searchの場合はお気に入りを返す
+    if (pendingCommand.value.command === '/favorite-search') {
+      const input = actualInputValue.value.toLowerCase()
+      const items = favoriteItems.value.map((item, index) => ({
+        value: `favorite-${index}`,
+        label: item.query || '(クエリなし)'
+      }))
+      if (!input) return items
+      return items.filter(opt => opt.label.toLowerCase().includes(input))
+    }
 
     // /clear-one-condの場合は現在の条件リストを返す
     if (pendingCommand.value.command === '/clear-one-cond') {
@@ -310,6 +332,46 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
       } else if (cmd === '/clear-text') {
         // テキストだけクリア
         searchQuery.value = ''
+      } else if (cmd === '/history-search') {
+        // 履歴から選択
+        if (!value) {
+          pendingCommand.value = null
+          return
+        }
+        const match = value.match(/^history-(\d+)$/)
+        if (match) {
+          const index = parseInt(match[1], 10)
+          const item = regularItems.value[index]
+          if (item) {
+            // 履歴アイテムの検索条件を適用
+            searchQuery.value = item.query
+            searchFilters.value = { ...item.filters }
+            searchMode.value = item.searchMode as SearchMode
+          }
+        }
+        pendingCommand.value = null
+        searchQuery.value = searchQuery.value // 検索クエリを保持
+        return
+      } else if (cmd === '/favorite-search') {
+        // お気に入りから選択
+        if (!value) {
+          pendingCommand.value = null
+          return
+        }
+        const match = value.match(/^favorite-(\d+)$/)
+        if (match) {
+          const index = parseInt(match[1], 10)
+          const item = favoriteItems.value[index]
+          if (item) {
+            // お気に入りアイテムの検索条件を適用
+            searchQuery.value = item.query
+            searchFilters.value = { ...item.filters }
+            searchMode.value = item.searchMode as SearchMode
+          }
+        }
+        pendingCommand.value = null
+        searchQuery.value = searchQuery.value // 検索クエリを保持
+        return
       } else if (cmd === '/clear-one-cond') {
         // 条件を選択して削除
         if (!value) {
@@ -322,13 +384,7 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
         const selectedValue = value
         const f = searchFilters.value
 
-        if (selectedValue.startsWith('chip-')) {
-          // チップを削除
-          const index = parseInt(selectedValue.replace('chip-', ''), 10)
-          if (index >= 0 && index < filterChips.value.length) {
-            removeFilterChip(index)
-          }
-        } else if (selectedValue === 'cardType') {
+        if (selectedValue === 'cardType') {
           f.cardType = null
         } else if (selectedValue.startsWith('attr-')) {
           const attr = selectedValue.replace('attr-', '')
@@ -598,74 +654,6 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
   }
 
   /**
-   * チップを削除
-   */
-  const removeFilterChip = (index: number) => {
-    const chip = filterChips.value[index]
-    if (!chip) return
-
-    // フィルターから削除
-    removeChipFromFilters(chip.type, chip.value)
-
-    // チップ配列から削除
-    filterChips.value.splice(index, 1)
-  }
-
-  /**
-   * チップをフィルターから削除
-   */
-  const removeChipFromFilters = (type: string, value: string) => {
-    const f = searchFilters.value
-
-    switch (type) {
-      case 'attributes': {
-        const idx = f.attributes.indexOf(value as Attribute)
-        if (idx !== -1) f.attributes.splice(idx, 1)
-        break
-      }
-      case 'races': {
-        const idx = f.races.indexOf(value as Race)
-        if (idx !== -1) f.races.splice(idx, 1)
-        break
-      }
-      case 'levels': {
-        const level = parseInt(value, 10)
-        const idx = f.levelValues.indexOf(level)
-        if (idx !== -1) f.levelValues.splice(idx, 1)
-        break
-      }
-      case 'atk':
-        f.atk = { exact: false, unknown: false }
-        break
-      case 'def':
-        f.def = { exact: false, unknown: false }
-        break
-      case 'cardType':
-        f.cardType = null
-        break
-      case 'linkNumbers': {
-        const link = parseInt(value, 10)
-        const idx = f.linkValues.indexOf(link)
-        if (idx !== -1) f.linkValues.splice(idx, 1)
-        break
-      }
-      case 'linkMarkers': {
-        const markerValue = LINK_MARKER_MAP[value]
-        if (markerValue !== undefined) {
-          const idx = f.linkMarkers.indexOf(markerValue)
-          if (idx !== -1) f.linkMarkers.splice(idx, 1)
-        }
-        break
-      }
-      case 'monsterTypes': {
-        const idx = f.monsterTypes.findIndex(mt => mt.type === value)
-        if (idx !== -1) f.monsterTypes.splice(idx, 1)
-        break
-      }
-    }
-  }
-
-  /**
    * displayFilterIcons のアイコンを削除
    */
   const removeFilterIcon = (icon: FilterIcon, onFilterApply: (filters: SearchFilters) => void) => {
@@ -731,7 +719,6 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
     handleInput,
     handleFocus,
     addFilterChip,
-    removeFilterChip,
     removeFilterIcon,
     getChipLabel
   }
