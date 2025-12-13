@@ -33,14 +33,11 @@
       <UXSettingsSection v-if="activeSubTab === 'ux'" />
       <CacheManagementSection v-if="activeSubTab === 'general'" />
     </div>
-
-    <VersionFooter :updateDate="updateDate" :version="version" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import VersionFooter from '../VersionFooter.vue';
 import OverviewSection from '../sections/OverviewSection.vue';
 import UISettingsSection from '../sections/UISettingsSection.vue';
 import UXSettingsSection from '../sections/UXSettingsSection.vue';
@@ -49,8 +46,6 @@ import CacheManagementSection from '../sections/CacheManagementSection.vue';
 type SubTab = 'overview' | 'ui' | 'ux' | 'general';
 
 const activeSubTab = ref<SubTab>('overview');
-const updateDate = ref('2025-11-27');
-const version = ref('0.4.1');
 </script>
 
 <style scoped lang="scss">
@@ -62,7 +57,6 @@ const version = ref('0.4.1');
   margin: 24px 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
 }
 
 .sub-tabs {
