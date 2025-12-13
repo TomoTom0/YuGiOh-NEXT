@@ -38,17 +38,17 @@ function initSortfixForCard(cardLink: HTMLAnchorElement): void {
   // vueSetup.tsで追加されたcard-controlsのtop-rightボタンを取得
   const controls = safeQuery<HTMLElement>('.ygo-next-card-controls', cardLink);
   if (!controls) {
-    console.log('[sortfix] card-controls not found for cardLink', cardLink);
+    console.debug('[sortfix] card-controls not found for cardLink', cardLink);
     return;
   }
 
   const topRightBtn = safeQuery<HTMLButtonElement>('.top-right', controls);
   if (!topRightBtn) {
-    console.log('[sortfix] top-right button not found in card-controls', controls);
+    console.debug('[sortfix] top-right button not found in card-controls', controls);
     return;
   }
 
-  console.log('[sortfix] Initializing sortfix for card, sortfix state:', cardLink.hasAttribute('data-ygo-next-sortfix'));
+  console.debug('[sortfix] Initializing sortfix for card, sortfix state:', cardLink.hasAttribute('data-ygo-next-sortfix'));
 
   // sortfix用のSVGアイコンを追加
   updateSortfixIcon(cardLink, topRightBtn);

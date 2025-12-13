@@ -10,6 +10,7 @@
             @click="activeDialogTab = 'filter'"
           >
             検索条件
+            <span v-if="filterCount > 0" class="tab-badge">{{ filterCount }}</span>
           </button>
           <button
             class="dialog-tab"
@@ -135,6 +136,28 @@ const exclusionResult = computed(() => {
 
 // useFilterLogic を使用してフィルタロジックを取得
 const filterLogic = useFilterLogic(filters, exclusionResult, pageLanguage);
+
+// フィルター件数を計算
+const filterCount = computed(() => {
+  let count = 0;
+  const f = filters;
+
+  if (f.cardType) count++;
+  count += f.attributes.length;
+  count += f.spellTypes.length;
+  count += f.trapTypes.length;
+  count += f.races.length;
+  count += f.monsterTypes.length;
+  count += f.levelValues.length;
+  count += f.linkValues.length;
+  count += f.scaleValues.length;
+  count += f.linkMarkers.length;
+  if (f.atk.min !== undefined || f.atk.max !== undefined) count++;
+  if (f.def.min !== undefined || f.def.max !== undefined) count++;
+  if (f.releaseDate.from || f.releaseDate.to) count++;
+
+  return count;
+});
 
 // filterLogicから必要な関数と値を展開
 const {
@@ -360,7 +383,7 @@ function removeHeaderChip(index: number) {
   }
 
   .dialog-title {
-    font-size: var(--right-area-font-size, 14px);
+    font-size: var(--search-ui-font-size, 14px);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -387,7 +410,7 @@ function removeHeaderChip(index: number) {
   align-items: center;
   justify-content: center;
   padding: 2px 6px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
   font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
@@ -423,21 +446,38 @@ function removeHeaderChip(index: number) {
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px 8px;
-  font-size: var(--right-area-font-size, 14px);
+  font-size: var(--search-ui-font-size, 14px);
   font-weight: 500;
   transition: all 0.2s;
+  position: relative;
 
   &:hover {
-    color: var(--text-primary, #000);
+    color: var(--text-primary);
   }
 
   &.active {
-    color: var(--text-primary, #000);
-    border-bottom-color: var(--primary-color, #2196F3);
+    color: var(--text-primary);
+    border-bottom-color: var(--primary-color);
   }
+}
+
+.tab-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  background: var(--text-secondary);
+  color: var(--button-text);
+  border-radius: 8px;
 }
 
 .header-actions {

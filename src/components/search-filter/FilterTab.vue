@@ -795,7 +795,7 @@ function getMonsterTypeButtonLabel(type: string) {
   color: var(--text-primary);
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -806,7 +806,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   font-weight: 600;
   border-radius: 0;
   transition: all 0.2s;
@@ -844,7 +844,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -930,7 +930,7 @@ function getMonsterTypeButtonLabel(type: string) {
 }
 
 .section-title {
-  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
@@ -948,7 +948,7 @@ function getMonsterTypeButtonLabel(type: string) {
   color: var(--text-secondary, #666);
   border-radius: 4px;
   cursor: pointer;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.86);
   font-weight: 600;
   transition: all 0.2s;
   white-space: nowrap;
@@ -982,7 +982,7 @@ function getMonsterTypeButtonLabel(type: string) {
     border: 1.5px solid var(--filter-button-not-border);
     box-shadow: var(--filter-button-not-shadow);
     font-weight: 700;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.71);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
 
     &::before {
       content: 'N-';
@@ -1008,7 +1008,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1065,7 +1065,7 @@ function getMonsterTypeButtonLabel(type: string) {
 
   &.chip-mode-small {
     padding: 2px 6px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.64);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.64);
     font-weight: 700;
     width: auto;
     min-width: 22px;
@@ -1134,10 +1134,15 @@ function getMonsterTypeButtonLabel(type: string) {
   border-radius: 0 0 6px 6px;
 
   .chip[data-type="fusion"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-fusion-chip-default-bg);
-      border-color: var(--monster-fusion-chip-default-border);
-      color: var(--monster-fusion-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      /* 未選択時は淡く表示 */
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-fusion-chip-hover-bg);
@@ -1167,10 +1172,14 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   .chip[data-type="synchro"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-synchro-chip-default-bg);
-      border-color: var(--monster-synchro-chip-default-border);
-      color: var(--monster-synchro-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-synchro-chip-hover-bg);
@@ -1200,10 +1209,14 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   .chip[data-type="xyz"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-xyz-chip-default-bg);
-      border-color: var(--monster-xyz-chip-default-border);
-      color: var(--monster-xyz-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-xyz-chip-hover-bg);
@@ -1233,10 +1246,14 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   .chip[data-type="link"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-link-chip-default-bg);
-      border-color: var(--monster-link-chip-default-border);
-      color: var(--monster-link-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-link-chip-hover-bg);
@@ -1266,10 +1283,14 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   .chip[data-type="ritual"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-ritual-chip-default-bg);
-      border-color: var(--monster-ritual-chip-default-border);
-      color: var(--monster-ritual-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-ritual-chip-hover-bg);
@@ -1299,10 +1320,14 @@ function getMonsterTypeButtonLabel(type: string) {
   }
 
   .chip[data-type="pendulum"] {
-    &:not(:disabled) {
+    &:not(:disabled):not(.active):not(.not) {
       background: var(--monster-pendulum-chip-default-bg);
-      border-color: var(--monster-pendulum-chip-default-border);
-      color: var(--monster-pendulum-chip-default-text);
+      border-color: var(--border-primary);
+      color: var(--text-secondary);
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-pendulum-chip-hover-bg);
@@ -1406,7 +1431,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   font-weight: 600;
   transition: all 0.2s;
   white-space: nowrap;
@@ -1447,7 +1472,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1601,7 +1626,7 @@ function getMonsterTypeButtonLabel(type: string) {
       z-index: 1;
       padding: 2px 6px;
       border-radius: 2px;
-      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
+      font-size: calc(var(--search-ui-font-size, 14px) * 0.64);
       font-weight: 700;
     }
   }
@@ -1679,7 +1704,7 @@ function getMonsterTypeButtonLabel(type: string) {
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   font-weight: 600;
   transition: all 0.2s;
   flex: 1;
@@ -1720,7 +1745,7 @@ function getMonsterTypeButtonLabel(type: string) {
     color: var(--button-text);
     padding: 6px 10px;
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.79);
     font-weight: 400;
     white-space: nowrap;
     z-index: 10001;
@@ -1775,7 +1800,7 @@ function getMonsterTypeButtonLabel(type: string) {
     padding: 6px 8px;
     border: 1px solid var(--border-primary);
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.86);
     background: var(--bg-primary);
     color: var(--text-primary);
     text-align: center;
@@ -1795,7 +1820,7 @@ function getMonsterTypeButtonLabel(type: string) {
   span {
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: var(--right-area-font-size, 14px);
+    font-size: var(--search-ui-font-size, 14px);
   }
 }
 
@@ -1813,7 +1838,7 @@ function getMonsterTypeButtonLabel(type: string) {
     padding: 6px 8px;
     border: 1px solid var(--border-primary);
     border-radius: 4px;
-    font-size: calc(var(--right-area-font-size, 14px) * 0.86);
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.86);
     background: var(--bg-primary);
     color: var(--input-text);
     text-align: center;
@@ -1827,7 +1852,7 @@ function getMonsterTypeButtonLabel(type: string) {
   span {
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: var(--right-area-font-size, 14px);
+    font-size: var(--search-ui-font-size, 14px);
   }
 }
 </style>

@@ -730,7 +730,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 1;
+  z-index: 6; /* 優先配置矢印アイコン（z-index: 5）より前面に表示 */
 }
 
 .card-btn {
@@ -756,6 +756,22 @@ export default {
     display: block;
     position: relative;
     z-index: 1;
+    /* 画像サイズに応じてアイコンサイズを調整 (デフォルト: カード幅の17%) */
+    width: calc(var(--card-width-deck, 59px) * 0.17);
+    height: calc(var(--card-width-deck, 59px) * 0.17);
+  }
+
+  /* section-infoでは--card-width-infoを使用 */
+  .section-info & svg {
+    width: calc(var(--card-width-info, 59px) * 0.17);
+    height: calc(var(--card-width-info, 59px) * 0.17);
+  }
+
+  /* section-searchでは親要素の幅（100%）を基準に */
+  .section-search & svg {
+    width: 17%;
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .btn-text {

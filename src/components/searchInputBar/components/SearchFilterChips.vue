@@ -22,7 +22,7 @@
       <span v-if="icon.isNot" class="not-prefix">N-</span>{{ icon.label }}
     </span>
     <button
-      v-if="hasActiveFilters || filterChipsCount > 0"
+      v-if="hasActiveFilters"
       class="clear-filters-btn-top"
       @click="$emit('clear-all')"
       title="検索条件をクリア"
@@ -50,10 +50,6 @@ export default defineComponent({
       type: Boolean,
       required: true
     },
-    filterChipsCount: {
-      type: Number,
-      required: true
-    },
     compact: {
       type: Boolean,
       default: false
@@ -69,19 +65,19 @@ export default defineComponent({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 6px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+  padding: 1px 4px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.64);
   font-weight: 500;
   border-radius: 3px;
   background: var(--bg-secondary, #f0f0f0);
   color: var(--text-secondary, #666);
   border: 1px solid var(--border-primary, #ddd);
   white-space: nowrap;
-  max-width: 80px;
+  max-width: 70px;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
-  line-height: 1.3;
+  line-height: 1.2;
 
   // クリック可能なチップのスタイル
   &.clickable {
@@ -105,23 +101,23 @@ export default defineComponent({
 .filter-icons-top {
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 3px;
   width: 100%;
   padding: 0 4px;
   align-items: center;
   overflow: hidden;
-  min-height: 18px;
+  min-height: 16px;
   position: relative;
 
-  // ダイアログ上部のチップは大きく、色を変える
+  // ダイアログ上部のチップは色を変える
   .filter-icon-item {
-    font-size: calc(var(--right-area-font-size, 14px) * 0.79);
-    padding: 2px 6px;
-    line-height: 1.3;
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.64);
+    padding: 1px 4px;
+    line-height: 1.2;
     background: var(--filter-chip-top-bg, #e6f2ff);
     border-color: var(--filter-chip-top-border, #b3d9ff);
     color: var(--filter-chip-top-text, #0066cc);
-    max-width: 80px;
+    max-width: 70px;
 
     &.clickable:hover {
       background: var(--danger-bg, #ffe6e6);
@@ -141,7 +137,7 @@ export default defineComponent({
   background: transparent;
   border: none;
   color: var(--text-tertiary, #999);
-  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
   font-weight: 300;
   cursor: pointer;
   padding: 0;

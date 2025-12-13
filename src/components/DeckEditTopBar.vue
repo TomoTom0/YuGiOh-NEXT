@@ -746,7 +746,7 @@ export default {
   position: relative;
   flex: 1 1 auto;
   min-width: 80px;
-  max-width: 300px;
+  max-width: 600px; /* 画面幅に余裕がある場合はより広く表示 */
 }
 
 .dno-chip {

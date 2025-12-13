@@ -113,7 +113,6 @@
           :preview-chip="previewChip"
           :display-filter-icons="displayFilterIcons"
           :has-active-filters="hasActiveFilters"
-          :filter-chips-count="filterChips.length"
           @remove-icon="removeFilterIcon"
           @clear-all="clearAllFilters"
         />
@@ -281,7 +280,6 @@ export default defineComponent({
 
     // Composableを使用してロジックを分離
     const {
-      filterChips,
       activeFiltersOptions,
       filterCount,
       clearAllFilters
@@ -319,7 +317,6 @@ export default defineComponent({
       handleInput,
       handleFocus,
       addFilterChip,
-      removeFilterChip,
       removeFilterIcon
     } = useFilterInput({
       searchQuery: computed({
@@ -331,7 +328,6 @@ export default defineComponent({
       actualInputValue,
       isNegatedInput,
       searchFilters: toRef(searchStore, 'searchFilters'),
-      filterChips,
       activeFiltersOptions,
       clearAllFilters,
       searchMode,
@@ -489,12 +485,6 @@ export default defineComponent({
           event.preventDefault()
           pendingCommand.value = null
           selectedSuggestionIndex.value = -1
-          return
-        }
-        if (searchStore.searchQuery === '' && !pendingCommand.value && filterChips.value.length > 0) {
-          // 最後のチップを削除
-          event.preventDefault()
-          removeFilterChip(filterChips.value.length - 1)
           return
         }
       }
@@ -737,7 +727,6 @@ export default defineComponent({
       displayFilterIcons,
       isCommandMode,
       commandPrefix,
-      filterChips,
       pendingCommand,
       isValidCommandInput,
       currentPlaceholder,
@@ -757,7 +746,6 @@ export default defineComponent({
       handleKeydown,
       handleEnter,
       handleEscape,
-      removeFilterChip,
       removeFilterIcon: handleRemoveFilterIcon,
       selectSuggestion,
       selectMydeck,
@@ -775,6 +763,7 @@ export default defineComponent({
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  font-size: var(--search-ui-font-size, 14px);
 }
 
 /* フィルターアイコンスタイル - 二行均等配置 */
@@ -813,7 +802,7 @@ export default defineComponent({
   justify-content: center;
   width: 12px;
   height: 10px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
+  font-size: 8px; /* 固定値（14px * 0.57 ≈ 8px） */
   font-weight: 600;
   border-radius: 2px;
   background: var(--bg-secondary, #f0f0f0);
@@ -850,11 +839,11 @@ export default defineComponent({
   align-items: center;
   position: relative;
   background: var(--bg-primary);
-  border: 2px solid transparent;
+  border: 1px solid var(--border-primary);
   border-radius: 20px;
   padding: 2px 8px;
-  height: 40px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  height: 46px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: border-color 0.2s, box-shadow 0.2s;
   width: 100%;
   min-width: 0;
@@ -862,16 +851,16 @@ export default defineComponent({
 
   &:hover,
   &:focus-within {
-    border-color: var(--theme-color-start, #00d9b8);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-color: var(--theme-color-start);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   }
 
   &.compact {
-    height: 28px;
+    height: 32px;
     border-radius: 4px;
     padding: 4px 8px;
     box-shadow: none;
-    border-color: var(--border-primary, #ddd);
+    border-color: var(--border-primary);
 
     &:hover,
     &:focus-within {
@@ -880,7 +869,7 @@ export default defineComponent({
 
     .menu-btn {
       padding: 4px 6px;
-      font-size: var(--right-area-font-size, 14px);
+      font-size: var(--search-ui-font-size, 14px);
     }
 
     .search-btn {
@@ -894,7 +883,7 @@ export default defineComponent({
 
     .clear-btn {
       padding: 0 4px;
-      font-size: calc(var(--right-area-font-size, 14px) * 1.14);
+      font-size: calc(var(--search-ui-font-size, 14px) * 1.14);
     }
   }
 }
@@ -930,7 +919,7 @@ export default defineComponent({
   }
 
   .menu-icon {
-    font-size: calc(var(--right-area-font-size, 14px) * 1.14);
+    font-size: calc(var(--search-ui-font-size, 14px) * 1.14);
     font-weight: bold;
     line-height: 1;
   }
@@ -943,7 +932,7 @@ export default defineComponent({
   min-width: 12px;
   height: 12px;
   padding: 0 2px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.57);
   font-weight: 600;
   line-height: 12px;
   text-align: center;

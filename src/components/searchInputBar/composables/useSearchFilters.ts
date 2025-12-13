@@ -5,9 +5,10 @@
  * NOTE: Phase 2の初期実装。将来的にはより詳細な機能を追加予定。
  */
 
-import { ref, computed, type Ref, type ComputedRef } from 'vue'
+import { computed, toRef, type Ref, type ComputedRef } from 'vue'
 import type { SearchFilters } from '@/types/search-filters'
 import { getRaceLabel } from '@/utils/filter-label'
+import { useSearchStore } from '@/stores/search'
 
 export interface FilterChip {
   type: string
@@ -22,7 +23,6 @@ export interface UseSearchFiltersOptions {
 
 export interface UseSearchFiltersReturn {
   searchFilters: Ref<SearchFilters>
-  filterChips: Ref<FilterChip[]>
   activeFiltersOptions: ComputedRef<{ value: string; label: string }[]>
   hasActiveFilters: ComputedRef<boolean>
   filterCount: ComputedRef<number>
@@ -33,26 +33,9 @@ export interface UseSearchFiltersReturn {
  * 検索フィルター管理のComposable
  */
 export function useSearchFilters(options: UseSearchFiltersOptions = {}): UseSearchFiltersReturn {
-  const searchFilters = ref<SearchFilters>(options.initialFilters || {
-    cardType: null,
-    attributes: [],
-    spellTypes: [],
-    trapTypes: [],
-    races: [],
-    monsterTypes: [],
-    monsterTypeMatchMode: 'or',
-    levelType: 'level',
-    levelValues: [],
-    linkValues: [],
-    scaleValues: [],
-    linkMarkers: [],
-    linkMarkerMatchMode: 'or',
-    atk: { exact: false, unknown: false },
-    def: { exact: false, unknown: false },
-    releaseDate: {}
-  })
-
-  const filterChips = ref<FilterChip[]>([])
+  const searchStore = useSearchStore()
+  // searchStoreのsearchFiltersを直接使用（リアクティブに連動）
+  const searchFilters = toRef(searchStore, 'searchFilters')
 
   /**
    * 現在設定されている条件のリストを生成
@@ -60,14 +43,6 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}): UseSear
   const activeFiltersOptions = computed<{ value: string; label: string }[]>(() => {
     const options: { value: string; label: string }[] = []
     const f = searchFilters.value
-
-    // チップから追加
-    filterChips.value.forEach((chip, index) => {
-      options.push({
-        value: `chip-${index}`,
-        label: `${chip.isNot ? '!' : ''}${chip.label} (チップ)`
-      })
-    })
 
     // SearchFilterDialogから追加された条件
     if (f.cardType) {
@@ -126,7 +101,7 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}): UseSear
    */
   const filterCount = computed(() => {
     let count = 0
-    const f = searchFilters.value
+    const f = searchFilters.value // searchStoreのrefなので.valueでアクセス
 
     if (f.cardType) count++
     count += f.attributes.length
@@ -149,30 +124,12 @@ export function useSearchFilters(options: UseSearchFiltersOptions = {}): UseSear
    * 全てのフィルターをクリア
    */
   const clearAllFilters = () => {
-    searchFilters.value = {
-      cardType: null,
-      attributes: [],
-      spellTypes: [],
-      trapTypes: [],
-      races: [],
-      monsterTypes: [],
-      monsterTypeMatchMode: 'or',
-      levelType: 'level',
-      levelValues: [],
-      linkValues: [],
-      scaleValues: [],
-      linkMarkers: [],
-      linkMarkerMatchMode: 'or',
-      atk: { exact: false, unknown: false },
-      def: { exact: false, unknown: false },
-      releaseDate: {}
-    }
-    filterChips.value = []
+    // searchStoreのclearAllFiltersメソッドを呼び出す
+    searchStore.clearAllFilters()
   }
 
   return {
     searchFilters,
-    filterChips,
     activeFiltersOptions,
     hasActiveFilters,
     filterCount,
