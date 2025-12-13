@@ -673,5 +673,6 @@ export const useSettingsStore = defineStore('settings', () => {
     resetSettings,
     applyTheme,
     applyCardSize,
+    applyRightAreaStyles,
   };
 });
