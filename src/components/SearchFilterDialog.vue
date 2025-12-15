@@ -97,7 +97,11 @@
 </template>
 
 <script setup lang="ts">
+<<<<<<< HEAD
 import { computed, ref, nextTick } from 'vue';
+=======
+import { computed, ref } from 'vue';
+>>>>>>> origin/dev-new
 import { useDeckEditStore } from '../stores/deck-edit';
 import { useSearchStore } from '../stores/search';
 import type { CardInfo } from '../types/card';
@@ -114,18 +118,32 @@ const searchStore = useSearchStore();
 const searchHistory = useSearchHistory();
 const activeDialogTab = ref<'filter' | 'history'>('filter');
 
+<<<<<<< HEAD
+=======
+// searchStore.searchFilters を直接使用（watch 不要）
+const filters = searchStore.searchFilters;
+
+>>>>>>> origin/dev-new
 // ページ言語を検出（多言語対応）
 const pageLanguage = computed(() => {
   return detectLanguage(document);
 });
 
 // useFilterLogic を使用してフィルタロジックを取得
+<<<<<<< HEAD
 const filterLogic = useFilterLogic(pageLanguage);
+=======
+const filterLogic = useFilterLogic(filters, exclusionResult, pageLanguage);
+>>>>>>> origin/dev-new
 
 // フィルター件数を計算
 const filterCount = computed(() => {
   let count = 0;
+<<<<<<< HEAD
   const f = searchStore.searchFilters;
+=======
+  const f = filters;
+>>>>>>> origin/dev-new
 
   if (f.cardType) count++;
   count += f.attributes.length;
@@ -462,6 +480,7 @@ function removeHeaderChip(index: number) {
 
 .tab-badge {
   position: absolute;
+<<<<<<< HEAD
   top: -6px;
   right: -6px;
   min-width: 14px;
@@ -475,6 +494,20 @@ function removeHeaderChip(index: number) {
   color: var(--button-text);
   border-radius: 7px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+=======
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  background: var(--text-secondary);
+  color: var(--button-text);
+  border-radius: 8px;
+>>>>>>> origin/dev-new
 }
 
 .header-actions {

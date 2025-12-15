@@ -43,6 +43,7 @@ export const useSearchStore = defineStore('search', () => {
   // グローバル検索モード
   const isGlobalSearchMode = ref(false)
 
+<<<<<<< HEAD
   // exclusionRulesをロード
   const exclusionRules = loadExclusionRules()
 
@@ -52,6 +53,8 @@ export const useSearchStore = defineStore('search', () => {
     return inferExclusions(state, exclusionRules)
   })
 
+=======
+>>>>>>> origin/dev-new
   // 全てのフィルター条件をクリア
   const clearAllFilters = () => {
     searchFilters.value = {
@@ -72,6 +75,10 @@ export const useSearchStore = defineStore('search', () => {
       def: { exact: false, unknown: false },
       releaseDate: {}
     }
+<<<<<<< HEAD
+=======
+    searchQuery.value = ''
+>>>>>>> origin/dev-new
   }
 
   return {
@@ -83,7 +90,10 @@ export const useSearchStore = defineStore('search', () => {
     isLoading,
     searchFilters,
     isGlobalSearchMode,
+<<<<<<< HEAD
     exclusionResult,
+=======
+>>>>>>> origin/dev-new
     clearAllFilters
   }
 })

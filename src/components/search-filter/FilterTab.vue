@@ -1159,6 +1159,14 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-fusion-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      /* 未選択時は淡く表示 */
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-fusion-chip-hover-bg);
@@ -1192,6 +1200,13 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-synchro-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-synchro-chip-hover-bg);
@@ -1225,6 +1240,13 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-xyz-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-xyz-chip-hover-bg);
@@ -1258,6 +1280,13 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-link-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-link-chip-hover-bg);
@@ -1291,6 +1320,13 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-ritual-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-ritual-chip-hover-bg);
@@ -1324,6 +1360,13 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-pendulum-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
+<<<<<<< HEAD
+=======
+      filter: brightness(1.3) saturate(0.4);
+    }
+    &:not(:disabled):not(.active):not(.not):hover {
+      filter: brightness(1.1) saturate(0.6);
+>>>>>>> origin/dev-new
     }
     &:hover:not(:disabled) {
       background: var(--monster-pendulum-chip-hover-bg);

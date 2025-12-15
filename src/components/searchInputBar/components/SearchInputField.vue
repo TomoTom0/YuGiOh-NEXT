@@ -83,7 +83,11 @@ defineExpose({
   outline: none;
   background: transparent;
   font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
+<<<<<<< HEAD
   color: var(--text-primary);
+=======
+  color: var(--ygo-next-color-text);
+>>>>>>> origin/dev-new
   min-width: 0;
   text-align: left;
 

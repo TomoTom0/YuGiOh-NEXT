@@ -365,9 +365,16 @@ export async function searchCardsAuto(
   if (keyword.length === 1) {
     return {
       cards: await searchCards({
+<<<<<<< HEAD
         ...options,
         searchType: '1',
         resultsPerPage: limit
+=======
+        keyword,
+        searchType: '1',
+        cardType: ctype,
+        resultsPerPage: limit || 100
+>>>>>>> origin/dev-new
       })
     };
   }
@@ -376,6 +383,15 @@ export async function searchCardsAuto(
   try {
     // 3つの検索を並列実行
     const [nameResults, textResults, pendulumResults] = await Promise.all([
+<<<<<<< HEAD
+=======
+      searchCards({
+        keyword,
+        searchType: '1',
+        cardType: ctype,
+        resultsPerPage: searchLimit
+      }),
+>>>>>>> origin/dev-new
       searchCards({
         ...options,
         searchType: '1',

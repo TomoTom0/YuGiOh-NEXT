@@ -14,6 +14,11 @@ import { useSearchStore } from '@/stores/search';
  * - チップ表示用の computed
  */
 export function useFilterLogic(
+<<<<<<< HEAD
+=======
+  filters: Reactive<SearchFilters>,
+  exclusionResult: { value: ExclusionResult },
+>>>>>>> origin/dev-new
   pageLanguage: { value: string }
 ) {
   const searchStore = useSearchStore();
@@ -263,7 +268,11 @@ export function useFilterLogic(
 
     // 空文字列は許可
     if (value === '') {
+<<<<<<< HEAD
       searchStore.searchFilters[stat][field] = undefined;
+=======
+      filters[stat][field] = undefined;
+>>>>>>> origin/dev-new
         return;
     }
 
@@ -374,11 +383,19 @@ export function useFilterLogic(
   }
 
   function toggleMonsterTypeMatchMode() {
+<<<<<<< HEAD
     searchStore.searchFilters.monsterTypeMatchMode = searchStore.searchFilters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
   }
 
   function toggleLinkMarkerMatchMode() {
     searchStore.searchFilters.linkMarkerMatchMode = searchStore.searchFilters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
+=======
+    filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
+  }
+
+  function toggleLinkMarkerMatchMode() {
+    filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
+>>>>>>> origin/dev-new
   }
 
   function isLevelValueActive(num: number): boolean {
@@ -431,12 +448,35 @@ export function useFilterLogic(
   }
 
   function setLevelType(levelType: 'level' | 'link' | 'scale') {
+<<<<<<< HEAD
     searchStore.searchFilters.levelType = levelType;
   }
 
   function clearFilters() {
     const searchStore = useSearchStore();
     searchStore.clearAllFilters();
+=======
+    filters.levelType = levelType;
+  }
+
+  function clearFilters() {
+    filters.cardType = null;
+    filters.attributes = [];
+    filters.spellTypes = [];
+    filters.trapTypes = [];
+    filters.races = [];
+    filters.monsterTypes = [];
+    filters.monsterTypeMatchMode = 'or';
+    filters.levelType = 'level';
+    filters.levelValues = [];
+    filters.linkValues = [];
+    filters.scaleValues = [];
+    filters.linkMarkers = [];
+    filters.linkMarkerMatchMode = 'or';
+    filters.atk = { exact: false, unknown: false };
+    filters.def = { exact: false, unknown: false };
+    filters.releaseDate = {};
+>>>>>>> origin/dev-new
   }
 
   return {
