@@ -22,6 +22,9 @@
 
     <div class="setting-group">
       <h3 class="setting-title">カード画像サイズ</h3>
+      <p class="sub-description">
+        カード詳細エリアの表示/非表示に関わらず、デッキ表示ページのカード画像サイズを変更できます。
+      </p>
       <div class="size-buttons">
         <button
           v-for="size in cardImageSizes"
@@ -29,7 +32,6 @@
           class="size-button"
           :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
           @click="handleChangeCardImageSize(size.value)"
-          :disabled="!settingsStore.appSettings.showCardDetailInDeckDisplay"
         >
           {{ size.label }}
         </button>
@@ -97,6 +99,13 @@ const handleChangeCardImageSize = (size: CardSize) => {
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 16px 0;
+}
+
+.sub-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 12px 0;
+  font-weight: 400;
 }
 
 .toggle-label {

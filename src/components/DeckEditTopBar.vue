@@ -736,7 +736,7 @@ export default {
   bottom: 0;
   z-index: 5;
   background: transparent;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .deck-name-group {
