@@ -52,7 +52,6 @@
           uniqueId="related"
           @sort-change="handleRelatedSortChange"
           @scroll="handleRelatedScroll"
-          @scroll-to-top="handleScrollToTop"
           @update:sortOrder="relatedSortOrder = $event"
           @update:viewMode="relatedViewMode = $event"
         />
@@ -137,13 +136,6 @@ export default {
         relatedCurrentPage.value++
         relatedLoadingMore.value = false
       }, 300)
-    }
-
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
     }
 
     const fetchDetail = async () => {
@@ -282,8 +274,7 @@ export default {
       displayedRelatedCards,
       relatedLoadingMore,
       handleRelatedSortChange,
-      handleRelatedScroll,
-      handleScrollToTop
+      handleRelatedScroll
     }
   }
 }

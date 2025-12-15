@@ -82,7 +82,7 @@
  */
 -->
 <template>
-  <div class="card-list-wrapper">
+  <div ref="wrapperRef" class="card-list-wrapper">
     <button
       v-if="showCollapseButton"
       class="floating-btn collapse-btn"
@@ -95,7 +95,7 @@
     </button>
     <button
       class="floating-btn scroll-top-btn"
-      @click="$emit('scroll-to-top')"
+      @click="handleScrollTopClick"
       title="トップへ"
     >
       <svg width="12" height="12" viewBox="0 0 24 24">
@@ -259,6 +259,7 @@ export default {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
     const localViewMode = ref(props.viewMode)
+    const wrapperRef = ref(null)
 
     // 展開状態のカードUUIDセット
     const expandedCards = reactive(new Set())
@@ -455,7 +456,29 @@ export default {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     }
 
+    const handleScrollTopClick = () => {
+      if (!wrapperRef.value) {
+        return
+      }
+
+      let scrollParent = wrapperRef.value.parentElement
+      let depth = 0
+      while (scrollParent) {
+        const overflowY = window.getComputedStyle(scrollParent).overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+          scrollParent.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+        scrollParent = scrollParent.parentElement
+        depth++
+        if (depth > 10) {
+          break
+        }
+      }
+    }
+
     return {
+      wrapperRef,
       sortBase,
       sortDirection,
       localSortOrder,
@@ -465,6 +488,7 @@ export default {
       handleSortChange,
       toggleSortDirection,
       toggleCardExpand,
+      handleScrollTopClick,
       getAttributeLabel,
       getRaceLabel,
       getMonsterTypeLabel,
@@ -488,7 +512,7 @@ export default {
   position: sticky;
   top: 4px;
   left: 4px;
-  z-index: 5;
+  z-index: 9;
   margin: 0 0 -28px 0;
 }
 
@@ -496,7 +520,7 @@ export default {
   position: sticky;
   top: 4px;
   left: 40px;
-  z-index: 5;
+  z-index: 9;
   margin: 0 0 -28px 0;
 }
 

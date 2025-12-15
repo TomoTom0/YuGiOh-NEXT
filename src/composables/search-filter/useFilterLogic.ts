@@ -1,10 +1,9 @@
-import { computed, type Reactive } from 'vue';
+import { computed } from 'vue';
 import type { Attribute, Race, MonsterType, CardType, SpellEffectType, TrapEffectType } from '@/types/card';
-import type { SearchFilters } from '@/types/search-filters';
-import type { ExclusionResult } from '@/types/search-exclusion';
 import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel, getRaceLabel, getMonsterTypeLabel } from '@/utils/filter-label';
 import { formatStatLabel, formatNumberRange, formatLinkMarkerLabel } from '@/utils/filter-chip-formatter';
 import { convertFiltersToIcons } from '@/utils/filter-icons';
+import { useSearchStore } from '@/stores/search';
 
 /**
  * SearchFilterDialog のフィルタロジックを抽出した Composable
@@ -15,10 +14,10 @@ import { convertFiltersToIcons } from '@/utils/filter-icons';
  * - チップ表示用の computed
  */
 export function useFilterLogic(
-  filters: Reactive<SearchFilters>,
-  exclusionResult: { value: ExclusionResult },
   pageLanguage: { value: string }
 ) {
+  const searchStore = useSearchStore();
+  const exclusionResult = computed(() => searchStore.exclusionResult);
   // ===== 無効化状態の判定 =====
 
   /**
@@ -30,7 +29,7 @@ export function useFilterLogic(
       return !attrState.enabled;
     }
     // フォールバック: cardTypeがmonster以外の場合は無効
-    return filters.cardType !== null && filters.cardType !== 'monster';
+    return searchStore.searchFilters.cardType !== null && searchStore.searchFilters.cardType !== 'monster';
   });
 
   /**
@@ -121,18 +120,18 @@ export function useFilterLogic(
       return !fieldState.enabled;
     }
     // フィールドが存在しない場合は、card-typeから推論
-    if (filters.cardType !== null) {
+    if (searchStore.searchFilters.cardType !== null) {
       // monsterカードタイプ専用フィールド
       const monsterOnlyFields = ['attribute', 'race', 'level-rank', 'link-value', 'link-marker', 'p-scale', 'atk', 'def'];
-      if (monsterOnlyFields.includes(field) && filters.cardType !== 'monster') {
+      if (monsterOnlyFields.includes(field) && searchStore.searchFilters.cardType !== 'monster') {
         return true;
       }
       // spellカードタイプ専用フィールド
-      if (field === 'spell-type' && filters.cardType !== 'spell') {
+      if (field === 'spell-type' && searchStore.searchFilters.cardType !== 'spell') {
         return true;
       }
       // trapカードタイプ専用フィールド
-      if (field === 'trap-type' && filters.cardType !== 'trap') {
+      if (field === 'trap-type' && searchStore.searchFilters.cardType !== 'trap') {
         return true;
       }
     }
@@ -142,39 +141,41 @@ export function useFilterLogic(
   // ===== チップ表示用の computed =====
 
   const selectedAttributeChips = computed(() => {
-    return filters.attributes.map(attr => getAttributeLabel(attr, pageLanguage.value));
+    return searchStore.searchFilters.attributes.map(attr => getAttributeLabel(attr, pageLanguage.value));
   });
 
   const selectedSpellTypeChips = computed(() => {
-    return filters.spellTypes.map(type => getSpellTypeLabel(type));
+    return searchStore.searchFilters.spellTypes.map(type => getSpellTypeLabel(type));
   });
 
   const selectedTrapTypeChips = computed(() => {
-    return filters.trapTypes.map(type => getTrapTypeLabel(type));
+    return searchStore.searchFilters.trapTypes.map(type => getTrapTypeLabel(type));
   });
 
   const selectedRaceChips = computed(() => {
-    return filters.races.map(race => getRaceLabel(race));
+    return searchStore.searchFilters.races.map(race => getRaceLabel(race));
   });
 
   const selectedMonsterTypeChips = computed(() => {
-    return filters.monsterTypes.map(mt => {
+    return searchStore.searchFilters.monsterTypes.map(mt => {
       const label = getMonsterTypeLabel(mt.type);
       return mt.state === 'not' ? `N-${label}` : label;
     });
   });
 
   const selectedLevelChips = computed(() => {
-    if (filters.levelValues.length === 0) return [];
-    return [formatNumberRange(filters.levelValues, '★')];
+    if (searchStore.searchFilters.levelValues.length === 0) return [];
+    const label = formatNumberRange(searchStore.searchFilters.levelValues, '★');
+    return label ? [label] : [];
   });
 
   const selectedLinkChips = computed(() => {
     const chips: string[] = [];
-    if (filters.linkValues.length > 0) {
-      chips.push(formatNumberRange(filters.linkValues, 'L'));
+    if (searchStore.searchFilters.linkValues.length > 0) {
+      const label = formatNumberRange(searchStore.searchFilters.linkValues, 'L');
+      if (label) chips.push(label);
     }
-    const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
+    const linkMarkerLabel = formatLinkMarkerLabel(searchStore.searchFilters.linkMarkers);
     if (linkMarkerLabel) {
       chips.push(linkMarkerLabel);
     }
@@ -182,49 +183,50 @@ export function useFilterLogic(
   });
 
   const selectedScaleChips = computed(() => {
-    if (filters.scaleValues.length === 0) return [];
-    return [formatNumberRange(filters.scaleValues, 'PS')];
+    if (searchStore.searchFilters.scaleValues.length === 0) return [];
+    const label = formatNumberRange(searchStore.searchFilters.scaleValues, 'PS');
+    return label ? [label] : [];
   });
 
   const selectedAtkChips = computed(() => {
-    const label = formatStatLabel('ATK', filters.atk);
+    const label = formatStatLabel('ATK', searchStore.searchFilters.atk);
     return label ? [label] : [];
   });
 
   const selectedDefChips = computed(() => {
-    const label = formatStatLabel('DEF', filters.def);
+    const label = formatStatLabel('DEF', searchStore.searchFilters.def);
     return label ? [label] : [];
   });
 
   const headerFilterIcons = computed(() => {
-    return convertFiltersToIcons(filters);
+    return convertFiltersToIcons(searchStore.searchFilters);
   });
 
   const activeConditionChips = computed(() => {
     const chips: string[] = [];
-    if (filters.cardType) {
-      const typeLabel = { monster: 'モンスター', spell: '魔法', trap: '罠' }[filters.cardType];
+    if (searchStore.searchFilters.cardType) {
+      const typeLabel = { monster: 'モンスター', spell: '魔法', trap: '罠' }[searchStore.searchFilters.cardType];
       chips.push(typeLabel);
     }
-    if (filters.attributes.length > 0) chips.push(`属性:${filters.attributes.length}件`);
-    if (filters.spellTypes.length > 0) chips.push(`魔法:${filters.spellTypes.length}件`);
-    if (filters.trapTypes.length > 0) chips.push(`罠:${filters.trapTypes.length}件`);
-    if (filters.races.length > 0) chips.push(`種族:${filters.races.length}件`);
-    if (filters.monsterTypes.length > 0) chips.push(`タイプ:${filters.monsterTypes.length}件`);
-    if (filters.levelValues.length > 0) chips.push(`レベル:${filters.levelValues.length}件`);
-    if (filters.linkValues.length > 0) chips.push(`リンク数:${filters.linkValues.length}件`);
-    if (filters.scaleValues.length > 0) chips.push(`Pスケール:${filters.scaleValues.length}件`);
-    const linkMarkerLabel = formatLinkMarkerLabel(filters.linkMarkers);
+    if (searchStore.searchFilters.attributes.length > 0) chips.push(`属性:${searchStore.searchFilters.attributes.length}件`);
+    if (searchStore.searchFilters.spellTypes.length > 0) chips.push(`魔法:${searchStore.searchFilters.spellTypes.length}件`);
+    if (searchStore.searchFilters.trapTypes.length > 0) chips.push(`罠:${searchStore.searchFilters.trapTypes.length}件`);
+    if (searchStore.searchFilters.races.length > 0) chips.push(`種族:${searchStore.searchFilters.races.length}件`);
+    if (searchStore.searchFilters.monsterTypes.length > 0) chips.push(`タイプ:${searchStore.searchFilters.monsterTypes.length}件`);
+    if (searchStore.searchFilters.levelValues.length > 0) chips.push(`レベル:${searchStore.searchFilters.levelValues.length}件`);
+    if (searchStore.searchFilters.linkValues.length > 0) chips.push(`リンク数:${searchStore.searchFilters.linkValues.length}件`);
+    if (searchStore.searchFilters.scaleValues.length > 0) chips.push(`Pスケール:${searchStore.searchFilters.scaleValues.length}件`);
+    const linkMarkerLabel = formatLinkMarkerLabel(searchStore.searchFilters.linkMarkers);
     if (linkMarkerLabel) {
       chips.push(linkMarkerLabel);
     }
-    if (filters.atk.exact || filters.atk.unknown || filters.atk.min !== undefined || filters.atk.max !== undefined) {
+    if (searchStore.searchFilters.atk.exact || searchStore.searchFilters.atk.unknown || searchStore.searchFilters.atk.min !== undefined || searchStore.searchFilters.atk.max !== undefined) {
       chips.push('ATK指定');
     }
-    if (filters.def.exact || filters.def.unknown || filters.def.min !== undefined || filters.def.max !== undefined) {
+    if (searchStore.searchFilters.def.exact || searchStore.searchFilters.def.unknown || searchStore.searchFilters.def.min !== undefined || searchStore.searchFilters.def.max !== undefined) {
       chips.push('DEF指定');
     }
-    if (filters.releaseDate.from || filters.releaseDate.to) chips.push('発売日指定');
+    if (searchStore.searchFilters.releaseDate.from || searchStore.searchFilters.releaseDate.to) chips.push('発売日指定');
     return chips;
   });
 
@@ -233,25 +235,25 @@ export function useFilterLogic(
   // ===== フィルタ操作関数 =====
 
   function getStatFilter(stat: 'atk' | 'def') {
-    return filters[stat];
+    return searchStore.searchFilters[stat];
   }
 
   function toggleStatExact(stat: 'atk' | 'def') {
-    filters[stat].exact = !filters[stat].exact;
-    if (filters[stat].exact) {
-      filters[stat].unknown = false;
-      if (filters[stat].min !== undefined) {
-        filters[stat].max = filters[stat].min;
+    searchStore.searchFilters[stat].exact = !searchStore.searchFilters[stat].exact;
+    if (searchStore.searchFilters[stat].exact) {
+      searchStore.searchFilters[stat].unknown = false;
+      if (searchStore.searchFilters[stat].min !== undefined) {
+        searchStore.searchFilters[stat].max = searchStore.searchFilters[stat].min;
       }
     }
   }
 
   function toggleStatUnknown(stat: 'atk' | 'def') {
-    filters[stat].unknown = !filters[stat].unknown;
-    if (filters[stat].unknown) {
-      filters[stat].exact = false;
-      filters[stat].min = undefined;
-      filters[stat].max = undefined;
+    searchStore.searchFilters[stat].unknown = !searchStore.searchFilters[stat].unknown;
+    if (searchStore.searchFilters[stat].unknown) {
+      searchStore.searchFilters[stat].exact = false;
+      searchStore.searchFilters[stat].min = undefined;
+      searchStore.searchFilters[stat].max = undefined;
     }
   }
 
@@ -261,7 +263,7 @@ export function useFilterLogic(
 
     // 空文字列は許可
     if (value === '') {
-      filters[stat][field] = undefined;
+      searchStore.searchFilters[stat][field] = undefined;
         return;
     }
 
@@ -276,179 +278,165 @@ export function useFilterLogic(
     // 数値に変換
     if (sanitized !== '') {
       const numValue = parseInt(sanitized, 10);
-      filters[stat][field] = numValue;
+      searchStore.searchFilters[stat][field] = numValue;
 
       // exactモードの場合は両方を同期
-      if (filters[stat].exact && field === 'min') {
-        filters[stat].max = numValue;
+      if (searchStore.searchFilters[stat].exact && field === 'min') {
+        searchStore.searchFilters[stat].max = numValue;
       }
     } else {
-      filters[stat][field] = undefined;
+      searchStore.searchFilters[stat][field] = undefined;
     }
 
   }
 
   function selectCardType(type: CardType) {
-    if (filters.cardType === type) {
-      filters.cardType = null;
+    if (searchStore.searchFilters.cardType === type) {
+      searchStore.searchFilters.cardType = null;
     } else {
-      filters.cardType = type;
+      searchStore.searchFilters.cardType = type;
       if (type !== 'monster') {
-        filters.attributes = [];
-        filters.races = [];
-        filters.monsterTypes = [];
-        filters.levelValues = [];
-        filters.linkValues = [];
-        filters.scaleValues = [];
-        filters.linkMarkers = [];
-        filters.atk = { exact: false, unknown: false };
-        filters.def = { exact: false, unknown: false };
+        searchStore.searchFilters.attributes = [];
+        searchStore.searchFilters.races = [];
+        searchStore.searchFilters.monsterTypes = [];
+        searchStore.searchFilters.levelValues = [];
+        searchStore.searchFilters.linkValues = [];
+        searchStore.searchFilters.scaleValues = [];
+        searchStore.searchFilters.linkMarkers = [];
+        searchStore.searchFilters.atk = { exact: false, unknown: false };
+        searchStore.searchFilters.def = { exact: false, unknown: false };
       }
       if (type !== 'spell') {
-        filters.spellTypes = [];
+        searchStore.searchFilters.spellTypes = [];
       }
       if (type !== 'trap') {
-        filters.trapTypes = [];
+        searchStore.searchFilters.trapTypes = [];
       }
     }
   }
 
   function toggleAttribute(attr: Attribute) {
-    const index = filters.attributes.indexOf(attr);
+    const index = searchStore.searchFilters.attributes.indexOf(attr);
     if (index >= 0) {
-      filters.attributes.splice(index, 1);
+      searchStore.searchFilters.attributes.splice(index, 1);
     } else {
-      filters.attributes.push(attr);
+      searchStore.searchFilters.attributes.push(attr);
     }
   }
 
   function toggleSpellType(type: SpellEffectType) {
-    const index = filters.spellTypes.indexOf(type);
+    const index = searchStore.searchFilters.spellTypes.indexOf(type);
     if (index >= 0) {
-      filters.spellTypes.splice(index, 1);
+      searchStore.searchFilters.spellTypes.splice(index, 1);
     } else {
-      filters.spellTypes.push(type);
+      searchStore.searchFilters.spellTypes.push(type);
     }
   }
 
   function toggleTrapType(type: TrapEffectType) {
-    const index = filters.trapTypes.indexOf(type);
+    const index = searchStore.searchFilters.trapTypes.indexOf(type);
     if (index >= 0) {
-      filters.trapTypes.splice(index, 1);
+      searchStore.searchFilters.trapTypes.splice(index, 1);
     } else {
-      filters.trapTypes.push(type);
+      searchStore.searchFilters.trapTypes.push(type);
     }
   }
 
   function toggleRace(race: Race) {
-    const index = filters.races.indexOf(race);
+    const index = searchStore.searchFilters.races.indexOf(race);
     if (index >= 0) {
-      filters.races.splice(index, 1);
+      searchStore.searchFilters.races.splice(index, 1);
     } else {
-      filters.races.push(race);
+      searchStore.searchFilters.races.push(race);
     }
   }
 
   function getMonsterTypeClass(type: MonsterType) {
-    const item = filters.monsterTypes.find(t => t.type === type);
+    const item = searchStore.searchFilters.monsterTypes.find(t => t.type === type);
     if (!item) return '';
     return item.state === 'normal' ? 'active' : 'not';
   }
 
   function cycleMonsterTypeState(type: MonsterType) {
-    const index = filters.monsterTypes.findIndex(t => t.type === type);
+    const index = searchStore.searchFilters.monsterTypes.findIndex(t => t.type === type);
     if (index >= 0) {
-      const current = filters.monsterTypes[index];
+      const current = searchStore.searchFilters.monsterTypes[index];
       if (current) {
         if (current.state === 'normal') {
           current.state = 'not';
         } else {
-          filters.monsterTypes.splice(index, 1);
+          searchStore.searchFilters.monsterTypes.splice(index, 1);
         }
       }
     } else {
-      filters.monsterTypes.push({ type, state: 'normal' });
+      searchStore.searchFilters.monsterTypes.push({ type, state: 'normal' });
     }
   }
 
   function toggleMonsterTypeMatchMode() {
-    filters.monsterTypeMatchMode = filters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
+    searchStore.searchFilters.monsterTypeMatchMode = searchStore.searchFilters.monsterTypeMatchMode === 'and' ? 'or' : 'and';
   }
 
   function toggleLinkMarkerMatchMode() {
-    filters.linkMarkerMatchMode = filters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
+    searchStore.searchFilters.linkMarkerMatchMode = searchStore.searchFilters.linkMarkerMatchMode === 'and' ? 'or' : 'and';
   }
 
   function isLevelValueActive(num: number): boolean {
-    if (filters.levelType === 'level') {
-      return filters.levelValues.includes(num);
+    if (searchStore.searchFilters.levelType === 'level') {
+      return searchStore.searchFilters.levelValues.includes(num);
     } else {
-      return filters.scaleValues.includes(num);
+      return searchStore.searchFilters.scaleValues.includes(num);
     }
   }
 
   function toggleLevelValue(num: number) {
-    if (filters.levelType === 'level') {
-      const index = filters.levelValues.indexOf(num);
+    if (searchStore.searchFilters.levelType === 'level') {
+      const index = searchStore.searchFilters.levelValues.indexOf(num);
       if (index >= 0) {
-        filters.levelValues.splice(index, 1);
+        searchStore.searchFilters.levelValues.splice(index, 1);
       } else {
-        filters.levelValues.push(num);
+        searchStore.searchFilters.levelValues.push(num);
       }
     } else {
-      const index = filters.scaleValues.indexOf(num);
+      const index = searchStore.searchFilters.scaleValues.indexOf(num);
       if (index >= 0) {
-        filters.scaleValues.splice(index, 1);
+        searchStore.searchFilters.scaleValues.splice(index, 1);
       } else {
-        filters.scaleValues.push(num);
+        searchStore.searchFilters.scaleValues.push(num);
       }
     }
   }
 
   function toggleLinkValue(num: number) {
-    const index = filters.linkValues.indexOf(num);
+    const index = searchStore.searchFilters.linkValues.indexOf(num);
     if (index >= 0) {
-      filters.linkValues.splice(index, 1);
+      searchStore.searchFilters.linkValues.splice(index, 1);
     } else {
-      filters.linkValues.push(num);
+      searchStore.searchFilters.linkValues.push(num);
     }
   }
 
   function isLinkMarkerActive(pos: number): boolean {
     if (pos === 5) return false;
-    return filters.linkMarkers.includes(pos);
+    return searchStore.searchFilters.linkMarkers.includes(pos);
   }
 
   function toggleLinkMarker(pos: number) {
-    const index = filters.linkMarkers.indexOf(pos);
+    const index = searchStore.searchFilters.linkMarkers.indexOf(pos);
     if (index >= 0) {
-      filters.linkMarkers.splice(index, 1);
+      searchStore.searchFilters.linkMarkers.splice(index, 1);
     } else {
-      filters.linkMarkers.push(pos);
+      searchStore.searchFilters.linkMarkers.push(pos);
     }
   }
 
   function setLevelType(levelType: 'level' | 'link' | 'scale') {
-    filters.levelType = levelType;
+    searchStore.searchFilters.levelType = levelType;
   }
 
   function clearFilters() {
-    filters.cardType = null;
-    filters.attributes = [];
-    filters.spellTypes = [];
-    filters.trapTypes = [];
-    filters.races = [];
-    filters.monsterTypes = [];
-    filters.monsterTypeMatchMode = 'or';
-    filters.levelType = 'level';
-    filters.levelValues = [];
-    filters.linkValues = [];
-    filters.scaleValues = [];
-    filters.linkMarkers = [];
-    filters.linkMarkerMatchMode = 'or';
-    filters.atk = { exact: false, unknown: false };
-    filters.def = { exact: false, unknown: false };
-    filters.releaseDate = {};
+    const searchStore = useSearchStore();
+    searchStore.clearAllFilters();
   }
 
   return {

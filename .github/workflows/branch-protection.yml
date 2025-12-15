@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - dev
+      - main-new
+      - dev-new
 
 jobs:
   check-branch-policy:
@@ -26,6 +28,21 @@ jobs:
 
           echo "✅ Branch policy check passed: PR from dev to main"
 
+      - name: Check main-new branch policy
+        if: github.base_ref == 'main-new'
+        run: |
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Head branch: ${{ github.head_ref }}"
+
+          # main-newブランチへのPRはdev-newからのみ許可
+          if [[ "${{ github.head_ref }}" != "dev-new" ]]; then
+            echo "❌ Error: PRs to 'main-new' must come from 'dev-new' branch only"
+            echo "Current head branch: ${{ github.head_ref }}"
+            exit 1
+          fi
+
+          echo "✅ Branch policy check passed: PR from dev-new to main-new"
+
       - name: Check dev branch policy
         if: github.base_ref == 'dev'
         run: |
@@ -33,3 +50,11 @@ jobs:
           echo "Head branch: ${{ github.head_ref }}"
 
           echo "✅ Branch policy check passed: PR to dev (no branch name restriction)"
+
+      - name: Check dev-new branch policy
+        if: github.base_ref == 'dev-new'
+        run: |
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Head branch: ${{ github.head_ref }}"
+
+          echo "✅ Branch policy check passed: PR to dev-new (no branch name restriction)"

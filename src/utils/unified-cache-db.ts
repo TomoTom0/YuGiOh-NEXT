@@ -976,7 +976,6 @@ export class UnifiedCacheDB {
     const tableB = this.cardTableB.get(cardId);
 
     if (!tableA || !tableB) {
-      console.debug(`[reconstructCardInfo] Missing tableA or tableB for cardId=${cardId}`);
       return undefined;
     }
 

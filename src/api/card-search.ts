@@ -1,6 +1,5 @@
 import {
   CardInfo,
-  CardType,
   CardBase,
   MonsterCard,
   SpellCard,
@@ -357,45 +356,40 @@ export async function searchCards(options: SearchOptions): Promise<CardInfo[]> {
 // SearchAutoResult は @/types/api/search-types.ts に移動しました
 
 export async function searchCardsAuto(
-  keyword: string,
-  limit?: number,
-  ctype?: CardType
+  options: SearchOptions
 ): Promise<SearchAutoResult> {
+  const keyword = options.keyword;
+  const limit = options.resultsPerPage || 100;
+
   // 1文字の場合はカード名検索のみ
   if (keyword.length === 1) {
     return {
       cards: await searchCards({
-        keyword,
+        ...options,
         searchType: '1',
-        cardType: ctype,
-        resultsPerPage: limit || 100
+        resultsPerPage: limit
       })
     };
   }
 
   // 2文字以上の場合：3つの検索を並列実行
   try {
-    const searchLimit = limit || 100;
-
     // 3つの検索を並列実行
     const [nameResults, textResults, pendulumResults] = await Promise.all([
       searchCards({
-        keyword,
+        ...options,
         searchType: '1',
-        cardType: ctype,
-        resultsPerPage: searchLimit
+        resultsPerPage: limit
       }),
       searchCards({
-        keyword,
+        ...options,
         searchType: '2',
-        cardType: ctype,
-        resultsPerPage: searchLimit
+        resultsPerPage: limit
       }),
       searchCards({
-        keyword,
+        ...options,
         searchType: '3',
-        cardType: ctype,
-        resultsPerPage: searchLimit
+        resultsPerPage: limit
       })
     ]);
 
@@ -410,7 +404,7 @@ export async function searchCardsAuto(
         link_m: '2'
       };
 
-      const ctypeValue = cardTypeToCtype(ctype);
+      const ctypeValue = cardTypeToCtype(options.cardType);
       if (ctypeValue) {
         baseParams['ctype'] = ctypeValue;
       }

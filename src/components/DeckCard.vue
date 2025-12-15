@@ -981,6 +981,11 @@ export default {
     opacity: 1;
     transform: scale(1.02);
   }
+
+  &:active {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 }
 
 .btn-text {
