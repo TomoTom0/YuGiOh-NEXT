@@ -1,7 +1,7 @@
 #!/bin/bash
 # テスト用サンプルHTMLファイルをダウンロード
 
-set -e
+set -euo pipefail
 
 echo "Downloading test sample HTML files..."
 

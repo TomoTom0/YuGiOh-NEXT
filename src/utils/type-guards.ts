@@ -6,6 +6,34 @@
  */
 
 /**
+ * HTML要素の型ガード関数を作成するヘルパー
+ * ブラウザ環境では instanceof、JSDOM環境ではプロパティチェックを使用
+ *
+ * @param interfaceName HTML要素のインターフェース名（例: 'HTMLInputElement'）
+ * @param propertyChecks プロパティベースのチェック関数
+ * @returns 型ガード関数
+ */
+function createHtmlElementTypeGuard<T extends Element>(
+  interfaceName: string,
+  propertyChecks: (el: any) => boolean
+) {
+  return (element: any): element is T => {
+    // ブラウザ環境では instanceof を優先
+    if (typeof window !== 'undefined' && (window as any)[interfaceName]) {
+      if (element instanceof (window as any)[interfaceName]) {
+        return true;
+      }
+    }
+    // JSDOM環境またはフォールバック
+    return !!(
+      element &&
+      typeof element === 'object' &&
+      propertyChecks(element)
+    );
+  };
+}
+
+/**
  * 要素が HTMLElement かどうかをチェック
  *
  * @param element 対象要素
@@ -17,18 +45,10 @@
  *   elem.textContent = 'Safe operation';
  * }
  */
-export function isHTMLElement(element: any): element is HTMLElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLElement !== 'undefined' && element instanceof HTMLElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            'tagName' in element &&
-            'nodeType' in element &&
-            element.nodeType === 1); // ELEMENT_NODE
-}
+export const isHTMLElement = createHtmlElementTypeGuard<HTMLElement>(
+  'HTMLElement',
+  (el) => 'tagName' in el && 'nodeType' in el && el.nodeType === 1
+);
 
 /**
  * 要素が HTMLInputElement かどうかをチェック
@@ -42,17 +62,10 @@ export function isHTMLElement(element: any): element is HTMLElement {
  *   const value = input.value;
  * }
  */
-export function isHTMLInputElement(element: any): element is HTMLInputElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLInputElement !== 'undefined' && element instanceof HTMLInputElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'INPUT' &&
-            'value' in element);
-}
+export const isHTMLInputElement = createHtmlElementTypeGuard<HTMLInputElement>(
+  'HTMLInputElement',
+  (el) => el.tagName === 'INPUT' && 'value' in el
+);
 
 /**
  * 要素が HTMLImageElement かどうかをチェック
@@ -66,17 +79,10 @@ export function isHTMLInputElement(element: any): element is HTMLInputElement {
  *   const src = img.src;
  * }
  */
-export function isHTMLImageElement(element: any): element is HTMLImageElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLImageElement !== 'undefined' && element instanceof HTMLImageElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'IMG' &&
-            'src' in element);
-}
+export const isHTMLImageElement = createHtmlElementTypeGuard<HTMLImageElement>(
+  'HTMLImageElement',
+  (el) => el.tagName === 'IMG' && 'src' in el
+);
 
 /**
  * 要素が HTMLSelectElement かどうかをチェック
@@ -84,17 +90,10 @@ export function isHTMLImageElement(element: any): element is HTMLImageElement {
  * @param element 対象要素
  * @returns HTMLSelectElement である場合は true
  */
-export function isHTMLSelectElement(element: any): element is HTMLSelectElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLSelectElement !== 'undefined' && element instanceof HTMLSelectElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'SELECT' &&
-            'options' in element);
-}
+export const isHTMLSelectElement = createHtmlElementTypeGuard<HTMLSelectElement>(
+  'HTMLSelectElement',
+  (el) => el.tagName === 'SELECT' && 'options' in el
+);
 
 /**
  * 要素が HTMLButtonElement かどうかをチェック
@@ -102,16 +101,10 @@ export function isHTMLSelectElement(element: any): element is HTMLSelectElement 
  * @param element 対象要素
  * @returns HTMLButtonElement である場合は true
  */
-export function isHTMLButtonElement(element: any): element is HTMLButtonElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLButtonElement !== 'undefined' && element instanceof HTMLButtonElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'BUTTON');
-}
+export const isHTMLButtonElement = createHtmlElementTypeGuard<HTMLButtonElement>(
+  'HTMLButtonElement',
+  (el) => el.tagName === 'BUTTON'
+);
 
 /**
  * 要素が HTMLAnchorElement かどうかをチェック
@@ -119,17 +112,10 @@ export function isHTMLButtonElement(element: any): element is HTMLButtonElement 
  * @param element 対象要素
  * @returns HTMLAnchorElement である場合は true
  */
-export function isHTMLAnchorElement(element: any): element is HTMLAnchorElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLAnchorElement !== 'undefined' && element instanceof HTMLAnchorElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'A' &&
-            'href' in element);
-}
+export const isHTMLAnchorElement = createHtmlElementTypeGuard<HTMLAnchorElement>(
+  'HTMLAnchorElement',
+  (el) => el.tagName === 'A' && 'href' in el
+);
 
 /**
  * 要素が HTMLOptionElement かどうかをチェック
@@ -137,17 +123,10 @@ export function isHTMLAnchorElement(element: any): element is HTMLAnchorElement 
  * @param element 対象要素
  * @returns HTMLOptionElement である場合は true
  */
-export function isHTMLOptionElement(element: any): element is HTMLOptionElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLOptionElement !== 'undefined' && element instanceof HTMLOptionElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'OPTION' &&
-            'value' in element);
-}
+export const isHTMLOptionElement = createHtmlElementTypeGuard<HTMLOptionElement>(
+  'HTMLOptionElement',
+  (el) => el.tagName === 'OPTION' && 'value' in el
+);
 
 /**
  * 要素が HTMLTextAreaElement かどうかをチェック
@@ -155,17 +134,10 @@ export function isHTMLOptionElement(element: any): element is HTMLOptionElement 
  * @param element 対象要素
  * @returns HTMLTextAreaElement である場合は true
  */
-export function isHTMLTextAreaElement(element: any): element is HTMLTextAreaElement {
-  // ブラウザ環境では instanceof を優先
-  if (typeof HTMLTextAreaElement !== 'undefined' && element instanceof HTMLTextAreaElement) {
-    return true;
-  }
-  // JSDOM 環境ではプロパティチェック
-  return !!(element &&
-            typeof element === 'object' &&
-            element.tagName === 'TEXTAREA' &&
-            'value' in element);
-}
+export const isHTMLTextAreaElement = createHtmlElementTypeGuard<HTMLTextAreaElement>(
+  'HTMLTextAreaElement',
+  (el) => el.tagName === 'TEXTAREA' && 'value' in el
+);
 
 /**
  * オブジェクトが Record<string, T> かどうかをチェック
