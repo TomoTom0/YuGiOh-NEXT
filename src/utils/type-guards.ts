@@ -18,7 +18,16 @@
  * }
  */
 export function isHTMLElement(element: any): element is HTMLElement {
-  return element instanceof HTMLElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLElement !== 'undefined' && element instanceof HTMLElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            'tagName' in element &&
+            'nodeType' in element &&
+            element.nodeType === 1); // ELEMENT_NODE
 }
 
 /**
@@ -34,7 +43,15 @@ export function isHTMLElement(element: any): element is HTMLElement {
  * }
  */
 export function isHTMLInputElement(element: any): element is HTMLInputElement {
-  return element instanceof HTMLInputElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLInputElement !== 'undefined' && element instanceof HTMLInputElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'INPUT' &&
+            'value' in element);
 }
 
 /**
@@ -50,7 +67,15 @@ export function isHTMLInputElement(element: any): element is HTMLInputElement {
  * }
  */
 export function isHTMLImageElement(element: any): element is HTMLImageElement {
-  return element instanceof HTMLImageElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLImageElement !== 'undefined' && element instanceof HTMLImageElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'IMG' &&
+            'src' in element);
 }
 
 /**
@@ -60,7 +85,15 @@ export function isHTMLImageElement(element: any): element is HTMLImageElement {
  * @returns HTMLSelectElement である場合は true
  */
 export function isHTMLSelectElement(element: any): element is HTMLSelectElement {
-  return element instanceof HTMLSelectElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLSelectElement !== 'undefined' && element instanceof HTMLSelectElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'SELECT' &&
+            'options' in element);
 }
 
 /**
@@ -70,7 +103,14 @@ export function isHTMLSelectElement(element: any): element is HTMLSelectElement 
  * @returns HTMLButtonElement である場合は true
  */
 export function isHTMLButtonElement(element: any): element is HTMLButtonElement {
-  return element instanceof HTMLButtonElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLButtonElement !== 'undefined' && element instanceof HTMLButtonElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'BUTTON');
 }
 
 /**
@@ -80,7 +120,15 @@ export function isHTMLButtonElement(element: any): element is HTMLButtonElement 
  * @returns HTMLAnchorElement である場合は true
  */
 export function isHTMLAnchorElement(element: any): element is HTMLAnchorElement {
-  return element instanceof HTMLAnchorElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLAnchorElement !== 'undefined' && element instanceof HTMLAnchorElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'A' &&
+            'href' in element);
 }
 
 /**
@@ -90,7 +138,15 @@ export function isHTMLAnchorElement(element: any): element is HTMLAnchorElement 
  * @returns HTMLOptionElement である場合は true
  */
 export function isHTMLOptionElement(element: any): element is HTMLOptionElement {
-  return element instanceof HTMLOptionElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLOptionElement !== 'undefined' && element instanceof HTMLOptionElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'OPTION' &&
+            'value' in element);
 }
 
 /**
@@ -100,7 +156,15 @@ export function isHTMLOptionElement(element: any): element is HTMLOptionElement 
  * @returns HTMLTextAreaElement である場合は true
  */
 export function isHTMLTextAreaElement(element: any): element is HTMLTextAreaElement {
-  return element instanceof HTMLTextAreaElement;
+  // ブラウザ環境では instanceof を優先
+  if (typeof HTMLTextAreaElement !== 'undefined' && element instanceof HTMLTextAreaElement) {
+    return true;
+  }
+  // JSDOM 環境ではプロパティチェック
+  return !!(element &&
+            typeof element === 'object' &&
+            element.tagName === 'TEXTAREA' &&
+            'value' in element);
 }
 
 /**

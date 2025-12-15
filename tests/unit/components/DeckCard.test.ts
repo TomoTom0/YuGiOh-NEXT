@@ -439,7 +439,7 @@ describe('DeckCard.vue', () => {
       });
 
       const cardDetailStore = useCardDetailStore();
-      await wrapper.vm.handleInfo();
+      await wrapper.vm.handleTopLeft();
 
       expect(cardDetailStore.selectedCard).toEqual(mockCard);
       expect(store.activeTab).toBe('card');
@@ -447,7 +447,7 @@ describe('DeckCard.vue', () => {
     });
 
     it('infoセクションのinfoボタンクリックで新しいタブを開く', async () => {
-      // infoセクションでのhandleInfoは、selectedCardを更新するが、
+      // infoセクションでのhandleTopLeftは、selectedCardを更新するが、
       // 新しいタブは開かない（deckStore.activeTabの切り替えがない）
       const cardDetailStore = useCardDetailStore();
 
@@ -462,7 +462,7 @@ describe('DeckCard.vue', () => {
         },
       });
 
-      await wrapper.vm.handleInfo();
+      await wrapper.vm.handleTopLeft();
 
       // infoセクションではactiveTabは切り替わらない
       expect(cardDetailStore.selectedCard).toBeDefined();

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-  searchCardsByName,
+  searchCards,
   searchCardById,
   searchCardsAuto
 } from '@/api/card-search';
@@ -43,7 +43,7 @@ describe('api/card-search - Basic Search Functions', () => {
     vi.restoreAllMocks();
   });
 
-  describe('searchCardsByName', () => {
+  describe('searchCards', () => {
     it('should search cards by name successfully', async () => {
       const mockHtml = mockSearchResultHTML('12345', 'テストカード');
 
@@ -52,7 +52,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      const results = await searchCardsByName('テスト');
+      const results = await searchCards({ keyword: 'テスト' });
 
       // API が呼び出されたことを確認
       expect(fetchSpy).toHaveBeenCalled();
@@ -65,7 +65,7 @@ describe('api/card-search - Basic Search Functions', () => {
         ok: false
       });
 
-      const results = await searchCardsByName('テスト');
+      const results = await searchCards({ keyword: 'テスト' });
 
       expect(results).toEqual([]);
     });
@@ -73,7 +73,7 @@ describe('api/card-search - Basic Search Functions', () => {
     it('should return empty array on fetch error', async () => {
       fetchSpy.mockRejectedValueOnce(new Error('Network error'));
 
-      const results = await searchCardsByName('テスト');
+      const results = await searchCards({ keyword: 'テスト' });
 
       expect(results).toEqual([]);
     });
@@ -86,7 +86,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      const results = await searchCardsByName('');
+      const results = await searchCards({ keyword: '' });
 
       expect(results).toBeDefined();
       expect(Array.isArray(results)).toBe(true);
@@ -100,7 +100,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      await searchCardsByName('テスト', 50);
+      await searchCards({ keyword: 'テスト', resultsPerPage: 50 });
 
       expect(fetchSpy).toHaveBeenCalled();
       const callUrl = fetchSpy.mock.calls[0][0];
@@ -119,7 +119,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      await searchCardsByName('テスト');
+      await searchCards({ keyword: 'テスト' });
 
       expect(fetchSpy).toHaveBeenCalled();
       const callUrl = fetchSpy.mock.calls[0][0];
@@ -200,7 +200,7 @@ describe('api/card-search - Basic Search Functions', () => {
 
   describe('searchCardsAuto', () => {
     it('should return empty array when keyword is empty', async () => {
-      const result = await searchCardsAuto('');
+      const result = await searchCardsAuto({ keyword: '' });
 
       expect(result).toBeDefined();
       expect(result.cards).toBeDefined();
@@ -215,13 +215,13 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      const result = await searchCardsAuto('テ');
+      const result = await searchCardsAuto({ keyword: 'テ' });
 
       expect(result).toBeDefined();
       expect(result.cards).toBeDefined();
       expect(Array.isArray(result.cards)).toBe(true);
 
-      // 1文字の場合、1回のfetch呼び出しのみ（searchCardsByName のみ）
+      // 1文字の場合、1回のfetch呼び出しのみ（searchCards のみ）
       expect(fetchSpy).toHaveBeenCalled();
     });
 
@@ -234,7 +234,7 @@ describe('api/card-search - Basic Search Functions', () => {
         .mockResolvedValueOnce({ ok: true, text: async () => mockHtml })
         .mockResolvedValueOnce({ ok: true, text: async () => mockHtml });
 
-      const result = await searchCardsAuto('テスト');
+      const result = await searchCardsAuto({ keyword: 'テスト' });
 
       expect(result).toBeDefined();
       expect(result.cards).toBeDefined();
@@ -252,7 +252,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      const result = await searchCardsAuto('テ');
+      const result = await searchCardsAuto({ keyword: 'テ' });
 
       expect(result).toHaveProperty('cards');
       expect(Array.isArray(result.cards)).toBe(true);
@@ -264,7 +264,7 @@ describe('api/card-search - Basic Search Functions', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'));
 
-      const result = await searchCardsAuto('テスト');
+      const result = await searchCardsAuto({ keyword: 'テスト' });
 
       expect(result).toBeDefined();
       expect(result.cards).toEqual([]);
@@ -278,7 +278,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      const result = await searchCardsAuto('テ');
+      const result = await searchCardsAuto({ keyword: 'テ' });
 
       // SearchAutoResult インターフェース確認
       expect(result).toHaveProperty('cards');
@@ -288,7 +288,7 @@ describe('api/card-search - Basic Search Functions', () => {
   });
 
   describe('API URL building', () => {
-    it('searchCardsByName should use POST method with GET credentials', async () => {
+    it('searchCards should use GET method with credentials', async () => {
       const mockHtml = mockSearchResultHTML();
 
       fetchSpy.mockResolvedValueOnce({
@@ -296,7 +296,7 @@ describe('api/card-search - Basic Search Functions', () => {
         text: async () => mockHtml
       });
 
-      await searchCardsByName('テスト');
+      await searchCards({ keyword: 'テスト' });
 
       expect(fetchSpy).toHaveBeenCalledWith(
         expect.any(String),
@@ -333,7 +333,7 @@ describe('api/card-search - Basic Search Functions', () => {
 
       fetchSpy.mockRejectedValueOnce(new Error('Test error'));
 
-      await searchCardsByName('テスト');
+      await searchCards({ keyword: 'テスト' });
 
       expect(consoleErrorSpy).toHaveBeenCalled();
 

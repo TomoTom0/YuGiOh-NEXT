@@ -66,8 +66,10 @@ describe('parseSearchResults - カード情報パース', () => {
     resetUnifiedCacheDB();
   });
 
-  it('検索結果のカードを正しくパースできる', () => {
-    const htmlPath = path.join(__dirname, '../combine/data/card-search-result.html');
+  const htmlPath = path.join(__dirname, '../combine/data/card-search-result.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+
+  it.skipIf(!hasHtmlFile)('検索結果のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     const dom = new JSDOM(html, {
@@ -91,8 +93,7 @@ describe('parseSearchResults - カード情報パース', () => {
     expect(firstCard!.name).toBeDefined();
   });
 
-  it('複数のカードを正しくパースできる', () => {
-    const htmlPath = path.join(__dirname, '../combine/data/card-search-result.html');
+  it.skipIf(!hasHtmlFile)('複数のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     const dom = new JSDOM(html, {

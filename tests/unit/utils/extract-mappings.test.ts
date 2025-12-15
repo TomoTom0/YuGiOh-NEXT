@@ -3,10 +3,12 @@ import { JSDOM } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
 
+const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+const hasHtmlFile = fs.existsSync(koHtmlPath);
+
 describe('extractMappingsFromSearchPage', () => {
-  it('should extract mappings from Korean card search page', () => {
+  it.skipIf(!hasHtmlFile)('should extract mappings from Korean card search page', () => {
     // テスト用HTMLを読み込み
-    const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
     const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
 
     // DOMParserでパース
@@ -50,8 +52,7 @@ describe('extractMappingsFromSearchPage', () => {
     console.log('[Test] ✅ Korean page structure confirmed');
   });
 
-  it('should extract monsterType mapping from Korean page', () => {
-    const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+  it.skipIf(!hasHtmlFile)('should extract monsterType mapping from Korean page', () => {
     const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
 
     const dom = new JSDOM(koHtml);

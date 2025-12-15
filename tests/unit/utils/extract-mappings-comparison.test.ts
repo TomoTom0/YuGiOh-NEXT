@@ -3,9 +3,11 @@ import { JSDOM } from 'jsdom';
 import fs from 'fs';
 import path from 'path';
 
+const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+const hasHtmlFile = fs.existsSync(koHtmlPath);
+
 describe('extractMonsterTypeMapping - Before and After Comparison', () => {
-  it('demonstrates the bug in pre-fix code with Korean page', () => {
-    const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+  it.skipIf(!hasHtmlFile)('demonstrates the bug in pre-fix code with Korean page', () => {
     const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
 
     const dom = new JSDOM(koHtml);

@@ -16,6 +16,8 @@
     "test:vitest": "vitest run",
     "test:vitest:ui": "vitest --ui",
     "test:components": "vitest run tests/unit/components",
+    "test:download-samples": "bash scripts/test/download-sample-html.sh",
+    "test:integration": "bash scripts/test/download-sample-html.sh && vitest run",
     "setup:download-forms": "bash scripts/setup/download-search-forms.sh",
     "setup:extract-mappings": "bun scripts/setup/extract-mappings.ts",
     "setup:all": "bun run setup:download-forms && bun run setup:extract-mappings"
