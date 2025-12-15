@@ -31,7 +31,7 @@
     "@types/chrome": "^0.1.32",
     "@types/dotenv": "^6.1.1",
     "@types/jsdom": "^27.0.0",
-    "@types/node": "^22.19.1",
+    "@types/node": "^22.19.3",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vitest/coverage-v8": "^2.1.9",
     "@vue/compiler-sfc": "^3.5.25",
@@ -58,11 +58,11 @@
     "@mdi/js": "^7.4.47",
     "axios": "^1.13.2",
     "canvas": "^3.2.0",
-    "jsdom": "^27.2.0",
+    "jsdom": "^27.3.0",
     "linkedom": "^0.18.12",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
-    "sass": "^1.94.2",
+    "sass": "^1.96.0",
     "sass-loader": "^16.0.6",
     "ws": "^8.18.3"
   }
