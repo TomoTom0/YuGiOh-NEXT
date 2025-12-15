@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   searchCards,
-  searchCardsByName,
   searchCardsAuto,
   searchCardById,
   searchCardsByPackId,
@@ -27,7 +26,8 @@ vi.mock('@/utils/mapping-manager', () => ({
 }));
 
 vi.mock('@/utils/page-detector', () => ({
-  detectCardGameType: vi.fn().mockReturnValue('OCG')
+  detectCardGameType: vi.fn().mockReturnValue('OCG'),
+  getGamePath: vi.fn().mockReturnValue('/yugiohdb')
 }));
 
 vi.mock('@/utils/language-detector', () => ({
@@ -213,8 +213,8 @@ describe('api/card-search - Comprehensive Tests', () => {
     });
   });
 
-  // ===== searchCardsByName テスト =====
-  describe('searchCardsByName', () => {
+  // ===== searchCards (カード名検索) テスト =====
+  describe('searchCards (by name)', () => {
     it('カード名で検索できる', async () => {
       const { queuedFetch } = await import('@/utils/request-queue');
       const mockHtml = `
@@ -237,7 +237,7 @@ describe('api/card-search - Comprehensive Tests', () => {
 
       queuedFetch.mockResolvedValueOnce(mockResponse);
 
-      const results = await searchCardsByName('ブルーアイズ');
+      const results = await searchCards({ keyword: 'ブルーアイズ' });
       expect(Array.isArray(results)).toBe(true);
     });
 
@@ -250,7 +250,7 @@ describe('api/card-search - Comprehensive Tests', () => {
 
       queuedFetch.mockResolvedValueOnce(mockResponse);
 
-      await searchCardsByName('モンスター', 100, 'monster');
+      await searchCards({ keyword: 'モンスター', resultsPerPage: 100, cardType: 'monster' });
       expect(queuedFetch).toHaveBeenCalled();
     });
 
@@ -263,7 +263,7 @@ describe('api/card-search - Comprehensive Tests', () => {
 
       queuedFetch.mockResolvedValueOnce(mockResponse);
 
-      await searchCardsByName('テスト', 50);
+      await searchCards({ keyword: 'テスト', resultsPerPage: 50 });
       expect(queuedFetch).toHaveBeenCalled();
     });
   });
@@ -279,7 +279,7 @@ describe('api/card-search - Comprehensive Tests', () => {
 
       queuedFetch.mockResolvedValue(mockResponse);
 
-      const result = await searchCardsAuto('ド');
+      const result = await searchCardsAuto({ keyword: 'ド' });
       expect(result).toBeDefined();
       expect(Array.isArray(result.cards)).toBe(true);
     });
@@ -295,7 +295,7 @@ describe('api/card-search - Comprehensive Tests', () => {
         text: vi.fn().mockResolvedValueOnce(page1Html)
       });
 
-      const result = await searchCardsAuto('テスト');
+      const result = await searchCardsAuto({ keyword: 'テスト' });
       expect(result).toBeDefined();
       expect(Array.isArray(result.cards) || result.cards === undefined).toBe(true);
     });
@@ -501,7 +501,7 @@ describe('api/card-search - Comprehensive Tests', () => {
         text: vi.fn().mockResolvedValueOnce('<html><body></body></html>')
       });
 
-      const results = await searchCardsByName('');
+      const results = await searchCards({ keyword: '' });
       expect(Array.isArray(results)).toBe(true);
     });
 
@@ -512,7 +512,7 @@ describe('api/card-search - Comprehensive Tests', () => {
         text: vi.fn().mockResolvedValueOnce('<html><body></body></html>')
       });
 
-      const results = await searchCardsByName('テスト&特殊文字<>"\'');
+      const results = await searchCards({ keyword: 'テスト&特殊文字<>"\'' });
       expect(Array.isArray(results)).toBe(true);
     });
 
@@ -524,7 +524,7 @@ describe('api/card-search - Comprehensive Tests', () => {
       });
 
       const longKeyword = 'a'.repeat(1000);
-      const results = await searchCardsByName(longKeyword);
+      const results = await searchCards({ keyword: longKeyword });
       expect(Array.isArray(results)).toBe(true);
     });
 

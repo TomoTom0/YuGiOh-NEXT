@@ -68,7 +68,9 @@ describe('promise-timeout', () => {
     });
 
     it('should handle promise rejection', async () => {
-      const promise = Promise.reject(new Error('test error'));
+      const promise = (async () => {
+        throw new Error('test error');
+      })();
 
       await expect(
         withTimeout(promise, { ms: 5000 })
@@ -175,7 +177,9 @@ describe('promise-timeout', () => {
     });
 
     it('should throw non-timeout errors', async () => {
-      const promise = Promise.reject(new Error('test error'));
+      const promise = (async () => {
+        throw new Error('test error');
+      })();
       await expect(waitWithinTimeout(promise, 5000)).rejects.toThrow(
         'test error'
       );

@@ -388,28 +388,24 @@ describe('utils/temp-card-db', () => {
       expect(saveUnifiedCacheDB).toHaveBeenCalled()
     })
 
-    it('loadFromStorage()はUnifiedCacheDBから読み込む', async () => {
-      const { initUnifiedCacheDB, getUnifiedCacheDB } = await import(
+    it('loadFromStorage()はUnifiedCacheDBを初期化し、TempCardDBは空のまま', async () => {
+      const { initUnifiedCacheDB } = await import(
         '@/utils/unified-cache-db'
       )
-      const mockCard = createTestCard('1', 'Loaded Card')
-
-      vi.mocked(getUnifiedCacheDB).mockReturnValue({
-        isInitialized: () => true,
-        getAllCardInfos: () => new Map([['1', mockCard]]),
-        setCardInfo: vi.fn(),
-        recordDeckOpen: vi.fn(),
-        getCardTier: vi.fn(),
-        getStats: vi.fn(),
-        clearAll: vi.fn()
-      } as any)
 
       const db = getTempCardDB()
+      // 事前に何かカードを追加しておく
+      const existingCard = createTestCard('999', 'Existing Card')
+      db.set('999', existingCard)
+
       const count = await db.loadFromStorage()
 
+      // UnifiedCacheDBは初期化される
       expect(initUnifiedCacheDB).toHaveBeenCalled()
-      expect(count).toBe(1)
-      expect(db.get('1')).toEqual(mockCard)
+      // TempCardDBは全カードをロードせず、0を返す
+      expect(count).toBe(0)
+      // TempCardDBはクリアされる（既存のカードも削除される）
+      expect(db.get('999')).toBeUndefined()
     })
 
     it('clearStorage()はUnifiedCacheDBをクリア', async () => {
@@ -485,26 +481,17 @@ describe('utils/temp-card-db', () => {
 
   describe('initTempCardDBFromStorage', () => {
     it('ファイル関数としてloadFromStorageをコール', async () => {
-      const { getUnifiedCacheDB, initUnifiedCacheDB } = await import(
+      const { initUnifiedCacheDB } = await import(
         '@/utils/unified-cache-db'
       )
-      const mockCard = createTestCard('1')
 
       vi.mocked(initUnifiedCacheDB).mockResolvedValue(undefined)
-      vi.mocked(getUnifiedCacheDB).mockReturnValue({
-        isInitialized: () => true,
-        getAllCardInfos: () => new Map([['1', mockCard]]),
-        setCardInfo: vi.fn(),
-        recordDeckOpen: vi.fn(),
-        getCardTier: vi.fn(),
-        getStats: vi.fn(),
-        clearAll: vi.fn()
-      } as any)
 
       resetTempCardDB()
       const count = await initTempCardDBFromStorage()
 
-      expect(count).toBe(1)
+      // TempCardDBは全カードをロードしないため、0を返す
+      expect(count).toBe(0)
       expect(initUnifiedCacheDB).toHaveBeenCalled()
     })
   })

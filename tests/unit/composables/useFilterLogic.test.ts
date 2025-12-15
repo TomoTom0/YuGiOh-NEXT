@@ -1,17 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ref, reactive } from 'vue';
+import { createPinia, setActivePinia } from 'pinia';
 import { useFilterLogic } from '@/composables/search-filter/useFilterLogic';
-import type { SearchFilters } from '@/types/search-filters';
-import type { ExclusionResult, FieldState, AttributeState } from '@/types/search-exclusion';
+import { useSearchStore } from '@/stores/search';
+import type { AttributeState } from '@/types/search-exclusion';
 
 describe('useFilterLogic', () => {
-  let filters: SearchFilters;
-  let exclusionResult: { value: ExclusionResult };
   let pageLanguage: { value: string };
-  let appliedFilters: SearchFilters | null = null;
+  let searchStore: ReturnType<typeof useSearchStore>;
 
   beforeEach(() => {
-    filters = {
+    // Piniaを初期化
+    setActivePinia(createPinia());
+    searchStore = useSearchStore();
+
+    // searchStoreのフィルタを初期化
+    searchStore.searchFilters = {
       cardType: null,
       attributes: [],
       spellTypes: [],
@@ -30,146 +33,87 @@ describe('useFilterLogic', () => {
       releaseDate: {}
     };
 
-    exclusionResult = {
-      value: {
-        fieldStates: new Map<string, FieldState>(),
-        attributeStates: new Map<string, AttributeState>()
-      }
-    };
-
+    // exclusionResult は computed なので、初期化不要
     pageLanguage = { value: 'ja' };
-    appliedFilters = null;
   });
 
   describe('selectCardType', () => {
     it('モンスターカードタイプを選択できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.selectCardType('monster');
 
-      expect(filters.cardType).toBe('monster');
-      expect(appliedFilters?.cardType).toBe('monster');
+      expect(searchStore.searchFilters.cardType).toBe('monster');
     });
 
     it('スペル選択時に他のカードタイプのフィルタがクリアされる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        spellTypes: ['normal'],
-        trapTypes: ['continuous'],
-        monsterTypes: [{ type: 'fusion', state: 'normal' }]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.spellTypes = ['normal'];
+      searchStore.searchFilters.trapTypes = ['continuous'];
+      searchStore.searchFilters.monsterTypes = [{ type: 'fusion', state: 'normal' }];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.selectCardType('spell');
 
-      expect(filtersRef.cardType).toBe('spell');
-      expect(filtersRef.spellTypes).toEqual(['normal']);
-      expect(filtersRef.trapTypes).toEqual([]);
-      expect(filtersRef.monsterTypes).toEqual([]); // モンスター専用フィルタもクリア
+      expect(searchStore.searchFilters.cardType).toBe('spell');
+      expect(searchStore.searchFilters.spellTypes).toEqual(['normal']);
+      expect(searchStore.searchFilters.trapTypes).toEqual([]);
+      expect(searchStore.searchFilters.monsterTypes).toEqual([]); // モンスター専用フィルタもクリア
     });
 
     it('罠選択時に他のカードタイプのフィルタがクリアされる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        spellTypes: ['normal'],
-        trapTypes: ['continuous'],
-        monsterTypes: [{ type: 'fusion', state: 'normal' }]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.spellTypes = ['normal'];
+      searchStore.searchFilters.trapTypes = ['continuous'];
+      searchStore.searchFilters.monsterTypes = [{ type: 'fusion', state: 'normal' }];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.selectCardType('trap');
 
-      expect(filtersRef.cardType).toBe('trap');
-      expect(filtersRef.trapTypes).toEqual(['continuous']);
-      expect(filtersRef.spellTypes).toEqual([]);
-      expect(filtersRef.monsterTypes).toEqual([]); // モンスター専用フィルタもクリア
+      expect(searchStore.searchFilters.cardType).toBe('trap');
+      expect(searchStore.searchFilters.trapTypes).toEqual(['continuous']);
+      expect(searchStore.searchFilters.spellTypes).toEqual([]);
+      expect(searchStore.searchFilters.monsterTypes).toEqual([]); // モンスター専用フィルタもクリア
     });
 
     it('同じカードタイプを選択すると解除される', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'monster'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'monster';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.selectCardType('monster');
 
-      expect(filtersRef.cardType).toBeNull();
+      expect(searchStore.searchFilters.cardType).toBeNull();
     });
   });
 
   describe('無効化状態の判定', () => {
     it('モンスタータイプフィールドが有効な場合', () => {
       const attrState: AttributeState = { enabled: true };
-      exclusionResult.value.attributeStates.set('card-type_monster', attrState);
+      searchStore.exclusionResult.attributeStates.set('card-type_monster', attrState);
 
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isMonsterTypeFieldDisabled.value).toBe(false);
     });
 
     it('モンスタータイプフィールドが無効な場合', () => {
       const attrState: AttributeState = { enabled: false, disabledReason: '理由' };
-      exclusionResult.value.attributeStates.set('card-type_monster', attrState);
+      searchStore.exclusionResult.attributeStates.set('card-type_monster', attrState);
 
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isMonsterTypeFieldDisabled.value).toBe(true);
     });
 
     it('cardTypeがmonster以外の場合、モンスタータイプフィールドは無効', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'spell'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'spell';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isMonsterTypeFieldDisabled.value).toBe(true);
     });
@@ -177,46 +121,30 @@ describe('useFilterLogic', () => {
 
   describe('属性フィルタ操作', () => {
     it('属性を追加できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleAttribute('FIRE');
 
-      expect(filters.attributes).toContain('FIRE');
-      expect(appliedFilters?.attributes).toContain('FIRE');
+      expect(searchStore.searchFilters.attributes).toContain('FIRE');
     });
 
     it('属性を削除できる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        attributes: ['FIRE', 'WATER']
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.attributes = ['FIRE', 'WATER'];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleAttribute('FIRE');
 
-      expect(filtersRef.attributes).not.toContain('FIRE');
-      expect(filtersRef.attributes).toContain('WATER');
+      expect(searchStore.searchFilters.attributes).not.toContain('FIRE');
+      expect(searchStore.searchFilters.attributes).toContain('WATER');
     });
   });
 
   describe('フィルタクリア', () => {
     it('全てのフィルタをクリアできる', () => {
-      const filtersRef = reactive({
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters = {
         cardType: 'monster',
         attributes: ['FIRE'],
         spellTypes: ['normal'],
@@ -233,67 +161,46 @@ describe('useFilterLogic', () => {
         atk: { exact: true, unknown: false, min: 1000, max: 2000 },
         def: { exact: false, unknown: true },
         releaseDate: { from: '2020-01-01', to: '2020-12-31' }
-      });
+      };
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.clearFilters();
 
-      expect(filtersRef.cardType).toBeNull();
-      expect(filtersRef.attributes).toEqual([]);
-      expect(filtersRef.spellTypes).toEqual([]);
-      expect(filtersRef.trapTypes).toEqual([]);
-      expect(filtersRef.races).toEqual([]);
-      expect(filtersRef.monsterTypes).toEqual([]);
-      expect(filtersRef.levelValues).toEqual([]);
-      expect(filtersRef.linkValues).toEqual([]);
-      expect(filtersRef.scaleValues).toEqual([]);
-      expect(filtersRef.linkMarkers).toEqual([]);
-      expect(filtersRef.atk.exact).toBe(false);
-      expect(filtersRef.def.exact).toBe(false);
-      expect(filtersRef.releaseDate).toEqual({});
+      expect(searchStore.searchFilters.cardType).toBeNull();
+      expect(searchStore.searchFilters.attributes).toEqual([]);
+      expect(searchStore.searchFilters.spellTypes).toEqual([]);
+      expect(searchStore.searchFilters.trapTypes).toEqual([]);
+      expect(searchStore.searchFilters.races).toEqual([]);
+      expect(searchStore.searchFilters.monsterTypes).toEqual([]);
+      expect(searchStore.searchFilters.levelValues).toEqual([]);
+      expect(searchStore.searchFilters.linkValues).toEqual([]);
+      expect(searchStore.searchFilters.scaleValues).toEqual([]);
+      expect(searchStore.searchFilters.linkMarkers).toEqual([]);
+      expect(searchStore.searchFilters.atk.exact).toBe(false);
+      expect(searchStore.searchFilters.def.exact).toBe(false);
+      expect(searchStore.searchFilters.releaseDate).toEqual({});
     });
   });
 
   describe('モンスタータイプ操作', () => {
     it('モンスタータイプを追加できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.cycleMonsterTypeState('fusion');
 
-      expect(filters.monsterTypes).toHaveLength(1);
-      expect(filters.monsterTypes[0]).toEqual({ type: 'fusion', state: 'normal' });
+      expect(searchStore.searchFilters.monsterTypes).toHaveLength(1);
+      expect(searchStore.searchFilters.monsterTypes[0]).toEqual({ type: 'fusion', state: 'normal' });
     });
 
     it('モンスタータイプのクラス取得ができる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        monsterTypes: [
-          { type: 'fusion', state: 'normal' },
-          { type: 'synchro', state: 'not' }
-        ]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.monsterTypes = [
+        { type: 'fusion', state: 'normal' },
+        { type: 'synchro', state: 'not' }
+      ];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.getMonsterTypeClass('fusion')).toBe('active');
       expect(logic.getMonsterTypeClass('synchro')).toBe('not');
@@ -301,84 +208,49 @@ describe('useFilterLogic', () => {
     });
 
     it('モンスタータイプの状態を normal から not に切り替えられる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        monsterTypes: [{ type: 'fusion', state: 'normal' }]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.monsterTypes = [{ type: 'fusion', state: 'normal' }];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.cycleMonsterTypeState('fusion');
 
-      expect(filtersRef.monsterTypes[0].state).toBe('not');
+      expect(searchStore.searchFilters.monsterTypes[0].state).toBe('not');
     });
 
     it('モンスタータイプの状態を not から削除できる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        monsterTypes: [{ type: 'fusion', state: 'not' }]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.monsterTypes = [{ type: 'fusion', state: 'not' }];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.cycleMonsterTypeState('fusion');
 
-      expect(filtersRef.monsterTypes).toHaveLength(0);
+      expect(searchStore.searchFilters.monsterTypes).toHaveLength(0);
     });
 
     it('モンスタータイプのマッチモードを切り替えられる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        monsterTypeMatchMode: 'or'
-      });
+      // Removed filtersRef initialization (now using searchStore)
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleMonsterTypeMatchMode();
 
-      expect(filtersRef.monsterTypeMatchMode).toBe('and');
+      expect(searchStore.searchFilters.monsterTypeMatchMode).toBe('and');
 
       logic.toggleMonsterTypeMatchMode();
 
-      expect(filtersRef.monsterTypeMatchMode).toBe('or');
+      expect(searchStore.searchFilters.monsterTypeMatchMode).toBe('or');
     });
   });
 
   describe('レベル値アクティブ判定', () => {
     it('levelType が level の場合、levelValues をチェック', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'level',
-        levelValues: [1, 3, 5]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.levelType = 'level';
+      searchStore.searchFilters.levelValues = [1, 3];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isLevelValueActive(1)).toBe(true);
       expect(logic.isLevelValueActive(3)).toBe(true);
@@ -386,18 +258,11 @@ describe('useFilterLogic', () => {
     });
 
     it('levelType が scale の場合、scaleValues をチェック', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'scale',
-        scaleValues: [3, 7, 11]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.levelType = 'scale';
+      searchStore.searchFilters.scaleValues = [3, 7];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isLevelValueActive(3)).toBe(true);
       expect(logic.isLevelValueActive(7)).toBe(true);
@@ -407,142 +272,89 @@ describe('useFilterLogic', () => {
 
   describe('レベル・リンク・スケール操作', () => {
     it('レベル値を追加・削除できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLevelValue(1);
-      expect(filters.levelValues).toContain(1);
+      expect(searchStore.searchFilters.levelValues).toContain(1);
 
       logic.toggleLevelValue(1);
-      expect(filters.levelValues).not.toContain(1);
+      expect(searchStore.searchFilters.levelValues).not.toContain(1);
     });
 
     it('スケール値を追加・削除できる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'scale'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.levelType = 'scale';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLevelValue(5);
-      expect(filtersRef.scaleValues).toContain(5);
+      expect(searchStore.searchFilters.scaleValues).toContain(5);
 
       logic.toggleLevelValue(5);
-      expect(filtersRef.scaleValues).not.toContain(5);
+      expect(searchStore.searchFilters.scaleValues).not.toContain(5);
     });
 
     it('levelType が level の場合、toggleLevelValue は levelValues を変更', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'level',
-        scaleValues: [5]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.levelType = 'level';
+      searchStore.searchFilters.scaleValues = [5];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLevelValue(1);
 
-      expect(filtersRef.levelValues).toContain(1);
-      expect(filtersRef.scaleValues).toEqual([5]); // scaleValues は変更されない
+      expect(searchStore.searchFilters.levelValues).toContain(1);
+      expect(searchStore.searchFilters.scaleValues).toEqual([5]); // scaleValues は変更されない
     });
 
     it('levelType が scale の場合、toggleLevelValue は scaleValues を変更', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'scale'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.levelType = 'scale';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLevelValue(5);
 
-      expect(filtersRef.scaleValues).toContain(5);
-      expect(filtersRef.levelValues).toEqual([]); // levelValues は変更されない
+      expect(searchStore.searchFilters.scaleValues).toContain(5);
+      expect(searchStore.searchFilters.levelValues).toEqual([]); // levelValues は変更されない
     });
 
     it('リンク値を追加・削除できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLinkValue(2);
-      expect(filters.linkValues).toContain(2);
+      expect(searchStore.searchFilters.linkValues).toContain(2);
 
       logic.toggleLinkValue(2);
-      expect(filters.linkValues).not.toContain(2);
+      expect(searchStore.searchFilters.linkValues).not.toContain(2);
     });
   });
 
   describe('リンクマーカー操作', () => {
     it('リンクマーカーを追加・削除できる', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLinkMarker(1);
-      expect(filters.linkMarkers).toContain(1);
+      expect(searchStore.searchFilters.linkMarkers).toContain(1);
 
       logic.toggleLinkMarker(1);
-      expect(filters.linkMarkers).not.toContain(1);
+      expect(searchStore.searchFilters.linkMarkers).not.toContain(1);
     });
 
     it('リンクマーカーのマッチモードを切り替えられる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        linkMarkerMatchMode: 'or'
-      });
+      // Removed filtersRef initialization (now using searchStore)
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.toggleLinkMarkerMatchMode();
-      expect(filtersRef.linkMarkerMatchMode).toBe('and');
+      expect(searchStore.searchFilters.linkMarkerMatchMode).toBe('and');
 
       logic.toggleLinkMarkerMatchMode();
-      expect(filtersRef.linkMarkerMatchMode).toBe('or');
+      expect(searchStore.searchFilters.linkMarkerMatchMode).toBe('or');
     });
 
     it('pos=5のリンクマーカーは常に非アクティブ', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isLinkMarkerActive(5)).toBe(false);
     });
@@ -550,17 +362,10 @@ describe('useFilterLogic', () => {
 
   describe('フィールド無効化判定', () => {
     it('モンスター以外が選択された時、モンスター専用フィールドは無効', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'spell'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'spell';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isFieldDisabled('attribute')).toBe(true);
       expect(logic.isFieldDisabled('race')).toBe(true);
@@ -568,34 +373,20 @@ describe('useFilterLogic', () => {
     });
 
     it('モンスターが選択された時、モンスター専用フィールドは有効', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'monster'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'monster';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isFieldDisabled('attribute')).toBe(false);
       expect(logic.isFieldDisabled('race')).toBe(false);
     });
 
     it('魔法以外が選択された時、魔法タイプフィールドは無効', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'monster'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'trap';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isFieldDisabled('spell-type')).toBe(true);
     });
@@ -603,126 +394,67 @@ describe('useFilterLogic', () => {
 
   describe('リンクマーカーアクティブ判定', () => {
     it('pos=5のリンクマーカーは常に非アクティブ（既テスト）', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isLinkMarkerActive(5)).toBe(false);
     });
 
     it('pos≠5でリンクマーカーが追加されている場合はアクティブ', () => {
-      const filtersRef = reactive({
-        ...filters,
-        linkMarkers: [1, 3, 7]
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.linkMarkers = [1, 3];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isLinkMarkerActive(1)).toBe(true);
       expect(logic.isLinkMarkerActive(3)).toBe(true);
-      expect(logic.isLinkMarkerActive(7)).toBe(true);
+      expect(logic.isLinkMarkerActive(7)).toBe(false);
       expect(logic.isLinkMarkerActive(2)).toBe(false);
     });
   });
 
   describe('レベルタイプ設定', () => {
     it('レベルタイプをスケールに変更できる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'level'
-      });
-
-      let appliedFilters = null;
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.setLevelType('scale');
 
-      expect(filtersRef.levelType).toBe('scale');
-      expect((appliedFilters as any)?.levelType).toBe('scale');
+      expect(searchStore.searchFilters.levelType).toBe('scale');
     });
 
     it('レベルタイプをリンクに変更できる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        levelType: 'scale'
-      });
-
-      let appliedFilters = null;
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        (event, newFilters) => {
-          if (event === 'apply') appliedFilters = newFilters;
-        }
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       logic.setLevelType('link');
 
-      expect(filtersRef.levelType).toBe('link');
-      expect((appliedFilters as any)?.levelType).toBe('link');
+      expect(searchStore.searchFilters.levelType).toBe('link');
     });
   });
 
   describe('アクティブフィルタ表示', () => {
     it('フィルタがない場合、hasActiveFilters は false', () => {
-      const logic = useFilterLogic(
-        reactive(filters),
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.hasActiveFilters.value).toBe(false);
       expect(logic.activeConditionChips.value).toEqual([]);
     });
 
     it('cardType が設定されている場合、activeConditionChips に含まれる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'monster'
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'monster';
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.hasActiveFilters.value).toBe(true);
       expect(logic.activeConditionChips.value).toContain('モンスター');
     });
 
     it('複数のフィルタが設定されている場合、全て activeConditionChips に含まれる', () => {
-      const filtersRef = reactive({
-        ...filters,
-        cardType: 'monster',
-        attributes: ['FIRE', 'WATER'],
-        races: ['Zombie']
-      });
+      // searchStoreのフィルタを事前に設定
+      searchStore.searchFilters.cardType = 'monster';
+      searchStore.searchFilters.attributes = ['FIRE', 'WATER'];
+      searchStore.searchFilters.races = ['Dragon'];
 
-      const logic = useFilterLogic(
-        filtersRef,
-        exclusionResult,
-        pageLanguage,
-        () => {}
-      );
+      const logic = useFilterLogic(pageLanguage);
 
       expect(logic.hasActiveFilters.value).toBe(true);
       expect(logic.activeConditionChips.value).toContain('モンスター');

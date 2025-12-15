@@ -249,7 +249,7 @@ describe('components/ImportDialog', () => {
       });
 
       expect(wrapper.vm).toBeDefined();
-      expect(wrapper.vm.deckStore).toBeDefined();
+      // deckStoreは内部的に使用されており、vmに公開されていない
     });
 
     it('should be a Vue component', () => {

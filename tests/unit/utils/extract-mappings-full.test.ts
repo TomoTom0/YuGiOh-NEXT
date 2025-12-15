@@ -6,9 +6,11 @@ import path from 'path';
 // テスト用にfetch をモック
 global.DOMParser = (new JSDOM('').window).DOMParser;
 
+const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+const hasHtmlFile = fs.existsSync(koHtmlPath);
+
 describe('extractMappingsFromSearchPage - Full mapping extraction', () => {
-  it('should extract complete mappings from Korean page', () => {
-    const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
+  it.skipIf(!hasHtmlFile)('should extract complete mappings from Korean page', () => {
     const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
 
     const dom = new JSDOM(koHtml);

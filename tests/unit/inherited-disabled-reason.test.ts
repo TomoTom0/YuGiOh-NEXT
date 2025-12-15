@@ -32,7 +32,7 @@ describe('Inherited disabled reason in Part 2', () => {
     // monster-type_link が無効
     const linkAttrState = result.attributeStates.get('monster-type_link');
     expect(linkAttrState?.enabled).toBe(false);
-    expect(linkAttrState?.disabledReason).toContain('level-rank');
+    expect(linkAttrState?.disabledReason).toContain('レベル/ランク');
 
     // link-value が無効
     const linkValueFieldState = result.fieldStates.get('link-value');
