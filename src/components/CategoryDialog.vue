@@ -324,7 +324,7 @@ watch(() => props.modelValue, (newVal) => {
   padding: 8px 12px;
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  font-size: var(--right-area-font-size, 14px);
+  font-size: var(--dialog-font-size);
   background: var(--bg-primary);
   color: var(--text-color, var(--text-primary));
 }
@@ -344,7 +344,7 @@ watch(() => props.modelValue, (newVal) => {
   color: var(--color-warning);
   border: 1px solid var(--color-warning);
   border-radius: 12px;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
+  font-size: calc(var(--dialog-font-size) * 0.86);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -356,7 +356,7 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .chip-remove {
-  font-size: var(--right-area-font-size, 14px);
+  font-size: var(--dialog-font-size);
   font-weight: bold;
   color: var(--color-warning);
   opacity: 0.7;
@@ -404,7 +404,7 @@ watch(() => props.modelValue, (newVal) => {
   border-right: 1px solid var(--border-primary);
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.2s;
@@ -444,7 +444,7 @@ watch(() => props.modelValue, (newVal) => {
   border: 1.5px solid var(--border-primary);
   border-radius: 6px;
   cursor: pointer;
-  font-size: var(--right-area-font-size, 14px);
+  font-size: var(--dialog-font-size);
   color: var(--text-primary);
   text-align: left;
   transition: all 0.2s;
@@ -514,7 +514,7 @@ watch(() => props.modelValue, (newVal) => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: var(--right-area-font-size, 14px);
+  font-size: var(--dialog-font-size);
   transition: all 0.2s;
 }
 

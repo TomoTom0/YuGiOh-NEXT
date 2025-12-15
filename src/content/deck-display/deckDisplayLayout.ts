@@ -53,7 +53,17 @@ export function applyDeckDisplayLayout(): void {
     #deck_image img[src*="/card/"] {
       width: var(--deck-display-card-width, 60px);
       height: auto;
-      transition: transform 0.1s, filter 0.1s;
+      /* 遊戯王カードのアスペクト比（59:86）を事前に確保してレイアウトシフトを防止 */
+      aspect-ratio: 59 / 86;
+      /* 画像読み込み中の背景色 */
+      background: var(--bg-secondary, #f5f5f5);
+      /* 画像読み込み前は透明度0、読み込み後にフェードイン */
+      opacity: 0;
+      transition: opacity 0.2s ease-in, transform 0.1s, filter 0.1s;
+    }
+
+    #deck_image img[src*="/card/"].loaded {
+      opacity: 1;
     }
 
     #deck_image img[src*="/card/"]:hover {

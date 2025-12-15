@@ -1160,7 +1160,6 @@ function getMonsterTypeButtonLabel(type: string) {
       border-color: var(--border-primary);
       color: var(--text-secondary);
     }
-    }
     &:hover:not(:disabled) {
       background: var(--monster-fusion-chip-hover-bg);
       border-color: var(--monster-fusion-chip-hover-border);
@@ -1193,7 +1192,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-synchro-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-    }
     }
     &:hover:not(:disabled) {
       background: var(--monster-synchro-chip-hover-bg);
@@ -1228,7 +1226,6 @@ function getMonsterTypeButtonLabel(type: string) {
       border-color: var(--border-primary);
       color: var(--text-secondary);
     }
-    }
     &:hover:not(:disabled) {
       background: var(--monster-xyz-chip-hover-bg);
       border-color: var(--monster-xyz-chip-hover-border);
@@ -1261,7 +1258,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-link-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-    }
     }
     &:hover:not(:disabled) {
       background: var(--monster-link-chip-hover-bg);
@@ -1296,7 +1292,6 @@ function getMonsterTypeButtonLabel(type: string) {
       border-color: var(--border-primary);
       color: var(--text-secondary);
     }
-    }
     &:hover:not(:disabled) {
       background: var(--monster-ritual-chip-hover-bg);
       border-color: var(--monster-ritual-chip-hover-border);
@@ -1329,7 +1324,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-pendulum-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-    }
     }
     &:hover:not(:disabled) {
       background: var(--monster-pendulum-chip-hover-bg);

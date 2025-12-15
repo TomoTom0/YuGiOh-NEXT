@@ -16,7 +16,7 @@ import { mappingManager } from './mapping-manager';
 function getAttributeDisplayLabel(attrId: string): string {
   // monster-type_* 形式
   const monsterTypeMatch = attrId.match(/^monster-type_(.+)$/);
-  if (monsterTypeMatch) {
+  if (monsterTypeMatch && monsterTypeMatch[1]) {
     const type = monsterTypeMatch[1];
     const idToText = mappingManager.getMonsterTypeIdToText('ja');
     return (idToText as Record<string, string>)[type] || type;
@@ -24,7 +24,7 @@ function getAttributeDisplayLabel(attrId: string): string {
 
   // card-type_* 形式
   const cardTypeMatch = attrId.match(/^card-type_(.+)$/);
-  if (cardTypeMatch) {
+  if (cardTypeMatch && cardTypeMatch[1]) {
     const type = cardTypeMatch[1];
     const labels: Record<string, string> = {
       'monster': 'モンスター',
@@ -36,7 +36,7 @@ function getAttributeDisplayLabel(attrId: string): string {
 
   // attribute_* 形式
   const attributeMatch = attrId.match(/^attribute_(.+)$/);
-  if (attributeMatch) {
+  if (attributeMatch && attributeMatch[1]) {
     const attr = attributeMatch[1];
     const idToText = mappingManager.getAttributeIdToText('ja');
     const label = (idToText as Record<string, string>)[attr];
@@ -45,7 +45,7 @@ function getAttributeDisplayLabel(attrId: string): string {
 
   // race_* 形式
   const raceMatch = attrId.match(/^race_(.+)$/);
-  if (raceMatch) {
+  if (raceMatch && raceMatch[1]) {
     const race = raceMatch[1];
     const idToText = mappingManager.getRaceIdToText('ja');
     const label = (idToText as Record<string, string>)[race];
@@ -54,7 +54,7 @@ function getAttributeDisplayLabel(attrId: string): string {
 
   // spell-type_* 形式
   const spellTypeMatch = attrId.match(/^spell-type_(.+)$/);
-  if (spellTypeMatch) {
+  if (spellTypeMatch && spellTypeMatch[1]) {
     const type = spellTypeMatch[1];
     const labels: Record<string, string> = {
       'normal': '通常魔法',
@@ -69,7 +69,7 @@ function getAttributeDisplayLabel(attrId: string): string {
 
   // trap-type_* 形式
   const trapTypeMatch = attrId.match(/^trap-type_(.+)$/);
-  if (trapTypeMatch) {
+  if (trapTypeMatch && trapTypeMatch[1]) {
     const type = trapTypeMatch[1];
     const labels: Record<string, string> = {
       'normal': '通常罠',
@@ -114,7 +114,7 @@ function getFieldDisplayLabel(fieldName: string): string {
 export function formatDisabledReason(
   type: 'field-to-attribute' | 'attribute-exclusion' | 'attribute-unavailable' | 'attribute-to-field',
   source: string | string[],
-  details?: string | string[]
+  _details?: string | string[]
 ): string {
   switch (type) {
     case 'field-to-attribute': {
@@ -131,7 +131,7 @@ export function formatDisabledReason(
     case 'attribute-exclusion': {
       // 排他グループにより他の属性が無効化された場合
       // 例: "monster-type_fusion" → "融合モンスターが選択されているため"
-      const attrId = typeof source === 'string' ? source : source[0];
+      const attrId = typeof source === 'string' ? source : (source[0] || '');
       const label = getAttributeDisplayLabel(attrId);
       return `${label}が選択されているため`;
     }
@@ -139,7 +139,7 @@ export function formatDisabledReason(
     case 'attribute-unavailable': {
       // 必須属性が選択不可になった場合
       // 例: "monster-type_link" → "リンクモンスターが選択されているため"
-      const attrId = typeof source === 'string' ? source : source[0];
+      const attrId = typeof source === 'string' ? source : (source[0] || '');
       const label = getAttributeDisplayLabel(attrId);
       return `${label}が選択されているため`;
     }
@@ -147,7 +147,7 @@ export function formatDisabledReason(
     case 'attribute-to-field': {
       // 属性の選択により項目が無効化された場合
       // 例: "monster-type_link" → "リンクモンスターが選択されているため"
-      const attrId = typeof source === 'string' ? source : source[0];
+      const attrId = typeof source === 'string' ? source : (source[0] || '');
       const label = getAttributeDisplayLabel(attrId);
       return `${label}が選択されているため`;
     }

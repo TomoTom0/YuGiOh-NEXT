@@ -339,7 +339,7 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
           return
         }
         const match = value.match(/^history-(\d+)$/)
-        if (match) {
+        if (match && match[1]) {
           const index = parseInt(match[1], 10)
           const item = regularItems.value[index]
           if (item) {
@@ -359,7 +359,7 @@ export function useFilterInput(options: UseFilterInputOptions): UseFilterInputRe
           return
         }
         const match = value.match(/^favorite-(\d+)$/)
-        if (match) {
+        if (match && match[1]) {
           const index = parseInt(match[1], 10)
           const item = favoriteItems.value[index]
           if (item) {

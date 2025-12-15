@@ -32,6 +32,16 @@ export type RightAreaWidth = 'S' | 'M' | 'L' | 'XL';
 export type RightAreaFontSize = 's' | 'm' | 'l' | 'xl';
 
 /**
+ * ダイアログのフォントサイズ（4段階）
+ */
+export type DialogFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
+ * 検索UIのフォントサイズ（4段階）
+ */
+export type SearchUIFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
  * テーマ
  */
 export type Theme = 'light' | 'dark' | 'system';
@@ -203,6 +213,10 @@ export interface AppSettings {
   enableCategoryPriority: boolean;
   /** 末尾配置を有効化 */
   enableTailPlacement: boolean;
+  /** ダイアログのフォントサイズ */
+  dialogFontSize: DialogFontSize;
+  /** 検索UIのフォントサイズ */
+  searchUIFontSize: SearchUIFontSize;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -319,6 +333,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
   enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
   enableTailPlacement: true,           // 末尾配置: デフォルト有効
+  dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
+  searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
 };
 
 /**
