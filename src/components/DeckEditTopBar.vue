@@ -754,14 +754,15 @@ export default {
   left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: var(--border-secondary);
-  color: var(--text-secondary);
+  background: linear-gradient(135deg, var(--theme-color-start) 0%, var(--color-info) 50%, var(--theme-color-end) 100%);
+  color: var(--button-text);
   padding: 3px 8px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: 600;
   z-index: 1;
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .deck-name-input {

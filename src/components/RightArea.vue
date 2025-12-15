@@ -59,7 +59,6 @@
           :view-mode="deckStore.viewMode"
           section-type="search"
           @scroll="handleScroll"
-          @scroll-to-top="handleScrollToTop"
           @update:sortOrder="deckStore.sortOrder = $event"
           @update:viewMode="deckStore.viewMode = $event"
         />
@@ -235,13 +234,6 @@ export default {
       cardDetailStore.setCardTab('info')
     }
 
-    const handleScrollToTop = () => {
-      const searchContent = document.querySelector('.search-content')
-      if (searchContent) {
-        searchContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
     return {
       deckStore,
       searchStore,
@@ -253,8 +245,7 @@ export default {
       searchInputBarRef,
       closeGlobalSearch,
       handleScroll,
-      showCardDetail,
-      handleScrollToTop
+      showCardDetail
     }
   }
 }
@@ -390,8 +381,6 @@ export default {
 }
 
 .search-content {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;

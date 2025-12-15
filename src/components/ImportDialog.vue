@@ -75,7 +75,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { importDeckFromFile } from '@/utils/deck-import';
-import { useDeckEditStore } from '@/stores/deck-edit';
 // @ts-ignore - Used in defineEmits type
 import type { DeckInfo } from '@/types/deck';
 
@@ -115,9 +114,7 @@ const errorMessage = ref<string>('');
 const replaceExisting = ref(true);
 
 // ダイアログが閉じられたらリセット
-const deckStore = useDeckEditStore();
 watch(() => props.isVisible, (visible) => {
-  deckStore.overlayVisible = visible;
   if (!visible) {
     resetDialog();
   }

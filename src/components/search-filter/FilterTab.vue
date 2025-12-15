@@ -8,7 +8,7 @@
           <div class="tab-header">
             <button
               class="card-type-tab"
-              :class="{ active: filters.cardType === 'monster' }"
+              :class="{ active: searchStore.searchFilters.cardType === 'monster' }"
               :disabled="isMonsterTabDisabled"
               :title="isMonsterTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click.stop="selectCardType('monster')"
@@ -27,7 +27,7 @@
                 v-for="attr in (['water', 'fire', 'wind', 'earth', 'light', 'dark', 'divine'] as Attribute[])"
                 :key="attr"
                 class="chip chip-attr"
-                :class="{ active: filters.attributes.includes(attr) }"
+                :class="{ active: searchStore.searchFilters.attributes.includes(attr) }"
                 :disabled="isFieldDisabled('attribute')"
                 :title="isFieldDisabled('attribute') ? getFieldDisabledReason('attribute') : undefined"
                 @click.stop="toggleAttribute(attr)"
@@ -44,7 +44,7 @@
           <div class="tab-header">
             <button
               class="card-type-tab"
-              :class="{ active: filters.cardType === 'spell' }"
+              :class="{ active: searchStore.searchFilters.cardType === 'spell' }"
               :disabled="isSpellTabDisabled"
               :title="isSpellTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click.stop="selectCardType('spell')"
@@ -64,7 +64,7 @@
                 v-for="type in (['normal', 'quick', 'ritual'] as SpellEffectType[])"
                 :key="type"
                 class="chip"
-                :class="{ active: filters.spellTypes.includes(type) }"
+                :class="{ active: searchStore.searchFilters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
                 @click.stop="toggleSpellType(type)"
@@ -77,7 +77,7 @@
                 v-for="type in (['continuous', 'equip', 'field'] as SpellEffectType[])"
                 :key="type"
                 class="chip"
-                :class="{ active: filters.spellTypes.includes(type) }"
+                :class="{ active: searchStore.searchFilters.spellTypes.includes(type) }"
                 :disabled="isFieldDisabled('spell-type')"
                 :title="isFieldDisabled('spell-type') ? getFieldDisabledReason('spell-type') : undefined"
                 @click.stop="toggleSpellType(type)"
@@ -93,7 +93,7 @@
           <div class="tab-header">
             <button
               class="card-type-tab"
-              :class="{ active: filters.cardType === 'trap' }"
+              :class="{ active: searchStore.searchFilters.cardType === 'trap' }"
               :disabled="isTrapTabDisabled"
               :title="isTrapTabDisabled ? '他のカードタイプが選択されています' : undefined"
               @click.stop="selectCardType('trap')"
@@ -113,7 +113,7 @@
                 v-for="type in (['normal', 'continuous', 'counter'] as TrapEffectType[])"
                 :key="type"
                 class="chip"
-                :class="{ active: filters.trapTypes.includes(type) }"
+                :class="{ active: searchStore.searchFilters.trapTypes.includes(type) }"
                 :disabled="isFieldDisabled('trap-type')"
                 :title="isFieldDisabled('trap-type') ? getFieldDisabledReason('trap-type') : undefined"
                 @click.stop="toggleTrapType(type)"
@@ -141,7 +141,7 @@
           v-for="race in racesOrdered"
           :key="race"
           class="chip chip-fixed"
-          :class="{ active: filters.races.includes(race) }"
+          :class="{ active: searchStore.searchFilters.races.includes(race) }"
           :disabled="isFieldDisabled('race')"
           :title="isFieldDisabled('race') ? getFieldDisabledReason('race') : undefined"
           @click="toggleRace(race)"
@@ -165,11 +165,11 @@
         <div class="type-row">
           <button
             class="chip chip-mode"
-            :class="{ active: filters.monsterTypeMatchMode === 'and' }"
+            :class="{ active: searchStore.searchFilters.monsterTypeMatchMode === 'and' }"
             :disabled="isMonsterTypeFieldDisabled"
             @click="toggleMonsterTypeMatchMode"
           >
-            {{ filters.monsterTypeMatchMode === 'and' ? 'AND' : 'OR' }}
+            {{ searchStore.searchFilters.monsterTypeMatchMode === 'and' ? 'AND' : 'OR' }}
           </button>
           <button
             v-for="type in (['normal', 'effect', 'special'] as MonsterType[])"
@@ -216,12 +216,12 @@
 
     <!-- レベル/ランク/リンク/Pスケール -->
     <div class="filter-section">
-      <div class="level-section-wrapper" :class="`level-type-${filters.levelType}`">
+      <div class="level-section-wrapper" :class="`level-type-${searchStore.searchFilters.levelType}`">
         <div class="level-type-tabs">
           <div class="tab-header">
             <button
               class="level-tab"
-              :class="{ active: filters.levelType === 'level' }"
+              :class="{ active: searchStore.searchFilters.levelType === 'level' }"
               :disabled="isFieldDisabled('level-rank')"
               :title="isFieldDisabled('level-rank') ? getFieldDisabledReason('level-rank') : undefined"
               @click="setLevelType('level')"
@@ -237,7 +237,7 @@
           <div class="tab-header">
             <button
               class="level-tab"
-              :class="{ active: filters.levelType === 'link' }"
+              :class="{ active: searchStore.searchFilters.levelType === 'link' }"
               :disabled="isFieldDisabled('link-value') && isFieldDisabled('link-marker')"
               :title="(isFieldDisabled('link-value') && isFieldDisabled('link-marker')) ? (getFieldDisabledReason('link-value') || getFieldDisabledReason('link-marker')) : undefined"
               @click="setLevelType('link')"
@@ -253,7 +253,7 @@
           <div class="tab-header">
             <button
               class="level-tab"
-              :class="{ active: filters.levelType === 'scale' }"
+              :class="{ active: searchStore.searchFilters.levelType === 'scale' }"
               :disabled="isFieldDisabled('p-scale')"
               :title="isFieldDisabled('p-scale') ? getFieldDisabledReason('p-scale') : undefined"
               @click="setLevelType('scale')"
@@ -269,14 +269,15 @@
         </div>
 
         <!-- レベル/ランク/Pスケールの数字 -->
-        <div v-if="filters.levelType !== 'link'" class="level-numbers">
+        <div v-if="searchStore.searchFilters.levelType !== 'link'" class="level-numbers">
           <div class="number-row">
             <button
               v-for="num in [0, 1, 2, 3, 4, 5, 6]"
               :key="num"
               class="chip chip-num"
               :class="{ active: isLevelValueActive(num) }"
-              :disabled="filters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
+              :disabled="searchStore.searchFilters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
+              :title="searchStore.searchFilters.levelType === 'level' ? (isFieldDisabled('level-rank') ? getFieldDisabledReason('level-rank') : undefined) : (isFieldDisabled('p-scale') ? getFieldDisabledReason('p-scale') : undefined)"
               @click="toggleLevelValue(num)"
             >
               {{ num }}
@@ -288,7 +289,8 @@
               :key="num"
               class="chip chip-num"
               :class="{ active: isLevelValueActive(num) }"
-              :disabled="filters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
+              :disabled="searchStore.searchFilters.levelType === 'level' ? isFieldDisabled('level-rank') : isFieldDisabled('p-scale')"
+              :title="searchStore.searchFilters.levelType === 'level' ? (isFieldDisabled('level-rank') ? getFieldDisabledReason('level-rank') : undefined) : (isFieldDisabled('p-scale') ? getFieldDisabledReason('p-scale') : undefined)"
               @click="toggleLevelValue(num)"
             >
               {{ num }}
@@ -297,7 +299,7 @@
         </div>
 
         <!-- リンクの数字とマーカー -->
-        <div v-if="filters.levelType === 'link'" class="link-section">
+        <div v-if="searchStore.searchFilters.levelType === 'link'" class="link-section">
           <div class="link-numbers-container">
             <div class="link-numbers">
               <div class="number-row">
@@ -305,8 +307,9 @@
                   v-for="num in [1, 2, 3]"
                   :key="num"
                   class="chip chip-num"
-                  :class="{ active: filters.linkValues.includes(num) }"
+                  :class="{ active: searchStore.searchFilters.linkValues.includes(num) }"
                   :disabled="isFieldDisabled('link-value')"
+                  :title="isFieldDisabled('link-value') ? getFieldDisabledReason('link-value') : undefined"
                   @click="toggleLinkValue(num)"
                 >
                   {{ num }}
@@ -317,8 +320,9 @@
                   v-for="num in [4, 5, 6]"
                   :key="num"
                   class="chip chip-num"
-                  :class="{ active: filters.linkValues.includes(num) }"
+                  :class="{ active: searchStore.searchFilters.linkValues.includes(num) }"
                   :disabled="isFieldDisabled('link-value')"
+                  :title="isFieldDisabled('link-value') ? getFieldDisabledReason('link-value') : undefined"
                   @click="toggleLinkValue(num)"
                 >
                   {{ num }}
@@ -331,15 +335,17 @@
                   v-for="pos in [7, 8, 9, 4, 6, 1, 2, 3]"
                   :key="pos"
                   :class="['i_i_' + pos, { active: isLinkMarkerActive(pos) }]"
+                  :title="isFieldDisabled('link-marker') ? getFieldDisabledReason('link-marker') : undefined"
                   @click="!isFieldDisabled('link-marker') && toggleLinkMarker(pos)"
                 ></span>
                 <button
                   class="chip chip-mode-small link-mode-btn"
-                  :class="{ active: filters.linkMarkerMatchMode === 'and' }"
+                  :class="{ active: searchStore.searchFilters.linkMarkerMatchMode === 'and' }"
                   :disabled="isFieldDisabled('link-marker')"
+                  :title="isFieldDisabled('link-marker') ? getFieldDisabledReason('link-marker') : undefined"
                   @click="toggleLinkMarkerMatchMode"
                 >
-                  {{ filters.linkMarkerMatchMode === 'and' ? 'AND' : 'OR' }}
+                  {{ searchStore.searchFilters.linkMarkerMatchMode === 'and' ? 'AND' : 'OR' }}
                 </button>
               </div>
             </div>
@@ -357,6 +363,7 @@
               class="stat-tab"
               :class="{ active: activeStatTab === 'atk' }"
               :disabled="isFieldDisabled('atk')"
+              :title="isFieldDisabled('atk') ? getFieldDisabledReason('atk') : undefined"
               @click="activeStatTab = 'atk'"
             >
               ATK
@@ -392,6 +399,7 @@
                 class="chip chip-toggle"
                 :class="{ active: getStatFilter(activeStatTab).exact }"
                 :disabled="isFieldDisabled(activeStatTab)"
+                :title="isFieldDisabled(activeStatTab) ? getFieldDisabledReason(activeStatTab) : undefined"
                 @click="toggleStatExact(activeStatTab)"
               >
                 完全一致
@@ -400,6 +408,7 @@
                 class="chip chip-toggle"
                 :class="{ active: getStatFilter(activeStatTab).unknown }"
                 :disabled="isFieldDisabled(activeStatTab)"
+                :title="isFieldDisabled(activeStatTab) ? getFieldDisabledReason(activeStatTab) : undefined"
                 @click="toggleStatUnknown(activeStatTab)"
               >
                 ?
@@ -411,6 +420,7 @@
                 type="text"
                 placeholder="Min"
                 :disabled="isFieldDisabled(activeStatTab) || getStatFilter(activeStatTab).unknown"
+                :title="isFieldDisabled(activeStatTab) ? getFieldDisabledReason(activeStatTab) : undefined"
                 @input="validateStatInput($event, activeStatTab, 'min')"
               >
               <span>-</span>
@@ -419,6 +429,7 @@
                 type="text"
                 placeholder="Max"
                 :disabled="isFieldDisabled(activeStatTab) || getStatFilter(activeStatTab).unknown || getStatFilter(activeStatTab).exact"
+                :title="isFieldDisabled(activeStatTab) ? getFieldDisabledReason(activeStatTab) : undefined"
                 @input="validateStatInput($event, activeStatTab, 'max')"
               >
             </div>
@@ -430,9 +441,9 @@
     <!-- 発売日 -->
     <div class="filter-section">
       <div class="date-range">
-        <input v-model="filters.releaseDate.from" type="date" min="1999-01-01" :max="maxDate" placeholder="1999-01-01">
+        <input v-model="searchStore.searchFilters.releaseDate.from" type="date" min="1999-01-01" :max="maxDate" placeholder="1999-01-01">
         <span>-</span>
-        <input v-model="filters.releaseDate.to" type="date" min="1999-01-01" :max="maxDate">
+        <input v-model="searchStore.searchFilters.releaseDate.to" type="date" min="1999-01-01" :max="maxDate">
       </div>
     </div>
   </div>
@@ -440,19 +451,18 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { SearchFilters } from '@/types/search-filters';
 import type { Attribute, Race, MonsterType, SpellEffectType, TrapEffectType } from '@/types/card-maps';
-import type { ExclusionResult } from '@/types/search-exclusion';
 import { getAttributeIconUrl, getSpellIconUrl, getTrapIconUrl } from '@/api/image-utils';
 import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel } from '@/utils/filter-label';
 import { mappingManager } from '@/utils/mapping-manager';
 import { MONSTER_TYPE_ID_TO_NAME } from '@/types/card-maps';
+import { useSearchStore } from '@/stores/search';
+
+// searchStoreから直接filtersを使用
+const searchStore = useSearchStore();
 
 // Props
-// @ts-ignore - Used by defineProps
-interface Props {
-  filters: SearchFilters;
-  exclusionResult: ExclusionResult;
+const props = defineProps<{
   pageLanguage: string;
   isMonsterTypeFieldDisabled: boolean;
   isMonsterTabDisabled: boolean;
@@ -468,9 +478,7 @@ interface Props {
   selectedScaleChips: string[];
   selectedAtkChips: string[];
   selectedDefChips: string[];
-}
-
-const props = defineProps<Props>();
+}>();
 
 // Emits
 const emit = defineEmits<{
@@ -571,23 +579,23 @@ function validateStatInput(event: Event, stat: 'atk' | 'def', field: 'min' | 'ma
 
 // Helper functions
 function isFieldDisabled(field: string): boolean {
-  const fieldState = props.exclusionResult.fieldStates.get(field);
+  const fieldState = searchStore.exclusionResult.fieldStates.get(field);
   if (fieldState) {
     return !fieldState.enabled;
   }
   // フィールドが存在しない場合は、card-typeから推論
-  if (props.filters.cardType !== null) {
+  if (searchStore.searchFilters.cardType !== null) {
     // monsterカードタイプ専用フィールド
     const monsterOnlyFields = ['attribute', 'race', 'level-rank', 'link-value', 'link-marker', 'p-scale', 'atk', 'def'];
-    if (monsterOnlyFields.includes(field) && props.filters.cardType !== 'monster') {
+    if (monsterOnlyFields.includes(field) && searchStore.searchFilters.cardType !== 'monster') {
       return true;
     }
     // spellカードタイプ専用フィールド
-    if (field === 'spell-type' && props.filters.cardType !== 'spell') {
+    if (field === 'spell-type' && searchStore.searchFilters.cardType !== 'spell') {
       return true;
     }
     // trapカードタイプ専用フィールド
-    if (field === 'trap-type' && props.filters.cardType !== 'trap') {
+    if (field === 'trap-type' && searchStore.searchFilters.cardType !== 'trap') {
       return true;
     }
   }
@@ -598,8 +606,8 @@ function isFieldDisabled(field: string): boolean {
 
 
 function getFieldDisabledReason(field: string): string | undefined {
-  const fieldState = props.exclusionResult.fieldStates.get(field);
-  return fieldState?.disabledReason;
+  const fieldState = searchStore.exclusionResult.fieldStates.get(field);
+  return fieldState?.disabledReason || undefined;
 }
 
 function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
@@ -609,42 +617,42 @@ function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
   }
 
   // または個別のモンスタータイプ属性が無効化されているか
-  const attrState = props.exclusionResult.attributeStates.get(`monster-type_${type}`);
+  const attrState = searchStore.exclusionResult.attributeStates.get(`monster-type_${type}`);
   return attrState ? !attrState.enabled : false;
 }
 
 function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
   // フィールド全体が無効化されている場合
   if (props.isMonsterTypeFieldDisabled) {
-    const attrState = props.exclusionResult.attributeStates.get('card-type_monster');
-    return attrState?.disabledReason;
+    const attrState = searchStore.exclusionResult.attributeStates.get('card-type_monster');
+    return attrState?.disabledReason || undefined;
   }
 
   // または個別のモンスタータイプが無効化されている場合
-  const attrState = props.exclusionResult.attributeStates.get(`monster-type_${type}`);
-  return attrState?.disabledReason;
+  const attrState = searchStore.exclusionResult.attributeStates.get(`monster-type_${type}`);
+  return attrState?.disabledReason || undefined;
 }
 
 function getMonsterTypeClass(type: MonsterType) {
-  const state = props.filters.monsterTypes.find(t => t.type === type);
+  const state = searchStore.searchFilters.monsterTypes.find(t => t.type === type);
   if (!state) return '';
   return state.state === 'not' ? 'not' : 'active';
 }
 
 function isLevelValueActive(num: number): boolean {
-  if (props.filters.levelType === 'level') {
-    return props.filters.levelValues.includes(num);
+  if (searchStore.searchFilters.levelType === 'level') {
+    return searchStore.searchFilters.levelValues.includes(num);
   } else {
-    return props.filters.scaleValues.includes(num);
+    return searchStore.searchFilters.scaleValues.includes(num);
   }
 }
 
 function isLinkMarkerActive(pos: number): boolean {
-  return props.filters.linkMarkers.includes(pos);
+  return searchStore.searchFilters.linkMarkers.includes(pos);
 }
 
 function getStatFilter(stat: 'atk' | 'def') {
-  return props.filters[stat];
+  return searchStore.searchFilters[stat];
 }
 
 // ボタン表示用のラベル取得関数（言語対応版）
@@ -681,7 +689,8 @@ function getMonsterTypeButtonLabel(type: string) {
   border: 1px solid var(--border-primary);
   border-radius: 6px;
   background: var(--bg-primary);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .card-type-tabs {
@@ -765,7 +774,7 @@ function getMonsterTypeButtonLabel(type: string) {
   flex-wrap: nowrap;
   gap: 4px;
   align-items: center;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   white-space: nowrap;
   padding: 2px 6px;
@@ -890,6 +899,18 @@ function getMonsterTypeButtonLabel(type: string) {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
+
+  @media (max-width: 800px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 500px) {
+    grid-template-columns: repeat(1, 1fr);
+  }
 }
 
 .type-detail-row {
@@ -1138,11 +1159,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-fusion-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      /* 未選択時は淡く表示 */
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-fusion-chip-hover-bg);
@@ -1176,10 +1192,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-synchro-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-synchro-chip-hover-bg);
@@ -1213,10 +1225,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-xyz-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-xyz-chip-hover-bg);
@@ -1250,10 +1258,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-link-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-link-chip-hover-bg);
@@ -1287,10 +1291,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-ritual-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-ritual-chip-hover-bg);
@@ -1324,10 +1324,6 @@ function getMonsterTypeButtonLabel(type: string) {
       background: var(--monster-pendulum-chip-default-bg);
       border-color: var(--border-primary);
       color: var(--text-secondary);
-      filter: brightness(1.3) saturate(0.4);
-    }
-    &:not(:disabled):not(.active):not(.not):hover {
-      filter: brightness(1.1) saturate(0.6);
     }
     &:hover:not(:disabled) {
       background: var(--monster-pendulum-chip-hover-bg);
@@ -1780,6 +1776,7 @@ function getMonsterTypeButtonLabel(type: string) {
 
 .stat-row-with-checkboxes {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
 }
@@ -1794,6 +1791,7 @@ function getMonsterTypeButtonLabel(type: string) {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
 
   input {
     flex: 1;

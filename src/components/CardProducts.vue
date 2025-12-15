@@ -51,7 +51,6 @@
               :showCollapseButton="true"
               :showCodeSort="true"
               @collapse="collapsePack(pack.packId)"
-              @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -199,13 +198,6 @@ export default {
       return `${baseUrl}&${params.toString()}`
     }
 
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
     return {
       groupedPacks,
       expandedPacks,
@@ -217,8 +209,7 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
-      getPackUrl,
-      handleScrollToTop
+      getPackUrl
     }
   }
 }

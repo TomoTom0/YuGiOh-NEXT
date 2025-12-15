@@ -7,7 +7,7 @@
           v-for="(icon, idx) in filterIcons"
           :key="idx"
           class="history-chip"
-          :class="icon.type"
+          :class="icon.cssClass"
         >
           {{ icon.label }}
         </span>
@@ -78,9 +78,25 @@ const emit = defineEmits<{
   'remove': [];
 }>();
 
-// フィルターアイコンの生成
+// typeからCSSクラス名へのマッピング
+function getChipClass(type: string): string {
+  const typeMap: Record<string, string> = {
+    cardType: 'type',
+    spellType: 'type',
+    trapType: 'type',
+    attr: 'attribute',
+    race: 'race',
+    mtype: 'monster-type'
+  };
+  return typeMap[type] || type;
+}
+
+// フィルターアイコンの生成（CSSクラス付与）
 const filterIcons = computed(() => {
-  return convertFiltersToIcons(props.item.filters);
+  return convertFiltersToIcons(props.item.filters).map(icon => ({
+    ...icon,
+    cssClass: getChipClass(icon.type)
+  }));
 });
 </script>
 
@@ -89,9 +105,9 @@ const filterIcons = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1.25rem;
+  padding: 0.35rem 1rem;
   margin: 0 0.75rem;
-  min-height: 54px;
+  min-height: 40px;
   background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-secondary) 100%);
   border: 1px solid var(--border-primary, #ddd);
   border-radius: 0.75rem;
@@ -113,22 +129,23 @@ const filterIcons = computed(() => {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
 .history-chips {
   display: flex;
-  gap: 0.5rem;
-  min-height: 1.5rem;
+  gap: 0.3rem;
+  min-height: 1.2rem;
   flex-wrap: wrap;
   justify-content: flex-start;
   align-content: flex-start;
+  width: 100%;
 }
 
 .history-chip {
-  padding: 0.45rem 0.95rem;
-  font-size: 16.8px;
-  border-radius: 0.35rem;
+  padding: 0.15rem 0.4rem;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.57);
+  border-radius: 0.25rem;
   background: var(--chip-bg);
   color: var(--chip-text);
   font-weight: 600;
@@ -160,23 +177,47 @@ const filterIcons = computed(() => {
     color: white;
     border: none;
   }
+
+  &.level,
+  &.link,
+  &.scale {
+    background: linear-gradient(135deg, #ffd54f 0%, #ffc107 100%);
+    color: #1a1a1a;
+    border: none;
+    font-weight: 700;
+  }
+
+  &.atk,
+  &.def {
+    background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
+    color: white;
+    border: none;
+    font-weight: 700;
+  }
+
+  &.linkMarker {
+    background: linear-gradient(135deg, #26a69a 0%, #00897b 100%);
+    color: white;
+    border: none;
+    font-weight: 700;
+  }
 }
 
 .history-query {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  font-size: 17.6px;
+  font-size: var(--search-ui-font-size);
   flex-wrap: wrap;
-  min-height: 1.5rem;
+  min-height: 1.2rem;
   width: 100%;
 }
 
 .history-mode {
-  padding: 0.4rem 0.8rem;
+  padding: 0.2rem 0.5rem;
   background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  border-radius: 0.35rem;
-  font-size: 16px;
+  border-radius: 0.25rem;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.643);
   font-weight: 700;
   color: white;
   white-space: nowrap;
@@ -190,18 +231,18 @@ const filterIcons = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
-  font-size: 20px;
+  font-size: var(--search-ui-font-size);
   font-weight: 700;
   letter-spacing: 0.3px;
 }
 
 .history-count {
-  font-size: 16px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.643);
   color: var(--text-secondary);
   font-weight: 600;
   white-space: nowrap;
   background: var(--bg-tertiary);
-  padding: 0.3rem 0.6rem;
+  padding: 0.2rem 0.45rem;
   border-radius: 0.25rem;
 }
 

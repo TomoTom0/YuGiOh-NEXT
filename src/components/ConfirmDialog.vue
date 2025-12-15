@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="dialog-overlay" @click.self="onCancel">
+  <div v-if="show" class="ygo-next dialog-overlay" @click.self="onCancel">
     <div class="dialog-content">
       <h3 class="dialog-title">{{ title }}</h3>
       <p class="dialog-message">{{ message }}</p>

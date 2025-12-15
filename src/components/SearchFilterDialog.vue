@@ -45,8 +45,6 @@
         <!-- フィルタタブ -->
         <FilterTab
           v-if="activeDialogTab === 'filter'"
-          :filters="filters"
-          :exclusion-result="exclusionResult"
           :page-language="pageLanguage"
           :is-monster-type-field-disabled="isMonsterTypeFieldDisabled"
           :is-monster-tab-disabled="isMonsterTabDisabled"
@@ -99,48 +97,35 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import { useSearchStore } from '../stores/search';
 import type { CardInfo } from '../types/card';
 import SearchInputBar from './searchInputBar/SearchInputBar.vue';
 import FilterTab from './search-filter/FilterTab.vue';
 import HistoryTab from './search-filter/HistoryTab.vue';
-import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-engine';
-import { toSearchConditionState } from '../utils/search-exclusion-adapter';
 import { detectLanguage } from '../utils/language-detector';
 import { useSearchHistory } from '../composables/useSearchHistory';
 import { useFilterLogic } from '../composables/search-filter/useFilterLogic';
+import { buildSearchOptions } from '../utils/search-options-builder';
 
 const deckStore = useDeckEditStore();
 const searchStore = useSearchStore();
 const searchHistory = useSearchHistory();
 const activeDialogTab = ref<'filter' | 'history'>('filter');
 
-// searchStore.searchFilters を直接使用（watch 不要）
-const filters = searchStore.searchFilters;
-
 // ページ言語を検出（多言語対応）
 const pageLanguage = computed(() => {
   return detectLanguage(document);
 });
 
-// 推論エンジンのルールをロード
-const exclusionRules = loadExclusionRules();
-
-// 推論結果を計算
-const exclusionResult = computed(() => {
-  const state = toSearchConditionState(filters);
-  return inferExclusions(state, exclusionRules);
-});
-
 // useFilterLogic を使用してフィルタロジックを取得
-const filterLogic = useFilterLogic(filters, exclusionResult, pageLanguage);
+const filterLogic = useFilterLogic(pageLanguage);
 
 // フィルター件数を計算
 const filterCount = computed(() => {
   let count = 0;
-  const f = filters;
+  const f = searchStore.searchFilters;
 
   if (f.cardType) count++;
   count += f.attributes.length;
@@ -201,12 +186,21 @@ async function executeHistorySearch(index: number) {
   if (!item) return;
 
   // 検索条件を復元
-  Object.assign(filters, item.filters);
+  searchStore.searchFilters = item.filters;
   searchStore.searchQuery = item.query;
 
   // ダイアログを閉じる
   deckStore.isFilterDialogVisible = false;
   deckStore.activeTab = 'search';
+
+  // 検索結果エリアのスクロール位置を上に移動
+  await nextTick();
+
+  // .search-content をスクロール（親要素）
+  const searchContent = document.querySelector('.search-content');
+  if (searchContent) {
+    searchContent.scrollTop = 0;
+  }
 
   // UnifiedCacheDB (cache db) から検索結果を復元
   const { getUnifiedCacheDB } = await import('../utils/unified-cache-db');
@@ -237,38 +231,38 @@ async function executeHistorySearch(index: number) {
         const { searchCards, searchCardsAuto } = await import('../api/card-search');
         let newResults: CardInfo[] = [];
 
+        const searchTypeMap: Record<string, '1' | '2' | '3' | '4'> = {
+          name: '1',
+          text: '2',
+          pendulum: '3'
+        };
+        const searchType = searchTypeMap[item.searchMode] || '1';
+
+        // 共通のbuildSearchOptions関数を使用してSearchOptionsを構築
+        const searchOptions = buildSearchOptions(
+          item.query,
+          searchType,
+          1 as any, // SortOrder（履歴からのソート順または1固定）
+          item.filters
+        );
+
+        // autoモードの場合はsearchCardsAutoを使用
         if (item.searchMode === 'auto') {
-          const autoResult = await searchCardsAuto(item.query, 100, item.filters.cardType ?? undefined);
+          const autoResult = await searchCardsAuto(searchOptions);
           newResults = autoResult.cards;
         } else {
-          const searchTypeMap: Record<string, '1' | '2' | '3' | '4'> = {
-            name: '1',
-            text: '2',
-            pendulum: '3'
-          };
-          const searchType = searchTypeMap[item.searchMode] || '1';
-
-          const searchOptions = {
-            keyword: item.query,
-            searchType,
-            resultsPerPage: 100,
-            sort: 1
-          };
-
           newResults = await searchCards(searchOptions);
         }
 
-        // 結果が変わっていれば更新
-        const newResultCids = newResults.map(card => card.cardId);
-        const updated = searchHistory.updateResults(index, newResultCids);
+        // 結果を更新
+        searchStore.searchResults = newResults as unknown as typeof searchStore.searchResults;
+        searchStore.allResults = newResults as unknown as typeof searchStore.allResults;
 
-        if (updated) {
-          searchStore.searchResults = newResults as unknown as typeof searchStore.searchResults;
-          searchStore.allResults = newResults as unknown as typeof searchStore.allResults;
-          console.log('[YGO Helper] 検索履歴を更新しました（日付変更のため）');
-        }
+        // 検索履歴の結果も更新
+        const newResultCids = newResults.map(card => card.cardId);
+        searchHistory.updateResults(index, newResultCids);
       } catch (error) {
-        console.error('[YGO Helper] 検索履歴のバックグラウンド更新に失敗しました:', error);
+        console.error('[YGO Helper] 検索履歴の再検索に失敗しました:', error);
       }
     }, 100);
   }
@@ -305,34 +299,34 @@ function removeHeaderChip(index: number) {
 
   switch (icon.type) {
     case 'cardType':
-      filters.cardType = null;
+      searchStore.searchFilters.cardType = null;
       break;
     case 'attr':
-      filters.attributes = filters.attributes.filter(a => a !== icon.value);
+      searchStore.searchFilters.attributes = searchStore.searchFilters.attributes.filter(a => a !== icon.value);
       break;
     case 'race':
-      filters.races = filters.races.filter(r => r !== icon.value);
+      searchStore.searchFilters.races = searchStore.searchFilters.races.filter(r => r !== icon.value);
       break;
     case 'level':
-      filters.levelValues = [];
+      searchStore.searchFilters.levelValues = [];
       break;
     case 'atk':
-      filters.atk = { exact: false, unknown: false };
+      searchStore.searchFilters.atk = { exact: false, unknown: false };
       break;
     case 'def':
-      filters.def = { exact: false, unknown: false };
+      searchStore.searchFilters.def = { exact: false, unknown: false };
       break;
     case 'mtype':
-      filters.monsterTypes = filters.monsterTypes.filter(mt => mt.type !== icon.value);
+      searchStore.searchFilters.monsterTypes = searchStore.searchFilters.monsterTypes.filter(mt => mt.type !== icon.value);
       break;
     case 'link':
-      filters.linkValues = [];
+      searchStore.searchFilters.linkValues = [];
       break;
     case 'scale':
-      filters.scaleValues = [];
+      searchStore.searchFilters.scaleValues = [];
       break;
     case 'linkMarker':
-      filters.linkMarkers = [];
+      searchStore.searchFilters.linkMarkers = [];
       break;
   }
 }
@@ -350,6 +344,7 @@ function removeHeaderChip(index: number) {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  overflow: hidden;
 }
 
 .dialog-content {
@@ -392,6 +387,7 @@ function removeHeaderChip(index: number) {
 .dialog-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 16px 0 16px;
   box-sizing: border-box;
   width: 100%;
@@ -466,18 +462,19 @@ function removeHeaderChip(index: number) {
 
 .tab-badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 16px;
-  height: 16px;
+  top: -6px;
+  right: -6px;
+  min-width: 14px;
+  height: 14px;
   padding: 0 4px;
-  font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.64);
   font-weight: 600;
-  line-height: 16px;
+  line-height: 14px;
   text-align: center;
-  background: var(--text-secondary);
+  background: linear-gradient(135deg, var(--theme-color-start) 0%, var(--color-info) 50%, var(--theme-color-end) 100%);
   color: var(--button-text);
-  border-radius: 8px;
+  border-radius: 7px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .header-actions {
