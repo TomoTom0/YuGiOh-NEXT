@@ -96,11 +96,7 @@ function handleRemove(item: SearchHistoryItem) {
   text-align: center;
   color: var(--text-secondary);
   padding: 3rem 2rem;
-<<<<<<< HEAD
   font-size: var(--search-ui-font-size);
-=======
-  font-size: 17.6px;
->>>>>>> origin/dev-new
 }
 
 .history-section {
@@ -113,11 +109,7 @@ function handleRemove(item: SearchHistoryItem) {
 }
 
 .history-section-title {
-<<<<<<< HEAD
   font-size: var(--search-ui-font-size);
-=======
-  font-size: 18.4px;
->>>>>>> origin/dev-new
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 1.25rem;

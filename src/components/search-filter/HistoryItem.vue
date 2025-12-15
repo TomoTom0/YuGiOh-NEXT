@@ -143,15 +143,9 @@ const filterIcons = computed(() => {
 }
 
 .history-chip {
-<<<<<<< HEAD
   padding: 0.15rem 0.4rem;
   font-size: calc(var(--search-ui-font-size, 14px) * 0.57);
   border-radius: 0.25rem;
-=======
-  padding: 0.45rem 0.95rem;
-  font-size: 16.8px;
-  border-radius: 0.35rem;
->>>>>>> origin/dev-new
   background: var(--chip-bg);
   color: var(--chip-text);
   font-weight: 600;
@@ -213,11 +207,6 @@ const filterIcons = computed(() => {
   display: flex;
   gap: 0.5rem;
   align-items: center;
-<<<<<<< HEAD
-  font-size: var(--search-ui-font-size);
-=======
-  font-size: 17.6px;
->>>>>>> origin/dev-new
   flex-wrap: wrap;
   min-height: 1.2rem;
   width: 100%;
@@ -226,13 +215,6 @@ const filterIcons = computed(() => {
 .history-mode {
   padding: 0.2rem 0.5rem;
   background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-<<<<<<< HEAD
-  border-radius: 0.25rem;
-  font-size: calc(var(--search-ui-font-size, 14px) * 0.643);
-=======
-  border-radius: 0.35rem;
-  font-size: 16px;
->>>>>>> origin/dev-new
   font-weight: 700;
   color: white;
   white-space: nowrap;
@@ -246,21 +228,11 @@ const filterIcons = computed(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
-<<<<<<< HEAD
-  font-size: var(--search-ui-font-size);
-=======
-  font-size: 20px;
->>>>>>> origin/dev-new
   font-weight: 700;
   letter-spacing: 0.3px;
 }
 
 .history-count {
-<<<<<<< HEAD
-  font-size: calc(var(--search-ui-font-size, 14px) * 0.643);
-=======
-  font-size: 16px;
->>>>>>> origin/dev-new
   color: var(--text-secondary);
   font-weight: 600;
   white-space: nowrap;

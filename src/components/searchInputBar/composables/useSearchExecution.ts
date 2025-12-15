@@ -1,9 +1,5 @@
 import { type Ref, computed, nextTick } from 'vue'
-<<<<<<< HEAD
 import type { CardInfo, Attribute, Race } from '../../../types/card'
-=======
-import type { CardInfo, Attribute, Race, CardType } from '../../../types/card'
->>>>>>> origin/dev-new
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
