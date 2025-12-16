@@ -76,38 +76,6 @@
               </button>
             </div>
           </div>
-
-          <!-- 左下2: Dialog Font Size -->
-          <div class="setting-block">
-            <div class="block-title">Dialog Font</div>
-            <div class="size-grid">
-              <button
-                v-for="preset in presets"
-                :key="preset.value"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.dialogFontSize === preset.value }"
-                @click="settingsStore.setDialogFontSize(preset.value)"
-              >
-                {{ preset.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 右下2: Search UI Font Size -->
-          <div class="setting-block">
-            <div class="block-title">Search Font</div>
-            <div class="size-grid">
-              <button
-                v-for="preset in presets"
-                :key="preset.value"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.searchUIFontSize === preset.value }"
-                @click="settingsStore.setSearchUIFontSize(preset.value)"
-              >
-                {{ preset.label }}
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- Tips Section (一時的に非表示) -->

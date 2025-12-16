@@ -218,6 +218,10 @@ export interface AppSettings {
   enableCategoryPriority: boolean;
   /** 末尾配置を有効化 */
   enableTailPlacement: boolean;
+  /** 手動先頭優先配置を有効化 */
+  enableHeadPlacement: boolean;
+  /** 保存前に全ソートを実行 */
+  sortAllBeforeSave: boolean;
   /** ダイアログのフォントサイズ */
   dialogFontSize: DialogFontSize;
   /** 検索UIのフォントサイズ */
@@ -338,6 +342,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
   enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
   enableTailPlacement: true,           // 末尾配置: デフォルト有効
+  enableHeadPlacement: true,           // 手動先頭優先配置: デフォルト有効
+  sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
   dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
 };

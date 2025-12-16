@@ -13,8 +13,8 @@
     <!-- SearchFilterDialogで選択した条件 -->
     <TransitionGroup name="chip" tag="div" class="chip-group">
       <span
-        v-for="(icon, index) in displayFilterIcons"
-        :key="`icon-${icon.label}-${icon.type}-${index}`"
+        v-for="icon in displayFilterIcons"
+        :key="`icon-${icon.type}-${icon.value || icon.label}`"
         class="filter-icon-item clickable"
         :class="[icon.type, { 'not-condition': icon.isNot }]"
         @click="$emit('remove-icon', icon)"

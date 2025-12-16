@@ -404,7 +404,7 @@ watch(() => props.modelValue, (newVal) => {
   border-right: 1px solid var(--border-primary);
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--dialog-font-size) * 0.93);
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.2s;

@@ -100,6 +100,12 @@
             </svg>
             Import Deck
           </button>
+          <button v-if="settingsStore.appSettings.sortAllBeforeSave" data-testid="save-without-sort-btn" @click="handleSaveWithoutFullSortClick" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiContentSave" />
+            </svg>
+            Save (no full sort)
+          </button>
           <div class="menu-divider"></div>
           <button @click="handleNewClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
@@ -289,7 +295,11 @@ export default {
     })
     const displayDeckName = computed(() => deckStore.getDeckName())
 
-    const handleSaveClick = () => {
+    /**
+     * 共通の保存処理
+     * @param applySorting ソート処理（バックアップ後、タイマー前に実行）
+     */
+    const performSave = (applySorting: () => void) => {
       if (savingState.value) {
         // キャンセル
         if (saveTimer.value) {
@@ -297,20 +307,20 @@ export default {
           saveTimer.value = null
         }
         savingState.value = false
-        
+
         // displayOrderを元に戻す
         deckStore.restoreDisplayOrder()
         showToast('保存をキャンセルしました', 'info')
       } else {
         // 2秒後に保存
         savingState.value = true
-        
+
         // displayOrderをバックアップ
         deckStore.backupDisplayOrder()
-        
-        // 公式フォーマットに並び替え
-        deckStore.sortDisplayOrderForOfficial()
-        
+
+        // ソート処理を実行
+        applySorting()
+
         saveTimer.value = window.setTimeout(async () => {
           try {
             if (!localDno.value) {
@@ -319,9 +329,9 @@ export default {
               deckStore.restoreDisplayOrder()
               return
             }
-            
+
             // デッキ名が空白の場合はgetterが自動的にoriginalNameを返す
-            
+
             const result = await deckStore.saveDeck(localDno.value)
             if (result.success) {
               showToast('保存しました', 'success')
@@ -342,6 +352,26 @@ export default {
           }
         }, 2000)
       }
+    }
+
+    const handleSaveClick = () => {
+      // sortAllBeforeSaveが有効な場合は全ソート、無効な場合は最低限のソートのみ
+      if (settingsStore.appSettings.sortAllBeforeSave) {
+        performSave(() => {
+          deckStore.sortAllSections()
+        })
+      } else {
+        performSave(() => {
+          deckStore.sortDisplayOrderForOfficial()
+        })
+      }
+    }
+
+    const handleSaveWithoutFullSortClick = () => {
+      // 最低限のソート（公式フォーマット）のみで保存
+      performSave(() => {
+        deckStore.sortDisplayOrderForOfficial()
+      })
     }
 
     const handleLoadClick = async () => {
@@ -563,6 +593,7 @@ export default {
 
     return {
       deckStore,
+      settingsStore,
       selectedDeckDno,
       savingState,
       showMenu,
@@ -577,6 +608,7 @@ export default {
       unsavedChangesMessage,
       unsavedChangesButtons,
       handleSaveClick,
+      handleSaveWithoutFullSortClick,
       handleLoadClick,
       handleLoadSelected,
       handleReloadDeck,

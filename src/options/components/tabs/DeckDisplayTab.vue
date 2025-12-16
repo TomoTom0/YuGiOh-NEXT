@@ -25,9 +25,15 @@
       >
         画像作成
       </button>
+      <button
+        :class="['sub-tab', { active: activeSubTab === 'general' }]"
+        @click="scrollToSection('general')"
+      >
+        General
+      </button>
     </div>
 
-    <div class="section-content" ref="contentContainer" @scroll="onScroll">
+    <div class="section-content">
       <div id="section-overview" class="section-wrapper">
         <OverviewSection type="deck-display" />
       </div>
@@ -40,32 +46,95 @@
       <div id="section-image-creation" class="section-wrapper">
         <ImageCreationSection />
       </div>
+      <div id="section-general" class="section-wrapper">
+        <div class="section">
+          <h3 class="section-title">デッキ表示ページのカード画像サイズ</h3>
+          <p class="section-desc">
+            公式デッキ表示ページでのカード画像のサイズを選択できます。「Normal」は公式サイトのデフォルトサイズです。
+          </p>
+          <div class="size-buttons">
+            <button
+              class="size-button"
+              :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'normal' }"
+              @click="handleCardImageSizeChange('normal')"
+            >
+              Normal
+            </button>
+            <button
+              class="size-button"
+              :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'small' }"
+              @click="handleCardImageSizeChange('small')"
+            >
+              S
+            </button>
+            <button
+              class="size-button"
+              :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'medium' }"
+              @click="handleCardImageSizeChange('medium')"
+            >
+              M
+            </button>
+            <button
+              class="size-button"
+              :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'large' }"
+              @click="handleCardImageSizeChange('large')"
+            >
+              L
+            </button>
+            <button
+              class="size-button"
+              :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'xlarge' }"
+              @click="handleCardImageSizeChange('xlarge')"
+            >
+              XL
+            </button>
+          </div>
+          <div v-if="sizeMessage" class="message success">
+            {{ sizeMessage }}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useSettingsStore } from '../../../stores/settings';
+import type { DeckDisplayCardImageSize } from '../../../types/settings';
 import OverviewSection from '../sections/OverviewSection.vue';
 import DeckDisplayCardDetailSection from '../sections/DeckDisplayCardDetailSection.vue';
 import ShuffleSection from '../sections/ShuffleSection.vue';
 import ImageCreationSection from '../sections/ImageCreationSection.vue';
 
-type SubTab = 'overview' | 'card-detail' | 'shuffle' | 'image-creation';
+type SubTab = 'overview' | 'card-detail' | 'shuffle' | 'image-creation' | 'general';
+
+const settingsStore = useSettingsStore();
+const sizeMessage = ref('');
 
 const activeSubTab = ref<SubTab>('overview');
-const contentContainer = ref<HTMLElement | null>(null);
+
+const handleCardImageSizeChange = (size: DeckDisplayCardImageSize) => {
+  settingsStore.setDeckDisplayCardImageSize(size);
+  const label = size === 'normal' ? 'Normal' :
+                size === 'small' ? 'S' :
+                size === 'medium' ? 'M' :
+                size === 'large' ? 'L' : 'XL';
+  sizeMessage.value = `カード画像サイズを「${label}」に変更しました`;
+  setTimeout(() => {
+    sizeMessage.value = '';
+  }, 3000);
+};
 
 // セクションまでスクロール
 const scrollToSection = (sectionId: SubTab) => {
   const element = document.getElementById(`section-${sectionId}`);
-  if (element && contentContainer.value) {
-    const container = contentContainer.value;
-    const elementTop = element.offsetTop;
-    const containerTop = container.offsetTop;
+  if (element) {
+    const elementTop = element.getBoundingClientRect().top + window.scrollY;
+    const offset = 120; // main-tabs (63px) + sub-tabs (57px)
 
-    container.scrollTo({
-      top: elementTop - containerTop,
+    window.scrollTo({
+      top: elementTop - offset,
       behavior: 'smooth'
     });
 
@@ -75,25 +144,31 @@ const scrollToSection = (sectionId: SubTab) => {
 
 // スクロール位置に基づいてアクティブタブを更新
 const onScroll = () => {
-  if (!contentContainer.value) return;
-
-  const container = contentContainer.value;
-  const sections: SubTab[] = ['overview', 'card-detail', 'shuffle', 'image-creation'];
-  const scrollTop = container.scrollTop;
-  const containerTop = container.offsetTop;
+  const sections: SubTab[] = ['overview', 'card-detail', 'shuffle', 'image-creation', 'general'];
+  const scrollTop = window.scrollY;
+  const offset = 120;
 
   for (let i = sections.length - 1; i >= 0; i--) {
     const sectionId = sections[i];
     const element = document.getElementById(`section-${sectionId}`);
     if (element) {
-      const elementTop = element.offsetTop - containerTop;
-      if (scrollTop >= elementTop - 50) {
+      const elementTop = element.getBoundingClientRect().top + scrollTop;
+      if (scrollTop >= elementTop - offset - 50) {
         activeSubTab.value = sectionId;
         break;
       }
     }
   }
 };
+
+// スクロールイベントをリスン
+onMounted(() => {
+  window.addEventListener('scroll', onScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll);
+});
 </script>
 
 <style scoped lang="scss">
@@ -102,7 +177,7 @@ const onScroll = () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-primary);
-  margin: 24px 40px 40px;
+  margin: 0 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
@@ -112,7 +187,7 @@ const onScroll = () => {
   border-bottom: 1px solid var(--border-primary);
   background-color: var(--bg-secondary);
   position: sticky;
-  top: 0;
+  top: 63px;
   z-index: 5;
 }
 
@@ -143,9 +218,7 @@ const onScroll = () => {
 .section-content {
   flex: 1;
   padding: 0;
-  overflow-y: auto;
   background-color: var(--bg-primary);
-  scroll-behavior: smooth;
 }
 
 .section-wrapper {
@@ -154,6 +227,86 @@ const onScroll = () => {
 
   &:not(:last-child) {
     border-bottom: 2px solid var(--border-primary);
+  }
+}
+
+.section {
+  margin-bottom: 32px;
+  padding: 24px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.section-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.size-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.size-button {
+  padding: 12px 16px;
+  border: 2px solid var(--border-primary);
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+
+  &:hover:not(.active) {
+    border-color: var(--color-info);
+    background-color: var(--bg-tertiary);
+  }
+
+  &.active {
+    border-color: #0068d9;
+    background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
+  }
+}
+
+.message {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  animation: fadeIn 0.3s ease;
+
+  &.success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>

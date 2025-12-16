@@ -42,6 +42,16 @@ export interface DeckSortOptions {
   priorityCategoryCardIds?: Set<string>;
 
   /**
+   * 手動先頭優先配置を有効にするか
+   */
+  enableHeadPlacement?: boolean;
+
+  /**
+   * 手動先頭優先配置対象のカードIDリスト
+   */
+  headPlacementCardIds?: string[];
+
+  /**
    * 末尾配置を有効にするか
    */
   enableTailPlacement?: boolean;
@@ -62,12 +72,13 @@ export interface DeckSortOptions {
  * @remarks
  * ソート優先順位:
  * 1. カードタイプ (Monster < Spell < Trap)
- * 2. カテゴリ優先（有効な場合）
- * 3. 末尾配置フラグ（有効な場合）
- * 4. モンスタータイプ (Fusion < Synchro < Xyz < Link < その他)
- * 5. レベル/ランク/リンク（降順）
- * 6. 魔法/罠のタイプ
- * 7. カード名（昇順）
+ * 2. 手動先頭優先配置（有効な場合）← カテゴリ優先より優先
+ * 3. カテゴリ優先（有効な場合）
+ * 4. 末尾配置フラグ（有効な場合）
+ * 5. モンスタータイプ (Fusion < Synchro < Xyz < Link < その他)
+ * 6. レベル/ランク/リンク（降順）
+ * 7. 魔法/罠のタイプ
+ * 8. カード名（昇順）
  *
  * @example
  * ```typescript
@@ -89,6 +100,8 @@ export function createDeckCardComparator(
     sortMode = 'default',
     enableCategoryPriority = true,
     priorityCategoryCardIds = new Set<string>(),
+    enableHeadPlacement = true,
+    headPlacementCardIds = [],
     enableTailPlacement = true,
     tailPlacementCardIds = []
   } = options;
@@ -248,14 +261,29 @@ export function createDeckCardComparator(
     const typeB = typeOrder[cardB.cardType] ?? 999;
     if (typeA !== typeB) return typeA - typeB;
 
-    // 1. メタデータカテゴリ: 該当あり(0) < 該当なし(1) ← カテゴリ優先が先頭
+    // 1. 手動先頭優先配置: 配列の順序で優先順位を決定 ← カテゴリ優先より優先
+    if (enableHeadPlacement && headPlacementCardIds.length > 0) {
+      const indexA = headPlacementCardIds.indexOf(a.cid);
+      const indexB = headPlacementCardIds.indexOf(b.cid);
+
+      // 両方が配列に含まれている場合、インデックス（順序）で比較
+      if (indexA >= 0 && indexB >= 0) {
+        return indexA - indexB;
+      }
+
+      // 片方だけが配列に含まれている場合、含まれている方を優先
+      if (indexA >= 0) return -1;
+      if (indexB >= 0) return 1;
+    }
+
+    // 2. メタデータカテゴリ: 該当あり(0) < 該当なし(1)
     const inPriorityA = enableCategoryPriority && matchesPriorityCategory(cardA) ? 0 : 1;
     const inPriorityB = enableCategoryPriority && matchesPriorityCategory(cardB) ? 0 : 1;
     if (enableCategoryPriority && inPriorityA !== inPriorityB) {
       return inPriorityA - inPriorityB;
     }
 
-    // 1-1. カテゴリ優先カード内での枚数による重み付け
+    // 2-1. カテゴリ優先カード内での枚数による重み付け
     if (enableCategoryPriority && inPriorityA === 0 && inPriorityB === 0) {
       const quantityA = section.filter(card => card.cid === a.cid).length;
       const quantityB = section.filter(card => card.cid === b.cid).length;

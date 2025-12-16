@@ -44,53 +44,6 @@
       </div>
 
       <div class="section">
-        <h3 class="section-title">デッキ表示ページのカード画像サイズ</h3>
-        <p class="section-desc">
-          公式デッキ表示ページでのカード画像のサイズを選択できます。「Normal」は公式サイトのデフォルトサイズです。
-        </p>
-        <div class="size-buttons">
-          <button
-            class="size-button"
-            :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'normal' }"
-            @click="handleCardImageSizeChange('normal')"
-          >
-            Normal
-          </button>
-          <button
-            class="size-button"
-            :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'small' }"
-            @click="handleCardImageSizeChange('small')"
-          >
-            S
-          </button>
-          <button
-            class="size-button"
-            :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'medium' }"
-            @click="handleCardImageSizeChange('medium')"
-          >
-            M
-          </button>
-          <button
-            class="size-button"
-            :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'large' }"
-            @click="handleCardImageSizeChange('large')"
-          >
-            L
-          </button>
-          <button
-            class="size-button"
-            :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === 'xlarge' }"
-            @click="handleCardImageSizeChange('xlarge')"
-          >
-            XL
-          </button>
-        </div>
-        <div v-if="sizeMessage" class="message success">
-          {{ sizeMessage }}
-        </div>
-      </div>
-
-      <div class="section">
         <h3 class="section-title">設定リセット</h3>
         <p class="section-desc">
           全ての設定を初期値に戻します。この操作は取り消せません。
@@ -124,23 +77,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { DeckDisplayCardImageSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const resetMessage = ref('');
-const sizeMessage = ref('');
-
-const handleCardImageSizeChange = (size: DeckDisplayCardImageSize) => {
-  settingsStore.setDeckDisplayCardImageSize(size);
-  const label = size === 'normal' ? 'Normal' :
-                size === 'small' ? 'S' :
-                size === 'medium' ? 'M' :
-                size === 'large' ? 'L' : 'XL';
-  sizeMessage.value = `カード画像サイズを「${label}」に変更しました`;
-  setTimeout(() => {
-    sizeMessage.value = '';
-  }, 3000);
-};
 
 const handleReset = async () => {
   if (confirm('本当に全ての設定をリセットしますか？この操作は取り消せません。')) {
@@ -159,7 +98,7 @@ const handleReset = async () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-primary);
-  margin: 24px 40px 40px;
+  margin: 0 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
