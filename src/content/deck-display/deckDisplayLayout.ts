@@ -7,7 +7,13 @@
 /**
  * カード画像サイズを変更
  */
-export function setCardImageSize(size: 'small' | 'medium' | 'large' | 'xlarge'): void {
+export function setCardImageSize(size: 'normal' | 'small' | 'medium' | 'large' | 'xlarge'): void {
+  // 'normal'の場合は公式サイトのデフォルトサイズを使用（CSS変数を削除）
+  if (size === 'normal') {
+    document.documentElement.style.removeProperty('--deck-display-card-width');
+    return;
+  }
+
   const sizeMap: Record<string, string> = {
     small: '36px',
     medium: '60px',

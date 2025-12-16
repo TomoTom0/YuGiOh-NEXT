@@ -115,12 +115,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   /**
+   * カテゴリ判定の更新トリガー
+   * カテゴリ追加/削除、カード追加/削除時にインクリメントして再計算を促す
+   */
+  const categoryMatchingTrigger = ref(0);
+
+  /**
    * カテゴリ優先アイコン表示対象のcidセット（2段階検索）
    *
    * 一段階目: カテゴリラベルを名前/ルビ/テキスト/p-textに含むcid
    * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
    */
   const categoryMatchedCardIds = computed(() => {
+    // トリガーを依存関係に含めることで、明示的な更新をサポート
+    categoryMatchingTrigger.value; // eslint-disable-line @typescript-eslint/no-unused-expressions
+
     const categories = deckInfo.value?.category ?? [];
     const labelMap = categoryLabelMap.value || {};
     const unifiedDB = getUnifiedCacheDB();
@@ -138,6 +147,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       (cid) => unifiedDB.reconstructCardInfo(cid, lang) || undefined
     );
   });
+
+  /**
+   * カテゴリ判定を更新（カテゴリ追加/削除、カード追加/削除時に呼び出す）
+   */
+  function updateCategoryMatching() {
+    categoryMatchingTrigger.value++;
+  }
 
   // カード移動可否判定（useDeckValidation.tsから import）
   const canMoveCard = canMoveCardValidation;
@@ -585,6 +601,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('Failed to save TempCardDB to storage:', error);
     });
 
+    // カテゴリ判定を更新
+    updateCategoryMatching();
+
     // 新規追加されたカードは位置情報がないため、単純なフェードイン
     // FLIPアニメーションは移動のみに使用
     return { success: true };
@@ -598,6 +617,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } catch (e) {
       // ignore
     }
+    // カテゴリ判定を更新
+    updateCategoryMatching();
     return res;
   }
 
@@ -1324,6 +1345,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     canUndo,
     canRedo,
     categoryMatchedCardIds,
+    updateCategoryMatching,
     canMoveCard,
     addCard,
     removeCard,

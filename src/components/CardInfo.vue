@@ -54,6 +54,14 @@
                 {{ isTailPlaced ? '末尾配置を解除' : '末尾配置に追加' }}
               </span>
             </button>
+            <button
+              class="card-menu-item"
+              @click="openDeckSearch"
+            >
+              <span class="menu-item-label">
+                公開デッキ検索 (new tab)
+              </span>
+            </button>
           </div>
         </Transition>
         <transition name="dialog-fade">
@@ -319,6 +327,18 @@ export default {
       showCardMenu.value = false
     }
 
+    // デッキ検索を新しいタブで開く
+    const openDeckSearch = () => {
+      if (!card.value) return
+
+      const gameType = detectCardGameType()
+      const deckSearchUrl = buildApiUrl(`deck_search.action?cardid=${card.value.cardId}`, gameType)
+      window.open(deckSearchUrl, '_blank')
+
+      // メニューを閉じる
+      showCardMenu.value = false
+    }
+
     // メニュー外をクリックしたときにメニューを閉じる
     const closeMenuIfOutside = (event) => {
       // メニューボタンやドロップダウン上をクリックしている場合は何もしない
@@ -360,6 +380,7 @@ export default {
       showCardMenu,
       isTailPlaced,
       toggleTailPlacement,
+      openDeckSearch,
       closeMenuIfOutside
     }
   },

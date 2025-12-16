@@ -15,7 +15,8 @@ import type {
   RightAreaWidth,
   RightAreaFontSize,
   DialogFontSize,
-  SearchUIFontSize
+  SearchUIFontSize,
+  DeckDisplayCardImageSize
 } from '../types/settings';
 import {
   DEFAULT_APP_SETTINGS,
@@ -486,7 +487,7 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * デッキ表示ページのカード画像サイズを変更
    */
-  function setDeckDisplayCardImageSize(size: CardSize): void {
+  function setDeckDisplayCardImageSize(size: DeckDisplayCardImageSize): void {
     appSettings.value.deckDisplayCardImageSize = size;
     saveSettings();
   }

@@ -98,7 +98,7 @@
       @click="handleScrollTopClick"
       title="トップへ"
     >
-      <svg width="12" height="12" viewBox="0 0 24 24">
+      <svg width="10" height="10" viewBox="0 0 24 24">
         <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
       </svg>
     </button>
@@ -519,9 +519,16 @@ export default {
 .scroll-top-btn {
   position: sticky;
   top: 4px;
-  left: 40px;
+  right: 4px;
   z-index: 9;
   margin: 0 0 -28px 0;
+  background: var(--bg-primary);
+  opacity: 0.8;
+  backdrop-filter: blur(4px);
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .floating-btn {
@@ -652,7 +659,7 @@ export default {
   transition: all 0.2s;
 
   &:hover {
-    background: var(--color-success-bg);
+    background: var(--bg-hover, rgba(0, 140, 255, 0.35));
     color: var(--text-primary);
   }
 

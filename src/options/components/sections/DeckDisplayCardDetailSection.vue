@@ -19,51 +19,16 @@
         </span>
       </label>
     </div>
-
-    <div class="setting-group">
-      <h3 class="setting-title">カード画像サイズ</h3>
-      <p class="sub-description">
-        カード詳細エリアの表示/非表示に関わらず、デッキ表示ページのカード画像サイズを変更できます。
-      </p>
-      <div class="size-buttons">
-        <button
-          v-for="size in cardImageSizes"
-          :key="size.value"
-          class="size-button"
-          :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
-          @click="handleChangeCardImageSize(size.value)"
-        >
-          {{ size.label }}
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { CardSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 
-interface CardImageSizeOption {
-  value: CardSize;
-  label: string;
-}
-
-const cardImageSizes = ref<CardImageSizeOption[]>([
-  { value: 'small', label: 'S' },
-  { value: 'medium', label: 'M' },
-  { value: 'large', label: 'L' }
-]);
-
 const handleToggleCardDetail = () => {
   settingsStore.setShowCardDetailInDeckDisplay(settingsStore.appSettings.showCardDetailInDeckDisplay);
-};
-
-const handleChangeCardImageSize = (size: CardSize) => {
-  settingsStore.setDeckDisplayCardImageSize(size);
 };
 </script>
 
