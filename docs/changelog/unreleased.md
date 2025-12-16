@@ -2,25 +2,19 @@
 
 ## New Features
 
-- オプションページにダイアログのフォントサイズ設定を追加（S/M/L/XL）
-- オプションページに検索UIのフォントサイズ設定を追加（S/M/L/XL）
-- デッキ表示ページのカード画像サイズ設定をGeneralタブに追加（Normal/S/M/L/XL）
-  - Normalは公式サイトのデフォルトサイズ
-  - カード詳細エリアの表示/非表示とは独立して設定可能
-- info-tabにカード閲覧履歴の戻る/進むボタンを追加（右上に配置、最大50件まで保持）
+（変更内容をここに記載）
 
 ## Bug Fixes
 
-- デッキツールバーのメニューを開いた状態で外部をクリックしてもメニューが閉じない問題を修正
-- デッキ表示画面のinfoボタンが反応しない問題を修正（closest()メソッドによる要素検索に変更）
-- デッキ表示ページで画像が次々追加される際のレイアウトシフトを修正（aspect-ratio使用）
-- カテゴリ追加/削除、カード追加/削除時にカテゴリ判定が自動更新されるように修正（updateCategoryMatching関数を追加）
+（変更内容をここに記載）
 
 ## Changes
 
-- ダイアログのフォントサイズをRight Areaのフォントサイズとは独立して設定できるように変更
-- 検索UIのフォントサイズを独立した設定項目として追加
-- card-listのgrid/list切り替えボタンのhoverスタイルを青色（透明度35%）に変更
+（変更内容をここに記載）
+
+## UX Improvements
+
+（変更内容をここに記載）
 
 ## Performance
 
@@ -34,40 +28,12 @@
 
 ## Repository Management
 
-### Branch Protection
-
-- dev-new/main-newブランチに保護ルールを適用
-  - 必須ステータスチェック: check-branch-policy
-  - コミット署名必須（required_signatures）
-  - force push禁止
-  - 削除禁止
-  - 会話解決必須
-- main-newへのPRはdev-newからのみ許可
-
-### Dependabot
-
-- Dependabot PRの自動署名・マージ設定を実装
-  - SSH署名を使用してコミットに署名を追加
-  - マイナー/パッチ更新は自動マージ
-  - メジャー更新は手動レビュー
-  - SSH署名セットアップガイドを追加（docs/setup-ssh-signing.md）
+（変更内容をここに記載）
 
 ## Internal Improvements
 
-### テスト改善
+（変更内容をここに記載）
 
-- 既存テストの失敗を85個→0個に修正。全102テストファイルが成功
-- useFilterLogic.test.ts を新しいAPI（1パラメータ）に完全移行。35個の全テストが成功
-- 2段階のテスト構成を導入：
-  - 最軽量のテスト: HTMLファイル不要（2188テスト成功）
-  - 統合テスト: HTMLサンプルファイルを自動ダウンロード（2194テスト成功）
-- テスト用サンプルHTMLのダウンロードスクリプトを追加（`scripts/test/download-sample-html.sh`）
-- HTMLファイル依存テストは自動的にスキップされるように改善（`it.skipIf(!hasHtmlFile)`）
-- promise-timeout.test.ts の Unhandled Rejection を修正
+## Known Issues
 
----
-
-**主な変更内容**:
-- Performance: TempCardDBの全カード読み込み問題を修正
-- Repository: ブランチ保護ルールとDependabot自動マージを設定
-- Testing: 85個の失敗を修正し、2段階のテスト構成を導入
+（変更内容をここに記載）

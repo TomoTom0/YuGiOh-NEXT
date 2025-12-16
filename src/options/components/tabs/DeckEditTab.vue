@@ -27,7 +27,7 @@
       </button>
     </div>
 
-    <div class="section-content" ref="contentContainer" @scroll="onScroll">
+    <div class="section-content">
       <div id="section-overview" class="section-wrapper">
         <OverviewSection type="deck-edit" />
       </div>
@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import OverviewSection from '../sections/OverviewSection.vue';
 import UISettingsSection from '../sections/UISettingsSection.vue';
 import UXSettingsSection from '../sections/UXSettingsSection.vue';
@@ -54,18 +54,16 @@ import CacheManagementSection from '../sections/CacheManagementSection.vue';
 type SubTab = 'overview' | 'ui' | 'ux' | 'general';
 
 const activeSubTab = ref<SubTab>('overview');
-const contentContainer = ref<HTMLElement | null>(null);
 
 // セクションまでスクロール
 const scrollToSection = (sectionId: SubTab) => {
   const element = document.getElementById(`section-${sectionId}`);
-  if (element && contentContainer.value) {
-    const container = contentContainer.value;
-    const elementTop = element.offsetTop;
-    const containerTop = container.offsetTop;
+  if (element) {
+    const elementTop = element.getBoundingClientRect().top + window.scrollY;
+    const offset = 120; // main-tabs (63px) + sub-tabs (57px)
 
-    container.scrollTo({
-      top: elementTop - containerTop,
+    window.scrollTo({
+      top: elementTop - offset,
       behavior: 'smooth'
     });
 
@@ -75,25 +73,31 @@ const scrollToSection = (sectionId: SubTab) => {
 
 // スクロール位置に基づいてアクティブタブを更新
 const onScroll = () => {
-  if (!contentContainer.value) return;
-
-  const container = contentContainer.value;
   const sections: SubTab[] = ['overview', 'ui', 'ux', 'general'];
-  const scrollTop = container.scrollTop;
-  const containerTop = container.offsetTop;
+  const scrollTop = window.scrollY;
+  const offset = 120;
 
   for (let i = sections.length - 1; i >= 0; i--) {
     const sectionId = sections[i];
     const element = document.getElementById(`section-${sectionId}`);
     if (element) {
-      const elementTop = element.offsetTop - containerTop;
-      if (scrollTop >= elementTop - 50) {
+      const elementTop = element.getBoundingClientRect().top + scrollTop;
+      if (scrollTop >= elementTop - offset - 50) {
         activeSubTab.value = sectionId;
         break;
       }
     }
   }
 };
+
+// スクロールイベントをリスン
+onMounted(() => {
+  window.addEventListener('scroll', onScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll);
+});
 </script>
 
 <style scoped lang="scss">
@@ -102,7 +106,7 @@ const onScroll = () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-primary);
-  margin: 24px 40px 40px;
+  margin: 0 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
@@ -112,7 +116,7 @@ const onScroll = () => {
   border-bottom: 1px solid var(--border-primary);
   background-color: var(--bg-secondary);
   position: sticky;
-  top: 0;
+  top: 63px;
   z-index: 5;
 }
 
@@ -143,9 +147,7 @@ const onScroll = () => {
 .section-content {
   flex: 1;
   padding: 0;
-  overflow-y: auto;
   background-color: var(--bg-primary);
-  scroll-behavior: smooth;
 }
 
 .section-wrapper {

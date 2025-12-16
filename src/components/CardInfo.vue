@@ -47,11 +47,28 @@
           <div v-if="showCardMenu" class="card-menu-dropdown" @click.stop>
             <button
               class="card-menu-item"
+              :class="{ 'head-placement-active': isHeadPlaced }"
+              @click="toggleHeadPlacement"
+            >
+              <span class="menu-item-label">
+                先頭配置
+              </span>
+            </button>
+            <button
+              class="card-menu-item"
               :class="{ 'tail-placement-active': isTailPlaced }"
               @click="toggleTailPlacement"
             >
               <span class="menu-item-label">
-                {{ isTailPlaced ? '末尾配置を解除' : '末尾配置に追加' }}
+                末尾配置
+              </span>
+            </button>
+            <button
+              class="card-menu-item"
+              @click="openDeckSearch"
+            >
+              <span class="menu-item-label">
+                公開デッキ検索
               </span>
             </button>
             <button
@@ -308,6 +325,25 @@ export default {
       return validCiids.includes(String(ciid));
     }
 
+    // 手動先頭優先配置状態を確認
+    const isHeadPlaced = computed(() => {
+      return card.value ? deckStore.isHeadPlacementCard(card.value.cardId) : false
+    })
+
+    // 手動先頭優先配置の追加/削除を切り替える
+    const toggleHeadPlacement = () => {
+      if (!card.value) return
+
+      if (isHeadPlaced.value) {
+        deckStore.removeHeadPlacementCard(card.value.cardId)
+      } else {
+        deckStore.addHeadPlacementCard(card.value.cardId)
+      }
+
+      // メニューを閉じる
+      showCardMenu.value = false
+    }
+
     // 末尾配置状態を確認
     const isTailPlaced = computed(() => {
       return card.value ? settingsStore.isTailPlacementCard(card.value.cardId) : false
@@ -378,6 +414,8 @@ export default {
       isCiidValid,
       getValidCiidsForCurrentLang,
       showCardMenu,
+      isHeadPlaced,
+      toggleHeadPlacement,
       isTailPlaced,
       toggleTailPlacement,
       openDeckSearch,
@@ -1222,6 +1260,17 @@ export default {
 
   &:active {
     background: var(--bg-tertiary);
+  }
+
+  &.head-placement-active {
+    color: var(--color-info, #2196F3);
+    font-weight: bold;
+
+    .menu-item-label::before {
+      content: '\2713';
+      margin-right: 6px;
+      color: var(--color-info, #2196F3);
+    }
   }
 
   &.tail-placement-active {
