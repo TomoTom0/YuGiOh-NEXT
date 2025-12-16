@@ -71,6 +71,14 @@
                 公開デッキ検索
               </span>
             </button>
+            <button
+              class="card-menu-item"
+              @click="openDeckSearch"
+            >
+              <span class="menu-item-label">
+                公開デッキ検索 (new tab)
+              </span>
+            </button>
           </div>
         </Transition>
         <transition name="dialog-fade">
