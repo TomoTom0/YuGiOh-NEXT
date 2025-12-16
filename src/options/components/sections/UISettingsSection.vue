@@ -160,6 +160,38 @@
       </div>
     </div>
 
+    <!-- ダイアログのフォントサイズ -->
+    <div class="setting-group">
+      <h3 class="setting-title">ダイアログのフォントサイズ</h3>
+      <div class="preset-grid">
+        <button
+          v-for="fontSize in dialogFontSizes"
+          :key="fontSize"
+          class="preset-button"
+          :class="{ active: settingsStore.appSettings.dialogFontSize === fontSize }"
+          @click="handleDialogFontSizeChange(fontSize)"
+        >
+          {{ fontSize.toUpperCase() }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 検索UIのフォントサイズ -->
+    <div class="setting-group">
+      <h3 class="setting-title">検索UIのフォントサイズ</h3>
+      <div class="preset-grid">
+        <button
+          v-for="fontSize in searchUIFontSizes"
+          :key="fontSize"
+          class="preset-button"
+          :class="{ active: settingsStore.appSettings.searchUIFontSize === fontSize }"
+          @click="handleSearchUIFontSizeChange(fontSize)"
+        >
+          {{ fontSize.toUpperCase() }}
+        </button>
+      </div>
+    </div>
+
     <div v-if="saveMessage" class="save-message">
       {{ saveMessage }}
     </div>
@@ -169,7 +201,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize } from '../../../types/settings';
+import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize, DialogFontSize, SearchUIFontSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const saveMessage = ref('');
@@ -191,6 +223,8 @@ const sizePresets = ref([
 
 const rightAreaWidths = ref<RightAreaWidth[]>(['S', 'M', 'L', 'XL']);
 const rightAreaFontSizes = ref<RightAreaFontSize[]>(['s', 'm', 'l', 'xl']);
+const dialogFontSizes = ref<DialogFontSize[]>(['s', 'm', 'l', 'xl']);
+const searchUIFontSizes = ref<SearchUIFontSize[]>(['s', 'm', 'l', 'xl']);
 
 const currentPreset = computed<SizePreset | null>(() => {
   return settingsStore.getCurrentPreset();
@@ -232,6 +266,16 @@ const handleRightAreaWidthChange = (width: RightAreaWidth) => {
 const handleRightAreaFontSizeChange = (fontSize: RightAreaFontSize) => {
   settingsStore.setRightAreaFontSize(fontSize);
   showSaveMessage(`Right Area のフォントサイズを「${fontSize.toUpperCase()}」に変更しました`);
+};
+
+const handleDialogFontSizeChange = (fontSize: DialogFontSize) => {
+  settingsStore.setDialogFontSize(fontSize);
+  showSaveMessage(`ダイアログのフォントサイズを「${fontSize.toUpperCase()}」に変更しました`);
+};
+
+const handleSearchUIFontSizeChange = (fontSize: SearchUIFontSize) => {
+  settingsStore.setSearchUIFontSize(fontSize);
+  showSaveMessage(`検索UIのフォントサイズを「${fontSize.toUpperCase()}」に変更しました`);
 };
 
 const showSaveMessage = (message: string) => {

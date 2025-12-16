@@ -22,11 +22,11 @@
         </div>
         <div class="header-selected-chips">
           <button
-            v-for="(icon, index) in headerFilterIcons"
-            :key="index"
+            v-for="icon in headerFilterIcons"
+            :key="`${icon.type}-${icon.value || icon.label}`"
             class="header-chip"
             :class="icon.type"
-            @click.stop="removeHeaderChip(index)"
+            @click.stop="removeHeaderChip(icon)"
             :title="`${icon.label}を削除`"
           >{{ icon.label }}</button>
         </div>
@@ -293,8 +293,7 @@ function handleHistoryRemove(item: any) {
 }
 
 // ヘッダーチップから対応するフィルターを削除
-function removeHeaderChip(index: number) {
-  const icon = headerFilterIcons[index];
+function removeHeaderChip(icon: any) {
   if (!icon) return;
 
   switch (icon.type) {

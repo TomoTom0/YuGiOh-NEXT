@@ -11,16 +11,18 @@
     </span>
 
     <!-- SearchFilterDialogで選択した条件 -->
-    <span
-      v-for="(icon, index) in displayFilterIcons"
-      :key="`icon-${index}`"
-      class="filter-icon-item clickable"
-      :class="[icon.type, { 'not-condition': icon.isNot }]"
-      @click="$emit('remove-icon', icon)"
-      :title="`クリックで削除: ${icon.label}`"
-    >
-      <span v-if="icon.isNot" class="not-prefix">N-</span>{{ icon.label }}
-    </span>
+    <TransitionGroup name="chip" tag="div" class="chip-group">
+      <span
+        v-for="icon in displayFilterIcons"
+        :key="`icon-${icon.type}-${icon.value || icon.label}`"
+        class="filter-icon-item clickable"
+        :class="[icon.type, { 'not-condition': icon.isNot }]"
+        @click="$emit('remove-icon', icon)"
+        :title="`クリックで削除: ${icon.label}`"
+      >
+        <span v-if="icon.isNot" class="not-prefix">N-</span>{{ icon.label }}
+      </span>
+    </TransitionGroup>
     <button
       v-if="hasActiveFilters"
       class="clear-filters-btn-top"
@@ -108,6 +110,10 @@ export default defineComponent({
   overflow: hidden;
   min-height: 16px;
   position: relative;
+
+  .chip-group {
+    display: contents;
+  }
 
   // ダイアログ上部のチップは色を変える
   .filter-icon-item {
@@ -213,5 +219,29 @@ export default defineComponent({
   50% {
     opacity: 0.7;
   }
+}
+
+/* チップの追加・削除アニメーション */
+.chip-enter-active {
+  transition: all 0.3s ease;
+}
+
+.chip-leave-active {
+  transition: all 0.2s ease;
+  position: absolute;
+}
+
+.chip-enter-from {
+  opacity: 0;
+  transform: scale(0.5) translateY(-10px);
+}
+
+.chip-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.chip-move {
+  transition: transform 0.3s ease;
 }
 </style>

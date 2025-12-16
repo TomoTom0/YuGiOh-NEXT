@@ -204,6 +204,8 @@ function updateComment() {
 function updateCategories(newCategories: string[]) {
   localCategory.value = [...newCategories];
   deckStore.deckInfo.category = [...newCategories];
+  // カテゴリ判定を更新
+  deckStore.updateCategoryMatching();
 }
 
 function updateTags(newTags: string[]) {
@@ -217,6 +219,8 @@ function removeCategory(catId: string) {
   if (index >= 0) {
     localCategory.value.splice(index, 1);
     deckStore.deckInfo.category = [...localCategory.value];
+    // カテゴリ判定を更新
+    deckStore.updateCategoryMatching();
   }
 }
 

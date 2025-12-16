@@ -32,7 +32,7 @@ export interface UseSearchFiltersReturn {
 /**
  * 検索フィルター管理のComposable
  */
-export function useSearchFilters(options: UseSearchFiltersOptions = {}): UseSearchFiltersReturn {
+export function useSearchFilters(_options: UseSearchFiltersOptions = {}): UseSearchFiltersReturn {
   const searchStore = useSearchStore()
   // searchStoreのsearchFiltersを直接使用（リアクティブに連動）
   const searchFilters = toRef(searchStore, 'searchFilters')

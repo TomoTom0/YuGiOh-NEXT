@@ -19,49 +19,16 @@
         </span>
       </label>
     </div>
-
-    <div class="setting-group">
-      <h3 class="setting-title">カード画像サイズ</h3>
-      <div class="size-buttons">
-        <button
-          v-for="size in cardImageSizes"
-          :key="size.value"
-          class="size-button"
-          :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
-          @click="handleChangeCardImageSize(size.value)"
-          :disabled="!settingsStore.appSettings.showCardDetailInDeckDisplay"
-        >
-          {{ size.label }}
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import type { CardSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 
-interface CardImageSizeOption {
-  value: CardSize;
-  label: string;
-}
-
-const cardImageSizes = ref<CardImageSizeOption[]>([
-  { value: 'small', label: 'S' },
-  { value: 'medium', label: 'M' },
-  { value: 'large', label: 'L' }
-]);
-
 const handleToggleCardDetail = () => {
   settingsStore.setShowCardDetailInDeckDisplay(settingsStore.appSettings.showCardDetailInDeckDisplay);
-};
-
-const handleChangeCardImageSize = (size: CardSize) => {
-  settingsStore.setDeckDisplayCardImageSize(size);
 };
 </script>
 
@@ -97,6 +64,13 @@ const handleChangeCardImageSize = (size: CardSize) => {
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 16px 0;
+}
+
+.sub-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 12px 0;
+  font-weight: 400;
 }
 
 .toggle-label {

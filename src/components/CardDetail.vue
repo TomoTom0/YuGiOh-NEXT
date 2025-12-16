@@ -17,6 +17,28 @@
         :class="{ active: cardDetailStore.cardTab === 'products' }"
         @click="cardDetailStore.setCardTab('products')"
       >Products</button>
+      <div class="history-nav">
+        <button
+          class="history-btn"
+          :disabled="!cardDetailStore.canGoBack"
+          @click="cardDetailStore.goBack()"
+          title="戻る"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" />
+          </svg>
+        </button>
+        <button
+          class="history-btn"
+          :disabled="!cardDetailStore.canGoForward"
+          @click="cardDetailStore.goForward()"
+          title="進む"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="ygo-next card-tab-content">
@@ -304,11 +326,11 @@ export default {
 
 .card-detail-tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr) auto;
   border-bottom: 2px solid var(--tab-border, #008cff);
   width: 100%;
 
-  button {
+  & > button:not(.history-btn) {
     padding: 8px;
     border: none;
     border-right: 1px solid var(--border-primary, #e0e0e0);
@@ -318,10 +340,6 @@ export default {
     color: var(--text-primary);
     flex: 1;
     transition: background 0.2s ease, color 0.2s ease;
-
-    &:last-child {
-      border-right: none;
-    }
 
     &:hover:not(.active) {
       background: var(--bg-hover, rgba(0, 140, 255, 0.1));
@@ -338,6 +356,43 @@ export default {
       color: var(--theme-text-on-gradient);
       border-right-color: transparent;
     }
+  }
+}
+
+.history-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  background: var(--bg-primary);
+}
+
+.history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--button-default-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  svg {
+    display: block;
   }
 }
 

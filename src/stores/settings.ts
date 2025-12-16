@@ -13,7 +13,10 @@ import type {
   StorageSettings,
   UXSettings,
   RightAreaWidth,
-  RightAreaFontSize
+  RightAreaFontSize,
+  DialogFontSize,
+  SearchUIFontSize,
+  DeckDisplayCardImageSize
 } from '../types/settings';
 import {
   DEFAULT_APP_SETTINGS,
@@ -179,6 +182,7 @@ export const useSettingsStore = defineStore('settings', () => {
         applyTheme();
         applyCommonCardSize();
         applyRightAreaStyles();
+        applyFontSizes();
 
         resolve();
       });
@@ -455,6 +459,24 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * ダイアログのフォントサイズを変更
+   */
+  function setDialogFontSize(fontSize: DialogFontSize): void {
+    appSettings.value.dialogFontSize = fontSize;
+    applyFontSizes();
+    saveSettings();
+  }
+
+  /**
+   * 検索UIのフォントサイズを変更
+   */
+  function setSearchUIFontSize(fontSize: SearchUIFontSize): void {
+    appSettings.value.searchUIFontSize = fontSize;
+    applyFontSizes();
+    saveSettings();
+  }
+
+  /**
    * デッキ表示ページでCardDetail情報を表示するかを変更
    */
   function setShowCardDetailInDeckDisplay(enabled: boolean): void {
@@ -465,7 +487,7 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * デッキ表示ページのカード画像サイズを変更
    */
-  function setDeckDisplayCardImageSize(size: CardSize): void {
+  function setDeckDisplayCardImageSize(size: DeckDisplayCardImageSize): void {
     appSettings.value.deckDisplayCardImageSize = size;
     saveSettings();
   }
@@ -594,6 +616,33 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * フォントサイズをDOMに適用
+   */
+  function applyFontSizes(): void {
+    const dialogFontSize = appSettings.value.dialogFontSize;
+    const searchUIFontSize = appSettings.value.searchUIFontSize;
+
+    // Dialog Font Size のマッピング
+    const dialogFontSizeMap: Record<DialogFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    // Search UI Font Size のマッピング
+    const searchUIFontSizeMap: Record<SearchUIFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    document.documentElement.style.setProperty('--dialog-font-size', dialogFontSizeMap[dialogFontSize]);
+    document.documentElement.style.setProperty('--search-ui-font-size', searchUIFontSizeMap[searchUIFontSize]);
+  }
+
+  /**
    * システムテーマ変更を監視
    */
   function watchSystemTheme(): void {
@@ -664,6 +713,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setDefaultSearchMode,
     setRightAreaWidth,
     setRightAreaFontSize,
+    setDialogFontSize,
+    setSearchUIFontSize,
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
@@ -674,5 +725,6 @@ export const useSettingsStore = defineStore('settings', () => {
     applyTheme,
     applyCardSize,
     applyRightAreaStyles,
+    applyFontSizes,
   };
 });
