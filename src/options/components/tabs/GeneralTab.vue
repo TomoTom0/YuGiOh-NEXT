@@ -71,20 +71,14 @@
         </p>
       </div>
     </div>
-
-    <VersionFooter :updateDate="updateDate" :version="version" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
-import VersionFooter from '../VersionFooter.vue';
-
 const settingsStore = useSettingsStore();
 const resetMessage = ref('');
-const updateDate = ref('2025-11-27');
-const version = ref('0.4.2');
 
 const handleReset = async () => {
   if (confirm('本当に全ての設定をリセットしますか？この操作は取り消せません。')) {
@@ -103,10 +97,9 @@ const handleReset = async () => {
   flex-direction: column;
   height: 100%;
   background-color: var(--bg-primary);
-  margin: 24px 40px 40px;
+  margin: 0 40px 40px;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
 }
 
 .section-content {
@@ -199,6 +192,37 @@ const handleReset = async () => {
   font-size: 14px;
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.size-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.size-button {
+  padding: 12px 16px;
+  border: 2px solid var(--border-primary);
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+
+  &:hover:not(.active) {
+    border-color: var(--color-info);
+    background-color: var(--bg-tertiary);
+  }
+
+  &.active {
+    border-color: #0068d9;
+    background: linear-gradient(135deg, #0089ff 0%, #0068d9 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
+  }
 }
 
 .danger-button {

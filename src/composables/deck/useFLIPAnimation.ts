@@ -7,6 +7,8 @@
  * @see https://aerotwist.com/blog/flip-your-animations/
  */
 
+import { useDeckEditStore } from '@/stores/deck-edit';
+
 /**
  * 全セクションのカード要素の位置情報をUUIDごとに記録する
  *
@@ -65,6 +67,12 @@ export function recordAllCardPositionsByUUID(): Map<string, DOMRect> {
  * ```
  */
 export function animateCardMoveByUUID(firstPositions: Map<string, DOMRect>, affectedSections: Set<string>) {
+  // デッキロード中はアニメーションをスキップ
+  const deckStore = useDeckEditStore();
+  if (deckStore.isLoadingDeck) {
+    return;
+  }
+
   const allCards: Array<{ element: HTMLElement; distance: number }> = [];
 
   affectedSections.forEach(section => {

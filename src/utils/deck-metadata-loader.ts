@@ -179,11 +179,21 @@ export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promis
     });
 
     // カテゴリを抽出して配列形式+グループ情報を付与
-    const categoriesRecord = extractOptionsFromSelect(doc, 'select[name="dckCategoryMst"]');
-    const categoriesArray = Object.entries(categoriesRecord).map(([value, label]) => ({
-      value,
-      label
-    }));
+    // HTMLの順序を保持するため、直接配列で抽出
+    const categoriesArray: DeckMetadataEntry[] = [];
+    const categorySelect = doc.querySelector('select[name="dckCategoryMst"]');
+    if (categorySelect) {
+      const options = categorySelect.querySelectorAll('option');
+      options.forEach((option: Element) => {
+        const htmlOption = option as HTMLOptionElement;
+        const value = htmlOption.value;
+        const text = htmlOption.textContent?.trim() || '';
+
+        if (text && text !== '------------' && value) {
+          categoriesArray.push({ value, label: text });
+        }
+      });
+    }
     const categories = assignCategoryGroups(categoriesArray);
 
     // タグを抽出（共通ヘルパー使用）

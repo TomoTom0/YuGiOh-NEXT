@@ -100,7 +100,7 @@ export default defineComponent({
   }
 
   .mode-text {
-    font-size: 10px;
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
     line-height: 1;
     white-space: nowrap;
     overflow: hidden;
@@ -112,7 +112,7 @@ export default defineComponent({
     min-width: 36px;
 
     .mode-text {
-      font-size: 10px;
+      font-size: calc(var(--search-ui-font-size, 14px) * 0.71);
     }
   }
 }
@@ -181,7 +181,7 @@ export default defineComponent({
   padding: 10px 14px;
   cursor: pointer;
   transition: background 0.2s;
-  font-size: 13px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   color: var(--text-primary, #333);
 
   &:hover {

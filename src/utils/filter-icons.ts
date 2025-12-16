@@ -67,11 +67,14 @@ export function convertFiltersToIcons(filters: SearchFilters): FilterIcon[] {
 
   // レベル（統合表示）
   if (filters.levelValues.length > 0) {
-    icons.push({
-      type: 'level',
-      label: formatNumberRange(filters.levelValues, '★'),
-      value: 'all' // 全レベルを一括削除
-    })
+    const levelLabel = formatNumberRange(filters.levelValues, '★');
+    if (levelLabel) {
+      icons.push({
+        type: 'level',
+        label: levelLabel,
+        value: 'all' // 全レベルを一括削除
+      })
+    }
   }
 
   // ATK/DEF
@@ -104,20 +107,26 @@ export function convertFiltersToIcons(filters: SearchFilters): FilterIcon[] {
 
   // リンク数（統合表示）
   if (filters.linkValues.length > 0) {
-    icons.push({
-      type: 'link',
-      label: formatNumberRange(filters.linkValues, 'L'),
-      value: 'all' // 全リンク数を一括削除
-    })
+    const linkLabel = formatNumberRange(filters.linkValues, 'L');
+    if (linkLabel) {
+      icons.push({
+        type: 'link',
+        label: linkLabel,
+        value: 'all' // 全リンク数を一括削除
+      })
+    }
   }
 
   // ペンデュラムスケール（統合表示）
   if (filters.scaleValues.length > 0) {
-    icons.push({
-      type: 'scale',
-      label: formatNumberRange(filters.scaleValues, 'PS'),
-      value: 'all' // 全スケールを一括削除
-    })
+    const scaleLabel = formatNumberRange(filters.scaleValues, 'PS');
+    if (scaleLabel) {
+      icons.push({
+        type: 'scale',
+        label: scaleLabel,
+        value: 'all' // 全スケールを一括削除
+      })
+    }
   }
 
   // リンクマーカー

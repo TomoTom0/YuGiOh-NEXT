@@ -42,6 +42,10 @@ session.env
 coverage/
 .nyc_output/
 
+# Test sample files (download on demand)
+tests/sample/*.html
+tests/combine/data/*.html
+
 # Chrome extension
 *.crx
 *.pem

@@ -51,6 +51,34 @@
       ]
     },
     {
+      "title": "card-type_spell-negative",
+      "trigger": "card-type_spell",
+      "negative": [
+        "attribute",
+        "race",
+        "level-rank",
+        "link-value",
+        "link-marker",
+        "p-scale",
+        "atk",
+        "def"
+      ]
+    },
+    {
+      "title": "card-type_trap-negative",
+      "trigger": "card-type_trap",
+      "negative": [
+        "attribute",
+        "race",
+        "level-rank",
+        "link-value",
+        "link-marker",
+        "p-scale",
+        "atk",
+        "def"
+      ]
+    },
+    {
       "title": "spell-type-monster-type-exclude",
       "trigger": "spell-type*",
       "negative": [

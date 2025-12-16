@@ -49,6 +49,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // カテゴリID → ラベルのマップ（DeckMetadata.vue で設定）
   const categoryLabelMap = ref<Record<string, string>>({});
 
+  // 現在のデッキ（dno）の手動先頭優先配置カードIDリスト
+  const headPlacementCardIds = ref<string[]>([]);
+
   // 枚数制限エラー表示用のcardId
   const limitErrorCardId = ref<string | null>(null);
 
@@ -115,24 +118,45 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   /**
+   * カテゴリ判定の更新トリガー
+   * カテゴリ追加/削除、カード追加/削除時にインクリメントして再計算を促す
+   */
+  const categoryMatchingTrigger = ref(0);
+
+  /**
    * カテゴリ優先アイコン表示対象のcidセット（2段階検索）
    *
    * 一段階目: カテゴリラベルを名前/ルビ/テキスト/p-textに含むcid
    * 二段階目: 一段階目で見つかったカード名をテキスト/p-textに含むcid（一段階目は除外）
    */
   const categoryMatchedCardIds = computed(() => {
+    // トリガーを依存関係に含めることで、明示的な更新をサポート
+    categoryMatchingTrigger.value; // eslint-disable-line @typescript-eslint/no-unused-expressions
+
+    const categories = deckInfo.value?.category ?? [];
+    const labelMap = categoryLabelMap.value || {};
+    const unifiedDB = getUnifiedCacheDB();
+    const lang = detectLanguage(document);
+
     return computeCategoryMatchedCardIds(
-      deckInfo.value?.category ?? [],
-      categoryLabelMap.value || {},
+      categories,
+      labelMap,
       {
         main: deckInfo.value.mainDeck,
         extra: deckInfo.value.extraDeck,
         side: deckInfo.value.sideDeck,
         trash: trashDeck.value
       },
-      (cid) => getTempCardDB().get(cid)
+      (cid) => unifiedDB.reconstructCardInfo(cid, lang) || undefined
     );
   });
+
+  /**
+   * カテゴリ判定を更新（カテゴリ追加/削除、カード追加/削除時に呼び出す）
+   */
+  function updateCategoryMatching() {
+    categoryMatchingTrigger.value++;
+  }
 
   // カード移動可否判定（useDeckValidation.tsから import）
   const canMoveCard = canMoveCardValidation;
@@ -509,7 +533,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const showDeleteConfirm = ref(false);
   const showUnsavedChangesDialog = ref(false);
   const isFilterDialogVisible = ref(false);
-  
+  const isLoadingDeck = ref(false);
+
   // Load時点でのデッキ情報を保存（変更検知用）
   const savedDeckSnapshot = ref<string | null>(null);
 
@@ -580,6 +605,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('Failed to save TempCardDB to storage:', error);
     });
 
+    // カテゴリ判定を更新
+    updateCategoryMatching();
+
     // 新規追加されたカードは位置情報がないため、単純なフェードイン
     // FLIPアニメーションは移動のみに使用
     return { success: true };
@@ -593,6 +621,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } catch (e) {
       // ignore
     }
+    // カテゴリ判定を更新
+    updateCategoryMatching();
     return res;
   }
 
@@ -657,20 +687,25 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // reorderWithinSectionを使用（undo対応済み）
     const result = reorderWithinSection(section, sourceUuid, targetUuid);
 
+    // 並び替え後のデッキ順序を見て、手動先頭配置カードの順序を更新
+    if (result.success) {
+      updateHeadPlacementCardsOrder(section);
+    }
+
     // DOM更新後にアニメーション実行
     nextTick(() => {
       requestAnimationFrame(() => {
         animateCardMoveByUUID(firstPositions, new Set([section]));
       });
     });
-    
+
     try {
       const unifiedDB = getUnifiedCacheDB();
       unifiedDB.recordMove({ action: 'reorder', info: { section, sourceUuid, targetUuid } });
     } catch (e) {
       // ignore
     }
-    
+
     return result;
   }
 
@@ -919,8 +954,190 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function loadDeck(dno: number) {
-    // useDeckPersistence composable に処理を委譲
-    return getPersistence().loadDeck(dno);
+    // ローディング開始
+    isLoadingDeck.value = true;
+
+    try {
+      // useDeckPersistence composable に処理を委譲
+      const result = await getPersistence().loadDeck(dno);
+      // デッキロード後、手動先頭優先配置も読み込む
+      await loadHeadPlacementCards(dno);
+
+      // DOM更新を待つ
+      await nextTick();
+
+      // カード画像の読み込み完了を待つ
+      await waitForCardImagesToLoad();
+
+      // ローディング終了
+      isLoadingDeck.value = false;
+
+      return result;
+    } catch (error) {
+      isLoadingDeck.value = false;
+      throw error;
+    }
+  }
+
+  /**
+   * カード画像の読み込み完了を待つ
+   */
+  async function waitForCardImagesToLoad(): Promise<void> {
+    const images = document.querySelectorAll<HTMLImageElement>('.deck-card-image img');
+    if (images.length === 0) {
+      // 画像がない場合は即座に完了
+      return Promise.resolve();
+    }
+
+    const imagePromises = Array.from(images).map((img) => {
+      if (img.complete && img.naturalWidth > 0) {
+        // 既に読み込み済み
+        return Promise.resolve();
+      }
+      // 読み込み完了またはエラーを待つ
+      return new Promise<void>((resolve) => {
+        img.addEventListener('load', () => resolve(), { once: true });
+        img.addEventListener('error', () => resolve(), { once: true }); // エラーでも続行
+      });
+    });
+
+    // 全画像の読み込み完了を待つ（タイムアウト3秒）
+    await Promise.race([
+      Promise.all(imagePromises),
+      new Promise<void>((resolve) => setTimeout(resolve, 3000))
+    ]);
+  }
+
+  /**
+   * chrome.storage.localから手動先頭優先配置データを読み込む
+   */
+  async function loadHeadPlacementCards(dno: number): Promise<void> {
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+      headPlacementCardIds.value = [];
+      return;
+    }
+
+    try {
+      const result = await chrome.storage.local.get('deck_head_placement_cards');
+      const allData = (result.deck_head_placement_cards as Record<string, any>) || {};
+      const dnoKey = String(dno);
+      const loadedData = allData[dnoKey];
+
+      let needsResave = false;
+
+      // 配列かどうか確認し、配列でない場合は変換または空配列を設定
+      if (Array.isArray(loadedData)) {
+        headPlacementCardIds.value = loadedData;
+      } else if (loadedData && typeof loadedData === 'object') {
+        // オブジェクトの場合は values() で配列に変換
+        headPlacementCardIds.value = Object.values(loadedData).filter(v => typeof v === 'string');
+        needsResave = true; // 変換したので再保存が必要
+      } else {
+        headPlacementCardIds.value = [];
+      }
+
+      // オブジェクトから配列に変換した場合、正しい形式で保存し直す
+      if (needsResave) {
+        await saveHeadPlacementCards();
+      }
+    } catch (error) {
+      console.error('Failed to load head placement cards:', error);
+      headPlacementCardIds.value = [];
+    }
+  }
+
+  /**
+   * chrome.storage.localに手動先頭優先配置データを保存
+   */
+  async function saveHeadPlacementCards(): Promise<void> {
+    if (typeof chrome === 'undefined' || !chrome.storage) {
+      return;
+    }
+
+    const dno = deckInfo.value.dno;
+    if (!dno) return;
+
+    try {
+      // 既存データを読み込み
+      const result = await chrome.storage.local.get('deck_head_placement_cards');
+      const allData = (result.deck_head_placement_cards as Record<string, string[]>) || {};
+
+      // 現在のdnoのデータを更新
+      const dnoKey = String(dno);
+      if (headPlacementCardIds.value.length > 0) {
+        allData[dnoKey] = headPlacementCardIds.value;
+      } else {
+        // 空配列の場合は削除
+        delete allData[dnoKey];
+      }
+
+      // 保存
+      await chrome.storage.local.set({ deck_head_placement_cards: allData });
+    } catch (error) {
+      console.error('Failed to save head placement cards:', error);
+    }
+  }
+
+  /**
+   * 手動先頭優先配置リストにカードを追加
+   */
+  function addHeadPlacementCard(cardId: string): void {
+    if (!headPlacementCardIds.value.includes(cardId)) {
+      headPlacementCardIds.value.push(cardId);
+      saveHeadPlacementCards();
+    }
+  }
+
+  /**
+   * 手動先頭優先配置リストからカードを削除
+   */
+  function removeHeadPlacementCard(cardId: string): void {
+    const index = headPlacementCardIds.value.indexOf(cardId);
+    if (index >= 0) {
+      headPlacementCardIds.value.splice(index, 1);
+      saveHeadPlacementCards();
+    }
+  }
+
+  /**
+   * カードが手動先頭優先配置リストに含まれているか判定
+   */
+  function isHeadPlacementCard(cardId: string): boolean {
+    return headPlacementCardIds.value.includes(cardId);
+  }
+
+  /**
+   * main → extra → side の全体順序に合わせて、手動先頭配置カードの順序を更新する
+   * @param section - 更新が発生したセクション（全体を再計算する）
+   */
+  function updateHeadPlacementCardsOrder(section: 'main' | 'extra' | 'side' | 'trash'): void {
+    // main → extra → side の順序で手動先頭配置カードを抽出（重複なし）
+    const seenCards = new Set<string>();
+    const reorderedHeadPlacementCards: string[] = [];
+
+    for (const sectionName of ['main', 'extra', 'side'] as const) {
+      const currentOrder = displayOrder.value[sectionName];
+      for (const dc of currentOrder) {
+        const cid = dc.cid;
+        // 手動先頭配置リストに含まれていない場合はスキップ
+        if (!headPlacementCardIds.value.includes(cid)) continue;
+        // 既に処理済みのカード（重複）はスキップ
+        if (seenCards.has(cid)) continue;
+        seenCards.add(cid);
+        reorderedHeadPlacementCards.push(cid);
+      }
+    }
+
+    // 順序が変わっていない場合は何もしない
+    if (JSON.stringify(reorderedHeadPlacementCards) === JSON.stringify(headPlacementCardIds.value)) {
+      return;
+    }
+
+    // デッキ内の順序で更新（デッキにないカードは削除）
+    headPlacementCardIds.value = reorderedHeadPlacementCards;
+
+    // 変更を保存
+    saveHeadPlacementCards();
   }
 
   /**
@@ -990,16 +1207,33 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * ページ読み込み時の初期化（非同期処理）
    * 画面表示に必須なloadDeck()のPromiseのみを返し、他の初期化は非同期で実行
    */
-  function initializeOnPageLoad(): Promise<void> {
+  async function initializeOnPageLoad(): Promise<void> {
+    // カテゴリラベルマップを事前に読み込み（カテゴリ優先アイコン表示に必要）
+    try {
+      const { getDeckMetadata } = await import('../utils/deck-metadata-loader');
+      const metadata = await getDeckMetadata();
+      const labelMap: Record<string, string> = {};
+      metadata.categories.forEach(cat => {
+        labelMap[cat.value] = cat.label;
+      });
+      categoryLabelMap.value = labelMap;
+    } catch (error) {
+      console.error('Failed to load category label map:', error);
+    }
+
+    // UnifiedCacheDBを事前に初期化（カテゴリマッチングに必要）
+    try {
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.initialize();
+    } catch (error) {
+      console.error('Failed to initialize UnifiedCacheDB:', error);
+    }
+
     // 非同期で実行（await しない）
     (async () => {
       try {
         // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
         await initTempCardDBFromStorage();
-
-        // Chrome StorageからUnifiedCacheDBを初期化（複数ciidの画像情報を復元）
-        const unifiedDB = getUnifiedCacheDB();
-        await unifiedDB.initialize();
 
         // 設定ストアを初期化
         await settingsStore.loadSettings();
@@ -1115,6 +1349,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const comparator = createDeckCardComparator(section, {
       enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority ?? true,
       priorityCategoryCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: settingsStore.appSettings.enableHeadPlacement ?? true,
+      headPlacementCardIds: headPlacementCardIds.value,
       enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
       tailPlacementCardIds: settingsStore.tailPlacementCardIds
     });
@@ -1278,6 +1514,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deckInfo,
     trashDeck,
     categoryLabelMap,
+    headPlacementCardIds,
     displayOrder,
     limitErrorCardId,
     draggingCard,
@@ -1297,11 +1534,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showDeleteConfirm,
     showUnsavedChangesDialog,
     isFilterDialogVisible,
+    isLoadingDeck,
     commandHistory,
     commandIndex,
     canUndo,
     canRedo,
     categoryMatchedCardIds,
+    updateCategoryMatching,
     canMoveCard,
     addCard,
     removeCard,
@@ -1337,6 +1576,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deleteCurrentDeck,
     hasUnsavedChanges,
     hasOnlySortOrderChanges,
-    captureDeckSnapshot
+    captureDeckSnapshot,
+    addHeadPlacementCard,
+    removeHeadPlacementCard,
+    isHeadPlacementCard
   };
 });

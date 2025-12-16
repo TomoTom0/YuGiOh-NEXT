@@ -47,11 +47,36 @@
           <div v-if="showCardMenu" class="card-menu-dropdown" @click.stop>
             <button
               class="card-menu-item"
+              :class="{ 'head-placement-active': isHeadPlaced }"
+              @click="toggleHeadPlacement"
+            >
+              <span class="menu-item-label">
+                先頭配置
+              </span>
+            </button>
+            <button
+              class="card-menu-item"
               :class="{ 'tail-placement-active': isTailPlaced }"
               @click="toggleTailPlacement"
             >
               <span class="menu-item-label">
-                {{ isTailPlaced ? '末尾配置を解除' : '末尾配置に追加' }}
+                末尾配置
+              </span>
+            </button>
+            <button
+              class="card-menu-item"
+              @click="openDeckSearch"
+            >
+              <span class="menu-item-label">
+                公開デッキ検索
+              </span>
+            </button>
+            <button
+              class="card-menu-item"
+              @click="openDeckSearch"
+            >
+              <span class="menu-item-label">
+                公開デッキ検索 (new tab)
               </span>
             </button>
           </div>
@@ -300,6 +325,25 @@ export default {
       return validCiids.includes(String(ciid));
     }
 
+    // 手動先頭優先配置状態を確認
+    const isHeadPlaced = computed(() => {
+      return card.value ? deckStore.isHeadPlacementCard(card.value.cardId) : false
+    })
+
+    // 手動先頭優先配置の追加/削除を切り替える
+    const toggleHeadPlacement = () => {
+      if (!card.value) return
+
+      if (isHeadPlaced.value) {
+        deckStore.removeHeadPlacementCard(card.value.cardId)
+      } else {
+        deckStore.addHeadPlacementCard(card.value.cardId)
+      }
+
+      // メニューを閉じる
+      showCardMenu.value = false
+    }
+
     // 末尾配置状態を確認
     const isTailPlaced = computed(() => {
       return card.value ? settingsStore.isTailPlacementCard(card.value.cardId) : false
@@ -314,6 +358,18 @@ export default {
       } else {
         settingsStore.addTailPlacementCard(card.value.cardId)
       }
+
+      // メニューを閉じる
+      showCardMenu.value = false
+    }
+
+    // デッキ検索を新しいタブで開く
+    const openDeckSearch = () => {
+      if (!card.value) return
+
+      const gameType = detectCardGameType()
+      const deckSearchUrl = buildApiUrl(`deck_search.action?cardid=${card.value.cardId}`, gameType)
+      window.open(deckSearchUrl, '_blank')
 
       // メニューを閉じる
       showCardMenu.value = false
@@ -358,8 +414,11 @@ export default {
       isCiidValid,
       getValidCiidsForCurrentLang,
       showCardMenu,
+      isHeadPlaced,
+      toggleHeadPlacement,
       isTailPlaced,
       toggleTailPlacement,
+      openDeckSearch,
       closeMenuIfOutside
     }
   },
@@ -511,7 +570,7 @@ export default {
 }
 
 .card-name-large {
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: bold;
   color: var(--text-primary);
   margin: 0;
@@ -528,7 +587,7 @@ export default {
 }
 
 .card-ruby {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-secondary);
   margin: 2px 0 6px 0;
   padding: 4px 8px;
@@ -720,7 +779,7 @@ export default {
     color: var(--button-text);
     padding: 2px 6px;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: calc(var(--right-area-font-size, 14px) * 0.71);
     font-weight: bold;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
@@ -750,7 +809,7 @@ export default {
   }
 
   .invalid-mark {
-    font-size: 48px;
+    font-size: calc(var(--right-area-font-size, 14px) * 3.43);
     font-weight: bold;
     color: var(--text-primary);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -801,7 +860,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   background: var(--bg-secondary);
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   min-width: 0;
 
   &.stat-box-type-chip {
@@ -1031,7 +1090,7 @@ export default {
   align-items: center;
   justify-content: center;
   background: var(--bg-primary);
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   
   &.active {
     background: var(--button-bg);
@@ -1045,7 +1104,7 @@ export default {
 }
 
 .stat-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: bold;
   color: var(--text-primary);
 }
@@ -1056,13 +1115,13 @@ export default {
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.64);
   color: var(--text-tertiary);
   text-transform: uppercase;
 }
 
 .stat-value {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: bold;
   color: var(--text-primary);
 }
@@ -1075,7 +1134,7 @@ export default {
 }
 
 .section-title {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   font-weight: bold;
   color: var(--text-primary);
   margin-bottom: 6px;
@@ -1086,7 +1145,7 @@ export default {
 }
 
 .effect-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
@@ -1100,7 +1159,7 @@ export default {
 }
 
 .detail-text {
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-line;
@@ -1189,7 +1248,7 @@ export default {
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1201,6 +1260,17 @@ export default {
 
   &:active {
     background: var(--bg-tertiary);
+  }
+
+  &.head-placement-active {
+    color: var(--color-info, #2196F3);
+    font-weight: bold;
+
+    .menu-item-label::before {
+      content: '\2713';
+      margin-right: 6px;
+      color: var(--color-info, #2196F3);
+    }
   }
 
   &.tail-placement-active {

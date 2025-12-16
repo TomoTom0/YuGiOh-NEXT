@@ -82,7 +82,7 @@
  */
 -->
 <template>
-  <div class="card-list-wrapper">
+  <div ref="wrapperRef" class="card-list-wrapper">
     <button
       v-if="showCollapseButton"
       class="floating-btn collapse-btn"
@@ -95,10 +95,10 @@
     </button>
     <button
       class="floating-btn scroll-top-btn"
-      @click="$emit('scroll-to-top')"
+      @click="handleScrollTopClick"
       title="トップへ"
     >
-      <svg width="12" height="12" viewBox="0 0 24 24">
+      <svg width="10" height="10" viewBox="0 0 24 24">
         <path fill="currentColor" d="M7.41,15.41L12,10.83L16.59,15.41L18,14L12,8L6,14L7.41,15.41Z" />
       </svg>
     </button>
@@ -259,6 +259,7 @@ export default {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
     const localViewMode = ref(props.viewMode)
+    const wrapperRef = ref(null)
 
     // 展開状態のカードUUIDセット
     const expandedCards = reactive(new Set())
@@ -455,7 +456,29 @@ export default {
       sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
     }
 
+    const handleScrollTopClick = () => {
+      if (!wrapperRef.value) {
+        return
+      }
+
+      let scrollParent = wrapperRef.value.parentElement
+      let depth = 0
+      while (scrollParent) {
+        const overflowY = window.getComputedStyle(scrollParent).overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+          scrollParent.scrollTo({ top: 0, behavior: 'smooth' })
+          return
+        }
+        scrollParent = scrollParent.parentElement
+        depth++
+        if (depth > 10) {
+          break
+        }
+      }
+    }
+
     return {
+      wrapperRef,
       sortBase,
       sortDirection,
       localSortOrder,
@@ -465,6 +488,7 @@ export default {
       handleSortChange,
       toggleSortDirection,
       toggleCardExpand,
+      handleScrollTopClick,
       getAttributeLabel,
       getRaceLabel,
       getMonsterTypeLabel,
@@ -488,16 +512,23 @@ export default {
   position: sticky;
   top: 4px;
   left: 4px;
-  z-index: 5;
+  z-index: 9;
   margin: 0 0 -28px 0;
 }
 
 .scroll-top-btn {
   position: sticky;
   top: 4px;
-  left: 40px;
-  z-index: 5;
+  right: 4px;
+  z-index: 9;
   margin: 0 0 -28px 0;
+  background: var(--bg-primary);
+  opacity: 0.8;
+  backdrop-filter: blur(4px);
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .floating-btn {
@@ -556,7 +587,7 @@ export default {
   right: -8px;
   background: var(--text-secondary, #666);
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   min-width: 12px;
   height: 12px;
   border-radius: 6px;
@@ -571,7 +602,7 @@ export default {
   padding: 4px 8px;
   border: 1px solid var(--border-primary);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   background: var(--input-bg);
   color: var(--input-text);
   cursor: pointer;
@@ -628,7 +659,7 @@ export default {
   transition: all 0.2s;
 
   &:hover {
-    background: var(--color-success-bg);
+    background: var(--bg-hover, rgba(0, 140, 255, 0.35));
     color: var(--text-primary);
   }
 
@@ -727,14 +758,14 @@ export default {
 
 .card-name {
   font-weight: bold;
-  font-size: 11px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
   color: var(--text-primary);
   margin-bottom: 4px;
   word-break: break-word;
 }
 
 .card-text {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-secondary);
   line-height: 1.4;
   word-break: break-word;
@@ -801,7 +832,7 @@ export default {
 }
 
 .stat-item {
-  font-size: 9px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.64);
   padding: 2px 4px;
   border-radius: 3px;
   white-space: nowrap;

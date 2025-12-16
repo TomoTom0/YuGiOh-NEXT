@@ -27,6 +27,12 @@ export async function initDeckDisplay(): Promise<void> {
   applyDeckDisplayLayout()
   applyCardDetailStyles()
 
+  // #deck_image に .ygo-next クラスを追加（カードアニメーション用）
+  const deckImage = document.querySelector('#deck_image')
+  if (deckImage) {
+    deckImage.classList.add('ygo-next')
+  }
+
   // showCardDetailInDeckDisplay が有効な場合のみ Vue アプリをマウント
   if (showCardDetail) {
     const { setupVueApp } = await import('./vueSetup')
@@ -35,6 +41,28 @@ export async function initDeckDisplay(): Promise<void> {
 
   // カード画像サイズを設定
   setCardImageSize(cardImageSize)
+
+  // カード画像の読み込み完了時にフェードイン効果を適用
+  setupImageLoadedEffect()
+}
+
+/**
+ * 画像読み込み完了時にloadedクラスを追加（フェードイン効果）
+ */
+function setupImageLoadedEffect(): void {
+  const images = document.querySelectorAll<HTMLImageElement>('#deck_image img[src*="/card/"]')
+
+  images.forEach(img => {
+    if (img.complete && img.naturalWidth > 0) {
+      // 既に読み込み済み
+      img.classList.add('loaded')
+    } else {
+      // 読み込み完了時に追加
+      img.addEventListener('load', () => {
+        img.classList.add('loaded')
+      }, { once: true })
+    }
+  })
 }
 
 /**

@@ -17,11 +17,11 @@ docs/usage/images/
 デッキ編集機能（`#/ytomo/edit`）のスクリーンショット
 
 - `01-initial-state.png`: 初期状態（デッキ読み込み完了）
-- `02-deck-name-input.png`: デッキ名入力状態
+- `02-deck-name-input.webp`: デッキ名入力状態
 - `03-card-detail-info.png`: カード詳細（Infoタブ）
-- `04-card-detail-related.png`: カード詳細（Relatedタブ）
-- `05-card-detail-products.png`: カード詳細（Productsタブ）
-- `06-card-detail-qa.png`: カード詳細（Q&Aタブ）
+- `04-card-detail-related.webp`: カード詳細（Relatedタブ）
+- `05-card-detail-products.webp`: カード詳細（Productsタブ）
+- `06-card-detail-qa.webp`: カード詳細（Q&Aタブ）
 - `07-search-function.png`: カード検索機能
 
 ### shuffle-sort/
@@ -39,8 +39,8 @@ docs/usage/images/
 
 - `deck-image-button.png`: デッキ画像作成ボタン
 - `deck-image-dialog.gif`: デッキ画像作成ダイアログのデモアニメーション
-- `image-dialog-overview.png`: ダイアログ全体
-- `image-dialog-deck-name.png`: デッキ名入力欄
+- `image-dialog-overview.webp`: ダイアログ全体
+- `image-dialog-deck-name.webp`: デッキ名入力欄
 - `image-dialog-color-red.png`: 赤背景のプレビュー画像
 - `image-dialog-color-blue.png`: 青背景のプレビュー画像
 - `image-dialog-qr-on.png`: QRトグルボタン（ON状態）

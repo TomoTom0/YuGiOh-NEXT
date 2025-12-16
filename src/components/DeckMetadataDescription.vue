@@ -54,14 +54,14 @@ const value = computed({
 }
 
 .metadata-label {
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: 600;
   color: var(--text-primary);
   text-align: left;
 }
 
 .char-count {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   color: var(--text-tertiary);
   text-align: right;
 }
@@ -72,7 +72,7 @@ const value = computed({
   padding: 12px;
   border: 1px solid var(--border-primary);
   border-radius: 6px;
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--text-primary);
   background: var(--bg-primary);

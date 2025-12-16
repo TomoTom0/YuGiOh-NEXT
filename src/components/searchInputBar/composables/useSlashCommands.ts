@@ -67,7 +67,9 @@ export function useSlashCommands(options: UseSlashCommandsOptions): UseSlashComm
         { command: '/search', description: '検索モード' },
         { command: '/clear', description: '全てクリア' },
         { command: '/clear-cond', description: '条件クリア' },
-        { command: '/clear-text', description: 'テキストクリア' }
+        { command: '/clear-text', description: 'テキストクリア' },
+        { command: '/history-search', description: '履歴から選択' },
+        { command: '/favorite-search', description: 'お気に入りから選択' }
       ]
     }
 

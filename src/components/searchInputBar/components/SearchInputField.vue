@@ -69,9 +69,9 @@ defineExpose({
 }
 
 .command-prefix {
-  color: var(--ygo-next-color-primary);
+  color: var(--theme-color-start);
   font-weight: 600;
-  font-size: 13px;
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -82,8 +82,8 @@ defineExpose({
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
-  color: var(--ygo-next-color-text);
+  font-size: calc(var(--search-ui-font-size, 14px) * 0.93);
+  color: var(--text-primary);
   min-width: 0;
   text-align: left;
 
@@ -92,20 +92,20 @@ defineExpose({
   }
 
   &::placeholder {
-    color: var(--ygo-next-color-text-secondary);
+    color: var(--text-tertiary);
     opacity: 0.6;
   }
 
   &.compact {
-    font-size: 12px;
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.86);
   }
 
   &.large {
-    font-size: 14px;
+    font-size: var(--search-ui-font-size, 14px);
   }
 
   &.small {
-    font-size: 12px;
+    font-size: calc(var(--search-ui-font-size, 14px) * 0.86);
   }
 }
 </style>

@@ -12,17 +12,17 @@ PCからも新鮮で快適な遊戯王Neuronライフを！
 PC版の遊戯王Neuron(公式データベース)でも、カード画像を並べながらデッキ編集できます！
 カードをマウスでのドラッグ操作でも、クリック操作でも自在に移動できます！
 
-<img src="./docs/usage/images/store-promo-01-easy-moving.png" alt="デッキ編集機能の概要" width="800">
+<img src="./public/images/store-promo-01.webp" alt="デッキ編集機能の概要" width="800">
 
 カードを検索して、そこからカードを追加できます！
 ページを移動せずにカードのテキスト、QAページでの解説、関連QA、関連カード、関連商品をすべてみることができます！
 
-<img src="./docs/usage/images/store-promo-02-card-info.png" alt="カード詳細情報の4タブ表示" width="800">
+<img src="./public/images/store-promo-02.webp" alt="カード詳細情報の4タブ表示" width="800">
 
 
-**遊戯王NEXT(Neuron EXTension)**は、遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
+**遊戯王NEXT(Neuron EXTension)** は、遊戯王Neuron(公式カードデータベース)でのデッキ管理を支援するChrome拡張機能です。
 
-**現在のバージョン**: v0.5.5 ([変更履歴](./docs/changelog/))
+**現在のバージョン**: v0.5.8 ([変更履歴](./docs/changelog/))
 
 
 ## 主要機能
@@ -30,8 +30,6 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 ### デッキ編集画面 (`#/ytomo/edit`)
 
 デッキ編集専用の画面で、カードの検索・追加・管理を直感的に行えます。
-
-<img src="./docs/usage/images/deck-edit/01-initial-state.png" alt="デッキ編集画面の全体構成" width="600">
 
 #### 基本機能 (v0.3.0)
 
@@ -47,9 +45,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 - 禁止・制限・準制限カードの視覚表示
 - ラッシュデュエル(Rush)画面での利用も可能
 
-#### 検索・フィルター機能 (v0.4.0, v0.4.1, v0.4.4)
-
-<img src="./docs/usage/images/deck-edit/07-search-function.png" alt="カード検索機能" width="600">
+#### 検索・フィルター機能 (v0.4.0, v0.4.1, v0.4.4, v0.5.8)
 
 **高度なフィルター検索**
 - カードタイプ、属性、種族、レベル/ランク/リンク等で絞り込み
@@ -57,12 +53,16 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 - **知的な排他制御** (v0.4.4)
   - 矛盾する選択肢を自動無効化（例: 通常モンスター選択時に効果モンスターが無効化）
   - Tooltipで無効化理由を表示
+- **検索条件数バッジ** (v0.5.8)
+  - 現在適用中のフィルター数を表示
 
-**コマンドモード** (v0.4.1)
+**コマンドモード** (v0.4.1, v0.5.8)
 - チップベースのフィルター入力（英語キーワード）
 - NOT条件: `-race:warrior`
 - 複数値入力: `/race:warrior+spellcaster`
 - Enterキーでチップ変換
+- **履歴コマンド `/history-search`** (v0.5.8): 過去の検索条件を再利用
+- **お気に入りコマンド `/favorite-search`** (v0.5.8): よく使う検索条件にアクセス
 
 **マイデッキ検索** (v0.4.1)
 - 手持ちのデッキから直接カードを検索
@@ -110,6 +110,13 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 - Redo: デフォルト `Ctrl+Y`
 - オプションページでカスタマイズ可能
 
+**UI改善** (v0.5.8)
+- カードホバー時のボタンz-index調整（優先配置アイコンより手前に表示）
+- デッキ名入力欄の幅を拡大（最大600px）
+- 検索入力バーに境界線を追加（視認性向上）
+- カード画像ホバー時のボタンアイコンサイズを自動調整（カード幅の17%）
+- Right Areaのデフォルト設定をL（Large）に変更
+
 **その他のUX改善**
 - 未保存時の警告ダイアログ (v0.4.2)
   - 警告レベルを3段階で設定可能（Always/Without sorting order only/Never）
@@ -117,6 +124,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
   - 最初の100件を即座に表示
   - 残りをバックグラウンドで自動取得
 - デッキ画像のダウンロード機能
+- カテゴリ優先アイコンの初期表示改善 (v0.5.8)
 
 詳細は [デッキ編集機能ガイド](./docs/usage/custom-deck-edit.md) をご覧ください。
 
@@ -124,7 +132,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 
 公式のデッキ表示ページに便利な機能を追加します。
 
-<img src="./docs/usage/images/store-promo-03-viewing-page.png" alt="デッキ表示ページの追加機能" width="800">
+<img src="./public/images/store-promo-03.webp" alt="デッキ表示ページの追加機能" width="800">
 
 #### シャッフル・ソート機能 (v0.3.0)
 
@@ -132,7 +140,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 特定のカードを固定して、シャッフル時に先頭に配置することも可能です。
 デッキの回し具合を簡単に確かめたいときに便利です。
 
-<img src="./docs/usage/images/shuffle-sort/shuffle-sort-animation.gif" alt="シャッフル・ソート・固定機能" width="600">
+<img src="./docs/usage/images/shuffle-sort/shuffle-sort-buttons.webp" alt="シャッフル・ソート・固定機能" width="600">
 
 **機能詳細:**
 - カードをワンクリックでシャッフル
@@ -153,7 +161,7 @@ PC版の遊戯王Neuron(公式データベース)でも、カード画像を並�
 
 **作成される画像のサンプル:**
 
-<img src="./docs/usage/images/deck-image/deck-recipe-sample.png" alt="デッキレシピ出力サンプル" width="600">
+<img src="./public/images/deck-recipe-sample.webp" alt="デッキレシピ出力サンプル" width="600">
 
 #### NEXT編集ボタン (v0.4.1)
 

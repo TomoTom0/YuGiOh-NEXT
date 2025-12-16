@@ -23,23 +23,20 @@ describe('deck-parser', () => {
   describe('parseDeckPage', () => {
     it('デッキページから基本情報を正しくパースする', () => {
       const html = `
-        <html>
-          <body>
-            <input name="dno" value="123" />
-            <input name="deck_name" value="テストデッキ" />
-            <input name="is_public" type="checkbox" checked />
-            <select name="deck_type">
-              <option value="control">コントロール</option>
-            </select>
-            <textarea name="comment">テストコメント</textarea>
-            <div id="main-deck"></div>
-            <div id="extra-deck"></div>
-            <div id="side-deck"></div>
-          </body>
-        </html>
+        <input name="dno" value="123" />
+        <input name="deck_name" value="テストデッキ" />
+        <input name="is_public" type="checkbox" checked />
+        <select name="deck_type">
+          <option value="control">コントロール</option>
+        </select>
+        <textarea name="comment">テストコメント</textarea>
+        <div id="main-deck"></div>
+        <div id="extra-deck"></div>
+        <div id="side-deck"></div>
       `;
 
-      doc.documentElement.innerHTML = html;
+      doc.body.innerHTML = html;
+
       const result = parseDeckPage(doc);
 
       expect(result.dno).toBe(123);
@@ -52,7 +49,7 @@ describe('deck-parser', () => {
     });
 
     it('デッキ情報がない場合のデフォルト値を返す', () => {
-      doc.documentElement.innerHTML = '<html><body></body></html>';
+      doc.body.innerHTML = '';
       const result = parseDeckPage(doc);
 
       expect(result.dno).toBe(0);
@@ -64,15 +61,11 @@ describe('deck-parser', () => {
 
     it('公開チェックボックスがない場合はfalseを返す', () => {
       const html = `
-        <html>
-          <body>
-            <input name="dno" value="1" />
-            <input name="deck_name" value="デッキ" />
-          </body>
-        </html>
+        <input name="dno" value="1" />
+        <input name="deck_name" value="デッキ" />
       `;
 
-      doc.documentElement.innerHTML = html;
+      doc.body.innerHTML = html;
       const result = parseDeckPage(doc);
 
       expect(result.isPublic).toBe(false);

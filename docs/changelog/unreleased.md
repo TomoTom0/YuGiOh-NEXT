@@ -1,35 +1,39 @@
-# Unreleased
+# 次期バージョン（未リリース）
 
-## Features
+## New Features
 
-- **Improved Test Coverage**: Added comprehensive test suites for critical functionality
-  - Implemented 454 tests across 8 key modules (deck editing, caching, API operations, etc.)
-  - Test coverage increased from 4.39% to estimated 14-19%
-  - Enhanced regression detection capability during refactoring
+（変更内容をここに記載）
 
-- **Better UX for Disabled Filter Options**: Improved visual clarity of non-selectable filter chips
-  - Added dashed border style to disabled chips in search filter dialog
-  - Implemented theme-aware styling for both light and dark modes
-  - More obvious visual distinction between selectable and non-selectable options
+## Bug Fixes
 
-## Fixes
+（変更内容をここに記載）
 
-- Unified z-index values across dialog components for consistent layering
+## Changes
 
-## Testing
+（変更内容をここに記載）
 
-- Added comprehensive test coverage for:
-  - Deck edit store (deckEditStore)
-  - Unified cache database (UnifiedCacheDB)
-  - Deck operations API layer
-  - ID-Text mapping manager
-  - Deck detail parser
-  - Deck import/export utilities
-  - Filter input composable (useFilterInput)
-  - Deck display order composable (useDeckDisplayOrder)
+## UX Improvements
 
-## Internal
+（変更内容をここに記載）
 
-- Enhanced test infrastructure with proper mocking patterns
-- Improved Chrome Extension API testing setup
-- Better Vue 3 Composition API test patterns
+## Performance
+
+- TempCardDBのloadFromStorage()で全カードをメモリロードしていた問題を修正
+  - TempCardDBは一時的なセッションキャッシュとして動作し、必要なカードのみを動的にロード
+- デッキ表示画面の初期化処理を最適化（イベント委譲により70個の個別イベントリスナーを1つに集約）
+
+## Refactoring
+
+（変更内容をここに記載）
+
+## Repository Management
+
+（変更内容をここに記載）
+
+## Internal Improvements
+
+（変更内容をここに記載）
+
+## Known Issues
+
+（変更内容をここに記載）

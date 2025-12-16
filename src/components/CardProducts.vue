@@ -51,7 +51,6 @@
               :showCollapseButton="true"
               :showCodeSort="true"
               @collapse="collapsePack(pack.packId)"
-              @scroll-to-top="handleScrollToTop"
               @update:sortOrder="updatePackSortOrder(pack.packId, $event)"
               @update:viewMode="updatePackViewMode(pack.packId, $event)"
             />
@@ -199,13 +198,6 @@ export default {
       return `${baseUrl}&${params.toString()}`
     }
 
-    const handleScrollToTop = () => {
-      const cardTabContent = document.querySelector('.card-tab-content')
-      if (cardTabContent) {
-        cardTabContent.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
     return {
       groupedPacks,
       expandedPacks,
@@ -217,8 +209,7 @@ export default {
       collapsePack,
       updatePackSortOrder,
       updatePackViewMode,
-      getPackUrl,
-      handleScrollToTop
+      getPackUrl
     }
   }
 }
@@ -233,7 +224,7 @@ export default {
   padding: 20px;
   text-align: center;
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .pack-list {
@@ -255,7 +246,7 @@ export default {
 }
 
 .pack-name {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: bold;
   color: var(--text-primary);
   margin-bottom: 6px;
@@ -284,7 +275,7 @@ export default {
 }
 
 .pack-date {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-secondary);
   width: 60px;
   overflow: hidden;
@@ -293,7 +284,7 @@ export default {
 }
 
 .pack-code {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-primary);
   width: 100px;
   overflow: hidden;
@@ -302,7 +293,7 @@ export default {
 }
 
 .pack-rarities {
-  font-size: 10px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.71);
   color: var(--text-secondary);
   text-align: left;
   display: flex;
@@ -316,7 +307,7 @@ export default {
   display: inline-block;
   padding: 2px 6px;
   border-radius: 3px;
-  font-size: 9px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.64);
   font-weight: bold;
   color: var(--button-text);
   border: 1px solid;
@@ -415,6 +406,6 @@ export default {
   text-align: center;
   padding: 20px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 </style>

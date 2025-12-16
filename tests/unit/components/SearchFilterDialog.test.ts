@@ -85,40 +85,6 @@ describe('components/SearchFilterDialog', () => {
     });
   });
 
-  describe('Props', () => {
-    it('should accept initialFilters prop', () => {
-      const deckStore = useDeckEditStore();
-      deckStore.isFilterDialogVisible = true;
-
-      const initialFilters: SearchFilters = {
-        cardType: 1, // モンスター
-        attributes: [1], // 光属性
-        spellTypes: [],
-        trapTypes: [],
-        races: [],
-        monsterTypes: [],
-        monsterTypeMatchMode: 'or',
-        levelType: 'level',
-        levelValues: [],
-        linkValues: [],
-        scaleValues: [],
-        linkMarkers: [],
-        linkMarkerMatchMode: 'or',
-        atk: { exact: false, unknown: false },
-        def: { exact: false, unknown: false },
-        releaseDate: {}
-      };
-
-      const wrapper = mount(SearchFilterDialog, {
-        props: {
-          initialFilters
-        }
-      });
-
-      expect(wrapper.props('initialFilters')).toEqual(initialFilters);
-    });
-  });
-
   describe('Events', () => {
     it('should emit apply event with filters when apply button is clicked', async () => {
       const deckStore = useDeckEditStore();

@@ -1,12 +1,12 @@
-import { type Ref, computed } from 'vue'
-import type { CardInfo, Attribute, Race, CardType } from '../../../types/card'
+import { type Ref, computed, nextTick } from 'vue'
+import type { CardInfo, Attribute, Race } from '../../../types/card'
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
-import { SORT_ORDER_TO_API_VALUE } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
 import { useSearchStore } from '../../../stores/search'
 import type { SortOrder } from '../../../types/settings'
 import { useSearchHistory } from '../../../composables/useSearchHistory'
+import { buildSearchOptions } from '../../../utils/search-options-builder'
 
 /**
  * 検索実行composableのオプション
@@ -26,78 +26,6 @@ export interface UseSearchExecutionReturn {
   applyClientSideFilters: (cards: CardInfo[], filters: SearchFilters) => CardInfo[]
   /** 検索実行 */
   handleSearch: () => Promise<void>
-}
-
-/**
- * SearchOptionsを構築する
- */
-function buildSearchOptions(
-  keyword: string,
-  searchType: '1' | '2' | '3' | '4',
-  sortOrder: SortOrder,
-  filters: SearchFilters
-): SearchOptions {
-  const apiSort = SORT_ORDER_TO_API_VALUE[sortOrder] || 1
-
-  const searchOptions: SearchOptions = {
-    keyword,
-    searchType,
-    resultsPerPage: 100,
-    sort: apiSort
-  }
-
-  const f = filters
-  if (f.cardType) searchOptions.cardType = f.cardType as SearchOptions['cardType']
-  if (f.attributes.length > 0) searchOptions.attributes = f.attributes as SearchOptions['attributes']
-  if (f.races.length > 0) searchOptions.races = f.races as SearchOptions['races']
-  if (f.levelValues.length > 0) searchOptions.levels = f.levelValues
-  if (f.atk.min !== undefined || f.atk.max !== undefined) {
-    searchOptions.atk = { from: f.atk.min, to: f.atk.max }
-  }
-  if (f.def.min !== undefined || f.def.max !== undefined) {
-    searchOptions.def = { from: f.def.min, to: f.def.max }
-  }
-  if (f.monsterTypes.length > 0) {
-    const normalTypes = f.monsterTypes.filter(mt => mt.state === 'normal').map(mt => mt.type)
-    const notTypes = f.monsterTypes.filter(mt => mt.state === 'not').map(mt => mt.type)
-    if (normalTypes.length > 0) searchOptions.monsterTypes = normalTypes as SearchOptions['monsterTypes']
-    if (notTypes.length > 0) searchOptions.excludeMonsterTypes = notTypes as SearchOptions['excludeMonsterTypes']
-    // normalTypesまたはnotTypesがある場合、AND/OR論理演算を設定
-    if (normalTypes.length > 0 || notTypes.length > 0) {
-      searchOptions.monsterTypeLogic = f.monsterTypeMatchMode === 'and' ? 'AND' : 'OR'
-    }
-  }
-  if (f.linkValues.length > 0) searchOptions.linkNumbers = f.linkValues
-  if (f.linkMarkers.length > 0) {
-    searchOptions.linkMarkers = f.linkMarkers
-    searchOptions.linkMarkerLogic = f.linkMarkerMatchMode === 'and' ? 'AND' : 'OR'
-  }
-  if (f.scaleValues.length > 0) searchOptions.pendulumScales = f.scaleValues
-  if (f.spellTypes.length > 0) searchOptions.spellEffectTypes = f.spellTypes as SearchOptions['spellEffectTypes']
-  if (f.trapTypes.length > 0) searchOptions.trapEffectTypes = f.trapTypes as SearchOptions['trapEffectTypes']
-  if (f.releaseDate.from || f.releaseDate.to) {
-    searchOptions.releaseDate = {}
-    if (f.releaseDate.from) {
-      const parts = f.releaseDate.from.split('-')
-      if (parts[0] && parts[1] && parts[2]) {
-        const year: number = parseInt(parts[0], 10)
-        const month: number = parseInt(parts[1], 10)
-        const day: number = parseInt(parts[2], 10)
-        searchOptions.releaseDate.start = { year, month, day }
-      }
-    }
-    if (f.releaseDate.to) {
-      const parts = f.releaseDate.to.split('-')
-      if (parts[0] && parts[1] && parts[2]) {
-        const year: number = parseInt(parts[0], 10)
-        const month: number = parseInt(parts[1], 10)
-        const day: number = parseInt(parts[2], 10)
-        searchOptions.releaseDate.end = { year, month, day }
-      }
-    }
-  }
-
-  return searchOptions
 }
 
 /**
@@ -295,7 +223,15 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       let delegatedToName = false  // autoモードからname検索に委譲したかどうか
 
       if (effectiveSearchMode === 'auto') {
-        const autoResult = await searchCardsAuto(keyword, 100, searchStore.searchFilters.cardType as CardType | undefined)
+        // autoモード用のSearchOptionsを構築
+        const autoOptions = buildSearchOptions(
+          keyword,
+          '1',  // searchTypeはauto関数内で上書きされるので仮の値
+          deckStore.sortOrder as SortOrder,
+          searchStore.searchFilters
+        )
+
+        const autoResult = await searchCardsAuto(autoOptions)
         results = autoResult.cards
         const autoResultCount = results.length  // フィルタリング前の件数を保存
 
@@ -327,6 +263,14 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索結果をstore用の形式に変換
       searchStore.searchResults = results as unknown as typeof searchStore.searchResults
       searchStore.allResults = results as unknown as typeof searchStore.allResults
+
+      // 検索実行時に search タブのスクロール位置を上に戻す（アニメーション付き）
+      nextTick(() => {
+        const editUI = document.querySelector('#ytomo-edit-ui')
+        if (editUI) {
+          editUI.scrollTo({ top: 0, behavior: 'smooth' })
+        }
+      })
 
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {

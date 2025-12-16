@@ -67,7 +67,10 @@ export const COMMANDS: Record<string, { filterType: string; description: string;
   '/clear': { filterType: 'action', description: '全てクリア', isAction: true },
   '/clear-cond': { filterType: 'action', description: '条件クリア', isAction: true },
   '/clear-text': { filterType: 'action', description: 'テキストクリア', isAction: true },
-  '/clear-one-cond': { filterType: 'action', description: '条件を選択して削除', isAction: true }
+  '/clear-one-cond': { filterType: 'action', description: '条件を選択して削除', isAction: true },
+  // 履歴コマンド
+  '/history-search': { filterType: 'action', description: '履歴から選択', isAction: true },
+  '/favorite-search': { filterType: 'action', description: 'お気に入りから選択', isAction: true }
 }
 
 /**

@@ -11,7 +11,12 @@ import type {
   KeyboardShortcut,
   FeatureSettings,
   StorageSettings,
-  UXSettings
+  UXSettings,
+  RightAreaWidth,
+  RightAreaFontSize,
+  DialogFontSize,
+  SearchUIFontSize,
+  DeckDisplayCardImageSize
 } from '../types/settings';
 import {
   DEFAULT_APP_SETTINGS,
@@ -176,6 +181,8 @@ export const useSettingsStore = defineStore('settings', () => {
         // テーマと共通のカードサイズ（info, grid, list）を適用
         applyTheme();
         applyCommonCardSize();
+        applyRightAreaStyles();
+        applyFontSizes();
 
         resolve();
       });
@@ -434,6 +441,42 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * Right Area の幅を変更
+   */
+  function setRightAreaWidth(width: RightAreaWidth): void {
+    appSettings.value.ux.rightAreaWidth = width;
+    applyRightAreaStyles();
+    saveSettings();
+  }
+
+  /**
+   * Right Area のフォントサイズを変更
+   */
+  function setRightAreaFontSize(fontSize: RightAreaFontSize): void {
+    appSettings.value.ux.rightAreaFontSize = fontSize;
+    applyRightAreaStyles();
+    saveSettings();
+  }
+
+  /**
+   * ダイアログのフォントサイズを変更
+   */
+  function setDialogFontSize(fontSize: DialogFontSize): void {
+    appSettings.value.dialogFontSize = fontSize;
+    applyFontSizes();
+    saveSettings();
+  }
+
+  /**
+   * 検索UIのフォントサイズを変更
+   */
+  function setSearchUIFontSize(fontSize: SearchUIFontSize): void {
+    appSettings.value.searchUIFontSize = fontSize;
+    applyFontSizes();
+    saveSettings();
+  }
+
+  /**
    * デッキ表示ページでCardDetail情報を表示するかを変更
    */
   function setShowCardDetailInDeckDisplay(enabled: boolean): void {
@@ -444,7 +487,7 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * デッキ表示ページのカード画像サイズを変更
    */
-  function setDeckDisplayCardImageSize(size: CardSize): void {
+  function setDeckDisplayCardImageSize(size: DeckDisplayCardImageSize): void {
     appSettings.value.deckDisplayCardImageSize = size;
     saveSettings();
   }
@@ -546,6 +589,60 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * Right Area のスタイルをDOMに適用
+   */
+  function applyRightAreaStyles(): void {
+    const width = appSettings.value.ux.rightAreaWidth;
+    const fontSize = appSettings.value.ux.rightAreaFontSize;
+
+    // Width のマッピング（ピクセル値）
+    const widthMap: Record<RightAreaWidth, string> = {
+      'S': '300px',
+      'M': '400px',
+      'L': '500px',
+      'XL': '600px'
+    };
+
+    // Font Size のマッピング
+    const fontSizeMap: Record<RightAreaFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    document.documentElement.style.setProperty('--right-area-width', widthMap[width]);
+    document.documentElement.style.setProperty('--right-area-font-size', fontSizeMap[fontSize]);
+  }
+
+  /**
+   * フォントサイズをDOMに適用
+   */
+  function applyFontSizes(): void {
+    const dialogFontSize = appSettings.value.dialogFontSize;
+    const searchUIFontSize = appSettings.value.searchUIFontSize;
+
+    // Dialog Font Size のマッピング
+    const dialogFontSizeMap: Record<DialogFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    // Search UI Font Size のマッピング
+    const searchUIFontSizeMap: Record<SearchUIFontSize, string> = {
+      's': '12px',
+      'm': '14px',
+      'l': '16px',
+      'xl': '18px'
+    };
+
+    document.documentElement.style.setProperty('--dialog-font-size', dialogFontSizeMap[dialogFontSize]);
+    document.documentElement.style.setProperty('--search-ui-font-size', searchUIFontSizeMap[searchUIFontSize]);
+  }
+
+  /**
    * システムテーマ変更を監視
    */
   function watchSystemTheme(): void {
@@ -614,6 +711,10 @@ export const useSettingsStore = defineStore('settings', () => {
     removeKeyboardShortcut,
     setSearchInputPosition,
     setDefaultSearchMode,
+    setRightAreaWidth,
+    setRightAreaFontSize,
+    setDialogFontSize,
+    setSearchUIFontSize,
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,
@@ -623,5 +724,7 @@ export const useSettingsStore = defineStore('settings', () => {
     resetSettings,
     applyTheme,
     applyCardSize,
+    applyRightAreaStyles,
+    applyFontSizes,
   };
 });

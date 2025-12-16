@@ -542,7 +542,6 @@ export async function initializeMappingManager(): Promise<void> {
 
     // その言語のマッピングを初期化
     await mappingManager.initialize(pageLanguage);
-    console.debug(`[MappingManager] Initialized for page language: ${pageLanguage}`);
 
     // 設定言語のマッピングも確保する（Chrome Storage から直接読み込み）
     try {

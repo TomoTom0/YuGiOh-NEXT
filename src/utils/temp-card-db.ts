@@ -196,25 +196,12 @@ export class TempCardDB {
       // UnifiedCacheDBを初期化
       await initUnifiedCacheDB();
 
-      // UnifiedCacheDBからCardInfoを再構築して読み込む
-      const unifiedDB = getUnifiedCacheDB();
-      const allCardInfos = unifiedDB.getAllCardInfos();
-      const now = Date.now();
-
+      // TempCardDBは一時的なセッションキャッシュなので、全カードを事前ロードしない。
+      // 必要なカードは実行時に set() で動的に追加される（インポート、検索、デッキ読み込み時）。
+      // また、UnifiedCacheDB.reconstructCardInfo() でも取得可能。
       this.cards.clear();
 
-      for (const [cardId, cardInfo] of allCardInfos) {
-        // cardInfoには既にTableB2からtext/pendTextがマージされている
-        // （reconstructCardInfo()内で処理済み）
-
-        // 全てを現在時刻でキャッシュ（UnifiedCacheDBから再構築されたため）。
-        this.cards.set(cardId, {
-          card: cardInfo,
-          lastUpdated: now
-        });
-      }
-
-      return this.cards.size;
+      return 0;
     } catch (error) {
       console.error('[TempCardDB] Failed to load from storage:', error);
       return 0;

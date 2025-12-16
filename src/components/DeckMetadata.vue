@@ -204,6 +204,8 @@ function updateComment() {
 function updateCategories(newCategories: string[]) {
   localCategory.value = [...newCategories];
   deckStore.deckInfo.category = [...newCategories];
+  // カテゴリ判定を更新
+  deckStore.updateCategoryMatching();
 }
 
 function updateTags(newTags: string[]) {
@@ -217,6 +219,8 @@ function removeCategory(catId: string) {
   if (index >= 0) {
     localCategory.value.splice(index, 1);
     deckStore.deckInfo.category = [...localCategory.value];
+    // カテゴリ判定を更新
+    deckStore.updateCategoryMatching();
   }
 }
 
@@ -283,7 +287,7 @@ function removeTag(tagId: string) {
 /* DeckMetadataTags.vue の子コンポーネントにスタイルが移譲済み */
 
 .chip-remove {
-  font-size: 14px;
+  font-size: var(--right-area-font-size, 14px);
   font-weight: bold;
   opacity: 0.7;
   transition: opacity 0.2s;
@@ -324,7 +328,7 @@ function removeTag(tagId: string) {
 .dropdown-option {
   padding: 10px 14px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -346,7 +350,7 @@ function removeTag(tagId: string) {
   padding: 10px;
   border: none;
   border-bottom: 1px solid var(--border-primary);
-  font-size: 13px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.93);
   color: var(--text-primary);
   background: var(--bg-primary);
   box-sizing: border-box;

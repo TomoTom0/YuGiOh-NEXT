@@ -13,11 +13,13 @@ import { getVueEditUrl } from '../utils/url-builder';
 // Piniaを初期化してテーマを適用
 const pinia = createPinia();
 const settingsStore = useSettingsStore(pinia);
-// 設定を読み込んでテーマを適用
-settingsStore.loadSettings();
 
-// テーマ属性を設定（CSS変数の解決のため）
-document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme);
+// 設定を読み込んでテーマを適用（非同期）
+(async () => {
+  await settingsStore.loadSettings();
+  // テーマ属性を設定（CSS変数の解決のため）
+  document.documentElement.setAttribute('data-ygo-next-theme', settingsStore.effectiveTheme);
+})();
 
 /**
  * URLから request_locale を抽出
@@ -98,7 +100,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   container.appendChild(header);
   container.appendChild(menu);
-  document.body.appendChild(container);
+
+  const appDiv = document.getElementById('app');
+  if (appDiv) {
+    appDiv.appendChild(container);
+    // FOUC防止：コンテンツ追加後にフェードイン
+    requestAnimationFrame(() => {
+      appDiv.classList.add('loaded');
+    });
+  }
 });
 
 /**

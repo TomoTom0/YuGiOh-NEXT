@@ -200,8 +200,8 @@ describe('convertFiltersToIcons', () => {
 
     const result = convertFiltersToIcons(filters);
     expect(result).toEqual([
-      { type: 'monsterType', label: '融', value: 'fusion' },
-      { type: 'monsterType', label: 'S', value: 'synchro' }
+      { type: 'mtype', label: '融', value: 'fusion', isNot: false },
+      { type: 'mtype', label: 'S', value: 'synchro', isNot: false }
     ]);
   });
 
@@ -303,6 +303,6 @@ describe('convertFiltersToIcons', () => {
     expect(result).toContainEqual({ type: 'race', label: expect.any(String), value: expect.any(String) });
     expect(result).toContainEqual({ type: 'level', label: '★8', value: 'all' });
     expect(result).toContainEqual({ type: 'atk', label: 'ATK=3000', value: 'atk' });
-    expect(result).toContainEqual({ type: 'monsterType', label: 'S', value: 'synchro' });
+    expect(result).toContainEqual({ type: 'mtype', label: 'S', value: 'synchro', isNot: false });
   });
 });

@@ -28,10 +28,8 @@ export default defineComponent({
     const updateHtmlClass = () => {
       const htmlElement = document.documentElement
       if (settingsStore.appSettings.showCardDetailInDeckDisplay) {
-        htmlElement.classList.add('ygo-next')
         htmlElement.classList.add('ygo-next-valid-card-tab-on-deck-display')
       } else {
-        htmlElement.classList.remove('ygo-next')
         htmlElement.classList.remove('ygo-next-valid-card-tab-on-deck-display')
       }
     }
@@ -62,7 +60,7 @@ export default defineComponent({
 <style lang="scss">
 @use '../../styles/themes.scss' as *;
 
-html.ygo-next.ygo-next-valid-card-tab-on-deck-display {
+html.ygo-next-valid-card-tab-on-deck-display {
   * {
     min-height: auto;
   }
@@ -75,57 +73,137 @@ html.ygo-next.ygo-next-valid-card-tab-on-deck-display {
     gap: 0;
   }
 
-  .ygo-next.ygo-next-card-hover-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    height: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 101, 0, 0.5);
-    pointer-events: none;
-    z-index: 10;
+  /* DeckCard.vueと同じcard-controlsスタイル（デッキ表示画面用） */
+  .ygo-next {
+    &.ygo-next-card-controls {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      z-index: 1;
+    }
+  }
+
+  .ygo-next.ygo-next-card-btn {
     opacity: 0;
-    transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.2s;
   }
 
-  #main > div.image_set > a.ygo-next-hover-overlay-active .ygo-next.ygo-next-card-hover-overlay,
-  #side > div.image_set > a.ygo-next-hover-overlay-active .ygo-next.ygo-next-card-hover-overlay {
-    opacity: 0.3;
+  #main > div.image_set > a:hover .ygo-next.ygo-next-card-btn,
+  #extra > div.image_set > a:hover .ygo-next.ygo-next-card-btn,
+  #side > div.image_set > a:hover .ygo-next.ygo-next-card-btn {
+    opacity: 1;
   }
 
-  #main > div.image_set > a.ygo-next-cursor-in-area .ygo-next.ygo-next-card-hover-overlay,
-  #side > div.image_set > a.ygo-next-cursor-in-area .ygo-next.ygo-next-card-hover-overlay {
-    opacity: 0.6;
-    pointer-events: auto;
+  /* ロック済みカードはロックアイコン（top-right）のみ常時表示 */
+  #main > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed,
+  #extra > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed,
+  #side > div.image_set > a[data-ygo-next-sortfix] .ygo-next.ygo-next-card-btn.top-right.is-sortfixed {
+    opacity: 1;
   }
 
-  .ygo-next.ygo-next-card-info-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #ff6500;
-    color: white;
-    border: none;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s ease-in-out;
-    pointer-events: auto;
-    z-index: 11;
-  }
+  .ygo-next {
+    &.ygo-next-card-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      color: var(--button-text);
+      font-size: 8px;
+      font-weight: bold;
+      transition: all 0.15s;
+      position: relative;
 
-  .ygo-next.ygo-next-card-info-btn:hover {
-    background: #ff5500;
-  }
+      &::before {
+        content: '';
+        position: absolute;
+        transition: background 0.15s;
+        pointer-events: none;
+      }
 
-  .ygo-next.ygo-next-card-info-btn:active {
-    transform: scale(0.95);
+      .btn-text {
+        position: relative;
+        z-index: 1;
+      }
+
+      &.top-left {
+        grid-column: 1;
+        grid-row: 1;
+        align-items: flex-start;
+        justify-content: flex-start;
+        padding: 2px 0 0 2px;
+
+        &::before {
+          top: 0;
+          left: 0;
+          width: 66.67%;
+          height: 66.67%;
+          background: var(--deck-card-btn-top-left-bg);
+          border: none;
+          transition: all 0.15s;
+        }
+
+        &:hover::before {
+          background: var(--deck-card-btn-top-left-hover-bg);
+          border: 1px solid var(--deck-card-btn-top-left-hover-border);
+        }
+
+        .btn-text {
+          font-size: 9px;
+        }
+      }
+
+      &.top-right {
+        grid-column: 2;
+        grid-row: 1;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 2px 2px 0 0;
+
+        &::before {
+          top: 0;
+          right: 0;
+          width: 66.67%;
+          height: 66.67%;
+          background: var(--deck-card-btn-top-right-bg);
+          border: none;
+          transition: all 0.15s;
+        }
+
+        &:hover::before {
+          background: var(--deck-card-btn-top-right-hover-bg);
+          border: 1px solid var(--deck-card-btn-top-right-hover-border);
+        }
+
+        /* sortfix ON の場合 */
+        &.is-sortfixed {
+          svg {
+            display: block;
+            position: relative;
+            z-index: 1;
+            stroke: var(--button-text);
+          }
+
+          &::before {
+            background: var(--deck-card-btn-top-right-s-bg);
+          }
+
+          &:hover::before {
+            background: var(--deck-card-btn-top-right-s-hover-bg);
+            border: 1px solid var(--deck-card-btn-top-right-s-hover-border);
+          }
+        }
+      }
+
+      &.bottom-left, &.bottom-right {
+        /* 現時点では未使用だが、構造を統一 */
+      }
+    }
   }
 
   .ygo-next.card-detail {

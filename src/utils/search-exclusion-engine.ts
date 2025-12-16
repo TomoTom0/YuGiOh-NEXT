@@ -323,8 +323,10 @@ function applyAttributeToField(
     const attrState = result.attributeStates.get(rule.trigger);
 
     // ORモードの場合、直接選択された属性（required=false）は項目を無効化しない
+    // ただし、card-type_* の場合は常に適用する
+    const isCardType = rule.trigger.startsWith('card-type_');
     const shouldApplyToField = attrState && attrState.selected &&
-      (state.monsterTypeMode === 'and' || attrState.required);
+      (isCardType || state.monsterTypeMode === 'and' || attrState.required);
 
     if (shouldApplyToField) {
       for (const field of rule.negative) {

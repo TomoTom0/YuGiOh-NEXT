@@ -29,13 +29,17 @@
         <path fill="currentColor" :d="mdiNumeric2Circle" />
       </svg>
     </div>
-    <!-- カテゴリ優先アイコン（最優先） -->
-    <div v-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
+    <!-- 手動先頭優先配置アイコン（最優先） -->
+    <div v-if="isHeadPlaced" class="head-placement-icon" :title="`手動先頭優先配置 (${headPlacementNumber}番目)`">
+      {{ headPlacementNumber }}
+    </div>
+    <!-- カテゴリ優先アイコン（手動先頭優先配置が無い場合のみ表示） -->
+    <div v-else-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
       <svg width="8" height="8" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiArrowLeftBold" />
       </svg>
     </div>
-    <!-- 末尾優先アイコン（カテゴリ優先が無い場合のみ表示） -->
+    <!-- 末尾配置アイコン（手動先頭優先配置、カテゴリ優先が無い場合のみ表示） -->
     <div v-else-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
       <svg width="8" height="8" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiArrowRightBold" />
@@ -264,6 +268,30 @@ export default {
     isTailPlaced() {
       // 直接refを参照してVueのreactivityを機能させる
       return this.card && this.settingsStore.tailPlacementCardIds.includes(this.card.cardId)
+    },
+    isHeadPlaced() {
+      // 手動先頭優先配置フラグを確認（dnoごと）
+      if (!this.card) return false
+
+      const headPlacementCardIds = this.deckStore.headPlacementCardIds
+      if (!headPlacementCardIds || !Array.isArray(headPlacementCardIds)) {
+        console.warn('[DeckCard] headPlacementCardIds is not an array:', headPlacementCardIds)
+        return false
+      }
+
+      return headPlacementCardIds.includes(this.card.cardId)
+    },
+    headPlacementNumber() {
+      // 手動先頭優先配置の順番（1始まり）
+      if (!this.card) return 0
+
+      const headPlacementCardIds = this.deckStore.headPlacementCardIds
+      if (!headPlacementCardIds || !Array.isArray(headPlacementCardIds)) {
+        return 0
+      }
+
+      const index = headPlacementCardIds.indexOf(this.card.cardId)
+      return index >= 0 ? index + 1 : 0
     },
     isInCategory() {
       // 2段階検索の結果（cid単位でキャッシュ済み）を参照
@@ -697,6 +725,25 @@ export default {
   }
 }
 
+.head-placement-icon {
+  position: absolute;
+  bottom: 0;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  color: var(--color-info, #2196F3);
+  font-size: 11px;
+  font-weight: bold;
+}
+
 .category-placement-icon {
   position: absolute;
   bottom: 0;
@@ -730,7 +777,7 @@ export default {
   grid-template-rows: 1fr 1fr;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 1;
+  z-index: 6; /* 優先配置矢印アイコン（z-index: 5）より前面に表示 */
 }
 
 .card-btn {
@@ -740,7 +787,7 @@ export default {
   padding: 0;
   display: flex;
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: bold;
   transition: all 0.15s;
   position: relative;
@@ -756,6 +803,22 @@ export default {
     display: block;
     position: relative;
     z-index: 1;
+    /* 画像サイズに応じてアイコンサイズを調整 (デフォルト: カード幅の17%) */
+    width: calc(var(--card-width-deck, 59px) * 0.17);
+    height: calc(var(--card-width-deck, 59px) * 0.17);
+  }
+
+  /* section-infoでは--card-width-infoを使用 */
+  .section-info & svg {
+    width: calc(var(--card-width-info, 59px) * 0.17);
+    height: calc(var(--card-width-info, 59px) * 0.17);
+  }
+
+  /* section-searchでは親要素の幅（100%）を基準に */
+  .section-search & svg {
+    width: 17%;
+    height: auto;
+    aspect-ratio: 1 / 1;
   }
 
   .btn-text {
@@ -797,7 +860,7 @@ export default {
     }
     
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -852,7 +915,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -902,7 +965,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -952,7 +1015,7 @@ export default {
     }
 
     .btn-text {
-      font-size: 9px;
+      font-size: calc(var(--right-area-font-size, 14px) * 0.64);
     }
 
     svg {
@@ -965,10 +1028,15 @@ export default {
     opacity: 1;
     transform: scale(1.02);
   }
+
+  &:active {
+    opacity: 1;
+    transform: scale(1.02);
+  }
 }
 
 .btn-text {
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
   font-weight: bold;
   color: var(--button-text);
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -977,7 +1045,7 @@ export default {
 
 .btn-text-multiline {
   line-height: 0.8;
-  font-size: 12px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.86);
 }
 
 .card-controls-search {
@@ -1001,7 +1069,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: var(--button-text);
-  font-size: 8px;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.57);
   font-weight: bold;
   transition: all 0.15s;
 

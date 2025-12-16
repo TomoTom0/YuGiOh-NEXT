@@ -419,15 +419,6 @@ bun run tmp/test-*.js
 - `dist/` - ビルド出力
 - `node_modules/` - bunパッケージキャッシュ
 
-### `tasks/` ディレクトリの管理
-
-`tasks/` は別リポジトリで管理されています。通常のリポで commit 保存すると、自動的に `tasks/` 内もcommit 保存されるため、以下の点に注意してください：
-
-- **tasks/ 内のファイル修正時**: 通常通り編集してもよい（git add/commit は**不要**）
-- **git add / commit の対象**: `tasks/` を含める必要はない
-- **自動連動**: メインリポの commit 時に `tasks/` 内の変更も自動的に反映される
-- **意識すべきこと**: `tasks/` 内を編集した後、メインリポで通常の add/commit を実行すれば十分
-
 ### `tmp/` と `/tmp/` の区別
 
 - `./tmp/` : プロジェクトルートのtmpディレクトリ（一時的なテストスクリプト）
@@ -717,6 +708,14 @@ button.style.background = '#4CAF50'; // NG
 - 独自画面要素と公式サイトの要素が混在するため、セレクタの特異性を明確に区分する必要がある
 - `.ygo-next` クラスで修飾することで、公式サイトのスタイルとの競合を防ぎ、保守性を向上させる
 - SCSS の nest を使用することで、構造を明確に保つ
+
+#### 適用ファイル：
+
+**全てのSCSSファイルで `.ygo-next` スコープ必須**
+
+- `src/styles/common.scss` - グローバルスタイル（`button`, `*`, `.flex`, `.dialog-*`, `.btn` 等）は全て `.ygo-next` 内に定義
+- `src/content/styles/buttons.scss` - ボタン関連スタイル
+- `src/styles/themes.scss` - テーマ変数定義（`[data-ygo-next-theme="light"]` 属性セレクタを使用）
 
 ---
 

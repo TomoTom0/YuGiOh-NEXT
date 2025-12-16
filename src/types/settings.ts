@@ -22,6 +22,31 @@ export interface FeatureSettings {
 export type CardSize = 'small' | 'medium' | 'large' | 'xlarge';
 
 /**
+ * デッキ表示ページのカード画像サイズ（normal = 公式サイトのデフォルトサイズ）
+ */
+export type DeckDisplayCardImageSize = 'normal' | CardSize;
+
+/**
+ * Right Area の幅（4段階）
+ */
+export type RightAreaWidth = 'S' | 'M' | 'L' | 'XL';
+
+/**
+ * Right Area のフォントサイズ（4段階）
+ */
+export type RightAreaFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
+ * ダイアログのフォントサイズ（4段階）
+ */
+export type DialogFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
+ * 検索UIのフォントサイズ（4段階）
+ */
+export type SearchUIFontSize = 's' | 'm' | 'l' | 'xl';
+
+/**
  * テーマ
  */
 export type Theme = 'light' | 'dark' | 'system';
@@ -153,6 +178,10 @@ export interface UXSettings {
     /** 商品一覧セクション */
     products: 'list' | 'grid';
   };
+  /** Right Area の幅 */
+  rightAreaWidth: RightAreaWidth;
+  /** Right Area のフォントサイズ */
+  rightAreaFontSize: RightAreaFontSize;
 }
 
 /**
@@ -182,13 +211,21 @@ export interface AppSettings {
   /** デッキ表示ページでCardDetail情報を表示 */
   showCardDetailInDeckDisplay: boolean;
   /** デッキ表示ページのカード画像サイズ */
-  deckDisplayCardImageSize: CardSize;
+  deckDisplayCardImageSize: DeckDisplayCardImageSize;
   /** デフォルトソート順序 */
   defaultSortOrder: string;
   /** カテゴリ優先を有効化 */
   enableCategoryPriority: boolean;
   /** 末尾配置を有効化 */
   enableTailPlacement: boolean;
+  /** 手動先頭優先配置を有効化 */
+  enableHeadPlacement: boolean;
+  /** 保存前に全ソートを実行 */
+  sortAllBeforeSave: boolean;
+  /** ダイアログのフォントサイズ */
+  dialogFontSize: DialogFontSize;
+  /** 検索UIのフォントサイズ */
+  searchUIFontSize: SearchUIFontSize;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -280,6 +317,8 @@ export const DEFAULT_UX_SETTINGS: UXSettings = {
     related: 'grid',   // 関連カード: グリッド表示（デフォルト）
     products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
   },
+  rightAreaWidth: 'L',      // Right Area の幅: L（デフォルト）
+  rightAreaFontSize: 'l',   // Right Area のフォントサイズ: l（デフォルト）
 };
 
 /**
@@ -299,10 +338,14 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   unsavedWarning: 'always',
   // デッキ表示ページ設定
   showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
-  deckDisplayCardImageSize: 'large',   // デッキ表示ページのカード画像: large
+  deckDisplayCardImageSize: 'normal',  // デッキ表示ページのカード画像: normal（公式デフォルト）
   defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
   enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
   enableTailPlacement: true,           // 末尾配置: デフォルト有効
+  enableHeadPlacement: true,           // 手動先頭優先配置: デフォルト有効
+  sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
+  dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
+  searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
 };
 
 /**

@@ -1,9 +1,17 @@
 <template>
-  <div v-show="isReady" class="deck-edit-container" :data-ygo-next-theme="settingsStore.effectiveTheme">
+  <div v-show="isReady" class="deck-edit-container ygo-next" :data-ygo-next-theme="settingsStore.effectiveTheme">
+    <!-- ローディングオーバーレイ（画面中央固定） -->
+    <div v-if="deckStore.isLoadingDeck" class="deck-loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading...</div>
+      </div>
+    </div>
+
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
       <DeckEditTopBar />
 
-      <div class="deck-areas" :style="deckAreasStyle">
+      <div class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
         <DeckSection
           title="main"
           section-type="main"
@@ -38,7 +46,7 @@
         <div class="mobile-deck-content">
           <DeckEditTopBar />
 
-          <div class="deck-areas" :style="deckAreasStyle">
+          <div class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
             <DeckSection
               title="main"
               section-type="main"
@@ -285,9 +293,23 @@ export default {
 
     const loadDeck = async (dno) => {
       try {
-        await deckStore.loadDeck(dno)
-        deckStore.setDeckName('')
+        // ダイアログを即座に閉じる（楽観的UI）
         deckStore.showLoadDialog = false
+        deckStore.setDeckName('')
+
+        // ダイアログを閉じると同時に、デッキエリアを滑らかに上にスクロール
+        nextTick(() => {
+          const deckAreas = document.querySelector('.deck-areas')
+          if (deckAreas) {
+            deckAreas.scrollTo({
+              top: 0,
+              behavior: 'smooth' // アニメーション付きでスクロール
+            })
+          }
+        })
+
+        // デッキロード（バックグラウンドで実行）
+        await deckStore.loadDeck(dno)
 
         // デッキロード後、サムネイルを生成・キャッシュに保存（非同期）
         // TODO: サムネイル生成は廃止済み
@@ -602,8 +624,12 @@ export default {
 
       try {
         // Load Dialog検索時に動的import
-        const { searchCardsByName } = await import('../../api/card-search')
-        const results = await searchCardsByName(query.trim())
+        const { searchCards } = await import('../../api/card-search')
+        const results = await searchCards({
+          keyword: query.trim(),
+          searchType: '1',
+          resultsPerPage: 100
+        })
         const gameType = detectCardGameType()
         searchResults.length = 0
         searchResults.push(...results.map(card => {
@@ -862,6 +888,66 @@ export default {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+
+  // ローディング中はカードのアニメーションを無効化
+  &.deck-loading {
+    opacity: 0.5;
+    pointer-events: none;
+
+    // カードのスライド移動を防ぐ
+    .deck-card {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+}
+
+// ローディングオーバーレイ（画面中央固定）
+.deck-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 48px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.loading-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+// スピナーアニメーション
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border-primary);
+  border-top-color: var(--color-info);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .middle-decks {
