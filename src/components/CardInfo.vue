@@ -326,21 +326,11 @@ export default {
     const toggleHeadPlacement = () => {
       if (!card.value) return
 
-      console.debug('[CardInfo] toggleHeadPlacement:', {
-        cardId: card.value.cardId,
-        isHeadPlaced: isHeadPlaced.value,
-        currentHeadPlacementCardIds: deckStore.headPlacementCardIds
-      })
-
       if (isHeadPlaced.value) {
         deckStore.removeHeadPlacementCard(card.value.cardId)
       } else {
         deckStore.addHeadPlacementCard(card.value.cardId)
       }
-
-      console.debug('[CardInfo] after toggle:', {
-        newHeadPlacementCardIds: deckStore.headPlacementCardIds
-      })
 
       // メニューを閉じる
       showCardMenu.value = false

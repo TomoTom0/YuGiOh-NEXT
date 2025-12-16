@@ -1082,18 +1082,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 手動先頭優先配置リストにカードを追加
    */
   function addHeadPlacementCard(cardId: string): void {
-    console.debug('[deck-edit] addHeadPlacementCard:', {
-      cardId,
-      currentList: [...headPlacementCardIds.value],
-      dno: deckInfo.value.dno
-    })
-
     if (!headPlacementCardIds.value.includes(cardId)) {
       headPlacementCardIds.value.push(cardId);
-      console.debug('[deck-edit] after push:', [...headPlacementCardIds.value])
       saveHeadPlacementCards();
-    } else {
-      console.debug('[deck-edit] cardId already in list')
     }
   }
 
