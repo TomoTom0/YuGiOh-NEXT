@@ -126,23 +126,17 @@
               <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
 
               <!-- サムネイル画像 -->
-              <!-- TODO: サムネイル機能は廃止済み -->
-              <!-- <div class="deck-thumbnail-container">
+              <div class="deck-thumbnail-container">
+                <!-- 現在開いているデッキ: カード画像を5枚横並び -->
                 <img
-                  v-if="deckThumbnails.has(deck.dno) && deckThumbnails.get(deck.dno)"
+                  v-if="deck.dno === currentDeckDno && deckThumbnails.has(deck.dno)"
                   :src="deckThumbnails.get(deck.dno)"
                   :alt="`${deck.name}のサムネイル`"
-                  class="deck-thumbnail-image"
+                  class="thumbnail-image"
                 />
-                <div v-else-if="thumbnailLoading.get(deck.dno)" class="deck-thumbnail-loading">
-                  <div class="spinner"></div>
-                </div>
-                <div v-else class="deck-thumbnail-placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.3;">
-                    <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-                  </svg>
-                </div>
-              </div> -->
+                <!-- それ以外のデッキ: グラデーション画像 -->
+                <div v-else class="thumbnail-gradient"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -182,12 +176,12 @@ import RightArea from '../../components/RightArea.vue'
 const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
 const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
-import { getCardImageUrl } from '../../types/card'
+import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
-import { DeckThumbnailCache } from '../../utils/deck-thumbnail-cache'
-import { DeckThumbnailGenerator } from '../../utils/deck-thumbnail-generator'
+import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
 import { EXTENSION_IDS } from '../../utils/dom-selectors'
 import { buildFullUrl } from '../../utils/url-builder'
+import { getCardInfo } from '../../utils/card-utils'
 
 export default {
   name: 'DeckEditLayout',
@@ -216,9 +210,33 @@ export default {
     const viewMode = ref('list')
     const cardTab = ref('info')
 
-    // デッキサムネイル画像（dno -> thumbnail URL or null）
-    const deckThumbnails = ref(new Map<number, string | null>())
-    const thumbnailLoading = ref(new Map<number, boolean>())
+    // デッキサムネイル画像（dno -> WebP Data URL）
+    const deckThumbnails = ref(new Map<number, string>())
+    // 現在開いているデッキのdno
+    const currentDeckDno = ref<number | null>(null)
+
+    // localStorageからサムネイルキャッシュを復元
+    const loadThumbnailCache = () => {
+      try {
+        const cached = localStorage.getItem('ygo_deck_thumbnails')
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          deckThumbnails.value = new Map(Object.entries(parsed))
+        }
+      } catch (error) {
+        console.warn('Failed to load thumbnail cache:', error)
+      }
+    }
+
+    // サムネイルキャッシュを保存
+    const saveThumbnailCache = () => {
+      try {
+        const obj = Object.fromEntries(deckThumbnails.value)
+        localStorage.setItem('ygo_deck_thumbnails', JSON.stringify(obj))
+      } catch (error) {
+        console.warn('Failed to save thumbnail cache:', error)
+      }
+    }
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
@@ -236,59 +254,8 @@ export default {
       if (!deckStore.showLoadDialog) {
         // デッキ一覧を取得
         await deckStore.fetchDeckList()
-
-        // 各デッキのサムネイルを取得または生成（非同期、UI をブロックしない）
-        // TODO: サムネイル生成は一時的に無効化（パフォーマンス測定中）
-        // deckStore.deckList.forEach(deck => {
-        //   loadOrGenerateThumbnail(deck.dno)
-        // })
       }
       deckStore.showLoadDialog = !deckStore.showLoadDialog
-    }
-
-    /**
-     * デッキサムネイルをキャッシュから取得、またはキャッシュにない場合は生成
-     */
-    const loadOrGenerateThumbnail = async (dno: number) => {
-      if (deckThumbnails.value.has(dno)) {
-        return // 既に読み込まれている
-      }
-
-      thumbnailLoading.value.set(dno, true)
-
-      try {
-        // キャッシュから取得
-        let thumbnail = await DeckThumbnailCache.get(dno)
-
-        // キャッシュにない場合は生成
-        if (!thumbnail) {
-          const deckDetail = await deckStore.getDeckDetail(dno)
-          if (deckDetail) {
-            const generator = new DeckThumbnailGenerator()
-            thumbnail = await generator.generateWebPThumbnail(deckDetail)
-            // キャッシュに保存
-            if (thumbnail) {
-              await DeckThumbnailCache.set(dno, thumbnail)
-            }
-          }
-        }
-
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          deckThumbnails.value.set(dno, thumbnail || null)
-        }
-      } catch (error) {
-        console.warn(`Failed to load or generate thumbnail for deck ${dno}:`, error)
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          deckThumbnails.value.set(dno, null)
-        }
-      } finally {
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          thumbnailLoading.value.set(dno, false)
-        }
-      }
     }
 
     const loadDeck = async (dno) => {
@@ -311,31 +278,91 @@ export default {
         // デッキロード（バックグラウンドで実行）
         await deckStore.loadDeck(dno)
 
-        // デッキロード後、サムネイルを生成・キャッシュに保存（非同期）
-        // TODO: サムネイル生成は廃止済み
-        // generateAndCacheThumbnail(dno)
+        // 現在開いたデッキのdnoを保存
+        currentDeckDno.value = dno
+        localStorage.setItem('ygo_last_deck_dno', String(dno))
+
+        // デッキロード後、サムネイル画像を生成（キャッシュにない場合のみ）
+        if (!deckThumbnails.value.has(dno)) {
+          await generateThumbnailCards(dno)
+        }
       } catch (error) {
         console.error('Load error:', error)
       }
     }
 
     /**
-     * デッキサムネイルを生成してキャッシュに保存
+     * デッキサムネイル画像を生成（5枚の画像を横並びにしてWebP化）
      */
-    const generateAndCacheThumbnail = async (dno: number) => {
+    const generateThumbnailCards = async (dno: number) => {
       try {
-        // 現在のデッキ情報からサムネイルを生成
-        const generator = new DeckThumbnailGenerator()
-        const thumbnail = await generator.generateWebPThumbnail(deckStore.deckInfo)
+        // カードID配列を取得
+        const cardIds = generateDeckThumbnailCards(
+          deckStore.deckInfo,
+          deckStore.headPlacementCardIds
+        )
 
-        if (thumbnail) {
-          // キャッシュに保存
-          await DeckThumbnailCache.set(dno, thumbnail)
-          // コンポーネントがまだマウントされている場合のみ UI に反映
-          if (isComponentMounted) {
-            deckThumbnails.value.set(dno, thumbnail)
-          }
+        if (cardIds.length === 0) {
+          return
         }
+
+        // Canvas作成
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        const cardWidth = 60  // 1枚あたりの幅
+        const cardHeight = 87 // 1枚あたりの高さ
+        const gap = 2         // カード間の隙間
+        const padding = 4     // 上下左右のパディング
+
+        canvas.width = cardIds.length * cardWidth + (cardIds.length - 1) * gap + padding * 2
+        canvas.height = cardHeight + padding * 2
+
+        // 背景
+        ctx.fillStyle = '#2a2a2a'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+        // カード画像を読み込んで描画
+        const loadPromises = cardIds.map(async (cid, index) => {
+          const cardInfo = getCardInfo(cid)
+          if (!cardInfo) return
+
+          const gameType = detectCardGameType()
+          const relativeUrl = getCardImageUrlHelper(cardInfo, gameType)
+          if (!relativeUrl) return
+
+          const imgUrl = buildFullUrl(relativeUrl)
+
+          return new Promise<void>((resolve) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => {
+              const x = padding + index * (cardWidth + gap)
+              const y = padding
+              ctx.drawImage(img, x, y, cardWidth, cardHeight)
+              resolve()
+            }
+            img.onerror = () => resolve()
+            img.src = imgUrl
+          })
+        })
+
+        await Promise.all(loadPromises)
+
+        // WebP形式でData URLに変換
+        canvas.toBlob((blob) => {
+          if (!blob) return
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const dataUrl = e.target?.result
+            if (typeof dataUrl === 'string') {
+              deckThumbnails.value.set(dno, dataUrl)
+              saveThumbnailCache()
+            }
+          }
+          reader.readAsDataURL(blob)
+        }, 'image/webp', 0.75)
       } catch (error) {
         console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
       }
@@ -457,6 +484,16 @@ export default {
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       isComponentMounted = true
+
+      // サムネイルキャッシュを復元
+      loadThumbnailCache()
+
+      // 前回のdnoを復元
+      const lastDno = localStorage.getItem('ygo_last_deck_dno')
+      if (lastDno) {
+        currentDeckDno.value = parseInt(lastDno, 10)
+      }
+
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
 
@@ -818,9 +855,8 @@ export default {
       addToMainOrExtra,
       // サムネイル関連
       deckThumbnails,
-      thumbnailLoading,
-      loadOrGenerateThumbnail,
-      generateAndCacheThumbnail
+      currentDeckDno,
+      generateThumbnailCards
     }
   }
 }
@@ -1391,7 +1427,7 @@ export default {
 
 .deck-card {
   width: 160px;
-  min-height: 60px;
+  height: 100px;
   border: 1px solid var(--border-primary, #e0e0e0);
   border-radius: 6px;
   background: var(--bg-secondary, #f5f5f5);
@@ -1405,62 +1441,50 @@ export default {
     background: var(--bg-primary, white);
   }
 
-  .deck-name {
-    padding: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary, #333);
-    line-height: 1.4;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-align: center;
-  }
-
   .deck-thumbnail-container {
     width: 100%;
-    aspect-ratio: 3 / 2;
+    height: 100%;
     background: var(--bg-tertiary, #e0e0e0);
-    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .thumbnail-gradient {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    opacity: 0.6;
+  }
+
+  .deck-name {
+    padding: 8px;
+    font-size: var(--dialog-font-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: break-word;
     position: relative;
-  }
-
-  .deck-thumbnail-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .deck-thumbnail-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border-secondary, #ddd);
-      border-top-color: var(--text-primary, #333);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-  }
-
-  .deck-thumbnail-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    color: var(--text-tertiary, #999);
+    z-index: 1;
+    background: color-mix(in srgb, var(--dialog-bg) 92%, transparent);
+    backdrop-filter: blur(4px);
+    box-shadow: var(--shadow-sm);
+    max-height: 100%;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    border-bottom: 1px solid var(--border-secondary);
   }
 }
 
