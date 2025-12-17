@@ -123,7 +123,12 @@
               @click="loadDeck(deck.dno)"
             >
               <!-- デッキ名 -->
-              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
+              <div
+                class="deck-name"
+                :class="getDeckNameClass(deck.name || '(名称未設定)')"
+              >
+                {{ deck.name || '(名称未設定)' }}
+              </div>
 
               <!-- サムネイル画像 -->
               <div class="deck-thumbnail-container">
@@ -221,7 +226,11 @@ export default {
         const cached = localStorage.getItem('ygo_deck_thumbnails')
         if (cached) {
           const parsed = JSON.parse(cached)
-          deckThumbnails.value = new Map(Object.entries(parsed))
+          // キーを数値に変換してMapを作成
+          deckThumbnails.value = new Map(
+            Object.entries(parsed).map(([key, value]) => [parseInt(key, 10), value as string])
+          )
+          console.debug('[DeckEditLayout] Loaded thumbnail cache:', deckThumbnails.value.size, 'thumbnails')
         }
       } catch (error) {
         console.warn('Failed to load thumbnail cache:', error)
@@ -492,6 +501,7 @@ export default {
       const lastDno = localStorage.getItem('ygo_last_deck_dno')
       if (lastDno) {
         currentDeckDno.value = parseInt(lastDno, 10)
+        console.debug('[DeckEditLayout] Restored currentDeckDno:', currentDeckDno.value)
       }
 
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
@@ -813,6 +823,17 @@ export default {
       deckStore.addCopyToMainOrExtra(card)
     }
 
+    /**
+     * デッキ名の文字数に応じてフォントサイズクラスを返す
+     */
+    const getDeckNameClass = (name: string) => {
+      const length = name.length
+      if (length > 20) return 'deck-name-xs'
+      if (length > 15) return 'deck-name-sm'
+      if (length > 10) return 'deck-name-md'
+      return 'deck-name-lg'
+    }
+
     return {
       isReady,
       deckStore,
@@ -856,7 +877,8 @@ export default {
       // サムネイル関連
       deckThumbnails,
       currentDeckDno,
-      generateThumbnailCards
+      generateThumbnailCards,
+      getDeckNameClass
     }
   }
 }
@@ -1444,9 +1466,8 @@ export default {
   .deck-thumbnail-container {
     width: 100%;
     height: 100%;
-    background: var(--bg-tertiary, #e0e0e0);
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
     overflow: hidden;
     position: absolute;
@@ -1455,36 +1476,52 @@ export default {
   }
 
   .thumbnail-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
   }
 
   .thumbnail-gradient {
-    width: 100%;
-    height: 100%;
+    width: 160px;
+    height: 48px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     opacity: 0.6;
   }
 
   .deck-name {
     padding: 8px;
-    font-size: var(--dialog-font-size);
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.4;
     word-break: break-word;
-    position: relative;
-    z-index: 1;
-    background: color-mix(in srgb, var(--dialog-bg) 92%, transparent);
-    backdrop-filter: blur(4px);
-    box-shadow: var(--shadow-sm);
-    max-height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    background: color-mix(in srgb, var(--dialog-bg) 85%, transparent);
+    backdrop-filter: blur(6px);
     overflow: hidden;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
-    border-bottom: 1px solid var(--border-secondary);
+
+    &.deck-name-lg {
+      font-size: var(--dialog-font-size);
+    }
+
+    &.deck-name-md {
+      font-size: calc(var(--dialog-font-size) * 0.9);
+    }
+
+    &.deck-name-sm {
+      font-size: calc(var(--dialog-font-size) * 0.8);
+    }
+
+    &.deck-name-xs {
+      font-size: calc(var(--dialog-font-size) * 0.7);
+    }
   }
 }
 
