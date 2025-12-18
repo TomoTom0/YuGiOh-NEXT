@@ -102,6 +102,7 @@
     />
 
     <LoadDialog
+      ref="loadDialogRef"
       :isVisible="deckStore.showLoadDialog"
       @close="deckStore.showLoadDialog = false"
     />
@@ -190,6 +191,9 @@ export default {
     // 現在開いているデッキのdno
     const currentDeckDno = ref<number | null>(null)
 
+    // LoadDialog へのref
+    const loadDialogRef = ref<any>(null)
+
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
 
@@ -204,9 +208,11 @@ export default {
 
     const toggleLoadDialog = () => {
       if (!deckStore.showLoadDialog) {
-        currentPage.value = 0
+        // ダイアログを開く際にキャッシュをリロード
+        loadDialogRef.value?.openDialog()
+      } else {
+        deckStore.showLoadDialog = false
       }
-      deckStore.showLoadDialog = !deckStore.showLoadDialog
     }
 
     // ページング用のcomputed（シンプルなsliceのみ）
@@ -961,7 +967,9 @@ export default {
       moveFromSide,
       moveFromTrash,
       addCopy,
-      addToMainOrExtra
+      addToMainOrExtra,
+      toggleLoadDialog,
+      loadDialogRef
     }
   }
 }

@@ -75,12 +75,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, defineExpose } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
 import { loadThumbnailCache, loadDeckInfoCache } from '@/utils/deck-cache'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
-const props = defineProps<{
+defineProps<{
   isVisible: boolean
 }>()
 
@@ -91,22 +91,20 @@ const emit = defineEmits<{
 const deckStore = useDeckEditStore()
 
 // デッキサムネイル画像（dno -> WebP Data URL）
-const deckThumbnails = ref(loadThumbnailCache())
+const deckThumbnails = ref(new Map<number, string>())
 // デッキ情報キャッシュ（dno -> CachedDeckInfo）
-const cachedDeckInfos = ref(loadDeckInfoCache())
+const cachedDeckInfos = ref(new Map<number, any>())
 // ページング用の現在のページ
 const currentPage = ref(0)
 const ITEMS_PER_PAGE = 50
 
-// ダイアログ表示時にキャッシュを再読み込み（DeckEditLayoutで生成されたサムネイルを反映）
-watch(() => props.isVisible, (newVal) => {
-  if (newVal) {
-    // ダイアログが表示された時、最新のキャッシュを読み込み
-    deckThumbnails.value = loadThumbnailCache()
-    cachedDeckInfos.value = loadDeckInfoCache()
-    console.debug('[LoadDialog] Refreshed cache on dialog open')
-  }
-})
+// ダイアログを開く際にキャッシュを読み込み
+const openDialog = () => {
+  deckThumbnails.value = loadThumbnailCache()
+  cachedDeckInfos.value = loadDeckInfoCache()
+  deckStore.showLoadDialog = true
+  console.debug('[LoadDialog] Opened dialog, refreshed cache')
+}
 
 
 // ダイアログを閉じる
@@ -191,7 +189,10 @@ const getDeckNameClass = (name: string) => {
   return 'deck-name-lg'
 }
 
-// マウント時にキャッシュは既に読み込み済み（ref初期化時）
+// 外部からダイアログを開くための公開インターフェース
+defineExpose({
+  openDialog
+})
 </script>
 
 <style scoped lang="scss">
