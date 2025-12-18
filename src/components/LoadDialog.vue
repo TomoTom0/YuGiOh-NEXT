@@ -36,10 +36,12 @@
 
               <!-- サムネイル画像 -->
               <div class="deck-thumbnail-container">
+                <!-- dno chip -->
+                <span class="dno-chip" :class="{ 'current-deck': deck.dno === deckStore.deckInfo.dno }">{{ deck.dno }}</span>
                 <!-- サムネイルがある場合: カード画像を5枚横並び -->
                 <img
-                  v-if="deckThumbnails.has(deck.dno)"
-                  :src="deckThumbnails.get(deck.dno)"
+                  v-if="deckStore.deckThumbnails.has(deck.dno)"
+                  :src="deckStore.deckThumbnails.get(deck.dno)"
                   :alt="`${deck.name}のサムネイル`"
                   class="thumbnail-image"
                 />
@@ -75,9 +77,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, defineExpose } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
-import { loadThumbnailCache, loadDeckInfoCache } from '@/utils/deck-cache'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
 defineProps<{
@@ -90,21 +91,9 @@ const emit = defineEmits<{
 
 const deckStore = useDeckEditStore()
 
-// デッキサムネイル画像（dno -> WebP Data URL）
-const deckThumbnails = ref(new Map<number, string>())
-// デッキ情報キャッシュ（dno -> CachedDeckInfo）
-const cachedDeckInfos = ref(new Map<number, any>())
 // ページング用の現在のページ
 const currentPage = ref(0)
-const ITEMS_PER_PAGE = 50
-
-// ダイアログを開く際にキャッシュを読み込み
-const openDialog = () => {
-  deckThumbnails.value = loadThumbnailCache()
-  cachedDeckInfos.value = loadDeckInfoCache()
-  deckStore.showLoadDialog = true
-  console.debug('[LoadDialog] Opened dialog, refreshed cache')
-}
+const ITEMS_PER_PAGE = 24
 
 
 // ダイアログを閉じる
@@ -123,7 +112,7 @@ const paginatedDeckList = computed(() => {
 
 // デッキのカード枚数を取得する関数
 const getDeckCardCount = (dno: number) => {
-  return cachedDeckInfos.value.get(dno)?.cardCount
+  return deckStore.cachedDeckInfos.get(dno)?.cardCount
 }
 
 const totalPages = computed(() => {
@@ -134,6 +123,18 @@ const totalPages = computed(() => {
 const goToNextPage = () => {
   if (currentPage.value < totalPages.value - 1) {
     currentPage.value++
+
+    // ページ移動時：ダイアログボディをスクロールアップ
+    nextTick(() => {
+      const dialogBody = document.querySelector('.dialog-body')
+      if (dialogBody) {
+        dialogBody.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      }
+    })
+
     // ページ移動時：該当ページのサムネイルを背景で生成
     const startIndex = currentPage.value * ITEMS_PER_PAGE
     generateThumbnailsInBackground(
@@ -142,8 +143,8 @@ const goToNextPage = () => {
       deckStore.deckList,
       (dno: number) => deckStore.getDeckDetail(dno),
       deckStore.headPlacementCardIds,
-      deckThumbnails.value,
-      cachedDeckInfos.value
+      deckStore.deckThumbnails,
+      deckStore.cachedDeckInfos
     )
   }
 }
@@ -151,6 +152,17 @@ const goToNextPage = () => {
 const goToPrevPage = () => {
   if (currentPage.value > 0) {
     currentPage.value--
+
+    // ページ移動時：ダイアログボディをスクロールアップ
+    nextTick(() => {
+      const dialogBody = document.querySelector('.dialog-body')
+      if (dialogBody) {
+        dialogBody.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        })
+      }
+    })
   }
 }
 
@@ -188,11 +200,6 @@ const getDeckNameClass = (name: string) => {
   if (length > 10) return 'deck-name-md'
   return 'deck-name-lg'
 }
-
-// 外部からダイアログを開くための公開インターフェース
-defineExpose({
-  openDialog
-})
 </script>
 
 <style scoped lang="scss">
@@ -326,6 +333,26 @@ defineExpose({
       position: absolute;
       top: 0;
       left: 0;
+
+      .dno-chip {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        background: var(--dno-chip-bg, var(--bg-tertiary));
+        color: var(--text-secondary);
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 600;
+        z-index: 2;
+        opacity: 0.85;
+
+        &.current-deck {
+          background: linear-gradient(135deg, var(--theme-color-start) 0%, var(--color-info) 50%, var(--theme-color-end) 100%);
+          color: var(--button-text);
+          opacity: 1;
+        }
+      }
     }
 
     .thumbnail-image {

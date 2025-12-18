@@ -25,6 +25,55 @@ export interface CachedDeckInfo {
 const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7日間
 
 /**
+ * localStorage から deckList の順序（dno配列）を読み込む
+ */
+export function loadDeckListOrder(): number[] {
+  try {
+    const cached = localStorage.getItem('ygo_deck_list_order');
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    console.warn('Failed to load deck list order:', error);
+  }
+  return [];
+}
+
+/**
+ * localStorage に deckList の順序（dno配列）を保存
+ */
+export function saveDeckListOrder(deckList: any[]): void {
+  try {
+    const order = deckList.map(deck => deck.dno);
+    localStorage.setItem('ygo_deck_list_order', JSON.stringify(order));
+  } catch (error) {
+    console.warn('Failed to save deck list order:', error);
+  }
+}
+
+/**
+ * deckList の順序が変わったかチェック
+ */
+export function isDeckListOrderChanged(currentDeckList: any[]): boolean {
+  const previousOrder = loadDeckListOrder();
+  const currentOrder = currentDeckList.map(deck => deck.dno);
+
+  // 長さが違えば変更あり
+  if (previousOrder.length !== currentOrder.length) {
+    return true;
+  }
+
+  // 順序を比較
+  for (let i = 0; i < previousOrder.length; i++) {
+    if (previousOrder[i] !== currentOrder[i]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * localStorage からサムネイルキャッシュを読み込む
  */
 export function loadThumbnailCache(): Map<number, string> {
@@ -32,11 +81,9 @@ export function loadThumbnailCache(): Map<number, string> {
     const cached = localStorage.getItem('ygo_deck_thumbnails');
     if (cached) {
       const parsed = JSON.parse(cached);
-      const map = new Map(
+      return new Map(
         Object.entries(parsed).map(([key, value]) => [parseInt(key, 10), value as string])
       );
-      console.debug('[deck-cache] Loaded thumbnail cache:', map.size, 'thumbnails');
-      return map;
     }
   } catch (error) {
     console.warn('Failed to load thumbnail cache:', error);
@@ -51,7 +98,6 @@ export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
   try {
     const obj = Object.fromEntries(deckThumbnails);
     localStorage.setItem('ygo_deck_thumbnails', JSON.stringify(obj));
-    console.debug('[deck-cache] Saved thumbnail cache:', deckThumbnails.size, 'thumbnails');
   } catch (error) {
     console.warn('Failed to save thumbnail cache:', error);
   }
@@ -78,7 +124,6 @@ export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
           return [parseInt(key, 10), info];
         })
       );
-      console.debug('[deck-cache] Loaded deck info cache:', map.size, 'decks');
       return map;
     }
   } catch (error) {
@@ -94,7 +139,6 @@ export function saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>):
   try {
     const obj = Object.fromEntries(cachedDeckInfos);
     localStorage.setItem('ygo_deck_info_cache', JSON.stringify(obj));
-    console.debug('[deck-cache] Saved deck info cache:', cachedDeckInfos.size, 'decks');
   } catch (error) {
     console.warn('Failed to save deck info cache:', error);
   }
@@ -195,10 +239,34 @@ export async function generateAndCacheThumbnail(
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
       saveThumbnailCache(deckThumbnails);
-      console.debug(`[deck-cache] Generated thumbnail for deck ${dno}`);
     }
   } catch (error) {
     console.warn(`Failed to generate and cache thumbnail for deck ${dno}:`, error);
+  }
+}
+
+/**
+ * デッキに変更があるかチェック（画像生成は行わない）
+ */
+async function checkDeckNeedsUpdate(
+  dno: number,
+  getDeckDetail: (dno: number) => Promise<any>,
+  cachedDeckInfos: Map<number, CachedDeckInfo>
+): Promise<{ needsUpdate: boolean; deckInfo: any | null }> {
+  try {
+    // デッキ情報を取得（変更検出に必要）
+    const deckInfo = await getDeckDetail(dno);
+    if (!deckInfo) return { needsUpdate: false, deckInfo: null };
+
+    // 変更があるか、またはキャッシュが期限切れかチェック
+    const needsUpdate =
+      isDeckInfoChanged(dno, deckInfo, cachedDeckInfos) ||
+      (cachedDeckInfos.has(dno) && isCacheExpired(cachedDeckInfos.get(dno)!));
+
+    return { needsUpdate, deckInfo };
+  } catch (error) {
+    console.warn(`[deck-cache] Failed to check deck ${dno}:`, error);
+    return { needsUpdate: false, deckInfo: null };
   }
 }
 
@@ -212,10 +280,34 @@ export async function updateDeckInfoAndThumbnail(
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): Promise<boolean> {
-  try {
-    const deckInfo = await getDeckDetail(dno);
-    if (!deckInfo) return false;
+  const { needsUpdate, deckInfo } = await checkDeckNeedsUpdate(dno, getDeckDetail, cachedDeckInfos);
 
+  if (needsUpdate && deckInfo) {
+    await generateAndCacheThumbnail(
+      dno,
+      deckInfo,
+      headPlacementCardIds,
+      deckThumbnails,
+      cachedDeckInfos
+    );
+  }
+
+  return needsUpdate;
+}
+
+/**
+ * デッキ情報を直接渡してサムネイルを更新（APIコール不要）
+ *
+ * デッキ保存・load時など、既にデッキ情報が手元にある場合に使用
+ */
+export async function updateDeckInfoAndThumbnailWithData(
+  dno: number,
+  deckInfo: any,
+  headPlacementCardIds: string[],
+  deckThumbnails: Map<number, string>,
+  cachedDeckInfos: Map<number, CachedDeckInfo>
+): Promise<void> {
+  try {
     // 変更があるか、またはキャッシュが期限切れかチェック
     const needsUpdate =
       isDeckInfoChanged(dno, deckInfo, cachedDeckInfos) ||
@@ -230,11 +322,8 @@ export async function updateDeckInfoAndThumbnail(
         cachedDeckInfos
       );
     }
-
-    return needsUpdate;
   } catch (error) {
-    console.warn(`[deck-cache] Failed to update deck ${dno}:`, error);
-    return false;
+    console.warn(`[deck-cache] Failed to update deck ${dno} with data:`, error);
   }
 }
 
@@ -260,72 +349,124 @@ export async function generateThumbnailsInBackground(
 ): Promise<void> {
   if (!deckList || deckList.length === 0) return;
 
+  // 前回の deckList 順序を読み込む
+  const previousOrder = loadDeckListOrder();
+
   const endIndex = Math.min(startIndex + batchSize, deckList.length);
   const targetDecks = deckList.slice(startIndex, endIndex);
 
-  console.debug(
-    `[deck-cache] Starting background thumbnail generation: index ${startIndex}-${endIndex - 1} (${targetDecks.length} decks)`
-  );
+  // フェーズ1: 変更判定のみ（画像生成は行わない）
+  const decksToUpdate: Array<{ dno: number; deckInfo: any }> = [];
+  let consecutiveSkipped = 0;
 
-  // RequestIdleCallback で非同期バッチ処理
+  for (let i = 0; i < targetDecks.length; i++) {
+    const deck = targetDecks[i];
+    const currentDno = deck.dno;
+
+    // 前回のこのdnoの位置
+    const previousIndex = previousOrder.indexOf(currentDno);
+    const existedBefore = previousIndex !== -1;
+
+    // 順序関係が保たれているかチェック
+    let orderPreserved = false;
+    if (existedBefore) {
+      // 前回このdnoより前にあった全てのdno
+      const previousBeforeDnos = previousOrder.slice(0, previousIndex);
+
+      // そのうち今回も存在するdnoに絞る（削除されたdnoは無視）
+      const currentDeckDnos = deckList.map(d => d.dno);
+      const relevantDnos = previousBeforeDnos.filter(dno =>
+        currentDeckDnos.includes(dno)
+      );
+
+      // 今回のこのdnoより前にある全てのdno
+      const currentIndex = startIndex + i;
+      const currentBeforeDnos = deckList.slice(0, currentIndex).map(d => d.dno);
+
+      // 1. relevantDnosが全て今回もこのdnoより前にあるか
+      orderPreserved = relevantDnos.every(dno => currentBeforeDnos.includes(dno));
+
+      // 2. relevantDnos内での相対順序も保たれているか
+      if (orderPreserved && relevantDnos.length > 1) {
+        for (let j = 0; j < relevantDnos.length - 1; j++) {
+          const idx1 = currentBeforeDnos.indexOf(relevantDnos[j]);
+          const idx2 = currentBeforeDnos.indexOf(relevantDnos[j + 1]);
+          if (idx1 > idx2) {
+            orderPreserved = false;
+            break;
+          }
+        }
+      }
+    }
+
+    // 内容が変わっていないか
+    const { needsUpdate, deckInfo } = await checkDeckNeedsUpdate(
+      currentDno,
+      getDeckDetail,
+      cachedDeckInfos
+    );
+
+    // 「順序関係が保たれている + 内容変化なし」→ スキップカウント増加
+    if (orderPreserved && !needsUpdate) {
+      consecutiveSkipped++;
+      // 5個連続で順序も内容も保持 → 残りをスキップ
+      if (consecutiveSkipped >= 5) {
+        break;
+      }
+    } else {
+      consecutiveSkipped = 0; // リセット
+      if (needsUpdate && deckInfo) {
+        decksToUpdate.push({ dno: currentDno, deckInfo });
+      }
+    }
+  }
+
+  // フェーズ2: 画像生成を非同期で実行（RequestIdleCallbackで1つずつ）
+  if (decksToUpdate.length === 0) {
+    return Promise.resolve();
+  }
+
   return new Promise((resolve) => {
     let processed = 0;
 
-    const processNextBatch = () => {
+    const processNext = () => {
       if ('requestIdleCallback' in window) {
         requestIdleCallback(async () => {
-          try {
-            // 1デッキずつ処理
-            if (processed < targetDecks.length) {
-              const deck = targetDecks[processed];
-              await updateDeckInfoAndThumbnail(
-                deck.dno,
-                getDeckDetail,
-                headPlacementCardIds,
-                deckThumbnails,
-                cachedDeckInfos
-              );
-              processed++;
-              processNextBatch();
-            } else {
-              console.debug(
-                `[deck-cache] Completed background generation: ${processed} decks processed`
-              );
-              resolve();
-            }
-          } catch (error) {
-            console.warn('[deck-cache] Error in background generation:', error);
+          if (processed < decksToUpdate.length) {
+            const { dno, deckInfo } = decksToUpdate[processed];
+            await generateAndCacheThumbnail(
+              dno,
+              deckInfo,
+              headPlacementCardIds,
+              deckThumbnails,
+              cachedDeckInfos
+            );
             processed++;
-            processNextBatch();
+            processNext();
+          } else {
+            resolve();
           }
         });
       } else {
-        // RequestIdleCallback非対応環境ではsetTimeout使用
         setTimeout(async () => {
-          try {
-            if (processed < targetDecks.length) {
-              const deck = targetDecks[processed];
-              await updateDeckInfoAndThumbnail(
-                deck.dno,
-                getDeckDetail,
-                headPlacementCardIds,
-                deckThumbnails,
-                cachedDeckInfos
-              );
-              processed++;
-              processNextBatch();
-            } else {
-              resolve();
-            }
-          } catch (error) {
-            console.warn('[deck-cache] Error in background generation:', error);
+          if (processed < decksToUpdate.length) {
+            const { dno, deckInfo } = decksToUpdate[processed];
+            await generateAndCacheThumbnail(
+              dno,
+              deckInfo,
+              headPlacementCardIds,
+              deckThumbnails,
+              cachedDeckInfos
+            );
             processed++;
-            processNextBatch();
+            processNext();
+          } else {
+            resolve();
           }
         }, 200);
       }
     };
 
-    processNextBatch();
+    processNext();
   });
 }

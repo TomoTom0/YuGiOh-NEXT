@@ -30,6 +30,7 @@ import {
 } from '../composables/deck/useDeckSnapshot';
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
+import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -535,6 +536,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const isFilterDialogVisible = ref(false);
   const isLoadingDeck = ref(false);
 
+  // キャッシュ管理（Load Dialog用）
+  const deckThumbnails = ref(loadThumbnailCache());
+  const cachedDeckInfos = ref(loadDeckInfoCache());
+
   // Load時点でのデッキ情報を保存（変更検知用）
   const savedDeckSnapshot = ref<string | null>(null);
 
@@ -938,6 +943,19 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       console.error('[saveDeck] Failed to refresh deck list:', error);
     });
 
+    // デッキ保存後、キャッシュとサムネイルを更新（APIコール不要）
+    if (result.success) {
+      updateDeckInfoAndThumbnailWithData(
+        dno,
+        deckInfo.value,
+        headPlacementCardIds.value,
+        deckThumbnails.value,
+        cachedDeckInfos.value
+      ).catch(error => {
+        console.warn('[saveDeck] Failed to update cache:', error);
+      });
+    }
+
     return result;
   }
 
@@ -982,6 +1000,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // デッキロード後、デッキリスト一覧を再取得（非同期で実行）
       fetchDeckList().catch(error => {
         console.error('[loadDeck] Failed to refresh deck list:', error);
+      });
+
+      // デッキロード後、キャッシュとサムネイルを更新（APIコール不要）
+      updateDeckInfoAndThumbnailWithData(
+        dno,
+        deckInfo.value,
+        headPlacementCardIds.value,
+        deckThumbnails.value,
+        cachedDeckInfos.value
+      ).catch(error => {
+        console.warn('[loadDeck] Failed to update cache:', error);
       });
 
       return result;
@@ -1202,6 +1231,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // deckList に代入（全てのフィールドを保持）
       deckList.value = list;
+
+      // deckList の順序を localStorage に保存
+      saveDeckListOrder(list);
+
       return list;
     } catch (error) {
       console.error('[fetchDeckList] ERROR:', error);
@@ -1491,6 +1524,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  // Load Dialogを開く際にキャッシュをリロード
+  function openLoadDialog() {
+    deckThumbnails.value = loadThumbnailCache();
+    cachedDeckInfos.value = loadDeckInfoCache();
+    showLoadDialog.value = true;
+  }
+
   async function deleteCurrentDeck() {
     try {
       if (!deckInfo.value.dno) {
@@ -1553,6 +1593,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showImportDialog,
     showOptionsDialog,
     showLoadDialog,
+    deckThumbnails,
+    cachedDeckInfos,
+    openLoadDialog,
     showDeleteConfirm,
     showUnsavedChangesDialog,
     isFilterDialogVisible,

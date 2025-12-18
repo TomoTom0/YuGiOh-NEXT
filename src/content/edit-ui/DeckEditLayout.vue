@@ -102,7 +102,6 @@
     />
 
     <LoadDialog
-      ref="loadDialogRef"
       :isVisible="deckStore.showLoadDialog"
       @close="deckStore.showLoadDialog = false"
     />
@@ -148,17 +147,7 @@ import { EXTENSION_IDS } from '../../utils/dom-selectors'
 import { buildFullUrl } from '../../utils/url-builder'
 import { getCardInfo } from '../../utils/card-utils'
 import {
-  loadThumbnailCache,
-  saveThumbnailCache,
-  loadDeckInfoCache,
-  saveDeckInfoCache,
-  calculateDeckHash,
-  isDeckInfoChanged,
-  isCacheExpired,
-  generateAndCacheThumbnail,
-  updateDeckInfoAndThumbnail,
-  generateThumbnailsInBackground,
-  type CachedDeckInfo
+  generateThumbnailsInBackground
 } from '../../utils/deck-cache'
 
 export default {
@@ -191,9 +180,6 @@ export default {
     // 現在開いているデッキのdno
     const currentDeckDno = ref<number | null>(null)
 
-    // LoadDialog へのref
-    const loadDialogRef = ref<any>(null)
-
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
 
@@ -208,8 +194,8 @@ export default {
 
     const toggleLoadDialog = () => {
       if (!deckStore.showLoadDialog) {
-        // ダイアログを開く際にキャッシュをリロード
-        loadDialogRef.value?.openDialog()
+        // ダイアログを開く際にキャッシュをリロード（store側で実行）
+        deckStore.openLoadDialog()
       } else {
         deckStore.showLoadDialog = false
       }
@@ -631,20 +617,18 @@ export default {
         changeFavicon()
       }
 
-      // ページロード時にキャッシュを読み込み、最初の50個のデッキのサムネイルを生成
-      const deckThumbnails = loadThumbnailCache()
-      const cachedDeckInfos = loadDeckInfoCache()
-
+      // ページロード時に最初の24個のデッキのサムネイルを生成（キャッシュはstore初期化時に読み込み済み）
+      // 5個連続でキャッシュヒットしたら早期終了する
       if (deckStore.deckList && deckStore.deckList.length > 0) {
         console.debug('[DeckEditLayout] Starting background thumbnail generation on page load')
         generateThumbnailsInBackground(
           0, // startIndex: 最初から
-          50, // batchSize: 最初の50個
+          24, // batchSize: 最初の24個（早期終了ロジックあり）
           deckStore.deckList,
           (dno: number) => deckStore.getDeckDetail(dno),
           deckStore.headPlacementCardIds,
-          deckThumbnails,
-          cachedDeckInfos
+          deckStore.deckThumbnails,
+          deckStore.cachedDeckInfos
         )
       }
     })
@@ -968,8 +952,7 @@ export default {
       moveFromTrash,
       addCopy,
       addToMainOrExtra,
-      toggleLoadDialog,
-      loadDialogRef
+      toggleLoadDialog
     }
   }
 }
