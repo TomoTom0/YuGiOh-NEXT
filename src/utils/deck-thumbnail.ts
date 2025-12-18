@@ -215,47 +215,27 @@ async function promiseAllConcurrent<T>(
   concurrency: number = 2
 ): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
-  const executing: Set<Promise<void>> = new Set();
   let index = 0;
 
-  async function executeNext(): Promise<void> {
-    if (index >= tasks.length) {
-      return;
-    }
-
-    const currentIndex = index++;
-    const task = tasks[currentIndex];
-
-    if (!task) {
-      return;
-    }
-
+  async function executeTask(taskIndex: number): Promise<void> {
+    const task = tasks[taskIndex];
     try {
-      results[currentIndex] = await task();
+      results[taskIndex] = await task();
     } catch (error) {
-      // エラーも記録
-      (results as any)[currentIndex] = undefined;
-    }
-
-    executing.delete(executeNext as any);
-
-    // 次のタスクを開始
-    if (index < tasks.length) {
-      const nextExec = executeNext();
-      executing.add(nextExec);
+      (results as any)[taskIndex] = undefined;
     }
   }
 
-  // 初期の並列タスクを開始
-  for (let i = 0; i < Math.min(concurrency, tasks.length); i++) {
-    const exec = executeNext();
-    executing.add(exec);
+  async function executeNextTasks(): Promise<void> {
+    while (index < tasks.length) {
+      const currentIndex = index++;
+      await executeTask(currentIndex);
+    }
   }
 
-  // 全てのタスクが完了するまで待機
-  while (executing.size > 0) {
-    await Promise.race(executing);
-  }
+  // 並列数に制限して全てのタスクを実行
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) });
+  await Promise.all(workers.map(() => executeNextTasks()));
 
   return results;
 }
