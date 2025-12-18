@@ -145,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 import { importDeckFromFile } from '@/utils/deck-import';
 import { downloadDeckAsCSV, downloadDeckAsTXT } from '@/utils/deck-export';
 // @ts-ignore - Used in defineEmits type
@@ -193,13 +193,13 @@ const includeSide = ref(true);
 const filenameBase = ref('');
 
 // dnoが変更されたらファイル名を更新
-computed(() => {
-  if (props.dno) {
-    filenameBase.value = `deck-${props.dno}`;
+watch(() => props.dno, (newDno) => {
+  if (newDno) {
+    filenameBase.value = `deck-${newDno}`;
   } else {
     filenameBase.value = 'deck';
   }
-});
+}, { immediate: true });
 
 // ダイアログが開閉されたときの処理
 watch(() => props.isVisible, (visible) => {

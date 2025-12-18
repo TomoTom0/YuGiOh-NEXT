@@ -416,8 +416,6 @@ const getDeckNameClass = (name: string) => {
     padding: 12px 16px;
     border-top: 1px solid var(--border-primary);
     background-color: var(--bg-primary);
-    position: sticky;
-    bottom: 0;
     width: 100%;
     box-sizing: border-box;
     height: calc(var(--dialog-font-size) * 4);
