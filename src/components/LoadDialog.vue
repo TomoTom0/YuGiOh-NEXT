@@ -50,26 +50,28 @@
               </div>
             </div>
           </div>
-          <!-- ページングコントロール -->
-          <div v-if="totalPages > 1" class="pagination-controls">
-            <button
-              class="pagination-btn"
-              :disabled="currentPage === 0"
-              @click="goToPrevPage"
-            >
-              前のページ
-            </button>
-            <span class="pagination-info">
-              {{ currentPage + 1 }} / {{ totalPages }}
-            </span>
-            <button
-              class="pagination-btn"
-              :disabled="currentPage >= totalPages - 1"
-              @click="goToNextPage"
-            >
-              次のページ
-            </button>
-          </div>
+        </div>
+        <!-- ページングコントロール（フッター固定） -->
+        <div v-if="totalPages > 1" class="dialog-footer">
+          <button
+            class="pagination-btn"
+            :disabled="currentPage === 0"
+            @click="goToPrevPage"
+            :title="'前のページへ'"
+          >
+            &lt;
+          </button>
+          <span class="pagination-info">
+            {{ currentPage + 1 }} / {{ totalPages }}
+          </span>
+          <button
+            class="pagination-btn"
+            :disabled="currentPage >= totalPages - 1"
+            @click="goToNextPage"
+            :title="'次のページへ'"
+          >
+            &gt;
+          </button>
         </div>
       </div>
     </div>
@@ -406,13 +408,20 @@ const getDeckNameClass = (name: string) => {
     }
   }
 
-  .pagination-controls {
+  .dialog-footer {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 16px;
-    margin-top: 16px;
-    padding: 12px 0;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-primary);
+    background-color: var(--bg-primary);
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    height: calc(var(--dialog-font-size) * 4);
+    flex-shrink: 0;
   }
 
   .pagination-btn {

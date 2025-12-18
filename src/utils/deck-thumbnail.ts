@@ -116,6 +116,46 @@ export function generateDeckThumbnailCards(
 }
 
 /**
+ * Canvas を Blob に変換する（Promise化）
+ *
+ * @param canvas - Canvas 要素
+ * @param type - MIME タイプ（例: 'image/webp'）
+ * @param quality - 画質（0.0-1.0）
+ * @returns Blob または null
+ */
+function toBlobPromise(
+  canvas: HTMLCanvasElement,
+  type?: string,
+  quality?: number
+): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, type, quality);
+  });
+}
+
+/**
+ * Blob を Data URL に変換する（Promise化）
+ *
+ * @param blob - Blob オブジェクト
+ * @returns Data URL 文字列、または null
+ */
+function blobToDataURL(blob: Blob): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result;
+      if (typeof dataUrl === 'string') {
+        resolve(dataUrl);
+      } else {
+        resolve(null);
+      }
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * デッキのサムネイル画像（WebP Data URL）を生成する
  *
  * @param deckInfo - デッキ情報
@@ -179,24 +219,14 @@ export async function generateDeckThumbnailImage(
 
     await Promise.all(loadPromises);
 
-    return await new Promise<string | null>((resolve) => {
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          resolve(null);
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target?.result;
-          if (typeof dataUrl === 'string') {
-            resolve(dataUrl);
-          } else {
-            resolve(null);
-          }
-        };
-        reader.readAsDataURL(blob);
-      }, 'image/webp', 0.6);
-    });
+    // Canvas を Blob に変換
+    const blob = await toBlobPromise(canvas, 'image/webp', 0.6);
+    if (!blob) {
+      return null;
+    }
+
+    // Blob を Data URL に変換
+    return await blobToDataURL(blob);
   } catch (error) {
     console.warn('Failed to generate thumbnail image:', error);
     return null;

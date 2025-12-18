@@ -2,11 +2,27 @@
   <div v-if="isVisible" class="dialog-overlay" @click.self="close">
     <div class="dialog-content" @click.stop>
       <div class="dialog-header common">
-        <h3 class="dialog-title">Import Deck</h3>
+        <div class="dialog-tabs">
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'import' }"
+            @click="activeTab = 'import'"
+          >
+            Import
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'export' }"
+            @click="activeTab = 'export'"
+          >
+            Export
+          </button>
+        </div>
         <button class="close-btn" @click="close" title="Close">×</button>
       </div>
 
-      <div class="dialog-body">
+      <!-- Import タブ -->
+      <div v-if="activeTab === 'import'" class="dialog-body">
         <!-- ファイル選択 -->
         <div class="form-group">
           <label>Select File:</label>
@@ -58,14 +74,70 @@
         </div>
       </div>
 
+      <!-- Export タブ -->
+      <div v-if="activeTab === 'export'" class="dialog-body">
+        <!-- フォーマット選択 -->
+        <div class="form-group">
+          <label>Format:</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" v-model="format" value="csv" />
+              <span>CSV (Comma-Separated Values)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" v-model="format" value="txt" />
+              <span>TXT (Human-Readable Text)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- オプション -->
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="includeSide" />
+            <span>Include Side Deck</span>
+          </label>
+        </div>
+
+        <!-- ファイル名入力 -->
+        <div class="form-group">
+          <label for="filename-input">Filename:</label>
+          <div class="filename-input-wrapper">
+            <input
+              id="filename-input"
+              type="text"
+              v-model="filenameBase"
+              placeholder="deck"
+              @keyup.enter="handleExport"
+            />
+            <span class="file-extension">.{{ format }}</span>
+          </div>
+        </div>
+
+        <!-- プレビュー（オプション） -->
+        <div v-if="deckInfo" class="preview-info">
+          <span>Main: {{ deckInfo.mainDeck.length }} cards</span>
+          <span>Extra: {{ deckInfo.extraDeck.length }} cards</span>
+          <span v-if="includeSide">Side: {{ deckInfo.sideDeck.length }} cards</span>
+        </div>
+      </div>
+
       <div class="dialog-footer">
         <button class="btn btn-cancel" @click="close">Cancel</button>
         <button
+          v-if="activeTab === 'import'"
           class="btn btn-import"
           :disabled="!previewInfo"
           @click="handleImport"
         >
           Import
+        </button>
+        <button
+          v-if="activeTab === 'export'"
+          class="btn btn-export"
+          @click="handleExport"
+        >
+          Export
         </button>
       </div>
     </div>
@@ -73,55 +145,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { importDeckFromFile } from '@/utils/deck-import';
+import { downloadDeckAsCSV, downloadDeckAsTXT } from '@/utils/deck-export';
 // @ts-ignore - Used in defineEmits type
 import type { DeckInfo } from '@/types/deck';
 
 const props = withDefaults(
   defineProps<{
     isVisible: boolean;
+    deckInfo?: DeckInfo | null;
+    dno?: string;
+    initialTab?: 'import' | 'export';
   }>(),
-  {}
+  {
+    deckInfo: null,
+    dno: '',
+    initialTab: 'import'
+  }
 );
 
 const emit = defineEmits<{
   close: [];
   imported: [deckInfo: DeckInfo, replaceExisting: boolean];
+  exported: [format: string];
 }>();
 
-// ファイル入力要素への参照
+// アクティブなタブ
+const activeTab = ref<'import' | 'export'>(props.initialTab);
+
+// Import用の状態
 const fileInput = ref<HTMLInputElement | null>(null);
-
-// 選択されたファイル
 const selectedFile = ref<File | null>(null);
-
-// プレビュー情報
 const previewInfo = ref<{
   deckInfo: DeckInfo;
   mainCount: number;
   extraCount: number;
   sideCount: number;
 } | null>(null);
-
-// 警告メッセージ
 const warnings = ref<string[]>([]);
-
-// エラーメッセージ
 const errorMessage = ref<string>('');
-
-// 既存のデッキを置き換えるか
 const replaceExisting = ref(true);
 
-// ダイアログが閉じられたらリセット
+// Export用の状態
+const format = ref<'csv' | 'txt'>('csv');
+const includeSide = ref(true);
+const filenameBase = ref('');
+
+// dnoが変更されたらファイル名を更新
+computed(() => {
+  if (props.dno) {
+    filenameBase.value = `deck-${props.dno}`;
+  } else {
+    filenameBase.value = 'deck';
+  }
+});
+
+// ダイアログが開閉されたときの処理
 watch(() => props.isVisible, (visible) => {
-  if (!visible) {
+  if (visible) {
+    activeTab.value = props.initialTab;
+  } else {
     resetDialog();
   }
 });
 
 // ダイアログをリセット
 function resetDialog() {
+  // Import状態をリセット
   selectedFile.value = null;
   previewInfo.value = null;
   warnings.value = [];
@@ -191,6 +282,26 @@ function handleImport() {
   emit('imported', previewInfo.value.deckInfo, replaceExisting.value);
   close();
 }
+
+// エクスポート実行
+function handleExport() {
+  if (!props.deckInfo) {
+    console.error('[ImportExportDialog] No deck info available');
+    return;
+  }
+
+  const filename = `${filenameBase.value || 'deck'}.${format.value}`;
+  const options = { includeSide: includeSide.value };
+
+  if (format.value === 'csv') {
+    downloadDeckAsCSV(props.deckInfo, filename, options);
+  } else {
+    downloadDeckAsTXT(props.deckInfo, filename, options);
+  }
+
+  emit('exported', format.value);
+  close();
+}
 </script>
 
 <style scoped>
@@ -214,6 +325,7 @@ function handleImport() {
   box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
   width: 90%;
   max-width: 520px;
+  height: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
@@ -227,6 +339,33 @@ function handleImport() {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-secondary, #eee);
   flex-shrink: 0;
+}
+
+.dialog-tabs {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--primary-color);
 }
 
 .close-btn {
@@ -261,7 +400,7 @@ function handleImport() {
   margin-bottom: 20px;
 }
 
-.form-group label {
+.form-group label:not(.checkbox-label):not(.radio-label) {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
@@ -373,6 +512,35 @@ function handleImport() {
   margin-bottom: 16px;
 }
 
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.radio-label:hover {
+  background: var(--bg-secondary, var(--bg-secondary));
+}
+
+.radio-label input[type="radio"] {
+  cursor: pointer;
+}
+
+.radio-label span {
+  color: var(--text-primary, #000);
+  font-size: 14px;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -395,6 +563,31 @@ function handleImport() {
 .checkbox-label span {
   color: var(--text-primary, #000);
   font-size: 14px;
+}
+
+.filename-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border-primary, #ddd);
+  border-radius: 4px;
+  padding: 8px 12px;
+  background: var(--bg-primary, #fff);
+}
+
+.filename-input-wrapper input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary, #000);
+  font-size: 14px;
+}
+
+.file-extension {
+  color: var(--text-secondary, var(--text-secondary));
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .dialog-footer {
@@ -424,12 +617,14 @@ function handleImport() {
   background: var(--bg-tertiary, var(--border-primary));
 }
 
-.btn-import {
+.btn-import,
+.btn-export {
   background: var(--button-bg);
   color: var(--button-text);
 }
 
-.btn-import:hover:not(:disabled) {
+.btn-import:hover:not(:disabled),
+.btn-export:hover {
   background: var(--button-hover-bg);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
