@@ -44,6 +44,10 @@ let cachedFAQData: Map<number, CardFAQList> = new Map();
 // ページロード時に抽出したデッキ情報を保存
 let parsedDeckInfo: DeckInfo | null = null;
 
+// MutationObserver のデバウンス用タイマー
+let mutationDebounceTimer: NodeJS.Timeout | null = null;
+const MUTATION_DEBOUNCE_DELAY = 300; // ミリ秒
+
 /**
  * Card Detail タブ機能を初期化
  */
@@ -245,8 +249,18 @@ async function updateTabContent(): Promise<void> {
  */
 function setupCardClickListeners(): void {
   // デッキセクション内のカード画像をクリック可能にする
+  // MutationObserver にデバウンス処理を追加して頻繁な呼び出しを制御
   const observer = new MutationObserver(() => {
-    attachCardClickHandlers();
+    // 既存のタイマーをクリア
+    if (mutationDebounceTimer !== null) {
+      clearTimeout(mutationDebounceTimer);
+    }
+
+    // 新しいタイマーを設定
+    mutationDebounceTimer = setTimeout(() => {
+      attachCardClickHandlers();
+      mutationDebounceTimer = null;
+    }, MUTATION_DEBOUNCE_DELAY);
   });
 
   const deckImage = safeQuery<HTMLElement>(OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage);
