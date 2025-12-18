@@ -433,14 +433,17 @@ export async function generateThumbnailsInBackground(
       if ('requestIdleCallback' in window) {
         requestIdleCallback(async () => {
           if (processed < decksToUpdate.length) {
-            const { dno, deckInfo } = decksToUpdate[processed];
-            await generateAndCacheThumbnail(
-              dno,
-              deckInfo,
-              headPlacementCardIds,
-              deckThumbnails,
-              cachedDeckInfos
-            );
+            const item = decksToUpdate[processed];
+            if (item) {
+              const { dno, deckInfo } = item;
+              await generateAndCacheThumbnail(
+                dno,
+                deckInfo,
+                headPlacementCardIds,
+                deckThumbnails,
+                cachedDeckInfos
+              );
+            }
             processed++;
             processNext();
           } else {
@@ -450,14 +453,17 @@ export async function generateThumbnailsInBackground(
       } else {
         setTimeout(async () => {
           if (processed < decksToUpdate.length) {
-            const { dno, deckInfo } = decksToUpdate[processed];
-            await generateAndCacheThumbnail(
-              dno,
-              deckInfo,
-              headPlacementCardIds,
-              deckThumbnails,
-              cachedDeckInfos
-            );
+            const item = decksToUpdate[processed];
+            if (item) {
+              const { dno, deckInfo } = item;
+              await generateAndCacheThumbnail(
+                dno,
+                deckInfo,
+                headPlacementCardIds,
+                deckThumbnails,
+                cachedDeckInfos
+              );
+            }
             processed++;
             processNext();
           } else {

@@ -104,6 +104,7 @@
     <LoadDialog
       :isVisible="deckStore.showLoadDialog"
       @close="deckStore.showLoadDialog = false"
+      @deck-loaded="handleDeckLoaded"
     />
 
     <!-- Delete Confirmation Dialog -->
@@ -201,244 +202,17 @@ export default {
       }
     }
 
-    // ページング用のcomputed（シンプルなsliceのみ）
-    const paginatedDeckList = computed(() => {
-      if (!deckStore.deckList || deckStore.deckList.length === 0) return []
-      const start = currentPage.value * ITEMS_PER_PAGE
-      const end = start + ITEMS_PER_PAGE
-      return deckStore.deckList.slice(start, end)
-    })
-
-    // デッキのカード枚数を取得する関数
-    const getDeckCardCount = (dno: number) => {
-      return cachedDeckInfos.value.get(dno)?.cardCount
-    }
-
-    const totalPages = computed(() => {
-      if (!deckStore.deckList || deckStore.deckList.length === 0) return 0
-      return Math.ceil(deckStore.deckList.length / ITEMS_PER_PAGE)
-    })
-
-    const goToNextPage = () => {
-      if (currentPage.value < totalPages.value - 1) {
-        currentPage.value++
-        // 別ページへの移動時、51個目以降のデッキを非同期で更新
-        if (currentPage.value > 0) {
-          updatePageDecksInBackground(currentPage.value)
-        }
-      }
-    }
-
-    const goToPrevPage = () => {
-      if (currentPage.value > 0) {
-        currentPage.value--
-      }
-    }
-
-    /**
-     * ページ切り替え時に該当ページのデッキを非同期で更新
-     */
-    const updatePageDecksInBackground = async (page: number) => {
-      if (!deckStore.deckList || !Array.isArray(deckStore.deckList)) return
-
-      const start = page * ITEMS_PER_PAGE
-      const end = start + ITEMS_PER_PAGE
-      const pageDecks = deckStore.deckList.slice(start, end)
-
-      // 非同期で更新
-      setTimeout(async () => {
-        for (const deck of pageDecks) {
-          await updateDeckInfoAndThumbnail(deck.dno)
-          await new Promise(resolve => setTimeout(resolve, 200))
-        }
-      }, 0)
-    }
-
-    const loadDeck = async (dno) => {
-      try {
-        // ダイアログを即座に閉じる（楽観的UI）
-        deckStore.showLoadDialog = false
-        deckStore.setDeckName('')
-
-        // ダイアログを閉じると同時に、デッキエリアを滑らかに上にスクロール
-        nextTick(() => {
-          const deckAreas = document.querySelector('.deck-areas')
-          if (deckAreas) {
-            deckAreas.scrollTo({
-              top: 0,
-              behavior: 'smooth' // アニメーション付きでスクロール
-            })
-          }
-        })
-
-        // デッキロード（バックグラウンドで実行）
-        await deckStore.loadDeck(dno)
-
-        // 現在開いたデッキのdnoを保存
-        currentDeckDno.value = dno
-        localStorage.setItem('ygo_last_deck_dno', String(dno))
-
-        // デッキロード後、デッキ情報とサムネイルを必ず更新
-        await updateDeckInfoAndThumbnail(dno)
-      } catch (error) {
-        console.error('Load error:', error)
-      }
-    }
-
-    /**
-     * デッキサムネイル画像を生成（5枚の画像を横並びにしてWebP化）
-     */
-    /**
-     * デッキのサムネイル画像を生成
-     * @param dno - デッキ番号
-     * @param deckInfo - デッキ情報（省略時は現在のdeckStore.deckInfoを使用）
-     * @param headPlacementCardIds - 先頭配置カードIDリスト（省略時はdeckStore.headPlacementCardIdsを使用）
-     */
-    const generateThumbnailCards = async (
-      dno: number,
-      deckInfo?: any,
-      headPlacementCardIds?: string[]
-    ) => {
-      try {
-        const targetDeckInfo = deckInfo || deckStore.deckInfo
-        const targetHeadPlacement = headPlacementCardIds || deckStore.headPlacementCardIds
-
-        // デッキ情報をキャッシュに保存（サムネイル生成の前）
-        const mainDeckData = targetDeckInfo.mainDeck.map(card => ({
-          cid: card.cid,
-          ciid: card.ciid,
-          quantity: card.quantity
-        }))
-        const extraDeckData = targetDeckInfo.extraDeck.map(card => ({
-          cid: card.cid,
-          ciid: card.ciid,
-          quantity: card.quantity
-        }))
-        const sideDeckData = targetDeckInfo.sideDeck.map(card => ({
-          cid: card.cid,
-          ciid: card.ciid,
-          quantity: card.quantity
-        }))
-
-        const cachedInfo: CachedDeckInfo = {
-          dno,
-          name: targetDeckInfo.name,
-          category: targetDeckInfo.category,
-          mainDeck: mainDeckData,
-          extraDeck: extraDeckData,
-          sideDeck: sideDeckData,
-          lastUpdated: Date.now(),
-          hash: calculateDeckHash(targetDeckInfo),
-          cardCount: {
-            main: mainDeckData.reduce((sum, card) => sum + card.quantity, 0),
-            extra: extraDeckData.reduce((sum, card) => sum + card.quantity, 0),
-            side: sideDeckData.reduce((sum, card) => sum + card.quantity, 0)
-          }
-        }
-        cachedDeckInfos.value.set(dno, cachedInfo)
-        console.debug(`[DeckEditLayout] Cached deck ${dno}:`, {
-          name: cachedInfo.name,
-          mainCount: cachedInfo.mainDeck.length,
-          extraCount: cachedInfo.extraDeck.length,
-          sideCount: cachedInfo.sideDeck.length,
-          hash: cachedInfo.hash
-        })
-        saveDeckInfoCache()
-
-        // カードID配列を取得
-        const cardIds = generateDeckThumbnailCards(
-          targetDeckInfo,
-          targetHeadPlacement
-        )
-
-        if (cardIds.length === 0) {
-          return
-        }
-
-        // Canvas作成
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
-
-        const cardWidth = 60  // 1枚あたりの幅
-        const cardHeight = 87 // 1枚あたりの高さ
-        const gap = 2         // カード間の隙間
-        const padding = 4     // 上下左右のパディング
-
-        canvas.width = cardIds.length * cardWidth + (cardIds.length - 1) * gap + padding * 2
-        canvas.height = cardHeight + padding * 2
-
-        // 背景
-        ctx.fillStyle = '#2a2a2a'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-        // カード画像を読み込んで描画
-        const loadPromises = cardIds.map(async (cid, index) => {
-          const cardInfo = getCardInfo(cid)
-          if (!cardInfo) return
-
-          const gameType = detectCardGameType()
-          const relativeUrl = getCardImageUrlHelper(cardInfo, gameType)
-          if (!relativeUrl) return
-
-          const imgUrl = buildFullUrl(relativeUrl)
-
-          return new Promise<void>((resolve) => {
-            const img = new Image()
-            img.crossOrigin = 'anonymous'
-            img.onload = () => {
-              const x = padding + index * (cardWidth + gap)
-              const y = padding
-              ctx.drawImage(img, x, y, cardWidth, cardHeight)
-              resolve()
-            }
-            img.onerror = () => resolve()
-            img.src = imgUrl
+    const handleDeckLoaded = () => {
+      // LoadDialogからのデッキロード通知を受けて、デッキエリアをスクロール
+      nextTick(() => {
+        const deckAreas = document.querySelector('.deck-areas')
+        if (deckAreas) {
+          deckAreas.scrollTo({
+            top: 0,
+            behavior: 'smooth'
           })
-        })
-
-        await Promise.all(loadPromises)
-
-        // WebP形式でData URLに変換（サムネイルなので低画質でOK）
-        canvas.toBlob((blob) => {
-          if (!blob) return
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            const dataUrl = e.target?.result
-            if (typeof dataUrl === 'string') {
-              deckThumbnails.value.set(dno, dataUrl)
-              saveThumbnailCache()
-            }
-          }
-          reader.readAsDataURL(blob)
-        }, 'image/webp', 0.6)
-      } catch (error) {
-        console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
-      }
-    }
-
-    /**
-     * デッキ情報を更新してサムネイルを生成（必要な場合のみ）
-     */
-    const updateDeckInfoAndThumbnail = async (dno: number): Promise<boolean> => {
-      try {
-        const deckInfo = await deckStore.getDeckDetail(dno)
-        if (!deckInfo) return false
-
-        // 変更があるか、またはキャッシュが期限切れかチェック
-        const needsUpdate = isDeckInfoChanged(dno, deckInfo) ||
-          (cachedDeckInfos.value.has(dno) && isCacheExpired(cachedDeckInfos.value.get(dno)!))
-
-        if (needsUpdate) {
-          // サムネイル生成（デッキ情報も同時に保存される）
-          await generateThumbnailCards(dno, deckInfo, [])
         }
-
-        return needsUpdate // 変更ありの場合true
-      } catch (error) {
-        console.warn(`[DeckEditLayout] Failed to update deck ${dno}:`, error)
-        return false
-      }
+      })
     }
 
     const confirmDelete = async () => {
@@ -903,17 +677,6 @@ export default {
       deckStore.addCopyToMainOrExtra(card)
     }
 
-    /**
-     * デッキ名の文字数に応じてフォントサイズクラスを返す
-     */
-    const getDeckNameClass = (name: string) => {
-      const length = name.length
-      if (length > 20) return 'deck-name-xs'
-      if (length > 15) return 'deck-name-sm'
-      if (length > 10) return 'deck-name-md'
-      return 'deck-name-lg'
-    }
-
     return {
       isReady,
       deckStore,
@@ -952,7 +715,8 @@ export default {
       moveFromTrash,
       addCopy,
       addToMainOrExtra,
-      toggleLoadDialog
+      toggleLoadDialog,
+      handleDeckLoaded
     }
   }
 }

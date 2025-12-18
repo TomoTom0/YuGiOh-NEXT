@@ -6,7 +6,7 @@
           <h2 class="dialog-title">Load Deck</h2>
           <button class="close-btn" @click="close">×</button>
         </div>
-        <div class="dialog-body">
+        <div class="dialog-body" ref="dialogBodyRef">
           <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
             <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
               <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
@@ -87,9 +87,13 @@ defineProps<{
 
 const emit = defineEmits<{
   close: []
+  deckLoaded: []
 }>()
 
 const deckStore = useDeckEditStore()
+
+// ダイアログボディのref
+const dialogBodyRef = ref<HTMLElement | null>(null)
 
 // ページング用の現在のページ
 const currentPage = ref(0)
@@ -120,20 +124,15 @@ const totalPages = computed(() => {
   return Math.ceil(deckStore.deckList.length / ITEMS_PER_PAGE)
 })
 
+// ダイアログボディをトップにスクロール（共通関数）
+const scrollToDialogTop = () => {
+  dialogBodyRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 const goToNextPage = () => {
   if (currentPage.value < totalPages.value - 1) {
     currentPage.value++
-
-    // ページ移動時：ダイアログボディをスクロールアップ
-    nextTick(() => {
-      const dialogBody = document.querySelector('.dialog-body')
-      if (dialogBody) {
-        dialogBody.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        })
-      }
-    })
+    scrollToDialogTop()
 
     // ページ移動時：該当ページのサムネイルを背景で生成
     const startIndex = currentPage.value * ITEMS_PER_PAGE
@@ -152,42 +151,22 @@ const goToNextPage = () => {
 const goToPrevPage = () => {
   if (currentPage.value > 0) {
     currentPage.value--
-
-    // ページ移動時：ダイアログボディをスクロールアップ
-    nextTick(() => {
-      const dialogBody = document.querySelector('.dialog-body')
-      if (dialogBody) {
-        dialogBody.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        })
-      }
-    })
+    scrollToDialogTop()
   }
 }
 
 
-const loadDeck = async (dno) => {
+const loadDeck = async (dno: number) => {
   try {
     deckStore.showLoadDialog = false
     deckStore.setDeckName('')
-
-    nextTick(() => {
-      const deckAreas = document.querySelector('.deck-areas')
-      if (deckAreas) {
-        deckAreas.scrollTo({
-          top: 0,
-          behavior: 'smooth'
-        })
-      }
-    })
 
     await deckStore.loadDeck(dno)
 
     localStorage.setItem('ygo_last_deck_dno', String(dno))
 
-    // バックグラウンドでサムネイル更新を開始
-    // updateDeckInfoAndThumbnail(dno) は DeckEditLayout で管理される
+    // 親コンポーネントに通知（親側でスクロール処理を実行）
+    emit('deckLoaded')
   } catch (error) {
     console.error('Load error:', error)
   }
