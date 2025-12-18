@@ -13,7 +13,7 @@ import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
 import { getTempCardDB } from '@/utils/temp-card-db'
 import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
-import { escapeHtml } from '@/utils/safe-html-renderer'
+import { escapeHtml, setSafeInnerHTML } from '@/utils/safe-html-renderer'
 import { EXTENSION_IDS, OFFICIAL_SITE_SELECTORS, getExtensionIdSelector } from '@/utils/dom-selectors'
 
 interface SelectedCard {
@@ -206,30 +206,36 @@ async function updateTabContent(): Promise<void> {
   if (!contentContainer) return;
 
   if (!selectedCard || !selectedCard.cardId) {
-    contentContainer.innerHTML = '<p>カードを選択してください</p>';
+    setSafeInnerHTML(contentContainer, '<p>カードを選択してください</p>');
     return;
   }
 
   if (currentTab === 'info') {
     // Info タブ: カード情報を表示
-    contentContainer.innerHTML = `
+    const escapedName = escapeHtml(selectedCard.name || 'Unknown');
+    const escapedType = selectedCard.type ? `<div class="ygo-next card-type">${escapeHtml(selectedCard.type)}</div>` : '';
+    const escapedAttribute = selectedCard.attribute ? `<div class="ygo-next card-attribute">${escapeHtml(selectedCard.attribute)}</div>` : '';
+    const escapedRace = selectedCard.race ? `<div class="ygo-next card-race">${escapeHtml(selectedCard.race)}</div>` : '';
+
+    const html = `
       <div class="ygo-next card-detail-info">
-        <div class="ygo-next card-name"><strong>${selectedCard.name || 'Unknown'}</strong></div>
+        <div class="ygo-next card-name"><strong>${escapedName}</strong></div>
         <div class="ygo-next card-id">ID: ${selectedCard.cardId}</div>
-        ${selectedCard.type ? `<div class="ygo-next card-type">${selectedCard.type}</div>` : ''}
-        ${selectedCard.attribute ? `<div class="ygo-next card-attribute">${selectedCard.attribute}</div>` : ''}
-        ${selectedCard.race ? `<div class="ygo-next card-race">${selectedCard.race}</div>` : ''}
+        ${escapedType}
+        ${escapedAttribute}
+        ${escapedRace}
       </div>
     `;
+    setSafeInnerHTML(contentContainer, html);
   } else if (currentTab === 'qa') {
     // Q&A タブ: FAQ データを取得して表示
-    contentContainer.innerHTML = '<p style="text-align: center; color: #999;">読み込み中...</p>';
+    setSafeInnerHTML(contentContainer, '<p style="text-align: center; color: #999;">読み込み中...</p>');
 
     const faqData = await fetchFAQData(selectedCard.cardId);
     if (faqData) {
-      contentContainer.innerHTML = renderFAQContent(faqData);
+      setSafeInnerHTML(contentContainer, renderFAQContent(faqData));
     } else {
-      contentContainer.innerHTML = '<p style="text-align: center; color: #999;">Q&A情報を読み込めません</p>';
+      setSafeInnerHTML(contentContainer, '<p style="text-align: center; color: #999;">Q&A情報を読み込めません</p>');
     }
   }
 }
