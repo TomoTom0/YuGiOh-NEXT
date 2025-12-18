@@ -82,18 +82,14 @@
     <div v-if="deckStore.overlayVisible" class="unified-overlay" :style="{ zIndex: deckStore.overlayZIndex }"></div>
 
     <!-- ダイアログ -->
-    <ExportDialog
-      :isVisible="deckStore.showExportDialog"
+    <ImportExportDialog
+      :isVisible="deckStore.showImportDialog || deckStore.showExportDialog"
+      :initialTab="deckStore.showExportDialog ? 'export' : 'import'"
       :deckInfo="deckStore.deckInfo"
       :dno="String(deckStore.dno)"
-      @close="deckStore.showExportDialog = false"
-      @exported="handleExported"
-    />
-
-    <ImportDialog
-      :isVisible="deckStore.showImportDialog"
-      @close="deckStore.showImportDialog = false"
+      @close="handleImportExportClose"
       @imported="handleImported"
+      @exported="handleExported"
     />
 
     <OptionsDialog
@@ -137,8 +133,7 @@ import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
-const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
-const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
+const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
 const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
 import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
@@ -158,8 +153,7 @@ export default {
     DeckSection,
     DeckEditTopBar,
     RightArea,
-    ExportDialog,
-    ImportDialog,
+    ImportExportDialog,
     OptionsDialog,
     LoadDialog
   },
@@ -185,6 +179,11 @@ export default {
     let pendingLanguageChange: (() => void) | null = null;
 
     // ダイアログイベントハンドラ
+    const handleImportExportClose = () => {
+      deckStore.showImportDialog = false
+      deckStore.showExportDialog = false
+    }
+
     const handleExported = (message) => {
       deckStore.showExportDialog = false
     }
@@ -699,6 +698,7 @@ export default {
       onSearchInput,
       toggleDetail,
       addToMain,
+      handleImportExportClose,
       handleExported,
       handleImported,
       confirmDelete,

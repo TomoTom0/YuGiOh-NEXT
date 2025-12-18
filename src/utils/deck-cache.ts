@@ -328,6 +328,47 @@ export async function updateDeckInfoAndThumbnailWithData(
 }
 
 /**
+ * requestIdleCallback を Promise 化する
+ *
+ * @returns requestIdleCallback が完了したときに resolve される Promise
+ *
+ * @remarks
+ * - requestIdleCallback が利用可能な場合はそれを使用
+ * - 非対応環境では setTimeout でフォールバック（200ms）
+ */
+function waitForIdleCallback(): Promise<void> {
+  return new Promise((resolve) => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => resolve());
+    } else {
+      setTimeout(() => resolve(), 200);
+    }
+  });
+}
+
+/**
+ * subsequence が sequence の部分シーケンスであるかを線形時間で判定する
+ *
+ * @param subsequence - 部分シーケンス候補
+ * @param sequence - 全体シーケンス
+ * @returns subsequence の全要素が sequence 内に順序を保って存在すれば true
+ *
+ * @remarks
+ * - 2つのポインタを使った O(N) アルゴリズム
+ * - subsequence の各要素を sequence 内で順番に探索
+ * - 全要素が見つかれば true、そうでなければ false
+ */
+function isSubsequence<T>(subsequence: T[], sequence: T[]): boolean {
+  let subIdx = 0;
+  for (let seqIdx = 0; seqIdx < sequence.length && subIdx < subsequence.length; seqIdx++) {
+    if (sequence[seqIdx] === subsequence[subIdx]) {
+      subIdx++;
+    }
+  }
+  return subIdx === subsequence.length;
+}
+
+/**
  * バッチでサムネイルを生成（IdleCallback使用）
  *
  * @param startIndex - deckListの開始インデックス
@@ -383,20 +424,8 @@ export async function generateThumbnailsInBackground(
       const currentIndex = startIndex + i;
       const currentBeforeDnos = deckList.slice(0, currentIndex).map(d => d.dno);
 
-      // 1. relevantDnosが全て今回もこのdnoより前にあるか
-      orderPreserved = relevantDnos.every(dno => currentBeforeDnos.includes(dno));
-
-      // 2. relevantDnos内での相対順序も保たれているか
-      if (orderPreserved && relevantDnos.length > 1) {
-        for (let j = 0; j < relevantDnos.length - 1; j++) {
-          const idx1 = currentBeforeDnos.indexOf(relevantDnos[j]);
-          const idx2 = currentBeforeDnos.indexOf(relevantDnos[j + 1]);
-          if (idx1 > idx2) {
-            orderPreserved = false;
-            break;
-          }
-        }
-      }
+      // relevantDnos が currentBeforeDnos の部分シーケンスであるかを O(N) で判定
+      orderPreserved = isSubsequence(relevantDnos, currentBeforeDnos);
     }
 
     // 内容が変わっていないか
@@ -423,56 +452,17 @@ export async function generateThumbnailsInBackground(
 
   // フェーズ2: 画像生成を非同期で実行（RequestIdleCallbackで1つずつ）
   if (decksToUpdate.length === 0) {
-    return Promise.resolve();
+    return;
   }
 
-  return new Promise((resolve) => {
-    let processed = 0;
-
-    const processNext = () => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(async () => {
-          if (processed < decksToUpdate.length) {
-            const item = decksToUpdate[processed];
-            if (item) {
-              const { dno, deckInfo } = item;
-              await generateAndCacheThumbnail(
-                dno,
-                deckInfo,
-                headPlacementCardIds,
-                deckThumbnails,
-                cachedDeckInfos
-              );
-            }
-            processed++;
-            processNext();
-          } else {
-            resolve();
-          }
-        });
-      } else {
-        setTimeout(async () => {
-          if (processed < decksToUpdate.length) {
-            const item = decksToUpdate[processed];
-            if (item) {
-              const { dno, deckInfo } = item;
-              await generateAndCacheThumbnail(
-                dno,
-                deckInfo,
-                headPlacementCardIds,
-                deckThumbnails,
-                cachedDeckInfos
-              );
-            }
-            processed++;
-            processNext();
-          } else {
-            resolve();
-          }
-        }, 200);
-      }
-    };
-
-    processNext();
-  });
+  for (const { dno, deckInfo } of decksToUpdate) {
+    await waitForIdleCallback();
+    await generateAndCacheThumbnail(
+      dno,
+      deckInfo,
+      headPlacementCardIds,
+      deckThumbnails,
+      cachedDeckInfos
+    );
+  }
 }

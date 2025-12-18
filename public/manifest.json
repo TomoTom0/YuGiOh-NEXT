@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "遊戯王NEXT",
-  "version": "0.5.10",
+  "version": "0.6.0",
   "description": "遊戯王Neuron(公式カードデータベース)のデッキ管理を劇的に改善するChrome拡張",
   "permissions": [
     "storage",
