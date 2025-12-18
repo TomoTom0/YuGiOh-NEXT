@@ -101,52 +101,10 @@
       @close="deckStore.showOptionsDialog = false"
     />
 
-    <!-- Load Dialog -->
-    <div v-if="deckStore.showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
-      <div class="dialog-content" @click.stop>
-        <div class="dialog-header common">
-          <h2 class="dialog-title">Load Deck</h2>
-          <button class="close-btn" @click="toggleLoadDialog">×</button>
-        </div>
-        <div class="dialog-body">
-          <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
-            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
-              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-            </svg>
-            <p>デッキがありません</p>
-          </div>
-          <div v-else class="deck-grid">
-            <div
-              v-for="deck in deckStore.deckList"
-              :key="deck.dno"
-              class="deck-card"
-              @click="loadDeck(deck.dno)"
-            >
-              <!-- デッキ名 -->
-              <div
-                class="deck-name"
-                :class="getDeckNameClass(deck.name || '(名称未設定)')"
-              >
-                {{ deck.name || '(名称未設定)' }}
-              </div>
-
-              <!-- サムネイル画像 -->
-              <div class="deck-thumbnail-container">
-                <!-- 現在開いているデッキ: カード画像を5枚横並び -->
-                <img
-                  v-if="deck.dno === currentDeckDno && deckThumbnails.has(deck.dno)"
-                  :src="deckThumbnails.get(deck.dno)"
-                  :alt="`${deck.name}のサムネイル`"
-                  class="thumbnail-image"
-                />
-                <!-- それ以外のデッキ: グラデーション画像 -->
-                <div v-else class="thumbnail-gradient"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <LoadDialog
+      :isVisible="deckStore.showLoadDialog"
+      @close="deckStore.showLoadDialog = false"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <div v-if="deckStore.showDeleteConfirm" class="dialog-overlay" @click="cancelDelete">
@@ -181,12 +139,26 @@ import RightArea from '../../components/RightArea.vue'
 const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
 const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
+const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
 import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
 import { EXTENSION_IDS } from '../../utils/dom-selectors'
 import { buildFullUrl } from '../../utils/url-builder'
 import { getCardInfo } from '../../utils/card-utils'
+import {
+  loadThumbnailCache,
+  saveThumbnailCache,
+  loadDeckInfoCache,
+  saveDeckInfoCache,
+  calculateDeckHash,
+  isDeckInfoChanged,
+  isCacheExpired,
+  generateAndCacheThumbnail,
+  updateDeckInfoAndThumbnail,
+  generateThumbnailsInBackground,
+  type CachedDeckInfo
+} from '../../utils/deck-cache'
 
 export default {
   name: 'DeckEditLayout',
@@ -197,7 +169,8 @@ export default {
     RightArea,
     ExportDialog,
     ImportDialog,
-    OptionsDialog
+    OptionsDialog,
+    LoadDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -214,38 +187,8 @@ export default {
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
-
-    // デッキサムネイル画像（dno -> WebP Data URL）
-    const deckThumbnails = ref(new Map<number, string>())
     // 現在開いているデッキのdno
     const currentDeckDno = ref<number | null>(null)
-
-    // localStorageからサムネイルキャッシュを復元
-    const loadThumbnailCache = () => {
-      try {
-        const cached = localStorage.getItem('ygo_deck_thumbnails')
-        if (cached) {
-          const parsed = JSON.parse(cached)
-          // キーを数値に変換してMapを作成
-          deckThumbnails.value = new Map(
-            Object.entries(parsed).map(([key, value]) => [parseInt(key, 10), value as string])
-          )
-          console.debug('[DeckEditLayout] Loaded thumbnail cache:', deckThumbnails.value.size, 'thumbnails')
-        }
-      } catch (error) {
-        console.warn('Failed to load thumbnail cache:', error)
-      }
-    }
-
-    // サムネイルキャッシュを保存
-    const saveThumbnailCache = () => {
-      try {
-        const obj = Object.fromEntries(deckThumbnails.value)
-        localStorage.setItem('ygo_deck_thumbnails', JSON.stringify(obj))
-      } catch (error) {
-        console.warn('Failed to save thumbnail cache:', error)
-      }
-    }
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
@@ -259,12 +202,64 @@ export default {
       deckStore.showImportDialog = false
     }
 
-    const toggleLoadDialog = async () => {
+    const toggleLoadDialog = () => {
       if (!deckStore.showLoadDialog) {
-        // デッキ一覧を取得
-        await deckStore.fetchDeckList()
+        currentPage.value = 0
       }
       deckStore.showLoadDialog = !deckStore.showLoadDialog
+    }
+
+    // ページング用のcomputed（シンプルなsliceのみ）
+    const paginatedDeckList = computed(() => {
+      if (!deckStore.deckList || deckStore.deckList.length === 0) return []
+      const start = currentPage.value * ITEMS_PER_PAGE
+      const end = start + ITEMS_PER_PAGE
+      return deckStore.deckList.slice(start, end)
+    })
+
+    // デッキのカード枚数を取得する関数
+    const getDeckCardCount = (dno: number) => {
+      return cachedDeckInfos.value.get(dno)?.cardCount
+    }
+
+    const totalPages = computed(() => {
+      if (!deckStore.deckList || deckStore.deckList.length === 0) return 0
+      return Math.ceil(deckStore.deckList.length / ITEMS_PER_PAGE)
+    })
+
+    const goToNextPage = () => {
+      if (currentPage.value < totalPages.value - 1) {
+        currentPage.value++
+        // 別ページへの移動時、51個目以降のデッキを非同期で更新
+        if (currentPage.value > 0) {
+          updatePageDecksInBackground(currentPage.value)
+        }
+      }
+    }
+
+    const goToPrevPage = () => {
+      if (currentPage.value > 0) {
+        currentPage.value--
+      }
+    }
+
+    /**
+     * ページ切り替え時に該当ページのデッキを非同期で更新
+     */
+    const updatePageDecksInBackground = async (page: number) => {
+      if (!deckStore.deckList || !Array.isArray(deckStore.deckList)) return
+
+      const start = page * ITEMS_PER_PAGE
+      const end = start + ITEMS_PER_PAGE
+      const pageDecks = deckStore.deckList.slice(start, end)
+
+      // 非同期で更新
+      setTimeout(async () => {
+        for (const deck of pageDecks) {
+          await updateDeckInfoAndThumbnail(deck.dno)
+          await new Promise(resolve => setTimeout(resolve, 200))
+        }
+      }, 0)
     }
 
     const loadDeck = async (dno) => {
@@ -291,10 +286,8 @@ export default {
         currentDeckDno.value = dno
         localStorage.setItem('ygo_last_deck_dno', String(dno))
 
-        // デッキロード後、サムネイル画像を生成（キャッシュにない場合のみ）
-        if (!deckThumbnails.value.has(dno)) {
-          await generateThumbnailCards(dno)
-        }
+        // デッキロード後、デッキ情報とサムネイルを必ず更新
+        await updateDeckInfoAndThumbnail(dno)
       } catch (error) {
         console.error('Load error:', error)
       }
@@ -303,12 +296,67 @@ export default {
     /**
      * デッキサムネイル画像を生成（5枚の画像を横並びにしてWebP化）
      */
-    const generateThumbnailCards = async (dno: number) => {
+    /**
+     * デッキのサムネイル画像を生成
+     * @param dno - デッキ番号
+     * @param deckInfo - デッキ情報（省略時は現在のdeckStore.deckInfoを使用）
+     * @param headPlacementCardIds - 先頭配置カードIDリスト（省略時はdeckStore.headPlacementCardIdsを使用）
+     */
+    const generateThumbnailCards = async (
+      dno: number,
+      deckInfo?: any,
+      headPlacementCardIds?: string[]
+    ) => {
       try {
+        const targetDeckInfo = deckInfo || deckStore.deckInfo
+        const targetHeadPlacement = headPlacementCardIds || deckStore.headPlacementCardIds
+
+        // デッキ情報をキャッシュに保存（サムネイル生成の前）
+        const mainDeckData = targetDeckInfo.mainDeck.map(card => ({
+          cid: card.cid,
+          ciid: card.ciid,
+          quantity: card.quantity
+        }))
+        const extraDeckData = targetDeckInfo.extraDeck.map(card => ({
+          cid: card.cid,
+          ciid: card.ciid,
+          quantity: card.quantity
+        }))
+        const sideDeckData = targetDeckInfo.sideDeck.map(card => ({
+          cid: card.cid,
+          ciid: card.ciid,
+          quantity: card.quantity
+        }))
+
+        const cachedInfo: CachedDeckInfo = {
+          dno,
+          name: targetDeckInfo.name,
+          category: targetDeckInfo.category,
+          mainDeck: mainDeckData,
+          extraDeck: extraDeckData,
+          sideDeck: sideDeckData,
+          lastUpdated: Date.now(),
+          hash: calculateDeckHash(targetDeckInfo),
+          cardCount: {
+            main: mainDeckData.reduce((sum, card) => sum + card.quantity, 0),
+            extra: extraDeckData.reduce((sum, card) => sum + card.quantity, 0),
+            side: sideDeckData.reduce((sum, card) => sum + card.quantity, 0)
+          }
+        }
+        cachedDeckInfos.value.set(dno, cachedInfo)
+        console.debug(`[DeckEditLayout] Cached deck ${dno}:`, {
+          name: cachedInfo.name,
+          mainCount: cachedInfo.mainDeck.length,
+          extraCount: cachedInfo.extraDeck.length,
+          sideCount: cachedInfo.sideDeck.length,
+          hash: cachedInfo.hash
+        })
+        saveDeckInfoCache()
+
         // カードID配列を取得
         const cardIds = generateDeckThumbnailCards(
-          deckStore.deckInfo,
-          deckStore.headPlacementCardIds
+          targetDeckInfo,
+          targetHeadPlacement
         )
 
         if (cardIds.length === 0) {
@@ -359,7 +407,7 @@ export default {
 
         await Promise.all(loadPromises)
 
-        // WebP形式でData URLに変換
+        // WebP形式でData URLに変換（サムネイルなので低画質でOK）
         canvas.toBlob((blob) => {
           if (!blob) return
           const reader = new FileReader()
@@ -371,9 +419,33 @@ export default {
             }
           }
           reader.readAsDataURL(blob)
-        }, 'image/webp', 0.75)
+        }, 'image/webp', 0.6)
       } catch (error) {
         console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
+      }
+    }
+
+    /**
+     * デッキ情報を更新してサムネイルを生成（必要な場合のみ）
+     */
+    const updateDeckInfoAndThumbnail = async (dno: number): Promise<boolean> => {
+      try {
+        const deckInfo = await deckStore.getDeckDetail(dno)
+        if (!deckInfo) return false
+
+        // 変更があるか、またはキャッシュが期限切れかチェック
+        const needsUpdate = isDeckInfoChanged(dno, deckInfo) ||
+          (cachedDeckInfos.value.has(dno) && isCacheExpired(cachedDeckInfos.value.get(dno)!))
+
+        if (needsUpdate) {
+          // サムネイル生成（デッキ情報も同時に保存される）
+          await generateThumbnailCards(dno, deckInfo, [])
+        }
+
+        return needsUpdate // 変更ありの場合true
+      } catch (error) {
+        console.warn(`[DeckEditLayout] Failed to update deck ${dno}:`, error)
+        return false
       }
     }
 
@@ -494,9 +566,6 @@ export default {
     onMounted(async () => {
       isComponentMounted = true
 
-      // サムネイルキャッシュを復元
-      loadThumbnailCache()
-
       // 前回のdnoを復元
       const lastDno = localStorage.getItem('ygo_last_deck_dno')
       if (lastDno) {
@@ -506,6 +575,9 @@ export default {
 
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
+
+      // デッキリストを取得
+      await deckStore.fetchDeckList()
 
       // デッキ読み込み完了後、Vue UIを表示
       isReady.value = true
@@ -528,6 +600,7 @@ export default {
       window.addEventListener('hashchange', checkDnoChangeHandler)
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
+
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
       const originalChangeLanguage = window.ygoChangeLanguage
@@ -858,8 +931,6 @@ export default {
       addToMain,
       handleExported,
       handleImported,
-      toggleLoadDialog,
-      loadDeck,
       confirmDelete,
       cancelDelete,
       addToExtra,
@@ -873,12 +944,7 @@ export default {
       moveFromSide,
       moveFromTrash,
       addCopy,
-      addToMainOrExtra,
-      // サムネイル関連
-      deckThumbnails,
-      currentDeckDno,
-      generateThumbnailCards,
-      getDeckNameClass
+      addToMainOrExtra
     }
   }
 }
@@ -1380,8 +1446,8 @@ export default {
   border: 1px solid var(--dialog-border, #e0e0e0);
   border-radius: 8px;
   box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
-  width: 600px;
-  max-width: 90vw;
+  width: 900px;
+  max-width: 95vw;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
@@ -1420,10 +1486,15 @@ export default {
 }
 
 .dialog-body {
-  padding: 16px;
+  padding: 12px;
   flex: 1;
   overflow-y: auto;
   min-height: 200px;
+  width: calc(100% - 30px);
+
+  .loading-placeholder {
+    min-height: 400px;
+  }
 
   .no-decks {
     display: flex;
@@ -1443,87 +1514,11 @@ export default {
 
 .deck-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, 320px);
+  gap: 12px;
+  justify-content: start;
 }
 
-.deck-card {
-  width: 160px;
-  height: 100px;
-  border: 1px solid var(--border-primary, #e0e0e0);
-  border-radius: 6px;
-  background: var(--bg-secondary, #f5f5f5);
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-
-  &:hover {
-    border-color: var(--text-tertiary, #999);
-    background: var(--bg-primary, white);
-  }
-
-  .deck-thumbnail-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    overflow: hidden;
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-
-  .thumbnail-image {
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-  }
-
-  .thumbnail-gradient {
-    width: 160px;
-    height: 48px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    opacity: 0.6;
-  }
-
-  .deck-name {
-    padding: 8px;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.4;
-    word-break: break-word;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 2;
-    background: color-mix(in srgb, var(--dialog-bg) 85%, transparent);
-    backdrop-filter: blur(6px);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-
-    &.deck-name-lg {
-      font-size: var(--dialog-font-size);
-    }
-
-    &.deck-name-md {
-      font-size: calc(var(--dialog-font-size) * 0.9);
-    }
-
-    &.deck-name-sm {
-      font-size: calc(var(--dialog-font-size) * 0.8);
-    }
-
-    &.deck-name-xs {
-      font-size: calc(var(--dialog-font-size) * 0.7);
-    }
-  }
-}
 
 @keyframes spin {
   to {

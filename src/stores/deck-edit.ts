@@ -497,7 +497,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   // Deck list state
-  const deckList = ref<Array<{ dno: number; name: string }>>([]);
+  const deckList = ref<import('@/types/deck').DeckListItem[]>([]);
   const lastUsedDno = ref<number | null>(null);
   
   // UI state only (search state moved to search.ts)
@@ -931,7 +931,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   async function saveDeck(dno: number) {
     // useDeckPersistence composable に処理を委譲
-    return getPersistence().saveDeck(dno);
+    const result = await getPersistence().saveDeck(dno);
+
+    // デッキ保存後、デッキリスト一覧を再取得（非同期で実行）
+    fetchDeckList().catch(error => {
+      console.error('[saveDeck] Failed to refresh deck list:', error);
+    });
+
+    return result;
   }
 
   function captureDeckSnapshot(): string {
@@ -971,6 +978,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // ローディング終了
       isLoadingDeck.value = false;
+
+      // デッキロード後、デッキリスト一覧を再取得（非同期で実行）
+      fetchDeckList().catch(error => {
+        console.error('[loadDeck] Failed to refresh deck list:', error);
+      });
 
       return result;
     } catch (error) {
@@ -1188,14 +1200,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         list = await sessionManager.getDeckList();
       }
 
-      // 変換して deckList に代入
-      const transformed = list.map(item => ({
-        dno: item.dno,
-        name: item.name
-      }));
-
-      deckList.value = transformed;
-      return transformed;
+      // deckList に代入（全てのフィールドを保持）
+      deckList.value = list;
+      return list;
     } catch (error) {
       console.error('[fetchDeckList] ERROR:', error);
       deckList.value = [];
@@ -1413,13 +1420,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     try {
       // サーバーに新規デッキを作成
       const newDno = await sessionManager.createDeck();
-      
+
       if (!newDno || newDno === 0) {
         throw new Error('Failed to create new deck: server returned invalid dno');
       }
-      
+
       // 新規デッキを読み込む
       await loadDeck(newDno);
+
+      // デッキ作成後、デッキリスト一覧を再取得（非同期で実行）
+      fetchDeckList().catch(error => {
+        console.error('[createNewDeck] Failed to refresh deck list:', error);
+      });
     } catch (error) {
       console.error('[createNewDeck] Error:', error);
       throw error;
@@ -1454,6 +1466,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 複製されたデッキを読み込む
       await loadDeck(newDno);
 
+      // デッキコピー後、デッキリスト一覧を再取得（非同期で実行）
+      fetchDeckList().catch(error => {
+        console.error('[pseudoCopyDeck] Failed to refresh deck list:', error);
+      });
+
       return newDno;
     } catch (error) {
       console.error('[pseudoCopyDeck] Error:', error);
@@ -1479,27 +1496,32 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!deckInfo.value.dno) {
         throw new Error('No deck loaded');
       }
-      
+
       const dnoToDelete = deckInfo.value.dno;
-      
+
       // デッキを削除
       const success = await sessionManager.deleteDeck(dnoToDelete);
-      
+
       if (!success) {
         throw new Error('Failed to delete deck');
       }
-      
+
       // デッキ一覧を取得して、別のデッキを読み込む
       const deckList = await sessionManager.getDeckList();
-      
+
       if (deckList.length > 0) {
         // 削除したデッキより小さいdnoがあればそれを、なければ最大のdnoを読み込む
         const smallerDecks = deckList.filter(d => d.dno < dnoToDelete);
-        const newDno = smallerDecks.length > 0 
+        const newDno = smallerDecks.length > 0
           ? Math.max(...smallerDecks.map(d => d.dno))
           : Math.max(...deckList.map(d => d.dno));
-        
+
         await loadDeck(newDno);
+
+        // デッキ削除後、デッキリスト一覧を再取得（非同期で実行）
+        fetchDeckList().catch(error => {
+          console.error('[deleteCurrentDeck] Failed to refresh deck list:', error);
+        });
       } else {
         // デッキが1つもない場合は新規作成
         await createNewDeck();

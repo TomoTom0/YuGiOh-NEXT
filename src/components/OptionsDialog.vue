@@ -77,32 +77,16 @@
             </div>
           </div>
 
-          <!-- 左下2: Dialog Font Size -->
+          <!-- 右下: Right Area Width -->
           <div class="setting-block">
-            <div class="block-title">Dialog Font</div>
+            <div class="block-title">Right Area Width</div>
             <div class="size-grid">
               <button
                 v-for="preset in presets"
                 :key="preset.value"
                 class="size-btn"
-                :class="{ active: settingsStore.appSettings.dialogFontSize === preset.value }"
-                @click="settingsStore.setDialogFontSize(preset.value)"
-              >
-                {{ preset.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 右下2: Search UI Font Size -->
-          <div class="setting-block">
-            <div class="block-title">Search Font</div>
-            <div class="size-grid">
-              <button
-                v-for="preset in presets"
-                :key="preset.value"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.searchUIFontSize === preset.value }"
-                @click="settingsStore.setSearchUIFontSize(preset.value)"
+                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === preset.value.toUpperCase() }"
+                @click="settingsStore.setRightAreaWidth(preset.value.toUpperCase() as 'S' | 'M' | 'L' | 'XL')"
               >
                 {{ preset.label }}
               </button>

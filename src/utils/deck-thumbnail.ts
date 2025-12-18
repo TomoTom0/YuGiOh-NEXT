@@ -2,128 +2,203 @@
  * デッキサムネイル画像生成ユーティリティ
  *
  * デッキロードダイアログに表示するサムネイル用のカードID配列を生成する。
+ * またはサムネイル画像（WebP Data URL）を生成する。
  */
 
 import type { DeckInfo, DeckCardRef } from '@/types/deck';
-import type { DisplayCard } from '@/composables/deck/useDeckCardSorter';
-import { createDeckCardComparator } from '@/composables/deck/useDeckCardSorter';
-import { generateDeckCardUUID } from './deck-uuid-generator';
+import { getCardInfo } from '@/utils/card-utils';
+import { detectCardGameType } from '@/utils/page-detector';
+import { getCardImageUrl as getCardImageUrlHelper } from '@/types/card';
+import { buildFullUrl } from '@/utils/url-builder';
 
 /**
- * DeckCardRef[] を DisplayCard[] に変換する（quantity を展開）
- */
-function expandDeckCardRefs(refs: DeckCardRef[]): DisplayCard[] {
-  const result: DisplayCard[] = [];
-  for (const ref of refs) {
-    for (let i = 0; i < ref.quantity; i++) {
-      result.push({
-        cid: ref.cid,
-        ciid: parseInt(ref.ciid, 10),
-        uuid: generateDeckCardUUID(ref.cid, parseInt(ref.ciid, 10))
-      });
-    }
-  }
-  return result;
-}
-
-/**
- * ソート済み DisplayCard[] から重複なしでカードIDを選択する
+ * DeckCardRef[] から重複なしでカードIDを選択する（シンプル版）
  *
- * @param cards - ソート済み DisplayCard 配列
+ * @param refs - DeckCardRef 配列
  * @param maxCount - 最大選択枚数
+ * @param headPlacementCardIds - 手動先頭配置カードIDリスト
  * @param existingCids - 既に選択済みのカードIDのSet
  * @returns 選択されたカードID配列
+ *
+ * @remarks
+ * - 手動先頭枠があればそこから優先して選ぶ
+ * - 足りない場合は現在の並び順で最初から順に選ぶ
+ * - ソートは一切しない（パフォーマンス重視）
  */
-function selectUniqueCids(
-  cards: DisplayCard[],
+function selectCidsFromRefs(
+  refs: DeckCardRef[],
   maxCount: number,
+  headPlacementCardIds: string[],
   existingCids: Set<string>
 ): string[] {
   const result: string[] = [];
-  for (const card of cards) {
+
+  // 1. 手動先頭枠のカードを優先的に選ぶ
+  for (const ref of refs) {
     if (result.length >= maxCount) break;
-    if (existingCids.has(card.cid)) continue;
-    result.push(card.cid);
-    existingCids.add(card.cid);
+    if (existingCids.has(ref.cid)) continue;
+    if (headPlacementCardIds.includes(ref.cid)) {
+      result.push(ref.cid);
+      existingCids.add(ref.cid);
+    }
   }
+
+  // 2. 足りなければ現在の並び順で選ぶ
+  if (result.length < maxCount) {
+    for (const ref of refs) {
+      if (result.length >= maxCount) break;
+      if (existingCids.has(ref.cid)) continue;
+      result.push(ref.cid);
+      existingCids.add(ref.cid);
+    }
+  }
+
   return result;
 }
 
 /**
- * デッキのサムネイル用カードID配列を生成する
+ * デッキのサムネイル用カードID配列を生成する（シンプル版）
  *
  * @param deckInfo - デッキ情報
  * @param headPlacementCardIds - 手動先頭配置カードIDリスト
  * @returns サムネイル用カードID配列（最大5枚）
  *
  * @remarks
- * - ソート基準: sort-all-section と同じロジック（createDeckCardComparator）
- * - 基本: mainから3枚、extraから2枚
- * - sideに先頭配置がある場合: mainから2枚、extraから2枚、sideから1枚
- * - 選択ルール: 同じcidは1枚まで、手動先頭配置を優先、不足分はセクション先頭から選択
- * - 5枚に満たない場合も許容
+ * - サイドに固定があれば：サイド1枚、メイン2枚、エクストラ2枚
+ * - ない場合：メイン3枚、エクストラ2枚
+ * - 手動先頭枠があれば優先、足りなければ現在の並び順で先頭から選ぶ
+ * - 並び替えは一切しない（パフォーマンス重視）
  */
 export function generateDeckThumbnailCards(
   deckInfo: DeckInfo,
   headPlacementCardIds: string[] = []
 ): string[] {
-  // 1. DeckCardRef[] を DisplayCard[] に変換
-  const mainCards = expandDeckCardRefs(deckInfo.mainDeck);
-  const extraCards = expandDeckCardRefs(deckInfo.extraDeck);
-  const sideCards = expandDeckCardRefs(deckInfo.sideDeck);
+  const selectedCids = new Set<string>();
+  const result: string[] = [];
 
-  // 2. 各セクションをソート（sort-all-section と同じロジック）
-  const sortedMain = [...mainCards].sort(
-    createDeckCardComparator(mainCards, {
-      enableHeadPlacement: true,
-      headPlacementCardIds,
-      enableCategoryPriority: false,
-      enableTailPlacement: false
-    })
+  // 1. サイドに手動先頭枠があるか確認
+  const hasSideHeadPlacement = deckInfo.sideDeck.some(ref =>
+    headPlacementCardIds.includes(ref.cid)
   );
 
-  const sortedExtra = [...extraCards].sort(
-    createDeckCardComparator(extraCards, {
-      enableHeadPlacement: true,
-      headPlacementCardIds,
-      enableCategoryPriority: false,
-      enableTailPlacement: false
-    })
-  );
-
-  const sortedSide = [...sideCards].sort(
-    createDeckCardComparator(sideCards, {
-      enableHeadPlacement: true,
-      headPlacementCardIds,
-      enableCategoryPriority: false,
-      enableTailPlacement: false
-    })
-  );
-
-  // 3. sideに先頭配置があるか確認
-  const hasSideHeadPlacement = sortedSide.some(card =>
-    headPlacementCardIds.includes(card.cid)
-  );
-
-  // 4. 選択枚数を決定
+  // 2. 選択枚数を決定
   const mainCount = hasSideHeadPlacement ? 2 : 3;
   const extraCount = 2;
   const sideCount = hasSideHeadPlacement ? 1 : 0;
 
-  // 5. カードを選択（重複排除）
-  const selectedCids = new Set<string>();
-  const result: string[] = [];
-
-  // mainから選択
-  result.push(...selectUniqueCids(sortedMain, mainCount, selectedCids));
-
-  // extraから選択
-  result.push(...selectUniqueCids(sortedExtra, extraCount, selectedCids));
-
-  // sideから選択（必要な場合）
+  // 3. サイドから選択（必要な場合）
   if (sideCount > 0) {
-    result.push(...selectUniqueCids(sortedSide, sideCount, selectedCids));
+    result.push(...selectCidsFromRefs(
+      deckInfo.sideDeck,
+      sideCount,
+      headPlacementCardIds,
+      selectedCids
+    ));
   }
 
+  // 4. メインから選択
+  result.push(...selectCidsFromRefs(
+    deckInfo.mainDeck,
+    mainCount,
+    headPlacementCardIds,
+    selectedCids
+  ));
+
+  // 5. エクストラから選択
+  result.push(...selectCidsFromRefs(
+    deckInfo.extraDeck,
+    extraCount,
+    headPlacementCardIds,
+    selectedCids
+  ));
+
   return result;
+}
+
+/**
+ * デッキのサムネイル画像（WebP Data URL）を生成する
+ *
+ * @param deckInfo - デッキ情報
+ * @param headPlacementCardIds - 手動先頭配置カードIDリスト
+ * @returns WebP形式のData URL、または null
+ *
+ * @remarks
+ * - generateDeckThumbnailCards() でカードID配列を取得
+ * - Canvas に カード画像を描画
+ * - WebP形式に変換して Data URL を返す
+ */
+export async function generateDeckThumbnailImage(
+  deckInfo: DeckInfo,
+  headPlacementCardIds: string[] = []
+): Promise<string | null> {
+  try {
+    const cardIds = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
+
+    if (!cardIds || cardIds.length === 0) {
+      return null;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const cardWidth = 60;
+    const cardHeight = 87;
+    const gap = 2;
+    const padding = 4;
+
+    canvas.width = cardIds.length * cardWidth + (cardIds.length - 1) * gap + padding * 2;
+    canvas.height = cardHeight + padding * 2;
+
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const loadPromises = cardIds.map(async (cid, index) => {
+      const cardInfo = getCardInfo(cid);
+      if (!cardInfo) return;
+
+      const gameType = detectCardGameType();
+      const relativeUrl = getCardImageUrlHelper(cardInfo, gameType);
+      if (!relativeUrl) return;
+
+      const imgUrl = buildFullUrl(relativeUrl);
+
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const x = padding + index * (cardWidth + gap);
+          const y = padding;
+          ctx.drawImage(img, x, y, cardWidth, cardHeight);
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = imgUrl;
+      });
+    });
+
+    await Promise.all(loadPromises);
+
+    return await new Promise<string | null>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result;
+          if (typeof dataUrl === 'string') {
+            resolve(dataUrl);
+          } else {
+            resolve(null);
+          }
+        };
+        reader.readAsDataURL(blob);
+      }, 'image/webp', 0.6);
+    });
+  } catch (error) {
+    console.warn('Failed to generate thumbnail image:', error);
+    return null;
+  }
 }

@@ -173,11 +173,12 @@ describe('deck-thumbnail', () => {
       const result = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
 
       expect(result).toHaveLength(5);
-      // mainから3枚選択され、先頭配置が優先される
-      // m003（先頭配置1番目）、m001（先頭配置2番目）、その他1枚
+      // mainから3枚選択され、並び順を保ちながら先頭配置が優先される
+      // 並び順: m001（先頭配置）、m003（先頭配置）、m002（通常）
       const mainCards = result.filter(cid => cid.startsWith('m'));
-      expect(mainCards[0]).toBe('m003');
-      expect(mainCards[1]).toBe('m001');
+      expect(mainCards[0]).toBe('m001'); // 並び順で最初の先頭配置
+      expect(mainCards[1]).toBe('m003'); // 並び順で次の先頭配置
+      expect(mainCards[2]).toBe('m002'); // 足りない分は並び順で選ぶ
       expect(mainCards).toHaveLength(3);
     });
 
