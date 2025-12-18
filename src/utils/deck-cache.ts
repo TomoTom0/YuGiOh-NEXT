@@ -148,22 +148,46 @@ export function saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>):
 }
 
 /**
- * デッキ情報のハッシュを計算
+ * デッキ情報のハッシュを計算（高速化版）
+ *
+ * より効率的なハッシュアルゴリズムを使用して、パフォーマンスを向上させた。
+ * - JSON.stringify()をスキップして直接ハッシュ計算
+ * - FNV-1a ハッシュアルゴリズムを採用
  */
 export function calculateDeckHash(deckInfo: DeckInfo): string {
-  const content = JSON.stringify({
-    name: deckInfo.name,
-    main: deckInfo.mainDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
-    extra: deckInfo.extraDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
-    side: deckInfo.sideDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(',')
-  });
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+  // FNV-1a ハッシュアルゴリズム (32-bit)
+  let hash = 0x811c9dc5; // FNV offset basis
+  const FNV_PRIME = 0x01000193; // FNV prime
+
+  const hashString = (str: string): void => {
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = (hash * FNV_PRIME) >>> 0; // 32-bit に制限
+    }
+  };
+
+  // デッキ名をハッシュ化
+  hashString(deckInfo.name);
+  hashString('|');
+
+  // メインデッキをハッシュ化
+  for (const card of deckInfo.mainDeck) {
+    hashString(`${card.cid}:${card.ciid}:${card.quantity},`);
   }
-  return hash.toString(36);
+  hashString('|');
+
+  // エクストラデッキをハッシュ化
+  for (const card of deckInfo.extraDeck) {
+    hashString(`${card.cid}:${card.ciid}:${card.quantity},`);
+  }
+  hashString('|');
+
+  // サイドデッキをハッシュ化
+  for (const card of deckInfo.sideDeck) {
+    hashString(`${card.cid}:${card.ciid}:${card.quantity},`);
+  }
+
+  return (hash >>> 0).toString(36);
 }
 
 /**
@@ -394,6 +418,7 @@ export async function generateThumbnailsInBackground(
 
   for (let i = 0; i < targetDecks.length; i++) {
     const deck = targetDecks[i];
+    if (!deck) continue;
     const currentDno = deck.dno;
 
     // 前回のこのdnoの位置

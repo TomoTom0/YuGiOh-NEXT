@@ -194,7 +194,7 @@ function renderFAQContent(faqData: CardFAQList): string {
     });
     html += '</div>';
   } else if (!faqData.supplementInfo && !faqData.pendulumSupplementInfo) {
-    html += '<p style="text-align: center; color: #999;">Q&A情報がありません</p>';
+    html += '<p class="ygo-next no-faq-message">Q&A情報がありません</p>';
   }
 
   html += '</div>';
@@ -217,6 +217,7 @@ async function updateTabContent(): Promise<void> {
   if (currentTab === 'info') {
     // Info タブ: カード情報を表示
     const escapedName = escapeHtml(selectedCard.name || 'Unknown');
+    const escapedCardId = escapeHtml(String(selectedCard.cardId));
     const escapedType = selectedCard.type ? `<div class="ygo-next card-type">${escapeHtml(selectedCard.type)}</div>` : '';
     const escapedAttribute = selectedCard.attribute ? `<div class="ygo-next card-attribute">${escapeHtml(selectedCard.attribute)}</div>` : '';
     const escapedRace = selectedCard.race ? `<div class="ygo-next card-race">${escapeHtml(selectedCard.race)}</div>` : '';
@@ -224,7 +225,7 @@ async function updateTabContent(): Promise<void> {
     const html = `
       <div class="ygo-next card-detail-info">
         <div class="ygo-next card-name"><strong>${escapedName}</strong></div>
-        <div class="ygo-next card-id">ID: ${selectedCard.cardId}</div>
+        <div class="ygo-next card-id">ID: ${escapedCardId}</div>
         ${escapedType}
         ${escapedAttribute}
         ${escapedRace}
@@ -233,13 +234,13 @@ async function updateTabContent(): Promise<void> {
     setSafeInnerHTML(contentContainer, html);
   } else if (currentTab === 'qa') {
     // Q&A タブ: FAQ データを取得して表示
-    setSafeInnerHTML(contentContainer, '<p style="text-align: center; color: #999;">読み込み中...</p>');
+    setSafeInnerHTML(contentContainer, '<p class="ygo-next card-detail-loading">読み込み中...</p>');
 
     const faqData = await fetchFAQData(selectedCard.cardId);
     if (faqData) {
       setSafeInnerHTML(contentContainer, renderFAQContent(faqData));
     } else {
-      setSafeInnerHTML(contentContainer, '<p style="text-align: center; color: #999;">Q&A情報を読み込めません</p>');
+      setSafeInnerHTML(contentContainer, '<p class="ygo-next card-detail-error">Q&A情報を読み込めません</p>');
     }
   }
 }
