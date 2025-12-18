@@ -1,7 +1,13 @@
+/**
+ * @vitest-environment node
+ */
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { JSDOM } from 'jsdom';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // テスト用にfetch をモック
 global.DOMParser = (new JSDOM('').window).DOMParser;

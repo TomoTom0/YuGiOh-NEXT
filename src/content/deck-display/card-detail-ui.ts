@@ -14,6 +14,7 @@ import { DeckInfo } from '@/types/deck'
 import { getTempCardDB } from '@/utils/temp-card-db'
 import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
 import { escapeHtml } from '@/utils/safe-html-renderer'
+import { EXTENSION_IDS, OFFICIAL_SITE_SELECTORS, getExtensionIdSelector } from '@/utils/dom-selectors'
 
 interface SelectedCard {
   cardId?: number;
@@ -76,13 +77,18 @@ export async function initCardDetailUI(): Promise<void> {
   }
 
   // タブボタンのクリックイベント
-  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const cardDetailContainerSelector = getExtensionIdSelector(EXTENSION_IDS.deckDisplay.cardDetailContainer);
+  const tabButtons = safeQueryAll<HTMLElement>(`${cardDetailContainerSelector} .ygo-next.tab-btn`);
   tabButtons.forEach(button => {
     button.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
-      const tabName = target.getAttribute('data-tab') as 'info' | 'qa';
-      if (tabName) {
-        await switchTab(tabName);
+      try {
+        const target = e.target as HTMLElement;
+        const tabName = target.getAttribute('data-tab') as 'info' | 'qa';
+        if (tabName) {
+          await switchTab(tabName);
+        }
+      } catch (error) {
+        console.error('[CardDetailUI] Tab click error:', error);
       }
     });
   });
@@ -98,7 +104,8 @@ async function switchTab(tabName: 'info' | 'qa'): Promise<void> {
   currentTab = tabName;
 
   // ボタンのアクティブ状態を更新
-  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const cardDetailContainerSelector = getExtensionIdSelector(EXTENSION_IDS.deckDisplay.cardDetailContainer);
+  const tabButtons = safeQueryAll<HTMLElement>(`${cardDetailContainerSelector} .ygo-next.tab-btn`);
   tabButtons.forEach(button => {
     button.classList.remove('ygo-next-active');
     if (button.getAttribute('data-tab') === tabName) {
@@ -194,7 +201,8 @@ function renderFAQContent(faqData: CardFAQList): string {
  * タブコンテンツを更新
  */
 async function updateTabContent(): Promise<void> {
-  const contentContainer = safeQuery<HTMLElement>('#ygo-next-card-info-content');
+  const cardInfoContentSelector = getExtensionIdSelector(EXTENSION_IDS.deckDisplay.cardInfoContent);
+  const contentContainer = safeQuery<HTMLElement>(cardInfoContentSelector);
   if (!contentContainer) return;
 
   if (!selectedCard || !selectedCard.cardId) {
@@ -235,7 +243,7 @@ function setupCardClickListeners(): void {
     attachCardClickHandlers();
   });
 
-  const deckImage = safeQuery<HTMLElement>('#deck_image');
+  const deckImage = safeQuery<HTMLElement>(OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage);
   if (deckImage) {
     observer.observe(deckImage, {
       childList: true,
@@ -289,7 +297,7 @@ function findCardInParsedDeck(cid: string): any | null {
  */
 function attachCardClickHandlers(): void {
   // デッキセクション内のカード画像を取得
-  const deckImageContainer = safeQuery<HTMLElement>('#deck_image');
+  const deckImageContainer = safeQuery<HTMLElement>(OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage);
   if (!deckImageContainer) {
     return;
   }
@@ -313,36 +321,40 @@ function attachCardClickHandlers(): void {
       img.style.cursor = 'pointer';
 
       img.addEventListener('click', async (e) => {
-        e.stopPropagation();
+        try {
+          e.stopPropagation();
 
-        // img IDからciidを抽出
-        // img IDの形式: card_image_<index>_<ciid>
-        const imgId = img.getAttribute('id') || '';
-        const idMatch = imgId.match(/card_image_\d+_(\d+)/);
-        const ciid: string | undefined = idMatch?.[1];
+          // img IDからciidを抽出
+          // img IDの形式: card_image_<index>_<ciid>
+          const imgId = img.getAttribute('id') || '';
+          const idMatch = imgId.match(/card_image_\d+_(\d+)/);
+          const ciid: string | undefined = idMatch?.[1];
 
-        // img のsrcからcidを抽出
-        const src = img.getAttribute('src') || '';
-        const cidMatch = src.match(/cid=(\d+)/);
-        if (cidMatch && cidMatch[1]) {
-          const cid: string = cidMatch[1];
+          // img のsrcからcidを抽出
+          const src = img.getAttribute('src') || '';
+          const cidMatch = src.match(/cid=(\d+)/);
+          if (cidMatch && cidMatch[1]) {
+            const cid: string = cidMatch[1];
 
-          // パースされたデッキ情報からカード情報を検索
-          let cardInfo = findCardInParsedDeck(cid);
-          if (cardInfo && ciid) {
-            // 抽出したciidでカード情報を更新
-            cardInfo = {
-              ...cardInfo,
-              ciid: ciid as string
-            };
+            // パースされたデッキ情報からカード情報を検索
+            let cardInfo = findCardInParsedDeck(cid);
+            if (cardInfo && ciid) {
+              // 抽出したciidでカード情報を更新
+              cardInfo = {
+                ...cardInfo,
+                ciid: ciid as string
+              };
+            }
+
+            if (cardInfo) {
+              // 検索したカード情報でselectCard()を呼び出し
+              await selectCard(cardInfo);
+            } else {
+              console.error('[CardDetailUI] Card not found in parsed deck:', cid);
+            }
           }
-
-          if (cardInfo) {
-            // 検索したカード情報でselectCard()を呼び出し
-            await selectCard(cardInfo);
-          } else {
-            console.error('[CardDetailUI] Card not found in parsed deck:', cid);
-          }
+        } catch (error) {
+          console.error('[CardDetailUI] Card click error:', error);
         }
       });
     }
@@ -405,7 +417,8 @@ async function selectCard(cardInfo: any): Promise<void> {
   }
 
   // Tab ボタンのアクティブ状態をリセット
-  const tabButtons = safeQueryAll<HTMLElement>('#ygo-next-card-detail-container .ygo-next.tab-btn');
+  const cardDetailContainerSelector = getExtensionIdSelector(EXTENSION_IDS.deckDisplay.cardDetailContainer);
+  const tabButtons = safeQueryAll<HTMLElement>(`${cardDetailContainerSelector} .ygo-next.tab-btn`);
   tabButtons.forEach(button => {
     button.classList.remove('ygo-next-active');
     if (button.getAttribute('data-tab') === 'info') {

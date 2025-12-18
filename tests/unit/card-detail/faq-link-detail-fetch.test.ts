@@ -5,6 +5,7 @@
  * - リンクマーカー取得テスト
  * - ペンデュラムスケール/テキスト取得テスト
  * - モンスター/魔法/罠判定テスト（parseCardDetailBasicInfo）
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

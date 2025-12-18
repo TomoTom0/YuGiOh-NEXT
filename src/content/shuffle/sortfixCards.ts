@@ -3,6 +3,7 @@
  */
 
 import { safeQuery, safeQueryAll } from '../../utils/safe-dom-query';
+import { OFFICIAL_SITE_SELECTORS } from '../../utils/dom-selectors';
 
 /**
  * カード要素にsortfix機能を追加
@@ -12,7 +13,7 @@ export function initSortfixForCards(): void {
   const sections = ['main', 'extra', 'side'];
 
   sections.forEach((sectionId) => {
-    const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
+    const imageSet = safeQuery<HTMLElement>(`${OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage} #${sectionId}.card_set div.image_set`);
     if (!imageSet) {
       return;
     }
@@ -114,7 +115,7 @@ export function getSortfixedCards(): Element[] {
   const allSortfixedCards: Element[] = [];
 
   sections.forEach((sectionId) => {
-    const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
+    const imageSet = safeQuery<HTMLElement>(`${OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage} #${sectionId}.card_set div.image_set`);
     if (!imageSet) {
       return;
     }

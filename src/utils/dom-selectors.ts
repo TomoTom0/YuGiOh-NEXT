@@ -42,6 +42,8 @@ export const OFFICIAL_SITE_SELECTORS = {
   deckRecipe: {
     /** 下部ボタンセット */
     bottomButtonSet: '#bottom_btn_set',
+    /** デッキ画像コンテナ */
+    deckImage: '#deck_image',
   },
 } as const
 
@@ -109,6 +111,8 @@ export const EXTENSION_IDS = {
     deckDisplayApp: 'ygo-next-deck-display-app',
     /** カード詳細コンテナ */
     cardDetailContainer: 'ygo-next-card-detail-container',
+    /** カード情報コンテンツエリア */
+    cardInfoContent: 'ygo-next-card-info-content',
   },
 } as const
 
