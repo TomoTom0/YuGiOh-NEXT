@@ -75,12 +75,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
 import { loadThumbnailCache, loadDeckInfoCache } from '@/utils/deck-cache'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
-defineProps<{
+const props = defineProps<{
   isVisible: boolean
 }>()
 
@@ -97,6 +97,16 @@ const cachedDeckInfos = ref(loadDeckInfoCache())
 // ページング用の現在のページ
 const currentPage = ref(0)
 const ITEMS_PER_PAGE = 50
+
+// ダイアログ表示時にキャッシュを再読み込み（DeckEditLayoutで生成されたサムネイルを反映）
+watch(() => props.isVisible, (newVal) => {
+  if (newVal) {
+    // ダイアログが表示された時、最新のキャッシュを読み込み
+    deckThumbnails.value = loadThumbnailCache()
+    cachedDeckInfos.value = loadDeckInfoCache()
+    console.debug('[LoadDialog] Refreshed cache on dialog open')
+  }
+})
 
 
 // ダイアログを閉じる
