@@ -5,14 +5,17 @@
  */
 
 import { generateDeckThumbnailImage } from '@/utils/deck-thumbnail';
+import { DeckInfo, DeckListItem } from '@/types/deck';
+import { DeckCardRef } from '@/types/card';
+import { DeckCategory } from '@/types/deck-metadata';
 
 export interface CachedDeckInfo {
   dno: number
   name: string
-  category?: string[]
-  mainDeck: any[]
-  extraDeck: any[]
-  sideDeck: any[]
+  category?: DeckCategory
+  mainDeck: DeckCardRef[]
+  extraDeck: DeckCardRef[]
+  sideDeck: DeckCardRef[]
   lastUpdated: number
   hash: string
   cardCount?: {
@@ -42,7 +45,7 @@ export function loadDeckListOrder(): number[] {
 /**
  * localStorage に deckList の順序（dno配列）を保存
  */
-export function saveDeckListOrder(deckList: any[]): void {
+export function saveDeckListOrder(deckList: DeckListItem[]): void {
   try {
     const order = deckList.map(deck => deck.dno);
     localStorage.setItem('ygo_deck_list_order', JSON.stringify(order));
@@ -54,7 +57,7 @@ export function saveDeckListOrder(deckList: any[]): void {
 /**
  * deckList の順序が変わったかチェック
  */
-export function isDeckListOrderChanged(currentDeckList: any[]): boolean {
+export function isDeckListOrderChanged(currentDeckList: DeckListItem[]): boolean {
   const previousOrder = loadDeckListOrder();
   const currentOrder = currentDeckList.map(deck => deck.dno);
 
@@ -147,12 +150,12 @@ export function saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>):
 /**
  * デッキ情報のハッシュを計算
  */
-export function calculateDeckHash(deckInfo: any): string {
+export function calculateDeckHash(deckInfo: DeckInfo): string {
   const content = JSON.stringify({
     name: deckInfo.name,
-    main: deckInfo.mainDeck.map((c: any) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
-    extra: deckInfo.extraDeck.map((c: any) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
-    side: deckInfo.sideDeck.map((c: any) => `${c.cid}:${c.ciid}:${c.quantity}`).join(',')
+    main: deckInfo.mainDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
+    extra: deckInfo.extraDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(','),
+    side: deckInfo.sideDeck.map((c: DeckCardRef) => `${c.cid}:${c.ciid}:${c.quantity}`).join(',')
   });
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
@@ -168,7 +171,7 @@ export function calculateDeckHash(deckInfo: any): string {
  */
 export function isDeckInfoChanged(
   dno: number,
-  deckInfo: any,
+  deckInfo: DeckInfo,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): boolean {
   const cached = cachedDeckInfos.get(dno);
@@ -193,28 +196,17 @@ export function isCacheExpired(
  */
 export async function generateAndCacheThumbnail(
   dno: number,
-  deckInfo: any,
+  deckInfo: DeckInfo,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): Promise<void> {
   try {
     // デッキ情報をキャッシュに保存（サムネイル生成の前）
-    const mainDeckData = deckInfo.mainDeck.map((card: any) => ({
-      cid: card.cid,
-      ciid: card.ciid,
-      quantity: card.quantity
-    }));
-    const extraDeckData = deckInfo.extraDeck.map((card: any) => ({
-      cid: card.cid,
-      ciid: card.ciid,
-      quantity: card.quantity
-    }));
-    const sideDeckData = deckInfo.sideDeck.map((card: any) => ({
-      cid: card.cid,
-      ciid: card.ciid,
-      quantity: card.quantity
-    }));
+    // DeckCardRef はそのまま使用可能（既に型安全）
+    const mainDeckData: DeckCardRef[] = deckInfo.mainDeck;
+    const extraDeckData: DeckCardRef[] = deckInfo.extraDeck;
+    const sideDeckData: DeckCardRef[] = deckInfo.sideDeck;
 
     const cachedInfo: CachedDeckInfo = {
       dno,
@@ -226,9 +218,9 @@ export async function generateAndCacheThumbnail(
       lastUpdated: Date.now(),
       hash: calculateDeckHash(deckInfo),
       cardCount: {
-        main: mainDeckData.reduce((sum: number, card: any) => sum + card.quantity, 0),
-        extra: extraDeckData.reduce((sum: number, card: any) => sum + card.quantity, 0),
-        side: sideDeckData.reduce((sum: number, card: any) => sum + card.quantity, 0)
+        main: mainDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0),
+        extra: extraDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0),
+        side: sideDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0)
       }
     };
     cachedDeckInfos.set(dno, cachedInfo);
@@ -250,9 +242,9 @@ export async function generateAndCacheThumbnail(
  */
 async function checkDeckNeedsUpdate(
   dno: number,
-  getDeckDetail: (dno: number) => Promise<any>,
+  getDeckDetail: (dno: number) => Promise<DeckInfo | null>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
-): Promise<{ needsUpdate: boolean; deckInfo: any | null }> {
+): Promise<{ needsUpdate: boolean; deckInfo: DeckInfo | null }> {
   try {
     // デッキ情報を取得（変更検出に必要）
     const deckInfo = await getDeckDetail(dno);
@@ -275,7 +267,7 @@ async function checkDeckNeedsUpdate(
  */
 export async function updateDeckInfoAndThumbnail(
   dno: number,
-  getDeckDetail: (dno: number) => Promise<any>,
+  getDeckDetail: (dno: number) => Promise<DeckInfo | null>,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
@@ -302,7 +294,7 @@ export async function updateDeckInfoAndThumbnail(
  */
 export async function updateDeckInfoAndThumbnailWithData(
   dno: number,
-  deckInfo: any,
+  deckInfo: DeckInfo,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
@@ -382,8 +374,8 @@ function isSubsequence<T>(subsequence: T[], sequence: T[]): boolean {
 export async function generateThumbnailsInBackground(
   startIndex: number = 0,
   batchSize: number = 50,
-  deckList: any[],
-  getDeckDetail: (dno: number) => Promise<any>,
+  deckList: DeckListItem[],
+  getDeckDetail: (dno: number) => Promise<DeckInfo | null>,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
@@ -397,7 +389,7 @@ export async function generateThumbnailsInBackground(
   const targetDecks = deckList.slice(startIndex, endIndex);
 
   // フェーズ1: 変更判定のみ（画像生成は行わない）
-  const decksToUpdate: Array<{ dno: number; deckInfo: any }> = [];
+  const decksToUpdate: Array<{ dno: number; deckInfo: DeckInfo }> = [];
   let consecutiveSkipped = 0;
 
   for (let i = 0; i < targetDecks.length; i++) {
