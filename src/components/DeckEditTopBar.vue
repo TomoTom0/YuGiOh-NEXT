@@ -377,7 +377,6 @@ export default {
     const handleLoadClick = async () => {
       await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
-          await deckStore.fetchDeckList()
           selectedDeckDno.value = null
         }
         deckStore.showLoadDialog = !deckStore.showLoadDialog

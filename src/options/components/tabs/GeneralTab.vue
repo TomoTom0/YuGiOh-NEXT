@@ -48,11 +48,27 @@
         <p class="section-desc">
           全ての設定を初期値に戻します。この操作は取り消せません。
         </p>
-        <button class="danger-button" @click="handleReset">
+        <button class="danger-button" @click="showResetConfirm = true">
           全ての設定をリセット
         </button>
         <div v-if="resetMessage" class="message success">
           {{ resetMessage }}
+        </div>
+      </div>
+
+      <!-- 確認ダイアログ -->
+      <div v-if="showResetConfirm" class="confirm-overlay" @click="showResetConfirm = false">
+        <div class="confirm-dialog" @click.stop>
+          <h3 class="confirm-title">設定リセットの確認</h3>
+          <p class="confirm-message">本当に全ての設定をリセットしますか？この操作は取り消せません。</p>
+          <div class="confirm-buttons">
+            <button class="confirm-cancel-btn" @click="showResetConfirm = false">
+              キャンセル
+            </button>
+            <button class="confirm-ok-btn" @click="handleResetConfirmed">
+              リセット
+            </button>
+          </div>
         </div>
       </div>
 
@@ -79,15 +95,15 @@ import { ref } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
 const settingsStore = useSettingsStore();
 const resetMessage = ref('');
+const showResetConfirm = ref(false);
 
-const handleReset = async () => {
-  if (confirm('本当に全ての設定をリセットしますか？この操作は取り消せません。')) {
-    await settingsStore.resetSettings();
-    resetMessage.value = '設定をリセットしました';
-    setTimeout(() => {
-      resetMessage.value = '';
-    }, 3000);
-  }
+const handleResetConfirmed = async () => {
+  showResetConfirm.value = false;
+  await settingsStore.resetSettings();
+  resetMessage.value = '設定をリセットしました';
+  setTimeout(() => {
+    resetMessage.value = '';
+  }, 3000);
 };
 </script>
 
@@ -263,6 +279,91 @@ const handleReset = async () => {
   }
   to {
     opacity: 1;
+  }
+}
+
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-dialog {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirm-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.confirm-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-cancel-btn,
+.confirm-ok-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-cancel-btn {
+  color: var(--text-primary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+
+  &:hover {
+    background-color: var(--bg-secondary);
+  }
+}
+
+.confirm-ok-btn {
+  color: var(--button-text);
+  background-color: var(--color-error);
+
+  &:hover {
+    background-color: var(--color-error-hover);
   }
 }
 </style>
