@@ -27,6 +27,7 @@
 
 - deck-cache.ts の型安全性を改善。any型をDeckInfo/DeckListItem/DeckCardRef型に置き換えてIDE サポート改善。（TASK-196）
 - unified-cache-db.ts の型安全性を改善。MoveHistoryEntry を定義しany型を削減。（TASK-197）
+- card-detail-ui.ts の Floating Promise を修正。イベントリスナー内の非同期処理に.catch()を追加。（TASK-198）
 - card-detail-ui.ts の innerHTML 使用を setSafeInnerHTML に置き換え。XSS脆弱性を修正。（TASK-199）
 - dom-selectors.ts の使用を徹底。card-detail-ui.ts, sortfixCards.ts等でハードコードされたセレクタを置き換え。（TASK-200）
 
