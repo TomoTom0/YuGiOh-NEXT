@@ -624,6 +624,23 @@ export default {
       if (settingsStore.appSettings.ux.changeFavicon) {
         changeFavicon()
       }
+
+      // ページロード時にキャッシュを読み込み、最初の50個のデッキのサムネイルを生成
+      const deckThumbnails = loadThumbnailCache()
+      const cachedDeckInfos = loadDeckInfoCache()
+
+      if (deckStore.deckList && deckStore.deckList.length > 0) {
+        console.debug('[DeckEditLayout] Starting background thumbnail generation on page load')
+        generateThumbnailsInBackground(
+          0, // startIndex: 最初から
+          50, // batchSize: 最初の50個
+          deckStore.deckList,
+          (dno: number) => deckStore.getDeckDetail(dno),
+          deckStore.headPlacementCardIds,
+          deckThumbnails,
+          cachedDeckInfos
+        )
+      }
     })
 
     /**
