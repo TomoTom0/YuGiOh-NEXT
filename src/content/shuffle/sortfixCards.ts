@@ -3,6 +3,8 @@
  */
 
 import { safeQuery, safeQueryAll } from '../../utils/safe-dom-query';
+import { OFFICIAL_SITE_SELECTORS } from '../../utils/dom-selectors';
+import { LOCK_CLOSED_ICON, LOCK_OPEN_ICON } from '../../utils/shuffle-icons';
 
 /**
  * カード要素にsortfix機能を追加
@@ -12,7 +14,7 @@ export function initSortfixForCards(): void {
   const sections = ['main', 'extra', 'side'];
 
   sections.forEach((sectionId) => {
-    const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
+    const imageSet = safeQuery<HTMLElement>(`${OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage} #${sectionId}.card_set div.image_set`);
     if (!imageSet) {
       return;
     }
@@ -69,21 +71,11 @@ function updateSortfixIcon(cardLink: HTMLElement, topRightBtn: HTMLElement): voi
 
   if (isSortfixed) {
     // sortfix ON: 南京錠アイコン（閉じた状態）
-    topRightBtn.innerHTML = `
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="5" y="11" width="14" height="10" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="2"/>
-      </svg>
-    `;
+    topRightBtn.innerHTML = LOCK_CLOSED_ICON;
     topRightBtn.classList.add('is-sortfixed');
   } else {
     // sortfix OFF: 南京錠アイコン（開いた状態）
-    topRightBtn.innerHTML = `
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="5" y="11" width="14" height="10" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-        <path d="M7 11V7a5 5 0 0 1 5-5c1.5 0 2.8 0.6 3.7 1.5M17 11V8" stroke="currentColor" stroke-width="2"/>
-      </svg>
-    `;
+    topRightBtn.innerHTML = LOCK_OPEN_ICON;
     topRightBtn.classList.remove('is-sortfixed');
   }
 }
@@ -114,7 +106,7 @@ export function getSortfixedCards(): Element[] {
   const allSortfixedCards: Element[] = [];
 
   sections.forEach((sectionId) => {
-    const imageSet = safeQuery<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
+    const imageSet = safeQuery<HTMLElement>(`${OFFICIAL_SITE_SELECTORS.deckRecipe.deckImage} #${sectionId}.card_set div.image_set`);
     if (!imageSet) {
       return;
     }

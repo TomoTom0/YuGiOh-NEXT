@@ -2,6 +2,7 @@
  * カード検索・キャッシュ機能のテスト
  * - parseSearchResults()のカード情報パース
  * - saveCardDetailToCache()のUnifiedCacheDB保存
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

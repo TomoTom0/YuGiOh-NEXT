@@ -88,8 +88,8 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  close: []
-  deckLoaded: []
+  (e: 'close'): void
+  (e: 'deckLoaded'): void
 }>()
 
 const deckStore = useDeckEditStore()

@@ -156,7 +156,92 @@ function blobToDataURL(blob: Blob): Promise<string | null> {
 }
 
 /**
- * デッキのサムネイル画像（WebP Data URL）を生成する
+ * 画像を読み込み、Canvasに描画する（Image.decode()使用、高速化版）
+ *
+ * @param ctx - Canvas 2D コンテキスト
+ * @param imgUrl - 画像URL
+ * @param index - 画像インデックス（描画位置計算用）
+ * @param cardWidth - カード幅
+ * @param cardHeight - カード高さ
+ * @param gap - カード間隔
+ * @param padding - キャンバス内余白
+ * @returns 成功時は true、失敗時は false
+ *
+ * @remarks
+ * - Image.decode() で画像デコード完了を待つ（onload より高速）
+ * - エラー時は失敗を示す false を返す（スキップ可能）
+ */
+async function loadAndDrawCardImage(
+  ctx: CanvasRenderingContext2D,
+  imgUrl: string,
+  index: number,
+  cardWidth: number,
+  cardHeight: number,
+  gap: number,
+  padding: number
+): Promise<boolean> {
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = imgUrl;
+
+    // Image.decode() で画像デコード完了を待つ（onload より高速で安全）
+    await img.decode();
+
+    const x = padding + index * (cardWidth + gap);
+    const y = padding;
+    ctx.drawImage(img, x, y, cardWidth, cardHeight);
+    return true;
+  } catch (error) {
+    // 画像読み込み失敗は無視（デッキサムネイルは部分的でも問題ない）
+    return false;
+  }
+}
+
+/**
+ * Promise 制御版の Promise.all（並列数制限付き）
+ *
+ * @param tasks - 非同期タスク配列
+ * @param concurrency - 並列実行数制限（デフォルト: 2）
+ * @returns 全てのタスクが完了した時に resolve
+ *
+ * @remarks
+ * - 一度に指定数のタスクのみを実行
+ * - タスク完了時に次のタスクを開始
+ * - 高負荷なリソース（画像読み込み）の並列数制限に有効
+ */
+async function promiseAllConcurrent<T>(
+  tasks: Array<() => Promise<T>>,
+  concurrency: number = 2
+): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let index = 0;
+
+  async function executeTask(taskIndex: number): Promise<void> {
+    const task = tasks[taskIndex];
+    try {
+      results[taskIndex] = await task();
+    } catch (error) {
+      (results as any)[taskIndex] = undefined;
+    }
+  }
+
+  async function executeNextTasks(): Promise<void> {
+    while (index < tasks.length) {
+      const currentIndex = index++;
+      await executeTask(currentIndex);
+    }
+  }
+
+  // 並列数に制限して全てのタスクを実行
+  const workers = Array.from({ length: Math.min(concurrency, tasks.length) });
+  await Promise.all(workers.map(() => executeNextTasks()));
+
+  return results;
+}
+
+/**
+ * デッキのサムネイル画像（WebP Data URL）を生成する（最適化版）
  *
  * @param deckInfo - デッキ情報
  * @param headPlacementCardIds - 手動先頭配置カードIDリスト
@@ -164,6 +249,8 @@ function blobToDataURL(blob: Blob): Promise<string | null> {
  *
  * @remarks
  * - generateDeckThumbnailCards() でカードID配列を取得
+ * - 画像読み込みを最大2並列に制限（リソース効率化）
+ * - Image.decode() で高速な画像デコード
  * - Canvas に カード画像を描画
  * - WebP形式に変換して Data URL を返す
  */
@@ -175,12 +262,18 @@ export async function generateDeckThumbnailImage(
     const cardIds = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
 
     if (!cardIds || cardIds.length === 0) {
+      console.debug('[DeckThumbnail] No cards selected for thumbnail');
       return null;
     }
 
+    console.debug('[DeckThumbnail] Generating thumbnail with', cardIds.length, 'cards');
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
+    if (!ctx) {
+      console.debug('[DeckThumbnail] Failed to get canvas context');
+      return null;
+    }
 
     const cardWidth = 60;
     const cardHeight = 87;
@@ -193,40 +286,45 @@ export async function generateDeckThumbnailImage(
     ctx.fillStyle = '#2a2a2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const loadPromises = cardIds.map(async (cid, index) => {
+    // 画像読み込みタスク配列（遅延実行で並列数制限を実現）
+    const loadTasks = cardIds.map((cid, index) => async () => {
       const cardInfo = getCardInfo(cid);
-      if (!cardInfo) return;
+      if (!cardInfo) return false;
 
       const gameType = detectCardGameType();
       const relativeUrl = getCardImageUrlHelper(cardInfo, gameType);
-      if (!relativeUrl) return;
+      if (!relativeUrl) return false;
 
       const imgUrl = buildFullUrl(relativeUrl);
 
-      return new Promise<void>((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          const x = padding + index * (cardWidth + gap);
-          const y = padding;
-          ctx.drawImage(img, x, y, cardWidth, cardHeight);
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = imgUrl;
-      });
+      // 最大2並列での画像読み込み
+      return await loadAndDrawCardImage(
+        ctx,
+        imgUrl,
+        index,
+        cardWidth,
+        cardHeight,
+        gap,
+        padding
+      );
     });
 
-    await Promise.all(loadPromises);
+    // 並列数2に制限して全ての画像を読み込み
+    console.debug('[DeckThumbnail] Starting concurrent image loading with concurrency=2');
+    await promiseAllConcurrent(loadTasks, 2);
+    console.debug('[DeckThumbnail] Image loading completed');
 
     // Canvas を Blob に変換
     const blob = await toBlobPromise(canvas, 'image/webp', 0.6);
     if (!blob) {
+      console.debug('[DeckThumbnail] Failed to convert canvas to blob');
       return null;
     }
 
     // Blob を Data URL に変換
-    return await blobToDataURL(blob);
+    const dataUrl = await blobToDataURL(blob);
+    console.debug('[DeckThumbnail] Thumbnail generation completed successfully');
+    return dataUrl;
   } catch (error) {
     console.warn('Failed to generate thumbnail image:', error);
     return null;
