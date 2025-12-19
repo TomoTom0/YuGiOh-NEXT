@@ -12,9 +12,6 @@
       @show-category-dialog="showCategoryDialog = true"
     />
 
-    <!-- 公開側情報（公開デッキの場合のみ表示） -->
-    <DeckPublicInfo />
-
     <!-- ダイアログコンポーネント -->
     <TagDialog
       :model-value="localTags"
@@ -66,7 +63,6 @@ import TagDialog from './TagDialog.vue';
 import DeckMetadataDescription from './DeckMetadataDescription.vue';
 import DeckMetadataTags from './DeckMetadataTags.vue';
 import DeckMetadataHeader from './DeckMetadataHeader.vue';
-import DeckPublicInfo from './DeckPublicInfo.vue';
 import { getCardInfoFromUnifiedDB } from '../utils/card-utils';
 
 const deckStore = useDeckEditStore();

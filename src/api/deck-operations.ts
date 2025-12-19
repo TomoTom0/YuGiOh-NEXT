@@ -558,20 +558,9 @@ export async function issueDeckCodeInternal(cgid: string, dno: number): Promise<
     const parser = new DOMParser();
     const doc = parser.parseFromString(response.data, 'text/html');
 
-    // デバッグ：HTMLの#copy-code周辺を確認
-    const copyCodeBtn = doc.querySelector('#copy-code');
-    const allScripts = doc.querySelectorAll('script');
-    console.debug('[issueDeckCodeInternal]', {
-      copyCodeBtnExists: !!copyCodeBtn,
-      scriptCount: allScripts.length,
-      htmlLength: response.data.length
-    });
-
     // HTMLから発行済みデッキコードを抽出
     const { extractIssuedDeckCode } = await import('@/content/parser/deck-detail-parser');
     const deckCode = extractIssuedDeckCode(doc);
-
-    console.debug('[issueDeckCodeInternal]', `Extracted deck code: "${deckCode}"`);
 
     if (deckCode && deckCode.trim()) {
       return deckCode;

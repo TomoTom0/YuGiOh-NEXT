@@ -317,7 +317,7 @@ async function issueDeckCode() {
       deckCode.value = code
       // store にも保存
       deckStore.deckInfo.issuedDeckCode = code
-      handleSuccess('[DeckMetadataHeader]', `デッキコードを発行しました: ${code}`)
+      handleSuccess('[DeckMetadataHeader]', 'デッキコードを発行しました')
     } else {
       handleError(
         '[DeckMetadataHeader]',

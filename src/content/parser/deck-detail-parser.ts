@@ -799,9 +799,9 @@ export function extractIssuedDeckCode(doc: Document): string {
     // #copy-code を含む部分を抽出（クリックハンドラー周辺）
     // パターン: $('#copy-code').click(function () { navigator.clipboard.writeText('CODE'); });
     // 改行やインデントに対応するため、[\s\S]*? を使用
-    // 引用符はシングルクォート固定
+    // シングルクォート、ダブルクォートの両方に対応
     const copyCodeMatch = scriptText.match(
-      /\$\('#copy-code'\)\.click\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*'([^']*)'/
+      /\$\('#copy-code'\)\.click\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*['"]([^'"]*)['"]/
     );
 
     if (copyCodeMatch && copyCodeMatch[1] !== undefined) {
