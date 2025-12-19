@@ -86,7 +86,7 @@ export async function initCardDetailUI(): Promise<void> {
   tabButtons.forEach(button => {
     button.addEventListener('click', async (e) => {
       try {
-        const target = e.target as HTMLElement;
+        const target = e.currentTarget as HTMLElement;
         const tabName = target.getAttribute('data-tab') as 'info' | 'qa';
         if (tabName) {
           await switchTab(tabName);

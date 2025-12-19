@@ -1,4 +1,6 @@
 <template>
+  <Teleport to="body">
+
   <div v-if="isVisible" class="dialog-overlay" @click.self="close">
     <div class="dialog-content" @click.stop>
       <div class="dialog-header common">
@@ -142,6 +144,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
