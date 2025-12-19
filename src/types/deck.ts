@@ -38,6 +38,10 @@ export interface DeckInfo {
   comment: string;
   /** デッキコード */
   deckCode: string;
+  /** お気に入り数 */
+  favoriteCount?: number;
+  /** 発行済みデッキコード（ope=13で発行後に取得） */
+  issuedDeckCode?: string;
   /** スキップされた未発売カード数 */
   skippedCardsCount?: number;
   /** スキップされた未発売カード詳細情報 */

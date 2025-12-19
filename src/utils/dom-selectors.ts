@@ -45,6 +45,14 @@ export const OFFICIAL_SITE_SELECTORS = {
     /** デッキ画像コンテナ */
     deckImage: '#deck_image',
   },
+
+  // デッキ表示ページ
+  deckDisplay: {
+    /** お気に入り数 */
+    favoriteCount: 'span#favoriteCnt',
+    /** デッキコードコピーボタン */
+    copyCodeButton: '#copy-code',
+  },
 } as const
 
 /**

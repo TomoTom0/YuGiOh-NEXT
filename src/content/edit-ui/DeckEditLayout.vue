@@ -736,6 +736,8 @@ export default {
   height: calc(100vh - var(--header-height, 0px) - 20px);
   background-color: var(--bg-secondary);
   padding: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {

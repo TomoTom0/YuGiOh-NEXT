@@ -213,8 +213,8 @@ async function loadAndDrawCardImage(
 async function promiseAllConcurrent<T>(
   tasks: Array<() => Promise<T>>,
   concurrency: number = 2
-): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
+): Promise<(T | undefined)[]> {
+  const results: (T | undefined)[] = new Array(tasks.length);
   let index = 0;
 
   async function executeTask(taskIndex: number): Promise<void> {
@@ -222,7 +222,8 @@ async function promiseAllConcurrent<T>(
     try {
       results[taskIndex] = await task();
     } catch (error) {
-      (results as any)[taskIndex] = undefined;
+      console.warn(`[promiseAllConcurrent] Task at index ${taskIndex} failed:`, error);
+      results[taskIndex] = undefined;
     }
   }
 

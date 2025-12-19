@@ -21,7 +21,7 @@
       @update:model-value="updateTags"
       @close="showTagDialog = false"
     />
-    
+
     <CategoryDialog
       :model-value="localCategory"
       :is-visible="showCategoryDialog"

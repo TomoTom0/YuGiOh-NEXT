@@ -2,7 +2,8 @@ import {
   createNewDeckInternal,
   saveDeckInternal,
   deleteDeckInternal,
-  getDeckListInternal
+  getDeckListInternal,
+  issueDeckCodeInternal
 } from '@/api/deck-operations';
 import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
@@ -115,6 +116,36 @@ class SessionManager {
   async getDeckList(): Promise<DeckListItem[]> {
     const cgid = await this.ensureCgid();
     return getDeckListInternal(cgid);
+  }
+
+  /**
+   * デッキのいいね数を取得
+   *
+   * TODO: 現在実装不可
+   * JavaScriptが動的に生成するいいね数要素を取得する必要があり、
+   * 静的なHTMLパースでは対応できません。
+   * ブラウザ実行環境でDOMを操作して要素を取得する必要があります。
+   *
+   * @param dno デッキ番号
+   * @returns いいね数、取得失敗時は0
+   */
+  async getDeckLikes(dno: number): Promise<number> {
+    // TODO: 実装待ち
+    return 0;
+  }
+
+  /**
+   * デッキコードを発行
+   *
+   * 1. ope=13 でデッキコードを発行
+   * 2. ope=1 で発行済みのデッキコードを取得
+   *
+   * @param dno デッキ番号
+   * @returns デッキコード、発行失敗時は空文字列
+   */
+  async issueDeckCode(dno: number): Promise<string> {
+    const cgid = await this.ensureCgid();
+    return issueDeckCodeInternal(cgid, dno);
   }
 }
 

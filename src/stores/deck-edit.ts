@@ -1572,6 +1572,36 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  /**
+   * デッキのいいね数を取得
+   *
+   * @param dno デッキ番号
+   * @returns いいね数、取得失敗時は0
+   */
+  async function getDeckLikes(dno: number): Promise<number> {
+    try {
+      return await sessionManager.getDeckLikes(dno);
+    } catch (error) {
+      console.error('[getDeckLikes] Error:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * デッキコードを発行
+   *
+   * @param dno デッキ番号
+   * @returns デッキコード、発行失敗時は空文字列
+   */
+  async function issueDeckCode(dno: number): Promise<string> {
+    try {
+      return await sessionManager.issueDeckCode(dno);
+    } catch (error) {
+      console.error('[issueDeckCode] Error:', error);
+      return '';
+    }
+  }
+
   return {
     deckInfo,
     trashDeck,
@@ -1627,6 +1657,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     saveDeck,
     loadDeck,
     getDeckDetail,
+    getDeckLikes,
+    issueDeckCode,
     reloadDeck,
     fetchDeckList,
     initializeOnPageLoad,

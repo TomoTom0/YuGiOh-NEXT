@@ -1,4 +1,6 @@
 <template>
+  <Teleport to="body">
+
   <div v-if="show" class="ygo-next dialog-overlay" @click.self="onCancel">
     <div class="dialog-content">
       <h3 class="dialog-title">{{ title }}</h3>
@@ -16,6 +18,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script lang="ts">
