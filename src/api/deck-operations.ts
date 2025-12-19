@@ -525,3 +525,4 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
     return [];
   }
 }
+

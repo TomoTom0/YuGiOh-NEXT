@@ -12,6 +12,7 @@ import {
 import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
 import { getDeckMetadata } from '@/utils/deck-metadata-loader';
 import { mappingManager } from '@/utils/mapping-manager';
+import { OFFICIAL_SITE_SELECTORS } from '@/utils/dom-selectors';
 
 /**
  * parseCardSection の戻り値型
@@ -736,6 +737,65 @@ export function extractComment(doc: Document): string {
     }
   }
   // フィールドが存在しない場合も空文字列を返す
+  return "";
+}
+
+/**
+ * お気に入り数を抽出する
+ *
+ * @param doc ドキュメント
+ * @returns お気に入り数（見つからない場合は0）
+ */
+export function extractFavoriteCount(doc: Document): number {
+  const favoriteElement = doc.querySelector(OFFICIAL_SITE_SELECTORS.deckDisplay.favoriteCount);
+
+  if (favoriteElement && favoriteElement.textContent) {
+    const count = parseInt(favoriteElement.textContent.trim(), 10);
+    if (!isNaN(count)) {
+      return count;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * JavaScriptからコピー可能なデッキコードを抽出する
+ * #copy-code ボタンの click ハンドラーの navigator.clipboard.writeText() から抽出
+ *
+ * @param doc ドキュメント
+ * @returns デッキコード（未発行の場合は空文字列）
+ */
+export function extractIssuedDeckCode(doc: Document): string {
+  // script タグを全て取得
+  const scripts = doc.querySelectorAll('script');
+  const copyCodeSelector = OFFICIAL_SITE_SELECTORS.deckDisplay.copyCodeButton;
+
+  for (const script of scripts) {
+    const scriptText = script.textContent;
+    if (!scriptText) continue;
+
+    // セレクタから ID を抽出（#copy-code から copy-code を取得）
+    const buttonId = copyCodeSelector.replace(/^#/, '');
+
+    // #copy-code を含む部分を抽出（クリックハンドラー周辺）
+    const copyCodeMatch = scriptText.match(
+      new RegExp(
+        `\\$\\(['"\`]${buttonId}['"\`]\\)\\.click\\([^}]*?navigator\\.clipboard\\.writeText\\s*\\(\\s*['"\`]([^'"\`]*)['"\`]`,
+        'g'
+      )
+    );
+
+    if (copyCodeMatch && copyCodeMatch[0]) {
+      // マッチ結果から デッキコードを抽出
+      const deckCodeMatch = copyCodeMatch[0].match(/writeText\s*\(\s*['"`]([^'"`]*)['"`]/);
+      if (deckCodeMatch && deckCodeMatch[1] !== undefined) {
+        return deckCodeMatch[1];
+      }
+    }
+  }
+
+  // 見つからない場合は空文字列
   return "";
 }
 

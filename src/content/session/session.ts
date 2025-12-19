@@ -116,6 +116,58 @@ class SessionManager {
     const cgid = await this.ensureCgid();
     return getDeckListInternal(cgid);
   }
+
+  /**
+   * デッキのいいね数を取得
+   *
+   * @param dno デッキ番号
+   * @returns いいね数、取得失敗時は0
+   */
+  async getDeckLikes(dno: number): Promise<number> {
+    const cgid = await this.ensureCgid();
+    // デッキ表示ページ（ope=1）を取得してHTMLをパース
+    const { detectCardGameType } = await import('@/utils/page-detector');
+    const { buildApiUrl } = await import('@/utils/url-builder');
+    const gameType = detectCardGameType();
+
+    const path = `member_deck.action?ope=1&wname=MemberDeck&cgid=${cgid}&dno=${dno}`;
+    const displayUrl = buildApiUrl(path, gameType);
+
+    const { default: axios } = await import('axios');
+    const response = await axios.get(displayUrl, { withCredentials: true });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+
+    // HTMLからいいね数を抽出
+    const { extractFavoriteCount } = await import('@/content/parser/deck-detail-parser');
+    return extractFavoriteCount(doc);
+  }
+
+  /**
+   * デッキコードを発行
+   *
+   * @param dno デッキ番号
+   * @returns デッキコード、発行失敗時は空文字列
+   */
+  async issueDeckCode(dno: number): Promise<string> {
+    const cgid = await this.ensureCgid();
+    // デッキ表示ページ（ope=1）を取得してHTMLをパース
+    const { detectCardGameType } = await import('@/utils/page-detector');
+    const { buildApiUrl } = await import('@/utils/url-builder');
+    const gameType = detectCardGameType();
+
+    const path = `member_deck.action?ope=1&wname=MemberDeck&cgid=${cgid}&dno=${dno}`;
+    const displayUrl = buildApiUrl(path, gameType);
+
+    const { default: axios } = await import('axios');
+    const response = await axios.get(displayUrl, { withCredentials: true });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+
+    // HTMLから発行済みデッキコードを抽出（未発行の場合は空文字列）
+    const { extractIssuedDeckCode } = await import('@/content/parser/deck-detail-parser');
+    return extractIssuedDeckCode(doc);
+  }
 }
 
 /**

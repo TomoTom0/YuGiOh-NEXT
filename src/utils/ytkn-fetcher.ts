@@ -35,6 +35,37 @@ export async function fetchYtknFromEditForm(
 }
 
 /**
+ * デッキ表示ページ（ope=1）からytknを取得
+ *
+ * @param cgid ユーザー識別子
+ * @param dno デッキ番号
+ * @param gameType カードゲームタイプ
+ * @returns ytkn、取得失敗時はnull
+ */
+export async function fetchYtknFromDeckDisplay(
+  cgid: string,
+  dno: number,
+  gameType: CardGameType
+): Promise<string | null> {
+  try {
+    // ope=1 はデッキ表示ページで、request_locale 付与対象
+    // buildApiUrl経由で自動付与される
+    const path = `member_deck.action?ope=1&wname=MemberDeck&cgid=${cgid}&dno=${dno}`;
+    const displayUrl = buildApiUrl(path, gameType);
+
+    const { default: axios } = await import('axios');
+    const response = await axios.get(displayUrl, { withCredentials: true });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+    const ytknInput = safeQueryAs('input#ytkn', isHTMLInputElement, doc);
+    return ytknInput?.value ?? null;
+  } catch (error) {
+    console.error('[fetchYtknFromDeckDisplay] Failed to fetch ytkn:', error);
+    return null;
+  }
+}
+
+/**
  * デッキ一覧ページ（ope=4）からytknを取得
  *
  * @param cgid ユーザー識別子
