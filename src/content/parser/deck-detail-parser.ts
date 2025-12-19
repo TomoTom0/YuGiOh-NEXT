@@ -121,7 +121,11 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const tagLabels = extractTags(doc);
   const comment = extractComment(doc);
   const deckCode = extractDeckCode(doc);
-  
+
+  // お気に入り数と発行済みデッキコードを抽出
+  const favoriteCount = extractFavoriteCount(doc);
+  const issuedDeckCode = extractIssuedDeckCode(doc);
+
   // 日本語ラベル→IDに変換（メタデータは1回だけ取得）
   const metadata = await getDeckMetadata();
   const category = convertCategoryLabelsToIds(categoryLabels, metadata);
@@ -166,7 +170,9 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
     category,
     tags,
     comment,
-    deckCode
+    deckCode,
+    favoriteCount,
+    issuedDeckCode
   };
 }
 
@@ -760,6 +766,22 @@ export function extractFavoriteCount(doc: Document): number {
 }
 
 /**
+ * いいね数を抽出する
+ *
+ * TODO: 現在、静的なHTMLパースからはいいね数を取得できません。
+ * JavaScriptが動的に生成する要素であり、サーバーレスポンスには
+ * 隠しフィールド `deckLikesCnt` が含まれていません。
+ * ブラウザ実行環境でDOMを操作して取得する必要があります。
+ *
+ * @param doc ドキュメント
+ * @returns いいね数（未実装のため常に0）
+ */
+export function extractDeckLikes(doc: Document): number {
+  // 未実装
+  return 0;
+}
+
+/**
  * JavaScriptからコピー可能なデッキコードを抽出する
  * #copy-code ボタンの click ハンドラーの navigator.clipboard.writeText() から抽出
  *
@@ -769,29 +791,21 @@ export function extractFavoriteCount(doc: Document): number {
 export function extractIssuedDeckCode(doc: Document): string {
   // script タグを全て取得
   const scripts = doc.querySelectorAll('script');
-  const copyCodeSelector = OFFICIAL_SITE_SELECTORS.deckDisplay.copyCodeButton;
 
   for (const script of scripts) {
     const scriptText = script.textContent;
     if (!scriptText) continue;
 
-    // セレクタから ID を抽出（#copy-code から copy-code を取得）
-    const buttonId = copyCodeSelector.replace(/^#/, '');
-
     // #copy-code を含む部分を抽出（クリックハンドラー周辺）
+    // パターン: $('#copy-code').click(function () { navigator.clipboard.writeText('CODE'); });
+    // 改行やインデントに対応するため、[\s\S]*? を使用
+    // 引用符はシングルクォート固定
     const copyCodeMatch = scriptText.match(
-      new RegExp(
-        `\\$\\(['"\`]${buttonId}['"\`]\\)\\.click\\([^}]*?navigator\\.clipboard\\.writeText\\s*\\(\\s*['"\`]([^'"\`]*)['"\`]`,
-        'g'
-      )
+      /\$\('#copy-code'\)\.click\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*'([^']*)'/
     );
 
-    if (copyCodeMatch && copyCodeMatch[0]) {
-      // マッチ結果から デッキコードを抽出
-      const deckCodeMatch = copyCodeMatch[0].match(/writeText\s*\(\s*['"`]([^'"`]*)['"`]/);
-      if (deckCodeMatch && deckCodeMatch[1] !== undefined) {
-        return deckCodeMatch[1];
-      }
+    if (copyCodeMatch && copyCodeMatch[1] !== undefined) {
+      return copyCodeMatch[1];
     }
   }
 

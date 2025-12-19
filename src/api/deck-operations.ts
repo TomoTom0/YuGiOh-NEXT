@@ -526,3 +526,67 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
   }
 }
 
+/**
+ * デッキコードを発行する（内部関数）
+ *
+ * 1. ope=13 でデッキコードを発行
+ * 2. ope=1 で発行済みのデッキコードを取得
+ *
+ * @param cgid ユーザー識別子
+ * @param dno デッキ番号
+ * @returns デッキコード、発行失敗時は空文字列
+ * @internal SessionManager経由で呼び出すこと
+ */
+export async function issueDeckCodeInternal(cgid: string, dno: number): Promise<string> {
+  try {
+    const gameType = detectCardGameType();
+    const { default: axios } = await import('axios');
+
+    // ステップ1: ope=13 でデッキコードを発行
+    // ope=13は request_locale を付与してはいけない（ope=6と同様）
+    const baseUrlIssue = buildApiUrl(API_ENDPOINT.MEMBER_DECK, gameType, undefined, true);
+    const issueUrl = `${baseUrlIssue}?ope=13&wname=${WNAME.MEMBER_DECK}&cgid=${cgid}&dno=${dno}`;
+
+    await axios.get(issueUrl, { withCredentials: true });
+
+    // ステップ2: ope=1 で発行済みのデッキコードを取得
+    // ope=1は request_locale を付与してよい
+    const displayPath = `${API_ENDPOINT.MEMBER_DECK}?ope=1&cgid=${cgid}&dno=${dno}`;
+    const displayUrl = buildApiUrl(displayPath, gameType);
+
+    const response = await axios.get(displayUrl, { withCredentials: true });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+
+    // デバッグ：HTMLの#copy-code周辺を確認
+    const copyCodeBtn = doc.querySelector('#copy-code');
+    const allScripts = doc.querySelectorAll('script');
+    console.debug('[issueDeckCodeInternal]', {
+      copyCodeBtnExists: !!copyCodeBtn,
+      scriptCount: allScripts.length,
+      htmlLength: response.data.length
+    });
+
+    // HTMLから発行済みデッキコードを抽出
+    const { extractIssuedDeckCode } = await import('@/content/parser/deck-detail-parser');
+    const deckCode = extractIssuedDeckCode(doc);
+
+    console.debug('[issueDeckCodeInternal]', `Extracted deck code: "${deckCode}"`);
+
+    if (deckCode && deckCode.trim()) {
+      return deckCode;
+    } else {
+      handleError(
+        '[issueDeckCodeInternal]',
+        'デッキコードの発行に失敗しました',
+        new Error(`Failed to extract deck code from response. deckCode="${deckCode}"`),
+        { showToast: true }
+      );
+      return '';
+    }
+  } catch (error) {
+    handleError('[issueDeckCodeInternal]', 'デッキコードの発行に失敗しました', error, { showToast: true });
+    return '';
+  }
+}
+
