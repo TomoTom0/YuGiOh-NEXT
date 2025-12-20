@@ -6,15 +6,21 @@ import { useDeckEditStore } from '@/stores/deck-edit';
 import type { SearchFilters } from '@/types/search';
 
 describe('components/SearchFilterDialog', () => {
+  let pinia: ReturnType<typeof createPinia>;
+
+  beforeEach(() => {
+    pinia = createPinia();
+    setActivePinia(pinia);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
   describe('Rendering', () => {
     it('should render filter dialog when isFilterDialogVisible is true', async () => {
       // mount 前に store を作成して状態を設定
-      const pinia = createPinia();
-      setActivePinia(pinia);
       const deckStore = useDeckEditStore();
       deckStore.isFilterDialogVisible = true;
 
@@ -25,14 +31,12 @@ describe('components/SearchFilterDialog', () => {
       });
       await wrapper.vm.$nextTick();
 
-      // ダイアログが表示されていることを確認
-      const dialog = wrapper.find('.dialog-overlay');
-      expect(dialog.exists()).toBe(true);
+      // Teleport で body に描画されるため、document.body を検索
+      const dialog = document.body.querySelector('.dialog-overlay');
+      expect(dialog).not.toBeNull();
     });
 
     it('should not render filter dialog when isFilterDialogVisible is false', async () => {
-      const pinia = createPinia();
-      setActivePinia(pinia);
       const deckStore = useDeckEditStore();
       deckStore.isFilterDialogVisible = false;
 
@@ -43,14 +47,12 @@ describe('components/SearchFilterDialog', () => {
       });
       await wrapper.vm.$nextTick();
 
-      // ダイアログが非表示であることを確認
-      const dialog = wrapper.find('.dialog-overlay');
-      expect(dialog.exists()).toBe(false);
+      // Teleport で body に描画されるため、document.body を検索
+      const dialog = document.body.querySelector('.dialog-overlay');
+      expect(dialog).toBeNull();
     });
 
     it('should render tab buttons', async () => {
-      const pinia = createPinia();
-      setActivePinia(pinia);
       const deckStore = useDeckEditStore();
       deckStore.isFilterDialogVisible = true;
 
@@ -61,14 +63,12 @@ describe('components/SearchFilterDialog', () => {
       });
       await wrapper.vm.$nextTick();
 
-      // タブボタンの存在を確認
-      const tabs = wrapper.findAll('.dialog-tab');
+      // Teleport で body に描画されるため、document.body を検索
+      const tabs = document.body.querySelectorAll('.dialog-tab');
       expect(tabs.length).toBeGreaterThan(0);
     });
 
     it('should render card type buttons', async () => {
-      const pinia = createPinia();
-      setActivePinia(pinia);
       const deckStore = useDeckEditStore();
       deckStore.isFilterDialogVisible = true;
 
@@ -79,8 +79,8 @@ describe('components/SearchFilterDialog', () => {
       });
       await wrapper.vm.$nextTick();
 
-      // カードタイプボタンの存在を確認
-      const cardTypeButtons = wrapper.findAll('.card-type-tab');
+      // Teleport で body に描画されるため、document.body を検索
+      const cardTypeButtons = document.body.querySelectorAll('.card-type-tab');
       expect(cardTypeButtons.length).toBeGreaterThan(0);
     });
   });
