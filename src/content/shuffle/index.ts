@@ -34,7 +34,6 @@ const RETRY_INTERVAL = 100; // 100ms
 export function initShuffle(): void {
   // 既に初期化済みの場合はスキップ
   if (isShuffleInitialized) {
-    console.debug('[Shuffle] Already initialized, skipping');
     return;
   }
 
@@ -111,8 +110,6 @@ function attachEventListeners(retryCount: number = 0): void {
   // サイドデッキ
   attachButtonListener(EXTENSION_IDS.shuffle.sideShuffleButton, shuffleCardsSide);
   attachButtonListener(EXTENSION_IDS.shuffle.sideSortButton, sortCardsSide);
-
-  console.debug('[Shuffle] Event listeners attached successfully');
 }
 
 // 再エクスポート

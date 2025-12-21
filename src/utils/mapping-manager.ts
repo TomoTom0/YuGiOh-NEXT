@@ -200,18 +200,6 @@ class MappingManager {
       return result;
     }
 
-    // デバッグログ：マッピングが見つからない理由を表示
-    if (!dynamicMapping) {
-      console.warn(`[MappingManager.getRaceTextToId] No mapping found in memory for lang: ${lang}`);
-    } else if (!dynamicMapping.race) {
-      console.warn(`[MappingManager.getRaceTextToId] race field is missing for lang: ${lang}`);
-    } else {
-      console.warn(
-        `[MappingManager.getRaceTextToId] race is empty for lang: ${lang} ` +
-        `(monsterType: ${Object.keys(dynamicMapping.monsterType || {}).length}, ` +
-        `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-      );
-    }
     return {};
   }
 
@@ -243,18 +231,6 @@ class MappingManager {
       return result;
     }
 
-    // デバッグログ：マッピングが見つからない理由を表示
-    if (!dynamicMapping) {
-      console.warn(`[MappingManager.getMonsterTypeTextToId] No mapping found in memory for lang: ${lang}`);
-    } else if (!dynamicMapping.monsterType) {
-      console.warn(`[MappingManager.getMonsterTypeTextToId] monsterType field is missing for lang: ${lang}`);
-    } else {
-      console.warn(
-        `[MappingManager.getMonsterTypeTextToId] monsterType is empty for lang: ${lang} ` +
-        `(race: ${Object.keys(dynamicMapping.race || {}).length}, ` +
-        `attribute: ${Object.keys(dynamicMapping.attribute || {}).length})`
-      );
-    }
     return {};
   }
 
@@ -389,21 +365,14 @@ class MappingManager {
   getMonsterTypeIdToText(lang: string): Partial<Record<MonsterType, string>> {
     const dynamicMapping = this.dynamicMappings.get(lang);
     if (dynamicMapping?.monsterType && Object.keys(dynamicMapping.monsterType).length > 0) {
-      console.debug(`[MappingManager.getMonsterTypeIdToText] Dynamic mapping found for ${lang}`);
       return dynamicMapping.monsterType;
     }
 
     // フォールバック：日本語静的マッピング
     if (lang === 'ja') {
-      if (dynamicMapping?.monsterType) {
-        console.debug(`[MappingManager.getMonsterTypeIdToText] monsterType mapping exists for ja but is empty, using static fallback`);
-      } else {
-        console.debug(`[MappingManager.getMonsterTypeIdToText] No dynamic mapping for ja, using static fallback (MONSTER_TYPE_ID_TO_NAME)`);
-      }
       return MONSTER_TYPE_ID_TO_NAME;
     }
 
-    console.debug(`[MappingManager.getMonsterTypeIdToText] No mapping found for lang: ${lang}, returning empty object`);
     return {};
   }
 
@@ -550,9 +519,7 @@ export async function initializeMappingManager(): Promise<void> {
 
       if (appSettings?.language && appSettings.language !== 'auto') {
         const configLanguage = appSettings.language;
-        console.debug(`[MappingManager] Ensuring mapping for config language: ${configLanguage}`);
         await mappingManager.ensureMappingForLanguage(configLanguage);
-        console.debug(`[MappingManager] Successfully initialized for config language: ${configLanguage}`);
       }
     } catch (error) {
       console.warn('[MappingManager] Failed to load settings from storage:', error);

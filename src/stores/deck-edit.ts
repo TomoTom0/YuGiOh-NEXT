@@ -998,6 +998,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       isLoadingDeck.value = false;
 
       // デッキロード後、デッキリスト一覧を再取得（非同期で実行）
+      // デッキ読み込み後、デッキ情報を更新
       fetchDeckList().catch(error => {
         console.error('[loadDeck] Failed to refresh deck list:', error);
       });
@@ -1205,7 +1206,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     await loadDeck(currentDno);
   }
 
-  async function fetchDeckList() {
+  async function fetchDeckList(force: boolean = false) {
+    // デッキリスト取得は常に実行される必須処理（LoadDialog表示に必須）
+    // backgroundDeckInfoFetch 設定は、バックグラウンド更新には影響しない
+
     try {
       let list: any[] | null = null;
 
@@ -1298,9 +1302,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         settingsStore.applyTheme();
         settingsStore.applyCardSize();
 
-        // デッキリストを取得（非同期、画面表示に影響しない）
+        // デッキリストを取得（LoadDialog表示に必須）
         const list = await fetchDeckList();
-        deckList.value = list;
+        if (list) {
+          deckList.value = list;
+        }
       } catch (error) {
         console.error('Failed to initialize settings/deck list:', error);
       }
@@ -1461,7 +1467,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 新規デッキを読み込む
       await loadDeck(newDno);
 
-      // デッキ作成後、デッキリスト一覧を再取得（非同期で実行）
+      // デッキ作成後、デッキリスト一覧を再取得
       fetchDeckList().catch(error => {
         console.error('[createNewDeck] Failed to refresh deck list:', error);
       });
@@ -1499,7 +1505,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // 複製されたデッキを読み込む
       await loadDeck(newDno);
 
-      // デッキコピー後、デッキリスト一覧を再取得（非同期で実行）
+      // デッキコピー後、デッキリスト一覧を再取得
       fetchDeckList().catch(error => {
         console.error('[pseudoCopyDeck] Failed to refresh deck list:', error);
       });
@@ -1558,7 +1564,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
         await loadDeck(newDno);
 
-        // デッキ削除後、デッキリスト一覧を再取得（非同期で実行）
+        // デッキ削除後、デッキリスト一覧を再取得
         fetchDeckList().catch(error => {
           console.error('[deleteCurrentDeck] Failed to refresh deck list:', error);
         });

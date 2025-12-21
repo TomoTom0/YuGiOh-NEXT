@@ -30,6 +30,7 @@ describe('components/CategoryDialog', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.body.innerHTML = '';
   });
 
   describe('Rendering', () => {
@@ -84,7 +85,8 @@ describe('components/CategoryDialog', () => {
 
       await wrapper.vm.$nextTick();
 
-      const categoryOptions = wrapper.findAll('[class*="category"]');
+      // Teleport で body に描画されるため、document.body を検索
+      const categoryOptions = document.body.querySelectorAll('.category-item');
       expect(categoryOptions.length).toBeGreaterThan(0);
     });
 

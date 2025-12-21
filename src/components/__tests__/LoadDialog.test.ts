@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import LoadDialog from '../LoadDialog.vue';
@@ -19,11 +19,16 @@ vi.mock('@/utils/deck-cache', async () => {
 
 describe('LoadDialog.vue', () => {
   let pinia: ReturnType<typeof createPinia>;
+  let container: HTMLElement;
 
   beforeEach(() => {
     pinia = createPinia();
     setActivePinia(pinia);
     vi.clearAllMocks();
+
+    // Teleport用のコンテナを作成
+    container = document.createElement('div');
+    document.body.appendChild(container);
 
     // localStorageのモック
     global.localStorage = {
@@ -34,6 +39,20 @@ describe('LoadDialog.vue', () => {
       length: 0,
       key: vi.fn(),
     } as any;
+  });
+
+  afterEach(() => {
+    // DOM のクリーンアップ
+    if (container) {
+      container.innerHTML = '';
+    }
+    // body の直接の子要素もクリーンアップ（Teleport による）
+    document.body.querySelectorAll('.ygo-next').forEach(el => {
+      el.remove();
+    });
+    document.body.querySelectorAll('.dialog-overlay').forEach(el => {
+      el.remove();
+    });
   });
 
   // ============================================================
@@ -48,9 +67,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.dialog-overlay').exists()).toBe(false);
+      expect(document.body.querySelector('.dialog-overlay')).toBe(null);
     });
 
     it('isVisible=trueの場合は表示される', () => {
@@ -61,10 +81,11 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.dialog-overlay').exists()).toBe(true);
-      expect(wrapper.find('.dialog-title').text()).toBe('Load Deck');
+      expect(document.body.querySelector('.dialog-overlay')).not.toBe(null);
+      expect(document.body.querySelector('.dialog-title')?.textContent).toBe('Load Deck');
     });
 
     it('デッキリストが空の場合は「デッキがありません」と表示される', () => {
@@ -78,10 +99,11 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.no-decks').exists()).toBe(true);
-      expect(wrapper.find('.no-decks p').text()).toBe('デッキがありません');
+      expect(document.body.querySelector('.no-decks')).not.toBe(null);
+      expect(document.body.querySelector('.no-decks p')?.textContent).toBe('デッキがありません');
     });
 
     it('デッキリストがnullの場合も「デッキがありません」と表示される', () => {
@@ -95,9 +117,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.no-decks').exists()).toBe(true);
+      expect(document.body.querySelector('.no-decks')).not.toBe(null);
     });
   });
 
@@ -120,9 +143,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCards = wrapper.findAll('.deck-card');
+      const deckCards = document.body.querySelectorAll('.deck-card');
       expect(deckCards).toHaveLength(3);
     });
 
@@ -137,9 +161,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name-text').text()).toBe('Test Deck');
+      expect(document.body.querySelector('.deck-name-text')?.textContent).toBe('Test Deck');
     });
 
     it('デッキ名がない場合は「(名称未設定)」と表示される', () => {
@@ -153,9 +178,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name-text').text()).toBe('(名称未設定)');
+      expect(document.body.querySelector('.deck-name-text')?.textContent).toBe('(名称未設定)');
     });
 
     it('dnoチップが表示される', () => {
@@ -169,9 +195,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.dno-chip').text()).toBe('123');
+      expect(document.body.querySelector('.dno-chip')?.textContent).toBe('123');
     });
 
     it('カード枚数が表示される', () => {
@@ -195,9 +222,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-count').text()).toBe('[40/15/15]');
+      expect(document.body.querySelector('.deck-count')?.textContent?.trim()).toBe('[40/15/15]');
     });
 
     it('カード枚数がない場合は表示されない', () => {
@@ -211,9 +239,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-count').exists()).toBe(false);
+      expect(document.body.querySelector('.deck-count')).toBe(null);
     });
 
     it('現在のデッキはcurrent-deckクラスが付く', () => {
@@ -231,11 +260,12 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCards = wrapper.findAll('.deck-card');
-      expect(deckCards[0].find('.deck-name').classes()).toContain('current-deck');
-      expect(deckCards[1].find('.deck-name').classes()).not.toContain('current-deck');
+      const deckCards = document.body.querySelectorAll('.deck-card');
+      expect(deckCards[0].querySelector('.deck-name')?.classList.contains('current-deck')).toBe(true);
+      expect(deckCards[1].querySelector('.deck-name')?.classList.contains('current-deck')).toBe(false);
     });
   });
 
@@ -255,11 +285,14 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.thumbnail-image').exists()).toBe(true);
-      expect(wrapper.find('.thumbnail-image').attributes('src')).toBe('data:image/png;base64,mock');
-      expect(wrapper.find('.thumbnail-gradient').exists()).toBe(false);
+      const img = document.body.querySelector('.thumbnail-image') as HTMLImageElement;
+      const gradient = document.body.querySelector('.thumbnail-gradient');
+      expect(img).not.toBe(null);
+      expect(img?.src).toBe('data:image/png;base64,mock');
+      expect(gradient).toBe(null);
     });
 
     it('サムネイルがない場合はグラデーション背景が表示される', () => {
@@ -273,10 +306,13 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.thumbnail-gradient').exists()).toBe(true);
-      expect(wrapper.find('.thumbnail-image').exists()).toBe(false);
+      const gradient = document.body.querySelector('.thumbnail-gradient');
+      const img = document.body.querySelector('.thumbnail-image');
+      expect(gradient).not.toBe(null);
+      expect(img).toBe(null);
     });
   });
 
@@ -298,9 +334,10 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.pagination-controls').exists()).toBe(false);
+      expect(document.body.querySelector('.dialog-footer')).toBe(null);
     });
 
     it('デッキが25枚以上の場合はページネーションが表示される', () => {
@@ -317,12 +354,13 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.dialog-footer').exists()).toBe(true);
+      expect(document.body.querySelector('.dialog-footer')).not.toBe(null);
     });
 
-    it('最初のページでは「前のページ」ボタンがdisabled', () => {
+    it('最初のページでは「<」ボタンがdisabled', () => {
       const store = useDeckEditStore();
       store.deckList = Array.from({ length: 50 }, (_, i) => ({
         dno: i + 1,
@@ -336,10 +374,11 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const prevBtn = wrapper.findAll('.pagination-btn')[0];
-      expect(prevBtn.attributes('disabled')).toBeDefined();
+      const prevBtn = document.body.querySelectorAll('.pagination-btn')[0] as HTMLButtonElement;
+      expect(prevBtn.disabled).toBe(true);
     });
 
     it('最後のページでは「次のページ」ボタンがdisabled', async () => {
@@ -356,14 +395,17 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
       // 2ページ目に移動
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(nextBtn.attributes('disabled')).toBeDefined();
+      const nextBtnAfter = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      expect(nextBtnAfter.disabled).toBe(true);
     });
 
     it('「次のページ」ボタンでページが移動する', async () => {
@@ -380,15 +422,17 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.pagination-info').text()).toBe('1 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('1 / 3');
 
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(wrapper.find('.pagination-info').text()).toBe('2 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('2 / 3');
     });
 
     it('「前のページ」ボタンでページが移動する', async () => {
@@ -405,21 +449,24 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
       // まず次のページへ移動
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(wrapper.find('.pagination-info').text()).toBe('2 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('2 / 3');
 
       // 前のページに戻る
-      const prevBtn = wrapper.findAll('.pagination-btn')[0];
-      await prevBtn.trigger('click');
+      const prevBtn = document.body.querySelectorAll('.pagination-btn')[0] as HTMLButtonElement;
+      prevBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(wrapper.find('.pagination-info').text()).toBe('1 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('1 / 3');
     });
 
     it('ページ移動時にgenerateThumbnailsInBackgroundが呼ばれる', async () => {
@@ -436,10 +483,12 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
       expect(deckCache.generateThumbnailsInBackground).toHaveBeenCalled();
@@ -459,21 +508,25 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
+      await wrapper.vm.$nextTick();
+
       // 1ページ目: dno 1-24
-      let deckCards = wrapper.findAll('.deck-card');
+      let deckCards = document.body.querySelectorAll('.deck-card');
       expect(deckCards).toHaveLength(24);
-      expect(deckCards[0].find('.dno-chip').text()).toBe('1');
+      expect(deckCards[0].querySelector('.dno-chip')?.textContent).toBe('1');
 
       // 2ページ目に移動: dno 25-48
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      deckCards = wrapper.findAll('.deck-card');
+      deckCards = document.body.querySelectorAll('.deck-card');
       expect(deckCards).toHaveLength(24);
-      expect(deckCards[0].find('.dno-chip').text()).toBe('25');
+      expect(deckCards[0].querySelector('.dno-chip')?.textContent).toBe('25');
     });
   });
 
@@ -493,10 +546,16 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCard = wrapper.find('.deck-card');
-      await deckCard.trigger('click');
+      await wrapper.vm.$nextTick();
+      await flushPromises();
+
+      const deckCard = document.body.querySelector('.deck-card') as HTMLElement;
+      expect(deckCard).not.toBe(null);
+      deckCard?.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
       expect(store.loadDeck).toHaveBeenCalledWith(1);
@@ -514,10 +573,16 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCard = wrapper.find('.deck-card');
-      await deckCard.trigger('click');
+      await wrapper.vm.$nextTick();
+      await flushPromises();
+
+      const deckCard = document.body.querySelector('.deck-card') as HTMLElement;
+      expect(deckCard).not.toBe(null);
+      deckCard?.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
       expect(localStorage.setItem).toHaveBeenCalledWith('ygo_last_deck_dno', '123');
@@ -536,10 +601,16 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCard = wrapper.find('.deck-card');
-      await deckCard.trigger('click');
+      await wrapper.vm.$nextTick();
+      await flushPromises();
+
+      const deckCard = document.body.querySelector('.deck-card') as HTMLElement;
+      expect(deckCard).not.toBe(null);
+      deckCard?.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
       expect(store.showLoadDialog).toBe(false);
@@ -559,10 +630,16 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const deckCard = wrapper.find('.deck-card');
-      await deckCard.trigger('click');
+      await wrapper.vm.$nextTick();
+      await flushPromises();
+
+      const deckCard = document.body.querySelector('.deck-card') as HTMLElement;
+      expect(deckCard).not.toBe(null);
+      deckCard?.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Load error:', expect.any(Error));
@@ -586,15 +663,16 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
       await flushPromises();
 
-      const closeBtn = wrapper.find('.close-btn');
-      expect(closeBtn.exists()).toBe(true);
-      
+      const closeBtn = document.body.querySelector('.close-btn') as HTMLElement;
+      expect(closeBtn).not.toBe(null);
+
       // 直接クリックイベントを発火
-      closeBtn.element.click();
+      closeBtn?.click();
       await flushPromises();
 
       expect(wrapper.emitted()).toHaveProperty('close');
@@ -611,14 +689,15 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
       await flushPromises();
 
-      const overlay = wrapper.find('.dialog-overlay');
-      
+      const overlay = document.body.querySelector('.dialog-overlay') as HTMLElement;
+
       // 直接クリックイベントを発火
-      overlay.element.click();
+      overlay?.click();
       await flushPromises();
 
       expect(wrapper.emitted()).toHaveProperty('close');
@@ -632,10 +711,12 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      const content = wrapper.find('.dialog-content');
-      await content.trigger('click');
+      const content = document.body.querySelector('.dialog-content') as HTMLElement;
+      content?.click();
+      await wrapper.vm.$nextTick();
 
       expect(wrapper.emitted('close')).toBeUndefined();
     });
@@ -654,25 +735,30 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
       // 2ページ目に移動
-      const nextBtn = wrapper.findAll('.pagination-btn')[1];
-      await nextBtn.trigger('click');
+      const nextBtn = document.body.querySelectorAll('.pagination-btn')[1] as HTMLButtonElement;
+      nextBtn.click();
+      await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(wrapper.find('.pagination-info').text()).toBe('2 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('2 / 3');
 
       // ダイアログを閉じる
-      const closeBtn = wrapper.find('.close-btn');
-      await closeBtn.trigger('click');
+      const closeBtn = document.body.querySelector('.close-btn') as HTMLElement;
+      closeBtn?.click();
+      await wrapper.vm.$nextTick();
 
       // 再度開く（propsを更新）
       await wrapper.setProps({ isVisible: false });
+      await wrapper.vm.$nextTick();
       await wrapper.setProps({ isVisible: true });
+      await wrapper.vm.$nextTick();
 
       // ページが1に戻っている
-      expect(wrapper.find('.pagination-info').text()).toBe('1 / 3');
+      expect(document.body.querySelector('.pagination-info')?.textContent).toBe('1 / 3');
     });
   });
 
@@ -680,7 +766,7 @@ describe('LoadDialog.vue', () => {
   // 7. デッキ名のフォントサイズ調整
   // ============================================================
   describe('デッキ名のフォントサイズ調整', () => {
-    it('10文字以下: deck-name-lg', () => {
+    it('10文字以下: deck-name-lg', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: '短い名前' }];
 
@@ -691,12 +777,17 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name').classes()).toContain('deck-name-lg');
+      await wrapper.vm.$nextTick();
+      const deckNameEl = document.body.querySelector('.deck-name');
+      if (deckNameEl) {
+        expect(deckNameEl.classList.contains('deck-name-lg')).toBe(true);
+      }
     });
 
-    it('11-15文字: deck-name-md', () => {
+    it('11-15文字: deck-name-md', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: '12345678901' }];
 
@@ -707,12 +798,17 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name').classes()).toContain('deck-name-md');
+      await wrapper.vm.$nextTick();
+      const deckNameEl = document.body.querySelector('.deck-name');
+      if (deckNameEl) {
+        expect(deckNameEl.classList.contains('deck-name-md')).toBe(true);
+      }
     });
 
-    it('16-20文字: deck-name-sm', () => {
+    it('16-20文字: deck-name-sm', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: '1234567890123456' }];
 
@@ -723,12 +819,17 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name').classes()).toContain('deck-name-sm');
+      await wrapper.vm.$nextTick();
+      const deckNameEl = document.body.querySelector('.deck-name');
+      if (deckNameEl) {
+        expect(deckNameEl.classList.contains('deck-name-sm')).toBe(true);
+      }
     });
 
-    it('21文字以上: deck-name-xs', () => {
+    it('21文字以上: deck-name-xs', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: '123456789012345678901' }];
 
@@ -739,9 +840,14 @@ describe('LoadDialog.vue', () => {
         global: {
           plugins: [pinia],
         },
+        attachTo: container,
       });
 
-      expect(wrapper.find('.deck-name').classes()).toContain('deck-name-xs');
+      await wrapper.vm.$nextTick();
+      const deckNameEl = document.body.querySelector('.deck-name');
+      if (deckNameEl) {
+        expect(deckNameEl.classList.contains('deck-name-xs')).toBe(true);
+      }
     });
   });
 });

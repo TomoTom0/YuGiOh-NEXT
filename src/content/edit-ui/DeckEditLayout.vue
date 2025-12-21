@@ -335,7 +335,6 @@ export default {
       const lastDno = localStorage.getItem('ygo_last_deck_dno')
       if (lastDno) {
         currentDeckDno.value = parseInt(lastDno, 10)
-        console.debug('[DeckEditLayout] Restored currentDeckDno:', currentDeckDno.value)
       }
 
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
@@ -392,6 +391,7 @@ export default {
 
       // ページロード時に最初の24個のデッキのサムネイルを生成（キャッシュはstore初期化時に読み込み済み）
       // 5個連続でキャッシュヒットしたら早期終了する
+      // ページロード時、最初の24個のデッキのサムネイルを背景で生成
       if (deckStore.deckList && deckStore.deckList.length > 0) {
         console.debug('[DeckEditLayout] Starting background thumbnail generation on page load')
         generateThumbnailsInBackground(

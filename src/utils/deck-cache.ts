@@ -255,6 +255,8 @@ export async function generateAndCacheThumbnail(
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
       saveThumbnailCache(deckThumbnails);
+    } else {
+      console.warn(`[deck-cache] Failed to generate thumbnail for deck ${dno}: imageUrl is null`);
     }
   } catch (error) {
     console.warn(`Failed to generate and cache thumbnail for deck ${dno}:`, error);
@@ -323,13 +325,27 @@ export async function updateDeckInfoAndThumbnailWithData(
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): Promise<void> {
+  // 設定でAPIフェッチなしでのサムネイル更新が無効な場合はスキップ
+  // Storeをインポートしないため、window グローバルオブジェクトから設定を取得
+  try {
+    const appSettings = (window as any).ygoNextCurrentSettings;
+    if (appSettings && appSettings.updateThumbnailWithoutFetch === false) {
+      return;
+    }
+  } catch (error) {
+    // 設定取得失敗時は通常通り処理を続ける
+  }
+
   try {
     // 変更があるか、またはキャッシュが期限切れかチェック
     const needsUpdate =
       isDeckInfoChanged(dno, deckInfo, cachedDeckInfos) ||
       (cachedDeckInfos.has(dno) && isCacheExpired(cachedDeckInfos.get(dno)!));
 
-    if (needsUpdate) {
+    // サムネイルが存在しない場合も生成が必要
+    const thumbnailMissing = !deckThumbnails.has(dno);
+
+    if (needsUpdate || thumbnailMissing) {
       await generateAndCacheThumbnail(
         dno,
         deckInfo,
@@ -402,9 +418,37 @@ export async function generateThumbnailsInBackground(
   getDeckDetail: (dno: number) => Promise<DeckInfo | null>,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
-  cachedDeckInfos: Map<number, CachedDeckInfo>
+  cachedDeckInfos: Map<number, CachedDeckInfo>,
+  force: boolean = false
 ): Promise<void> {
   if (!deckList || deckList.length === 0) return;
+
+  // バックグラウンドでのデッキ情報取得が有効かチェック（force=falseの場合のみ）
+  // window グローバルオブジェクトから設定を取得
+  if (!force) {
+    try {
+      const appSettings = (window as any).ygoNextCurrentSettings;
+      if (!appSettings || appSettings.backgroundDeckInfoFetch === false) {
+        return;
+      }
+    } catch (error) {
+      // 設定取得失敗時はスキップ
+      return;
+    }
+  }
+
+  // 設定でデッキサムネイル作成が無効な場合はスキップ（force=falseの場合のみ）
+  // window グローバルオブジェクトから設定を取得
+  if (!force) {
+    try {
+      const appSettings = (window as any).ygoNextCurrentSettings;
+      if (appSettings && appSettings.enableDeckThumbnailGeneration === false) {
+        return;
+      }
+    } catch (error) {
+      // 設定取得失敗時は通常通り処理を続ける
+    }
+  }
 
   // 前回の deckList 順序を読み込む
   const previousOrder = loadDeckListOrder();
