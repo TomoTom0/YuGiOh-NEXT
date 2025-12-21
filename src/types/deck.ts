@@ -10,9 +10,9 @@ export type { DeckCard, DeckCardRef, CardRef };
 export interface DeckInfo {
   /** デッキ番号 */
   dno: number;
-  /** デッキ名 */
+  /** デッキ名（ユーザーが編集可能、初期値は空） */
   name: string;
-  /** 元のデッキ名（load時点のデッキ名、placeholderとして使用） */
+  /** 元のデッキ名（API取得時のデッキ名、placeholderとして使用） */
   originalName?: string;
   /** デッキ内のカード取得時の言語コード */
   lang?: string;

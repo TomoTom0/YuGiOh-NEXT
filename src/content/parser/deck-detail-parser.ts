@@ -157,7 +157,8 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
 
   return {
     dno,
-    name,
+    name: '', // ユーザーが編集可能にするため空にする
+    originalName: name, // 元のデッキ名を保存
     mainDeck: mainDeckResult.cards,
     extraDeck: extraDeckResult.cards,
     sideDeck: sideDeckResult.cards,

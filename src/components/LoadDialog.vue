@@ -6,7 +6,20 @@
       <div class="dialog-content" @click.stop>
         <div class="dialog-header common">
           <h2 class="dialog-title">Load Deck</h2>
-          <button class="close-btn" @click="close">×</button>
+          <div class="header-buttons">
+            <button
+              class="refresh-btn"
+              :class="{ refreshing: isRefreshing }"
+              @click="refreshCurrentPage"
+              :disabled="isRefreshing"
+              title="現在のページのサムネイルを更新"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" />
+              </svg>
+            </button>
+            <button class="close-btn" @click="close">×</button>
+          </div>
         </div>
         <div class="dialog-body" ref="dialogBodyRef">
           <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
@@ -101,6 +114,9 @@ const settingsStore = useSettingsStore()
 // ダイアログボディのref
 const dialogBodyRef = ref<HTMLElement | null>(null)
 
+// リフレッシュ中フラグ
+const isRefreshing = ref(false)
+
 // ページング用の現在のページ
 const currentPage = ref(0)
 const ITEMS_PER_PAGE = 24
@@ -119,12 +135,16 @@ const paginatedDeckList = computed(() => {
   const decks = deckStore.deckList.slice(start, end)
 
   // サムネイルURLを各デッキオブジェクトに追加
-  return decks.map(deck => ({
-    ...deck,
-    thumbnailSrc: settingsStore.appSettings.updateThumbnailWithoutFetch
+  return decks.map(deck => {
+    const thumbnailUrl = settingsStore.appSettings.updateThumbnailWithoutFetch
       ? deckStore.deckThumbnails.get(deck.dno)
       : undefined
-  }))
+    return {
+      ...deck,
+      // 空文字列の場合は undefined として扱う（空デッキのマーカー）
+      thumbnailSrc: thumbnailUrl && thumbnailUrl !== '' ? thumbnailUrl : undefined
+    }
+  })
 })
 
 // デッキのカード枚数を取得する関数
@@ -176,7 +196,7 @@ const loadDeck = async (dno: number) => {
 
     await deckStore.loadDeck(dno)
 
-    localStorage.setItem('ygo_last_deck_dno', String(dno))
+    localStorage.setItem('ygoNext:lastDeckDno', String(dno))
 
     // 親コンポーネントに通知（親側でスクロール処理を実行）
     emit('deckLoaded')
@@ -191,6 +211,28 @@ const getDeckNameClass = (name: string) => {
   if (length > 15) return 'deck-name-sm'
   if (length > 10) return 'deck-name-md'
   return 'deck-name-lg'
+}
+
+// 現在のページのサムネイルを強制更新
+const refreshCurrentPage = async () => {
+  if (isRefreshing.value) return
+
+  isRefreshing.value = true
+  try {
+    const startIndex = currentPage.value * ITEMS_PER_PAGE
+    await generateThumbnailsInBackground(
+      startIndex,
+      ITEMS_PER_PAGE,
+      deckStore.deckList,
+      (dno: number) => deckStore.getDeckDetail(dno),
+      deckStore.headPlacementCardIds,
+      deckStore.deckThumbnails,
+      deckStore.cachedDeckInfos,
+      true // force: true で強制更新
+    )
+  } finally {
+    isRefreshing.value = false
+  }
 }
 </script>
 
@@ -236,6 +278,51 @@ const getDeckNameClass = (name: string) => {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    flex: 1;
+  }
+
+  .header-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .refresh-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &.refreshing {
+      animation: spin 1s linear infinite;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .close-btn {

@@ -44,33 +44,42 @@
       </div>
 
       <div class="section">
-        <h3 class="section-title">設定リセット</h3>
+        <h3 class="section-title">キャッシュ管理</h3>
         <p class="section-desc">
-          全ての設定を初期値に戻します。この操作は取り消せません。
+          削除したい項目を選択してください。
         </p>
-        <button class="danger-button" @click="showResetConfirm = true">
-          全ての設定をリセット
-        </button>
-        <div v-if="resetMessage" class="message success">
-          {{ resetMessage }}
+        <div class="cache-options">
+          <label class="toggle-item">
+            <input type="checkbox" v-model="cacheOptions.settings">
+            <span class="toggle-label">拡張機能設定</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" v-model="cacheOptions.cardDB">
+            <span class="toggle-label">カードDB</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" v-model="cacheOptions.deckInfo">
+            <span class="toggle-label">デッキ情報</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" v-model="cacheOptions.deckThumbnails">
+            <span class="toggle-label">デッキサムネイル</span>
+          </label>
+          <label class="toggle-item">
+            <input type="checkbox" v-model="cacheOptions.others">
+            <span class="toggle-label">その他</span>
+          </label>
         </div>
+        <button
+          class="danger-button"
+          @click="handleClearCache"
+          :disabled="!hasSelectedCacheOptions"
+          :class="{ disabled: !hasSelectedCacheOptions }"
+        >
+          選択した項目を削除
+        </button>
       </div>
 
-      <!-- 確認ダイアログ -->
-      <div v-if="showResetConfirm" class="confirm-overlay" @click="showResetConfirm = false">
-        <div class="confirm-dialog" @click.stop>
-          <h3 class="confirm-title">設定リセットの確認</h3>
-          <p class="confirm-message">本当に全ての設定をリセットしますか？この操作は取り消せません。</p>
-          <div class="confirm-buttons">
-            <button class="confirm-cancel-btn" @click="showResetConfirm = false">
-              キャンセル
-            </button>
-            <button class="confirm-ok-btn" @click="handleResetConfirmed">
-              リセット
-            </button>
-          </div>
-        </div>
-      </div>
 
       <!-- 将来的に有効化 -->
       <div v-if="false" class="section">
@@ -91,19 +100,93 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 const settingsStore = useSettingsStore();
-const resetMessage = ref('');
-const showResetConfirm = ref(false);
+const toastStore = useToastStore();
 
-const handleResetConfirmed = async () => {
-  showResetConfirm.value = false;
-  await settingsStore.resetSettings();
-  resetMessage.value = '設定をリセットしました';
-  setTimeout(() => {
-    resetMessage.value = '';
-  }, 3000);
+// キャッシュ削除オプション
+const cacheOptions = ref({
+  cardDB: false,
+  settings: false,
+  deckInfo: false,
+  deckThumbnails: false,
+  others: false
+});
+
+// いずれかのオプションが選択されているか
+const hasSelectedCacheOptions = computed(() => {
+  return Object.values(cacheOptions.value).some(v => v);
+});
+
+// キャッシュ削除ハンドラー
+const handleClearCache = async () => {
+  try {
+    const deletedItems: string[] = [];
+
+    // 1. キャッシュカードDB
+    if (cacheOptions.value.cardDB) {
+      const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
+      const { getTempCardDB } = await import('@/utils/temp-card-db');
+
+      const unifiedDB = getUnifiedCacheDB();
+      await unifiedDB.clearAll();
+
+      const tempDB = getTempCardDB();
+      await tempDB.clearStorage();
+
+      deletedItems.push('キャッシュカードDB');
+    }
+
+    // 2. 拡張機能設定
+    if (cacheOptions.value.settings) {
+      await settingsStore.resetSettings();
+      deletedItems.push('拡張機能設定');
+    }
+
+    // 3-5. localStorage削除（Content Script起動時に削除するようフラグを設定）
+    const localStorageKeys: string[] = [];
+    if (cacheOptions.value.deckInfo) {
+      localStorageKeys.push('ygoNext:deckInfoCache');
+      deletedItems.push('キャッシュデッキ情報');
+    }
+    if (cacheOptions.value.deckThumbnails) {
+      localStorageKeys.push('ygoNext:deckThumbnails');
+      deletedItems.push('キャッシュデッキサムネイル');
+    }
+    if (cacheOptions.value.others) {
+      localStorageKeys.push('ygoNext:deckListOrder', 'ygoNext:lastDeckDno', 'ygoNext:lastUsedDno');
+      deletedItems.push('その他');
+    }
+
+    // chrome.storage.localにフラグを設定（Content Script起動時に削除される）
+    if (localStorageKeys.length > 0) {
+      await new Promise<void>((resolve) => {
+        chrome.storage.local.set({ clearLocalStorageKeys: localStorageKeys }, () => {
+          resolve();
+        });
+      });
+    }
+
+    // 成功メッセージ
+    if (deletedItems.length > 0) {
+      toastStore.showToast(`以下を削除しました: ${deletedItems.join(', ')}`, 'info');
+      // チェックボックスをリセット
+      cacheOptions.value = {
+        cardDB: false,
+        settings: false,
+        deckInfo: false,
+        deckThumbnails: false,
+        others: false
+      };
+    } else {
+      toastStore.showToast('削除する項目が選択されていません', 'error');
+    }
+  } catch (error) {
+    console.error('[handleClearCache] Error:', error);
+    toastStore.showToast('キャッシュの削除中にエラーが発生しました', 'error');
+  }
 };
 </script>
 
@@ -253,117 +336,25 @@ const handleResetConfirmed = async () => {
   transition: all 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: var(--color-error-hover);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16);
   }
-}
 
-.message {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
-
-  &.success {
-    background-color: var(--color-success-bg);
-    color: var(--color-success);
-    border: 1px solid var(--color-success);
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
-.confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+.cache-options {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  animation: fadeIn 0.2s ease;
-}
-
-.confirm-dialog {
-  background-color: var(--bg-primary);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  animation: slideIn 0.2s ease;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.confirm-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 12px 0;
-}
-
-.confirm-message {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0 0 20px 0;
-}
-
-.confirm-buttons {
-  display: flex;
+  flex-direction: column;
   gap: 12px;
-  justify-content: flex-end;
-}
-
-.confirm-cancel-btn,
-.confirm-ok-btn {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.confirm-cancel-btn {
-  color: var(--text-primary);
-  background-color: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-
-  &:hover {
-    background-color: var(--bg-secondary);
-  }
-}
-
-.confirm-ok-btn {
-  color: var(--button-text);
-  background-color: var(--color-error);
-
-  &:hover {
-    background-color: var(--color-error-hover);
-  }
+  margin-bottom: 20px;
 }
 </style>

@@ -99,13 +99,78 @@ class SessionManager {
    * @returns 操作結果
    */
   async saveDeck(dno: number, deckData: DeckInfo): Promise<OperationResult> {
+    const startTime = performance.now();
+
     const cgid = await this.ensureCgid();
-    // CSRFトークンは使い捨てのため毎回新規取得
-    const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+
+    // プリロードされたytknを優先的に使用
+    let ytkn: string | null = null;
+
+    // ytkn取得のPromiseを待つ（最大1秒）
+    if (window.ygoNextPreloadedYtknPromise && !window.ygoNextPreloadedYtkn) {
+      try {
+        await Promise.race([
+          window.ygoNextPreloadedYtknPromise,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('ytkn preload timeout')), 1000))
+        ]);
+      } catch (error) {
+        console.warn('[SessionManager.saveDeck] ytkn preload wait failed or timed out:', error);
+      }
+      // 使用後は Promise を削除
+      window.ygoNextPreloadedYtknPromise = null;
+    }
+
+    // プリロードされたytknを使用
+    if (window.ygoNextPreloadedYtkn) {
+      ytkn = window.ygoNextPreloadedYtkn;
+      window.ygoNextPreloadedYtkn = null; // 使い捨てのため削除
+      console.debug('[SessionManager.saveDeck] Using preloaded ytkn');
+    }
+
+    // プリロードがない場合は通常取得
+    if (!ytkn) {
+      const ytknStartTime = performance.now();
+      ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+      const ytknDuration = performance.now() - ytknStartTime;
+      console.debug(`[SessionManager.saveDeck] ytkn取得時間（通常取得）: ${ytknDuration.toFixed(2)}ms`);
+    }
+
     if (!ytkn) {
       throw new Error('ytkn not found for saveDeck');
     }
-    return saveDeckInternal(cgid, dno, deckData, ytkn);
+
+    const saveStartTime = performance.now();
+    const result = await saveDeckInternal(cgid, dno, deckData, ytkn);
+    const saveDuration = performance.now() - saveStartTime;
+    console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
+
+    // 保存成功後、次回用のytknを非同期でプリロード（UIをブロックしない）
+    if (result.success) {
+      this.preloadNextYtkn(cgid, dno).catch(error => {
+        console.warn('[SessionManager.saveDeck] Failed to preload next ytkn:', error);
+      });
+    }
+
+    const totalDuration = performance.now() - startTime;
+    console.debug(`[SessionManager.saveDeck] 合計時間: ${totalDuration.toFixed(2)}ms`);
+
+    return result;
+  }
+
+  /**
+   * 次回のセーブ用にytknを非同期でプリロード
+   *
+   * @param cgid ユーザー識別子
+   * @param dno デッキ番号
+   */
+  private async preloadNextYtkn(cgid: string, dno: number): Promise<void> {
+    try {
+      const ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+      window.ygoNextPreloadedYtkn = ytkn;
+      console.debug('[SessionManager.preloadNextYtkn] Next ytkn preloaded');
+    } catch (error) {
+      console.warn('[SessionManager.preloadNextYtkn] Failed to preload:', error);
+    }
   }
 
   /**

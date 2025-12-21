@@ -14,6 +14,7 @@
    - **querySelector 安全性**: `querySelector` は必ず null チェックを行う。複数の操作が必要な場合は `src/utils/safe-dom-query.ts` を使用
    - **スタイル定義**: 独自画面以外での独自要素スタイルは必ず `.ygo-next` または `ygo-next-*` IDを含むセレクタを使用（SCSS の nest で記述）
    - **デバッグログ**: `console.debug()` を使用（本番でも残してOK、ブラウザのVerboseレベルでのみ表示）
+   - **localStorage キー**: 全て `ygoNext:` プレフィックスで統一（詳細は「localStorage キー規約」セクション参照）
 5. **テスト**: 重要機能にはユニットテスト必須（png-metadata, deck-import/export, url-state等）
 6. **変更頻度の高いファイル**: `deck-edit.ts` (54回), `DeckMetadata.vue` (34回) → 慎重に扱う
 7. **PRレビュー対応**: `gh-reply`コマンドを使用してレビューコメントに返信する
@@ -564,10 +565,33 @@ alcom git log --oneline @base..HEAD
 
 | ログレベル | 用途 | 本番環境 | 表示条件 |
 |-----------|------|---------|---------|
+| `console.temp()` | 一時デバッグ用（`console.debug()`のエイリアス） | 利用後は必ず削除 | ブラウザのVerboseレベルを有効化した時のみ表示 |
 | `console.debug()` | デバッグ用ログ | 一時的に残してOK | ブラウザのVerboseレベルを有効化した時のみ表示 |
 | `console.log()` | 通常のログ | 削除必須 | 常に表示（本番では使用しない） |
 | `console.warn()` | 警告メッセージ | 残す | 常に表示（潜在的な問題の検出に必要） |
 | `console.error()` | エラーメッセージ | 残す | 常に表示（エラー発生時のログに必要） |
+
+### console.temp() の使用方法
+
+**`console.temp()` は `console.debug()` のエイリアスで、一時的なデバッグ専用です。**
+
+**ルール:**
+- **利用後は必ず削除する**か、`console.debug()` に変更すること
+- **長期的に残してはならない**: 一時的なデバッグ用途のみ
+- **`console.debug()` との使い分け**: 明確に「後で削除する」ことを示す場合に使用
+
+**使用例:**
+
+```typescript
+// ✅ 良い例: 一時的なデバッグログ（後で削除することを明示）
+console.temp('[DEBUG] Temporary log:', data);
+
+// 使用後は削除または以下に変更：
+console.debug('[DEBUG] Temporary log:', data);
+```
+
+**型定義の場所:**
+- `src/types/console.d.ts` に定義されています
 
 ### console.debug() の利点と注意事項
 
@@ -584,6 +608,9 @@ alcom git log --oneline @base..HEAD
 ### 記述例
 
 ```typescript
+// ✅ 良い例: 一時デバッグログ（明示的に削除予定）
+console.temp('[DEBUG] Temporary log:', data);
+
 // ✅ 良い例: デバッグログ（一時的に残してOK、デバッグ完了後は削除）
 console.debug('[MappingManager] Initializing for language:', lang);
 console.debug('[handleSearch] Query:', query, 'Filters:', filters);
@@ -636,6 +663,34 @@ console.warn('[MappingManager] Stored mappings are invalid, fetching fresh data.
   - テキスト記号（例: `×`, `⋯`, `▼`など）
   - CSS擬似要素による描画
 - コミットメッセージやドキュメント内でも絵文字は使用しないこと
+
+## localStorage キー規約
+
+**全てのlocalStorageキーは `ygoNext:` プレフィックスで統一する**
+
+本プロジェクトでは、他のサイトや拡張機能とのキー衝突を避けるため、全てのlocalStorageキーに `ygoNext:` プレフィックスを使用します。
+
+### 現在使用しているキー
+
+| キー名 | 用途 | 保存データ |
+|--------|------|----------|
+| `ygoNext:settings` | 拡張機能設定 | AppSettings（JSON） |
+| `ygoNext:deckListOrder` | デッキリスト順序 | デッキ番号配列 |
+| `ygoNext:deckThumbnails` | デッキサムネイル | Map<デッキ番号, Data URL> |
+| `ygoNext:deckInfoCache` | デッキ情報キャッシュ | Map<デッキ番号, CachedDeckInfo> |
+| `ygoNext:lastDeckDno` | 最後に使用したデッキ番号 | デッキ番号 |
+| `ygoNext:lastUsedDno` | 最後に使用したデッキ番号（レガシー） | デッキ番号 |
+
+### 新しいキーを追加する場合
+
+1. **必ず `ygoNext:` プレフィックスを使用する**
+2. **キャメルケースで命名する**（例: `ygoNext:newFeature`）
+3. **上記の表に追加する**
+
+### 注意事項
+
+- chrome.storage.local のキーは衝突の恐れがないため、プレフィックス不要
+- localStorage と chrome.storage.local を混同しないこと
 
 ## PRレビュー対応
 

@@ -112,7 +112,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         initializeDisplayOrder,
         clearHistory,
         captureDeckSnapshot,
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName
       });
     }
     return persistence;
@@ -362,6 +363,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
+    // 同じカードを自分自身にドロップした場合は何もしない
+    if (sourceUuid === targetUuid) {
+      return { success: true };
+    }
+
     // バリデーション（共通化関数を使用）
     const validationError = validateReorderParameters(displayOrder.value, section, sourceUuid, targetUuid);
     if (validationError) {
@@ -1314,7 +1320,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // URLパラメータからdnoを取得（URLStateManagerを使用）
     const urlDno = URLStateManager.getDno();
-    const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
+    const savedDno = localStorage.getItem('ygoNext:lastUsedDno');
     const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
 
     // loadDeck()のPromiseだけを返す（画面表示に必須）
@@ -1496,7 +1502,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const copiedDeckData: DeckInfo = {
         ...deckData,
         dno: newDno,
-        name: `COPY_${deckData.name || deckData.originalName || ''}`
+        name: `COPY_${getDeckName()}`
       };
 
       // 新規デッキに現在のデータを保存
