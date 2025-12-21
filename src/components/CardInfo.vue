@@ -626,6 +626,7 @@ export default {
   gap: 15px;
   align-items: flex-start;
   justify-content: flex-start;
+  width: 100%;
 }
 
 .card-info-bottom {
