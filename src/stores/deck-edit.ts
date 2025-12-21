@@ -363,6 +363,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
   
   function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
+    // 同じカードを自分自身にドロップした場合は何もしない
+    if (sourceUuid === targetUuid) {
+      return { success: true };
+    }
+
     // バリデーション（共通化関数を使用）
     const validationError = validateReorderParameters(displayOrder.value, section, sourceUuid, targetUuid);
     if (validationError) {
