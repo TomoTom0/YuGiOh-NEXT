@@ -47,10 +47,11 @@
         <ImageCreationSection />
       </div>
       <div id="section-general" class="section-wrapper">
+        <h2 class="section-group-title">General</h2>
         <div class="section">
-          <h3 class="section-title">デッキ表示ページのカード画像サイズ</h3>
+          <h3 class="section-title">カード画像サイズ</h3>
           <p class="section-desc">
-            公式デッキ表示ページでのカード画像のサイズを選択できます。「Normal」は公式サイトのデフォルトサイズです。
+            公式デッキ表示ページでのカード画像のサイズを選択できます。
           </p>
           <div class="size-buttons">
             <button
@@ -89,9 +90,6 @@
               XL
             </button>
           </div>
-          <div v-if="sizeMessage" class="message success">
-            {{ sizeMessage }}
-          </div>
         </div>
       </div>
     </div>
@@ -101,6 +99,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 import type { DeckDisplayCardImageSize } from '../../../types/settings';
 import OverviewSection from '../sections/OverviewSection.vue';
 import DeckDisplayCardDetailSection from '../sections/DeckDisplayCardDetailSection.vue';
@@ -110,7 +109,7 @@ import ImageCreationSection from '../sections/ImageCreationSection.vue';
 type SubTab = 'overview' | 'card-detail' | 'shuffle' | 'image-creation' | 'general';
 
 const settingsStore = useSettingsStore();
-const sizeMessage = ref('');
+const toastStore = useToastStore();
 
 const activeSubTab = ref<SubTab>('overview');
 
@@ -120,10 +119,7 @@ const handleCardImageSizeChange = (size: DeckDisplayCardImageSize) => {
                 size === 'small' ? 'S' :
                 size === 'medium' ? 'M' :
                 size === 'large' ? 'L' : 'XL';
-  sizeMessage.value = `カード画像サイズを「${label}」に変更しました`;
-  setTimeout(() => {
-    sizeMessage.value = '';
-  }, 3000);
+  toastStore.showToast(`カード画像サイズを「${label}」に変更しました`, 'info');
 };
 
 // セクションまでスクロール
@@ -230,6 +226,13 @@ onUnmounted(() => {
   }
 }
 
+.section-group-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 24px 0;
+}
+
 .section {
   margin-bottom: 32px;
   padding: 24px;
@@ -257,8 +260,8 @@ onUnmounted(() => {
 }
 
 .size-buttons {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -287,26 +290,4 @@ onUnmounted(() => {
   }
 }
 
-.message {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
-
-  &.success {
-    background-color: var(--color-success-bg);
-    color: var(--color-success);
-    border: 1px solid var(--color-success);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 </style>

@@ -155,6 +155,8 @@ export async function saveDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
+    const startTime = performance.now();
+
     // URL-encoded形式でデータを構築（公式と同じ順序で）
     const params = new URLSearchParams();
     
@@ -287,11 +289,18 @@ export async function saveDeckInternal(
       params.append('imgsSide', 'null_null_null_null');
     }
 
+    const paramsBuiltTime = performance.now();
+    console.debug(`[saveDeckInternal] パラメータ構築時間: ${(paramsBuiltTime - startTime).toFixed(2)}ms`);
+
     const gameType = detectCardGameType();
     // buildApiUrl経由、ope=SAVE は request_locale 付与
     const path = `${API_ENDPOINT.MEMBER_DECK}?cgid=${cgid}`;
     const postUrl = buildApiUrl(path, gameType);
+
+    const encodeStartTime = performance.now();
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
+    const encodeEndTime = performance.now();
+    console.debug(`[saveDeckInternal] パラメータエンコード時間: ${(encodeEndTime - encodeStartTime).toFixed(2)}ms`);
 
 
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
@@ -301,6 +310,7 @@ export async function saveDeckInternal(
     const { default: axios } = await import('axios');
     // NOTE: saveDeckInternal はユーザー操作（デッキ保存）のクリティカルパスなため、
     // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const requestStartTime = performance.now();
     const response = await axios.post(postUrl, encoded_params, {
       withCredentials: true,
       headers: {
@@ -308,6 +318,8 @@ export async function saveDeckInternal(
         'X-Requested-With': 'XMLHttpRequest'
       }
     });
+    const requestEndTime = performance.now();
+    console.debug(`[saveDeckInternal] HTTP POST時間: ${(requestEndTime - requestStartTime).toFixed(2)}ms`);
 
     const data = response.data;
 

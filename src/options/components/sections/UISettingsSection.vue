@@ -219,19 +219,17 @@
       </label>
     </div>
 
-    <div v-if="saveMessage" class="save-message">
-      {{ saveMessage }}
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize, DialogFontSize, SearchUIFontSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
-const saveMessage = ref('');
+const toastStore = useToastStore();
 const backgroundDeckInfoFetch = ref(false);
 const updateThumbnailWithoutFetch = ref(false);
 
@@ -313,10 +311,7 @@ const handleSearchUIFontSizeChange = (fontSize: SearchUIFontSize) => {
 };
 
 const showSaveMessage = (message: string) => {
-  saveMessage.value = message;
-  setTimeout(() => {
-    saveMessage.value = '';
-  }, 3000);
+  toastStore.showToast(message, 'info');
 };
 
 const handleBackgroundDeckInfoFetchToggle = () => {
@@ -647,22 +642,4 @@ const handleUpdateThumbnailWithoutFetchToggle = () => {
   font-weight: 500;
 }
 
-.save-message {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 </style>

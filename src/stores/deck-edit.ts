@@ -112,7 +112,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         initializeDisplayOrder,
         clearHistory,
         captureDeckSnapshot,
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName
       });
     }
     return persistence;
@@ -1314,7 +1315,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // URLパラメータからdnoを取得（URLStateManagerを使用）
     const urlDno = URLStateManager.getDno();
-    const savedDno = localStorage.getItem('ygo-deck-helper:lastUsedDno');
+    const savedDno = localStorage.getItem('ygoNext:lastUsedDno');
     const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
 
     // loadDeck()のPromiseだけを返す（画面表示に必須）
@@ -1496,7 +1497,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       const copiedDeckData: DeckInfo = {
         ...deckData,
         dno: newDno,
-        name: `COPY_${deckData.name || deckData.originalName || ''}`
+        name: `COPY_${getDeckName()}`
       };
 
       // 新規デッキに現在のデータを保存

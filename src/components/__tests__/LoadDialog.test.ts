@@ -585,7 +585,7 @@ describe('LoadDialog.vue', () => {
       await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(localStorage.setItem).toHaveBeenCalledWith('ygo_last_deck_dno', '123');
+      expect(localStorage.setItem).toHaveBeenCalledWith('ygoNext:lastDeckDno', '123');
     });
 
     it('デッキロード時にダイアログが閉じる', async () => {

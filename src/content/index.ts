@@ -4,6 +4,11 @@
  * 全ページで読み込まれ、ページの種類に応じて適切な機能を初期化する
  */
 
+// console.temp() エイリアスを定義（一時的なデバッグ用、利用後は必ず削除またはdebugに変更）
+if (!console.temp) {
+  console.temp = console.debug.bind(console);
+}
+
 // 最初に__webpack_public_path__を設定（動的インポートより前に実行される必要がある）
 import './public-path';
 
@@ -131,6 +136,21 @@ async function preloadEditPageData(): Promise<void> {
   })();
 
   window.ygoNextPreloadedDeckDetailPromise = deckDetailPromise;
+
+  // ytkn の Promise を公開（saveDeck で await できるようにする）
+  const ytknPromise = (async () => {
+    try {
+      const { fetchYtknFromEditForm } = await import('../utils/ytkn-fetcher');
+      const gameType = detectCardGameType();
+      const ytkn = await fetchYtknFromEditForm(cgid, dnoNum, gameType);
+      window.ygoNextPreloadedYtkn = ytkn;
+      console.debug('[Preload] ytkn preloaded successfully');
+    } catch (error) {
+      console.warn('[Preload] ytkn load failed:', error);
+    }
+  })();
+
+  window.ygoNextPreloadedYtknPromise = ytknPromise;
 }
 
 /**
@@ -258,7 +278,7 @@ async function cacheSettingsGlobally(): Promise<void> {
   try {
     const appSettings = await getFromStorageLocal('appSettings');
     if (appSettings) {
-      localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings));
+      localStorage.setItem('ygoNext:settings', JSON.stringify(appSettings));
       window.ygoNextCurrentSettings = appSettings;
     }
   } catch (error) {
@@ -347,7 +367,7 @@ if (isVueEditPage()) {
   // localStorageから同期的に読み込み（リロード後も保持される）
   if (!cachedSettings) {
     try {
-      const settingsStr = localStorage.getItem('ygo-next-settings');
+      const settingsStr = localStorage.getItem('ygoNext:settings');
       if (settingsStr) {
         cachedSettings = JSON.parse(settingsStr);
         window.ygoNextCurrentSettings = cachedSettings;
@@ -420,3 +440,23 @@ initializeFeatures();
 // 編集ページ用UI読み込み（hashchange時）
 // 注: hashchangeでデッキ編集画面が始まることは原則としてないため、preloadは実行しない
 window.addEventListener('hashchange', loadEditUIIfNeeded);
+
+// localStorage削除処理（非同期、ページ読み込みをブロックしない）
+(async () => {
+  try {
+    const result = await chrome.storage.local.get('clearLocalStorageKeys');
+    const keys = result.clearLocalStorageKeys;
+
+    if (Array.isArray(keys) && keys.length > 0) {
+      // localStorageから削除
+      keys.forEach((key: string) => {
+        localStorage.removeItem(key);
+      });
+
+      // フラグをクリア
+      await chrome.storage.local.remove('clearLocalStorageKeys');
+    }
+  } catch (error) {
+    console.error('[Content] Failed to clear localStorage:', error);
+  }
+})();

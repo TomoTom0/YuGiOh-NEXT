@@ -315,6 +315,9 @@ export default {
         // ソート処理を実行
         applySorting()
 
+        // 設定された遅延時間を取得（デフォルト: 0ms = 即座に保存）
+        const delay = settingsStore.appSettings.saveDelayMs ?? 0
+
         saveTimer.value = window.setTimeout(async () => {
           try {
             if (!localDno.value) {
@@ -344,7 +347,7 @@ export default {
             savingState.value = false
             saveTimer.value = null
           }
-        }, 2000)
+        }, delay)
       }
     }
 

@@ -221,7 +221,7 @@ export const useSettingsStore = defineStore('settings', () => {
       }, () => {
         // localStorage にもキャッシュ（超早期読み込み用）
         try {
-          localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings.value));
+          localStorage.setItem('ygoNext:settings', JSON.stringify(appSettings.value));
           if (typeof window !== 'undefined') {
             window.ygoNextCurrentSettings = appSettings.value;
           }

@@ -213,8 +213,8 @@
             @change="handleSortOrderChange"
           />
           <span class="radio-text">
-            <strong>リリース日降順（デフォルト）</strong>
-            <span class="radio-desc">新しいカードから順に表示</span>
+            <strong>新しい順（デフォルト）</strong>
+            <span class="radio-desc">リリース日が新しいカードから表示</span>
           </span>
         </label>
         <label
@@ -228,23 +228,8 @@
             @change="handleSortOrderChange"
           />
           <span class="radio-text">
-            <strong>リリース日昇順</strong>
-            <span class="radio-desc">古いカードから順に表示</span>
-          </span>
-        </label>
-        <label
-          class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'official' }"
-        >
-          <input
-            type="radio"
-            value="official"
-            v-model="settingsStore.appSettings.defaultSortOrder"
-            @change="handleSortOrderChange"
-          />
-          <span class="radio-text">
-            <strong>公式順</strong>
-            <span class="radio-desc">公式サイトの並び順</span>
+            <strong>古い順</strong>
+            <span class="radio-desc">リリース日が古いカードから表示</span>
           </span>
         </label>
         <label
@@ -258,23 +243,8 @@
             @change="handleSortOrderChange"
           />
           <span class="radio-text">
-            <strong>名前昇順</strong>
-            <span class="radio-desc">カード名の昇順（あいうえお順）</span>
-          </span>
-        </label>
-        <label
-          class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_desc' }"
-        >
-          <input
-            type="radio"
-            value="name_desc"
-            v-model="settingsStore.appSettings.defaultSortOrder"
-            @change="handleSortOrderChange"
-          />
-          <span class="radio-text">
-            <strong>名前降順</strong>
-            <span class="radio-desc">カード名の降順（んわをん順）</span>
+            <strong>あいうえお順</strong>
+            <span class="radio-desc">カード名の昇順</span>
           </span>
         </label>
       </div>
@@ -390,10 +360,6 @@
       </div>
     </div>
 
-    <div v-if="saveMessage" class="save-message">
-      {{ saveMessage }}
-    </div>
-
     <KeyInputDialog
       :isVisible="dialogVisible"
       :title="dialogTitle"
@@ -408,11 +374,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 import KeyInputDialog from '../KeyInputDialog.vue';
 import type { KeyboardShortcut } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
-const saveMessage = ref('');
+const toastStore = useToastStore();
 
 const dialogVisible = ref(false);
 const dialogTitle = ref('');
@@ -493,10 +460,7 @@ const handleRemoveShortcut = (index: number) => {
 };
 
 const showSaveMessage = (message: string) => {
-  saveMessage.value = message;
-  setTimeout(() => {
-    saveMessage.value = '';
-  }, 3000);
+  toastStore.showToast(message, 'info');
 };
 </script>
 
@@ -630,16 +594,6 @@ const showSaveMessage = (message: string) => {
       line-height: 1.5;
     }
   }
-}
-
-.save-message {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
 }
 
 .shortcut-list {

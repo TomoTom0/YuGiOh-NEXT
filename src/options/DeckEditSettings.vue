@@ -28,10 +28,9 @@
       <div class="setting-item">
         <label>デフォルトソート順</label>
         <select v-model="settings.defaultSortOrder">
-          <option value="official">公式順</option>
-          <option value="level">レベル順</option>
-          <option value="atk">攻撃力順</option>
-          <option value="def">守備力順</option>
+          <option value="release_desc">新しい順</option>
+          <option value="release_asc">古い順</option>
+          <option value="name_asc">あいうえお順</option>
         </select>
         <p class="setting-desc">カードリストのデフォルトのソート順です。</p>
       </div>

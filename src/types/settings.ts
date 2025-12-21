@@ -230,6 +230,8 @@ export interface AppSettings {
   backgroundDeckInfoFetch: boolean;
   /** APIフェッチなしでサムネイルを更新 */
   updateThumbnailWithoutFetch: boolean;
+  /** 保存ボタンクリック後の遅延時間（ミリ秒）: 0〜5000 (デフォルト: 0) */
+  saveDelayMs: number;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -352,6 +354,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
   backgroundDeckInfoFetch: false,      // バックグラウンドでのデッキ情報取得: デフォルト無効（接続規制対策）
   updateThumbnailWithoutFetch: false,  // APIフェッチなしでサムネイルを更新: デフォルト無効（接続規制対策）
+  saveDelayMs: 0,                      // 保存ボタンクリック後の遅延時間: 0ms（即座に保存）
 };
 
 /**

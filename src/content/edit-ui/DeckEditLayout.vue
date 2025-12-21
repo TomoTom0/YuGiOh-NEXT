@@ -332,7 +332,7 @@ export default {
       isComponentMounted = true
 
       // 前回のdnoを復元
-      const lastDno = localStorage.getItem('ygo_last_deck_dno')
+      const lastDno = localStorage.getItem('ygoNext:lastDeckDno')
       if (lastDno) {
         currentDeckDno.value = parseInt(lastDno, 10)
       }

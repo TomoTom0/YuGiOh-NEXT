@@ -23,6 +23,7 @@ export interface CachedDeckInfo {
     extra: number
     side: number
   }
+  lastThumbnailUpdate?: number // サムネイル最終更新時刻（バックグラウンド更新の制限用）
 }
 
 const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7日間
@@ -32,7 +33,7 @@ const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7日間
  */
 export function loadDeckListOrder(): number[] {
   try {
-    const cached = localStorage.getItem('ygo_deck_list_order');
+    const cached = localStorage.getItem('ygoNext:deckListOrder');
     if (cached) {
       return JSON.parse(cached);
     }
@@ -48,7 +49,7 @@ export function loadDeckListOrder(): number[] {
 export function saveDeckListOrder(deckList: DeckListItem[]): void {
   try {
     const order = deckList.map(deck => deck.dno);
-    localStorage.setItem('ygo_deck_list_order', JSON.stringify(order));
+    localStorage.setItem('ygoNext:deckListOrder', JSON.stringify(order));
   } catch (error) {
     console.warn('Failed to save deck list order:', error);
   }
@@ -81,7 +82,7 @@ export function isDeckListOrderChanged(currentDeckList: DeckListItem[]): boolean
  */
 export function loadThumbnailCache(): Map<number, string> {
   try {
-    const cached = localStorage.getItem('ygo_deck_thumbnails');
+    const cached = localStorage.getItem('ygoNext:deckThumbnails');
     if (cached) {
       const parsed = JSON.parse(cached);
       return new Map(
@@ -100,7 +101,7 @@ export function loadThumbnailCache(): Map<number, string> {
 export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
   try {
     const obj = Object.fromEntries(deckThumbnails);
-    localStorage.setItem('ygo_deck_thumbnails', JSON.stringify(obj));
+    localStorage.setItem('ygoNext:deckThumbnails', JSON.stringify(obj));
   } catch (error) {
     console.warn('Failed to save thumbnail cache:', error);
   }
@@ -111,7 +112,7 @@ export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
  */
 export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
   try {
-    const cached = localStorage.getItem('ygo_deck_info_cache');
+    const cached = localStorage.getItem('ygoNext:deckInfoCache');
     if (cached) {
       const parsed = JSON.parse(cached);
       const map = new Map(
@@ -141,7 +142,7 @@ export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
 export function saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>): void {
   try {
     const obj = Object.fromEntries(cachedDeckInfos);
-    localStorage.setItem('ygo_deck_info_cache', JSON.stringify(obj));
+    localStorage.setItem('ygoNext:deckInfoCache', JSON.stringify(obj));
   } catch (error) {
     console.warn('Failed to save deck info cache:', error);
   }
@@ -166,8 +167,8 @@ export function calculateDeckHash(deckInfo: DeckInfo): string {
     }
   };
 
-  // デッキ名をハッシュ化
-  hashString(deckInfo.name);
+  // 元のデッキ名をハッシュ化（originalName、変更されない元の名前）
+  hashString(deckInfo.originalName || '');
   hashString('|');
 
   // メインデッキをハッシュ化
@@ -199,10 +200,17 @@ export function isDeckInfoChanged(
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): boolean {
   const cached = cachedDeckInfos.get(dno);
-  if (!cached) return true; // キャッシュなし = 変更あり
+  if (!cached) {
+    console.temp(`[isDeckInfoChanged] Deck ${dno}: No cache found`);
+    return true; // キャッシュなし = 変更あり
+  }
 
   const currentHash = calculateDeckHash(deckInfo);
-  return currentHash !== cached.hash;
+  const changed = currentHash !== cached.hash;
+  if (changed) {
+    console.temp(`[isDeckInfoChanged] Deck ${dno}: Hash mismatch - current: ${currentHash}, cached: ${cached.hash}`);
+  }
+  return changed;
 }
 
 /**
@@ -212,7 +220,12 @@ export function isCacheExpired(
   cachedInfo: CachedDeckInfo,
   expirationMs: number = CACHE_EXPIRATION_MS
 ): boolean {
-  return Date.now() - cachedInfo.lastUpdated > expirationMs;
+  const expired = Date.now() - cachedInfo.lastUpdated > expirationMs;
+  if (expired) {
+    const age = Math.floor((Date.now() - cachedInfo.lastUpdated) / (24 * 60 * 60 * 1000));
+    console.temp(`[isCacheExpired] Cache expired: ${age} days old`);
+  }
+  return expired;
 }
 
 /**
@@ -232,20 +245,25 @@ export async function generateAndCacheThumbnail(
     const extraDeckData: DeckCardRef[] = deckInfo.extraDeck;
     const sideDeckData: DeckCardRef[] = deckInfo.sideDeck;
 
+    const hash = calculateDeckHash(deckInfo);
+    console.temp(`[generateAndCacheThumbnail] Deck ${dno}: Saving with hash ${hash}, originalName="${deckInfo.originalName}", name="${deckInfo.name}", cards=${mainDeckData.length}/${extraDeckData.length}/${sideDeckData.length}`);
+
+    const now = Date.now();
     const cachedInfo: CachedDeckInfo = {
       dno,
-      name: deckInfo.name,
+      name: deckInfo.originalName || '', // 元のデッキ名を保存
       category: deckInfo.category,
       mainDeck: mainDeckData,
       extraDeck: extraDeckData,
       sideDeck: sideDeckData,
-      lastUpdated: Date.now(),
-      hash: calculateDeckHash(deckInfo),
+      lastUpdated: now,
+      hash,
       cardCount: {
         main: mainDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0),
         extra: extraDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0),
         side: sideDeckData.reduce((sum: number, card: DeckCardRef) => sum + card.quantity, 0)
-      }
+      },
+      lastThumbnailUpdate: now // サムネイル更新時刻を記録
     };
     cachedDeckInfos.set(dno, cachedInfo);
     saveDeckInfoCache(cachedDeckInfos);
@@ -254,10 +272,11 @@ export async function generateAndCacheThumbnail(
     const imageUrl = await generateDeckThumbnailImage(deckInfo, headPlacementCardIds);
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
-      saveThumbnailCache(deckThumbnails);
     } else {
-      console.warn(`[deck-cache] Failed to generate thumbnail for deck ${dno}: imageUrl is null`);
+      // 空のデッキの場合は特別なマーカーを保存（次回のチェックで「更新不要」と判定されるように）
+      deckThumbnails.set(dno, '');
     }
+    saveThumbnailCache(deckThumbnails);
   } catch (error) {
     console.warn(`Failed to generate and cache thumbnail for deck ${dno}:`, error);
   }
@@ -460,10 +479,26 @@ export async function generateThumbnailsInBackground(
   const decksToUpdate: Array<{ dno: number; deckInfo: DeckInfo }> = [];
   let consecutiveSkipped = 0;
 
+  let apiCallCount = 0; // API通信回数をカウント
+
   for (let i = 0; i < targetDecks.length; i++) {
     const deck = targetDecks[i];
     if (!deck) continue;
     const currentDno = deck.dno;
+
+    // バックグラウンド更新の場合（force=false）、前回更新から1日以内はスキップ
+    let skipDueToRecentUpdate = false;
+    if (!force) {
+      const cached = cachedDeckInfos.get(currentDno);
+      console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: cached=${!!cached}, lastThumbnailUpdate=${cached?.lastThumbnailUpdate}`);
+      if (cached?.lastThumbnailUpdate) {
+        const daysSinceUpdate = (Date.now() - cached.lastThumbnailUpdate) / (24 * 60 * 60 * 1000);
+        if (daysSinceUpdate < 1) {
+          console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: Skipping (updated ${daysSinceUpdate.toFixed(2)} days ago)`);
+          skipDueToRecentUpdate = true;
+        }
+      }
+    }
 
     // 前回のこのdnoの位置
     const previousIndex = previousOrder.indexOf(currentDno);
@@ -489,35 +524,71 @@ export async function generateThumbnailsInBackground(
       orderPreserved = isSubsequence(relevantDnos, currentBeforeDnos);
     }
 
-    // 内容が変わっていないか
-    const { needsUpdate, deckInfo } = await checkDeckNeedsUpdate(
-      currentDno,
-      getDeckDetail,
-      cachedDeckInfos
-    );
+    // 内容が変わっていないか（API通信が必要な場合のみチェック）
+    let needsUpdate = false;
+    let deckInfo: DeckInfo | null = null;
 
-    // 「順序関係が保たれている + 内容変化なし」→ スキップカウント増加
-    if (orderPreserved && !needsUpdate) {
+    if (!skipDueToRecentUpdate) {
+      // API通信前にランダム待機（2回目以降のAPI通信のみ）
+      if (apiCallCount > 0) {
+        const delay = 500 + Math.random() * 1500; // 500-2000msのランダム待機
+        console.temp(`[generateThumbnailsInBackground] Waiting ${delay.toFixed(0)}ms before processing deck ${currentDno}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      const result = await checkDeckNeedsUpdate(currentDno, getDeckDetail, cachedDeckInfos);
+      needsUpdate = result.needsUpdate;
+      deckInfo = result.deckInfo;
+      apiCallCount++; // API通信をカウント
+    }
+
+    console.temp(`[generateThumbnailsInBackground] Deck ${currentDno}: orderPreserved=${orderPreserved}, needsUpdate=${needsUpdate}, skipDueToRecentUpdate=${skipDueToRecentUpdate}`);
+
+    // スキップ条件：「順序関係が保たれている + 内容変化なし」または「1日以内に更新済み」
+    const shouldSkip = (orderPreserved && !needsUpdate) || skipDueToRecentUpdate;
+
+    if (shouldSkip) {
       consecutiveSkipped++;
-      // 5個連続で順序も内容も保持 → 残りをスキップ
+
+      // スキップした場合でも、バックグラウンド更新（force=false）なら最終チェック時刻を記録
+      if (!force && !skipDueToRecentUpdate) {
+        // orderPreserved && !needsUpdate でスキップされた場合、チェック時刻を記録
+        const cached = cachedDeckInfos.get(currentDno);
+        if (cached) {
+          cached.lastThumbnailUpdate = Date.now();
+          cachedDeckInfos.set(currentDno, cached);
+        }
+      }
+
+      // 5個連続でスキップ → 残りをスキップ（force=true でも共通）
       if (consecutiveSkipped >= 5) {
+        console.temp(`[generateThumbnailsInBackground] 5 consecutive skips detected, stopping early`);
         break;
       }
+      continue;
     } else {
       consecutiveSkipped = 0; // リセット
       if (needsUpdate && deckInfo) {
+        console.temp(`[generateThumbnailsInBackground] Deck ${currentDno} will be updated`);
         decksToUpdate.push({ dno: currentDno, deckInfo });
       }
     }
   }
 
+  // スキップ時に更新したキャッシュを保存
+  saveDeckInfoCache(cachedDeckInfos);
+
   // フェーズ2: 画像生成を非同期で実行（RequestIdleCallbackで1つずつ）
   if (decksToUpdate.length === 0) {
+    console.temp(`[generateThumbnailsInBackground] No decks to update`);
     return;
   }
 
+  console.temp(`[generateThumbnailsInBackground] Generating thumbnails for ${decksToUpdate.length} decks`);
+
   for (const { dno, deckInfo } of decksToUpdate) {
     await waitForIdleCallback();
+    console.temp(`[generateThumbnailsInBackground] Generating thumbnail for deck ${dno}`);
     await generateAndCacheThumbnail(
       dno,
       deckInfo,
@@ -525,5 +596,6 @@ export async function generateThumbnailsInBackground(
       deckThumbnails,
       cachedDeckInfos
     );
+    console.temp(`[generateThumbnailsInBackground] Thumbnail for deck ${dno} generated`);
   }
 }

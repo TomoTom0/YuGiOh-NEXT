@@ -30,9 +30,6 @@
       <button class="danger-button" @click="handleClearCache">
         Cache DBをリセット
       </button>
-      <div v-if="cacheMessage" class="message" :class="{ error: cacheError }">
-        {{ cacheMessage }}
-      </div>
     </div>
 
     <!-- Opt-out設定 -->
@@ -59,12 +56,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { getTempCardDB } from '@/utils/temp-card-db';
 
 const settingsStore = useSettingsStore();
-const cacheMessage = ref('');
-const cacheError = ref(false);
+const toastStore = useToastStore();
 const deckEditEnabled = ref(true);
 const changeFavicon = ref(false);
 
@@ -76,25 +73,16 @@ onMounted(() => {
 
 const handleClearCache = async () => {
   try {
-
     const unifiedDB = getUnifiedCacheDB();
     await unifiedDB.clearAll();
 
     const tempDB = getTempCardDB();
     await tempDB.clearStorage();
 
-    cacheMessage.value = 'Cache DBをリセットしました';
-    cacheError.value = false;
-    setTimeout(() => {
-      cacheMessage.value = '';
-    }, 3000);
+    toastStore.showToast('Cache DBをリセットしました', 'info');
   } catch (error) {
     console.error('Failed to clear cache:', error);
-    cacheMessage.value = 'Cache DBのリセットに失敗しました';
-    cacheError.value = true;
-    setTimeout(() => {
-      cacheMessage.value = '';
-    }, 3000);
+    toastStore.showToast('Cache DBのリセットに失敗しました', 'error');
   }
 };
 
@@ -153,21 +141,6 @@ const handleFaviconToggle = () => {
 
   &:hover {
     background-color: #b71c1c;
-  }
-}
-
-.message {
-  margin-top: 12px;
-  padding: 10px 16px;
-  border-radius: 4px;
-  font-size: 13px;
-  animation: fadeIn 0.3s ease;
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-
-  &.error {
-    background-color: var(--color-error-bg);
-    color: var(--color-error-text);
   }
 }
 
