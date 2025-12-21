@@ -21,7 +21,7 @@ INPUT=$1
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # package.json から現在のバージョンを取得
-CURRENT_VERSION=$(grep -oP '(?<="version":\s")[\d.]+' "$ROOT_DIR/package.json")
+CURRENT_VERSION=$(sed -n 's/.*"version":[[:space:]]*"\([^"]*\)".*/\1/p' "$ROOT_DIR/package.json")
 
 # バージョンレベル指定の場合は自動計算
 case "$INPUT" in

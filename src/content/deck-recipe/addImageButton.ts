@@ -148,7 +148,7 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
                 tags: parsedDeckInfo.tags || [],
                 comment: parsedDeckInfo.comment || '',
                 deckCode: parsedDeckInfo.deckCode || '',
-                name: parsedDeckInfo.name || ''
+                name: parsedDeckInfo.originalName || parsedDeckInfo.name || ''
               };
 
               // デッキを保存
