@@ -41,6 +41,14 @@ import { withTimeout, TimeoutError } from '../utils/promise-timeout';
 // Chrome Storage ユーティリティ
 import { setToStorageLocal, getFromStorageLocal } from '../utils/chrome-storage-utils';
 
+// localStorage キー定数
+import {
+  STORAGE_KEY_SETTINGS,
+  CHROME_STORAGE_KEY_APP_SETTINGS,
+  CHROME_STORAGE_KEY_USER_CGID,
+  CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS
+} from '../constants/storage-keys';
+
 /**
  * グローバル変数拡張
  * 型定義は src/types/window.d.ts で管理
@@ -117,7 +125,7 @@ async function preloadEditPageData(): Promise<void> {
   }
 
   // cgid取得
-  const cgid = await getFromStorageLocal('ygo-user-cgid');
+  const cgid = await getFromStorageLocal(CHROME_STORAGE_KEY_USER_CGID);
 
   if (!cgid) {
     console.warn('[Preload] cgid not found, skipping preload');
@@ -276,9 +284,9 @@ async function loadEditUIIfNeeded(): Promise<void> {
  */
 async function cacheSettingsGlobally(): Promise<void> {
   try {
-    const appSettings = await getFromStorageLocal('appSettings');
+    const appSettings = await getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS);
     if (appSettings) {
-      localStorage.setItem('ygoNext:settings', JSON.stringify(appSettings));
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(appSettings));
       window.ygoNextCurrentSettings = appSettings;
     }
   } catch (error) {
@@ -295,7 +303,7 @@ async function cacheCgidInStorage(): Promise<void> {
     const cgid = await sessionManager.getCgid();
 
     if (cgid) {
-      await setToStorageLocal('ygo-user-cgid', cgid);
+      await setToStorageLocal(CHROME_STORAGE_KEY_USER_CGID, cgid);
     }
   } catch (error) {
     console.warn('[YGO Helper] Failed to cache cgid:', error);
@@ -367,7 +375,7 @@ if (isVueEditPage()) {
   // localStorageから同期的に読み込み（リロード後も保持される）
   if (!cachedSettings) {
     try {
-      const settingsStr = localStorage.getItem('ygoNext:settings');
+      const settingsStr = localStorage.getItem(STORAGE_KEY_SETTINGS);
       if (settingsStr) {
         cachedSettings = JSON.parse(settingsStr);
         window.ygoNextCurrentSettings = cachedSettings;
@@ -444,8 +452,8 @@ window.addEventListener('hashchange', loadEditUIIfNeeded);
 // localStorage削除処理（非同期、ページ読み込みをブロックしない）
 (async () => {
   try {
-    const result = await chrome.storage.local.get('clearLocalStorageKeys');
-    const keys = result.clearLocalStorageKeys;
+    const result = await chrome.storage.local.get(CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS);
+    const keys = result[CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS];
 
     if (Array.isArray(keys) && keys.length > 0) {
       // localStorageから削除
@@ -454,7 +462,7 @@ window.addEventListener('hashchange', loadEditUIIfNeeded);
       });
 
       // フラグをクリア
-      await chrome.storage.local.remove('clearLocalStorageKeys');
+      await chrome.storage.local.remove(CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS);
     }
   } catch (error) {
     console.error('[Content] Failed to clear localStorage:', error);

@@ -31,6 +31,11 @@ import {
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
 import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
+import {
+  STORAGE_KEY_LAST_USED_DNO,
+  CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS,
+  CHROME_STORAGE_KEY_DECK_LIST_PRELOAD
+} from '../constants/storage-keys';
 
 export const useDeckEditStore = defineStore('deck-edit', () => {
   const deckInfo = ref<DeckInfo>({
@@ -940,7 +945,50 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deckInfo.value.name = name;
   }
 
+  /**
+   * displayOrder の順序を deckInfo に反映
+   * 保存直前に呼び出して、手動並び替えの順序を永続化する
+   */
+  function syncDeckInfoFromDisplayOrder() {
+    const sections: Array<{ key: 'main' | 'extra' | 'side'; deckKey: 'mainDeck' | 'extraDeck' | 'sideDeck' }> = [
+      { key: 'main', deckKey: 'mainDeck' },
+      { key: 'extra', deckKey: 'extraDeck' },
+      { key: 'side', deckKey: 'sideDeck' }
+    ];
+
+    sections.forEach(({ key, deckKey }) => {
+      const order = displayOrder.value[key];
+      const currentDeck = deckInfo.value[deckKey];
+
+      // displayOrder の順序に従って deckInfo を再構築
+      const newDeck: DeckCardRef[] = [];
+      const processedCards = new Set<string>();
+
+      for (const displayCard of order) {
+        // cid + ciid の組み合わせで一意性を判定
+        const cardKey = `${displayCard.cid}:${displayCard.ciid}`;
+
+        // まだ処理していない cid+ciid の場合のみ追加
+        if (!processedCards.has(cardKey)) {
+          const existingCard = currentDeck.find(c =>
+            c.cid === displayCard.cid && String(c.ciid) === String(displayCard.ciid)
+          );
+          if (existingCard) {
+            newDeck.push(existingCard);
+            processedCards.add(cardKey);
+          }
+        }
+      }
+
+      // deckInfo を更新
+      deckInfo.value[deckKey] = newDeck;
+    });
+  }
+
   async function saveDeck(dno: number) {
+    // 保存前に displayOrder から deckInfo を再構築
+    syncDeckInfoFromDisplayOrder();
+
     // useDeckPersistence composable に処理を委譲
     const result = await getPersistence().saveDeck(dno);
 
@@ -1066,8 +1114,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
 
     try {
-      const result = await chrome.storage.local.get('deck_head_placement_cards');
-      const allData = (result.deck_head_placement_cards as Record<string, any>) || {};
+      const result = await chrome.storage.local.get(CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS);
+      const allData = (result[CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS] as Record<string, any>) || {};
       const dnoKey = String(dno);
       const loadedData = allData[dnoKey];
 
@@ -1107,8 +1155,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     try {
       // 既存データを読み込み
-      const result = await chrome.storage.local.get('deck_head_placement_cards');
-      const allData = (result.deck_head_placement_cards as Record<string, string[]>) || {};
+      const result = await chrome.storage.local.get(CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS);
+      const allData = (result[CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS] as Record<string, string[]>) || {};
 
       // 現在のdnoのデータを更新
       const dnoKey = String(dno);
@@ -1120,7 +1168,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       }
 
       // 保存
-      await chrome.storage.local.set({ deck_head_placement_cards: allData });
+      await chrome.storage.local.set({ [CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS]: allData });
     } catch (error) {
       console.error('Failed to save head placement cards:', error);
     }
@@ -1222,7 +1270,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // Background で事前取得済みのデッキリストを確認
       try {
         const { getFromStorageLocal } = await import('../utils/chrome-storage-utils');
-        const preloadedData = await getFromStorageLocal('ygo-deck-list-preload');
+        const preloadedData = await getFromStorageLocal(CHROME_STORAGE_KEY_DECK_LIST_PRELOAD);
 
         if (preloadedData && typeof preloadedData === 'string') {
           const parsed = JSON.parse(preloadedData);
@@ -1320,7 +1368,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // URLパラメータからdnoを取得（URLStateManagerを使用）
     const urlDno = URLStateManager.getDno();
-    const savedDno = localStorage.getItem('ygoNext:lastUsedDno');
+    const savedDno = localStorage.getItem(STORAGE_KEY_LAST_USED_DNO);
     const targetDno = urlDno ?? (savedDno ? parseInt(savedDno, 10) : null);
 
     // loadDeck()のPromiseだけを返す（画面表示に必須）

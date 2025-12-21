@@ -12,6 +12,7 @@
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
+import { CHROME_STORAGE_KEY_APP_SETTINGS } from '../../constants/storage-keys';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
 let isEditUILoaded = false;
@@ -47,11 +48,11 @@ async function applyThemeFromSettings(): Promise<void> {
     // メモリにない場合は Storage から読み込み
     if (!appSettings) {
       const result = await callbackToPromise<any>(
-        (callback) => chrome.storage.local.get(['appSettings'], callback),
+        (callback) => chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], callback),
         3000 // 3秒のタイムアウト
       );
 
-      appSettings = result.appSettings || {};
+      appSettings = result[CHROME_STORAGE_KEY_APP_SETTINGS] || {};
 
       // 読み込み後、メモリキャッシュに保存
       if (appSettings) {

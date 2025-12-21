@@ -27,6 +27,11 @@ import {
 import { detectLanguage } from '../utils/language-detector';
 import { mappingManager } from '../utils/mapping-manager';
 import { DEFAULT_TAIL_PLACEMENT_CARD_IDS } from '../config/default-tail-placement-cards';
+import {
+  CHROME_STORAGE_KEY_APP_SETTINGS,
+  CHROME_STORAGE_KEY_FEATURE_SETTINGS,
+  CHROME_STORAGE_KEY_TAIL_PLACEMENT_CARD_IDS
+} from '../constants/storage-keys';
 
 export const useSettingsStore = defineStore('settings', () => {
   // ===== 状態 =====
@@ -153,7 +158,7 @@ export const useSettingsStore = defineStore('settings', () => {
    */
   async function loadCommonSettings(): Promise<void> {
     return new Promise((resolve) => {
-      chrome.storage.local.get(['appSettings', 'featureSettings', 'tailPlacementCardIds'], (result: StorageSettings) => {
+      chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS, CHROME_STORAGE_KEY_FEATURE_SETTINGS, CHROME_STORAGE_KEY_TAIL_PLACEMENT_CARD_IDS], (result: StorageSettings) => {
         // 古い形式の設定を新しい形式に移行
         let loadedSettings = result.appSettings ? migrateOldSettingsFormat(result.appSettings) : null;
 
@@ -215,9 +220,9 @@ export const useSettingsStore = defineStore('settings', () => {
   async function saveSettings(): Promise<void> {
     return new Promise((resolve) => {
       chrome.storage.local.set({
-        appSettings: appSettings.value,
-        featureSettings: featureSettings.value,
-        tailPlacementCardIds: tailPlacementCardIds.value,
+        [CHROME_STORAGE_KEY_APP_SETTINGS]: appSettings.value,
+        [CHROME_STORAGE_KEY_FEATURE_SETTINGS]: featureSettings.value,
+        [CHROME_STORAGE_KEY_TAIL_PLACEMENT_CARD_IDS]: tailPlacementCardIds.value,
       }, () => {
         // localStorage にもキャッシュ（超早期読み込み用）
         try {

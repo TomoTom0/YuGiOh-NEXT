@@ -8,6 +8,7 @@
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
 import { getVueEditUrl } from '@/utils/url-builder';
 import { setToStorageLocal } from '@/utils/chrome-storage-utils';
+import { CHROME_STORAGE_KEY_DECK_LIST_PRELOAD } from '@/constants/storage-keys';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -144,14 +145,13 @@ async function preloadDeckList(cgid: string): Promise<void> {
     const deckList = await getDeckListInternal(cgid);
 
     if (Array.isArray(deckList) && deckList.length > 0) {
-      const key = 'ygo-deck-list-preload';
       const data = {
         deckList,
         cgid,
         timestamp: Date.now()
       };
 
-      await setToStorageLocal(key, JSON.stringify(data));
+      await setToStorageLocal(CHROME_STORAGE_KEY_DECK_LIST_PRELOAD, JSON.stringify(data));
     } else {
       console.warn('[Background] Failed to get deck list or empty list');
     }
