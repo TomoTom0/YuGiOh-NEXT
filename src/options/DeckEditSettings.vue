@@ -28,9 +28,8 @@
       <div class="setting-item">
         <label>デフォルトソート順</label>
         <select v-model="settings.defaultSortOrder">
-          <option value="release_desc">新しい順</option>
-          <option value="release_asc">古い順</option>
-          <option value="name_asc">あいうえお順</option>
+          <option value="name_asc">カード名順</option>
+          <option value="release_desc">リリース日順</option>
         </select>
         <p class="setting-desc">カードリストのデフォルトのソート順です。</p>
       </div>

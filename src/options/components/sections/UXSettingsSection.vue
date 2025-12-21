@@ -204,36 +204,6 @@
       <div class="radio-group">
         <label
           class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_desc' }"
-        >
-          <input
-            type="radio"
-            value="release_desc"
-            v-model="settingsStore.appSettings.defaultSortOrder"
-            @change="handleSortOrderChange"
-          />
-          <span class="radio-text">
-            <strong>新しい順（デフォルト）</strong>
-            <span class="radio-desc">リリース日が新しいカードから表示</span>
-          </span>
-        </label>
-        <label
-          class="radio-label"
-          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_asc' }"
-        >
-          <input
-            type="radio"
-            value="release_asc"
-            v-model="settingsStore.appSettings.defaultSortOrder"
-            @change="handleSortOrderChange"
-          />
-          <span class="radio-text">
-            <strong>古い順</strong>
-            <span class="radio-desc">リリース日が古いカードから表示</span>
-          </span>
-        </label>
-        <label
-          class="radio-label"
           :class="{ active: settingsStore.appSettings.defaultSortOrder === 'name_asc' }"
         >
           <input
@@ -243,8 +213,21 @@
             @change="handleSortOrderChange"
           />
           <span class="radio-text">
-            <strong>あいうえお順</strong>
-            <span class="radio-desc">カード名の昇順</span>
+            <strong>カード名順（デフォルト）</strong>
+          </span>
+        </label>
+        <label
+          class="radio-label"
+          :class="{ active: settingsStore.appSettings.defaultSortOrder === 'release_desc' }"
+        >
+          <input
+            type="radio"
+            value="release_desc"
+            v-model="settingsStore.appSettings.defaultSortOrder"
+            @change="handleSortOrderChange"
+          />
+          <span class="radio-text">
+            <strong>リリース日順</strong>
           </span>
         </label>
       </div>
