@@ -81,12 +81,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
 import { useSettingsStore } from '@/stores/settings'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
-const props = defineProps<{
+defineProps<{
   isVisible: boolean
 }>()
 
@@ -97,18 +97,6 @@ const emit = defineEmits<{
 
 const deckStore = useDeckEditStore()
 const settingsStore = useSettingsStore()
-
-// マウント時にログ出力
-onMounted(() => {
-})
-
-// ダイアログが開いた時にログ出力
-watch(() => props.isVisible, async (newVal) => {
-  if (newVal) {
-    // nextTickでDOMが更新された後にチェック
-    await nextTick()
-  }
-})
 
 // ダイアログボディのref
 const dialogBodyRef = ref<HTMLElement | null>(null)
