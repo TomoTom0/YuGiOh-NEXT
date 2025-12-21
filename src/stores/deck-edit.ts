@@ -1011,11 +1011,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         headPlacementCardIds.value,
         deckThumbnails.value,
         cachedDeckInfos.value
-      ).then(() => {
-        // Vue reactivity のため、キャッシュを再読み込み
-        deckThumbnails.value = loadThumbnailCache();
-        cachedDeckInfos.value = loadDeckInfoCache();
-      }).catch(error => {
+      ).catch(error => {
         console.warn('[loadDeck] Failed to update cache:', error);
       });
 
