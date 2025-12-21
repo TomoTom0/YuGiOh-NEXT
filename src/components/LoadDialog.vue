@@ -20,6 +20,7 @@
               v-for="deck in paginatedDeckList"
               :key="deck.dno"
               class="deck-card"
+              :class="{ 'with-thumbnail': settingsStore.appSettings.updateThumbnailWithoutFetch }"
               @click="loadDeck(deck.dno)"
             >
               <!-- デッキ名 -->
@@ -40,15 +41,13 @@
               <div class="deck-thumbnail-container">
                 <!-- dno chip -->
                 <span class="dno-chip" :class="{ 'current-deck': deck.dno === deckStore.deckInfo.dno }">{{ deck.dno }}</span>
-                <!-- サムネイルがある場合: カード画像を5枚横並び -->
+                <!-- サムネイル作成が有効な場合のみ表示 -->
                 <img
-                  v-if="deckStore.deckThumbnails.has(deck.dno)"
-                  :src="deckStore.deckThumbnails.get(deck.dno)"
+                  v-if="deck.thumbnailSrc"
+                  :src="deck.thumbnailSrc"
                   :alt="`${deck.name}のサムネイル`"
                   class="thumbnail-image"
                 />
-                <!-- サムネイルがない場合: グラデーション画像 -->
-                <div v-else class="thumbnail-gradient"></div>
               </div>
             </div>
           </div>
@@ -82,11 +81,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
+import { useSettingsStore } from '@/stores/settings'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
 
-defineProps<{
+const props = defineProps<{
   isVisible: boolean
 }>()
 
@@ -96,6 +96,26 @@ const emit = defineEmits<{
 }>()
 
 const deckStore = useDeckEditStore()
+const settingsStore = useSettingsStore()
+
+// マウント時にログ出力
+onMounted(() => {
+  console.debug('[LoadDialog] Component mounted - updateThumbnailWithoutFetch:', settingsStore.appSettings.updateThumbnailWithoutFetch)
+})
+
+// ダイアログが開いた時にログ出力
+watch(() => props.isVisible, async (newVal) => {
+  if (newVal) {
+    console.debug('[LoadDialog] Dialog opened - updateThumbnailWithoutFetch:', settingsStore.appSettings.updateThumbnailWithoutFetch, 'appSettings:', settingsStore.appSettings)
+
+    // nextTickでDOMが更新された後にチェック
+    await nextTick()
+    const firstCard = document.querySelector('.deck-card')
+    if (firstCard) {
+      console.debug('[LoadDialog] After nextTick - .with-thumbnail class:', firstCard.classList.contains('with-thumbnail'))
+    }
+  }
+})
 
 // ダイアログボディのref
 const dialogBodyRef = ref<HTMLElement | null>(null)
@@ -103,7 +123,6 @@ const dialogBodyRef = ref<HTMLElement | null>(null)
 // ページング用の現在のページ
 const currentPage = ref(0)
 const ITEMS_PER_PAGE = 24
-
 
 // ダイアログを閉じる
 const close = () => {
@@ -116,7 +135,26 @@ const paginatedDeckList = computed(() => {
   if (!deckStore.deckList || deckStore.deckList.length === 0) return []
   const start = currentPage.value * ITEMS_PER_PAGE
   const end = start + ITEMS_PER_PAGE
-  return deckStore.deckList.slice(start, end)
+  const decks = deckStore.deckList.slice(start, end)
+
+  // デバッグ：サムネイルの状態を確認
+  console.debug('[LoadDialog] paginatedDeckList computed:', {
+    updateThumbnailWithoutFetch: settingsStore.appSettings.updateThumbnailWithoutFetch,
+    thumbnailsSize: deckStore.deckThumbnails.size,
+    decks: decks.map(d => ({
+      dno: d.dno,
+      hasThumbnail: deckStore.deckThumbnails.has(d.dno),
+      thumbnailSrc: deckStore.deckThumbnails.get(d.dno)?.substring(0, 50)
+    }))
+  })
+
+  // サムネイルURLを各デッキオブジェクトに追加
+  return decks.map(deck => ({
+    ...deck,
+    thumbnailSrc: settingsStore.appSettings.updateThumbnailWithoutFetch
+      ? deckStore.deckThumbnails.get(deck.dno)
+      : undefined
+  }))
 })
 
 // デッキのカード枚数を取得する関数
@@ -284,7 +322,7 @@ const getDeckNameClass = (name: string) => {
 
   .deck-card {
     width: 320px;
-    height: 96px;
+    height: 48px;
     border: 1px solid var(--border-primary, #e0e0e0);
     border-radius: 6px;
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
@@ -292,6 +330,10 @@ const getDeckNameClass = (name: string) => {
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
+
+    &.with-thumbnail {
+      height: 96px;
+    }
 
     &:has(.deck-name.current-deck) {
       background: linear-gradient(
@@ -343,6 +385,11 @@ const getDeckNameClass = (name: string) => {
       max-height: 96px;
       width: auto;
       height: auto;
+      display: none;
+    }
+
+    &.with-thumbnail .thumbnail-image {
+      display: block;
     }
 
     .thumbnail-gradient {
@@ -350,6 +397,11 @@ const getDeckNameClass = (name: string) => {
       height: 96px;
       background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
       opacity: 0.6;
+      display: none;
+
+      .with-thumbnail & {
+        display: block;
+      }
     }
 
     .deck-name {

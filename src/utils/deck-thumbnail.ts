@@ -284,9 +284,6 @@ export async function generateDeckThumbnailImage(
     canvas.width = cardIds.length * cardWidth + (cardIds.length - 1) * gap + padding * 2;
     canvas.height = cardHeight + padding * 2;
 
-    ctx.fillStyle = '#2a2a2a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     // 画像読み込みタスク配列（遅延実行で並列数制限を実現）
     const loadTasks = cardIds.map((cid, index) => async () => {
       const cardInfo = getCardInfo(cid);

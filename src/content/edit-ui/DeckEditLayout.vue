@@ -392,6 +392,7 @@ export default {
 
       // ページロード時に最初の24個のデッキのサムネイルを生成（キャッシュはstore初期化時に読み込み済み）
       // 5個連続でキャッシュヒットしたら早期終了する
+      // ページロード時、最初の24個のデッキのサムネイルを背景で生成
       if (deckStore.deckList && deckStore.deckList.length > 0) {
         console.debug('[DeckEditLayout] Starting background thumbnail generation on page load')
         generateThumbnailsInBackground(

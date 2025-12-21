@@ -252,9 +252,13 @@ export async function generateAndCacheThumbnail(
 
     // サムネイル画像を生成
     const imageUrl = await generateDeckThumbnailImage(deckInfo, headPlacementCardIds);
+    console.debug(`[deck-cache] Generated thumbnail for deck ${dno}:`, imageUrl ? 'success' : 'null');
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
       saveThumbnailCache(deckThumbnails);
+      console.debug(`[deck-cache] Saved thumbnail for deck ${dno}, total cached: ${deckThumbnails.size}, has(${dno}):`, deckThumbnails.has(dno));
+    } else {
+      console.warn(`[deck-cache] Failed to generate thumbnail for deck ${dno}: imageUrl is null`);
     }
   } catch (error) {
     console.warn(`Failed to generate and cache thumbnail for deck ${dno}:`, error);
@@ -323,13 +327,34 @@ export async function updateDeckInfoAndThumbnailWithData(
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): Promise<void> {
+  console.debug(`[deck-cache] updateDeckInfoAndThumbnailWithData called for deck ${dno}`);
+
+  // 設定でAPIフェッチなしでのサムネイル更新が無効な場合はスキップ
+  // Storeをインポートしないため、window グローバルオブジェクトから設定を取得
+  try {
+    const appSettings = (window as any).ygoNextCurrentSettings;
+    console.debug(`[deck-cache] Settings check - updateThumbnailWithoutFetch:`, appSettings?.updateThumbnailWithoutFetch);
+    if (appSettings && appSettings.updateThumbnailWithoutFetch === false) {
+      console.debug(`[deck-cache] Skipped thumbnail generation for deck ${dno} (disabled in settings)`);
+      return;
+    }
+  } catch (error) {
+    // 設定取得失敗時は通常通り処理を続ける
+    console.debug(`[deck-cache] Settings check failed, continuing:`, error);
+  }
+
   try {
     // 変更があるか、またはキャッシュが期限切れかチェック
     const needsUpdate =
       isDeckInfoChanged(dno, deckInfo, cachedDeckInfos) ||
       (cachedDeckInfos.has(dno) && isCacheExpired(cachedDeckInfos.get(dno)!));
 
-    if (needsUpdate) {
+    // サムネイルが存在しない場合も生成が必要
+    const thumbnailMissing = !deckThumbnails.has(dno);
+
+    console.debug(`[deck-cache] needsUpdate for deck ${dno}:`, needsUpdate, 'thumbnailMissing:', thumbnailMissing);
+
+    if (needsUpdate || thumbnailMissing) {
       await generateAndCacheThumbnail(
         dno,
         deckInfo,
@@ -402,9 +427,40 @@ export async function generateThumbnailsInBackground(
   getDeckDetail: (dno: number) => Promise<DeckInfo | null>,
   headPlacementCardIds: string[],
   deckThumbnails: Map<number, string>,
-  cachedDeckInfos: Map<number, CachedDeckInfo>
+  cachedDeckInfos: Map<number, CachedDeckInfo>,
+  force: boolean = false
 ): Promise<void> {
   if (!deckList || deckList.length === 0) return;
+
+  // バックグラウンドでのデッキ情報取得が有効かチェック（force=falseの場合のみ）
+  // window グローバルオブジェクトから設定を取得
+  if (!force) {
+    try {
+      const appSettings = (window as any).ygoNextCurrentSettings;
+      if (!appSettings || appSettings.backgroundDeckInfoFetch === false) {
+        console.debug('[generateThumbnailsInBackground] Skipped (background deck info fetch disabled in settings)');
+        return;
+      }
+    } catch (error) {
+      // 設定取得失敗時はスキップ
+      console.debug('[generateThumbnailsInBackground] Skipped (failed to check background setting)');
+      return;
+    }
+  }
+
+  // 設定でデッキサムネイル作成が無効な場合はスキップ（force=falseの場合のみ）
+  // window グローバルオブジェクトから設定を取得
+  if (!force) {
+    try {
+      const appSettings = (window as any).ygoNextCurrentSettings;
+      if (appSettings && appSettings.enableDeckThumbnailGeneration === false) {
+        console.debug('[generateThumbnailsInBackground] Skipped (disabled in settings)');
+        return;
+      }
+    } catch (error) {
+      // 設定取得失敗時は通常通り処理を続ける
+    }
+  }
 
   // 前回の deckList 順序を読み込む
   const previousOrder = loadDeckListOrder();

@@ -226,6 +226,10 @@ export interface AppSettings {
   dialogFontSize: DialogFontSize;
   /** 検索UIのフォントサイズ */
   searchUIFontSize: SearchUIFontSize;
+  /** バックグラウンドでのデッキ情報取得 */
+  backgroundDeckInfoFetch: boolean;
+  /** APIフェッチなしでサムネイルを更新 */
+  updateThumbnailWithoutFetch: boolean;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -346,6 +350,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
   dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
+  backgroundDeckInfoFetch: false,      // バックグラウンドでのデッキ情報取得: デフォルト無効（接続規制対策）
+  updateThumbnailWithoutFetch: false,  // APIフェッチなしでサムネイルを更新: デフォルト無効（接続規制対策）
 };
 
 /**
