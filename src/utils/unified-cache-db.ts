@@ -1001,7 +1001,6 @@ export class UnifiedCacheDB {
     const name = tableA.langsName?.[targetLang];
 
     if (!name) {
-      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in cache for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 
@@ -1010,7 +1009,6 @@ export class UnifiedCacheDB {
     const imgs = tableA.langsImgs?.[targetLang];
 
     if (!imgs || imgs.length === 0) {
-      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 

@@ -46,11 +46,8 @@ function initSortfixForCard(cardLink: HTMLAnchorElement): void {
 
   const topRightBtn = safeQuery<HTMLButtonElement>('.top-right', controls);
   if (!topRightBtn) {
-    console.debug('[sortfix] top-right button not found in card-controls', controls);
     return;
   }
-
-  console.debug('[sortfix] Initializing sortfix for card, sortfix state:', cardLink.hasAttribute('data-ygo-next-sortfix'));
 
   // sortfix用のSVGアイコンを追加
   updateSortfixIcon(cardLink, topRightBtn);

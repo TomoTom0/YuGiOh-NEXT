@@ -263,16 +263,12 @@ export async function generateDeckThumbnailImage(
     const cardIds = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
 
     if (!cardIds || cardIds.length === 0) {
-      console.debug('[DeckThumbnail] No cards selected for thumbnail');
       return null;
     }
-
-    console.debug('[DeckThumbnail] Generating thumbnail with', cardIds.length, 'cards');
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      console.debug('[DeckThumbnail] Failed to get canvas context');
       return null;
     }
 
@@ -308,20 +304,16 @@ export async function generateDeckThumbnailImage(
     });
 
     // 並列数2に制限して全ての画像を読み込み
-    console.debug('[DeckThumbnail] Starting concurrent image loading with concurrency=2');
     await promiseAllConcurrent(loadTasks, 2);
-    console.debug('[DeckThumbnail] Image loading completed');
 
     // Canvas を Blob に変換
     const blob = await toBlobPromise(canvas, 'image/webp', 0.6);
     if (!blob) {
-      console.debug('[DeckThumbnail] Failed to convert canvas to blob');
       return null;
     }
 
     // Blob を Data URL に変換
     const dataUrl = await blobToDataURL(blob);
-    console.debug('[DeckThumbnail] Thumbnail generation completed successfully');
     return dataUrl;
   } catch (error) {
     console.warn('Failed to generate thumbnail image:', error);

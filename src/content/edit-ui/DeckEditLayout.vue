@@ -335,7 +335,6 @@ export default {
       const lastDno = localStorage.getItem('ygo_last_deck_dno')
       if (lastDno) {
         currentDeckDno.value = parseInt(lastDno, 10)
-        console.debug('[DeckEditLayout] Restored currentDeckDno:', currentDeckDno.value)
       }
 
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）

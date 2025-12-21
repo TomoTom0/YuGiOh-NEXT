@@ -1004,7 +1004,6 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       });
 
       // デッキロード後、キャッシュとサムネイルを更新（APIコール不要）
-      console.debug('[loadDeck] Calling updateDeckInfoAndThumbnailWithData for deck', dno);
       updateDeckInfoAndThumbnailWithData(
         dno,
         deckInfo.value,

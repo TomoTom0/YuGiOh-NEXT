@@ -70,7 +70,6 @@ function cleanupCardImageHoverUI(): void {
     deckImage.removeEventListener('click', cardImageClickHandler as EventListener)
     deckImage.removeAttribute('data-ygo-next-event-delegated')
     cardImageClickHandler = null
-    console.debug('[DeckDisplay] Removed event delegation from #deck_image')
   }
 
   // 各カードのcard-controlsを削除
@@ -83,8 +82,6 @@ function cleanupCardImageHoverUI(): void {
 
       // 属性を削除（次回セットアップ時に再追加されるようにする）
       link.removeAttribute('data-hover-handler-added')
-
-      console.debug('[DeckDisplay] Cleaned up hover UI for card link')
     }
   })
 }
@@ -121,7 +118,6 @@ async function setupCardImageHoverUI(): Promise<void> {
 
   // 既にイベントリスナーが追加されている場合はスキップ
   if (deckImage.hasAttribute('data-ygo-next-event-delegated')) {
-    console.debug('[DeckDisplay] Event delegation already set up')
     return
   }
   deckImage.setAttribute('data-ygo-next-event-delegated', 'true')
@@ -210,8 +206,6 @@ async function setupCardImageHoverUI(): Promise<void> {
       htmlLink.appendChild(controls)
     }
   })
-
-  console.debug('[DeckDisplay] Card image hover UI setup completed with event delegation')
 }
 
 // cleanup 関数を export して、Vue アンマウント時に呼び出す

@@ -100,20 +100,13 @@ const settingsStore = useSettingsStore()
 
 // マウント時にログ出力
 onMounted(() => {
-  console.debug('[LoadDialog] Component mounted - updateThumbnailWithoutFetch:', settingsStore.appSettings.updateThumbnailWithoutFetch)
 })
 
 // ダイアログが開いた時にログ出力
 watch(() => props.isVisible, async (newVal) => {
   if (newVal) {
-    console.debug('[LoadDialog] Dialog opened - updateThumbnailWithoutFetch:', settingsStore.appSettings.updateThumbnailWithoutFetch, 'appSettings:', settingsStore.appSettings)
-
     // nextTickでDOMが更新された後にチェック
     await nextTick()
-    const firstCard = document.querySelector('.deck-card')
-    if (firstCard) {
-      console.debug('[LoadDialog] After nextTick - .with-thumbnail class:', firstCard.classList.contains('with-thumbnail'))
-    }
   }
 })
 
@@ -136,17 +129,6 @@ const paginatedDeckList = computed(() => {
   const start = currentPage.value * ITEMS_PER_PAGE
   const end = start + ITEMS_PER_PAGE
   const decks = deckStore.deckList.slice(start, end)
-
-  // デバッグ：サムネイルの状態を確認
-  console.debug('[LoadDialog] paginatedDeckList computed:', {
-    updateThumbnailWithoutFetch: settingsStore.appSettings.updateThumbnailWithoutFetch,
-    thumbnailsSize: deckStore.deckThumbnails.size,
-    decks: decks.map(d => ({
-      dno: d.dno,
-      hasThumbnail: deckStore.deckThumbnails.has(d.dno),
-      thumbnailSrc: deckStore.deckThumbnails.get(d.dno)?.substring(0, 50)
-    }))
-  })
 
   // サムネイルURLを各デッキオブジェクトに追加
   return decks.map(deck => ({

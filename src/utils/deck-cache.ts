@@ -252,11 +252,9 @@ export async function generateAndCacheThumbnail(
 
     // サムネイル画像を生成
     const imageUrl = await generateDeckThumbnailImage(deckInfo, headPlacementCardIds);
-    console.debug(`[deck-cache] Generated thumbnail for deck ${dno}:`, imageUrl ? 'success' : 'null');
     if (imageUrl) {
       deckThumbnails.set(dno, imageUrl);
       saveThumbnailCache(deckThumbnails);
-      console.debug(`[deck-cache] Saved thumbnail for deck ${dno}, total cached: ${deckThumbnails.size}, has(${dno}):`, deckThumbnails.has(dno));
     } else {
       console.warn(`[deck-cache] Failed to generate thumbnail for deck ${dno}: imageUrl is null`);
     }
@@ -327,20 +325,15 @@ export async function updateDeckInfoAndThumbnailWithData(
   deckThumbnails: Map<number, string>,
   cachedDeckInfos: Map<number, CachedDeckInfo>
 ): Promise<void> {
-  console.debug(`[deck-cache] updateDeckInfoAndThumbnailWithData called for deck ${dno}`);
-
   // 設定でAPIフェッチなしでのサムネイル更新が無効な場合はスキップ
   // Storeをインポートしないため、window グローバルオブジェクトから設定を取得
   try {
     const appSettings = (window as any).ygoNextCurrentSettings;
-    console.debug(`[deck-cache] Settings check - updateThumbnailWithoutFetch:`, appSettings?.updateThumbnailWithoutFetch);
     if (appSettings && appSettings.updateThumbnailWithoutFetch === false) {
-      console.debug(`[deck-cache] Skipped thumbnail generation for deck ${dno} (disabled in settings)`);
       return;
     }
   } catch (error) {
     // 設定取得失敗時は通常通り処理を続ける
-    console.debug(`[deck-cache] Settings check failed, continuing:`, error);
   }
 
   try {
@@ -351,8 +344,6 @@ export async function updateDeckInfoAndThumbnailWithData(
 
     // サムネイルが存在しない場合も生成が必要
     const thumbnailMissing = !deckThumbnails.has(dno);
-
-    console.debug(`[deck-cache] needsUpdate for deck ${dno}:`, needsUpdate, 'thumbnailMissing:', thumbnailMissing);
 
     if (needsUpdate || thumbnailMissing) {
       await generateAndCacheThumbnail(
@@ -438,12 +429,10 @@ export async function generateThumbnailsInBackground(
     try {
       const appSettings = (window as any).ygoNextCurrentSettings;
       if (!appSettings || appSettings.backgroundDeckInfoFetch === false) {
-        console.debug('[generateThumbnailsInBackground] Skipped (background deck info fetch disabled in settings)');
         return;
       }
     } catch (error) {
       // 設定取得失敗時はスキップ
-      console.debug('[generateThumbnailsInBackground] Skipped (failed to check background setting)');
       return;
     }
   }
@@ -454,7 +443,6 @@ export async function generateThumbnailsInBackground(
     try {
       const appSettings = (window as any).ygoNextCurrentSettings;
       if (appSettings && appSettings.enableDeckThumbnailGeneration === false) {
-        console.debug('[generateThumbnailsInBackground] Skipped (disabled in settings)');
         return;
       }
     } catch (error) {

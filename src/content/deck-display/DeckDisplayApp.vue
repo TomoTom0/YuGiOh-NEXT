@@ -46,7 +46,6 @@ export default defineComponent({
     // アンマウント時にイベントリスナーをクリーンアップ（メモリリーク防止）
     onUnmounted(() => {
       cleanupCardImageHoverUI()
-      console.debug('[DeckDisplayApp] Cleaned up card image hover UI on unmount')
     })
 
     return {
