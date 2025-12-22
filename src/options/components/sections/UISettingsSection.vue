@@ -192,19 +192,51 @@
       </div>
     </div>
 
-    <div v-if="saveMessage" class="save-message">
-      {{ saveMessage }}
+    <!-- デッキ情報取得 -->
+    <div class="setting-group">
+      <h3 class="setting-title">デッキ情報取得</h3>
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          v-model="backgroundDeckInfoFetch"
+          @change="handleBackgroundDeckInfoFetchToggle"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">
+          バックグラウンドでデッキ情報を更新する
+        </span>
+      </label>
+      <label class="toggle-label">
+        <input
+          type="checkbox"
+          v-model="updateThumbnailWithoutFetch"
+          @change="handleUpdateThumbnailWithoutFetchToggle"
+        />
+        <span class="toggle-switch"></span>
+        <span class="toggle-text">
+          デッキサムネイルを作成する
+        </span>
+      </label>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
+import { useToastStore } from '../../../stores/toast-notification';
 import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize, DialogFontSize, SearchUIFontSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
-const saveMessage = ref('');
+const toastStore = useToastStore();
+const backgroundDeckInfoFetch = ref(false);
+const updateThumbnailWithoutFetch = ref(false);
+
+onMounted(() => {
+  backgroundDeckInfoFetch.value = settingsStore.appSettings.backgroundDeckInfoFetch;
+  updateThumbnailWithoutFetch.value = settingsStore.appSettings.updateThumbnailWithoutFetch;
+});
 
 type SizePreset = 's' | 'm' | 'l' | 'xl';
 
@@ -279,10 +311,25 @@ const handleSearchUIFontSizeChange = (fontSize: SearchUIFontSize) => {
 };
 
 const showSaveMessage = (message: string) => {
-  saveMessage.value = message;
-  setTimeout(() => {
-    saveMessage.value = '';
-  }, 3000);
+  toastStore.showToast(message, 'info');
+};
+
+const handleBackgroundDeckInfoFetchToggle = () => {
+  settingsStore.setBackgroundDeckInfoFetch(backgroundDeckInfoFetch.value);
+  showSaveMessage(
+    backgroundDeckInfoFetch.value
+      ? 'バックグラウンドでデッキ情報を更新するようにしました'
+      : 'バックグラウンドでデッキ情報を更新しないようにしました'
+  );
+};
+
+const handleUpdateThumbnailWithoutFetchToggle = () => {
+  settingsStore.setUpdateThumbnailWithoutFetch(updateThumbnailWithoutFetch.value);
+  showSaveMessage(
+    updateThumbnailWithoutFetch.value
+      ? 'デッキサムネイルを作成するようにしました'
+      : 'デッキサムネイルを作成しないようにしました'
+  );
 };
 </script>
 
@@ -536,22 +583,63 @@ const showSaveMessage = (message: string) => {
   }
 }
 
-.save-message {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background-color: var(--color-success-bg);
-  color: var(--color-success);
-  border-radius: 4px;
+.setting-description {
   font-size: 14px;
-  animation: fadeIn 0.3s ease;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
   }
 }
+
+.toggle-label input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background-color: var(--border-primary);
+  border-radius: 12px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background-color: var(--bg-primary);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-switch {
+  background-color: var(--color-info);
+}
+
+.toggle-label input[type="checkbox"]:checked + .toggle-switch::after {
+  transform: translateX(20px);
+}
+
+.toggle-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
 </style>

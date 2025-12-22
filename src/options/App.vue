@@ -1,5 +1,6 @@
 <template>
-  <div class="options-page">
+  <div class="options-page" :data-ygo-next-theme="settingsStore.appSettings.theme">
+    <ToastContainer />
     <TopBar />
 
     <div class="main-tabs">
@@ -38,6 +39,7 @@ import TopBar from './components/TopBar.vue';
 import DeckEditTab from './components/tabs/DeckEditTab.vue';
 import DeckDisplayTab from './components/tabs/DeckDisplayTab.vue';
 import GeneralTab from './components/tabs/GeneralTab.vue';
+import ToastContainer from '../components/ToastContainer.vue';
 
 type MainTab = 'deck-edit' | 'deck-display' | 'general';
 
@@ -47,6 +49,9 @@ const activeMainTab = ref<MainTab>('deck-edit');
 onMounted(async () => {
   // 設定を読み込み
   await settingsStore.loadSettings();
+
+  // テスト用トースト（デバッグ）
+  console.debug('[App.vue] Mounted, testing toast...');
 });
 </script>
 

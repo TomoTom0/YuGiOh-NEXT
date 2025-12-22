@@ -1,4 +1,6 @@
 <template>
+  <Teleport to="body">
+
   <div v-if="isVisible" class="tag-dialog-overlay" @click.self="close">
     <div class="tag-dialog">
       <!-- ヘッダー -->
@@ -106,6 +108,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">

@@ -19,6 +19,19 @@ import type {
 import { safeStorageGet, safeStorageSet } from './extension-context-checker';
 import { detectLanguage } from './language-detector';
 
+/**
+ * カード移動履歴エントリ
+ */
+interface MoveHistoryEntry {
+  action: string;
+  cardId?: string;
+  from?: string;
+  to?: string;
+  uuid?: string;
+  info?: unknown;
+  ts: number;
+}
+
 // 定数
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
 const ONE_MONTH = 30 * 24 * 60 * 60 * 1000;
@@ -97,7 +110,7 @@ export class UnifiedCacheDB {
   private cardTableCCache: Map<string, CardTableC> = new Map();
 
   // Move history for undo/redo
-  private moveHistory: any[] = [];
+  private moveHistory: MoveHistoryEntry[] = [];
 
   private cacheTTL: number = DEFAULT_CACHE_TTL;
   private initialized: boolean = false;
@@ -356,8 +369,8 @@ export class UnifiedCacheDB {
   }
 
   // move history APIs
-  recordMove(entry: { action: string; cardId?: string; from?: string; to?: string; uuid?: string; info?: any }) {
-    const record = { ...entry, ts: Date.now() };
+  recordMove(entry: Omit<MoveHistoryEntry, 'ts'>) {
+    const record: MoveHistoryEntry = { ...entry, ts: Date.now() };
     this.moveHistory.push(record);
     // cap history to last 1000 entries
     if (this.moveHistory.length > 1000) this.moveHistory.splice(0, this.moveHistory.length - 1000);
@@ -988,7 +1001,6 @@ export class UnifiedCacheDB {
     const name = tableA.langsName?.[targetLang];
 
     if (!name) {
-      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in cache for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 
@@ -997,7 +1009,6 @@ export class UnifiedCacheDB {
     const imgs = tableA.langsImgs?.[targetLang];
 
     if (!imgs || imgs.length === 0) {
-      console.debug(`[reconstructCardInfo] Language (${targetLang}) not found in langsImgs for cardId=${cardId}, will re-fetch from API`);
       return undefined;
     }
 
@@ -1049,18 +1060,16 @@ export class UnifiedCacheDB {
     // TableB2からlangsText/langsPendTextをマージ
     const tableB2 = this.cardTableB2.get(cardId);
     if (tableB2) {
-      const anyCard: any = resultCard as any;
-
       // langsTextから適切な言語を抽出（新形式）
       const text = tableB2.langsText?.[targetLang];
       if (text) {
-        anyCard.text = text;
+        resultCard.text = text;
       }
 
       // langsPendTextから適切な言語を抽出（新形式）
       const pendulumText = tableB2.langsPendText?.[targetLang];
       if (pendulumText) {
-        anyCard.pendulumText = pendulumText;
+        resultCard.pendulumText = pendulumText;
       }
     }
 
@@ -1071,12 +1080,11 @@ export class UnifiedCacheDB {
     try {
       const tableC = this.cardTableCCache.get(cardId)
       if (tableC) {
-        const anyCard: any = resultCard as any
         // CardTableCの補足情報をマージ
-        if (tableC.supplInfo !== undefined) anyCard.supplInfo = tableC.supplInfo
-        if (tableC.supplDate !== undefined) anyCard.supplDate = tableC.supplDate
-        if (tableC.pendSupplInfo !== undefined) anyCard.pendSupplInfo = tableC.pendSupplInfo
-        if (tableC.pendSupplDate !== undefined) anyCard.pendSupplDate = tableC.pendSupplDate
+        if (tableC.supplInfo !== undefined) resultCard.supplInfo = tableC.supplInfo
+        if (tableC.supplDate !== undefined) resultCard.supplDate = tableC.supplDate
+        if (tableC.pendSupplInfo !== undefined) resultCard.pendSupplInfo = tableC.pendSupplInfo
+        if (tableC.pendSupplDate !== undefined) resultCard.pendSupplDate = tableC.pendSupplDate
       }
     } catch (e) {
       // Defensive: don't break reconstruction on merge errors

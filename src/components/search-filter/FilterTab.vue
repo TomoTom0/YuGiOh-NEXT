@@ -682,6 +682,8 @@ function getMonsterTypeButtonLabel(type: string) {
   overflow-y: auto;
   padding: 16px;
   padding-bottom: 80px; // フッター分のスペース確保
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-type-section {

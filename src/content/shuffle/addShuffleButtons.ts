@@ -5,31 +5,7 @@
 import { isDeckDisplayPage, detectCardGameType } from '../../utils/page-detector';
 import { safeQuery } from '../../utils/safe-dom-query';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
-
-/**
- * シャッフルアイコン（ランダム/シャッフル）
- */
-const SHUFFLE_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="16 3 21 3 21 8"></polyline>
-  <line x1="4" y1="20" x2="21" y2="3"></line>
-  <polyline points="21 16 21 21 16 21"></polyline>
-  <line x1="15" y1="15" x2="21" y2="21"></line>
-  <line x1="4" y1="4" x2="9" y2="9"></line>
-</svg>
-`;
-
-/**
- * ソート（ヒストグラム昇順）アイコン
- */
-const SORT_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="4" y1="20" x2="4" y2="14"></line>
-  <line x1="10" y1="20" x2="10" y2="10"></line>
-  <line x1="16" y1="20" x2="16" y2="6"></line>
-  <line x1="22" y1="20" x2="22" y2="2"></line>
-</svg>
-`;
+import { SHUFFLE_ICON, SORT_ICON } from '../../utils/shuffle-icons';
 
 /**
  * 指定されたデッキセクションにシャッフルボタンを追加する

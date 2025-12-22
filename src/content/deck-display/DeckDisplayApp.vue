@@ -46,7 +46,6 @@ export default defineComponent({
     // アンマウント時にイベントリスナーをクリーンアップ（メモリリーク防止）
     onUnmounted(() => {
       cleanupCardImageHoverUI()
-      console.debug('[DeckDisplayApp] Cleaned up card image hover UI on unmount')
     })
 
     return {
@@ -236,6 +235,12 @@ html.ygo-next-valid-card-tab-on-deck-display {
 
   .ygo-next.card-info-top {
     min-height: auto !important;
+  }
+
+  .ygo-next.card-detail .card-detail-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    width: 100%;
   }
 }
 </style>
