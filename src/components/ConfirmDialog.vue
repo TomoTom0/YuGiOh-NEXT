@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
 
-  <div v-if="show" class="dialog-overlay" @click.self="onCancel">
+  <div v-if="show" class="ygo-next dialog-overlay" :data-ygo-next-theme="theme" @click.self="onCancel">
     <div class="dialog-content" @click.stop>
       <h3 class="dialog-title">{{ title }}</h3>
       <p class="dialog-message">{{ message }}</p>
@@ -48,6 +48,10 @@ export default defineComponent({
     buttons: {
       type: Array as PropType<DialogButton[]>,
       required: true
+    },
+    theme: {
+      type: String as PropType<'light' | 'dark'>,
+      default: 'light'
     }
   },
   emits: ['cancel'],

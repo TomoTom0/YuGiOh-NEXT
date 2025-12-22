@@ -126,6 +126,7 @@
       :title="unsavedChangesTitle"
       :message="unsavedChangesMessage"
       :buttons="unsavedChangesButtons"
+      :theme="settingsStore.effectiveTheme"
       @cancel="cancelUnsavedChanges"
     />
 
@@ -140,6 +141,7 @@ import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
+import { useToastStore } from '../../stores/toast-notification'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
@@ -179,6 +181,12 @@ export default {
     const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
+    const { showToast: dispatchToast } = useToastStore()
+
+    // トースト通知のヘルパー関数
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+      dispatchToast(message, type)
+    }
 
     // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
     const isReady = ref(false)
@@ -218,6 +226,7 @@ export default {
           try {
             const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
             if (result.success) {
+              showToast('保存しました', 'success')
               if (pendingAction.value) {
                 await pendingAction.value()
               }
