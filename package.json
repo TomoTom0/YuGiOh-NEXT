@@ -1,6 +1,7 @@
 {
   "name": "ygo-next",
-  "version": "0.5.10",
+  "version": "0.6.3",
+  "type": "module",
   "description": "遊戯王NEXT - 遊戯王Neuron(公式カードデータベース)のデッキ管理を劇的に改善するChrome拡張機能",
   "scripts": {
     "build": "webpack --mode production",
@@ -53,7 +54,7 @@
     "vitest": "^2.1.9",
     "vue": "^3.5.26",
     "vue-loader": "^17.4.2",
-    "webpack": "^5.103.0",
+    "webpack": "^5.104.1",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
@@ -64,7 +65,7 @@
     "linkedom": "^0.18.12",
     "pinia": "^3.0.4",
     "qrcode": "^1.5.4",
-    "sass": "^1.96.0",
+    "sass": "^1.97.1",
     "sass-loader": "^16.0.6",
     "ws": "^8.18.3"
   }

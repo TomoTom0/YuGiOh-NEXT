@@ -44,6 +44,16 @@ export interface CardBase {
   imagesCheckedAt?: number;
   /** 効果テキスト（オプション） */
   text?: string;
+  /** ペンデュラム効果テキスト（オプション） */
+  pendulumText?: string;
+  /** テキスト補足情報（オプション） */
+  supplInfo?: string;
+  /** テキスト補足情報の更新日（オプション） */
+  supplDate?: string;
+  /** ペンデュラム効果補足情報（オプション） */
+  pendSupplInfo?: string;
+  /** ペンデュラム補足情報の更新日（オプション） */
+  pendSupplDate?: string;
   /** 禁止制限（オプション） */
   limitRegulation?: LimitRegulation;
 }

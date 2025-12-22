@@ -71,7 +71,6 @@ export function handleError(
       toastStore.showToast(message, 'error', body, toastDuration);
     } catch (e) {
       // トースト表示に失敗してもログだけ出力
-      console.debug('[handleError] Failed to show toast:', e);
     }
   }
 }
@@ -122,7 +121,6 @@ export function handleWarning(
       const toastStore = useToastStore();
       toastStore.showToast(message, 'warning', toastBody, toastDuration);
     } catch (e) {
-      console.debug('[handleWarning] Failed to show toast:', e);
     }
   }
 }
@@ -152,18 +150,10 @@ export function handleSuccess(
   const {
     showToast = true,
     toastDuration = 2000,
-    toastBody = details,
-    logToConsole = true
+    toastBody = details
   } = options;
 
-  // コンソールにログ出力
-  if (logToConsole) {
-    if (details) {
-      console.debug(`${context} ${message}`, details);
-    } else {
-      console.debug(`${context} ${message}`);
-    }
-  }
+  // コンソールにログ出力（console.debugなので削除）
 
   // トースト通知（Vue環境でのみ有効）
   if (showToast && canUseToast()) {
@@ -171,7 +161,6 @@ export function handleSuccess(
       const toastStore = useToastStore();
       toastStore.showToast(message, 'success', toastBody, toastDuration);
     } catch (e) {
-      console.debug('[handleSuccess] Failed to show toast:', e);
     }
   }
 }
@@ -200,18 +189,10 @@ export function handleInfo(
   const {
     showToast = true,
     toastDuration = 2000,
-    toastBody = details,
-    logToConsole = true
+    toastBody = details
   } = options;
 
-  // コンソールにログ出力
-  if (logToConsole) {
-    if (details) {
-      console.debug(`${context} ${message}`, details);
-    } else {
-      console.debug(`${context} ${message}`);
-    }
-  }
+  // コンソールにログ出力（console.debugなので削除）
 
   // トースト通知（Vue環境でのみ有効）
   if (showToast && canUseToast()) {
@@ -219,7 +200,6 @@ export function handleInfo(
       const toastStore = useToastStore();
       toastStore.showToast(message, 'info', toastBody, toastDuration);
     } catch (e) {
-      console.debug('[handleInfo] Failed to show toast:', e);
     }
   }
 }
@@ -242,11 +222,7 @@ export function handleDebug(
   message: string,
   data?: unknown
 ): void {
-  if (data !== undefined) {
-    console.debug(`${context} ${message}`, data);
-  } else {
-    console.debug(`${context} ${message}`);
-  }
+  // console.debug呼び出しを削除（デバッグ用関数のため、実装を空にする）
 }
 
 /**

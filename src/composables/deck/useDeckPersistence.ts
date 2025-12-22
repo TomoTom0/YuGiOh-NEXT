@@ -30,6 +30,7 @@ export function useDeckPersistence(options: {
   clearHistory: () => void;
   captureDeckSnapshot: () => string;
   savedDeckSnapshot: Ref<string | null>;
+  getDeckName: () => string;
 }) {
   const {
     sessionManager,
@@ -38,7 +39,8 @@ export function useDeckPersistence(options: {
     initializeDisplayOrder,
     clearHistory,
     captureDeckSnapshot,
-    savedDeckSnapshot
+    savedDeckSnapshot,
+    getDeckName
   } = options;
 
   /**
@@ -83,12 +85,8 @@ export function useDeckPersistence(options: {
       }
 
       if (loadedDeck) {
-        // originalNameを保存してからdeckInfoを更新
-        deckInfo.value = {
-          ...loadedDeck,
-          originalName: loadedDeck.name,
-          name: '' // デッキ名を空にする
-        };
+        // deckInfoを更新（parseDeckDetail で既に name: '', originalName: name が設定済み）
+        deckInfo.value = loadedDeck;
 
         // URLにdnoを同期
         URLStateManager.setDno(dno);
@@ -99,7 +97,7 @@ export function useDeckPersistence(options: {
         // ロード時はアニメーション不要（新規表示のため）
 
         lastUsedDno.value = dno;
-        localStorage.setItem('ygo-deck-helper:lastUsedDno', String(dno));
+        localStorage.setItem('ygoNext:lastUsedDno', String(dno));
 
         // デッキオープンを記録（Tier 5管理用）
         const allCardIds = [
@@ -167,7 +165,7 @@ export function useDeckPersistence(options: {
       // 保存用のデータを作成（deckInfo自体は変更しない）
       const dataToSave = {
         ...deckInfo.value,
-        name: deckInfo.value.name || deckInfo.value.originalName || ''
+        name: getDeckName() // getterから取得した値を使用
       };
 
       const result = await sessionManager.saveDeck(dno, dataToSave);

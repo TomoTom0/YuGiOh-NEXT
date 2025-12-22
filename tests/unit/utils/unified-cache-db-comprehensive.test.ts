@@ -69,6 +69,11 @@ vi.mock('@/utils/extension-context-checker', () => ({
   })
 }));
 
+// language-detector モジュールをモック
+vi.mock('@/utils/language-detector', () => ({
+  detectLanguage: vi.fn(() => 'ja')
+}));
+
 // =========================================
 // モック設定
 // =========================================

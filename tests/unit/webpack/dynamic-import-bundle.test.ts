@@ -3,6 +3,7 @@
  * - バンドルサイズ測定
  * - チャンク分割の確認
  * - ローダー（loader.js）の機能テスト
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';

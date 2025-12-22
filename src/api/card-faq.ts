@@ -111,7 +111,7 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
       const faqId = match[1];
 
       // 更新日を取得（オプション）
-      const dateElem = rowElement.querySelector('.div.date');
+      const dateElem = rowElement.querySelector('.date');
       const updatedAt = dateElem?.textContent?.trim().replace('更新日:', '').trim() || undefined;
 
       faqs.push({

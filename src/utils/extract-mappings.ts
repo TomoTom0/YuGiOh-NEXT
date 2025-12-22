@@ -157,14 +157,11 @@ function extractRaceMapping(doc: Document): Partial<Record<Race, string>> {
         if (raceId) {
           // 内部値 → その言語での表示テキスト のマッピング
           raceMap[raceId] = displayText;
-        } else {
-          console.debug(`[extractRaceMapping] Failed to convert value "${value}" to raceId for "${displayText}"`);
         }
       }
     }
   });
 
-  console.log(`[extractRaceMapping] Extracted ${Object.keys(raceMap).length} race mappings`);
   return raceMap;
 }
 

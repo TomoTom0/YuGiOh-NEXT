@@ -23,9 +23,14 @@
 </template>
 
 <script setup lang="ts">
+import { watch } from 'vue'
 import { useToastStore } from '@/stores/toast-notification'
 
 const toastStore = useToastStore()
+
+watch(() => toastStore.toasts, (newToasts) => {
+  console.debug('[ToastContainer] Toasts changed:', newToasts.length, newToasts)
+}, { deep: true })
 
 const getIcon = (type: string): string => {
   switch (type) {
@@ -42,7 +47,7 @@ const getIcon = (type: string): string => {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 1100;
+  z-index: 10000;
   pointer-events: none;
 
   > div {
@@ -64,7 +69,7 @@ const getIcon = (type: string): string => {
     border-left-color: var(--color-success);
 
     .toast-header {
-      background: linear-gradient(135deg, var(--color-success) 0%, rgba(76, 175, 80, 0.8) 100%);
+      background: var(--color-success-gradient);
     }
   }
 
@@ -72,7 +77,7 @@ const getIcon = (type: string): string => {
     border-left-color: var(--color-error);
 
     .toast-header {
-      background: linear-gradient(135deg, var(--color-error) 0%, rgba(244, 67, 54, 0.8) 100%);
+      background: var(--color-error-gradient);
     }
   }
 
@@ -80,7 +85,7 @@ const getIcon = (type: string): string => {
     border-left-color: var(--color-warning);
 
     .toast-header {
-      background: linear-gradient(135deg, var(--color-warning) 0%, rgba(255, 152, 0, 0.8) 100%);
+      background: var(--color-warning-gradient);
     }
   }
 
@@ -88,7 +93,7 @@ const getIcon = (type: string): string => {
     border-left-color: var(--color-info);
 
     .toast-header {
-      background: linear-gradient(135deg, var(--color-info) 0%, rgba(33, 150, 243, 0.8) 100%);
+      background: var(--color-info-gradient);
     }
   }
 }
