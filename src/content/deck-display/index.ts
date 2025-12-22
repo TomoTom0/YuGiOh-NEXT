@@ -2,6 +2,8 @@
  * デッキ表示ページの Card Detail UI を Vue で実装
  */
 
+import { CHROME_STORAGE_KEY_APP_SETTINGS } from '@/constants/storage-keys';
+
 /**
  * デッキ表示ページの初期化
  */
@@ -11,8 +13,8 @@ export async function initDeckDisplay(): Promise<void> {
 
   // chrome.storage から設定を読み込み
   const appSettings = await new Promise<Record<string, any>>((resolve) => {
-    chrome.storage.local.get(['appSettings'], (result) => {
-      resolve((result.appSettings as Record<string, any>) || {})
+    chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], (result) => {
+      resolve((result[CHROME_STORAGE_KEY_APP_SETTINGS] as Record<string, any>) || {})
     })
   })
 

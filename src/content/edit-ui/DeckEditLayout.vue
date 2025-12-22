@@ -119,19 +119,35 @@
         </div>
       </div>
     </div>
+
+    <!-- Unsaved Changes Dialog -->
+    <ConfirmDialog
+      :show="deckStore.showUnsavedChangesDialog"
+      :title="unsavedChangesTitle"
+      :message="unsavedChangesMessage"
+      :buttons="unsavedChangesButtons"
+      :theme="settingsStore.effectiveTheme"
+      @cancel="cancelUnsavedChanges"
+    />
+
+    <!-- Toast Container -->
+    <ToastContainer />
   </div>
 </template>
 
 <script lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent, provide } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
+import { useToastStore } from '../../stores/toast-notification'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import ToastContainer from '../../components/ToastContainer.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
 const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
@@ -145,6 +161,7 @@ import { getCardInfo } from '../../utils/card-utils'
 import {
   generateThumbnailsInBackground
 } from '../../utils/deck-cache'
+import { STORAGE_KEY_LAST_DECK_DNO } from '../../constants/storage-keys'
 
 export default {
   name: 'DeckEditLayout',
@@ -153,6 +170,8 @@ export default {
     DeckSection,
     DeckEditTopBar,
     RightArea,
+    ConfirmDialog,
+    ToastContainer,
     ImportExportDialog,
     OptionsDialog,
     LoadDialog
@@ -162,6 +181,12 @@ export default {
     const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
+    const { showToast: dispatchToast } = useToastStore()
+
+    // トースト通知のヘルパー関数
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+      dispatchToast(message, type)
+    }
 
     // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
     const isReady = ref(false)
@@ -177,6 +202,88 @@ export default {
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
+
+    // 未保存警告ダイアログ用
+    const unsavedChangesMessage = ref('')
+    const pendingAction = ref<(() => Promise<void>) | null>(null)
+
+    const unsavedChangesTitle = '未保存の変更があります'
+
+    const unsavedChangesButtons = computed(() => [
+      {
+        label: '処理を中断',
+        class: 'secondary',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          pendingAction.value = null
+        }
+      },
+      {
+        label: '保存して続ける',
+        class: 'primary',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          try {
+            const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
+            if (result.success) {
+              showToast('保存しました', 'success')
+              if (pendingAction.value) {
+                await pendingAction.value()
+              }
+            }
+          } catch (error) {
+            console.error('Save error:', error)
+          } finally {
+            pendingAction.value = null
+          }
+        }
+      },
+      {
+        label: '保存せず続ける',
+        class: 'danger',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          if (pendingAction.value) {
+            await pendingAction.value()
+          }
+          pendingAction.value = null
+        }
+      }
+    ])
+
+    const cancelUnsavedChanges = () => {
+      deckStore.showUnsavedChangesDialog = false
+      pendingAction.value = null
+    }
+
+    const checkUnsavedChanges = async (action: () => void | Promise<void>, actionName: string) => {
+      const unsavedWarning = settingsStore.appSettings.unsavedWarning
+
+      // 'never': 警告を表示しない
+      if (unsavedWarning === 'never') {
+        await action()
+        return
+      }
+
+      // 変更がない場合は常に実行
+      if (!deckStore.hasUnsavedChanges()) {
+        await action()
+        return
+      }
+
+      // 'without-sorting-only': ソート順のみの変更なら警告しない
+      if (unsavedWarning === 'without-sorting-only') {
+        if (deckStore.hasOnlySortOrderChanges()) {
+          await action()
+          return
+        }
+      }
+
+      // 'always' または 'without-sorting-only' でソート順以外の変更がある場合
+      unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
+      pendingAction.value = action
+      deckStore.showUnsavedChangesDialog = true
+    }
 
     // ダイアログイベントハンドラ
     const handleImportExportClose = () => {
@@ -324,6 +431,9 @@ export default {
     // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
     let checkDnoChangeHandler: (() => void) | null = null
 
+    // checkUnsavedChanges を子コンポーネント（DeckEditTopBar）に提供
+    provide('checkUnsavedChanges', checkUnsavedChanges)
+
     // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
     let isComponentMounted = false
 
@@ -332,7 +442,7 @@ export default {
       isComponentMounted = true
 
       // 前回のdnoを復元
-      const lastDno = localStorage.getItem('ygoNext:lastDeckDno')
+      const lastDno = localStorage.getItem(STORAGE_KEY_LAST_DECK_DNO)
       if (lastDno) {
         currentDeckDno.value = parseInt(lastDno, 10)
       }
@@ -716,7 +826,11 @@ export default {
       addCopy,
       addToMainOrExtra,
       toggleLoadDialog,
-      handleDeckLoaded
+      handleDeckLoaded,
+      unsavedChangesMessage,
+      unsavedChangesTitle,
+      unsavedChangesButtons,
+      cancelUnsavedChanges
     }
   }
 }

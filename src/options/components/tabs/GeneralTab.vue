@@ -103,6 +103,14 @@
 import { ref, computed } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
 import { useToastStore } from '../../../stores/toast-notification';
+import {
+  STORAGE_KEY_DECK_INFO_CACHE,
+  STORAGE_KEY_DECK_THUMBNAILS,
+  STORAGE_KEY_DECK_LIST_ORDER,
+  STORAGE_KEY_LAST_USED_DNO,
+  STORAGE_KEY_LAST_DECK_DNO,
+  CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS
+} from '../../../constants/storage-keys';
 const settingsStore = useSettingsStore();
 const toastStore = useToastStore();
 
@@ -148,22 +156,22 @@ const handleClearCache = async () => {
     // 3-5. localStorage削除（Content Script起動時に削除するようフラグを設定）
     const localStorageKeys: string[] = [];
     if (cacheOptions.value.deckInfo) {
-      localStorageKeys.push('ygoNext:deckInfoCache');
+      localStorageKeys.push(STORAGE_KEY_DECK_INFO_CACHE);
       deletedItems.push('キャッシュデッキ情報');
     }
     if (cacheOptions.value.deckThumbnails) {
-      localStorageKeys.push('ygoNext:deckThumbnails');
+      localStorageKeys.push(STORAGE_KEY_DECK_THUMBNAILS);
       deletedItems.push('キャッシュデッキサムネイル');
     }
     if (cacheOptions.value.others) {
-      localStorageKeys.push('ygoNext:deckListOrder', 'ygoNext:lastDeckDno', 'ygoNext:lastUsedDno');
+      localStorageKeys.push(STORAGE_KEY_DECK_LIST_ORDER, STORAGE_KEY_LAST_DECK_DNO, STORAGE_KEY_LAST_USED_DNO);
       deletedItems.push('その他');
     }
 
     // chrome.storage.localにフラグを設定（Content Script起動時に削除される）
     if (localStorageKeys.length > 0) {
       await new Promise<void>((resolve) => {
-        chrome.storage.local.set({ clearLocalStorageKeys: localStorageKeys }, () => {
+        chrome.storage.local.set({ [CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS]: localStorageKeys }, () => {
           resolve();
         });
       });

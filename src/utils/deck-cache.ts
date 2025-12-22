@@ -8,6 +8,11 @@ import { generateDeckThumbnailImage } from '@/utils/deck-thumbnail';
 import { DeckInfo, DeckListItem } from '@/types/deck';
 import { DeckCardRef } from '@/types/card';
 import { DeckCategory } from '@/types/deck-metadata';
+import {
+  STORAGE_KEY_DECK_INFO_CACHE,
+  STORAGE_KEY_DECK_THUMBNAILS,
+  STORAGE_KEY_DECK_LIST_ORDER
+} from '@/constants/storage-keys';
 
 export interface CachedDeckInfo {
   dno: number
@@ -33,7 +38,7 @@ const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000; // 7日間
  */
 export function loadDeckListOrder(): number[] {
   try {
-    const cached = localStorage.getItem('ygoNext:deckListOrder');
+    const cached = localStorage.getItem(STORAGE_KEY_DECK_LIST_ORDER);
     if (cached) {
       return JSON.parse(cached);
     }
@@ -49,7 +54,7 @@ export function loadDeckListOrder(): number[] {
 export function saveDeckListOrder(deckList: DeckListItem[]): void {
   try {
     const order = deckList.map(deck => deck.dno);
-    localStorage.setItem('ygoNext:deckListOrder', JSON.stringify(order));
+    localStorage.setItem(STORAGE_KEY_DECK_LIST_ORDER, JSON.stringify(order));
   } catch (error) {
     console.warn('Failed to save deck list order:', error);
   }
@@ -82,7 +87,7 @@ export function isDeckListOrderChanged(currentDeckList: DeckListItem[]): boolean
  */
 export function loadThumbnailCache(): Map<number, string> {
   try {
-    const cached = localStorage.getItem('ygoNext:deckThumbnails');
+    const cached = localStorage.getItem(STORAGE_KEY_DECK_THUMBNAILS);
     if (cached) {
       const parsed = JSON.parse(cached);
       return new Map(
@@ -101,7 +106,7 @@ export function loadThumbnailCache(): Map<number, string> {
 export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
   try {
     const obj = Object.fromEntries(deckThumbnails);
-    localStorage.setItem('ygoNext:deckThumbnails', JSON.stringify(obj));
+    localStorage.setItem(STORAGE_KEY_DECK_THUMBNAILS, JSON.stringify(obj));
   } catch (error) {
     console.warn('Failed to save thumbnail cache:', error);
   }
@@ -112,7 +117,7 @@ export function saveThumbnailCache(deckThumbnails: Map<number, string>): void {
  */
 export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
   try {
-    const cached = localStorage.getItem('ygoNext:deckInfoCache');
+    const cached = localStorage.getItem(STORAGE_KEY_DECK_INFO_CACHE);
     if (cached) {
       const parsed = JSON.parse(cached);
       const map = new Map(
@@ -142,7 +147,7 @@ export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
 export function saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>): void {
   try {
     const obj = Object.fromEntries(cachedDeckInfos);
-    localStorage.setItem('ygoNext:deckInfoCache', JSON.stringify(obj));
+    localStorage.setItem(STORAGE_KEY_DECK_INFO_CACHE, JSON.stringify(obj));
   } catch (error) {
     console.warn('Failed to save deck info cache:', error);
   }
