@@ -73,7 +73,7 @@
 
   /* ===== コンポーネント共通スタイル ===== */
 
-  /* ダイアログオーバーレイ - 公式メニュー (z-index: 30) より前面に表示 */
+  /* ダイアログオーバーレイ - Teleportで body直下に配置されるため高いz-indexを使用 */
   .dialog-overlay {
     position: fixed;
     top: 0;
@@ -84,7 +84,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 10000;
   }
 
   .dialog-content {

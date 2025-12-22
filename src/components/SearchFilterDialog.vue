@@ -1,4 +1,6 @@
 <template>
+  <Teleport to="body">
+
   <div v-if="deckStore.isFilterDialogVisible" class="dialog-overlay" @click="deckStore.isFilterDialogVisible = false">
     <div class="dialog-content" @click.stop>
       <!-- タイトルバー -->
@@ -94,6 +96,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">

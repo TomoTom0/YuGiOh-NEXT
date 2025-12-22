@@ -1,8 +1,13 @@
+/**
+ * @vitest-environment node
+ */
 import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
 const hasHtmlFile = fs.existsSync(koHtmlPath);
 

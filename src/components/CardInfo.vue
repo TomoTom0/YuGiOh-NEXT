@@ -65,18 +65,10 @@
             </button>
             <button
               class="card-menu-item"
-              @click="openDeckSearch"
+              @click="openDeckSearchInNewTab"
             >
               <span class="menu-item-label">
                 公開デッキ検索
-              </span>
-            </button>
-            <button
-              class="card-menu-item"
-              @click="openDeckSearch"
-            >
-              <span class="menu-item-label">
-                公開デッキ検索 (new tab)
               </span>
             </button>
           </div>
@@ -364,7 +356,7 @@ export default {
     }
 
     // デッキ検索を新しいタブで開く
-    const openDeckSearch = () => {
+    const openDeckSearchInNewTab = () => {
       if (!card.value) return
 
       const gameType = detectCardGameType()
@@ -418,7 +410,7 @@ export default {
       toggleHeadPlacement,
       isTailPlaced,
       toggleTailPlacement,
-      openDeckSearch,
+      openDeckSearchInNewTab,
       closeMenuIfOutside
     }
   },
@@ -634,6 +626,7 @@ export default {
   gap: 15px;
   align-items: flex-start;
   justify-content: flex-start;
+  width: 100%;
 }
 
 .card-info-bottom {
@@ -1228,8 +1221,9 @@ export default {
   position: absolute;
   top: 100%;
   left: 0;
-  right: 0;
   margin-top: 4px;
+  min-width: 100%;
+  width: max-content;
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 6px;
@@ -1252,7 +1246,6 @@ export default {
   min-height: 36px;
   display: flex;
   align-items: center;
-  white-space: nowrap;
 
   &:hover {
     background: var(--bg-secondary);

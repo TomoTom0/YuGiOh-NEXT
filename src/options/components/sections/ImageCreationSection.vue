@@ -87,6 +87,13 @@ const handleFeatureToggle = () => {
   margin: 0 0 16px 0;
 }
 
+.setting-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;

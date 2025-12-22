@@ -32,6 +32,18 @@ declare global {
      * バックグラウンドスクリプトで事前取得されたデッキリスト
      */
     ygoNextPreloadedDeckList?: unknown;
+
+    /**
+     * プリロードされたytkn（CSRFトークン）
+     * 編集ページで事前取得されたytknをキャッシュ
+     */
+    ygoNextPreloadedYtkn?: string | null;
+
+    /**
+     * ytkn取得のPromise
+     * loadDeck と同様に、ytkn取得を待機できるようにする
+     */
+    ygoNextPreloadedYtknPromise?: Promise<void> | null;
   }
 }
 

@@ -62,7 +62,17 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.scss$/,
-          use: ['style-loader', 'css-loader', 'sass-loader'],
+          use: [
+            'style-loader',
+            'css-loader',
+            {
+              loader: 'sass-loader',
+              options: {
+                // Dart Sass の新しい JavaScript API を使用（legacy JS API deprecation を回避）
+                implementation: require.resolve('sass'),
+              },
+            },
+          ],
         },
       ],
     },
@@ -140,8 +150,9 @@ module.exports = (env, argv) => {
     },
 
     performance: {
-      maxEntrypointSize: 300000, // 300KB - options.js 用
-      maxAssetSize: 300000, // 300KB - 977.chunk.js と MP4 動画用
+      // Chrome拡張機能の一般的な上限（個別ファイル1MB、エントリーポイント2MB）
+      maxEntrypointSize: 2000000, // 2MB
+      maxAssetSize: 1000000, // 1MB
       hints: isProduction ? 'warning' : false,
     },
   };

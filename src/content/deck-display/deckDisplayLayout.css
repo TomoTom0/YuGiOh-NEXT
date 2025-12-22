@@ -67,3 +67,14 @@
   height: auto;
   aspect-ratio: 65 / 95;
 }
+
+/**
+ * カード詳細UIのメッセージスタイル
+ * インラインスタイルをクラスベースに置き換え
+ */
+#ygo-card-detail-container .ygo-next.card-detail-loading,
+#ygo-card-detail-container .ygo-next.card-detail-error,
+#ygo-card-detail-container .ygo-next.no-faq-message {
+  text-align: center;
+  color: #999;
+}

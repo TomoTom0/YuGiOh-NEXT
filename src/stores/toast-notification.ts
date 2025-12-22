@@ -39,6 +39,7 @@ export const useToastStore = defineStore('toast', () => {
     body?: string,
     duration: number = 3000
   ): string => {
+    console.debug('[ToastStore.showToast] Called:', { message, type, body, duration });
     const id = `toast-${Date.now()}-${Math.random()}`;
     const toast: ToastNotification = {
       id,
@@ -50,6 +51,7 @@ export const useToastStore = defineStore('toast', () => {
     };
 
     toasts.value.push(toast);
+    console.debug('[ToastStore.showToast] Toast added, total:', toasts.value.length);
 
     // 指定時間後に自動削除
     if (duration > 0) {

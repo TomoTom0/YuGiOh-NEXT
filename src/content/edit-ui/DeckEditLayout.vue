@@ -82,18 +82,14 @@
     <div v-if="deckStore.overlayVisible" class="unified-overlay" :style="{ zIndex: deckStore.overlayZIndex }"></div>
 
     <!-- ダイアログ -->
-    <ExportDialog
-      :isVisible="deckStore.showExportDialog"
+    <ImportExportDialog
+      :isVisible="deckStore.showImportDialog || deckStore.showExportDialog"
+      :initialTab="deckStore.showExportDialog ? 'export' : 'import'"
       :deckInfo="deckStore.deckInfo"
       :dno="String(deckStore.dno)"
-      @close="deckStore.showExportDialog = false"
-      @exported="handleExported"
-    />
-
-    <ImportDialog
-      :isVisible="deckStore.showImportDialog"
-      @close="deckStore.showImportDialog = false"
+      @close="handleImportExportClose"
       @imported="handleImported"
+      @exported="handleExported"
     />
 
     <OptionsDialog
@@ -101,53 +97,11 @@
       @close="deckStore.showOptionsDialog = false"
     />
 
-    <!-- Load Dialog -->
-    <div v-if="deckStore.showLoadDialog" class="dialog-overlay" @click="toggleLoadDialog">
-      <div class="dialog-content" @click.stop>
-        <div class="dialog-header common">
-          <h2 class="dialog-title">Load Deck</h2>
-          <button class="close-btn" @click="toggleLoadDialog">×</button>
-        </div>
-        <div class="dialog-body">
-          <div v-if="!deckStore.deckList || deckStore.deckList.length === 0" class="no-decks">
-            <svg width="48" height="48" viewBox="0 0 24 24" style="margin-bottom: 12px; opacity: 0.3;">
-              <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-            </svg>
-            <p>デッキがありません</p>
-          </div>
-          <div v-else class="deck-grid">
-            <div
-              v-for="deck in deckStore.deckList"
-              :key="deck.dno"
-              class="deck-card"
-              @click="loadDeck(deck.dno)"
-            >
-              <!-- デッキ名 -->
-              <div class="deck-name">{{ deck.name || '(名称未設定)' }}</div>
-
-              <!-- サムネイル画像 -->
-              <!-- TODO: サムネイル機能は廃止済み -->
-              <!-- <div class="deck-thumbnail-container">
-                <img
-                  v-if="deckThumbnails.has(deck.dno) && deckThumbnails.get(deck.dno)"
-                  :src="deckThumbnails.get(deck.dno)"
-                  :alt="`${deck.name}のサムネイル`"
-                  class="deck-thumbnail-image"
-                />
-                <div v-else-if="thumbnailLoading.get(deck.dno)" class="deck-thumbnail-loading">
-                  <div class="spinner"></div>
-                </div>
-                <div v-else class="deck-thumbnail-placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" style="opacity: 0.3;">
-                    <path fill="currentColor" d="M20,6H12L10,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8A2,2 0 0,0 20,6M20,18H4V6H9.17L11.17,8H20V18M11,13H13V17H11V13M11,9H13V11H11V9Z" />
-                  </svg>
-                </div>
-              </div> -->
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <LoadDialog
+      :isVisible="deckStore.showLoadDialog"
+      @close="deckStore.showLoadDialog = false"
+      @deck-loaded="handleDeckLoaded"
+    />
 
     <!-- Delete Confirmation Dialog -->
     <div v-if="deckStore.showDeleteConfirm" class="dialog-overlay" @click="cancelDelete">
@@ -165,29 +119,49 @@
         </div>
       </div>
     </div>
+
+    <!-- Unsaved Changes Dialog -->
+    <ConfirmDialog
+      :show="deckStore.showUnsavedChangesDialog"
+      :title="unsavedChangesTitle"
+      :message="unsavedChangesMessage"
+      :buttons="unsavedChangesButtons"
+      :theme="settingsStore.effectiveTheme"
+      @cancel="cancelUnsavedChanges"
+    />
+
+    <!-- Toast Container -->
+    <ToastContainer />
   </div>
 </template>
 
 <script lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent, provide } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
+import { useToastStore } from '../../stores/toast-notification'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
+import ToastContainer from '../../components/ToastContainer.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
-const ExportDialog = defineAsyncComponent(() => import('../../components/ExportDialog.vue'))
-const ImportDialog = defineAsyncComponent(() => import('../../components/ImportDialog.vue'))
+const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
-import { getCardImageUrl } from '../../types/card'
+const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
+import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
-import { DeckThumbnailCache } from '../../utils/deck-thumbnail-cache'
-import { DeckThumbnailGenerator } from '../../utils/deck-thumbnail-generator'
+import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
 import { EXTENSION_IDS } from '../../utils/dom-selectors'
 import { buildFullUrl } from '../../utils/url-builder'
+import { getCardInfo } from '../../utils/card-utils'
+import {
+  generateThumbnailsInBackground
+} from '../../utils/deck-cache'
+import { STORAGE_KEY_LAST_DECK_DNO } from '../../constants/storage-keys'
 
 export default {
   name: 'DeckEditLayout',
@@ -196,15 +170,23 @@ export default {
     DeckSection,
     DeckEditTopBar,
     RightArea,
-    ExportDialog,
-    ImportDialog,
-    OptionsDialog
+    ConfirmDialog,
+    ToastContainer,
+    ImportExportDialog,
+    OptionsDialog,
+    LoadDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
     const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
+    const { showToast: dispatchToast } = useToastStore()
+
+    // トースト通知のヘルパー関数
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+      dispatchToast(message, type)
+    }
 
     // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
     const isReady = ref(false)
@@ -215,15 +197,100 @@ export default {
     const showDetail = ref(true)
     const viewMode = ref('list')
     const cardTab = ref('info')
-
-    // デッキサムネイル画像（dno -> thumbnail URL or null）
-    const deckThumbnails = ref(new Map<number, string | null>())
-    const thumbnailLoading = ref(new Map<number, boolean>())
+    // 現在開いているデッキのdno
+    const currentDeckDno = ref<number | null>(null)
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
 
+    // 未保存警告ダイアログ用
+    const unsavedChangesMessage = ref('')
+    const pendingAction = ref<(() => Promise<void>) | null>(null)
+
+    const unsavedChangesTitle = '未保存の変更があります'
+
+    const unsavedChangesButtons = computed(() => [
+      {
+        label: '処理を中断',
+        class: 'secondary',
+        onClick: () => {
+          deckStore.showUnsavedChangesDialog = false
+          pendingAction.value = null
+        }
+      },
+      {
+        label: '保存して続ける',
+        class: 'primary',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          try {
+            const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
+            if (result.success) {
+              showToast('保存しました', 'success')
+              if (pendingAction.value) {
+                await pendingAction.value()
+              }
+            }
+          } catch (error) {
+            console.error('Save error:', error)
+          } finally {
+            pendingAction.value = null
+          }
+        }
+      },
+      {
+        label: '保存せず続ける',
+        class: 'danger',
+        onClick: async () => {
+          deckStore.showUnsavedChangesDialog = false
+          if (pendingAction.value) {
+            await pendingAction.value()
+          }
+          pendingAction.value = null
+        }
+      }
+    ])
+
+    const cancelUnsavedChanges = () => {
+      deckStore.showUnsavedChangesDialog = false
+      pendingAction.value = null
+    }
+
+    const checkUnsavedChanges = async (action: () => void | Promise<void>, actionName: string) => {
+      const unsavedWarning = settingsStore.appSettings.unsavedWarning
+
+      // 'never': 警告を表示しない
+      if (unsavedWarning === 'never') {
+        await action()
+        return
+      }
+
+      // 変更がない場合は常に実行
+      if (!deckStore.hasUnsavedChanges()) {
+        await action()
+        return
+      }
+
+      // 'without-sorting-only': ソート順のみの変更なら警告しない
+      if (unsavedWarning === 'without-sorting-only') {
+        if (deckStore.hasOnlySortOrderChanges()) {
+          await action()
+          return
+        }
+      }
+
+      // 'always' または 'without-sorting-only' でソート順以外の変更がある場合
+      unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
+      pendingAction.value = action
+      deckStore.showUnsavedChangesDialog = true
+    }
+
     // ダイアログイベントハンドラ
+    const handleImportExportClose = () => {
+      deckStore.showImportDialog = false
+      deckStore.showExportDialog = false
+    }
+
     const handleExported = (message) => {
       deckStore.showExportDialog = false
     }
@@ -232,113 +299,26 @@ export default {
       deckStore.showImportDialog = false
     }
 
-    const toggleLoadDialog = async () => {
+    const toggleLoadDialog = () => {
       if (!deckStore.showLoadDialog) {
-        // デッキ一覧を取得
-        await deckStore.fetchDeckList()
-
-        // 各デッキのサムネイルを取得または生成（非同期、UI をブロックしない）
-        // TODO: サムネイル生成は一時的に無効化（パフォーマンス測定中）
-        // deckStore.deckList.forEach(deck => {
-        //   loadOrGenerateThumbnail(deck.dno)
-        // })
-      }
-      deckStore.showLoadDialog = !deckStore.showLoadDialog
-    }
-
-    /**
-     * デッキサムネイルをキャッシュから取得、またはキャッシュにない場合は生成
-     */
-    const loadOrGenerateThumbnail = async (dno: number) => {
-      if (deckThumbnails.value.has(dno)) {
-        return // 既に読み込まれている
-      }
-
-      thumbnailLoading.value.set(dno, true)
-
-      try {
-        // キャッシュから取得
-        let thumbnail = await DeckThumbnailCache.get(dno)
-
-        // キャッシュにない場合は生成
-        if (!thumbnail) {
-          const deckDetail = await deckStore.getDeckDetail(dno)
-          if (deckDetail) {
-            const generator = new DeckThumbnailGenerator()
-            thumbnail = await generator.generateWebPThumbnail(deckDetail)
-            // キャッシュに保存
-            if (thumbnail) {
-              await DeckThumbnailCache.set(dno, thumbnail)
-            }
-          }
-        }
-
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          deckThumbnails.value.set(dno, thumbnail || null)
-        }
-      } catch (error) {
-        console.warn(`Failed to load or generate thumbnail for deck ${dno}:`, error)
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          deckThumbnails.value.set(dno, null)
-        }
-      } finally {
-        // コンポーネントがまだマウントされている場合のみ状態を更新
-        if (isComponentMounted) {
-          thumbnailLoading.value.set(dno, false)
-        }
-      }
-    }
-
-    const loadDeck = async (dno) => {
-      try {
-        // ダイアログを即座に閉じる（楽観的UI）
+        // ダイアログを開く際にキャッシュをリロード（store側で実行）
+        deckStore.openLoadDialog()
+      } else {
         deckStore.showLoadDialog = false
-        deckStore.setDeckName('')
-
-        // ダイアログを閉じると同時に、デッキエリアを滑らかに上にスクロール
-        nextTick(() => {
-          const deckAreas = document.querySelector('.deck-areas')
-          if (deckAreas) {
-            deckAreas.scrollTo({
-              top: 0,
-              behavior: 'smooth' // アニメーション付きでスクロール
-            })
-          }
-        })
-
-        // デッキロード（バックグラウンドで実行）
-        await deckStore.loadDeck(dno)
-
-        // デッキロード後、サムネイルを生成・キャッシュに保存（非同期）
-        // TODO: サムネイル生成は廃止済み
-        // generateAndCacheThumbnail(dno)
-      } catch (error) {
-        console.error('Load error:', error)
       }
     }
 
-    /**
-     * デッキサムネイルを生成してキャッシュに保存
-     */
-    const generateAndCacheThumbnail = async (dno: number) => {
-      try {
-        // 現在のデッキ情報からサムネイルを生成
-        const generator = new DeckThumbnailGenerator()
-        const thumbnail = await generator.generateWebPThumbnail(deckStore.deckInfo)
-
-        if (thumbnail) {
-          // キャッシュに保存
-          await DeckThumbnailCache.set(dno, thumbnail)
-          // コンポーネントがまだマウントされている場合のみ UI に反映
-          if (isComponentMounted) {
-            deckThumbnails.value.set(dno, thumbnail)
-          }
+    const handleDeckLoaded = () => {
+      // LoadDialogからのデッキロード通知を受けて、デッキエリアをスクロール
+      nextTick(() => {
+        const deckAreas = document.querySelector('.deck-areas')
+        if (deckAreas) {
+          deckAreas.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          })
         }
-      } catch (error) {
-        console.warn(`Failed to generate thumbnail for deck ${dno}:`, error)
-      }
+      })
     }
 
     const confirmDelete = async () => {
@@ -451,14 +431,27 @@ export default {
     // イベントリスナーのハンドラーを保持（onUnmounted で正しく削除するため）
     let checkDnoChangeHandler: (() => void) | null = null
 
+    // checkUnsavedChanges を子コンポーネント（DeckEditTopBar）に提供
+    provide('checkUnsavedChanges', checkUnsavedChanges)
+
     // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
     let isComponentMounted = false
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       isComponentMounted = true
+
+      // 前回のdnoを復元
+      const lastDno = localStorage.getItem(STORAGE_KEY_LAST_DECK_DNO)
+      if (lastDno) {
+        currentDeckDno.value = parseInt(lastDno, 10)
+      }
+
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
+
+      // デッキリストを取得
+      await deckStore.fetchDeckList()
 
       // デッキ読み込み完了後、Vue UIを表示
       isReady.value = true
@@ -482,6 +475,7 @@ export default {
       window.addEventListener('resize', handleResize)
       window.addEventListener('keydown', handleGlobalKeydown)
 
+
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
       const originalChangeLanguage = window.ygoChangeLanguage
       window.ygoChangeLanguage = (lang: string) => {
@@ -503,6 +497,22 @@ export default {
       // 設定に応じてファビコンを変更
       if (settingsStore.appSettings.ux.changeFavicon) {
         changeFavicon()
+      }
+
+      // ページロード時に最初の24個のデッキのサムネイルを生成（キャッシュはstore初期化時に読み込み済み）
+      // 5個連続でキャッシュヒットしたら早期終了する
+      // ページロード時、最初の24個のデッキのサムネイルを背景で生成
+      if (deckStore.deckList && deckStore.deckList.length > 0) {
+        console.debug('[DeckEditLayout] Starting background thumbnail generation on page load')
+        generateThumbnailsInBackground(
+          0, // startIndex: 最初から
+          24, // batchSize: 最初の24個（早期終了ロジックあり）
+          deckStore.deckList,
+          (dno: number) => deckStore.getDeckDetail(dno),
+          deckStore.headPlacementCardIds,
+          deckStore.deckThumbnails,
+          deckStore.cachedDeckInfos
+        )
       }
     })
 
@@ -798,10 +808,9 @@ export default {
       onSearchInput,
       toggleDetail,
       addToMain,
+      handleImportExportClose,
       handleExported,
       handleImported,
-      toggleLoadDialog,
-      loadDeck,
       confirmDelete,
       cancelDelete,
       addToExtra,
@@ -816,11 +825,12 @@ export default {
       moveFromTrash,
       addCopy,
       addToMainOrExtra,
-      // サムネイル関連
-      deckThumbnails,
-      thumbnailLoading,
-      loadOrGenerateThumbnail,
-      generateAndCacheThumbnail
+      toggleLoadDialog,
+      handleDeckLoaded,
+      unsavedChangesMessage,
+      unsavedChangesTitle,
+      unsavedChangesButtons,
+      cancelUnsavedChanges
     }
   }
 }
@@ -840,6 +850,8 @@ export default {
   height: calc(100vh - var(--header-height, 0px) - 20px);
   background-color: var(--bg-secondary);
   padding: 10px;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
@@ -1322,8 +1334,8 @@ export default {
   border: 1px solid var(--dialog-border, #e0e0e0);
   border-radius: 8px;
   box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2));
-  width: 600px;
-  max-width: 90vw;
+  width: 900px;
+  max-width: 95vw;
   max-height: 80vh;
   overflow: hidden;
   display: flex;
@@ -1362,10 +1374,15 @@ export default {
 }
 
 .dialog-body {
-  padding: 16px;
+  padding: 12px;
   flex: 1;
   overflow-y: auto;
   min-height: 200px;
+  width: calc(100% - 30px);
+
+  .loading-placeholder {
+    min-height: 400px;
+  }
 
   .no-decks {
     display: flex;
@@ -1385,84 +1402,11 @@ export default {
 
 .deck-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, 320px);
+  gap: 12px;
+  justify-content: start;
 }
 
-.deck-card {
-  width: 160px;
-  min-height: 60px;
-  border: 1px solid var(--border-primary, #e0e0e0);
-  border-radius: 6px;
-  background: var(--bg-secondary, #f5f5f5);
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-
-  &:hover {
-    border-color: var(--text-tertiary, #999);
-    background: var(--bg-primary, white);
-  }
-
-  .deck-name {
-    padding: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary, #333);
-    line-height: 1.4;
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-align: center;
-  }
-
-  .deck-thumbnail-container {
-    width: 100%;
-    aspect-ratio: 3 / 2;
-    background: var(--bg-tertiary, #e0e0e0);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .deck-thumbnail-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .deck-thumbnail-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-
-    .spinner {
-      width: 20px;
-      height: 20px;
-      border: 2px solid var(--border-secondary, #ddd);
-      border-top-color: var(--text-primary, #333);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-  }
-
-  .deck-thumbnail-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    color: var(--text-tertiary, #999);
-  }
-}
 
 @keyframes spin {
   to {

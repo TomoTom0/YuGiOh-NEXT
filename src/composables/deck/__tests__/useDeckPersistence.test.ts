@@ -121,7 +121,7 @@ describe('useDeckPersistence', () => {
       expect(tempCardDb.recordDeckOpen).toHaveBeenCalledWith(123, [1001, 2001, 3001]);
 
       // localStorage が更新されたことを確認
-      expect(localStorage.getItem('ygo-deck-helper:lastUsedDno')).toBe('123');
+      expect(localStorage.getItem('ygoNext:lastUsedDno')).toBe('123');
       expect(mockLastUsedDno.value).toBe(123);
 
       // スナップショットが保存されたことを確認
