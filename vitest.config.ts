@@ -33,8 +33,6 @@ export default defineConfig({
       // process.exit()を使用する独自テストランナー
       'tests/unit/composables/useFLIPAnimation.test.ts',
       'tests/unit/utils/array-shuffle.test.ts',
-      // データファイル不足により失敗するテスト
-      'tests/combine/**',
     ],
     coverage: {
       provider: 'v8',

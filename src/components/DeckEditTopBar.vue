@@ -88,17 +88,11 @@
             </svg>
             Reload Deck
           </button>
-          <button data-testid="export-deck-btn" @click="handleExportClick" class="menu-item">
+          <button data-testid="import-export-deck-btn" @click="handleImportExportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiExport" />
+              <path fill="currentColor" :d="mdiSwapHorizontal" />
             </svg>
-            Export Deck
-          </button>
-          <button data-testid="import-deck-btn" @click="handleImportClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiImport" />
-            </svg>
-            Import Deck
+            Import / Export
           </button>
           <button v-if="settingsStore.appSettings.sortAllBeforeSave" data-testid="save-without-sort-btn" @click="handleSaveWithoutFullSortClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
@@ -170,7 +164,7 @@ import ConfirmDialog from './ConfirmDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -321,6 +315,9 @@ export default {
         // ソート処理を実行
         applySorting()
 
+        // 設定された遅延時間を取得（デフォルト: 0ms = 即座に保存）
+        const delay = settingsStore.appSettings.saveDelayMs ?? 0
+
         saveTimer.value = window.setTimeout(async () => {
           try {
             if (!localDno.value) {
@@ -350,7 +347,7 @@ export default {
             savingState.value = false
             saveTimer.value = null
           }
-        }, 2000)
+        }, delay)
       }
     }
 
@@ -377,7 +374,6 @@ export default {
     const handleLoadClick = async () => {
       await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
-          await deckStore.fetchDeckList()
           selectedDeckDno.value = null
         }
         deckStore.showLoadDialog = !deckStore.showLoadDialog
@@ -478,16 +474,11 @@ export default {
       }
     }
 
-    const handleExportClick = () => {
-      showMenu.value = false
-      deckStore.showExportDialog = true
-    }
-
-    const handleImportClick = async () => {
+    const handleImportExportClick = async () => {
       showMenu.value = false
       await checkUnsavedChanges(() => {
         deckStore.showImportDialog = true
-      }, 'インポート')
+      }, 'Import / Export')
     }
 
     const handleOptions = () => {
@@ -616,8 +607,7 @@ export default {
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
-      handleExportClick,
-      handleImportClick,
+      handleImportExportClick,
       handleImported,
       handleOptions,
       handleUndo,
@@ -631,8 +621,7 @@ export default {
       mdiReload,
       mdiSortVariant,
       mdiImageOutline,
-      mdiExport,
-      mdiImport,
+      mdiSwapHorizontal,
       mdiCog,
       mdiUndo,
       mdiRedo,

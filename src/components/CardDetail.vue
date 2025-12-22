@@ -371,11 +371,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px solid var(--border-primary);
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--button-default-bg);
   color: var(--text-secondary);
   cursor: pointer;
@@ -384,15 +384,19 @@ export default {
   &:hover:not(:disabled) {
     background: var(--bg-secondary);
     color: var(--text-primary);
+    border-color: var(--color-info, #008cff);
   }
 
   &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+    opacity: 0.5;
+    background: var(--bg-tertiary);
+    border-color: var(--border-secondary);
   }
 
   svg {
     display: block;
+    width: 14px;
+    height: 14px;
   }
 }
 

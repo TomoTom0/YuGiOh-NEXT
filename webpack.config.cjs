@@ -62,7 +62,17 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.scss$/,
-          use: ['style-loader', 'css-loader', 'sass-loader'],
+          use: [
+            'style-loader',
+            'css-loader',
+            {
+              loader: 'sass-loader',
+              options: {
+                // Dart Sass の新しい JavaScript API を使用（legacy JS API deprecation を回避）
+                implementation: require.resolve('sass'),
+              },
+            },
+          ],
         },
       ],
     },

@@ -57,7 +57,6 @@ export function useDeckUndoRedo() {
       const deleteCount = commandHistory.value.length - MAX_COMMAND_HISTORY;
       commandHistory.value.splice(0, deleteCount);
       commandIndex.value -= deleteCount;
-      console.debug(`[useDeckUndoRedo] Trimmed ${deleteCount} commands, history size now ${commandHistory.value.length}`);
     }
   }
 

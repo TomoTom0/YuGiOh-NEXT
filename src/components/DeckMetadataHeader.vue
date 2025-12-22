@@ -109,12 +109,66 @@
         class="action-button category-button"
         @click="$emit('show-category-dialog')"
       >Cat</button>
+
+      <!-- メニューボタン -->
+      <div class="metadata-menu-container" ref="metadataMenuContainer">
+        <button
+          class="action-button metadata-menu-button"
+          @click="toggleMetadataMenu"
+          title="デッキ情報メニュー"
+        >⋮</button>
+        <Transition name="dropdown">
+          <div
+            v-if="showMetadataMenu"
+            ref="metadataMenuDropdown"
+            class="metadata-menu-dropdown"
+            :class="{ 'align-right': metadataMenuAlignRight }"
+          >
+            <!-- お気に入り行 -->
+            <div class="menu-row">
+              <svg class="menu-icon" viewBox="0 0 24 24" title="お気に入り数">
+                <path :d="mdiStar" />
+              </svg>
+              <div class="menu-value-badge">{{ favoriteCount }}</div>
+            </div>
+
+            <!-- デッキコード行 -->
+            <div class="menu-row deck-code-row">
+              <svg class="menu-icon" viewBox="0 0 24 24" title="デッキコード">
+                <path :d="mdiXml" />
+              </svg>
+              <div class="deck-code-action">
+                <input
+                  v-if="deckCode"
+                  type="text"
+                  :value="deckCode"
+                  readonly
+                  class="deck-code-display"
+                  @click="copyDeckCode"
+                  title="クリックでコピー"
+                />
+                <button
+                  v-else
+                  @click="issueDeckCode"
+                  class="deck-code-btn"
+                  :disabled="issueLoading"
+                >
+                  {{ issueLoading ? '発行中' : '発行' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { mdiStar, mdiXml } from '@mdi/js'
+import { useDeckEditStore } from '../stores/deck-edit'
+import { handleError, handleSuccess } from '../utils/error-handler'
 
 const props = defineProps<{
   isPublic: boolean
@@ -130,17 +184,28 @@ const emit = defineEmits<{
   (e: 'show-category-dialog'): void
 }>()
 
+const deckStore = useDeckEditStore()
+
 // DOM参照
 const deckTypeSelector = ref<HTMLElement | null>(null)
 const deckTypeDropdown = ref<HTMLElement | null>(null)
 const deckStyleSelector = ref<HTMLElement | null>(null)
 const deckStyleDropdown = ref<HTMLElement | null>(null)
+const metadataMenuContainer = ref<HTMLElement | null>(null)
+const metadataMenuDropdown = ref<HTMLElement | null>(null)
 
 // ドロップダウン表示状態（内部管理）
 const showDeckTypeDropdown = ref(false)
 const showDeckStyleDropdown = ref(false)
 const deckTypeDropdownAlignRight = ref(false)
 const deckStyleDropdownAlignRight = ref(false)
+const showMetadataMenu = ref(false)
+const metadataMenuAlignRight = ref(false)
+
+// メニュー内の情報
+const favoriteCount = ref(0)
+const deckCode = ref('')
+const issueLoading = ref(false)
 
 const deckStyleLabel = computed(() => {
   if (props.deckStyle === '-1') return 'Style'
@@ -167,6 +232,9 @@ function handleClickOutside(event: MouseEvent) {
   }
   if (!target.closest('.deck-style-selector')) {
     showDeckStyleDropdown.value = false
+  }
+  if (!target.closest('.metadata-menu-container')) {
+    showMetadataMenu.value = false
   }
 }
 
@@ -223,6 +291,74 @@ function selectDeckStyle(value: string) {
   emit('select-deck-style', value)
   showDeckStyleDropdown.value = false
 }
+
+// メタデータメニュー操作
+async function toggleMetadataMenu() {
+  showMetadataMenu.value = !showMetadataMenu.value
+  if (showMetadataMenu.value) {
+    // store から値を取得
+    favoriteCount.value = deckStore.deckInfo.favoriteCount ?? 0
+    deckCode.value = deckStore.deckInfo.issuedDeckCode ?? ''
+
+    adjustAlignRight(
+      metadataMenuContainer.value,
+      metadataMenuDropdown.value,
+      metadataMenuAlignRight
+    )
+  }
+}
+
+// デッキコードを発行
+async function issueDeckCode() {
+  issueLoading.value = true
+  try {
+    const code = await deckStore.issueDeckCode(deckStore.deckInfo.dno)
+    if (code) {
+      deckCode.value = code
+      // store にも保存
+      deckStore.deckInfo.issuedDeckCode = code
+      handleSuccess('[DeckMetadataHeader]', 'デッキコードを発行しました')
+    } else {
+      handleError(
+        '[DeckMetadataHeader]',
+        'デッキコードの発行に失敗しました',
+        new Error('Empty response'),
+        { showToast: true }
+      )
+    }
+  } catch (error) {
+    handleError(
+      '[DeckMetadataHeader]',
+      'デッキコードの発行に失敗しました',
+      error,
+      { showToast: true }
+    )
+  } finally {
+    issueLoading.value = false
+  }
+}
+
+// デッキコードをコピー
+async function copyDeckCode() {
+  if (!deckCode.value) return
+
+  try {
+    await navigator.clipboard.writeText(deckCode.value)
+    handleSuccess('[DeckMetadataHeader]', 'デッキコードをコピーしました')
+  } catch (error) {
+    handleError(
+      '[DeckMetadataHeader]',
+      'コピーに失敗しました',
+      error,
+      { showToast: true }
+    )
+  }
+}
+
+// dno変更時にデッキコード情報をリセット
+watch(() => deckStore.deckInfo.dno, () => {
+  deckCode.value = ''
+})
 </script>
 
 <style scoped lang="scss">
@@ -478,6 +614,155 @@ function selectDeckStyle(value: string) {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-5px);
+}
+
+/* メタデータメニュー */
+.metadata-menu-container {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.metadata-menu-button {
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 36px;
+  padding: 0 6px;
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
+  border-radius: 12px;
+
+  &:hover {
+    background: var(--color-info-hover-bg);
+    border-color: var(--color-info);
+  }
+
+  &:active {
+    background: var(--color-info);
+  }
+}
+
+.metadata-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  width: 150px;
+  padding: 6px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--bg-secondary);
+  }
+
+  &:not(:last-child) {
+    margin-bottom: 4px;
+  }
+}
+
+.menu-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: var(--text-primary);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.menu-value-badge {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  min-width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.deck-code-row {
+  flex-wrap: nowrap;
+}
+
+.deck-code-action {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.deck-code-display {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 11px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 3px;
+  font-family: monospace;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 0;
+  height: 24px;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover {
+    background: var(--btn-bg-hover);
+    border-color: var(--text-primary);
+  }
+
+  &:read-only {
+    background: var(--bg-secondary);
+  }
+}
+
+.deck-code-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 24px;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    background: var(--color-success-hover-bg);
+    border-color: var(--color-success);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 </style>

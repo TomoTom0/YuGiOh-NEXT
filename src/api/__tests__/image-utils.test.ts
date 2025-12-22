@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getAttributeIconUrl,
   getLevelIconUrl,
@@ -13,6 +13,14 @@ import {
 const BASE_URL = 'https://www.db.yugioh-card.com/yugiohdb/external/image/parts';
 
 describe('image-utils', () => {
+  beforeEach(() => {
+    // Mock window.location.href for detectCardGameType
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://www.db.yugioh-card.com/yugiohdb/' },
+      writable: true,
+      configurable: true
+    });
+  });
   describe('getAttributeIconUrl', () => {
     it('should return correct URL for valid attribute', () => {
       expect(getAttributeIconUrl('DARK')).toBe(`${BASE_URL}/attribute/attribute_icon_dark.png`);

@@ -34,7 +34,6 @@ const RETRY_INTERVAL = 100; // 100ms
 export function initShuffle(): void {
   // 既に初期化済みの場合はスキップ
   if (isShuffleInitialized) {
-    console.debug('[Shuffle] Already initialized, skipping');
     return;
   }
 
@@ -56,13 +55,35 @@ export function initShuffle(): void {
 }
 
 /**
+ * ボタンにイベントリスナーを登録（重複登録防止付き）
+ *
+ * @param buttonId - ボタンのID
+ * @param handler - クリック時のハンドラー関数
+ */
+function attachButtonListener(buttonId: string, handler: () => void): boolean {
+  // 既に登録済みの場合はスキップ
+  if (registeredListeners.has(buttonId)) {
+    return false;
+  }
+
+  const button = document.getElementById(buttonId);
+  if (!button) {
+    return false;
+  }
+
+  button.addEventListener('click', handler);
+  registeredListeners.add(buttonId);
+  return true;
+}
+
+/**
  * イベントリスナーを登録
  *
  * 重複登録を防ぐため、registeredListeners Set で追跡する。
  * 再試行ロジックを簡潔にし、無限ループの可能性を排除。
  */
 function attachEventListeners(retryCount: number = 0): void {
-  // メインデッキ
+  // メインデッキのボタン確認
   const shuffleBtnMain = document.getElementById(EXTENSION_IDS.shuffle.mainShuffleButton);
   const sortBtnMain = document.getElementById(EXTENSION_IDS.shuffle.mainSortButton);
 
@@ -78,59 +99,17 @@ function attachEventListeners(retryCount: number = 0): void {
     return;
   }
 
-  // メインデッキのシャッフルボタン（重複登録防止）
-  if (!registeredListeners.has(EXTENSION_IDS.shuffle.mainShuffleButton)) {
-    shuffleBtnMain.addEventListener('click', () => {
-      shuffleCards();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.mainShuffleButton);
-  }
-
-  // メインデッキのソートボタン（重複登録防止）
-  if (!registeredListeners.has(EXTENSION_IDS.shuffle.mainSortButton)) {
-    sortBtnMain.addEventListener('click', () => {
-      sortCards();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.mainSortButton);
-  }
+  // メインデッキ
+  attachButtonListener(EXTENSION_IDS.shuffle.mainShuffleButton, shuffleCards);
+  attachButtonListener(EXTENSION_IDS.shuffle.mainSortButton, sortCards);
 
   // エクストラデッキ
-  const shuffleBtnExtra = document.getElementById(EXTENSION_IDS.shuffle.extraShuffleButton);
-  const sortBtnExtra = document.getElementById(EXTENSION_IDS.shuffle.extraSortButton);
-
-  if (shuffleBtnExtra && !registeredListeners.has(EXTENSION_IDS.shuffle.extraShuffleButton)) {
-    shuffleBtnExtra.addEventListener('click', () => {
-      shuffleCardsExtra();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.extraShuffleButton);
-  }
-
-  if (sortBtnExtra && !registeredListeners.has(EXTENSION_IDS.shuffle.extraSortButton)) {
-    sortBtnExtra.addEventListener('click', () => {
-      sortCardsExtra();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.extraSortButton);
-  }
+  attachButtonListener(EXTENSION_IDS.shuffle.extraShuffleButton, shuffleCardsExtra);
+  attachButtonListener(EXTENSION_IDS.shuffle.extraSortButton, sortCardsExtra);
 
   // サイドデッキ
-  const shuffleBtnSide = document.getElementById(EXTENSION_IDS.shuffle.sideShuffleButton);
-  const sortBtnSide = document.getElementById(EXTENSION_IDS.shuffle.sideSortButton);
-
-  if (shuffleBtnSide && !registeredListeners.has(EXTENSION_IDS.shuffle.sideShuffleButton)) {
-    shuffleBtnSide.addEventListener('click', () => {
-      shuffleCardsSide();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.sideShuffleButton);
-  }
-
-  if (sortBtnSide && !registeredListeners.has(EXTENSION_IDS.shuffle.sideSortButton)) {
-    sortBtnSide.addEventListener('click', () => {
-      sortCardsSide();
-    });
-    registeredListeners.add(EXTENSION_IDS.shuffle.sideSortButton);
-  }
-
-  console.debug('[Shuffle] Event listeners attached successfully');
+  attachButtonListener(EXTENSION_IDS.shuffle.sideShuffleButton, shuffleCardsSide);
+  attachButtonListener(EXTENSION_IDS.shuffle.sideSortButton, sortCardsSide);
 }
 
 // 再エクスポート

@@ -221,7 +221,7 @@ export const useSettingsStore = defineStore('settings', () => {
       }, () => {
         // localStorage にもキャッシュ（超早期読み込み用）
         try {
-          localStorage.setItem('ygo-next-settings', JSON.stringify(appSettings.value));
+          localStorage.setItem('ygoNext:settings', JSON.stringify(appSettings.value));
           if (typeof window !== 'undefined') {
             window.ygoNextCurrentSettings = appSettings.value;
           }
@@ -529,6 +529,22 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * バックグラウンドでのデッキ情報取得を設定
+   */
+  function setBackgroundDeckInfoFetch(enabled: boolean): void {
+    appSettings.value.backgroundDeckInfoFetch = enabled;
+    saveSettings();
+  }
+
+  /**
+   * APIフェッチなしでサムネイルを更新するかどうかを設定
+   */
+  function setUpdateThumbnailWithoutFetch(enabled: boolean): void {
+    appSettings.value.updateThumbnailWithoutFetch = enabled;
+    saveSettings();
+  }
+
+  /**
    * 設定をリセット
    */
   async function resetSettings(): Promise<void> {
@@ -721,6 +737,8 @@ export const useSettingsStore = defineStore('settings', () => {
     addTailPlacementCard,
     removeTailPlacementCard,
     isTailPlacementCard,
+    setBackgroundDeckInfoFetch,
+    setUpdateThumbnailWithoutFetch,
     resetSettings,
     applyTheme,
     applyCardSize,
