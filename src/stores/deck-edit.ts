@@ -367,10 +367,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     );
   }
   
-  function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; error?: string } {
+  function reorderWithinSection(section: 'main' | 'extra' | 'side' | 'trash', sourceUuid: string, targetUuid: string | null): { success: boolean; moved?: boolean; error?: string } {
     // 同じカードを自分自身にドロップした場合は何もしない
     if (sourceUuid === targetUuid) {
-      return { success: true };
+      return { success: true, moved: false };
     }
 
     // バリデーション（共通化関数を使用）
@@ -401,7 +401,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     pushCommand(command);
 
-    return { success: true };
+    return { success: true, moved: true };
   }
 
 
@@ -703,23 +703,24 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // reorderWithinSectionを使用（undo対応済み）
     const result = reorderWithinSection(section, sourceUuid, targetUuid);
 
-    // 並び替え後のデッキ順序を見て、手動先頭配置カードの順序を更新
-    if (result.success) {
+    // カードが実際に移動した場合のみ、後続処理を実行
+    if (result.success && result.moved !== false) {
+      // 並び替え後のデッキ順序を見て、手動先頭配置カードの順序を更新
       updateHeadPlacementCardsOrder(section);
-    }
 
-    // DOM更新後にアニメーション実行
-    nextTick(() => {
-      requestAnimationFrame(() => {
-        animateCardMoveByUUID(firstPositions, new Set([section]));
+      // DOM更新後にアニメーション実行
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          animateCardMoveByUUID(firstPositions, new Set([section]));
+        });
       });
-    });
 
-    try {
-      const unifiedDB = getUnifiedCacheDB();
-      unifiedDB.recordMove({ action: 'reorder', info: { section, sourceUuid, targetUuid } });
-    } catch (e) {
-      // ignore
+      try {
+        const unifiedDB = getUnifiedCacheDB();
+        unifiedDB.recordMove({ action: 'reorder', info: { section, sourceUuid, targetUuid } });
+      } catch (e) {
+        // ignore
+      }
     }
 
     return result;

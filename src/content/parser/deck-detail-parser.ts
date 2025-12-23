@@ -786,6 +786,10 @@ export function extractDeckLikes(doc: Document): number {
  * JavaScriptからコピー可能なデッキコードを抽出する
  * #copy-code ボタンの click ハンドラーの navigator.clipboard.writeText() から抽出
  *
+ * 警告: この関数は公式サイトのJavaScript実装に依存しており、非常に壊れやすい
+ * 公式サイト側でスクリプトにわずかな変更が加えられただけで、
+ * このパーサーが機能しなくなる可能性があります。
+ *
  * @param doc ドキュメント
  * @returns デッキコード（未発行の場合は空文字列）
  */
@@ -797,16 +801,23 @@ export function extractIssuedDeckCode(doc: Document): string {
     const scriptText = script.textContent;
     if (!scriptText) continue;
 
-    // #copy-code を含む部分を抽出（クリックハンドラー周辺）
-    // パターン: $('#copy-code').click(function () { navigator.clipboard.writeText('CODE'); });
-    // 改行やインデントに対応するため、[\s\S]*? を使用
-    // シングルクォート、ダブルクォートの両方に対応
-    const copyCodeMatch = scriptText.match(
-      /\$\('#copy-code'\)\.click\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*['"]([^'"]*)['"]/
+    // パターン1: より汎用的なパターン - navigator.clipboard.writeText('...') を検索
+    // jQuery や DOM API の違いに対応できるよう、呼び出し自体に焦点を当てる
+    // デッキコードは通常20文字以上のBase64風文字列
+    const genericMatch = scriptText.match(
+      /navigator\.clipboard\.writeText\s*\(\s*['"]([A-Za-z0-9+/=]{20,})['"]\s*\)/
     );
+    if (genericMatch && genericMatch[1]) {
+      return genericMatch[1];
+    }
 
-    if (copyCodeMatch && copyCodeMatch[1] !== undefined) {
-      return copyCodeMatch[1];
+    // パターン2: 既存のjQueryパターン（後方互換性のため残す）
+    // パターン: $('#copy-code').click(...) または .on('click', ...)
+    const jqueryMatch = scriptText.match(
+      /\$\(['"]#copy-code['"]\)\.(?:click|on)\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*['"]([^'"]*)['"]/
+    );
+    if (jqueryMatch && jqueryMatch[1]) {
+      return jqueryMatch[1];
     }
   }
 

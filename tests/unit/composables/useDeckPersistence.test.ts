@@ -120,7 +120,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => { initializeDisplayOrderCalled = true; },
         clearHistory: () => { clearHistoryCalled = true; },
         captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot'; },
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(123);
@@ -142,7 +143,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       // プリロード済みデータを設定
@@ -152,7 +154,7 @@ describe('useDeckPersistence', () => {
       await persistence.loadDeck(456);
 
       expect(window.localStorage.setItem).toHaveBeenCalledWith(
-        'ygo-deck-helper:lastUsedDno',
+        'ygoNext:lastUsedDno',
         '456'
       );
     });
@@ -173,7 +175,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => { initializeDisplayOrderCalled = true; },
         clearHistory: () => { clearHistoryCalled = true; },
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(789);
@@ -194,7 +197,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot-' + captureDeckSnapshotCalled; },
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(100);
@@ -217,7 +221,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot-' + captureDeckSnapshotCalled; },
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       const result = await persistence.saveDeck(100);
@@ -241,7 +246,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot-' + captureDeckSnapshotCalled; },
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       await persistence.saveDeck(100);
@@ -260,7 +266,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot-' + captureDeckSnapshotCalled; },
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       savedDeckSnapshot.value = 'old-snapshot';
@@ -280,7 +287,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       const result = await persistence.saveDeck(100);
@@ -305,7 +313,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckWithoutName.value.name || deckWithoutName.value.originalName || ''
       });
 
       await persistence.saveDeck(100);
@@ -330,7 +339,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckWithoutNames.value.name || deckWithoutNames.value.originalName || ''
       });
 
       await persistence.saveDeck(100);
@@ -349,7 +359,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: () => {},
         clearHistory: () => {},
         captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot
+        savedDeckSnapshot,
+        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
       });
 
       expect(persistence).toHaveProperty('loadDeck');
