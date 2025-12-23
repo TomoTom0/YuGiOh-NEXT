@@ -310,6 +310,8 @@ describe('MappingManager', () => {
       expect(result).toEqual({});
     });
 
+    // 現在のgetMonsterTypeIdToText実装（mapping-manager.ts:365）は
+    // console.debugやログ出力を行っていない。テストは古い実装を想定している
     it.skip('デバッグログが適切に出力される', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -478,6 +480,7 @@ describe('MappingManager', () => {
       expect(result).toEqual({});
     });
 
+    // 現在の実装はconsole.warnやログ出力を行っていない。テストは古い実装を想定している
     it.skip('マッピングが見つからない場合、警告ログを出力する', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -495,6 +498,7 @@ describe('MappingManager', () => {
       warnSpy.mockRestore();
     });
 
+    // 現在の実装はconsole.warnやログ出力を行っていない。テストは古い実装を想定している
     it.skip('race フィールドが欠落している場合、警告ログを出力する', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -513,6 +517,7 @@ describe('MappingManager', () => {
       warnSpy.mockRestore();
     });
 
+    // 現在の実装はconsole.warnやログ出力を行っていない。テストは古い実装を想定している
     it.skip('race フィールドが空の場合、警告ログを出力する', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -575,6 +580,7 @@ describe('MappingManager', () => {
       expect(result).toEqual({});
     });
 
+    // 現在の実装はconsole.warnやログ出力を行っていない。テストは古い実装を想定している
     it.skip('マッピングが見つからない場合、警告ログを出力する', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -1050,6 +1056,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('race フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -1069,6 +1077,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('monsterType フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -1088,6 +1098,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('attribute フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');

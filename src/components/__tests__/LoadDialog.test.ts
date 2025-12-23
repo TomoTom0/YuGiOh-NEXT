@@ -296,6 +296,8 @@ describe('LoadDialog.vue', () => {
       expect(gradient).toBe(null);
     });
 
+    // 実装に.thumbnail-gradient要素が存在しないため、このテストは実装に合わない
+    // 現在の実装では、サムネイルがない場合は何も表示されない（img要素自体が v-if で非表示）
     it.skip('サムネイルがない場合はグラデーション背景が表示される', () => {
       const store = useDeckEditStore();
       const settingsStore = useSettingsStore();

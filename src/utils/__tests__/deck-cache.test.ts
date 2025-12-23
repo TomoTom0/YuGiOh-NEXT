@@ -262,7 +262,7 @@ describe('deck-cache - calculateDeckHash', () => {
   it('同じデッキ情報からは同じハッシュが生成される', () => {
     const deckInfo = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [
         { cid: 'm001', ciid: '1', quantity: 3 },
         { cid: 'm002', ciid: '1', quantity: 2 },
@@ -280,7 +280,7 @@ describe('deck-cache - calculateDeckHash', () => {
   it('カードの順序が変わってもハッシュは変わらない（順序依存）', () => {
     const deckInfo1 = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [
         { cid: 'm001', ciid: '1', quantity: 3 },
         { cid: 'm002', ciid: '1', quantity: 2 },
@@ -291,7 +291,7 @@ describe('deck-cache - calculateDeckHash', () => {
 
     const deckInfo2 = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [
         { cid: 'm002', ciid: '1', quantity: 2 },
         { cid: 'm001', ciid: '1', quantity: 3 },
@@ -310,7 +310,7 @@ describe('deck-cache - calculateDeckHash', () => {
   it('数量が変わればハッシュも変わる', () => {
     const deckInfo1 = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -318,7 +318,7 @@ describe('deck-cache - calculateDeckHash', () => {
 
     const deckInfo2 = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 2 }],
       extraDeck: [],
       sideDeck: [],
@@ -361,7 +361,7 @@ describe('deck-cache - isDeckInfoChanged', () => {
   it('キャッシュがない場合はtrueを返す', () => {
     const deckInfo = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -375,7 +375,7 @@ describe('deck-cache - isDeckInfoChanged', () => {
   it('ハッシュが同じ場合はfalseを返す', () => {
     const deckInfo = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -388,7 +388,7 @@ describe('deck-cache - isDeckInfoChanged', () => {
         {
           dno: 1,
           name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
           mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
           extraDeck: [],
           sideDeck: [],
@@ -405,7 +405,7 @@ describe('deck-cache - isDeckInfoChanged', () => {
   it('ハッシュが異なる場合はtrueを返す', () => {
     const deckInfo = {
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -417,7 +417,7 @@ describe('deck-cache - isDeckInfoChanged', () => {
         {
           dno: 1,
           name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
           mainDeck: [{ cid: 'm001', ciid: '1', quantity: 2 }],
           extraDeck: [],
           sideDeck: [],
@@ -440,7 +440,7 @@ describe('deck-cache - isCacheExpired', () => {
     const cachedInfo: CachedDeckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [],
       extraDeck: [],
       sideDeck: [],
@@ -456,7 +456,7 @@ describe('deck-cache - isCacheExpired', () => {
     const cachedInfo: CachedDeckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [],
       extraDeck: [],
       sideDeck: [],
@@ -472,7 +472,7 @@ describe('deck-cache - isCacheExpired', () => {
     const cachedInfo: CachedDeckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [],
       extraDeck: [],
       sideDeck: [],
@@ -498,7 +498,6 @@ describe('deck-cache - generateAndCacheThumbnail', () => {
       dno: 1,
       name: 'Test Deck',
       originalName: 'Test Deck',
-      originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -517,13 +516,15 @@ describe('deck-cache - generateAndCacheThumbnail', () => {
     expect(cachedDeckInfos.get(1)?.hash).toBeDefined();
   });
 
+  // generateDeckThumbnailImageがnullを返すとき、実装（deck-cache.ts:282）では
+  // 空文字列''をdeckThumbnailsにsetする。このテストは.has(1)===falseを期待するが、
+  // 実装では.has(1)===trueとなるため一致しない
   it.skip('サムネイル生成に失敗してもエラーをスローしない', async () => {
     vi.spyOn(deckThumbnail, 'generateDeckThumbnailImage').mockResolvedValue(null);
 
     const deckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
       originalName: 'Test Deck',
       mainDeck: [],
       extraDeck: [],
@@ -553,7 +554,7 @@ describe('deck-cache - updateDeckInfoAndThumbnail', () => {
     const getDeckDetail = vi.fn().mockResolvedValue({
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -576,11 +577,14 @@ describe('deck-cache - updateDeckInfoAndThumbnail', () => {
     expect(deckThumbnails.has(1)).toBe(true);
   });
 
+  // updateDeckInfoAndThumbnail実装（deck-cache.ts:318）は5つの引数を取るが、
+  // このテストは6つ目の引数としてforce=trueを渡している（行619）。
+  // 関数シグネチャが変更されたため、テストが実装と一致しない
   it.skip('変更がない場合はサムネイルを更新しない', async () => {
     const deckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -593,7 +597,7 @@ describe('deck-cache - updateDeckInfoAndThumbnail', () => {
         {
           dno: 1,
           name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
           mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
           extraDeck: [],
           sideDeck: [],
@@ -650,7 +654,7 @@ describe('deck-cache - updateDeckInfoAndThumbnailWithData', () => {
     const deckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -665,11 +669,15 @@ describe('deck-cache - updateDeckInfoAndThumbnailWithData', () => {
     expect(cachedDeckInfos.has(1)).toBe(true);
   });
 
+  // updateDeckInfoAndThumbnailWithData実装（deck-cache.ts:370）では、
+  // 変更がない場合でもdeckThumbnailsが空ならthumbnailMissing=trueとなり、
+  // サムネイルが生成される。このテストはdeckThumbnailsを空で渡すため、
+  // 期待値「更新されない」と実装が一致しない
   it.skip('変更がない場合はサムネイルを更新しない', async () => {
     const deckInfo = {
       dno: 1,
       name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
       mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
       extraDeck: [],
       sideDeck: [],
@@ -682,7 +690,7 @@ describe('deck-cache - updateDeckInfoAndThumbnailWithData', () => {
         {
           dno: 1,
           name: 'Test Deck',
-      originalName: 'Test Deck',
+          originalName: 'Test Deck',
           mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
           extraDeck: [],
           sideDeck: [],
