@@ -226,6 +226,12 @@ export interface AppSettings {
   dialogFontSize: DialogFontSize;
   /** 検索UIのフォントサイズ */
   searchUIFontSize: SearchUIFontSize;
+  /** バックグラウンドでのデッキ情報取得 */
+  backgroundDeckInfoFetch: boolean;
+  /** APIフェッチなしでサムネイルを更新 */
+  updateThumbnailWithoutFetch: boolean;
+  /** 保存ボタンクリック後の遅延時間（ミリ秒）: 0〜5000 (デフォルト: 0) */
+  saveDelayMs: number;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -346,6 +352,9 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
   dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
+  backgroundDeckInfoFetch: true,       // バックグラウンドでのデッキ情報取得: デフォルト有効（v0.6.2で通信最適化済み）
+  updateThumbnailWithoutFetch: true,   // APIフェッチなしでサムネイルを更新: デフォルト有効（v0.6.2で通信最適化済み）
+  saveDelayMs: 0,                      // 保存ボタンクリック後の遅延時間: 0ms（即座に保存）
 };
 
 /**

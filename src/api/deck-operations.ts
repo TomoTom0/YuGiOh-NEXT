@@ -155,6 +155,8 @@ export async function saveDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
+    const startTime = performance.now();
+
     // URL-encoded形式でデータを構築（公式と同じ順序で）
     const params = new URLSearchParams();
     
@@ -287,11 +289,18 @@ export async function saveDeckInternal(
       params.append('imgsSide', 'null_null_null_null');
     }
 
+    const paramsBuiltTime = performance.now();
+    console.debug(`[saveDeckInternal] パラメータ構築時間: ${(paramsBuiltTime - startTime).toFixed(2)}ms`);
+
     const gameType = detectCardGameType();
     // buildApiUrl経由、ope=SAVE は request_locale 付与
     const path = `${API_ENDPOINT.MEMBER_DECK}?cgid=${cgid}`;
     const postUrl = buildApiUrl(path, gameType);
+
+    const encodeStartTime = performance.now();
     const encoded_params = params.toString().replace(/\+/g, '%20'); // '+'を'%20'に変換
+    const encodeEndTime = performance.now();
+    console.debug(`[saveDeckInternal] パラメータエンコード時間: ${(encodeEndTime - encodeStartTime).toFixed(2)}ms`);
 
 
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
@@ -301,6 +310,7 @@ export async function saveDeckInternal(
     const { default: axios } = await import('axios');
     // NOTE: saveDeckInternal はユーザー操作（デッキ保存）のクリティカルパスなため、
     // リクエストキューをバイパスして直接実行する（キューのオーバーヘッドを削減）
+    const requestStartTime = performance.now();
     const response = await axios.post(postUrl, encoded_params, {
       withCredentials: true,
       headers: {
@@ -308,6 +318,8 @@ export async function saveDeckInternal(
         'X-Requested-With': 'XMLHttpRequest'
       }
     });
+    const requestEndTime = performance.now();
+    console.debug(`[saveDeckInternal] HTTP POST時間: ${(requestEndTime - requestStartTime).toFixed(2)}ms`);
 
     const data = response.data;
 
@@ -525,3 +537,57 @@ export async function getDeckListInternal(cgid: string): Promise<DeckListItem[]>
     return [];
   }
 }
+
+/**
+ * デッキコードを発行する（内部関数）
+ *
+ * 1. ope=13 でデッキコードを発行
+ * 2. ope=1 で発行済みのデッキコードを取得
+ *
+ * @param cgid ユーザー識別子
+ * @param dno デッキ番号
+ * @returns デッキコード、発行失敗時は空文字列
+ * @internal SessionManager経由で呼び出すこと
+ */
+export async function issueDeckCodeInternal(cgid: string, dno: number): Promise<string> {
+  try {
+    const gameType = detectCardGameType();
+    const { default: axios } = await import('axios');
+
+    // ステップ1: ope=13 でデッキコードを発行
+    // ope=13は request_locale を付与してはいけない（ope=6と同様）
+    const baseUrlIssue = buildApiUrl(API_ENDPOINT.MEMBER_DECK, gameType, undefined, true);
+    const issueUrl = `${baseUrlIssue}?ope=13&wname=${WNAME.MEMBER_DECK}&cgid=${cgid}&dno=${dno}`;
+
+    await axios.get(issueUrl, { withCredentials: true });
+
+    // ステップ2: ope=1 で発行済みのデッキコードを取得
+    // ope=1は request_locale を付与してよい
+    const displayPath = `${API_ENDPOINT.MEMBER_DECK}?ope=1&cgid=${cgid}&dno=${dno}`;
+    const displayUrl = buildApiUrl(displayPath, gameType);
+
+    const response = await axios.get(displayUrl, { withCredentials: true });
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(response.data, 'text/html');
+
+    // HTMLから発行済みデッキコードを抽出
+    const { extractIssuedDeckCode } = await import('@/content/parser/deck-detail-parser');
+    const deckCode = extractIssuedDeckCode(doc);
+
+    if (deckCode && deckCode.trim()) {
+      return deckCode;
+    } else {
+      handleError(
+        '[issueDeckCodeInternal]',
+        'デッキコードの発行に失敗しました',
+        new Error(`Failed to extract deck code from response. deckCode="${deckCode}"`),
+        { showToast: true }
+      );
+      return '';
+    }
+  } catch (error) {
+    handleError('[issueDeckCodeInternal]', 'デッキコードの発行に失敗しました', error, { showToast: true });
+    return '';
+  }
+}
+

@@ -12,6 +12,7 @@ import {
 import { parseSearchResultRow, extractImageInfo, parseCardBase } from '@/api/card-search';
 import { getDeckMetadata } from '@/utils/deck-metadata-loader';
 import { mappingManager } from '@/utils/mapping-manager';
+import { OFFICIAL_SITE_SELECTORS } from '@/utils/dom-selectors';
 
 /**
  * parseCardSection の戻り値型
@@ -120,7 +121,11 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const tagLabels = extractTags(doc);
   const comment = extractComment(doc);
   const deckCode = extractDeckCode(doc);
-  
+
+  // お気に入り数と発行済みデッキコードを抽出
+  const favoriteCount = extractFavoriteCount(doc);
+  const issuedDeckCode = extractIssuedDeckCode(doc);
+
   // 日本語ラベル→IDに変換（メタデータは1回だけ取得）
   const metadata = await getDeckMetadata();
   const category = convertCategoryLabelsToIds(categoryLabels, metadata);
@@ -152,7 +157,8 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
 
   return {
     dno,
-    name,
+    name: '', // ユーザーが編集可能にするため空にする
+    originalName: name, // 元のデッキ名を保存
     mainDeck: mainDeckResult.cards,
     extraDeck: extraDeckResult.cards,
     sideDeck: sideDeckResult.cards,
@@ -165,7 +171,9 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
     category,
     tags,
     comment,
-    deckCode
+    deckCode,
+    favoriteCount,
+    issuedDeckCode
   };
 }
 
@@ -736,6 +744,84 @@ export function extractComment(doc: Document): string {
     }
   }
   // フィールドが存在しない場合も空文字列を返す
+  return "";
+}
+
+/**
+ * お気に入り数を抽出する
+ *
+ * @param doc ドキュメント
+ * @returns お気に入り数（見つからない場合は0）
+ */
+export function extractFavoriteCount(doc: Document): number {
+  const favoriteElement = doc.querySelector(OFFICIAL_SITE_SELECTORS.deckDisplay.favoriteCount);
+
+  if (favoriteElement && favoriteElement.textContent) {
+    const count = parseInt(favoriteElement.textContent.trim(), 10);
+    if (!isNaN(count)) {
+      return count;
+    }
+  }
+
+  return 0;
+}
+
+/**
+ * いいね数を抽出する
+ *
+ * TODO: 現在、静的なHTMLパースからはいいね数を取得できません。
+ * JavaScriptが動的に生成する要素であり、サーバーレスポンスには
+ * 隠しフィールド `deckLikesCnt` が含まれていません。
+ * ブラウザ実行環境でDOMを操作して取得する必要があります。
+ *
+ * @param doc ドキュメント
+ * @returns いいね数（未実装のため常に0）
+ */
+export function extractDeckLikes(doc: Document): number {
+  // 未実装
+  return 0;
+}
+
+/**
+ * JavaScriptからコピー可能なデッキコードを抽出する
+ * #copy-code ボタンの click ハンドラーの navigator.clipboard.writeText() から抽出
+ *
+ * 警告: この関数は公式サイトのJavaScript実装に依存しており、非常に壊れやすい
+ * 公式サイト側でスクリプトにわずかな変更が加えられただけで、
+ * このパーサーが機能しなくなる可能性があります。
+ *
+ * @param doc ドキュメント
+ * @returns デッキコード（未発行の場合は空文字列）
+ */
+export function extractIssuedDeckCode(doc: Document): string {
+  // script タグを全て取得
+  const scripts = doc.querySelectorAll('script');
+
+  for (const script of scripts) {
+    const scriptText = script.textContent;
+    if (!scriptText) continue;
+
+    // パターン1: より汎用的なパターン - navigator.clipboard.writeText('...') を検索
+    // jQuery や DOM API の違いに対応できるよう、呼び出し自体に焦点を当てる
+    // デッキコードは通常20文字以上のBase64風文字列
+    const genericMatch = scriptText.match(
+      /navigator\.clipboard\.writeText\s*\(\s*['"]([A-Za-z0-9+/=]{20,})['"]\s*\)/
+    );
+    if (genericMatch && genericMatch[1]) {
+      return genericMatch[1];
+    }
+
+    // パターン2: 既存のjQueryパターン（後方互換性のため残す）
+    // パターン: $('#copy-code').click(...) または .on('click', ...)
+    const jqueryMatch = scriptText.match(
+      /\$\(['"]#copy-code['"]\)\.(?:click|on)\([\s\S]*?navigator\.clipboard\.writeText\s*\(\s*['"]([^'"]*)['"]/
+    );
+    if (jqueryMatch && jqueryMatch[1]) {
+      return jqueryMatch[1];
+    }
+  }
+
+  // 見つからない場合は空文字列
   return "";
 }
 

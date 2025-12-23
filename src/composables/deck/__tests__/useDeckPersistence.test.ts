@@ -26,8 +26,8 @@ describe('useDeckPersistence', () => {
 
   const createMockDeckInfo = (): DeckInfo => ({
     dno: 123,
-    name: 'Test Deck',
-    originalName: 'Test Deck',
+    name: '', // parseDeckDetail で空文字列に設定される
+    originalName: 'Test Deck', // parseDeckDetail で元の name が設定される
     mainDeck: [{ cid: 1001, name: 'Card 1' }],
     extraDeck: [{ cid: 2001, name: 'Card 2' }],
     sideDeck: [{ cid: 3001, name: 'Card 3' }],
@@ -100,7 +100,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(123);
@@ -121,7 +122,7 @@ describe('useDeckPersistence', () => {
       expect(tempCardDb.recordDeckOpen).toHaveBeenCalledWith(123, [1001, 2001, 3001]);
 
       // localStorage が更新されたことを確認
-      expect(localStorage.getItem('ygo-deck-helper:lastUsedDno')).toBe('123');
+      expect(localStorage.getItem('ygoNext:lastUsedDno')).toBe('123');
       expect(mockLastUsedDno.value).toBe(123);
 
       // スナップショットが保存されたことを確認
@@ -131,7 +132,7 @@ describe('useDeckPersistence', () => {
 
     it('プリロードデータがある場合、それを使用する', async () => {
       const preloadedDeck = createMockDeckInfo();
-      preloadedDeck.name = 'Preloaded Deck';
+      preloadedDeck.originalName = 'Preloaded Deck'; // parseDeckDetail で originalName に元の name が設定される
       window.ygoNextPreloadedDeckDetail = preloadedDeck;
 
       const persistence = useDeckPersistence({
@@ -141,7 +142,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(123);
@@ -172,7 +174,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       // 非同期でプリロードデータを設定
@@ -204,7 +207,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(123);
@@ -238,7 +242,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await persistence.loadDeck(123);
@@ -262,7 +267,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await expect(persistence.loadDeck(123)).rejects.toThrow('API Error');
@@ -278,7 +284,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       const result = await persistence.saveDeck(123);
@@ -308,7 +315,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       await persistence.saveDeck(123);
@@ -329,7 +337,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       const result = await persistence.saveDeck(123);
@@ -352,7 +361,8 @@ describe('useDeckPersistence', () => {
         initializeDisplayOrder: initializeDisplayOrderMock,
         clearHistory: clearHistoryMock,
         captureDeckSnapshot: captureDeckSnapshotMock,
-        savedDeckSnapshot: mockSavedDeckSnapshot
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
       });
 
       const result = await persistence.saveDeck(123);

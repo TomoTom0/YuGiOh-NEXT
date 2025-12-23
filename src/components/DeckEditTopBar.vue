@@ -88,17 +88,11 @@
             </svg>
             Reload Deck
           </button>
-          <button data-testid="export-deck-btn" @click="handleExportClick" class="menu-item">
+          <button data-testid="import-export-deck-btn" @click="handleImportExportClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiExport" />
+              <path fill="currentColor" :d="mdiSwapHorizontal" />
             </svg>
-            Export Deck
-          </button>
-          <button data-testid="import-deck-btn" @click="handleImportClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiImport" />
-            </svg>
-            Import Deck
+            Import / Export
           </button>
           <button v-if="settingsStore.appSettings.sortAllBeforeSave" data-testid="save-without-sort-btn" @click="handleSaveWithoutFullSortClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
@@ -145,32 +139,18 @@
 
 
   </div>
-
-  <!-- Unsaved Changes Dialog (outside top-bar-wrapper) -->
-  <ConfirmDialog
-    :show="deckStore.showUnsavedChangesDialog"
-    :title="unsavedChangesTitle"
-    :message="unsavedChangesMessage"
-    :buttons="unsavedChangesButtons"
-    @cancel="cancelUnsavedChanges"
-  />
-
-  <!-- Toast Container (outside top-bar-wrapper) -->
-  <ToastContainer />
 </template>
 
 <script lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, inject } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
 import Toast from './Toast.vue'
-import ToastContainer from './ToastContainer.vue'
-import ConfirmDialog from './ConfirmDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiExport, mdiImport, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -181,9 +161,7 @@ interface ToastState {
 export default {
   name: 'DeckEditTopBar',
   components: {
-    Toast,
-    ToastContainer,
-    ConfirmDialog
+    Toast
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -200,92 +178,16 @@ export default {
       type: 'info'
     })
 
-    // Unsaved changes handling
-    const pendingAction = ref<(() => void) | null>(null)
-    const unsavedChangesTitle = ref('未保存の変更')
-    const unsavedChangesMessage = ref('デッキに変更がありますが、保存せずに続けますか？')
+    // checkUnsavedChanges を親コンポーネント（DeckEditLayout）から取得
+    const checkUnsavedChanges = inject<(action: () => void | Promise<void>, actionName: string) => Promise<void>>('checkUnsavedChanges')
+
+    if (!checkUnsavedChanges) {
+      throw new Error('checkUnsavedChanges not provided')
+    }
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
       // useToastStore で統一してトースト通知を表示
       dispatchToast(message, type)
-    }
-    
-    const checkUnsavedChanges = async (action: () => void | Promise<void>, actionName: string) => {
-      const unsavedWarning = settingsStore.appSettings.unsavedWarning
-
-      // 'never': 警告を表示しない
-      if (unsavedWarning === 'never') {
-        await action()
-        return
-      }
-
-      // 変更がない場合は常に実行
-      if (!deckStore.hasUnsavedChanges()) {
-        await action()
-        return
-      }
-
-      // 'without-sorting-only': ソート順のみの変更なら警告しない
-      if (unsavedWarning === 'without-sorting-only') {
-        if (deckStore.hasOnlySortOrderChanges()) {
-          await action()
-          return
-        }
-      }
-
-      // 'always' または 'without-sorting-only' でソート順以外の変更がある場合
-      unsavedChangesMessage.value = `デッキに変更がありますが、保存せずに${actionName}を行いますか？`
-      pendingAction.value = action
-      deckStore.showUnsavedChangesDialog = true
-    }
-    
-    const unsavedChangesButtons = computed(() => [
-      {
-        label: '処理を中断',
-        class: 'secondary',
-        onClick: () => {
-          deckStore.showUnsavedChangesDialog = false
-          pendingAction.value = null
-        }
-      },
-      {
-        label: '保存して続ける',
-        class: 'primary',
-        onClick: async () => {
-          deckStore.showUnsavedChangesDialog = false
-          try {
-            const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
-            if (result.success) {
-              showToast('保存しました', 'success')
-              if (pendingAction.value) {
-                await pendingAction.value()
-              }
-            } else {
-              showToast('保存に失敗しました', 'error')
-            }
-          } catch (error) {
-            showToast('保存エラーが発生しました', 'error')
-          } finally {
-            pendingAction.value = null
-          }
-        }
-      },
-      {
-        label: '保存せず続ける',
-        class: 'danger',
-        onClick: async () => {
-          deckStore.showUnsavedChangesDialog = false
-          if (pendingAction.value) {
-            await pendingAction.value()
-          }
-          pendingAction.value = null
-        }
-      }
-    ])
-    
-    const cancelUnsavedChanges = () => {
-      deckStore.showUnsavedChangesDialog = false
-      pendingAction.value = null
     }
 
     const localDno = computed(() => deckStore.deckInfo.dno || 0)
@@ -321,6 +223,9 @@ export default {
         // ソート処理を実行
         applySorting()
 
+        // 設定された遅延時間を取得（デフォルト: 0ms = 即座に保存）
+        const delay = settingsStore.appSettings.saveDelayMs ?? 0
+
         saveTimer.value = window.setTimeout(async () => {
           try {
             if (!localDno.value) {
@@ -350,7 +255,7 @@ export default {
             savingState.value = false
             saveTimer.value = null
           }
-        }, 2000)
+        }, delay)
       }
     }
 
@@ -377,7 +282,6 @@ export default {
     const handleLoadClick = async () => {
       await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
-          await deckStore.fetchDeckList()
           selectedDeckDno.value = null
         }
         deckStore.showLoadDialog = !deckStore.showLoadDialog
@@ -478,16 +382,11 @@ export default {
       }
     }
 
-    const handleExportClick = () => {
-      showMenu.value = false
-      deckStore.showExportDialog = true
-    }
-
-    const handleImportClick = async () => {
+    const handleImportExportClick = async () => {
       showMenu.value = false
       await checkUnsavedChanges(() => {
         deckStore.showImportDialog = true
-      }, 'インポート')
+      }, 'Import / Export')
     }
 
     const handleOptions = () => {
@@ -604,9 +503,6 @@ export default {
       localDeckName,
       displayDeckName,
       toast,
-      unsavedChangesTitle,
-      unsavedChangesMessage,
-      unsavedChangesButtons,
       handleSaveClick,
       handleSaveWithoutFullSortClick,
       handleLoadClick,
@@ -616,8 +512,7 @@ export default {
       toggleMenu,
       handleSortAll,
       handleDownloadImage,
-      handleExportClick,
-      handleImportClick,
+      handleImportExportClick,
       handleImported,
       handleOptions,
       handleUndo,
@@ -625,14 +520,12 @@ export default {
       handleNewClick,
       handleCopyClick,
       handleDeleteDeck,
-      cancelUnsavedChanges,
       mdiContentSave,
       mdiFolderOpen,
       mdiReload,
       mdiSortVariant,
       mdiImageOutline,
-      mdiExport,
-      mdiImport,
+      mdiSwapHorizontal,
       mdiCog,
       mdiUndo,
       mdiRedo,

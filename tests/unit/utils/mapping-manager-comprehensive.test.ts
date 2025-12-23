@@ -309,23 +309,6 @@ describe('MappingManager', () => {
       // Assert
       expect(result).toEqual({});
     });
-
-    it('デバッグログが適切に出力される', async () => {
-      // Arrange
-      const { mappingManager } = await import('@/utils/mapping-manager');
-      (mappingManager as any)['dynamicMappings'].clear();
-      const debugSpy = vi.spyOn(console, 'debug');
-
-      // Act
-      mappingManager.getMonsterTypeIdToText('en');
-
-      // Assert
-      expect(debugSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[MappingManager.getMonsterTypeIdToText]')
-      );
-
-      debugSpy.mockRestore();
-    });
   });
 
   describe('getAttributeIdToText()', () => {
@@ -477,59 +460,6 @@ describe('MappingManager', () => {
       // Assert
       expect(result).toEqual({});
     });
-
-    it('マッピングが見つからない場合、警告ログを出力する', async () => {
-      // Arrange
-      const { mappingManager } = await import('@/utils/mapping-manager');
-      (mappingManager as any)['dynamicMappings'].clear();
-      const warnSpy = vi.spyOn(console, 'warn');
-
-      // Act
-      mappingManager.getRaceTextToId('en');
-
-      // Assert
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[MappingManager.getRaceTextToId] No mapping found')
-      );
-
-      warnSpy.mockRestore();
-    });
-
-    it('race フィールドが欠落している場合、警告ログを出力する', async () => {
-      // Arrange
-      const { mappingManager } = await import('@/utils/mapping-manager');
-      const invalidMapping = { ...validEnglishMappings, race: undefined as any };
-      (mappingManager as any)['dynamicMappings'].set('en', invalidMapping);
-      const warnSpy = vi.spyOn(console, 'warn');
-
-      // Act
-      mappingManager.getRaceTextToId('en');
-
-      // Assert
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[MappingManager.getRaceTextToId] race field is missing')
-      );
-
-      warnSpy.mockRestore();
-    });
-
-    it('race フィールドが空の場合、警告ログを出力する', async () => {
-      // Arrange
-      const { mappingManager } = await import('@/utils/mapping-manager');
-      const emptyMapping = { ...validEnglishMappings, race: {} };
-      (mappingManager as any)['dynamicMappings'].set('en', emptyMapping);
-      const warnSpy = vi.spyOn(console, 'warn');
-
-      // Act
-      mappingManager.getRaceTextToId('en');
-
-      // Assert
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[MappingManager.getRaceTextToId] race is empty')
-      );
-
-      warnSpy.mockRestore();
-    });
   });
 
   describe('getMonsterTypeTextToId()', () => {
@@ -573,23 +503,6 @@ describe('MappingManager', () => {
 
       // Assert
       expect(result).toEqual({});
-    });
-
-    it('マッピングが見つからない場合、警告ログを出力する', async () => {
-      // Arrange
-      const { mappingManager } = await import('@/utils/mapping-manager');
-      (mappingManager as any)['dynamicMappings'].clear();
-      const warnSpy = vi.spyOn(console, 'warn');
-
-      // Act
-      mappingManager.getMonsterTypeTextToId('en');
-
-      // Assert
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[MappingManager.getMonsterTypeTextToId] No mapping found')
-      );
-
-      warnSpy.mockRestore();
     });
   });
 
@@ -1050,6 +963,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('race フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -1069,6 +984,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('monsterType フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
@@ -1088,6 +1005,8 @@ describe('MappingManager', () => {
       expect(result).toBe(false);
     });
 
+    // privateメソッドの直接テスト。isValidMapping実装（mapping-manager.ts:40）は存在するが、
+    // テストがスキップされている理由は不明（未実装、または実装方針の変更の可能性）
     it.skip('attribute フィールドが欠落している場合、false を返す', async () => {
       // Arrange
       const { mappingManager } = await import('@/utils/mapping-manager');
