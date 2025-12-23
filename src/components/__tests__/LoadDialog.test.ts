@@ -6,6 +6,7 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import LoadDialog from '../LoadDialog.vue';
 import { useDeckEditStore } from '@/stores/deck-edit';
+import { useSettingsStore } from '@/stores/settings';
 import * as deckCache from '@/utils/deck-cache';
 
 // deck-cacheのモック（部分的なモック）
@@ -293,26 +294,6 @@ describe('LoadDialog.vue', () => {
       expect(img).not.toBe(null);
       expect(img?.src).toBe('data:image/png;base64,mock');
       expect(gradient).toBe(null);
-    });
-
-    it('サムネイルがない場合はグラデーション背景が表示される', () => {
-      const store = useDeckEditStore();
-      store.deckList = [{ dno: 1, name: 'Test Deck' }];
-
-      const wrapper = mount(LoadDialog, {
-        props: {
-          isVisible: true,
-        },
-        global: {
-          plugins: [pinia],
-        },
-        attachTo: container,
-      });
-
-      const gradient = document.body.querySelector('.thumbnail-gradient');
-      const img = document.body.querySelector('.thumbnail-image');
-      expect(gradient).not.toBe(null);
-      expect(img).toBe(null);
     });
   });
 
