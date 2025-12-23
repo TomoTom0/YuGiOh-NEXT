@@ -295,33 +295,6 @@ describe('LoadDialog.vue', () => {
       expect(img?.src).toBe('data:image/png;base64,mock');
       expect(gradient).toBe(null);
     });
-
-    // 実装に.thumbnail-gradient要素が存在しないため、このテストは実装に合わない
-    // 現在の実装では、サムネイルがない場合は何も表示されない（img要素自体が v-if で非表示）
-    it.skip('サムネイルがない場合はグラデーション背景が表示される', () => {
-      const store = useDeckEditStore();
-      const settingsStore = useSettingsStore();
-
-      // サムネイル機能を有効化（これにより .with-thumbnail クラスが適用される）
-      settingsStore.appSettings.updateThumbnailWithoutFetch = true;
-
-      store.deckList = [{ dno: 1, name: 'Test Deck' }];
-
-      const wrapper = mount(LoadDialog, {
-        props: {
-          isVisible: true,
-        },
-        global: {
-          plugins: [pinia],
-        },
-        attachTo: container,
-      });
-
-      const gradient = document.body.querySelector('.thumbnail-gradient');
-      const img = document.body.querySelector('.thumbnail-image');
-      expect(gradient).not.toBe(null);
-      expect(img).toBe(null);
-    });
   });
 
   // ============================================================

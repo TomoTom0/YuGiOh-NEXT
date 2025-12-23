@@ -515,35 +515,6 @@ describe('deck-cache - generateAndCacheThumbnail', () => {
     expect(cachedDeckInfos.get(1)?.name).toBe('Test Deck');
     expect(cachedDeckInfos.get(1)?.hash).toBeDefined();
   });
-
-  // generateDeckThumbnailImageがnullを返すとき、実装（deck-cache.ts:282）では
-  // 空文字列''をdeckThumbnailsにsetする。このテストは.has(1)===falseを期待するが、
-  // 実装では.has(1)===trueとなるため一致しない
-  it.skip('サムネイル生成に失敗してもエラーをスローしない', async () => {
-    vi.spyOn(deckThumbnail, 'generateDeckThumbnailImage').mockResolvedValue(null);
-
-    const deckInfo = {
-      dno: 1,
-      name: 'Test Deck',
-      originalName: 'Test Deck',
-      mainDeck: [],
-      extraDeck: [],
-      sideDeck: [],
-    };
-
-    const deckThumbnails = new Map<number, string>();
-    const cachedDeckInfos = new Map<number, CachedDeckInfo>();
-
-    await expect(
-      generateAndCacheThumbnail(1, deckInfo, [], deckThumbnails, cachedDeckInfos)
-    ).resolves.not.toThrow();
-
-    // サムネイルは保存されない
-    expect(deckThumbnails.has(1)).toBe(false);
-
-    // デッキ情報は保存される
-    expect(cachedDeckInfos.has(1)).toBe(true);
-  });
 });
 
 // ============================================================
@@ -568,62 +539,12 @@ describe('deck-cache - updateDeckInfoAndThumbnail', () => {
       getDeckDetail,
       [],
       deckThumbnails,
-      cachedDeckInfos,
-      true  // force
+      cachedDeckInfos
     );
 
     expect(result).toBe(true);
     expect(getDeckDetail).toHaveBeenCalledWith(1);
     expect(deckThumbnails.has(1)).toBe(true);
-  });
-
-  // updateDeckInfoAndThumbnail実装（deck-cache.ts:318）は5つの引数を取るが、
-  // このテストは6つ目の引数としてforce=trueを渡している（行619）。
-  // 関数シグネチャが変更されたため、テストが実装と一致しない
-  it.skip('変更がない場合はサムネイルを更新しない', async () => {
-    const deckInfo = {
-      dno: 1,
-      name: 'Test Deck',
-          originalName: 'Test Deck',
-      mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
-      extraDeck: [],
-      sideDeck: [],
-    };
-
-    const hash = calculateDeckHash(deckInfo);
-    const cachedDeckInfos = new Map<number, CachedDeckInfo>([
-      [
-        1,
-        {
-          dno: 1,
-          name: 'Test Deck',
-          originalName: 'Test Deck',
-          mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
-          extraDeck: [],
-          sideDeck: [],
-          lastUpdated: Date.now(),
-          hash,
-          cardCount: { main: 3, extra: 0, side: 0 },
-        },
-      ],
-    ]);
-
-    const getDeckDetail = vi.fn().mockResolvedValue(deckInfo);
-
-    const deckThumbnails = new Map<number, string>();
-
-    const result = await updateDeckInfoAndThumbnail(
-      1,
-      getDeckDetail,
-      [],
-      deckThumbnails,
-      cachedDeckInfos,
-      true  // force
-    );
-
-    expect(result).toBe(false);
-    expect(getDeckDetail).toHaveBeenCalledWith(1);
-    expect(deckThumbnails.has(1)).toBe(false); // 更新されない
   });
 
   it('getDeckDetailがnullを返した場合は何もしない', async () => {
@@ -637,8 +558,7 @@ describe('deck-cache - updateDeckInfoAndThumbnail', () => {
       getDeckDetail,
       [],
       deckThumbnails,
-      cachedDeckInfos,
-      true  // force
+      cachedDeckInfos
     );
 
     expect(result).toBe(false);
@@ -667,46 +587,6 @@ describe('deck-cache - updateDeckInfoAndThumbnailWithData', () => {
 
     expect(deckThumbnails.has(1)).toBe(true);
     expect(cachedDeckInfos.has(1)).toBe(true);
-  });
-
-  // updateDeckInfoAndThumbnailWithData実装（deck-cache.ts:370）では、
-  // 変更がない場合でもdeckThumbnailsが空ならthumbnailMissing=trueとなり、
-  // サムネイルが生成される。このテストはdeckThumbnailsを空で渡すため、
-  // 期待値「更新されない」と実装が一致しない
-  it.skip('変更がない場合はサムネイルを更新しない', async () => {
-    const deckInfo = {
-      dno: 1,
-      name: 'Test Deck',
-          originalName: 'Test Deck',
-      mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
-      extraDeck: [],
-      sideDeck: [],
-    };
-
-    const hash = calculateDeckHash(deckInfo);
-    const cachedDeckInfos = new Map<number, CachedDeckInfo>([
-      [
-        1,
-        {
-          dno: 1,
-          name: 'Test Deck',
-          originalName: 'Test Deck',
-          mainDeck: [{ cid: 'm001', ciid: '1', quantity: 3 }],
-          extraDeck: [],
-          sideDeck: [],
-          lastUpdated: Date.now(),
-          hash,
-          cardCount: { main: 3, extra: 0, side: 0 },
-        },
-      ],
-    ]);
-
-    const deckThumbnails = new Map<number, string>();
-    const thumbnailsBefore = deckThumbnails.size;
-
-    await updateDeckInfoAndThumbnailWithData(1, deckInfo, [], deckThumbnails, cachedDeckInfos);
-
-    expect(deckThumbnails.size).toBe(thumbnailsBefore); // 更新されない
   });
 });
 

@@ -41,6 +41,20 @@ describe('useDeckPersistence', () => {
   let clearHistoryCalled: boolean;
   let captureDeckSnapshotCalled: number;
 
+  // 共通のuseDeckPersistence設定を返すヘルパー関数
+  const createPersistence = () => {
+    return useDeckPersistence({
+      sessionManager: mockSessionManager,
+      deckInfo,
+      lastUsedDno,
+      initializeDisplayOrder: () => { initializeDisplayOrderCalled = true; },
+      clearHistory: () => { clearHistoryCalled = true; },
+      captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot'; },
+      savedDeckSnapshot,
+      getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
+    });
+  };
+
   beforeEach(() => {
     initializeDisplayOrderCalled = false;
     clearHistoryCalled = false;
@@ -113,16 +127,7 @@ describe('useDeckPersistence', () => {
       mockSessionManager.getCgid.mockResolvedValue('cgid-123');
       (window as any).ygoNextPreloadedDeckDetail = mockDeckInfo;
 
-      const persistence = useDeckPersistence({
-        sessionManager: mockSessionManager,
-        deckInfo,
-        lastUsedDno,
-        initializeDisplayOrder: () => { initializeDisplayOrderCalled = true; },
-        clearHistory: () => { clearHistoryCalled = true; },
-        captureDeckSnapshot: () => { captureDeckSnapshotCalled++; return 'snapshot'; },
-        savedDeckSnapshot,
-        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
-      });
+      const persistence = createPersistence();
 
       await persistence.loadDeck(123);
 
@@ -136,16 +141,7 @@ describe('useDeckPersistence', () => {
     it('localStorage に lastUsedDno を保存する', async () => {
       mockSessionManager.getCgid.mockResolvedValue('cgid');
 
-      const persistence = useDeckPersistence({
-        sessionManager: mockSessionManager,
-        deckInfo,
-        lastUsedDno,
-        initializeDisplayOrder: () => {},
-        clearHistory: () => {},
-        captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot,
-        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
-      });
+      const persistence = createPersistence();
 
       // プリロード済みデータを設定
       const mockDeckInfo: DeckInfo = { ...deckInfo.value, dno: 456 };
@@ -280,16 +276,7 @@ describe('useDeckPersistence', () => {
     it('例外をキャッチして結果を返す', async () => {
       mockSessionManager.saveDeck.mockRejectedValue(new Error('Save error'));
 
-      const persistence = useDeckPersistence({
-        sessionManager: mockSessionManager,
-        deckInfo,
-        lastUsedDno,
-        initializeDisplayOrder: () => {},
-        clearHistory: () => {},
-        captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot,
-        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
-      });
+      const persistence = createPersistence();
 
       const result = await persistence.saveDeck(100);
 
@@ -352,16 +339,7 @@ describe('useDeckPersistence', () => {
 
   describe('Facade パターンの効果', () => {
     it('返り値は loadDeck と saveDeck のみ', () => {
-      const persistence = useDeckPersistence({
-        sessionManager: mockSessionManager,
-        deckInfo,
-        lastUsedDno,
-        initializeDisplayOrder: () => {},
-        clearHistory: () => {},
-        captureDeckSnapshot: () => 'snapshot',
-        savedDeckSnapshot,
-        getDeckName: () => deckInfo.value.name || deckInfo.value.originalName || ''
-      });
+      const persistence = createPersistence();
 
       expect(persistence).toHaveProperty('loadDeck');
       expect(persistence).toHaveProperty('saveDeck');
