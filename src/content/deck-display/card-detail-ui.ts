@@ -468,3 +468,21 @@ export function getCurrentTab(): 'info' | 'qa' {
 export function getParsedDeckInfo(): DeckInfo | null {
   return parsedDeckInfo;
 }
+
+/**
+ * デッキ情報を確実にパースして取得（NEXTコピー編集用の最適化）
+ * 既にパース済みの場合はキャッシュを返し、未パースの場合は新規にパースする
+ */
+export async function ensureParsedDeckInfo(): Promise<DeckInfo | null> {
+  if (parsedDeckInfo) {
+    return parsedDeckInfo;
+  }
+
+  try {
+    parsedDeckInfo = await parseDeckDetail(document);
+    return parsedDeckInfo;
+  } catch (error) {
+    console.error('[CardDetailUI] Failed to parse deck info:', error);
+    return null;
+  }
+}
