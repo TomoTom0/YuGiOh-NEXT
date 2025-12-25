@@ -14,11 +14,13 @@ describe('background-fetch-queue', () => {
   beforeEach(async () => {
     // 新しいキューインスタンスを取得（シングルトンなので同じインスタンス）
     queue = getBackgroundFetchQueue();
+    // 前のテストの非同期処理が完了するのを待つ
+    while (queue.activeCount() > 0) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
     queue.clear();
     mockGetCardDetail.mockClear();
     mockGetCardDetail.mockResolvedValue(null);
-    // 前のテストの非同期処理が完了するのを待つ（長めに設定）
-    await new Promise((resolve) => setTimeout(resolve, 600));
   });
 
   describe('getBackgroundFetchQueue', () => {
@@ -180,8 +182,14 @@ describe('background-fetch-queue', () => {
 
       queue.enqueue('processing-card', 'normal', onComplete1);
 
-      // 少し待って処理が開始されるのを確認
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // 処理が開始されるまで待つ（activeCountが1になるまでポーリング）
+      const startTime = Date.now();
+      while (queue.activeCount() === 0) {
+        if (Date.now() - startTime > 1000) {
+          throw new Error('Timeout: activeCount did not become 1');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
 
       // activeCount が 1 になっているはず
       expect(queue.activeCount()).toBe(1);
@@ -192,8 +200,10 @@ describe('background-fetch-queue', () => {
       // サイズは増えないはず
       expect(queue.size()).toBe(0);
 
-      // 処理が完了するまで待つ
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // 処理が完了するまで待つ（activeCountが0になるまでポーリング）
+      while (queue.activeCount() > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
 
       // onComplete1 のみ呼ばれる
       expect(onComplete1).toHaveBeenCalled();
