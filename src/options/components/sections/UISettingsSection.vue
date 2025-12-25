@@ -28,6 +28,10 @@
           :key="preset.value"
           class="preset-button"
           :class="{ active: currentPreset === preset.value }"
+          :style="{
+            padding: preset.padding,
+            fontSize: preset.fontSize
+          }"
           @click="handlePresetChange(preset.value)"
         >
           {{ preset.label }}
@@ -247,11 +251,11 @@ const themeOptions = [
 ];
 
 const sizePresets = ref([
-  { value: 's', label: 'S' },
-  { value: 'm', label: 'M' },
-  { value: 'l', label: 'L' },
-  { value: 'xl', label: 'XL' }
-] as const);
+  { value: 's' as SizePreset, label: 'S', padding: '6px 12px', fontSize: '12px' },
+  { value: 'm' as SizePreset, label: 'M', padding: '10px 16px', fontSize: '14px' },
+  { value: 'l' as SizePreset, label: 'L', padding: '14px 20px', fontSize: '16px' },
+  { value: 'xl' as SizePreset, label: 'XL', padding: '18px 24px', fontSize: '18px' }
+]);
 
 const rightAreaWidths = ref<RightAreaWidth[]>(['S', 'M', 'L', 'XL']);
 const rightAreaFontSizes = ref<RightAreaFontSize[]>(['s', 'm', 'l', 'xl']);
