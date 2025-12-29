@@ -1,0 +1,105 @@
+name: Dependabot Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ビルド・テストが成功したら自動マージ
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Enable auto-merge for minor/patch updates
+        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on major update
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr comment "$PR_URL" --body "This is a **major version update**. Please review manually before merging."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # コミット署名（SSH_SIGNING_KEYが設定されている場合のみ）
+  sign-commits:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Check if SSH_SIGNING_KEY is configured
+        id: check-key
+        run: |
+          if [ -z "${{ secrets.SSH_SIGNING_KEY }}" ]; then
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "SSH_SIGNING_KEY is not configured. Skipping commit signing."
+          else
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout PR branch
+        if: steps.check-key.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup SSH signing
+        if: steps.check-key.outputs.configured == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_SIGNING_KEY }}" > ~/.ssh/signing_key
+          chmod 600 ~/.ssh/signing_key
+          ssh-keygen -y -f ~/.ssh/signing_key > ~/.ssh/signing_key.pub
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config gpg.format ssh
+          git config user.signingkey ~/.ssh/signing_key.pub
+          git config commit.gpgsign true
+
+      - name: Check if already signed
+        if: steps.check-key.outputs.configured == 'true'
+        id: check-signed
+        run: |
+          if git log -1 --show-signature 2>&1 | grep -q "Good.*signature"; then
+            echo "signed=true" >> $GITHUB_OUTPUT
+          else
+            echo "signed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Sign commits
+        if: steps.check-key.outputs.configured == 'true' && steps.check-signed.outputs.signed == 'false'
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          COMMIT_COUNT=$(git rev-list --count origin/${{ github.base_ref }}..HEAD)
+
+          if [ "$COMMIT_COUNT" -eq 0 ]; then
+            echo "No commits to sign"
+            exit 0
+          fi
+
+          git rebase --exec 'git commit --amend --no-edit -S --allow-empty' origin/${{ github.base_ref }} || {
+            echo "Rebase failed"
+            git rebase --abort
+            exit 1
+          }
+
+      - name: Push signed commits
+        if: steps.check-key.outputs.configured == 'true' && steps.check-signed.outputs.signed == 'false'
+        run: git push --force-with-lease origin ${{ github.event.pull_request.head.ref }}
