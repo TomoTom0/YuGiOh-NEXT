@@ -3,6 +3,7 @@
     <CardDetail
       v-if="settingsStore.appSettings.showCardDetailInDeckDisplay"
       :card="cardDetailStore.selectedCard"
+      context="deck-display"
       class="ygo-next card-detail"
     />
   </div>
