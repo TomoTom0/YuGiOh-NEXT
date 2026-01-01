@@ -179,6 +179,7 @@
 </template>
 
 <script setup lang="ts">
+import { toRefs } from 'vue';
 import { useSettingsStore } from '../stores/settings';
 import type { Theme, RightAreaFontSize, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
 
@@ -189,7 +190,7 @@ const props = withDefaults(defineProps<{
   context: 'deck-edit'
 });
 
-const { context } = props;
+const { context } = toRefs(props);
 
 defineEmits<{
   close: [];
