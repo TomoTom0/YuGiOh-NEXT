@@ -111,15 +111,15 @@
           <!-- Right Area Width (common) -->
           <div class="setting-block">
             <div class="block-title">Right Area Width</div>
-            <div class="size-grid">
+            <div class="size-grid size-grid-5">
               <button
-                v-for="preset in presets"
-                :key="preset.value"
+                v-for="width in rightAreaWidths"
+                :key="width.value"
                 class="size-btn"
-                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === preset.value.toUpperCase() }"
-                @click="settingsStore.setRightAreaWidth(preset.value.toUpperCase() as 'S' | 'M' | 'L' | 'XL')"
+                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === width.value }"
+                @click="settingsStore.setRightAreaWidth(width.value)"
               >
-                {{ preset.label }}
+                {{ width.label }}
               </button>
             </div>
           </div>
@@ -180,7 +180,7 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../stores/settings';
-import type { Theme, RightAreaFontSize, DeckDisplayCardImageSize } from '../types/settings';
+import type { Theme, RightAreaFontSize, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
 
 const props = withDefaults(defineProps<{
   isVisible: boolean;
@@ -218,6 +218,14 @@ const displayImageSizes: { value: DeckDisplayCardImageSize; label: string }[] = 
   { value: 'medium', label: 'M' },
   { value: 'large', label: 'L' },
   { value: 'xlarge', label: 'XL' }
+];
+
+const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: 'MAX-FIT', label: 'Max' }
 ];
 </script>
 
