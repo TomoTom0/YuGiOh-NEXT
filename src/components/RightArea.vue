@@ -43,13 +43,7 @@
       </div>
 
       <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
-        <CardDetail
-          v-if="cardDetailStore.selectedCard"
-          :card="cardDetailStore.selectedCard"
-        />
-        <div v-else class="no-card-selected">
-          <p>カードを選択してください</p>
-        </div>
+        <CardDetail :card="cardDetailStore.selectedCard" />
       </div>
 
       <div v-show="deckStore.activeTab === 'search'" class="search-content">

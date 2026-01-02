@@ -35,7 +35,7 @@ export async function setupVueApp(): Promise<void> {
   // テーマに応じた背景色を設定
   const bgColor = settingsStore.effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff'
 
-  // 新しい div を作成してマウント（背景色を先に設定）
+  // 新しい div を作成してマウント（背景色を先に設定、幅はCSSで制御）
   const appContainer = document.createElement('div')
   appContainer.id = 'ygo-next-deck-display-app'
   appContainer.style.backgroundColor = bgColor

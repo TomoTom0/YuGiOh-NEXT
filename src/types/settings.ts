@@ -27,9 +27,10 @@ export type CardSize = 'small' | 'medium' | 'large' | 'xlarge';
 export type DeckDisplayCardImageSize = 'normal' | CardSize;
 
 /**
- * Right Area の幅（4段階）
+ * Right Area の幅（5段階）
+ * MAX-FIT: 空いている幅に合わせて大きくする
  */
-export type RightAreaWidth = 'S' | 'M' | 'L' | 'XL';
+export type RightAreaWidth = 'S' | 'M' | 'L' | 'XL' | 'MAX-FIT';
 
 /**
  * Right Area のフォントサイズ（4段階）

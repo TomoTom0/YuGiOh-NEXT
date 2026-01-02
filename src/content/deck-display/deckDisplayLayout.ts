@@ -50,7 +50,7 @@ export function applyDeckDisplayLayout(): void {
     }
 
     #ygo-next-deck-display-app {
-      flex: 0 0 320px;
+      flex: var(--right-area-flex-grow, 0) 0 var(--right-area-flex-basis, 400px);
       min-width: 0;
       display: flex;
     }

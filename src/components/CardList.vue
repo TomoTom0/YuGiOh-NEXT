@@ -519,9 +519,9 @@ export default {
 .scroll-top-btn {
   position: sticky;
   top: 4px;
-  right: 4px;
+  left: 36px; // collapse-btn(24px) + gap(8px) + left(4px)
   z-index: 9;
-  margin: 0 0 -28px 0;
+  margin: 4px 0 -32px 0; // top margin for initial position
   background: var(--bg-primary);
   opacity: 0.8;
   backdrop-filter: blur(4px);
