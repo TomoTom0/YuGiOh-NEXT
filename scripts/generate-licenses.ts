@@ -144,6 +144,20 @@ function getLicenseData(): LicenseData {
   return JSON.parse(output);
 }
 
+/**
+ * パッケージ名@バージョン形式の文字列からパッケージ名を抽出
+ * @example getPackageName('@scope/pkg@1.2.3') // '@scope/pkg'
+ * @example getPackageName('pkg@1.2.3') // 'pkg'
+ */
+function getPackageName(nameWithVersion: string): string {
+  if (nameWithVersion.startsWith('@')) {
+    // Scoped package: @scope/pkg@1.2.3 -> ['', 'scope/pkg', '1.2.3']
+    return `@${nameWithVersion.split('@')[1]}`;
+  }
+  // Unscoped package: pkg@1.2.3 -> ['pkg', '1.2.3']
+  return nameWithVersion.split('@')[0];
+}
+
 function generateMarkdown(data: LicenseData): string {
   const lines: string[] = [];
   const projectName = 'ygo-next';
@@ -162,8 +176,7 @@ function generateMarkdown(data: LicenseData): string {
     .sort(([a], [b]) => a.localeCompare(b));
 
   for (const [nameVersion, info] of entries) {
-    const [name] = nameVersion.split('@').filter(Boolean);
-    const displayName = nameVersion.startsWith('@') ? '@' + name : name;
+    const displayName = getPackageName(nameVersion);
 
     lines.push('---');
     lines.push('');
@@ -229,8 +242,7 @@ function generateLibrariesJson(data: LicenseData): ThirdPartyLibrary[] {
     .sort(([a], [b]) => a.localeCompare(b));
 
   return entries.map(([nameVersion, info]) => {
-    const [name] = nameVersion.split('@').filter(Boolean);
-    const displayName = nameVersion.startsWith('@') ? '@' + name : name;
+    const displayName = getPackageName(nameVersion);
 
     const copyright = info.publisher
       ? `(c) ${info.publisher}`

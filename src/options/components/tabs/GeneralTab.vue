@@ -184,11 +184,7 @@ import generatedLibraries from '@/generated/third-party-libraries.json';
 // Vue.jsはdevDependenciesのため自動生成に含まれないが、runtime必須なので手動追加
 const thirdPartyLibraries = [
   { name: 'Vue.js', license: 'MIT', copyright: '(c) 2013-present, Yuxi (Evan) You' },
-  ...generatedLibraries.map(lib => ({
-    name: lib.name,
-    license: lib.license,
-    copyright: lib.copyright
-  }))
+  ...generatedLibraries
 ];
 
 // キャッシュ削除オプション
