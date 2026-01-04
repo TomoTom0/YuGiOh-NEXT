@@ -1,44 +1,37 @@
 # THIRD-PARTY-LICENSES.md の自動生成
 
-## 現状
+## ステータス: 完了
 
-THIRD-PARTY-LICENSES.md は手動で管理しており、主要な依存ライブラリのライセンス情報を記載している。
+実装済み: TASK-13
 
-## 問題点
+## 実装内容
 
-- 依存関係が追加・更新されるたびに手動更新が必要
-- 記載漏れのリスクがある
-- 依存関係の数が増えると管理が困難になる
+`scripts/generate-licenses.ts` を追加し、`bun run license:generate` で以下を自動生成:
 
-## 改善案
+1. `THIRD-PARTY-LICENSES.md` - ライセンス情報のMarkdownファイル
+2. `src/generated/third-party-libraries.json` - UI用のJSONファイル
 
-### license-checker-rseidelsohn の導入
+### 使用方法
 
 ```bash
-# ライセンス情報の自動収集
-npx license-checker-rseidelsohn --output THIRD-PARTY-LICENSES.md
+bun run license:generate
 ```
 
-### package.json への scripts 追加
+### 技術スタック
 
-```json
-"scripts": {
-  "license-check": "npx license-checker-rseidelsohn --markdown > THIRD-PARTY-LICENSES.md"
-}
-```
+- `license-checker-rseidelsohn` - ライセンス情報の収集
+- `bunx` - パッケージ実行
+
+## 今後の改善案（オプション）
 
 ### CI/CD への組み込み
 
 - PR 作成時に自動でライセンスチェックを実行
 - 変更があれば警告または自動コミット
 
-## 優先度
-
-low
-
 ## 関連
 
 - PR: #95
 - Thread ID: PRRT_kwDOQKOd3M5niQ1Y
-- タスク: TASK-3
-- 関連ファイル: THIRD-PARTY-LICENSES.md
+- タスク: TASK-3, TASK-13
+- 関連ファイル: THIRD-PARTY-LICENSES.md, scripts/generate-licenses.ts

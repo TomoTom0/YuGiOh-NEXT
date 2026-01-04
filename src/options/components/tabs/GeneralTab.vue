@@ -178,16 +178,17 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`;
 
-// サードパーティライブラリ
+// サードパーティライブラリ（自動生成JSONをインポート）
+import generatedLibraries from '@/generated/third-party-libraries.json';
+
+// Vue.jsはdevDependenciesのため自動生成に含まれないが、runtime必須なので手動追加
 const thirdPartyLibraries = [
-  { name: '@mdi/js', license: 'Apache 2.0 / Pictogrammers Free License', copyright: 'Pictogrammers' },
   { name: 'Vue.js', license: 'MIT', copyright: '(c) 2013-present, Yuxi (Evan) You' },
-  { name: 'Pinia', license: 'MIT', copyright: '(c) 2019-present Eduardo San Martin Morote' },
-  { name: 'axios', license: 'MIT', copyright: '(c) 2014-present Matt Zabriskie' },
-  { name: 'qrcode', license: 'MIT', copyright: '(c) 2017 Ryan Day' },
-  { name: 'linkedom', license: 'ISC', copyright: '(c) Andrea Giammarchi' },
-  { name: 'sass', license: 'MIT', copyright: '(c) 2016, Google Inc.' },
-  { name: 'canvas', license: 'MIT', copyright: '(c) 2010 LearnBoost' }
+  ...generatedLibraries.map(lib => ({
+    name: lib.name,
+    license: lib.license,
+    copyright: lib.copyright
+  }))
 ];
 
 // キャッシュ削除オプション

@@ -21,7 +21,8 @@
     "test:integration": "bash scripts/test/download-sample-html.sh && vitest run",
     "setup:download-forms": "bash scripts/setup/download-search-forms.sh",
     "setup:extract-mappings": "bun scripts/setup/extract-mappings.ts",
-    "setup:all": "bun run setup:download-forms && bun run setup:extract-mappings"
+    "setup:all": "bun run setup:download-forms && bun run setup:extract-mappings",
+    "license:generate": "bun scripts/generate-licenses.ts"
   },
   "keywords": [
     "yugioh",

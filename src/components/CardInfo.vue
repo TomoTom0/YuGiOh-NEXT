@@ -948,11 +948,10 @@ export default {
       transform: skewX(10deg);
       text-align: center;
       line-height: 1.4;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
+      flex-shrink: 0;
     }
   }
-  
+
   &.stat-box-subtype {
     width: 100%;
     background: var(--bg-secondary);
