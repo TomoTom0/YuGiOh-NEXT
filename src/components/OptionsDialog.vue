@@ -10,10 +10,11 @@
 
       <div class="dialog-content">
         <div class="settings-grid">
-          <!-- 左上: Image Size -->
+          <!-- Image Size (different settings per context) -->
           <div class="setting-block">
-            <div class="block-title">Image Size</div>
-            <div class="size-grid">
+            <div class="block-title">{{ context === 'deck-edit' ? 'Edit Image Size' : 'View Image Size' }}</div>
+            <!-- deck-edit: preset (s,m,l,xl) -->
+            <div v-if="context === 'deck-edit'" class="size-grid">
               <button
                 v-for="preset in presets"
                 :key="preset.value"
@@ -24,10 +25,38 @@
                 {{ preset.label }}
               </button>
             </div>
+            <!-- deck-display: deckDisplayCardImageSize (normal,s,m,l,xl) -->
+            <div v-else class="size-grid size-grid-5">
+              <button
+                v-for="size in displayImageSizes"
+                :key="size.value"
+                class="size-btn"
+                :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
+                @click="settingsStore.setDeckDisplayCardImageSize(size.value)"
+              >
+                {{ size.label }}
+              </button>
+            </div>
           </div>
 
-          <!-- 右上: Search Position -->
+          <!-- Theme (common) -->
           <div class="setting-block">
+            <div class="block-title">Theme</div>
+            <div class="toggle-row">
+              <button
+                v-for="theme in themes"
+                :key="theme.value"
+                class="toggle-btn theme-btn"
+                :class="{ active: settingsStore.appSettings.theme === theme.value }"
+                @click="settingsStore.setTheme(theme.value)"
+              >
+                {{ theme.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- deck-edit: Search Position -->
+          <div v-if="context === 'deck-edit'" class="setting-block">
             <div class="block-title">Search Position</div>
             <div class="search-position-grid">
               <div class="position-col">
@@ -58,8 +87,8 @@
             </div>
           </div>
 
-          <!-- 左下: Extra/Side Layout -->
-          <div class="setting-block">
+          <!-- deck-edit: Extra/Side Layout -->
+          <div v-if="context === 'deck-edit'" class="setting-block">
             <div class="block-title">Extra/Side</div>
             <div class="toggle-row">
               <button
@@ -79,33 +108,44 @@
             </div>
           </div>
 
-          <!-- 右下: Right Area Width -->
+          <!-- Right Area Width (common) -->
           <div class="setting-block">
             <div class="block-title">Right Area Width</div>
-            <div class="size-grid">
+            <div class="size-grid size-grid-5">
               <button
-                v-for="preset in presets"
-                :key="preset.value"
+                v-for="width in rightAreaWidths"
+                :key="width.value"
                 class="size-btn"
-                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === preset.value.toUpperCase() }"
-                @click="settingsStore.setRightAreaWidth(preset.value.toUpperCase() as 'S' | 'M' | 'L' | 'XL')"
+                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === width.value }"
+                @click="settingsStore.setRightAreaWidth(width.value)"
               >
-                {{ preset.label }}
+                {{ width.label }}
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- Tips Section (一時的に非表示) -->
-        <!-- <div class="tips-section">
-          <div class="tips-title">Tips</div>
-          <ul class="tips-list">
-            <li><strong>Command Mode:</strong> Type <code>/attr</code>, <code>/race</code>, <code>/level</code>, <code>/atk</code>, <code>/def</code>, <code>/type</code>, <code>/link</code>, <code>/mtype</code> + space to filter</li>
-            <li><strong>Drag & Drop:</strong> Drag cards between sections to move them</li>
-            <li><strong>Shuffle/Sort:</strong> Use the buttons in section headers</li>
-            <li><strong>Filter Chips:</strong> Click X on filter chips to remove individual filters</li>
-          </ul>
-        </div> -->
+          <!-- Right Area Font Size (common) -->
+          <FontSizeSelector
+            title="Right Area Font"
+            :model-value="settingsStore.appSettings.ux.rightAreaFontSize"
+            @update:model-value="settingsStore.setRightAreaFontSize($event)"
+          />
+
+          <!-- Dialog Font (common) -->
+          <FontSizeSelector
+            title="Dialog Font"
+            :model-value="settingsStore.appSettings.dialogFontSize"
+            @update:model-value="settingsStore.setDialogFontSize($event)"
+          />
+
+          <!-- deck-edit: Search UI Font Size -->
+          <FontSizeSelector
+            v-if="context === 'deck-edit'"
+            title="Search UI Font"
+            :model-value="settingsStore.appSettings.searchUIFontSize"
+            @update:model-value="settingsStore.setSearchUIFontSize($event)"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -113,11 +153,19 @@
 </template>
 
 <script setup lang="ts">
+import { toRefs } from 'vue';
 import { useSettingsStore } from '../stores/settings';
+import type { Theme, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
+import FontSizeSelector from './FontSizeSelector.vue';
 
-defineProps<{
+const props = withDefaults(defineProps<{
   isVisible: boolean;
-}>();
+  context?: 'deck-edit' | 'deck-display';
+}>(), {
+  context: 'deck-edit'
+});
+
+const { context } = toRefs(props);
 
 defineEmits<{
   close: [];
@@ -130,6 +178,29 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   { value: 'm', label: 'M' },
   { value: 'l', label: 'L' },
   { value: 'xl', label: 'XL' }
+];
+
+const themes: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'Auto' }
+];
+
+
+const displayImageSizes: { value: DeckDisplayCardImageSize; label: string }[] = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'small', label: 'S' },
+  { value: 'medium', label: 'M' },
+  { value: 'large', label: 'L' },
+  { value: 'xlarge', label: 'XL' }
+];
+
+const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
+  { value: 'S', label: 'S' },
+  { value: 'M', label: 'M' },
+  { value: 'L', label: 'L' },
+  { value: 'XL', label: 'XL' },
+  { value: 'MAX-FIT', label: 'Max' }
 ];
 </script>
 
@@ -153,10 +224,15 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 500px;
   max-width: 90vw;
+  max-height: 90vh;
   overflow: hidden;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+}
+
+.dialog-content {
+  overflow-y: auto;
 }
 
 .dialog-header {
@@ -206,17 +282,16 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 12px;
   width: 100%;
   box-sizing: border-box;
-  grid-template-rows: auto auto;
 }
 
 .setting-block {
   background: var(--bg-secondary);
   border-radius: 8px;
-  padding: 16px;
-  height: 120px;
+  padding: 12px;
+  min-height: 120px;
   width: 100%;
   min-width: 0;
   display: flex;
@@ -253,6 +328,21 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   grid-template-columns: 1fr 1fr;
   gap: 6px;
   flex: 1;
+
+  &.size-grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+
+    .size-btn {
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+    // 4番目と5番目は2列目の下に配置
+    .size-btn:nth-child(4),
+    .size-btn:nth-child(5) {
+      grid-column: span 1;
+    }
+  }
 }
 
 .size-btn {
@@ -284,6 +374,11 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   display: flex;
   gap: 6px;
   flex: 1;
+
+  .theme-btn {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
 }
 
 .toggle-col {

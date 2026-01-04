@@ -1,32 +1,29 @@
+# Dependabot configuration
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    reviewers:
-      - "TomoTom0"
-    assignees:
-      - "TomoTom0"
     labels:
       - "dependencies"
       - "automated"
-    versioning-strategy: increase
-    # メジャーバージョンアップは破壊的変更を含むため、自動更新の対象から除外します。
+    # メジャーバージョンは手動レビュー
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-    # 複数の依存関係更新を本番/開発で分割してグループ化する
+    # PR をグループ化
     groups:
-      npm-production:  # 本番環境の依存関係
-        dependency-types:
-          - production
+      production:
+        dependency-type: "production"
         patterns:
           - "*"
-      npm-development:  # 開発環境の依存関係
-        dependency-types:
-          - dev
+      development:
+        dependency-type: "development"
         patterns:
           - "*"
+

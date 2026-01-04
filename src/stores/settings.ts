@@ -621,7 +621,8 @@ export const useSettingsStore = defineStore('settings', () => {
       'S': '300px',
       'M': '400px',
       'L': '500px',
-      'XL': '600px'
+      'XL': '600px',
+      'MAX-FIT': '100%'
     };
 
     // Font Size のマッピング
@@ -634,6 +635,17 @@ export const useSettingsStore = defineStore('settings', () => {
 
     document.documentElement.style.setProperty('--right-area-width', widthMap[width]);
     document.documentElement.style.setProperty('--right-area-font-size', fontSizeMap[fontSize]);
+
+    // flex レイアウト用の変数（デッキ表示ページ用）
+    if (width === 'MAX-FIT') {
+      // MAX-FIT: flex-grow=1で空いたスペースを埋める
+      document.documentElement.style.setProperty('--right-area-flex-grow', '1');
+      document.documentElement.style.setProperty('--right-area-flex-basis', '300px');
+    } else {
+      // 固定幅: flex-grow=0で固定サイズ
+      document.documentElement.style.setProperty('--right-area-flex-grow', '0');
+      document.documentElement.style.setProperty('--right-area-flex-basis', widthMap[width]);
+    }
   }
 
   /**

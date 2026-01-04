@@ -65,8 +65,24 @@ export function addDeckImageButton(): HTMLElement | null {
 
   // NEXT編集ボタンも追加
   addNextEditButton(bottomBtnSet);
-  
+
+  // NEXTコピー編集の高速化：backgroundでデッキ情報をプリロード
+  preloadDeckInfo();
+
   return button;
+}
+
+/**
+ * NEXTコピー編集の高速化：backgroundでデッキ情報をプリロード
+ * ボタンクリック前にデッキ情報をパースしておくことで、コピー時の待ち時間を短縮
+ */
+async function preloadDeckInfo(): Promise<void> {
+  try {
+    const { ensureParsedDeckInfo } = await import('../deck-display/card-detail-ui');
+    await ensureParsedDeckInfo();
+  } catch (error) {
+    console.debug('[YGO Helper] Deck info preload failed (non-critical):', error);
+  }
 }
 
 /**
@@ -124,10 +140,10 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
 
         // デッキ表示ページで既にパースされた情報を使用してコピー作成
         try {
-          const { getParsedDeckInfo } = await import('../deck-display/card-detail-ui');
+          const { ensureParsedDeckInfo } = await import('../deck-display/card-detail-ui');
           const { sessionManager } = await import('../../content/session/session');
 
-          const parsedDeckInfo = getParsedDeckInfo();
+          const parsedDeckInfo = await ensureParsedDeckInfo();
 
           if (parsedDeckInfo) {
             // 新規デッキを作成

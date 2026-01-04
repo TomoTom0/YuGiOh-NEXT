@@ -3,6 +3,7 @@
     <CardDetail
       v-if="settingsStore.appSettings.showCardDetailInDeckDisplay"
       :card="cardDetailStore.selectedCard"
+      context="deck-display"
       class="ygo-next card-detail"
     />
   </div>
@@ -230,7 +231,7 @@ html.ygo-next-valid-card-tab-on-deck-display {
   }
 
   div.ygo-next.card-tab-content {
-    width: 310px;
+    width: 100%;
   }
 
   .ygo-next.card-info-top {
@@ -247,6 +248,7 @@ html.ygo-next-valid-card-tab-on-deck-display {
 
 <style scoped>
 #ygo-next-card-detail-container {
+  width: var(--right-area-width, 400px);
   max-height: calc(100vh - 100px);
   position: sticky;
   top: 80px;

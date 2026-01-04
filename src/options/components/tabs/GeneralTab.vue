@@ -81,6 +81,53 @@
       </div>
 
 
+      <!-- ライセンス情報 -->
+      <div class="section">
+        <h3 class="section-title">ライセンス</h3>
+        <p class="section-desc">
+          本拡張機能のライセンス情報と、使用しているオープンソースライブラリの帰属情報です。
+        </p>
+
+        <details class="license-accordion">
+          <summary class="license-summary">
+            <span class="license-title">プロジェクトライセンス (ISC)</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24">
+              <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
+            </svg>
+          </summary>
+          <div class="license-content">
+            <pre class="license-text">{{ projectLicense }}</pre>
+          </div>
+        </details>
+
+        <details class="license-accordion">
+          <summary class="license-summary">
+            <span class="license-title">サードパーティライセンス</span>
+            <svg class="chevron-icon" viewBox="0 0 24 24">
+              <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
+            </svg>
+          </summary>
+          <div class="license-content">
+            <p class="third-party-intro">本拡張機能は以下のオープンソースライブラリを使用しています:</p>
+            <ul class="third-party-list">
+              <li v-for="lib in thirdPartyLibraries" :key="lib.name">
+                <strong>{{ lib.name }}</strong> - {{ lib.license }}
+                <span v-if="lib.copyright" class="lib-copyright">{{ lib.copyright }}</span>
+              </li>
+            </ul>
+            <p class="third-party-note">
+              詳細なライセンス情報は
+              <a
+                href="https://github.com/TomoTom0/YuGiOh-NEXT/blob/main/THIRD-PARTY-LICENSES.md"
+                target="_blank"
+                rel="noopener noreferrer"
+              >THIRD-PARTY-LICENSES.md</a>
+              をご確認ください。
+            </p>
+          </div>
+        </details>
+      </div>
+
       <!-- 将来的に有効化 -->
       <div v-if="false" class="section">
         <h3 class="section-title">カラーテーマ</h3>
@@ -113,6 +160,32 @@ import {
 } from '../../../constants/storage-keys';
 const settingsStore = useSettingsStore();
 const toastStore = useToastStore();
+
+// プロジェクトライセンス
+const projectLicense = `ISC License
+
+Copyright (c) 2024-2025 ygo-next contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`;
+
+// サードパーティライブラリ（自動生成JSONをインポート）
+import generatedLibraries from '@/generated/third-party-libraries.json';
+
+// Vue.jsはdevDependenciesのため自動生成に含まれないが、runtime必須なので手動追加
+const thirdPartyLibraries = [
+  { name: 'Vue.js', license: 'MIT', copyright: '(c) 2013-present, Yuxi (Evan) You' },
+  ...generatedLibraries
+];
 
 // キャッシュ削除オプション
 const cacheOptions = ref({
@@ -364,5 +437,120 @@ const handleClearCache = async () => {
   flex-direction: column;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+// ライセンスセクション
+.license-accordion {
+  margin-bottom: 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  overflow: hidden;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &[open] {
+    .chevron-icon {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.license-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--bg-primary);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--bg-tertiary);
+  }
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+}
+
+.license-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.chevron-icon {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-secondary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.license-content {
+  padding: 16px;
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+}
+
+.license-text {
+  margin: 0;
+  padding: 12px;
+  font-size: 12px;
+  font-family: monospace;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.third-party-intro {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.third-party-list {
+  margin: 0 0 16px 0;
+  padding: 0 0 0 20px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-primary);
+
+  li {
+    margin-bottom: 4px;
+
+    strong {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.lib-copyright {
+  display: block;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-left: 16px;
+}
+
+.third-party-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+
+  a {
+    color: var(--color-info);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 </style>

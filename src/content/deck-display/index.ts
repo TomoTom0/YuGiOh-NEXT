@@ -4,19 +4,38 @@
 
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '@/constants/storage-keys';
 
+// デッキ表示ページのモジュールを事前インポート（編集画面と同様の最適化）
+const deckDisplayModulesPromise = Promise.all([
+  import('./deckDisplayLayout'),
+  import('./styles'),
+  import('./vueSetup')
+]);
+
 /**
  * デッキ表示ページの初期化
  */
 export async function initDeckDisplay(): Promise<void> {
-  const { applyDeckDisplayLayout, setCardImageSize } = await import('./deckDisplayLayout')
-  const { applyCardDetailStyles } = await import('./styles')
+  // メモリキャッシュから設定を取得（編集画面と同様の最適化）
+  let appSettings: Record<string, any> = window.ygoNextCurrentSettings || {};
 
-  // chrome.storage から設定を読み込み
-  const appSettings = await new Promise<Record<string, any>>((resolve) => {
-    chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], (result) => {
-      resolve((result[CHROME_STORAGE_KEY_APP_SETTINGS] as Record<string, any>) || {})
-    })
-  })
+  // メモリにない場合のみ chrome.storage から読み込み
+  if (!window.ygoNextCurrentSettings) {
+    appSettings = await new Promise<Record<string, any>>((resolve) => {
+      chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], (result) => {
+        resolve((result[CHROME_STORAGE_KEY_APP_SETTINGS] as Record<string, any>) || {})
+      })
+    });
+
+    // 読み込み後、メモリキャッシュに保存
+    window.ygoNextCurrentSettings = appSettings as any;
+  }
+
+  // 事前インポート済みのモジュールを使用
+  const [
+    { applyDeckDisplayLayout, setCardImageSize },
+    { applyCardDetailStyles },
+    vueSetupModule
+  ] = await deckDisplayModulesPromise;
 
   const cardImageSize = (appSettings.deckDisplayCardImageSize ?? 'medium') as 'small' | 'medium' | 'large' | 'xlarge'
   const showCardDetail = appSettings.showCardDetailInDeckDisplay ?? false
@@ -37,7 +56,7 @@ export async function initDeckDisplay(): Promise<void> {
 
   // showCardDetailInDeckDisplay が有効な場合のみ Vue アプリをマウント
   if (showCardDetail) {
-    const { setupVueApp } = await import('./vueSetup')
+    const { setupVueApp } = vueSetupModule
     await setupVueApp()
   }
 
