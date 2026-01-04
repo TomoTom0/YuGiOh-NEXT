@@ -1,50 +1,41 @@
 # GeneralTab.vue のライブラリリスト自動生成
 
-## 現状
+## ステータス: 完了
 
-GeneralTab.vue の Third Party Libraries セクションで、使用しているライブラリのリストがハードコードされている。
+実装済み: TASK-14
 
-## 問題点
+## 実装内容
 
-- package.json が更新された際に、UIのリストが古くなる可能性がある
-- 手動での同期が必要
+`scripts/generate-licenses.ts` が生成する `src/generated/third-party-libraries.json` を GeneralTab.vue でインポートして使用。
 
-## 改善案
+### 使用方法
 
-### ビルド時に package.json から自動生成
-
-Vite の define 機能または環境変数を使用して、ビルド時に依存関係の情報を注入する。
-
-```typescript
-// vite.config.ts
-import pkg from './package.json';
-
-export default defineConfig({
-  define: {
-    __DEPENDENCIES__: JSON.stringify(Object.keys(pkg.dependencies))
-  }
-});
+```bash
+# ライセンス情報を再生成
+bun run license:generate
 ```
 
-### コンポーネント側での使用
+### 実装詳細
 
 ```typescript
 // GeneralTab.vue
-const libraries = __DEPENDENCIES__ as string[];
+import generatedLibraries from '@/generated/third-party-libraries.json';
+
+// Vue.jsはdevDependenciesのため自動生成に含まれないが、runtime必須なので手動追加
+const thirdPartyLibraries = [
+  { name: 'Vue.js', license: 'MIT', copyright: '(c) 2013-present, Yuxi (Evan) You' },
+  ...generatedLibraries
+];
 ```
-
-## 優先度
-
-low
 
 ## 注意点
 
-- 全ての依存関係をUI上に表示する必要があるかは検討が必要
-- 主要なライブラリのみを表示するのであれば、手動管理でも問題ない可能性
+- Vue.js は devDependencies に含まれるため、自動生成リストには含まれない
+- GeneralTab.vue で手動でVue.jsを先頭に追加している
 
 ## 関連
 
 - PR: #96
 - Thread ID: PRRT_kwDOQKOd3M5nyjnP
-- タスク: TASK-12
-- 関連ファイル: src/options/components/tabs/GeneralTab.vue
+- タスク: TASK-12, TASK-14
+- 関連ファイル: src/options/components/tabs/GeneralTab.vue, src/generated/third-party-libraries.json

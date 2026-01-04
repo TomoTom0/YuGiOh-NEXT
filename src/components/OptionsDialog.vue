@@ -125,52 +125,26 @@
           </div>
 
           <!-- Right Area Font Size (common) -->
-          <div class="setting-block">
-            <div class="block-title">Right Area Font</div>
-            <div class="size-grid">
-              <button
-                v-for="size in fontSizes"
-                :key="size"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.ux.rightAreaFontSize === size }"
-                @click="settingsStore.setRightAreaFontSize(size)"
-              >
-                {{ size.toUpperCase() }}
-              </button>
-            </div>
-          </div>
+          <FontSizeSelector
+            title="Right Area Font"
+            :model-value="settingsStore.appSettings.ux.rightAreaFontSize"
+            @update:model-value="settingsStore.setRightAreaFontSize($event)"
+          />
 
           <!-- Dialog Font (common) -->
-          <div class="setting-block">
-            <div class="block-title">Dialog Font</div>
-            <div class="size-grid">
-              <button
-                v-for="size in fontSizes"
-                :key="size"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.dialogFontSize === size }"
-                @click="settingsStore.setDialogFontSize(size)"
-              >
-                {{ size.toUpperCase() }}
-              </button>
-            </div>
-          </div>
+          <FontSizeSelector
+            title="Dialog Font"
+            :model-value="settingsStore.appSettings.dialogFontSize"
+            @update:model-value="settingsStore.setDialogFontSize($event)"
+          />
 
           <!-- deck-edit: Search UI Font Size -->
-          <div v-if="context === 'deck-edit'" class="setting-block">
-            <div class="block-title">Search UI Font</div>
-            <div class="size-grid">
-              <button
-                v-for="size in fontSizes"
-                :key="size"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.searchUIFontSize === size }"
-                @click="settingsStore.setSearchUIFontSize(size)"
-              >
-                {{ size.toUpperCase() }}
-              </button>
-            </div>
-          </div>
+          <FontSizeSelector
+            v-if="context === 'deck-edit'"
+            title="Search UI Font"
+            :model-value="settingsStore.appSettings.searchUIFontSize"
+            @update:model-value="settingsStore.setSearchUIFontSize($event)"
+          />
         </div>
       </div>
     </div>
@@ -181,7 +155,8 @@
 <script setup lang="ts">
 import { toRefs } from 'vue';
 import { useSettingsStore } from '../stores/settings';
-import type { Theme, RightAreaFontSize, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
+import type { Theme, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
+import FontSizeSelector from './FontSizeSelector.vue';
 
 const props = withDefaults(defineProps<{
   isVisible: boolean;
@@ -211,7 +186,6 @@ const themes: { value: Theme; label: string }[] = [
   { value: 'system', label: 'Auto' }
 ];
 
-const fontSizes: RightAreaFontSize[] = ['s', 'm', 'l', 'xl'];
 
 const displayImageSizes: { value: DeckDisplayCardImageSize; label: string }[] = [
   { value: 'normal', label: 'Normal' },
