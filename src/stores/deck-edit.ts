@@ -1448,6 +1448,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   // toggleモード用の状態（モジュールレベルで保持）
+  const TOGGLE_SORT_TIMEOUT_MS = 5000; // トグルソートのタイムアウト時間（ミリ秒）
   let lastSortTimestamp = 0;
 
   /**
@@ -1466,8 +1467,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       tailPlacementCardIds: s.tailPlacementCardIds,
       levelSortOrder: 'desc'
     });
-    const sorted = [...section].sort(descComparator);
-    return sorted.every((card, index) => card.uuid === section[index]?.uuid);
+    // ソート済みチェックをO(N)で行う（隣接要素の比較のみ）
+    for (let i = 0; i < section.length - 1; i++) {
+      if (descComparator(section[i], section[i + 1]) > 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -1481,7 +1487,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const raw = settingsStore.appSettings.deckLevelSortOrder ?? 'desc';
     if (raw !== 'toggle') return raw;
     const now = Date.now();
-    if (now - lastSortTimestamp <= 5000 && isAlreadyDescSorted) {
+    if (now - lastSortTimestamp <= TOGGLE_SORT_TIMEOUT_MS && isAlreadyDescSorted) {
       return 'asc';
     }
     return 'desc';
