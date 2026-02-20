@@ -221,6 +221,8 @@ export interface AppSettings {
   enableTailPlacement: boolean;
   /** 手動先頭優先配置を有効化 */
   enableHeadPlacement: boolean;
+  /** デッキソートのレベル/ランク/リンク順（'desc': 高→低, 'asc': 低→高, 'toggle': 連続ソートで昇順切り替え） */
+  deckLevelSortOrder: 'asc' | 'desc' | 'toggle';
   /** 保存前に全ソートを実行 */
   sortAllBeforeSave: boolean;
   /** ダイアログのフォントサイズ */
@@ -350,6 +352,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
   enableTailPlacement: true,           // 末尾配置: デフォルト有効
   enableHeadPlacement: true,           // 手動先頭優先配置: デフォルト有効
+  deckLevelSortOrder: 'desc',          // デッキソートのレベル順: デフォルト降順（高→低）
   sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
   dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）

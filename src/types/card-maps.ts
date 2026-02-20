@@ -328,6 +328,29 @@ export const TRAP_EFFECT_TYPE_ID_TO_PATH: Record<TrapEffectType, string> = {
   'counter': 'counter',
 };
 
+/**
+ * 魔法効果種類のソート順序
+ * 通常 → 速攻 → 儀式 → 永続 → 装備 → フィールド
+ */
+export const SPELL_TYPE_SORT_ORDER: Record<SpellEffectType, number> = {
+  'normal': 0,
+  'quick': 1,
+  'ritual': 2,
+  'continuous': 3,
+  'equip': 4,
+  'field': 5,
+};
+
+/**
+ * 罠効果種類のソート順序
+ * 通常 → カウンター → 永続
+ */
+export const TRAP_TYPE_SORT_ORDER: Record<TrapEffectType, number> = {
+  'normal': 0,
+  'counter': 1,
+  'continuous': 2,
+};
+
 // ============================================================================
 // カードタイプ（CardType）
 // ============================================================================

@@ -267,6 +267,56 @@
           </span>
         </span>
       </label>
+
+      <!-- レベル/ランク/リンクのソート順 -->
+      <div style="margin-top: 12px;">
+        <p class="setting-desc" style="margin-bottom: 8px;">レベル/ランク/リンクの並び順</p>
+        <div class="radio-group">
+          <label
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.deckLevelSortOrder === 'desc' }"
+          >
+            <input
+              type="radio"
+              v-model="settingsStore.appSettings.deckLevelSortOrder"
+              value="desc"
+              @change="settingsStore.saveSettings()"
+            />
+            <span class="radio-text">
+              <strong>降順</strong>
+            </span>
+          </label>
+          <label
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.deckLevelSortOrder === 'asc' }"
+          >
+            <input
+              type="radio"
+              v-model="settingsStore.appSettings.deckLevelSortOrder"
+              value="asc"
+              @change="settingsStore.saveSettings()"
+            />
+            <span class="radio-text">
+              <strong>昇順</strong>
+            </span>
+          </label>
+          <label
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.deckLevelSortOrder === 'toggle' }"
+          >
+            <input
+              type="radio"
+              v-model="settingsStore.appSettings.deckLevelSortOrder"
+              value="toggle"
+              @change="settingsStore.saveSettings()"
+            />
+            <span class="radio-text">
+              <strong>降順/昇順</strong>
+              <span class="radio-desc">5秒以内の連続ソートで昇順に切り替え</span>
+            </span>
+          </label>
+        </div>
+      </div>
     </div>
 
     <!-- キーボードショートカット -->
