@@ -7,6 +7,7 @@
 
 import type { CardInfo, MonsterType } from '@/types/card';
 import { getCardInfo } from '@/utils/card-utils';
+import { SPELL_TYPE_SORT_ORDER, TRAP_TYPE_SORT_ORDER } from '@/types/card-maps';
 
 /**
  * DisplayCard型の定義（deck-edit.tsと同じ）
@@ -60,6 +61,12 @@ export interface DeckSortOptions {
    * 末尾配置対象のカードIDリスト
    */
   tailPlacementCardIds?: string[];
+
+  /**
+   * レベル/ランク/リンクのソート順（'desc': 高→低, 'asc': 低→高）
+   * デフォルト: 'desc'
+   */
+  levelSortOrder?: 'asc' | 'desc';
 }
 
 /**
@@ -103,7 +110,8 @@ export function createDeckCardComparator(
     enableHeadPlacement = true,
     headPlacementCardIds = [],
     enableTailPlacement = true,
-    tailPlacementCardIds = []
+    tailPlacementCardIds = [],
+    levelSortOrder = 'desc'
   } = options;
 
   /**
@@ -150,22 +158,26 @@ export function createDeckCardComparator(
       const monsterTypeB = getMainType((cardB as any).types);
       if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
 
-      // 3. Level/Rank/Link（降順）
+      // 3. Level/Rank/Link（設定に応じて昇順/降順）
       const levelA = (cardA as any).levelValue ?? 0;
       const levelB = (cardB as any).levelValue ?? 0;
-      if (levelA !== levelB) return levelB - levelA; // 降順
+      if (levelA !== levelB) return levelSortOrder === 'asc' ? levelA - levelB : levelB - levelA;
     }
 
     // 4. Spell Type / Trap Type
     if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
       const spellTypeA = (cardA as any).effectType ?? '';
       const spellTypeB = (cardB as any).effectType ?? '';
-      if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
+      const orderA = SPELL_TYPE_SORT_ORDER[spellTypeA] ?? 999;
+      const orderB = SPELL_TYPE_SORT_ORDER[spellTypeB] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
     }
     if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
       const trapTypeA = (cardA as any).effectType ?? '';
       const trapTypeB = (cardB as any).effectType ?? '';
-      if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
+      const orderA = TRAP_TYPE_SORT_ORDER[trapTypeA] ?? 999;
+      const orderB = TRAP_TYPE_SORT_ORDER[trapTypeB] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
     }
 
     // 5. Card Name（昇順）

@@ -89,6 +89,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     extra: DisplayCard[];
     side: DisplayCard[];
     trash: DisplayCard[];
+    mainDeck: DeckCardRef[];
+    extraDeck: DeckCardRef[];
+    sideDeck: DeckCardRef[];
   } | null>(null);
 
   // Undo/Redo機能 (composableから取得)
@@ -255,7 +258,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       main: JSON.parse(JSON.stringify(displayOrder.value.main)),
       extra: JSON.parse(JSON.stringify(displayOrder.value.extra)),
       side: JSON.parse(JSON.stringify(displayOrder.value.side)),
-      trash: JSON.parse(JSON.stringify(displayOrder.value.trash))
+      trash: JSON.parse(JSON.stringify(displayOrder.value.trash)),
+      mainDeck: JSON.parse(JSON.stringify(deckInfo.value.mainDeck)),
+      extraDeck: JSON.parse(JSON.stringify(deckInfo.value.extraDeck)),
+      sideDeck: JSON.parse(JSON.stringify(deckInfo.value.sideDeck)),
     };
   }
   
@@ -266,10 +272,19 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (displayOrderBackup.value) {
       // FLIP アニメーション: First - データ変更前に全カード位置をUUIDで記録
       const firstPositions = recordAllCardPositionsByUUID();
-      
-      displayOrder.value = displayOrderBackup.value;
+
+      const backup = displayOrderBackup.value;
+      displayOrder.value = {
+        main: backup.main,
+        extra: backup.extra,
+        side: backup.side,
+        trash: backup.trash,
+      };
+      deckInfo.value.mainDeck = backup.mainDeck;
+      deckInfo.value.extraDeck = backup.extraDeck;
+      deckInfo.value.sideDeck = backup.sideDeck;
       displayOrderBackup.value = null;
-      
+
       // DOM更新後にアニメーション実行
       nextTick(() => {
         animateCardMoveByUUID(firstPositions, new Set(['main', 'extra', 'side', 'trash']));
@@ -1432,10 +1447,56 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     pushCommand(command);
   }
 
+  // toggleモード用の状態（モジュールレベルで保持）
+  const TOGGLE_SORT_TIMEOUT_MS = 5000; // トグルソートのタイムアウト時間（ミリ秒）
+  let lastSortTimestamp = 0;
+
+  /**
+   * セクションが現在レベル降順でソートされた状態かチェックする
+   * descコンパレータで並び替えた結果と現在の順序をUUIDで比較する
+   */
+  function isSectionSortedDescByLevel(section: DisplayCard[]): boolean {
+    if (section.length <= 1) return true;
+    const s = useSettingsStore();
+    const descComparator = createDeckCardComparator(section, {
+      enableCategoryPriority: s.appSettings.enableCategoryPriority ?? true,
+      priorityCategoryCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: s.appSettings.enableHeadPlacement ?? true,
+      headPlacementCardIds: headPlacementCardIds.value,
+      enableTailPlacement: s.appSettings.enableTailPlacement ?? true,
+      tailPlacementCardIds: s.tailPlacementCardIds,
+      levelSortOrder: 'desc'
+    });
+    // ソート済みチェックをO(N)で行う（隣接要素の比較のみ）
+    for (let i = 0; i < section.length - 1; i++) {
+      if (descComparator(section[i], section[i + 1]) > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * toggleモード時の有効なlevelSortOrderを決定する
+   * @param isAlreadyDescSorted - 現在のセクションがdescソート済みかどうか
+   */
+  function resolveEffectiveLevelSortOrder(
+    settingsStore: ReturnType<typeof useSettingsStore>,
+    isAlreadyDescSorted: boolean
+  ): 'asc' | 'desc' {
+    const raw = settingsStore.appSettings.deckLevelSortOrder ?? 'desc';
+    if (raw !== 'toggle') return raw;
+    const now = Date.now();
+    if (now - lastSortTimestamp <= TOGGLE_SORT_TIMEOUT_MS && isAlreadyDescSorted) {
+      return 'asc';
+    }
+    return 'desc';
+  }
+
   /**
    * 指定セクションのカードをソート
    */
-  function sortSection(sectionType: 'main' | 'extra' | 'side' | 'trash') {
+  function sortSection(sectionType: 'main' | 'extra' | 'side' | 'trash', levelSortOrderOverride?: 'asc' | 'desc') {
     const section = displayOrder.value[sectionType];
     if (!section || section.length === 0) return;
 
@@ -1447,13 +1508,22 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     // ソート設定を準備
     const settingsStore = useSettingsStore();
+    let effectiveLevelSortOrder: 'asc' | 'desc';
+    if (levelSortOrderOverride !== undefined) {
+      effectiveLevelSortOrder = levelSortOrderOverride;
+    } else {
+      const isDescSorted = isSectionSortedDescByLevel(section);
+      effectiveLevelSortOrder = resolveEffectiveLevelSortOrder(settingsStore, isDescSorted);
+    }
+    lastSortTimestamp = Date.now();
     const comparator = createDeckCardComparator(section, {
       enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority ?? true,
       priorityCategoryCardIds: categoryMatchedCardIds.value,
       enableHeadPlacement: settingsStore.appSettings.enableHeadPlacement ?? true,
       headPlacementCardIds: headPlacementCardIds.value,
       enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
-      tailPlacementCardIds: settingsStore.tailPlacementCardIds
+      tailPlacementCardIds: settingsStore.tailPlacementCardIds,
+      levelSortOrder: effectiveLevelSortOrder
     });
 
     // ソート実行
@@ -1500,9 +1570,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    * 全セクションをソート
    */
   function sortAllSections() {
-    sortSection('main');
-    sortSection('extra');
-    sortSection('side');
+    // 全セクションで同じlevelSortOrderを使用する（toggleモードで各セクションが異なる方向にならないよう）
+    const settingsStore = useSettingsStore();
+
+    // toggleモードのため、全非空セクションがdescソート済みかをソート前にチェックする
+    const sectionsToCheck = ['main', 'extra', 'side'] as const;
+    const allDescSorted = sectionsToCheck.every(sectionType => {
+      const section = displayOrder.value[sectionType];
+      if (!section || section.length === 0) return true;
+      return isSectionSortedDescByLevel(section);
+    });
+
+    const direction = resolveEffectiveLevelSortOrder(settingsStore, allDescSorted);
+    sortSection('main', direction);
+    sortSection('extra', direction);
+    sortSection('side', direction);
   }
 
   // undo/redo関数はcomposableから取得（undoCommand/redoCommand）

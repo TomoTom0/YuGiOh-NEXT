@@ -539,6 +539,12 @@ export class UnifiedCacheDB {
       let langsPendText = existingB2?.langsPendText || {};
       if (cardAny.pendulumText) {
         langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
+      } else {
+        // ペンデュラムテキストがない場合、このlangの既存エントリを削除して誤ったデータをクリア
+        if (langsPendText[lang]) {
+          langsPendText = { ...langsPendText };
+          delete langsPendText[lang];
+        }
       }
 
       // 既存の langsFetchedAt を取得

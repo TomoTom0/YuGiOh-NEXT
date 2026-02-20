@@ -227,12 +227,10 @@ describe('useDeckSorting', () => {
     });
 
     it('TempCardDB にカード情報がない場合、モンスターとして扱われる', () => {
-      const db = getTempCardDB();
-
       // カード情報を登録しない
       const displayOrder: DisplayCardRef[] = [
-        { cid: 'unknown1', ciid: '1' },
-        { cid: 'unknown2', ciid: '2' }
+        { cid: 'unknown1', ciid: 1, uuid: 'U1' },
+        { cid: 'unknown2', ciid: 2, uuid: 'U2' }
       ];
 
       const deck: DeckCardRef[] = [
@@ -244,14 +242,63 @@ describe('useDeckSorting', () => {
 
       // デフォルト優先度（モンスター）として扱われ、最初の登場順を保持
       expect(result.sortedDisplayOrder).toEqual([
-        { cid: 'unknown1', ciid: '1' },
-        { cid: 'unknown2', ciid: '2' }
+        { cid: 'unknown1', ciid: 1, uuid: 'U1' },
+        { cid: 'unknown2', ciid: 2, uuid: 'U2' }
       ]);
 
       expect(result.sortedDeck).toEqual([
         { cid: 'unknown1', ciid: '1' },
         { cid: 'unknown2', ciid: '2' }
       ]);
+    });
+
+    it('【TASK-281修正確認】TempCardDB未設定時(parseDeckDetail修正前の状態)は魔法・罠がモンスター扱いでソートされない', () => {
+      // TempCardDB は空のまま（parseDeckDetail がTempCardDB未設定だった旧バグを再現）
+      // 魔法→モンスター→罠の混在順
+      const displayOrder: DisplayCardRef[] = [
+        { cid: 'spell1', ciid: 1, uuid: 'S1' },
+        { cid: 'monster1', ciid: 2, uuid: 'M1' },
+        { cid: 'trap1', ciid: 3, uuid: 'T1' },
+      ];
+      const deck: DeckCardRef[] = [
+        { cid: 'spell1', ciid: '1' },
+        { cid: 'monster1', ciid: '2' },
+        { cid: 'trap1', ciid: '3' },
+      ];
+
+      const result = sortDisplayOrderForOfficial(displayOrder, deck);
+
+      // 全てモンスター扱いのため firstAppearance 順（入力順）を保持してしまい、
+      // モンスター→魔法→罠 に並ばない（バグ再現）
+      expect(result.sortedDisplayOrder.map(d => d.cid)).toEqual(['spell1', 'monster1', 'trap1']);
+    });
+
+    it('【TASK-281修正確認】TempCardDB設定済み(parseDeckDetail修正後の状態)は魔法・罠を正しくソートする', () => {
+      // parseDeckDetail の修正後: TempCardDB にカードタイプが登録される
+      const db = getTempCardDB();
+      const spellInfo: CardInfo = { cid: 'spell1', nameRuby: '魔法1', cardType: 'spell', cardKindTitle: '魔法' };
+      const monsterInfo: CardInfo = { cid: 'monster1', nameRuby: 'モンスター1', cardType: 'monster', cardKindTitle: 'モンスター' };
+      const trapInfo: CardInfo = { cid: 'trap1', nameRuby: '罠1', cardType: 'trap', cardKindTitle: '罠' };
+      db.set('spell1', spellInfo);
+      db.set('monster1', monsterInfo);
+      db.set('trap1', trapInfo);
+
+      // 魔法→モンスター→罠の混在順
+      const displayOrder: DisplayCardRef[] = [
+        { cid: 'spell1', ciid: 1, uuid: 'S1' },
+        { cid: 'monster1', ciid: 2, uuid: 'M1' },
+        { cid: 'trap1', ciid: 3, uuid: 'T1' },
+      ];
+      const deck: DeckCardRef[] = [
+        { cid: 'spell1', ciid: '1' },
+        { cid: 'monster1', ciid: '2' },
+        { cid: 'trap1', ciid: '3' },
+      ];
+
+      const result = sortDisplayOrderForOfficial(displayOrder, deck);
+
+      // モンスター→魔法→罠 に正しくソートされる（修正後の期待動作）
+      expect(result.sortedDisplayOrder.map(d => d.cid)).toEqual(['monster1', 'spell1', 'trap1']);
     });
 
     it('複雑な混合ケース: モンスター・魔法・罠が混在し、同じカードが複数枚ある', () => {

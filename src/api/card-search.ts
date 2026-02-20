@@ -1440,8 +1440,8 @@ function parseRuby(doc: Document): string | undefined {
 /**
  * カード詳細ページからテキストとペンデュラム効果を取得
  */
-function parseTextData(doc: Document): { text?: string; pendulumText?: string } | null {
-  const result: { text?: string; pendulumText?: string } = {};
+function parseTextData(doc: Document): { text?: string; pendulumText?: string; pendulumScale?: number } | null {
+  const result: { text?: string; pendulumText?: string; pendulumScale?: number } = {};
 
   // テキストを取得
   const cardTextElem = doc.querySelector('.item_box_text');
@@ -1454,9 +1454,19 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string } 
     result.text = cloned.textContent?.trim() || undefined;
   }
 
-  // ペンデュラム効果を取得（検索結果ページと同じセレクタを使用）
+  // ペンデュラムスケールを取得（詳細ページのbox_card_pen_scaleから）
+  const pendulumScaleElem = doc.querySelector('.box_card_pen_scale');
+  if (pendulumScaleElem?.textContent) {
+    const match = pendulumScaleElem.textContent.match(/\d+/);
+    if (match) {
+      result.pendulumScale = parseInt(match[0], 10);
+    }
+  }
+
+  // ペンデュラム効果を取得（ペンデュラムスケールがある場合のみ）
+  // ペンデュラムスケールなしにペンデュラムテキストが設定されるのは誤りのため
   const pendulumTextElem = doc.querySelector('.box_card_pen_effect');
-  if (pendulumTextElem) {
+  if (pendulumTextElem && result.pendulumScale !== undefined) {
     const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
     cloned.querySelectorAll('br').forEach(br => {
       br.replaceWith('\n');
@@ -1693,8 +1703,10 @@ export async function getCardDetail(
             text: textData?.text || fullCard.text
           };
 
-          if (baseCard.cardType === 'monster' && textData?.pendulumText) {
+          // pendulumTextはペンデュラムスケールがある場合のみ設定
+          if (baseCard.cardType === 'monster' && textData?.pendulumText && textData.pendulumScale !== undefined) {
             (baseCard as MonsterCard).pendulumText = textData.pendulumText;
+            (baseCard as MonsterCard).pendulumScale = textData.pendulumScale;
           }
         } else {
           console.warn('[getCardDetail] Card not found in search results, using parsed info');
@@ -1711,9 +1723,10 @@ export async function getCardDetail(
       text: textData?.text || baseCard.text
     };
 
-    // pendulumTextはMonsterCardのみに存在（既にマージ済みの場合はスキップ）
-    if (mergedCard.cardType === 'monster' && textData?.pendulumText && !searchPromise) {
+    // pendulumTextはMonsterCardのみに存在（ペンデュラムスケールがある場合のみ、既にマージ済みの場合はスキップ）
+    if (mergedCard.cardType === 'monster' && textData?.pendulumText && textData.pendulumScale !== undefined && !searchPromise) {
       (mergedCard as MonsterCard).pendulumText = textData.pendulumText;
+      (mergedCard as MonsterCard).pendulumScale = textData.pendulumScale;
     }
 
     return {
