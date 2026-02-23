@@ -6,15 +6,19 @@
 
 - **[usage/](./usage/)** - ユーザー向けガイド
 - **[dev/](./dev/)** - 開発者向けドキュメント
+  - `feature/` - 機能アイデア・将来計画
+  - `investigations/` - 調査・検証結果
 - **[api/](./api/)** - API仕様
 - **[changelog/](./changelog/)** - 変更履歴（リリースノート含む）
 - **[design/](./design/)** - 設計ドキュメント
+  - `archive/` - 過去バージョンの設計資料
 - **[testing/](./testing/)** - テスト関連
 - **[research/](./research/)** - 調査・検証
 - **[internal-reviews/](./internal-reviews/)** - 内部レビュー
 
 ## クイックリンク
 
+- [ロードマップ](./dev/roadmap.md)
 - [使い方ガイド](./usage/README.md)
 - [開発者ガイド](./dev/README.md)
 - [API仕様](./api/README.md)
@@ -46,12 +50,13 @@
 
 | ファイル | 更新タイミング | 内容 |
 |---------|-------------|------|
+| `dev/roadmap.md` | 新機能計画時 | 長期開発計画、バージョン別の機能計画 |
 | `dev/architecture.md` | アーキテクチャ変更時 | システム構成、コンポーネント構造、データフロー |
 | `dev/data-models.md` | データモデル変更時 | 型定義、インターフェース、データ構造 |
 | `dev/stores.md` | Pinia store 追加・変更時 | 状態管理の構造、各storeの責務 |
 | `dev/cache-system.md` | キャッシュシステム変更時 | キャッシュ戦略、Indexed DB使用箇所 |
 | `dev/png-format-spec.md` | PNGエクスポート形式変更時 | PNG metadata仕様、エクスポート形式 |
-| `dev/testing.md` / `dev/testing-strategy.md` | テスト方針変更時 | テスト戦略、カバレッジ方針 |
+| `dev/testing.md` | テスト方針変更時 | テスト戦略、カバレッジ方針 |
 | `dev/i18n.md` | 多言語対応変更時 | 翻訳方針、言語検出ロジック |
 | `dev/official-api.md` | 公式API変更検知時 | APIエンドポイント、レスポンス形式 |
 
