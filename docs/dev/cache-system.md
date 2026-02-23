@@ -318,4 +318,4 @@ const isStale = await UnifiedCacheDB.isStale(cid, maxAge);
 
 - [アーキテクチャ設計](./architecture.md)
 - [データモデル](./data-models.md)
-- [キャッシュDB設計（旧）](../design/cache-db.md)
+- [キャッシュDB設計（旧）](../design/archive/cache-db.md)
