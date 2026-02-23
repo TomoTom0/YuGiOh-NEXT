@@ -1,6 +1,6 @@
 import { DeckCardRef, CardInfo } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import {
   DeckTypeValue,
@@ -149,10 +149,10 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
     }
   }
 
-  // マージされたカード情報を TempCardDB（および UnifiedCacheDB）に保存
-  // TempCardDB.set() は内部で UnifiedCacheDB にも同期するため、
+  // マージされたカード情報を TempCacheDB（および UnifiedCacheDB）に保存
+  // TempCacheDB.set() は内部で UnifiedCacheDB にも同期するため、
   // sortDisplayOrderForOfficial でカードタイプが正しく取得できる
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
   for (const [cid, cardInfo] of mergedCardInfoMap.entries()) {
     tempCardDB.set(cid, cardInfo, true);
   }

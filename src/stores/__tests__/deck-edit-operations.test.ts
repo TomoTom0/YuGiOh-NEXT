@@ -119,13 +119,13 @@ vi.mock('@/utils/url-state', () => ({
   },
 }));
 
-// temp-card-db のモック
-vi.mock('@/utils/temp-card-db', () => ({
-  getTempCardDB: vi.fn(() => ({
+// temp-cache-db のモック
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: vi.fn(() => ({
     getCardBasicInfo: vi.fn(() => mockCardInfo),
   })),
-  initTempCardDBFromStorage: vi.fn(() => Promise.resolve()),
-  saveTempCardDBToStorage: vi.fn(() => Promise.resolve()),
+  initTempCacheDBFromStorage: vi.fn(() => Promise.resolve()),
+  saveTempCacheDBToStorage: vi.fn(() => Promise.resolve()),
   recordDeckOpen: vi.fn(),
 }));
 

@@ -11,7 +11,7 @@
 import { useCardDetailStore } from '@/stores/card-detail'
 import { parseDeckDetail } from '../parser/deck-detail-parser'
 import { DeckInfo } from '@/types/deck'
-import { getTempCardDB } from '@/utils/temp-card-db'
+import { getTempCacheDB } from '@/utils/temp-cache-db'
 import { safeQuery, safeQueryAll } from '@/utils/safe-dom-query'
 import { escapeHtml, setSafeInnerHTML } from '@/utils/safe-html-renderer'
 import { EXTENSION_IDS, OFFICIAL_SITE_SELECTORS, getExtensionIdSelector } from '@/utils/dom-selectors'
@@ -55,7 +55,7 @@ export async function initCardDetailUI(): Promise<void> {
   try {
     // デッキ情報をページのDOMから全て抽出
     // 注: parseDeckDetail()内でparseCardSection()が呼ばれ、
-    // すべてのカード情報がTempCardDBに保存される
+    // すべてのカード情報がTempCacheDBに保存される
     parsedDeckInfo = await parseDeckDetail(document);
 
     // スキップされたカード情報を通知
@@ -278,7 +278,7 @@ function setupCardClickListeners(): void {
 
 /**
  * パースされたデッキ情報からcidに基づいてカード情報を検索
- * TempCardDBからカード詳細を取得（parseCardSection()で既に保存済み）
+ * TempCacheDBからカード詳細を取得（parseCardSection()で既に保存済み）
  */
 function findCardInParsedDeck(cid: string): any | null {
   if (!parsedDeckInfo) {
@@ -297,13 +297,13 @@ function findCardInParsedDeck(cid: string): any | null {
     return null;
   }
 
-  // TempCardDBからカード詳細情報を取得
+  // TempCacheDBからカード詳細情報を取得
   // 注: parseCardSection()で既に保存済みなので、見つからないことはない
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
   const cardDetail = tempCardDB.get(deckCardRef.cid);
 
   if (!cardDetail) {
-    console.error('[CardDetailUI] Card not found in TempCardDB:', deckCardRef.cid);
+    console.error('[CardDetailUI] Card not found in TempCacheDB:', deckCardRef.cid);
     return null;
   }
 
@@ -384,7 +384,7 @@ function attachCardClickHandlers(): void {
 
 /**
  * カードを選択
- * TempCardDBから取得したカード情報をcardDetailStoreに設定
+ * TempCacheDBから取得したカード情報をcardDetailStoreに設定
  */
 async function selectCard(cardInfo: any): Promise<void> {
   const cardDetailStore = useCardDetailStore();

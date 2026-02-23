@@ -1309,4 +1309,31 @@ export default {
     transform: rotate(360deg);
   }
 }
+
+// AIテキストリンクスタイル
+.condition-link {
+  color: var(--color-link, #00d9b8);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+  padding: 0 2px;
+
+  &:hover {
+    background: var(--color-link-bg, rgba(0, 217, 184, 0.1));
+    color: var(--color-link-hover, #00ffc8);
+  }
+
+  &:active {
+    background: var(--color-link-active, rgba(0, 217, 184, 0.2));
+  }
+}
+
+.extracting-indicator {
+  color: var(--text-secondary);
+  font-style: italic;
+  opacity: 0.7;
+}
 </style>

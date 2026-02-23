@@ -9,7 +9,7 @@
 import type { DeckCardRef } from '@/types/deck';
 
 /**
- * カード情報の最小限のインターフェース（TempCardDBから取得）
+ * カード情報の最小限のインターフェース（TempCacheDBから取得）
  */
 export interface CardData {
   name: string;

@@ -58,7 +58,7 @@ import { ref, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
 import { useToastStore } from '../../../stores/toast-notification';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 
 const settingsStore = useSettingsStore();
 const toastStore = useToastStore();
@@ -76,7 +76,7 @@ const handleClearCache = async () => {
     const unifiedDB = getUnifiedCacheDB();
     await unifiedDB.clearAll();
 
-    const tempDB = getTempCardDB();
+    const tempDB = getTempCacheDB();
     await tempDB.clearStorage();
 
     toastStore.showToast('Cache DBをリセットしました', 'info');

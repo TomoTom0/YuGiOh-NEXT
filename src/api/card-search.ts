@@ -17,7 +17,7 @@ import {
 } from '@/types/card';
 import { getCardFAQList } from './card-faq';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/type-guards';
 import { safeQuery } from '@/utils/safe-dom-query';
 import {
@@ -1611,9 +1611,9 @@ export async function getCardDetail(
     // 基本情報をキャッシュから取得
     let baseCard: CardInfo | undefined = unifiedDB.reconstructCardInfo(cardId);
 
-    // キャッシュにない場合、TempCardDB から取得を試みる（デッキ表示ページ等で使用）
+    // キャッシュにない場合、TempCacheDB から取得を試みる（デッキ表示ページ等で使用）
     if (!baseCard) {
-      const tempCardDB = getTempCardDB();
+      const tempCardDB = getTempCacheDB();
       baseCard = tempCardDB.get(cardId);
     }
 
@@ -1908,7 +1908,7 @@ async function reconstructCardDetailFromCache(
  * CardDetailをキャッシュに保存
  * Tierに応じた保存先の振り分け：
  * - Tier 3以上: Table C をUnifiedCacheDBに永続保存
- * - Tier 0-2: Table C はTempCardDBのみ（セッション中のみ）
+ * - Tier 0-2: Table C はTempCacheDBのみ（セッション中のみ）
  */
 export async function saveCardDetailToCache(
   unifiedDB: ReturnType<typeof getUnifiedCacheDB>,

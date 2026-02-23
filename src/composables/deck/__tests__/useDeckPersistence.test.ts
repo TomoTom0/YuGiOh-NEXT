@@ -4,14 +4,14 @@ import { useDeckPersistence } from '../useDeckPersistence';
 import { DeckInfo } from '@/types/deck';
 import * as deckOperations from '@/api/deck-operations';
 import { URLStateManager } from '@/utils/url-state';
-import * as tempCardDb from '@/utils/temp-card-db';
+import * as tempCardDb from '@/utils/temp-cache-db';
 import * as unifiedCacheDb from '@/utils/unified-cache-db';
 import { useToastStore } from '@/stores/toast-notification';
 
 // モックの設定
 vi.mock('@/api/deck-operations');
 vi.mock('@/utils/url-state');
-vi.mock('@/utils/temp-card-db');
+vi.mock('@/utils/temp-cache-db');
 vi.mock('@/utils/unified-cache-db');
 vi.mock('@/stores/toast-notification');
 

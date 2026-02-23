@@ -5,7 +5,7 @@
  * テスタビリティと再利用性を向上させる
  */
 
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import type { DeckCardRef } from '@/types/deck';
 
 /**
@@ -60,7 +60,7 @@ export function sortDisplayOrderForOfficial(
   }
 
   // カード情報を取得してタイプ判定用マップを作成
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
   const cardTypeMap = new Map<string, number>(); // cid -> type priority (0:monster, 1:spell, 2:trap)
 
   deck.forEach(dc => {
