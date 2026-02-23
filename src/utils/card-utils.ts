@@ -6,7 +6,7 @@
 
 import type { DeckCardRef } from '../types/deck'
 import type { CardInfo } from '../types/card'
-import { getTempCardDB } from './temp-card-db'
+import { getTempCacheDB } from './temp-cache-db'
 import { getUnifiedCacheDB } from './unified-cache-db'
 import { detectLanguage } from './language-detector'
 
@@ -21,7 +21,7 @@ export interface DeckData {
 }
 
 /**
- * TempCardDBからのみカード情報を取得（検索キャッシュ）
+ * TempCacheDBからのみカード情報を取得（検索キャッシュ）
  *
  * Table A,B,B2なし。検索結果のみ。
  *
@@ -29,7 +29,7 @@ export interface DeckData {
  * @returns カード情報、見つからない場合はnull
  */
 export function getCardInfoFromTempDB(cid: string): CardInfo | null {
-  const tempCardDB = getTempCardDB()
+  const tempCardDB = getTempCacheDB()
   return tempCardDB.get(cid) || null
 }
 
@@ -48,10 +48,10 @@ export function getCardInfoFromUnifiedDB(cid: string): CardInfo | null {
 }
 
 /**
- * UnifiedCacheDB + TempCardDB から完全なカード情報を取得
+ * UnifiedCacheDB + TempCacheDB から完全なカード情報を取得
  *
  * UnifiedCacheDBから優先取得（Table A,B,B2）し、
- * UnifiedDBの結果にTable Cの情報がない場合、TempCardDBから補完する。
+ * UnifiedDBの結果にTable Cの情報がない場合、TempCacheDBから補完する。
  *
  * @param cid カードID
  * @returns カード情報、見つからない場合はnull
@@ -82,7 +82,7 @@ export function getCardInfo(cid: string): CardInfo | null {
  *
  * @param cid カードID
  * @param ciid カードインスタンスID（未使用だが互換性のため残す）
- * @param _deckData デッキデータ（未使用、TempCardDB経由で取得）
+ * @param _deckData デッキデータ（未使用、TempCacheDB経由で取得）
  * @returns カード情報、見つからない場合はnull
  * @deprecated getCardInfo(cid)を使用してください
  */

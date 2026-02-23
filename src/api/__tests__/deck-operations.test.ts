@@ -306,10 +306,10 @@ describe('デッキ操作API', () => {
         ]
       };
 
-      // TempCardDB と UnifiedCacheDB をセットアップ
-      const { getTempCardDB } = await import('@/utils/temp-card-db');
+      // TempCacheDB と UnifiedCacheDB をセットアップ
+      const { getTempCacheDB } = await import('@/utils/temp-cache-db');
       const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
-      const tempDB = getTempCardDB();
+      const tempDB = getTempCacheDB();
       const unifiedDB = getUnifiedCacheDB();
 
       const cards = [

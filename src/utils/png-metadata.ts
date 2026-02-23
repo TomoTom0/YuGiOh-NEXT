@@ -1,5 +1,5 @@
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from './temp-card-db';
+import { getTempCacheDB } from './temp-cache-db';
 
 /**
  * PNG tEXtチャンクの構造
@@ -62,7 +62,7 @@ function isValidSimpleDeckInfo(obj: unknown): obj is SimpleDeckInfo {
  * DeckInfoを簡略形式に変換
  */
 function simplifyDeckInfo(deckInfo: DeckInfo): SimpleDeckInfo {
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
 
   return {
     main: deckInfo.mainDeck.map(({ cid, ciid, quantity }) => {

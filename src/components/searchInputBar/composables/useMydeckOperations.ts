@@ -10,7 +10,7 @@ import type { SearchMode } from '@/types/settings'
 import type { CardInfo } from '@/types/card'
 import { getDeckDetail } from '@/api/deck-operations'
 import { sessionManager } from '@/content/session/session'
-import { getTempCardDB } from '@/utils/temp-card-db'
+import { getTempCacheDB } from '@/utils/temp-cache-db'
 import type { DeckSuggestion } from '@/types/search-ui'
 
 export interface UseMydeckOperationsOptions {
@@ -76,9 +76,9 @@ export function useMydeckOperations(
         return
       }
 
-      // 全カードを収集（TempCardDBから取得）
+      // 全カードを収集（TempCacheDBから取得）
       // cid-ciidのペアで重複排除（イラスト違いは別々に表示）
-      const tempCardDB = getTempCardDB()
+      const tempCardDB = getTempCacheDB()
       const seenCards = new Set<string>()
       const uniqueCards: CardInfo[] = []
 

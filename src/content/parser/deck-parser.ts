@@ -1,7 +1,7 @@
 import { DeckCardRef, CardInfo, MonsterCard, SpellCard, TrapCard } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
 import { detectCardType } from '../card/detector';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import { safeQueryAs, isHTMLInputElement, isHTMLSelectElement, isHTMLTextAreaElement } from '@/utils/type-guards';
 
@@ -86,7 +86,7 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
     return null;
   }
 
-  // CardInfo型のオブジェクトを作成してTempCardDBに登録
+  // CardInfo型のオブジェクトを作成してTempCacheDBに登録
   // デッキページには限定的な情報しかないため、必須フィールドに仮の値を設定
   let card: CardInfo;
 
@@ -128,8 +128,8 @@ export function parseCardRow(row: HTMLElement): DeckCardRef | null {
     } as TrapCard;
   }
 
-  // TempCardDBに登録
-  const tempCardDB = getTempCardDB();
+  // TempCacheDBに登録
+  const tempCardDB = getTempCacheDB();
   tempCardDB.set(cardId, card);
 
   return {

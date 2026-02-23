@@ -235,6 +235,8 @@ export interface AppSettings {
   updateThumbnailWithoutFetch: boolean;
   /** 保存ボタンクリック後の遅延時間（ミリ秒）: 0〜5000 (デフォルト: 0) */
   saveDelayMs: number;
+  /** AIテキストリンクを有効化（カードテキスト内の条件をクリック可能に） */
+  aiTextLinksEnabled?: boolean;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -359,6 +361,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   backgroundDeckInfoFetch: true,       // バックグラウンドでのデッキ情報取得: デフォルト有効（v0.6.2で通信最適化済み）
   updateThumbnailWithoutFetch: true,   // APIフェッチなしでサムネイルを更新: デフォルト有効（v0.6.2で通信最適化済み）
   saveDelayMs: 0,                      // 保存ボタンクリック後の遅延時間: 0ms（即座に保存）
+  aiTextLinksEnabled: false,           // AIテキストリンク: デフォルト無効（オプトイン）
 };
 
 /**

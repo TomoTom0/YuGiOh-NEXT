@@ -1,5 +1,5 @@
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from './temp-card-db';
+import { getTempCacheDB } from './temp-cache-db';
 
 /**
  * エクスポートオプション
@@ -27,7 +27,7 @@ interface ExportRow {
 function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): ExportRow[] {
   const rows: ExportRow[] = [];
   const { includeSide = true } = options;
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
 
   // Main Deck
   deckInfo.mainDeck.forEach(({ cid, ciid, quantity }) => {

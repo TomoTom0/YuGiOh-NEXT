@@ -15,7 +15,7 @@ import { getCardImageUrl } from '../../types/card';
 // import QRCode from 'qrcode';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl, buildFullUrl } from '../../utils/url-builder';
-import { getTempCardDB } from '../../utils/temp-card-db';
+import { getTempCacheDB } from '../../utils/temp-cache-db';
 
 /**
  * デッキレシピ画像を作成する
@@ -66,7 +66,7 @@ export async function createDeckRecipeImage(
     return url;
   };
 
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
 
   const sections: CardSection[] = [
     {

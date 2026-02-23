@@ -101,60 +101,70 @@ class SessionManager {
   async saveDeck(dno: number, deckData: DeckInfo): Promise<OperationResult> {
     const startTime = performance.now();
 
-    const cgid = await this.ensureCgid();
+    console.debug('[SessionManager.saveDeck] Starting save process', { dno, deckDataName: deckData.name });
 
-    // プリロードされたytknを優先的に使用
-    let ytkn: string | null = null;
+    try {
+      const cgid = await this.ensureCgid();
+      console.debug('[SessionManager.saveDeck] cgid obtained:', cgid?.substring(0, 8) + '...');
 
-    // ytkn取得のPromiseを待つ（最大1秒）
-    if (window.ygoNextPreloadedYtknPromise && !window.ygoNextPreloadedYtkn) {
-      try {
-        await Promise.race([
-          window.ygoNextPreloadedYtknPromise,
-          new Promise((_, reject) => setTimeout(() => reject(new Error('ytkn preload timeout')), 1000))
-        ]);
-      } catch (error) {
-        console.warn('[SessionManager.saveDeck] ytkn preload wait failed or timed out:', error);
+      // プリロードされたytknを優先的に使用
+      let ytkn: string | null = null;
+
+      // ytkn取得のPromiseを待つ（最大1秒）
+      if (window.ygoNextPreloadedYtknPromise && !window.ygoNextPreloadedYtkn) {
+        try {
+          await Promise.race([
+            window.ygoNextPreloadedYtknPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('ytkn preload timeout')), 1000))
+          ]);
+        } catch (error) {
+          console.warn('[SessionManager.saveDeck] ytkn preload wait failed or timed out:', error);
+        }
+        // 使用後は Promise を削除
+        window.ygoNextPreloadedYtknPromise = null;
       }
-      // 使用後は Promise を削除
-      window.ygoNextPreloadedYtknPromise = null;
+
+      // プリロードされたytknを使用
+      if (window.ygoNextPreloadedYtkn) {
+        ytkn = window.ygoNextPreloadedYtkn;
+        window.ygoNextPreloadedYtkn = null; // 使い捨てのため削除
+        console.debug('[SessionManager.saveDeck] Using preloaded ytkn');
+      }
+
+      // プリロードがない場合は通常取得
+      if (!ytkn) {
+        const ytknStartTime = performance.now();
+        ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+        const ytknDuration = performance.now() - ytknStartTime;
+        console.debug(`[SessionManager.saveDeck] ytkn取得時間（通常取得）: ${ytknDuration.toFixed(2)}ms`);
+      }
+
+      if (!ytkn) {
+        console.error('[SessionManager.saveDeck] ytkn is null, throwing error');
+        throw new Error('ytkn not found for saveDeck');
+      }
+
+      console.debug('[SessionManager.saveDeck] Calling saveDeckInternal');
+      const saveStartTime = performance.now();
+      const result = await saveDeckInternal(cgid, dno, deckData, ytkn);
+      const saveDuration = performance.now() - saveStartTime;
+      console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
+
+      // 保存成功後、次回用のytknを非同期でプリロード（UIをブロックしない）
+      if (result.success) {
+        this.preloadNextYtkn(cgid, dno).catch(error => {
+          console.warn('[SessionManager.saveDeck] Failed to preload next ytkn:', error);
+        });
+      }
+
+      const totalDuration = performance.now() - startTime;
+      console.debug(`[SessionManager.saveDeck] 合計時間: ${totalDuration.toFixed(2)}ms`);
+
+      return result;
+    } catch (error) {
+      console.error('[SessionManager.saveDeck] Error during save:', error);
+      throw error;
     }
-
-    // プリロードされたytknを使用
-    if (window.ygoNextPreloadedYtkn) {
-      ytkn = window.ygoNextPreloadedYtkn;
-      window.ygoNextPreloadedYtkn = null; // 使い捨てのため削除
-      console.debug('[SessionManager.saveDeck] Using preloaded ytkn');
-    }
-
-    // プリロードがない場合は通常取得
-    if (!ytkn) {
-      const ytknStartTime = performance.now();
-      ytkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
-      const ytknDuration = performance.now() - ytknStartTime;
-      console.debug(`[SessionManager.saveDeck] ytkn取得時間（通常取得）: ${ytknDuration.toFixed(2)}ms`);
-    }
-
-    if (!ytkn) {
-      throw new Error('ytkn not found for saveDeck');
-    }
-
-    const saveStartTime = performance.now();
-    const result = await saveDeckInternal(cgid, dno, deckData, ytkn);
-    const saveDuration = performance.now() - saveStartTime;
-    console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
-
-    // 保存成功後、次回用のytknを非同期でプリロード（UIをブロックしない）
-    if (result.success) {
-      this.preloadNextYtkn(cgid, dno).catch(error => {
-        console.warn('[SessionManager.saveDeck] Failed to preload next ytkn:', error);
-      });
-    }
-
-    const totalDuration = performance.now() - startTime;
-    console.debug(`[SessionManager.saveDeck] 合計時間: ${totalDuration.toFixed(2)}ms`);
-
-    return result;
   }
 
   /**

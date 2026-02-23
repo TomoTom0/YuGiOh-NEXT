@@ -2,7 +2,7 @@ import { Ref } from 'vue';
 import { DeckInfo, OperationResult } from '@/types/deck';
 import { getDeckDetail as getDeckDetailAPI } from '@/api/deck-operations';
 import { URLStateManager } from '@/utils/url-state';
-import { recordDeckOpen } from '@/utils/temp-card-db';
+import { recordDeckOpen } from '@/utils/temp-cache-db';
 import { useToastStore } from '@/stores/toast-notification';
 
 /**

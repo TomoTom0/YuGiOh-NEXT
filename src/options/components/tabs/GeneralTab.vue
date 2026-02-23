@@ -209,12 +209,12 @@ const handleClearCache = async () => {
     // 1. キャッシュカードDB
     if (cacheOptions.value.cardDB) {
       const { getUnifiedCacheDB } = await import('@/utils/unified-cache-db');
-      const { getTempCardDB } = await import('@/utils/temp-card-db');
+      const { getTempCacheDB } = await import('@/utils/temp-cache-db');
 
       const unifiedDB = getUnifiedCacheDB();
       await unifiedDB.clearAll();
 
-      const tempDB = getTempCardDB();
+      const tempDB = getTempCacheDB();
       await tempDB.clearStorage();
 
       deletedItems.push('キャッシュカードDB');

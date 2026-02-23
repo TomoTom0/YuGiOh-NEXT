@@ -7,7 +7,7 @@ import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
 import { URLStateManager } from '../utils/url-state';
 import { useSettingsStore } from './settings';
 import { getCardLimit } from '../utils/card-limit';
-import { getTempCardDB, initTempCardDBFromStorage, saveTempCardDBToStorage } from '../utils/temp-card-db';
+import { getTempCacheDB, initTempCacheDBFromStorage, saveTempCacheDBToStorage } from '../utils/temp-cache-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
@@ -631,9 +631,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // データ追加
     addToDisplayOrder(card, section);
 
-    // TempCardDBをChrome Storageに保存（非同期で実行）
-    saveTempCardDBToStorage().catch(error => {
-      console.error('Failed to save TempCardDB to storage:', error);
+    // TempCacheDBをChrome Storageに保存（非同期で実行）
+    saveTempCacheDBToStorage().catch(error => {
+      console.error('Failed to save TempCacheDB to storage:', error);
     });
 
     // カテゴリ判定を更新
@@ -832,7 +832,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       return { success: false, error: 'カードの位置が見つかりません' };
     }
 
-    const tempCardDB = getTempCardDB();
+    const tempCardDB = getTempCacheDB();
     const cardInfo = tempCardDB.get(cardId);
     if (!cardInfo) return { success: false, error: 'カード情報が見つかりません' };
 
@@ -1346,8 +1346,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // 非同期で実行（await しない）
     (async () => {
       try {
-        // Chrome StorageからTempCardDBを初期化（キャッシュされたカード情報を復元）
-        await initTempCardDBFromStorage();
+        // Chrome StorageからTempCacheDBを初期化（キャッシュされたカード情報を復元）
+        await initTempCacheDBFromStorage();
 
         // 設定ストアを初期化
         await settingsStore.loadSettings();
