@@ -16,7 +16,6 @@
 
 ## ファイル
 
-- [cache-db.md](./cache-db.md) - カード情報キャッシュ設計
 - [card-info-cache.md](./card-info-cache.md) - カード情報キャッシュ仕様
 - [option-page.md](./option-page.md) - オプションページ設計
 - [search-condition.md](./search-condition.md) - 検索条件設計

@@ -24,7 +24,7 @@
 
 ### 生成AI連携
 
-詳細は [docs/dev/feature/first-llm.md](./dev/feature/first-llm.md) を参照。
+詳細は [docs/dev/feature/first-llm.md](./feature/first-llm.md) を参照。
 
 - カードテキストのインタラクティブ・リンク化
 - デッキ内シナジーの動的ハイライト
