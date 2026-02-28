@@ -150,11 +150,11 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   }
 
   // マージされたカード情報を TempCacheDB（および UnifiedCacheDB）に保存
-  // TempCacheDB.set() は内部で UnifiedCacheDB にも同期するため、
-  // sortDisplayOrderForOfficial でカードタイプが正しく取得できる
+  // TempCacheDB.setAsync() は初期化を待機してから保存するため、
+  // レースコンディションによるデータ損失を防ぐ
   const tempCardDB = getTempCacheDB();
   for (const [cid, cardInfo] of mergedCardInfoMap.entries()) {
-    tempCardDB.set(cid, cardInfo, true);
+    await tempCardDB.setAsync(cid, cardInfo, true);
   }
 
   return {

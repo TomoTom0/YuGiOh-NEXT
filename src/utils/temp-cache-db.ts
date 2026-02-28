@@ -8,6 +8,25 @@
 import type { CardInfo } from '../types/card';
 import { getUnifiedCacheDB, initUnifiedCacheDB, saveUnifiedCacheDB } from './unified-cache-db';
 
+// 初期化待機用のプロミス
+let initPromise: Promise<void> | null = null;
+
+/**
+ * 初期化を待機してから処理を実行
+ */
+async function withInit<T>(fn: () => T): Promise<T> {
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    const unifiedDB = getUnifiedCacheDB();
+    if (!unifiedDB.isInitialized()) {
+      if (!initPromise) {
+        initPromise = initUnifiedCacheDB();
+      }
+      await initPromise;
+    }
+  }
+  return fn();
+}
+
 /**
  * カード情報を取得
  * @param cid カードID
@@ -18,13 +37,27 @@ export function getTempCacheDB() {
   return {
     get: (cid: string): CardInfo | undefined => unifiedDB.getCardInfo(cid),
     set: (cid: string, card: CardInfo, forceUpdate: boolean = false): boolean => {
-      // 初期化されていない場合は非同期で初期化（chrome環境のみ）
+      // 注意: 同期版は初期化待機できないため、既に初期化済みの場合のみ使用可能
+      // 未初期化の場合は非同期版の setAsync を使用すること
       if (!unifiedDB.isInitialized() && typeof chrome !== 'undefined' && chrome.storage?.local) {
-        initUnifiedCacheDB().catch(err => {
+        console.warn('[TempCacheDB] set() called before initialization, data may be lost. Use setAsync() instead.');
+        // 非同期で初期化してから保存を試みる（後続の呼び出しで救済される可能性）
+        // initPromiseを使用して初期化が一度だけ実行されることを保証
+        if (!initPromise) {
+          initPromise = initUnifiedCacheDB();
+        }
+        initPromise.then(() => {
+          unifiedDB.setCardInfoFull(cid, card, forceUpdate);
+        }).catch(err => {
           // テスト環境ではエラーを無視
         });
+        return false;
       }
       return unifiedDB.setCardInfoFull(cid, card, forceUpdate);
+    },
+    setAsync: (cid: string, card: CardInfo, forceUpdate: boolean = false): Promise<boolean> => {
+      // 初期化を待機してから保存
+      return withInit(() => unifiedDB.setCardInfoFull(cid, card, forceUpdate));
     },
     has: (cid: string): boolean => unifiedDB.hasCardInfo(cid),
     delete: (cid: string): boolean => {
