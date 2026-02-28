@@ -121,6 +121,68 @@ describe('utils/temp-cache-db', () => {
       expect(mockUnifiedDB.hasCardInfo).toHaveBeenCalledWith('1')
       expect(result).toBe(true)
     })
+
+    it('set()未初期化時にconsole.warnを出力し、非同期で初期化を試みる', async () => {
+      // chrome.storage.localをモック
+      const originalChrome = global.chrome
+      global.chrome = {
+        storage: {
+          local: {}
+        }
+      } as unknown as typeof chrome
+
+      // 未初期化状態を設定
+      mockUnifiedDB.isInitialized.mockReturnValue(false)
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      const db = getTempCacheDB()
+      const card = createTestCard()
+
+      // set()を呼び出す（同期処理としてはfalseを返す）
+      const result = db.set('1', card)
+
+      // 即座にfalseを返す
+      expect(result).toBe(false)
+      // console.warnが呼ばれる
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[TempCacheDB] set() called before initialization, data may be lost. Use setAsync() instead.'
+      )
+
+      // 非同期処理が完了するのを待つ
+      await vi.waitFor(() => {
+        expect(mockUnifiedDB.setCardInfoFull).toHaveBeenCalledWith('1', card, false)
+      })
+
+      // クリーンアップ
+      global.chrome = originalChrome
+      warnSpy.mockRestore()
+    })
+
+    it('setAsync()未初期化時に初期化を待機してから保存', async () => {
+      // chrome.storage.localをモック
+      const originalChrome = global.chrome
+      global.chrome = {
+        storage: {
+          local: {}
+        }
+      } as unknown as typeof chrome
+
+      // 未初期化状態を設定
+      mockUnifiedDB.isInitialized.mockReturnValue(false)
+
+      const db = getTempCacheDB()
+      const card = createTestCard()
+
+      // setAsync()を呼び出す
+      await db.setAsync('1', card, true)
+
+      // 初期化後にsetCardInfoFullが呼ばれる
+      expect(mockUnifiedDB.setCardInfoFull).toHaveBeenCalledWith('1', card, true)
+
+      // クリーンアップ
+      global.chrome = originalChrome
+    })
   })
 
   describe('TempCacheDB.getImageHash', () => {

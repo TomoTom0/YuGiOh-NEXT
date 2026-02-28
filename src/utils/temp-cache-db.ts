@@ -42,7 +42,11 @@ export function getTempCacheDB() {
       if (!unifiedDB.isInitialized() && typeof chrome !== 'undefined' && chrome.storage?.local) {
         console.warn('[TempCacheDB] set() called before initialization, data may be lost. Use setAsync() instead.');
         // 非同期で初期化してから保存を試みる（後続の呼び出しで救済される可能性）
-        initUnifiedCacheDB().then(() => {
+        // initPromiseを使用して初期化が一度だけ実行されることを保証
+        if (!initPromise) {
+          initPromise = initUnifiedCacheDB();
+        }
+        initPromise.then(() => {
           unifiedDB.setCardInfoFull(cid, card, forceUpdate);
         }).catch(err => {
           // テスト環境ではエラーを無視
@@ -51,10 +55,9 @@ export function getTempCacheDB() {
       }
       return unifiedDB.setCardInfoFull(cid, card, forceUpdate);
     },
-    setAsync: async (cid: string, card: CardInfo, forceUpdate: boolean = false): Promise<boolean> => {
+    setAsync: (cid: string, card: CardInfo, forceUpdate: boolean = false): Promise<boolean> => {
       // 初期化を待機してから保存
-      await withInit(() => {});
-      return unifiedDB.setCardInfoFull(cid, card, forceUpdate);
+      return withInit(() => unifiedDB.setCardInfoFull(cid, card, forceUpdate));
     },
     has: (cid: string): boolean => unifiedDB.hasCardInfo(cid),
     delete: (cid: string): boolean => {
