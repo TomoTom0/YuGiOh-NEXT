@@ -2,12 +2,12 @@
   <div class="description-section">
     <div class="description-header">
       <label class="metadata-label">説明</label>
-      <span class="char-count">{{ modelValue.length }}/1000</span>
+      <span class="char-count">{{ modelValue.length }}/{{ COMMENT_MAX }}</span>
     </div>
     <textarea
       v-model="value"
       class="metadata-textarea"
-      :maxlength="1000"
+      :maxlength="COMMENT_MAX"
       placeholder="デッキの説明を入力..."
     ></textarea>
   </div>
@@ -15,6 +15,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { DECK_FIELD_LIMITS } from '@/types/deck'
+
+const COMMENT_MAX = DECK_FIELD_LIMITS.COMMENT_MAX
 
 const props = defineProps<{
   modelValue: string

@@ -172,6 +172,7 @@ TempCacheDBはUnifiedCacheDBのラッパーとして再設計されました。
 │  (後方互換性のためのラッパー)                                 │
 │  - get(cid) → unifiedDB.getCardInfo(cid)                    │
 │  - set(cid, card) → unifiedDB.setCardInfoFull(cid, card)    │
+│  - setAsync(cid, card) → 初期化待機後に保存                  │
 │  - has(cid) → unifiedDB.hasCardInfo(cid)                    │
 └──────────────────────────┬──────────────────────────────────┘
                            │
@@ -200,6 +201,30 @@ TempCacheDBはUnifiedCacheDBのラッパーとして再設計されました。
 | `setCardInfoFull(cid, card, forceUpdate)` | fullCardInfoCacheに保存、cardTableA/Bも更新 |
 | `hasCardInfo(cid)` | fullCardInfoCacheにカードが存在するか確認 |
 | `clearCardInfoCache()` | fullCardInfoCacheをクリア |
+
+#### setAsyncメソッド（重要）
+
+**問題**: `set()`メソッドは同期的ですが、UnifiedCacheDBが初期化されていない場合、データが失われる可能性があります。
+
+```typescript
+// ❌ 危険: 初期化前に呼ぶとデータが失われる可能性
+tempCardDB.set(cid, card)
+
+// ✅ 安全: 初期化を待機してから保存
+await tempCardDB.setAsync(cid, card)
+```
+
+**使用すべき場面**:
+- `parseDeckDetail()`などの非同期関数内
+- デッキ詳細ページからのカード情報保存
+
+**実装例**:
+```typescript
+// deck-detail-parser.ts
+for (const [cid, cardInfo] of mergedCardInfoMap.entries()) {
+  await tempCardDB.setAsync(cid, cardInfo, true);
+}
+```
 
 #### 統合の利点
 
