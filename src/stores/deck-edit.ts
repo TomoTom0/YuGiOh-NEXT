@@ -31,6 +31,19 @@ import {
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
 import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
+
+/**
+ * セクション名を日本語に変換
+ */
+function sectionToJapanese(section: 'main' | 'extra' | 'side' | 'trash'): string {
+  const sectionNames: Record<string, string> = {
+    main: 'メイン',
+    extra: 'エクストラ',
+    side: 'サイド',
+    trash: 'ゴミ箱'
+  };
+  return sectionNames[section] || section;
+}
 import {
   STORAGE_KEY_LAST_USED_DNO,
   CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS,
@@ -103,7 +116,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     pushCommand,
     undo: undoCommand,
     redo: redoCommand,
-    clearHistory
+    clearHistory,
+    getUndoDescription,
+    getRedoDescription,
+    getUndoType,
+    getRedoType,
+    jumpToIndex
   } = useDeckUndoRedo();
 
   // デッキ永続化機能 (composableから取得)
@@ -338,7 +356,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
             removeFromDisplayOrderInternal(card.cardId, section, displayCard.uuid);
           }
         }
-      }
+      },
+      description: `追加: ${card.name} -> ${sectionToJapanese(section)}`,
+      type: 'add'
     };
     
     command.execute();
@@ -411,7 +431,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       undo: () => {
         // 元の位置に戻す（originalPrevUuid の直後に sourceUuid を配置）
         reorderWithinSectionInternal(section, sourceUuid, originalPrevUuid);
-      }
+      },
+      description: `並び替え: ${sectionToJapanese(section)}`,
+      type: 'reorder'
     };
 
     pushCommand(command);
@@ -451,7 +473,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   
   function removeFromDisplayOrder(cardId: string, section: 'main' | 'extra' | 'side' | 'trash', uuid?: string, ciid?: string) {
     const result = removeFromDisplayOrderInternal(cardId, section, uuid, ciid);
-    
+
     const command: Command = {
       execute: () => {
         removeFromDisplayOrderInternal(cardId, section, uuid, ciid);
@@ -461,9 +483,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (result.removedCard) {
           addToDisplayOrderInternal(result.removedCard, section);
         }
-      }
+      },
+      description: result.removedCard ? `削除: ${result.removedCard.name}` : `削除: ${cardId}`,
+      type: 'remove'
     };
-    
+
     pushCommand(command);
   }
   
@@ -505,9 +529,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     } else {
       originalIndex = fromOrder.map(dc => dc.cid).lastIndexOf(cardId);
     }
-    
+
+    // カード名を取得（履歴表示用）
+    const tempCardDB = getTempCacheDB();
+    const cardInfo = tempCardDB.get(cardId);
+    const cardName = cardInfo?.name || cardId;
+
     const movedUuid = moveInDisplayOrderInternal(cardId, from, to, uuid);
-    
+
     const command: Command = {
       execute: () => {
         moveInDisplayOrderInternal(cardId, from, to, uuid);
@@ -517,9 +546,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         if (movedUuid) {
           moveInDisplayOrderInternal(cardId, to, from, movedUuid, originalIndex);
         }
-      }
+      },
+      description: `移動: ${cardName} (${sectionToJapanese(from)} -> ${sectionToJapanese(to)})`,
+      type: 'move'
     };
-    
+
     pushCommand(command);
   }
   
@@ -945,7 +976,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
             animateCardMoveByUUID(firstPos, new Set([from, to]));
           });
         });
-      }
+      },
+      description: `移動: ${cardInfo.name} (${sectionToJapanese(from)} -> ${sectionToJapanese(to)})`,
+      type: 'move'
     };
 
     pushCommand(command);
@@ -1441,7 +1474,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
             animateCardMoveByUUID(firstPos, new Set([sectionType]));
           });
         });
-      }
+      },
+      description: `シャッフル: ${sectionToJapanese(sectionType)}`,
+      type: 'reorder'
     };
 
     pushCommand(command);
@@ -1477,6 +1512,54 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   /**
+   * セクションが現在レベル昇順でソートされた状態かチェックする
+   */
+  function isSectionSortedAscByLevel(section: DisplayCard[]): boolean {
+    if (section.length <= 1) return true;
+    const s = useSettingsStore();
+    const ascComparator = createDeckCardComparator(section, {
+      enableCategoryPriority: s.appSettings.enableCategoryPriority ?? true,
+      priorityCategoryCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: s.appSettings.enableHeadPlacement ?? true,
+      headPlacementCardIds: headPlacementCardIds.value,
+      enableTailPlacement: s.appSettings.enableTailPlacement ?? true,
+      tailPlacementCardIds: s.tailPlacementCardIds,
+      levelSortOrder: 'asc'
+    });
+    for (let i = 0; i < section.length - 1; i++) {
+      if (ascComparator(section[i], section[i + 1]) > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * save時にsortが不要かどうかをチェックする
+   * toggle-*の場合: asc/descいずれかで全セクションがsort済みならtrue
+   * 固定方向の場合: その方向で全セクションがsort済みならtrue
+   */
+  function isAllSectionsSortedForSave(): boolean {
+    const s = useSettingsStore();
+    const raw = s.appSettings.deckLevelSortOrder ?? 'toggle-desc';
+    const sectionsToCheck = ['main', 'extra', 'side'] as const;
+
+    const isSorted = (direction: 'asc' | 'desc') =>
+      sectionsToCheck.every(sectionType => {
+        const section = displayOrder.value[sectionType];
+        if (!section || section.length === 0) return true;
+        return direction === 'asc'
+          ? isSectionSortedAscByLevel(section)
+          : isSectionSortedDescByLevel(section);
+      });
+
+    if (raw.startsWith('toggle-')) {
+      return isSorted('desc') || isSorted('asc');
+    }
+    return isSorted(raw as 'asc' | 'desc');
+  }
+
+  /**
    * toggleモード時の有効なlevelSortOrderを決定する
    * @param isAlreadyDescSorted - 現在のセクションがdescソート済みかどうか
    */
@@ -1484,8 +1567,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     settingsStore: ReturnType<typeof useSettingsStore>,
     isAlreadyDescSorted: boolean
   ): 'asc' | 'desc' {
-    const raw = settingsStore.appSettings.deckLevelSortOrder ?? 'desc';
-    if (raw !== 'toggle') return raw;
+    const raw = settingsStore.appSettings.deckLevelSortOrder ?? 'toggle-desc';
+    if (raw !== 'toggle-desc') return raw;
     const now = Date.now();
     if (now - lastSortTimestamp <= TOGGLE_SORT_TIMEOUT_MS && isAlreadyDescSorted) {
       return 'asc';
@@ -1523,7 +1606,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       headPlacementCardIds: headPlacementCardIds.value,
       enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
       tailPlacementCardIds: settingsStore.tailPlacementCardIds,
-      levelSortOrder: effectiveLevelSortOrder
+      levelSortOrder: effectiveLevelSortOrder,
+      categoryPrioritySortMode: settingsStore.appSettings.categoryPrioritySortMode ?? 'level'
     });
 
     // ソート実行
@@ -1560,7 +1644,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
             animateCardMoveByUUID(firstPos, new Set([sectionType]));
           });
         });
-      }
+      },
+      description: `ソート: ${sectionToJapanese(sectionType)}`,
+      type: 'reorder'
     };
 
     pushCommand(command);
@@ -1808,8 +1894,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     shuffleSection,
     sortSection,
     sortAllSections,
+    isAllSectionsSortedForSave,
     undo,
     redo,
+    getUndoDescription,
+    getRedoDescription,
+    getUndoType,
+    getRedoType,
+    jumpToIndex,
     createNewDeck,
     pseudoCopyDeck,
     copyCurrentDeck,
@@ -1819,6 +1911,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     captureDeckSnapshot,
     addHeadPlacementCard,
     removeHeadPlacementCard,
-    isHeadPlacementCard
+    isHeadPlacementCard,
+    clearHistory
   };
 });

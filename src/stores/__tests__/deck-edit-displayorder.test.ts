@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useDeckEditStore } from '../deck-edit';
 import type { CardInfo } from '@/types/card';
@@ -9,6 +9,27 @@ import type { CardInfo } from '@/types/card';
  * displayOrder は Vue ref オブジェクトで、4つのセクション（main/extra/side/trash）を管理
  * 各セクションはカード表示順序を制御する DisplayCard 配列を持つ
  */
+
+// TempCacheDBのモック
+const mockCardCache = new Map<string, CardInfo>();
+
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardCache.get(cid),
+    set: (cid: string, card: CardInfo) => {
+      mockCardCache.set(cid, card);
+      return true;
+    }
+  }),
+  saveTempCacheDBToStorage: () => Promise.resolve()
+}));
+
+vi.mock('@/utils/unified-cache-db', () => ({
+  getUnifiedCacheDB: () => ({
+    isInitialized: () => false,
+    recordMove: () => {}
+  })
+}));
 
 const mockCard = (id: string, name: string = 'Test Card'): CardInfo => ({
   name,
@@ -28,6 +49,7 @@ describe('deck-edit store: displayOrder操作', () => {
   let store: ReturnType<typeof useDeckEditStore>;
 
   beforeEach(() => {
+    mockCardCache.clear();
     setActivePinia(createPinia());
     store = useDeckEditStore();
   });

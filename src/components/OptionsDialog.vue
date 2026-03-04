@@ -145,6 +145,27 @@
             :model-value="settingsStore.appSettings.searchUIFontSize"
             @update:model-value="settingsStore.setSearchUIFontSize($event)"
           />
+
+          <!-- deck-edit: Export Timestamp -->
+          <div v-if="context === 'deck-edit'" class="setting-block">
+            <div class="block-title">Export Timestamp</div>
+            <div class="toggle-row">
+              <button
+                class="toggle-btn"
+                :class="{ active: settingsStore.appSettings.includeTimestampInExportFilename }"
+                @click="settingsStore.setIncludeTimestampInExportFilename(true)"
+              >
+                Include
+              </button>
+              <button
+                class="toggle-btn"
+                :class="{ active: !settingsStore.appSettings.includeTimestampInExportFilename }"
+                @click="settingsStore.setIncludeTimestampInExportFilename(false)"
+              >
+                Exclude
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
