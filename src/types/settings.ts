@@ -221,10 +221,8 @@ export interface AppSettings {
   enableTailPlacement: boolean;
   /** 手動先頭優先配置を有効化 */
   enableHeadPlacement: boolean;
-  /** デッキソートのレベル/ランク/リンク順（'desc': 高→低, 'asc': 低→高, 'toggle': 連続ソートで昇順切り替え） */
-  deckLevelSortOrder: 'asc' | 'desc' | 'toggle';
-  /** 保存前に全ソートを実行 */
-  sortAllBeforeSave: boolean;
+  /** デッキソートのレベル/ランク/リンク順（'desc': 高→低固定, 'asc': 低→高固定, 'toggle-desc': 降順が基本・連続ソートで昇順切り替え） */
+  deckLevelSortOrder: 'asc' | 'desc' | 'toggle-desc';
   /** ダイアログのフォントサイズ */
   dialogFontSize: DialogFontSize;
   /** 検索UIのフォントサイズ */
@@ -235,8 +233,12 @@ export interface AppSettings {
   updateThumbnailWithoutFetch: boolean;
   /** 保存ボタンクリック後の遅延時間（ミリ秒）: 0〜5000 (デフォルト: 0) */
   saveDelayMs: number;
-  /** AIテキストリンクを有効化（カードテキスト内の条件をクリック可能に） */
-  aiTextLinksEnabled?: boolean;
+  /** エクスポートファイル名にタイムスタンプを含める */
+  includeTimestampInExportFilename: boolean;
+  /** 保存時に自動でフルソートする（falseの場合はmin-sort） */
+  saveWithAutoFullSort: boolean;
+  /** カテゴリ優先エリア内のソート順（'level': レベル順（全体設定に従う）, 'quantity-desc': 枚数の降順） */
+  categoryPrioritySortMode: 'level' | 'quantity-desc';
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -341,27 +343,28 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   infoCardSize: 'xlarge',
   gridCardSize: 'medium',
   listCardSize: 'large',
-  theme: 'light',               // デフォルトをライトテーマに変更（darkテーマが実質機能していないため）
+  theme: 'system',              // テーマ: システム設定に従う
   language: 'auto',
   middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   ux: DEFAULT_UX_SETTINGS,       // UX設定
   enableBanlistCheck: false,
   unsavedWarning: 'always',
   // デッキ表示ページ設定
-  showCardDetailInDeckDisplay: false,  // CardDetail表示: デフォルト無効
+  showCardDetailInDeckDisplay: true,   // CardDetail表示: デフォルト有効
   deckDisplayCardImageSize: 'normal',  // デッキ表示ページのカード画像: normal（公式デフォルト）
   defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
   enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
   enableTailPlacement: true,           // 末尾配置: デフォルト有効
   enableHeadPlacement: true,           // 手動先頭優先配置: デフォルト有効
-  deckLevelSortOrder: 'desc',          // デッキソートのレベル順: デフォルト降順（高→低）
-  sortAllBeforeSave: true,             // 保存前に全ソート: デフォルト有効
+  deckLevelSortOrder: 'toggle-desc',   // デッキソートのレベル順: 降順が基本・連続ソートで昇順切り替え
   dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
   searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
   backgroundDeckInfoFetch: true,       // バックグラウンドでのデッキ情報取得: デフォルト有効（v0.6.2で通信最適化済み）
   updateThumbnailWithoutFetch: true,   // APIフェッチなしでサムネイルを更新: デフォルト有効（v0.6.2で通信最適化済み）
   saveDelayMs: 0,                      // 保存ボタンクリック後の遅延時間: 0ms（即座に保存）
-  aiTextLinksEnabled: false,           // AIテキストリンク: デフォルト無効（オプトイン）
+  includeTimestampInExportFilename: true, // エクスポートファイル名にタイムスタンプを含める: デフォルト有効
+  saveWithAutoFullSort: true,          // 保存時に自動でフルソート: デフォルト有効
+  categoryPrioritySortMode: 'level',   // カテゴリ優先内のソート順: レベル順（全体設定に従う）
 };
 
 /**

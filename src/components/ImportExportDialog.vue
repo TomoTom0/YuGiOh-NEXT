@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
 
-  <div v-if="isVisible" class="dialog-overlay" @click.self="close">
+  <div v-if="isVisible" class="ygo-next dialog-overlay" :data-ygo-next-theme="theme" @click.self="close">
     <div class="dialog-content" @click.stop>
       <div class="dialog-header common">
         <div class="dialog-tabs">
@@ -159,12 +159,18 @@ const props = withDefaults(
     isVisible: boolean;
     deckInfo?: DeckInfo | null;
     dno?: string;
+    deckName?: string;
     initialTab?: 'import' | 'export';
+    theme?: 'light' | 'dark';
+    includeTimestamp?: boolean;
   }>(),
   {
     deckInfo: null,
     dno: '',
-    initialTab: 'import'
+    deckName: '',
+    initialTab: 'import',
+    theme: 'light',
+    includeTimestamp: true
   }
 );
 
@@ -195,13 +201,39 @@ const format = ref<'csv' | 'txt'>('csv');
 const includeSide = ref(true);
 const filenameBase = ref('');
 
-// dnoが変更されたらファイル名を更新
-watch(() => props.dno, (newDno) => {
-  if (newDno) {
-    filenameBase.value = `deck-${newDno}`;
-  } else {
-    filenameBase.value = 'deck';
+// タイムスタンプ生成（YYYYMMDD-HHmm形式）
+function generateTimestamp(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day}-${hours}${minutes}`;
+}
+
+// ファイル名を生成
+function generateFilename(): void {
+  // デッキ名がある場合はそれを使用、なければdeck-{dno}
+  let base = 'deck';
+  if (props.deckName) {
+    // ファイル名に使用できない文字を置換
+    base = props.deckName.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'deck';
+  } else if (props.dno) {
+    base = `deck-${props.dno}`;
   }
+
+  // タイムスタンプを付与
+  if (props.includeTimestamp) {
+    filenameBase.value = `${base}-${generateTimestamp()}`;
+  } else {
+    filenameBase.value = base;
+  }
+}
+
+// propsの変更を監視してファイル名を更新
+watch([() => props.dno, () => props.deckName, () => props.includeTimestamp], () => {
+  generateFilename();
 }, { immediate: true });
 
 // ダイアログが開閉されたときの処理
@@ -307,7 +339,9 @@ function handleExport() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../styles/common.scss' as *;
+
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -328,7 +362,6 @@ function handleExport() {
   box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
   width: 90%;
   max-width: 520px;
-  height: 500px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;

@@ -116,36 +116,48 @@ export const useSettingsStore = defineStore('settings', () => {
    * 新形式：ux オブジェクト内にこれらのプロパティを含む
    */
   function migrateOldSettingsFormat(oldSettings: any): AppSettings {
-    if (!oldSettings.ux && (oldSettings.searchInputPosition || oldSettings.defaultSearchMode || oldSettings.enableMouseOperations || oldSettings.changeFavicon)) {
-      // 旧形式の UX 設定を新しい ux オブジェクトに移行
+    let settings = { ...oldSettings };
+
+    // deckLevelSortOrder: 'toggle' → 'toggle-desc' (v0.6.9)
+    if (settings.deckLevelSortOrder === 'toggle') {
+      settings.deckLevelSortOrder = 'toggle-desc';
+    }
+
+    // aiTextLinksEnabled: 削除 (v0.6.9)
+    if ('aiTextLinksEnabled' in settings) {
+      delete settings.aiTextLinksEnabled;
+    }
+
+    // 旧形式の UX 設定を新しい ux オブジェクトに移行
+    if (!settings.ux && (settings.searchInputPosition || settings.defaultSearchMode || settings.enableMouseOperations || settings.changeFavicon)) {
       const uxSettings: Partial<UXSettings> = { ...DEFAULT_UX_SETTINGS };
 
-      if (oldSettings.searchInputPosition) {
-        uxSettings.searchInputPosition = oldSettings.searchInputPosition;
+      if (settings.searchInputPosition) {
+        uxSettings.searchInputPosition = settings.searchInputPosition;
       }
-      if (oldSettings.defaultSearchMode) {
-        uxSettings.defaultSearchMode = oldSettings.defaultSearchMode;
+      if (settings.defaultSearchMode) {
+        uxSettings.defaultSearchMode = settings.defaultSearchMode;
       }
-      if (oldSettings.enableMouseOperations !== undefined) {
-        uxSettings.enableMouseOperations = oldSettings.enableMouseOperations;
+      if (settings.enableMouseOperations !== undefined) {
+        uxSettings.enableMouseOperations = settings.enableMouseOperations;
       }
-      if (oldSettings.changeFavicon !== undefined) {
-        uxSettings.changeFavicon = oldSettings.changeFavicon;
+      if (settings.changeFavicon !== undefined) {
+        uxSettings.changeFavicon = settings.changeFavicon;
       }
-      if (oldSettings.keyboardShortcuts) {
-        uxSettings.keyboardShortcuts = oldSettings.keyboardShortcuts;
+      if (settings.keyboardShortcuts) {
+        uxSettings.keyboardShortcuts = settings.keyboardShortcuts;
       }
 
       // 古いキーを削除した新しいオブジェクトを作成
-      const { searchInputPosition, defaultSearchMode, enableMouseOperations, changeFavicon, keyboardShortcuts, ...cleanedSettings } = oldSettings;
+      const { searchInputPosition, defaultSearchMode, enableMouseOperations, changeFavicon, keyboardShortcuts, ...cleanedSettings } = settings;
 
-      return {
+      settings = {
         ...cleanedSettings,
         ux: uxSettings as UXSettings
       };
     }
 
-    return oldSettings;
+    return settings;
   }
 
   /**
@@ -482,6 +494,14 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   /**
+   * エクスポートファイル名にタイムスタンプを含めるかを変更
+   */
+  function setIncludeTimestampInExportFilename(enabled: boolean): void {
+    appSettings.value.includeTimestampInExportFilename = enabled;
+    saveSettings();
+  }
+
+  /**
    * デッキ表示ページでCardDetail情報を表示するかを変更
    */
   function setShowCardDetailInDeckDisplay(enabled: boolean): void {
@@ -748,6 +768,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setRightAreaFontSize,
     setDialogFontSize,
     setSearchUIFontSize,
+    setIncludeTimestampInExportFilename,
     setShowCardDetailInDeckDisplay,
     setDeckDisplayCardImageSize,
     toggleFeature,

@@ -67,6 +67,13 @@ export interface DeckSortOptions {
    * デフォルト: 'desc'
    */
   levelSortOrder?: 'asc' | 'desc';
+  /**
+   * カテゴリ優先エリア内のソート順
+   * 'level': レベル順（levelSortOrderに従う）
+   * 'quantity-desc': 枚数の降順（多い順固定）
+   * デフォルト: 'level'
+   */
+  categoryPrioritySortMode?: 'level' | 'quantity-desc';
 }
 
 /**
@@ -111,7 +118,8 @@ export function createDeckCardComparator(
     headPlacementCardIds = [],
     enableTailPlacement = true,
     tailPlacementCardIds = [],
-    levelSortOrder = 'desc'
+    levelSortOrder = 'desc',
+    categoryPrioritySortMode = 'level'
   } = options;
 
   /**
@@ -295,11 +303,14 @@ export function createDeckCardComparator(
       return inPriorityA - inPriorityB;
     }
 
-    // 2-1. カテゴリ優先カード内での枚数による重み付け
+    // 2-1. カテゴリ優先カード内での並び順（categoryPrioritySortModeに従う）
     if (enableCategoryPriority && inPriorityA === 0 && inPriorityB === 0) {
-      const quantityA = section.filter(card => card.cid === a.cid).length;
-      const quantityB = section.filter(card => card.cid === b.cid).length;
-      if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
+      if (categoryPrioritySortMode === 'quantity-desc') {
+        const quantityA = section.filter(card => card.cid === a.cid).length;
+        const quantityB = section.filter(card => card.cid === b.cid).length;
+        if (quantityA !== quantityB) return quantityB - quantityA;
+      }
+      // 'level': 比較なし → compareCardsByTypeがlevelSortOrderに従って処理
     }
 
     // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)

@@ -253,6 +253,43 @@
         </span>
       </label>
 
+      <!-- カテゴリ優先内のソート順 -->
+      <div style="margin-top: 12px;">
+        <p class="setting-desc" style="margin-bottom: 8px;">カテゴリ優先エリア内の並び順</p>
+        <div class="radio-group">
+          <label
+            class="radio-label"
+            :class="{ active: (settingsStore.appSettings.categoryPrioritySortMode ?? 'level') === 'level' }"
+          >
+            <input
+              type="radio"
+              v-model="settingsStore.appSettings.categoryPrioritySortMode"
+              value="level"
+              @change="settingsStore.saveSettings()"
+            />
+            <span class="radio-text">
+              <strong>レベル順</strong>
+              <span class="radio-desc">全体のソート設定（降順/昇順）に従う</span>
+            </span>
+          </label>
+          <label
+            class="radio-label"
+            :class="{ active: settingsStore.appSettings.categoryPrioritySortMode === 'quantity-desc' }"
+          >
+            <input
+              type="radio"
+              v-model="settingsStore.appSettings.categoryPrioritySortMode"
+              value="quantity-desc"
+              @change="settingsStore.saveSettings()"
+            />
+            <span class="radio-text">
+              <strong>枚数の降順</strong>
+              <span class="radio-desc">採用枚数が多いカードを先頭に配置</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <!-- 末尾配置 -->
       <label class="checkbox-label" style="margin-top: 12px;">
         <input
@@ -302,12 +339,12 @@
           </label>
           <label
             class="radio-label"
-            :class="{ active: settingsStore.appSettings.deckLevelSortOrder === 'toggle' }"
+            :class="{ active: settingsStore.appSettings.deckLevelSortOrder === 'toggle-desc' }"
           >
             <input
               type="radio"
               v-model="settingsStore.appSettings.deckLevelSortOrder"
-              value="toggle"
+              value="toggle-desc"
               @change="settingsStore.saveSettings()"
             />
             <span class="radio-text">

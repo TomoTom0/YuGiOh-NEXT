@@ -657,6 +657,8 @@ export function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid
   if (textElem) {
     // <br>を改行に変換してからtextContentを取得
     const cloned = textElem.cloneNode(true) as HTMLElement;
+    // ペンデュラム効果は別途取得するため、ここでは除外
+    cloned.querySelectorAll('.box_card_pen_effect').forEach(elem => elem.remove());
     cloned.querySelectorAll('br').forEach(br => {
       br.replaceWith('\n');
     });
@@ -1439,12 +1441,52 @@ function parseRuby(doc: Document): string | undefined {
 
 /**
  * カード詳細ページからテキストとペンデュラム効果を取得
+ *
+ * 詳細ページのHTML構造（ペンデュラムモンスターの場合）:
+ * <div class="CardText pen">
+ *   <div class="frame pen_effect">
+ *     <div class="item_box_text">ペンデュラム効果</div>
+ *   </div>
+ * </div>
+ * <div class="CardText">
+ *   <div class="item_box_text">モンスター効果</div>
+ * </div>
  */
 function parseTextData(doc: Document): { text?: string; pendulumText?: string; pendulumScale?: number } | null {
   const result: { text?: string; pendulumText?: string; pendulumScale?: number } = {};
 
-  // テキストを取得
-  const cardTextElem = doc.querySelector('.item_box_text');
+  // ペンデュラムスケールを取得（詳細ページのCardText.pen内から）
+  // 構造: <div class="CardText pen"> ... <span class="item_box_value">ペンデュラムスケール 1</span>
+  const penSection = doc.querySelector('.CardText.pen');
+  if (penSection) {
+    const scaleElem = penSection.querySelector('.item_box_value');
+    if (scaleElem?.textContent) {
+      const match = scaleElem.textContent.match(/(\d+)/);
+      if (match) {
+        result.pendulumScale = parseInt(match[1], 10);
+      }
+    }
+  }
+
+  // ペンデュラム効果を取得（.CardText.pen内の.item_box_text）
+  // ペンデュラムスケールがある場合のみ取得
+  if (penSection && result.pendulumScale !== undefined) {
+    const pendulumTextElem = penSection.querySelector('.item_box_text');
+    if (pendulumTextElem) {
+      const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
+      cloned.querySelectorAll('br').forEach(br => {
+        br.replaceWith('\n');
+      });
+      result.pendulumText = cloned.textContent?.trim() || undefined;
+    }
+  }
+
+  // モンスター効果を取得（.CardText:not(.pen)内の.item_box_text）
+  // ペンデュラムモンスター以外の場合は最初の.item_box_textを使用
+  const cardTextElem = penSection
+    ? doc.querySelector('.CardText:not(.pen) .item_box_text')
+    : doc.querySelector('.item_box_text');
+
   if (cardTextElem) {
     const cloned = cardTextElem.cloneNode(true) as HTMLElement;
     cloned.querySelector('.text_title')?.remove();
@@ -1452,26 +1494,6 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string; p
       br.replaceWith('\n');
     });
     result.text = cloned.textContent?.trim() || undefined;
-  }
-
-  // ペンデュラムスケールを取得（詳細ページのbox_card_pen_scaleから）
-  const pendulumScaleElem = doc.querySelector('.box_card_pen_scale');
-  if (pendulumScaleElem?.textContent) {
-    const match = pendulumScaleElem.textContent.match(/\d+/);
-    if (match) {
-      result.pendulumScale = parseInt(match[0], 10);
-    }
-  }
-
-  // ペンデュラム効果を取得（ペンデュラムスケールがある場合のみ）
-  // ペンデュラムスケールなしにペンデュラムテキストが設定されるのは誤りのため
-  const pendulumTextElem = doc.querySelector('.box_card_pen_effect');
-  if (pendulumTextElem && result.pendulumScale !== undefined) {
-    const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
-    cloned.querySelectorAll('br').forEach(br => {
-      br.replaceWith('\n');
-    });
-    result.pendulumText = cloned.textContent?.trim() || undefined;
   }
 
   return result;
