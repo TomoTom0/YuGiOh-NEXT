@@ -958,10 +958,9 @@ export default {
   line-height: 1.4;
   min-height: 20px;
 
-  // Fixed visible colors for debugging
-  background: #333;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
 
   // Type-specific colors
   &.type-add {
@@ -1001,10 +1000,9 @@ export default {
   line-height: 1.4;
   min-height: 20px;
 
-  // Default colors
-  background: #333;
-  color: #fff;
-  border: 2px solid #fff;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
 
   // Type-specific colors
   &.type-add {

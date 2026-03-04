@@ -18,8 +18,7 @@
               getTypeClass(command.type),
               {
                 current: index === currentIndex,
-                undone: index > currentIndex,
-                future: index > currentIndex
+                undone: index > currentIndex
               }
             ]"
             @click="handleJumpTo(index)"
@@ -220,10 +219,6 @@ export default defineComponent({
 
   &.undone {
     opacity: 0.5;
-  }
-
-  &.future {
-    opacity: 0.7;
   }
 
   // Type-specific left border colors
