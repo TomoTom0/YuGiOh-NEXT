@@ -91,9 +91,7 @@
     background: var(--dialog-bg);
     border: 1px solid var(--dialog-border);
     border-radius: 8px;
-    max-width: 90vw;
     max-height: 90vh;
-    overflow-y: auto;
     box-shadow: var(--shadow-lg);
     font-size: var(--search-ui-font-size, 14px); /* right-area-font-sizeの影響を受けないように固定 */
   }
