@@ -868,7 +868,8 @@ export default {
 }
 
 .main-content {
-  flex: 1;
+  flex: 2 1 500px;  /* grow:2 shrink:1 basis:500px - 右エリアより優先的にスペースを取る */
+  min-width: 400px;  /* デッキレシピの最小幅を確保 */
   display: flex;
   flex-direction: column;
   overflow: hidden;
