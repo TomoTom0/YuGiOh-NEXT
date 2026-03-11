@@ -90,16 +90,25 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   z-index: 100;
-}
 
-.dialog-content {
-  background: var(--dialog-bg, #ffffff);
-  border: 1px solid var(--dialog-border, #e0e0e0);
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
-  padding: 24px;
-  min-width: 400px;
-  max-width: 520px;
+  .dialog-content {
+    background: var(--dialog-bg, #ffffff);
+    border: 1px solid var(--dialog-border, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-sizing: border-box;
+
+    .dialog-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
 }
 
 .dialog-title {
@@ -114,12 +123,6 @@ export default defineComponent({
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-secondary);
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .btn {
@@ -141,27 +144,27 @@ export default defineComponent({
 }
 
 .btn-primary {
-  background: var(--button-bg);
-  color: var(--button-text);
+  background: var(--button-bg, #4a9eff);
+  color: var(--button-text, #ffffff);
 
   &:hover {
-    background: var(--button-hover-bg);
+    background: var(--button-hover-bg, #3a8eef);
   }
 }
 
 .btn-secondary {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  background: var(--color-info-bg, #e3f2fd);
+  color: var(--text-primary, #333);
+  border: 1px solid var(--color-info-border, #64b5f6);
 
   &:hover {
-    background: var(--bg-tertiary);
+    background: var(--color-info-hover-bg, #bbdefb);
   }
 }
 
 .btn-danger {
-  background: var(--color-error);
-  color: var(--button-text);
+  background: var(--color-error, #f44336);
+  color: var(--button-text, #ffffff);
 
   &:hover {
     opacity: 0.85;

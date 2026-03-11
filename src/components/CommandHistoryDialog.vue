@@ -127,11 +127,12 @@ export default defineComponent({
   background: var(--bg-primary);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  width: 500px;
-  max-width: 90vw;
+  width: 90%;
+  max-width: 440px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .history-dialog-header {
