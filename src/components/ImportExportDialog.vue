@@ -344,6 +344,17 @@ function handleExport() {
 <style scoped lang="scss">
 @use '../styles/common.scss' as *;
 
+// 共通のセカンダリボタンスタイル（.btn-cancel, .btn-select-file で使用）
+%btn-secondary-style {
+  background: var(--color-info-bg, #e3f2fd);
+  color: var(--text-primary, #333);
+  border: 1px solid var(--color-info-border, #64b5f6);
+
+  &:hover {
+    background: var(--color-info-hover-bg, #bbdefb);
+  }
+}
+
 .dialog-overlay {
   position: fixed;
   top: 0;
@@ -390,13 +401,7 @@ function handleExport() {
       box-sizing: border-box;
 
       .btn-cancel {
-        background: var(--color-info-bg, #e3f2fd);
-        color: var(--text-primary, #333);
-        border: 1px solid var(--color-info-border, #64b5f6);
-
-        &:hover {
-          background: var(--color-info-hover-bg, #bbdefb);
-        }
+        @extend %btn-secondary-style;
       }
 
       .btn-import,
@@ -503,20 +508,14 @@ function handleExport() {
 }
 
 .btn-select-file {
+  @extend %btn-secondary-style;
   padding: 8px 16px;
-  background: var(--color-info-bg, #e3f2fd);
-  border: 1px solid var(--color-info-border, #64b5f6);
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-primary, #000);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-}
-
-.btn-select-file:hover {
-  background: var(--color-info-hover-bg, #bbdefb);
 }
 
 .file-name {
