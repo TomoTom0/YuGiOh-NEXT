@@ -247,7 +247,10 @@ export default {
 
 <style scoped lang="scss">
 .right-area {
-  width: var(--right-area-width, 400px);
+  /* MAX-FIT時はflex-growで残りスペースを埋める、固定幅時はflex-basisで幅指定 */
+  flex-grow: var(--right-area-flex-grow, 0);
+  flex-shrink: 0;
+  flex-basis: var(--right-area-flex-basis, 400px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -269,16 +272,17 @@ export default {
 
 @media (max-width: 768px) {
   .right-area {
-    width: 100% !important;
+    flex-basis: 100% !important;
+    flex-grow: 1 !important;
     margin: 0 !important;
   }
-  
+
   /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
   .right-area.has-left-top-input {
     height: calc(100% - 65px) !important;
     margin-top: 65px !important;
   }
-  
+
   /* 検索入力欄が下部にある場合：下に隙間 */
   .right-area.has-bottom-input {
     height: calc(100% - 65px) !important;
