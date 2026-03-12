@@ -26,7 +26,7 @@ import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import { handleError, handleSuccess, handleDebug } from '@/utils/error-handler';
@@ -47,7 +47,7 @@ vi.mock('@/content/parser/deck-detail-parser');
 vi.mock('@/utils/ytkn-fetcher');
 vi.mock('@/utils/url-builder');
 vi.mock('@/utils/page-detector');
-vi.mock('@/utils/temp-card-db');
+vi.mock('@/utils/temp-cache-db');
 vi.mock('@/utils/unified-cache-db', () => ({
   getUnifiedCacheDB: vi.fn(),
   saveUnifiedCacheDB: vi.fn().mockResolvedValue(undefined)
@@ -135,13 +135,13 @@ describe('deck-operations.ts', () => {
       // parseDeckDetail のモック: デフォルトではnullを返すが、個別テストで上書き可能
       vi.mocked(parseDeckDetail).mockResolvedValue(null);
 
-      // temp-card-db, unified-cache-db のモック
+      // temp-cache-db, unified-cache-db のモック
       const mockCardDB = {
         get: vi.fn().mockReturnValue({ cardType: 'monster' }),
         set: vi.fn(),
         clear: vi.fn()
       };
-      vi.mocked(getTempCardDB).mockReturnValue(mockCardDB as any);
+      vi.mocked(getTempCacheDB).mockReturnValue(mockCardDB as any);
 
       const mockUnifiedDB = {
         reconstructCardInfo: vi.fn().mockReturnValue(createSampleCardInfo()),
@@ -1137,7 +1137,7 @@ describe('deck-operations.ts', () => {
           set: vi.fn(),
           clear: vi.fn()
         };
-        vi.mocked(getTempCardDB).mockReturnValue(mockCardDB as any);
+        vi.mocked(getTempCacheDB).mockReturnValue(mockCardDB as any);
         const mockUnifiedDB = {
           reconstructCardInfo: vi.fn().mockReturnValue(null),
           saveUnifiedCacheDB: vi.fn().mockResolvedValue(undefined)
@@ -1148,10 +1148,8 @@ describe('deck-operations.ts', () => {
         // Act: saveDeckInternal を実行
         const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
 
-        // Assert: handleDebug が呼ばれた
-        // Note: カードが見つからない場合はデバッグメッセージが出力される
-        // Assert: 保存処理は続行される（カードはスキップ）
-        expect(result.success).toBe(true);
+        // Assert: カードが見つからない場合はエラーが返される
+        expect(result.success).toBe(false);
       });
     });
 
@@ -1521,24 +1519,28 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should call handleDebug for non-critical warnings', async () => {
+      it('should call handleError when card data is missing', async () => {
         // Arrange: モック設定
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
+        vi.mocked(buildApiUrl).mockImplementation((path: string) => path.startsWith('http') ? path : `https://www.db.yugioh-card.com/yugiohdb/${path}`);
+        vi.mocked(detectCardGameType).mockReturnValue('ygo');
+        vi.mocked(detectLanguage).mockReturnValue('ja');
+        vi.mocked(handleError).mockImplementation(() => {});
         const mockCardDB = {
           get: vi.fn().mockReturnValue(null),
           set: vi.fn(),
           clear: vi.fn()
         };
-        vi.mocked(getTempCardDB).mockReturnValue(mockCardDB as any);
+        vi.mocked(getTempCacheDB).mockReturnValue(mockCardDB as any);
+        const mockUnifiedDB = { reconstructCardInfo: vi.fn().mockReturnValue(null) };
+        vi.mocked(getUnifiedCacheDB).mockReturnValue(mockUnifiedDB as any);
         const deckData = createSampleDeckInfo();
 
         // Act: 各関数を実行
         await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
 
-        // Assert: handleDebug が呼ばれた
-        // Note: カードが見つからない場合にデバッグメッセージが出力される
-        // 実装によっては呼ばれない可能性もあるため、最低限の確認のみ
-        expect(handleDebug).toHaveBeenCalled();
+        // Assert: カードが見つからずエラーが発生し、handleError が呼ばれる
+        expect(handleError).toHaveBeenCalled();
       });
     });
 
@@ -1743,6 +1745,15 @@ describe('deck-operations.ts', () => {
       vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
       vi.mocked(parseDeckList).mockReturnValue([createSampleDeckListItem(5, 'New Deck')]);
       vi.mocked(parseDeckDetail).mockResolvedValue(createSampleDeckInfo());
+      vi.mocked(buildApiUrl).mockImplementation((path: string) => path.startsWith('http') ? path : `https://www.db.yugioh-card.com/yugiohdb/${path}`);
+      vi.mocked(detectCardGameType).mockReturnValue('ygo');
+      vi.mocked(detectLanguage).mockReturnValue('ja');
+      vi.mocked(handleError).mockImplementation(() => {});
+      vi.mocked(handleSuccess).mockImplementation(() => {});
+      const mockCardDB = { get: vi.fn().mockReturnValue({ cardType: 'monster' }), set: vi.fn(), clear: vi.fn() };
+      vi.mocked(getTempCacheDB).mockReturnValue(mockCardDB as any);
+      const mockUnifiedDB = { reconstructCardInfo: vi.fn().mockReturnValue(createSampleCardInfo()), saveUnifiedCacheDB: vi.fn().mockResolvedValue(undefined) };
+      vi.mocked(getUnifiedCacheDB).mockReturnValue(mockUnifiedDB as any);
 
       // Act: 順番に実行
       const dno = await createNewDeckInternal('test-cgid'); // create
@@ -1778,6 +1789,58 @@ describe('deck-operations.ts', () => {
       results.forEach(result => {
         expect(result).toHaveLength(3);
       });
+    });
+  });
+
+  describe('saveDeckInternal() - データ検証', () => {
+    it('cidが空のカードがある場合、エラーが返される', async () => {
+      const deckData = createSampleDeckInfo();
+      // cidを空にする
+      deckData.mainDeck = [{ cid: '', ciid: 1, quantity: 1 }];
+
+      const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error![0]).toContain('cid is empty or undefined');
+    });
+
+    it('quantityが0のカードがある場合、エラーが返される', async () => {
+      const deckData = createSampleDeckInfo();
+      deckData.mainDeck = [{ cid: '12345', ciid: 1, quantity: 0 }];
+
+      const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error![0]).toContain('invalid quantity');
+    });
+
+    it('ciidが空のカードがある場合、エラーが返される', async () => {
+      const deckData = createSampleDeckInfo();
+      deckData.mainDeck = [{ cid: '12345', ciid: '', quantity: 1 }];
+
+      const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error![0]).toContain('invalid ciid');
+    });
+
+    it('重複カード（同一cid+ciid）がある場合、コンソールエラーが出力される', async () => {
+      vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
+      const consoleSpy = vi.spyOn(console, 'error');
+
+      const deckData = createSampleDeckInfo();
+      deckData.mainDeck = [
+        { cid: '12345', ciid: 1, quantity: 2 },
+        { cid: '12345', ciid: 1, quantity: 1 }
+      ];
+
+      await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Duplicate card found')
+      );
+
+      consoleSpy.mockRestore();
     });
   });
 });

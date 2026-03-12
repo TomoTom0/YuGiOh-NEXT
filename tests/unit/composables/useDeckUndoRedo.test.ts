@@ -207,6 +207,164 @@ describe('useDeckUndoRedo', () => {
     });
   });
 
+  describe('timestamp', () => {
+    it('pushCommand時にtimestampが自動設定される', () => {
+      const before = Date.now();
+      const cmd = createTestCommand('A');
+      undoRedo.pushCommand(cmd);
+      const after = Date.now();
+
+      const history = undoRedo.commandHistory.value;
+      expect(history[0].timestamp).toBeGreaterThanOrEqual(before);
+      expect(history[0].timestamp).toBeLessThanOrEqual(after);
+    });
+
+    it('明示的に設定したtimestampは上書きされない', () => {
+      const cmd: Command = {
+        ...createTestCommand('A'),
+        timestamp: 12345
+      };
+      undoRedo.pushCommand(cmd);
+
+      const history = undoRedo.commandHistory.value;
+      expect(history[0].timestamp).toBe(12345);
+    });
+  });
+
+  describe('getUndoDescription / getRedoDescription', () => {
+    it('undo不可時はundefinedを返す', () => {
+      expect(undoRedo.getUndoDescription()).toBeUndefined();
+    });
+
+    it('redo不可時はundefinedを返す', () => {
+      expect(undoRedo.getRedoDescription()).toBeUndefined();
+    });
+
+    it('descriptionが設定されたコマンドの説明を取得できる', () => {
+      const cmd: Command = {
+        ...createTestCommand('A'),
+        description: 'Add Blue-Eyes'
+      };
+      undoRedo.pushCommand(cmd);
+
+      expect(undoRedo.getUndoDescription()).toBe('Add Blue-Eyes');
+    });
+
+    it('undo後にredoの説明を取得できる', () => {
+      const cmd: Command = {
+        ...createTestCommand('A'),
+        description: 'Add Blue-Eyes'
+      };
+      undoRedo.pushCommand(cmd);
+      undoRedo.undo();
+
+      expect(undoRedo.getUndoDescription()).toBeUndefined();
+      expect(undoRedo.getRedoDescription()).toBe('Add Blue-Eyes');
+    });
+
+    it('descriptionが未設定のコマンドはundefinedを返す', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      expect(undoRedo.getUndoDescription()).toBeUndefined();
+    });
+  });
+
+  describe('getUndoType / getRedoType', () => {
+    it('undo不可時はundefinedを返す', () => {
+      expect(undoRedo.getUndoType()).toBeUndefined();
+    });
+
+    it('redo不可時はundefinedを返す', () => {
+      expect(undoRedo.getRedoType()).toBeUndefined();
+    });
+
+    it('typeが設定されたコマンドのタイプを取得できる', () => {
+      const cmd: Command = {
+        ...createTestCommand('A'),
+        type: 'add'
+      };
+      undoRedo.pushCommand(cmd);
+
+      expect(undoRedo.getUndoType()).toBe('add');
+    });
+
+    it('undo後にredoのタイプを取得できる', () => {
+      const cmd: Command = {
+        ...createTestCommand('A'),
+        type: 'remove'
+      };
+      undoRedo.pushCommand(cmd);
+      undoRedo.undo();
+
+      expect(undoRedo.getUndoType()).toBeUndefined();
+      expect(undoRedo.getRedoType()).toBe('remove');
+    });
+
+    it('複数コマンドで正しいタイプを返す', () => {
+      undoRedo.pushCommand({ ...createTestCommand('A'), type: 'add' });
+      undoRedo.pushCommand({ ...createTestCommand('B'), type: 'move' });
+      undoRedo.pushCommand({ ...createTestCommand('C'), type: 'reorder' });
+
+      expect(undoRedo.getUndoType()).toBe('reorder');
+      undoRedo.undo();
+      expect(undoRedo.getUndoType()).toBe('move');
+      expect(undoRedo.getRedoType()).toBe('reorder');
+    });
+  });
+
+  describe('jumpToIndex', () => {
+    it('範囲外のインデックスはfalseを返す', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      expect(undoRedo.jumpToIndex(-2)).toBe(false);
+      expect(undoRedo.jumpToIndex(1)).toBe(false);
+    });
+
+    it('現在位置と同じインデックスはtrueを返し何もしない', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      executionLog = [];
+
+      expect(undoRedo.jumpToIndex(0)).toBe(true);
+      expect(executionLog).toEqual([]);
+    });
+
+    it('前方へジャンプ（undo）できる', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      undoRedo.pushCommand(createTestCommand('B'));
+      undoRedo.pushCommand(createTestCommand('C'));
+      executionLog = [];
+
+      // index 2 → index 0 (CとBをundo)
+      expect(undoRedo.jumpToIndex(0)).toBe(true);
+      expect(executionLog).toEqual(['undo:C', 'undo:B']);
+      expect(undoRedo.getCurrentIndex()).toBe(0);
+    });
+
+    it('後方へジャンプ（redo）できる', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      undoRedo.pushCommand(createTestCommand('B'));
+      undoRedo.pushCommand(createTestCommand('C'));
+      // 全てundo
+      undoRedo.undo();
+      undoRedo.undo();
+      undoRedo.undo();
+      executionLog = [];
+
+      // index -1 → index 2 (A,B,Cをredo)
+      expect(undoRedo.jumpToIndex(2)).toBe(true);
+      expect(executionLog).toEqual(['execute:A', 'execute:B', 'execute:C']);
+      expect(undoRedo.getCurrentIndex()).toBe(2);
+    });
+
+    it('index -1 へジャンプして初期状態に戻れる', () => {
+      undoRedo.pushCommand(createTestCommand('A'));
+      undoRedo.pushCommand(createTestCommand('B'));
+      executionLog = [];
+
+      expect(undoRedo.jumpToIndex(-1)).toBe(true);
+      expect(executionLog).toEqual(['undo:B', 'undo:A']);
+      expect(undoRedo.getCurrentIndex()).toBe(-1);
+    });
+  });
+
   describe('統合テスト', () => {
     it('複雑なundo/redo操作が正しく動作する', () => {
       // 3つのコマンドを追加
