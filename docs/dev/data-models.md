@@ -171,16 +171,43 @@ interface AppSettings {
   infoCardSize: CardSize;        // カード詳細
   gridCardSize: CardSize;        // グリッド表示
   listCardSize: CardSize;        // リスト表示
-  
+
   // 外観
   theme: Theme;                  // テーマ
   language: Language;            // 言語
-  
+
   // レイアウト
   middleDecksLayout: MiddleDecksLayout;  // Extra/Sideの配置
-  
+
+  // UX設定
+  ux: UXSettings;                // UX設定（検索位置、ショートカット等）
+
   // 機能
   enableBanlistCheck: boolean;   // 禁止制限リストチェック
+  unsavedWarning: UnsavedWarning;  // 未保存時の警告モード
+
+  // ソート関連
+  defaultSortOrder: string;              // デフォルトソート順序
+  enableCategoryPriority: boolean;       // カテゴリ優先
+  enableTailPlacement: boolean;          // 末尾配置
+  enableHeadPlacement: boolean;          // 手動先頭優先配置
+  deckLevelSortOrder: 'asc' | 'desc' | 'toggle-desc';  // レベルソート順
+  categoryPrioritySortMode: 'level' | 'quantity-desc';  // カテゴリ優先内ソート
+  saveWithAutoFullSort: boolean;         // 保存時自動フルソート
+
+  // エクスポート
+  includeTimestampInExportFilename: boolean;  // ファイル名にタイムスタンプ
+
+  // 表示
+  showCardDetailInDeckDisplay: boolean;   // デッキ表示でCardDetail表示
+  deckDisplayCardImageSize: DeckDisplayCardImageSize;  // デッキ表示カード画像サイズ
+  dialogFontSize: DialogFontSize;         // ダイアログフォントサイズ
+  searchUIFontSize: SearchUIFontSize;     // 検索UIフォントサイズ
+
+  // パフォーマンス
+  backgroundDeckInfoFetch: boolean;       // バックグラウンドデッキ情報取得
+  updateThumbnailWithoutFetch: boolean;   // APIなしサムネイル更新
+  saveDelayMs: number;                    // 保存遅延時間（ms）
 }
 ```
 
@@ -263,17 +290,21 @@ interface DeckEditUIState {
 
 **SortOrder**:
 ```typescript
-type SortOrder = 
-  | 'official'    // 公式順（デフォルト）
-  | 'name-asc'    // 名前昇順
-  | 'name-desc'   // 名前降順
-  | 'level-asc'   // レベル昇順
-  | 'level-desc'  // レベル降順
-  | 'atk-asc'     // 攻撃力昇順
-  | 'atk-desc'    // 攻撃力降順
-  | 'def-asc'     // 守備力昇順
-  | 'def-desc';   // 守備力降順
+type SortOrder =
+  | 'official'      // 公式順（デフォルト）
+  | 'release_desc'  // リリース日降順（新しい順）
+  | 'release_asc'   // リリース日昇順（古い順）
+  | 'name_asc'      // 名前昇順
+  | 'name_desc'     // 名前降順
+  | 'level_asc'     // レベル昇順
+  | 'level_desc'    // レベル降順
+  | 'atk_asc'       // 攻撃力昇順
+  | 'atk_desc'      // 攻撃力降順
+  | 'def_asc'       // 守備力昇順
+  | 'def_desc';     // 守備力降順
 ```
+
+Note: 区切り文字はアンダースコア（`_`）を使用。
 
 実装: [`src/types/settings.ts`](../../src/types/settings.ts)
 

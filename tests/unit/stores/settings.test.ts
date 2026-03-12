@@ -62,7 +62,7 @@ describe('stores/settings', () => {
       const store = useSettingsStore();
       await store.loadSettings();
 
-      expect(store.appSettings.theme).toBe('light');
+      expect(store.appSettings.theme).toBe('system');
       expect(store.appSettings.language).toBe('auto');
       expect(store.isLoaded).toBe(true);
     });
@@ -391,7 +391,7 @@ describe('stores/settings', () => {
       await store.loadSettings();
 
       expect(store.isLoaded).toBe(true);
-      expect(store.appSettings.theme).toBe('light'); // デフォルト値
+      expect(store.appSettings.theme).toBe('system'); // デフォルト値
     });
 
     it('should handle chrome.storage.get throwing errors', async () => {
@@ -409,7 +409,7 @@ describe('stores/settings', () => {
       }
 
       // デフォルト値が使用される
-      expect(store.appSettings.theme).toBe('light');
+      expect(store.appSettings.theme).toBe('system');
       expect(store.appSettings.language).toBe('auto');
     });
 
@@ -448,7 +448,7 @@ describe('stores/settings', () => {
       await store.loadSettings();
 
       // デフォルト値が適用される
-      expect(store.appSettings.theme).toBe('light');
+      expect(store.appSettings.theme).toBe('system');
       expect(store.isLoaded).toBe(true);
     });
 
@@ -485,7 +485,7 @@ describe('stores/settings', () => {
 
       // lastErrorが設定されていてもデフォルト値で動作
       expect(store.isLoaded).toBe(true);
-      expect(store.appSettings.theme).toBe('light');
+      expect(store.appSettings.theme).toBe('system');
     });
 
     it('should handle corrupted storage data', async () => {
@@ -866,6 +866,72 @@ describe('stores/settings', () => {
 
       // 削除されない
       expect(store.appSettings.ux.keyboardShortcuts.globalSearch.length).toBe(initialLength);
+    });
+  });
+
+  describe('setIncludeTimestampInExportFilename', () => {
+    it('エクスポートファイル名のタイムスタンプ設定を変更できる', async () => {
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      store.setIncludeTimestampInExportFilename(false);
+      expect(store.appSettings.includeTimestampInExportFilename).toBe(false);
+      expect(mockStorage.appSettings.includeTimestampInExportFilename).toBe(false);
+
+      store.setIncludeTimestampInExportFilename(true);
+      expect(store.appSettings.includeTimestampInExportFilename).toBe(true);
+    });
+  });
+
+  describe('マイグレーション: deckLevelSortOrder toggle -> toggle-desc', () => {
+    it('旧形式 toggle が toggle-desc に変換される', async () => {
+      mockStorage.appSettings = {
+        theme: 'light',
+        deckLevelSortOrder: 'toggle'
+      };
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      expect(store.appSettings.deckLevelSortOrder).toBe('toggle-desc');
+    });
+
+    it('新形式 toggle-desc はそのまま保持される', async () => {
+      mockStorage.appSettings = {
+        theme: 'light',
+        deckLevelSortOrder: 'toggle-desc'
+      };
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      expect(store.appSettings.deckLevelSortOrder).toBe('toggle-desc');
+    });
+
+    it('asc, desc はそのまま保持される', async () => {
+      mockStorage.appSettings = {
+        theme: 'light',
+        deckLevelSortOrder: 'asc'
+      };
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      expect(store.appSettings.deckLevelSortOrder).toBe('asc');
+    });
+  });
+
+  describe('マイグレーション: aiTextLinksEnabled 削除', () => {
+    it('aiTextLinksEnabled プロパティが削除される', async () => {
+      mockStorage.appSettings = {
+        theme: 'light',
+        aiTextLinksEnabled: true
+      };
+
+      const store = useSettingsStore();
+      await store.loadSettings();
+
+      expect((store.appSettings as any).aiTextLinksEnabled).toBeUndefined();
     });
   });
 

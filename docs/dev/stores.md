@@ -125,23 +125,40 @@ const newUuid = `card-${maxIndex + 1}`;
 
 ### State
 
+AppSettings インターフェースの主要プロパティ（詳細は `src/types/settings.ts` 参照）:
+
 ```typescript
-interface SettingsState {
-  // 表示設定
-  displayMode: 'list' | 'grid';
-  defaultSortOrder: SortOrder;
-  animationEnabled: boolean;
+interface AppSettings {
+  // カードサイズ
+  deckEditCardSize: CardSize;
+  infoCardSize: CardSize;
+  gridCardSize: CardSize;
+  listCardSize: CardSize;
 
-  // 検索設定
-  searchBarPosition: 'default' | 'global';
+  // 外観
+  theme: Theme;
+  language: Language;
+  middleDecksLayout: MiddleDecksLayout;
 
-  // 言語設定
-  language: 'auto' | 'ja' | 'en';
+  // UX設定
+  ux: UXSettings;
 
-  // 機能設定
-  deckEditEnabled: boolean;
-  shuffleEnabled: boolean;
-  imageEnabled: boolean;
+  // ソート関連
+  defaultSortOrder: string;
+  enableCategoryPriority: boolean;
+  enableTailPlacement: boolean;
+  enableHeadPlacement: boolean;
+  deckLevelSortOrder: 'asc' | 'desc' | 'toggle-desc';
+  categoryPrioritySortMode: 'level' | 'quantity-desc';
+  saveWithAutoFullSort: boolean;
+
+  // エクスポート
+  includeTimestampInExportFilename: boolean;
+
+  // その他
+  enableBanlistCheck: boolean;
+  unsavedWarning: UnsavedWarning;
+  saveDelayMs: number;
 }
 ```
 
@@ -149,42 +166,42 @@ interface SettingsState {
 
 ```typescript
 type SortOrder =
-  | 'release'   // 発売日順
-  | 'name'      // 名前順
-  | 'atk'       // ATK順
-  | 'def'       // DEF順
-  | 'level'     // Lv/Rank順
-  | 'attribute' // 属性順
-  | 'race';     // 種族順
+  | 'official'      // 公式順（デフォルト）
+  | 'release_desc'  // リリース日降順（新しい順）
+  | 'release_asc'   // リリース日昇順（古い順）
+  | 'name_asc'      // 名前昇順
+  | 'name_desc'     // 名前降順
+  | 'level_asc'     // レベル昇順
+  | 'level_desc'    // レベル降順
+  | 'atk_asc'       // 攻撃力昇順
+  | 'atk_desc'      // 攻撃力降順
+  | 'def_asc'       // 守備力昇順
+  | 'def_desc';     // 守備力降順
 ```
+
+Note: 区切り文字はアンダースコア（`_`）を使用。
 
 ### Actions
 
-- `setDisplayMode(mode: 'list' | 'grid')`: 表示モード設定
+- `loadSettings()`: localStorage から設定を読み込む（旧形式の自動マイグレーション対応）
+- `saveSettings()`: localStorage に設定を保存する
 - `setSortOrder(order: SortOrder)`: ソート順設定
-- `setAnimationEnabled(enabled: boolean)`: アニメーション設定
-- `setSearchBarPosition(position: 'default' | 'global')`: 検索バー位置設定
-- `setLanguage(lang: 'auto' | 'ja' | 'en')`: 言語設定
+- `setIncludeTimestampInExportFilename(value: boolean)`: エクスポートファイル名タイムスタンプ設定
 - `resetToDefaults()`: デフォルトに戻す
 
 ### 永続化
 
-設定は自動的にlocalStorageに保存されます。
+設定は `ygoNext:settings` キーで localStorage に保存されます。
 
 ```typescript
 // 保存
-localStorage.setItem('ygo-deck-helper-settings', JSON.stringify(state));
+localStorage.setItem('ygoNext:settings', JSON.stringify(settings));
 
-// 読み込み
-const saved = localStorage.getItem('ygo-deck-helper-settings');
-if (saved) {
-  try {
-    Object.assign(state, JSON.parse(saved));
-  } catch (e) {
-    console.error('Failed to parse settings from localStorage', e);
-  }
-}
+// 読み込み（旧形式からの自動マイグレーション対応）
+const saved = localStorage.getItem('ygoNext:settings');
 ```
+
+旧形式（`deckLevelSortOrder: 'toggle'` 等）は `migrateOldSettingsFormat()` で自動的に新形式に変換されます。
 
 ## ストア間の連携
 
@@ -195,7 +212,7 @@ if (saved) {
 const settingsStore = useSettingsStore();
 
 // 設定に基づいてソート
-if (settingsStore.defaultSortOrder === 'name') {
+if (settingsStore.settings.defaultSortOrder === 'name_asc') {
   sortByName();
 }
 
