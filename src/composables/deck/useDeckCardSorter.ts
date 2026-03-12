@@ -7,6 +7,7 @@
 
 import type { CardInfo, MonsterType } from '@/types/card';
 import { getCardInfo } from '@/utils/card-utils';
+import { SPELL_TYPE_SORT_ORDER, TRAP_TYPE_SORT_ORDER } from '@/types/card-maps';
 
 /**
  * DisplayCard型の定義（deck-edit.tsと同じ）
@@ -60,6 +61,19 @@ export interface DeckSortOptions {
    * 末尾配置対象のカードIDリスト
    */
   tailPlacementCardIds?: string[];
+
+  /**
+   * レベル/ランク/リンクのソート順（'desc': 高→低, 'asc': 低→高）
+   * デフォルト: 'desc'
+   */
+  levelSortOrder?: 'asc' | 'desc';
+  /**
+   * カテゴリ優先エリア内のソート順
+   * 'level': レベル順（levelSortOrderに従う）
+   * 'quantity-desc': 枚数の降順（多い順固定）
+   * デフォルト: 'level'
+   */
+  categoryPrioritySortMode?: 'level' | 'quantity-desc';
 }
 
 /**
@@ -103,7 +117,9 @@ export function createDeckCardComparator(
     enableHeadPlacement = true,
     headPlacementCardIds = [],
     enableTailPlacement = true,
-    tailPlacementCardIds = []
+    tailPlacementCardIds = [],
+    levelSortOrder = 'desc',
+    categoryPrioritySortMode = 'level'
   } = options;
 
   /**
@@ -150,22 +166,26 @@ export function createDeckCardComparator(
       const monsterTypeB = getMainType((cardB as any).types);
       if (monsterTypeA !== monsterTypeB) return monsterTypeA - monsterTypeB;
 
-      // 3. Level/Rank/Link（降順）
+      // 3. Level/Rank/Link（設定に応じて昇順/降順）
       const levelA = (cardA as any).levelValue ?? 0;
       const levelB = (cardB as any).levelValue ?? 0;
-      if (levelA !== levelB) return levelB - levelA; // 降順
+      if (levelA !== levelB) return levelSortOrder === 'asc' ? levelA - levelB : levelB - levelA;
     }
 
     // 4. Spell Type / Trap Type
     if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
       const spellTypeA = (cardA as any).effectType ?? '';
       const spellTypeB = (cardB as any).effectType ?? '';
-      if (spellTypeA !== spellTypeB) return spellTypeA.localeCompare(spellTypeB);
+      const orderA = SPELL_TYPE_SORT_ORDER[spellTypeA] ?? 999;
+      const orderB = SPELL_TYPE_SORT_ORDER[spellTypeB] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
     }
     if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
       const trapTypeA = (cardA as any).effectType ?? '';
       const trapTypeB = (cardB as any).effectType ?? '';
-      if (trapTypeA !== trapTypeB) return trapTypeA.localeCompare(trapTypeB);
+      const orderA = TRAP_TYPE_SORT_ORDER[trapTypeA] ?? 999;
+      const orderB = TRAP_TYPE_SORT_ORDER[trapTypeB] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
     }
 
     // 5. Card Name（昇順）
@@ -283,11 +303,14 @@ export function createDeckCardComparator(
       return inPriorityA - inPriorityB;
     }
 
-    // 2-1. カテゴリ優先カード内での枚数による重み付け
+    // 2-1. カテゴリ優先カード内での並び順（categoryPrioritySortModeに従う）
     if (enableCategoryPriority && inPriorityA === 0 && inPriorityB === 0) {
-      const quantityA = section.filter(card => card.cid === a.cid).length;
-      const quantityB = section.filter(card => card.cid === b.cid).length;
-      if (quantityA !== quantityB) return quantityB - quantityA; // 降順（多い順）
+      if (categoryPrioritySortMode === 'quantity-desc') {
+        const quantityA = section.filter(card => card.cid === a.cid).length;
+        const quantityB = section.filter(card => card.cid === b.cid).length;
+        if (quantityA !== quantityB) return quantityB - quantityA;
+      }
+      // 'level': 比較なし → compareCardsByTypeがlevelSortOrderに従って処理
     }
 
     // 2. カードタイプ内で、末尾配置フラグ: 末尾配置なし(0) < 末尾配置あり(1)

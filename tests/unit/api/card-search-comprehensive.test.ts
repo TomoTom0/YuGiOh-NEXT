@@ -7,10 +7,11 @@ import {
   getCardDetail,
   getCardDetailWithCache,
   parseSearchResults,
-  extractImageInfo
+  extractImageInfo,
+  parseCardBase
 } from '@/api/card-search';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import type { SearchOptions, CardInfo, CardDetail } from '@/types/card';
 
 // モック設定
@@ -51,7 +52,7 @@ describe('api/card-search - Comprehensive Tests', () => {
 
   beforeEach(() => {
     unifiedDB = getUnifiedCacheDB();
-    tempDB = getTempCardDB();
+    tempDB = getTempCacheDB();
     unifiedDB.reset?.();
     tempDB.clear?.();
   });
@@ -531,6 +532,68 @@ describe('api/card-search - Comprehensive Tests', () => {
     it('不正なカードID', async () => {
       const result = await searchCardById('invalid-id');
       expect(result).toBeNull();
+    });
+  });
+
+  // ===== parseCardBase ペンデュラム除外テスト =====
+  describe('parseCardBase - ペンデュラム効果除外', () => {
+    it('ペンデュラム効果テキストがメインテキストから除外される', () => {
+
+      // ペンデュラムモンスターのHTML構造を模倣
+      const doc = new DOMParser().parseFromString(`
+        <div class="t_row">
+          <input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=12345&request_locale=ja" />
+          <div class="box_card_name">
+            <span class="card_name">テストペンデュラム</span>
+          </div>
+          <div class="box_card_text">
+            <div class="box_card_pen_effect">ペンデュラム効果テキスト</div>
+            メインの効果テキスト
+          </div>
+          <div class="box_card_img">
+            <img src="/images/12345_1_1_1.jpg" />
+          </div>
+        </div>
+      `, 'text/html');
+
+      const row = doc.querySelector('.t_row');
+      expect(row).not.toBeNull();
+
+      const imageInfoMap = new Map([['12345', { ciid: '1', imgHash: '12345_1_1_1' }]]);
+      const result = parseCardBase(row! as HTMLElement, imageInfoMap);
+
+      expect(result).not.toBeNull();
+      // ペンデュラム効果テキストが含まれていないことを確認
+      expect(result!.text).not.toContain('ペンデュラム効果テキスト');
+      // メインの効果テキストが含まれていることを確認
+      expect(result!.text).toContain('メインの効果テキスト');
+    });
+
+    it('非ペンデュラムモンスターのテキストはそのまま返される', () => {
+
+      const doc = new DOMParser().parseFromString(`
+        <div class="t_row">
+          <input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=67890&request_locale=ja" />
+          <div class="box_card_name">
+            <span class="card_name">通常モンスター</span>
+          </div>
+          <div class="box_card_text">
+            通常の効果テキスト
+          </div>
+          <div class="box_card_img">
+            <img src="/images/67890_1_1_1.jpg" />
+          </div>
+        </div>
+      `, 'text/html');
+
+      const row = doc.querySelector('.t_row');
+      expect(row).not.toBeNull();
+
+      const imageInfoMap = new Map([['67890', { ciid: '1', imgHash: '67890_1_1_1' }]]);
+      const result = parseCardBase(row! as HTMLElement, imageInfoMap);
+
+      expect(result).not.toBeNull();
+      expect(result!.text).toContain('通常の効果テキスト');
     });
   });
 });

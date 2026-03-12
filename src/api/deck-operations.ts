@@ -1,7 +1,7 @@
 import { DeckInfo, DeckListItem, OperationResult, DeckCardRef } from '@/types/deck';
 import { parseDeckDetail } from '@/content/parser/deck-detail-parser';
 import { parseDeckList } from '@/content/parser/deck-list-parser';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import { fetchYtknFromDeckList, fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
@@ -155,14 +155,54 @@ export async function saveDeckInternal(
   ytkn: string
 ): Promise<OperationResult> {
   try {
+    console.debug('[saveDeckInternal] Starting save process', { dno, deckDataName: deckData.name, mainDeckSize: deckData.mainDeck?.length, extraDeckSize: deckData.extraDeck?.length, sideDeckSize: deckData.sideDeck?.length });
+
+    // データ検証
+    const mainDeck = deckData.mainDeck || [];
+    const extraDeck = deckData.extraDeck || [];
+    const sideDeck = deckData.sideDeck || [];
+
+    // 重複チェック：同じ cid + ciid の組み合わせがないか
+    const checkDuplicates = (deckList: DeckCardRef[], location: string): void => {
+      const seen = new Set<string>();
+      deckList.forEach(cardRef => {
+        const key = `${cardRef.cid}_${cardRef.ciid}`;
+        if (seen.has(key)) {
+          throw new Error(`${location}: Duplicate card found: ${key}`);
+        }
+        seen.add(key);
+      });
+    };
+
+    checkDuplicates(mainDeck, 'mainDeck');
+    checkDuplicates(extraDeck, 'extraDeck');
+    checkDuplicates(sideDeck, 'sideDeck');
+
+    // デッキデータの整合性チェック
+    const validateDeckCardRef = (cardRef: DeckCardRef, location: string): void => {
+      if (!cardRef.cid) {
+        throw new Error(`${location}: cid is empty or undefined`);
+      }
+      if (typeof cardRef.quantity !== 'number' || cardRef.quantity < 1) {
+        throw new Error(`${location}: ${cardRef.cid} has invalid quantity: ${cardRef.quantity}`);
+      }
+      if (cardRef.ciid === '' || cardRef.ciid == null) {
+        throw new Error(`${location}: ${cardRef.cid} has invalid ciid`);
+      }
+    };
+
+    mainDeck.forEach(c => validateDeckCardRef(c, 'mainDeck'));
+    extraDeck.forEach(c => validateDeckCardRef(c, 'extraDeck'));
+    sideDeck.forEach(c => validateDeckCardRef(c, 'sideDeck'));
+
     const startTime = performance.now();
 
     // URL-encoded形式でデータを構築（公式と同じ順序で）
     const params = new URLSearchParams();
-    
+
     // ope=3（SAVE）を先頭に追加
     params.append('ope', DECK_OPE.SAVE);
-    
+
     // 基本情報
     params.append('wname', WNAME.MEMBER_DECK);
     params.append('ytkn', ytkn);
@@ -203,15 +243,15 @@ export async function saveDeckInternal(
 
     // カード情報を追加（デッキタイプによってフィールド名が異なる）
     // 順序: メインデッキ（monm → spnm → trnm）→ エクストラ → サイド
-    
+
     const TOTAL_MAIN_SLOTS = 65;  // メイン: モンスター/魔法/罠それぞれ65枠
     const TOTAL_EXTRA_SLOTS = 20;  // エクストラ: 20枠
     const TOTAL_SIDE_SLOTS = 20;   // サイド: 20枠
 
-    const tempCardDB = getTempCardDB();
+    const tempCardDB = getTempCacheDB();
     const unifiedDB = getUnifiedCacheDB();
 
-    // cardType を取得するヘルパー関数（TempCardDB → UnifiedCacheDB フォールバック）
+    // cardType を取得するヘルパー関数（TempCacheDB → UnifiedCacheDB フォールバック）
     const getCardType = (cid: string): string | undefined => {
       const card = tempCardDB.get(cid);
       if (card?.cardType) {
@@ -222,71 +262,76 @@ export async function saveDeckInternal(
       return unifiedCard?.cardType;
     };
 
-    // メインデッキ: モンスター（実カード→空き枠）
-    const mainMonsters = deckData.mainDeck.filter(c => {
-      const cardType = getCardType(c.cid);
-      return cardType === 'monster';
-    });
-    mainMonsters.forEach(cardRef => {
-      appendCardToFormData(params, cardRef, 'main');
-    });
-    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
-      params.append('monm', '');
-      params.append('monum', '0');
-      params.append('monsterCardId', '');
-      params.append('imgs', 'null_null_null_null');
-    }
+    try {
+      // メインデッキ: モンスター（実カード→空き枠）
+      const mainMonsters = deckData.mainDeck.filter(c => {
+        const cardType = getCardType(c.cid);
+        return cardType === 'monster';
+      });
+      mainMonsters.forEach(cardRef => {
+        appendCardToFormData(params, cardRef, 'main');
+      });
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
+        params.append('monm', '');
+        params.append('monum', '0');
+        params.append('monsterCardId', '');
+        params.append('imgs', 'null_null_null_null');
+      }
 
-    // メインデッキ: 魔法（実カード→空き枠）
-    const mainSpells = deckData.mainDeck.filter(c => {
-      const cardType = getCardType(c.cid);
-      return cardType === 'spell';
-    });
-    mainSpells.forEach(cardRef => {
-      appendCardToFormData(params, cardRef, 'main');
-    });
-    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
-      params.append('spnm', '');
-      params.append('spnum', '0');
-      params.append('spellCardId', '');
-      params.append('imgs', 'null_null_null_null');
-    }
+      // メインデッキ: 魔法（実カード→空き枠）
+      const mainSpells = deckData.mainDeck.filter(c => {
+        const cardType = getCardType(c.cid);
+        return cardType === 'spell';
+      });
+      mainSpells.forEach(cardRef => {
+        appendCardToFormData(params, cardRef, 'main');
+      });
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
+        params.append('spnm', '');
+        params.append('spnum', '0');
+        params.append('spellCardId', '');
+        params.append('imgs', 'null_null_null_null');
+      }
 
-    // メインデッキ: 罠（実カード→空き枠）
-    const mainTraps = deckData.mainDeck.filter(c => {
-      const cardType = getCardType(c.cid);
-      return cardType === 'trap';
-    });
-    mainTraps.forEach(cardRef => {
-      appendCardToFormData(params, cardRef, 'main');
-    });
-    for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
-      params.append('trnm', '');
-      params.append('trnum', '0');
-      params.append('trapCardId', '');
-      params.append('imgs', 'null_null_null_null');
-    }
+      // メインデッキ: 罠（実カード→空き枠）
+      const mainTraps = deckData.mainDeck.filter(c => {
+        const cardType = getCardType(c.cid);
+        return cardType === 'trap';
+      });
+      mainTraps.forEach(cardRef => {
+        appendCardToFormData(params, cardRef, 'main');
+      });
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
+        params.append('trnm', '');
+        params.append('trnum', '0');
+        params.append('trapCardId', '');
+        params.append('imgs', 'null_null_null_null');
+      }
 
-    // エクストラデッキ（実カード→空き枠）
-    deckData.extraDeck.forEach(cardRef => {
-      appendCardToFormData(params, cardRef, 'extra');
-    });
-    for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
-      params.append('exnm', '');
-      params.append('exnum', '0');
-      params.append('extraCardId', '');
-      params.append('imgs', 'null_null_null_null');
-    }
+      // エクストラデッキ（実カード→空き枠）
+      deckData.extraDeck.forEach(cardRef => {
+        appendCardToFormData(params, cardRef, 'extra');
+      });
+      for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
+        params.append('exnm', '');
+        params.append('exnum', '0');
+        params.append('extraCardId', '');
+        params.append('imgs', 'null_null_null_null');
+      }
 
-    // サイドデッキ（実カード→空き枠）
-    deckData.sideDeck.forEach(cardRef => {
-      appendCardToFormData(params, cardRef, 'side');
-    });
-    for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
-      params.append('sinm', '');
-      params.append('sinum', '0');
-      params.append('sideCardId', '');
-      params.append('imgsSide', 'null_null_null_null');
+      // サイドデッキ（実カード→空き枠）
+      deckData.sideDeck.forEach(cardRef => {
+        appendCardToFormData(params, cardRef, 'side');
+      });
+      for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
+        params.append('sinm', '');
+        params.append('sinum', '0');
+        params.append('sideCardId', '');
+        params.append('imgsSide', 'null_null_null_null');
+      }
+    } catch (paramError) {
+      console.error('[saveDeckInternal] Error during parameter construction:', paramError);
+      throw paramError;
     }
 
     const paramsBuiltTime = performance.now();
@@ -302,6 +347,10 @@ export async function saveDeckInternal(
     const encodeEndTime = performance.now();
     console.debug(`[saveDeckInternal] パラメータエンコード時間: ${(encodeEndTime - encodeStartTime).toFixed(2)}ms`);
 
+    console.debug('[saveDeckInternal] About to send POST request to', postUrl);
+    console.debug('[saveDeckInternal] Request body length:', encoded_params.length);
+    console.debug('[saveDeckInternal] Request body (first 500 chars):', encoded_params.substring(0, 500));
+    console.debug('[saveDeckInternal] Request body (last 500 chars):', encoded_params.substring(Math.max(0, encoded_params.length - 500)));
 
     // 公式の実装に合わせて、URLSearchParamsを直接渡す
     // axiosが自動的にContent-Typeをapplication/x-www-form-urlencodedに設定する
@@ -323,6 +372,13 @@ export async function saveDeckInternal(
 
     const data = response.data;
 
+    // デバッグログ：サーバーレスポンスの詳細を記録
+    console.debug('[saveDeckInternal] Server response:', {
+      result: data.result,
+      error: data.error,
+      fullData: data
+    });
+
     // 公式の判定方法に合わせる
     if (data.result) {
       handleSuccess('[saveDeckInternal]', 'デッキを保存しました', '', { showToast: false });
@@ -341,6 +397,7 @@ export async function saveDeckInternal(
         };
       }
       // data.resultがfalseでerrorもない場合
+      console.error('[saveDeckInternal] Unexpected response:', data);
       handleError(
         '[saveDeckInternal]',
         'デッキ保存に失敗しました',
@@ -353,6 +410,7 @@ export async function saveDeckInternal(
       };
     }
   } catch (error) {
+    console.error('[saveDeckInternal] Exception caught:', error);
     handleError(
       '[saveDeckInternal]',
       'デッキ保存に失敗しました',
@@ -391,8 +449,7 @@ function appendCardToFormData(
   const card = unifiedDB.reconstructCardInfo(cid, lang);
 
   if (!card) {
-    handleDebug('[appendCardToFormData]', `Card not found in UnifiedCacheDB: ${cid}`);
-    return;
+    throw new Error(`Card not found in UnifiedCacheDB: ${cid}, lang: ${lang}`);
   }
 
   if (deckType === 'main') {

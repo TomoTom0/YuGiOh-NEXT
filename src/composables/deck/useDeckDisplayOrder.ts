@@ -9,7 +9,7 @@
 
 import type { CardInfo } from '@/types/card';
 import type { DeckCardRef } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 
 /**
@@ -114,8 +114,8 @@ export function addToDisplayOrder(
   if (existingCard) {
     existingCard.quantity++;
   } else {
-    // TempCardDBにカード情報を登録
-    const tempCardDB = getTempCardDB();
+    // TempCacheDBにカード情報を登録
+    const tempCardDB = getTempCacheDB();
     tempCardDB.set(card.cardId, card);
     // record move history
     try {
@@ -242,7 +242,7 @@ export function removeFromDisplayOrder(
   }
 
   // 削除されたカード情報を返す
-  const tempCardDB = getTempCardDB();
+  const tempCardDB = getTempCacheDB();
   const removedCard = tempCardDB.get(cardId);
   return { removedCard, removedCiid, removedIndex: removeIndex };
 }

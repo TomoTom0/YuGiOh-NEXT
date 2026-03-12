@@ -1,6 +1,6 @@
 import { DeckCardRef, CardInfo } from '@/types/card';
 import { DeckInfo } from '@/types/deck';
-import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { detectLanguage } from '@/utils/language-detector';
 import {
   DeckTypeValue,
@@ -149,10 +149,12 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
     }
   }
 
-  // マージされたカード情報を UnifiedCacheDB に保存
-  const unifiedDB = getUnifiedCacheDB();
-  for (const [, cardInfo] of mergedCardInfoMap.entries()) {
-    unifiedDB.setCardInfo(cardInfo, true);
+  // マージされたカード情報を TempCacheDB（および UnifiedCacheDB）に保存
+  // TempCacheDB.setAsync() は初期化を待機してから保存するため、
+  // レースコンディションによるデータ損失を防ぐ
+  const tempCardDB = getTempCacheDB();
+  for (const [cid, cardInfo] of mergedCardInfoMap.entries()) {
+    await tempCardDB.setAsync(cid, cardInfo, true);
   }
 
   return {

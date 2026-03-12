@@ -1,7 +1,7 @@
 # キャッシュシステム設計
 
-**バージョン**: v0.4.4以降
-**最終更新**: 2025-11-28
+**バージョン**: v0.4.5以降
+**最終更新**: 2026-02-24
 
 ## 概要
 
@@ -12,12 +12,13 @@ UnifiedCacheDBは、カード情報を効率的にキャッシュするための
 ### 課題
 - カード詳細情報の取得に時間がかかる（ネットワークアクセス）
 - 同じカードの情報を何度も取得している（無駄な通信）
-- TempCardDBとの重複したデータ構造
+- TempCacheDBとの重複したデータ構造
 
 ### 解決策
 - UnifiedCacheDBによる統合キャッシュシステム
 - stale-while-revalidate戦略の採用
 - テーブル分割による効率的なデータ管理
+- TempCacheDBをUnifiedCacheDBのラッパーとして統合
 
 ## テーブル構造
 
@@ -151,25 +152,90 @@ async function cleanupOldCache() {
 }
 ```
 
-## TempCardDBとの統合
+## TempCacheDBの統合
 
-### v0.4.0以前の問題
-- TempCardDB: デッキ編集時の一時カード保存
-- 既存キャッシュ: カード詳細情報のキャッシュ
-- **重複したデータ構造**、**同期が困難**
+### v0.4.5でのアーキテクチャ変更
 
-### v0.4.1での統合
-UnifiedCacheDBにTempCardDBを統合し、データ構造を統一。
+TempCacheDBはUnifiedCacheDBのラッパーとして再設計されました。
+
+#### 新しい構造
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      呼び出し元                              │
+│   (deck-operations.ts, search-filter.ts, etc.)              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     TempCacheDB                              │
+│  (後方互換性のためのラッパー)                                 │
+│  - get(cid) → unifiedDB.getCardInfo(cid)                    │
+│  - set(cid, card) → unifiedDB.setCardInfoFull(cid, card)    │
+│  - setAsync(cid, card) → 初期化待機後に保存                  │
+│  - has(cid) → unifiedDB.hasCardInfo(cid)                    │
+└──────────────────────────┬──────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    UnifiedCacheDB                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ fullCardInfoCache: Map<cid, {card, lastUpdated}>    │   │
+│  │ - 完全なCardInfoオブジェクトを保持                    │   │
+│  │ - TTLベースの自動更新                                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ cardTableA / cardTableB (永続化)                     │   │
+│  │ - Chrome Storage APIで永続化                         │   │
+│  │ - 検索用の軽量データ                                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 主要メソッド
+
+| メソッド | 説明 |
+|---------|------|
+| `getCardInfo(cid)` | fullCardInfoCacheから完全なCardInfoを取得 |
+| `setCardInfoFull(cid, card, forceUpdate)` | fullCardInfoCacheに保存、cardTableA/Bも更新 |
+| `hasCardInfo(cid)` | fullCardInfoCacheにカードが存在するか確認 |
+| `clearCardInfoCache()` | fullCardInfoCacheをクリア |
+
+#### setAsyncメソッド（重要）
+
+**問題**: `set()`メソッドは同期的ですが、UnifiedCacheDBが初期化されていない場合、データが失われる可能性があります。
+
+```typescript
+// ❌ 危険: 初期化前に呼ぶとデータが失われる可能性
+tempCardDB.set(cid, card)
+
+// ✅ 安全: 初期化を待機してから保存
+await tempCardDB.setAsync(cid, card)
+```
+
+**使用すべき場面**:
+- `parseDeckDetail()`などの非同期関数内
+- デッキ詳細ページからのカード情報保存
+
+**実装例**:
+```typescript
+// deck-detail-parser.ts
+for (const [cid, cardInfo] of mergedCardInfoMap.entries()) {
+  await tempCardDB.setAsync(cid, cardInfo, true);
+}
+```
 
 #### 統合の利点
-1. **データの一元管理**: 1つのDBで全てのカード情報を管理
+
+1. **データの一元管理**: 呼び出し元はTempCacheDBを意識する必要がない
 2. **重複排除**: 同じカード情報を複数箇所に保存しない
 3. **メモリ効率**: 無駄なメモリ使用を削減
 4. **同期不要**: 常に最新のデータ構造
 
-### v0.4.4でのTempCardDB自動保存機能
+### v0.4.4以前の自動保存機能
 
-検索結果、関連カード、商品展開から取得したカード情報を、TempCardDBに自動保存する機能を追加しました。
+検索結果、関連カード、商品展開から取得したカード情報を、TempCacheDBに自動保存する機能は継続して動作します。
 
 #### 自動保存されるタイミング
 
@@ -184,47 +250,6 @@ UnifiedCacheDBにTempCardDBを統合し、データ構造を統一。
 3. **商品展開から**
    - `searchCardsByPackId()`でパック内カードを取得した際に自動保存
    - 対象: Productsタブのパック展開で取得されるカード
-
-#### 実装詳細
-
-```typescript
-// 検索結果からの自動保存
-export function parseSearchResults(doc: Document): CardInfo[] {
-  const cards: CardInfo[] = [];
-
-  // ... カードのパース処理 ...
-
-  // TempCardDBに保存（検索結果として取得したカードを保存）
-  const tempCardDB = getTempCardDB();
-  for (const card of cards) {
-    tempCardDB.set(card.cardId, card);
-  }
-
-  return cards;
-}
-
-// カード詳細保存時の自動保存
-export async function saveCardDetailToCache(
-  unifiedDB: ReturnType<typeof getUnifiedCacheDB>,
-  detail: CardDetail,
-  forceUpdate: boolean = false
-): Promise<void> {
-  // UnifiedCacheDBに保存
-  unifiedDB.setCardInfo(detail.card, forceUpdate);
-  for (const relatedCard of detail.relatedCards) {
-    unifiedDB.setCardInfo(relatedCard, forceUpdate);
-  }
-
-  // ... TableC保存処理 ...
-
-  // TempCardDBにも保存（detail.cardと関連カード）
-  const tempCardDB = getTempCardDB();
-  tempCardDB.set(detail.card.cardId, detail.card);
-  for (const relatedCard of detail.relatedCards) {
-    tempCardDB.set(relatedCard.cardId, relatedCard);
-  }
-}
-```
 
 #### メリット
 
@@ -318,4 +343,4 @@ const isStale = await UnifiedCacheDB.isStale(cid, maxAge);
 
 - [アーキテクチャ設計](./architecture.md)
 - [データモデル](./data-models.md)
-- [キャッシュDB設計（旧）](../design/cache-db.md)
+- [キャッシュDB設計（旧）](../design/archive/cache-db.md)

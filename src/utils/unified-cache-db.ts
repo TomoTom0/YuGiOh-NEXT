@@ -109,6 +109,9 @@ export class UnifiedCacheDB {
   // CardTableCはメモリにはキャッシュしない（個別キーで遅延読み込み）
   private cardTableCCache: Map<string, CardTableC> = new Map();
 
+  // 完全なCardInfoのメモリキャッシュ（TempCacheDBからの統合）
+  private fullCardInfoCache: Map<string, { card: CardInfo; lastUpdated: number }> = new Map();
+
   // Move history for undo/redo
   private moveHistory: MoveHistoryEntry[] = [];
 
@@ -539,6 +542,12 @@ export class UnifiedCacheDB {
       let langsPendText = existingB2?.langsPendText || {};
       if (cardAny.pendulumText) {
         langsPendText = { ...langsPendText, [lang]: cardAny.pendulumText };
+      } else {
+        // ペンデュラムテキストがない場合、このlangの既存エントリを削除して誤ったデータをクリア
+        if (langsPendText[lang]) {
+          langsPendText = { ...langsPendText };
+          delete langsPendText[lang];
+        }
       }
 
       // 既存の langsFetchedAt を取得
@@ -1150,6 +1159,64 @@ export class UnifiedCacheDB {
       productTableACount: this.productTableA.size,
       faqTableACount: this.faqTableA.size
     };
+  }
+
+  // =========================================
+  // 完全なCardInfoキャッシュ（TempCacheDB統合）
+  // =========================================
+
+  /**
+   * 完全なCardInfoを取得（メモリキャッシュから）
+   * @param cid カードID
+   * @returns CardInfo、存在しない場合はundefined
+   */
+  getCardInfo(cid: string): CardInfo | undefined {
+    const cached = this.fullCardInfoCache.get(cid);
+    return cached?.card;
+  }
+
+  /**
+   * 完全なCardInfoを設定（メモリキャッシュ + テーブル更新）
+   * @param cid カードID
+   * @param card カード情報
+   * @param forceUpdate 強制更新フラグ
+   * @returns 更新された場合true
+   */
+  setCardInfoFull(cid: string, card: CardInfo, forceUpdate: boolean = false): boolean {
+    const existing = this.fullCardInfoCache.get(cid);
+    const now = Date.now();
+
+    // 既存のキャッシュがあり、有効期限内の場合はスキップ
+    if (existing && !forceUpdate) {
+      const age = now - existing.lastUpdated;
+      if (age < this.cacheTTL) {
+        return false;
+      }
+    }
+
+    // キャッシュを更新
+    this.fullCardInfoCache.set(cid, { card, lastUpdated: now });
+
+    // テーブル情報も更新
+    this.setCardInfo(card, forceUpdate);
+
+    return true;
+  }
+
+  /**
+   * 完全なCardInfoが存在するか確認
+   * @param cid カードID
+   * @returns 存在する場合true
+   */
+  hasCardInfo(cid: string): boolean {
+    return this.fullCardInfoCache.has(cid);
+  }
+
+  /**
+   * 完全なCardInfoキャッシュをクリア
+   */
+  clearCardInfoCache(): void {
+    this.fullCardInfoCache.clear();
   }
 
   /**

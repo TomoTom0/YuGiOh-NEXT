@@ -7,9 +7,16 @@
 - **[category/](./category/)** - カテゴリ・タグ機能
 - **[edit/](./edit/)** - デッキ編集機能
 - **[functions/](./functions/)** - 各種機能仕様
-- **[v0.4.0/](./v0.4.0/)** - v0.4.0設計
+- **[archive/](./archive/)** - 過去バージョンの設計資料
+  - `v0.4.0/` - v0.4.0設計
+  - `phase2.md` - Phase 2設計
+  - `phase2-shuffle-feature.md` - シャッフル機能設計
+  - `cache-db.md` - 旧キャッシュDB設計
+  - `testing-strategy.md` - 旧テスト戦略
 
 ## ファイル
 
-- [phase2.md](./phase2.md) - Phase 2設計
-- [phase2-shuffle-feature.md](./phase2-shuffle-feature.md) - シャッフル機能設計
+- [card-info-cache.md](./card-info-cache.md) - カード情報キャッシュ仕様
+- [option-page.md](./option-page.md) - オプションページ設計
+- [search-condition.md](./search-condition.md) - 検索条件設計
+- [search-condition-limit.yml](./search-condition-limit.yml) - 検索条件制限ルール

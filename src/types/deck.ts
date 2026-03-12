@@ -5,6 +5,18 @@ import { DeckTypeValue, DeckStyleValue, DeckCategory, DeckTags } from './deck-me
 export type { DeckCard, DeckCardRef, CardRef };
 
 /**
+ * デッキフィールドの制限値（公式サイトの仕様に基づく）
+ */
+export const DECK_FIELD_LIMITS = {
+  /** デッキ名の最大文字数 */
+  DECK_NAME_MAX: 50,
+  /** コメント（説明）の最大文字数 */
+  COMMENT_MAX: 2000,
+  /** デッキコードの最大文字数 */
+  DECK_CODE_MAX: 100,
+} as const;
+
+/**
  * デッキ情報
  */
 export interface DeckInfo {

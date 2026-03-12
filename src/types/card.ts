@@ -159,7 +159,7 @@ export interface DeckCard {
 
 /**
  * デッキ内カード参照（軽量版）
- * カードの完全な情報はTempCardDBから取得する
+ * カードの完全な情報はTempCacheDBから取得する
  */
 export interface DeckCardRef {
   /** カードID (cid) */
@@ -175,7 +175,7 @@ export interface DeckCardRef {
 /**
  * カード参照（軽量版）
  * 検索結果やカード選択等で使用
- * カードの完全な情報はTempCardDBから取得する
+ * カードの完全な情報はTempCacheDBから取得する
  */
 export interface CardRef {
   /** カードID (cid) */

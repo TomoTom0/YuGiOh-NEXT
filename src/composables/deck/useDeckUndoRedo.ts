@@ -7,11 +7,22 @@
 import { ref, computed, type Ref } from 'vue';
 
 /**
+ * コマンドの操作タイプ
+ */
+export type CommandType = 'add' | 'remove' | 'move' | 'reorder';
+
+/**
  * コマンドパターンのインターフェース
  */
 export interface Command {
   execute: () => void;
   undo: () => void;
+  /** 操作の説明（例: "追加: ブルーアイズ → メインデッキ"） */
+  description?: string;
+  /** 操作日時（タイムスタンプ） */
+  timestamp?: number;
+  /** 操作タイプ（色分け用） */
+  type?: CommandType;
 }
 
 /**
@@ -46,6 +57,11 @@ export function useDeckUndoRedo() {
     // 現在の位置より後ろのコマンドを削除（分岐履歴を破棄）
     if (commandIndex.value < commandHistory.value.length - 1) {
       commandHistory.value.splice(commandIndex.value + 1);
+    }
+
+    // timestampが未設定の場合は自動設定
+    if (command.timestamp === undefined) {
+      command.timestamp = Date.now();
     }
 
     // 新しいコマンドを追加
@@ -118,6 +134,90 @@ export function useDeckUndoRedo() {
     return commandIndex.value;
   }
 
+  /**
+   * 次にundoされる操作の説明を取得
+   *
+   * @returns 説明文字列（undo不可の場合はundefined）
+   */
+  function getUndoDescription(): string | undefined {
+    if (!canUndo.value) return undefined;
+    const command = commandHistory.value[commandIndex.value];
+    return command?.description;
+  }
+
+  /**
+   * 次にredoされる操作の説明を取得
+   *
+   * @returns 説明文字列（redo不可の場合はundefined）
+   */
+  function getRedoDescription(): string | undefined {
+    if (!canRedo.value) return undefined;
+    const command = commandHistory.value[commandIndex.value + 1];
+    return command?.description;
+  }
+
+  /**
+   * 次にundoされる操作のタイプを取得
+   *
+   * @returns 操作タイプ（undo不可の場合はundefined）
+   */
+  function getUndoType(): CommandType | undefined {
+    if (!canUndo.value) return undefined;
+    const command = commandHistory.value[commandIndex.value];
+    return command?.type;
+  }
+
+  /**
+   * 次にredoされる操作のタイプを取得
+   *
+   * @returns 操作タイプ（redo不可の場合はundefined）
+   */
+  function getRedoType(): CommandType | undefined {
+    if (!canRedo.value) return undefined;
+    const command = commandHistory.value[commandIndex.value + 1];
+    return command?.type;
+  }
+
+  /**
+   * 指定したインデックスまで履歴を移動（ジャンプ）
+   * 現在位置より前ならundo、後ならredoを繰り返す
+   *
+   * @param targetIndex - 移動先のインデックス
+   * @returns 移動に成功したかどうか
+   */
+  function jumpToIndex(targetIndex: number): boolean {
+    // 範囲チェック
+    if (targetIndex < -1 || targetIndex >= commandHistory.value.length) {
+      console.warn('[useDeckUndoRedo] Invalid target index:', targetIndex);
+      return false;
+    }
+
+    // 現在位置と同じなら何もしない
+    if (targetIndex === commandIndex.value) {
+      return true;
+    }
+
+    // 現在位置より前へ移動 = undo
+    while (commandIndex.value > targetIndex) {
+      const command = commandHistory.value[commandIndex.value];
+      if (command) {
+        command.undo();
+      }
+      commandIndex.value--;
+    }
+
+    // 現在位置より後ろへ移動 = redo
+    while (commandIndex.value < targetIndex) {
+      commandIndex.value++;
+      const command = commandHistory.value[commandIndex.value];
+      if (command) {
+        command.execute();
+      }
+    }
+
+    return true;
+  }
+
   return {
     // 状態
     commandHistory,
@@ -131,6 +231,11 @@ export function useDeckUndoRedo() {
     redo,
     clearHistory,
     getHistorySize,
-    getCurrentIndex
+    getCurrentIndex,
+    getUndoDescription,
+    getRedoDescription,
+    getUndoType,
+    getRedoType,
+    jumpToIndex
   };
 }

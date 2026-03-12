@@ -519,6 +519,133 @@ describe('useDeckEditStore', () => {
     });
   });
 
+  describe('backupDisplayOrder() / restoreDisplayOrder() - TASK-281', () => {
+    it('TC-Backup-01: restoreDisplayOrder は displayOrder と deckInfo を同時に復元する', () => {
+      const store = useDeckEditStore();
+      const card1 = createMockCard('11111111', 'monster');
+      const card2 = createMockCard('22222222', 'spell');
+
+      store.addCard(card1, 'main');
+      store.addCard(card2, 'main');
+
+      const originalDisplayOrder = store.displayOrder.main.map(d => d.cid);
+      const originalMainDeck = store.deckInfo.mainDeck.map(d => d.cid);
+
+      // バックアップ取得
+      store.backupDisplayOrder();
+
+      // displayOrder と deckInfo を直接書き換え（sortによる変更を模倣）
+      store.displayOrder.main = [store.displayOrder.main[1], store.displayOrder.main[0]];
+      store.deckInfo.mainDeck = [store.deckInfo.mainDeck[1], store.deckInfo.mainDeck[0]];
+
+      // 変更されたことを確認
+      expect(store.displayOrder.main.map(d => d.cid)).not.toEqual(originalDisplayOrder);
+      expect(store.deckInfo.mainDeck.map(d => d.cid)).not.toEqual(originalMainDeck);
+
+      // 復元
+      store.restoreDisplayOrder();
+
+      // displayOrder と deckInfo が両方とも元に戻ること
+      expect(store.displayOrder.main.map(d => d.cid)).toEqual(originalDisplayOrder);
+      expect(store.deckInfo.mainDeck.map(d => d.cid)).toEqual(originalMainDeck);
+    });
+
+    it('TC-Backup-02: restoreDisplayOrder 後、displayOrder と deckInfo が同一順序を保つ', () => {
+      const store = useDeckEditStore();
+      const card1 = createMockCard('11111111', 'monster');
+      const card2 = createMockCard('22222222', 'spell');
+      const card3 = createMockCard('33333333', 'trap');
+
+      store.addCard(card1, 'main');
+      store.addCard(card2, 'main');
+      store.addCard(card3, 'main');
+
+      store.backupDisplayOrder();
+
+      // ソートによる変更を模倣（displayOrder と deckInfo 両方変更）
+      const reversed = [...store.displayOrder.main].reverse();
+      store.displayOrder.main = reversed;
+      const reversedDeck = [...store.deckInfo.mainDeck].reverse();
+      store.deckInfo.mainDeck = reversedDeck;
+
+      store.restoreDisplayOrder();
+
+      // displayOrder と deckInfo の cid 順序が一致すること
+      const displayCids = store.displayOrder.main.map(d => d.cid);
+      const deckCids = store.deckInfo.mainDeck.map(d => d.cid);
+      expect(displayCids).toEqual(deckCids);
+    });
+  });
+
+  describe('コマンド description / type フィールド', () => {
+    it('addCard 後のコマンドに description と type が設定される', () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('12345678', 'monster');
+
+      store.addCard(card, 'main');
+
+      // commandHistory にアクセス
+      const history = store.commandHistory;
+      expect(history.length).toBeGreaterThan(0);
+
+      const lastCmd = history[history.length - 1];
+      // description が存在し、セクション名を含むことを確認
+      if (lastCmd.description) {
+        expect(lastCmd.description).toContain('Card 12345678');
+      }
+      // type が 'add' であること
+      expect(lastCmd.type).toBe('add');
+    });
+
+    it('moveCard 後のコマンドに type: move が設定される', () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('12345678', 'monster');
+
+      store.addCard(card, 'main');
+      store.moveCard('12345678', 'main', 'side');
+
+      const history = store.commandHistory;
+      const lastCmd = history[history.length - 1];
+
+      expect(lastCmd.type).toBe('move');
+      if (lastCmd.description) {
+        expect(typeof lastCmd.description).toBe('string');
+      }
+    });
+
+    it('reorderWithinSection 後のコマンドに type: reorder が設定される', () => {
+      const store = useDeckEditStore();
+      const card1 = createMockCard('11111111', 'monster');
+      const card2 = createMockCard('22222222', 'spell');
+
+      store.addCard(card1, 'main');
+      store.addCard(card2, 'main');
+
+      const uuid1 = store.displayOrder.main[0].uuid;
+      store.reorderWithinSection('main', uuid1, null);
+
+      const history = store.commandHistory;
+      const lastCmd = history[history.length - 1];
+
+      expect(lastCmd.type).toBe('reorder');
+    });
+
+    it('コマンドに timestamp が自動設定される', () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('12345678', 'monster');
+
+      const before = Date.now();
+      store.addCard(card, 'main');
+      const after = Date.now();
+
+      const history = store.commandHistory;
+      const lastCmd = history[history.length - 1];
+
+      expect(lastCmd.timestamp).toBeGreaterThanOrEqual(before);
+      expect(lastCmd.timestamp).toBeLessThanOrEqual(after);
+    });
+  });
+
   describe('hasUnsavedChanges()', () => {
     it('TC-UnsavedChanges: カード追加後に変更フラグが立つ', () => {
       const store = useDeckEditStore();

@@ -2,28 +2,36 @@
   <div class="top-bar-wrapper">
     <div class="top-bar">
       <div class="top-bar-left">
-        <button
-          data-testid="undo-btn"
-          class="btn-action"
-          :disabled="!deckStore.canUndo"
-          title="Undo (Ctrl+Z)"
-          @click="handleUndo"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiUndo" />
-          </svg>
-        </button>
-        <button
-          data-testid="redo-btn"
-          class="btn-action"
-          :disabled="!deckStore.canRedo"
-          title="Redo (Ctrl+Y)"
-          @click="handleRedo"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiRedo" />
-          </svg>
-        </button>
+        <div class="btn-tooltip-wrapper" ref="undoBtnWrapper">
+          <button
+            data-testid="undo-btn"
+            class="btn-action"
+            :class="undoButtonClass"
+            :disabled="!deckStore.canUndo"
+            @click="handleUndo"
+            @mouseenter="showUndoTooltip = true"
+            @mouseleave="showUndoTooltip = false"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiUndo" />
+            </svg>
+          </button>
+        </div>
+        <div class="btn-tooltip-wrapper" ref="redoBtnWrapper">
+          <button
+            data-testid="redo-btn"
+            class="btn-action"
+            :class="redoButtonClass"
+            :disabled="!deckStore.canRedo"
+            @click="handleRedo"
+            @mouseenter="showRedoTooltip = true"
+            @mouseleave="showRedoTooltip = false"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiRedo" />
+            </svg>
+          </button>
+        </div>
         <div class="deck-name-group">
           <span class="dno-chip">{{ localDno || '-' }}</span>
           <input
@@ -94,11 +102,11 @@
             </svg>
             Import / Export
           </button>
-          <button v-if="settingsStore.appSettings.sortAllBeforeSave" data-testid="save-without-sort-btn" @click="handleSaveWithoutFullSortClick" class="menu-item">
+          <button data-testid="save-with-alt-sort-btn" @click="handleSaveWithAltSortClick" class="menu-item">
             <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
               <path fill="currentColor" :d="mdiContentSave" />
             </svg>
-            Save (no full sort)
+            {{ altSaveButtonText }}
           </button>
           <div class="menu-divider"></div>
           <button @click="handleNewClick" class="menu-item">
@@ -126,6 +134,12 @@
             </svg>
             Options
           </button>
+          <button @click="handleShowHistory" class="menu-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+              <path fill="currentColor" :d="mdiHistory" />
+            </svg>
+            Operation History
+          </button>
         </div>
         </Transition>
       </div>
@@ -134,10 +148,39 @@
     <!-- Menu Overlay (外側クリックで閉じる用) -->
     <div v-if="showMenu" class="menu-overlay" @click="toggleMenu"></div>
 
+    <!-- Command History Dialog -->
+    <CommandHistoryDialog
+      :visible="showHistoryDialog"
+      :history="deckStore.commandHistory"
+      :current-index="deckStore.commandIndex"
+      @close="handleCloseHistory"
+      @jump-to="handleJumpToHistory"
+      @clear-history="handleClearHistory"
+    />
 
-
-
-
+    <!-- Tooltips (Teleport to body to escape overflow:hidden) -->
+    <Teleport to="body">
+      <Transition name="tooltip-fade">
+        <div
+          v-if="showUndoTooltip && deckStore.canUndo"
+          class="command-tooltip-fixed"
+          :class="undoTooltipClass"
+          :style="undoTooltipStyle"
+        >
+          {{ undoTooltipText }}
+        </div>
+      </Transition>
+      <Transition name="tooltip-fade">
+        <div
+          v-if="showRedoTooltip && deckStore.canRedo"
+          class="command-tooltip-fixed"
+          :class="redoTooltipClass"
+          :style="redoTooltipStyle"
+        >
+          {{ redoTooltipText }}
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -147,10 +190,11 @@ import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
 import Toast from './Toast.vue'
+import CommandHistoryDialog from './CommandHistoryDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete, mdiHistory } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -161,7 +205,8 @@ interface ToastState {
 export default {
   name: 'DeckEditTopBar',
   components: {
-    Toast
+    Toast,
+    CommandHistoryDialog
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -172,6 +217,11 @@ export default {
     const saveTimer = ref<number | null>(null)
     const showMenu = ref(false)
     const menuLoading = ref(false)
+    const showHistoryDialog = ref(false)
+    const showUndoTooltip = ref(false)
+    const showRedoTooltip = ref(false)
+    const undoBtnWrapper = ref<HTMLElement | null>(null)
+    const redoBtnWrapper = ref<HTMLElement | null>(null)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -196,6 +246,60 @@ export default {
       set: (value: string) => deckStore.setDeckName(value)
     })
     const displayDeckName = computed(() => deckStore.getDeckName())
+
+    // Undo/Redo tooltip and button styling
+    const undoTooltipText = computed(() => {
+      const description = deckStore.getUndoDescription()
+      if (description) {
+        return `${description} (Ctrl+Z)`
+      }
+      return 'Ctrl+Z'
+    })
+    const redoTooltipText = computed(() => {
+      const description = deckStore.getRedoDescription()
+      if (description) {
+        return `${description} (Ctrl+Y)`
+      }
+      return 'Ctrl+Y'
+    })
+
+    // Type-based styling
+    const getTypeClass = (type: string | undefined): string => {
+      switch (type) {
+        case 'add': return 'type-add'
+        case 'remove': return 'type-remove'
+        case 'move': return 'type-move'
+        case 'reorder': return 'type-reorder'
+        default: return ''
+      }
+    }
+
+    const undoTooltipClass = computed(() => getTypeClass(deckStore.getUndoType()))
+    const redoTooltipClass = computed(() => getTypeClass(deckStore.getRedoType()))
+    const undoButtonClass = computed(() => getTypeClass(deckStore.getUndoType()))
+    const redoButtonClass = computed(() => getTypeClass(deckStore.getRedoType()))
+
+    // Tooltip position (fixed positioning to escape overflow:hidden)
+    const undoTooltipStyle = computed(() => {
+      if (!undoBtnWrapper.value) return {}
+      const rect = undoBtnWrapper.value.getBoundingClientRect()
+      return {
+        position: 'fixed',
+        left: `${rect.left + rect.width / 2}px`,
+        top: `${rect.top - 4}px`,
+        transform: 'translate(-50%, -100%)'
+      } as const
+    })
+    const redoTooltipStyle = computed(() => {
+      if (!redoBtnWrapper.value) return {}
+      const rect = redoBtnWrapper.value.getBoundingClientRect()
+      return {
+        position: 'fixed',
+        left: `${rect.left + rect.width / 2}px`,
+        top: `${rect.top - 4}px`,
+        transform: 'translate(-50%, -100%)'
+      } as const
+    })
 
     /**
      * 共通の保存処理
@@ -260,11 +364,16 @@ export default {
     }
 
     const handleSaveClick = () => {
-      // sortAllBeforeSaveが有効な場合は全ソート、無効な場合は最低限のソートのみ
-      if (settingsStore.appSettings.sortAllBeforeSave) {
-        performSave(() => {
-          deckStore.sortAllSections()
-        })
+      // 設定に応じてフルソートまたはmin-sort
+      if (settingsStore.appSettings.saveWithAutoFullSort) {
+        // sort済みの場合はsortをスキップ（toggle-*はasc/descいずれかで済んでいればOK）
+        if (deckStore.isAllSectionsSortedForSave()) {
+          performSave(() => {})
+        } else {
+          performSave(() => {
+            deckStore.sortAllSections()
+          })
+        }
       } else {
         performSave(() => {
           deckStore.sortDisplayOrderForOfficial()
@@ -272,12 +381,24 @@ export default {
       }
     }
 
-    const handleSaveWithoutFullSortClick = () => {
-      // 最低限のソート（公式フォーマット）のみで保存
-      performSave(() => {
-        deckStore.sortDisplayOrderForOfficial()
-      })
+    const handleSaveWithAltSortClick = () => {
+      // 設定と逆のソート方法で保存
+      if (settingsStore.appSettings.saveWithAutoFullSort) {
+        performSave(() => {
+          deckStore.sortDisplayOrderForOfficial()
+        })
+      } else {
+        performSave(() => {
+          deckStore.sortAllSections()
+        })
+      }
     }
+
+    const altSaveButtonText = computed(() => {
+      return settingsStore.appSettings.saveWithAutoFullSort
+        ? 'Save with min sort'
+        : 'Save with full sort'
+    })
 
     const handleLoadClick = async () => {
       await checkUnsavedChanges(async () => {
@@ -394,6 +515,26 @@ export default {
       deckStore.showOptionsDialog = true
     }
 
+    const handleShowHistory = () => {
+      showMenu.value = false
+      showHistoryDialog.value = true
+    }
+
+    const handleCloseHistory = () => {
+      showHistoryDialog.value = false
+    }
+
+    const handleJumpToHistory = (index: number) => {
+      deckStore.jumpToIndex(index)
+      showHistoryDialog.value = false
+    }
+
+    const handleClearHistory = () => {
+      deckStore.clearHistory()
+      showHistoryDialog.value = false
+      showToast('操作履歴をクリアしました', 'info')
+    }
+
 
 
     const handleImported = (deckInfo: any, replaceExisting: boolean) => {
@@ -499,12 +640,26 @@ export default {
       confirmDelete,
       cancelDelete,
       menuLoading,
+      showHistoryDialog,
+      showUndoTooltip,
+      showRedoTooltip,
+      undoBtnWrapper,
+      redoBtnWrapper,
+      undoTooltipStyle,
+      redoTooltipStyle,
       localDno,
       localDeckName,
       displayDeckName,
+      undoTooltipText,
+      redoTooltipText,
+      undoTooltipClass,
+      redoTooltipClass,
+      undoButtonClass,
+      redoButtonClass,
       toast,
       handleSaveClick,
-      handleSaveWithoutFullSortClick,
+      handleSaveWithAltSortClick,
+      altSaveButtonText,
       handleLoadClick,
       handleLoadSelected,
       handleReloadDeck,
@@ -515,6 +670,10 @@ export default {
       handleImportExportClick,
       handleImported,
       handleOptions,
+      handleShowHistory,
+      handleCloseHistory,
+      handleJumpToHistory,
+      handleClearHistory,
       handleUndo,
       handleRedo,
       handleNewClick,
@@ -531,7 +690,8 @@ export default {
       mdiRedo,
       mdiPlusBox,
       mdiContentCopy,
-      mdiDelete
+      mdiDelete,
+      mdiHistory
     }
   }
 }
@@ -541,6 +701,7 @@ export default {
 .top-bar-wrapper {
   margin: 0;
   padding: 0 0 8px 0;
+  overflow: visible;
 }
 
 .top-bar {
@@ -560,6 +721,8 @@ export default {
   align-items: center;
   flex: 1 1 auto;
   min-width: 0;
+  position: relative;
+  overflow: visible;
 }
 
 .top-bar-right {
@@ -769,6 +932,132 @@ export default {
 .btn-action {
   font-size: 12px;
   white-space: nowrap;
+}
+
+// Button + Tooltip wrapper
+.btn-tooltip-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Command tooltip (positioned relative to wrapper)
+.command-tooltip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  line-height: 1.4;
+  min-height: 20px;
+
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+
+  // Type-specific colors
+  &.type-add {
+    background: #2e7d32;
+    color: #fff;
+    border-color: #4caf50;
+  }
+
+  &.type-remove {
+    background: #c62828;
+    color: #fff;
+    border-color: #f44336;
+  }
+
+  &.type-move {
+    background: #616161;
+    color: #fff;
+    border-color: #9e9e9e;
+  }
+
+  &.type-reorder {
+    background: #ef6c00;
+    color: #fff;
+    border-color: #ff9800;
+  }
+}
+
+// Fixed position tooltip (teleported to body)
+.command-tooltip-fixed {
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 10000;
+  pointer-events: none;
+  line-height: 1.4;
+  min-height: 20px;
+
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+
+  // Type-specific colors
+  &.type-add {
+    background: #2e7d32;
+    color: #fff;
+    border-color: #4caf50;
+  }
+
+  &.type-remove {
+    background: #c62828;
+    color: #fff;
+    border-color: #f44336;
+  }
+
+  &.type-move {
+    background: #616161;
+    color: #fff;
+    border-color: #9e9e9e;
+  }
+
+  &.type-reorder {
+    background: #ef6c00;
+    color: #fff;
+    border-color: #ff9800;
+  }
+}
+
+// Button type indicator (subtle border accent)
+.btn-action {
+  &.type-add {
+    border-color: var(--color-success);
+  }
+
+  &.type-remove {
+    border-color: var(--color-error);
+  }
+
+  &.type-move {
+    border-color: var(--border-secondary);
+  }
+
+  &.type-reorder {
+    border-color: var(--color-warning);
+  }
+}
+
+// Tooltip animation
+.tooltip-fade-enter-active,
+.tooltip-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to {
+  opacity: 0;
 }
 
 .dialog-overlay {

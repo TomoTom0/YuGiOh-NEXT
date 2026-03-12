@@ -1,28 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createDeckCardComparator, type DisplayCard, type DeckSortOptions } from '@/composables/deck/useDeckCardSorter';
-import { getTempCardDB } from '@/utils/temp-card-db';
-import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { createDeckCardComparator, type DisplayCard } from '@/composables/deck/useDeckCardSorter';
 import type { CardInfo } from '@/types/card';
 
-describe('useDeckCardSorter', () => {
-  beforeEach(() => {
-    const db = getTempCardDB();
-    db.clear();
-  });
+vi.mock('@/utils/card-utils', () => ({
+  getCardInfo: vi.fn()
+}));
 
-  afterEach(() => {
-    const db = getTempCardDB();
-    db.clear();
+import { getCardInfo } from '@/utils/card-utils';
+
+describe('useDeckCardSorter', () => {
+  const cardDB = new Map<string, CardInfo>();
+
+  beforeEach(() => {
+    cardDB.clear();
+    vi.mocked(getCardInfo).mockImplementation((cid: string) => cardDB.get(cid) ?? null);
   });
 
   describe('createDeckCardComparator', () => {
-    // テスト用のカード情報をセットアップする関数
     const setupCard = (cid: string, cardInfo: Partial<CardInfo>) => {
-      const tempDb = getTempCardDB();
-      const unifiedDB = getUnifiedCacheDB();
       const defaultCard: CardInfo = {
         cid,
-        cardId: cid,  // cardIdをcidと同じにセット
+        cardId: cid,
         nameRuby: `Card${cid}`,
         cardType: 'monster',
         cardKindTitle: 'モンスター',
@@ -30,10 +28,7 @@ describe('useDeckCardSorter', () => {
         tableA: {},
         tableB: {}
       };
-      const finalCard = { ...defaultCard, ...cardInfo };
-      tempDb.set(cid, finalCard);
-      // UnifiedDB にも登録（reconstructCardInfo で使用されるため）
-      unifiedDB.setCardInfo(finalCard, true);
+      cardDB.set(cid, { ...defaultCard, ...cardInfo });
     };
 
     const createDisplayCard = (cid: string): DisplayCard => ({
@@ -97,7 +92,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[0], section[1])).toBeLessThan(0);
       });
 
-      it('同じカテゴリ内では枚数の多い順でソートされる', () => {
+      it('quantity-desc: 同じカテゴリ内では枚数の多い順でソートされる', () => {
         setupCard('card1', { cardType: 'monster', name: 'Card1', types: [] });
         setupCard('card2', { cardType: 'monster', name: 'Card2', types: [] });
 
@@ -110,11 +105,64 @@ describe('useDeckCardSorter', () => {
 
         const comparator = createDeckCardComparator(section, {
           enableCategoryPriority: true,
-          priorityCategoryCardIds: new Set(['card1', 'card2'])
+          priorityCategoryCardIds: new Set(['card1', 'card2']),
+          categoryPrioritySortMode: 'quantity-desc'
         });
 
-        // card1を3枚、card2を1枚：3 > 1 なので card1 < card2
+        // card1を3枚、card2を1枚：降順なので card1 < card2
         expect(comparator(section[0], section[3])).toBeLessThan(0);
+      });
+
+      it('quantity-desc: ascでも降順固定', () => {
+        setupCard('card1', { cardType: 'monster', name: 'Card1', types: [] });
+        setupCard('card2', { cardType: 'monster', name: 'Card2', types: [] });
+
+        const section = [
+          createDisplayCard('card1'),
+          createDisplayCard('card1'),
+          createDisplayCard('card1'),
+          createDisplayCard('card2')
+        ];
+
+        const comparator = createDeckCardComparator(section, {
+          enableCategoryPriority: true,
+          priorityCategoryCardIds: new Set(['card1', 'card2']),
+          categoryPrioritySortMode: 'quantity-desc',
+          levelSortOrder: 'asc'
+        });
+
+        // asc設定でも枚数は降順固定: card1(3枚) < card2(1枚)
+        expect(comparator(section[0], section[3])).toBeLessThan(0);
+      });
+
+      it('level（デフォルト）: 枚数ではなくlevelSortOrderに従う', () => {
+        setupCard('card1', { cardType: 'monster', name: 'Card1', types: [], levelValue: 4 });
+        setupCard('card2', { cardType: 'monster', name: 'Card2', types: [], levelValue: 8 });
+
+        const section = [
+          createDisplayCard('card1'),
+          createDisplayCard('card1'),
+          createDisplayCard('card1'),
+          createDisplayCard('card2')
+        ];
+
+        const comparatorDesc = createDeckCardComparator(section, {
+          enableCategoryPriority: true,
+          priorityCategoryCardIds: new Set(['card1', 'card2']),
+          categoryPrioritySortMode: 'level',
+          levelSortOrder: 'desc'
+        });
+        const comparatorAsc = createDeckCardComparator(section, {
+          enableCategoryPriority: true,
+          priorityCategoryCardIds: new Set(['card1', 'card2']),
+          categoryPrioritySortMode: 'level',
+          levelSortOrder: 'asc'
+        });
+
+        // desc: level高い方が先 → card2(8) < card1(4)
+        expect(comparatorDesc(section[3], section[0])).toBeLessThan(0);
+        // asc: level低い方が先 → card1(4) < card2(8)
+        expect(comparatorAsc(section[0], section[3])).toBeLessThan(0);
       });
     });
 
