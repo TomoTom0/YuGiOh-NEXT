@@ -171,7 +171,7 @@ const props = withDefaults(
     dno: '',
     deckName: '',
     initialTab: 'import',
-    theme: () => window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    theme: () => (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
     includeTimestamp: true
   }
 );
