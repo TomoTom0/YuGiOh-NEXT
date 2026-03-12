@@ -542,7 +542,7 @@ describe('api/card-search - Comprehensive Tests', () => {
       // ペンデュラムモンスターのHTML構造を模倣
       const doc = new DOMParser().parseFromString(`
         <div class="t_row">
-          <input type="hidden" name="cid" value="12345" />
+          <input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=12345&request_locale=ja" />
           <div class="box_card_name">
             <span class="card_name">テストペンデュラム</span>
           </div>
@@ -556,23 +556,24 @@ describe('api/card-search - Comprehensive Tests', () => {
         </div>
       `, 'text/html');
 
-      const row = doc.querySelector('.t_row') as HTMLElement;
-      if (row) {
-        const imageInfoMap = new Map([['12345', { ciid: '1', imgHash: '12345_1_1_1' }]]);
-        const result = parseCardBase(row, imageInfoMap);
+      const row = doc.querySelector('.t_row');
+      expect(row).not.toBeNull();
 
-        if (result?.text) {
-          // ペンデュラム効果テキストが含まれていないことを確認
-          expect(result.text).not.toContain('ペンデュラム効果テキスト');
-        }
-      }
+      const imageInfoMap = new Map([['12345', { ciid: '1', imgHash: '12345_1_1_1' }]]);
+      const result = parseCardBase(row! as HTMLElement, imageInfoMap);
+
+      expect(result).not.toBeNull();
+      // ペンデュラム効果テキストが含まれていないことを確認
+      expect(result!.text).not.toContain('ペンデュラム効果テキスト');
+      // メインの効果テキストが含まれていることを確認
+      expect(result!.text).toContain('メインの効果テキスト');
     });
 
     it('非ペンデュラムモンスターのテキストはそのまま返される', () => {
 
       const doc = new DOMParser().parseFromString(`
         <div class="t_row">
-          <input type="hidden" name="cid" value="67890" />
+          <input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=67890&request_locale=ja" />
           <div class="box_card_name">
             <span class="card_name">通常モンスター</span>
           </div>
@@ -585,15 +586,14 @@ describe('api/card-search - Comprehensive Tests', () => {
         </div>
       `, 'text/html');
 
-      const row = doc.querySelector('.t_row') as HTMLElement;
-      if (row) {
-        const imageInfoMap = new Map([['67890', { ciid: '1', imgHash: '67890_1_1_1' }]]);
-        const result = parseCardBase(row, imageInfoMap);
+      const row = doc.querySelector('.t_row');
+      expect(row).not.toBeNull();
 
-        if (result?.text) {
-          expect(result.text).toContain('通常の効果テキスト');
-        }
-      }
+      const imageInfoMap = new Map([['67890', { ciid: '1', imgHash: '67890_1_1_1' }]]);
+      const result = parseCardBase(row! as HTMLElement, imageInfoMap);
+
+      expect(result).not.toBeNull();
+      expect(result!.text).toContain('通常の効果テキスト');
     });
   });
 });

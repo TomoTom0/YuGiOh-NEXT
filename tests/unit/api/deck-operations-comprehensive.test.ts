@@ -1824,23 +1824,30 @@ describe('deck-operations.ts', () => {
       expect(result.error![0]).toContain('invalid ciid');
     });
 
-    it('重複カード（同一cid+ciid）がある場合、コンソールエラーが出力される', async () => {
-      vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
-      const consoleSpy = vi.spyOn(console, 'error');
-
+    it('重複カード（同一cid+ciid）がある場合、エラーが返される', async () => {
       const deckData = createSampleDeckInfo();
       deckData.mainDeck = [
         { cid: '12345', ciid: 1, quantity: 2 },
         { cid: '12345', ciid: 1, quantity: 1 }
       ];
 
-      await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error![0]).toContain('Duplicate card found');
+    });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Duplicate card found')
-      );
+    it('ciidが0のカードは有効として扱われる', async () => {
+      vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
 
-      consoleSpy.mockRestore();
+      const deckData = createSampleDeckInfo();
+      deckData.mainDeck = [{ cid: '12345', ciid: 0, quantity: 1 }];
+
+      const result = await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+      // ciid: 0 はバリデーションエラーにならない
+      if (result.error) {
+        expect(result.error[0]).not.toContain('invalid ciid');
+      }
     });
   });
 });
