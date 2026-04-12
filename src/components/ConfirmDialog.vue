@@ -100,6 +100,7 @@ export default defineComponent({
     width: 90%;
     max-width: 400px;
     box-sizing: border-box;
+    overflow-y: auto;
 
     .dialog-footer {
       display: flex;
@@ -153,12 +154,12 @@ export default defineComponent({
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--color-info-bg, #e3f2fd);
   color: var(--text-primary, #333);
-  border: 1px solid var(--border-primary, #ddd);
+  border: 1px solid var(--color-info-border, #64b5f6);
 
   &:hover {
-    background: var(--bg-tertiary, #e0e0e0);
+    background: var(--color-info-hover-bg, #bbdefb);
   }
 }
 

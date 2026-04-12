@@ -658,7 +658,7 @@ export const useSettingsStore = defineStore('settings', () => {
 
     // flex レイアウト用の変数（デッキ編集レイアウト用）
     if (width === 'MAX-FIT') {
-      // MAX-FIT: flex-grow=1で空いたスペースを埋めるが、編集エリアを圧迫しないよう50%に制限
+      // MAX-FIT: flex-grow=1で空いたスペースを埋めるが、編集エリアを圧迫しないよう40%に制限
       // (main-contentはflex-basis:0のため、flex-basis:300pxを持つright-areaが常に大きくなる問題をmax-widthで解消)
       document.documentElement.style.setProperty('--right-area-flex-grow', '1');
       document.documentElement.style.setProperty('--right-area-flex-shrink', '1');
