@@ -656,15 +656,22 @@ export const useSettingsStore = defineStore('settings', () => {
     document.documentElement.style.setProperty('--right-area-width', widthMap[width]);
     document.documentElement.style.setProperty('--right-area-font-size', fontSizeMap[fontSize]);
 
-    // flex レイアウト用の変数（デッキ表示ページ用）
+    // flex レイアウト用の変数（デッキ編集レイアウト用）
     if (width === 'MAX-FIT') {
-      // MAX-FIT: flex-grow=1で空いたスペースを埋める
+      // MAX-FIT: flex-grow=1で空いたスペースを埋めるが、編集エリアを圧迫しないよう50%に制限
+      // (main-contentはflex-basis:0のため、flex-basis:300pxを持つright-areaが常に大きくなる問題をmax-widthで解消)
       document.documentElement.style.setProperty('--right-area-flex-grow', '1');
+      document.documentElement.style.setProperty('--right-area-flex-shrink', '1');
       document.documentElement.style.setProperty('--right-area-flex-basis', '300px');
+      // 左エリア(編集エリア)に最低600pxを確保しつつ、右エリアは最大40%に制限
+      // max(300px, ...) で幅が小さい場合でも0px以下にならないよう下限を設ける
+      document.documentElement.style.setProperty('--right-area-max-width', 'max(300px, min(40%, calc(100% - 600px)))');
     } else {
       // 固定幅: flex-grow=0で固定サイズ
       document.documentElement.style.setProperty('--right-area-flex-grow', '0');
+      document.documentElement.style.setProperty('--right-area-flex-shrink', '0');
       document.documentElement.style.setProperty('--right-area-flex-basis', widthMap[width]);
+      document.documentElement.style.setProperty('--right-area-max-width', 'none');
     }
   }
 
