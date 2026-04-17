@@ -247,10 +247,11 @@ export default {
 
 <style scoped lang="scss">
 .right-area {
-  /* MAX-FIT時はflex-growで残りスペースを埋める、固定幅時はflex-basisで幅指定 */
   flex-grow: var(--right-area-flex-grow, 0);
-  flex-shrink: 0;
+  flex-shrink: var(--right-area-flex-shrink, 0);
   flex-basis: var(--right-area-flex-basis, 400px);
+  max-width: var(--right-area-max-width, none);
+  width: var(--right-area-width, 400px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -272,8 +273,8 @@ export default {
 
 @media (max-width: 768px) {
   .right-area {
-    flex-basis: 100% !important;
-    flex-grow: 1 !important;
+    width: 100% !important;
+    max-width: none !important;
     margin: 0 !important;
   }
 

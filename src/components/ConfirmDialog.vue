@@ -100,6 +100,7 @@ export default defineComponent({
     width: 90%;
     max-width: 400px;
     box-sizing: border-box;
+    overflow-y: auto;
 
     .dialog-footer {
       display: flex;
