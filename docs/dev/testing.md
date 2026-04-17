@@ -201,28 +201,25 @@ it('アニメーション完了を待つ', async () => {
 
 ## テストファイルの構成
 
+詳細は **[`tests/README.md`](../../tests/README.md)** のテストディレクトリ構成を参照してください。
+
 ```
 tests/
 ├── unit/
-│   ├── components/
-│   │   ├── CardList.test.ts
-│   │   ├── DeckCard.test.ts
-│   │   ├── DeckSection.test.ts
-│   │   └── CardInfo.test.ts
-│   ├── utils/
-│   │   ├── language-detector.test.ts
-│   │   ├── mapping-manager.test.ts
-│   │   ├── card-animation.test.ts
-│   │   └── category-grouping.test.ts
-│   ├── deck-import.test.ts
-│   └── stores/
-│       └── deck-edit.test.ts (除外中)
-├── combine/
-│   └── parser/ (除外中)
-├── fixtures/
-│   └── test-image.png
-└── sample/
-    └── *.html
+│   ├── api/                 # API関連テスト
+│   ├── components/          # Vueコンポーネントテスト
+│   ├── composables/         # Vue composablesテスト
+│   ├── content/             # Content scriptsテスト
+│   ├── deck-display/        # デッキ表示テスト
+│   ├── parser/              # パーサーテスト
+│   ├── shuffle/             # シャッフルテスト
+│   ├── stores/              # Pinia storeテスト
+│   └── utils/               # ユーティリティテスト
+├── e2e/                     # E2Eテスト
+├── combine/                 # 結合テスト
+├── browser/                 # ブラウザ自動テスト (CDP)
+├── fixtures/                # テストフィクスチャ
+└── sample/                  # サンプルデータ
 ```
 
 ## テスト実行

@@ -282,6 +282,105 @@ describe('utils/unified-cache-db', () => {
     });
   });
 
+  describe('完全なCardInfoキャッシュ (getCardInfo / setCardInfoFull / hasCardInfo / clearCardInfoCache)', () => {
+    const createTestCard = (cid: string): CardInfo => ({
+      cardId: cid,
+      name: `Card ${cid}`,
+      cardType: 'monster',
+      attribute: 'dark',
+      race: 'warrior',
+      levelType: 'normal',
+      levelValue: 4,
+      atk: 2000,
+      def: 1500,
+      types: ['warrior', 'effect'],
+      text: 'Effect text',
+      imgs: [{ ciid: `ciid-${cid}`, url: `http://example.com/${cid}.jpg` }],
+      ruby: {},
+      lang: 'ja'
+    });
+
+    it('getCardInfo: 存在しないカードはundefinedを返す', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      expect(db.getCardInfo('non-existent')).toBeUndefined();
+    });
+
+    it('setCardInfoFull + getCardInfo: カードを保存・取得できる', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      const card = createTestCard('full-1');
+      const result = db.setCardInfoFull('full-1', card);
+      expect(result).toBe(true);
+
+      const retrieved = db.getCardInfo('full-1');
+      expect(retrieved).toBeDefined();
+      expect(retrieved!.name).toBe('Card full-1');
+    });
+
+    it('setCardInfoFull: TTL内の再設定はスキップされる', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      const card = createTestCard('full-2');
+      expect(db.setCardInfoFull('full-2', card)).toBe(true);
+      expect(db.setCardInfoFull('full-2', card)).toBe(false);
+    });
+
+    it('setCardInfoFull: forceUpdate=trueでTTL内でも更新される', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      const card = createTestCard('full-3');
+      expect(db.setCardInfoFull('full-3', card)).toBe(true);
+      expect(db.setCardInfoFull('full-3', card, true)).toBe(true);
+    });
+
+    it('setCardInfoFull: TTL経過後は更新される', async () => {
+      vi.useFakeTimers();
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      const card = createTestCard('full-4');
+      expect(db.setCardInfoFull('full-4', card)).toBe(true);
+
+      const cacheTTL = (db as any).cacheTTL;
+      vi.setSystemTime(Date.now() + cacheTTL);
+
+      expect(db.setCardInfoFull('full-4', card)).toBe(true);
+      vi.useRealTimers();
+    });
+
+    it('hasCardInfo: 存在チェックが正しく動作する', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      expect(db.hasCardInfo('full-5')).toBe(false);
+
+      db.setCardInfoFull('full-5', createTestCard('full-5'));
+      expect(db.hasCardInfo('full-5')).toBe(true);
+    });
+
+    it('clearCardInfoCache: キャッシュがクリアされる', async () => {
+      const db = getUnifiedCacheDB();
+      await db.initialize();
+
+      db.setCardInfoFull('full-6', createTestCard('full-6'));
+      db.setCardInfoFull('full-7', createTestCard('full-7'));
+
+      expect(db.hasCardInfo('full-6')).toBe(true);
+      expect(db.hasCardInfo('full-7')).toBe(true);
+
+      db.clearCardInfoCache();
+
+      expect(db.hasCardInfo('full-6')).toBe(false);
+      expect(db.hasCardInfo('full-7')).toBe(false);
+      expect(db.getCardInfo('full-6')).toBeUndefined();
+    });
+  });
+
   describe('forceUpdate フラグテスト', () => {
     it('forceUpdate = true の場合、キャッシュ有効期限に関係なく新規保存される', async () => {
       const db = getUnifiedCacheDB();

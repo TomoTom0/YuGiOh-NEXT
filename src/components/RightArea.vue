@@ -250,9 +250,7 @@ export default {
   flex-grow: var(--right-area-flex-grow, 0);
   flex-shrink: var(--right-area-flex-shrink, 0);
   flex-basis: var(--right-area-flex-basis, 400px);
-  /* MAX-FIT時に編集エリアが縮みすぎないよう右エリアを50%以下に制限 */
   max-width: var(--right-area-max-width, none);
-  /* flex-basisがwidthよりflexサイズ計算で優先されるため、MAX-FIT時のwidth: 100%問題を解消 */
   width: var(--right-area-width, 400px);
   height: 100%;
   display: flex;
@@ -279,13 +277,13 @@ export default {
     max-width: none !important;
     margin: 0 !important;
   }
-  
+
   /* 検索入力欄が左上（section-title）にある場合：上に隙間 */
   .right-area.has-left-top-input {
     height: calc(100% - 65px) !important;
     margin-top: 65px !important;
   }
-  
+
   /* 検索入力欄が下部にある場合：下に隙間 */
   .right-area.has-bottom-input {
     height: calc(100% - 65px) !important;

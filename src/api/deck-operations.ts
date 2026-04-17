@@ -168,7 +168,7 @@ export async function saveDeckInternal(
       deckList.forEach(cardRef => {
         const key = `${cardRef.cid}_${cardRef.ciid}`;
         if (seen.has(key)) {
-          console.error(`[saveDeckInternal] Duplicate card found: ${key} in ${location}`);
+          throw new Error(`${location}: Duplicate card found: ${key}`);
         }
         seen.add(key);
       });
@@ -186,7 +186,7 @@ export async function saveDeckInternal(
       if (typeof cardRef.quantity !== 'number' || cardRef.quantity < 1) {
         throw new Error(`${location}: ${cardRef.cid} has invalid quantity: ${cardRef.quantity}`);
       }
-      if (!cardRef.ciid) {
+      if (cardRef.ciid === '' || cardRef.ciid == null) {
         throw new Error(`${location}: ${cardRef.cid} has invalid ciid`);
       }
     };

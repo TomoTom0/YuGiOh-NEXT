@@ -52,6 +52,7 @@ tests/combine/data/*.html
 *.zip
 
 # Playwright and Chrome cache
+.playwright-mcp/
 .chrome_cache/
 .chrome_cache_temp/
 .chrome_playwright_ws
@@ -74,3 +75,4 @@ docs/_archived/
 .claude/
 .alcom-save.log
 .chrome_playwright_ws
+currentIndex

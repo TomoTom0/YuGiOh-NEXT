@@ -251,6 +251,21 @@ DeckEditLayout.vue (メインレイアウト)
 - **CardList**: カードリストの表示、リスト/グリッド切り替え、ソート
 - **DeckCard**: 個別カードの表示、ドラッグ開始、ボタンイベント
 - **RightArea**: 検索・カード詳細表示エリア
+
+### レイアウト構造
+
+DeckEditLayoutは、デッキレシピエリア（main-content）と右エリア（RightArea）をflexboxで横並びに配置します。
+
+**レイアウト優先度:**
+- デッキレシピ側が優先的にスペースを確保（`flex: 2 1 500px`、最小幅400px）
+- 右エリアは設定に応じて固定幅またはflex-growで残りスペースを使用
+
+**右エリア幅の制御（CSS変数）:**
+- `--right-area-flex-grow`: MAX-FIT時は`1`、固定幅時は`0`
+- `--right-area-flex-basis`: 固定幅（S:300px, M:400px, L:500px, XL:600px）またはMAX-FIT時は`300px`
+
+**レスポンシブ対応:**
+- 768px以下: 右エリアが全幅表示、デッキタブが出現
 - **SearchInputBar**: 検索入力の共通コンポーネント（v0.4.0で追加）
 - **SearchFilterDialog**: 検索フィルター条件設定（v0.4.0で追加）
 - **CardInfo**: カード詳細情報の表示
