@@ -6,7 +6,6 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -73,14 +72,8 @@ describe('parseSearchResults - カード情報パース', () => {
   it.skipIf(!hasHtmlFile)('検索結果のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    const dom = new JSDOM(html, {
-      url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
-    });
-    const doc = dom.window.document as unknown as Document;
-    global.document = doc as any;
-    global.HTMLInputElement = dom.window.HTMLInputElement as any;
-    global.HTMLImageElement = dom.window.HTMLImageElement as any;
-    global.HTMLElement = dom.window.HTMLElement as any;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
     const cards = parseSearchResults(doc);
 
@@ -97,14 +90,8 @@ describe('parseSearchResults - カード情報パース', () => {
   it.skipIf(!hasHtmlFile)('複数のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    const dom = new JSDOM(html, {
-      url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
-    });
-    const doc = dom.window.document as unknown as Document;
-    global.document = doc as any;
-    global.HTMLInputElement = dom.window.HTMLInputElement as any;
-    global.HTMLImageElement = dom.window.HTMLImageElement as any;
-    global.HTMLElement = dom.window.HTMLElement as any;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
     const cards = parseSearchResults(doc);
 

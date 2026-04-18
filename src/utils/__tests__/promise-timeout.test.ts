@@ -70,7 +70,7 @@ describe('promise-timeout', () => {
     it('should handle promise rejection', async () => {
       const promise = (async () => {
         throw new Error('test error');
-      })().catch((e: unknown) => { throw e; });
+      })();
 
       await expect(
         withTimeout(promise, { ms: 5000 })
@@ -179,7 +179,7 @@ describe('promise-timeout', () => {
     it('should throw non-timeout errors', async () => {
       const promise = (async () => {
         throw new Error('test error');
-      })().catch((e: unknown) => { throw e; });
+      })();
       await expect(waitWithinTimeout(promise, 5000)).rejects.toThrow(
         'test error'
       );
@@ -249,7 +249,7 @@ describe('promise-timeout', () => {
       };
 
       // Unhandled rejectionを防止するため、Promiseを事前にキャッチ
-      const resultPromise = retryWithTimeout(executor, { timeoutMs: 5000, maxRetries: 3 }).catch((e: unknown) => { throw e; });
+      const resultPromise = retryWithTimeout(executor, { timeoutMs: 5000, maxRetries: 3 });
       await expect(resultPromise).rejects.toThrow('not a timeout');
 
       expect(attempts).toBe(1); // Only one attempt
