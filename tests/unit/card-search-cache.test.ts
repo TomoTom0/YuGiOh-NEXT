@@ -2,7 +2,7 @@
  * カード検索・キャッシュ機能のテスト
  * - parseSearchResults()のカード情報パース
  * - saveCardDetailToCache()のUnifiedCacheDB保存
- * @vitest-environment node
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { parseSearchResults, saveCardDetailToCache } from '@/api/card-search';
-import { getTempCardDB, resetTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB, resetTempCacheDB } from '@/utils/temp-cache-db';
 import { getUnifiedCacheDB, resetUnifiedCacheDB } from '@/utils/unified-cache-db';
 import type { CardDetail } from '@/types/card';
 
@@ -63,7 +63,7 @@ describe('parseSearchResults - カード情報パース', () => {
       }
     } as any;
 
-    resetTempCardDB();
+    resetTempCacheDB();
     resetUnifiedCacheDB();
   });
 
@@ -86,7 +86,7 @@ describe('parseSearchResults - カード情報パース', () => {
 
     expect(cards.length).toBeGreaterThan(0);
 
-    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
+    // parseSearchResults は単にカード情報を返すだけで、TempCacheDB への保存は行わない
     // 保存は呼び出し側（CardList.vueなど）で行う
     const firstCard = cards[0];
     expect(firstCard).toBeDefined();
@@ -110,7 +110,7 @@ describe('parseSearchResults - カード情報パース', () => {
 
     expect(cards.length).toBeGreaterThan(1);
 
-    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
+    // parseSearchResults は単にカード情報を返すだけで、TempCacheDB への保存は行わない
     for (const card of cards) {
       expect(card).toBeDefined();
       expect(card.cardId).toBeDefined();
@@ -165,7 +165,7 @@ describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
       }
     } as any;
 
-    resetTempCardDB();
+    resetTempCacheDB();
     resetUnifiedCacheDB();
   });
 

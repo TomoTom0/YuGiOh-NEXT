@@ -8,8 +8,18 @@ import {
   type ExportOptions,
 } from '@/utils/deck-export';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
 import type { CardInfo } from '@/types/card';
+
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo, force?: boolean) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
 
 describe('deck-export', () => {
   beforeEach(() => {
@@ -58,10 +68,9 @@ describe('deck-export', () => {
       }
     ];
 
-    const db = getTempCardDB();
-    db.clear();
+    mockCardDB.clear();
     mockCards.forEach(card => {
-      db.set(card.cid, card, true);
+      mockCardDB.set(card.cid, card);
     });
   });
 

@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import DeckSection from '../../../src/components/DeckSection.vue';
 import { useDeckEditStore } from '../../../src/stores/deck-edit';
-import { getTempCardDB } from '../../../src/utils/temp-card-db';
+import { getTempCacheDB } from '../../../src/utils/temp-cache-db';
 import { getUnifiedCacheDB } from '../../../src/utils/unified-cache-db';
 
 describe('DeckSection.vue', () => {
@@ -60,9 +60,9 @@ describe('DeckSection.vue', () => {
       return cards[cardId];
     });
 
-    // TempCardDBはクリア（使用されないことを確認）
-    const tempCardDB = getTempCardDB();
-    tempCardDB.clear();
+    // TempCacheDBはクリア（使用されないことを確認）
+    const tempCacheDB = getTempCacheDB();
+    tempCacheDB.clear();
   });
 
   const mockCards = [

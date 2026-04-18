@@ -1,20 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sortDisplayOrderForOfficial, type DisplayCardRef } from '@/composables/deck/useDeckSorting';
-import { getTempCardDB } from '@/utils/temp-card-db';
 import type { DeckCardRef } from '@/types/deck';
 import type { CardInfo } from '@/types/card';
 
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
+
 describe('useDeckSorting', () => {
   beforeEach(() => {
-    // TempCardDB をクリア
-    const db = getTempCardDB();
-    db.clear();
+    mockCardDB.clear();
   });
 
   afterEach(() => {
-    // TempCardDB をクリア
-    const db = getTempCardDB();
-    db.clear();
+    mockCardDB.clear();
   });
 
   describe('sortDisplayOrderForOfficial', () => {
@@ -27,7 +33,6 @@ describe('useDeckSorting', () => {
 
     it('モンスター→魔法→罠の順にソートされる', () => {
       // テストデータ準備
-      const db = getTempCardDB();
 
       const monsterCard: CardInfo = {
         cid: 'monster1',
@@ -50,9 +55,9 @@ describe('useDeckSorting', () => {
         cardKindTitle: '罠'
       };
 
-      db.set(monsterCard.cid, monsterCard);
-      db.set(spellCard.cid, spellCard);
-      db.set(trapCard.cid, trapCard);
+      mockCardDB.set(monsterCard.cid, monsterCard);
+      mockCardDB.set(spellCard.cid, spellCard);
+      mockCardDB.set(trapCard.cid, trapCard);
 
       // 罠→魔法→モンスターの順に並んでいる
       const displayOrder: DisplayCardRef[] = [
@@ -84,7 +89,6 @@ describe('useDeckSorting', () => {
     });
 
     it('同じカードタイプ内では最初の登場順を保持する', () => {
-      const db = getTempCardDB();
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -107,9 +111,9 @@ describe('useDeckSorting', () => {
         cardKindTitle: 'モンスター'
       };
 
-      db.set(monster1.cid, monster1);
-      db.set(monster2.cid, monster2);
-      db.set(monster3.cid, monster3);
+      mockCardDB.set(monster1.cid, monster1);
+      mockCardDB.set(monster2.cid, monster2);
+      mockCardDB.set(monster3.cid, monster3);
 
       // monster3 → monster1 → monster2 の順
       const displayOrder: DisplayCardRef[] = [
@@ -141,7 +145,6 @@ describe('useDeckSorting', () => {
     });
 
     it('同じカードが複数枚ある場合、最初の登場順を保持する', () => {
-      const db = getTempCardDB();
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -150,7 +153,7 @@ describe('useDeckSorting', () => {
         cardKindTitle: 'モンスター'
       };
 
-      db.set(monster1.cid, monster1);
+      mockCardDB.set(monster1.cid, monster1);
 
       // 同じカードが3枚
       const displayOrder: DisplayCardRef[] = [
@@ -182,7 +185,6 @@ describe('useDeckSorting', () => {
     });
 
     it('ciid（Card Image ID）は変更されない', () => {
-      const db = getTempCardDB();
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -198,8 +200,8 @@ describe('useDeckSorting', () => {
         cardKindTitle: '魔法'
       };
 
-      db.set(monster1.cid, monster1);
-      db.set(spell1.cid, spell1);
+      mockCardDB.set(monster1.cid, monster1);
+      mockCardDB.set(spell1.cid, spell1);
 
       // ciidが異なる同じカード
       const displayOrder: DisplayCardRef[] = [
@@ -275,13 +277,12 @@ describe('useDeckSorting', () => {
 
     it('【TASK-281修正確認】TempCardDB設定済み(parseDeckDetail修正後の状態)は魔法・罠を正しくソートする', () => {
       // parseDeckDetail の修正後: TempCardDB にカードタイプが登録される
-      const db = getTempCardDB();
       const spellInfo: CardInfo = { cid: 'spell1', nameRuby: '魔法1', cardType: 'spell', cardKindTitle: '魔法' };
       const monsterInfo: CardInfo = { cid: 'monster1', nameRuby: 'モンスター1', cardType: 'monster', cardKindTitle: 'モンスター' };
       const trapInfo: CardInfo = { cid: 'trap1', nameRuby: '罠1', cardType: 'trap', cardKindTitle: '罠' };
-      db.set('spell1', spellInfo);
-      db.set('monster1', monsterInfo);
-      db.set('trap1', trapInfo);
+      mockCardDB.set('spell1', spellInfo);
+      mockCardDB.set('monster1', monsterInfo);
+      mockCardDB.set('trap1', trapInfo);
 
       // 魔法→モンスター→罠の混在順
       const displayOrder: DisplayCardRef[] = [
@@ -302,7 +303,6 @@ describe('useDeckSorting', () => {
     });
 
     it('複雑な混合ケース: モンスター・魔法・罠が混在し、同じカードが複数枚ある', () => {
-      const db = getTempCardDB();
 
       const monster1: CardInfo = {
         cid: 'monster1',
@@ -325,9 +325,9 @@ describe('useDeckSorting', () => {
         cardKindTitle: '罠'
       };
 
-      db.set(monster1.cid, monster1);
-      db.set(spell1.cid, spell1);
-      db.set(trap1.cid, trap1);
+      mockCardDB.set(monster1.cid, monster1);
+      mockCardDB.set(spell1.cid, spell1);
+      mockCardDB.set(trap1.cid, trap1);
 
       // 混在した順序
       const displayOrder: DisplayCardRef[] = [

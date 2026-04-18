@@ -1,8 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { exportToCSV, exportToTXT } from '@/utils/deck-export';
 import { importFromCSV, importFromTXT } from '@/utils/deck-import';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import type { CardInfo } from '@/types/card';
+
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
 
 // テスト用デッキ情報
 const sampleDeck: DeckInfo = {
@@ -26,10 +37,10 @@ const sampleDeck: DeckInfo = {
 
 // テスト用カードデータをTempCardDBに登録
 beforeEach(() => {
-  const tempCardDB = getTempCardDB();
-  
+  mockCardDB.clear();
+
   // テスト用カードを登録
-  tempCardDB.set('12950', {
+  mockCardDB.set('12950', {
     name: '灰流うらら',
     cardId: '12950',
     ciid: '1',
@@ -37,7 +48,7 @@ beforeEach(() => {
     cardType: 'monster'
   } as any);
   
-  tempCardDB.set('4861', {
+  mockCardDB.set('4861', {
     name: '増殖するG',
     cardId: '4861',
     ciid: '2',
@@ -45,7 +56,7 @@ beforeEach(() => {
     cardType: 'monster'
   } as any);
   
-  tempCardDB.set('9753', {
+  mockCardDB.set('9753', {
     name: 'PSYフレームロード・Λ',
     cardId: '9753',
     ciid: '1',
@@ -53,7 +64,7 @@ beforeEach(() => {
     cardType: 'monster'
   } as any);
   
-  tempCardDB.set('14558', {
+  mockCardDB.set('14558', {
     name: '屋敷わらし',
     cardId: '14558',
     ciid: '1',
@@ -102,8 +113,7 @@ describe('deck-export', () => {
     });
 
     it('should escape card names with commas', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('99999', {
+      mockCardDB.set('99999', {
         name: 'Card, Name',
         cardId: '99999',
         ciid: '1',
@@ -131,8 +141,7 @@ describe('deck-export', () => {
     });
 
     it('should escape card names with double quotes', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('88888', {
+      mockCardDB.set('88888', {
         name: 'Card "Name"',
         cardId: '88888',
         ciid: '1',
@@ -250,8 +259,7 @@ describe('deck-export', () => {
     });
 
     it('should handle special characters through CSV round-trip', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('77777', {
+      mockCardDB.set('77777', {
         name: 'Card, "Name"',
         cardId: '77777',
         ciid: '1',
@@ -319,8 +327,7 @@ describe('deck-export', () => {
     });
 
     it('should handle cards without imgHash', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('66666', {
+      mockCardDB.set('66666', {
         name: '灰流うらら',
         cardId: '66666',
         ciid: '1',
