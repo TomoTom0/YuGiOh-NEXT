@@ -75,6 +75,24 @@
 
 ---
 
+## テストフィクスチャの準備
+
+パーサーテスト等で使用する公式サイトのHTMLファイルは、以下のスクリプトでダウンロードする。
+
+```bash
+# テスト用サンプルHTMLファイルをダウンロード
+bash scripts/test/download-sample-html.sh
+```
+
+ダウンロード先:
+- `tests/combine/data/` - 日本語HTML（card-detail.html, card-search-result.html, deck-detail-public.html, card-faq-list.html, faq-detail.html）
+- `tests/combine/data/en/` - 英語HTML
+- `tests/sample/` - 韓国語等のその他サンプル
+
+**注意**: パーサーテストはHTMLファイルが存在しない場合は `skipIf` でスキップされる。テストを実行する前に必ずスクリプトを実行すること。
+
+---
+
 ## テスト実行コマンド
 
 ### ユニットテスト

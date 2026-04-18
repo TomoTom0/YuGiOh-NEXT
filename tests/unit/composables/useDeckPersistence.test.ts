@@ -16,7 +16,7 @@ vi.mock('@/utils/url-state', () => ({
 }));
 
 // recordDeckOpen モック
-vi.mock('@/utils/temp-card-db', () => ({
+vi.mock('@/utils/temp-cache-db', () => ({
   recordDeckOpen: vi.fn()
 }));
 
@@ -29,7 +29,11 @@ vi.mock('@/stores/toast-notification', () => ({
 
 // unified-cache-db モック
 vi.mock('@/utils/unified-cache-db', () => ({
-  saveUnifiedCacheDB: vi.fn().mockResolvedValue(undefined)
+  saveUnifiedCacheDB: vi.fn().mockResolvedValue(undefined),
+  getUnifiedCacheDB: vi.fn(() => ({
+    isInitialized: vi.fn(() => false),
+    recordDeckOpen: vi.fn()
+  }))
 }));
 
 describe('useDeckPersistence', () => {

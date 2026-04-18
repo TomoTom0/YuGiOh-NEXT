@@ -53,19 +53,19 @@ vi.mock('@/utils/unified-cache-db', () => {
   };
 });
 
-vi.mock('@/utils/temp-card-db', () => {
+vi.mock('@/utils/temp-cache-db', () => {
   return {
-    getTempCardDB: vi.fn(() => ({
+    getTempCacheDB: vi.fn(() => ({
       setCardInfo: vi.fn(),
       getCardInfo: vi.fn(),
       get: vi.fn((cardId: string) => null),
       set: vi.fn((cardId: string, card: any) => {}),
       size: 0
     })),
-    resetTempCardDB: vi.fn(),
-    initTempCardDBFromStorage: vi.fn(async () => {}),
-    saveTempCardDBToStorage: vi.fn(async () => {}),
-    clearTempCardDBStorage: vi.fn()
+    resetTempCacheDB: vi.fn(),
+    initTempCacheDBFromStorage: vi.fn(async () => {}),
+    saveTempCacheDBToStorage: vi.fn(async () => {}),
+    clearTempCacheDBStorage: vi.fn()
   };
 });
 

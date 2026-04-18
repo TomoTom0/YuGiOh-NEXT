@@ -2,16 +2,15 @@
  * カード検索・キャッシュ機能のテスト
  * - parseSearchResults()のカード情報パース
  * - saveCardDetailToCache()のUnifiedCacheDB保存
- * @vitest-environment node
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { parseSearchResults, saveCardDetailToCache } from '@/api/card-search';
-import { getTempCardDB, resetTempCardDB } from '@/utils/temp-card-db';
+import { getTempCacheDB, resetTempCacheDB } from '@/utils/temp-cache-db';
 import { getUnifiedCacheDB, resetUnifiedCacheDB } from '@/utils/unified-cache-db';
 import type { CardDetail } from '@/types/card';
 
@@ -63,7 +62,7 @@ describe('parseSearchResults - カード情報パース', () => {
       }
     } as any;
 
-    resetTempCardDB();
+    resetTempCacheDB();
     resetUnifiedCacheDB();
   });
 
@@ -73,20 +72,14 @@ describe('parseSearchResults - カード情報パース', () => {
   it.skipIf(!hasHtmlFile)('検索結果のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    const dom = new JSDOM(html, {
-      url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
-    });
-    const doc = dom.window.document as unknown as Document;
-    global.document = doc as any;
-    global.HTMLInputElement = dom.window.HTMLInputElement as any;
-    global.HTMLImageElement = dom.window.HTMLImageElement as any;
-    global.HTMLElement = dom.window.HTMLElement as any;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
     const cards = parseSearchResults(doc);
 
     expect(cards.length).toBeGreaterThan(0);
 
-    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
+    // parseSearchResults は単にカード情報を返すだけで、TempCacheDB への保存は行わない
     // 保存は呼び出し側（CardList.vueなど）で行う
     const firstCard = cards[0];
     expect(firstCard).toBeDefined();
@@ -97,20 +90,14 @@ describe('parseSearchResults - カード情報パース', () => {
   it.skipIf(!hasHtmlFile)('複数のカードを正しくパースできる', () => {
     const html = fs.readFileSync(htmlPath, 'utf8');
 
-    const dom = new JSDOM(html, {
-      url: 'https://www.db.yugioh-card.com/yugiohdb/card_search.action'
-    });
-    const doc = dom.window.document as unknown as Document;
-    global.document = doc as any;
-    global.HTMLInputElement = dom.window.HTMLInputElement as any;
-    global.HTMLImageElement = dom.window.HTMLImageElement as any;
-    global.HTMLElement = dom.window.HTMLElement as any;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
     const cards = parseSearchResults(doc);
 
     expect(cards.length).toBeGreaterThan(1);
 
-    // parseSearchResults は単にカード情報を返すだけで、TempCardDB への保存は行わない
+    // parseSearchResults は単にカード情報を返すだけで、TempCacheDB への保存は行わない
     for (const card of cards) {
       expect(card).toBeDefined();
       expect(card.cardId).toBeDefined();
@@ -165,7 +152,7 @@ describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
       }
     } as any;
 
-    resetTempCardDB();
+    resetTempCacheDB();
     resetUnifiedCacheDB();
   });
 

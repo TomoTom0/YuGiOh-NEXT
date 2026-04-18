@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '../../../src/utils/png-metadata';
 import type { DeckInfo } from '../../../src/types/deck';
 
-// getTempCardDBをモック
-vi.mock('../../../src/utils/temp-card-db', () => ({
-  getTempCardDB: vi.fn(() => new Map([
+// getTempCacheDBをモック
+vi.mock('../../../src/utils/temp-cache-db', () => ({
+  getTempCacheDB: vi.fn(() => new Map([
     ['12345', {
       cid: '12345',
       imgs: [

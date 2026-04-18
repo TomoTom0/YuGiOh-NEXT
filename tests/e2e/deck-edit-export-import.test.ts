@@ -1,13 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { exportToCSV, exportToTXT } from '@/utils/deck-export';
 import { importFromCSV, importFromTXT, importFromPNG } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import type { CardInfo } from '@/types/card';
+
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
 
 /**
  * E2E Test: Deck Edit → Export → Import Flow
- * 
+ *
  * このテストは、デッキ編集→エクスポート→インポートの
  * 実際のユーザーフローを検証します。
  */
@@ -15,10 +26,10 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
   let sampleDeck: DeckInfo;
 
   beforeEach(() => {
-    const tempCardDB = getTempCardDB();
-    
+    mockCardDB.clear();
+
     // テスト用カードを登録
-    tempCardDB.set('12950', {
+    mockCardDB.set('12950', {
       name: '灰流うらら',
       cardId: '12950',
       ciid: '1',
@@ -26,7 +37,7 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       cardType: 'monster'
     } as any);
     
-    tempCardDB.set('4861', {
+    mockCardDB.set('4861', {
       name: '増殖するG',
       cardId: '4861',
       ciid: '2',
@@ -34,7 +45,7 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       cardType: 'monster'
     } as any);
     
-    tempCardDB.set('9753', {
+    mockCardDB.set('9753', {
       name: 'PSYフレームロード・Λ',
       cardId: '9753',
       ciid: '1',
@@ -42,7 +53,7 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       cardType: 'monster'
     } as any);
     
-    tempCardDB.set('6172', {
+    mockCardDB.set('6172', {
       name: '閃刀姫－カガリ',
       cardId: '6172',
       ciid: '1',
@@ -50,7 +61,7 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
       cardType: 'monster'
     } as any);
     
-    tempCardDB.set('14558', {
+    mockCardDB.set('14558', {
       name: '屋敷わらし',
       cardId: '14558',
       ciid: '1',
@@ -311,8 +322,7 @@ describe('E2E: Deck Edit → Export → Import Flow', () => {
     });
 
     it('should handle cards with special characters in names', () => {
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('123', {
+      mockCardDB.set('123', {
         name: 'カード名に"引用符"と,カンマ',
         cardId: '123',
         ciid: '1',

@@ -1,7 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import type { CardInfo } from '@/types/card';
+
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
 // import * as fs from 'fs';
 // import * as path from 'path';
 
@@ -51,33 +62,32 @@ describe('png-metadata', () => {
     0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
   ]);
 
-  // 各テスト前にTempCardDBをセットアップ
+  // 各テスト前にTempCacheDBをセットアップ
   beforeEach(() => {
-    const tempCardDB = getTempCardDB();
-    tempCardDB.clear();
+    mockCardDB.clear();
     // サンプルデッキのカード情報を登録
-    tempCardDB.set('12950', {
+    mockCardDB.set('12950', {
       cardId: '12950',
       ciid: '1',
       name: '灰流うらら',
       cardType: 'monster',
       imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
     } as any);
-    tempCardDB.set('4861', {
+    mockCardDB.set('4861', {
       cardId: '4861',
       ciid: '2',
       name: 'Test Card 2',
       cardType: 'monster',
       imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
     } as any);
-    tempCardDB.set('9753', {
+    mockCardDB.set('9753', {
       cardId: '9753',
       ciid: '1',
       name: 'Test Extra Card',
       cardType: 'monster',
       imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
     } as any);
-    tempCardDB.set('14558', {
+    mockCardDB.set('14558', {
       cardId: '14558',
       ciid: '1',
       name: 'Test Side Card',
@@ -229,9 +239,8 @@ describe('png-metadata', () => {
     });
 
     it('should handle special characters in enc field', async () => {
-      // TempCardDBに特殊文字を含むカード情報を登録
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('99999', {
+      // TempCacheDBに特殊文字を含むカード情報を登録
+      mockCardDB.set('99999', {
         cardId: '99999',
         ciid: '1',
         name: 'Special Card',

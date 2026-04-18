@@ -18,8 +18,8 @@ vi.mock('@/utils/language-detector');
 vi.mock('@/utils/unified-cache-db', () => ({
   getUnifiedCacheDB: () => ({ get: () => undefined }),
 }));
-vi.mock('@/utils/temp-card-db', () => ({
-  getTempCardDB: () => new Map(),
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => new Map(),
 }));
 
 describe('Card Search モジュール統合テスト', () => {
