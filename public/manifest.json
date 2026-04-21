@@ -9,8 +9,7 @@
     "contextMenus"
   ],
   "host_permissions": [
-    "https://www.db.yugioh-card.com/*",
-    "https://api.z.ai/*"
+    "https://www.db.yugioh-card.com/*"
   ],
   "background": {
     "service_worker": "background.js",

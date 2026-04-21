@@ -1,0 +1,385 @@
+/**
+ * カード属性・種族・タイプ・効果種類のマップ定義（ハードコード）
+ *
+ * 各マップの命名規則：
+ * - {TYPE}_ID_TO_INT: 内部値 → 整数ID
+ * - {TYPE}_ID_TO_NAME: 内部値 → 日本語表示名
+ * - {TYPE}_ID_TO_SHORTNAME: 内部値 → 日本語短名称（Raceのみ）
+ *
+ * 言語別マッピング（表示テキスト → 内部値）は extract-mappings.ts で動的に取得
+ */
+
+// ============================================================================
+// 種族（Race）
+// ============================================================================
+
+/**
+ * 種族の内部ID → 整数ID マッピング
+ * HTMLの種族フィルタの value 属性で使用されるID
+ */
+export const RACE_ID_TO_INT = {
+  'dragon': 1,
+  'zombie': 2,
+  'fiend': 3,
+  'pyro': 4,
+  'seaserpent': 5,
+  'rock': 6,
+  'machine': 7,
+  'fish': 8,
+  'dinosaur': 9,
+  'insect': 10,
+  'beast': 11,
+  'beastwarrior': 12,
+  'plant': 13,
+  'aqua': 14,
+  'warrior': 15,
+  'windbeast': 16,
+  'fairy': 17,
+  'spellcaster': 18,
+  'thunder': 19,
+  'reptile': 20,
+  'psychic': 21,
+  'divine': 22,
+  'creatorgod': 23,
+  'wyrm': 26,
+  'cyberse': 27,
+  'illusion': 34,
+} as const;
+
+export type Race = keyof typeof RACE_ID_TO_INT;
+
+/**
+ * 種族の内部ID → 日本語フルネーム マッピング
+ */
+export const RACE_ID_TO_NAME = {
+  'dragon': 'ドラゴン族',
+  'zombie': 'アンデット族',
+  'fiend': '悪魔族',
+  'pyro': '炎族',
+  'seaserpent': '海竜族',
+  'rock': '岩石族',
+  'machine': '機械族',
+  'fish': '魚族',
+  'dinosaur': '恐竜族',
+  'insect': '昆虫族',
+  'beast': '獣族',
+  'beastwarrior': '獣戦士族',
+  'plant': '植物族',
+  'aqua': '水族',
+  'warrior': '戦士族',
+  'windbeast': '鳥獣族',
+  'fairy': '天使族',
+  'spellcaster': '魔法使い族',
+  'thunder': '雷族',
+  'reptile': '爬虫類族',
+  'psychic': 'サイキック族',
+  'divine': '幻神獣族',
+  'creatorgod': '創造神族',
+  'wyrm': '幻竜族',
+  'cyberse': 'サイバース族',
+  'illusion': '幻想魔族',
+} as const;
+
+/**
+ * 種族の内部ID → 日本語短名称 マッピング（チップ用超短縮形）
+ */
+export const RACE_ID_TO_SHORTNAME = {
+  'dragon': '龍',
+  'spellcaster': '魔使',
+  'warrior': '戦士',
+  'machine': '機械',
+  'fiend': '悪魔',
+  'fairy': '天使',
+  'zombie': '不死',
+  'beast': '獣',
+  'beastwarrior': '獣戦',
+  'plant': '植物',
+  'insect': '昆虫',
+  'aqua': '水',
+  'fish': '魚',
+  'seaserpent': '海竜',
+  'reptile': '爬虫',
+  'dinosaur': '恐竜',
+  'windbeast': '鳥獣',
+  'rock': '岩石',
+  'pyro': '炎',
+  'thunder': '雷',
+  'psychic': '念動',
+  'wyrm': '幻竜',
+  'cyberse': '電脳',
+  'illusion': '幻想',
+  'divine': '幻神',
+  'creatorgod': '創造',
+} as const;
+
+// ============================================================================
+// 属性（Attribute）
+// ============================================================================
+
+/**
+ * 属性の内部ID → 整数ID マッピング
+ * HTMLの属性フィルタの value 属性で使用されるID
+ */
+export const ATTRIBUTE_ID_TO_INT = {
+  'light': 11,
+  'dark': 12,
+  'water': 13,
+  'fire': 14,
+  'earth': 15,
+  'wind': 16,
+  'divine': 17,
+} as const;
+
+export type Attribute = keyof typeof ATTRIBUTE_ID_TO_INT;
+
+/**
+ * 属性の内部ID → 日本語表示名 マッピング
+ */
+export const ATTRIBUTE_ID_TO_NAME = {
+  'light': '光',
+  'dark': '闇',
+  'water': '水',
+  'fire': '炎',
+  'earth': '地',
+  'wind': '風',
+  'divine': '神',
+} as const;
+
+/**
+ * 属性の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "attribute_icon_light.png" → "light" の部分に対応
+ */
+export const ATTRIBUTE_ID_TO_PATH: Record<Attribute, string> = {
+  'light': 'light',
+  'dark': 'dark',
+  'water': 'water',
+  'fire': 'fire',
+  'earth': 'earth',
+  'wind': 'wind',
+  'divine': 'divine',
+};
+
+// ============================================================================
+// モンスタータイプ（MonsterType）
+// ============================================================================
+
+/**
+ * モンスタータイプの内部ID → 整数ID マッピング
+ */
+export const MONSTER_TYPE_ID_TO_INT = {
+  'normal': 0,
+  'effect': 1,
+  'fusion': 2,
+  'ritual': 3,
+  'toon': 4,
+  'spirit': 5,
+  'union': 6,
+  'gemini': 7,
+  'tuner': 8,
+  'synchro': 9,
+  'xyz': 10,
+  'flip': 14,
+  'pendulum': 15,
+  'special': 16,
+  'link': 17,
+} as const;
+
+export type MonsterType = keyof typeof MONSTER_TYPE_ID_TO_INT;
+
+/**
+ * モンスタータイプの内部ID → 日本語表示名 マッピング
+ */
+export const MONSTER_TYPE_ID_TO_NAME = {
+  'normal': '通常',
+  'effect': '効果',
+  'fusion': '融合',
+  'ritual': '儀式',
+  'synchro': 'シンクロ',
+  'xyz': 'エクシーズ',
+  'pendulum': 'ペンデュラム',
+  'link': 'リンク',
+  'tuner': 'チューナー',
+  'spirit': 'スピリット',
+  'union': 'ユニオン',
+  'gemini': 'デュアル',
+  'flip': 'リバース',
+  'toon': 'トゥーン',
+  'special': '特殊召喚',
+} as const;
+
+/**
+ * モンスタータイプの内部ID → 日本語短名称 マッピング（チップ用超短縮形）
+ */
+export const MONSTER_TYPE_ID_TO_SHORTNAME = {
+  'normal': '通',
+  'effect': '効',
+  'fusion': '融',
+  'ritual': '儀',
+  'synchro': 'S',
+  'xyz': 'X',
+  'pendulum': 'P',
+  'link': 'L',
+  'tuner': 'T',
+  'flip': 'R',
+  'toon': 'ト',
+  'spirit': 'ス',
+  'union': 'U',
+  'gemini': 'D',
+  'special': '特'
+} as const;
+
+// ============================================================================
+// 魔法効果種類（SpellEffectType）
+// ============================================================================
+
+/**
+ * 魔法効果種類の内部ID → 整数ID マッピング
+ * HTMLの魔法効果フィルタの value 属性で使用されるID
+ */
+export const SPELL_EFFECT_TYPE_ID_TO_INT = {
+  'normal': 20,
+  'quick': 25,
+  'continuous': 24,
+  'equip': 23,
+  'field': 22,
+  'ritual': 26,
+} as const;
+
+export type SpellEffectType = keyof typeof SPELL_EFFECT_TYPE_ID_TO_INT;
+
+/**
+ * 魔法効果種類の内部ID → 日本語表示名 マッピング
+ */
+export const SPELL_EFFECT_TYPE_ID_TO_NAME = {
+  'normal': '通常',
+  'quick': '速攻',
+  'continuous': '永続',
+  'equip': '装備',
+  'field': 'フィールド',
+  'ritual': '儀式',
+} as const;
+
+/**
+ * 魔法効果種類の内部ID → 日本語カード種類名 マッピング（「魔法」接尾辞付き）
+ */
+export const SPELL_EFFECT_TYPE_ID_TO_LABEL = {
+  'normal': '通常魔法',
+  'quick': '速攻魔法',
+  'continuous': '永続魔法',
+  'equip': '装備魔法',
+  'field': 'フィールド魔法',
+  'ritual': '儀式魔法',
+} as const;
+
+/**
+ * 魔法効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_quickplay.png" → "quickplay" の部分に対応
+ */
+export const SPELL_EFFECT_TYPE_ID_TO_PATH: Record<SpellEffectType, string> = {
+  'normal': 'normal',
+  'quick': 'quickplay',
+  'continuous': 'continuous',
+  'equip': 'equip',
+  'field': 'field',
+  'ritual': 'ritual',
+};
+
+// ============================================================================
+// 罠効果種類（TrapEffectType）
+// ============================================================================
+
+/**
+ * 罠効果種類の内部ID → 整数ID マッピング
+ * HTMLの罠効果フィルタの value 属性で使用されるID
+ */
+export const TRAP_EFFECT_TYPE_ID_TO_INT = {
+  'normal': 20,
+  'continuous': 24,
+  'counter': 21,
+} as const;
+
+export type TrapEffectType = keyof typeof TRAP_EFFECT_TYPE_ID_TO_INT;
+
+/**
+ * 罠効果種類の内部ID → 日本語表示名 マッピング
+ */
+export const TRAP_EFFECT_TYPE_ID_TO_NAME = {
+  'normal': '通常',
+  'continuous': '永続',
+  'counter': 'カウンター',
+} as const;
+
+/**
+ * 罠効果種類の内部ID → 日本語カード種類名 マッピング（「罠」接尾辞付き）
+ */
+export const TRAP_EFFECT_TYPE_ID_TO_LABEL = {
+  'normal': '通常罠',
+  'continuous': '永続罠',
+  'counter': 'カウンター罠',
+} as const;
+
+/**
+ * 罠効果種類の内部ID → HTMLのimgパス マッピング
+ * imgのsrc属性から "effect_icon_counter.png" → "counter" の部分に対応
+ */
+export const TRAP_EFFECT_TYPE_ID_TO_PATH: Record<TrapEffectType, string> = {
+  'normal': 'normal',
+  'continuous': 'continuous',
+  'counter': 'counter',
+};
+
+/**
+ * 魔法効果種類のソート順序
+ * 通常 → 速攻 → 儀式 → 永続 → 装備 → フィールド
+ */
+export const SPELL_TYPE_SORT_ORDER: Record<SpellEffectType, number> = {
+  'normal': 0,
+  'quick': 1,
+  'ritual': 2,
+  'continuous': 3,
+  'equip': 4,
+  'field': 5,
+};
+
+/**
+ * 罠効果種類のソート順序
+ * 通常 → カウンター → 永続
+ */
+export const TRAP_TYPE_SORT_ORDER: Record<TrapEffectType, number> = {
+  'normal': 0,
+  'counter': 1,
+  'continuous': 2,
+};
+
+// ============================================================================
+// カードタイプ（CardType）
+// ============================================================================
+
+/**
+ * カードタイプの内部ID → 整数ID マッピング
+ */
+export const CARD_TYPE_ID_TO_INT = {
+  'monster': 1,
+  'spell': 2,
+  'trap': 3,
+} as const;
+
+export type CardType = keyof typeof CARD_TYPE_ID_TO_INT;
+
+/**
+ * カードタイプの内部ID → 日本語表示名 マッピング
+ */
+export const CARD_TYPE_ID_TO_NAME = {
+  'monster': 'モンスター',
+  'spell': '魔法',
+  'trap': '罠',
+} as const;
+
+/**
+ * カードタイプの内部ID → 日本語短名称 マッピング（チップ用超短縮形）
+ */
+export const CARD_TYPE_ID_TO_SHORTNAME = {
+  'monster': 'M',
+  'spell': '魔',
+  'trap': '罠'
+} as const;
