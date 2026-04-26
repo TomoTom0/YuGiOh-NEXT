@@ -275,12 +275,14 @@ export default {
 
 .right-area-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 6px;
   margin: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {

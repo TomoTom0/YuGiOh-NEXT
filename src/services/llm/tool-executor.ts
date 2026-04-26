@@ -53,10 +53,29 @@ export async function executeTool(
       }
 
       case 'getCardDetail': {
-        const { cardId } = tool.arguments as { cardId: string };
-        const card = storeRefs.getCardInfoById(cardId);
+        const { cardId, name } = tool.arguments as { cardId?: string; name?: string };
+        let resolvedId = cardId;
+
+        // cardIdがない、または数値ではない場合 → 名前解決
+        if (!resolvedId && name) {
+          const deckSections = storeRefs.getDeckSections();
+          const resolution = await resolveCardName(name, deckSections);
+          if ('notFound' in resolution) {
+            return { success: false, error: `カード「${name}」が見つかりません` };
+          }
+          if ('ambiguous' in resolution) {
+            return { success: false, error: `カード「${name}」は複数該当します: ${resolution.candidates.map(c => c.name).join(', ')}` };
+          }
+          resolvedId = resolution.cardId;
+        }
+
+        if (!resolvedId) {
+          return { success: false, error: 'cardIdまたはnameを指定してください' };
+        }
+
+        const card = storeRefs.getCardInfoById(resolvedId);
         if (!card) {
-          return { success: false, error: `カードID ${cardId} が見つかりません` };
+          return { success: false, error: `カードID ${resolvedId} が見つかりません` };
         }
         return {
           success: true,
@@ -152,6 +171,9 @@ export async function executeTool(
           section?: 'main' | 'extra' | 'side';
         };
         const deckSections = storeRefs.getDeckSections();
+        console.debug('[searchDeckCards] sections:', {
+          main: deckSections.main.length, extra: deckSections.extra.length, side: deckSections.side.length,
+        });
         const keyword = filters.keyword?.trim();
         const rawKind = filters.kind ?? 'auto';
         const kinds: KindValue[] = Array.isArray(rawKind) ? rawKind : [rawKind];
@@ -206,7 +228,10 @@ export async function executeTool(
               for (const k of expandedKinds) {
                 if (invalidKinds.has(k)) continue;
                 if (k === 'name') {
-                  if (card.name.includes(keyword)) { matched = true; break; }
+                  if (card.name.includes(keyword)) {
+                    console.debug('[searchDeckCards] name match:', card.name, 'keyword:', keyword);
+                    matched = true; break;
+                  }
                 } else if (k === 'race') {
                   if (card.cardType === 'monster' && card.race === raceKey) { matched = true; break; }
                 } else if (k === 'attribute') {

@@ -27,6 +27,7 @@ export interface ChatMessage {
   toolSuccess?: boolean;
   toolArgs?: Record<string, unknown>;
   toolResultData?: unknown;
+  toolReasoning?: string;
 }
 
 export interface DeckSections {

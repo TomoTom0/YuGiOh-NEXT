@@ -10,6 +10,7 @@ export interface ToolCallInfo {
   name: string;
   args: Record<string, unknown>;
   result: ToolResult;
+  nanoReasoning?: string;
 }
 
 export class ChatAbortError extends Error {
@@ -76,7 +77,7 @@ export async function chat(
   // Gemini Nano: 多段階パイプライン（指示parse → 情報取得 → 処理構成 → tool構成 → 実行 → 報告）
   if (!useCloud && nanoAvailable) {
     try {
-      const message = await runNanoPipeline(request.userMessage, storeRefs, onToolCall, signal);
+      const message = await runNanoPipeline(request.userMessage, request.history, storeRefs, onToolCall, signal);
       return { message, needsClarification: false };
     } catch (err) {
       if (err instanceof Error && err.message === 'aborted') throw new ChatAbortError();

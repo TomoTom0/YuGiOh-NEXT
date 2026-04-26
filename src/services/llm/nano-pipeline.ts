@@ -1,319 +1,224 @@
 import { createNanoSession } from './gemini-nano';
 import { executeTool } from './tool-executor';
 import type { StoreRefs } from './tool-executor';
+import type { ChatMessage, ToolCall } from './types';
 import type { ToolCallInfo } from './llm-chat-service';
 
-// Stage 1: 指示のparse
-const INTENT_PARSE_PROMPT = `遊戯王デッキアシスタントへの指示をJSONで分類してください。
-フォーマット:
-{"action":"move"|"remove"|"add"|"search"|"count"|"cardInfo","keyword"?:"検索語","kind"?:"name"|"race"|"attribute"|"type"|"text"|"auto","cardType"?:"monster"|"spell"|"trap","from"?:"main"|"extra"|"side"|"trash","to"?:"main"|"extra"|"side"|"trash","cardName"?:"カード名","quantity"?:"all"|数値}
+const MAX_TOOL_ITERATIONS = 10;
 
-kind: 検索語の意味。"name"=カード名、"race"=種族、"attribute"=属性、"type"=モンスタータイプ、"text"=効果テキスト、"auto"=自動判別(省略時)
+// Nano専用システムプロンプト
+// デッキ全体リストは渡さない（searchDeckCardsで検索させる）
+const NANO_SYSTEM_PROMPT = `あなたは遊戯王デッキアシスタントです。
+ユーザーの指示をツールを使って処理し、結果を日本語で報告してください。
 
-action一覧:
-- "move": カードを別セクションに移動
-- "remove": カードをデッキから削除
-- "add": カードをデッキに追加（外部から検索して追加含む）
-- "search": 条件に合うカードをデッキ内から探す
-- "count": デッキの枚数や条件に合うカードの枚数を数える
-- "cardInfo": 特定カードの効果や詳細を確認する
+## ツール一覧
 
-例:
-「ドラゴン族をサイドに移動」→{"action":"move","keyword":"ドラゴン族","kind":"race","from":"main","to":"side","quantity":"all"}
-「ホワイトフェイスをサイドに移動」→{"action":"move","keyword":"ホワイトフェイス","kind":"name","from":"main","to":"side","quantity":"all"}
-「魔法を全て削除」→{"action":"remove","cardType":"spell","from":"main","quantity":"all"}
-「ブラック・マジシャンを追加」→{"action":"add","cardName":"ブラック・マジシャン","to":"main"}
-「ドラゴン族は何枚？」→{"action":"count","keyword":"ドラゴン族","kind":"race"}
-「デッキのモンスター一覧」→{"action":"search","cardType":"monster"}
-「ブラマジの効果は？」→{"action":"cardInfo","cardName":"ブラック・マジシャン"}
-「戦士族のサーチカードを探して」→{"action":"search","keyword":"サーチ","kind":"name","cardType":"spell"}
-「手札で発動できるカードは？」→{"action":"search","keyword":"手札","kind":"text"}
-JSON以外は絶対に返さないこと。`;
+searchDeckCards: デッキ内を条件で検索
+  args: { keyword?: string, kind?: "name"|"race"|"attribute"|"type"|"text"|"auto", cardType?: "monster"|"spell"|"trap", section?: "main"|"extra"|"side" }
+  結果: cards[]{name,cardId,quantity,race,attribute,section,text}, totalCount
+  例: {"tool":"searchDeckCards","args":{"keyword":"手札","kind":"text","cardType":"monster"}}
 
-// Stage 4: 処理計画
-const PLAN_PROMPT = `以下の検索結果から移動/削除すべきカードIDをJSONで返してください。
-同じカードがN枚ある場合はIDをN回繰り返すこと。
-フォーマット: {"cardIds":["id1","id1","id2",...]}
-JSON以外は返さないこと。`;
+getCardDetail: カード1枚の効果テキストを取得
+  args: { cardId: string }
+  結果: name, cardType, text
 
-// Stage 6: 結果報告
-const REPORT_PROMPT = `以下の操作結果を日本語で1〜2文で報告してください。余計な説明は不要です。`;
+resolveCardName: 曖昧なカード名→cardId解決（デッキ内照合）
+  args: { name: string }
+  結果: cardId, name
 
-interface ParsedIntent {
-  action: 'move' | 'remove' | 'add' | 'search' | 'count' | 'cardInfo';
-  keyword?: string;
-  kind?: 'name' | 'race' | 'attribute' | 'type' | 'text' | 'auto';
-  cardType?: 'monster' | 'spell' | 'trap';
-  from?: 'main' | 'extra' | 'side' | 'trash';
-  to?: 'main' | 'extra' | 'side' | 'trash';
-  cardName?: string;
-  quantity?: 'all' | number;
-}
+getDeckState: デッキ各セクションの枚数確認
+  args: {}
 
-function extractJson(text: string): unknown {
-  const match = text.trim().match(/\{[\s\S]*\}/);
+moveCard: カードをセクション間で移動
+  args: { cardIds: string[], from: "main"|"extra"|"side"|"trash", to: "main"|"extra"|"side"|"trash" }
+  注意: quantity=3のカードはcardIdsに同一IDを3回繰り返す
+
+removeCardFromDeck: カードをtrashへ削除
+  args: { cardIds: string[], from: "main"|"extra"|"side" }
+
+addCardToDeck: カードをデッキへ追加
+  args: { cardId: string, section: "main"|"extra"|"side" }
+
+searchCards: 外部DBからカードを検索（デッキ外のカードを追加する場合）
+  args: { keyword: string }
+
+getChatHistory: 直前の会話でのツール実行履歴と結果を取得
+  args: {}
+  使いどころ: 「その〇枚」「さっきの結果」等、前の返答で得た情報を参照する場合
+
+## タスク分解パターン
+
+デッキ内検索・集計（「手札で発動できるカードは？」「ドラゴン族は何枚？」）:
+  → searchDeckCards(keyword, kind) → 結果を返答
+
+カード効果確認（「ブラマジの効果は？」）:
+  → resolveCardName → getCardDetail → textを返答
+
+あるカードの効果でサーチ・特殊召喚できるカードを調べる:
+  例: 「フレアで加えられるカードは？」「ホワイトフェイスをサーチできるカードは？」「〇〇でリクルートできるカードは？」
+  → resolveCardName(そのカード名) → getCardDetail(cardId) → 効果テキストからサーチ/リクルート条件を特定
+  ※そのカード名自体をkeywordにしたname検索はしない（カード自身が出てしまう）
+  ※回答は必ずgetCardDetailで確認したテキストに基づくこと
+  デッキ内限定（「このデッキでは」等）の場合 → searchDeckCards(条件)でデッキ内を確認
+  デッキ限定なしの場合 → searchCards(条件)で外部DBから該当カードを検索
+  **重要**: searchDeckCardsを直接呼ばないこと。必ずまずresolveCardName→getCardDetailで効果を確認してから条件を特定すること。
+
+前ターン結果を参照する操作・分析（「その22枚を分類して」「それを移動して」）:
+  → getChatHistory → 前の結果のcardIds取得
+  → (分析) getCardDetailを各カードに実行 → 整理して返答
+  → (移動) moveCard/removeCardFromDeck
+
+対象特定→操作（「ドラゴン族をサイドに移動して」）:
+  → searchDeckCards → cardIds取得 → moveCard → 報告
+
+外部カード追加（「ブルーアイズを追加して」）:
+  → resolveCardName → 見つからなければsearchCards → addCardToDeck
+
+複数カードの効果を比較・分析（「このデッキの融合モンスターを効果で分類して」）:
+  → searchDeckCards(cardType) → 各cardIdにgetCardDetail → まとめて返答
+
+## 出力ルール
+- ツール呼び出し: まず1行で理由・計画を述べ、その後に {"tool":"ツール名","args":{...}} を返す（例: 「ベミドバルの効果を確認します。\n{"tool":"getCardDetail","args":{"cardId":"1234"}}」）
+- 最終回答: そのまま日本語テキストで返す
+- **カード名の捏造禁止**: カード名を答えに含める場合は、必ずツールの返却値に含まれているカードのみ記載すること。デッキ内外を問わず、ツールで確認していないカード名は絶対に出力しない
+- **カード名の出力形式**: 回答にカード名を含める場合は \`{{カード名|cardId}}\` または \`{{カード名}}\` 形式で記載すること。cardId が分かれば \`{{ブラック・マジシャン|4335}}\` のように記載し、分からなければ \`{{ブラック・マジシャン}}\` でよい
+- 情報が不足している場合は適切なツールを呼んで補う（推測しない）`;
+
+function parseToolCall(response: string): ToolCall | null {
+  const text = response.trim();
+  const match = text.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
-    return JSON.parse(match[0]);
-  } catch {
-    return null;
-  }
-}
-
-async function nanoPrompt(systemPrompt: string, userMessage: string): Promise<string> {
-  const session = await createNanoSession(systemPrompt);
-  try {
-    return await session.prompt(userMessage);
-  } finally {
-    session.destroy();
-  }
-}
-
-async function handleSearchAction(
-  intent: ParsedIntent,
-  storeRefs: StoreRefs,
-  onToolCall?: (info: ToolCallInfo) => void,
-): Promise<string> {
-  const searchArgs: Record<string, unknown> = {};
-  if (intent.keyword) searchArgs.keyword = intent.keyword;
-  if (intent.kind) searchArgs.kind = intent.kind;
-  if (intent.cardType) searchArgs.cardType = intent.cardType;
-  if (intent.from) searchArgs.section = intent.from;
-
-  const searchResult = await executeTool({ name: 'searchDeckCards', arguments: searchArgs }, storeRefs);
-  onToolCall?.({ name: 'searchDeckCards', args: searchArgs, result: searchResult });
-
-  if (!searchResult.success) {
-    return `検索に失敗しました: ${searchResult.error}`;
-  }
-
-  const data = searchResult.data as { cards: Array<{ name: string; cardId: string; quantity: number; race?: string; attribute?: string; section: string }>; totalCount: number };
-
-  if (data.cards.length === 0) {
-    return '該当するカードがデッキに見つかりませんでした。';
-  }
-
-  const lines = data.cards.map(c => {
-    const details: string[] = [];
-    if (c.race) details.push(c.race);
-    if (c.attribute) details.push(c.attribute);
-    const detail = details.length > 0 ? `(${details.join('/')})` : '';
-    return `- ${c.name}${detail}: ${c.quantity}枚 [${c.section}]`;
-  });
-
-  const sectionLabel = intent.from ? ` (${intent.from === 'main' ? 'メイン' : intent.from === 'extra' ? 'エクストラ' : 'サイド'}デッキ内)` : ' (デッキ内)';
-  const header = intent.keyword
-    ? `「${intent.keyword}」の検索結果${sectionLabel}:`
-    : intent.cardType
-      ? `${intent.cardType === 'monster' ? 'モンスター' : intent.cardType === 'spell' ? '魔法' : '罠'}カードの検索結果${sectionLabel}:`
-      : `検索結果${sectionLabel}:`;
-
-  return `${header}\n${lines.join('\n')}\n合計: ${data.totalCount}枚`;
-}
-
-async function handleCountAction(
-  intent: ParsedIntent,
-  storeRefs: StoreRefs,
-  onToolCall?: (info: ToolCallInfo) => void,
-): Promise<string> {
-  if (!intent.keyword && !intent.cardType && !intent.from) {
-    // デッキ全体の枚数
-    const stateResult = await executeTool({ name: 'getDeckState', arguments: {} }, storeRefs);
-    onToolCall?.({ name: 'getDeckState', args: {}, result: stateResult });
-
-    if (stateResult.success && stateResult.data) {
-      const state = stateResult.data as Record<string, unknown>;
-      return `デッキ全体の枚数: ${JSON.stringify(state)}`;
+    const parsed = JSON.parse(match[0]) as { tool?: string; args?: Record<string, unknown> };
+    if (parsed.tool && typeof parsed.tool === 'string') {
+      return { name: parsed.tool, arguments: parsed.args ?? {} };
     }
-    return 'デッキ情報の取得に失敗しました。';
+  } catch {
+    // not valid JSON
   }
-
-  // 条件付きカウント
-  const searchArgs: Record<string, unknown> = {};
-  if (intent.keyword) searchArgs.keyword = intent.keyword;
-  if (intent.kind) searchArgs.kind = intent.kind;
-  if (intent.cardType) searchArgs.cardType = intent.cardType;
-  if (intent.from) searchArgs.section = intent.from;
-
-  const searchResult = await executeTool({ name: 'searchDeckCards', arguments: searchArgs }, storeRefs);
-  onToolCall?.({ name: 'searchDeckCards', args: searchArgs, result: searchResult });
-
-  if (!searchResult.success) {
-    return `検索に失敗しました: ${searchResult.error}`;
-  }
-
-  const data = searchResult.data as { cards: Array<{ name: string; quantity: number }>; totalCount: number };
-  const filterDesc = intent.keyword ?? intent.cardType ?? '';
-  return `${filterDesc ? `「${filterDesc}」の条件で` : ''}${data.totalCount}枚見つかりました。`;
+  return null;
 }
 
-async function handleCardInfoAction(
-  intent: ParsedIntent,
-  storeRefs: StoreRefs,
-  onToolCall?: (info: ToolCallInfo) => void,
-): Promise<string> {
-  if (!intent.cardName) {
-    return 'カード名を指定してください。';
-  }
-
-  // まずデッキ内から検索
-  const resolveResult = await executeTool({ name: 'resolveCardName', arguments: { name: intent.cardName } }, storeRefs);
-  onToolCall?.({ name: 'resolveCardName', args: { name: intent.cardName }, result: resolveResult });
-
-  if (resolveResult.success) {
-    const resolved = resolveResult.data as { cardId?: string; name?: string };
-    if (resolved?.cardId) {
-      const detailResult = await executeTool({ name: 'getCardDetail', arguments: { cardId: resolved.cardId } }, storeRefs);
-      onToolCall?.({ name: 'getCardDetail', args: { cardId: resolved.cardId }, result: detailResult });
-
-      if (detailResult.success && detailResult.data) {
-        const card = detailResult.data as { name: string; cardType: string; text?: string };
-        if (card.text) {
-          return `${card.name}の効果:\n${card.text}`;
-        }
-        return `${card.name}の詳細情報を取得しましたが、効果テキストがありません。`;
+// ツール結果から確認済みカード名セットを収集
+function collectVerifiedCardNames(messages: Array<{ role: string; toolResultData?: unknown }>): Set<string> {
+  const names = new Set<string>();
+  for (const msg of messages) {
+    if (msg.role !== 'tool' || !msg.toolResultData) continue;
+    const d = msg.toolResultData;
+    if (d && typeof d === 'object' && !Array.isArray(d) && Array.isArray((d as Record<string, unknown>).cards)) {
+      for (const c of (d as { cards: Array<Record<string, unknown>> }).cards) {
+        if (typeof c.name === 'string') names.add(c.name);
       }
     }
+    if (Array.isArray(d)) {
+      for (const c of d as Array<Record<string, unknown>>) {
+        if (typeof c.name === 'string') names.add(c.name);
+      }
+    }
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const obj = d as Record<string, unknown>;
+      if (typeof obj.name === 'string') names.add(obj.name);
+    }
   }
+  return names;
+}
 
-  return `カード「${intent.cardName}」が見つかりませんでした。デッキ内に存在するカードを指定してください。`;
+// 回答内の {{...}} にツール未確認のカード名が含まれているか
+function hasUnverifiedCardNames(response: string, verifiedNames: Set<string>): string[] {
+  const unverified: string[] = [];
+  const regex = /\{\{([^|{}]+?)(?:\|(\d+))?\}\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(response)) !== null) {
+    const name = match[1]!;
+    if (!verifiedNames.has(name)) {
+      unverified.push(name);
+    }
+  }
+  return unverified;
+}
+
+function buildHistoryContext(history: ChatMessage[]): string {
+  if (history.length === 0) return '';
+
+  const lines: string[] = ['[直前の会話履歴]'];
+  for (const msg of history) {
+    if (msg.role === 'user') {
+      lines.push(`ユーザー: ${msg.content}`);
+    } else if (msg.role === 'assistant') {
+      lines.push(`アシスタント: ${msg.content}`);
+    } else if (msg.role === 'tool') {
+      const detail = msg.toolResultData
+        ? JSON.stringify(msg.toolResultData)
+        : msg.content;
+      lines.push(`[ツール ${msg.toolName ?? ''} 実行済み]: ${detail}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 export async function runNanoPipeline(
   userMessage: string,
+  history: ChatMessage[],
   storeRefs: StoreRefs,
   onToolCall?: (info: ToolCallInfo) => void,
   signal?: AbortSignal,
 ): Promise<string> {
   if (signal?.aborted) throw new Error('aborted');
 
-  // Stage 1: 指示のparse
-  const intentRaw = await nanoPrompt(INTENT_PARSE_PROMPT, userMessage);
-  if (signal?.aborted) throw new Error('aborted');
+  const session = await createNanoSession(NANO_SYSTEM_PROMPT);
+  try {
+    // 会話履歴コンテキスト + 現在の指示を最初のメッセージとして送る
+    const historyContext = buildHistoryContext(history);
+    const firstMessage = historyContext
+      ? `${historyContext}\n\nユーザーの指示: ${userMessage}`
+      : userMessage;
 
-  const intent = extractJson(intentRaw) as ParsedIntent | null;
-  if (!intent?.action) {
-    return 'すみません、指示を理解できませんでした。もう少し具体的に教えてください。';
-  }
-
-  // 検索・質問系アクション
-  if (intent.action === 'search') {
-    return await handleSearchAction(intent, storeRefs, onToolCall);
-  }
-
-  if (intent.action === 'count') {
-    return await handleCountAction(intent, storeRefs, onToolCall);
-  }
-
-  if (intent.action === 'cardInfo') {
-    return await handleCardInfoAction(intent, storeRefs, onToolCall);
-  }
-
-  // 操作系アクション（move/remove）
-
-  // Stage 2: 情報の取得
-  let searchCardIds: Array<{ cardId: string; quantity: number }> = [];
-
-  if ((intent.action === 'move' || intent.action === 'remove') && (intent.keyword || intent.cardType)) {
-    const searchArgs: Record<string, unknown> = {};
-    if (intent.keyword) searchArgs.keyword = intent.keyword;
-    if (intent.kind) searchArgs.kind = intent.kind;
-    if (intent.cardType) searchArgs.cardType = intent.cardType;
-    if (intent.from) searchArgs.section = intent.from;
-
-    const searchResult = await executeTool({ name: 'searchDeckCards', arguments: searchArgs }, storeRefs);
-    onToolCall?.({ name: 'searchDeckCards', args: searchArgs, result: searchResult });
-
-    if (!searchResult.success) {
-      return `検索に失敗しました: ${searchResult.error}`;
-    }
-
-    const data = searchResult.data as { cards: Array<{ cardId: string; quantity: number }>; totalCount: number };
-    if (data.cards.length === 0) {
-      return '該当するカードがデッキに見つかりませんでした。';
-    }
-    searchCardIds = data.cards;
-  }
-
-  // addアクション
-  if (intent.action === 'add' && intent.cardName) {
-    const resolveResult = await executeTool({ name: 'resolveCardName', arguments: { name: intent.cardName } }, storeRefs);
-    onToolCall?.({ name: 'resolveCardName', args: { name: intent.cardName }, result: resolveResult });
-
-    // デッキ内に見つからない場合、外部検索を試みる
-    if (!resolveResult.success || !(resolveResult.data as { cardId?: string })?.cardId) {
-      const searchResult = await executeTool({ name: 'searchCards', arguments: { keyword: intent.cardName } }, storeRefs);
-      onToolCall?.({ name: 'searchCards', args: { keyword: intent.cardName }, result: searchResult });
-
-      if (searchResult.success && searchResult.data) {
-        const results = searchResult.data as Array<{ cardId: string; name: string }>;
-        if (results.length > 0) {
-          const first = results[0];
-          const addResult = await executeTool({ name: 'addCardToDeck', arguments: { cardId: first.cardId, section: intent.to ?? 'main' } }, storeRefs);
-          onToolCall?.({ name: 'addCardToDeck', args: { cardId: first.cardId, section: intent.to ?? 'main' }, result: addResult });
-
-          return addResult.success
-            ? `「${first.name}」を${intent.to ?? 'メインデッキ'}に追加しました。`
-            : `追加失敗: ${addResult.error}`;
-        }
-      }
-      return `カード「${intent.cardName}」が見つかりませんでした。`;
-    }
-
-    const resolved = resolveResult.data as { cardId: string; name?: string };
-    const addResult = await executeTool({ name: 'addCardToDeck', arguments: { cardId: resolved.cardId, section: intent.to ?? 'main' } }, storeRefs);
-    onToolCall?.({ name: 'addCardToDeck', args: { cardId: resolved.cardId, section: intent.to ?? 'main' }, result: addResult });
-
-    const cardLabel = resolved.name ?? intent.cardName;
-    const reportInput = addResult.success ? `「${cardLabel}」を${intent.to ?? 'main'}に追加しました。` : `追加失敗: ${addResult.error}`;
-    return await nanoPrompt(REPORT_PROMPT, reportInput);
-  }
-
-  if (signal?.aborted) throw new Error('aborted');
-
-  // Stage 3-4: 操作系のcardIds構成
-  let cardIds: string[];
-
-  const isAllQuantity = intent.quantity === 'all' || intent.quantity === undefined;
-  if (isAllQuantity) {
-    const searchSummary = searchCardIds.map(c => `cardId:${c.cardId} quantity:${c.quantity}`).join('\n');
-    const planRaw = await nanoPrompt(PLAN_PROMPT, `検索結果:\n${searchSummary}`);
+    let nanoResponse = await session.prompt(firstMessage);
+    console.debug('[nano-pipeline] initial response:', nanoResponse);
     if (signal?.aborted) throw new Error('aborted');
 
-    const plan = extractJson(planRaw) as { cardIds?: string[] } | null;
-    if (plan?.cardIds && plan.cardIds.length > 0) {
-      cardIds = plan.cardIds;
-    } else {
-      cardIds = searchCardIds.flatMap(c => Array(c.quantity).fill(c.cardId) as string[]);
+    const toolResults: Array<{ role: string; toolResultData?: unknown }> = [];
+
+    for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      const toolCall = parseToolCall(nanoResponse);
+      console.debug(`[nano-pipeline] iteration ${i}: toolCall=${toolCall ? toolCall.name : 'null'}, response=${nanoResponse.substring(0, 200)}`);
+      if (!toolCall) {
+        // 最終回答: 未確認カード名があればNanoに修正させる（最大3回）
+        for (let r = 0; r < 3; r++) {
+          const verifiedNames = collectVerifiedCardNames(toolResults);
+          const unverified = hasUnverifiedCardNames(nanoResponse, verifiedNames);
+          if (unverified.length === 0) break;
+          const names = unverified.join('、');
+          nanoResponse = await session.prompt(
+            `あなたの出力にツールで確認していないカード名が含まれています: ${names}\n` +
+            `ルールを守って、ツール（resolveCardName / searchCards）でカード名を確認した上で {{カード名|cardId}} 形式で出力し直してください。`
+          );
+          if (signal?.aborted) throw new Error('aborted');
+        }
+        return nanoResponse;
+      }
+
+      const toolResult = await executeTool(toolCall, storeRefs);
+      // NanoのレスポンスからツールJSON以外のテキスト（思考・理由）を抽出
+      const reasoning = nanoResponse.replace(/\{[\s\S]*\}/, '').trim();
+      onToolCall?.({ name: toolCall.name, args: toolCall.arguments, result: toolResult, nanoReasoning: reasoning || undefined });
+      if (toolResult.success && toolResult.data !== undefined) {
+        toolResults.push({ role: 'tool', toolResultData: toolResult.data });
+      }
+
+      if (signal?.aborted) throw new Error('aborted');
+
+      const resultMessage = toolResult.success
+        ? `ツール ${toolCall.name} の実行結果:\n${JSON.stringify(toolResult.data ?? '成功')}`
+        : `ツール ${toolCall.name} のエラー: ${toolResult.error}`;
+
+      nanoResponse = await session.prompt(resultMessage);
+      console.debug(`[nano-pipeline] after ${toolCall.name}:`, nanoResponse.substring(0, 200));
+      if (signal?.aborted) throw new Error('aborted');
     }
-  } else {
-    const limit = Number(intent.quantity);
-    cardIds = searchCardIds.flatMap(c => Array(Math.min(c.quantity, limit)).fill(c.cardId) as string[]).slice(0, limit);
+
+    return nanoResponse;
+  } finally {
+    session.destroy();
   }
-
-  if (cardIds.length === 0) {
-    return '操作対象のカードが見つかりませんでした。';
-  }
-
-  // Stage 5: tool実行
-  let operationResult: { success: boolean; data?: unknown; error?: string };
-
-  if (intent.action === 'move' && intent.from && intent.to) {
-    const toolArgs = { cardIds, from: intent.from, to: intent.to };
-    operationResult = await executeTool({ name: 'moveCard', arguments: toolArgs }, storeRefs);
-    onToolCall?.({ name: 'moveCard', args: toolArgs, result: operationResult });
-  } else if (intent.action === 'remove' && intent.from) {
-    const toolArgs = { cardIds, from: intent.from, to: 'trash' };
-    operationResult = await executeTool({ name: 'removeCardFromDeck', arguments: toolArgs }, storeRefs);
-    onToolCall?.({ name: 'removeCardFromDeck', args: toolArgs, result: operationResult });
-  } else {
-    return '操作の構成に失敗しました。';
-  }
-
-  // Stage 6: 結果報告
-  const resultSummary = operationResult.success
-    ? `成功: ${JSON.stringify(operationResult.data)}`
-    : `失敗: ${operationResult.error}`;
-
-  return await nanoPrompt(REPORT_PROMPT, resultSummary);
 }

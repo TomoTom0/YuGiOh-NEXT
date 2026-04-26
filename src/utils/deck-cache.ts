@@ -534,8 +534,8 @@ export async function generateThumbnailsInBackground(
     let deckInfo: DeckInfo | null = null;
 
     if (!skipDueToRecentUpdate) {
-      // API通信前にランダム待機（2回目以降のAPI通信のみ）
-      if (apiCallCount > 0) {
+      // API通信前にランダム待機（2回目以降のAPI通信のみ、force=falseのバックグラウンド処理時のみ）
+      if (apiCallCount > 0 && !force) {
         const delay = 500 + Math.random() * 1500; // 500-2000msのランダム待機
         console.temp(`[generateThumbnailsInBackground] Waiting ${delay.toFixed(0)}ms before processing deck ${currentDno}`);
         await new Promise(resolve => setTimeout(resolve, delay));

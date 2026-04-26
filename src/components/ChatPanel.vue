@@ -32,6 +32,7 @@
             {{ msg.toolSuccess ? 'OK' : 'NG' }}
           </span>
           <div v-if="isLoading || expandedTools.has(i)" class="tool-content">{{ msg.content }}</div>
+          <div v-if="msg.toolReasoning" class="tool-reasoning">{{ msg.toolReasoning }}</div>
         </div>
         <!-- ユーザーメッセージ + 停止ボタン -->
         <div v-else-if="msg.role === 'user'" class="chat-message-row user-row">
@@ -48,7 +49,12 @@
         </div>
         <!-- アシスタントメッセージ -->
         <div v-else class="chat-message assistant">
-          <div class="chat-message-content">{{ msg.content }}</div>
+          <div class="chat-message-content">
+            <template v-for="(part, pi) in parseCardLinks(resolveCardLinks(msg.content))" :key="pi">
+              <span v-if="part.type === 'link' && part.cardId" class="card-link" @click="part.cardId && handleCardLinkClick(part.cardId)">{{ part.text }}</span>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </div>
           <div class="chat-message-time">{{ formatTime(msg.timestamp) }}</div>
         </div>
       </template>
@@ -61,7 +67,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
+import { useCardLinks } from '@/composables/useCardLinks';
 import { useDeckEditStore } from '@/stores/deck-edit';
 import { useSearchStore } from '@/stores/search';
 import { useCardDetailStore } from '@/stores/card-detail';
@@ -69,7 +76,9 @@ import { useSettingsStore } from '@/stores/settings';
 import { chat, ChatAbortError } from '@/services/llm/llm-chat-service';
 import type { ChatMessage, DeckSections } from '@/services/llm/types';
 import type { CardInfo } from '@/types/card';
-import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
+import { getCardInfo } from '@/utils/card-utils';
+
+const { parseCardLinks, handleCardLinkClick } = useCardLinks();
 
 const deckStore = useDeckEditStore();
 const searchStore = useSearchStore();
@@ -85,11 +94,10 @@ const expandedTools = ref(new Set<number>());
 let abortController: AbortController | null = null;
 
 function buildDeckSections(): DeckSections {
-  const db = getUnifiedCacheDB();
-
   const resolveCards = (refs: Array<{ cid: string; quantity: number }>): CardInfo[] =>
     refs.flatMap(dc => {
-      const card = db.getCardInfo(dc.cid);
+      const card = getCardInfo(dc.cid);
+      if (!card) console.debug('[buildDeckSections] cache miss:', dc.cid);
       return card ? Array(dc.quantity).fill(card) : [];
     });
 
@@ -103,11 +111,10 @@ function buildDeckSections(): DeckSections {
 }
 
 function buildStoreRefs() {
-  const db = getUnifiedCacheDB();
   return {
     getDeckSections: buildDeckSections,
     addCard: (cardId: string, section: 'main' | 'extra' | 'side') => {
-      const card = db.getCardInfo(cardId);
+      const card = getCardInfo(cardId);
       if (!card) return { success: false, error: 'カードが見つかりません' };
       return deckStore.addCard(card, section) ?? { success: true };
     },
@@ -120,7 +127,7 @@ function buildStoreRefs() {
       extraCount: deckStore.deckInfo.extraDeck.reduce((s, dc) => s + dc.quantity, 0),
       sideCount: deckStore.deckInfo.sideDeck.reduce((s, dc) => s + dc.quantity, 0),
     }),
-    getCardInfoById: (cardId: string) => db.getCardInfo(cardId),
+    getCardInfoById: (cardId: string) => getCardInfo(cardId) ?? undefined,
     getCardsBySection: (section: 'main' | 'extra' | 'side' | 'trash') => {
       const deck = section === 'main' ? deckStore.deckInfo.mainDeck :
                    section === 'extra' ? deckStore.deckInfo.extraDeck :
@@ -223,6 +230,7 @@ async function send() {
           toolSuccess: info.result.success,
           toolArgs: info.args,
           toolResultData: info.result.success ? info.result.data : undefined,
+          toolReasoning: info.nanoReasoning,
         });
         scrollToBottom();
       },
@@ -252,6 +260,40 @@ function toggleToolExpand(i: number) {
   if (s.has(i)) s.delete(i);
   else s.add(i);
   expandedTools.value = s;
+}
+
+// ツール結果から確認済みカード名 → cardId のマップを収集
+const knownCards = computed(() => {
+  const map = new Map<string, string>();
+  for (const msg of messages.value) {
+    if (msg.role !== 'tool' || !msg.toolResultData) continue;
+    const d = msg.toolResultData;
+    if (d && typeof d === 'object' && !Array.isArray(d) && Array.isArray((d as Record<string, unknown>).cards)) {
+      for (const c of (d as { cards: Array<Record<string, unknown>> }).cards) {
+        if (typeof c.name === 'string' && typeof c.cardId === 'string') map.set(c.name, c.cardId);
+      }
+    }
+    if (Array.isArray(d)) {
+      for (const c of d as Array<Record<string, unknown>>) {
+        if (typeof c.name === 'string' && typeof c.cardId === 'string') map.set(c.name, c.cardId);
+      }
+    }
+    if (d && typeof d === 'object' && !Array.isArray(d)) {
+      const obj = d as Record<string, unknown>;
+      if (typeof obj.name === 'string' && typeof obj.cardId === 'string') map.set(obj.name, obj.cardId);
+    }
+  }
+  return map;
+});
+
+// 未確認の {{...}} を除去してプレーンテキストに戻す。確認済みでcardIdがないものは補完。
+function resolveCardLinks(content: string): string {
+  return content.replace(/\{\{([^|{}]+?)(?:\|(\d+))?\}\}/g, (_match, name: string, cardId: string | undefined) => {
+    const knownId = knownCards.value.get(name);
+    if (cardId) return `{{${name}|${cardId}}}`;
+    if (knownId) return `{{${name}|${knownId}}}`;
+    return name;
+  });
 }
 
 async function scrollToBottom() {
@@ -361,6 +403,12 @@ watch(() => deckStore.pendingChatMessage, (msg) => {
     .tool-content {
       color: var(--text-secondary);
     }
+
+    .tool-reasoning {
+      color: var(--text-secondary);
+      font-style: italic;
+      width: 100%;
+    }
   }
 }
 
@@ -398,6 +446,16 @@ watch(() => deckStore.pendingChatMessage, (msg) => {
 .chat-message-content {
   white-space: pre-wrap;
   word-break: break-word;
+
+  .card-link {
+    color: var(--color-link);
+    text-decoration: underline;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--color-link-hover);
+    }
+  }
 }
 
 .chat-message-time {
