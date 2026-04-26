@@ -54,4 +54,7 @@ interface LanguageModelConstructor {
 
 interface Window {
   LanguageModel: LanguageModelConstructor;
+  ai?: {
+    languageModel: LanguageModelConstructor;
+  };
 }

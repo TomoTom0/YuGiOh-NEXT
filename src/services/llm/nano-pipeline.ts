@@ -85,8 +85,12 @@ getChatHistory: 直前の会話でのツール実行履歴と結果を取得
 - 情報が不足している場合は適切なツールを呼んで補う（推測しない）`;
 
 function parseToolCall(response: string): ToolCall | null {
-  const text = response.trim();
-  const match = text.match(/\{[\s\S]*\}/);
+  let text = response.trim();
+  const codeBlockMatch = text.match(/```(?:tool|json)?\s*\n?([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    text = codeBlockMatch[1].trim();
+  }
+  const match = text.match(/\{[\s\S]*?\}/);
   if (!match) return null;
   try {
     const parsed = JSON.parse(match[0]) as { tool?: string; args?: Record<string, unknown> };
@@ -137,6 +141,14 @@ function hasUnverifiedCardNames(response: string, verifiedNames: Set<string>): s
   return unverified;
 }
 
+const MAX_RESULT_CHARS = 1500;
+
+function truncateResult(data: unknown): string {
+  const json = JSON.stringify(data);
+  if (json.length <= MAX_RESULT_CHARS) return json;
+  return json.substring(0, MAX_RESULT_CHARS) + '...';
+}
+
 function buildHistoryContext(history: ChatMessage[]): string {
   if (history.length === 0) return '';
 
@@ -148,7 +160,7 @@ function buildHistoryContext(history: ChatMessage[]): string {
       lines.push(`アシスタント: ${msg.content}`);
     } else if (msg.role === 'tool') {
       const detail = msg.toolResultData
-        ? JSON.stringify(msg.toolResultData)
+        ? truncateResult(msg.toolResultData)
         : msg.content;
       lines.push(`[ツール ${msg.toolName ?? ''} 実行済み]: ${detail}`);
     }
@@ -194,7 +206,11 @@ export async function runNanoPipeline(
             `ルールを守って、ツール（resolveCardName / searchCards）でカード名を確認した上で {{カード名|cardId}} 形式で出力し直してください。`
           );
           if (signal?.aborted) throw new Error('aborted');
+          // 検証プロンプトの応答がツール呼び出しの場合、メインループに戻る
+          if (parseToolCall(nanoResponse)) break;
         }
+        // 検証後にツール呼び出しが残っている場合はメインループを継続
+        if (parseToolCall(nanoResponse)) continue;
         return nanoResponse;
       }
 
@@ -209,7 +225,7 @@ export async function runNanoPipeline(
       if (signal?.aborted) throw new Error('aborted');
 
       const resultMessage = toolResult.success
-        ? `ツール ${toolCall.name} の実行結果:\n${JSON.stringify(toolResult.data ?? '成功')}`
+        ? `ツール ${toolCall.name} の実行結果:\n${truncateResult(toolResult.data ?? '成功')}`
         : `ツール ${toolCall.name} のエラー: ${toolResult.error}`;
 
       nanoResponse = await session.prompt(resultMessage);
