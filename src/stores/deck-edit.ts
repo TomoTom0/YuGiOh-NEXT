@@ -523,6 +523,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function moveInDisplayOrder(cardId: string, from: 'main' | 'extra' | 'side' | 'trash', to: 'main' | 'extra' | 'side' | 'trash', uuid?: string) {
     // 元の位置を保存
     const fromOrder = displayOrder.value[from];
+    if (!fromOrder) return;
     let originalIndex = -1;
     if (uuid) {
       originalIndex = fromOrder.findIndex(dc => dc.uuid === uuid);
@@ -570,7 +571,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (uiState.activeTab) return uiState.activeTab;
     return isMobile ? 'deck' : 'metadata';
   })();
-  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata'>(initialActiveTab);
+  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata' | 'chat'>(initialActiveTab);
+
+  const pendingChatMessage = ref<string | null>(null);
 
   const showDetail = ref(true);
   const viewMode = ref<'list' | 'grid'>('list');
@@ -1842,6 +1845,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deckList,
     lastUsedDno,
     activeTab,
+    pendingChatMessage,
     showDetail,
     viewMode,
     cardTab,

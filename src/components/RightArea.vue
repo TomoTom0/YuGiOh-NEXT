@@ -36,6 +36,12 @@
         >
           Metadata
         </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'chat' }"
+          @click="deckStore.activeTab = 'chat'"
+        >
+          Chat
+        </button>
       </div>
 
       <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
@@ -61,6 +67,10 @@
 
       <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
         <DeckMetadata />
+      </div>
+
+      <div v-show="deckStore.activeTab === 'chat'" class="chat-content">
+        <ChatPanel />
       </div>
     </div>
 
@@ -91,6 +101,7 @@ import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
+import ChatPanel from './ChatPanel.vue'
 import SearchInputBar from './searchInputBar/SearchInputBar.vue'
 import { buildFullUrl } from '../utils/url-builder'
 import { detectLanguage } from '../utils/language-detector'
@@ -101,6 +112,7 @@ export default {
     CardList,
     CardDetail,
     DeckMetadata,
+    ChatPanel,
     SearchInputBar
   },
   setup() {
@@ -263,12 +275,14 @@ export default {
 
 .right-area-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 6px;
   margin: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -292,7 +306,7 @@ export default {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   border-bottom: 2px solid #008cff;
   margin: 0;
 
@@ -336,7 +350,7 @@ export default {
 
 @media (max-width: 768px) {
   .tabs {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     
     button.deck-tab {
       display: block;
@@ -344,7 +358,7 @@ export default {
   }
 }
 
-.deck-content, .search-content, .card-detail-content, .metadata-content {
+.deck-content, .search-content, .card-detail-content, .metadata-content, .chat-content {
   animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -375,6 +389,16 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
 }

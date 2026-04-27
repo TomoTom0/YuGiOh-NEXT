@@ -3,7 +3,7 @@
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PROFILE_DIR="${PROJECT_ROOT}/.chrome_cache"
-EXTENSION_DIR="${HOME}/user/Mine/_chex/src_ygoNeuronHelper"
+EXTENSION_DIR="${HOME}/user/Mine/_chex/src_ygo-next"
 DEBUG_PORT=9222
 WS_FILE="${PROJECT_ROOT}/.chrome_playwright_ws"
 
@@ -35,6 +35,9 @@ else
     --enable-logging=stderr \
     --v=1 \
     --window-size=1280,900 \
+    --enable-features=OptimizationGuideModelDownloading,OptimizationGuideOnDeviceModel \
+    --enable-gpu \
+    --disable-features=MediaRouterDialDiscovery \
     "https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja" \
     > "${CHROME_LOG}" 2>&1 &
   

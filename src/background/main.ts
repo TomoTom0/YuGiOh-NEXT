@@ -7,8 +7,11 @@
 
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
 import { getVueEditUrl } from '@/utils/url-builder';
-import { setToStorageLocal } from '@/utils/chrome-storage-utils';
-import { CHROME_STORAGE_KEY_DECK_LIST_PRELOAD } from '@/constants/storage-keys';
+import { getFromStorageLocal, setToStorageLocal } from '@/utils/chrome-storage-utils';
+import {
+  CHROME_STORAGE_KEY_APP_SETTINGS,
+  CHROME_STORAGE_KEY_DECK_LIST_PRELOAD,
+} from '@/constants/storage-keys';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -102,6 +105,62 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }));
 
     return true; // sendResponse が非同期のため必須
+  }
+
+  if (message.type === 'AI_CHAT') {
+    const { systemPrompt, conversation } = message as {
+      systemPrompt: string;
+      conversation: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    };
+
+    (async () => {
+      try {
+        const settings = await getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS) as
+          | { aiApiKey?: string }
+          | null;
+        const apiKey = settings?.aiApiKey ?? '';
+        if (!apiKey) {
+          sendResponse({ success: false, error: 'Z.ai APIキーが設定されていません' });
+          return;
+        }
+
+        const response = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...conversation,
+            ],
+            max_tokens: 1024,
+          }),
+        });
+
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          sendResponse({ success: false, error: `Z.ai API エラー: ${response.status} ${text}` });
+          return;
+        }
+
+        const data = await response.json() as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) {
+          sendResponse({ success: false, error: 'Z.ai APIから空の応答が返りました' });
+          return;
+        }
+        sendResponse({ success: true, content });
+      } catch (err) {
+        sendResponse({ success: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    })();
+
+    return true;
   }
 
   // 他のメッセージ型は処理しない

@@ -273,6 +273,7 @@ export function moveInDisplayOrder(
 
   // displayOrderから移動するカードを取得
   const fromOrder = displayOrder[from];
+  if (!fromOrder) return;
   let moveCardIndex: number;
 
   if (uuid) {
@@ -457,13 +458,15 @@ export function fisherYatesShuffle<T>(array: T[]): T[] {
 function getDeckBySection(deckState: DeckState, section: SectionType): DeckCardRef[] {
   switch (section) {
     case 'main':
-      return deckState.mainDeck;
+      return deckState.mainDeck ?? [];
     case 'extra':
-      return deckState.extraDeck;
+      return deckState.extraDeck ?? [];
     case 'side':
-      return deckState.sideDeck;
+      return deckState.sideDeck ?? [];
     case 'trash':
-      return deckState.trashDeck;
+      return deckState.trashDeck ?? [];
+    default:
+      return [];
   }
 }
 

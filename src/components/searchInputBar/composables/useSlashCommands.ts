@@ -68,6 +68,7 @@ export function useSlashCommands(options: UseSlashCommandsOptions): UseSlashComm
         { command: '/clear', description: '全てクリア' },
         { command: '/clear-cond', description: '条件クリア' },
         { command: '/clear-text', description: 'テキストクリア' },
+        { command: '/ai', description: 'AIチャット' },
         { command: '/history-search', description: '履歴から選択' },
         { command: '/favorite-search', description: 'お気に入りから選択' }
       ]

@@ -590,6 +590,18 @@ export default defineComponent({
         return
       }
 
+      // /ai コマンド: chat tabに切り替えてメッセージ送信
+      const aiMatch = searchStore.searchQuery.match(/^\/ai\s+(.+)/)
+      if (aiMatch) {
+        const message = aiMatch[1].trim()
+        if (message) {
+          deckStore.pendingChatMessage = message
+          deckStore.activeTab = 'chat'
+          searchStore.searchQuery = ''
+        }
+        return
+      }
+
       // それ以外は検索実行
       handleSearch()
     }

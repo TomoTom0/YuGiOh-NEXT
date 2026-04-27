@@ -98,7 +98,7 @@ export type CardTab = 'info' | 'qa' | 'related' | 'products';
 /**
  * アクティブタブ（検索/カード/デッキ/メタデータ）
  */
-export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata';
+export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat';
 
 export interface DeckEditSettings {
   enabled: boolean;
@@ -237,6 +237,8 @@ export interface AppSettings {
   includeTimestampInExportFilename: boolean;
   /** 保存時に自動でフルソートする（falseの場合はmin-sort） */
   saveWithAutoFullSort: boolean;
+  /** AI機能のAPIキー（Z.ai） */
+  aiApiKey?: string;
   /** カテゴリ優先エリア内のソート順（'level': レベル順（全体設定に従う）, 'quantity-desc': 枚数の降順） */
   categoryPrioritySortMode: 'level' | 'quantity-desc';
 
