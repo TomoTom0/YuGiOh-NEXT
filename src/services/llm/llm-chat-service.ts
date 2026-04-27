@@ -109,7 +109,7 @@ export async function chat(
   let rawResponse = await promptZaiMulti(systemPrompt, [
     ...zaiConversation,
     { role: 'user', content: request.userMessage },
-  ], apiKey);
+  ]);
 
   const allToolCalls: ToolCall[] = [];
 
@@ -132,7 +132,7 @@ export async function chat(
 
     zaiConversation.push({ role: 'assistant', content: rawResponse });
     zaiConversation.push({ role: 'user', content: resultText });
-    rawResponse = await promptZaiMulti(systemPrompt, zaiConversation, apiKey);
+    rawResponse = await promptZaiMulti(systemPrompt, zaiConversation);
   }
 
   return {
