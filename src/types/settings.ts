@@ -98,7 +98,7 @@ export type CardTab = 'info' | 'qa' | 'related' | 'products';
 /**
  * アクティブタブ（検索/カード/デッキ/メタデータ）
  */
-export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat';
+export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat' | 'practice';
 
 export interface DeckEditSettings {
   enabled: boolean;
@@ -241,6 +241,10 @@ export interface AppSettings {
   aiApiKey?: string;
   /** カテゴリ優先エリア内のソート順（'level': レベル順（全体設定に従う）, 'quantity-desc': 枚数の降順） */
   categoryPrioritySortMode: 'level' | 'quantity-desc';
+  /** カードサイズ（practice mode 1P） */
+  practiceCardSize?: CardSize;
+  /** カードサイズ（practice mode 2P） */
+  practiceCardSize2P?: CardSize;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -367,6 +371,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   includeTimestampInExportFilename: true, // エクスポートファイル名にタイムスタンプを含める: デフォルト有効
   saveWithAutoFullSort: true,          // 保存時に自動でフルソート: デフォルト有効
   categoryPrioritySortMode: 'level',   // カテゴリ優先内のソート順: レベル順（全体設定に従う）
+  practiceCardSize: 'small',           // practice mode 1P カードサイズ
+  practiceCardSize2P: 'small',         // practice mode 2P カードサイズ
 };
 
 /**
