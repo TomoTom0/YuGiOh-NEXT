@@ -72,6 +72,7 @@ import { ref } from 'vue'
 import { getFAQDetail } from '../api/card-faq'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useCardLinks } from '../composables/useCardLinks'
+import { collapseWithScroll } from '../utils/collapse-scroll'
 
 export default {
   name: 'CardQA',
@@ -114,17 +115,13 @@ export default {
     }
 
     const collapseQA = (faqId) => {
-      // faqIdから該当のDOM要素を見つける
       const qaItems = document.querySelectorAll('.qa-item')
       let targetItem = null
 
       qaItems.forEach((item) => {
         const btn = item.querySelector('.qa-collapse-btn-sticky')
-        if (btn && btn.closest('.qa-item') === item) {
-          // このアイテムが展開されているか確認
-          if (expandedQA.value[faqId]) {
-            targetItem = item
-          }
+        if (btn && btn.closest('.qa-item') === item && expandedQA.value[faqId]) {
+          targetItem = item
         }
       })
 
@@ -133,29 +130,7 @@ export default {
         return
       }
 
-      const qaAnswer = targetItem.querySelector('.qa-answer')
-      if (!qaAnswer) {
-        expandedQA.value[faqId] = false
-        return
-      }
-
-      const heightDiff = qaAnswer.offsetHeight
-      expandedQA.value[faqId] = false
-
-      setTimeout(() => {
-        const container = targetItem.closest('.card-tab-content')
-        if (container && heightDiff > 0) {
-          const qaItemTop = targetItem.getBoundingClientRect().top
-          const containerTop = container.getBoundingClientRect().top
-
-          if (qaItemTop < containerTop + container.clientHeight) {
-            container.scrollTo({
-              top: Math.max(0, container.scrollTop - heightDiff),
-              behavior: 'smooth'
-            })
-          }
-        }
-      }, 50)
+      collapseWithScroll(targetItem, () => { expandedQA.value[faqId] = false }, 50)
     }
 
     return {

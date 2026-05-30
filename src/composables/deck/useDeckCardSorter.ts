@@ -7,7 +7,7 @@
 
 import type { CardInfo, MonsterType } from '@/types/card';
 import { getCardInfo } from '@/utils/card-utils';
-import { SPELL_TYPE_SORT_ORDER, TRAP_TYPE_SORT_ORDER } from '@/types/card-maps';
+import { SPELL_TYPE_SORT_ORDER, TRAP_TYPE_SORT_ORDER, CARD_TYPE_SORT_ORDER } from '@/types/card-maps';
 
 /**
  * DisplayCard型の定義（deck-edit.tsと同じ）
@@ -139,9 +139,8 @@ export function createDeckCardComparator(
     if (!cardA || !cardB) return 0;
 
     // 1. Card Type: Monster(0) > Spell(1) > Trap(2)
-    const typeOrder = { monster: 0, spell: 1, trap: 2 };
-    const typeA = typeOrder[cardA.cardType] ?? 999;
-    const typeB = typeOrder[cardB.cardType] ?? 999;
+    const typeA = CARD_TYPE_SORT_ORDER[cardA.cardType] ?? 999;
+    const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
     if (typeA !== typeB) return typeA - typeB;
 
     // 2. Monster Type: Fusion > Synchro > Xyz > Link > その他
@@ -201,9 +200,8 @@ export function createDeckCardComparator(
     if (!cardA || !cardB) return 0;
 
     // モンスター < 魔法 < 罠の順
-    const typeOrder = { monster: 0, spell: 1, trap: 2 };
-    const typeA = typeOrder[cardA.cardType] ?? 999;
-    const typeB = typeOrder[cardB.cardType] ?? 999;
+    const typeA = CARD_TYPE_SORT_ORDER[cardA.cardType] ?? 999;
+    const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
 
     // モンスター同士の場合、種族でソート
     if (typeA === 0 && typeB === 0) {
@@ -234,9 +232,8 @@ export function createDeckCardComparator(
     if (!cardA || !cardB) return 0;
 
     // モンスター < 魔法 < 罠の順
-    const typeOrder = { monster: 0, spell: 1, trap: 2 };
-    const typeA = typeOrder[cardA.cardType] ?? 999;
-    const typeB = typeOrder[cardB.cardType] ?? 999;
+    const typeA = CARD_TYPE_SORT_ORDER[cardA.cardType] ?? 999;
+    const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
 
     // モンスター同士の場合、属性でソート
     if (typeA === 0 && typeB === 0) {
@@ -276,9 +273,8 @@ export function createDeckCardComparator(
 
     // デフォルトソート
     // 0. Card Type: Monster(0) > Spell(1) > Trap(2)
-    const typeOrder = { monster: 0, spell: 1, trap: 2 };
-    const typeA = typeOrder[cardA.cardType] ?? 999;
-    const typeB = typeOrder[cardB.cardType] ?? 999;
+    const typeA = CARD_TYPE_SORT_ORDER[cardA.cardType] ?? 999;
+    const typeB = CARD_TYPE_SORT_ORDER[cardB.cardType] ?? 999;
     if (typeA !== typeB) return typeA - typeB;
 
     // 1. 手動先頭優先配置: 配列の順序で優先順位を決定 ← カテゴリ優先より優先
@@ -322,5 +318,30 @@ export function createDeckCardComparator(
 
     // 3. その他のカード比較ロジックを適用（Monster Type, Level, Name等）
     return compareCardsByType(a, b);
+  };
+}
+
+/**
+ * ストアからレシピsort用のDeckSortOptionsを構築する
+ */
+export function buildRecipeSortOptions(deps: {
+  enableCategoryPriority?: boolean;
+  categoryMatchedCardIds: Set<string>;
+  enableHeadPlacement?: boolean;
+  headPlacementCardIds: string[];
+  enableTailPlacement?: boolean;
+  tailPlacementCardIds: string[];
+  levelSortOrder?: 'asc' | 'desc';
+  categoryPrioritySortMode?: 'level' | 'quantity-desc';
+}): DeckSortOptions {
+  return {
+    enableCategoryPriority: deps.enableCategoryPriority ?? true,
+    priorityCategoryCardIds: deps.categoryMatchedCardIds,
+    enableHeadPlacement: deps.enableHeadPlacement ?? true,
+    headPlacementCardIds: deps.headPlacementCardIds,
+    enableTailPlacement: deps.enableTailPlacement ?? true,
+    tailPlacementCardIds: deps.tailPlacementCardIds,
+    levelSortOrder: deps.levelSortOrder ?? 'desc',
+    categoryPrioritySortMode: deps.categoryPrioritySortMode ?? 'level',
   };
 }

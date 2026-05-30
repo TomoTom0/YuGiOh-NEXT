@@ -2,9 +2,10 @@
  * CommandHistoryDialog.vue のユニットテスト
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import CommandHistoryDialog from '@/components/CommandHistoryDialog.vue';
+import BaseDialog from '@/components/BaseDialog.vue';
 import type { Command } from '@/composables/deck/useDeckUndoRedo';
 
 describe('CommandHistoryDialog', () => {
@@ -20,36 +21,54 @@ describe('CommandHistoryDialog', () => {
     timestamp: timestamp ?? Date.now()
   });
 
+  // BaseDialog は defineComponent ベースのため、グローバル登録が必要
+  const defaultMountOptions = {
+    global: {
+      components: { BaseDialog }
+    }
+  };
+
+  afterEach(() => {
+    // Teleport で body に描画された要素をクリーンアップ
+    document.body.querySelectorAll('.base-dialog-overlay').forEach(el => {
+      el.remove();
+    });
+  });
+
   describe('表示/非表示', () => {
     it('visible=false の場合、ダイアログが表示されない', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: false, history: [], currentIndex: -1 }
       });
-      expect(wrapper.find('.dialog-overlay').exists()).toBe(false);
+      expect(document.body.querySelector('.base-dialog-overlay')).toBe(null);
     });
 
     it('visible=true の場合、ダイアログが表示される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: [], currentIndex: -1 }
       });
-      expect(wrapper.find('.dialog-overlay').exists()).toBe(true);
+      expect(document.body.querySelector('.base-dialog-overlay')).not.toBe(null);
     });
   });
 
   describe('履歴が空の場合', () => {
     it('「操作履歴がありません」メッセージが表示される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: [], currentIndex: -1 }
       });
-      expect(wrapper.find('.no-history').exists()).toBe(true);
+      expect(document.body.querySelector('.no-history')).not.toBe(null);
     });
 
     it('クリアボタンが無効化される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: [], currentIndex: -1 }
       });
-      const clearBtn = wrapper.find('.btn-clear');
-      expect(clearBtn.attributes('disabled')).toBeDefined();
+      const clearBtn = document.body.querySelector('.btn-clear') as HTMLButtonElement;
+      expect(clearBtn.disabled).toBe(true);
     });
   });
 
@@ -62,46 +81,51 @@ describe('CommandHistoryDialog', () => {
 
     it('履歴項目が正しい数だけ表示される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 2 }
       });
-      expect(wrapper.findAll('.history-item').length).toBe(3);
+      expect(document.body.querySelectorAll('.history-item').length).toBe(3);
     });
 
     it('description が表示される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 2 }
       });
-      const descriptions = wrapper.findAll('.history-description');
-      expect(descriptions[0].text()).toBe('Blue-Eyes -> Main');
+      const descriptions = document.body.querySelectorAll('.history-description');
+      expect(descriptions[0].textContent).toBe('Blue-Eyes -> Main');
     });
 
     it('currentIndex の項目に current クラスが付く', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 1 }
       });
-      const items = wrapper.findAll('.history-item');
-      expect(items[1].classes()).toContain('current');
-      expect(items[0].classes()).not.toContain('current');
+      const items = document.body.querySelectorAll('.history-item');
+      expect(items[1].classList.contains('current')).toBe(true);
+      expect(items[0].classList.contains('current')).toBe(false);
     });
 
     it('currentIndex より後の項目に undone クラスが付く', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 0 }
       });
-      const items = wrapper.findAll('.history-item');
-      expect(items[1].classes()).toContain('undone');
-      expect(items[2].classes()).toContain('undone');
-      expect(items[0].classes()).not.toContain('undone');
+      const items = document.body.querySelectorAll('.history-item');
+      expect(items[1].classList.contains('undone')).toBe(true);
+      expect(items[2].classList.contains('undone')).toBe(true);
+      expect(items[0].classList.contains('undone')).toBe(false);
     });
 
     it('CommandType に応じたCSSクラスが適用される', () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 2 }
       });
-      const items = wrapper.findAll('.history-item');
-      expect(items[0].classes()).toContain('type-add');
-      expect(items[1].classes()).toContain('type-move');
-      expect(items[2].classes()).toContain('type-reorder');
+      const items = document.body.querySelectorAll('.history-item');
+      expect(items[0].classList.contains('type-add')).toBe(true);
+      expect(items[1].classList.contains('type-move')).toBe(true);
+      expect(items[2].classList.contains('type-reorder')).toBe(true);
     });
   });
 
@@ -113,34 +137,47 @@ describe('CommandHistoryDialog', () => {
 
     it('閉じるボタンで close イベントが発火する', async () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 1 }
       });
-      await wrapper.find('.close-btn').trigger('click');
+      const closeBtn = document.body.querySelector('.close-btn') as HTMLElement;
+      closeBtn.click();
+      await wrapper.vm.$nextTick();
       expect(wrapper.emitted('close')).toHaveLength(1);
     });
 
     it('履歴項目クリックで jump-to イベントが発火する', async () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 1 }
       });
-      await wrapper.findAll('.history-item')[0].trigger('click');
+      const items = document.body.querySelectorAll('.history-item');
+      items[0].click();
+      await wrapper.vm.$nextTick();
       expect(wrapper.emitted('jump-to')).toHaveLength(1);
       expect(wrapper.emitted('jump-to')![0]).toEqual([0]);
     });
 
     it('クリアボタンで clear-history イベントが発火する', async () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 1 }
       });
-      await wrapper.find('.btn-clear').trigger('click');
+      const clearBtn = document.body.querySelector('.btn-clear') as HTMLElement;
+      clearBtn.click();
+      await wrapper.vm.$nextTick();
       expect(wrapper.emitted('clear-history')).toHaveLength(1);
     });
 
     it('オーバーレイクリックで close イベントが発火する', async () => {
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 1 }
       });
-      await wrapper.find('.dialog-overlay').trigger('click');
+      // Teleport で body に描画されているため、document.body から取得
+      const overlay = document.body.querySelector('.base-dialog-overlay') as HTMLElement;
+      overlay.click();
+      await wrapper.vm.$nextTick();
       expect(wrapper.emitted('close')).toHaveLength(1);
     });
   });
@@ -154,11 +191,12 @@ describe('CommandHistoryDialog', () => {
       ];
 
       const wrapper = mount(CommandHistoryDialog, {
+        ...defaultMountOptions,
         props: { visible: true, history: commands, currentIndex: 0 }
       });
 
-      const timeEl = wrapper.find('.history-time');
-      expect(timeEl.text()).toBe('12:30:45');
+      const timeEl = document.body.querySelector('.history-time');
+      expect(timeEl?.textContent).toBe('12:30:45');
     });
   });
 });

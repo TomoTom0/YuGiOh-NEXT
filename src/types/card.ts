@@ -61,20 +61,21 @@ export interface CardBase {
 import type { CardGameType } from './settings';
 
 /**
- * CardInfoにimageUrlゲッターを追加するヘルパー
+ * カード画像URLを生成するヘルパー
  * @param card カード情報
  * @param gameType ゲームタイプ（省略時は'ocg'）
- * @returns 画像URL（request_locale付与）
+ * @param ciid 画像識別子のオーバーライド（省略時はcard.ciidを使用）
+ * @returns 画像URL（request_locale付与）、見つからない場合はundefined
  */
-export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg'): string | undefined {
-  const imageInfo = card.imgs.find(img => img.ciid === card.ciid);
+export function getCardImageUrl(card: CardBase, gameType: CardGameType = 'ocg', ciid?: string): string | undefined {
+  const targetCiid = ciid ?? card.ciid;
+  const imageInfo = card.imgs.find(img => img.ciid === targetCiid);
   if (!imageInfo) {
-    console.error('[getCardImageUrl] ERROR: ciid=', card.ciid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
+    console.error('[getCardImageUrl] ERROR: ciid=', targetCiid, 'not found in imgs=', JSON.stringify(card.imgs), 'for cardId=', card.cardId);
     return undefined;
   }
 
-  // buildApiUrl を使用して request_locale を自動付与
-  const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${card.ciid}&enc=${imageInfo.imgHash}&osplang=1`;
+  const path = `get_image.action?type=1&cid=${card.cardId}&ciid=${targetCiid}&enc=${imageInfo.imgHash}&osplang=1`;
   return buildApiUrl(path, gameType);
 }
 

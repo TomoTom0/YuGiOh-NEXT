@@ -1,35 +1,55 @@
 /**
- * カードラベル変換ユーティリティ
+ * カードラベル変換ユーティリティ（多言語対応）
  *
  * カードの属性、種族、タイプなどの内部値を
- * 表示用の日本語ラベルに変換する関数群
+ * 現在の言語設定に応じた表示用ラベルに変換する関数群
  */
 
 import {
   RACE_ID_TO_NAME,
   ATTRIBUTE_ID_TO_NAME,
   MONSTER_TYPE_ID_TO_NAME,
+  SPELL_EFFECT_TYPE_ID_TO_NAME,
+  TRAP_EFFECT_TYPE_ID_TO_NAME,
 } from '@/types/card-maps';
+import { mappingManager } from '@/utils/mapping-manager';
+import { detectLanguage } from '@/utils/language-detector';
 
 /**
- * 属性の内部値を日本語ラベルに変換
+ * 現在の言語を取得
+ */
+function currentLang(): string {
+  return detectLanguage(document);
+}
+
+/**
+ * 属性の内部値をラベルに変換（多言語対応）
  */
 export const getAttributeLabel = (attr: string): string => {
-  return (ATTRIBUTE_ID_TO_NAME as Record<string, string>)[attr] || attr;
+  const lang = currentLang();
+  return mappingManager.getAttributeIdToText(lang)[attr]
+    || (ATTRIBUTE_ID_TO_NAME as Record<string, string>)[attr]
+    || attr;
 };
 
 /**
- * 種族の内部値を日本語ラベルに変換
+ * 種族の内部値をラベルに変換（多言語対応）
  */
 export const getRaceLabel = (race: string): string => {
-  return (RACE_ID_TO_NAME as Record<string, string>)[race] || race;
+  const lang = currentLang();
+  return mappingManager.getRaceIdToText(lang)[race]
+    || (RACE_ID_TO_NAME as Record<string, string>)[race]
+    || race;
 };
 
 /**
- * モンスタータイプの内部値を日本語ラベルに変換
+ * モンスタータイプの内部値をラベルに変換（多言語対応）
  */
 export const getMonsterTypeLabel = (type: string): string => {
-  return (MONSTER_TYPE_ID_TO_NAME as Record<string, string>)[type] || type;
+  const lang = currentLang();
+  return mappingManager.getMonsterTypeIdToText(lang)[type]
+    || (MONSTER_TYPE_ID_TO_NAME as Record<string, string>)[type]
+    || type;
 };
 
 /**
@@ -46,22 +66,55 @@ export const getLevelLabel = (card: { levelValue: number; levelType: string }): 
 }
 
 /**
- * 魔法カードの効果タイプを日本語ラベルに変換
+ * 魔法カードの効果タイプをラベルに変換（多言語対応）
  */
 export const getSpellTypeLabel = (effectType: string): string => {
-  const labels: Record<string, string> = {
-    normal: '通常魔法', continuous: '永続魔法', equip: '装備魔法',
-    quickplay: '速攻魔法', field: 'フィールド魔法', ritual: '儀式魔法'
-  }
-  return labels[effectType] || '魔法'
+  const lang = currentLang();
+  const nameMap = mappingManager.getSpellEffectIdToText(lang);
+  if (nameMap[effectType]) return nameMap[effectType] as string;
+  return (SPELL_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[effectType] || effectType;
 }
 
 /**
- * 罠カードの効果タイプを日本語ラベルに変換
+ * 罠カードの効果タイプをラベルに変換（多言語対応）
  */
 export const getTrapTypeLabel = (effectType: string): string => {
-  const labels: Record<string, string> = {
-    normal: '通常罠', continuous: '永続罠', counter: 'カウンター罠'
+  const lang = currentLang();
+  const nameMap = mappingManager.getTrapEffectIdToText(lang);
+  if (nameMap[effectType]) return nameMap[effectType] as string;
+  return (TRAP_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[effectType] || effectType;
+}
+
+/**
+ * カードタイプ名をラベルに変換（多言語対応）
+ */
+export const getCardTypeLabel = (cardType: string): string => {
+  const lang = currentLang();
+  if (cardType === 'spell') {
+    return lang === 'ja' ? '魔法' : 'Spell';
   }
-  return labels[effectType] || '罠'
+  if (cardType === 'trap') {
+    return lang === 'ja' ? '罠' : 'Trap';
+  }
+  if (cardType === 'monster') {
+    return lang === 'ja' ? 'モンスター' : 'Monster';
+  }
+  return cardType;
+}
+
+/**
+ * 効果種類をラベルに変換（多言語対応、魔法/罠自動判定）
+ */
+export const getEffectTypeLabel = (effectType: string, cardType: string): string => {
+  if (cardType === 'spell') return getSpellTypeLabel(effectType);
+  if (cardType === 'trap') return getTrapTypeLabel(effectType);
+  return effectType;
+}
+
+/**
+ * モンスタータイプリストをラベルに変換（多言語対応）
+ */
+export const getMonsterTypesLabel = (types: string[]): string => {
+  if (!types || !Array.isArray(types)) return '';
+  return types.map(t => getMonsterTypeLabel(t)).join(' / ');
 }

@@ -51,6 +51,7 @@ module.exports = (env, argv) => {
             transpileOnly: false,
             compilerOptions: {
               noUnusedParameters: false,  // Vueの自動生成コードのため
+              noUnusedLocals: false,  // Vue SFCのdefineProps/defineEmits内の型参照のため
               noImplicitAny: false,  // Vueのrefコールバックのため
               noUncheckedIndexedAccess: false,  // Vue配列操作の型エラー回避
             },

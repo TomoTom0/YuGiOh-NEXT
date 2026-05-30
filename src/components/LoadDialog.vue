@@ -1,11 +1,8 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="isVisible" class="ygo-next">
-    <div class="dialog-overlay" @click="close">
-      <div class="dialog-content" @click.stop>
-        <div class="dialog-header common">
-          <h2 class="dialog-title">Load Deck</h2>
+  <BaseDialog :is-visible="isVisible" @close="close">
+    <div class="dialog-content">
+      <div class="dialog-header common">
+        <h2 class="dialog-title">Load Deck</h2>
           <div class="header-buttons">
             <button
               class="refresh-btn"
@@ -87,10 +84,8 @@
             &gt;
           </button>
         </div>
-      </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
@@ -98,10 +93,7 @@ import { ref, computed } from 'vue'
 import { useDeckEditStore } from '@/stores/deck-edit'
 import { useSettingsStore } from '@/stores/settings'
 import { generateThumbnailsInBackground } from '@/utils/deck-cache'
-
-defineProps<{
-  isVisible: boolean
-}>()
+import BaseDialog from './BaseDialog.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -189,16 +181,18 @@ const goToPrevPage = () => {
 }
 
 
+const props = defineProps<{
+  isVisible: boolean
+}>()
+
 const loadDeck = async (dno: number) => {
   try {
     deckStore.showLoadDialog = false
-    deckStore.setDeckName('')
-
-    await deckStore.loadDeck(dno)
-
-    localStorage.setItem('ygoNext:lastDeckDno', String(dno))
-
-    // 親コンポーネントに通知（親側でスクロール処理を実行）
+    if (!deckStore.onLoadCallback) {
+      console.error('LoadDialog: onLoadCallback is not set')
+      return
+    }
+    await deckStore.onLoadCallback(dno)
     emit('deckLoaded')
   } catch (error) {
     console.error('Load error:', error)
@@ -237,331 +231,316 @@ const refreshCurrentPage = async () => {
 </script>
 
 <style scoped lang="scss">
-.ygo-next {
-  .dialog-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-secondary, #eee);
+  flex-shrink: 0;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  &.refreshing {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+}
+
+.dialog-body {
+  padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  width: calc(100% - 30px);
+}
+
+.no-decks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  text-align: center;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 320px);
+  gap: 8px;
+  justify-content: center;
+}
+
+.deck-card {
+  width: 320px;
+  height: 48px;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+
+  &.with-thumbnail {
+    height: 96px;
+  }
+
+  &:has(.deck-name.current-deck) {
+    background: linear-gradient(
+      135deg,
+      var(--button-bg) 0%,
+      color-mix(in srgb, var(--button-bg) 70%, #ffffff) 50%,
+      var(--button-hover-bg) 100%
+    );
+  }
+
+  &:hover {
+    border-color: var(--text-tertiary, #999);
+    background: var(--bg-primary, white);
+  }
+
+  .deck-thumbnail-container {
     width: 100%;
     height: 100%;
-    background: var(--dialog-overlay-bg, rgba(0, 0, 0, 0.5));
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
-  }
-
-  .dialog-content {
-    background: var(--dialog-bg, #ffffff);
-    border: 1px solid var(--dialog-border, #e0e0e0);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
-    width: 90%;
-    max-width: 900px;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    .dno-chip {
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      background: var(--dno-chip-bg, var(--bg-tertiary));
+      color: var(--text-secondary);
+      padding: 3px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      z-index: 2;
+      opacity: 0.85;
+
+      &.current-deck {
+        background: linear-gradient(135deg, var(--theme-color-start) 0%, var(--color-info) 50%, var(--theme-color-end) 100%);
+        color: var(--button-text);
+        opacity: 1;
+      }
+    }
   }
 
-  .dialog-header {
+  .thumbnail-image {
+    max-height: 96px;
+    width: auto;
+    height: auto;
+    display: none;
+  }
+
+  &.with-thumbnail .thumbnail-image {
+    display: block;
+  }
+
+  .thumbnail-gradient {
+    width: 100%;
+    height: 96px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
+    opacity: 0.6;
+    display: none;
+
+    .with-thumbnail & {
+      display: block;
+    }
+  }
+
+  .deck-name {
+    padding: 8px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+    word-break: break-word;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    background: color-mix(in srgb, var(--dialog-bg) 85%, transparent);
+    backdrop-filter: blur(6px);
+    overflow: hidden;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-secondary, #eee);
-    flex-shrink: 0;
-  }
-
-  .dialog-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    flex: 1;
-  }
-
-  .header-buttons {
-    display: flex;
     gap: 8px;
-    align-items: center;
-  }
 
-  .refresh-btn {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: all 0.2s;
-
-    &:hover:not(:disabled) {
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    &.refreshing {
-      animation: spin 1s linear infinite;
-    }
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 28px;
-    line-height: 1;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: background 0.2s, color 0.2s;
-
-    &:hover {
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-    }
-  }
-
-  .dialog-body {
-    padding: 12px;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 200px;
-    width: calc(100% - 30px);
-  }
-
-  .no-decks {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    color: var(--text-secondary);
-    text-align: center;
-
-    p {
-      margin: 0;
-      font-size: 14px;
-    }
-  }
-
-  .deck-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 320px);
-    gap: 8px;
-    justify-content: center;
-  }
-
-  .deck-card {
-    width: 320px;
-    height: 48px;
-    border: 1px solid var(--border-primary, #e0e0e0);
-    border-radius: 6px;
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-
-    &.with-thumbnail {
-      height: 96px;
-    }
-
-    &:has(.deck-name.current-deck) {
+    &.current-deck {
       background: linear-gradient(
         135deg,
-        var(--button-bg) 0%,
-        color-mix(in srgb, var(--button-bg) 70%, #ffffff) 50%,
-        var(--button-hover-bg) 100%
+        color-mix(in srgb, var(--button-bg) 60%, transparent),
+        color-mix(in srgb, var(--button-hover-bg) 60%, transparent)
       );
-    }
-
-    &:hover {
-      border-color: var(--text-tertiary, #999);
-      background: var(--bg-primary, white);
-    }
-
-    .deck-thumbnail-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: absolute;
-      top: 0;
-      left: 0;
-
-      .dno-chip {
-        position: absolute;
-        left: 4px;
-        top: 4px;
-        background: var(--dno-chip-bg, var(--bg-tertiary));
-        color: var(--text-secondary);
-        padding: 3px 8px;
-        border-radius: 3px;
-        font-size: 11px;
-        font-weight: 600;
-        z-index: 2;
-        opacity: 0.85;
-
-        &.current-deck {
-          background: linear-gradient(135deg, var(--theme-color-start) 0%, var(--color-info) 50%, var(--theme-color-end) 100%);
-          color: var(--button-text);
-          opacity: 1;
-        }
-      }
-    }
-
-    .thumbnail-image {
-      max-height: 96px;
-      width: auto;
-      height: auto;
-      display: none;
-    }
-
-    &.with-thumbnail .thumbnail-image {
-      display: block;
-    }
-
-    .thumbnail-gradient {
-      width: 100%;
-      height: 96px;
-      background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 50%, var(--bg-secondary) 100%);
-      opacity: 0.6;
-      display: none;
-
-      .with-thumbnail & {
-        display: block;
-      }
-    }
-
-    .deck-name {
-      padding: 8px;
-      font-weight: 700;
       color: var(--text-primary);
-      line-height: 1.4;
-      word-break: break-word;
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 2;
-      background: color-mix(in srgb, var(--dialog-bg) 85%, transparent);
-      backdrop-filter: blur(6px);
+    }
+
+    .deck-name-text {
+      flex: 1;
       overflow: hidden;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-
-      &.current-deck {
-        background: linear-gradient(
-          135deg,
-          color-mix(in srgb, var(--button-bg) 60%, transparent),
-          color-mix(in srgb, var(--button-hover-bg) 60%, transparent)
-        );
-        color: var(--text-primary);
-      }
-
-      .deck-name-text {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .deck-count {
-        flex-shrink: 0;
-        font-size: calc(var(--dialog-font-size) * 0.9);
-        opacity: 0.9;
-      }
-
-      &.deck-name-lg {
-        font-size: var(--dialog-font-size);
-      }
-
-      &.deck-name-md {
-        font-size: calc(var(--dialog-font-size) * 0.9);
-      }
-
-      &.deck-name-sm {
-        font-size: calc(var(--dialog-font-size) * 0.8);
-      }
-
-      &.deck-name-xs {
-        font-size: calc(var(--dialog-font-size) * 0.7);
-      }
-    }
-  }
-
-  .dialog-footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--border-primary);
-    background-color: var(--bg-primary);
-    width: 100%;
-    box-sizing: border-box;
-    height: calc(var(--dialog-font-size) * 4);
-    flex-shrink: 0;
-  }
-
-  .pagination-btn {
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-primary);
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover:not(:disabled) {
-      background-color: var(--bg-tertiary);
-      border-color: var(--primary-color);
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+    .deck-count {
+      flex-shrink: 0;
+      font-size: calc(var(--dialog-font-size) * 0.9);
+      opacity: 0.9;
+    }
+
+    &.deck-name-lg {
+      font-size: var(--dialog-font-size);
+    }
+
+    &.deck-name-md {
+      font-size: calc(var(--dialog-font-size) * 0.9);
+    }
+
+    &.deck-name-sm {
+      font-size: calc(var(--dialog-font-size) * 0.8);
+    }
+
+    &.deck-name-xs {
+      font-size: calc(var(--dialog-font-size) * 0.7);
     }
   }
+}
 
-  .pagination-info {
-    font-size: 14px;
-    color: var(--text-secondary);
-    font-weight: 600;
-    min-width: 80px;
-    text-align: center;
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-primary);
+  background-color: var(--bg-primary);
+  width: 100%;
+  box-sizing: border-box;
+  height: calc(var(--dialog-font-size) * 4);
+  flex-shrink: 0;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background-color: var(--bg-tertiary);
+    border-color: var(--primary-color);
   }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
 }
 </style>

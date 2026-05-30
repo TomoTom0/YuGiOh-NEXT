@@ -8,6 +8,12 @@
     color: var(--text-primary);
   }
 
+  /* グローバルCSSリセット (margin: 0 auto) の影響を打ち消す */
+  * {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
   /* スクロールバースタイル */
   * {
     scrollbar-width: thin;
@@ -322,5 +328,21 @@
 
   .shadow-lg {
     box-shadow: var(--shadow-lg);
+  }
+
+  /* カードコーナーボタン - 共通ビジュアルスタイル（DeckCard・PracticeCard共用） */
+  .card-btn.top-left {
+    &::before {
+      content: '';
+      border-radius: 2px;
+      background: var(--deck-card-btn-top-left-bg);
+      transition: all 0.15s;
+      pointer-events: none;
+    }
+
+    &:hover::before {
+      background: var(--deck-card-btn-top-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-left-hover-border);
+    }
   }
 }

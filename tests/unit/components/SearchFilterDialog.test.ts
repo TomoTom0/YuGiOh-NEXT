@@ -32,7 +32,7 @@ describe('components/SearchFilterDialog', () => {
       await wrapper.vm.$nextTick();
 
       // Teleport で body に描画されるため、document.body を検索
-      const dialog = document.body.querySelector('.dialog-overlay');
+      const dialog = document.body.querySelector('.base-dialog-overlay');
       expect(dialog).not.toBeNull();
     });
 
@@ -48,7 +48,7 @@ describe('components/SearchFilterDialog', () => {
       await wrapper.vm.$nextTick();
 
       // Teleport で body に描画されるため、document.body を検索
-      const dialog = document.body.querySelector('.dialog-overlay');
+      const dialog = document.body.querySelector('.base-dialog-overlay');
       expect(dialog).toBeNull();
     });
 

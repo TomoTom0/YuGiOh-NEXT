@@ -1,7 +1,6 @@
-import { getCardDetailWithCache } from '@/api/card-search'
 import { useCardDetailStore } from '@/stores/card-detail'
 import { useDeckEditStore } from '@/stores/deck-edit'
-import { detectLanguage } from '@/utils/language-detector'
+import { useCardDetailDisplay } from '@/composables/useCardDetailDisplay'
 
 /**
  * カードリンクの解析部分（type: 'text' | 'link'）
@@ -81,36 +80,13 @@ export function useCardLinks() {
    * <a @click="handleCardLinkClick('4335')">ブラック・マジシャン</a>
    * ```
    */
+  const { showCardDetail } = useCardDetailDisplay()
+
   const handleCardLinkClick = async (cardId: string): Promise<void> => {
-    try {
-      // ローディング開始
-      cardDetailStore.startLoadingCard()
-
-      // カード詳細を取得（cidのみからCardInfo全体をパース）
-      // FAQページからのリンクなので、fromFAQ=trueを渡す
-      const currentLang = detectLanguage(document)
-      const result = await getCardDetailWithCache(cardId, currentLang, true, 'release_desc', true)
-
-      // エラーにより不完全な情報の場合は警告
-      if (result.isPartialFromError) {
-        console.warn('[useCardLinks] Card info may be incomplete due to search error for cardId:', cardId)
-      }
-
-      if (!result.detail || !result.detail.card) {
-        console.error('[useCardLinks] Failed to get card info for cardId:', cardId)
-        return
-      }
-
-      // cardDetailStoreにカードをセットしてCardタブのinfoを表示
-      cardDetailStore.setSelectedCard(result.detail.card)
-      deckStore.activeTab = 'card'
-      cardDetailStore.setCardTab('info')
-    } catch (error) {
-      console.error('[useCardLinks] Card link click handler failed for cardId:', cardId, error)
-    } finally {
-      // ローディング終了
-      cardDetailStore.endLoadingCard()
-    }
+    await showCardDetail(cardId, {
+      fromFAQ: true,
+      showLoading: true,
+    })
   }
 
   return {

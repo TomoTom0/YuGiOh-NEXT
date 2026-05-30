@@ -106,6 +106,8 @@
       <div class="toolbar-left">
         <div class="sort-wrapper">
           <select v-model="sortBase" class="sort-select" @change="handleSortChange">
+            <option v-if="sectionType === 'practice'" value="recipe">Recipe</option>
+            <option v-if="sectionType === 'practice'" value="actual">Actual</option>
             <option value="release">発売日</option>
             <option value="name">名前</option>
             <option value="atk">ATK</option>
@@ -165,6 +167,9 @@
             :section-type="sectionType"
             :index="idx"
             :uuid="item.uuid"
+            @practice-dragstart="(event, uuid, offset) => $emit('practice-dragstart', event, uuid, offset)"
+            @practice-dragend="$emit('practice-dragend')"
+            @practice-action="(action, uuid) => $emit('practice-action', action, uuid)"
           />
         </div>
         <div class="card-info" v-if="localViewMode === 'list'">
@@ -218,6 +223,7 @@ import {
   getSpellTypeLabel,
   getTrapTypeLabel
 } from '@/utils/label-utils'
+import { CARD_TYPE_SORT_ORDER } from '@/types/card-maps'
 
 export default {
   name: 'CardList',
@@ -254,7 +260,7 @@ export default {
       default: false
     }
   },
-  emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode'],
+  emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode', 'practice-dragstart', 'practice-dragend', 'practice-action'],
   setup(props, { emit }) {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
@@ -335,9 +341,8 @@ export default {
       const createMonsterPropertySorter = (compareFn, undefinedCheckFn) => {
         return (a, b) => {
           // カードタイプ優先: Monster(0) < Spell(1) < Trap(2)
-          const typeOrder = { monster: 0, spell: 1, trap: 2 }
-          const typeA = typeOrder[a.cardType] ?? 999
-          const typeB = typeOrder[b.cardType] ?? 999
+          const typeA = CARD_TYPE_SORT_ORDER[a.cardType] ?? 999
+          const typeB = CARD_TYPE_SORT_ORDER[b.cardType] ?? 999
           if (typeA !== typeB) return typeA - typeB
 
           // モンスター同士の場合は compareFn を使用してプロパティを比較
@@ -393,6 +398,10 @@ export default {
         case 'code_desc':
           // コード順（逆順）: 元の配列順序を反転
           return sorted.reverse()
+        case 'recipe':
+        case 'actual':
+          // recipe/actualはPracticeZoneInfoPanel側で事前ソート済みのため元の順序を維持
+          return sorted
         default:
           return sorted
       }
@@ -585,6 +594,7 @@ export default {
   position: absolute;
   top: -4px;
   right: -8px;
+  z-index: 1;
   background: var(--text-secondary, #666);
   color: var(--button-text);
   font-size: calc(var(--right-area-font-size, 14px) * 0.57);

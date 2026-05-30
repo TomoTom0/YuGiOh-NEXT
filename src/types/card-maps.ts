@@ -351,6 +351,16 @@ export const TRAP_TYPE_SORT_ORDER: Record<TrapEffectType, number> = {
   'continuous': 2,
 };
 
+/**
+ * カードタイプのソート順序
+ * Monster(0) < Spell(1) < Trap(2)
+ */
+export const CARD_TYPE_SORT_ORDER: Record<CardType, number> = {
+  monster: 0,
+  spell: 1,
+  trap: 2,
+};
+
 // ============================================================================
 // カードタイプ（CardType）
 // ============================================================================

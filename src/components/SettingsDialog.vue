@@ -1,45 +1,30 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="isVisible" class="dialog-overlay" @click="$emit('close')">
-    <div class="dialog" @click.stop>
+  <BaseDialog :is-visible="isVisible" @close="$emit('close')">
+    <div class="dialog">
       <div class="dialog-header">
         <h2>Settings</h2>
         <button class="close-btn" @click="$emit('close')">×</button>
       </div>
 
-      <div class="dialog-content">
-        <div class="settings-grid">
-          <!-- Image Size (different settings per context) -->
-          <div class="setting-block">
-            <div class="block-title">{{ context === 'deck-edit' ? 'Edit Image Size' : 'View Image Size' }}</div>
-            <!-- deck-edit: preset (s,m,l,xl) -->
-            <div v-if="context === 'deck-edit'" class="size-grid">
-              <button
-                v-for="preset in presets"
-                :key="preset.value"
-                class="size-btn"
-                :class="{ active: settingsStore.getCurrentPreset() === preset.value }"
-                @click="settingsStore.setCardSizePreset(preset.value)"
-              >
-                {{ preset.label }}
-              </button>
-            </div>
-            <!-- deck-display: deckDisplayCardImageSize (normal,s,m,l,xl) -->
-            <div v-else class="size-grid size-grid-5">
-              <button
-                v-for="size in displayImageSizes"
-                :key="size.value"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
-                @click="settingsStore.setDeckDisplayCardImageSize(size.value)"
-              >
-                {{ size.label }}
-              </button>
-            </div>
-          </div>
+      <div class="dialog-tabs">
+        <button
+          :class="['dialog-tab', { active: activeTab === 'general' }]"
+          @click="activeTab = 'general'"
+        >
+          General
+        </button>
+        <button
+          :class="['dialog-tab', { active: activeTab === 'screen' }]"
+          @click="activeTab = 'screen'"
+        >
+          {{ screenTabLabel }}
+        </button>
+      </div>
 
-          <!-- Theme (common) -->
+      <div class="dialog-content">
+        <!-- General Tab -->
+        <div v-if="activeTab === 'general'" class="settings-grid">
+          <!-- Theme -->
           <div class="setting-block">
             <div class="block-title">Theme</div>
             <div class="toggle-row">
@@ -55,8 +40,101 @@
             </div>
           </div>
 
+          <!-- Right Area Width -->
+          <div class="setting-block">
+            <div class="block-title">Right Area Width</div>
+            <div class="size-grid size-grid-5">
+              <button
+                v-for="width in rightAreaWidths"
+                :key="width.value"
+                class="size-btn"
+                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === width.value }"
+                @click="settingsStore.setRightAreaWidth(width.value)"
+              >
+                {{ width.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Area Font Size -->
+          <FontSizeSelector
+            title="Right Area Font"
+            :model-value="settingsStore.appSettings.ux.rightAreaFontSize"
+            @update:model-value="settingsStore.setRightAreaFontSize($event)"
+          />
+
+          <!-- Dialog Font -->
+          <FontSizeSelector
+            title="Dialog Font"
+            :model-value="settingsStore.appSettings.dialogFontSize"
+            @update:model-value="settingsStore.setDialogFontSize($event)"
+          />
+        </div>
+
+        <!-- Screen-specific Tab -->
+        <div v-if="activeTab === 'screen'" class="settings-grid">
+          <!-- deck-edit: Edit Image Size -->
+          <div v-if="effectiveContext === 'deck-edit'" class="setting-block">
+            <div class="block-title">Edit Image Size</div>
+            <div class="size-grid">
+              <button
+                v-for="preset in presets"
+                :key="preset.value"
+                class="size-btn"
+                :class="{ active: settingsStore.getCurrentPreset() === preset.value }"
+                @click="settingsStore.setCardSizePreset(preset.value)"
+              >
+                {{ preset.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- deck-display: View Image Size -->
+          <div v-if="effectiveContext === 'deck-display'" class="setting-block">
+            <div class="block-title">View Image Size</div>
+            <div class="size-grid size-grid-5">
+              <button
+                v-for="size in displayImageSizes"
+                :key="size.value"
+                class="size-btn"
+                :class="{ active: settingsStore.appSettings.deckDisplayCardImageSize === size.value }"
+                @click="settingsStore.setDeckDisplayCardImageSize(size.value)"
+              >
+                {{ size.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- practice: Practice Card Size -->
+          <div v-if="effectiveContext === 'practice'" class="setting-block">
+            <div class="block-title">Card Size (1P)</div>
+            <div class="size-grid">
+              <button
+                v-for="size in practiceCardSizes"
+                :key="size.value"
+                class="size-btn"
+                :class="{ active: settingsStore.appSettings.practiceCardSize === size.value }"
+                @click="settingsStore.setPracticeCardSize(size.value)"
+              >
+                {{ size.label }}
+              </button>
+            </div>
+            <div class="block-title" style="margin-top: 8px;">Card Size (2P)</div>
+            <div class="size-grid">
+              <button
+                v-for="size in practiceCardSizes"
+                :key="size.value"
+                class="size-btn"
+                :class="{ active: settingsStore.appSettings.practiceCardSize2P === size.value }"
+                @click="settingsStore.setPracticeCardSize2P(size.value)"
+              >
+                {{ size.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- deck-edit: Search Position -->
-          <div v-if="context === 'deck-edit'" class="setting-block">
+          <div v-if="effectiveContext === 'deck-edit'" class="setting-block">
             <div class="block-title">Search Position</div>
             <div class="search-position-grid">
               <div class="position-col">
@@ -88,7 +166,7 @@
           </div>
 
           <!-- deck-edit: Extra/Side Layout -->
-          <div v-if="context === 'deck-edit'" class="setting-block">
+          <div v-if="effectiveContext === 'deck-edit'" class="setting-block">
             <div class="block-title">Extra/Side</div>
             <div class="toggle-row">
               <button
@@ -108,46 +186,16 @@
             </div>
           </div>
 
-          <!-- Right Area Width (common) -->
-          <div class="setting-block">
-            <div class="block-title">Right Area Width</div>
-            <div class="size-grid size-grid-5">
-              <button
-                v-for="width in rightAreaWidths"
-                :key="width.value"
-                class="size-btn"
-                :class="{ active: settingsStore.appSettings.ux.rightAreaWidth === width.value }"
-                @click="settingsStore.setRightAreaWidth(width.value)"
-              >
-                {{ width.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Right Area Font Size (common) -->
-          <FontSizeSelector
-            title="Right Area Font"
-            :model-value="settingsStore.appSettings.ux.rightAreaFontSize"
-            @update:model-value="settingsStore.setRightAreaFontSize($event)"
-          />
-
-          <!-- Dialog Font (common) -->
-          <FontSizeSelector
-            title="Dialog Font"
-            :model-value="settingsStore.appSettings.dialogFontSize"
-            @update:model-value="settingsStore.setDialogFontSize($event)"
-          />
-
           <!-- deck-edit: Search UI Font Size -->
           <FontSizeSelector
-            v-if="context === 'deck-edit'"
+            v-if="effectiveContext === 'deck-edit'"
             title="Search UI Font"
             :model-value="settingsStore.appSettings.searchUIFontSize"
             @update:model-value="settingsStore.setSearchUIFontSize($event)"
           />
 
           <!-- deck-edit: Export Timestamp -->
-          <div v-if="context === 'deck-edit'" class="setting-block">
+          <div v-if="effectiveContext === 'deck-edit'" class="setting-block">
             <div class="block-title">Export Timestamp</div>
             <div class="toggle-row">
               <button
@@ -169,30 +217,48 @@
         </div>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue';
+import { ref, computed, toRefs } from 'vue';
 import { useSettingsStore } from '../stores/settings';
-import type { Theme, DeckDisplayCardImageSize, RightAreaWidth } from '../types/settings';
+import { useDeckEditStore } from '../stores/deck-edit';
+import BaseDialog from './BaseDialog.vue';
+import type { Theme, DeckDisplayCardImageSize, RightAreaWidth, CardSize } from '../types/settings';
 import FontSizeSelector from './FontSizeSelector.vue';
+
+type SettingsContext = 'deck-edit' | 'deck-display' | 'practice';
+type Tab = 'general' | 'screen';
 
 const props = withDefaults(defineProps<{
   isVisible: boolean;
-  context?: 'deck-edit' | 'deck-display';
+  context?: SettingsContext;
 }>(), {
   context: 'deck-edit'
 });
-
-const { context } = toRefs(props);
 
 defineEmits<{
   close: [];
 }>();
 
 const settingsStore = useSettingsStore();
+const deckStore = useDeckEditStore();
+const activeTab = ref<Tab>('general');
+
+const effectiveContext = computed((): SettingsContext => {
+  if (props.context === 'deck-display') return 'deck-display';
+  return deckStore.activeTab === 'practice' ? 'practice' : 'deck-edit';
+});
+
+const screenTabLabel = computed((): string => {
+  switch (effectiveContext.value) {
+    case 'deck-edit': return 'Deck Edit';
+    case 'deck-display': return 'Deck Display';
+    case 'practice': return 'Practice';
+    default: return 'Settings';
+  }
+});
 
 const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   { value: 's', label: 'S' },
@@ -201,12 +267,18 @@ const presets: { value: 's' | 'm' | 'l' | 'xl'; label: string }[] = [
   { value: 'xl', label: 'XL' }
 ];
 
+const practiceCardSizes: { value: CardSize; label: string }[] = [
+  { value: 'small', label: 'S' },
+  { value: 'medium', label: 'M' },
+  { value: 'large', label: 'L' },
+  { value: 'xlarge', label: 'XL' }
+];
+
 const themes: { value: Theme; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
   { value: 'system', label: 'Auto' }
 ];
-
 
 const displayImageSizes: { value: DeckDisplayCardImageSize; label: string }[] = [
   { value: 'normal', label: 'Normal' },
@@ -226,19 +298,6 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
 </script>
 
 <style scoped lang="scss">
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--dialog-overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
 .dialog {
   background: var(--bg-primary);
   border-radius: 8px;
@@ -250,10 +309,6 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-}
-
-.dialog-content {
-  overflow-y: auto;
 }
 
 .dialog-header {
@@ -294,7 +349,37 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
   }
 }
 
+.dialog-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.dialog-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+
+  &:hover:not(.active) {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+  }
+
+  &.active {
+    color: var(--color-info);
+    border-bottom-color: var(--color-info);
+  }
+}
+
 .dialog-content {
+  overflow-y: auto;
   padding: 20px;
   width: 100%;
   box-sizing: border-box;
@@ -318,10 +403,6 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-
-  &.reserved {
-    opacity: 0.3;
-  }
 }
 
 @media (max-width: 400px) {
@@ -358,7 +439,6 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
       font-size: 12px;
     }
 
-    // 4番目と5番目は2列目の下に配置
     .size-btn:nth-child(4),
     .size-btn:nth-child(5) {
       grid-column: span 1;
@@ -402,19 +482,12 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
   }
 }
 
-.toggle-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
 .search-position-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   flex: 1;
-  
+
   .position-col {
     display: flex;
     flex-direction: column;
@@ -446,70 +519,5 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
     font-weight: 600;
     box-shadow: 0 2px 8px rgba(0, 137, 255, 0.3);
   }
-}
-
-.tips-section {
-  margin-top: 20px;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border-radius: 8px;
-}
-
-.tips-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  letter-spacing: 0.5px;
-}
-
-.tips-list {
-  margin: 0;
-  padding: 0 0 0 16px;
-  font-size: 12px;
-  color: var(--text-primary);
-  line-height: 1.6;
-
-  li {
-    margin-bottom: 8px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  strong {
-    color: var(--text-primary);
-  }
-
-  code {
-    background: var(--bg-primary);
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-family: monospace;
-    font-size: 11px;
-  }
-}
-
-.view-mode-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-}
-
-.view-mode-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.section-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 </style>

@@ -82,6 +82,15 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
   };
 
   /**
+   * selectedCardのciidを更新（画像バリエーション変更用）
+   */
+  const updateSelectedCardCiid = (ciid: string) => {
+    if (selectedCard.value) {
+      selectedCard.value.ciid = ciid;
+    }
+  };
+
+  /**
    * カード読み込み開始
    */
   const startLoadingCard = () => {
@@ -139,6 +148,7 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
     canGoForward,
     setSelectedCard,
     setCardTab,
+    updateSelectedCardCiid,
     startLoadingCard,
     endLoadingCard,
     goBack,

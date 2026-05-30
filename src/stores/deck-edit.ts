@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch, toRaw } from 'vue';
 import type { DeckInfo, DeckCardRef } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
@@ -13,7 +13,7 @@ import { detectLanguage } from '../utils/language-detector';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 import { fisherYatesShuffle } from '../utils/array-shuffle';
-import { createDeckCardComparator } from '../composables/deck/useDeckCardSorter';
+import { createDeckCardComparator, buildRecipeSortOptions } from '../composables/deck/useDeckCardSorter';
 import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
 import { canMoveCard as canMoveCardValidation } from '../composables/deck/useDeckValidation';
 import { sortDisplayOrderForOfficial as sortDisplayOrderForOfficialLogic } from '../composables/deck/useDeckSorting';
@@ -76,6 +76,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   // ドラッグ中のカード情報（移動可否判定用）
   const draggingCard = ref<{ card: CardInfo; sectionType: string } | null>(null);
+
+  function setDraggingCard(card: { card: CardInfo; sectionType: string } | null) {
+    draggingCard.value = card;
+  }
 
   // 表示順序データ構造: 画面上のカード画像の並び順
   interface DisplayCard {
@@ -571,7 +575,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     if (uiState.activeTab) return uiState.activeTab;
     return isMobile ? 'deck' : 'metadata';
   })();
-  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata' | 'chat'>(initialActiveTab);
+  const activeTab = ref<'deck' | 'search' | 'card' | 'metadata' | 'chat' | 'practice'>(initialActiveTab);
 
   const pendingChatMessage = ref<string | null>(null);
 
@@ -589,8 +593,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   // ダイアログ表示状態
   const showExportDialog = ref(false);
   const showImportDialog = ref(false);
-  const showOptionsDialog = ref(false);
+  const showSettingsDialog = ref(false);
   const showLoadDialog = ref(false);
+  const onLoadCallback = ref<((dno: number) => Promise<void>) | undefined>(undefined);
   const showDeleteConfirm = ref(false);
   const showUnsavedChangesDialog = ref(false);
   const isFilterDialogVisible = ref(false);
@@ -1496,15 +1501,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function isSectionSortedDescByLevel(section: DisplayCard[]): boolean {
     if (section.length <= 1) return true;
     const s = useSettingsStore();
-    const descComparator = createDeckCardComparator(section, {
-      enableCategoryPriority: s.appSettings.enableCategoryPriority ?? true,
-      priorityCategoryCardIds: categoryMatchedCardIds.value,
-      enableHeadPlacement: s.appSettings.enableHeadPlacement ?? true,
+    const descComparator = createDeckCardComparator(section, buildRecipeSortOptions({
+      enableCategoryPriority: s.appSettings.enableCategoryPriority,
+      categoryMatchedCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: s.appSettings.enableHeadPlacement,
       headPlacementCardIds: headPlacementCardIds.value,
-      enableTailPlacement: s.appSettings.enableTailPlacement ?? true,
+      enableTailPlacement: s.appSettings.enableTailPlacement,
       tailPlacementCardIds: s.tailPlacementCardIds,
       levelSortOrder: 'desc'
-    });
+    }));
     // ソート済みチェックをO(N)で行う（隣接要素の比較のみ）
     for (let i = 0; i < section.length - 1; i++) {
       if (descComparator(section[i], section[i + 1]) > 0) {
@@ -1520,15 +1525,15 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   function isSectionSortedAscByLevel(section: DisplayCard[]): boolean {
     if (section.length <= 1) return true;
     const s = useSettingsStore();
-    const ascComparator = createDeckCardComparator(section, {
-      enableCategoryPriority: s.appSettings.enableCategoryPriority ?? true,
-      priorityCategoryCardIds: categoryMatchedCardIds.value,
-      enableHeadPlacement: s.appSettings.enableHeadPlacement ?? true,
+    const ascComparator = createDeckCardComparator(section, buildRecipeSortOptions({
+      enableCategoryPriority: s.appSettings.enableCategoryPriority,
+      categoryMatchedCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: s.appSettings.enableHeadPlacement,
       headPlacementCardIds: headPlacementCardIds.value,
-      enableTailPlacement: s.appSettings.enableTailPlacement ?? true,
+      enableTailPlacement: s.appSettings.enableTailPlacement,
       tailPlacementCardIds: s.tailPlacementCardIds,
       levelSortOrder: 'asc'
-    });
+    }));
     for (let i = 0; i < section.length - 1; i++) {
       if (ascComparator(section[i], section[i + 1]) > 0) {
         return false;
@@ -1602,16 +1607,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       effectiveLevelSortOrder = resolveEffectiveLevelSortOrder(settingsStore, isDescSorted);
     }
     lastSortTimestamp = Date.now();
-    const comparator = createDeckCardComparator(section, {
-      enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority ?? true,
-      priorityCategoryCardIds: categoryMatchedCardIds.value,
-      enableHeadPlacement: settingsStore.appSettings.enableHeadPlacement ?? true,
+    const comparator = createDeckCardComparator(section, buildRecipeSortOptions({
+      enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority,
+      categoryMatchedCardIds: categoryMatchedCardIds.value,
+      enableHeadPlacement: settingsStore.appSettings.enableHeadPlacement,
       headPlacementCardIds: headPlacementCardIds.value,
-      enableTailPlacement: settingsStore.appSettings.enableTailPlacement ?? true,
+      enableTailPlacement: settingsStore.appSettings.enableTailPlacement,
       tailPlacementCardIds: settingsStore.tailPlacementCardIds,
       levelSortOrder: effectiveLevelSortOrder,
-      categoryPrioritySortMode: settingsStore.appSettings.categoryPrioritySortMode ?? 'level'
-    });
+      categoryPrioritySortMode: settingsStore.appSettings.categoryPrioritySortMode,
+    }));
 
     // ソート実行
     const sorted = [...section].sort(comparator);
@@ -1711,6 +1716,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   async function pseudoCopyDeck(deckData: DeckInfo): Promise<number> {
     try {
+      // displayOrderからdeckInfoを同期してから、リアクティブ参照に依存しないよう深くコピーする
+      // createDeck()の非同期処理中にdeckInfo.valueが変化するリスクを排除するため
+      syncDeckInfoFromDisplayOrder();
+      const capturedData: DeckInfo = JSON.parse(JSON.stringify(toRaw(deckData)));
+
       // 新規デッキを作成
       const newDno = await sessionManager.createDeck();
 
@@ -1720,7 +1730,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
       // デッキデータをコピー（dnoだけ新しいものに変更）
       const copiedDeckData: DeckInfo = {
-        ...deckData,
+        ...capturedData,
         dno: newDno,
         name: `COPY_${getDeckName()}`
       };
@@ -1842,6 +1852,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     displayOrder,
     limitErrorCardId,
     draggingCard,
+    setDraggingCard,
     deckList,
     lastUsedDno,
     activeTab,
@@ -1854,8 +1865,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     overlayZIndex,
     showExportDialog,
     showImportDialog,
-    showOptionsDialog,
+    showSettingsDialog,
     showLoadDialog,
+    onLoadCallback,
     deckThumbnails,
     cachedDeckInfos,
     openLoadDialog,

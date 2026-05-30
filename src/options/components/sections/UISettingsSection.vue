@@ -196,6 +196,22 @@
       </div>
     </div>
 
+    <!-- 一人回しカードサイズ -->
+    <div class="setting-group">
+      <h3 class="setting-title">一人回しのカードサイズ</h3>
+      <div class="preset-grid">
+        <button
+          v-for="size in practiceCardSizes"
+          :key="size"
+          class="preset-button"
+          :class="{ active: settingsStore.appSettings.practiceCardSize === size }"
+          @click="handlePracticeCardSizeChange(size)"
+        >
+          {{ practiceSizeLabels[size] }}
+        </button>
+      </div>
+    </div>
+
     <!-- デッキ情報取得 -->
     <div class="setting-group">
       <h3 class="setting-title">デッキ情報取得</h3>
@@ -230,7 +246,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useSettingsStore } from '../../../stores/settings';
 import { useToastStore } from '../../../stores/toast-notification';
-import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize, DialogFontSize, SearchUIFontSize } from '../../../types/settings';
+import type { SearchInputPosition, MiddleDecksLayout, Theme, RightAreaWidth, RightAreaFontSize, DialogFontSize, SearchUIFontSize, CardSize } from '../../../types/settings';
 
 const settingsStore = useSettingsStore();
 const toastStore = useToastStore();
@@ -261,6 +277,14 @@ const rightAreaWidths = ref<RightAreaWidth[]>(['S', 'M', 'L', 'XL']);
 const rightAreaFontSizes = ref<RightAreaFontSize[]>(['s', 'm', 'l', 'xl']);
 const dialogFontSizes = ref<DialogFontSize[]>(['s', 'm', 'l', 'xl']);
 const searchUIFontSizes = ref<SearchUIFontSize[]>(['s', 'm', 'l', 'xl']);
+
+const practiceCardSizes: CardSize[] = ['small', 'medium', 'large', 'xlarge'];
+const practiceSizeLabels: Record<CardSize, string> = {
+  small: 'S',
+  medium: 'M',
+  large: 'L',
+  xlarge: 'XL',
+};
 
 const currentPreset = computed<SizePreset | null>(() => {
   return settingsStore.getCurrentPreset();
@@ -312,6 +336,11 @@ const handleDialogFontSizeChange = (fontSize: DialogFontSize) => {
 const handleSearchUIFontSizeChange = (fontSize: SearchUIFontSize) => {
   settingsStore.setSearchUIFontSize(fontSize);
   showSaveMessage(`検索UIのフォントサイズを「${fontSize.toUpperCase()}」に変更しました`);
+};
+
+const handlePracticeCardSizeChange = (size: CardSize) => {
+  settingsStore.setPracticeCardSize(size);
+  showSaveMessage(`一人回しのカードサイズを「${practiceSizeLabels[size]}」に変更しました`);
 };
 
 const showSaveMessage = (message: string) => {

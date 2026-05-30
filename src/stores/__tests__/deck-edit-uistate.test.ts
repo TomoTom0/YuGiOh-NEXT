@@ -201,12 +201,12 @@ describe('deck-edit store: UI状態管理', () => {
       expect(store.showImportDialog).toBe(false);
     });
 
-    it('showOptionsDialogをトグル可能', () => {
-      expect(store.showOptionsDialog).toBe(false);
-      store.showOptionsDialog = true;
-      expect(store.showOptionsDialog).toBe(true);
-      store.showOptionsDialog = false;
-      expect(store.showOptionsDialog).toBe(false);
+    it('showSettingsDialogをトグル可能', () => {
+      expect(store.showSettingsDialog).toBe(false);
+      store.showSettingsDialog = true;
+      expect(store.showSettingsDialog).toBe(true);
+      store.showSettingsDialog = false;
+      expect(store.showSettingsDialog).toBe(false);
     });
 
     it('showLoadDialogをトグル可能', () => {
@@ -236,24 +236,24 @@ describe('deck-edit store: UI状態管理', () => {
     it('複数ダイアログの状態は独立している', () => {
       store.showExportDialog = true;
       store.showImportDialog = true;
-      store.showOptionsDialog = false;
+      store.showSettingsDialog = false;
 
       expect(store.showExportDialog).toBe(true);
       expect(store.showImportDialog).toBe(true);
-      expect(store.showOptionsDialog).toBe(false);
+      expect(store.showSettingsDialog).toBe(false);
     });
 
     it('すべてのダイアログを同時に開くことができる', () => {
       store.showExportDialog = true;
       store.showImportDialog = true;
-      store.showOptionsDialog = true;
+      store.showSettingsDialog = true;
       store.showLoadDialog = true;
       store.showDeleteConfirm = true;
       store.showUnsavedChangesDialog = true;
 
       expect(store.showExportDialog).toBe(true);
       expect(store.showImportDialog).toBe(true);
-      expect(store.showOptionsDialog).toBe(true);
+      expect(store.showSettingsDialog).toBe(true);
       expect(store.showLoadDialog).toBe(true);
       expect(store.showDeleteConfirm).toBe(true);
       expect(store.showUnsavedChangesDialog).toBe(true);
@@ -263,7 +263,7 @@ describe('deck-edit store: UI状態管理', () => {
       // 全て開く
       store.showExportDialog = true;
       store.showImportDialog = true;
-      store.showOptionsDialog = true;
+      store.showSettingsDialog = true;
       store.showLoadDialog = true;
       store.showDeleteConfirm = true;
       store.showUnsavedChangesDialog = true;
@@ -271,14 +271,14 @@ describe('deck-edit store: UI状態管理', () => {
       // 全て閉じる
       store.showExportDialog = false;
       store.showImportDialog = false;
-      store.showOptionsDialog = false;
+      store.showSettingsDialog = false;
       store.showLoadDialog = false;
       store.showDeleteConfirm = false;
       store.showUnsavedChangesDialog = false;
 
       expect(store.showExportDialog).toBe(false);
       expect(store.showImportDialog).toBe(false);
-      expect(store.showOptionsDialog).toBe(false);
+      expect(store.showSettingsDialog).toBe(false);
       expect(store.showLoadDialog).toBe(false);
       expect(store.showDeleteConfirm).toBe(false);
       expect(store.showUnsavedChangesDialog).toBe(false);
@@ -421,14 +421,14 @@ describe('deck-edit store: UI状態管理', () => {
     it('複数ダイアログが同時に開いた状態でもカード操作可能', () => {
       store.showExportDialog = true;
       store.showImportDialog = true;
-      store.showOptionsDialog = true;
+      store.showSettingsDialog = true;
 
       const card = mockCard('1001', 'カードA');
       store.addCard(card, 'main');
 
       expect(store.showExportDialog).toBe(true);
       expect(store.showImportDialog).toBe(true);
-      expect(store.showOptionsDialog).toBe(true);
+      expect(store.showSettingsDialog).toBe(true);
       expect(store.deckInfo.mainDeck).toHaveLength(1);
     });
   });
@@ -463,7 +463,7 @@ describe('deck-edit store: UI状態管理', () => {
 
     it('ドラッグ中のカード情報を設定できる', () => {
       const card = mockCard('1001', 'カードA');
-      store.draggingCard = { card, sectionType: 'main' };
+      store.setDraggingCard({ card, sectionType: 'main' });
 
       expect(store.draggingCard).not.toBeNull();
       expect(store.draggingCard?.card.cardId).toBe('1001');
@@ -472,8 +472,8 @@ describe('deck-edit store: UI状態管理', () => {
 
     it('ドラッグ終了時にdraggingCardをnullにリセットできる', () => {
       const card = mockCard('1001', 'カードA');
-      store.draggingCard = { card, sectionType: 'main' };
-      store.draggingCard = null;
+      store.setDraggingCard({ card, sectionType: 'main' });
+      store.setDraggingCard(null);
 
       expect(store.draggingCard).toBeNull();
     });
@@ -482,10 +482,10 @@ describe('deck-edit store: UI状態管理', () => {
       const cardA = mockCard('1001', 'カードA');
       const cardB = mockCard('1002', 'カードB');
 
-      store.draggingCard = { card: cardA, sectionType: 'main' };
+      store.setDraggingCard({ card: cardA, sectionType: 'main' });
       expect(store.draggingCard?.sectionType).toBe('main');
 
-      store.draggingCard = { card: cardB, sectionType: 'extra' };
+      store.setDraggingCard({ card: cardB, sectionType: 'extra' });
       expect(store.draggingCard?.card.cardId).toBe('1002');
       expect(store.draggingCard?.sectionType).toBe('extra');
     });

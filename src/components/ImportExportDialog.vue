@@ -1,8 +1,6 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="isVisible" class="ygo-next dialog-overlay" :data-ygo-next-theme="theme" @click.self="close">
-    <div class="dialog-content" @click.stop>
+  <BaseDialog :is-visible="isVisible" :theme="theme" @close="close">
+    <div class="dialog-content">
       <div class="dialog-header common">
         <div class="dialog-tabs">
           <button
@@ -145,12 +143,12 @@
         </button>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import BaseDialog from './BaseDialog.vue';
 import { importDeckFromFile } from '@/utils/deck-import';
 import { downloadDeckAsCSV, downloadDeckAsTXT } from '@/utils/deck-export';
 // @ts-ignore - Used in defineEmits type
@@ -355,71 +353,58 @@ function handleExport() {
   }
 }
 
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--dialog-overlay-bg, rgba(0, 0, 0, 0.5));
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
+  width: 90%;
+  max-width: 400px;
+  height: 460px;
+  max-height: 90vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
 
-  .dialog-content {
-    background: var(--dialog-bg, #ffffff);
-    border: 1px solid var(--dialog-border, #e0e0e0);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
-    width: 90%;
-    max-width: 400px;
-    height: 460px;
-    max-height: 90vh;
+  .dialog-tabs-body {
+    flex: 1;
+    overflow-y: auto;
+
+    .dialog-body {
+      padding: 20px;
+      box-sizing: border-box;
+    }
+  }
+
+  .dialog-footer {
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-secondary, #eee);
+    width: 100%;
     box-sizing: border-box;
 
-    .dialog-tabs-body {
-      flex: 1;
-      overflow-y: auto;
-
-      .dialog-body {
-        padding: 20px;
-        box-sizing: border-box;
-      }
+    .btn-cancel {
+      @extend %btn-secondary-style;
     }
 
-    .dialog-footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 20px;
-      border-top: 1px solid var(--border-secondary, #eee);
-      width: 100%;
-      box-sizing: border-box;
+    .btn-import,
+    .btn-export {
+      background: var(--button-bg, #4a9eff);
+      color: var(--button-text, #ffffff);
 
-      .btn-cancel {
-        @extend %btn-secondary-style;
+      &:hover:not(:disabled) {
+        background: var(--button-hover-bg, #3a8eef);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
       }
 
-      .btn-import,
-      .btn-export {
-        background: var(--button-bg, #4a9eff);
-        color: var(--button-text, #ffffff);
-
-        &:hover:not(:disabled) {
-          background: var(--button-hover-bg, #3a8eef);
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(70, 120, 255, 0.3);
-        }
-
-        &:disabled {
-          background: var(--bg-tertiary, #e0e0e0);
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
+      &:disabled {
+        background: var(--bg-tertiary, #e0e0e0);
+        cursor: not-allowed;
+        opacity: 0.6;
       }
     }
   }

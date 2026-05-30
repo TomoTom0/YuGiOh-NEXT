@@ -65,6 +65,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const infoCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.infoCardSize]);
   const gridCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.gridCardSize]);
   const listCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.listCardSize]);
+  const practiceCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.practiceCardSize ?? 'small']);
+  const practiceCardSize2PPixels = computed(() => CARD_SIZE_MAP[appSettings.value.practiceCardSize2P ?? 'small']);
 
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
@@ -283,6 +285,16 @@ export const useSettingsStore = defineStore('settings', () => {
   function setListCardSize(size: CardSize): void {
     appSettings.value.listCardSize = size;
     applyCardSize();
+    saveSettings();
+  }
+
+  function setPracticeCardSize(size: CardSize): void {
+    appSettings.value.practiceCardSize = size;
+    saveSettings();
+  }
+
+  function setPracticeCardSize2P(size: CardSize): void {
+    appSettings.value.practiceCardSize2P = size;
     saveSettings();
   }
 
@@ -746,6 +758,8 @@ export const useSettingsStore = defineStore('settings', () => {
     infoCardSizePixels,
     gridCardSizePixels,
     listCardSizePixels,
+    practiceCardSizePixels,
+    practiceCardSize2PPixels,
     effectiveTheme,
     effectiveLanguage,
 
@@ -758,6 +772,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setInfoCardSize,
     setGridCardSize,
     setListCardSize,
+    setPracticeCardSize,
+    setPracticeCardSize2P,
     setCardSizePreset,
     getCurrentPreset,
     setCardWidth,

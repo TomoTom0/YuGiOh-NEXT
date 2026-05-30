@@ -170,6 +170,7 @@ vi.mock('../toast-notification', () => ({
 // composables のモック
 vi.mock('@/composables/deck/useDeckCardSorter', () => ({
   createDeckCardComparator: vi.fn(() => (a: any, b: any) => 0),
+  buildRecipeSortOptions: vi.fn((deps: any) => deps),
 }));
 
 vi.mock('@/composables/deck/useFLIPAnimation', () => ({

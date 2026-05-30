@@ -20,7 +20,7 @@
       <div class="tab-actions">
         <button
           class="settings-btn"
-          @click="showOptionsDialog = true"
+          @click="showSettingsDialog = true"
           title="設定"
         >
           <svg width="14" height="14" viewBox="0 0 24 24">
@@ -50,10 +50,10 @@
       </div>
     </div>
 
-    <OptionsDialog
-      :isVisible="showOptionsDialog"
+    <SettingsDialog
+      :isVisible="showSettingsDialog"
       :context="context"
-      @close="showOptionsDialog = false"
+      @close="showSettingsDialog = false"
     />
 
     <div class="ygo-next card-tab-content">
@@ -109,7 +109,7 @@ import CardInfo from './CardInfo.vue'
 import CardQA from './CardQA.vue'
 import CardProducts from './CardProducts.vue'
 import CardList from './CardList.vue'
-import OptionsDialog from './OptionsDialog.vue'
+import SettingsDialog from './SettingsDialog.vue'
 import { getCardDetail, getCardDetailWithCache, saveCardDetailToCache } from '../api/card-search'
 import { getCardFAQList } from '../api/card-faq'
 import { useCardDetailStore } from '../stores/card-detail'
@@ -123,7 +123,7 @@ export default {
     CardQA,
     CardProducts,
     CardList,
-    OptionsDialog
+    SettingsDialog
   },
   props: {
     card: {
@@ -133,7 +133,7 @@ export default {
     context: {
       type: String,
       default: 'deck-edit',
-      validator: (value) => ['deck-edit', 'deck-display'].includes(value)
+      validator: (value) => ['deck-edit', 'deck-display', 'practice'].includes(value)
     }
   },
   setup(props) {
@@ -141,7 +141,7 @@ export default {
     const detail = ref(null)
     const loading = ref(false)
     const faqListData = ref(null)
-    const showOptionsDialog = ref(false)
+    const showSettingsDialog = ref(false)
 
     const relatedSortOrder = ref('release_desc')
     const relatedViewMode = ref('list')
@@ -314,7 +314,7 @@ export default {
       detail,
       loading,
       faqListData,
-      showOptionsDialog,
+      showSettingsDialog,
       relatedSortOrder,
       relatedViewMode,
       displayedRelatedCards,

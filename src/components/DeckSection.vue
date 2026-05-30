@@ -60,6 +60,8 @@ import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { mdiShuffle, mdiSort } from '@mdi/js'
 import { getCardInfoWithLang } from '../utils/card-utils'
+import { parseDragData } from '../utils/drag-data'
+import type { DeckDragData } from '../utils/drag-data'
 
 export default {
   name: 'DeckSection',
@@ -128,18 +130,16 @@ export default {
         return
       }
 
+      const parsed = parseDragData<DeckDragData>(event)
+      if (!parsed) return
+
+      const { sectionType: sourceSectionType, uuid: sourceUuid, card } = parsed
+
+      if (!card) {
+        return
+      }
+
       try {
-        const data = event.dataTransfer.getData('text/plain')
-        if (!data) {
-          return
-        }
-
-        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-
-        if (!card) {
-          return
-        }
-
         // searchセクションからのドロップ
         if (sourceSectionType === 'search') {
           if (props.sectionType === 'main' || props.sectionType === 'extra') {
@@ -147,7 +147,6 @@ export default {
           } else if (props.sectionType === 'side') {
             deckStore.addCopyToSection(card, 'side')
           }
-          // trashへのドロップは無視
           return
         }
 

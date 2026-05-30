@@ -1,7 +1,5 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="isVisible" class="tag-dialog-overlay" @click.self="close">
+  <BaseDialog :is-visible="isVisible" @close="close">
     <div class="tag-dialog">
       <!-- ヘッダー -->
       <div class="dialog-header">
@@ -107,12 +105,12 @@
         </button>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import BaseDialog from './BaseDialog.vue';
 import type { TagEntry } from '@/types/dialog';
 import { 
   classifyTagById, 
@@ -347,19 +345,6 @@ watch(() => props.modelValue, (newVal) => {
 </script>
 
 <style scoped>
-.tag-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--dialog-overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
 .tag-dialog {
   background: var(--dialog-bg);
   border-radius: 8px;

@@ -51,7 +51,7 @@ describe('LoadDialog.vue', () => {
     document.body.querySelectorAll('.ygo-next').forEach(el => {
       el.remove();
     });
-    document.body.querySelectorAll('.dialog-overlay').forEach(el => {
+    document.body.querySelectorAll('.base-dialog-overlay').forEach(el => {
       el.remove();
     });
   });
@@ -71,7 +71,7 @@ describe('LoadDialog.vue', () => {
         attachTo: container,
       });
 
-      expect(document.body.querySelector('.dialog-overlay')).toBe(null);
+      expect(document.body.querySelector('.base-dialog-overlay')).toBe(null);
     });
 
     it('isVisible=trueの場合は表示される', () => {
@@ -85,7 +85,7 @@ describe('LoadDialog.vue', () => {
         attachTo: container,
       });
 
-      expect(document.body.querySelector('.dialog-overlay')).not.toBe(null);
+      expect(document.body.querySelector('.base-dialog-overlay')).not.toBe(null);
       expect(document.body.querySelector('.dialog-title')?.textContent).toBe('Load Deck');
     });
 

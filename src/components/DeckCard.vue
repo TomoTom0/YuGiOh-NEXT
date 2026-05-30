@@ -81,6 +81,9 @@
         <svg v-else-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />
         </svg>
+        <svg v-else-if="sectionType === 'practice'" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="mdiHandBackRight" />
+        </svg>
         <span v-else-if="bottomLeftText === 'M/E'" class="btn-text">M</span>
         <span v-else-if="bottomLeftText" class="btn-text">{{ bottomLeftText }}</span>
       </button>
@@ -94,6 +97,9 @@
         </svg>
         <svg v-else-if="showPlusIcon" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+        </svg>
+        <svg v-else-if="sectionType === 'practice'" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="mdiArrowCollapseDown" />
         </svg>
         <span v-else class="btn-text">{{ bottomRightText }}</span>
       </button>
@@ -112,14 +118,13 @@
 import { ref, reactive } from 'vue'
 import Toast from './Toast.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
-import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
-import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold } from '@mdi/js'
-import { getCardDetailWithCache } from '../api/card-search'
+import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold, mdiHandBackRight, mdiArrowCollapseDown } from '@mdi/js'
+import { useCardDetailDisplay } from '../composables/useCardDetailDisplay'
+import { setDragData, parseDragData } from '../utils/drag-data'
 
 export default {
   name: 'DeckCard',
@@ -142,7 +147,6 @@ export default {
   },
   setup() {
     const deckStore = useDeckEditStore()
-    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
@@ -180,20 +184,24 @@ export default {
       return false
     }
 
+    const { showCardDetail } = useCardDetailDisplay()
+
     return {
       deckStore,
-      cardDetailStore,
       settingsStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
       toast,
       handleMoveResult,
+      showCardDetail,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle,
       mdiArrowRightBold,
-      mdiArrowLeftBold
+      mdiArrowLeftBold,
+      mdiHandBackRight,
+      mdiArrowCollapseDown
     }
   },
   computed: {
@@ -213,13 +221,13 @@ export default {
       return chrome.runtime.getURL('images/card_back.png')
     },
     topRightText() {
-      if (this.sectionType === 'search' || this.sectionType === 'info') return ''
+      if (this.sectionType === 'practice' || this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'M/E'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'S'
       return ''
     },
     topRightClass() {
-      if (this.sectionType === 'search' || this.sectionType === 'info') return ''
+      if (this.sectionType === 'practice' || this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'card-btn-me'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'card-btn-s'
       return ''
@@ -229,14 +237,16 @@ export default {
       return true
     },
     showTrashIcon() {
-      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
+      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info' && this.sectionType !== 'practice'
     },
     bottomLeftText() {
+      if (this.sectionType === 'practice') return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'M/E'
       if (this.sectionType === 'trash') return 'M/E'
       return ''
     },
     bottomLeftClass() {
+      if (this.sectionType === 'practice') return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-me'
       if (this.sectionType === 'trash') return 'card-btn-me'
       return ''
@@ -246,14 +256,16 @@ export default {
       if (this.showError && (this.sectionType === 'main' || this.sectionType === 'extra' || this.sectionType === 'side')) {
         return false
       }
-      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
+      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info' && this.sectionType !== 'practice'
     },
     bottomRightText() {
+      if (this.sectionType === 'practice') return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'S'
       if (this.sectionType === 'trash') return 'S'
       return ''
     },
     bottomRightClass() {
+      if (this.sectionType === 'practice') return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-side'
       if (this.sectionType === 'trash') return 'card-btn-side'
       // 枚数制限超過時はプラスボタンを赤色に（main/extra/sideセクション）
@@ -305,23 +317,35 @@ export default {
         event.preventDefault()
         return
       }
+      if (this.sectionType === 'practice') {
+        const emptyImg = new Image()
+        emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+        event.dataTransfer.setDragImage(emptyImg, 0, 0)
+        const el = event.currentTarget
+        const rect = el.getBoundingClientRect()
+        const offset = { x: event.clientX - rect.left, y: event.clientY - rect.top }
+        event.dataTransfer.effectAllowed = 'move'
+        this.$emit('practice-dragstart', event, this.uuid, offset)
+        return
+      }
       event.dataTransfer.effectAllowed = this.sectionType === 'search' ? 'copy' : 'move'
-      event.dataTransfer.setData('text/plain', JSON.stringify({
+      setDragData(event, {
         sectionType: this.sectionType,
         index: this.index,
         card: this.card,
         uuid: this.uuid
-      }))
+      })
 
       // ドラッグ中のカード情報をストアに設定（移動可否判定用）
-      this.deckStore.draggingCard = {
+      this.deckStore.setDraggingCard({
         card: this.card,
         sectionType: this.sectionType
-      }
+      })
 
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
+      if (this.sectionType === 'practice') return
       const dragging = this.deckStore.draggingCard
 
       // 移動可能かチェック
@@ -353,26 +377,32 @@ export default {
       }
     },
     handleDragEnd() {
+      if (this.sectionType === 'practice') {
+        this.isDragOver = false
+        this.$emit('practice-dragend')
+        return
+      }
       // ドラッグ終了時にストアの情報をクリア
-      this.deckStore.draggingCard = null
+      this.deckStore.setDraggingCard(null)
       this.isDragOver = false
     },
     handleDrop(event) {
+      if (this.sectionType === 'practice') return
       event.preventDefault()
       event.stopPropagation()
       this.isDragOver = false
 
+      const data = parseDragData(event)
+      if (!data) return
+
+      const { sectionType: sourceSectionType, uuid: sourceUuid, card } = data
+
+      // 移動可否チェック
+      if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
+        return
+      }
+
       try {
-        const data = event.dataTransfer.getData('text/plain')
-        if (!data) return
-
-        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-
-        // 移動可否チェック
-        if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
-          return
-        }
-
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
           this.handleMoveResult(result)
@@ -396,37 +426,11 @@ export default {
       this.getCardDetailAndDisplay()
     },
     async getCardDetailAndDisplay() {
-      // 詳細データをキャッシュ対応で取得してからselectedCardに設定
-      try {
-        const currentLang = detectLanguage(document)
-        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
-        const fullCard = result?.detail?.card || this.card
-
-        const cardData = {
-          ...fullCard,
-          imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
-          ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
-        }
-
-        // CardDetailストアに設定
-        this.cardDetailStore.setSelectedCard(cardData)
-
-        // アクティブタブを切り替え
-        this.deckStore.activeTab = 'card'
-      } catch (e) {
-        console.error('[DeckCard.getCardDetailAndDisplay] Failed to fetch card detail:', e)
-        const cardData = {
-          ...this.card,
-          imgs: [...this.card.imgs],
-          ciid: this.card.ciid
-        }
-
-        // CardDetailストアに設定
-        this.cardDetailStore.setSelectedCard(cardData)
-
-        // アクティブタブを切り替え
-        this.deckStore.activeTab = 'card'
-      }
+      await this.showCardDetail(this.card.cardId, {
+        fallbackCard: this.card,
+        preserveCiid: true,
+        resetCardTab: false,
+      })
     },
     handleTopRight() {
       if (this.sectionType === 'side') {
@@ -450,7 +454,9 @@ export default {
       }
     },
     handleBottomLeft() {
-      if (this.sectionType === 'trash') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'moveToHand', this.uuid)
+      } else if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -464,7 +470,9 @@ export default {
       // 移動元の位置を記録
       const sourceRect = this.$el?.getBoundingClientRect()
 
-      if (this.sectionType === 'trash') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'moveToDeckBottom', this.uuid)
+      } else if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'right')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -516,6 +524,7 @@ export default {
       })
     },
     handleContextMenu(event) {
+      if (this.sectionType === 'practice') return
       // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
       if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
@@ -638,6 +647,13 @@ export default {
     width: 100%;
     height: auto;
     aspect-ratio: 36 / 53; /* カード画像の縦横比を維持 */
+  }
+
+  /* 一人回しゾーン表示用 */
+  &.section-practice {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 36 / 53;
   }
 
   &:hover {

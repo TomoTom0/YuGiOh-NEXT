@@ -6,6 +6,7 @@
  */
 
 import { getTempCacheDB } from '@/utils/temp-cache-db';
+import { CARD_TYPE_SORT_ORDER } from '@/types/card-maps';
 import type { DeckCardRef } from '@/types/deck';
 
 /**
@@ -66,9 +67,7 @@ export function sortDisplayOrderForOfficial(
   deck.forEach(dc => {
     const card = tempCardDB.get(dc.cid);
     const type = card?.cardType;
-    let priority = 0;
-    if (type === 'spell') priority = 1;
-    else if (type === 'trap') priority = 2;
+    const priority = type ? (CARD_TYPE_SORT_ORDER[type] ?? 0) : 0;
     cardTypeMap.set(dc.cid, priority);
   });
 

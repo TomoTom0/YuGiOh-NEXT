@@ -7,7 +7,7 @@
             data-testid="undo-btn"
             class="btn-action"
             :class="undoButtonClass"
-            :disabled="!deckStore.canUndo"
+            :disabled="!canUndo"
             @click="handleUndo"
             @mouseenter="showUndoTooltip = true"
             @mouseleave="showUndoTooltip = false"
@@ -22,7 +22,7 @@
             data-testid="redo-btn"
             class="btn-action"
             :class="redoButtonClass"
-            :disabled="!deckStore.canRedo"
+            :disabled="!canRedo"
             @click="handleRedo"
             @mouseenter="showRedoTooltip = true"
             @mouseleave="showRedoTooltip = false"
@@ -44,6 +44,27 @@
       </div>
       <div class="top-bar-right">
         <button
+          v-if="practiceMode"
+          class="btn-action practice-reset"
+          title="Reset"
+          @click="practiceStore.resetPractice()"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="mdiRefresh" />
+          </svg>
+        </button>
+        <button
+          class="btn-action practice-toggle"
+          :class="{ active: practiceMode }"
+          :title="practiceMode ? 'Deck Edit' : 'Practice'"
+          @click="$emit('toggle-practice')"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="practiceMode ? mdiGrid : mdiGamepadVariant" />
+          </svg>
+        </button>
+        <button
+          v-if="!practiceMode"
           data-testid="save-btn"
           class="btn-action"
           :class="{ saving: savingState }"
@@ -54,7 +75,7 @@
             <path fill="currentColor" :d="mdiContentSave" />
           </svg>
         </button>
-        <button data-testid="load-btn" class="btn-action" title="load" @click="handleLoadClick">
+        <button v-if="!practiceMode" data-testid="load-btn" class="btn-action" title="load" @click="handleLoadClick">
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path fill="currentColor" :d="mdiFolderOpen" />
           </svg>
@@ -77,69 +98,79 @@
         <!-- Menu Dropdown -->
         <Transition name="menu-slide">
           <div v-if="showMenu" class="menu-dropdown" @click.stop>
-          <button data-testid="sort-all-btn" @click="handleSortAll" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiSortVariant" />
-            </svg>
-            Sort All Sections
-          </button>
-          <button data-testid="deck-image-btn" @click="handleDownloadImage" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiImageOutline" />
-            </svg>
-            Deck Image
-          </button>
-          <div class="menu-divider"></div>
-          <button data-testid="reload-deck-btn" @click="handleReloadDeck" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiReload" />
-            </svg>
-            Reload Deck
-          </button>
-          <button data-testid="import-export-deck-btn" @click="handleImportExportClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiSwapHorizontal" />
-            </svg>
-            Import / Export
-          </button>
-          <button data-testid="save-with-alt-sort-btn" @click="handleSaveWithAltSortClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiContentSave" />
-            </svg>
-            {{ altSaveButtonText }}
-          </button>
-          <div class="menu-divider"></div>
-          <button @click="handleNewClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiPlusBox" />
-            </svg>
-            New Deck
-          </button>
-          <button @click="handleCopyClick" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiContentCopy" />
-            </svg>
-            Copy Deck
-          </button>
-          <button @click="handleDeleteDeck" class="menu-item danger">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiDelete" />
-            </svg>
-            Delete Deck
-          </button>
-          <div class="menu-divider"></div>
-          <button @click="handleOptions" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiCog" />
-            </svg>
-            Options
-          </button>
-          <button @click="handleShowHistory" class="menu-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
-              <path fill="currentColor" :d="mdiHistory" />
-            </svg>
-            Operation History
-          </button>
+          <template v-if="practiceMode">
+            <button @click="handleOptions" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiCog" />
+              </svg>
+              Options
+            </button>
+          </template>
+          <template v-else>
+            <button data-testid="sort-all-btn" @click="handleSortAll" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiSortVariant" />
+              </svg>
+              Sort All Sections
+            </button>
+            <button data-testid="deck-image-btn" @click="handleDownloadImage" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiImageOutline" />
+              </svg>
+              Deck Image
+            </button>
+            <div class="menu-divider"></div>
+            <button data-testid="reload-deck-btn" @click="handleReloadDeck" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiReload" />
+              </svg>
+              Reload Deck
+            </button>
+            <button data-testid="import-export-deck-btn" @click="handleImportExportClick" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiSwapHorizontal" />
+              </svg>
+              Import / Export
+            </button>
+            <button data-testid="save-with-alt-sort-btn" @click="handleSaveWithAltSortClick" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiContentSave" />
+              </svg>
+              {{ altSaveButtonText }}
+            </button>
+            <div class="menu-divider"></div>
+            <button @click="handleNewClick" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiPlusBox" />
+              </svg>
+              New Deck
+            </button>
+            <button @click="handleCopyClick" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiContentCopy" />
+              </svg>
+              Copy Deck
+            </button>
+            <button @click="handleDeleteDeck" class="menu-item danger">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiDelete" />
+              </svg>
+              Delete Deck
+            </button>
+            <div class="menu-divider"></div>
+            <button @click="handleOptions" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiCog" />
+              </svg>
+              Options
+            </button>
+            <button @click="handleShowHistory" class="menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path fill="currentColor" :d="mdiHistory" />
+              </svg>
+              Operation History
+            </button>
+          </template>
         </div>
         </Transition>
       </div>
@@ -162,7 +193,7 @@
     <Teleport to="body">
       <Transition name="tooltip-fade">
         <div
-          v-if="showUndoTooltip && deckStore.canUndo"
+          v-if="showUndoTooltip && canUndo"
           class="command-tooltip-fixed"
           :class="undoTooltipClass"
           :style="undoTooltipStyle"
@@ -172,7 +203,7 @@
       </Transition>
       <Transition name="tooltip-fade">
         <div
-          v-if="showRedoTooltip && deckStore.canRedo"
+          v-if="showRedoTooltip && canRedo"
           class="command-tooltip-fixed"
           :class="redoTooltipClass"
           :style="redoTooltipStyle"
@@ -189,12 +220,13 @@ import { ref, computed, reactive, inject } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSettingsStore } from '../stores/settings'
 import { useToastStore } from '../stores/toast-notification'
+import { usePracticeStore } from '../stores/practice'
 import Toast from './Toast.vue'
 import CommandHistoryDialog from './CommandHistoryDialog.vue'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete, mdiHistory } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete, mdiHistory, mdiGamepadVariant, mdiGrid, mdiRefresh } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -208,9 +240,17 @@ export default {
     Toast,
     CommandHistoryDialog
   },
-  setup() {
+  props: {
+    practiceMode: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  emits: ['toggle-practice'],
+  setup(props) {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const practiceStore = usePracticeStore()
     const { showToast: dispatchToast } = useToastStore()
     const selectedDeckDno = ref<number | null>(null)
     const savingState = ref(false)
@@ -249,6 +289,9 @@ export default {
 
     // Undo/Redo tooltip and button styling
     const undoTooltipText = computed(() => {
+      if (props.practiceMode) {
+        return 'Undo (Ctrl+Z)'
+      }
       const description = deckStore.getUndoDescription()
       if (description) {
         return `${description} (Ctrl+Z)`
@@ -256,6 +299,9 @@ export default {
       return 'Ctrl+Z'
     })
     const redoTooltipText = computed(() => {
+      if (props.practiceMode) {
+        return 'Redo (Ctrl+Y)'
+      }
       const description = deckStore.getRedoDescription()
       if (description) {
         return `${description} (Ctrl+Y)`
@@ -274,10 +320,10 @@ export default {
       }
     }
 
-    const undoTooltipClass = computed(() => getTypeClass(deckStore.getUndoType()))
-    const redoTooltipClass = computed(() => getTypeClass(deckStore.getRedoType()))
-    const undoButtonClass = computed(() => getTypeClass(deckStore.getUndoType()))
-    const redoButtonClass = computed(() => getTypeClass(deckStore.getRedoType()))
+    const undoTooltipClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getUndoType()))
+    const redoTooltipClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getRedoType()))
+    const undoButtonClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getUndoType()))
+    const redoButtonClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getRedoType()))
 
     // Tooltip position (fixed positioning to escape overflow:hidden)
     const undoTooltipStyle = computed(() => {
@@ -404,6 +450,11 @@ export default {
       await checkUnsavedChanges(async () => {
         if (!deckStore.showLoadDialog) {
           selectedDeckDno.value = null
+          deckStore.onLoadCallback = async (dno: number) => {
+            await deckStore.loadDeck(dno)
+            deckStore.setDeckName('')
+            localStorage.setItem('ygoNext:lastDeckDno', String(dno))
+          }
         }
         deckStore.showLoadDialog = !deckStore.showLoadDialog
       }, 'ロード')
@@ -512,7 +563,7 @@ export default {
 
     const handleOptions = () => {
       showMenu.value = false
-      deckStore.showOptionsDialog = true
+      deckStore.showSettingsDialog = true
     }
 
     const handleShowHistory = () => {
@@ -569,12 +620,28 @@ export default {
     }
 
     const handleUndo = () => {
-      deckStore.undo()
+      if (props.practiceMode) {
+        practiceStore.undo()
+      } else {
+        deckStore.undo()
+      }
     }
 
     const handleRedo = () => {
-      deckStore.redo()
+      if (props.practiceMode) {
+        practiceStore.redo()
+      } else {
+        deckStore.redo()
+      }
     }
+
+    const canUndo = computed(() => {
+      return props.practiceMode ? practiceStore.canUndo : deckStore.canUndo
+    })
+
+    const canRedo = computed(() => {
+      return props.practiceMode ? practiceStore.canRedo : deckStore.canRedo
+    })
 
     const handleNewClick = async () => {
       showMenu.value = false
@@ -634,6 +701,9 @@ export default {
     return {
       deckStore,
       settingsStore,
+      practiceStore,
+      canUndo,
+      canRedo,
       selectedDeckDno,
       savingState,
       showMenu,
@@ -691,7 +761,10 @@ export default {
       mdiPlusBox,
       mdiContentCopy,
       mdiDelete,
-      mdiHistory
+      mdiHistory,
+      mdiGamepadVariant,
+      mdiGrid,
+      mdiRefresh
     }
   }
 }
@@ -928,6 +1001,7 @@ export default {
   font-size: 16px;
   font-weight: bold;
 }
+
 
 .btn-action {
   font-size: 12px;

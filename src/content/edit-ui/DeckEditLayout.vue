@@ -9,9 +9,25 @@
     </div>
 
     <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
-      <DeckEditTopBar />
+      <DeckEditTopBar
+        :practice-mode="practiceMode"
+        @toggle-practice="togglePracticeMode"
+      />
 
-      <div class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
+      <!-- Practice mode / Normal deck edit mode -->
+      <Transition name="mode-switch" mode="out-in">
+      <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
+        <!-- P2 field with slide-in animation -->
+        <Transition name="p2-field-slide">
+          <div v-if="practiceStore.twoDeckMode" class="p2-field-wrapper">
+            <PracticeField :field-index="1" class="opponent-field" :hide-e-m-z="true" />
+          </div>
+        </Transition>
+        <!-- Player field -->
+        <PracticeField />
+      </div>
+
+      <div v-else key="normal" class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
         <DeckSection
           title="main"
           section-type="main"
@@ -39,14 +55,48 @@
           :show-count="false"
         />
       </div>
+      </Transition>
     </div>
 
     <RightArea>
+      <template #practice-tab>
+        <PracticePlayerPanel
+          @toggle-p2="toggleTwoDeckMode"
+          @load-deck-p2="loadDeckForField2"
+          @save-temp-recipe="saveTempRecipe"
+          @hard-reset="hardResetPractice"
+          @open-deck="openDeckForPractice"
+          @open-deck-p2="openDeckForPracticeP2"
+          @save-deck="saveDeckFromPractice"
+        />
+        <PracticeZoneInfoPanel @action="handlePracticeAction" />
+      </template>
       <template #deck-tab>
         <div class="mobile-deck-content">
-          <DeckEditTopBar />
+          <DeckEditTopBar
+            :practice-mode="practiceMode"
+            @toggle-practice="togglePracticeMode"
+          />
 
-          <div class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
+          <Transition name="mode-switch" mode="out-in">
+          <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
+            <PracticePlayerPanel
+              @toggle-p2="toggleTwoDeckMode"
+              @load-deck-p2="loadDeckForField2"
+              @save-temp-recipe="saveTempRecipe"
+              @hard-reset="hardResetPractice"
+              @open-deck="openDeckForPractice"
+              @save-deck="saveDeckFromPractice"
+            />
+            <Transition name="p2-field-slide">
+              <div v-if="practiceStore.twoDeckMode" class="p2-field-wrapper">
+                <PracticeField :field-index="1" class="opponent-field" :hide-e-m-z="true" />
+              </div>
+            </Transition>
+            <PracticeField />
+          </div>
+
+          <div v-else key="normal" class="deck-areas" :class="{ 'deck-loading': deckStore.isLoadingDeck }" :style="deckAreasStyle">
             <DeckSection
               title="main"
               section-type="main"
@@ -74,6 +124,7 @@
               :show-count="false"
             />
           </div>
+          </Transition>
         </div>
       </template>
     </RightArea>
@@ -95,9 +146,9 @@
       @exported="handleExported"
     />
 
-    <OptionsDialog
-      :isVisible="deckStore.showOptionsDialog"
-      @close="deckStore.showOptionsDialog = false"
+    <SettingsDialog
+      :isVisible="deckStore.showSettingsDialog"
+      @close="deckStore.showSettingsDialog = false"
     />
 
     <LoadDialog
@@ -145,15 +196,23 @@ import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
 import { useCardDetailStore } from '../../stores/card-detail'
 import { useToastStore } from '../../stores/toast-notification'
+import { usePracticeStore } from '../../stores/practice'
+import { usePracticeActions } from '../../composables/practice/usePracticeActions'
+import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
+import PracticeField from '../../components/practice/PracticeField.vue'
+import PracticeControlPanel from '../../components/practice/PracticeControlPanel.vue'
+import PracticeZoneInfoPanel from '../../components/practice/PracticeZoneInfoPanel.vue'
+import PracticePlayerPanel from '../../components/practice/PracticePlayerPanel.vue'
+
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import ToastContainer from '../../components/ToastContainer.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
 const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
-const OptionsDialog = defineAsyncComponent(() => import('../../components/OptionsDialog.vue'))
+const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
 const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
 import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
@@ -176,8 +235,12 @@ export default {
     ConfirmDialog,
     ToastContainer,
     ImportExportDialog,
-    OptionsDialog,
-    LoadDialog
+    SettingsDialog,
+    LoadDialog,
+    PracticeField,
+    PracticeControlPanel,
+    PracticeZoneInfoPanel,
+    PracticePlayerPanel,
   },
   setup() {
     const deckStore = useDeckEditStore()
@@ -185,6 +248,110 @@ export default {
     const settingsStore = useSettingsStore()
     const cardDetailStore = useCardDetailStore()
     const { showToast: dispatchToast } = useToastStore()
+    const practiceStore = usePracticeStore()
+
+    // Practice mode
+    const practiceMode = ref(false)
+
+    const togglePracticeMode = () => {
+      if (!practiceMode.value) {
+        const mainDeck = deckStore.deckInfo?.mainDeck || []
+        const extraDeck = deckStore.deckInfo?.extraDeck || []
+        practiceStore.initPractice(mainDeck, extraDeck)
+        practiceMode.value = true
+        deckStore.activeTab = 'practice'
+      } else {
+        // Exit practice mode
+        practiceMode.value = false
+        practiceStore.clearField2()
+        deckStore.activeTab = 'search'
+      }
+    }
+
+    const toggleTwoDeckMode = () => {
+      if (practiceStore.twoDeckMode) {
+        practiceStore.clearField2()
+      } else {
+        openDeckForPracticeP2()
+      }
+    }
+
+    const loadDeckForField2 = async (dno: number) => {
+      const detail = await deckStore.getDeckDetail(dno)
+      if (detail) {
+        practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 1)
+        practiceStore.p2DeckDno = dno
+        practiceStore.p2DeckName = detail.originalName || ''
+      }
+    }
+
+    const hardResetPractice = () => {
+      const mainDeck = deckStore.deckInfo?.mainDeck || []
+      const extraDeck = deckStore.deckInfo?.extraDeck || []
+      practiceStore.initPractice(mainDeck, extraDeck)
+    }
+
+    const openDeckForPractice = () => {
+      deckStore.onLoadCallback = async (dno: number) => {
+        const detail = await deckStore.getDeckDetail(dno)
+        if (detail) {
+          practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 0)
+        }
+      }
+      deckStore.showLoadDialog = true
+    }
+
+    const openDeckForPracticeP2 = () => {
+      deckStore.onLoadCallback = async (dno: number) => {
+        const detail = await deckStore.getDeckDetail(dno)
+        if (detail) {
+          practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 1)
+          practiceStore.p2DeckDno = dno
+          practiceStore.p2DeckName = detail.originalName || ''
+        }
+      }
+      deckStore.showLoadDialog = true
+    }
+
+    const saveDeckFromPractice = async () => {
+      const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
+      if (result.success) {
+        showToast('保存しました', 'success')
+      } else {
+        showToast('保存に失敗しました', 'error')
+      }
+    }
+
+    const saveTempRecipe = () => {
+      const db = getUnifiedCacheDB()
+      const allCards = [...practiceStore.tempRecipe, ...practiceStore.tempRecipe2]
+      let added = 0
+      for (const tc of allCards) {
+        const cardInfo = db.getCardInfo(tc.cid)
+        if (cardInfo) {
+          const section = tc.section
+          deckStore.addCard(cardInfo, section)
+          added++
+        }
+      }
+      if (added > 0) {
+        showToast(`${added}枚のカードをデッキに追加しました`, 'success')
+      } else {
+        showToast('追加できるカードが見つかりませんでした', 'warning')
+      }
+    }
+
+    const handlePracticeAction = (action: string, cardId: string) => {
+      const { executeAction } = usePracticeActions()
+      const fieldIdx = practiceStore.selectedFieldIndex
+      if (action === 'moveToTemp') {
+        practiceStore.moveCard(cardId, 'temp', undefined, undefined, fieldIdx)
+      } else if (action === 'moveToDeckTop') {
+        practiceStore.moveCard(cardId, 'deck', undefined, { position: 'top', face: 'down' }, fieldIdx)
+      } else {
+        executeAction(action, cardId, fieldIdx)
+      }
+    }
 
     // トースト通知のヘルパー関数
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
@@ -304,6 +471,11 @@ export default {
 
     const toggleLoadDialog = () => {
       if (!deckStore.showLoadDialog) {
+        deckStore.onLoadCallback = async (dno: number) => {
+          deckStore.setDeckName('')
+          await deckStore.loadDeck(dno)
+          localStorage.setItem('ygoNext:lastDeckDno', String(dno))
+        }
         // ダイアログを開く際にキャッシュをリロード（store側で実行）
         deckStore.openLoadDialog()
       } else {
@@ -436,6 +608,8 @@ export default {
 
     // checkUnsavedChanges を子コンポーネント（DeckEditTopBar）に提供
     provide('checkUnsavedChanges', checkUnsavedChanges)
+    provide('practiceMode', practiceMode)
+    provide('practiceStore', practiceStore)
 
     // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
     let isComponentMounted = false
@@ -793,6 +967,17 @@ export default {
       isReady,
       deckStore,
       settingsStore,
+      practiceStore,
+      practiceMode,
+      togglePracticeMode,
+      toggleTwoDeckMode,
+      loadDeckForField2,
+      hardResetPractice,
+      openDeckForPractice,
+      openDeckForPracticeP2,
+      saveDeckFromPractice,
+      saveTempRecipe,
+      handlePracticeAction,
       activeTab,
       searchQuery,
       selectedCard,
@@ -833,7 +1018,7 @@ export default {
       unsavedChangesMessage,
       unsavedChangesTitle,
       unsavedChangesButtons,
-      cancelUnsavedChanges
+      cancelUnsavedChanges,
     }
   }
 }
@@ -964,6 +1149,62 @@ export default {
   to {
     transform: rotate(360deg);
   }
+}
+
+.practice-field-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.opponent-field {
+}
+
+.deck-selector-panel {
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.15));
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.deck-selector-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
+}
+
+.deck-selector-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.deck-selector-item {
+  padding: 3px 8px;
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.15));
+  border-radius: 3px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary, #e0e0e0);
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-primary, #1976d2);
+    color: #fff;
+    border-color: var(--color-primary, #1976d2);
+  }
+}
+
+.deck-selector-empty {
+  font-size: 11px;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.4));
+  padding: 4px;
 }
 
 .middle-decks {
@@ -1486,5 +1727,40 @@ export default {
       }
     }
   }
+}
+
+.mode-switch-enter-active,
+.mode-switch-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.mode-switch-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.mode-switch-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.p2-field-slide-enter-active,
+.p2-field-slide-leave-active {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.p2-field-slide-enter-from,
+.p2-field-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.p2-field-wrapper {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.p2-field-wrapper > .practice-field {
+  width: 100%;
 }
 </style>

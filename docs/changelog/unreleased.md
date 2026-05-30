@@ -12,7 +12,8 @@
 
 ## Changes
 
-（変更内容をここに記載）
+- Practice mode: menu内容をdeck-edit/practiceで切替（practice時はOptionsのみ表示）
+- Practice mode: 2P modeのカードサイズを1P modeとは別に設定可能に（デフォルト: small）
 
 ## Performance
 
@@ -20,7 +21,7 @@
 
 ## Refactoring
 
-（変更内容をここに記載）
+- PracticeZoneInfoPanelのPracticeCard→CardListCard変換をtyped adapterに分離（CardListCard interface + practiceCardToCardListCards utility）
 
 ## Repository Management
 
