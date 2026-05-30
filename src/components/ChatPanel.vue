@@ -216,7 +216,7 @@ async function send() {
         userMessage: text,
         deckSections: buildDeckSections(),
         focusedCard: cardDetailStore.selectedCard ?? undefined,
-        history: messages.value.slice(-10),
+        history: messages.value.slice(0, -1).slice(-10),
       },
       apiKey,
       buildStoreRefs(),

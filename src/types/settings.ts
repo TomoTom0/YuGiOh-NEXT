@@ -98,7 +98,7 @@ export type CardTab = 'info' | 'qa' | 'related' | 'products';
 /**
  * アクティブタブ（検索/カード/デッキ/メタデータ）
  */
-export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat' | 'practice';
+export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat';
 
 export interface DeckEditSettings {
   enabled: boolean;
@@ -241,10 +241,6 @@ export interface AppSettings {
   aiApiKey?: string;
   /** カテゴリ優先エリア内のソート順（'level': レベル順（全体設定に従う）, 'quantity-desc': 枚数の降順） */
   categoryPrioritySortMode: 'level' | 'quantity-desc';
-  /** 一人回しのカードサイズ */
-  practiceCardSize: CardSize;
-  /** 一人回し 2P modeのカードサイズ */
-  practiceCardSize2P: CardSize;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -371,16 +367,14 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   includeTimestampInExportFilename: true, // エクスポートファイル名にタイムスタンプを含める: デフォルト有効
   saveWithAutoFullSort: true,          // 保存時に自動でフルソート: デフォルト有効
   categoryPrioritySortMode: 'level',   // カテゴリ優先内のソート順: レベル順（全体設定に従う）
-  practiceCardSize: 'medium',          // 一人回しのカードサイズ: 中
-  practiceCardSize2P: 'small',         // 一人回し 2P modeのカードサイズ: 小
 };
 
 /**
  * カードサイズのピクセル定義
  */
 export const CARD_SIZE_MAP: Record<CardSize, { width: number; height: number }> = {
-  small: { width: 48, height: 70 },
-  medium: { width: 75, height: 110 },
-  large: { width: 105, height: 154 },
-  xlarge: { width: 135, height: 198 },
+  small: { width: 36, height: 53 },
+  medium: { width: 60, height: 88 },
+  large: { width: 90, height: 132 },
+  xlarge: { width: 120, height: 176 },
 };

@@ -191,7 +191,7 @@ export async function executeTool(
         const invalidKinds = new Set<string>();
 
         const raceKey = hasKind('race') && keyword
-          ? (Object.entries(RACE_ID_TO_NAME) as [string, string][]).find(([, name]) => name === keyword)?.[0]
+          ? (Object.entries(RACE_ID_TO_NAME) as [string, string][]).find(([, name]) => name === keyword || name.startsWith(keyword))?.[0]
           : undefined;
         if (hasKind('race') && keyword && !raceKey) {
           if (!isAuto) return { success: true, data: { cards: [], totalCount: 0 } };
@@ -199,7 +199,7 @@ export async function executeTool(
         }
 
         const attrKey = hasKind('attribute') && keyword
-          ? (Object.entries(ATTRIBUTE_ID_TO_NAME) as [string, string][]).find(([, name]) => name === keyword)?.[0]
+          ? (Object.entries(ATTRIBUTE_ID_TO_NAME) as [string, string][]).find(([, name]) => name === keyword || name.startsWith(keyword))?.[0]
           : undefined;
         if (hasKind('attribute') && keyword && !attrKey) {
           if (!isAuto) return { success: true, data: { cards: [], totalCount: 0 } };
@@ -207,7 +207,7 @@ export async function executeTool(
         }
 
         const typeIds = hasKind('type') && keyword
-          ? (Object.entries(MONSTER_TYPE_ID_TO_NAME) as [string, string][]).filter(([, name]) => name === keyword).map(([id]) => id)
+          ? (Object.entries(MONSTER_TYPE_ID_TO_NAME) as [string, string][]).filter(([, name]) => name === keyword || name.startsWith(keyword)).map(([id]) => id)
           : undefined;
         if (hasKind('type') && keyword && !typeIds?.length) {
           if (!isAuto) return { success: true, data: { cards: [], totalCount: 0 } };

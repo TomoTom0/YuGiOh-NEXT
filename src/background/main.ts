@@ -7,8 +7,11 @@
 
 import { updateDeckMetadata } from '@/utils/deck-metadata-loader';
 import { getVueEditUrl } from '@/utils/url-builder';
-import { setToStorageLocal } from '@/utils/chrome-storage-utils';
-import { CHROME_STORAGE_KEY_DECK_LIST_PRELOAD } from '@/constants/storage-keys';
+import { getFromStorageLocal, setToStorageLocal } from '@/utils/chrome-storage-utils';
+import {
+  CHROME_STORAGE_KEY_APP_SETTINGS,
+  CHROME_STORAGE_KEY_DECK_LIST_PRELOAD,
+} from '@/constants/storage-keys';
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
@@ -105,13 +108,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'AI_CHAT') {
-    const { messages, apiKey } = message as {
-      messages: Array<{ role: string; content: string }>;
-      apiKey: string;
+    const { systemPrompt, conversation } = message as {
+      systemPrompt: string;
+      conversation: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
     };
 
     (async () => {
       try {
+        const settings = await getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS) as
+          | { aiApiKey?: string }
+          | null;
+        const apiKey = settings?.aiApiKey ?? '';
+        if (!apiKey) {
+          sendResponse({ success: false, error: 'Z.ai APIキーが設定されていません' });
+          return;
+        }
+
         const response = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', {
           method: 'POST',
           headers: {
@@ -120,7 +132,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            messages,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...conversation,
+            ],
             max_tokens: 1024,
           }),
         });

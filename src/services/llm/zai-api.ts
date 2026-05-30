@@ -3,40 +3,38 @@ interface ChatMessage {
   content: string;
 }
 
+interface AiChatResponse {
+  success: boolean;
+  content?: string;
+  error?: string;
+}
+
 export async function promptZai(
   systemPrompt: string,
   userMessage: string,
-  apiKey: string
 ): Promise<string> {
-  return promptZaiMulti(systemPrompt, [{ role: 'user', content: userMessage }], apiKey);
+  return promptZaiMulti(systemPrompt, [{ role: 'user', content: userMessage }]);
 }
 
 export async function promptZaiMulti(
   systemPrompt: string,
   conversation: ChatMessage[],
-  apiKey: string
 ): Promise<string> {
-  const messages: ChatMessage[] = [
-    { role: 'system', content: systemPrompt },
-    ...conversation,
-  ];
-
-  return new Promise((resolve, reject) => {
+  const response = await new Promise<AiChatResponse>((resolve, reject) => {
     chrome.runtime.sendMessage(
-      {
-        type: 'AI_CHAT',
-        messages,
-        apiKey,
-      },
-      (response) => {
+      { type: 'AI_CHAT', systemPrompt, conversation },
+      (res: AiChatResponse) => {
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else if (response && response.success) {
-          resolve(response.content);
-        } else {
-          reject(new Error(response?.error || 'Unknown error from background script'));
+          reject(new Error(`Z.ai API エラー: ${chrome.runtime.lastError.message}`));
+          return;
         }
-      }
+        resolve(res);
+      },
     );
   });
+
+  if (!response.success || !response.content) {
+    throw new Error(response.error ?? 'Z.ai APIから空の応答が返りました');
+  }
+  return response.content;
 }

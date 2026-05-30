@@ -1,7 +1,12 @@
+function getLanguageModelApi(): LanguageModelConstructor | undefined {
+  return window.LanguageModel ?? window.ai?.languageModel;
+}
+
 export async function isGeminiNanoAvailable(): Promise<boolean> {
-  if (!window.LanguageModel) return false;
+  const api = getLanguageModelApi();
+  if (!api) return false;
   try {
-    const status = await window.LanguageModel.availability();
+    const status = await api.availability();
     return status !== 'unavailable';
   } catch {
     return false;
@@ -18,8 +23,9 @@ export async function promptGeminiNano(systemPrompt: string, userMessage: string
 }
 
 export async function createNanoSession(systemPrompt: string) {
-  if (!window.LanguageModel) throw new Error('Gemini Nanoが利用できません');
-  return await window.LanguageModel.create({
+  const api = getLanguageModelApi();
+  if (!api) throw new Error('Gemini Nanoが利用できません');
+  return await api.create({
     initialPrompts: [{ role: 'system', content: systemPrompt }],
   });
 }

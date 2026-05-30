@@ -44,6 +44,12 @@
         >
           Metadata
         </button>
+        <button
+          :class="{ active: deckStore.activeTab === 'chat' }"
+          @click="deckStore.activeTab = 'chat'"
+        >
+          Chat
+        </button>
       </div>
 
       <div v-show="deckStore.activeTab === 'practice'" ref="practiceContentRef" class="practice-content tab-content">
@@ -74,6 +80,10 @@
       <div v-show="deckStore.activeTab === 'metadata'" ref="metadataContentRef" class="metadata-content">
         <DeckMetadata />
       </div>
+
+      <div v-show="deckStore.activeTab === 'chat'" class="chat-content">
+        <ChatPanel />
+      </div>
     </div>
 
     <!-- グローバル検索モード用オーバーレイ -->
@@ -103,6 +113,7 @@ import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
+import ChatPanel from './ChatPanel.vue'
 import SearchInputBar from './searchInputBar/SearchInputBar.vue'
 import { buildFullUrl } from '../utils/url-builder'
 import { useCardDetailDisplay } from '../composables/useCardDetailDisplay'
@@ -113,6 +124,7 @@ export default {
     CardList,
     CardDetail,
     DeckMetadata,
+    ChatPanel,
     SearchInputBar
   },
   setup() {
@@ -371,6 +383,7 @@ export default {
   width: 100%;
   box-sizing: border-box;
 }
+
 
 .deck-content, .search-content, .card-detail-content, .metadata-content, .chat-content {
   animation: fadeIn 0.2s ease-in-out;
