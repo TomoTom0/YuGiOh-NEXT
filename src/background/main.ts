@@ -105,9 +105,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'AI_CHAT') {
-    const { systemPrompt, userMessage, apiKey } = message as {
-      systemPrompt: string;
-      userMessage: string;
+    const { messages, apiKey } = message as {
+      messages: Array<{ role: string; content: string }>;
       apiKey: string;
     };
 
@@ -121,10 +120,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           },
           body: JSON.stringify({
             model: 'claude-sonnet-4-6',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userMessage },
-            ],
+            messages,
             max_tokens: 1024,
           }),
         });

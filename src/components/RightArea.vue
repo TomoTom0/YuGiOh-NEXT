@@ -10,7 +10,7 @@
     </div>
 
     <div class="right-area-main">
-      <div class="tabs" :style="tabGridStyle">
+      <div class="tabs" :style="{ '--tab-count': practiceMode ? 4 : 3 }">
         <button
           v-if="practiceMode"
           class="practice-tab"
@@ -233,16 +233,11 @@ export default {
       return showDetailFromComposable(card.cardId, { fallbackCard: card })
     }
 
-    const tabGridStyle = computed(() => ({
-      gridTemplateColumns: `repeat(${practiceMode.value ? 4 : 3}, 1fr)`
-    }))
-
     return {
       deckStore,
       searchStore,
       cardDetailStore,
       practiceMode,
-      tabGridStyle,
       practiceContentRef,
       deckContentRef,
       cardDetailContentRef,
@@ -310,7 +305,7 @@ export default {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--tab-count, 3), 1fr);
   border-bottom: 2px solid #008cff;
   margin: 0;
 
@@ -354,7 +349,7 @@ export default {
 
 @media (max-width: 768px) {
   .tabs {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(calc(var(--tab-count, 3) + 1), 1fr);
     
     button.deck-tab {
       display: block;

@@ -1,5 +1,3 @@
-const ZAI_ENDPOINT = 'https://api.z.ai/api/coding/paas/v4';
-
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -23,28 +21,22 @@ export async function promptZaiMulti(
     ...conversation,
   ];
 
-  const response = await fetch(`${ZAI_ENDPOINT}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      messages,
-      max_tokens: 1024,
-    }),
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      {
+        type: 'AI_CHAT',
+        messages,
+        apiKey,
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response && response.success) {
+          resolve(response.content);
+        } else {
+          reject(new Error(response?.error || 'Unknown error from background script'));
+        }
+      }
+    );
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Z.ai API エラー: ${response.status} ${text}`);
-  }
-
-  const data = await response.json() as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Z.ai APIから空の応答が返りました');
-  return content;
 }

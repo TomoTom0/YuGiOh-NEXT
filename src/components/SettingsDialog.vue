@@ -247,7 +247,7 @@ const deckStore = useDeckEditStore();
 const activeTab = ref<Tab>('general');
 
 const effectiveContext = computed((): SettingsContext => {
-  if (props.effectiveContext === 'deck-display') return 'deck-display';
+  if (props.context === 'deck-display') return 'deck-display';
   return deckStore.activeTab === 'practice' ? 'practice' : 'deck-edit';
 });
 
