@@ -4,6 +4,8 @@ import type { DeckCardRef } from '../types/card'
 import { fisherYatesShuffle } from '../utils/array-shuffle'
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo'
 
+// --- Types ---
+
 export type CardFace = 'up' | 'down'
 export type CardOrientation = 'vertical' | 'horizontal'
 
@@ -15,6 +17,12 @@ export interface PracticeCard {
   orientation: CardOrientation
 }
 
+export interface TempRecipeCard {
+  cid: string
+  ciid: string
+  section: 'main' | 'extra'
+}
+
 export type ZoneType =
   | 'field'
   | 'monster'
@@ -23,6 +31,7 @@ export type ZoneType =
   | 'banish'
   | 'deck'
   | 'extra'
+  | 'extraMonster'
   | 'hand'
   | 'temp'
 
@@ -30,6 +39,7 @@ export interface PracticeZones {
   field: PracticeCard[]
   monster: PracticeCard[][]
   spellTrap: PracticeCard[][]
+  extraMonster: PracticeCard[][]
   gy: PracticeCard[]
   banish: PracticeCard[]
   deck: PracticeCard[]
@@ -53,6 +63,8 @@ export interface MoveOptions {
 
 const STORAGE_KEY = 'ygoNext:practice'
 
+// --- Helpers ---
+
 function createCard(cid: string, ciid: string, face: CardFace = 'up'): PracticeCard {
   return {
     id: crypto.randomUUID(),
@@ -68,6 +80,7 @@ function emptyZones(): PracticeZones {
     field: [],
     monster: [[], [], [], [], []],
     spellTrap: [[], [], [], [], []],
+    extraMonster: [[], []],
     gy: [],
     banish: [],
     deck: [],
@@ -82,6 +95,7 @@ function cloneZones(z: PracticeZones): PracticeZones {
     field: z.field.map(c => ({ ...c })),
     monster: z.monster.map(slot => slot.map(c => ({ ...c }))),
     spellTrap: z.spellTrap.map(slot => slot.map(c => ({ ...c }))),
+    extraMonster: z.extraMonster.map(slot => slot.map(c => ({ ...c }))),
     gy: z.gy.map(c => ({ ...c })),
     banish: z.banish.map(c => ({ ...c })),
     deck: z.deck.map(c => ({ ...c })),
@@ -105,20 +119,44 @@ function restoreSnapshot(snapshot: DualFieldSnapshot, target1: { value: Practice
   target2.value = cloneZones(snapshot.zones2)
 }
 
+// --- Store ---
+
 export const usePracticeStore = defineStore('practice', () => {
+  // Field 1
   const zones = ref<PracticeZones>(emptyZones())
   const revealDeck = ref(false)
+  const revealExtra = ref(false)
   const initialized = ref(false)
   const originalMainDeck = ref<DeckCardRef[]>([])
   const originalExtraDeck = ref<DeckCardRef[]>([])
 
+  // Field 2
   const zones2 = ref<PracticeZones>(emptyZones())
   const revealDeck2 = ref(false)
+  const revealExtra2 = ref(false)
   const initialized2 = ref(false)
   const originalMainDeck2 = ref<DeckCardRef[]>([])
   const originalExtraDeck2 = ref<DeckCardRef[]>([])
+  const p2DeckDno = ref<number | null>(null)
+  const p2DeckName = ref<string>('')
 
-  const twoDeckMode = ref(false)
+  // Temporary recipe: cards added from outside the original deck during practice
+  const tempRecipe = ref<TempRecipeCard[]>([])
+  const tempRecipe2 = ref<TempRecipeCard[]>([])
+
+  // Mode（P2にデッキがロードされているか）
+  const twoDeckMode = computed(() => p2DeckDno.value !== null)
+
+  // Zone selection (for zone info panel in practice tab)
+  const selectedZone = ref<ZoneType | null>(null)
+  const selectedSlotIndex = ref<number | undefined>(undefined)
+  const selectedFieldIndex = ref<number>(0)
+
+  function selectZone(zone: ZoneType, slotIndex?: number, fieldIndex: number = 0) {
+    selectedZone.value = zone
+    selectedSlotIndex.value = slotIndex
+    selectedFieldIndex.value = fieldIndex
+  }
 
   const {
     commandHistory,
@@ -133,6 +171,8 @@ export const usePracticeStore = defineStore('practice', () => {
     getRedoDescription,
   } = useDeckUndoRedo()
 
+  // --- Internal helpers ---
+
   function getZonesRef(fieldIndex: number): { value: PracticeZones } {
     return fieldIndex === 1 ? zones2 : zones
   }
@@ -141,8 +181,16 @@ export const usePracticeStore = defineStore('practice', () => {
     return fieldIndex === 1 ? revealDeck2 : revealDeck
   }
 
+  function getRevealExtraRef(fieldIndex: number): { value: boolean } {
+    return fieldIndex === 1 ? revealExtra2 : revealExtra
+  }
+
   function getOriginalMainDeck(fieldIndex: number): DeckCardRef[] {
     return fieldIndex === 1 ? originalMainDeck2.value : originalMainDeck.value
+  }
+
+  function getTempRecipeRef(fieldIndex: number): { value: TempRecipeCard[] } {
+    return fieldIndex === 1 ? tempRecipe2 : tempRecipe
   }
 
   function getOriginalExtraDeck(fieldIndex: number): DeckCardRef[] {
@@ -160,6 +208,11 @@ export const usePracticeStore = defineStore('practice', () => {
       const idx = slotIndex ?? 0
       if (idx < 0 || idx >= 5) return []
       return z.spellTrap[idx]!
+    }
+    if (zone === 'extraMonster') {
+      const idx = slotIndex ?? 0
+      if (idx < 0 || idx >= 2) return []
+      return z.extraMonster[idx]!
     }
     return z[zone] as PracticeCard[]
   }
@@ -180,9 +233,14 @@ export const usePracticeStore = defineStore('practice', () => {
       const idx = z.spellTrap[i]!.findIndex(c => c.id === cardId)
       if (idx !== -1) return { zone: 'spellTrap', slotIndex: i, cardIndex: idx, fieldIndex }
     }
+    for (let i = 0; i < 2; i++) {
+      const idx = z.extraMonster[i]!.findIndex(c => c.id === cardId)
+      if (idx !== -1) return { zone: 'extraMonster', slotIndex: i, cardIndex: idx, fieldIndex }
+    }
     return null
   }
 
+  // Find card across both fields
   function findCardGlobal(cardId: string): CardLocation | null {
     return findCard(cardId, 0) ?? findCard(cardId, 1)
   }
@@ -197,12 +255,16 @@ export const usePracticeStore = defineStore('practice', () => {
     pushCommand(command)
   }
 
+  // --- Computed (field 1) ---
+
   const deckCount = computed(() => zones.value.deck.length)
   const extraCount = computed(() => zones.value.extra.length)
   const handCount = computed(() => zones.value.hand.length)
   const gyCount = computed(() => zones.value.gy.length)
   const banishCount = computed(() => zones.value.banish.length)
   const tempCount = computed(() => zones.value.temp.length)
+
+  // --- Computed (field 2) ---
 
   const deckCount2 = computed(() => zones2.value.deck.length)
   const extraCount2 = computed(() => zones2.value.extra.length)
@@ -211,20 +273,28 @@ export const usePracticeStore = defineStore('practice', () => {
   const banishCount2 = computed(() => zones2.value.banish.length)
   const tempCount2 = computed(() => zones2.value.temp.length)
 
+  const hasTempRecipe = computed(() => tempRecipe.value.length > 0 || tempRecipe2.value.length > 0)
+
+  // --- Generic computed by fieldIndex ---
+
   function getDeckCount(fieldIndex: number): number {
     return fieldIndex === 1 ? deckCount2.value : deckCount.value
   }
+
+  // --- Actions ---
 
   function initPractice(mainDeck: DeckCardRef[], extraDeck: DeckCardRef[], fieldIndex: number = 0) {
     clearHistory()
 
     const z = getZonesRef(fieldIndex)
-    const origMain = fieldIndex === 1 ? originalMainDeck2 : originalMain
-    const origExtra = fieldIndex === 1 ? originalExtraDeck2 : originalExtra
+    const origMain = fieldIndex === 1 ? originalMainDeck2 : originalMainDeck
+    const origExtra = fieldIndex === 1 ? originalExtraDeck2 : originalExtraDeck
     const initFlag = fieldIndex === 1 ? initialized2 : initialized
 
     z.value = emptyZones()
     getRevealDeckRef(fieldIndex).value = false
+    getRevealExtraRef(fieldIndex).value = false
+    getTempRecipeRef(fieldIndex).value = []
 
     origMain.value = mainDeck.map(d => ({ ...d }))
     origExtra.value = extraDeck.map(d => ({ ...d }))
@@ -237,7 +307,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
     for (const ref of extraDeck) {
       for (let i = 0; i < ref.quantity; i++) {
-        z.value.extra.push(createCard(ref.cid, ref.ciid, 'up'))
+        z.value.extra.push(createCard(ref.cid, ref.ciid, 'down'))
       }
     }
 
@@ -264,6 +334,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
     z.value = emptyZones()
     getRevealDeckRef(fieldIndex).value = false
+    getRevealExtraRef(fieldIndex).value = false
 
     for (const ref of origMain) {
       for (let i = 0; i < ref.quantity; i++) {
@@ -273,7 +344,15 @@ export const usePracticeStore = defineStore('practice', () => {
 
     for (const ref of origExtra) {
       for (let i = 0; i < ref.quantity; i++) {
-        z.value.extra.push(createCard(ref.cid, ref.ciid, 'up'))
+        z.value.extra.push(createCard(ref.cid, ref.ciid, 'down'))
+      }
+    }
+
+    for (const tc of getTempRecipeRef(fieldIndex).value) {
+      if (tc.section === 'extra') {
+        z.value.extra.push(createCard(tc.cid, tc.ciid, 'down'))
+      } else {
+        z.value.deck.push(createCard(tc.cid, tc.ciid, 'down'))
       }
     }
 
@@ -381,6 +460,28 @@ export const usePracticeStore = defineStore('practice', () => {
     saveToLocalStorage()
   }
 
+  function moveCardToDeckAndShuffle(cardId: string, fieldIndex: number = 0) {
+    const loc = findCard(cardId, fieldIndex)
+    if (!loc) return
+
+    const before = captureSnapshot(zones.value, zones2.value)
+
+    const cards = getCards(loc.zone, loc.slotIndex, fieldIndex)
+    if (!cards || loc.cardIndex < 0 || loc.cardIndex >= cards.length) return
+    const card = cards.splice(loc.cardIndex, 1)[0]!
+    card.face = 'down'
+    card.orientation = 'vertical'
+
+    const z = getZonesRef(fieldIndex)
+    z.value.deck.push(card)
+    z.value.deck = fisherYatesShuffle(z.value.deck)
+    z.value.deck.forEach(c => { c.face = 'down' })
+
+    const after = captureSnapshot(zones.value, zones2.value)
+    pushSnapshotCommand(before, after, 'デッキにシャッフル挿入', 'move')
+    saveToLocalStorage()
+  }
+
   function shuffleHand(fieldIndex: number = 0) {
     const z = getZonesRef(fieldIndex)
     if (z.value.hand.length <= 1) return
@@ -455,22 +556,58 @@ export const usePracticeStore = defineStore('practice', () => {
     saveToLocalStorage()
   }
 
+  function addExternalCard(cid: string, ciid: string, zone: ZoneType, slotIndex: number | undefined, fieldIndex: number = 0, face: CardFace = 'up', position: 'top' | 'bottom' | number = 'bottom') {
+    const before = captureSnapshot(zones.value, zones2.value)
+    const card = createCard(cid, ciid, face)
+    const target = getCards(zone, slotIndex, fieldIndex)
+    if (target) {
+      if (position === 'top') {
+        target.unshift(card)
+      } else if (position === 'bottom') {
+        target.push(card)
+      } else {
+        const idx = Math.max(0, Math.min(position, target.length))
+        target.splice(idx, 0, card)
+      }
+    }
+    const after = captureSnapshot(zones.value, zones2.value)
+    pushSnapshotCommand(before, after, `外部カード追加 -> ${zone}`, 'move')
+
+    const recipe = getTempRecipeRef(fieldIndex)
+    const section: TempRecipeCard['section'] = zone === 'extra' ? 'extra' : 'main'
+    recipe.value.push({ cid, ciid, section })
+
+    saveToLocalStorage()
+  }
+
   function revealDeckContents(show: boolean, fieldIndex: number = 0) {
     getRevealDeckRef(fieldIndex).value = show
   }
+
+  function revealExtraContents(show: boolean, fieldIndex: number = 0) {
+    getRevealExtraRef(fieldIndex).value = show
+  }
+
+  // --- Persistence ---
 
   function saveToLocalStorage() {
     try {
       const data = {
         zones: zones.value,
         revealDeck: revealDeck.value,
+        revealExtra: revealExtra.value,
         originalMainDeck: originalMainDeck.value,
         originalExtraDeck: originalExtraDeck.value,
-        twoDeckMode: twoDeckMode.value,
+        tempRecipe: tempRecipe.value,
+        initialized2: initialized2.value,
         zones2: zones2.value,
         revealDeck2: revealDeck2.value,
+        revealExtra2: revealExtra2.value,
         originalMainDeck2: originalMainDeck2.value,
         originalExtraDeck2: originalExtraDeck2.value,
+        tempRecipe2: tempRecipe2.value,
+        p2DeckDno: p2DeckDno.value,
+        p2DeckName: p2DeckName.value,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
     } catch (e) {
@@ -488,17 +625,22 @@ export const usePracticeStore = defineStore('practice', () => {
 
       zones.value = data.zones
       revealDeck.value = data.revealDeck ?? false
+      revealExtra.value = data.revealExtra ?? false
       originalMainDeck.value = data.originalMainDeck ?? []
       originalExtraDeck.value = data.originalExtraDeck ?? []
+      tempRecipe.value = data.tempRecipe ?? []
       initialized.value = true
 
-      if (data.twoDeckMode) {
-        twoDeckMode.value = data.twoDeckMode
+      if (data.initialized2 || data.twoDeckMode) {
         zones2.value = data.zones2 ?? emptyZones()
         revealDeck2.value = data.revealDeck2 ?? false
+        revealExtra2.value = data.revealExtra2 ?? false
         originalMainDeck2.value = data.originalMainDeck2 ?? []
         originalExtraDeck2.value = data.originalExtraDeck2 ?? []
+        tempRecipe2.value = data.tempRecipe2 ?? []
         initialized2.value = !!(data.zones2)
+        p2DeckDno.value = data.p2DeckDno ?? null
+        p2DeckName.value = data.p2DeckName ?? ''
       }
 
       return true
@@ -508,6 +650,16 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
+  function clearField2() {
+    zones2.value = emptyZones()
+    initialized2.value = false
+    originalMainDeck2.value = []
+    originalExtraDeck2.value = []
+    revealDeck2.value = false
+    p2DeckDno.value = null
+    p2DeckName.value = ''
+  }
+
   function clearLocalStorage() {
     try {
       localStorage.removeItem(STORAGE_KEY)
@@ -515,6 +667,8 @@ export const usePracticeStore = defineStore('practice', () => {
       console.error('[practice] Failed to clear localStorage:', e)
     }
   }
+
+  // --- Undo/Redo wrappers ---
 
   function undo() {
     undoCommand()
@@ -527,54 +681,92 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   return {
+    // State (field 1)
     zones,
     revealDeck,
+    revealExtra,
     initialized,
     originalMainDeck,
     originalExtraDeck,
+
+    // State (field 2)
     zones2,
     revealDeck2,
+    revealExtra2,
     initialized2,
     originalMainDeck2,
     originalExtraDeck2,
+    p2DeckDno,
+    p2DeckName,
+
+    // Temp recipe
+    tempRecipe,
+    tempRecipe2,
+    hasTempRecipe,
+
+    // Mode
     twoDeckMode,
+
+    // Zone selection
+    selectedZone,
+    selectedSlotIndex,
+    selectedFieldIndex,
+    selectZone,
+
+    // Computed (field 1)
     deckCount,
     extraCount,
     handCount,
     gyCount,
     banishCount,
     tempCount,
+
+    // Computed (field 2)
     deckCount2,
     extraCount2,
     handCount2,
     gyCount2,
     banishCount2,
     tempCount2,
+
+    // Undo/Redo state
     commandHistory,
     commandIndex,
     canUndo,
     canRedo,
+
+    // Actions
     initPractice,
     resetPractice,
+    clearField2,
     draw,
     drawToZone,
     drawMultiple,
     moveCard,
+    moveCardToDeckAndShuffle,
     shuffleDeck,
     shuffleHand,
     shuffleExtra,
     setCardFace,
     setCardOrientation,
     reorderInZone,
+    addExternalCard,
     revealDeckContents,
+    revealExtraContents,
+
+    // Helpers
     getCards,
     findCard,
     findCardGlobal,
     getDeckCount,
     getZonesRef,
+
+    // Persistence
     saveToLocalStorage,
     loadFromLocalStorage,
     clearLocalStorage,
+
+    // Undo/Redo
     undo,
     redo,
     clearHistory,

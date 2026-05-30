@@ -1,0 +1,51 @@
+[
+  {
+    "name": "@mdi/js",
+    "license": "Apache-2.0",
+    "copyright": "(c) Austin Andrews"
+  },
+  {
+    "name": "axios",
+    "license": "MIT",
+    "copyright": "(c) Matt Zabriskie"
+  },
+  {
+    "name": "canvas",
+    "license": "MIT",
+    "copyright": "(c) TJ Holowaychuk"
+  },
+  {
+    "name": "jsdom",
+    "license": "MIT"
+  },
+  {
+    "name": "linkedom",
+    "license": "ISC",
+    "copyright": "(c) Andrea Giammarchi"
+  },
+  {
+    "name": "pinia",
+    "license": "MIT",
+    "copyright": "(c) Eduardo San Martin Morote"
+  },
+  {
+    "name": "qrcode",
+    "license": "MIT",
+    "copyright": "(c) Ryan Day"
+  },
+  {
+    "name": "sass-loader",
+    "license": "MIT",
+    "copyright": "(c) J. Tangelder"
+  },
+  {
+    "name": "sass",
+    "license": "MIT",
+    "copyright": "(c) Natalie Weizenbaum"
+  },
+  {
+    "name": "ws",
+    "license": "MIT",
+    "copyright": "(c) Einar Otto Stangvik"
+  }
+]

@@ -22,22 +22,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ZoneType, PracticeCard } from '../../stores/practice'
+import type { ZoneType } from '../../stores/practice'
 import {
   mdiCardPlus,
   mdiShuffle,
-  mdiArrowUp,
-  mdiGraveStone,
-  mdiHandBackRight,
   mdiDotsVertical,
+  mdiEye,
+  mdiEyeOff,
 } from '@mdi/js'
 
 const props = defineProps<{
   zone: ZoneType
-  slotIndex?: number
-  cards: PracticeCard[]
+  cards: { length: number }
   visible: boolean
   deckEmpty?: boolean
+  revealExtra?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -53,68 +52,26 @@ interface QuickAction {
   handler: () => void
 }
 
-const topCardId = computed(() => props.cards[0]?.id)
-
 const quickActions = computed<QuickAction[]>(() => {
   const actions: QuickAction[] = []
-  const cid = topCardId.value
 
-  switch (props.zone) {
-    case 'deck':
-      actions.push(
-        { key: 'draw', title: 'Draw', icon: mdiCardPlus, disabled: props.deckEmpty ?? false, handler: () => emit('action', 'draw') },
-        { key: 'shuffle', title: 'Shuffle', icon: mdiShuffle, disabled: (props.cards.length ?? 0) <= 1, handler: () => emit('action', 'shuffleDeck') },
-      )
-      break
-    case 'hand':
-      if (cid) {
-        actions.push(
-          { key: 'field', title: 'Field', icon: mdiArrowUp, disabled: false, handler: () => emit('action', 'moveToField', cid) },
-          { key: 'gy', title: 'GY', icon: mdiGraveStone, disabled: false, handler: () => emit('action', 'moveToGY', cid) },
-        )
-      }
-      break
-    case 'monster':
-    case 'spellTrap':
-      if (cid) {
-        actions.push(
-          { key: 'gy', title: 'GY', icon: mdiGraveStone, disabled: false, handler: () => emit('action', 'moveToGY', cid) },
-          { key: 'hand', title: 'Hand', icon: mdiHandBackRight, disabled: false, handler: () => emit('action', 'moveToHand', cid) },
-        )
-      }
-      break
-    case 'gy':
-    case 'banish':
-      if (cid) {
-        actions.push(
-          { key: 'hand', title: 'Hand', icon: mdiHandBackRight, disabled: false, handler: () => emit('action', 'moveToHand', cid) },
-          { key: 'field', title: 'Field', icon: mdiArrowUp, disabled: false, handler: () => emit('action', 'moveToField', cid) },
-        )
-      }
-      break
-    case 'extra':
-      if (cid) {
-        actions.push(
-          { key: 'field', title: 'Field', icon: mdiArrowUp, disabled: false, handler: () => emit('action', 'moveToField', cid) },
-          { key: 'gy', title: 'GY', icon: mdiGraveStone, disabled: false, handler: () => emit('action', 'moveToGY', cid) },
-        )
-      }
-      break
-    case 'field':
-      if (cid) {
-        actions.push(
-          { key: 'gy', title: 'GY', icon: mdiGraveStone, disabled: false, handler: () => emit('action', 'moveToGY', cid) },
-        )
-      }
-      break
-    case 'temp':
-      if (cid) {
-        actions.push(
-          { key: 'hand', title: 'Hand', icon: mdiHandBackRight, disabled: false, handler: () => emit('action', 'moveToHand', cid) },
-          { key: 'gy', title: 'GY', icon: mdiGraveStone, disabled: false, handler: () => emit('action', 'moveToGY', cid) },
-        )
-      }
-      break
+  if (props.zone === 'deck') {
+    actions.push(
+      { key: 'draw', title: 'Draw', icon: mdiCardPlus, disabled: props.deckEmpty ?? false, handler: () => emit('action', 'draw') },
+      { key: 'shuffle', title: 'Shuffle', icon: mdiShuffle, disabled: (props.cards.length ?? 0) <= 1, handler: () => emit('action', 'shuffleDeck') },
+    )
+  }
+
+  if (props.zone === 'extra') {
+    actions.push(
+      {
+        key: 'revealExtraToggle',
+        title: props.revealExtra ? 'Hide' : 'Reveal',
+        icon: props.revealExtra ? mdiEyeOff : mdiEye,
+        disabled: (props.cards.length ?? 0) === 0,
+        handler: () => emit('action', 'revealExtraToggle'),
+      },
+    )
   }
 
   return actions
@@ -125,7 +82,7 @@ const quickActions = computed<QuickAction[]>(() => {
 .practice-slot-controls {
   position: absolute;
   top: 2px;
-  left: 2px;
+  right: 2px;
   display: flex;
   flex-direction: column;
   gap: 1px;

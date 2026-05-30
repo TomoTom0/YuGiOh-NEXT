@@ -1,0 +1,346 @@
+/**
+ * デッキ編集UI（Vue.js Prototype）のエントリーポイント
+ *
+ * 特定URL（#/ytomo/edit）にアクセスした際に、
+ * ページ全体を書き換えてVueベースのデッキ編集UIを表示する
+ */
+
+// FOUC防止: デフォルトテーマを即座に適用
+// 注: テーマはwatchUrlChanges()の前にapplyThemeFromSettings()で適用するため、
+// ここではハードコードされた'light'を設定しない
+
+import { isVueEditPage } from '../../utils/page-detector';
+import { callbackToPromise } from '../../utils/promise-timeout';
+import { EXTENSION_IDS } from '../../utils/dom-selectors';
+import { CHROME_STORAGE_KEY_APP_SETTINGS } from '../../constants/storage-keys';
+
+// 編集UIが既に読み込まれているかどうかのフラグ
+let isEditUILoaded = false;
+
+// イベントリスナーが登録済みかどうかのフラグ
+let isEventListenerRegistered = false;
+
+// 公式DOM読み込みと同時に、Vue関連モジュールを事前インポート開始
+const vueModulesPromise = Promise.all([
+  import('vue'),
+  import('pinia'),
+  import('./DeckEditLayout.vue')
+]);
+
+/**
+ * 現在のURLが編集用URLかどうかをチェック（後方互換性のため維持）
+ * @deprecated 直接 isVueEditPage を使用してください
+ */
+function isEditUrl(): boolean {
+  return isVueEditPage();
+}
+
+/**
+ * テーマを設定ストアから読み込んで適用
+ * メモリキャッシュ（ygoNextCurrentSettings）から即座に取得、なければ Storage から読み込み
+ * FOUC 防止のため、背景色も同時に設定
+ */
+async function applyThemeFromSettings(): Promise<void> {
+  try {
+    // メモリキャッシュから即座に取得（0ms、待機なし）
+    let appSettings = window.ygoNextCurrentSettings;
+
+    // メモリにない場合は Storage から読み込み
+    if (!appSettings) {
+      const result = await callbackToPromise<any>(
+        (callback) => chrome.storage.local.get([CHROME_STORAGE_KEY_APP_SETTINGS], callback),
+        3000 // 3秒のタイムアウト
+      );
+
+      appSettings = result[CHROME_STORAGE_KEY_APP_SETTINGS] || {};
+
+      // 読み込み後、メモリキャッシュに保存
+      if (appSettings) {
+        window.ygoNextCurrentSettings = appSettings;
+      }
+    }
+
+    const theme = appSettings?.theme ?? 'system';
+
+    let effectiveTheme: 'light' | 'dark' = 'light';
+
+    if (theme === 'system') {
+      // システム設定を確認
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    } else {
+      effectiveTheme = (theme as any) ?? 'light';
+    }
+
+    document.documentElement.setAttribute('data-ygo-next-theme', effectiveTheme);
+
+    // FOUC（Flash of Unstyled Content）防止：背景色を事前に設定
+    const bgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
+
+    // 他の可能な要素にも背景色を設定（どれが露出するかわからないため）
+    const wrapper = document.getElementById('wrapper');
+    if (wrapper) {
+      wrapper.style.backgroundColor = bgColor;
+    }
+    const bg = document.getElementById('bg');
+    if (bg) {
+      bg.style.backgroundColor = bgColor;
+    }
+  } catch (error) {
+    // タイムアウトまたはエラー時は、デフォルトのテーマを使用
+    console.warn('[applyThemeFromSettings] Failed to load theme settings:', error);
+    document.documentElement.setAttribute('data-ygo-next-theme', 'light');
+    // エラー時もデフォルト背景色を設定
+    document.documentElement.style.backgroundColor = '#ffffff';
+    document.body.style.backgroundColor = '#ffffff';
+  }
+}
+
+/**
+ * 言語を変更（ページ遷移）
+ * Vue側でオーバーライド可能な実装
+ */
+function performLanguageChange(lang: string): void {
+  const hash = location.hash;
+  let search = location.search.replace(/[?&]request_locale=[^&]*/, '');
+
+  let newSearch = `?request_locale=${lang}`;
+  if (search.substring(1).length > 0) {
+    newSearch += `&${search.substring(1)}`;
+  }
+
+  const newUrl = location.pathname + newSearch + hash;
+  location.href = newUrl;
+}
+
+/**
+ * 言語切り替えボタンを差し替え（window.ygoChangeLanguage をコール）
+ */
+function replaceLanguageChangeLinks(): void {
+  // 言語リンクのhref属性を空のjavascriptに置き換え
+  document.querySelectorAll('a[href*="javascript:ChangeLanguage"]').forEach((link) => {
+    const href = link.getAttribute('href');
+    const match = href?.match(/ChangeLanguage\('(\w+)'\)/);
+    if (match && match[1]) {
+      const lang = match[1];
+      link.setAttribute('href', 'javascript:void(0)');
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        // window.ygoChangeLanguage は Vue側でオーバーライド可能
+        window.ygoChangeLanguage?.(lang);
+      });
+    }
+  });
+}
+
+// window.ygoChangeLanguage のデフォルト実装
+window.ygoChangeLanguage = performLanguageChange;
+
+/**
+ * URLの変更を監視
+ */
+function watchUrlChanges(): void {
+  // 公式DOM前初期化: DOMContentLoadedを待たず即座に初期化
+  // オーバーレイを素早く表示し、ユーザー体感速度を向上
+  // 注: preloadはcontent/index.tsで既に実行されているため、ここでは不要
+  if (isEditUrl() && !isEditUILoaded) {
+    // UI を即座にロード（オーバーレイ表示）
+    loadEditUI();
+  }
+
+  // hashchangeイベントを監視（一度だけ登録）
+  if (!isEventListenerRegistered) {
+    isEventListenerRegistered = true;
+
+    window.addEventListener('hashchange', () => {
+      if (isEditUrl()) {
+
+        // 編集URLに遷移した場合は、毎回テーマを適用
+        applyThemeFromSettings();
+
+        // 注: preloadはcontent/index.tsのhashchangeハンドラーで実行されるため、ここでは不要
+
+        // UI が未読み込みの場合のみ読み込み実行
+        if (!isEditUILoaded) {
+          loadEditUI();
+        }
+      } else if (!isEditUrl() && isEditUILoaded) {
+        // 編集URL以外に移動した場合はフラグをリセット
+        isEditUILoaded = false;
+      }
+    });
+  }
+}
+
+/**
+ * 編集用UIを読み込んで表示
+ */
+async function loadEditUI(): Promise<void> {
+  if (isEditUILoaded) {
+    return;
+  }
+
+  // フラグを先に設定（二重実行防止）
+  isEditUILoaded = true;
+
+  // テーマを設定ストアから読み込んで適用
+  await applyThemeFromSettings();
+
+  // div#bg要素を取得
+  const bgElement = document.getElementById('bg');
+  if (!bgElement) {
+    console.error('div#bg not found');
+    isEditUILoaded = false;
+    return;
+  }
+
+  // content/index.tsで追加した早期hideスタイルを削除
+  // （#wrapper/#bgを表示可能にする）
+  const earlyHideStyle = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
+  if (earlyHideStyle) {
+    earlyHideStyle.remove();
+  }
+
+  // ヘッダーの高さを計算してCSS変数に設定
+  const headerElement = document.querySelector('header') || document.querySelector('#header');
+  let headerHeight = 0;
+  if (headerElement) {
+    headerHeight = headerElement.offsetHeight;
+  }
+  document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+
+  // テーマカラーのCSS変数は設定ストアが適用するため、ここでは不要
+  // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）
+
+  // スタイルを追加
+  if (!document.getElementById(EXTENSION_IDS.deckEdit.editUiStyles)) {
+    const style = document.createElement('style');
+    style.id = EXTENSION_IDS.deckEdit.editUiStyles;
+    style.textContent = `
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      #wrapper {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #bg,
+      #vue-edit-app {
+        background-color: var(--bg-primary);
+      }
+      #bg {
+        width: 100%;
+        height: 100%;
+      }
+      #vue-edit-app {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      .menu_btn_pagetop {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // FOUC防止：背景色を決定
+  const bgColor2 = document.documentElement.getAttribute('data-ygo-next-theme') === 'dark' ? '#1a1a1a' : '#ffffff';
+
+  // #wrapperと#bgを明示的に表示し、背景色を設定
+  const wrapperElement = document.getElementById('wrapper');
+  if (wrapperElement) {
+    wrapperElement.style.display = '';  // 元のスタイルに戻す（display: noneを解除）
+    wrapperElement.style.backgroundColor = bgColor2;
+  }
+  bgElement.style.display = 'block';
+  bgElement.style.backgroundColor = bgColor2;
+  document.body.style.backgroundColor = bgColor2;
+
+  // #bg の内容をすべて削除（古いコンテンツを確実に消す）
+  bgElement.innerHTML = '';
+
+  // 新しい #vue-edit-app 要素を作成（背景色を先に設定）
+  const vueEditApp = document.createElement('div');
+  vueEditApp.id = 'vue-edit-app';
+  vueEditApp.style.width = '100%';
+  vueEditApp.style.height = '100%';
+  vueEditApp.style.overflow = 'hidden';
+  vueEditApp.style.backgroundColor = bgColor2;
+
+  // #bg に追加
+  bgElement.appendChild(vueEditApp);
+
+  // Vue アプリケーションを起動
+  await initVueApp();
+
+  // オーバーレイはDeckEditLayout.vueのonMountedで削除される
+  // （デッキ読み込み完了後に削除）
+
+  // 言語切り替えボタンを差し替え（Vue初期化後）
+  replaceLanguageChangeLinks();
+}
+
+/**
+ * Vue アプリケーションを初期化
+ */
+async function initVueApp(): Promise<void> {
+  try {
+    // トップレベルで既にインポート開始しているPromiseを使用
+    const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await vueModulesPromise;
+
+    const app = createApp(DeckEditLayout);
+    const pinia = createPinia();
+
+    app.use(pinia);
+
+    // window.ygoNextCurrentSettings から即座に設定を読み込む（Chrome Storage 不要）
+    const cachedSettings = window.ygoNextCurrentSettings;
+    if (cachedSettings) {
+      const { useSettingsStore } = await import('../../stores/settings');
+      const settingsStore = useSettingsStore(pinia);
+      settingsStore.appSettings = { ...settingsStore.appSettings, ...cachedSettings };
+      // CSS変数を即座に適用（カードサイズなど画面構造に影響）
+      settingsStore.applyCardSize();
+      settingsStore.applyTheme();
+      settingsStore.applyRightAreaStyles();
+    }
+
+    app.mount('#vue-edit-app');
+
+    // Vue描画が完全に完了するまで待機
+    await nextTick();
+  } catch (error) {
+    console.error('Failed to initialize Vue app:', error);
+  }
+}
+
+// このモジュールが動的インポートされた時点で編集ページにいることが確定
+// URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
+// ただし、プリフェッチ時は編集ページでない可能性があるため、isVueEditPage() で条件チェック
+// 注: オーバーレイとpreloadはcontent/index.tsで既に実行されているため、ここでは不要
+(async () => {
+  // 編集ページでない場合はスキップ
+  if (!isVueEditPage()) {
+    return;
+  }
+
+  // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
+  applyThemeFromSettings().catch(err => {
+    console.warn('[Edit UI] Failed to apply theme:', err);
+  });
+
+  watchUrlChanges();
+})();

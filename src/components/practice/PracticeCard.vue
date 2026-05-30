@@ -4,9 +4,9 @@
     :data-card-id="card.id"
     :class="{
       'face-down': card.face === 'down' && !forceReveal && (zone === 'deck' || zone === 'extra'),
-      'face-down-transparent': card.face === 'down' && !forceReveal && zone !== 'deck' && zone !== 'extra',
+      'face-down-field': card.face === 'down' && !forceReveal && zone !== 'deck' && zone !== 'extra',
       'horizontal': card.orientation === 'horizontal',
-      'drag-over': isDragOver,
+      'is-dragging': isDragging,
     }"
     :draggable="true"
     @click="$emit('click', card)"
@@ -14,45 +14,61 @@
     @mouseleave="hovered = false"
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
-    @dragover.prevent="isDragOver = true"
-    @dragleave="isDragOver = false"
-    @drop.stop="handleDrop"
+    @contextmenu="handleContextMenu"
   >
     <img
-      v-if="card.face === 'up' || forceReveal || (zone !== 'deck' && zone !== 'extra')"
+      v-if="card.face === 'up' || forceReveal"
       :src="imageUrl"
       alt="card"
       class="practice-card-image"
       draggable="false"
     >
-    <img
-      v-else
-      :src="backImageUrl"
-      alt="card back"
-      class="practice-card-image"
-      draggable="false"
-    >
-    <div class="info-area" @click.stop="openCardInfo">
-      <button class="info-btn" title="Card Info">
-        <svg width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
-        </svg>
-      </button>
-    </div>
-    <div v-if="showActions && hovered" class="card-actions-overlay">
-      <button
-        v-for="action in actions"
-        :key="action.key"
-        class="card-action-btn"
-        :title="action.title"
-        @mousedown.stop
-        @click.stop="$emit('action', action.key, card.id)"
+    <template v-else-if="zone === 'deck' || zone === 'extra'">
+      <img
+        :src="backImageUrl"
+        alt="card back"
+        class="practice-card-image"
+        draggable="false"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24">
-          <path fill="currentColor" :d="action.icon" />
-        </svg>
+    </template>
+    <template v-else>
+      <img
+        :src="imageUrl"
+        alt="card"
+        class="practice-card-image"
+        draggable="false"
+      >
+      <img
+        v-if="imageUrl !== backImageUrl"
+        :src="backImageUrl"
+        alt="card back"
+        class="practice-card-image practice-card-facedown-top"
+        draggable="false"
+      >
+    </template>
+    <div v-if="!isFaceDown" class="card-controls">
+      <button class="card-btn top-left" @click.stop="showCardDetail">
+        <span class="btn-text">ⓘ</span>
       </button>
     </div>
+    <div v-if="showActions && hovered && !isFaceDown" class="card-actions-overlay">
+      <template v-for="(action, idx) in actions" :key="idx">
+        <button
+          v-if="action"
+          class="card-action-btn"
+          :title="action.title"
+          @mousedown.stop
+          @click.stop="$emit('action', action.key, card.id)"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24">
+            <path fill="currentColor" :d="action.icon" />
+          </svg>
+        </button>
+        <div v-else class="card-action-empty" />
+      </template>
+    </div>
+    <div v-if="isDragging && canRotate" class="drag-rotate-indicator" :class="{ 'is-rotated': draggingRotated }" />
+    <div v-if="isDragging" class="drag-facedown-indicator" :class="{ 'is-facedown': draggingFaceDown }" />
   </div>
 </template>
 
@@ -61,17 +77,11 @@ import { ref, computed } from 'vue'
 import type { PracticeCard, ZoneType } from '../../stores/practice'
 import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 import { detectCardGameType } from '../../utils/page-detector'
-import {
-  mdiArrowCollapseDown,
-  mdiArrowCollapseUp,
-  mdiArrowUp,
-  mdiGraveStone,
-  mdiHandBackRight,
-  mdiMinusCircle,
-  mdiPackageVariant,
-  mdiRotateRight,
-  mdiEyeOff,
-} from '@mdi/js'
+import { getCardImageUrl } from '../../types/card'
+import { isDragEvent, setDragData } from '../../utils/drag-data'
+import { usePracticeDragState } from '../../composables/practice/usePracticeDragState'
+import { usePracticeActions } from '../../composables/practice/usePracticeActions'
+import { useCardDetailDisplay } from '../../composables/useCardDetailDisplay'
 
 const props = withDefaults(defineProps<{
   card: PracticeCard
@@ -88,83 +98,35 @@ const emit = defineEmits<{
   action: [action: string, cardId: string]
   dragstart: [card: PracticeCard, event: DragEvent]
   dragend: []
-  drop: [cardId: string, fromZone: ZoneType, fromSlotIndex: number | undefined]
 }>()
 
 const hovered = ref(false)
-const isDragOver = ref(false)
+const { showCardDetail: showDetail } = useCardDetailDisplay()
+const { startDrag, toggleDragRotation, endDrag, draggingRotated, draggingFaceDown, draggingCardId, postDragRotation } = usePracticeDragState()
+const { getAvailableActions } = usePracticeActions()
+const isDragging = computed(() => draggingCardId.value === props.card.id)
 
+let dragStartedHorizontal = false
+
+const isFaceDown = computed(() =>
+  props.card.face === 'down' && !props.forceReveal && (props.zone === 'deck' || props.zone === 'extra')
+)
+
+const cardInfo = computed(() => getUnifiedCacheDB().getCardInfo(props.card.cid) ?? null)
+const isExtraCard = computed(() =>
+  cardInfo.value?.cardType === 'monster' && !!cardInfo.value?.isExtraDeck
+)
+
+// rotate可能なzone（墓地・除外・デッキ・エクストラデッキ・手札以外）
+const canRotate = computed(() => {
+  const noRotateZones = new Set<ZoneType>(['gy', 'banish', 'deck', 'extra', 'hand'])
+  return !!props.zone && !noRotateZones.has(props.zone)
+})
+
+// 全zoneで共通の6スロット（null = 空きスペース）
 const actions = computed(() => {
-  if (!props.zone) return []
-  switch (props.zone) {
-    case 'deck':
-      return [
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToBanish', title: 'Banish', icon: mdiMinusCircle },
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-      ]
-    case 'hand':
-      return [
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToBanish', title: 'Banish', icon: mdiMinusCircle },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-        { key: 'moveToTemp', title: 'Temp', icon: mdiPackageVariant },
-      ]
-    case 'monster':
-    case 'spellTrap':
-      return [
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToBanish', title: 'Banish', icon: mdiMinusCircle },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-        { key: 'toggleFace', title: 'Face', icon: mdiEyeOff },
-        { key: 'toggleOrientation', title: 'Rotate', icon: mdiRotateRight },
-      ]
-    case 'gy':
-      return [
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-        { key: 'moveToBanish', title: 'Banish', icon: mdiMinusCircle },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-      ]
-    case 'banish':
-      return [
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-      ]
-    case 'extra':
-      return [
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-      ]
-    case 'field':
-      return [
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToDeckTop', title: 'Deck Top', icon: mdiArrowCollapseUp },
-        { key: 'moveToDeckBottom', title: 'Deck Bot', icon: mdiArrowCollapseDown },
-      ]
-    case 'temp':
-      return [
-        { key: 'moveToHand', title: 'Hand', icon: mdiHandBackRight },
-        { key: 'moveToGY', title: 'GY', icon: mdiGraveStone },
-        { key: 'moveToBanish', title: 'Banish', icon: mdiMinusCircle },
-        { key: 'moveToField', title: 'Field', icon: mdiArrowUp },
-      ]
-    default:
-      return []
-  }
+  if (!props.zone) return [null, null, null, null, null, null]
+  return getAvailableActions(props.zone, props.card)
 })
 
 const backImageUrl = chrome.runtime.getURL('images/card_back.png')
@@ -174,52 +136,66 @@ const imageUrl = computed(() => {
   const cardInfo = unifiedDB.getCardInfo(props.card.cid)
   if (!cardInfo) return backImageUrl
 
-  const imgInfo = cardInfo.imgs.find(img => img.ciid === props.card.ciid)
-  if (!imgInfo) return backImageUrl
-
   const gameType = detectCardGameType()
-  const apiPath = `get_image.action?type=1&cid=${props.card.cid}&ciid=${props.card.ciid}&enc=${imgInfo.imgHash}&osplang=1`
-
-  const base = gameType === 'rush'
-    ? 'https://www.db.yugioh-card.com/rushdb/'
-    : 'https://www.db.yugioh-card.com/yugiohdb/'
-  return base + apiPath
+  return getCardImageUrl(cardInfo, gameType, props.card.ciid) ?? backImageUrl
 })
 
-function openCardInfo() {
-  const gameType = detectCardGameType()
-  const base = gameType === 'rush'
-    ? 'https://www.db.yugioh-card.com/rushdb/'
-    : 'https://www.db.yugioh-card.com/yugiohdb/'
-  const url = base + `card_search.action?ope=2&cid=${props.card.cid}`
-  window.open(url, '_blank')
+function showCardDetail() {
+  showDetail(props.card.cid)
 }
 
 function handleDragStart(event: Event) {
-  if (!(event instanceof DragEvent) || !event.dataTransfer) return
+  if (!isDragEvent(event) || !event.dataTransfer) return
+
+  const emptyImg = new Image()
+  emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const offset = { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  event.dataTransfer.setDragImage(emptyImg, 0, 0)
+
   event.dataTransfer.effectAllowed = 'move'
-  event.dataTransfer.setData('text/plain', JSON.stringify({
+  setDragData(event, {
     cardId: props.card.id,
     zone: props.zone,
     slotIndex: props.slotIndex,
-  }))
+  })
+  dragStartedHorizontal = props.card.orientation === 'horizontal'
+
+  const onRightClick = canRotate.value ? () => { toggleDragRotation() } : undefined
+  startDrag(props.card.id, props.card.orientation, imageUrl.value, offset, onRightClick)
+
   emit('dragstart', props.card, event)
 }
 
 function handleDragEnd() {
-  isDragOver.value = false
+  const wasRotated = draggingRotated.value
+  endDrag()
+
+  if (canRotate.value && wasRotated !== dragStartedHorizontal) {
+    emit('action', 'toggleOrientation', props.card.id)
+  }
+
+  // dragend後の右クリック回転検出
+  if (canRotate.value) {
+    setTimeout(() => {
+      if (postDragRotation.value) {
+        postDragRotation.value = false
+        emit('action', 'toggleOrientation', props.card.id)
+      }
+    }, 250)
+  }
+
   emit('dragend')
 }
 
-function handleDrop(event: Event) {
-  isDragOver.value = false
-  if (!(event instanceof DragEvent) || !event.dataTransfer) return
-  try {
-    const data = JSON.parse(event.dataTransfer.getData('text/plain'))
-    if (data.cardId && data.zone) {
-      emit('drop', data.cardId, data.zone, data.slotIndex)
-    }
-  } catch { /* ignore invalid data */ }
+function handleContextMenu(event: Event) {
+  event.preventDefault()
+  if (isDragging.value && canRotate.value) {
+    toggleDragRotation()
+  } else if (!isDragging.value && canRotate.value) {
+    emit('action', 'toggleOrientation', props.card.id)
+  }
 }
 </script>
 
@@ -232,6 +208,7 @@ function handleDrop(event: Event) {
   overflow: hidden;
   flex-shrink: 0;
   cursor: pointer;
+  direction: ltr;
   transition: transform 0.15s ease, opacity 0.2s ease;
 
   &:hover {
@@ -249,66 +226,89 @@ function handleDrop(event: Event) {
 }
 
 .face-down {
-  opacity: 0.7;
+  opacity: 1;
 }
 
-.face-down-transparent {
+.practice-card-facedown-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0.5;
 }
 
 .horizontal {
-  transform: rotate(90deg);
+  transform: rotate(-90deg);
   transform-origin: center center;
 
   &:hover {
-    transform: rotate(90deg) translateY(-2px);
+    transform: rotate(-90deg) translateX(-2px);
   }
 }
 
-.drag-over {
-  outline: 2px solid rgba(25, 118, 210, 0.8);
-  outline-offset: -2px;
+.is-dragging {
+  opacity: 0;
 }
 
-.info-area {
+.card-controls {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%;
-  height: 50%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  opacity: 0;
+  transition: opacity 0.2s;
   z-index: 4;
 }
 
-.info-btn {
-  padding: 2px;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-
-  &:hover {
-    opacity: 1;
-    background: rgba(25, 118, 210, 0.9);
-  }
-
-  svg {
-    display: block;
-  }
+.practice-card:hover .card-controls {
+  opacity: 1;
 }
 
-.card:hover .info-btn {
-  opacity: 1;
+.card-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  color: var(--button-text);
+  font-weight: bold;
+  position: relative;
+
+  &.top-left {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 2px 0 0 2px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 66.67%;
+      height: 66.67%;
+      background: var(--deck-card-btn-top-left-bg);
+      transition: background 0.15s;
+      pointer-events: none;
+    }
+
+    &:hover::before {
+      background: var(--deck-card-btn-top-left-hover-bg);
+      border: 1px solid var(--deck-card-btn-top-left-hover-border);
+    }
+  }
+
+  .btn-text {
+    position: relative;
+    z-index: 1;
+    font-size: 10px;
+  }
 }
 
 .card-actions-overlay {
@@ -340,6 +340,43 @@ function handleDrop(event: Event) {
 
   svg {
     display: block;
+  }
+}
+
+.card-action-empty {
+  width: 14px;
+  height: 14px;
+}
+
+.drag-rotate-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 200, 0, 0.85);
+  pointer-events: none;
+  z-index: 6;
+
+  &.is-rotated {
+    background: rgba(0, 200, 100, 0.85);
+  }
+}
+
+.drag-facedown-indicator {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(160, 160, 160, 0.5);
+  pointer-events: none;
+  z-index: 6;
+
+  &.is-facedown {
+    background: rgba(30, 30, 200, 0.85);
   }
 }
 </style>
