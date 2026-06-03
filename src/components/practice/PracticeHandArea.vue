@@ -32,7 +32,7 @@
                 :style="handCardStyle"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
@@ -55,7 +55,7 @@
             @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
             @click="$emit('card-click', card)"
             @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-            @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', handCards[0], event)"
+            @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
             @practice-dragend="$emit('card-dragend')"
           />
         </TransitionGroup>
@@ -90,7 +90,7 @@
                 :style="handCardStyle"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
@@ -112,7 +112,7 @@
           @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
           @click="$emit('card-click', card)"
           @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-          @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', handCards[0], event)"
+          @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
           @practice-dragend="$emit('card-dragend')"
         />
       </TransitionGroup>
@@ -142,7 +142,7 @@
                 :style="handCardStyle"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
-                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
                 @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>

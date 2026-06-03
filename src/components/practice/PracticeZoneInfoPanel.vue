@@ -208,7 +208,7 @@ function handlePracticeAction(action: string, uuid: string) {
   if (action === 'moveToHand') {
     practiceStore.moveCard(card.instanceId!, 'hand', undefined, { face: 'up' }, fieldIndex.value)
   } else if (action === 'moveToDeckBottom') {
-    practiceStore.moveCard(card.instanceId!, 'deck', undefined, { position: 'bottom', face: 'up' }, fieldIndex.value)
+    practiceStore.moveCard(card.instanceId!, 'deck', undefined, { position: 'bottom', face: 'down' }, fieldIndex.value)
   }
 }
 </script>
