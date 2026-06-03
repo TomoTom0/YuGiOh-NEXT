@@ -20,4 +20,7 @@ export interface CardListCard {
   types?: string[]
   isExtraDeck?: boolean
   effectType?: string
+  instanceId?: string
+  face?: 'up' | 'down'
+  orientation?: 'vertical' | 'horizontal'
 }

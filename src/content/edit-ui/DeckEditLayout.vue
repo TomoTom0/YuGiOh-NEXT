@@ -259,10 +259,12 @@ export default {
         const extraDeck = deckStore.deckInfo?.extraDeck || []
         practiceStore.initPractice(mainDeck, extraDeck)
         practiceMode.value = true
+        practiceStore.isActive = true
         deckStore.activeTab = 'practice'
       } else {
         // Exit practice mode
         practiceMode.value = false
+        practiceStore.isActive = false
         practiceStore.clearField2()
         deckStore.activeTab = 'search'
       }

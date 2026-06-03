@@ -16,6 +16,8 @@
           @card-action="(action, cardId) => handleAction(action, cardId, 0)"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDrop(i - 1, cardId, dropPos, 0)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckDrop(i - 1, cid, ciid, dropPos, 0)"
+          :card-width="cardSize.width"
+          :card-height="cardSize.height"
         />
       </div>
     </div>
@@ -48,6 +50,8 @@ const practiceCardStyle = computed(() => {
   }
 })
 
+const cardSize = computed(() => settingsStore.practiceCardSizePixels)
+
 function handleAction(action: string, cardId: string, fieldIdx: number) {
   executeAction(action, cardId, fieldIdx)
 }
@@ -64,8 +68,8 @@ function handleDeckDrop(slotIndex: number, cid: string, ciid: string, dropPos: D
 </script>
 
 <style scoped lang="scss">
-$pw: var(--practice-card-width, 90px);
-$ph: var(--practice-card-height, 130px);
+$pw: var(--practice-card-width, 36px);
+$ph: var(--practice-card-height, 53px);
 $zw: calc(#{$pw} + 60px);
 $slot-padding: 2px;
 $slot-border: 1px;

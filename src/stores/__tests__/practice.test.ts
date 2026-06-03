@@ -160,10 +160,10 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const handCard = store.zones.hand[0]!
-      store.moveCard(handCard.id, 'monster', 0)
+      store.moveCard(handCard.instanceId!, 'monster', 0)
 
       expect(store.zones.monster[0]).toHaveLength(1)
-      expect(store.zones.monster[0]![0]!.cid).toBe(handCard.cid)
+      expect(store.zones.monster[0]![0]!.cardId).toBe(handCard.cardId)
       expect(store.handCount).toBe(4)
     })
 
@@ -172,7 +172,7 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const handCard = store.zones.hand[0]!
-      store.moveCard(handCard.id, 'monster', 0, { face: 'down', orientation: 'horizontal' })
+      store.moveCard(handCard.instanceId!, 'monster', 0, { face: 'down', orientation: 'horizontal' })
 
       const moved = store.zones.monster[0]![0]!
       expect(moved.face).toBe('down')
@@ -218,7 +218,7 @@ describe('usePracticeStore', () => {
       const card = store.zones.hand[0]!
       expect(card.face).toBe('up')
 
-      store.setCardFace(card.id, 'down')
+      store.setCardFace(card.instanceId!, 'down')
 
       expect(store.zones.hand[0]!.face).toBe('down')
     })
@@ -230,7 +230,7 @@ describe('usePracticeStore', () => {
       const card = store.zones.hand[0]!
       expect(card.orientation).toBe('vertical')
 
-      store.setCardOrientation(card.id, 'horizontal')
+      store.setCardOrientation(card.instanceId!, 'horizontal')
 
       expect(store.zones.hand[0]!.orientation).toBe('horizontal')
     })
@@ -240,7 +240,7 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const card = store.zones.hand[0]!
-      store.setCardFace(card.id, 'up')
+      store.setCardFace(card.instanceId!, 'up')
 
       expect(store.canUndo).toBe(false)
     })
@@ -260,16 +260,16 @@ describe('usePracticeStore', () => {
       // We have 5 cards in hand, move them all to gy to test reorder
       for (let i = 0; i < 5; i++) {
         const card = store.zones.hand[0]!
-        store.moveCard(card.id, 'gy')
+        store.moveCard(card.instanceId!, 'gy')
       }
 
-      const firstCid = store.zones.gy[0]!.cid
-      const secondCid = store.zones.gy[1]!.cid
+      const firstCid = store.zones.gy[0]!.cardId
+      const secondCid = store.zones.gy[1]!.cardId
 
       store.reorderInZone('gy', undefined, 0, 1)
 
-      expect(store.zones.gy[0]!.cid).toBe(secondCid)
-      expect(store.zones.gy[1]!.cid).toBe(firstCid)
+      expect(store.zones.gy[0]!.cardId).toBe(secondCid)
+      expect(store.zones.gy[1]!.cardId).toBe(firstCid)
     })
   })
 
@@ -303,7 +303,7 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const card = store.zones.hand[0]!
-      store.moveCard(card.id, 'monster', 0)
+      store.moveCard(card.instanceId!, 'monster', 0)
       expect(store.zones.monster[0]).toHaveLength(1)
 
       store.undo()
@@ -316,7 +316,7 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const card = store.zones.hand[0]!
-      store.setCardFace(card.id, 'down')
+      store.setCardFace(card.instanceId!, 'down')
       expect(store.zones.hand[0]!.face).toBe('down')
 
       store.undo()
@@ -462,7 +462,7 @@ describe('usePracticeStore', () => {
 
       store.draw()
       store.draw()
-      store.moveCard(store.zones.hand[0]!.id, 'monster', 0)
+      store.moveCard(store.zones.hand[0]!.instanceId!, 'monster', 0)
 
       store.resetPractice()
 
@@ -484,7 +484,7 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const handCard = store.zones.hand[0]!
-      const loc = store.findCard(handCard.id)
+      const loc = store.findCard(handCard.instanceId!)
 
       expect(loc).not.toBeNull()
       expect(loc!.zone).toBe('hand')
@@ -496,9 +496,9 @@ describe('usePracticeStore', () => {
       store.initPractice([makeDeckRef('a', 10)], [])
 
       const card = store.zones.hand[0]!
-      store.moveCard(card.id, 'monster', 3)
+      store.moveCard(card.instanceId!, 'monster', 3)
 
-      const loc = store.findCard(store.zones.monster[3]![0]!.id)
+      const loc = store.findCard(store.zones.monster[3]![0]!.instanceId!)
       expect(loc).not.toBeNull()
       expect(loc!.zone).toBe('monster')
       expect(loc!.slotIndex).toBe(3)
@@ -552,9 +552,9 @@ describe('usePracticeStore', () => {
 
       store.resetPractice(0)
 
-      const allDeckCids = store.zones.deck.map(c => c.cid)
-      const allHandCids = store.zones.hand.map(c => c.cid)
-      const allExtraCids = store.zones.extra.map(c => c.cid)
+      const allDeckCids = store.zones.deck.map(c => c.cardId)
+      const allHandCids = store.zones.hand.map(c => c.cardId)
+      const allExtraCids = store.zones.extra.map(c => c.cardId)
 
       expect([...allDeckCids, ...allHandCids]).toContain('temp-main')
       expect(allExtraCids).toContain('temp-extra')

@@ -28,6 +28,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '.npm-cache/**',
+      'tmp/**',
       'tests/unit/stores/deck-edit.test.ts',
       'ref/**',
       // process.exit()を使用する独自テストランナー

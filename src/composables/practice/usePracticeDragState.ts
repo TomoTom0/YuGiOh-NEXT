@@ -7,6 +7,7 @@ const draggingFaceDown = ref(false)
 const draggingImageUrl = ref<string | null>(null)
 const draggingPos = ref({ x: -9999, y: -9999 })
 const draggingOffset = ref({ x: 0, y: 0 })
+const draggingCardSize = ref({ width: 36, height: 53 })
 const draggingStackTop = ref<boolean | null>(null)
 // dragend後の右クリック回転が発生したか
 const postDragRotation = ref(false)
@@ -51,6 +52,7 @@ export function usePracticeDragState() {
     orientation: CardOrientation,
     imageUrl: string,
     offset: { x: number; y: number },
+    cardSize: { width: number; height: number },
     onRightClick?: () => void,
   ) {
     draggingCardId.value = cardId
@@ -58,6 +60,7 @@ export function usePracticeDragState() {
     draggingFaceDown.value = false
     draggingImageUrl.value = imageUrl
     draggingOffset.value = offset
+    draggingCardSize.value = cardSize
     draggingPos.value = { x: -9999, y: -9999 }
 
     globalDragoverListener = (e: DragEvent) => {
@@ -133,6 +136,7 @@ export function usePracticeDragState() {
     draggingImageUrl.value = null
     draggingPos.value = { x: -9999, y: -9999 }
     draggingStackTop.value = null
+    draggingCardSize.value = { width: 36, height: 53 }
 
     if (globalDragoverListener) {
       document.removeEventListener('dragover', globalDragoverListener)
@@ -162,6 +166,7 @@ export function usePracticeDragState() {
     draggingImageUrl,
     draggingPos,
     draggingOffset,
+    draggingCardSize,
     draggingStackTop,
     postDragRotation,
     startDrag,

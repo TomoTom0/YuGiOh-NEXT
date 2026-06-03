@@ -1,5 +1,4 @@
 import { usePracticeStore, type ZoneType, type PracticeCard } from '../../stores/practice'
-import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 import {
   mdiArrowCollapseDown,
   mdiArrowCollapseUp,
@@ -59,8 +58,7 @@ export function usePracticeActions() {
   }
 
   function getAvailableActions(zone: ZoneType, card: PracticeCard): (ActionButton | null)[] {
-    const cardInfo = getUnifiedCacheDB().getCardInfo(card.cid)
-    const isExtraCard = cardInfo?.cardType === 'monster' && !!cardInfo?.isExtraDeck
+    const isExtraCard = card.cardType === 'monster' && !!card.isExtraDeck
     const canRotate = !NO_ROTATE_ZONES.has(zone)
 
     const deckKey = isExtraCard ? 'moveToExtraBottom' : 'moveToDeckBottom'

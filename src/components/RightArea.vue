@@ -10,7 +10,7 @@
     </div>
 
     <div class="right-area-main">
-      <div class="tabs" :style="{ '--tab-count': practiceMode ? 4 : 3 }">
+      <div class="tabs" :style="{ '--tab-count': tabCount }">
         <button
           v-if="practiceMode"
           class="practice-tab"
@@ -45,6 +45,7 @@
           Metadata
         </button>
         <button
+          v-if="chatFeatureEnabled"
           :class="{ active: deckStore.activeTab === 'chat' }"
           @click="deckStore.activeTab = 'chat'"
         >
@@ -81,7 +82,7 @@
         <DeckMetadata />
       </div>
 
-      <div v-show="deckStore.activeTab === 'chat'" class="chat-content">
+      <div v-show="chatFeatureEnabled && deckStore.activeTab === 'chat'" class="chat-content">
         <ChatPanel />
       </div>
     </div>
@@ -139,6 +140,17 @@ export default {
     const searchContentRef = ref(null)
     const metadataContentRef = ref(null)
     const practiceMode = inject('practiceMode', ref(false))
+
+    const chatFeatureEnabled = computed(() => {
+      return settingsStore.featureSettings.chat
+    })
+
+    const tabCount = computed(() => {
+      let count = 3 // Card, Search, Metadata
+      if (practiceMode.value) count++
+      if (chatFeatureEnabled.value) count++
+      return count
+    })
 
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
@@ -250,6 +262,8 @@ export default {
       searchStore,
       cardDetailStore,
       practiceMode,
+      chatFeatureEnabled,
+      tabCount,
       practiceContentRef,
       deckContentRef,
       cardDetailContentRef,

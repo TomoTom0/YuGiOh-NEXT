@@ -24,7 +24,7 @@ export function usePracticeDropHandler() {
       if (!dropPos.isTop) {
         practiceStore.moveCardToDeckAndShuffle(cardId, fieldIndex)
       } else if (dropPos.isRight) {
-        practiceStore.moveCard(cardId, 'deck', undefined, { position: 'top', face: 'down', orientation }, fieldIndex)
+        practiceStore.moveCard(cardId, 'deck', undefined, { position: 'top', face: 'up', orientation }, fieldIndex)
       } else {
         practiceStore.moveCard(cardId, 'deck', undefined, { position: 'bottom', face: 'up', orientation }, fieldIndex)
       }

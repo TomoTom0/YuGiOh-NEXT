@@ -8,10 +8,12 @@
 
       <div class="card-list-wrap" @click.capture="handleCardClick">
         <CardList
-          :cards="convertedCards"
+          :cards="sortedCards"
           section-type="practice"
           :sort-order="cardListSortOrder"
           :unique-id="`zone-${zone}-${slotIndex}`"
+          :force-reveal="true"
+          :zone="zone"
           @update:sort-order="handleSortChange"
           @practice-dragstart="handlePracticeDragStart"
           @practice-dragend="handlePracticeDragEnd"
@@ -30,14 +32,12 @@ import { ref, computed, watch } from 'vue'
 import { usePracticeStore, type PracticeCard, type ZoneType } from '../../stores/practice'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSettingsStore } from '../../stores/settings'
-import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 import { getCardImageUrl } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 import { setDragData } from '../../utils/drag-data'
 import { usePracticeDragState } from '../../composables/practice/usePracticeDragState'
 import { usePracticeActions, type ActionButton } from '../../composables/practice/usePracticeActions'
 import { createDeckCardComparator, buildRecipeSortOptions, type DisplayCard } from '../../composables/deck/useDeckCardSorter'
-import { practiceCardsToCardListCards } from '../../utils/practice-card-adapter'
 import CardList from '../CardList.vue'
 import {
   mdiClose,
@@ -81,11 +81,11 @@ const zoneLabel = computed(() => zone.value ? (ZONE_LABELS[zone.value] ?? zone.v
 const isDeckZone = computed(() => zone.value === 'deck' || zone.value === 'extra')
 
 const recipeComparator = computed(() => {
-  if (!isDeckZone.value || deckSortMode.value !== 'recipe') return null
+  if (!isDeckZone.value || (!deckSortMode.value.startsWith('recipe') && !deckSortMode.value.startsWith('fa-br'))) return null
   const displayCards: DisplayCard[] = cards.value.map(c => ({
-    cid: c.cid,
+    cid: c.cardId,
     ciid: Number(c.ciid),
-    uuid: c.id,
+    uuid: c.instanceId ?? '',
   }))
   return createDeckCardComparator(displayCards, buildRecipeSortOptions({
     enableCategoryPriority: settingsStore.appSettings.enableCategoryPriority,
@@ -97,16 +97,29 @@ const recipeComparator = computed(() => {
   }))
 })
 
-const deckSortMode = ref<string>('recipe')
+const deckSortMode = ref<string>('fa-br_asc')
 
 const sortedCards = computed(() => {
   if (!isDeckZone.value) return cards.value
-  if (deckSortMode.value === 'actual') return cards.value
+  if (deckSortMode.value.startsWith('actual')) return cards.value
+  if (deckSortMode.value.startsWith('fa-br')) {
+    // FA+BR: face-up cards keep actual order, face-down cards sorted by recipe
+    const faceUp = cards.value.filter(c => c.face === 'up')
+    const faceDown = cards.value.filter(c => c.face !== 'up')
+    if (!recipeComparator.value || faceDown.length === 0) return cards.value
+    const sortedFaceDown = [...faceDown].sort((a, b) =>
+      recipeComparator.value!(
+        { cid: a.cardId, ciid: Number(a.ciid), uuid: a.instanceId ?? '' },
+        { cid: b.cardId, ciid: Number(b.ciid), uuid: b.instanceId ?? '' },
+      )
+    )
+    return [...faceUp, ...sortedFaceDown]
+  }
   if (recipeComparator.value) {
     return [...cards.value].sort((a, b) =>
       recipeComparator.value!(
-        { cid: a.cid, ciid: Number(a.ciid), uuid: a.id },
-        { cid: b.cid, ciid: Number(b.ciid), uuid: b.id },
+        { cid: a.cardId, ciid: Number(a.ciid), uuid: a.instanceId ?? '' },
+        { cid: b.cardId, ciid: Number(b.ciid), uuid: b.instanceId ?? '' },
       )
     )
   }
@@ -114,8 +127,7 @@ const sortedCards = computed(() => {
 })
 
 const cardListSortOrder = computed(() => {
-  if (!isDeckZone.value) return 'code_asc'
-  if (deckSortMode.value === 'recipe' || deckSortMode.value === 'actual') return deckSortMode.value
+  if (!isDeckZone.value) return 'actual_asc'
   return deckSortMode.value
 })
 
@@ -123,15 +135,13 @@ function handleSortChange(sortOrder: string) {
   deckSortMode.value = sortOrder
 }
 
-const convertedCards = computed(() => practiceCardsToCardListCards(sortedCards.value))
-
 // UUID (CardList generates as `{cardId}-{ciid}-{index}` with code_asc sort = input order)
 // → PracticeCard mapping
 const practiceCardByUuid = computed(() => {
   const map = new Map<string, PracticeCard>()
   const indexCount = new Map<string, number>()
   for (const card of cards.value) {
-    const baseKey = `${card.cid}-${card.ciid || '0'}`
+    const baseKey = `${card.cardId}-${card.ciid || '0'}`
     const idx = indexCount.get(baseKey) ?? 0
     map.set(`${baseKey}-${idx}`, card)
     indexCount.set(baseKey, idx + 1)
@@ -157,7 +167,7 @@ function handleCardClick(event: MouseEvent) {
 
 function handleAction(actionKey: string) {
   if (!selectedPracticeCard.value) return
-  emit('action', actionKey, selectedPracticeCard.value.id)
+  emit('action', actionKey, selectedPracticeCard.value.instanceId)
   selectedPracticeCard.value = null
 }
 
@@ -176,16 +186,15 @@ function handlePracticeDragStart(event: DragEvent, uuid: string, offset: { x: nu
   event.dataTransfer.setDragImage(emptyImg, 0, 0)
   event.dataTransfer.effectAllowed = 'move'
 
-  setDragData(event, { cardId: card.id, zone: zone.value, slotIndex: slotIndex.value })
+  setDragData(event, { cardId: card.instanceId, zone: zone.value, slotIndex: slotIndex.value })
 
-  const info = getUnifiedCacheDB().getCardInfo(card.cid)
   const backUrl = chrome.runtime.getURL('images/card_back.png')
-  let imageUrl = backUrl
-  if (info) {
-    imageUrl = getCardImageUrl(info, detectCardGameType(), card.ciid) ?? backUrl
-  }
+  const imageUrl = getCardImageUrl(card, detectCardGameType(), card.ciid) ?? backUrl
 
-  startDrag(card.id, card.orientation, imageUrl, offset)
+  const el = event.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const cardSize = { width: rect.width, height: rect.height }
+  startDrag(card.instanceId!, card.orientation!, imageUrl, offset, cardSize)
   emit('dragstart', card, event)
 }
 
@@ -197,9 +206,9 @@ function handlePracticeAction(action: string, uuid: string) {
   const card = practiceCardByUuid.value.get(uuid)
   if (!card) return
   if (action === 'moveToHand') {
-    practiceStore.moveCard(card.id, 'hand', undefined, { face: 'up' }, fieldIndex.value)
+    practiceStore.moveCard(card.instanceId!, 'hand', undefined, { face: 'up' }, fieldIndex.value)
   } else if (action === 'moveToDeckBottom') {
-    practiceStore.moveCard(card.id, 'deck', undefined, { position: 'bottom', face: 'down' }, fieldIndex.value)
+    practiceStore.moveCard(card.instanceId!, 'deck', undefined, { position: 'bottom', face: 'up' }, fieldIndex.value)
   }
 }
 </script>

@@ -17,6 +17,8 @@
           @card-dragend="handleDragEndP2"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZoneP2('banish', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDropP2('banish', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
       </div>
       <div v-else class="field-slot empty-slot"></div>
@@ -34,6 +36,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('extraMonster', 0, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('extraMonster', 0, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
       </div>
       <div class="field-slot empty-slot"></div>
@@ -50,6 +54,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('extraMonster', 1, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('extraMonster', 1, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
       </div>
       <div class="field-slot empty-slot"></div>
@@ -66,6 +72,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('banish', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('banish', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="banish"
@@ -91,6 +99,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('field', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('field', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           :zone="'field'"
@@ -119,6 +129,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('monster', i - 1, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('monster', i - 1, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="monster"
@@ -141,6 +153,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('gy', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('gy', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="gy"
@@ -168,6 +182,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('extra', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('extra', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="extra"
@@ -197,6 +213,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('spellTrap', i - 1, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('spellTrap', i - 1, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="spellTrap"
@@ -220,6 +238,8 @@
           @card-dragend="handleDragEnd"
           @card-drop="(cardId, fromZone, fromSlotIndex, dropPos) => handleDropOnZone('deck', undefined, cardId, fromZone, fromSlotIndex, dropPos)"
           @deck-card-drop="(cid, ciid, dropPos) => handleDeckCardDrop('deck', undefined, cid, ciid, dropPos)"
+          :card-width="currentCardSize.width"
+          :card-height="currentCardSize.height"
         />
         <PracticeSlotControls
           zone="deck"
@@ -239,6 +259,8 @@
         :temp-cards="currentZones.temp"
         :reversed="fieldIndex === 1"
         :two-deck-mode="practiceStore.twoDeckMode"
+        :card-width="currentCardSize.width"
+        :card-height="currentCardSize.height"
         @card-click="handleCardClick"
         @card-action="handleAction"
         @card-dragstart="handleDragStart"
@@ -284,15 +306,16 @@ const dropHandler = usePracticeDropHandler()
 const fi = computed(() => props.fieldIndex)
 const hoveredZone = ref<string | null>(null)
 
-const practiceCardStyle = computed(() => {
-  const size = practiceStore.twoDeckMode
+const currentCardSize = computed(() =>
+  practiceStore.twoDeckMode
     ? settingsStore.practiceCardSize2PPixels
     : settingsStore.practiceCardSizePixels
-  return {
-    '--practice-card-width': `${size.width}px`,
-    '--practice-card-height': `${size.height}px`,
-  }
-})
+)
+
+const practiceCardStyle = computed(() => ({
+  '--practice-card-width': `${currentCardSize.value.width}px`,
+  '--practice-card-height': `${currentCardSize.value.height}px`,
+}))
 
 const isInitialized = computed(() =>
   fi.value === 1 ? practiceStore.initialized2 : practiceStore.initialized
@@ -384,8 +407,8 @@ function handleDeckCardDropP2(targetZone: ZoneType, _targetSlotIndex: number | u
 </script>
 
 <style scoped lang="scss">
-$pw: var(--practice-card-width, 90px);
-$ph: var(--practice-card-height, 130px);
+$pw: var(--practice-card-width, 36px);
+$ph: var(--practice-card-height, 53px);
 $zw: calc(#{$pw} + 60px);
 $sw: calc(#{$pw} + 16px);
 $gap: 6px;

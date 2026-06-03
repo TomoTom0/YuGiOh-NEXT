@@ -21,16 +21,19 @@
         >
           <template v-if="tempCards.length > 0">
             <TransitionGroup name="hand-card" tag="div" class="temp-cards">
-              <PracticeCardComponent
+              <DeckCard
                 v-for="card in tempCards"
-                :key="`temp-${card.id}`"
+                :key="`temp-${card.instanceId}`"
                 :card="card"
+                section-type="practice"
+                :uuid="card.instanceId ?? ''"
                 zone="temp"
                 class="hand-card"
+                :style="handCardStyle"
                 @click="$emit('card-click', card)"
-                @action="(key, cardId) => $emit('card-action', key, cardId)"
-                @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-                @dragend="$emit('card-dragend')"
+                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
           </template>
@@ -39,18 +42,21 @@
       <div class="hand-section-inline">
         <div class="area-label">Hand</div>
         <TransitionGroup name="hand-card" tag="div" class="hand-cards" :class="{ 'drag-over': isDragOver && !isTempDragOver }" :style="{ gap: `${handGap}px` }">
-          <PracticeCardComponent
+          <DeckCard
             v-for="(card, index) in handCards"
-            :key="`hand-${card.id}`"
+            :key="`hand-${card.instanceId}`"
             :card="card"
+            section-type="practice"
+            :uuid="card.instanceId ?? ''"
             zone="hand"
             class="hand-card"
+            :style="handCardStyle"
             @dragover.prevent
             @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
             @click="$emit('card-click', card)"
-            @action="(key, cardId) => $emit('card-action', key, cardId)"
-            @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-            @dragend="$emit('card-dragend')"
+            @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+            @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', handCards[0], event)"
+            @practice-dragend="$emit('card-dragend')"
           />
         </TransitionGroup>
       </div>
@@ -73,16 +79,19 @@
         >
           <template v-if="tempCards.length > 0">
             <TransitionGroup name="hand-card" tag="div" class="temp-cards">
-              <PracticeCardComponent
+              <DeckCard
                 v-for="card in tempCards"
-                :key="`temp-${card.id}`"
+                :key="`temp-${card.instanceId}`"
                 :card="card"
+                section-type="practice"
+                :uuid="card.instanceId ?? ''"
                 zone="temp"
                 class="hand-card"
+                :style="handCardStyle"
                 @click="$emit('card-click', card)"
-                @action="(key, cardId) => $emit('card-action', key, cardId)"
-                @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-                @dragend="$emit('card-dragend')"
+                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
           </template>
@@ -90,18 +99,21 @@
       </div>
       <div class="area-label">Hand</div>
       <TransitionGroup name="hand-card" tag="div" class="hand-cards" :class="{ 'drag-over': isDragOver && !isTempDragOver }" :style="{ gap: `${handGap}px` }">
-        <PracticeCardComponent
+        <DeckCard
           v-for="(card, index) in handCards"
-          :key="`hand-${card.id}`"
+          :key="`hand-${card.instanceId}`"
           :card="card"
+          section-type="practice"
+          :uuid="card.instanceId ?? ''"
           zone="hand"
           class="hand-card"
+          :style="handCardStyle"
           @dragover.prevent
           @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
           @click="$emit('card-click', card)"
-          @action="(key, cardId) => $emit('card-action', key, cardId)"
-          @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-          @dragend="$emit('card-dragend')"
+          @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+          @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', handCards[0], event)"
+          @practice-dragend="$emit('card-dragend')"
         />
       </TransitionGroup>
       <!-- Temp section (shown last when normal=P1) -->
@@ -119,16 +131,19 @@
         >
           <template v-if="tempCards.length > 0">
             <TransitionGroup name="hand-card" tag="div" class="temp-cards">
-              <PracticeCardComponent
+              <DeckCard
                 v-for="card in tempCards"
-                :key="`temp-${card.id}`"
+                :key="`temp-${card.instanceId}`"
                 :card="card"
+                section-type="practice"
+                :uuid="card.instanceId ?? ''"
                 zone="temp"
                 class="hand-card"
+                :style="handCardStyle"
                 @click="$emit('card-click', card)"
-                @action="(key, cardId) => $emit('card-action', key, cardId)"
-                @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-                @dragend="$emit('card-dragend')"
+                @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+                @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', cards[0], event)"
+                @practice-dragend="$emit('card-dragend')"
               />
             </TransitionGroup>
           </template>
@@ -143,7 +158,7 @@ import { ref, computed } from 'vue'
 import { TransitionGroup } from 'vue'
 import type { PracticeCard, ZoneType } from '../../stores/practice'
 import { isDragEvent, parseDragData, isPracticeDragData, isDeckDragData, type DropPosition } from '../../utils/drag-data'
-import PracticeCardComponent from './PracticeCard.vue'
+import DeckCard from '../DeckCard.vue'
 import { useSettingsStore } from '../../stores/settings'
 
 
@@ -152,6 +167,8 @@ const props = withDefaults(defineProps<{
   tempCards: PracticeCard[]
   reversed?: boolean
   twoDeckMode?: boolean
+  cardWidth?: number
+  cardHeight?: number
 }>(), {
   reversed: false,
   twoDeckMode: false,
@@ -172,10 +189,25 @@ const isDragOver = ref(false)
 const isTempDragOver = ref(false)
 const settingsStore = useSettingsStore()
 
+const cardSize = computed(() => {
+  if (props.cardWidth != null && props.cardHeight != null) {
+    return { width: props.cardWidth, height: props.cardHeight }
+  }
+  return settingsStore.practiceCardSizePixels
+})
+
+const handCardStyle = computed(() => {
+  const { width, height } = cardSize.value
+  return {
+    width: `${width}px`,
+    height: `${height}px`,
+  }
+})
+
 const handGap = computed(() => {
   const count = props.handCards.length
   if (count <= 1) return 2
-  const { width: cardW } = settingsStore.practiceCardSizePixels
+  const { width: cardW } = cardSize.value
   const slotOverhead = 6
   const fieldContentWidth = 7 * (cardW + slotOverhead) + 6 * 6
   const available = fieldContentWidth - 4
@@ -317,7 +349,7 @@ function handleTempDrop(event: Event) {
   flex-wrap: nowrap;
   flex: 1;
   padding: 2px;
-  min-height: var(--practice-card-height, 110px);
+  min-height: var(--practice-card-height, 53px);
   background: rgba(25, 118, 210, 0.05);
   border-radius: 3px;
   transition: background 0.15s;
@@ -348,7 +380,7 @@ function handleTempDrop(event: Event) {
   flex-wrap: wrap;
   gap: 2px;
   padding: 4px 6px;
-  min-height: var(--practice-card-height, 110px);
+  min-height: var(--practice-card-height, 53px);
   width: 100%;
   box-sizing: border-box;
   border: 1px dashed rgba(180, 130, 255, 0.4);

@@ -515,10 +515,11 @@ describe('LoadDialog.vue', () => {
   // 5. デッキロード機能
   // ============================================================
   describe('デッキロード機能', () => {
-    it('デッキカードをクリックするとloadDeckが呼ばれる', async () => {
+    it('デッキカードをクリックするとonLoadCallbackが呼ばれる', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: 'Test Deck' }];
-      store.loadDeck = vi.fn().mockResolvedValue(undefined);
+      const onLoadSpy = vi.fn().mockResolvedValue(undefined);
+      store.onLoadCallback = onLoadSpy;
 
       const wrapper = mount(LoadDialog, {
         props: {
@@ -539,13 +540,14 @@ describe('LoadDialog.vue', () => {
       await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(store.loadDeck).toHaveBeenCalledWith(1);
+      expect(onLoadSpy).toHaveBeenCalledWith(1);
     });
 
-    it('デッキロード時にlocalStorageに保存される', async () => {
+    it('デッキロード時にonLoadCallbackが正しいdnoで呼ばれる', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 123, name: 'Test Deck' }];
-      store.loadDeck = vi.fn().mockResolvedValue(undefined);
+      const onLoadSpy = vi.fn().mockResolvedValue(undefined);
+      store.onLoadCallback = onLoadSpy;
 
       const wrapper = mount(LoadDialog, {
         props: {
@@ -566,13 +568,13 @@ describe('LoadDialog.vue', () => {
       await wrapper.vm.$nextTick();
       await flushPromises();
 
-      expect(localStorage.setItem).toHaveBeenCalledWith('ygoNext:lastDeckDno', '123');
+      expect(onLoadSpy).toHaveBeenCalledWith(123);
     });
 
     it('デッキロード時にダイアログが閉じる', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: 'Test Deck' }];
-      store.loadDeck = vi.fn().mockResolvedValue(undefined);
+      store.onLoadCallback = vi.fn().mockResolvedValue(undefined);
       store.showLoadDialog = true;
 
       const wrapper = mount(LoadDialog, {
@@ -600,7 +602,7 @@ describe('LoadDialog.vue', () => {
     it('デッキロードエラー時にconsole.errorが呼ばれる', async () => {
       const store = useDeckEditStore();
       store.deckList = [{ dno: 1, name: 'Test Deck' }];
-      store.loadDeck = vi.fn().mockRejectedValue(new Error('Load failed'));
+      store.onLoadCallback = vi.fn().mockRejectedValue(new Error('Load failed'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
