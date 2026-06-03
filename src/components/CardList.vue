@@ -106,8 +106,9 @@
       <div class="toolbar-left">
         <div class="sort-wrapper">
           <select v-model="sortBase" class="sort-select" @change="handleSortChange">
+            <option v-if="sectionType === 'practice'" value="fa-br">FA+BR</option>
             <option v-if="sectionType === 'practice'" value="recipe">Recipe</option>
-            <option v-if="sectionType === 'practice'" value="actual">Actual</option>
+            <option v-if="sectionType === 'practice'" value="actual_asc">Actual</option>
             <option value="release">発売日</option>
             <option value="name">名前</option>
             <option value="atk">ATK</option>
@@ -167,6 +168,8 @@
             :section-type="sectionType"
             :index="idx"
             :uuid="item.uuid"
+            :force-reveal="forceReveal"
+            :zone="zone"
             @practice-dragstart="(event, uuid, offset) => $emit('practice-dragstart', event, uuid, offset)"
             @practice-dragend="$emit('practice-dragend')"
             @practice-action="(action, uuid) => $emit('practice-action', action, uuid)"
@@ -258,6 +261,14 @@ export default {
     showCodeSort: {
       type: Boolean,
       default: false
+    },
+    forceReveal: {
+      type: Boolean,
+      default: false
+    },
+    zone: {
+      type: String,
+      default: undefined
     }
   },
   emits: ['sort-change', 'scroll', 'scroll-to-top', 'collapse', 'update:sortOrder', 'update:viewMode', 'practice-dragstart', 'practice-dragend', 'practice-action'],
@@ -398,10 +409,15 @@ export default {
         case 'code_desc':
           // コード順（逆順）: 元の配列順序を反転
           return sorted.reverse()
-        case 'recipe':
-        case 'actual':
-          // recipe/actualはPracticeZoneInfoPanel側で事前ソート済みのため元の順序を維持
+        case 'recipe_asc':
+        case 'actual_asc':
+        case 'fa-br_asc':
+          // PracticeZoneInfoPanel側で事前ソート済みのため元の順序を維持
           return sorted
+        case 'recipe_desc':
+        case 'actual_desc':
+        case 'fa-br_desc':
+          return sorted.reverse()
         default:
           return sorted
       }

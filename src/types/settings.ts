@@ -7,13 +7,14 @@
  */
 export type CardGameType = 'ocg' | 'rush';
 
-export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit';
+export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit' | 'chat';
 
 export interface FeatureSettings {
   [key: string]: boolean;
   'shuffle-sort': boolean;
   'deck-image': boolean;
   'deck-edit': boolean;
+  'chat': boolean;
 }
 
 /**
@@ -298,6 +299,7 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
   'shuffle-sort': true,
   'deck-image': true,
   'deck-edit': true,
+  'chat': false,
 };
 
 /**

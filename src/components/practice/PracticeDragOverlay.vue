@@ -26,14 +26,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { usePracticeDragState } from '../../composables/practice/usePracticeDragState'
-import { useSettingsStore } from '../../stores/settings'
 
-const settingsStore = useSettingsStore()
-const { draggingCardId, draggingFaceDown, draggingImageUrl, draggingPos, draggingOffset, draggingRotated, draggingStackTop } = usePracticeDragState()
+const { draggingCardId, draggingFaceDown, draggingImageUrl, draggingPos, draggingOffset, draggingRotated, draggingStackTop, draggingCardSize } = usePracticeDragState()
 
 const backImageUrl = chrome.runtime.getURL('images/card_back.png')
 
-const cardSize = computed(() => settingsStore.practiceCardSizePixels)
+const cardSize = computed(() => draggingCardSize.value)
 
 const overlayStyle = computed(() => {
   const { x, y } = draggingPos.value

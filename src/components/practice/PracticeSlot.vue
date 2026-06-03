@@ -37,6 +37,8 @@
       :zone="zone"
       :slot-index="slotIndex"
       :drag-over="isDragOver"
+      :card-width="cardWidth"
+      :card-height="cardHeight"
       @card-click="handleCardClick"
       @card-action="(key, cardId) => $emit('card-action', key, cardId)"
       @card-dragstart="(card, event) => $emit('card-dragstart', card, event)"
@@ -74,11 +76,15 @@ const props = withDefaults(defineProps<{
   stackDirection?: 'right-up' | 'left-up' | 'right' | 'left' | 'none'
   maxVisible?: number
   forceReveal?: boolean
+  cardWidth?: number
+  cardHeight?: number
 }>(), {
   slotIndex: undefined,
   stackDirection: 'right-up',
   maxVisible: 3,
   forceReveal: false,
+  cardWidth: 36,
+  cardHeight: 53,
 })
 
 const emit = defineEmits<{

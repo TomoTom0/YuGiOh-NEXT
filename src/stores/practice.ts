@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { DeckCardRef } from '../types/card'
+import type { CardListCard } from '../types/card-list'
 import { fisherYatesShuffle } from '../utils/array-shuffle'
+import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo'
 
 // --- Types ---
@@ -9,13 +11,7 @@ import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRe
 export type CardFace = 'up' | 'down'
 export type CardOrientation = 'vertical' | 'horizontal'
 
-export interface PracticeCard {
-  id: string
-  cid: string
-  ciid: string
-  face: CardFace
-  orientation: CardOrientation
-}
+export type PracticeCard = CardListCard
 
 export interface TempRecipeCard {
   cid: string
@@ -65,14 +61,56 @@ const STORAGE_KEY = 'ygoNext:practice'
 
 // --- Helpers ---
 
-function createCard(cid: string, ciid: string, face: CardFace = 'up'): PracticeCard {
-  return {
-    id: crypto.randomUUID(),
-    cid,
+function createCard(cid: string, ciid: string, face: CardFace = 'up'): CardListCard {
+  const db = getUnifiedCacheDB()
+  const info = db.getCardInfo(cid)
+  const instanceId = crypto.randomUUID()
+
+  if (!info) {
+    return {
+      cardId: cid,
+      name: '',
+      ciid,
+      lang: 'ja',
+      imgs: [],
+      cardType: 'unknown',
+      empty: false,
+      instanceId,
+      face,
+      orientation: 'vertical',
+    }
+  }
+
+  const base: CardListCard = {
+    cardId: cid,
+    name: info.name,
     ciid,
+    lang: info.lang,
+    imgs: info.imgs ?? [],
+    cardType: info.cardType,
+    limitRegulation: info.limitRegulation,
+    text: info.text,
+    pendulumText: info.pendulumText,
+    empty: false,
+    instanceId,
     face,
     orientation: 'vertical',
   }
+
+  if (info.cardType === 'monster') {
+    base.atk = info.atk
+    base.def = info.def
+    base.levelType = info.levelType
+    base.levelValue = info.levelValue
+    base.attribute = info.attribute
+    base.race = info.race
+    base.types = info.types
+    base.isExtraDeck = info.isExtraDeck
+  } else if (info.cardType === 'spell' || info.cardType === 'trap') {
+    base.effectType = info.effectType
+  }
+
+  return base
 }
 
 function emptyZones(): PracticeZones {
@@ -146,6 +184,9 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // Mode（P2にデッキがロードされているか）
   const twoDeckMode = computed(() => p2DeckDno.value !== null)
+
+  // Practice mode active state
+  const isActive = ref(false)
 
   // Zone selection (for zone info panel in practice tab)
   const selectedZone = ref<ZoneType | null>(null)
@@ -222,19 +263,19 @@ export const usePracticeStore = defineStore('practice', () => {
     const simpleZones: ZoneType[] = ['field', 'gy', 'banish', 'deck', 'extra', 'hand', 'temp']
     for (const zone of simpleZones) {
       const cards = z[zone] as PracticeCard[]
-      const idx = cards.findIndex(c => c.id === cardId)
+      const idx = cards.findIndex(c => c.instanceId === cardId)
       if (idx !== -1) return { zone, cardIndex: idx, fieldIndex }
     }
     for (let i = 0; i < 5; i++) {
-      const idx = z.monster[i]!.findIndex(c => c.id === cardId)
+      const idx = z.monster[i]!.findIndex(c => c.instanceId === cardId)
       if (idx !== -1) return { zone: 'monster', slotIndex: i, cardIndex: idx, fieldIndex }
     }
     for (let i = 0; i < 5; i++) {
-      const idx = z.spellTrap[i]!.findIndex(c => c.id === cardId)
+      const idx = z.spellTrap[i]!.findIndex(c => c.instanceId === cardId)
       if (idx !== -1) return { zone: 'spellTrap', slotIndex: i, cardIndex: idx, fieldIndex }
     }
     for (let i = 0; i < 2; i++) {
-      const idx = z.extraMonster[i]!.findIndex(c => c.id === cardId)
+      const idx = z.extraMonster[i]!.findIndex(c => c.instanceId === cardId)
       if (idx !== -1) return { zone: 'extraMonster', slotIndex: i, cardIndex: idx, fieldIndex }
     }
     return null
@@ -590,17 +631,107 @@ export const usePracticeStore = defineStore('practice', () => {
 
   // --- Persistence ---
 
+  function stripCards(cards: CardListCard[]): Array<{ instanceId: string; cardId: string; ciid: string; face: CardFace; orientation: CardOrientation }> {
+    return cards.map(c => ({
+      instanceId: c.instanceId ?? '',
+      cardId: c.cardId,
+      ciid: c.ciid,
+      face: c.face ?? 'up',
+      orientation: c.orientation ?? 'vertical',
+    }))
+  }
+
+  function stripZones(z: PracticeZones) {
+    return {
+      field: stripCards(z.field),
+      monster: z.monster.map(s => stripCards(s)),
+      spellTrap: z.spellTrap.map(s => stripCards(s)),
+      extraMonster: z.extraMonster.map(s => stripCards(s)),
+      gy: stripCards(z.gy),
+      banish: stripCards(z.banish),
+      deck: stripCards(z.deck),
+      extra: stripCards(z.extra),
+      hand: stripCards(z.hand),
+      temp: stripCards(z.temp),
+    }
+  }
+
+  function rehydrateCard(raw: Record<string, unknown>): CardListCard {
+    const instanceId = (raw.instanceId ?? raw.id ?? '') as string
+    const cardId = (raw.cardId ?? raw.cid ?? '') as string
+    const ciid = (raw.ciid ?? '') as string
+    const face = (raw.face ?? 'up') as CardFace
+    const orientation = (raw.orientation ?? 'vertical') as CardOrientation
+
+    const db = getUnifiedCacheDB()
+    const info = db.getCardInfo(cardId)
+
+    if (!info) {
+      return { cardId, name: '', ciid, lang: 'ja', imgs: [], cardType: 'unknown', empty: false, instanceId, face, orientation }
+    }
+
+    const base: CardListCard = {
+      cardId,
+      name: info.name,
+      ciid,
+      lang: info.lang,
+      imgs: info.imgs ?? [],
+      cardType: info.cardType,
+      limitRegulation: info.limitRegulation,
+      text: info.text,
+      pendulumText: info.pendulumText,
+      empty: false,
+      instanceId,
+      face,
+      orientation,
+    }
+
+    if (info.cardType === 'monster') {
+      base.atk = info.atk
+      base.def = info.def
+      base.levelType = info.levelType
+      base.levelValue = info.levelValue
+      base.attribute = info.attribute
+      base.race = info.race
+      base.types = info.types
+      base.isExtraDeck = info.isExtraDeck
+    } else if (info.cardType === 'spell' || info.cardType === 'trap') {
+      base.effectType = info.effectType
+    }
+
+    return base
+  }
+
+  function rehydrateZone(raw: unknown[]): CardListCard[] {
+    return (raw as Record<string, unknown>[]).map(rehydrateCard)
+  }
+
+  function rehydrateZones(raw: Record<string, unknown>): PracticeZones {
+    return {
+      field: rehydrateZone((raw.field ?? []) as unknown[]),
+      monster: ((raw.monster ?? []) as unknown[][]).map(rehydrateZone),
+      spellTrap: ((raw.spellTrap ?? []) as unknown[][]).map(rehydrateZone),
+      extraMonster: ((raw.extraMonster ?? []) as unknown[][]).map(rehydrateZone),
+      gy: rehydrateZone((raw.gy ?? []) as unknown[]),
+      banish: rehydrateZone((raw.banish ?? []) as unknown[]),
+      deck: rehydrateZone((raw.deck ?? []) as unknown[]),
+      extra: rehydrateZone((raw.extra ?? []) as unknown[]),
+      hand: rehydrateZone((raw.hand ?? []) as unknown[]),
+      temp: rehydrateZone((raw.temp ?? []) as unknown[]),
+    }
+  }
+
   function saveToLocalStorage() {
     try {
       const data = {
-        zones: zones.value,
+        zones: stripZones(zones.value),
         revealDeck: revealDeck.value,
         revealExtra: revealExtra.value,
         originalMainDeck: originalMainDeck.value,
         originalExtraDeck: originalExtraDeck.value,
         tempRecipe: tempRecipe.value,
         initialized2: initialized2.value,
-        zones2: zones2.value,
+        zones2: stripZones(zones2.value),
         revealDeck2: revealDeck2.value,
         revealExtra2: revealExtra2.value,
         originalMainDeck2: originalMainDeck2.value,
@@ -623,7 +754,7 @@ export const usePracticeStore = defineStore('practice', () => {
       const data = JSON.parse(raw)
       if (!data.zones) return false
 
-      zones.value = data.zones
+      zones.value = rehydrateZones(data.zones as Record<string, unknown>)
       revealDeck.value = data.revealDeck ?? false
       revealExtra.value = data.revealExtra ?? false
       originalMainDeck.value = data.originalMainDeck ?? []
@@ -632,7 +763,7 @@ export const usePracticeStore = defineStore('practice', () => {
       initialized.value = true
 
       if (data.initialized2 || data.twoDeckMode) {
-        zones2.value = data.zones2 ?? emptyZones()
+        zones2.value = data.zones2 ? rehydrateZones(data.zones2 as Record<string, unknown>) : emptyZones()
         revealDeck2.value = data.revealDeck2 ?? false
         revealExtra2.value = data.revealExtra2 ?? false
         originalMainDeck2.value = data.originalMainDeck2 ?? []
@@ -706,6 +837,7 @@ export const usePracticeStore = defineStore('practice', () => {
 
     // Mode
     twoDeckMode,
+    isActive,
 
     // Zone selection
     selectedZone,

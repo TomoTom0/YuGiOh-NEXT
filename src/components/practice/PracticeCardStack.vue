@@ -1,26 +1,23 @@
 <template>
-  <div class="ygo-next practice-card-stack" :class="[`direction-${direction}`]">
+  <div class="ygo-next practice-card-stack" :class="[`direction-${direction}`]" :style="stackSizeStyle">
     <TransitionGroup name="card-stack" tag="div" class="stack-cards">
-      <PracticeCardComponent
+      <DeckCard
         v-for="(card, i) in visibleCards"
-        :key="`${zone}-${slotIndex ?? 0}-${card.id}`"
+        :key="`${zone}-${slotIndex ?? 0}-${card.instanceId}`"
         :card="card"
+        section-type="practice"
+        :uuid="card.instanceId ?? ''"
         :force-reveal="forceReveal"
         :zone="zone"
         :slot-index="slotIndex"
         :style="offsetStyle(i)"
         class="stack-card"
         @click="$emit('card-click', card)"
-        @action="(key, cardId) => $emit('card-action', key, cardId)"
-        @dragstart="(card, event) => $emit('card-dragstart', card, event)"
-        @dragend="$emit('card-dragend')"
+        @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
+        @practice-dragstart="(event, uuid, offset) => $emit('practice-dragstart', event, uuid, offset)"
+        @practice-dragend="$emit('card-dragend')"
       />
     </TransitionGroup>
-    <div
-      v-if="dragOver && draggingStackTop !== null && zone !== 'deck'"
-      class="stack-drop-preview"
-      :style="previewStyle"
-    />
     <div v-if="totalCount > 0" class="stack-badge">
       {{ totalCount }}
     </div>
@@ -30,8 +27,7 @@
 <script setup lang="ts">
 import { computed, TransitionGroup } from 'vue'
 import type { PracticeCard, ZoneType } from '../../stores/practice'
-import PracticeCardComponent from './PracticeCard.vue'
-import { usePracticeDragState } from '../../composables/practice/usePracticeDragState'
+import DeckCard from '../DeckCard.vue'
 
 const props = withDefaults(defineProps<{
   cards: PracticeCard[]
@@ -41,47 +37,44 @@ const props = withDefaults(defineProps<{
   zone?: ZoneType
   slotIndex?: number
   dragOver?: boolean
+  cardWidth?: number
+  cardHeight?: number
 }>(), {
   direction: 'right-up',
   maxVisible: 3,
   forceReveal: false,
   dragOver: false,
+  cardWidth: 36,
+  cardHeight: 53,
 })
 
-const { draggingStackTop } = usePracticeDragState()
+const stackSizeStyle = computed(() => ({
+  width: `${props.cardWidth}px`,
+  height: `${props.cardHeight}px`,
+}))
 
-// deck/extraで表向きカードが上または下に置かれた場合は right-up でオフセット表示
-const effectiveDirection = computed(() => {
-  if ((props.zone === 'deck' || props.zone === 'extra') && !props.forceReveal) {
-    const topCard = props.cards[0]
-    if (topCard && topCard.face === 'up') return 'right-up' as const
-    const bottomCard = props.cards[props.cards.length - 1]
-    if (bottomCard && props.cards.length > 1 && bottomCard.face === 'up') return 'right-up' as const
-  }
-  return props.direction
-})
-
-const previewStyle = computed(() => {
-  if (!props.dragOver || draggingStackTop.value === null) return {}
-  const dir = effectiveDirection.value
-  if (dir === 'right-up' || dir === 'left-up') {
-    const xDir = dir === 'left-up' ? -1 : 1
-    // top = 手前（前面）に挿入, bottom = 奥（背面）に挿入
-    return draggingStackTop.value
-      ? { transform: `translate(${8 * xDir}px, -4px)`, zIndex: 30 }
-      : { transform: `translate(${-8 * xDir}px, 4px)`, zIndex: -1 }
-  }
-  return draggingStackTop.value
-    ? { transform: 'translate(0px, -8px)', zIndex: 30 }
-    : { transform: 'translate(0px, 8px)', zIndex: -1 }
-})
-
-defineEmits<{
+const emit = defineEmits<{
   'card-click': [card: PracticeCard]
   'card-action': [action: string, cardId: string]
   'card-dragstart': [card: PracticeCard, event: DragEvent]
   'card-dragend': []
+  'practice-dragstart': [event: DragEvent, uuid: string, offset: { x: number; y: number }]
+  'practice-dragend': []
+  'practice-action': [action: string, uuid: string]
 }>()
+
+// deck/extraで表向きカードが上と下にある場合は right-up でオフセット表示、1枚のみの場合は none
+const effectiveDirection = computed(() => {
+  if ((props.zone === 'deck' || props.zone === 'extra') && !props.forceReveal) {
+    const topCard = props.cards[0]
+    const bottomCard = props.cards[props.cards.length - 1]
+    const hasTopFaceUp = topCard && topCard.face === 'up'
+    const hasBottomFaceUp = bottomCard && props.cards.length > 1 && bottomCard.face === 'up'
+    if (hasTopFaceUp && hasBottomFaceUp) return 'right-up' as const
+    if (hasTopFaceUp || hasBottomFaceUp) return 'none' as const
+  }
+  return props.direction
+})
 
 const totalCount = computed(() => props.cards.length)
 
@@ -89,16 +82,21 @@ const visibleCards = computed(() => {
   const isFaceDownOnly = (props.zone === 'deck' || props.zone === 'extra') && !props.forceReveal
   if (isFaceDownOnly) {
     const topCard = props.cards[0]
-    if (topCard && topCard.face === 'up') {
-      // 表向きカードがデッキ上にある: 裏向き→表向きの順で並べて表を前面に表示
-      const secondCard = props.cards[1]
-      return secondCard ? [secondCard, topCard] : [topCard]
-    }
-    // 表向きカードがデッキ下にある: 表向き→裏向きの順で並べて裏を前面に表示
     const bottomCard = props.cards[props.cards.length - 1]
-    if (bottomCard && props.cards.length > 1 && bottomCard.face === 'up') {
-      return [bottomCard, topCard!]
+    const result: PracticeCard[] = []
+
+    // 表向きカードがデッキ下にある場合
+    if (bottomCard && bottomCard.face === 'up' && props.cards.length > 1) {
+      result.push(bottomCard)
     }
+    // 表向きカードがデッキ上にある場合（下のカードと重複しない場合）
+    if (topCard && topCard.face === 'up') {
+      if (result.length === 0 || topCard !== bottomCard) {
+        result.push(topCard)
+      }
+    }
+
+    if (result.length > 0) return result
     return props.cards.slice(0, 1)
   }
   if (props.cards.length <= props.maxVisible) return props.cards
@@ -131,8 +129,6 @@ function offsetStyle(index: number | string) {
 .practice-card-stack {
   position: relative;
   display: inline-block;
-  width: var(--practice-card-width, 75px);
-  height: var(--practice-card-height, 110px);
 }
 
 .stack-cards {
@@ -144,20 +140,6 @@ function offsetStyle(index: number | string) {
 .stack-card {
   position: absolute;
   transition: left 0.25s ease, top 0.25s ease;
-}
-
-.stack-drop-preview {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border: 2px solid rgba(100, 180, 255, 0.9);
-  background: rgba(25, 118, 210, 0.25);
-  border-radius: 3px;
-  pointer-events: none;
-  z-index: 20;
-  box-shadow: 0 0 6px rgba(100, 180, 255, 0.5);
 }
 
 .stack-badge {
