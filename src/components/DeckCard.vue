@@ -78,7 +78,7 @@
       <button
         v-if="topRightText"
         class="card-btn top-right"
-        :class="[topRightClass, { 'always-visible': showPracticeActions && card.face === 'up' }]"
+        :class="[topRightClass, { 'always-visible': showPracticeActions && showFaceToggle && card.face === 'up' }]"
         @click.stop="handleTopRight"
       >
         <svg v-if="topRightIcon" width="10" height="10" viewBox="0 0 24 24">
@@ -172,6 +172,10 @@ export default {
       default: false
     },
     showActions: {
+      type: Boolean,
+      default: true
+    },
+    showFaceToggle: {
       type: Boolean,
       default: true
     }
@@ -277,7 +281,7 @@ export default {
       return chrome.runtime.getURL('images/card_back.png')
     },
     topRightText() {
-      if (this.showPracticeActions) {
+      if (this.showPracticeActions && this.showFaceToggle) {
         return this.card.face === 'down' ? 'eye-off' : 'eye'
       }
       if (this.sectionType === 'search' || this.sectionType === 'info') return ''
