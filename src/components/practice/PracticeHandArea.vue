@@ -313,6 +313,7 @@ function handleTempDrop(event: Event) {
   margin: 0;
   width: 100%;
   box-sizing: border-box;
+  direction: ltr;
 
   &.two-deck-mode {
     flex-direction: row;
