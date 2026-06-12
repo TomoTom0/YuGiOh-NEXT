@@ -30,7 +30,7 @@
                 zone="temp"
                 class="hand-card"
                 :style="handCardStyle"
-                :show-face-toggle="false"
+                :show-face-indicator="false"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
                 @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
@@ -52,7 +52,7 @@
             zone="hand"
             class="hand-card"
             :style="handCardStyle"
-            :show-face-toggle="false"
+            :show-face-indicator="false"
             @dragover.prevent
             @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
             @click="$emit('card-click', card)"
@@ -90,7 +90,7 @@
                 zone="temp"
                 class="hand-card"
                 :style="handCardStyle"
-                :show-face-toggle="false"
+                :show-face-indicator="false"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
                 @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
@@ -111,6 +111,7 @@
           zone="hand"
           class="hand-card"
           :style="handCardStyle"
+          :show-face-indicator="false"
           @dragover.prevent
           @drop.stop="(e) => handleCardDrop(card, Number(index), e as DragEvent)"
           @click="$emit('card-click', card)"
@@ -143,7 +144,7 @@
                 zone="temp"
                 class="hand-card"
                 :style="handCardStyle"
-                :show-face-toggle="false"
+                :show-face-indicator="false"
                 @click="$emit('card-click', card)"
                 @practice-action="(action, uuid) => $emit('card-action', action, uuid)"
                 @practice-dragstart="(event, uuid, offset) => $emit('card-dragstart', card, event)"
@@ -313,7 +314,6 @@ function handleTempDrop(event: Event) {
   margin: 0;
   width: 100%;
   box-sizing: border-box;
-  direction: ltr;
 
   &.two-deck-mode {
     flex-direction: row;
