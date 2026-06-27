@@ -561,7 +561,9 @@ export default {
       })
     },
     handleTopRight() {
-      if (this.sectionType === 'side') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'toggleFace', this.uuid)
+      } else if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {

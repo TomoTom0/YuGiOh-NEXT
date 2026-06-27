@@ -343,6 +343,26 @@ describe('DeckCard.vue', () => {
       expect(moveFromSideSpy).toHaveBeenCalledWith(mockCard, 'side-uuid');
     });
 
+    it('トップ右ボタン（目）クリックでpractice表裏切替アクションをemit（practice）', async () => {
+      const wrapper = mount(DeckCard, {
+        props: {
+          card: mockCard,
+          sectionType: 'practice',
+          uuid: 'practice-uuid',
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await wrapper.vm.handleTopRight();
+
+      // practice-action イベントが toggleFace アクションと uuid と共にemitされる
+      const events = wrapper.emitted('practice-action');
+      expect(events).toBeTruthy();
+      expect(events![0]).toEqual(['toggleFace', 'practice-uuid']);
+    });
+
     it('ボトム左ボタン（ゴミ箱）クリックでtrashへ移動', async () => {
       const wrapper = mount(DeckCard, {
         props: {
