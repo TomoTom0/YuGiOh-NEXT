@@ -78,7 +78,7 @@
       <button
         v-if="topRightText"
         class="card-btn top-right"
-        :class="[topRightClass, { 'always-visible': showPracticeActions && card.face === 'up' }]"
+        :class="[topRightClass, { 'always-visible': showPracticeActions && showFaceIndicator && card.face === 'up' }]"
         @click.stop="handleTopRight"
       >
         <svg v-if="topRightIcon" width="10" height="10" viewBox="0 0 24 24">
@@ -172,6 +172,10 @@ export default {
       default: false
     },
     showActions: {
+      type: Boolean,
+      default: true
+    },
+    showFaceIndicator: {
       type: Boolean,
       default: true
     }
@@ -277,7 +281,7 @@ export default {
       return chrome.runtime.getURL('images/card_back.png')
     },
     topRightText() {
-      if (this.showPracticeActions) {
+      if (this.showPracticeActions && this.showFaceIndicator) {
         return this.card.face === 'down' ? 'eye-off' : 'eye'
       }
       if (this.sectionType === 'search' || this.sectionType === 'info') return ''
@@ -557,7 +561,9 @@ export default {
       })
     },
     handleTopRight() {
-      if (this.sectionType === 'side') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'toggleFace', this.uuid)
+      } else if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
@@ -923,6 +929,7 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+  direction: ltr;
   opacity: 0;
   transition: opacity 0.2s;
   z-index: 6; /* 優先配置矢印アイコン（z-index: 5）より前面に表示 */
