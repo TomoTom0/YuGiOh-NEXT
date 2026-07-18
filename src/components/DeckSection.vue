@@ -104,8 +104,16 @@ export default {
     
     // (cid, ciid)ペアでカード情報を取得
     // card-utils.ts の getCardInfoWithLang を使用
+    // OCG過去版レギュレーション適用時は、その版の禁止制限状態で上書き
     const getCardInfo = (cid: string, ciid: number) => {
-      return getCardInfoWithLang(cid, ciid, document)
+      const base = getCardInfoWithLang(cid, ciid, document)
+      if (!base) return null
+      const override = deckStore.getCardLimitOverride(cid)
+      if (override !== null) {
+        // null=上書き無し / undefined=その版で無制限（バッジ非表示）/ 値=制限あり
+        return { ...base, limitRegulation: override }
+      }
+      return base
     }
 
     const handleEndZoneDragOver = (event) => {

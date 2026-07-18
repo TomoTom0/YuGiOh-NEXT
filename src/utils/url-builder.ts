@@ -249,10 +249,44 @@ export function getDeckDisplayUrl(
 
 /**
  * 禁止・制限リストAPIのエンドポイントを取得
+ *
  * @param gameType カードゲームタイプ
+ * @param effectiveDate 適用日（YYYY-MM-DD）。省略時は最新版。過去版を指定すると
+ *                      その適用日のリストが返る（forbiddenLimitedDate パラメータ）
  * @returns APIエンドポイントURL
  */
-export function getForbiddenLimitedEndpoint(gameType: CardGameType): string {
-  return buildApiUrl('forbidden_limited.action', gameType);
+export function getForbiddenLimitedEndpoint(gameType: CardGameType, effectiveDate?: string): string {
+  const params = effectiveDate ? new URLSearchParams({ forbiddenLimitedDate: effectiveDate }) : undefined;
+  return buildApiUrl('forbidden_limited.action', gameType, params);
+}
+
+/**
+ * GENESYSポイントリストページのベースURL
+ * 公式howtoページ（www.db.yugioh-card.com とは別ドメイン www.yugioh-card.com）
+ */
+const GENESYS_BASE_URL = 'https://www.yugioh-card.com/japan/howto/genesys/';
+
+/**
+ * GENESYSポイントリストのインデックスページURLを取得
+ *
+ * インデックスページ（?list= パラメータなし）は実在する全リストへのリンクを
+ * <section id="point"> に持つ。GENESYSリストは月次でない不規則な公開のため、
+ * 現在月の推論ではなくこのインデックスから取得対象を発見する。
+ */
+export function getGenesysIndexUrl(): string {
+  return GENESYS_BASE_URL;
+}
+
+/**
+ * GENESYSポイントリストページのURLを取得
+ *
+ * 特定リストを ?list=YYYYMM パラメータで指定する。
+ * BASE_URL（db.yugioh-card.com）とは別ドメインのため buildApiUrl は使わない。
+ *
+ * @param listParam リストパラメータ（YYYYMM形式、例: "202606"）
+ * @returns GENESYSポイントリストページのURL
+ */
+export function getGenesysListUrl(listParam: string): string {
+  return `${GENESYS_BASE_URL}?list=${listParam}`;
 }
 

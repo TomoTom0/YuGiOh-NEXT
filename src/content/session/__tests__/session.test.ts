@@ -61,6 +61,46 @@ describe('SessionManager', () => {
     });
   });
 
+  describe('isLoggedIn', () => {
+    it('フッターリンクからcgidを取得できる場合はtrueを返す', () => {
+      const mockCgid = 'e'.repeat(32);
+      document.body.innerHTML = `
+        <a href="https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=${mockCgid}">マイデッキ</a>
+      `;
+
+      const result = sessionManager.isLoggedIn();
+
+      expect(result).toBe(true);
+    });
+
+    it('任意のcgidリンクからcgidを取得できる場合はtrueを返す', () => {
+      const mockCgid = 'f'.repeat(32);
+      document.body.innerHTML = `
+        <a href="https://example.com/page?cgid=${mockCgid}">リンク</a>
+      `;
+
+      const result = sessionManager.isLoggedIn();
+
+      expect(result).toBe(true);
+    });
+
+    it('cgidリンクがない場合はfalseを返す', () => {
+      document.body.innerHTML = '<a href="https://example.com">リンク</a>';
+
+      const result = sessionManager.isLoggedIn();
+
+      expect(result).toBe(false);
+    });
+
+    it('リンクがない場合はfalseを返す', () => {
+      document.body.innerHTML = '';
+
+      const result = sessionManager.isLoggedIn();
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('後方互換性', () => {
     it('getCgid関数がsessionManager経由で動作する', async () => {
       const mockCgid = 'd'.repeat(32);

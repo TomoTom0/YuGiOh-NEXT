@@ -37,7 +37,12 @@
       </template>
     </div>
     <img v-else :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
-    <div v-if="sectionType !== 'practice' && card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
+    <div
+      v-if="sectionType !== 'practice' && showGenesysPt"
+      class="genesys-pt-badge"
+      :class="`pt-tier-${genesysPtTier}`"
+    >{{ genesysPt }}pt</div>
+    <div v-else-if="sectionType !== 'practice' && card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
       </svg>
@@ -403,6 +408,22 @@ export default {
       // 2段階検索の結果（cid単位でキャッシュ済み）を参照
       if (!this.card) return false
       return this.deckStore.categoryMatchedCardIds.has(this.card.cardId)
+    },
+    genesysPt() {
+      // GENESYSモード時のカードpt。それ以外のモードでは undefined
+      if (!this.card) return undefined
+      return this.deckStore.getCardGenesysPoint(this.card.cardId)
+    },
+    showGenesysPt() {
+      // pt > 0 のみ表示（0/undefined=規制対象外はバッジなし、OCG無制限カードと視覚整合）
+      return this.genesysPt !== undefined && this.genesysPt > 0
+    },
+    genesysPtTier() {
+      // pt値に応じた色ティア（スタイル用）
+      const pt = this.genesysPt
+      if (pt === undefined || pt <= 3) return 'low'
+      if (pt <= 7) return 'mid'
+      return 'high'
     },
     isDragging() {
       if (this.sectionType !== 'practice') return false
@@ -854,6 +875,34 @@ export default {
   svg {
     color: var(--button-text);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.genesys-pt-badge {
+  position: absolute;
+  bottom: 5.56%; /* .limit-regulation と同位置 */
+  left: 0;
+  width: 100%;
+  height: 19.44%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--button-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+
+  &.pt-tier-low {
+    background: var(--genesys-pt-bg-low, #f9a825);
+  }
+
+  &.pt-tier-mid {
+    background: var(--genesys-pt-bg-mid, #ef6c00);
+  }
+
+  &.pt-tier-high {
+    background: var(--genesys-pt-bg-high, #c62828);
   }
 }
 

@@ -370,5 +370,65 @@ describe('useDeckPersistence', () => {
       expect(result.success).toBe(false);
       expect(result.error).toEqual(['Error: Exception occurred']);
     });
+
+    it('未ログイン時（cgid not found）はログインページへリダイレクト', async () => {
+      const error = new Error('cgid not found in page');
+      mockSessionManager.getCgid.mockRejectedValue(error);
+
+      // window.locationのモック
+      const originalLocation = window.location;
+      delete (window as any).location;
+      (window as any).location = { href: '' };
+
+      const persistence = useDeckPersistence({
+        sessionManager: mockSessionManager,
+        deckInfo: mockDeckInfo,
+        lastUsedDno: mockLastUsedDno,
+        initializeDisplayOrder: initializeDisplayOrderMock,
+        clearHistory: clearHistoryMock,
+        captureDeckSnapshot: captureDeckSnapshotMock,
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
+      });
+
+      await persistence.loadDeck(123);
+
+      expect(window.location.href).toBe('https://www.db.yugioh-card.com/yugiohdb/');
+
+      // window.locationを元に戻す
+      window.location = originalLocation;
+    });
+  });
+
+  describe('saveDeck - 未ログイン時のエラーハンドリング', () => {
+    it('未ログイン時（cgid not found）はログインページへリダイレクトしてエラーを返す', async () => {
+      const error = new Error('cgid not found in page');
+      mockSessionManager.saveDeck.mockRejectedValue(error);
+
+      // window.locationのモック
+      const originalLocation = window.location;
+      delete (window as any).location;
+      (window as any).location = { href: '' };
+
+      const persistence = useDeckPersistence({
+        sessionManager: mockSessionManager,
+        deckInfo: mockDeckInfo,
+        lastUsedDno: mockLastUsedDno,
+        initializeDisplayOrder: initializeDisplayOrderMock,
+        clearHistory: clearHistoryMock,
+        captureDeckSnapshot: captureDeckSnapshotMock,
+        savedDeckSnapshot: mockSavedDeckSnapshot,
+        getDeckName: () => mockDeckInfo.value.name || mockDeckInfo.value.originalName || ''
+      });
+
+      const result = await persistence.saveDeck(123);
+
+      expect(window.location.href).toBe('https://www.db.yugioh-card.com/yugiohdb/');
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual(['ログインが必要です']);
+
+      // window.locationを元に戻す
+      window.location = originalLocation;
+    });
   });
 });

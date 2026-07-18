@@ -14,6 +14,8 @@
         @toggle-practice="togglePracticeMode"
       />
 
+      <RegulationBanner />
+
       <!-- Practice mode / Normal deck edit mode -->
       <Transition name="mode-switch" mode="out-in">
       <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
@@ -184,6 +186,15 @@
       @cancel="cancelUnsavedChanges"
     />
 
+    <!-- Regulation Fix Dialog（YYMM該当版なし時の修正提案） -->
+    <ConfirmDialog
+      :show="deckStore.showRegulationFixDialog"
+      :title="regulationFixTitle"
+      :message="regulationFixMessage"
+      :buttons="regulationFixButtons"
+      :theme="settingsStore.effectiveTheme"
+    />
+
     <!-- Toast Container -->
     <ToastContainer />
   </div>
@@ -210,6 +221,7 @@ import PracticePlayerPanel from '../../components/practice/PracticePlayerPanel.v
 
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import ToastContainer from '../../components/ToastContainer.vue'
+import RegulationBanner from '../../components/RegulationBanner.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
 const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
@@ -234,6 +246,7 @@ export default {
     RightArea,
     ConfirmDialog,
     ToastContainer,
+    RegulationBanner,
     ImportExportDialog,
     SettingsDialog,
     LoadDialog,
@@ -419,6 +432,31 @@ export default {
             await pendingAction.value()
           }
           pendingAction.value = null
+        }
+      }
+    ])
+
+    // レギュレーション修正提案ダイアログ用（YYMM該当版なし→直近版フォールバック時）
+    const regulationFixTitle = 'レギュレーションの修正提案'
+    const regulationFixMessage = computed(() => {
+      const r = deckStore.resolvedRegulation
+      if (!r.tag || !r.fallback) return ''
+      const label = r.mode === 'ocg' ? 'OCG' : 'GENESYS'
+      return `指定 ${label}-${r.fallback.requestedYymm} は存在しません。直近版 ${label}-${r.fallback.appliedYymm} のタグに修正しますか？（「このまま使う」で直近版を適用し続けます）`
+    })
+    const regulationFixButtons = computed(() => [
+      {
+        label: 'このまま使う',
+        class: 'secondary',
+        onClick: () => {
+          void deckStore.ignoreRegulationFix()
+        }
+      },
+      {
+        label: 'タグを修正',
+        class: 'primary',
+        onClick: () => {
+          deckStore.confirmRegulationFix()
         }
       }
     ])
@@ -966,6 +1004,9 @@ export default {
     }
 
     return {
+      regulationFixTitle,
+      regulationFixMessage,
+      regulationFixButtons,
       isReady,
       deckStore,
       settingsStore,

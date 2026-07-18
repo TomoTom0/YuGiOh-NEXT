@@ -63,6 +63,28 @@ class SessionManager {
   }
 
   /**
+   * ログイン状態を確認
+   * @returns ログイン済みならtrue、未ログインならfalse
+   */
+  isLoggedIn(): boolean {
+    // フッターの「マイデッキ」リンクからcgidを取得できるか確認
+    const mydeckLink = document.querySelector<HTMLAnchorElement>('a[href*="member_deck.action"][href*="cgid="]');
+    if (mydeckLink) {
+      const match = mydeckLink.href.match(/cgid=([a-f0-9]{32})/);
+      if (match && match[1]) {
+        return true;
+      }
+    }
+    // フッター以外の任意のcgidリンクからも取得を試みる
+    const anyLink = document.querySelector<HTMLAnchorElement>('a[href*="cgid="]');
+    if (anyLink) {
+      const match = anyLink.href.match(/cgid=([a-f0-9]{32})/);
+      return !!(match && match[1]);
+    }
+    return false;
+  }
+
+  /**
    * cgidを取得（テスト用の公開メソッド）
    */
   async getCgid(): Promise<string> {

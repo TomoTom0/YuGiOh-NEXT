@@ -373,3 +373,25 @@ export function isDeckTypeValue(value: any): value is '0' | '1' | '2' | '3' {
 export function isDeckStyleValue(value: any): value is '-1' | '0' | '1' | '2' {
   return typeof value === 'string' && ['-1', '0', '1', '2'].includes(value);
 }
+
+/**
+ * 値が文字列キーのRecord（プレーンオブジェクト）かどうかをチェック
+ *
+ * chrome.storage から取得した unknown 値を Record として扱う前の検証用。
+ * 配列・null・プリミティブを除外する。値の型までは検証しない（呼び出し側で
+ * 必要に応じて個別に検証すること）。
+ *
+ * @param value チェック対象の値
+ * @returns 文字列キーRecordの場合は true
+ *
+ * @example
+ * const stored = await safeStorageGet<unknown>(KEY);
+ * const raw = stored[KEY];
+ * if (isRecordOfStringKeys(raw)) {
+ *   // raw は Record<string, unknown>
+ *   const keys = Object.keys(raw);
+ * }
+ */
+export function isRecordOfStringKeys(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}

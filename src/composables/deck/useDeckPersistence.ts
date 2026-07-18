@@ -148,6 +148,13 @@ export function useDeckPersistence(options: {
       }
     } catch (error) {
       console.error('Failed to load deck:', error);
+
+      // 未ログイン時はログインページへリダイレクト
+      if (error instanceof Error && error.message === 'cgid not found in page') {
+        window.location.href = 'https://www.db.yugioh-card.com/yugiohdb/';
+        return;
+      }
+
       throw error;
     }
   }
@@ -178,6 +185,13 @@ export function useDeckPersistence(options: {
       return result;
     } catch (error) {
       console.error('Failed to save deck:', error);
+
+      // 未ログイン時はログインページへリダイレクト
+      if (error instanceof Error && error.message === 'cgid not found in page') {
+        window.location.href = 'https://www.db.yugioh-card.com/yugiohdb/';
+        return { success: false, error: ['ログインが必要です'] };
+      }
+
       return { success: false, error: [String(error)] };
     }
   }
