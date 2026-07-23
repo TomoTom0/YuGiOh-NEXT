@@ -74,7 +74,7 @@
 
 ## 既知の課題
 
-- `chat` を有効化するUI導線が存在しない（④のまま塩漬け。AIチャット機能自体は`services/llm/*`・`ChatPanel.vue`等に実装済みだが、公開するかどうかの判断が必要）
+- `chat`はUI導線がなく④のままだが、これは**意図的な現状**（開発中のAI機能で、devビルドを含め現時点では無効のままにする方針）。`services/llm/*`・`ChatPanel.vue`等の実装自体は存在するが、公開準備が整うまでは対応不要
 - `language`（`appSettings.language`）はUIから到達不可のまま（URLパラメータ経由のみ）。設定画面へのUI追加を検討の余地あり
 - `enableBanlistCheck`（Phase 3向け未実装プレースホルダー）はroadmapにも記載がなく実装0件だったため、TASK-293で型定義ごと削除した。実装に着手する際は改めて型を追加すること
 - ③（開発限定ON）を実現する仕組み（webpackのDefinePlugin、`NODE_ENV`分岐等）がリポジトリに一切存在しない
