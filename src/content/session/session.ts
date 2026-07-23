@@ -9,6 +9,20 @@ import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
 
 /**
+ * 先読みytkn失効時にサーバーが返すエラーかどうかを判定する
+ *
+ * ytknは画面遷移シーケンスに紐づくワンタイムトークンのため、先読み後・使用前に
+ * 他のope=1/2/4アクセス（バックグラウンド処理等）が挟まると失効し、
+ * このエラーで保存が失敗することがある
+ */
+function isStaleYtknError(error?: string[]): boolean {
+  if (!error) {
+    return false;
+  }
+  return error.some(msg => /screen transition error|画面遷移エラー/i.test(msg));
+}
+
+/**
  * セッション管理クラス
  *
  * cgidを内部管理し、デッキ操作の統一インターフェースを提供する
@@ -131,6 +145,7 @@ class SessionManager {
 
       // プリロードされたytknを優先的に使用
       let ytkn: string | null = null;
+      let usedPreloadedYtkn = false;
 
       // ytkn取得のPromiseを待つ（最大1秒）
       if (window.ygoNextPreloadedYtknPromise && !window.ygoNextPreloadedYtkn) {
@@ -150,6 +165,7 @@ class SessionManager {
       if (window.ygoNextPreloadedYtkn) {
         ytkn = window.ygoNextPreloadedYtkn;
         window.ygoNextPreloadedYtkn = null; // 使い捨てのため削除
+        usedPreloadedYtkn = true;
         console.debug('[SessionManager.saveDeck] Using preloaded ytkn');
       }
 
@@ -168,9 +184,19 @@ class SessionManager {
 
       console.debug('[SessionManager.saveDeck] Calling saveDeckInternal');
       const saveStartTime = performance.now();
-      const result = await saveDeckInternal(cgid, dno, deckData, ytkn);
+      let result = await saveDeckInternal(cgid, dno, deckData, ytkn);
       const saveDuration = performance.now() - saveStartTime;
       console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
+
+      // 先読みytknが失効していた場合（screen transition error）、
+      // 通常取得したytknで1回だけ再試行する
+      if (!result.success && usedPreloadedYtkn && isStaleYtknError(result.error)) {
+        console.warn('[SessionManager.saveDeck] Preloaded ytkn appears stale (screen transition error), retrying with freshly fetched ytkn');
+        const retryYtkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+        if (retryYtkn) {
+          result = await saveDeckInternal(cgid, dno, deckData, retryYtkn);
+        }
+      }
 
       // 保存成功後、次回用のytknを非同期でプリロード（UIをブロックしない）
       if (result.success) {

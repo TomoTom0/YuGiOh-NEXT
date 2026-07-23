@@ -85,8 +85,12 @@ export function useDeckPersistence(options: {
       }
 
       if (loadedDeck) {
-        // deckInfoを更新（parseDeckDetail で既に name: '', originalName: name が設定済み）
-        deckInfo.value = loadedDeck;
+        // deckInfoを更新。入力欄にロードしたデッキ名をそのまま表示するため、
+        // parseDeckDetail で空にされている name に originalName を反映する
+        deckInfo.value = {
+          ...loadedDeck,
+          name: loadedDeck.name || loadedDeck.originalName || ''
+        };
 
         // URLにdnoを同期
         URLStateManager.setDno(dno);

@@ -14,8 +14,6 @@
         @toggle-practice="togglePracticeMode"
       />
 
-      <RegulationBanner />
-
       <!-- Practice mode / Normal deck edit mode -->
       <Transition name="mode-switch" mode="out-in">
       <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
@@ -221,7 +219,6 @@ import PracticePlayerPanel from '../../components/practice/PracticePlayerPanel.v
 
 import ConfirmDialog from '../../components/ConfirmDialog.vue'
 import ToastContainer from '../../components/ToastContainer.vue'
-import RegulationBanner from '../../components/RegulationBanner.vue'
 // ダイアログコンポーネントを動的importに変更（初期表示時は不要、メニュー選択時のみロード）
 const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
@@ -246,7 +243,6 @@ export default {
     RightArea,
     ConfirmDialog,
     ToastContainer,
-    RegulationBanner,
     ImportExportDialog,
     SettingsDialog,
     LoadDialog,

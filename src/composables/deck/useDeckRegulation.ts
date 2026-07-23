@@ -113,6 +113,11 @@ export function useDeckRegulation(options: {
       await forbiddenLimitedCache.ensureList(resolved.effectiveDate);
     } else if (resolved.mode === 'genesys' && resolved.listParam) {
       await genesysPointCache.ensureList(resolved.listParam);
+    } else if (resolved.mode === 'genesys') {
+      // YYMM省略（最新版指定）または実在一覧が未取得だった場合。
+      // getCardGenesysPoint() は listParam=null 時に「現在有効なリスト」を
+      // 参照するため、そのリストを明示的に確保しておく必要がある。
+      await genesysPointCache.ensureCurrentList();
     }
 
     // fallback 時の修正提案ダイアログ（ignore 済みでなければ）

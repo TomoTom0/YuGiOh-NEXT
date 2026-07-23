@@ -112,7 +112,7 @@ describe('useDeckPersistence', () => {
 
       // deckInfo が更新されたことを確認
       expect(mockDeckInfo.value.dno).toBe(123);
-      expect(mockDeckInfo.value.name).toBe(''); // 名前は空にされる
+      expect(mockDeckInfo.value.name).toBe('Test Deck'); // 入力欄にそのまま表示するため originalName が反映される
       expect(mockDeckInfo.value.originalName).toBe('Test Deck');
 
       // 副作用が呼ばれたことを確認

@@ -2,84 +2,111 @@
   <div class="top-bar-wrapper">
     <div class="top-bar">
       <div class="top-bar-left">
-        <div class="btn-tooltip-wrapper" ref="undoBtnWrapper">
+        <HoverTooltip :text="canUndo ? undoTooltipText : ''" :tooltip-class="undoTooltipClass">
           <button
             data-testid="undo-btn"
             class="btn-action"
             :class="undoButtonClass"
             :disabled="!canUndo"
             @click="handleUndo"
-            @mouseenter="showUndoTooltip = true"
-            @mouseleave="showUndoTooltip = false"
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" :d="mdiUndo" />
             </svg>
           </button>
-        </div>
-        <div class="btn-tooltip-wrapper" ref="redoBtnWrapper">
+        </HoverTooltip>
+        <HoverTooltip :text="canRedo ? redoTooltipText : ''" :tooltip-class="redoTooltipClass">
           <button
             data-testid="redo-btn"
             class="btn-action"
             :class="redoButtonClass"
             :disabled="!canRedo"
             @click="handleRedo"
-            @mouseenter="showRedoTooltip = true"
-            @mouseleave="showRedoTooltip = false"
           >
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="currentColor" :d="mdiRedo" />
             </svg>
           </button>
-        </div>
+        </HoverTooltip>
         <div class="deck-name-group">
           <span class="dno-chip">{{ localDno || '-' }}</span>
           <input
+            ref="deckNameInputRef"
             v-model="localDeckName"
             type="text"
             :placeholder="displayDeckName || 'デッキ名'"
             class="deck-name-input"
+            @input="handleDeckNameInput"
+            @keydown="handleDeckNameKeydown"
+            @blur="resetDeckNameSuggestion"
           >
+          <button
+            v-if="localDeckName"
+            type="button"
+            class="deck-name-clear-btn"
+            title="デッキ名をクリア"
+            @mousedown.prevent
+            @click="handleClearDeckName"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiCloseCircle" />
+            </svg>
+          </button>
+          <span
+            v-if="regulationVisible"
+            class="regulation-badge"
+            :class="{ 'is-fallback': regulationIsFallback }"
+            :title="regulationMessage"
+          >{{ regulationBadgeLabel }}</span>
+          <SuggestionList
+            :suggestions="deckNameSuggestions"
+            :selected-index="deckNameSelectedIndex"
+            variant="filter"
+            @select="handleDeckNameSuggestionSelect"
+          />
         </div>
       </div>
       <div class="top-bar-right">
-        <button
-          v-if="practiceMode"
-          class="btn-action practice-reset"
-          title="Reset"
-          @click="practiceStore.resetPractice()"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiRefresh" />
-          </svg>
-        </button>
-        <button
-          class="btn-action practice-toggle"
-          :class="{ active: practiceMode }"
-          :title="practiceMode ? 'Deck Edit' : 'Practice'"
-          @click="$emit('toggle-practice')"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="practiceMode ? mdiGrid : mdiGamepadVariant" />
-          </svg>
-        </button>
-        <button
-          v-if="!practiceMode"
-          data-testid="save-btn"
-          class="btn-action"
-          :class="{ saving: savingState }"
-          :title="savingState ? 'キャンセル' : 'save'"
-          @click="handleSaveClick"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiContentSave" />
-          </svg>
-        </button>
-        <button v-if="!practiceMode" data-testid="load-btn" class="btn-action" title="load" @click="handleLoadClick">
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="currentColor" :d="mdiFolderOpen" />
-          </svg>
-        </button>
+        <HoverTooltip v-if="practiceMode" text="Reset">
+          <button
+            class="btn-action practice-reset"
+            @click="practiceStore.resetPractice()"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiRefresh" />
+            </svg>
+          </button>
+        </HoverTooltip>
+        <HoverTooltip :text="practiceMode ? 'Deck Edit' : 'Practice'">
+          <button
+            class="btn-action practice-toggle"
+            :class="{ active: practiceMode }"
+            @click="$emit('toggle-practice')"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="practiceMode ? mdiGrid : mdiGamepadVariant" />
+            </svg>
+          </button>
+        </HoverTooltip>
+        <HoverTooltip v-if="!practiceMode" :text="savingState ? 'キャンセル' : 'save'">
+          <button
+            data-testid="save-btn"
+            class="btn-action"
+            :class="{ saving: savingState }"
+            @click="handleSaveClick"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiContentSave" />
+            </svg>
+          </button>
+        </HoverTooltip>
+        <HoverTooltip v-if="!practiceMode" text="load">
+          <button data-testid="load-btn" class="btn-action" @click="handleLoadClick">
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="currentColor" :d="mdiFolderOpen" />
+            </svg>
+          </button>
+        </HoverTooltip>
         <button data-testid="menu-btn" class="btn-menu" @click="toggleMenu" :class="{ loading: menuLoading }">
           <span v-if="!menuLoading">⋮</span>
           <svg v-else class="spinner" width="20" height="20" viewBox="0 0 24 24">
@@ -188,30 +215,6 @@
       @jump-to="handleJumpToHistory"
       @clear-history="handleClearHistory"
     />
-
-    <!-- Tooltips (Teleport to body to escape overflow:hidden) -->
-    <Teleport to="body">
-      <Transition name="tooltip-fade">
-        <div
-          v-if="showUndoTooltip && canUndo"
-          class="command-tooltip-fixed"
-          :class="undoTooltipClass"
-          :style="undoTooltipStyle"
-        >
-          {{ undoTooltipText }}
-        </div>
-      </Transition>
-      <Transition name="tooltip-fade">
-        <div
-          v-if="showRedoTooltip && canRedo"
-          class="command-tooltip-fixed"
-          :class="redoTooltipClass"
-          :style="redoTooltipStyle"
-        >
-          {{ redoTooltipText }}
-        </div>
-      </Transition>
-    </Teleport>
   </div>
 </template>
 
@@ -223,10 +226,14 @@ import { useToastStore } from '../stores/toast-notification'
 import { usePracticeStore } from '../stores/practice'
 import Toast from './Toast.vue'
 import CommandHistoryDialog from './CommandHistoryDialog.vue'
+import HoverTooltip from './HoverTooltip.vue'
+import SuggestionList from './searchInputBar/components/SuggestionList.vue'
+import { useDeckNameVariables, type DeckNameVariable } from '../composables/useDeckNameVariables'
+import { useDeckRegulationTagSuggestions } from '../composables/useDeckRegulationTagSuggestions'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
-import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete, mdiHistory, mdiGamepadVariant, mdiGrid, mdiRefresh } from '@mdi/js'
+import { mdiContentSave, mdiFolderOpen, mdiReload, mdiSortVariant, mdiImageOutline, mdiSwapHorizontal, mdiCog, mdiUndo, mdiRedo, mdiPlusBox, mdiContentCopy, mdiDelete, mdiHistory, mdiGamepadVariant, mdiGrid, mdiRefresh, mdiCloseCircle } from '@mdi/js'
 
 interface ToastState {
   show: boolean
@@ -238,7 +245,9 @@ export default {
   name: 'DeckEditTopBar',
   components: {
     Toast,
-    CommandHistoryDialog
+    CommandHistoryDialog,
+    HoverTooltip,
+    SuggestionList
   },
   props: {
     practiceMode: {
@@ -258,10 +267,6 @@ export default {
     const showMenu = ref(false)
     const menuLoading = ref(false)
     const showHistoryDialog = ref(false)
-    const showUndoTooltip = ref(false)
-    const showRedoTooltip = ref(false)
-    const undoBtnWrapper = ref<HTMLElement | null>(null)
-    const redoBtnWrapper = ref<HTMLElement | null>(null)
     const toast = reactive<ToastState>({
       show: false,
       message: '',
@@ -286,6 +291,61 @@ export default {
       set: (value: string) => deckStore.setDeckName(value)
     })
     const displayDeckName = computed(() => deckStore.getDeckName())
+
+    // リミットレギュレーション適用状態バッジ（デッキ名入力欄右上にオーバーレイ表示、レイアウトは変更しない）
+    const regulationVisible = computed(() => deckStore.resolvedRegulation.mode !== 'none')
+    const regulationIsFallback = computed(() => !!deckStore.resolvedRegulation.fallback)
+    const regulationBadgeLabel = computed(() => {
+      const r = deckStore.resolvedRegulation
+      if (r.mode === 'none') return ''
+      return r.mode === 'ocg' ? 'OCG' : 'GENESYS'
+    })
+    const regulationMessage = computed(() => {
+      const r = deckStore.resolvedRegulation
+      if (r.fallback) {
+        const label = r.mode === 'ocg' ? 'OCG' : 'GENESYS'
+        return `指定 ${label}-${r.fallback.requestedYymm} は存在しないため、直近版 ${label}-${r.fallback.appliedYymm} を適用中`
+      }
+      return deckStore.regulationEffectiveDescription
+        ? `適用中: ${deckStore.regulationEffectiveDescription}`
+        : ''
+    })
+
+    const deckNameInputRef = ref<HTMLInputElement | null>(null)
+
+    const handleClearDeckName = () => {
+      deckStore.setDeckName('')
+      deckNameInputRef.value?.focus()
+    }
+
+    // デッキ名入力欄の @-mark 変数入力（@orig で元のデッキ名を挿入）は一時的に無効化中。
+    // composable自体は残しているので、テンプレート側の配線（@input/@keydown/SuggestionList）を
+    // 戻すだけで再度有効化できる
+    const atMarkDeckNameVariables: DeckNameVariable[] = [
+      {
+        key: 'orig',
+        label: '元のデッキ名',
+        resolve: () => deckStore.deckInfo.originalName || ''
+      }
+    ]
+    useDeckNameVariables({
+      inputValue: localDeckName,
+      inputElement: deckNameInputRef,
+      variables: atMarkDeckNameVariables
+    })
+
+    // デッキ名冒頭のレギュレーションタグ（[OCG-YYMM] / [GENESYS-YYMM]）入力補助
+    const {
+      suggestions: deckNameSuggestions,
+      selectedIndex: deckNameSelectedIndex,
+      handleInput: handleDeckNameInput,
+      handleKeydown: handleDeckNameKeydown,
+      selectSuggestion: handleDeckNameSuggestionSelect,
+      resetSuggestion: resetDeckNameSuggestion
+    } = useDeckRegulationTagSuggestions({
+      inputValue: localDeckName,
+      inputElement: deckNameInputRef
+    })
 
     // Undo/Redo tooltip and button styling
     const undoTooltipText = computed(() => {
@@ -324,28 +384,6 @@ export default {
     const redoTooltipClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getRedoType()))
     const undoButtonClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getUndoType()))
     const redoButtonClass = computed(() => props.practiceMode ? '' : getTypeClass(deckStore.getRedoType()))
-
-    // Tooltip position (fixed positioning to escape overflow:hidden)
-    const undoTooltipStyle = computed(() => {
-      if (!undoBtnWrapper.value) return {}
-      const rect = undoBtnWrapper.value.getBoundingClientRect()
-      return {
-        position: 'fixed',
-        left: `${rect.left + rect.width / 2}px`,
-        top: `${rect.top - 4}px`,
-        transform: 'translate(-50%, -100%)'
-      } as const
-    })
-    const redoTooltipStyle = computed(() => {
-      if (!redoBtnWrapper.value) return {}
-      const rect = redoBtnWrapper.value.getBoundingClientRect()
-      return {
-        position: 'fixed',
-        left: `${rect.left + rect.width / 2}px`,
-        top: `${rect.top - 4}px`,
-        transform: 'translate(-50%, -100%)'
-      } as const
-    })
 
     /**
      * 共通の保存処理
@@ -452,7 +490,6 @@ export default {
           selectedDeckDno.value = null
           deckStore.onLoadCallback = async (dno: number) => {
             await deckStore.loadDeck(dno)
-            deckStore.setDeckName('')
             localStorage.setItem('ygoNext:lastDeckDno', String(dno))
           }
         }
@@ -467,7 +504,6 @@ export default {
           return
         }
         await deckStore.loadDeck(selectedDeckDno.value)
-        deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
@@ -479,7 +515,6 @@ export default {
     const loadDeck = async (dno: number) => {
       try {
         await deckStore.loadDeck(dno)
-        deckStore.setDeckName('')
         deckStore.showLoadDialog = false
         showToast('デッキを読み込みました', 'success')
       } catch (error) {
@@ -493,7 +528,6 @@ export default {
       await checkUnsavedChanges(async () => {
         try {
           await deckStore.reloadDeck()
-          deckStore.setDeckName('')
           showToast('デッキを再読み込みしました', 'success')
         } catch (error) {
           console.error('Reload error:', error)
@@ -711,15 +745,21 @@ export default {
       cancelDelete,
       menuLoading,
       showHistoryDialog,
-      showUndoTooltip,
-      showRedoTooltip,
-      undoBtnWrapper,
-      redoBtnWrapper,
-      undoTooltipStyle,
-      redoTooltipStyle,
       localDno,
       localDeckName,
       displayDeckName,
+      regulationVisible,
+      regulationIsFallback,
+      regulationBadgeLabel,
+      regulationMessage,
+      deckNameInputRef,
+      handleClearDeckName,
+      deckNameSuggestions,
+      deckNameSelectedIndex,
+      handleDeckNameInput,
+      handleDeckNameKeydown,
+      handleDeckNameSuggestionSelect,
+      resetDeckNameSuggestion,
       undoTooltipText,
       redoTooltipText,
       undoTooltipClass,
@@ -764,7 +804,8 @@ export default {
       mdiHistory,
       mdiGamepadVariant,
       mdiGrid,
-      mdiRefresh
+      mdiRefresh,
+      mdiCloseCircle
     }
   }
 }
@@ -773,7 +814,9 @@ export default {
 <style scoped lang="scss">
 .top-bar-wrapper {
   margin: 0;
-  padding: 0 0 8px 0;
+  /* 上部paddingはregulation-badge(top:-8px)がmain-content(overflow:hidden)で
+     見切れないための余白。バッジのはみ出し量(8px)より広めに確保する */
+  padding: 10px 0 8px 0;
   overflow: visible;
 }
 
@@ -927,15 +970,59 @@ export default {
 }
 
 .deck-name-input {
-  padding: 6px 10px 6px 50px;
+  box-sizing: border-box;
+  padding: 6px 28px 6px 50px;
   border: 1px solid var(--border-primary);
   border-radius: 4px;
   font-size: 14px;
   text-align: left;
   background: var(--bg-primary);
   color: var(--text-primary);
+  width: 100%;
 }
 
+.deck-name-clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #999);
+  cursor: pointer;
+  z-index: 1;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.regulation-badge {
+  position: absolute;
+  right: 8px;
+  top: -8px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+  z-index: 2;
+  cursor: default;
+  white-space: nowrap;
+
+  &.is-fallback {
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
+    border-color: var(--color-error);
+  }
+}
 
 
 .btn-menu,
@@ -1008,14 +1095,6 @@ export default {
   white-space: nowrap;
 }
 
-// Button + Tooltip wrapper
-.btn-tooltip-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 // Command tooltip (positioned relative to wrapper)
 .command-tooltip {
   position: absolute;
@@ -1028,48 +1107,6 @@ export default {
   font-weight: 500;
   white-space: nowrap;
   z-index: 1000;
-  pointer-events: none;
-  line-height: 1.4;
-  min-height: 20px;
-
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
-
-  // Type-specific colors
-  &.type-add {
-    background: #2e7d32;
-    color: #fff;
-    border-color: #4caf50;
-  }
-
-  &.type-remove {
-    background: #c62828;
-    color: #fff;
-    border-color: #f44336;
-  }
-
-  &.type-move {
-    background: #616161;
-    color: #fff;
-    border-color: #9e9e9e;
-  }
-
-  &.type-reorder {
-    background: #ef6c00;
-    color: #fff;
-    border-color: #ff9800;
-  }
-}
-
-// Fixed position tooltip (teleported to body)
-.command-tooltip-fixed {
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  z-index: 10000;
   pointer-events: none;
   line-height: 1.4;
   min-height: 20px;
@@ -1121,17 +1158,6 @@ export default {
   &.type-reorder {
     border-color: var(--color-warning);
   }
-}
-
-// Tooltip animation
-.tooltip-fade-enter-active,
-.tooltip-fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.tooltip-fade-enter-from,
-.tooltip-fade-leave-to {
-  opacity: 0;
 }
 
 .dialog-overlay {

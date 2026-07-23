@@ -13,6 +13,7 @@
       :ref="el => { if (el) suggestionRefs[index] = el }"
       class="suggestion-item"
       :class="{ selected: index === selectedIndex }"
+      @mousedown.prevent
       @click="$emit('select', suggestion)"
     >
       <span class="suggestion-value">{{ suggestion.value }}</span>

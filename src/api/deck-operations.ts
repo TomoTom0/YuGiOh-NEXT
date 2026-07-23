@@ -9,6 +9,24 @@ import { buildApiUrl } from '@/utils/url-builder';
 import { detectCardGameType } from '@/utils/page-detector';
 import { handleError, handleSuccess, handleDebug } from '@/utils/error-handler';
 import { DECK_OPE, WNAME, API_ENDPOINT } from '@/constants/api-params';
+import { isString, isArray } from '@/utils/type-guards';
+
+/**
+ * サーバーから返る data.error は配列以外（文字列・オブジェクト等）の場合があるため、
+ * .join() 実行前に必ず string[] へ正規化する
+ */
+function normalizeErrorMessages(error: unknown): string[] {
+  if (isArray<unknown>(error)) {
+    return error.map(e => (isString(e) ? e : JSON.stringify(e)));
+  }
+  if (isString(error)) {
+    return [error];
+  }
+  if (error) {
+    return [JSON.stringify(error)];
+  }
+  return [];
+}
 
 /**
  * 新規デッキを作成する（内部関数）
@@ -385,15 +403,16 @@ export async function saveDeckInternal(
       return { success: true };
     } else {
       if (data.error) {
+        const errorMessages = normalizeErrorMessages(data.error);
         handleError(
           '[saveDeckInternal]',
           'デッキ保存に失敗しました',
-          new Error(data.error.join(', ')),
-          { showToast: true, toastBody: data.error.join('\n') }
+          new Error(errorMessages.join(', ')),
+          { showToast: true, toastBody: errorMessages.join('\n') }
         );
         return {
           success: false,
-          error: data.error
+          error: errorMessages
         };
       }
       // data.resultがfalseでerrorもない場合

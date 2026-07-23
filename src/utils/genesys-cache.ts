@@ -151,6 +151,33 @@ export class GenesysPointCache {
   }
 
   /**
+   * 「現在有効なリスト」（GENESYSタグのYYMM省略=最新版指定）を確保する
+   *
+   * getPoint() 等が参照する selectApplicableGenesysList はキャッシュ済みの
+   * lists のみを見るため、起動直後でまだどのリストも取得されていない場合は
+   * 常に undefined を返してしまう。ensureList(listParam) と異なり対象の
+   * listParam が事前に分からないため、未取得ならインデックス解析経由で
+   * 全リストを取得してから改めて解決する。
+   *
+   * @returns 現在有効なリストエントリ。取得失敗時は null
+   */
+  async ensureCurrentList(): Promise<GenesysListEntry | null> {
+    const current = selectApplicableGenesysList(this.cache, Date.now());
+    if (current) {
+      return current;
+    }
+
+    try {
+      await this.forceUpdate();
+    } catch (err) {
+      console.warn('[GenesysPointCache] Failed to ensure current list:', err);
+      return null;
+    }
+
+    return selectApplicableGenesysList(this.cache, Date.now());
+  }
+
+  /**
    * 指定listParamのリストを確保（キャッシュに無ければ取得）
    *
    * @param listParam リストパラメータ（YYYYMM）

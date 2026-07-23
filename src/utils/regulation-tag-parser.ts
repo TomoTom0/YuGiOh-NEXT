@@ -12,7 +12,7 @@ import type {
  * - 括弧: [ ] または 【 】
  * - 位置: デッキ名の先頭 または 末尾（空白で区切られた場合のみ）
  *         ※中央や、空白なしでデッキ名に密着したタグは対象外
- * - レギュレーション名: GENESYS / OCG（大文字小文字無視）
+ * - レギュレーション名: GENESYS（省略形 GENE も可）/ OCG（大文字小文字無視）
  * - YYMM: 4桁数字（省略時は null = 最新版）
  *
  * YYMM の実在性（該当月の版が存在するか）はここでは検証しない。
@@ -20,11 +20,11 @@ import type {
  */
 
 /** タグ内の "レギュレーション名" + "-YYMM"（省略可）のパターン */
-const TAG_CONTENT_PATTERN = /^(GENESYS|OCG)(?:-(\d{4}))?$/i;
+const TAG_CONTENT_PATTERN = /^(GENESYS|GENE|OCG)(?:-(\d{4}))?$/i;
 
 /** レギュレーション名（大文字）→ RegType */
 function resolveRegType(nameUpper: string): RegType | null {
-  if (nameUpper === 'GENESYS') return 'genesys';
+  if (nameUpper === 'GENESYS' || nameUpper === 'GENE') return 'genesys';
   if (nameUpper === 'OCG') return 'ocg';
   return null;
 }
