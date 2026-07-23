@@ -305,6 +305,21 @@
         </span>
       </label>
 
+      <!-- 手動先頭優先配置 -->
+      <label class="checkbox-label" style="margin-top: 12px;">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.enableHeadPlacement"
+          @change="handleHeadPlacementChange"
+        />
+        <span class="checkbox-text">
+          <strong>手動先頭優先配置を有効化</strong>
+          <span class="checkbox-desc">
+            手動先頭配置指定されたカードをデッキの先頭に配置
+          </span>
+        </span>
+      </label>
+
       <!-- レベル/ランク/リンクのソート順 -->
       <div style="margin-top: 12px;">
         <p class="setting-desc" style="margin-bottom: 8px;">レベル/ランク/リンクの並び順</p>
@@ -353,6 +368,41 @@
             </span>
           </label>
         </div>
+      </div>
+    </div>
+
+    <!-- 保存設定 -->
+    <div class="setting-group">
+      <h3 class="setting-title">保存設定</h3>
+      <p class="setting-desc">デッキ保存時の挙動</p>
+
+      <label class="checkbox-label">
+        <input
+          type="checkbox"
+          v-model="settingsStore.appSettings.saveWithAutoFullSort"
+          @change="handleSaveWithAutoFullSortChange"
+        />
+        <span class="checkbox-text">
+          <strong>保存時に自動でフルソート</strong>
+          <span class="checkbox-desc">
+            無効化すると、保存時のソートを最小限（min-sort）に抑える
+          </span>
+        </span>
+      </label>
+
+      <div style="margin-top: 12px;">
+        <label for="save-delay-ms" class="setting-desc" style="display: block; margin-bottom: 8px;">
+          保存ボタンクリック後の遅延時間（{{ settingsStore.appSettings.saveDelayMs ?? 0 }}ms）
+        </label>
+        <input
+          id="save-delay-ms"
+          type="range"
+          min="0"
+          max="5000"
+          step="100"
+          v-model.number="settingsStore.appSettings.saveDelayMs"
+          @change="handleSaveDelayMsChange"
+        />
       </div>
     </div>
 
@@ -497,6 +547,21 @@ const handleCategoryPriorityChange = () => {
 const handleTailPlacementChange = () => {
   settingsStore.saveSettings();
   showSaveMessage('末尾配置設定を変更しました');
+};
+
+const handleHeadPlacementChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('手動先頭優先配置設定を変更しました');
+};
+
+const handleSaveWithAutoFullSortChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('保存時のソート設定を変更しました');
+};
+
+const handleSaveDelayMsChange = () => {
+  settingsStore.saveSettings();
+  showSaveMessage('保存後の遅延時間を変更しました');
 };
 
 const formatShortcut = (shortcut: KeyboardShortcut): string => {

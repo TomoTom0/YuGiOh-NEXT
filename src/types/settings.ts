@@ -101,14 +101,6 @@ export type CardTab = 'info' | 'qa' | 'related' | 'products';
  */
 export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat' | 'practice';
 
-export interface DeckEditSettings {
-  enabled: boolean;
-  defaultDisplayMode: DisplayMode;
-  defaultSortOrder: SortOrder;
-  enableAnimation: boolean;
-  language: Language;
-}
-
 /**
  * Extra/Sideデッキの配置方向
  */
@@ -206,8 +198,6 @@ export interface AppSettings {
   middleDecksLayout: MiddleDecksLayout;
   /** UX設定（色・ユーザー体験） */
   ux: UXSettings;
-  /** 禁止制限チェック有効化（Phase 3で使用） */
-  enableBanlistCheck: boolean;
   /** 未保存時の警告モード */
   unsavedWarning: UnsavedWarning;
   /** デッキ表示ページでCardDetail情報を表示 */
@@ -285,7 +275,6 @@ export interface DeckEditUIState {
  */
 export interface StorageSettings {
   featureSettings?: FeatureSettings;
-  deckEditSettings?: DeckEditSettings;
   /** アプリ全体設定（v0.4.0で追加） */
   appSettings?: AppSettings;
   /** グローバル末尾配置カードID リスト */
@@ -300,17 +289,6 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
   'deck-image': true,
   'deck-edit': true,
   'chat': false,
-};
-
-/**
- * デフォルトのデッキ編集設定
- */
-export const DEFAULT_DECK_EDIT_SETTINGS: DeckEditSettings = {
-  enabled: true,
-  defaultDisplayMode: 'list',
-  defaultSortOrder: 'official',
-  enableAnimation: true,
-  language: 'auto',
 };
 
 /**
@@ -355,7 +333,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'auto',
   middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   ux: DEFAULT_UX_SETTINGS,       // UX設定
-  enableBanlistCheck: false,
   unsavedWarning: 'always',
   // デッキ表示ページ設定
   showCardDetailInDeckDisplay: true,   // CardDetail表示: デフォルト有効
