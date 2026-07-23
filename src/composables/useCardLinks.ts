@@ -1,5 +1,3 @@
-import { useCardDetailStore } from '@/stores/card-detail'
-import { useDeckEditStore } from '@/stores/deck-edit'
 import { useCardDetailDisplay } from '@/composables/useCardDetailDisplay'
 
 /**
@@ -15,9 +13,6 @@ export interface CardLinkPart {
  * カードリンクのパースとクリック処理を提供するcomposable
  */
 export function useCardLinks() {
-  const deckStore = useDeckEditStore()
-  const cardDetailStore = useCardDetailStore()
-
   /**
    * {{カード名|cid}} 形式のテンプレートをパースして配列に変換
    * @param text - パース対象のテキスト

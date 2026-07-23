@@ -87,7 +87,7 @@ getChatHistory: 直前の会話でのツール実行履歴と結果を取得
 function parseToolCall(response: string): ToolCall | null {
   let text = response.trim();
   const codeBlockMatch = text.match(/```(?:tool|json)?\s*\n?([\s\S]*?)```/);
-  if (codeBlockMatch) {
+  if (codeBlockMatch?.[1]) {
     text = codeBlockMatch[1].trim();
   }
   const match = text.match(/\{[\s\S]*?\}/);

@@ -99,10 +99,10 @@ export function parseGenesysIndex(html: string): GenesysListRef[] {
   for (const a of links) {
     const href = a.getAttribute('href') ?? '';
     const match = href.match(/[?&]list=(\d{6})/);
-    if (!match) {
+    const listParam = match?.[1];
+    if (!listParam) {
       continue;
     }
-    const listParam = match[1];
     if (seen.has(listParam)) {
       continue;
     }
@@ -110,7 +110,7 @@ export function parseGenesysIndex(html: string): GenesysListRef[] {
 
     const text = a.textContent?.trim() ?? '';
     const dateMatch = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-    const effectiveDate = dateMatch
+    const effectiveDate = dateMatch?.[1] && dateMatch[2] && dateMatch[3]
       ? `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`
       : listParamToEffectiveDate(listParam);
     const isLatest = text.includes('最新版') || (a.className ?? '').includes('btn');

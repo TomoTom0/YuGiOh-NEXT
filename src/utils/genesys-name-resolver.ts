@@ -115,7 +115,7 @@ export class GenesysNameResolver {
       return null;
     }
     if (cids.length === 1) {
-      return cids[0];
+      return cids[0] ?? null;
     }
 
     // 同名カードが複数候補: cardKindClassで絞り込む
@@ -126,7 +126,7 @@ export class GenesysNameResolver {
       }
     }
     // 種類で絞れなければ先頭（同名カードは稀）
-    return cids[0];
+    return cids[0] ?? null;
   }
 
   /**

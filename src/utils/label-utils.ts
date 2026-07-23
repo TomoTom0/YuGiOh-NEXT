@@ -27,7 +27,7 @@ function currentLang(): string {
  */
 export const getAttributeLabel = (attr: string): string => {
   const lang = currentLang();
-  return mappingManager.getAttributeIdToText(lang)[attr]
+  return (mappingManager.getAttributeIdToText(lang) as Record<string, string>)[attr]
     || (ATTRIBUTE_ID_TO_NAME as Record<string, string>)[attr]
     || attr;
 };
@@ -37,7 +37,7 @@ export const getAttributeLabel = (attr: string): string => {
  */
 export const getRaceLabel = (race: string): string => {
   const lang = currentLang();
-  return mappingManager.getRaceIdToText(lang)[race]
+  return (mappingManager.getRaceIdToText(lang) as Record<string, string>)[race]
     || (RACE_ID_TO_NAME as Record<string, string>)[race]
     || race;
 };
@@ -47,7 +47,7 @@ export const getRaceLabel = (race: string): string => {
  */
 export const getMonsterTypeLabel = (type: string): string => {
   const lang = currentLang();
-  return mappingManager.getMonsterTypeIdToText(lang)[type]
+  return (mappingManager.getMonsterTypeIdToText(lang) as Record<string, string>)[type]
     || (MONSTER_TYPE_ID_TO_NAME as Record<string, string>)[type]
     || type;
 };
@@ -70,8 +70,8 @@ export const getLevelLabel = (card: { levelValue: number; levelType: string }): 
  */
 export const getSpellTypeLabel = (effectType: string): string => {
   const lang = currentLang();
-  const nameMap = mappingManager.getSpellEffectIdToText(lang);
-  if (nameMap[effectType]) return nameMap[effectType] as string;
+  const nameMap = mappingManager.getSpellEffectIdToText(lang) as Record<string, string>;
+  if (nameMap[effectType]) return nameMap[effectType];
   return (SPELL_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[effectType] || effectType;
 }
 
@@ -80,8 +80,8 @@ export const getSpellTypeLabel = (effectType: string): string => {
  */
 export const getTrapTypeLabel = (effectType: string): string => {
   const lang = currentLang();
-  const nameMap = mappingManager.getTrapEffectIdToText(lang);
-  if (nameMap[effectType]) return nameMap[effectType] as string;
+  const nameMap = mappingManager.getTrapEffectIdToText(lang) as Record<string, string>;
+  if (nameMap[effectType]) return nameMap[effectType];
   return (TRAP_EFFECT_TYPE_ID_TO_NAME as Record<string, string>)[effectType] || effectType;
 }
 

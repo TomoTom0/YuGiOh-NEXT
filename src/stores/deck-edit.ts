@@ -761,7 +761,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // カードが実際に移動した場合のみ、後続処理を実行
     if (result.success && result.moved !== false) {
       // 並び替え後のデッキ順序を見て、手動先頭配置カードの順序を更新
-      updateHeadPlacementCardsOrder(section);
+      updateHeadPlacementCardsOrder();
 
       // DOM更新後にアニメーション実行
       nextTick(() => {
@@ -1271,9 +1271,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   /**
    * main → extra → side の全体順序に合わせて、手動先頭配置カードの順序を更新する
-   * @param section - 更新が発生したセクション（全体を再計算する）
    */
-  function updateHeadPlacementCardsOrder(section: 'main' | 'extra' | 'side' | 'trash'): void {
+  function updateHeadPlacementCardsOrder(): void {
     // main → extra → side の順序で手動先頭配置カードを抽出（重複なし）
     const seenCards = new Set<string>();
     const reorderedHeadPlacementCards: string[] = [];
@@ -1327,7 +1326,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     await loadDeck(currentDno);
   }
 
-  async function fetchDeckList(force: boolean = false) {
+  async function fetchDeckList() {
     // デッキリスト取得は常に実行される必須処理（LoadDialog表示に必須）
     // backgroundDeckInfoFetch 設定は、バックグラウンド更新には影響しない
 
@@ -1529,7 +1528,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }));
     // ソート済みチェックをO(N)で行う（隣接要素の比較のみ）
     for (let i = 0; i < section.length - 1; i++) {
-      if (descComparator(section[i], section[i + 1]) > 0) {
+      if (descComparator(section[i]!, section[i + 1]!) > 0) {
         return false;
       }
     }
@@ -1552,7 +1551,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       levelSortOrder: 'asc'
     }));
     for (let i = 0; i < section.length - 1; i++) {
-      if (ascComparator(section[i], section[i + 1]) > 0) {
+      if (ascComparator(section[i]!, section[i + 1]!) > 0) {
         return false;
       }
     }

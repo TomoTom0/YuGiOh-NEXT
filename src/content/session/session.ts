@@ -252,7 +252,7 @@ class SessionManager {
    * @param dno デッキ番号
    * @returns いいね数、取得失敗時は0
    */
-  async getDeckLikes(dno: number): Promise<number> {
+  async getDeckLikes(_dno: number): Promise<number> {
     // TODO: 実装待ち
     return 0;
   }

@@ -10,7 +10,7 @@ export interface DropContext {
 
 export function usePracticeDropHandler() {
   const practiceStore = usePracticeStore()
-  const { draggingRotated, draggingFaceDown } = usePracticeDragState()
+  const { draggingRotated } = usePracticeDragState()
 
   function handleCardDrop(
     cardId: string,

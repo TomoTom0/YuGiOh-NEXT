@@ -142,7 +142,7 @@ export function handleWarning(
  * handleSuccess('[saveDeck]', 'デッキを保存しました');
  */
 export function handleSuccess(
-  context: string,
+  _context: string,
   message: string,
   details?: string,
   options: ErrorHandlerOptions = {}
@@ -181,7 +181,7 @@ export function handleSuccess(
  * handleInfo('[loadDeck]', 'デッキを読み込み中です...');
  */
 export function handleInfo(
-  context: string,
+  _context: string,
   message: string,
   details?: string,
   options: ErrorHandlerOptions = {}
@@ -218,9 +218,9 @@ export function handleInfo(
  * handleDebug('[parseCard]', 'Card type not recognized:', cardTypeValue);
  */
 export function handleDebug(
-  context: string,
-  message: string,
-  data?: unknown
+  _context: string,
+  _message: string,
+  _data?: unknown
 ): void {
   // console.debug呼び出しを削除（デバッグ用関数のため、実装を空にする）
 }
