@@ -54,6 +54,7 @@
 | `dev/architecture.md` | アーキテクチャ変更時 | システム構成、コンポーネント構造、データフロー |
 | `dev/data-models.md` | データモデル変更時 | 型定義、インターフェース、データ構造 |
 | `dev/stores.md` | Pinia store 追加・変更時 | 状態管理の構造、各storeの責務 |
+| `dev/feature-flags.md` | 設定項目（featureSettings/appSettings/ux）の追加・変更時 | 機能フラグのON/OFF分類（デフォルトON/OFF、開発限定等）とUI導線の有無 |
 | `dev/cache-system.md` | キャッシュシステム変更時 | キャッシュ戦略、Indexed DB使用箇所 |
 | `dev/png-format-spec.md` | PNGエクスポート形式変更時 | PNG metadata仕様、エクスポート形式 |
 | `dev/testing.md` | テスト方針変更時 | テスト戦略、カバレッジ方針 |
