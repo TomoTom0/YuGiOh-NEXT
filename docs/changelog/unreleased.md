@@ -26,7 +26,7 @@
 
 ## Repository Management
 
-（変更内容をここに記載）
+- パッケージマネージャをbunからpnpmに移行（bun.lock削除、pnpm-lock.yaml追加、CI/CLAUDE.md/CONTRIBUTING.md等のコマンド表記を更新）
 
 ## Internal Improvements
 

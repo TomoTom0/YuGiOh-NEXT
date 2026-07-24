@@ -6,7 +6,7 @@
 
 ## 実装内容
 
-`scripts/generate-licenses.ts` を追加し、`bun run license:generate` で以下を自動生成:
+`scripts/generate-licenses.ts` を追加し、`pnpm run license:generate` で以下を自動生成:
 
 1. `THIRD-PARTY-LICENSES.md` - ライセンス情報のMarkdownファイル
 2. `src/generated/third-party-libraries.json` - UI用のJSONファイル
@@ -14,13 +14,13 @@
 ### 使用方法
 
 ```bash
-bun run license:generate
+pnpm run license:generate
 ```
 
 ### 技術スタック
 
 - `license-checker-rseidelsohn` - ライセンス情報の収集
-- `bunx` - パッケージ実行
+- `pnpm dlx` - パッケージ実行
 
 ## 今後の改善案（オプション）
 

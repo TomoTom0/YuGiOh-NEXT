@@ -20,10 +20,11 @@
     "test:download-samples": "bash scripts/test/download-sample-html.sh",
     "test:integration": "bash scripts/test/download-sample-html.sh && vitest run",
     "setup:download-forms": "bash scripts/setup/download-search-forms.sh",
-    "setup:extract-mappings": "bun scripts/setup/extract-mappings.ts",
-    "setup:all": "bun run setup:download-forms && bun run setup:extract-mappings",
-    "license:generate": "bun scripts/generate-licenses.ts"
+    "setup:extract-mappings": "tsx scripts/setup/extract-mappings.ts",
+    "setup:all": "pnpm run setup:download-forms && pnpm run setup:extract-mappings",
+    "license:generate": "tsx scripts/generate-licenses.ts"
   },
+  "packageManager": "pnpm@10.26.2",
   "keywords": [
     "yugioh",
     "deck",
@@ -52,7 +53,7 @@
     "playwright": "^1.57.0",
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.4",
-    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9",
     "vue": "^3.5.26",
@@ -71,5 +72,12 @@
     "sass": "^1.97.1",
     "sass-loader": "^16.0.6",
     "ws": "^8.18.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "canvas",
+      "esbuild"
+    ]
   }
 }

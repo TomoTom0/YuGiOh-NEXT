@@ -1,10 +1,9 @@
-#!/usr/bin/env bun
 /**
  * ZAI GLM API でカードテキストから検索条件を抽出するテスト
  *
  * 使用方法:
- *   bun run scripts/try/zai-glm-extract.ts "カードテキスト"
- *   bun run scripts/try/zai-glm-extract.ts --batch cards.json
+ *   pnpm exec tsx scripts/try/zai-glm-extract.ts "カードテキスト"
+ *   pnpm exec tsx scripts/try/zai-glm-extract.ts --batch cards.json
  */
 
 import { config } from 'dotenv'
@@ -228,8 +227,8 @@ async function main(): Promise<void> {
 
   if (args.length === 0) {
     console.log('Usage:')
-    console.log('  bun run scripts/try/zai-glm-extract.ts "カードテキスト"')
-    console.log('  bun run scripts/try/zai-glm-extract.ts --batch cards.json')
+    console.log('  pnpm exec tsx scripts/try/zai-glm-extract.ts "カードテキスト"')
+    console.log('  pnpm exec tsx scripts/try/zai-glm-extract.ts --batch cards.json')
     process.exit(1)
   }
 

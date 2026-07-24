@@ -1,9 +1,8 @@
-#!/usr/bin/env bun
 /**
  * THIRD-PARTY-LICENSES.md 自動生成スクリプト
  *
  * 使用方法:
- *   bun run license:generate
+ *   pnpm run license:generate
  *
  * 直接依存のみのライセンス情報を取得し、Markdown形式で出力します。
  */
@@ -138,7 +137,7 @@ END OF TERMS AND CONDITIONS`,
 };
 
 function getLicenseData(): LicenseData {
-  const output = execSync('bunx license-checker-rseidelsohn --production --direct 0 --json', {
+  const output = execSync('pnpm dlx license-checker-rseidelsohn --production --direct 0 --json', {
     encoding: 'utf-8',
   });
   return JSON.parse(output);
@@ -220,7 +219,7 @@ function generateMarkdown(data: LicenseData): string {
   lines.push('For a complete list of all dependencies and their licenses, run:');
   lines.push('');
   lines.push('```bash');
-  lines.push('bunx license-checker-rseidelsohn --summary');
+  lines.push('pnpm dlx license-checker-rseidelsohn --summary');
   lines.push('```');
   lines.push('');
 

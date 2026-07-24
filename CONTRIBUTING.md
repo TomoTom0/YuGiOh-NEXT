@@ -17,7 +17,8 @@ YGO Deck Helper（遊戯王デッキヘルパー）へのコントリビュー�
 ### 必要な環境
 
 - Node.js 18以上
-- Bun 1.0以上
+- pnpm 10以上
+- mise（タスクランナー）
 - Git
 
 ### セットアップ手順
@@ -28,23 +29,23 @@ git clone https://github.com/TomoTom0/YuGiOh-NEXT.git
 cd YuGiOh-NEXT
 
 # 依存関係をインストール
-bun install
+pnpm install
 
 # ビルド
-bun run build
+mise run build
 
 # テスト実行
-bun run test:vitest
+mise run test:vitest
 ```
 
 ### 開発モード
 
 ```bash
 # ウォッチモードでビルド
-bun run dev
+mise run dev
 
 # テストをウォッチモード実行
-bun vitest
+pnpm exec vitest
 ```
 
 ### ブラウザへの読み込み
@@ -274,8 +275,8 @@ npm run test:coverage
 ### PR作成前チェックリスト
 
 - [ ] コードが正しく動作する
-- [ ] テストが全て通過する（`bun run test:vitest`）
-- [ ] ビルドが成功する（`bun run build`）
+- [ ] テストが全て通過する（`mise run test:vitest`）
+- [ ] ビルドが成功する（`mise run build`）
 - [ ] 新機能にテストを追加した
 - [ ] ドキュメントを更新した（必要に応じて）
 - [ ] コミットメッセージが規約に従っている

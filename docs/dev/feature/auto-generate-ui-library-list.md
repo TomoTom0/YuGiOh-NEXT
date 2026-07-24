@@ -12,7 +12,7 @@
 
 ```bash
 # ライセンス情報を再生成
-bun run license:generate
+pnpm run license:generate
 ```
 
 ### 実装詳細
