@@ -572,6 +572,8 @@ export interface GenesysListEntry {
   points: Record<string, number>;
   /** 取得日時 (timestamp) */
   fetchedAt: number;
+  /** 名前解決できなかったカードが残っている場合true（カードDB未初期化等）。次回チェック時に再解決対象になる */
+  incomplete?: boolean;
 }
 
 /**

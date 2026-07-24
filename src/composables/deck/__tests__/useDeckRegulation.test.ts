@@ -12,6 +12,7 @@ vi.mock('@/utils/regulation-resolver', () => ({
 vi.mock('@/utils/forbidden-limited-cache', () => ({
   forbiddenLimitedCache: {
     init: vi.fn().mockResolvedValue(undefined),
+    checkAndUpdate: vi.fn().mockResolvedValue(undefined),
     getAvailableDates: vi.fn().mockReturnValue([]),
     ensureList: vi.fn().mockResolvedValue(null)
   }
@@ -20,6 +21,7 @@ vi.mock('@/utils/forbidden-limited-cache', () => ({
 vi.mock('@/utils/genesys-cache', () => ({
   genesysPointCache: {
     init: vi.fn().mockResolvedValue(undefined),
+    checkAndUpdate: vi.fn().mockResolvedValue(undefined),
     getAvailableListParams: vi.fn().mockReturnValue([]),
     ensureList: vi.fn().mockResolvedValue(null),
     ensureCurrentList: vi.fn().mockResolvedValue(null)
@@ -113,5 +115,31 @@ describe('useDeckRegulation - resolveAndEnsure', () => {
     expect(forbiddenLimitedCache.ensureList).toHaveBeenCalledWith('2026-08-01');
     expect(genesysPointCache.ensureList).not.toHaveBeenCalled();
     expect(genesysPointCache.ensureCurrentList).not.toHaveBeenCalled();
+  });
+
+  it('discoveryの完了（checkAndUpdate）を待ってからavailableを参照する', async () => {
+    let discoveryDone = false;
+    vi.mocked(forbiddenLimitedCache.checkAndUpdate).mockImplementation(async () => {
+      discoveryDone = true;
+    });
+    vi.mocked(forbiddenLimitedCache.getAvailableDates).mockImplementation(() =>
+      discoveryDone ? ['2026-08-01'] : []
+    );
+    resolveDeckRegulationMock.mockReturnValue({
+      mode: 'none',
+      tag: null,
+      effectiveDate: null,
+      listParam: null,
+      fallback: undefined
+    });
+
+    const { resolveAndEnsure } = useDeckRegulation(createOptions());
+    await resolveAndEnsure({ dno: 1, silent: true });
+
+    expect(forbiddenLimitedCache.checkAndUpdate).toHaveBeenCalledTimes(1);
+    expect(resolveDeckRegulationMock).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ ocgDates: ['2026-08-01'] })
+    );
   });
 });

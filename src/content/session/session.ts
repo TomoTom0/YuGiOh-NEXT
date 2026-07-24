@@ -1,6 +1,7 @@
 import {
   createNewDeckInternal,
   saveDeckInternal,
+  showSaveDeckErrorToast,
   deleteDeckInternal,
   getDeckListInternal,
   issueDeckCodeInternal
@@ -184,17 +185,27 @@ class SessionManager {
 
       console.debug('[SessionManager.saveDeck] Calling saveDeckInternal');
       const saveStartTime = performance.now();
-      let result = await saveDeckInternal(cgid, dno, deckData, ytkn);
+      // usedPreloadedYtkn時はリトライ候補のため、失敗してもここではトーストを出さない
+      // （リトライ成功時に「失敗→成功」の紛らわしい通知が出るのを防ぐ）
+      let result = await saveDeckInternal(cgid, dno, deckData, ytkn, { showErrorToast: !usedPreloadedYtkn });
       const saveDuration = performance.now() - saveStartTime;
       console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
 
       // 先読みytknが失効していた場合（screen transition error）、
       // 通常取得したytknで1回だけ再試行する
-      if (!result.success && usedPreloadedYtkn && isStaleYtknError(result.error)) {
-        console.warn('[SessionManager.saveDeck] Preloaded ytkn appears stale (screen transition error), retrying with freshly fetched ytkn');
-        const retryYtkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
-        if (retryYtkn) {
-          result = await saveDeckInternal(cgid, dno, deckData, retryYtkn);
+      if (!result.success && usedPreloadedYtkn) {
+        if (isStaleYtknError(result.error)) {
+          console.warn('[SessionManager.saveDeck] Preloaded ytkn appears stale (screen transition error), retrying with freshly fetched ytkn');
+          const retryYtkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+          if (retryYtkn) {
+            result = await saveDeckInternal(cgid, dno, deckData, retryYtkn);
+          } else {
+            // リトライ用ytknが取得できず再試行不可 -> これが最終結果のため抑制していたトーストを表示
+            showSaveDeckErrorToast(result.error);
+          }
+        } else {
+          // stale token以外のエラーはリトライ対象外 -> これが最終結果のため抑制していたトーストを表示
+          showSaveDeckErrorToast(result.error);
         }
       }
 

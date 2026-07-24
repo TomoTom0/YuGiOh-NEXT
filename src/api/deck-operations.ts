@@ -170,8 +170,10 @@ export async function saveDeckInternal(
   cgid: string,
   dno: number,
   deckData: DeckInfo,
-  ytkn: string
+  ytkn: string,
+  options: { showErrorToast?: boolean } = {}
 ): Promise<OperationResult> {
+  const { showErrorToast = true } = options;
   try {
     console.debug('[saveDeckInternal] Starting save process', { dno, deckDataName: deckData.name, mainDeckSize: deckData.mainDeck?.length, extraDeckSize: deckData.extraDeck?.length, sideDeckSize: deckData.sideDeck?.length });
 
@@ -408,7 +410,7 @@ export async function saveDeckInternal(
           '[saveDeckInternal]',
           'デッキ保存に失敗しました',
           new Error(errorMessages.join(', ')),
-          { showToast: true, toastBody: errorMessages.join('\n') }
+          { showToast: showErrorToast, toastBody: errorMessages.join('\n') }
         );
         return {
           success: false,
@@ -421,7 +423,7 @@ export async function saveDeckInternal(
         '[saveDeckInternal]',
         'デッキ保存に失敗しました',
         new Error('Unknown error (no error message from server)'),
-        { showToast: true }
+        { showToast: showErrorToast }
       );
       return {
         success: false,
@@ -434,13 +436,32 @@ export async function saveDeckInternal(
       '[saveDeckInternal]',
       'デッキ保存に失敗しました',
       error,
-      { showToast: true }
+      { showToast: showErrorToast }
     );
     return {
       success: false,
       error: [error instanceof Error ? error.message : 'Unknown error']
     };
   }
+}
+
+/**
+ * saveDeckInternalの失敗トーストを後から表示する
+ *
+ * リトライ可能な失敗（先読みytkn失効等）を{ showErrorToast: false }で抑制した後、
+ * リトライ不可・リトライも失敗した場合に、呼び出し元（SessionManager）から
+ * 最終結果として表示するために使用する
+ *
+ * @param error saveDeckInternalの返り値のerror配列
+ */
+export function showSaveDeckErrorToast(error?: string[]): void {
+  const errorMessages = error && error.length > 0 ? error : ['保存に失敗しました'];
+  handleError(
+    '[saveDeckInternal]',
+    'デッキ保存に失敗しました',
+    new Error(errorMessages.join(', ')),
+    { showToast: true, toastBody: errorMessages.join('\n') }
+  );
 }
 
 /**

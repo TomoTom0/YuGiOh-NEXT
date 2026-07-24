@@ -16,6 +16,7 @@ import type { GenesysPointCacheData, GenesysListEntry } from '../types/card';
 import { fetchGenesysIndex, fetchGenesysPointList, listParamToEffectiveDate } from '../api/genesys';
 import { resolveGenesysEntries } from './genesys-name-resolver';
 import { safeStorageGet, safeStorageSet } from './extension-context-checker';
+import { getUnifiedCacheDB } from './unified-cache-db';
 
 // ストレージキー（禁止制限キャッシュと同様の命名規約: プレフィックスなし）
 const STORAGE_KEY = 'genesysPointList';
@@ -79,6 +80,8 @@ export function selectApplicableGenesysList(
 export class GenesysPointCache {
   private cache: GenesysPointCacheData | null = null;
   private initialized = false;
+  // checkAndUpdate() の多重実行防止・in-flight共有用（未完了なら同じPromiseを返す）
+  private updatePromise: Promise<void> | null = null;
 
   /**
    * 初期化（キャッシュをロード）
@@ -205,13 +208,15 @@ export class GenesysPointCache {
       return null;
     }
 
-    // forceUpdate で既に取得されていればそれを返す
+    // forceUpdate で既に取得されていれば（未解決カードが残っていない限り）それを返す
     const afterForce = this.cache?.lists[listParam];
-    if (afterForce) {
+    if (afterForce && !afterForce.incomplete) {
       return afterForce;
     }
 
     try {
+      // カード名->cid解決にはカードDBが必要。未初期化だと全て未解決になるため先に初期化する
+      await getUnifiedCacheDB().initialize();
       const parsed = await fetchGenesysPointList(listParam);
       const { points, unresolved } = resolveGenesysEntries(parsed.entries);
       if (unresolved.length > 0) {
@@ -224,7 +229,8 @@ export class GenesysPointCache {
         listParam,
         effectiveDate: listParamToEffectiveDate(listParam),
         points,
-        fetchedAt: Date.now()
+        fetchedAt: Date.now(),
+        incomplete: unresolved.length > 0,
       };
       this.cache = this.cache ?? {
         lists: {},
@@ -256,18 +262,30 @@ export class GenesysPointCache {
 
   /**
    * 更新チェックと更新（新リストがあれば取り込む）
+   *
+   * 既に更新が進行中（init()からのバックグラウンド呼び出し等）の場合は、
+   * 同じPromiseを返して完了を待てるようにする（多重fetch防止）。
+   * これにより「discovery完了前にavailableListParamsを参照してしまう」問題を、
+   * 呼び出し側が明示的にawaitするだけで回避できる。
    */
   async checkAndUpdate(): Promise<void> {
+    if (this.updatePromise) {
+      return this.updatePromise;
+    }
     if (!this.needsUpdate()) {
       return;
     }
 
-    try {
-      await this.forceUpdate();
-    } catch (err) {
-      console.error('[GenesysPointCache] Failed to update:', err);
-      // エラーが発生しても既存のキャッシュは保持
-    }
+    this.updatePromise = this.forceUpdate()
+      .catch(err => {
+        console.error('[GenesysPointCache] Failed to update:', err);
+        // エラーが発生しても既存のキャッシュは保持
+      })
+      .finally(() => {
+        this.updatePromise = null;
+      });
+
+    return this.updatePromise;
   }
 
   /**
@@ -283,12 +301,17 @@ export class GenesysPointCache {
     const lists: Record<string, GenesysListEntry> = this.cache?.lists ?? {};
     let latestListParam: string | null = null;
 
+    // カード名->cid解決にはカードDBが必要。未初期化だと全て未解決になるため先に初期化する
+    await getUnifiedCacheDB().initialize();
+
     for (const ref of refs) {
       if (ref.isLatest) {
         latestListParam = ref.listParam;
       }
-      // 公開済みリストは不変: 未取得のリストのみ取得
-      if (lists[ref.listParam]) {
+      // 公開済みリストは不変: 未取得のリストのみ取得。ただし前回未解決カードが
+      // 残っていた場合はカードDBが揃った可能性があるため再取得する
+      const existingEntry = lists[ref.listParam];
+      if (existingEntry && !existingEntry.incomplete) {
         continue;
       }
 
@@ -311,6 +334,7 @@ export class GenesysPointCache {
         effectiveDate: ref.effectiveDate,
         points,
         fetchedAt: now,
+        incomplete: unresolved.length > 0,
       };
     }
 

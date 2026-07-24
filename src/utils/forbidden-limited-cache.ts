@@ -50,6 +50,8 @@ function migrateOldData(old: ForbiddenLimitedList): ForbiddenLimitedCacheData {
 export class ForbiddenLimitedCache {
   private cache: ForbiddenLimitedCacheData | null = null;
   private initialized = false;
+  // checkAndUpdate() の多重実行防止・in-flight共有用（未完了なら同じPromiseを返す）
+  private updatePromise: Promise<void> | null = null;
 
   /**
    * 初期化（キャッシュをロード）
@@ -204,18 +206,30 @@ export class ForbiddenLimitedCache {
 
   /**
    * キャッシュの更新チェックと更新
+   *
+   * 既に更新が進行中（init()からのバックグラウンド呼び出し等）の場合は、
+   * 同じPromiseを返して完了を待てるようにする（多重fetch防止）。
+   * これにより「discovery完了前にavailableDatesを参照してしまう」問題を、
+   * 呼び出し側が明示的にawaitするだけで回避できる。
    */
   async checkAndUpdate(): Promise<void> {
+    if (this.updatePromise) {
+      return this.updatePromise;
+    }
     if (!this.needsUpdate()) {
       return;
     }
 
-    try {
-      await this.forceUpdate();
-    } catch (err) {
-      console.error('[ForbiddenLimitedCache] Failed to update:', err);
-      // エラーが発生しても既存のキャッシュは保持
-    }
+    this.updatePromise = this.forceUpdate()
+      .catch(err => {
+        console.error('[ForbiddenLimitedCache] Failed to update:', err);
+        // エラーが発生しても既存のキャッシュは保持
+      })
+      .finally(() => {
+        this.updatePromise = null;
+      });
+
+    return this.updatePromise;
   }
 
   /**

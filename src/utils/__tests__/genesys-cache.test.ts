@@ -5,6 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const fetchGenesysIndexMock = vi.fn();
 const fetchGenesysPointListMock = vi.fn();
+const resolveGenesysEntriesMock = vi.fn((entries: Array<{ cardName: string; point: number }>) => {
+  const points: Record<string, number> = {};
+  entries.forEach((e, i) => {
+    points[`cid-${i}`] = e.point;
+  });
+  return { points, unresolved: [] as string[] };
+});
+const unifiedCacheDbInitializeMock = vi.fn(async () => undefined);
 
 vi.mock('../../api/genesys', () => ({
   fetchGenesysIndex: (...args: unknown[]) => fetchGenesysIndexMock(...args),
@@ -14,18 +22,19 @@ vi.mock('../../api/genesys', () => ({
 }));
 
 vi.mock('../genesys-name-resolver', () => ({
-  resolveGenesysEntries: (entries: Array<{ cardName: string; point: number }>) => {
-    const points: Record<string, number> = {};
-    entries.forEach((e, i) => {
-      points[`cid-${i}`] = e.point;
-    });
-    return { points, unresolved: [] };
-  },
+  resolveGenesysEntries: (entries: Array<{ cardName: string; point: number }>) =>
+    resolveGenesysEntriesMock(entries),
 }));
 
 vi.mock('../extension-context-checker', () => ({
   safeStorageGet: vi.fn(async () => ({})),
   safeStorageSet: vi.fn(async () => undefined),
+}));
+
+vi.mock('../unified-cache-db', () => ({
+  getUnifiedCacheDB: () => ({
+    initialize: unifiedCacheDbInitializeMock,
+  }),
 }));
 
 import { GenesysPointCache } from '../genesys-cache';
@@ -95,5 +104,85 @@ describe('GenesysPointCache - ensureCurrentList', () => {
     const entry = await cache.ensureCurrentList();
 
     expect(entry).toBeNull();
+  });
+});
+
+describe('GenesysPointCache - forceUpdate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(GenesysPointCache.prototype, 'checkAndUpdate').mockResolvedValue(undefined);
+    resolveGenesysEntriesMock.mockImplementation((entries: Array<{ cardName: string; point: number }>) => {
+      const points: Record<string, number> = {};
+      entries.forEach((e, i) => {
+        points[`cid-${i}`] = e.point;
+      });
+      return { points, unresolved: [] };
+    });
+  });
+
+  it('カードDB初期化を名前解決前に待機する', async () => {
+    const initOrder: string[] = [];
+    unifiedCacheDbInitializeMock.mockImplementation(async () => {
+      initOrder.push('db-init');
+    });
+    resolveGenesysEntriesMock.mockImplementation((entries) => {
+      initOrder.push('resolve');
+      const points: Record<string, number> = {};
+      entries.forEach((e, i) => {
+        points[`cid-${i}`] = e.point;
+      });
+      return { points, unresolved: [] };
+    });
+
+    fetchGenesysIndexMock.mockResolvedValue([
+      { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true },
+    ]);
+    fetchGenesysPointListMock.mockResolvedValue({
+      entries: [{ cardName: 'テストカード', point: 3 }],
+    });
+
+    const cache = new GenesysPointCache();
+    await cache.forceUpdate();
+
+    expect(initOrder).toEqual(['db-init', 'resolve']);
+  });
+
+  it('未解決カードが残ったリストは次回forceUpdateで再解決される', async () => {
+    fetchGenesysIndexMock.mockResolvedValue([
+      { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true },
+    ]);
+    fetchGenesysPointListMock.mockResolvedValue({
+      entries: [{ cardName: 'テストカード', point: 3 }],
+    });
+    // 1回目: カードDB未初期化を想定し未解決のまま
+    resolveGenesysEntriesMock.mockReturnValueOnce({ points: {}, unresolved: ['テストカード'] });
+
+    const cache = new GenesysPointCache();
+    await cache.forceUpdate();
+
+    expect(cache.getPoint('cid-0', '202607')).toBeUndefined();
+    expect(fetchGenesysPointListMock).toHaveBeenCalledTimes(1);
+
+    // 2回目: カードDBが揃って解決できるようになったと想定
+    await cache.forceUpdate();
+
+    expect(fetchGenesysPointListMock).toHaveBeenCalledTimes(2);
+    expect(cache.getPoint('cid-0', '202607')).toBe(3);
+  });
+
+  it('完全解決済みのリストは再取得しない', async () => {
+    fetchGenesysIndexMock.mockResolvedValue([
+      { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true },
+    ]);
+    fetchGenesysPointListMock.mockResolvedValue({
+      entries: [{ cardName: 'テストカード', point: 3 }],
+    });
+
+    const cache = new GenesysPointCache();
+    await cache.forceUpdate();
+    expect(fetchGenesysPointListMock).toHaveBeenCalledTimes(1);
+
+    await cache.forceUpdate();
+    expect(fetchGenesysPointListMock).toHaveBeenCalledTimes(1);
   });
 });

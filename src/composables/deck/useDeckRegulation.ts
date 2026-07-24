@@ -101,6 +101,12 @@ export function useDeckRegulation(options: {
     await forbiddenLimitedCache.init();
     await genesysPointCache.init();
 
+    // init() 内の discovery（checkAndUpdate）はバックグラウンド起動のみで完了を待たない。
+    // 新規/stale/移行直後だと available が不完全なままバージョン指定タグを解決してしまうため、
+    // ここで明示的に完了を待つ（in-flightなら共有Promiseを待つだけで多重fetchはしない）
+    await forbiddenLimitedCache.checkAndUpdate();
+    await genesysPointCache.checkAndUpdate();
+
     const available = {
       ocgDates: forbiddenLimitedCache.getAvailableDates(),
       genesysListParams: genesysPointCache.getAvailableListParams()
