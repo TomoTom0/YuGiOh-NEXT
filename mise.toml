@@ -1,0 +1,75 @@
+[tasks.build]
+description = "本番ビルド"
+run = "bun run build"
+
+[tasks."build:dev"]
+description = "開発ビルド"
+run = "bun run build:dev"
+
+[tasks.dev]
+description = "開発ビルド（watchモード）"
+run = "bun run dev"
+
+[tasks.deploy]
+description = "ビルド済みファイルをデプロイ"
+run = "bun run deploy"
+
+[tasks."build-and-deploy"]
+description = "本番ビルドしてデプロイ"
+run = "bun run build-and-deploy"
+
+[tasks."type-check"]
+description = "TypeScriptの型チェック"
+run = "bun run type-check"
+
+[tasks.test]
+description = "全テストを実行（vitest）"
+run = "bun run test"
+
+[tasks."test:unit"]
+description = "ユニットテストを実行"
+run = "bun run test:unit"
+
+[tasks."test:combine"]
+description = "結合テストを実行"
+run = "bun run test:combine"
+
+[tasks."test:parser"]
+description = "パーサーのテストを実行"
+run = "bun run test:parser"
+
+[tasks."test:vitest"]
+description = "全テストを実行（vitest、testと同一）"
+run = "bun run test:vitest"
+
+[tasks."test:vitest:ui"]
+description = "vitest UIを起動"
+run = "bun run test:vitest:ui"
+
+[tasks."test:components"]
+description = "コンポーネントテストを実行"
+run = "bun run test:components"
+
+[tasks."test:download-samples"]
+description = "テスト用サンプルHTMLをダウンロード"
+run = "bun run test:download-samples"
+
+[tasks."test:integration"]
+description = "サンプルHTMLダウンロード後に結合テストを実行"
+run = "bun run test:integration"
+
+[tasks."setup:download-forms"]
+description = "検索フォーム情報をダウンロード"
+run = "bun run setup:download-forms"
+
+[tasks."setup:extract-mappings"]
+description = "マッピング情報を抽出"
+run = "bun run setup:extract-mappings"
+
+[tasks."setup:all"]
+description = "セットアップ一式を実行（フォームダウンロード＋マッピング抽出）"
+run = "bun run setup:all"
+
+[tasks."license:generate"]
+description = "サードパーティライセンス一覧を生成"
+run = "bun run license:generate"

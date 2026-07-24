@@ -145,6 +145,8 @@ function sendCommand(method, params = {}) {
 bun run build-and-deploy
 ```
 
+`package.json`の全scriptsは`mise.toml`にもtaskとして登録済みで、`mise run build-and-deploy`のように呼び出すこともできる（`mise tasks ls`で一覧表示）。
+
 ### デプロイ先
 
 - WSL環境: `/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`
