@@ -1,0 +1,43 @@
+# UXSettings（AppSettings.ux、src/types/settings.ts:148-179,297-321）
+# category の定義は README.md を参照
+
+[searchInputPosition]
+default = "right-top"
+category = 1
+ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
+
+[defaultSearchMode]
+default = "auto"
+category = 1
+ui = "src/options/components/sections/UXSettingsSection.vue"
+
+[enableMouseOperations]
+default = false
+category = 2
+ui = "src/options/components/sections/UXSettingsSection.vue:104"
+note = "リポジトリ内で確認できた唯一の純粋なcategory 2の例（デフォルトOFFかつUIから明示的にONにできる）"
+
+[changeFavicon]
+default = true
+category = 1
+ui = "src/options/components/sections/CacheManagementSection.vue:14"
+
+[keyboardShortcuts]
+default = "globalSearch: [/, Ctrl+j], undo: [Ctrl+z], redo: [Ctrl+y]"
+category = 1
+ui = "src/options/components/sections/UXSettingsSection.vue（登録・削除UIあり）"
+
+[cardListViewMode]
+default = "search=grid, related=grid, products=grid"
+category = 1
+ui = "src/options/components/sections/UISettingsSection.vue"
+
+[rightAreaWidth]
+default = "L"
+category = 1
+ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
+
+[rightAreaFontSize]
+default = "l"
+category = 1
+ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"

@@ -6,10 +6,12 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "contextMenus"
+    "contextMenus",
+    "alarms"
   ],
   "host_permissions": [
-    "https://www.db.yugioh-card.com/*"
+    "https://www.db.yugioh-card.com/*",
+    "https://www.yugioh-card.com/*"
   ],
   "background": {
     "service_worker": "background.js",

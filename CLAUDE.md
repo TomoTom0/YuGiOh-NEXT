@@ -142,8 +142,10 @@ function sendCommand(method, params = {}) {
 **ソースコード更新後は必ず以下を実行すること：**
 
 ```bash
-bun run build-and-deploy
+mise run build-and-deploy
 ```
+
+`package.json`の全scriptsは`mise.toml`にもtaskとして登録済み（`mise tasks ls`で一覧表示）。内部実装はpnpmを使用。
 
 ### デプロイ先
 
@@ -154,10 +156,10 @@ bun run build-and-deploy
 
 ```bash
 # ユニットテスト（Vitest）
-bun run test:vitest
+mise run test:vitest
 
 # E2Eテスト（Chrome CDP経由）
-bun run tmp/test-*.js
+node tmp/test-*.js
 ```
 
 ### デッキ編集ページ
@@ -184,7 +186,7 @@ bun run tmp/test-*.js
 - `tmp/` - 一時的なテストスクリプトやデバッグファイル
 - `.chrome_cache/` - Chromiumのユーザープロファイル
 - `dist/` - ビルド出力
-- `node_modules/` - bunパッケージキャッシュ
+- `node_modules/` - pnpmパッケージキャッシュ
 
 ## バージョン管理
 
@@ -283,7 +285,7 @@ update-versionコマンドで以下を自動更新：
 
 変更方法：
 1. `src/styles/themes.scss` を編集
-2. `bun run build-and-deploy`
+2. `mise run build-and-deploy`
 3. オプション画面でテーマ切り替えを確認
 
 ## querySelector 安全性パターン

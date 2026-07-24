@@ -559,6 +559,63 @@ export interface ForbiddenLimitedList {
   fetchedAt: number;
 }
 
+/**
+ * 単一のGENESYSポイントリスト（1リスト分）
+ * 公式howtoページから取得した、特定の適用日のカードごとのGENESYSポイント
+ */
+export interface GenesysListEntry {
+  /** リストパラメータ（YYYYMM形式、例: "202608"）。howtoページの ?list= に対応 */
+  listParam: string;
+  /** 適用日（YYYY-MM-DD形式、例: "2026-08-01"） */
+  effectiveDate: string;
+  /** カードIDごとのGENESYSポイントマップ（cid → ポイント 1-100）。0ポイントカードは含まない */
+  points: Record<string, number>;
+  /** 取得日時 (timestamp) */
+  fetchedAt: number;
+  /** 名前解決できなかったカードが残っている場合true（カードDB未初期化等）。次回チェック時に再解決対象になる */
+  incomplete?: boolean;
+}
+
+/**
+ * GENESYSポイントリストのキャッシュ（実在する全リストを保持）
+ *
+ * GENESYSリストは月次でなく不規則に公開される（例: 6月→8月と飛ぶ）ため、
+ * 現在月に基づく推論ではなく howtoインデックスページから実在する全リストを
+ * 発見して取得する。getPoint() は「現在有効なリスト（適用日 <= 今日 で最新）」を参照し、
+ * まだどのリストも有効でなければ「最新版」を参照する。
+ */
+export interface GenesysPointCacheData {
+  /** listParam → リストエントリ（取得済みのリスト） */
+  lists: Record<string, GenesysListEntry>;
+  /** サイトが「最新版」と指定するリストのlistParam（現在有効リストがない場合のフォールバック） */
+  latestListParam: string | null;
+  /** インデックスページから発見した実在する全listParam（YYYYMM）。フォールバック判定に使用 */
+  availableListParams: string[];
+  /** インデックスページを最後に解析した日時 (timestamp) */
+  discoveredAt: number;
+}
+
+/**
+ * 禁止制限リストのキャッシュ（複数の適用日を保持）
+ *
+ * 従来は「最新版1件」のみだったが、デッキ名タグ [OCG-YYMM] で過去版を指定できるように
+ * するため、実在する複数の適用日を保持するマップ構造に拡張。
+ * GenesysPointCacheData と対称な設計。
+ *
+ * 取得元: forbidden_limited.action?forbiddenLimitedDate=YYYY-MM-DD
+ * 実在する適用日一覧は同ページの <select name="forbiddenLimitedDate"> の option から取得。
+ */
+export interface ForbiddenLimitedCacheData {
+  /** effectiveDate → リスト（取得済みの適用日。キーは "YYYY-MM-DD"） */
+  lists: Record<string, ForbiddenLimitedList>;
+  /** 最新の適用日（YYYY-MM-DD）。select option[selected] または一覧の最新 */
+  latestEffectiveDate: string | null;
+  /** 実在する全適用日一覧（select option から取得）。フォールバック判定に使用 */
+  availableDates: string[];
+  /** 適用日一覧を最後に取得（select option解析）した日時 (timestamp) */
+  discoveredAt: number;
+}
+
 // card-maps.tsから再エクスポート
 export type {
   Attribute,

@@ -30,6 +30,7 @@ import {
 } from '../composables/deck/useDeckSnapshot';
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
+import { useDeckRegulation } from '../composables/deck/useDeckRegulation';
 import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
 
 /**
@@ -760,7 +761,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // カードが実際に移動した場合のみ、後続処理を実行
     if (result.success && result.moved !== false) {
       // 並び替え後のデッキ順序を見て、手動先頭配置カードの順序を更新
-      updateHeadPlacementCardsOrder(section);
+      updateHeadPlacementCardsOrder();
 
       // DOM更新後にアニメーション実行
       nextTick(() => {
@@ -1002,6 +1003,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     deckInfo.value.name = name;
   }
 
+  // レギュレーション判定機能（デッキ名タグ [OCG-YYMM]/[GENESYS-YYMM] から適用版を解決）
+  const regulation = useDeckRegulation({ deckInfo, getDeckName, setDeckName });
+
   /**
    * displayOrder の順序を deckInfo に反映
    * 保存直前に呼び出して、手動並び替えの順序を永続化する
@@ -1093,11 +1097,17 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // ローディング開始
     isLoadingDeck.value = true;
 
+    // 前デッキのレギュレーション状態をクリア
+    regulation.resetRegulation();
+
     try {
       // useDeckPersistence composable に処理を委譲
       const result = await getPersistence().loadDeck(dno);
       // デッキロード後、手動先頭優先配置も読み込む
       await loadHeadPlacementCards(dno);
+
+      // デッキ名タグから適用すべきリミットレギュレーションを解決（OCG過去版/GENESYS）
+      await regulation.resolveAndEnsure({ dno, silent: false });
 
       // DOM更新を待つ
       await nextTick();
@@ -1261,9 +1271,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
   /**
    * main → extra → side の全体順序に合わせて、手動先頭配置カードの順序を更新する
-   * @param section - 更新が発生したセクション（全体を再計算する）
    */
-  function updateHeadPlacementCardsOrder(section: 'main' | 'extra' | 'side' | 'trash'): void {
+  function updateHeadPlacementCardsOrder(): void {
     // main → extra → side の順序で手動先頭配置カードを抽出（重複なし）
     const seenCards = new Set<string>();
     const reorderedHeadPlacementCards: string[] = [];
@@ -1317,7 +1326,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     await loadDeck(currentDno);
   }
 
-  async function fetchDeckList(force: boolean = false) {
+  async function fetchDeckList() {
     // デッキリスト取得は常に実行される必須処理（LoadDialog表示に必須）
     // backgroundDeckInfoFetch 設定は、バックグラウンド更新には影響しない
 
@@ -1423,6 +1432,13 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       }
     })();
 
+    // レギュレーション修正提案のignore状態を読込（loadDeck前）
+    try {
+      await regulation.loadIgnored();
+    } catch (error) {
+      console.warn('[initializeOnPageLoad] Failed to load regulation fix ignored:', error);
+    }
+
     // URLパラメータからdnoを取得（URLStateManagerを使用）
     const urlDno = URLStateManager.getDno();
     const savedDno = localStorage.getItem(STORAGE_KEY_LAST_USED_DNO);
@@ -1512,7 +1528,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }));
     // ソート済みチェックをO(N)で行う（隣接要素の比較のみ）
     for (let i = 0; i < section.length - 1; i++) {
-      if (descComparator(section[i], section[i + 1]) > 0) {
+      if (descComparator(section[i]!, section[i + 1]!) > 0) {
         return false;
       }
     }
@@ -1535,7 +1551,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       levelSortOrder: 'asc'
     }));
     for (let i = 0; i < section.length - 1; i++) {
-      if (ascComparator(section[i], section[i + 1]) > 0) {
+      if (ascComparator(section[i]!, section[i + 1]!) > 0) {
         return false;
       }
     }
@@ -1788,6 +1804,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         throw new Error('Failed to delete deck');
       }
 
+      // ignore登録を削除（永続ゴミ回避）。失敗してもデッキ削除は継続
+      regulation.removeIgnored(dnoToDelete).catch(error => {
+        console.warn('[deleteCurrentDeck] Failed to remove regulation fix ignored:', error);
+      });
+
       // デッキ一覧を取得して、別のデッキを読み込む
       const deckList = await sessionManager.getDeckList();
 
@@ -1928,6 +1949,16 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     addHeadPlacementCard,
     removeHeadPlacementCard,
     isHeadPlacementCard,
-    clearHistory
+    clearHistory,
+    resolvedRegulation: regulation.resolvedRegulation,
+    showRegulationFixDialog: regulation.showRegulationFixDialog,
+    regulationDisplayMode: regulation.displayMode,
+    regulationEffectiveDescription: regulation.effectiveDescription,
+    resolveRegulationForDeck: regulation.resolveAndEnsure,
+    resetRegulation: regulation.resetRegulation,
+    confirmRegulationFix: regulation.confirmRegulationFix,
+    ignoreRegulationFix: regulation.ignoreRegulationFix,
+    getCardLimitOverride: regulation.getCardLimitOverride,
+    getCardGenesysPoint: regulation.getCardGenesysPoint
   };
 });

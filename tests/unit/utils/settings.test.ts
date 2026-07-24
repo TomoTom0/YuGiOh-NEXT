@@ -2,18 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   loadFeatureSettings,
   isFeatureEnabled,
-  loadDeckEditSettings,
-  saveDeckEditSettings,
   saveFeatureSettings,
   loadAppSettings,
   saveAppSettings,
 } from '@/utils/settings';
 import {
   DEFAULT_FEATURE_SETTINGS,
-  DEFAULT_DECK_EDIT_SETTINGS,
   DEFAULT_APP_SETTINGS,
 } from '@/types/settings';
-import type { FeatureSettings, DeckEditSettings, AppSettings } from '@/types/settings';
+import type { FeatureSettings, AppSettings } from '@/types/settings';
 
 // chrome.storage.local のモック
 const mockChromeStorage = {
@@ -111,79 +108,6 @@ describe('settings', () => {
       const result = await isFeatureEnabled('enableAllFeatures');
 
       expect(result).toBe(DEFAULT_FEATURE_SETTINGS.enableAllFeatures);
-    });
-  });
-
-  describe('loadDeckEditSettings', () => {
-    it('保存されたデッキ編集設定を読み込める', async () => {
-      const savedSettings: Partial<DeckEditSettings> = {
-        sortOrder: 'nameAsc',
-        displayMode: 'grid',
-      };
-      mockChromeStorage.get.mockResolvedValue({ deckEditSettings: savedSettings });
-
-      const result = await loadDeckEditSettings();
-
-      expect(mockChromeStorage.get).toHaveBeenCalledWith(['deckEditSettings']);
-      expect(result.sortOrder).toBe('nameAsc');
-      expect(result.displayMode).toBe('grid');
-    });
-
-    it('設定が存在しない場合はデフォルト値を返す', async () => {
-      mockChromeStorage.get.mockResolvedValue({});
-
-      const result = await loadDeckEditSettings();
-
-      expect(result).toEqual(DEFAULT_DECK_EDIT_SETTINGS);
-    });
-
-    it('部分的な設定はデフォルト値とマージされる', async () => {
-      const partialSettings: Partial<DeckEditSettings> = {
-        sortOrder: 'nameDesc',
-      };
-      mockChromeStorage.get.mockResolvedValue({ deckEditSettings: partialSettings });
-
-      const result = await loadDeckEditSettings();
-
-      expect(result.sortOrder).toBe('nameDesc');
-      expect(result.displayMode).toBe(DEFAULT_DECK_EDIT_SETTINGS.displayMode);
-    });
-
-    it('読み込み失敗時はデフォルト値を返す', async () => {
-      mockChromeStorage.get.mockRejectedValue(new Error('Storage error'));
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      const result = await loadDeckEditSettings();
-
-      expect(result).toEqual(DEFAULT_DECK_EDIT_SETTINGS);
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load deck edit settings:', expect.any(Error));
-
-      consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('saveDeckEditSettings', () => {
-    it('デッキ編集設定を保存できる', async () => {
-      const settings: DeckEditSettings = {
-        ...DEFAULT_DECK_EDIT_SETTINGS,
-        sortOrder: 'nameAsc',
-      };
-
-      await saveDeckEditSettings(settings);
-
-      expect(mockChromeStorage.set).toHaveBeenCalledWith({ deckEditSettings: settings });
-    });
-
-    it('保存失敗時はエラーをスローする', async () => {
-      const settings = DEFAULT_DECK_EDIT_SETTINGS;
-      const error = new Error('Storage error');
-      mockChromeStorage.set.mockRejectedValue(error);
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-      await expect(saveDeckEditSettings(settings)).rejects.toThrow('Storage error');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save deck edit settings:', error);
-
-      consoleErrorSpy.mockRestore();
     });
   });
 

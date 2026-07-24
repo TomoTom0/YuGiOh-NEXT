@@ -20,7 +20,7 @@ export class ChatAbortError extends Error {
 function parseToolCall(response: string): ToolCall | null {
   let text = response.trim();
   const codeBlockMatch = text.match(/```(?:tool|json)?\s*\n?([\s\S]*?)```/);
-  if (codeBlockMatch) {
+  if (codeBlockMatch?.[1]) {
     text = codeBlockMatch[1].trim();
   }
   if (!text.startsWith('{')) return null;

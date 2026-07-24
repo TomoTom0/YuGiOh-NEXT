@@ -112,7 +112,7 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
 
     isNavigatingHistory.value = true;
     historyIndex.value--;
-    selectedCard.value = history.value[historyIndex.value];
+    selectedCard.value = history.value[historyIndex.value] ?? null;
     isNavigatingHistory.value = false;
   };
 
@@ -124,7 +124,7 @@ export const useCardDetailStore = defineStore('cardDetail', () => {
 
     isNavigatingHistory.value = true;
     historyIndex.value++;
-    selectedCard.value = history.value[historyIndex.value];
+    selectedCard.value = history.value[historyIndex.value] ?? null;
     isNavigatingHistory.value = false;
   };
 

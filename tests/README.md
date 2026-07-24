@@ -6,10 +6,10 @@
 
 | ディレクトリ | 内容 | テストツール | 実行コマンド |
 |------------|------|------------|------------|
-| `unit/` | ユニットテスト（関数・ユーティリティ・store等） | Vitest | `bun run test:vitest` |
-| `browser/` | ブラウザ自動テスト（UI操作、CDP経由） | Node.js + CDP | `bun run tmp/test-*.js` |
-| `e2e/` | E2Eテスト（統合フロー） | Vitest + CDP | `bun run test:vitest tests/e2e/` |
-| `combine/` | 統合テスト（複数コンポーネント） | Vitest | `bun run test:vitest tests/combine/` |
+| `unit/` | ユニットテスト（関数・ユーティリティ・store等） | Vitest | `mise run test:vitest` |
+| `browser/` | ブラウザ自動テスト（UI操作、CDP経由） | Node.js + CDP | `node tmp/test-*.js` |
+| `e2e/` | E2Eテスト（統合フロー） | Vitest + CDP | `mise run test:vitest -- tests/e2e/` |
+| `combine/` | 統合テスト（複数コンポーネント） | Vitest | `mise run test:vitest -- tests/combine/` |
 | `fixtures/` | テストフィクスチャ（テストデータ） | - | - |
 | `sample/` | サンプルデータ（公式サイトのHTMLダウンロード済み） | - | - |
 
@@ -99,16 +99,16 @@ bash scripts/test/download-sample-html.sh
 
 ```bash
 # 全てのユニットテストを実行
-bun run test:vitest
+mise run test:vitest
 
 # 特定のテストファイルのみ実行
-bun run test:vitest tests/unit/utils/type-guards.test.ts
+mise run test:vitest -- tests/unit/utils/type-guards.test.ts
 
 # watchモード（開発中）
-bun run test:vitest --watch
+mise run test:vitest -- --watch
 
 # カバレッジ付き実行
-bun run test:vitest --coverage
+mise run test:vitest -- --coverage
 ```
 
 ### ブラウザ自動テスト
@@ -118,8 +118,8 @@ bun run test:vitest --coverage
 ./scripts/debug/setup/start-chrome.sh
 
 # 個別のブラウザテストを実行
-bun run tests/browser/test-buttons.js
-bun run tests/browser/test-shuffle.js
+node tests/browser/test-buttons.js
+node tests/browser/test-shuffle.js
 
 # 停止
 ./scripts/debug/setup/stop-chrome.sh
@@ -131,7 +131,7 @@ bun run tests/browser/test-shuffle.js
 
 ```bash
 # E2Eテストを実行
-bun run test:vitest tests/e2e/
+mise run test:vitest -- tests/e2e/
 ```
 
 ---
@@ -187,7 +187,7 @@ bun run test:vitest tests/e2e/
    - テストフィクスチャが最新か
 
 3. **テスト環境の確認**
-   - `bun install` で依存関係を再インストール
+   - `pnpm install` で依存関係を再インストール
    - ブラウザテストの場合、Chromiumが起動しているか確認
 
 ### テストの書き方が分からない

@@ -173,17 +173,13 @@ export function createDeckCardComparator(
 
     // 4. Spell Type / Trap Type
     if (cardA.cardType === 'spell' && cardB.cardType === 'spell') {
-      const spellTypeA = (cardA as any).effectType ?? '';
-      const spellTypeB = (cardB as any).effectType ?? '';
-      const orderA = SPELL_TYPE_SORT_ORDER[spellTypeA] ?? 999;
-      const orderB = SPELL_TYPE_SORT_ORDER[spellTypeB] ?? 999;
+      const orderA = (cardA.effectType ? SPELL_TYPE_SORT_ORDER[cardA.effectType] : undefined) ?? 999;
+      const orderB = (cardB.effectType ? SPELL_TYPE_SORT_ORDER[cardB.effectType] : undefined) ?? 999;
       if (orderA !== orderB) return orderA - orderB;
     }
     if (cardA.cardType === 'trap' && cardB.cardType === 'trap') {
-      const trapTypeA = (cardA as any).effectType ?? '';
-      const trapTypeB = (cardB as any).effectType ?? '';
-      const orderA = TRAP_TYPE_SORT_ORDER[trapTypeA] ?? 999;
-      const orderB = TRAP_TYPE_SORT_ORDER[trapTypeB] ?? 999;
+      const orderA = (cardA.effectType ? TRAP_TYPE_SORT_ORDER[cardA.effectType] : undefined) ?? 999;
+      const orderB = (cardB.effectType ? TRAP_TYPE_SORT_ORDER[cardB.effectType] : undefined) ?? 999;
       if (orderA !== orderB) return orderA - orderB;
     }
 

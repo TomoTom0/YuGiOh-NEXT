@@ -34,7 +34,7 @@ export async function resolveCardName(
   for (const pool of stages) {
     const hits = matchCards(query, pool);
     if (hits.length === 1) {
-      return toResolution(hits[0]);
+      return toResolution(hits[0]!);
     }
     if (hits.length > 1) {
       return {
@@ -47,7 +47,7 @@ export async function resolveCardName(
   // 公式APIで検索
   const apiResults = await searchCards({ keyword: query, searchType: '1' });
   if (apiResults.length === 1) {
-    return toResolution(apiResults[0]);
+    return toResolution(apiResults[0]!);
   }
   if (apiResults.length > 1) {
     return {

@@ -307,6 +307,11 @@
   --deck-card-limit-limited-bg: rgba(255, 140, 0, 0.9);
   --deck-card-limit-semi-limited-bg: rgba(255, 180, 0, 0.9);
 
+  /* GENESYS pt バッジの背景色（pt値に応じたティア）。limit 変数と同系色で調整 */
+  --genesys-pt-bg-low: rgba(255, 180, 0, 0.9);   /* 1-3pt: 準制限相当 */
+  --genesys-pt-bg-mid: rgba(255, 140, 0, 0.9);   /* 4-7pt: 制限相当 */
+  --genesys-pt-bg-high: rgba(220, 20, 20, 0.9);  /* 8+pt: 禁止相当 */
+
   --deck-card-btn-top-left-bg: rgba(255, 165, 0, 0.8);
   --deck-card-btn-top-left-hover-bg: rgba(255, 140, 0, 0.95);
   --deck-card-btn-top-left-hover-border: rgba(255, 140, 0, 1);
@@ -561,6 +566,11 @@
   --deck-card-limit-forbidden-bg: rgba(220, 20, 20, 0.9);
   --deck-card-limit-limited-bg: rgba(255, 140, 0, 0.9);
   --deck-card-limit-semi-limited-bg: rgba(255, 180, 0, 0.9);
+
+  /* GENESYS pt バッジの背景色（pt値に応じたティア）。limit 変数と同系色で調整 */
+  --genesys-pt-bg-low: rgba(255, 180, 0, 0.9);   /* 1-3pt: 準制限相当 */
+  --genesys-pt-bg-mid: rgba(255, 140, 0, 0.9);   /* 4-7pt: 制限相当 */
+  --genesys-pt-bg-high: rgba(220, 20, 20, 0.9);  /* 8+pt: 禁止相当 */
 
   // Deck Card Buttons (Dark Theme)
   --deck-card-btn-top-left-bg: rgba(255, 165, 0, 0.9);

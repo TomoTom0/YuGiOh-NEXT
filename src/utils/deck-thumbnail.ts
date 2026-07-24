@@ -219,6 +219,7 @@ async function promiseAllConcurrent<T>(
 
   async function executeTask(taskIndex: number): Promise<void> {
     const task = tasks[taskIndex];
+    if (!task) return;
     try {
       results[taskIndex] = await task();
     } catch (error) {

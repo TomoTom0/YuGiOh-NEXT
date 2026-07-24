@@ -154,7 +154,7 @@
         title="入力をクリア"
       >
         <svg width="14" height="14" viewBox="0 0 24 24">
-          <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+          <path fill="currentColor" :d="mdiCloseCircle" />
         </svg>
       </button>
 
@@ -170,6 +170,7 @@
 
 <script lang="ts">
 import { ref, computed, nextTick, defineComponent, defineAsyncComponent, toRef } from 'vue'
+import { mdiCloseCircle } from '@mdi/js'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
@@ -761,7 +762,8 @@ export default defineComponent({
       removeFilterIcon: handleRemoveFilterIcon,
       selectSuggestion,
       selectMydeck,
-      clearAllFilters
+      clearAllFilters,
+      mdiCloseCircle
     }
   }
 })

@@ -1462,7 +1462,7 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string; p
     const scaleElem = penSection.querySelector('.item_box_value');
     if (scaleElem?.textContent) {
       const match = scaleElem.textContent.match(/(\d+)/);
-      if (match) {
+      if (match?.[1]) {
         result.pendulumScale = parseInt(match[1], 10);
       }
     }

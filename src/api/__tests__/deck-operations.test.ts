@@ -141,6 +141,44 @@ describe('デッキ操作API', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('エラー1');
     });
+
+    it('data.errorが配列以外（文字列）の場合も例外を出さず失敗結果を返す', async () => {
+      const deckData: DeckInfo = {
+        dno: 4,
+        name: '',
+        mainDeck: [],
+        extraDeck: [],
+        sideDeck: []
+      };
+
+      vi.mocked(axios.post).mockResolvedValue({
+        data: { result: false, error: '枚数が不正です' }
+      });
+
+      const result = await saveDeckInternal(testCgid, 4, deckData, testYtkn);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual(['枚数が不正です']);
+    });
+
+    it('data.errorが配列以外（オブジェクト）の場合も例外を出さず失敗結果を返す', async () => {
+      const deckData: DeckInfo = {
+        dno: 4,
+        name: '',
+        mainDeck: [],
+        extraDeck: [],
+        sideDeck: []
+      };
+
+      vi.mocked(axios.post).mockResolvedValue({
+        data: { result: false, error: { code: 'INVALID_COUNT' } }
+      });
+
+      const result = await saveDeckInternal(testCgid, 4, deckData, testYtkn);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual([JSON.stringify({ code: 'INVALID_COUNT' })]);
+    });
   });
 
   describe('deleteDeckInternal', () => {
