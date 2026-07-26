@@ -207,7 +207,7 @@ update-versionコマンドで以下を自動更新：
 
 ### ブラウザ自動テスト
 
-ブラウザ操作の自動テストスクリプトは `tests/browser/` にある。新しいテストを作成する際は既存のテスト（`test-buttons.js`, `test-shuffle.js`等）を参考にすること。
+ブラウザ操作の自動テストスクリプトは `tests/browser/` にある。新しいテストを作成する際は既存のテスト（`test-buttons.cjs`, `test-shuffle.cjs`等）を参考にすること。
 
 ## デバッグログのルール
 

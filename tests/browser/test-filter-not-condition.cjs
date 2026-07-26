@@ -7,7 +7,7 @@
  * 3. その他のフィルター（ペンデュラムスケール、魔法・罠タイプ、発売日）が正しく変換されること
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集URL
 const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';

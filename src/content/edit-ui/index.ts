@@ -205,12 +205,20 @@ async function loadEditUI(): Promise<void> {
   }
 
   // ヘッダーの高さを計算してCSS変数に設定
+  // ヘッダーは遅延ロード（画像・バナー・お知らせ等）で高さが変動するため、
+  // 初回計算だけでなく ResizeObserver で変動を追従する。
+  // 追従しないと .deck-edit-container の高さ計算が古いままになり、
+  // 外側が overflow: hidden のため下部がスクロールしても到達不能になる（下部見切れ）。
   const headerElement = document.querySelector('header') || document.querySelector('#header');
-  let headerHeight = 0;
-  if (headerElement) {
-    headerHeight = headerElement.offsetHeight;
+  const updateHeaderHeight = (): void => {
+    const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+    document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+  };
+  updateHeaderHeight();
+  if (headerElement && typeof ResizeObserver !== 'undefined') {
+    const headerObserver = new ResizeObserver(updateHeaderHeight);
+    headerObserver.observe(headerElement);
   }
-  document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
 
   // テーマカラーのCSS変数は設定ストアが適用するため、ここでは不要
   // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）

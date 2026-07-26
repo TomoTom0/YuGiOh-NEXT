@@ -4,7 +4,7 @@
  * デッキ編集ページ（#/ytomo/edit）で新規デッキが正しく作成されることを確認
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集ページのURL
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';

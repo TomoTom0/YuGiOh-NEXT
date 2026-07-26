@@ -8,7 +8,7 @@
  * 4. AND/ORチップのスタイルが正しいこと（リンクマーカー、モンスタータイプ）
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集URL
 const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';

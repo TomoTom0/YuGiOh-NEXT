@@ -4,7 +4,7 @@
  * デッキ詳細ページでデッキコードが正しく発行・ローカルストレージに保存されることを確認
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ詳細ページのURL（例）
 const DECK_DETAIL_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/deckdetail?cgid=test&dno=1';
