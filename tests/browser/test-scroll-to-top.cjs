@@ -7,7 +7,7 @@
  * 3. products tabでのscroll-to-top
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集ページURL（日本語）
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja#/ytomo/edit';

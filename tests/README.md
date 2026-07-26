@@ -57,7 +57,7 @@
 |------------|---------|-----|
 | ユニットテスト | `<ソースファイル名>.test.ts` | `type-guards.test.ts` |
 | ユニットテスト（複雑） | `<機能名>-<詳細>.test.ts` | `deck-import-comprehensive.test.ts` |
-| ブラウザテスト | `test-<機能名>.js` | `test-buttons.js` |
+| ブラウザテスト | `test-<機能名>.cjs` | `test-buttons.cjs` |
 | E2Eテスト | `<フロー名>.test.ts` | `deck-edit-export-import.test.ts` |
 
 ### 重要なテスト対象（必須）
@@ -118,8 +118,8 @@ mise run test:vitest -- --coverage
 ./scripts/debug/setup/start-chrome.sh
 
 # 個別のブラウザテストを実行
-node tests/browser/test-buttons.js
-node tests/browser/test-shuffle.js
+node tests/browser/test-buttons.cjs
+node tests/browser/test-shuffle.cjs
 
 # 停止
 ./scripts/debug/setup/stop-chrome.sh

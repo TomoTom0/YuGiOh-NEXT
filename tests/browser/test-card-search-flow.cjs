@@ -8,7 +8,7 @@
  * - キャッシュ動作確認
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集ページのURL
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';

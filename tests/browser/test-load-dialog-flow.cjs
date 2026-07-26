@@ -4,7 +4,7 @@
  * ダイアログ表示 → デッキ一覧表示 → ページネーション → デッキ読み込みの完全フロー確認
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集ページのURL
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';

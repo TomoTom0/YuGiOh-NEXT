@@ -30,7 +30,7 @@ npm install
 
 ## テストファイル一覧
 
-### `cdp-helper.js`
+### `cdp-helper.cjs`
 
 Chrome DevTools Protocolを使用するための共通ヘルパー関数です。
 
@@ -41,7 +41,7 @@ Chrome DevTools Protocolを使用するための共通ヘルパー関数です�
 - `wait(ms)`: 指定時間待機
 - `close()`: 接続を閉じる
 
-### `test-buttons.js`
+### `test-buttons.cjs`
 
 ボタンの表示状態を確認するテストです。
 
@@ -54,10 +54,10 @@ Chrome DevTools Protocolを使用するための共通ヘルパー関数です�
 
 **実行方法**:
 ```bash
-node tests/browser/test-buttons.js
+node tests/browser/test-buttons.cjs
 ```
 
-### `test-shuffle.js`
+### `test-shuffle.cjs`
 
 カードシャッフル・ソート機能の動作確認テストです。
 
@@ -68,10 +68,10 @@ node tests/browser/test-buttons.js
 
 **実行方法**:
 ```bash
-node tests/browser/test-shuffle.js
+node tests/browser/test-shuffle.cjs
 ```
 
-### `test-lock.js`
+### `test-lock.cjs`
 
 Lock機能（sortfix）の動作確認テストです。
 
@@ -87,10 +87,10 @@ Lock機能（sortfix）の動作確認テストです。
 
 **実行方法**:
 ```bash
-node tests/browser/test-lock.js
+node tests/browser/test-lock.cjs
 ```
 
-### `test-dialog.js`
+### `test-dialog.cjs`
 
 デッキ画像作成ダイアログの動作確認テストです。
 
@@ -104,10 +104,10 @@ node tests/browser/test-lock.js
 
 **実行方法**:
 ```bash
-node tests/browser/test-dialog.js
+node tests/browser/test-dialog.cjs
 ```
 
-### `test-scroll-to-top.js`
+### `test-scroll-to-top.cjs`
 
 scroll-to-top機能の動作確認テストです。
 
@@ -123,10 +123,145 @@ scroll-to-top機能の動作確認テストです。
 
 **実行方法**:
 ```bash
-node tests/browser/test-scroll-to-top.js
+node tests/browser/test-scroll-to-top.cjs
 ```
 
 **詳細**: [README-scroll-to-top.md](./README-scroll-to-top.md) を参照
+
+### `test-card-add-animation.cjs`
+
+カード追加アニメーションの動作確認テストです。
+
+**確認項目**:
+1. 左下ボタンクリックでアニメーションが発生すること
+2. 右クリックでアニメーションが発生すること
+3. 中クリックでアニメーションが発生すること
+
+**実行方法**:
+```bash
+node tests/browser/test-card-add-animation.cjs
+```
+
+### `test-card-search-flow.cjs`
+
+カード検索フロー（検索 → パース → キャッシュ）の完全フロー確認テストです。
+
+**確認項目**:
+- キーワード入力 → 検索実行 → 結果表示 → キャッシュ動作確認
+
+**実行方法**:
+```bash
+node tests/browser/test-card-search-flow.cjs
+```
+
+### `test-cardinfo-menu.cjs`
+
+CardInfo メニューボタンの表示テストです。
+
+**確認項目**:
+1. メニューボタンと画像選択ボタンがサイドバイサイドで表示されること（flex-row）
+2. メニュー外をクリックするとメニューが閉じること
+3. メニューを閉じるときにアニメーションが実行されること
+
+**実行方法**:
+```bash
+node tests/browser/test-cardinfo-menu.cjs
+```
+
+### `test-deck-code-issuance.cjs`
+
+デッキコード発行機能のテストです（PR #82）。デッキ詳細ページでデッキコードが正しく発行・ローカルストレージに保存されることを確認します。
+
+**実行方法**:
+```bash
+node tests/browser/test-deck-code-issuance.cjs
+```
+
+### `test-deck-creation.cjs`
+
+デッキ新規作成機能のテストです。デッキ編集ページ（`#/ytomo/edit`）で新規デッキが正しく作成されることを確認します。
+
+**実行方法**:
+```bash
+node tests/browser/test-deck-creation.cjs
+```
+
+### `test-filter-dialog-header.cjs`
+
+検索フィルターダイアログのヘッダー表示テストです。
+
+**確認項目**:
+1. フィルター設定後、ダイアログヘッダーにチップが表示されること
+2. クリアボタンがアイコンで表示されること
+3. 閉じるボタンが「×」で表示されること
+4. AND/ORチップのスタイルが正しいこと（リンクマーカー、モンスタータイプ）
+
+**実行方法**:
+```bash
+node tests/browser/test-filter-dialog-header.cjs
+```
+
+### `test-filter-not-condition.cjs`
+
+検索フィルターのNOT条件・論理演算のAPIパラメータ変換テストです。
+
+**確認項目**:
+1. NOT条件（除外モンスタータイプ）が正しくAPIパラメータに変換されること
+2. AND/OR論理演算が正しくAPIパラメータに変換されること
+3. ペンデュラムスケール、魔法・罠タイプ、発売日等のフィルターが正しく変換されること
+
+**実行方法**:
+```bash
+node tests/browser/test-filter-not-condition.cjs
+```
+
+### `test-header-resize.cjs`
+
+デッキ編集画面のヘッダー成長時スクロール到達性の回帰テストです（TASK-286）。
+
+**確認項目**:
+1. ヘッダーが遅延ロード（画像・バナー等）で成長した際、`--header-height` がResizeObserverで追従すること
+2. `.deck-edit-container` がviewport内に収まること
+3. 一番下までスクロールしてもトラッシュセクションが見切れないこと
+
+**実行方法**:
+```bash
+node tests/browser/test-header-resize.cjs
+```
+
+**前提**: editページでログイン済みであること
+
+### `test-load-dialog-flow.cjs`
+
+LoadDialog（デッキ読み込みダイアログ）の完全フロー確認テストです。
+
+**確認項目**:
+- ダイアログ表示 → デッキ一覧表示 → ページネーション → デッキ読み込み
+
+**実行方法**:
+```bash
+node tests/browser/test-load-dialog-flow.cjs
+```
+
+### `test-mappings.cjs`
+
+マッピング取得テストです。Content scriptが正常に動作し、マッピング取得とChrome Storage保存が機能するかを確認します。
+
+**注意**: Chrome Storage APIは拡張機能内でのみアクセス可能なため、Content scriptのコンソールログでマッピング取得状況を検証します。
+
+**実行方法**:
+```bash
+node tests/browser/test-mappings.cjs
+```
+
+### `test-practice-mode.cjs`
+
+一人回し（Practice）機能の最終動作確認テストです。
+
+**実行方法**:
+```bash
+node tests/browser/test-practice-mode.cjs
+```
 
 ## テスト対象URL
 
@@ -141,11 +276,11 @@ https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDec
 すべてのテストを順番に実行する場合：
 
 ```bash
-node tests/browser/test-buttons.js && \
-node tests/browser/test-shuffle.js && \
-node tests/browser/test-lock.js && \
-node tests/browser/test-dialog.js && \
-node tests/browser/test-scroll-to-top.js
+node tests/browser/test-buttons.cjs && \
+node tests/browser/test-shuffle.cjs && \
+node tests/browser/test-lock.cjs && \
+node tests/browser/test-dialog.cjs && \
+node tests/browser/test-scroll-to-top.cjs
 ```
 
 ## トラブルシューティング
@@ -179,7 +314,9 @@ await cdp.wait(5000); // 5秒待機（必要に応じて延長）
 
 新しいテストを追加する場合：
 
-1. `cdp-helper.js` をインポート
+> **ファイル拡張子は必ず `.cjs` にすること**。プロジェクトの `package.json` が `"type": "module"` (ESM) のため、`.js` では `require()` が使えず実行時に `ReferenceError` になります。`.cjs` を使うことで CommonJS 扱いとなり `require()` が動作します。
+
+1. `cdp-helper.cjs` をインポート（`require('./cdp-helper.cjs')` のように拡張子まで明示）
 2. `connectCDP()` で接続を確立
 3. `navigate(url)` でページに移動
 4. `evaluate(expression)` でDOM操作・確認
@@ -188,7 +325,7 @@ await cdp.wait(5000); // 5秒待機（必要に応じて延長）
 **テンプレート**:
 
 ```javascript
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 async function testExample() {
   console.log('【テスト名】\n');

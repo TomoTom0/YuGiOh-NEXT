@@ -7,7 +7,7 @@
 ## 実行方法
 
 ```bash
-node tests/browser/test-scroll-to-top.js
+node tests/browser/test-scroll-to-top.cjs
 ```
 
 ## 前提条件

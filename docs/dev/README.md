@@ -53,8 +53,8 @@ mise run test:vitest -- --coverage
   - `search/` - 検索機能テスト
 
 - `tests/browser/` - ブラウザ自動テスト（CDP/Playwright経由）
-  - `test-buttons.js` - ボタン機能テスト
-  - `test-shuffle.js` - シャッフル機能テスト
+  - `test-buttons.cjs` - ボタン機能テスト
+  - `test-shuffle.cjs` - シャッフル機能テスト
 
 ## コーディング規約
 

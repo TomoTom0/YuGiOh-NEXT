@@ -7,7 +7,7 @@
  * Content script のコンソールログを確認することでマッピング取得状況を検証
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 async function runTests() {
   const cdp = await connectCDP();

@@ -7,7 +7,7 @@
  * 3. メニューを閉じるときにアニメーションが実行される
  */
 
-const { connectCDP } = require('./cdp-helper');
+const { connectCDP } = require('./cdp-helper.cjs');
 
 // デッキ編集ページURL
 const DECK_EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
