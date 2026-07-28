@@ -1,174 +1,88 @@
 /**
- * LoadDialog（デッキ読み込みダイアログ）フローのテスト
+ * LoadDialog（デッキ読み込みダイアログ）フローの動作確認テスト（自動化）
  *
- * ダイアログ表示 → デッキ一覧表示 → ページネーション → デッキ読み込みの完全フロー確認
+ * 前提: デッキ編集ページ(https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit)でログイン済み。
+ *
+ * 実装参照:
+ *   src/components/DeckEditTopBar.vue ([data-testid="load-btn"])
+ *   src/components/LoadDialog.vue (.base-dialog-overlay, .deck-grid, .deck-card, .dno-chip, .pagination-btn, .pagination-info, .no-decks)
+ *   src/components/BaseDialog.vue (Teleport to body)
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
-// デッキ編集ページのURL
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
 
 async function testLoadDialogFlow() {
   console.log('【LoadDialogフローテスト】\n');
-
+  const t = createTestContext();
   const cdp = await connectCDP();
 
   try {
-    console.log('デッキ編集ページにアクセス中...');
+    console.log('デッキ編集ページにアクセス中（ログイン済み前提）...');
     await cdp.navigate(EDIT_URL);
-    await cdp.wait(3000);
+    const loaded = await cdp.waitFor(`document.querySelector('.deck-edit-container') !== null`, 10000);
+    if (!loaded) console.log('  ※ 編集ページが表示されません（ログイン未済の可能性）');
+    t.assert('編集ページがロードされる', loaded === true);
+    if (!loaded) { t.summary(); return; }
 
-    console.log('ページロード完了\n');
+    const beforeDno = await cdp.evaluate(`document.querySelector('.deck-edit-container .dno-chip')?.textContent || ''`);
+    console.log(`  ロード前 dno: ${beforeDno}\n`);
 
-    // コンソールログを収集
-    let dialogLogs = [];
+    console.log('--- LoadDialog を開く ---');
+    await cdp.evaluate(`document.querySelector('[data-testid="load-btn"]')?.click()`);
+    const dialogOpen = await cdp.waitFor(`document.body.querySelector('.base-dialog-overlay .dialog-title') !== null`, 8000);
+    t.assert('LoadDialog が開く', dialogOpen === true);
 
-    cdp.on('Runtime.consoleAPICalled', (params) => {
-      if (params.args && params.args[0]) {
-        const text = params.args.map(arg => arg.value || arg.description).join(' ');
-        if (text.includes('[LoadDialog]') || text.includes('pagination')) {
-          dialogLogs.push(text);
-          console.log(`[CONSOLE] ${text}`);
-        }
-      }
-    });
-
-    await cdp.sendCommand('Runtime.enable', {});
-
-    console.log('=== LoadDialogフローテスト開始 ===\n');
-    console.log('ステップ 1: ツールバーから「デッキ読み込み」ボタンを探してクリック');
-    console.log('ステップ 2: LoadDialogが表示される');
-    console.log('ステップ 3: デッキ一覧が表示される');
-    console.log('ステップ 4: ページネーション（次へ）をクリック（デッキが24個以上ある場合）');
-    console.log('ステップ 5: デッキをクリックして読み込む\n');
-
-    console.log('待機中... (15秒)');
-    await cdp.wait(15000);
-
-    console.log('\n=== テスト結果確認 ===\n');
-
-    // LoadDialogの表示状態確認
-    const dialogStatus = await cdp.evaluate(`
-      (async () => {
-        try {
-          // Teleport で body に描画されるため、document.body を検索
-          const dialog = document.body.querySelector('[class*="dialog"]');
-          if (!dialog) return { found: false };
-
-          return {
-            visible: window.getComputedStyle(dialog).display !== 'none',
-            className: dialog.className.substring(0, 50)
-          };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
-
-    console.log(`LoadDialogの状態:`);
-    if (dialogStatus.found === false) {
-      console.log('  (ダイアログが見つかりません)');
-    } else if (dialogStatus.error) {
-      console.log(`  エラー: ${dialogStatus.error}`);
-    } else {
-      console.log(`  表示中: ${dialogStatus.visible ? 'はい' : 'いいえ'}`);
-      console.log(`  クラス: ${dialogStatus.className}`);
-    }
+    const title = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .dialog-title')?.textContent || ''`);
+    t.assert('ダイアログタイトルが "Load Deck"', title.trim() === 'Load Deck');
 
     // デッキ一覧の確認
-    const deckListStatus = await cdp.evaluate(`
-      (async () => {
-        try {
-          // Teleport で body に描画されるため、document.body を検索
-          const deckCards = document.body.querySelectorAll('[class*="deck-card"], [class*="deck-item"]');
-          if (deckCards.length === 0) {
-            // フォールバック：異なるセレクタで検索
-            const fallback = document.body.querySelectorAll('[role="button"][class*="deck"]');
-            return { count: fallback.length, fallback: true };
-          }
-          return { count: deckCards.length, fallback: false };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
+    const deckCount = await cdp.evaluate(`document.body.querySelectorAll('.base-dialog-overlay .deck-card').length`);
+    const noDecks = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .no-decks') !== null`);
+    if (noDecks) {
+      t.assert('デッキ0件時は .no-decks 表示', noDecks === true);
+      console.log('  ※ デッキが1つもないため、読み込みテストはスキップ');
+      t.summary();
+      return;
+    }
+    t.assert('デッキ一覧が表示される（.deck-card 1件以上）', deckCount >= 1);
+    console.log(`  デッキ件数: ${deckCount}`);
 
-    console.log(`\nデッキ一覧:`);
-    if (deckListStatus.error) {
-      console.log(`  エラー: ${deckListStatus.error}`);
+    // ページネーション（25件以上の場合のみ表示）
+    const hasPagination = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .pagination-info') !== null`);
+    if (hasPagination) {
+      const pageInfo = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .pagination-info')?.textContent || ''`);
+      const btnCount = await cdp.evaluate(`document.body.querySelectorAll('.base-dialog-overlay .pagination-btn').length`);
+      t.assert('ページネーション情報が表示される', pageInfo.includes('/'));
+      t.assert('ページネーションボタンが2つ', btnCount === 2);
+      console.log(`  ページ情報: ${pageInfo}`);
     } else {
-      console.log(`  表示デッキ数: ${deckListStatus.count}`);
-      console.log(`  (1ページあたり24個表示)`);
+      t.assert('デッキ24件以下はページネーション非表示', hasPagination === false);
+      console.log('  ページネーション: 非表示（24件以下）');
     }
 
-    // ページネーション機能の確認
-    const paginationStatus = await cdp.evaluate(`
-      (async () => {
-        try {
-          const nextBtn = document.body.querySelector('[class*="pagination"] button:nth-child(3)');
-          const prevBtn = document.body.querySelector('[class*="pagination"] button:nth-child(1)');
-          const pageInfo = document.body.querySelector('[class*="pagination-info"]');
+    console.log('\n--- 1つ目のデッキを読み込む ---');
+    const firstCardDno = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .deck-card .dno-chip')?.textContent || ''`);
+    console.log(`  選択デッキ dno: ${firstCardDno}`);
+    await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay .deck-card')?.click()`);
 
-          return {
-            nextBtnFound: nextBtn !== null,
-            prevBtnFound: prevBtn !== null,
-            pageInfo: pageInfo ? pageInfo.textContent.substring(0, 20) : null,
-            hasPageination: nextBtn !== null || prevBtn !== null || pageInfo !== null
-          };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
+    // ダイアログが閉じるまで待機
+    const dialogClosed = await cdp.waitFor(`document.body.querySelector('.base-dialog-overlay') === null`, 10000);
+    t.assert('デッキ選択でダイアログが閉じる', dialogClosed === true);
 
-    console.log(`\nページネーション:`);
-    if (paginationStatus.error) {
-      console.log(`  エラー: ${paginationStatus.error}`);
-    } else {
-      console.log(`  次へボタン: ${paginationStatus.nextBtnFound ? 'あり' : 'なし'}`);
-      console.log(`  前へボタン: ${paginationStatus.prevBtnFound ? 'あり' : 'なし'}`);
-      console.log(`  ページ情報: ${paginationStatus.pageInfo || 'なし'}`);
-      console.log(`  ページネーション機能有: ${paginationStatus.hasPageination ? 'はい' : 'いいえ'}`);
-    }
+    // lastDeckDno の確認（保存をポーリング待機）
+    const lastDnoUpdated = await cdp.waitFor(`localStorage.getItem('ygoNext:lastDeckDno') === ${JSON.stringify(firstCardDno)}`, 5000);
+    t.assert('localStorage[ygoNext:lastDeckDno] が選択 dno に更新される', lastDnoUpdated === true);
 
-    // デッキサムネイル確認
-    const thumbnailStatus = await cdp.evaluate(`
-      (async () => {
-        try {
-          const thumbnails = document.body.querySelectorAll('[class*="thumbnail"], [class*="deck-card"] img');
-          return { count: thumbnails.length };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
-
-    console.log(`\nデッキサムネイル:`);
-    if (thumbnailStatus.error) {
-      console.log(`  エラー: ${thumbnailStatus.error}`);
-    } else {
-      console.log(`  表示数: ${thumbnailStatus.count}`);
-    }
-
-    // 結果判定
-    const success = dialogStatus.visible && deckListStatus.count > 0;
-
-    console.log(`\n=== 実行結果 ===\n`);
-    if (success) {
-      console.log('✅ テスト成功: LoadDialogが正常に動作しています');
-    } else {
-      console.log('⚠️ テスト結果: LoadDialog または デッキ一覧が見つかりません');
-    }
-
-    console.log('\n✅ テスト完了');
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
+  } finally {
     cdp.close();
-    process.exit(0);
-
-  } catch (error) {
-    console.error('テスト失敗:', error);
-    cdp.close();
-    process.exit(1);
+    process.exit(t.exitCode());
   }
 }
 

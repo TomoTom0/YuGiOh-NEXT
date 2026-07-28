@@ -1,208 +1,102 @@
 /**
  * デッキ画像作成ダイアログの動作確認テスト
  *
- * 以下の挙動を確認：
- * 1. カメラボタンをクリックしてダイアログが表示されること
- * 2. デッキ名入力フィールドが存在すること
- * 3. ダイアログをクリックして背景色が切り替わること（赤↔青）
- * 4. QRトグルボタンでQRコードのON/OFF切り替えができること
- * 5. ダウンロードボタンが存在すること
- * 6. オーバーレイをクリックしてダイアログが閉じること
+ * 実装参照:
+ *   src/components/ImageDialog.vue (全要素 class ベース、id なし。isVisible は canvas生成後に true)
+ *   src/content/deck-recipe/addImageButton.ts (#ygo-next-deck-image-btn のみ id)
+ *
+ * 確認:
+ * 1. カメラボタン(#ygo-next-deck-image-btn)クリックでダイアログ(.ygo-next-image-popup)が表示
+ * 2. デッキ名入力(.deck-name-input)が存在
+ * 3. 背景クリックで .background-image の background が切り替わる（toggleColor は async）
+ * 4. QRトグル(.toggle-btn.qr-toggle)の active/inactive 切替
+ * 5. ダウンロードボタン(.download-btn)が存在
+ * 6. オーバーレイ(.ygo-next-image-popup-overlay)クリックでダイアログが閉じる
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
 // 公開デッキURL（認証不要）
 const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
 
 async function testDialog() {
   console.log('【デッキ画像作成ダイアログテスト】\n');
-
+  const t = createTestContext();
   const cdp = await connectCDP();
 
   try {
-    // デッキ表示ページに移動
     console.log('デッキ表示ページにアクセス中...');
     await cdp.navigate(DECK_URL);
     await cdp.wait(5000); // 拡張機能のロード待機
 
-    console.log('\n=== カメラボタンをクリック ===\n');
-
-    // カメラボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-next-deck-image-btn").click()`);
-    await cdp.wait(500); // ダイアログ表示待機
-
-    // ポップアップが表示されたか確認
-    const dialogVisible = await cdp.evaluate(`
+    console.log('\n=== カメラボタンをクリック ===');
+    const btnExists = await cdp.evaluate(`
       (() => {
-        const popup = document.getElementById('ygo-next-image-popup');
-        return popup !== null;
+        const btn = document.getElementById("ygo-next-deck-image-btn");
+        if (btn) btn.click();
+        return !!btn;
       })()
     `);
+    t.assert('カメラボタン(#ygo-next-deck-image-btn)が存在してクリック', btnExists === true);
 
-    if (dialogVisible) {
-      console.log('✅ ダイアログが表示されました');
-    } else {
-      console.log('❌ ダイアログが表示されていません');
-    }
+    // ダイアログ表示をポーリング待機（isVisible は canvas生成完了後に true になる非同期）
+    const popupVisible = await cdp.waitFor(`document.querySelector('.ygo-next-image-popup') !== null`, 8000);
+    t.assert('ダイアログ(.ygo-next-image-popup)が表示される', popupVisible === true);
 
-    console.log('\n=== デッキ名入力フィールドの確認 ===\n');
-
-    // デッキ名入力フィールドの存在確認
-    const deckNameInput = await cdp.evaluate(`
+    console.log('\n=== デッキ名入力フィールドの確認 ===');
+    const inputInfo = await cdp.evaluate(`
       (() => {
-        const input = document.getElementById('ygo-deck-name-input');
-        return {
-          exists: input !== null,
-          value: input ? input.value : null,
-          placeholder: input ? input.placeholder : null
-        };
+        const input = document.querySelector('.deck-name-input');
+        return { exists: !!input, placeholder: input ? input.placeholder : null };
       })()
     `);
+    t.assert('デッキ名入力(.deck-name-input)が存在', inputInfo?.exists === true);
 
-    console.log(`入力フィールド: ${deckNameInput.exists ? '✅ 存在' : '❌ 存在しない'}`);
-    console.log(`初期値: "${deckNameInput.value}"`);
-    console.log(`プレースホルダー: "${deckNameInput.placeholder}"`);
-
-    console.log('\n=== 背景画像切り替え機能の確認 ===\n');
-
-    // 初期の背景画像URLを取得
-    const initialBgImage = await cdp.evaluate(`
+    console.log('\n=== 背景画像切り替え機能の確認 ===');
+    const bgBefore = await cdp.evaluate(`
       (() => {
-        const bgDiv = document.getElementById('ygo-background-image');
-        return window.getComputedStyle(bgDiv).backgroundImage;
+        const el = document.querySelector('.background-image');
+        return el ? window.getComputedStyle(el).backgroundImage : null;
       })()
     `);
-
-    console.log(`初期背景画像: ${initialBgImage.substring(0, 50)}...`);
-
-    // ポップアップをクリック（背景色切り替え）
-    await cdp.evaluate(`
+    // .ygo-next-image-popup クリックで toggleColor（async、canvas再生成で red<->blue）
+    await cdp.evaluate(`document.querySelector('.ygo-next-image-popup')?.click()`);
+    await cdp.wait(1500); // canvas再生成待ち
+    const bgAfter = await cdp.evaluate(`
       (() => {
-        const popup = document.getElementById('ygo-next-image-popup');
-        popup.click();
+        const el = document.querySelector('.background-image');
+        return el ? window.getComputedStyle(el).backgroundImage : null;
       })()
     `);
+    t.assert('背景クリックで .background-image の background が切り替わる', bgBefore !== bgAfter);
 
-    await cdp.wait(1000); // 画像生成待機
-
-    // 切り替え後の背景画像URLを取得
-    const changedBgImage = await cdp.evaluate(`
-      (() => {
-        const bgDiv = document.getElementById('ygo-background-image');
-        return window.getComputedStyle(bgDiv).backgroundImage;
-      })()
-    `);
-
-    console.log(`切り替え後の背景画像: ${changedBgImage.substring(0, 50)}...`);
-
-    if (initialBgImage !== changedBgImage) {
-      console.log('✅ 背景画像が切り替わりました（色変更）');
-    } else {
-      console.log('❌ 背景画像が切り替わっていません');
-    }
-
-    console.log('\n=== QRトグルボタンの確認 ===\n');
-
-    // QRトグルボタンの初期状態を確認
-    const initialQrState = await cdp.evaluate(`
-      (() => {
-        const btn = document.getElementById('ygo-next-qr-toggle');
-        return {
-          exists: btn !== null,
-          classes: btn ? btn.className : null,
-          isActive: btn ? btn.classList.contains('ygo-qr-active') : null
-        };
-      })()
-    `);
-
-    console.log(`QRトグルボタン: ${initialQrState.exists ? '✅ 存在' : '❌ 存在しない'}`);
-    console.log(`初期状態: ${initialQrState.isActive ? 'ON (active)' : 'OFF (inactive)'}`);
-
-    // QRトグルボタンをクリック
-    await cdp.evaluate(`document.getElementById("ygo-next-qr-toggle").click()`);
+    console.log('\n=== QRトグルボタンの確認 ===');
+    const qrToggleExists = await cdp.evaluate(`document.querySelector('.toggle-btn.qr-toggle') !== null`);
+    t.assert('QRトグル(.toggle-btn.qr-toggle)が存在', qrToggleExists === true);
+    const qrBefore = await cdp.evaluate(`document.querySelector('.toggle-btn.qr-toggle')?.classList.contains('active') === true`);
+    await cdp.evaluate(`document.querySelector('.toggle-btn.qr-toggle')?.click()`);
     await cdp.wait(300);
+    const qrAfter = await cdp.evaluate(`document.querySelector('.toggle-btn.qr-toggle')?.classList.contains('active') === true`);
+    t.assert('QRトグルで active/inactive が切り替わる', qrBefore !== qrAfter);
 
-    // 切り替え後の状態を確認
-    const toggledQrState = await cdp.evaluate(`
-      (() => {
-        const btn = document.getElementById('ygo-next-qr-toggle');
-        return {
-          classes: btn.className,
-          isActive: btn.classList.contains('ygo-qr-active')
-        };
-      })()
-    `);
+    console.log('\n=== ダウンロードボタンの確認 ===');
+    const hasDownload = await cdp.evaluate(`document.querySelector('.download-btn') !== null`);
+    t.assert('ダウンロードボタン(.download-btn)が存在', hasDownload === true);
 
-    console.log(`切り替え後の状態: ${toggledQrState.isActive ? 'ON (active)' : 'OFF (inactive)'}`);
+    console.log('\n=== ポップアップを閉じる ===');
+    await cdp.evaluate(`document.querySelector('.ygo-next-image-popup-overlay')?.click()`);
+    // closePopup -> 200msアニメ -> unmount() で DOM完全削除。消失をポーリング待機
+    const popupGone = await cdp.waitFor(`document.querySelector('.ygo-next-image-popup') === null`, 3000);
+    t.assert('オーバーレイクリックでダイアログが閉じる', popupGone === true);
 
-    if (initialQrState.isActive !== toggledQrState.isActive) {
-      console.log('✅ QRトグルボタンが機能しています');
-    } else {
-      console.log('❌ QRトグルボタンが機能していません');
-    }
-
-    console.log('\n=== ダウンロードボタンの確認 ===\n');
-
-    // ダウンロードボタンの存在確認
-    const downloadBtn = await cdp.evaluate(`
-      (() => {
-        const btn = document.getElementById('ygo-next-download-btn');
-        return {
-          exists: btn !== null,
-          text: btn ? btn.textContent : null
-        };
-      })()
-    `);
-
-    console.log(`ダウンロードボタン: ${downloadBtn.exists ? '✅ 存在' : '❌ 存在しない'}`);
-    console.log(`ボタンテキスト: "${downloadBtn.text}"`);
-
-    console.log('\n=== ポップアップを閉じる ===\n');
-
-    // オーバーレイをクリック
-    await cdp.evaluate(`
-      (() => {
-        const overlay = document.getElementById('ygo-next-image-popup-overlay');
-        overlay.click();
-      })()
-    `);
-
-    await cdp.wait(300);
-
-    // ポップアップが閉じたか確認
-    const dialogClosed = await cdp.evaluate(`
-      (() => {
-        const popup = document.getElementById('ygo-next-image-popup');
-        return popup === null;
-      })()
-    `);
-
-    if (dialogClosed) {
-      console.log('✅ オーバーレイクリックでダイアログが閉じました');
-    } else {
-      console.log('❌ ダイアログが閉じていません');
-    }
-
-    console.log('\n【テスト完了】\n');
-
-    // 結果サマリー
-    const allPassed = dialogVisible && deckNameInput.exists &&
-                      (initialBgImage !== changedBgImage) &&
-                      (initialQrState.isActive !== toggledQrState.isActive) &&
-                      downloadBtn.exists && dialogClosed;
-
-    if (allPassed) {
-      console.log('✅ デッキ画像作成ダイアログは正常に動作しています');
-    } else {
-      console.log('❌ ダイアログ機能に問題があります');
-    }
-
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
+  } finally {
     cdp.close();
-  } catch (error) {
-    console.error('エラー:', error);
-    cdp.close();
-    process.exit(1);
+    process.exit(t.exitCode());
   }
 }
 

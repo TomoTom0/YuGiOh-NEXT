@@ -1,102 +1,89 @@
 /**
- * デッキ新規作成機能のテスト
+ * デッキ新規作成機能の動作確認テスト（自動化）
  *
- * デッキ編集ページ（#/ytomo/edit）で新規デッキが正しく作成されることを確認
+ * 前提: デッキ編集ページ(https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit)でログイン済み。
+ *
+ * サーバー書き込みを伴うため、デフォルトは書き込みなし（New Deck メニュー表示確認まで）。
+ * 環境変数 YGO_WRITE_TESTS=1 の時のみ実際に作成→削除を実行する。
+ *
+ * 実装参照:
+ *   src/components/DeckEditTopBar.vue ([data-testid="menu-btn"], [data-testid="new-deck-btn"], [data-testid="delete-deck-btn"], .dno-chip)
+ *   src/stores/deck-edit.ts (createNewDeck, deleteCurrentDeck)
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
-// デッキ編集ページのURL
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
+const WRITE_TESTS = process.env.YGO_WRITE_TESTS === '1';
 
 async function testDeckCreation() {
-  console.log('【デッキ新規作成テスト】\n');
-
+  console.log(`【デッキ新規作成テスト】 (YGO_WRITE_TESTS=${WRITE_TESTS ? '1（作成→削除実行）' : '未設定（書き込みなし）'})\n`);
+  const t = createTestContext();
   const cdp = await connectCDP();
 
   try {
-    console.log('デッキ編集ページにアクセス中...');
+    console.log('デッキ編集ページにアクセス中（ログイン済み前提）...');
     await cdp.navigate(EDIT_URL);
-    await cdp.wait(3000); // 拡張機能のロード待機
+    const loaded = await cdp.waitFor(`document.querySelector('.deck-edit-container') !== null`, 10000);
+    if (!loaded) console.log('  ※ 編集ページが表示されません（ログイン未済の可能性）');
+    t.assert('編集ページがロードされる', loaded === true);
+    if (!loaded) { t.summary(); return; }
 
-    console.log('ページロード完了\n');
-    
-    // コンソールログを収集
-    let consoleLogs = [];
-    
-    cdp.on('Runtime.consoleAPICalled', (params) => {
-      if (params.args && params.args[0]) {
-        const text = params.args.map(arg => arg.value || arg.description).join(' ');
-        consoleLogs.push(text);
-        if (text.includes('[createNewDeckInternal]') || text.includes('[fetchYtknFromDeckList]')) {
-          console.log(`[CONSOLE] ${text}`);
-        }
-      }
-    });
+    const beforeDno = await cdp.evaluate(`document.querySelector('.deck-edit-container .dno-chip')?.textContent || ''`);
+    console.log(`  作成前 dno: ${beforeDno}\n`);
 
-    // Runtime.consoleAPICalled を有効化
-    await cdp.sendCommand('Runtime.enable', {});
+    console.log('--- メニューを開く ---');
+    await cdp.evaluate(`document.querySelector('[data-testid="menu-btn"]')?.click()`);
+    const menuOpen = await cdp.waitFor(`document.querySelector('.menu-dropdown') !== null`, 5000);
+    t.assert('メニューが開く', menuOpen === true);
 
-    console.log('=== 新規デッキ作成テスト開始 ===\n');
-    console.log('ステップ 1: 拡張機能内で新規デッキを作成');
-    console.log('(メニューから「新規デッキ」を選択するか、手動でデッキを作成してください)\n');
+    const newDeckBtnExists = await cdp.evaluate(`document.querySelector('[data-testid="new-deck-btn"]') !== null`);
+    t.assert('New Deck メニュー項目([data-testid="new-deck-btn"])が存在', newDeckBtnExists === true);
 
-    // 10秒間、ユーザーの操作を待機
-    console.log('待機中... (10秒)');
-    await cdp.wait(10000);
-
-    console.log('\n=== テスト結果確認 ===\n');
-
-    // cgidが取得できているか確認
-    const cgidResult = await cdp.evaluate(`
-      (async () => {
-        try {
-          const footer = document.querySelector('a[href*="member_deck.action"][href*="cgid="]');
-          if (footer) {
-            const match = footer.href.match(/cgid=([a-f0-9]{32})/);
-            return match ? match[1].substring(0, 16) + '...' : 'not found';
-          }
-          return 'footer not found';
-        } catch (e) {
-          return 'error: ' + e.message;
-        }
-      })()
-    `);
-    console.log(`cgid取得: ${cgidResult}`);
-
-    // デッキ数を確認（どのように確認するかはページ構造に依存）
-    const deckCount = await cdp.evaluate(`
-      (async () => {
-        try {
-          // デッキメニューのアイテム数を数える
-          const deckItems = document.querySelectorAll('[class*="deck"][class*="item"]');
-          return deckItems.length;
-        } catch (e) {
-          return 'error: ' + e.message;
-        }
-      })()
-    `);
-    console.log(`検出されたデッキ要素: ${deckCount}`);
-
-    console.log('\n=== コンソールログ出力 ===\n');
-    if (consoleLogs.length > 0) {
-      consoleLogs.forEach(log => {
-        if (log.includes('createNewDeckInternal') || log.includes('fetchYtknFromDeckList')) {
-          console.log(`✅ ${log}`);
-        }
-      });
-    } else {
-      console.log('デッキ作成関連のログがありません');
+    if (!WRITE_TESTS) {
+      console.log('\n（YGO_WRITE_TESTS 未設定のため、作成実行はスキップ・書き込みなし）');
+      t.summary();
+      return;
     }
 
-    console.log('\n✅ テスト完了');
-    cdp.close();
-    process.exit(0);
+    console.log('\n--- 新規デッキ作成を実行 ---');
+    await cdp.evaluate(`document.querySelector('[data-testid="new-deck-btn"]')?.click()`);
+    // 未保存ダイアログのフォールバック
+    await cdp.wait(500);
+    const unsavedDialog = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay') !== null`);
+    if (unsavedDialog) {
+      await cdp.evaluate(`document.body.querySelector('.btn-danger')?.click()`);
+    }
 
-  } catch (error) {
-    console.error('テスト失敗:', error);
+    // 作成完了待機（menu-btn の .loading 解除 + ローディングオーバーレイ消失）
+    const created = await cdp.waitFor(`(() => { const m = document.querySelector('[data-testid="menu-btn"]'); const o = document.querySelector('.deck-loading-overlay'); const mLoading = m && m.classList.contains('loading'); const oVisible = o && getComputedStyle(o).display !== 'none'; return !mLoading && !oVisible; })()`, 15000);
+    t.assert('新規デッキ作成が完了する', created === true);
+
+    const afterDno = await cdp.evaluate(`document.querySelector('.deck-edit-container .dno-chip')?.textContent || ''`);
+    t.assert('作成後に dno が新しい値に変わる', afterDno !== '' && afterDno !== '-' && afterDno !== beforeDno);
+    console.log(`  作成後 dno: ${afterDno}`);
+
+    // クリーンアップ: 作成したデッキを削除
+    console.log('\n--- クリーンアップ: 作成したデッキを削除 ---');
+    await cdp.evaluate(`document.querySelector('[data-testid="menu-btn"]')?.click()`);
+    await cdp.waitFor(`document.querySelector('.menu-dropdown') !== null`, 5000);
+    await cdp.evaluate(`document.querySelector('[data-testid="delete-deck-btn"]')?.click()`);
+    await cdp.wait(500);
+    const deleteDialog = await cdp.evaluate(`document.body.querySelector('.base-dialog-overlay') !== null`);
+    if (deleteDialog) {
+      await cdp.evaluate(`document.body.querySelector('.btn-delete, .btn-danger')?.click()`);
+    }
+    const deleted = await cdp.waitFor(`(() => { const o = document.querySelector('.deck-loading-overlay'); return !o || getComputedStyle(o).display === 'none'; })()`, 15000);
+    t.assert('作成デッキを削除（クリーンアップ）', deleted === true);
+
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
+  } finally {
     cdp.close();
-    process.exit(1);
+    process.exit(t.exitCode());
   }
 }
 

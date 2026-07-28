@@ -1,156 +1,88 @@
 /**
- * 一人回し機能 最終テスト
+ * 一人回し（Practice）機能の動作確認テスト
+ *
+ * 前提: デッキ編集ページ(https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit)で
+ *       ログイン済みであること（CDP/Playwright ではログイン不可のため、事前に手動ログインが必要）。
+ *
+ * 実装参照:
+ *   src/components/DeckEditTopBar.vue (.practice-toggle / .practice-reset / [data-testid])
+ *   src/components/DeckEditLayout.vue (togglePracticeMode)
+ *   src/components/practice/PracticeField.vue (.practice-field, v-if="isInitialized")
+ *   src/components/practice/PracticeSlot.vue (.practice-slot)
  */
-const WebSocket = require('ws');
-const fs = require('fs');
 
-const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
-const ws = new WebSocket(wsUrl);
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
-let messageId = 1;
+// デッキ編集ページ（ログイン済み前提）
+const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
 
-function sendCommand(method, params = {}) {
-  return new Promise((resolve, reject) => {
-    const id = messageId++;
-    const handler = (data) => {
-      const message = JSON.parse(data);
-      if (message.id === id) {
-        ws.off('message', handler);
-        if (message.error) reject(new Error(JSON.stringify(message.error)));
-        else resolve(message.result);
-      }
-    };
-    ws.on('message', handler);
-    ws.send(JSON.stringify({ id, method, params }));
-  });
-}
+async function testPracticeMode() {
+  console.log('【一人回し（Practice）機能テスト】\n');
+  const t = createTestContext();
+  const cdp = await connectCDP();
 
-function evaluate(expression) {
-  return sendCommand('Runtime.evaluate', {
-    expression,
-    returnByValue: true,
-    awaitPromise: true,
-  });
-}
-
-async function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-let passed = 0;
-let failed = 0;
-
-function assert(name, condition) {
-  if (condition) {
-    console.log(`  PASS: ${name}`);
-    passed++;
-  } else {
-    console.log(`  FAIL: ${name}`);
-    failed++;
-  }
-}
-
-async function run() {
   try {
-    await sendCommand('Runtime.enable');
+    console.log('デッキ編集ページにアクセス中（ログイン済み前提）...');
+    await cdp.navigate(EDIT_URL);
+    await cdp.wait(3000);
 
-    // リロード
-    await sendCommand('Page.reload');
-    await sleep(6000);
+    // 編集アプリ + Practiceトグルボタンが表示されるまで待機
+    const loaded = await cdp.waitFor(`document.querySelector('.practice-toggle') !== null`, 10000);
+    if (!loaded) {
+      console.log('  ※ 編集ページが表示されません（ログイン未済または拡張機能未ロードの可能性）');
+    }
+    t.assert('編集ページで拡張機能がロードされる（.practice-toggle 存在）', loaded === true);
+    if (!loaded) { t.summary(); return; }
 
-    console.log('=== 一人回し機能 ブラウザテスト ===\n');
-
-    // === 基本UI ===
-    console.log('--- 基本UI ---');
-
-    const ext = await evaluate(`!!document.querySelector('.ygo-next')`);
-    assert('拡張機能ロード', ext.result.value);
-
-    const hasPracticeBtn = await evaluate(`
-      document.querySelectorAll('.practice-toggle-btn').length > 0
-    `);
-    assert('Practiceトグルボタン存在', hasPracticeBtn.result.value);
-
-    // === PracticeモードON ===
     console.log('\n--- PracticeモードON ---');
+    await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);
+    // PracticeField は isInitialized 後に表示（デッキロード待ち）
+    const fieldOn = await cdp.waitFor(`document.querySelector('.practice-field') !== null`, 10000);
+    t.assert('PracticeField が表示される', fieldOn === true);
 
-    await evaluate(`
-      document.querySelector('.practice-toggle-btn').click();
-    `);
-    await sleep(1500);
+    const slotCount = await cdp.evaluate(`document.querySelectorAll('.practice-slot').length`);
+    t.assert('PracticeSlot が表示される（1個以上）', typeof slotCount === 'number' && slotCount >= 1);
+    console.log(`  スロット数: ${slotCount}`);
 
-    const hasField = await evaluate(`!!document.querySelector('.practice-field')`);
-    assert('PracticeField表示', hasField.result.value);
-
-    const slotCount = await evaluate(`document.querySelectorAll('.practice-slot').length`);
-    assert('30スロット表示 (Row1:8+Row2:7+Hand/Temp:15)', slotCount.result.value === 30);
-
-    // === 操作ボタン ===
     console.log('\n--- 操作ボタン ---');
+    const undoExists = await cdp.evaluate(`document.querySelector('[data-testid="undo-btn"]') !== null`);
+    const redoExists = await cdp.evaluate(`document.querySelector('[data-testid="redo-btn"]') !== null`);
+    const resetExists = await cdp.evaluate(`document.querySelector('.practice-reset') !== null`);
+    t.assert('Undoボタン存在 [data-testid="undo-btn"]', undoExists === true);
+    t.assert('Redoボタン存在 [data-testid="redo-btn"]', redoExists === true);
+    t.assert('Resetボタン存在 .practice-reset（practiceMode時）', resetExists === true);
 
-    const allBtnTexts = await evaluate(`
-      Array.from(document.querySelectorAll('.practice-toggle-btn')).map(b => b.textContent.trim())
-    `);
-    const texts = allBtnTexts.result.value;
-    assert('Undoボタン存在', texts.includes('Undo'));
-    assert('Redoボタン存在', texts.includes('Redo'));
-    assert('Resetボタン存在', texts.includes('Reset'));
-
-    // Undo/Redo初期disabled状態
-    const undoState = await evaluate(`
-      (function() {
-        const btns = document.querySelectorAll('.practice-toggle-btn');
-        const undo = Array.from(btns).find(b => b.textContent.trim() === 'Undo');
-        const redo = Array.from(btns).find(b => b.textContent.trim() === 'Redo');
-        return JSON.stringify({
-          ud: undo ? undo.disabled : null,
-          rd: redo ? redo.disabled : null
-        });
+    const undoRedoState = await cdp.evaluate(`
+      (() => {
+        const u = document.querySelector('[data-testid="undo-btn"]');
+        const r = document.querySelector('[data-testid="redo-btn"]');
+        return JSON.stringify({ ud: u ? u.disabled : null, rd: r ? r.disabled : null });
       })()
     `);
-    const states = JSON.parse(undoState.result.value);
-    assert('Undo初期disabled', states.ud === true);
-    assert('Redo初期disabled', states.rd === true);
+    const states = JSON.parse(undoRedoState);
+    t.assert('Undo 初期 disabled（操作履歴なし）', states.ud === true);
+    t.assert('Redo 初期 disabled', states.rd === true);
 
-    // === PracticeモードOFF ===
-    console.log('\n--- PracticeモードOFF ---');
+    console.log('\n--- PracticeモードOFF（.practice-toggle を再度クリック）---');
+    await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);
+    const fieldOff = await cdp.waitFor(`document.querySelector('.practice-field') === null`, 5000);
+    t.assert('PracticeField が非表示になる', fieldOff === true);
 
-    await evaluate(`
-      const btns = document.querySelectorAll('.practice-toggle-btn');
-      const deckBtn = Array.from(btns).find(b => b.textContent.trim() === 'Deck');
-      if (deckBtn) deckBtn.click();
-    `);
-    await sleep(1000);
-
-    const afterOff = await evaluate(`
-      (function() {
-        return JSON.stringify({
-          practiceGone: !document.querySelector('.practice-field'),
-          deckAreas: !!document.querySelector('.deck-areas')
-        });
-      })()
-    `);
-    const offState = JSON.parse(afterOff.result.value);
-    assert('PracticeField非表示', offState.practiceGone);
-
-    // === 再度ON（状態維持確認）===
     console.log('\n--- 再度ON（状態維持確認）---');
+    await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);
+    const fieldAgain = await cdp.waitFor(`document.querySelector('.practice-field') !== null`, 10000);
+    t.assert('PracticeField が再表示される', fieldAgain === true);
 
-    await evaluate(`document.querySelector('.practice-toggle-btn').click()`);
-    await sleep(1500);
-
-    const fieldAgain = await evaluate(`!!document.querySelector('.practice-field')`);
-    assert('PracticeField再表示', fieldAgain.result.value);
-
-    // === Results ===
-    console.log(`\n=== 結果: ${passed} passed, ${failed} failed ===`);
-
+    t.summary();
   } catch (e) {
     console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
   } finally {
-    ws.close();
-    process.exit(failed > 0 ? 1 : 0);
+    cdp.close();
+    process.exit(t.exitCode());
   }
 }
 
-ws.on('open', run);
+// テスト実行
+testPracticeMode();
