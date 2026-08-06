@@ -1,0 +1,192 @@
+# 検証対象: src/api/image-utils.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、API系ファイル。
+# export関数8件を対象とする。非exportのgetBaseImageUrlは分岐を持たないためconditions化しない。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - getLinkMarkerClasses(-1) は「配列である」だけでなく、実装上は0..8の全ビットが立っている扱いになり
+#   中央(ビット4)を除く8クラスを返す。
+# - getLinkMarkerClassName(512) は「stringである」だけでなく、0..8の走査範囲外ビットのみのため
+#   positionsは空になり、非0入力なので早期returnせず "link" を返す。
+
+[meta]
+feature = "image-utils"
+source_file = "src/api/image-utils.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/api/image-utils.test.ts"
+source_hash = "7f8fd4aa08a249d28c603e14d04caae349430d73"
+note = "verified=falseは0件"
+
+# --- getAttributeIconUrl(attribute: string): string ---
+
+[[condition]]
+id = "attribute.empty_returns_empty"
+target_function = "getAttributeIconUrl"
+source_lines = "21"
+description = "attributeがfalsyな場合、空文字列を返す"
+given = "attribute = ''"
+expect_return = ""
+
+[[condition]]
+id = "attribute.lowercase_in_url"
+target_function = "getAttributeIconUrl"
+source_lines = "22-23"
+description = "attributeがtruthyな場合、attribute.toLowerCase()をファイル名末尾に使ってURLを返す。属性名の妥当性チェックはしない"
+given = "attribute = 'DARK' または 'UNKNOWN'"
+expect_return_shape = "${getBaseImageUrl()}/attribute/attribute_icon_${attribute.toLowerCase()}.png"
+
+# --- getLevelIconUrl(): string ---
+
+[[condition]]
+id = "level.fixed_url"
+target_function = "getLevelIconUrl"
+source_lines = "29-30"
+description = "レベルアイコンの固定パスをgetBaseImageUrl()配下で返す"
+given = "引数なし"
+expect_return_shape = "${getBaseImageUrl()}/icon_level.png"
+
+# --- getRankIconUrl(): string ---
+
+[[condition]]
+id = "rank.fixed_url"
+target_function = "getRankIconUrl"
+source_lines = "36-37"
+description = "ランクアイコンの固定パスをgetBaseImageUrl()配下で返す"
+given = "引数なし"
+expect_return_shape = "${getBaseImageUrl()}/icon_rank.png"
+
+# --- getSpellIconUrl(): string ---
+
+[[condition]]
+id = "spell.fixed_url"
+target_function = "getSpellIconUrl"
+source_lines = "43-44"
+description = "魔法カードアイコンの固定パスをgetBaseImageUrl()配下で返す"
+given = "引数なし"
+expect_return_shape = "${getBaseImageUrl()}/attribute/attribute_icon_spell.png"
+
+# --- getTrapIconUrl(): string ---
+
+[[condition]]
+id = "trap.fixed_url"
+target_function = "getTrapIconUrl"
+source_lines = "50-51"
+description = "罠カードアイコンの固定パスをgetBaseImageUrl()配下で返す"
+given = "引数なし"
+expect_return_shape = "${getBaseImageUrl()}/attribute/attribute_icon_trap.png"
+
+# --- getEffectTypeIconUrl(effectType: string): string | null ---
+
+[[condition]]
+id = "effect.empty_or_normal_returns_null"
+target_function = "getEffectTypeIconUrl"
+source_lines = "59"
+description = "effectTypeがfalsy、または厳密に'normal'の場合、nullを返す"
+given = "effectType = '' または 'normal'"
+expect_return = "null"
+
+[[condition]]
+id = "effect.valid_mapped_url"
+target_function = "getEffectTypeIconUrl"
+source_lines = "61-73"
+description = "effectType.toLowerCase()がquick/continuous/equip/field/ritual/counterのいずれかなら、対応するpathMap値をファイル名に使ってURLを返す"
+given = "effectType = 'quick' または 'QUICK' または 'Continuous'"
+expect_return_shape = "${getBaseImageUrl()}/effect/effect_icon_${pathMap[effectType.toLowerCase()]}.png"
+
+[[condition]]
+id = "effect.unmapped_returns_null"
+target_function = "getEffectTypeIconUrl"
+source_lines = "70-71"
+description = "effectType.toLowerCase()がpathMapに存在しない場合、nullを返す"
+given = "effectType = 'unknown' または 'NORMAL'"
+expect_return = "null"
+
+# --- getLinkMarkerClasses(linkMarkers: number): string[] ---
+
+[[condition]]
+id = "link_classes.zero_returns_empty"
+target_function = "getLinkMarkerClasses"
+source_lines = "82"
+description = "linkMarkersがfalsyな場合、空配列を返す"
+given = "linkMarkers = 0"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "link_classes.bits_to_classes_ascending"
+target_function = "getLinkMarkerClasses"
+source_lines = "84-97"
+description = "i=0..8を昇順に走査し、中央i=4以外で対応ビットが立ちpositionMap[i]がtruthyなら、そのクラス名をpositionsに追加して返す"
+given = "linkMarkers = 265（ビット0,3,8）"
+expect_return_shape = "['i_i_1', 'i_i_4', 'i_i_9']"
+
+[[condition]]
+id = "link_classes.center_bit_ignored"
+target_function = "getLinkMarkerClasses"
+source_lines = "85-93"
+description = "中央のi=4はビットが立っていても追加されない"
+given = "linkMarkers = 16（ビット4のみ）"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "link_classes.outside_bits_ignored"
+target_function = "getLinkMarkerClasses"
+source_lines = "91-97"
+description = "走査範囲はi=0..8のみのため、範囲外ビットだけが立っている非0入力では空配列を返す"
+given = "linkMarkers = 512（ビット9のみ）"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "link_classes.negative_all_scanned_bits"
+target_function = "getLinkMarkerClasses"
+source_lines = "91-97"
+description = "負数はビット演算上i=0..8の各対応ビットが立っている扱いになり、中央以外の全クラスを返す"
+given = "linkMarkers = -1"
+expect_return_shape = "['i_i_1', 'i_i_2', 'i_i_3', 'i_i_4', 'i_i_6', 'i_i_7', 'i_i_8', 'i_i_9']"
+
+# --- getLinkMarkerClassName(linkMarkers: number): string ---
+
+[[condition]]
+id = "link_class_name.zero_returns_empty"
+target_function = "getLinkMarkerClassName"
+source_lines = "106"
+description = "linkMarkersがfalsyな場合、空文字列を返す"
+given = "linkMarkers = 0"
+expect_return = ""
+
+[[condition]]
+id = "link_class_name.bits_to_link_name_ascending"
+target_function = "getLinkMarkerClassName"
+source_lines = "108-115"
+description = "i=0..8を昇順に走査し、中央i=4以外で対応ビットが立っていれば1-basedの位置番号を追加し、'link' + positions.join('')を返す"
+given = "linkMarkers = 261（ビット0,2,8）"
+expect_return = "link139"
+
+[[condition]]
+id = "link_class_name.center_only_returns_link"
+target_function = "getLinkMarkerClassName"
+source_lines = "109-115"
+description = "中央i=4のみが立つ非0入力では早期returnせず、positionsが空のままなので'link'を返す"
+given = "linkMarkers = 16（ビット4のみ）"
+expect_return = "link"
+
+[[condition]]
+id = "link_class_name.outside_bits_return_link"
+target_function = "getLinkMarkerClassName"
+source_lines = "109-115"
+description = "範囲外ビットだけが立つ非0入力ではpositionsが空のままなので'link'を返す"
+given = "linkMarkers = 512（ビット9のみ）"
+expect_return = "link"
+
+[[condition]]
+id = "link_class_name.negative_all_scanned_bits"
+target_function = "getLinkMarkerClassName"
+source_lines = "109-115"
+description = "負数はビット演算上i=0..8の各対応ビットが立っている扱いになり、中央以外の位置番号を連結したクラス名を返す"
+given = "linkMarkers = -1"
+expect_return = "link12346789"

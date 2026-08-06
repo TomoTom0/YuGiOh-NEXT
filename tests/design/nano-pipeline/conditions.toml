@@ -1,0 +1,284 @@
+# 検証対象: src/services/llm/nano-pipeline.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、非同期処理・外部I/O系サービス。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 実装上の注意:
+# - parseToolCallは `/\{[\s\S]*?\}/` で最初のJSON風部分を非貪欲に抽出するため、
+#   `{"tool":"x","args":{"a":1}}` のようなネストしたargsオブジェクトは途中で切れてJSON.parseに失敗する。
+#   これは到達不能ではなく、実装どおりの挙動として条件化しテストで固定する。
+
+[meta]
+feature = "nano-pipeline"
+source_file = "src/services/llm/nano-pipeline.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/nano-pipeline.test.ts"
+source_hash = "19dc565a6d41e70028d0d29b8358d1c6e1fea071"
+note = "verified=falseは1件: collect_names.skips_non_tool_message（非export関数で、runNanoPipeline内の呼び出し元は常にrole='tool'のみを渡すため公開APIから片側の状態を作れない）"
+
+# --- parseToolCall(response: string): ToolCall | null ---
+
+[[condition]]
+id = "parse_tool.code_block_content_is_parsed"
+target_function = "parseToolCall"
+source_lines = "87-99"
+description = "レスポンス全体をtrimした後、```tool```または```json```等のコードブロックがあれば中身をtrimしてからツールJSON抽出を行う"
+given = "response = '```json\\n{\"tool\":\"getDeckState\"}\\n```'"
+expect_return_shape = "{ name: 'getDeckState', arguments: {} }"
+
+[[condition]]
+id = "parse_tool.valid_tool_without_args_defaults_empty"
+target_function = "parseToolCall"
+source_lines = "93-99"
+description = "抽出したJSONのtoolがtruthyな文字列でargsが未指定の場合、argumentsは空オブジェクトになる"
+given = "response = '{\"tool\":\"getDeckState\"}'"
+expect_return_shape = "{ name: 'getDeckState', arguments: {} }"
+
+[[condition]]
+id = "parse_tool.no_json_returns_null"
+target_function = "parseToolCall"
+source_lines = "93-94,103"
+description = "レスポンス内に `{...}` 形式の部分が見つからない場合はnullを返す"
+given = "response = '最終回答です'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_tool.invalid_or_nested_json_returns_null"
+target_function = "parseToolCall"
+source_lines = "93-103"
+description = "抽出した文字列がJSON.parseできない場合はcatch後にnullを返す。非貪欲な抽出により、ネストしたargsオブジェクトを含むツールJSONも途中で切れてこの分岐に入る"
+given = "response = '{\"tool\":\"getCardDetail\",\"args\":{\"cardId\":\"1\"}}'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_tool.tool_not_truthy_string_returns_null"
+target_function = "parseToolCall"
+source_lines = "96-103"
+description = "JSON.parseに成功してもtoolが存在しない、空文字列、または文字列以外の場合はnullを返す"
+given = "response = '{\"tool\":\"\"}' または '{\"tool\":123}'"
+expect_return = "null"
+
+# --- collectVerifiedCardNames(messages) ---
+
+[[condition]]
+id = "collect_names.skips_non_tool_message"
+target_function = "collectVerifiedCardNames"
+source_lines = "109-110"
+description = "roleが'tool'でないメッセージはカード名収集対象から除外する"
+given = "assistantメッセージにtoolResultDataがある"
+expect_return_shape = "該当データ内のnameはverifiedNamesに入らない"
+verified = false
+unverifiable_reason = "collectVerifiedCardNamesは非export関数で、runNanoPipeline内ではtoolResultsにrole='tool'の要素しかpushされないため、公開API経由でrole!='tool'の入力を作れない"
+
+[[condition]]
+id = "collect_names.skips_falsy_data"
+target_function = "collectVerifiedCardNames"
+source_lines = "109-111"
+description = "toolResultDataがfalsyなメッセージはカード名収集対象から除外する"
+given = "toolメッセージのtoolResultDataがnull"
+expect_return_shape = "該当データ内のnameはverifiedNamesに入らない"
+
+[[condition]]
+id = "collect_names.object_cards_array_names"
+target_function = "collectVerifiedCardNames"
+source_lines = "112-116"
+description = "toolResultDataが非配列オブジェクトでcardsが配列の場合、各要素のnameが文字列のものだけSetに追加する"
+given = "toolResultData = { cards: [{ name: '確認済みA' }, { name: 123 }] }"
+expect_return_shape = "verifiedNamesに'確認済みA'だけが追加される"
+
+[[condition]]
+id = "collect_names.array_names"
+target_function = "collectVerifiedCardNames"
+source_lines = "117-121"
+description = "toolResultData自体が配列の場合、各要素のnameが文字列のものだけSetに追加する"
+given = "toolResultData = [{ name: '確認済みB' }, { name: null }]"
+expect_return_shape = "verifiedNamesに'確認済みB'だけが追加される"
+
+[[condition]]
+id = "collect_names.object_name"
+target_function = "collectVerifiedCardNames"
+source_lines = "122-125"
+description = "toolResultDataが非配列オブジェクトでnameが文字列の場合、そのnameをSetに追加する"
+given = "toolResultData = { name: '確認済みC' }"
+expect_return_shape = "verifiedNamesに'確認済みC'が追加される"
+
+# --- hasUnverifiedCardNames(response, verifiedNames) ---
+
+[[condition]]
+id = "unverified_names.must_be_in_verified_set"
+target_function = "hasUnverifiedCardNames"
+source_lines = "131-141"
+description = "回答内の `{{カード名}}` または `{{カード名|数字}}` に含まれるカード名がverifiedNamesに存在しない場合、そのカード名をunverifiedに追加する"
+given = "response = '{{未確認}} {{確認済み|123}}', verifiedNames = Set(['確認済み'])"
+expect_return_shape = "['未確認']"
+
+[[condition]]
+id = "unverified_names.verified_or_non_matching_markup_ignored"
+target_function = "hasUnverifiedCardNames"
+source_lines = "133-140"
+description = "verifiedNamesに存在するカード名は追加しない。cardId部分が数字でない `{{名前|abc}}` は正規表現にマッチせず検査対象外になる"
+given = "response = '{{確認済み}} {{未確認|abc}}', verifiedNames = Set(['確認済み'])"
+expect_return_shape = "[]"
+
+# --- truncateResult(data) ---
+
+[[condition]]
+id = "truncate_result.within_limit_returns_json"
+target_function = "truncateResult"
+source_lines = "146-149"
+description = "JSON.stringify(data) の長さが1500文字以下の場合、そのJSON文字列をそのまま返す"
+given = "data = { ok: true }"
+expect_return = "'{\"ok\":true}'"
+
+[[condition]]
+id = "truncate_result.over_limit_cuts_and_appends_ellipsis"
+target_function = "truncateResult"
+source_lines = "146-149"
+description = "JSON.stringify(data) の長さが1500文字を超える場合、先頭1500文字に'...'を付けて返す"
+given = "data = { text: 'x'.repeat(1600) }"
+expect_return_shape = "長さ1503文字で末尾が'...'"
+
+# --- buildHistoryContext(history: ChatMessage[]) ---
+
+[[condition]]
+id = "history_context.empty_returns_empty_string"
+target_function = "buildHistoryContext"
+source_lines = "152-153"
+description = "history.lengthが0の場合は空文字列を返す"
+given = "history = []"
+expect_return = "''"
+
+[[condition]]
+id = "history_context.formats_roles_and_tool_data"
+target_function = "buildHistoryContext"
+source_lines = "155-168"
+description = "履歴がある場合は見出し行から始め、user/assistant/toolを各形式で行追加する。toolResultDataがtruthyならtruncateResult結果、falsyならcontentを使う"
+given = "user、assistant、tool(toolResultDataあり)、tool(toolResultDataなし)を含むhistory"
+expect_return_shape = "[直前の会話履歴]、ユーザー行、アシスタント行、[ツール name 実行済み]行が改行結合される"
+
+# --- runNanoPipeline(userMessage, history, storeRefs, onToolCall?, signal?) ---
+
+[[condition]]
+id = "run.abort_before_session_throws_without_create"
+target_function = "runNanoPipeline"
+source_lines = "178"
+description = "呼び出し時点でsignal.abortedがtrueの場合、createNanoSessionを呼ばずにError('aborted')をthrowする"
+given = "Abort済みのsignalを渡す"
+expect_throw = "Error('aborted')"
+
+[[condition]]
+id = "run.first_message_without_history_is_user_message"
+target_function = "runNanoPipeline"
+source_lines = "182-188"
+description = "buildHistoryContext(history)が空文字列の場合、最初のsession.promptにはuserMessageをそのまま渡す"
+given = "history = []"
+expect_return_shape = "session.promptの第1引数がuserMessageと等しい"
+
+[[condition]]
+id = "run.first_message_with_history_prefixes_context"
+target_function = "runNanoPipeline"
+source_lines = "182-188"
+description = "buildHistoryContext(history)がtruthyの場合、履歴コンテキスト、空行、`ユーザーの指示: ${userMessage}` を結合して最初のsession.promptに渡す"
+given = "historyにuser/assistant/toolメッセージがある"
+expect_return_shape = "session.promptの第1引数が履歴コンテキストを含み、末尾に現在の指示を含む"
+
+[[condition]]
+id = "run.no_tool_returns_final_response"
+target_function = "runNanoPipeline"
+source_lines = "194-215"
+description = "メインループ内でparseToolCallがnull、かつ未確認カード名検証後もツール呼び出しが無い場合、そのnanoResponseを返す"
+given = "session.promptの初回応答がツールJSONを含まない通常テキスト"
+expect_return_shape = "初回応答文字列"
+
+[[condition]]
+id = "run.unverified_names_reprompt_up_to_three"
+target_function = "runNanoPipeline"
+source_lines = "197-211,214"
+description = "最終回答に未確認カード名がある場合、最大3回まで修正プロンプトを送る。3回後もツール呼び出しが無ければ最後の応答を返す"
+given = "毎回 `{{未確認}}` を含む通常テキストを返すsession"
+expect_return_shape = "4回目(初回+修正3回目)のnanoResponseが返る"
+
+[[condition]]
+id = "run.validation_tool_call_continues_main_loop"
+target_function = "runNanoPipeline"
+source_lines = "209-214"
+description = "未確認カード名修正プロンプトへの応答がツール呼び出しとしてparseできる場合、内側ループをbreakし、メインループをcontinueしてそのツールを実行する"
+given = "初回応答が未確認カード名を含み、修正応答が `{\"tool\":\"getDeckState\"}`"
+expect_return_shape = "executeToolが呼ばれ、その結果プロンプト後の応答が返る"
+
+[[condition]]
+id = "run.tool_call_executes_callback_and_success_data_is_recorded"
+target_function = "runNanoPipeline"
+source_lines = "217-223"
+description = "ツール呼び出しをparseした場合executeToolを呼び、JSON以外のテキストをnanoReasoningとしてonToolCallに渡す。toolResult.successがtrueかつdata !== undefinedの場合のみtoolResultsに追加する"
+given = "nanoResponse = '確認します。\\n{\"tool\":\"getDeckState\"}'、executeToolがsuccess trueかつdataを返す"
+expect_return_shape = "onToolCallにname/args/result/nanoReasoningが渡り、後続のカード名検証でdata内のnameが確認済み扱いになる"
+
+[[condition]]
+id = "run.success_result_prompt_uses_data_or_success_literal"
+target_function = "runNanoPipeline"
+source_lines = "227-231"
+description = "toolResult.successがtrueの場合、`ツール ${name} の実行結果:\\n${truncateResult(toolResult.data ?? '成功')}` を次のsession.promptへ渡す。dataがundefinedなら'成功'をJSON文字列化した値を使う"
+given = "executeToolが { success: true } を返す"
+expect_return_shape = "次のpromptが `ツール getDeckState の実行結果:\\n\"成功\"` を受け取る"
+
+[[condition]]
+id = "run.error_result_prompt_uses_error"
+target_function = "runNanoPipeline"
+source_lines = "227-231"
+description = "toolResult.successがfalseの場合、dataの有無に関係なく `ツール ${name} のエラー: ${toolResult.error}` を次のsession.promptへ渡す"
+given = "executeToolが { success: false, error: '失敗', data: { name: '未収集' } } を返す"
+expect_return_shape = "次のpromptが `ツール getDeckState のエラー: 失敗` を受け取り、data内のnameは確認済み扱いにならない"
+
+[[condition]]
+id = "run.abort_after_initial_prompt_throws_and_destroys"
+target_function = "runNanoPipeline"
+source_lines = "188-190,237-238"
+description = "初回session.prompt後にsignal.abortedがtrueならError('aborted')をthrowし、finallyでsession.destroyを呼ぶ"
+given = "初回prompt中にAbortControllerをabortする"
+expect_throw = "Error('aborted')"
+
+[[condition]]
+id = "run.abort_after_validation_prompt_throws_and_destroys"
+target_function = "runNanoPipeline"
+source_lines = "204-208,237-238"
+description = "未確認カード名修正プロンプト後にsignal.abortedがtrueならError('aborted')をthrowし、finallyでsession.destroyを呼ぶ"
+given = "修正prompt中にAbortControllerをabortする"
+expect_throw = "Error('aborted')"
+
+[[condition]]
+id = "run.abort_after_tool_execution_throws_and_destroys"
+target_function = "runNanoPipeline"
+source_lines = "217-225,237-238"
+description = "executeTool完了後にsignal.abortedがtrueなら結果メッセージをpromptせずError('aborted')をthrowし、finallyでsession.destroyを呼ぶ"
+given = "executeTool中にAbortControllerをabortする"
+expect_throw = "Error('aborted')"
+
+[[condition]]
+id = "run.abort_after_followup_prompt_throws_and_destroys"
+target_function = "runNanoPipeline"
+source_lines = "231-233,237-238"
+description = "ツール結果を送った後のsession.prompt後にsignal.abortedがtrueならError('aborted')をthrowし、finallyでsession.destroyを呼ぶ"
+given = "ツール結果prompt中にAbortControllerをabortする"
+expect_throw = "Error('aborted')"
+
+[[condition]]
+id = "run.max_tool_iterations_returns_last_response"
+target_function = "runNanoPipeline"
+source_lines = "194-236"
+description = "ツール呼び出しが続く場合でもメインループは10回で終了し、10回目のツール結果後に得たnanoResponseをツール実行せずそのまま返す"
+given = "session.promptが常にparse可能なツール呼び出しを返す"
+expect_return_shape = "executeToolは10回だけ呼ばれ、最後のnanoResponseが返る"
+
+[[condition]]
+id = "run.session_destroyed_after_success"
+target_function = "runNanoPipeline"
+source_lines = "180-239"
+description = "createNanoSession成功後、正常returnに至った場合もfinallyでsession.destroyを呼ぶ"
+given = "初回応答が通常テキストで正常終了する"
+expect_return_shape = "戻り値を返した後、session.destroyが1回呼ばれる"

@@ -39,13 +39,13 @@ describe('url-state', () => {
   });
 
   describe('getParams', () => {
-    it('URLパラメータがない場合は空のURLSearchParamsを返す', () => {
+    it('URLパラメータがない場合は空のURLSearchParamsを返す [covers:get_params.no_query_in_hash]', () => {
       window.location.hash = '#/page';
       const params = URLStateManager.getParams();
       expect(params.toString()).toBe('');
     });
 
-    it('URLパラメータを正しく取得できる', () => {
+    it('URLパラメータを正しく取得できる [covers:get_params.query_in_hash]', () => {
       window.location.hash = '#/page?mode=list&sort=name';
       const params = URLStateManager.getParams();
       expect(params.get('mode')).toBe('list');
@@ -90,12 +90,12 @@ describe('url-state', () => {
       expect(window.location.hash).toContain('dno=123');
     });
 
-    it('真偽値を設定できる', () => {
+    it('真偽値を設定できる [covers:set_params.value_stringified]', () => {
       URLStateManager.setParams({ flag: true });
       expect(window.location.hash).toContain('flag=true');
     });
 
-    it('nullの場合はパラメータを削除する', () => {
+    it('nullの場合はパラメータを削除する [covers:set_params.null_or_undefined_deletes_key]', () => {
       window.location.hash = '#/page?mode=list&sort=name';
       URLStateManager.setParams({ mode: null });
       expect(window.location.hash).not.toContain('mode');
@@ -106,6 +106,12 @@ describe('url-state', () => {
       window.location.hash = '#/page?mode=list';
       URLStateManager.setParams({ mode: undefined });
       expect(window.location.hash).not.toContain('mode');
+    });
+
+    it('全パラメータが空になった場合、末尾に"?"を残さない [covers:set_params.empty_result_no_trailing_question_mark]', () => {
+      window.location.hash = '#/page?dno=5';
+      URLStateManager.setParams({ dno: null });
+      expect(window.location.hash).toBe('#/page');
     });
 
     it('既存のパラメータと新しいパラメータを統合できる', () => {
@@ -146,9 +152,16 @@ describe('url-state', () => {
       expect(window.location.hash).toContain('detail=1');
     });
 
-    it('showDetailを同期できる（false）', () => {
+    it('showDetailを同期できる（false） [covers:sync_ui.show_detail_false_still_set]', () => {
       URLStateManager.syncUIStateToURL({ showDetail: false });
       expect(window.location.hash).toContain('detail=0');
+    });
+
+    it('未指定のフィールドはparamsに含まれず既存URLの値が保持される [covers:sync_ui.falsy_fields_omitted]', () => {
+      window.location.hash = '#/page?sort=name';
+      URLStateManager.syncUIStateToURL({ viewMode: 'list' });
+      expect(window.location.hash).toContain('mode=list');
+      expect(window.location.hash).toContain('sort=name');
     });
 
     it('複数の状態を同時に同期できる', () => {
@@ -166,7 +179,7 @@ describe('url-state', () => {
   });
 
   describe('restoreUIStateFromURL', () => {
-    it('viewModeを復元できる', () => {
+    it('viewModeを復元できる [covers:restore_ui.mode_valid_value]', () => {
       window.location.hash = '#/page?mode=grid';
       const state = URLStateManager.restoreUIStateFromURL();
       expect(state.viewMode).toBe('grid');
@@ -176,6 +189,12 @@ describe('url-state', () => {
       window.location.hash = '#/page?sort=name';
       const state = URLStateManager.restoreUIStateFromURL();
       expect(state.sortOrder).toBe('name');
+    });
+
+    it('sortOrderは許容値の検証をせずそのまま反映される [covers:restore_ui.sort_no_validation]', () => {
+      window.location.hash = '#/page?sort=totally-invalid-value';
+      const state = URLStateManager.restoreUIStateFromURL();
+      expect(state.sortOrder).toBe('totally-invalid-value');
     });
 
     it('activeTabを復元できる', () => {
@@ -202,14 +221,14 @@ describe('url-state', () => {
       expect(state.showDetail).toBe(false);
     });
 
-    it('不正な値は無視される', () => {
+    it('不正な値は無視される [covers:restore_ui.mode_invalid_value_ignored]', () => {
       window.location.hash = '#/page?mode=invalid&tab=invalid';
       const state = URLStateManager.restoreUIStateFromURL();
       expect(state.viewMode).toBeUndefined();
       expect(state.activeTab).toBeUndefined();
     });
 
-    it('detailの不正な値はfalseとして扱われる', () => {
+    it('detailの不正な値はfalseとして扱われる [covers:restore_ui.detail_present_but_not_1]', () => {
       window.location.hash = '#/page?detail=invalid';
       const state = URLStateManager.restoreUIStateFromURL();
       expect(state.showDetail).toBe(false);
@@ -224,10 +243,11 @@ describe('url-state', () => {
       expect(state.showDetail).toBe(true);
     });
 
-    it('パラメータがない場合は空のオブジェクトを返す', () => {
+    it('パラメータがない場合は空のオブジェクトを返す [covers:restore_ui.detail_absent]', () => {
       window.location.hash = '#/page';
       const state = URLStateManager.restoreUIStateFromURL();
       expect(Object.keys(state).length).toBe(0);
+      expect(state.showDetail).toBeUndefined();
     });
   });
 
@@ -236,9 +256,11 @@ describe('url-state', () => {
       window.location.hash = '#/page';
     });
 
-    it('カードサイズを同期できる', () => {
+    it('カードサイズを同期できる（未指定のtheme/langキーは追加されない） [covers:sync_settings.falsy_fields_omitted]', () => {
       URLStateManager.syncSettingsToURL('large');
       expect(window.location.hash).toContain('size=large');
+      expect(window.location.hash).not.toContain('theme');
+      expect(window.location.hash).not.toContain('lang');
     });
 
     it('テーマを同期できる', () => {
@@ -272,13 +294,13 @@ describe('url-state', () => {
       expect(settings.theme).toBe('system');
     });
 
-    it('言語を復元できる', () => {
+    it('言語を復元できる [covers:restore_settings.lang_valid_value]', () => {
       window.location.hash = '#/page?lang=ko';
       const settings = URLStateManager.restoreSettingsFromURL();
       expect(settings.lang).toBe('ko');
     });
 
-    it('不正な値は無視される', () => {
+    it('不正な値は無視される [covers:restore_settings.size_invalid_ignored]', () => {
       window.location.hash = '#/page?size=invalid&theme=invalid&lang=invalid';
       const settings = URLStateManager.restoreSettingsFromURL();
       expect(settings.size).toBeUndefined();
@@ -298,6 +320,42 @@ describe('url-state', () => {
       window.location.hash = '#/page';
       const settings = URLStateManager.restoreSettingsFromURL();
       expect(Object.keys(settings).length).toBe(0);
+    });
+  });
+
+  describe('getDno', () => {
+    it('dnoパラメータが無い場合はnullを返す [covers:get_dno.absent]', () => {
+      window.location.hash = '#/page';
+      expect(URLStateManager.getDno()).toBeNull();
+    });
+
+    it('dnoパラメータが数値でない場合はnullを返す [covers:get_dno.not_a_number]', () => {
+      window.location.hash = '#/page?dno=abc';
+      expect(URLStateManager.getDno()).toBeNull();
+    });
+
+    it('先頭が数字であれば末尾の非数字を無視して受理する [covers:get_dno.partial_numeric_string_accepted]', () => {
+      window.location.hash = '#/page?dno=5abc';
+      expect(URLStateManager.getDno()).toBe(5);
+    });
+
+    it('正しい数値の場合その数値を返す [covers:get_dno.valid_number]', () => {
+      window.location.hash = '#/page?dno=42';
+      expect(URLStateManager.getDno()).toBe(42);
+    });
+  });
+
+  describe('setDno', () => {
+    it('nullを渡した場合dnoパラメータを削除する [covers:set_dno.null_deletes]', () => {
+      window.location.hash = '#/page?dno=5';
+      URLStateManager.setDno(null);
+      expect(window.location.hash).not.toContain('dno');
+    });
+
+    it('数値を渡した場合dnoパラメータを設定する', () => {
+      window.location.hash = '#/page';
+      URLStateManager.setDno(7);
+      expect(window.location.hash).toContain('dno=7');
     });
   });
 });

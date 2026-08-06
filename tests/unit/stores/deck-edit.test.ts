@@ -199,7 +199,7 @@ const sampleFusion: CardInfo = {
 
   // ===== カード移動テスト =====
 
-  await test('moveCardToSide: メインデッキからサイドへ移動', () => {
+  await test('moveCardToSide: メインデッキからサイドへ移動 [covers:move_card_to_side.delegates_to_move_card]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleMonster, 'main');
     store.moveCardToSide(sampleMonster, 'main');
@@ -209,7 +209,7 @@ const sampleFusion: CardInfo = {
     assertEquals(store.deckInfo.sideDeck[0]?.card.cardId, '4831', 'カードIDが正しいこと');
   });
 
-  await test('moveCardFromSide: サイドデッキからメイン/エクストラへ移動', () => {
+  await test('moveCardFromSide: サイドデッキからメイン/エクストラへ移動 [covers:move_card_from_side.extra_monster_targets_extra_otherwise_main]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleSpell, 'side');
     store.moveCardFromSide(sampleSpell);
@@ -219,15 +219,13 @@ const sampleFusion: CardInfo = {
     assertEquals(store.deckInfo.mainDeck[0]?.card.cardId, '5851', 'カードIDが正しいこと');
   });
 
-  await test('moveCardToMainOrExtra: サイドデッキからメイン/エクストラへ移動（融合モンスター）', () => {
+  await test('moveCardToMainOrExtra: サイドデッキからメイン/エクストラへ移動（融合モンスター） [covers:move_card_to_main_or_extra.extra_monster_targets_extra_otherwise_main]', () => {
     const store = useDeckEditStore();
     store.addCard(sampleFusion, 'side');
-    // 融合モンスターなのでExtraへ移動するはず
+
     store.moveCardToMainOrExtra(sampleFusion, 'side');
     
     assertEquals(store.deckInfo.sideDeck.length, 0, 'sideDeckが空になること');
-    // 融合モンスターはextraに移動
-    // ただしstoreの実装を確認する必要がある
     const totalCards = store.deckInfo.mainDeck.length + store.deckInfo.extraDeck.length;
     assertEquals(totalCards, 1, 'main/extraのいずれかに1枚追加されること');
   });

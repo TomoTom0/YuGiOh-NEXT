@@ -1,0 +1,92 @@
+# 検証対象: src/services/llm/zai-api.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、外部I/O境界(chrome.runtime.sendMessage経由のZ.ai API呼び出し)を含むためTier A。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 注意:
+# - このファイル内に直接fetch呼び出しは存在しない。Z.ai API呼び出しは
+#   chrome.runtime.sendMessage({ type: 'AI_CHAT', ... }) でbackground側へ委譲される。
+#   そのため外部fetch失敗相当の挙動は、sendMessage callbackのres.success=falseまたは
+#   chrome.runtime.lastErrorとして観測される範囲のみ条件化する。
+
+[meta]
+feature = "zai-api"
+source_file = "src/services/llm/zai-api.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/zai-api.test.ts"
+source_hash = "6dc3a54e98f4d21e2a0c69f90ca84dd8cd77ca78"
+note = "verified=falseは0件"
+
+# --- promptZai(systemPrompt: string, userMessage: string): Promise<string> ---
+
+[[condition]]
+id = "prompt_zai.delegates_single_user_message"
+target_function = "promptZai"
+source_lines = "12-16"
+description = "userMessageをrole='user'の単一ChatMessageに包み、promptZaiMultiへ委譲した結果をそのまま返す"
+given = "systemPrompt='sys'、userMessage='hello'、sendMessage callbackが{ success: true, content: 'ok' }を返す"
+expect_return = "'ok'"
+expect_side_effect = "chrome.runtime.sendMessageのpayload.conversationは[{ role: 'user', content: 'hello' }]"
+
+# --- promptZaiMulti(systemPrompt: string, conversation: ChatMessage[]): Promise<string> ---
+
+[[condition]]
+id = "prompt_zai_multi.send_message_payload"
+target_function = "promptZaiMulti"
+source_lines = "23-25"
+description = "chrome.runtime.sendMessageへtype='AI_CHAT'、systemPrompt、conversationを渡す"
+given = "systemPrompt='sys'、conversation=[{ role: 'user', content: 'hello' }]"
+expect_side_effect = "sendMessageの第1引数は{ type: 'AI_CHAT', systemPrompt: 'sys', conversation }"
+
+[[condition]]
+id = "prompt_zai_multi.last_error_rejects"
+target_function = "promptZaiMulti"
+source_lines = "27-30"
+description = "sendMessage callback実行時にchrome.runtime.lastErrorがtruthyの場合、resを見ずにError('Z.ai API エラー: ${message}')でrejectする"
+given = "chrome.runtime.lastError.message='port closed'、callbackのres={ success: true, content: 'ignored' }"
+expect_throw = "Error('Z.ai API エラー: port closed')"
+
+[[condition]]
+id = "prompt_zai_multi.success_content_returns"
+target_function = "promptZaiMulti"
+source_lines = "36-39"
+description = "response.successがtrueかつresponse.contentがtruthyの場合、contentを返す"
+given = "sendMessage callbackが{ success: true, content: 'answer' }を返す"
+expect_return = "'answer'"
+
+[[condition]]
+id = "prompt_zai_multi.failure_with_error_throws_error"
+target_function = "promptZaiMulti"
+source_lines = "36-37"
+description = "response.successがfalseでresponse.errorが存在する場合、そのerror文字列をmessageにしたErrorをthrowする"
+given = "sendMessage callbackが{ success: false, error: 'upstream failed' }を返す"
+expect_throw = "Error('upstream failed')"
+
+[[condition]]
+id = "prompt_zai_multi.failure_without_error_throws_default"
+target_function = "promptZaiMulti"
+source_lines = "36-37"
+description = "response.successがfalseでresponse.errorが存在しない場合、既定メッセージ'Z.ai APIから空の応答が返りました'のErrorをthrowする"
+given = "sendMessage callbackが{ success: false }を返す"
+expect_throw = "Error('Z.ai APIから空の応答が返りました')"
+
+[[condition]]
+id = "prompt_zai_multi.success_empty_content_throws_default"
+target_function = "promptZaiMulti"
+source_lines = "36-37"
+description = "response.successがtrueでもresponse.contentがfalsyの場合、response.errorがなければ既定メッセージ'Z.ai APIから空の応答が返りました'のErrorをthrowする"
+given = "sendMessage callbackが{ success: true, content: '' }を返す"
+expect_throw = "Error('Z.ai APIから空の応答が返りました')"
+
+[[condition]]
+id = "prompt_zai_multi.undefined_response_type_error"
+target_function = "promptZaiMulti"
+source_lines = "31,36"
+description = "sendMessage callbackがundefinedを返しlastErrorも無い場合、response.success参照でTypeErrorをthrowする（独自エラーには変換しない）"
+given = "sendMessage callbackがundefinedを返す"
+expect_throw = "TypeError"

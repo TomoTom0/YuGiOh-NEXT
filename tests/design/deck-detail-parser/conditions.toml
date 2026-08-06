@@ -1,0 +1,700 @@
+# 検証対象: src/content/parser/deck-detail-parser.ts
+#
+# このファイルは実装ソースコードを読んで人が書く「検証すべき条件」の一覧。
+# 実装からの推測ではなく、実装コードの分岐・エラーメッセージを直接転記して定義する。
+#
+# テスト側は it()/test() のタイトル末尾に [covers:<id>] を付与し、この条件をカバーしたことを示す。
+# coverage.toml は [covers:<id>] タグを持つテストを走査して自動生成する（未実装）。
+
+[meta]
+feature = "deck-detail-parser"
+source_file = "src/content/parser/deck-detail-parser.ts"
+
+# --- validateDeckDetailPageStructure(doc: Document): void ---
+# DOM階層 #main980 > #article_body > #deck_detailtext > #detailtext_main を
+# 順に検証し、各段階で要素が無ければその段階専用のエラーメッセージでthrowする。
+
+[[condition]]
+id = "validate.main980.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "190-193"
+description = "#main980が存在しない場合、専用メッセージでthrowする"
+given = "doc に #main980 要素が存在しない"
+expect_throw = "#main980が見つかりません。デッキ表示ページではありません。"
+
+[[condition]]
+id = "validate.article_body.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "195-198"
+description = "#main980は存在するが、その配下に#article_bodyが存在しない場合、専用メッセージでthrowする"
+given = "#main980 は存在するが #main980 > #article_body が存在しない"
+expect_throw = "#main980 > #article_bodyが見つかりません。デッキ表示ページではありません。"
+
+[[condition]]
+id = "validate.deck_detailtext.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "200-203"
+description = "#article_bodyまでは存在するが#deck_detailtextが存在しない場合、専用メッセージでthrowする"
+given = "#main980 > #article_body は存在するが #deck_detailtext が存在しない"
+expect_throw = "#main980 > #article_body > #deck_detailtextが見つかりません。デッキ表示ページではありません。"
+
+[[condition]]
+id = "validate.detailtext_main.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "205-208"
+description = "#deck_detailtextまでは存在するが#detailtext_mainが存在しない場合、専用メッセージでthrowする"
+given = "#deck_detailtext は存在するが #detailtext_main が存在しない"
+expect_throw = "#main980 > #article_body > #deck_detailtext > #detailtext_mainが見つかりません。デッキ表示ページではありません。"
+
+[[condition]]
+id = "validate.sections.all_absent_is_not_error"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "219-226"
+description = "モンスター/魔法/罠の3セクション（.t_body.mlist_m / .mlist_s / .mlist_t）はいずれか・全てが存在しなくてもエラーにならない（存在する場合のみ内部構造を検証する）"
+given = "#detailtext_main 配下に .t_body.mlist_m / .mlist_s / .mlist_t のいずれも存在しない"
+expect_no_throw = true
+note = "docs/api/deck-detail-parser.md旧記載は「必須」としていたが誤り（TASK-319で発見・要修正）"
+
+[[condition]]
+id = "validate.section.t_row_missing_card_name"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "236-243"
+description = "セクションが存在し最初の.t_rowも存在するが、その中に.card_nameが無い場合、セクション名を含むエラーに集約してthrowする"
+given = ".t_body.mlist_m が存在し、最初の.t_row内に.card_nameが無い"
+expect_throw_contains = "モンスターカードセクションの.t_row内に.card_nameが見つかりません"
+
+[[condition]]
+id = "validate.section.t_row_missing_link_value"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "236-246"
+description = "セクションが存在し最初の.t_rowも存在するが、その中にinput.link_valueが無い場合、セクション名を含むエラーに集約してthrowする"
+given = ".t_body.mlist_s が存在し、最初の.t_row内にinput.link_valueが無い"
+expect_throw_contains = "魔法カードセクションの.t_row内にinput.link_valueが見つかりません"
+
+[[condition]]
+id = "validate.section.t_row_absent_is_not_error"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "236-247"
+description = "セクションは存在するが.t_rowが1件も無い場合、firstRowがnullとなりcard_name/link_valueのチェック自体がスキップされる（エラーにならない）"
+given = ".t_body.mlist_m は存在するが内部に.t_rowが0件"
+expect_no_throw = true
+note = "codexレビュー(TASK-322)で指摘。.t_body存在=内部構造検証必須、と誤読しないよう明記"
+
+[[condition]]
+id = "validate.head.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "258-260"
+description = "doc内にhead要素自体が存在しない場合、専用メッセージでthrowする（meta欠如チェックより前段）"
+given = "doc に head 要素が存在しない"
+expect_throw = "head要素が見つかりません"
+note = "codexレビュー(TASK-322)で指摘。試作時に抜けていたthrow条件"
+
+[[condition]]
+id = "validate.head_meta.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "263-268"
+description = "head配下にmeta[name=description]もmeta[property=og:description]も無い場合、throwする"
+given = "head は存在するが description系metaタグが両方とも存在しない"
+expect_throw = "head配下にデッキ名取得用のmetaタグが見つかりません"
+
+[[condition]]
+id = "validate.body.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "271-273"
+description = "doc内にbody要素自体が存在しない場合、専用メッセージでthrowする（h1欠如チェックより前段）"
+given = "doc に body 要素が存在しない"
+expect_throw = "body要素が見つかりません"
+note = "codexレビュー(TASK-322)で指摘。試作時に抜けていたthrow条件"
+
+[[condition]]
+id = "validate.h1.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "276-279"
+description = "body配下にh1要素が1つも無い場合、throwする"
+given = "body は存在するが h1 要素が0個"
+expect_throw = "body配下にページタイトル（h1要素）が見つかりません"
+
+[[condition]]
+id = "validate.dno.missing"
+target_function = "validateDeckDetailPageStructure"
+source_lines = "281-287"
+description = "HTML全体に $('#dno') も dno= も含まれない場合、throwする"
+given = "doc.documentElement.innerHTML に \"$('#dno')\" も \"dno=\" も含まれない"
+expect_throw = "デッキ表示ページではありません。デッキ番号情報が見つかりません。"
+
+# --- extractDnoFromPage(doc: Document): number ---
+
+[[condition]]
+id = "extract_dno.script_pattern"
+target_function = "extractDnoFromPage"
+source_lines = "536-541"
+description = "HTML内に $('#dno').val('N') パターンがあれば、その数値を返す"
+given = "html に \"$('#dno').val('4')\" を含む"
+expect_return = 4
+
+[[condition]]
+id = "extract_dno.url_pattern_fallback"
+target_function = "extractDnoFromPage"
+source_lines = "543-547"
+description = "$('#dno').val()パターンが無い場合、dno=N パターンから数値を取得する"
+given = "html に \"$('#dno').val\" は無いが \"dno=7\" を含む"
+expect_return = 7
+
+[[condition]]
+id = "extract_dno.script_pattern_priority"
+target_function = "extractDnoFromPage"
+source_lines = "537-547"
+description = "$('#dno').val('N')パターンとdno=Nパターンの両方が存在する場合、$('#dno').val()側が優先される"
+given = "html に \"$('#dno').val('4')\" と \"dno=7\" の両方を含む"
+expect_return = 4
+
+[[condition]]
+id = "extract_dno.not_found"
+target_function = "extractDnoFromPage"
+source_lines = "534-549"
+description = "どちらのパターンも見つからない場合、0を返す"
+given = "html にどちらのパターンも含まれない"
+expect_return = 0
+
+# --- extractDeckNameFromMeta(doc: Document): string ---
+
+[[condition]]
+id = "extract_name.description_meta"
+target_function = "extractDeckNameFromMeta"
+source_lines = "560-570"
+description = "meta[name=description]のcontentから\"/\"以降を除去してデッキ名とする"
+given = "meta[name=\"description\"] content=\"完全版テスト成功/ \""
+expect_return = "完全版テスト成功"
+
+[[condition]]
+id = "extract_name.description_meta_empty_falls_through"
+target_function = "extractDeckNameFromMeta"
+source_lines = "563-569"
+description = "description metaのcontentが\"/\"除去後に空になる場合、og:descriptionへフォールバックする"
+given = "meta[name=\"description\"] content=\" / \"（除去後trimで空文字）、meta[property=\"og:description\"] content=\"デッキ名 | 遊戯王ニューロン\""
+expect_return = "デッキ名"
+
+[[condition]]
+id = "extract_name.og_description_fallback"
+target_function = "extractDeckNameFromMeta"
+source_lines = "572-586"
+description = "description metaが無い場合、og:descriptionのcontentを\"|\"で分割した先頭部分をデッキ名とする"
+given = "meta[name=\"description\"]は存在せず、meta[property=\"og:description\"] content=\"デッキ名 | 遊戯王ニューロン...\""
+expect_return = "デッキ名"
+
+[[condition]]
+id = "extract_name.default"
+target_function = "extractDeckNameFromMeta"
+source_lines = "558-588"
+description = "どちらのmetaタグからも名前を抽出できない場合、デフォルト値\"デッキ\"を返す"
+given = "description metaもog:description metaも存在しない、または両方contentが空"
+expect_return = "デッキ"
+
+# --- extractIsPublicFromTitle(doc: Document): boolean ---
+
+[[condition]]
+id = "is_public.non_public_h1"
+target_function = "extractIsPublicFromTitle"
+source_lines = "599-604"
+description = "いずれかのh1テキストに\"非公開\"を含む場合、falseを返す"
+given = "<h1>【 非公開 】</h1> が存在する"
+expect_return = false
+
+[[condition]]
+id = "is_public.public_h1"
+target_function = "extractIsPublicFromTitle"
+source_lines = "599-607"
+description = "\"非公開\"を含むh1が無く、\"公開\"を含むh1がある場合、trueを返す"
+given = "全h1テキストに\"非公開\"は含まれず、いずれかが\"公開\"を含む"
+expect_return = true
+
+[[condition]]
+id = "is_public.non_public_string_contains_public_substring"
+target_function = "extractIsPublicFromTitle"
+source_lines = "601-606"
+description = "同一h1内で\"非公開\"チェックが\"公開\"チェックより先に行われるため、\"非公開\"という文字列自体（\"公開\"を部分文字列として含む）はfalse判定になる"
+given = "<h1>非公開</h1>のみ"
+expect_return = false
+note = "\"非公開\".includes(\"公開\") === true だが、コード上のif文順序により先にfalseが返る"
+
+[[condition]]
+id = "is_public.no_match_default"
+target_function = "extractIsPublicFromTitle"
+source_lines = "599-611"
+description = "\"公開\"も\"非公開\"も含むh1が無い場合、デフォルトでfalse（非公開扱い）を返す"
+given = "h1は存在するがテキストに\"公開\"も\"非公開\"も含まない"
+expect_return = false
+
+[[condition]]
+id = "is_public.no_h1"
+target_function = "extractIsPublicFromTitle"
+source_lines = "599-611"
+description = "h1要素が1つも無い場合、デフォルトでfalseを返す"
+given = "h1要素が0個"
+expect_return = false
+
+# --- extractCgidFromPage(doc: Document): string | undefined ---
+
+[[condition]]
+id = "extract_cgid.found"
+target_function = "extractCgidFromPage"
+source_lines = "620-629"
+description = "正規表現は /cgid=([a-f0-9]+)/ であり、小文字16進数文字列のみにマッチする（大文字A-Fは非対応）"
+given = "html に \"cgid=abc123\" を含む"
+expect_return = "abc123"
+
+[[condition]]
+id = "extract_cgid.uppercase_hex_not_matched"
+target_function = "extractCgidFromPage"
+source_lines = "623"
+description = "cgid値に大文字16進数(A-F)が含まれる場合、正規表現[a-f0-9]+は大文字部分で止まるため、undefinedまたは一致した先頭の小文字部分のみが返る（意図した全体一致にならない）"
+given = "html に \"cgid=ABC123\" を含む（cgid=直後が大文字）"
+expect_return = "undefined相当（正規表現全体が先頭で不一致になるため）"
+note = "codexレビュー(TASK-322)で指摘。旧descriptionは『16進数文字列』とだけ書いており大文字も含むように読めた"
+
+[[condition]]
+id = "extract_cgid.mixed_case_truncated_at_uppercase"
+target_function = "extractCgidFromPage"
+source_lines = "623"
+description = "cgid値が小文字始まりで途中から大文字を含む場合、[a-f0-9]+は大文字の直前までしかマッチしないため、意図した全体ではなく先頭の小文字部分だけが返る"
+given = "html に \"cgid=aBc123\" を含む（先頭aのみ小文字、次のBで非一致）"
+expect_return = "a"
+note = "codexレビュー(TASK-322)で指摘した『途中まで一致するケース』"
+
+[[condition]]
+id = "extract_cgid.not_found"
+target_function = "extractCgidFromPage"
+source_lines = "620-629"
+description = "cgid=パターンが無い場合、undefinedを返す"
+given = "html に cgid= パターンを含まない"
+expect_return = "undefined"
+
+# --- extractDeckType(doc: Document): DeckTypeValue | undefined ---
+
+[[condition]]
+id = "extract_deck_type.found"
+target_function = "extractDeckType"
+source_lines = "640-653"
+description = "\"デッキタイプ\"を含むdtの次の兄弟dd.text_set内のspanラベルを、DECK_TYPE_LABEL_TO_VALUEで値に変換して返す"
+given = "<dt><span>デッキタイプ</span></dt><dd class=\"text_set\"><span>OCG（マスタールール）</span></dd>、かつラベルがDECK_TYPE_LABEL_TO_VALUEに存在する"
+expect_return = "DECK_TYPE_LABEL_TO_VALUE['OCG（マスタールール）']の値"
+
+[[condition]]
+id = "extract_deck_type.dd_wrong_class"
+target_function = "extractDeckType"
+source_lines = "643-644"
+description = "dtの次の兄弟要素がclass=text_setを持たない場合、そのdtはスキップされる（他に該当dtが無ければundefined）"
+given = "\"デッキタイプ\"を含むdtは存在するが、次の兄弟要素にtext_setクラスが無い"
+expect_return = "undefined"
+
+[[condition]]
+id = "extract_deck_type.dt_not_found"
+target_function = "extractDeckType"
+source_lines = "641-654"
+description = "\"デッキタイプ\"を含むdt要素が無い場合、undefinedを返す"
+given = "doc内に\"デッキタイプ\"を含むdt要素が無い"
+expect_return = "undefined"
+
+[[condition]]
+id = "extract_deck_type.label_not_in_map"
+target_function = "extractDeckType"
+source_lines = "649"
+description = "抽出したラベルがDECK_TYPE_LABEL_TO_VALUEに存在しない場合、undefinedを返す（オブジェクトアクセスの結果）"
+given = "spanのラベルがDECK_TYPE_LABEL_TO_VALUEのキーに無い未知の文字列"
+expect_return = "undefined"
+
+# --- extractDeckStyle(doc: Document): DeckStyleValue | undefined ---
+
+[[condition]]
+id = "extract_deck_style.found"
+target_function = "extractDeckStyle"
+source_lines = "665-673"
+description = "dl.MD_deck_style内のdd.text_setのテキストを、DECK_STYLE_LABEL_TO_VALUEで値に変換して返す"
+given = "<dl class=\"MD_deck_style\"><dt>...</dt><dd class=\"text_set\">ラベル</dd></dl>、かつラベルがDECK_STYLE_LABEL_TO_VALUEに存在する"
+expect_return = "DECK_STYLE_LABEL_TO_VALUE[ラベル]の値"
+
+[[condition]]
+id = "extract_deck_style.dl_not_found"
+target_function = "extractDeckStyle"
+source_lines = "665-674"
+description = "dl.MD_deck_style要素が無い場合、undefinedを返す"
+given = "doc内にdl.MD_deck_styleが無い"
+expect_return = "undefined"
+
+# --- extractCategory(doc: Document): DeckCategory (string[]) ---
+
+[[condition]]
+id = "extract_category.found"
+target_function = "extractCategory"
+source_lines = "685-696"
+description = "dd.regist_category内の各span要素のテキストを配列で返す"
+given = "<dd class=\"regist_category\"><span>マジェスペクター</span><span>竜剣士</span></dd>"
+expect_return = ["マジェスペクター", "竜剣士"]
+
+[[condition]]
+id = "extract_category.empty_span_text_filtered"
+target_function = "extractCategory"
+source_lines = "690-695"
+description = "span要素のテキストが空（trim後）の場合、その要素は結果に含まれない"
+given = "dd.regist_category内に空白のみのspanを含む"
+expect_return_excludes_empty = true
+
+[[condition]]
+id = "extract_category.dd_not_found"
+target_function = "extractCategory"
+source_lines = "684-699"
+description = "dd.regist_category要素が無い場合、空配列を返す"
+given = "doc内にdd.regist_categoryが無い"
+expect_return = []
+
+# --- extractTags(doc: Document): string[] ---
+
+[[condition]]
+id = "extract_tags.found"
+target_function = "extractTags"
+source_lines = "710-721"
+description = "dd.regist_tag内の各span要素のテキストを配列で返す"
+given = "<dd class=\"regist_tag\"><span>大会優勝デッキ</span></dd>"
+expect_return = ["大会優勝デッキ"]
+
+[[condition]]
+id = "extract_tags.dd_not_found"
+target_function = "extractTags"
+source_lines = "708-724"
+description = "dd.regist_tag要素が無い場合、空配列を返す"
+given = "doc内にdd.regist_tagが無い"
+expect_return = []
+
+# --- extractComment(doc: Document): string ---
+
+[[condition]]
+id = "extract_comment.found"
+target_function = "extractComment"
+source_lines = "735-746"
+description = "\"コメント\"を含むdtの次の兄弟dd.text_set内のspan.bikoのテキスト（trim済み）を返す"
+given = "<dt><span>コメント</span></dt><dd class=\"text_set\"><span class=\"biko\">コメント本文</span></dd>"
+expect_return = "コメント本文"
+
+[[condition]]
+id = "extract_comment.span_present_empty_text"
+target_function = "extractComment"
+source_lines = "740-745"
+description = "span.bikoが存在するがテキストが空の場合、空文字列を返す（フィールドが存在する扱い）"
+given = "span.bikoは存在するがtextContentが空"
+expect_return = ""
+
+[[condition]]
+id = "extract_comment.dt_not_found"
+target_function = "extractComment"
+source_lines = "733-749"
+description = "\"コメント\"を含むdt要素が無い場合、空文字列を返す"
+given = "doc内に\"コメント\"を含むdtが無い"
+expect_return = ""
+
+# --- extractFavoriteCount(doc: Document): number ---
+
+[[condition]]
+id = "extract_favorite.found"
+target_function = "extractFavoriteCount"
+source_lines = "759-766"
+description = "OFFICIAL_SITE_SELECTORS.deckDisplay.favoriteCountに一致する要素のテキストを数値変換して返す"
+given = "該当要素が存在し、テキストが\"12\"のような数値文字列"
+expect_return = 12
+
+[[condition]]
+id = "extract_favorite.non_numeric_text"
+target_function = "extractFavoriteCount"
+source_lines = "761-765"
+description = "該当要素は存在するがテキストが数値変換できない場合、0を返す"
+given = "該当要素のテキストが空文字列や非数値文字列"
+expect_return = 0
+
+[[condition]]
+id = "extract_favorite.not_found"
+target_function = "extractFavoriteCount"
+source_lines = "758-768"
+description = "該当要素が見つからない場合、0を返す"
+given = "OFFICIAL_SITE_SELECTORS.deckDisplay.favoriteCountに一致する要素が無い"
+expect_return = 0
+
+# --- extractDeckLikes(_doc: Document): number ---
+
+[[condition]]
+id = "extract_likes.always_zero"
+target_function = "extractDeckLikes"
+source_lines = "782-785"
+description = "未実装のため、docの内容に関わらず常に0を返す"
+given = "任意のdoc"
+expect_return = 0
+note = "いいね数はJavaScriptが動的生成する要素（隠しフィールドdeckLikesCntが静的HTMLに含まれない）ため、静的パースでは取得不能とコードにTODOコメントあり"
+
+# --- extractIssuedDeckCode(doc: Document): string ---
+
+[[condition]]
+id = "extract_issued_code.generic_pattern"
+target_function = "extractIssuedDeckCode"
+source_lines = "802-814"
+description = "scriptタグ内にnavigator.clipboard.writeText('20文字以上のBase64風文字列')があれば、その文字列を返す"
+given = "いずれかのscriptに navigator.clipboard.writeText('AAAAAAAAAAAAAAAAAAAA') を含む"
+expect_return = "AAAAAAAAAAAAAAAAAAAA"
+
+[[condition]]
+id = "extract_issued_code.jquery_pattern_fallback"
+target_function = "extractIssuedDeckCode"
+source_lines = "816-823"
+description = "汎用パターンが一致しないscript内で、$('#copy-code').click(...)内のnavigator.clipboard.writeText('...')パターンにフォールバックする"
+given = "汎用パターン（20文字以上）には一致しないが、$('#copy-code').click(...)内にnavigator.clipboard.writeText('code')を含むscriptがある"
+expect_return = "code"
+
+[[condition]]
+id = "extract_issued_code.per_script_priority"
+target_function = "extractIssuedDeckCode"
+source_lines = "800-824"
+description = "scriptタグを1つずつ順に走査し、各script内で汎用パターン→jQueryパターンの順に判定する（全script分の汎用パターンを先にまとめて検索するわけではない）"
+given = "複数のscriptタグがあり、先に走査されるscriptがjQueryパターンのみで一致する"
+expect_return = "そのscript内のjQueryパターンの値（後続scriptの汎用パターンより先に返る）"
+
+[[condition]]
+id = "extract_issued_code.not_found"
+target_function = "extractIssuedDeckCode"
+source_lines = "798-827"
+description = "どのscriptもどちらのパターンにも一致しない場合、空文字列を返す（デッキコード未発行）"
+given = "全scriptがどちらのパターンにも一致しない"
+expect_return = ""
+
+# --- extractDeckCode(doc: Document): string ---
+
+[[condition]]
+id = "extract_deck_code.found"
+target_function = "extractDeckCode"
+source_lines = "838-851"
+description = "\"デッキコード\"を含むdtの次の兄弟dd.a_setのテキストを返す（\"発行\"を含まない場合）"
+given = "<dt><span>デッキコード</span></dt><dd class=\"a_set\">ABCD1234</dd>"
+expect_return = "ABCD1234"
+
+[[condition]]
+id = "extract_deck_code.not_issued_yet"
+target_function = "extractDeckCode"
+source_lines = "846-849"
+description = "dd.a_setのテキストに\"発行\"を含む場合（\"デッキコードを発行\"ボタン等）、未発行とみなし空文字列を返す"
+given = "dd.a_setのテキストが\"デッキコードを発行\""
+expect_return = ""
+
+[[condition]]
+id = "extract_deck_code.dt_not_found"
+target_function = "extractDeckCode"
+source_lines = "836-855"
+description = "\"デッキコード\"を含むdt要素が無い場合、空文字列を返す"
+given = "doc内に\"デッキコード\"を含むdtが無い"
+expect_return = ""
+
+# --- convertCategoryLabelsToIds(labels, metadata): string[] ---
+
+[[condition]]
+id = "convert_category_labels.metadata_missing"
+target_function = "convertCategoryLabelsToIds"
+source_lines = "32-34"
+description = "metadataがnull/undefined、またはmetadata.categoriesが無い場合、空配列を返す"
+given = "metadata = null または metadata.categories が undefined"
+expect_return = []
+
+[[condition]]
+id = "convert_category_labels.mapped"
+target_function = "convertCategoryLabelsToIds"
+source_lines = "36-41"
+description = "labelsの各要素をmetadata.categoriesの.labelから.valueへ変換する"
+given = "labels=['マジェスペクター']、metadata.categoriesに{label:'マジェスペクター', value:'majespecter'}を含む"
+expect_return = ["majespecter"]
+
+[[condition]]
+id = "convert_category_labels.unmapped_filtered"
+target_function = "convertCategoryLabelsToIds"
+source_lines = "41"
+description = "metadata.categoriesに存在しないlabelは結果から除外される"
+given = "labels=['未知のカテゴリ']、metadata.categoriesに該当するlabelが無い"
+expect_return = []
+
+# --- convertTagLabelsToIds(labels, metadata): string[] ---
+
+[[condition]]
+id = "convert_tag_labels.metadata_missing"
+target_function = "convertTagLabelsToIds"
+source_lines = "48-50"
+description = "metadataがnull/undefined、またはmetadata.tagsが無い場合、空配列を返す"
+given = "metadata = null または metadata.tags が undefined"
+expect_return = []
+
+[[condition]]
+id = "convert_tag_labels.mapped"
+target_function = "convertTagLabelsToIds"
+source_lines = "52-57"
+description = "labelsの各要素を、metadata.tags（id→label）を逆引きしてidへ変換する"
+given = "labels=['大会優勝デッキ']、metadata.tags={'t1': '大会優勝デッキ'}"
+expect_return = ["t1"]
+
+[[condition]]
+id = "convert_tag_labels.unmapped_filtered"
+target_function = "convertTagLabelsToIds"
+source_lines = "57"
+description = "metadata.tagsに存在しないlabelは結果から除外される"
+given = "labels=['未知のタグ']、metadata.tagsに該当する値が無い"
+expect_return = []
+
+# --- extractCiidCounts(doc: Document): Map<cid, Map<ciid, {count, imgHash}>> ---
+
+[[condition]]
+id = "extract_ciid_counts.card_types_scanned"
+target_function = "extractCiidCounts"
+source_lines = "300"
+description = "走査対象はimgのclass名 card_image_<type>_ のうち type ∈ {monster, spell, trap, extra} の4種のみ（side用の型は無い）"
+given = "img class=\"card_image_side_0_1\"（sideという型は対象外）"
+expect_return_excludes = true
+
+[[condition]]
+id = "extract_ciid_counts.basic_match"
+target_function = "extractCiidCounts"
+source_lines = "302-341"
+description = "img class=card_image_<type>_<index>_<ciid> と、対応するscript内の .card_image_<type>_<index>_<ciid> ... cid=<cid>&ciid=<ciid> パターンが一致すれば、cid→ciid→{count:1, imgHash}を記録する"
+given = "img class=\"card_image_monster_0_1\"、いずれかのscriptに\".card_image_monster_0_1...cid=123&ciid=1&enc=xxxxx\"を含む"
+expect_return = "Map{'123' => Map{'1' => {count:1, imgHash:'xxxxx'}}}"
+
+[[condition]]
+id = "extract_ciid_counts.imghash_default_when_no_enc"
+target_function = "extractCiidCounts"
+source_lines = "320-325"
+description = "scriptパターンにenc=部分が無い場合、imgHashのデフォルト値として `${cid}_1_1_1` を使用する"
+given = "スクリプトパターンにマッチするがenc=部分が無い"
+expect_return_imghash = "<cid>_1_1_1"
+
+[[condition]]
+id = "extract_ciid_counts.duplicate_increments_count"
+target_function = "extractCiidCounts"
+source_lines = "331-336"
+description = "同一cid+ciidの組み合わせが複数回検出された場合、countがインクリメントされる（imgHashは最初の値を保持）。cidRegex.exec()はscriptごとに1回しか呼ばれないため、重複は「同一script内での複数マッチ」ではなく、(a)同じcid+ciidを持つimg要素が複数存在する、または(b)複数のscriptタグに同じcid+ciidパターンが存在する、のいずれかに起因する"
+given = "同じclass(card_image_monster_0_1)を持つimg要素が2つ存在し、それぞれのimg処理で同じscript内の同じcid=123&ciid=1パターンにマッチする"
+expect_return_count_increments = true
+note = "codexレビュー(TASK-322)で指摘。旧descriptionの『script内で複数回マッチする』は実装(execを1回しか呼ばない)と不一致だった"
+
+# --- parseCardSection(doc, imageInfoMap, ciidCountMap, sectionId): ParseCardSectionResult ---
+
+[[condition]]
+id = "parse_card_section.container_missing"
+target_function = "parseCardSection"
+source_lines = "375-383"
+description = "#main980 #article_body #deck_detailtext が見つからない場合、空の結果（cards:[], skippedCount:0, skippedCards:[], cardInfoMap:空）を返す"
+given = "doc内に#main980 #article_body #deck_detailtextが存在しない"
+expect_return_empty = true
+
+[[condition]]
+id = "parse_card_section.section_parent_missing"
+target_function = "parseCardSection"
+source_lines = "386-403"
+description = "sectionIdに対応する親要素（main→#detailtext_main / extra→#detailtext_ext / side→#detailtext_side）が見つからない場合、空の結果を返す"
+given = "sectionId='extra'だがdoc内に#detailtext_extが存在しない"
+expect_return_empty = true
+
+[[condition]]
+id = "parse_card_section.unreleased_card_back_parseable"
+target_function = "parseCardSection"
+source_lines = "420-436"
+description = "行内にimg[src*=card_back.png]があり、parseCardBaseでカード名/IDが取得できる場合、skippedCountを1増やしskippedCardsにcid/name/langを追加する（cardsには追加しない）"
+given = ".t_row内にimg[src*=\"card_back.png\"]があり、parseCardBaseが{name, cardId}を返す"
+expect_skipped_count_increment = true
+expect_skipped_cards_entry = true
+
+[[condition]]
+id = "parse_card_section.unreleased_card_back_unparseable"
+target_function = "parseCardSection"
+source_lines = "437-444"
+description = "card_back.pngはあるがparseCardBaseがnullを返す場合も、skippedCountは増えるがskippedCardsには追加されない"
+given = ".t_row内にimg[src*=\"card_back.png\"]があるが、parseCardBaseがnullを返す"
+expect_skipped_count_increment = true
+expect_skipped_cards_entry = false
+
+[[condition]]
+id = "parse_card_section.parse_failure_silently_dropped"
+target_function = "parseCardSection"
+source_lines = "447-451"
+description = "card_back.pngが無い行でparseSearchResultRowがnullを返す場合、その行は静かに無視される（skippedCountにもcardsにも計上されない、console.errorのみ）"
+given = "card_back.pngは無いが、parseSearchResultRowがnullを返す行"
+expect_skipped_count_increment = false
+expect_cards_entry = false
+
+[[condition]]
+id = "parse_card_section.no_ciid_counts_quantity_from_span"
+target_function = "parseCardSection"
+source_lines = "459-475"
+description = "cidがciidCountMapに存在しない場合、quantityは.cards_num_set > spanのテキストから取得（無ければ1）し、1件のDeckCardRefを追加する"
+given = "cardInfo.cardIdがciidCountMapのキーに存在しない、.cards_num_set > spanのテキストが\"3\""
+expect_quantity = 3
+
+[[condition]]
+id = "parse_card_section.no_ciid_counts_default_quantity"
+target_function = "parseCardSection"
+source_lines = "461-462"
+description = "cidがciidCountMapに存在せず、かつ.cards_num_set > spanも無い場合、quantityのデフォルトは1"
+given = "cardInfo.cardIdがciidCountMapに存在せず、.cards_num_set > spanが無い"
+expect_quantity = 1
+
+[[condition]]
+id = "parse_card_section.no_ciid_counts_quantity_nan_when_non_numeric"
+target_function = "parseCardSection"
+source_lines = "461-462"
+description = "cidがciidCountMapに存在せず、.cards_num_set > spanのテキストが数値に変換できない場合、parseInt()の結果であるNaNがそのままquantityに設定される（1へのフォールバックは行われない）"
+given = "cardInfo.cardIdがciidCountMapに存在しない、.cards_num_set > spanのテキストが\"枚\"等の非数値文字列"
+expect_quantity = "NaN"
+note = "codexレビュー(TASK-322)で指摘。実データ汚染時の重要な挙動として未条件化だった"
+
+[[condition]]
+id = "parse_card_section.with_ciid_counts_multiple_refs"
+target_function = "parseCardSection"
+source_lines = "476-515"
+description = "cidがciidCountMapに存在する場合、ciidCountMap内の各ciidごとに個別のDeckCardRefを追加する（quantityはそのciidのcount値）"
+given = "cardInfo.cardIdがciidCountMapに2つのciidエントリを持つ"
+expect_ref_count = 2
+
+# --- parseDeckDetail(doc: Document): Promise<DeckInfo> ---
+# オーケストレーター関数。validateDeckDetailPageStructureを呼び、各extract系関数の結果を集約してDeckInfoを構築する。
+
+[[condition]]
+id = "parse_deck_detail.is_async"
+target_function = "parseDeckDetail"
+source_lines = "69"
+description = "非同期関数であり、戻り値はPromise<DeckInfo>である（docs/api/deck-detail-parser.md旧記載は同期関数としていたが誤り）"
+given = "-"
+expect_return_type = "Promise<DeckInfo>"
+note = "TASK-319で発見した実装との乖離。旧mdの修正が必要"
+
+[[condition]]
+id = "parse_deck_detail.delegates_validation"
+target_function = "parseDeckDetail"
+source_lines = "71"
+description = "冒頭でvalidateDeckDetailPageStructure(doc)を呼ぶため、そちらがthrowする条件（validate.*系）はそのままparseDeckDetailからもthrowされる"
+given = "validateDeckDetailPageStructureがthrowする入力"
+expect_throw_delegated_from = "validateDeckDetailPageStructure"
+
+[[condition]]
+id = "parse_deck_detail.name_field_always_empty_string"
+target_function = "parseDeckDetail"
+source_lines = "160-163"
+description = "戻り値のnameフィールドは常に空文字列''固定であり、extractDeckNameFromMetaで取得した実際の名前はoriginalNameフィールドに入る"
+given = "任意の正常な表示ページdoc"
+expect_return_field = { name = "", originalName = "extractDeckNameFromMetaの戻り値" }
+note = "コメント: 「ユーザーが編集可能にするため空にする」。docs/api/deck-detail-parser.md旧記載のDeckInfo型にoriginalNameフィールドが無く、nameが実名を保持する前提だったが誤り"
+
+[[condition]]
+id = "parse_deck_detail.return_shape"
+target_function = "parseDeckDetail"
+source_lines = "160-179"
+description = "戻り値DeckInfoは18フィールド（dno, name, originalName, mainDeck, extraDeck, sideDeck, skippedCardsCount, skippedCards, isPublic, cgid, deckType, deckStyle, category, tags, comment, deckCode, favoriteCount, issuedDeckCode）を持つ"
+given = "任意の正常な表示ページdoc"
+expect_return_fields = ["dno", "name", "originalName", "mainDeck", "extraDeck", "sideDeck", "skippedCardsCount", "skippedCards", "isPublic", "cgid", "deckType", "deckStyle", "category", "tags", "comment", "deckCode", "favoriteCount", "issuedDeckCode"]
+note = "docs/api/deck-detail-parser.md旧記載は6フィールドのみで大幅に不足していた（TASK-319で発見・要修正）"
+
+[[condition]]
+id = "parse_deck_detail.persists_merged_card_info_to_temp_cache"
+target_function = "parseDeckDetail"
+source_lines = "135-158"
+description = "3セクション（main/extra/side）から収集したcardInfoMapをcid単位でマージ（imgsを結合）し、TempCacheDB.setAsync()で各cidを保存する副作用を持つ"
+given = "複数セクションに同一cidのカードが含まれる"
+expect_side_effect = "getTempCacheDB().setAsync(cid, mergedCardInfo, true) が cid ごとに呼ばれる"

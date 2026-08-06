@@ -1,0 +1,345 @@
+# 検証対象: src/background/main.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Chrome拡張のbackground service workerであり、export関数は存在しないため、
+# chrome.runtime/chrome.alarms/chrome.contextMenus のトップレベルlistenerと非export helperを条件化する。
+#
+# 実装との相違・注意:
+# - 依頼文および既存テストには `GENESYS_FETCH_TEXT` という記載があったが、
+#   src/background/main.ts の onMessage が処理するメッセージ種別は `GENESYS_FETCH`。
+# - 依頼文には `GENESYS_ALLOWED_ORIGIN` によるオリジン制限という記載があったが、
+#   src/background/main.ts に sender/origin を検査する分岐は無い。実装上の制限は
+#   `url.startsWith('https://www.yugioh-card.com/japan/howto/genesys')` のURL prefix判定のみ。
+#
+# 発見したデッドコード/到達困難分岐:
+# - onMessageのPRELOAD_DECK_DETAIL/PRELOAD_DECK_LIST分岐にある `.catch(err => sendResponse(...))` は、
+#   呼び出し先preloadDeckDetail/preloadDeckListが内部try-catchで例外を握ってvoid解決するため、
+#   通常の依存エラーでは到達しない。sendResponse自体がthrowする等の人工的状況を除き検証対象外。
+
+[meta]
+feature = "background-main"
+source_file = "src/background/main.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/background.test.ts"
+source_hash = "80b634678fd54938a5032aa3f6158ae02a0dbd39"
+note = "verified=falseは0件。export関数は存在しないためAST未カバー検出は0件想定。onMessageのpreload系catchは到達困難としてconditions化せずコメントに記録"
+
+# --- updateMetadata(): Promise<void> ---
+
+[[condition]]
+id = "update_metadata.success"
+target_function = "updateMetadata"
+source_lines = "26-31"
+description = "updateDeckMetadataがresolveした場合、例外を投げずに完了する"
+given = "updateDeckMetadataがresolveする"
+expect_no_throw = true
+
+[[condition]]
+id = "update_metadata.catch_error"
+target_function = "updateMetadata"
+source_lines = "26-31"
+description = "updateDeckMetadataがrejectした場合、console.errorに記録して例外を外へ投げない"
+given = "updateDeckMetadataがErrorでrejectする"
+expect_no_throw = true
+expect_side_effect = "console.error('Failed to update deck metadata:', error) が呼ばれる"
+
+# --- chrome.runtime.onInstalled listener ---
+
+[[condition]]
+id = "on_installed.install_updates_metadata_and_creates_menu"
+target_function = "chrome.runtime.onInstalled"
+source_lines = "37-49"
+description = "details.reasonが'install'の場合、updateMetadataをawaitしてからcontext menuを作成する"
+given = "details.reason = 'install'"
+expect_side_effect = "updateDeckMetadataが呼ばれ、chrome.contextMenus.create({ id: 'open-deck-edit', title: 'デッキ編集画面を開く', contexts: ['action'] }) が呼ばれる"
+
+[[condition]]
+id = "on_installed.non_install_creates_menu_only"
+target_function = "chrome.runtime.onInstalled"
+source_lines = "37-49"
+description = "details.reasonが'install'以外の場合、metadata更新は行わずcontext menuだけ作成する"
+given = "details.reason = 'update'"
+expect_side_effect = "updateDeckMetadataは呼ばれず、chrome.contextMenus.createは呼ばれる"
+
+# --- chrome.contextMenus.onClicked listener ---
+
+[[condition]]
+id = "context_menu.open_deck_edit_creates_ocg_tab"
+target_function = "chrome.contextMenus.onClicked"
+source_lines = "54-60"
+description = "menuItemIdが'open-deck-edit'の場合、getVueEditUrl('ocg')のURLで新規タブを開く"
+given = "info.menuItemId = 'open-deck-edit'"
+expect_side_effect = "chrome.tabs.create({ url: getVueEditUrl('ocg') }) が呼ばれる"
+
+[[condition]]
+id = "context_menu.other_id_ignored"
+target_function = "chrome.contextMenus.onClicked"
+source_lines = "54-60"
+description = "menuItemIdが'open-deck-edit'以外の場合、何もしない"
+given = "info.menuItemId = 'other'"
+expect_side_effect = "chrome.tabs.createは呼ばれない"
+
+# --- scheduleMetadataUpdate(): Promise<void> ---
+
+[[condition]]
+id = "schedule_metadata_update.immediate_then_interval"
+target_function = "scheduleMetadataUpdate"
+source_lines = "65-70"
+description = "起動時にupdateMetadataを即時実行し、その完了後に24時間間隔のsetIntervalを登録する"
+given = "background moduleをimportする"
+expect_side_effect = "updateDeckMetadataが呼ばれ、setInterval(updateMetadata, 86400000) が呼ばれる"
+
+# --- scheduleGenesysCheck(): void ---
+
+[[condition]]
+id = "schedule_genesys_check.creates_weekly_alarm"
+target_function = "scheduleGenesysCheck"
+source_lines = "83-87,111"
+description = "起動時にGENESYS週次チェックalarmをdelayInMinutes=5、periodInMinutes=10080で作成する"
+given = "background moduleをimportする"
+expect_side_effect = "chrome.alarms.create('genesys-weekly-check', { delayInMinutes: 5, periodInMinutes: 10080 }) が呼ばれる"
+
+# --- chrome.alarms.onAlarm listener ---
+
+[[condition]]
+id = "alarm.name_mismatch_returns"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "91-94"
+description = "alarm.nameが'genesys-weekly-check'でない場合、早期returnしてtabs.queryを呼ばない"
+given = "alarm.name = 'other'"
+expect_return = "undefined"
+expect_side_effect = "chrome.tabs.queryは呼ばれない"
+
+[[condition]]
+id = "alarm.matching_queries_db_tabs"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "95-98"
+description = "alarm.nameが'genesys-weekly-check'の場合、遊戯王DBのタブをqueryする"
+given = "alarm.name = 'genesys-weekly-check'"
+expect_side_effect = "chrome.tabs.query({ url: 'https://www.db.yugioh-card.com/*' }) が呼ばれる"
+
+[[condition]]
+id = "alarm.tab_with_id_sends_check_update"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "98-103"
+description = "query結果のtab.idがundefinedでない場合、そのtabへGENESYS_CHECK_UPDATEをsendMessageする"
+given = "tabs = [{ id: 10 }]"
+expect_side_effect = "chrome.tabs.sendMessage(10, { type: 'GENESYS_CHECK_UPDATE' }) が呼ばれる"
+
+[[condition]]
+id = "alarm.tab_without_id_skipped"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "98-103"
+description = "query結果のtab.idがundefinedの場合、そのtabにはsendMessageしない"
+given = "tabs = [{}]"
+expect_side_effect = "chrome.tabs.sendMessageは呼ばれない"
+
+[[condition]]
+id = "alarm.send_message_rejection_ignored"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "99-102"
+description = "content script未読み込み等でtabs.sendMessageがrejectしてもcatchで無視し、alarm listener自体はrejectしない"
+given = "chrome.tabs.sendMessageがrejectする"
+expect_no_throw = true
+
+[[condition]]
+id = "alarm.query_error_warns"
+target_function = "chrome.alarms.onAlarm"
+source_lines = "95-107"
+description = "tabs.queryまたはループ処理で例外が発生した場合、console.warnに記録して例外を外へ投げない"
+given = "chrome.tabs.queryがrejectする"
+expect_no_throw = true
+expect_side_effect = "console.warn('[Background] GENESYS weekly check failed:', err) が呼ばれる"
+
+# --- chrome.runtime.onMessage listener ---
+
+[[condition]]
+id = "on_message.preload_deck_detail_returns_true_and_success"
+target_function = "chrome.runtime.onMessage"
+source_lines = "119-134"
+description = "message.typeが'PRELOAD_DECK_DETAIL'の場合、preloadDeckDetail(dno,cgid)を非同期実行し、完了後sendResponse({success:true})してtrueを返す"
+given = "message = { type: 'PRELOAD_DECK_DETAIL', dno: 123, cgid: 'cgid' }"
+expect_return = "true"
+expect_side_effect = "sendResponse({ success: true }) が呼ばれる"
+
+[[condition]]
+id = "on_message.preload_deck_list_returns_true_and_success"
+target_function = "chrome.runtime.onMessage"
+source_lines = "136-151"
+description = "message.typeが'PRELOAD_DECK_LIST'の場合、preloadDeckList(cgid)を非同期実行し、完了後sendResponse({success:true})してtrueを返す"
+given = "message = { type: 'PRELOAD_DECK_LIST', cgid: 'cgid' }"
+expect_return = "true"
+expect_side_effect = "sendResponse({ success: true }) が呼ばれる"
+
+[[condition]]
+id = "on_message.genesys_fetch_returns_true_no_send_response"
+target_function = "chrome.runtime.onMessage"
+source_lines = "153-158"
+description = "message.typeが'GENESYS_FETCH'の場合、performGenesysFetch(requestId,url)をfire-and-forgetで実行し、sendResponseを使わずtrueを返す"
+given = "message = { type: 'GENESYS_FETCH', requestId: 'req', url: allowedUrl }"
+expect_return = "true"
+expect_side_effect = "sendResponseは呼ばれない"
+
+[[condition]]
+id = "on_message.ai_chat_no_api_key"
+target_function = "chrome.runtime.onMessage"
+source_lines = "161-176"
+description = "AI_CHATでstorageのappSettings.aiApiKeyが空または未設定の場合、Z.aiへfetchせずAPIキー未設定エラーを返す"
+given = "message.type='AI_CHAT'、getFromStorageLocal('appSettings') がnullまたはaiApiKey未設定を返す"
+expect_return = "true"
+expect_side_effect = "sendResponse({ success: false, error: 'Z.ai APIキーが設定されていません' }) が呼ばれる"
+
+[[condition]]
+id = "on_message.ai_chat_fetch_payload"
+target_function = "chrome.runtime.onMessage"
+source_lines = "178-192"
+description = "AI_CHATでAPIキーがある場合、Z.ai chat completionsへPOSTし、systemPromptを先頭system messageとしてconversationの前に置く"
+given = "apiKey='key'、systemPrompt='sys'、conversation=[{ role:'user', content:'hi' }]"
+expect_side_effect = "fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', { method:'POST', headers:{Content-Type:'application/json', Authorization:'Bearer key'}, body: JSON.stringify({ model:'claude-sonnet-4-6', messages:[{role:'system', content:'sys'}, ...conversation], max_tokens:1024 }) }) が呼ばれる"
+
+[[condition]]
+id = "on_message.ai_chat_response_not_ok"
+target_function = "chrome.runtime.onMessage"
+source_lines = "194-198"
+description = "Z.aiのresponse.okがfalseの場合、response.text()の結果を含むAPIエラーを返して終了する"
+given = "fetch response = { ok:false, status:500, text: resolves 'server error' }"
+expect_side_effect = "sendResponse({ success:false, error:'Z.ai API エラー: 500 server error' }) が呼ばれ、response.jsonは呼ばれない"
+
+[[condition]]
+id = "on_message.ai_chat_response_not_ok_text_rejects"
+target_function = "chrome.runtime.onMessage"
+source_lines = "194-196"
+description = "Z.aiのresponse.okがfalseでresponse.text()がrejectした場合、本文は空文字列としてAPIエラーを返す"
+given = "fetch response = { ok:false, status:503, text: rejects }"
+expect_side_effect = "sendResponse({ success:false, error:'Z.ai API エラー: 503 ' }) が呼ばれる"
+
+[[condition]]
+id = "on_message.ai_chat_empty_content"
+target_function = "chrome.runtime.onMessage"
+source_lines = "200-207"
+description = "response.json()のchoices[0].message.contentがfalsyの場合、空応答エラーを返す"
+given = "fetch response.ok=true、json returns { choices:[{ message:{} }] }"
+expect_side_effect = "sendResponse({ success:false, error:'Z.ai APIから空の応答が返りました' }) が呼ばれる"
+
+[[condition]]
+id = "on_message.ai_chat_success"
+target_function = "chrome.runtime.onMessage"
+source_lines = "200-208"
+description = "response.json()のchoices[0].message.contentがtruthyの場合、そのcontentで成功応答を返す"
+given = "fetch response.ok=true、json returns { choices:[{ message:{ content:'answer' } }] }"
+expect_side_effect = "sendResponse({ success:true, content:'answer' }) が呼ばれる"
+
+[[condition]]
+id = "on_message.ai_chat_catch_error"
+target_function = "chrome.runtime.onMessage"
+source_lines = "167-211"
+description = "AI_CHAT処理中に例外が発生した場合、Errorならmessage、非ErrorならString(err)をerrorとして返す"
+given = "getFromStorageLocalまたはfetch等がthrow/rejectする"
+expect_side_effect = "sendResponse({ success:false, error:String(message) }) が呼ばれる"
+
+[[condition]]
+id = "on_message.unknown_type_returns_false"
+target_function = "chrome.runtime.onMessage"
+source_lines = "217-218"
+description = "どの既知typeにも一致しないmessageは処理せずfalseを返す"
+given = "message = { type: 'UNKNOWN_TYPE' }"
+expect_return = "false"
+
+# --- performGenesysFetch(requestId: string, url: string): Promise<void> ---
+
+[[condition]]
+id = "perform_genesys_fetch.url_not_allowed"
+target_function = "performGenesysFetch"
+source_lines = "232-260"
+description = "urlが許可prefixで始まらない場合、fetchせずstorageへsuccess=false/error='URL not allowed'を書き込む"
+given = "url = 'https://example.com/genesys'"
+expect_side_effect = "fetchは呼ばれず、chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'URL not allowed' } }) が呼ばれる"
+
+[[condition]]
+id = "perform_genesys_fetch.fetch_not_ok"
+target_function = "performGenesysFetch"
+source_lines = "238-246"
+description = "許可prefixのurlでfetchResponse.okがfalseの場合、statusとstatusTextを含むFailedエラーをstorageへ書き込む"
+given = "fetch response = { ok:false, status:404, statusText:'Not Found' }"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'Failed: 404 Not Found' } }) が呼ばれる"
+
+[[condition]]
+id = "perform_genesys_fetch.fetch_success"
+target_function = "performGenesysFetch"
+source_lines = "247-250"
+description = "許可prefixのurlでfetchResponse.okがtrueの場合、response.text()の文字列をtextとしてstorageへ書き込む"
+given = "fetch response = { ok:true, text: resolves '<html>' }"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:true, text:'<html>' } }) が呼ばれる"
+
+[[condition]]
+id = "perform_genesys_fetch.fetch_throws"
+target_function = "performGenesysFetch"
+source_lines = "252-260"
+description = "fetchまたはresponse.text()がthrow/rejectした場合、Errorならmessage、非ErrorならString(err)をerrorとしてstorageへ書き込む"
+given = "fetch throws Error('network down')"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'network down' } }) が呼ばれる"
+
+# --- preloadDeckDetail(dno: number, cgid: string): Promise<void> ---
+
+[[condition]]
+id = "preload_deck_detail.truthy_stores_and_saves_cache"
+target_function = "preloadDeckDetail"
+source_lines = "267-283"
+description = "getDeckDetailがtruthyなdeckInfoを返した場合、ygo-deck-preload:dno:cgidへJSON保存し、saveUnifiedCacheDBを非同期実行する"
+given = "getDeckDetail(123,'cgid') returns { name:'deck' }"
+expect_side_effect = "setToStorageLocal('ygo-deck-preload:123:cgid', JSON.stringify({ deckInfo, timestamp })) が呼ばれ、saveUnifiedCacheDB()が呼ばれる"
+
+[[condition]]
+id = "preload_deck_detail.save_unified_cache_rejection_warns"
+target_function = "preloadDeckDetail"
+source_lines = "281-283"
+description = "saveUnifiedCacheDBがrejectした場合、awaitせずcatchでconsole.warnに記録する"
+given = "saveUnifiedCacheDB() returns rejected Promise"
+expect_no_throw = true
+expect_side_effect = "console.warn('[Background] Failed to save UnifiedCacheDB:', err) が呼ばれる"
+
+[[condition]]
+id = "preload_deck_detail.falsy_warns_without_storage"
+target_function = "preloadDeckDetail"
+source_lines = "272-286"
+description = "getDeckDetailがfalsy値を返した場合、storage保存せずconsole.warnに記録する"
+given = "getDeckDetail returns null"
+expect_side_effect = "setToStorageLocalは呼ばれず、console.warn('[Background] Failed to get deck detail:', dno, cgid) が呼ばれる"
+
+[[condition]]
+id = "preload_deck_detail.catch_error"
+target_function = "preloadDeckDetail"
+source_lines = "267-289"
+description = "getDeckDetail/import/setToStorageLocal等で例外が発生した場合、console.errorに記録して例外を外へ投げない"
+given = "getDeckDetail rejects Error('detail failed')"
+expect_no_throw = true
+expect_side_effect = "console.error('[Background] Failed to preload deck detail:', error) が呼ばれる"
+
+# --- preloadDeckList(cgid: string): Promise<void> ---
+
+[[condition]]
+id = "preload_deck_list.nonempty_array_stores"
+target_function = "preloadDeckList"
+source_lines = "295-307"
+description = "getDeckListInternalが要素数1以上の配列を返した場合、deckList/cgid/timestampをCHROME_STORAGE_KEY_DECK_LIST_PRELOADへJSON保存する"
+given = "getDeckListInternal('cgid') returns [{ dno: 1 }]"
+expect_side_effect = "setToStorageLocal('ygo-deck-list-preload', JSON.stringify({ deckList, cgid, timestamp })) が呼ばれる"
+
+[[condition]]
+id = "preload_deck_list.empty_or_nonarray_warns_without_storage"
+target_function = "preloadDeckList"
+source_lines = "300-310"
+description = "getDeckListInternalの戻り値が空配列または配列でない場合、storage保存せずconsole.warnに記録する"
+given = "getDeckListInternal returns [] または null"
+expect_side_effect = "setToStorageLocalは呼ばれず、console.warn('[Background] Failed to get deck list or empty list') が呼ばれる"
+
+[[condition]]
+id = "preload_deck_list.catch_error"
+target_function = "preloadDeckList"
+source_lines = "295-313"
+description = "getDeckListInternal/import/setToStorageLocal等で例外が発生した場合、console.errorに記録して例外を外へ投げない"
+given = "getDeckListInternal rejects Error('list failed')"
+expect_no_throw = true
+expect_side_effect = "console.error('[Background] Failed to preload deck list:', error) が呼ばれる"

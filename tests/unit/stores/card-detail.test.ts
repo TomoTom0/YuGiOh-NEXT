@@ -64,7 +64,7 @@ describe('stores/card-detail', () => {
       expect(store.selectedCard).toMatchObject(card);
     });
 
-    it('nullを設定できる', () => {
+    it('nullを設定できる [covers:set_selected_card.null_card_skips_history_update]', () => {
       const store = useCardDetailStore();
       const card = createCard('card1');
 
@@ -72,6 +72,7 @@ describe('stores/card-detail', () => {
       store.setSelectedCard(null);
 
       expect(store.selectedCard).toBeNull();
+      expect(store.canGoBack).toBe(false); // nullは履歴に追加されない
     });
 
     it('カードを選択すると履歴に追加される', () => {
@@ -84,7 +85,7 @@ describe('stores/card-detail', () => {
       expect(store.canGoForward).toBe(false);
     });
 
-    it('同じカードを連続で選択しても履歴に追加されない', () => {
+    it('同じカードを連続で選択しても履歴に追加されない [covers:set_selected_card.same_card_as_last_is_noop_for_history]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
 
@@ -104,6 +105,27 @@ describe('stores/card-detail', () => {
 
       expect(store.canGoBack).toBe(true); // card1に戻れる
       expect(store.canGoForward).toBe(false);
+    });
+  });
+
+  describe('updateSelectedCardCiid', () => {
+    it('selectedCardがnullの場合は何もしない [covers:update_ciid.no_selected_card_is_noop]', () => {
+      const store = useCardDetailStore();
+
+      store.updateSelectedCardCiid('999');
+
+      expect(store.selectedCard).toBeNull();
+    });
+
+    it('selectedCardが存在する場合ciidのみ更新される [covers:update_ciid.selected_card_present_updates_in_place]', () => {
+      const store = useCardDetailStore();
+      const card = createCard('card1', 'old');
+
+      store.setSelectedCard(card);
+      store.updateSelectedCardCiid('new');
+
+      expect(store.selectedCard?.ciid).toBe('new');
+      expect(store.selectedCard?.cardId).toBe('card1');
     });
   });
 
@@ -155,7 +177,7 @@ describe('stores/card-detail', () => {
       expect(store.canGoForward).toBe(false);
     });
 
-    it('goBackで前のカードに戻れる', () => {
+    it('goBackで前のカードに戻れる [covers:go_back.moves_index_and_sets_selected_card]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
       const card2 = createCard('card2');
@@ -170,7 +192,7 @@ describe('stores/card-detail', () => {
       expect(store.canGoForward).toBe(true);
     });
 
-    it('goForwardで次のカードに進める', () => {
+    it('goForwardで次のカードに進める [covers:go_forward.moves_index_and_sets_selected_card]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
       const card2 = createCard('card2');
@@ -186,7 +208,7 @@ describe('stores/card-detail', () => {
       expect(store.canGoForward).toBe(false);
     });
 
-    it('戻れない状態でgoBackを呼んでも何も起こらない', () => {
+    it('戻れない状態でgoBackを呼んでも何も起こらない [covers:go_back.cannot_go_back_is_noop]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
 
@@ -196,7 +218,7 @@ describe('stores/card-detail', () => {
       expect(store.selectedCard).toMatchObject(card1);
     });
 
-    it('進めない状態でgoForwardを呼んでも何も起こらない', () => {
+    it('進めない状態でgoForwardを呼んでも何も起こらない [covers:go_forward.cannot_go_forward_is_noop]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
 
@@ -206,7 +228,7 @@ describe('stores/card-detail', () => {
       expect(store.selectedCard).toMatchObject(card1);
     });
 
-    it('履歴の途中で新しいカードを選択すると、その後の履歴が削除される', () => {
+    it('履歴の途中で新しいカードを選択すると、その後の履歴が削除される [covers:set_selected_card.truncates_forward_history_on_branch]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
       const card2 = createCard('card2');
@@ -230,7 +252,7 @@ describe('stores/card-detail', () => {
       expect(store.selectedCard).toMatchObject(card1);
     });
 
-    it('履歴操作中は履歴に追加されない', () => {
+    it('履歴操作中は履歴に追加されない [covers:set_selected_card.navigating_history_skips_history_update]', () => {
       const store = useCardDetailStore();
       const card1 = createCard('card1');
       const card2 = createCard('card2');
@@ -247,7 +269,7 @@ describe('stores/card-detail', () => {
       expect(store.canGoForward).toBe(true); // card2に進める
     });
 
-    it('履歴の最大サイズ（50）を超えると古い履歴が削除される', () => {
+    it('履歴の最大サイズ（50）を超えると古い履歴が削除される [covers:set_selected_card.exceeds_max_history_size_shifts_oldest]', () => {
       const store = useCardDetailStore();
 
       // 51個のカードを追加

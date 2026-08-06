@@ -1,0 +1,415 @@
+# 検証対象: src/utils/forbidden-limited-cache.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、外部fetch + chrome.storageキャッシュを伴う中核utils。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 既存テストは ForbiddenLimitedCache 実装を直接呼ばず、Mapや手元計算でキャッシュ挙動を推測していた。
+#   本作業で実クラス + API/storageモックを使う確定的なテストへ置き換えた。
+# - LimitRegulation は実装型では文字列 union だが、既存テストは {status, updatedAt} object として扱っていた。
+#   実装の regulations は文字列値を返すため、該当fixture/アサーションを修正した。
+
+[meta]
+feature = "forbidden-limited-cache"
+source_file = "src/utils/forbidden-limited-cache.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/forbidden-limited-cache.test.ts"
+source_hash = "e99446293fdaf9ba5e4c029cf887a7eceeae3e21"
+note = "verified=falseは0件"
+
+# --- isForbiddenLimitedCacheData(value: unknown): value is ForbiddenLimitedCacheData (非export) ---
+
+[[condition]]
+id = "cache_data_guard.non_object_false"
+target_function = "isForbiddenLimitedCacheData"
+source_lines = "25-27"
+description = "valueがobjectでない、またはnullの場合falseを返す"
+given = "safeStorageGetが null または文字列を返す"
+expect_return = "false"
+
+[[condition]]
+id = "cache_data_guard.required_keys_present_true"
+target_function = "isForbiddenLimitedCacheData"
+source_lines = "25-27"
+description = "objectにlists/latestEffectiveDate/availableDates/discoveredAtの4キーが全て存在する場合trueを返す（値の型・中身は検証しない）"
+given = "raw = { lists: {}, latestEffectiveDate: null, availableDates: [], discoveredAt: 0 }"
+expect_return = "true"
+
+[[condition]]
+id = "cache_data_guard.required_key_missing_false"
+target_function = "isForbiddenLimitedCacheData"
+source_lines = "25-27"
+description = "objectでもlists/latestEffectiveDate/availableDates/discoveredAtのいずれかが無い場合falseを返す"
+given = "raw = { lists: {}, latestEffectiveDate: null, availableDates: [] }"
+expect_return = "false"
+
+# --- isOldForbiddenLimitedList(value: unknown): value is ForbiddenLimitedList (非export) ---
+
+[[condition]]
+id = "old_list_guard.non_object_false"
+target_function = "isOldForbiddenLimitedList"
+source_lines = "31-34"
+description = "valueがobjectでない、またはnullの場合falseを返す"
+given = "safeStorageGetが null または文字列を返す"
+expect_return = "false"
+
+[[condition]]
+id = "old_list_guard.lists_key_present_false"
+target_function = "isOldForbiddenLimitedList"
+source_lines = "31-34"
+description = "objectにlistsキーが存在する場合、新形式として除外しfalseを返す"
+given = "raw = { lists: {}, effectiveDate: '2026-01-01', regulations: {}, fetchedAt: 1 }"
+expect_return = "false"
+
+[[condition]]
+id = "old_list_guard.required_keys_present_true"
+target_function = "isOldForbiddenLimitedList"
+source_lines = "31-34"
+description = "listsキーが無く、effectiveDate/regulations/fetchedAtの3キーが全て存在する場合trueを返す（値の型・中身は検証しない）"
+given = "raw = { effectiveDate: '2026-01-01', regulations: {}, fetchedAt: 1 }"
+expect_return = "true"
+
+# --- migrateOldData(old: ForbiddenLimitedList): ForbiddenLimitedCacheData (非export) ---
+
+[[condition]]
+id = "migrate_old.wraps_single_list"
+target_function = "migrateOldData"
+source_lines = "38-44"
+description = "旧形式ForbiddenLimitedListをeffectiveDateキーのlistsへ格納し、latestEffectiveDate/availableDates/discoveredAtへ旧データ値を転記する"
+given = "old = { effectiveDate: '2026-01-01', regulations: {'1':'limited'}, fetchedAt: 100 }"
+expect_return_shape = "{ lists: {'2026-01-01': old}, latestEffectiveDate: '2026-01-01', availableDates: ['2026-01-01'], discoveredAt: 100 }"
+
+# --- ForbiddenLimitedCache#init(): Promise<void> ---
+
+[[condition]]
+id = "init.already_initialized_returns_early"
+target_function = "ForbiddenLimitedCache#init"
+source_lines = "59-62"
+description = "initializedがtrueの場合、storage読込も更新チェックも行わずreturnする"
+given = "同一インスタンスでinitを2回呼ぶ、またはinitialized=true"
+expect_return = "undefined"
+expect_side_effect = "safeStorageGetは追加で呼ばれない"
+
+[[condition]]
+id = "init.new_format_loaded"
+target_function = "ForbiddenLimitedCache#init"
+source_lines = "64-67"
+description = "storageの値が新形式キャッシュデータの場合、その値をcacheへ設定する"
+given = "safeStorageGetが { forbiddenLimitedList: ForbiddenLimitedCacheData } を返す"
+expect_side_effect = "getCurrentEffectiveDate等がstorageの新形式データを参照する"
+
+[[condition]]
+id = "init.old_format_migrated_and_persisted"
+target_function = "ForbiddenLimitedCache#init"
+source_lines = "68-71"
+description = "storageの値が旧形式ForbiddenLimitedListの場合、新形式へ移行してpersistする"
+given = "safeStorageGetが { forbiddenLimitedList: ForbiddenLimitedList } を返す"
+expect_side_effect = "safeStorageSetに移行後の { forbiddenLimitedList: ForbiddenLimitedCacheData } が渡される"
+
+[[condition]]
+id = "init.invalid_storage_keeps_cache_null"
+target_function = "ForbiddenLimitedCache#init"
+source_lines = "64-74"
+description = "storageの値が新形式にも旧形式にも該当しない場合、cacheはnullのままinitialized=trueになる"
+given = "safeStorageGetが { forbiddenLimitedList: { foo: 'bar' } } を返す"
+expect_side_effect = "getCurrentEffectiveDate()はundefined、getAvailableDates()は[]を返す"
+
+[[condition]]
+id = "init.starts_background_check_and_swallows_rejection"
+target_function = "ForbiddenLimitedCache#init"
+source_lines = "76-79"
+description = "初期化完了後にcheckAndUpdateをバックグラウンド起動し、rejectしてもinit自体はrejectしない"
+given = "checkAndUpdateがrejectするように差し替えたインスタンスでinitする"
+expect_no_throw = true
+
+# --- ForbiddenLimitedCache#getList(effectiveDate): ForbiddenLimitedList | null (private) ---
+
+[[condition]]
+id = "get_list.no_cache_null"
+target_function = "ForbiddenLimitedCache#getList"
+source_lines = "85-88"
+description = "cacheがnullの場合nullを返す"
+given = "new ForbiddenLimitedCache()直後"
+expect_return = "null"
+
+[[condition]]
+id = "get_list.latest_null_uses_latest_effective_date"
+target_function = "ForbiddenLimitedCache#getList"
+source_lines = "89-92"
+description = "effectiveDateがnullの場合、latestEffectiveDateをキーとしてlistsから取得し、キーが無い場合はnullを返す"
+given = "latestEffectiveDate='2026-01-01'、listsに該当キーあり/なし"
+expect_return_shape = "該当リストまたはnull"
+
+[[condition]]
+id = "get_list.explicit_date_uses_exact_key"
+target_function = "ForbiddenLimitedCache#getList"
+source_lines = "93"
+description = "effectiveDateが文字列の場合、その値をキーとしてlistsから取得し、キーが無い場合はnullを返す"
+given = "effectiveDate='2025-10-01'"
+expect_return_shape = "lists['2025-10-01']またはnull"
+
+# --- ForbiddenLimitedCache#getRegulation(cardId, effectiveDate?): LimitRegulation | undefined ---
+
+[[condition]]
+id = "get_regulation.no_cache_undefined"
+target_function = "ForbiddenLimitedCache#getRegulation"
+source_lines = "103-106"
+description = "cacheがnullの場合undefinedを返す"
+given = "new ForbiddenLimitedCache()直後"
+expect_return = "undefined"
+
+[[condition]]
+id = "get_regulation.latest_or_explicit_lookup"
+target_function = "ForbiddenLimitedCache#getRegulation"
+source_lines = "107-108"
+description = "effectiveDate省略時は最新版リスト、指定時は指定日のリストからcardIdのregulations値を返す"
+given = "同一cardIdが最新版と指定日で異なる規制値を持つ"
+expect_return_shape = "省略時は最新版、指定時は指定日のLimitRegulation"
+
+[[condition]]
+id = "get_regulation.missing_card_or_list_undefined"
+target_function = "ForbiddenLimitedCache#getRegulation"
+source_lines = "107-108"
+description = "対象リストまたはcardIdが存在しない場合undefinedを返す"
+given = "存在しないeffectiveDateまたは存在しないcardId"
+expect_return = "undefined"
+
+# --- ForbiddenLimitedCache#getRegulations(cardIds, effectiveDate?): Record<string, LimitRegulation | undefined> ---
+
+[[condition]]
+id = "get_regulations.maps_each_card_id"
+target_function = "ForbiddenLimitedCache#getRegulations"
+source_lines = "117-122"
+description = "cardIdsを順に走査し、各cardIdをキーとしてgetRegulation(cardId, effectiveDate)の結果をresultへ設定する"
+given = "cardIds = ['1','2','missing']"
+expect_return_shape = "{ '1': regulationOrUndefined, '2': regulationOrUndefined, missing: undefined }"
+
+# --- ForbiddenLimitedCache#getCurrentEffectiveDate(): string | undefined ---
+
+[[condition]]
+id = "current_date.cache_or_nullish_undefined"
+target_function = "ForbiddenLimitedCache#getCurrentEffectiveDate"
+source_lines = "128-129"
+description = "cacheがnull、またはlatestEffectiveDateがnullの場合undefinedを返す。文字列ならその値を返す"
+given = "cache=null / latestEffectiveDate=null / latestEffectiveDate='2026-01-01'"
+expect_return_shape = "undefinedまたは'2026-01-01'"
+
+# --- ForbiddenLimitedCache#getAvailableDates(): string[] ---
+
+[[condition]]
+id = "available_dates.no_cache_empty"
+target_function = "ForbiddenLimitedCache#getAvailableDates"
+source_lines = "136-139"
+description = "cacheがnullの場合空配列を返す"
+given = "new ForbiddenLimitedCache()直後"
+expect_return = "[]"
+
+[[condition]]
+id = "available_dates.available_dates_sorted_copy"
+target_function = "ForbiddenLimitedCache#getAvailableDates"
+source_lines = "140-142"
+description = "availableDatesが1件以上ある場合、そのコピーを昇順sortして返す"
+given = "availableDates = ['2026-04-01','2026-01-01']"
+expect_return = "['2026-01-01', '2026-04-01']"
+
+[[condition]]
+id = "available_dates.fallback_list_keys_sorted"
+target_function = "ForbiddenLimitedCache#getAvailableDates"
+source_lines = "143"
+description = "availableDatesが空配列の場合、listsのキー一覧を昇順sortして返す"
+given = "availableDates = []、lists keys = ['2026-04-01','2026-01-01']"
+expect_return = "['2026-01-01', '2026-04-01']"
+
+# --- ForbiddenLimitedCache#ensureList(effectiveDate): Promise<ForbiddenLimitedList | null> ---
+
+[[condition]]
+id = "ensure_list.existing_returns_without_fetch"
+target_function = "ForbiddenLimitedCache#ensureList"
+source_lines = "152-156"
+description = "cache.lists[effectiveDate]がtruthyな場合、その既存リストを返しfetch/persistしない"
+given = "cacheに'2026-01-01'のリストが存在する"
+expect_return_shape = "既存ForbiddenLimitedList"
+expect_side_effect = "fetchForbiddenLimitedListは呼ばれない"
+
+[[condition]]
+id = "ensure_list.fetch_success_creates_cache_adds_date_persists"
+target_function = "ForbiddenLimitedCache#ensureList"
+source_lines = "157-166"
+description = "対象日が未キャッシュの場合fetchForbiddenLimitedList(effectiveDate)を呼び、cacheがnullなら空の新形式cacheを作成し、listsへ保存してpersistする"
+given = "cache=null、fetchForbiddenLimitedList('2026-01-01')がリストを返す"
+expect_return_shape = "取得したForbiddenLimitedList"
+expect_side_effect = "lists['2026-01-01']が保存され、availableDatesに'2026-01-01'が追加される"
+
+[[condition]]
+id = "ensure_list.fetch_success_date_already_available_not_duplicated"
+target_function = "ForbiddenLimitedCache#ensureList"
+source_lines = "161-164"
+description = "fetch成功時、effectiveDateがavailableDatesに既に含まれている場合はpushしない"
+given = "availableDates = ['2026-01-01']、listsには未保存"
+expect_side_effect = "availableDates内の'2026-01-01'は1件のまま"
+
+[[condition]]
+id = "ensure_list.fetch_error_returns_null"
+target_function = "ForbiddenLimitedCache#ensureList"
+source_lines = "167-170"
+description = "fetchForbiddenLimitedListまたはpersistで例外が発生した場合、警告ログ後にnullを返し例外は投げない"
+given = "fetchForbiddenLimitedListがrejectする"
+expect_no_throw = true
+expect_return = "null"
+
+# --- ForbiddenLimitedCache#needsUpdate(): boolean (private) ---
+
+[[condition]]
+id = "needs_update.no_cache_true"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "176-179"
+description = "cacheがnullの場合trueを返す"
+given = "new ForbiddenLimitedCache()直後"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.discovery_ttl_expired_true"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "181-186"
+description = "Date.now() - discoveredAt が7日TTLより大きい場合trueを返す（比較は > ）"
+given = "discoveredAtが8日前"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.latest_missing_true"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "188-192"
+description = "latestEffectiveDateがnull、またはlists[latestEffectiveDate]が存在しない場合trueを返す"
+given = "latestEffectiveDate=null または latestEffectiveDateのキーがlistsに無い"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.latest_cache_ttl_expired_true"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "193-195"
+description = "Date.now() - latest.fetchedAt が30日TTLより大きい場合trueを返す（比較は > ）"
+given = "latest.fetchedAtが31日前"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.next_effective_date_reached_true"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "197-202"
+description = "getNextEffectiveDate(new Date(latest.effectiveDate))の日時が現在時刻以下の場合trueを返す"
+given = "nextDate='2026-04-01'、Date.now()が2026-04-01T00:00:00Z以降"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.all_fresh_false"
+target_function = "ForbiddenLimitedCache#needsUpdate"
+source_lines = "181-204"
+description = "discovery TTL内、latestリストあり、latest fetchedAtが30日TTL内、次回適用日が未来の場合falseを返す"
+given = "discoveredAt/fetchedAtが現在時刻、getNextEffectiveDateが未来日を返す"
+expect_return = "false"
+
+# --- ForbiddenLimitedCache#checkAndUpdate(): Promise<void> ---
+
+[[condition]]
+id = "check_update.in_flight_reuses_update_promise"
+target_function = "ForbiddenLimitedCache#checkAndUpdate"
+source_lines = "215-218"
+description = "updatePromiseが存在する場合、新たな更新判定・fetchを行わず既存の内部updatePromiseを返す。ただしcheckAndUpdate自体がasync関数のため、呼び出し側が受け取るPromise object identityは同一にならない（Node.jsで実測確認済み）"
+given = "forceUpdateが未解決Promiseを返している間にcheckAndUpdateを2回呼ぶ"
+expect_return_shape = "2回目も同じ内部更新処理の完了を待つPromise"
+expect_side_effect = "forceUpdate呼び出しは1回"
+
+[[condition]]
+id = "check_update.needs_update_false_returns_without_fetch"
+target_function = "ForbiddenLimitedCache#checkAndUpdate"
+source_lines = "219-220"
+description = "needsUpdate()がfalseの場合、forceUpdateを呼ばずreturnする"
+given = "有効なcacheがありneedsUpdate=false"
+expect_return = "undefined"
+expect_side_effect = "fetchForbiddenLimitedListは呼ばれない"
+
+[[condition]]
+id = "check_update.force_update_error_swallowed_and_promise_reset"
+target_function = "ForbiddenLimitedCache#checkAndUpdate"
+source_lines = "223-230"
+description = "forceUpdateがrejectした場合、エラーログ後に例外を投げず、finallyでupdatePromiseをnullに戻す"
+given = "forceUpdateがrejectする"
+expect_no_throw = true
+expect_side_effect = "次回checkAndUpdateで再びforceUpdateを開始できる"
+
+# --- ForbiddenLimitedCache#forceUpdate(): Promise<void> ---
+
+[[condition]]
+id = "force_update.fetches_latest_and_persists"
+target_function = "ForbiddenLimitedCache#forceUpdate"
+source_lines = "238-245,258-265"
+description = "fetchForbiddenLimitedList()で最新版を取得し、lists[latest.effectiveDate]へ保存し、latestEffectiveDateを更新してpersistする"
+given = "fetchForbiddenLimitedList()がeffectiveDate='2026-01-01'のリストを返す"
+expect_side_effect = "cache.latestEffectiveDate='2026-01-01'かつsafeStorageSetに保存される"
+
+[[condition]]
+id = "force_update.discovery_ttl_expired_fetches_available_dates"
+target_function = "ForbiddenLimitedCache#forceUpdate"
+source_lines = "247-252"
+description = "Date.now() - discoveredAt が7日TTLより大きい場合、fetchAvailableEffectiveDates()を呼び、その結果とnowをavailableDates/discoveredAtに設定する"
+given = "discoveredAtが8日前、fetchAvailableEffectiveDatesが['2026-01-01','2026-04-01']を返す"
+expect_side_effect = "cache.availableDatesが取得結果になり、discoveredAtがforceUpdate開始時のDate.now()になる"
+
+[[condition]]
+id = "force_update.discovery_ttl_fresh_skips_available_dates"
+target_function = "ForbiddenLimitedCache#forceUpdate"
+source_lines = "247-256"
+description = "Date.now() - discoveredAt が7日TTL以下の場合、fetchAvailableEffectiveDates()を呼ばず既存availableDates/discoveredAtを保持する"
+given = "discoveredAtが現在時刻、availableDates=['2026-01-01']"
+expect_side_effect = "fetchAvailableEffectiveDatesは呼ばれずavailableDates/discoveredAtは既存値"
+
+[[condition]]
+id = "force_update.available_dates_fetch_error_keeps_existing"
+target_function = "ForbiddenLimitedCache#forceUpdate"
+source_lines = "249-255"
+description = "実在一覧fetchがrejectした場合、警告ログ後に既存availableDates/discoveredAtを保持して処理を継続する"
+given = "fetchAvailableEffectiveDatesがrejectする"
+expect_no_throw = true
+expect_side_effect = "latestリストは保存され、availableDates/discoveredAtは既存値"
+
+[[condition]]
+id = "force_update.latest_fetch_error_rejects"
+target_function = "ForbiddenLimitedCache#forceUpdate"
+source_lines = "242-243"
+description = "最新版fetchForbiddenLimitedList()がrejectした場合、forceUpdate内ではcatchせずrejectする"
+given = "fetchForbiddenLimitedList()がrejectする"
+expect_throw_contains = "fetchForbiddenLimitedListのreject理由"
+
+# --- ForbiddenLimitedCache#persist(): Promise<void> (private) ---
+
+[[condition]]
+id = "persist.saves_storage_key_with_current_cache"
+target_function = "ForbiddenLimitedCache#persist"
+source_lines = "268-270"
+description = "safeStorageSetに { forbiddenLimitedList: this.cache } を渡してawaitする"
+given = "cacheに任意のForbiddenLimitedCacheDataが入っている"
+expect_side_effect = "safeStorageSet({ forbiddenLimitedList: cacheData }) が呼ばれる"
+
+# --- ForbiddenLimitedCache#clear(): Promise<void> ---
+
+[[condition]]
+id = "clear.sets_cache_null_and_persists_null"
+target_function = "ForbiddenLimitedCache#clear"
+source_lines = "275-278"
+description = "cacheをnullにし、storageキーへnullを保存する"
+given = "cacheにデータが入っている"
+expect_side_effect = "getCurrentEffectiveDate()がundefinedになり、safeStorageSet({ forbiddenLimitedList: null })が呼ばれる"
+
+# --- forbiddenLimitedCache ---
+
+[[condition]]
+id = "singleton.instance_created"
+target_function = "forbiddenLimitedCache"
+source_lines = "281-284"
+description = "モジュール評価時にForbiddenLimitedCacheのグローバルインスタンスを1つ生成してexportする"
+given = "モジュールをimportする"
+expect_return_shape = "forbiddenLimitedCache instanceof ForbiddenLimitedCache"

@@ -30,6 +30,7 @@ describe('useCardLinks', () => {
   const { parseCardLinks } = useCardLinks();
 
   describe('parseCardLinks', () => {
+    // [covers:parse.no_match_fallback_returns_whole_text]
     it('テキストのみの場合、text typeのパートを返す', () => {
       const result = parseCardLinks('通常のテキスト');
 
@@ -37,6 +38,7 @@ describe('useCardLinks', () => {
       expect(result[0]).toEqual({ type: 'text', text: '通常のテキスト' });
     });
 
+    // [covers:parse.falsy_text_returns_empty_text_part]
     it('undefinedの場合、空のtext typeを返す', () => {
       const result = parseCardLinks(undefined);
 
@@ -44,6 +46,8 @@ describe('useCardLinks', () => {
       expect(result[0]).toEqual({ type: 'text', text: '' });
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('カードリンク形式をパースできる', () => {
       const result = parseCardLinks('{{ブラック・マジシャン|4335}}');
 
@@ -55,6 +59,8 @@ describe('useCardLinks', () => {
       });
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('カードリンクとテキストの混在をパースできる', () => {
       const result = parseCardLinks('「{{ブラック・マジシャン|4335}}」を召喚');
 
@@ -68,6 +74,8 @@ describe('useCardLinks', () => {
       expect(result[2]).toEqual({ type: 'text', text: '」を召喚' });
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('複数のカードリンクをパースできる', () => {
       const result = parseCardLinks(
         '{{青眼の白龍|4007}}と{{ブラック・マジシャン|4335}}は強力'
@@ -88,6 +96,8 @@ describe('useCardLinks', () => {
       expect(result[3]).toEqual({ type: 'text', text: 'は強力' });
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('連続するカードリンクをパースできる', () => {
       const result = parseCardLinks('{{青眼の白龍|4007}}{{ブラック・マジシャン|4335}}');
 
@@ -104,6 +114,7 @@ describe('useCardLinks', () => {
       });
     });
 
+    // [covers:parse.no_match_fallback_returns_whole_text]
     it('カードリンク形式が含まれていない場合、通常のテキストとして扱う', () => {
       const result = parseCardLinks('{{不完全なリンク}}');
 
@@ -111,6 +122,7 @@ describe('useCardLinks', () => {
       expect(result[0]).toEqual({ type: 'text', text: '{{不完全なリンク}}' });
     });
 
+    // [covers:parse.falsy_text_returns_empty_text_part]
     it('空文字列の場合、空のtext typeを返す', () => {
       const result = parseCardLinks('');
 
@@ -118,6 +130,8 @@ describe('useCardLinks', () => {
       expect(result[0]).toEqual({ type: 'text', text: '' });
     });
 
+    // [covers:parse.regex_requires_numeric_cid]
+    // [covers:parse.no_match_fallback_returns_whole_text]
     it('カードIDが数字のみの場合のみリンクとして認識される', () => {
       const result = parseCardLinks('{{カード名|abc123}}');
 
@@ -125,6 +139,8 @@ describe('useCardLinks', () => {
       expect(result[0]?.type).toBe('text');
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('前後にスペースがあるカード名も正しくパースできる', () => {
       const result = parseCardLinks('先頭テキスト {{カード名|1234}} 末尾テキスト');
 
@@ -138,6 +154,8 @@ describe('useCardLinks', () => {
       expect(result[2]).toEqual({ type: 'text', text: ' 末尾テキスト' });
     });
 
+    // [covers:parse.leading_or_interstitial_text_pushed_only_when_present]
+    // [covers:parse.trailing_text_pushed_only_when_present]
     it('改行を含むテキストも正しくパースできる', () => {
       const result = parseCardLinks('1行目\n{{カード名|1234}}\n2行目');
 
@@ -157,6 +175,8 @@ describe('useCardLinks', () => {
       vi.clearAllMocks();
     });
 
+    // [covers:handle.delegates_to_showCardDetail_with_faq_and_loading]
+    // 注: 以下3テスト（partial error / 取得失敗 / 例外）は useCardDetailDisplay#showCardDetail の責務
     it('handleCardLinkClickが正しく呼び出される', async () => {
       const { handleCardLinkClick } = useCardLinks();
       const { getCardDetailWithCache } = await import('@/api/card-search');

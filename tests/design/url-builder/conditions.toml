@@ -1,0 +1,311 @@
+# 検証対象: src/utils/url-builder.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。
+#
+# デッドコード・到達不能分岐: なし。
+# 実装コメントとの不一致:
+# - buildApiUrl のJSDoc L53 は「デッキ新規作成（member_deck.action?ope=2）: 付与しない」と
+#   記載しているが、実装の getApiPathType L38 で request_locale なしになるのは `ope=6`。
+
+[meta]
+feature = "url-builder"
+source_file = "src/utils/url-builder.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/url-builder.test.ts"
+source_hash = "ea3b5659a762dae8cf583b9c6fd64489f7494289"
+note = "verified=falseは0件"
+
+# --- getApiPathType(path: string): ApiPathType ---
+
+[[condition]]
+id = "api_path.card_search"
+target_function = "getApiPathType"
+source_lines = "33"
+description = "pathに'card_search'を含む場合、APIパスタイプはcard_searchになる"
+given = "path = 'card_search.action'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与する通常APIとして扱う"
+
+[[condition]]
+id = "api_path.faq_search"
+target_function = "getApiPathType"
+source_lines = "34"
+description = "pathに'faq_search'を含む場合、APIパスタイプはfaq_searchになる"
+given = "path = 'faq_search.action'"
+expect_return_shape = "buildApiUrlがrequest_locale=jaを付与するFAQ APIとして扱う"
+
+[[condition]]
+id = "api_path.get_image"
+target_function = "getApiPathType"
+source_lines = "35"
+description = "pathに'get_image'を含む場合、APIパスタイプはget_imageになる"
+given = "path = 'get_image.action?id=1'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与する通常APIとして扱う"
+
+[[condition]]
+id = "api_path.member_deck_ope6"
+target_function = "getApiPathType"
+source_lines = "36-39"
+description = "pathに'member_deck'と'ope=6'を含む場合、APIパスタイプはmember_deck_newになる"
+given = "path = 'member_deck.action?ope=6&wname=MemberDeck'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与しないmember_deck_newとして扱う"
+
+[[condition]]
+id = "api_path.member_deck_ope4"
+target_function = "getApiPathType"
+source_lines = "36-40"
+description = "pathに'member_deck'と'ope=4'を含む場合、APIパスタイプはdeck_searchになる"
+given = "path = 'member_deck.action?ope=4&cgid=test'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与しないdeck_searchとして扱う"
+
+[[condition]]
+id = "api_path.member_deck_other"
+target_function = "getApiPathType"
+source_lines = "36-42"
+description = "pathに'member_deck'を含み、'ope=6'も'ope=4'も含まない場合、APIパスタイプはmember_deck_otherになる"
+given = "path = 'member_deck.action?ope=1&dno=123'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与する通常APIとして扱う"
+
+[[condition]]
+id = "api_path.forbidden_limited"
+target_function = "getApiPathType"
+source_lines = "44"
+description = "pathに'forbidden_limited'を含む場合、APIパスタイプはforbidden_limitedになる"
+given = "path = 'forbidden_limited.action'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与する通常APIとして扱う"
+
+[[condition]]
+id = "api_path.deck_search"
+target_function = "getApiPathType"
+source_lines = "45"
+description = "pathに'deck_search'を含む場合、APIパスタイプはdeck_searchになる"
+given = "path = 'deck_search.action'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与しないdeck_searchとして扱う"
+
+[[condition]]
+id = "api_path.other"
+target_function = "getApiPathType"
+source_lines = "46"
+description = "既知の部分文字列をどれも含まないpathの場合、APIパスタイプはotherになる"
+given = "path = 'custom.action'"
+expect_return_shape = "buildApiUrlがrequest_localeを付与する通常APIとして扱う"
+
+# --- buildApiUrl(path: string, gameType: CardGameType, params?: URLSearchParams, noLocale?: boolean): string ---
+
+[[condition]]
+id = "build_api.params_merge_overwrites"
+target_function = "buildApiUrl"
+source_lines = "77-84"
+description = "paramsが渡された場合、path由来の既存クエリへURLSearchParams.entries()をsetでマージし、同名キーはparams側の値で上書きされる"
+given = "path = 'member_deck.action?ope=1&dno=old', params = new URLSearchParams({ dno: '123', cgid: 'test-cgid' })"
+expect_return_shape = "URLのdnoは'123'、cgidは'test-cgid'になる"
+
+[[condition]]
+id = "build_api.no_locale_flag_deletes_locale"
+target_function = "buildApiUrl"
+source_lines = "72-89"
+description = "noLocaleがtrueの場合、APIパスタイプに関係なくrequest_localeを付与せず、pathまたはparamsに既存のrequest_localeがあれば削除して返す"
+given = "path = 'card_search.action?request_locale=en', noLocale = true"
+expect_return_shape = "URLにrequest_localeが存在しない"
+
+[[condition]]
+id = "build_api.member_deck_new_deletes_locale"
+target_function = "buildApiUrl"
+source_lines = "72-89"
+description = "APIパスタイプがmember_deck_newの場合、request_localeを付与せず、既存のrequest_localeがあれば削除して返す"
+given = "path = 'member_deck.action?ope=6&request_locale=en'"
+expect_return_shape = "URLにrequest_localeが存在しない"
+
+[[condition]]
+id = "build_api.deck_search_deletes_locale"
+target_function = "buildApiUrl"
+source_lines = "72-89"
+description = "APIパスタイプがdeck_searchの場合、request_localeを付与せず、既存のrequest_localeがあれば削除して返す"
+given = "path = 'deck_search.action?request_locale=en'"
+expect_return_shape = "URLにrequest_localeが存在しない"
+
+[[condition]]
+id = "build_api.existing_locale_retained"
+target_function = "buildApiUrl"
+source_lines = "92-95"
+description = "request_locale付与対象APIでURLにrequest_localeが既に存在する場合、detectLanguageは呼ばれず既存値のまま返す"
+given = "path = 'card_search.action?request_locale=en'"
+expect_return_shape = "URLのrequest_localeは'en'のまま"
+
+[[condition]]
+id = "build_api.faq_forces_ja"
+target_function = "buildApiUrl"
+source_lines = "98-100"
+description = "APIパスタイプがfaq_searchでrequest_localeが未設定の場合、detectLanguageは使わずrequest_locale=jaを付与する"
+given = "path = 'faq_search.action'"
+expect_return_shape = "URLのrequest_localeは'ja'"
+
+[[condition]]
+id = "build_api.other_uses_detected_language"
+target_function = "buildApiUrl"
+source_lines = "101-104"
+description = "FAQ以外のrequest_locale付与対象APIでrequest_localeが未設定の場合、detectLanguage(document)の戻り値をrequest_localeに設定する"
+given = "detectLanguage(document) = 'en', path = 'custom.action'"
+expect_return_shape = "URLのrequest_localeは'en'"
+
+# --- buildFullUrl(relativePath: string): string ---
+
+[[condition]]
+id = "build_full.absolute_http_returned"
+target_function = "buildFullUrl"
+source_lines = "116-119"
+description = "relativePathが'http'で始まる場合、その文字列をそのまま返す"
+given = "relativePath = 'https://example.test/image.png'"
+expect_return = "https://example.test/image.png"
+
+[[condition]]
+id = "build_full.relative_prefixed"
+target_function = "buildFullUrl"
+source_lines = "116-120"
+description = "relativePathが'http'で始まらない場合、BASE_URLを単純連結して返す（スラッシュ補正はしない）"
+given = "relativePath = 'card_search.action'"
+expect_return = "https://www.db.yugioh-card.comcard_search.action"
+
+# --- thin endpoint helpers ---
+
+[[condition]]
+id = "deck_api_endpoint.delegates_member_deck"
+target_function = "getDeckApiEndpoint"
+source_lines = "128-129"
+description = "getDeckApiEndpointは'member_deck.action'をbuildApiUrlへ渡した結果を返す"
+given = "gameType = 'ocg'"
+expect_return_shape = "URLパスは/yugiohdb/member_deck.actionで、request_localeは付与対象"
+
+[[condition]]
+id = "card_search_endpoint.delegates_card_search"
+target_function = "getCardSearchEndpoint"
+source_lines = "137-138"
+description = "getCardSearchEndpointは'card_search.action'をbuildApiUrlへ渡した結果を返す"
+given = "gameType = 'rush'"
+expect_return_shape = "URLパスは/rushdb/card_search.actionで、request_localeは付与対象"
+
+[[condition]]
+id = "faq_search_endpoint.delegates_faq_search"
+target_function = "getFaqSearchEndpoint"
+source_lines = "146-147"
+description = "getFaqSearchEndpointは'faq_search.action'をbuildApiUrlへ渡した結果を返す"
+given = "gameType = 'ocg'"
+expect_return_shape = "URLパスは/yugiohdb/faq_search.actionで、request_locale=ja"
+
+[[condition]]
+id = "deck_search_page.default_locale_removed"
+target_function = "getDeckSearchPageUrl"
+source_lines = "156-157"
+description = "locale省略時はデフォルト'ja'でpathを作るが、deck_search扱いのためbuildApiUrl内でrequest_localeは削除される"
+given = "getDeckSearchPageUrl('ocg')"
+expect_return_shape = "URLパスは/yugiohdb/deck_search.actionで、request_localeは存在しない"
+
+[[condition]]
+id = "deck_search_page.explicit_locale_removed"
+target_function = "getDeckSearchPageUrl"
+source_lines = "156-157"
+description = "localeを明示しても、deck_search扱いのためbuildApiUrl内でrequest_localeは削除される"
+given = "getDeckSearchPageUrl('ocg', 'en')"
+expect_return_shape = "URLパスは/yugiohdb/deck_search.actionで、request_localeは存在しない"
+
+[[condition]]
+id = "card_search_form.delegates_card_search_ope1"
+target_function = "getCardSearchFormUrl"
+source_lines = "165-166"
+description = "getCardSearchFormUrlは'card_search.action?ope=1'をbuildApiUrlへ渡した結果を返す"
+given = "gameType = 'ocg'"
+expect_return_shape = "URLのopeは'1'で、request_localeは付与対象"
+
+[[condition]]
+id = "image_parts_base.uses_game_path"
+target_function = "getImagePartsBaseUrl"
+source_lines = "174-176"
+description = "getImagePartsBaseUrlはgameTypeからgamePathを取得し、BASE_URL/{gamePath}/external/image/partsを返す"
+given = "gameType = 'rush'"
+expect_return = "https://www.db.yugioh-card.com/rushdb/external/image/parts"
+
+# --- getVueEditUrl(gameType: CardGameType, dno?: number, locale?: string, additionalParams?: URLSearchParams): string ---
+
+[[condition]]
+id = "vue_edit.no_params"
+target_function = "getVueEditUrl"
+source_lines = "196-232"
+description = "locale・dno・additionalParamsが全てfalsy/未指定の場合、ハッシュ前後にクエリを付けずbase + '#/ytomo/edit'を返す"
+given = "getVueEditUrl('ocg')"
+expect_return = "https://www.db.yugioh-card.com/yugiohdb#/ytomo/edit"
+
+[[condition]]
+id = "vue_edit.locale_pre_hash"
+target_function = "getVueEditUrl"
+source_lines = "200-204,223-224"
+description = "localeがtruthyの場合、ハッシュ前クエリとしてrequest_localeをappendする"
+given = "getVueEditUrl('ocg', undefined, 'ja')"
+expect_return_shape = "ハッシュ前に?request_locale=jaが付く"
+
+[[condition]]
+id = "vue_edit.dno_post_hash"
+target_function = "getVueEditUrl"
+source_lines = "206-210,227-229"
+description = "dnoがtruthyの場合、ハッシュ後クエリとしてdnoをappendする"
+given = "getVueEditUrl('ocg', 1)"
+expect_return_shape = "ハッシュ後に?dno=1が付く"
+
+[[condition]]
+id = "vue_edit.zero_dno_omitted"
+target_function = "getVueEditUrl"
+source_lines = "206-210"
+description = "dnoが0の場合はfalsyとして扱われ、dnoクエリは追加されない"
+given = "getVueEditUrl('ocg', 0)"
+expect_return_shape = "URLにdnoが存在しない"
+
+[[condition]]
+id = "vue_edit.additional_params_appended"
+target_function = "getVueEditUrl"
+source_lines = "212-217,227-229"
+description = "additionalParamsが渡された場合、entries()をappendでハッシュ後クエリへ追加する"
+given = "additionalParams = new URLSearchParams({ 'copy-from-cgid': 'abc', 'copy-from-dno': '2' })"
+expect_return_shape = "ハッシュ後クエリにcopy-from-cgid=abcとcopy-from-dno=2が存在する"
+
+# --- remaining endpoint helpers ---
+
+[[condition]]
+id = "deck_display.delegates_member_deck_ope1"
+target_function = "getDeckDisplayUrl"
+source_lines = "242-247"
+description = "getDeckDisplayUrlはcgidとdnoを埋め込んだ'member_deck.action?ope=1&cgid=...&dno=...'をbuildApiUrlへ渡した結果を返す"
+given = "getDeckDisplayUrl('cgid-1', 7, 'ocg')"
+expect_return_shape = "URLのopeは'1'、cgidは'cgid-1'、dnoは'7'で、request_localeは付与対象"
+
+[[condition]]
+id = "forbidden_limited.no_effective_date"
+target_function = "getForbiddenLimitedEndpoint"
+source_lines = "258-260"
+description = "effectiveDateがfalsy/未指定の場合、paramsはundefinedになりforbiddenLimitedDateは付与されない"
+given = "getForbiddenLimitedEndpoint('ocg')"
+expect_return_shape = "URLにforbiddenLimitedDateが存在しない"
+
+[[condition]]
+id = "forbidden_limited.with_effective_date"
+target_function = "getForbiddenLimitedEndpoint"
+source_lines = "258-260"
+description = "effectiveDateがtruthyの場合、forbiddenLimitedDateパラメータを持つURLSearchParamsをbuildApiUrlへ渡す"
+given = "getForbiddenLimitedEndpoint('ocg', '2026-04-01')"
+expect_return_shape = "URLのforbiddenLimitedDateは'2026-04-01'"
+
+[[condition]]
+id = "genesys_index.constant_url"
+target_function = "getGenesysIndexUrl"
+source_lines = "276-277"
+description = "getGenesysIndexUrlはGENESYS_BASE_URLをそのまま返す"
+given = "getGenesysIndexUrl()"
+expect_return = "https://www.yugioh-card.com/japan/howto/genesys/"
+
+[[condition]]
+id = "genesys_list.list_query"
+target_function = "getGenesysListUrl"
+source_lines = "289-290"
+description = "getGenesysListUrlはGENESYS_BASE_URLに'?list=${listParam}'を単純連結して返す"
+given = "getGenesysListUrl('202606')"
+expect_return = "https://www.yugioh-card.com/japan/howto/genesys/?list=202606"

@@ -2,10 +2,10 @@
 # 調査用Chromeブラウザの起動スクリプト
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-PROFILE_DIR="${PROJECT_ROOT}/.chrome_cache"
+PROFILE_DIR="${PROJECT_ROOT}/.cache/browser/chrome/profile"
 EXTENSION_DIR="${HOME}/user/Mine/_chex/src_ygo-next"
 DEBUG_PORT=9222
-WS_FILE="${PROJECT_ROOT}/.chrome_playwright_ws"
+WS_FILE="${PROJECT_ROOT}/.cache/browser/chrome/debug.ws"
 
 echo "=== Chromium Debug Browser Setup ==="
 echo ""

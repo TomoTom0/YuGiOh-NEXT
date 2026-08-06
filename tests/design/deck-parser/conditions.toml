@@ -1,0 +1,234 @@
+# 検証対象: src/content/parser/deck-parser.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、parser系ファイル。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/unit/parser/deck-parser.test.ts の parseCardRow 2件は、実装と異なる input 名
+#   (monster_cid / monster_number) を含む仮HTMLを作るだけで、parseCardRowを呼ばず
+#   assertionも無かった。実装の一次情報に合わせた実呼び出しテストへ置き換えた。
+
+[meta]
+feature = "deck-parser"
+source_file = "src/content/parser/deck-parser.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/parser/deck-parser.test.ts"
+source_hash = "c2c175096784abd646308329015e77e15c7b892c"
+note = "verified=falseは0件"
+
+# --- parseCardRow(row: HTMLElement): DeckCardRef | null ---
+
+[[condition]]
+id = "parse_card_row.card_type_missing"
+target_function = "parseCardRow"
+source_lines = "41-44"
+description = "detectCardType(row)がnullを返す場合、以降のフィールドを読まずnullを返す"
+given = ".box_card_attribute img が無い、またはsrcが認識対象のattribute_iconを含まないrow"
+expect_return = "null"
+
+[[condition]]
+id = "parse_card_row.card_id_missing"
+target_function = "parseCardRow"
+source_lines = "50-53"
+description = "検出したカードタイプに対応するinput[name=...CardId]が無い、またはvalueが空文字の場合nullを返す"
+given = "モンスター行だが input[name=\"monsterCardId\"] が無い、または value=\"\""
+expect_return = "null"
+
+[[condition]]
+id = "parse_card_row.name_missing_or_text_null"
+target_function = "parseCardRow"
+source_lines = "57-60"
+description = ".card_name要素が無い、またはtextContentがfalsyの場合nullを返す"
+given = "カードIDはあるが .card_name が無いrow"
+expect_return = "null"
+
+[[condition]]
+id = "parse_card_row.name_trimmed_even_if_empty"
+target_function = "parseCardRow"
+source_lines = "57-61,95-128"
+description = ".card_name.textContentが空白のみの場合でも分岐では弾かれず、trim後の空文字列がカード名としてキャッシュされる"
+given = ".card_name の textContent が '   '"
+expect_return_shape = "nullではなくDeckCardRefを返し、TempCacheDBにname=''のCardInfoが登録される"
+
+[[condition]]
+id = "parse_card_row.imgs_absent_defaults"
+target_function = "parseCardRow"
+source_lines = "64-77"
+description = "input[name=..._imgs]が無い、またはvalueが空文字の場合、ciid='1'、imgHash='${cardId}_1_1_1'のデフォルトを使う"
+given = "カードID・カード名・枚数は有効だが monster_imgs が無い"
+expect_return_shape = "DeckCardRef.ciidは'1'、TempCacheDB上のimgs[0].imgHashは'カードID_1_1_1'"
+
+[[condition]]
+id = "parse_card_row.imgs_valid_uses_second_part"
+target_function = "parseCardRow"
+source_lines = "71-76"
+description = "imgsValueを'_'でsplitした結果が2要素以上でparts[1]がtruthyの場合、ciid=parts[1]、imgHash=imgsValueに更新する"
+given = "spell_imgs value='67890_2_1_1'"
+expect_return_shape = "DeckCardRef.ciidは'2'、TempCacheDB上のimgs[0].imgHashは'67890_2_1_1'"
+
+[[condition]]
+id = "parse_card_row.imgs_malformed_keeps_defaults"
+target_function = "parseCardRow"
+source_lines = "71-77"
+description = "imgsValueがtruthyでもsplit結果が2要素未満、またはparts[1]が空文字の場合、ciid/imgHashはデフォルトのままになる"
+given = "trap_imgs value='11111_'"
+expect_return_shape = "DeckCardRef.ciidは'1'、TempCacheDB上のimgs[0].imgHashは'11111_1_1_1'"
+
+[[condition]]
+id = "parse_card_row.number_missing"
+target_function = "parseCardRow"
+source_lines = "80-83"
+description = "検出したカードタイプに対応するinput[name=..._card_number]が無い、またはvalueが空文字の場合nullを返す"
+given = "カードID・カード名は有効だが monster_card_number が無い"
+expect_return = "null"
+
+[[condition]]
+id = "parse_card_row.quantity_nan"
+target_function = "parseCardRow"
+source_lines = "84-87"
+description = "parseInt(numberInput.value, 10)の結果がNaNの場合nullを返す"
+given = "monster_card_number value='abc'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_card_row.quantity_parse_int_not_range_checked"
+target_function = "parseCardRow"
+source_lines = "84-87,135-140"
+description = "quantityはparseInt(value, 10)後にisNaNだけを確認するため、0や負数、数値始まり文字列は弾かれない"
+given = "monster_card_number value='0'、または value='3abc'"
+expect_return_shape = "前者はquantity=0、後者はquantity=3のDeckCardRefを返す"
+
+[[condition]]
+id = "parse_card_row.monster_cache_shape"
+target_function = "parseCardRow"
+source_lines = "93-108,131-133"
+description = "cardTypeが'monster'の場合、仮値(attribute='light'等)を含むMonsterCardをTempCacheDBに登録する"
+given = "attribute_icon_lightを含むモンスター行"
+expect_return_shape = "TempCacheDBのCardInfo.cardTypeは'monster'で、attribute='light'、levelType='level'、levelValue=0、race='dragon'、types=[]、isExtraDeck=false"
+
+[[condition]]
+id = "parse_card_row.spell_cache_shape"
+target_function = "parseCardRow"
+source_lines = "109-118,131-133"
+description = "cardTypeが'spell'の場合、SpellCard形状のCardInfoをTempCacheDBに登録する"
+given = "attribute_icon_spellを含む魔法行"
+expect_return_shape = "TempCacheDBのCardInfo.cardTypeは'spell'"
+
+[[condition]]
+id = "parse_card_row.trap_cache_shape"
+target_function = "parseCardRow"
+source_lines = "119-128,131-133"
+description = "cardTypeが'monster'でも'spell'でもない場合（実装上は'trap'）、TrapCard形状のCardInfoをTempCacheDBに登録する"
+given = "attribute_icon_trapを含む罠行"
+expect_return_shape = "TempCacheDBのCardInfo.cardTypeは'trap'"
+
+[[condition]]
+id = "parse_card_row.return_ref_and_global_language"
+target_function = "parseCardRow"
+source_lines = "99,115,125,135-140"
+description = "返却するDeckCardRefとキャッシュするCardInfoのlangは、row.ownerDocumentではなくグローバルdocumentをdetectLanguage(document)へ渡した結果になる"
+given = "グローバルdocumentのhtml lang='en'、row.ownerDocumentのhtml lang='ja'"
+expect_return_shape = "DeckCardRef.langとTempCacheDBのCardInfo.langはいずれも'en'"
+
+# --- parseDeckPage(doc: Document): DeckInfo ---
+
+[[condition]]
+id = "parse_deck_page.dno_present_parse_int"
+target_function = "parseDeckPage"
+source_lines = "155-156"
+description = "input[name=dno]のvalueがtruthyの場合、parseInt(value, 10)の結果をdnoにする"
+given = "input[name=\"dno\"] value='123'"
+expect_return_shape = "dno=123"
+
+[[condition]]
+id = "parse_deck_page.dno_absent_or_empty_zero"
+target_function = "parseDeckPage"
+source_lines = "155-156"
+description = "input[name=dno]が無い、またはvalueが空文字の場合、dno=0にする"
+given = "dno inputが無い、または value=''"
+expect_return_shape = "dno=0"
+
+[[condition]]
+id = "parse_deck_page.dno_non_numeric_nan"
+target_function = "parseDeckPage"
+source_lines = "155-156"
+description = "input[name=dno]のvalueがtruthyでも数値として解釈できない場合、parseIntの結果NaNがそのままdnoになる"
+given = "input[name=\"dno\"] value='abc'"
+expect_return_shape = "Number.isNaN(result.dno) === true"
+
+[[condition]]
+id = "parse_deck_page.name_value_or_empty"
+target_function = "parseDeckPage"
+source_lines = "159-160"
+description = "input[name=deck_name]があればvalueをnameにし、無ければ空文字列にする"
+given = "deck_name value='テストデッキ'、またはdeck_name input無し"
+expect_return_shape = "前者はname='テストデッキ'、後者はname=''"
+
+[[condition]]
+id = "parse_deck_page.main_deck_absent_empty"
+target_function = "parseDeckPage"
+source_lines = "163-173"
+description = "#main-deckが存在しない場合、mainDeckは空配列のまま返る"
+given = "doc に #main-deck が存在しない"
+expect_return_shape = "mainDeck=[]"
+
+[[condition]]
+id = "parse_deck_page.extra_deck_absent_empty"
+target_function = "parseDeckPage"
+source_lines = "176-186"
+description = "#extra-deckが存在しない場合、extraDeckは空配列のまま返る"
+given = "doc に #extra-deck が存在しない"
+expect_return_shape = "extraDeck=[]"
+
+[[condition]]
+id = "parse_deck_page.side_deck_absent_empty"
+target_function = "parseDeckPage"
+source_lines = "189-199"
+description = "#side-deckが存在しない場合、sideDeckは空配列のまま返る"
+given = "doc に #side-deck が存在しない"
+expect_return_shape = "sideDeck=[]"
+
+[[condition]]
+id = "parse_deck_page.deck_sections_push_only_parsed_cards"
+target_function = "parseDeckPage"
+source_lines = "165-199"
+description = "#main-deck/#extra-deck/#side-deck配下の.card-rowをparseCardRowし、nullでない結果だけを各配列にpushする"
+given = "各デッキに有効な.card-rowと無効な.card-rowが混在する"
+expect_return_shape = "各Deck配列にはparseCardRowがDeckCardRefを返した行だけが含まれる"
+
+[[condition]]
+id = "parse_deck_page.is_public_checked_or_false"
+target_function = "parseDeckPage"
+source_lines = "202-203"
+description = "input[name=is_public]があればcheckedをisPublicにし、無ければfalseにする"
+given = "checkedなcheckbox、uncheckedなcheckbox、checkbox無し"
+expect_return_shape = "順にisPublic=true、false、false"
+
+[[condition]]
+id = "parse_deck_page.deck_type_value_or_undefined"
+target_function = "parseDeckPage"
+source_lines = "206-207"
+description = "select[name=deck_type]があればvalueをdeckTypeにし、無ければundefinedにする"
+given = "deck_type value='1'、またはselect無し"
+expect_return_shape = "前者はdeckType='1'、後者はdeckType=undefined"
+
+[[condition]]
+id = "parse_deck_page.comment_value_or_empty"
+target_function = "parseDeckPage"
+source_lines = "210-211"
+description = "textarea[name=comment]があればvalueをcommentにし、無ければ空文字列にする"
+given = "comment textareaの本文が'テストコメント'、またはtextarea無し"
+expect_return_shape = "前者はcomment='テストコメント'、後者はcomment=''"
+
+[[condition]]
+id = "parse_deck_page.unimplemented_metadata_empty"
+target_function = "parseDeckPage"
+source_lines = "213-229"
+description = "category/tags/deckCodeはDOM内容に関係なく常に空配列・空文字列で返る"
+given = "任意のdoc"
+expect_return_shape = "category=[]、tags=[]、deckCode=''"

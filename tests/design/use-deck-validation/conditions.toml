@@ -1,0 +1,169 @@
+# 検証対象: src/composables/deck/useDeckValidation.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキ間のカード移動バリデーション（セクション間移動可否判定）
+# の純粋関数。
+#
+# 構成:
+# - exported: canMoveCard(fromSection, toSection, card) のみ（composable factory パターン
+#   ではなく純粋関数）。target_function はそのまま canMoveCard で記載。
+# - non-exported ヘルパー: isExtraDeckCard(card) は意味のある分岐を持つため手動で条件化
+#   （AST抽出スクリプトは export 関数のみ走査するため non-exported は検出対象外）。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。canMoveCard の全11の return 文は公開APIから到達可能。isExtraDeckCard の
+#   分岐も同様。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - L33 `fromSection === 'search' && toSection === 'trash'` の早期returnは機能的に冗長。
+#   L33 が無くても search→trash は L38 の内側の L51 `return false` で捕捉される
+#   （to=main/extra/side 以外は L51 でfalse）。L33 は意図的な明示（search→trash を
+#   特別扱いする意図）と読めるが、最終的な挙動の差は無い。
+# - L51 `return false` は search→(main/extra/side/trash 以外) で到達する。UI上は
+#   search から main/extra/side/trash 以外のセクションへの遷移は無いが、純粋関数は
+#   任意の文字列を受け取るため到達可能（例: search→search, search→'unknown'）。
+# - L83 `return true` は (非search, 非trash)→(main/extra/side 以外) で到達する。
+#   main→main, extra→extra 等の同一セクション内移動や未定義セクションへの遷移。
+#   UI上は発生しないが、純粋関数としては到達可能。
+# - isExtraDeckCard の `card.types?.some(...) || false` は types が undefined の場合の
+#   フォールバック。CardInfo 型では types は optional (types?: string[])。types が
+#   undefined の場合は false 扱い（extra デッキではない）。
+# - isExtraDeckCard は cardType === 'monster' が前提のため、spell/trap は常に false
+#   （extra デッキではない）。types 配列の内容に関わらない。
+# - main/extra/side 間のカードタイプ判定ロジック（L65-80）は search→main/extra の
+#   ロジック（L40-46）と同じ isExtraDeckCard ベースだが、別々に記述されている
+#   （L33-51 の search ブロックと L55-83 の汎用ブロックで分岐構造が重複）。
+
+[meta]
+feature = "use-deck-validation"
+source_file = "src/composables/deck/useDeckValidation.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckValidation.test.ts"
+source_hash = "56c7bb3895f326af8d89ff04f790e3db106efffa"
+note = "verified=falseは0件。canMoveCard は純粋関数（composable factory パターンではない）。isExtraDeckCard は non-exported ヘルパーだが意味のある分岐のため手動で条件化（AST抽出スクリプトは non-exported を検出対象外）。"
+
+# --- isExtraDeckCard(card) [non-exported helper] ---
+
+[[condition]]
+id = "isextradeckcard.true_for_monster_with_extra_type"
+target_function = "isExtraDeckCard"
+source_lines = "18-20"
+description = "cardTypeが'monster' かつ types 配列に fusion/synchro/xyz/link のいずれかを含む場合はextraデッキカードとしてtrueを返す"
+given = "card.cardType === 'monster' かつ card.types に 'fusion'（または 'synchro'/'xyz'/'link'）を含む"
+expect_return = "true"
+
+[[condition]]
+id = "isextradeckcard.false_for_non_monster"
+target_function = "isExtraDeckCard"
+source_lines = "18"
+description = "cardTypeが'spell'または'trap'の場合は `cardType === 'monster'` の短絡評価でfalseになる。types 配列の内容に関わらずfalse"
+given = "card.cardType === 'spell' または 'trap'"
+expect_return = "false"
+
+[[condition]]
+id = "isextradeckcard.false_when_types_undefined"
+target_function = "isExtraDeckCard"
+source_lines = "18-20"
+description = "types が undefined の場合は `types?.some(...) || false` のフォールバック（|| false）により false を返す。CardInfo 型では types は optional"
+given = "card.cardType === 'monster' かつ card.types が undefined（プロパティ無し）"
+expect_return = "false"
+
+[[condition]]
+id = "isextradeckcard.false_for_monster_without_extra_type"
+target_function = "isExtraDeckCard"
+source_lines = "18-20"
+description = "cardTypeが'monster'でも、types に fusion/synchro/xyz/link のいずれも含まれない場合は false を返す（通常モンスター等）"
+given = "card.cardType === 'monster' かつ card.types に extra 系タイプを含まない（例: types=['normal']、types=[]）"
+expect_return = "false"
+
+# --- canMoveCard(fromSection, toSection, card) ---
+
+[[condition]]
+id = "canmovecard.search_to_trash_returns_false"
+target_function = "canMoveCard"
+source_lines = "33-35"
+description = "fromSection='search' かつ toSection='trash' の組み合わせは明示的に早期return false で禁止。L55 の to=trash チェックより優先して評価される（機能的には L55 でも同等だが、明示的な意図表示）"
+given = "fromSection === 'search' かつ toSection === 'trash'"
+expect_return = "false"
+
+[[condition]]
+id = "canmovecard.search_to_main_rejects_extra_deck_card"
+target_function = "canMoveCard"
+source_lines = "40-42"
+description = "search→main の移動はextraデッキカード（融合・シンクロ・エクシーズ・リンク）を拒否し、それ以外（通常モンスター・魔法・罠）を許可する"
+given = "fromSection === 'search' かつ toSection === 'main'"
+expect_return = "extraデッキカードならfalse、それ以外はtrue"
+
+[[condition]]
+id = "canmovecard.search_to_extra_only_allows_extra_deck_card"
+target_function = "canMoveCard"
+source_lines = "44-46"
+description = "search→extra の移動はextraデッキカード（融合・シンクロ・エクシーズ・リンク）のみ許可し、それ以外を拒否する"
+given = "fromSection === 'search' かつ toSection === 'extra'"
+expect_return = "extraデッキカードならtrue、それ以外はfalse"
+
+[[condition]]
+id = "canmovecard.search_to_side_always_allowed"
+target_function = "canMoveCard"
+source_lines = "48-50"
+description = "search→side の移動はカードタイプに関わらず常に許可する"
+given = "fromSection === 'search' かつ toSection === 'side'"
+expect_return = "true"
+
+[[condition]]
+id = "canmovecard.search_to_unhandled_section_returns_false"
+target_function = "canMoveCard"
+source_lines = "51"
+description = "search から main/extra/side/trash 以外のセクション（search自身や未定義セクション）への遷移は、search ブロック内の末尾 return false に到達する。UI上は発生しないが純粋関数としては到達可能"
+given = "fromSection === 'search' かつ toSection が 'main'/'extra'/'side'/'trash' のいずれでもない（例: 'search', 'unknown'）"
+expect_return = "false"
+
+[[condition]]
+id = "canmovecard.non_search_to_trash_returns_false"
+target_function = "canMoveCard"
+source_lines = "55-57"
+description = "search 以外のセクションから trash への移動は全て禁止（fromSection に関わらず false）。L33 の search→trash はここへ到達する前に捕捉済み"
+given = "fromSection !== 'search' かつ toSection === 'trash'（例: main→trash, extra→trash, side→trash）"
+expect_return = "false"
+
+[[condition]]
+id = "canmovecard.trash_to_non_trash_always_allowed"
+target_function = "canMoveCard"
+source_lines = "60-62"
+description = "trash から (trash 以外) への移動はカードタイプ・宛先に関わらず全て許可する（ごみ箱からの復元相当）"
+given = "fromSection === 'trash' かつ toSection !== 'trash'（例: trash→main, trash→extra, trash→side）"
+expect_return = "true"
+
+[[condition]]
+id = "canmovecard.between_normal_sections_to_main_rejects_extra_deck_card"
+target_function = "canMoveCard"
+source_lines = "65-70"
+description = "main/extra/side 間（非search, 非trash）から main への移動はextraデッキカードを拒否し、それ以外を許可する（search→main と同様の isExtraDeckCard ベースの判定）"
+given = "fromSection が 'main'/'extra'/'side' のいずれかかつ toSection === 'main'"
+expect_return = "extraデッキカードならfalse、それ以外はtrue"
+
+[[condition]]
+id = "canmovecard.between_normal_sections_to_extra_only_allows_extra_deck_card"
+target_function = "canMoveCard"
+source_lines = "65-66, 73-75"
+description = "main/extra/side 間（非search, 非trash）から extra への移動はextraデッキカードのみ許可し、それ以外を拒否する"
+given = "fromSection が 'main'/'extra'/'side' のいずれかかつ toSection === 'extra'"
+expect_return = "extraデッキカードならtrue、それ以外はfalse"
+
+[[condition]]
+id = "canmovecard.between_normal_sections_to_side_always_allowed"
+target_function = "canMoveCard"
+source_lines = "78-80"
+description = "main/extra/side 間（非search, 非trash）から side への移動はカードタイプに関わらず常に許可する"
+given = "fromSection が 'main'/'extra'/'side' のいずれかかつ toSection === 'side'"
+expect_return = "true"
+
+[[condition]]
+id = "canmovecard.between_normal_sections_to_unhandled_returns_true"
+target_function = "canMoveCard"
+source_lines = "83"
+description = "main/extra/side 間（非search, 非trash）から main/extra/side 以外への遷移（同一セクション内移動や未定義セクション）は末尾の return true に到達する。UI上は発生しないが純粋関数としては到達可能"
+given = "fromSection が 'main'/'extra'/'side' のいずれかかつ toSection が 'main'/'extra'/'side' のいずれでもない（例: from===to で同一セクション、'unknown'）"
+expect_return = "true"

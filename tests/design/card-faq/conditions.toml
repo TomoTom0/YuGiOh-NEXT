@@ -1,0 +1,234 @@
+# 検証対象: src/api/card-faq.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、API系ファイル。
+# export関数だけでなく、意味のある分岐を持つ非export関数（convertCardLinksToTemplate）も対象とする。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+
+[meta]
+feature = "card-faq"
+source_file = "src/api/card-faq.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/api/card-faq.test.ts"
+source_hash = "6f0f367d8e2a41f4adecb55e564ab81aa7f5eca0"
+note = "verified=falseは0件"
+
+# --- getCardFAQList(cardId: string): Promise<CardFAQList | null> ---
+
+[[condition]]
+id = "faq_list.request_params"
+target_function = "getCardFAQList"
+source_lines = "22-32"
+description = "detectCardGameTypeの戻り値とURLSearchParams({ ope: '4', cid: cardId })でURLを組み立て、queuedFetchをGET/credentials:'include'で呼ぶ"
+given = "cardId = '12345'"
+expect_side_effect = "queuedFetchのURLにope=4とcid=12345が含まれ、optionsは{ method: 'GET', credentials: 'include' }"
+
+[[condition]]
+id = "faq_list.response_not_ok"
+target_function = "getCardFAQList"
+source_lines = "34-36"
+description = "queuedFetchのresponse.okがfalseの場合、本文を読まずnullを返す"
+given = "queuedFetchが{ ok: false }を返す"
+expect_return = "null"
+
+[[condition]]
+id = "faq_list.title_extracts_card_name"
+target_function = "getCardFAQList"
+source_lines = "44-46"
+description = "title.textContentを'|'で分割し、先頭要素をtrimした値をcardNameにする"
+given = "<title> テストカード | カードに関連するＱ＆Ａ </title>"
+expect_return_shape = "cardName === 'テストカード'"
+
+[[condition]]
+id = "faq_list.title_missing_empty_card_name"
+target_function = "getCardFAQList"
+source_lines = "44-46"
+description = "title要素が存在しない場合、cardNameは空文字列になる"
+given = "HTMLに<title>が存在しない"
+expect_return_shape = "cardName === ''"
+
+[[condition]]
+id = "faq_list.supplement_without_text_skipped"
+target_function = "getCardFAQList"
+source_lines = "59-63"
+description = ".supplement内に.text要素が無い場合、そのsupplementは以降のID/日付/本文取得を行わずスキップされる"
+given = "<div class=\"supplement\"><span class=\"update\">2024-01-15</span></div>"
+expect_return_shape = "supplementInfo/supplementDate/pendulumSupplementInfo/pendulumSupplementDateはいずれもundefined"
+
+[[condition]]
+id = "faq_list.supplement_card_text"
+target_function = "getCardFAQList"
+source_lines = "67-81"
+description = ".supplement内の.text.idが'supplement'の場合、変換済み本文をsupplementInfo、.title .updateのtrim済みテキストをsupplementDateに格納する"
+given = ".text#supplement と .title .update を持つsupplement"
+expect_return_shape = "supplementInfoとsupplementDateが設定される"
+
+[[condition]]
+id = "faq_list.supplement_pendulum_text"
+target_function = "getCardFAQList"
+source_lines = "67-77"
+description = ".supplement内の.text.idが'pen_supplement'の場合、変換済み本文をpendulumSupplementInfo、.title .updateのtrim済みテキストをpendulumSupplementDateに格納する"
+given = ".text#pen_supplement と .title .update を持つsupplement"
+expect_return_shape = "pendulumSupplementInfoとpendulumSupplementDateが設定される"
+
+[[condition]]
+id = "faq_list.supplement_unknown_id_ignored"
+target_function = "getCardFAQList"
+source_lines = "74-82"
+description = ".supplement内の.text.idが'supplement'でも'pen_supplement'でもない場合、本文と日付をどの戻り値フィールドにも格納しない"
+given = ".text#other_supplement を持つsupplement"
+expect_return_shape = "supplementInfo/supplementDate/pendulumSupplementInfo/pendulumSupplementDateはいずれもundefined"
+
+[[condition]]
+id = "faq_list.faq_question_missing_skipped"
+target_function = "getCardFAQList"
+source_lines = "93-98"
+description = ".t_row内の.dack_name span.nameが存在しない、またはtrim後に空文字列の場合、その行はfaqsに追加されない"
+given = ".t_rowに.dack_name span.nameが無い行"
+expect_return_shape = "その行に対応するFAQはfaqsに含まれない"
+
+[[condition]]
+id = "faq_list.faq_link_value_missing_skipped"
+target_function = "getCardFAQList"
+source_lines = "101-104"
+description = "input.link_valueが存在しない、HTMLInputElement判定に失敗する、またはvalueが空の場合、その行はfaqsに追加されない"
+given = "質問文はあるがinput.link_valueが無い.t_row"
+expect_return_shape = "その行に対応するFAQはfaqsに含まれない"
+
+[[condition]]
+id = "faq_list.faq_fid_unmatched_skipped"
+target_function = "getCardFAQList"
+source_lines = "107-110"
+description = "input.link_value.valueが/[?&]fid=(\\d+)/にマッチしない場合、その行はfaqsに追加されない"
+given = "input.link_value.value = '/yugiohdb/faq_search.action?ope=5&keyword=&tag=-1'"
+expect_return_shape = "その行に対応するFAQはfaqsに含まれない"
+
+[[condition]]
+id = "faq_list.faq_valid_row_added"
+target_function = "getCardFAQList"
+source_lines = "113-122"
+description = "質問文とfidが取得できた行は、faqId・question・answer:''・updatedAtを持つFAQとしてfaqsに追加される。updatedAtは.dateのtrim後に'更新日:'を除去して再trimした値、.dateが無い場合はundefined"
+given = "質問文、fidを含むinput.link_value、.date='更新日: 2024-01-10'を持つ.t_row"
+expect_return_shape = "{ faqId: '115', question: '...', answer: '', updatedAt: '2024-01-10' }"
+
+[[condition]]
+id = "faq_list.catch_error"
+target_function = "getCardFAQList"
+source_lines = "134-137"
+description = "try内で例外が発生した場合、console.error('Failed to get card FAQ list:', error)を呼び、nullを返す"
+given = "queuedFetchがErrorをrejectする"
+expect_no_throw = true
+expect_return = "null"
+
+# --- convertCardLinksToTemplate(element: HTMLElement): string (非export) ---
+
+[[condition]]
+id = "convert_links.br_to_newline"
+target_function = "convertCardLinksToTemplate"
+source_lines = "156-161,175"
+description = "入力要素をcloneし、clone内のbr要素を改行テキストに置換してからtextContentをtrimして返す"
+given = "<div>テキスト1<br>テキスト2</div>"
+expect_return = "テキスト1\nテキスト2"
+
+[[condition]]
+id = "convert_links.cid_anchor_to_template"
+target_function = "convertCardLinksToTemplate"
+source_lines = "164-172"
+description = "href属性に'cid='を含み、/[?&]cid=(\\d+)/にマッチするa要素を、trim済みリンク文字列とcidを使った'{{カード名|cid}}'文字列に置換する"
+given = "<a href=\"faq_search.action?ope=4&cid=5533\"> 王家の眠る谷－ネクロバレー </a>"
+expect_return = "{{王家の眠る谷－ネクロバレー|5533}}"
+
+[[condition]]
+id = "convert_links.cid_anchor_without_regex_match_keeps_text"
+target_function = "convertCardLinksToTemplate"
+source_lines = "164-172,175"
+description = "href属性に'cid='を含むa要素でも/[?&]cid=(\\d+)/にマッチしない場合は置換せず、最終textContent上はリンク文字列だけが残る"
+given = "<a href=\"faq_search.action?acid=5533\">カード名</a>"
+expect_return = "カード名"
+
+[[condition]]
+id = "convert_links.no_text_returns_empty"
+target_function = "convertCardLinksToTemplate"
+source_lines = "175"
+description = "clone.textContent?.trim()がfalsyの場合、空文字列を返す"
+given = "<div></div>"
+expect_return = "''"
+
+# --- getFAQDetail(faqId: string): Promise<CardFAQ | null> ---
+
+[[condition]]
+id = "faq_detail.request_params"
+target_function = "getFAQDetail"
+source_lines = "195-204"
+description = "detectCardGameTypeの戻り値とURLSearchParams({ ope: '5', fid: faqId })でURLを組み立て、queuedFetchをGET/credentials:'include'で呼ぶ"
+given = "faqId = '54321'"
+expect_side_effect = "queuedFetchのURLにope=5とfid=54321が含まれ、optionsは{ method: 'GET', credentials: 'include' }"
+
+[[condition]]
+id = "faq_detail.response_not_ok"
+target_function = "getFAQDetail"
+source_lines = "206-208"
+description = "queuedFetchのresponse.okがfalseの場合、本文を読まずnullを返す"
+given = "queuedFetchが{ ok: false }を返す"
+expect_return = "null"
+
+[[condition]]
+id = "faq_detail.question_element_missing"
+target_function = "getFAQDetail"
+source_lines = "215-218"
+description = "#question_text要素が存在しない場合、nullを返す"
+given = "HTMLに#question_textが存在しない"
+expect_return = "null"
+
+[[condition]]
+id = "faq_detail.question_empty_after_conversion"
+target_function = "getFAQDetail"
+source_lines = "219-223"
+description = "#question_textは存在するがconvertCardLinksToTemplate後の文字列が空の場合、nullを返す"
+given = "<div id=\"question_text\"></div>"
+expect_return = "null"
+
+[[condition]]
+id = "faq_detail.answer_present_converted"
+target_function = "getFAQDetail"
+source_lines = "226-230"
+description = "#answer_text要素が存在する場合、convertCardLinksToTemplateの戻り値をanswerにする"
+given = "#answer_text内にcidリンクとbrを含むHTML"
+expect_return_shape = "answerにカードリンクテンプレート化とbr改行変換が反映される"
+
+[[condition]]
+id = "faq_detail.answer_missing_empty"
+target_function = "getFAQDetail"
+source_lines = "226-230"
+description = "#answer_text要素が存在しない場合、answerは初期値の空文字列のまま返る"
+given = "#question_textはあるが#answer_textが無いHTML"
+expect_return_shape = "answer === ''"
+
+[[condition]]
+id = "faq_detail.updated_at_optional"
+target_function = "getFAQDetail"
+source_lines = "233-234"
+description = "#tag_update .dateが存在する場合はtrim済みtextContentをupdatedAtにし、存在しないまたはtrim後空の場合はundefinedにする（'更新日:'除去はしない）"
+given = "#tag_update .date=' 更新日: 2024-01-15 ' / #tag_update .dateなし"
+expect_return_shape = "前者はupdatedAt === '更新日: 2024-01-15'、後者はupdatedAt === undefined"
+
+[[condition]]
+id = "faq_detail.success"
+target_function = "getFAQDetail"
+source_lines = "236-241"
+description = "response.okがtrueで非空のquestionが取得できた場合、faqId・question・answer・updatedAtを持つCardFAQを返す"
+given = "faqId='115'、#question_text/#answer_text/#tag_update .dateを持つHTML"
+expect_return_shape = "{ faqId: '115', question: '...', answer: '...', updatedAt: '...' }"
+
+[[condition]]
+id = "faq_detail.catch_error"
+target_function = "getFAQDetail"
+source_lines = "242-245"
+description = "try内で例外が発生した場合、console.error('Failed to get FAQ detail:', error)を呼び、nullを返す"
+given = "queuedFetchがErrorをrejectする"
+expect_no_throw = true
+expect_return = "null"

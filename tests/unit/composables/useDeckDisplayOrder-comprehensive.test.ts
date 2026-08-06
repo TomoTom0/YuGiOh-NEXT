@@ -104,7 +104,7 @@ describe('useDeckDisplayOrder', () => {
   });
 
   describe('removeFromDisplayOrder', () => {
-    it('メインデッキからカードを削除できる', () => {
+      it('[covers:remove.display_without_uuid_removes_last_cid] メインデッキからカードを削除できる', () => {
       const displayOrder: DisplayOrderState = {
         main: [{ cid: '12345', ciid: 1, uuid: '12345-1-uuid' }],
         extra: [],
@@ -120,11 +120,12 @@ describe('useDeckDisplayOrder', () => {
 
       const result = removeFromDisplayOrder(displayOrder, deckState, '12345', 'main');
 
-      expect(result.removedIndex).toBeGreaterThanOrEqual(0);
+        expect(result.removedIndex).toBe(0);
+        expect(result.removedCiid).toBe(1);
       expect(displayOrder.main).toHaveLength(0);
     });
 
-    it('複数枚のカードから1枚だけ削除できる', () => {
+      it('[covers:remove.deck_quantity_decrements] 複数枚のカードから1枚だけ削除できる', () => {
       const displayOrder: DisplayOrderState = {
         main: [
           { cid: '12345', ciid: 1, uuid: '12345-1-uuid-1' },
@@ -314,7 +315,7 @@ describe('useDeckDisplayOrder', () => {
         expect(result.uuid).toBe('card@#$-123-1-uuid');
       });
 
-      it('ciidが数値の場合に正しく処理できる', () => {
+      it('ciidが数値文字列の場合に正しく処理できる', () => {
         const displayOrder: DisplayOrderState = {
           main: [],
           extra: [],
@@ -692,13 +693,14 @@ describe('useDeckDisplayOrder', () => {
         expect(shuffled.sort((a, b) => a - b)).toEqual(array);
       });
 
-      it('シャッフル後も元の配列が変更されない', () => {
+      it('[covers:shuffle.returns_new_array_same_members] シャッフル後も元の配列が変更されない', () => {
         const original = [1, 2, 3, 4, 5];
         const copy = [...original];
-        fisherYatesShuffle(copy);
+        const shuffled = fisherYatesShuffle(copy);
 
-        // copy は変更される（シャッフルされる）
-        expect(copy.sort()).toEqual(original.sort());
+        expect(shuffled).not.toBe(copy);
+        expect(copy).toEqual(original);
+        expect([...shuffled].sort()).toEqual([...original].sort());
       });
 
       it('オブジェクトの配列をシャッフルできる', () => {
@@ -752,14 +754,13 @@ describe('useDeckDisplayOrder', () => {
         expect(shuffled).toHaveLength(5);
       });
 
-      it('同じ配列を複数回シャッフルすると異なる結果になる可能性がある', () => {
+      it('[covers:shuffle.returns_new_array_same_members] 同じ配列を複数回シャッフルしても要素集合と元配列は保たれる', () => {
         const array = Array.from({ length: 100 }, (_, i) => i);
         const shuffled1 = fisherYatesShuffle([...array]);
         const shuffled2 = fisherYatesShuffle([...array]);
 
-        // 確率的にほぼ確実に異なる結果になる
-        const isDifferent = shuffled1.some((val, idx) => val !== shuffled2[idx]);
-        expect(isDifferent).toBe(true);
+        expect([...shuffled1].sort((a, b) => a - b)).toEqual(array);
+        expect([...shuffled2].sort((a, b) => a - b)).toEqual(array);
       });
 
       it('ネストされた配列をシャッフルできる', () => {

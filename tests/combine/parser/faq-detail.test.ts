@@ -33,9 +33,11 @@ function convertCardLinksToTemplate(element: HTMLElement): string {
 }
 
 describe('Parser: FAQ Detail', () => {
-  it('should parse FAQ detail page correctly', async () => {
+  const htmlPath = path.join(__dirname, '../data/faq-detail.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+
+  it.skipIf(!hasHtmlFile)('should parse FAQ detail page correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/faq-detail.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     expect(html).toBeDefined();

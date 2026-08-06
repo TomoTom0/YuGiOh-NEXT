@@ -1,415 +1,170 @@
 /**
- * shuffleCards.ts とsortfixCards.ts のテスト
- * - Fisher-Yates アルゴリズムのシャッフル処理
- * - sortfix機能（カード先頭固定）
- * - FLIP アニメーション
- * - メインデッキ/エクストラデッキ/サイドデッキ各セクションのシャッフル処理
+ * shuffleCards.ts の実装条件テスト
  * @vitest-environment jsdom
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-// Fisher-Yates アルゴリズムのテスト用実装
-function fisherYatesShuffle<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const temp = shuffled[i];
-    shuffled[i] = shuffled[j]!;
-    shuffled[j] = temp!;
-  }
-  return shuffled;
+type ShuffleModule = typeof import('../../../src/content/shuffle/shuffleCards');
+
+function cardTexts(sectionId: 'main' | 'extra' | 'side'): string[] {
+  return Array.from(
+    document.querySelectorAll(`#deck_image #${sectionId}.card_set div.image_set > a`)
+  ).map(card => card.textContent ?? '');
 }
 
-describe('shuffleCards - カードシャッフル機能', () => {
+function imageSet(sectionId: 'main' | 'extra' | 'side'): HTMLElement {
+  const found = document.querySelector<HTMLElement>(`#deck_image #${sectionId}.card_set div.image_set`);
+  if (!found) {
+    throw new Error(`missing image_set for ${sectionId}`);
+  }
+  return found;
+}
+
+function createDeck(sections: Partial<Record<'main' | 'extra' | 'side', string[]>>): void {
+  const deckImage = document.createElement('div');
+  deckImage.id = 'deck_image';
+
+  (['main', 'extra', 'side'] as const).forEach(sectionId => {
+    if (!sections[sectionId]) {
+      return;
+    }
+
+    const section = document.createElement('div');
+    section.id = sectionId;
+    section.className = 'card_set';
+
+    const set = document.createElement('div');
+    set.className = 'image_set';
+
+    sections[sectionId]!.forEach(text => {
+      const card = document.createElement('a');
+      card.href = '#';
+      card.textContent = text;
+      set.appendChild(card);
+    });
+
+    section.appendChild(set);
+    deckImage.appendChild(section);
+  });
+
+  document.body.appendChild(deckImage);
+}
+
+async function loadModule(): Promise<ShuffleModule> {
+  vi.resetModules();
+  return import('../../../src/content/shuffle/shuffleCards');
+}
+
+describe('shuffleCards - 実装条件', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
-    vi.clearAllMocks();
-    // requestAnimationFrame のモック
+    vi.useFakeTimers();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
       cb(0);
-      return 0;
+      return 1;
     });
   });
 
   afterEach(() => {
-    document.body.innerHTML = '';
-    vi.clearAllMocks();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    document.body.innerHTML = '';
   });
 
-  describe('Fisher-Yates シャッフルアルゴリズム', () => {
-    it('配列をシャッフルするべき', () => {
-      const array = [1, 2, 3, 4, 5];
-      const shuffled = fisherYatesShuffle([...array]);
+  it('対象sectionのimage_setが無い場合は何もしない [covers:shuffle_section.image_set_missing_returns] [covers:sort_section.image_set_missing_returns]', async () => {
+    const mod = await loadModule();
 
-      // 要素数は変わらない
-      expect(shuffled).toHaveLength(array.length);
-
-      // 全ての要素が含まれている
-      expect(shuffled.sort()).toEqual(array.sort());
-    });
-
-    it('空配列のシャッフルは空配列を返すべき', () => {
-      const shuffled = fisherYatesShuffle([]);
-      expect(shuffled).toEqual([]);
-    });
-
-    it('単一要素の配列のシャッフルは同じ配列を返すべき', () => {
-      const array = [42];
-      const shuffled = fisherYatesShuffle(array);
-      expect(shuffled).toEqual(array);
-    });
-
-    it('シャッフル前後で要素の総数が変わらないべき', () => {
-      const array = Array.from({ length: 100 }, (_, i) => i);
-      const shuffled = fisherYatesShuffle(array);
-
-      expect(shuffled).toHaveLength(array.length);
-      expect(new Set(shuffled).size).toBe(array.length);
-    });
-
-    it('複数回シャッフルすると異なる順序になる可能性があるべき', () => {
-      const array = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-      const shuffle1 = fisherYatesShuffle(array);
-      const shuffle2 = fisherYatesShuffle(array);
-
-      // 異なる順序になる可能性がある（完全には等しくない）
-      // ※ 稀に同じ順序になる可能性があるため、複数回試行してテスト
-      let isDifferent = false;
-      for (let i = 0; i < 10; i++) {
-        const shuffled = fisherYatesShuffle(array);
-        if (!shuffled.every((v, idx) => v === array[idx])) {
-          isDifferent = true;
-          break;
-        }
-      }
-      expect(isDifferent).toBe(true);
-    });
+    expect(() => mod.shuffleCards()).not.toThrow();
+    expect(() => mod.sortCards()).not.toThrow();
+    expect(document.body.innerHTML).toBe('');
   });
 
-  describe('DOM 構造とカード要素', () => {
-    it('デッキセクションの DOM 構造をシミュレートするべき', () => {
-      // デッキセクション構造を作成
-      const deckImage = document.createElement('div');
-      deckImage.id = 'deck_image';
+  it('初回shuffleで元順序を保存し、2回目shuffle後もsortで初回順序へ戻す [covers:shuffle_fisher_yates.copies_input] [covers:shuffle_fisher_yates.loop_swaps_from_tail] [covers:shuffle_section.first_call_saves_original_order] [covers:shuffle_section.subsequent_call_keeps_original_order] [covers:shuffle_section.normal_cards_shuffled_only] [covers:sort_section.sortfixed_from_all_sections_then_original_normals] [covers:shuffle_export.main_shuffle_delegates] [covers:shuffle_export.main_sort_delegates]', async () => {
+    createDeck({ main: ['M1', 'M2', 'M3'] });
+    const mod = await loadModule();
 
-      const main = document.createElement('div');
-      main.id = 'main';
-      main.className = 'card_set';
+    mod.shuffleCards();
+    expect(cardTexts('main')).toEqual(['M2', 'M3', 'M1']);
 
-      const imageSet = document.createElement('div');
-      imageSet.className = 'image_set';
+    mod.shuffleCards();
+    expect(cardTexts('main')).toEqual(['M3', 'M1', 'M2']);
 
-      // カード要素を追加
-      for (let i = 0; i < 5; i++) {
-        const card = document.createElement('a');
-        card.className = 'card-link';
-        card.textContent = `Card ${i + 1}`;
-        imageSet.appendChild(card);
-      }
-
-      main.appendChild(imageSet);
-      deckImage.appendChild(main);
-      document.body.appendChild(deckImage);
-
-      // DOM 検証
-      const cards = imageSet.querySelectorAll(':scope > a');
-      expect(cards).toHaveLength(5);
-      expect(cards[0]?.textContent).toBe('Card 1');
-      expect(cards[4]?.textContent).toBe('Card 5');
-    });
-
-    it('複数デッキセクション（main/extra/side）を処理するべき', () => {
-      const deckImage = document.createElement('div');
-      deckImage.id = 'deck_image';
-
-      ['main', 'extra', 'side'].forEach((sectionId) => {
-        const section = document.createElement('div');
-        section.id = sectionId;
-        section.className = 'card_set';
-
-        const imageSet = document.createElement('div');
-        imageSet.className = 'image_set';
-
-        for (let i = 0; i < 3; i++) {
-          const card = document.createElement('a');
-          card.textContent = `${sectionId} Card ${i + 1}`;
-          imageSet.appendChild(card);
-        }
-
-        section.appendChild(imageSet);
-        deckImage.appendChild(section);
-      });
-
-      document.body.appendChild(deckImage);
-
-      // 各セクションのカード数を検証
-      ['main', 'extra', 'side'].forEach((sectionId) => {
-        const imageSet = document.querySelector(`#${sectionId}.card_set div.image_set`);
-        expect(imageSet?.querySelectorAll(':scope > a')).toHaveLength(3);
-      });
-    });
+    mod.sortCards();
+    expect(cardTexts('main')).toEqual(['M1', 'M2', 'M3']);
   });
 
-  describe('sortfix 機能（カード先頭固定）', () => {
-    it('sortfix 属性でカード要素をマーク可能であるべき', () => {
-      const card = document.createElement('a');
-      card.setAttribute('data-ygo-next-sortfix', 'true');
+  it('空または1枚のsectionは順序を変えず、FLIP後にstyleとanimatingを片付ける [covers:shuffle_fisher_yates.empty_or_single_unchanged] [covers:shuffle_flip.reorders_and_animates]', async () => {
+    createDeck({ main: ['M1'], extra: [] });
+    const mod = await loadModule();
 
-      expect(card.hasAttribute('data-ygo-next-sortfix')).toBe(true);
-      expect(card.getAttribute('data-ygo-next-sortfix')).toBe('true');
-    });
+    mod.shuffleCards();
 
-    it('sortfixされたカードと通常カードを分離できるべき', () => {
-      const container = document.createElement('div');
+    const mainSet = imageSet('main');
+    const onlyCard = mainSet.querySelector<HTMLElement>('a');
+    expect(cardTexts('main')).toEqual(['M1']);
+    expect(mainSet.classList.contains('animating')).toBe(true);
+    expect(onlyCard?.style.transition).toContain('transform 400ms cubic-bezier');
 
-      const cards = Array.from({ length: 5 }, (_, i) => {
-        const card = document.createElement('a');
-        card.textContent = `Card ${i + 1}`;
+    vi.advanceTimersByTime(400);
 
-        // インデックス0, 2をsortfix
-        if (i === 0 || i === 2) {
-          card.setAttribute('data-ygo-next-sortfix', 'true');
-        }
+    expect(mainSet.classList.contains('animating')).toBe(false);
+    expect(onlyCard?.style.transition).toBe('');
+    expect(onlyCard?.style.transform).toBe('');
 
-        container.appendChild(card);
-        return card;
-      });
-
-      const sortfixedCards = Array.from(container.querySelectorAll('a[data-ygo-next-sortfix]'));
-      const normalCards = Array.from(container.querySelectorAll('a:not([data-ygo-next-sortfix])'));
-
-      expect(sortfixedCards).toHaveLength(2);
-      expect(normalCards).toHaveLength(3);
-    });
-
-    it('sortfixされたカードをシャッフル順序の先頭に配置すべき', () => {
-      const cardArray = Array.from({ length: 5 }, (_, i) => {
-        const card = document.createElement('a');
-        card.textContent = `Card ${i + 1}`;
-        if (i === 1) {
-          card.setAttribute('data-ygo-next-sortfix', 'true');
-        }
-        return card;
-      });
-
-      const sortfixedCards = cardArray.filter(card => card.hasAttribute('data-ygo-next-sortfix'));
-      const normalCards = cardArray.filter(card => !card.hasAttribute('data-ygo-next-sortfix'));
-      const shuffled = fisherYatesShuffle(normalCards);
-
-      const newOrder = [...sortfixedCards, ...shuffled];
-
-      expect(newOrder[0]?.textContent).toBe('Card 2'); // sortfixされたカード
-      expect(newOrder).toHaveLength(5);
-    });
+    mod.shuffleCardsExtra();
+    expect(cardTexts('extra')).toEqual([]);
   });
 
-  describe('FLIP アニメーション', () => {
-    it('アニメーション中のクラスを追加・削除すべき', (done) => {
-      const imageSet = document.createElement('div');
-      imageSet.className = 'image_set';
+  it('sortfixカードは全セクション分が対象sectionの先頭へ移動し、元section外カードはInvert初期styleを設定されない [covers:shuffle_section.sortfixed_from_all_sections_first] [covers:shuffle_flip.skips_invert_when_position_missing]', async () => {
+    createDeck({ main: ['M1', 'M2'], extra: ['E1'] });
+    const extraCard = imageSet('extra').querySelector<HTMLElement>('a');
+    extraCard?.setAttribute('data-ygo-next-sortfix', 'true');
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    const mod = await loadModule();
 
-      document.body.appendChild(imageSet);
+    mod.shuffleCards();
 
-      // アニメーション中のクラスを追加
-      imageSet.classList.add('animating');
-      expect(imageSet.classList.contains('animating')).toBe(true);
-
-      // アニメーション後にクラスを削除
-      setTimeout(() => {
-        imageSet.classList.remove('animating');
-        expect(imageSet.classList.contains('animating')).toBe(false);
-        done();
-      }, 100);
-    });
-
-    it('カード要素の transform スタイルを設定・クリアすべき', () => {
-      const card = document.createElement('a') as HTMLAnchorElement;
-
-      // transform を設定
-      card.style.transform = 'translate(100px, 50px)';
-      expect(card.style.transform).toBe('translate(100px, 50px)');
-
-      // transform をクリア
-      card.style.transform = '';
-      expect(card.style.transform).toBe('');
-    });
-
-    it('transition スタイルを設定・クリアすべき', () => {
-      const card = document.createElement('a') as HTMLAnchorElement;
-
-      // transition を設定
-      const duration = 400;
-      card.style.transition = `transform ${duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)`;
-      expect(card.style.transition).toContain('cubic-bezier');
-
-      // transition をクリア
-      card.style.transition = '';
-      expect(card.style.transition).toBe('');
-    });
-
-    it('getBoundingClientRect() でリフローを強制すべき', () => {
-      const element = document.createElement('div');
-      document.body.appendChild(element);
-
-      element.style.transform = 'translateX(100px)';
-
-      // リフローを強制
-      const rect = element.getBoundingClientRect();
-
-      expect(rect).toBeDefined();
-      expect(rect.width).toBeDefined();
-      expect(rect.height).toBeDefined();
-    });
+    expect(cardTexts('main')).toEqual(['E1', 'M2', 'M1']);
+    expect(cardTexts('extra')).toEqual([]);
+    expect(extraCard?.style.transition).toBe('');
+    expect(extraCard?.style.transform).toBe('');
   });
 
-  describe('デッキセクション別のシャッフル処理', () => {
-    it('main、extra、side 各セクションを個別に処理可能であるべき', () => {
-      const sections = ['main', 'extra', 'side'];
-      const mockHandlers = sections.map(() => vi.fn());
+  it('sortはshuffle未実行なら何もしない [covers:sort_section.original_order_missing_returns]', async () => {
+    createDeck({ main: ['M1', 'M2'] });
+    const mod = await loadModule();
 
-      sections.forEach((sectionId, idx) => {
-        const handler = mockHandlers[idx];
-        if (handler) {
-          handler(sectionId);
-        }
-      });
+    mod.sortCards();
 
-      mockHandlers.forEach((mock, idx) => {
-        expect(mock).toHaveBeenCalledWith(sections[idx]);
-      });
-    });
-
-    it('無効なセクション ID に対応するべき', () => {
-      const validSections = ['main', 'extra', 'side'];
-      const invalidId = 'invalid';
-
-      expect(validSections.includes(invalidId)).toBe(false);
-    });
+    expect(cardTexts('main')).toEqual(['M1', 'M2']);
   });
 
-  describe('元の順序の保存と復元', () => {
-    it('最初のシャッフル時に元の順序を保存すべき', () => {
-      const imageSet = document.createElement('div');
-      imageSet.className = 'image_set';
-
-      const cards = Array.from({ length: 5 }, (_, i) => {
-        const card = document.createElement('a');
-        card.textContent = `Card ${i + 1}`;
-        imageSet.appendChild(card);
-        return card;
-      });
-
-      const originalOrder = Array.from(imageSet.querySelectorAll(':scope > a'));
-      expect(originalOrder).toHaveLength(5);
-      expect(originalOrder[0]?.textContent).toBe('Card 1');
-      expect(originalOrder[4]?.textContent).toBe('Card 5');
+  it('extra/sideのexport関数は対応sectionだけを処理する [covers:shuffle_export.extra_shuffle_delegates] [covers:shuffle_export.extra_sort_delegates] [covers:shuffle_export.side_shuffle_delegates] [covers:shuffle_export.side_sort_delegates]', async () => {
+    createDeck({
+      main: ['M1', 'M2', 'M3'],
+      extra: ['E1', 'E2', 'E3'],
+      side: ['S1', 'S2', 'S3'],
     });
+    const mod = await loadModule();
 
-    it('元の順序から通常カードのみをシャッフルすべき', () => {
-      const imageSet = document.createElement('div');
-      imageSet.className = 'image_set';
+    mod.shuffleCardsExtra();
+    expect(cardTexts('main')).toEqual(['M1', 'M2', 'M3']);
+    expect(cardTexts('extra')).toEqual(['E2', 'E3', 'E1']);
+    expect(cardTexts('side')).toEqual(['S1', 'S2', 'S3']);
 
-      const cards = Array.from({ length: 5 }, (_, i) => {
-        const card = document.createElement('a');
-        card.textContent = `Card ${i + 1}`;
+    mod.sortCardsExtra();
+    expect(cardTexts('extra')).toEqual(['E1', 'E2', 'E3']);
 
-        // インデックス0, 2をsortfix
-        if (i === 0 || i === 2) {
-          card.setAttribute('data-ygo-next-sortfix', 'true');
-        }
+    mod.shuffleCardsSide();
+    expect(cardTexts('main')).toEqual(['M1', 'M2', 'M3']);
+    expect(cardTexts('extra')).toEqual(['E1', 'E2', 'E3']);
+    expect(cardTexts('side')).toEqual(['S2', 'S3', 'S1']);
 
-        imageSet.appendChild(card);
-        return card;
-      });
-
-      const sortfixedCards = Array.from(
-        imageSet.querySelectorAll('a[data-ygo-next-sortfix]')
-      );
-      const normalCards = Array.from(
-        imageSet.querySelectorAll('a:not([data-ygo-next-sortfix])')
-      );
-
-      const shuffled = fisherYatesShuffle(normalCards);
-      const newOrder = [...sortfixedCards, ...shuffled];
-
-      // sortfixされたカード(Card 1, Card 3)が先頭に
-      expect(newOrder[0]?.getAttribute('data-ygo-next-sortfix')).toBe('true');
-      expect(newOrder[1]?.getAttribute('data-ygo-next-sortfix')).toBe('true');
-      expect(newOrder).toHaveLength(5);
-    });
-
-    it('元の順序から sort（復元）可能であるべき', () => {
-      const imageSet = document.createElement('div');
-      imageSet.className = 'image_set';
-
-      const originalCards = Array.from({ length: 5 }, (_, i) => {
-        const card = document.createElement('a');
-        card.textContent = `Card ${i + 1}`;
-        imageSet.appendChild(card);
-        return card;
-      });
-
-      // 元の順序を保存
-      const savedOrder = [...originalCards];
-
-      // シャッフルして順序を変更（シミュレーション）
-      const shuffled = fisherYatesShuffle(originalCards);
-
-      // 復元：元の順序に戻す
-      expect(savedOrder[0]?.textContent).toBe('Card 1');
-      expect(savedOrder[4]?.textContent).toBe('Card 5');
-    });
-  });
-
-  describe('エクスポート関数の存在検証', () => {
-    it('shuffleCards() 関数が存在するべき', () => {
-      const shuffleCards = () => {
-        // シャッフル処理
-      };
-
-      expect(typeof shuffleCards).toBe('function');
-    });
-
-    it('sortCards() 関数が存在するべき', () => {
-      const sortCards = () => {
-        // ソート処理
-      };
-
-      expect(typeof sortCards).toBe('function');
-    });
-
-    it('shuffleCardsExtra() 関数が存在するべき', () => {
-      const shuffleCardsExtra = () => {
-        // エクストラデッキシャッフル処理
-      };
-
-      expect(typeof shuffleCardsExtra).toBe('function');
-    });
-
-    it('sortCardsExtra() 関数が存在するべき', () => {
-      const sortCardsExtra = () => {
-        // エクストラデッキソート処理
-      };
-
-      expect(typeof sortCardsExtra).toBe('function');
-    });
-
-    it('shuffleCardsSide() 関数が存在するべき', () => {
-      const shuffleCardsSide = () => {
-        // サイドデッキシャッフル処理
-      };
-
-      expect(typeof shuffleCardsSide).toBe('function');
-    });
-
-    it('sortCardsSide() 関数が存在するべき', () => {
-      const sortCardsSide = () => {
-        // サイドデッキソート処理
-      };
-
-      expect(typeof sortCardsSide).toBe('function');
-    });
+    mod.sortCardsSide();
+    expect(cardTexts('side')).toEqual(['S1', 'S2', 'S3']);
   });
 });

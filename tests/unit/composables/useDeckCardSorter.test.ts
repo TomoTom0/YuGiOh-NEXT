@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createDeckCardComparator, type DisplayCard } from '@/composables/deck/useDeckCardSorter';
+import {
+  buildRecipeSortOptions,
+  createDeckCardComparator,
+  type DisplayCard
+} from '@/composables/deck/useDeckCardSorter';
 import type { CardInfo } from '@/types/card';
 
 vi.mock('@/utils/card-utils', () => ({
@@ -38,7 +42,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('基本的なソート（カードタイプ）', () => {
-      it('モンスター→魔法→罠の順でソートされる', () => {
+      it('[covers:comparator.default_card_type_order_precedes_all_same_type_priorities] モンスター→魔法→罠の順でソートされる', () => {
         setupCard('monster1', { cardType: 'monster', name: 'Monster', types: [] });
         setupCard('spell1', { cardType: 'spell', name: 'Spell' });
         setupCard('trap1', { cardType: 'trap', name: 'Trap' });
@@ -57,7 +61,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[1], section[2])).toBeLessThan(0);
       });
 
-      it('同じカードタイプの場合、カード名でソートされる', () => {
+      it('[covers:type_compare_name_locale_ja_fallback] 同じカードタイプの場合、カード名でソートされる', () => {
         setupCard('monster1', { cardType: 'monster', name: 'Aaa', types: [] });
         setupCard('monster2', { cardType: 'monster', name: 'Bbb', types: [] });
 
@@ -74,7 +78,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('カテゴリ優先ソート', () => {
-      it('カテゴリに含まれるカードが優先される', () => {
+      it('[covers:comparator.category_one_match_precedes_non_match] カテゴリに含まれるカードが優先される', () => {
         setupCard('100', { cardType: 'monster', name: 'ZZZ', types: [] });
         setupCard('200', { cardType: 'monster', name: 'AAA', types: [] });
 
@@ -92,7 +96,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[0], section[1])).toBeLessThan(0);
       });
 
-      it('quantity-desc: 同じカテゴリ内では枚数の多い順でソートされる', () => {
+      it('[covers:comparator.category_quantity_desc_orders_by_section_count] quantity-desc: 同じカテゴリ内では枚数の多い順でソートされる', () => {
         setupCard('card1', { cardType: 'monster', name: 'Card1', types: [] });
         setupCard('card2', { cardType: 'monster', name: 'Card2', types: [] });
 
@@ -113,7 +117,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[0], section[3])).toBeLessThan(0);
       });
 
-      it('quantity-desc: ascでも降順固定', () => {
+      it('[covers:comparator.category_quantity_desc_orders_by_section_count] quantity-desc: ascでも降順固定', () => {
         setupCard('card1', { cardType: 'monster', name: 'Card1', types: [] });
         setupCard('card2', { cardType: 'monster', name: 'Card2', types: [] });
 
@@ -135,7 +139,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[0], section[3])).toBeLessThan(0);
       });
 
-      it('level（デフォルト）: 枚数ではなくlevelSortOrderに従う', () => {
+      it('[covers:comparator.category_level_mode_falls_through] [covers:type_compare_monster_level_order] level（デフォルト）: 枚数ではなくlevelSortOrderに従う', () => {
         setupCard('card1', { cardType: 'monster', name: 'Card1', types: [], levelValue: 4 });
         setupCard('card2', { cardType: 'monster', name: 'Card2', types: [], levelValue: 8 });
 
@@ -167,7 +171,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('末尾配置ソート', () => {
-      it('末尾配置カードは後ろに移動される', () => {
+      it('[covers:comparator.tail_one_listed_goes_after_unlisted] 末尾配置カードは後ろに移動される', () => {
         setupCard('normal_card', { cardType: 'monster', name: 'AAA', types: [] });
         setupCard('tail_card', { cardType: 'monster', name: 'ZZZ', types: [] });
 
@@ -187,7 +191,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('ソートモード: by-race', () => {
-      it('by-raceモードでは種族でソートされる', () => {
+      it('[covers:comparator.by_race_mode_delegates_before_default_priorities] [covers:race_compare_monster_race_locale] by-raceモードでは種族でソートされる', () => {
         setupCard('monster1', {
           cardType: 'monster',
           name: 'Zombie',
@@ -212,7 +216,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[1], section[0])).toBeLessThan(0);
       });
 
-      it('by-raceモードではモンスター < 魔法 < 罠の順が保たれる', () => {
+      it('[covers:race_compare_card_type_order] by-raceモードではモンスター < 魔法 < 罠の順が保たれる', () => {
         setupCard('monster1', { cardType: 'monster', name: 'Monster' });
         setupCard('spell1', { cardType: 'spell', name: 'Spell' });
         setupCard('trap1', { cardType: 'trap', name: 'Trap' });
@@ -233,7 +237,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('ソートモード: by-attribute', () => {
-      it('by-attributeモードでは属性でソートされる', () => {
+      it('[covers:comparator.by_attribute_mode_delegates_before_default_priorities] [covers:attribute_compare_monster_attribute_locale] by-attributeモードでは属性でソートされる', () => {
         setupCard('monster1', {
           cardType: 'monster',
           name: 'Fire',
@@ -260,7 +264,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('モンスタータイプでのソート（Fusion > Synchro > Xyz > Link > その他）', () => {
-      it('モンスタータイプ順序が正しく機能する', () => {
+      it('[covers:type_compare_monster_main_type_first_known_type] モンスタータイプ順序が正しく機能する', () => {
         setupCard('link', { cardType: 'monster', name: 'Link', types: ['link'] });
         setupCard('xyz', { cardType: 'monster', name: 'Xyz', types: ['xyz'] });
         setupCard('synchro', { cardType: 'monster', name: 'Synchro', types: ['synchro'] });
@@ -283,7 +287,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('レベル/ランク/リンクでのソート（降順）', () => {
-      it('レベルの高いモンスターが優先される', () => {
+      it('[covers:type_compare_monster_level_order] レベルの高いモンスターが優先される', () => {
         setupCard('level12', {
           cardType: 'monster',
           name: 'Level12',
@@ -310,16 +314,16 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('魔法・罠のタイプでのソート', () => {
-      it('同じカードタイプの魔法は効果タイプでソートされる', () => {
+      it('[covers:type_compare_spell_effect_order] 同じカードタイプの魔法は効果タイプの定義順でソートされる', () => {
         setupCard('spell_quick', {
           cardType: 'spell',
           name: 'Quick',
-          effectType: 'Quick-Play'
+          effectType: 'quick'
         });
         setupCard('spell_normal', {
           cardType: 'spell',
           name: 'Normal',
-          effectType: 'Normal'
+          effectType: 'normal'
         });
 
         const section = [
@@ -329,20 +333,20 @@ describe('useDeckCardSorter', () => {
 
         const comparator = createDeckCardComparator(section, { sortMode: 'default' });
 
-        // Normal < Quick-Play（ロケール順）
+        // SPELL_TYPE_SORT_ORDER: normal(0) < quick(1)
         expect(comparator(section[1], section[0])).toBeLessThan(0);
       });
 
-      it('同じカードタイプの罠は効果タイプでソートされる', () => {
+      it('[covers:type_compare_trap_effect_order] 同じカードタイプの罠は効果タイプの定義順でソートされる', () => {
         setupCard('trap_continuous', {
           cardType: 'trap',
           name: 'Continuous',
-          effectType: 'Continuous'
+          effectType: 'continuous'
         });
         setupCard('trap_counter', {
           cardType: 'trap',
           name: 'Counter',
-          effectType: 'Counter'
+          effectType: 'counter'
         });
 
         const section = [
@@ -352,14 +356,13 @@ describe('useDeckCardSorter', () => {
 
         const comparator = createDeckCardComparator(section, { sortMode: 'default' });
 
-        // 'Continuous'.localeCompare('Counter') = -1（Continuous < Counter）
-        // つまり trap_continuous(Continuous) < trap_counter(Counter)
-        expect(comparator(section[0], section[1])).toBeLessThan(0);
+        // TRAP_TYPE_SORT_ORDER: counter(1) < continuous(2)
+        expect(comparator(section[1], section[0])).toBeLessThan(0);
       });
     });
 
     describe('複合ソート条件', () => {
-      it('カテゴリ優先と末尾配置が併用される', () => {
+      it('[covers:comparator.tail_one_listed_goes_after_unlisted] カテゴリ優先と末尾配置が併用される', () => {
         setupCard('p_t', { cardType: 'monster', name: 'ZZZ', types: [] });
         setupCard('p_n', { cardType: 'monster', name: 'YYY', types: [] });
         setupCard('n_t', { cardType: 'monster', name: 'BBB', types: [] });
@@ -387,7 +390,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('フォールバックソート', () => {
-      it('属性がない場合、カードタイプでソートされて、その後CIDでフォールバック', () => {
+      it('[covers:attribute_compare_card_type_order] 属性がない場合もカードタイプ順が保たれる', () => {
         setupCard('100', { cardType: 'spell', name: 'SpellA', attribute: undefined });
         setupCard('50', { cardType: 'spell', name: 'SpellB', attribute: undefined });
         setupCard('200', { cardType: 'monster', name: 'MonsterC', types: [] });
@@ -405,7 +408,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(section[2], section[1])).toBeLessThan(0); // monster < spell
       });
 
-      it('同じカードタイプ内でカード名とCIDでソートされる', () => {
+      it('[covers:type_compare_name_locale_ja_fallback] 同じカードタイプ内でカード名でソートされる', () => {
         setupCard('150', { cardType: 'monster', name: 'Aaa', types: [] });
         setupCard('100', { cardType: 'monster', name: 'Bbb', types: [] });
         setupCard('200', { cardType: 'monster', name: 'Ccc', types: [] });
@@ -425,7 +428,7 @@ describe('useDeckCardSorter', () => {
     });
 
     describe('エッジケース', () => {
-      it('両方のカードが存在しない場合は0を返す', () => {
+      it('[covers:comparator.missing_card_returns_zero] 両方のカードが存在しない場合は0を返す', () => {
         const section = [];
         const comparator = createDeckCardComparator(section, {});
 
@@ -435,7 +438,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(cardA, cardB)).toBe(0);
       });
 
-      it('一方のカードが存在しない場合は0を返す', () => {
+      it('[covers:comparator.missing_card_returns_zero] 一方のカードが存在しない場合は0を返す', () => {
         setupCard('exists', { cardType: 'monster', name: 'Exists' });
 
         const section = [createDisplayCard('exists')];
@@ -447,7 +450,7 @@ describe('useDeckCardSorter', () => {
         expect(comparator(cardA, cardB)).toBe(0);
       });
 
-      it('空のoptionsで初期化された場合もデフォルト動作をする', () => {
+      it('[covers:comparator.options_default_values] 空のoptionsで初期化された場合もデフォルト動作をする', () => {
         setupCard('card1', { cardType: 'monster', name: 'Card1', types: [] });
         setupCard('card2', { cardType: 'monster', name: 'Card2', types: [] });
 
@@ -460,6 +463,168 @@ describe('useDeckCardSorter', () => {
 
         // デフォルト：カード名でソート
         expect(comparator(section[0], section[1])).toBeLessThan(0);
+      });
+    });
+  });
+
+  describe('createDeckCardComparator 条件カバレッジ補完', () => {
+    const setupCard = (cid: string, cardInfo: Partial<CardInfo>) => {
+      const defaultCard: CardInfo = {
+        cid,
+        cardId: cid,
+        nameRuby: `Card${cid}`,
+        cardType: 'monster',
+        cardKindTitle: 'モンスター',
+        name: `Card${cid}`,
+        tableA: {},
+        tableB: {}
+      };
+      cardDB.set(cid, { ...defaultCard, ...cardInfo });
+    };
+
+    const createDisplayCard = (cid: string): DisplayCard => ({
+      cid,
+      ciid: 1,
+      uuid: `uuid-${cid}`
+    });
+
+    it('[covers:comparator.head_both_listed_order_by_list_index] headPlacementCardIdsの配列順で両方の先頭配置カードを比較する', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [] });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [] });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparator = createDeckCardComparator(section, {
+        headPlacementCardIds: ['b', 'a']
+      });
+
+      expect(comparator(section[0], section[1])).toBeGreaterThan(0);
+    });
+
+    it('[covers:comparator.head_only_a_listed_first] [covers:comparator.head_only_b_listed_first] 片方だけが先頭配置対象なら対象カードを先にする', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [] });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [] });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparatorA = createDeckCardComparator(section, {
+        headPlacementCardIds: ['a']
+      });
+      const comparatorB = createDeckCardComparator(section, {
+        headPlacementCardIds: ['b']
+      });
+
+      expect(comparatorA(section[0], section[1])).toBe(-1);
+      expect(comparatorB(section[0], section[1])).toBe(1);
+    });
+
+    it('[covers:comparator.head_disabled_or_empty_skips_head_priority] 先頭配置が無効ならheadPlacementCardIdsを無視する', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [] });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [] });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparator = createDeckCardComparator(section, {
+        enableHeadPlacement: false,
+        headPlacementCardIds: ['b']
+      });
+
+      expect(comparator(section[0], section[1])).toBeLessThan(0);
+    });
+
+    it('[covers:comparator.category_disabled_skips_priority] カテゴリ優先が無効ならpriorityCategoryCardIdsを無視する', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [] });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [] });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparator = createDeckCardComparator(section, {
+        enableCategoryPriority: false,
+        priorityCategoryCardIds: new Set(['b'])
+      });
+
+      expect(comparator(section[0], section[1])).toBeLessThan(0);
+    });
+
+    it('[covers:comparator.category_quantity_equal_falls_through] quantity-descで枚数が同じなら後続比較へ進む', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [], levelValue: 4 });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [], levelValue: 8 });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparator = createDeckCardComparator(section, {
+        priorityCategoryCardIds: new Set(['a', 'b']),
+        categoryPrioritySortMode: 'quantity-desc'
+      });
+
+      expect(comparator(section[1], section[0])).toBeLessThan(0);
+    });
+
+    it('[covers:comparator.tail_disabled_or_same_flag_falls_through] 末尾配置が無効ならtailPlacementCardIdsを無視する', () => {
+      setupCard('a', { cardType: 'monster', name: 'A', types: [] });
+      setupCard('b', { cardType: 'monster', name: 'B', types: [] });
+      const section = [createDisplayCard('a'), createDisplayCard('b')];
+
+      const comparator = createDeckCardComparator(section, {
+        enableTailPlacement: false,
+        tailPlacementCardIds: ['a']
+      });
+
+      expect(comparator(section[0], section[1])).toBeLessThan(0);
+    });
+
+    it('[covers:comparator.default_card_type_order_precedes_all_same_type_priorities] defaultモードではカードタイプ順を先に使う', () => {
+      setupCard('spell', { cardType: 'spell', name: 'Spell' });
+      setupCard('trap', { cardType: 'trap', name: 'Trap' });
+      const section = [createDisplayCard('spell'), createDisplayCard('trap')];
+
+      const comparator = createDeckCardComparator(section, {
+        enableTailPlacement: false
+      });
+
+      expect(comparator(section[0], section[1])).toBeLessThan(0);
+    });
+
+    it('[covers:race_compare_same_type_numeric_cid] by-raceで種族差がなければCIDを数値昇順で比較する', () => {
+      setupCard('10', { cardType: 'monster', name: 'Ten', race: 'same' });
+      setupCard('2', { cardType: 'monster', name: 'Two', race: 'same' });
+      const section = [createDisplayCard('10'), createDisplayCard('2')];
+
+      const comparator = createDeckCardComparator(section, { sortMode: 'by-race' });
+
+      expect(comparator(section[1], section[0])).toBeLessThan(0);
+    });
+
+    it('[covers:attribute_compare_same_type_numeric_cid] by-attributeで属性差がなければCIDを数値昇順で比較する', () => {
+      setupCard('10', { cardType: 'monster', name: 'Ten', attribute: 'same' });
+      setupCard('2', { cardType: 'monster', name: 'Two', attribute: 'same' });
+      const section = [createDisplayCard('10'), createDisplayCard('2')];
+
+      const comparator = createDeckCardComparator(section, { sortMode: 'by-attribute' });
+
+      expect(comparator(section[1], section[0])).toBeLessThan(0);
+    });
+  });
+
+  describe('buildRecipeSortOptions', () => {
+    it('[covers:build_options_maps_deps_with_defaults] depsからDeckSortOptionsを構築しnullish値だけデフォルトにする', () => {
+      const categoryMatchedCardIds = new Set(['100']);
+      const headPlacementCardIds = ['200'];
+      const tailPlacementCardIds = ['300'];
+
+      expect(buildRecipeSortOptions({
+        enableCategoryPriority: undefined,
+        categoryMatchedCardIds,
+        enableHeadPlacement: false,
+        headPlacementCardIds,
+        enableTailPlacement: undefined,
+        tailPlacementCardIds,
+        levelSortOrder: undefined,
+        categoryPrioritySortMode: 'quantity-desc'
+      })).toEqual({
+        enableCategoryPriority: true,
+        priorityCategoryCardIds: categoryMatchedCardIds,
+        enableHeadPlacement: false,
+        headPlacementCardIds,
+        enableTailPlacement: true,
+        tailPlacementCardIds,
+        levelSortOrder: 'desc',
+        categoryPrioritySortMode: 'quantity-desc'
       });
     });
   });

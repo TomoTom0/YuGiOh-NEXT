@@ -91,15 +91,20 @@ const trapCard: CardInfo = {
 
 describe('useDeckValidation', () => {
   describe('searchからの移動', () => {
+    // [covers:canmovecard.search_to_trash_returns_false]
     it('searchからtrashへは移動不可', () => {
       expect(canMoveCard('search', 'trash', normalMonster)).toBe(false);
     });
 
     describe('searchからmainへ', () => {
+      // [covers:canmovecard.search_to_main_rejects_extra_deck_card]
+      // [covers:isextradeckcard.false_for_monster_without_extra_type]
+      // [covers:isextradeckcard.false_when_types_undefined]
       it('通常モンスターは可', () => {
         expect(canMoveCard('search', 'main', normalMonster)).toBe(true);
       });
 
+      // [covers:isextradeckcard.true_for_monster_with_extra_type]
       it('融合モンスターは不可', () => {
         expect(canMoveCard('search', 'main', fusionMonster)).toBe(false);
       });
@@ -116,6 +121,7 @@ describe('useDeckValidation', () => {
         expect(canMoveCard('search', 'main', linkMonster)).toBe(false);
       });
 
+      // [covers:isextradeckcard.false_for_non_monster]
       it('魔法カードは可', () => {
         expect(canMoveCard('search', 'main', spellCard)).toBe(true);
       });
@@ -126,6 +132,7 @@ describe('useDeckValidation', () => {
     });
 
     describe('searchからextraへ', () => {
+      // [covers:canmovecard.search_to_extra_only_allows_extra_deck_card]
       it('通常モンスターは不可', () => {
         expect(canMoveCard('search', 'extra', normalMonster)).toBe(false);
       });
@@ -148,6 +155,7 @@ describe('useDeckValidation', () => {
     });
 
     describe('searchからsideへは常に許可', () => {
+      // [covers:canmovecard.search_to_side_always_allowed]
       it('通常モンスター', () => {
         expect(canMoveCard('search', 'side', normalMonster)).toBe(true);
       });
@@ -160,9 +168,22 @@ describe('useDeckValidation', () => {
         expect(canMoveCard('search', 'side', spellCard)).toBe(true);
       });
     });
+
+    describe('searchから未定義セクションへの遷移', () => {
+      // [covers:canmovecard.search_to_unhandled_section_returns_false]
+      it('searchからsearch（同一セクション）へは移動不可', () => {
+        expect(canMoveCard('search', 'search', normalMonster)).toBe(false);
+      });
+
+      // [covers:canmovecard.search_to_unhandled_section_returns_false]
+      it('searchから未知のセクションへは移動不可', () => {
+        expect(canMoveCard('search', 'unknown', normalMonster)).toBe(false);
+      });
+    });
   });
 
   describe('trashへの移動は全て不可', () => {
+    // [covers:canmovecard.non_search_to_trash_returns_false]
     it('mainからtrashへは移動不可', () => {
       expect(canMoveCard('main', 'trash', normalMonster)).toBe(false);
     });
@@ -177,6 +198,7 @@ describe('useDeckValidation', () => {
   });
 
   describe('trashからの移動は全て許可', () => {
+    // [covers:canmovecard.trash_to_non_trash_always_allowed]
     it('trashからmainへは許可', () => {
       expect(canMoveCard('trash', 'main', normalMonster)).toBe(true);
     });
@@ -192,6 +214,7 @@ describe('useDeckValidation', () => {
 
   describe('main/extra/side間の移動', () => {
     describe('mainへ', () => {
+      // [covers:canmovecard.between_normal_sections_to_main_rejects_extra_deck_card]
       it('extraからmainへ - 通常モンスターは可', () => {
         expect(canMoveCard('extra', 'main', normalMonster)).toBe(true);
       });
@@ -206,6 +229,7 @@ describe('useDeckValidation', () => {
     });
 
     describe('extraへ', () => {
+      // [covers:canmovecard.between_normal_sections_to_extra_only_allows_extra_deck_card]
       it('mainからextraへ - 通常モンスターは不可', () => {
         expect(canMoveCard('main', 'extra', normalMonster)).toBe(false);
       });
@@ -220,12 +244,25 @@ describe('useDeckValidation', () => {
     });
 
     describe('sideへは常に許可', () => {
+      // [covers:canmovecard.between_normal_sections_to_side_always_allowed]
       it('mainからsideへは常に許可', () => {
         expect(canMoveCard('main', 'side', normalMonster)).toBe(true);
       });
 
       it('extraからsideへは常に許可', () => {
         expect(canMoveCard('extra', 'side', fusionMonster)).toBe(true);
+      });
+    });
+
+    describe('同一セクション内・未定義セクションへの遷移', () => {
+      // [covers:canmovecard.between_normal_sections_to_unhandled_returns_true]
+      it('mainからmain（同一セクション）へは許可', () => {
+        expect(canMoveCard('main', 'main', normalMonster)).toBe(true);
+      });
+
+      // [covers:canmovecard.between_normal_sections_to_unhandled_returns_true]
+      it('extraから未知のセクションへは許可', () => {
+        expect(canMoveCard('extra', 'unknown', fusionMonster)).toBe(true);
       });
     });
   });

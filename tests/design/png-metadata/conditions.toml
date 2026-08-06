@@ -1,0 +1,205 @@
+# 検証対象: src/utils/png-metadata.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象」グループ最優先。
+#
+# 既存テストの説明文/アサーションの不正確さ:
+# - tests/unit/png-metadata.test.ts の「should return null for invalid PNG」は有効なPNGを渡しており、
+#   実際には「DeckInfo tEXtチャンクがないPNGはnull」を検証していただけだったため、説明文を修正した。
+# - tests/unit/png-metadata.test.ts の「should validate CRC correctly」は、抽出成功をCRC検証成功とみなしていたが、
+#   実装はCRCを一切読まず検証しない。CRCを破壊しても抽出できる挙動を確認するテストへ修正した。
+
+[meta]
+feature = "png-metadata"
+source_file = "src/utils/png-metadata.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/png-metadata.test.ts tests/unit/utils/png-metadata.test.ts"
+source_hash = "9d324c7c18f4aaf03c46c9c8f414eb8b4bff44e2"
+note = "verified=falseは0件"
+
+# --- isValidSimpleDeckInfo(obj: unknown): obj is SimpleDeckInfo （非export） ---
+
+[[condition]]
+id = "simple_deck_guard.non_object_or_null_false"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "26-28"
+description = "objがobjectでない、またはnullの場合はfalseを返す"
+given = "DeckInfo tEXtチャンクのJSON値がnullまたは文字列"
+expect_return = false
+
+[[condition]]
+id = "simple_deck_guard.required_sections_must_be_arrays"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "33-35"
+description = "main/extra/sideのいずれかが配列でない場合はfalseを返す"
+given = "DeckInfo tEXtチャンクのJSON値でmain/extra/sideのいずれかが欠落、または配列以外"
+expect_return = false
+
+[[condition]]
+id = "simple_deck_guard.card_must_be_object"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "39-41"
+description = "main/extra/side配列内の要素がobjectでない、またはnullの場合はfalseを返す"
+given = "DeckInfo tEXtチャンクのJSON値でmain配列にnullや文字列が含まれる"
+expect_return = false
+
+[[condition]]
+id = "simple_deck_guard.card_fields_must_have_expected_types"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "43-48"
+description = "カード要素のcid/ciid/encがstringで、quantityがnumberでない場合はfalseを返す"
+given = "DeckInfo tEXtチャンクのJSON値でカード要素のcid/ciid/enc/quantityの型が実装条件に合わない"
+expect_return = false
+
+[[condition]]
+id = "simple_deck_guard.quantity_must_be_integer_0_to_99"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "48-50"
+description = "quantityは整数かつ0以上99以下でなければfalseを返す。0と99は有効値として受け入れる"
+given = "DeckInfo tEXtチャンクのJSON値でquantityが-1、1.5、100、0、99"
+expect_return_shape = "-1/1.5/100はfalse、0/99はtrue"
+
+[[condition]]
+id = "simple_deck_guard.all_sections_every_card_valid"
+target_function = "isValidSimpleDeckInfo"
+source_lines = "54-58"
+description = "main/extra/sideの全配列でevery(isValidCard)がtrueの場合のみtrueを返す"
+given = "main/extra/sideが全て配列で、各カードがcid/ciid/enc/quantity条件を満たす"
+expect_return = true
+
+# --- simplifyDeckInfo(deckInfo: DeckInfo): SimpleDeckInfo （非export） ---
+
+[[condition]]
+id = "simplify_deck.maps_all_sections"
+target_function = "simplifyDeckInfo"
+source_lines = "67-95"
+description = "deckInfo.mainDeck/extraDeck/sideDeckをそれぞれSimpleDeckInfo.main/extra/sideへmapし、cid/ciid/quantityをそのまま転記する"
+given = "mainDeck/extraDeck/sideDeckに各1件以上カードがあるDeckInfo"
+expect_return_shape = "{ main: [...], extra: [...], side: [...] }に各sectionのカードが同数で入る"
+
+[[condition]]
+id = "simplify_deck.enc_from_matching_temp_cache_image"
+target_function = "simplifyDeckInfo"
+source_lines = "69-73,78-82,87-91"
+description = "tempCardDB.get(cid)で取得したカードのimgsからciidが一致する画像を探し、そのimgHashをencに設定する"
+given = "temp cacheにcid一致カードがあり、imgs内にciid一致画像がある"
+expect_return_shape = "該当カードのencは一致画像のimgHash"
+
+[[condition]]
+id = "simplify_deck.enc_empty_when_cache_or_image_missing"
+target_function = "simplifyDeckInfo"
+source_lines = "69-73,78-82,87-91"
+description = "tempCardDBにcid一致カードがない、imgsがない、ciid一致画像がない、またはimgHashがfalsyの場合、encは空文字列になる"
+given = "temp cacheにカードが存在しない、または一致画像が存在しないDeckInfo"
+expect_return_shape = "該当カードのencは''"
+
+# --- embedDeckInfoToPNG(pngBlob: Blob, deckInfo: DeckInfo): Promise<Blob> ---
+
+[[condition]]
+id = "embed_png.signature_mismatch_throws"
+target_function = "embedDeckInfoToPNG"
+source_lines = "187-193"
+description = "PNG先頭8バイトのいずれかがPNG_SIGNATUREと一致しない場合、Error('Invalid PNG file: signature mismatch')をthrowする"
+given = "pngBlob.arrayBuffer()がPNGシグネチャで始まらない"
+expect_throw = "Invalid PNG file: signature mismatch"
+
+[[condition]]
+id = "embed_png.scans_chunks_until_iend"
+target_function = "embedDeckInfoToPNG"
+source_lines = "195-216"
+description = "PNGシグネチャ後からチャンクを走査し、chunkType === 'IEND'を見つけた位置を挿入位置として採用する"
+given = "有効なPNGシグネチャとIENDチャンクを持つPNG"
+expect_return_shape = "IEND直前にDeckInfo tEXtチャンクが挿入されたimage/png Blob"
+
+[[condition]]
+id = "embed_png.iend_missing_throws"
+target_function = "embedDeckInfoToPNG"
+source_lines = "218-220"
+description = "走査範囲内にIENDチャンクが見つからない場合、Error('Invalid PNG file: IEND chunk not found')をthrowする"
+given = "PNGシグネチャは正しいがIENDチャンクがないBlob"
+expect_throw = "Invalid PNG file: IEND chunk not found"
+
+[[condition]]
+id = "embed_png.inserts_deckinfo_text_chunk_and_preserves_iend"
+target_function = "embedDeckInfoToPNG"
+source_lines = "222-236"
+description = "DeckInfoを簡略化してJSON化し、key='DeckInfo'のtEXtチャンクをIEND前に挿入した新しいBlob(type='image/png')を返す"
+given = "有効なPNG BlobとDeckInfo"
+expect_return_shape = "返却Blobは元Blobより大きく、extractDeckInfoFromPNGでSimpleDeckInfoとして抽出できる"
+
+# --- extractDeckInfoFromPNG(pngBlob: Blob): Promise<SimpleDeckInfo | null> ---
+
+[[condition]]
+id = "extract_png.signature_mismatch_returns_null"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "253-259"
+description = "PNG先頭8バイトのいずれかがPNG_SIGNATUREと一致しない場合、throwせずnullを返す"
+given = "pngBlob.arrayBuffer()がPNGシグネチャで始まらない"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.valid_deckinfo_text_returns_parsed"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "274-296"
+description = "tEXtチャンク内にNULL区切りのkey='DeckInfo'があり、値のJSON.parse結果がSimpleDeckInfo型ガードを通る場合、そのparsedを返す"
+given = "DeckInfo tEXtチャンクに有効なSimpleDeckInfo JSONが入っているPNG"
+expect_return_shape = "{ main: [...], extra: [...], side: [...] }"
+
+[[condition]]
+id = "extract_png.text_chunk_without_null_is_ignored"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "280-302,309-313"
+description = "tEXtチャンクのdata内にNULL文字がない場合、そのチャンクは無視され、他にDeckInfoがなければnullを返す"
+given = "NULL区切りを持たないtEXtチャンクだけを含むPNG"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.non_deckinfo_text_key_is_ignored"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "289-302,309-313"
+description = "tEXtチャンクのkeyが'DeckInfo'でない場合、そのチャンクは無視され、他にDeckInfoがなければnullを返す"
+given = "key='Comment'等のtEXtチャンクだけを含むPNG"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.invalid_structure_warns_and_returns_null"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "295-300"
+description = "key='DeckInfo'のJSON.parse結果がSimpleDeckInfo型ガードを通らない場合、console.warn('Invalid DeckInfo structure in PNG metadata')を出してnullを返す"
+given = "DeckInfo tEXtチャンクの値がJSONとしては妥当だがSimpleDeckInfo構造でない"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.iend_breaks_scan"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "305-307,313"
+description = "chunkType === 'IEND'に到達すると走査をbreakし、その後ろにDeckInfo tEXtチャンクがあっても読まず、既に見つかっていなければnullを返す"
+given = "IENDチャンクの後ろにDeckInfo tEXtチャンクを付けたPNG"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.no_deckinfo_returns_null"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "265-313"
+description = "走査完了まで有効なDeckInfo tEXtチャンクが見つからない場合、nullを返す"
+given = "DeckInfo tEXtチャンクを含まない有効なPNG"
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.catch_error_returns_null"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "314-317"
+description = "JSON.parseエラー等、try内で例外が発生した場合、console.error('Failed to extract deck info from PNG:', error)を出してnullを返す"
+given = "DeckInfo tEXtチャンクの値が不正なJSON"
+expect_no_throw = true
+expect_return = "null"
+
+[[condition]]
+id = "extract_png.crc_is_not_validated"
+target_function = "extractDeckInfoFromPNG"
+source_lines = "265-310"
+description = "チャンク走査ではLength/Type/Dataのみを読み、CRCフィールドは検証しないため、DeckInfo tEXtチャンクのCRCが壊れていてもJSONと型構造が有効なら抽出できる"
+given = "embedDeckInfoToPNGで作成したPNGのDeckInfo tEXtチャンクCRCだけを破壊する"
+expect_return_shape = "CRC破壊前と同じSimpleDeckInfoを返す"

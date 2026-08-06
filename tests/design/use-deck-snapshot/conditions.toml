@@ -1,0 +1,182 @@
+# 検証対象: src/composables/deck/useDeckSnapshot.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキ編集のスナップショット比較（変更検知・並び順のみの差分判定）composable。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。全4つのexport関数は分岐がすべて公開APIから到達可能。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明、ドキュメント側に記載なし）:
+# - captureDeckSnapshotWithoutOrder内のnormalize()はcid/ciid/quantityのみを比較キーに残し、
+#   DeckCardRefが持つ`lang`フィールドを比較対象から除外する（source_lines 60-64）。そのため
+#   hasOnlySortOrderChanges()はlangのみが異なるデッキ同士を「並び順のみの差分」として
+#   true判定してしまう。quantityやcid/ciidと異なりlangは並び替えキーに使われるわけではなく、
+#   単純に出力オブジェクトへコピーされないため比較不能になっている。
+# - hasOnlySortOrderChanges()はcategory/tags/commentに`?? []`/`?? ''`のデフォルト値補完を
+#   行うが、captureDeckSnapshot()自体はこの補完を行わない（undefinedのままJSON.stringifyされ
+#   キーごと省略される）。そのため「category未設定(undefined)のデッキ」と「category=[]の
+#   デッキ」は、compareSnapshots()では異なる文字列として区別されるが、
+#   hasOnlySortOrderChanges()では両方とも`?? []`で[]に正規化されるため同一と判定される
+#   （compareSnapshotsとhasOnlySortOrderChangesで判定結果が食い違う具体例）。
+# - captureDeckSnapshotWithoutOrder()はmainDeck/extraDeck/sideDeckのみをcid→ciid順でソートし、
+#   skippedCardsは一切正規化しない（そのままdataオブジェクトにコピーされる）。そのため
+#   skippedCardsの並び順が異なるだけでもhasOnlySortOrderChanges()はfalseを返す
+#   （main/extra/sideとは非対称な扱い）。
+# - normalize()のsort比較関数はcidが等しい場合のみciidを比較し、ciidも等しい場合は0を返す
+#   （同一cid+ciidの重複エントリが複数ある場合、Array.prototype.sortの安定ソート仕様
+#   （ES2019以降で規定）により元の配列順が保たれる）。
+
+[meta]
+feature = "use-deck-snapshot"
+source_file = "src/composables/deck/useDeckSnapshot.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckSnapshot.test.ts"
+source_hash = "f633ffc5893e3d271fe42a16cc5459d29b81a938"
+note = "verified=falseは0件"
+
+# --- captureDeckSnapshot(deckInfo) ---
+
+[[condition]]
+id = "capture.excludes_deck_code"
+target_function = "captureDeckSnapshot"
+source_lines = "33-43"
+description = "スナップショット生成時、DeckInfoが持つdeckCodeフィールドは意図的にdataオブジェクトへ含めない（フィールド選択）"
+given = "deckCodeが設定されたDeckInfoを渡す"
+expect_return = "JSON.parseした結果にdeckCodeプロパティが存在しない"
+
+[[condition]]
+id = "capture.no_default_fallback_for_optional_fields"
+target_function = "captureDeckSnapshot"
+source_lines = "33-43"
+description = "category/tags/comment/skippedCardsはundefinedでもデフォルト値へ補完せずそのままdataへ設定する（?? 演算子を使わない）。JSON.stringifyによりundefinedのプロパティはキーごと省略される"
+given = "category/tags/commentがundefinedのDeckInfoを渡す"
+expect_return = "JSON.parseした結果でcategory/tags/commentがundefined（キー自体が存在しない）"
+
+# --- captureDeckSnapshotWithoutOrder(deckInfo) / normalize(deck) ---
+
+[[condition]]
+id = "normalize.sort_primary_key_cid"
+target_function = "captureDeckSnapshotWithoutOrder"
+source_lines = "65-67"
+description = "normalize()のsortはまずcidをlocaleCompareで昇順比較する。cidが異なれば結果を確定する"
+given = "mainDeckに異なるcidを持つカードが複数枚含まれる"
+expect_return = "出力配列がcidの昇順に並ぶ"
+
+[[condition]]
+id = "normalize.sort_secondary_key_ciid_when_cid_equal"
+target_function = "captureDeckSnapshotWithoutOrder"
+source_lines = "68-69"
+description = "cidが等しい場合のみciidをString化してlocaleCompareで昇順比較する"
+given = "同一cidだがciidが異なるカードが複数枚含まれる"
+expect_return = "同一cid内でciidの昇順に並ぶ"
+
+[[condition]]
+id = "normalize.sort_ties_preserve_relative_order"
+target_function = "captureDeckSnapshotWithoutOrder"
+source_lines = "70"
+description = "cid・ciidが両方等しい場合はsort比較関数が0を返し、Array.prototype.sortの安定ソート仕様により元の配列順が保たれる"
+given = "cid・ciidの組が完全に一致するエントリが複数（quantityのみ異なる）mainDeckに含まれる"
+expect_return = "出力配列内でのそれらのエントリの相対順序が入力時と変わらない"
+
+[[condition]]
+id = "normalize.drops_lang_field_from_comparison_key"
+target_function = "captureDeckSnapshotWithoutOrder"
+source_lines = "60-64"
+description = "normalize()はcid/ciid/quantityのみをコピーし、DeckCardRefが持つlangフィールドは出力に含めない"
+given = "cid/ciid/quantityが同一でlangのみ異なる2つのdeckInfoでそれぞれcaptureDeckSnapshotWithoutOrderを呼ぶ"
+expect_return = "2つの出力文字列が完全一致する（langの差が比較結果に反映されない）"
+
+[[condition]]
+id = "without_order.skipped_cards_not_normalized"
+target_function = "captureDeckSnapshotWithoutOrder"
+source_lines = "74-84"
+description = "mainDeck/extraDeck/sideDeckのみnormalize()でソートされ、skippedCardsはそのままdataへコピーされる（ソート対象外）"
+given = "skippedCardsの要素は同一だが並び順のみ異なる2つのdeckInfo"
+expect_return = "2つの出力文字列が一致しない（skippedCardsの並び順差がそのまま反映される）"
+
+# --- hasOnlySortOrderChanges(snapshot1, snapshot2) ---
+
+[[condition]]
+id = "has_only_sort_order_changes.pure_reorder_returns_true"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "132-139"
+description = "mainDeck等のカード構成が同一で並び順のみ異なる2つのスナップショットを比較すると、normalize後の文字列が一致しtrueを返す（この関数の主目的の挙動）"
+given = "同じカード構成でmainDeckの配列順のみ異なる2つのdeckInfoから生成したスナップショット"
+expect_return = "true"
+
+[[condition]]
+id = "has_only_sort_order_changes.content_difference_returns_false"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "132-139"
+description = "カード内容（cid/ciid）・枚数(quantity)・デッキ名・categoryなどnormalize後も残るフィールドが異なれば、並び順に関わらずfalseを返す"
+given = "カード内容/枚数/デッキ名/カテゴリのいずれかが異なる2つのdeckInfoから生成したスナップショット"
+expect_return = "false"
+
+[[condition]]
+id = "has_only_sort_order_changes.catch_returns_false_and_logs_on_error"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "100-139"
+description = "JSON.parseの失敗、または後続のnormalize処理中の例外をtry/catchで捕捉し、console.errorでログ出力したうえでfalseを返す"
+given = "snapshot1にJSONとしてパース不能な文字列を渡す"
+expect_return = "false"
+expect_side_effect = "console.errorが呼ばれる"
+
+[[condition]]
+id = "has_only_sort_order_changes.category_undefined_fallback_to_empty_array"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "112"
+description = "パースしたdataのcategoryがundefinedの場合、DeckInfo再構築時に`?? []`で空配列へ補完する"
+given = "categoryを含まないスナップショット（captureDeckSnapshotでcategory:undefinedのDeckInfoから生成）と、category=[]を明示したDeckInfoから生成したスナップショットを比較する"
+expect_return = "true（両者とも[]に正規化されるため差として検出されない）"
+
+[[condition]]
+id = "has_only_sort_order_changes.tags_undefined_fallback_to_empty_array"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "113"
+description = "パースしたdataのtagsがundefinedの場合、DeckInfo再構築時に`?? []`で空配列へ補完する"
+given = "tagsを含まないスナップショットと、tags=[]を明示したスナップショットを比較する"
+expect_return = "true"
+
+[[condition]]
+id = "has_only_sort_order_changes.comment_undefined_fallback_to_empty_string"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "114"
+description = "パースしたdataのcommentがundefinedの場合、DeckInfo再構築時に`?? ''`で空文字へ補完する"
+given = "commentを含まないスナップショットと、comment=''を明示したスナップショットを比較する"
+expect_return = "true"
+
+[[condition]]
+id = "has_only_sort_order_changes.undefined_vs_default_diverges_from_compare_snapshots"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "112-114"
+description = "category未設定(undefined)由来のスナップショットとcategory=[]由来のスナップショットは、compareSnapshots（生文字列比較）では異なる文字列として区別されるが、hasOnlySortOrderChangesでは同一と判定される（判定結果の食い違い）"
+given = "同一内容だがcategoryのみundefined/[]で異なる2つのスナップショット文字列"
+expect_return = "compareSnapshots→false、hasOnlySortOrderChanges→trueで結果が食い違う"
+
+[[condition]]
+id = "has_only_sort_order_changes.lang_only_difference_not_detected"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "132-135"
+description = "内部でcaptureDeckSnapshotWithoutOrderを呼ぶため、normalize()がlangを比較対象から除外する挙動を引き継ぐ。cid/ciid/quantity/並び順が同じでlangのみ異なる場合はtrueを返す"
+given = "mainDeckの各カードでlangのみ異なる2つのdeckInfoから生成したスナップショットを比較する"
+expect_return = "true（lang差分は検出されない）"
+
+[[condition]]
+id = "has_only_sort_order_changes.skipped_cards_order_affects_result"
+target_function = "hasOnlySortOrderChanges"
+source_lines = "132-135"
+description = "skippedCardsはnormalize()の対象外のため、要素の中身が同じでも並び順が異なればfalseを返す"
+given = "skippedCardsの要素は同一だが並び順のみ異なる2つのスナップショットを比較する"
+expect_return = "false"
+
+# --- compareSnapshots(snapshot1, snapshot2) ---
+
+[[condition]]
+id = "compare_snapshots.strict_string_equality_no_normalization"
+target_function = "compareSnapshots"
+source_lines = "153"
+description = "compareSnapshotsは正規化を一切行わず、2つのスナップショット文字列を`===`でそのまま比較する。hasOnlySortOrderChangesとは異なりcategory/tags/commentのデフォルト値補完もlangの除外も行わない"
+given = "category未設定由来のスナップショットとcategory=[]由来のスナップショット（内容は等価だがJSON文字列としては異なる）"
+expect_return = "false（hasOnlySortOrderChangesならtrueになるケースでもfalseを返す）"

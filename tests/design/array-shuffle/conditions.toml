@@ -1,0 +1,65 @@
+# 検証対象: src/utils/array-shuffle.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象」グループ。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 乱数分布や「100回中90回以上順序が変わる」ことを検証していたが、実装から確定できる
+#   条件ではなく、Math.randomの実行時結果に依存する推測的なテストだった。
+#   Fisher-Yatesの境界動作をMath.randomの固定値で検証するテストに置き換えた。
+
+[meta]
+feature = "array-shuffle"
+source_file = "src/utils/array-shuffle.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/array-shuffle.test.ts"
+source_hash = "fc4b5b19f71de4aec050f5e9758033b1c7d69c54"
+note = "verified=falseは0件"
+
+# --- fisherYatesShuffle<T>(array: T[]): T[] ---
+
+[[condition]]
+id = "fisher_yates.returns_new_array_copy"
+target_function = "fisherYatesShuffle"
+source_lines = "27-28,33"
+description = "入力配列をスプレッド構文でコピーしたshuffledを返すため、戻り値は入力配列と別参照で、元配列自体は変更されない"
+given = "array = [1, 2, 3]"
+expect_return_shape = "戻り値は入力と別の配列インスタンス。入力配列は呼び出し後も[1, 2, 3]のまま"
+
+[[condition]]
+id = "fisher_yates.length_zero_or_one_skips_loop"
+target_function = "fisherYatesShuffle"
+source_lines = "28-29,33"
+description = "コピー後のlengthが0または1の場合、forループ条件 i > 0 を満たさず、Math.randomもswapも実行されない"
+given = "array = [] または [1]"
+expect_return_shape = "入力と同じ要素列を持つ別配列を返し、Math.randomは呼ばれない"
+
+[[condition]]
+id = "fisher_yates.random_zero_swaps_with_first_index"
+target_function = "fisherYatesShuffle"
+source_lines = "29-31"
+description = "各反復で j = Math.floor(Math.random() * (i + 1)) を計算するため、Math.randomが0を返す場合は常にj=0になり、shuffled[i]とshuffled[0]を交換する"
+given = "array = [1, 2, 3] かつ Math.randomが常に0"
+expect_return = "[2, 3, 1]"
+
+[[condition]]
+id = "fisher_yates.random_near_one_self_swaps"
+target_function = "fisherYatesShuffle"
+source_lines = "29-31"
+description = "Math.randomが1未満で1に十分近い値を返す場合、jは現在のiになり、各反復は同じ添字同士の交換になる"
+given = "array = [1, 2, 3] かつ Math.randomが常に0.999999"
+expect_return = "[1, 2, 3]（ただし戻り値は別配列）"
+
+[[condition]]
+id = "fisher_yates.iterates_descending_until_one"
+target_function = "fisherYatesShuffle"
+source_lines = "29-31"
+description = "forループは i = length - 1 から開始し、i > 0 の間だけ1ずつ減少するため、長さnの配列ではMath.randomとswapがn-1回実行される"
+given = "array length = 4"
+expect_return_shape = "Math.randomは3回呼ばれ、i=3,2,1の各反復でjを計算してswapする"
+

@@ -35,14 +35,14 @@ describe('stores/toast-notification', () => {
       });
     });
 
-    it('デフォルトのtypeはinfo', () => {
+    it('デフォルトのtypeはinfo [covers:show_toast.default_type_and_duration]', () => {
       const store = useToastStore();
       store.showToast('メッセージ');
 
       expect(store.toasts[0]?.type).toBe('info');
     });
 
-    it('デフォルトのdurationは3000', () => {
+    it('デフォルトのdurationは3000 [covers:show_toast.default_type_and_duration]', () => {
       const store = useToastStore();
       store.showToast('メッセージ');
 
@@ -77,14 +77,22 @@ describe('stores/toast-notification', () => {
       expect(store.toasts[0]?.duration).toBe(5000);
     });
 
-    it('一意なIDが付与される', () => {
+    it('Date.nowとMath.randomから生成したIDを返し、同じIDをtoastに保持する [covers:show_toast.pushes_toast_and_returns_generated_id]', () => {
       const store = useToastStore();
-      const id1 = store.showToast('メッセージ1');
-      const id2 = store.showToast('メッセージ2');
+      vi.setSystemTime(new Date(1000));
+      vi.spyOn(Math, 'random').mockReturnValue(0.123);
 
-      expect(id1).not.toBe(id2);
-      expect(store.toasts[0]?.id).toBe(id1);
-      expect(store.toasts[1]?.id).toBe(id2);
+      const id = store.showToast('メッセージ', 'warning', '本文', 5000);
+
+      expect(id).toBe('toast-1000-0.123');
+      expect(store.toasts[0]).toEqual({
+        id: 'toast-1000-0.123',
+        message: 'メッセージ',
+        type: 'warning',
+        duration: 5000,
+        title: 'メッセージ',
+        body: '本文'
+      });
     });
 
     it('複数のトーストを同時に表示できる', () => {
@@ -97,7 +105,7 @@ describe('stores/toast-notification', () => {
       expect(store.toasts).toHaveLength(3);
     });
 
-    it('指定時間後に自動削除される', () => {
+    it('指定時間後に自動削除される [covers:show_toast.positive_duration_schedules_auto_remove]', () => {
       const store = useToastStore();
       store.showToast('メッセージ', 'info', undefined, 3000);
 
@@ -109,7 +117,7 @@ describe('stores/toast-notification', () => {
       expect(store.toasts).toHaveLength(0);
     });
 
-    it('duration=0の場合、自動削除されない', () => {
+    it('duration=0の場合、自動削除されない [covers:show_toast.non_positive_duration_skips_auto_remove]', () => {
       const store = useToastStore();
       store.showToast('メッセージ', 'info', undefined, 0);
 
@@ -141,7 +149,7 @@ describe('stores/toast-notification', () => {
   });
 
   describe('removeToast', () => {
-    it('指定IDのトーストを削除できる', () => {
+    it('指定IDのトーストを削除できる [covers:remove_toast.existing_id_removes_first_match]', () => {
       const store = useToastStore();
       const id1 = store.showToast('メッセージ1');
       const id2 = store.showToast('メッセージ2');
@@ -156,7 +164,7 @@ describe('stores/toast-notification', () => {
       expect(store.toasts[1]?.id).toBe(id3);
     });
 
-    it('存在しないIDを指定しても何も起こらない', () => {
+    it('存在しないIDを指定しても何も起こらない [covers:remove_toast.missing_id_is_noop]', () => {
       const store = useToastStore();
       store.showToast('メッセージ');
 
@@ -179,7 +187,7 @@ describe('stores/toast-notification', () => {
   });
 
   describe('clearAll', () => {
-    it('全てのトーストをクリアできる', () => {
+    it('全てのトーストをクリアできる [covers:clear_all.replaces_toasts_with_empty_array]', () => {
       const store = useToastStore();
 
       store.showToast('メッセージ1');

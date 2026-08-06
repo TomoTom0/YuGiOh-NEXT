@@ -31,9 +31,6 @@ export default defineConfig({
       'tmp/**',
       'tests/unit/stores/deck-edit.test.ts',
       'ref/**',
-      // process.exit()を使用する独自テストランナー
-      'tests/unit/composables/useFLIPAnimation.test.ts',
-      'tests/unit/utils/array-shuffle.test.ts',
     ],
     coverage: {
       provider: 'v8',

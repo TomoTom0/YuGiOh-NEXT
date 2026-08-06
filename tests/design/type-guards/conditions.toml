@@ -1,0 +1,312 @@
+# 検証対象: src/utils/type-guards.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象」グループ最優先。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 数値enumのテストは reverse mapping で生成される文字列キー（例: "Zero"）が
+#   Object.values(enumObject).includes(value) により true になる点を明示していなかった。
+#   実装挙動を npx tsx で確認し、テストを追加した。
+
+[meta]
+feature = "type-guards"
+source_file = "src/utils/type-guards.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/type-guards.test.ts"
+source_hash = "922e2cb971c1d49380e3b7f35783f7db8fa488db"
+note = "verified=falseは0件"
+
+# --- createHtmlElementTypeGuard<T extends Element>(interfaceName, propertyChecks) ---
+
+[[condition]]
+id = "html_guard.instanceof_true"
+target_function = "createHtmlElementTypeGuard"
+source_lines = "22-25"
+description = "windowが存在し、window[interfaceName]がtruthyで、element instanceof window[interfaceName]がtrueの場合、propertyChecksを評価せずtrueを返す"
+given = "document.createElement('input') を isHTMLInputElement に渡す"
+expect_return = "true"
+
+[[condition]]
+id = "html_guard.property_fallback_true"
+target_function = "createHtmlElementTypeGuard"
+source_lines = "22-32"
+description = "instanceofでtrueにならない場合でも、elementがtruthyなobjectでpropertyChecksがtrueならtrueを返す"
+given = "plain object { tagName: 'INPUT', value: '' } を isHTMLInputElement に渡す"
+expect_return = "true"
+
+[[condition]]
+id = "html_guard.property_fallback_false"
+target_function = "createHtmlElementTypeGuard"
+source_lines = "28-32"
+description = "elementがnull/undefined等のfalsy、object以外、またはpropertyChecksがfalseの場合はfalseを返す"
+given = "null、undefined、文字列、または対象要素のpropertyChecksを満たさないobject"
+expect_return = "false"
+
+# --- HTML element guard exports ---
+
+[[condition]]
+id = "is_html_element.property_shape"
+target_function = "isHTMLElement"
+source_lines = "48-50"
+description = "フォールバック判定では'tagName'と'nodeType'を持ち、nodeType === 1の場合のみtrueを返す"
+given = "{ tagName: 'DIV', nodeType: 1 } / { tagName: 'DIV', nodeType: 3 }"
+expect_return = "前者true、後者false"
+
+[[condition]]
+id = "is_html_input.property_shape"
+target_function = "isHTMLInputElement"
+source_lines = "65-67"
+description = "フォールバック判定ではtagName === 'INPUT'かつ'value' in elの場合のみtrueを返す"
+given = "{ tagName: 'INPUT', value: '' } / { tagName: 'INPUT' } / { tagName: 'DIV', value: '' }"
+expect_return = "1つ目のみtrue"
+
+[[condition]]
+id = "is_html_image.property_shape"
+target_function = "isHTMLImageElement"
+source_lines = "82-84"
+description = "フォールバック判定ではtagName === 'IMG'かつ'src' in elの場合のみtrueを返す"
+given = "{ tagName: 'IMG', src: '' } / { tagName: 'IMG' } / { tagName: 'DIV', src: '' }"
+expect_return = "1つ目のみtrue"
+
+[[condition]]
+id = "is_html_select.property_shape"
+target_function = "isHTMLSelectElement"
+source_lines = "93-95"
+description = "フォールバック判定ではtagName === 'SELECT'かつ'options' in elの場合のみtrueを返す"
+given = "{ tagName: 'SELECT', options: [] } / { tagName: 'SELECT' } / { tagName: 'DIV', options: [] }"
+expect_return = "1つ目のみtrue"
+
+[[condition]]
+id = "is_html_button.property_shape"
+target_function = "isHTMLButtonElement"
+source_lines = "104-106"
+description = "フォールバック判定ではtagName === 'BUTTON'の場合にtrueを返す（追加プロパティは要求しない）"
+given = "{ tagName: 'BUTTON' } / { tagName: 'DIV' }"
+expect_return = "前者true、後者false"
+
+[[condition]]
+id = "is_html_anchor.property_shape"
+target_function = "isHTMLAnchorElement"
+source_lines = "115-117"
+description = "フォールバック判定ではtagName === 'A'かつ'href' in elの場合のみtrueを返す"
+given = "{ tagName: 'A', href: '' } / { tagName: 'A' } / { tagName: 'DIV', href: '' }"
+expect_return = "1つ目のみtrue"
+
+[[condition]]
+id = "is_html_option.property_shape"
+target_function = "isHTMLOptionElement"
+source_lines = "126-128"
+description = "フォールバック判定ではtagName === 'OPTION'かつ'value' in elの場合のみtrueを返す"
+given = "{ tagName: 'OPTION', value: '' } / { tagName: 'OPTION' } / { tagName: 'DIV', value: '' }"
+expect_return = "1つ目のみtrue"
+
+[[condition]]
+id = "is_html_textarea.property_shape"
+target_function = "isHTMLTextAreaElement"
+source_lines = "137-139"
+description = "フォールバック判定ではtagName === 'TEXTAREA'かつ'value' in elの場合のみtrueを返す"
+given = "{ tagName: 'TEXTAREA', value: '' } / { tagName: 'TEXTAREA' } / { tagName: 'DIV', value: '' }"
+expect_return = "1つ目のみtrue"
+
+# --- basic type guards ---
+
+[[condition]]
+id = "is_record.object_non_null_non_array"
+target_function = "isRecord"
+source_lines = "154-155"
+description = "obj !== null かつ typeof obj === 'object' かつ Array.isArray(obj) === false の場合trueを返す"
+given = "{}、Dateインスタンス、null、undefined、[]、文字列、数値"
+expect_return = "{}とDateインスタンスはtrue、それ以外の例はfalse"
+
+[[condition]]
+id = "has_property.key_in_record"
+target_function = "hasProperty"
+source_lines = "171-175"
+description = "isRecord(obj)がtrueで、key in obj がtrueの場合trueを返す。in演算子のため継承プロパティもtrueになる"
+given = "own propertyを持つobject、prototype上にkeyを持つobject"
+expect_return = "true"
+
+[[condition]]
+id = "has_property.false_when_missing_or_not_record"
+target_function = "hasProperty"
+source_lines = "171-175"
+description = "isRecord(obj)がfalse、またはkey in objがfalseの場合falseを返す。配列はkeyを持っていてもisRecordで除外される"
+given = "{ name: 'test' }に'age'、文字列に'length'、配列に'length'"
+expect_return = "false"
+
+[[condition]]
+id = "is_defined.not_nullish"
+target_function = "isDefined"
+source_lines = "190-191"
+description = "value !== null かつ value !== undefined の場合trueを返し、nullまたはundefinedのみfalseを返す"
+given = "0、''、false、{}、[]、null、undefined"
+expect_return = "null/undefinedのみfalse、それ以外はtrue"
+
+[[condition]]
+id = "is_string.typeof_string"
+target_function = "isString"
+source_lines = "200-201"
+description = "typeof value === 'string' の場合のみtrueを返す"
+given = "''、'hello'、new String('x')、数値、null、undefined、object"
+expect_return = "プリミティブ文字列のみtrue"
+
+[[condition]]
+id = "is_number.typeof_number_not_nan"
+target_function = "isNumber"
+source_lines = "210-211"
+description = "typeof value === 'number' かつ !isNaN(value) の場合trueを返す。Infinityはtrue、NaNはfalse"
+given = "0、123、-45.67、Infinity、NaN、'123'、null、undefined、new Number(1)"
+expect_return = "numberプリミティブかつNaNでない値のみtrue"
+
+[[condition]]
+id = "is_boolean.typeof_boolean"
+target_function = "isBoolean"
+source_lines = "220-221"
+description = "typeof value === 'boolean' の場合のみtrueを返す"
+given = "true、false、1、0、'true'、null"
+expect_return = "true/falseのみtrue"
+
+[[condition]]
+id = "is_array.array_is_array"
+target_function = "isArray"
+source_lines = "230-231"
+description = "Array.isArray(value) の結果をそのまま返す"
+given = "[]、[1,2,3]、{}、null、'array'"
+expect_return = "配列のみtrue"
+
+[[condition]]
+id = "is_enum_member.object_values_includes"
+target_function = "isEnumMember"
+source_lines = "248-252"
+description = "Object.values(enumObject).includes(value) の結果を返す。数値enumではTypeScriptのreverse mappingによりメンバー名文字列もtrueになる"
+given = "文字列enum {A:'a'} の'a'/'A'、数値enum {Zero=0} の0/'Zero'/3"
+expect_return = "'a'、0、'Zero'はtrue。'A'、3はfalse"
+
+# --- safe helpers ---
+
+[[condition]]
+id = "safe_query_as.found_and_guard_true"
+target_function = "safeQueryAs"
+source_lines = "278-282"
+description = "parentが指定されなければdocumentを検索し、querySelectorで要素が見つかりtypeGuard(element)がtrueならその要素を返す"
+given = "document内のinputをselectorで検索し、isHTMLInputElementを渡す"
+expect_return_shape = "見つかったinput要素そのもの"
+
+[[condition]]
+id = "safe_query_as.found_but_guard_false"
+target_function = "safeQueryAs"
+source_lines = "281-285"
+description = "querySelectorで要素が見つかってもtypeGuard(element)がfalseならnullを返す"
+given = "divをselectorで検索し、isHTMLInputElementを渡す"
+expect_return = "null"
+
+[[condition]]
+id = "safe_query_as.not_found"
+target_function = "safeQueryAs"
+source_lines = "279-285"
+description = "querySelectorがnullを返した場合、typeGuardを呼ばずnullを返す"
+given = "存在しないselector"
+expect_return = "null"
+
+[[condition]]
+id = "safe_query_as.uses_parent_when_truthy"
+target_function = "safeQueryAs"
+source_lines = "278-279"
+description = "parentがtruthyの場合はparent.querySelector(selector)で検索し、未指定の場合はdocument.querySelector(selector)で検索する"
+given = "parent要素の内側にだけ存在するchild selector"
+expect_return_shape = "parent内のchild要素"
+
+[[condition]]
+id = "safe_cast_as.guard_true_returns_obj"
+target_function = "safeCastAs"
+source_lines = "302-306"
+description = "typeGuard(obj)がtrueの場合、objそのものを返す"
+given = "obj = { key: 'value' }, typeGuard = isRecord"
+expect_return_shape = "入力objと同一参照"
+
+[[condition]]
+id = "safe_cast_as.guard_false_returns_null"
+target_function = "safeCastAs"
+source_lines = "302-306"
+description = "typeGuard(obj)がfalseの場合、nullを返す"
+given = "obj = null, typeGuard = isRecord"
+expect_return = "null"
+
+[[condition]]
+id = "all_guards.every_all_true"
+target_function = "allGuards"
+source_lines = "321-325"
+description = "guards.every(guard => guard(value)) の結果を返す。全guardがtrueを返す場合true"
+given = "isRecord、hasProperty('name')、hasProperty('age')がすべてtrueになるobject"
+expect_return = "true"
+
+[[condition]]
+id = "all_guards.every_any_false"
+target_function = "allGuards"
+source_lines = "321-325"
+description = "1つでもguardがfalseを返す場合falseを返し、Array.prototype.everyの短絡評価に従う"
+given = "hasProperty('age')がfalseになるobject"
+expect_return = "false"
+
+[[condition]]
+id = "all_guards.empty_guards_true"
+target_function = "allGuards"
+source_lines = "321-325"
+description = "guardsが空の場合、[].every(...)の結果としてtrueを返す"
+given = "allGuards('anything')"
+expect_return = "true"
+
+[[condition]]
+id = "any_guard.some_any_true"
+target_function = "anyGuard"
+source_lines = "340-344"
+description = "guards.some(guard => guard(value)) の結果を返す。少なくとも1つのguardがtrueを返す場合trueを返し、短絡評価に従う"
+given = "value = 'test', guards = [isString, isNumber]"
+expect_return = "true"
+
+[[condition]]
+id = "any_guard.some_all_false"
+target_function = "anyGuard"
+source_lines = "340-344"
+description = "すべてのguardがfalseを返す場合falseを返す"
+given = "value = true, guards = [isString, isNumber]"
+expect_return = "false"
+
+[[condition]]
+id = "any_guard.empty_guards_false"
+target_function = "anyGuard"
+source_lines = "340-344"
+description = "guardsが空の場合、[].some(...)の結果としてfalseを返す"
+given = "anyGuard('anything')"
+expect_return = "false"
+
+# --- domain-specific value guards ---
+
+[[condition]]
+id = "is_deck_type_value.string_0_to_3"
+target_function = "isDeckTypeValue"
+source_lines = "358-359"
+description = "typeof value === 'string' かつ valueが'0','1','2','3'のいずれかの場合のみtrueを返す"
+given = "'0'、'1'、'2'、'3'、'4'、'-1'、'a'、0、null"
+expect_return = "'0'から'3'のみtrue"
+
+[[condition]]
+id = "is_deck_style_value.string_minus1_to_2"
+target_function = "isDeckStyleValue"
+source_lines = "373-374"
+description = "typeof value === 'string' かつ valueが'-1','0','1','2'のいずれかの場合のみtrueを返す"
+given = "'-1'、'0'、'1'、'2'、'3'、'-2'、'a'、0、null"
+expect_return = "'-1'から'2'のみtrue"
+
+[[condition]]
+id = "is_record_of_string_keys.object_non_null_non_array"
+target_function = "isRecordOfStringKeys"
+source_lines = "395-396"
+description = "typeof value === 'object' かつ value !== null かつ Array.isArray(value) === false の場合trueを返す。キーが文字列かどうかや値の型は検証しない"
+given = "{}、{ key: 'value' }、Dateインスタンス、null、undefined、[]、文字列、数値"
+expect_return = "object非null非配列のみtrue"

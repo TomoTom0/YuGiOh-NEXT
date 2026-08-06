@@ -10,7 +10,7 @@ describe('search-exclusion-engine', () => {
   const rules = loadExclusionRules();
 
   describe('基本的な排他パターン', () => {
-    it('card-typeグループ: monsterを選択するとspell/trapが排他', () => {
+    it('[covers:attr_exclusion.card_type_always_applies] card-typeグループ: monsterを選択するとspell/trapが排他', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(['card-type_monster']),
@@ -23,7 +23,7 @@ describe('search-exclusion-engine', () => {
       expect(result.attributeStates.get('card-type_trap')?.enabled).toBe(false);
     });
 
-    it('ANDモード: normalを選択するとlink/fusion等が排他', () => {
+    it('[covers:attr_exclusion.and_mode_applies] ANDモード: normalを選択するとlink/fusion等が排他', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(['monster-type_normal']),
@@ -37,7 +37,7 @@ describe('search-exclusion-engine', () => {
       expect(result.attributeStates.get('monster-type_effect')?.enabled).toBe(false);
     });
 
-    it('ORモード: 直接選択同士は排他が適用されない', () => {
+    it('[covers:attr_exclusion.or_direct_selection_skips_non_card_group] ORモード: 直接選択同士は排他が適用されない', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(['monster-type_normal', 'monster-type_fusion']),
@@ -53,7 +53,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('項目→属性の必須化', () => {
-    it('link-valueに入力するとmonster-type_linkが必須になる', () => {
+    it('[covers:field_to_attr.target_creates_required_selected_attr] link-valueに入力するとmonster-type_linkが必須になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -69,7 +69,7 @@ describe('search-exclusion-engine', () => {
       expect(linkState?.selected).toBe(true);
     });
 
-    it('link-markerに入力するとmonster-type_linkが必須になる', () => {
+    it('[covers:field_to_attr.target_creates_required_selected_attr] link-markerに入力するとmonster-type_linkが必須になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -85,7 +85,7 @@ describe('search-exclusion-engine', () => {
       expect(linkState?.selected).toBe(true);
     });
 
-    it('p-scaleに入力するとmonster-type_pendが必須になる', () => {
+    it('[covers:field_to_attr.target_creates_required_selected_attr] p-scaleに入力するとmonster-type_pendが必須になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -101,7 +101,7 @@ describe('search-exclusion-engine', () => {
       expect(pendState?.selected).toBe(true);
     });
 
-    it('level-rankに入力するとmonster-type_linkが選択不可になる', () => {
+    it('[covers:field_to_attr.not_target_disables_attr] level-rankに入力するとmonster-type_linkが選択不可になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -117,7 +117,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('属性→項目の無効化', () => {
-    it('monster-type_linkを選択するとdefが無効になる', () => {
+    it('[covers:attr_to_field.non_card_and_mode_applies] monster-type_linkを選択するとdefが無効になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(['monster-type_link']),
@@ -133,7 +133,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('連鎖パターン', () => {
-    it('link-marker入力 → link必須 → ANDモードでnormalと排他', () => {
+    it('[covers:attr_exclusion.and_mode_applies,attr_to_field.non_card_and_mode_applies] link-marker入力 → link必須 → ANDモードでnormalと排他', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(),
@@ -154,7 +154,7 @@ describe('search-exclusion-engine', () => {
       expect(result.fieldStates.get('def')?.enabled).toBe(false);
     });
 
-    it('ORモード + link-marker入力 → linkが必須 → normalも排他になる', () => {
+    it('[covers:attr_exclusion.or_required_applies_non_card_group] ORモード + link-marker入力 → linkが必須 → normalも排他になる', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -172,7 +172,7 @@ describe('search-exclusion-engine', () => {
       expect(result.attributeStates.get('monster-type_normal')?.enabled).toBe(false);
     });
 
-    it('ANDモード + normal選択 → linkが無効 → link-markerが無効', () => {
+    it('[covers:attr_to_field.disabled_attr_exact_required_field_disabled] ANDモード + normal選択 → linkが無効 → link-markerが無効', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(['monster-type_normal']),
@@ -192,7 +192,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('矛盾検出', () => {
-    it.skip('link-markerに入力 + ANDモード + normal選択 → 矛盾を検出', () => {
+    it.skip('[covers:infer.conflict_required_disabled_attribute] link-markerに入力 + ANDモード + normal選択 → 矛盾を検出', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(['monster-type_normal']),
@@ -208,7 +208,7 @@ describe('search-exclusion-engine', () => {
       expect(result.conflicts.some((c) => c.type === 'contradiction')).toBe(true);
     });
 
-    it.skip('defに入力 + link選択 → 警告を検出', () => {
+    it.skip('[covers:infer.conflict_input_disabled_field] defに入力 + link選択 → 警告を検出', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(['monster-type_link']),
@@ -226,7 +226,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('トレース機能', () => {
-    it('トレースを有効にすると推論の追跡情報が記録される', () => {
+    it('[covers:infer.trace_enabled_records_steps] トレースを有効にすると推論の追跡情報が記録される', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'and',
         selectedAttributes: new Set(),
@@ -248,7 +248,7 @@ describe('search-exclusion-engine', () => {
   });
 
   describe('項目からの推論による項目無効化', () => {
-    it('level-rank入力 → linkが無効 → link関連項目が無効', () => {
+    it('[covers:attr_to_field.disabled_attr_exact_required_field_disabled] level-rank入力 → linkが無効 → link関連項目が無効', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),
@@ -267,7 +267,7 @@ describe('search-exclusion-engine', () => {
       expect(result.fieldStates.get('link-marker')?.enabled).toBe(false);
     });
 
-    it('link-value入力 → linkが必須 → level-rankが無効', () => {
+    it('[covers:attr_to_field.non_card_or_required_applies] link-value入力 → linkが必須 → level-rankが無効', () => {
       const state: SearchConditionState = {
         monsterTypeMode: 'or',
         selectedAttributes: new Set(),

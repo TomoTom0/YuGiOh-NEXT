@@ -1,0 +1,297 @@
+# 検証対象: src/api/genesys.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)。docs/api/*.md等の二次情報は参照していない。
+#
+# デッドコード・到達不能分岐:
+# - なし。非exportのfetchText/fetchTextViaBackgroundはAST未カバー検出対象外だが、
+#   CORS越えfetchの中核で意味のある分岐を持つためconditions化した。
+
+[meta]
+feature = "genesys"
+source_file = "src/api/genesys.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/api/genesys.test.ts"
+source_hash = "0f9e24f6666696c5e32f9a90d6a7e0b3ecc429e9"
+note = "verified=falseは0件。fetchTextViaBackgroundの30秒タイムアウトはVitest fake timersで検証する"
+
+# --- fetchTextViaBackground(url: string): Promise<string> ---
+
+[[condition]]
+id = "fetch_bg.sends_message_with_request"
+target_function = "fetchTextViaBackground"
+source_lines = "27-37"
+description = "crypto.randomUUID()でrequestIdを作り、chrome.runtime.sendMessageに{ type: 'GENESYS_FETCH', requestId, url }を渡してservice workerを起こす。sendMessageの応答値は待たない"
+given = "content script相当の環境でfetchGenesysIndex/fetchGenesysPointListを呼ぶ"
+expect_return_shape = "chrome.runtime.sendMessageがGENESYS_FETCHメッセージで1回呼ばれ、最終結果はstorage.local経由の応答から作られる"
+
+[[condition]]
+id = "fetch_bg.send_message_last_error_ignored"
+target_function = "fetchTextViaBackground"
+source_lines = "33-37"
+description = "sendMessage callback内でchrome.runtime.lastErrorが存在してもconsole.warnするだけで、fetch処理自体は失敗させない"
+given = "sendMessage callback実行時にchrome.runtime.lastError.messageが存在し、その後storage.localに成功応答が入る"
+expect_no_throw = true
+expect_return_shape = "storage.localの成功応答に基づくテキストが返る"
+
+[[condition]]
+id = "fetch_bg.poll_ignores_missing_or_other_request"
+target_function = "fetchTextViaBackground"
+source_lines = "41-57"
+description = "storage.local.get('genesysFetchResp')の結果が未設定、またはrequestId不一致の場合はremoveもreturn/throwもせず300ms待って再ポーリングする"
+given = "1回目のstorage.local応答が別requestId、2回目が同じrequestIdの成功応答"
+expect_return_shape = "1回目は無視され、2回目の成功応答が返る"
+
+[[condition]]
+id = "fetch_bg.matched_success_returns_text"
+target_function = "fetchTextViaBackground"
+source_lines = "49-54"
+description = "storage.local応答のrequestIdが一致しsuccessがtruthyの場合、genesysFetchRespをremoveしてresp.textを返す"
+given = "storage.localに{ requestId, success: true, text: '<html>' }が入る"
+expect_return_shape = "'<html>'"
+
+[[condition]]
+id = "fetch_bg.matched_success_missing_text_empty"
+target_function = "fetchTextViaBackground"
+source_lines = "49-54"
+description = "requestId一致かつsuccess truthyでtextがnull/undefinedの場合、空文字列を返す"
+given = "storage.localに{ requestId, success: true }が入る"
+expect_return_shape = "''"
+
+[[condition]]
+id = "fetch_bg.matched_failure_throws_error"
+target_function = "fetchTextViaBackground"
+source_lines = "49-55"
+description = "requestId一致かつsuccessがfalsyの場合、genesysFetchRespをremoveしてresp.errorのErrorをthrowする"
+given = "storage.localに{ requestId, success: false, error: 'Failed: 404 Not Found' }が入る"
+expect_throw = "Failed: 404 Not Found"
+
+[[condition]]
+id = "fetch_bg.matched_failure_default_error"
+target_function = "fetchTextViaBackground"
+source_lines = "49-55"
+description = "requestId一致かつsuccessがfalsyでerrorがnull/undefinedの場合、'GENESYS fetch failed'をthrowする"
+given = "storage.localに{ requestId, success: false }が入る"
+expect_throw = "GENESYS fetch failed"
+
+[[condition]]
+id = "fetch_bg.timeout_throws"
+target_function = "fetchTextViaBackground"
+source_lines = "40-59"
+description = "開始から30000ms未満の間だけ300ms間隔でstorage.localをポーリングし、一致応答が無いまま30秒に達すると'GENESYS fetch timeout'をthrowする"
+given = "storage.local.getが常に一致するgenesysFetchRespを返さない"
+expect_throw = "GENESYS fetch timeout"
+
+# --- fetchText(url: string): Promise<string> ---
+
+[[condition]]
+id = "fetch_text.content_script_uses_background"
+target_function = "fetchText"
+source_lines = "72-79"
+description = "windowが存在し、chromeが存在し、chrome.runtime.sendMessageがfunctionの場合はcontent script環境と判定し、直接fetchせずfetchTextViaBackgroundに委譲する"
+given = "happy-domのwindowとchrome.runtime.sendMessage mockが存在する"
+expect_return_shape = "background storageポーリング経由で取得したHTMLをパースした結果"
+
+[[condition]]
+id = "fetch_text.direct_fetch_success"
+target_function = "fetchText"
+source_lines = "72-85"
+description = "content script環境でない場合はfetch(url)を直接呼び、response.okがtrueならresponse.text()を返す"
+given = "chromeが未定義で、fetchが{ ok: true, text: async () => html }を返す"
+expect_return_shape = "直接fetchしたHTMLをパースした結果"
+
+[[condition]]
+id = "fetch_text.direct_fetch_not_ok_throws"
+target_function = "fetchText"
+source_lines = "81-84"
+description = "直接fetch経路でresponse.okがfalseの場合、`Failed to fetch: ${status} ${statusText}`をthrowする"
+given = "chromeが未定義で、fetchが{ ok: false, status: 503, statusText: 'Service Unavailable' }を返す"
+expect_throw = "Failed to fetch: 503 Service Unavailable"
+
+# --- listParamToEffectiveDate(listParam: string): string ---
+
+[[condition]]
+id = "list_param.valid_yyyymm"
+target_function = "listParamToEffectiveDate"
+source_lines = "124-128"
+description = "listParamが長さ6かつ数字6桁の場合、先頭4桁を年・末尾2桁を月としてYYYY-MM-01を返す"
+given = "listParam = '202606'"
+expect_return_shape = "'2026-06-01'"
+
+[[condition]]
+id = "list_param.invalid_returns_original"
+target_function = "listParamToEffectiveDate"
+source_lines = "124-129"
+description = "長さ6でない、または数字6桁でない場合は変換せずlistParamをそのまま返す"
+given = "listParam = 'abc' または '2026'"
+expect_return_shape = "入力文字列そのもの"
+
+# --- parseGenesysIndex(html: string): GenesysListRef[] ---
+
+[[condition]]
+id = "parse_index.no_point_section_empty"
+target_function = "parseGenesysIndex"
+source_lines = "164-167"
+description = "section#pointが存在しない場合は空配列を返す"
+given = "html = '<html><body>no section</body></html>'"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "parse_index.link_without_list_skipped"
+target_function = "parseGenesysIndex"
+source_lines = "173-180"
+description = "section#point内のa要素でもhrefに[?&]list=(数字6桁)が無い場合はスキップする"
+given = "section#point内にhref='?foo=202608'のリンクがある"
+expect_return_shape = "そのリンクはrefsに追加されない"
+
+[[condition]]
+id = "parse_index.duplicate_list_param_skipped"
+target_function = "parseGenesysIndex"
+source_lines = "181-184"
+description = "同じlistParamが既にseenにある場合、2件目以降はスキップする"
+given = "section#point内にhref='?list=202608'が2つある"
+expect_return_shape = "listParam='202608'のrefは1件だけ"
+
+[[condition]]
+id = "parse_index.date_text_parsed"
+target_function = "parseGenesysIndex"
+source_lines = "186-190"
+description = "リンクテキストにYYYY年M月D日が含まれる場合、月日を2桁ゼロ埋めしたYYYY-MM-DDをeffectiveDateにする"
+given = "リンクテキスト = '2026年8月1日適用リスト'"
+expect_return_shape = "effectiveDate = '2026-08-01'"
+
+[[condition]]
+id = "parse_index.date_missing_fallback"
+target_function = "parseGenesysIndex"
+source_lines = "186-190"
+description = "リンクテキストから日付を抽出できない場合、listParamToEffectiveDate(listParam)をeffectiveDateにする"
+given = "href='?list=202608'、リンクテキストに日付が無い"
+expect_return_shape = "effectiveDate = '2026-08-01'"
+
+[[condition]]
+id = "parse_index.latest_by_text_or_btn_class"
+target_function = "parseGenesysIndex"
+source_lines = "191-193"
+description = "リンクテキストに'最新版'を含む、またはclassNameに'btn'を含む場合、isLatest=trueとしてrefsに追加する"
+given = "最新版テキストのリンク、またはclass='btn howto marker'のリンク"
+expect_return_shape = "該当ref.isLatest = true"
+
+[[condition]]
+id = "parse_index.no_latest_marks_newest_effective_date"
+target_function = "parseGenesysIndex"
+source_lines = "196-200"
+description = "refsが1件以上あり、どのrefもisLatestでない場合、effectiveDateが文字列比較で最も新しいrefのisLatestをtrueに変更する"
+given = "2026-06-01と2026-08-01のリンクがあり、どちらも最新版テキスト/btn classを持たない"
+expect_return_shape = "2026-08-01のrefだけisLatest=true"
+
+[[condition]]
+id = "parse_index.existing_latest_kept"
+target_function = "parseGenesysIndex"
+source_lines = "196-201"
+description = "refs内にisLatest=trueが既に存在する場合、fallbackの最新日付マーキングは実行しない"
+given = "古いリンクが'最新版'を含み、新しいリンクは最新版扱いでない"
+expect_return_shape = "古いリンクのisLatest=trueが維持され、新しいリンクはfalseのまま"
+
+# --- fetchGenesysIndex(): Promise<GenesysListRef[]> ---
+
+[[condition]]
+id = "fetch_index.fetches_index_url_and_parses"
+target_function = "fetchGenesysIndex"
+source_lines = "209-212"
+description = "getGenesysIndexUrl()のURLをfetchTextで取得し、返ったHTMLをparseGenesysIndexに渡した結果を返す"
+given = "GENESYSインデックスHTMLをbackgroundまたは直接fetchで返す"
+expect_return_shape = "parseGenesysIndex(html)のGenesysListRef配列"
+
+# --- parseGenesysHtml(html: string, listParam: string): ParsedGenesysList ---
+
+[[condition]]
+id = "parse_html.data_count_numeric"
+target_function = "parseGenesysHtml"
+source_lines = "239-242,286-291"
+description = "table.genesyspointのdata-count属性から最初の数字列を抽出できる場合、その数値をtotalCountにする"
+given = "data-count='3'"
+expect_return_shape = "totalCount = 3"
+
+[[condition]]
+id = "parse_html.total_count_fallback_entries_length"
+target_function = "parseGenesysHtml"
+source_lines = "239-242,286-291"
+description = "data-count属性が無い、または数字を含まずtotalCountが0の場合、entries.lengthをtotalCountにする"
+given = "data-countなしで有効行が1件"
+expect_return_shape = "totalCount = 1"
+
+[[condition]]
+id = "parse_html.no_table_empty"
+target_function = "parseGenesysHtml"
+source_lines = "239-245,286-291"
+description = "table.genesyspointが存在しない場合、rowsは空となりentries=[]、totalCount=0を返す"
+given = "html = '<html><body>no table</body></html>'"
+expect_return_shape = "{ entries: [], totalCount: 0 }"
+
+[[condition]]
+id = "parse_html.missing_name_cell_skipped"
+target_function = "parseGenesysHtml"
+source_lines = "247-254"
+description = "tr内の2列目td(index 1)が存在しない行はスキップする"
+given = "tbody trにtdが1個しかない"
+expect_return_shape = "その行はentriesに追加されない"
+
+[[condition]]
+id = "parse_html.empty_name_skipped"
+target_function = "parseGenesysHtml"
+source_lines = "256-259"
+description = "2列目tdのtextContentをtrimしたカード名が空文字列の場合、その行はスキップする"
+given = "2列目tdが空白のみ"
+expect_return_shape = "その行はentriesに追加されない"
+
+[[condition]]
+id = "parse_html.data_point_priority"
+target_function = "parseGenesysHtml"
+source_lines = "261-267"
+description = "trのdata-point属性に数字列がある場合、3列目tdの表示値よりdata-pointから抽出した数値を優先する"
+given = "data-point='13' かつ3列目tdのtextContentが'99'"
+expect_return_shape = "entry.point = 13"
+
+[[condition]]
+id = "parse_html.point_cell_fallback"
+target_function = "parseGenesysHtml"
+source_lines = "267-272"
+description = "data-point属性から数字列を抽出できず、3列目tdが存在する場合、3列目tdのtextContentから最初の数字列を抽出してpointにする"
+given = "data-pointなし、3列目td='<b>12</b>'"
+expect_return_shape = "entry.point = 12"
+
+[[condition]]
+id = "parse_html.no_point_skipped"
+target_function = "parseGenesysHtml"
+source_lines = "261-276"
+description = "data-pointにも3列目tdにも数字列が無くpointが0のままの場合、その行はスキップする"
+given = "カード名はあるがポイント欄が空または非数字"
+expect_return_shape = "その行はentriesに追加されない"
+
+[[condition]]
+id = "parse_html.point_zero_skipped"
+target_function = "parseGenesysHtml"
+source_lines = "275-277"
+description = "抽出したpointが0の場合、その行はスキップする"
+given = "data-point='0'の行"
+expect_return_shape = "その行はentriesに追加されない"
+
+[[condition]]
+id = "parse_html.entry_shape_and_effective_date"
+target_function = "parseGenesysHtml"
+source_lines = "279-290"
+description = "有効行はtrim済みカード名、point、row.className.trim()をentriesへ追加し、effectiveDateはlistParamToEffectiveDate(listParam)で設定する"
+given = "class=' effect '、listParam='202606'、有効なカード行"
+expect_return_shape = "{ name, point, cardKindClass: 'effect' } と effectiveDate='2026-06-01'"
+
+# --- fetchGenesysPointList(listParam: string): Promise<ParsedGenesysList> ---
+
+[[condition]]
+id = "fetch_point_list.fetches_list_url_and_parses"
+target_function = "fetchGenesysPointList"
+source_lines = "300-303"
+description = "getGenesysListUrl(listParam)のURLをfetchTextで取得し、返ったHTMLとlistParamをparseGenesysHtmlに渡した結果を返す"
+given = "listParam='202608'でGENESYSリストHTMLをbackgroundまたは直接fetchで返す"
+expect_return_shape = "parseGenesysHtml(html, '202608')のParsedGenesysList"

@@ -1,0 +1,177 @@
+# 検証対象: src/composables/deck/useFLIPAnimation.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330（Tier B展開）、FLIP（First, Last, Invert, Play）テクニックによる
+# カード移動アニメーションを担うcomposable。
+#
+# 到達不能/実質到達不能分岐:
+# - animateCardMoveByUUID line 92 の `if (first && last)` は `first` と `last` を
+#   ともに truthy チェックしているが、`last = cardElement.getBoundingClientRect()`
+#   は DOM 仕様上常に DOMRect を返すため falsy にならない（JSDOM のモックで
+#   undefined を返すように細工した場合のみ到達可能）。実DOMでは実質到達不能だが、
+#   `first` 側は firstPositions に UUID が未登録の場合 undefined になり得るため、
+#   実質的に `first` のためのガードとして機能している。条件としては first の
+#   未登録ケース（line 89 の firstPositions.get(uuid) が undefined を返す）として
+#   扱う。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - duration 計算式（baseDuration=300, maxDuration=600, distanceFactor=sqrt(distance)*12）が
+#   line 121-124（requestAnimationFrame コールバック内で各要素に設定する transition）と
+#   line 132-137（setTimeout の待機時間用 maxDuration）で**重複定義**されている。
+#   定数化されていないため、将来どちらか片方だけ修正すると要素の transition 時間と
+#   setTimeout のクリーンアップ時間が食い違うバグを生む可能性がある。
+# - 横方向（deltaX）のみ 1.5 倍の重み付け（line 101）。縦方向（deltaY）はそのまま。
+#   そのため同一のユークリッド距離でも「横方向へ移動するカード」の方が distance が
+#   大きく算出され、duration が長くなる（design intent だが非対称性に注意）。
+# - line 112 の `if (allCards.length === 0) return;` ガードが無いと、直後の
+#   `Math.max(...allCards.map(...))`（line 132）が空配列を展開して -Infinity を返し、
+#   `setTimeout(..., -Infinity)` が即時実行されてしまう。このガードは
+#   アニメーション対象が1枚も無い場合の早期return と、Math.max の -Infinity 回避を
+#   兼ねている。
+# - line 114 の `document.body.getBoundingClientRect();` は戻り値を使用せず捨てている。
+#   コメントも無く一見無意味だが、直前の transform 設定（line 104-106）で書き込んだ
+#   スタイル変更後に DOM を再計算（force reflow）して `last` の取得（line 90 で
+#   取得済みだが transform 設定前の座標）を確定させる意図と推測される。ただし
+#   `last` は line 90 で取得済みのため、この reflow の実効性は実装からは読み取れない。
+# - line 40, 85 で `(card as HTMLElement)` の `as` キャストを使用している
+#   （プロジェクトの `as` キャスト禁止ルールに対する違反。type-guards未使用。
+#   本 conditions.toml の対象外だが設計上の注意点として記録）。
+# - useDeckEditStore() から取得した `isLoadingDeck`（Pinia の ref<boolean>）は、
+#   ストア経由でアクセスすると自動 unwrap されて boolean として評価される
+#   （Pinia の仕様）。テスト時はストアをモックして isLoadingDeck の値を制御する必要がある。
+
+[meta]
+feature = "use-flip-animation"
+source_file = "src/composables/deck/useFLIPAnimation.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useFLIPAnimation.test.ts"
+source_hash = "43f8caedeb626ad877abdbdaea5b6fbc530fd7f3"
+note = "verified=falseは0件。テストファイル（tests/unit/composables/useFLIPAnimation.test.ts）は TASK-330 で process.exit() を使う独自ランナー形式から Vitest の describe/it 形式へリライトし、vitest.config.ts の exclude リストから除外済み。これにより Pinia の setup（tests/setup.ts + beforeEach で setActivePinia(createPinia())）を通じて isLoadingDeck=true のスキップ分岐も検証可能になった。"
+
+# --- recordAllCardPositionsByUUID() ---
+
+[[condition]]
+id = "record.empty_section_skipped"
+target_function = "recordAllCardPositionsByUUID"
+source_lines = "35-36"
+description = "main/extra/side/trash 各セクションについて `.${section}-deck .card-grid` を querySelector で検索し、該当要素が存在しない場合は forEach 内の早期return でそのセクションをスキップする（Map への追加は行われない）"
+given = "DOM 上に `.main-deck .card-grid` 等のセクション要素が一切存在しない"
+expect_return = "空のMap（size=0）が返る"
+
+[[condition]]
+id = "record.card_without_data_uuid_ignored"
+target_function = "recordAllCardPositionsByUUID"
+source_lines = "40-43"
+description = "セクション内の `.deck-card` 要素のうち `data-uuid` 属性を持たないものは `if (uuid)` で弾かれ、Map へ追加されない（位置記録対象外）"
+given = "`.deck-card` 要素のうち一部が `data-uuid` 属性を持たない"
+expect_return = "data-uuid を持つカードのみが Map のキーとなる（data-uuid 無しのカードは含まれない）"
+
+[[condition]]
+id = "record.records_uuid_to_domrect_across_all_four_sections"
+target_function = "recordAllCardPositionsByUUID"
+source_lines = "30-48"
+description = "main/extra/side/trash の4セクションを順に走査し、各 `.deck-card` の `data-uuid` をキー・`getBoundingClientRect()` の戻り値（DOMRect）を値としてMapへ格納する。複数セクションにまたがるカードをすべて1つのMapに統合する"
+given = "main/extra/side/trash 各セクションに data-uuid を持つ .deck-card が存在する"
+expect_return = "全セクションのカードが1つのMapに統合された状態で返る（size は全カード合計数）"
+
+# --- animateCardMoveByUUID(firstPositions, affectedSections) ---
+
+[[condition]]
+id = "animate.skip_when_deck_loading"
+target_function = "animateCardMoveByUUID"
+source_lines = "71-74"
+description = "関数冒頭で useDeckEditStore() を取得し、`deckStore.isLoadingDeck` が true の場合は即座に return してアニメーション全体をスキップする。デッキロード中の大量カード追加/削除によるアニメーション暴発を防ぐガード"
+given = "デッキロード中（isLoadingDeck=true）に呼び出す"
+expect_return = "undefined（早期return）。いかなる DOM 操作・副作用も発生しない"
+expect_side_effect = "要素の style 変更・requestAnimationFrame・setTimeout のいずれも呼ばれない"
+
+[[condition]]
+id = "animate.skip_section_when_no_section_element"
+target_function = "animateCardMoveByUUID"
+source_lines = "79-80"
+description = "affectedSections の各セクションについて `.${section}-deck .card-grid` を querySelector し、要素が存在しない場合は forEach 内の早期return でそのセクションの処理をスキップする。エラーは投げない"
+given = "affectedSections に 'main' を含むが、DOM 上に `.main-deck .card-grid` 要素が存在しない"
+expect_return = "undefined（エラー無し）。allCards は空のまま"
+
+[[condition]]
+id = "animate.skip_card_when_no_data_uuid"
+target_function = "animateCardMoveByUUID"
+source_lines = "86-87"
+description = "セクション内の `.deck-card` 要素のうち `data-uuid` 属性を持たないものは forEach 内の早期return でスキップする（firstPositions の探索・transform 設定いずれも行わない）"
+given = "`.deck-card` 要素の一部が `data-uuid` 属性を持たない"
+expect_return = "undefined（エラー無し）。data-uuid 無しのカードは allCards へ追加されない"
+
+[[condition]]
+id = "animate.skip_card_when_uuid_not_in_first_positions"
+target_function = "animateCardMoveByUUID"
+source_lines = "89-92"
+description = "現在の `.deck-card` の data-uuid が firstPositions の Map に登録されていない場合、`firstPositions.get(uuid)` は undefined を返し、後続の `if (first && last)` で弾かれて allCards へ追加されない（移動元位置が不明なためアニメーション不可）"
+given = "DOM 上に存在するカードの UUID が firstPositions に含まれていない"
+expect_return = "undefined（エラー無し）。該当カードの style は変更されない"
+
+[[condition]]
+id = "animate.skip_subpixel_movement"
+target_function = "animateCardMoveByUUID"
+source_lines = "96-97"
+description = "deltaX/deltaY ともに絶対値が1未満（1ピクセル未満の移動）の場合は forEach の早期return でアニメーション対象から除外する。`Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1` の**両方**が満たされる場合のみ無視（どちらかが1px以上なら対象）"
+given = "first と last の left/top の差がともに1px未満"
+expect_return = "undefined（エラー無し）。transform/transition/zIndex は設定されない"
+
+[[condition]]
+id = "animate.horizontal_weight_1_5x"
+target_function = "animateCardMoveByUUID"
+source_lines = "99-102"
+description = "移動距離 distance を計算する際、deltaX（横方向）には1.5倍の係数を掛ける。deltaY（縦方向）はそのまま。これにより同一のユークリッド距離でも横方向へ移動するカードの方が distance が大きく算出され、結果として duration が長くなる（design intent：横方向は視覚的に目立ちにくいため強調）"
+given = "(deltaX=100, deltaY=0) のカードと (deltaX=0, deltaY=100) のカードをそれぞれ1枚ずつ含む2セクション"
+expect_side_effect = "横方向カードの distance = sqrt((100*1.5)^2) = 150、縦方向カードの distance = sqrt(100^2) = 100 となり、横方向カードの方が duration が長く設定される"
+
+[[condition]]
+id = "animate.skip_all_when_no_moved_cards"
+target_function = "animateCardMoveByUUID"
+source_lines = "112"
+description = "全セクション・全カードを走査した結果 allCards 配列が空（移動対象が1枚も無い）の場合、以降の requestAnimationFrame / setTimeout / Math.max を含むクリーンアップ処理をすべてスキップして早期return する"
+given = "すべてのカードが firstPositions 未登録・1px未満移動・data-uuid 無しのいずれかで allCards が空"
+expect_return = "undefined（早期return）"
+expect_side_effect = "requestAnimationFrame・setTimeout のいずれもスケジュールされない"
+
+[[condition]]
+id = "animate.invert_phase_sets_transform_immediately"
+target_function = "animateCardMoveByUUID"
+source_lines = "104-107"
+description = "FLIPのInvertフェーズ。アニメーション対象と判定されたカードに対し、同期実行で transition='none'・transform=`translate(${deltaX}px, ${deltaY}px)`・zIndex='1000' を設定し allCards へ push する。requestAnimationFrame を待たず同期的に DOM へ反映される"
+given = "deltaX=50, deltaY=100 の移動対象カードが存在する"
+expect_side_effect = "即座に該当要素の style.transform が 'translate(50px, 100px)' に、style.transition が 'none' に、style.zIndex が '1000' に設定される"
+
+[[condition]]
+id = "animate.play_phase_sets_transition_via_raf"
+target_function = "animateCardMoveByUUID"
+source_lines = "116-129"
+description = "FLIPのPlayフェーズ。requestAnimationFrame コールバック内で各カードの transition を `transform ${duration}ms ease` に設定し、transform を空文字にリセットしてアニメーションを開始する。duration は距離に応じて300〜600ms"
+given = "allCards に1枚以上の移動対象カードが含まれる（line 112 のガードを通過）"
+expect_side_effect = "次の requestAnimationFrame フレームで各要素の style.transition が 'transform ${duration}ms ease' に、style.transform が '' に変更される"
+
+[[condition]]
+id = "animate.duration_clamped_to_300_600ms"
+target_function = "animateCardMoveByUUID"
+source_lines = "121-124"
+description = "各カードの duration は `Math.min(600, 300 + sqrt(distance) * 12)` で計算される。下限は実質300ms（distance=0 で 300）、上限は600msにクランプされる。distance は横方向1.5倍重み付け済みの値"
+given = "(A) distance が非常に小さいカード（例: 1px移動→distance≈1.5）と (B) distance が非常に大きいカード（例: 10000px移動→distance≈1500）を含む"
+expect_side_effect = "(A) の duration は 300+sqrt(1.5)*12 ≈ 314ms、(B) の duration は 600ms（上限クランプ）"
+
+[[condition]]
+id = "animate.cleanup_after_max_duration"
+target_function = "animateCardMoveByUUID"
+source_lines = "131-145"
+description = "全カードの中で最大の duration（同計算式で再計算）を計算し、その時間後に setTimeout で全カードの transition・transform・zIndex を空文字にリセットしてクリーンアップする。アニメーション終了後にスタイル属性を初期化して後続操作へ影響しないようにする"
+given = "allCards に複数の移動対象カードが含まれる"
+expect_side_effect = "maxDuration 経過後に各要素の style.transition・style.transform・style.zIndex がすべて '' にリセットされる"
+
+[[condition]]
+id = "animate.max_duration_uses_same_formula_as_per_card"
+target_function = "animateCardMoveByUUID"
+source_lines = "132-137"
+description = "setTimeout の待機時間 maxDuration は `Math.max(...allCards.map(d => Math.min(600, 300+sqrt(d.distance)*12)))` で計算される。requestAnimationFrame 内で各要素に設定する duration と**同一の計算式**を使用（重複定義）。そのため maxDuration は常に最大の per-card duration と一致する"
+given = "allCards に distance の異なる複数カード（それぞれ duration=314ms, 450ms, 600ms と算出される）が含まれる"
+expect_side_effect = "maxDuration は 600 となり、setTimeout は 600ms 後に実行される"

@@ -1,0 +1,207 @@
+# 検証対象: src/api/forbidden-limited.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Phase1.6(TASK-326)のTier A試行対象ファイルの1つ（API系）。
+# export関数だけでなく、意味のある分岐を持つ非export関数（extractCardsFromSection等）も対象とする。
+
+[meta]
+feature = "forbidden-limited"
+source_file = "src/api/forbidden-limited.ts"
+verified = true
+verified_at = "2026-08-05"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/api/forbidden-limited-parse.test.ts tests/unit/api/forbidden-limited-utils.test.ts"
+source_hash = "9c2e39fff58c60a32ab152b5b6c5a48894bf07a6"
+
+# --- parseForbiddenLimitedHtml(html: string, effectiveDate: string): ForbiddenLimitedList ---
+
+[[condition]]
+id = "parse.forbidden_section.present"
+target_function = "parseForbiddenLimitedHtml"
+source_lines = "26-29"
+description = "#list_forbiddenが存在する場合、配下の.t_rowをforbidden規制として抽出する"
+given = "html に #list_forbidden > .t_row(input.link_value=\"...cid=100\") が1件存在する"
+expect_return_shape = "regulations[\"100\"] === \"forbidden\""
+
+[[condition]]
+id = "parse.forbidden_section.absent"
+target_function = "parseForbiddenLimitedHtml"
+source_lines = "26-29"
+description = "#list_forbiddenが存在しない場合、forbidden抽出はスキップされる（エラーにはならない）"
+given = "html に #list_forbidden が存在しない"
+expect_no_throw = true
+expect_return_shape = "regulations に forbidden カードは含まれない"
+
+[[condition]]
+id = "parse.section_overwrite_order"
+target_function = "parseForbiddenLimitedHtml"
+source_lines = "26-41"
+description = "同一cidが複数セクションに出現した場合、forbidden→limited→semi-limitedの順に上書きされ最後に処理したセクションの規制が残る"
+given = "cid=100 が #list_forbidden と #list_semi_limited の両方に出現する"
+expect_return_shape = "regulations[\"100\"] === \"semi-limited\""
+note = "3セクションを順に処理し同じregulationsオブジェクトへ書き込むため、後勝ちになる。仕様として意図されているかは要確認"
+
+[[condition]]
+id = "parse.always_no_throw"
+target_function = "parseForbiddenLimitedHtml"
+source_lines = "19-48"
+description = "3セクションすべてが存在しなくても例外は投げず、空のregulationsを返す"
+given = "html に #list_forbidden/#list_limited/#list_semi_limited のいずれも存在しない"
+expect_no_throw = true
+expect_return_shape = "regulations === {}"
+
+# --- extractCardsFromSection(section, regulation, regulations): void (非export) ---
+
+[[condition]]
+id = "extract_cards.link_value_missing"
+target_function = "extractCardsFromSection"
+source_lines = "66-69"
+description = ".t_row内にinput.link_value要素が無い、またはvalueが空の場合、その行はスキップされる"
+given = ".t_row に input.link_value 要素が存在しない"
+expect_side_effect = "regulationsに何も追加されない"
+
+[[condition]]
+id = "extract_cards.cid_pattern_unmatched"
+target_function = "extractCardsFromSection"
+source_lines = "73-77"
+description = "input.link_valueのvalueが/[?&]cid=(\\d+)/にマッチしない場合、その行はスキップされる"
+given = "input.link_value.value = \"/yugiohdb/card_search.action?ope=2\"（cidパラメータなし）"
+expect_side_effect = "regulationsに何も追加されない"
+
+[[condition]]
+id = "extract_cards.cid_matched"
+target_function = "extractCardsFromSection"
+source_lines = "73-77"
+description = "cidパラメータが抽出できた場合、regulations[cid] = regulation を設定する"
+given = "input.link_value.value = \"/yugiohdb/card_search.action?ope=2&cid=5195\", regulation = \"limited\""
+expect_side_effect = "regulations[\"5195\"] === \"limited\""
+
+# --- fetchForbiddenLimitedList(effectiveDate?: string): Promise<ForbiddenLimitedList> ---
+
+[[condition]]
+id = "fetch_list.response_not_ok"
+target_function = "fetchForbiddenLimitedList"
+source_lines = "93-96"
+description = "fetchのresponse.okがfalseの場合、ステータスコード・ステータステキスト付きでthrowする"
+given = "fetch が { ok: false, status: 500, statusText: \"Internal Server Error\" } を返す"
+expect_throw_contains = "Failed to fetch forbidden/limited list: 500 Internal Server Error"
+
+[[condition]]
+id = "fetch_list.effective_date_provided"
+target_function = "fetchForbiddenLimitedList"
+source_lines = "100-103"
+description = "effectiveDateが引数で指定された場合、HTMLからの抽出をせずその値をそのまま使う"
+given = "effectiveDate = \"2024-04-01\"、htmlの<select>選択値は別の日付"
+expect_return_shape = "戻り値.effectiveDate === \"2024-04-01\"（htmlの値ではなく引数の値）"
+
+[[condition]]
+id = "fetch_list.effective_date_omitted"
+target_function = "fetchForbiddenLimitedList"
+source_lines = "100-103"
+description = "effectiveDateが省略された場合、HTMLから適用日を抽出して使う"
+given = "effectiveDate = undefined、htmlの<select option selected value=\"2024-07-01\">"
+expect_return_shape = "戻り値.effectiveDate === \"2024-07-01\""
+
+# --- fetchAvailableEffectiveDates(): Promise<string[]> ---
+
+[[condition]]
+id = "fetch_dates.response_not_ok"
+target_function = "fetchAvailableEffectiveDates"
+source_lines = "118-120"
+description = "fetchのresponse.okがfalseの場合、ステータスコード・ステータステキスト付きでthrowする"
+given = "fetch が { ok: false, status: 404, statusText: \"Not Found\" } を返す"
+expect_throw_contains = "Failed to fetch available effective dates: 404 Not Found"
+
+# --- parseAvailableEffectiveDates(html: string): string[] (非export) ---
+
+[[condition]]
+id = "parse_dates.value_present"
+target_function = "parseAvailableEffectiveDates"
+source_lines = "133-135"
+description = "value属性を持つoptionのみdatesに追加される"
+given = "<select id=\"forbiddenLimitedDate\"><option value=\"2024-01-01\">...</option><option>(valueなし)</option></select>"
+expect_return_shape = "[\"2024-01-01\"] （valueなしoptionは含まれない）"
+
+# --- extractEffectiveDateFromHtml(html: string): string (非export) ---
+
+[[condition]]
+id = "extract_date.selected_option_found"
+target_function = "extractEffectiveDateFromHtml"
+source_lines = "151-154"
+description = "select option[selected]が存在しvalueを持つ場合、その値を返す"
+given = "<select><option value=\"2024-07-01\" selected>...</option></select>"
+expect_return = "2024-07-01"
+
+[[condition]]
+id = "extract_date.fallback_month_ge_10"
+target_function = "extractEffectiveDateFromHtml"
+source_lines = "163-165"
+description = "selected optionが無い場合、現在月が10以上ならその年の10月1日を返す"
+given = "selected optionなし、現在日 = 2024-11-15"
+expect_return = "2024-10-01"
+
+[[condition]]
+id = "extract_date.fallback_month_ge_7_lt_10"
+target_function = "extractEffectiveDateFromHtml"
+source_lines = "166-167"
+description = "現在月が7以上10未満ならその年の7月1日を返す"
+given = "selected optionなし、現在日 = 2024-08-15"
+expect_return = "2024-07-01"
+
+[[condition]]
+id = "extract_date.fallback_month_ge_4_lt_7"
+target_function = "extractEffectiveDateFromHtml"
+source_lines = "168-169"
+description = "現在月が4以上7未満ならその年の4月1日を返す"
+given = "selected optionなし、現在日 = 2024-05-15"
+expect_return = "2024-04-01"
+
+[[condition]]
+id = "extract_date.fallback_month_lt_4"
+target_function = "extractEffectiveDateFromHtml"
+source_lines = "170-171"
+description = "現在月が4未満ならその年の1月1日を返す"
+given = "selected optionなし、現在日 = 2024-02-15"
+expect_return = "2024-01-01"
+
+# --- getNextEffectiveDate(currentDate?: Date): string ---
+
+[[condition]]
+id = "next_date.month_lt_4"
+target_function = "getNextEffectiveDate"
+source_lines = "194-196"
+description = "基準日の月が4未満の場合、同じ年の4月1日を返す"
+given = "currentDate = 2024-02-15"
+expect_return = "2024-04-01"
+
+[[condition]]
+id = "next_date.month_lt_7"
+target_function = "getNextEffectiveDate"
+source_lines = "197-199"
+description = "基準日の月が4以上7未満の場合、同じ年の7月1日を返す"
+given = "currentDate = 2024-05-15"
+expect_return = "2024-07-01"
+
+[[condition]]
+id = "next_date.month_lt_10"
+target_function = "getNextEffectiveDate"
+source_lines = "200-202"
+description = "基準日の月が7以上10未満の場合、同じ年の10月1日を返す"
+given = "currentDate = 2024-08-15"
+expect_return = "2024-10-01"
+
+[[condition]]
+id = "next_date.month_ge_10_wraps_year"
+target_function = "getNextEffectiveDate"
+source_lines = "203-206"
+description = "基準日の月が10以上の場合、翌年の1月1日を返す（年をまたぐ）"
+given = "currentDate = 2024-11-15"
+expect_return = "2025-01-01"
+
+[[condition]]
+id = "next_date.default_now"
+target_function = "getNextEffectiveDate"
+source_lines = "186"
+description = "currentDateが省略された場合、new Date()（現在日時）を基準に計算する"
+given = "currentDate = undefined"
+expect_return_shape = "実行時点のシステム日時を基準に上記の月境界ロジックが適用される"

@@ -3,7 +3,7 @@ import { mappingManager } from '../../../src/utils/mapping-manager';
 
 describe('MappingManager - Dynamic Mapping Reversal', () => {
 
-  it('should reverse monsterType mappings correctly', () => {
+  it('should reverse monsterType mappings correctly [covers:text_to_id.monster_dynamic_reverse_and_skip_falsy]', () => {
     // 동적 마핑을 메모리에 저장하여 테스트
     const dynamicMapping = {
       race: {
@@ -50,7 +50,7 @@ describe('MappingManager - Dynamic Mapping Reversal', () => {
     console.log('\n✅ MonsterType reversal successful!');
   });
 
-  it('should reverse attribute mappings correctly', () => {
+  it('should reverse attribute mappings correctly [covers:text_to_id.attribute_dynamic_reverse_and_skip_falsy]', () => {
     const dynamicMapping = {
       race: {},
       monsterType: {},
@@ -84,7 +84,7 @@ describe('MappingManager - Dynamic Mapping Reversal', () => {
     console.log('\n✅ Attribute reversal successful!');
   });
 
-  it('should handle empty mappings gracefully', () => {
+  it('should handle empty mappings gracefully [covers:text_to_id.monster_no_dynamic_empty] [covers:text_to_id.attribute_no_dynamic_empty]', () => {
     const emptyMapping = {
       race: {},
       monsterType: {},

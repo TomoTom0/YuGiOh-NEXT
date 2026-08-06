@@ -1,0 +1,484 @@
+# 検証対象: src/api/deck-operations.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、API系かつデッキ作成・保存・削除を含むデータ破壊影響の大きい処理。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 「DOMParser が不正なドキュメントを返す」としていたテストは、実際にはDOMParserではなく
+#   parseDeckListが空配列を返しただけの通常成功経路だったため、説明を実装挙動に合わせて修正した。
+# - 「URLSearchParams は自動的に '+' を '%20' に変換する」というコメントは不正確。
+#   実装は params.toString() 後に replace(/\+/g, '%20') で明示的に変換している。
+# - saveDeckInternal冒頭でmainDeck/extraDeck/sideDeckに空配列フォールバックを作るが、
+#   パラメータ構築ではdeckData.mainDeck/extraDeck/sideDeckを直接参照するため、
+#   これらを省略できるという前提ではテストしない。
+
+[meta]
+feature = "deck-operations"
+source_file = "src/api/deck-operations.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/api/deck-operations-comprehensive.test.ts tests/unit/api/deck-operations-issued-deckcode.test.ts"
+source_hash = "8add35fc091037e41121394d6478ece15192c47a"
+note = "verified=falseは1件: normalize_error.falsy_emptyは非export関数内の防御的分岐だが、実装上の呼び出し元saveDeckInternalはdata.errorがtruthyの場合だけnormalizeErrorMessagesを呼ぶため公開API経由では直接検証できない"
+
+# --- normalizeErrorMessages(error: unknown): string[] ---
+
+[[condition]]
+id = "normalize_error.array_maps_strings_and_json"
+target_function = "normalizeErrorMessages"
+source_lines = "19-21"
+description = "errorが配列の場合、文字列要素はそのまま、文字列以外の要素はJSON.stringifyした文字列へ変換して返す"
+given = "error = ['a', { code: 1 }, 2]"
+expect_return = "['a', '{\"code\":1}', '2']"
+
+[[condition]]
+id = "normalize_error.string_wraps"
+target_function = "normalizeErrorMessages"
+source_lines = "22-24"
+description = "errorが文字列の場合、その文字列1件だけの配列を返す"
+given = "error = '保存エラー'"
+expect_return = "['保存エラー']"
+
+[[condition]]
+id = "normalize_error.truthy_non_string_json"
+target_function = "normalizeErrorMessages"
+source_lines = "25-27"
+description = "errorが配列でも文字列でもないtruthy値の場合、JSON.stringifyした文字列1件の配列を返す"
+given = "error = { message: 'x' }"
+expect_return = "['{\"message\":\"x\"}']"
+
+[[condition]]
+id = "normalize_error.falsy_empty"
+target_function = "normalizeErrorMessages"
+source_lines = "28"
+description = "errorがfalsy値の場合、空配列を返す"
+given = "error = null / undefined / '' / 0"
+expect_return = "[]"
+verified = false
+unverifiable_reason = "normalizeErrorMessagesは非export関数で、唯一の呼び出し元saveDeckInternalはdata.errorがtruthyの場合だけ呼び出すため、公開API経由でfalsy引数を渡してこのreturnを直接観測できない"
+
+# --- createNewDeckInternal(cgid: string): Promise<number> ---
+
+[[condition]]
+id = "create_new.ytkn_missing_returns_zero"
+target_function = "createNewDeckInternal"
+source_lines = "45-52"
+description = "fetchYtknFromDeckListがfalsy値を返した場合、エラー処理後に0を返し、作成リクエストは送らない"
+given = "fetchYtknFromDeckList returns null or ''"
+expect_return = "0"
+
+[[condition]]
+id = "create_new.request_url_no_locale_order"
+target_function = "createNewDeckInternal"
+source_lines = "55-65"
+description = "ytkn取得成功時、buildApiUrl(API_ENDPOINT.MEMBER_DECK, gameType, undefined, true)の戻り値に'?ope=6&wname=MemberDeck&cgid=...&ytkn=...'をこの順で連結し、axios.getをwithCredentials:trueで呼ぶ"
+given = "cgid='test-cgid', ytkn='test-ytkn'"
+expect_return_shape = "axios.get(url, { withCredentials: true }) が呼ばれる"
+
+[[condition]]
+id = "create_new.deck_list_empty_returns_zero"
+target_function = "createNewDeckInternal"
+source_lines = "72-82"
+description = "作成リクエスト後にparseDeckList(doc)が空配列を返した場合、エラー処理後に0を返す"
+given = "parseDeckList returns []"
+expect_return = "0"
+
+[[condition]]
+id = "create_new.success_returns_max_dno"
+target_function = "createNewDeckInternal"
+source_lines = "85-87"
+description = "parseDeckList(doc)が1件以上返した場合、dnoの最大値を新規デッキ番号として返す"
+given = "parseDeckList returns [{dno:1}, {dno:5}, {dno:3}]"
+expect_return = "5"
+
+[[condition]]
+id = "create_new.catch_returns_zero"
+target_function = "createNewDeckInternal"
+source_lines = "88-95"
+description = "try内で例外が発生した場合、エラー処理後に0を返す"
+given = "axios.get or parseDeckList throws"
+expect_no_throw = true
+expect_return = "0"
+
+# --- deleteDeckInternal(cgid: string, dno: number): Promise<boolean> ---
+
+[[condition]]
+id = "delete.ytkn_missing_returns_false"
+target_function = "deleteDeckInternal"
+source_lines = "115-122"
+description = "fetchYtknFromEditFormがfalsy値を返した場合、エラー処理後にfalseを返し、削除リクエストは送らない"
+given = "fetchYtknFromEditForm returns null or ''"
+expect_return = "false"
+
+[[condition]]
+id = "delete.request_url_with_locale"
+target_function = "deleteDeckInternal"
+source_lines = "125-133"
+description = "ytkn取得成功時、ope=7&cgid=...&dno=...&wname=MemberDeck&ytkn=...を含むpathをbuildApiUrl(path, gameType)へ渡し、axios.getをwithCredentials:trueで呼ぶ"
+given = "cgid='test-cgid', dno=3, ytkn='test-ytkn'"
+expect_return_shape = "buildApiUrlの第4引数noLocaleはtrueではない"
+
+[[condition]]
+id = "delete.status_200_success"
+target_function = "deleteDeckInternal"
+source_lines = "136-138,147"
+description = "削除レスポンスのstatusが200の場合、成功処理後にtrueを返す"
+given = "axios.get returns { status: 200 }"
+expect_return = "true"
+
+[[condition]]
+id = "delete.status_not_200_failure"
+target_function = "deleteDeckInternal"
+source_lines = "136-147"
+description = "削除レスポンスのstatusが200以外の場合、HTTP statusを含むエラー処理後にfalseを返す"
+given = "axios.get resolves { status: 500 }"
+expect_return = "false"
+
+[[condition]]
+id = "delete.catch_returns_false"
+target_function = "deleteDeckInternal"
+source_lines = "148-155"
+description = "try内で例外が発生した場合、エラー処理後にfalseを返す"
+given = "axios.get throws"
+expect_no_throw = true
+expect_return = "false"
+
+# --- saveDeckInternal(cgid, dno, deckData, ytkn, options = {}): Promise<OperationResult> ---
+
+[[condition]]
+id = "save.options_default_show_error_toast_true"
+target_function = "saveDeckInternal"
+source_lines = "174-176,433-440"
+description = "optionsを省略した場合、catchやサーバーエラー時のhandleErrorにはshowToast:trueが渡る"
+given = "options omitted and axios.post throws"
+expect_return_shape = "{ success: false, error: [...] } and handleError(..., { showToast: true })"
+
+[[condition]]
+id = "save.options_show_error_toast_false"
+target_function = "saveDeckInternal"
+source_lines = "174-176,407-418,433-440"
+description = "options.showErrorToast=falseの場合、サーバーエラーやcatch時のhandleErrorにはshowToast:falseが渡る"
+given = "options = { showErrorToast: false } and server returns { result:false, error:['x'] }"
+expect_return_shape = "{ success: false, error: ['x'] } and handleError(..., { showToast: false, ... })"
+
+[[condition]]
+id = "save.validation_duplicate_cid_ciid"
+target_function = "saveDeckInternal"
+source_lines = "185-199,433-444"
+description = "mainDeck/extraDeck/sideDeckの各デッキ内で同じcidとciidの組み合わせが重複した場合、`${location}: Duplicate card found: ${cid}_${ciid}`がcatchされ失敗を返す"
+given = "mainDeck contains two { cid:'12345', ciid:1 }"
+expect_return_shape = "{ success: false, error: ['mainDeck: Duplicate card found: 12345_1'] }"
+
+[[condition]]
+id = "save.validation_empty_cid"
+target_function = "saveDeckInternal"
+source_lines = "201-205,433-444"
+description = "DeckCardRefのcidがfalsyの場合、`${location}: cid is empty or undefined`がcatchされ失敗を返す"
+given = "mainDeck contains { cid:'', ciid:1, quantity:1 }"
+expect_return_shape = "{ success: false, error: ['mainDeck: cid is empty or undefined'] }"
+
+[[condition]]
+id = "save.validation_invalid_quantity"
+target_function = "saveDeckInternal"
+source_lines = "206-208,433-444"
+description = "quantityがnumber型でない、または1未満の場合、invalid quantityエラーがcatchされ失敗を返す"
+given = "mainDeck contains quantity=0 or quantity='1'"
+expect_return_shape = "{ success: false, error: ['mainDeck: 12345 has invalid quantity: ...'] }"
+
+[[condition]]
+id = "save.validation_invalid_ciid"
+target_function = "saveDeckInternal"
+source_lines = "209-211,433-444"
+description = "ciidが空文字列、null、undefinedの場合、invalid ciidエラーがcatchされ失敗を返す。ciid=0は該当しない"
+given = "mainDeck contains { cid:'12345', ciid:'', quantity:1 }"
+expect_return_shape = "{ success: false, error: ['mainDeck: 12345 has invalid ciid'] }"
+
+[[condition]]
+id = "save.metadata_optional_fields"
+target_function = "saveDeckInternal"
+source_lines = "232-262"
+description = "isPublic/deckTypeはundefinedでなければ送信し、deckStyleはundefinedなら'-1'、category/tagsは未指定なら空配列、commentはfalsyなら空文字列を送信する"
+given = "deckData.isPublic/deckType/deckStyle/category/tags/comment omitted or undefined"
+expect_return_shape = "pflg/deck_typeは含まれず、deckStyle=-1、txt_dctCategoryMst=&category_serch_flg=on&txt_dctTagMst=&serch_flg=on&biko= が含まれる"
+
+[[condition]]
+id = "save.categories_tags_repeated"
+target_function = "saveDeckInternal"
+source_lines = "245-259"
+description = "categoryとtagsが配列の場合、各idをdckCategoryMst/dckTagMstとして個別に複数回appendした後、空txtフィールドとフラグをappendする"
+given = "category=['1','2'], tags=['10','20']"
+expect_return_shape = "POST body contains dckCategoryMst=1&dckCategoryMst=2 and dckTagMst=10&dckTagMst=20"
+
+[[condition]]
+id = "save.get_card_type_temp_preferred"
+target_function = "saveDeckInternal"
+source_lines = "271-282"
+description = "カード種別分類ではTempCacheDB.get(cid)がcardTypeを返す場合それを使い、UnifiedCacheDB.reconstructCardInfo(cid)は呼ばない"
+given = "tempCardDB.get('m1') returns { cardType:'monster' }"
+expect_return_shape = "mainDeck内の該当カードはmonsterとして分類される"
+
+[[condition]]
+id = "save.get_card_type_unified_fallback"
+target_function = "saveDeckInternal"
+source_lines = "275-282"
+description = "TempCacheDB.get(cid)がcardTypeを返さない場合、UnifiedCacheDB.reconstructCardInfo(cid)?.cardTypeで分類する"
+given = "tempCardDB.get('s1') returns null and unifiedDB.reconstructCardInfo('s1') returns { cardType:'spell' }"
+expect_return_shape = "mainDeck内の該当カードはspellとして分類される"
+
+[[condition]]
+id = "save.main_deck_type_slots"
+target_function = "saveDeckInternal"
+source_lines = "285-329"
+description = "mainDeckはcardTypeによりmonster/spell/trapへ分割され、この順に実カードをappendCardToFormDataで追加した後、各種別ごとに65件になるまで空フィールドを追加する"
+given = "mainDeck contains one monster, one spell, one trap"
+expect_return_shape = "monm/spnm/trnmがそれぞれ65件、各実カードfieldと空slotが含まれる"
+
+[[condition]]
+id = "save.extra_side_slots"
+target_function = "saveDeckInternal"
+source_lines = "331-350"
+description = "extraDeckとsideDeckは実カードを追加した後、extraは20件になるまでex*空フィールドとimgsを、sideは20件になるまでsi*空フィールドとimgsSideを追加する"
+given = "extraDeck 1件, sideDeck 1件"
+expect_return_shape = "exnmが20件、sinmが20件、sideの空slotはimgsSide='null_null_null_null'"
+
+[[condition]]
+id = "save.parameter_construction_error_caught"
+target_function = "saveDeckInternal"
+source_lines = "285-355,433-444"
+description = "カード情報追加やdeckData.*Deck直接参照で例外が発生した場合、内側catchで再throwされ、外側catchが失敗結果に変換する"
+given = "appendCardToFormData throws or deckData.mainDeck is undefined"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: [error.message or 'Unknown error'] }"
+
+[[condition]]
+id = "save.post_url_and_encoding"
+target_function = "saveDeckInternal"
+source_lines = "360-389"
+description = "post先はbuildApiUrl('member_deck.action?cgid=...', gameType)で作り、params.toString()内の'+'を'%20'へ置換した文字列をContent-TypeとX-Requested-With付きでaxios.postする"
+given = "deckData.name = 'Test Deck'"
+expect_return_shape = "POST body contains dnm=Test%20Deck and axios.post options include withCredentials and headers"
+
+[[condition]]
+id = "save.server_result_truthy_success"
+target_function = "saveDeckInternal"
+source_lines = "402-405"
+description = "response.data.resultがtruthyの場合、成功処理後に{ success: true }を返す。showErrorToastの値に関係なく成功toastはshowToast:false"
+given = "server returns { result: true }"
+expect_return_shape = "{ success: true }"
+
+[[condition]]
+id = "save.server_error_truthy_failure"
+target_function = "saveDeckInternal"
+source_lines = "407-418"
+description = "response.data.resultがfalsyでdata.errorがtruthyの場合、errorをnormalizeErrorMessagesでstring[]化し、同じ配列をerrorとして返す"
+given = "server returns { result:false, error:'保存エラー' } or { error:[...] }"
+expect_return_shape = "{ success: false, error: normalizedErrorMessages }"
+
+[[condition]]
+id = "save.server_no_error_fallback"
+target_function = "saveDeckInternal"
+source_lines = "420-431"
+description = "response.data.resultがfalsyでdata.errorもfalsyの場合、'保存に失敗しました'の固定配列を返す"
+given = "server returns {} or { result:false }"
+expect_return_shape = "{ success: false, error: ['保存に失敗しました'] }"
+
+[[condition]]
+id = "save.catch_error_message"
+target_function = "saveDeckInternal"
+source_lines = "433-444"
+description = "try内の例外がErrorインスタンスの場合、そのmessageを1件のerror配列にして返す"
+given = "axios.post rejects new Error('Network error')"
+expect_return_shape = "{ success: false, error: ['Network error'] }"
+
+[[condition]]
+id = "save.catch_non_error_unknown"
+target_function = "saveDeckInternal"
+source_lines = "433-444"
+description = "try内の例外がErrorインスタンスでない場合、error=['Unknown error']を返す"
+given = "axios.post rejects 'boom'"
+expect_return_shape = "{ success: false, error: ['Unknown error'] }"
+
+# --- showSaveDeckErrorToast(error?: string[]): void ---
+
+[[condition]]
+id = "show_save_error.uses_given_error"
+target_function = "showSaveDeckErrorToast"
+source_lines = "457-464"
+description = "errorが1件以上の配列の場合、その配列をカンマ区切りError messageと改行区切りtoastBodyに使ってhandleErrorを呼ぶ"
+given = "error = ['a', 'b']"
+expect_return = "void"
+
+[[condition]]
+id = "show_save_error.default_message"
+target_function = "showSaveDeckErrorToast"
+source_lines = "457-464"
+description = "errorがundefinedまたは空配列の場合、['保存に失敗しました']を使ってhandleErrorを呼ぶ"
+given = "error = undefined or []"
+expect_return = "void"
+
+# --- appendCardToFormData(target, deckCardRef, deckType): void ---
+
+[[condition]]
+id = "append_card.not_found_throws"
+target_function = "appendCardToFormData"
+source_lines = "486-493"
+description = "UnifiedCacheDB.reconstructCardInfo(cid, detectLanguage(document))がfalsy値を返した場合、Card not foundエラーをthrowする"
+given = "unifiedDB.reconstructCardInfo returns null"
+expect_throw = "Card not found in UnifiedCacheDB: <cid>, lang: <lang>"
+
+[[condition]]
+id = "append_card.main_monster_fields"
+target_function = "appendCardToFormData"
+source_lines = "495-519"
+description = "deckType='main'かつcard.cardType='monster'の場合、monm/monum/monsterCardId/imgsをappendする"
+given = "deckType='main', cardType='monster', cid='m1', ciid='i1', quantity=2"
+expect_return_shape = "target contains monm=card.name, monum=2, monsterCardId=m1, imgs=m1_i1_1_1"
+
+[[condition]]
+id = "append_card.main_spell_fields"
+target_function = "appendCardToFormData"
+source_lines = "501-519"
+description = "deckType='main'かつcard.cardType='spell'の場合、spnm/spnum/spellCardId/imgsをappendする"
+given = "deckType='main', cardType='spell'"
+expect_return_shape = "target contains spnm/spnum/spellCardId/imgs"
+
+[[condition]]
+id = "append_card.main_trap_fields"
+target_function = "appendCardToFormData"
+source_lines = "501-519"
+description = "deckType='main'でcard.cardTypeがmonster/spell以外の場合、trapとしてtrnm/trnum/trapCardId/imgsをappendする"
+given = "deckType='main', cardType='trap' or undefined"
+expect_return_shape = "target contains trnm/trnum/trapCardId/imgs"
+
+[[condition]]
+id = "append_card.extra_fields"
+target_function = "appendCardToFormData"
+source_lines = "521-526"
+description = "deckType='extra'の場合、cardTypeに関係なくexnm/exnum/extraCardId/imgsをappendする"
+given = "deckType='extra'"
+expect_return_shape = "target contains exnm/exnum/extraCardId/imgs"
+
+[[condition]]
+id = "append_card.side_fields"
+target_function = "appendCardToFormData"
+source_lines = "528-533"
+description = "deckType='side'の場合、cardTypeに関係なくsinm/sinum/sideCardId/imgsSideをappendする"
+given = "deckType='side'"
+expect_return_shape = "target contains sinm/sinum/sideCardId/imgsSide"
+
+# --- getDeckDetail(dno: number, cgid?: string): Promise<DeckInfo | null> ---
+
+[[condition]]
+id = "deck_detail.public_without_cgid"
+target_function = "getDeckDetail"
+source_lines = "557-566"
+description = "cgidがfalsyの場合、pathはope=1&dno=...のみで、cgidパラメータを追加しない"
+given = "getDeckDetail(95)"
+expect_return_shape = "buildApiUrl path does not contain cgid="
+
+[[condition]]
+id = "deck_detail.private_with_cgid"
+target_function = "getDeckDetail"
+source_lines = "557-566"
+description = "cgidがtruthyの場合、path末尾に&cgid=...を追加してbuildApiUrl(path, gameType)へ渡す"
+given = "getDeckDetail(3, 'test-cgid')"
+expect_return_shape = "buildApiUrl path contains &cgid=test-cgid"
+
+[[condition]]
+id = "deck_detail.success_returns_parsed"
+target_function = "getDeckDetail"
+source_lines = "568-589"
+description = "axios.getで取得したHTMLをDOMParserでDocument化し、parseDeckDetail(doc)の戻り値を返す"
+given = "parseDeckDetail returns DeckInfo or null"
+expect_return_shape = "parseDeckDetailの戻り値そのもの"
+
+[[condition]]
+id = "deck_detail.save_cache_failure_debug_only"
+target_function = "getDeckDetail"
+source_lines = "583-587"
+description = "saveUnifiedCacheDB()のPromiseがrejectしてもawaitせず、catchでhandleDebugを呼ぶだけでgetDeckDetailの返り値は変えない"
+given = "saveUnifiedCacheDB rejects"
+expect_return_shape = "parseDeckDetailの戻り値がそのまま返る"
+
+[[condition]]
+id = "deck_detail.catch_returns_null"
+target_function = "getDeckDetail"
+source_lines = "590-592"
+description = "try内で例外が発生した場合、エラー処理後にnullを返す"
+given = "axios.get or parseDeckDetail throws"
+expect_no_throw = true
+expect_return = "null"
+
+# --- getDeckListInternal(cgid: string): Promise<DeckListItem[]> ---
+
+[[condition]]
+id = "deck_list.request_and_parse"
+target_function = "getDeckListInternal"
+source_lines = "610-631"
+description = "ope=4&cgid=...のpathをbuildApiUrl(path, gameType)へ渡し、axios.get(withCredentials:true)で取得したHTMLをDOMParserでDocument化してparseDeckList(doc)の戻り値を返す"
+given = "parseDeckList returns DeckListItem[]"
+expect_return_shape = "parseDeckListの戻り値そのもの"
+
+[[condition]]
+id = "deck_list.empty_success"
+target_function = "getDeckListInternal"
+source_lines = "628-631"
+description = "parseDeckList(doc)が空配列を返した場合も成功経路として空配列をそのまま返し、handleErrorは呼ばない"
+given = "parseDeckList returns []"
+expect_return = "[]"
+
+[[condition]]
+id = "deck_list.catch_returns_empty"
+target_function = "getDeckListInternal"
+source_lines = "632-634"
+description = "try内で例外が発生した場合、エラー処理後に空配列を返す"
+given = "axios.get or parseDeckList throws"
+expect_no_throw = true
+expect_return = "[]"
+
+# --- issueDeckCodeInternal(cgid: string, dno: number): Promise<string> ---
+
+[[condition]]
+id = "issue_code.issue_url_no_locale"
+target_function = "issueDeckCodeInternal"
+source_lines = "650-659"
+description = "最初にbuildApiUrl(API_ENDPOINT.MEMBER_DECK, gameType, undefined, true)の戻り値へ'?ope=13&wname=MemberDeck&cgid=...&dno=...'を連結し、axios.get(withCredentials:true)で発行リクエストを送る"
+given = "cgid='user123', dno=100"
+expect_return_shape = "first axios.get URL contains ope=13 and buildApiUrl 4th arg is true"
+
+[[condition]]
+id = "issue_code.display_url_with_locale"
+target_function = "issueDeckCodeInternal"
+source_lines = "661-668"
+description = "発行リクエスト後、ope=1&cgid=...&dno=...のpathをbuildApiUrl(path, gameType)へ渡し、axios.get(withCredentials:true)で表示HTMLを取得する"
+given = "issue request succeeds"
+expect_return_shape = "second axios.get URL contains ope=1, cgid, dno and buildApiUrl 4th arg is not true"
+
+[[condition]]
+id = "issue_code.extract_non_blank_returns_code"
+target_function = "issueDeckCodeInternal"
+source_lines = "670-675"
+description = "extractIssuedDeckCode(doc)がtruthyかつtrim後もtruthyな文字列を返した場合、その元の文字列を返す（trimした値ではない）"
+given = "extractIssuedDeckCode returns ' ABC123 '"
+expect_return = "' ABC123 '"
+
+[[condition]]
+id = "issue_code.extract_blank_returns_empty"
+target_function = "issueDeckCodeInternal"
+source_lines = "674-683"
+description = "extractIssuedDeckCode(doc)がfalsyまたはtrim後に空文字列になる場合、エラー処理後に空文字列を返す"
+given = "extractIssuedDeckCode returns '' or '   '"
+expect_return = "''"
+
+[[condition]]
+id = "issue_code.catch_returns_empty"
+target_function = "issueDeckCodeInternal"
+source_lines = "685-687"
+description = "発行リクエスト・表示リクエスト・HTML解析・コード抽出のいずれかで例外が発生した場合、エラー処理後に空文字列を返す"
+given = "axios.get throws"
+expect_no_throw = true
+expect_return = "''"

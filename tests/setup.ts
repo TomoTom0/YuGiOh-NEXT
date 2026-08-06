@@ -22,6 +22,7 @@ global.chrome = {
     local: {
       get: vi.fn(),
       set: vi.fn(),
+      remove: vi.fn(),
     },
   },
 } as any;

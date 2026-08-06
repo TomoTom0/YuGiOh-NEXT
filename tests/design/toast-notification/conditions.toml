@@ -1,0 +1,82 @@
+# 検証対象: src/stores/toast-notification.ts (useToastStore)
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Tier A本展開対象（store系）。
+#
+# このファイルはPiniaの`defineStore(id, () => { ... return {...} })`パターン（Setup Store）で
+# 実装されている。scripts/design/extract-ast-skeleton.tsはreturnオブジェクトで公開される
+# ローカル関数を"useToastStore#アクション名"として検出するため、本ファイルのtarget_functionも
+# この形式で統一する。
+
+[meta]
+feature = "toast-notification-store"
+source_file = "src/stores/toast-notification.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/stores/toast-notification.test.ts"
+source_hash = "4831311c15b090a0cbcbb20b92ffccac3846ce16"
+note = "condition単位のverified=falseは0件"
+
+# --- showToast(message, type = 'info', body?: string, duration = 3000): string ---
+
+[[condition]]
+id = "show_toast.default_type_and_duration"
+target_function = "useToastStore#showToast"
+source_lines = "36-40"
+description = "type引数を省略した場合は'info'、duration引数を省略した場合は3000が使われる"
+given = "showToast(message)を呼ぶ"
+expect_side_effect = "追加されるtoast.type === 'info'、toast.duration === 3000"
+
+[[condition]]
+id = "show_toast.pushes_toast_and_returns_generated_id"
+target_function = "useToastStore#showToast"
+source_lines = "42-54,63"
+description = "Date.now()とMath.random()から`toast-${Date.now()}-${Math.random()}`形式のidを生成し、message/type/duration/title/bodyを持つtoastを末尾に追加して、そのidを返す"
+given = "showToast(message, type, body, duration)を呼ぶ"
+expect_return = "生成されたid文字列"
+expect_side_effect = "toasts.valueの末尾に{id, message, type, duration, title: message, body}が追加される"
+
+[[condition]]
+id = "show_toast.positive_duration_schedules_auto_remove"
+target_function = "useToastStore#showToast"
+source_lines = "57-60"
+description = "duration > 0の場合、durationミリ秒後に同じidでremoveToast(id)を呼ぶsetTimeoutを登録する"
+given = "durationに正の数を指定してshowToastを呼ぶ"
+expect_side_effect = "durationミリ秒経過後、そのtoastがtoasts.valueから削除される"
+
+[[condition]]
+id = "show_toast.non_positive_duration_skips_auto_remove"
+target_function = "useToastStore#showToast"
+source_lines = "57-61"
+description = "duration <= 0の場合、setTimeoutによる自動削除を登録しない"
+given = "durationに0以下の数を指定してshowToastを呼ぶ"
+expect_side_effect = "時間を進めても、そのtoastは自動削除されずtoasts.valueに残る"
+
+# --- removeToast(id: string): void ---
+
+[[condition]]
+id = "remove_toast.existing_id_removes_first_match"
+target_function = "useToastStore#removeToast"
+source_lines = "69-73"
+description = "findIndexでidが一致する最初のtoastを見つけた場合(index > -1)、その1件をspliceで削除する"
+given = "toasts.value内に指定idのtoastが存在する状態でremoveToast(id)を呼ぶ"
+expect_side_effect = "一致したtoastがtoasts.valueから削除され、他のtoastは残る"
+
+[[condition]]
+id = "remove_toast.missing_id_is_noop"
+target_function = "useToastStore#removeToast"
+source_lines = "70-73"
+description = "findIndexの結果が-1の場合、toasts.valueを変更しない"
+given = "toasts.value内に存在しないidでremoveToast(id)を呼ぶ"
+expect_side_effect = "toasts.valueは呼び出し前と同じ内容のまま"
+
+# --- clearAll(): void ---
+
+[[condition]]
+id = "clear_all.replaces_toasts_with_empty_array"
+target_function = "useToastStore#clearAll"
+source_lines = "79-80"
+description = "toasts.valueに新しい空配列を代入し、全toastをクリアする"
+given = "clearAll()を呼ぶ"
+expect_side_effect = "toasts.value === []"

@@ -1,0 +1,521 @@
+# 検証対象: src/utils/deck-import.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象」グループ最優先。
+#
+# 発見したデッドコード（実装は存在するが到達不可能。conditions化せず、ここに記録するに留める）:
+# - importFromCSV L40-42, importFromTXT L144-146: `content.trim().split('\n')`は空文字列でも
+#   `['']`(length=1)を返すため、`lines.length === 0`分岐は到達不能（Node.jsで実測確認済み）。
+# - parseCSVLine L254: `result`は空行でも`['']`のように最低1要素pushされるため、
+#   `result.length > 0 ? result : null`のnull分岐は到達不能。
+# - importFromCSV L56: 上記によりparseCSVLineは常に配列を返すため、`if (!parsed)`のwarning分岐も到達不能。
+# - parseImportRow L333-336: fields.length>=3の前提下で3/4/5/6+の4パターンが全て網羅されているため、
+#   最終elseの「フィールド数が不正です」warningは到達不能。
+#
+# 既存テストの説明文の不正確さ（実装挙動とズレているが動作自体は正しいため要修正の記録に留める）:
+# - tests/unit/utils/deck-import-comprehensive.test.ts の「コメント行（#）を無視する」テストは、
+#   実際にはコメント無視ロジックは存在せず、`#`行はどのパターンにもマッチせず
+#   「フォーマットが不正です」warning付きでスキップされているだけ（無視ではなく警告付きスキップ）。
+#   テスト自体はPASSするが説明文が実装と異なる。
+
+[meta]
+feature = "deck-import"
+source_file = "src/utils/deck-import.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/deck-import.test.ts tests/unit/utils/deck-import-comprehensive.test.ts"
+source_hash = "5b518e2c73e2daa938f34914ccd8d13adcc7e358"
+note = "verified=falseは3件: import_csv/import_png/import_txtの各catch_error(防御的try-catchで現実的な入力での再現不能)。FileReader系はglobalThis.FileReaderスタブによりimportDeckFromFile()経由で検証可能"
+
+# --- importFromCSV(content: string): ImportResult ---
+
+[[condition]]
+id = "import_csv.header_detected"
+target_function = "importFromCSV"
+source_lines = "45-46"
+description = "1行目(トリム後・小文字化)に'section'を含む場合はヘッダー行とみなしスキップする"
+given = "content = 'section,cid,quantity\\nmain,123,1'"
+expect_return_shape = "1行目は無視され、2行目のみがデータ行として処理される"
+
+[[condition]]
+id = "import_csv.header_absent"
+target_function = "importFromCSV"
+source_lines = "45-46"
+description = "1行目に'section'を含まない場合はヘッダーなしとみなし、1行目からデータ行として処理する"
+given = "content = 'main,123,1'"
+expect_return_shape = "1行目もデータ行として処理される"
+
+[[condition]]
+id = "import_csv.empty_line_skipped"
+target_function = "importFromCSV"
+source_lines = "52-53"
+description = "トリム後に空文字列になる行はcontinueでスキップされる（warningも出ない）"
+given = "データ行に空行が混在する"
+expect_return_shape = "空行はrows・warningsのどちらにも影響しない"
+
+[[condition]]
+id = "import_csv.row_null_skip"
+target_function = "importFromCSV"
+source_lines = "61-64"
+description = "parseImportRowがnullを返した行はrowsに追加されない（warning自体はparseImportRow内で追加済み）"
+given = "section不正・cid不正等でparseImportRowがnullを返す行がある"
+expect_return_shape = "その行はmainDeck等に含まれないが、成功していれば他の有効行は処理される"
+
+[[condition]]
+id = "import_csv.all_rows_invalid_error"
+target_function = "importFromCSV"
+source_lines = "67-69"
+description = "有効な行が1件もない場合、success=falseかつerror='インポート可能なデータがありません'を返す"
+given = "content = 'section,name,cid,ciid,quantity'（ヘッダーのみ、データ行なし）"
+expect_return_shape = "{ success: false, error: 'インポート可能なデータがありません' }"
+
+[[condition]]
+id = "import_csv.success_with_warnings"
+target_function = "importFromCSV"
+source_lines = "71-72"
+description = "有効行が1件以上あり、かつ無効行によるwarningsが存在する場合、warningsを含めて返す"
+given = "有効行と無効行が混在するCSV"
+expect_return_shape = "{ success: true, deckInfo: {...}, warnings: [...] }（warnings.length > 0）"
+
+[[condition]]
+id = "import_csv.success_without_warnings"
+target_function = "importFromCSV"
+source_lines = "71-72"
+description = "warningsが空配列の場合、warningsフィールドはundefinedとして返す（空配列ではない）"
+given = "全行が有効なCSV"
+expect_return_shape = "{ success: true, deckInfo: {...}, warnings: undefined }"
+
+[[condition]]
+id = "import_csv.catch_error"
+target_function = "importFromCSV"
+source_lines = "73-75"
+description = "処理中に例外が発生した場合、success=falseかつerror='CSV読み込みエラー: ${error}'を返す"
+given = "convertRowsToDeckInfo等で例外がthrowされる状況"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: 'CSV読み込みエラー: ...' }"
+verified = false
+unverifiable_reason = "convertRowsToDeckInfo/parseCSVLine等が例外をthrowする現実的な入力を作れず、ユニットテストでは意図的に再現できない防御的try-catch"
+
+# --- importFromPNG(file: File): Promise<ImportResult> ---
+
+[[condition]]
+id = "import_png.extract_fail"
+target_function = "importFromPNG"
+source_lines = "84-91"
+description = "extractDeckInfoFromPNGがfalsy値(null等)を返した場合、デッキ情報未検出のエラーを返す"
+given = "デッキ情報が埋め込まれていないPNGファイル"
+expect_return_shape = "{ success: false, error: 'PNG画像からデッキ情報を抽出できませんでした。この画像にはデッキ情報が埋め込まれていない可能性があります。' }"
+
+[[condition]]
+id = "import_png.rows_from_sections"
+target_function = "importFromPNG"
+source_lines = "96-124"
+description = "simpleDeckInfo.main/extra/sideの各カードをそのままImportRowに変換する（nameフィールドは設定しない）"
+given = "simpleDeckInfoにmain 1件・extra 1件・side 1件が含まれる"
+expect_return_shape = "rows配列に3件（各sectionが正しく割り当てられる）"
+
+[[condition]]
+id = "import_png.all_sections_empty_error"
+target_function = "importFromPNG"
+source_lines = "126-128"
+description = "main/extra/sideの全てが空の場合、'インポート可能なデータがありません'エラーを返す"
+given = "simpleDeckInfo.main/extra/sideが全て空配列"
+expect_return_shape = "{ success: false, error: 'インポート可能なデータがありません' }"
+
+[[condition]]
+id = "import_png.success_no_warnings_field"
+target_function = "importFromPNG"
+source_lines = "130-131"
+description = "成功時、CSV/TXTと異なりwarningsフィールドは設定されない（常にundefined）"
+given = "有効なデッキ情報が埋め込まれたPNG"
+expect_return_shape = "{ success: true, deckInfo: {...} }（warningsキー自体を持たない）"
+
+[[condition]]
+id = "import_png.catch_error"
+target_function = "importFromPNG"
+source_lines = "132-134"
+description = "処理中に例外が発生した場合、error='PNG読み込みエラー: ${error}'を返す"
+given = "pngBlob.arrayBuffer()が例外をthrowする等の状況（PNGシグネチャ不一致はextractDeckInfoFromPNGがnullを返すだけで例外にはならないため該当しない。実測確認済み）"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: 'PNG読み込みエラー: ...' }"
+verified = false
+unverifiable_reason = "pngBlob.arrayBuffer()等が例外をthrowする現実的な入力を作れず、ユニットテストでは意図的に再現できない防御的try-catch"
+
+# --- importFromTXT(content: string): ImportResult ---
+
+[[condition]]
+id = "import_txt.section_header_switches_current_section"
+target_function = "importFromTXT"
+source_lines = "156-165"
+description = "行に'=== Main Deck'/'=== Extra Deck'/'=== Side Deck'を含む場合(部分一致)、currentSectionを切り替えてcontinueする"
+given = "'=== Main Deck ===' という行"
+expect_return_shape = "以降の行はcurrentSection='main'として処理される"
+
+[[condition]]
+id = "import_txt.empty_line_skipped"
+target_function = "importFromTXT"
+source_lines = "167-168"
+description = "トリム後に空文字列になる行はcontinueでスキップされる"
+given = "セクション内に空行が混在する"
+expect_return_shape = "空行はrows・warningsに影響しない"
+
+[[condition]]
+id = "import_txt.match_with_enc"
+target_function = "importFromTXT"
+source_lines = "173,176-189"
+description = "'数量x カード名 (cid:ciid:enc)' 形式(enc付き新形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する"
+given = "currentSection='main'、行 = '2x 灰流うらら (12950:1:abc123)'"
+expect_return_shape = "rows に { section: 'main', name: '灰流うらら', cid: '12950', ciid: '1', enc: 'abc123', quantity: 2 } が追加される"
+
+[[condition]]
+id = "import_txt.match_old_no_enc"
+target_function = "importFromTXT"
+source_lines = "174,190-201"
+description = "'数量x カード名 (cid:ciid)' 形式(enc無し旧形式)にマッチし、かつcurrentSectionが設定済みならrowsに追加する（encフィールドは設定しない）"
+given = "currentSection='main'、行 = '2x 灰流うらら (12950:1)'"
+expect_return_shape = "rows に enc キーを持たない ImportRow が追加される"
+
+[[condition]]
+id = "import_txt.no_match_with_section_warning"
+target_function = "importFromTXT"
+source_lines = "202-204"
+description = "enc付き・enc無しいずれの正規表現にもマッチせず、currentSectionが設定済みの場合、'フォーマットが不正です'警告を追加する（コメント行『#...』を含む、行の内容が何であれ該当）"
+given = "currentSection='main'、行 = '# これはコメント' や 'invalid line format'"
+expect_return_shape = "warnings に '行N: フォーマットが不正です' が追加され、rowsには追加されない"
+note = "既存テストの説明文『コメント行を無視する』は不正確。実際はコメント専用ロジックは無く、フォーマット不正として警告付きスキップされているだけ"
+
+[[condition]]
+id = "import_txt.no_match_without_section_silent"
+target_function = "importFromTXT"
+source_lines = "150,202-204"
+description = "currentSectionが未設定(セクションヘッダーが一度も出ていない)状態でカード行らしき内容があっても、warningすら出さず黙って無視される"
+given = "先頭に'=== Main Deck ==='が無いまま '3x カード1 (1:1)' から始まるcontent"
+expect_return_shape = "その行はrows・warningsのどちらにも一切現れない"
+
+[[condition]]
+id = "import_txt.all_rows_invalid_error"
+target_function = "importFromTXT"
+source_lines = "207-209"
+description = "有効な行が1件もない場合、'インポート可能なデータがありません'エラーを返す"
+given = "content = ''（空文字列）"
+expect_return_shape = "{ success: false, error: 'インポート可能なデータがありません' }"
+
+[[condition]]
+id = "import_txt.success_with_warnings"
+target_function = "importFromTXT"
+source_lines = "211-212"
+description = "有効行が1件以上あり、かつwarningsが存在する場合、warningsを含めて返す"
+given = "有効行と不正フォーマット行が混在するTXT"
+expect_return_shape = "{ success: true, deckInfo: {...}, warnings: [...] }"
+
+[[condition]]
+id = "import_txt.catch_error"
+target_function = "importFromTXT"
+source_lines = "213-215"
+description = "処理中に例外が発生した場合、error='TXT読み込みエラー: ${error}'を返す"
+given = "convertRowsToDeckInfo等で例外がthrowされる状況"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "convertRowsToDeckInfo等が例外をthrowする現実的な入力を作れず、ユニットテストでは意図的に再現できない防御的try-catch"
+expect_return_shape = "{ success: false, error: 'TXT読み込みエラー: ...' }"
+
+# --- importDeckFromFile(file: File): Promise<ImportResult> ---
+
+[[condition]]
+id = "import_file.ext_png_delegates"
+target_function = "importDeckFromFile"
+source_lines = "442-444"
+description = "ファイル名の拡張子(小文字化)が'png'の場合、importFromPNGに委譲する（内容は読まない）"
+given = "file.name = 'deck.PNG'"
+expect_return_shape = "importFromPNG(file)の戻り値がそのまま返る"
+
+[[condition]]
+id = "import_file.ext_csv_reads_then_delegates"
+target_function = "importDeckFromFile"
+source_lines = "447,449-450"
+description = "拡張子が'csv'の場合、readFileAsTextでテキストを読んでからimportFromCSVに委譲する"
+given = "file.name = 'deck.csv'"
+expect_return_shape = "importFromCSV(content)の戻り値がそのまま返る"
+
+[[condition]]
+id = "import_file.ext_txt_reads_then_delegates"
+target_function = "importDeckFromFile"
+source_lines = "447,451-452"
+description = "拡張子が'txt'の場合、readFileAsTextでテキストを読んでからimportFromTXTに委譲する"
+given = "file.name = 'deck.txt'"
+expect_return_shape = "importFromTXT(content)の戻り値がそのまま返る"
+
+[[condition]]
+id = "import_file.ext_unknown_content_has_section"
+target_function = "importDeckFromFile"
+source_lines = "454-457"
+description = "拡張子がpng/csv/txtのいずれでもない場合、内容の1行目(トリム後・小文字化)に'section'を含めばCSVとして処理する"
+given = "file.name = 'deck' (拡張子なし)、内容の1行目が 'section,name,cid,ciid,quantity'"
+expect_return_shape = "importFromCSV(content)の戻り値が返る"
+
+[[condition]]
+id = "import_file.ext_unknown_content_has_marker"
+target_function = "importDeckFromFile"
+source_lines = "454,458-459"
+description = "拡張子不明かつ1行目に'section'を含まないが'==='を含む場合、TXTとして処理する"
+given = "内容の1行目が '=== Main Deck ==='"
+expect_return_shape = "importFromTXT(content)の戻り値が返る"
+
+[[condition]]
+id = "import_file.ext_unknown_content_unsupported"
+target_function = "importDeckFromFile"
+source_lines = "454,460-465"
+description = "拡張子不明かつ1行目に'section'も'==='も含まない場合、サポート外形式のエラーを返す"
+given = "file.name = 'deck.dat'、内容の1行目が 'random garbage'"
+expect_return_shape = "{ success: false, error: 'サポートされていないファイル形式です（.csv、.txt、または .png を使用してください）' }"
+
+[[condition]]
+id = "import_file.catch_error"
+target_function = "importDeckFromFile"
+source_lines = "467-469"
+description = "readFileAsText等で例外が発生した場合、error='ファイル読み込みエラー: ${error}'を返す"
+given = "FileReaderがエラーを発生させる状況"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: 'ファイル読み込みエラー: ...' }"
+
+# --- parseCSVLine(line: string): string[] | null （非export） ---
+
+[[condition]]
+id = "parse_csv_line.escaped_double_quote"
+target_function = "parseCSVLine"
+source_lines = "230-234"
+description = "クォート内で連続する2つの'\"'は、エスケープされた1つの'\"'文字としてcurrentに追加され、2文字分インデックスを進める"
+given = "line = '\"Card \"\"Name\"\"\",123'"
+expect_return_shape = "1フィールド目 = 'Card \"Name\"'"
+
+[[condition]]
+id = "parse_csv_line.quote_toggle"
+target_function = "parseCSVLine"
+source_lines = "235-239"
+description = "エスケープでない'\"'はクォート状態(inQuotes)をトグルする"
+given = "line = '\"Card, Name\",123'"
+expect_return_shape = "クォート内の','はフィールド区切りとして扱われず、1フィールド目 = 'Card, Name'"
+
+[[condition]]
+id = "parse_csv_line.comma_outside_quotes_splits_field"
+target_function = "parseCSVLine"
+source_lines = "240-244"
+description = "クォート外の','はフィールド区切りとして扱われ、それまでのcurrentをresultにpushしてリセットする"
+given = "line = 'main,123,1'"
+expect_return_shape = "['main', '123', '1']"
+
+[[condition]]
+id = "parse_csv_line.other_chars_accumulate"
+target_function = "parseCSVLine"
+source_lines = "245-248"
+description = "クォート・カンマ以外の文字はそのままcurrentに追加される"
+given = "line = 'main,123'"
+expect_return_shape = "各フィールドの文字がそのまま保持される"
+
+# --- parseImportRow(fields, lineNumber, warnings): ImportRow | null （非export） ---
+
+[[condition]]
+id = "parse_import_row.too_few_fields"
+target_function = "parseImportRow"
+source_lines = "265-268"
+description = "fieldsが3未満の場合、warning追加(フィールド数不足)してnullを返す"
+given = "fields = ['main', '123']（2要素）"
+expect_return_shape = "null、warnings に '行N: フィールド数が不足しています（最低3列必要）' が追加される"
+
+[[condition]]
+id = "parse_import_row.invalid_section"
+target_function = "parseImportRow"
+source_lines = "270-274"
+description = "1列目(トリム・小文字化)が'main'/'extra'/'side'のいずれでもない場合、warning追加してnullを返す"
+given = "fields = ['invalid', '123', '1']"
+expect_return_shape = "null、warnings に '行N: 不正なセクション \"invalid\" （main/extra/sideのいずれか）' が追加される"
+
+[[condition]]
+id = "parse_import_row.fields3_minimal"
+target_function = "parseImportRow"
+source_lines = "282-286"
+description = "フィールド数が3の場合、section,cid,quantity形式として解釈し、ciidはデフォルト'1'になる"
+given = "fields = ['main', '123', '2']"
+expect_return_shape = "{ section: 'main', cid: '123', ciid: '1', quantity: 2 }（nameは未設定）"
+
+[[condition]]
+id = "parse_import_row.fields4_numeric_is_cid_ciid"
+target_function = "parseImportRow"
+source_lines = "287-298"
+description = "フィールド数が4で、2・3列目(field1,field2)が両方数字文字列の場合、section,cid,ciid,quantity形式と解釈する"
+given = "fields = ['main', '123', '2', '3']"
+expect_return_shape = "{ section: 'main', cid: '123', ciid: '2', quantity: 3 }"
+
+[[condition]]
+id = "parse_import_row.fields4_non_numeric_is_name_cid"
+target_function = "parseImportRow"
+source_lines = "287-305"
+description = "フィールド数が4で、2列目(field1)が数字でない場合、section,name,cid,quantity形式と解釈し、ciidはデフォルト'1'になる"
+given = "fields = ['main', 'カード名', '123', '2']"
+expect_return_shape = "{ section: 'main', name: 'カード名', cid: '123', ciid: '1', quantity: 2 }"
+
+[[condition]]
+id = "parse_import_row.fields5_numeric_is_cid_ciid_enc"
+target_function = "parseImportRow"
+source_lines = "306-318"
+description = "フィールド数が5で、2・3列目が両方数字文字列の場合、section,cid,ciid,enc,quantity形式と解釈する（encが空文字ならundefined）"
+given = "fields = ['main', '123', '2', 'abc', '3']"
+expect_return_shape = "{ section: 'main', cid: '123', ciid: '2', enc: 'abc', quantity: 3 }"
+
+[[condition]]
+id = "parse_import_row.fields5_non_numeric_is_name_cid_ciid"
+target_function = "parseImportRow"
+source_lines = "306-325"
+description = "フィールド数が5で、2列目が数字でない場合、section,name,cid,ciid,quantity形式と解釈する（encは設定されない）"
+given = "fields = ['main', 'カード名', '123', '2', '3']"
+expect_return_shape = "{ section: 'main', name: 'カード名', cid: '123', ciid: '2', quantity: 3 }"
+
+[[condition]]
+id = "parse_import_row.fields6plus_full_form"
+target_function = "parseImportRow"
+source_lines = "326-332"
+description = "フィールド数が6以上の場合、常にsection,name,cid,ciid,enc,quantity形式(先頭6列のみ使用)として解釈する"
+given = "fields = ['main', 'カード名', '123', '2', 'abc', '3', '余分な列']"
+expect_return_shape = "7列目以降は無視され、{ section, name, cid, ciid, enc, quantity } が生成される"
+
+[[condition]]
+id = "parse_import_row.cid_non_numeric_invalid"
+target_function = "parseImportRow"
+source_lines = "339-342"
+description = "解釈されたcidが数字文字列でない場合、warning追加してnullを返す"
+given = "fields = ['main', 'abc', '1']"
+expect_return_shape = "null、warnings に '行N: cidが不正です \"abc\"' が追加される"
+
+[[condition]]
+id = "parse_import_row.ciid_non_numeric_invalid"
+target_function = "parseImportRow"
+source_lines = "344-347"
+description = "解釈されたciidが数字文字列でない場合、warning追加してnullを返す。fields.length===3または4のパスではciidは数字リテラルかデフォルト'1'固定のため到達せず、実際に到達するのはfields.length===5でfield1が非数字(name扱い)の場合のfield3、またはfields.length>=6の場合のfield3のみ"
+given = "fields = ['main', 'カード名', '123', 'abc', '1']（5列、field1が数字でないためname,cid,ciid,quantity形式と解釈され、ciid='abc'になる）"
+expect_return_shape = "null、warnings に '行N: ciidが不正です \"abc\"' が追加される"
+
+[[condition]]
+id = "parse_import_row.quantity_nan_invalid"
+target_function = "parseImportRow"
+source_lines = "349-352"
+description = "quantityがNaN(数値変換不能)の場合、warning追加してnullを返す"
+given = "fields = ['main', '123', 'abc']（quantity列が数値でない）"
+expect_return_shape = "null、warnings に '行N: quantityが不正です \"abc\"' が追加される"
+
+[[condition]]
+id = "parse_import_row.quantity_below_1_invalid"
+target_function = "parseImportRow"
+source_lines = "349-352"
+description = "quantityが1未満(0または負)の場合、warning追加してnullを返す"
+given = "fields = ['main', '123', '0']"
+expect_return_shape = "null、warnings に '行N: quantityが不正です \"0\"' が追加される"
+
+[[condition]]
+id = "parse_import_row.quantity_over_99_invalid"
+target_function = "parseImportRow"
+source_lines = "349-352"
+description = "quantityが99を超える場合、warning追加してnullを返す"
+given = "fields = ['main', '123', '100']"
+expect_return_shape = "null、warnings に '行N: quantityが不正です \"100\"' が追加される"
+
+# --- convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo （非export） ---
+
+[[condition]]
+id = "convert_rows.merge_duplicate_key_sums_quantity"
+target_function = "convertRowsToDeckInfo"
+source_lines = "366-371"
+description = "同じ'section:cid:ciid'キーを持つ行が複数ある場合、quantityを加算し1件のカードにまとめる"
+given = "rows = [{section:'main',cid:'1',ciid:'1',quantity:2}, {section:'main',cid:'1',ciid:'1',quantity:1}]"
+expect_return_shape = "mainDeckに1件、quantity=3"
+
+[[condition]]
+id = "convert_rows.different_ciid_treated_as_distinct"
+target_function = "convertRowsToDeckInfo"
+source_lines = "366"
+description = "同じcidでもciidが異なれば別カード(別キー)として扱われる"
+given = "rows = [{section:'main',cid:'1',ciid:'1',quantity:1}, {section:'main',cid:'1',ciid:'2',quantity:1}]"
+expect_return_shape = "mainDeckに2件"
+
+[[condition]]
+id = "convert_rows.enc_present_sets_imgs"
+target_function = "convertRowsToDeckInfo"
+source_lines = "377"
+description = "行にencが設定されている場合、card.imgsに{ciid, imgHash: enc}が1件設定される"
+given = "row.enc = 'abc123'"
+expect_return_shape = "card.imgs = [{ ciid: row.ciid, imgHash: 'abc123' }]"
+
+[[condition]]
+id = "convert_rows.enc_absent_empty_imgs"
+target_function = "convertRowsToDeckInfo"
+source_lines = "377"
+description = "行にencが設定されていない場合、card.imgsは空配列になる"
+given = "row.enc = undefined"
+expect_return_shape = "card.imgs = []"
+
+[[condition]]
+id = "convert_rows.fake_card_placeholder_values"
+target_function = "convertRowsToDeckInfo"
+source_lines = "379-396"
+description = "新規カードは仮データ(cardType='monster'固定、attribute='light'固定、race='warrior'固定、atk/def=0等)で生成される。実データは後でAPIから取得する前提のプレースホルダー"
+given = "任意のインポート行"
+expect_return_shape = "card.cardType === 'monster' && card.race === 'warrior'（実際のカード種別・種族と一致するとは限らない）"
+note = "モンスター以外(魔法・罠)のカードをインポートしても、この時点ではcardType='monster'の仮データが入る。呼び出し元でAPIから正しい情報に更新される想定と思われるが、更新前に参照された場合の挙動はこのファイルの範囲外"
+
+[[condition]]
+id = "convert_rows.name_fallback_when_missing"
+target_function = "convertRowsToDeckInfo"
+source_lines = "391"
+description = "row.nameが未設定の場合、'Card ${cid}'をフォールバック名として使用する"
+given = "row.name = undefined, row.cid = '12950'"
+expect_return_shape = "card.name === 'Card 12950'"
+
+[[condition]]
+id = "convert_rows.temp_cache_registration"
+target_function = "convertRowsToDeckInfo"
+source_lines = "408-409"
+description = "各カードはgetTempCacheDB()経由でTempCacheDBにcid単位で登録される"
+given = "cardMapに複数カードが存在する"
+expect_side_effect = "tempCardDB.set(cid, card)が各カードについて呼ばれる"
+
+[[condition]]
+id = "convert_rows.section_classification"
+target_function = "convertRowsToDeckInfo"
+source_lines = "412-418"
+description = "sectionの値('main'/'extra'/'side')に応じてmainDeck/extraDeck/sideDeckのいずれかにDeckCardRefが追加される"
+given = "cardMapにmain 1件・extra 1件・side 1件"
+expect_return_shape = "mainDeck.length===1 && extraDeck.length===1 && sideDeck.length===1"
+
+[[condition]]
+id = "convert_rows.deck_info_fixed_defaults"
+target_function = "convertRowsToDeckInfo"
+source_lines = "421-431"
+description = "返されるDeckInfoのdno/name/category/tags/comment/deckCodeは常に固定の空値(dno=0, name='', 各配列は空, 文字列は'')になる。呼び出し元で上書きされる想定"
+given = "任意のインポート結果"
+expect_return_shape = "dno===0 && name==='' && category.length===0 && tags.length===0"
+
+# --- readFileAsText(file: File): Promise<string> （非export） ---
+
+[[condition]]
+id = "read_file_as_text.success"
+target_function = "readFileAsText"
+source_lines = "478-480"
+description = "FileReaderのonloadでe.target.resultが取得できた場合、resolveする"
+given = "有効なテキストファイル"
+expect_return_shape = "Promiseがファイル内容の文字列でresolveされる"
+
+[[condition]]
+id = "read_file_as_text.onload_no_result_rejects"
+target_function = "readFileAsText"
+source_lines = "481-482"
+description = "onload発火時にe.target.resultが falsy の場合、'ファイルの読み込みに失敗しました'エラーでrejectする"
+given = "FileReaderのresultがnullのままonloadが発火する状況"
+expect_return_shape = "Promiseがエラーでrejectされる"
+
+[[condition]]
+id = "read_file_as_text.onerror_rejects"
+target_function = "readFileAsText"
+source_lines = "485"
+description = "FileReaderがonerrorを発火した場合、reader.errorでrejectする"
+given = "ファイル読み込みに失敗する状況"
+expect_return_shape = "Promiseがreader.errorでrejectされる"

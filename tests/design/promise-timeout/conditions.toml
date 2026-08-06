@@ -1,0 +1,254 @@
+# 検証対象: src/utils/promise-timeout.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、非同期処理・タイムアウト制御を持つutils。
+#
+# 実装コメントとの差異:
+# - retryWithTimeout L213-214 は「到達不可」とコメントされているが、maxRetries < 0 や NaN の場合は
+#   forループに一度も入らず TimeoutError('Max retries exceeded') に到達する。
+
+[meta]
+feature = "promise-timeout"
+source_file = "src/utils/promise-timeout.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/promise-timeout.test.ts"
+source_hash = "3befeb8d8d89e9148cb4f01283ab0d64210a6457"
+note = "verified=falseは0件"
+
+# --- withTimeout<T>(promise: Promise<T>, options: TimeoutOptions = {}): Promise<T> ---
+
+[[condition]]
+id = "with_timeout.promise_resolves_before_timeout"
+target_function = "withTimeout"
+source_lines = "59-63"
+description = "対象Promiseがタイムアウト前にresolveした場合、その値でresolveし、finally内でtimeoutIdがundefinedでなければclearTimeoutする"
+given = "promiseがms経過前にresolveする"
+expect_return_shape = "Promiseは対象Promiseのresolve値でresolveし、タイムアウトコールバックは実行されない"
+
+[[condition]]
+id = "with_timeout.promise_rejects_before_timeout"
+target_function = "withTimeout"
+source_lines = "59-63"
+description = "対象Promiseがタイムアウト前にrejectした場合、その理由でrejectし、finally内でtimeoutIdがundefinedでなければclearTimeoutする"
+given = "promiseがms経過前にrejectする"
+expect_throw = "対象Promiseのreject理由"
+
+[[condition]]
+id = "with_timeout.timeout_rejects_default_message"
+target_function = "withTimeout"
+source_lines = "44-56"
+description = "options.ms/message未指定で対象Promiseがsettleしない場合、5000ms後にTimeoutError('Promise timeout after 5000ms')でrejectする"
+given = "promiseがsettleしない、options={}"
+expect_throw = "TimeoutError: Promise timeout after 5000ms"
+
+[[condition]]
+id = "with_timeout.timeout_rejects_custom_message_and_callback"
+target_function = "withTimeout"
+source_lines = "44-56"
+description = "message/onTimeout指定時にタイムアウトした場合、onTimeoutを呼んでから指定messageのTimeoutErrorでrejectする"
+given = "promiseがsettleしない、options={ ms: 25, message: 'custom timeout', onTimeout }"
+expect_throw = "TimeoutError: custom timeout"
+expect_side_effect = "onTimeoutが1回呼ばれる"
+
+[[condition]]
+id = "with_timeout.timeout_without_callback"
+target_function = "withTimeout"
+source_lines = "53-55"
+description = "onTimeout未指定でタイムアウトした場合、optional chainingによりコールバック呼び出しは行われずTimeoutErrorでrejectする"
+given = "promiseがsettleしない、options={ ms: 25 }"
+expect_throw = "TimeoutError: Promise timeout after 25ms"
+
+# --- TimeoutError.isTimeoutError(error: any): error is TimeoutError ---
+
+[[condition]]
+id = "timeout_error.instance_true"
+target_function = "TimeoutError.isTimeoutError"
+source_lines = "83-84"
+description = "errorがTimeoutErrorインスタンスの場合はtrueを返す"
+given = "error = new TimeoutError('x')"
+expect_return = true
+
+[[condition]]
+id = "timeout_error.name_true"
+target_function = "TimeoutError.isTimeoutError"
+source_lines = "83-84"
+description = "errorがTimeoutErrorインスタンスでなくてもname === 'TimeoutError'ならtrueを返す"
+given = "error = { name: 'TimeoutError' }"
+expect_return = true
+
+[[condition]]
+id = "timeout_error.other_false"
+target_function = "TimeoutError.isTimeoutError"
+source_lines = "83-84"
+description = "errorがTimeoutErrorインスタンスではなくnameも'TimeoutError'でない場合はfalseを返す"
+given = "error = new Error('x')"
+expect_return = false
+
+[[condition]]
+id = "timeout_error.nullish_throws"
+target_function = "TimeoutError.isTimeoutError"
+source_lines = "83-84"
+description = "errorがnull/undefinedの場合、error.name参照によりTypeErrorをthrowする"
+given = "error = null"
+expect_throw = "TypeError"
+
+# --- callbackToPromise<T>(executor, timeoutMs = 5000): Promise<T> ---
+
+[[condition]]
+id = "callback_to_promise.callback_resolves"
+target_function = "callbackToPromise"
+source_lines = "109-119"
+description = "executorがcallbackを呼んだ場合、そのcallback引数でresolveする"
+given = "executorがcallback('ok')を呼ぶ"
+expect_return = "ok"
+
+[[condition]]
+id = "callback_to_promise.default_timeout_message"
+target_function = "callbackToPromise"
+source_lines = "105-119"
+description = "timeoutMs未指定かつexecutorがcallbackを呼ばない場合、5000ms後にCallback-based operation用メッセージのTimeoutErrorでrejectする"
+given = "executorがcallbackを呼ばない、timeoutMs未指定"
+expect_throw = "TimeoutError: Callback-based operation timeout after 5000ms"
+
+[[condition]]
+id = "callback_to_promise.custom_timeout_message"
+target_function = "callbackToPromise"
+source_lines = "105-119"
+description = "timeoutMs指定かつexecutorがcallbackを呼ばない場合、指定timeoutMsを埋め込んだTimeoutErrorでrejectする"
+given = "executorがcallbackを呼ばない、timeoutMs=30"
+expect_throw = "TimeoutError: Callback-based operation timeout after 30ms"
+
+# --- withTimeouts<T>(promises: Promise<T>[], timeoutMs = 5000): Promise<T>[] ---
+
+[[condition]]
+id = "with_timeouts_maps_each_promise"
+target_function = "withTimeouts"
+source_lines = "134-140"
+description = "入力配列の各PromiseをwithTimeout(promise, { ms: timeoutMs })で包んだ新しいPromise配列を返す"
+given = "promises=[resolveするPromise, settleしないPromise], timeoutMs=20"
+expect_return_shape = "返却配列は入力と同じlengthで、各要素が個別にresolve/timeoutする"
+
+[[condition]]
+id = "with_timeouts_empty_array"
+target_function = "withTimeouts"
+source_lines = "138-140"
+description = "入力配列が空の場合、mapの結果として空配列を返す"
+given = "promises=[]"
+expect_return_shape = "[]"
+
+# --- waitWithinTimeout<T>(promise: Promise<T>, ms: number): Promise<boolean> ---
+
+[[condition]]
+id = "wait_within_timeout_resolved_true"
+target_function = "waitWithinTimeout"
+source_lines = "160-162"
+description = "withTimeoutがresolveした場合はtrueを返す"
+given = "promiseがms経過前にresolveする"
+expect_return = true
+
+[[condition]]
+id = "wait_within_timeout_timeout_false"
+target_function = "waitWithinTimeout"
+source_lines = "163-165"
+description = "withTimeoutがTimeoutErrorでrejectした場合はfalseを返す"
+given = "promiseがms以内にsettleしない"
+expect_return = false
+
+[[condition]]
+id = "wait_within_timeout_non_timeout_rethrows"
+target_function = "waitWithinTimeout"
+source_lines = "163-167"
+description = "catchしたerrorがTimeoutErrorでない場合はそのerrorを再throwする"
+given = "promiseが通常のErrorでrejectする"
+expect_throw = "対象Promiseのreject理由"
+
+# --- retryWithTimeout<T>(executor, options = {}): Promise<T> ---
+
+[[condition]]
+id = "retry_with_timeout_first_success"
+target_function = "retryWithTimeout"
+source_lines = "193-195"
+description = "最初のattemptでwithTimeout(executor(), { ms: timeoutMs })がresolveした場合、その値を返し以後リトライしない"
+given = "executorの1回目がresolveする"
+expect_return = "executorのresolve値"
+
+[[condition]]
+id = "retry_with_timeout_timeout_then_success_after_delay"
+target_function = "retryWithTimeout"
+source_lines = "193-205"
+description = "TimeoutErrorかつ最終attemptでない場合、100ms待機してcontinueし、次attemptで成功すればその値を返す"
+given = "1回目はtimeoutMs以内にsettleせず、2回目はresolveする、maxRetries>=1"
+expect_return = "2回目のexecutorのresolve値"
+expect_side_effect = "2回目のexecutor呼び出しは100ms待機後"
+
+[[condition]]
+id = "retry_with_timeout_last_timeout_rethrows"
+target_function = "retryWithTimeout"
+source_lines = "197-201"
+description = "TimeoutErrorかつattempt === maxRetriesの場合、そのTimeoutErrorをthrowする"
+given = "全attemptがtimeoutMs以内にsettleしない"
+expect_throw = "最後のTimeoutError"
+
+[[condition]]
+id = "retry_with_timeout_non_timeout_rethrows_immediately"
+target_function = "retryWithTimeout"
+source_lines = "199-209"
+description = "catchしたerrorがTimeoutErrorでない場合、リトライ待機せず即座にそのerrorをthrowする"
+given = "executorが通常のErrorでrejectする"
+expect_throw = "対象Promiseのreject理由"
+expect_side_effect = "executor呼び出しは1回のみ"
+
+[[condition]]
+id = "retry_with_timeout_negative_retries_max_exceeded"
+target_function = "retryWithTimeout"
+source_lines = "193,213-214"
+description = "maxRetriesが負数の場合、forループに入らずTimeoutError('Max retries exceeded')をthrowする"
+given = "options={ maxRetries: -1 }"
+expect_throw = "TimeoutError: Max retries exceeded"
+expect_side_effect = "executorは呼ばれない"
+
+# --- createCancelToken(): CancelToken ---
+
+[[condition]]
+id = "cancel_token_initial_false"
+target_function = "createCancelToken"
+source_lines = "239-249"
+description = "作成直後のisCancelled()はfalseを返す"
+given = "const token = createCancelToken()"
+expect_return = false
+
+[[condition]]
+id = "cancel_token_cancel_sets_true"
+target_function = "createCancelToken"
+source_lines = "242-248"
+description = "cancel(reason?)を呼ぶとreasonの有無に関係なく内部cancelledがtrueになり、isCancelled()はtrueを返す"
+given = "token.cancel('reason')"
+expect_return = true
+
+# --- withCancelToken<T>(promise: Promise<T>, token: CancelToken): Promise<T> ---
+
+[[condition]]
+id = "with_cancel_token_promise_resolves_first"
+target_function = "withCancelToken"
+source_lines = "263-271"
+description = "対象Promiseがキャンセル検知前にresolveした場合、その値でresolveする"
+given = "promiseがresolveし、token.isCancelled()はfalse"
+expect_return = "対象Promiseのresolve値"
+
+[[condition]]
+id = "with_cancel_token_promise_rejects_first"
+target_function = "withCancelToken"
+source_lines = "263-271"
+description = "対象Promiseがキャンセル検知前にrejectした場合、その理由でrejectする"
+given = "promiseがrejectし、token.isCancelled()はfalse"
+expect_throw = "対象Promiseのreject理由"
+
+[[condition]]
+id = "with_cancel_token_cancel_rejects"
+target_function = "withCancelToken"
+source_lines = "266-270"
+description = "10msごとのintervalでtoken.isCancelled()がtrueならintervalをclearしてError('Operation cancelled')でrejectする"
+given = "token.cancel()後にintervalチェックが実行される"
+expect_throw = "Error: Operation cancelled"

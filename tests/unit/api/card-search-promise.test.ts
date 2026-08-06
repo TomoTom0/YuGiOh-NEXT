@@ -25,7 +25,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
   });
 
   describe('Promise チェーンテスト', () => {
-    it('fetchAdditionalPages() が Promise を返す', async () => {
+    it('[covers:fetch_pages.promise_and_page_params] fetchAdditionalPages() が Promise を返す', async () => {
       // fetchを モック
       global.fetch = vi.fn(() =>
         Promise.resolve({
@@ -46,7 +46,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
       expect(Array.isArray(cards)).toBe(true);
     });
 
-    it('複数ページのカード情報を並列取得', async () => {
+    it('[covers:fetch_pages.exact_2000_continue] 複数ページのカード情報を順次取得', async () => {
       let callCount = 0;
 
       global.fetch = vi.fn(() => {
@@ -107,7 +107,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
       expect(callCount).toBe(2);
     });
 
-    it('API 失敗時のエラーハンドリング', async () => {
+    it('[covers:fetch_pages.http_error_break] API 失敗時のエラーハンドリング', async () => {
       global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: false,
@@ -125,7 +125,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
       expect(result.length).toBe(0);
     });
 
-    it('ネットワークエラーハンドリング', async () => {
+    it('[covers:fetch_pages.catch_break] ネットワークエラーハンドリング', async () => {
       global.fetch = vi.fn(() =>
         Promise.reject(new Error('Network error'))
       );
@@ -140,7 +140,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
       expect(result.length).toBe(0);
     });
 
-    it('ページングロジック：最終ページ判定', async () => {
+    it('[covers:fetch_pages.less_than_2000_stop] ページングロジック：最終ページ判定', async () => {
       let callCount = 0;
 
       global.fetch = vi.fn(() => {
@@ -179,7 +179,7 @@ describe('api/card-search: fetchAdditionalPages', () => {
       expect(callCount).toBe(1);
     });
 
-    it('空のカード結果で終了', async () => {
+    it('[covers:fetch_pages.empty_cards_stop] 空のカード結果で終了', async () => {
       let callCount = 0;
 
       global.fetch = vi.fn(() => {

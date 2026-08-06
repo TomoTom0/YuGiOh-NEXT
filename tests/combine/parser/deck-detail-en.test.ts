@@ -9,6 +9,8 @@ import { resetUnifiedCacheDB } from '@/utils/unified-cache-db';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Parser: Deck Detail (English)', () => {
+  const htmlPath = path.join(__dirname, '../data/en/deck-detail-public-en.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
   let mockStorage: Record<string, unknown>;
 
   beforeEach(() => {
@@ -36,9 +38,8 @@ describe('Parser: Deck Detail (English)', () => {
 
     resetUnifiedCacheDB();
   });
-  it('should parse English deck detail page correctly', async () => {
+  it.skipIf(!hasHtmlFile)('should parse English deck detail page correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/en/deck-detail-public-en.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // JSDOMでパース
