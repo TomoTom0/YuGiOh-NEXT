@@ -10,8 +10,11 @@
 | `browser/` | ブラウザ自動テスト（UI操作、CDP経由） | Node.js + CDP | `node tmp/test-*.js` |
 | `e2e/` | E2Eテスト（統合フロー） | Vitest + CDP | `mise run test:vitest -- tests/e2e/` |
 | `combine/` | 統合テスト（複数コンポーネント） | Vitest | `mise run test:vitest -- tests/combine/` |
+| `design/` | テスト設計仕様（`conditions.toml`: 実装から抽出した検証条件・`[covers:<id>]`タグでテストと紐付け） | - | 詳細は [`tests/design/README.md`](./design/README.md) |
 | `fixtures/` | テストフィクスチャ（テストデータ） | - | - |
 | `sample/` | サンプルデータ（公式サイトのHTMLダウンロード済み） | - | - |
+
+> **`design/` について**: 実装ソースから分岐・throw・返り値を転記した `conditions.toml` を蓄積するテスト設計仕様ディレクトリです（TASK-319〜）。テストは `[covers:<id>]` タグでこれらの条件をカバーしたことを示します。「推測を推測で検証する」循環を防ぐのが目的で、計画・粒度基準・検証方法は [`tests/design/README.md`](./design/README.md) を参照してください。
 
 ## 主要なユニットテストカテゴリ（unit/）
 
