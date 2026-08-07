@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
-    "axios": "^1.13.2",
+    "axios": "^1.19.0",
     "canvas": "^3.2.0",
     "jsdom": "^27.3.0",
     "linkedom": "^0.18.12",
