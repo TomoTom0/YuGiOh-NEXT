@@ -13,7 +13,7 @@ node tests/browser/test-scroll-to-top.cjs
 ## 前提条件
 
 - Chromiumブラウザがリモートデバッグモードで起動していること
-- `.chrome_playwright_ws`ファイルにWebSocket URLが記載されていること
+- `configs/browser.toml` の `chrome.ws_file` に指定されたファイルにWebSocket URLが記載されていること
 
 起動方法:
 ```bash

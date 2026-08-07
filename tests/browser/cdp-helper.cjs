@@ -6,12 +6,35 @@
 
 const WebSocket = require('ws');
 const fs = require('fs');
+const path = require('path');
+
+/**
+ * configs/browser.toml から指定キーの値を読み取る
+ * プロジェクトルートから実行される前提（相対パスで configs/browser.toml にアクセス）
+ * @param {string} key - TOMLキー（例: "chrome.ws_file"）
+ * @returns {string} 値。読み取り失敗時は空文字列
+ */
+function readBrowserConfig(key) {
+  try {
+    const toml = fs.readFileSync('configs/browser.toml', 'utf8');
+    const escaped = key.replace(/\./g, '\\.');
+    const re = new RegExp(`^${escaped}\\s*=\\s*"([^"]*)"`, 'm');
+    const match = toml.match(re);
+    return match ? match[1] : '';
+  } catch (e) {
+    console.error('Failed to read configs/browser.toml:', e.message);
+    return '';
+  }
+}
+
+/** WebSocketエンドポイントファイルのパス（configs/browser.toml から取得） */
+const WS_FILE = readBrowserConfig('chrome.ws_file');
 
 /**
  * Chrome CDPに接続
  */
 function connectCDP() {
-  const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+  const wsUrl = fs.readFileSync(WS_FILE, 'utf8').trim();
   const ws = new WebSocket(wsUrl);
   let messageId = 1;
 
@@ -167,4 +190,4 @@ function createTestContext() {
   };
 }
 
-module.exports = { connectCDP, createTestContext };
+module.exports = { connectCDP, createTestContext, WS_FILE };

@@ -107,7 +107,8 @@
 ```javascript
 const WebSocket = require('ws');
 const fs = require('fs');
-const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+const { WS_FILE } = require('./tests/browser/cdp-helper.cjs');
+const wsUrl = fs.readFileSync(WS_FILE, 'utf8').trim();
 const ws = new WebSocket(wsUrl);
 
 // Chrome DevTools Protocolでコマンド送信

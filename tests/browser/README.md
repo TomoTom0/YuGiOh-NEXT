@@ -18,7 +18,7 @@ Chrome DevTools Protocol（CDP）を使用して、Chromiumブラウザ上で拡
 このスクリプトは以下を実行します：
 - Chromiumをリモートデバッグモードで起動
 - 拡張機能を自動ロード
-- WebSocket URLを `.chrome_playwright_ws` に保存
+- WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に指定されたファイルに保存
 
 ### 2. 依存パッケージのインストール
 
@@ -286,9 +286,9 @@ node tests/browser/test-scroll-to-top.cjs
 
 ## トラブルシューティング
 
-### `Error: ENOENT: no such file or directory, open '.chrome_playwright_ws'`
+### `Error: ENOENT: no such file or directory, open '<ws_file>'`
 
-Chromiumが起動していません。以下のコマンドでChromiumを起動してください：
+Chromiumが起動していません。以下のコマンドでChromiumを起動してください（ws_fileのパスは `configs/browser.toml` で管理）：
 
 ```bash
 ./scripts/debug/setup/start-chrome.sh

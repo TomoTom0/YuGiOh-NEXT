@@ -5,12 +5,13 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
+const { WS_FILE } = require('../../../tests/browser/cdp-helper.cjs');
 
 /**
  * Chrome CDPに接続してスクリーンショット機能を提供
  */
 function connectCDP() {
-  const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+  const wsUrl = fs.readFileSync(WS_FILE, 'utf8').trim();
   const ws = new WebSocket(wsUrl);
   let messageId = 1;
 

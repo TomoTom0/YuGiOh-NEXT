@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const { WS_FILE } = require('../../../tests/browser/cdp-helper.cjs');
 
 const execAsync = promisify(exec);
 
@@ -14,7 +15,7 @@ const execAsync = promisify(exec);
  * Chrome CDPに接続して動画撮影機能を提供
  */
 function connectCDP() {
-  const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+  const wsUrl = fs.readFileSync(WS_FILE, 'utf8').trim();
   const ws = new WebSocket(wsUrl);
   let messageId = 1;
 

@@ -255,7 +255,7 @@ target_function = "performGenesysFetch"
 source_lines = "232-260"
 description = "urlが許可prefixで始まらない場合、fetchせずstorageへsuccess=false/error='URL not allowed'を書き込む"
 given = "url = 'https://example.com/genesys'"
-expect_side_effect = "fetchは呼ばれず、chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'URL not allowed' } }) が呼ばれる"
+expect_side_effect = "fetchは呼ばれず、chrome.storage.local.set({ genesysFetchResp_<requestId>: { requestId, success:false, error:'URL not allowed' } }) が呼ばれる"
 
 [[condition]]
 id = "perform_genesys_fetch.fetch_not_ok"
@@ -263,7 +263,7 @@ target_function = "performGenesysFetch"
 source_lines = "238-246"
 description = "許可prefixのurlでfetchResponse.okがfalseの場合、statusとstatusTextを含むFailedエラーをstorageへ書き込む"
 given = "fetch response = { ok:false, status:404, statusText:'Not Found' }"
-expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'Failed: 404 Not Found' } }) が呼ばれる"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp_<requestId>: { requestId, success:false, error:'Failed: 404 Not Found' } }) が呼ばれる"
 
 [[condition]]
 id = "perform_genesys_fetch.fetch_success"
@@ -271,7 +271,7 @@ target_function = "performGenesysFetch"
 source_lines = "247-250"
 description = "許可prefixのurlでfetchResponse.okがtrueの場合、response.text()の文字列をtextとしてstorageへ書き込む"
 given = "fetch response = { ok:true, text: resolves '<html>' }"
-expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:true, text:'<html>' } }) が呼ばれる"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp_<requestId>: { requestId, success:true, text:'<html>' } }) が呼ばれる"
 
 [[condition]]
 id = "perform_genesys_fetch.fetch_throws"
@@ -279,7 +279,7 @@ target_function = "performGenesysFetch"
 source_lines = "252-260"
 description = "fetchまたはresponse.text()がthrow/rejectした場合、Errorならmessage、非ErrorならString(err)をerrorとしてstorageへ書き込む"
 given = "fetch throws Error('network down')"
-expect_side_effect = "chrome.storage.local.set({ genesysFetchResp: { requestId, success:false, error:'network down' } }) が呼ばれる"
+expect_side_effect = "chrome.storage.local.set({ genesysFetchResp_<requestId>: { requestId, success:false, error:'network down' } }) が呼ばれる"
 
 # --- preloadDeckDetail(dno: number, cgid: string): Promise<void> ---
 

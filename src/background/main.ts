@@ -222,11 +222,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
  * GENESYS fetch リレー（content script からの要求を onMessage で受けて fetch）
  *
  * content script が GENESYS_FETCH メッセージ（requestId, url）を送ると、host_permissions
- * で www.yugioh-card.com を fetch し、結果を chrome.storage.local の 'genesysFetchResp'
- * に書く。応答は sendResponse でなく storage 経由（"message port closed" 回避）。
+ * で www.yugioh-card.com を fetch し、結果を chrome.storage.local の
+ * 'genesysFetchResp_<requestId>' に書く。リクエストID別キーで並行リクエストの競合を防止。
+ * 応答は sendResponse でなく storage 経由（"message port closed" 回避）。
  * 呼び出し側で return true して SW を fetch 完了まで生存させる。
  */
-const GENESYS_FETCH_RESP_KEY = 'genesysFetchResp';
+const GENESYS_FETCH_RESP_KEY_PREFIX = 'genesysFetchResp';
+
+function genesysFetchKey(requestId: string): string {
+  return GENESYS_FETCH_RESP_KEY_PREFIX + '_' + requestId;
+}
 const BG_GENESYS_ALLOWED_URL_PREFIX = 'https://www.yugioh-card.com/japan/howto/genesys';
 
 async function performGenesysFetch(requestId: string, url: string): Promise<void> {
@@ -257,7 +262,7 @@ async function performGenesysFetch(requestId: string, url: string): Promise<void
     };
     console.warn('[BG-GENESYS] fetch error', requestId, resp.error);
   }
-  await chrome.storage.local.set({ [GENESYS_FETCH_RESP_KEY]: resp });
+  await chrome.storage.local.set({ [genesysFetchKey(requestId)]: resp });
   console.warn('[BG-GENESYS] resp written', requestId, 'len=' + (resp.text?.length ?? 0));
 }
 

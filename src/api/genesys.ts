@@ -21,7 +21,11 @@ import { getGenesysListUrl, getGenesysIndexUrl } from '../utils/url-builder';
  * chrome.storage.local に書く。応答は sendResponse でなく storage のポーリング取得で
  * 受け取る（"message port closed" と storage.onChanged 不達の両方を回避する確実な方式）。
  */
-const GENESYS_FETCH_RESP_KEY = 'genesysFetchResp';
+const GENESYS_FETCH_RESP_KEY_PREFIX = 'genesysFetchResp';
+
+function genesysFetchKey(requestId: string): string {
+  return GENESYS_FETCH_RESP_KEY_PREFIX + '_' + requestId;
+}
 
 async function fetchTextViaBackground(url: string): Promise<string> {
   const requestId = crypto.randomUUID();
@@ -39,16 +43,16 @@ async function fetchTextViaBackground(url: string): Promise<string> {
   // 応答をポーリングで取得（onChanged に依存しない）
   const start = Date.now();
   while (Date.now() - start < 30000) {
-    const data = await chrome.storage.local.get(GENESYS_FETCH_RESP_KEY);
-    const resp = data[GENESYS_FETCH_RESP_KEY] as {
+    const data = await chrome.storage.local.get(genesysFetchKey(requestId));
+    const resp = data[genesysFetchKey(requestId)] as {
       requestId?: string;
       success?: boolean;
       text?: string;
       error?: string;
     } | undefined;
-    if (resp && resp.requestId === requestId) {
+    if (resp) {
       console.warn('[CS-GENESYS] resp matched', requestId, 'success=' + resp.success);
-      await chrome.storage.local.remove(GENESYS_FETCH_RESP_KEY);
+      await chrome.storage.local.remove(genesysFetchKey(requestId));
       if (resp.success) {
         return resp.text ?? '';
       }

@@ -212,7 +212,7 @@ mise run test:vitest -- tests/e2e/
 
 2. **WebSocket接続情報を確認**
    ```bash
-   cat .chrome_playwright_ws
+   cat $(tomlq -r '.chrome.ws_file' configs/browser.toml)
    ```
 
 3. **詳細は `tests/browser/README.md` を参照**

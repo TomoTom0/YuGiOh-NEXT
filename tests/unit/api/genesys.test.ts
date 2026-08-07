@@ -211,9 +211,19 @@ describe('api/genesys', () => {
         const { requestId } = msg as { requestId: string };
         storedResp = { requestId, ...response };
       });
-      vi.spyOn(chrome.storage.local, 'get').mockImplementation(async () => ({
-        genesysFetchResp: storedResp,
-      }));
+      vi.spyOn(chrome.storage.local, 'get').mockImplementation(async (keys?: unknown) => {
+        const result: Record<string, unknown> = {};
+        if (storedResp) {
+          // 実装は genesysFetchResp_<requestId> 形式のキーでgetする
+          const key = typeof keys === 'string' ? keys
+            : Array.isArray(keys) ? (keys[0] as string ?? '')
+            : '';
+          if (typeof key === 'string' && key.startsWith('genesysFetchResp_')) {
+            result[key] = storedResp;
+          }
+        }
+        return result;
+      });
       vi.spyOn(chrome.storage.local, 'remove').mockImplementation(async () => {});
     }
 
@@ -232,7 +242,7 @@ describe('api/genesys', () => {
         }),
         expect.any(Function)
       );
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith('genesysFetchResp');
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith(expect.stringMatching(/^genesysFetchResp_/));
       expect(refs).toHaveLength(1);
       expect(refs[0]?.listParam).toBe('202608');
     });
@@ -255,7 +265,7 @@ describe('api/genesys', () => {
     it('background経由fetch失敗時はエラーを投げる [covers:fetch_bg.matched_failure_throws_error]', async () => {
       mockBackgroundFetch({ success: false, error: 'Failed: 404 Not Found' });
       await expect(fetchGenesysIndex()).rejects.toThrow('Failed: 404 Not Found');
-      expect(chrome.storage.local.remove).toHaveBeenCalledWith('genesysFetchResp');
+      expect(chrome.storage.local.remove).toHaveBeenCalledWith(expect.stringMatching(/^genesysFetchResp_/));
     });
 
     it('background応答が成功でもtextが無ければ空文字列としてパースする [covers:fetch_bg.matched_success_missing_text_empty]', async () => {
@@ -277,7 +287,7 @@ describe('api/genesys', () => {
         runtime.lastError = undefined;
         const { requestId } = msg as { requestId: string };
         vi.mocked(chrome.storage.local.get).mockResolvedValue({
-          genesysFetchResp: { requestId, success: true, text: '<section id="point"></section>' },
+          [`genesysFetchResp_${requestId}`]: { requestId, success: true, text: '<section id="point"></section>' },
         });
       });
       vi.spyOn(chrome.storage.local, 'get').mockResolvedValue({});
@@ -286,16 +296,16 @@ describe('api/genesys', () => {
       expect(refs).toEqual([]);
     });
 
-    it('requestIdが一致しない応答は無視して次のポーリング結果を待つ [covers:fetch_bg.poll_ignores_missing_or_other_request]', async () => {
+    it('最初のポーリングで応答がなくても再ポーリングで応答を取得する [covers:fetch_bg.poll_ignores_missing_or_other_request]', async () => {
       vi.useFakeTimers();
       let requestId = '';
       vi.spyOn(chrome.runtime, 'sendMessage').mockImplementation((msg: unknown) => {
         requestId = (msg as { requestId: string }).requestId;
       });
       vi.spyOn(chrome.storage.local, 'get')
-        .mockResolvedValueOnce({ genesysFetchResp: { requestId: 'other', success: true, text: '<section id="point"></section>' } })
+        .mockResolvedValueOnce({}) // 1回目: まだ応答なし
         .mockImplementation(async () => ({
-          genesysFetchResp: {
+          [`genesysFetchResp_${requestId}`]: {
             requestId,
             success: true,
             text: '<section id="point"><a href="?list=202608">2026年8月1日適用リスト</a></section>',

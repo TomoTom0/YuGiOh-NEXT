@@ -19,9 +19,9 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const http = require('http');
-const { createTestContext } = require('./cdp-helper.cjs');
+const { createTestContext, WS_FILE } = require('./cdp-helper.cjs');
 
-const PAGE_WS_URL = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+const PAGE_WS_URL = fs.readFileSync(WS_FILE, 'utf8').trim();
 // 公開デッキ表示URL（認証不要）
 const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
 const GENESYS_INDEX_URL = 'https://www.yugioh-card.com/japan/howto/genesys/';

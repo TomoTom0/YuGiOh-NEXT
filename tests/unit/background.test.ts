@@ -381,7 +381,7 @@ describe('Background Service Worker', () => {
       expect(sendResponse).not.toHaveBeenCalled();
       expect(global.fetch).not.toHaveBeenCalled();
       expect(chromeMock.storage.local.set).toHaveBeenCalledWith({
-        genesysFetchResp: { requestId: 'req-1', success: false, error: 'URL not allowed' },
+        "genesysFetchResp_req-1": { requestId: 'req-1', success: false, error: 'URL not allowed' },
       });
     });
 
@@ -401,7 +401,7 @@ describe('Background Service Worker', () => {
       await flushPromises();
 
       expect(chromeMock.storage.local.set).toHaveBeenCalledWith({
-        genesysFetchResp: { requestId: 'req-2', success: false, error: 'Failed: 404 Not Found' },
+        "genesysFetchResp_req-2": { requestId: 'req-2', success: false, error: 'Failed: 404 Not Found' },
       });
     });
 
@@ -421,7 +421,7 @@ describe('Background Service Worker', () => {
       await flushPromises();
 
       expect(chromeMock.storage.local.set).toHaveBeenCalledWith({
-        genesysFetchResp: { requestId: 'req-3', success: true, text: '<html>ok</html>' },
+        "genesysFetchResp_req-3": { requestId: 'req-3', success: true, text: '<html>ok</html>' },
       });
     });
 
@@ -437,7 +437,7 @@ describe('Background Service Worker', () => {
       await flushPromises();
 
       expect(chromeMock.storage.local.set).toHaveBeenCalledWith({
-        genesysFetchResp: { requestId: 'req-4', success: false, error: 'network down' },
+        "genesysFetchResp_req-4": { requestId: 'req-4', success: false, error: 'network down' },
       });
     });
   });
