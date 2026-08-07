@@ -1,104 +1,70 @@
 /**
  * @vitest-environment node
  */
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { JSDOM } from 'jsdom';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { extractMappingsFromSearchPage } from '@/utils/extract-mappings';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const koHtmlPath = path.join(__dirname, '../../sample/card_search_ko.html');
-const hasHtmlFile = fs.existsSync(koHtmlPath);
+vi.mock('@/utils/page-detector', () => ({
+  detectCardGameType: vi.fn(() => 'ocg'),
+}));
 
-describe('extractMappingsFromSearchPage', () => {
-  it.skipIf(!hasHtmlFile)('should extract mappings from Korean card search page', () => {
-    // テスト用HTMLを読み込み
-    const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
+vi.mock('@/utils/url-builder', () => ({
+  buildApiUrl: vi.fn(() => 'https://mock.test/card_search.action'),
+}));
 
-    // DOMParserでパース
-    const dom = new JSDOM(koHtml);
-    const doc = dom.window.document;
+global.DOMParser = new JSDOM('').window.DOMParser;
 
-    console.log('[Test] Korean HTML parsed');
-    console.log(`  Body length: ${doc.body.innerHTML.length}`);
+function stubFetchHtml(html: string) {
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true,
+    statusText: 'OK',
+    text: vi.fn(async () => html),
+  })));
+}
 
-    // monsterType フィルタを確認
-    const monsterTypeFilters = doc.querySelectorAll('[id*="filter_other"]');
-    console.log(`[Test] Found ${monsterTypeFilters.length} filter_other elements`);
-
-    // 各フィルタの input[name="other"] を確認
-    monsterTypeFilters.forEach((filter, idx) => {
-      const inputs = filter.querySelectorAll('input[name="other"]');
-      console.log(`  Filter ${idx}: ${inputs.length} input[name="other"] elements`);
-      if (inputs.length > 0) {
-        const li = filter.querySelector('li');
-        if (li) {
-          const span = li.querySelector('span');
-          console.log(`    First item text: "${span?.textContent?.trim()}"`);
-        }
-      }
-    });
-
-    // Attribute フィルタを確認
-    const attrFilters = doc.querySelectorAll('[id*="attribute"], [class*="attribute"]');
-    console.log(`[Test] Found ${attrFilters.length} attribute filter elements`);
-
-    // Race フィルタを確認
-    const speciesFilter = doc.querySelector('#filter_specis, .filter_specis');
-    const speciesItems = speciesFilter?.querySelectorAll('li') || [];
-    console.log(`[Test] Found ${speciesItems.length} species (race) items`);
-
-    // Assertion
-    expect(monsterTypeFilters.length).toBeGreaterThan(0);
-    expect(attrFilters.length).toBeGreaterThan(0);
-    expect(speciesItems.length).toBeGreaterThan(0);
-
-    console.log('[Test] ✅ Korean page structure confirmed');
+describe('extractMappingsFromSearchPage - empty and error paths', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
-  it.skipIf(!hasHtmlFile)('should extract monsterType mapping from Korean page', () => {
-    const koHtml = fs.readFileSync(koHtmlPath, 'utf-8');
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
 
-    const dom = new JSDOM(koHtml);
-    const doc = dom.window.document;
+  it('[covers:extract_search.empty_race_null] [covers:race.no_species_filter_empty] [covers:attribute.no_filter_empty] returns null when the species and attribute filters are absent', async () => {
+    stubFetchHtml(`
+      <div id="filter_other_monster">
+        <li><span>Effect</span><input name="other" value="1"></li>
+      </div>
+    `);
 
-    // extractMonsterTypeMapping の実装をシミュレート
-    const monsterTypeMap: Record<string, string> = {};
+    await expect(extractMappingsFromSearchPage('ko')).resolves.toBeNull();
 
-    const cardTypeFilters = doc.querySelectorAll('[id*="filter_other"]');
+    expect(console.warn).toHaveBeenCalledWith('[extractRaceMapping] Species filter element not found');
+    expect(console.warn).toHaveBeenCalledWith('[extractAttributeMapping] Attribute filter element not found');
+    expect(console.warn).toHaveBeenCalledWith('[extractMappingsFromSearchPage] Race mappings seem empty for ko');
+  });
 
-    cardTypeFilters.forEach((filter) => {
-      // 修正後: input[name="other"] で判定（言語非依存）
-      const sampleInput = filter.querySelector('input[name="other"]');
-      if (!sampleInput) {
-        return;
-      }
+  it('[covers:extract_search.empty_race_null] [covers:race.no_list_items_empty] returns null when the species filter has no list items', async () => {
+    stubFetchHtml('<div id="filter_specis"></div>');
 
-      const listItems = filter.querySelectorAll('li');
+    await expect(extractMappingsFromSearchPage('en')).resolves.toBeNull();
 
-      listItems.forEach((li) => {
-        const span = li.querySelector('span');
-        const input = li.querySelector('input[name="other"]');
+    expect(console.warn).toHaveBeenCalledWith('[extractRaceMapping] No list items found in species filter');
+    expect(console.warn).toHaveBeenCalledWith('[extractMappingsFromSearchPage] Race mappings seem empty for en');
+  });
 
-        if (span && input) {
-          const displayText = span.textContent?.replace(/\s+/g, ' ').trim();
-          const value = input.getAttribute('value');
+  it('[covers:extract_search.catch_returns_null] returns null when fetch rejects', async () => {
+    const error = new Error('network down');
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw error;
+    }));
 
-          if (displayText && value) {
-            monsterTypeMap[value] = displayText;
-          }
-        }
-      });
-    });
+    await expect(extractMappingsFromSearchPage('en')).resolves.toBeNull();
 
-    console.log(`[Extract] Extracted ${Object.keys(monsterTypeMap).length} monsterType items`);
-    Object.entries(monsterTypeMap).slice(0, 5).forEach(([value, text]) => {
-      console.log(`  ${value} -> ${text}`);
-    });
-
-    // Assertion
-    expect(Object.keys(monsterTypeMap).length).toBeGreaterThan(0);
-    console.log('[Test] ✅ monsterType extraction successful');
+    expect(console.error).toHaveBeenCalledWith('[extractMappingsFromSearchPage] Error:', error);
   });
 });

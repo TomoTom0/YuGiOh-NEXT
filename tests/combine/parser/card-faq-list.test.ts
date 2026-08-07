@@ -7,9 +7,11 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Parser: Card FAQ List', () => {
-  it('should parse card FAQ list correctly', async () => {
+  const htmlPath = path.join(__dirname, '../data/card-faq-list.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+
+  it.skipIf(!hasHtmlFile)('should parse card FAQ list correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/card-faq-list.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     expect(html).toBeDefined();

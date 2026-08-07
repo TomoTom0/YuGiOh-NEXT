@@ -1,0 +1,195 @@
+# 検証対象: src/utils/url-state.ts (URLStateManager)
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Phase1.6(TASK-326)のTier A試行対象ファイルの1つ（utils中核・クラスstaticメソッド）。
+# target_functionは "URLStateManager.メソッド名" 形式（extract-ast-skeleton.tsの検出名と一致させる）。
+
+[meta]
+feature = "url-state"
+source_file = "src/utils/url-state.ts"
+verified = true
+verified_at = "2026-08-05"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/url-state.test.ts"
+source_hash = "fe4314db721b5eaa101906d0e9cabfc07579a8ca"
+
+# --- URLStateManager.getParams(): URLSearchParams ---
+
+[[condition]]
+id = "get_params.no_query_in_hash"
+target_function = "URLStateManager.getParams"
+source_lines = "18-21"
+description = "location.hashに'?'が含まれない場合、空のURLSearchParamsを返す"
+given = "location.hash = \"#/ytomo/edit\""
+expect_return_shape = "空のURLSearchParams（Array.from(...).length === 0）"
+
+[[condition]]
+id = "get_params.query_in_hash"
+target_function = "URLStateManager.getParams"
+source_lines = "22-23"
+description = "location.hashに'?'が含まれる場合、'?'以降をURLSearchParamsとしてパースする"
+given = "location.hash = \"#/ytomo/edit?dno=5&mode=list\""
+expect_return_shape = "params.get('dno') === '5', params.get('mode') === 'list'"
+
+# --- URLStateManager.setParams(params): void ---
+
+[[condition]]
+id = "set_params.null_or_undefined_deletes_key"
+target_function = "URLStateManager.setParams"
+source_lines = "34-35"
+description = "値がnullまたはundefinedのキーは既存のURLパラメータから削除される"
+given = "既存hash = \"#/x?dno=5\", setParams({ dno: null })"
+expect_side_effect = "更新後のhashに'dno'パラメータが含まれない"
+
+[[condition]]
+id = "set_params.value_stringified"
+target_function = "URLStateManager.setParams"
+source_lines = "36-38"
+description = "値がnull/undefined以外の場合、String(value)としてセットされる（number/booleanも文字列化）"
+given = "setParams({ detail: true })"
+expect_side_effect = "更新後のhashに'detail=true'が含まれる"
+
+[[condition]]
+id = "set_params.empty_result_no_trailing_question_mark"
+target_function = "URLStateManager.setParams"
+source_lines = "44-46"
+description = "更新後のパラメータが空になった場合、'?'を付けずhashBaseのみにする"
+given = "既存hash = \"#/x?dno=5\", setParams({ dno: null }) で全パラメータが消える"
+expect_side_effect = "更新後のhash === \"#/x\"（末尾に'?'が残らない）"
+
+# --- URLStateManager.syncUIStateToURL(state): void ---
+
+[[condition]]
+id = "sync_ui.falsy_fields_omitted"
+target_function = "URLStateManager.syncUIStateToURL"
+source_lines = "57-60"
+description = "viewMode/sortOrder/activeTab/cardTabはtruthyな場合のみparamsに含まれる。未指定の場合そのキーはsetParamsに渡らないため既存URL値は変更されない"
+given = "state = { viewMode: 'list' } （sortOrder等は未指定）、既存hash に mode 以外のキーは無し"
+expect_side_effect = "更新後のhashに mode=list のみ追加される（sort/tab/ctabキーは追加されない）"
+
+[[condition]]
+id = "sync_ui.show_detail_false_still_set"
+target_function = "URLStateManager.syncUIStateToURL"
+source_lines = "61"
+description = "showDetailはtruthy判定ではなく`!== undefined`判定のため、false値でも明示的に'0'としてセットされる"
+given = "state = { showDetail: false }"
+expect_side_effect = "更新後のhashに detail=0 が含まれる（キー自体が省略されない）"
+note = "他の4フィールドとチェック方法が異なる非対称な実装。falsyな値を持つboolean専用の配慮"
+
+# --- URLStateManager.restoreUIStateFromURL(): Partial<DeckEditUIState> ---
+
+[[condition]]
+id = "restore_ui.mode_valid_value"
+target_function = "URLStateManager.restoreUIStateFromURL"
+source_lines = "73-76"
+description = "modeパラメータが'list'または'grid'の場合のみviewModeに反映する"
+given = "URL params: mode=grid"
+expect_return_field = "viewMode === 'grid'"
+
+[[condition]]
+id = "restore_ui.mode_invalid_value_ignored"
+target_function = "URLStateManager.restoreUIStateFromURL"
+source_lines = "73-76"
+description = "modeパラメータが'list'/'grid'以外の場合viewModeは設定されない（未検証な値は無視）"
+given = "URL params: mode=invalid"
+expect_return_field = "viewMode === undefined"
+
+[[condition]]
+id = "restore_ui.sort_no_validation"
+target_function = "URLStateManager.restoreUIStateFromURL"
+source_lines = "78-81"
+description = "sortパラメータは値の検証をせずそのままSortOrder型としてキャストされる"
+given = "URL params: sort=totally-invalid-value"
+expect_return_field = "sortOrder === 'totally-invalid-value'（型と実値が矛盾しうる）"
+note = "mode/tab/ctab/detailは許容値をif文で検証しているのに対しsortだけ無検証。粒度基準の観点で見つかった非対称性"
+
+[[condition]]
+id = "restore_ui.detail_present_but_not_1"
+target_function = "URLStateManager.restoreUIStateFromURL"
+source_lines = "93-96"
+description = "detailパラメータが存在すれば(nullでなければ)常にshowDetailが設定される。'1'以外の値は全てfalseになる"
+given = "URL params: detail=yes"
+expect_return_field = "showDetail === false"
+
+[[condition]]
+id = "restore_ui.detail_absent"
+target_function = "URLStateManager.restoreUIStateFromURL"
+source_lines = "93-96"
+description = "detailパラメータが存在しない場合showDetailは未設定のまま"
+given = "URL params に detail キーが無い"
+expect_return_field = "showDetail === undefined"
+
+# --- URLStateManager.syncSettingsToURL(size?, theme?, lang?): void ---
+# 発見の経緯: このセクションは初稿で丸ごと書き漏れていた。scripts/design/extract-ast-skeleton.tsの
+# 未カバー検出を実行して初めて気づいた（Phase1.6, TASK-326の実証例）
+
+[[condition]]
+id = "sync_settings.falsy_fields_omitted"
+target_function = "URLStateManager.syncSettingsToURL"
+source_lines = "107-109"
+description = "size/theme/langはtruthyな場合のみparamsに含まれる。未指定のフィールドはsetParamsに渡らず既存URL値は変更されない（syncUIStateToURLと同じパターン、showDetailに相当する特別扱いのフィールドは無い）"
+given = "syncSettingsToURL('large') （theme, langは省略）、既存hashに他のキーは無し"
+expect_side_effect = "更新後のhashに size=large のみ追加される（theme/langキーは追加されない）"
+
+# --- URLStateManager.restoreSettingsFromURL(): {...} ---
+
+[[condition]]
+id = "restore_settings.size_invalid_ignored"
+target_function = "URLStateManager.restoreSettingsFromURL"
+source_lines = "126-128"
+description = "sizeパラメータが許容値(small/medium/large/xlarge)以外の場合は無視される"
+given = "URL params: size=huge"
+expect_return_field = "settings.size === undefined"
+
+[[condition]]
+id = "restore_settings.lang_valid_value"
+target_function = "URLStateManager.restoreSettingsFromURL"
+source_lines = "135-139"
+description = "langパラメータが許容11言語コードのいずれかの場合のみ反映される"
+given = "URL params: lang=ko"
+expect_return_field = "settings.lang === 'ko'"
+
+# --- URLStateManager.getDno(): number | null ---
+
+[[condition]]
+id = "get_dno.absent"
+target_function = "URLStateManager.getDno"
+source_lines = "150-151"
+description = "dnoパラメータが存在しない場合nullを返す"
+given = "URL params に dno キーが無い"
+expect_return = "null"
+
+[[condition]]
+id = "get_dno.not_a_number"
+target_function = "URLStateManager.getDno"
+source_lines = "152-155"
+description = "dnoパラメータがparseIntでNaNになる場合nullを返す"
+given = "URL params: dno=abc"
+expect_return = "null"
+
+[[condition]]
+id = "get_dno.partial_numeric_string_accepted"
+target_function = "URLStateManager.getDno"
+source_lines = "152-155"
+description = "parseIntは先頭が数字であれば末尾の非数字を無視して解釈するため、'5abc'のような値も5として受理される"
+given = "URL params: dno=5abc"
+expect_return = "5"
+note = "parseInt(str, 10)の仕様に起因する挙動。厳密な数値バリデーションではない点に注意"
+
+[[condition]]
+id = "get_dno.valid_number"
+target_function = "URLStateManager.getDno"
+source_lines = "152-155"
+description = "dnoパラメータが正しく数値としてパースできる場合その数値を返す"
+given = "URL params: dno=42"
+expect_return = "42"
+
+# --- URLStateManager.setDno(dno): void ---
+
+[[condition]]
+id = "set_dno.null_deletes"
+target_function = "URLStateManager.setDno"
+source_lines = "164"
+description = "dno=nullを渡した場合setParamsに委譲され、URLのdnoパラメータが削除される"
+given = "既存hash = \"#/x?dno=5\", setDno(null)"
+expect_side_effect = "更新後のhashにdnoパラメータが含まれない"

@@ -1,0 +1,132 @@
+# 検証対象: src/content/shuffle/addShuffleButtons.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象: シャッフル」グループ。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - addShuffleButtons.ts専用テストは存在しなかったため、新規作成した。
+
+[meta]
+feature = "add-shuffle-buttons"
+source_file = "src/content/shuffle/addShuffleButtons.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/shuffle/addShuffleButtons.test.ts"
+source_hash = "738cb64a750e74b1a9d2928f278416d19070240b"
+note = "verified=falseは0件"
+
+# --- addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side') ---
+
+[[condition]]
+id = "add_shuffle_section.existing_button_returns_null"
+target_function = "addShuffleButtonsToSection"
+source_lines = "19-21"
+description = "対象sectionのshuffleButtonIdを持つ要素が既にdocument内に存在する場合、そのsectionには何も追加せずnullを返す"
+given = "#ygo-next-shuffle-btn-main が既に存在する状態でmainセクションを処理する"
+expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.card_set_missing_returns_null"
+target_function = "addShuffleButtonsToSection"
+source_lines = "24-27"
+description = "`#deck_image #<sectionId>.card_set` が見つからない場合、何も追加せずnullを返す"
+given = "#deck_image はあるが #main.card_set が存在しない"
+expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.top_missing_returns_null"
+target_function = "addShuffleButtonsToSection"
+source_lines = "30-33"
+description = "cardSet内に `div.subcatergory > div.top` が見つからない場合、何も追加せずnullを返す"
+given = "#deck_image #main.card_set はあるが div.subcatergory > div.top が存在しない"
+expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.count_span_missing_returns_null"
+target_function = "addShuffleButtonsToSection"
+source_lines = "36-39"
+description = "top内に `span:nth-child(3)` が見つからない場合、何も追加せずnullを返す"
+given = "topは存在するが3番目のspanが存在しない"
+expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.zero_count_returns_null"
+target_function = "addShuffleButtonsToSection"
+source_lines = "42-45"
+description = "`parseInt(cardCountSpan.textContent || '0', 10)` が0の場合、ボタンを追加せずnullを返す"
+given = "cardCountSpan.textContent = '0' または空文字列"
+expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.nan_count_adds_buttons"
+target_function = "addShuffleButtonsToSection"
+source_lines = "42-55"
+description = "カード枚数テキストが数値化できずNaNになる場合、`cardCount === 0` はfalseのためボタンを追加する"
+given = "cardCountSpan.textContent = 'abc'"
+expect_return_shape = "作成されたshuffleボタン要素。shuffleボタンとsortボタンがcardCountSpan直前に挿入される"
+
+[[condition]]
+id = "add_shuffle_section.positive_count_adds_buttons"
+target_function = "addShuffleButtonsToSection"
+source_lines = "42-55"
+description = "カード枚数が0以外の場合、shuffleボタンとsortボタンを作成し、どちらもcardCountSpanの直前に挿入して、shuffleボタンを返す"
+given = "main/extra/sideいずれかのsectionでcardCountSpan.textContent = '3'"
+expect_return_shape = "shuffleボタン要素。top内の順序は既存1番目span、既存2番目span、shuffleボタン、sortボタン、cardCountSpanになる"
+
+# --- addShuffleButtons() ---
+
+[[condition]]
+id = "add_shuffle.all_sections_returns_main_button"
+target_function = "addShuffleButtons"
+source_lines = "63-71"
+description = "main/extra/sideの順にaddShuffleButtonsToSectionを呼び、戻り値はmainセクションの戻り値のみを返す"
+given = "main/extra/sideすべてがボタン追加可能なDOM"
+expect_return_shape = "mainのshuffleボタン要素。extra/sideにもボタンは追加されるが戻り値には使われない"
+
+[[condition]]
+id = "add_shuffle.main_null_still_processes_other_sections"
+target_function = "addShuffleButtons"
+source_lines = "63-71"
+description = "mainセクションがnullを返す場合でもextra/sideの処理は実行し、関数全体の戻り値はnullになる"
+given = "mainのcardCountが0、extra/sideのcardCountが1"
+expect_return = "null"
+
+# --- createButton(id: string, iconSvg: string, title: string) ---
+
+[[condition]]
+id = "add_shuffle_create_button.attributes_and_prevent_default"
+target_function = "createButton"
+source_lines = "77-96"
+description = "a要素を作成し、id/className/href/title/cssTextを設定し、span.innerHTMLにiconSvgを入れてappendし、click時はpreventDefaultだけを実行する"
+given = "ボタンが追加された後にclickイベントをdispatchする"
+expect_return_shape = "HTMLAnchorElement。dispatchEventしたclickイベントはdefaultPreventedになる"
+
+# --- initShuffleButtons() ---
+
+[[condition]]
+id = "init_shuffle.not_deck_display_returns"
+target_function = "initShuffleButtons"
+source_lines = "104-111"
+description = "detectCardGameTypeの結果をisDeckDisplayPageに渡し、デッキ表示ページでない場合はaddShuffleButtonsを予約せずreturnする"
+given = "window.location.href が member_deck.action 以外、または ope=2 のURL"
+expect_return = "undefined"
+
+[[condition]]
+id = "init_shuffle.loading_waits_dom_content_loaded"
+target_function = "initShuffleButtons"
+source_lines = "114-117"
+description = "デッキ表示ページでdocument.readyState === 'loading'の場合、DOMContentLoadedリスナー内でsetTimeout(addShuffleButtons, 100)を予約する"
+given = "デッキ表示ページURLかつdocument.readyState = 'loading'"
+expect_return = "undefined"
+
+[[condition]]
+id = "init_shuffle.ready_schedules_timeout"
+target_function = "initShuffleButtons"
+source_lines = "118-120"
+description = "デッキ表示ページでdocument.readyState !== 'loading'の場合、即座にsetTimeout(addShuffleButtons, 100)を予約する"
+given = "デッキ表示ページURLかつdocument.readyState = 'complete'"
+expect_return = "undefined"

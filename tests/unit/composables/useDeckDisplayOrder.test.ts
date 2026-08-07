@@ -59,7 +59,7 @@ describe('useDeckDisplayOrder', () => {
   });
 
   describe('addToDisplayOrder', () => {
-    it('新しいカードを末尾に追加する', () => {
+    it('[covers:add.deck_new_pair_pushes_quantity_one] [covers:add.display_new_cid_appends_to_end] 新しいカードを末尾に追加する', () => {
       const result = addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
 
       expect(displayOrder.main).toHaveLength(1);
@@ -74,7 +74,7 @@ describe('useDeckDisplayOrder', () => {
       expect(deckState.mainDeck[0]?.quantity).toBe(1);
     });
 
-    it('同じカードを複数枚追加した場合、同じcidの最後に追加する', () => {
+    it('[covers:add.deck_existing_pair_increments_quantity] [covers:add.display_existing_pair_insert_after_last_same_pair] 同じカードを複数枚追加した場合、同じcidの最後に追加する', () => {
       addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
       addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
       addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
@@ -123,7 +123,7 @@ describe('useDeckDisplayOrder', () => {
       addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
     });
 
-    it('UUIDなしで削除すると最後の1枚を削除する', () => {
+    it('[covers:remove.deck_match_by_cid_only] [covers:remove.deck_quantity_decrements] [covers:remove.display_without_uuid_removes_last_cid] UUIDなしで削除すると最後の1枚を削除する', () => {
       const result = removeFromDisplayOrder(displayOrder, deckState, '4831', 'main');
 
       expect(displayOrder.main).toHaveLength(2);
@@ -131,7 +131,7 @@ describe('useDeckDisplayOrder', () => {
       expect(deckState.mainDeck[0]?.quantity).toBe(2);
     });
 
-    it('UUIDを指定して削除できる', () => {
+    it('[covers:remove.display_uuid_removes_matching_uuid] UUIDを指定して削除できる', () => {
       const uuid = displayOrder.main[1]?.uuid;
       const result = removeFromDisplayOrder(displayOrder, deckState, '4831', 'main', uuid);
 
@@ -141,7 +141,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.main[1]?.uuid).toBe('4831_0_2');
     });
 
-    it('最後の1枚を削除するとdeckStateからも削除される', () => {
+    it('[covers:remove.deck_quantity_one_splices] 最後の1枚を削除するとdeckStateからも削除される', () => {
       removeFromDisplayOrder(displayOrder, deckState, '4831', 'main');
       removeFromDisplayOrder(displayOrder, deckState, '4831', 'main');
       removeFromDisplayOrder(displayOrder, deckState, '4831', 'main');
@@ -157,7 +157,7 @@ describe('useDeckDisplayOrder', () => {
       addToDisplayOrder(displayOrder, deckState, sampleSpell, 'main', generateUUID);
     });
 
-    it('同じセクション内で移動できる', () => {
+    it('[covers:move.uuid_selects_matching_uuid] [covers:move.valid_target_index_inserts_at_target] 同じセクション内で移動できる', () => {
       const uuid = displayOrder.main[0]?.uuid;
       const result = moveInDisplayOrder(displayOrder, deckState, '4831', 'main', 'main', uuid, 1);
 
@@ -168,7 +168,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.main[1]?.cid).toBe('4831');
     });
 
-    it('異なるセクション間で移動できる', () => {
+    it('[covers:move.invalid_or_missing_target_index_appends] [covers:move.to_deck_new_pair_pushes] 異なるセクション間で移動できる', () => {
       const uuid = displayOrder.main[0]?.uuid;
       const result = moveInDisplayOrder(displayOrder, deckState, '4831', 'main', 'side', uuid);
 
@@ -182,7 +182,7 @@ describe('useDeckDisplayOrder', () => {
       expect(deckState.sideDeck).toHaveLength(1);
     });
 
-    it('UUIDなしで移動すると最後の1枚を移動する', () => {
+    it('[covers:move.without_uuid_selects_last_cid] UUIDなしで移動すると最後の1枚を移動する', () => {
       addToDisplayOrder(displayOrder, deckState, sampleMonster, 'main', generateUUID);
       const result = moveInDisplayOrder(displayOrder, deckState, '4831', 'main', 'extra');
 
@@ -191,7 +191,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.extra).toHaveLength(1);
     });
 
-    it('存在しないUUIDで移動を試みると失敗する', () => {
+    it('[covers:move.no_display_match_returns_undefined] 存在しないUUIDで移動を試みると失敗する', () => {
       const result = moveInDisplayOrder(displayOrder, deckState, '4831', 'main', 'side', 'invalid-uuid');
 
       expect(result).toBeUndefined();
@@ -207,7 +207,7 @@ describe('useDeckDisplayOrder', () => {
       addToDisplayOrder(displayOrder, deckState, { ...sampleMonster, cardId: '1001' }, 'main', generateUUID);
     });
 
-    it('前方から後方へ移動できる', () => {
+    it('[covers:reorder.forward_adjusts_to_index] 前方から後方へ移動できる', () => {
       const result = reorderWithinSection(displayOrder, 'main', 0, 2);
 
       expect(result).toBeDefined();
@@ -216,7 +216,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.main[2]?.cid).toBe('1001');
     });
 
-    it('後方から前方へ移動できる', () => {
+    it('[covers:reorder.backward_uses_to_index] 後方から前方へ移動できる', () => {
       const result = reorderWithinSection(displayOrder, 'main', 2, 0);
 
       expect(result).toBeDefined();
@@ -225,7 +225,7 @@ describe('useDeckDisplayOrder', () => {
       expect(displayOrder.main[2]?.cid).toBe('5851');
     });
 
-    it('無効なインデックスでは失敗する', () => {
+    it('[covers:reorder.invalid_indices_return_undefined] 無効なインデックスでは失敗する', () => {
       const result = reorderWithinSection(displayOrder, 'main', -1, 0);
       expect(result).toBeUndefined();
 
@@ -235,7 +235,7 @@ describe('useDeckDisplayOrder', () => {
   });
 
   describe('fisherYatesShuffle', () => {
-    it('配列をシャッフルする', () => {
+    it('[covers:shuffle.returns_new_array_same_members] 配列をシャッフルする', () => {
       const original = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
       const shuffled = fisherYatesShuffle(original);
 
@@ -249,12 +249,12 @@ describe('useDeckDisplayOrder', () => {
       expect(original).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     });
 
-    it('空配列をシャッフルしても問題ない', () => {
+    it('[covers:shuffle.empty_or_single_returns_copy] 空配列をシャッフルしても問題ない', () => {
       const shuffled = fisherYatesShuffle([]);
       expect(shuffled).toEqual([]);
     });
 
-    it('1要素の配列をシャッフルしても変わらない', () => {
+    it('[covers:shuffle.empty_or_single_returns_copy] 1要素の配列をシャッフルしても変わらない', () => {
       const shuffled = fisherYatesShuffle([1]);
       expect(shuffled).toEqual([1]);
     });

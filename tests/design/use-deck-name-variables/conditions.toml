@@ -1,0 +1,242 @@
+# 検証対象: src/composables/useDeckNameVariables.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキ名入力欄の @-mark 変数入力（@orig で元のデッキ名挿入 等）を
+# 管理するVue composable。
+#
+# target_function の記述形式について（composable factory パターン）:
+# 本ファイルは `export function useDeckNameVariables(options)` がオブジェクトを返す構造で、
+# 実質的なロジックは factory 内のローカル関数（handleInput/handleKeydown 等）にあります。
+# extract-ast-skeleton.ts は Pinia Setup Store（defineStore()）の factory は検出しますが、
+# 一般の composable factory（export function useXxx()）は未対応のため、export関数一覧には
+# `useDeckNameVariables` 1件のみが現れ、`useDeckNameVariables#handleInput` 等は抽出されません。
+# このため conditions.toml の target_function には `useDeckNameVariables#<method>` 形式で
+# 記載し、README Phase1.6 知見の Pinia Setup Store と同じ `#` 区切り形式に合わせています。
+# スクリプト実行時の未カバー検出で `useDeckNameVariables` が1件出ますが、これは上記の
+# スクリプト側の限界であり、本ファイルでは全メソッドの条件を網羅しています。
+#
+# 到達不能/実質到達不能分岐:
+# - L50 `match[1] ?? ''`: TRIGGER_PATTERN `/@([a-zA-Z0-9_-]*)$/` のキャプチャグループは
+#   マッチした場合常に存在（空文字列を含む）するため、match[1] が undefined になる経路は
+#   実質到達不能。フォールバック `?? ''` は実質効果なし（条件化せず）。
+# - handleKeydown L105 `if (suggestion)`: suggestions.value.length === 0 は L88 ガードで除外済み。
+#   ArrowDown/ArrowUp のラップアラウンド (suggestions.value.length でmod) により selectedIndex は
+#   常に [0, length) に収まるため、`suggestions.value[index]` は実質常に存在。
+#   ただし selectedIndex は ref で外部公開されているため、呼び出し側が直接負値や範囲外を
+#   設定した場合は到達可能。そのため条件として一応記載します（verified=false にはせず、
+#   テストで正常系のみ検証）。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - TRIGGER_PATTERN `/@([a-zA-Z0-9_-]*)$/` は @ 直後に ASCII 英数字・アンダースコア・ハイフン
+#   のみを許容。`@あいう` のように @ 直後に非ASCII文字（日本語等）がある場合はマッチせず、
+#   候補が出ない（仕様）。
+# - handleKeydown の Enter 処理で selectedIndex が -1（未選択）の場合は 0（先頭）を使うため、
+#   候補が表示されていれば Enter で常に先頭が確定される（ユーザが明示的に選択していなくても）。
+# - Tab は ArrowDown と同じ「次へ進む」挙動だが、event.preventDefault() するためブラウザの
+#   デフォルトのフォーカス移動（次の入力欄へ遷移）がキャンセルされる。
+# - applyVariable は triggerStart = cursorPos - query.length - 1 を計算するが、cursorPos は
+#   getCursorPos() が inputElement.value?.selectionStart を読むため、呼び出し時に focus が外れて
+#   selectionStart が null の場合は inputValue.value.length にフォールバックする。つまり
+#   selectSuggestion 呼び出し直前にフォーカスが失われていると、入力末尾の @word ではなく
+#   末尾付近の文字列が置換対象と見なされ、意図しない箇所が置換される可能性がある。
+# - handleInput は呼び出されるたびに selectedIndex.value = -1 を必ず実行する（条件なしの副作用）。
+#   これは候補リストが更新されるたびに選択状態がクリアされることを意味する。
+
+[meta]
+feature = "use-deck-name-variables"
+source_file = "src/composables/useDeckNameVariables.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/composables/__tests__/useDeckNameVariables.test.ts"
+source_hash = "5134dd5979b89ded7aff2f10ab576409b55e2200"
+note = "verified=falseは0件。target_function を useDeckNameVariables#<method> 形式で記載（composable factory パターン）。ASTスクリプト未対応のため useDeckNameVariables が未カバーと出るが既知の限界。"
+
+# --- useDeckNameVariables#getCursorPos ---
+
+[[condition]]
+id = "getcursor.input_null_fallback_to_value_length"
+target_function = "useDeckNameVariables#getCursorPos"
+source_lines = "44"
+description = "inputElementがnull、またはselectionStartがnull（=フォーカス未取得等）の場合、入力値の長さをカーソル位置として扱うフォールバック"
+given = "inputElement.valueがnull、またはselectionStartがnullの状態でgetCursorPos()を呼ぶ"
+expect_return = "inputValue.value.length と等しい値"
+
+# --- useDeckNameVariables#handleInput ---
+
+[[condition]]
+id = "handleinput.matches_at_pattern_sets_query"
+target_function = "useDeckNameVariables#handleInput"
+source_lines = "48-50"
+description = "カーソル位置より前の文字列が TRIGGER_PATTERN `/@([a-zA-Z0-9_-]*)$/` にマッチする場合、matchedQueryに@の後の文字列（空文字列含む）を設定する。空文字列は @ 直後の候補一覧表示に対応"
+given = "入力値が '@' または '@or' のように @パターンで終わる（カーソルが@パターンの末尾にある）"
+expect_side_effect = "matchedQuery.value が @ の後ろの文字列（空文字列を含む）に設定される"
+
+[[condition]]
+id = "handleinput.no_match_sets_null"
+target_function = "useDeckNameVariables#handleInput"
+source_lines = "48-50"
+description = "カーソルより前の文字列が TRIGGER_PATTERN にマッチしない場合、matchedQueryをnullにして候補を閉じる。@ を含まない入力や、@ の直後に非ASCII文字（日本語等）がある場合はマッチしない"
+given = "入力値が '@' パターンにマッチしない（例: 'テスト'、'@あいう'）"
+expect_side_effect = "matchedQuery.value が null に設定される"
+
+[[condition]]
+id = "handleinput.always_resets_selected_index"
+target_function = "useDeckNameVariables#handleInput"
+source_lines = "51"
+description = "handleInputは呼び出されるたびに、マッチ有無に関わらずselectedIndexを-1にリセットする（候補リスト更新時の選択状態クリア）"
+given = "任意の入力状態でhandleInput()を呼ぶ"
+expect_side_effect = "selectedIndex.value が -1 に設定される"
+
+# --- useDeckNameVariables#suggestions ---
+
+[[condition]]
+id = "suggestions.empty_when_query_null"
+target_function = "useDeckNameVariables#suggestions"
+source_lines = "55"
+description = "matchedQueryがnull（=候補非表示状態）の場合は空配列を返す早期return"
+given = "matchedQuery.value が null"
+expect_return = "[] (空配列)"
+
+[[condition]]
+id = "suggestions.case_insensitive_prefix_match"
+target_function = "useDeckNameVariables#suggestions"
+source_lines = "56-58"
+description = "matchedQueryを小文字化し、各variable.key（小文字化）の前方一致でフィルタする。大文字小文字を区別しない"
+given = "matchedQuery.value が 'OR'（大文字混じり）で、variables に key='orig' が含まれる"
+expect_return = "key='orig' の変数を含む配列（'orig'.toLowerCase() が 'or' で前方一致）"
+
+[[condition]]
+id = "suggestions.output_at_prefixed_value"
+target_function = "useDeckNameVariables#suggestions"
+source_lines = "59"
+description = "出力suggestionのvalueは `@${key}` 形式（先頭に@を付与）、labelはvariable.labelをそのまま設定"
+given = "matchedQueryが空文字列（@ のみ）で、variables に key='orig' label='元のデッキ名' が含まれる"
+expect_return = "value='@orig', label='元のデッキ名' のSuggestionを含む配列"
+
+# --- useDeckNameVariables#applyVariable ---
+
+[[condition]]
+id = "applyvariable.early_return_when_variable_not_found"
+target_function = "useDeckNameVariables#applyVariable"
+source_lines = "66-67"
+description = "variableKeyに一致するvariableがvariablesに存在しない場合は早期return（入力値も副作用も変更しない）"
+given = "存在しないvariableKey（例: 'unknown'）を指定してapplyVariableを呼ぶ"
+expect_side_effect = "inputValue/matchedQuery/selectedIndex のいずれも変更されない"
+
+[[condition]]
+id = "applyvariable.early_return_when_trigger_start_negative"
+target_function = "useDeckNameVariables#applyVariable"
+source_lines = "65-67"
+description = "triggerStart = cursorPos - query.length - 1 が負の場合は早期return（@ の位置が特定できない異常状態のガード）"
+given = "cursorPos が query.length + 1 より小さい（通常は発生しないが、cursorPos のフォールバック時などに到達しうる）"
+expect_side_effect = "inputValue/matchedQuery/selectedIndex のいずれも変更されない"
+
+[[condition]]
+id = "applyvariable.replaces_at_word_with_resolved_value"
+target_function = "useDeckNameVariables#applyVariable"
+source_lines = "69-72"
+description = "@word の部分（triggerStartからcursorPosまで）を variable.resolve() の戻り値で置換する。前後の文字列は保持"
+given = "inputValue='新デッキ@orig' で cursorPos=9（@orig の末尾）、variableKey='orig' の resolve() が '元のデッキ名テスト' を返す"
+expect_side_effect = "inputValue.value が '新デッキ元のデッキ名テスト' に変更される"
+
+[[condition]]
+id = "applyvariable.resets_state_after_apply"
+target_function = "useDeckNameVariables#applyVariable"
+source_lines = "73-74"
+description = "置換後にmatchedQueryをnull、selectedIndexを-1にリセットし候補を閉じる"
+given = "applyVariable が正常に置換を完了した場合"
+expect_side_effect = "matchedQuery.value = null, selectedIndex.value = -1 になる（結果として suggestions が空配列になる）"
+
+[[condition]]
+id = "applyvariable.restores_cursor_and_focus_after_replace"
+target_function = "useDeckNameVariables#applyVariable"
+source_lines = "76-80"
+description = "置換後、nextTick を待って inputElement のカーソルを before.length + value.length（置換後の位置）に設定し、input要素をフォーカスする"
+given = "inputElement.value が非nullの状態で applyVariable が置換を完了した場合"
+expect_side_effect = "nextTick 後に inputElement.setSelectionRange(newCursorPos, newCursorPos) と inputElement.focus() が呼ばれる"
+
+# --- useDeckNameVariables#selectSuggestion ---
+
+[[condition]]
+id = "selectsuggestion.strips_at_prefix_and_applies"
+target_function = "useDeckNameVariables#selectSuggestion"
+source_lines = "83-85"
+description = "suggestion.value の先頭の @ を正規表現 /^@/ で除去し、残りの文字列をvariableKeyとしてapplyVariableを呼ぶ"
+given = "suggestion.value = '@orig' を selectSuggestion に渡す"
+expect_side_effect = "applyVariable('orig') が呼ばれる（@ が除去されたキーで適用）"
+
+# --- useDeckNameVariables#handleKeydown ---
+
+[[condition]]
+id = "handlekeydown.no_suggestions_returns_false"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "88"
+description = "候補が0件の場合はキーの種類に関わらず処理せずfalseを返す（preventDefaultも呼ばない）"
+given = "suggestions.value.length === 0 の状態で任意のキー（Enter 等）の KeyboardEvent を渡す"
+expect_return = "false"
+expect_side_effect = "event.preventDefault() は呼ばれない"
+
+[[condition]]
+id = "handlekeydown.arrow_down_or_tab_advances_index_wrap_around"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "90-94"
+description = "ArrowDown または Tab の場合、selectedIndex を +1 し候補数でmodを取る（末尾で先頭にラップアラウンド）。preventDefault を呼び true を返す"
+given = "suggestions.value.length > 0 で、selectedIndex=-1 の状態で ArrowDown の KeyboardEvent を渡す"
+expect_return = "true"
+expect_side_effect = "selectedIndex.value が 0 に更新される。event.preventDefault() が呼ばれる（Tab の場合はブラウザのフォーカス移動もキャンセル）"
+
+[[condition]]
+id = "handlekeydown.arrow_up_decrements_index_wrap_around"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "95-101"
+description = "ArrowUp の場合、selectedIndex が 0 以下なら候補末尾にラップ、そうでなければ -1 する。preventDefault を呼び true を返す"
+given = "suggestions.value.length > 0 で、selectedIndex=-1 の状態で ArrowUp の KeyboardEvent を渡す"
+expect_return = "true"
+expect_side_effect = "selectedIndex.value が suggestions.value.length - 1（末尾）に更新される。event.preventDefault() が呼ばれる"
+
+[[condition]]
+id = "handlekeydown.enter_confirms_selected_or_first"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "102-110"
+description = "Enter の場合、selectedIndex が -1（未選択）なら 0（先頭）を採用し、suggestions[index] が存在すれば selectSuggestion で確定する。preventDefault を呼び true を返す（候補表示中は未選択でも Enter で常に先頭が確定される挙動）"
+given = "suggestions.value.length > 0 で、selectedIndex=-1 の状態で Enter の KeyboardEvent を渡す"
+expect_return = "true"
+expect_side_effect = "selectedIndex 0 の候補（先頭）に対して selectSuggestion が呼ばれ、入力値が置換される。event.preventDefault() が呼ばれる"
+
+[[condition]]
+id = "handlekeydown.enter_out_of_range_returns_false"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "102-110"
+description = "Enter で計算した index が範囲外で suggestion が取得できない場合は if(suggestion) ガードで抜け、最終的に false を返す。通常はArrowDown/ArrowUpのラップアラウンドで発生しないが、selectedIndex が外部から範囲外に設定された場合に到達しうる"
+given = "suggestions.value.length > 0 で、selectedIndex を範囲外（候補数以上）に設定した状態で Enter の KeyboardEvent を渡す"
+expect_return = "false"
+expect_side_effect = "selectSuggestion は呼ばれない"
+
+[[condition]]
+id = "handlekeydown.escape_resets_and_returns_true"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "111-115"
+description = "Escape の場合、resetSuggestion を呼んで matchedQuery/selectedIndex をリセットし、preventDefault を呼び true を返す"
+given = "候補表示中（suggestions.value.length > 0）の状態で Escape の KeyboardEvent を渡す"
+expect_return = "true"
+expect_side_effect = "resetSuggestion() が呼ばれ、suggestions が空配列になる。event.preventDefault() が呼ばれる"
+
+[[condition]]
+id = "handlekeydown.unhandled_keys_return_false"
+target_function = "useDeckNameVariables#handleKeydown"
+source_lines = "116"
+description = "ArrowDown/Tab/ArrowUp/Enter/Escape のいずれでもないキーの場合は false を返し、preventDefault も selectedIndex 変更も行わない"
+given = "候補表示中で、'a' 等の未対応キーの KeyboardEvent を渡す"
+expect_return = "false"
+expect_side_effect = "selectedIndex は変化しない。event.preventDefault() は呼ばれない"
+
+# --- useDeckNameVariables#resetSuggestion ---
+
+[[condition]]
+id = "resetsuggestion.clears_state"
+target_function = "useDeckNameVariables#resetSuggestion"
+source_lines = "119-122"
+description = "matchedQuery を null、selectedIndex を -1 にリセットする。結果として suggestions は空配列になる"
+given = "候補表示中（matchedQuery != null）の状態で resetSuggestion() を呼ぶ"
+expect_side_effect = "matchedQuery.value = null, selectedIndex.value = -1 になり、suggestions.value が [] になる"

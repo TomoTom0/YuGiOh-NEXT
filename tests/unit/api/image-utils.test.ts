@@ -14,7 +14,7 @@ const BASE_IMAGE_URL = 'https://www.db.yugioh-card.com/yugiohdb/external/image/p
 
 describe('api/image-utils', () => {
   describe('getAttributeIconUrl', () => {
-    it('DARK属性のアイコンURLを返す', () => {
+    it('DARK属性のアイコンURLを返す [covers:attribute.lowercase_in_url]', () => {
       const url = getAttributeIconUrl('DARK')
       expect(url).toBe(`${BASE_IMAGE_URL}/attribute/attribute_icon_dark.png`)
     })
@@ -54,18 +54,18 @@ describe('api/image-utils', () => {
       expect(url).toBe(`${BASE_IMAGE_URL}/attribute/attribute_icon_dark.png`)
     })
 
-    it('空文字列のとき空文字を返す', () => {
+    it('空文字列のとき空文字を返す [covers:attribute.empty_returns_empty]', () => {
       expect(getAttributeIconUrl('')).toBe('')
     })
 
-    it('存在しない属性を渡してもURLは生成される', () => {
+    it('存在しない属性を渡しても小文字化したURLは生成される [covers:attribute.lowercase_in_url]', () => {
       const url = getAttributeIconUrl('UNKNOWN')
       expect(url).toBe(`${BASE_IMAGE_URL}/attribute/attribute_icon_unknown.png`)
     })
   })
 
   describe('getLevelIconUrl', () => {
-    it('レベルアイコンURLを返す', () => {
+    it('レベルアイコンURLを返す [covers:level.fixed_url]', () => {
       const url = getLevelIconUrl()
       expect(url).toBe(`${BASE_IMAGE_URL}/icon_level.png`)
     })
@@ -78,7 +78,7 @@ describe('api/image-utils', () => {
   })
 
   describe('getRankIconUrl', () => {
-    it('ランクアイコンURLを返す', () => {
+    it('ランクアイコンURLを返す [covers:rank.fixed_url]', () => {
       const url = getRankIconUrl()
       expect(url).toBe(`${BASE_IMAGE_URL}/icon_rank.png`)
     })
@@ -91,7 +91,7 @@ describe('api/image-utils', () => {
   })
 
   describe('getSpellIconUrl', () => {
-    it('魔法カードアイコンURLを返す', () => {
+    it('魔法カードアイコンURLを返す [covers:spell.fixed_url]', () => {
       const url = getSpellIconUrl()
       expect(url).toBe(`${BASE_IMAGE_URL}/attribute/attribute_icon_spell.png`)
     })
@@ -104,7 +104,7 @@ describe('api/image-utils', () => {
   })
 
   describe('getTrapIconUrl', () => {
-    it('罠カードアイコンURLを返す', () => {
+    it('罠カードアイコンURLを返す [covers:trap.fixed_url]', () => {
       const url = getTrapIconUrl()
       expect(url).toBe(`${BASE_IMAGE_URL}/attribute/attribute_icon_trap.png`)
     })
@@ -117,7 +117,7 @@ describe('api/image-utils', () => {
   })
 
   describe('getEffectTypeIconUrl', () => {
-    it('quick効果のアイコンURLを返す', () => {
+    it('quick効果のアイコンURLを返す [covers:effect.valid_mapped_url]', () => {
       const url = getEffectTypeIconUrl('quick')
       expect(url).toBe(`${BASE_IMAGE_URL}/effect/effect_icon_quickplay.png`)
     })
@@ -147,26 +147,27 @@ describe('api/image-utils', () => {
       expect(url).toBe(`${BASE_IMAGE_URL}/effect/effect_icon_counter.png`)
     })
 
-    it('normal効果のときnullを返す', () => {
+    it('normal効果のときnullを返す [covers:effect.empty_or_normal_returns_null]', () => {
       expect(getEffectTypeIconUrl('normal')).toBeNull()
     })
 
-    it('空文字列のときnullを返す', () => {
+    it('空文字列のときnullを返す [covers:effect.empty_or_normal_returns_null]', () => {
       expect(getEffectTypeIconUrl('')).toBeNull()
     })
 
-    it('存在しない効果タイプのときnullを返す', () => {
+    it('存在しない効果タイプのときnullを返す [covers:effect.unmapped_returns_null]', () => {
       expect(getEffectTypeIconUrl('unknown')).toBeNull()
+      expect(getEffectTypeIconUrl('NORMAL')).toBeNull()
     })
 
-    it('大文字の効果タイプでも正しく処理される', () => {
+    it('大文字の効果タイプでも小文字化して処理される [covers:effect.valid_mapped_url]', () => {
       const url = getEffectTypeIconUrl('QUICK')
       expect(url).toBe(`${BASE_IMAGE_URL}/effect/effect_icon_quickplay.png`)
     })
   })
 
   describe('getLinkMarkerClasses', () => {
-    it('0のとき空配列を返す', () => {
+    it('0のとき空配列を返す [covers:link_classes.zero_returns_empty]', () => {
       expect(getLinkMarkerClasses(0)).toEqual([])
     })
 
@@ -185,12 +186,12 @@ describe('api/image-utils', () => {
       expect(getLinkMarkerClasses(256)).toEqual(['i_i_9'])
     })
 
-    it('中央のビット4は除外される', () => {
+    it('中央のビット4は除外される [covers:link_classes.center_bit_ignored]', () => {
       // 0b000010000 = 16 (ビット4)
       expect(getLinkMarkerClasses(16)).toEqual([])
     })
 
-    it('複数のビットが立っている場合（0, 3, 8）', () => {
+    it('複数のビットが立っている場合は走査順で返す [covers:link_classes.bits_to_classes_ascending]', () => {
       // 0b100001001 = 265 (ビット0, 3, 8)
       expect(getLinkMarkerClasses(265)).toEqual(['i_i_1', 'i_i_4', 'i_i_9'])
     })
@@ -202,15 +203,20 @@ describe('api/image-utils', () => {
       ])
     })
 
-    it('負の数のときも正しく処理される', () => {
-      // 負数はビット演算で処理されるが、実装上は非負を想定
-      const result = getLinkMarkerClasses(-1)
-      expect(Array.isArray(result)).toBe(true)
+    it('範囲外ビットのみの非0入力では空配列を返す [covers:link_classes.outside_bits_ignored]', () => {
+      // 512 = ビット9（走査範囲外）
+      expect(getLinkMarkerClasses(512)).toEqual([])
+    })
+
+    it('負の数では走査範囲内の中央以外をすべて返す [covers:link_classes.negative_all_scanned_bits]', () => {
+      expect(getLinkMarkerClasses(-1)).toEqual([
+        'i_i_1', 'i_i_2', 'i_i_3', 'i_i_4', 'i_i_6', 'i_i_7', 'i_i_8', 'i_i_9'
+      ])
     })
   })
 
   describe('getLinkMarkerClassName', () => {
-    it('0のとき空文字を返す', () => {
+    it('0のとき空文字を返す [covers:link_class_name.zero_returns_empty]', () => {
       expect(getLinkMarkerClassName(0)).toBe('')
     })
 
@@ -224,12 +230,12 @@ describe('api/image-utils', () => {
       expect(getLinkMarkerClassName(257)).toBe('link19')
     })
 
-    it('ビット0, 2, 8が立っている場合は"link139"を返す', () => {
+    it('ビット0, 2, 8が立っている場合は"link139"を返す [covers:link_class_name.bits_to_link_name_ascending]', () => {
       // 0b100000101 = 261 (ビット0, 2, 8)
       expect(getLinkMarkerClassName(261)).toBe('link139')
     })
 
-    it('中央のビット4は除外される', () => {
+    it('中央のビット4のみなら"link"を返す [covers:link_class_name.center_only_returns_link]', () => {
       // 0b000010000 = 16 (ビット4のみ)
       // ビット4は除外されるため、位置リストは空になり、'link' + '' = 'link'
       expect(getLinkMarkerClassName(16)).toBe('link')
@@ -247,10 +253,13 @@ describe('api/image-utils', () => {
       expect(getLinkMarkerClassName(495)).toBe('link12346789')
     })
 
-    it('大きい数値でも正しく処理される', () => {
-      // 512 = ビット9（存在しない）のため空文字を返す
-      const result = getLinkMarkerClassName(512)
-      expect(typeof result).toBe('string')
+    it('範囲外ビットのみの非0入力では"link"を返す [covers:link_class_name.outside_bits_return_link]', () => {
+      // 512 = ビット9（走査範囲外）のためpositionsは空だが、非0なので早期returnしない
+      expect(getLinkMarkerClassName(512)).toBe('link')
+    })
+
+    it('負の数では走査範囲内の中央以外をすべて連結する [covers:link_class_name.negative_all_scanned_bits]', () => {
+      expect(getLinkMarkerClassName(-1)).toBe('link12346789')
     })
   })
 })

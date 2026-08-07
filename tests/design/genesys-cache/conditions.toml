@@ -1,0 +1,383 @@
+# 検証対象: src/utils/genesys-cache.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、外部fetch + chrome.storageキャッシュ + UnifiedCacheDBを伴う中核utils。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 既存テストは selectApplicableGenesysList の純粋関数のみを検証しており、GenesysPointCache本体の
+#   storage/API/DB依存を含むキャッシュ挙動は未検証だった。本作業で実クラス + 依存モックを使う
+#   確定的なテストを追加した。
+
+[meta]
+feature = "genesys-cache"
+source_file = "src/utils/genesys-cache.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/genesys-cache.test.ts"
+source_hash = "8fde0c18768723733258d263ba7ddd615955be34"
+note = "verified=falseは0件"
+
+# --- timestampToYmd(ts: number): string (非export) ---
+
+[[condition]]
+id = "timestamp_to_ymd.local_date_zero_padded"
+target_function = "timestampToYmd"
+source_lines = "32-37"
+description = "timestampをローカル時刻の年/月/日に変換し、月日を2桁ゼロ埋めしたYYYY-MM-DD文字列を返す"
+given = "now = new Date('2026-07-01T12:00:00') のtimestamp"
+expect_return = "'2026-07-01'"
+
+# --- selectApplicableGenesysList(cache, now): GenesysListEntry | null ---
+
+[[condition]]
+id = "select.no_cache_null"
+target_function = "selectApplicableGenesysList"
+source_lines = "53-54"
+description = "cacheがnullの場合nullを返す"
+given = "cache = null"
+expect_return = "null"
+
+[[condition]]
+id = "select.empty_lists_null"
+target_function = "selectApplicableGenesysList"
+source_lines = "56-58"
+description = "cacheはあるがlistsが空の場合nullを返す"
+given = "cache.lists = {}"
+expect_return = "null"
+
+[[condition]]
+id = "select.effective_latest_past_or_today"
+target_function = "selectApplicableGenesysList"
+source_lines = "61-66"
+description = "effectiveDateが今日以前のentriesだけを対象に、effectiveDate降順sort後の先頭を返す"
+given = "today='2026-07-11'、listsに2026-06-01/2026-04-01/2026-08-01がある"
+expect_return_shape = "effectiveDate='2026-06-01'のGenesysListEntry"
+
+[[condition]]
+id = "select.effective_includes_today"
+target_function = "selectApplicableGenesysList"
+source_lines = "61-66"
+description = "effectiveDateが今日と同じentryは有効扱いになり、そのentryを返せる"
+given = "today='2026-08-01'、listsにeffectiveDate='2026-08-01'がある"
+expect_return_shape = "effectiveDate='2026-08-01'のGenesysListEntry"
+
+[[condition]]
+id = "select.all_future_uses_latest_list_param"
+target_function = "selectApplicableGenesysList"
+source_lines = "69-72"
+description = "全entryが未来適用で、latestListParamがtruthyかつlistsに存在する場合、そのentryを返す"
+given = "today='2026-07-11'、latestListParam='202610'、lists['202610']が存在する"
+expect_return_shape = "listParam='202610'のGenesysListEntry"
+
+[[condition]]
+id = "select.all_future_latest_missing_uses_max_effective_date"
+target_function = "selectApplicableGenesysList"
+source_lines = "70-74"
+description = "全entryが未来適用で、latestListParamがnullまたはlistsに存在しない場合、effectiveDateが最も新しいentryを返す"
+given = "today='2026-07-11'、latestListParam=nullまたは未存在キー、未来entryが複数ある"
+expect_return_shape = "effectiveDateが最大のGenesysListEntry"
+
+# --- GenesysPointCache#init(): Promise<void> ---
+
+[[condition]]
+id = "init.already_initialized_returns_early"
+target_function = "GenesysPointCache#init"
+source_lines = "89-91"
+description = "initializedがtrueの場合、storage読込も更新チェックも行わずreturnする"
+given = "同一インスタンスでinitを2回呼ぶ"
+expect_return = "undefined"
+expect_side_effect = "safeStorageGetとcheckAndUpdateは2回目に呼ばれない"
+
+[[condition]]
+id = "init.stored_cache_loaded"
+target_function = "GenesysPointCache#init"
+source_lines = "94-97"
+description = "safeStorageGetの戻り値がtruthyでSTORAGE_KEYの値もtruthyな場合、その値をcacheへ設定する"
+given = "safeStorageGetが { genesysPointList: GenesysPointCacheData } を返す"
+expect_side_effect = "getPoint/getCurrentListParam等がstorageのキャッシュを参照する"
+
+[[condition]]
+id = "init.no_stored_cache_keeps_null"
+target_function = "GenesysPointCache#init"
+source_lines = "94-99"
+description = "safeStorageGetの戻り値がnull、またはSTORAGE_KEYの値が無い/falsyの場合、cacheはnullのままinitialized=trueになる"
+given = "safeStorageGetが null または {} を返す"
+expect_side_effect = "getCurrentListParam()はundefined、getAvailableListParams()は[]を返す"
+
+[[condition]]
+id = "init.starts_background_check_and_swallows_rejection"
+target_function = "GenesysPointCache#init"
+source_lines = "101-104"
+description = "初期化完了後にcheckAndUpdateをバックグラウンド起動し、rejectしてもinit自体はrejectしない"
+given = "checkAndUpdateがrejectするように差し替えたインスタンスでinitする"
+expect_no_throw = true
+
+# --- GenesysPointCache#getPoint(cardId, listParam?): number | undefined ---
+
+[[condition]]
+id = "get_point.explicit_list_param_lookup"
+target_function = "GenesysPointCache#getPoint"
+source_lines = "120-122"
+description = "listParamがtruthyの場合、現在有効リスト選択は行わずcache.lists[listParam].points[cardId]を返す"
+given = "現在有効リストと指定listParamで同じcardIdのpointが異なる"
+expect_return_shape = "指定listParam側のpoint、未存在ならundefined"
+
+[[condition]]
+id = "get_point.current_applicable_lookup"
+target_function = "GenesysPointCache#getPoint"
+source_lines = "124-125"
+description = "listParamが省略またはfalsyの場合、selectApplicableGenesysList(cache, Date.now())で選ばれたリストのpoints[cardId]を返す"
+given = "現在有効リストにcardIdが存在する/存在しない"
+expect_return_shape = "現在有効リスト側のpoint、未存在ならundefined"
+
+# --- GenesysPointCache#getCurrentListParam(): string | undefined ---
+
+[[condition]]
+id = "current_list_param.selected_or_undefined"
+target_function = "GenesysPointCache#getCurrentListParam"
+source_lines = "131-132"
+description = "selectApplicableGenesysList(cache, Date.now())の戻り値があればlistParamを返し、なければundefinedを返す"
+given = "cacheに現在有効リストがある/ない"
+expect_return_shape = "listParamまたはundefined"
+
+# --- GenesysPointCache#getCurrentEffectiveDate(): string | undefined ---
+
+[[condition]]
+id = "current_effective_date.selected_or_undefined"
+target_function = "GenesysPointCache#getCurrentEffectiveDate"
+source_lines = "138-139"
+description = "selectApplicableGenesysList(cache, Date.now())の戻り値があればeffectiveDateを返し、なければundefinedを返す"
+given = "cacheに現在有効リストがある/ない"
+expect_return_shape = "effectiveDateまたはundefined"
+
+# --- GenesysPointCache#getAvailableListParams(): string[] ---
+
+[[condition]]
+id = "available_params.no_cache_empty"
+target_function = "GenesysPointCache#getAvailableListParams"
+source_lines = "146-148"
+description = "cacheがnullの場合空配列を返す"
+given = "new GenesysPointCache()直後"
+expect_return = "[]"
+
+[[condition]]
+id = "available_params.available_copy"
+target_function = "GenesysPointCache#getAvailableListParams"
+source_lines = "150-151"
+description = "availableListParamsが1件以上ある場合、そのコピーを元の順序のまま返す"
+given = "availableListParams = ['202608','202606']"
+expect_return = "['202608', '202606']"
+
+[[condition]]
+id = "available_params.fallback_list_keys"
+target_function = "GenesysPointCache#getAvailableListParams"
+source_lines = "150-153"
+description = "availableListParamsが空配列の場合、listsのキー一覧を返す"
+given = "availableListParams = []、lists keys = ['202606','202608']"
+expect_return_shape = "Object.keys(cache.lists)と同じ配列"
+
+# --- GenesysPointCache#ensureCurrentList(): Promise<GenesysListEntry | null> ---
+
+[[condition]]
+id = "ensure_current.existing_returns_without_update"
+target_function = "GenesysPointCache#ensureCurrentList"
+source_lines = "167-170"
+description = "現在有効なリストが既に選択できる場合、forceUpdateせずそのentryを返す"
+given = "cacheに現在有効リストが存在する"
+expect_return_shape = "現在有効なGenesysListEntry"
+expect_side_effect = "forceUpdateは呼ばれない"
+
+[[condition]]
+id = "ensure_current.force_update_error_returns_null"
+target_function = "GenesysPointCache#ensureCurrentList"
+source_lines = "173-177"
+description = "現在有効リストが無くforceUpdateが例外を投げた場合、警告ログ後にnullを返し例外は投げない"
+given = "cache=null、forceUpdateがrejectする"
+expect_return = "null"
+
+[[condition]]
+id = "ensure_current.force_update_success_reselects"
+target_function = "GenesysPointCache#ensureCurrentList"
+source_lines = "173-180"
+description = "現在有効リストが無い場合forceUpdateをawaitし、更新後のcacheからselectApplicableGenesysListした結果を返す"
+given = "forceUpdateがcacheに現在有効リストを設定する"
+expect_return_shape = "更新後に選択されたGenesysListEntryまたはnull"
+
+# --- GenesysPointCache#ensureList(listParam): Promise<GenesysListEntry | null> ---
+
+[[condition]]
+id = "ensure_list.existing_returns_without_fetch"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "189-192"
+description = "cache.lists[listParam]がtruthyな場合、その既存entryを返しfetch/update/storage保存は行わない"
+given = "cacheに対象listParamのentryが存在する"
+expect_return_shape = "既存GenesysListEntry"
+expect_side_effect = "forceUpdate/fetchGenesysPointList/safeStorageSetは呼ばれない"
+
+[[condition]]
+id = "ensure_list.no_available_force_update_error_returns_null"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "195-202"
+description = "対象entryが無くavailableListParamsも取得済みlistキーも空の場合forceUpdateし、forceUpdateが例外ならnullを返す"
+given = "cache=null、forceUpdateがrejectする"
+expect_return = "null"
+
+[[condition]]
+id = "ensure_list.not_in_available_returns_null"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "204-208"
+description = "availableListParamsまたはfallback keysにlistParamが含まれない場合nullを返す"
+given = "available=['202608']、listParam='202606'"
+expect_return = "null"
+expect_side_effect = "fetchGenesysPointListは呼ばれない"
+
+[[condition]]
+id = "ensure_list.after_force_complete_returns"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "211-214"
+description = "forceUpdate後またはavailable確認後にcache.lists[listParam]が存在し、incompleteがfalsyの場合、そのentryを返す"
+given = "cache.lists[listParam]にincomplete未設定またはfalseのentryが存在する"
+expect_return_shape = "afterForceのGenesysListEntry"
+expect_side_effect = "fetchGenesysPointListは追加で呼ばれない"
+
+[[condition]]
+id = "ensure_list.fetch_success_creates_or_updates_cache"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "217-243"
+description = "対象entryが無い、またはincomplete=trueの場合、DB初期化後にfetchGenesysPointListし、resolve結果をentryへ変換してcache.lists[listParam]へ保存する"
+given = "availableに対象listParamが含まれ、fetchGenesysPointListとresolveGenesysEntriesが成功する"
+expect_return_shape = "{ listParam, effectiveDate: listParamToEffectiveDate(listParam), points, fetchedAt: Date.now(), incomplete: unresolved.length > 0 }"
+expect_side_effect = "safeStorageSetに { genesysPointList: this.cache } が渡される"
+
+[[condition]]
+id = "ensure_list.unresolved_marks_incomplete"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "221-233"
+description = "resolveGenesysEntriesのunresolvedが1件以上の場合、警告ログを出し、entry.incompleteをtrueにする"
+given = "resolveGenesysEntriesが unresolved=['未解決'] を返す"
+expect_return_shape = "incomplete=trueのGenesysListEntry"
+
+[[condition]]
+id = "ensure_list.fetch_or_persist_error_returns_null"
+target_function = "GenesysPointCache#ensureList"
+source_lines = "217-246"
+description = "DB初期化/fetch/resolve/safeStorageSetのtry範囲内で例外が発生した場合、警告ログ後にnullを返し例外は投げない"
+given = "fetchGenesysPointListまたはsafeStorageSetがrejectする"
+expect_return = "null"
+
+# --- GenesysPointCache#needsUpdate(): boolean (private) ---
+
+[[condition]]
+id = "needs_update.no_cache_true"
+target_function = "GenesysPointCache#needsUpdate"
+source_lines = "256-258"
+description = "cacheがnullの場合trueを返す"
+given = "new GenesysPointCache()直後"
+expect_return = "true"
+
+[[condition]]
+id = "needs_update.discovery_ttl_comparison"
+target_function = "GenesysPointCache#needsUpdate"
+source_lines = "260"
+description = "cacheがある場合、Date.now() - discoveredAt > DISCOVERY_TTL の真偽値をそのまま返す"
+given = "discoveredAtが現在時刻から6日超過/6日以内"
+expect_return_shape = "6日超過ならtrue、6日以内ならfalse"
+
+# --- GenesysPointCache#checkAndUpdate(): Promise<void> ---
+
+[[condition]]
+id = "check_update.in_flight_returns_same_promise"
+target_function = "GenesysPointCache#checkAndUpdate"
+source_lines = "271-273"
+description = "updatePromiseがtruthyの場合、needsUpdateやforceUpdateを新たに実行せず進行中の更新完了を待つ"
+given = "1回目のcheckAndUpdateが未完了の状態で2回目を呼ぶ"
+expect_side_effect = "forceUpdateは1回しか呼ばれず、2回目も進行中の更新完了後にresolveする"
+
+[[condition]]
+id = "check_update.no_update_needed_returns_undefined"
+target_function = "GenesysPointCache#checkAndUpdate"
+source_lines = "275-276"
+description = "needsUpdate()がfalseの場合、forceUpdateせずundefinedを返す"
+given = "cache.discoveredAtがDISCOVERY_TTL以内"
+expect_return = "undefined"
+
+[[condition]]
+id = "check_update.force_update_errors_are_swallowed_and_promise_cleared"
+target_function = "GenesysPointCache#checkAndUpdate"
+source_lines = "279-288"
+description = "needsUpdate()がtrueの場合forceUpdateを開始し、rejectしてもcatchで握りつぶし、finallyでupdatePromiseをnullに戻す"
+given = "forceUpdateがrejectする"
+expect_no_throw = true
+expect_side_effect = "完了後に再度checkAndUpdateすると新しいforceUpdateを開始できる"
+
+# --- GenesysPointCache#forceUpdate(): Promise<void> ---
+
+[[condition]]
+id = "force_update.fetches_index_initializes_db_and_persists"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "298-350"
+description = "fetchGenesysIndexでrefsを取得し、UnifiedCacheDBを初期化し、availableListParams/discoveredAtを含むcacheをsafeStorageSetで保存する"
+given = "fetchGenesysIndexがrefs配列を返す"
+expect_side_effect = "safeStorageSetに { genesysPointList: { lists, latestListParam, availableListParams, discoveredAt } } が渡される"
+
+[[condition]]
+id = "force_update.latest_ref_sets_latest_list_param"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "307-310,343-346"
+description = "refs内のref.isLatestがtrueならlatestListParamをそのref.listParamへ更新する"
+given = "refsに { listParam: '202608', isLatest: true } が含まれる"
+expect_side_effect = "保存されるcache.latestListParamは'202608'"
+
+[[condition]]
+id = "force_update.no_latest_ref_preserves_previous_or_null"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "302,343-346"
+description = "refsにisLatest=trueが無い場合、既存cache.latestListParamがあればそれを保持し、無ければnullにする"
+given = "refsに最新版refが無い、既存latestListParamあり/なし"
+expect_side_effect = "保存されるcache.latestListParamは既存値またはnull"
+
+[[condition]]
+id = "force_update.complete_existing_entry_skipped"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "313-315"
+description = "lists[ref.listParam]が存在し、incompleteがfalsyの場合、そのrefのfetchGenesysPointListを呼ばずcontinueする"
+given = "既存entry incomplete未設定またはfalse"
+expect_side_effect = "対象listParamは再fetchされない"
+
+[[condition]]
+id = "force_update.incomplete_or_missing_entry_fetched"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "313-338"
+description = "既存entryが無い、またはincomplete=trueの場合、fetchGenesysPointListしてresolve結果をlists[ref.listParam]へ保存する"
+given = "対象refのentryが未存在またはincomplete=true"
+expect_side_effect = "lists[ref.listParam]が新しいentryで上書きされる"
+
+[[condition]]
+id = "force_update.fetch_list_error_continues"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "319-323"
+description = "個別refのfetchGenesysPointListが例外を投げた場合、そのrefは保存せず次のref処理へcontinueする"
+given = "1件目のfetchGenesysPointListがrejectし、2件目がresolveする"
+expect_side_effect = "2件目は保存され、forceUpdate全体はrejectしない"
+
+[[condition]]
+id = "force_update.unresolved_marks_incomplete"
+target_function = "GenesysPointCache#forceUpdate"
+source_lines = "325-337"
+description = "resolveGenesysEntriesのunresolvedが1件以上の場合、警告ログを出し、保存entry.incompleteをtrueにする"
+given = "resolveGenesysEntriesが unresolved=['未解決'] を返す"
+expect_side_effect = "保存entry.incomplete=true"
+
+# --- GenesysPointCache#clear(): Promise<void> ---
+
+[[condition]]
+id = "clear.clears_cache_and_storage"
+target_function = "GenesysPointCache#clear"
+source_lines = "356-358"
+description = "cacheをnullにし、safeStorageSet({ genesysPointList: null })をawaitする"
+given = "cacheにデータが入っている"
+expect_side_effect = "getAvailableListParams()は[]になり、storageにはnullが保存される"

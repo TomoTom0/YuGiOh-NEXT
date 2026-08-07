@@ -18,7 +18,7 @@ Chrome DevTools Protocol（CDP）を使用して、Chromiumブラウザ上で拡
 このスクリプトは以下を実行します：
 - Chromiumをリモートデバッグモードで起動
 - 拡張機能を自動ロード
-- WebSocket URLを `.chrome_playwright_ws` に保存
+- WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に指定されたファイルに保存
 
 ### 2. 依存パッケージのインストール
 
@@ -76,14 +76,15 @@ node tests/browser/test-shuffle.cjs
 Lock機能（sortfix）の動作確認テストです。
 
 **確認項目**:
-1. カード右上1/4エリアをクリックしてロック状態になること
+1. `.top-right` ボタンをクリックしてロック状態になること
 2. ロック状態のカードに視覚的フィードバックがあること
-   - `data-sortfix` 属性の付与
-   - 青緑色の背景
-   - 右上に南京錠アイコン
-3. ロックされたカードがデッキ先頭に移動すること
-4. シャッフル時にロックされたカードの順序が保持されること
-5. もう一度クリックするとロックが解除されること
+   - `data-ygo-next-sortfix` 属性の付与
+   - `.top-right` ボタンの `.is-sortfixed` クラス
+   - 南京錠アイコン（SVG）
+3. シャッフル時にロックされたカードが先頭に保持されること
+4. もう一度クリックするとロックが解除されること
+
+**前提**: 公開デッキURL（認証不要）で実行。クリック対象は `<a>` ではなく子の `.ygo-next-card-btn.top-right` ボタン（DOMイベントは子孫に伝播しないため）。
 
 **実行方法**:
 ```bash
@@ -285,9 +286,9 @@ node tests/browser/test-scroll-to-top.cjs
 
 ## トラブルシューティング
 
-### `Error: ENOENT: no such file or directory, open '.chrome_playwright_ws'`
+### `Error: ENOENT: no such file or directory, open '<ws_file>'`
 
-Chromiumが起動していません。以下のコマンドでChromiumを起動してください：
+Chromiumが起動していません。以下のコマンドでChromiumを起動してください（ws_fileのパスは `configs/browser.toml` で管理）：
 
 ```bash
 ./scripts/debug/setup/start-chrome.sh

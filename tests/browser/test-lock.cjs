@@ -1,198 +1,112 @@
 /**
  * Lock機能（sortfix）の動作確認テスト
  *
- * 以下の挙動を確認：
- * 1. カード右上1/4エリアをクリックしてロック状態になること
- * 2. ロック状態のカードに視覚的フィードバックがあること（青緑背景、南京錠アイコン）
- * 3. ロックされたカードがデッキ先頭に移動すること
- * 4. シャッフル時にロックされたカードの順序が保持されること
- * 5. もう一度クリックするとロックが解除されること
+ * 実装参照:
+ *   src/content/shuffle/sortfixCards.ts (ロック解除/設定ハンドラ、data-ygo-next-sortfix 属性)
+ *   src/content/deck-display/vueSetup.ts (.ygo-next-card-controls の生成)
+ *   src/content/deck-display/DeckDisplayApp.vue (.is-sortfixed の視覚スタイル)
+ *
+ * 確認:
+ * 1. .top-right ボタンクリックで data-ygo-next-sortfix 属性が付与されること
+ * 2. .top-right ボタンに .is-sortfixed クラスと南京錠 SVG が付くこと
+ * 3. シャッフル後に sortfix カードが先頭に保持されること (shuffleCards.ts)
+ * 4. 再クリックでロック解除されること
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
 // 公開デッキURL（認証不要）
 const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
 
+// 最初のカードの状態を取得する式
+const FIRST_CARD_INFO = `
+  (() => {
+    const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
+    const card = mainDeck ? mainDeck.querySelector('a') : null;
+    if (!card) return null;
+    const topRight = card.querySelector('.ygo-next-card-btn.top-right');
+    return {
+      cid: card.href.match(/cid=(\\d+)/)?.[1] || null,
+      hasSortfix: card.hasAttribute('data-ygo-next-sortfix'),
+      hasLockClass: topRight ? topRight.classList.contains('is-sortfixed') : false,
+      hasLockIcon: topRight ? !!topRight.querySelector('svg') : false
+    };
+  })()
+`;
+
+// .top-right ボタンを直接クリックする式
+const CLICK_TOP_RIGHT = `
+  (() => {
+    const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
+    const card = mainDeck ? mainDeck.querySelector('a') : null;
+    if (!card) return false;
+    const btn = card.querySelector('.ygo-next-card-btn.top-right');
+    if (btn) { btn.click(); return true; }
+    return false;
+  })()
+`;
+
 async function testLock() {
   console.log('【Lock機能（sortfix）テスト】\n');
-
+  const t = createTestContext();
   const cdp = await connectCDP();
 
   try {
-    // デッキ表示ページに移動
     console.log('デッキ表示ページにアクセス中...');
     await cdp.navigate(DECK_URL);
     await cdp.wait(5000); // 拡張機能のロード待機
 
-    console.log('\n=== 最初のカードをロック ===\n');
+    // 最初のカードのcid取得
+    const first = await cdp.evaluate(FIRST_CARD_INFO);
+    t.assert('最初のカードが取得できる', !!first && !!first.cid);
+    if (!first || !first.cid) throw new Error('最初のカードが取得できません');
+    console.log(`  最初のカード: cid=${first.cid}\n`);
 
-    // 最初のカード情報を取得
-    const firstCard = await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-        return {
-          href: firstCard.href,
-          cid: firstCard.href.match(/cid=(\\d+)/)?.[1]
-        };
-      })()
-    `);
+    console.log('=== ロック操作（.top-right ボタンを直接クリック）===');
+    const clicked = await cdp.evaluate(CLICK_TOP_RIGHT);
+    t.assert('.top-right ボタンが存在してクリックできた', clicked === true);
+    await cdp.wait(500);
 
-    console.log(`最初のカード: cid=${firstCard.cid}`);
+    const locked = await cdp.evaluate(FIRST_CARD_INFO);
+    t.assert('data-ygo-next-sortfix 属性が付与される', locked?.hasSortfix === true);
+    t.assert('.top-right に .is-sortfixed クラスが付く', locked?.hasLockClass === true);
+    t.assert('.top-right に南京錠 SVG が挿入される', locked?.hasLockIcon === true);
 
-    // カード右上1/4エリアをクリック（ロック）
-    await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-        const rect = firstCard.getBoundingClientRect();
-
-        // 右上1/4の位置を計算
-        const x = rect.left + rect.width * 0.75;
-        const y = rect.top + rect.height * 0.25;
-
-        // クリックイベントを作成
-        const event = new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true,
-          clientX: x,
-          clientY: y
-        });
-
-        firstCard.dispatchEvent(event);
-      })()
-    `);
-
-    await cdp.wait(500); // ロック処理待機
-
-    console.log('\n=== ロック状態の確認 ===\n');
-
-    // ロック状態の確認
-    const lockStatus = await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-
-        return {
-          hasSortfixAttr: firstCard.hasAttribute('data-sortfix'),
-          backgroundColor: window.getComputedStyle(firstCard).backgroundColor,
-          hasAfterElement: window.getComputedStyle(firstCard, '::after').backgroundImage !== 'none'
-        };
-      })()
-    `);
-
-    console.log(`data-sortfix属性: ${lockStatus.hasSortfixAttr ? '✅ あり' : '❌ なし'}`);
-    console.log(`背景色: ${lockStatus.backgroundColor}`);
-    console.log(`南京錠アイコン: ${lockStatus.hasAfterElement ? '✅ あり' : '❌ なし'}`);
-
-    if (lockStatus.hasSortfixAttr) {
-      console.log('✅ カードがロック状態になりました');
-    } else {
-      console.log('❌ カードがロック状態になっていません');
-    }
-
-    console.log('\n=== デッキ先頭に移動したか確認 ===\n');
-
-    // 先頭のカードを確認
-    const topCard = await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-        return {
-          cid: firstCard.href.match(/cid=(\\d+)/)?.[1]
-        };
-      })()
-    `);
-
-    if (topCard.cid === firstCard.cid) {
-      console.log(`✅ ロックされたカードが先頭に配置されています (cid=${topCard.cid})`);
-    } else {
-      console.log(`❌ カードの位置が変わっていません`);
-    }
-
-    console.log('\n=== シャッフル時にロックが保持されるか確認 ===\n');
-
-    // シャッフルボタンをクリック
+    console.log('\n=== シャッフル時にロックが保持されるか ===');
     await cdp.evaluate(`document.getElementById("ygo-next-shuffle-btn-main").click()`);
     await cdp.wait(2000); // アニメーション待機
 
-    // シャッフル後も先頭にあるか確認
     const afterShuffle = await cdp.evaluate(`
       (() => {
         const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
+        const card = mainDeck ? mainDeck.querySelector('a') : null;
+        if (!card) return null;
         return {
-          cid: firstCard.href.match(/cid=(\\d+)/)?.[1],
-          hasSortfix: firstCard.hasAttribute('data-sortfix')
+          cid: card.href.match(/cid=(\\d+)/)?.[1] || null,
+          hasSortfix: card.hasAttribute('data-ygo-next-sortfix')
         };
       })()
     `);
+    t.assert('シャッフル後も sortfix カードが先頭に保持される', afterShuffle?.cid === first.cid);
+    t.assert('シャッフル後も data-ygo-next-sortfix 属性が維持される', afterShuffle?.hasSortfix === true);
 
-    if (afterShuffle.cid === firstCard.cid && afterShuffle.hasSortfix) {
-      console.log(`✅ シャッフル後もロックされたカードが先頭に保持されています (cid=${afterShuffle.cid})`);
-    } else {
-      console.log(`❌ ロックが正しく機能していません`);
-    }
-
-    console.log('\n=== ロック解除 ===\n');
-
-    // もう一度右上1/4エリアをクリック（ロック解除）
-    await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-        const rect = firstCard.getBoundingClientRect();
-
-        const x = rect.left + rect.width * 0.75;
-        const y = rect.top + rect.height * 0.25;
-
-        const event = new MouseEvent('click', {
-          view: window,
-          bubbles: true,
-          cancelable: true,
-          clientX: x,
-          clientY: y
-        });
-
-        firstCard.dispatchEvent(event);
-      })()
-    `);
-
+    console.log('\n=== ロック解除（.top-right ボタンを再度クリック）===');
+    await cdp.evaluate(CLICK_TOP_RIGHT);
     await cdp.wait(500);
 
-    // ロック解除の確認
-    const unlocked = await cdp.evaluate(`
-      (() => {
-        const mainDeck = document.querySelector('#deck_image #main.card_set .image_set');
-        const firstCard = mainDeck.querySelector('a');
-        return !firstCard.hasAttribute('data-sortfix');
-      })()
-    `);
+    const unlocked = await cdp.evaluate(FIRST_CARD_INFO);
+    t.assert('再クリックで data-ygo-next-sortfix 属性が削除される', unlocked?.hasSortfix === false);
+    t.assert('再クリックで .is-sortfixed クラスが削除される', unlocked?.hasLockClass === false);
 
-    if (unlocked) {
-      console.log('✅ ロックが解除されました');
-    } else {
-      console.log('❌ ロックが解除されていません');
-    }
-
-    console.log('\n【テスト完了】\n');
-
-    // 結果サマリー
-    if (lockStatus.hasSortfixAttr && afterShuffle.hasSortfix && unlocked) {
-      console.log('✅ Lock機能（sortfix）は正常に動作しています');
-    } else {
-      console.log('❌ Lock機能に問題があります');
-    }
-
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
+  } finally {
     cdp.close();
-  } catch (error) {
-    console.error('エラー:', error);
-    cdp.close();
-    process.exit(1);
+    process.exit(t.exitCode());
   }
 }
 
-// テスト実行
 testLock();

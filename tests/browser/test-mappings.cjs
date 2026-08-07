@@ -1,99 +1,70 @@
 /**
- * マッピング取得テスト
+ * マッピング取得の動作確認テスト（自動化・認証不要）
  *
- * Content script が正常に動作しており、マッピング取得とChrome Storage保存が機能するかテスト
+ * 公開ページでコンテンツスクリプトがロードされ、マッピング初期化で
+ * card_search.action?ope=1&request_locale=<lang> リクエストが飛ぶことを検証。
  *
- * 注意：Chrome Storage API は拡張機能内でのみアクセス可能なため、
- * Content script のコンソールログを確認することでマッピング取得状況を検証
+ * 実装参照:
+ *   src/utils/mapping-manager.ts (initializeMappingManager)
+ *   src/utils/extract-mappings.ts (card_search.action fetch)
+ *   src/content/index.ts (initializeFeatures -> initializeMappingManager)
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
-async function runTests() {
+// 公開デッキURL（認証不要）
+const PUBLIC_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
+
+async function testMappings() {
+  console.log('【マッピング取得テスト（認証不要・公開URL）】\n');
+  const t = createTestContext();
   const cdp = await connectCDP();
-  console.log('[Test] CDPに接続しました');
+
+  let mappingErrors = [];
 
   try {
-    // テスト: デッキ詳細ページでのマッピング取得動作確認
-    console.log('\n[Test] デッキ詳細ページでのマッピング取得動作確認');
-    await testMappingRetrieval(cdp);
+    // コンソールのエラーログを収集
+    await cdp.sendCommand('Runtime.enable');
+    cdp.on('Runtime.consoleAPICalled', (params) => {
+      const text = (params.args || []).map(a => a.value || a.description || '').join(' ');
+      if (text.includes('[MappingManager]') && /Failed|invalid|Error/i.test(text)) {
+        mappingErrors.push(text);
+      }
+    });
 
-    console.log('\n✓ テスト完了（ブラウザコンソールでログを確認）');
-  } catch (error) {
-    console.error('[Error]', error);
+    // Network 監視を開始してから navigate（リクエスト取りこぼし防止）
+    await cdp.sendCommand('Network.enable');
+    const reqPromise = cdp.waitForRequest('card_search.action', 15000);
+    console.log('公開デッキページにアクセス中...');
+    await cdp.navigate(PUBLIC_URL);
+
+    const req = await reqPromise;
+    if (req) {
+      console.log(`  リクエストURL: ${req.url.substring(0, 90)}...`);
+      t.assert('card_search.action リクエストに ope=1 が含まれる', req.url.includes('ope=1'));
+      t.assert('card_search.action リクエストに request_locale=ja が含まれる', req.url.includes('request_locale=ja'));
+    } else {
+      console.log('  ※ card_search.action リクエスト未発行（マッピングキャッシュ済みと推定）');
+    }
+
+    // コンソールエラーが収束するまで少し待機
+    await cdp.wait(2000);
+    // リクエスト発火有無に関わらずエラーログがなければ初期化は成功
+    t.assert('[MappingManager] エラーログが存在しない（マッピング初期化成功）', mappingErrors.length === 0);
+    if (mappingErrors.length > 0) {
+      console.log('  エラーログ:');
+      mappingErrors.forEach(e => console.log('    - ' + e.substring(0, 100)));
+    }
+
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
   } finally {
     cdp.close();
+    process.exit(t.exitCode());
   }
 }
 
-/**
- * マッピング取得動作確認テスト
- * @param {Object} cdp - CDP helper
- *
- * デッキ詳細ページを開き、Content script が正常に動作しているかを確認
- * - mappingManager の初期化
- * - detectLanguage の動作
- * - コンソールログの出力確認
- */
-async function testMappingRetrieval(cdp) {
-  try {
-    // デッキ詳細ページへナビゲート
-    const deckUrl = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
-    console.log(`[Step 1] デッキ詳細ページへナビゲート: ${deckUrl}`);
-    await cdp.navigate(deckUrl);
-
-    // ページロード待機（3秒）
-    console.log('[Step 2] ページロード待機中...');
-    await cdp.wait(3000);
-
-    // ページのタイトルとURLを確認
-    console.log('[Step 3] ページ情報確認');
-    const pageInfo = await cdp.evaluate(`
-      ({
-        title: document.title,
-        url: window.location.href,
-        isLoaded: Boolean(document.body && document.body.innerText),
-      })
-    `);
-    console.log(`  - ページタイトル: ${pageInfo.title || 'なし'}`);
-    console.log(`  - URL: ${pageInfo.url || 'なし'}`);
-    console.log(`  - ページロード: ${pageInfo.isLoaded ? 'はい' : 'いいえ'}`);
-
-    // Content script の実行確認
-    console.log('[Step 4] Content script の実行確認');
-    const contentScriptCheck = await cdp.evaluate(`
-      ({
-        hasWindow: Boolean(window),
-        hasDocument: Boolean(document),
-        hasChrome: typeof chrome !== 'undefined',
-      })
-    `);
-    console.log(`  - window: ${contentScriptCheck.hasWindow ? 'あり' : 'なし'}`);
-    console.log(`  - document: ${contentScriptCheck.hasDocument ? 'あり' : 'なし'}`);
-    console.log(`  - chrome API: ${contentScriptCheck.hasChrome ? 'あり' : 'なし'}`);
-
-    // 重要なコンソールメッセージを確認
-    console.log('[Step 5] ブラウザコンソールのログを確認してください');
-    console.log('  - [MappingManager] で始まるログ');
-    console.log('  - マッピング取得状況（Stored/Loaded/Error）');
-    console.log('  - [Content Script] で始まるログ（detector.ts から）');
-
-    // Content script のメモリ内状態確認
-    console.log('[Step 6] グローバルオブジェクトの確認');
-    const globalState = await cdp.evaluate(`
-      ({
-        hasDetectLanguage: typeof window.detectLanguage !== 'undefined',
-        hasYgoNeuronHelper: typeof window.ygoNeuronHelper !== 'undefined',
-      })
-    `);
-    console.log(`  - detectLanguage: ${globalState.hasDetectLanguage ? 'あり' : 'なし'}`);
-    console.log(`  - ygoNeuronHelper: ${globalState.hasYgoNeuronHelper ? 'あり' : 'なし'}`);
-
-  } catch (error) {
-    console.error('[Error] テスト実行中にエラーが発生:', error.message);
-    throw error;
-  }
-}
-
-// テスト実行
-runTests();
+testMappings();

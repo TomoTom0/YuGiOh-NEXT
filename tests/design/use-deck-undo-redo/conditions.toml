@@ -1,0 +1,256 @@
+# 検証対象: src/composables/deck/useDeckUndoRedo.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、Vue composableのUndo/Redoコマンド履歴管理ロジック。
+#
+# デッドコード/到達不能分岐:
+# - なし。commandHistory/commandIndexは返却されるRefなので、通常APIでは作られない不整合状態も
+#   公開Refの直接変更により到達・検証可能。
+
+[meta]
+feature = "use-deck-undo-redo"
+source_file = "src/composables/deck/useDeckUndoRedo.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckUndoRedo.test.ts"
+source_hash = "8147fcc14f51c1dc352874c285ad9f2f28e89aeb"
+note = "verified=falseは0件"
+
+# --- useDeckUndoRedo(): Undo/Redo state and operations ---
+
+[[condition]]
+id = "init.empty_history_index_minus_one"
+target_function = "useDeckUndoRedo"
+source_lines = "38-49,221-240"
+description = "新規作成直後はcommandHistoryが空配列、commandIndexが-1で、canUndo/canRedoはいずれもfalseになる"
+given = "useDeckUndoRedo()を新規に呼ぶ"
+expect_return_shape = "{ commandHistory: [], commandIndex: -1, canUndo: false, canRedo: false }"
+
+[[condition]]
+id = "push.truncates_redo_branch"
+target_function = "useDeckUndoRedo"
+source_lines = "56-60"
+description = "pushCommand時、commandIndexが履歴末尾より前ならcommandIndex+1以降の履歴をspliceで削除してから新コマンドを追加する"
+given = "履歴[A,B,C]でcommandIndex=1の状態からpushCommand(D)する"
+expect_return_shape = "履歴は[A,B,D]になり、Cは残らない"
+
+[[condition]]
+id = "push.timestamp_undefined_sets_now"
+target_function = "useDeckUndoRedo"
+source_lines = "62-65"
+description = "pushCommand時、command.timestampがundefinedならDate.now()の戻り値を代入する"
+given = "timestampを持たないCommandをpushCommandする"
+expect_return_shape = "追加されたcommand.timestampはpush時点のDate.now()相当の数値になる"
+
+[[condition]]
+id = "push.timestamp_existing_preserved"
+target_function = "useDeckUndoRedo"
+source_lines = "62-65"
+description = "pushCommand時、command.timestampがundefinedでなければ既存値を上書きしない"
+given = "timestamp=12345を持つCommandをpushCommandする"
+expect_return_shape = "追加されたcommand.timestampは12345のまま"
+
+[[condition]]
+id = "push.appends_and_sets_index_to_tail"
+target_function = "useDeckUndoRedo"
+source_lines = "67-69"
+description = "pushCommandはコマンドをcommandHistory末尾へpushし、commandIndexを追加後の末尾indexに設定する"
+given = "空履歴または既存履歴にCommandをpushCommandする"
+expect_return_shape = "履歴サイズが1増え、commandIndexはcommandHistory.length - 1になる"
+
+[[condition]]
+id = "push.max_history_trims_oldest_and_adjusts_index"
+target_function = "useDeckUndoRedo"
+source_lines = "71-76"
+description = "pushCommand後に履歴長がMAX_COMMAND_HISTORYを超えた場合、先頭から超過件数を削除し、commandIndexから同じ件数を減算する"
+given = "MAX_COMMAND_HISTORYを超える個数のCommandをpushCommandする"
+expect_return_shape = "履歴長はMAX_COMMAND_HISTORYに制限され、commandIndexは末尾indexになる"
+
+[[condition]]
+id = "undo.cannot_undo_returns_without_change"
+target_function = "useDeckUndoRedo"
+source_lines = "82-86"
+description = "canUndoがfalseの場合、undoは警告を出してreturnし、command.undoもcommandIndex変更も行わない"
+given = "commandIndex < 0の状態でundo()する"
+expect_return = "undefined"
+expect_return_shape = "executionLogは増えず、commandIndexは変わらない"
+
+[[condition]]
+id = "undo.command_exists_calls_undo_then_decrements"
+target_function = "useDeckUndoRedo"
+source_lines = "88-92"
+description = "canUndoがtrueで現在indexのcommandが存在する場合、そのcommand.undo()を呼んだ後にcommandIndexを1減らす"
+given = "commandHistory[commandIndex]にCommandが存在する状態でundo()する"
+expect_return_shape = "該当Commandのundoが1回呼ばれ、commandIndexが-1される"
+
+[[condition]]
+id = "undo.command_missing_skips_undo_but_decrements"
+target_function = "useDeckUndoRedo"
+source_lines = "88-92"
+description = "canUndoがtrueでも現在indexのcommandがfalsyの場合、command.undoは呼ばずcommandIndexだけを1減らす"
+given = "commandHistory.length > 0かつcommandIndexがfalsy要素を指す状態でundo()する"
+expect_return_shape = "executionLogは増えず、commandIndexが-1される"
+
+[[condition]]
+id = "redo.cannot_redo_returns_without_change"
+target_function = "useDeckUndoRedo"
+source_lines = "98-102"
+description = "canRedoがfalseの場合、redoは警告を出してreturnし、command.executeもcommandIndex変更も行わない"
+given = "commandIndex >= commandHistory.length - 1の状態でredo()する"
+expect_return = "undefined"
+expect_return_shape = "executionLogは増えず、commandIndexは変わらない"
+
+[[condition]]
+id = "redo.command_exists_increments_then_executes"
+target_function = "useDeckUndoRedo"
+source_lines = "104-108"
+description = "canRedoがtrueで移動先indexのcommandが存在する場合、commandIndexを1増やしてからそのcommand.execute()を呼ぶ"
+given = "undo済みで次indexにCommandが存在する状態でredo()する"
+expect_return_shape = "commandIndexが+1され、該当Commandのexecuteが1回呼ばれる"
+
+[[condition]]
+id = "redo.command_missing_increments_without_execute"
+target_function = "useDeckUndoRedo"
+source_lines = "104-108"
+description = "canRedoがtrueでも移動先indexのcommandがfalsyの場合、commandIndexは1増やすがcommand.executeは呼ばない"
+given = "commandIndex + 1がfalsy要素を指す状態でredo()する"
+expect_return_shape = "executionLogは増えず、commandIndexが+1される"
+
+[[condition]]
+id = "clear.resets_history_and_index"
+target_function = "useDeckUndoRedo"
+source_lines = "114-117"
+description = "clearHistoryはcommandHistoryを新しい空配列にし、commandIndexを-1に戻す"
+given = "履歴の有無にかかわらずclearHistory()する"
+expect_return_shape = "{ commandHistory: [], commandIndex: -1, canUndo: false, canRedo: false }"
+
+[[condition]]
+id = "getters.return_current_size_and_index"
+target_function = "useDeckUndoRedo"
+source_lines = "124-135"
+description = "getHistorySizeはcommandHistory.value.lengthを返し、getCurrentIndexはcommandIndex.valueを返す"
+given = "任意の履歴状態でgetHistorySize()/getCurrentIndex()を呼ぶ"
+expect_return_shape = "現在の履歴長と現在indexが返る"
+
+[[condition]]
+id = "undo_description.cannot_undo_returns_undefined"
+target_function = "useDeckUndoRedo"
+source_lines = "142-145"
+description = "getUndoDescriptionはcanUndoがfalseならcommandHistoryを参照せずundefinedを返す"
+given = "undo不可状態でgetUndoDescription()を呼ぶ"
+expect_return = "undefined"
+
+[[condition]]
+id = "undo_description.can_undo_returns_current_description"
+target_function = "useDeckUndoRedo"
+source_lines = "142-145"
+description = "getUndoDescriptionはcanUndoがtrueなら現在indexのcommand?.descriptionを返す"
+given = "現在indexのCommandにdescriptionがある、またはない"
+expect_return_shape = "descriptionがあればその文字列、なければundefined"
+
+[[condition]]
+id = "redo_description.cannot_redo_returns_undefined"
+target_function = "useDeckUndoRedo"
+source_lines = "153-156"
+description = "getRedoDescriptionはcanRedoがfalseならcommandHistoryを参照せずundefinedを返す"
+given = "redo不可状態でgetRedoDescription()を呼ぶ"
+expect_return = "undefined"
+
+[[condition]]
+id = "redo_description.can_redo_returns_next_description"
+target_function = "useDeckUndoRedo"
+source_lines = "153-156"
+description = "getRedoDescriptionはcanRedoがtrueならcommandIndex+1のcommand?.descriptionを返す"
+given = "redo可能で次Commandにdescriptionがある、またはない"
+expect_return_shape = "descriptionがあればその文字列、なければundefined"
+
+[[condition]]
+id = "undo_type.cannot_undo_returns_undefined"
+target_function = "useDeckUndoRedo"
+source_lines = "164-167"
+description = "getUndoTypeはcanUndoがfalseならcommandHistoryを参照せずundefinedを返す"
+given = "undo不可状態でgetUndoType()を呼ぶ"
+expect_return = "undefined"
+
+[[condition]]
+id = "undo_type.can_undo_returns_current_type"
+target_function = "useDeckUndoRedo"
+source_lines = "164-167"
+description = "getUndoTypeはcanUndoがtrueなら現在indexのcommand?.typeを返す"
+given = "現在indexのCommandにtypeがある、またはない"
+expect_return_shape = "typeがあればその値、なければundefined"
+
+[[condition]]
+id = "redo_type.cannot_redo_returns_undefined"
+target_function = "useDeckUndoRedo"
+source_lines = "175-178"
+description = "getRedoTypeはcanRedoがfalseならcommandHistoryを参照せずundefinedを返す"
+given = "redo不可状態でgetRedoType()を呼ぶ"
+expect_return = "undefined"
+
+[[condition]]
+id = "redo_type.can_redo_returns_next_type"
+target_function = "useDeckUndoRedo"
+source_lines = "175-178"
+description = "getRedoTypeはcanRedoがtrueならcommandIndex+1のcommand?.typeを返す"
+given = "redo可能で次Commandにtypeがある、またはない"
+expect_return_shape = "typeがあればその値、なければundefined"
+
+[[condition]]
+id = "jump.invalid_target_returns_false"
+target_function = "useDeckUndoRedo"
+source_lines = "188-193"
+description = "jumpToIndexはtargetIndex < -1またはtargetIndex >= commandHistory.lengthなら警告を出してfalseを返し、履歴操作をしない"
+given = "targetIndexが-2、または履歴長以上"
+expect_return = "false"
+expect_return_shape = "executionLogとcommandIndexは変わらない"
+
+[[condition]]
+id = "jump.same_index_returns_true_without_commands"
+target_function = "useDeckUndoRedo"
+source_lines = "195-198"
+description = "jumpToIndexはtargetIndexが現在のcommandIndexと同じならtrueを返し、undo/executeもindex変更も行わない"
+given = "targetIndex === commandIndex.value"
+expect_return = "true"
+expect_return_shape = "executionLogは増えず、commandIndexは変わらない"
+
+[[condition]]
+id = "jump.backward_undo_each_existing_command"
+target_function = "useDeckUndoRedo"
+source_lines = "200-207"
+description = "jumpToIndexでtargetIndexが現在位置より小さい場合、現在indexからtargetIndex+1まで各既存Commandのundo()を呼びながらcommandIndexを1ずつ減らす"
+given = "履歴[A,B,C]でcommandIndex=2からtargetIndex=0へjumpToIndexする"
+expect_return_shape = "C,Bの順にundoが呼ばれ、commandIndexは0になる"
+
+[[condition]]
+id = "jump.backward_missing_command_skips_undo_but_decrements"
+target_function = "useDeckUndoRedo"
+source_lines = "200-207"
+description = "後方ジャンプ中に現在indexのcommandがfalsyの場合、そのindexではundoを呼ばずcommandIndexだけを1減らす"
+given = "後方ジャンプ範囲内にfalsyな履歴要素がある"
+expect_return_shape = "falsy要素分のexecutionLogは増えず、commandIndexはtargetIndexまで減る"
+
+[[condition]]
+id = "jump.forward_redo_each_existing_command"
+target_function = "useDeckUndoRedo"
+source_lines = "209-216"
+description = "jumpToIndexでtargetIndexが現在位置より大きい場合、commandIndexを1増やしてから各既存Commandのexecute()を呼び、targetIndexまで進める"
+given = "履歴[A,B,C]でcommandIndex=-1からtargetIndex=2へjumpToIndexする"
+expect_return_shape = "A,B,Cの順にexecuteが呼ばれ、commandIndexは2になる"
+
+[[condition]]
+id = "jump.forward_missing_command_skips_execute_but_increments"
+target_function = "useDeckUndoRedo"
+source_lines = "209-216"
+description = "前方ジャンプ中に移動先indexのcommandがfalsyの場合、そのindexではexecuteを呼ばずcommandIndexだけを1増やす"
+given = "前方ジャンプ範囲内にfalsyな履歴要素がある"
+expect_return_shape = "falsy要素分のexecutionLogは増えず、commandIndexはtargetIndexまで増える"
+
+[[condition]]
+id = "jump.valid_target_returns_true_after_movement"
+target_function = "useDeckUndoRedo"
+source_lines = "218"
+description = "jumpToIndexは範囲内かつ同一indexでない移動を完了した後trueを返す"
+given = "targetIndexが-1以上かつ履歴長未満で現在indexと異なる"
+expect_return = "true"

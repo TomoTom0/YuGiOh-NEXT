@@ -1,0 +1,172 @@
+# 検証対象: src/composables/practice/usePracticeDragState.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、プラクティス盤面のカードドラッグ状態管理composable。
+#
+# モジュール共有stateに関する注記:
+# - draggingCardId等の全refと globalDragoverListener/globalDragendListener/keydownRotateListener/
+#   contextmenuListener/rotateTimeoutId/lastAutoScrollTime はモジュールスコープの変数であり、
+#   usePracticeDragState()を何度呼んでも同一インスタンスを返す（Vueコンポーザブルとしては非典型
+#   のシングルトンパターン）。そのためテスト間でstateとdocumentへ登録したイベントリスナーが
+#   リークしないよう、各テストでendDrag()相当のクリーンアップとタイマーのクリアが必須。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。start_drag.contextmenu_after_drag_cleared_is_noop（下記id）はendDrag()を経由する通常の
+#   ドラッグ終了フローでは到達しない（endDragはcontextmenuListenerが残っていれば必ず
+#   rotateTimeoutIdへ250ms後クリーンアップ用のsetTimeoutを積むため、draggingCardId=nullと
+#   rotateTimeoutId=nullが同時に成立する瞬間が生まれない）。ただし公開関数clearDragCard()を
+#   直接呼べばdraggingCardIdだけをnullにできるため、公開API経由では到達可能。実アプリ内では
+#   clearDragCard()の呼び出し元が現状存在しない（src全体でexport定義のみでimport側の使用箇所なし）。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動）:
+# - endDrag()呼び出し直後にdragendイベントが発火する典型シーケンス（drop→endDrag→dragend）では、
+#   endDragが仕込んだ250ms用setTimeoutの参照をrotateTimeoutIdに保持したまま、dragendハンドラが
+#   200ms用の新しいsetTimeoutでrotateTimeoutIdを上書きする。前者のタイマーはclearTimeoutされず
+#   孤立するが、発火時にcleanupContextmenuListenerのnullガードにより実害なく無視される
+#   （contextmenuListenerが既にnull化されていればremoveEventListenerも呼ばれない）。
+
+[meta]
+feature = "use-practice-drag-state"
+source_file = "src/composables/practice/usePracticeDragState.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/usePracticeDragState.test.ts"
+source_hash = "34e0cdb1b3dfab8978db07f3ccbc77e3e12bbfb7"
+note = "verified=falseは0件"
+
+# --- performAutoScroll(clientY)（非export、startDragが登録するdragoverリスナー経由でのみ到達） ---
+
+[[condition]]
+id = "auto_scroll.throttle_skips_within_50ms"
+target_function = "performAutoScroll"
+source_lines = "23-25"
+description = "直前の自動スクロール実行から50ms未満で呼ばれた場合、lastAutoScrollTimeを更新せず、コンテナのscrollTopも変更しない"
+given = "dragoverイベントを50ms未満の間隔で連続発火し、2回目もスクロール条件（clientYがしきい値内）を満たす"
+expect_state = "2回目の呼び出しではscrollTopが変化しない"
+
+[[condition]]
+id = "auto_scroll.bottom_threshold_scrolls_down"
+target_function = "performAutoScroll"
+source_lines = "26-31"
+description = ".practice-field-container各要素について、clientYがrect.bottom-80より下ならscrollTopを8増やす"
+given = "前回実行から50ms以上経過、clientY > rect.bottom - 80"
+expect_state = "対象要素のscrollTopが+8される"
+
+[[condition]]
+id = "auto_scroll.top_threshold_scrolls_up"
+target_function = "performAutoScroll"
+source_lines = "26,32-33"
+description = ".practice-field-container各要素について、clientYがrect.top+80より上ならscrollTopを8減らす"
+given = "前回実行から50ms以上経過、clientY < rect.top + 80"
+expect_state = "対象要素のscrollTopが-8される"
+
+[[condition]]
+id = "auto_scroll.middle_zone_no_scroll"
+target_function = "performAutoScroll"
+source_lines = "26-34"
+description = "clientYがrect.top+80〜rect.bottom-80の中間帯にある場合、scrollTopは変更されない"
+given = "前回実行から50ms以上経過、rect.top+80 <= clientY <= rect.bottom-80"
+expect_state = "対象要素のscrollTopが変化しない"
+
+# --- startDrag(cardId, orientation, imageUrl, offset, cardSize, onRightClick?) ---
+
+[[condition]]
+id = "start_drag.orientation_horizontal_sets_rotated"
+target_function = "startDrag"
+source_lines = "59"
+description = "orientationが'horizontal'の場合、draggingRotatedをtrueにする"
+given = "orientation = 'horizontal'"
+expect_state = "draggingRotated.value === true"
+
+[[condition]]
+id = "start_drag.orientation_vertical_clears_rotated"
+target_function = "startDrag"
+source_lines = "59"
+description = "orientationが'horizontal'以外（'vertical'）の場合、draggingRotatedをfalseにする"
+given = "orientation = 'vertical'"
+expect_state = "draggingRotated.value === false"
+
+[[condition]]
+id = "start_drag.dragend_schedules_cleanup_when_right_click_enabled"
+target_function = "startDrag"
+source_lines = "72-85"
+description = "documentのdragendイベント発火時、自身のdragendリスナーを自己解除する。onRightClickが指定されていれば200ms後にcontextmenuリスナーを解除するsetTimeoutを仕込み、指定されていなければ何も仕込まない"
+given = "startDrag(onRightClickあり/なし)後にdocumentへdragendイベントを発火"
+expect_state = "onRightClickあり: 200ms経過後にcontextmenuリスナーがdocumentから除去される。onRightClickなし: dragendリスナー自体が自己解除されるのみ"
+
+[[condition]]
+id = "start_drag.right_click_listeners_registered_only_when_callback_given"
+target_function = "startDrag"
+source_lines = "88-111"
+description = "onRightClickが渡された場合のみcontextmenu/keydownリスナーをdocumentへ登録する。渡されない場合はどちらも登録しない"
+given = "startDragをonRightClickなしで呼ぶ"
+expect_state = "keydown('r')やcontextmenuイベントを発火してもonRightClickは存在しないため何も起きない（postDragRotationも変化しない）"
+
+[[condition]]
+id = "start_drag.contextmenu_within_rotate_timeout_sets_post_drag_rotation"
+target_function = "startDrag"
+source_lines = "91-96"
+description = "contextmenuイベント発火時、rotateTimeoutIdが設定済み（dragend後200ms以内）ならpostDragRotationをtrueにし、タイマーとcontextmenuリスナーを解除する。onRightClick自体は呼ばない"
+given = "startDrag(onRightClickあり)→dragend発火（rotateTimeoutIdセット）→200ms未満でcontextmenu発火"
+expect_state = "postDragRotation.value === true、onRightClickは呼ばれない、以後のcontextmenuイベントは無反応になる"
+
+[[condition]]
+id = "start_drag.contextmenu_mid_drag_calls_right_click_handler"
+target_function = "startDrag"
+source_lines = "97-100"
+description = "contextmenuイベント発火時、rotateTimeoutIdがnull（dragend未発生）かつdraggingCardIdが設定済みならonRightClickを直接呼ぶ"
+given = "startDrag(onRightClickあり)後、dragendを発生させずにcontextmenuを発火"
+expect_state = "onRightClickが呼ばれる。postDragRotationは変化しない"
+
+[[condition]]
+id = "start_drag.contextmenu_after_drag_cleared_is_noop"
+target_function = "startDrag"
+source_lines = "89-101"
+description = "contextmenuイベント発火時、rotateTimeoutIdがnullかつdraggingCardIdもnullの場合、preventDefault以外は何もしない（onRightClickも呼ばずpostDragRotationも変更しない）"
+given = "startDrag(onRightClickあり)→clearDragCard()でdraggingCardIdのみnull化（dragend未発生のためrotateTimeoutIdもnull）→contextmenu発火"
+expect_state = "onRightClickは呼ばれず、postDragRotationも変化しない"
+
+[[condition]]
+id = "start_drag.keydown_r_triggers_right_click_others_ignored"
+target_function = "startDrag"
+source_lines = "104-109"
+description = "keydownイベントのkeyが'r'または'R'の場合のみpreventDefaultしてonRightClickを呼ぶ。他のキーでは何もしない"
+given = "startDrag(onRightClickあり)後にkeydownイベント(key='r'|'R'|その他)を発火"
+expect_state = "'r'/'R': onRightClickが呼ばれる。その他のキー: onRightClickは呼ばれない"
+
+# --- toggleDragRotation() ---
+
+[[condition]]
+id = "toggle_drag_rotation.guarded_by_dragging_card_id"
+target_function = "toggleDragRotation"
+source_lines = "114-118"
+description = "draggingCardIdがnullでない場合のみdraggingRotatedを反転する。draggingCardIdがnullの場合は何もしない"
+given = "draggingCardId.value = null の状態でtoggleDragRotation()を呼ぶ / 非nullの状態で呼ぶ"
+expect_state = "null時: draggingRotatedは変化しない。非null時: draggingRotatedが反転する"
+
+# --- endDrag() ---
+
+[[condition]]
+id = "end_drag.resets_state_to_defaults"
+target_function = "endDrag"
+source_lines = "133-139"
+description = "endDragはdraggingCardId/draggingRotated/draggingFaceDown/draggingImageUrl/draggingPos/draggingStackTop/draggingCardSizeを全て初期値へ戻す"
+given = "startDragで各stateを変更済みの状態でendDrag()を呼ぶ"
+expect_state = "draggingCardId=null, draggingRotated=false, draggingFaceDown=false, draggingImageUrl=null, draggingPos={x:-9999,y:-9999}, draggingStackTop=null, draggingCardSize={width:36,height:53}"
+
+[[condition]]
+id = "end_drag.removes_listeners_only_if_registered"
+target_function = "endDrag"
+source_lines = "141-152"
+description = "endDragはglobalDragoverListener/globalDragendListener/keydownRotateListenerそれぞれについて、登録済み（非null）の場合のみremoveEventListenerして変数をnullに戻す。既にnull（未登録または既に解除済み）なら何もしない"
+given = "startDrag→endDragを2回連続で呼ぶ（2回目は全リスナーが既にnull）"
+expect_state = "2回目のendDrag()はremoveEventListenerを呼ばずエラーも起きない（冪等）"
+
+[[condition]]
+id = "end_drag.contextmenu_listener_deferred_cleanup_only_when_registered"
+target_function = "endDrag"
+source_lines = "153-159"
+description = "endDragはcontextmenuListenerが登録済みの場合のみ、250ms後にcleanupContextmenuListener（タイマーとcontextmenuリスナーの解除）を実行するsetTimeoutを仕込む。他のリスナーと異なり即座には解除しない。contextmenuListenerが未登録（onRightClick未指定）ならタイマーも仕込まない"
+given = "startDrag(onRightClickあり)→endDrag()を呼ぶ / startDrag(onRightClickなし)→endDrag()を呼ぶ"
+expect_state = "onRightClickあり: 250ms経過後にcontextmenuリスナーがdocumentから除去される。onRightClickなし: 250ms経過後も何も除去されない（もともと未登録）"

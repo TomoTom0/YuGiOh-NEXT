@@ -3,7 +3,7 @@ import { getNextEffectiveDate } from '@/api/forbidden-limited'
 
 describe('api/forbidden-limited', () => {
   describe('getNextEffectiveDate', () => {
-    it('1月1日のときは4月1日を返す', () => {
+    it('1月1日のときは4月1日を返す [covers:next_date.month_lt_4]', () => {
       const date = new Date(2024, 0, 1) // 2024-01-01
       const result = getNextEffectiveDate(date)
       expect(result).toBe('2024-04-01')
@@ -27,7 +27,7 @@ describe('api/forbidden-limited', () => {
       expect(result).toBe('2024-04-01')
     })
 
-    it('4月1日のときは7月1日を返す', () => {
+    it('4月1日のときは7月1日を返す [covers:next_date.month_lt_7]', () => {
       const date = new Date(2024, 3, 1) // 2024-04-01
       const result = getNextEffectiveDate(date)
       expect(result).toBe('2024-07-01')
@@ -51,7 +51,7 @@ describe('api/forbidden-limited', () => {
       expect(result).toBe('2024-07-01')
     })
 
-    it('7月1日のときは10月1日を返す', () => {
+    it('7月1日のときは10月1日を返す [covers:next_date.month_lt_10]', () => {
       const date = new Date(2024, 6, 1) // 2024-07-01
       const result = getNextEffectiveDate(date)
       expect(result).toBe('2024-10-01')
@@ -75,7 +75,7 @@ describe('api/forbidden-limited', () => {
       expect(result).toBe('2024-10-01')
     })
 
-    it('10月1日のときは翌年1月1日を返す', () => {
+    it('10月1日のときは翌年1月1日を返す [covers:next_date.month_ge_10_wraps_year]', () => {
       const date = new Date(2024, 9, 1) // 2024-10-01
       const result = getNextEffectiveDate(date)
       expect(result).toBe('2025-01-01')
@@ -99,7 +99,7 @@ describe('api/forbidden-limited', () => {
       expect(result).toBe('2025-01-01')
     })
 
-    it('引数なしのときは現在日時から次の適用月を計算する', () => {
+    it('引数なしのときは現在日時から次の適用月を計算する [covers:next_date.default_now]', () => {
       const result = getNextEffectiveDate()
       // 結果はフォーマット YYYY-MM-01 であることを確認
       expect(result).toMatch(/^\d{4}-(01|04|07|10)-01$/)

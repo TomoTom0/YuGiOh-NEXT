@@ -8,9 +8,11 @@ import { parseSearchResultRow, extractImageInfo } from '../../../src/api/card-se
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Parser: Card Search', () => {
-  it('should parse card search results correctly', async () => {
+  const htmlPath = path.join(__dirname, '../data/card-search-result.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+
+  it.skipIf(!hasHtmlFile)('should parse card search results correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/card-search-result.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // JSDOMでパース

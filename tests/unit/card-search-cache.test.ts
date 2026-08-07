@@ -156,7 +156,7 @@ describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
     resetUnifiedCacheDB();
   });
 
-  it('カード詳細と関連カードがUnifiedCacheDBに保存される', async () => {
+  it('[covers:save_detail_cache.card_and_related_always_set] カード詳細と関連カードがUnifiedCacheDBに保存される', async () => {
     const unifiedDB = getUnifiedCacheDB();
 
     const detail: CardDetail = {
@@ -212,7 +212,7 @@ describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
     expect(relatedCard?.name).toBe('青眼の究極竜');
   });
 
-  it('複数の関連カードが全て保存される', async () => {
+  it('[covers:save_detail_cache.card_and_related_always_set] 複数の関連カードが全て保存される', async () => {
     const unifiedDB = getUnifiedCacheDB();
 
     const detail: CardDetail = {
@@ -279,5 +279,64 @@ describe('saveCardDetailToCache - UnifiedCacheDB保存', () => {
     expect(unifiedDB.reconstructCardInfo('4011')).toBeDefined();
     expect(unifiedDB.reconstructCardInfo('5678')).toBeDefined();
     expect(unifiedDB.reconstructCardInfo('9999')).toBeDefined();
+  });
+
+  it('[covers:save_detail_cache.table_c_shape] [covers:save_detail_cache.tier3_persists_table_c] Tier 3以上ではTableCを言語別に保存する', async () => {
+    const setCardInfo = vi.fn();
+    const setCardTableC = vi.fn().mockResolvedValue(undefined);
+    const fakeDB = {
+      setCardInfo,
+      getCardTier: vi.fn().mockReturnValue(3),
+      setCardTableC
+    };
+    const detail = {
+      card: {
+        cardId: '4011',
+        ciid: '1',
+        name: '青眼の白竜',
+        imgs: [{ ciid: '1', imgHash: 'h1' }],
+        lang: 'ja'
+      },
+      relatedCards: [
+        { cardId: '5678', ciid: '1', name: '関連1', imgs: [{ ciid: '1', imgHash: 'h2' }], lang: 'ja' },
+        { cardId: '9999', ciid: '1', name: '関連2', imgs: [{ ciid: '1', imgHash: 'h3' }], lang: 'ja' }
+      ],
+      packs: [
+        { name: 'パック1', packId: 'p1' },
+        { name: 'パック2' }
+      ],
+      qaList: undefined
+    } as unknown as CardDetail;
+
+    await saveCardDetailToCache(fakeDB as any, detail, true, 'en');
+
+    expect(setCardInfo).toHaveBeenCalledTimes(3);
+    expect(setCardInfo).toHaveBeenNthCalledWith(1, detail.card, true);
+    expect(setCardTableC).toHaveBeenCalledWith({
+      cardId: '4011',
+      langsRelatedCards: { en: ['5678', '9999'] },
+      langsRelatedProducts: { en: ['p1'] },
+      langsRelatedProductDetail: { en: detail.packs },
+      qaList: []
+    }, 'en');
+  });
+
+  it('[covers:save_detail_cache.tier_below3_no_table_c] Tier 3未満ではTableCを永続保存しない', async () => {
+    const fakeDB = {
+      setCardInfo: vi.fn(),
+      getCardTier: vi.fn().mockReturnValue(2),
+      setCardTableC: vi.fn().mockResolvedValue(undefined)
+    };
+    const detail = {
+      card: { cardId: '4011', ciid: '1', name: '青眼の白竜', imgs: [{ ciid: '1', imgHash: 'h1' }], lang: 'ja' },
+      relatedCards: [],
+      packs: [],
+      qaList: []
+    } as unknown as CardDetail;
+
+    await saveCardDetailToCache(fakeDB as any, detail, false, 'ja');
+
+    expect(fakeDB.setCardInfo).toHaveBeenCalledWith(detail.card, false);
+    expect(fakeDB.setCardTableC).not.toHaveBeenCalled();
   });
 });

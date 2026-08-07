@@ -1,0 +1,141 @@
+# 検証対象: src/services/llm/gemini-nano.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、Chrome Built-in AI (Gemini Nano) の外部API依存サービス。
+# docs/api/*.md 等の二次情報は参照していない。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+
+[meta]
+feature = "gemini-nano"
+source_file = "src/services/llm/gemini-nano.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/gemini-nano.test.ts"
+source_hash = "d00d955f2e005ebc029dbebb9112b9e92a2d1409"
+note = "verified=falseは0件"
+
+# --- getLanguageModelApi(): LanguageModelConstructor | undefined ---
+
+[[condition]]
+id = "get_api.prefers_window_language_model"
+target_function = "getLanguageModelApi"
+source_lines = "1-2"
+description = "window.LanguageModelがtruthyの場合、window.ai?.languageModelより優先して返す"
+given = "window.LanguageModelとwindow.ai.languageModelの両方が存在する"
+expect_return_shape = "window.LanguageModelの参照"
+
+[[condition]]
+id = "get_api.falls_back_to_window_ai_language_model"
+target_function = "getLanguageModelApi"
+source_lines = "1-2"
+description = "window.LanguageModelがnullishで、window.ai?.languageModelが存在する場合はwindow.ai.languageModelを返す"
+given = "window.LanguageModelがundefined、window.ai.languageModelが存在する"
+expect_return_shape = "window.ai.languageModelの参照"
+
+[[condition]]
+id = "get_api.absent_returns_undefined"
+target_function = "getLanguageModelApi"
+source_lines = "1-2"
+description = "window.LanguageModelがnullishで、window.ai?.languageModelも存在しない場合はundefinedを返す"
+given = "window.LanguageModelがundefined、window.aiがundefined、またはwindow.ai.languageModelがundefined"
+expect_return = "undefined"
+
+# --- isGeminiNanoAvailable(): Promise<boolean> ---
+
+[[condition]]
+id = "is_available.no_api_false"
+target_function = "isGeminiNanoAvailable"
+source_lines = "6-7"
+description = "getLanguageModelApiがundefinedを返す場合、availabilityを呼ばずfalseを返す"
+given = "window.LanguageModelもwindow.ai?.languageModelも存在しない"
+expect_return = "false"
+
+[[condition]]
+id = "is_available.status_unavailable_false"
+target_function = "isGeminiNanoAvailable"
+source_lines = "8-10"
+description = "api.availability()が'unavailable'を返した場合、falseを返す"
+given = "api.availability() resolves 'unavailable'"
+expect_return = "false"
+
+[[condition]]
+id = "is_available.status_not_unavailable_true"
+target_function = "isGeminiNanoAvailable"
+source_lines = "8-10"
+description = "api.availability()が'unavailable'以外を返した場合、trueを返す"
+given = "api.availability() resolves 'readily' / 'after-download' / 'downloading'"
+expect_return = "true"
+
+[[condition]]
+id = "is_available.availability_rejects_false"
+target_function = "isGeminiNanoAvailable"
+source_lines = "8-12"
+description = "api.availability()がrejectまたはthrowした場合、例外を外へ出さずfalseを返す"
+given = "api.availability() rejects"
+expect_no_throw = true
+expect_return = "false"
+
+# --- promptGeminiNano(systemPrompt: string, userMessage: string): Promise<string> ---
+
+[[condition]]
+id = "prompt.create_then_prompts_user_message"
+target_function = "promptGeminiNano"
+source_lines = "16-19"
+description = "createNanoSession(systemPrompt)で作成したsessionにuserMessageを渡してpromptし、その結果文字列を返す"
+given = "createNanoSessionがsessionを返し、session.prompt(userMessage)が'reply'にresolveする"
+expect_return = "'reply'"
+
+[[condition]]
+id = "prompt.destroy_after_success"
+target_function = "promptGeminiNano"
+source_lines = "18-21"
+description = "session.promptがresolveした場合、return前にfinallyでsession.destroy()を呼ぶ"
+given = "session.prompt(userMessage)がresolveする"
+expect_side_effect = "session.destroy()が1回呼ばれる"
+
+[[condition]]
+id = "prompt.destroy_after_prompt_reject"
+target_function = "promptGeminiNano"
+source_lines = "18-21"
+description = "session.promptがrejectした場合でもfinallyでsession.destroy()を呼び、promptのreject理由はそのまま外へ伝播する"
+given = "session.prompt(userMessage)がError('prompt failed')でrejectする"
+expect_throw = "Error('prompt failed')"
+expect_side_effect = "session.destroy()が1回呼ばれる"
+
+[[condition]]
+id = "prompt.create_session_rejects_without_destroy"
+target_function = "promptGeminiNano"
+source_lines = "16-17"
+description = "createNanoSession(systemPrompt)がrejectした場合、try/finallyに入らないためsession.destroy()は呼べず、reject理由がそのまま外へ伝播する"
+given = "API不在によりcreateNanoSession(systemPrompt)がError('Gemini Nanoが利用できません')でrejectする"
+expect_throw = "Error('Gemini Nanoが利用できません')"
+
+# --- createNanoSession(systemPrompt: string) ---
+
+[[condition]]
+id = "create_session.no_api_throws"
+target_function = "createNanoSession"
+source_lines = "26-27"
+description = "getLanguageModelApiがundefinedを返す場合、Error('Gemini Nanoが利用できません')をthrowする"
+given = "window.LanguageModelもwindow.ai?.languageModelも存在しない"
+expect_throw = "Error('Gemini Nanoが利用できません')"
+
+[[condition]]
+id = "create_session.calls_create_with_system_prompt"
+target_function = "createNanoSession"
+source_lines = "28-30"
+description = "APIが存在する場合、api.createにinitialPromptsとしてsystemPromptをsystem roleで渡し、その戻り値を返す"
+given = "api.create(options)がsessionにresolveする"
+expect_return_shape = "api.createのresolve値と同一参照"
+expect_side_effect = "api.create({ initialPrompts: [{ role: 'system', content: systemPrompt }] })が呼ばれる"
+
+[[condition]]
+id = "create_session.create_rejects_propagates"
+target_function = "createNanoSession"
+source_lines = "28-30"
+description = "api.createがrejectした場合、catchしないためreject理由がそのまま外へ伝播する"
+given = "api.create(options)がError('create failed')でrejectする"
+expect_throw = "Error('create failed')"

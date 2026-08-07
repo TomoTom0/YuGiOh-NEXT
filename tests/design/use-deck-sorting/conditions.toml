@@ -1,0 +1,106 @@
+# 検証対象: src/composables/deck/useDeckSorting.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキ編集の公式ソート（モンスター→魔法→罠＋最初の登場順）を行う
+# 純粋関数 sortDisplayOrderForOfficial のみを export する composable ファイル。
+#
+# ファイル構成の注意:
+# ファイル名は useDeckSorting.ts だが、export しているのは sortDisplayOrderForOfficial
+# という通常の純粋関数1件のみ（composable factory パターン useXxx() がオブジェクトを返す形式
+# ではない）。したがって target_function は関数名そのまま記載し、use-deck-snapshot と同じ
+# 通常形式を使う。AST抽出スクリプトで export 関数1件が検出される（追加メソッドなし）。
+#
+# 到達不能/実質到達不能分岐（条件化せず）:
+# - L70 `CARD_TYPE_SORT_ORDER[type] ?? 0`: type が truthy のとき到達しうるが、
+#   CARD_TYPE_SORT_ORDER は `Record<CardType, number>` で CardType='monster'|'spell'|'trap'
+#   の3キーを全て持つため、type が正しい CardType なら常に数値が返り `?? 0` は発火しない
+#   （型システム保証済み）。
+# - L91-92 `firstAppearance.get(a.cid) || 0` の `|| 0`: firstAppearance は displayOrder の
+#   forEach で構築され、sorted は displayOrder 由来のため a.cid は必ず firstAppearance に存在
+#   する。実質到達不能。index が 0 の場合は `0 || 0` = 0 で同じ結果になる。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明、ドキュメント側に記載なし）:
+# - cardTypeMap は cid 単位で構築される（cid_ciid ではない）。同一 cid が deck に複数回出現
+#   しても最後の cardType で上書きされるが、cardType は cid で一意に定まるため実害なし。
+# - sortedDisplayOrder は displayOrder の全要素（重複含む）を保持するが、sortedDeck は
+#   seenCards で cid_ciid の重複を除去する。そのため displayOrder に同一 cid+ciid の重複
+#   エントリがある場合、sortedDisplayOrder.length > sortedDeck.length になり得る（非対称）。
+# - DisplayCardRef.ciid は型上 number だが実行時には文字列で渡されることもあり（既存テスト
+#   でも ciid: '1' と ciid: 1 が混在）、deck.find では `String(dc.ciid)` で文字列化して
+#   DeckCardRef.ciid（string）と比較する。この型強制がないと number 1 !== string '1' で
+#   マッチしない（L107）。
+# - L84-85 `cardTypeMap.get(a.cid) || 0`: cardTypeMap は deck 由来だが sorted は displayOrder
+#   由来のため、displayOrder にのみ存在する cid だと get が undefined を返り `|| 0` で
+#   モンスター扱いになる。condition sort.skips_display_cards_without_matching_deck_card で
+#   扱うシナリオ（deck にない cid は sortedDeck からも除外される）と同居する。
+# - displayOrder に含まれるが deck に含まれない cid+ciid は、sortedDisplayOrder には
+#   （モンスター扱いでソートされて）残るが sortedDeck からは除外される（find が undefined
+#   を返すため）。displayOrder と deck の整合性が崩れているデータでのみ発生しうる。
+
+[meta]
+feature = "use-deck-sorting"
+source_file = "src/composables/deck/useDeckSorting.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckSorting.test.ts"
+source_hash = "c11aa83c55f66f0401d165371c763d2518cb0c3d"
+note = "verified=falseは0件。export は sortDisplayOrderForOfficial 1件のみ（composable factory ではなく通常の純粋関数）。"
+
+# --- sortDisplayOrderForOfficial(displayOrder, deck) ---
+
+[[condition]]
+id = "sort.empty_display_order_early_return"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "56-61"
+description = "displayOrder が空配列の場合、deck の内容にかかわらず空の結果を返す早期return（deck が空でない場合でも sortedDisplayOrder/sortedDeck とも [] を返す）"
+given = "displayOrder = [] を渡す（deck は空でも非空でもよい）"
+expect_return = "{ sortedDisplayOrder: [], sortedDeck: [] }"
+
+[[condition]]
+id = "sort.card_info_missing_defaults_to_monster_priority"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "68-70"
+description = "deck のカード cid が tempCardDB に存在しない、または card.cardType が undefined（falsy）の場合、その cid の優先度を 0（モンスター扱い）として cardTypeMap に設定する（`type ? ... : 0`）。TempCardDB 未登録時はモンスターとしてソートされる"
+given = "deck に cid='unknown' が含まれるが tempCardDB にその cid が未登録"
+expect_side_effect = "cardTypeMap.get('unknown') === 0（モンスター優先度）になり、ソートでもモンスター扱いされる"
+
+[[condition]]
+id = "sort.primary_sort_by_card_type_priority"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "83-89"
+description = "sortedDisplayOrder を CARD_TYPE_SORT_ORDER の優先度（monster=0 < spell=1 < trap=2）で昇順ソートする。sort比較関数で typeA !== typeB の場合は typeA - typeB を返して確定する"
+given = "displayOrder に trap→spell→monster の順で混在したカードが含まれる"
+expect_return = "sortedDisplayOrder が monster→spell→trap の順に並ぶ"
+
+[[condition]]
+id = "sort.secondary_sort_by_first_appearance_within_same_type"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "76-80, 91-93"
+description = "同一カードタイプ（優先度が等しい）内では、displayOrder 中の最初の登場インデックス（firstAppearance）の昇順でソートする。firstAppearance は各 cid について最初に出現した index のみを記録する（L76-80 の !has チェックで2回目以降は上書きしない）。これにより同一タイプ内では入力の登場順が保たれる"
+given = "displayOrder に同一タイプの異なる cid が複数含まれる（例: monster3→monster1→monster2 の順）"
+expect_return = "sortedDisplayOrder 内の同一タイプ群が入力の登場順（monster3→monster1→monster2）を保持する"
+
+[[condition]]
+id = "sort.dedup_sorted_deck_by_cid_ciid_composite"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "103-105"
+description = "sortedDeck 構築時、`${cid}_${ciid}` の合成キーで重複を除外する（seenCards）。displayOrder に同一 cid+ciid のエントリが複数回出現する場合、sortedDeck には最初の1件のみ追加される。sortedDisplayOrder 側は重複含め全件保持するため、両者の length が異なりうる（設計上の非対称）"
+given = "displayOrder に {cid:'m1', ciid:'1'} が2回出現する（deck には m1_1 エントリが1件ある）"
+expect_return = "sortedDisplayOrder.length === 2（両方保持）、sortedDeck.length === 1（重複除去）"
+
+[[condition]]
+id = "sort.skips_display_cards_without_matching_deck_card"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "106-111"
+description = "sortedDeck 構築時、`deck.find(d => d.cid === dc.cid && d.ciid === String(dc.ciid))` で一致する deck カードが見つからない場合は newDeck へ追加せずスキップする（if(deckCard) ガード）。displayOrder にのみ存在し deck に存在しない cid+ciid は sortedDeck から除外される。sortedDisplayOrder 側は cardTypeMap.get(a.cid) || 0 でモンスター扱いされて残る"
+given = "displayOrder に cid='onlyDisplay' ciid=9 を含むが、deck にはその cid+ciid のエントリが存在しない"
+expect_return = "sortedDisplayOrder にそのエントリが含まれる、sortedDeck には含まれない"
+
+[[condition]]
+id = "sort.preserves_ciid_via_string_coercion"
+target_function = "sortDisplayOrderForOfficial"
+source_lines = "96, 106-108"
+description = "deck.find で DisplayCardRef.ciid（実行時 number or string）を String(dc.ciid) で文字列化して DeckCardRef.ciid（string）と比較する。出力の sortedDisplayOrder/sortedDeck は入力の ciid 値をそのまま保持し、再採番しない（L96 コメント『ciidは変更しない（Card Image IDを保持）』）。String化がないと number 1 と string '1' でマッチしない"
+given = "displayOrder に ciid=2（数値）を渡し、deck に ciid='2'（文字列）のエントリがある"
+expect_return = "出力の ciid が入力のまま（2／'2'）保持され、再採番されない。String 化により deck から正しく検索される"

@@ -28,7 +28,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('initPractice', () => {
-    it('initializes zones from deck data and draws 5 cards', () => {
+    it('initializes zones from deck data and draws 5 cards [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
 
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
@@ -41,7 +41,7 @@ describe('usePracticeStore', () => {
       expect(store.zones.spellTrap).toHaveLength(5)
     })
 
-    it('handles deck smaller than 5 cards', () => {
+    it('handles deck smaller than 5 cards [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
 
       store.initPractice([makeDeckRef('x', 2)], [])
@@ -50,7 +50,7 @@ describe('usePracticeStore', () => {
       expect(store.deckCount).toBe(0)
     })
 
-    it('sets deck cards face down and hand cards face up', () => {
+    it('sets deck cards face down and hand cards face up [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
 
       store.initPractice(SAMPLE_MAIN, [])
@@ -63,7 +63,7 @@ describe('usePracticeStore', () => {
       }
     })
 
-    it('initializes extra deck cards face down', () => {
+    it('initializes extra deck cards face down [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
 
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
@@ -73,7 +73,7 @@ describe('usePracticeStore', () => {
       }
     })
 
-    it('stores original deck data for reset', () => {
+    it('stores original deck data for reset [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
 
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
@@ -84,7 +84,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('draw', () => {
-    it('moves top card from deck to hand', () => {
+    it('moves top card from deck to hand [covers:draw.moves_top_deck_card_to_hand_face_up]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -97,7 +97,7 @@ describe('usePracticeStore', () => {
       expect(store.handCount).toBe(handBefore + 1)
     })
 
-    it('does nothing when deck is empty', () => {
+    it('does nothing when deck is empty [covers:draw.empty_deck_is_noop]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 5)], [])
 
@@ -112,7 +112,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('drawMultiple', () => {
-    it('draws specified number of cards', () => {
+    it('draws specified number of cards [covers:draw_multiple.draws_min_count_and_deck_length]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 20)], [])
 
@@ -122,7 +122,7 @@ describe('usePracticeStore', () => {
       expect(store.deckCount).toBe(12)
     })
 
-    it('draws only available cards when count exceeds deck size', () => {
+    it('draws only available cards when count exceeds deck size [covers:draw_multiple.draws_min_count_and_deck_length]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 6)], [])
 
@@ -134,7 +134,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('drawToZone', () => {
-    it('moves top card from deck to specified zone', () => {
+    it('moves top card from deck to specified zone [covers:draw_to_zone.unshift_top_deck_card_to_target_face_up]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -144,7 +144,7 @@ describe('usePracticeStore', () => {
       expect(store.deckCount).toBe(4) // 10 - 5 initial draw - 1
     })
 
-    it('places card in specified monster slot', () => {
+    it('places card in specified monster slot [covers:draw_to_zone.unshift_top_deck_card_to_target_face_up] [covers:get_cards.monster_valid_slot_returns_slot]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -155,7 +155,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('moveCard', () => {
-    it('moves card from hand to monster zone', () => {
+    it('moves card from hand to monster zone [covers:move_card.applies_face_orientation_and_top_position]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -167,7 +167,7 @@ describe('usePracticeStore', () => {
       expect(store.handCount).toBe(4)
     })
 
-    it('changes face and orientation when options provided', () => {
+    it('changes face and orientation when options provided [covers:move_card.applies_face_orientation_and_top_position]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -179,7 +179,7 @@ describe('usePracticeStore', () => {
       expect(moved.orientation).toBe('horizontal')
     })
 
-    it('does nothing for non-existent card', () => {
+    it('does nothing for non-existent card [covers:move_card.no_location_is_noop]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -190,7 +190,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('shuffleDeck', () => {
-    it('preserves deck size after shuffle', () => {
+    it('preserves deck size after shuffle [covers:shuffle_deck.uses_fisher_yates_return_value]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -200,7 +200,7 @@ describe('usePracticeStore', () => {
       expect(store.deckCount).toBe(count)
     })
 
-    it('does nothing for empty or single-card deck', () => {
+    it('does nothing for empty or single-card deck [covers:shuffle_deck.length_zero_or_one_is_noop]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 6)], [])
 
@@ -211,7 +211,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('setCardFace / setCardOrientation', () => {
-    it('toggles card face', () => {
+    it('toggles card face [covers:set_card_face.changes_face_and_pushes_command]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -223,7 +223,7 @@ describe('usePracticeStore', () => {
       expect(store.zones.hand[0]!.face).toBe('down')
     })
 
-    it('toggles card orientation', () => {
+    it('toggles card orientation [covers:set_card_orientation.changes_orientation_and_pushes_command]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -235,7 +235,7 @@ describe('usePracticeStore', () => {
       expect(store.zones.hand[0]!.orientation).toBe('horizontal')
     })
 
-    it('does nothing if already in target state', () => {
+    it('does nothing if already in target state [covers:set_card_face.no_location_or_same_face_is_noop]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -247,7 +247,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('reorderInZone', () => {
-    it('reorders cards within a zone', () => {
+    it('reorders cards within a zone [covers:reorder_in_zone.moves_card_and_pushes_command]', () => {
       const store = usePracticeStore()
       store.initPractice([
         makeDeckRef('a', 3),
@@ -274,7 +274,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('undo/redo', () => {
-    it('undoes a draw', () => {
+    it('undoes a draw [covers:undo_delegates_to_undo_command_then_saves]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -286,7 +286,7 @@ describe('usePracticeStore', () => {
       expect(store.handCount).toBe(handBefore)
     })
 
-    it('redoes an undone draw', () => {
+    it('redoes an undone draw [covers:redo_delegates_to_redo_command_then_saves]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -298,7 +298,7 @@ describe('usePracticeStore', () => {
       expect(store.handCount).toBe(handBefore + 1)
     })
 
-    it('undoes a moveCard', () => {
+    it('undoes a moveCard [covers:undo_delegates_to_undo_command_then_saves]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -311,7 +311,7 @@ describe('usePracticeStore', () => {
       expect(store.handCount).toBe(5)
     })
 
-    it('undoes setCardFace', () => {
+    it('undoes setCardFace [covers:undo_delegates_to_undo_command_then_saves]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -323,7 +323,7 @@ describe('usePracticeStore', () => {
       expect(store.zones.hand[0]!.face).toBe('up')
     })
 
-    it('undoes reset', () => {
+    it('undoes reset [covers:reset_practice.rebuilds_from_original_and_temp_recipe] [covers:undo_delegates_to_undo_command_then_saves]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -375,7 +375,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('persistence', () => {
-    it('saves and restores state from localStorage', () => {
+    it('saves and restores state from localStorage [covers:save_to_local_storage_strips_cards_and_persists_dual_field_state] [covers:load_from_local_storage.rehydrates_field1_and_defaults]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
       store.draw()
@@ -393,12 +393,12 @@ describe('usePracticeStore', () => {
       expect(store2.initialized).toBe(true)
     })
 
-    it('returns false when no saved state', () => {
+    it('returns false when no saved state [covers:load_from_local_storage.no_raw_returns_false]', () => {
       const store = usePracticeStore()
       expect(store.loadFromLocalStorage()).toBe(false)
     })
 
-    it('clears localStorage', () => {
+    it('clears localStorage [covers:clear_local_storage_removes_key_and_swallows_errors]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -408,7 +408,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('revealDeckContents', () => {
-    it('toggles revealDeck flag', () => {
+    it('toggles revealDeck flag [covers:reveal_deck_contents_sets_field_flag]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -423,7 +423,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('revealExtraContents', () => {
-    it('toggles revealExtra flag', () => {
+    it('toggles revealExtra flag [covers:reveal_extra_contents_sets_field_flag]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
 
@@ -436,7 +436,7 @@ describe('usePracticeStore', () => {
       expect(store.revealExtra).toBe(false)
     })
 
-    it('resets revealExtra on initPractice', () => {
+    it('resets revealExtra on initPractice [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.revealExtraContents(true)
@@ -445,7 +445,7 @@ describe('usePracticeStore', () => {
       expect(store.revealExtra).toBe(false)
     })
 
-    it('resets revealExtra on resetPractice', () => {
+    it('resets revealExtra on resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.revealExtraContents(true)
@@ -456,7 +456,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('resetPractice', () => {
-    it('resets to initial state', () => {
+    it('resets to initial state [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -471,7 +471,7 @@ describe('usePracticeStore', () => {
       expect(store.zones.monster[0]).toHaveLength(0)
     })
 
-    it('does nothing when not initialized', () => {
+    it('does nothing when not initialized [covers:reset_practice.not_initialized_is_noop]', () => {
       const store = usePracticeStore()
       store.resetPractice()
       expect(store.initialized).toBe(false)
@@ -479,7 +479,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('findCard', () => {
-    it('finds card location in simple zones', () => {
+    it('finds card location in simple zones [covers:find_card.simple_zone_match_returns_location]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -491,7 +491,7 @@ describe('usePracticeStore', () => {
       expect(loc!.cardIndex).toBe(0)
     })
 
-    it('finds card location in slotted zones', () => {
+    it('finds card location in slotted zones [covers:find_card.slotted_zone_match_returns_location]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -504,7 +504,7 @@ describe('usePracticeStore', () => {
       expect(loc!.slotIndex).toBe(3)
     })
 
-    it('returns null for non-existent card', () => {
+    it('returns null for non-existent card [covers:find_card.no_match_returns_null]', () => {
       const store = usePracticeStore()
       store.initPractice([makeDeckRef('a', 10)], [])
 
@@ -513,7 +513,7 @@ describe('usePracticeStore', () => {
   })
 
   describe('tempRecipe', () => {
-    it('tracks externally added cards', () => {
+    it('tracks externally added cards [covers:add_external_card.records_temp_recipe_section]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
 
@@ -524,7 +524,7 @@ describe('usePracticeStore', () => {
       expect(store.hasTempRecipe).toBe(true)
     })
 
-    it('marks extra-zone drops as section=extra', () => {
+    it('marks extra-zone drops as section=extra [covers:add_external_card.records_temp_recipe_section]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
 
@@ -533,7 +533,7 @@ describe('usePracticeStore', () => {
       expect(store.tempRecipe[0]?.section).toBe('extra')
     })
 
-    it('clears on initPractice (hard reset)', () => {
+    it('clears on initPractice (hard reset) [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.addExternalCard('new-card', '0', 'hand', undefined, 0)
@@ -544,7 +544,7 @@ describe('usePracticeStore', () => {
       expect(store.hasTempRecipe).toBe(false)
     })
 
-    it('includes temp recipe cards in deck after resetPractice', () => {
+    it('includes temp recipe cards in deck after resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.addExternalCard('temp-main', '0', 'hand', undefined, 0)
@@ -560,7 +560,7 @@ describe('usePracticeStore', () => {
       expect(allExtraCids).toContain('temp-extra')
     })
 
-    it('preserves tempRecipe across resetPractice', () => {
+    it('preserves tempRecipe across resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.addExternalCard('new-card', '0', 'hand', undefined, 0)
@@ -570,16 +570,17 @@ describe('usePracticeStore', () => {
       expect(store.tempRecipe).toHaveLength(1)
     })
 
-    it('persists through localStorage save/load', () => {
+    it('persists through localStorage save/load [covers:save_to_local_storage_strips_cards_and_persists_dual_field_state] [covers:load_from_local_storage.rehydrates_field1_and_defaults]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
       store.addExternalCard('saved-card', '5', 'monster', 0, 0)
 
+      setActivePinia(createPinia())
       const store2 = usePracticeStore()
-      const loaded = store2['loadFromLocalStorage' as keyof typeof store2] as (() => boolean) | undefined
-      if (loaded) loaded()
+      const loaded = store2.loadFromLocalStorage()
 
-      expect(store.tempRecipe[0]).toEqual({ cid: 'saved-card', ciid: '5', section: 'main' })
+      expect(loaded).toBe(true)
+      expect(store2.tempRecipe[0]).toEqual({ cid: 'saved-card', ciid: '5', section: 'main' })
     })
   })
 })

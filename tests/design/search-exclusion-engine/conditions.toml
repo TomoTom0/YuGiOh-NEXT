@@ -1,0 +1,299 @@
+# 検証対象: src/utils/search-exclusion-engine.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。docs/api/*.md 等の二次情報は参照していない。
+#
+# 発見したデッドコード/到達困難分岐:
+# - inferExclusions L58-64: maxIterations(10)到達時のwarning追加分岐は、実装上の状態遷移が
+#   required/enabled/selected/field.enabled の単調変化のみで、各適用関数が全ルールを同一iteration内で
+#   走査するため、通常の有限ルールでは到達不能と判断した。検証可能な入力を作れなかったためconditions化しない。
+# - src/data/search-exclusion-rules.json には attributeToField.trigger = "spell-type*" / "trap-type*" があるが、
+#   applyAttributeToField は rule.trigger を完全一致で Map.get() するだけでワイルドカード展開しない。
+#   これは実装挙動として condition に記録した。
+# - applyAttributeToField L395-396: 無効属性にdisabledReasonが無い場合の
+#   formatDisabledReason('attribute-unavailable', attr)フォールバックは、公開API経由では到達不能。
+#   属性がenabled=falseになる実装パスはいずれもdisabledReasonを設定するためconditions化しない。
+
+[meta]
+feature = "search-exclusion-engine"
+source_file = "src/utils/search-exclusion-engine.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/search-exclusion-engine.test.ts tests/unit/search-exclusion-engine.test.ts"
+source_hash = "0f5b7d8e1854664eb95c742651570caaf9300e68"
+note = "verified=falseは0件。maxIterations warning分岐は到達不能と判断してconditions化せず、ヘッダーコメントに記録した"
+
+# --- loadExclusionRules(): ExclusionRules ---
+
+[[condition]]
+id = "load_rules.returns_json_data"
+target_function = "loadExclusionRules"
+source_lines = "17-18"
+description = "import済みのsearch-exclusion-rules.jsonをExclusionRulesとして返す"
+given = "loadExclusionRules()を呼ぶ"
+expect_return_shape = "fieldToAttribute/attributeExclusionGroups/attributeToFieldを持つオブジェクト"
+
+# --- inferExclusions(state, rules = loadExclusionRules(), enableTrace = false): ExclusionResult ---
+
+[[condition]]
+id = "infer.initial_selected_attributes_enabled"
+target_function = "inferExclusions"
+source_lines = "29,72-96"
+description = "state.selectedAttributesの各属性は初期状態でenabled=true, required=false, selected=trueとしてattributeStatesに入る"
+given = "selectedAttributes = new Set(['attr-a'])"
+expect_return_shape = "attributeStates.get('attr-a') === { enabled: true, required: false, selected: true }（後続ルールで変更されない場合）"
+
+[[condition]]
+id = "infer.initial_field_inputs_enabled"
+target_function = "inferExclusions"
+source_lines = "29,88-96"
+description = "state.fieldInputsの各項目は初期状態でenabled=true, hasInput=<入力値>としてfieldStatesに入る"
+given = "fieldInputs = { fieldA: true, fieldB: false }"
+expect_return_shape = "fieldStatesにfieldA/fieldBが作成され、hasInputが入力値と一致する"
+
+[[condition]]
+id = "infer.trace_disabled_omits_trace"
+target_function = "inferExclusions"
+source_lines = "27,39-41,66"
+description = "enableTrace=falseの場合、result.traceは作成されない"
+given = "enableTrace = false"
+expect_return_shape = "trace === undefined"
+
+[[condition]]
+id = "infer.trace_enabled_records_steps"
+target_function = "inferExclusions"
+source_lines = "39-41,149-156,265-272,347-354,399-406"
+description = "enableTrace=trueの場合、trace配列が作成され、各適用関数が変更時にstep/action/source/target/reasonをpushする"
+given = "enableTrace = true かつ何らかのルール変更が発生する"
+expect_return_shape = "traceに1件以上のInferenceTraceが入る"
+
+[[condition]]
+id = "infer.conflict_required_disabled_attribute"
+target_function = "inferExclusions"
+source_lines = "56,420-430"
+description = "推論後、required=trueかつenabled=falseの属性があればcontradictionをconflictsに追加する"
+given = "同じ属性が項目入力で必須化され、別ルールで無効化される"
+expect_return_shape = "conflictsに { type: 'contradiction', sources: [attr] } が含まれる"
+
+[[condition]]
+id = "infer.conflict_input_disabled_field"
+target_function = "inferExclusions"
+source_lines = "56,432-441"
+description = "推論後、hasInput=trueかつenabled=falseの項目があればwarningをconflictsに追加する"
+given = "入力済み項目が属性選択や必須属性不可により無効化される"
+expect_return_shape = "conflictsに { type: 'warning', sources: [field] } が含まれる"
+
+[[condition]]
+id = "infer.default_rules_used_when_omitted"
+target_function = "inferExclusions"
+source_lines = "24-27"
+description = "rules引数を省略した場合、loadExclusionRules()の戻り値を使って推論する"
+given = "inferExclusions(state)を呼び、stateが実データのルールに該当する"
+expect_return_shape = "実データの排他ルールが適用されたExclusionResult"
+
+# --- applyFieldToAttribute(...) （非export） ---
+
+[[condition]]
+id = "field_to_attr.exact_trigger_requires_truthy_input"
+target_function = "applyFieldToAttribute"
+source_lines = "113-123"
+description = "triggerItemsの非ワイルドカード項目はstate.fieldInputs[fieldPattern]がtruthyのときだけルールを適用する"
+given = "triggerItems=['field-a']でfieldInputs.field-a=falseまたは未定義"
+expect_return_shape = "そのルールのtarget/notTargetは適用されない"
+
+[[condition]]
+id = "field_to_attr.wildcard_trigger_matches_truthy_prefix"
+target_function = "applyFieldToAttribute"
+source_lines = "113-119"
+description = "triggerItemsの末尾が'*'の場合、'*'を除いたprefixで始まるfieldInputs項目のうちtruthyのものがあればルールを適用する"
+given = "triggerItems=['kind*']でfieldInputs['kind-1']=true"
+expect_return_shape = "ルールのtarget/notTargetが適用される"
+
+[[condition]]
+id = "field_to_attr.target_creates_required_selected_attr"
+target_function = "applyFieldToAttribute"
+source_lines = "126-147"
+description = "target属性がattributeStatesに存在しない場合は作成し、required=trueにし、enabled=trueならselected=trueにする"
+given = "入力済みfieldのルールtarget=['attr-a']、attr-a未作成"
+expect_return_shape = "attr-aはenabled=true, required=true, selected=true"
+
+[[condition]]
+id = "field_to_attr.disabled_target_becomes_required_not_selected"
+target_function = "applyFieldToAttribute"
+source_lines = "140-146,155"
+description = "target属性が既にenabled=falseの場合でもrequired=trueにするが、selected=trueにはしない"
+given = "同一iteration内でnotTargetにより無効化済みの属性が後続ルールのtargetになる"
+expect_return_shape = "対象属性はenabled=false, required=true, selected=falseになり、矛盾検出対象になる"
+
+[[condition]]
+id = "field_to_attr.already_required_no_change"
+target_function = "applyFieldToAttribute"
+source_lines = "141-158"
+description = "target属性が既にrequired=trueの場合、required/selected/traceは更新せずchangedも立てない"
+given = "複数iteration目などで同じtarget必須化ルールを再評価する"
+expect_return_shape = "同じ必須化traceは重複追加されない"
+
+[[condition]]
+id = "field_to_attr.not_target_disables_attr"
+target_function = "applyFieldToAttribute"
+source_lines = "163-190"
+description = "notTarget属性は未作成なら作成し、enabled=trueならenabled=false, selected=falseにしてdisabledReasonを設定する"
+given = "入力済みfieldのルールnotTarget=['attr-b']"
+expect_return_shape = "attr-bはenabled=false, selected=false, disabledReason設定済み"
+
+[[condition]]
+id = "field_to_attr.not_target_already_disabled_no_change"
+target_function = "applyFieldToAttribute"
+source_lines = "175-190"
+description = "notTarget属性が既にenabled=falseの場合、disabledReason/traceは更新せずchangedも立てない"
+given = "複数iteration目などで同じnotTarget無効化ルールを再評価する"
+expect_return_shape = "同じ無効化traceは重複追加されない"
+
+# --- applyAttributeExclusion(...) / shouldApplyExclusionForGroup(...) （非export） ---
+
+[[condition]]
+id = "attr_exclusion.no_active_attrs_skips_group"
+target_function = "applyAttributeExclusion"
+source_lines = "210-222"
+description = "グループ内にselectedまたはrequiredの属性が1つも無い場合、そのグループは何も変更しない"
+given = "attributeExclusionGroupsにitems=['a','b']があるが、a/bが未選択・非必須"
+expect_return_shape = "a/bは新規作成も無効化もされない"
+
+[[condition]]
+id = "attr_exclusion.card_type_always_applies"
+target_function = "applyAttributeExclusion"
+source_lines = "290-293"
+description = "group.titleが'card-type'の場合、monsterTypeModeに関係なく排他を適用する"
+given = "monsterTypeMode='or'、card-typeグループ内の1属性が直接選択されている"
+expect_return_shape = "同グループのprimary以外の属性が無効化される"
+
+[[condition]]
+id = "attr_exclusion.and_mode_applies"
+target_function = "applyAttributeExclusion"
+source_lines = "295-298"
+description = "group.titleが'card-type'以外でもmonsterTypeMode='and'なら排他を適用する"
+given = "monsterTypeMode='and'、非card-typeグループ内の1属性が直接選択されている"
+expect_return_shape = "同グループのprimary以外の属性が無効化される"
+
+[[condition]]
+id = "attr_exclusion.or_direct_selection_skips_non_card_group"
+target_function = "applyAttributeExclusion"
+source_lines = "300-306"
+description = "monsterTypeMode='or'かつ非card-typeグループでactive属性が直接選択(required=false)のみの場合、排他を適用しない"
+given = "monsterTypeMode='or'、非card-typeグループ内の属性が直接選択されている"
+expect_return_shape = "同グループの他属性は無効化されない"
+
+[[condition]]
+id = "attr_exclusion.or_required_applies_non_card_group"
+target_function = "applyAttributeExclusion"
+source_lines = "300-306"
+description = "monsterTypeMode='or'かつ非card-typeグループでも、active属性にrequired=trueが含まれる場合は排他を適用する"
+given = "monsterTypeMode='or'、項目入力で非card-typeグループ内の属性がrequiredになる"
+expect_return_shape = "同グループのprimary以外の属性が無効化される"
+
+[[condition]]
+id = "attr_exclusion.primary_required_first"
+target_function = "applyAttributeExclusion"
+source_lines = "224-243"
+description = "active属性が複数ある場合、required=trueの属性のうちactiveAttrs配列で最初のものをprimaryにする"
+given = "同じグループ内に直接選択属性とrequired属性がある"
+expect_return_shape = "required属性がprimaryとして残り、直接選択属性を含む他属性が無効化される"
+
+[[condition]]
+id = "attr_exclusion.primary_active_first_when_no_required"
+target_function = "applyAttributeExclusion"
+source_lines = "224-243"
+description = "active属性が複数ありrequired属性が無い場合、activeAttrs配列で最初のものをprimaryにする"
+given = "card-typeグループ等で複数属性が直接選択されている"
+expect_return_shape = "group.items上で最初にactiveになった属性がprimaryとして残り、他のactive属性も無効化される"
+
+[[condition]]
+id = "attr_exclusion.disables_missing_or_enabled_non_primary"
+target_function = "applyAttributeExclusion"
+source_lines = "245-274"
+description = "primary以外のグループ項目は未作成なら作成され、enabled=trueならenabled=false, selected=false, disabledReason設定済みになる"
+given = "グループitemsにprimary以外の未作成属性がある"
+expect_return_shape = "primary以外の属性がattributeStatesに作成され無効化される"
+
+# --- applyAttributeToField(...) （非export） ---
+
+[[condition]]
+id = "attr_to_field.absent_or_unselected_trigger_skips"
+target_function = "applyAttributeToField"
+source_lines = "321-331"
+description = "rule.triggerの属性状態が存在しない、またはselected=falseの場合、そのattributeToFieldルールは適用されない"
+given = "attributeToFieldにtrigger='attr-a'があるがattr-a未作成または未選択"
+expect_return_shape = "negative項目は無効化されない"
+
+[[condition]]
+id = "attr_to_field.card_type_applies_even_or_direct"
+target_function = "applyAttributeToField"
+source_lines = "325-331"
+description = "triggerが'card-type_'で始まる場合、monsterTypeMode='or'かつrequired=falseの直接選択でもnegative項目を無効化する"
+given = "monsterTypeMode='or'、selectedAttributesに'card-type_spell'"
+expect_return_shape = "rule.negativeの項目が無効化される"
+
+[[condition]]
+id = "attr_to_field.non_card_and_mode_applies"
+target_function = "applyAttributeToField"
+source_lines = "325-331"
+description = "triggerがcard-type以外の場合、monsterTypeMode='and'ならselected=trueの属性でnegative項目を無効化する"
+given = "monsterTypeMode='and'、selectedAttributesに'monster-type_link'"
+expect_return_shape = "rule.negativeの項目が無効化される"
+
+[[condition]]
+id = "attr_to_field.non_card_or_direct_skips"
+target_function = "applyAttributeToField"
+source_lines = "325-331"
+description = "triggerがcard-type以外でmonsterTypeMode='or'かつrequired=falseの直接選択の場合、negative項目を無効化しない"
+given = "monsterTypeMode='or'、selectedAttributesに'monster-type_link'"
+expect_return_shape = "rule.negativeの項目はenabled=trueのまま"
+
+[[condition]]
+id = "attr_to_field.non_card_or_required_applies"
+target_function = "applyAttributeToField"
+source_lines = "325-331"
+description = "triggerがcard-type以外でmonsterTypeMode='or'でも、その属性がrequired=trueならnegative項目を無効化する"
+given = "monsterTypeMode='or'、項目入力で'attr-a'がrequiredかつselectedになる"
+expect_return_shape = "rule.negativeの項目が無効化される"
+
+[[condition]]
+id = "attr_to_field.trigger_wildcard_not_expanded"
+target_function = "applyAttributeToField"
+source_lines = "323"
+description = "attributeToField.rule.triggerは完全一致でattributeStates.get(trigger)されるだけで、末尾'*'のワイルドカード展開はしない"
+given = "rule.trigger='spell-type*'、selectedAttributesに'spell-type_quick'"
+expect_return_shape = "そのruleのnegative項目は無効化されない"
+
+[[condition]]
+id = "attr_to_field.negative_missing_field_created_disabled"
+target_function = "applyAttributeToField"
+source_lines = "331-356"
+description = "negative項目がfieldStatesに存在しない場合はhasInput=falseで作成し、enabled=false, disabledReason設定済みにする"
+given = "negative=['new-field']でstate.fieldInputsにnew-fieldが無い"
+expect_return_shape = "fieldStates.get('new-field')はenabled=false, hasInput=false"
+
+[[condition]]
+id = "attr_to_field.disabled_attr_exact_required_field_disabled"
+target_function = "applyAttributeToField"
+source_lines = "361-408"
+description = "enabled=falseの属性をtargetに含むfieldToAttributeルールがある場合、そのtriggerItemsの非ワイルドカード項目を無効化する"
+given = "attr-aが無効化され、fieldToAttributeにtarget=['attr-a'], triggerItems=['field-a']がある"
+expect_return_shape = "field-aがenabled=falseになる"
+
+[[condition]]
+id = "attr_to_field.disabled_attr_wildcard_disables_existing_prefix_fields"
+target_function = "applyAttributeToField"
+source_lines = "369-380"
+description = "無効属性を必須とするtriggerItemsが末尾'*'の場合、既にfieldStatesに存在しprefixで始まる項目だけを無効化する"
+given = "triggerItems=['kind*']、fieldStatesにkind-1とotherが存在する"
+expect_return_shape = "kind-1は無効化され、otherは無効化されない。未知のkind-*項目は新規作成されない"
+
+[[condition]]
+id = "attr_to_field.disabled_attr_inherits_reason"
+target_function = "applyAttributeToField"
+source_lines = "392-397"
+description = "無効属性を必須とする項目を無効化する際、属性にdisabledReasonがあればそれを項目のdisabledReasonに引き継ぐ"
+given = "attr-a.enabled=falseかつattr-a.disabledReasonが設定済み"
+expect_return_shape = "fieldState.disabledReason === attrState.disabledReason"

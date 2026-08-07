@@ -1,0 +1,223 @@
+# 検証対象: src/services/llm/llm-chat-service.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、services/llm配下の集約層。
+# 下位モジュール(context-builder/gemini-nano/zai-api/tool-executor/nano-pipeline)自体の詳細分岐は、
+# それぞれのconditions.tomlで検証済みのため、ここでは呼び分け・組み合わせ・ループ制御のみ条件化する。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+
+[meta]
+feature = "llm-chat-service"
+source_file = "src/services/llm/llm-chat-service.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/llm-chat-service.test.ts"
+source_hash = "0ed2a0b6af4d17f54ef971c133225755d2e34b25"
+note = "verified=falseは0件"
+
+# --- parseToolCall(response: string): ToolCall | null ---
+
+[[condition]]
+id = "parse_tool.code_block_content_is_parsed"
+target_function = "parseToolCall"
+source_lines = "21-25"
+description = "response.trim()後、```tool```/```json```等のコードブロックがあれば中身をtrimしてJSON候補として扱う"
+given = "Cloud初回応答が '```json\\n{\"tool\":\"getDeckState\",\"args\":{}}\\n```'"
+expect_return_shape = "{ name: 'getDeckState', arguments: {} } としてツール実行に進む"
+
+[[condition]]
+id = "parse_tool.non_brace_returns_null"
+target_function = "parseToolCall"
+source_lines = "26"
+description = "コードブロック処理後のtextが'{'で始まらない場合、JSON.parseせずnullを返す"
+given = "Cloud応答が '最終回答です'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_tool.valid_tool_and_args_returns_call"
+target_function = "parseToolCall"
+source_lines = "27-31"
+description = "JSON.parseに成功し、parsed.toolがtruthyかつparsed.args !== undefinedの場合、{ name: parsed.tool, arguments: parsed.args }を返す"
+given = "Cloud応答が '{\"tool\":\"getDeckState\",\"args\":{\"a\":1}}'"
+expect_return_shape = "{ name: 'getDeckState', arguments: { a: 1 } }"
+
+[[condition]]
+id = "parse_tool.null_args_are_accepted"
+target_function = "parseToolCall"
+source_lines = "29-30"
+description = "parsed.argsがnullでもundefinedではないため、arguments:nullとしてツール呼び出し扱いになる"
+given = "Cloud応答が '{\"tool\":\"getDeckState\",\"args\":null}'"
+expect_return_shape = "{ name: 'getDeckState', arguments: null } としてツール実行に進む"
+
+[[condition]]
+id = "parse_tool.missing_args_returns_null"
+target_function = "parseToolCall"
+source_lines = "29-35"
+description = "parsed.toolがtruthyでもparsed.args === undefinedの場合、returnせず最後にnullを返す"
+given = "Cloud応答が '{\"tool\":\"getDeckState\"}'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_tool.invalid_json_returns_null"
+target_function = "parseToolCall"
+source_lines = "27-35"
+description = "textが'{'で始まってもJSON.parseに失敗した場合、catch後にnullを返す"
+given = "Cloud応答が '{invalid json'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_tool.falsy_tool_returns_null"
+target_function = "parseToolCall"
+source_lines = "29-35"
+description = "JSON.parseに成功してargsが存在しても、parsed.toolがfalsyの場合はnullを返す"
+given = "Cloud応答が '{\"tool\":\"\",\"args\":{}}'"
+expect_return = "null"
+
+# --- chat(request, apiKey, storeRefs, onToolCall?, signal?) ---
+
+[[condition]]
+id = "chat.abort_before_routing_throws"
+target_function = "chat"
+source_lines = "51-55"
+description = "systemPrompt構築とGemini Nano availability確認の後、signal.abortedがtrueならChatAbortErrorをthrowする"
+given = "signalが呼び出し前からabort済み"
+expect_throw = "ChatAbortError('Chat aborted')"
+
+[[condition]]
+id = "chat.nano_available_routing_cloud_with_api_uses_cloud"
+target_function = "chat"
+source_lines = "57-62,88-112"
+description = "nanoAvailableがtrueでrouting応答のtrim().toUpperCase()が'CLOUD'を含み、apiKeyがtruthyの場合、Cloud(Z.ai)経路を使う"
+given = "isGeminiNanoAvailable=true、promptGeminiNano resolves ' cloud '、apiKey='key'"
+expect_side_effect = "promptZaiMulti(systemPrompt, [...history, currentUserMessage])が呼ばれ、runNanoPipelineは呼ばれない"
+
+[[condition]]
+id = "chat.nano_available_routing_cloud_without_api_falls_back_to_nano"
+target_function = "chat"
+source_lines = "57-63,78-81"
+description = "routingでCLOUD判定でもapiKeyがfalsyならuseCloud=falseへ戻し、Nanoパイプラインを使う"
+given = "isGeminiNanoAvailable=true、promptGeminiNano resolves 'CLOUD'、apiKey=''"
+expect_return_shape = "runNanoPipelineの返したmessageで { needsClarification: false } を返す"
+
+[[condition]]
+id = "chat.nano_available_routing_not_cloud_uses_nano"
+target_function = "chat"
+source_lines = "57-60,78-81"
+description = "nanoAvailableがtrueでrouting応答が'CLOUD'を含まない場合、apiKeyがあってもNanoパイプラインを使う"
+given = "isGeminiNanoAvailable=true、promptGeminiNano resolves 'NANO'、apiKey='key'"
+expect_side_effect = "runNanoPipelineが呼ばれ、promptZaiMultiは呼ばれない"
+
+[[condition]]
+id = "chat.routing_error_with_api_uses_cloud"
+target_function = "chat"
+source_lines = "57-65,88-112"
+description = "nanoAvailableがtrueでrouting用promptGeminiNanoがthrowし、apiKeyがtruthyの場合、useCloud=trueとしてCloud経路を使う"
+given = "promptGeminiNano rejects、apiKey='key'"
+expect_side_effect = "promptZaiMultiが呼ばれ、runNanoPipelineは呼ばれない"
+
+[[condition]]
+id = "chat.routing_error_without_api_uses_nano"
+target_function = "chat"
+source_lines = "57-65,78-81"
+description = "nanoAvailableがtrueでrouting用promptGeminiNanoがthrowし、apiKeyがfalsyの場合、useCloud=falseとしてNanoパイプラインを使う"
+given = "promptGeminiNano rejects、apiKey=''"
+expect_side_effect = "runNanoPipelineが呼ばれる"
+
+[[condition]]
+id = "chat.nano_unavailable_with_api_uses_cloud"
+target_function = "chat"
+source_lines = "52,66-68,88-112"
+description = "nanoAvailableがfalseでapiKeyがtruthyの場合、routing用promptGeminiNanoを呼ばずCloud経路を使う"
+given = "isGeminiNanoAvailable=false、apiKey='key'"
+expect_side_effect = "promptZaiMultiが呼ばれ、promptGeminiNanoとrunNanoPipelineは呼ばれない"
+
+[[condition]]
+id = "chat.no_provider_returns_message"
+target_function = "chat"
+source_lines = "66-74"
+description = "nanoAvailableがfalseかつapiKeyがfalsyの場合、Z.aiもNanoも呼ばず利用不可メッセージを返す"
+given = "isGeminiNanoAvailable=false、apiKey=''"
+expect_return_shape = "{ message: 'Gemini NanoもZ.ai APIキーも利用できません。設定からAPIキーを入力するか、ChromeのAI機能を有効にしてください。', needsClarification: false }"
+
+[[condition]]
+id = "chat.nano_pipeline_success_returns_false_clarification"
+target_function = "chat"
+source_lines = "78-81"
+description = "Nano経路ではrunNanoPipelineの戻り値をmessageに入れ、needsClarification=falseを返す"
+given = "runNanoPipeline resolves 'nano reply'"
+expect_return_shape = "{ message: 'nano reply', needsClarification: false }"
+
+[[condition]]
+id = "chat.nano_pipeline_aborted_error_translated"
+target_function = "chat"
+source_lines = "79-84"
+description = "runNanoPipelineがErrorインスタンスかつmessage==='aborted'でrejectした場合、ChatAbortErrorへ変換してthrowする"
+given = "runNanoPipeline rejects Error('aborted')"
+expect_throw = "ChatAbortError('Chat aborted')"
+
+[[condition]]
+id = "chat.nano_pipeline_other_error_propagates"
+target_function = "chat"
+source_lines = "79-85"
+description = "runNanoPipelineのreject理由がError('aborted')以外の場合、その理由をそのままthrowする"
+given = "runNanoPipeline rejects Error('nano failed')"
+expect_throw = "Error('nano failed')"
+
+[[condition]]
+id = "chat.cloud_history_user_assistant_and_tool_converted"
+target_function = "chat"
+source_lines = "92-107"
+description = "Cloud経路ではhistoryのuser/assistantを同roleで引き継ぎ、toolはrole='user'かつ'[ツール name OK/NG] detail'形式へ変換する。toolResultDataがtruthyならJSON.stringify結果、falsyならcontentをdetailに使う"
+given = "historyにuser、assistant、成功tool(dataあり)、失敗tool(dataなし)が含まれる"
+expect_side_effect = "初回promptZaiMultiのconversationに変換済み4件と現在user messageがこの順で入る"
+
+[[condition]]
+id = "chat.cloud_no_tool_returns_raw_response"
+target_function = "chat"
+source_lines = "109-119,138-142"
+description = "Cloud応答がツール呼び出しとしてparseされない場合、ツールループをbreakし、rawResponseをmessage、toolCalls=undefined、疑問符有無をneedsClarificationにして返す"
+given = "promptZaiMulti初回応答が '回答です？'"
+expect_return_shape = "{ message: '回答です？', toolCalls: undefined, needsClarification: true }"
+
+[[condition]]
+id = "chat.cloud_abort_inside_tool_loop_throws"
+target_function = "chat"
+source_lines = "116-117"
+description = "Cloudツールループ各反復の先頭でsignal.abortedがtrueならChatAbortErrorをthrowし、parseToolCallやexecuteToolには進まない"
+given = "Cloud初回応答取得後、2回目のsignal.aborted参照時にtrueになるsignal"
+expect_throw = "ChatAbortError('Chat aborted')"
+
+[[condition]]
+id = "chat.cloud_tool_success_records_callback_and_reprompts"
+target_function = "chat"
+source_lines = "116-135,138-142"
+description = "Cloud応答がツール呼び出しならexecuteToolを呼び、allToolCallsへ追加し、recordToolCall(name,args,result.data)を呼び、onToolCallへname/args/resultを通知し、成功時はdata ?? '成功'をJSON.stringifyした結果文をconversationに追加して再度promptZaiMultiを呼ぶ"
+given = "初回Cloud応答が '{\"tool\":\"getDeckState\",\"args\":{\"a\":1}}'、executeToolが{ success:true, data:{ ok:true } }を返す"
+expect_return_shape = "最終応答をmessageにし、toolCallsに実行したToolCallを含む"
+
+[[condition]]
+id = "chat.cloud_tool_success_undefined_data_uses_success_literal"
+target_function = "chat"
+source_lines = "129-135"
+description = "toolResult.successがtrueでdataがnullまたはundefinedの場合、結果文ではJSON.stringify('成功')を使う"
+given = "executeToolが{ success:true }を返す"
+expect_side_effect = "次回promptZaiMultiのconversation末尾contentが 'ツール getDeckState の実行結果: \"成功\"'"
+
+[[condition]]
+id = "chat.cloud_tool_failure_uses_error_text"
+target_function = "chat"
+source_lines = "129-135"
+description = "toolResult.successがfalseの場合、結果文は 'ツール ${name} のエラー: ${toolResult.error}' になる"
+given = "executeToolが{ success:false, error:'失敗' }を返す"
+expect_side_effect = "次回promptZaiMultiのconversation末尾contentが 'ツール getDeckState のエラー: 失敗'"
+
+[[condition]]
+id = "chat.cloud_max_tool_iterations_is_five"
+target_function = "chat"
+source_lines = "42,116-136"
+description = "Cloudツールループは最大5回だけ実行し、5回目の再問い合わせ応答がさらにツールJSONでも6回目のexecuteToolは行わず、その応答をmessageとして返す"
+given = "promptZaiMultiが初回から6回連続でツールJSONを返す"
+expect_return_shape = "executeToolは5回、toolCallsは5件、messageは6個目のツールJSON文字列"

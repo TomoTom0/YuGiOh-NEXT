@@ -1,0 +1,552 @@
+# 検証対象: src/stores/practice.ts (usePracticeStore)
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Pinia Setup Store形式のため、returnオブジェクトで公開されるローカル関数を
+# "usePracticeStore#アクション名"として記載する。
+#
+# docs/api/*.md 等の二次情報は参照していない。
+
+[meta]
+feature = "practice-store"
+source_file = "src/stores/practice.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/stores/practice.test.ts"
+source_hash = "e5fbf2ed9f636a592dc30f310a642a90805495ab"
+note = "typed APIとgetCards実装により到達不能な防御分岐6件のみcondition単位でverified=false"
+
+[[condition]]
+id = "select_zone.records_zone_slot_and_field"
+target_function = "usePracticeStore#selectZone"
+source_lines = "196-200"
+description = "選択ゾーン、slotIndex、fieldIndexを引数の値で更新する。fieldIndex未指定時は0を使う"
+given = "selectZone(zone, slotIndex, fieldIndex)を呼ぶ"
+expect_side_effect = "selectedZone.value = zone、selectedSlotIndex.value = slotIndex、selectedFieldIndex.value = fieldIndexまたは0"
+
+[[condition]]
+id = "get_zones_ref.returns_field2_only_for_index_1"
+target_function = "usePracticeStore#getZonesRef"
+source_lines = "217-219"
+description = "fieldIndexが1の場合だけzones2のrefを返し、それ以外はzonesのrefを返す"
+given = "getZonesRef(fieldIndex)"
+expect_return = "fieldIndex === 1 なら zones2、そうでなければ zones"
+
+[[condition]]
+id = "get_cards.monster_valid_slot_returns_slot"
+target_function = "usePracticeStore#getCards"
+source_lines = "241-247"
+description = "monsterゾーンはslotIndex未指定なら0番、0-4なら該当スロット配列を返す"
+given = "getCards('monster', slotIndex)"
+expect_return = "slotIndex ?? 0 が0-4なら zones.monster[idx]"
+
+[[condition]]
+id = "get_cards.monster_invalid_slot_returns_empty_array"
+target_function = "usePracticeStore#getCards"
+source_lines = "243-246"
+description = "monsterゾーンのslotIndexが0未満または5以上なら新しい移動先として使える空配列ではなく、早期returnの空配列を返す"
+given = "getCards('monster', -1) または getCards('monster', 5)"
+expect_return = "[]"
+
+[[condition]]
+id = "get_cards.spell_trap_valid_slot_returns_slot"
+target_function = "usePracticeStore#getCards"
+source_lines = "248-252"
+description = "spellTrapゾーンはslotIndex未指定なら0番、0-4なら該当スロット配列を返す"
+given = "getCards('spellTrap', slotIndex)"
+expect_return = "slotIndex ?? 0 が0-4なら zones.spellTrap[idx]"
+
+[[condition]]
+id = "get_cards.spell_trap_invalid_slot_returns_empty_array"
+target_function = "usePracticeStore#getCards"
+source_lines = "248-251"
+description = "spellTrapゾーンのslotIndexが0未満または5以上なら空配列を返す"
+given = "getCards('spellTrap', -1) または getCards('spellTrap', 5)"
+expect_return = "[]"
+
+[[condition]]
+id = "get_cards.extra_monster_valid_slot_returns_slot"
+target_function = "usePracticeStore#getCards"
+source_lines = "253-257"
+description = "extraMonsterゾーンはslotIndex未指定なら0番、0-1なら該当スロット配列を返す"
+given = "getCards('extraMonster', slotIndex)"
+expect_return = "slotIndex ?? 0 が0-1なら zones.extraMonster[idx]"
+
+[[condition]]
+id = "get_cards.extra_monster_invalid_slot_returns_empty_array"
+target_function = "usePracticeStore#getCards"
+source_lines = "253-256"
+description = "extraMonsterゾーンのslotIndexが0未満または2以上なら空配列を返す"
+given = "getCards('extraMonster', -1) または getCards('extraMonster', 2)"
+expect_return = "[]"
+
+[[condition]]
+id = "get_cards.simple_zone_returns_zone_array"
+target_function = "usePracticeStore#getCards"
+source_lines = "258"
+description = "スロットを持たないZoneTypeはzones[field][zone]の配列を返す"
+given = "getCards('hand'などのsimple zone)"
+expect_return = "対象フィールドの該当zone配列"
+
+[[condition]]
+id = "find_card.simple_zone_match_returns_location"
+target_function = "usePracticeStore#findCard"
+source_lines = "261-268"
+description = "field/gy/banish/deck/extra/hand/tempの順でinstanceId一致を探し、見つかればslotIndexなしのCardLocationを返す"
+given = "simple zone内にinstanceIdが一致するカードがある"
+expect_return = "{ zone, cardIndex, fieldIndex }"
+
+[[condition]]
+id = "find_card.slotted_zone_match_returns_location"
+target_function = "usePracticeStore#findCard"
+source_lines = "269-280"
+description = "simple zoneで見つからない場合、monster 0-4、spellTrap 0-4、extraMonster 0-1の順で探し、見つかればslotIndex付きのCardLocationを返す"
+given = "slotted zone内にinstanceIdが一致するカードがある"
+expect_return = "{ zone, slotIndex, cardIndex, fieldIndex }"
+
+[[condition]]
+id = "find_card.no_match_returns_null"
+target_function = "usePracticeStore#findCard"
+source_lines = "281"
+description = "全ゾーンを探索してもinstanceId一致がない場合はnullを返す"
+given = "存在しないcardIdでfindCardを呼ぶ"
+expect_return = "null"
+
+[[condition]]
+id = "find_card_global_prefers_field1_then_field2"
+target_function = "usePracticeStore#findCardGlobal"
+source_lines = "285-287"
+description = "field 1で見つかった場合はそのLocationを返し、見つからない場合だけfield 2を探す"
+given = "findCardGlobal(cardId)"
+expect_return = "findCard(cardId, 0) ?? findCard(cardId, 1)"
+
+[[condition]]
+id = "get_deck_count.returns_by_field_index"
+target_function = "usePracticeStore#getDeckCount"
+source_lines = "321-323"
+description = "fieldIndexが1の場合はdeckCount2、それ以外はdeckCountを返す"
+given = "getDeckCount(fieldIndex)"
+expect_return = "fieldIndex === 1 ? deckCount2.value : deckCount.value"
+
+[[condition]]
+id = "init_practice.resets_target_field_and_originals_then_draws_up_to_five"
+target_function = "usePracticeStore#initPractice"
+source_lines = "327-365"
+description = "履歴をclearし、対象フィールドをemptyZonesに戻し、revealとtempRecipeをfalse/空にし、originalMain/Extraへ入力配列の浅いコピーを保存し、quantity分のmainをdownでdeck、extraをdownでextraに作成し、deckをfisherYatesShuffleの戻り値へ置き換え、最大5枚をupにしてhandへ移す"
+given = "mainDeck/extraDeckとfieldIndexを渡してinitPracticeを呼ぶ"
+expect_side_effect = "対象フィールドだけ初期化され、initialized系フラグがtrueになり、saveToLocalStorageが呼ばれる"
+
+[[condition]]
+id = "init_practice.unknown_cache_card_creates_unknown_card"
+target_function = "usePracticeStore#initPractice"
+source_lines = "64-82,343-351"
+description = "getUnifiedCacheDB().getCardInfo(cid)がundefinedの場合、name空文字、lang ja、imgs空配列、cardType unknownのカードを作る"
+given = "DBに存在しないcidを含むdeckでinitPracticeを呼ぶ"
+expect_side_effect = "作成カードはunknownカード情報を持つ"
+
+[[condition]]
+id = "init_practice.cached_monster_card_copies_monster_fields"
+target_function = "usePracticeStore#initPractice"
+source_lines = "84-113,100-108"
+description = "DBのcardTypeがmonsterの場合、基本フィールドに加えてatk/def/levelType/levelValue/attribute/race/types/isExtraDeckを転記する"
+given = "DBにmonsterのCardInfoがあるcidを含むdeckでinitPracticeを呼ぶ"
+expect_side_effect = "作成カードへmonster固有フィールドが入る"
+
+[[condition]]
+id = "init_practice.cached_spell_or_trap_card_copies_effect_type"
+target_function = "usePracticeStore#initPractice"
+source_lines = "109-110"
+description = "DBのcardTypeがspellまたはtrapの場合、effectTypeを転記する"
+given = "DBにspellまたはtrapのCardInfoがあるcidを含むdeckでinitPracticeを呼ぶ"
+expect_side_effect = "作成カードへeffectTypeが入る"
+
+[[condition]]
+id = "reset_practice.not_initialized_is_noop"
+target_function = "usePracticeStore#resetPractice"
+source_lines = "367-370"
+description = "対象フィールドのinitializedフラグがfalseの場合は早期returnし、ゾーン・履歴・localStorageを変更しない"
+given = "initPractice前にresetPractice(fieldIndex)を呼ぶ"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "reset_practice.rebuilds_from_original_and_temp_recipe"
+target_function = "usePracticeStore#resetPractice"
+source_lines = "372-410"
+description = "初期化済みなら対象フィールドをemptyZonesへ戻し、originalMain/ExtraとtempRecipeからカードを作り直し、main系tempはdeck、extra系tempはextraへ入れ、deckをshuffleして最大5枚をupでhandへ移し、snapshot commandをpushして保存する"
+given = "initPractice後、tempRecipeを含む状態でresetPractice(fieldIndex)を呼ぶ"
+expect_side_effect = "対象フィールドが再構築され、undo可能なリセットコマンドが追加される"
+
+[[condition]]
+id = "draw.empty_deck_is_noop"
+target_function = "usePracticeStore#draw"
+source_lines = "413-415"
+description = "対象フィールドのdeckが空なら早期returnする"
+given = "deck.length === 0でdraw(fieldIndex)"
+expect_side_effect = "hand/deck/commandHistory/localStorageは変化しない"
+
+[[condition]]
+id = "draw.moves_top_deck_card_to_hand_face_up"
+target_function = "usePracticeStore#draw"
+source_lines = "417-424"
+description = "deck先頭を取り出してfaceをupにしhand末尾へ追加し、snapshot commandをpushして保存する"
+given = "deck.length > 0でdraw(fieldIndex)"
+expect_side_effect = "deckは1枚減り、handは1枚増え、canUndoがtrueになる"
+
+[[condition]]
+id = "draw_to_zone.empty_deck_is_noop"
+target_function = "usePracticeStore#drawToZone"
+source_lines = "427-429"
+description = "対象フィールドのdeckが空なら早期returnする"
+given = "deck.length === 0でdrawToZone(...)"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "draw_to_zone.unshift_top_deck_card_to_target_face_up"
+target_function = "usePracticeStore#drawToZone"
+source_lines = "431-441"
+description = "deck先頭を取り出してfaceをupにし、getCardsで得たtargetの先頭へunshiftし、snapshot commandをpushして保存する"
+given = "deck.length > 0でdrawToZone(zone, slotIndex, fieldIndex)"
+expect_side_effect = "target[0]がドローされたカードになり、deckは1枚減る"
+
+[[condition]]
+id = "draw_to_zone.target_missing_is_unreachable_for_typed_zone"
+target_function = "usePracticeStore#drawToZone"
+source_lines = "434-437"
+description = "getCardsはZoneType入力に対して常に配列を返すため、if (target) のfalse側はtyped APIから到達不能"
+given = "zoneがZoneTypeである"
+expect_side_effect = "targetは常にtruthy"
+verified = false
+unverifiable_reason = "TypeScript上のZoneTypeではgetCardsがundefinedを返さないため、公開APIの型を守るテストではfalse側を作れない"
+
+[[condition]]
+id = "draw_multiple.empty_deck_is_noop"
+target_function = "usePracticeStore#drawMultiple"
+source_lines = "444-446"
+description = "対象フィールドのdeckが空なら早期returnする"
+given = "deck.length === 0でdrawMultiple(count)"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "draw_multiple.draws_min_count_and_deck_length"
+target_function = "usePracticeStore#drawMultiple"
+source_lines = "448-458"
+description = "actual = Math.min(count, deck.length)枚だけdeck先頭からhandへface upで移し、actual枚ドローのsnapshot commandをpushして保存する"
+given = "deck.length > 0でdrawMultiple(count)"
+expect_side_effect = "移動枚数はcountと残deck枚数の小さい方"
+
+[[condition]]
+id = "move_card.no_location_is_noop"
+target_function = "usePracticeStore#moveCard"
+source_lines = "461-463"
+description = "findCardがnullを返した場合は早期returnする"
+given = "存在しないcardIdでmoveCardを呼ぶ"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "move_card.source_array_invalid_is_unreachable_after_find_card"
+target_function = "usePracticeStore#moveCard"
+source_lines = "467-469"
+description = "findCardが返すlocはgetCardsで探索した配列と範囲内indexに由来するため、直後の!cardsまたは範囲外indexによるreturnは通常到達不能"
+given = "findCardが非nullを返す"
+expect_side_effect = "cards[loc.cardIndex]は存在する"
+verified = false
+unverifiable_reason = "findCard/getCards/historyを公開APIで不整合にできず、型を守る呼び出しでは分岐を作れない"
+
+[[condition]]
+id = "move_card.applies_face_orientation_and_top_position"
+target_function = "usePracticeStore#moveCard"
+source_lines = "471-479"
+description = "options.face/options.orientationがundefinedでない場合だけカードへ反映し、position未指定またはtopならtarget先頭へ入れる"
+given = "moveCard(cardId, toZone, toSlotIndex, { face, orientation, position: 'top' })"
+expect_side_effect = "移動先先頭にカードが入り、指定されたface/orientationになる"
+
+[[condition]]
+id = "move_card.bottom_position_pushes"
+target_function = "usePracticeStore#moveCard"
+source_lines = "477-482"
+description = "options.positionがbottomならtarget末尾へpushする"
+given = "moveCard(..., { position: 'bottom' })"
+expect_side_effect = "移動カードがtarget末尾に入る"
+
+[[condition]]
+id = "move_card.numeric_position_is_clamped"
+target_function = "usePracticeStore#moveCard"
+source_lines = "482-485"
+description = "options.positionが数値なら0以上target.length以下にclampしてsplice挿入する"
+given = "moveCard(..., { position: number })"
+expect_side_effect = "負数は先頭、長さ超過は末尾、範囲内はそのindexへ入る"
+
+[[condition]]
+id = "move_card.target_missing_is_unreachable_for_typed_zone"
+target_function = "usePracticeStore#moveCard"
+source_lines = "474-475"
+description = "toZoneがZoneTypeならgetCardsは常に配列を返すため、!target分岐はtyped APIから到達不能"
+given = "toZoneがZoneTypeである"
+expect_side_effect = "targetは常にtruthy"
+verified = false
+unverifiable_reason = "TypeScript上のZoneTypeではgetCardsがundefinedを返さないため、公開APIの型を守るテストではfalse側を作れない"
+
+[[condition]]
+id = "move_card_to_deck_and_shuffle.no_location_is_noop"
+target_function = "usePracticeStore#moveCardToDeckAndShuffle"
+source_lines = "504-506"
+description = "findCardがnullを返した場合は早期returnする"
+given = "存在しないcardIdでmoveCardToDeckAndShuffleを呼ぶ"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "move_card_to_deck_and_shuffle.source_array_invalid_is_unreachable_after_find_card"
+target_function = "usePracticeStore#moveCardToDeckAndShuffle"
+source_lines = "510-512"
+description = "findCardが返すlocは範囲内カードを指すため、直後の!cardsまたは範囲外indexによるreturnは通常到達不能"
+given = "findCardが非nullを返す"
+expect_side_effect = "cards[loc.cardIndex]は存在する"
+verified = false
+unverifiable_reason = "findCard/getCardsを公開APIで不整合にできず、型を守る呼び出しでは分岐を作れない"
+
+[[condition]]
+id = "move_card_to_deck_and_shuffle_inserts_down_vertical_and_sets_all_deck_down"
+target_function = "usePracticeStore#moveCardToDeckAndShuffle"
+source_lines = "508-523"
+description = "カードを元ゾーンから取り除き、face down・orientation verticalにしてdeckへpushし、fisherYatesShuffleの戻り値へ置き換えた後、deck内全カードのfaceをdownにする"
+given = "存在するcardIdでmoveCardToDeckAndShuffle(fieldIndex)"
+expect_side_effect = "移動カードはdeckに入り、deck内全カードがdown、undo可能なmove commandが追加される"
+
+[[condition]]
+id = "shuffle_deck.length_zero_or_one_is_noop"
+target_function = "usePracticeStore#shuffleDeck"
+source_lines = "492-494"
+description = "deck.lengthが1以下なら早期returnする"
+given = "deck.length <= 1でshuffleDeck"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "shuffle_deck.uses_fisher_yates_return_value"
+target_function = "usePracticeStore#shuffleDeck"
+source_lines = "496-501"
+description = "deck.lengthが2以上ならfisherYatesShuffle(deck)の戻り値でdeckを置き換え、snapshot commandをpushして保存する"
+given = "deck.length > 1でshuffleDeck"
+expect_side_effect = "deck配列はshuffle関数の戻り値になり、canUndoがtrueになる"
+
+[[condition]]
+id = "shuffle_hand.length_zero_or_one_is_noop"
+target_function = "usePracticeStore#shuffleHand"
+source_lines = "526-528"
+description = "hand.lengthが1以下なら早期returnする"
+given = "hand.length <= 1でshuffleHand"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "shuffle_hand.uses_fisher_yates_return_value"
+target_function = "usePracticeStore#shuffleHand"
+source_lines = "530-535"
+description = "hand.lengthが2以上ならfisherYatesShuffle(hand)の戻り値でhandを置き換え、snapshot commandをpushして保存する"
+given = "hand.length > 1でshuffleHand"
+expect_side_effect = "hand配列はshuffle関数の戻り値になる"
+
+[[condition]]
+id = "shuffle_extra.length_zero_or_one_is_noop"
+target_function = "usePracticeStore#shuffleExtra"
+source_lines = "538-540"
+description = "extra.lengthが1以下なら早期returnする"
+given = "extra.length <= 1でshuffleExtra"
+expect_side_effect = "状態変更なし"
+
+[[condition]]
+id = "shuffle_extra.uses_fisher_yates_return_value"
+target_function = "usePracticeStore#shuffleExtra"
+source_lines = "542-547"
+description = "extra.lengthが2以上ならfisherYatesShuffle(extra)の戻り値でextraを置き換え、snapshot commandをpushして保存する"
+given = "extra.length > 1でshuffleExtra"
+expect_side_effect = "extra配列はshuffle関数の戻り値になる"
+
+[[condition]]
+id = "set_card_face.no_location_or_same_face_is_noop"
+target_function = "usePracticeStore#setCardFace"
+source_lines = "550-557"
+description = "cardIdが見つからない、対象カードが存在しない、または既に指定faceの場合は早期returnする"
+given = "存在しないcardId、または現在と同じfaceでsetCardFace"
+expect_side_effect = "状態変更なし、commandは追加されない"
+
+[[condition]]
+id = "set_card_face.cards_ref_missing_is_unreachable_after_find_card"
+target_function = "usePracticeStore#setCardFace"
+source_lines = "554-555"
+description = "findCardが非nullならgetCardsは配列を返すため、!cards分岐はtyped APIから到達不能"
+given = "findCardが非nullを返す"
+expect_side_effect = "cardsはtruthy"
+verified = false
+unverifiable_reason = "ZoneTypeとgetCards実装上、公開APIの型を守るテストではcardsをundefinedにできない"
+
+[[condition]]
+id = "set_card_face.changes_face_and_pushes_command"
+target_function = "usePracticeStore#setCardFace"
+source_lines = "559-564"
+description = "対象カードがありfaceが異なる場合、snapshot取得後にfaceを書き換え、reorder commandをpushして保存する"
+given = "存在するcardIdと現在と異なるfaceでsetCardFace"
+expect_side_effect = "card.faceが指定値になり、canUndoがtrueになる"
+
+[[condition]]
+id = "set_card_orientation.no_location_or_same_orientation_is_noop"
+target_function = "usePracticeStore#setCardOrientation"
+source_lines = "567-574"
+description = "cardIdが見つからない、対象カードが存在しない、または既に指定orientationの場合は早期returnする"
+given = "存在しないcardId、または現在と同じorientationでsetCardOrientation"
+expect_side_effect = "状態変更なし、commandは追加されない"
+
+[[condition]]
+id = "set_card_orientation.cards_ref_missing_is_unreachable_after_find_card"
+target_function = "usePracticeStore#setCardOrientation"
+source_lines = "571-572"
+description = "findCardが非nullならgetCardsは配列を返すため、!cards分岐はtyped APIから到達不能"
+given = "findCardが非nullを返す"
+expect_side_effect = "cardsはtruthy"
+verified = false
+unverifiable_reason = "ZoneTypeとgetCards実装上、公開APIの型を守るテストではcardsをundefinedにできない"
+
+[[condition]]
+id = "set_card_orientation.changes_orientation_and_pushes_command"
+target_function = "usePracticeStore#setCardOrientation"
+source_lines = "576-581"
+description = "対象カードがありorientationが異なる場合、snapshot取得後にorientationを書き換え、reorder commandをpushして保存する"
+given = "存在するcardIdと現在と異なるorientationでsetCardOrientation"
+expect_side_effect = "card.orientationが指定値になり、canUndoがtrueになる"
+
+[[condition]]
+id = "reorder_in_zone.invalid_indices_or_same_index_are_noop"
+target_function = "usePracticeStore#reorderInZone"
+source_lines = "584-588"
+description = "cardsがない、fromIndexとtoIndexが同じ、fromIndexが範囲外、toIndexが範囲外の場合は早期returnする"
+given = "reorderInZoneで同一indexまたは範囲外indexを指定"
+expect_side_effect = "状態変更なし、commandは追加されない"
+
+[[condition]]
+id = "reorder_in_zone.moved_missing_is_unreachable_after_range_check"
+target_function = "usePracticeStore#reorderInZone"
+source_lines = "590-592"
+description = "fromIndex範囲チェック後にspliceで取り出すため、movedがundefinedになる分岐は通常到達不能"
+given = "fromIndexが0以上cards.length未満"
+expect_side_effect = "movedはtruthy"
+verified = false
+unverifiable_reason = "範囲チェック直後の同一配列spliceであり、公開APIからmovedだけundefinedにできない"
+
+[[condition]]
+id = "reorder_in_zone.moves_card_and_pushes_command"
+target_function = "usePracticeStore#reorderInZone"
+source_lines = "590-597"
+description = "有効なfromIndex/toIndexならfromIndexのカードを取り出してtoIndexへsplice挿入し、reorder commandをpushして保存する"
+given = "reorderInZone(zone, slotIndex, fromIndex, toIndex) with valid distinct indices"
+expect_side_effect = "ゾーン内順序が変わり、canUndoがtrueになる"
+
+[[condition]]
+id = "add_external_card.inserts_top_bottom_or_clamped_numeric_position"
+target_function = "usePracticeStore#addExternalCard"
+source_lines = "600-621"
+description = "外部カードを作成し、position topなら先頭、bottomなら末尾、数値なら0..lengthへclampしてtargetへ挿入し、snapshot commandをpushして保存する"
+given = "addExternalCard(cid, ciid, zone, slotIndex, fieldIndex, face, position)"
+expect_side_effect = "指定位置にカードが追加される"
+
+[[condition]]
+id = "add_external_card.records_temp_recipe_section"
+target_function = "usePracticeStore#addExternalCard"
+source_lines = "617-619"
+description = "zoneがextraならtempRecipe sectionはextra、それ以外はmainとして記録する"
+given = "addExternalCardでzoneを指定"
+expect_side_effect = "対象フィールドのtempRecipeに{ cid, ciid, section }がpushされる"
+
+[[condition]]
+id = "reveal_deck_contents_sets_field_flag"
+target_function = "usePracticeStore#revealDeckContents"
+source_lines = "624-626"
+description = "対象フィールドのrevealDeckフラグをshowに設定する"
+given = "revealDeckContents(show, fieldIndex)"
+expect_side_effect = "fieldIndexに応じたrevealDeck/refがshowになる"
+
+[[condition]]
+id = "reveal_extra_contents_sets_field_flag"
+target_function = "usePracticeStore#revealExtraContents"
+source_lines = "628-630"
+description = "対象フィールドのrevealExtraフラグをshowに設定する"
+given = "revealExtraContents(show, fieldIndex)"
+expect_side_effect = "fieldIndexに応じたrevealExtra/refがshowになる"
+
+[[condition]]
+id = "save_to_local_storage_strips_cards_and_persists_dual_field_state"
+target_function = "usePracticeStore#saveToLocalStorage"
+source_lines = "724-747"
+description = "zones/zones2はinstanceId/cardId/ciid/face/orientationだけにstripし、reveal/original/tempRecipe/P2 deck metadataをJSON化してlocalStorageへ保存する。例外はcatchしてconsole.errorし再throwしない"
+given = "saveToLocalStorageを呼ぶ"
+expect_side_effect = "localStorage['ygoNext:practice']に永続化データが入る"
+
+[[condition]]
+id = "load_from_local_storage.no_raw_returns_false"
+target_function = "usePracticeStore#loadFromLocalStorage"
+source_lines = "749-752"
+description = "localStorageに保存値がなければfalseを返す"
+given = "localStorage.getItem(STORAGE_KEY)がnull"
+expect_return = "false"
+
+[[condition]]
+id = "load_from_local_storage.missing_zones_returns_false"
+target_function = "usePracticeStore#loadFromLocalStorage"
+source_lines = "754-755"
+description = "JSON parse後のdata.zonesがなければfalseを返す"
+given = "保存JSONにzonesがない"
+expect_return = "false"
+
+[[condition]]
+id = "load_from_local_storage.rehydrates_field1_and_defaults"
+target_function = "usePracticeStore#loadFromLocalStorage"
+source_lines = "757-764"
+description = "data.zonesをrehydrateし、revealDeck/revealExtraはnullishならfalse、original/tempRecipeはnullishなら[]にし、initializedをtrueにしてtrueを返す"
+given = "zonesを含む保存JSON"
+expect_return = "true"
+expect_side_effect = "field 1の状態が復元される"
+
+[[condition]]
+id = "load_from_local_storage.rehydrates_field2_when_initialized2_or_legacy_two_deck_mode"
+target_function = "usePracticeStore#loadFromLocalStorage"
+source_lines = "765-775"
+description = "data.initialized2またはdata.twoDeckModeがtruthyならfield 2も復元し、zones2がなければemptyZones、initialized2は!!data.zones2、p2DeckDnoはnullishならnull、p2DeckNameはnullishなら空文字にする"
+given = "保存JSONにinitialized2またはtwoDeckModeがある"
+expect_side_effect = "field 2関連状態が復元される"
+
+[[condition]]
+id = "load_from_local_storage.parse_or_rehydrate_error_returns_false"
+target_function = "usePracticeStore#loadFromLocalStorage"
+source_lines = "778-780"
+description = "JSON parseやrehydrateで例外が起きた場合、console.errorしてfalseを返す"
+given = "localStorageに不正JSONなどを保存"
+expect_return = "false"
+
+[[condition]]
+id = "clear_field2_resets_field2_state_but_not_reveal_extra2_or_temp_recipe2"
+target_function = "usePracticeStore#clearField2"
+source_lines = "784-792"
+description = "zones2をemptyZones、initialized2をfalse、originalMain/ExtraDeck2を空、revealDeck2をfalse、p2DeckDnoをnull、p2DeckNameを空にする。revealExtra2とtempRecipe2は変更しない"
+given = "field 2に状態がある状態でclearField2"
+expect_side_effect = "実装で代入されたfield 2状態だけがリセットされる"
+
+[[condition]]
+id = "clear_local_storage_removes_key_and_swallows_errors"
+target_function = "usePracticeStore#clearLocalStorage"
+source_lines = "794-800"
+description = "localStorage.removeItem(STORAGE_KEY)を呼ぶ。例外はcatchしてconsole.errorし再throwしない"
+given = "clearLocalStorageを呼ぶ"
+expect_side_effect = "保存キーが削除される"
+
+[[condition]]
+id = "undo_delegates_to_undo_command_then_saves"
+target_function = "usePracticeStore#undo"
+source_lines = "804-807"
+description = "useDeckUndoRedoのundoを呼んだ後、現在状態をlocalStorageへ保存する。undo不可でもsaveToLocalStorageは呼ばれる"
+given = "undo()を呼ぶ"
+expect_side_effect = "可能なら直前snapshotへ戻り、保存される"
+
+[[condition]]
+id = "redo_delegates_to_redo_command_then_saves"
+target_function = "usePracticeStore#redo"
+source_lines = "809-812"
+description = "useDeckUndoRedoのredoを呼んだ後、現在状態をlocalStorageへ保存する。redo不可でもsaveToLocalStorageは呼ばれる"
+given = "redo()を呼ぶ"
+expect_side_effect = "可能なら次snapshotへ進み、保存される"

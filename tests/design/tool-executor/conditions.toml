@@ -1,0 +1,407 @@
+# 検証対象: src/services/llm/tool-executor.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、services/llmのツール実行境界。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - removeCardFromDeckの「削除」は実装上removeCardを呼ばず、moveCardでtrashへ移動する挙動だった。
+#   既存テストはこの点を確認済みだったが、エラー文がtoContain('cardId')で曖昧だったため完全一致に修正した。
+
+[meta]
+feature = "tool-executor"
+source_file = "src/services/llm/tool-executor.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- src/services/llm/__tests__/tool-executor.test.ts"
+source_hash = "64395d44ac1993bc0a1f10a433a45bf4c665ba7f"
+note = "verified=falseは0件"
+
+# --- session tool history exports ---
+
+[[condition]]
+id = "history.get_returns_live_array"
+target_function = "getSessionToolHistory"
+source_lines = "20-21"
+description = "セッションツール履歴の配列そのものを返す（コピーではない）"
+given = "recordToolCallで履歴を1件追加済み"
+expect_return_shape = "追加済み履歴を含む同一配列参照"
+
+[[condition]]
+id = "history.clear_truncates"
+target_function = "clearSessionToolHistory"
+source_lines = "24-25"
+description = "sessionToolHistory.length = 0 により既存配列参照を保ったまま全件削除する"
+given = "履歴配列への参照を取得した後にclearSessionToolHistoryを呼ぶ"
+expect_return = "undefined"
+expect_side_effect = "取得済み配列参照のlengthも0になる"
+
+[[condition]]
+id = "history.record_pushes_entry"
+target_function = "recordToolCall"
+source_lines = "28-29"
+description = "name/args/resultを1オブジェクトにしてセッション履歴末尾へpushする"
+given = "recordToolCall('tool', { a: 1 }, { ok: true })"
+expect_return = "undefined"
+expect_side_effect = "履歴末尾に { name: 'tool', args: { a: 1 }, result: { ok: true } } が追加される"
+
+# --- executeTool(tool, storeRefs): common switch/catch ---
+
+[[condition]]
+id = "execute.unknown_tool_error"
+target_function = "executeTool"
+source_lines = "266-267"
+description = "tool.nameがどのcaseにも一致しない場合、未知のツールエラーを返す"
+given = "tool.name = 'unknownTool'"
+expect_return_shape = "{ success: false, error: '未知のツール: unknownTool' }"
+
+[[condition]]
+id = "execute.catch_error_message"
+target_function = "executeTool"
+source_lines = "269-270"
+description = "処理中にErrorインスタンスがthrowされた場合、例外を再throwせずmessageをerrorにして返す"
+given = "storeRefs.getDeckStateが Error('boom') をthrowする"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: 'boom' }"
+
+[[condition]]
+id = "execute.catch_non_error_string"
+target_function = "executeTool"
+source_lines = "269-270"
+description = "処理中にError以外がthrowされた場合、String(err)をerrorにして返す"
+given = "storeRefs.getDeckStateが 'boom' をthrowする"
+expect_no_throw = true
+expect_return_shape = "{ success: false, error: 'boom' }"
+
+# --- executeTool: searchCards ---
+
+[[condition]]
+id = "execute.search_cards_keyword_searchtype_limit_shape"
+target_function = "executeTool"
+source_lines = "38-48"
+description = "searchCardsツールはarguments.keywordとsearchType='1'でAPI検索し、先頭10件だけをcardId/name/cardTypeへ射影して返す"
+given = "searchCardsが11件以上のCardInfoを返す"
+expect_return_shape = "{ success: true, data: first10.map({ cardId, name, cardType }) }"
+
+# --- executeTool: getChatHistory ---
+
+[[condition]]
+id = "execute.get_chat_history_returns_live_history"
+target_function = "executeTool"
+source_lines = "51-52"
+description = "getChatHistoryツールはsessionToolHistory配列そのものをdataにして返す"
+given = "recordToolCallで履歴を1件追加済み"
+expect_return_shape = "{ success: true, data: getSessionToolHistory()と同一参照 }"
+
+# --- executeTool: getCardDetail ---
+
+[[condition]]
+id = "execute.get_card_detail_card_id_skips_name_resolution"
+target_function = "executeTool"
+source_lines = "56-60,76-88"
+description = "cardIdがtruthyの場合、nameが指定されていても名前解決せず、そのcardIdでstoreRefs.getCardInfoByIdを呼ぶ"
+given = "arguments = { cardId: '1', name: 'Other' } かつcardId '1'が存在する"
+expect_return_shape = "{ success: true, data: { cardId, name, cardType, text } }"
+
+[[condition]]
+id = "execute.get_card_detail_name_not_found"
+target_function = "executeTool"
+source_lines = "60-65"
+description = "cardIdがなくnameがあり、resolveCardNameが{ notFound: true }を返した場合、カード未検出エラーを返す"
+given = "arguments = { name: 'missing' } で名前解決結果がnotFound"
+expect_return_shape = "{ success: false, error: 'カード「missing」が見つかりません' }"
+
+[[condition]]
+id = "execute.get_card_detail_name_ambiguous"
+target_function = "executeTool"
+source_lines = "60-68"
+description = "cardIdがなくnameがあり、resolveCardNameがambiguousを返した場合、候補名を', 'で連結した複数該当エラーを返す"
+given = "arguments = { name: 'Blue' } で候補Blue A/Blue Bが返る"
+expect_return_shape = "{ success: false, error: 'カード「Blue」は複数該当します: Blue A, Blue B' }"
+
+[[condition]]
+id = "execute.get_card_detail_missing_identifier"
+target_function = "executeTool"
+source_lines = "72-73"
+description = "cardIdがなく、nameもないまたは名前解決後もresolvedIdがfalsyの場合、識別子要求エラーを返す"
+given = "arguments = {}"
+expect_return_shape = "{ success: false, error: 'cardIdまたはnameを指定してください' }"
+
+[[condition]]
+id = "execute.get_card_detail_missing_card"
+target_function = "executeTool"
+source_lines = "76-79"
+description = "resolvedIdでstoreRefs.getCardInfoByIdがundefinedを返した場合、カードID未検出エラーを返す"
+given = "arguments = { cardId: '404' } かつgetCardInfoById('404')がundefined"
+expect_return_shape = "{ success: false, error: 'カードID 404 が見つかりません' }"
+
+[[condition]]
+id = "execute.get_card_detail_success_text_field"
+target_function = "executeTool"
+source_lines = "80-88"
+description = "カードが存在する場合、cardId/name/cardType/textを返す。textは'text' in cardがtrueなら値を、falseならundefinedを返す"
+given = "textを持つカードと、textキーを持たないカード"
+expect_return_shape = "textありはtext値、textキーなしはtext: undefined"
+
+# --- executeTool: getDeckState ---
+
+[[condition]]
+id = "execute.get_deck_state_returns_store_state"
+target_function = "executeTool"
+source_lines = "91-92"
+description = "getDeckStateツールはstoreRefs.getDeckState()の戻り値をdataにして返す"
+given = "getDeckStateが任意のオブジェクトを返す"
+expect_return_shape = "{ success: true, data: getDeckState()の戻り値 }"
+
+# --- executeTool: addCardToDeck ---
+
+[[condition]]
+id = "execute.add_card_missing_card"
+target_function = "executeTool"
+source_lines = "95-100"
+description = "addCardToDeckでgetCardInfoById(cardId)がundefinedの場合、addCardを呼ばずカードID未検出エラーを返す"
+given = "arguments = { cardId: '404' }"
+expect_return_shape = "{ success: false, error: 'カードID 404 が見つかりません' }"
+
+[[condition]]
+id = "execute.add_card_default_section_and_forwards_result"
+target_function = "executeTool"
+source_lines = "95-102"
+description = "section未指定時は'main'を使い、storeRefs.addCard(cardId, section)のsuccess/errorだけを返す"
+given = "arguments = { cardId: '1' } かつaddCardが { success: false, error: 'full' } を返す"
+expect_return_shape = "{ success: false, error: 'full' }"
+
+# --- executeTool: removeCardFromDeck ---
+
+[[condition]]
+id = "execute.remove_card_missing_ids"
+target_function = "executeTool"
+source_lines = "106-114"
+description = "cardIdsがなくcardIdもfalsyの場合、移動処理をせずcardId/cardIds要求エラーを返す"
+given = "arguments = { section: 'main' }"
+expect_return_shape = "{ success: false, error: 'cardIdまたはcardIdsを指定してください' }"
+
+[[condition]]
+id = "execute.remove_card_missing_from"
+target_function = "executeTool"
+source_lines = "109-117"
+description = "from/sectionがどちらもfalsyの場合、移動処理をせずsection/from要求エラーを返す"
+given = "arguments = { cardId: '1' }"
+expect_return_shape = "{ success: false, error: 'sectionまたはfromを指定してください' }"
+
+[[condition]]
+id = "execute.remove_card_card_ids_preferred_and_from_alias"
+target_function = "executeTool"
+source_lines = "109-123"
+description = "cardIdsが指定されている場合はcardIdより優先し、fromがなければsectionを移動元として使う"
+given = "arguments = { cardId: 'ignored', cardIds: ['1','2'], section: 'extra' }"
+expect_side_effect = "moveCard('1','extra','trash') と moveCard('2','extra','trash') が呼ばれ、'ignored'は使われない"
+
+[[condition]]
+id = "execute.remove_card_to_default_trash_or_override"
+target_function = "executeTool"
+source_lines = "118-123"
+description = "to未指定時は'trash'へ移動し、to指定時はその値を移動先として使う"
+given = "to未指定の呼び出しと、to='side'指定の呼び出し"
+expect_side_effect = "前者はmoveCard(cardId, from, 'trash')、後者はmoveCard(cardId, from, 'side')"
+
+[[condition]]
+id = "execute.remove_card_all_success"
+target_function = "executeTool"
+source_lines = "124-127"
+description = "全moveCard結果がsuccess=trueの場合、success=trueかつremoved件数を返す"
+given = "idsが2件でmoveCardが全て成功"
+expect_return_shape = "{ success: true, data: { removed: 2 } }"
+
+[[condition]]
+id = "execute.remove_card_partial_failure"
+target_function = "executeTool"
+source_lines = "124-129"
+description = "一部のmoveCardだけ失敗した場合、success=true、失敗内容を'; '連結したerror、成功件数のremovedを返す"
+given = "idsが2件で1件成功・1件失敗"
+expect_return_shape = "{ success: true, error: '2: fail', data: { removed: 1 } }"
+
+[[condition]]
+id = "execute.remove_card_all_failure"
+target_function = "executeTool"
+source_lines = "124-129"
+description = "全moveCardが失敗した場合、success=false、失敗内容を'; '連結したerror、dataはundefinedを返す"
+given = "idsが2件で全件失敗"
+expect_return_shape = "{ success: false, error: '1: fail1; 2: fail2', data: undefined }"
+
+# --- executeTool: moveCard ---
+
+[[condition]]
+id = "execute.move_card_missing_ids"
+target_function = "executeTool"
+source_lines = "133-141"
+description = "cardIdsがなくcardIdもfalsyの場合、移動処理をせずcardId/cardIds要求エラーを返す"
+given = "arguments = { from: 'main', to: 'side' }"
+expect_return_shape = "{ success: false, error: 'cardIdまたはcardIdsを指定してください' }"
+
+[[condition]]
+id = "execute.move_card_missing_endpoint"
+target_function = "executeTool"
+source_lines = "136-144"
+description = "from/sectionまたはtoのどちらかがfalsyの場合、移動処理をせずfrom/to要求エラーを返す"
+given = "arguments = { cardId: '1', from: 'main' } または { cardId: '1', to: 'side' }"
+expect_return_shape = "{ success: false, error: 'fromとtoを指定してください' }"
+
+[[condition]]
+id = "execute.move_card_card_ids_preferred_and_section_alias"
+target_function = "executeTool"
+source_lines = "136-149"
+description = "cardIdsが指定されている場合はcardIdより優先し、fromがなければsectionを移動元として使う"
+given = "arguments = { cardId: 'ignored', cardIds: ['1','2'], section: 'main', to: 'side' }"
+expect_side_effect = "moveCard('1','main','side') と moveCard('2','main','side') が呼ばれ、'ignored'は使われない"
+
+[[condition]]
+id = "execute.move_card_all_success"
+target_function = "executeTool"
+source_lines = "150-153"
+description = "全moveCard結果がsuccess=trueの場合、success=trueかつmoved件数を返す"
+given = "idsが2件でmoveCardが全て成功"
+expect_return_shape = "{ success: true, data: { moved: 2 } }"
+
+[[condition]]
+id = "execute.move_card_partial_failure"
+target_function = "executeTool"
+source_lines = "150-155"
+description = "一部のmoveCardだけ失敗した場合、success=true、失敗内容を'; '連結したerror、成功件数のmovedを返す"
+given = "idsが2件で1件成功・1件失敗"
+expect_return_shape = "{ success: true, error: '2: fail', data: { moved: 1 } }"
+
+[[condition]]
+id = "execute.move_card_all_failure"
+target_function = "executeTool"
+source_lines = "150-155"
+description = "全moveCardが失敗した場合、success=false、失敗内容を'; '連結したerror、dataはundefinedを返す"
+given = "idsが2件で全件失敗"
+expect_return_shape = "{ success: false, error: '1: fail1; 2: fail2', data: undefined }"
+
+# --- executeTool: resolveCardName ---
+
+[[condition]]
+id = "execute.resolve_card_name_returns_resolution_success"
+target_function = "executeTool"
+source_lines = "158-162"
+description = "resolveCardNameツールはstoreRefs.getDeckSections()で取得したデッキを使って名前解決し、解決結果の形に関わらずsuccess=trueでdataに入れて返す"
+given = "resolveCardNameが{ notFound: true }を返す入力"
+expect_return_shape = "{ success: true, data: { notFound: true } }"
+
+# --- executeTool: searchDeckCards ---
+
+[[condition]]
+id = "execute.search_deck_sections_filter"
+target_function = "executeTool"
+source_lines = "185-188"
+description = "section未指定時はmain/extra/sideを検索対象にし、section指定時は該当セクションだけを検索対象にする"
+given = "main/extra/sideに同名カードがあり、section='extra'を指定"
+expect_return_shape = "エクストラデッキのカードだけがcardsに含まれる"
+
+[[condition]]
+id = "execute.search_deck_blank_keyword_matches_all"
+target_function = "executeTool"
+source_lines = "177,226-246"
+description = "keywordをtrimした結果が空文字列の場合、キーワード一致判定を行わず全カードを候補にする"
+given = "keyword = '   '"
+expect_return_shape = "検索対象セクション内のカードが名前等に関係なく返る"
+
+[[condition]]
+id = "execute.search_deck_auto_expands_all_kinds"
+target_function = "executeTool"
+source_lines = "178-183"
+description = "kind未指定または'auto'のみの場合、name/race/attribute/type/textを順に検索対象kindとして扱う"
+given = "kind未指定でkeywordがカードtextにだけ含まれる"
+expect_return_shape = "text一致として該当カードが返る"
+
+[[condition]]
+id = "execute.search_deck_explicit_invalid_race_empty"
+target_function = "executeTool"
+source_lines = "193-198"
+description = "kindにraceを明示指定し、keywordに一致または前方一致する種族名がない場合、即座に空結果を返す"
+given = "kind='race', keyword='存在しない種族'"
+expect_return_shape = "{ success: true, data: { cards: [], totalCount: 0 } }"
+
+[[condition]]
+id = "execute.search_deck_auto_invalid_race_skips_race"
+target_function = "executeTool"
+source_lines = "193-199,229"
+description = "auto検索でraceのkeyword解決に失敗した場合はraceをinvalidKindsに入れてスキップし、他kindの検索は継続する"
+given = "kind='auto', keywordが種族名ではないがカード名に含まれる"
+expect_return_shape = "name一致したカードが返る"
+
+[[condition]]
+id = "execute.search_deck_explicit_invalid_attribute_empty"
+target_function = "executeTool"
+source_lines = "201-206"
+description = "kindにattributeを明示指定し、keywordに一致または前方一致する属性名がない場合、即座に空結果を返す"
+given = "kind='attribute', keyword='存在しない属性'"
+expect_return_shape = "{ success: true, data: { cards: [], totalCount: 0 } }"
+
+[[condition]]
+id = "execute.search_deck_explicit_invalid_type_empty"
+target_function = "executeTool"
+source_lines = "209-214"
+description = "kindにtypeを明示指定し、keywordに一致または前方一致するモンスタータイプ名がない場合、即座に空結果を返す"
+given = "kind='type', keyword='存在しないタイプ'"
+expect_return_shape = "{ success: true, data: { cards: [], totalCount: 0 } }"
+
+[[condition]]
+id = "execute.search_deck_match_name"
+target_function = "executeTool"
+source_lines = "230-234"
+description = "kindにnameが含まれ、card.name.includes(keyword)がtrueの場合、該当カードを結果に含める"
+given = "kind='name', keywordがカード名に部分一致"
+expect_return_shape = "該当カードがcardsに含まれる"
+
+[[condition]]
+id = "execute.search_deck_match_race_attribute_type"
+target_function = "executeTool"
+source_lines = "193-214,235-240"
+description = "race/attribute/type検索はkeywordが表示名に完全一致または前方一致した内部IDへ変換され、monsterカードの対応フィールドと一致した場合だけマッチする"
+given = "ドラゴン族/光/効果でそれぞれ一致するmonsterカード"
+expect_return_shape = "対応するkind指定時に該当monsterカードが返る"
+
+[[condition]]
+id = "execute.search_deck_match_text_or_pendulum_text"
+target_function = "executeTool"
+source_lines = "241-243"
+description = "kindにtextが含まれ、card.textまたはcard.pendulumTextにkeywordが含まれる場合、該当カードを結果に含める"
+given = "keywordがtextにだけ含まれるカード、pendulumTextにだけ含まれるカード"
+expect_return_shape = "どちらのカードもtext検索で返る"
+
+[[condition]]
+id = "execute.search_deck_no_keyword_match_skips"
+target_function = "executeTool"
+source_lines = "226-246"
+description = "keywordがtruthyで、指定kindのいずれにもマッチしない場合、そのカードは結果に含めない"
+given = "kind='name', keywordがカード名に含まれない"
+expect_return_shape = "cardsに該当カードは含まれない"
+
+[[condition]]
+id = "execute.search_deck_card_type_filter"
+target_function = "executeTool"
+source_lines = "247"
+description = "filters.cardTypeが指定され、card.cardTypeと異なる場合、そのカードは結果から除外する"
+given = "monsterとspellが検索対象にあり、cardType='spell'"
+expect_return_shape = "spellだけがcardsに含まれる"
+
+[[condition]]
+id = "execute.search_deck_dedup_count_and_total"
+target_function = "executeTool"
+source_lines = "219-224,248-263"
+description = "同一セクション内の同一cardIdは1結果に集約し、quantityに出現回数を入れ、totalCountはquantity合計で返す"
+given = "mainに同じcardIdのカードが2枚、別カードが1枚ある"
+expect_return_shape = "cardsは2件、重複カードのquantityは2、totalCountは3"
+
+[[condition]]
+id = "execute.search_deck_result_mapping"
+target_function = "executeTool"
+source_lines = "248-255"
+description = "結果行はname/cardId/quantity/section/textを含み、monsterの場合だけrace/attributeを表示名へ変換し、spell/trapではrace/attributeがundefinedになる"
+given = "monsterカードとspellカードが検索結果に含まれる"
+expect_return_shape = "monsterはrace/attributeが日本語表示名、spellはrace/attributeがundefined"

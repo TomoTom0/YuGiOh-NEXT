@@ -166,19 +166,19 @@
               {{ altSaveButtonText }}
             </button>
             <div class="menu-divider"></div>
-            <button @click="handleNewClick" class="menu-item">
+            <button data-testid="new-deck-btn" @click="handleNewClick" class="menu-item">
               <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
                 <path fill="currentColor" :d="mdiPlusBox" />
               </svg>
               New Deck
             </button>
-            <button @click="handleCopyClick" class="menu-item">
+            <button data-testid="copy-deck-btn" @click="handleCopyClick" class="menu-item">
               <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
                 <path fill="currentColor" :d="mdiContentCopy" />
               </svg>
               Copy Deck
             </button>
-            <button @click="handleDeleteDeck" class="menu-item danger">
+            <button data-testid="delete-deck-btn" @click="handleDeleteDeck" class="menu-item danger">
               <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
                 <path fill="currentColor" :d="mdiDelete" />
               </svg>

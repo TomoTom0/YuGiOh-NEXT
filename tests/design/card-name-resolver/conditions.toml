@@ -1,0 +1,151 @@
+# 検証対象: src/services/llm/card-name-resolver.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、LLMカード名解決ロジック。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+
+[meta]
+feature = "card-name-resolver"
+source_file = "src/services/llm/card-name-resolver.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/card-name-resolver.test.ts"
+source_hash = "58ab823a89f07cc1c9a32ce4477d5855c2d3a1c1"
+note = "verified=falseは0件"
+
+# --- matchCards(query: string, cards: CardInfo[]): CardInfo[] ---
+
+[[condition]]
+id = "match_cards.name_or_ruby_case_insensitive_substring"
+target_function = "matchCards"
+source_lines = "5-11"
+description = "query/name/rubyを小文字化し、name.includes(q)またはruby.includes(q)のどちらかがtrueのカードを返す"
+given = "nameの大文字小文字違い、またはrubyのみがqueryを部分一致で含むカード"
+expect_return_shape = "該当カードが入力順のまま返る"
+
+[[condition]]
+id = "match_cards.missing_name_or_ruby_empty_string"
+target_function = "matchCards"
+source_lines = "8-10"
+description = "nameまたはrubyがnullishの場合は空文字列として扱ってincludes判定する"
+given = "rubyがundefinedのカード、または実行時にnameがundefinedのカード"
+expect_return_shape = "undefined側のフィールドでは一致せず、もう一方のフィールドだけで一致可否が決まる"
+
+[[condition]]
+id = "match_cards.empty_query_matches_all_cards"
+target_function = "matchCards"
+source_lines = "6-10"
+description = "queryが空文字列の場合、String.prototype.includes('')がtrueになるため全カードが一致する"
+given = "query = ''、cardsに複数件"
+expect_return_shape = "全カードが入力順のまま返る"
+
+# --- toResolution(card: CardInfo): CardResolution ---
+
+[[condition]]
+id = "to_resolution.copies_identity_fields"
+target_function = "toResolution"
+source_lines = "14-21"
+description = "card.cardId/card.ciid/card.nameを同名フィールドへコピーし、isAmbiguous=falseを設定する"
+given = "任意のCardInfo"
+expect_return_shape = "{ cardId, ciid, name, isAmbiguous: false }"
+
+# --- resolveCardName(query: string, deckSections: DeckSections) ---
+
+[[condition]]
+id = "resolve.stage_order_main_extra_first"
+target_function = "resolveCardName"
+source_lines = "27-45"
+description = "mainとextraを結合した最初のステージで1件一致した場合、side/trash/searchResults/APIは検索せずその解決結果を返す"
+given = "mainまたはextraに1件一致し、後続ステージにも同じqueryに一致するカードがある"
+expect_return_shape = "main+extraステージの一致カードのCardResolution"
+
+[[condition]]
+id = "resolve.stage_order_side_before_trash_and_search_results"
+target_function = "resolveCardName"
+source_lines = "27-45"
+description = "main+extraに一致がなくsideで1件一致した場合、trash/searchResults/APIは検索せずsideの解決結果を返す"
+given = "sideとtrash/searchResultsに同じqueryに一致するカードがあるが、main/extraには一致がない"
+expect_return_shape = "sideの一致カードのCardResolution"
+
+[[condition]]
+id = "resolve.stage_order_trash_before_search_results"
+target_function = "resolveCardName"
+source_lines = "27-45"
+description = "main+extra/sideに一致がなくtrashで1件一致した場合、searchResults/APIは検索せずtrashの解決結果を返す"
+given = "trashとsearchResultsに同じqueryに一致するカードがあるが、main/extra/sideには一致がない"
+expect_return_shape = "trashの一致カードのCardResolution"
+
+[[condition]]
+id = "resolve.search_results_before_api"
+target_function = "resolveCardName"
+source_lines = "27-48"
+description = "searchResultsで1件一致した場合、公式API検索を呼ばずsearchResultsの解決結果を返す"
+given = "searchResultsに1件一致し、main/extra/side/trashには一致がない"
+expect_return_shape = "searchResultsの一致カードのCardResolution"
+
+[[condition]]
+id = "resolve.deck_stage_single_hit_returns_resolution"
+target_function = "resolveCardName"
+source_lines = "34-38"
+description = "現在のステージのhits.lengthが1の場合、toResolution(hits[0])を即座に返す"
+given = "任意のデッキ内ステージで一致が1件だけ"
+expect_return_shape = "{ cardId, ciid, name, isAmbiguous: false }"
+
+[[condition]]
+id = "resolve.deck_stage_multiple_hits_returns_ambiguous_first_five"
+target_function = "resolveCardName"
+source_lines = "39-43"
+description = "現在のステージのhits.lengthが2以上の場合、ambiguous=trueとhits先頭5件のcardId/ciid/nameだけをcandidatesとして即座に返す"
+given = "同一ステージ内にquery一致カードが6件以上"
+expect_return_shape = "{ ambiguous: true, candidates: hits.slice(0, 5).map(({cardId, ciid, name}) => ...) }"
+
+[[condition]]
+id = "resolve.deck_stage_zero_hits_continues"
+target_function = "resolveCardName"
+source_lines = "34-45"
+description = "現在のステージのhits.lengthが0の場合はreturnせず、次のステージへ進む"
+given = "main+extraに一致がなくsideに1件一致する"
+expect_return_shape = "sideの一致カードのCardResolution"
+
+[[condition]]
+id = "resolve.all_deck_stages_zero_calls_api"
+target_function = "resolveCardName"
+source_lines = "34-48"
+description = "main+extra/side/trash/searchResultsの全ステージで一致が0件の場合のみsearchCards({ keyword: query, searchType: '1' })を呼ぶ"
+given = "デッキ全体にquery一致カードが存在しない"
+expect_return_shape = "searchCardsの結果件数に応じた戻り値"
+
+[[condition]]
+id = "resolve.api_single_hit_returns_resolution"
+target_function = "resolveCardName"
+source_lines = "48-51"
+description = "searchCardsの戻り値が1件の場合、そのカードをtoResolutionして返す"
+given = "デッキ内一致なし、searchCardsが1件返す"
+expect_return_shape = "{ cardId, ciid, name, isAmbiguous: false }"
+
+[[condition]]
+id = "resolve.api_multiple_hits_returns_ambiguous_first_five"
+target_function = "resolveCardName"
+source_lines = "52-56"
+description = "searchCardsの戻り値が2件以上の場合、ambiguous=trueとapiResults先頭5件のcardId/ciid/nameだけをcandidatesとして返す"
+given = "デッキ内一致なし、searchCardsが6件以上返す"
+expect_return_shape = "{ ambiguous: true, candidates: apiResults.slice(0, 5).map(({cardId, ciid, name}) => ...) }"
+
+[[condition]]
+id = "resolve.api_zero_hits_returns_not_found"
+target_function = "resolveCardName"
+source_lines = "48-59"
+description = "searchCardsの戻り値が0件の場合、{ notFound: true }を返す"
+given = "デッキ内一致なし、searchCardsが空配列を返す"
+expect_return = "{ notFound: true }"
+
+[[condition]]
+id = "resolve.api_rejection_propagates"
+target_function = "resolveCardName"
+source_lines = "48"
+description = "searchCardsのawaitをtry/catchしていないため、searchCardsがrejectした場合はそのreject理由でresolveCardNameもrejectする"
+given = "デッキ内一致なし、searchCardsがErrorでrejectする"
+expect_throw = "searchCardsのreject理由がそのまま伝播する"

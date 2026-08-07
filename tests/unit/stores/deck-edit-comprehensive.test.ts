@@ -12,6 +12,35 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 
+const mockUnifiedDB = vi.hoisted(() => ({
+  isInitialized: vi.fn(() => false),
+  setCardInfo: vi.fn(),
+  getCardInfo: vi.fn((cardId: string) => null),
+  getValidCiidsForLang: vi.fn(() => [] as string[]),
+  reconstructCardInfo: vi.fn(() => null),
+  getAllCardInfos: vi.fn(() => new Map()),
+  recordMove: vi.fn(),
+  recordDeckOpen: vi.fn(),
+  getCardTier: vi.fn((cardId: string) => 3),
+  getStats: vi.fn(() => ({
+    cardTierCount: 100,
+    deckHistoryCount: 5,
+    cardTableACount: 50,
+    cardTableBCount: 60,
+    productTableACount: 20,
+    faqTableACount: 30
+  })),
+  clearAll: vi.fn(),
+  saveCardTableA: vi.fn(),
+  saveCardTableB: vi.fn(),
+  saveAll: vi.fn()
+}));
+
+const mockTempCards = vi.hoisted(() => new Map<string, any>());
+const mockPersistenceSaveDeck = vi.hoisted(() => vi.fn(async () => ({ success: true })));
+const mockPersistenceLoadDeck = vi.hoisted(() => vi.fn(async (_dno: number) => createMockDeckInfo(_dno)));
+const mockUpdateDeckInfoAndThumbnailWithData = vi.hoisted(() => vi.fn(async () => {}));
+
 // Mock modules BEFORE importing the store
 vi.mock('@/utils/extension-context-checker', () => {
   return {
@@ -23,27 +52,6 @@ vi.mock('@/utils/extension-context-checker', () => {
 });
 
 vi.mock('@/utils/unified-cache-db', () => {
-  const mockUnifiedDB = {
-    isInitialized: vi.fn(() => false),
-    setCardInfo: vi.fn(),
-    getCardInfo: vi.fn((cardId: string) => null),
-    getAllCardInfos: vi.fn(() => new Map()),
-    recordDeckOpen: vi.fn(),
-    getCardTier: vi.fn((cardId: string) => 3),
-    getStats: vi.fn(() => ({
-      cardTierCount: 100,
-      deckHistoryCount: 5,
-      cardTableACount: 50,
-      cardTableBCount: 60,
-      productTableACount: 20,
-      faqTableACount: 30
-    })),
-    clearAll: vi.fn(),
-    saveCardTableA: vi.fn(),
-    saveCardTableB: vi.fn(),
-    saveAll: vi.fn()
-  };
-
   return {
     getUnifiedCacheDB: vi.fn(() => mockUnifiedDB),
     initUnifiedCacheDB: vi.fn(async () => {}),
@@ -57,11 +65,13 @@ vi.mock('@/utils/temp-cache-db', () => {
   return {
     getTempCacheDB: vi.fn(() => ({
       setCardInfo: vi.fn(),
-      getCardInfo: vi.fn(),
-      get: vi.fn((cardId: string) => null),
-      set: vi.fn((cardId: string, card: any) => {}),
-      size: 0
+      getCardInfo: vi.fn((cardId: string) => mockTempCards.get(cardId) ?? null),
+      get: vi.fn((cardId: string) => mockTempCards.get(cardId) ?? null),
+      set: vi.fn((cardId: string, card: any) => { mockTempCards.set(cardId, card); return true; }),
+      clear: vi.fn(() => mockTempCards.clear()),
+      get size() { return mockTempCards.size; }
     })),
+    mockTempCards,
     resetTempCacheDB: vi.fn(),
     initTempCacheDBFromStorage: vi.fn(async () => {}),
     saveTempCacheDBToStorage: vi.fn(async () => {}),
@@ -75,6 +85,24 @@ vi.mock('@/utils/language-detector', () => {
   };
 });
 
+vi.mock('@/composables/deck/useDeckPersistence', () => {
+  return {
+    useDeckPersistence: vi.fn(() => ({
+      saveDeck: mockPersistenceSaveDeck,
+      loadDeck: mockPersistenceLoadDeck
+    }))
+  };
+});
+
+vi.mock('@/utils/deck-cache', () => {
+  return {
+    loadThumbnailCache: vi.fn(() => new Map()),
+    loadDeckInfoCache: vi.fn(() => new Map()),
+    updateDeckInfoAndThumbnailWithData: mockUpdateDeckInfoAndThumbnailWithData,
+    saveDeckListOrder: vi.fn()
+  };
+});
+
 // NOW import the store after all mocks are set up
 import { useDeckEditStore } from '@/stores/deck-edit';
 import type { CardInfo, DeckInfo } from '@/types';
@@ -82,6 +110,12 @@ import type { CardInfo, DeckInfo } from '@/types';
 describe('useDeckEditStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    vi.mocked(mockUnifiedDB.isInitialized).mockReturnValue(false);
+    vi.mocked(mockUnifiedDB.getValidCiidsForLang).mockReturnValue([]);
+    mockPersistenceSaveDeck.mockResolvedValue({ success: true });
+    mockPersistenceLoadDeck.mockImplementation(async (dno: number) => createMockDeckInfo(dno));
+    mockUpdateDeckInfoAndThumbnailWithData.mockResolvedValue(undefined);
+    mockTempCards.clear();
   });
 
   describe('State 初期化', () => {
@@ -101,7 +135,7 @@ describe('useDeckEditStore', () => {
   });
 
   describe('addCard() - カード追加', () => {
-    it('TC-01: 単一カード追加（main）', () => {
+    it('TC-01: 単一カード追加（main） [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -114,7 +148,7 @@ describe('useDeckEditStore', () => {
       expect(store.deckInfo.mainDeck[0].quantity).toBe(1);
     });
 
-    it('TC-02: 同じカードを3回追加（3-copy 制限）', () => {
+    it('TC-02: 同じカードを3回追加（3-copy 制限） [covers:add_card.max_copies_reached_rejected]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -143,23 +177,20 @@ describe('useDeckEditStore', () => {
       expect(store.displayOrder.main[0].uuid).not.toBe(store.displayOrder.main[1].uuid);
     });
 
-    it('TC-04: ciid が undefined の場合、デフォルト 0 に正規化', () => {
+    it('TC-04: ciid が undefined の場合、デフォルト 0 に正規化 [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
       card.ciid = undefined; // undefined
 
       store.addCard(card, 'main');
 
-      // ciidが0または"0"のいずれかの可能性（型は実装に依存）
       expect(Number(store.deckInfo.mainDeck[0].ciid)).toBe(0);
     });
 
-    // ❌ TODO: ciid言語チェック（unifiedDB mock 必須）
-    // it('TC-02: ciid言語チェック - 無効な ciid は拒否', () => { ... });
   });
 
   describe('removeCard() - カード削除', () => {
-    it('TC-05: カード削除（displayOrder と deckInfo が同期）', () => {
+    it('TC-05: カード削除（displayOrder と deckInfo が同期） [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -186,17 +217,15 @@ describe('useDeckEditStore', () => {
       expect(store.deckInfo.mainDeck[0].quantity).toBe(1);
     });
 
-    it('TC-07: 存在しないカードを削除しようとしてもエラーなし', () => {
+    it('TC-07: 存在しないカードを削除しようとしてもエラーなし [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
       const store = useDeckEditStore();
       const result = store.removeCard('99999999', 'main');
-      // removeCard は undefined を返すことがある（正常系）
-      // テストは実行時エラーがないことを確認
-      expect(true).toBe(true);
+      expect(result).toBeUndefined();
     });
   });
 
   describe('moveCard() - カード移動', () => {
-    it('TC-03: main → extra 移動', () => {
+    it('TC-03: main → extra 移動 [covers:move_card.success_moves_and_records]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster', { isExtraDeck: true });
 
@@ -211,7 +240,7 @@ describe('useDeckEditStore', () => {
       expect(store.deckInfo.extraDeck[0].cid).toBe('12345678');
     });
 
-    it('TC-04: trash → side 移動（枚数制限チェック）', () => {
+    it('TC-04: trash → side 移動はdisplayOrderに無くてもsuccessを返す [covers:move_card.success_moves_and_records]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -223,14 +252,14 @@ describe('useDeckEditStore', () => {
       // trash に 1 枚
       store.trashDeck.push({ cid: '12345678', ciid: 0, quantity: 1 });
 
-      // trash → side は実装では成功している（trashは枚数制限外？）
       const result = store.moveCard('12345678', 'trash', 'side');
 
-      // 実装がtrashからの移動は成功と判定する
       expect(result.success).toBe(true);
+      expect(store.trashDeck).toEqual([{ cid: '12345678', ciid: 0, quantity: 1 }]);
+      expect(store.displayOrder.side).toHaveLength(0);
     });
 
-    it('TC-08: UUID 指定での移動', () => {
+    it('TC-08: UUID 指定での移動 [covers:move_card.success_moves_and_records]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -246,10 +275,19 @@ describe('useDeckEditStore', () => {
       expect(store.displayOrder.main.length).toBe(1);
       expect(store.displayOrder.side.length).toBe(1);
     });
+
+    it('TC-08b: 移動元にカードが無い場合は失敗 [covers:move_card.source_not_found]', () => {
+      const store = useDeckEditStore();
+
+      const result = store.moveCard('missing', 'main', 'side');
+
+      expect(result).toEqual({ success: false, error: 'カードが見つかりません' });
+    });
+
   });
 
   describe('moveCardWithPosition() - ドラッグ移動', () => {
-    it('TC-05: ドラッグ移動（セクション間、位置指定）', () => {
+    it('TC-05: ドラッグ移動（セクション間、位置指定） [covers:move_card_with_position.success_inserts_at_target_or_end]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster', { isExtraDeck: true });
       const card2 = createMockCard('22222222', 'spell');
@@ -260,18 +298,17 @@ describe('useDeckEditStore', () => {
       store.addCard(card3, 'main');
 
       const uuid1 = store.displayOrder.main[0].uuid;
-      const uuid2 = store.displayOrder.main[1].uuid;
+      const targetUuid = store.displayOrder.extra[0]?.uuid ?? null;
 
-      // uuid1 を extra の uuid2 の位置に移動
-      const result = store.moveCardWithPosition('11111111', 'main', 'extra', uuid1, uuid2);
+      const result = store.moveCardWithPosition('11111111', 'main', 'extra', uuid1, targetUuid);
 
-      // 実装の動作：正確な位置指定では失敗する可能性
-      // テストは実行時エラーがないことを確認する
-      expect(typeof result).toBe('object');
-      expect(store.displayOrder.main.length + store.displayOrder.extra.length).toBe(3);
+      expect(result).toEqual({ success: true });
+      expect(store.displayOrder.main).toHaveLength(2);
+      expect(store.displayOrder.extra).toHaveLength(1);
+      expect(store.deckInfo.extraDeck.find(dc => dc.cid === '11111111')?.quantity).toBe(1);
     });
 
-    it('TC-05b: ドラッグ移動（null 位置 = 末尾）', () => {
+    it('TC-05b: ドラッグ移動（null 位置 = 末尾） [covers:move_card_with_position.success_inserts_at_target_or_end]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster', { isExtraDeck: true });
 
@@ -281,17 +318,30 @@ describe('useDeckEditStore', () => {
 
       const result = store.moveCardWithPosition('12345678', 'main', 'extra', uuid, null);
 
-      // 実装の動作を確認：テストは実行時エラーがないことを確認
-      expect(typeof result).toBe('object');
+      expect(result).toEqual({ success: true });
       expect(store.displayOrder.main.length + store.displayOrder.extra.length).toBe(1);
     });
 
-    // ❌ 複雑な undo/redo テストが必須
-    // it('TC-06: moveCardWithPosition undo/redo', () => { ... });
+    it('TC-05c: sourceUuidが存在しない場合は失敗 [covers:move_card_with_position.source_card_missing]', () => {
+      const store = useDeckEditStore();
+
+      const result = store.moveCardWithPosition('missing', 'main', 'extra', 'missing-uuid', null);
+
+      expect(result).toEqual({ success: false, error: 'カードが見つかりません' });
+    });
+
+    it('TC-05d: TempCacheDBにカード情報が無い場合は失敗 [covers:move_card_with_position.card_info_missing]', () => {
+      const store = useDeckEditStore();
+      store.displayOrder.main.push({ cid: '12345678', ciid: 0, uuid: '12345678-0-0' });
+
+      const result = store.moveCardWithPosition('12345678', 'main', 'extra', '12345678-0-0', null);
+
+      expect(result).toEqual({ success: false, error: 'カード情報が見つかりません' });
+    });
   });
 
   describe('reorderWithinSection() - 同一セクション内の並び替え', () => {
-    it('TC-07: 順序変更（前に移動）', () => {
+    it('TC-07: 順序変更（前に移動） [covers:reorder_within_section.success_pushes_reorder_command]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -308,11 +358,11 @@ describe('useDeckEditStore', () => {
       const result = store.reorderWithinSection('main', uuid1, uuid3);
 
       expect(result.success).toBe(true);
-      // 実装の動作を確認：カード数は変わらないことを確認
       expect(store.displayOrder.main.length).toBe(3);
+      expect(store.commandHistory.at(-1)?.type).toBe('reorder');
     });
 
-    it('TC-07b: 順序変更（null = 末尾）', () => {
+    it('TC-07b: 順序変更（null = 末尾） [covers:reorder_within_section.success_pushes_reorder_command]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -325,8 +375,29 @@ describe('useDeckEditStore', () => {
       const result = store.reorderWithinSection('main', uuid1, null);
 
       expect(result.success).toBe(true);
-      // 実装の動作を確認：カード数は変わらないことを確認
       expect(store.displayOrder.main.length).toBe(2);
+    });
+
+    it('TC-07c: 同じUUIDへのdropはmoved=false [covers:reorder_within_section.same_uuid_noop] [covers:reorder_card.no_actual_move_skips_followup]', () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('11111111', 'monster');
+      store.addCard(card, 'main');
+      const uuid = store.displayOrder.main[0].uuid;
+
+      const result = store.reorderWithinSection('main', uuid, uuid);
+      const reorderResult = store.reorderCard(uuid, uuid, 'main');
+
+      expect(result).toEqual({ success: true, moved: false });
+      expect(reorderResult).toEqual({ success: true, moved: false });
+    });
+
+    it('TC-07d: 不正なsourceUuidはvalidation error [covers:reorder_within_section.validation_error_returns_failure]', () => {
+      const store = useDeckEditStore();
+
+      const result = store.reorderWithinSection('main', 'missing-uuid', null);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTypeOf('string');
     });
   });
 
@@ -389,7 +460,7 @@ describe('useDeckEditStore', () => {
   });
 
   describe('Undo/Redo', () => {
-    it('TC-11: addCard → undo → redo', () => {
+    it('TC-11: addCard → undo → redo [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -405,7 +476,7 @@ describe('useDeckEditStore', () => {
       expect(store.displayOrder.main.length).toBe(1);
     });
 
-    it('TC-12: moveCard の undo で元位置に復帰', () => {
+    it('TC-12: moveCard の undo で元位置に復帰 [covers:move_card.success_moves_and_records]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -419,18 +490,13 @@ describe('useDeckEditStore', () => {
 
       store.undo();
 
-      // 元の状態に復帰？
-      // ⚠️ UUID が異なるため、純粋に比較できない可能性がある
       expect(store.displayOrder.main.length).toBe(2);
       expect(store.displayOrder.side.length).toBe(0);
     });
-
-    // ❌ TODO: moveCardWithPosition のundo/redo（複雑）
-    // it('TC-06: moveCardWithPosition undo/redo', () => { ... });
   });
 
   describe('shuffleSection()', () => {
-    it('TC-08: シャッフル後、カード数は変わらない', () => {
+    it('TC-08: シャッフル後、カード数は変わらない [covers:shuffle_section.nonempty_shuffles_and_pushes_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -445,7 +511,7 @@ describe('useDeckEditStore', () => {
       expect(countBefore).toBe(countAfter);
     });
 
-    it('TC-08b: シャッフル → undo で元の順序に復帰', () => {
+    it('TC-08b: シャッフル → undo で元の順序に復帰 [covers:shuffle_section.nonempty_shuffles_and_pushes_command]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -467,25 +533,30 @@ describe('useDeckEditStore', () => {
   });
 
   describe('sortSection()', () => {
-    it('TC-09: ソート後、カード数は変わらない', () => {
+    it('TC-09: 空セクションのソートは履歴を追加しない [covers:sort_section.empty_section_noop]', () => {
       const store = useDeckEditStore();
-      const card = createMockCard('12345678', 'monster');
-      card.types = ['normal'];  // types を明示的に設定
 
-      store.addCard(card, 'main');
-      store.addCard(card, 'main');
+      store.sortSection('main');
 
+      expect(store.displayOrder.main).toHaveLength(0);
+      expect(store.commandHistory).toHaveLength(0);
+    });
+
+    it('TC-09b: 非空セクションのソートはカード数を保ちreorder履歴を追加する [covers:sort_section.no_override_resolves_toggle_and_pushes_command]', () => {
+      const store = useDeckEditStore();
+      store.addCard(createMockCard('22222222', 'spell'), 'main');
+      store.addCard(createMockCard('11111111', 'monster'), 'main');
       const countBefore = store.displayOrder.main.length;
-      // ソートは実装が複雑なため、スキップ
-      // store.sortSection('main');
-      const countAfter = store.displayOrder.main.length;
 
-      expect(countBefore).toBe(countAfter);
+      store.sortSection('main');
+
+      expect(store.displayOrder.main).toHaveLength(countBefore);
+      expect(store.commandHistory.at(-1)?.type).toBe('reorder');
     });
   });
 
   describe('境界条件テスト', () => {
-    it('TC-Empty: 空のデッキから削除しようとする', () => {
+    it('TC-Empty: 空のデッキから削除しようとする [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
       const store = useDeckEditStore();
       const result = store.removeCard('99999999', 'main');
       // removeCard が undefined を返すこともあるため、チェック
@@ -494,18 +565,17 @@ describe('useDeckEditStore', () => {
       }
     });
 
-    it('TC-LargeQty: quantity > 100 のカード', () => {
+    it('TC-LargeQty: quantity > 100 のカード [covers:remove_card.delegates_remove_records_move_and_updates_category]', () => {
       const store = useDeckEditStore();
-      const card = createMockCard('12345678', 'monster');
 
-      // deckInfo に直接設定
       store.deckInfo.mainDeck.push({ cid: '12345678', ciid: 0, quantity: 100 });
 
-      // removeCard は quantity を正しく減らす？
-      // ⚠️ 実装の詳細確認が必須
+      store.removeCard('12345678', 'main');
+
+      expect(store.deckInfo.mainDeck[0].quantity).toBe(99);
     });
 
-    it('TC-Undefined: ciid が undefined のカード', () => {
+    it('TC-Undefined: ciid が undefined のカード [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
       card.ciid = undefined;
@@ -513,14 +583,13 @@ describe('useDeckEditStore', () => {
       const result = store.addCard(card, 'main');
 
       expect(result.success).toBe(true);
-      // ciid が 0 または "0" のいずれかの可能性
       const ciid = store.deckInfo.mainDeck[0].ciid;
       expect(Number(ciid)).toBe(0);
     });
   });
 
   describe('backupDisplayOrder() / restoreDisplayOrder() - TASK-281', () => {
-    it('TC-Backup-01: restoreDisplayOrder は displayOrder と deckInfo を同時に復元する', () => {
+    it('TC-Backup-01: restoreDisplayOrder は displayOrder と deckInfo を同時に復元する [covers:backup_display_order.deep_copies_display_and_deck] [covers:restore_display_order.restores_and_clears_backup]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -550,7 +619,7 @@ describe('useDeckEditStore', () => {
       expect(store.deckInfo.mainDeck.map(d => d.cid)).toEqual(originalMainDeck);
     });
 
-    it('TC-Backup-02: restoreDisplayOrder 後、displayOrder と deckInfo が同一順序を保つ', () => {
+    it('TC-Backup-02: restoreDisplayOrder 後、displayOrder と deckInfo が同一順序を保つ [covers:restore_display_order.restores_and_clears_backup]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -578,7 +647,7 @@ describe('useDeckEditStore', () => {
   });
 
   describe('コマンド description / type フィールド', () => {
-    it('addCard 後のコマンドに description と type が設定される', () => {
+    it('addCard 後のコマンドに description と type が設定される [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -597,7 +666,7 @@ describe('useDeckEditStore', () => {
       expect(lastCmd.type).toBe('add');
     });
 
-    it('moveCard 後のコマンドに type: move が設定される', () => {
+    it('moveCard 後のコマンドに type: move が設定される [covers:move_card.success_moves_and_records]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -613,7 +682,7 @@ describe('useDeckEditStore', () => {
       }
     });
 
-    it('reorderWithinSection 後のコマンドに type: reorder が設定される', () => {
+    it('reorderWithinSection 後のコマンドに type: reorder が設定される [covers:reorder_within_section.success_pushes_reorder_command]', () => {
       const store = useDeckEditStore();
       const card1 = createMockCard('11111111', 'monster');
       const card2 = createMockCard('22222222', 'spell');
@@ -630,7 +699,7 @@ describe('useDeckEditStore', () => {
       expect(lastCmd.type).toBe('reorder');
     });
 
-    it('コマンドに timestamp が自動設定される', () => {
+    it('コマンドに timestamp が自動設定される [covers:add_card.success_adds_display_order_and_command]', () => {
       const store = useDeckEditStore();
       const card = createMockCard('12345678', 'monster');
 
@@ -647,18 +716,103 @@ describe('useDeckEditStore', () => {
   });
 
   describe('hasUnsavedChanges()', () => {
-    it('TC-UnsavedChanges: カード追加後に変更フラグが立つ', () => {
+    it('TC-UnsavedChanges: saved snapshot が無い場合はfalse [covers:has_unsaved_changes.no_saved_snapshot_false]', () => {
       const store = useDeckEditStore();
-
-      // snapshot を初期化
-      store.captureDeckSnapshot(); // ⚠️ savedDeckSnapshot に設定される？
-      // TODO: savedDeckSnapshot のセッター確認
 
       const card = createMockCard('12345678', 'monster');
       store.addCard(card, 'main');
 
-      // ⚠️ savedDeckSnapshot の初期化方法が不明
-      // expect(store.hasUnsavedChanges()).toBe(true);
+      expect(store.hasUnsavedChanges()).toBe(false);
+    });
+  });
+
+  describe('その他の公開アクション', () => {
+    it('setDraggingCard は値をそのまま代入する [covers:set_dragging_card.assigns_value]', () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('12345678', 'monster');
+
+      store.setDraggingCard({ card, sectionType: 'main' });
+      expect(store.draggingCard).toEqual({ card, sectionType: 'main' });
+
+      store.setDraggingCard(null);
+      expect(store.draggingCard).toBeNull();
+    });
+
+    it('getDeckName は name, originalName, 空文字の順に返す [covers:get_deck_name.name_then_original_then_empty] [covers:set_deck_name.assigns_name]', () => {
+      const store = useDeckEditStore();
+
+      expect(store.getDeckName()).toBe('');
+      (store.deckInfo as any).originalName = 'Original';
+      expect(store.getDeckName()).toBe('Original');
+      store.setDeckName('Current');
+      expect(store.getDeckName()).toBe('Current');
+    });
+
+    it('openLoadDialog はキャッシュを再読込してdialogを開く [covers:open_load_dialog.reloads_caches_and_shows_dialog]', () => {
+      const store = useDeckEditStore();
+
+      store.openLoadDialog();
+
+      expect(store.showLoadDialog).toBe(true);
+      expect(store.deckThumbnails).toBeDefined();
+      expect(store.cachedDeckInfos).toBeDefined();
+    });
+
+    it('headPlacementCardIds は重複追加せず削除とincludesを反映する [covers:add_head_placement_card.adds_unique_and_saves] [covers:add_head_placement_card.duplicate_noop] [covers:remove_head_placement_card.removes_existing_and_saves] [covers:remove_head_placement_card.missing_noop] [covers:is_head_placement_card.includes_result]', () => {
+      const store = useDeckEditStore();
+
+      store.addHeadPlacementCard('12345678');
+      store.addHeadPlacementCard('12345678');
+      expect(store.headPlacementCardIds).toEqual(['12345678']);
+      expect(store.isHeadPlacementCard('12345678')).toBe(true);
+
+      store.removeHeadPlacementCard('missing');
+      expect(store.headPlacementCardIds).toEqual(['12345678']);
+
+      store.removeHeadPlacementCard('12345678');
+      expect(store.headPlacementCardIds).toEqual([]);
+      expect(store.isHeadPlacementCard('12345678')).toBe(false);
+    });
+
+    it('ロード済みデッキがない操作はNo deck loadedをthrowする [covers:reload_deck.no_current_deck_throws] [covers:copy_current_deck.no_loaded_deck_throws] [covers:delete_current_deck.no_loaded_deck_throws]', async () => {
+      const store = useDeckEditStore();
+
+      await expect(store.reloadDeck()).rejects.toThrow('No deck loaded');
+      await expect(store.copyCurrentDeck()).rejects.toThrow('No deck loaded');
+      await expect(store.deleteCurrentDeck()).rejects.toThrow('No deck loaded');
+    });
+
+    it('captureDeckSnapshot と sort-only 判定のsnapshotなし分岐 [covers:capture_deck_snapshot.delegates_to_logic] [covers:has_only_sort_order_changes.no_saved_snapshot_false]', () => {
+      const store = useDeckEditStore();
+
+      expect(typeof store.captureDeckSnapshot()).toBe('string');
+      expect(store.hasOnlySortOrderChanges()).toBe(false);
+    });
+
+    it('saveDeck成功時のみデッキ情報とサムネイルキャッシュ更新を非同期で開始する [covers:save_deck.success_updates_cache_and_thumbnail]', async () => {
+      const store = useDeckEditStore();
+      const card = createMockCard('12345678', 'monster', { ciid: 1 });
+      store.addCard(card, 'main');
+      store.addHeadPlacementCard('12345678');
+
+      mockPersistenceSaveDeck.mockResolvedValueOnce({ success: true });
+      const success = await store.saveDeck(7);
+
+      expect(success).toEqual({ success: true });
+      expect(mockUpdateDeckInfoAndThumbnailWithData).toHaveBeenCalledWith(
+        7,
+        store.deckInfo,
+        store.headPlacementCardIds,
+        store.deckThumbnails,
+        store.cachedDeckInfos
+      );
+
+      mockUpdateDeckInfoAndThumbnailWithData.mockClear();
+      mockPersistenceSaveDeck.mockResolvedValueOnce({ success: false, error: ['failed'] });
+      const failure = await store.saveDeck(7);
+
+      expect(failure).toEqual({ success: false, error: ['failed'] });
+      expect(mockUpdateDeckInfoAndThumbnailWithData).not.toHaveBeenCalled();
     });
   });
 });

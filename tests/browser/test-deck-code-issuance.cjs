@@ -1,135 +1,80 @@
 /**
- * デッキコード発行機能のテスト (PR #82)
+ * デッキコード発行機能の動作確認テスト（自動化）
  *
- * デッキ詳細ページでデッキコードが正しく発行・ローカルストレージに保存されることを確認
+ * 前提: デッキ編集ページ(https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit)でログイン済み。
+ *       デッキコード発行UI(DeckMetadataHeader)はeditページ専用。
+ *
+ * サーバー書き込み（コード発行 ope=13）を伴うため、デフォルトは書き込みなし。
+ * 環境変数 YGO_WRITE_TESTS=1 の時のみ発行を実行する。
+ *
+ * 実装参照:
+ *   src/components/DeckMetadataHeader.vue (.metadata-menu-button, .deck-code-row, .deck-code-btn, .deck-code-display)
+ *   src/api/deck-operations.ts (issueDeckCodeInternal, ope=13)
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
 
-// デッキ詳細ページのURL（例）
-const DECK_DETAIL_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/deckdetail?cgid=test&dno=1';
+const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit';
+const WRITE_TESTS = process.env.YGO_WRITE_TESTS === '1';
 
 async function testDeckCodeIssuance() {
-  console.log('【デッキコード発行機能テスト】\n');
-
+  console.log(`【デッキコード発行テスト】 (YGO_WRITE_TESTS=${WRITE_TESTS ? '1（発行実行）' : '未設定（書き込みなし）'})\n`);
+  const t = createTestContext();
   const cdp = await connectCDP();
 
   try {
-    console.log('デッキ詳細ページにアクセス中...');
-    await cdp.navigate(DECK_DETAIL_URL);
-    await cdp.wait(3000); // 拡張機能のロード待機
+    console.log('デッキ編集ページにアクセス中（ログイン済み前提）...');
+    await cdp.navigate(EDIT_URL);
+    const loaded = await cdp.waitFor(`document.querySelector('.metadata-menu-button') !== null`, 10000);
+    if (!loaded) console.log('  ※ メタデータUIが表示されません（ログイン未済の可能性）');
+    t.assert('メタデータメニュー(.metadata-menu-button)が表示される', loaded === true);
+    if (!loaded) { t.summary(); return; }
 
-    console.log('ページロード完了\n');
+    console.log('\n--- メタデータメニューを開く ---');
+    await cdp.evaluate(`document.querySelector('.metadata-menu-button')?.click()`);
+    const rowVisible = await cdp.waitFor(`document.querySelector('.deck-code-row') !== null`, 5000);
+    t.assert('デッキコード行(.deck-code-row)が表示される', rowVisible === true);
 
-    // コンソールログを収集
-    let consoleLogs = [];
+    // 発行済みか未発行かで分岐
+    const alreadyIssued = await cdp.evaluate(`document.querySelector('.deck-code-display') !== null`);
+    const issueBtnExists = await cdp.evaluate(`document.querySelector('.deck-code-btn') !== null`);
 
-    cdp.on('Runtime.consoleAPICalled', (params) => {
-      if (params.args && params.args[0]) {
-        const text = params.args.map(arg => arg.value || arg.description).join(' ');
-        consoleLogs.push(text);
-        if (text.includes('[issueDeckCodeInternal]') || text.includes('Deck Code')) {
-          console.log(`[CONSOLE] ${text}`);
+    if (alreadyIssued) {
+      // 発行済み: コード値を検証（書き込みなし）
+      const code = await cdp.evaluate(`document.querySelector('.deck-code-display')?.value || ''`);
+      t.assert('発行済みデッキコード(.deck-code-display)が表示される', typeof code === 'string' && code.length >= 5 && /^[A-Za-z0-9]+$/.test(code));
+      console.log(`  発行済みコード: ${code}`);
+    } else if (issueBtnExists) {
+      if (!WRITE_TESTS) {
+        t.assert('未発行: 発行ボタン(.deck-code-btn)が存在（クリックせず書き込み回避）', issueBtnExists === true);
+        console.log('\n（YGO_WRITE_TESTS 未設定のため、発行実行はスキップ・書き込みなし）');
+      } else {
+        console.log('\n--- デッキコード発行を実行 ---');
+        await cdp.sendCommand('Network.enable');
+        const reqPromise = cdp.waitForRequest('ope=13', 15000);
+        await cdp.evaluate(`document.querySelector('.deck-code-btn')?.click()`);
+        const issued = await cdp.waitFor(`document.querySelector('.deck-code-display') !== null`, 15000);
+        t.assert('発行完了で .deck-code-display が表示される', issued === true);
+        const req = await reqPromise;
+        t.assert('ope=13 リクエストが発火する', req !== null);
+        if (issued) {
+          const code = await cdp.evaluate(`document.querySelector('.deck-code-display')?.value || ''`);
+          t.assert('発行コードが表示される（5文字以上の英数字）', typeof code === 'string' && code.length >= 5 && /^[A-Za-z0-9]+$/.test(code));
+          console.log(`  発行コード: ${code.substring(0, 20)}...`);
         }
       }
-    });
-
-    // Runtime.consoleAPICalled を有効化
-    await cdp.sendCommand('Runtime.enable', {});
-
-    console.log('=== デッキコード発行テスト開始 ===\n');
-    console.log('ステップ 1: デッキメタデータメニューを開く');
-    console.log('ステップ 2: 「デッキコードを発行」ボタンをクリック\n');
-
-    // 10秒間、ユーザーの操作を待機
-    console.log('待機中... (10秒)');
-    await cdp.wait(10000);
-
-    console.log('\n=== テスト結果確認 ===\n');
-
-    // localStorage にデッキコードが保存されているか確認
-    const localStorageData = await cdp.evaluate(`
-      (async () => {
-        try {
-          const deckCode = localStorage.getItem('ygo_deck_code');
-          const deckDno = localStorage.getItem('ygo_deck_dno');
-          const timestamp = localStorage.getItem('ygo_deck_code_issued_at');
-
-          return {
-            deckCode: deckCode ? deckCode.substring(0, 20) + '...' : null,
-            deckDno: deckDno,
-            timestamp: timestamp ? new Date(timestamp).toLocaleString('ja-JP') : null
-          };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
-
-    console.log(`localStorage データ:`);
-    console.log(`  デッキコード: ${localStorageData.deckCode || 'なし'}`);
-    console.log(`  デッキ番号: ${localStorageData.deckDno || 'なし'}`);
-    console.log(`  発行時刻: ${localStorageData.timestamp || 'なし'}`);
-
-    // ページ内のデッキコード表示エリアを確認
-    const deckCodeDisplay = await cdp.evaluate(`
-      (async () => {
-        try {
-          // デッキコード表示が可能な要素を探す
-          const codeElement = document.querySelector('[class*="deck-code"], [class*="code"], [data-deck-code]');
-          if (codeElement) {
-            return {
-              text: codeElement.textContent.substring(0, 30),
-              visible: window.getComputedStyle(codeElement).display !== 'none'
-            };
-          }
-          return { found: false };
-        } catch (e) {
-          return { error: e.message };
-        }
-      })()
-    `);
-
-    console.log(`\nページ内のデッキコード表示:`);
-    if (deckCodeDisplay.found === false) {
-      console.log('  (表示要素が見つかりませんでした)');
-    } else if (deckCodeDisplay.error) {
-      console.log(`  エラー: ${deckCodeDisplay.error}`);
     } else {
-      console.log(`  テキスト: ${deckCodeDisplay.text}`);
-      console.log(`  表示中: ${deckCodeDisplay.visible ? 'はい' : 'いいえ'}`);
+      t.assert('デッキコードUI(.deck-code-display or .deck-code-btn)が存在', false);
     }
 
-    // コンソール出力
-    console.log('\n=== コンソールログ出力 ===\n');
-    const issuanceLogs = consoleLogs.filter(log =>
-      log.includes('[issueDeckCodeInternal]') || log.includes('Deck Code')
-    );
-
-    if (issuanceLogs.length > 0) {
-      issuanceLogs.forEach(log => {
-        console.log(`✅ ${log}`);
-      });
-    } else {
-      console.log('デッキコード発行関連のログがありません');
-    }
-
-    // 結果判定
-    const success = localStorageData.deckCode || deckCodeDisplay.text;
-    if (success) {
-      console.log('\n✅ テスト成功: デッキコードが確認されました');
-    } else {
-      console.log('\n⚠️ テスト結果: デッキコードが発行されていない可能性があります');
-    }
-
-    console.log('\n✅ テスト完了');
+    t.summary();
+  } catch (e) {
+    console.error('Error:', e.message);
+    t.assert('例外なく完了', false);
+    t.summary();
+  } finally {
     cdp.close();
-    process.exit(0);
-
-  } catch (error) {
-    console.error('テスト失敗:', error);
-    cdp.close();
-    process.exit(1);
+    process.exit(t.exitCode());
   }
 }
 

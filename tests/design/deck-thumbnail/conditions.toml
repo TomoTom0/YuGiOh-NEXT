@@ -1,0 +1,299 @@
+# 検証対象: src/utils/deck-thumbnail.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。
+#
+# 発見したデッドコード（実装は存在するが現在の唯一の呼び出し経路からは到達不可能。
+# conditions化せず、ここに記録するに留める）:
+# - promiseAllConcurrent L215: concurrency引数のデフォルト値(2)は、唯一の呼び出し元
+#   generateDeckThumbnailImage L308が`promiseAllConcurrent(loadTasks, 2)`と常に明示的に
+#   2を渡すため、デフォルト値分岐は現状到達不能（コード上は同じ値だが、defaultパラメータ
+#   としての分岐自体は未使用）。
+# - promiseAllConcurrent L239 `Math.min(concurrency, tasks.length)`のtasks.length===0ケース
+#   （workers=[]でPromise.all([])が即resolveする分岐）は、唯一の呼び出し元
+#   generateDeckThumbnailImageがL266-268で`cardIds.length === 0`の場合に既にnullを返して
+#   promiseAllConcurrent自体を呼ばないため、到達不能。
+
+[meta]
+feature = "deck-thumbnail"
+source_file = "src/utils/deck-thumbnail.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/utils/__tests__/deck-thumbnail.test.ts"
+source_hash = "83393f2cd30e9731e4b497f85ccab2db7a17a572"
+note = "既存テストファイルsrc/utils/__tests__/deck-thumbnail.test.ts（プロジェクト内の古い規約の配置。tests/unit/utils/配下が現行規約）にgenerateDeckThumbnailCardsのテストが既に存在したため、新規ファイルは作成せず既存ファイルにcoversタグを付与し、未カバーのgenerateDeckThumbnailImageおよび非export関数群のテストを追加した。verified=falseの条件は無し。"
+
+# --- selectCidsFromRefs(refs, maxCount, headPlacementCardIds, existingCids): string[] （非export） ---
+
+[[condition]]
+id = "select_cids.pass1_prioritizes_head_placement_in_ref_order"
+target_function = "selectCidsFromRefs"
+source_lines = "37-44"
+description = "第1パスでrefsをref配列の並び順に走査し、headPlacementCardIdsに含まれ、かつexistingCidsに未登録のcidを優先的に選ぶ（headPlacementCardIdsの指定順ではなくrefsの順序で選ばれる）"
+given = "refs=[c1,c2,c3](この順), maxCount=2, headPlacementCardIds=['c3','c1'], existingCids=new Set()"
+expect_return_shape = "['c1','c3']（refsの並び順。headPlacementCardIdsの指定順['c3','c1']ではない）"
+
+[[condition]]
+id = "select_cids.pass1_skips_existing_cids"
+target_function = "selectCidsFromRefs"
+source_lines = "39"
+description = "第1パスでexistingCidsに既に含まれるcidはheadPlacement対象であってもスキップされ、選ばれない"
+given = "refs=[c1,c2], maxCount=2, headPlacementCardIds=['c1'], existingCids=new Set(['c1'])（呼び出し前から既にc1が選択済み扱い）"
+expect_return_shape = "['c2']（c1はpass1・pass2どちらでもexistingCids判定でスキップ。c2のみpass2で選ばれる）"
+
+[[condition]]
+id = "select_cids.pass1_stops_at_max_count"
+target_function = "selectCidsFromRefs"
+source_lines = "38"
+description = "第1パスはresult.lengthがmaxCountに達した時点でbreakし、以降にheadPlacement候補が残っていても選ばない"
+given = "refs=[c1,c2,c3], maxCount=1, headPlacementCardIds=['c1','c2'], existingCids=new Set()"
+expect_return_shape = "['c1']のみ（c2はheadPlacement対象だが既にmaxCount到達のため選ばれない）"
+
+[[condition]]
+id = "select_cids.pass2_only_runs_if_under_max_count"
+target_function = "selectCidsFromRefs"
+source_lines = "47"
+description = "第1パスでresult.lengthがmaxCountに達していれば、`if (result.length < maxCount)`がfalseになり第2パスは実行されない"
+given = "refs=[c1,c2], maxCount=2, headPlacementCardIds=['c1','c2'], existingCids=new Set()（全refsがheadPlacement対象でちょうどmaxCount分埋まる）"
+expect_return_shape = "['c1','c2']（pass1のみで完結。pass2による追加や順序変更は発生しない）"
+
+[[condition]]
+id = "select_cids.pass2_fills_remaining_in_ref_order_skipping_selected"
+target_function = "selectCidsFromRefs"
+source_lines = "48-53"
+description = "第2パスはrefsを並び順に走査し、maxCountに達するまで、まだ選ばれていない(existingCidsに無い)cidを順に追加する"
+given = "refs=[c1,c2,c3,c4], maxCount=3, headPlacementCardIds=[], existingCids=new Set()"
+expect_return_shape = "['c1','c2','c3']（c4はmaxCount到達によりbreakされ選ばれない）"
+
+[[condition]]
+id = "select_cids.stops_when_refs_exhausted_before_max_count"
+target_function = "selectCidsFromRefs"
+source_lines = "48-53"
+description = "refsの要素数がmaxCountより少ない場合、全refsを使い切った時点でforループが終了し、resultはmaxCountに満たないまま返る（エラーにはならない）"
+given = "refs=[c1]（1要素）, maxCount=3, headPlacementCardIds=[], existingCids=new Set()"
+expect_return_shape = "['c1']（length 1 < maxCount 3だが正常終了）"
+
+# --- generateDeckThumbnailCards(deckInfo, headPlacementCardIds=[]): string[] （export） ---
+
+[[condition]]
+id = "cards.count_allocation_with_side_head"
+target_function = "generateDeckThumbnailCards"
+source_lines = "80-87"
+description = "sideDeckの中にheadPlacementCardIdsに含まれるcidが1件でもあれば(hasSideHeadPlacement=true)、mainCount=2, extraCount=2, sideCount=1に決定される"
+given = "deckInfo.sideDeckにheadPlacementCardIdsのいずれかのcidを含む"
+expect_return_shape = "最大5枚（side最大1枚 + main最大2枚 + extra最大2枚）"
+
+[[condition]]
+id = "cards.count_allocation_without_side_head"
+target_function = "generateDeckThumbnailCards"
+source_lines = "80-87"
+description = "hasSideHeadPlacement=falseの場合(headPlacementCardIdsがsideDeckのいずれのcidにも一致しない、またはheadPlacementCardIds=[])、mainCount=3, extraCount=2, sideCount=0に決定される"
+given = "headPlacementCardIds=[]、またはsideDeckに含まれないcidのみ指定"
+expect_return_shape = "最大5枚（main最大3枚 + extra最大2枚）。side由来のcidは一切含まれない"
+
+[[condition]]
+id = "cards.side_selection_skipped_when_side_count_zero"
+target_function = "generateDeckThumbnailCards"
+source_lines = "90-97"
+description = "sideCount=0の場合、`if (sideCount > 0)`がfalseとなりselectCidsFromRefs(sideDeck,...)は呼ばれず、sideDeckの内容は結果に一切含まれない"
+given = "hasSideHeadPlacement=false かつ sideDeckに複数カードがある"
+expect_return_shape = "結果にsideDeckのcidが1件も含まれない"
+
+[[condition]]
+id = "cards.selection_order_side_main_extra_shared_dedup_set"
+target_function = "generateDeckThumbnailCards"
+source_lines = "76,89-113"
+description = "side→main→extraの順でselectCidsFromRefsが呼ばれ、同一のselectedCids(Set)が3回とも共有されるため、後続セクションの走査で既出のcidは重複して選ばれない"
+given = "同じcid文字列がsideDeckとmainDeckの両方に含まれるデータ（通常のデッキ構造では想定されないが、構造上は可能）でheadPlacementによりそのcidがsideで先に選ばれるケース"
+expect_return_shape = "そのcidはsideの選択結果にのみ現れ、mainDeck側の選択では重複としてスキップされる"
+
+[[condition]]
+id = "cards.quantity_field_not_referenced"
+target_function = "generateDeckThumbnailCards"
+source_lines = "89-113"
+description = "DeckCardRef.quantityフィールドは一切参照されない。1つのDeckCardRefエントリ＝1つの出力cidであり、quantityの大小は出力枚数に影響しない"
+given = "mainDeckに1エントリのみ(quantity=3)、extraDeckに1エントリのみ(quantity=3)"
+expect_return_shape = "結果は2件（各section1件ずつ）。quantityの値に関わらず重複して出力されない"
+
+[[condition]]
+id = "cards.empty_deck_returns_empty_array"
+target_function = "generateDeckThumbnailCards"
+source_lines = "76-116"
+description = "main/extra/side全てが空配列の場合、空配列を返す"
+given = "空のDeckInfo（mainDeck=[], extraDeck=[], sideDeck=[]）"
+expect_return_shape = "[]"
+
+# --- toBlobPromise(canvas, type?, quality?): Promise<Blob | null> （非export） ---
+
+[[condition]]
+id = "to_blob.resolves_with_canvas_toblob_callback_result"
+target_function = "toBlobPromise"
+source_lines = "126-134"
+description = "canvas.toBlob(resolve, type, quality)のコールバック引数(Blob|null)をそのままresolveする単純なPromiseラッパー。reject経路は存在しない"
+given = "canvas.toBlobがBlobオブジェクトでコールバックする場合／nullでコールバックする場合の両方"
+expect_return_shape = "Promiseがそれぞれcanvas.toBlobに渡された値でresolveされる"
+
+# --- blobToDataURL(blob): Promise<string | null> （非export） ---
+
+[[condition]]
+id = "blob_to_data_url.onload_string_result_resolves"
+target_function = "blobToDataURL"
+source_lines = "144-148"
+description = "FileReaderのonload時、e.target.resultが文字列であればその文字列でresolveする"
+given = "有効なBlob（実FileReaderのreadAsDataURLは常に文字列を生成する）"
+expect_return_shape = "'data:...;base64,...' 形式の文字列でresolve"
+
+[[condition]]
+id = "blob_to_data_url.onload_non_string_result_resolves_null"
+target_function = "blobToDataURL"
+source_lines = "145,149-151"
+description = "onload時にe.target.resultが文字列でない場合(ArrayBuffer等、readAsDataURL使用時は通常発生しないが型上はArrayBuffer|stringのため防御的に分岐している)、nullでresolveする"
+given = "FileReaderをモックし、onload発火時にe.target.resultとしてArrayBufferを渡す"
+expect_return_shape = "null でresolve"
+
+[[condition]]
+id = "blob_to_data_url.onerror_resolves_null_not_reject"
+target_function = "blobToDataURL"
+source_lines = "153"
+description = "FileReaderがonerrorを発火した場合、reject(reader.error)ではなくresolve(null)される（deck-import.tsのreadFileAsTextとは異なりreject経路が無い）"
+given = "FileReaderをモックし、onerrorを発火させる"
+expect_return_shape = "Promiseはrejectされず、nullでresolveされる"
+expect_no_throw = true
+
+# --- loadAndDrawCardImage(ctx, imgUrl, index, cardWidth, cardHeight, gap, padding): Promise<boolean> （非export） ---
+
+[[condition]]
+id = "load_draw.cross_origin_and_src_set_before_decode"
+target_function = "loadAndDrawCardImage"
+source_lines = "184-189"
+description = "Image生成後、img.crossOrigin='anonymous'とimg.src=imgUrlが設定されてからimg.decode()が呼ばれる"
+given = "任意のimgUrl"
+expect_return_shape = "decode()が呼ばれる時点でimg.crossOrigin==='anonymous' かつ img.src===imgUrl"
+
+[[condition]]
+id = "load_draw.decode_success_draws_and_returns_true"
+target_function = "loadAndDrawCardImage"
+source_lines = "189-194"
+description = "img.decode()が成功した場合、x=padding+index*(cardWidth+gap), y=paddingを計算し、ctx.drawImage(img, x, y, cardWidth, cardHeight)を呼び、trueを返す"
+given = "index=2, cardWidth=60, cardHeight=87, gap=2, padding=4、img.decode()が解決する"
+expect_return_shape = "ctx.drawImageが(img, 128, 4, 60, 87)で呼ばれ、戻り値はtrue（x = 4 + 2*(60+2) = 128）"
+
+[[condition]]
+id = "load_draw.decode_failure_returns_false_no_throw"
+target_function = "loadAndDrawCardImage"
+source_lines = "195-198"
+description = "img.decode()が失敗（reject）した場合、catchされfalseを返す。呼び出し元に例外は伝播しない。console出力も行わない（コメントで意図的に無視すると明記）"
+given = "img.decode()がrejectする状況"
+expect_no_throw = true
+expect_return_shape = "false"
+
+# --- promiseAllConcurrent(tasks, concurrency=2): Promise<(T|undefined)[]> （非export） ---
+
+[[condition]]
+id = "concurrent.task_error_caught_sets_undefined"
+target_function = "promiseAllConcurrent"
+source_lines = "220-229"
+description = "個々のtaskがthrow/rejectした場合、`console.warn('[promiseAllConcurrent] Task at index ${taskIndex} failed:', error)`でログを出し、該当indexのresultはundefinedとしてキャッチされる。例外は外(generateDeckThumbnailImageの外側try/catch)に伝播せず、他タスクの処理は継続する"
+given = "generateDeckThumbnailImage経由。2枚のカードのうち1枚(m001)でgetCardInfoが同期的にthrowするようモックする(loadAndDrawCardImage自身の内部try/catchでは吸収されない、task関数自体のthrow)"
+expect_no_throw = true
+expect_return_shape = "console.warnが'[promiseAllConcurrent] Task at index...'を含むメッセージで呼ばれ、他方のカード(m002)は正常にctx.drawImageされ、generateDeckThumbnailImage全体は最終的にdata URLを返す(該当indexのresultがundefinedになった影響はblob生成に及ばない)"
+
+[[condition]]
+id = "concurrent.results_index_matches_task_index_regardless_of_completion_order"
+target_function = "promiseAllConcurrent"
+source_lines = "217,224,232-235"
+description = "`results[taskIndex] = await task()`により、taskの完了順ではなく元のtaskIndexに対応する位置に結果が格納される。generateDeckThumbnailImage自身はresultsを使わない(promise_all_concurrent_result_discarded)ため、results配列そのものは公開APIから直接観測できない。そのため、各タスク内のclosureで固定されたindexがdrawImageの描画x座標(index*(cardWidth+gap)+padding)に反映される性質を代理指標として、完了順がindex通りでなくてもtaskとindexの対応が崩れないことを検証する"
+given = "3枚のカード(index 0,1,2)のimg.decode()を手動制御し、index=1(2番目に開始されたタスク)を最初にresolve、続いてindex=0、最後にindex=2をresolveする"
+expect_return_shape = "resolveの順序に関わらず、各カードのdrawImage呼び出しのx座標はそのカード自身のindexから計算された値(padding+index*(cardWidth+gap))と一致する"
+
+[[condition]]
+id = "concurrent.concurrency_limits_simultaneous_execution"
+target_function = "promiseAllConcurrent"
+source_lines = "231-240"
+description = "concurrency個のworkerが並行してexecuteNextTasksを実行し、各workerは1つのtaskが完了してから次のindexを取り出すため、同時に実行中のtask数はconcurrencyを超えない"
+given = "concurrency=2、tasks=5件、各taskの完了タイミングを手動で制御できるようにする"
+expect_return_shape = "任意の時点で同時実行中のtask数が2を超えない"
+
+# --- generateDeckThumbnailImage(deckInfo, headPlacementCardIds=[]): Promise<string | null> （export） ---
+
+[[condition]]
+id = "thumb_image.empty_card_ids_returns_null"
+target_function = "generateDeckThumbnailImage"
+source_lines = "264-268"
+description = "generateDeckThumbnailCardsの結果が空配列の場合、nullを返す（canvas生成等は一切行わない）"
+given = "空のdeckInfo（main/extra/side全て空配列）"
+expect_return_shape = "null"
+
+[[condition]]
+id = "thumb_image.ctx_null_returns_null"
+target_function = "generateDeckThumbnailImage"
+source_lines = "270-274"
+description = "canvas.getContext('2d')がnull(2D未対応環境)を返した場合、nullを返す"
+given = "canvas.getContext('2d')がnullを返すよう(document.createElementをモックして)構成した環境。happy-domテスト環境ではモックしなくてもデフォルトでnullを返す"
+expect_return_shape = "null"
+
+[[condition]]
+id = "thumb_image.canvas_size_based_on_card_count"
+target_function = "generateDeckThumbnailImage"
+source_lines = "276-282"
+description = "canvas.width = cardIds.length*cardWidth + (cardIds.length-1)*gap + padding*2、canvas.height = cardHeight + padding*2 で計算される（cardWidth=60, cardHeight=87, gap=2, padding=4は固定値）"
+given = "cardIds.length=3"
+expect_return_shape = "canvas.width = 3*60 + 2*2 + 4*2 = 192、canvas.height = 87 + 4*2 = 95"
+
+[[condition]]
+id = "thumb_image.card_info_missing_skips_card"
+target_function = "generateDeckThumbnailImage"
+source_lines = "286-287"
+description = "各カードの読み込みタスク内で、該当cidのgetCardInfoがfalsy(null)を返す場合、そのタスクはgetCardImageUrlHelper呼び出しに進まずfalseを返す"
+given = "getCardInfoがnullを返すcidを含むデッキ"
+expect_return_shape = "そのカードのタスクはfalseで解決する"
+
+[[condition]]
+id = "thumb_image.relative_url_missing_skips_card"
+target_function = "generateDeckThumbnailImage"
+source_lines = "289-291"
+description = "cardInfoは取得できるがgetCardImageUrlHelperがfalsy(undefined)を返す場合、buildFullUrl/画像読み込みは行われずfalseを返す"
+given = "getCardInfoは値を返すが、getCardImageUrlHelperがundefinedを返すcid"
+expect_return_shape = "そのカードのタスクはfalseで解決する"
+
+[[condition]]
+id = "thumb_image.delegates_to_load_and_draw_for_valid_card"
+target_function = "generateDeckThumbnailImage"
+source_lines = "286,289-304"
+description = "cardInfoとrelativeUrlが両方取得できた場合、buildFullUrlで絶対URL化した上でloadAndDrawCardImageに委譲し、その戻り値をそのままタスク結果とする"
+given = "getCardInfo・getCardImageUrlHelperが両方とも有効な値を返すカード"
+expect_return_shape = "loadAndDrawCardImageの戻り値(true/false)がそのままタスク結果になる"
+
+[[condition]]
+id = "thumb_image.promise_all_concurrent_result_discarded"
+target_function = "generateDeckThumbnailImage"
+source_lines = "308"
+description = "promiseAllConcurrentの戻り値(各カードのtrue/false/undefined配列)はawaitされるのみで、後続処理には一切使われない。一部のカード読み込みが失敗しても後続のBlob生成は必ず実行される（部分的失敗を許容する仕様）"
+given = "5枚中1枚のgetCardInfoがnullを返す(=falseになる)デッキ"
+expect_return_shape = "それでもtoBlobPromise以降の処理は実行され、成功すればdata URL文字列が返る"
+
+[[condition]]
+id = "thumb_image.blob_null_returns_null"
+target_function = "generateDeckThumbnailImage"
+source_lines = "311-314"
+description = "toBlobPromiseがnullを返す場合(canvas.toBlobがnullでコールバックする等)、nullを返す"
+given = "canvas.toBlobがnullでコールバックするようモックされた環境"
+expect_return_shape = "null"
+
+[[condition]]
+id = "thumb_image.success_returns_data_url"
+target_function = "generateDeckThumbnailImage"
+source_lines = "317-318"
+description = "正常系では最終的にblobToDataURLの戻り値(Data URL文字列)をそのまま返す"
+given = "canvas.getContext('2d')が有効なctxを返し、全カードの画像読み込み・blob変換が成功するケース"
+expect_return_shape = "'data:image/webp;base64,...' 形式の文字列"
+
+[[condition]]
+id = "thumb_image.exception_caught_returns_null"
+target_function = "generateDeckThumbnailImage"
+source_lines = "263,319-322"
+description = "try節内のいずれかで例外が発生した場合、console.warnでログを出しnullを返す。呼び出し元に例外は伝播しない"
+given = "getCardInfoが例外をthrowする、あるいはdocument.createElementが例外をthrowする等の状況"
+expect_no_throw = true
+expect_return_shape = "null"

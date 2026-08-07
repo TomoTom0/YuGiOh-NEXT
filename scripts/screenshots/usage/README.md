@@ -275,9 +275,9 @@ node scripts/screenshots/usage/process-images.js
 
 ## トラブルシューティング
 
-### `Error: ENOENT: no such file or directory, open '.chrome_playwright_ws'`
+### `Error: ENOENT: no such file or directory, open '<ws_file>'`
 
-Chromiumが起動していません：
+Chromiumが起動していません（ws_fileのパスは `configs/browser.toml` で管理）：
 
 ```bash
 ./scripts/debug/setup/start-chrome.sh

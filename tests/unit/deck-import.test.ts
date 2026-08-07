@@ -1,10 +1,23 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 // import { readFileSync } from 'fs';
 // import * as path from 'path';
-import { importFromCSV, importFromTXT, importFromPNG } from '@/utils/deck-import';
+import { importFromCSV, importFromTXT, importFromPNG, importDeckFromFile } from '@/utils/deck-import';
 import type { ImportResult } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
+
+const { mockTempCacheSet } = vi.hoisted(() => ({
+  mockTempCacheSet: vi.fn(() => true)
+}));
+
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: () => undefined,
+    set: mockTempCacheSet
+  })
+}));
+
+const originalFileReader = globalThis.FileReader;
 
 // テストフィクスチャディレクトリ（未使用）
 // const fixturesDir = path.join(__dirname, '../fixtures');
@@ -44,8 +57,18 @@ const validTXTEnglish = `=== Main Deck ===
 3x Ghost Belle & Haunted Mansion (14558:1)`;
 
 describe('deck-import', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    Object.defineProperty(globalThis, 'FileReader', {
+      value: originalFileReader,
+      configurable: true,
+      writable: true
+    });
+  });
+
   describe('importFromCSV', () => {
-    it('should import valid CSV with all fields', () => {
+    it('should import valid CSV with all fields [covers:import_csv.header_detected] [covers:convert_rows.section_classification] [covers:convert_rows.deck_info_fixed_defaults] [covers:convert_rows.enc_absent_empty_imgs] [covers:convert_rows.temp_cache_registration]', () => {
       const csv = validCSV;
       const result = importFromCSV(csv);
 
@@ -59,9 +82,21 @@ describe('deck-import', () => {
       expect(firstMain.cid).toBe('12950');
       expect(firstMain.ciid).toBe('1');
       expect(firstMain.quantity).toBe(2);
+      expect(result.deckInfo!.dno).toBe(0);
+      expect(result.deckInfo!.name).toBe('');
+      expect(result.deckInfo!.category).toEqual([]);
+      expect(result.deckInfo!.tags).toEqual([]);
+      expect(result.deckInfo!.comment).toBe('');
+      expect(result.deckInfo!.deckCode).toBe('');
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          imgs: []
+        })
+      );
     });
 
-    it('should import CSV without name column', () => {
+    it('should import CSV without name column [covers:parse_import_row.fields4_numeric_is_cid_ciid]', () => {
       const csv = csvNoName;
       const result = importFromCSV(csv);
 
@@ -71,7 +106,7 @@ describe('deck-import', () => {
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
     });
 
-    it('should return error for empty CSV', () => {
+    it('should return error for empty CSV [covers:import_csv.all_rows_invalid_error]', () => {
       const csv = emptyCSV;
       const result = importFromCSV(csv);
 
@@ -79,7 +114,7 @@ describe('deck-import', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('should handle CSV without header', () => {
+    it('should handle CSV without header [covers:import_csv.header_absent]', () => {
       const csv = 'main,灰流うらら,12950,1,2\nextra,PSYフレームロード・Λ,9753,1,1';
       const result = importFromCSV(csv);
 
@@ -88,7 +123,7 @@ describe('deck-import', () => {
       expect(result.deckInfo!.mainDeck).toHaveLength(1);
     });
 
-    it('should skip invalid lines and add warnings', () => {
+    it('should skip invalid lines and add warnings [covers:import_csv.success_with_warnings] [covers:import_csv.row_null_skip] [covers:parse_import_row.invalid_section]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,灰流うらら,12950,1,2
 invalid,line,here
@@ -98,18 +133,137 @@ extra,PSYフレームロード・Λ,9753,1,1`;
       expect(result.success).toBe(true);
       expect(result.warnings).toBeDefined();
       expect(result.warnings!.length).toBeGreaterThan(0);
+      expect(result.deckInfo!.mainDeck).toHaveLength(1);
+      expect(result.deckInfo!.extraDeck).toHaveLength(1);
     });
 
-    it('should handle quoted fields with commas', () => {
+    it('should handle quoted fields with commas [covers:parse_csv_line.quote_toggle] [covers:parse_csv_line.comma_outside_quotes_splits_field] [covers:parse_csv_line.other_chars_accumulate] [covers:parse_import_row.fields5_non_numeric_is_name_cid_ciid]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,"Card, Name",12950,1,2`;
       const result = importFromCSV(csv);
 
       expect(result.success).toBe(true);
       expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          name: 'Card, Name',
+          cardId: '12950',
+          ciid: '1'
+        })
+      );
     });
 
-    it('should validate section values', () => {
+    it('should skip empty CSV data lines without warnings [covers:import_csv.empty_line_skipped]', () => {
+      const csv = `section,cid,quantity
+
+main,12950,2
+
+extra,9753,1`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toBeUndefined();
+      expect(result.deckInfo!.mainDeck).toHaveLength(1);
+      expect(result.deckInfo!.extraDeck).toHaveLength(1);
+    });
+
+    it('should parse section,name,cid,quantity form [covers:parse_import_row.fields4_non_numeric_is_name_cid]', () => {
+      const csv = `section,name,cid,quantity
+main,Named Card,12950,2`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.mainDeck[0]).toMatchObject({
+        cid: '12950',
+        ciid: '1',
+        quantity: 2
+      });
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          name: 'Named Card'
+        })
+      );
+    });
+
+    it('should parse section,cid,ciid,enc,quantity form [covers:parse_import_row.fields5_numeric_is_cid_ciid_enc] [covers:convert_rows.enc_present_sets_imgs]', () => {
+      const csv = `section,cid,ciid,enc,quantity
+main,12950,2,abc123,3`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.mainDeck[0]).toMatchObject({
+        cid: '12950',
+        ciid: '2',
+        quantity: 3
+      });
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          imgs: [{ ciid: '2', imgHash: 'abc123' }]
+        })
+      );
+    });
+
+    it('should parse full form and ignore extra columns [covers:parse_import_row.fields6plus_full_form]', () => {
+      const csv = `section,name,cid,ciid,enc,quantity,unused
+side,Full Form Card,12950,3,hash999,4,ignored`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.sideDeck[0]).toMatchObject({
+        cid: '12950',
+        ciid: '3',
+        quantity: 4
+      });
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          name: 'Full Form Card',
+          imgs: [{ ciid: '3', imgHash: 'hash999' }]
+        })
+      );
+    });
+
+    it('should reject non-numeric ciid [covers:parse_import_row.ciid_non_numeric_invalid]', () => {
+      const csv = `section,name,cid,ciid,quantity
+main,Invalid CIID,12950,abc,2`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('インポート可能なデータがありません');
+      expect(result.warnings).toBeUndefined();
+    });
+
+    it('should create placeholder card values and fallback names [covers:convert_rows.fake_card_placeholder_values] [covers:convert_rows.name_fallback_when_missing]', () => {
+      const csv = `section,cid,quantity
+main,12950,2`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(mockTempCacheSet).toHaveBeenCalledWith(
+        '12950',
+        expect.objectContaining({
+          cardType: 'monster',
+          attribute: 'light',
+          levelType: 'level',
+          levelValue: 0,
+          types: [],
+          race: 'warrior',
+          atk: 0,
+          def: 0,
+          cardId: '12950',
+          ciid: '1',
+          name: 'Card 12950',
+          imageUrl: '',
+          effect: '',
+          isExtraDeck: false
+        })
+      );
+    });
+
+    it('should validate section values [covers:parse_import_row.invalid_section]', () => {
       const csv = `section,name,cid,ciid,quantity
 invalid,灰流うらら,12950,1,2`;
       const result = importFromCSV(csv);
@@ -120,7 +274,7 @@ invalid,灰流うらら,12950,1,2`;
   });
 
   describe('importFromTXT', () => {
-    it('should import valid TXT format', () => {
+    it('should import valid TXT format [covers:import_txt.match_old_no_enc] [covers:import_txt.section_header_switches_current_section]', () => {
       const txt = validTXT;
       const result = importFromTXT(txt);
 
@@ -131,7 +285,7 @@ invalid,灰流うらら,12950,1,2`;
       expect(result.deckInfo!.sideDeck).toHaveLength(1);
     });
 
-    it('should handle TXT with enc field', () => {
+    it('should handle TXT with enc field [covers:import_txt.match_with_enc]', () => {
       const txt = `=== Main Deck ===
 2x 灰流うらら (12950:1:abc123)
 
@@ -144,7 +298,7 @@ invalid,灰流うらら,12950,1,2`;
       expect(result.deckInfo!.extraDeck).toHaveLength(1);
     });
 
-    it('should return error for empty TXT', () => {
+    it('should return error for empty TXT [covers:import_txt.all_rows_invalid_error]', () => {
       const txt = '';
       const result = importFromTXT(txt);
 
@@ -152,7 +306,7 @@ invalid,灰流うらら,12950,1,2`;
       expect(result.error).toBeDefined();
     });
 
-    it('should skip invalid lines and add warnings', () => {
+    it('should skip invalid lines and add warnings [covers:import_txt.no_match_with_section_warning] [covers:import_txt.success_with_warnings]', () => {
       const txt = `=== Main Deck ===
 2x 灰流うらら (12950:1)
 invalid line format
@@ -164,7 +318,7 @@ invalid line format
       expect(result.warnings!.length).toBeGreaterThan(0);
     });
 
-    it('should handle empty lines', () => {
+    it('should handle empty lines [covers:import_txt.empty_line_skipped]', () => {
       const txt = `=== Main Deck ===
 
 2x 灰流うらら (12950:1)
@@ -193,7 +347,7 @@ invalid line format
       0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
     ]);
 
-    it('should import deck info from PNG with embedded data', async () => {
+    it('should import deck info from PNG with embedded data [covers:import_png.rows_from_sections] [covers:import_png.success_no_warnings_field]', async () => {
       // サンプルデッキ情報
       const sampleDeck: DeckInfo = {
         dno: 1,
@@ -224,7 +378,7 @@ invalid line format
       expect(result.deckInfo!.mainDeck[0].cid).toBe('12950');
     });
 
-    it('should return error for PNG without embedded data', async () => {
+    it('should return error for PNG without embedded data [covers:import_png.extract_fail]', async () => {
       const file = new File([validPNG], 'deck.png', { type: 'image/png' });
 
       const result = await importFromPNG(file);
@@ -233,7 +387,7 @@ invalid line format
       expect(result.error).toContain('デッキ情報を抽出できませんでした');
     });
 
-    it('should handle invalid PNG file', async () => {
+    it('should handle invalid PNG file [covers:import_png.extract_fail]', async () => {
       const invalidBuffer = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
       const file = new File([invalidBuffer], 'invalid.png', { type: 'image/png' });
 
@@ -243,7 +397,7 @@ invalid line format
       expect(result.error).toBeDefined();
     });
 
-    it('should handle empty deck in PNG', async () => {
+    it('should handle empty deck in PNG [covers:import_png.all_sections_empty_error]', async () => {
       const emptyDeck: DeckInfo = {
         dno: 1,
         name: 'Empty',
@@ -279,7 +433,7 @@ main,セブンスロード・マジシャン,15259,1,3`;
       expect(result.success).toBe(true);
     });
 
-    it('should validate card ID format', () => {
+    it('should validate card ID format [covers:parse_import_row.cid_non_numeric_invalid]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,Test Card,invalid_id,1,2`;
       const result = importFromCSV(csv);
@@ -309,7 +463,7 @@ main,灰流うらら,12950,1,10`;
       // Note: 枚数制限チェックは card-limit.ts で別途実施される
     });
 
-    it('should reject invalid quantity - zero', () => {
+    it('should reject invalid quantity - zero [covers:parse_import_row.quantity_below_1_invalid]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,灰流うらら,12950,1,0`;
       const result = importFromCSV(csv);
@@ -328,13 +482,120 @@ main,灰流うらら,12950,1,-1`;
       expect(result.error).toContain('インポート可能なデータがありません');
     });
 
-    it('should reject invalid quantity - over 99', () => {
+    it('should reject invalid quantity - over 99 [covers:parse_import_row.quantity_over_99_invalid]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,灰流うらら,12950,1,100`;
       const result = importFromCSV(csv);
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('インポート可能なデータがありません');
+    });
+  });
+
+  describe('importDeckFromFile', () => {
+    it('拡張子.pngの場合はimportFromPNGに委譲される [covers:import_file.ext_png_delegates]', async () => {
+      // PNG形式でないバイト列を渡し、importFromPNG固有のエラーメッセージが返ることで委譲を確認する
+      const file = new File([new Uint8Array([0x00, 0x01])], 'deck.png', { type: 'image/png' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('デッキ情報を抽出できませんでした');
+    });
+
+    it('拡張子.csvの場合はテキストとして読み込みimportFromCSVに委譲される [covers:import_file.ext_csv_reads_then_delegates] [covers:read_file_as_text.success]', async () => {
+      const csvContent = 'main,12950,2';
+      const file = new File([csvContent], 'deck.csv', { type: 'text/csv' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo?.mainDeck).toHaveLength(1);
+      expect(result.deckInfo?.mainDeck[0]?.cid).toBe('12950');
+    });
+
+    it('拡張子.txtの場合はテキストとして読み込みimportFromTXTに委譲される [covers:import_file.ext_txt_reads_then_delegates]', async () => {
+      const txtContent = '=== Main Deck ===\n2x 灰流うらら (12950:1)';
+      const file = new File([txtContent], 'deck.txt', { type: 'text/plain' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo?.mainDeck).toHaveLength(1);
+      expect(result.deckInfo?.mainDeck[0]?.cid).toBe('12950');
+    });
+
+    it('拡張子が無く内容の1行目に"section"を含む場合はCSVとして処理される [covers:import_file.ext_unknown_content_has_section]', async () => {
+      const csvContent = 'section,cid,quantity\nmain,12950,2';
+      const file = new File([csvContent], 'deck', { type: '' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo?.mainDeck).toHaveLength(1);
+    });
+
+    it('拡張子が無く内容の1行目に"==="を含む場合はTXTとして処理される [covers:import_file.ext_unknown_content_has_marker]', async () => {
+      const txtContent = '=== Main Deck ===\n2x 灰流うらら (12950:1)';
+      const file = new File([txtContent], 'deck', { type: '' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo?.mainDeck).toHaveLength(1);
+    });
+
+    it('拡張子が無く内容がCSV/TXTいずれの形式にも合致しない場合はサポート外エラーを返す [covers:import_file.ext_unknown_content_unsupported]', async () => {
+      const file = new File(['random garbage content'], 'deck', { type: '' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('サポートされていないファイル形式です（.csv、.txt、または .png を使用してください）');
+    });
+
+    it('FileReader onloadでresultがfalsyならファイル読み込みエラーを返す [covers:read_file_as_text.onload_no_result_rejects] [covers:import_file.catch_error]', async () => {
+      class NoResultFileReader {
+        onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+        onerror: (() => void) | null = null;
+        error: DOMException | null = null;
+
+        readAsText(): void {
+          this.onload?.({ target: { result: null } } as unknown as ProgressEvent<FileReader>);
+        }
+      }
+
+      Object.defineProperty(globalThis, 'FileReader', {
+        value: NoResultFileReader,
+        configurable: true,
+        writable: true
+      });
+
+      const file = new File(['main,12950,2'], 'deck.csv', { type: 'text/csv' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('ファイル読み込みエラー: Error: ファイルの読み込みに失敗しました');
+    });
+
+    it('FileReader onerrorならreader.errorでファイル読み込みエラーを返す [covers:read_file_as_text.onerror_rejects] [covers:import_file.catch_error]', async () => {
+      const readError = new DOMException('stub read failure', 'NotReadableError');
+
+      class ErrorFileReader {
+        onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+        onerror: (() => void) | null = null;
+        error: DOMException | null = readError;
+
+        readAsText(): void {
+          this.onerror?.();
+        }
+      }
+
+      Object.defineProperty(globalThis, 'FileReader', {
+        value: ErrorFileReader,
+        configurable: true,
+        writable: true
+      });
+
+      const file = new File(['main,12950,2'], 'deck.csv', { type: 'text/csv' });
+      const result = await importDeckFromFile(file);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('ファイル読み込みエラー: NotReadableError: stub read failure');
     });
   });
 });

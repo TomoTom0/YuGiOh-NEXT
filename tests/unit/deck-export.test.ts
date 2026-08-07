@@ -75,7 +75,7 @@ beforeEach(() => {
 
 describe('deck-export', () => {
   describe('exportToCSV', () => {
-    it('should export deck to CSV with all fields', () => {
+    it('[covers:export_csv.data_row_format] [covers:generate_rows.main_card_found] [covers:generate_rows.extra_card_found] [covers:generate_rows.side_default_included] should export deck to CSV with all fields', () => {
       const csv = exportToCSV(sampleDeck);
 
       expect(csv).toBeDefined();
@@ -86,7 +86,7 @@ describe('deck-export', () => {
       expect(csv).toContain('side,屋敷わらし,14558,1,14558_1_1_1,3');
     });
 
-    it('should export CSV without side deck when includeSide is false', () => {
+    it('[covers:generate_rows.side_false_excluded] should export CSV without side deck when includeSide is false', () => {
       const csv = exportToCSV(sampleDeck, { includeSide: false });
 
       expect(csv).toContain('main,灰流うらら');
@@ -94,7 +94,7 @@ describe('deck-export', () => {
       expect(csv).not.toContain('side,屋敷わらし');
     });
 
-    it('should handle empty deck', () => {
+    it('[covers:export_csv.header_only_when_no_rows] should handle empty deck', () => {
       const emptyDeck: DeckInfo = {
         dno: 2,
         name: 'Empty Deck',
@@ -112,7 +112,7 @@ describe('deck-export', () => {
       expect(csv).toBe('section,name,cid,ciid,enc,quantity');
     });
 
-    it('should escape card names with commas', () => {
+    it('[covers:export_csv.escape_name_when_special_chars] should escape card names with commas', () => {
       mockCardDB.set('99999', {
         name: 'Card, Name',
         cardId: '99999',
@@ -140,7 +140,7 @@ describe('deck-export', () => {
       expect(csv).toContain('"Card, Name"');
     });
 
-    it('should escape card names with double quotes', () => {
+    it('[covers:export_csv.escape_name_when_special_chars] should escape card names with double quotes', () => {
       mockCardDB.set('88888', {
         name: 'Card "Name"',
         cardId: '88888',
@@ -168,7 +168,7 @@ describe('deck-export', () => {
       expect(csv).toContain('"Card ""Name"""');
     });
 
-    it('should preserve imgHash correctly', () => {
+    it('[covers:generate_rows.enc_matching_img_hash] should preserve imgHash correctly', () => {
       const csv = exportToCSV(sampleDeck);
 
       expect(csv).toContain('12950_1_1_1');
@@ -177,7 +177,7 @@ describe('deck-export', () => {
   });
 
   describe('exportToTXT', () => {
-    it('should export deck to TXT with all sections', () => {
+    it('[covers:export_txt.main_section_present] [covers:export_txt.extra_section_present] [covers:export_txt.side_section_present] should export deck to TXT with all sections', () => {
       const txt = exportToTXT(sampleDeck);
 
       expect(txt).toBeDefined();
@@ -190,7 +190,7 @@ describe('deck-export', () => {
       expect(txt).toContain('3x 屋敷わらし (14558:1:14558_1_1_1)');
     });
 
-    it('should export TXT without side deck when includeSide is false', () => {
+    it('[covers:export_txt.side_section_absent] should export TXT without side deck when includeSide is false', () => {
       const txt = exportToTXT(sampleDeck, { includeSide: false });
 
       expect(txt).toContain('=== Main Deck');
@@ -199,7 +199,7 @@ describe('deck-export', () => {
       expect(txt).not.toContain('屋敷わらし');
     });
 
-    it('should handle empty deck', () => {
+    it('[covers:export_txt.empty_returns_empty_string] [covers:export_txt.main_section_absent] [covers:export_txt.extra_section_absent] should handle empty deck', () => {
       const emptyDeck: DeckInfo = {
         mainDeck: [],
         extraDeck: [],
@@ -211,7 +211,7 @@ describe('deck-export', () => {
       expect(txt).toBe('');
     });
 
-    it('should calculate card counts correctly', () => {
+    it('[covers:export_txt.main_section_present] [covers:export_txt.extra_section_present] [covers:export_txt.side_section_present] should calculate card counts correctly', () => {
       const txt = exportToTXT(sampleDeck);
 
       expect(txt).toContain('Main Deck (3 cards)');
@@ -219,7 +219,7 @@ describe('deck-export', () => {
       expect(txt).toContain('Side Deck (3 cards)');
     });
 
-    it('should format with enc field', () => {
+    it('[covers:export_txt.main_section_present] should format with enc field', () => {
       const txt = exportToTXT(sampleDeck);
 
       const lines = txt.split('\n');
@@ -258,7 +258,7 @@ describe('deck-export', () => {
       expect(result.deckInfo!.mainDeck[0].quantity).toBe(2);
     });
 
-    it('should handle special characters through CSV round-trip', () => {
+    it('[covers:export_csv.escape_name_when_special_chars] should handle special characters through CSV round-trip', () => {
       mockCardDB.set('77777', {
         name: 'Card, "Name"',
         cardId: '77777',
@@ -288,7 +288,7 @@ describe('deck-export', () => {
       expect(result.deckInfo!.mainDeck[0].cid).toBe('77777');
     });
 
-    it('should maintain quantity and card order', () => {
+    it('[covers:export_csv.data_row_format] should maintain quantity and card order', () => {
       const csv = exportToCSV(sampleDeck);
       const result = importFromCSV(csv);
 
@@ -301,7 +301,7 @@ describe('deck-export', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle deck with only main deck', () => {
+    it('[covers:export_txt.extra_section_absent] [covers:export_txt.side_section_absent] should handle deck with only main deck', () => {
       const mainOnlyDeck: DeckInfo = {
         dno: 6,
         name: 'Main Only',
@@ -326,7 +326,7 @@ describe('deck-export', () => {
       expect(txt).not.toContain('=== Side Deck');
     });
 
-    it('should handle cards without imgHash', () => {
+    it('[covers:generate_rows.enc_empty_fallback] should handle cards without imgHash', () => {
       mockCardDB.set('66666', {
         name: '灰流うらら',
         cardId: '66666',
@@ -354,7 +354,7 @@ describe('deck-export', () => {
       expect(csv).toContain('main,灰流うらら,66666,1,,1');
     });
 
-    it('should handle large quantities', () => {
+    it('[covers:export_csv.data_row_format] [covers:export_txt.main_section_present] should handle large quantities', () => {
       const largeDeck: DeckInfo = {
         dno: 8,
         name: 'Large Quantity',

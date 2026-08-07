@@ -1,0 +1,324 @@
+# 検証対象: src/composables/practice/usePracticeActions.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、Practice画面のカードアクションメニュー（GY/Hand/Banish/Field/Deck底部/
+# EX底部への移動、表裏・縦横切替）の実行とボタン構築を担うVue composable。
+# executeAction は action 文字列で practiceStore.moveCard/setCardFace/setCardOrientation を呼び分け、
+# getAvailableActions は zone と card の属性からアクションボタン配列（null=非表示）を構築する。
+#
+# target_function の記述形式について（composable factory パターン）:
+# 本ファイルは `export function usePracticeActions()` がオブジェクトを返す構造で、
+# 実質的なロジックは factory 内のローカル関数（executeAction/getAvailableActions）にある。
+# extract-ast-skeleton.ts は Pinia Setup Store（defineStore()）の factory は検出するが、
+# 一般の composable factory（export function useXxx()）は未対応のため export関数一覧には
+# `usePracticeActions` 1件のみが現れ、`usePracticeActions#executeAction` 等は抽出されない。
+# このため conditions.toml の target_function には `usePracticeActions#<method>` 形式で記載し、
+# README Phase1.6 知見の Pinia Setup Store と同じ `#` 区切り形式に合わせている
+# （use-deck-name-variables, use-practice-drop-handler と同じ運用）。
+# スクリプト実行時の未カバー検出で `usePracticeActions` が1件出るが既知の限界であり、
+# 本ファイルでは全メソッドの条件を網羅している。
+#
+# 到達不能/実質到達不能分岐:
+# - executeAction L45/L52 の内側 `if (card)`: findCard が返した loc.cardIndex は実カードを指すため、
+#   直後の getCards(loc.zone, loc.slotIndex) の同じ index は実質常に存在する（同期処理なので
+#   状態が変化しない限り到達不能）。ただし loc.slotIndex が undefined になる単純ゾーン
+#   （gy/banish/deck/extra/hand/field/temp）では getCards が slotIndex を無視して対象配列を
+#   返すため安全。テストでは getCards を空配列にモックすることで到達可能。実質到達不能だが
+#   防御的ガードとして残り、条件化してテストで検証する。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - moveToField は必ず 'monster' ゾーンへ移動する（L38）。getAvailableActions 側は zone==='extra'
+#   のときのみ moveToField ボタンを出すため、実運用では EXデッキのカードをmonsterゾーンへ展開する
+#   挙動になる。Spell/TrapをmoveToFieldで送る経路はUI上は無いが、executeAction自体は受け付ける。
+# - moveToField の空きスロット探索（L32-37）は5スロット全て埋まっている場合、breakせず
+#   targetSlot が初期値 0 のまま moveCard に渡る。つまり「空きがない場合は slot 0 に強制的に
+#   （既存カードと重複して）移動する」。エラーやスキップは無く、ストア側の moveCard が
+#   unshiftで先頭に積むためカードがスタックする。
+# - getAvailableActions の最終スロット（L73-77）は zone==='extra' を最優先し、次に zone!=='deck'
+#   でdeckKey（isExtraCard依存）を出す。つまりゾーン判定がカード種別（isExtraCard）より優先。
+#   EXデッキモンスター（isExtraDeck:true）が extra ゾーンにあれば moveToField、deck ゾーンに
+#   あれば null（何も出さない）、それ以外のゾーンにあれば moveToExtraBottom になる。
+# - moveToDeckBottom/moveToExtraBottom は必ず {position:'bottom', face:'down'} 固定。一方
+#   moveToGY/moveToHand/moveToBanish は options を渡さない（undefined）。ストア側 moveCard の
+#   デフォルトで position:'top' になり、face/orientationは変更なし（カードの現状を維持）。
+# - toggleFace/toggleOrientation は face=='up'?'down':'up' / orientation=='vertical'?'horizontal':'vertical'
+#   の二値切替。CardFace/CardOrientation は union型で二値のみのため型安全だが、card.face が
+#   undefined（DB再水和失敗等で未設定）の場合は 'up' 扱いで 'down' に切替される（undefined は
+#   store側 setCardFace で `card.face === face` 比較時に 'up'===face と不一致なら更新されるが、
+#   ここでは単純に 'down' が渡る）。
+# - getAvailableActions の toggleFace (Flip) ボタンはゾーンに関わらず常に表示（L70）。gy/deck 等
+#   の「表裏切替が意味をなさない可能性があるゾーン」でも表示される。
+# - NO_ROTATE_ZONES = {gy, banish, deck, extra, hand}。'temp' ゾーンは回転可（Setに含まれない）。
+#   'field', 'monster', 'spellTrap', 'extraMonster' も回転可。
+# - 不明な action 文字列を渡した場合、全 if/else if を抜けて何もしない（L24-57 の最終 else 無し）。
+#   エラー/ログ出力も無く黙滞の no-op になるため、action キーのタイポは表面化しない。
+
+[meta]
+feature = "use-practice-actions"
+source_file = "src/composables/practice/usePracticeActions.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/usePracticeActions.test.ts"
+source_hash = "509867e7802b54517a433eca475d2422d86e5c5e"
+note = "verified=falseは0件。target_function を usePracticeActions#<method> 形式で記載（composable factory パターン）。ASTスクリプト未対応のため usePracticeActions が未カバーと出るが既知の限界。"
+
+# --- usePracticeActions#executeAction ---
+
+[[condition]]
+id = "execute.movetogy_calls_movecard_gy_no_options"
+target_function = "usePracticeActions#executeAction"
+source_lines = "24-25"
+description = "action='moveToGY' のとき practiceStore.moveCard を zone='gy', slotIndex=undefined, options=undefined で呼ぶ。ストア側デフォルトで position:'top'、face/orientationは現状維持"
+given = "action='moveToGY', cardId='c1', fieldIndex=1 で executeAction を呼ぶ"
+expect_side_effect = "practiceStore.moveCard('c1', 'gy', undefined, undefined, 1) が呼ばれる"
+
+[[condition]]
+id = "execute.movetohand_calls_movecard_hand_no_options"
+target_function = "usePracticeActions#executeAction"
+source_lines = "26-27"
+description = "action='moveToHand' のとき practiceStore.moveCard を zone='hand', options 無しで呼ぶ"
+given = "action='moveToHand', cardId='c1', fieldIndex=0 で executeAction を呼ぶ"
+expect_side_effect = "practiceStore.moveCard('c1', 'hand', undefined, undefined, 0) が呼ばれる"
+
+[[condition]]
+id = "execute.movetobanish_calls_movecard_banish_no_options"
+target_function = "usePracticeActions#executeAction"
+source_lines = "28-29"
+description = "action='moveToBanish' のとき practiceStore.moveCard を zone='banish', options 無しで呼ぶ"
+given = "action='moveToBanish', cardId='c1', fieldIndex=0 で executeAction を呼ぶ"
+expect_side_effect = "practiceStore.moveCard('c1', 'banish', undefined, undefined, 0) が呼ばれる"
+
+[[condition]]
+id = "execute.movetodeckbottom_calls_movecard_deck_bottom_down"
+target_function = "usePracticeActions#executeAction"
+source_lines = "39-40"
+description = "action='moveToDeckBottom' のとき practiceStore.moveCard を zone='deck', options={position:'bottom', face:'down'} で呼ぶ"
+given = "action='moveToDeckBottom', cardId='c1', fieldIndex=2 で executeAction を呼ぶ"
+expect_side_effect = "practiceStore.moveCard('c1', 'deck', undefined, { position: 'bottom', face: 'down' }, 2) が呼ばれる"
+
+[[condition]]
+id = "execute.movetoextrabottom_calls_movecard_extra_bottom_down"
+target_function = "usePracticeActions#executeAction"
+source_lines = "41-42"
+description = "action='moveToExtraBottom' のとき practiceStore.moveCard を zone='extra', options={position:'bottom', face:'down'} で呼ぶ"
+given = "action='moveToExtraBottom', cardId='c1', fieldIndex=0 で executeAction を呼ぶ"
+expect_side_effect = "practiceStore.moveCard('c1', 'extra', undefined, { position: 'bottom', face: 'down' }, 0) が呼ばれる"
+
+[[condition]]
+id = "execute.movetofield_selects_first_empty_monster_slot"
+target_function = "usePracticeActions#executeAction"
+source_lines = "31-38"
+description = "action='moveToField' のとき monster ゾーン slot 0..4 を順に走査し、getCards('monster', i).length===0 となる最初の i を targetSlot として moveCard に渡す。slot 1が最初の空きなら targetSlot=1 で break"
+given = "getCards('monster', 0) が要素1件（非空）、getCards('monster', 1) が空配列を返すようにモックした状態で action='moveToField' を呼ぶ"
+expect_side_effect = "practiceStore.moveCard が第3引数 targetSlot=1, 第4引数 {face:'up'} で呼ばれる"
+
+[[condition]]
+id = "execute.movetofield_all_full_falls_back_to_slot_0"
+target_function = "usePracticeActions#executeAction"
+source_lines = "31-38"
+description = "monster slot 0..4 全てが非空の場合、ループが一度も break せず targetSlot は初期値 0 のまま moveCard に渡る（空きスロット探索のフォールバック）"
+given = "getCards('monster', 0..4) 全てが要素1件以上の配列を返すようにモックした状態で action='moveToField' を呼ぶ"
+expect_side_effect = "practiceStore.moveCard が第3引数 targetSlot=0 で呼ばれる（slot 0 に既存カードがあっても強制的に移動）"
+
+[[condition]]
+id = "execute.movetofield_passes_face_up_option"
+target_function = "usePracticeActions#executeAction"
+source_lines = "38"
+description = "moveToField の moveCard 呼出は options に {face:'up'} のみを設定する（position/orientation は指定しない＝ストア側デフォルト position:'top'）"
+given = "action='moveToField' で executeAction を呼ぶ（getCards は全スロット空を返す）"
+expect_side_effect = "practiceStore.moveCard の第4引数が { face: 'up' } に等しい（position/orientation キーを含まない）"
+
+[[condition]]
+id = "execute.toggleface_flips_up_to_down"
+target_function = "usePracticeActions#executeAction"
+source_lines = "43-49"
+description = "action='toggleFace' で findCard が loc を返し、該当カードの face==='up' のとき setCardFace に 'down' を渡す"
+given = "findCard が {zone:'hand', cardIndex:0, fieldIndex:0} を返し、getCards が [{face:'up'}] を返す状態で action='toggleFace' を呼ぶ"
+expect_side_effect = "practiceStore.setCardFace('c1', 'down', 0) が呼ばれる"
+
+[[condition]]
+id = "execute.toggleface_flips_down_to_up"
+target_function = "usePracticeActions#executeAction"
+source_lines = "43-49"
+description = "action='toggleFace' で該当カードの face==='down' のとき setCardFace に 'up' を渡す"
+given = "findCard が loc を返し、getCards が [{face:'down'}] を返す状態で action='toggleFace' を呼ぶ"
+expect_side_effect = "practiceStore.setCardFace('c1', 'up', 0) が呼ばれる"
+
+[[condition]]
+id = "execute.toggleface_noop_when_findcard_returns_null"
+target_function = "usePracticeActions#executeAction"
+source_lines = "44-49"
+description = "action='toggleFace' で findCard が null を返した場合、if(loc) ガードで抜け setCardFace は呼ばれない（早期return相当）"
+given = "findCard が null を返す状態で action='toggleFace' を呼ぶ"
+expect_side_effect = "practiceStore.setCardFace は呼ばれない。practiceStore.getCards も呼ばれない"
+
+[[condition]]
+id = "execute.toggleface_noop_when_card_undefined"
+target_function = "usePracticeActions#executeAction"
+source_lines = "47-48"
+description = "action='toggleFace' で findCard は loc を返したが getCards[loc.cardIndex] が undefined の場合、if(card) ガードで抜け setCardFace は呼ばれない。実質到達不能（findCard が返した index は実カードを指すはず）だが防御的ガードとして残り、テストでは getCards を空配列にモックして到達させる"
+given = "findCard が {zone:'hand', cardIndex:0, fieldIndex:0} を返し、getCards が空配列 [] を返す状態で action='toggleFace' を呼ぶ"
+expect_side_effect = "practiceStore.setCardFace は呼ばれない"
+
+[[condition]]
+id = "execute.toggleorientation_flips_vertical_to_horizontal"
+target_function = "usePracticeActions#executeAction"
+source_lines = "50-56"
+description = "action='toggleOrientation' で findCard が loc を返し、該当カードの orientation==='vertical' のとき setCardOrientation に 'horizontal' を渡す"
+given = "findCard が loc を返し、getCards が [{orientation:'vertical'}] を返す状態で action='toggleOrientation' を呼ぶ"
+expect_side_effect = "practiceStore.setCardOrientation('c1', 'horizontal', 0) が呼ばれる"
+
+[[condition]]
+id = "execute.toggleorientation_flips_horizontal_to_vertical"
+target_function = "usePracticeActions#executeAction"
+source_lines = "50-56"
+description = "action='toggleOrientation' で該当カードの orientation==='horizontal' のとき setCardOrientation に 'vertical' を渡す"
+given = "findCard が loc を返し、getCards が [{orientation:'horizontal'}] を返す状態で action='toggleOrientation' を呼ぶ"
+expect_side_effect = "practiceStore.setCardOrientation('c1', 'vertical', 0) が呼ばれる"
+
+[[condition]]
+id = "execute.toggleorientation_noop_when_findcard_returns_null"
+target_function = "usePracticeActions#executeAction"
+source_lines = "51-56"
+description = "action='toggleOrientation' で findCard が null を返した場合、if(loc) ガードで抜け setCardOrientation は呼ばれない"
+given = "findCard が null を返す状態で action='toggleOrientation' を呼ぶ"
+expect_side_effect = "practiceStore.setCardOrientation は呼ばれない"
+
+[[condition]]
+id = "execute.toggleorientation_noop_when_card_undefined"
+target_function = "usePracticeActions#executeAction"
+source_lines = "54-55"
+description = "action='toggleOrientation' で findCard は loc を返したが getCards[loc.cardIndex] が undefined の場合、if(card) ガードで抜け setCardOrientation は呼ばれない。toggleFace L48 と対称の防御的ガード（実質到達不能だがテストで到達させる）"
+given = "findCard が {zone:'hand', cardIndex:0, fieldIndex:0} を返し、getCards が空配列 [] を返す状態で action='toggleOrientation' を呼ぶ"
+expect_side_effect = "practiceStore.setCardOrientation は呼ばれない"
+
+[[condition]]
+id = "execute.unknown_action_silent_noop"
+target_function = "usePracticeActions#executeAction"
+source_lines = "24-57"
+description = "action が moveToGY/moveToHand/moveToBanish/moveToField/moveToDeckBottom/moveToExtraBottom/toggleFace/toggleOrientation のいずれにも一致しない場合、全 if/else if を抜けて何の store メソッドも呼ばず return する（最終 else 無し、エラー/ログも無し）"
+given = "action='unknownAction' で executeAction を呼ぶ"
+expect_side_effect = "practiceStore のいずれのメソッド（moveCard/setCardFace/setCardOrientation/getCards/findCard）も呼ばれない"
+
+# --- usePracticeActions#getAvailableActions ---
+
+[[condition]]
+id = "getactions.movetogy_hidden_when_zone_is_gy"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "68"
+description = "戻り値配列のインデックス0: zone==='gy' のとき null（GY送りボタンは現在GYにいる場合は出さない）"
+given = "zone='gy', 任意の card で getAvailableActions を呼ぶ"
+expect_return = "戻り値[0] が null"
+
+[[condition]]
+id = "getactions.movetogy_shown_when_zone_not_gy"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "68"
+description = "戻り値配列のインデックス0: zone!=='gy' のとき {key:'moveToGY', title:'GY', icon:mdiGraveStone} を返す"
+given = "zone='hand', 任意の card で getAvailableActions を呼ぶ"
+expect_return = "戻り値[0] の key が 'moveToGY', title が 'GY'"
+
+[[condition]]
+id = "getactions.movetobanish_hidden_when_zone_is_banish"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "69"
+description = "戻り値配列のインデックス1: zone==='banish' のとき null"
+given = "zone='banish' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[1] が null"
+
+[[condition]]
+id = "getactions.movetobanish_shown_when_zone_not_banish"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "69"
+description = "戻り値配列のインデックス1: zone!=='banish' のとき {key:'moveToBanish', title:'Banish'} を返す"
+given = "zone='hand' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[1] の key が 'moveToBanish', title が 'Banish'"
+
+[[condition]]
+id = "getactions.toggleface_always_present"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "70"
+description = "戻り値配列のインデックス2: zone に関わらず常に {key:'toggleFace', title:'Flip', icon:mdiEyeOff} を返す（条件分岐なし）"
+given = "任意の zone（gy/deck/hand 等を含む）で getAvailableActions を呼ぶ"
+expect_return = "戻り値[2] の key が 'toggleFace', title が 'Flip'（null にならない）"
+
+[[condition]]
+id = "getactions.toggleorientation_hidden_in_no_rotate_zones"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "62, 71"
+description = "戻り値配列のインデックス3: zone が NO_ROTATE_ZONES={gy,banish,deck,extra,hand} のいずれかのとき canRotate=false で null を返す（回転不可ゾーンでは Rotate ボタンを隠す）"
+given = "zone を 'gy', 'banish', 'deck', 'extra', 'hand' のそれぞれに設定して getAvailableActions を呼ぶ"
+expect_return = "いずれの zone でも戻り値[3] が null"
+
+[[condition]]
+id = "getactions.toggleorientation_shown_in_rotatable_zones"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "62, 71"
+description = "戻り値配列のインデックス3: zone が NO_ROTATE_ZONES に含まれない（field/monster/spellTrap/extraMonster/temp）とき canRotate=true で {key:'toggleOrientation', title:'Rotate'} を返す"
+given = "zone='monster'（または field/spellTrap/extraMonster/temp）で getAvailableActions を呼ぶ"
+expect_return = "戻り値[3] の key が 'toggleOrientation', title が 'Rotate'"
+
+[[condition]]
+id = "getactions.movetohand_hidden_when_zone_is_hand"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "72"
+description = "戻り値配列のインデックス4: zone==='hand' のとき null"
+given = "zone='hand' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[4] が null"
+
+[[condition]]
+id = "getactions.movetohand_shown_when_zone_not_hand"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "72"
+description = "戻り値配列のインデックス4: zone!=='hand' のとき {key:'moveToHand', title:'Hand'} を返す"
+given = "zone='gy' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[4] の key が 'moveToHand', title が 'Hand'"
+
+[[condition]]
+id = "getactions.last_slot_movetofield_when_zone_is_extra"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "73-74"
+description = "戻り値配列のインデックス5: zone==='extra' のとき isExtraCard に関わらず {key:'moveToField', title:'Field', icon:mdiArrowCollapseUp} を返す（ゾーン判定がカード種別より優先）"
+given = "zone='extra' で getAvailableActions を呼ぶ（card.cardType/isExtraDeck は任意）"
+expect_return = "戻り値[5] の key が 'moveToField', title が 'Field'"
+
+[[condition]]
+id = "getactions.last_slot_deckkey_when_zone_not_extra_not_deck"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "75-76"
+description = "戻り値配列のインデックス5: zone!=='extra' かつ zone!=='deck' のとき deckKey ボタンを返す。deckKey は isExtraCard が true なら 'moveToExtraBottom'（title='EX Bot'）、false なら 'moveToDeckBottom'（title='Deck Bot'）"
+given = "zone='monster' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[5] が null ではなく、key は card に応じて 'moveToDeckBottom' または 'moveToExtraBottom'"
+
+[[condition]]
+id = "getactions.last_slot_null_when_zone_is_deck"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "73-77"
+description = "戻り値配列のインデックス5: zone==='deck' のとき null（デッキにいるカードの「デッキ底部へ送る」ボタンは出さない）"
+given = "zone='deck' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[5] が null"
+
+[[condition]]
+id = "getactions.deckkey_uses_movetoextrabottom_for_extra_deck_monster"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "61, 64-65"
+description = "isExtraCard = card.cardType==='monster' && !!card.isExtraDeck が true のとき deckKey='moveToExtraBottom', deckTitle='EX Bot' になる。非extra/deckゾーンの最終スロットに反映"
+given = "card={cardType:'monster', isExtraDeck:true, ...} zone='monster' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[5] の key が 'moveToExtraBottom', title が 'EX Bot'"
+
+[[condition]]
+id = "getactions.deckkey_uses_movetodeckbottom_for_non_extra"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "61, 64-65"
+description = "isExtraCard が false のとき deckKey='moveToDeckBottom', deckTitle='Deck Bot'。spell/trap/通常モンスター等が該当"
+given = "card={cardType:'spell', isExtraDeck:undefined, ...} zone='monster' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[5] の key が 'moveToDeckBottom', title が 'Deck Bot'"
+
+[[condition]]
+id = "getactions.isextracard_requires_both_monster_and_isextradeck"
+target_function = "usePracticeActions#getAvailableActions"
+source_lines = "61"
+description = "isExtraCard は cardType==='monster' と !!isExtraDeck の両方を満たす場合のみ true。cardType='monster' でも isExtraDeck が undefined/false なら false 扱い（moveToDeckBottom/Deck Bot になる）"
+given = "card={cardType:'monster', isExtraDeck:undefined}（モンスターだがEXデッキ不是）zone='monster' で getAvailableActions を呼ぶ"
+expect_return = "戻り値[5] の key が 'moveToDeckBottom'（moveToExtraBottom にならない）"

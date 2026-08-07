@@ -1,0 +1,185 @@
+# 検証対象: src/services/llm/context-builder.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、services/llmのプロンプト生成ロジック。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+
+[meta]
+feature = "context-builder"
+source_file = "src/services/llm/context-builder.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/services/llm/context-builder.test.ts"
+source_hash = "d4d99d5e8deefc1d0abe67d1002a7895914ced5b"
+note = "verified=falseは0件"
+
+# --- cardHeader(card: CardInfo): string ---
+
+[[condition]]
+id = "card_header.monster_level_label"
+target_function = "cardHeader"
+source_lines = "69-70"
+description = "monsterカードの場合、levelTypeが'rank'なら'R'、'link'なら'L'、それ以外なら'Lv'をlevelValueの前に付ける"
+given = "levelType='level' / 'rank' / 'link' のmonsterカード"
+expect_return_shape = "それぞれ 'Lv4' / 'R4' / 'L2' をヘッダー内に含む"
+
+[[condition]]
+id = "card_header.monster_type_label_maps_and_filters"
+target_function = "cardHeader"
+source_lines = "71-74,76"
+description = "typesがtruthyなlengthを持つ場合、'effect'と'normal'を除外し、既知typeを日本語短表記にmapして区切りなしでjoinし、空でなければparts先頭に入れる"
+given = "types = ['effect', 'fusion', 'tuner']"
+expect_return_shape = "'融合チューナー' が属性より前に出力され、'effect'は出力されない"
+
+[[condition]]
+id = "card_header.monster_type_label_unknown_fallback"
+target_function = "cardHeader"
+source_lines = "72-74"
+description = "types内のmapに存在しない値は元の文字列をそのままtypeLabelへ入れる"
+given = "types = ['custom']（実行時に型外値が入った場合）"
+expect_return_shape = "'custom' がヘッダー内に出力される"
+
+[[condition]]
+id = "card_header.monster_type_label_empty_omitted"
+target_function = "cardHeader"
+source_lines = "71,76,82"
+description = "typesが空配列またはundefinedの場合、typeLabelは空文字列になり、partsではundefined扱いで除外される"
+given = "types = [] または undefined（実行時に型外状態が入った場合）"
+expect_return_shape = "ヘッダーは属性から始まり、先頭に空要素や余分な'/'を含まない"
+
+[[condition]]
+id = "card_header.monster_attribute_race_map_or_raw"
+target_function = "cardHeader"
+source_lines = "77-78"
+description = "attribute/raceは対応する表示名がマップに存在すれば日本語名を使い、存在しなければ元の値をそのまま使う"
+given = "attribute='dark', race='dragon' / attribute='customAttr', race='customRace'"
+expect_return_shape = "前者は'闇/ドラゴン族'、後者は'customAttr/customRace'を含む"
+
+[[condition]]
+id = "card_header.monster_atk_def_nullish_omitted"
+target_function = "cardHeader"
+source_lines = "80-82"
+description = "atk/defはnullまたはundefinedでなければ'攻${atk}'/'守${def}'としてpartsに入り、nullishなら除外される"
+given = "atk=0, def='?' のmonsterカード / atk・def未指定のmonsterカード"
+expect_return_shape = "前者は'攻0/守?'を含み、後者は攻守表記と余分な'/'を含まない"
+
+[[condition]]
+id = "card_header.monster_return_template"
+target_function = "cardHeader"
+source_lines = "75-83"
+description = "monsterカードはpartsを'/'で結合し、'${card.name}（${parts.join('/')}）'を返す"
+given = "name='青眼の白龍'、属性・種族・Lv・攻守を持つmonsterカード"
+expect_return_shape = "'青眼の白龍（光/ドラゴン族/Lv8/攻3000/守2500）'"
+
+[[condition]]
+id = "card_header.spell_kind_and_effect_type"
+target_function = "cardHeader"
+source_lines = "85-86"
+description = "monster以外でcardTypeが'spell'の場合kind='魔法'になり、effectTypeがtruthyなら'${name}（${effectType}魔法）'、falsyなら'${name}（魔法）'を返す"
+given = "effectType='quick'のspellカード / effectType未指定のspellカード"
+expect_return_shape = "それぞれ '速攻魔法（quick魔法）' 形式ではなく、実装どおりeffectType生値を使うため '${name}（quick魔法）' / '${name}（魔法）'"
+
+[[condition]]
+id = "card_header.trap_kind_and_effect_type"
+target_function = "cardHeader"
+source_lines = "85-86"
+description = "monster以外でcardTypeが'spell'でない場合kind='罠'になり、effectTypeがtruthyなら'${name}（${effectType}罠）'、falsyなら'${name}（罠）'を返す"
+given = "effectType='counter'のtrapカード / effectType未指定のtrapカード"
+expect_return_shape = "それぞれ '${name}（counter罠）' / '${name}（罠）'"
+
+# --- formatCardEntry(card: CardInfo, count: number): string ---
+
+[[condition]]
+id = "format_card_entry.count_gt_one_suffix"
+target_function = "formatCardEntry"
+source_lines = "89-91"
+description = "count > 1 の場合、cardHeader(card)の後に'×${count}'を付け、末尾に' [cardId:${card.cardId}]'を付ける"
+given = "count=2, cardId='100'"
+expect_return_shape = "'...×2 [cardId:100]'"
+
+[[condition]]
+id = "format_card_entry.count_le_one_no_suffix"
+target_function = "formatCardEntry"
+source_lines = "89-91"
+description = "count <= 1 の場合、枚数サフィックスを付けず、末尾に' [cardId:${card.cardId}]'を付ける"
+given = "count=1（buildSystemPromptのfocusedCardでは常に1）"
+expect_return_shape = "'... [cardId:100]'（'×1'は含まない）"
+
+# --- summarizeCards(cards: CardInfo[]): string ---
+
+[[condition]]
+id = "summarize_cards.empty_returns_empty_string"
+target_function = "summarizeCards"
+source_lines = "94-104"
+description = "cardsが空配列の場合、Mapも空のままになり、join('\\n')の結果として空文字列を返す"
+given = "cards = []"
+expect_return = "''"
+
+[[condition]]
+id = "summarize_cards.duplicates_grouped_by_name"
+target_function = "summarizeCards"
+source_lines = "95-104"
+description = "同じnameのカードが複数ある場合、cardId等が異なっていても同一entryとしてcountを増やし、最初に見たcard情報でformatCardEntryする"
+given = "同じnameでcardIdが異なるカード2件"
+expect_return_shape = "1行だけ出力され、最初のcardIdと'×2'を含む"
+
+[[condition]]
+id = "summarize_cards.unique_entries_keep_insertion_order"
+target_function = "summarizeCards"
+source_lines = "95-104"
+description = "nameが異なるカードは初出順にMapへ追加され、戻り値では各entryを'\\n'で結合する"
+given = "nameが異なるカード2件"
+expect_return_shape = "1件目の行、改行、2件目の行の順で出力される"
+
+# --- buildSystemPrompt(deckSections: DeckSections, focusedCard?: CardInfo): string ---
+
+[[condition]]
+id = "build_prompt.includes_static_system_prompt"
+target_function = "buildSystemPrompt"
+source_lines = "5-66,128"
+description = "戻り値はSYSTEM_PROMPT_BASEで始まり、ツール呼び出しJSON形式やカード名出力形式などの固定指示を含む"
+given = "任意のdeckSections"
+expect_return_shape = "先頭が'あなたは遊戯王デッキ構築アシスタントです。'で、'{\"tool\": \"ツール名\", \"args\": {...}}'を含む"
+
+[[condition]]
+id = "build_prompt.deck_summary_lengths_and_none"
+target_function = "buildSystemPrompt"
+source_lines = "111-122"
+description = "main/extra/sideそれぞれについて配列lengthを'${length}枚'として表示し、summarizeCardsの結果が空文字列なら'なし'を表示する"
+given = "main/extra/sideがすべて空配列"
+expect_return_shape = "各セクション見出しに'0枚'を含み、各リスト部分に'なし'を表示する"
+
+[[condition]]
+id = "build_prompt.deck_summary_lists"
+target_function = "buildSystemPrompt"
+source_lines = "111-122"
+description = "main/extra/sideそれぞれでsummarizeCardsの結果がtruthyなら、その文字列を'なし'の代わりに表示する"
+given = "main/extra/sideに各1枚以上カードがある"
+expect_return_shape = "各セクションにformatCardEntry形式のカード行を含む"
+
+[[condition]]
+id = "build_prompt.ignores_trash_and_search_results"
+target_function = "buildSystemPrompt"
+source_lines = "111-122"
+description = "deckSections.trashとdeckSections.searchResultsは参照されず、デッキ内容にも枚数にも出力されない"
+given = "trash/searchResultsにカードがあり、main/extra/sideは空"
+expect_return_shape = "trash/searchResultsのカード名を含まず、main/extra/sideはすべて0枚"
+
+[[condition]]
+id = "build_prompt.focused_card_present"
+target_function = "buildSystemPrompt"
+source_lines = "124-126,128"
+description = "focusedCardがtruthyの場合、'\\n## 現在フォーカス中のカード\\n${formatCardEntry(focusedCard, 1)}'を末尾に追加する"
+given = "focusedCardにカードを渡す"
+expect_return_shape = "末尾にフォーカス中カードセクションを含み、カード行に'×1'は含まない"
+
+[[condition]]
+id = "build_prompt.focused_card_absent"
+target_function = "buildSystemPrompt"
+source_lines = "124-128"
+description = "focusedCardがfalsyの場合、focusedCardSectionは空文字列になり、フォーカス中カードセクションは追加されない"
+given = "focusedCard未指定"
+expect_return_shape = "'## 現在フォーカス中のカード'を含まない"

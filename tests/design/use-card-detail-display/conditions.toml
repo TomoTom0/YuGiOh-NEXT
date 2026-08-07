@@ -1,0 +1,213 @@
+# 検証対象: src/composables/useCardDetailDisplay.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、カード詳細取得→表示の共通フロー
+# (getCardDetailWithCache -> setSelectedCard -> activeTab切替 -> setCardTab)
+# を提供するVue composable。DeckCard, RightArea, useCardLinksで重複していたフローを統一。
+#
+# target_function の記述形式について（composable factory パターン）:
+# 本ファイルは `export function useCardDetailDisplay()` がオブジェクト `{ showCardDetail }`
+# を返す構造で、実質的なロジックは factory 内のローカル const arrow function `showCardDetail`
+# にあります。extract-ast-skeleton.ts は Pinia Setup Store (defineStore()) の factory は
+# 検出しますが、一般の composable factory (export function useXxx()) は未対応のため、
+# export関数一覧には `useCardDetailDisplay` 1件のみが現れ、`useCardDetailDisplay#showCardDetail`
+# は抽出されません。このため conditions.toml の target_function には
+# `useCardDetailDisplay#showCardDetail` 形式で記載し、README Phase1.6 知見の Pinia Setup Store
+# と同じ `#` 区切り形式に合わせています。スクリプト実行時の未カバー検出で
+# `useCardDetailDisplay` が1件出ますが、これは上記のスクリプト側の限界であり、
+# 本ファイルでは showCardDetail の条件を網羅しています。
+#
+# 到達不能/実質到達不能分岐:
+# - L57 `fullCard.imgs ? [...fullCard.imgs] : []`: CardBase.imgs は型上必須フィールドだが、
+#   API由来データに対する実行時ガードとして入っている。型システム上は到達不能だが、
+#   実データでの imgs undefined を想定した防御的フォールバック（条件化せず、該当条件の
+#   description で言及のみ）。
+# - L53 `result?.detail?.card` のうち result のオプショナルチェーン: result は
+#   getCardDetailWithCache の await 戻り値で常に定義されるため、result?. の ? は実質到達不能。
+#   一方 detail?.card の detail は CardDetailCacheResult.detail が `CardDetail | null` なので
+#   null の可能性があり、ここの ?. は意味を持つ（fullCard が undefined になる経路）。
+# - L49-51 `if (result.isPartialFromError) console.warn(...)`: 単なる警告ログ出力であり、
+#   その後の返り値・副作用・処理継続の有無に差を生まない（warn 後も fullCard の有無で
+#   同じ分岐に入る）。README セクション2「ログ出力のみで挙動差なし」は条件化しない。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - L55-68 の3分岐 (fullCard / fallbackCard / どちらも無し) のうち、早期returnするのは
+#   「fullCard無し かつ fallbackCard無し」の最末梢のみ。それ以外の経路では必ず
+#   setSelectedCard -> activeTab='card' -> (resetCardTabなら) setCardTab('info') が続く。
+#   つまり「カード情報を一つも表示できない場合のみタブ切替をスキップする」設計。
+# - L56-58 の fullCard ルートでの ciid 上書きは `preserveCiid && fallbackCard` の2条件が
+#   両方真の場合のみ動作する。preserveCiid=true でも fallbackCard が無い場合は上書きせず
+#   fullCard をそのまま使う（上書き元の ciid が無いため当然だが、呼び出し側で
+#   preserveCiid=true を指定しても fallbackCard を渡さないと機能しない点に注意）。
+# - L60-64 の fallbackCard ルートの preserveCiid=true 分岐では
+#   `{ ...fallbackCard, imgs: [...fallbackCard.imgs], ciid: fallbackCard.ciid }` と
+#   ciid に fallbackCard.ciid を再設定している（同じ値）。これは「オブジェクトを新しく作って
+#   参照を分ける」意図（防御的コピー）。imgs も新しい配列インスタンスにコピー。
+#   一方 preserveCiid=false の場合は fallbackCard の参照をそのまま setSelectedCard に渡す
+#   （参照共有）。呼び出し側が後から cardData を変更した場合に影響範囲が変わる。
+# - catch節 (L72-82) の fallbackCard 処理は L60-64 の fallbackCard ルートと同じデータ構築
+#   ロジックだが、実行コンテキストが異なる（API呼び出しやそれ以降の処理で例外が飛んだ場合）。
+#   例外時も正常系と同じフォールバックを提供する意図的な重複。
+# - catch節で fallbackCard が無い場合は console.error のみ。deckStore.activeTab の変更も
+#   setCardTab も setSelectedCard も行われない（現在の表示状態を維持）。
+# - finally節 (L83-85) の endLoadingCard は showLoading=true の場合のみ呼ばれる。
+#   startLoadingCard (L44) と対で、try-finally により成功/例外に関わらず必ず実行される。
+#   ただし startLoadingCard 自体が try の外（直前）なので、startLoadingCard呼び出し後〜
+#   tryブロック開始前に例外が飛ぶことは通常起こらない（同期呼び出しなので）。
+
+[meta]
+feature = "use-card-detail-display"
+source_file = "src/composables/useCardDetailDisplay.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useCardDetailDisplay.test.ts"
+source_hash = "d3256875acf454d77fc0c9fdb62c9bc2ddc627ec"
+note = "verified=falseは0件。target_function を useCardDetailDisplay#showCardDetail 形式で記載（composable factory パターン）。ASTスクリプト未対応のため useCardDetailDisplay が未カバーと出るが既知の限界。"
+
+# --- useCardDetailDisplay#showCardDetail ---
+
+[[condition]]
+id = "showcarddetail.show_loading_starts_loading"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "44"
+description = "showLoading=true の場合、getCardDetailWithCache 呼び出し前に cardDetailStore.startLoadingCard() を呼ぶ。showLoading=false（デフォルト）の場合は呼ばれない（副作用の有無が変わる）"
+given = "options.showLoading = true で showCardDetail を呼ぶ"
+expect_side_effect = "cardDetailStore.startLoadingCard() が呼ばれる"
+
+[[condition]]
+id = "showcarddetail.show_loading_false_skips_start_loading"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "44"
+description = "showLoading を指定しない（デフォルト false）場合、startLoadingCard は呼ばれない"
+given = "options.showLoading を省略（または false）で showCardDetail を呼ぶ"
+expect_side_effect = "cardDetailStore.startLoadingCard() は呼ばれない"
+
+[[condition]]
+id = "showcarddetail.fromFAQ_propagated_to_api"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "47"
+description = "options.fromFAQ の真偽が getCardDetailWithCache の第5引数（fromFAQ）としてそのまま渡される。cardId, detectLanguage(document) の戻り値, true（autoRefresh）, 'release_desc'（sortOrder）は固定で、第5引数のみ fromFAQ によって変動する"
+given = "options.fromFAQ = true で showCardDetail('1234') を呼ぶ"
+expect_side_effect = "getCardDetailWithCache が (cardId='1234', lang=<detectLanguageの戻り値>, true, 'release_desc', true) で呼ばれる"
+
+[[condition]]
+id = "showcarddetail.fromFAQ_default_false_propagated"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "38,47"
+description = "fromFAQ を指定しない場合、デフォルト false が getCardDetailWithCache の第5引数に渡される"
+given = "options.fromFAQ を省略して showCardDetail('1234') を呼ぶ"
+expect_side_effect = "getCardDetailWithCache の第5引数が false で呼ばれる"
+
+[[condition]]
+id = "showcarddetail.success_fullcard_preserve_ciid_with_fallback"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "55-59"
+description = "getCardDetailWithCache が detail.card を返し（fullCard存在）、かつ preserveCiid=true かつ fallbackCard 有りのとき、fullCard の imgs を新しい配列にコピーし、ciid を fallbackCard.ciid で上書きしたオブジェクトを setSelectedCard に渡す（DeckCard で選択中の画像インスタンスを保持するため）"
+given = "getCardDetailWithCache が { detail: { card: fullCard } } を返し、options.preserveCiid=true, options.fallbackCard={...fullCardより異なるciid} を指定"
+expect_side_effect = "setSelectedCard に渡された cardData の ciid が fallbackCard.ciid に等しく、imgs が fullCard.imgs と異なる配列インスタンス（要素は同じ）になる"
+
+[[condition]]
+id = "showcarddetail.success_fullcard_no_overwrite_when_preserve_false"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "55-59"
+description = "fullCard 取得成功時、preserveCiid=false（デフォルト）の場合は fullCard をそのまま（ciid上書き無し）setSelectedCard に渡す"
+given = "getCardDetailWithCache が { detail: { card: fullCard } } を返し、options.preserveCiid を省略（または false）"
+expect_side_effect = "setSelectedCard に fullCard と同じオブジェクトが渡る（ciid は fullCard.ciid のまま）"
+
+[[condition]]
+id = "showcarddetail.success_fullcard_no_overwrite_when_fallback_absent"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "56-58"
+description = "fullCard 取得成功時、preserveCiid=true でも fallbackCard が無い場合は fullCard をそのまま setSelectedCard に渡す（ciid上書き元が無いため）。preserveCiid && fallbackCard の両方真が必要"
+given = "getCardDetailWithCache が { detail: { card: fullCard } } を返し、options.preserveCiid=true, options.fallbackCard 未指定"
+expect_side_effect = "setSelectedCard に fullCard と同じオブジェクトが渡る（ciid は fullCard.ciid）"
+
+[[condition]]
+id = "showcarddetail.no_fullcard_fallback_preserve_ciid"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "60-64"
+description = "fullCard が取得できず（detail が null または detail.card が undefined）、fallbackCard 有り、preserveCiid=true の場合、fallbackCard の imgs を新しい配列にコピーし ciid を再設定したオブジェクトを setSelectedCard に渡す（参照を分ける防御的コピー）"
+given = "getCardDetailWithCache が { detail: null } を返し、options.fallbackCard を指定、options.preserveCiid=true"
+expect_side_effect = "setSelectedCard に渡された cardData が fallbackCard と異なるオブジェクトインスタンス（imgs も新しい配列）になる"
+
+[[condition]]
+id = "showcarddetail.no_fullcard_fallback_no_preserve"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "60-64"
+description = "fullCard 無し、fallbackCard 有り、preserveCiid=false の場合、fallbackCard の参照をそのまま setSelectedCard に渡す（コピーしない）"
+given = "getCardDetailWithCache が { detail: null } を返し、options.fallbackCard を指定、options.preserveCiid を省略（または false）"
+expect_side_effect = "setSelectedCard に fallbackCard と同じオブジェクト参照が渡る"
+
+[[condition]]
+id = "showcarddetail.no_fullcard_no_fallback_early_return"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "65-68"
+description = "fullCard も fallbackCard も無い場合、console.error を出力して早期returnする。deckStore.activeTab の変更も setCardTab も setSelectedCard も行われない（現在の表示状態を維持）"
+given = "getCardDetailWithCache が { detail: null } を返し、options.fallbackCard 未指定"
+expect_return = "undefined（早期return）"
+expect_side_effect = "console.error が呼ばれる。setSelectedCard / activeTab='card' / setCardTab はいずれも実行されない"
+
+[[condition]]
+id = "showcarddetail.active_tab_set_to_card_on_success"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "70"
+description = "早期return（fullCard/fallbackCard いずれも無し）しない限り、正常系では必ず deckStore.activeTab = 'card' を設定する（fullCard ルート・fallbackCard ルートの両方で共通）"
+given = "getCardDetailWithCache が card を返し（fullCard存在）、showCardDetail を呼ぶ"
+expect_side_effect = "deckStore.activeTab が 'card' に設定される"
+
+[[condition]]
+id = "showcarddetail.reset_card_tab_default_true"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "71"
+description = "resetCardTab を指定しない（デフォルト true）または明示的に true を指定した場合、正常系ルートで setCardTab('info') が呼ばれる"
+given = "options.resetCardTab を省略（または true）で、正常系ルート（早期return以外）を通る"
+expect_side_effect = "cardDetailStore.setCardTab('info') が呼ばれる"
+
+[[condition]]
+id = "showcarddetail.reset_card_tab_false_skips"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "71"
+description = "resetCardTab=false を指定した場合、setCardTab は呼ばれない（現在のタブ状態を維持）。activeTab='card' の設定自体は行われる"
+given = "options.resetCardTab=false で、正常系ルート（早期return以外）を通る"
+expect_side_effect = "cardDetailStore.setCardTab は呼ばれない。deckStore.activeTab='card' は設定される"
+
+[[condition]]
+id = "showcarddetail.catch_with_fallback_falls_back"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "72-82"
+description = "getCardDetailWithCache が reject される等の例外が発生した場合、fallbackCard があれば preserveCiid に応じて fallbackCard を setSelectedCard に渡し、activeTab='card' を設定し、resetCardTab なら setCardTab('info') を呼ぶ（正常系の fallbackCard ルートと同等のフォールバックを提供）"
+given = "getCardDetailWithCache が reject され、options.fallbackCard を指定"
+expect_side_effect = "setSelectedCard が fallbackCard 由来の cardData で呼ばれ、deckStore.activeTab='card' が設定される。resetCardTab=true なら setCardTab('info') も呼ばれる"
+
+[[condition]]
+id = "showcarddetail.catch_preserve_ciid_in_fallback"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "75-78"
+description = "catch節で fallbackCard 有り かつ preserveCiid=true の場合、fallbackCard の imgs を新しい配列にコピーし ciid を再設定したオブジェクトを setSelectedCard に渡す（正常系の no_fullcard_fallback_preserve_ciid と同じデータ構築）"
+given = "getCardDetailWithCache が reject され、options.fallbackCard を指定、options.preserveCiid=true"
+expect_side_effect = "setSelectedCard に渡された cardData が fallbackCard と異なるオブジェクトインスタンスになる"
+
+[[condition]]
+id = "showcarddetail.catch_without_fallback_no_state_change"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "72-82"
+description = "例外発生時、fallbackCard が無い場合は console.error のみ。setSelectedCard / activeTab 変更 / setCardTab はいずれも行われない（現在の表示状態を維持）"
+given = "getCardDetailWithCache が reject され、options.fallbackCard 未指定"
+expect_side_effect = "console.error が呼ばれる。setSelectedCard / activeTab='card' / setCardTab はいずれも実行されない"
+
+[[condition]]
+id = "showcarddetail.finally_end_loading_when_showLoading"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "83-85"
+description = "showLoading=true の場合、成功・例外に関わらず finally節で endLoadingCard が呼ばれる（startLoadingCard と対。try-finally による呼び出し保証）"
+given = "options.showLoading=true で showCardDetail を呼び、getCardDetailWithCache が成功または reject する"
+expect_side_effect = "cardDetailStore.endLoadingCard() が呼ばれる（成功時も例外時も）"
+
+[[condition]]
+id = "showcarddetail.finally_no_end_loading_when_showLoading_false"
+target_function = "useCardDetailDisplay#showCardDetail"
+source_lines = "83-85"
+description = "showLoading=false（デフォルト）の場合、finally節の endLoadingCard は呼ばれない（startLoadingCard も呼んでいないため対で揃う）"
+given = "options.showLoading を省略（または false）で showCardDetail を呼ぶ"
+expect_side_effect = "cardDetailStore.endLoadingCard() は呼ばれない"

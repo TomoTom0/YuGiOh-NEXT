@@ -14,9 +14,11 @@ global.fetch = async () => ({ ok: false }) as any;
 import * as cardSearch from '../../../src/api/card-search';
 
 describe('Parser: Card Detail', () => {
-  it('should parse card detail page correctly', async () => {
+  const htmlPath = path.join(__dirname, '../data/card-detail.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+
+  it.skipIf(!hasHtmlFile)('should parse card detail page correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/card-detail.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // JSDOMでパース

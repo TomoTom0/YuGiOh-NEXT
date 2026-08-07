@@ -1,0 +1,416 @@
+# 検証対象: src/composables/deck/useDeckDisplayOrder.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、Vue composableの表示順序操作ロジック。
+#
+# 到達不能/実質到達不能分岐:
+# - reorderWithinSectionByUUID L417-419: validateReorderParameters が同じ
+#   `!sectionOrder || !Array.isArray(sectionOrder)` を先に検出して validationError を返すため、
+#   通常の同期実行では後続の同一ガードは到達不能。
+
+[meta]
+feature = "use-deck-display-order"
+source_file = "src/composables/deck/useDeckDisplayOrder.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckDisplayOrder.test.ts tests/unit/composables/useDeckDisplayOrder-comprehensive.test.ts tests/unit/composables/useDeckDisplayOrder.conditions.test.ts"
+source_hash = "a301e81ebff06faf0dbd6d8dc41f76e63cd54f75"
+note = "verified=falseは3件: move.display_slot_missing_returns_undefinedとmove.deck_slot_missing_returns_undefinedはfindIndex成功直後の同一indexがfalsyになる通常入力を作れない防御分岐、reorder_uuid.redundant_section_guardは先行バリデーションにより公開APIから到達不能"
+
+# --- addToDisplayOrder(displayOrder, deckState, card, section, generateUUID): AddCardResult ---
+
+[[condition]]
+id = "add.deck_existing_pair_increments_quantity"
+target_function = "addToDisplayOrder"
+source_lines = "106-128"
+description = "追加先deckState内に同じcid/cardIdかつ同じciid(String(card.ciid ?? 0))のカードがある場合、そのquantityだけを1増やし、deckStateへ新規行はpushしない"
+given = "targetDeckに { cid: card.cardId, ciid: String(card.ciid), quantity: 1 } が存在する"
+expect_return_shape = "deckStateの既存行quantityが+1される"
+
+[[condition]]
+id = "add.deck_new_pair_pushes_quantity_one"
+target_function = "addToDisplayOrder"
+source_lines = "114-128"
+description = "追加先deckState内に同じcid/cardIdかつ同じciidのカードがない場合、TempCacheDBへcardを登録し、deckStateへquantity=1の行をpushする"
+given = "targetDeckに同じ(cid, ciid)ペアが存在しない"
+expect_return_shape = "targetDeck末尾に { cid: card.cardId, ciid: String(card.ciid ?? 0), lang: card.lang, quantity: 1 } が追加される"
+
+[[condition]]
+id = "add.unified_cache_record_error_ignored"
+target_function = "addToDisplayOrder"
+source_lines = "121-126"
+description = "新規deckState行追加時、getUnifiedCacheDB/recordMoveが例外をthrowしてもcatchで握りつぶし、カード追加処理は継続する"
+given = "getUnifiedCacheDB または recordMove がthrowする"
+expect_no_throw = true
+expect_return_shape = "displayOrderとdeckStateへの追加は通常通り完了する"
+
+[[condition]]
+id = "add.display_existing_pair_insert_after_last_same_pair"
+target_function = "addToDisplayOrder"
+source_lines = "131-157"
+description = "displayOrder[section]内に同じcidかつ同じciid(parseInt(String(card.ciid ?? 0), 10))のカードがある場合、その同一ペアの最後の直後へ新UUIDのDisplayCardRefを挿入する"
+given = "sectionOrderに同じ(cid, ciid)ペアが複数存在する"
+expect_return_shape = "{ insertedIndex: 最後の同一ペアindex+1, uuid: generateUUID結果 }"
+
+[[condition]]
+id = "add.display_same_cid_different_ciid_insert_after_last_same_cid"
+target_function = "addToDisplayOrder"
+source_lines = "158-173"
+description = "同じ(cid, ciid)ペアはないが同じcidのカードがある場合、同じcidの最後の直後へ新DisplayCardRefを挿入する"
+given = "sectionOrderに同じcidだが異なるciidのカードが存在する"
+expect_return_shape = "{ insertedIndex: 最後の同cidカードindex+1, uuid: generateUUID結果 }"
+
+[[condition]]
+id = "add.display_new_cid_appends_to_end"
+target_function = "addToDisplayOrder"
+source_lines = "174-185"
+description = "sectionOrderに同じcidのカードが1件もない場合、末尾へ新DisplayCardRefを追加する"
+given = "sectionOrderにcard.cardIdと同じcidが存在しない"
+expect_return_shape = "{ insertedIndex: 追加前のsectionOrder.length, uuid: generateUUID結果 }"
+
+[[condition]]
+id = "add.missing_ciid_defaults_to_zero"
+target_function = "addToDisplayOrder"
+source_lines = "110,131,139"
+description = "card.ciidがnullishの場合、deckState用ciidは文字列'0'、displayOrder用ciidとgenerateUUID引数は数値0になる"
+given = "card.ciid が undefined"
+expect_return_shape = "targetDeckにはciid='0'、sectionOrderにはciid=0が入り、generateUUID(card.cardId, 0)の戻り値がuuidになる"
+
+# --- removeFromDisplayOrder(displayOrder, deckState, cardId, section, uuid?, ciid?): RemoveCardResult ---
+
+[[condition]]
+id = "remove.deck_match_with_ciid"
+target_function = "removeFromDisplayOrder"
+source_lines = "210-216"
+description = "ciid引数がundefinedでない場合、deckState更新対象はcidとciidの両方が一致する最初の行になる"
+given = "同一cidでciid違いのdeckState行が複数あり、ciid引数を指定する"
+expect_return_shape = "指定ciidの行だけが減算または削除される"
+
+[[condition]]
+id = "remove.deck_match_by_cid_only"
+target_function = "removeFromDisplayOrder"
+source_lines = "210-216"
+description = "ciid引数がundefinedの場合、deckState更新対象はcidが一致する最初の行になる"
+given = "同一cidでciid違いのdeckState行が複数あり、ciid引数を省略する"
+expect_return_shape = "最初に見つかったcid一致行が減算または削除される"
+
+[[condition]]
+id = "remove.deck_quantity_decrements"
+target_function = "removeFromDisplayOrder"
+source_lines = "217-220"
+description = "deckState更新対象が見つかり、そのquantityが1より大きい場合、行は削除せずquantityを1減らす"
+given = "targetDeckの一致行quantity > 1"
+expect_return_shape = "targetDeck.lengthは変わらず、一致行quantityが-1される"
+
+[[condition]]
+id = "remove.deck_quantity_one_splices"
+target_function = "removeFromDisplayOrder"
+source_lines = "217-223"
+description = "deckState更新対象が見つかり、quantityが1以下または対象行がfalsyの場合、targetDeckからそのindexをspliceで削除する"
+given = "targetDeckの一致行quantity <= 1"
+expect_return_shape = "targetDeckから一致行が削除される"
+
+[[condition]]
+id = "remove.deck_no_match_no_deck_change"
+target_function = "removeFromDisplayOrder"
+source_lines = "217-224"
+description = "deckState更新対象が見つからない場合、deckStateは変更しない"
+given = "targetDeckにcardIdが存在しない"
+expect_return_shape = "targetDeckは入力時のまま"
+
+[[condition]]
+id = "remove.display_uuid_removes_matching_uuid"
+target_function = "removeFromDisplayOrder"
+source_lines = "226-241"
+description = "uuid引数がtruthyの場合、displayOrder[section]からuuidが一致する最初のカードを削除する"
+given = "uuid='target-uuid' を指定し、sectionOrder内に一致カードがある"
+expect_return_shape = "{ removedIndex: 一致index, removedCiid: 削除カードのciid }"
+
+[[condition]]
+id = "remove.display_without_uuid_removes_last_cid"
+target_function = "removeFromDisplayOrder"
+source_lines = "226-241"
+description = "uuid引数がfalsyの場合、displayOrder[section]からcidがcardIdに一致する最後のカードを削除する"
+given = "uuidを省略し、同じcidのカードが複数ある"
+expect_return_shape = "{ removedIndex: 最後のcid一致index, removedCiid: 削除カードのciid }"
+
+[[condition]]
+id = "remove.display_no_match_returns_minus_one"
+target_function = "removeFromDisplayOrder"
+source_lines = "235-247"
+description = "displayOrder[section]内に削除対象が見つからない場合、displayOrderは変更せずremovedIndex=-1、removedCiid=undefinedを返す"
+given = "sectionOrderに対象uuid/cardIdが存在しない"
+expect_return_shape = "{ removedIndex: -1, removedCiid: undefined }"
+
+[[condition]]
+id = "remove.removed_card_from_temp_cache"
+target_function = "removeFromDisplayOrder"
+source_lines = "244-247"
+description = "戻り値のremovedCardは削除対象ciidではなくcardIdでTempCacheDBから取得した値になる"
+given = "TempCacheDBにcardIdのCardInfoが登録済み"
+expect_return_shape = "{ removedCard: tempCardDB.get(cardId) }"
+
+# --- moveInDisplayOrder(displayOrder, deckState, cardId, from, to, uuid?, targetIndex?): MoveCardResult | undefined ---
+
+[[condition]]
+id = "move.invalid_from_order_returns_undefined"
+target_function = "moveInDisplayOrder"
+source_lines = "274-276"
+description = "displayOrder[from]がfalsyの場合、以降の状態変更をせずundefinedを返す"
+given = "displayOrder[from] が undefined"
+expect_return = "undefined"
+
+[[condition]]
+id = "move.uuid_selects_matching_uuid"
+target_function = "moveInDisplayOrder"
+source_lines = "279-281"
+description = "uuid引数がtruthyの場合、移動対象はfromOrder内でuuidが一致する最初のカードになる"
+given = "uuid='target-uuid' を指定し、fromOrder内に一致カードがある"
+expect_return_shape = "{ fromIndex: 一致index, uuid: 移動カードuuid }"
+
+[[condition]]
+id = "move.without_uuid_selects_last_cid"
+target_function = "moveInDisplayOrder"
+source_lines = "282-285"
+description = "uuid引数がfalsyの場合、移動対象はfromOrder内でcidがcardIdに一致する最後のカードになる"
+given = "uuidを省略し、同じcidのカードが複数ある"
+expect_return_shape = "{ fromIndex: 最後のcid一致index, uuid: 移動カードuuid }"
+
+[[condition]]
+id = "move.no_display_match_returns_undefined"
+target_function = "moveInDisplayOrder"
+source_lines = "287-289"
+description = "移動対象のdisplayOrderカードが見つからない場合、状態変更せずundefinedを返す"
+given = "uuid指定またはcardId検索の結果が-1"
+expect_return = "undefined"
+
+[[condition]]
+id = "move.display_slot_missing_returns_undefined"
+target_function = "moveInDisplayOrder"
+source_lines = "291-294"
+description = "移動対象indexのfromOrder要素がfalsyの場合、状態変更せずundefinedを返す"
+given = "fromOrderに疎配列の穴などがあり、検索されたindexの要素がfalsy"
+expect_return = "undefined"
+verified = false
+unverifiable_reason = "通常の配列要素ではfindIndexの条件が真になった同じindexの要素はmovingDisplayCardとしてfalsyにならない。疎配列ではcallback内のuuid/cid参照で先に例外になる"
+
+[[condition]]
+id = "move.deck_pair_missing_returns_undefined"
+target_function = "moveInDisplayOrder"
+source_lines = "296-300"
+description = "fromDeckにcardIdとmovingDisplayCard.ciid(String化)が一致するdeckCardがない場合、displayOrderを変更せずundefinedを返す"
+given = "fromOrderには対象カードがあるが、fromDeckには対応する(cid, ciid)ペアがない"
+expect_return = "undefined"
+
+[[condition]]
+id = "move.deck_slot_missing_returns_undefined"
+target_function = "moveInDisplayOrder"
+source_lines = "302-303"
+description = "fromDeck.findIndexは成功したが、そのindexのfromDeck要素がfalsyの場合、displayOrderを変更せずundefinedを返す"
+given = "fromDeckに疎配列の穴などがあり、findIndexが対象indexを返した後に要素取得がfalsyになる"
+expect_return = "undefined"
+verified = false
+unverifiable_reason = "findIndexがcid/ciid一致で成功した同じindexの要素はdeckCardとしてfalsyにならない。疎配列ではcallback内のcid参照で先に例外になる"
+
+[[condition]]
+id = "move.valid_target_index_inserts_at_target"
+target_function = "moveInDisplayOrder"
+source_lines = "305-319"
+description = "targetIndexがundefinedでなく0以上かつtoOrder.length以下の場合、toOrderのtargetIndexへ移動カードを挿入し、戻り値toIndexもtargetIndexになる"
+given = "targetIndex=1、toOrder.length>=1"
+expect_return_shape = "{ toIndex: 1 }"
+
+[[condition]]
+id = "move.invalid_or_missing_target_index_appends"
+target_function = "moveInDisplayOrder"
+source_lines = "311-319"
+description = "targetIndexがundefined、負数、またはtoOrder.lengthを超える場合、移動カードをtoOrder末尾へpushし、戻り値toIndexは追加前のtoOrder.lengthになる"
+given = "targetIndex未指定または範囲外"
+expect_return_shape = "{ toIndex: 追加前のtoOrder.length }"
+
+[[condition]]
+id = "move.from_deck_quantity_decrements"
+target_function = "moveInDisplayOrder"
+source_lines = "321-328"
+description = "移動元deckState行のquantityが1より大きい場合、行は削除せずquantityを1減らす"
+given = "fromDeckCard.quantity > 1"
+expect_return_shape = "fromDeckCard.quantityが-1される"
+
+[[condition]]
+id = "move.from_deck_quantity_one_splices"
+target_function = "moveInDisplayOrder"
+source_lines = "321-328"
+description = "移動元deckState行のquantityが1以下の場合、fromDeckからその行をspliceで削除する"
+given = "fromDeckCard.quantity <= 1"
+expect_return_shape = "fromDeckから移動元行が削除される"
+
+[[condition]]
+id = "move.to_deck_existing_pair_increments"
+target_function = "moveInDisplayOrder"
+source_lines = "330-335"
+description = "移動先deckStateに同じcidかつ同じciidの行がある場合、そのquantityを1増やす"
+given = "toDeckに { cid: cardId, ciid: String(movingDisplayCard.ciid) } が存在する"
+expect_return_shape = "移動先既存行quantityが+1される"
+
+[[condition]]
+id = "move.to_deck_new_pair_pushes"
+target_function = "moveInDisplayOrder"
+source_lines = "330-345"
+description = "移動先deckStateに同じ(cid, ciid)ペアがない場合、移動元deckCard.langを引き継いでquantity=1の行をpushする"
+given = "toDeckに同じ(cid, ciid)ペアが存在しない"
+expect_return_shape = "toDeckに { cid: cardId, ciid: String(movingDisplayCard.ciid), lang: deckCard.lang, quantity: 1 } が追加される"
+
+# --- reorderWithinSection(displayOrder, section, fromIndex, toIndex): DisplayCardRef | undefined ---
+
+[[condition]]
+id = "reorder.invalid_section_order_returns_undefined"
+target_function = "reorderWithinSection"
+source_lines = "364-369"
+description = "displayOrder[section]がfalsyまたは配列でない場合、警告を出してundefinedを返す"
+given = "displayOrder[section] が undefined または非配列"
+expect_return = "undefined"
+
+[[condition]]
+id = "reorder.invalid_indices_return_undefined"
+target_function = "reorderWithinSection"
+source_lines = "371-375"
+description = "fromIndexが0未満/sectionOrder.length以上、またはtoIndexが0未満/sectionOrder.lengthより大きい場合、警告を出してundefinedを返す"
+given = "fromIndex=-1 または toIndex=sectionOrder.length+1"
+expect_return = "undefined"
+
+[[condition]]
+id = "reorder.missing_source_card_returns_undefined"
+target_function = "reorderWithinSection"
+source_lines = "377-381"
+description = "fromIndexの要素がfalsyの場合、警告を出してundefinedを返す"
+given = "sectionOrder[fromIndex] が undefined"
+expect_return = "undefined"
+
+[[condition]]
+id = "reorder.forward_adjusts_to_index"
+target_function = "reorderWithinSection"
+source_lines = "383-390"
+description = "fromIndex < toIndexの場合、先に削除してからtoIndex-1へ挿入し、移動カードを返す"
+given = "3要素配列で fromIndex=0, toIndex=2"
+expect_return_shape = "移動カードが元index0から削除後のindex1へ入り、そのDisplayCardRefが返る"
+
+[[condition]]
+id = "reorder.backward_uses_to_index"
+target_function = "reorderWithinSection"
+source_lines = "383-390"
+description = "fromIndex >= toIndexの場合、先に削除してからtoIndexへ挿入し、移動カードを返す"
+given = "3要素配列で fromIndex=2, toIndex=0"
+expect_return_shape = "移動カードがindex0へ入り、そのDisplayCardRefが返る"
+
+# --- reorderWithinSectionByUUID(displayOrder, section, sourceUuid, targetUuid): DisplayCardRef | undefined ---
+
+[[condition]]
+id = "reorder_uuid.validation_error_returns_undefined"
+target_function = "reorderWithinSectionByUUID"
+source_lines = "409-414"
+description = "validateReorderParametersがエラーメッセージを返した場合、警告を出してundefinedを返す"
+given = "sourceUuid未指定、存在しないsourceUuid、存在しないtargetUuid等"
+expect_return = "undefined"
+
+[[condition]]
+id = "reorder_uuid.redundant_section_guard"
+target_function = "reorderWithinSectionByUUID"
+source_lines = "416-419"
+description = "validation通過後にdisplayOrder[section]がfalsyまたは非配列ならundefinedを返すが、同じ条件はvalidateReorderParametersで先にエラーになるため通常は到達しない"
+given = "validation通過後からsectionOrder取得までの間にdisplayOrder[section]が不正化される"
+expect_return = "undefined"
+verified = false
+unverifiable_reason = "関数内は同期処理で、公開APIの通常入力では先行validateReorderParametersが同一不正sectionを検出するため到達不能"
+
+[[condition]]
+id = "reorder_uuid.target_null_delegates_length_minus_one"
+target_function = "reorderWithinSectionByUUID"
+source_lines = "421-433"
+description = "targetUuidがnullの場合、toIndexをsectionOrder.length-1としてreorderWithinSectionへ委譲する（fromIndex < length-1ならreorderWithinSection内の調整により旧末尾の手前へ入る）"
+given = "3要素配列で先頭のsourceUuidが存在し、targetUuid=null"
+expect_return_shape = "sourceカードが削除後のindex1へ入り、移動カードが返る"
+
+[[condition]]
+id = "reorder_uuid.target_uuid_moves_before_target"
+target_function = "reorderWithinSectionByUUID"
+source_lines = "421-433"
+description = "targetUuidがnullでない場合、targetUuidのindexをtoIndexとしてreorderWithinSectionへ委譲する"
+given = "sourceUuidとtargetUuidがどちらも存在する"
+expect_return_shape = "sourceカードがtargetカードの位置へ移動し、移動カードが返る"
+
+# --- fisherYatesShuffle<T>(array: T[]): T[] ---
+
+[[condition]]
+id = "shuffle.returns_new_array_same_members"
+target_function = "fisherYatesShuffle"
+source_lines = "442-448"
+description = "入力配列をコピーしてFisher-Yatesで入れ替え、元配列は変更せず、同じ要素を持つ新しい配列を返す"
+given = "array=[1,2,3]"
+expect_return_shape = "戻り値はarrayとは別参照で、長さと要素集合は同じ"
+
+[[condition]]
+id = "shuffle.empty_or_single_returns_copy"
+target_function = "fisherYatesShuffle"
+source_lines = "442-448"
+description = "空配列または1要素配列ではループが実行されず、同じ内容の新しい配列を返す"
+given = "array=[] または [1]"
+expect_return_shape = "戻り値は同内容の別配列"
+
+# --- validateReorderParameters(displayOrder, section, sourceUuid, targetUuid): string | null ---
+
+[[condition]]
+id = "validate.invalid_section"
+target_function = "validateReorderParameters"
+source_lines = "488-492"
+description = "displayOrder[section]がfalsyまたは配列でない場合、'無効なセクション: ${section}'を返す"
+given = "displayOrder[section] が undefined または非配列"
+expect_return = "無効なセクション: ${section}"
+
+[[condition]]
+id = "validate.invalid_source_uuid"
+target_function = "validateReorderParameters"
+source_lines = "494-497"
+description = "sourceUuidがfalsyまたはstringでない場合、'ソースUUIDが無効です'を返す"
+given = "sourceUuid='' または非string"
+expect_return = "ソースUUIDが無効です"
+
+[[condition]]
+id = "validate.source_not_found"
+target_function = "validateReorderParameters"
+source_lines = "499-503"
+description = "sourceUuidは妥当な文字列だがsectionOrder内に一致uuidがない場合、'カードが見つかりません'を返す"
+given = "sourceUuid='missing'"
+expect_return = "カードが見つかりません"
+
+[[condition]]
+id = "validate.target_null_is_valid"
+target_function = "validateReorderParameters"
+source_lines = "505-518"
+description = "targetUuidがnullの場合、targetの妥当性・存在チェックを行わず、他条件が妥当ならnullを返す"
+given = "sourceUuidが存在し、targetUuid=null"
+expect_return = "null"
+
+[[condition]]
+id = "validate.invalid_target_uuid"
+target_function = "validateReorderParameters"
+source_lines = "506-509"
+description = "targetUuidがnullでなく、falsyまたはstringでない場合、'ターゲットUUIDが無効です'を返す"
+given = "sourceUuidが存在し、targetUuid=''"
+expect_return = "ターゲットUUIDが無効です"
+
+[[condition]]
+id = "validate.target_not_found"
+target_function = "validateReorderParameters"
+source_lines = "511-515"
+description = "targetUuidは妥当な文字列だがsectionOrder内に一致uuidがない場合、'ターゲットカードが見つかりません'を返す"
+given = "sourceUuidが存在し、targetUuid='missing'"
+expect_return = "ターゲットカードが見つかりません"
+
+[[condition]]
+id = "validate.valid_target_uuid"
+target_function = "validateReorderParameters"
+source_lines = "505-518"
+description = "sourceUuidとtargetUuidがどちらもsectionOrder内に存在する場合、nullを返す"
+given = "sourceUuid='a', targetUuid='b' がどちらも存在する"
+expect_return = "null"

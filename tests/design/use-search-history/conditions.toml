@@ -1,0 +1,246 @@
+# 検証対象: src/composables/useSearchHistory.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330（Tier B展開）。検索履歴（お気に入り含む）をlocalStorageへ永続化するComposable。
+# historyItems / loaded はモジュールトップレベルのシングルトン状態であり、Vueコンポーネント
+# インスタンスをまたいで共有される点に注意（テストではvi.resetModules()+動的importで分離）。
+#
+# 到達不能/実質到達不能分岐:
+# - toggleFavorite内の `if (item)`（96-100行目）:
+#   直前に`index >= 0 && index < historyItems.value.length`を同期的にチェック済みであり、
+#   historyItems.valueはpush/unshift/splice/filterのみで構築される非スパース配列のため、
+#   このガードが通過した時点でhistoryItems.value[index]がundefinedになることはない。
+#   noUncheckedIndexedAccess設定によりTypeScript上要求される防御コードであり実質到達不能。
+# - updateResults内の `if (!item) return false`（116行目）:
+#   同上の理由（直前に同じ形の範囲チェックが同期的に通過済み）で実質到達不能。
+
+[meta]
+feature = "use-search-history"
+source_file = "src/composables/useSearchHistory.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useSearchHistory.test.ts"
+source_hash = "c6f44e8e0cae40f66a49e61699dd853990e49cde"
+note = "verified=falseは0件（到達不能分岐2件はcondition化せず上記コメントで説明するに留める）"
+
+# --- loadFromStorage() ---
+
+[[condition]]
+id = "load_from_storage.parses_stored_json_when_present"
+target_function = "loadFromStorage"
+source_lines = "16-25"
+description = "localStorage.getItem(STORAGE_KEY)が非nullを返す場合、その値をJSON.parseしてhistoryItems.valueへ代入する"
+given = "localStorage[STORAGE_KEY] = 有効なJSON文字列"
+expect_return_shape = "historyItems.value = JSON.parseした配列"
+
+[[condition]]
+id = "load_from_storage.no_data_keeps_default_empty_array"
+target_function = "loadFromStorage"
+source_lines = "18-24"
+description = "localStorage.getItem(STORAGE_KEY)がnull（未保存）の場合、if(data)がfalseとなり代入処理をスキップする。historyItemsはref初期値の空配列のまま"
+given = "localStorage[STORAGE_KEY] = 未設定"
+expect_return_shape = "historyItems.value = []（refの初期値のまま変更されない）"
+
+[[condition]]
+id = "load_from_storage.catch_swallows_error_and_preserves_previous_state"
+target_function = "loadFromStorage"
+source_lines = "17-24"
+description = "localStorage.getItemが例外を投げる、または保存データが不正なJSONでJSON.parseが例外を投げた場合、catchでconsole.errorのみ行い再throwしない。代入文（20行目）は例外発生時点で実行されないため、historyItems.valueは変更前の値のまま保持される"
+given = "localStorage[STORAGE_KEY] = 不正なJSON文字列（例: '{invalid'）"
+expect_no_throw = true
+expect_return_shape = "historyItems.value は呼び出し前の値のまま（既定は[]）"
+
+# --- saveToStorage() ---
+
+[[condition]]
+id = "save_to_storage.persists_current_history_as_json"
+target_function = "saveToStorage"
+source_lines = "28-34"
+description = "localStorage.setItem(STORAGE_KEY, JSON.stringify(historyItems.value))でhistoryItems.valueの現在値を永続化する"
+given = "historyItems.value に1件以上の履歴がある状態でsaveToStorageを呼ぶ（addToHistory等の内部呼び出し経由）"
+expect_return_shape = "localStorage[STORAGE_KEY] = JSON.stringify(historyItems.value)と一致"
+
+[[condition]]
+id = "save_to_storage.catch_swallows_error_without_rethrow"
+target_function = "saveToStorage"
+source_lines = "29-33"
+description = "localStorage.setItemが例外を投げる場合（容量超過等）、catchでconsole.errorのみ行い再throwしない。呼び出し元（addToHistory等）の処理は中断されない"
+given = "localStorage.setItem がQuotaExceededError等をthrowする状況"
+expect_no_throw = true
+
+# --- useSearchHistory() 初回ロードガード ---
+
+[[condition]]
+id = "use_search_history.loads_once_via_module_level_flag"
+target_function = "useSearchHistory"
+source_lines = "38-41"
+description = "モジュールトップレベルのloadedフラグがfalseの場合のみloadFromStorage()を実行しloadedをtrueにする。同一モジュールインスタンス内で2回目以降useSearchHistory()を呼んでもloadFromStorageは再実行されない（localStorageの外部変更は反映されない）"
+given = "同一モジュールインスタンス内でuseSearchHistory()を複数回呼ぶ"
+expect_return_shape = "2回目以降はloadFromStorageが呼ばれず、historyItems.valueは1回目ロード時点の状態を引き継ぐ"
+
+# --- favoriteItems / regularItems (computed) ---
+
+[[condition]]
+id = "favorite_items.filters_is_favorite_true"
+target_function = "useSearchHistory (favoriteItems)"
+source_lines = "44-46"
+description = "favoriteItemsはhistoryItems.valueのうちisFavorite===trueの項目のみを返す"
+given = "historyItems.value に isFavorite=true/false が混在"
+expect_return_shape = "isFavorite=trueの項目のみを元の順序で含む配列"
+
+[[condition]]
+id = "regular_items.filters_is_favorite_false"
+target_function = "useSearchHistory (regularItems)"
+source_lines = "49-51"
+description = "regularItemsはhistoryItems.valueのうちisFavorite===falseの項目のみを返す"
+given = "historyItems.value に isFavorite=true/false が混在"
+expect_return_shape = "isFavorite=falseの項目のみを元の順序で含む配列"
+
+# --- addToHistory() ---
+
+[[condition]]
+id = "add_to_history.new_item_always_not_favorite_with_derived_count_and_timestamp"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "60-68"
+description = "新規追加項目のisFavoriteは常にfalseで固定され、resultCountはresultCids.length、timestampはDate.now()から導出される（呼び出し側は指定できない）"
+given = "addToHistory('q', 'name', filters, ['a','b'])"
+expect_return_shape = "newItem = { query:'q', searchMode:'name', resultCids:['a','b'], resultCount:2, isFavorite:false, timestamp:Date.now()相当 }"
+
+[[condition]]
+id = "add_to_history.dedup_removes_matching_non_favorite_entries"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "71-78"
+description = "追加前に、isFavorite=falseの既存項目のうちquery・searchMode・JSON.stringify(filters)が全て一致するものを履歴から除去する（重複防止）"
+given = "既存の非お気に入り項目と同一query+searchMode+filtersでaddToHistoryを再度呼ぶ"
+expect_return_shape = "旧項目は除去され、新項目のみが先頭に残る（件数は増えない）"
+
+[[condition]]
+id = "add_to_history.dedup_keeps_favorites_even_if_matching"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "72-73"
+description = "重複判定filter内でitem.isFavorite===trueの項目は無条件でreturn trueとなり、query/searchMode/filtersが一致していても除去されない。結果として内容が同一のお気に入り項目と新規項目が共存し得る"
+given = "isFavorite=trueの既存項目と同一query+searchMode+filtersでaddToHistoryを呼ぶ"
+expect_return_shape = "お気に入り項目は残り、かつ新項目も追加される（同内容が2件存在し得る）"
+
+[[condition]]
+id = "add_to_history.unshifts_new_item_to_front"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "81"
+description = "新規項目はhistoryItems.valueの先頭に追加される（unshift）"
+given = "既存項目がある状態でaddToHistoryを呼ぶ"
+expect_return_shape = "historyItems.value[0] が新規項目"
+
+[[condition]]
+id = "add_to_history.trims_regulars_to_max_size_when_exceeded"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "84-88"
+description = "非お気に入り項目数（お気に入りを除いた件数）がMAX_HISTORY_SIZE(50)を超える場合、historyItems.valueを[...favorites, ...regulars.slice(0, 50)]で再構築する。この際、favoritesが元の並び位置に関わらず配列の先頭側にまとめられ、regularsは新しい順（unshift済みの並び）で先頭50件のみ残る"
+given = "非お気に入り項目が51件目に達するaddToHistory呼び出し（お気に入りが履歴中に散在する状態を含む）"
+expect_return_shape = "historyItems.value = [お気に入り項目...（元の位置に関わらず前方へ集約）, 直近50件の非お気に入り項目]"
+
+[[condition]]
+id = "add_to_history.no_trim_when_regulars_within_limit"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "86-88"
+description = "非お気に入り項目数がMAX_HISTORY_SIZE(50)以下の場合はif分岐に入らず再構築されないため、historyItems.valueの並びはunshift直後のまま（お気に入りが元の位置に留まる）変更されない"
+given = "非お気に入り項目が50件以下の状態でaddToHistoryを呼ぶ"
+expect_return_shape = "お気に入りと非お気に入りの相対位置がunshift直後のまま保たれる（前方集約されない）"
+
+[[condition]]
+id = "add_to_history.always_saves_to_storage"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "90"
+description = "トリム有無に関わらずaddToHistoryの最後に必ずsaveToStorage()を呼ぶ"
+given = "addToHistoryを1回呼ぶ"
+expect_return_shape = "localStorage[STORAGE_KEY] が更新後のhistoryItems.valueと一致するJSON文字列になる"
+
+[[condition]]
+id = "add_to_history.filters_shallow_copy_shares_nested_references"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "63"
+description = "newItem.filtersは`{ ...filters }`で作られるトップレベルのみのシャローコピーであり、filters内のネストした配列・オブジェクト（例: attributes配列）は元のオブジェクトと参照を共有する。呼び出し後に元のfilters内のネスト配列を破壊的変更すると、保存済み履歴項目のfiltersにも影響する"
+given = "filters.attributes = ['DARK'] を渡してaddToHistory後、元のfilters.attributesにpushする"
+expect_return_shape = "historyItems.value[0].filters.attributes にも追加要素が反映される（トップレベルのfiltersオブジェクト自体は別参照だがネストは共有）"
+
+[[condition]]
+id = "add_to_history.result_cids_deep_enough_copy_protects_from_external_mutation"
+target_function = "useSearchHistory (addToHistory)"
+source_lines = "64"
+description = "newItem.resultCidsは`[...resultCids]`で新しい配列として複製される（要素はstringのプリミティブのため、この複製で呼び出し後の元配列破壊的変更から完全に保護される）"
+given = "resultCids=['a']を渡してaddToHistory後、元のresultCids配列にpushする"
+expect_return_shape = "historyItems.value[0].resultCids は元配列の変更の影響を受けない"
+
+# --- toggleFavorite(index) ---
+
+[[condition]]
+id = "toggle_favorite.out_of_range_index_is_noop"
+target_function = "useSearchHistory (toggleFavorite)"
+source_lines = "94-102"
+description = "indexが負値、またはhistoryItems.value.length以上の場合、外側のif条件がfalseとなり何も行わない（isFavorite変更もsaveToStorageも発生しない）"
+given = "historyItems.value.length=1の状態でtoggleFavorite(-1)またはtoggleFavorite(1)を呼ぶ"
+expect_return_shape = "historyItems.value 不変、localStorageも更新されない"
+
+[[condition]]
+id = "toggle_favorite.in_range_toggles_and_saves"
+target_function = "useSearchHistory (toggleFavorite)"
+source_lines = "94-102"
+description = "indexが有効範囲内の場合、対象項目のisFavoriteを反転し、saveToStorage()を呼ぶ"
+given = "historyItems.value[0].isFavorite=false の状態でtoggleFavorite(0)を呼ぶ"
+expect_return_shape = "historyItems.value[0].isFavorite=true、localStorageも更新される"
+
+# --- removeFromHistory(index) ---
+
+[[condition]]
+id = "remove_from_history.out_of_range_index_is_noop"
+target_function = "useSearchHistory (removeFromHistory)"
+source_lines = "105-110"
+description = "indexが範囲外の場合、if条件がfalseとなりspliceもsaveToStorageも実行されない"
+given = "historyItems.value.length=1の状態でremoveFromHistory(5)を呼ぶ"
+expect_return_shape = "historyItems.value 不変"
+
+[[condition]]
+id = "remove_from_history.in_range_splices_and_saves"
+target_function = "useSearchHistory (removeFromHistory)"
+source_lines = "105-110"
+description = "indexが有効範囲内の場合、その位置の項目をsplice(index,1)で除去し、saveToStorage()を呼ぶ"
+given = "historyItems.value.length=2の状態でremoveFromHistory(0)を呼ぶ"
+expect_return_shape = "historyItems.value.length=1（元のindex0が除去され、以降の項目が繰り上がる）"
+
+# --- updateResults(index, newResultCids) ---
+
+[[condition]]
+id = "update_results.out_of_range_returns_false_without_save"
+target_function = "useSearchHistory (updateResults)"
+source_lines = "114-130"
+description = "indexが範囲外の場合、外側のif条件がfalseとなり本体をスキップして末尾のreturn falseへ到達する。saveToStorageは呼ばれない"
+given = "historyItems.value.length=1の状態でupdateResults(3, ['x'])を呼ぶ"
+expect_return = "false"
+
+[[condition]]
+id = "update_results.same_date_returns_false_without_update"
+target_function = "useSearchHistory (updateResults)"
+source_lines = "118-130"
+description = "対象項目のtimestampを日付文字列化した値（toDateString）が今日と一致する場合、内側のif(today !== itemDate)がfalseとなりresultCids等の更新・saveToStorageを行わず、末尾のreturn falseへフォールスルーする"
+given = "historyItems.value[0].timestamp = 本日の時刻 の状態でupdateResults(0, ['x'])を呼ぶ"
+expect_return = "false"
+expect_return_shape = "historyItems.value[0].resultCids は変更されない"
+
+[[condition]]
+id = "update_results.different_date_updates_and_returns_true"
+target_function = "useSearchHistory (updateResults)"
+source_lines = "121-129"
+description = "対象項目のtimestampの日付文字列が今日と異なる場合、resultCids/resultCount/timestampを新しい値に更新し、saveToStorage()を呼び、trueを返す"
+given = "historyItems.value[0].timestamp = 前日の時刻 の状態でupdateResults(0, ['x','y'])を呼ぶ"
+expect_return = "true"
+expect_return_shape = "historyItems.value[0].resultCids=['x','y'], resultCount=2, timestampが更新される"
+
+# --- clearHistory() ---
+
+[[condition]]
+id = "clear_history.keeps_only_favorites_and_saves"
+target_function = "useSearchHistory (clearHistory)"
+source_lines = "134-137"
+description = "clearHistoryはhistoryItems.valueをisFavorite===trueの項目のみへフィルタし直し、saveToStorage()を呼ぶ（非お気に入り項目は全削除、お気に入りは順序含め維持）"
+given = "isFavorite=true/falseが混在した履歴でclearHistoryを呼ぶ"
+expect_return_shape = "historyItems.value にisFavorite=trueの項目のみが元の順序で残る"

@@ -1,0 +1,560 @@
+# 検証対象: src/utils/mapping-manager.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。docs/api/*.md等の二次情報は参照しない。
+#
+# 実装コメントと挙動のズレ:
+# - getRaceIdToText/getMonsterTypeIdToText/getAttributeIdToText/getSpellEffectIdToText/getTrapEffectIdToText
+#   のコメントは「jaは常に日本語静的マッピング」と読めるが、実装は先にdynamicMappingsを確認する。
+#   そのためjaでも該当カテゴリの動的マッピングが非空なら動的マッピングを返し、静的マッピングにはフォールバックしない。
+# - getTrapEffectTextToIdはコメントどおりja特別扱いがなく、動的マッピングがない全言語で日本語静的マッピングの逆引きを返す。
+
+[meta]
+feature = "mapping-manager"
+source_file = "src/utils/mapping-manager.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/mapping-manager-comprehensive.test.ts tests/unit/utils/mapping-manager.test.ts tests/unit/utils/mapping-manager-reversal.test.ts"
+source_hash = "7a071d956cd047f26a9411c271ba8cc76b4e26a3"
+note = "verified=falseは2件: initializeのinner/outer catchは実装内の通常経路ではfetch/loadが例外を外へ投げないため、private methodの差し替えなしには到達しない防御的catch"
+
+# --- MappingManager.isValidMapping(mapping) ---
+
+[[condition]]
+id = "is_valid_mapping.nullish_false"
+target_function = "MappingManager.isValidMapping"
+source_lines = "40-41"
+description = "mappingがnull/undefined等のfalsy値ならfalseを返す"
+given = "mapping = null または undefined"
+expect_return = false
+
+[[condition]]
+id = "is_valid_mapping.required_all_nonempty_true"
+target_function = "MappingManager.isValidMapping"
+source_lines = "43-51"
+description = "race/monsterType/attributeが全て存在し、各Object.keys(...).lengthが1以上ならtrueを返す"
+given = "race/monsterType/attributeが全て非空オブジェクト"
+expect_return = true
+
+[[condition]]
+id = "is_valid_mapping.required_any_empty_false"
+target_function = "MappingManager.isValidMapping"
+source_lines = "43-51"
+description = "race/monsterType/attributeのいずれかが空オブジェクトならfalseを返す"
+given = "race = {}、monsterType = {}、attribute = {} のいずれか"
+expect_return = false
+
+[[condition]]
+id = "is_valid_mapping.required_any_missing_undefined"
+target_function = "MappingManager.isValidMapping"
+source_lines = "43-51"
+description = "race/monsterType/attributeのいずれかが欠落している場合、&&式の結果としてundefinedを返す（booleanのfalseではない）"
+given = "race欠落、monsterType欠落、attribute欠落等"
+expect_return = "undefined"
+
+[[condition]]
+id = "is_valid_mapping.optional_fields_ignored"
+target_function = "MappingManager.isValidMapping"
+source_lines = "43-51"
+description = "spellEffect/trapEffect/updatedAt/quarterは有効判定に使われない"
+given = "race/monsterType/attributeは非空、spellEffect/trapEffectは空またはメタ情報が欠落"
+expect_return = true
+
+# --- MappingManager.initialize(lang?) ---
+
+[[condition]]
+id = "initialize.already_initialized_return"
+target_function = "MappingManager.initialize"
+source_lines = "59-62"
+description = "initializedがtrueなら即returnし、ストレージ読み込みや取得を行わない"
+given = "initialized = true"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize.no_lang_sets_initialized"
+target_function = "MappingManager.initialize"
+source_lines = "64-82"
+description = "langが指定されない場合、マッピング読み込みを行わずinitializedをtrueにする"
+given = "initialized = false, lang omitted"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize.lang_loads_existing_mapping"
+target_function = "MappingManager.initialize"
+source_lines = "66-70,82"
+description = "lang指定時にloadLanguageMapping後dynamicMappingsに該当langが存在すれば追加fetchせずinitializedをtrueにする"
+given = "chrome.storage.localに有効なygo-mappings:<lang>が存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize.lang_fetches_when_still_missing"
+target_function = "MappingManager.initialize"
+source_lines = "66-76"
+description = "loadLanguageMapping後もdynamicMappingsに該当langが存在しない場合、fetchAndStoreMappingsを追加で呼ぶ"
+given = "ストレージにマッピングがなく、最初の取得がnull/無効等でdynamicMappingsに保存されない"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize.inner_fetch_error_warns"
+target_function = "MappingManager.initialize"
+source_lines = "70-75"
+description = "追加fetchAndStoreMappingsが例外をthrowした場合、警告ログを出して処理を続ける"
+given = "fetchAndStoreMappingsが例外をthrowするよう差し替えられている"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "実装上のfetchAndStoreMappingsは内部catchで例外を握りつぶすため、通常の公開経路ではこのinner catchに到達しない"
+
+[[condition]]
+id = "initialize.outer_error_logs"
+target_function = "MappingManager.initialize"
+source_lines = "64-82"
+description = "tryブロック内で例外がthrowされた場合、エラーログを出した上でinitializedをtrueにする"
+given = "loadLanguageMappingが例外をthrowするよう差し替えられている"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "実装上のloadLanguageMappingは内部catchで例外を握りつぶすため、通常の公開経路ではouter catchに到達しない"
+
+# --- MappingManager.loadLanguageMapping(lang) ---
+
+[[condition]]
+id = "load_language.stored_valid_sets_mapping"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "91-100"
+description = "storageKeyの値が存在し、isValidMappingがtrueならdynamicMappingsに保存する"
+given = "chrome.storage.local.get('ygo-mappings:en') returns { 'ygo-mappings:en': validMapping }"
+expect_return = "undefined"
+
+[[condition]]
+id = "load_language.stored_invalid_fetches_when_not_fetching"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "94-111"
+description = "保存済みマッピングが存在するが無効で、該当langが取得中でなければfetchAndStoreMappingsをawaitする"
+given = "stored mapping has empty race, fetchingLanguages does not contain lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "load_language.stored_invalid_fetching_skips_fetch"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "94-111"
+description = "保存済みマッピングが無効でも、該当langが取得中ならfetchAndStoreMappingsを呼ばない"
+given = "stored invalid mapping and fetchingLanguages contains lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "load_language.no_stored_fetches_when_not_fetching"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "113-117"
+description = "storageKeyの値が存在せず、該当langが取得中でなければfetchAndStoreMappingsをawaitする"
+given = "chrome.storage.local.get returns {} and fetchingLanguages does not contain lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "load_language.no_stored_fetching_skips_fetch"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "113-117"
+description = "storageKeyの値が存在しないが、該当langが取得中ならfetchAndStoreMappingsを呼ばない"
+given = "chrome.storage.local.get returns {} and fetchingLanguages contains lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "load_language.storage_error_warns"
+target_function = "MappingManager.loadLanguageMapping"
+source_lines = "89-122"
+description = "chrome.storage.local.getまたは後続処理が例外をthrowした場合、警告ログを出して例外を外へ投げない"
+given = "chrome.storage.local.get rejects"
+expect_no_throw = true
+
+# --- MappingManager.fetchAndStoreMappings(lang) ---
+
+[[condition]]
+id = "fetch_store.valid_mapping_sets_memory_and_storage"
+target_function = "MappingManager.fetchAndStoreMappings"
+source_lines = "129-157"
+description = "extractMappingsFromSearchPageが有効マッピングを返した場合、updatedAtとquarterを付与してdynamicMappingsとchrome.storage.localに保存する"
+given = "extractMappingsFromSearchPage('en') resolves valid mapping"
+expect_return = "undefined"
+
+[[condition]]
+id = "fetch_store.invalid_mapping_logs_and_does_not_save"
+target_function = "MappingManager.fetchAndStoreMappings"
+source_lines = "135-143"
+description = "extract結果がtruthyでもisValidMappingがfalseならエラーログを出してreturnし、メモリにもstorageにも保存しない"
+given = "extractMappingsFromSearchPage resolves mapping with empty race"
+expect_return = "undefined"
+
+[[condition]]
+id = "fetch_store.null_mapping_warns"
+target_function = "MappingManager.fetchAndStoreMappings"
+source_lines = "158-164"
+description = "extractMappingsFromSearchPageがnull等のfalsy値を返した場合、警告ログを出し保存しない"
+given = "extractMappingsFromSearchPage resolves null"
+expect_return = "undefined"
+
+[[condition]]
+id = "fetch_store.error_logs"
+target_function = "MappingManager.fetchAndStoreMappings"
+source_lines = "131-166"
+description = "extractまたはstorage保存で例外が発生した場合、エラーログを出して例外を外へ投げない"
+given = "extractMappingsFromSearchPage rejects or chrome.storage.local.set rejects"
+expect_no_throw = true
+
+[[condition]]
+id = "fetch_store.finally_deletes_fetching_flag"
+target_function = "MappingManager.fetchAndStoreMappings"
+source_lines = "129,167-169"
+description = "成功・無効・null・例外のいずれでもfinallyでfetchingLanguagesからlangを削除する"
+given = "fetchAndStoreMappings completes through any path"
+expect_return = "fetchingLanguages.has(lang) === false"
+
+# --- MappingManager.get*TextToId(lang) ---
+
+[[condition]]
+id = "text_to_id.race_ja_static_reverse"
+target_function = "MappingManager.getRaceTextToId"
+source_lines = "180-188"
+description = "langがjaならdynamicMappingsを見ず、RACE_ID_TO_NAMEを逆引きして返す"
+given = "lang = 'ja'"
+expect_return_shape = "{ [日本語種族名]: raceId }"
+
+[[condition]]
+id = "text_to_id.race_dynamic_reverse_and_skip_falsy"
+target_function = "MappingManager.getRaceTextToId"
+source_lines = "190-200"
+description = "ja以外でraceが非空の動的マッピングがあれば、truthyなtextだけをtext->IDへ逆引きする"
+given = "dynamicMapping.race = { dragon: 'Dragon', warrior: '' }"
+expect_return_shape = "{ Dragon: 'dragon' }"
+
+[[condition]]
+id = "text_to_id.race_no_dynamic_empty"
+target_function = "MappingManager.getRaceTextToId"
+source_lines = "190-203"
+description = "ja以外でrace動的マッピングが無い、または空なら{}を返す"
+given = "lang = 'en', no dynamic mapping or race = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "text_to_id.monster_ja_static_reverse"
+target_function = "MappingManager.getMonsterTypeTextToId"
+source_lines = "213-220"
+description = "langがjaならdynamicMappingsを見ず、MONSTER_TYPE_ID_TO_NAMEを逆引きして返す"
+given = "lang = 'ja'"
+expect_return_shape = "{ [日本語モンスタータイプ名]: monsterTypeId }"
+
+[[condition]]
+id = "text_to_id.monster_dynamic_reverse_and_skip_falsy"
+target_function = "MappingManager.getMonsterTypeTextToId"
+source_lines = "222-231"
+description = "ja以外でmonsterTypeが非空の動的マッピングがあれば、truthyなtextだけをtext->IDへ逆引きする"
+given = "dynamicMapping.monsterType = { normal: 'Normal', effect: '' }"
+expect_return_shape = "{ Normal: 'normal' }"
+
+[[condition]]
+id = "text_to_id.monster_no_dynamic_empty"
+target_function = "MappingManager.getMonsterTypeTextToId"
+source_lines = "222-234"
+description = "ja以外でmonsterType動的マッピングが無い、または空なら{}を返す"
+given = "lang = 'en', no dynamic mapping or monsterType = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "text_to_id.attribute_ja_static_reverse"
+target_function = "MappingManager.getAttributeTextToId"
+source_lines = "244-252"
+description = "langがjaならdynamicMappingsを見ず、ATTRIBUTE_ID_TO_NAMEを逆引きして返す"
+given = "lang = 'ja'"
+expect_return_shape = "{ [日本語属性名]: attributeId }"
+
+[[condition]]
+id = "text_to_id.attribute_dynamic_reverse_and_skip_falsy"
+target_function = "MappingManager.getAttributeTextToId"
+source_lines = "254-264"
+description = "ja以外でattributeが非空の動的マッピングがあれば、truthyなtextだけをtext->IDへ逆引きする"
+given = "dynamicMapping.attribute = { dark: 'DARK', light: '' }"
+expect_return_shape = "{ DARK: 'dark' }"
+
+[[condition]]
+id = "text_to_id.attribute_no_dynamic_empty"
+target_function = "MappingManager.getAttributeTextToId"
+source_lines = "254-267"
+description = "ja以外でattribute動的マッピングが無い、または空なら{}を返す"
+given = "lang = 'en', no dynamic mapping or attribute = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "text_to_id.spell_ja_static_reverse"
+target_function = "MappingManager.getSpellEffectTextToId"
+source_lines = "277-285"
+description = "langがjaならdynamicMappingsを見ず、SPELL_EFFECT_TYPE_ID_TO_NAMEを逆引きして返す"
+given = "lang = 'ja'"
+expect_return_shape = "{ [日本語魔法効果名]: spellEffectTypeId }"
+
+[[condition]]
+id = "text_to_id.spell_dynamic_reverse_and_skip_falsy"
+target_function = "MappingManager.getSpellEffectTextToId"
+source_lines = "287-297"
+description = "ja以外でspellEffectが非空の動的マッピングがあれば、truthyなtextだけをtext->IDへ逆引きする"
+given = "dynamicMapping.spellEffect = { normal: 'Normal', equip: '' }"
+expect_return_shape = "{ Normal: 'normal' }"
+
+[[condition]]
+id = "text_to_id.spell_no_dynamic_empty"
+target_function = "MappingManager.getSpellEffectTextToId"
+source_lines = "287-300"
+description = "ja以外でspellEffect動的マッピングが無い、または空なら{}を返す"
+given = "lang = 'en', no dynamic mapping or spellEffect = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "text_to_id.trap_dynamic_reverse_and_skip_falsy"
+target_function = "MappingManager.getTrapEffectTextToId"
+source_lines = "308-319"
+description = "trapEffectが非空の動的マッピングがあれば、langに関係なくtruthyなtextだけをtext->IDへ逆引きする"
+given = "dynamicMapping.trapEffect = { normal: 'Normal', counter: '' }"
+expect_return_shape = "{ Normal: 'normal' }"
+
+[[condition]]
+id = "text_to_id.trap_no_dynamic_static_reverse"
+target_function = "MappingManager.getTrapEffectTextToId"
+source_lines = "321-326"
+description = "trapEffect動的マッピングが無い、または空ならlangに関係なくTRAP_EFFECT_TYPE_ID_TO_NAMEを逆引きして返す"
+given = "lang = 'en', no dynamic mapping or trapEffect = {}"
+expect_return_shape = "{ [日本語罠効果名]: trapEffectTypeId }"
+
+# --- MappingManager.get*IdToText(lang) ---
+
+[[condition]]
+id = "id_to_text.race_dynamic_precedes_ja_static"
+target_function = "MappingManager.getRaceIdToText"
+source_lines = "339-343"
+description = "raceが非空の動的マッピングがあれば、langがjaでもその動的マッピングをそのまま返す"
+given = "lang = 'ja', dynamicMapping.race is nonempty"
+expect_return_shape = "dynamicMapping.race"
+
+[[condition]]
+id = "id_to_text.race_ja_static_fallback"
+target_function = "MappingManager.getRaceIdToText"
+source_lines = "345-348"
+description = "race動的マッピングが無くlangがjaならRACE_ID_TO_NAMEを返す"
+given = "lang = 'ja', no dynamic mapping or race = {}"
+expect_return_shape = "RACE_ID_TO_NAME"
+
+[[condition]]
+id = "id_to_text.race_non_ja_empty"
+target_function = "MappingManager.getRaceIdToText"
+source_lines = "345-351"
+description = "race動的マッピングが無くlangがja以外なら{}を返す"
+given = "lang = 'en', no dynamic mapping or race = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "id_to_text.monster_dynamic_precedes_ja_static"
+target_function = "MappingManager.getMonsterTypeIdToText"
+source_lines = "365-369"
+description = "monsterTypeが非空の動的マッピングがあれば、langがjaでもその動的マッピングをそのまま返す"
+given = "lang = 'ja', dynamicMapping.monsterType is nonempty"
+expect_return_shape = "dynamicMapping.monsterType"
+
+[[condition]]
+id = "id_to_text.monster_ja_static_fallback"
+target_function = "MappingManager.getMonsterTypeIdToText"
+source_lines = "371-374"
+description = "monsterType動的マッピングが無くlangがjaならMONSTER_TYPE_ID_TO_NAMEを返す"
+given = "lang = 'ja', no dynamic mapping or monsterType = {}"
+expect_return_shape = "MONSTER_TYPE_ID_TO_NAME"
+
+[[condition]]
+id = "id_to_text.monster_non_ja_empty"
+target_function = "MappingManager.getMonsterTypeIdToText"
+source_lines = "371-376"
+description = "monsterType動的マッピングが無くlangがja以外なら{}を返す"
+given = "lang = 'en', no dynamic mapping or monsterType = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "id_to_text.attribute_dynamic_precedes_ja_static"
+target_function = "MappingManager.getAttributeIdToText"
+source_lines = "386-390"
+description = "attributeが非空の動的マッピングがあれば、langがjaでもその動的マッピングをそのまま返す"
+given = "lang = 'ja', dynamicMapping.attribute is nonempty"
+expect_return_shape = "dynamicMapping.attribute"
+
+[[condition]]
+id = "id_to_text.attribute_ja_static_fallback"
+target_function = "MappingManager.getAttributeIdToText"
+source_lines = "392-395"
+description = "attribute動的マッピングが無くlangがjaならATTRIBUTE_ID_TO_NAMEを返す"
+given = "lang = 'ja', no dynamic mapping or attribute = {}"
+expect_return_shape = "ATTRIBUTE_ID_TO_NAME"
+
+[[condition]]
+id = "id_to_text.attribute_non_ja_empty"
+target_function = "MappingManager.getAttributeIdToText"
+source_lines = "392-397"
+description = "attribute動的マッピングが無くlangがja以外なら{}を返す"
+given = "lang = 'en', no dynamic mapping or attribute = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "id_to_text.spell_dynamic_precedes_ja_static"
+target_function = "MappingManager.getSpellEffectIdToText"
+source_lines = "407-411"
+description = "spellEffectが非空の動的マッピングがあれば、langがjaでもその動的マッピングをそのまま返す"
+given = "lang = 'ja', dynamicMapping.spellEffect is nonempty"
+expect_return_shape = "dynamicMapping.spellEffect"
+
+[[condition]]
+id = "id_to_text.spell_ja_static_fallback"
+target_function = "MappingManager.getSpellEffectIdToText"
+source_lines = "413-416"
+description = "spellEffect動的マッピングが無くlangがjaならSPELL_EFFECT_TYPE_ID_TO_NAMEを返す"
+given = "lang = 'ja', no dynamic mapping or spellEffect = {}"
+expect_return_shape = "SPELL_EFFECT_TYPE_ID_TO_NAME"
+
+[[condition]]
+id = "id_to_text.spell_non_ja_empty"
+target_function = "MappingManager.getSpellEffectIdToText"
+source_lines = "413-418"
+description = "spellEffect動的マッピングが無くlangがja以外なら{}を返す"
+given = "lang = 'en', no dynamic mapping or spellEffect = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "id_to_text.trap_dynamic_precedes_ja_static"
+target_function = "MappingManager.getTrapEffectIdToText"
+source_lines = "428-432"
+description = "trapEffectが非空の動的マッピングがあれば、langがjaでもその動的マッピングをそのまま返す"
+given = "lang = 'ja', dynamicMapping.trapEffect is nonempty"
+expect_return_shape = "dynamicMapping.trapEffect"
+
+[[condition]]
+id = "id_to_text.trap_ja_static_fallback"
+target_function = "MappingManager.getTrapEffectIdToText"
+source_lines = "434-437"
+description = "trapEffect動的マッピングが無くlangがjaならTRAP_EFFECT_TYPE_ID_TO_NAMEを返す"
+given = "lang = 'ja', no dynamic mapping or trapEffect = {}"
+expect_return_shape = "TRAP_EFFECT_TYPE_ID_TO_NAME"
+
+[[condition]]
+id = "id_to_text.trap_non_ja_empty"
+target_function = "MappingManager.getTrapEffectIdToText"
+source_lines = "434-439"
+description = "trapEffect動的マッピングが無くlangがja以外なら{}を返す"
+given = "lang = 'en', no dynamic mapping or trapEffect = {}"
+expect_return = "{}"
+
+[[condition]]
+id = "has_dynamic_mapping.reflects_map_presence"
+target_function = "MappingManager.hasDynamicMapping"
+source_lines = "442-443"
+description = "dynamicMappingsにlangキーが存在する場合true、存在しない場合falseを返す（マッピングの有効性は判定しない）"
+given = "dynamicMappings.has(lang)"
+expect_return_shape = "boolean"
+
+# --- MappingManager.ensureMappingForLanguage(lang) ---
+
+[[condition]]
+id = "ensure.existing_valid_returns"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "451-456"
+description = "dynamicMappingsに該当langが存在し、isValidMappingがtrueなら即returnしてstorage/fetchを行わない"
+given = "dynamicMappings contains valid mapping for lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.existing_invalid_deletes_then_continues"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "453-461"
+description = "dynamicMappingsに該当langが存在するが無効なら警告ログを出し、そのキーを削除して後続のstorage確認へ進む"
+given = "dynamicMappings contains invalid mapping for lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.fetching_returns"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "464-467"
+description = "該当langがfetchingLanguagesに存在する場合、storage確認もfetchも行わずreturnする"
+given = "fetchingLanguages contains lang"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.stored_valid_sets_mapping"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "469-479"
+description = "storageKeyの値が存在し有効ならdynamicMappingsに保存する"
+given = "chrome.storage.local.get returns stored valid mapping"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.stored_invalid_fetches"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "473-488"
+description = "storageKeyの値が存在するが無効なら警告ログを出してfetchAndStoreMappingsをawaitする"
+given = "chrome.storage.local.get returns stored invalid mapping"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.no_stored_fetches"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "489-491"
+description = "storageKeyの値が存在しなければfetchAndStoreMappingsをawaitする"
+given = "chrome.storage.local.get returns {}"
+expect_return = "undefined"
+
+[[condition]]
+id = "ensure.concurrent_after_storage_can_duplicate_fetch"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "464-491"
+description = "fetchingLanguagesのチェックはstorage読み込み前に1回だけ行われるため、同じlangの同時呼び出しが両方ともstorage読み込みを通過するとfetchAndStoreMappingsへ複数回進みうる"
+given = "same lang ensureMappingForLanguage is called twice concurrently and storage returns no mapping for both"
+expect_return_shape = "fetchAndStoreMappings may be called twice for the same lang"
+
+[[condition]]
+id = "ensure.error_warns"
+target_function = "MappingManager.ensureMappingForLanguage"
+source_lines = "451-495"
+description = "処理中に例外が発生した場合、警告ログを出して例外を外へ投げない"
+given = "chrome.storage.local.get rejects"
+expect_no_throw = true
+
+# --- initializeMappingManager() ---
+
+[[condition]]
+id = "initialize_manager.detects_page_language_and_initializes"
+target_function = "initializeMappingManager"
+source_lines = "507-513"
+description = "detectLanguage(document)の戻り値をpageLanguageとしてmappingManager.initialize(pageLanguage)をawaitする"
+given = "detectLanguage returns 'ja'"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize_manager.config_language_non_auto_ensures"
+target_function = "initializeMappingManager"
+source_lines = "516-523"
+description = "chrome.storage.sync.get('appSettings')のappSettings.languageがtruthyかつ'auto'でなければ、その言語でensureMappingForLanguageをawaitする"
+given = "appSettings.language = 'en'"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize_manager.config_language_missing_or_auto_skips"
+target_function = "initializeMappingManager"
+source_lines = "516-523"
+description = "appSettings.languageが無い、または'auto'ならensureMappingForLanguageを呼ばない"
+given = "appSettings = {} or { language: 'auto' }"
+expect_return = "undefined"
+
+[[condition]]
+id = "initialize_manager.settings_storage_error_warns"
+target_function = "initializeMappingManager"
+source_lines = "516-527"
+description = "設定ストレージ読み込みが例外をthrowした場合、警告ログを出して例外を外へ投げない"
+given = "chrome.storage.sync.get rejects"
+expect_no_throw = true
+
+[[condition]]
+id = "initialize_manager.outer_error_logs"
+target_function = "initializeMappingManager"
+source_lines = "507-530"
+description = "detectLanguageまたはmappingManager.initialize等が例外をthrowした場合、エラーログを出して例外を外へ投げない"
+given = "detectLanguage throws"
+expect_no_throw = true

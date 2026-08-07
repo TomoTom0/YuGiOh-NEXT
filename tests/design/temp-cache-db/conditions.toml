@@ -1,0 +1,287 @@
+# 検証対象: src/utils/temp-cache-db.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)。UnifiedCacheDBの後方互換ラッパーのため、委譲先内部の
+# 詳細ロジックは重複せず、委譲・初期化待機・未実装互換APIの返り値を条件化する。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - saveToStorage/saveTempCacheDBToStorageの既存テストは「呼ばれることを確認」と
+#   コメントしていたが、実際にはsaveUnifiedCacheDB呼び出しをassertしていなかった。
+#   実装から読める委譲先呼び出しを明示的に検証するよう修正する。
+
+[meta]
+feature = "temp-cache-db"
+source_file = "src/utils/temp-cache-db.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/temp-cache-db.test.ts"
+source_hash = "b9c7bc9f7edc61635c9dcfd6bb423c53465e0916"
+note = "verified=falseは1件: set未初期化時のinitPromise rejection握りつぶし。モジュール内initPromiseの共有状態とfire-and-forget catchで、公開APIから副作用を確定検証しにくい"
+
+# --- withInit(fn) ---
+
+[[condition]]
+id = "with_init.chrome_storage_uninitialized_initializes_once_then_runs"
+target_function = "withInit"
+source_lines = "17-27"
+description = "chrome.storage.local が存在し、UnifiedCacheDBが未初期化で、initPromiseが未作成の場合は initUnifiedCacheDB() を呼んで待機してから fn() の戻り値を返す"
+given = "chrome.storage.local が存在し unifiedDB.isInitialized() が false"
+expect_return_shape = "initUnifiedCacheDB() resolve後に fn() が実行され、その戻り値で Promise がresolveする"
+
+[[condition]]
+id = "with_init.already_initialized_or_no_chrome_runs_without_init"
+target_function = "withInit"
+source_lines = "18-27"
+description = "chrome.storage.local が存在しない、またはUnifiedCacheDBが初期化済みの場合は initUnifiedCacheDB() を呼ばずに fn() を実行して戻り値を返す"
+given = "chrome が undefined、または unifiedDB.isInitialized() が true"
+expect_return_shape = "fn() の戻り値で Promise がresolveする"
+
+# --- getTempCacheDB() and returned wrapper object ---
+
+[[condition]]
+id = "get_temp_cache_db.returns_wrapper_object"
+target_function = "getTempCacheDB"
+source_lines = "35-114"
+description = "getUnifiedCacheDB()で取得したインスタンスを閉じ込めた後方互換ラッパーオブジェクトを返す"
+given = "getTempCacheDB() を呼ぶ"
+expect_return_shape = "get/set/setAsync/has/delete/clear/size/keys/values/entries/getImageHash/setMany/toMap/saveToStorage/loadFromStorage/clearStorage を持つ object"
+
+[[condition]]
+id = "temp_db.get_delegates"
+target_function = "getTempCacheDB"
+source_lines = "38"
+description = "返却オブジェクトのget(cid)は unifiedDB.getCardInfo(cid) の戻り値をそのまま返す"
+given = "db.get('1')"
+expect_return_shape = "unifiedDB.getCardInfo('1') の戻り値"
+
+[[condition]]
+id = "temp_db.set_uninitialized_chrome_warns_init_async_returns_false"
+target_function = "getTempCacheDB"
+source_lines = "39-55"
+description = "set()呼び出し時にUnifiedCacheDBが未初期化かつchrome.storage.localが存在する場合、warnを出し、initPromise未作成ならinitUnifiedCacheDB()を開始し、初期化後のsetCardInfoFullをfire-and-forgetで予約してfalseを返す"
+given = "unifiedDB.isInitialized() が false、chrome.storage.local が存在する状態で db.set(cid, card)"
+expect_return = "false"
+
+[[condition]]
+id = "temp_db.set_uninitialized_init_reject_ignored"
+target_function = "getTempCacheDB"
+source_lines = "49-53"
+description = "set()未初期化分岐で initPromise または続く setCardInfoFull がreject/throwした場合、catchで握りつぶし呼び出し元へthrowしない"
+given = "set()未初期化分岐で作られた非同期処理がrejectする"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "set()自体はfire-and-forgetでfalseを返すだけで、catch後の状態変化も公開されないため、公開APIからrejection握りつぶし完了を確定検証しにくい"
+
+[[condition]]
+id = "temp_db.set_initialized_or_no_chrome_delegates"
+target_function = "getTempCacheDB"
+source_lines = "42,56"
+description = "UnifiedCacheDBが初期化済み、またはchrome.storage.localが存在しない場合、set()は unifiedDB.setCardInfoFull(cid, card, forceUpdate) の戻り値を返す"
+given = "unifiedDB.isInitialized() が true、または chrome が undefined"
+expect_return_shape = "unifiedDB.setCardInfoFull(cid, card, forceUpdate) の戻り値"
+
+[[condition]]
+id = "temp_db.set_async_delegates_after_with_init"
+target_function = "getTempCacheDB"
+source_lines = "58-60"
+description = "setAsync()はwithInitで必要な初期化待機を行った後、unifiedDB.setCardInfoFull(cid, card, forceUpdate) の戻り値でresolveする"
+given = "db.setAsync(cid, card, true)"
+expect_return_shape = "Promise<boolean> が unifiedDB.setCardInfoFull(cid, card, true) の戻り値でresolveする"
+
+[[condition]]
+id = "temp_db.has_delegates"
+target_function = "getTempCacheDB"
+source_lines = "62"
+description = "has(cid)は unifiedDB.hasCardInfo(cid) の戻り値をそのまま返す"
+given = "db.has('1')"
+expect_return_shape = "unifiedDB.hasCardInfo('1') の戻り値"
+
+[[condition]]
+id = "temp_db.delete_unimplemented_false"
+target_function = "getTempCacheDB"
+source_lines = "63-67"
+description = "delete(_cid)は未実装warningを出し、unifiedDBへ委譲せず常にfalseを返す"
+given = "db.delete('1')"
+expect_return = "false"
+
+[[condition]]
+id = "temp_db.clear_delegates"
+target_function = "getTempCacheDB"
+source_lines = "68"
+description = "clear()は unifiedDB.clearCardInfoCache() を呼ぶ"
+given = "db.clear()"
+expect_return_shape = "void"
+
+[[condition]]
+id = "temp_db.size_unimplemented_zero"
+target_function = "getTempCacheDB"
+source_lines = "69-73"
+description = "size getterは未実装warningを出し、常に0を返す"
+given = "db.size"
+expect_return = "0"
+
+[[condition]]
+id = "temp_db.keys_unimplemented_empty_iterator"
+target_function = "getTempCacheDB"
+source_lines = "74-78"
+description = "keys()は未実装warningを出し、空配列のiteratorを返す"
+given = "Array.from(db.keys())"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "temp_db.values_unimplemented_empty_generator"
+target_function = "getTempCacheDB"
+source_lines = "79-82"
+description = "values()は未実装warningを出すだけでyieldしないgeneratorを返す"
+given = "Array.from(db.values())"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "temp_db.entries_unimplemented_empty_generator"
+target_function = "getTempCacheDB"
+source_lines = "83-86"
+description = "entries()は未実装warningを出すだけでyieldしないgeneratorを返す"
+given = "Array.from(db.entries())"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "temp_db.get_image_hash.card_missing_undefined"
+target_function = "getTempCacheDB"
+source_lines = "87-89"
+description = "getImageHash(cid, ciid)は unifiedDB.getCardInfo(cid) がfalsyの場合undefinedを返す"
+given = "unifiedDB.getCardInfo(cid) が undefined"
+expect_return = "undefined"
+
+[[condition]]
+id = "temp_db.get_image_hash.ciid_match_or_missing"
+target_function = "getTempCacheDB"
+source_lines = "90-91"
+description = "getImageHash(cid, ciid)は取得したcard.imgsからciid一致の最初の要素をfindし、存在すればimgHash、存在しなければundefinedを返す"
+given = "card.imgs に ciid 一致あり/なし"
+expect_return_shape = "一致ありなら imgHash、一致なしなら undefined"
+
+[[condition]]
+id = "temp_db.set_many_delegates_each"
+target_function = "getTempCacheDB"
+source_lines = "93-97"
+description = "setMany(cards, forceUpdate)は入力配列を順に走査し、各 [cid, card] について unifiedDB.setCardInfoFull(cid, card, forceUpdate) を呼ぶ"
+given = "cards に3件、forceUpdate=true"
+expect_return_shape = "3件分の setCardInfoFull 呼び出し"
+
+[[condition]]
+id = "temp_db.to_map_unimplemented_empty"
+target_function = "getTempCacheDB"
+source_lines = "98-102"
+description = "toMap()は未実装warningを出し、常に空のMapを返す"
+given = "db.toMap()"
+expect_return_shape = "new Map() 相当、size=0"
+
+[[condition]]
+id = "temp_db.save_to_storage_delegates"
+target_function = "getTempCacheDB"
+source_lines = "103-105"
+description = "saveToStorage()は saveUnifiedCacheDB() をawaitする"
+given = "db.saveToStorage()"
+expect_return_shape = "saveUnifiedCacheDB() のPromiseがresolveするとresolveする"
+
+[[condition]]
+id = "temp_db.load_from_storage_init_returns_zero"
+target_function = "getTempCacheDB"
+source_lines = "106-109"
+description = "loadFromStorage()は initUnifiedCacheDB() をawaitし、その後常に0を返す"
+given = "db.loadFromStorage()"
+expect_return = "0"
+
+[[condition]]
+id = "temp_db.clear_storage_clear_all_then_memory"
+target_function = "getTempCacheDB"
+source_lines = "110-113"
+description = "clearStorage()は unifiedDB.clearAll() をawaitしてから unifiedDB.clearCardInfoCache() を呼ぶ"
+given = "db.clearStorage()"
+expect_return_shape = "Promise<void> がresolveし、clearAll と clearCardInfoCache が呼ばれる"
+
+# --- top-level exported functions ---
+
+[[condition]]
+id = "reset_temp_cache_db.clears_memory_cache"
+target_function = "resetTempCacheDB"
+source_lines = "120-123"
+description = "resetTempCacheDB()は getUnifiedCacheDB() の戻り値に対して clearCardInfoCache() を呼ぶ"
+given = "resetTempCacheDB()"
+expect_return_shape = "void"
+
+[[condition]]
+id = "init_temp_cache_db_from_storage.init_returns_zero"
+target_function = "initTempCacheDBFromStorage"
+source_lines = "128-130"
+description = "initTempCacheDBFromStorage()は initUnifiedCacheDB() をawaitし、その後常に0を返す"
+given = "initTempCacheDBFromStorage()"
+expect_return = "0"
+
+[[condition]]
+id = "save_temp_cache_db_to_storage.delegates"
+target_function = "saveTempCacheDBToStorage"
+source_lines = "136-138"
+description = "saveTempCacheDBToStorage()は saveUnifiedCacheDB() をawaitする"
+given = "saveTempCacheDBToStorage()"
+expect_return_shape = "Promise<void> が saveUnifiedCacheDB() resolve後にresolveする"
+
+[[condition]]
+id = "clear_temp_cache_db_storage.clear_all_then_memory"
+target_function = "clearTempCacheDBStorage"
+source_lines = "143-147"
+description = "clearTempCacheDBStorage()は unifiedDB.clearAll() をawaitしてから unifiedDB.clearCardInfoCache() を呼ぶ"
+given = "clearTempCacheDBStorage()"
+expect_return_shape = "Promise<void> がresolveし、clearAll と clearCardInfoCache が呼ばれる"
+
+[[condition]]
+id = "record_deck_open.initialized_delegates"
+target_function = "recordDeckOpen"
+source_lines = "152-156"
+description = "recordDeckOpen(dno, cardIds)はUnifiedCacheDBが初期化済みの場合のみ unifiedDB.recordDeckOpen(dno, cardIds) を呼ぶ"
+given = "unifiedDB.isInitialized() が true"
+expect_return_shape = "void、recordDeckOpen が1回呼ばれる"
+
+[[condition]]
+id = "record_deck_open.uninitialized_noop"
+target_function = "recordDeckOpen"
+source_lines = "154-156"
+description = "recordDeckOpen(dno, cardIds)はUnifiedCacheDBが未初期化の場合、何も呼ばずに終了する"
+given = "unifiedDB.isInitialized() が false"
+expect_return_shape = "void、unifiedDB.recordDeckOpen は呼ばれない"
+
+[[condition]]
+id = "get_card_tier.initialized_delegates"
+target_function = "getCardTier"
+source_lines = "162-165"
+description = "getCardTier(cardId)はUnifiedCacheDBが初期化済みの場合 unifiedDB.getCardTier(cardId) の戻り値を返す"
+given = "unifiedDB.isInitialized() が true"
+expect_return_shape = "unifiedDB.getCardTier(cardId) の戻り値"
+
+[[condition]]
+id = "get_card_tier.uninitialized_zero"
+target_function = "getCardTier"
+source_lines = "164-167"
+description = "getCardTier(cardId)はUnifiedCacheDBが未初期化の場合、unifiedDB.getCardTierを呼ばずに0を返す"
+given = "unifiedDB.isInitialized() が false"
+expect_return = "0"
+
+[[condition]]
+id = "get_cache_stats.initialized_delegates"
+target_function = "getCacheStats"
+source_lines = "173-183"
+description = "getCacheStats()はUnifiedCacheDBが初期化済みの場合 unifiedDB.getStats() の戻り値を返す"
+given = "unifiedDB.isInitialized() が true"
+expect_return_shape = "unifiedDB.getStats() の戻り値"
+
+[[condition]]
+id = "get_cache_stats.uninitialized_null"
+target_function = "getCacheStats"
+source_lines = "182-185"
+description = "getCacheStats()はUnifiedCacheDBが未初期化の場合、unifiedDB.getStatsを呼ばずにnullを返す"
+given = "unifiedDB.isInitialized() が false"
+expect_return = "null"

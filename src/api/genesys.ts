@@ -11,6 +11,85 @@
 import { getGenesysListUrl, getGenesysIndexUrl } from '../utils/url-builder';
 
 /**
+ * background service worker経由でテキストをfetchする（CORS回避）
+ *
+ * content script（db.yugioh-card.com 上）から別オリジン（www.yugioh-card.com）へ
+ * 直接 fetch すると CORS でブロックされるため、host_permissions を持つ background
+ * service worker で fetch する。
+ *
+ * 通信方式: chrome.runtime.sendMessage で SW を確実に起こし、SW は fetch した結果を
+ * chrome.storage.local に書く。応答は sendResponse でなく storage のポーリング取得で
+ * 受け取る（"message port closed" と storage.onChanged 不達の両方を回避する確実な方式）。
+ */
+const GENESYS_FETCH_RESP_KEY_PREFIX = 'genesysFetchResp';
+
+function genesysFetchKey(requestId: string): string {
+  return GENESYS_FETCH_RESP_KEY_PREFIX + '_' + requestId;
+}
+
+async function fetchTextViaBackground(url: string): Promise<string> {
+  const requestId = crypto.randomUUID();
+
+  // SW を起こす（応答は待たない）。storage.onChanged はこの環境で SW に届かないため、
+  // sendMessage（callback版。Promise版はこの環境でSWに届かない）を使う。
+  // 応答は storage 経由で受け取るため、ポート閉鎖エラーは無視。
+  console.warn('[CS-GENESYS] sending req', requestId, url);
+  chrome.runtime.sendMessage({ type: 'GENESYS_FETCH', requestId, url }, () => {
+    if (chrome.runtime.lastError) {
+      console.warn('[CS-GENESYS] sendMessage lastError (ignored):', chrome.runtime.lastError.message);
+    }
+  });
+
+  // 応答をポーリングで取得（onChanged に依存しない）
+  const start = Date.now();
+  while (Date.now() - start < 30000) {
+    const data = await chrome.storage.local.get(genesysFetchKey(requestId));
+    const resp = data[genesysFetchKey(requestId)] as {
+      requestId?: string;
+      success?: boolean;
+      text?: string;
+      error?: string;
+    } | undefined;
+    if (resp) {
+      console.warn('[CS-GENESYS] resp matched', requestId, 'success=' + resp.success);
+      await chrome.storage.local.remove(genesysFetchKey(requestId));
+      if (resp.success) {
+        return resp.text ?? '';
+      }
+      throw new Error(resp.error ?? 'GENESYS fetch failed');
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error('GENESYS fetch timeout');
+}
+
+/**
+ * 実行コンテキストに応じて適切な方法でテキストを fetch する
+ *
+ * - content script: background service worker 経由（CORS回避）
+ * - background service worker / ユニットテスト環境: 直接 fetch
+ *
+ * 判定基準: content script では window が存在し chrome.runtime.sendMessage が使える。
+ * background SW には window が無く、ユニットテスト（jsdom）では chrome API が未定義。
+ */
+async function fetchText(url: string): Promise<string> {
+  const isContentScriptContext =
+    typeof window !== 'undefined' &&
+    typeof chrome !== 'undefined' &&
+    typeof chrome.runtime?.sendMessage === 'function';
+
+  if (isContentScriptContext) {
+    return fetchTextViaBackground(url);
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+  }
+  return response.text();
+}
+
+/**
  * howtoページのテーブル行から抽出した生エントリ（cid解決前）
  */
 export interface RawGenesysEntry {
@@ -133,11 +212,7 @@ export function parseGenesysIndex(html: string): GenesysListRef[] {
  */
 export async function fetchGenesysIndex(): Promise<GenesysListRef[]> {
   const url = getGenesysIndexUrl();
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch GENESYS index: ${response.status} ${response.statusText}`);
-  }
-  const html = await response.text();
+  const html = await fetchText(url);
   return parseGenesysIndex(html);
 }
 
@@ -228,12 +303,6 @@ export function parseGenesysHtml(html: string, listParam: string): ParsedGenesys
  */
 export async function fetchGenesysPointList(listParam: string): Promise<ParsedGenesysList> {
   const url = getGenesysListUrl(listParam);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch GENESYS point list: ${response.status} ${response.statusText}`);
-  }
-
-  const html = await response.text();
+  const html = await fetchText(url);
   return parseGenesysHtml(html, listParam);
 }

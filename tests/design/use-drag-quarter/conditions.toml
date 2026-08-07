@@ -1,0 +1,156 @@
+# 検証対象: src/composables/practice/useDragQuarter.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、ドラッグ中のドロップ位置（zone内の1/4分割: top/bottom × left/right）を
+# 管理するVue composable。handleDragOver でマウス座標から1/4位置を計算して dragQuarter に保持し、
+# handleDragLeave でドラッグ離脱時にリセット、getDropPos で現在値（未確定時はtop-right既定値）を取得。
+#
+# target_function の記述形式について（composable factory パターン）:
+# 本ファイルは `export function useDragQuarter()` がオブジェクトを返す構造で、実質的なロジックは
+# factory 内のローカル関数（handleDragOver/handleDragLeave/getDropPos/reset）にあります。
+# extract-ast-skeleton.ts は Pinia Setup Store（defineStore()）の factory は検出しますが、
+# 一般の composable factory（export function useXxx()）は未対応のため、export関数一覧には
+# `useDragQuarter` 1件のみが現れ、`useDragQuarter#handleDragOver` 等は抽出されません。
+# このため conditions.toml の target_function には `useDragQuarter#<method>` 形式で記載し、
+# README Phase1.6 知見の Pinia Setup Store と同じ `#` 区切り形式に合わせています。
+# スクリプト実行時の未カバー検出で `useDragQuarter` が1件出ますが、これはスクリプト側の限界であり、
+# 本ファイルでは全メソッドの条件を網羅しています（use-deck-name-variables/conditions.toml の
+# [meta].note と同じ運用）。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。38行の小さなファイルで、全ての分岐が公開APIから到達可能。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - handleDragOver の冒頭 `isDragOver.value = true` はガード(L10)より前に無条件で実行される。
+#   そのため event が DragEvent でない（instanceof ガードで早期returnする）場合でも
+#   isDragOver は true に切り替わる。dragQuarter は更新されないが isDragOver フラグだけが
+#   残る挙動になる（UI側で isDragOver のみを見ている場合、ハイライトだけ付いて位置が古い、
+#   という不整合が起こりうる）。
+# - isRight と isTop の境界判定が非対称。isRight は `>=`（中央値は右側に含む）、isTop は `<`
+#   （中央値は下側に含む）。つまり要素のピッタリ中央にマウスがあるとき isRight=true, isTop=false
+#   となり bottom-right 扱いになる。左右と上下で境界の含み方が逆なのは意図的かどうかコード上に
+#   コメントは無く、実装依存の挙動。
+# - getDropPos のデフォルト値は `{ isRight: true, isTop: true }`（top-right）。dragQuarter が
+#   null の状態（初期状態・reset後・handleDragLeave後・handleDragOverのガード弾き）で getDropPos
+#   を呼ぶと常に top-right が返る。呼び出し側はこの既定値を考慮せずに使うと、未ドラッグ状態でも
+#   top-right 扱いになる点に注意。
+# - handleDragLeave は `event.relatedTarget as HTMLElement | null`, `event.currentTarget as HTMLElement`
+#   と `as` キャストを使用。DragEvent ガード(L19)は currentTarget が HTMLElement であることは保証
+#   しないが、本 composable の利用コンテキスト（HTML要素の dragover/dragleave リスナー）では
+#   currentTarget は常に HTMLElement を想定。呼び出し側が非HTMLElement（Document等）にリスナーを
+#   設定すると `target.contains(related)` で TypeError になる可能性がある。
+# - handleDragLeave で related が target の子孫の場合、state をリセットしない。これは子要素への
+#   dragenter/dragleave で state がフラつくのを防ぐ典型的なパターン（dragleave の relatedTarget
+#   チェック方式）。呼び出し側は「ドラッグが本当に外に出た」判定にこの関数を信頼して使える。
+# - handleDragOver のガード条件 `!(event instanceof DragEvent) || !(event.currentTarget instanceof HTMLElement)`
+#   は短絡評価。第1条件が偽（=eventがDragEvent）のときのみ第2条件が評価される。
+#   Vue の @dragover に渡すと SyntheticEvent ではなく native DragEvent が渡るため通常はガードを
+#   通過するが、テストや他のイベントシステム経由で呼ぶ際はこのガードが効く。
+
+[meta]
+feature = "use-drag-quarter"
+source_file = "src/composables/practice/useDragQuarter.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useDragQuarter.test.ts"
+source_hash = "66a6e956d705c006657cafb20ad395cb3a22fa5f"
+note = "verified=falseは1件（handledragleave.early_return_when_not_dragevent: JSDOMで new Event() が DragEvent 扱いになりガード検証不可）。target_function を useDragQuarter#<method> 形式で記載（composable factory パターン）。ASTスクリプト未対応のため useDragQuarter が未カバーと出るが既知の限界。"
+
+# --- useDragQuarter#handleDragOver ---
+
+[[condition]]
+id = "handledragover.always_sets_isdragover_true_before_guard"
+target_function = "useDragQuarter#handleDragOver"
+source_lines = "9"
+description = "handleDragOver の冒頭 `isDragOver.value = true` はガード(L10)より前に無条件で実行される。そのため event が DragEvent でない場合でも isDragOver は true に切り替わる（dragQuarter は更新されないが isDragOver フラグだけ立つ）"
+given = "任意の Event（DragEvent でなくてもよい）を渡して handleDragOver を呼ぶ"
+expect_side_effect = "isDragOver.value が true に設定される"
+
+[[condition]]
+id = "handledragover.early_return_when_not_dragevent_or_html_element"
+target_function = "useDragQuarter#handleDragOver"
+source_lines = "10"
+description = "event が DragEvent でない、または event.currentTarget が HTMLElement でない場合は早期returnする（dragQuarter は更新されない）。isDragOver は L9 で既に true になっている"
+given = "DragEvent ではない Event、または currentTarget が HTMLElement でない DragEvent を渡す"
+expect_side_effect = "dragQuarter.value は変更されない（呼び出し前の値を維持）"
+
+[[condition]]
+id = "handledragover.isright_inclusive_geq_midline"
+target_function = "useDragQuarter#handleDragOver"
+source_lines = "13"
+description = "isRight を `event.clientX >= rect.left + rect.width / 2` で計算する。境界（中央値）は `>=` により右側（isRight=true）に含まれる（境界含み）"
+given = "要素の rect が left=0, width=100（中央=50）の状態で、clientX=50 の DragEvent を渡す"
+expect_side_effect = "dragQuarter.value.isRight が true に設定される（境界値は右側に含まれる）"
+
+[[condition]]
+id = "handledragover.istop_exclusive_lt_midline"
+target_function = "useDragQuarter#handleDragOver"
+source_lines = "14"
+description = "isTop を `event.clientY < rect.top + rect.height / 2` で計算する。境界（中央値）は `<` により下側（isTop=false）に含まれる。isRight の `>=` と非対称な境界処理"
+given = "要素の rect が top=0, height=100（中央=50）の状態で、clientY=50 の DragEvent を渡す"
+expect_side_effect = "dragQuarter.value.isTop が false に設定される（境界値は下側に含まれ、isRight と逆の境界処理）"
+
+[[condition]]
+id = "handledragover.computes_quarter_from_clientxy"
+target_function = "useDragQuarter#handleDragOver"
+source_lines = "12-15"
+description = "ガードを通過した場合、event.currentTarget.getBoundingClientRect() で矩形を取得し、clientX/clientY から isRight/isTop を計算して dragQuarter.value に設定する（1/4分割位置の特定）"
+given = "要素の rect が left=0, top=0, width=100, height=100 の状態で、clientX=80, clientY=20 の DragEvent を渡す"
+expect_side_effect = "dragQuarter.value が { isRight: true, isTop: true }（top-right）に設定される"
+
+# --- useDragQuarter#handleDragLeave ---
+
+[[condition]]
+id = "handledragleave.early_return_when_not_dragevent"
+target_function = "useDragQuarter#handleDragLeave"
+source_lines = "19"
+description = "event が DragEvent でない場合は早期returnする。handleDragOver と異なり isDragOver/dragQuarter いずれの副作用も発生しない（ガード前に副作用なし）"
+given = "DragEvent ではない Event を渡して handleDragLeave を呼ぶ"
+expect_side_effect = "isDragOver も dragQuarter も変更されない（handleDragOver のガード前副作用との対比）"
+verified = false
+unverifiable_reason = "JSDOM（vitest jsdom）では new Event() が instanceof DragEvent で true を返すため、DragEvent でない Event を合成できずガード(L19)を検証不可。本番ブラウザでは new Event() は Event であり instanceof DragEvent=false でガードが機能する。"
+
+[[condition]]
+id = "handledragleave.resets_state_when_related_null_or_outside"
+target_function = "useDragQuarter#handleDragLeave"
+source_lines = "22-25"
+description = "event.relatedTarget が null、または currentTarget に含まれない（ドラッグが本当に外に出た）場合は isDragOver=false, dragQuarter=null にリセットする"
+given = "relatedTarget が null、または currentTarget の外の要素である DragEvent を渡す"
+expect_side_effect = "isDragOver.value = false, dragQuarter.value = null になる"
+
+[[condition]]
+id = "handledragleave.preserves_state_when_related_inside"
+target_function = "useDragQuarter#handleDragLeave"
+source_lines = "22"
+description = "event.relatedTarget が currentTarget に含まれる（子要素への移動に伴う dragleave）場合はリセットしない。子要素の dragenter/dragleave で state がフラつくのを防ぐ典型的なパターン"
+given = "relatedTarget が currentTarget の子孫要素である DragEvent を渡す"
+expect_side_effect = "isDragOver も dragQuarter も変更されない（呼び出し前の値を維持）"
+
+# --- useDragQuarter#getDropPos ---
+
+[[condition]]
+id = "getdroppos.returns_current_dragquarter_when_set"
+target_function = "useDragQuarter#getDropPos"
+source_lines = "29"
+description = "dragQuarter.value が設定されている場合（handleDragOver で計算済み）、その値をそのまま返す"
+given = "dragQuarter.value が { isRight: false, isTop: false }（bottom-left）に設定された状態で getDropPos() を呼ぶ"
+expect_return = "{ isRight: false, isTop: false }"
+
+[[condition]]
+id = "getdroppos.defaults_to_top_right_when_null"
+target_function = "useDragQuarter#getDropPos"
+source_lines = "29"
+description = "dragQuarter.value が null の場合（初期状態・reset後・handleDragLeave後・handleDragOverのガード弾き）、デフォルト値 { isRight: true, isTop: true }（top-right）を返す。null合体演算子 `??` によるフォールバック"
+given = "dragQuarter.value が null の状態で getDropPos() を呼ぶ"
+expect_return = "{ isRight: true, isTop: true }"
+
+# --- useDragQuarter#reset ---
+
+[[condition]]
+id = "reset.clears_state"
+target_function = "useDragQuarter#reset"
+source_lines = "32-35"
+description = "isDragOver=false, dragQuarter=null を無条件で設定し、ドラッグ状態を完全にクリアする"
+given = "任意の状態（isDragOver/dragQuarter が設定済みを含む）で reset() を呼ぶ"
+expect_side_effect = "isDragOver.value = false, dragQuarter.value = null になる"

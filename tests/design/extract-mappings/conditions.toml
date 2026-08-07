@@ -1,0 +1,196 @@
+# 検証対象: src/utils/extract-mappings.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。docs/api/*.md等の二次情報は参照しない。
+
+[meta]
+feature = "extract-mappings"
+source_file = "src/utils/extract-mappings.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/extract-mappings-full.test.ts tests/unit/utils/extract-mappings.test.ts tests/unit/utils/extract-mappings-comparison.test.ts"
+source_hash = "61b600848dff7d3feba71237582707e90ed6b818"
+note = "verified=falseは0件。非export関数は公開関数extractMappingsFromSearchPageのfetch/DOMParser経路から検証する"
+
+# --- extractMappingsFromSearchPage(lang) ---
+
+[[condition]]
+id = "extract_search.builds_url_with_lang"
+target_function = "extractMappingsFromSearchPage"
+source_lines = "36-40"
+description = "detectCardGameTypeの戻り値と`card_search.action?ope=1&request_locale=${lang}`をbuildApiUrlへ渡し、そのURLをfetchする"
+given = "lang = 'ko', detectCardGameType returns 'rush', buildApiUrl returns mocked URL"
+expect_return_shape = "fetch called with buildApiUrl('card_search.action?ope=1&request_locale=ko', 'rush')"
+
+[[condition]]
+id = "extract_search.response_not_ok_null"
+target_function = "extractMappingsFromSearchPage"
+source_lines = "40-44"
+description = "fetchのresponse.okがfalseならエラーログを出してnullを返し、response.textは呼ばない"
+given = "fetch resolves { ok: false, statusText: 'Bad Request' }"
+expect_return = "null"
+
+[[condition]]
+id = "extract_search.empty_race_null"
+target_function = "extractMappingsFromSearchPage"
+source_lines = "50-65"
+description = "HTML解析後、raceMappingのObject.keys(...).lengthが0なら警告ログを出してnullを返す"
+given = "response.ok = true かつspeciesフィルタが無い、またはspeciesフィルタにliが無いHTML"
+expect_return = "null"
+
+[[condition]]
+id = "extract_search.success_returns_all_maps"
+target_function = "extractMappingsFromSearchPage"
+source_lines = "50-74"
+description = "raceMappingが非空ならrace/monsterType/attribute/spellEffect/trapEffectを含むオブジェクトを返す"
+given = "各フィルタに有効なspan/input/valueが存在するHTML"
+expect_return_shape = "{ race, monsterType, attribute, spellEffect, trapEffect }"
+
+[[condition]]
+id = "extract_search.catch_returns_null"
+target_function = "extractMappingsFromSearchPage"
+source_lines = "34-78"
+description = "try内で例外がthrowされた場合、エラーログを出してnullを返す"
+given = "fetch rejects or response.text rejects"
+expect_return = "null"
+
+# --- extractMonsterTypeMapping(doc) ---
+
+[[condition]]
+id = "monster_type.no_other_input_filter_skipped"
+target_function = "extractMonsterTypeMapping"
+source_lines = "91-99"
+description = "`[id*=\"filter_other\"]`に一致してもinput[name=\"other\"]が無いfilterはスキップする"
+given = "filter_other要素内にinput[name='other']が存在しない"
+expect_return_shape = "該当filter内のliはmonsterTypeMapへ追加されない"
+
+[[condition]]
+id = "monster_type.valid_item_maps_internal_id"
+target_function = "extractMonsterTypeMapping"
+source_lines = "101-117,335-341"
+description = "filter内liのspanとinput[name='other']があり、displayText/value/typeIdがtruthyならMONSTER_TYPE_ID_TO_INTの逆引きIDに正規化済み表示テキストを保存する"
+given = "input[name='other'][value='1'] and span text includes extra whitespace"
+expect_return_shape = "monsterType.effect = normalized display text"
+
+[[condition]]
+id = "monster_type.missing_text_value_or_unknown_skipped"
+target_function = "extractMonsterTypeMapping"
+source_lines = "103-118,335-343"
+description = "span/inputの欠落、空白のみのdisplayText、空value、MONSTER_TYPE_ID_TO_INTに一致しないvalueはいずれも追加しない"
+given = "li lacks span/input, or span text trims to '', or value = '', or value = '999'"
+expect_return_shape = "該当liはmonsterTypeMapへ追加されない"
+
+# --- extractRaceMapping(doc) ---
+
+[[condition]]
+id = "race.no_species_filter_empty"
+target_function = "extractRaceMapping"
+source_lines = "133-137"
+description = "`#filter_specis, .filter_specis`に一致する要素が無い場合、警告ログを出して空オブジェクトを返す"
+given = "HTMLにspeciesフィルタが存在しない"
+expect_return = "{}"
+
+[[condition]]
+id = "race.no_list_items_empty"
+target_function = "extractRaceMapping"
+source_lines = "139-143"
+description = "speciesフィルタは存在するがliが0件なら警告ログを出して空オブジェクトを返す"
+given = "HTMLに空の#filter_specisが存在する"
+expect_return = "{}"
+
+[[condition]]
+id = "race.valid_item_maps_internal_id"
+target_function = "extractRaceMapping"
+source_lines = "145-160,281-287"
+description = "liのspanとinput[name='species']があり、displayText/value/raceIdがtruthyならRACE_ID_TO_INTの逆引きIDに正規化済み表示テキストを保存する"
+given = "input[name='species'][value='1'] and span text includes extra whitespace"
+expect_return_shape = "race.dragon = normalized display text"
+
+[[condition]]
+id = "race.missing_text_value_or_unknown_skipped"
+target_function = "extractRaceMapping"
+source_lines = "145-161,281-289"
+description = "span/inputの欠落、空白のみのdisplayText、空value、RACE_ID_TO_INTに一致しないvalueはいずれも追加しない"
+given = "li lacks span/input, or span text trims to '', or value = '', or value = '999'"
+expect_return_shape = "該当liはraceMapへ追加されない"
+
+# --- extractAttributeMapping(doc) ---
+
+[[condition]]
+id = "attribute.no_filter_empty"
+target_function = "extractAttributeMapping"
+source_lines = "175-179"
+description = "`[id*=\"attribute\"], [class*=\"attribute\"]`に一致する要素が無い場合、警告ログを出して空オブジェクトを返す"
+given = "HTMLにattributeフィルタが存在しない"
+expect_return = "{}"
+
+[[condition]]
+id = "attribute.valid_item_maps_internal_id"
+target_function = "extractAttributeMapping"
+source_lines = "181-198,295-300"
+description = "liのspanとinput[name='attr']があり、displayText/value/attributeIdがtruthyならATTRIBUTE_ID_TO_INTの逆引きIDに正規化済み表示テキストを保存する"
+given = "input[name='attr'][value='11'] and span text includes extra whitespace"
+expect_return_shape = "attribute.light = normalized display text"
+
+[[condition]]
+id = "attribute.missing_text_value_or_unknown_skipped"
+target_function = "extractAttributeMapping"
+source_lines = "184-199,295-302"
+description = "span/inputの欠落、空白のみのdisplayText、空value、ATTRIBUTE_ID_TO_INTに一致しないvalueはいずれも追加しない"
+given = "li lacks span/input, or span text trims to '', or value = '', or value = '999'"
+expect_return_shape = "該当liはattrMapへ追加されない"
+
+# --- extractSpellEffectMapping(doc) ---
+
+[[condition]]
+id = "spell_effect.valid_magic_item_maps_internal_id"
+target_function = "extractSpellEffectMapping"
+source_lines = "213-231,308-313"
+description = "`[id*=\"effect\"], [class*=\"effect\"]`内のli.f_e_magicだけを対象にし、有効なinput[name='effe'] valueをSPELL_EFFECT_TYPE_ID_TO_INTの逆引きIDへ保存する"
+given = "li.f_e_magic input[name='effe'][value='25'] and span text includes extra whitespace"
+expect_return_shape = "spellEffect.quick = normalized display text"
+
+[[condition]]
+id = "spell_effect.non_magic_or_invalid_skipped"
+target_function = "extractSpellEffectMapping"
+source_lines = "215-238,308-315"
+description = "li.f_e_magic以外、span/input欠落、空白のみのdisplayText、空value、SPELL_EFFECT_TYPE_ID_TO_INTに一致しないvalueはいずれも追加しない"
+given = "non-magic li, or li lacks span/input, or value = '', or value = '999'"
+expect_return_shape = "該当liはspellEffectMapへ追加されない"
+
+# --- extractTrapEffectMapping(doc) ---
+
+[[condition]]
+id = "trap_effect.trap_and_unclassified_items_selected"
+target_function = "extractTrapEffectMapping"
+source_lines = "248-266,321-326"
+description = "`[id*=\"effect\"], [class*=\"effect\"]`内のli.f_e_trapと、f_e_magic/f_e_trapのどちらでもないliを対象にし、有効valueをTRAP_EFFECT_TYPE_ID_TO_INTの逆引きIDへ保存する"
+given = "li.f_e_trap value='21' and unclassified li value='24'"
+expect_return_shape = "trapEffect.counter and trapEffect.continuous are set"
+
+[[condition]]
+id = "trap_effect.magic_or_invalid_skipped"
+target_function = "extractTrapEffectMapping"
+source_lines = "250-273,321-328"
+description = "li.f_e_magic、span/input欠落、空白のみのdisplayText、空value、TRAP_EFFECT_TYPE_ID_TO_INTに一致しないvalueはいずれも追加しない"
+given = "magic li, or li lacks span/input, or value = '', or value = '999'"
+expect_return_shape = "該当liはtrapEffectMapへ追加されない"
+
+# --- valueTo*Id(value) ---
+
+[[condition]]
+id = "value_to_id.parse_int_prefix_matches"
+target_function = "valueToRaceId/valueToAttributeId/valueToSpellEffectId/valueToTrapEffectId/valueToMonsterTypeId"
+source_lines = "281-343"
+description = "各value変換はparseInt(value, 10)を使うため、数値接頭辞を持つ文字列はその整数値で逆引きされる"
+given = "species value='1abc', attr value='11abc', effe value='25abc', other value='1abc'"
+expect_return_shape = "対応する内部IDとして扱われる"
+
+[[condition]]
+id = "value_to_id.no_match_null"
+target_function = "valueToRaceId/valueToAttributeId/valueToSpellEffectId/valueToTrapEffectId/valueToMonsterTypeId"
+source_lines = "281-343"
+description = "parseInt結果が各*_ID_TO_INTの値と一致しなければnullを返し、呼び出し元はマッピングへ追加しない"
+given = "value='999' or value='abc'"
+expect_return = "null"

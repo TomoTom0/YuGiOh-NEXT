@@ -1,0 +1,312 @@
+# 検証対象: src/utils/deck-thumbnail-cache.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、Chrome Storage Localを使うキャッシュ層。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - なし。
+
+[meta]
+feature = "deck-thumbnail-cache"
+source_file = "src/utils/deck-thumbnail-cache.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/deck-thumbnail-cache.test.ts"
+source_hash = "087142d27621368f444fab9158ecb6a657121595"
+note = "verified=falseは0件"
+
+# --- new DeckThumbnailCache(maxItems = DEFAULT_MAX_ITEMS) ---
+
+[[condition]]
+id = "constructor.default_max_items"
+target_function = "DeckThumbnailCache#constructor"
+source_lines = "44-47"
+description = "maxItemsを指定しない場合、DEFAULT_MAX_ITEMS(200)をmaxItemsとcacheOrder.maxItemsに設定する"
+given = "new DeckThumbnailCache()"
+expect_return_shape = "getCacheStats().maxItems === 200"
+
+[[condition]]
+id = "constructor.custom_max_items"
+target_function = "DeckThumbnailCache#constructor"
+source_lines = "44-47"
+description = "maxItemsを指定した場合、その値をmaxItemsとcacheOrder.maxItemsに設定する"
+given = "new DeckThumbnailCache(100)"
+expect_return_shape = "getCacheStats().maxItems === 100"
+
+# --- DeckThumbnailCache#loadCacheIndex(): Promise<CacheIndex> ---
+
+[[condition]]
+id = "load_index.storage_hit_assigns"
+target_function = "DeckThumbnailCache#loadCacheIndex"
+source_lines = "53-61"
+description = "chrome.storage.local.getの結果がtruthyで、indexキーの値もtruthyな場合、その値をcacheIndexへ代入して返す"
+given = "chrome storageにygo_deck_thumbnail_indexが存在する"
+expect_return_shape = "保存済みCacheIndex objectがそのまま返る"
+
+[[condition]]
+id = "load_index.storage_missing_keeps_current"
+target_function = "DeckThumbnailCache#loadCacheIndex"
+source_lines = "53-61"
+description = "get結果にindexキーのtruthyな値が無い場合、cacheIndexを変更せず現在値を返す"
+given = "chrome storageにygo_deck_thumbnail_indexが存在しない"
+expect_return_shape = "初期状態なら{}が返る"
+
+[[condition]]
+id = "load_index.get_error_swallows"
+target_function = "DeckThumbnailCache#loadCacheIndex"
+source_lines = "53-61"
+description = "chromeSafeStorageGetがrejectした場合、warningを出して例外を再throwせず現在のcacheIndexを返す"
+given = "chrome.runtime.lastError.message = 'Storage error'"
+expect_no_throw = true
+expect_return_shape = "初期状態なら{}が返る"
+
+# --- DeckThumbnailCache#loadCacheOrder(): Promise<CacheOrder> ---
+
+[[condition]]
+id = "load_order.storage_hit_assigns"
+target_function = "DeckThumbnailCache#loadCacheOrder"
+source_lines = "68-76"
+description = "chrome.storage.local.getの結果がtruthyで、orderキーの値もtruthyな場合、その値をcacheOrderへ代入して返す"
+given = "chrome storageにygo_deck_thumbnail_orderが存在する"
+expect_return_shape = "保存済みCacheOrder objectがそのまま返る"
+
+[[condition]]
+id = "load_order.storage_missing_keeps_current"
+target_function = "DeckThumbnailCache#loadCacheOrder"
+source_lines = "68-76"
+description = "get結果にorderキーのtruthyな値が無い場合、cacheOrderを変更せず現在値を返す"
+given = "chrome storageにygo_deck_thumbnail_orderが存在しない"
+expect_return_shape = "初期状態なら{ order: [], maxItems, currentSize: 0 }が返る"
+
+[[condition]]
+id = "load_order.get_error_swallows"
+target_function = "DeckThumbnailCache#loadCacheOrder"
+source_lines = "68-76"
+description = "chromeSafeStorageGetがrejectした場合、warningを出して例外を再throwせず現在のcacheOrderを返す"
+given = "chrome.runtime.lastError.message = 'Storage error'"
+expect_no_throw = true
+expect_return_shape = "初期状態なら{ order: [], maxItems, currentSize: 0 }が返る"
+
+# --- DeckThumbnailCache#getImage(hash): Promise<string | null> ---
+
+[[condition]]
+id = "get_image.missing_returns_null"
+target_function = "DeckThumbnailCache#getImage"
+source_lines = "84-100"
+description = "load後のcacheIndexにhashが存在しない場合、updateAccessTimeを呼ばずnullを返す"
+given = "hash = 'nonexistent'"
+expect_return = "null"
+
+[[condition]]
+id = "get_image.found_updates_access_and_returns"
+target_function = "DeckThumbnailCache#getImage"
+source_lines = "84-100"
+description = "load後のcacheIndexにhashが存在する場合、updateAccessTimeをawaitしてからentry.imageDataUrlを返す"
+given = "hashに対応するCacheEntryが存在する"
+expect_return = "entry.imageDataUrl"
+expect_side_effect = "lastAccessTimeが更新され、order末尾へhashが移動する"
+
+[[condition]]
+id = "get_image.update_error_swallows_and_returns"
+target_function = "DeckThumbnailCache#getImage"
+source_lines = "93-100"
+description = "updateAccessTimeが例外をthrowしてもwarningを出して例外を再throwせず、entry.imageDataUrlを返す"
+given = "更新保存時のchrome.storage.local.setでlastErrorが発生する"
+expect_no_throw = true
+expect_return = "entry.imageDataUrl"
+
+# --- DeckThumbnailCache#saveImage(hash, dno, name, imageDataUrl): Promise<void> ---
+
+[[condition]]
+id = "save_image.new_entry_fields_and_size"
+target_function = "DeckThumbnailCache#saveImage"
+source_lines = "116-152"
+description = "新規hashの場合、imageDataUrl.lengthをimageSizeとしてCacheEntryを作成し、cacheIndexへ追加し、currentSizeに加算して保存する"
+given = "未登録hashにsaveImageを呼ぶ"
+expect_side_effect = "storageのindexにdno/name/hash/imageDataUrl/imageSize/lastAccessTime/createdTimeを持つentryが保存される"
+
+[[condition]]
+id = "save_image.existing_subtracts_old_size"
+target_function = "DeckThumbnailCache#saveImage"
+source_lines = "132-139"
+description = "同じhashの既存エントリがある場合、古いimageSizeをcurrentSizeから減算してから新しいimageSizeを加算する"
+given = "同じhashを異なる長さのimageDataUrlで2回保存する"
+expect_side_effect = "currentSizeは古いサイズと新しいサイズの合算ではなく、新しいサイズになる"
+
+[[condition]]
+id = "save_image.new_hash_appends_order"
+target_function = "DeckThumbnailCache#saveImage"
+source_lines = "141-144"
+description = "cacheOrder.orderにhashが含まれていない場合、hashをorder末尾にpushする"
+given = "未登録hashにsaveImageを呼ぶ"
+expect_side_effect = "cacheOrder.orderの末尾にhashが追加される"
+
+[[condition]]
+id = "save_image.existing_order_not_duplicated"
+target_function = "DeckThumbnailCache#saveImage"
+source_lines = "141-144"
+description = "cacheOrder.orderにhashが既に含まれている場合、orderへ重複追加しない"
+given = "同じhashにsaveImageを2回呼ぶ"
+expect_side_effect = "cacheOrder.order内のhash出現回数は1回のまま"
+
+[[condition]]
+id = "save_image.storage_error_rethrows"
+target_function = "DeckThumbnailCache#saveImage"
+source_lines = "149-156"
+description = "cacheIndexまたはcacheOrderの保存時にchromeSafeStorageSetがrejectした場合、errorを出して同じ例外をthrowする"
+given = "chrome.storage.local.set時にchrome.runtime.lastErrorが発生する"
+expect_throw = "Error('Storage error')"
+
+# --- DeckThumbnailCache#deleteCacheEntry(hash): Promise<void> ---
+
+[[condition]]
+id = "delete_entry.present_deletes_and_subtracts"
+target_function = "DeckThumbnailCache#deleteCacheEntry"
+source_lines = "163-178"
+description = "cacheIndexにhashが存在する場合、currentSizeからimageSizeを減算し、cacheIndexから削除し、orderからも除外して保存する"
+given = "hashに対応するCacheEntryとorder要素が存在する"
+expect_side_effect = "entryが削除され、orderからhashが消え、currentSizeが減る"
+
+[[condition]]
+id = "delete_entry.absent_filters_order_only"
+target_function = "DeckThumbnailCache#deleteCacheEntry"
+source_lines = "163-178"
+description = "cacheIndexにhashが存在しない場合、currentSizeは減算せず、order配列から一致するhashだけを除外して保存する"
+given = "cacheIndexには無いがorderにはあるhashを削除する"
+expect_side_effect = "currentSizeは維持され、orderからhashが消える"
+
+[[condition]]
+id = "delete_entry.storage_error_swallows"
+target_function = "DeckThumbnailCache#deleteCacheEntry"
+source_lines = "175-181"
+description = "保存時にchromeSafeStorageSetがrejectした場合、errorを出すが例外を再throwしない"
+given = "chrome.storage.local.set時にchrome.runtime.lastErrorが発生する"
+expect_no_throw = true
+
+# --- DeckThumbnailCache#clearAll(): Promise<void> ---
+
+[[condition]]
+id = "clear_all.resets_memory_and_removes_storage"
+target_function = "DeckThumbnailCache#clearAll"
+source_lines = "187-196"
+description = "cacheIndexを{}、cacheOrderを{ order: [], maxItems: this.maxItems, currentSize: 0 }に戻し、2つのstorageキーをremoveする"
+given = "メモリとstorageにキャッシュが存在する"
+expect_side_effect = "storageからindex/orderキーが削除され、getCacheStatsは0件・0bytesを返す"
+
+[[condition]]
+id = "clear_all.remove_error_swallows"
+target_function = "DeckThumbnailCache#clearAll"
+source_lines = "195-199"
+description = "chrome.storage.local.removeがthrow/reject相当の同期例外を投げた場合、errorを出すが例外を再throwしない"
+given = "chrome.storage.local.removeがthrowする"
+expect_no_throw = true
+
+# --- DeckThumbnailCache#getCacheStats() ---
+
+[[condition]]
+id = "stats.returns_memory_state"
+target_function = "DeckThumbnailCache#getCacheStats"
+source_lines = "205-217"
+description = "現在のcacheIndex件数、cacheOrder.currentSize、this.maxItems、MAX_CACHE_SIZE_BYTES(10MB)を返す"
+given = "cacheIndexに2件、currentSizeが保存済み画像長の合計"
+expect_return_shape = "{ itemCount: 2, totalSize: 合計, maxItems, maxSize: 10485760 }"
+
+# --- DeckThumbnailCache#enforceMaxItems(): Promise<void> ---
+
+[[condition]]
+id = "enforce.item_count_over_limit_deletes_oldest"
+target_function = "DeckThumbnailCache#enforceMaxItems"
+source_lines = "222-230"
+description = "cacheOrder.order.lengthがmaxItemsを超える間、order先頭をshiftし、そのhashのentryが存在すればcurrentSizeを減算してcacheIndexから削除する"
+given = "maxItems=3で4件保存する"
+expect_side_effect = "最初に保存したhashがcacheIndexから削除される"
+
+[[condition]]
+id = "enforce.item_count_stale_order_only_shifts"
+target_function = "DeckThumbnailCache#enforceMaxItems"
+source_lines = "224-230"
+description = "個数制限ループでshiftしたoldestHashに対応するentryが存在しない場合、currentSizeとcacheIndexは変更せずorderから除かれる"
+given = "order先頭にcacheIndexに存在しないhashがあり、order.lengthがmaxItemsを超える"
+expect_side_effect = "stale hashだけがorderから除かれる"
+
+[[condition]]
+id = "enforce.size_over_limit_deletes_oldest"
+target_function = "DeckThumbnailCache#enforceMaxItems"
+source_lines = "232-241"
+description = "cacheOrder.currentSizeが10MBを超える間、order先頭をshiftし、そのhashのentryが存在すればcurrentSizeを減算してcacheIndexから削除する"
+given = "10MBを超えるimageDataUrlを保存する"
+expect_side_effect = "保存したentryが削除される"
+
+[[condition]]
+id = "enforce.size_over_limit_no_deletable_breaks"
+target_function = "DeckThumbnailCache#enforceMaxItems"
+source_lines = "232-241"
+description = "サイズ制限ループでshiftできるhashが無い、またはentryが存在しない場合、breakしてそれ以上削除しない"
+given = "currentSizeが10MB超だがorderが空になる状態"
+expect_side_effect = "ループが終了し、currentSizeが10MB超のまま残り得る"
+
+# --- DeckThumbnailCache#updateAccessTime(hash): Promise<void> ---
+
+[[condition]]
+id = "update_access.entry_present_moves_to_tail_and_saves"
+target_function = "DeckThumbnailCache#updateAccessTime"
+source_lines = "247-258"
+description = "cacheIndexにhashが存在する場合、lastAccessTimeをDate.now()に更新し、order内のhashを全て除外して末尾にpushし、index/orderを保存する"
+given = "order = ['hash1', 'hash2']でhash1を更新する"
+expect_side_effect = "orderは['hash2','hash1']になり、lastAccessTimeが増える"
+
+[[condition]]
+id = "update_access.entry_absent_noop"
+target_function = "DeckThumbnailCache#updateAccessTime"
+source_lines = "247-263"
+description = "cacheIndexにhashが存在しない場合、order更新もstorage保存も行わずreturnする"
+given = "cacheIndexに存在しないhashを指定する"
+expect_side_effect = "chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "update_access.storage_error_swallows"
+target_function = "DeckThumbnailCache#updateAccessTime"
+source_lines = "256-261"
+description = "index/order保存時にchromeSafeStorageSetがrejectした場合、warningを出すが例外を再throwしない"
+given = "chrome.storage.local.set時にchrome.runtime.lastErrorが発生する"
+expect_no_throw = true
+
+# --- DeckThumbnailCache#chromeSafeStorageGet(key): Promise<Record<string, any>> ---
+
+[[condition]]
+id = "storage_get.success_resolves_result"
+target_function = "DeckThumbnailCache#chromeSafeStorageGet"
+source_lines = "268-277"
+description = "chrome.storage.local.getのcallback時にchrome.runtime.lastErrorがfalsyなら、resultでresolveする"
+given = "lastErrorなしでstorage get callbackが呼ばれる"
+expect_return_shape = "Promise resolves result"
+
+[[condition]]
+id = "storage_get.last_error_rejects"
+target_function = "DeckThumbnailCache#chromeSafeStorageGet"
+source_lines = "268-277"
+description = "chrome.storage.local.getのcallback時にchrome.runtime.lastErrorがtruthyなら、そのmessageを持つErrorでrejectする"
+given = "chrome.runtime.lastError.message = 'Storage error'"
+expect_throw = "Error('Storage error')"
+
+# --- DeckThumbnailCache#chromeSafeStorageSet(key, value): Promise<void> ---
+
+[[condition]]
+id = "storage_set.success_resolves"
+target_function = "DeckThumbnailCache#chromeSafeStorageSet"
+source_lines = "283-292"
+description = "chrome.storage.local.setのcallback時にchrome.runtime.lastErrorがfalsyならresolveする"
+given = "lastErrorなしでstorage set callbackが呼ばれる"
+expect_return_shape = "Promise resolves undefined"
+
+[[condition]]
+id = "storage_set.last_error_rejects"
+target_function = "DeckThumbnailCache#chromeSafeStorageSet"
+source_lines = "283-292"
+description = "chrome.storage.local.setのcallback時にchrome.runtime.lastErrorがtruthyなら、そのmessageを持つErrorでrejectする"
+given = "chrome.runtime.lastError.message = 'Storage error'"
+expect_throw = "Error('Storage error')"
