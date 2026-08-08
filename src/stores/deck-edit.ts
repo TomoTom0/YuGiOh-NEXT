@@ -1004,7 +1004,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   // レギュレーション判定機能（デッキ名タグ [OCG-YYMM]/[GENESYS-YYMM] から適用版を解決）
-  const regulation = useDeckRegulation({ deckInfo, getDeckName, setDeckName });
+  const regulation = useDeckRegulation({
+    deckInfo,
+    getDeckName,
+    setDeckName,
+    isGenesysEnabled: () => settingsStore.featureSettings.genesys,
+  });
 
   /**
    * displayOrder の順序を deckInfo に反映

@@ -16,10 +16,14 @@ export async function loadFeatureSettings(): Promise<FeatureSettings> {
 
     // 設定が存在する場合は、デフォルト値とマージ
     if (result.featureSettings) {
-      return {
+      const merged = {
         ...DEFAULT_FEATURE_SETTINGS,
         ...result.featureSettings,
       };
+      // category 3 強制: デフォルト値が import.meta.env.DEV の機能は
+      // 本番ビルドでは強制OFF（stored値は無視）。toml で category を管理。
+      merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice;
+      return merged;
     }
 
     // 設定が存在しない場合はデフォルト値を返す

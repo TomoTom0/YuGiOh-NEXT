@@ -13,6 +13,8 @@
 - デッキ名入力欄: クリアボタンを追加（デッキ名がある時のみ表示）
 - UI: undo/redo・save・load・practice各ボタンをネイティブtitle属性から独自HoverTooltipに置き換え
 
+- GENESYS: 本番ビルドではfeature flag（category 3）で無効化。データ精度の問題が解決するまで開発ビルドのみ有効
+
 ## Bug Fixes
 
 - Practice mode: デッキの表向きカード（上/下）をそれぞれ1枚のみ表示するよう修正（裏向きカードを重ねて表示しない）

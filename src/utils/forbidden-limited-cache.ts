@@ -130,6 +130,13 @@ export class ForbiddenLimitedCache {
   }
 
   /**
+   * 指定された effectiveDate のリストがキャッシュに存在するかを返す。
+   */
+  hasList(effectiveDate: string): boolean {
+    return !!this.cache?.lists[effectiveDate];
+  }
+
+  /**
    * 実在する全適用日一覧（select option）。フォールバック判定に使用。
    * 実在一覧未取得時は取得済みリストのキーで代用。
    */

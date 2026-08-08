@@ -21,7 +21,8 @@ export async function showImageDialogWithData(
   cgid: string,
   dno: string,
   deckData: DeckInfo,
-  buttonRect: DOMRect | null = null
+  buttonRect: DOMRect | null = null,
+  genesysPoints?: Record<string, number>
 ): Promise<void> {
   // 既存のダイアログがあれば削除
   if (dialogApp) {
@@ -40,6 +41,7 @@ export async function showImageDialogWithData(
     dno,
     deckData,
     buttonRect,
+    genesysPoints,
     onClose: () => {
       if (dialogApp) {
         dialogApp.unmount()

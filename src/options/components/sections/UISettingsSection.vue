@@ -197,7 +197,7 @@
     </div>
 
     <!-- 一人回しカードサイズ -->
-    <div class="setting-group">
+    <div v-if="settingsStore.featureSettings.practice" class="setting-group">
       <h3 class="setting-title">一人回しのカードサイズ</h3>
       <div class="preset-grid">
         <button

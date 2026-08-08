@@ -153,6 +153,30 @@ description = "候補確定後はmatchedBracket/matchedQueryをnull、selectedIn
 given = "候補確定（selectSuggestion）を実行"
 expect_return_shape = "matchedBracket.value=null, matchedQuery.value=null, selectedIndex.value=-1"
 
+[[condition]]
+id = "apply_suggestion.inserts_space_before_non_whitespace_after"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "123-124"
+description = "後続テキスト(after)が存在し、かつ空白で始まらない場合、閉じ括弧との間に半角スペースを自動挿入する。これにより regulation-tag-parser の prefix パターン (?=\\s|$) がマッチし、日付出力タグがパースされる"
+given = "inputValue.value='[OCGテスト', カーソル位置=4, 候補='[OCG-2501]'"
+expect_return_shape = "inputValue.value = '[OCG-2501] テスト'（']' と 'テスト' の間に空白が挿入される）"
+
+[[condition]]
+id = "apply_suggestion.no_extra_space_when_after_starts_with_whitespace"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "123-124"
+description = "後続テキストが既に空白で始まる場合は余分な空白を追加しない（二重空白防止）"
+given = "inputValue.value='[OCG] テスト', カーソル位置=4, 候補='[OCG-2501]'"
+expect_return_shape = "inputValue.value = '[OCG-2501] テスト'（空白は1つのまま）"
+
+[[condition]]
+id = "apply_suggestion.dated_tag_with_space_ensures_regex_match"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion) -> regulation-tag-parser"
+source_lines = "123-124, regulation-tag-parser.ts:48-49"
+description = "日付出力タグ補完後の文字列に対して parseRegulationTag が日付(YYMM)を正しく抽出できる。prefix パターン (?=\\s|$) が空白によってマッチするため"
+given = "applySuggestionで '[GENESYS-2606] テスト' が生成された状態"
+expect_return_shape = "parseRegulationTagの結果: { type: 'genesys', yymm: '2606' }（nullでない）"
+
 # --- handleKeydown(event) ---
 
 [[condition]]

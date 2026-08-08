@@ -26,8 +26,9 @@ export function useDeckRegulation(options: {
   deckInfo: Ref<DeckInfo>;
   getDeckName: () => string;
   setDeckName: (name: string) => void;
+  isGenesysEnabled: () => boolean;
 }) {
-  const { deckInfo, getDeckName, setDeckName } = options;
+  const { deckInfo, getDeckName, setDeckName, isGenesysEnabled } = options;
 
   /** タグ無し時の初期状態（OCG最新 = 現状通り） */
   const NONE_RESOLVED: ResolvedRegulation = {
@@ -72,6 +73,11 @@ export function useDeckRegulation(options: {
   function getCardLimitOverride(cid: string): LimitRegulation | undefined | null {
     const r = resolvedRegulation.value;
     if (r.mode !== 'ocg' || !r.effectiveDate) return null;
+    // resolveAndEnsure で ensureList が呼ばれているが、APIが過去日付に
+    // 対応していない等で取得失敗している場合、リストはキャッシュに存在しない。
+    // その場合 undefined を返すと全カードの制限バッジが消えるため、
+    // null（上書きなし）を返して既存のバッジを維持する。
+    if (!forbiddenLimitedCache.hasList(r.effectiveDate)) return null;
     return forbiddenLimitedCache.getRegulation(cid, r.effectiveDate);
   }
 
@@ -112,6 +118,11 @@ export function useDeckRegulation(options: {
       genesysListParams: genesysPointCache.getAvailableListParams()
     };
     const resolved = resolveDeckRegulation(getDeckName(), available);
+    // feature flag で無効な場合は genesys タグを無視
+    if (resolved.mode === 'genesys' && !isGenesysEnabled()) {
+      resolvedRegulation.value = { ...NONE_RESOLVED };
+      return;
+    }
     resolvedRegulation.value = resolved;
 
     // 適用版のリストを遅延取得（カード表示に必要）
@@ -146,6 +157,7 @@ export function useDeckRegulation(options: {
   async function ignoreRegulationFix(): Promise<void> {
     showRegulationFixDialog.value = false;
     const dno = deckInfo.value.dno;
+    // dno === 0 は新規デッキ（未保存）。保存後のdnoと衝突するため無視しない。
     if (!dno) return;
     ignoredDeckDnos.value.add(dno);
     await saveIgnoredToStorage();
@@ -188,7 +200,9 @@ export function useDeckRegulation(options: {
   watch(currentTagRaw, async (newRaw, oldRaw) => {
     if (newRaw === oldRaw) return;
     const dno = deckInfo.value.dno;
-    if (!dno) return;
+    // dno === 0 は新規デッキ（未保存）であり、レギュレーション解決をスキップすべきでない。
+    // !0 === true になるため、null/undefined のみを除外する。
+    if (dno == null) return;
     await resolveAndEnsure({ dno, silent: true });
   });
 

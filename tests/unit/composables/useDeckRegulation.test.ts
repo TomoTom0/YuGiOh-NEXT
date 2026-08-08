@@ -31,6 +31,7 @@ vi.mock('@/utils/forbidden-limited-cache', () => ({
     checkAndUpdate: vi.fn().mockResolvedValue(undefined),
     getAvailableDates: vi.fn().mockReturnValue([]),
     ensureList: vi.fn().mockResolvedValue(undefined),
+    hasList: vi.fn().mockReturnValue(true),
     getRegulation: vi.fn()
   }
 }));
@@ -40,8 +41,8 @@ vi.mock('@/utils/genesys-cache', () => ({
     init: vi.fn().mockResolvedValue(undefined),
     checkAndUpdate: vi.fn().mockResolvedValue(undefined),
     getAvailableListParams: vi.fn().mockReturnValue([]),
-    ensureList: vi.fn().mockResolvedValue(undefined),
-    ensureCurrentList: vi.fn().mockResolvedValue(undefined),
+    ensureList: vi.fn().mockResolvedValue({ listParam: '202608', effectiveDate: '2026-08-01', points: {}, fetchedAt: Date.now() }),
+    ensureCurrentList: vi.fn().mockResolvedValue({ listParam: '202608', effectiveDate: '2026-08-01', points: {}, fetchedAt: Date.now() }),
     getPoint: vi.fn()
   }
 }));
@@ -74,7 +75,8 @@ function createOptions(overrides: Partial<DeckInfo> = {}) {
   return {
     deckInfo,
     getDeckName: () => deckInfo.value.name,
-    setDeckName
+    setDeckName,
+    isGenesysEnabled: () => true,
   };
 }
 
@@ -116,11 +118,12 @@ describe('useDeckRegulation conditions', () => {
     vi.mocked(forbiddenLimitedCache.checkAndUpdate).mockResolvedValue(undefined);
     vi.mocked(forbiddenLimitedCache.getAvailableDates).mockReturnValue([]);
     vi.mocked(forbiddenLimitedCache.ensureList).mockResolvedValue(undefined);
+    vi.mocked(forbiddenLimitedCache.hasList).mockReturnValue(true);
     vi.mocked(forbiddenLimitedCache.getRegulation).mockReturnValue(undefined);
     vi.mocked(genesysPointCache.init).mockResolvedValue(undefined);
     vi.mocked(genesysPointCache.checkAndUpdate).mockResolvedValue(undefined);
     vi.mocked(genesysPointCache.getAvailableListParams).mockReturnValue([]);
-    vi.mocked(genesysPointCache.ensureList).mockResolvedValue(undefined);
+    vi.mocked(genesysPointCache.ensureList).mockResolvedValue({ listParam: '202608', effectiveDate: '2026-08-01', points: {}, fetchedAt: Date.now() });
     vi.mocked(genesysPointCache.ensureCurrentList).mockResolvedValue(undefined);
     vi.mocked(genesysPointCache.getPoint).mockReturnValue(undefined);
     vi.mocked(safeStorageGet).mockResolvedValue({});
@@ -204,6 +207,21 @@ describe('useDeckRegulation conditions', () => {
     });
     expect(regulation.getCardLimitOverride('100')).toBe('limited');
     expect(forbiddenLimitedCache.getRegulation).toHaveBeenCalledWith('100', '2026-08-01');
+  });
+
+  it('[covers:limit_override.list_not_in_cache_returns_null] getCardLimitOverrideはhasListがfalseならgetRegulationを呼ばずnullを返す', () => {
+    vi.mocked(forbiddenLimitedCache.hasList).mockReturnValue(false);
+    vi.mocked(forbiddenLimitedCache.getRegulation).mockReturnValue('forbidden');
+    const regulation = useDeckRegulation(createOptions());
+
+    regulation.resolvedRegulation.value = resolved({
+      mode: 'ocg',
+      tag: tag('ocg', '2501', '[OCG-2501]'),
+      effectiveDate: '2025-01-01'
+    });
+    // hasList=false → getRegulationを呼ばずnullを返す
+    expect(regulation.getCardLimitOverride('100')).toBeNull();
+    expect(forbiddenLimitedCache.getRegulation).not.toHaveBeenCalled();
   });
 
   it('[covers:genesys_point.non_genesys_returns_undefined] [covers:genesys_point.genesys_reads_cache_with_optional_list_param] getCardGenesysPointはGENESYS時だけlistParamを任意引数にしてキャッシュを読む', () => {
@@ -452,15 +470,16 @@ describe('useDeckRegulation conditions', () => {
     expect(mocks.resolveDeckRegulation).not.toHaveBeenCalled();
   });
 
-  it('[covers:watch_tag_raw_changed_without_dno_returns_without_resolve] watchはタグrawが変わってもdnoがfalsyなら再解決しない', async () => {
-    const options = createOptions({ dno: 0, name: 'A' });
-    useDeckRegulation(options);
+  it('[covers:watch_tag_raw_changed_with_zero_dno_resolves_silent] watchはdno=0（新規デッキ）でも再解決する', async () => {
+    const options = createOptions({ dno: 0, name: 'B' });
+    const regulation = useDeckRegulation(options);
 
-    options.deckInfo.value.name = '[GENESYS] A';
+    options.deckInfo.value.name = '[OCG-2501] B';
     await flushWatch();
 
-    expect(forbiddenLimitedCache.init).not.toHaveBeenCalled();
-    expect(mocks.resolveDeckRegulation).not.toHaveBeenCalled();
+    // dno=0 では再解決が実行される（TASK-346修正: 以前は!dnoで除外されていた）
+    expect(forbiddenLimitedCache.init).toHaveBeenCalled();
+    expect(mocks.resolveDeckRegulation).toHaveBeenCalled();
   });
 
   it('[covers:watch_tag_raw_changed_with_dno_resolves_silent] watchはタグraw変更時にsilentで再解決する', async () => {

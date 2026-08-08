@@ -21,3 +21,15 @@ default = false
 category = 4
 ui = "none"
 note = "意図的な方針として、devビルドを含め現時点では無効にしている。UI導線が存在しないのはこの方針の結果であり、原因ではない。services/llm/*・ChatPanel.vue等の実装自体は存在するが、公開準備が整うまでは対応不要。"
+
+[practice]
+default = "import.meta.env.DEV"
+category = 3
+ui = "src/components/DeckEditTopBar.vue（practice切替ボタン）, src/content/edit-ui/DeckEditLayout.vue（PracticeField他）, src/options/components/tabs/DeckEditTab.vue（Practiceタブ）"
+note = "一人回し練習モード。category 3（開発ビルドでのみ有効）。default値はコンパイル時定数 import.meta.env.DEV で解決される。"
+
+[genesys]
+default = "import.meta.env.DEV"
+category = 3
+ui = "none"
+note = "GENESYSポイント制リミットレギュレーション。データ精度の問題が解決するまで本番では無効。"

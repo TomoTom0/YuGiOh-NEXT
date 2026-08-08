@@ -77,7 +77,7 @@
             </svg>
           </button>
         </HoverTooltip>
-        <HoverTooltip :text="practiceMode ? 'Deck Edit' : 'Practice'">
+        <HoverTooltip v-if="settingsStore.featureSettings.practice" :text="practiceMode ? 'Deck Edit' : 'Practice'">
           <button
             class="btn-action practice-toggle"
             :class="{ active: practiceMode }"
@@ -344,7 +344,8 @@ export default {
       resetSuggestion: resetDeckNameSuggestion
     } = useDeckRegulationTagSuggestions({
       inputValue: localDeckName,
-      inputElement: deckNameInputRef
+      inputElement: deckNameInputRef,
+      isGenesysEnabled: () => settingsStore.featureSettings.genesys,
     })
 
     // Undo/Redo tooltip and button styling
@@ -574,6 +575,23 @@ export default {
           deckCode: deckStore.deckInfo.deckCode || ''
         }
 
+        // GENESYSモード時にgenesysPointsを収集
+        let genesysPoints: Record<string, number> | undefined
+        if (deckStore.resolvedRegulation.mode === 'genesys') {
+          const allDeckEntries = [
+            ...deckData.mainDeck,
+            ...deckData.extraDeck,
+            ...deckData.sideDeck
+          ]
+          genesysPoints = {}
+          for (const entry of allDeckEntries) {
+            const pt = deckStore.getCardGenesysPoint(entry.cid)
+            if (pt !== undefined && pt > 0) {
+              genesysPoints[entry.cid] = pt
+            }
+          }
+        }
+
         // dnoを文字列に変換
         const dno = String(dnoNum)
 
@@ -581,7 +599,7 @@ export default {
         const { showImageDialogWithData } = await import('../content/deck-recipe/imageDialog')
 
         // ダイアログを表示
-        await showImageDialogWithData(cgid, dno, deckData, null)
+        await showImageDialogWithData(cgid, dno, deckData, null, genesysPoints)
       } catch (error) {
         console.error('Download image error:', error)
         showToast('画像の生成に失敗しました', 'error')
