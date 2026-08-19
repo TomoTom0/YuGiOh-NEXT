@@ -23,6 +23,7 @@ export async function loadFeatureSettings(): Promise<FeatureSettings> {
       // category 3 強制: デフォルト値が import.meta.env.DEV の機能は
       // 本番ビルドでは強制OFF（stored値は無視）。toml で category を管理。
       merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice;
+      merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys && merged.genesys;
       return merged;
     }
 

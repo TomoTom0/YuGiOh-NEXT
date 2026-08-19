@@ -445,11 +445,11 @@ function drawGenesysPointBadge(
   const badgeH = cardH * 0.1944;
   const badgeY = cardY + cardH * 0.75;
 
-  // pt値に応じた色ティア（DeckCard.vue と一致）
-  let bgColor = '#f9a825'; // low (<=3): yellow
-  if (pt > 7) {
+  // pt値に応じた色ティア（DeckCard.vue の genesysPtTier と一致: low<=4, mid<=9, high>9）
+  let bgColor = '#f9a825'; // low (<=4): yellow
+  if (pt > 9) {
     bgColor = '#c62828'; // high: red
-  } else if (pt > 3) {
+  } else if (pt > 4) {
     bgColor = '#ef6c00'; // mid: orange
   }
 

@@ -105,17 +105,25 @@ export function useDeckRegulation(options: {
 
     // キャッシュ初期化（冪等）。未初期化だと available が空になり fallback 判定が付かない
     await forbiddenLimitedCache.init();
-    await genesysPointCache.init();
+    // GENESYS機能が無効な場合はキャッシュ初期化/更新をスキップ（無効時に
+    // ネットワーク・ストレージ処理が走らないようにする）。無効ならこの後
+    // resolved.mode === 'genesys' でも即座に破棄されるため、genesysListParams
+    // は空のままで問題ない。
+    if (isGenesysEnabled()) {
+      await genesysPointCache.init();
+    }
 
     // init() 内の discovery（checkAndUpdate）はバックグラウンド起動のみで完了を待たない。
     // 新規/stale/移行直後だと available が不完全なままバージョン指定タグを解決してしまうため、
     // ここで明示的に完了を待つ（in-flightなら共有Promiseを待つだけで多重fetchはしない）
     await forbiddenLimitedCache.checkAndUpdate();
-    await genesysPointCache.checkAndUpdate();
+    if (isGenesysEnabled()) {
+      await genesysPointCache.checkAndUpdate();
+    }
 
     const available = {
       ocgDates: forbiddenLimitedCache.getAvailableDates(),
-      genesysListParams: genesysPointCache.getAvailableListParams()
+      genesysListParams: isGenesysEnabled() ? genesysPointCache.getAvailableListParams() : []
     };
     const resolved = resolveDeckRegulation(getDeckName(), available);
     // feature flag で無効な場合は genesys タグを無視
