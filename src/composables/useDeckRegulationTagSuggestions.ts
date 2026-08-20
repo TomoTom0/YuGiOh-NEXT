@@ -20,6 +20,7 @@ export interface Suggestion {
 export interface UseDeckRegulationTagSuggestionsOptions {
   inputValue: Ref<string>
   inputElement: Ref<HTMLInputElement | null>
+  isGenesysEnabled: () => boolean
 }
 
 export interface UseDeckRegulationTagSuggestionsReturn {
@@ -53,7 +54,7 @@ function yymmToLabel(yymm: string): string {
 export function useDeckRegulationTagSuggestions(
   options: UseDeckRegulationTagSuggestionsOptions
 ): UseDeckRegulationTagSuggestionsReturn {
-  const { inputValue, inputElement } = options
+  const { inputValue, inputElement, isGenesysEnabled } = options
 
   const matchedBracket = ref<string | null>(null)
   const matchedQuery = ref<string | null>(null)
@@ -83,8 +84,12 @@ export function useDeckRegulationTagSuggestions(
 
     const list: Suggestion[] = [
       { value: `${open}OCG${close}`, label: 'OCG 最新版' },
-      { value: `${open}GENESYS${close}`, label: 'GENESYS 最新版' }
     ]
+
+    // genesys は feature flag が有効な場合のみサジェスト
+    if (isGenesysEnabled()) {
+      list.push({ value: `${open}GENESYS${close}`, label: 'GENESYS 最新版' })
+    }
 
     const ocgDates = [...forbiddenLimitedCache.getAvailableDates()].sort().reverse()
     ocgDates.forEach(date => {
@@ -92,11 +97,13 @@ export function useDeckRegulationTagSuggestions(
       list.push({ value: `${open}OCG-${yymm}${close}`, label: `OCG ${yymmToLabel(yymm)}` })
     })
 
-    const genesysParams = [...genesysPointCache.getAvailableListParams()].sort().reverse()
-    genesysParams.forEach(param => {
-      const yymm = genesysListParamToYymm(param)
-      list.push({ value: `${open}GENESYS-${yymm}${close}`, label: `GENESYS ${yymmToLabel(yymm)}` })
-    })
+    if (isGenesysEnabled()) {
+      const genesysParams = [...genesysPointCache.getAvailableListParams()].sort().reverse()
+      genesysParams.forEach(param => {
+        const yymm = genesysListParamToYymm(param)
+        list.push({ value: `${open}GENESYS-${yymm}${close}`, label: `GENESYS ${yymmToLabel(yymm)}` })
+      })
+    }
 
     return list
   })
@@ -121,12 +128,15 @@ export function useDeckRegulationTagSuggestions(
     const replaceEnd = hasImmediateClose ? cursorPos + closeChar.length : cursorPos
 
     const after = inputValue.value.slice(replaceEnd)
-    inputValue.value = `${suggestion.value}${after}`
+    // 後続テキストがある場合、閉じ括弧との間に空白を挿入する。
+    // 空白がないと prefix パターン (?=\s|$) にマッチせずタグがパースされないため。
+    const separator = (after.length > 0 && !/^\s/.test(after)) ? ' ' : ''
+    inputValue.value = `${suggestion.value}${separator}${after}`
     matchedBracket.value = null
     matchedQuery.value = null
     selectedIndex.value = -1
 
-    const newCursorPos = suggestion.value.length
+    const newCursorPos = suggestion.value.length + separator.length
     void nextTick(() => {
       inputElement.value?.setSelectionRange(newCursorPos, newCursorPos)
       inputElement.value?.focus()

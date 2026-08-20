@@ -17,6 +17,19 @@ const path = require('path');
 function readBrowserConfig(key) {
   try {
     const toml = fs.readFileSync('configs/browser.toml', 'utf8');
+    // TOMLセクション形式 [section]\nkey = "value" に対応
+    // keyは "section.subkey" 形式（例: "chrome.ws_file"）
+    const parts = key.split('.');
+    if (parts.length === 2) {
+      const sectionRe = new RegExp(`\\[${parts[0]}\\]\\n([^[]*)`, 'm');
+      const sectionMatch = toml.match(sectionRe);
+      if (sectionMatch && sectionMatch[1]) {
+        const keyRe = new RegExp(`^${parts[1]}\\s*=\\s*"([^"]*)"`, 'm');
+        const keyMatch = sectionMatch[1].match(keyRe);
+        return keyMatch ? keyMatch[1] : '';
+      }
+    }
+    // フォールバック: フラットキーとして検索
     const escaped = key.replace(/\./g, '\\.');
     const re = new RegExp(`^${escaped}\\s*=\\s*"([^"]*)"`, 'm');
     const match = toml.match(re);

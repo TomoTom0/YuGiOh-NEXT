@@ -48,6 +48,16 @@ export const COLOR_SETTINGS: Record<ColorVariant, ColorSettings> = {
 };
 
 /**
+ * カード画像エントリ（URLとcidのペア）
+ */
+export interface CardImageEntry {
+  /** カード画像URL */
+  url: string;
+  /** カードID（genesys point表示用） */
+  cid: string;
+}
+
+/**
  * カードセクション
  */
 export interface CardSection {
@@ -55,8 +65,8 @@ export interface CardSection {
   name: 'main' | 'extra' | 'side';
   /** セクション表示名（'メイン' | 'エクストラ' | 'サイド'） */
   displayName: string;
-  /** カード画像URL配列 */
-  cardImages: string[];
+  /** カード画像エントリ配列 */
+  cardImages: CardImageEntry[];
 }
 
 /**
@@ -83,6 +93,9 @@ export interface CreateDeckRecipeImageOptions {
 
   /** デッキデータ（既に取得済みの場合、パフォーマンス最適化） */
   deckData?: import('./deck').DeckInfo;
+
+  /** GENESYSポイントマップ（cid -> pt）。genesys-limit時の画像用オーバーレイ */
+  genesysPoints?: Record<string, number>;
 }
 
 /**

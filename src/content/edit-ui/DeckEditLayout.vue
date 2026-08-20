@@ -263,6 +263,7 @@ export default {
     const practiceMode = ref(false)
 
     const togglePracticeMode = () => {
+      if (!settingsStore.featureSettings.practice) return
       if (!practiceMode.value) {
         const mainDeck = deckStore.deckInfo?.mainDeck || []
         const extraDeck = deckStore.deckInfo?.extraDeck || []

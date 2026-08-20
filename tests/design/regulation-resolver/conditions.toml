@@ -1,0 +1,102 @@
+# 検証対象: src/utils/regulation-resolver.ts
+#
+# TASK-346: デッキ名タグから適用すべきリミットレギュレーションを解決する純粋関数。
+# resolveClosest で実在一覧が空の場合、YYMMから計算した値を返し ensureList に取得を試行させる。
+#
+# 到達不能/実質到達不能分岐:
+# - resolveClosest内 `const oldest = sorted[0]` (66行目):
+#   forループでavailableDatesが空の場合は早期return null (55行目) しており、
+#   かつsorted = [...available].sort() は空配列をfilterした結果の非空配列しか
+#   受け取らないため、sorted[0]がundefinedになることはない（実質到達不能）。
+
+[meta]
+feature = "regulation-resolver"
+source_file = "src/utils/regulation-resolver.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/utils/__tests__/regulation-resolver.test.ts"
+source_hash = "4f3a2b1c8d9e0f7a6b5c4d3e2f1a0b9c"
+note = "TASK-346でresolveClosestがnullを返した際の挙動を修正"
+
+# --- resolveDeckRegulation(deckName, available) ---
+
+[[condition]]
+id = "resolve.no_tag_returns_none"
+target_function = "resolveDeckRegulation"
+source_lines = "80-83"
+description = "デッキ名にタグが無い場合、mode='none'を返す"
+given = "deckName = 'ただのデッキ名'"
+expect_return_shape = "{ mode: 'none', tag: null, effectiveDate: null, listParam: null, fallback: undefined }"
+
+[[condition]]
+id = "resolve.ocg_no_yymm_returns_latest"
+target_function = "resolveDeckRegulation"
+source_lines = "86-88"
+description = "OCGタグでYYMM省略時は最新版扱い（effectiveDate=null）"
+given = "deckName = '[OCG] デッキ'"
+expect_return_shape = "{ mode: 'ocg', effectiveDate: null }"
+
+[[condition]]
+id = "resolve.ocg_yymm_exact_match"
+target_function = "resolveDeckRegulation"
+source_lines = "90-97"
+description = "OCGタグのYYMMが実在一覧に存在する場合、exact matchでeffectiveDateを返す"
+given = "deckName = '[OCG-2501] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01', '2025-04-01']"
+expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: undefined }"
+
+[[condition]]
+id = "resolve.ocg_yymm_closest_fallback"
+target_function = "resolveDeckRegulation"
+source_lines = "90-105"
+description = "OCGタグのYYMMが実在一覧に無い場合、直近過去版にフォールバックしfallback情報を付与する"
+given = "deckName = '[OCG-2502] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01']"
+expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: { requestedYymm: '2502', reason: 'not-exist', appliedYymm: '2501' } }"
+
+[[condition]]
+id = "resolve.ocg_yymm_before_oldest_fallback"
+target_function = "resolveDeckRegulation"
+source_lines = "65-67, 99-105"
+description = "OCGタグのYYMMが最古の実在より前の場合、最古版にフォールバックする"
+given = "deckName = '[OCG-2001] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01']"
+expect_return_shape = "{ mode: 'ocg', effectiveDate: '2024-10-01', fallback.reason: 'not-exist' }"
+
+[[condition]]
+id = "resolve.ocg_yymm_empty_available_returns_computed_date"
+target_function = "resolveDeckRegulation"
+source_lines = "92-94"
+description = "OCGタグのYYMM指定時、実在一覧が空でもYYMMから計算したeffectiveDateを返し、resolveAndEnsureのensureListに取得を試行させる（TASK-346修正: 以前はnullを返し日付指定が無視されていた）"
+given = "deckName = '[OCG-2501] デッキ', available.ocgDates = []"
+expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: undefined }"
+
+[[condition]]
+id = "resolve.genesys_no_yymm_returns_latest"
+target_function = "resolveDeckRegulation"
+source_lines = "109-111"
+description = "GENESYSタグでYYMM省略時は最新版扱い（listParam=null）"
+given = "deckName = '[GENESYS] デッキ'"
+expect_return_shape = "{ mode: 'genesys', listParam: null }"
+
+[[condition]]
+id = "resolve.genesys_yymm_exact_match"
+target_function = "resolveDeckRegulation"
+source_lines = "112-118"
+description = "GENESYSタグのYYMMが実在一覧に存在する場合、exact matchでlistParamを返す"
+given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = ['202606', '202608']"
+expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefined }"
+
+[[condition]]
+id = "resolve.genesys_yymm_closest_fallback"
+target_function = "resolveDeckRegulation"
+source_lines = "112-125"
+description = "GENESYSタグのYYMMが実在一覧に無い場合、直近過去版にフォールバックする"
+given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = ['202606']"
+expect_return_shape = "{ mode: 'genesys', listParam: '202606', fallback: { requestedYymm: '2608', reason: 'not-exist' } }"
+
+[[condition]]
+id = "resolve.genesys_yymm_empty_available_returns_computed_list_param"
+target_function = "resolveDeckRegulation"
+source_lines = "114-115"
+description = "GENESYSタグのYYMM指定時、実在一覧が空でもYYMMから計算したlistParamを返し、resolveAndEnsureのensureListに取得を試行させる（TASK-346修正）"
+given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = []"
+expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefined }"

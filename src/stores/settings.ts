@@ -187,6 +187,11 @@ export const useSettingsStore = defineStore('settings', () => {
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
 
+        // category 3 強制: デフォルト値が import.meta.env.DEV の機能は
+        // 本番ビルドでは強制OFF（stored値は無視）。toml で category を管理。
+        featureSettings.value.practice = DEFAULT_FEATURE_SETTINGS.practice && featureSettings.value.practice;
+        featureSettings.value.genesys = DEFAULT_FEATURE_SETTINGS.genesys && featureSettings.value.genesys;
+
         // 初回起動時はデフォルトの末尾配置カードIDを使用
         // 以降はユーザーの設定を保持
         if (Array.isArray(result.tailPlacementCardIds) && result.tailPlacementCardIds.length > 0) {

@@ -87,10 +87,11 @@ describe('resolveDeckRegulation', () => {
   });
 
   describe('実在一覧が空（取得失敗等）', () => {
-    it('OCG実在一覧が空なら最新版扱い（effectiveDate=null、fallback無し）', () => {
+    it('OCG実在一覧が空ならYYMMから計算したeffectiveDateを返しensureListに取得を試行させる', () => {
       const r = resolveDeckRegulation('[OCG-2501] デッキ', { ocgDates: [], genesysListParams: [] });
       expect(r.mode).toBe('ocg');
-      expect(r.effectiveDate).toBeNull();
+      // 実在一覧が空でも YYMM=2501 → effectiveDate=2025-01-01 を返す
+      expect(r.effectiveDate).toBe('2025-01-01');
       expect(r.fallback).toBeUndefined();
     });
   });

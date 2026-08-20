@@ -86,10 +86,18 @@ expect_return = "null"
 [[condition]]
 id = "limit_override.ocg_effective_date_reads_cache"
 target_function = "useDeckRegulation"
-source_lines = "72-75"
-description = "getCardLimitOverrideはmode='ocg'かつeffectiveDateがtruthyの場合、forbiddenLimitedCache.getRegulation(cid, effectiveDate)の戻り値をそのまま返す"
+source_lines = "72-80"
+description = "getCardLimitOverrideはmode='ocg'かつeffectiveDateがtruthyの場合、まずhasListでキャッシュにリストが存在するか確認し、存在すればforbiddenLimitedCache.getRegulation(cid, effectiveDate)の戻り値を返す"
 given = "resolvedRegulation.value = { mode: 'ocg', effectiveDate: 'YYYY-MM-DD', ... }"
-expect_return_shape = "forbiddenLimitedCache.getRegulationの戻り値"
+expect_return_shape = "hasList(effectiveDate)がtrueの場合: getRegulationの戻り値"
+
+[[condition]]
+id = "limit_override.list_not_in_cache_returns_null"
+target_function = "useDeckRegulation"
+source_lines = "77-79"
+description = "getCardLimitOverrideはresolveAndEnsureでensureListが呼ばれた後でもキャッシュにリストが存在しない場合（APIが過去日付非対応等）、nullを返して既存の制限バッジを維持する（TASK-346修正: 以前はundefinedを返し全カードの制限バッジが消えていた）"
+given = "resolvedRegulation.value = { mode: 'ocg', effectiveDate: '2025-01-01' }, forbiddenLimitedCache.hasList('2025-01-01')=false"
+expect_return = "null"
 
 [[condition]]
 id = "genesys_point.non_genesys_returns_undefined"
@@ -247,14 +255,38 @@ expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しな�
 id = "watch_tag_raw_changed_without_dno_returns_without_resolve"
 target_function = "useDeckRegulation"
 source_lines = "183-192"
-description = "currentTagRawのwatchはタグrawが変わってもdeckInfo.value.dnoがfalsyの場合、resolveAndEnsureを呼ばずreturnする"
-given = "newRaw !== oldRaw、deckInfo.value.dno=0"
+description = "currentTagRawのwatchはタグrawが変わってもdeckInfo.value.dnoがnull/undefinedの場合のみresolveAndEnsureを呼ばずreturnする。dno=0（新規デッキ）では解決を実行する（TASK-346修正: 以前は!dnoで0も除外され新規デッキでレギュレーションが効かなかった）"
+given = "newRaw !== oldRaw、deckInfo.value.dno=null"
 expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しなし"
+
+[[condition]]
+id = "watch_tag_raw_changed_with_zero_dno_resolves_silent"
+target_function = "useDeckRegulation"
+source_lines = "183-192"
+description = "currentTagRawのwatchはタグrawが変わりdno=0（新規デッキ）の場合もresolveAndEnsure({ dno: 0, silent: true })をawaitする（TASK-346修正）"
+given = "newRaw !== oldRaw、deckInfo.value.dno=0"
+expect_return_shape = "resolveAndEnsureが呼ばれ、resolvedRegulationが更新される"
 
 [[condition]]
 id = "watch_tag_raw_changed_with_dno_resolves_silent"
 target_function = "useDeckRegulation"
 source_lines = "183-192"
-description = "currentTagRawのwatchはタグrawが変わりdeckInfo.value.dnoがtruthyの場合、resolveAndEnsure({ dno, silent: true })をawaitする"
+description = "currentTagRawのwatchはタグrawが変わりdeckInfo.value.dnoが1以上の場合、resolveAndEnsure({ dno, silent: true })をawaitする"
 given = "newRaw !== oldRaw、deckInfo.value.dno=12"
 expect_return_shape = "resolverに新デッキ名が渡り、fallbackがあってもshowRegulationFixDialogはtrueにならない"
+
+[[condition]]
+id = "resolve.dated_tag_applies_correct_regulation"
+target_function = "resolveAndEnsure -> getCardLimitOverride"
+source_lines = "72-80, 97-133"
+description = "日付出力タグ（例: [OCG-2501]）を設定しresolveAndEnsureが完了した後、指定日付のリストがキャッシュに存在する場合、getCardLimitOverrideは該当カードの制限状態（forbidden/limited/semi-limited）を返す。リストが存在しない場合はnullを返し既存バッジを維持する"
+given = "deckName='[OCG-2501] Test', available.ocgDates に '2025-01-01' が含まれ ensureList が成功"
+expect_return_shape = "禁止カードのcidに対して getCardLimitOverride(cid) === 'forbidden'"
+
+[[condition]]
+id = "resolve.dated_tag_preserves_existing_badges_when_list_unavailable"
+target_function = "resolveAndEnsure -> getCardLimitOverride"
+source_lines = "72-80, 97-133"
+description = "日付出力タグを設定しensureListが失敗した場合、getCardLimitOverrideはnullを返し、DeckSection.vueのoverride !== nullガードを通過せず、カードが持つ既存のlimitRegulationが維持される"
+given = "deckName='[OCG-2510] Test', ensureListがnullを返す"
+expect_return_shape = "全カードで getCardLimitOverride(cid) === null、制限バッジが消えない"

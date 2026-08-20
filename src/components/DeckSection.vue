@@ -11,6 +11,11 @@
       <span class="title-group">
         {{ title }}
         <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+        <span
+          v-if="sectionType === 'main' && showCount && genesysTotalPt > 0"
+          class="genesys-total-pt"
+          :class="{ 'over-limit': genesysTotalPt > 100 }"
+        >{{ genesysTotalPt }}pt</span>
       </span>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
@@ -101,7 +106,27 @@ export default {
     const displayCards = computed(() => {
       return deckStore.displayOrder[props.sectionType] || []
     })
-    
+
+    // GENESYSモード時の合計ポイント
+    // mainセクション: デッキ全体(main+extra+side)の合計、他セクション: そのセクションのみ
+    const genesysTotalPt = computed(() => {
+      if (deckStore.resolvedRegulation.mode !== 'genesys') return 0
+      const sectionTypes: Array<'main' | 'extra' | 'side'> = props.sectionType === 'main'
+        ? ['main', 'extra', 'side']
+        : [props.sectionType as 'main' | 'extra' | 'side']
+      let total = 0
+      for (const st of sectionTypes) {
+        const cards = deckStore.displayOrder[st] || []
+        for (const dc of cards) {
+          const pt = deckStore.getCardGenesysPoint(dc.cid)
+          if (pt !== undefined && pt > 0) {
+            total += pt
+          }
+        }
+      }
+      return total
+    })
+
     // (cid, ciid)ペアでカード情報を取得
     // card-utils.ts の getCardInfoWithLang を使用
     // OCG過去版レギュレーション適用時は、その版の禁止制限状態で上書き
@@ -243,6 +268,7 @@ export default {
       handleDragEnd,
       cardGridRef,
       displayCards,
+      genesysTotalPt,
       getCardInfo,
       isSectionDragOver,
       mdiShuffle,
@@ -291,6 +317,18 @@ export default {
       color: var(--text-secondary);
       font-size: 12px;
       font-weight: normal;
+    }
+
+    .genesys-total-pt {
+      margin-left: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: normal;
+
+      &.over-limit {
+        color: var(--color-error);
+        font-weight: bold;
+      }
     }
 
     .section-buttons {

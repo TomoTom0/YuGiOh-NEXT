@@ -38,7 +38,15 @@
     </div>
     <img v-else :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
     <div
-      v-if="sectionType !== 'practice' && showGenesysPt"
+      v-if="sectionType !== 'practice' && isGenesysForbidden"
+      class="limit-regulation limit-forbidden"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiCloseCircle" />
+      </svg>
+    </div>
+    <div
+      v-else-if="sectionType !== 'practice' && showGenesysPt"
       class="genesys-pt-badge"
       :class="`pt-tier-${genesysPtTier}`"
     >{{ genesysPt }}pt</div>
@@ -420,10 +428,23 @@ export default {
     },
     genesysPtTier() {
       // pt値に応じた色ティア（スタイル用）
+      // 1-4pt: 黄色(low), 5-9pt: 橙(mid), 10pt以上: 赤(high)
       const pt = this.genesysPt
-      if (pt === undefined || pt <= 3) return 'low'
-      if (pt <= 7) return 'mid'
+      if (pt === undefined || pt <= 4) return 'low'
+      if (pt <= 9) return 'mid'
       return 'high'
+    },
+    isGenesysMode() {
+      return this.deckStore.resolvedRegulation.mode === 'genesys'
+    },
+    isGenesysForbidden() {
+      // GENESYSモード時、link/pendulumモンスターを禁止表示
+      if (!this.isGenesysMode || !this.card) return false
+      if (this.card.cardType === 'monster' && this.card.types) {
+        const types = this.card.types
+        if (types.includes('link') || types.includes('pendulum')) return true
+      }
+      return false
     },
     isDragging() {
       if (this.sectionType !== 'practice') return false

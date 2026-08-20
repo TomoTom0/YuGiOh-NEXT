@@ -152,6 +152,14 @@ vi.mock('../settings', () => ({
       enableCategoryPriority: false,
       enableTailPlacement: false,
     },
+    featureSettings: {
+      'shuffle-sort': true,
+      'deck-image': true,
+      'deck-edit': true,
+      'chat': false,
+      'practice': false,
+      'genesys': false,
+    },
   })),
 }));
 

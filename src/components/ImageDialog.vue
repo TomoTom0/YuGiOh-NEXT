@@ -92,8 +92,10 @@ const props = withDefaults(defineProps<{
   dno: string
   deckData: DeckInfo
   buttonRect?: DOMRect | null
+  genesysPoints?: Record<string, number>
 }>(), {
-  buttonRect: null
+  buttonRect: null,
+  genesysPoints: undefined
 })
 
 const emit = defineEmits<{
@@ -156,7 +158,8 @@ async function generateBackgroundImage(
     color,
     includeQR: false,
     scale: 0.5,
-    deckData: deckDataWithoutTitle
+    deckData: deckDataWithoutTitle,
+    genesysPoints: props.genesysPoints
   })
 
   const dataUrl = await new Promise<string>((resolve) => {
@@ -227,7 +230,8 @@ async function handleDownload() {
       color: selectedColor.value,
       includeQR: includeQR.value,
       scale,
-      deckData: updatedDeckData
+      deckData: updatedDeckData,
+      genesysPoints: props.genesysPoints
     })
 
     closePopup()

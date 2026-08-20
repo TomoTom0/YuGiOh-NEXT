@@ -90,8 +90,10 @@ export function resolveDeckRegulation(
     const target = yymmToOcgDate(tag.yymm);
     const result = resolveClosest(available.ocgDates, target);
     if (!result) {
-      // 実在一覧が空（取得失敗等）→ 最新版扱い（フォールバック情報なし）
-      return { mode: 'ocg', tag, effectiveDate: null, listParam: null, fallback: undefined };
+      // 実在一覧が空（未取得等）。YYMMから計算した effectiveDate を返し、
+      // resolveAndEnsure の ensureList に取得を試行させる。
+      // effectiveDate: null だと ensureList が呼ばれず日付指定が無視される。
+      return { mode: 'ocg', tag, effectiveDate: target, listParam: null, fallback: undefined };
     }
     if (result.exact) {
       return { mode: 'ocg', tag, effectiveDate: result.identifier, listParam: null, fallback: undefined };
@@ -112,7 +114,9 @@ export function resolveDeckRegulation(
   const target = yymmToGenesysListParam(tag.yymm);
   const result = resolveClosest(available.genesysListParams, target);
   if (!result) {
-    return { mode: 'genesys', tag, effectiveDate: null, listParam: null, fallback: undefined };
+    // 実在一覧が空（未取得等）。YYMMから計算した listParam を返し、
+    // resolveAndEnsure の ensureList に取得を試行させる。
+    return { mode: 'genesys', tag, effectiveDate: null, listParam: target, fallback: undefined };
   }
   if (result.exact) {
     return { mode: 'genesys', tag, effectiveDate: null, listParam: result.identifier, fallback: undefined };

@@ -14,7 +14,8 @@ vi.mock('@/utils/forbidden-limited-cache', () => ({
     init: vi.fn().mockResolvedValue(undefined),
     checkAndUpdate: vi.fn().mockResolvedValue(undefined),
     getAvailableDates: vi.fn().mockReturnValue([]),
-    ensureList: vi.fn().mockResolvedValue(null)
+    ensureList: vi.fn().mockResolvedValue(null),
+    hasList: vi.fn().mockReturnValue(true)
   }
 }));
 
@@ -57,7 +58,8 @@ function createOptions() {
   const setDeckName = (name: string) => {
     deckInfo.value.name = name;
   };
-  return { deckInfo, getDeckName, setDeckName };
+  const isGenesysEnabled = () => true;
+  return { deckInfo, getDeckName, setDeckName, isGenesysEnabled };
 }
 
 describe('useDeckRegulation - resolveAndEnsure', () => {

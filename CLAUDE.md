@@ -179,6 +179,14 @@ node tmp/test-*.js
 
 参考：`tests/browser/`の既存テストスクリプト
 
+## 機能の有効/無効
+
+**機能を無効化する場合はコードの削除やハードコードではなく、feature flag を使用する。**
+
+- `src/types/settings.ts`: `FeatureId` / `FeatureSettings` / `DEFAULT_FEATURE_SETTINGS` に追加
+- `docs/feature/featureSettings.toml`: category 3（`default = "import.meta.env.DEV"`、本番ビルドでOFF）
+- カテゴリ定義は `docs/feature/README.md` 参照
+
 ## ファイル構成の重要なルール
 
 ### `.gitignore` 管理

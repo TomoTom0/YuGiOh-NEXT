@@ -26,6 +26,7 @@
         General
       </button>
       <button
+        v-if="settingsStore.featureSettings.practice"
         :class="['sub-tab', { active: activeSubTab === 'practice' }]"
         @click="scrollToSection('practice')"
       >
@@ -46,7 +47,7 @@
       <div id="section-general" class="section-wrapper">
         <CacheManagementSection />
       </div>
-      <div id="section-practice" class="section-wrapper">
+      <div v-if="settingsStore.featureSettings.practice" id="section-practice" class="section-wrapper">
         <OverviewSection type="practice" />
       </div>
     </div>
@@ -55,10 +56,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useSettingsStore } from '../../../stores/settings';
 import OverviewSection from '../sections/OverviewSection.vue';
 import UISettingsSection from '../sections/UISettingsSection.vue';
 import UXSettingsSection from '../sections/UXSettingsSection.vue';
 import CacheManagementSection from '../sections/CacheManagementSection.vue';
+
+const settingsStore = useSettingsStore();
 
 type SubTab = 'overview' | 'ui' | 'ux' | 'general' | 'practice';
 

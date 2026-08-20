@@ -7,7 +7,7 @@
  */
 export type CardGameType = 'ocg' | 'rush';
 
-export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit' | 'chat';
+export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit' | 'chat' | 'practice' | 'genesys';
 
 export interface FeatureSettings {
   [key: string]: boolean;
@@ -15,6 +15,8 @@ export interface FeatureSettings {
   'deck-image': boolean;
   'deck-edit': boolean;
   'chat': boolean;
+  'practice': boolean;
+  'genesys': boolean;
 }
 
 /**
@@ -289,6 +291,8 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
   'deck-image': true,
   'deck-edit': true,
   'chat': false,
+  'practice': import.meta.env.DEV,
+  'genesys': import.meta.env.DEV,
 };
 
 /**
