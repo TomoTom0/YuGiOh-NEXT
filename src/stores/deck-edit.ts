@@ -336,7 +336,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       trashDeck: trashDeck.value
     };
 
-    addToDisplayOrderLogic(
+    return addToDisplayOrderLogic(
       displayOrder.value,
       deckState,
       card,
@@ -344,23 +344,21 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       generateDeckCardUUID
     );
   }
-  
+
   function addToDisplayOrder(card: CardInfo, section: 'main' | 'extra' | 'side' | 'trash') {
+    let addedUuid: string | null = null;
     const command: Command = {
-      execute: () => addToDisplayOrderInternal(card, section),
+      execute: () => {
+        const result = addToDisplayOrderInternal(card, section);
+        addedUuid = result.uuid;
+      },
       undo: () => {
         // 追加の逆操作は削除
-        // 追加されたカードのuuidを見つけて削除
-        const sectionOrder = displayOrder.value[section];
-        const addedIndex = sectionOrder.findIndex(dc =>
-          dc.cid === card.cardId && dc.ciid === parseInt(String(card.ciid), 10)
-        );
-        if (addedIndex !== -1) {
-          const displayCard = sectionOrder[addedIndex];
-          if (displayCard) {
-            removeFromDisplayOrderInternal(card.cardId, section, displayCard.uuid);
-          }
+        // 追加時に記録したuuidで削除（findIndexだと同(cid,ciid)の既存カードを誤削除するため）
+        if (addedUuid) {
+          removeFromDisplayOrderInternal(card.cardId, section, addedUuid);
         }
+        addedUuid = null;
       },
       description: `追加: ${card.name} -> ${sectionToJapanese(section)}`,
       type: 'add'
@@ -876,7 +874,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const cardInfo = tempCardDB.get(cardId);
     if (!cardInfo) return { success: false, error: 'カード情報が見つかりません' };
 
-    removeFromDisplayOrderInternal(cardId, from, sourceUuid, cardInfo.ciid);
+    // 移動するカードの実際のciid（uuidで特定した displayOrder エントリから取得）
+    // TempCacheDB の cardInfo.ciid は代表値（imgs[0]）のため、イラスト違いカードでは
+    // 実際のciidと一致しない。sourceCard のciidを優先する。
+    const actualCiid = sourceCard.ciid !== undefined
+      ? String(sourceCard.ciid)
+      : cardInfo.ciid;
+
+    removeFromDisplayOrderInternal(cardId, from, sourceUuid, actualCiid);
 
     // 2. 移動先の指定位置に追加（内部処理のみ、コマンドは全体で1つ）
     const toOrder = displayOrder.value[to];
@@ -884,18 +889,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
                        to === 'extra' ? deckInfo.value.extraDeck :
                        to === 'side' ? deckInfo.value.sideDeck :
                        trashDeck.value;
-    
+
     // deckInfo更新
-    const existingCard = targetDeck.find(dc => dc.cid === cardId && dc.ciid === cardInfo.ciid);
+    const existingCard = targetDeck.find(dc => dc.cid === cardId && dc.ciid === actualCiid);
     if (existingCard) {
       existingCard.quantity++;
     } else {
       tempCardDB.set(cardId, cardInfo);
-      targetDeck.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
+      targetDeck.push({ cid: cardId, ciid: actualCiid, lang: detectLanguage(document), quantity: 1 });
     }
-    
+
     // displayOrder更新（targetUuidの位置に挿入）
-    const ciid = parseInt(String(cardInfo.ciid));
+    const ciid = parseInt(actualCiid, 10);
     const newDisplayCard = {
       uuid: generateDeckCardUUID(cardId, ciid),
       cid: cardId,
@@ -926,18 +931,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     const command: Command = {
       execute: () => {
         const firstPos = recordAllCardPositionsByUUID();
-        removeFromDisplayOrderInternal(cardId, from, sourceUuid, cardInfo.ciid);
-        
+        removeFromDisplayOrderInternal(cardId, from, sourceUuid, actualCiid);
+
         // 移動先に追加
         const targetDeck2 = to === 'main' ? deckInfo.value.mainDeck :
                            to === 'extra' ? deckInfo.value.extraDeck :
                            to === 'side' ? deckInfo.value.sideDeck :
                            trashDeck.value;
-        const existingCard2 = targetDeck2.find(dc => dc.cid === cardId && dc.ciid === cardInfo.ciid);
+        const existingCard2 = targetDeck2.find(dc => dc.cid === cardId && dc.ciid === actualCiid);
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          targetDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
+          targetDeck2.push({ cid: cardId, ciid: actualCiid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const toOrder2 = displayOrder.value[to];
@@ -959,18 +964,18 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       undo: () => {
         // 逆操作: 移動先から削除して、移動元の元の位置に戻す
         const firstPos = recordAllCardPositionsByUUID();
-        removeFromDisplayOrderInternal(cardId, to, insertedUuid, cardInfo.ciid);
-        
+        removeFromDisplayOrderInternal(cardId, to, insertedUuid, actualCiid);
+
         // 元の位置に戻す
         const fromDeck2 = from === 'main' ? deckInfo.value.mainDeck :
                           from === 'extra' ? deckInfo.value.extraDeck :
                           from === 'side' ? deckInfo.value.sideDeck :
                           trashDeck.value;
-        const existingCard2 = fromDeck2.find(dc => dc.cid === cardId && dc.ciid === cardInfo.ciid);
+        const existingCard2 = fromDeck2.find(dc => dc.cid === cardId && dc.ciid === actualCiid);
         if (existingCard2) {
           existingCard2.quantity++;
         } else {
-          fromDeck2.push({ cid: cardId, ciid: cardInfo.ciid, lang: detectLanguage(document), quantity: 1 });
+          fromDeck2.push({ cid: cardId, ciid: actualCiid, lang: detectLanguage(document), quantity: 1 });
         }
         
         const fromOrder2 = displayOrder.value[from];

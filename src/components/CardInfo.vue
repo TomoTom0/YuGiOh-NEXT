@@ -219,6 +219,7 @@ import { getCardImageUrl } from '../types/card'
 import { buildApiUrl } from '../utils/url-builder'
 import { detectCardGameType } from '../utils/page-detector'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
+import { detectLanguage } from '../utils/language-detector'
 import {
   getAttributeLabel,
   getRaceLabel,

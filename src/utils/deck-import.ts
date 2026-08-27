@@ -406,7 +406,20 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
 
   for (const { section, cid, ciid, card, quantity } of cardMap.values()) {
     // TempCacheDBに登録
-    tempCardDB.set(cid, card);
+    // 同cidでイラスト違い(ciid違い)の複数行がある場合、行ごとに上書きすると
+    // 先の行のimgsが失われるため、既存エントリとimgsをciid単位でマージする
+    const existing = tempCardDB.get(cid);
+    if (existing) {
+      const existingCiids = new Set(existing.imgs.map(img => img.ciid));
+      const newImgs = card.imgs.filter(img => !existingCiids.has(img.ciid));
+      // 既存キャッシュがTTL内でもマージ後のimgsを確実に反映するためforceUpdateする
+      tempCardDB.set(cid, {
+        ...existing,
+        imgs: [...existing.imgs, ...newImgs]
+      }, true);
+    } else {
+      tempCardDB.set(cid, card);
+    }
 
     const ref: DeckCardRef = { cid, ciid, lang: detectLanguage(document), quantity };
     if (section === 'main') {

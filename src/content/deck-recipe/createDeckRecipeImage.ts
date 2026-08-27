@@ -17,6 +17,8 @@ import { getCardImageUrl } from '../../types/card';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl, buildFullUrl } from '../../utils/url-builder';
 import { getTempCacheDB } from '../../utils/temp-cache-db';
+import { getUnifiedCacheDB } from '../../utils/unified-cache-db';
+import { detectLanguage } from '../../utils/language-detector';
 
 /**
  * デッキレシピ画像を作成する
@@ -56,6 +58,7 @@ export async function createDeckRecipeImage(
   // 2. 現在のゲームタイプを検出（ブラウザ環境のみ）
   const gameType = typeof window !== 'undefined' ? detectCardGameType() : 'ocg';
   const gamePath = getGamePath(gameType);
+  const lang = typeof document !== 'undefined' ? detectLanguage(document) : 'ja';
 
   // 3. DeckInfoからCardSection配列を構築
   // getCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
@@ -70,11 +73,17 @@ export async function createDeckRecipeImage(
 
   const tempCardDB = getTempCacheDB();
 
-  function buildCardEntries(deckEntries: Array<{ cid: string; quantity: number }>): CardImageEntry[] {
-    return deckEntries.flatMap(({ cid, quantity }) => {
-      const card = tempCardDB.get(cid);
+  function buildCardEntries(deckEntries: Array<{ cid: string; ciid: string; quantity: number }>): CardImageEntry[] {
+    return deckEntries.flatMap(({ cid, ciid, quantity }) => {
+      // TempCacheDB → UnifiedCacheDB の順に取得（UnifiedCacheDBは複数画像情報を保持）
+      let card = tempCardDB.get(cid);
+      if (!card) {
+        const unifiedDB = getUnifiedCacheDB();
+        card = unifiedDB.reconstructCardInfo(cid, lang) ?? undefined;
+      }
       if (!card) return [];
-      const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
+      // DeckCardRef の ciid（イラスト違いを識別）を優先して画像URLを生成
+      const url = toAbsoluteUrl(getCardImageUrl(card, gameType, ciid));
       if (!url) return [];
       return Array.from({ length: quantity }, () => ({ url, cid }));
     });

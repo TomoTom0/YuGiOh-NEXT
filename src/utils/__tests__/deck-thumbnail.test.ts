@@ -103,9 +103,9 @@ describe('deck-thumbnail', () => {
 
       expect(result).toHaveLength(5);
       // mainから3枚（重複排除されるので m001, m002, m003）
-      expect(result.filter(cid => cid.startsWith('m'))).toHaveLength(3);
+      expect(result.filter(r => r.cid.startsWith('m'))).toHaveLength(3);
       // extraから2枚（e001, e002）
-      expect(result.filter(cid => cid.startsWith('e'))).toHaveLength(2);
+      expect(result.filter(r => r.cid.startsWith('e'))).toHaveLength(2);
     });
 
     // [covers:cards.count_allocation_with_side_head]
@@ -138,13 +138,13 @@ describe('deck-thumbnail', () => {
 
       expect(result).toHaveLength(5);
       // mainから2枚
-      expect(result.filter(cid => cid.startsWith('m'))).toHaveLength(2);
+      expect(result.filter(r => r.cid.startsWith('m'))).toHaveLength(2);
       // extraから2枚
-      expect(result.filter(cid => cid.startsWith('e'))).toHaveLength(2);
+      expect(result.filter(r => r.cid.startsWith('e'))).toHaveLength(2);
       // sideから1枚
-      expect(result.filter(cid => cid.startsWith('s'))).toHaveLength(1);
+      expect(result.filter(r => r.cid.startsWith('s'))).toHaveLength(1);
       // s001が優先されるはず
-      expect(result).toContain('s001');
+      expect(result.some(r => r.cid === 's001')).toBe(true);
     });
 
     // [covers:cards.quantity_field_not_referenced]
@@ -169,7 +169,10 @@ describe('deck-thumbnail', () => {
 
       // m001は1枚のみ、e001も1枚のみ（計2枚）
       expect(result).toHaveLength(2);
-      expect(result).toEqual(['m001', 'e001']);
+      expect(result).toEqual([
+        { cid: 'm001', ciid: '1' },
+        { cid: 'e001', ciid: '1' }
+      ]);
     });
 
     // [covers:select_cids.stops_when_refs_exhausted_before_max_count]
@@ -191,7 +194,7 @@ describe('deck-thumbnail', () => {
       const result = generateDeckThumbnailCards(deckInfo);
 
       expect(result).toHaveLength(1);
-      expect(result).toEqual(['m001']);
+      expect(result).toEqual([{ cid: 'm001', ciid: '1' }]);
     });
 
     // [covers:select_cids.pass1_prioritizes_head_placement_in_ref_order]
@@ -225,10 +228,10 @@ describe('deck-thumbnail', () => {
       expect(result).toHaveLength(5);
       // mainから3枚選択され、並び順を保ちながら先頭配置が優先される
       // 並び順: m001（先頭配置）、m003（先頭配置）、m002（通常）
-      const mainCards = result.filter(cid => cid.startsWith('m'));
-      expect(mainCards[0]).toBe('m001'); // 並び順で最初の先頭配置
-      expect(mainCards[1]).toBe('m003'); // 並び順で次の先頭配置
-      expect(mainCards[2]).toBe('m002'); // 足りない分は並び順で選ぶ
+      const mainCards = result.filter(r => r.cid.startsWith('m'));
+      expect(mainCards[0].cid).toBe('m001'); // 並び順で最初の先頭配置
+      expect(mainCards[1].cid).toBe('m003'); // 並び順で次の先頭配置
+      expect(mainCards[2].cid).toBe('m002'); // 足りない分は並び順で選ぶ
       expect(mainCards).toHaveLength(3);
     });
 
@@ -279,8 +282,8 @@ describe('deck-thumbnail', () => {
       const result = generateDeckThumbnailCards(deckInfo, ['s001']);
 
       // s001はsideの1枚として選ばれ、mainDeck側では既にexistingCidsにあるためスキップされる
-      expect(result.filter(cid => cid === 's001')).toHaveLength(1);
-      expect(result).toContain('m002');
+      expect(result.filter(r => r.cid === 's001')).toHaveLength(1);
+      expect(result.some(r => r.cid === 'm002')).toBe(true);
     });
   });
 
@@ -429,6 +432,23 @@ describe('deck-thumbnail', () => {
       expect(fakeCtx.drawImage).toHaveBeenNthCalledWith(2, expect.anything(), 66, 4, 60, 87);
       // index=2: x = 4 + 2*(60+2) = 128
       expect(fakeCtx.drawImage).toHaveBeenNthCalledWith(3, expect.anything(), 128, 4, 60, 87);
+    });
+
+    // イラスト違い(ciid)がサムネイルで代表イラストに潰されないことを確認する回帰テスト
+    it('DeckCardRefのciidがgetCardImageUrlの第3引数に渡される（代表ciidに潰されない）', async () => {
+      const deckInfo = makeDeckInfo({
+        mainDeck: [{ cid: 'm001', ciid: '2', lang: 'ja', quantity: 1 }]
+      });
+
+      await generateDeckThumbnailImage(deckInfo);
+
+      // getCardInfo('m001') はモックで ciid: '1'（代表値）を返すが、
+      // 実際にデッキに入っているのは ciid: '2' の方なので、それが優先されるべき
+      expect(cardTypes.getCardImageUrl).toHaveBeenCalledWith(
+        expect.objectContaining({ cardId: 'm001' }),
+        'ocg',
+        '2'
+      );
     });
 
     // [covers:load_draw.decode_failure_returns_false_no_throw]
