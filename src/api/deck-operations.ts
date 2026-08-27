@@ -282,16 +282,27 @@ export async function saveDeckInternal(
       return unifiedCard?.cardType;
     };
 
+    // 同一cidの複数ciidエントリ(DeckCardRef)を1行にまとめる。
+    // 公式サイトのネイティブ編集フォームを実機調査した結果、1行=1カード種類(cid)で、
+    // imgsフィールドは `${cid}_${copy1のciid}_${copy2のciid}_${copy3のciid}` という、
+    // 物理コピーごとのciidを順番に並べた形式であることが判明した（TASK-354）。
+    const groupByCid = (refs: DeckCardRef[]): DeckCardRef[][] => {
+      const groups = new Map<string, DeckCardRef[]>();
+      refs.forEach(ref => {
+        const list = groups.get(ref.cid) ?? [];
+        list.push(ref);
+        groups.set(ref.cid, list);
+      });
+      return Array.from(groups.values());
+    };
+
     try {
       // メインデッキ: モンスター（実カード→空き枠）
-      const mainMonsters = deckData.mainDeck.filter(c => {
-        const cardType = getCardType(c.cid);
-        return cardType === 'monster';
+      const mainMonsterGroups = groupByCid(deckData.mainDeck.filter(c => getCardType(c.cid) === 'monster'));
+      mainMonsterGroups.forEach(group => {
+        appendCardGroupToFormData(params, group, 'main');
       });
-      mainMonsters.forEach(cardRef => {
-        appendCardToFormData(params, cardRef, 'main');
-      });
-      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsters.length; i++) {
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainMonsterGroups.length; i++) {
         params.append('monm', '');
         params.append('monum', '0');
         params.append('monsterCardId', '');
@@ -299,14 +310,11 @@ export async function saveDeckInternal(
       }
 
       // メインデッキ: 魔法（実カード→空き枠）
-      const mainSpells = deckData.mainDeck.filter(c => {
-        const cardType = getCardType(c.cid);
-        return cardType === 'spell';
+      const mainSpellGroups = groupByCid(deckData.mainDeck.filter(c => getCardType(c.cid) === 'spell'));
+      mainSpellGroups.forEach(group => {
+        appendCardGroupToFormData(params, group, 'main');
       });
-      mainSpells.forEach(cardRef => {
-        appendCardToFormData(params, cardRef, 'main');
-      });
-      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpells.length; i++) {
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainSpellGroups.length; i++) {
         params.append('spnm', '');
         params.append('spnum', '0');
         params.append('spellCardId', '');
@@ -314,14 +322,11 @@ export async function saveDeckInternal(
       }
 
       // メインデッキ: 罠（実カード→空き枠）
-      const mainTraps = deckData.mainDeck.filter(c => {
-        const cardType = getCardType(c.cid);
-        return cardType === 'trap';
+      const mainTrapGroups = groupByCid(deckData.mainDeck.filter(c => getCardType(c.cid) === 'trap'));
+      mainTrapGroups.forEach(group => {
+        appendCardGroupToFormData(params, group, 'main');
       });
-      mainTraps.forEach(cardRef => {
-        appendCardToFormData(params, cardRef, 'main');
-      });
-      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTraps.length; i++) {
+      for (let i = 0; i < TOTAL_MAIN_SLOTS - mainTrapGroups.length; i++) {
         params.append('trnm', '');
         params.append('trnum', '0');
         params.append('trapCardId', '');
@@ -329,10 +334,11 @@ export async function saveDeckInternal(
       }
 
       // エクストラデッキ（実カード→空き枠）
-      deckData.extraDeck.forEach(cardRef => {
-        appendCardToFormData(params, cardRef, 'extra');
+      const extraGroups = groupByCid(deckData.extraDeck);
+      extraGroups.forEach(group => {
+        appendCardGroupToFormData(params, group, 'extra');
       });
-      for (let i = 0; i < TOTAL_EXTRA_SLOTS - deckData.extraDeck.length; i++) {
+      for (let i = 0; i < TOTAL_EXTRA_SLOTS - extraGroups.length; i++) {
         params.append('exnm', '');
         params.append('exnum', '0');
         params.append('extraCardId', '');
@@ -340,10 +346,11 @@ export async function saveDeckInternal(
       }
 
       // サイドデッキ（実カード→空き枠）
-      deckData.sideDeck.forEach(cardRef => {
-        appendCardToFormData(params, cardRef, 'side');
+      const sideGroups = groupByCid(deckData.sideDeck);
+      sideGroups.forEach(group => {
+        appendCardGroupToFormData(params, group, 'side');
       });
-      for (let i = 0; i < TOTAL_SIDE_SLOTS - deckData.sideDeck.length; i++) {
+      for (let i = 0; i < TOTAL_SIDE_SLOTS - sideGroups.length; i++) {
         params.append('sinm', '');
         params.append('sinum', '0');
         params.append('sideCardId', '');
@@ -465,25 +472,30 @@ export function showSaveDeckErrorToast(error?: string[]): void {
 }
 
 /**
- * FormDataにカード情報を追加する
+ * 同一cidのDeckCardRefグループ(ciid違い含む)をFormDataに1行として追加する補助関数
  *
- * @param formData FormDataオブジェクト
- * @param card カード情報
- * @param _deckType デッキタイプ（使用しない、互換性のため残す）
- */
-/**
- * カード情報をFormDataに追加する補助関数
+ * 公式サイトのネイティブ編集フォーム(member_deck.action?ope=2)を実機調査した結果判明した仕様:
+ * - 1カード種類(cid)につき、テーブルの行は1行のみ（quantityで何枚か集約する）
+ * - numField(monum等)は物理コピーの合計枚数
+ * - imgsフィールドは `${cid}_${copy1のciid}_${copy2のciid}_${copy3のciid}` という形式で、
+ *   3枚積みの上限に合わせて常に3つのciidスロットを持つ。各スロットはその「何枚目のコピーか」に
+ *   対応する実際のciidを表す（3枚に満たない場合は残りのスロットを最後のciidで埋める）。
+ * 以前の実装は「1(cid,ciid)ペア=1行、非デフォルトciidは常に1枚目のスロットに固定」という
+ *誤ったモデルだったため、同一cidに複数の非デフォルトciidが混在すると2枚目以降が
+ * 代表イラストに上書きされていた（TASK-354）。
  *
  * @param target FormDataまたはURLSearchParamsオブジェクト
- * @param deckCard デッキカード情報
+ * @param group 同一cidのDeckCardRef配列（ciidが異なる複数エントリを含みうる）
  * @param deckType デッキタイプ（main/extra/side）
  */
-function appendCardToFormData(
+function appendCardGroupToFormData(
   target: FormData | URLSearchParams,
-  deckCardRef: DeckCardRef,
+  group: DeckCardRef[],
   deckType: 'main' | 'extra' | 'side'
 ): void {
-  const { cid, ciid, quantity } = deckCardRef;
+  const first = group[0];
+  if (!first) return;
+  const cid = first.cid;
   const unifiedDB = getUnifiedCacheDB();
   const lang = detectLanguage(document);
   const card = unifiedDB.reconstructCardInfo(cid, lang);
@@ -491,6 +503,24 @@ function appendCardToFormData(
   if (!card) {
     throw new Error(`Card not found in UnifiedCacheDB: ${cid}, lang: ${lang}`);
   }
+
+  // 物理コピーごとのciidを1枚ずつ展開する（例: ciid=2×2枚 + ciid=1×1枚 → [2, 2, 1]）
+  const perCopyCiids: string[] = [];
+  group.forEach(ref => {
+    for (let i = 0; i < ref.quantity; i++) {
+      perCopyCiids.push(ref.ciid);
+    }
+  });
+  const totalQuantity = perCopyCiids.length;
+
+  // 3枚積み上限に合わせて3スロットに固定。不足分は最後のciidで埋める
+  const IMG_SLOTS = 3;
+  const lastCiid = perCopyCiids[perCopyCiids.length - 1] ?? '1';
+  const paddedCiids = [...perCopyCiids];
+  while (paddedCiids.length < IMG_SLOTS) {
+    paddedCiids.push(lastCiid);
+  }
+  const imgsValue = [cid, ...paddedCiids.slice(0, IMG_SLOTS)].join('_');
 
   if (deckType === 'main') {
     // メインデッキ: カードタイプ別のフィールド名
@@ -514,23 +544,23 @@ function appendCardToFormData(
     }
 
     target.append(nameField, card.name);
-    target.append(numField, quantity.toString());
+    target.append(numField, totalQuantity.toString());
     target.append(cardIdField, cid);
-    target.append('imgs', `${cid}_${ciid}_1_1`);
+    target.append('imgs', imgsValue);
 
   } else if (deckType === 'extra') {
     // エクストラデッキ: 統一フィールド名
     target.append('exnm', card.name);
-    target.append('exnum', quantity.toString());
+    target.append('exnum', totalQuantity.toString());
     target.append('extraCardId', cid);
-    target.append('imgs', `${cid}_${ciid}_1_1`);
+    target.append('imgs', imgsValue);
 
   } else {
     // サイドデッキ: 統一フィールド名（imgsフィールド名が異なる）
     target.append('sinm', card.name);
-    target.append('sinum', quantity.toString());
+    target.append('sinum', totalQuantity.toString());
     target.append('sideCardId', cid);
-    target.append('imgsSide', `${cid}_${ciid}_1_1`);
+    target.append('imgsSide', imgsValue);
   }
 }
 

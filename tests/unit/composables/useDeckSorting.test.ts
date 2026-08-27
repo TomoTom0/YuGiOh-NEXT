@@ -441,5 +441,90 @@ describe('useDeckSorting', () => {
         { cid: 'monster1', ciid: '1' }
       ]);
     });
+
+    it('【TASK-354】イラスト違い（同cid・ciid違い）がdeckに混在する場合、cid+ciid完全一致で正しく対応付けられる', () => {
+      const monster1: CardInfo = {
+        cid: 'monster1',
+        nameRuby: 'イラスト違いを持つモンスター',
+        cardType: 'monster',
+        cardKindTitle: 'モンスター'
+      };
+      mockCardDB.set(monster1.cid, monster1);
+
+      // 同cidで ciid=1（通常）と ciid=2（イラスト違い）が混在
+      const displayOrder: DisplayCardRef[] = [
+        { cid: 'monster1', ciid: '1' },
+        { cid: 'monster1', ciid: '2' }
+      ];
+      const deck: DeckCardRef[] = [
+        { cid: 'monster1', ciid: '1' },
+        { cid: 'monster1', ciid: '2' }
+      ];
+
+      const result = sortDisplayOrderForOfficial(displayOrder, deck);
+
+      // 両方のciidエントリが消失せず保持される
+      expect(result.sortedDeck).toHaveLength(2);
+      expect(result.sortedDeck).toContainEqual({ cid: 'monster1', ciid: '1' });
+      expect(result.sortedDeck).toContainEqual({ cid: 'monster1', ciid: '2' });
+    });
+
+    it('【TASK-354】displayOrderとdeckのciid型違い（number vs string）でも消失しない', () => {
+      const monster1: CardInfo = {
+        cid: 'monster1',
+        nameRuby: 'モンスター1',
+        cardType: 'monster',
+        cardKindTitle: 'モンスター'
+      };
+      mockCardDB.set(monster1.cid, monster1);
+
+      // displayOrder は ciid が number、deck は string（実データで発生し得る型不一致）
+      const displayOrder: DisplayCardRef[] = [
+        { cid: 'monster1', ciid: 1 },
+      ];
+      const deck: DeckCardRef[] = [
+        { cid: 'monster1', ciid: '1' },
+      ];
+
+      const result = sortDisplayOrderForOfficial(displayOrder, deck);
+
+      expect(result.sortedDeck).toEqual([
+        { cid: 'monster1', ciid: '1' }
+      ]);
+    });
+
+    it('【TASK-354】displayOrderに現れないdeckエントリも消失せず末尾に保持される', () => {
+      const monster1: CardInfo = {
+        cid: 'monster1',
+        nameRuby: 'モンスター1',
+        cardType: 'monster',
+        cardKindTitle: 'モンスター'
+      };
+      const spell1: CardInfo = {
+        cid: 'spell1',
+        nameRuby: '魔法1',
+        cardType: 'spell',
+        cardKindTitle: '魔法'
+      };
+      mockCardDB.set(monster1.cid, monster1);
+      mockCardDB.set(spell1.cid, spell1);
+
+      // deck には spell1 があるが displayOrder には無い（一時的に外れた状態）
+      const displayOrder: DisplayCardRef[] = [
+        { cid: 'monster1', ciid: '1' },
+      ];
+      const deck: DeckCardRef[] = [
+        { cid: 'monster1', ciid: '1' },
+        { cid: 'spell1', ciid: '1' },
+      ];
+
+      const result = sortDisplayOrderForOfficial(displayOrder, deck);
+
+      // spell1 は displayOrder に無くても sortedDeck の末尾に残る（消失しない）
+      expect(result.sortedDeck).toEqual([
+        { cid: 'monster1', ciid: '1' },
+        { cid: 'spell1', ciid: '1' }
+      ]);
+    });
   });
 });

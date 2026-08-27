@@ -1097,10 +1097,13 @@ describe('deck-operations.ts', () => {
         expect(params.getAll('trnm')).toHaveLength(65);
         expect(params.getAll('exnm')).toHaveLength(20);
         expect(params.getAll('sinm')).toHaveLength(20);
+        // 1cid=1行。numFieldは物理コピーの合計枚数(2)。imgsは3枚積み上限に合わせて
+        // 3スロット固定で、各スロットがその「何枚目のコピーか」に対応する実際のciid
+        // (m1は2枚ともciid='im'なので、3枚目枠も同じciidでパディングされる)
         expect(params.getAll('monm')[0]).toBe('Monster');
         expect(params.getAll('monum')[0]).toBe('2');
         expect(params.getAll('monsterCardId')[0]).toBe('m1');
-        expect(params.getAll('imgs')).toContain('m1_im_1_1');
+        expect(params.getAll('imgs')[0]).toBe('m1_im_im_im');
         expect(params.getAll('spnm')[0]).toBe('Spell');
         expect(params.getAll('spellCardId')[0]).toBe('s1');
         expect(params.getAll('trnm')[0]).toBe('Trap');
@@ -1109,8 +1112,69 @@ describe('deck-operations.ts', () => {
         expect(params.getAll('extraCardId')[0]).toBe('e1');
         expect(params.getAll('sinm')[0]).toBe('Side');
         expect(params.getAll('sideCardId')[0]).toBe('side1');
-        expect(params.getAll('imgsSide')).toContain('side1_isi_1_1');
+        expect(params.getAll('imgsSide')).toContain('side1_isi_isi_isi');
         expect(params.getAll('imgsSide')).toContain('null_null_null_null');
+      });
+
+      // TASK-354: 公式サイトのネイティブ編集フォーム(member_deck.action?ope=2)を実機調査した結果、
+      // imgsフィールドは `${cid}_${copy1のciid}_${copy2のciid}_${copy3のciid}` という、
+      // 3枚積み上限に合わせた3スロット固定のフォーマットであることが判明した。
+      // 以前は「1(cid,ciid)ペア=1行」という誤ったモデルで、同一cidに複数の非デフォルトciidが
+      // 混在すると2枚目以降のスロットが正しく埋まらず代表イラストに上書きされていた。
+      it('同一cidに非デフォルトciidが複数あっても1行にまとめ、imgsに物理コピーごとのciidを順番に並べて送信する [covers:append_card.imgs_per_copy_ciid_slots]', async () => {
+        vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
+        const tempGet = vi.fn((cid: string) => (cid === 'm1' ? { cardType: 'monster' } : null));
+        vi.mocked(getTempCacheDB).mockReturnValue({ get: tempGet, set: vi.fn(), clear: vi.fn() } as any);
+        const cards = {
+          m1: { ...createSampleCardInfo(), cid: 'm1', name: 'Monster', cardType: 'monster' }
+        };
+        const reconstructCardInfo = vi.fn((cid: keyof typeof cards) => cards[cid] ?? null);
+        vi.mocked(getUnifiedCacheDB).mockReturnValue({ reconstructCardInfo } as any);
+        // 実際のユーザーデッキで観測された構成を再現: ciid=2を2枚 + ciid=1を1枚（同一cid、計3枚）
+        const deckData = {
+          ...createSampleDeckInfo(),
+          mainDeck: [
+            { cid: 'm1', ciid: '2', quantity: 2 },
+            { cid: 'm1', ciid: '1', quantity: 1 }
+          ],
+          extraDeck: [],
+          sideDeck: []
+        };
+
+        await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+
+        const params = parsePostBody();
+        // 同一cidは1行に集約される（複数行に分割しない）
+        expect(params.getAll('monsterCardId').filter(v => v === 'm1')).toHaveLength(1);
+        // numFieldは物理コピーの合計枚数(2+1=3)
+        expect(params.getAll('monum')[0]).toBe('3');
+        // imgsは物理コピーごとのciidを順番に並べる: [ciid2, ciid2, ciid1]
+        expect(params.getAll('imgs')[0]).toBe('m1_2_2_1');
+        // 空き枠はcid単位の行数(1)を差し引いた64枚になる（quantity合計ではなく行数を使う）
+        expect(params.getAll('monm')).toHaveLength(65);
+      });
+
+      it('quantity=1の非デフォルトciidは3スロット全てが同じciidでパディングされる [covers:append_card.imgs_padding_single_copy]', async () => {
+        vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
+        const tempGet = vi.fn((cid: string) => (cid === 'm1' ? { cardType: 'monster' } : null));
+        vi.mocked(getTempCacheDB).mockReturnValue({ get: tempGet, set: vi.fn(), clear: vi.fn() } as any);
+        const cards = {
+          m1: { ...createSampleCardInfo(), cid: 'm1', name: 'Monster', cardType: 'monster' }
+        };
+        const reconstructCardInfo = vi.fn((cid: keyof typeof cards) => cards[cid] ?? null);
+        vi.mocked(getUnifiedCacheDB).mockReturnValue({ reconstructCardInfo } as any);
+        const deckData = {
+          ...createSampleDeckInfo(),
+          mainDeck: [{ cid: 'm1', ciid: '2', quantity: 1 }],
+          extraDeck: [],
+          sideDeck: []
+        };
+
+        await saveDeckInternal('test-cgid', 3, deckData, 'test-ytkn');
+
+        const params = parsePostBody();
+        expect(params.getAll('monum')[0]).toBe('1');
+        expect(params.getAll('imgs')[0]).toBe('m1_2_2_2');
       });
 
       it('should bypass request queue (call axios directly)', async () => {

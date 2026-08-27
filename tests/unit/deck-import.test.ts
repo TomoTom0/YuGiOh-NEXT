@@ -6,13 +6,14 @@ import type { ImportResult } from '@/utils/deck-import';
 import { embedDeckInfoToPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
 
-const { mockTempCacheSet } = vi.hoisted(() => ({
-  mockTempCacheSet: vi.fn(() => true)
+const { mockTempCacheSet, mockTempCacheGet } = vi.hoisted(() => ({
+  mockTempCacheSet: vi.fn(() => true),
+  mockTempCacheGet: vi.fn(() => undefined)
 }));
 
 vi.mock('@/utils/temp-cache-db', () => ({
   getTempCacheDB: () => ({
-    get: () => undefined,
+    get: mockTempCacheGet,
     set: mockTempCacheSet
   })
 }));
@@ -94,6 +95,33 @@ describe('deck-import', () => {
           imgs: []
         })
       );
+    });
+
+    it('【TASK-355】同cidでイラスト違い(ciid違い)の複数行をインポートした場合、imgsがciid単位でマージされる', () => {
+      const mockCardCache = new Map();
+      mockTempCacheSet.mockImplementation((cid: string, card: { imgs: Array<{ ciid: string }> }) => {
+        mockCardCache.set(cid, card);
+        return true;
+      });
+      mockTempCacheGet.mockImplementation((cid: string) => mockCardCache.get(cid));
+
+      const csv = [
+        'section,name,cid,ciid,enc,quantity',
+        'main,イラスト違いカード,5555,1,5555_1_1_1,1',
+        'main,イラスト違いカード,5555,2,5555_2_1_1,2'
+      ].join('\n');
+
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.mainDeck).toHaveLength(2);
+      // ciid違いは別エントリとして保持
+      expect(result.deckInfo!.mainDeck.map(dc => `${dc.cid}:${dc.ciid}`)).toEqual(['5555:1', '5555:2']);
+
+      // TempCacheDB の当該cidエントリは両ciidのimgsを持つ（後勝ち上書きされない）
+      const cached = mockCardCache.get('5555');
+      expect(cached).toBeDefined();
+      expect(cached.imgs.map(img => img.ciid).sort()).toEqual(['1', '2']);
     });
 
     it('should import CSV without name column [covers:parse_import_row.fields4_numeric_is_cid_ciid]', () => {

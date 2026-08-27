@@ -287,5 +287,105 @@ describe('deck-edit store: displayOrder操作', () => {
       expect(store.displayOrder.main).toHaveLength(2);
       expect(store.displayOrder.main.some(dc => dc.cid === '1001')).toBe(true);
     });
+
+    it('【TASK-355】同(cid,ciid)の2枚目追加をundoすると、1枚目ではなく追加した2枚目が削除される', () => {
+      const card = mockCard('1001', 'カードA');
+
+      // 1枚目追加
+      store.addCard(card, 'main');
+      // 同(cid,ciid)の2枚目追加
+      store.addCard(card, 'main');
+
+      expect(store.displayOrder.main).toHaveLength(2);
+      expect(store.deckInfo.mainDeck).toHaveLength(1);
+      expect(store.deckInfo.mainDeck[0].quantity).toBe(2);
+
+      // 2枚目追加のundo → 追加した2枚目が削除され、1枚目は残る
+      store.undo();
+
+      expect(store.displayOrder.main).toHaveLength(1);
+      expect(store.deckInfo.mainDeck).toHaveLength(1);
+      expect(store.deckInfo.mainDeck[0].quantity).toBe(1);
+    });
+  });
+
+  describe('moveCardWithPosition - イラスト違い(ciid違い)カードの移動【TASK-354】', () => {
+    beforeEach(() => {
+      // TempCacheDBの代表ciidは '1'（imgs[0]）で、ciid=2（イラスト違い）と異なる状態を作る
+      const representativeCard: CardInfo = {
+        ...mockCard('2001', 'イラスト違いカード'),
+        ciid: '1',
+        imgs: [
+          { ciid: '1', imgHash: '2001_1_1_1' },
+          { ciid: '2', imgHash: '2001_2_1_1' }
+        ]
+      };
+      mockCardCache.set('2001', representativeCard);
+
+      // main に ciid=1 が1枚、ciid=2 が1枚入った状態で初期化
+      store.deckInfo.mainDeck = [
+        { cid: '2001', ciid: '1', lang: 'ja', quantity: 1 },
+        { cid: '2001', ciid: '2', lang: 'ja', quantity: 1 }
+      ];
+      // initializeDisplayOrder は公開APIにないため、store初期化と同じ経路で構築
+      // （deckInfoを直接差し替えた場合は displayOrder を手動で再構築）
+      store.displayOrder.main = [];
+      store.displayOrder.main.push({ cid: '2001', ciid: 1, uuid: 'u-2001-1-0' });
+      store.displayOrder.main.push({ cid: '2001', ciid: 2, uuid: 'u-2001-2-0' });
+      store.displayOrder.side = [];
+      store.displayOrder.extra = [];
+      store.displayOrder.trash = [];
+      store.deckInfo.sideDeck = [];
+      store.deckInfo.extraDeck = [];
+    });
+
+    it('イラスト違いカード(ciid=2)を移動してもciidが代表値(1)に化けない', () => {
+      // ciid=2 のカード（displayOrderの2枚目）をsideへ移動
+      const sourceUuid = store.displayOrder.main[1].uuid;
+      const result = store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
+
+      expect(result.success).toBe(true);
+
+      // side の deckInfo は ciid=2 として格納される（代表値1でない）
+      expect(store.deckInfo.sideDeck).toEqual([
+        { cid: '2001', ciid: '2', lang: 'ja', quantity: 1 }
+      ]);
+
+      // main には ciid=1 だけが残る
+      expect(store.deckInfo.mainDeck).toEqual([
+        { cid: '2001', ciid: '1', lang: 'ja', quantity: 1 }
+      ]);
+
+      // side の displayOrder も ciid=2 を保持
+      expect(store.displayOrder.side).toHaveLength(1);
+      expect(store.displayOrder.side[0].ciid).toBe(2);
+    });
+
+    it('イラスト違いカード移動後のundoでciid=2が元に戻る', () => {
+      const sourceUuid = store.displayOrder.main[1].uuid;
+      store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
+
+      store.undo();
+
+      // main に ciid=1 と ciid=2 が両方復元される
+      expect(store.deckInfo.mainDeck).toHaveLength(2);
+      const mainCiids = store.deckInfo.mainDeck.map(dc => dc.ciid).sort();
+      expect(mainCiids).toEqual(['1', '2']);
+      expect(store.deckInfo.sideDeck).toHaveLength(0);
+    });
+
+    it('イラスト違いカード移動後のredoで再度sideへ移動する', () => {
+      const sourceUuid = store.displayOrder.main[1].uuid;
+      store.moveCardWithPosition('2001', 'main', 'side', sourceUuid, null);
+      store.undo();
+      store.redo();
+
+      expect(store.deckInfo.sideDeck).toEqual([
+        { cid: '2001', ciid: '2', lang: 'ja', quantity: 1 }
+      ]);
+      expect(store.deckInfo.mainDeck).toEqual([
+        { cid: '2001', ciid: '1', lang: 'ja', quantity: 1 }
+      ]);
+    });
   });
 });

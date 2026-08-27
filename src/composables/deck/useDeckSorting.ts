@@ -98,19 +98,30 @@ export function sortDisplayOrderForOfficial(
   // deckを並び替え（sortedの順序に合わせる）
   const newDeck: DeckCardRef[] = [];
   const seenCards = new Set<string>();
+  const remainingDeck = [...deck];
 
   sorted.forEach(dc => {
     const key = `${dc.cid}_${dc.ciid}`;
     if (!seenCards.has(key)) {
       seenCards.add(key);
-      const deckCard = deck.find(d =>
-        d.cid === dc.cid && d.ciid === String(dc.ciid)
+      // (cid, ciid) の完全一致を優先し、displayOrder と deck のciid型違い等で
+      // 見つからない場合は cid 一致でフォールバック（イラスト違いエントリの消失を防ぐ）
+      let deckIndex = remainingDeck.findIndex(d =>
+        d.cid === dc.cid && String(d.ciid) === String(dc.ciid)
       );
-      if (deckCard) {
-        newDeck.push(deckCard);
+      if (deckIndex === -1) {
+        deckIndex = remainingDeck.findIndex(d => d.cid === dc.cid);
+      }
+      if (deckIndex !== -1) {
+        newDeck.push(remainingDeck[deckIndex]!);
+        remainingDeck.splice(deckIndex, 1);
       }
     }
   });
+
+  // displayOrder に現れない deck エントリが残っていた場合も消失させない
+  // （trash往復など一時的にdisplayOrderから外れたカードの保持）
+  newDeck.push(...remainingDeck);
 
   return {
     sortedDisplayOrder: sorted,

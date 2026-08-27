@@ -31,7 +31,11 @@ vi.mock('@/utils/card-utils', () => ({
 
 // deck-thumbnailのモック
 vi.mock('@/utils/deck-thumbnail', () => ({
-  generateDeckThumbnailCards: vi.fn(() => ['cid1', 'cid2', 'cid3']),
+  generateDeckThumbnailCards: vi.fn(() => [
+    { cid: 'cid1', ciid: '1' },
+    { cid: 'cid2', ciid: '1' },
+    { cid: 'cid3', ciid: '1' }
+  ]),
   generateDeckThumbnailImage: vi.fn(() => Promise.resolve('data:image/png;base64,mock')),
 }));
 
