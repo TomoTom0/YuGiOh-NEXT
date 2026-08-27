@@ -1,7 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '@/utils/png-metadata';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
+import type { CardInfo } from '@/types/card';
+
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
 // import * as fs from 'fs';
 // import * as path from 'path';
 
@@ -51,33 +62,32 @@ describe('png-metadata', () => {
     0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
   ]);
 
-  // 各テスト前にTempCardDBをセットアップ
+  // 各テスト前にTempCacheDBをセットアップ
   beforeEach(() => {
-    const tempCardDB = getTempCardDB();
-    tempCardDB.clear();
+    mockCardDB.clear();
     // サンプルデッキのカード情報を登録
-    tempCardDB.set('12950', {
+    mockCardDB.set('12950', {
       cardId: '12950',
       ciid: '1',
       name: '灰流うらら',
       cardType: 'monster',
       imgs: [{ ciid: '1', imgHash: '12950_1_1_1' }]
     } as any);
-    tempCardDB.set('4861', {
+    mockCardDB.set('4861', {
       cardId: '4861',
       ciid: '2',
       name: 'Test Card 2',
       cardType: 'monster',
       imgs: [{ ciid: '2', imgHash: '4861_2_1_1' }]
     } as any);
-    tempCardDB.set('9753', {
+    mockCardDB.set('9753', {
       cardId: '9753',
       ciid: '1',
       name: 'Test Extra Card',
       cardType: 'monster',
       imgs: [{ ciid: '1', imgHash: '9753_1_1_1' }]
     } as any);
-    tempCardDB.set('14558', {
+    mockCardDB.set('14558', {
       cardId: '14558',
       ciid: '1',
       name: 'Test Side Card',
@@ -87,7 +97,7 @@ describe('png-metadata', () => {
   });
 
   describe('embedDeckInfoToPNG', () => {
-    it('should embed deck info into a valid PNG', async () => {
+    it('should embed deck info into a valid PNG [covers:embed_png.scans_chunks_until_iend] [covers:embed_png.inserts_deckinfo_text_chunk_and_preserves_iend]', async () => {
       const pngBlob = new Blob([validPNG], { type: 'image/png' });
 
       const result = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
@@ -97,7 +107,7 @@ describe('png-metadata', () => {
       expect(result.size).toBeGreaterThan(pngBlob.size);
     });
 
-    it('should throw error for invalid PNG (bad signature)', async () => {
+    it('should throw error for invalid PNG (bad signature) [covers:embed_png.signature_mismatch_throws]', async () => {
       const invalidPNG = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07]);
       const pngBlob = new Blob([invalidPNG], { type: 'image/png' });
 
@@ -106,7 +116,7 @@ describe('png-metadata', () => {
       );
     });
 
-    it('should handle PNG with existing tEXt chunks', async () => {
+    it('should handle PNG with existing tEXt chunks [covers:embed_png.inserts_deckinfo_text_chunk_and_preserves_iend]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -116,7 +126,7 @@ describe('png-metadata', () => {
       expect(result.size).toBeGreaterThan(pngBlob.size);
     });
 
-    it('should embed deck info with correct structure', async () => {
+    it('should embed deck info with correct structure [covers:simplify_deck.maps_all_sections] [covers:simplify_deck.enc_from_matching_temp_cache_image] [covers:extract_png.valid_deckinfo_text_returns_parsed] [covers:simple_deck_guard.all_sections_every_card_valid]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -138,7 +148,7 @@ describe('png-metadata', () => {
   });
 
   describe('extractDeckInfoFromPNG', () => {
-    it('should extract deck info from PNG with DeckInfo tEXt chunk', async () => {
+    it('should extract deck info from PNG with DeckInfo tEXt chunk [covers:extract_png.valid_deckinfo_text_returns_parsed]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -151,7 +161,15 @@ describe('png-metadata', () => {
       expect(extracted!.side).toHaveLength(1);
     });
 
-    it('should return null for PNG without DeckInfo tEXt chunk', async () => {
+    it('should return null for invalid PNG [covers:extract_png.signature_mismatch_returns_null]', async () => {
+      const pngBlob = new Blob([new Uint8Array([0x00, 0x01, 0x02, 0x03])], { type: 'image/png' });
+
+      const extracted = await extractDeckInfoFromPNG(pngBlob);
+
+      expect(extracted).toBeNull();
+    });
+
+    it('should return null for PNG without DeckInfo tEXt chunk [covers:extract_png.no_deckinfo_returns_null]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -160,16 +178,7 @@ describe('png-metadata', () => {
       expect(extracted).toBeNull();
     });
 
-    it('should return null for invalid PNG', async () => {
-      const pngBuffer = validPNG;
-      const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
-
-      const extracted = await extractDeckInfoFromPNG(pngBlob);
-
-      expect(extracted).toBeNull();
-    });
-
-    it('should handle PNG with multiple tEXt chunks', async () => {
+    it('should handle PNG with multiple tEXt chunks [covers:extract_png.valid_deckinfo_text_returns_parsed]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -180,20 +189,39 @@ describe('png-metadata', () => {
       expect(extracted!.main).toHaveLength(2);
     });
 
-    it('should validate CRC correctly', async () => {
+    it('should not validate CRC while scanning DeckInfo tEXt chunks [covers:extract_png.crc_is_not_validated]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
       const embedded = await embedDeckInfoToPNG(pngBlob, sampleDeckInfo);
-      
-      // CRCが正しく計算されているか確認（抽出が成功すればCRCも正しい）
-      const extracted = await extractDeckInfoFromPNG(embedded);
+      const bytes = new Uint8Array(await embedded.arrayBuffer());
+      let offset = 8;
+      while (offset + 12 <= bytes.length) {
+        const chunkLength =
+          (bytes[offset] << 24) |
+          (bytes[offset + 1] << 16) |
+          (bytes[offset + 2] << 8) |
+          bytes[offset + 3];
+        const chunkType = String.fromCharCode(
+          bytes[offset + 4],
+          bytes[offset + 5],
+          bytes[offset + 6],
+          bytes[offset + 7]
+        );
+        if (chunkType === 'tEXt') {
+          bytes.set([0xde, 0xad, 0xbe, 0xef], offset + 8 + chunkLength);
+          break;
+        }
+        offset += 12 + chunkLength;
+      }
+
+      const extracted = await extractDeckInfoFromPNG(new Blob([bytes], { type: 'image/png' }));
       expect(extracted).not.toBeNull();
     });
   });
 
   describe('round-trip test', () => {
-    it('should preserve deck info through embed and extract', async () => {
+    it('should preserve deck info through embed and extract [covers:simplify_deck.maps_all_sections] [covers:extract_png.valid_deckinfo_text_returns_parsed]', async () => {
       const pngBuffer = validPNG;
       const pngBlob = new Blob([pngBuffer], { type: 'image/png' });
 
@@ -209,7 +237,7 @@ describe('png-metadata', () => {
       expect(extracted!.side[0].quantity).toBe(3);
     });
 
-    it('should handle empty decks', async () => {
+    it('should handle empty decks [covers:simple_deck_guard.all_sections_every_card_valid]', async () => {
       const emptyDeck: DeckInfo = {
         mainDeck: [],
         extraDeck: [],
@@ -228,10 +256,9 @@ describe('png-metadata', () => {
       expect(extracted!.side).toHaveLength(0);
     });
 
-    it('should handle special characters in enc field', async () => {
-      // TempCardDBに特殊文字を含むカード情報を登録
-      const tempCardDB = getTempCardDB();
-      tempCardDB.set('99999', {
+    it('should handle special characters in enc field [covers:simplify_deck.enc_from_matching_temp_cache_image]', async () => {
+      // TempCacheDBに特殊文字を含むカード情報を登録
+      mockCardDB.set('99999', {
         cardId: '99999',
         ciid: '1',
         name: 'Special Card',

@@ -209,18 +209,27 @@
 <script>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { getAttributeIconUrl, getLevelIconUrl, getRankIconUrl, getSpellIconUrl, getTrapIconUrl, getEffectTypeIconUrl } from '../api/image-utils'
-import { ATTRIBUTE_ID_TO_NAME, RACE_ID_TO_NAME, SPELL_EFFECT_TYPE_ID_TO_NAME, TRAP_EFFECT_TYPE_ID_TO_NAME, MONSTER_TYPE_ID_TO_NAME } from '../types/card-maps'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { useCardLinks } from '../composables/useCardLinks'
 import DeckCard from './DeckCard.vue'
 import { mdiImageMultiple } from '@mdi/js'
+import { getCardImageUrl } from '../types/card'
 import { buildApiUrl } from '../utils/url-builder'
 import { detectCardGameType } from '../utils/page-detector'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
 import { detectLanguage } from '../utils/language-detector'
-import { mappingManager } from '../utils/mapping-manager'
+import {
+  getAttributeLabel,
+  getRaceLabel,
+  getMonsterTypeLabel,
+  getSpellTypeLabel,
+  getTrapTypeLabel,
+  getCardTypeLabel,
+  getEffectTypeLabel,
+  getMonsterTypesLabel,
+} from '../utils/label-utils'
 
 export default {
   name: 'CardInfo',
@@ -284,19 +293,14 @@ export default {
     }
 
     const selectImage = (ciid) => {
-      // selectedCardのciidを直接更新
-      if (cardDetailStore.selectedCard) {
-        cardDetailStore.selectedCard.ciid = String(ciid)
-      }
+      cardDetailStore.updateSelectedCardCiid(String(ciid))
       showImageDialog.value = false
     }
 
     const getImageUrl = (img) => {
       if (!card.value) return ''
-      // buildApiUrl経由で request_locale を自動付与
-      const path = `get_image.action?type=1&cid=${card.value.cardId}&ciid=${img.ciid}&enc=${img.imgHash}&osplang=1`
       const gameType = detectCardGameType()
-      return buildApiUrl(path, gameType)
+      return getCardImageUrl(card.value, gameType, img.ciid) ?? ''
     }
 
     // 言語ごとの利用可能ciidをチェック
@@ -415,98 +419,15 @@ export default {
     }
   },
   methods: {
-    getCardTypeText(cardType) {
-      const lang = detectLanguage(document)
-      if (cardType === 'spell') {
-        return lang === 'ja' ? '魔法' : 'Spell'
-      }
-      if (cardType === 'trap') {
-        return lang === 'ja' ? '罠' : 'Trap'
-      }
-      return cardType
-    },
+    getCardTypeText: getCardTypeLabel,
     getSpellIconUrl,
     getTrapIconUrl,
     getEffectTypeIconUrl,
-    getAttributeText(attribute) {
-      const lang = detectLanguage(document)
-      // 日本語の場合は静的マップを使用
-      if (lang === 'ja') {
-        return ATTRIBUTE_ID_TO_NAME[attribute] || attribute
-      }
-      // その他の言語は MappingManager から取得
-      const attrMap = mappingManager.getAttributeTextToId(lang)
-      // attrMap は text->id なので、id->text の逆引きが必要
-      for (const [text, id] of Object.entries(attrMap)) {
-        if (id === attribute) {
-          return text
-        }
-      }
-      return ATTRIBUTE_ID_TO_NAME[attribute] || attribute
-    },
-    getRaceText(race) {
-      const lang = detectLanguage(document)
-      // 日本語の場合は静的マップを使用
-      if (lang === 'ja') {
-        return RACE_ID_TO_NAME[race] || race
-      }
-      // その他の言語は MappingManager から取得
-      const raceMap = mappingManager.getRaceTextToId(lang)
-      // raceMap は text->id なので、id->text の逆引きが必要
-      for (const [text, id] of Object.entries(raceMap)) {
-        if (id === race) {
-          return text
-        }
-      }
-      return RACE_ID_TO_NAME[race] || race
-    },
-    getEffectTypeText(effectType, cardType) {
-      const lang = detectLanguage(document)
-      if (cardType === 'spell') {
-        if (lang === 'ja') {
-          return SPELL_EFFECT_TYPE_ID_TO_NAME[effectType] || effectType
-        }
-        const spellMap = mappingManager.getSpellEffectTextToId(lang)
-        for (const [text, id] of Object.entries(spellMap)) {
-          if (id === effectType) {
-            return text
-          }
-        }
-        return SPELL_EFFECT_TYPE_ID_TO_NAME[effectType] || effectType
-      } else if (cardType === 'trap') {
-        if (lang === 'ja') {
-          return TRAP_EFFECT_TYPE_ID_TO_NAME[effectType] || effectType
-        }
-        const trapMap = mappingManager.getTrapEffectTextToId(lang)
-        for (const [text, id] of Object.entries(trapMap)) {
-          if (id === effectType) {
-            return text
-          }
-        }
-        return TRAP_EFFECT_TYPE_ID_TO_NAME[effectType] || effectType
-      }
-      return effectType
-    },
-    getMonsterTypesText(types) {
-      if (!types || !Array.isArray(types)) return ''
-      return types.map(t => this.getMonsterTypeText(t)).join(' / ')
-    },
-    getMonsterTypeText(type) {
-      const lang = detectLanguage(document)
-      // 日本語の場合は静的マップを使用
-      if (lang === 'ja') {
-        return MONSTER_TYPE_ID_TO_NAME[type] || type
-      }
-      // その他の言語は MappingManager から取得
-      const typeMap = mappingManager.getMonsterTypeTextToId(lang)
-      // typeMap は text->id なので、id->text の逆引きが必要
-      for (const [text, id] of Object.entries(typeMap)) {
-        if (id === type) {
-          return text
-        }
-      }
-      return MONSTER_TYPE_ID_TO_NAME[type] || type
-    },
+    getAttributeText: getAttributeLabel,
+    getRaceText: getRaceLabel,
+    getEffectTypeText: getEffectTypeLabel,
+    getMonsterTypesText: getMonsterTypesLabel,
+    getMonsterTypeText: getMonsterTypeLabel,
     isLinkMarkerActive(linkMarkers, posDisplay) {
       if (!linkMarkers || posDisplay === 5) return false
       // posDisplayは1-9のグリッド位置、linkMarkersは0から始まるビット

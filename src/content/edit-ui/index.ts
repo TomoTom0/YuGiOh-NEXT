@@ -20,6 +20,12 @@ let isEditUILoaded = false;
 // イベントリスナーが登録済みかどうかのフラグ
 let isEventListenerRegistered = false;
 
+// ヘッダーの高さ変動を追従するResizeObserver
+// モジュールスコープに保持し、editモード離脱時や再ロード時にdisconnectして
+// observerの蓄積（リーク）を防ぐ。ローカル変数にするとloadEditUI再実行ごとに
+// 別のobserverが生成され、SPAでheader要素が生き続けるため蓄積する。
+let headerResizeObserver: ResizeObserver | null = null;
+
 // 公式DOM読み込みと同時に、Vue関連モジュールを事前インポート開始
 const vueModulesPromise = Promise.all([
   import('vue'),
@@ -168,8 +174,12 @@ function watchUrlChanges(): void {
           loadEditUI();
         }
       } else if (!isEditUrl() && isEditUILoaded) {
-        // 編集URL以外に移動した場合はフラグをリセット
+        // 編集URL以外に移動した場合はフラグをリセットし、observerを切断
         isEditUILoaded = false;
+        if (headerResizeObserver) {
+          headerResizeObserver.disconnect();
+          headerResizeObserver = null;
+        }
       }
     });
   }
@@ -205,12 +215,24 @@ async function loadEditUI(): Promise<void> {
   }
 
   // ヘッダーの高さを計算してCSS変数に設定
+  // ヘッダーは遅延ロード（画像・バナー・お知らせ等）で高さが変動するため、
+  // 初回計算だけでなく ResizeObserver で変動を追従する。
+  // 追従しないと .deck-edit-container の高さ計算が古いままになり、
+  // 外側が overflow: hidden のため下部がスクロールしても到達不能になる（下部見切れ）。
   const headerElement = document.querySelector('header') || document.querySelector('#header');
-  let headerHeight = 0;
-  if (headerElement) {
-    headerHeight = headerElement.offsetHeight;
+  const updateHeaderHeight = (): void => {
+    const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+    document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
+  };
+  updateHeaderHeight();
+  if (headerElement && typeof ResizeObserver !== 'undefined') {
+    // 既存のobserverがあればdisconnectしてから再observe（再訪時の重複蓄積防止）
+    if (headerResizeObserver) {
+      headerResizeObserver.disconnect();
+    }
+    headerResizeObserver = new ResizeObserver(updateHeaderHeight);
+    headerResizeObserver.observe(headerElement);
   }
-  document.documentElement.style.setProperty('--header-height', `${headerHeight}px`);
 
   // テーマカラーのCSS変数は設定ストアが適用するため、ここでは不要
   // （設定ストアは deck-edit ストアの initializeOnPageLoad で初期化される）

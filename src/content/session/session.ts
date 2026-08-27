@@ -1,12 +1,27 @@
 import {
   createNewDeckInternal,
   saveDeckInternal,
+  showSaveDeckErrorToast,
   deleteDeckInternal,
   getDeckListInternal,
   issueDeckCodeInternal
 } from '@/api/deck-operations';
 import { fetchYtknFromEditForm } from '@/utils/ytkn-fetcher';
 import type { DeckInfo, DeckListItem, OperationResult } from '@/types/deck';
+
+/**
+ * 先読みytkn失効時にサーバーが返すエラーかどうかを判定する
+ *
+ * ytknは画面遷移シーケンスに紐づくワンタイムトークンのため、先読み後・使用前に
+ * 他のope=1/2/4アクセス（バックグラウンド処理等）が挟まると失効し、
+ * このエラーで保存が失敗することがある
+ */
+function isStaleYtknError(error?: string[]): boolean {
+  if (!error) {
+    return false;
+  }
+  return error.some(msg => /screen transition error|画面遷移エラー/i.test(msg));
+}
 
 /**
  * セッション管理クラス
@@ -63,6 +78,28 @@ class SessionManager {
   }
 
   /**
+   * ログイン状態を確認
+   * @returns ログイン済みならtrue、未ログインならfalse
+   */
+  isLoggedIn(): boolean {
+    // フッターの「マイデッキ」リンクからcgidを取得できるか確認
+    const mydeckLink = document.querySelector<HTMLAnchorElement>('a[href*="member_deck.action"][href*="cgid="]');
+    if (mydeckLink) {
+      const match = mydeckLink.href.match(/cgid=([a-f0-9]{32})/);
+      if (match && match[1]) {
+        return true;
+      }
+    }
+    // フッター以外の任意のcgidリンクからも取得を試みる
+    const anyLink = document.querySelector<HTMLAnchorElement>('a[href*="cgid="]');
+    if (anyLink) {
+      const match = anyLink.href.match(/cgid=([a-f0-9]{32})/);
+      return !!(match && match[1]);
+    }
+    return false;
+  }
+
+  /**
    * cgidを取得（テスト用の公開メソッド）
    */
   async getCgid(): Promise<string> {
@@ -109,6 +146,7 @@ class SessionManager {
 
       // プリロードされたytknを優先的に使用
       let ytkn: string | null = null;
+      let usedPreloadedYtkn = false;
 
       // ytkn取得のPromiseを待つ（最大1秒）
       if (window.ygoNextPreloadedYtknPromise && !window.ygoNextPreloadedYtkn) {
@@ -128,6 +166,7 @@ class SessionManager {
       if (window.ygoNextPreloadedYtkn) {
         ytkn = window.ygoNextPreloadedYtkn;
         window.ygoNextPreloadedYtkn = null; // 使い捨てのため削除
+        usedPreloadedYtkn = true;
         console.debug('[SessionManager.saveDeck] Using preloaded ytkn');
       }
 
@@ -146,9 +185,29 @@ class SessionManager {
 
       console.debug('[SessionManager.saveDeck] Calling saveDeckInternal');
       const saveStartTime = performance.now();
-      const result = await saveDeckInternal(cgid, dno, deckData, ytkn);
+      // usedPreloadedYtkn時はリトライ候補のため、失敗してもここではトーストを出さない
+      // （リトライ成功時に「失敗→成功」の紛らわしい通知が出るのを防ぐ）
+      let result = await saveDeckInternal(cgid, dno, deckData, ytkn, { showErrorToast: !usedPreloadedYtkn });
       const saveDuration = performance.now() - saveStartTime;
       console.debug(`[SessionManager.saveDeck] 保存API呼び出し時間: ${saveDuration.toFixed(2)}ms`);
+
+      // 先読みytknが失効していた場合（screen transition error）、
+      // 通常取得したytknで1回だけ再試行する
+      if (!result.success && usedPreloadedYtkn) {
+        if (isStaleYtknError(result.error)) {
+          console.warn('[SessionManager.saveDeck] Preloaded ytkn appears stale (screen transition error), retrying with freshly fetched ytkn');
+          const retryYtkn = await this.fetchYtkn(cgid, dno, 'request_locale=ja');
+          if (retryYtkn) {
+            result = await saveDeckInternal(cgid, dno, deckData, retryYtkn);
+          } else {
+            // リトライ用ytknが取得できず再試行不可 -> これが最終結果のため抑制していたトーストを表示
+            showSaveDeckErrorToast(result.error);
+          }
+        } else {
+          // stale token以外のエラーはリトライ対象外 -> これが最終結果のため抑制していたトーストを表示
+          showSaveDeckErrorToast(result.error);
+        }
+      }
 
       // 保存成功後、次回用のytknを非同期でプリロード（UIをブロックしない）
       if (result.success) {
@@ -204,7 +263,7 @@ class SessionManager {
    * @param dno デッキ番号
    * @returns いいね数、取得失敗時は0
    */
-  async getDeckLikes(dno: number): Promise<number> {
+  async getDeckLikes(_dno: number): Promise<number> {
     // TODO: 実装待ち
     return 0;
   }

@@ -779,7 +779,7 @@ export function extractFavoriteCount(doc: Document): number {
  * @param doc ドキュメント
  * @returns いいね数（未実装のため常に0）
  */
-export function extractDeckLikes(doc: Document): number {
+export function extractDeckLikes(_doc: Document): number {
   // 未実装
   return 0;
 }

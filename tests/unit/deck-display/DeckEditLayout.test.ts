@@ -22,7 +22,7 @@ const mockDeckStore = () => {
     overlayZIndex: ref(9999),
     showImportDialog: ref(false),
     showExportDialog: ref(false),
-    showOptionsDialog: ref(false),
+    showSettingsDialog: ref(false),
     showLoadDialog: ref(false),
     deckInfo: ref({ title: 'Test Deck' }),
     dno: ref(12345),
@@ -303,10 +303,10 @@ describe('DeckEditLayout.vue', () => {
       expect(initialTab).toBe('import');
     });
 
-    it('OptionsDialog の isVisible が showOptionsDialog と同期されるべき', () => {
-      deckStore.showOptionsDialog.value = true;
+    it('SettingsDialog の isVisible が showSettingsDialog と同期されるべき', () => {
+      deckStore.showSettingsDialog.value = true;
 
-      expect(deckStore.showOptionsDialog.value).toBe(true);
+      expect(deckStore.showSettingsDialog.value).toBe(true);
     });
 
     it('LoadDialog の isVisible が showLoadDialog と同期されるべき', () => {
@@ -394,13 +394,13 @@ describe('DeckEditLayout.vue', () => {
       expect(handleExported).toHaveBeenCalled();
     });
 
-    it('showOptionsDialog のクローズハンドラーが showOptionsDialog をリセットすべき', () => {
-      deckStore.showOptionsDialog.value = true;
+    it('showSettingsDialog のクローズハンドラーが showSettingsDialog をリセットすべき', () => {
+      deckStore.showSettingsDialog.value = true;
 
       // closeイベント処理をシミュレート
-      deckStore.showOptionsDialog.value = false;
+      deckStore.showSettingsDialog.value = false;
 
-      expect(deckStore.showOptionsDialog.value).toBe(false);
+      expect(deckStore.showSettingsDialog.value).toBe(false);
     });
   });
 

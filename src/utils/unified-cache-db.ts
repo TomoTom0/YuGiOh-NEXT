@@ -1172,7 +1172,9 @@ export class UnifiedCacheDB {
    */
   getCardInfo(cid: string): CardInfo | undefined {
     const cached = this.fullCardInfoCache.get(cid);
-    return cached?.card;
+    if (cached?.card) return cached.card;
+    const lang = detectLanguage(document);
+    return this.reconstructCardInfo(cid, lang);
   }
 
   /**

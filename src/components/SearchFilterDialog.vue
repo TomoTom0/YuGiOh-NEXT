@@ -1,8 +1,6 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="deckStore.isFilterDialogVisible" class="dialog-overlay" @click="deckStore.isFilterDialogVisible = false">
-    <div class="dialog-content" @click.stop>
+  <BaseDialog :is-visible="deckStore.isFilterDialogVisible" @close="deckStore.isFilterDialogVisible = false">
+    <div class="dialog-content">
       <!-- タイトルバー -->
       <div class="dialog-header triple">
         <div class="dialog-tabs">
@@ -95,8 +93,7 @@
         <button class="footer-close-btn" @click="deckStore.isFilterDialogVisible = false" title="閉じる">×</button>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script setup lang="ts">
@@ -104,6 +101,7 @@ import { computed, ref, nextTick } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import { useSearchStore } from '../stores/search';
 import type { CardInfo } from '../types/card';
+import BaseDialog from './BaseDialog.vue';
 import SearchInputBar from './searchInputBar/SearchInputBar.vue';
 import FilterTab from './search-filter/FilterTab.vue';
 import HistoryTab from './search-filter/HistoryTab.vue';
@@ -335,20 +333,6 @@ function removeHeaderChip(icon: any) {
 </script>
 
 <style scoped lang="scss">
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--dialog-overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  overflow: hidden;
-}
-
 .dialog-content {
   background: var(--dialog-bg, #ffffff);
   border-radius: 8px;

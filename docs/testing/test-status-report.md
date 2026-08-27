@@ -8,8 +8,8 @@
 ### ブラウザテスト (`tests/browser/`)
 状態: 動作確認済み
 
-- `test-buttons.js`: 正常動作
-- 他のテスト（test-shuffle.js, test-lock.js, test-dialog.js）: 未確認だが、同じ構造なので動作する可能性が高い
+- `test-buttons.cjs`: 正常動作
+- 他のテスト（test-shuffle.cjs, test-lock.cjs, test-dialog.cjs）: 未確認だが、同じ構造なので動作する可能性が高い
 - READMEは最新で詳細なドキュメントあり
 
 ### ユニットテスト (`tests/unit/`)
@@ -57,7 +57,7 @@
 
 **tests/browser/ は陳腐化していない**
 
-- cdp-helper.js のヘルパー関数は正常動作
+- cdp-helper.cjs のヘルパー関数は正常動作
 - テストテンプレートは適切
 - READMEは最新で詳細
 

@@ -1,0 +1,269 @@
+# 検証対象: src/composables/deck/useDeckCardSorter.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、Vue composableのデッキカードソート比較ロジック。
+#
+# 到達不能/実質到達不能分岐:
+# - matchesPriorityCategory L129: 呼び出し元はL260でcardA/cardBのnullishを先に
+#   returnしてからcardA/cardBを渡すため、公開comparator経由では到達不能。
+# - compareCardsByType L144: public comparatorのdefaultモードではL274でカードタイプ差を
+#   先に返し、compareCardsByTypeはカードタイプが同じ場合にだけ呼ばれるため、
+#   通常の同期実行では後続の同一比較は到達不能。
+
+[meta]
+feature = "use-deck-card-sorter"
+source_file = "src/composables/deck/useDeckCardSorter.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckCardSorter.test.ts"
+source_hash = "2475237d7f088429258def469cb9024f2ad6e8c8"
+note = "verified=falseは2件: priority_category.null_card_falseとtype_compare_card_type_orderはいずれも先行ガード/比較により公開APIから通常到達不能。throw文は存在しない"
+
+# --- createDeckCardComparator(section, options = {}): (a, b) => number ---
+
+[[condition]]
+id = "comparator.options_default_values"
+target_function = "createDeckCardComparator"
+source_lines = "113-123"
+description = "options省略または各プロパティundefined時、sortMode='default'、enableCategoryPriority=true、priorityCategoryCardIds=空Set、enableHeadPlacement=true、headPlacementCardIds=[]、enableTailPlacement=true、tailPlacementCardIds=[]、levelSortOrder='desc'、categoryPrioritySortMode='level'を使う"
+given = "createDeckCardComparator(section, {}) または options省略"
+expect_return_shape = "返された比較関数はデフォルトソートを実行する"
+
+[[condition]]
+id = "comparator.missing_card_returns_zero"
+target_function = "createDeckCardComparator"
+source_lines = "257-260,139,196,228"
+description = "メイン比較関数、compareCardsByType、compareByRace、compareByAttributeはいずれもgetCardInfo(a.cid)またはgetCardInfo(b.cid)がnullishの場合0を返す"
+given = "比較対象の片方または両方のCardInfoが取得できない"
+expect_return = "0"
+
+[[condition]]
+id = "priority_category.null_card_false"
+target_function = "createDeckCardComparator"
+source_lines = "128-130"
+description = "matchesPriorityCategoryはcardがnullishの場合falseを返し、priorityCategoryCardIds.hasを呼ばない"
+given = "matchesPriorityCategoryにnullishなCardInfoを渡す"
+expect_return = "false"
+verified = false
+unverifiable_reason = "public comparatorはL260でcardA/cardBがnullishなら先に0を返すため、matchesPriorityCategoryには非nullのcardA/cardBだけが渡される"
+
+[[condition]]
+id = "comparator.by_race_mode_delegates_before_default_priorities"
+target_function = "createDeckCardComparator"
+source_lines = "262-265"
+description = "sortModeが'by-race'の場合、カードタイプ・先頭配置・カテゴリ優先・末尾配置・通常のtype比較を使わずcompareByRaceの結果をそのまま返す"
+given = "options.sortMode='by-race'"
+expect_return_shape = "compareByRace(a, b)の戻り値"
+
+[[condition]]
+id = "comparator.by_attribute_mode_delegates_before_default_priorities"
+target_function = "createDeckCardComparator"
+source_lines = "266-268"
+description = "sortModeが'by-attribute'の場合、カードタイプ・先頭配置・カテゴリ優先・末尾配置・通常のtype比較を使わずcompareByAttributeの結果をそのまま返す"
+given = "options.sortMode='by-attribute'"
+expect_return_shape = "compareByAttribute(a, b)の戻り値"
+
+[[condition]]
+id = "comparator.default_card_type_order_precedes_all_same_type_priorities"
+target_function = "createDeckCardComparator"
+source_lines = "270-274"
+description = "defaultモードではCARD_TYPE_SORT_ORDERの値が異なる場合、その差(typeA - typeB)を返し、先頭配置・カテゴリ優先・末尾配置・詳細比較には進まない"
+given = "sortModeがdefault相当で、cardA.cardTypeとcardB.cardTypeのsort orderが異なる"
+expect_return_shape = "monster(0) < spell(1) < trap(2)、未知タイプは999として比較される"
+
+[[condition]]
+id = "comparator.head_both_listed_order_by_list_index"
+target_function = "createDeckCardComparator"
+source_lines = "276-284"
+description = "enableHeadPlacementがtruthyでheadPlacementCardIdsが空でなく、a.cidとb.cidが両方含まれる場合、配列内indexの差を返す"
+given = "同じカードタイプで、headPlacementCardIds=[b.cid, a.cid]"
+expect_return_shape = "comparator(a, b) > 0"
+
+[[condition]]
+id = "comparator.head_only_a_listed_first"
+target_function = "createDeckCardComparator"
+source_lines = "286-287"
+description = "手動先頭配置が有効でa.cidだけがheadPlacementCardIdsに含まれる場合、-1を返してaを先にする"
+given = "同じカードタイプで、aだけがheadPlacementCardIdsに含まれる"
+expect_return = "-1"
+
+[[condition]]
+id = "comparator.head_only_b_listed_first"
+target_function = "createDeckCardComparator"
+source_lines = "288"
+description = "手動先頭配置が有効でb.cidだけがheadPlacementCardIdsに含まれる場合、1を返してbを先にする"
+given = "同じカードタイプで、bだけがheadPlacementCardIdsに含まれる"
+expect_return = "1"
+
+[[condition]]
+id = "comparator.head_disabled_or_empty_skips_head_priority"
+target_function = "createDeckCardComparator"
+source_lines = "277-289"
+description = "enableHeadPlacementがfalsy、またはheadPlacementCardIds.lengthが0の場合、先頭配置index比較を行わずカテゴリ優先以降へ進む"
+given = "headPlacementCardIdsに対象cidがあってもenableHeadPlacement=false、またはheadPlacementCardIds=[]"
+expect_return_shape = "先頭配置による-1/1/index差は返さない"
+
+[[condition]]
+id = "comparator.category_one_match_precedes_non_match"
+target_function = "createDeckCardComparator"
+source_lines = "291-296"
+description = "enableCategoryPriorityがtruthyで片方だけpriorityCategoryCardIdsにcard.cardIdとして含まれる場合、該当あり(0)と該当なし(1)の差を返す"
+given = "同じカードタイプかつ先頭配置で差がなく、片方のCardInfo.cardIdだけがpriorityCategoryCardIdsに含まれる"
+expect_return_shape = "カテゴリ該当カードが先になる"
+
+[[condition]]
+id = "comparator.category_disabled_skips_priority"
+target_function = "createDeckCardComparator"
+source_lines = "291-296,299"
+description = "enableCategoryPriorityがfalsyの場合、priorityCategoryCardIdsに含まれていてもカテゴリ優先差とカテゴリ内quantity-desc比較を行わない"
+given = "enableCategoryPriority=false"
+expect_return_shape = "カテゴリ優先による差は返さず、末尾配置またはcompareCardsByTypeへ進む"
+
+[[condition]]
+id = "comparator.category_quantity_desc_orders_by_section_count"
+target_function = "createDeckCardComparator"
+source_lines = "298-304"
+description = "enableCategoryPriorityがtruthyで両方がカテゴリ該当しcategoryPrioritySortMode='quantity-desc'の場合、section内の同cid件数を数え、件数が異なればquantityB - quantityAを返す"
+given = "a.cidのsection内件数がb.cidより多い"
+expect_return_shape = "comparator(a, b) < 0"
+
+[[condition]]
+id = "comparator.category_quantity_equal_falls_through"
+target_function = "createDeckCardComparator"
+source_lines = "300-305"
+description = "categoryPrioritySortMode='quantity-desc'でもsection内件数が同じ場合はreturnせず、末尾配置またはcompareCardsByTypeへ進む"
+given = "両方カテゴリ該当かつa.cid件数とb.cid件数が同じ"
+expect_return_shape = "quantityB - quantityAは返さない"
+
+[[condition]]
+id = "comparator.category_level_mode_falls_through"
+target_function = "createDeckCardComparator"
+source_lines = "298-305"
+description = "両方カテゴリ該当でもcategoryPrioritySortModeが'level'の場合、カテゴリ内で枚数比較を行わず、末尾配置またはcompareCardsByTypeへ進む"
+given = "両方カテゴリ該当かつcategoryPrioritySortMode='level'"
+expect_return_shape = "levelSortOrderは後続compareCardsByTypeのモンスターlevel比較で適用される"
+
+[[condition]]
+id = "comparator.tail_one_listed_goes_after_unlisted"
+target_function = "createDeckCardComparator"
+source_lines = "308-313"
+description = "enableTailPlacementがtruthyで片方だけtailPlacementCardIdsに含まれる場合、末尾配置なし(0)とあり(1)の差を返し、含まれるカードを後にする"
+given = "同じカードタイプで先頭配置・カテゴリ優先差がなく、片方だけtailPlacementCardIdsに含まれる"
+expect_return_shape = "tailPlacementCardIdsに含まれないカードが先になる"
+
+[[condition]]
+id = "comparator.tail_disabled_or_same_flag_falls_through"
+target_function = "createDeckCardComparator"
+source_lines = "309-316"
+description = "enableTailPlacementがfalsy、または両方の末尾配置フラグが同じ場合、末尾配置差を返さずcompareCardsByTypeへ進む"
+given = "enableTailPlacement=false、または両方tailPlacementCardIdsに含まれる/含まれない"
+expect_return_shape = "compareCardsByType(a, b)の戻り値"
+
+[[condition]]
+id = "type_compare_card_type_order"
+target_function = "createDeckCardComparator"
+source_lines = "141-145"
+description = "compareCardsByTypeはCARD_TYPE_SORT_ORDERの値が異なる場合、その差(typeA - typeB)を返し、詳細比較へ進まない"
+given = "compareCardsByTypeに進み、cardA.cardTypeとcardB.cardTypeのsort orderが異なる"
+expect_return_shape = "monster(0) < spell(1) < trap(2)、未知タイプは999として比較される"
+verified = false
+unverifiable_reason = "public comparatorのdefaultモードはL274でカードタイプ差を先に返し、compareCardsByTypeはL316でカードタイプが同じ場合にだけ呼ばれる。通常の同期実行ではこの分岐に到達できない"
+
+[[condition]]
+id = "type_compare_monster_main_type_first_known_type"
+target_function = "createDeckCardComparator"
+source_lines = "146-167"
+description = "モンスター同士ではtypes配列を先頭から走査し、fusion=0/synchro=1/xyz=2/link=3の最初に見つかった値を主要タイプとして比較する。対象タイプが無い場合は999になる"
+given = "両方monsterで、types配列内の主要タイプorderが異なる"
+expect_return_shape = "主要タイプorderの差を返す"
+
+[[condition]]
+id = "type_compare_monster_level_order"
+target_function = "createDeckCardComparator"
+source_lines = "168-172"
+description = "モンスター同士で主要タイプorderが同じかつlevelValueが異なる場合、levelSortOrder='asc'ならlevelA - levelB、その他はlevelB - levelAを返す。levelValue nullishは0として扱う"
+given = "両方monsterで主要タイプorderが同じ、levelValueが異なる"
+expect_return_shape = "levelSortOrderに従う昇順または降順"
+
+[[condition]]
+id = "type_compare_spell_effect_order"
+target_function = "createDeckCardComparator"
+source_lines = "174-179"
+description = "魔法同士ではeffectTypeがtruthyならSPELL_TYPE_SORT_ORDERを参照し、未定義または未登録は999として比較する。orderが異なればorderA - orderBを返す"
+given = "両方spellでspell effect sort orderが異なる"
+expect_return_shape = "normal(0) < quick(1) < ritual(2) < continuous(3) < equip(4) < field(5) < unknown/none(999)"
+
+[[condition]]
+id = "type_compare_trap_effect_order"
+target_function = "createDeckCardComparator"
+source_lines = "180-184"
+description = "罠同士ではeffectTypeがtruthyならTRAP_TYPE_SORT_ORDERを参照し、未定義または未登録は999として比較する。orderが異なればorderA - orderBを返す"
+given = "両方trapでtrap effect sort orderが異なる"
+expect_return_shape = "normal(0) < counter(1) < continuous(2) < unknown/none(999)"
+
+[[condition]]
+id = "type_compare_name_locale_ja_fallback"
+target_function = "createDeckCardComparator"
+source_lines = "186-187"
+description = "カードタイプ、モンスター主要タイプ、levelValue、魔法/罠effect orderで差が出ない場合、cardA.name.localeCompare(cardB.name, 'ja')を返す"
+given = "compareCardsByType内の先行比較で差がない"
+expect_return_shape = "日本語localeCompareによるカード名昇順"
+
+[[condition]]
+id = "race_compare_monster_race_locale"
+target_function = "createDeckCardComparator"
+source_lines = "198-208"
+description = "by-raceでは両方のtype orderが0(monster)でrace文字列が異なる場合、raceA.localeCompare(raceB, 'ja')を返す。race nullishは空文字になる"
+given = "sortMode='by-race'、両方monster、raceが異なる"
+expect_return_shape = "日本語localeCompareによるrace昇順"
+
+[[condition]]
+id = "race_compare_card_type_order"
+target_function = "createDeckCardComparator"
+source_lines = "211-214"
+description = "by-raceでrace比較が返らずtype orderが異なる場合、typeA - typeBを返す"
+given = "sortMode='by-race'で、カードタイプorderが異なる"
+expect_return_shape = "monster(0) < spell(1) < trap(2)、未知タイプは999として比較される"
+
+[[condition]]
+id = "race_compare_same_type_numeric_cid"
+target_function = "createDeckCardComparator"
+source_lines = "216-219"
+description = "by-raceでrace比較とカードタイプ差が返らない場合、parseInt(cid, 10) || 0 の数値差を返す"
+given = "sortMode='by-race'で、同じカードタイプまたは両方monster同race"
+expect_return_shape = "数値化したcidの昇順。parseInt結果がNaNまたは0の場合は0として扱う"
+
+[[condition]]
+id = "attribute_compare_monster_attribute_locale"
+target_function = "createDeckCardComparator"
+source_lines = "230-240"
+description = "by-attributeでは両方のtype orderが0(monster)でattribute文字列が異なる場合、attrA.localeCompare(attrB, 'ja')を返す。attribute nullishは空文字になる"
+given = "sortMode='by-attribute'、両方monster、attributeが異なる"
+expect_return_shape = "日本語localeCompareによるattribute昇順"
+
+[[condition]]
+id = "attribute_compare_card_type_order"
+target_function = "createDeckCardComparator"
+source_lines = "243-246"
+description = "by-attributeでattribute比較が返らずtype orderが異なる場合、typeA - typeBを返す"
+given = "sortMode='by-attribute'で、カードタイプorderが異なる"
+expect_return_shape = "monster(0) < spell(1) < trap(2)、未知タイプは999として比較される"
+
+[[condition]]
+id = "attribute_compare_same_type_numeric_cid"
+target_function = "createDeckCardComparator"
+source_lines = "248-251"
+description = "by-attributeでattribute比較とカードタイプ差が返らない場合、parseInt(cid, 10) || 0 の数値差を返す"
+given = "sortMode='by-attribute'で、同じカードタイプまたは両方monster同attribute"
+expect_return_shape = "数値化したcidの昇順。parseInt結果がNaNまたは0の場合は0として扱う"
+
+# --- buildRecipeSortOptions(deps): DeckSortOptions ---
+
+[[condition]]
+id = "build_options_maps_deps_with_defaults"
+target_function = "buildRecipeSortOptions"
+source_lines = "323-342"
+description = "buildRecipeSortOptionsはdepsのcategoryMatchedCardIds/headPlacementCardIds/tailPlacementCardIdsをそのまま対応プロパティへ渡し、enableCategoryPriority・enableHeadPlacement・enableTailPlacementはnullish時true、levelSortOrderはnullish時'desc'、categoryPrioritySortModeはnullish時'level'を返す"
+given = "depsに必須配列/Setと任意設定を渡す"
+expect_return_shape = "DeckSortOptionsオブジェクト"

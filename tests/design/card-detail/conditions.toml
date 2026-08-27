@@ -1,0 +1,129 @@
+# 検証対象: src/stores/card-detail.ts (useCardDetailStore)
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Phase1.6(TASK-326)のTier A試行対象ファイルの1つ（store系）。
+#
+# このファイルはPiniaの`defineStore(id, () => { ... return {...} })`パターン（Setup Store）で
+# 実装されている。TASK-319でscripts/design/extract-ast-skeleton.tsをPinia Setup Store対応に拡張し、
+# returnオブジェクトで公開されるローカル関数を"useCardDetailStore#アクション名"として検出できるように
+# なったため、本ファイルのtarget_functionもこの形式で統一する。
+#
+# 単純なsetterのみでbranchを持たない関数（setCardTab/startLoadingCard/endLoadingCard/reset）は
+# README 2節の粒度基準（「書かない: 単純なgetter/setter」）に従い条件化しない。
+
+[meta]
+feature = "card-detail-store"
+source_file = "src/stores/card-detail.ts"
+verified = true
+verified_at = "2026-08-05"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/stores/card-detail.test.ts"
+source_hash = "b0a5405423dfe64fabf8055239503d78fe93faf0"
+note = "go_back.history_entry_missing_falls_back_to_null の1件のみ verified=false（公開API経由では検証不能。理由は当該conditionのunverifiable_reason参照）"
+
+# --- setSelectedCard(card: CardInfo | null): void ---
+
+[[condition]]
+id = "set_selected_card.navigating_history_skips_history_update"
+target_function = "useCardDetailStore#setSelectedCard"
+source_lines = "49-75"
+description = "isNavigatingHistory.valueがtrueの間はselectedCardのみ更新し、history配列は一切変更しない（goBack/goForward内部からの呼び出し時の無限ループ防止）"
+given = "isNavigatingHistory.value = true の状態でsetSelectedCard(card)を呼ぶ"
+expect_side_effect = "selectedCard.value = card だが history.value と historyIndex.value は変化しない"
+
+[[condition]]
+id = "set_selected_card.null_card_skips_history_update"
+target_function = "useCardDetailStore#setSelectedCard"
+source_lines = "53"
+description = "cardがnullの場合もhistory配列は変更されない"
+given = "setSelectedCard(null)"
+expect_side_effect = "selectedCard.value = null、historyは変化しない"
+
+[[condition]]
+id = "set_selected_card.same_card_as_last_is_noop_for_history"
+target_function = "useCardDetailStore#setSelectedCard"
+source_lines = "55-58"
+description = "直前の履歴と同じcardId・ciidのカードを連続選択した場合、historyには追加しない（早期return）"
+given = "history = [cardA(id=1,ciid=x)], historyIndex = 0, setSelectedCard(cardA相当のid=1,ciid=x)"
+expect_side_effect = "selectedCard.value は更新されるが history.value.length は増えない"
+
+[[condition]]
+id = "set_selected_card.truncates_forward_history_on_branch"
+target_function = "useCardDetailStore#setSelectedCard"
+source_lines = "60-63"
+description = "戻る操作の後に新しいカードを選択した場合(historyIndexが末尾でない場合)、それより後ろの履歴を切り捨ててから追加する"
+given = "history = [A, B, C], historyIndex = 0（Aを指す）、setSelectedCard(D)を呼ぶ"
+expect_side_effect = "history.value === [A, D]、historyIndex.value === 1（B, Cは破棄される）"
+
+[[condition]]
+id = "set_selected_card.exceeds_max_history_size_shifts_oldest"
+target_function = "useCardDetailStore#setSelectedCard"
+source_lines = "70-73"
+description = "historyがMAX_HISTORY_SIZE(50)を超えた場合、最古の要素をshiftしhistoryIndexも1減らす"
+given = "history.length = 50（上限）の状態でsetSelectedCardにより51件目を追加"
+expect_side_effect = "history.value.length === 50（先頭要素が削除される）、historyIndex.value は追加前の位置から1増えて上限内に収まる"
+
+# --- updateSelectedCardCiid(ciid: string): void ---
+
+[[condition]]
+id = "update_ciid.no_selected_card_is_noop"
+target_function = "useCardDetailStore#updateSelectedCardCiid"
+source_lines = "88-90"
+description = "selectedCard.valueがnullの場合何もしない"
+given = "selectedCard.value = null の状態でupdateSelectedCardCiid('999')"
+expect_side_effect = "selectedCard.value は null のまま"
+
+[[condition]]
+id = "update_ciid.selected_card_present_updates_in_place"
+target_function = "useCardDetailStore#updateSelectedCardCiid"
+source_lines = "88-90"
+description = "selectedCard.valueが存在する場合、そのciidフィールドのみを書き換える"
+given = "selectedCard.value = { cardId: '1', ciid: 'old', ... }, updateSelectedCardCiid('new')"
+expect_side_effect = "selectedCard.value.ciid === 'new'（他フィールドは変化しない）"
+
+# --- goBack(): void ---
+
+[[condition]]
+id = "go_back.cannot_go_back_is_noop"
+target_function = "useCardDetailStore#goBack"
+source_lines = "111"
+description = "canGoBack.value(historyIndex > 0)がfalseの場合、早期returnし何も変更しない"
+given = "historyIndex.value = 0（先頭）でgoBack()を呼ぶ"
+expect_side_effect = "historyIndex.value、selectedCard.valueともに変化しない"
+
+[[condition]]
+id = "go_back.moves_index_and_sets_selected_card"
+target_function = "useCardDetailStore#goBack"
+source_lines = "113-116"
+description = "canGoBackがtrueの場合、isNavigatingHistoryを一時的にtrueにしてhistoryIndexを1減らし、その位置のカードをselectedCardに設定してからisNavigatingHistoryをfalseに戻す"
+given = "history = [A, B], historyIndex = 1（Bを指す）でgoBack()"
+expect_side_effect = "historyIndex.value === 0, selectedCard.value === A, isNavigatingHistory.value は最終的にfalse"
+
+[[condition]]
+id = "go_back.history_entry_missing_falls_back_to_null"
+target_function = "useCardDetailStore#goBack"
+source_lines = "115"
+description = "history.value[historyIndex.value]がundefinedの場合(理論上の防御的コード)、selectedCardはnullになる"
+given = "history.value と historyIndex.value の不整合により history.value[historyIndex.value] === undefined"
+expect_side_effect = "selectedCard.value === null"
+note = "通常のUI操作では発生しない防御的分岐（?? null）。canGoBackの前提が壊れた場合のフォールバック"
+verified = false
+unverifiable_reason = "history/historyIndexはストアのreturnオブジェクトに公開されていないため、公開API経由では不整合状態を作れずテストできない（Phase1.6で判明した検証フローの限界）"
+
+# --- goForward(): void ---
+
+[[condition]]
+id = "go_forward.cannot_go_forward_is_noop"
+target_function = "useCardDetailStore#goForward"
+source_lines = "123"
+description = "canGoForward.value(historyIndex < history.length - 1)がfalseの場合、早期returnし何も変更しない"
+given = "history = [A, B], historyIndex.value = 1（末尾）でgoForward()"
+expect_side_effect = "historyIndex.value、selectedCard.valueともに変化しない"
+
+[[condition]]
+id = "go_forward.moves_index_and_sets_selected_card"
+target_function = "useCardDetailStore#goForward"
+source_lines = "125-128"
+description = "canGoForwardがtrueの場合、isNavigatingHistoryを一時的にtrueにしてhistoryIndexを1増やし、その位置のカードをselectedCardに設定する"
+given = "history = [A, B], historyIndex = 0（Aを指す）でgoForward()"
+expect_side_effect = "historyIndex.value === 1, selectedCard.value === B"

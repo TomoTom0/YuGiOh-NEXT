@@ -216,5 +216,5 @@ This project also uses various other open source libraries as transitive depende
 For a complete list of all dependencies and their licenses, run:
 
 ```bash
-bunx license-checker-rseidelsohn --summary
+pnpm dlx license-checker-rseidelsohn --summary
 ```

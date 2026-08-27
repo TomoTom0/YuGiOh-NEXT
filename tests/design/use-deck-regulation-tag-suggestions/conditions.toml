@@ -1,0 +1,254 @@
+# 検証対象: src/composables/useDeckRegulationTagSuggestions.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、デッキ名冒頭のレギュレーションタグ（[OCG-YYMM] / [GENESYS-YYMM]）
+# 入力補助Composable。
+#
+# 到達不能/実質到達不能分岐:
+# - handleInput内の `match[1] ?? null` / `match[2] ?? ''`（66-71行目）:
+#   tsconfigでnoUncheckedIndexedAccess=trueのためTypeScript上はmatch[1]/match[2]が
+#   `string | undefined`型となり`??`が要求されるが、TRIGGER_PATTERN
+#   (`/^([[【])([^\]】]*)$/`)の2つのキャプチャグループはどちらも`?`等の省略記号を
+#   持たないため、execがmatchを返す（truthyになる）時点で両グループは必ず文字列を
+#   持つ。実行時にmatch[1]/match[2]がundefinedになるケースは存在しないため、
+#   `?? null` / `?? ''`側の分岐は型システムが要求する防御コードであり実質到達不能。
+# - candidates内の `if (!open) return []`（79-82行目、openはmatchedBracket.value）:
+#   matchedBracket/matchedQueryは非公開のクロージャ内refでhandleInput内でしか変更されず、
+#   常にペアで設定される（一方がnullなら他方も必ずnull。両方null始まり）。candidates.value
+#   はsuggestions computedの`matchedQuery.value === null`ガードを通過した後にのみ参照される
+#   ため、candidates内でmatchedBracket.valueがnullになる状態でcandidates.valueが評価される
+#   ことは公開API経由の実行時には発生しない（実質到達不能）。
+
+[meta]
+feature = "use-deck-regulation-tag-suggestions"
+source_file = "src/composables/useDeckRegulationTagSuggestions.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/composables/__tests__/useDeckRegulationTagSuggestions.test.ts"
+source_hash = "9affcf0c5310ca127f50d9ed1943bfe23e4315ea"
+note = "verified=falseは0件"
+
+# --- closeCharFor(open) ---
+
+[[condition]]
+id = "close_char_for.square_bracket"
+target_function = "closeCharFor"
+source_lines = "37-39"
+description = "openが'['の場合、closeCharForは']'を返す"
+given = "open = '['"
+expect_return = "']'"
+
+[[condition]]
+id = "close_char_for.corner_bracket"
+target_function = "closeCharFor"
+source_lines = "37-39"
+description = "openが'['以外（実運用では'【'）の場合、closeCharForは'】'を返す"
+given = "open = '【'"
+expect_return = "'】'"
+
+# --- getCursorPos() ---
+
+[[condition]]
+id = "get_cursor_pos.fallback_to_input_length"
+target_function = "useDeckRegulationTagSuggestions (getCursorPos)"
+source_lines = "62-64"
+description = "inputElement.valueがnull、またはselectionStartがnullの場合、getCursorPosはinputValue.value.lengthへフォールバックする"
+given = "inputElement.value = null、またはinputElement.value.selectionStart = null"
+expect_return_shape = "inputValue.value.length"
+
+[[condition]]
+id = "get_cursor_pos.uses_selection_start"
+target_function = "useDeckRegulationTagSuggestions (getCursorPos)"
+source_lines = "62-64"
+description = "inputElement.valueが存在しselectionStartが数値の場合、getCursorPosはその値をそのまま返す"
+given = "inputElement.value.selectionStart = N（inputValue.value.lengthとは異なる値）"
+expect_return_shape = "N"
+
+# --- handleInput() ---
+
+[[condition]]
+id = "handle_input.trigger_matched_sets_bracket_and_query"
+target_function = "useDeckRegulationTagSuggestions (handleInput)"
+source_lines = "66-77"
+description = "カーソル直前までの文字列がTRIGGER_PATTERN（先頭からの未閉じ`[`または`【`）に一致する場合、matchedBracketに開き括弧、matchedQueryに括弧内の文字列（空文字含む）を設定し、selectedIndexを-1にリセットする"
+given = "inputValue.value='[ABC', カーソル位置=4"
+expect_return_shape = "matchedBracket.value='[', matchedQuery.value='ABC', selectedIndex.value=-1"
+
+[[condition]]
+id = "handle_input.no_trigger_clears_bracket_and_query"
+target_function = "useDeckRegulationTagSuggestions (handleInput)"
+source_lines = "66-77"
+description = "カーソル直前までの文字列がTRIGGER_PATTERNに一致しない場合（先頭に括弧が無い、既に閉じ括弧を含む等）、matchedBracket/matchedQueryをnullにし、selectedIndexを-1にリセットする"
+given = "inputValue.value='デッキ[', カーソル位置=4"
+expect_return_shape = "matchedBracket.value=null, matchedQuery.value=null, selectedIndex.value=-1"
+
+# --- candidates (computed) ---
+
+[[condition]]
+id = "candidates.includes_latest_and_sorted_dated_entries"
+target_function = "useDeckRegulationTagSuggestions (candidates)"
+source_lines = "84-101"
+description = "matchedBracketがある場合、候補配列は「OCG最新版」「GENESYS最新版」が先頭固定で、続けてforbiddenLimitedCache.getAvailableDates()を文字列降順ソートしたOCG各版、genesysPointCache.getAvailableListParams()を文字列降順ソートしたGENESYS各版の順に並ぶ"
+given = "matchedBracket.value='[', getAvailableDates()=['2024-10-01','2025-01-01'], getAvailableListParams()=['202408','202606']"
+expect_return_shape = "[OCG最新, GENESYS最新, OCG-2501, OCG-2410, GENESYS-2606, GENESYS-2408]（valueは開き括弧に応じて[]または【】）"
+
+# --- suggestions (computed) ---
+
+[[condition]]
+id = "suggestions.null_query_returns_empty"
+target_function = "useDeckRegulationTagSuggestions (suggestions)"
+source_lines = "104-111"
+description = "matchedQuery.valueがnullの場合（handleInput未実行の初期状態、またはトリガー未検出時）、suggestionsはフィルタ処理を行わず空配列を返す"
+given = "matchedQuery.value = null"
+expect_return = "[]"
+
+[[condition]]
+id = "suggestions.empty_string_query_returns_all_candidates"
+target_function = "useDeckRegulationTagSuggestions (suggestions)"
+source_lines = "104-111"
+description = "matchedQuery.valueが空文字列（括弧直後で未入力）の場合、全candidatesがstartsWith('')に一致するため全件が返る"
+given = "matchedQuery.value = ''"
+expect_return_shape = "candidates.valueと同じ全件"
+
+[[condition]]
+id = "suggestions.query_filters_case_insensitive_by_stripped_content"
+target_function = "useDeckRegulationTagSuggestions (suggestions)"
+source_lines = "104-111"
+description = "matchedQueryが非空文字列の場合、各候補の括弧を除いた中身（value.slice(1,-1)）を小文字化し、query小文字化値でstartsWithする候補のみへ絞り込む"
+given = "matchedQuery.value='GEN'"
+expect_return_shape = "value先頭が'[GENESYS'（大文字小文字無視）の候補のみ"
+
+# --- applySuggestion(suggestion) / selectSuggestion(suggestion) ---
+
+[[condition]]
+id = "apply_suggestion.no_bracket_is_noop"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "113-115"
+description = "matchedBracket.valueがnullの場合、applySuggestionはinputValueを変更せず即returnする"
+given = "matchedBracket.value = null の状態でselectSuggestionを呼ぶ"
+expect_return_shape = "inputValue.value 不変"
+
+[[condition]]
+id = "apply_suggestion.replaces_through_immediate_close_bracket"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "117-124"
+description = "カーソル直後の文字列が対応する閉じ括弧と一致する場合、その閉じ括弧を含めた範囲までを候補値で置換する（既存タグの中身を編集しているケース）"
+given = "inputValue.value='[OCG] デッキ名', カーソル位置=4（']'の直前）"
+expect_return_shape = "inputValue.value = suggestion.value + ' デッキ名'（既存の']'は除去される）"
+
+[[condition]]
+id = "apply_suggestion.replaces_up_to_cursor_when_no_immediate_close"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "117-124"
+description = "カーソル直後が対応する閉じ括弧でない場合、カーソル位置までだけを候補値で置換し、それ以降の文字列（未閉じの残り）はそのまま残す"
+given = "inputValue.value='[OCG デッキ名', カーソル位置=4"
+expect_return_shape = "inputValue.value = suggestion.value + ' デッキ名'"
+
+[[condition]]
+id = "apply_suggestion.resets_matched_state"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "125-127"
+description = "候補確定後はmatchedBracket/matchedQueryをnull、selectedIndexを-1へリセットする"
+given = "候補確定（selectSuggestion）を実行"
+expect_return_shape = "matchedBracket.value=null, matchedQuery.value=null, selectedIndex.value=-1"
+
+[[condition]]
+id = "apply_suggestion.inserts_space_before_non_whitespace_after"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "123-124"
+description = "後続テキスト(after)が存在し、かつ空白で始まらない場合、閉じ括弧との間に半角スペースを自動挿入する。これにより regulation-tag-parser の prefix パターン (?=\\s|$) がマッチし、日付出力タグがパースされる"
+given = "inputValue.value='[OCGテスト', カーソル位置=4, 候補='[OCG-2501]'"
+expect_return_shape = "inputValue.value = '[OCG-2501] テスト'（']' と 'テスト' の間に空白が挿入される）"
+
+[[condition]]
+id = "apply_suggestion.no_extra_space_when_after_starts_with_whitespace"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion)"
+source_lines = "123-124"
+description = "後続テキストが既に空白で始まる場合は余分な空白を追加しない（二重空白防止）"
+given = "inputValue.value='[OCG] テスト', カーソル位置=4, 候補='[OCG-2501]'"
+expect_return_shape = "inputValue.value = '[OCG-2501] テスト'（空白は1つのまま）"
+
+[[condition]]
+id = "apply_suggestion.dated_tag_with_space_ensures_regex_match"
+target_function = "useDeckRegulationTagSuggestions (applySuggestion) -> regulation-tag-parser"
+source_lines = "123-124, regulation-tag-parser.ts:48-49"
+description = "日付出力タグ補完後の文字列に対して parseRegulationTag が日付(YYMM)を正しく抽出できる。prefix パターン (?=\\s|$) が空白によってマッチするため"
+given = "applySuggestionで '[GENESYS-2606] テスト' が生成された状態"
+expect_return_shape = "parseRegulationTagの結果: { type: 'genesys', yymm: '2606' }（nullでない）"
+
+# --- handleKeydown(event) ---
+
+[[condition]]
+id = "handle_keydown.no_suggestions_returns_false"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "140-141"
+description = "suggestions.value.lengthが0の場合、handleKeydownは即falseを返しキー種別の判定を行わない（preventDefaultも呼ばない）"
+given = "suggestions.value = []"
+expect_return = "false"
+
+[[condition]]
+id = "handle_keydown.arrow_down_or_tab_wraps_index"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "143-147"
+description = "ArrowDownまたはTabキーの場合、preventDefaultし、selectedIndexを(selectedIndex+1) % suggestions.lengthへ更新してtrueを返す（末尾到達で先頭0へ循環）"
+given = "event.key='ArrowDown'（またはTab）、selectedIndex.value=suggestions.length-1"
+expect_return_shape = "true、selectedIndex.value=0"
+
+[[condition]]
+id = "handle_keydown.arrow_up_wraps_from_start"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "148-153"
+description = "ArrowUpキーでselectedIndexが0以下（初期値-1を含む）の場合、末尾（suggestions.length-1）へ循環する"
+given = "event.key='ArrowUp', selectedIndex.value=-1 または 0"
+expect_return_shape = "true、selectedIndex.value=suggestions.length-1"
+
+[[condition]]
+id = "handle_keydown.arrow_up_decrements"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "148-153"
+description = "ArrowUpキーでselectedIndexが0より大きい場合、selectedIndexを1減らす"
+given = "event.key='ArrowUp', selectedIndex.value=2"
+expect_return_shape = "true、selectedIndex.value=1"
+
+[[condition]]
+id = "handle_keydown.enter_uses_selected_or_first_index"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "155-163"
+description = "Enterキーの場合、selectedIndexが0以上ならそのindex、負値（未選択の初期状態）なら0番目の候補を対象に確定処理（selectSuggestion）を行いtrueを返す"
+given = "event.key='Enter', selectedIndex.value=-1（未選択）または 選択中のindex"
+expect_return_shape = "true、対象indexのsuggestionでinputValueが更新される"
+
+[[condition]]
+id = "handle_keydown.enter_with_out_of_range_index_falls_through"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "155-163"
+description = "Enterキー押下時にselectedIndex.valueがsuggestions.value.length以上（公開Refのため呼び出し側が任意値を設定可能）の場合、suggestions.value[index]がundefinedとなるため確定処理を行わずEscape判定へフォールスルーし、最終的にfalseを返す"
+given = "event.key='Enter', selectedIndex.value = suggestions.value.length以上に外部から設定"
+expect_return_shape = "false、inputValue不変"
+
+[[condition]]
+id = "handle_keydown.escape_resets_and_returns_true"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "164-168"
+description = "Escapeキーの場合、preventDefaultしresetSuggestion()を呼びtrueを返す"
+given = "event.key='Escape'"
+expect_return_shape = "true、resetSuggestion実行によりsuggestions.value=[]になる"
+
+[[condition]]
+id = "handle_keydown.unhandled_key_returns_false"
+target_function = "useDeckRegulationTagSuggestions (handleKeydown)"
+source_lines = "140-169"
+description = "suggestionsが存在してもArrowDown/Tab/ArrowUp/Enter/Escapeいずれにも一致しないキーの場合、どのif節も実行されずfalseを返す"
+given = "event.key='a' 等の対象外キー"
+expect_return = "false"
+
+# --- resetSuggestion() ---
+
+[[condition]]
+id = "reset_suggestion.clears_state"
+target_function = "useDeckRegulationTagSuggestions (resetSuggestion)"
+source_lines = "172-176"
+description = "resetSuggestionはmatchedBracket/matchedQueryをnull、selectedIndexを-1にする"
+given = "matchedBracket/matchedQuery/selectedIndexが設定済みの状態でresetSuggestionを呼ぶ（Escapeキー経由を含む）"
+expect_return_shape = "matchedBracket.value=null, matchedQuery.value=null, selectedIndex.value=-1"

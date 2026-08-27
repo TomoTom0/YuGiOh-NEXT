@@ -6,12 +6,15 @@
 
 | ディレクトリ | 内容 | テストツール | 実行コマンド |
 |------------|------|------------|------------|
-| `unit/` | ユニットテスト（関数・ユーティリティ・store等） | Vitest | `bun run test:vitest` |
-| `browser/` | ブラウザ自動テスト（UI操作、CDP経由） | Node.js + CDP | `bun run tmp/test-*.js` |
-| `e2e/` | E2Eテスト（統合フロー） | Vitest + CDP | `bun run test:vitest tests/e2e/` |
-| `combine/` | 統合テスト（複数コンポーネント） | Vitest | `bun run test:vitest tests/combine/` |
+| `unit/` | ユニットテスト（関数・ユーティリティ・store等） | Vitest | `mise run test:vitest` |
+| `browser/` | ブラウザ自動テスト（UI操作、CDP経由） | Node.js + CDP | `node tmp/test-*.js` |
+| `e2e/` | E2Eテスト（統合フロー） | Vitest + CDP | `mise run test:vitest -- tests/e2e/` |
+| `combine/` | 統合テスト（複数コンポーネント） | Vitest | `mise run test:vitest -- tests/combine/` |
+| `design/` | テスト設計仕様（`conditions.toml`: 実装から抽出した検証条件・`[covers:<id>]`タグでテストと紐付け） | - | 詳細は [`tests/design/README.md`](./design/README.md) |
 | `fixtures/` | テストフィクスチャ（テストデータ） | - | - |
 | `sample/` | サンプルデータ（公式サイトのHTMLダウンロード済み） | - | - |
+
+> **`design/` について**: 実装ソースから分岐・throw・返り値を転記した `conditions.toml` を蓄積するテスト設計仕様ディレクトリです（TASK-319〜）。テストは `[covers:<id>]` タグでこれらの条件をカバーしたことを示します。「推測を推測で検証する」循環を防ぐのが目的で、計画・粒度基準・検証方法は [`tests/design/README.md`](./design/README.md) を参照してください。
 
 ## 主要なユニットテストカテゴリ（unit/）
 
@@ -57,7 +60,7 @@
 |------------|---------|-----|
 | ユニットテスト | `<ソースファイル名>.test.ts` | `type-guards.test.ts` |
 | ユニットテスト（複雑） | `<機能名>-<詳細>.test.ts` | `deck-import-comprehensive.test.ts` |
-| ブラウザテスト | `test-<機能名>.js` | `test-buttons.js` |
+| ブラウザテスト | `test-<機能名>.cjs` | `test-buttons.cjs` |
 | E2Eテスト | `<フロー名>.test.ts` | `deck-edit-export-import.test.ts` |
 
 ### 重要なテスト対象（必須）
@@ -75,22 +78,40 @@
 
 ---
 
+## テストフィクスチャの準備
+
+パーサーテスト等で使用する公式サイトのHTMLファイルは、以下のスクリプトでダウンロードする。
+
+```bash
+# テスト用サンプルHTMLファイルをダウンロード
+bash scripts/test/download-sample-html.sh
+```
+
+ダウンロード先:
+- `tests/combine/data/` - 日本語HTML（card-detail.html, card-search-result.html, deck-detail-public.html, card-faq-list.html, faq-detail.html）
+- `tests/combine/data/en/` - 英語HTML
+- `tests/sample/` - 韓国語等のその他サンプル
+
+**注意**: パーサーテストはHTMLファイルが存在しない場合は `skipIf` でスキップされる。テストを実行する前に必ずスクリプトを実行すること。
+
+---
+
 ## テスト実行コマンド
 
 ### ユニットテスト
 
 ```bash
 # 全てのユニットテストを実行
-bun run test:vitest
+mise run test:vitest
 
 # 特定のテストファイルのみ実行
-bun run test:vitest tests/unit/utils/type-guards.test.ts
+mise run test:vitest -- tests/unit/utils/type-guards.test.ts
 
 # watchモード（開発中）
-bun run test:vitest --watch
+mise run test:vitest -- --watch
 
 # カバレッジ付き実行
-bun run test:vitest --coverage
+mise run test:vitest -- --coverage
 ```
 
 ### ブラウザ自動テスト
@@ -100,8 +121,8 @@ bun run test:vitest --coverage
 ./scripts/debug/setup/start-chrome.sh
 
 # 個別のブラウザテストを実行
-bun run tests/browser/test-buttons.js
-bun run tests/browser/test-shuffle.js
+node tests/browser/test-buttons.cjs
+node tests/browser/test-shuffle.cjs
 
 # 停止
 ./scripts/debug/setup/stop-chrome.sh
@@ -113,7 +134,7 @@ bun run tests/browser/test-shuffle.js
 
 ```bash
 # E2Eテストを実行
-bun run test:vitest tests/e2e/
+mise run test:vitest -- tests/e2e/
 ```
 
 ---
@@ -169,7 +190,7 @@ bun run test:vitest tests/e2e/
    - テストフィクスチャが最新か
 
 3. **テスト環境の確認**
-   - `bun install` で依存関係を再インストール
+   - `pnpm install` で依存関係を再インストール
    - ブラウザテストの場合、Chromiumが起動しているか確認
 
 ### テストの書き方が分からない
@@ -191,7 +212,7 @@ bun run test:vitest tests/e2e/
 
 2. **WebSocket接続情報を確認**
    ```bash
-   cat .chrome_playwright_ws
+   cat $(tomlq -r '.chrome.ws_file' configs/browser.toml)
    ```
 
 3. **詳細は `tests/browser/README.md` を参照**

@@ -1,9 +1,10 @@
 const fs = require('fs');
 const { chromium } = require('playwright');
+const { WS_FILE } = require('../tests/browser/cdp-helper.cjs');
 
 (async () => {
   try {
-    const wsFile = '.chrome_playwright_ws';
+    const wsFile = WS_FILE;
     const server = await chromium.launchServer({
       headless: true,
       args: [

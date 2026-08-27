@@ -2,8 +2,15 @@
   <div
     v-if="card"
     class="card-item deck-card"
-    :class="[`section-${sectionType}`, { 'error-state': showError, 'drag-over': isDragOver }]"
-    :data-card-id="card.cardId"
+    :class="[`section-${sectionType}`, {
+      'error-state': showError,
+      'drag-over': isDragOver,
+      'face-down': sectionType === 'practice' && card.face === 'down' && !forceReveal && (zone === 'deck' || zone === 'extra'),
+      'face-down-field': sectionType === 'practice' && card.face === 'down' && !forceReveal && zone !== 'deck' && zone !== 'extra',
+      'horizontal': sectionType === 'practice' && card.orientation === 'horizontal',
+      'is-dragging': sectionType === 'practice' && isDragging,
+    }]"
+    :data-card-id="sectionType === 'practice' ? (card.instanceId ?? '') : card.cardId"
     :data-ciid="card.ciid"
     :data-uuid="uuid"
     :draggable="!card.empty"
@@ -16,9 +23,34 @@
     @contextmenu="handleContextMenu"
     @mousedown.capture="handleMouseDown"
     @auxclick.capture="handleAuxClick"
+    @mouseenter="sectionType === 'practice' && (hovered = true)"
+    @mouseleave="sectionType === 'practice' && (hovered = false)"
   >
-    <img :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
-    <div v-if="card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
+    <div v-if="sectionType === 'practice'" class="card-image-wrapper">
+      <img v-if="card.face === 'up' || forceReveal" :src="cardImageUrl" alt="card" class="card-image" draggable="false">
+      <template v-else-if="zone === 'deck' || zone === 'extra'">
+        <img :src="backImageUrl" alt="card back" class="card-image" draggable="false">
+      </template>
+      <template v-else>
+        <img :src="cardImageUrl" alt="card" class="card-image" draggable="false">
+        <img v-if="cardImageUrl !== backImageUrl" :src="backImageUrl" alt="card back" class="card-image card-facedown-top">
+      </template>
+    </div>
+    <img v-else :src="cardImageUrl" :alt="card.name" :key="uuid" class="card-image">
+    <div
+      v-if="sectionType !== 'practice' && isGenesysForbidden"
+      class="limit-regulation limit-forbidden"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <path fill="currentColor" :d="mdiCloseCircle" />
+      </svg>
+    </div>
+    <div
+      v-else-if="sectionType !== 'practice' && showGenesysPt"
+      class="genesys-pt-badge"
+      :class="`pt-tier-${genesysPtTier}`"
+    >{{ genesysPt }}pt</div>
+    <div v-else-if="sectionType !== 'practice' && card.limitRegulation" class="limit-regulation" :class="`limit-${card.limitRegulation}`">
       <svg v-if="card.limitRegulation === 'forbidden'" width="20" height="20" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiCloseCircle" />
       </svg>
@@ -30,22 +62,22 @@
       </svg>
     </div>
     <!-- 手動先頭優先配置アイコン（最優先） -->
-    <div v-if="isHeadPlaced" class="head-placement-icon" :title="`手動先頭優先配置 (${headPlacementNumber}番目)`">
+    <div v-if="sectionType !== 'practice' && isHeadPlaced" class="head-placement-icon" :title="`手動先頭優先配置 (${headPlacementNumber}番目)`">
       {{ headPlacementNumber }}
     </div>
     <!-- カテゴリ優先アイコン（手動先頭優先配置が無い場合のみ表示） -->
-    <div v-else-if="isInCategory" class="category-placement-icon" title="カテゴリ優先">
+    <div v-else-if="sectionType !== 'practice' && isInCategory" class="category-placement-icon" title="カテゴリ優先">
       <svg width="8" height="8" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiArrowLeftBold" />
       </svg>
     </div>
     <!-- 末尾配置アイコン（手動先頭優先配置、カテゴリ優先が無い場合のみ表示） -->
-    <div v-else-if="isTailPlaced" class="tail-placement-icon" title="末尾配置">
+    <div v-else-if="sectionType !== 'practice' && isTailPlaced" class="tail-placement-icon" title="末尾配置">
       <svg width="8" height="8" viewBox="0 0 24 24">
         <path fill="currentColor" :d="mdiArrowRightBold" />
       </svg>
     </div>
-    <div v-if="!card.empty" class="card-controls">
+    <div v-if="!card.empty && !isPracticeFaceDown" class="card-controls">
       <button
         class="card-btn top-left"
         :class="{ 'is-link': sectionType === 'info' }"
@@ -56,46 +88,46 @@
         </svg>
         <span v-else class="btn-text">ⓘ</span>
       </button>
-      <button 
+      <button
         v-if="topRightText"
         class="card-btn top-right"
-        :class="topRightClass"
+        :class="[topRightClass, { 'always-visible': showPracticeActions && showFaceIndicator && card.face === 'up' }]"
         @click.stop="handleTopRight"
       >
-        <span v-if="topRightText === 'M/E'" class="btn-text">M</span>
+        <svg v-if="topRightIcon" width="10" height="10" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="topRightIcon" />
+        </svg>
+        <span v-else-if="topRightText === 'M/E'" class="btn-text">M</span>
         <span v-else-if="topRightText" class="btn-text">{{ topRightText }}</span>
       </button>
-      <button 
-        v-else
-        class="card-btn top-right" 
-        @click.stop
-      ></button>
       <button
+        v-if="showBottomLeft"
         class="card-btn bottom-left"
         :class="[bottomLeftClass, { 'error-btn': showErrorLeft }]"
         @click.stop="handleBottomLeft"
       >
-        <svg v-if="showErrorLeft" width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" :d="mdiCloseCircle" />
-        </svg>
-        <svg v-else-if="showTrashIcon" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="bottomLeftIcon === 'trash'" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M7,6H17V19H7V6M9,8V17H11V8H9M13,8V17H15V8H13Z" />
         </svg>
-        <span v-else-if="bottomLeftText === 'M/E'" class="btn-text">M</span>
-        <span v-else-if="bottomLeftText" class="btn-text">{{ bottomLeftText }}</span>
+        <svg v-else-if="bottomLeftIcon" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="bottomLeftIcon" />
+        </svg>
+        <span v-else-if="bottomLeftLabel === 'M/E'" class="btn-text">M</span>
+        <span v-else-if="bottomLeftLabel" class="btn-text">{{ bottomLeftLabel }}</span>
       </button>
       <button
+        v-if="showBottomRight"
         class="card-btn bottom-right"
         :class="[bottomRightClass, { 'error-btn': showErrorRight }]"
         @click.stop="handleBottomRight"
       >
-        <svg v-if="showErrorRight || (showError && (sectionType === 'main' || sectionType === 'extra' || sectionType === 'side'))" width="12" height="12" viewBox="0 0 24 24">
-          <path fill="currentColor" :d="mdiCloseCircle" />
-        </svg>
-        <svg v-else-if="showPlusIcon" width="12" height="12" viewBox="0 0 24 24">
+        <svg v-if="bottomRightIcon === 'plus'" width="12" height="12" viewBox="0 0 24 24">
           <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
         </svg>
-        <span v-else class="btn-text">{{ bottomRightText }}</span>
+        <svg v-else-if="bottomRightIcon" width="12" height="12" viewBox="0 0 24 24">
+          <path fill="currentColor" :d="bottomRightIcon" />
+        </svg>
+        <span v-else-if="bottomRightLabel" class="btn-text">{{ bottomRightLabel }}</span>
       </button>
     </div>
 
@@ -105,6 +137,10 @@
       :type="toast.type"
       @close="toast.show = false"
     />
+    <template v-if="sectionType === 'practice'">
+      <div v-if="isDragging && canRotate" class="drag-rotate-indicator" :class="{ 'is-rotated': draggingRotated }" />
+      <div v-if="isDragging" class="drag-facedown-indicator" :class="{ 'is-facedown': draggingFaceDown }" />
+    </template>
   </div>
 </template>
 
@@ -112,14 +148,15 @@
 import { ref, reactive } from 'vue'
 import Toast from './Toast.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
-import { useCardDetailStore } from '../stores/card-detail'
 import { useSettingsStore } from '../stores/settings'
 import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
-import { detectLanguage } from '../utils/language-detector'
 import { buildFullUrl } from '../utils/url-builder'
-import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold } from '@mdi/js'
-import { getCardDetailWithCache } from '../api/card-search'
+import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold, mdiHandBackRight, mdiArrowCollapseDown, mdiEye, mdiEyeOff } from '@mdi/js'
+import { useCardDetailDisplay } from '../composables/useCardDetailDisplay'
+import { usePracticeDragState } from '../composables/practice/usePracticeDragState'
+import { usePracticeStore } from '../stores/practice'
+import { setDragData, parseDragData } from '../utils/drag-data'
 
 export default {
   name: 'DeckCard',
@@ -138,12 +175,28 @@ export default {
     uuid: {
       type: String,
       required: true
+    },
+    zone: {
+      type: String,
+      default: undefined
+    },
+    forceReveal: {
+      type: Boolean,
+      default: false
+    },
+    showActions: {
+      type: Boolean,
+      default: true
+    },
+    showFaceIndicator: {
+      type: Boolean,
+      default: true
     }
   },
   setup() {
     const deckStore = useDeckEditStore()
-    const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
+    const practiceStore = usePracticeStore()
     const showErrorLeft = ref(false)
     const showErrorRight = ref(false)
     const isDragOver = ref(false)
@@ -180,23 +233,51 @@ export default {
       return false
     }
 
+    const { showCardDetail } = useCardDetailDisplay()
+    const { startDrag, toggleDragRotation, endDrag, draggingRotated, draggingFaceDown, draggingCardId, postDragRotation } = usePracticeDragState()
+    const hovered = ref(false)
+
+    const backImageUrl = typeof chrome !== 'undefined' && chrome.runtime
+      ? chrome.runtime.getURL('images/card_back.png')
+      : '/images/card_back.png'
+
     return {
       deckStore,
-      cardDetailStore,
       settingsStore,
+      practiceStore,
       showErrorLeft,
       showErrorRight,
       isDragOver,
       toast,
       handleMoveResult,
+      showCardDetail,
       mdiCloseCircle,
       mdiNumeric1Circle,
       mdiNumeric2Circle,
       mdiArrowRightBold,
-      mdiArrowLeftBold
+      mdiArrowLeftBold,
+      mdiHandBackRight,
+      mdiArrowCollapseDown,
+      mdiEye,
+      mdiEyeOff,
+      hovered,
+      backImageUrl,
+      startDrag,
+      toggleDragRotation,
+      endDrag,
+      draggingRotated,
+      draggingFaceDown,
+      draggingCardId,
+      postDragRotation,
     }
   },
   computed: {
+    isPracticeMode() {
+      return this.practiceStore.isActive
+    },
+    showPracticeActions() {
+      return this.sectionType === 'practice' || this.isPracticeMode
+    },
     showError() {
       // 枚数制限エラー時、同じcardIdのカードを全て赤背景で表示
       return this.card && this.deckStore.limitErrorCardId === this.card.cardId
@@ -213,12 +294,16 @@ export default {
       return chrome.runtime.getURL('images/card_back.png')
     },
     topRightText() {
+      if (this.showPracticeActions && this.showFaceIndicator) {
+        return this.card.face === 'down' ? 'eye-off' : 'eye'
+      }
       if (this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'M/E'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'S'
       return ''
     },
     topRightClass() {
+      if (this.showPracticeActions) return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return ''
       if (this.sectionType === 'side') return 'card-btn-me'
       if (this.sectionType === 'main' || this.sectionType === 'extra') return 'card-btn-s'
@@ -229,31 +314,34 @@ export default {
       return true
     },
     showTrashIcon() {
-      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
+      return !this.showPracticeActions && this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
     },
     bottomLeftText() {
+      if (this.showPracticeActions) return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'M/E'
       if (this.sectionType === 'trash') return 'M/E'
       return ''
     },
     bottomLeftClass() {
+      if (this.showPracticeActions) return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-me'
       if (this.sectionType === 'trash') return 'card-btn-me'
       return ''
     },
     showPlusIcon() {
-      // 枚数制限超過時はプラスアイコンを表示しない（バツアイコンを表示）
       if (this.showError && (this.sectionType === 'main' || this.sectionType === 'extra' || this.sectionType === 'side')) {
         return false
       }
-      return this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
+      return !this.showPracticeActions && this.sectionType !== 'trash' && this.sectionType !== 'search' && this.sectionType !== 'info'
     },
     bottomRightText() {
+      if (this.showPracticeActions) return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'S'
       if (this.sectionType === 'trash') return 'S'
       return ''
     },
     bottomRightClass() {
+      if (this.showPracticeActions) return ''
       if (this.sectionType === 'search' || this.sectionType === 'info') return 'card-btn-side'
       if (this.sectionType === 'trash') return 'card-btn-side'
       // 枚数制限超過時はプラスボタンを赤色に（main/extra/sideセクション）
@@ -264,6 +352,37 @@ export default {
     },
     showSearchButtons() {
       return this.sectionType === 'search'
+    },
+    topRightIcon() {
+      if (this.topRightText === 'eye') return mdiEye
+      if (this.topRightText === 'eye-off') return mdiEyeOff
+      return null
+    },
+    bottomLeftIcon() {
+      if (this.showErrorLeft) return mdiCloseCircle
+      if (this.showTrashIcon) return 'trash'
+      if (this.showPracticeActions) return mdiHandBackRight
+      return null
+    },
+    bottomLeftLabel() {
+      if (this.bottomLeftIcon) return null
+      return this.bottomLeftText
+    },
+    bottomRightIcon() {
+      if (this.showErrorRight || (this.showError && (this.sectionType === 'main' || this.sectionType === 'extra' || this.sectionType === 'side'))) return mdiCloseCircle
+      if (this.showPlusIcon) return 'plus'
+      if (this.showPracticeActions) return mdiArrowCollapseDown
+      return null
+    },
+    bottomRightLabel() {
+      if (this.bottomRightIcon) return null
+      return this.bottomRightText
+    },
+    showBottomLeft() {
+      return !!this.bottomLeftIcon || !!this.bottomLeftLabel
+    },
+    showBottomRight() {
+      return !!this.bottomRightIcon || !!this.bottomRightLabel
     },
     isTailPlaced() {
       // 直接refを参照してVueのreactivityを機能させる
@@ -297,7 +416,48 @@ export default {
       // 2段階検索の結果（cid単位でキャッシュ済み）を参照
       if (!this.card) return false
       return this.deckStore.categoryMatchedCardIds.has(this.card.cardId)
-    }
+    },
+    genesysPt() {
+      // GENESYSモード時のカードpt。それ以外のモードでは undefined
+      if (!this.card) return undefined
+      return this.deckStore.getCardGenesysPoint(this.card.cardId)
+    },
+    showGenesysPt() {
+      // pt > 0 のみ表示（0/undefined=規制対象外はバッジなし、OCG無制限カードと視覚整合）
+      return this.genesysPt !== undefined && this.genesysPt > 0
+    },
+    genesysPtTier() {
+      // pt値に応じた色ティア（スタイル用）
+      // 1-4pt: 黄色(low), 5-9pt: 橙(mid), 10pt以上: 赤(high)
+      const pt = this.genesysPt
+      if (pt === undefined || pt <= 4) return 'low'
+      if (pt <= 9) return 'mid'
+      return 'high'
+    },
+    isGenesysMode() {
+      return this.deckStore.resolvedRegulation.mode === 'genesys'
+    },
+    isGenesysForbidden() {
+      // GENESYSモード時、link/pendulumモンスターを禁止表示
+      if (!this.isGenesysMode || !this.card) return false
+      if (this.card.cardType === 'monster' && this.card.types) {
+        const types = this.card.types
+        if (types.includes('link') || types.includes('pendulum')) return true
+      }
+      return false
+    },
+    isDragging() {
+      if (this.sectionType !== 'practice') return false
+      return this.draggingCardId === this.card.instanceId
+    },
+    canRotate() {
+      if (this.sectionType !== 'practice') return false
+      const noRotateZones = new Set(['gy', 'banish', 'deck', 'extra', 'hand'])
+      return !!this.zone && !noRotateZones.has(this.zone)
+    },
+    isPracticeFaceDown() {
+      return this.card.face === 'down' && !this.forceReveal && (this.zone === 'deck' || this.zone === 'extra')
+    },
   },
   methods: {
     handleDragStart(event) {
@@ -305,23 +465,44 @@ export default {
         event.preventDefault()
         return
       }
+      if (this.sectionType === 'practice') {
+        const emptyImg = new Image()
+        emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+        event.dataTransfer.setDragImage(emptyImg, 0, 0)
+        const el = event.currentTarget
+        const rect = el.getBoundingClientRect()
+        const offset = { x: event.clientX - rect.left, y: event.clientY - rect.top }
+        const cardSize = { width: rect.width, height: rect.height }
+        event.dataTransfer.effectAllowed = 'move'
+        setDragData(event, {
+          cardId: this.card.instanceId,
+          zone: this.zone,
+          slotIndex: this.card.slotIndex,
+        })
+        this.dragStartedHorizontal = this.card.orientation === 'horizontal'
+        const onRightClick = this.canRotate ? () => { this.toggleDragRotation() } : undefined
+        this.startDrag(this.card.instanceId, this.card.orientation, this.cardImageUrl, offset, cardSize, onRightClick)
+        this.$emit('practice-dragstart', event, this.uuid, offset)
+        return
+      }
       event.dataTransfer.effectAllowed = this.sectionType === 'search' ? 'copy' : 'move'
-      event.dataTransfer.setData('text/plain', JSON.stringify({
+      setDragData(event, {
         sectionType: this.sectionType,
         index: this.index,
         card: this.card,
         uuid: this.uuid
-      }))
+      })
 
       // ドラッグ中のカード情報をストアに設定（移動可否判定用）
-      this.deckStore.draggingCard = {
+      this.deckStore.setDraggingCard({
         card: this.card,
         sectionType: this.sectionType
-      }
+      })
 
       this.$emit('dragstart', event, this.sectionType, this.index, this.card)
     },
     handleDragOver(event) {
+      if (this.sectionType === 'practice') return
       const dragging = this.deckStore.draggingCard
 
       // 移動可能かチェック
@@ -353,26 +534,45 @@ export default {
       }
     },
     handleDragEnd() {
+      if (this.sectionType === 'practice') {
+        const wasRotated = this.draggingRotated
+        this.endDrag()
+        if (this.canRotate && wasRotated !== this.dragStartedHorizontal) {
+          this.$emit('practice-action', 'toggleOrientation', this.uuid)
+        }
+        if (this.canRotate) {
+          setTimeout(() => {
+            if (this.postDragRotation) {
+              this.postDragRotation = false
+              this.$emit('practice-action', 'toggleOrientation', this.uuid)
+            }
+          }, 250)
+        }
+        this.isDragOver = false
+        this.$emit('practice-dragend')
+        return
+      }
       // ドラッグ終了時にストアの情報をクリア
-      this.deckStore.draggingCard = null
+      this.deckStore.setDraggingCard(null)
       this.isDragOver = false
     },
     handleDrop(event) {
+      if (this.sectionType === 'practice') return
       event.preventDefault()
       event.stopPropagation()
       this.isDragOver = false
 
+      const data = parseDragData(event)
+      if (!data) return
+
+      const { sectionType: sourceSectionType, uuid: sourceUuid, card } = data
+
+      // 移動可否チェック
+      if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
+        return
+      }
+
       try {
-        const data = event.dataTransfer.getData('text/plain')
-        if (!data) return
-
-        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-
-        // 移動可否チェック
-        if (card && !this.deckStore.canMoveCard(sourceSectionType, this.sectionType, card)) {
-          return
-        }
-
         if (sourceSectionType === this.sectionType && sourceUuid && this.uuid) {
           const result = this.deckStore.reorderCard(sourceUuid, this.uuid, this.sectionType)
           this.handleMoveResult(result)
@@ -396,40 +596,16 @@ export default {
       this.getCardDetailAndDisplay()
     },
     async getCardDetailAndDisplay() {
-      // 詳細データをキャッシュ対応で取得してからselectedCardに設定
-      try {
-        const currentLang = detectLanguage(document)
-        const result = await getCardDetailWithCache(this.card.cardId, currentLang)
-        const fullCard = result?.detail?.card || this.card
-
-        const cardData = {
-          ...fullCard,
-          imgs: fullCard.imgs ? [...fullCard.imgs] : (this.card.imgs ? [...this.card.imgs] : []),
-          ciid: this.card.ciid  // クリックしたカードのciidを必ず使う
-        }
-
-        // CardDetailストアに設定
-        this.cardDetailStore.setSelectedCard(cardData)
-
-        // アクティブタブを切り替え
-        this.deckStore.activeTab = 'card'
-      } catch (e) {
-        console.error('[DeckCard.getCardDetailAndDisplay] Failed to fetch card detail:', e)
-        const cardData = {
-          ...this.card,
-          imgs: [...this.card.imgs],
-          ciid: this.card.ciid
-        }
-
-        // CardDetailストアに設定
-        this.cardDetailStore.setSelectedCard(cardData)
-
-        // アクティブタブを切り替え
-        this.deckStore.activeTab = 'card'
-      }
+      await this.showCardDetail(this.card.cardId, {
+        fallbackCard: this.card,
+        preserveCiid: true,
+        resetCardTab: false,
+      })
     },
     handleTopRight() {
-      if (this.sectionType === 'side') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'toggleFace', this.uuid)
+      } else if (this.sectionType === 'side') {
         const result = this.deckStore.moveCardFromSide(this.card, this.uuid)
         this.handleMoveResult(result)
       } else if (this.sectionType === 'main' || this.sectionType === 'extra') {
@@ -450,7 +626,9 @@ export default {
       }
     },
     handleBottomLeft() {
-      if (this.sectionType === 'trash') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'moveToHand', this.uuid)
+      } else if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToMainOrExtra(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'left')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -464,7 +642,9 @@ export default {
       // 移動元の位置を記録
       const sourceRect = this.$el?.getBoundingClientRect()
 
-      if (this.sectionType === 'trash') {
+      if (this.sectionType === 'practice') {
+        this.$emit('practice-action', 'moveToDeckBottom', this.uuid)
+      } else if (this.sectionType === 'trash') {
         const result = this.deckStore.moveCardToSide(this.card, 'trash', this.uuid)
         if (!this.handleMoveResult(result, 'right')) return
       } else if (this.sectionType === 'search' || this.sectionType === 'info') {
@@ -516,6 +696,15 @@ export default {
       })
     },
     handleContextMenu(event) {
+      if (this.sectionType === 'practice') {
+        event.preventDefault()
+        if (this.isDragging && this.canRotate) {
+          this.toggleDragRotation()
+        } else if (!this.isDragging && this.canRotate) {
+          this.$emit('practice-action', 'toggleOrientation', this.uuid)
+        }
+        return
+      }
       // 高度なマウス操作が無効の場合は通常の右クリックメニューを表示
       if (!this.settingsStore.appSettings.ux.enableMouseOperations) {
         return
@@ -640,6 +829,13 @@ export default {
     aspect-ratio: 36 / 53; /* カード画像の縦横比を維持 */
   }
 
+  /* 一人回しゾーン表示用 */
+  &.section-practice {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 36 / 53;
+  }
+
   &:hover {
     border-color: var(--border-secondary);
     background: var(--card-hover-bg);
@@ -700,6 +896,34 @@ export default {
   svg {
     color: var(--button-text);
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.genesys-pt-badge {
+  position: absolute;
+  bottom: 5.56%; /* .limit-regulation と同位置 */
+  left: 0;
+  width: 100%;
+  height: 19.44%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--button-text);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+
+  &.pt-tier-low {
+    background: var(--genesys-pt-bg-low, #f9a825);
+  }
+
+  &.pt-tier-mid {
+    background: var(--genesys-pt-bg-mid, #ef6c00);
+  }
+
+  &.pt-tier-high {
+    background: var(--genesys-pt-bg-high, #c62828);
   }
 }
 
@@ -775,6 +999,7 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+  direction: ltr;
   opacity: 0;
   transition: opacity 0.2s;
   z-index: 6; /* 優先配置矢印アイコン（z-index: 5）より前面に表示 */
@@ -922,6 +1147,10 @@ export default {
       width: 8px;
       height: 8px;
     }
+  }
+
+  &.always-visible {
+    opacity: 1;
   }
 
   &.bottom-left {
@@ -1099,5 +1328,101 @@ export default {
   outline: 2px solid var(--deck-card-drag-over-outline);
   outline-offset: -2px;
   background: var(--deck-card-drag-over-bg);
+}
+
+/* Practice mode: face-down */
+.deck-card.face-down {
+  opacity: 1;
+}
+
+.card-facedown-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+}
+
+.deck-card.horizontal {
+  transform: rotate(-90deg);
+  transform-origin: center center;
+
+  &:hover {
+    transform: rotate(-90deg) translateX(-2px);
+  }
+}
+
+.deck-card.is-dragging {
+  opacity: 0;
+}
+
+.card-actions-overlay {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  display: grid;
+  grid-template-columns: repeat(2, 16px);
+  gap: 1px;
+  z-index: 5;
+}
+
+.card-action-btn {
+  padding: 1px;
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: rgba(25, 118, 210, 0.9);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.card-action-empty {
+  width: 14px;
+  height: 14px;
+}
+
+.drag-rotate-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 200, 0, 0.85);
+  pointer-events: none;
+  z-index: 6;
+
+  &.is-rotated {
+    background: rgba(0, 200, 100, 0.85);
+  }
+}
+
+.drag-facedown-indicator {
+  position: absolute;
+  top: 2px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(160, 160, 160, 0.5);
+  pointer-events: none;
+  z-index: 6;
+
+  &.is-facedown {
+    background: rgba(30, 30, 200, 0.85);
+  }
 }
 </style>

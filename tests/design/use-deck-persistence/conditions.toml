@@ -1,0 +1,179 @@
+# 検証対象: src/composables/deck/useDeckPersistence.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、Vue composableのデッキ永続化Facade。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。公開API(loadDeck/saveDeck)から各分岐をfixtureとmockで到達可能。
+
+[meta]
+feature = "use-deck-persistence"
+source_file = "src/composables/deck/useDeckPersistence.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckPersistence.test.ts"
+source_hash = "6928a8827394f2450dacdd5d86f89f0516ab4dc0"
+note = "verified=falseは0件"
+
+# --- useDeckPersistence(options): { loadDeck, saveDeck } ---
+
+[[condition]]
+id = "facade.returns_load_and_save_only"
+target_function = "useDeckPersistence"
+source_lines = "203-206"
+description = "useDeckPersistenceはloadDeckとsaveDeckだけを持つオブジェクトを返す"
+given = "必要なoptionsを渡してuseDeckPersistenceを呼ぶ"
+expect_return_shape = "Object.keys(result) は ['loadDeck', 'saveDeck']"
+
+# --- loadDeck(dno): Promise<void> ---
+
+[[condition]]
+id = "load.preload_promise_waited_and_cleared"
+target_function = "useDeckPersistence"
+source_lines = "64-75"
+description = "window.ygoNextPreloadedDeckDetailPromiseがtruthyで、window.ygoNextPreloadedDeckDetailがfalsyの場合、Promise.raceで最大1秒待ち、待機後にygoNextPreloadedDeckDetailPromiseへnullを代入する"
+given = "preloaded detailは未設定、preloaded promiseは解決可能"
+expect_return_shape = "loadDeck完了後 window.ygoNextPreloadedDeckDetailPromise === null"
+
+[[condition]]
+id = "load.preload_wait_failure_continues"
+target_function = "useDeckPersistence"
+source_lines = "64-75,82-85"
+description = "プリロードPromise待機がrejectまたはtimeoutしてもcatchで警告だけ出し、promiseをnullにして、loadedDeckがなければgetDeckDetailAPI(dno, cgid)へ進む"
+given = "preloaded detailは未設定、preloaded promiseがrejectする"
+expect_no_throw = true
+expect_return_shape = "getDeckDetailAPIがdnoとgetCgid結果で呼ばれる"
+
+[[condition]]
+id = "load.preloaded_detail_used_and_cleared"
+target_function = "useDeckPersistence"
+source_lines = "77-85"
+description = "window.ygoNextPreloadedDeckDetailがtruthyの場合、それをloadedDeckとして使用し、window.ygoNextPreloadedDeckDetailへnullを代入し、getDeckDetailAPIは呼ばない"
+given = "preloaded detailが設定済み"
+expect_return_shape = "deckInfoはpreloaded detail由来になり、preloaded detailはnullになる"
+
+[[condition]]
+id = "load.no_preloaded_detail_fetches_api"
+target_function = "useDeckPersistence"
+source_lines = "82-85"
+description = "プリロード済みデータがない場合、sessionManager.getCgidの戻り値を使ってgetDeckDetailAPI(dno, cgid)をawaitする"
+given = "preloaded detailが未設定"
+expect_return_shape = "getDeckDetailAPI(dno, cgid)が呼ばれる"
+
+[[condition]]
+id = "load.null_loaded_deck_no_state_update"
+target_function = "useDeckPersistence"
+source_lines = "87-152"
+description = "loadedDeckがfalsyの場合、deckInfo更新、URL同期、displayOrder初期化、lastUsedDno/localStorage更新、履歴リセット、snapshot更新、toast表示は行わず正常終了する"
+given = "getDeckDetailAPIがnullを返す"
+expect_no_throw = true
+expect_return_shape = "各副作用mockは呼ばれず、deckInfo/lastUsedDno/savedDeckSnapshotは入力時のまま"
+
+[[condition]]
+id = "load.deck_name_fallback"
+target_function = "useDeckPersistence"
+source_lines = "87-93"
+description = "loadedDeckがtruthyの場合、deckInfo.valueはloadedDeckを展開した値になり、nameはloadedDeck.name || loadedDeck.originalName || '' で上書きされる"
+given = "loadedDeck.nameが空文字でoriginalNameがある、または両方falsy"
+expect_return_shape = "deckInfo.value.name は originalName または空文字"
+
+[[condition]]
+id = "load.success_updates_side_effects"
+target_function = "useDeckPersistence"
+source_lines = "95-125"
+description = "loadedDeckがtruthyの場合、URLStateManager.setDno(dno)、initializeDisplayOrder、lastUsedDno更新、localStorage保存、recordDeckOpen、saveUnifiedCacheDB起動、clearHistory、savedDeckSnapshot更新をこの順序の処理内で行う"
+given = "loadedDeckにmain/extra/sideのカードがある"
+expect_return_shape = "lastUsedDno=dno、localStorageにString(dno)、recordDeckOpenには3デッキのcid連結配列、savedDeckSnapshotにはcaptureDeckSnapshot結果"
+
+[[condition]]
+id = "load.unified_cache_save_rejection_ignored"
+target_function = "useDeckPersistence"
+source_lines = "116-119"
+description = "saveUnifiedCacheDB()がrejectしてもcatchでconsole.errorするだけで、loadDeck自体はrejectしない"
+given = "saveUnifiedCacheDB mockがrejectする"
+expect_no_throw = true
+expect_return_shape = "loadDeckは通常の状態更新後に解決する"
+
+[[condition]]
+id = "load.skipped_count_absent_no_toast"
+target_function = "useDeckPersistence"
+source_lines = "127-151"
+description = "loadedDeck.skippedCardsCountがfalsyまたは0以下の場合、useToastStoreを呼ばずtoastを表示しない"
+given = "skippedCardsCountが0またはundefined"
+expect_return_shape = "useToastStore/showToastは呼ばれない"
+
+[[condition]]
+id = "load.skipped_cards_toast_body_max_three"
+target_function = "useDeckPersistence"
+source_lines = "128-150"
+description = "loadedDeck.skippedCardsCount > 0かつskippedCardsがある場合、最大3件のcard.nameをbodyLinesへ入れ、残件があれば`ほか${remainCount}枚`を追加し、warning toastを表示する"
+given = "skippedCardsCount=4、skippedCardsが4件"
+expect_return_shape = "showToast(title, 'warning', 'name1\\nname2\\nname3\\nほか1枚')"
+
+[[condition]]
+id = "load.skipped_count_without_cards_empty_body"
+target_function = "useDeckPersistence"
+source_lines = "128-150"
+description = "loadedDeck.skippedCardsCount > 0でもskippedCardsがundefinedまたは空配列の場合、bodyは空文字のままwarning toastを表示する"
+given = "skippedCardsCount=1、skippedCardsはundefined"
+expect_return_shape = "showToast('1枚の未発売カードをスキップしました', 'warning', '')"
+
+[[condition]]
+id = "load.login_error_redirects_and_returns"
+target_function = "useDeckPersistence"
+source_lines = "153-160"
+description = "loadDeck内でcatchしたerrorがErrorかつmessage==='cgid not found in page'の場合、window.location.hrefをログインページURLへ変更してreturnし、throwしない"
+given = "sessionManager.getCgidまたは後続処理が Error('cgid not found in page') をthrowする"
+expect_no_throw = true
+expect_return_shape = "window.location.href === 'https://www.db.yugioh-card.com/yugiohdb/'"
+
+[[condition]]
+id = "load.non_login_error_rethrows"
+target_function = "useDeckPersistence"
+source_lines = "153-162"
+description = "loadDeck内でcatchしたerrorが未ログインエラー条件に一致しない場合、同じerrorをthrowする"
+given = "getDeckDetailAPIが Error('network') をthrowする"
+expect_throw = "元のerror"
+
+# --- saveDeck(dno): Promise<OperationResult> ---
+
+[[condition]]
+id = "save.sets_dno_and_uses_get_deck_name"
+target_function = "useDeckPersistence"
+source_lines = "173-182"
+description = "saveDeckは先にdeckInfo.value.dnoへdnoを代入し、deckInfo.valueを展開した保存データのnameだけgetDeckName()の戻り値で上書きしてsessionManager.saveDeck(dno, dataToSave)を呼ぶ"
+given = "deckInfo.value.nameとgetDeckName()の戻り値が異なる"
+expect_return_shape = "sessionManager.saveDeckの第2引数はdnoが更新され、nameはgetDeckName()の戻り値"
+
+[[condition]]
+id = "save.success_updates_snapshot_and_returns_result"
+target_function = "useDeckPersistence"
+source_lines = "182-189"
+description = "sessionManager.saveDeckの戻り値result.successがtruthyの場合、savedDeckSnapshot.valueへcaptureDeckSnapshot()の戻り値を入れ、resultをそのまま返す"
+given = "sessionManager.saveDeckが { success: true } を返す"
+expect_return_shape = "戻り値はresultと同一内容で、savedDeckSnapshotが更新される"
+
+[[condition]]
+id = "save.failure_returns_result_without_snapshot"
+target_function = "useDeckPersistence"
+source_lines = "182-189"
+description = "sessionManager.saveDeckの戻り値result.successがfalsyの場合、savedDeckSnapshotを更新せず、resultをそのまま返す"
+given = "sessionManager.saveDeckが { success: false, error: ['Save failed'] } を返す"
+expect_return_shape = "savedDeckSnapshotは入力時のままで、戻り値はresult"
+
+[[condition]]
+id = "save.login_error_redirects_and_returns_login_required"
+target_function = "useDeckPersistence"
+source_lines = "190-197"
+description = "saveDeck内でcatchしたerrorがErrorかつmessage==='cgid not found in page'の場合、window.location.hrefをログインページURLへ変更し、{ success: false, error: ['ログインが必要です'] } を返す"
+given = "sessionManager.saveDeckが Error('cgid not found in page') をrejectする"
+expect_return_shape = "{ success: false, error: ['ログインが必要です'] }"
+
+[[condition]]
+id = "save.non_login_error_returns_stringified_error"
+target_function = "useDeckPersistence"
+source_lines = "190-199"
+description = "saveDeck内でcatchしたerrorが未ログインエラー条件に一致しない場合、throwせず { success: false, error: [String(error)] } を返す"
+given = "sessionManager.saveDeckが Error('Save error') をrejectする"
+expect_return_shape = "{ success: false, error: ['Error: Save error'] }"

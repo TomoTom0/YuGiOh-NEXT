@@ -1,16 +1,45 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { JSDOM } from 'jsdom';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { parseDeckDetail } from '../../../src/content/parser/deck-detail-parser';
+import { resetUnifiedCacheDB } from '@/utils/unified-cache-db';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe('Parser: Deck Detail (English)', () => {
-  it('should parse English deck detail page correctly', async () => {
+  const htmlPath = path.join(__dirname, '../data/en/deck-detail-public-en.html');
+  const hasHtmlFile = fs.existsSync(htmlPath);
+  let mockStorage: Record<string, unknown>;
+
+  beforeEach(() => {
+    mockStorage = {};
+    global.chrome = {
+      storage: {
+        local: {
+          get: (_keysOrNull: unknown, callback?: (result: Record<string, unknown>) => void) => {
+            if (callback) callback({ ...mockStorage });
+            return Promise.resolve({ ...mockStorage });
+          },
+          set: (items: Record<string, unknown>, callback?: () => void) => {
+            Object.assign(mockStorage, items);
+            if (callback) callback();
+            return Promise.resolve();
+          },
+          remove: (_keys: unknown, callback?: () => void) => {
+            if (callback) callback();
+            return Promise.resolve();
+          }
+        }
+      },
+      runtime: { id: 'test-extension-id' }
+    } as any;
+
+    resetUnifiedCacheDB();
+  });
+  it.skipIf(!hasHtmlFile)('should parse English deck detail page correctly', async () => {
     // HTMLファイルを読み込み
-    const htmlPath = path.join(__dirname, '../data/en/deck-detail-public-en.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // JSDOMでパース

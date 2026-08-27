@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useSearchStore } from '@/stores/search';
 import type { CardInfo } from '@/types/card';
+import { inferExclusions, loadExclusionRules } from '@/utils/search-exclusion-engine';
+import { toSearchConditionState } from '@/utils/search-exclusion-adapter';
 
 // search-exclusion-engine と search-exclusion-adapter をモック
 vi.mock('@/utils/search-exclusion-engine', () => ({
@@ -15,6 +17,7 @@ vi.mock('@/utils/search-exclusion-adapter', () => ({
 
 describe('stores/search', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     setActivePinia(createPinia());
   });
 
@@ -162,7 +165,7 @@ describe('stores/search', () => {
   });
 
   describe('clearAllFilters', () => {
-    it('全てのフィルターをデフォルト値にリセットする', () => {
+    it('全てのフィルターをデフォルト値にリセットする [covers:clear_all_filters.resets_search_filters_to_default_values]', () => {
       const store = useSearchStore();
 
       // フィルターを設定
@@ -219,11 +222,15 @@ describe('stores/search', () => {
   });
 
   describe('exclusionResult算出プロパティ', () => {
-    it('exclusionResultが計算される', () => {
+    it('searchFiltersからcondition stateを作りexclusionRulesと一緒にinferExclusionsへ渡す', () => {
       const store = useSearchStore();
+      store.searchFilters.cardType = 'monster';
+      store.searchFilters.attributes = ['light'];
 
-      // モック関数が呼ばれた結果を確認
       expect(store.exclusionResult).toEqual({ excluded: [], reasons: {} });
+      expect(loadExclusionRules).toHaveBeenCalledTimes(1);
+      expect(toSearchConditionState).toHaveBeenCalledWith(store.searchFilters);
+      expect(inferExclusions).toHaveBeenCalledWith(store.searchFilters, []);
     });
   });
 

@@ -29,68 +29,96 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-  type: 'deck-edit' | 'deck-display';
+  type: 'deck-edit' | 'deck-display' | 'practice';
 }>();
 
-const title = computed(() => {
-  return props.type === 'deck-edit'
-    ? '独自デッキ編集画面'
-    : '公式デッキ表示ページ';
+const title = computed((): string => {
+  switch (props.type) {
+    case 'deck-edit': return '独自デッキ編集画面';
+    case 'deck-display': return '公式デッキ表示ページ';
+    case 'practice': return '一人回し(Practice Mode)';
+    default: return '';
+  }
 });
 
-const description = computed(() => {
-  return props.type === 'deck-edit'
-    ? 'カード検索、デッキ編集、カード詳細を一画面で操作できます。'
-    : '公式デッキ表示ページにシャッフル機能とデッキ画像作成機能を追加します。';
+const description = computed((): string => {
+  switch (props.type) {
+    case 'deck-edit':
+      return 'カード検索、デッキ編集、カード詳細を一画面で操作できます。';
+    case 'deck-display':
+      return '公式デッキ表示ページにシャッフル機能とデッキ画像作成機能を追加します。';
+    case 'practice':
+      return 'デッキ編集画面内で一人回しシミュレーションができます。ドロー、シャッフル、ゾーン間のカード移動など、実際のデュエルを再現してデッキの動きを確認できます。';
+    default: return '';
+  }
 });
 
 const accessMethods = computed(() => {
-  if (props.type === 'deck-edit') {
-    return [
-      {
-        title: 'URL',
-        desc: '',
-        url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
-      },
-      {
-        title: 'ポップアップ',
-        desc: '「デッキ編集画面」ボタンをクリック',
-        url: null
-      },
-      {
-        title: '右クリック',
-        desc: '拡張機能アイコンを右クリックして「デッキ編集画面を開く」',
-        url: null
-      }
-    ];
-  } else {
-    return [
-      {
-        title: 'URL',
-        desc: '公式デッキ表示ページにアクセス',
-        url: 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...'
-      },
-      {
-        title: 'マイデッキ',
-        desc: 'デッキ名をクリック',
-        url: null
-      }
-    ];
+  switch (props.type) {
+    case 'deck-edit':
+      return [
+        {
+          title: 'URL',
+          desc: '',
+          url: 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit'
+        },
+        {
+          title: 'ポップアップ',
+          desc: '「デッキ編集画面」ボタンをクリック',
+          url: null
+        },
+        {
+          title: '右クリック',
+          desc: '拡張機能アイコンを右クリックして「デッキ編集画面を開く」',
+          url: null
+        }
+      ];
+    case 'deck-display':
+      return [
+        {
+          title: 'URL',
+          desc: '公式デッキ表示ページにアクセス',
+          url: 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&...'
+        },
+        {
+          title: 'マイデッキ',
+          desc: 'デッキ名をクリック',
+          url: null
+        }
+      ];
+    case 'practice':
+      return [
+        {
+          title: 'デッキ編集画面',
+          desc: '右エリアの「Practice」タブをクリック',
+          url: null
+        },
+        {
+          title: '設定',
+          desc: 'Practice Control Panelの「Settings」ボタンからカードサイズ等を変更',
+          url: null
+        }
+      ];
+    default:
+      return [];
   }
 });
 
 const images = computed(() => {
-  if (props.type === 'deck-edit') {
-    // 画像1,2 = store紹介用の画像
-    return [
-      { src: '/images/store-promo-01.webp', alt: 'カードの簡単移動機能' },
-      { src: '/images/store-promo-02.webp', alt: 'カード情報表示機能' }
-    ];
-  } else {
-    // 画像3 = store紹介用の画像
-    return [
-      { src: '/images/store-promo-03.webp', alt: '公式デッキ表示画面' }
-    ];
+  switch (props.type) {
+    case 'deck-edit':
+      return [
+        { src: '/images/store-promo-01.webp', alt: 'カードの簡単移動機能' },
+        { src: '/images/store-promo-02.webp', alt: 'カード情報表示機能' }
+      ];
+    case 'deck-display':
+      return [
+        { src: '/images/store-promo-03.webp', alt: '公式デッキ表示画面' }
+      ];
+    case 'practice':
+      return [];
+    default:
+      return [];
   }
 });
 </script>

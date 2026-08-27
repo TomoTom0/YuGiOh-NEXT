@@ -50,6 +50,33 @@
    - 「自分が調べたから正しい」と思い込む
    - ユーザーの主張を「意見」だと思って無視する
 
+### 複数指摘があった場合の対応フロー
+
+**ユーザーから複数の指摘を一度に受けた場合、必ず以下の手順を実行する:**
+
+1. **指摘の分割**: ユーザーの本文をそのまま分割し、個別の指摘として抽出する
+2. **タスク起票**: 各指摘ごとにタスクを起票し、以下の情報を記載する:
+   - **指摘**: ユーザーの原文（そのまま）
+   - **現状の問題**: コード上の問題点（ソースコード確認後に記載）
+   - **現在の仕様である理由**: もしあれば（確認後に記載）
+   - **修正方針**: どう修正するか（確認後に記載）
+   - **修正結果**: 修正後の状態（修正完了後に記載）
+3. **列挙の提示**: タスク起票後、全指摘について以下の形式でユーザーに提示して認識合わせを行う:
+   - **分割された原文**: ユーザーの原文をそのまま記載
+   - **現状の問題**: コード上の問題点
+   - **現状である理由**: なぜその問題が起きているか
+   - **修正方針**: どう修正するか
+   - **修正後の挙動**: 修正後にどうなるか
+4. **修正開始**: 認識合わせの後に修正を開始する
+
+**絶対にやってはいけないこと:**
+- 指摘を勝手に解釈して要約すること
+- 指摘の一部だけを対応して残りを無視すること
+- 認識合わせなしに修正を開始すること
+- ユーザーの指摘の正しさを検証・確認しようとすること（指摘は正しい前提で進める）
+- 同種の指摘を複数タスクに分割すること（根本原因が共通する場合は1タスクにまとめる）
+- コードを読んだ推測（妄想）で修正すること（認識合わせで各指摘の現状・原因・方針を明確にしてから修正する）
+
 ---
 
 # ⚠️ 絶対ルール - ブラウザ操作（厳守） ⚠️
@@ -80,7 +107,8 @@
 ```javascript
 const WebSocket = require('ws');
 const fs = require('fs');
-const wsUrl = fs.readFileSync('.chrome_playwright_ws', 'utf8').trim();
+const { WS_FILE } = require('./tests/browser/cdp-helper.cjs');
+const wsUrl = fs.readFileSync(WS_FILE, 'utf8').trim();
 const ws = new WebSocket(wsUrl);
 
 // Chrome DevTools Protocolでコマンド送信
@@ -115,8 +143,10 @@ function sendCommand(method, params = {}) {
 **ソースコード更新後は必ず以下を実行すること：**
 
 ```bash
-bun run build-and-deploy
+mise run build-and-deploy
 ```
+
+`package.json`の全scriptsは`mise.toml`にもtaskとして登録済み（`mise tasks ls`で一覧表示）。内部実装はpnpmを使用。
 
 ### デプロイ先
 
@@ -127,10 +157,10 @@ bun run build-and-deploy
 
 ```bash
 # ユニットテスト（Vitest）
-bun run test:vitest
+mise run test:vitest
 
 # E2Eテスト（Chrome CDP経由）
-bun run tmp/test-*.js
+node tmp/test-*.js
 ```
 
 ### デッキ編集ページ
@@ -149,6 +179,14 @@ bun run tmp/test-*.js
 
 参考：`tests/browser/`の既存テストスクリプト
 
+## 機能の有効/無効
+
+**機能を無効化する場合はコードの削除やハードコードではなく、feature flag を使用する。**
+
+- `src/types/settings.ts`: `FeatureId` / `FeatureSettings` / `DEFAULT_FEATURE_SETTINGS` に追加
+- `docs/feature/featureSettings.toml`: category 3（`default = "import.meta.env.DEV"`、本番ビルドでOFF）
+- カテゴリ定義は `docs/feature/README.md` 参照
+
 ## ファイル構成の重要なルール
 
 ### `.gitignore` 管理
@@ -157,7 +195,7 @@ bun run tmp/test-*.js
 - `tmp/` - 一時的なテストスクリプトやデバッグファイル
 - `.chrome_cache/` - Chromiumのユーザープロファイル
 - `dist/` - ビルド出力
-- `node_modules/` - bunパッケージキャッシュ
+- `node_modules/` - pnpmパッケージキャッシュ
 
 ## バージョン管理
 
@@ -178,7 +216,7 @@ update-versionコマンドで以下を自動更新：
 
 ### ブラウザ自動テスト
 
-ブラウザ操作の自動テストスクリプトは `tests/browser/` にある。新しいテストを作成する際は既存のテスト（`test-buttons.js`, `test-shuffle.js`等）を参考にすること。
+ブラウザ操作の自動テストスクリプトは `tests/browser/` にある。新しいテストを作成する際は既存のテスト（`test-buttons.cjs`, `test-shuffle.cjs`等）を参考にすること。
 
 ## デバッグログのルール
 
@@ -256,7 +294,7 @@ update-versionコマンドで以下を自動更新：
 
 変更方法：
 1. `src/styles/themes.scss` を編集
-2. `bun run build-and-deploy`
+2. `mise run build-and-deploy`
 3. オプション画面でテーマ切り替えを確認
 
 ## querySelector 安全性パターン

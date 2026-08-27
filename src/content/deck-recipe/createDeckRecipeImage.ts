@@ -8,7 +8,8 @@ import {
   CARD_IMAGE_SETTINGS,
   FONT_SETTINGS,
   QR_CODE_SETTINGS,
-  CardSection
+  CardSection,
+  type CardImageEntry
 } from '../../types/deck-recipe-image';
 import { getCardImageUrl } from '../../types/card';
 // QRCodeは動的importに変更（画像作成時のみロード）
@@ -16,6 +17,8 @@ import { getCardImageUrl } from '../../types/card';
 import { detectCardGameType, getGamePath } from '../../utils/page-detector';
 import { getDeckDisplayUrl, buildFullUrl } from '../../utils/url-builder';
 import { getTempCacheDB } from '../../utils/temp-cache-db';
+import { getUnifiedCacheDB } from '../../utils/unified-cache-db';
+import { detectLanguage } from '../../utils/language-detector';
 
 /**
  * デッキレシピ画像を作成する
@@ -42,7 +45,8 @@ export async function createDeckRecipeImage(
     includeQR,
     scale = 2,
     color,
-    deckData
+    deckData,
+    genesysPoints
   } = options;
 
   // 1. デッキデータの検証
@@ -54,6 +58,7 @@ export async function createDeckRecipeImage(
   // 2. 現在のゲームタイプを検出（ブラウザ環境のみ）
   const gameType = typeof window !== 'undefined' ? detectCardGameType() : 'ocg';
   const gamePath = getGamePath(gameType);
+  const lang = typeof document !== 'undefined' ? detectLanguage(document) : 'ja';
 
   // 3. DeckInfoからCardSection配列を構築
   // getCardImageUrlは相対パスを返すため、Node.js環境では絶対URLに変換
@@ -68,36 +73,37 @@ export async function createDeckRecipeImage(
 
   const tempCardDB = getTempCacheDB();
 
+  function buildCardEntries(deckEntries: Array<{ cid: string; ciid: string; quantity: number }>): CardImageEntry[] {
+    return deckEntries.flatMap(({ cid, ciid, quantity }) => {
+      // TempCacheDB → UnifiedCacheDB の順に取得（UnifiedCacheDBは複数画像情報を保持）
+      let card = tempCardDB.get(cid);
+      if (!card) {
+        const unifiedDB = getUnifiedCacheDB();
+        card = unifiedDB.reconstructCardInfo(cid, lang) ?? undefined;
+      }
+      if (!card) return [];
+      // DeckCardRef の ciid（イラスト違いを識別）を優先して画像URLを生成
+      const url = toAbsoluteUrl(getCardImageUrl(card, gameType, ciid));
+      if (!url) return [];
+      return Array.from({ length: quantity }, () => ({ url, cid }));
+    });
+  }
+
   const sections: CardSection[] = [
     {
       name: 'main',
       displayName: 'メイン',
-      cardImages: data.mainDeck.flatMap(({ cid, quantity }) => {
-        const card = tempCardDB.get(cid);
-        if (!card) return [];
-        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
-        return url ? Array(quantity).fill(url) : [];
-      })
+      cardImages: buildCardEntries(data.mainDeck)
     },
     {
       name: 'extra',
       displayName: 'エクストラ',
-      cardImages: data.extraDeck.flatMap(({ cid, quantity }) => {
-        const card = tempCardDB.get(cid);
-        if (!card) return [];
-        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
-        return url ? Array(quantity).fill(url) : [];
-      })
+      cardImages: buildCardEntries(data.extraDeck)
     },
     {
       name: 'side',
       displayName: 'サイド',
-      cardImages: data.sideDeck.flatMap(({ cid, quantity }) => {
-        const card = tempCardDB.get(cid);
-        if (!card) return [];
-        const url = toAbsoluteUrl(getCardImageUrl(card, gameType));
-        return url ? Array(quantity).fill(url) : [];
-      })
+      cardImages: buildCardEntries(data.sideDeck)
     }
   ];
 
@@ -142,7 +148,7 @@ export async function createDeckRecipeImage(
   // 0枚のセクションは表示しない
   const nonEmptySections = sections.filter(section => section.cardImages.length > 0);
   for (const section of nonEmptySections) {
-    currentY = await drawCardSection(ctx, section, currentY, drawSettings, gamePath);
+    currentY = await drawCardSection(ctx, section, currentY, drawSettings, gamePath, genesysPoints);
   }
 
   // 7. QRコード描画（includeQRがtrueの場合）
@@ -304,7 +310,8 @@ async function drawCardSection(
   section: CardSection,
   startY: number,
   settings: CanvasDrawSettings,
-  gamePath: string
+  gamePath: string,
+  genesysPoints?: Record<string, number>
 ): Promise<number> {
   const scale = settings.scale;
   let currentY = startY;
@@ -385,7 +392,7 @@ async function drawCardSection(
 
   // カード画像をロードして描画
   const cardImgs = await Promise.all(
-    section.cardImages.map(url => loadImage(url, gamePath))
+    section.cardImages.map(entry => loadImage(entry.url, gamePath))
   );
 
   cardImgs.forEach((img, index) => {
@@ -402,6 +409,17 @@ async function drawCardSection(
       CARD_IMAGE_SETTINGS.width * scale,
       CARD_IMAGE_SETTINGS.height * scale
     );
+
+    // GENESYSポイントバッジの描画（genesysPointsが指定されている場合）
+    if (genesysPoints) {
+      const entry = section.cardImages[index];
+      if (entry) {
+        const pt = genesysPoints[entry.cid];
+        if (pt !== undefined && pt > 0) {
+          drawGenesysPointBadge(ctx, x, y, pt, settings);
+        }
+      }
+    }
   });
 
   // 次のセクションの開始Y座標を計算
@@ -409,6 +427,67 @@ async function drawCardSection(
   currentY += rows * LAYOUT_CONSTANTS.sectionRowHeight * scale;
 
   return currentY;
+}
+
+/**
+ * GENESYSポイントバッジをカード画像上に描画する
+ *
+ * @param ctx - Canvas 2Dコンテキスト
+ * @param cardX - カード画像のX座標
+ * @param cardY - カード画像のY座標
+ * @param pt - GENESYSポイント値
+ * @param settings - 描画設定
+ */
+function drawGenesysPointBadge(
+  ctx: CanvasRenderingContext2D,
+  cardX: number,
+  cardY: number,
+  pt: number,
+  settings: CanvasDrawSettings
+): void {
+  const scale = settings.scale;
+  const cardW = CARD_IMAGE_SETTINGS.width * scale;
+  const cardH = CARD_IMAGE_SETTINGS.height * scale;
+
+  // DeckCard.vue の .genesys-pt-badge と同じ配置比率
+  // bottom: 5.56%, height: 19.44%
+  const badgeH = cardH * 0.1944;
+  const badgeY = cardY + cardH * 0.75;
+
+  // pt値に応じた色ティア（DeckCard.vue の genesysPtTier と一致: low<=4, mid<=9, high>9）
+  let bgColor = '#f9a825'; // low (<=4): yellow
+  if (pt > 9) {
+    bgColor = '#c62828'; // high: red
+  } else if (pt > 4) {
+    bgColor = '#ef6c00'; // mid: orange
+  }
+
+  // バッジ背景
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(cardX, badgeY, cardW, badgeH);
+
+  // バッジテキスト
+  const fontSize = Math.max(10, 14 * scale);
+  ctx.font = `bold ${fontSize}px ${FONT_SETTINGS.family}`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // テキストシャドウ
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+  ctx.shadowBlur = 1 * scale;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 1 * scale;
+
+  ctx.fillText(`${pt}pt`, cardX + cardW / 2, badgeY + badgeH / 2);
+
+  // シャドウをリセット
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
 }
 
 /**

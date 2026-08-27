@@ -11,6 +11,11 @@
       <span class="title-group">
         {{ title }}
         <span v-if="showCount" class="count">{{ displayCards.length }}</span>
+        <span
+          v-if="sectionType === 'main' && showCount && genesysTotalPt > 0"
+          class="genesys-total-pt"
+          :class="{ 'over-limit': genesysTotalPt > 100 }"
+        >{{ genesysTotalPt }}pt</span>
       </span>
       <span v-if="sectionType !== 'trash'" class="section-buttons">
         <button
@@ -60,6 +65,8 @@ import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { mdiShuffle, mdiSort } from '@mdi/js'
 import { getCardInfoWithLang } from '../utils/card-utils'
+import { parseDragData } from '../utils/drag-data'
+import type { DeckDragData } from '../utils/drag-data'
 
 export default {
   name: 'DeckSection',
@@ -99,11 +106,39 @@ export default {
     const displayCards = computed(() => {
       return deckStore.displayOrder[props.sectionType] || []
     })
-    
+
+    // GENESYSモード時の合計ポイント
+    // mainセクション: デッキ全体(main+extra+side)の合計、他セクション: そのセクションのみ
+    const genesysTotalPt = computed(() => {
+      if (deckStore.resolvedRegulation.mode !== 'genesys') return 0
+      const sectionTypes: Array<'main' | 'extra' | 'side'> = props.sectionType === 'main'
+        ? ['main', 'extra', 'side']
+        : [props.sectionType as 'main' | 'extra' | 'side']
+      let total = 0
+      for (const st of sectionTypes) {
+        const cards = deckStore.displayOrder[st] || []
+        for (const dc of cards) {
+          const pt = deckStore.getCardGenesysPoint(dc.cid)
+          if (pt !== undefined && pt > 0) {
+            total += pt
+          }
+        }
+      }
+      return total
+    })
+
     // (cid, ciid)ペアでカード情報を取得
     // card-utils.ts の getCardInfoWithLang を使用
+    // OCG過去版レギュレーション適用時は、その版の禁止制限状態で上書き
     const getCardInfo = (cid: string, ciid: number) => {
-      return getCardInfoWithLang(cid, ciid, document)
+      const base = getCardInfoWithLang(cid, ciid, document)
+      if (!base) return null
+      const override = deckStore.getCardLimitOverride(cid)
+      if (override !== null) {
+        // null=上書き無し / undefined=その版で無制限（バッジ非表示）/ 値=制限あり
+        return { ...base, limitRegulation: override }
+      }
+      return base
     }
 
     const handleEndZoneDragOver = (event) => {
@@ -128,18 +163,16 @@ export default {
         return
       }
 
+      const parsed = parseDragData<DeckDragData>(event)
+      if (!parsed) return
+
+      const { sectionType: sourceSectionType, uuid: sourceUuid, card } = parsed
+
+      if (!card) {
+        return
+      }
+
       try {
-        const data = event.dataTransfer.getData('text/plain')
-        if (!data) {
-          return
-        }
-
-        const { sectionType: sourceSectionType, uuid: sourceUuid, card } = JSON.parse(data)
-
-        if (!card) {
-          return
-        }
-
         // searchセクションからのドロップ
         if (sourceSectionType === 'search') {
           if (props.sectionType === 'main' || props.sectionType === 'extra') {
@@ -147,7 +180,6 @@ export default {
           } else if (props.sectionType === 'side') {
             deckStore.addCopyToSection(card, 'side')
           }
-          // trashへのドロップは無視
           return
         }
 
@@ -236,6 +268,7 @@ export default {
       handleDragEnd,
       cardGridRef,
       displayCards,
+      genesysTotalPt,
       getCardInfo,
       isSectionDragOver,
       mdiShuffle,
@@ -284,6 +317,18 @@ export default {
       color: var(--text-secondary);
       font-size: 12px;
       font-weight: normal;
+    }
+
+    .genesys-total-pt {
+      margin-left: 8px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: normal;
+
+      &.over-limit {
+        color: var(--color-error);
+        font-weight: bold;
+      }
     }
 
     .section-buttons {

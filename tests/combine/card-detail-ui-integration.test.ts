@@ -13,8 +13,8 @@ import * as cardDetailStore from '@/stores/card-detail';
 
 vi.mock('@/content/parser/deck-detail-parser');
 vi.mock('@/stores/card-detail');
-vi.mock('@/utils/temp-card-db', () => ({
-  getTempCardDB: () => new Map(),
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => new Map(),
 }));
 
 describe('Card Detail UI モジュール統合テスト', () => {

@@ -85,16 +85,10 @@ function extractCardsFromSection(
  * @returns 禁止制限リスト情報
  */
 export async function fetchForbiddenLimitedList(effectiveDate?: string): Promise<ForbiddenLimitedList> {
-  // url-builder 経由でエンドポイントを取得（request_locale は自動付与）
+  // url-builder 経由でエンドポイントを取得（request_locale は自動付与。effectiveDate が
+  // 指定された場合は forbiddenLimitedDate パラメータとして付与）
   const gameType = detectCardGameType();
-  const baseUrl = getForbiddenLimitedEndpoint(gameType);
-
-  const params = new URLSearchParams();
-  if (effectiveDate) {
-    params.set('forbiddenLimitedDate', effectiveDate);
-  }
-
-  const url = params.toString() ? `${baseUrl}&${params.toString()}` : baseUrl;
+  const url = getForbiddenLimitedEndpoint(gameType, effectiveDate);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -107,6 +101,40 @@ export async function fetchForbiddenLimitedList(effectiveDate?: string): Promise
   const date = effectiveDate || extractEffectiveDateFromHtml(html);
 
   return parseForbiddenLimitedHtml(html, date);
+}
+
+/**
+ * 実在する禁止制限リストの適用日一覧を取得する
+ *
+ * 公式ページの <select name="forbiddenLimitedDate"> の option から全適用日を抽出。
+ * デッキ名タグ [OCG-YYMM] で過去版を指定した際の実在確認・直近版フォールバックに使用。
+ *
+ * @returns 適用日一覧（YYYY-MM-DD）。取得失敗時は例外を投げる
+ */
+export async function fetchAvailableEffectiveDates(): Promise<string[]> {
+  const gameType = detectCardGameType();
+  const url = getForbiddenLimitedEndpoint(gameType);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch available effective dates: ${response.status} ${response.statusText}`);
+  }
+  const html = await response.text();
+  return parseAvailableEffectiveDates(html);
+}
+
+/**
+ * HTMLの <select name="forbiddenLimitedDate"> から実在する適用日一覧を抽出する
+ */
+function parseAvailableEffectiveDates(html: string): string[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const options = doc.querySelectorAll('select#forbiddenLimitedDate option');
+  const dates: string[] = [];
+  options.forEach(opt => {
+    const value = opt.getAttribute('value');
+    if (value) dates.push(value);
+  });
+  return dates;
 }
 
 /**

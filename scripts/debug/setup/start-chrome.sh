@@ -2,10 +2,13 @@
 # 調査用Chromeブラウザの起動スクリプト
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-PROFILE_DIR="${PROJECT_ROOT}/.chrome_cache"
-EXTENSION_DIR="${HOME}/user/Mine/_chex/src_ygoNeuronHelper"
-DEBUG_PORT=9222
-WS_FILE="${PROJECT_ROOT}/.chrome_playwright_ws"
+BROWSER_CONFIG="${PROJECT_ROOT}/configs/browser.toml"
+EXTENSION_DIR="${HOME}/user/Mine/_chex/src_ygo-next"
+
+# configs/browser.toml から設定を読み取り（tomlq使用）
+DEBUG_PORT=$(tomlq -r '.chrome.debug_port' "$BROWSER_CONFIG")
+PROFILE_DIR="${PROJECT_ROOT}/$(tomlq -r '.chrome.profile_dir' "$BROWSER_CONFIG")"
+WS_FILE="${PROJECT_ROOT}/$(tomlq -r '.chrome.ws_file' "$BROWSER_CONFIG")"
 
 echo "=== Chromium Debug Browser Setup ==="
 echo ""
@@ -35,6 +38,9 @@ else
     --enable-logging=stderr \
     --v=1 \
     --window-size=1280,900 \
+    --enable-features=OptimizationGuideModelDownloading,OptimizationGuideOnDeviceModel \
+    --enable-gpu \
+    --disable-features=MediaRouterDialDiscovery \
     "https://www.db.yugioh-card.com/yugiohdb/?request_locale=ja" \
     > "${CHROME_LOG}" 2>&1 &
   

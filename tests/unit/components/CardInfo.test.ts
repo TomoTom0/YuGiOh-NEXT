@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import CardInfo from '../../../src/components/CardInfo.vue';
 import { getCardDetail, getCardDetailWithCache } from '../../../src/api/card-search';
 import { useCardDetailStore } from '../../../src/stores/card-detail';
+import { getUnifiedCacheDB } from '../../../src/utils/unified-cache-db';
 
 // Mock getCardDetail and getCardDetailWithCache
 vi.mock('../../../src/api/card-search', () => ({
@@ -517,6 +518,83 @@ describe('CardInfo.vue', () => {
         .find((s) => s.text().includes('Detail'));
 
       expect(sectionTitle?.text()).toBe('Detail');
+    });
+  });
+
+  describe('画像選択ダイアログ（イラスト違い選択）', () => {
+    const mockCardWithVariants = {
+      ...mockMonsterCard,
+      imgs: [
+        { ciid: '1', imgHash: 'hash1' },
+        { ciid: '2', imgHash: 'hash2' },
+      ],
+    };
+
+    it('imgsが複数ある場合、画像選択ボタンをクリックするとイラスト候補が表示される', async () => {
+      // isCiidValid()内部のgetValidCiidsForCurrentLang()はUnifiedCacheDBが
+      // 初期化済みの場合のみdetectLanguage(document)を呼ぶ実装のため、
+      // isInitialized=trueにしてそのコードパスを実際に通す
+      // (detectLanguageのimport漏れ等の回帰はisInitialized=false時は検知できない)
+      const unifiedDB = getUnifiedCacheDB();
+      vi.spyOn(unifiedDB, 'isInitialized').mockReturnValue(true);
+      vi.spyOn(unifiedDB, 'getValidCiidsForLang').mockReturnValue(['1', '2']);
+
+      const store = useCardDetailStore();
+      store.selectedCard = mockCardWithVariants as any;
+
+      const wrapper = mount(CardInfo, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const btn = wrapper.find('.image-select-btn');
+      expect(btn.exists()).toBe(true);
+
+      await btn.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      // detectLanguageのimport漏れ等でisCiidValid()内が例外を投げると
+      // ダイアログが開いても選択肢が一切描画されない回帰が過去に発生した
+      const options = wrapper.findAll('.image-option');
+      expect(options).toHaveLength(2);
+    });
+
+    it('イラスト候補をクリックするとselectedCardのciidが更新される', async () => {
+      const unifiedDB = getUnifiedCacheDB();
+      vi.spyOn(unifiedDB, 'isInitialized').mockReturnValue(true);
+      vi.spyOn(unifiedDB, 'getValidCiidsForLang').mockReturnValue(['1', '2']);
+
+      const store = useCardDetailStore();
+      store.selectedCard = mockCardWithVariants as any;
+      const updateSpy = vi.spyOn(store, 'updateSelectedCardCiid');
+
+      const wrapper = mount(CardInfo, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      await wrapper.find('.image-select-btn').trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const options = wrapper.findAll('.image-option');
+      await options[1].trigger('click');
+
+      expect(updateSpy).toHaveBeenCalledWith('2');
+    });
+
+    it('imgsが1件のみの場合は画像選択ボタンが表示されない', () => {
+      const store = useCardDetailStore();
+      store.selectedCard = mockMonsterCard as any;
+
+      const wrapper = mount(CardInfo, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      expect(wrapper.find('.image-select-btn').exists()).toBe(false);
     });
   });
 });

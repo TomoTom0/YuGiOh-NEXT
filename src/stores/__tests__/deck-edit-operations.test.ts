@@ -152,6 +152,14 @@ vi.mock('../settings', () => ({
       enableCategoryPriority: false,
       enableTailPlacement: false,
     },
+    featureSettings: {
+      'shuffle-sort': true,
+      'deck-image': true,
+      'deck-edit': true,
+      'chat': false,
+      'practice': false,
+      'genesys': false,
+    },
   })),
 }));
 
@@ -170,6 +178,7 @@ vi.mock('../toast-notification', () => ({
 // composables のモック
 vi.mock('@/composables/deck/useDeckCardSorter', () => ({
   createDeckCardComparator: vi.fn(() => (a: any, b: any) => 0),
+  buildRecipeSortOptions: vi.fn((deps: any) => deps),
 }));
 
 vi.mock('@/composables/deck/useFLIPAnimation', () => ({
@@ -291,6 +300,72 @@ describe('deck-edit store - saveDeck', () => {
 
     // deckInfo.dno が更新されることを確認
     expect(store.deckInfo.dno).toBe(0); // saveDeck内でdnoを設定
+  });
+});
+
+// ============================================================
+// 1b. saveDeckData（practiceモードP2デッキ保存等）のテスト
+// ============================================================
+describe('deck-edit store - saveDeckData', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  it('nameが空でoriginalNameがある場合、originalNameで補完して保存する', async () => {
+    const store = useDeckEditStore();
+    const { sessionManager } = await import('@/content/session/session');
+
+    const p2DeckInfo: DeckInfo = {
+      ...mockDeckInfo,
+      dno: 5,
+      name: '',
+      originalName: 'P2のデッキ名',
+    };
+
+    await store.saveDeckData(5, p2DeckInfo);
+
+    expect(sessionManager.saveDeck).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ dno: 5, name: 'P2のデッキ名' })
+    );
+  });
+
+  it('nameが設定済みの場合はそのまま保存する', async () => {
+    const store = useDeckEditStore();
+    const { sessionManager } = await import('@/content/session/session');
+
+    const p2DeckInfo: DeckInfo = {
+      ...mockDeckInfo,
+      dno: 5,
+      name: '明示的な名前',
+      originalName: '元の名前',
+    };
+
+    await store.saveDeckData(5, p2DeckInfo);
+
+    expect(sessionManager.saveDeck).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ dno: 5, name: '明示的な名前' })
+    );
+  });
+
+  it('編集中のdeckInfo.value（P1側）は変更しない', async () => {
+    const store = useDeckEditStore();
+    store.deckInfo.name = 'P1のデッキ名';
+    store.deckInfo.dno = 1;
+
+    const p2DeckInfo: DeckInfo = {
+      ...mockDeckInfo,
+      dno: 5,
+      name: '',
+      originalName: 'P2のデッキ名',
+    };
+
+    await store.saveDeckData(5, p2DeckInfo);
+
+    expect(store.deckInfo.name).toBe('P1のデッキ名');
+    expect(store.deckInfo.dno).toBe(1);
   });
 });
 

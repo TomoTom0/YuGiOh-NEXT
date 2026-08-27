@@ -11,6 +11,12 @@ import { detectCardGameType } from '@/utils/page-detector';
 import { getCardImageUrl as getCardImageUrlHelper } from '@/types/card';
 import { buildFullUrl } from '@/utils/url-builder';
 
+/** サムネイル選択結果1件分（カードIDと、そのカードとして表示すべきイラストのciid） */
+export interface ThumbnailCardRef {
+  cid: string;
+  ciid: string;
+}
+
 /**
  * DeckCardRef[] から重複なしでカードIDを選択する（シンプル版）
  *
@@ -30,15 +36,15 @@ function selectCidsFromRefs(
   maxCount: number,
   headPlacementCardIds: string[],
   existingCids: Set<string>
-): string[] {
-  const result: string[] = [];
+): ThumbnailCardRef[] {
+  const result: ThumbnailCardRef[] = [];
 
   // 1. 手動先頭枠のカードを優先的に選ぶ
   for (const ref of refs) {
     if (result.length >= maxCount) break;
     if (existingCids.has(ref.cid)) continue;
     if (headPlacementCardIds.includes(ref.cid)) {
-      result.push(ref.cid);
+      result.push({ cid: ref.cid, ciid: ref.ciid });
       existingCids.add(ref.cid);
     }
   }
@@ -48,7 +54,7 @@ function selectCidsFromRefs(
     for (const ref of refs) {
       if (result.length >= maxCount) break;
       if (existingCids.has(ref.cid)) continue;
-      result.push(ref.cid);
+      result.push({ cid: ref.cid, ciid: ref.ciid });
       existingCids.add(ref.cid);
     }
   }
@@ -61,7 +67,8 @@ function selectCidsFromRefs(
  *
  * @param deckInfo - デッキ情報
  * @param headPlacementCardIds - 手動先頭配置カードIDリスト
- * @returns サムネイル用カードID配列（最大5枚）
+ * @returns サムネイル用カード参照配列（cid+ciid、最大5枚）。デッキ内のイラスト違いを
+ *   代表イラストに潰さないよう、選択元のDeckCardRefが持つciidをそのまま引き継ぐ
  *
  * @remarks
  * - サイドに固定があれば：サイド1枚、メイン2枚、エクストラ2枚
@@ -72,9 +79,9 @@ function selectCidsFromRefs(
 export function generateDeckThumbnailCards(
   deckInfo: DeckInfo,
   headPlacementCardIds: string[] = []
-): string[] {
+): ThumbnailCardRef[] {
   const selectedCids = new Set<string>();
-  const result: string[] = [];
+  const result: ThumbnailCardRef[] = [];
 
   // 1. サイドに手動先頭枠があるか確認
   const hasSideHeadPlacement = deckInfo.sideDeck.some(ref =>
@@ -219,6 +226,7 @@ async function promiseAllConcurrent<T>(
 
   async function executeTask(taskIndex: number): Promise<void> {
     const task = tasks[taskIndex];
+    if (!task) return;
     try {
       results[taskIndex] = await task();
     } catch (error) {
@@ -260,9 +268,9 @@ export async function generateDeckThumbnailImage(
   headPlacementCardIds: string[] = []
 ): Promise<string | null> {
   try {
-    const cardIds = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
+    const cardRefs = generateDeckThumbnailCards(deckInfo, headPlacementCardIds);
 
-    if (!cardIds || cardIds.length === 0) {
+    if (!cardRefs || cardRefs.length === 0) {
       return null;
     }
 
@@ -277,16 +285,16 @@ export async function generateDeckThumbnailImage(
     const gap = 2;
     const padding = 4;
 
-    canvas.width = cardIds.length * cardWidth + (cardIds.length - 1) * gap + padding * 2;
+    canvas.width = cardRefs.length * cardWidth + (cardRefs.length - 1) * gap + padding * 2;
     canvas.height = cardHeight + padding * 2;
 
     // 画像読み込みタスク配列（遅延実行で並列数制限を実現）
-    const loadTasks = cardIds.map((cid, index) => async () => {
+    const loadTasks = cardRefs.map(({ cid, ciid }, index) => async () => {
       const cardInfo = getCardInfo(cid);
       if (!cardInfo) return false;
 
       const gameType = detectCardGameType();
-      const relativeUrl = getCardImageUrlHelper(cardInfo, gameType);
+      const relativeUrl = getCardImageUrlHelper(cardInfo, gameType, ciid);
       if (!relativeUrl) return false;
 
       const imgUrl = buildFullUrl(relativeUrl);

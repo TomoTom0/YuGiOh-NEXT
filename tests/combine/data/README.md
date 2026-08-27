@@ -17,12 +17,12 @@
 または、npmスクリプトを使用：
 
 ```bash
-bun run test:download-samples
-bun run test:integration  # ダウンロード + テスト実行
+mise run test:download-samples
+mise run test:integration  # ダウンロード + テスト実行
 ```
 
 ## 注意事項
 
 - これらのHTMLファイルは `.gitignore` に含まれています
 - CI/CDでは `test:integration` スクリプトで自動的にダウンロードされます
-- 最軽量のテスト（`bun run test`）ではHTMLファイルは不要です（該当テストは自動的にスキップ）
+- 最軽量のテスト（`mise run test`）ではHTMLファイルは不要です（該当テストは自動的にスキップ）

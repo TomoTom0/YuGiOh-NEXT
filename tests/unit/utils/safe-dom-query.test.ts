@@ -19,24 +19,24 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeQuery', () => {
-    it('要素が存在する場合、その要素を返す', () => {
+    it('要素が存在する場合、その要素を返す [covers:safe_query.found_returns_element]', () => {
       document.body.innerHTML = '<div id="test">Test</div>';
       const element = safeQuery('#test');
       expect(element).not.toBeNull();
       expect(element?.id).toBe('test');
     });
 
-    it('要素が存在しない場合、nullを返す', () => {
+    it('要素が存在しない場合、nullを返す [covers:safe_query.not_found_returns_null]', () => {
       const element = safeQuery('#not-found');
       expect(element).toBeNull();
     });
 
-    it('親要素を指定できる', () => {
-      document.body.innerHTML = '<div id="parent"><span id="child">Child</span></div>';
+    it('親要素を指定できる [covers:safe_query.uses_parent_when_truthy]', () => {
+      document.body.innerHTML = '<span class="child" id="outside">Outside</span><div id="parent"><span class="child" id="inside">Child</span></div>';
       const parent = document.getElementById('parent');
-      const child = safeQuery('#child', parent!);
+      const child = safeQuery('.child', parent!);
       expect(child).not.toBeNull();
-      expect(child?.id).toBe('child');
+      expect(child?.id).toBe('inside');
     });
 
     it('型パラメータで返り値の型を指定できる', () => {
@@ -50,7 +50,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeQueryWithWarn', () => {
-    it('要素が存在する場合、警告を出さずに要素を返す', () => {
+    it('要素が存在する場合、警告を出さずに要素を返す [covers:safe_query_warn.found_no_warn]', () => {
       document.body.innerHTML = '<div id="test">Test</div>';
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -62,7 +62,7 @@ describe('safe-dom-query', () => {
       warnSpy.mockRestore();
     });
 
-    it('要素が存在しない場合、デフォルトの警告を出す', () => {
+    it('要素が存在しない場合、デフォルトの警告を出す [covers:safe_query_warn.missing_default_warn]', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const element = safeQueryWithWarn('#not-found');
@@ -75,7 +75,7 @@ describe('safe-dom-query', () => {
       warnSpy.mockRestore();
     });
 
-    it('要素が存在しない場合、カスタムエラーメッセージを出す', () => {
+    it('要素が存在しない場合、カスタムエラーメッセージを出す [covers:safe_query_warn.missing_custom_warn]', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const element = safeQueryWithWarn('#not-found', 'Custom error message');
@@ -86,7 +86,20 @@ describe('safe-dom-query', () => {
       warnSpy.mockRestore();
     });
 
-    it('親要素を指定できる', () => {
+    it('空文字列のエラーメッセージはデフォルト警告にフォールバックする [covers:safe_query_warn.falsy_message_uses_default]', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const element = safeQueryWithWarn('#not-found', '');
+
+      expect(element).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[safeQueryWithWarn] Element not found: "#not-found"'
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('親要素を指定できる [covers:safe_query_warn.uses_parent_when_truthy]', () => {
       document.body.innerHTML = '<div id="parent"><span id="child">Child</span></div>';
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -101,7 +114,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeQueryAll', () => {
-    it('複数の要素を配列で返す', () => {
+    it('複数の要素を配列で返す [covers:safe_query_all.matches_array]', () => {
       document.body.innerHTML = `
         <div class="item">1</div>
         <div class="item">2</div>
@@ -114,13 +127,13 @@ describe('safe-dom-query', () => {
       expect(elements[2].textContent).toBe('3');
     });
 
-    it('要素が存在しない場合、空配列を返す', () => {
+    it('要素が存在しない場合、空配列を返す [covers:safe_query_all.no_matches_empty_array]', () => {
       const elements = safeQueryAll('.not-found');
       expect(elements).toEqual([]);
       expect(elements).toHaveLength(0);
     });
 
-    it('親要素を指定できる', () => {
+    it('親要素を指定できる [covers:safe_query_all.uses_parent_when_truthy]', () => {
       document.body.innerHTML = `
         <div id="parent">
           <span class="child">Child 1</span>
@@ -147,7 +160,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeQueryAndRun', () => {
-    it('要素が存在する場合、コールバックを実行する', () => {
+    it('要素が存在する場合、コールバックを実行する [covers:safe_query_run.found_runs_callback]', () => {
       document.body.innerHTML = '<div id="test">Initial</div>';
 
       safeQueryAndRun('#test', (elem) => {
@@ -157,7 +170,7 @@ describe('safe-dom-query', () => {
       expect(document.getElementById('test')?.textContent).toBe('Updated');
     });
 
-    it('要素が存在しない場合、コールバックを実行しない', () => {
+    it('要素が存在しない場合、コールバックを実行しない [covers:safe_query_run.not_found_skips_callback]', () => {
       const callback = vi.fn();
 
       safeQueryAndRun('#not-found', callback);
@@ -178,19 +191,19 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeGetAttribute', () => {
-    it('属性が存在する場合、その値を返す', () => {
+    it('属性が存在する場合、その値を返す [covers:safe_get_attribute.present_returns_value]', () => {
       document.body.innerHTML = '<a id="link" href="https://example.com">Link</a>';
       const href = safeGetAttribute('#link', 'href');
       expect(href).toBe('https://example.com');
     });
 
-    it('属性が存在しない場合、nullを返す', () => {
+    it('属性が存在しない場合、nullを返す [covers:safe_get_attribute.attribute_missing_returns_null]', () => {
       document.body.innerHTML = '<div id="div">Div</div>';
       const href = safeGetAttribute('#div', 'href');
       expect(href).toBeNull();
     });
 
-    it('要素が存在しない場合、nullを返す', () => {
+    it('要素が存在しない場合、nullを返す [covers:safe_get_attribute.element_missing_returns_null]', () => {
       const href = safeGetAttribute('#not-found', 'href');
       expect(href).toBeNull();
     });
@@ -204,24 +217,24 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeGetText', () => {
-    it('textContentを返す', () => {
+    it('textContentを返す [covers:safe_get_text.present_returns_trimmed_text]', () => {
       document.body.innerHTML = '<div id="test">Hello World</div>';
       const text = safeGetText('#test');
       expect(text).toBe('Hello World');
     });
 
-    it('前後の空白をトリムする', () => {
+    it('前後の空白をトリムする [covers:safe_get_text.present_returns_trimmed_text]', () => {
       document.body.innerHTML = '<div id="test">  Trimmed  </div>';
       const text = safeGetText('#test');
       expect(text).toBe('Trimmed');
     });
 
-    it('要素が存在しない場合、nullを返す', () => {
+    it('要素が存在しない場合、nullを返す [covers:safe_get_text.element_missing_returns_null]', () => {
       const text = safeGetText('#not-found');
       expect(text).toBeNull();
     });
 
-    it('空のtextContentの場合、空文字列を返す', () => {
+    it('空のtextContentの場合、空文字列を返す [covers:safe_get_text.empty_text_returns_empty_string]', () => {
       document.body.innerHTML = '<div id="test"></div>';
       const text = safeGetText('#test');
       expect(text).toBe('');
@@ -236,7 +249,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeSetHTML', () => {
-    it('要素が存在する場合、HTMLを設定してtrueを返す', () => {
+    it('要素が存在する場合、HTMLを設定してtrueを返す [covers:safe_set_html.found_sets_inner_html_true]', () => {
       document.body.innerHTML = '<div id="container">Old</div>';
       const result = safeSetHTML('#container', '<p>New Content</p>');
 
@@ -244,7 +257,7 @@ describe('safe-dom-query', () => {
       expect(document.getElementById('container')?.innerHTML).toBe('<p>New Content</p>');
     });
 
-    it('要素が存在しない場合、falseを返す', () => {
+    it('要素が存在しない場合、falseを返す [covers:safe_set_html.element_missing_false]', () => {
       const result = safeSetHTML('#not-found', '<p>Content</p>');
       expect(result).toBe(false);
     });
@@ -260,7 +273,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeSetAttribute', () => {
-    it('要素が存在する場合、属性を設定してtrueを返す', () => {
+    it('要素が存在する場合、属性を設定してtrueを返す [covers:safe_set_attribute.found_sets_attribute_true]', () => {
       document.body.innerHTML = '<a id="link">Link</a>';
       const result = safeSetAttribute('#link', 'href', 'https://example.com');
 
@@ -268,7 +281,7 @@ describe('safe-dom-query', () => {
       expect(document.getElementById('link')?.getAttribute('href')).toBe('https://example.com');
     });
 
-    it('要素が存在しない場合、falseを返す', () => {
+    it('要素が存在しない場合、falseを返す [covers:safe_set_attribute.element_missing_false]', () => {
       const result = safeSetAttribute('#not-found', 'href', 'https://example.com');
       expect(result).toBe(false);
     });
@@ -284,7 +297,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeAddClass', () => {
-    it('要素が存在する場合、クラスを追加してtrueを返す', () => {
+    it('要素が存在する場合、クラスを追加してtrueを返す [covers:safe_add_class.found_adds_class_true]', () => {
       document.body.innerHTML = '<div id="btn">Button</div>';
       const result = safeAddClass('#btn', 'active');
 
@@ -292,7 +305,7 @@ describe('safe-dom-query', () => {
       expect(document.getElementById('btn')?.classList.contains('active')).toBe(true);
     });
 
-    it('要素が存在しない場合、falseを返す', () => {
+    it('要素が存在しない場合、falseを返す [covers:safe_add_class.element_missing_false]', () => {
       const result = safeAddClass('#not-found', 'active');
       expect(result).toBe(false);
     });
@@ -308,7 +321,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeRemoveClass', () => {
-    it('要素が存在する場合、クラスを削除してtrueを返す', () => {
+    it('要素が存在する場合、クラスを削除してtrueを返す [covers:safe_remove_class.found_removes_class_true]', () => {
       document.body.innerHTML = '<div id="btn" class="active highlight">Button</div>';
       const result = safeRemoveClass('#btn', 'active');
 
@@ -317,7 +330,7 @@ describe('safe-dom-query', () => {
       expect(document.getElementById('btn')?.classList.contains('highlight')).toBe(true);
     });
 
-    it('要素が存在しない場合、falseを返す', () => {
+    it('要素が存在しない場合、falseを返す [covers:safe_remove_class.element_missing_false]', () => {
       const result = safeRemoveClass('#not-found', 'active');
       expect(result).toBe(false);
     });
@@ -333,7 +346,7 @@ describe('safe-dom-query', () => {
   });
 
   describe('safeAddEventListener', () => {
-    it('要素が存在する場合、イベントリスナーを追加してtrueを返す', () => {
+    it('要素が存在する場合、イベントリスナーを追加してtrueを返す [covers:safe_add_event_listener.found_adds_listener_true]', () => {
       document.body.innerHTML = '<button id="btn">Click</button>';
       const handler = vi.fn();
 
@@ -345,7 +358,7 @@ describe('safe-dom-query', () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
-    it('要素が存在しない場合、falseを返す', () => {
+    it('要素が存在しない場合、falseを返す [covers:safe_add_event_listener.element_missing_false]', () => {
       const handler = vi.fn();
       const result = safeAddEventListener('#not-found', 'click', handler);
 

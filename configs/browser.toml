@@ -1,0 +1,14 @@
+# ブラウザデバッグ設定
+#
+# start-chrome.sh / cdp-helper.cjs / Playwrightスクリプトで共有される設定。
+# パスはプロジェクトルートからの相対パスで指定する。
+#
+# 編集後は全consumerが新しい値を参照する（ハードコード不要）。
+
+[chrome]
+# Chrome DevTools Protocol WebSocketエンドポイントを書き込むファイル
+ws_file = ".cache/browser/chrome/debug.ws"
+# リモートデバッグポート
+debug_port = 9222
+# Chromiumユーザープロファイルディレクトリ
+profile_dir = ".cache/browser/chrome/profile"

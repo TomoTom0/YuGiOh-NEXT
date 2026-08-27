@@ -248,9 +248,9 @@ describe('promise-timeout', () => {
         throw new Error('not a timeout');
       };
 
-      await expect(
-        retryWithTimeout(executor, { timeoutMs: 5000, maxRetries: 3 })
-      ).rejects.toThrow('not a timeout');
+      // Unhandled rejectionを防止するため、Promiseを事前にキャッチ
+      const resultPromise = retryWithTimeout(executor, { timeoutMs: 5000, maxRetries: 3 });
+      await expect(resultPromise).rejects.toThrow('not a timeout');
 
       expect(attempts).toBe(1); // Only one attempt
     });

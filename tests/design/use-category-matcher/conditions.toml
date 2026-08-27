@@ -1,0 +1,146 @@
+# 検証対象: src/composables/deck/useCategoryMatcher.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキメタデータのカテゴリラベルをもとに2段階検索で関連カードの
+# cid Set を構築する純粋関数 composable。computeCategoryMatchedCardIds 1つの export 関数のみ。
+#
+# 到達不能/実質到達不能分岐:
+# - L86-91 の `card.ruby || ''` / `card.text || ''` / `card.pendulumText || ''` フォールバックは
+#   optional フィールド（undefined許容）の join 結果からの除外に過ぎず、分岐としての挙動差を
+#   生まない（undefined を空文字に置き換えて join しても最終的な searchTexts は同一のため）。
+#   よって個別の condition にはせず、first_stage.search_fields_joined_with_space 内で言及する。
+# - L67 の type guard `(label): label is string => Boolean(label)` は categoryLabelMap[catId] が
+#   undefined / 空文字 / null のいずれかを弾くが、現実の呼出し元はカテゴリID→ラベルのMapを渡す
+#   ため空文字ラベルが混入する余地は少ない。ただし到達不能とは言えず（呼び出し次第で到達可能）、
+#   labels.unresolved_filtered_or_empty_set で条件化している。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - 一段階目は name/ruby/text/pendulumText の4フィールドを検索対象とするが、二段階目は
+#   text/pendulumText の2フィールドのみ（name/rubyを含まない）。この非対称性は意図的（二段階目は
+#   「カード名をテキストに含むカード」を見つけることが目的で、カード名そのものを再検索しない）。
+#   ただし「rubyにカード名が含まれるカード」は二段階目で検出されない点に注意（source_lines 111-114）。
+# - searchTexts.includes(label) は部分一致。そのためラベルが他の単語の一部に含まれていてもマッチ
+#   する（例: ラベル「青眼」で「青眼の白龍」「青眼の究極竜」の両方にマッチ）。これは仕様。
+# - allCids を Set で構築するため、同一cidが複数セクション（main/extra等）に重複して含まれていても
+#   cardDB(cid) の呼び出しはcidにつき1回。また走査順は Set の挿入順（main→extra→side→trash）。
+# - firstStageCardNames は card.name を格納するが、カード名はcidに1:1なので重複なし。
+# - 二段階目のbreak最適化（L121）はループ毎の早期脱却で、結果には影響しない（性能上の最適化）。
+# - selectedCategories が空で早期return（L62）するため、firstStageCardNames が空になるのは
+#   「allCids が空」または「cardDB が全て undefined」または「ラベルが長すぎて検索テキストに
+#   含まれない」場合のみ。L104 のガードはこれらの境界ケース向け。
+
+[meta]
+feature = "use-category-matcher"
+source_file = "src/composables/deck/useCategoryMatcher.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useCategoryMatcher.test.ts"
+source_hash = "5d12c8e2d3791d91f5fe8f1f98379f3cae0ea697"
+note = "verified=falseは0件。本ファイルは export 関数 computeCategoryMatchedCardIds 1件のみで composable factory パターンではないため、target_function を `computeCategoryMatchedCardIds` のみで記載。"
+
+# --- computeCategoryMatchedCardIds(selectedCategories, categoryLabelMap, allDecks, cardDB) ---
+
+[[condition]]
+id = "empty_selected_categories_returns_empty_set"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "62"
+description = "selectedCategories が空配列の場合は他の引数に関わらず空のSetを返す早期return"
+given = "selectedCategories = []（カテゴリ未選択）"
+expect_return = "size === 0 の Set"
+
+[[condition]]
+id = "labels.unresolved_filtered_or_empty_set"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "65-69"
+description = "categoryLabelMap に存在しない catId、またはラベル値が falsy（undefined/空文字）の catId は filter で除外される。フィルタ結果が0件なら空のSetを返す早期return"
+given = "selectedCategories = ['cat1'] だが categoryLabelMap = {}（または { cat1: '' }）"
+expect_return = "size === 0 の Set"
+
+[[condition]]
+id = "collects_unique_cids_across_all_sections"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "72-76"
+description = "allDecks の main/extra/side/trash 全4セクションから cid を収集し Set で重複排除する。同一cidが複数セクションにまたがって含まれていても cardDB(cid) の呼び出しはcidにつき1回になる"
+given = "同一cid '1' が main と extra の両方に含まれるデッキを渡す"
+expect_return = "firstStage/secondStage の走査で cid '1' に対する cardDB 呼び出しは1回限り（結果のSetにも '1' は1つだけ含まれる）"
+
+[[condition]]
+id = "first_stage.ignores_missing_card"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "83-84"
+description = "一段階目の走査で cardDB(cid) が undefined を返す cid は continue でスキップする（マッチ判定に進まない）"
+given = "デッキに cid='999' が含まれるが cardDB('999') が undefined を返す状態で、カテゴリラベルを渡す"
+expect_return = "結果のSetに cid '999' は含まれない"
+
+[[condition]]
+id = "first_stage.search_fields_joined_with_space"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "86-93"
+description = "一段階目の検索対象テキストは name/ruby/text/pendulumText をスペース区切りで join したもの。optional フィールド（ruby/text/pendulumText）が undefined の場合は `|| ''` で空文字として join に加える（undefined がそのまま join されるのを防ぐ）。label は部分一致（includes）で判定"
+given = "name='ブラック・マジシャン'、ruby=undefined、text='魔法使い族の代表'、pendulumText='P効果' のカードと、ラベル='P効果'（または '魔法使い族' または 'ブラック・マジシャン'）を渡す"
+expect_return = "いずれかのラベルが name/ruby/text/pendulumText のいずれかに含まれていれば一段階目でマッチ（firstStageMatched に追加される）"
+
+[[condition]]
+id = "first_stage.matches_if_any_label_matches_OR_semantics"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "93"
+description = "複数ラベルのいずれか1つでも searchTexts に含まれればマッチ（Array.prototype.some による OR semantics）"
+given = "selectedCategories が ['cat1','cat2'] でラベルがそれぞれ 'A', 'B'。カードの searchTexts に 'B' のみ含まれる（'A' は含まれない）"
+expect_return = "一段階目でマッチ（firstStageMatched に追加）"
+
+[[condition]]
+id = "first_stage.match_adds_to_matched_and_card_names"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "94-97"
+description = "一段階目でマッチした cid は firstStageMatched に、同時にそのカードの name を firstStageCardNames に追加する（二段階目の検索クエリとして使うため）"
+given = "1枚のカードが一段階目でマッチする条件を渡す"
+expect_return = "firstStageMatched に cid が含まれる。最終結果にその cid が含まれる。副次効果として firstStageCardNames に card.name が含まれ、二段階目が走る場合はその name を持つカードが追加でマッチしうる"
+
+[[condition]]
+id = "second_stage.skipped_when_no_first_stage_names"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "104"
+description = "firstStageCardNames.size === 0 の場合は二段階目の走査をスキップする最適化ガード（結果は firstStageMatched（=空Set）のみ）"
+given = "カードが存在するがどのカテゴリラベルにもマッチしないデッキ（allCids は非空だが firstStageCardNames が空）"
+expect_return = "結果のSetは空（secondStageMatched は走査されず、firstStageMatched も空）"
+
+[[condition]]
+id = "second_stage.excludes_first_stage_matches"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "106"
+description = "二段階目の走査では firstStageMatched に含まれる cid を continue でスキップする（一段階目でマッチ済みのカードを二段階目で二重にカウントしない）"
+given = "cid '1' が一段階目でマッチ済みで、かつ '1' のテキストが firstStageCardNames のいずれかを含む場合"
+expect_return = "'1' は secondStageMatched には追加されない（ただし最終結果には firstStageMatched 経由で含まれる）"
+
+[[condition]]
+id = "second_stage.ignores_missing_card"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "108-109"
+description = "二段階目の走査でも cardDB(cid) が undefined を返す cid は continue でスキップする"
+given = "デッキに cardDB が undefined を返す cid が含まれ、firstStageCardNames が非空の状態"
+expect_return = "その cid は secondStageMatched に含まれない"
+
+[[condition]]
+id = "second_stage.searches_text_and_pendulum_text_only"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "111-114"
+description = "二段階目の検索対象テキストは text/pendulumText のみをスペース区切りで join したもの。name/ruby は含まない（一段階目とは非対称）。firstStageCardNames の各 cardName について部分一致（includes）で判定"
+given = "cid 'X' のカードが name='青眼の白龍'、text='青眼の究極竜を融合召喚' で、firstStageCardNames が {'青眼の白龍'} の場合"
+expect_return = "text に '青眼の白龍' を含まないためマッチしない（仮に name が '青眼の白龍' と一致していても name は検索対象ではないためマッチ対象外）"
+
+[[condition]]
+id = "second_stage.short_circuits_on_first_match"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "118-123"
+description = "二段階目の内側ループは firstStageCardNames のいずれか1つでも textToSearch に含まれれば break で抜ける（性能上の最適化、結果への影響はない）"
+given = "firstStageCardNames に複数の name があり、cid の textToSearch が最初の name を含む場合"
+expect_return = "cid は secondStageMatched に追加される（残りの name を調べずに確定）"
+
+[[condition]]
+id = "merge_first_and_second_stage"
+target_function = "computeCategoryMatchedCardIds"
+source_lines = "130-131"
+description = "最終的に firstStageMatched と secondStageMatched をマージ（和集合）した新たなSetを返す。firstStageMatched は必ず結果に含まれ、secondStageMatched は firstStageMatched と重複しない（L106 で除外済み）"
+given = "firstStageMatched={1,2}, secondStageMatched={3,4} の状態でマージ"
+expect_return = "{1,2,3,4} のSet"

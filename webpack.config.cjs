@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
@@ -51,6 +52,7 @@ module.exports = (env, argv) => {
             transpileOnly: false,
             compilerOptions: {
               noUnusedParameters: false,  // Vueの自動生成コードのため
+              noUnusedLocals: false,  // Vue SFCのdefineProps/defineEmits内の型参照のため
               noImplicitAny: false,  // Vueのrefコールバックのため
               noUncheckedIndexedAccess: false,  // Vue配列操作の型エラー回避
             },
@@ -93,6 +95,11 @@ module.exports = (env, argv) => {
 
     plugins: [
       new VueLoaderPlugin(),
+
+      // import.meta.env.DEV をビルド時に解決（category 3 機能のdev/prod切替用）
+      new webpack.DefinePlugin({
+        'import.meta.env.DEV': JSON.stringify(!isProduction),
+      }),
 
       // public/ディレクトリ（manifest.json含む）と画像をコピー
       new CopyWebpackPlugin({

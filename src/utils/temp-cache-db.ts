@@ -48,7 +48,7 @@ export function getTempCacheDB() {
         }
         initPromise.then(() => {
           unifiedDB.setCardInfoFull(cid, card, forceUpdate);
-        }).catch(err => {
+        }).catch(_err => {
           // テスト環境ではエラーを無視
         });
         return false;
@@ -60,7 +60,7 @@ export function getTempCacheDB() {
       return withInit(() => unifiedDB.setCardInfoFull(cid, card, forceUpdate));
     },
     has: (cid: string): boolean => unifiedDB.hasCardInfo(cid),
-    delete: (cid: string): boolean => {
+    delete: (_cid: string): boolean => {
       // 現在は実装されていないため、何もしない
       console.warn('[TempCacheDB] delete() is not implemented');
       return false;

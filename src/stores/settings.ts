@@ -65,6 +65,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const infoCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.infoCardSize]);
   const gridCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.gridCardSize]);
   const listCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.listCardSize]);
+  const practiceCardSizePixels = computed(() => CARD_SIZE_MAP[appSettings.value.practiceCardSize ?? 'small']);
+  const practiceCardSize2PPixels = computed(() => CARD_SIZE_MAP[appSettings.value.practiceCardSize2P ?? 'small']);
 
   /** 実効テーマ（systemの場合は実際のテーマを返す） */
   const effectiveTheme = computed<'light' | 'dark'>(() => {
@@ -185,6 +187,11 @@ export const useSettingsStore = defineStore('settings', () => {
           ? deepMerge(DEFAULT_FEATURE_SETTINGS, result.featureSettings)
           : { ...DEFAULT_FEATURE_SETTINGS };
 
+        // category 3 強制: デフォルト値が import.meta.env.DEV の機能は
+        // 本番ビルドでは強制OFF（stored値は無視）。toml で category を管理。
+        featureSettings.value.practice = DEFAULT_FEATURE_SETTINGS.practice && featureSettings.value.practice;
+        featureSettings.value.genesys = DEFAULT_FEATURE_SETTINGS.genesys && featureSettings.value.genesys;
+
         // 初回起動時はデフォルトの末尾配置カードIDを使用
         // 以降はユーザーの設定を保持
         if (Array.isArray(result.tailPlacementCardIds) && result.tailPlacementCardIds.length > 0) {
@@ -283,6 +290,16 @@ export const useSettingsStore = defineStore('settings', () => {
   function setListCardSize(size: CardSize): void {
     appSettings.value.listCardSize = size;
     applyCardSize();
+    saveSettings();
+  }
+
+  function setPracticeCardSize(size: CardSize): void {
+    appSettings.value.practiceCardSize = size;
+    saveSettings();
+  }
+
+  function setPracticeCardSize2P(size: CardSize): void {
+    appSettings.value.practiceCardSize2P = size;
     saveSettings();
   }
 
@@ -656,15 +673,22 @@ export const useSettingsStore = defineStore('settings', () => {
     document.documentElement.style.setProperty('--right-area-width', widthMap[width]);
     document.documentElement.style.setProperty('--right-area-font-size', fontSizeMap[fontSize]);
 
-    // flex レイアウト用の変数（デッキ表示ページ用）
+    // flex レイアウト用の変数（デッキ編集レイアウト用）
     if (width === 'MAX-FIT') {
-      // MAX-FIT: flex-grow=1で空いたスペースを埋める
+      // MAX-FIT: flex-grow=1で空いたスペースを埋めるが、編集エリアを圧迫しないよう40%に制限
+      // (main-contentはflex-basis:0のため、flex-basis:300pxを持つright-areaが常に大きくなる問題をmax-widthで解消)
       document.documentElement.style.setProperty('--right-area-flex-grow', '1');
+      document.documentElement.style.setProperty('--right-area-flex-shrink', '1');
       document.documentElement.style.setProperty('--right-area-flex-basis', '300px');
+      // 左エリア(編集エリア)に最低600pxを確保しつつ、右エリアは最大40%に制限
+      // max(300px, ...) で幅が小さい場合でも0px以下にならないよう下限を設ける
+      document.documentElement.style.setProperty('--right-area-max-width', 'max(300px, min(40%, calc(100% - 600px)))');
     } else {
       // 固定幅: flex-grow=0で固定サイズ
       document.documentElement.style.setProperty('--right-area-flex-grow', '0');
+      document.documentElement.style.setProperty('--right-area-flex-shrink', '0');
       document.documentElement.style.setProperty('--right-area-flex-basis', widthMap[width]);
+      document.documentElement.style.setProperty('--right-area-max-width', 'none');
     }
   }
 
@@ -739,6 +763,8 @@ export const useSettingsStore = defineStore('settings', () => {
     infoCardSizePixels,
     gridCardSizePixels,
     listCardSizePixels,
+    practiceCardSizePixels,
+    practiceCardSize2PPixels,
     effectiveTheme,
     effectiveLanguage,
 
@@ -751,6 +777,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setInfoCardSize,
     setGridCardSize,
     setListCardSize,
+    setPracticeCardSize,
+    setPracticeCardSize2P,
     setCardSizePreset,
     getCurrentPreset,
     setCardWidth,

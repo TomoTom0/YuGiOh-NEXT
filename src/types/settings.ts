@@ -7,13 +7,16 @@
  */
 export type CardGameType = 'ocg' | 'rush';
 
-export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit';
+export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit' | 'chat' | 'practice' | 'genesys';
 
 export interface FeatureSettings {
   [key: string]: boolean;
   'shuffle-sort': boolean;
   'deck-image': boolean;
   'deck-edit': boolean;
+  'chat': boolean;
+  'practice': boolean;
+  'genesys': boolean;
 }
 
 /**
@@ -98,15 +101,7 @@ export type CardTab = 'info' | 'qa' | 'related' | 'products';
 /**
  * アクティブタブ（検索/カード/デッキ/メタデータ）
  */
-export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata';
-
-export interface DeckEditSettings {
-  enabled: boolean;
-  defaultDisplayMode: DisplayMode;
-  defaultSortOrder: SortOrder;
-  enableAnimation: boolean;
-  language: Language;
-}
+export type ActiveTab = 'search' | 'card' | 'deck' | 'metadata' | 'chat' | 'practice';
 
 /**
  * Extra/Sideデッキの配置方向
@@ -205,8 +200,6 @@ export interface AppSettings {
   middleDecksLayout: MiddleDecksLayout;
   /** UX設定（色・ユーザー体験） */
   ux: UXSettings;
-  /** 禁止制限チェック有効化（Phase 3で使用） */
-  enableBanlistCheck: boolean;
   /** 未保存時の警告モード */
   unsavedWarning: UnsavedWarning;
   /** デッキ表示ページでCardDetail情報を表示 */
@@ -237,8 +230,14 @@ export interface AppSettings {
   includeTimestampInExportFilename: boolean;
   /** 保存時に自動でフルソートする（falseの場合はmin-sort） */
   saveWithAutoFullSort: boolean;
+  /** AI機能のAPIキー（Z.ai） */
+  aiApiKey?: string;
   /** カテゴリ優先エリア内のソート順（'level': レベル順（全体設定に従う）, 'quantity-desc': 枚数の降順） */
   categoryPrioritySortMode: 'level' | 'quantity-desc';
+  /** カードサイズ（practice mode 1P） */
+  practiceCardSize?: CardSize;
+  /** カードサイズ（practice mode 2P） */
+  practiceCardSize2P?: CardSize;
 
   // 後方互換性：deprecated（新規コードは ux.* を使用）
   /** @deprecated ux.searchInputPosition を使用してください */
@@ -278,7 +277,6 @@ export interface DeckEditUIState {
  */
 export interface StorageSettings {
   featureSettings?: FeatureSettings;
-  deckEditSettings?: DeckEditSettings;
   /** アプリ全体設定（v0.4.0で追加） */
   appSettings?: AppSettings;
   /** グローバル末尾配置カードID リスト */
@@ -292,17 +290,9 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
   'shuffle-sort': true,
   'deck-image': true,
   'deck-edit': true,
-};
-
-/**
- * デフォルトのデッキ編集設定
- */
-export const DEFAULT_DECK_EDIT_SETTINGS: DeckEditSettings = {
-  enabled: true,
-  defaultDisplayMode: 'list',
-  defaultSortOrder: 'official',
-  enableAnimation: true,
-  language: 'auto',
+  'chat': false,
+  'practice': import.meta.env.DEV,
+  'genesys': import.meta.env.DEV,
 };
 
 /**
@@ -347,7 +337,6 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'auto',
   middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
   ux: DEFAULT_UX_SETTINGS,       // UX設定
-  enableBanlistCheck: false,
   unsavedWarning: 'always',
   // デッキ表示ページ設定
   showCardDetailInDeckDisplay: true,   // CardDetail表示: デフォルト有効
@@ -365,6 +354,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   includeTimestampInExportFilename: true, // エクスポートファイル名にタイムスタンプを含める: デフォルト有効
   saveWithAutoFullSort: true,          // 保存時に自動でフルソート: デフォルト有効
   categoryPrioritySortMode: 'level',   // カテゴリ優先内のソート順: レベル順（全体設定に従う）
+  practiceCardSize: 'small',           // practice mode 1P カードサイズ
+  practiceCardSize2P: 'small',         // practice mode 2P カードサイズ
 };
 
 /**

@@ -1,0 +1,188 @@
+# 検証対象: src/content/shuffle/shuffleCards.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象: シャッフル」グループ。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - 旧shuffleCards.test.tsはテスト内にFisher-Yatesや各処理の模倣実装を置き、export関数の存在も
+#   ローカルの空関数で確認していた。実装コードを呼ぶテストへ置き換えた。
+#
+# 実装読解で発見した注意点:
+# - shuffleCardsBySection/sortCardsBySectionはgetSortfixedCards()（全セクションの固定カード）を使うため、
+#   対象section以外のdata-ygo-next-sortfix付きカードもnewOrderの先頭に入り、対象imageSetへ移動し得る。
+#   条件として現挙動を固定した。
+
+[meta]
+feature = "shuffle-cards"
+source_file = "src/content/shuffle/shuffleCards.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/shuffle/shuffleCards.test.ts"
+source_hash = "e34a5d1cfcb6e73d7533d7740d38db2480c7f7fc"
+note = "verified=falseは0件"
+
+# --- fisherYatesShuffle<T>(array: T[]): T[] ---
+
+[[condition]]
+id = "shuffle_fisher_yates.copies_input"
+target_function = "fisherYatesShuffle"
+source_lines = "18-26"
+description = "入力配列をスプレッドでコピーし、戻り値は入力配列とは別参照になる"
+given = "array = [a, b, c]"
+expect_return_shape = "arrayと同じ要素を持つ別配列"
+
+[[condition]]
+id = "shuffle_fisher_yates.loop_swaps_from_tail"
+target_function = "fisherYatesShuffle"
+source_lines = "20-25"
+description = "iを末尾から1まで減らし、各反復でMath.floor(Math.random() * (i + 1))をjとしてshuffled[i]とshuffled[j]を交換する"
+given = "Math.randomが常に0を返す3要素配列"
+expect_return_shape = "i=2で要素2と0、i=1で要素1と0が交換された順序"
+
+[[condition]]
+id = "shuffle_fisher_yates.empty_or_single_unchanged"
+target_function = "fisherYatesShuffle"
+source_lines = "20-26"
+description = "配列長が0または1の場合、forループに入らずコピー配列を返す"
+given = "[] または [a]"
+expect_return_shape = "要素順は入力と同じ。戻り値は入力配列とは別参照"
+
+# --- applyFlipAnimation(imageSet, newOrder, duration = 400) ---
+
+[[condition]]
+id = "shuffle_flip.reorders_and_animates"
+target_function = "applyFlipAnimation"
+source_lines = "35-91"
+description = "duration省略時は400msを使い、現在の`:scope > a`位置を記録、imageSetにanimatingを追加、innerHTMLを空にしてnewOrder順にappendし、requestAnimationFrameでtransition/transformを設定し、duration後にstyleを空にしてanimatingを外す"
+given = "imageSet直下にa要素があり、newOrderがそれらの並べ替え"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_flip.skips_invert_when_position_missing"
+target_function = "applyFlipAnimation"
+source_lines = "60-70"
+description = "newOrder内のcardについてfirstPositionsまたはlastPositionsが取得できない場合、そのcardには初期transition='none'とtransform=translate(...)を設定しない"
+given = "newOrderに元のimageSet直下には無かった別sectionのsortfixカードが含まれる"
+expect_return = "undefined"
+
+# --- shuffleCardsBySection(sectionId) ---
+
+[[condition]]
+id = "shuffle_section.image_set_missing_returns"
+target_function = "shuffleCardsBySection"
+source_lines = "98-101"
+description = "`#deck_image #<sectionId>.card_set div.image_set` が見つからない場合、何もせずreturnする"
+given = "対象sectionのimage_setが存在しない"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_section.first_call_saves_original_order"
+target_function = "shuffleCardsBySection"
+source_lines = "103-114"
+description = "sectionごとのoriginalOrderがnullの場合、現在のimageSet直下a要素を配列化し、main/extra/sideの対応する変数へ保存する"
+given = "初回のshuffleCards/shuffleCardsExtra/shuffleCardsSide呼び出し"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_section.subsequent_call_keeps_original_order"
+target_function = "shuffleCardsBySection"
+source_lines = "103-114"
+description = "sectionごとのoriginalOrderが既にnullでない場合、現在順序を保存し直さない"
+given = "同じsectionで2回以上shuffle後にsortする"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_section.sortfixed_from_all_sections_first"
+target_function = "shuffleCardsBySection"
+source_lines = "119-130"
+description = "getSortfixedCards()で取得した全セクションのsortfixカードを先頭に置き、その後に現在section直下a要素からsortfixカードを除いたnormalCardsのシャッフル結果を置く"
+given = "mainをshuffleし、extraにdata-ygo-next-sortfix付きカードが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_section.normal_cards_shuffled_only"
+target_function = "shuffleCardsBySection"
+source_lines = "117-130"
+description = "現在section直下a要素のうちgetSortfixedCards()に含まれないカードだけをfisherYatesShuffleに渡し、sortfixカード自体はシャッフル対象にしない"
+given = "対象section内にsortfixカードと通常カードが混在する"
+expect_return = "undefined"
+
+# --- sortCardsBySection(sectionId) ---
+
+[[condition]]
+id = "sort_section.image_set_missing_returns"
+target_function = "sortCardsBySection"
+source_lines = "137-140"
+description = "`#deck_image #<sectionId>.card_set div.image_set` が見つからない場合、何もせずreturnする"
+given = "対象sectionのimage_setが存在しない"
+expect_return = "undefined"
+
+[[condition]]
+id = "sort_section.original_order_missing_returns"
+target_function = "sortCardsBySection"
+source_lines = "142-146"
+description = "sectionごとのoriginalOrderがnullの場合、何もせずreturnする"
+given = "shuffleを一度も実行せずsortCards/sortCardsExtra/sortCardsSideを呼ぶ"
+expect_return = "undefined"
+
+[[condition]]
+id = "sort_section.sortfixed_from_all_sections_then_original_normals"
+target_function = "sortCardsBySection"
+source_lines = "148-156"
+description = "getSortfixedCards()で取得した全セクションのsortfixカードを先頭に置き、その後に保存済みoriginalOrderからsortfixカードを除いたnormalCardsを元の順序で置く"
+given = "shuffle後にsortし、別sectionにもsortfixカードが存在する"
+expect_return = "undefined"
+
+# --- export wrappers ---
+
+[[condition]]
+id = "shuffle_export.main_shuffle_delegates"
+target_function = "shuffleCards"
+source_lines = "162-164"
+description = "shuffleCards()はshuffleCardsBySection('main')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_export.main_sort_delegates"
+target_function = "sortCards"
+source_lines = "169-171"
+description = "sortCards()はsortCardsBySection('main')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_export.extra_shuffle_delegates"
+target_function = "shuffleCardsExtra"
+source_lines = "176-178"
+description = "shuffleCardsExtra()はshuffleCardsBySection('extra')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_export.extra_sort_delegates"
+target_function = "sortCardsExtra"
+source_lines = "183-185"
+description = "sortCardsExtra()はsortCardsBySection('extra')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_export.side_shuffle_delegates"
+target_function = "shuffleCardsSide"
+source_lines = "190-192"
+description = "shuffleCardsSide()はshuffleCardsBySection('side')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"
+
+[[condition]]
+id = "shuffle_export.side_sort_delegates"
+target_function = "sortCardsSide"
+source_lines = "197-199"
+description = "sortCardsSide()はsortCardsBySection('side')だけを呼ぶ"
+given = "main/extra/sideすべてのDOMが存在する"
+expect_return = "undefined"

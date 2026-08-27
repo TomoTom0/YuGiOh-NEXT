@@ -8,6 +8,10 @@
 
 **関連ドキュメント**: テストディレクトリ構成と実行コマンドについては **[`tests/README.md`](../../tests/README.md)** を参照してください。
 
+## テスト設計仕様（conditions.toml方式）
+
+TASK-319以降、テストが実装（一次情報）に基づく正しい検証となるよう、実装ソースから分岐・throw・返り値を転記した `conditions.toml` を検証対象ファイルごとに作成し、テストは `[covers:<id>]` タグで条件をカバーしたことを明示する運用を導入しています。「推測を推測で検証する」循環を防ぐのが目的です。計画・優先順位（Tier A/B/C）・粒度基準・検証方法は **[`tests/design/README.md`](../../tests/design/README.md)** を参照してください。
+
 ## テストの種類
 
 ### 1. ユニットテスト（tests/unit/）
@@ -217,6 +221,7 @@ tests/
 │   └── utils/               # ユーティリティテスト
 ├── e2e/                     # E2Eテスト
 ├── combine/                 # 結合テスト
+├── design/                  # テスト設計仕様（conditions.toml: 実装から抽出した検証条件）
 ├── browser/                 # ブラウザ自動テスト (CDP)
 ├── fixtures/                # テストフィクスチャ
 └── sample/                  # サンプルデータ

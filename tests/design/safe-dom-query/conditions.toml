@@ -1,0 +1,284 @@
+# 検証対象: src/utils/safe-dom-query.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、tests/README.md記載の「重要なテスト対象」グループ最優先。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - なし。
+
+[meta]
+feature = "safe-dom-query"
+source_file = "src/utils/safe-dom-query.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/safe-dom-query.test.ts"
+source_hash = "5ee9e0c4bb8c1d3f7b7e7a029211df35e7a5fb95"
+note = "verified=falseは0件"
+
+# --- safeQuery<T extends Element = Element>(selector, parent) ---
+
+[[condition]]
+id = "safe_query.found_returns_element"
+target_function = "safeQuery"
+source_lines = "30-32"
+description = "parentが指定されなければdocumentを検索し、querySelectorが要素を返した場合はその要素を返す"
+given = "document内にselectorに一致する要素が存在する"
+expect_return_shape = "見つかったElementそのもの"
+
+[[condition]]
+id = "safe_query.not_found_returns_null"
+target_function = "safeQuery"
+source_lines = "30-32"
+description = "querySelectorがnullを返した場合、nullを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "null"
+
+[[condition]]
+id = "safe_query.uses_parent_when_truthy"
+target_function = "safeQuery"
+source_lines = "30-31"
+description = "parentがtruthyの場合はparent.querySelector(selector)で検索する"
+given = "document全体には同じselectorの要素が複数あり、parent内にも一致要素が存在する"
+expect_return_shape = "parent内で最初に見つかった要素"
+
+# --- safeQueryWithWarn<T extends Element = Element>(selector, errorMessage, parent) ---
+
+[[condition]]
+id = "safe_query_warn.found_no_warn"
+target_function = "safeQueryWithWarn"
+source_lines = "51-60"
+description = "querySelectorが要素を返した場合、console.warnを呼ばず、その要素を返す"
+given = "selectorに一致する要素が存在する"
+expect_return_shape = "見つかったElementそのもの"
+
+[[condition]]
+id = "safe_query_warn.missing_default_warn"
+target_function = "safeQueryWithWarn"
+source_lines = "54-60"
+description = "querySelectorがnullを返し、errorMessageが未指定の場合、デフォルト警告を出してnullを返す"
+given = "selector = '#not-found', errorMessage = undefined"
+expect_return = "null"
+expect_side_effect = "console.warn('[safeQueryWithWarn] Element not found: \"#not-found\"') が1回呼ばれる"
+
+[[condition]]
+id = "safe_query_warn.missing_custom_warn"
+target_function = "safeQueryWithWarn"
+source_lines = "54-60"
+description = "querySelectorがnullを返し、truthyなerrorMessageが指定された場合、そのメッセージで警告を出してnullを返す"
+given = "selectorに一致する要素が存在せず、errorMessage = 'Custom error message'"
+expect_return = "null"
+expect_side_effect = "console.warn('Custom error message') が1回呼ばれる"
+
+[[condition]]
+id = "safe_query_warn.falsy_message_uses_default"
+target_function = "safeQueryWithWarn"
+source_lines = "54-60"
+description = "querySelectorがnullを返し、errorMessageが空文字列などfalsyの場合、カスタムメッセージではなくデフォルト警告を出す"
+given = "selector = '#not-found', errorMessage = ''"
+expect_return = "null"
+expect_side_effect = "console.warn('[safeQueryWithWarn] Element not found: \"#not-found\"') が1回呼ばれる"
+
+[[condition]]
+id = "safe_query_warn.uses_parent_when_truthy"
+target_function = "safeQueryWithWarn"
+source_lines = "51-52"
+description = "parentがtruthyの場合はparent.querySelector(selector)で検索する"
+given = "parent内にselectorに一致する要素が存在する"
+expect_return_shape = "parent内で見つかったElementそのもの"
+
+# --- safeQueryAll<T extends Element = Element>(selector, parent) ---
+
+[[condition]]
+id = "safe_query_all.matches_array"
+target_function = "safeQueryAll"
+source_lines = "80-82"
+description = "querySelectorAllで見つかったNodeListをArray.fromで配列に変換して返す"
+given = "selectorに一致する要素が3件存在する"
+expect_return_shape = "一致要素3件をdocument orderの配列で返す"
+
+[[condition]]
+id = "safe_query_all.no_matches_empty_array"
+target_function = "safeQueryAll"
+source_lines = "80-82"
+description = "querySelectorAllの結果が空NodeListの場合、空配列を返す"
+given = "selectorに一致する要素が存在しない"
+expect_return_shape = "[]"
+
+[[condition]]
+id = "safe_query_all.uses_parent_when_truthy"
+target_function = "safeQueryAll"
+source_lines = "80-81"
+description = "parentがtruthyの場合はparent.querySelectorAll(selector)で検索する"
+given = "document全体には一致要素が3件あり、parent内には2件だけ存在する"
+expect_return_shape = "parent内の一致要素2件だけを配列で返す"
+
+# --- safeQueryAndRun<T extends Element = Element>(selector, callback, parent) ---
+
+[[condition]]
+id = "safe_query_run.found_runs_callback"
+target_function = "safeQueryAndRun"
+source_lines = "102-105"
+description = "safeQueryが要素を返した場合、その要素を引数にcallbackを1回実行する"
+given = "selectorに一致する要素が存在する"
+expect_return = "undefined"
+expect_side_effect = "callback(element) が実行される"
+
+[[condition]]
+id = "safe_query_run.not_found_skips_callback"
+target_function = "safeQueryAndRun"
+source_lines = "102-105"
+description = "safeQueryがnullを返した場合、callbackを実行しない"
+given = "selectorに一致する要素が存在しない"
+expect_return = "undefined"
+expect_side_effect = "callbackは呼ばれない"
+
+# --- safeGetAttribute(selector, attr, parent) ---
+
+[[condition]]
+id = "safe_get_attribute.present_returns_value"
+target_function = "safeGetAttribute"
+source_lines = "127-128"
+description = "safeQueryで要素が見つかり、その要素のgetAttribute(attr)が文字列を返す場合、その値を返す"
+given = "href属性を持つa要素を検索し、attr = 'href'"
+expect_return_shape = "getAttribute('href')の戻り値"
+
+[[condition]]
+id = "safe_get_attribute.attribute_missing_returns_null"
+target_function = "safeGetAttribute"
+source_lines = "127-128"
+description = "safeQueryで要素が見つかっても、getAttribute(attr)がnullを返す場合、nullを返す"
+given = "href属性を持たないdiv要素を検索し、attr = 'href'"
+expect_return = "null"
+
+[[condition]]
+id = "safe_get_attribute.element_missing_returns_null"
+target_function = "safeGetAttribute"
+source_lines = "127-128"
+description = "safeQueryがnullを返した場合、getAttributeを呼ばずnullを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "null"
+
+# --- safeGetText(selector, parent) ---
+
+[[condition]]
+id = "safe_get_text.present_returns_trimmed_text"
+target_function = "safeGetText"
+source_lines = "146-147"
+description = "safeQueryで要素が見つかりtextContentが文字列の場合、textContent.trim()を返す"
+given = "textContent = '  Trimmed  ' の要素"
+expect_return = "'Trimmed'"
+
+[[condition]]
+id = "safe_get_text.empty_text_returns_empty_string"
+target_function = "safeGetText"
+source_lines = "146-147"
+description = "trim後のtextContentが空文字列の場合、nullではなく空文字列を返す"
+given = "textContentが空文字列の要素"
+expect_return = "''"
+
+[[condition]]
+id = "safe_get_text.element_missing_returns_null"
+target_function = "safeGetText"
+source_lines = "146-147"
+description = "safeQueryがnullを返した場合、textContentを読まずnullを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "null"
+
+# --- safeSetHTML(selector, html, parent) ---
+
+[[condition]]
+id = "safe_set_html.found_sets_inner_html_true"
+target_function = "safeSetHTML"
+source_lines = "168-171"
+description = "safeQueryで要素が見つかった場合、element.innerHTML = htmlを実行してtrueを返す"
+given = "selectorに一致する要素が存在し、html = '<p>New Content</p>'"
+expect_return = "true"
+expect_side_effect = "対象要素のinnerHTMLがhtmlに置き換わる"
+
+[[condition]]
+id = "safe_set_html.element_missing_false"
+target_function = "safeSetHTML"
+source_lines = "168-173"
+description = "safeQueryがnullを返した場合、innerHTMLを設定せずfalseを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "false"
+
+# --- safeSetAttribute(selector, attr, value, parent) ---
+
+[[condition]]
+id = "safe_set_attribute.found_sets_attribute_true"
+target_function = "safeSetAttribute"
+source_lines = "194-197"
+description = "safeQueryで要素が見つかった場合、element.setAttribute(attr, value)を実行してtrueを返す"
+given = "selectorに一致する要素が存在し、attr = 'href', value = 'https://example.com'"
+expect_return = "true"
+expect_side_effect = "対象要素の属性attrがvalueに設定される"
+
+[[condition]]
+id = "safe_set_attribute.element_missing_false"
+target_function = "safeSetAttribute"
+source_lines = "194-199"
+description = "safeQueryがnullを返した場合、setAttributeを実行せずfalseを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "false"
+
+# --- safeAddClass(selector, className, parent) ---
+
+[[condition]]
+id = "safe_add_class.found_adds_class_true"
+target_function = "safeAddClass"
+source_lines = "218-221"
+description = "safeQueryで要素が見つかった場合、element.classList.add(className)を実行してtrueを返す"
+given = "selectorに一致する要素が存在し、className = 'active'"
+expect_return = "true"
+expect_side_effect = "対象要素のclassListにclassNameが追加される"
+
+[[condition]]
+id = "safe_add_class.element_missing_false"
+target_function = "safeAddClass"
+source_lines = "218-223"
+description = "safeQueryがnullを返した場合、classList.addを実行せずfalseを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "false"
+
+# --- safeRemoveClass(selector, className, parent) ---
+
+[[condition]]
+id = "safe_remove_class.found_removes_class_true"
+target_function = "safeRemoveClass"
+source_lines = "242-245"
+description = "safeQueryで要素が見つかった場合、element.classList.remove(className)を実行してtrueを返す"
+given = "selectorに一致する要素が存在し、classNameが対象要素に付与済み"
+expect_return = "true"
+expect_side_effect = "対象要素のclassListからclassNameが削除される"
+
+[[condition]]
+id = "safe_remove_class.element_missing_false"
+target_function = "safeRemoveClass"
+source_lines = "242-247"
+description = "safeQueryがnullを返した場合、classList.removeを実行せずfalseを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "false"
+
+# --- safeAddEventListener<K extends keyof HTMLElementEventMap>(selector, event, handler, parent) ---
+
+[[condition]]
+id = "safe_add_event_listener.found_adds_listener_true"
+target_function = "safeAddEventListener"
+source_lines = "270-273"
+description = "safeQuery<HTMLElement>で要素が見つかった場合、element.addEventListener(event, handler)を実行してtrueを返す"
+given = "selectorに一致するbutton要素が存在し、event = 'click'"
+expect_return = "true"
+expect_side_effect = "対象要素で該当イベントをdispatchするとhandlerが呼ばれる"
+
+[[condition]]
+id = "safe_add_event_listener.element_missing_false"
+target_function = "safeAddEventListener"
+source_lines = "270-275"
+description = "safeQueryがnullを返した場合、addEventListenerを実行せずfalseを返す"
+given = "selectorに一致する要素が存在しない"
+expect_return = "false"

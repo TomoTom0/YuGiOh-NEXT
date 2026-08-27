@@ -5,6 +5,7 @@
 ## ディレクトリ構成
 
 - **[usage/](./usage/)** - ユーザー向けガイド
+- **[feature/](./feature/)** - 機能フラグレジストリ（TOML、`src/types/settings.ts`の全設定項目の状態管理）
 - **[dev/](./dev/)** - 開発者向けドキュメント
   - `feature/` - 機能アイデア・将来計画
   - `investigations/` - 調査・検証結果
@@ -60,7 +61,17 @@
 | `dev/i18n.md` | 多言語対応変更時 | 翻訳方針、言語検出ロジック |
 | `dev/official-api.md` | 公式API変更検知時 | APIエンドポイント、レスポンス形式 |
 
-### 3. ユーザー向けドキュメント（usage/）
+### 3. 機能フラグレジストリ（feature/）
+
+**対象**: `src/types/settings.ts`（featureSettings/appSettings/ux）の追加・変更
+
+| ファイル | 更新タイミング | 内容 |
+|---------|-------------|------|
+| `feature/featureSettings.toml` | `FeatureId` の追加・変更・UI変更時 | 各機能フラグの分類（デフォルトON/OFF、開発限定等）とUI導線の有無 |
+| `feature/appSettings.toml` | `AppSettings` の追加・変更・UI変更時 | 同上 |
+| `feature/ux.toml` | `AppSettings.ux` の追加・変更・UI変更時 | 同上 |
+
+### 4. ユーザー向けドキュメント（usage/）
 
 **対象**: UI変更・機能追加・操作方法の変更
 
@@ -74,7 +85,7 @@
 | `usage/card-detail.md` | カード詳細表示変更時 | カード詳細の表示内容 |
 | `usage/sort.md` | ソート機能変更時 | ソート機能の使い方 |
 
-### 4. API仕様（api/）
+### 5. API仕様（api/）
 
 **対象**: 公式API仕様の変更検知時
 
@@ -84,7 +95,7 @@
 | `api/deck-detail-parser.md` | デッキ詳細API変更時 | デッキ詳細レスポンス解析 |
 | `api/deck-recipe-image.md` | デッキ画像API変更時 | デッキ画像生成API仕様 |
 
-### 5. プロジェクトルール（ルートディレクトリ）
+### 6. プロジェクトルール（ルートディレクトリ）
 
 **対象**: プロジェクトルール・規約の変更
 

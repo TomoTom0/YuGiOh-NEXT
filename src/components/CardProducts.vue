@@ -75,6 +75,7 @@ import CardList from './CardList.vue'
 import { searchCardsByPackId } from '../api/card-search'
 import { getCardSearchEndpoint } from '../utils/url-builder'
 import { detectCardGameType } from '../utils/page-detector'
+import { collapseWithScroll } from '../utils/collapse-scroll'
 
 export default {
   name: 'CardProducts',
@@ -154,27 +155,7 @@ export default {
     const collapsePack = (packId) => {
       const packItem = document.querySelector(`[data-pack-id="${packId}"]`)
       if (packItem) {
-        const beforeHeight = packItem.scrollHeight
-        
-        expandedPacks.value[packId] = false
-        
-        setTimeout(() => {
-          const afterHeight = packItem.scrollHeight
-          const heightDiff = beforeHeight - afterHeight
-          
-          const container = packItem.closest('.card-tab-content')
-          if (container && heightDiff > 0) {
-            const packItemTop = packItem.getBoundingClientRect().top
-            const containerTop = container.getBoundingClientRect().top
-            
-            if (packItemTop < containerTop + container.clientHeight) {
-              container.scrollTo({
-                top: Math.max(0, container.scrollTop - heightDiff),
-                behavior: 'smooth'
-              })
-            }
-          }
-        }, 300)
+        collapseWithScroll(packItem, () => { expandedPacks.value[packId] = false }, 300)
       } else {
         expandedPacks.value[packId] = false
       }

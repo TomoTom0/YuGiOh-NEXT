@@ -75,6 +75,34 @@ const url = `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=6&wn
 
 ---
 
+#### ope=3: デッキ保存
+
+デッキ内容を保存します（`saveDeckInternal`、`src/api/deck-operations.ts`）。
+
+**リクエスト**: POST、`application/x-www-form-urlencoded`
+
+**`imgs` / `imgsSide` フィールドの形式（TASK-354で判明）**:
+
+公式サイトのネイティブ編集フォーム(`member_deck.action?ope=2`)の「イラスト変更」モーダル(`#card_image_modal`)を実機調査した結果、判明した仕様：
+
+```
+imgs = "{cid}_{コピー1のciid}_{コピー2のciid}_{コピー3のciid}"
+```
+
+- 1カード種類（`cid`）につき、テーブルの行は**1行のみ**（`monm`/`spnm`/`trnm`/`exnm`/`sinm`等の名前フィールドと`imgs`/`imgsSide`も1行につき1組）
+- 数量フィールド（`monum`/`spnum`/`trnum`/`exnum`/`sinum`）は物理コピーの合計枚数
+- `imgs`は3枚積みの上限に合わせて常に3つのciidスロットを持つ。各スロットは「その行の中で何枚目の物理コピーか」に対応する実際のciidを表す（3枚に満たない場合は残りのスロットを最後のciidで埋める）
+- 例: 同一cidにciid=2を2枚、ciid=1を1枚（計3枚）→ `imgs = "{cid}_2_2_1"`
+- 空き枠の数（`monm`等に空文字を送る回数）は「行数」を基準に計算する（quantity合計ではない。1cid=1行のため）
+
+**実機証拠**: 既存カード（3枚所持）のモーダルを開くと3つの選択肢が表示され、対応する隠しinput `imgs_mo_N` の値が3選択肢と完全一致することを確認済み。
+
+**過去の誤り**: 以前の実装は「1つの(cid,ciid)ペア=1行」という誤ったモデルだった。同一cidに複数のciidバリエーションが混在すると、各行のimgsが独立して送られ、非デフォルトciidの2枚目以降が代表イラスト（ciid=1）や意図しないciidに化ける不具合があった（ユーザーが繰り返し報告）。詳細は `TASK-354` 参照。
+
+**実装**: `appendCardGroupToFormData()` が `groupByCid()` で同一cidをグループ化し、上記フォーマットで送信する。
+
+---
+
 #### ope=4: デッキ一覧取得
 
 ユーザーが所有するすべてのデッキ一覧を取得します。

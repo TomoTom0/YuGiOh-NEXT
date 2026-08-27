@@ -21,27 +21,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # package-lock.json is in .gitignore, so disable cache
-          # cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm install
-      
+        run: pnpm install
+
       - name: Build
-        run: npm run build
+        run: pnpm run build
         continue-on-error: true
-      
+
       - name: Run unit tests
-        run: npx vitest run --reporter=verbose
+        run: pnpm exec vitest run --reporter=verbose
         continue-on-error: true
-      
+
       - name: TypeScript check
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
         continue-on-error: true
       
       - name: Upload build artifacts

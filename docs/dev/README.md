@@ -11,32 +11,32 @@
 ### 全テストの実行
 
 ```bash
-bun run test:vitest
+mise run test:vitest
 ```
 
 ### 特定のテストスイートの実行
 
 ```bash
 # ユニットテストのみ
-bun run test:vitest src/utils/__tests__/
+mise run test:vitest -- src/utils/__tests__/
 
 # 結合テストのみ
-bun run test:vitest src/composables/__tests__/
+mise run test:vitest -- src/composables/__tests__/
 
 # 特定のファイル
-bun run test:vitest src/utils/__tests__/language-detector.test.ts
+mise run test:vitest -- src/utils/__tests__/language-detector.test.ts
 ```
 
 ### ウォッチモード
 
 ```bash
-bun run test:vitest --watch
+mise run test:vitest -- --watch
 ```
 
 ### カバレッジレポート
 
 ```bash
-bun run test:vitest --coverage
+mise run test:vitest -- --coverage
 ```
 
 ## テスト構成
@@ -53,8 +53,8 @@ bun run test:vitest --coverage
   - `search/` - 検索機能テスト
 
 - `tests/browser/` - ブラウザ自動テスト（CDP/Playwright経由）
-  - `test-buttons.js` - ボタン機能テスト
-  - `test-shuffle.js` - シャッフル機能テスト
+  - `test-buttons.cjs` - ボタン機能テスト
+  - `test-shuffle.cjs` - シャッフル機能テスト
 
 ## コーディング規約
 

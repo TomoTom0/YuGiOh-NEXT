@@ -1,8 +1,6 @@
 <template>
-  <Teleport to="body">
-
-  <div v-if="show" class="ygo-next dialog-overlay" :data-ygo-next-theme="theme" @click.self="onCancel">
-    <div class="dialog-content" @click.stop>
+  <BaseDialog :is-visible="show" :theme="theme" @close="onCancel">
+    <div class="dialog-content">
       <h3 class="dialog-title">{{ title }}</h3>
       <p class="dialog-message">{{ message }}</p>
       <div class="dialog-footer">
@@ -17,12 +15,12 @@
         </button>
       </div>
     </div>
-  </div>
-  </Teleport>
+  </BaseDialog>
 </template>
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
+import BaseDialog from './BaseDialog.vue';
 
 interface DialogButton {
   label: string;
@@ -32,6 +30,9 @@ interface DialogButton {
 
 export default defineComponent({
   name: 'ConfirmDialog',
+  components: {
+    BaseDialog
+  },
   props: {
     show: {
       type: Boolean,
@@ -79,35 +80,23 @@ export default defineComponent({
 <style scoped lang="scss">
 @use '../styles/common.scss' as *;
 
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--dialog-overlay-bg, rgba(0, 0, 0, 0.5));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+.dialog-content {
+  background: var(--dialog-bg, #ffffff);
+  border: 1px solid var(--dialog-border, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-sizing: border-box;
+  overflow-y: auto;
 
-  .dialog-content {
-    background: var(--dialog-bg, #ffffff);
-    border: 1px solid var(--dialog-border, #e0e0e0);
-    border-radius: 8px;
-    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.2));
-    padding: 24px;
-    width: 90%;
-    max-width: 400px;
+  .dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
     box-sizing: border-box;
-
-    .dialog-footer {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      width: 100%;
-      box-sizing: border-box;
-    }
   }
 }
 

@@ -1,0 +1,502 @@
+# 検証対象: src/stores/settings.ts (useSettingsStore)
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# Pinia Setup Store形式のため、target_functionは"useSettingsStore#アクション名"で統一する。
+
+[meta]
+feature = "settings-store"
+source_file = "src/stores/settings.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/stores/settings.test.ts"
+source_hash = "1819c3cda19e92a93758ba566b0607669e9e9a41"
+note = "全conditionを公開API経由のユニットテストで検証した"
+
+[[condition]]
+id = "load_settings.loads_common_then_deck_edit"
+target_function = "useSettingsStore#loadSettings"
+source_lines = "226-229"
+description = "loadSettingsはloadCommonSettingsをawaitしてからloadDeckEditSettingsをawaitする"
+given = "chrome.storage.local.getが設定を返す状態でloadSettings()を呼ぶ"
+expect_side_effect = "共通設定が読み込まれ、isLoaded.valueがtrueになり、共通カードサイズとデッキ編集カードサイズのCSS変数が設定される"
+
+[[condition]]
+id = "load_common.no_saved_settings_uses_defaults_and_default_tail"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "173-207"
+description = "保存済みappSettings/featureSettingsが無い場合はそれぞれデフォルト値を浅くコピーして使い、tailPlacementCardIdsはDEFAULT_TAIL_PLACEMENT_CARD_IDSのコピーになる"
+given = "chrome.storage.local.getの結果にappSettings/featureSettings/tailPlacementCardIdsが無い"
+expect_side_effect = "appSettings.valueはDEFAULT_APP_SETTINGS相当、featureSettings.valueはDEFAULT_FEATURE_SETTINGS相当、tailPlacementCardIds.valueはDEFAULT_TAIL_PLACEMENT_CARD_IDS相当、isLoaded.valueはtrue"
+
+[[condition]]
+id = "load_common.saved_nonempty_tail_ids_are_kept"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "190-196"
+description = "保存済みtailPlacementCardIdsが配列かつ空でない場合、デフォルトではなく保存値をそのまま採用する"
+given = "chrome.storage.local.getの結果にtailPlacementCardIds = ['1', '2'] がある"
+expect_side_effect = "tailPlacementCardIds.value === ['1', '2']"
+
+[[condition]]
+id = "load_common.empty_or_invalid_tail_ids_use_default_tail"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "190-196"
+description = "tailPlacementCardIdsが空配列、または配列でない場合はDEFAULT_TAIL_PLACEMENT_CARD_IDSのコピーを使う"
+given = "chrome.storage.local.getの結果にtailPlacementCardIds = [] または配列以外の値がある"
+expect_side_effect = "tailPlacementCardIds.valueはDEFAULT_TAIL_PLACEMENT_CARD_IDS相当"
+
+[[condition]]
+id = "load_common.migrates_toggle_and_deletes_ai_text_links"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "120-131,176-184"
+description = "保存済みappSettingsのdeckLevelSortOrderが'toggle'なら'toggle-desc'へ変換し、aiTextLinksEnabledキーは削除してからデフォルトとマージする"
+given = "chrome.storage.local.getのappSettingsにdeckLevelSortOrder='toggle'とaiTextLinksEnabledが含まれる"
+expect_side_effect = "appSettings.value.deckLevelSortOrder === 'toggle-desc'、appSettings.value.aiTextLinksEnabledはundefined"
+
+[[condition]]
+id = "load_common.migrates_legacy_ux_when_ux_missing"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "133-160,176-184"
+description = "settings.uxが無く、旧トップレベルUXキーのいずれかがtruthyまたはenableMouseOperations/changeFaviconがundefined以外の場合、DEFAULT_UX_SETTINGSを元にuxオブジェクトへ移し旧キーを削除する"
+given = "保存済みappSettingsにuxが無く、searchInputPosition/defaultSearchMode/enableMouseOperations/changeFavicon/keyboardShortcutsの旧キーがある"
+expect_side_effect = "対応する値がappSettings.value.uxへ入り、旧トップレベルUXキーはappSettings.valueから削除される"
+
+[[condition]]
+id = "load_common.existing_ux_skips_legacy_ux_migration"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "133-160,176-184"
+description = "settings.uxが存在する場合、旧トップレベルUXキーがあってもmigrateOldSettingsFormatの旧UX移行ブロックは実行されない"
+given = "保存済みappSettingsにuxと旧トップレベルUXキーの両方がある"
+expect_side_effect = "appSettings.value.uxは保存済みuxとデフォルトのマージ結果になり、旧トップレベルUXキーはdeepMergeにより残り得る"
+
+[[condition]]
+id = "load_common.deep_merge_skips_null_undefined_and_empty_arrays"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "96-112,179-188"
+description = "deepMergeはsourceのnull/undefinedを無視し、空でない配列はsource配列を使い、空配列はtarget配列へフォールバックし、オブジェクトは再帰的にマージする"
+given = "保存済みappSettings/featureSettingsにnull、undefined、空配列、空でない配列、ネストオブジェクトが混在する"
+expect_side_effect = "null/undefinedはデフォルト値を維持し、空でない配列だけが保存値に置き換わり、ネストオブジェクトはデフォルトの欠落キーを保持する"
+
+[[condition]]
+id = "load_common.storage_get_throw_rejects"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "173-208"
+description = "chrome.storage.local.get呼び出し自体が同期throwした場合、loadCommonSettingsのPromiseはrejectし、デフォルト適用やisLoaded更新には進まない"
+given = "chrome.storage.local.getがcallback呼び出し前にthrowする"
+expect_throw = "throwされたErrorでPromiseがrejectする"
+
+[[condition]]
+id = "load_deck_edit.applies_deck_edit_card_size"
+target_function = "useSettingsStore#loadDeckEditSettings"
+source_lines = "217-220"
+description = "loadDeckEditSettingsはデッキ編集用カードサイズのCSS変数だけを適用する"
+given = "appSettings.value.deckEditCardSizeを変更してloadDeckEditSettings()を呼ぶ"
+expect_side_effect = "--card-width-deck/--card-height-deckがdeckEditCardSizePixelsに基づき設定される"
+
+[[condition]]
+id = "save_settings.persists_storage_and_cache"
+target_function = "useSettingsStore#saveSettings"
+source_lines = "234-252"
+description = "saveSettingsはappSettings/featureSettings/tailPlacementCardIdsをchrome.storage.localへ保存し、localStorageとwindow.ygoNextCurrentSettingsにもappSettingsをキャッシュする"
+given = "chrome.storage.local.setがcallbackを呼び、localStorage.setItemが成功する"
+expect_side_effect = "storageに3キーが保存され、localStorage['ygoNext:settings']とwindow.ygoNextCurrentSettingsが更新され、Promiseはresolveする"
+
+[[condition]]
+id = "save_settings.local_storage_failure_still_resolves"
+target_function = "useSettingsStore#saveSettings"
+source_lines = "241-250"
+description = "localStorage.setItemまたはwindowキャッシュ更新ブロックで例外が起きてもcatchでconsole.warnし、Promiseはresolveする"
+given = "chrome.storage.local.setは成功し、localStorage.setItemがthrowする"
+expect_side_effect = "chrome.storage.localへの保存は完了し、console.warnが呼ばれ、saveSettings()はrejectしない"
+
+[[condition]]
+id = "save_settings.storage_set_throw_rejects"
+target_function = "useSettingsStore#saveSettings"
+source_lines = "234-252"
+description = "chrome.storage.local.set呼び出し自体が同期throwした場合、saveSettingsのPromiseはrejectしlocalStorageキャッシュ処理には進まない"
+given = "chrome.storage.local.setがcallback呼び出し前にthrowする"
+expect_throw = "throwされたErrorでPromiseがrejectする"
+
+[[condition]]
+id = "set_deck_edit_card_size.updates_applies_saves"
+target_function = "useSettingsStore#setDeckEditCardSize"
+source_lines = "258-262"
+description = "deckEditCardSizeを書き換え、全カードサイズCSSを適用し、設定保存を開始する"
+given = "setDeckEditCardSize('large')を呼ぶ"
+expect_side_effect = "appSettings.value.deckEditCardSize === 'large'、カードサイズCSS変数が設定され、保存される"
+
+[[condition]]
+id = "set_info_card_size.updates_applies_saves"
+target_function = "useSettingsStore#setInfoCardSize"
+source_lines = "267-271"
+description = "infoCardSizeを書き換え、全カードサイズCSSを適用し、設定保存を開始する"
+given = "setInfoCardSize('small')を呼ぶ"
+expect_side_effect = "appSettings.value.infoCardSize === 'small'、カードサイズCSS変数が設定され、保存される"
+
+[[condition]]
+id = "set_grid_card_size.updates_applies_saves"
+target_function = "useSettingsStore#setGridCardSize"
+source_lines = "276-280"
+description = "gridCardSizeを書き換え、全カードサイズCSSを適用し、設定保存を開始する"
+given = "setGridCardSize('xlarge')を呼ぶ"
+expect_side_effect = "appSettings.value.gridCardSize === 'xlarge'、カードサイズCSS変数が設定され、保存される"
+
+[[condition]]
+id = "set_list_card_size.updates_applies_saves"
+target_function = "useSettingsStore#setListCardSize"
+source_lines = "285-289"
+description = "listCardSizeを書き換え、全カードサイズCSSを適用し、設定保存を開始する"
+given = "setListCardSize('medium')を呼ぶ"
+expect_side_effect = "appSettings.value.listCardSize === 'medium'、カードサイズCSS変数が設定され、保存される"
+
+[[condition]]
+id = "set_practice_card_size.updates_saves_without_css_apply"
+target_function = "useSettingsStore#setPracticeCardSize"
+source_lines = "291-294"
+description = "practiceCardSizeを書き換えて保存するが、カードサイズCSS適用関数は呼ばない"
+given = "setPracticeCardSize('large')を呼ぶ"
+expect_side_effect = "appSettings.value.practiceCardSize === 'large'、保存される"
+
+[[condition]]
+id = "set_practice_card_size_2p.updates_saves_without_css_apply"
+target_function = "useSettingsStore#setPracticeCardSize2P"
+source_lines = "296-299"
+description = "practiceCardSize2Pを書き換えて保存するが、カードサイズCSS適用関数は呼ばない"
+given = "setPracticeCardSize2P('xlarge')を呼ぶ"
+expect_side_effect = "appSettings.value.practiceCardSize2P === 'xlarge'、保存される"
+
+[[condition]]
+id = "set_card_size_preset.xl_mapping"
+target_function = "useSettingsStore#setCardSizePreset"
+source_lines = "308-337"
+description = "preset='xl'はdeck/info/listをxlarge、gridをlargeに設定してCSS適用と保存を行う"
+given = "setCardSizePreset('xl')"
+expect_side_effect = "deckEditCardSize='xlarge', infoCardSize='xlarge', gridCardSize='large', listCardSize='xlarge'"
+
+[[condition]]
+id = "set_card_size_preset.l_mapping"
+target_function = "useSettingsStore#setCardSizePreset"
+source_lines = "308-337"
+description = "preset='l'はdeck/listをlarge、infoをxlarge、gridをmediumに設定してCSS適用と保存を行う"
+given = "setCardSizePreset('l')"
+expect_side_effect = "deckEditCardSize='large', infoCardSize='xlarge', gridCardSize='medium', listCardSize='large'"
+
+[[condition]]
+id = "set_card_size_preset.m_mapping"
+target_function = "useSettingsStore#setCardSizePreset"
+source_lines = "308-337"
+description = "preset='m'はdeck/listをmedium、infoをlarge、gridをsmallに設定してCSS適用と保存を行う"
+given = "setCardSizePreset('m')"
+expect_side_effect = "deckEditCardSize='medium', infoCardSize='large', gridCardSize='small', listCardSize='medium'"
+
+[[condition]]
+id = "set_card_size_preset.s_mapping"
+target_function = "useSettingsStore#setCardSizePreset"
+source_lines = "308-337"
+description = "preset='s'はdeck/list/gridをsmall、infoをmediumに設定してCSS適用と保存を行う"
+given = "setCardSizePreset('s')"
+expect_side_effect = "deckEditCardSize='small', infoCardSize='medium', gridCardSize='small', listCardSize='small'"
+
+[[condition]]
+id = "get_current_preset.returns_xl_l_m_s_or_null"
+target_function = "useSettingsStore#getCurrentPreset"
+source_lines = "342-358"
+description = "現在のdeck/info/grid/listサイズ組み合わせが既定プリセットに完全一致する場合は対応する'x l m s'のいずれかを返し、一致しない場合はnullを返す"
+given = "appSettings.valueの4つのカードサイズを各プリセット相当または不一致に設定してgetCurrentPreset()を呼ぶ"
+expect_return = "'xl'、'l'、'm'、's'、またはnull"
+
+[[condition]]
+id = "set_card_width.list_mode_updates_list_css"
+target_function = "useSettingsStore#setCardWidth"
+source_lines = "363-376"
+description = "mode='list'の場合、cardWidthListを書き換え、list用width/height CSS変数を設定する"
+given = "setCardWidth('list', 100)"
+expect_side_effect = "cardWidthList.value === 100、--card-width-list='100px'、--card-height-list='146px'"
+
+[[condition]]
+id = "set_card_width.grid_mode_updates_grid_css"
+target_function = "useSettingsStore#setCardWidth"
+source_lines = "363-376"
+description = "modeが'list'以外（型上は'grid'）の場合、cardWidthGridを書き換え、grid用width/height CSS変数を設定する"
+given = "setCardWidth('grid', 100)"
+expect_side_effect = "cardWidthGrid.value === 100、--card-width-grid='100px'、--card-height-grid='146px'"
+
+[[condition]]
+id = "set_theme.updates_applies_saves"
+target_function = "useSettingsStore#setTheme"
+source_lines = "381-385"
+description = "themeを書き換え、effectiveThemeに基づくdata属性をDOMへ適用し、保存する"
+given = "setTheme('dark')を呼ぶ"
+expect_side_effect = "appSettings.value.theme === 'dark'、documentElementのdata-ygo-next-theme === 'dark'、保存される"
+
+[[condition]]
+id = "set_language.auto_skips_mapping_ensure"
+target_function = "useSettingsStore#setLanguage"
+source_lines = "390-404"
+description = "language='auto'の場合は設定保存のみ行い、mappingManager.ensureMappingForLanguageは呼ばない"
+given = "setLanguage('auto')を呼ぶ"
+expect_side_effect = "appSettings.value.language === 'auto'、保存される、mappingManager.ensureMappingForLanguageは未呼び出し"
+
+[[condition]]
+id = "set_language.non_auto_ensures_mapping_async"
+target_function = "useSettingsStore#setLanguage"
+source_lines = "390-404"
+description = "languageが'auto'以外の場合は保存後、awaitせずmappingManager.ensureMappingForLanguage(language).catch(...)を起動する"
+given = "setLanguage('en')を呼ぶ"
+expect_side_effect = "appSettings.value.language === 'en'、保存される、mappingManager.ensureMappingForLanguage('en')が呼ばれる"
+
+[[condition]]
+id = "set_language.mapping_ensure_rejection_is_logged"
+target_function = "useSettingsStore#setLanguage"
+source_lines = "395-399"
+description = "mappingManager.ensureMappingForLanguageがrejectした場合、catchでconsole.errorを呼ぶ"
+given = "mappingManager.ensureMappingForLanguageがrejectする状態でsetLanguage('en')を呼ぶ"
+expect_side_effect = "console.error('[Settings] Failed to ensure mapping for language:', error)が呼ばれる"
+
+[[condition]]
+id = "set_middle_decks_layout.updates_saves"
+target_function = "useSettingsStore#setMiddleDecksLayout"
+source_lines = "409-412"
+description = "middleDecksLayoutを書き換えて保存する"
+given = "setMiddleDecksLayout('horizontal')"
+expect_side_effect = "appSettings.value.middleDecksLayout === 'horizontal'、保存される"
+
+[[condition]]
+id = "set_card_list_view_mode.updates_section_saves"
+target_function = "useSettingsStore#setCardListViewMode"
+source_lines = "417-420"
+description = "指定sectionのux.cardListViewModeだけを書き換えて保存する"
+given = "setCardListViewMode('related', 'list')"
+expect_side_effect = "appSettings.value.ux.cardListViewMode.related === 'list'、他sectionは維持され、保存される"
+
+[[condition]]
+id = "set_mouse_operations.updates_saves"
+target_function = "useSettingsStore#setMouseOperations"
+source_lines = "422-425"
+description = "ux.enableMouseOperationsを書き換えて保存する"
+given = "setMouseOperations(true)"
+expect_side_effect = "appSettings.value.ux.enableMouseOperations === true、保存される"
+
+[[condition]]
+id = "set_change_favicon.updates_saves"
+target_function = "useSettingsStore#setChangeFavicon"
+source_lines = "427-430"
+description = "ux.changeFaviconを書き換えて保存する"
+given = "setChangeFavicon(false)"
+expect_side_effect = "appSettings.value.ux.changeFavicon === false、保存される"
+
+[[condition]]
+id = "add_keyboard_shortcut.below_limit_pushes_and_saves"
+target_function = "useSettingsStore#addKeyboardShortcut"
+source_lines = "435-443"
+description = "対象ショートカット配列が3件未満ならshortcutをpushして保存する"
+given = "ux.keyboardShortcuts.globalSearch.length < 3でaddKeyboardShortcut('globalSearch', shortcut)"
+expect_side_effect = "shortcutが末尾に追加され、保存される"
+
+[[condition]]
+id = "add_keyboard_shortcut.limit_reached_warns_and_returns"
+target_function = "useSettingsStore#addKeyboardShortcut"
+source_lines = "435-443"
+description = "対象ショートカット配列が3件以上ならconsole.warnして早期returnし、配列変更も保存もしない"
+given = "ux.keyboardShortcuts.globalSearch.length === 3でaddKeyboardShortcut('globalSearch', shortcut)"
+expect_side_effect = "配列長は変化せず、chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "remove_keyboard_shortcut.valid_index_splices_and_saves"
+target_function = "useSettingsStore#removeKeyboardShortcut"
+source_lines = "448-454"
+description = "indexが0以上かつ配列長未満なら該当要素をspliceし保存する"
+given = "3件のglobalSearchショートカットがある状態でremoveKeyboardShortcut('globalSearch', 1)"
+expect_side_effect = "2番目の要素が削除され、保存される"
+
+[[condition]]
+id = "remove_keyboard_shortcut.invalid_index_is_noop"
+target_function = "useSettingsStore#removeKeyboardShortcut"
+source_lines = "448-454"
+description = "indexが負数または配列長以上なら何もせず保存もしない"
+given = "removeKeyboardShortcut('globalSearch', -1)または配列長以上のindex"
+expect_side_effect = "配列は変化せず、chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "set_search_input_position.updates_saves"
+target_function = "useSettingsStore#setSearchInputPosition"
+source_lines = "459-462"
+description = "ux.searchInputPositionを書き換えて保存する"
+given = "setSearchInputPosition('right-bottom')"
+expect_side_effect = "appSettings.value.ux.searchInputPosition === 'right-bottom'、保存される"
+
+[[condition]]
+id = "set_default_search_mode.updates_saves"
+target_function = "useSettingsStore#setDefaultSearchMode"
+source_lines = "467-470"
+description = "ux.defaultSearchModeを書き換えて保存する"
+given = "setDefaultSearchMode('text')"
+expect_side_effect = "appSettings.value.ux.defaultSearchMode === 'text'、保存される"
+
+[[condition]]
+id = "set_right_area_width.updates_applies_saves"
+target_function = "useSettingsStore#setRightAreaWidth"
+source_lines = "475-479"
+description = "ux.rightAreaWidthを書き換え、Right Area CSS変数を適用し、保存する"
+given = "setRightAreaWidth('MAX-FIT')"
+expect_side_effect = "appSettings.value.ux.rightAreaWidth === 'MAX-FIT'、Right Area CSS変数が設定され、保存される"
+
+[[condition]]
+id = "set_right_area_font_size.updates_applies_saves"
+target_function = "useSettingsStore#setRightAreaFontSize"
+source_lines = "484-488"
+description = "ux.rightAreaFontSizeを書き換え、Right Area CSS変数を適用し、保存する"
+given = "setRightAreaFontSize('xl')"
+expect_side_effect = "appSettings.value.ux.rightAreaFontSize === 'xl'、--right-area-font-size='18px'、保存される"
+
+[[condition]]
+id = "set_dialog_font_size.updates_applies_saves"
+target_function = "useSettingsStore#setDialogFontSize"
+source_lines = "493-497"
+description = "dialogFontSizeを書き換え、フォントサイズCSS変数を適用し、保存する"
+given = "setDialogFontSize('xl')"
+expect_side_effect = "appSettings.value.dialogFontSize === 'xl'、--dialog-font-size='18px'、保存される"
+
+[[condition]]
+id = "set_search_ui_font_size.updates_applies_saves"
+target_function = "useSettingsStore#setSearchUIFontSize"
+source_lines = "502-506"
+description = "searchUIFontSizeを書き換え、フォントサイズCSS変数を適用し、保存する"
+given = "setSearchUIFontSize('s')"
+expect_side_effect = "appSettings.value.searchUIFontSize === 's'、--search-ui-font-size='12px'、保存される"
+
+[[condition]]
+id = "set_include_timestamp_in_export_filename.updates_saves"
+target_function = "useSettingsStore#setIncludeTimestampInExportFilename"
+source_lines = "511-514"
+description = "includeTimestampInExportFilenameを書き換えて保存する"
+given = "setIncludeTimestampInExportFilename(false)"
+expect_side_effect = "appSettings.value.includeTimestampInExportFilename === false、保存される"
+
+[[condition]]
+id = "set_show_card_detail_in_deck_display.updates_saves"
+target_function = "useSettingsStore#setShowCardDetailInDeckDisplay"
+source_lines = "519-522"
+description = "showCardDetailInDeckDisplayを書き換えて保存する"
+given = "setShowCardDetailInDeckDisplay(false)"
+expect_side_effect = "appSettings.value.showCardDetailInDeckDisplay === false、保存される"
+
+[[condition]]
+id = "set_deck_display_card_image_size.updates_saves"
+target_function = "useSettingsStore#setDeckDisplayCardImageSize"
+source_lines = "527-530"
+description = "deckDisplayCardImageSizeを書き換えて保存する"
+given = "setDeckDisplayCardImageSize('large')"
+expect_side_effect = "appSettings.value.deckDisplayCardImageSize === 'large'、保存される"
+
+[[condition]]
+id = "toggle_feature.updates_dynamic_key_saves"
+target_function = "useSettingsStore#toggleFeature"
+source_lines = "535-538"
+description = "featureSettings[featureId]へenabledを書き込み、保存する"
+given = "toggleFeature('testFeature', true)"
+expect_side_effect = "featureSettings.value.testFeature === true、保存される"
+
+[[condition]]
+id = "add_tail_placement_card.absent_pushes_and_saves"
+target_function = "useSettingsStore#addTailPlacementCard"
+source_lines = "543-548"
+description = "cardIdがtailPlacementCardIdsに含まれていなければpushして保存する"
+given = "tailPlacementCardIdsに'999'が無い状態でaddTailPlacementCard('999')"
+expect_side_effect = "'999'が末尾に追加され、保存される"
+
+[[condition]]
+id = "add_tail_placement_card.duplicate_is_noop"
+target_function = "useSettingsStore#addTailPlacementCard"
+source_lines = "543-548"
+description = "cardIdが既にtailPlacementCardIdsに含まれていれば何もしない"
+given = "tailPlacementCardIdsに'999'がある状態でaddTailPlacementCard('999')"
+expect_side_effect = "配列は変化せず、chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "remove_tail_placement_card.present_splices_and_saves"
+target_function = "useSettingsStore#removeTailPlacementCard"
+source_lines = "553-559"
+description = "cardIdがtailPlacementCardIdsに含まれていれば該当indexをspliceして保存する"
+given = "tailPlacementCardIdsに'999'がある状態でremoveTailPlacementCard('999')"
+expect_side_effect = "'999'が削除され、保存される"
+
+[[condition]]
+id = "remove_tail_placement_card.missing_is_noop"
+target_function = "useSettingsStore#removeTailPlacementCard"
+source_lines = "553-559"
+description = "cardIdがtailPlacementCardIdsに含まれていなければ何もしない"
+given = "tailPlacementCardIdsに'999'が無い状態でremoveTailPlacementCard('999')"
+expect_side_effect = "配列は変化せず、chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "is_tail_placement_card.returns_includes_result"
+target_function = "useSettingsStore#isTailPlacementCard"
+source_lines = "564-566"
+description = "tailPlacementCardIds.includes(cardId)の結果を返す"
+given = "tailPlacementCardIdsに含まれるIDと含まれないIDでisTailPlacementCardを呼ぶ"
+expect_return = "含まれるIDはtrue、含まれないIDはfalse"
+
+[[condition]]
+id = "set_background_deck_info_fetch.updates_saves"
+target_function = "useSettingsStore#setBackgroundDeckInfoFetch"
+source_lines = "571-574"
+description = "backgroundDeckInfoFetchを書き換えて保存する"
+given = "setBackgroundDeckInfoFetch(false)"
+expect_side_effect = "appSettings.value.backgroundDeckInfoFetch === false、保存される"
+
+[[condition]]
+id = "set_update_thumbnail_without_fetch.updates_saves"
+target_function = "useSettingsStore#setUpdateThumbnailWithoutFetch"
+source_lines = "579-582"
+description = "updateThumbnailWithoutFetchを書き換えて保存する"
+given = "setUpdateThumbnailWithoutFetch(false)"
+expect_side_effect = "appSettings.value.updateThumbnailWithoutFetch === false、保存される"
+
+[[condition]]
+id = "reset_settings.resets_defaults_applies_and_saves"
+target_function = "useSettingsStore#resetSettings"
+source_lines = "587-593"
+description = "appSettings/featureSettingsをデフォルト値の浅いコピーに戻し、テーマとカードサイズCSSを適用し、saveSettingsをawaitする"
+given = "設定を変更した後にresetSettings()を呼ぶ"
+expect_side_effect = "appSettings/featureSettingsはデフォルト相当へ戻り、テーマ/カードサイズCSSが設定され、保存が完了する"
+
+[[condition]]
+id = "apply_theme.uses_effective_theme_direct_or_system"
+target_function = "useSettingsStore#applyTheme"
+source_lines = "71-80,600-604"
+description = "themeがlight/darkならその値を、systemならmatchMedia('(prefers-color-scheme: dark)').matchesに応じたdark/lightをdata-ygo-next-themeへ設定し、matchMediaが無ければlightを使う"
+given = "appSettings.value.themeをdark/systemにし、matchMediaの有無またはmatchesを変えてapplyTheme()を呼ぶ"
+expect_side_effect = "documentElementのdata-ygo-next-themeが実効テーマに更新される"
+
+[[condition]]
+id = "apply_card_size.applies_common_and_deck_sizes"
+target_function = "useSettingsStore#applyCardSize"
+source_lines = "610-642"
+description = "applyCardSizeはapplyCommonCardSizeとapplyDeckEditCardSizeを呼び、info/grid/list/deckのカード幅・高さCSS変数を設定する"
+given = "appSettings.valueの各CardSizeを設定してapplyCardSize()を呼ぶ"
+expect_side_effect = "--card-width-info/grid/list/deckと対応するheightがCARD_SIZE_MAPに基づき設定される"
+
+[[condition]]
+id = "apply_right_area_styles.max_fit_sets_flexible_vars"
+target_function = "useSettingsStore#applyRightAreaStyles"
+source_lines = "647-688"
+description = "ux.rightAreaWidthが'MAX-FIT'の場合、幅100%と可変レイアウト用flex/max-width CSS変数を設定する"
+given = "ux.rightAreaWidth='MAX-FIT'でapplyRightAreaStyles()を呼ぶ"
+expect_side_effect = "--right-area-width='100%'、flex-grow='1'、flex-shrink='1'、flex-basis='300px'、max-width='max(300px, min(40%, calc(100% - 600px)))'"
+
+[[condition]]
+id = "apply_right_area_styles.fixed_width_sets_fixed_vars"
+target_function = "useSettingsStore#applyRightAreaStyles"
+source_lines = "647-688"
+description = "ux.rightAreaWidthが'MAX-FIT'以外の場合、幅マップ値と固定レイアウト用flex/max-width CSS変数を設定する"
+given = "ux.rightAreaWidth='S'でapplyRightAreaStyles()を呼ぶ"
+expect_side_effect = "--right-area-width='300px'、flex-grow='0'、flex-shrink='0'、flex-basis='300px'、max-width='none'"
+
+[[condition]]
+id = "apply_font_sizes.maps_dialog_and_search_ui"
+target_function = "useSettingsStore#applyFontSizes"
+source_lines = "693-715"
+description = "dialogFontSizeとsearchUIFontSizeをそれぞれ12/14/16/18pxのマップ値へ変換しCSS変数へ設定する"
+given = "dialogFontSize='xl'、searchUIFontSize='s'でapplyFontSizes()を呼ぶ"
+expect_side_effect = "--dialog-font-size='18px'、--search-ui-font-size='12px'"

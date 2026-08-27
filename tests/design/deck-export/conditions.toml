@@ -1,0 +1,234 @@
+# 検証対象: src/utils/deck-export.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、deck-importの対になるエクスポート機能。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/unit/utils/deck-export.test.ts の「imgHashが見つからない場合は空文字列を使用する」
+#   テストは、実際にはciid2に対応するhash2が存在する入力でhash2を期待していた。
+#   実装の空文字フォールバックを検証するテストへ修正し、hashが見つかるケースは別条件として整理した。
+
+[meta]
+feature = "deck-export"
+source_file = "src/utils/deck-export.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/deck-export.test.ts tests/unit/utils/deck-export.test.ts"
+source_hash = "1fa499853312e0050a61215ca85ba44fddd51e83"
+note = "verified=falseは0件"
+
+# --- generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}) ---
+
+[[condition]]
+id = "generate_rows.main_card_found"
+target_function = "generateExportRows"
+source_lines = "33-43"
+description = "mainDeckの各要素についてtempCardDB.get(cid)がtruthyのCardInfoを返した場合、section='main'のExportRowを追加する"
+given = "deckInfo.mainDeckにcidがDBに存在するカード参照がある"
+expect_return_shape = "rowsに { section: 'main', name: card.name, cid, ciid, enc, quantity } が追加される"
+
+[[condition]]
+id = "generate_rows.extra_card_found"
+target_function = "generateExportRows"
+source_lines = "47-57"
+description = "extraDeckの各要素についてtempCardDB.get(cid)がtruthyのCardInfoを返した場合、section='extra'のExportRowを追加する"
+given = "deckInfo.extraDeckにcidがDBに存在するカード参照がある"
+expect_return_shape = "rowsに { section: 'extra', name: card.name, cid, ciid, enc, quantity } が追加される"
+
+[[condition]]
+id = "generate_rows.side_default_included"
+target_function = "generateExportRows"
+source_lines = "29,61-73"
+description = "options.includeSideがundefinedの場合、分割代入のデフォルトでincludeSide=trueとなりsideDeckを処理する"
+given = "options未指定、deckInfo.sideDeckにcidがDBに存在するカード参照がある"
+expect_return_shape = "rowsに section='side' のExportRowが追加される"
+
+[[condition]]
+id = "generate_rows.side_false_excluded"
+target_function = "generateExportRows"
+source_lines = "29,61-74"
+description = "options.includeSideがfalseの場合、sideDeckのforEach自体を実行せず、sideセクションのExportRowを追加しない"
+given = "options = { includeSide: false }、deckInfo.sideDeckにカード参照がある"
+expect_return_shape = "rowsに section='side' のExportRowが含まれない"
+
+[[condition]]
+id = "generate_rows.missing_card_skipped"
+target_function = "generateExportRows"
+source_lines = "34-35,48-49,63-64"
+description = "各セクションでtempCardDB.get(cid)がfalsyの場合、そのカード参照はreturnでスキップされrowsに追加されない"
+given = "deckInfo内にDBに存在しないcidのカード参照がある"
+expect_return_shape = "該当cidの行はCSV/TXT出力に現れない"
+
+[[condition]]
+id = "generate_rows.enc_matching_img_hash"
+target_function = "generateExportRows"
+source_lines = "41,55,70"
+description = "card.imgs内にimg.ciid === ciidとなる要素がある場合、そのimg.imgHashをencに設定する"
+given = "card.imgs = [{ ciid: 'ciid2', imgHash: 'hash2' }]、deck card refのciid = 'ciid2'"
+expect_return_shape = "ExportRow.enc = 'hash2'"
+
+[[condition]]
+id = "generate_rows.enc_empty_fallback"
+target_function = "generateExportRows"
+source_lines = "41,55,70"
+description = "card.imgsがundefined、または一致するciidの画像が無い、またはimgHashがfalsyの場合、encには空文字列を設定する"
+given = "card.imgs = []、または一致するciidが無い"
+expect_return_shape = "ExportRow.enc = ''"
+
+# --- exportToCSV(deckInfo: DeckInfo, options: ExportOptions = {}) ---
+
+[[condition]]
+id = "export_csv.header_only_when_no_rows"
+target_function = "exportToCSV"
+source_lines = "82-108"
+description = "generateExportRowsが空配列を返す場合でも、固定ヘッダー'section,name,cid,ciid,enc,quantity'のみを返す"
+given = "mainDeck/extraDeck/sideDeckが全て空、または全カードがDB未登録"
+expect_return = "'section,name,cid,ciid,enc,quantity'"
+
+[[condition]]
+id = "export_csv.data_row_format"
+target_function = "exportToCSV"
+source_lines = "86,98-108"
+description = "各ExportRowを section,name,cid,ciid,enc,quantity の順でカンマ結合し、ヘッダーと各データ行を改行で結合して返す"
+given = "section='main', name='Blue-Eyes White Dragon', cid='12345', ciid='ciid1', enc='hash1', quantity=3"
+expect_return_shape = "'section,name,cid,ciid,enc,quantity\\nmain,Blue-Eyes White Dragon,12345,ciid1,hash1,3'を含むCSV文字列"
+
+[[condition]]
+id = "export_csv.escape_name_when_special_chars"
+target_function = "exportToCSV"
+source_lines = "91-94"
+description = "カード名にカンマ、ダブルクォート、または改行が含まれる場合、名前全体をダブルクォートで囲み、内部のダブルクォートを2個に置換する"
+given = "name = 'Test, \"Special\" Card'"
+expect_return_shape = "CSV行のnameフィールドが '\"Test, \"\"Special\"\" Card\"' になる"
+
+[[condition]]
+id = "export_csv.raw_name_without_special_chars"
+target_function = "exportToCSV"
+source_lines = "91-95"
+description = "カード名にカンマ、ダブルクォート、改行がいずれも含まれない場合、名前を加工せずそのまま出力する"
+given = "name = 'Dark Magician'"
+expect_return_shape = "CSV行のnameフィールドが 'Dark Magician' のままになる"
+
+# --- exportToTXT(deckInfo: DeckInfo, options: ExportOptions = {}) ---
+
+[[condition]]
+id = "export_txt.main_section_present"
+target_function = "exportToTXT"
+source_lines = "118,124-132"
+description = "mainRows.length > 0の場合、数量合計を使った'=== Main Deck (${totalMain} cards) ==='行、各カード行'${quantity}x ${name} (${cid}:${ciid}:${enc})'、空行を追加する"
+given = "mainRowsのquantityが3,2,1"
+expect_return_shape = "'=== Main Deck (6 cards) ==='と各カード行を含み、Main Deckセクション末尾に空行由来の改行が入る"
+
+[[condition]]
+id = "export_txt.main_section_absent"
+target_function = "exportToTXT"
+source_lines = "124-132"
+description = "mainRows.length === 0の場合、Main Deck見出しもカード行も追加しない"
+given = "mainDeckが空、またはmainDeckのカードが全てDB未登録"
+expect_return_shape = "戻り値に'=== Main Deck'を含まない"
+
+[[condition]]
+id = "export_txt.extra_section_present"
+target_function = "exportToTXT"
+source_lines = "119,134-142"
+description = "extraRows.length > 0の場合、数量合計を使った'=== Extra Deck (${totalExtra} cards) ==='行、各カード行'${quantity}x ${name} (${cid}:${ciid}:${enc})'、空行を追加する"
+given = "extraRowsのquantity合計が1"
+expect_return_shape = "'=== Extra Deck (1 cards) ==='とextraカード行を含み、Extra Deckセクション末尾に空行由来の改行が入る"
+
+[[condition]]
+id = "export_txt.extra_section_absent"
+target_function = "exportToTXT"
+source_lines = "134-142"
+description = "extraRows.length === 0の場合、Extra Deck見出しもカード行も追加しない"
+given = "extraDeckが空、またはextraDeckのカードが全てDB未登録"
+expect_return_shape = "戻り値に'=== Extra Deck'を含まない"
+
+[[condition]]
+id = "export_txt.side_section_present"
+target_function = "exportToTXT"
+source_lines = "120,144-151"
+description = "options.includeSide !== false かつ sideRows.length > 0の場合、数量合計を使った'=== Side Deck (${totalSide} cards) ==='行と各カード行'${quantity}x ${name} (${cid}:${ciid}:${enc})'を追加する"
+given = "options.includeSideがundefined、sideRowsのquantity合計が2"
+expect_return_shape = "'=== Side Deck (2 cards) ==='とsideカード行を含む"
+
+[[condition]]
+id = "export_txt.side_section_absent"
+target_function = "exportToTXT"
+source_lines = "144-151"
+description = "options.includeSide === false、またはsideRows.length === 0の場合、Side Deck見出しもカード行も追加しない"
+given = "options = { includeSide: false }、またはsideDeckが空"
+expect_return_shape = "戻り値に'=== Side Deck'を含まない"
+
+[[condition]]
+id = "export_txt.empty_returns_empty_string"
+target_function = "exportToTXT"
+source_lines = "122-153"
+description = "全セクションのrowsが空の場合、linesも空のままとなり、lines.join('\\n')の結果として空文字列を返す"
+given = "mainDeck/extraDeck/sideDeckが全て空、または全カードがDB未登録"
+expect_return = "''"
+
+# --- downloadFile(content: string, filename: string, mimeType: string = 'text/plain') ---
+
+[[condition]]
+id = "download_file.default_mime"
+target_function = "downloadFile"
+source_lines = "159-168"
+description = "mimeType未指定の場合、デフォルト値'text/plain'を使い、Blobのtypeを'text/plain;charset=utf-8'にする"
+given = "downloadFile('test content', 'test.txt')"
+expect_side_effect = "URL.createObjectURLに渡されるBlobのtypeが'text/plain;charset=utf-8'"
+
+[[condition]]
+id = "download_file.custom_mime_and_filename"
+target_function = "downloadFile"
+source_lines = "159-168"
+description = "mimeType指定時は`${mimeType};charset=utf-8`のBlobを作り、生成したa要素のhrefにObject URL、downloadにfilenameを設定する"
+given = "downloadFile('csv', 'deck.csv', 'text/csv')"
+expect_side_effect = "link.href='blob:mock-url'、link.download='deck.csv'、Blob.type='text/csv;charset=utf-8'"
+
+[[condition]]
+id = "download_file.append_click_remove_revoke"
+target_function = "downloadFile"
+source_lines = "161-168"
+description = "Object URL生成後、a要素をdocument.bodyへappendし、clickし、removeし、最後にURL.revokeObjectURL(url)を呼ぶ"
+given = "downloadFile('test content', 'test.txt', 'text/plain')"
+expect_side_effect = "appendChild(link)、link.click()、removeChild(link)、URL.revokeObjectURL('blob:mock-url')が呼ばれる"
+
+# --- downloadDeckAsCSV(deckInfo: DeckInfo, filename: string = 'deck.csv', options: ExportOptions = {}) ---
+
+[[condition]]
+id = "download_deck_csv.default_filename"
+target_function = "downloadDeckAsCSV"
+source_lines = "174-180"
+description = "filename未指定の場合、exportToCSV(deckInfo, options)の結果を'deck.csv'・'text/csv'でdownloadFileへ渡す"
+given = "downloadDeckAsCSV(deckInfo)"
+expect_side_effect = "生成されたa要素のdownloadが'deck.csv'になり、Blob.typeが'text/csv;charset=utf-8'になる"
+
+[[condition]]
+id = "download_deck_csv.custom_filename_and_options"
+target_function = "downloadDeckAsCSV"
+source_lines = "174-180"
+description = "filename/options指定時、exportToCSV(deckInfo, options)の結果を指定filename・'text/csv'でdownloadFileへ渡す"
+given = "downloadDeckAsCSV(deckInfo, 'custom-deck.csv', { includeSide: false })"
+expect_side_effect = "生成されたa要素のdownloadが'custom-deck.csv'になり、Blob内容にSide Deck行が含まれない"
+
+# --- downloadDeckAsTXT(deckInfo: DeckInfo, filename: string = 'deck.txt', options: ExportOptions = {}) ---
+
+[[condition]]
+id = "download_deck_txt.default_filename"
+target_function = "downloadDeckAsTXT"
+source_lines = "186-192"
+description = "filename未指定の場合、exportToTXT(deckInfo, options)の結果を'deck.txt'・'text/plain'でdownloadFileへ渡す"
+given = "downloadDeckAsTXT(deckInfo)"
+expect_side_effect = "生成されたa要素のdownloadが'deck.txt'になり、Blob.typeが'text/plain;charset=utf-8'になる"
+
+[[condition]]
+id = "download_deck_txt.custom_filename_and_options"
+target_function = "downloadDeckAsTXT"
+source_lines = "186-192"
+description = "filename/options指定時、exportToTXT(deckInfo, options)の結果を指定filename・'text/plain'でdownloadFileへ渡す"
+given = "downloadDeckAsTXT(deckInfo, 'custom-deck.txt', { includeSide: false })"
+expect_side_effect = "生成されたa要素のdownloadが'custom-deck.txt'になり、Blob内容にSide Deckセクションが含まれない"

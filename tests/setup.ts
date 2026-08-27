@@ -13,6 +13,7 @@ if (!console.temp) {
 global.chrome = {
   runtime: {
     sendMessage: vi.fn(),
+    getURL: (path) => path,
     onMessage: {
       addListener: vi.fn(),
     },
@@ -21,6 +22,7 @@ global.chrome = {
     local: {
       get: vi.fn(),
       set: vi.fn(),
+      remove: vi.fn(),
     },
   },
 } as any;

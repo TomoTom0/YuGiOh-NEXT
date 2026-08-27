@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { embedDeckInfoToPNG, extractDeckInfoFromPNG } from '../../../src/utils/png-metadata';
 import type { DeckInfo } from '../../../src/types/deck';
 
-// getTempCardDBをモック
-vi.mock('../../../src/utils/temp-card-db', () => ({
-  getTempCardDB: vi.fn(() => new Map([
+// getTempCacheDBをモック
+vi.mock('../../../src/utils/temp-cache-db', () => ({
+  getTempCacheDB: vi.fn(() => new Map([
     ['12345', {
       cid: '12345',
       imgs: [
@@ -66,6 +66,45 @@ function createMinimalPNG(): Uint8Array {
   return png;
 }
 
+function createTextChunkFromData(textData: Uint8Array, type = 'tEXt'): Uint8Array {
+  const encoder = new TextEncoder();
+  const typeBytes = encoder.encode(type);
+  const textChunk = new Uint8Array(12 + textData.length);
+  textChunk[0] = (textData.length >>> 24) & 0xff;
+  textChunk[1] = (textData.length >>> 16) & 0xff;
+  textChunk[2] = (textData.length >>> 8) & 0xff;
+  textChunk[3] = textData.length & 0xff;
+  textChunk.set(typeBytes, 4);
+  textChunk.set(textData, 8);
+  textChunk.set([0, 0, 0, 0], 8 + textData.length);
+  return textChunk;
+}
+
+function createPNGWithChunks(chunks: Uint8Array[]): Blob {
+  const minimal = createMinimalPNG();
+  const signature = minimal.subarray(0, 8);
+  const ihdr = minimal.subarray(8, 33);
+  const iend = minimal.subarray(33);
+  const totalLength = signature.length + ihdr.length + chunks.reduce((sum, chunk) => sum + chunk.length, 0) + iend.length;
+  const png = new Uint8Array(totalLength);
+  let offset = 0;
+  png.set(signature, offset);
+  offset += signature.length;
+  png.set(ihdr, offset);
+  offset += ihdr.length;
+  for (const chunk of chunks) {
+    png.set(chunk, offset);
+    offset += chunk.length;
+  }
+  png.set(iend, offset);
+  return new Blob([png], { type: 'image/png' });
+}
+
+function createPNGWithTextMetadata(key: string, value: string): Blob {
+  const encoder = new TextEncoder();
+  return createPNGWithChunks([createTextChunkFromData(encoder.encode(`${key}\0${value}`))]);
+}
+
 describe('png-metadata', () => {
   let sampleDeckInfo: DeckInfo;
   let minimalPNG: Blob;
@@ -93,7 +132,7 @@ describe('png-metadata', () => {
   });
 
   describe('embedDeckInfoToPNG', () => {
-    it('PNGにデッキ情報を埋め込める', async () => {
+    it('PNGにデッキ情報を埋め込める [covers:embed_png.scans_chunks_until_iend] [covers:embed_png.inserts_deckinfo_text_chunk_and_preserves_iend]', async () => {
       const result = await embedDeckInfoToPNG(minimalPNG, sampleDeckInfo);
 
       expect(result).toBeInstanceOf(Blob);
@@ -103,7 +142,7 @@ describe('png-metadata', () => {
       expect(result.size).toBeGreaterThan(minimalPNG.size);
     });
 
-    it('埋め込んだデッキ情報を抽出できる', async () => {
+    it('埋め込んだデッキ情報を抽出できる [covers:simplify_deck.maps_all_sections] [covers:simplify_deck.enc_from_matching_temp_cache_image] [covers:extract_png.valid_deckinfo_text_returns_parsed] [covers:simple_deck_guard.all_sections_every_card_valid]', async () => {
       const embedded = await embedDeckInfoToPNG(minimalPNG, sampleDeckInfo);
       const extracted = await extractDeckInfoFromPNG(embedded);
 
@@ -135,7 +174,7 @@ describe('png-metadata', () => {
       });
     });
 
-    it('無効なPNG（シグネチャ不正）の場合エラーをthrowする', async () => {
+    it('無効なPNG（シグネチャ不正）の場合エラーをthrowする [covers:embed_png.signature_mismatch_throws]', async () => {
       const invalidPNG = new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/png' });
 
       await expect(embedDeckInfoToPNG(invalidPNG, sampleDeckInfo))
@@ -143,7 +182,7 @@ describe('png-metadata', () => {
         .toThrow('Invalid PNG file: signature mismatch');
     });
 
-    it('IENDチャンクがない場合エラーをthrowする', async () => {
+    it('IENDチャンクがない場合エラーをthrowする [covers:embed_png.iend_missing_throws]', async () => {
       // PNGシグネチャのみ
       const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
       const noPNG = new Blob([signature], { type: 'image/png' });
@@ -153,7 +192,7 @@ describe('png-metadata', () => {
         .toThrow('Invalid PNG file: IEND chunk not found');
     });
 
-    it('空のデッキでも埋め込める', async () => {
+    it('空のデッキでも埋め込める [covers:simple_deck_guard.quantity_must_be_integer_0_to_99]', async () => {
       const emptyDeck: DeckInfo = {
         dno: 1,
         dname: 'Empty Deck',
@@ -172,21 +211,44 @@ describe('png-metadata', () => {
       expect(extracted?.extra).toHaveLength(0);
       expect(extracted?.side).toHaveLength(0);
     });
+
+    it('キャッシュまたは画像が見つからないカードのencは空文字列になる [covers:simplify_deck.enc_empty_when_cache_or_image_missing]', async () => {
+      const deckWithMissingCache: DeckInfo = {
+        dno: 1,
+        name: 'Missing cache',
+        mainDeck: [
+          { cid: '99999', ciid: 'missing', quantity: 1 },
+          { cid: '12345', ciid: 'missing', quantity: 1 }
+        ],
+        extraDeck: [],
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
+      };
+
+      const embedded = await embedDeckInfoToPNG(minimalPNG, deckWithMissingCache);
+      const extracted = await extractDeckInfoFromPNG(embedded);
+
+      expect(extracted?.main[0]?.enc).toBe('');
+      expect(extracted?.main[1]?.enc).toBe('');
+    });
   });
 
   describe('extractDeckInfoFromPNG', () => {
-    it('デッキ情報が埋め込まれていないPNGの場合nullを返す', async () => {
+    it('デッキ情報が埋め込まれていないPNGの場合nullを返す [covers:extract_png.no_deckinfo_returns_null]', async () => {
       const extracted = await extractDeckInfoFromPNG(minimalPNG);
       expect(extracted).toBeNull();
     });
 
-    it('無効なPNG（シグネチャ不正）の場合nullを返す', async () => {
+    it('無効なPNG（シグネチャ不正）の場合nullを返す [covers:extract_png.signature_mismatch_returns_null]', async () => {
       const invalidPNG = new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'image/png' });
       const extracted = await extractDeckInfoFromPNG(invalidPNG);
       expect(extracted).toBeNull();
     });
 
-    it('不正なJSON構造の場合nullを返す', async () => {
+    it('不正なJSON構造の場合nullを返す [covers:extract_png.catch_error_returns_null]', async () => {
       // 手動でtEXtチャンクを作成（不正なJSON）
       const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -239,68 +301,14 @@ describe('png-metadata', () => {
       expect(extracted).toBeNull();
     });
 
-    it('型ガードに失敗する場合nullを返す', async () => {
-      // 不正な構造のデータを埋め込む
-      const invalidDeck = {
-        dno: 1,
-        dname: 'Invalid',
-        dtype: '0',
-        dstyle: '0',
-        mainDeck: [
-          { cid: 'invalid', ciid: 'invalid', quantity: 'not-a-number' } // quantityが文字列
-        ],
-        extraDeck: [],
-        sideDeck: []
-      };
-
-      // 一旦正しい形式で埋め込んで、その後手動で書き換える必要があるため、
-      // ここでは簡略化してconsole.warnが呼ばれることを確認
+    it('型ガードに失敗する場合nullを返す [covers:extract_png.invalid_structure_warns_and_returns_null] [covers:simple_deck_guard.card_fields_must_have_expected_types]', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      // 手動でtEXtチャンクを作成（不正な構造）
-      const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-      const ihdr = new Uint8Array([
-        0x00, 0x00, 0x00, 0x0d,
-        0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01,
-        0x00, 0x00, 0x00, 0x01,
-        0x08, 0x00, 0x00, 0x00, 0x00,
-        0x90, 0x77, 0x38, 0x31
-      ]);
-
-      const encoder = new TextEncoder();
       const invalidJson = JSON.stringify({
         main: [{ cid: '123', ciid: '456', enc: 'hash', quantity: 'invalid' }],
         extra: [],
         side: []
       });
-      const textData = encoder.encode(`DeckInfo\0${invalidJson}`);
-      const textChunk = new Uint8Array(12 + textData.length);
-      textChunk[0] = 0;
-      textChunk[1] = 0;
-      textChunk[2] = 0;
-      textChunk[3] = textData.length;
-      textChunk[4] = 0x74;
-      textChunk[5] = 0x45;
-      textChunk[6] = 0x58;
-      textChunk[7] = 0x74;
-      textChunk.set(textData, 8);
-      textChunk.set([0, 0, 0, 0], 8 + textData.length);
-
-      const iend = new Uint8Array([
-        0x00, 0x00, 0x00, 0x00,
-        0x49, 0x45, 0x4e, 0x44,
-        0xae, 0x42, 0x60, 0x82
-      ]);
-
-      const png = new Uint8Array(signature.length + ihdr.length + textChunk.length + iend.length);
-      png.set(signature, 0);
-      png.set(ihdr, signature.length);
-      png.set(textChunk, signature.length + ihdr.length);
-      png.set(iend, signature.length + ihdr.length + textChunk.length);
-
-      const invalidStructurePNG = new Blob([png], { type: 'image/png' });
+      const invalidStructurePNG = createPNGWithTextMetadata('DeckInfo', invalidJson);
       const extracted = await extractDeckInfoFromPNG(invalidStructurePNG);
 
       expect(extracted).toBeNull();
@@ -309,82 +317,102 @@ describe('png-metadata', () => {
       warnSpy.mockRestore();
     });
 
-    it('空のBlobの場合nullを返す', async () => {
+    it('空のBlobの場合nullを返す [covers:extract_png.signature_mismatch_returns_null]', async () => {
       const emptyBlob = new Blob([], { type: 'image/png' });
       const extracted = await extractDeckInfoFromPNG(emptyBlob);
+      expect(extracted).toBeNull();
+    });
+
+    it('NULL区切りのないtEXtチャンクは無視する [covers:extract_png.text_chunk_without_null_is_ignored]', async () => {
+      const encoder = new TextEncoder();
+      const png = createPNGWithChunks([createTextChunkFromData(encoder.encode('DeckInfo but no separator'))]);
+
+      const extracted = await extractDeckInfoFromPNG(png);
+
+      expect(extracted).toBeNull();
+    });
+
+    it('DeckInfo以外のtEXtキーは無視する [covers:extract_png.non_deckinfo_text_key_is_ignored]', async () => {
+      const png = createPNGWithTextMetadata('Comment', JSON.stringify({ main: [], extra: [], side: [] }));
+
+      const extracted = await extractDeckInfoFromPNG(png);
+
+      expect(extracted).toBeNull();
+    });
+
+    it('IEND後のDeckInfoチャンクは読まない [covers:extract_png.iend_breaks_scan]', async () => {
+      const minimal = createMinimalPNG();
+      const encoder = new TextEncoder();
+      const lateDeckInfo = createTextChunkFromData(encoder.encode('DeckInfo\0{"main":[],"extra":[],"side":[]}'));
+      const png = new Uint8Array(minimal.length + lateDeckInfo.length);
+      png.set(minimal, 0);
+      png.set(lateDeckInfo, minimal.length);
+
+      const extracted = await extractDeckInfoFromPNG(new Blob([png], { type: 'image/png' }));
+
       expect(extracted).toBeNull();
     });
   });
 
   describe('SimpleDeckInfo型ガード（間接的テスト）', () => {
-    it('有効な構造のデータは抽出される', async () => {
+    it('有効な構造のデータは抽出される [covers:simple_deck_guard.quantity_must_be_integer_0_to_99]', async () => {
       const validDeck: DeckInfo = {
         dno: 1,
-        dname: 'Valid',
-        dtype: '0',
-        dstyle: '0',
+        name: 'Valid',
         mainDeck: [
+          { cid: '12345', ciid: 'img1', quantity: 0 },
           { cid: '12345', ciid: 'img1', quantity: 1 },
           { cid: '12345', ciid: 'img1', quantity: 99 } // 最大値
         ],
         extraDeck: [],
-        sideDeck: []
+        sideDeck: [],
+        category: [],
+        tags: [],
+        comment: '',
+        deckCode: ''
       };
 
       const embedded = await embedDeckInfoToPNG(minimalPNG, validDeck);
       const extracted = await extractDeckInfoFromPNG(embedded);
 
       expect(extracted).not.toBeNull();
-      expect(extracted?.main[0]?.quantity).toBe(1);
-      expect(extracted?.main[1]?.quantity).toBe(99);
+      expect(extracted?.main[0]?.quantity).toBe(0);
+      expect(extracted?.main[1]?.quantity).toBe(1);
+      expect(extracted?.main[2]?.quantity).toBe(99);
     });
 
-    it('quantityが100以上の場合は型ガードで弾かれる', async () => {
-      // 手動で不正なデータを作成
-      const signature = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    it('quantityが範囲外または整数でない場合は型ガードで弾かれる [covers:simple_deck_guard.quantity_must_be_integer_0_to_99]', async () => {
+      for (const quantity of [-1, 1.5, 100]) {
+        const invalidJson = JSON.stringify({
+          main: [{ cid: '123', ciid: '456', enc: 'hash', quantity }],
+          extra: [],
+          side: []
+        });
+        const invalidQuantityPNG = createPNGWithTextMetadata('DeckInfo', invalidJson);
 
-      const ihdr = new Uint8Array([
-        0x00, 0x00, 0x00, 0x0d,
-        0x49, 0x48, 0x44, 0x52,
-        0x00, 0x00, 0x00, 0x01,
-        0x00, 0x00, 0x00, 0x01,
-        0x08, 0x00, 0x00, 0x00, 0x00,
-        0x90, 0x77, 0x38, 0x31
-      ]);
+        await expect(extractDeckInfoFromPNG(invalidQuantityPNG)).resolves.toBeNull();
+      }
+    });
 
-      const encoder = new TextEncoder();
-      const invalidJson = JSON.stringify({
-        main: [{ cid: '123', ciid: '456', enc: 'hash', quantity: 100 }], // 100は不正
-        extra: [],
-        side: []
-      });
-      const textData = encoder.encode(`DeckInfo\0${invalidJson}`);
-      const textChunk = new Uint8Array(12 + textData.length);
-      textChunk[0] = 0;
-      textChunk[1] = 0;
-      textChunk[2] = 0;
-      textChunk[3] = textData.length;
-      textChunk[4] = 0x74;
-      textChunk[5] = 0x45;
-      textChunk[6] = 0x58;
-      textChunk[7] = 0x74;
-      textChunk.set(textData, 8);
-      textChunk.set([0, 0, 0, 0], 8 + textData.length);
+    it('DeckInfoメタデータがobjectでない場合は型ガードで弾かれる [covers:simple_deck_guard.non_object_or_null_false]', async () => {
+      for (const value of ['null', '"not-object"']) {
+        const extracted = await extractDeckInfoFromPNG(createPNGWithTextMetadata('DeckInfo', value));
+        expect(extracted).toBeNull();
+      }
+    });
 
-      const iend = new Uint8Array([
-        0x00, 0x00, 0x00, 0x00,
-        0x49, 0x45, 0x4e, 0x44,
-        0xae, 0x42, 0x60, 0x82
-      ]);
+    it('main/extra/sideが配列でない場合は型ガードで弾かれる [covers:simple_deck_guard.required_sections_must_be_arrays]', async () => {
+      const invalidJson = JSON.stringify({ main: [], extra: [], side: {} });
 
-      const png = new Uint8Array(signature.length + ihdr.length + textChunk.length + iend.length);
-      png.set(signature, 0);
-      png.set(ihdr, signature.length);
-      png.set(textChunk, signature.length + ihdr.length);
-      png.set(iend, signature.length + ihdr.length + textChunk.length);
+      const extracted = await extractDeckInfoFromPNG(createPNGWithTextMetadata('DeckInfo', invalidJson));
 
-      const invalidQuantityPNG = new Blob([png], { type: 'image/png' });
-      const extracted = await extractDeckInfoFromPNG(invalidQuantityPNG);
+      expect(extracted).toBeNull();
+    });
+
+    it('カード要素がobjectでない場合は型ガードで弾かれる [covers:simple_deck_guard.card_must_be_object]', async () => {
+      const invalidJson = JSON.stringify({ main: [null], extra: [], side: [] });
+
+      const extracted = await extractDeckInfoFromPNG(createPNGWithTextMetadata('DeckInfo', invalidJson));
 
       expect(extracted).toBeNull();
     });

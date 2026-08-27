@@ -1,0 +1,75 @@
+[tasks.build]
+description = "本番ビルド"
+run = "pnpm run build"
+
+[tasks."build:dev"]
+description = "開発ビルド"
+run = "pnpm run build:dev"
+
+[tasks.dev]
+description = "開発ビルド（watchモード）"
+run = "pnpm run dev"
+
+[tasks.deploy]
+description = "ビルド済みファイルをデプロイ"
+run = "pnpm run deploy"
+
+[tasks."build-and-deploy"]
+description = "本番ビルドしてデプロイ"
+run = "pnpm run build-and-deploy"
+
+[tasks."type-check"]
+description = "TypeScriptの型チェック"
+run = "pnpm run type-check"
+
+[tasks.test]
+description = "全テストを実行（vitest）"
+run = "pnpm run test"
+
+[tasks."test:unit"]
+description = "ユニットテストを実行"
+run = "pnpm run test:unit"
+
+[tasks."test:combine"]
+description = "結合テストを実行"
+run = "pnpm run test:combine"
+
+[tasks."test:parser"]
+description = "パーサーのテストを実行"
+run = "pnpm run test:parser"
+
+[tasks."test:vitest"]
+description = "全テストを実行（vitest、testと同一）"
+run = "pnpm run test:vitest"
+
+[tasks."test:vitest:ui"]
+description = "vitest UIを起動"
+run = "pnpm run test:vitest:ui"
+
+[tasks."test:components"]
+description = "コンポーネントテストを実行"
+run = "pnpm run test:components"
+
+[tasks."test:download-samples"]
+description = "テスト用サンプルHTMLをダウンロード"
+run = "pnpm run test:download-samples"
+
+[tasks."test:integration"]
+description = "サンプルHTMLダウンロード後に結合テストを実行"
+run = "pnpm run test:integration"
+
+[tasks."setup:download-forms"]
+description = "検索フォーム情報をダウンロード"
+run = "pnpm run setup:download-forms"
+
+[tasks."setup:extract-mappings"]
+description = "マッピング情報を抽出"
+run = "pnpm run setup:extract-mappings"
+
+[tasks."setup:all"]
+description = "セットアップ一式を実行（フォームダウンロード＋マッピング抽出）"
+run = "pnpm run setup:all"
+
+[tasks."license:generate"]
+description = "サードパーティライセンス一覧を生成"
+run = "pnpm run license:generate"

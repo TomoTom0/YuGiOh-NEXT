@@ -10,7 +10,15 @@
     </div>
 
     <div class="right-area-main">
-      <div class="tabs">
+      <div class="tabs" :style="{ '--tab-count': tabCount }">
+        <button
+          v-if="practiceMode"
+          class="practice-tab"
+          :class="{ active: deckStore.activeTab === 'practice' }"
+          @click="deckStore.activeTab = 'practice'"
+        >
+          Practice
+        </button>
         <button
           class="deck-tab"
           :class="{ active: deckStore.activeTab === 'deck' }"
@@ -36,17 +44,28 @@
         >
           Metadata
         </button>
+        <button
+          v-if="chatFeatureEnabled"
+          :class="{ active: deckStore.activeTab === 'chat' }"
+          @click="deckStore.activeTab = 'chat'"
+        >
+          Chat
+        </button>
       </div>
 
-      <div v-show="deckStore.activeTab === 'deck'" class="deck-content">
+      <div v-show="deckStore.activeTab === 'practice'" ref="practiceContentRef" class="practice-content tab-content">
+        <slot name="practice-tab"></slot>
+      </div>
+
+      <div v-show="deckStore.activeTab === 'deck'" ref="deckContentRef" class="deck-content tab-content">
         <slot name="deck-tab"></slot>
       </div>
 
-      <div v-show="deckStore.activeTab === 'card'" class="card-detail-content">
+      <div v-show="deckStore.activeTab === 'card'" ref="cardDetailContentRef" class="card-detail-content tab-content">
         <CardDetail :card="cardDetailStore.selectedCard" />
       </div>
 
-      <div v-show="deckStore.activeTab === 'search'" class="search-content">
+      <div v-show="deckStore.activeTab === 'search'" ref="searchContentRef" class="search-content">
         <CardList
           :cards="searchStore.searchResults"
           :sort-order="deckStore.sortOrder"
@@ -59,8 +78,12 @@
         <div v-if="searchStore.isLoading" class="loading-indicator">読み込み中...</div>
       </div>
 
-      <div v-show="deckStore.activeTab === 'metadata'" class="metadata-content">
+      <div v-show="deckStore.activeTab === 'metadata'" ref="metadataContentRef" class="metadata-content">
         <DeckMetadata />
+      </div>
+
+      <div v-show="chatFeatureEnabled && deckStore.activeTab === 'chat'" class="chat-content">
+        <ChatPanel />
       </div>
     </div>
 
@@ -83,7 +106,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent, inject } from 'vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { useSearchStore } from '../stores/search'
 import { useCardDetailStore } from '../stores/card-detail'
@@ -91,9 +114,10 @@ import { useSettingsStore } from '../stores/settings'
 import CardList from './CardList.vue'
 const CardDetail = defineAsyncComponent(() => import('./CardDetail.vue'))
 import DeckMetadata from './DeckMetadata.vue'
+import ChatPanel from './ChatPanel.vue'
 import SearchInputBar from './searchInputBar/SearchInputBar.vue'
 import { buildFullUrl } from '../utils/url-builder'
-import { detectLanguage } from '../utils/language-detector'
+import { useCardDetailDisplay } from '../composables/useCardDetailDisplay'
 
 export default {
   name: 'RightArea',
@@ -101,6 +125,7 @@ export default {
     CardList,
     CardDetail,
     DeckMetadata,
+    ChatPanel,
     SearchInputBar
   },
   setup() {
@@ -109,6 +134,23 @@ export default {
     const cardDetailStore = useCardDetailStore()
     const settingsStore = useSettingsStore()
     const searchInputBarRef = ref(null)
+    const practiceContentRef = ref(null)
+    const deckContentRef = ref(null)
+    const cardDetailContentRef = ref(null)
+    const searchContentRef = ref(null)
+    const metadataContentRef = ref(null)
+    const practiceMode = inject('practiceMode', ref(false))
+
+    const chatFeatureEnabled = computed(() => {
+      return settingsStore.featureSettings.chat
+    })
+
+    const tabCount = computed(() => {
+      let count = 3 // Card, Search, Metadata
+      if (practiceMode.value) count++
+      if (chatFeatureEnabled.value) count++
+      return count
+    })
 
     // 検索入力欄をデフォルト位置（画面下部、左側も含む）に表示するかどうか
     const showSearchInputBottom = computed(() => {
@@ -152,11 +194,10 @@ export default {
     // タブ切り替え時にスクロールを一番上に戻す
     watch(() => deckStore.activeTab, () => {
       nextTick(() => {
-        const contentSelectors = ['.search-content', '.card-detail-content', '.metadata-content', '.deck-content']
-        contentSelectors.forEach(selector => {
-          const el = document.querySelector(selector)
-          if (el) {
-            el.scrollTop = 0
+        const refs = [searchContentRef, cardDetailContentRef, metadataContentRef, deckContentRef]
+        refs.forEach(r => {
+          if (r.value) {
+            r.value.scrollTop = 0
           }
         })
       })
@@ -165,12 +206,11 @@ export default {
     // 選択カード変更時にcard-detail-content内のスクロールをリセット
     watch(() => cardDetailStore.selectedCard, () => {
       nextTick(() => {
-        const cardDetailContent = document.querySelector('.card-detail-content')
-        if (cardDetailContent) {
-          cardDetailContent.scrollTop = 0
+        if (cardDetailContentRef.value) {
+          cardDetailContentRef.value.scrollTop = 0
         }
         // CardDetail内のcard-tab-contentもリセット
-        const cardTabContent = document.querySelector('.card-tab-content')
+        const cardTabContent = cardDetailContentRef.value?.querySelector('.card-tab-content')
         if (cardTabContent) {
           cardTabContent.scrollTop = 0
         }
@@ -211,27 +251,24 @@ export default {
       }
     }
     
-    const showCardDetail = async (card) => {
-      try {
-        // カードクリック時に動的import
-        const { getCardDetailWithCache } = await import('../api/card-search')
-        const currentLang = detectLanguage(document)
-        const result = await getCardDetailWithCache(card.cardId, currentLang)
-        const fullCard = result?.detail?.card || card
+    const { showCardDetail: showDetailFromComposable } = useCardDetailDisplay()
 
-        cardDetailStore.setSelectedCard(fullCard)
-      } catch (e) {
-        console.error('[RightArea] Failed to fetch full card detail:', e)
-        cardDetailStore.setSelectedCard(card)
-      }
-      deckStore.activeTab = 'card'
-      cardDetailStore.setCardTab('info')
+    const showCardDetail = (card) => {
+      return showDetailFromComposable(card.cardId, { fallbackCard: card })
     }
 
     return {
       deckStore,
       searchStore,
       cardDetailStore,
+      practiceMode,
+      chatFeatureEnabled,
+      tabCount,
+      practiceContentRef,
+      deckContentRef,
+      cardDetailContentRef,
+      searchContentRef,
+      metadataContentRef,
       showSearchInputBottom,
       showSearchInputTop,
       showSearchInputRightBottom,
@@ -247,10 +284,11 @@ export default {
 
 <style scoped lang="scss">
 .right-area {
-  /* MAX-FIT時はflex-growで残りスペースを埋める、固定幅時はflex-basisで幅指定 */
   flex-grow: var(--right-area-flex-grow, 0);
-  flex-shrink: 0;
+  flex-shrink: var(--right-area-flex-shrink, 0);
   flex-basis: var(--right-area-flex-basis, 400px);
+  max-width: var(--right-area-max-width, none);
+  width: var(--right-area-width, 400px);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -262,18 +300,20 @@ export default {
 
 .right-area-main {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: 6px;
   margin: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
   .right-area {
-    flex-basis: 100% !important;
-    flex-grow: 1 !important;
+    width: 100% !important;
+    max-width: none !important;
     margin: 0 !important;
   }
 
@@ -291,7 +331,7 @@ export default {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(var(--tab-count, 3), 1fr);
   border-bottom: 2px solid #008cff;
   margin: 0;
 
@@ -335,7 +375,7 @@ export default {
 
 @media (max-width: 768px) {
   .tabs {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(calc(var(--tab-count, 3) + 1), 1fr);
     
     button.deck-tab {
       display: block;
@@ -343,7 +383,23 @@ export default {
   }
 }
 
-.deck-content, .search-content, .card-detail-content, .metadata-content {
+.tab-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.practice-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.deck-content, .search-content, .card-detail-content, .metadata-content, .chat-content {
   animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -374,6 +430,16 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
 }

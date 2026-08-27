@@ -1,0 +1,214 @@
+# 検証対象: src/utils/deck-metadata-loader.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-323(Tier A本展開)、chrome.storage/fetchを伴うメタデータローダー。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/unit/utils/deck-metadata-loader.test.ts は静的import後に `vi.stubGlobal('__deck_metadata_cache__', null)`
+#   を実行していたが、実装のモジュール内変数 `cachedMetadata` には影響しないため、テスト間で
+#   キャッシュが残る順序依存があった。
+# - deckTypes/deckStylesについて `Array.isArray(...) || typeof ... === 'object'` のように実装型より
+#   曖昧なアサーションがあった。
+
+[meta]
+feature = "deck-metadata-loader"
+source_file = "src/utils/deck-metadata-loader.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/utils/deck-metadata-loader.test.ts"
+source_hash = "e562c4caf289c5e3737f88240e100cba25cff902"
+note = "verified=falseは0件"
+
+# --- getStoredMetadata(): Promise<DeckMetadata | null> ---
+
+[[condition]]
+id = "stored_metadata.chrome_unavailable_null"
+target_function = "getStoredMetadata"
+source_lines = "40-42"
+description = "chromeがundefined、またはchrome.storageがfalsyの場合、chrome.storage.local.getを呼ばずnullを返す"
+given = "global.chromeが存在しない"
+expect_no_throw = true
+expect_return = "null（getDeckMetadataは初期JSONへフォールバックする）"
+
+[[condition]]
+id = "stored_metadata.storage_value_returns"
+target_function = "getStoredMetadata"
+source_lines = "44-46"
+description = "chrome.storage.local.get(STORAGE_KEY)の結果にdeck_metadataのtruthyな値がある場合、その値をDeckMetadataとして返す"
+given = "chrome.storage.local.get('deck_metadata')が { deck_metadata: metadata } を返す"
+expect_return_shape = "metadataそのもの（getDeckMetadataはその値を返し、キャッシュする）"
+
+[[condition]]
+id = "stored_metadata.storage_missing_null"
+target_function = "getStoredMetadata"
+source_lines = "44-46"
+description = "chrome.storage.local.get(STORAGE_KEY)の結果にdeck_metadataが無い、またはfalsyな場合はnullを返す"
+given = "chrome.storage.local.get('deck_metadata')が {} を返す"
+expect_return = "null（getDeckMetadataは初期JSONへフォールバックする）"
+
+[[condition]]
+id = "stored_metadata.get_error_null"
+target_function = "getStoredMetadata"
+source_lines = "44-50"
+description = "chrome.storage.local.getで例外またはrejectが発生した場合、例外を投げずnullを返す"
+given = "chrome.storage.local.getがError('load failed')でrejectする"
+expect_no_throw = true
+expect_return = "null（getDeckMetadataは初期JSONへフォールバックする）"
+
+# --- getDeckMetadata(): Promise<DeckMetadata> ---
+
+[[condition]]
+id = "get_metadata.cached_returns_without_storage"
+target_function = "getDeckMetadata"
+source_lines = "63-65"
+description = "cachedMetadataがtruthyの場合、getStoredMetadataを呼ばずcachedMetadataをそのまま返す"
+given = "saveDeckMetadata等によりcachedMetadataが設定済みで、その後chrome.storage.local.getが別値を返す"
+expect_return_shape = "キャッシュ済みオブジェクトと同一参照"
+
+[[condition]]
+id = "get_metadata.stored_preferred"
+target_function = "getDeckMetadata"
+source_lines = "67-72"
+description = "getStoredMetadataがtruthyなstoredを返した場合、storedをcachedMetadataへ設定してstoredを返す"
+given = "chrome.storage.local.get('deck_metadata')が保存済みmetadataを返す"
+expect_return_shape = "保存済みmetadataと同一内容"
+
+[[condition]]
+id = "get_metadata.initial_record_categories_converted"
+target_function = "getDeckMetadata"
+source_lines = "74-83"
+description = "初期JSONのcategoriesがtruthyかつ配列でない場合、Object.entriesで{value,label}配列へ変換し、assignCategoryGroupsの結果でinitial.categoriesを置き換える"
+given = "初期JSONモジュールのcategoriesが { cat1: 'Category 1' }"
+expect_return_shape = "categoriesは配列になり、各要素にvalue/labelが含まれる"
+
+[[condition]]
+id = "get_metadata.initial_array_categories_preserved"
+target_function = "getDeckMetadata"
+source_lines = "77-86"
+description = "初期JSONのcategoriesが配列の場合、Record変換分岐には入らず、初期JSONをDeckMetadataとしてキャッシュして返す"
+given = "実際の src/data/deck-metadata.json はcategoriesが配列"
+expect_return_shape = "categoriesは配列のまま返る"
+
+# --- saveDeckMetadata(metadata: DeckMetadata): Promise<void> ---
+
+[[condition]]
+id = "save_metadata.chrome_unavailable_returns"
+target_function = "saveDeckMetadata"
+source_lines = "93-96"
+description = "chromeがundefined、またはchrome.storageがfalsyの場合、警告ログ後にreturnし、storage保存もキャッシュ更新も行わない"
+given = "global.chromeが存在しない状態でsaveDeckMetadata(metadata)を呼ぶ"
+expect_no_throw = true
+expect_return = "undefined"
+
+[[condition]]
+id = "save_metadata.success_sets_storage_and_cache"
+target_function = "saveDeckMetadata"
+source_lines = "98-100"
+description = "chrome.storage.local.setが成功した場合、{ deck_metadata: metadata }を保存し、cachedMetadataをmetadataに更新する"
+given = "chrome.storage.local.setがresolveする"
+expect_side_effect = "storageにdeck_metadataが保存され、直後のgetDeckMetadataは同じmetadataを返す"
+
+[[condition]]
+id = "save_metadata.set_error_rethrows"
+target_function = "saveDeckMetadata"
+source_lines = "98-103"
+description = "chrome.storage.local.setで例外またはrejectが発生した場合、同じerrorを再throwする"
+given = "chrome.storage.local.setがError('Save failed')でrejectする"
+expect_throw = "Error('Save failed')"
+
+# --- extractOptionsFromSelect(doc, selector, excludeTexts = ['------------']): Record<string, string> ---
+
+[[condition]]
+id = "extract_options.no_select_empty"
+target_function = "extractOptionsFromSelect"
+source_lines = "120-136"
+description = "selectorに一致するselect要素が無い場合、空objectを返す"
+given = "docにselect[name='dckTagMst']が存在しない"
+expect_return = "{}"
+
+[[condition]]
+id = "extract_options.includes_valid_options"
+target_function = "extractOptionsFromSelect"
+source_lines = "123-132"
+description = "optionのtrim済みtextがtruthy、excludeTextsに含まれない、かつvalueがtruthyの場合、optionsMap[value]=textを設定する"
+given = "select[name='dckTagMst']に <option value='t1'> Tag 1 </option> がある"
+expect_return_shape = "{ t1: 'Tag 1' }"
+
+[[condition]]
+id = "extract_options.filters_empty_excluded_or_no_value"
+target_function = "extractOptionsFromSelect"
+source_lines = "127-132"
+description = "trim済みtextが空、textがexcludeTextsに含まれる、またはvalueがfalsyの場合、そのoptionは結果に追加しない"
+given = "空text、'------------'、value='' のoptionが混在する"
+expect_return_shape = "該当optionのvalueは戻りobjectに含まれない"
+
+# --- updateDeckMetadata(gameType = 'ocg'): Promise<DeckMetadata> ---
+
+[[condition]]
+id = "update_metadata.default_game_type_ocg"
+target_function = "updateDeckMetadata"
+source_lines = "143-148"
+description = "gameTypeを省略した場合、'ocg'をgetDeckSearchPageUrlに渡し、そのURLへfetchする"
+given = "updateDeckMetadata()を呼ぶ"
+expect_side_effect = "fetch(getDeckSearchPageUrl('ocg', 'ja'))が呼ばれる"
+
+[[condition]]
+id = "update_metadata.deck_types_filters"
+target_function = "updateDeckMetadata"
+source_lines = "153-165"
+description = "input[name='deck_type']ごとに同id対応labelのtrim済みtextを読み、textがtruthyかつ'-----'でなくvalueがtruthyなものだけdeckTypesへ追加する"
+given = "有効なdeck_type、label='-----'、labelなし、value='' が混在するHTML"
+expect_return_shape = "deckTypesには有効なinputだけが { value, label } として入る"
+
+[[condition]]
+id = "update_metadata.deck_styles_filters"
+target_function = "updateDeckMetadata"
+source_lines = "167-179"
+description = "input[name='deckStyle']ごとに同id対応labelのtrim済みtextを読み、textがtruthyかつ'----'でなくvalueがtruthyかつvalue !== '-1'のものだけdeckStylesへ追加する"
+given = "有効なdeckStyle、label='----'、value='-1'、value='' が混在するHTML"
+expect_return_shape = "deckStylesには有効なinputだけが { value, label } として入る"
+
+[[condition]]
+id = "update_metadata.categories_select_absent_empty"
+target_function = "updateDeckMetadata"
+source_lines = "183-197"
+description = "select[name='dckCategoryMst']が無い場合、空配列をassignCategoryGroupsへ渡した結果をcategoriesに設定する"
+given = "HTMLにカテゴリselectが存在しない"
+expect_return_shape = "categoriesは空配列"
+
+[[condition]]
+id = "update_metadata.categories_filters_and_groups"
+target_function = "updateDeckMetadata"
+source_lines = "183-197"
+description = "カテゴリselectがある場合、trim済みtextがtruthyかつ'------------'でなくvalueがtruthyなoptionだけcategoriesArrayに入れ、assignCategoryGroupsした結果をcategoriesに設定する"
+given = "有効option、'------------'、空text、value='' が混在するカテゴリselect"
+expect_return_shape = "categoriesには有効option由来の要素だけが入り、group情報が付与される"
+
+[[condition]]
+id = "update_metadata.tags_from_helper"
+target_function = "updateDeckMetadata"
+source_lines = "199-200"
+description = "タグはextractOptionsFromSelect(doc, \"select[name='dckTagMst']\")の戻り値をそのままmetadata.tagsに設定する"
+given = "タグselectに有効optionと除外対象optionが混在する"
+expect_return_shape = "metadata.tagsは有効タグだけのRecord"
+
+[[condition]]
+id = "update_metadata_saves_and_returns"
+target_function = "updateDeckMetadata"
+source_lines = "202-213"
+description = "抽出したdeckTypes/deckStyles/categories/tagsとnew Date().toISOString()のlastUpdatedでmetadataを作り、saveDeckMetadata(metadata)をawaitしてからmetadataを返す"
+given = "fetch/text/parse/storage保存が全て成功する"
+expect_side_effect = "chrome.storage.local.setに返却metadataが保存される"
+expect_return_shape = "保存されたmetadataと同一内容"
+
+[[condition]]
+id = "update_metadata_error_rethrows"
+target_function = "updateDeckMetadata"
+source_lines = "146-216"
+description = "fetch、response.text、parseHTML後の処理、saveDeckMetadataのいずれかで例外またはrejectが発生した場合、同じerrorを再throwする"
+given = "fetchがError('network failed')でrejectする"
+expect_throw = "Error('network failed')"

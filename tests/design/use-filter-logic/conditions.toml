@@ -1,0 +1,320 @@
+# 検証対象: src/composables/search-filter/useFilterLogic.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、Vue composableの返却computed/関数を対象にする。
+#
+# デッドコード・到達不能分岐: なし。
+
+[meta]
+feature = "use-filter-logic"
+source_file = "src/composables/search-filter/useFilterLogic.ts"
+verified = true
+verified_at = "2026-08-06"
+verified_by = "codex"
+test_command = "mise run test:vitest -- tests/unit/composables/useFilterLogic.test.ts"
+source_hash = "bd42f7d679fe5bc29a50178a0ab1669a993ca685"
+note = "verified=falseは0件。useFilterLogic本体はexport関数としてAST未カバー検出に掛けるため1条件を置き、返却メンバーはuseFilterLogic#memberName形式で記録する"
+
+# --- useFilterLogic(pageLanguage) ---
+
+[[condition]]
+id = "use_filter_logic.returns_public_members"
+target_function = "useFilterLogic"
+source_lines = "16-20,442-489"
+description = "useSearchStore()を取得し、exclusionResultをsearchStore.exclusionResultへ追従するcomputedとして作成し、無効化判定・チップ表示・フィルタ操作の公開メンバーを返す"
+given = "Piniaのsearch storeが有効な状態でuseFilterLogic(pageLanguage)を呼ぶ"
+expect_return_shape = "isMonsterTypeFieldDisabled等のcomputedと、toggleAttribute等の操作関数を含むオブジェクト"
+
+# --- 無効化状態 ---
+
+[[condition]]
+id = "use_filter_logic.monster_type_field_attr_state"
+target_function = "useFilterLogic#isMonsterTypeFieldDisabled"
+source_lines = "26-30"
+description = "attributeStatesに'card-type_monster'が存在する場合、そのenabledの否定を返し、cardTypeによるフォールバックは使わない"
+given = "exclusionResult.attributeStates.get('card-type_monster')が{ enabled: true }または{ enabled: false }"
+expect_return_shape = "enabled=trueならfalse、enabled=falseならtrue"
+
+[[condition]]
+id = "use_filter_logic.monster_type_field_fallback"
+target_function = "useFilterLogic#isMonsterTypeFieldDisabled"
+source_lines = "31-32"
+description = "attributeStatesに'card-type_monster'が存在しない場合、cardTypeがnullでなく'monster'でもないときだけtrueを返す"
+given = "card-type_monsterのattributeStateが無く、searchFilters.cardTypeがnull/'monster'/'spell'"
+expect_return_shape = "nullと'monster'はfalse、'spell'等の非monsterはtrue"
+
+[[condition]]
+id = "use_filter_logic.attribute_disabled_state"
+target_function = "useFilterLogic#isAttributeDisabled"
+source_lines = "38-40"
+description = "指定attrIdのattributeStateがあればenabledの否定を返し、存在しなければfalseを返す"
+given = "attributeStatesに対象attrIdがある/ない"
+expect_return_shape = "enabled=falseならtrue、enabled=trueまたは未登録ならfalse"
+
+[[condition]]
+id = "use_filter_logic.monster_type_attribute_disabled_precedence"
+target_function = "useFilterLogic#isMonsterTypeAttributeDisabled"
+source_lines = "46-53"
+description = "`monster-type_${type}`が無効ならtrueを即返し、無効でなければisMonsterTypeFieldDisabledの値を返す"
+given = "個別monster-type属性が無効、または個別属性は有効/未登録でフィールド全体が無効"
+expect_return_shape = "個別無効が優先してtrue。個別無効でない場合はフィールド全体のdisabled値"
+
+[[condition]]
+id = "use_filter_logic.disabled_reasons"
+target_function = "useFilterLogic#getFieldDisabledReason"
+source_lines = "59-76"
+description = "getFieldDisabledReason/getAttributeDisabledReasonは対応するstateのdisabledReasonを加工せずそのまま返し、stateやreasonが無ければundefinedを返す"
+given = "fieldStates/attributeStatesにdisabledReasonあり、または未登録"
+expect_return_shape = "登録済みreason文字列、またはundefined"
+
+[[condition]]
+id = "use_filter_logic.monster_type_reason_precedence"
+target_function = "useFilterLogic#getMonsterTypeDisabledReason"
+source_lines = "82-93"
+description = "monster-type個別reasonがあればそれを返す。無ければフィールド全体が無効なときcard-type_monsterのreason、さらに無ければ固定文言を返す。フィールドも有効ならundefined"
+given = "個別reasonあり/フィールド無効でcard-type reasonあり/フィールド無効でreasonなし/フィールド有効"
+expect_return_shape = "個別reason、card-type reason、'モンスターカードタイプが選択されていません'、undefinedのいずれか"
+
+[[condition]]
+id = "use_filter_logic.tab_disabled_states"
+target_function = "useFilterLogic#isMonsterTabDisabled"
+source_lines = "99-112"
+description = "isMonsterTabDisabled/isSpellTabDisabled/isTrapTabDisabledは対応するcard-type_*のattributeStateがあればenabledの否定を返し、無ければfalseを返す"
+given = "card-type_monster/spell/trapのattributeStateがenabled=false、または未登録"
+expect_return_shape = "enabled=falseならtrue、未登録ならfalse"
+
+[[condition]]
+id = "use_filter_logic.field_disabled_state_precedence"
+target_function = "useFilterLogic#isFieldDisabled"
+source_lines = "117-121"
+description = "fieldStatesに対象fieldが存在する場合、そのenabledの否定を返し、cardTypeによる推論は使わない"
+given = "fieldStates.get(field)が{ enabled: true }または{ enabled: false }"
+expect_return_shape = "enabled=trueならfalse、enabled=falseならtrue"
+
+[[condition]]
+id = "use_filter_logic.field_disabled_card_type_fallback"
+target_function = "useFilterLogic#isFieldDisabled"
+source_lines = "122-138"
+description = "fieldStateが無くcardTypeがnullでない場合、モンスター専用フィールドはcardType!='monster'、spell-typeはcardType!='spell'、trap-typeはcardType!='trap'でtrue。それ以外はfalse"
+given = "fieldState未登録でcardTypeがnull/'monster'/'spell'/'trap'のいずれか"
+expect_return_shape = "専用フィールドとcardTypeが合わない場合のみtrue。それ以外はfalse"
+
+# --- チップ表示computed ---
+
+[[condition]]
+id = "use_filter_logic.selected_label_chips"
+target_function = "useFilterLogic#selectedAttributeChips"
+source_lines = "143-163"
+description = "selectedAttributeChips/selectedSpellTypeChips/selectedTrapTypeChips/selectedRaceChipsは各配列を対応ラベル関数でmapする。selectedMonsterTypeChipsはstate='not'のときだけ'N-'を付ける"
+given = "attributes/spellTypes/trapTypes/races/monsterTypesに値が入っている"
+expect_return_shape = "各値に対応するラベル配列。monsterTypesのnot状態のみ'N-${label}'"
+
+[[condition]]
+id = "use_filter_logic.selected_number_chips"
+target_function = "useFilterLogic#selectedLevelChips"
+source_lines = "166-188"
+description = "selectedLevelChips/selectedScaleChipsは対象配列が空なら[]、formatNumberRangeが空文字でなければ単要素配列を返す。selectedLinkChipsはlinkValues由来ラベルとlinkMarkers由来ラベルを順に追加する"
+given = "levelValues/linkValues/scaleValues/linkMarkersが空または値あり"
+expect_return_shape = "空配列または整形ラベル配列。linkは数値ラベルの後にマーカーラベル"
+
+[[condition]]
+id = "use_filter_logic.selected_stat_chips"
+target_function = "useFilterLogic#selectedAtkChips"
+source_lines = "191-198"
+description = "selectedAtkChips/selectedDefChipsはformatStatLabelが文字列を返せば単要素配列、nullなら[]を返す"
+given = "atk/defフィルタにunknown/exact/min/maxがある、または未指定"
+expect_return_shape = "['ATK=...']等の単要素配列、または[]"
+
+[[condition]]
+id = "use_filter_logic.header_filter_icons_delegates"
+target_function = "useFilterLogic#headerFilterIcons"
+source_lines = "201-202"
+description = "headerFilterIconsはsearchStore.searchFiltersをconvertFiltersToIconsへ渡した戻り値を返す"
+given = "searchFiltersにcardTypeや属性等が設定されている"
+expect_return_shape = "convertFiltersToIcons(searchFilters)と同じFilterIcon配列"
+
+[[condition]]
+id = "use_filter_logic.active_condition_chips"
+target_function = "useFilterLogic#activeConditionChips"
+source_lines = "205-230"
+description = "activeConditionChipsはcardType、各配列の件数、linkMarkersの整形ラベル、ATK/DEF指定、releaseDate指定を、条件が真のものだけ順にpushして返す"
+given = "searchFiltersに複数の条件が設定されている"
+expect_return_shape = "実装順に対応する日本語チップ文字列の配列"
+
+[[condition]]
+id = "use_filter_logic.has_active_filters"
+target_function = "useFilterLogic#hasActiveFilters"
+source_lines = "233"
+description = "hasActiveFiltersはactiveConditionChips.value.length > 0を返す"
+given = "activeConditionChipsが空、または1件以上"
+expect_return_shape = "空ならfalse、1件以上ならtrue"
+
+# --- フィルタ操作 ---
+
+[[condition]]
+id = "use_filter_logic.get_stat_filter"
+target_function = "useFilterLogic#getStatFilter"
+source_lines = "237-239"
+description = "getStatFilterは指定stat('atk'または'def')に対応するsearchFilters内のオブジェクト参照を返す"
+given = "stat='atk'または'def'"
+expect_return_shape = "searchStore.searchFilters[stat]と同一オブジェクト"
+
+[[condition]]
+id = "use_filter_logic.toggle_stat_exact_on"
+target_function = "useFilterLogic#toggleStatExact"
+source_lines = "241-248"
+description = "exactを反転してtrueになった場合、unknownをfalseにし、minがundefinedでなければmaxをminに同期する"
+given = "atk.exact=false、unknown=true、min=1000"
+expect_return_shape = "atk.exact=true、unknown=false、max=1000"
+
+[[condition]]
+id = "use_filter_logic.toggle_stat_exact_off"
+target_function = "useFilterLogic#toggleStatExact"
+source_lines = "241-248"
+description = "exactを反転してfalseになった場合、unknownやmin/maxは追加変更しない"
+given = "atk.exact=true、unknown=false、min=1000、max=1000"
+expect_return_shape = "atk.exact=false、unknown=false、min/maxは維持"
+
+[[condition]]
+id = "use_filter_logic.toggle_stat_unknown_on"
+target_function = "useFilterLogic#toggleStatUnknown"
+source_lines = "251-257"
+description = "unknownを反転してtrueになった場合、exactをfalseにし、min/maxをundefinedにする"
+given = "def.unknown=false、exact=true、min/maxあり"
+expect_return_shape = "def.unknown=true、exact=false、min/max=undefined"
+
+[[condition]]
+id = "use_filter_logic.toggle_stat_unknown_off"
+target_function = "useFilterLogic#toggleStatUnknown"
+source_lines = "251-257"
+description = "unknownを反転してfalseになった場合、exactやmin/maxは追加変更しない"
+given = "def.unknown=true、exact=false、min/maxはundefined"
+expect_return_shape = "def.unknown=false、exact=false、min/maxはundefinedのまま"
+
+[[condition]]
+id = "use_filter_logic.validate_stat_empty"
+target_function = "useFilterLogic#validateStatInput"
+source_lines = "260-268"
+description = "input.value.trim()が空文字列の場合、対象stat/fieldをundefinedにして早期returnする"
+given = "input.value='   '、stat='atk'、field='min'"
+expect_return_shape = "atk.min=undefined。input.value自体は変更しない"
+
+[[condition]]
+id = "use_filter_logic.validate_stat_sanitize"
+target_function = "useFilterLogic#validateStatInput"
+source_lines = "270-288"
+description = "trim後の値から数字以外を削除し、削除が発生した場合はinput.valueをサニタイズ後の文字列へ更新する。サニタイズ後が空でなければ数値を設定し、空ならundefinedを設定する"
+given = "input.value='12a3'または'abc'"
+expect_return_shape = "'12a3'はinput.value='123'かつ対象値123、'abc'はinput.value=''かつ対象値undefined"
+
+[[condition]]
+id = "use_filter_logic.validate_stat_exact_min_sync"
+target_function = "useFilterLogic#validateStatInput"
+source_lines = "279-286"
+description = "サニタイズ後が数値で、対象statがexact=trueかつfield='min'の場合、maxにも同じ数値を設定する"
+given = "atk.exact=true、field='min'、input.value='1500'"
+expect_return_shape = "atk.min=1500、atk.max=1500"
+
+[[condition]]
+id = "use_filter_logic.select_card_type_toggle_off"
+target_function = "useFilterLogic#selectCardType"
+source_lines = "293-296"
+description = "現在のcardTypeと同じtypeを指定した場合、cardTypeをnullにするだけで各詳細フィルタはクリアしない"
+given = "cardType='monster'でselectCardType('monster')"
+expect_return_shape = "cardType=null"
+
+[[condition]]
+id = "use_filter_logic.select_card_type_clear_incompatible"
+target_function = "useFilterLogic#selectCardType"
+source_lines = "296-315"
+description = "現在と異なるtypeを指定した場合cardTypeを更新し、type!='monster'ならモンスター専用フィルタ、type!='spell'ならspellTypes、type!='trap'ならtrapTypesをクリアする"
+given = "各詳細フィルタに値がある状態でselectCardType('spell')またはselectCardType('trap')"
+expect_return_shape = "選択type以外の専用フィルタが空/初期値になる"
+
+[[condition]]
+id = "use_filter_logic.toggle_simple_arrays"
+target_function = "useFilterLogic#toggleAttribute"
+source_lines = "318-352"
+description = "toggleAttribute/toggleSpellType/toggleTrapType/toggleRaceは対象配列に値があればspliceで削除し、無ければpushで追加する"
+given = "対象値が配列に含まれる/含まれない"
+expect_return_shape = "含まれていれば削除、含まれていなければ末尾へ追加"
+
+[[condition]]
+id = "use_filter_logic.get_monster_type_class"
+target_function = "useFilterLogic#getMonsterTypeClass"
+source_lines = "354-357"
+description = "monsterTypesに対象typeが無ければ''、state='normal'なら'active'、それ以外は'not'を返す"
+given = "対象type未登録、normal登録、not登録"
+expect_return_shape = "'', 'active', 'not'のいずれか"
+
+[[condition]]
+id = "use_filter_logic.cycle_monster_type_state"
+target_function = "useFilterLogic#cycleMonsterTypeState"
+source_lines = "360-373"
+description = "対象typeが未登録なら{type,state:'normal'}を追加し、normalならnotへ変更し、not等normal以外なら配列から削除する"
+given = "対象type未登録、normal登録、not登録"
+expect_return_shape = "未登録->normal追加、normal->not、not->削除"
+
+[[condition]]
+id = "use_filter_logic.toggle_match_modes"
+target_function = "useFilterLogic#toggleMonsterTypeMatchMode"
+source_lines = "376-381"
+description = "toggleMonsterTypeMatchMode/toggleLinkMarkerMatchModeは現在値が'and'なら'or'、それ以外なら'and'へ切り替える"
+given = "monsterTypeMatchMode/linkMarkerMatchModeが'or'または'and'"
+expect_return_shape = "'or'->'and'、'and'->'or'"
+
+[[condition]]
+id = "use_filter_logic.level_value_active"
+target_function = "useFilterLogic#isLevelValueActive"
+source_lines = "384-389"
+description = "levelType='level'ならlevelValues.includes(num)、それ以外ならscaleValues.includes(num)を返す"
+given = "levelType='level'または'scale'で各配列にnumが含まれる/含まれない"
+expect_return_shape = "選択中levelTypeに対応する配列のincludes結果"
+
+[[condition]]
+id = "use_filter_logic.toggle_level_value"
+target_function = "useFilterLogic#toggleLevelValue"
+source_lines = "392-407"
+description = "levelType='level'ならlevelValues、そうでなければscaleValuesを対象に、値があれば削除し無ければ追加する"
+given = "levelType='level'または'scale'でnumが対象配列に含まれる/含まれない"
+expect_return_shape = "選択中levelTypeに対応する配列だけが追加/削除される"
+
+[[condition]]
+id = "use_filter_logic.toggle_link_value"
+target_function = "useFilterLogic#toggleLinkValue"
+source_lines = "410-417"
+description = "linkValuesにnumがあればspliceで削除し、無ければpushで追加する"
+given = "linkValuesにnumが含まれる/含まれない"
+expect_return_shape = "含まれていれば削除、含まれていなければ末尾へ追加"
+
+[[condition]]
+id = "use_filter_logic.link_marker_active"
+target_function = "useFilterLogic#isLinkMarkerActive"
+source_lines = "419-421"
+description = "pos===5はlinkMarkersの内容に関係なくfalse。それ以外はlinkMarkers.includes(pos)を返す"
+given = "pos=5、またはpos!=5"
+expect_return_shape = "pos=5は常にfalse。pos!=5は配列のincludes結果"
+
+[[condition]]
+id = "use_filter_logic.toggle_link_marker"
+target_function = "useFilterLogic#toggleLinkMarker"
+source_lines = "424-431"
+description = "linkMarkersにposがあればspliceで削除し、無ければpushで追加する。pos=5も特別扱いせず追加/削除対象になる"
+given = "linkMarkersにposが含まれる/含まれない"
+expect_return_shape = "含まれていれば削除、含まれていなければ末尾へ追加"
+
+[[condition]]
+id = "use_filter_logic.set_level_type"
+target_function = "useFilterLogic#setLevelType"
+source_lines = "433-435"
+description = "setLevelTypeは指定されたlevelTypeをsearchFilters.levelTypeへ代入するだけで、levelValues/linkValues/scaleValuesはクリアしない"
+given = "levelValues/linkValues/scaleValuesに値がある状態でsetLevelType('link')"
+expect_return_shape = "levelType='link'、既存の各値配列は維持"
+
+[[condition]]
+id = "use_filter_logic.clear_filters"
+target_function = "useFilterLogic#clearFilters"
+source_lines = "437-439"
+description = "clearFiltersはuseSearchStore()を再取得してclearAllFilters()を呼ぶ"
+given = "searchFiltersに値が設定されている"
+expect_return_shape = "search storeのclearAllFilters()実装後の初期状態"

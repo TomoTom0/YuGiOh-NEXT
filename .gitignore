@@ -2,7 +2,6 @@
 node_modules/
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 
 # Build output
 dist/
@@ -42,21 +41,26 @@ session.env
 coverage/
 .nyc_output/
 
-# Test sample files (download on demand)
-tests/sample/*.html
-tests/combine/data/*.html
+# Test sample files (download on demand). ファイル名/拡張子パターンではなく
+# ディレクトリ単位で無視し、管理すべきファイルのみ明示的に許可する
+# （*.htmlのような拡張子マッチはサブディレクトリを取りこぼす）。
+tests/sample/
+!tests/sample/README.md
+!tests/sample/url.md
+!tests/sample/data/
+tests/sample/data/*
+!tests/sample/data/formdata_serialize.dat
+
+tests/combine/data/
+!tests/combine/data/README.md
 
 # Chrome extension
 *.crx
 *.pem
 *.zip
 
-# Playwright and Chrome cache
-.playwright-mcp/
-.chrome_cache/
-.chrome_cache_temp/
-.chrome_playwright_ws
-.npm-cache/
+# Browser/cache (chrome profile, debug ws)
+.cache/
 .npmrc
 .playwright-browsers/
 
@@ -74,5 +78,4 @@ ref/
 docs/_archived/
 .claude/
 .alcom-save.log
-.chrome_playwright_ws
 currentIndex

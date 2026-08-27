@@ -1,0 +1,105 @@
+# 検証対象: src/composables/useCardLinks.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、カードテキスト中の {{カード名|cid}} テンプレートを
+# text/link 配列へパースし、クリックでカード詳細表示へ委譲するVue composable。
+#
+# target_function の記述形式について（composable factory パターン）:
+# 本ファイルは `export function useCardLinks()` がオブジェクトを返す構造で、
+# 実質的なロジックは factory 内のローカル関数（parseCardLinks/handleCardLinkClick）にあります。
+# extract-ast-skeleton.ts は Pinia Setup Store（defineStore()）の factory は検出しますが、
+# 一般の composable factory（export function useXxx()）は未対応のため、export関数一覧には
+# `useCardLinks` 1件のみが現れ、`useCardLinks#parseCardLinks` 等は抽出されません。
+# このため conditions.toml の target_function には `useCardLinks#<method>` 形式で
+# 記載し、README Phase1.6 知見の Pinia Setup Store と同じ `#` 区切り形式に合わせています。
+# スクリプト実行時の未カバー検出で `useCardLinks` が1件出ますが、これは上記の
+# スクリプト側の限界であり、本ファイルでは全メソッドの条件を網羅しています。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。L32(!text)/L41(match.index > lastIndex)/L59(lastIndex < text.length)/
+#   L66(parts.length > 0 ? ...) は全て到達可能。L66 の fallback は regex が1度も
+#   マッチしない場合（parts が空配列のままループ終了）に到達する。
+#
+# 既知の設計上の注意点（バグではないが複雑な挙動。実装読解で判明）:
+# - handleCardLinkClick は useCardDetailDisplay#showCardDetail への薄い委譲（L80-85）。
+#   fromFAQ=true / showLoading=true をハードコードで渡すのみで、本関数内に分岐はない。
+#   既存テストの「部分的なエラーでwarn」「カード情報取得失敗でerror」「例外でerror」は
+#   全て下流の useCardDetailDisplay#showCardDetail（src/composables/useCardDetailDisplay.ts
+#   L49 isPartialFromError警告 / L66 detail無しerror / L72-73 catch内error）の責務。
+#   本ファイルから観察されるが条件ロジックは下流にあるため、handleCardLinkClick の
+#   条件は「委譲」1件のみとし、エラー系は本ファイルの条件として記載しない
+#   （useCardDetailDisplay の conditions.toml が別途作成されるべき対象）。
+# - L32 `!text` は空文字列 '' も捕捉する（!'' === true）。そのため parseCardLinks('') は
+#   L66 の fallback ではなく L32 の早期return を経由して [{type:'text', text:''}] を返す。
+#   undefined/null/'' が全て同一パスで空テキスト1件へ正規化される点に注意。
+# - regex `\{\{([^|]+)\|(\d+)\}\}` は cid 部が数字のみ（\d+）であることを要求する。
+#   `{{カード名|abc123}}` のように cid に非数字が混じるとマッチせず、L66 fallback で
+#   テキスト全体が1つの text パートとして返る（「数字のみの場合のみリンク」仕様）。
+# - regex のカード名部 `[^|]+` はカード名内に `|` を含めない。`{{a|b|123}}` のように
+#   カード名に `|` が含まれると、最初の `|` までがカード名と見なされ cid 部が `b` となるが
+#   `\d+` が `b` で失敗し全体が不マッチ → L66 fallback で元テキスト全体が返る
+#   （カード名に `|` を含むカードはリンク化されない）。
+# - regex は関数内で毎回リテラル再生成される（`const regex = /.../g`）。lastIndex は
+#   呼び出し間で共有されずステートレス（直前の呼び出し結果に影響されない）。
+
+[meta]
+feature = "use-card-links"
+source_file = "src/composables/useCardLinks.ts"
+verified = true
+verified_at = "2026-08-07"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useCardLinks.test.ts"
+source_hash = "749352448ea1315f0327dbfb45ccd25dedad0cea"
+note = "verified=falseは0件。target_function を useCardLinks#<method> 形式で記載（composable factory パターン）。ASTスクリプト未対応のため useCardLinks が未カバーと出るが既知の限界。"
+
+# --- useCardLinks#parseCardLinks ---
+
+[[condition]]
+id = "parse.falsy_text_returns_empty_text_part"
+target_function = "useCardLinks#parseCardLinks"
+source_lines = "32"
+description = "text が falsy（undefined/null/空文字列）の場合は早期return で [{type:'text', text:''}] を返す。空文字列 '' も !text で捕捉されるため L66 fallback ではなくこのパスを経由する"
+given = "text に undefined または '' を渡す"
+expect_return = "[{ type: 'text', text: '' }] (要素1件、空テキスト)"
+
+[[condition]]
+id = "parse.leading_or_interstitial_text_pushed_only_when_present"
+target_function = "useCardLinks#parseCardLinks"
+source_lines = "41-46"
+description = "regex がマッチした際、直前の位置(lastIndex)からマッチ開始(match.index)までに隙間がある場合のみ text パートを push する。match.index === lastIndex（リンク先頭、または直前のリンク直後）のときは text パートを生成しない"
+given = "リンクの前に文字列がある場合（'「{{a|1}}'）と、リンク先頭または連続リンクで隙間がない場合（'{{a|1}}' / '{{a|1}}{{b|2}}'）"
+expect_return = "前者はマッチ前に text パートが含まれる。後者は text パート無しで link パートのみ（連続リンクは隙間なしで並ぶ）"
+
+[[condition]]
+id = "parse.trailing_text_pushed_only_when_present"
+target_function = "useCardLinks#parseCardLinks"
+source_lines = "59-64"
+description = "全マッチ処理後、最後のマッチ終端(lastIndex)が text.length 未満の場合のみ残りの文字列を text パートとして push する。テキストがリンクで終わる（lastIndex === text.length）場合は trailing text パートを生成しない"
+given = "リンクの後に文字列が続く場合（'{{a|1}}後'）と、テキストがリンクで終わる場合（'{{a|1}}'）"
+expect_return = "前者は末尾に text パートが含まれる。後者は trailing text パート無し"
+
+[[condition]]
+id = "parse.no_match_fallback_returns_whole_text"
+target_function = "useCardLinks#parseCardLinks"
+source_lines = "66"
+description = "regex が1度もマッチせず parts が空配列のままループを終了した場合、元テキスト全体を単一の text パート [{type:'text', text}] として返す（text は falsy チェックを通過した非空文字列）"
+given = "リンク形式を含まない通常テキスト（'通常のテキスト'）、または形式は似ているがマッチしない文字列（'{{不完全なリンク}}'、cid非数字の '{{カード名|abc123}}'）"
+expect_return = "[{ type: 'text', text: <元テキスト全体> }] (要素1件)"
+
+[[condition]]
+id = "parse.regex_requires_numeric_cid"
+target_function = "useCardLinks#parseCardLinks"
+source_lines = "35"
+description = "regex の cid 部は \\d+（数字のみ）を要求する。cid に数字以外の文字が含まれる場合はマッチせず、L66 fallback で元テキスト全体が text パートとして返る（リンクとして認識されない）"
+given = "cid 部に数字以外を含む '{{カード名|abc123}}' を渡す"
+expect_return = "[{ type: 'text', text: '{{カード名|abc123}}' }] (リンク化されず全体がtext)"
+
+# --- useCardLinks#handleCardLinkClick ---
+
+[[condition]]
+id = "handle.delegates_to_showCardDetail_with_faq_and_loading"
+target_function = "useCardLinks#handleCardLinkClick"
+source_lines = "80-85"
+description = "cardId を受け取り useCardDetailDisplay#showCardDetail を { fromFAQ: true, showLoading: true } をハードコードで渡して呼び出す（薄い委譲）。エラー系の挙動（partial error警告 / detail取得失敗 / 例外catch）は全て下流の showCardDetail の責務"
+given = "任意の cardId 文字列を渡して handleCardLinkClick を呼ぶ"
+expect_side_effect = "showCardDetail(cardId, { fromFAQ: true, showLoading: true }) が呼ばれる。結果として下流で getCardDetailWithCache(cardId, <detectLanguage>, true, 'release_desc', true) が呼ばれる"

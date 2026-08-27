@@ -1,9 +1,10 @@
 const fs = require('fs');
 const { chromium } = require('playwright');
+const { WS_FILE } = require('../tests/browser/cdp-helper.cjs');
 
 async function run() {
   try {
-    const wsFile = '.chrome_playwright_ws';
+    const wsFile = WS_FILE;
     if (!fs.existsSync(wsFile)) {
       console.error('wsEndpoint file not found:', wsFile);
       process.exit(2);

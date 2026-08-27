@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="dialog-overlay" @click.self="handleClose">
+  <BaseDialog :is-visible="visible" @close="handleClose">
     <div class="history-dialog">
       <div class="history-dialog-header">
         <h2>操作履歴</h2>
@@ -43,15 +43,19 @@
         </button>
       </div>
     </div>
-  </div>
+  </BaseDialog>
 </template>
 
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue'
 import type { Command, CommandType } from '../composables/deck/useDeckUndoRedo'
+import BaseDialog from './BaseDialog.vue'
 
 export default defineComponent({
   name: 'CommandHistoryDialog',
+  components: {
+    BaseDialog
+  },
   props: {
     visible: {
       type: Boolean,
@@ -110,19 +114,6 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--dialog-overlay-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
 .history-dialog {
   background: var(--bg-primary);
   border-radius: 8px;

@@ -8,11 +8,24 @@ import {
   type ExportOptions,
 } from '@/utils/deck-export';
 import type { DeckInfo } from '@/types/deck';
-import { getTempCardDB } from '@/utils/temp-card-db';
 import type { CardInfo } from '@/types/card';
 
+// TempCacheDBをシンプルなMapでモック
+const mockCardDB = new Map<string, CardInfo>();
+vi.mock('@/utils/temp-cache-db', () => ({
+  getTempCacheDB: () => ({
+    get: (cid: string) => mockCardDB.get(cid),
+    set: (cid: string, card: CardInfo, force?: boolean) => { mockCardDB.set(cid, card); return true; },
+    clear: () => mockCardDB.clear(),
+  }),
+  recordDeckOpen: vi.fn(),
+}));
+
 describe('deck-export', () => {
+  let clickSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
+    clickSpy?.mockRestore();
     // モックカードデータを設定
     const mockCards: CardInfo[] = [
       {
@@ -58,12 +71,27 @@ describe('deck-export', () => {
       }
     ];
 
-    const db = getTempCardDB();
-    db.clear();
+    mockCardDB.clear();
     mockCards.forEach(card => {
-      db.set(card.cid, card, true);
+      mockCardDB.set(card.cid, card);
     });
   });
+
+  const setupDownloadSpies = () => {
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild');
+    const removeChildSpy = vi.spyOn(document.body, 'removeChild');
+    clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const createObjectURLSpy = vi
+      .spyOn(URL, 'createObjectURL')
+      .mockImplementation(() => 'blob:mock-url');
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    return { appendChildSpy, removeChildSpy, createObjectURLSpy, revokeObjectURLSpy };
+  };
+
+  const getCreatedBlob = (createObjectURLSpy: ReturnType<typeof vi.spyOn>) => {
+    return createObjectURLSpy.mock.calls[0]?.[0] as Blob;
+  };
 
   const createDeckInfo = (): DeckInfo => ({
     dno: 1,
@@ -85,7 +113,7 @@ describe('deck-export', () => {
   });
 
   describe('exportToCSV', () => {
-    it('基本的なCSV形式でエクスポートできる', () => {
+    it('[covers:export_csv.data_row_format] [covers:export_csv.raw_name_without_special_chars] [covers:generate_rows.main_card_found] [covers:generate_rows.extra_card_found] [covers:generate_rows.side_default_included] 基本的なCSV形式でエクスポートできる', () => {
       const deckInfo = createDeckInfo();
       const csv = exportToCSV(deckInfo);
 
@@ -96,14 +124,14 @@ describe('deck-export', () => {
       expect(csv).toContain('side,Mirror Force,22222,ciid5,hash5,2');
     });
 
-    it('カンマを含むカード名を正しくエスケープする', () => {
+    it('[covers:export_csv.escape_name_when_special_chars] カンマとダブルクォートを含むカード名を正しくエスケープする', () => {
       const deckInfo = createDeckInfo();
       const csv = exportToCSV(deckInfo);
 
       expect(csv).toContain('"Test, ""Special"" Card"');
     });
 
-    it('サイドデッキを除外できる', () => {
+    it('[covers:generate_rows.side_false_excluded] サイドデッキを除外できる', () => {
       const deckInfo = createDeckInfo();
       const options: ExportOptions = { includeSide: false };
       const csv = exportToCSV(deckInfo, options);
@@ -113,7 +141,7 @@ describe('deck-export', () => {
       expect(csv).not.toContain('side,Mirror Force');
     });
 
-    it('存在しないカードIDは無視される', () => {
+    it('[covers:generate_rows.missing_card_skipped] 存在しないカードIDは無視される', () => {
       const deckInfo = createDeckInfo();
       deckInfo.mainDeck.push({ cid: 'invalid', ciid: 'ciid999', quantity: 1 });
       const csv = exportToCSV(deckInfo);
@@ -122,19 +150,53 @@ describe('deck-export', () => {
       expect(csv.split('\n').filter(line => line.includes('invalid'))).toHaveLength(0);
     });
 
-    it('imgHashが見つからない場合は空文字列を使用する', () => {
+    it('[covers:generate_rows.enc_matching_img_hash] ciidに一致するimgHashを使用する', () => {
       const deckInfo = createDeckInfo();
-      // ciid2 は存在するが、deckInfo では ciid1 を使用しているため hash が見つかる
-      // ciid2 を使用した場合は hash2 が見つかる
       deckInfo.mainDeck[0] = { cid: '12345', ciid: 'ciid2', quantity: 3 };
       const csv = exportToCSV(deckInfo);
 
       expect(csv).toContain('main,Blue-Eyes White Dragon,12345,ciid2,hash2,3');
     });
+
+    it('[covers:generate_rows.enc_empty_fallback] imgHashが見つからない場合は空文字列を使用する', () => {
+      const deckInfo = createDeckInfo();
+      deckInfo.mainDeck[0] = { cid: '12345', ciid: 'missing-ciid', quantity: 3 };
+      const csv = exportToCSV(deckInfo);
+
+      expect(csv).toContain('main,Blue-Eyes White Dragon,12345,missing-ciid,,3');
+    });
+
+    it('[covers:export_csv.escape_name_when_special_chars] 改行を含むカード名をダブルクォートで囲む', () => {
+      mockCardDB.set('44444', {
+        cid: '44444',
+        name: 'Line\nBreak',
+        cardType: '1',
+        imgs: [{ ciid: 'ciid7', imgHash: 'hash7' }]
+      } as any);
+      const deckInfo = createDeckInfo();
+      deckInfo.mainDeck = [{ cid: '44444', ciid: 'ciid7', quantity: 1 }];
+      deckInfo.extraDeck = [];
+      deckInfo.sideDeck = [];
+
+      const csv = exportToCSV(deckInfo);
+
+      expect(csv).toBe('section,name,cid,ciid,enc,quantity\nmain,"Line\nBreak",44444,ciid7,hash7,1');
+    });
+
+    it('[covers:export_csv.header_only_when_no_rows] 行が生成されない場合はヘッダーのみを返す', () => {
+      const deckInfo: DeckInfo = {
+        ...createDeckInfo(),
+        mainDeck: [],
+        extraDeck: [],
+        sideDeck: []
+      };
+
+      expect(exportToCSV(deckInfo)).toBe('section,name,cid,ciid,enc,quantity');
+    });
   });
 
   describe('exportToTXT', () => {
-    it('基本的なTXT形式でエクスポートできる', () => {
+    it('[covers:export_txt.main_section_present] [covers:export_txt.extra_section_present] [covers:export_txt.side_section_present] 基本的なTXT形式でエクスポートできる', () => {
       const deckInfo = createDeckInfo();
       const txt = exportToTXT(deckInfo);
 
@@ -147,7 +209,7 @@ describe('deck-export', () => {
       expect(txt).toContain('2x Mirror Force (22222:ciid5:hash5)');
     });
 
-    it('サイドデッキを除外できる', () => {
+    it('[covers:export_txt.side_section_absent] サイドデッキを除外できる', () => {
       const deckInfo = createDeckInfo();
       const options: ExportOptions = { includeSide: false };
       const txt = exportToTXT(deckInfo, options);
@@ -157,7 +219,7 @@ describe('deck-export', () => {
       expect(txt).not.toContain('=== Side Deck');
     });
 
-    it('空のデッキセクションは表示されない', () => {
+    it('[covers:export_txt.extra_section_absent] [covers:export_txt.side_section_absent] 空のデッキセクションは表示されない', () => {
       const deckInfo: DeckInfo = {
         dno: 1,
         dname: 'Test Deck',
@@ -177,7 +239,7 @@ describe('deck-export', () => {
       expect(txt).not.toContain('=== Side Deck');
     });
 
-    it('カード枚数の合計が正しく表示される', () => {
+    it('[covers:export_txt.main_section_present] [covers:export_txt.extra_section_present] [covers:export_txt.side_section_present] カード枚数の合計が正しく表示される', () => {
       const deckInfo = createDeckInfo();
       const txt = exportToTXT(deckInfo);
 
@@ -185,99 +247,101 @@ describe('deck-export', () => {
       expect(txt).toContain('=== Extra Deck (1 cards) ===');
       expect(txt).toContain('=== Side Deck (2 cards) ===');
     });
+
+    it('[covers:export_txt.empty_returns_empty_string] [covers:export_txt.main_section_absent] 全セクションが空なら空文字列を返す', () => {
+      const deckInfo: DeckInfo = {
+        ...createDeckInfo(),
+        mainDeck: [],
+        extraDeck: [],
+        sideDeck: []
+      };
+
+      expect(exportToTXT(deckInfo)).toBe('');
+    });
   });
 
   describe('downloadFile', () => {
-    beforeEach(() => {
-      // DOM環境をセットアップ
-      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-      global.URL.revokeObjectURL = vi.fn();
-      document.body.appendChild = vi.fn();
-      document.body.removeChild = vi.fn();
-    });
-
-    it('ファイルをダウンロードできる', () => {
+    it('[covers:download_file.custom_mime_and_filename] [covers:download_file.append_click_remove_revoke] ファイルをダウンロードできる', async () => {
+      const { appendChildSpy, removeChildSpy, createObjectURLSpy, revokeObjectURLSpy } = setupDownloadSpies();
       const content = 'test content';
       const filename = 'test.txt';
       const mimeType = 'text/plain';
 
       downloadFile(content, filename, mimeType);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
-      expect(document.body.appendChild).toHaveBeenCalled();
-      expect(document.body.removeChild).toHaveBeenCalled();
-      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+      const blob = getCreatedBlob(createObjectURLSpy);
+      const link = appendChildSpy.mock.calls[0]?.[0] as HTMLAnchorElement;
+
+      expect(await blob.text()).toBe(content);
+      expect(blob.type).toBe('text/plain;charset=utf-8');
+      expect(link.download).toBe(filename);
+      expect(link.href).toBe('blob:mock-url');
+      expect(appendChildSpy).toHaveBeenCalledWith(link);
+      expect(clickSpy).toHaveBeenCalled();
+      expect(removeChildSpy).toHaveBeenCalledWith(link);
+      expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
     });
 
-    it('デフォルトのMIMEタイプを使用できる', () => {
+    it('[covers:download_file.default_mime] デフォルトのMIMEタイプを使用できる', () => {
+      const { createObjectURLSpy } = setupDownloadSpies();
       const content = 'test content';
       const filename = 'test.txt';
 
       downloadFile(content, filename);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      expect(getCreatedBlob(createObjectURLSpy).type).toBe('text/plain;charset=utf-8');
     });
   });
 
   describe('downloadDeckAsCSV', () => {
-    beforeEach(() => {
-      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-      global.URL.revokeObjectURL = vi.fn();
-      document.body.appendChild = vi.fn();
-      document.body.removeChild = vi.fn();
-    });
-
-    it('CSVファイルとしてダウンロードできる', () => {
+    it('[covers:download_deck_csv.default_filename] CSVファイルとしてダウンロードできる', async () => {
+      const { appendChildSpy, createObjectURLSpy } = setupDownloadSpies();
       const deckInfo = createDeckInfo();
       downloadDeckAsCSV(deckInfo);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      const blob = getCreatedBlob(createObjectURLSpy);
+      const link = appendChildSpy.mock.calls[0]?.[0] as HTMLAnchorElement;
+      expect(blob.type).toBe('text/csv;charset=utf-8');
+      expect(await blob.text()).toContain('section,name,cid,ciid,enc,quantity');
+      expect(link.download).toBe('deck.csv');
     });
 
-    it('カスタムファイル名を指定できる', () => {
-      const deckInfo = createDeckInfo();
-      downloadDeckAsCSV(deckInfo, 'custom-deck.csv');
-
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
-    });
-
-    it('エクスポートオプションを指定できる', () => {
+    it('[covers:download_deck_csv.custom_filename_and_options] カスタムファイル名とエクスポートオプションを指定できる', async () => {
+      const { appendChildSpy, createObjectURLSpy } = setupDownloadSpies();
       const deckInfo = createDeckInfo();
       const options: ExportOptions = { includeSide: false };
-      downloadDeckAsCSV(deckInfo, 'deck.csv', options);
+      downloadDeckAsCSV(deckInfo, 'custom-deck.csv', options);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      const blobText = await getCreatedBlob(createObjectURLSpy).text();
+      const link = appendChildSpy.mock.calls[0]?.[0] as HTMLAnchorElement;
+      expect(link.download).toBe('custom-deck.csv');
+      expect(blobText).not.toContain('side,Mirror Force');
     });
   });
 
   describe('downloadDeckAsTXT', () => {
-    beforeEach(() => {
-      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-      global.URL.revokeObjectURL = vi.fn();
-      document.body.appendChild = vi.fn();
-      document.body.removeChild = vi.fn();
-    });
-
-    it('TXTファイルとしてダウンロードできる', () => {
+    it('[covers:download_deck_txt.default_filename] TXTファイルとしてダウンロードできる', async () => {
+      const { appendChildSpy, createObjectURLSpy } = setupDownloadSpies();
       const deckInfo = createDeckInfo();
       downloadDeckAsTXT(deckInfo);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      const blob = getCreatedBlob(createObjectURLSpy);
+      const link = appendChildSpy.mock.calls[0]?.[0] as HTMLAnchorElement;
+      expect(blob.type).toBe('text/plain;charset=utf-8');
+      expect(await blob.text()).toContain('=== Main Deck (6 cards) ===');
+      expect(link.download).toBe('deck.txt');
     });
 
-    it('カスタムファイル名を指定できる', () => {
-      const deckInfo = createDeckInfo();
-      downloadDeckAsTXT(deckInfo, 'custom-deck.txt');
-
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
-    });
-
-    it('エクスポートオプションを指定できる', () => {
+    it('[covers:download_deck_txt.custom_filename_and_options] カスタムファイル名とエクスポートオプションを指定できる', async () => {
+      const { appendChildSpy, createObjectURLSpy } = setupDownloadSpies();
       const deckInfo = createDeckInfo();
       const options: ExportOptions = { includeSide: false };
-      downloadDeckAsTXT(deckInfo, 'deck.txt', options);
+      downloadDeckAsTXT(deckInfo, 'custom-deck.txt', options);
 
-      expect(global.URL.createObjectURL).toHaveBeenCalled();
+      const blobText = await getCreatedBlob(createObjectURLSpy).text();
+      const link = appendChildSpy.mock.calls[0]?.[0] as HTMLAnchorElement;
+      expect(link.download).toBe('custom-deck.txt');
+      expect(blobText).not.toContain('=== Side Deck');
     });
   });
 });

@@ -88,3 +88,13 @@ export const CHROME_STORAGE_KEY_DECK_LIST_PRELOAD = 'ygo-deck-list-preload';
  * 型: string[]
  */
 export const CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS = 'clearLocalStorageKeys';
+
+/**
+ * レギュレーション修正提案を無視（ignore）したデッキ番号
+ * 型: Record<dnoKey(string), true>
+ *
+ * デッキ名タグ [REG-YYMM] で未存在YYMMを指定し、直近版フォールバック時の
+ * 修正提案ダイアログを「このまま使う」で却下したデッキを記録。同一デッキの
+ * 再読込でダイアログを再表示しない。
+ */
+export const CHROME_STORAGE_KEY_REGULATION_FIX_IGNORED = 'regulation_fix_ignored';

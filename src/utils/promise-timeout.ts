@@ -47,17 +47,20 @@ export function withTimeout<T>(
     onTimeout,
   } = options;
 
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => {
-      const timeoutId = setTimeout(() => {
-        onTimeout?.();
-        reject(new TimeoutError(message));
-      }, ms);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-      // Promise が完了したら、タイムアウトをクリア
-      promise.finally(() => clearTimeout(timeoutId));
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      onTimeout?.();
+      reject(new TimeoutError(message));
+    }, ms);
+  });
+
+  return Promise.race([
+    promise.finally(() => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
     }),
+    timeoutPromise,
   ]);
 }
 
