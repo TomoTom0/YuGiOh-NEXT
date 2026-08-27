@@ -449,9 +449,9 @@ expect_side_effect = "指定位置にカードが追加される"
 [[condition]]
 id = "add_external_card.records_temp_recipe_section"
 target_function = "usePracticeStore#addExternalCard"
-source_lines = "617-619"
-description = "zoneがextraならtempRecipe sectionはextra、それ以外はmainとして記録する"
-given = "addExternalCardでzoneを指定"
+source_lines = "621-623"
+description = "カード本来の種別(card.isExtraDeck)でtempRecipe sectionをextra/mainとして記録する（ドロップ先ゾーンには依存しない）"
+given = "addExternalCardでcidとzoneを指定"
 expect_side_effect = "対象フィールドのtempRecipeに{ cid, ciid, section }がpushされる"
 
 [[condition]]

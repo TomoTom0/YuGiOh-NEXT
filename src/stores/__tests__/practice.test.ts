@@ -1,10 +1,28 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePracticeStore } from '../practice'
-import type { DeckCardRef } from '../../types/card'
+import type { DeckCardRef, CardInfo } from '../../types/card'
+import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 
 function makeDeckRef(cid: string, quantity: number): DeckCardRef {
   return { cid, ciid: '0', lang: 'ja', quantity }
+}
+
+function mockMonster(cid: string, isExtraDeck: boolean): CardInfo {
+  return {
+    name: cid,
+    cardId: cid,
+    ciid: '0',
+    lang: 'ja',
+    imgs: [{ ciid: '0', imgHash: `${cid}_1_1_1` }],
+    cardType: 'monster',
+    attribute: 'dark',
+    levelType: isExtraDeck ? 'rank' : 'level',
+    levelValue: 4,
+    race: 'spellcaster',
+    types: ['normal'],
+    isExtraDeck
+  }
 }
 
 const SAMPLE_MAIN: DeckCardRef[] = [
@@ -527,10 +545,26 @@ describe('usePracticeStore', () => {
     it('marks extra-zone drops as section=extra [covers:add_external_card.records_temp_recipe_section]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
+      getUnifiedCacheDB().setCardInfo(mockMonster('extra-card', true))
 
       store.addExternalCard('extra-card', '0', 'extra', undefined, 0)
 
       expect(store.tempRecipe[0]?.section).toBe('extra')
+    })
+
+    it('classifies by intrinsic card type, not drop zone [covers:add_external_card.records_temp_recipe_section]', () => {
+      const store = usePracticeStore()
+      store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
+      getUnifiedCacheDB().setCardInfo(mockMonster('extra-mon', true))
+      getUnifiedCacheDB().setCardInfo(mockMonster('main-mon', false))
+
+      // Extra Deckモンスターを手札(main側ゾーン)へ直接ドロップしても 'extra' になる
+      store.addExternalCard('extra-mon', '0', 'hand', undefined, 0)
+      // メインデッキモンスターをExtra Deckゾーンへドロップしても 'main' になる
+      store.addExternalCard('main-mon', '0', 'extra', undefined, 0)
+
+      expect(store.tempRecipe.find(c => c.cid === 'extra-mon')?.section).toBe('extra')
+      expect(store.tempRecipe.find(c => c.cid === 'main-mon')?.section).toBe('main')
     })
 
     it('clears on initPractice (hard reset) [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
@@ -547,6 +581,7 @@ describe('usePracticeStore', () => {
     it('includes temp recipe cards in deck after resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
       const store = usePracticeStore()
       store.initPractice(SAMPLE_MAIN, SAMPLE_EXTRA)
+      getUnifiedCacheDB().setCardInfo(mockMonster('temp-extra', true))
       store.addExternalCard('temp-main', '0', 'hand', undefined, 0)
       store.addExternalCard('temp-extra', '0', 'extra', undefined, 0)
 

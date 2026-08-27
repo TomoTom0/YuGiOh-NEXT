@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { DeckCardRef } from '../types/card'
+import type { DeckInfo } from '../types/deck'
 import type { CardListCard } from '../types/card-list'
 import { fisherYatesShuffle } from '../utils/array-shuffle'
 import { getUnifiedCacheDB } from '../utils/unified-cache-db'
@@ -177,6 +178,9 @@ export const usePracticeStore = defineStore('practice', () => {
   const originalExtraDeck2 = ref<DeckCardRef[]>([])
   const p2DeckDno = ref<number | null>(null)
   const p2DeckName = ref<string>('')
+  // P2用にロードしたデッキの完全な情報（sideDeckやメタデータを含む）。
+  // Save Deck時にP1のdeckStore.deckInfoを誤って上書きしないよう、P2専用に保持する
+  const p2DeckInfo = ref<DeckInfo | null>(null)
 
   // Temporary recipe: cards added from outside the original deck during practice
   const tempRecipe = ref<TempRecipeCard[]>([])
@@ -615,7 +619,7 @@ export const usePracticeStore = defineStore('practice', () => {
     pushSnapshotCommand(before, after, `外部カード追加 -> ${zone}`, 'move')
 
     const recipe = getTempRecipeRef(fieldIndex)
-    const section: TempRecipeCard['section'] = zone === 'extra' ? 'extra' : 'main'
+    const section: TempRecipeCard['section'] = card.isExtraDeck ? 'extra' : 'main'
     recipe.value.push({ cid, ciid, section })
 
     saveToLocalStorage()
@@ -789,6 +793,7 @@ export const usePracticeStore = defineStore('practice', () => {
     revealDeck2.value = false
     p2DeckDno.value = null
     p2DeckName.value = ''
+    p2DeckInfo.value = null
   }
 
   function clearLocalStorage() {
@@ -829,6 +834,7 @@ export const usePracticeStore = defineStore('practice', () => {
     originalExtraDeck2,
     p2DeckDno,
     p2DeckName,
+    p2DeckInfo,
 
     // Temp recipe
     tempRecipe,

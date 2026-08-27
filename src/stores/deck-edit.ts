@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch, toRaw } from 'vue';
-import type { DeckInfo, DeckCardRef } from '../types/deck';
+import type { DeckInfo, DeckCardRef, OperationResult } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
@@ -1001,7 +1001,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   function getDeckName(): string {
-    return deckInfo.value.name || deckInfo.value.originalName || '';
+    // loadDeck時点で name には originalName へのフォールバックが既に反映されているため、
+    // ここでフォールバックすると明示的にクリアした空文字が復元されてしまう
+    return deckInfo.value.name ?? '';
   }
 
   function setDeckName(name: string) {
@@ -1779,6 +1781,27 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     }
   }
 
+  /**
+   * 指定したデッキデータを指定dnoにそのまま保存する（deckInfo.valueは変更しない）
+   *
+   * practiceモードのP2デッキなど、現在編集中のデッキ（deckInfo.value）とは
+   * 別のデッキをサーバーに保存する場合に使用する
+   */
+  async function saveDeckData(dno: number, deckData: DeckInfo): Promise<OperationResult> {
+    try {
+      const result = await sessionManager.saveDeck(dno, { ...deckData, dno });
+      if (result.success) {
+        fetchDeckList().catch(error => {
+          console.error('[saveDeckData] Failed to refresh deck list:', error);
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error('[saveDeckData] Error:', error);
+      return { success: false, error: [String(error)] };
+    }
+  }
+
   async function copyCurrentDeck() {
     try {
       if (!deckInfo.value.dno) {
@@ -1931,6 +1954,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     getDeckName,
     setDeckName,
     saveDeck,
+    saveDeckData,
     loadDeck,
     getDeckDetail,
     getDeckLikes,

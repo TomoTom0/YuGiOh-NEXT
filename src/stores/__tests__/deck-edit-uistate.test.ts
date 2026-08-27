@@ -456,6 +456,22 @@ describe('deck-edit store: UI状態管理', () => {
     });
   });
 
+  describe('デッキ名（getDeckName/setDeckName）', () => {
+    // originalNameへのフォールバックはloadDeck時点でnameフィールドに反映済みのため、
+    // getDeckName自体はdeckInfo.nameをそのまま返す（フォールバックしない）
+    it('setDeckNameで設定した名前を返す', () => {
+      store.deckInfo.originalName = '元のデッキ名';
+      store.setDeckName('新しい名前');
+      expect(store.getDeckName()).toBe('新しい名前');
+    });
+
+    it('明示的に空文字へクリアした場合はoriginalNameへフォールバックしない', () => {
+      store.deckInfo.originalName = '元のデッキ名';
+      store.setDeckName('');
+      expect(store.getDeckName()).toBe('');
+    });
+  });
+
   describe('ドラッグ状態（draggingCard）', () => {
     it('初期状態ではdraggingCardがnullである', () => {
       expect(store.draggingCard).toBeNull();

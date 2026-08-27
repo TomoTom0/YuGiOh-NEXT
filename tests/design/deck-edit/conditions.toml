@@ -318,10 +318,10 @@ expect_side_effect = "移動全体を1つのtype='move'コマンドとしてpush
 [[condition]]
 id = "get_deck_name.name_then_original_then_empty"
 target_function = "useDeckEditStore#getDeckName"
-source_lines = "998-1000"
-description = "deckInfo.nameがtruthyならそれを返し、空ならoriginalName、どちらも空なら空文字列を返す"
-given = "deckInfo.value.name/originalNameの組み合わせ"
-expect_return_shape = "name || originalName || ''"
+source_lines = "1003-1006"
+description = "deckInfo.nameをそのまま返す（originalNameへのフォールバックはloadDeck時点で反映済みのため行わない。明示的にクリアした空文字を保護するため）"
+given = "deckInfo.value.nameの値"
+expect_return_shape = "name ?? ''"
 
 [[condition]]
 id = "set_deck_name.assigns_name"

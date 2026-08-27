@@ -738,12 +738,14 @@ describe('useDeckEditStore', () => {
       expect(store.draggingCard).toBeNull();
     });
 
-    it('getDeckName は name, originalName, 空文字の順に返す [covers:get_deck_name.name_then_original_then_empty] [covers:set_deck_name.assigns_name]', () => {
+    it('getDeckName はdeckInfo.nameをそのまま返す（originalNameへフォールバックしない） [covers:get_deck_name.name_then_original_then_empty] [covers:set_deck_name.assigns_name]', () => {
       const store = useDeckEditStore();
 
       expect(store.getDeckName()).toBe('');
       (store.deckInfo as any).originalName = 'Original';
-      expect(store.getDeckName()).toBe('Original');
+      // originalNameが設定されていても、nameが空のままならフォールバックしない
+      // （明示的にクリアした空文字を保護するため。フォールバックはloadDeck時点で反映済み）
+      expect(store.getDeckName()).toBe('');
       store.setDeckName('Current');
       expect(store.getDeckName()).toBe('Current');
     });

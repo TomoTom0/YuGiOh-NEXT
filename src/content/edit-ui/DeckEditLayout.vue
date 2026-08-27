@@ -294,6 +294,7 @@ export default {
         practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 1)
         practiceStore.p2DeckDno = dno
         practiceStore.p2DeckName = detail.originalName || ''
+        practiceStore.p2DeckInfo = detail
       }
     }
 
@@ -320,12 +321,27 @@ export default {
           practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 1)
           practiceStore.p2DeckDno = dno
           practiceStore.p2DeckName = detail.originalName || ''
+          practiceStore.p2DeckInfo = detail
         }
       }
       deckStore.showLoadDialog = true
     }
 
-    const saveDeckFromPractice = async () => {
+    const saveDeckFromPractice = async (playerIndex: number = 0) => {
+      if (playerIndex === 1) {
+        if (!practiceStore.p2DeckDno || !practiceStore.p2DeckInfo) {
+          showToast('P2にデッキが読み込まれていません', 'warning')
+          return
+        }
+        const result = await deckStore.saveDeckData(practiceStore.p2DeckDno, practiceStore.p2DeckInfo)
+        if (result.success) {
+          showToast('保存しました', 'success')
+        } else {
+          showToast('保存に失敗しました', 'error')
+        }
+        return
+      }
+
       const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
       if (result.success) {
         showToast('保存しました', 'success')

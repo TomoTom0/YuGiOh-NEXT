@@ -172,6 +172,19 @@ describe('stores/practice', () => {
 
   it('resets only initialized fields and preserves temp recipe through rebuild [covers:reset_practice.not_initialized_is_noop] [covers:reset_practice.rebuilds_from_original_and_temp_recipe]', () => {
     const store = usePracticeStore();
+    mocks.cards.set('temp-extra', {
+      cardId: 'temp-extra',
+      name: 'Temp Extra',
+      lang: 'ja',
+      imgs: [],
+      cardType: 'monster',
+      levelType: 'rank',
+      levelValue: 4,
+      attribute: 'light',
+      race: 'warrior',
+      types: ['xyz'],
+      isExtraDeck: true,
+    });
 
     store.resetPractice();
     expect(store.initialized).toBe(false);
@@ -363,6 +376,19 @@ describe('stores/practice', () => {
 
   it('adds external cards at positions and records temp recipe section [covers:add_external_card.inserts_top_bottom_or_clamped_numeric_position] [covers:add_external_card.records_temp_recipe_section]', () => {
     const store = usePracticeStore();
+    mocks.cards.set('new-extra', {
+      cardId: 'new-extra',
+      name: 'New Extra',
+      lang: 'ja',
+      imgs: [],
+      cardType: 'monster',
+      levelType: 'rank',
+      levelValue: 4,
+      attribute: 'light',
+      race: 'warrior',
+      types: ['xyz'],
+      isExtraDeck: true,
+    });
     store.initPractice([deckRef('monster-a', 5)], [deckRef('trap-a', 1)]);
 
     store.addExternalCard('new-bottom', 'b', 'gy', undefined, 0, 'down', 'bottom');
