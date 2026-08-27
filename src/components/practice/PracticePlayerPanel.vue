@@ -26,7 +26,7 @@
           <button class="action-btn action-btn--primary" :title="'Open Deck'" @click="$emit('open-deck')">
             <svg width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" :d="mdiFolderOpen" /></svg>
           </button>
-          <button class="action-btn" :title="'Save Deck'" @click="$emit('save-deck')">
+          <button class="action-btn" :title="'Save Deck'" @click="$emit('save-deck', 0)">
             <svg width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" :d="mdiContentSave" /></svg>
           </button>
           <button class="action-btn" :title="'Reset'" @click="practiceStore.resetPractice(0)">
@@ -67,7 +67,7 @@
             <button class="action-btn action-btn--primary" :title="'Open Deck'" @click="$emit('open-deck-p2')">
               <svg width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" :d="mdiFolderOpen" /></svg>
             </button>
-            <button class="action-btn" :title="'Save Deck'" @click="$emit('save-deck')">
+            <button class="action-btn" :title="'Save Deck'" @click="$emit('save-deck', 1)">
               <svg width="14" height="14" viewBox="0 0 24 24"><path fill="currentColor" :d="mdiContentSave" /></svg>
             </button>
             <button class="action-btn" :title="'Reset'" @click="practiceStore.resetPractice(1)">
@@ -124,7 +124,7 @@ const emit = defineEmits<{
   'hard-reset': []
   'open-deck': []
   'open-deck-p2': []
-  'save-deck': []
+  'save-deck': [playerIndex: number]
 }>()
 
 const practiceStore = usePracticeStore()
