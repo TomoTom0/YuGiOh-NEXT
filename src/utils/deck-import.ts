@@ -412,10 +412,11 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
     if (existing) {
       const existingCiids = new Set(existing.imgs.map(img => img.ciid));
       const newImgs = card.imgs.filter(img => !existingCiids.has(img.ciid));
+      // 既存キャッシュがTTL内でもマージ後のimgsを確実に反映するためforceUpdateする
       tempCardDB.set(cid, {
         ...existing,
         imgs: [...existing.imgs, ...newImgs]
-      });
+      }, true);
     } else {
       tempCardDB.set(cid, card);
     }

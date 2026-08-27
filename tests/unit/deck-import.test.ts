@@ -99,10 +99,17 @@ describe('deck-import', () => {
 
     it('【TASK-355】同cidでイラスト違い(ciid違い)の複数行をインポートした場合、imgsがciid単位でマージされる', () => {
       const mockCardCache = new Map();
-      mockTempCacheSet.mockImplementation((cid: string, card: { imgs: Array<{ ciid: string }> }) => {
-        mockCardCache.set(cid, card);
-        return true;
-      });
+      // 実際のUnifiedCacheDB.setCardInfoFullはforceUpdate未指定かつ既存エントリがTTL内の場合
+      // 書き込みをスキップするため、その挙動を再現する（forceUpdate漏れを検出するため）
+      mockTempCacheSet.mockImplementation(
+        (cid: string, card: { imgs: Array<{ ciid: string }> }, forceUpdate = false) => {
+          if (mockCardCache.has(cid) && !forceUpdate) {
+            return false;
+          }
+          mockCardCache.set(cid, card);
+          return true;
+        }
+      );
       mockTempCacheGet.mockImplementation((cid: string) => mockCardCache.get(cid));
 
       const csv = [
