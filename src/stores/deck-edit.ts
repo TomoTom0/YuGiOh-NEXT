@@ -1789,7 +1789,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   async function saveDeckData(dno: number, deckData: DeckInfo): Promise<OperationResult> {
     try {
-      const result = await sessionManager.saveDeck(dno, { ...deckData, dno });
+      // getDeckDetail直後のデータは name が '' で originalName に実際の名前が入っているため、
+      // deckInfo.value経由のloadDeckと異なりここで正規化しないと空のdnmが送信されてしまう
+      const normalizedName = deckData.name || deckData.originalName || '';
+      const result = await sessionManager.saveDeck(dno, { ...deckData, dno, name: normalizedName });
       if (result.success) {
         fetchDeckList().catch(error => {
           console.error('[saveDeckData] Failed to refresh deck list:', error);
