@@ -4,7 +4,7 @@
  * chrome.storage を使ってGENESYSポイント情報をキャッシュする。
  * GENESYSリストは月次でなく不規則に公開される（例: 6月→8月）ため、
  * howtoインデックスページから実在する全リストを発見して取得する。
- * 起動時チェック + backgroundの毎週チェックで新リストを取り込む。
+ * Content Script起動時にキャッシュのTTLを確認し、必要な場合だけ新リストを取り込む。
  *
  * getPoint() は「現在有効なリスト（適用日 <= 今日 で最新）」を参照し、
  * まだどのリストも有効でなければ「最新版」を参照する。
@@ -98,7 +98,7 @@ export class GenesysPointCache {
 
     this.initialized = true;
 
-    // バックグラウンドで更新チェック（新リスト取り込み）
+    // 初期化を完了させた後、必要な場合だけ更新チェック（新リスト取り込み）
     this.checkAndUpdate().catch(err => {
       console.warn('[GenesysPointCache] Failed to check update:', err);
     });

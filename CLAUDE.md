@@ -143,15 +143,21 @@ function sendCommand(method, params = {}) {
 **ソースコード更新後は必ず以下を実行すること：**
 
 ```bash
-mise run build-and-deploy
+mise run build-deploy
 ```
+
+普段の動作確認はdevビルド（コロンなし＝dev）を使う。リリース前の最終確認のみ`mise run build-deploy:prod`を使う。
 
 `package.json`の全scriptsは`mise.toml`にもtaskとして登録済み（`mise tasks ls`で一覧表示）。内部実装はpnpmを使用。
 
 ### デプロイ先
 
-- WSL環境: `/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`
-- Windows環境: `C:\Users\tomo\Mine\_chex\src_ygoNeuronHelper`
+実際のデプロイ先は`.env`の`RSYNC_PATH`が正。以下は参考値であり、`.env`と食い違う場合は`.env`を優先する。
+
+- WSL環境: `/home/tomo/user/Mine/_chex/src_ygo-next`
+- Windows環境: `C:\Users\tomo\Mine\_chex\src_ygo-next`
+
+`src_ygoNeuronHelper`はプロジェクト名変更前の旧フォルダで無関係（残存しているが更新されていない）。
 
 ## テスト
 
@@ -294,7 +300,7 @@ update-versionコマンドで以下を自動更新：
 
 変更方法：
 1. `src/styles/themes.scss` を編集
-2. `mise run build-and-deploy`
+2. `mise run build-deploy`
 3. オプション画面でテーマ切り替えを確認
 
 ## querySelector 安全性パターン

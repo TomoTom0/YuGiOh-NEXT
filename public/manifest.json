@@ -6,8 +6,7 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
-    "contextMenus",
-    "alarms"
+    "contextMenus"
   ],
   "host_permissions": [
     "https://www.db.yugioh-card.com/*",

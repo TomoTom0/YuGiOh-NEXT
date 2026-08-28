@@ -2,7 +2,7 @@
 #
 # tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
 # Chrome拡張のbackground service workerであり、export関数は存在しないため、
-# chrome.runtime/chrome.alarms/chrome.contextMenus のトップレベルlistenerと非export helperを条件化する。
+# chrome.runtime/chrome.contextMenus のトップレベルlistenerと非export helperを条件化する。
 #
 # 実装との相違・注意:
 # - 依頼文および既存テストには `GENESYS_FETCH_TEXT` という記載があったが、
@@ -91,67 +91,15 @@ description = "起動時にupdateMetadataを即時実行し、その完了後に
 given = "background moduleをimportする"
 expect_side_effect = "updateDeckMetadataが呼ばれ、setInterval(updateMetadata, 86400000) が呼ばれる"
 
-# --- scheduleGenesysCheck(): void ---
+# --- GENESYS更新の責務 ---
 
 [[condition]]
-id = "schedule_genesys_check.creates_weekly_alarm"
-target_function = "scheduleGenesysCheck"
-source_lines = "83-87,111"
-description = "起動時にGENESYS週次チェックalarmをdelayInMinutes=5、periodInMinutes=10080で作成する"
+id = "genesys_update_not_scheduled_in_background"
+target_function = "background module initialization"
+source_lines = "全体"
+description = "GENESYS更新はContent Script起動時のキャッシュTTL判定で行うため、Backgroundはalarmを登録・購読せず、タブへのGENESYS_CHECK_UPDATE通知も送信しない"
 given = "background moduleをimportする"
-expect_side_effect = "chrome.alarms.create('genesys-weekly-check', { delayInMinutes: 5, periodInMinutes: 10080 }) が呼ばれる"
-
-# --- chrome.alarms.onAlarm listener ---
-
-[[condition]]
-id = "alarm.name_mismatch_returns"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "91-94"
-description = "alarm.nameが'genesys-weekly-check'でない場合、早期returnしてtabs.queryを呼ばない"
-given = "alarm.name = 'other'"
-expect_return = "undefined"
-expect_side_effect = "chrome.tabs.queryは呼ばれない"
-
-[[condition]]
-id = "alarm.matching_queries_db_tabs"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "95-98"
-description = "alarm.nameが'genesys-weekly-check'の場合、遊戯王DBのタブをqueryする"
-given = "alarm.name = 'genesys-weekly-check'"
-expect_side_effect = "chrome.tabs.query({ url: 'https://www.db.yugioh-card.com/*' }) が呼ばれる"
-
-[[condition]]
-id = "alarm.tab_with_id_sends_check_update"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "98-103"
-description = "query結果のtab.idがundefinedでない場合、そのtabへGENESYS_CHECK_UPDATEをsendMessageする"
-given = "tabs = [{ id: 10 }]"
-expect_side_effect = "chrome.tabs.sendMessage(10, { type: 'GENESYS_CHECK_UPDATE' }) が呼ばれる"
-
-[[condition]]
-id = "alarm.tab_without_id_skipped"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "98-103"
-description = "query結果のtab.idがundefinedの場合、そのtabにはsendMessageしない"
-given = "tabs = [{}]"
-expect_side_effect = "chrome.tabs.sendMessageは呼ばれない"
-
-[[condition]]
-id = "alarm.send_message_rejection_ignored"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "99-102"
-description = "content script未読み込み等でtabs.sendMessageがrejectしてもcatchで無視し、alarm listener自体はrejectしない"
-given = "chrome.tabs.sendMessageがrejectする"
-expect_no_throw = true
-
-[[condition]]
-id = "alarm.query_error_warns"
-target_function = "chrome.alarms.onAlarm"
-source_lines = "95-107"
-description = "tabs.queryまたはループ処理で例外が発生した場合、console.warnに記録して例外を外へ投げない"
-given = "chrome.tabs.queryがrejectする"
-expect_no_throw = true
-expect_side_effect = "console.warn('[Background] GENESYS weekly check failed:', err) が呼ばれる"
+expect_side_effect = "chrome.alarms.createおよびchrome.alarms.onAlarm.addListenerは呼ばれない"
 
 # --- chrome.runtime.onMessage listener ---
 

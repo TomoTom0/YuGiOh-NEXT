@@ -181,6 +181,53 @@ describe('GenesysPointCache', () => {
       expect(cache.getAvailableListParams()).toEqual([]);
     });
 
+    it('起動時にdiscoveredAtがTTL以内ならGENESYSインデックスを再取得しない [covers:init.startup_ttl_fresh_skips_update]', async () => {
+      const stored = cacheData([entry('202606', '2026-06-01')], {
+        discoveredAt: Date.now() - 5 * DAY
+      });
+      storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: stored });
+      const cache = new GenesysPointCache();
+
+      await cache.init();
+      await cache.checkAndUpdate();
+
+      expect(apiMocks.fetchGenesysIndex).not.toHaveBeenCalled();
+      expect(getInternalCache(cache)).toEqual(stored);
+    });
+
+    it('起動時にdiscoveredAtがTTL超過なら更新し、確認日時をキャッシュへ保存する [covers:init.startup_ttl_expired_updates_and_persists]', async () => {
+      const old = cacheData([entry('202606', '2026-06-01')], {
+        discoveredAt: Date.now() - 7 * DAY
+      });
+      storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: old });
+      apiMocks.fetchGenesysIndex.mockResolvedValue([]);
+      const cache = new GenesysPointCache();
+
+      await cache.init();
+      await cache.checkAndUpdate();
+
+      expect(apiMocks.fetchGenesysIndex).toHaveBeenCalledTimes(1);
+      expect(getInternalCache(cache)?.discoveredAt).toBe(Date.now());
+      expect(storageMocks.safeStorageSet).toHaveBeenCalledWith({
+        [STORAGE_KEY]: getInternalCache(cache)
+      });
+    });
+
+    it('起動時の更新に失敗しても既存キャッシュとdiscoveredAtを保持する [covers:init.startup_update_failure_preserves_cache]', async () => {
+      const old = cacheData([entry('202606', '2026-06-01', { c1: 50 })], {
+        discoveredAt: Date.now() - 7 * DAY
+      });
+      storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: old });
+      apiMocks.fetchGenesysIndex.mockRejectedValue(new Error('network'));
+      const cache = new GenesysPointCache();
+
+      await cache.init();
+      await cache.checkAndUpdate();
+
+      expect(getInternalCache(cache)).toEqual(old);
+      expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
+    });
+
     it('バックグラウンド更新がrejectしてもinitはrejectしない [covers:init.starts_background_check_and_swallows_rejection]', async () => {
       storageMocks.safeStorageGet.mockResolvedValue(null);
       const cache = new GenesysPointCache();

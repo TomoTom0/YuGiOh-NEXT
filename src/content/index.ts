@@ -311,17 +311,6 @@ async function cacheCgidInStorage(): Promise<void> {
   }
 }
 
-// GENESYSポイントの週次更新チェック要求（backgroundのchrome.alarmsから）
-// カード名->cid解決にカードデータが必要なため、background単独ではなくcontent scriptで実行
-chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type === 'GENESYS_CHECK_UPDATE') {
-    genesysPointCache.checkAndUpdate().catch(err =>
-      console.warn('[GENESYS_CHECK_UPDATE] update failed:', err)
-    );
-  }
-  return false;
-});
-
 /**
  * 機能設定に基づいて、各機能を初期化する
  */
@@ -336,7 +325,7 @@ async function initializeFeatures(): Promise<void> {
     // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
     forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));
 
-    // GENESYSポイントキャッシュを初期化（バックグラウンドで月次更新チェック）
+    // GENESYSポイントキャッシュを初期化（起動時にdiscoveredAtのTTLを判定して更新チェック）
     genesysPointCache.init().catch(err => console.warn('Failed to initialize GENESYS point cache:', err));
 
     // アプリケーション設定をlocalStorageにキャッシュ（idle時に実行）

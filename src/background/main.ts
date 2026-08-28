@@ -15,11 +15,6 @@ import {
 
 const METADATA_UPDATE_INTERVAL = 24 * 60 * 60 * 1000; // 24時間
 
-/** GENESYS週次チェックのアラーム名 */
-const GENESYS_ALARM_NAME = 'genesys-weekly-check';
-/** GENESYSチェック間隔（毎週 = 7日） */
-const GENESYS_CHECK_INTERVAL_MIN = 7 * 24 * 60;
-
 /**
  * デッキメタデータを更新
  */
@@ -72,43 +67,6 @@ async function scheduleMetadataUpdate() {
 
 // 起動時に更新スケジュールを開始
 scheduleMetadataUpdate();
-
-/**
- * GENESYSポイントの週次更新チェックをスケジュール
- *
- * GENESYSは月次更新（毎月1日）。カード名->cid解決にカードデータが必要なため、
- * background単独ではなく、デッキ編集ページ（カードデータ保持）のcontent scriptへ
- * 更新チェックを依頼する。毎週実行し、翌月リストが公開されていれば取得する。
- */
-function scheduleGenesysCheck(): void {
-  chrome.alarms.create(GENESYS_ALARM_NAME, {
-    delayInMinutes: 5,
-    periodInMinutes: GENESYS_CHECK_INTERVAL_MIN,
-  });
-}
-
-// GENESYS週次チェックのアラームリスナー
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== GENESYS_ALARM_NAME) {
-    return;
-  }
-  try {
-    // デッキ編集ページ（カードデータ保持）のタブへ更新チェックを依頼
-    const tabs = await chrome.tabs.query({ url: 'https://www.db.yugioh-card.com/*' });
-    for (const tab of tabs) {
-      if (tab.id !== undefined) {
-        chrome.tabs.sendMessage(tab.id, { type: 'GENESYS_CHECK_UPDATE' }).catch(() => {
-          // content script未読み込みのタブは無視
-        });
-      }
-    }
-  } catch (err) {
-    console.warn('[Background] GENESYS weekly check failed:', err);
-  }
-});
-
-// 起動時にGENESYS週次チェックをスケジュール
-scheduleGenesysCheck();
 
 /**
  * デッキ詳細情報をプリロード
