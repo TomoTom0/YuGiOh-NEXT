@@ -34,7 +34,7 @@ echo ""
 # ビルドディレクトリの確認
 if [ ! -d dist ]; then
     echo "エラー: dist ディレクトリが見つかりません"
-    echo "先に 'bun run build-and-deploy' を実行してください"
+    echo "先に 'mise run build-deploy' を実行してください"
     exit 1
 fi
 

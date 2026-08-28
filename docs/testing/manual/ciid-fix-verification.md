@@ -83,7 +83,7 @@ ciid=2が保持されていることを確認。
 
 - ビルドとデプロイが正しく行われたか確認：
   ```bash
-  npm run build && ./scripts/deploy.sh
+  mise run build-deploy
   ```
 - 拡張機能が再読み込みされたか確認（Chromiumを再起動）
 

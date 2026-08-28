@@ -40,7 +40,6 @@ vi.mock('@/utils/unified-cache-db', () => ({
 type ListenerMap = {
   installed: Array<(details: chrome.runtime.InstalledDetails) => void | Promise<void>>;
   contextMenu: Array<(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) => void>;
-  alarms: Array<(alarm: chrome.alarms.Alarm) => void | Promise<void>>;
   messages: Array<(
     message: any,
     sender: chrome.runtime.MessageSender | undefined,
@@ -59,7 +58,6 @@ function createChromeMock() {
   const listeners: ListenerMap = {
     installed: [],
     contextMenu: [],
-    alarms: [],
     messages: [],
   };
 
@@ -95,9 +93,7 @@ function createChromeMock() {
     alarms: {
       create: vi.fn(),
       onAlarm: {
-        addListener: vi.fn((callback: ListenerMap['alarms'][number]) => {
-          listeners.alarms.push(callback);
-        }),
+        addListener: vi.fn(),
       },
     },
     storage: {
@@ -148,15 +144,11 @@ describe('Background Service Worker', () => {
   });
 
   describe('起動時処理', () => {
-    it('起動時にmetadata更新を即時実行し、24時間intervalとGENESYS weekly alarmを登録する [covers:schedule_metadata_update.immediate_then_interval] [covers:schedule_genesys_check.creates_weekly_alarm] [covers:update_metadata.success]', async () => {
+    it('起動時にmetadata更新を即時実行し、24時間intervalを登録する [covers:schedule_metadata_update.immediate_then_interval] [covers:update_metadata.success]', async () => {
       await loadBackground(chromeMock);
 
       expect(mocks.updateDeckMetadata).toHaveBeenCalledTimes(1);
       expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 24 * 60 * 60 * 1000);
-      expect(chromeMock.alarms.create).toHaveBeenCalledWith('genesys-weekly-check', {
-        delayInMinutes: 5,
-        periodInMinutes: 7 * 24 * 60,
-      });
     });
 
     it('metadata更新が失敗してもconsole.errorに記録して起動処理を継続する [covers:update_metadata.catch_error]', async () => {
@@ -166,7 +158,14 @@ describe('Background Service Worker', () => {
       await loadBackground(chromeMock);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to update deck metadata:', err);
-      expect(chromeMock.alarms.create).toHaveBeenCalled();
+      expect(global.setInterval).toHaveBeenCalledWith(expect.any(Function), 24 * 60 * 60 * 1000);
+    });
+
+    it('GENESYS更新のためにalarms APIを登録・購読しない [covers:no_genesys_alarm_registration]', async () => {
+      await loadBackground(chromeMock);
+
+      expect(chromeMock.alarms.create).not.toHaveBeenCalled();
+      expect(chromeMock.alarms.onAlarm.addListener).not.toHaveBeenCalled();
     });
   });
 
@@ -220,49 +219,6 @@ describe('Background Service Worker', () => {
       chromeMock._listeners.contextMenu[0]!({ menuItemId: 'other' } as chrome.contextMenus.OnClickData);
 
       expect(chromeMock.tabs.create).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('chrome.alarms.onAlarm', () => {
-    it('別名alarmは早期returnしてtabs.queryを呼ばない [covers:alarm.name_mismatch_returns]', async () => {
-      await loadBackground(chromeMock);
-
-      await chromeMock._listeners.alarms[0]!({ name: 'other' } as chrome.alarms.Alarm);
-
-      expect(chromeMock.tabs.query).not.toHaveBeenCalled();
-    });
-
-    it('weekly alarmではDBタブへGENESYS_CHECK_UPDATEを送る [covers:alarm.matching_queries_db_tabs] [covers:alarm.tab_with_id_sends_check_update] [covers:alarm.tab_without_id_skipped]', async () => {
-      await loadBackground(chromeMock);
-      chromeMock.tabs.query.mockResolvedValue([{ id: 10 }, {}, { id: 11 }]);
-      chromeMock.tabs.sendMessage.mockResolvedValue(undefined);
-
-      await chromeMock._listeners.alarms[0]!({ name: 'genesys-weekly-check' } as chrome.alarms.Alarm);
-
-      expect(chromeMock.tabs.query).toHaveBeenCalledWith({ url: 'https://www.db.yugioh-card.com/*' });
-      expect(chromeMock.tabs.sendMessage).toHaveBeenCalledTimes(2);
-      expect(chromeMock.tabs.sendMessage).toHaveBeenNthCalledWith(1, 10, { type: 'GENESYS_CHECK_UPDATE' });
-      expect(chromeMock.tabs.sendMessage).toHaveBeenNthCalledWith(2, 11, { type: 'GENESYS_CHECK_UPDATE' });
-    });
-
-    it('tabs.sendMessageのrejectは無視する [covers:alarm.send_message_rejection_ignored]', async () => {
-      await loadBackground(chromeMock);
-      chromeMock.tabs.query.mockResolvedValue([{ id: 10 }]);
-      chromeMock.tabs.sendMessage.mockRejectedValue(new Error('no receiver'));
-
-      await expect(chromeMock._listeners.alarms[0]!({ name: 'genesys-weekly-check' } as chrome.alarms.Alarm))
-        .resolves.toBeUndefined();
-    });
-
-    it('tabs.query失敗時はconsole.warnに記録してrejectしない [covers:alarm.query_error_warns]', async () => {
-      await loadBackground(chromeMock);
-      const err = new Error('query failed');
-      chromeMock.tabs.query.mockRejectedValue(err);
-
-      await expect(chromeMock._listeners.alarms[0]!({ name: 'genesys-weekly-check' } as chrome.alarms.Alarm))
-        .resolves.toBeUndefined();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith('[Background] GENESYS weekly check failed:', err);
     });
   });
 
