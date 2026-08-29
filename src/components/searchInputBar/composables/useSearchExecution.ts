@@ -203,6 +203,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       searchStore.allResults = []
       searchStore.hasMore = false
       searchStore.currentPage = 0
+      searchStore.isLoading = false
       return
     }
 

@@ -82,4 +82,34 @@ describe('useSearchExecution.handleSearch - 検索世代ガード(レースコ�
     // 古い拡張フェッチの結果で上書きされていないこと
     expect(searchStore.searchResults).toEqual(newCards);
   });
+
+  // TASK-376 (PR#135レビュー指摘): 検索中にクエリ・フィルターをクリアすると
+  // isLoadingが残留するバグの回帰テスト
+  it('検索実行中にクエリ・フィルターをクリアすると、isLoadingがfalseに戻る', async () => {
+    const deckStore = useDeckEditStore();
+    const searchStore = useSearchStore();
+    const { handleSearch } = useSearchExecution({ deckStore, searchMode: ref('name') });
+
+    let resolvePending: (cards: MonsterCard[]) => void = () => {};
+    const pending = new Promise<MonsterCard[]>((resolve) => {
+      resolvePending = resolve;
+    });
+    vi.mocked(searchCards).mockReturnValueOnce(pending);
+
+    // 1回目: fetchが完了しない状態で検索中のまま
+    searchStore.searchQuery = 'ドラゴン';
+    const firstSearch = handleSearch();
+    expect(searchStore.isLoading).toBe(true);
+
+    // 検索中にクエリ・フィルターをクリア（早期returnパス）
+    searchStore.searchQuery = '';
+    await handleSearch();
+
+    expect(searchStore.isLoading).toBe(false);
+
+    // 1回目のfetchが後から解決しても、isLoadingが再度trueになったりしない
+    resolvePending([]);
+    await firstSearch;
+    expect(searchStore.isLoading).toBe(false);
+  });
 });
