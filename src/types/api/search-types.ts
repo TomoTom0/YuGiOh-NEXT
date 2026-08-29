@@ -143,7 +143,6 @@ export interface SearchOptions {
  */
 export interface SearchAutoResult {
   cards: CardInfo[];
-  fetchMorePromise?: Promise<CardInfo[]>;
 }
 
 /**

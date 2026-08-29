@@ -1,0 +1,225 @@
+# 検証対象: src/utils/category-grouping.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、カテゴリリストの50音順グループ判定を行うutils。
+#
+# 実装コメントとの差異:
+# - なし（実装コメントは概要のみで、個々の分岐条件についての記載はない）
+#
+# 公開APIは assignCategoryGroups のみ（他はモジュール非export）。
+# extract-ast-skeleton.ts は export関数のみを対象とするため、determineGroupForNonKana /
+# getGroupsBetween / getKanaGroup / hiraganaToKatakana / isHiragana / isKatakana /
+# isKanaReadable は「未カバー検出」の対象にならない（tests/design/README.md 5節の既知の限界）。
+# これらは assignCategoryGroups 経由の間接呼び出しとしてのみ到達可能なため、target_function に
+# 内部関数名を用いつつ given/expect は assignCategoryGroups の入出力で記述する。
+
+[meta]
+feature = "category-grouping"
+source_file = "src/utils/category-grouping.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/category-grouping.test.ts"
+source_hash = "7dec654743f31f561a9e6f2ba03f88718d044138"
+note = "verified=falseは1件（hiragana_to_katakana.non_hiragana_fallback、公開APIから到達不可）"
+
+# --- assignCategoryGroups(categories): CategoryEntry[] ---
+
+[[condition]]
+id = "assign.index0_hardcoded_o"
+target_function = "assignCategoryGroups"
+source_lines = "181-183"
+description = "index===0の場合、labelの内容に関わらずgroup=['ruby_オ']を固定で返す（カナ判定は行わない）"
+given = "categories[0] = { value: 'x', label: '王家の神殿' }（labelを別の文字列に変えても結果は変わらない）"
+expect_return_shape = "result[0].group === ['ruby_オ']"
+
+[[condition]]
+id = "assign.index1_hardcoded_a"
+target_function = "assignCategoryGroups"
+source_lines = "184-187"
+description = "index===1の場合、labelの内容に関わらずgroup=['ruby_ア']を固定で返す"
+given = "categories[1] = { value: 'y', label: '赤き竜' }"
+expect_return_shape = "result[1].group === ['ruby_ア']"
+
+[[condition]]
+id = "assign.kana_readable_uses_getKanaGroup"
+target_function = "assignCategoryGroups"
+source_lines = "189-193"
+description = "index>=2でlabelの先頭文字がひらがな/カタカナの場合、getKanaGroup(firstChar)の1件のみを含む配列を返す"
+given = "index=2, categories[2].label = 'カラクリ'"
+expect_return_shape = "result[2].group === ['ruby_カ']"
+
+[[condition]]
+id = "assign.empty_label_dispatches_nonkana_helper"
+target_function = "assignCategoryGroups"
+source_lines = "190-196"
+description = "labelが空文字の場合、cat.label[0]はundefinedとなりfirstChar&&...の条件がfalseになるため、determineGroupForNonKanaに分岐する（カナ文字以外と同じ経路）"
+given = "index>=2, categories[index].label = ''、前後は通常のカナ始まりlabel"
+expect_return_shape = "determineGroupForNonKanaの戻り値（前後カテゴリのgroupに基づく）がそのまま使われる"
+
+[[condition]]
+id = "assign.nonkana_char_dispatches_helper"
+target_function = "assignCategoryGroups"
+source_lines = "194-196"
+description = "index>=2でlabelの先頭文字が存在するがひらがな/カタカナでない場合（漢字・英数字・記号等）、determineGroupForNonKanaの結果を返す"
+given = "index=3, categories[3].label = '甲虫装機'、前後のカテゴリはカナ始まり"
+expect_return_shape = "determineGroupForNonKanaの戻り値がそのまま使われる"
+
+# --- determineGroupForNonKana(index, categories): string[] ---
+
+[[condition]]
+id = "nonkana.backward_search_skips_falsy_label"
+target_function = "determineGroupForNonKana"
+source_lines = "121-123"
+description = "後方探索で categories[i]?.label が falsy（labelが空文字、または categories[i] 自体が存在しない）の場合、その要素は無視してさらに前(i-1)を調べる"
+given = "index=4（対象label='甲虫装機'）, categories[3].label='', categories[2].label='アロマ'"
+expect_return_shape = "prevGroupはcategories[2]（ruby_ア）から決まる（categories[3]の空labelはスキップされる）"
+
+[[condition]]
+id = "nonkana.backward_search_skips_nonkana_char"
+target_function = "determineGroupForNonKana"
+source_lines = "125-130"
+description = "後方探索でfirstCharは存在するがカナ読み不可（漢字等）の場合、breakせずループを継続してさらに前を調べる"
+given = "index=4, categories[3].label='甲虫装機'（漢字）, categories[2].label='カラクリ'"
+expect_return_shape = "prevGroupはcategories[2]（ruby_カ）から決まる（categories[3]はスキップされる）"
+
+[[condition]]
+id = "nonkana.backward_search_exhausted_null"
+target_function = "determineGroupForNonKana"
+source_lines = "121-130"
+description = "index=0まで遡ってもカナ読み可能なlabelが1件も見つからない場合、prevGroupはnullのままループを終える"
+given = "index=2, categories[1].label='甲虫装機', categories[0].label='壊獣'（いずれも非カナ）"
+expect_return_shape = "prevGroup=null。この後forward側の判定結果に処理が委ねられる"
+
+[[condition]]
+id = "nonkana.forward_search_mirrors_backward"
+target_function = "determineGroupForNonKana"
+source_lines = "133-143"
+description = "前方探索(index+1からcategories.length-1まで)も後方探索と同一のロジック（falsy labelスキップ・非カナ文字スキップ・末尾まで見つからなければnull）で行われる"
+given = "index=2, categories[0]/[1].labelはともに漢字始まり(非カナ、prevGroupはnullのまま探索終了), categories[3].label='', categories[4].label='サイバー'"
+expect_return_shape = "nextGroupはcategories[4]（ruby_サ）から決まる（categories[3]の空labelはスキップ）"
+
+[[condition]]
+id = "nonkana.both_equal_returns_single"
+target_function = "determineGroupForNonKana"
+source_lines = "146-149"
+description = "前方・後方ともグループが判明し、両者が同一グループの場合、そのグループ1件のみを返す（範囲展開しない）"
+given = "prevGroup='ruby_ア', nextGroup='ruby_ア'（例: 前='アーティファクト', 対象='甲虫装機', 後='アロマ'）"
+expect_return = "['ruby_ア']"
+
+[[condition]]
+id = "nonkana.both_different_returns_range"
+target_function = "determineGroupForNonKana"
+source_lines = "150-153"
+description = "前方・後方のグループが判明し、両者が異なる場合、getGroupsBetween(prevGroup, nextGroup)の結果（間の全グループ）を返す"
+given = "prevGroup='ruby_カ', nextGroup='ruby_サ'（例: 前='カラクリ', 対象='甲虫装機', 後='サイバー'）"
+expect_return = "['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ', 'ruby_サ']"
+
+[[condition]]
+id = "nonkana.only_prev_returns_prev"
+target_function = "determineGroupForNonKana"
+source_lines = "154-157"
+description = "prevGroupのみ判明（nextGroupはnull、対象より後ろにカナ読み可能なlabelが1件もない）場合、prevGroup1件のみを返す"
+given = "対象カテゴリが配列の末尾側にあり、後続がすべて非カナまたは存在しない。prevGroup='ruby_サ'"
+expect_return = "['ruby_サ']"
+
+[[condition]]
+id = "nonkana.only_next_returns_next"
+target_function = "determineGroupForNonKana"
+source_lines = "158-161"
+description = "nextGroupのみ判明（prevGroupはnull、対象より前にカナ読み可能なlabelが1件もない）場合、nextGroup1件のみを返す"
+given = "対象カテゴリが配列の先頭側にあり(ただしindex>=2)、それ以前がすべて非カナ。nextGroup='ruby_カ'"
+expect_return = "['ruby_カ']"
+
+[[condition]]
+id = "nonkana.neither_returns_other"
+target_function = "determineGroupForNonKana"
+source_lines = "162-164"
+description = "前方・後方いずれもカナ読み可能なlabelが見つからない場合、固定値['ruby_その他']を返す"
+given = "index>=2の対象を含め、前後全カテゴリのlabelが非カナ（漢字・記号等）または空文字"
+expect_return = "['ruby_その他']"
+
+# --- getGroupsBetween(start, end): string[] ---
+
+[[condition]]
+id = "groups_between.normal_range"
+target_function = "getGroupsBetween"
+source_lines = "89-101"
+description = "start/endの'ruby_'を除いた文字がともにKANA_LIST内に存在し、startのインデックス<=endのインデックスの場合、その区間の全文字を'ruby_'プレフィックス付きで返す（endを含む）"
+given = "start='ruby_カ', end='ruby_サ'"
+expect_return = "['ruby_カ', 'ruby_キ', 'ruby_ク', 'ruby_ケ', 'ruby_コ', 'ruby_サ']"
+
+[[condition]]
+id = "groups_between.invalid_kana_fallback"
+target_function = "getGroupsBetween"
+source_lines = "89-94"
+description = "startまたはendの'ruby_'を除いた文字がKANA_LISTに存在しない場合（小書き文字'ッ'や長音符'ー'等。isKatakanaの判定範囲(0x30A0-0x30FF)はKANA_LISTより広く、小書き文字や長音符も『カナ読み可能』と判定されてgetKanaGroupに渡るが、dakutenMapにもKANA_LISTにも含まれないためそのままseionとして使われる）、[start, end]をそのまま返す（範囲展開されない）"
+given = "対象カテゴリ（漢字始まり）の直前のカテゴリlabelが小書きの'ッ'で始まり(例:'ッターゲット')、直後が通常のカナ始まりlabel(例:'サイバー')。determineGroupForNonKanaの後方探索でprevGroup=getKanaGroup('ッ')='ruby_ッ'、前方探索でnextGroup='ruby_サ'となり、prevGroup!==nextGroupのためgetGroupsBetween('ruby_ッ', 'ruby_サ')が呼ばれる"
+expect_return = "['ruby_ッ', 'ruby_サ']（KANA_LIST.indexOf('ッ') === -1のため範囲展開されずstart/endがそのまま返る）"
+
+[[condition]]
+id = "groups_between.reversed_order_returns_empty"
+target_function = "getGroupsBetween"
+source_lines = "96-99"
+description = "startのKANA_LIST内インデックスがendのインデックスより後ろにある場合（前方カテゴリの方が後方カテゴリより50音順で後にある＝カテゴリ配列が50音順に並んでいない場合）、for (i=startIndex; i<=endIndex; i++) が一度も実行されず空配列を返す"
+given = "prevGroup='ruby_ラ', nextGroup='ruby_ア'（例: 前='ラッシュ'（ruby_ラ）, 対象='甲虫装機', 後='アロマ'（ruby_ア）というカテゴリ配列内での並び）"
+expect_return = "[]"
+
+# --- getKanaGroup(char): string ---
+
+[[condition]]
+id = "get_kana_group.hiragana_converted_first"
+target_function = "getKanaGroup"
+source_lines = "60-63"
+description = "ひらがな1文字が渡された場合、hiraganaToKatakanaでカタカナに変換した上でグループ判定する"
+given = "char = 'し'"
+expect_return = "'ruby_シ'"
+
+[[condition]]
+id = "get_kana_group.dakuten_voiced_mapped"
+target_function = "getKanaGroup"
+source_lines = "66-75"
+description = "濁点付きカタカナ（ガ行/ザ行/ダ行/バ行）はdakutenMapにより対応する清音（カ行/サ行/タ行/ハ行）のグループに変換される"
+given = "char = 'ガ'"
+expect_return = "'ruby_カ'"
+
+[[condition]]
+id = "get_kana_group.dakuten_semivoiced_mapped_same_as_voiced"
+target_function = "getKanaGroup"
+source_lines = "66-75"
+description = "半濁点付きカタカナ（パ行）は濁点のバ行と同じ清音キー（ハ行）にdakutenMapで変換される。優先順位ではなく、パ行・バ行は同一グループに収束する"
+given = "char = 'パ'"
+expect_return = "'ruby_ハ'"
+
+[[condition]]
+id = "get_kana_group.vu_self_mapped"
+target_function = "getKanaGroup"
+source_lines = "72,75"
+description = "'ヴ'はdakutenMapに自己参照エントリ('ヴ': 'ヴ')を持ち、他の清音に変換されず独立したグループとなる（KANA_LISTにも'ヴ'は特殊枠として含まれる）"
+given = "char = 'ヴ'"
+expect_return = "'ruby_ヴ'"
+
+[[condition]]
+id = "get_kana_group.not_in_map_uses_original"
+target_function = "getKanaGroup"
+source_lines = "75"
+description = "dakutenMapに存在しない文字（清音のカタカナ、小書き文字、長音符等）は `dakutenMap[katakana] || katakana` のフォールバックによりそのままseionとして使われる"
+given = "char = 'ア'（清音、dakutenMapに'ア'キーは無い）"
+expect_return = "'ruby_ア'"
+
+# --- hiraganaToKatakana(char): string ---
+
+[[condition]]
+id = "hiragana_to_katakana.non_hiragana_fallback"
+target_function = "hiraganaToKatakana"
+source_lines = "48-51"
+description = "コードが0x3041-0x3096の範囲外（ひらがなでない文字）の場合、変換せずcharをそのまま返す"
+given = "hiraganaToKatakana('ア')のように、ひらがな以外の文字を直接渡した場合を想定"
+expect_return = "引数と同じ文字"
+verified = false
+unverifiable_reason = "hiraganaToKatakanaはexportされておらず、唯一の呼び出し元getKanaGroup L61-63はisHiragana(char)===trueの場合のみこの関数を呼ぶ。そのため公開API assignCategoryGroups 経由ではelseブランチ（非ひらがな文字での呼び出し）に到達する入力を構成できない。コード上のフォールバックとして存在を確認したのみで、実行時の到達は未検証。"
+
+# --- isKanaReadable(char): boolean ---
+# isHiragana/isKatakana の単純な論理和であり、単体では意味のある分岐を生まない（README 2節の
+# 「書かない」基準：trivialな判定の組み合わせ）。効果はassign.*/nonkana.*の各conditionで
+# 間接的に検証されるため、個別のconditionは設けない。

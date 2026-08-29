@@ -1,0 +1,251 @@
+# 検証対象: src/utils/safe-html-renderer.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、innerHTML/XSS対策ユーティリティ。
+#
+# AST骨格抽出スクリプト(scripts/design/extract-ast-skeleton.ts)の既知の限界:
+# - SafeHtmlBuilder は `export const SafeHtmlBuilder = { div(...){}, span(...){}, ... }`
+#   というオブジェクトリテラル(メソッド定義)であり、スクリプトが検出する
+#   「export function」「export class」「export const = アロー関数/関数式」の
+#   いずれのパターンにも一致しないため、div/span/p/a の4メソッドは機械抽出結果(6件)に
+#   含まれていない。本ファイルでは人手でこの4メソッドの分岐を条件化した。
+#
+# 実装コメントとの差異・セキュリティ上の注意点(実装コードを読んで判明した事実。
+# コード内コメントには明記されていない):
+# - escapeHtml() は & < > " ' の5文字をエスケープするが、escapeAttribute() は
+#   " と ' の2文字のみで、& < > はエスケープしない(escapeAttributeという関数名からは
+#   HTML特殊文字全般をエスケープするように誤読しやすいため明記する)。
+# - SafeHtmlBuilder の各メソッド(div/span/p/a)は options.class と options.content を
+#   一切エスケープせずそのまま埋め込む。JSDocの使用例では呼び出し側が事前に
+#   escapeHtml()した文字列をcontentに渡す前提になっているが、関数自体はそれを強制しない。
+# - SafeHtmlBuilder.a() の href は escapeAttribute() でエスケープされるが、これは
+#   クォート文字の無害化のみであり、`javascript:` 等の危険なプロトコル文字列自体は
+#   除去・検知されない(そのためのチェックは別関数 checkHTMLSafety() が担っている)。
+# - escapeHtml() の置換コールバック `(char) => map[char] ?? char` の `?? char`
+#   フォールバックは、正規表現 `/[&<>"']/g` がマッチさせる文字は必ず map のキーに
+#   存在するため、公開APIからは到達不可能(型システムではなくデータ的に保証)。
+#   README 2節の「書かない」対象と判断し条件化していない。
+
+[meta]
+feature = "safe-html-renderer"
+source_file = "src/utils/safe-html-renderer.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/safe-html-renderer.test.ts"
+source_hash = "0bd62177d4e5713ea9869c622fd0bb0732023ca4"
+note = "verified=falseは0件"
+
+# --- escapeHtml(text: string): string ---
+
+[[condition]]
+id = "escape_html.escapes_five_special_chars"
+target_function = "escapeHtml"
+source_lines = "24-33"
+description = "& < > \" ' の5文字をそれぞれ &amp; &lt; &gt; &quot; &#39; に置換する。それ以外の文字はそのまま返す。"
+given = "text = '<div class=\"test\" data-value=\\'test & \"data\"\\'>Content</div>'"
+expect_return = "5種の特殊文字が全てエンティティに置換された文字列"
+
+# --- eSafe(value: any): string ---
+
+[[condition]]
+id = "e_safe.coerces_then_escapes"
+target_function = "eSafe"
+source_lines = "48-50"
+description = "value を String(value) で文字列化してから escapeHtml でエスケープする。string以外の型(number/null/undefined/object等)でも String() の変換結果に依存する。"
+given = "value = 12345 | null | undefined | { key: 'value' } | 危険文字を含む文字列"
+expect_return = "String(value) を escapeHtml した結果（'12345'/'null'/'undefined'/'[object Object]'/エスケープ済み文字列）"
+
+# --- escapeAttribute(text: string): string ---
+
+[[condition]]
+id = "escape_attribute.escapes_quotes_only"
+target_function = "escapeAttribute"
+source_lines = "62-64"
+description = "ダブルクォート(\") とシングルクォート(') のみをそれぞれ &quot; &#39; に置換する。"
+given = "text = 'This is a \"test\" and \\'data\\''"
+expect_return = "クォートのみエスケープされた文字列"
+
+[[condition]]
+id = "escape_attribute.does_not_escape_ampersand_or_angle_brackets"
+target_function = "escapeAttribute"
+source_lines = "62-64"
+description = "escapeHtmlとは異なり、&, <, > はエスケープ対象に含まれず無変換のまま返る（セキュリティ上の注意点。escapeAttributeを万能なHTMLエスケープと誤用しないこと）。"
+given = "text = 'a & b < c > d'"
+expect_return = "'a & b < c > d'（無変化）"
+
+# --- setSafeInnerHTML(element: Element | null, html: string): boolean ---
+
+[[condition]]
+id = "set_safe_inner_html.null_element_returns_false"
+target_function = "setSafeInnerHTML"
+source_lines = "81-82"
+description = "elementがnull(falsy)の場合、innerHTMLへの代入を行わずfalseを返す。"
+given = "element = null"
+expect_return = false
+
+[[condition]]
+id = "set_safe_inner_html.sets_html_verbatim_returns_true"
+target_function = "setSafeInnerHTML"
+source_lines = "83-84"
+description = "elementが非nullの場合、htmlを一切エスケープせずそのままelement.innerHTMLに設定し、trueを返す。呼び出し側が事前にエスケープ済みのhtmlを渡すことが前提の関数であり、本関数自体はサニタイズを行わない。"
+given = "element = document.createElement('div'), html = '<span>Safe HTML</span>'"
+expect_return = true
+expect_side_effect = "element.innerHTML が html の値そのままに設定される（追加のエスケープなし）"
+
+# --- setSafeTextContent(element: Element | null, text: string): boolean ---
+
+[[condition]]
+id = "set_safe_text_content.null_element_returns_false"
+target_function = "setSafeTextContent"
+source_lines = "100-101"
+description = "elementがnull(falsy)の場合、textContentへの代入を行わずfalseを返す。"
+given = "element = null"
+expect_return = false
+
+[[condition]]
+id = "set_safe_text_content.sets_text_returns_true"
+target_function = "setSafeTextContent"
+source_lines = "102-103"
+description = "elementが非nullの場合、element.textContentにtextをそのまま設定する。textContentはブラウザ側で自動的にテキストとして扱われHTMLとして解釈されないため、危険文字を含んでいても実行されない。"
+given = "element = document.createElement('div'), text = '<script>alert(1)</script>'"
+expect_return = true
+expect_side_effect = "element.textContent = text（rawテキストとして格納）。結果としてelement.innerHTMLを参照すると自動エスケープされた表示になる"
+
+# --- SafeHtmlBuilder.div(options): string ---
+
+[[condition]]
+id = "safe_html_builder_div.defaults_when_options_empty"
+target_function = "SafeHtmlBuilder.div"
+source_lines = "123-134"
+description = "class/attributes/content未指定の場合、それぞれ空文字列/空オブジェクト({})/空文字列がデフォルトとなり、属性もクラスも中身も無い<div></div>を返す。"
+given = "options = {}"
+expect_return = "'<div></div>'"
+
+[[condition]]
+id = "safe_html_builder_div.attribute_values_escaped_keys_not"
+target_function = "SafeHtmlBuilder.div"
+source_lines = "128-130"
+description = "options.attributesの各エントリは ` key=\"escapeAttribute(value)\"` の形で連結される。属性値(value)はescapeAttributeでエスケープされるが、属性キー(key)はエスケープされずそのまま出力される。"
+given = "options.attributes = { 'data-id': '123\"x' }"
+expect_return_shape = "生成されたタグに ' data-id=\"123&quot;x\"' が含まれる（値はエスケープ、キーは無変換）"
+
+[[condition]]
+id = "safe_html_builder_div.class_not_escaped"
+target_function = "SafeHtmlBuilder.div"
+source_lines = "131"
+description = "options.classはエスケープされずそのままclass属性値として埋め込まれる。呼び出し側が信頼できない文字列をclassに渡すと未エスケープのまま出力される。"
+given = "options.class = 'x\"y'"
+expect_return_shape = "生成されたタグに ' class=\"x\"y\"' がそのまま含まれる（エスケープなし）"
+
+[[condition]]
+id = "safe_html_builder_div.content_not_escaped"
+target_function = "SafeHtmlBuilder.div"
+source_lines = "132-133"
+description = "options.contentはエスケープされずそのままタグの内側に挿入される。事前にescapeHtml等でエスケープ済みの文字列を渡すことが呼び出し側の責務であり(JSDocコメントの推奨用法)、SafeHtmlBuilder自体は追加のエスケープを行わない。"
+given = "options.content = '<script>alert(1)</script>'（未エスケープの生文字列）"
+expect_return = "'<div><script>alert(1)</script></div>'（contentがそのまま埋め込まれる）"
+
+# --- SafeHtmlBuilder.span(options): string ---
+
+[[condition]]
+id = "safe_html_builder_span.same_construction_pattern_as_div"
+target_function = "SafeHtmlBuilder.span"
+source_lines = "139-150"
+description = "divと同一のロジック(attributesの値のみescapeAttributeでエスケープ、class/contentは無エスケープ)でspanタグを構築する。"
+given = "options = { class: 'highlight', attributes: { 'data-value': '100' }, content: 'Highlighted text' }"
+expect_return_shape = "'<span class=\"highlight\" data-value=\"100\">Highlighted text</span>'"
+
+# --- SafeHtmlBuilder.p(options): string ---
+
+[[condition]]
+id = "safe_html_builder_p.same_construction_pattern_as_div"
+target_function = "SafeHtmlBuilder.p"
+source_lines = "155-166"
+description = "divと同一ロジックでpタグを構築する。"
+given = "options = { content: 'Paragraph content' }"
+expect_return = "'<p>Paragraph content</p>'"
+
+# --- SafeHtmlBuilder.a(options): string ---
+
+[[condition]]
+id = "safe_html_builder_a.href_escaped_via_escape_attribute"
+target_function = "SafeHtmlBuilder.a"
+source_lines = "177,183"
+description = "options.hrefはescapeAttributeでエスケープされてからhref属性値に埋め込まれる。div/span/pのcontentやclassとは異なり、hrefは必ずエスケープされる。"
+given = "options.href = 'https://example.com/path?q=\"test\"'"
+expect_return_shape = "href属性値中のダブルクォートが&quot;にエスケープされる"
+
+[[condition]]
+id = "safe_html_builder_a.href_escape_does_not_block_javascript_protocol"
+target_function = "SafeHtmlBuilder.a"
+source_lines = "177,183"
+description = "escapeAttributeはクォート文字のみをエスケープし、'javascript:'のような危険なプロトコル文字列自体は除去・検知しない。SafeHtmlBuilder.a()は呼び出し側でhrefのプロトコル安全性を検証する責務を負わない（プロトコル検知は別関数checkHTMLSafetyが担う）。"
+given = "options.href = 'javascript:alert(1)'"
+expect_return_shape = "'<a href=\"javascript:alert(1)\">...</a>' がそのまま生成される（'javascript:'はエスケープされず残存する）"
+
+[[condition]]
+id = "safe_html_builder_a.class_and_content_not_escaped"
+target_function = "SafeHtmlBuilder.a"
+source_lines = "181-183"
+description = "div/span/pと同様、classとcontentはエスケープされずそのまま埋め込まれる。"
+given = "options = { href: 'https://example.com', class: 'external-link', content: 'External link' }"
+expect_return_shape = "class/contentがそのまま埋め込まれた'<a href=\"https://example.com\" class=\"external-link\">External link</a>'"
+
+# --- checkHTMLSafety(html: string): string[] ---
+
+[[condition]]
+id = "check_html_safety.empty_array_when_no_pattern_matches"
+target_function = "checkHTMLSafety"
+source_lines = "226-243"
+description = "dangerousPatternsの5パターンいずれにもマッチしない場合、issuesは空配列のまま返る。"
+given = "html = '<div class=\"safe\">Safe content</div>'"
+expect_return = "[]"
+
+[[condition]]
+id = "check_html_safety.javascript_protocol_detected"
+target_function = "checkHTMLSafety"
+source_lines = "229,236-240"
+description = "/javascript:/i にマッチする場合、'javascript: プロトコルが検出されました' をissuesに追加する。"
+given = "html = '<a href=\"javascript:alert(1)\">Click</a>'"
+expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
+
+[[condition]]
+id = "check_html_safety.inline_event_handler_detected"
+target_function = "checkHTMLSafety"
+source_lines = "230,236-240"
+description = "/on\\w+\\s*=/i にマッチする場合(on〇〇= のパターン)、'インラインイベントハンドラが検出されました' をissuesに追加する。"
+given = "html = '<img src=x onerror=\"alert(1)\">'"
+expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
+
+[[condition]]
+id = "check_html_safety.script_tag_detected"
+target_function = "checkHTMLSafety"
+source_lines = "231,236-240"
+description = "/<script/i にマッチする場合、'<script> タグが検出されました' をissuesに追加する。大文字小文字を区別しない(iフラグ)。"
+given = "html = '<SCRIPT>alert(1)</SCRIPT>'"
+expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
+
+[[condition]]
+id = "check_html_safety.iframe_tag_detected"
+target_function = "checkHTMLSafety"
+source_lines = "232,236-240"
+description = "/<iframe/i にマッチする場合、'<iframe> タグが検出されました' をissuesに追加する。"
+given = "html = '<iframe src=\"https://evil.com\"></iframe>'"
+expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
+
+[[condition]]
+id = "check_html_safety.object_or_embed_tag_detected_same_message"
+target_function = "checkHTMLSafety"
+source_lines = "233,236-240"
+description = "/<object|<embed/i の1パターンで<object>と<embed>の両方を検知し、タグ種別を区別せず同一メッセージ'<object>/<embed> タグが検出されました'をissuesに追加する。"
+given = "html = '<object data=\"https://evil.com\"></object>' または '<embed src=\"https://evil.com\">'"
+expect_return_shape = "issuesに該当メッセージを含む（1件以上）"
+
+[[condition]]
+id = "check_html_safety.multiple_patterns_accumulate_in_declaration_order"
+target_function = "checkHTMLSafety"
+source_lines = "228-240"
+description = "複数の危険パターンに同時にマッチする場合、issuesにはdangerousPatterns配列の宣言順(javascript: → イベントハンドラ → <script> → <iframe> → <object>/<embed>)でメッセージが追加される。html文字列中の出現順序ではなく配列の宣言順で決まる。"
+given = "html内にiframeがscriptより前に出現し、かつscript/iframe両方の危険パターンにマッチする"
+expect_return_shape = "issues配列内での各メッセージの並び順はdangerousPatterns宣言順(script用メッセージがiframe用メッセージより前)"

@@ -1,0 +1,125 @@
+# 検証対象: src/utils/card-animation.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、FLIP技法によるカード移動アニメーションutils。
+#
+# 実装コメントとの差異: なし。JSDocコメント(FLIP=First, Last, Invert, Play)は実装と一致している。
+#
+# 備考: 両関数ともouter requestAnimationFrame内でLast計測・Invert・リフロー強制を行い、
+# さらにネストしたinner requestAnimationFrame内でPlay(transition解除)を行う二段構成。
+# setTimeoutによるクリーンアップは「Invert/Playが実行されたか」に関わらず、Invertが
+# 一度でも走った経路でのみ登録される(早期returnした経路ではsetTimeout自体登録されない)。
+
+[meta]
+feature = "card-animation"
+source_file = "src/utils/card-animation.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/card-animation.test.ts"
+source_hash = "b1422038707e7cd7f232a24a0033e9e4c6e2ed06"
+note = "verified=falseは1件(per_card_missing_position_skipped、公開APIから到達不可な防御的分岐)"
+
+# --- animateCardMove(cardElement: HTMLElement, duration: number = 300): void ---
+
+[[condition]]
+id = "animate_card_move.no_movement_no_animation"
+target_function = "animateCardMove"
+source_lines = "22-28"
+description = "outer requestAnimationFrame内でLast計測後、deltaX/deltaYが両方0(=First/Lastの座標が同一)の場合、Invert/Play処理を行わず即returnする。transition/transformへの代入もsetTimeoutの登録も一切行われない"
+given = "cardElement.getBoundingClientRect()が1回目(First)・2回目(Last)とも同じ座標を返す"
+expect_side_effect = "cardElement.style.transition/transformは共に空文字のまま。inner requestAnimationFrameもsetTimeoutも登録されない"
+
+[[condition]]
+id = "animate_card_move.movement_triggers_invert_and_play"
+target_function = "animateCardMove"
+source_lines = "26-41"
+description = "deltaX/deltaYのいずれかが非0の場合、まずtransition='none'とtransform='translate(dx,dy)'を設定(Invert)し、getBoundingClientRect()呼び出しでリフローを強制した後、inner requestAnimationFrame内でtransitionを'transform {duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)'に、transformを空文字に戻す(Play開始)"
+given = "First/Lastの座標が異なる(例: (100,100)→(150,150))、duration=100"
+expect_side_effect = "outer rAF直後: transition='none', transform='translate(-50px, -50px)'。inner rAF後: transition='transform 100ms cubic-bezier(0.4, 0.0, 0.2, 1)', transform=''"
+
+[[condition]]
+id = "animate_card_move.cleanup_after_duration"
+target_function = "animateCardMove"
+source_lines = "44-47"
+description = "Invertが実行された経路では、outer rAF内でduration msのsetTimeoutが登録され、経過後にtransition/transformを両方空文字にリセットする"
+given = "movementありでanimateCardMove(el, 100)を呼び、100ms経過"
+expect_side_effect = "99ms時点ではtransitionはPlayの値のまま。100ms経過でtransition==='' かつ transform===''"
+
+[[condition]]
+id = "animate_card_move.default_duration_fallback"
+target_function = "animateCardMove"
+source_lines = "12"
+description = "duration引数省略時はデフォルト値300が使われ、Play時のtransition文字列('transform 300ms cubic-bezier(...)')とクリーンアップsetTimeoutの遅延(300ms)の両方に反映される"
+given = "movementありでanimateCardMove(el)をdurationなしで呼ぶ"
+expect_side_effect = "transition文字列に'300ms'を含む。299ms時点では未クリーンアップ、300ms経過でクリーンアップされる"
+
+# --- animateCardsMoveInSection(sectionElement: HTMLElement, duration: number = 300): void ---
+
+[[condition]]
+id = "animate_cards_move_in_section.null_section_guard"
+target_function = "animateCardsMoveInSection"
+source_lines = "58"
+description = "sectionElementがfalsy(null等)の場合、即returnし、querySelectorAll以降の処理は一切実行されない"
+given = "sectionElement = null"
+expect_no_throw = true
+expect_side_effect = "副作用なし、例外も発生しない。requestAnimationFrameも呼ばれない"
+
+[[condition]]
+id = "animate_cards_move_in_section.empty_cards_no_op"
+target_function = "animateCardsMoveInSection"
+source_lines = "60-109"
+description = "sectionElement内に.deck-card要素が1つも無い場合、cards=[]となり各forEachは何も処理しないが、sectionElement.getBoundingClientRect()によるリフロー強制自体は実行される"
+given = "sectionElementに.deck-card子要素が存在しない"
+expect_no_throw = true
+expect_side_effect = "sectionElement.getBoundingClientRect()は呼ばれるが、カード要素への副作用は発生しない"
+
+[[condition]]
+id = "animate_cards_move_in_section.per_card_no_movement_skipped"
+target_function = "animateCardsMoveInSection"
+source_lines = "80-82"
+description = "個々のカードでdeltaX/deltaYが両方0の場合、そのカードのInvert(transition/transform設定)はreturnによりスキップされ、forEachは次のカードへ進む(他カードの処理には影響しない)"
+given = "複数カードのうち1枚(card2)は座標が変化せず、他(card1)は変化する"
+expect_side_effect = "card2.style.transform/transitionは共に空文字のまま変更されない"
+
+[[condition]]
+id = "animate_cards_move_in_section.per_card_movement_invert"
+target_function = "animateCardsMoveInSection"
+source_lines = "75-87"
+description = "firstPositions.get(card)とcard.getBoundingClientRect()が両方存在し、deltaX/deltaYのいずれかが非0の場合、そのカードにtransition='none'とtransform='translate(dx,dy)'を設定する"
+given = "card1の座標が前後フレームで変化する(例: (100,100)→(150,100))"
+expect_side_effect = "card1.style.transition==='none', card1.style.transform==='translate(-50px, 0px)'"
+
+[[condition]]
+id = "animate_cards_move_in_section.per_card_missing_position_skipped"
+target_function = "animateCardsMoveInSection"
+source_lines = "75"
+description = "if (first && last) がfalseの場合(firstPositions.get(card)がundefined、またはgetBoundingClientRect()がfalsyを返す場合)、そのカードのInvert処理全体をスキップする防御的分岐"
+given = "公開APIからは到達不可: firstPositionsは同一関数内でcards配列の全要素についてforEachで設定されるため、同一cardに対しfirstが未定義になる経路が存在しない。lastはDOMRectオブジェクトが常に返るため常にtruthy"
+expect_side_effect = "該当カードのtransition/transformは変更されない"
+verified = false
+unverifiable_reason = "firstPositionsはprocedure内部のローカルMapで、同じ関数内でcards全要素について事前設定されるため、公開APIからfirstを未定義にする経路を作れない"
+
+[[condition]]
+id = "animate_cards_move_in_section.play_step_conditional_on_transform"
+target_function = "animateCardsMoveInSection"
+source_lines = "94-101"
+description = "inner requestAnimationFrame内のPlayステップは、card.style.transformが真値(=Invertで移動が設定された)カードのみtransitionを'transform {duration}ms cubic-bezier(...)'に設定しtransformを空文字に戻す。transform未設定(移動しなかった)カードはPlay処理の対象外でtransitionは変更されない"
+given = "card1は移動しInvertでtransformが設定済み、card2は移動せずtransformが空文字のまま"
+expect_side_effect = "card1.style.transition==='transform {duration}ms cubic-bezier(0.4, 0.0, 0.2, 1)', card1.style.transform===''。card2.style.transitionは空文字のまま"
+
+[[condition]]
+id = "animate_cards_move_in_section.cleanup_unconditional_all_cards"
+target_function = "animateCardsMoveInSection"
+source_lines = "104-109"
+description = "duration ms後のsetTimeoutクリーンアップは、Play対象だったか否か(card.style.transformの真偽)に関わらず、cards配列の全カードのtransition/transformを空文字にリセットする"
+given = "card1(移動あり)とcard2(移動なし)が混在し、duration ms経過"
+expect_side_effect = "card1・card2とも style.transition==='' かつ style.transform===''"
+
+[[condition]]
+id = "animate_cards_move_in_section.default_duration_fallback"
+target_function = "animateCardsMoveInSection"
+source_lines = "57"
+description = "duration引数省略時はデフォルト値300が使われ、Play時のtransition文字列とクリーンアップsetTimeoutの遅延の両方に反映される"
+given = "movementありでanimateCardsMoveInSection(sectionElement)をdurationなしで呼ぶ"
+expect_side_effect = "移動したカードのtransition文字列に'300ms'を含む。299ms時点では未クリーンアップ、300ms経過でクリーンアップされる"

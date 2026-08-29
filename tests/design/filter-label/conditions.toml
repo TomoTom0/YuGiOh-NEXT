@@ -1,0 +1,231 @@
+# 検証対象: src/utils/filter-label.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、フィルター条件のラベル変換ユーティリティ(101行)。
+#
+# 実装コメントとの差異:
+# - なし
+#
+# 粒度基準の適用に関する補足(README 2節):
+# - getMonsterTypeLabel L43-45 の `if (result === value) console.warn(...)` は、
+#   分岐前後で返り値・処理継続に差がなく console.warn のみを行う分岐のため、
+#   README 2節「書かない」基準に該当し条件化していない（[[condition]]化していない）。
+
+[meta]
+feature = "filter-label"
+source_file = "src/utils/filter-label.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/filter-label.test.ts"
+source_hash = "da17bc9dfdb96f7cec2d2b866d8a9eb4ab6405f2"
+note = "verified=falseは0件"
+
+# --- getAttributeLabel(value: string, lang?: string): string ---
+
+[[condition]]
+id = "get_attribute_label.lang_specified_used_directly"
+target_function = "getAttributeLabel"
+source_lines = "23-27"
+description = "lang引数が指定された場合、detectLanguageを呼ばずその言語をmappingManager.getAttributeIdToTextに渡す"
+given = "getAttributeLabel('light', 'en')"
+expect_return = "Light"
+expect_side_effect = "detectLanguageは呼ばれない"
+
+[[condition]]
+id = "get_attribute_label.lang_omitted_document_defined_uses_detect_language"
+target_function = "getAttributeLabel"
+source_lines = "23-24"
+description = "lang省略時、typeof document !== 'undefined'ならdetectLanguage(document)の戻り値を言語として使う"
+given = "getAttributeLabel('light')（documentが定義されたテスト環境）"
+expect_return = "光（detectLanguageモックは'ja'を返す）"
+expect_side_effect = "detectLanguageが呼ばれる"
+
+[[condition]]
+id = "get_attribute_label.lang_omitted_document_undefined_fallback_ja"
+target_function = "getAttributeLabel"
+source_lines = "23-24"
+description = "lang省略時、typeof document === 'undefined'ならdetectLanguageを呼ばずハードコードの'ja'を使う"
+given = "vi.stubGlobal('document', undefined)後にgetAttributeLabel('light')"
+expect_return = "光"
+expect_side_effect = "detectLanguageは呼ばれない"
+
+[[condition]]
+id = "get_attribute_label.value_found_returns_mapped_label"
+target_function = "getAttributeLabel"
+source_lines = "25-26"
+description = "idToTextにvalueが存在する場合、対応するラベルを返す"
+given = "getAttributeLabel('dark', 'ja')"
+expect_return = "闇"
+
+[[condition]]
+id = "get_attribute_label.value_not_found_returns_value_as_is"
+target_function = "getAttributeLabel"
+source_lines = "26"
+description = "idToTextにvalueが存在しない場合、valueをそのまま返す（||フォールバック）"
+given = "getAttributeLabel('unknown', 'ja')"
+expect_return = "unknown"
+
+# --- getCardTypeLabel(value: string): string ---
+
+[[condition]]
+id = "get_card_type_label.value_found"
+target_function = "getCardTypeLabel"
+source_lines = "32-34"
+description = "CARD_TYPE_ID_TO_SHORTNAMEにvalueが存在する場合、短縮ラベルを返す"
+given = "getCardTypeLabel('monster')"
+expect_return = "M"
+
+[[condition]]
+id = "get_card_type_label.value_not_found"
+target_function = "getCardTypeLabel"
+source_lines = "33"
+description = "CARD_TYPE_ID_TO_SHORTNAMEにvalueが存在しない場合、valueをそのまま返す"
+given = "getCardTypeLabel('unknown')"
+expect_return = "unknown"
+
+# --- getMonsterTypeLabel(value: string): string ---
+
+[[condition]]
+id = "get_monster_type_label.value_found"
+target_function = "getMonsterTypeLabel"
+source_lines = "40-47"
+description = "MONSTER_TYPE_ID_TO_SHORTNAMEにvalueが存在する場合、短縮ラベルを返す"
+given = "getMonsterTypeLabel('fusion')"
+expect_return = "融"
+
+[[condition]]
+id = "get_monster_type_label.value_not_found_returns_value_as_is"
+target_function = "getMonsterTypeLabel"
+source_lines = "42-46"
+description = "MONSTER_TYPE_ID_TO_SHORTNAMEにvalueが存在しない場合、valueをそのまま返す（console.warnが呼ばれるが返り値・処理継続に差は無いため条件化対象外）"
+given = "getMonsterTypeLabel('unknown')"
+expect_return = "unknown"
+
+# --- getRaceLabel(value: string): string ---
+
+[[condition]]
+id = "get_race_label.value_found"
+target_function = "getRaceLabel"
+source_lines = "53-56"
+description = "RACE_ID_TO_SHORTNAMEにvalueが存在する場合、短縮ラベルを返す"
+given = "getRaceLabel('dragon')"
+expect_return = "龍"
+
+[[condition]]
+id = "get_race_label.value_not_found_slices_first_two_chars"
+target_function = "getRaceLabel"
+source_lines = "55"
+description = "RACE_ID_TO_SHORTNAMEにvalueが存在しない場合、他のgetXxxLabelと異なりvalueの先頭2文字にスライスして返す"
+given = "getRaceLabel('unknown')"
+expect_return = "un"
+
+# --- getSpellTypeLabel(value: string): string ---
+
+[[condition]]
+id = "get_spell_type_label.value_found"
+target_function = "getSpellTypeLabel"
+source_lines = "62-65"
+description = "SPELL_EFFECT_TYPE_ID_TO_NAMEにvalueが存在する場合、短縮ラベルを返す"
+given = "getSpellTypeLabel('normal')"
+expect_return = "通常"
+
+[[condition]]
+id = "get_spell_type_label.value_not_found"
+target_function = "getSpellTypeLabel"
+source_lines = "64"
+description = "SPELL_EFFECT_TYPE_ID_TO_NAMEにvalueが存在しない場合、valueをそのまま返す"
+given = "getSpellTypeLabel('unknown')"
+expect_return = "unknown"
+
+# --- getTrapTypeLabel(value: string): string ---
+
+[[condition]]
+id = "get_trap_type_label.value_found"
+target_function = "getTrapTypeLabel"
+source_lines = "71-74"
+description = "TRAP_EFFECT_TYPE_ID_TO_NAMEにvalueが存在する場合、短縮ラベルを返す"
+given = "getTrapTypeLabel('normal')"
+expect_return = "通常"
+
+[[condition]]
+id = "get_trap_type_label.value_not_found"
+target_function = "getTrapTypeLabel"
+source_lines = "73"
+description = "TRAP_EFFECT_TYPE_ID_TO_NAMEにvalueが存在しない場合、valueをそのまま返す"
+given = "getTrapTypeLabel('unknown')"
+expect_return = "unknown"
+
+# --- getChipLabel(type: string, value: string): string ---
+
+[[condition]]
+id = "get_chip_label.attributes_delegates"
+target_function = "getChipLabel"
+source_lines = "82-83"
+description = "type='attributes'の場合getAttributeLabel(value)（lang省略）に委譲する"
+given = "getChipLabel('attributes', 'light')"
+expect_return = "光"
+
+[[condition]]
+id = "get_chip_label.card_type_delegates"
+target_function = "getChipLabel"
+source_lines = "84-85"
+description = "type='cardType'の場合getCardTypeLabel(value)に委譲する"
+given = "getChipLabel('cardType', 'monster')"
+expect_return = "M"
+
+[[condition]]
+id = "get_chip_label.monster_types_delegates"
+target_function = "getChipLabel"
+source_lines = "86-87"
+description = "type='monsterTypes'の場合getMonsterTypeLabel(value)に委譲する"
+given = "getChipLabel('monsterTypes', 'fusion')"
+expect_return = "融"
+
+[[condition]]
+id = "get_chip_label.levels_prefixed"
+target_function = "getChipLabel"
+source_lines = "88-89"
+description = "type='levels'の場合マッピング参照なしで`★${value}`を返す（valueの妥当性チェックはしない）"
+given = "getChipLabel('levels', '4')"
+expect_return = "★4"
+
+[[condition]]
+id = "get_chip_label.link_numbers_prefixed"
+target_function = "getChipLabel"
+source_lines = "90-91"
+description = "type='linkNumbers'の場合マッピング参照なしで`L${value}`を返す（valueの妥当性チェックはしない）"
+given = "getChipLabel('linkNumbers', '2')"
+expect_return = "L2"
+
+[[condition]]
+id = "get_chip_label.atk_throws"
+target_function = "getChipLabel"
+source_lines = "92-95"
+description = "type='atk'の場合formatStatLabelを使うべきというメッセージのErrorをthrowする"
+given = "getChipLabel('atk', '2500')"
+expect_throw = "Error: getChipLabel should not be used for atk. Use formatStatLabel instead."
+
+[[condition]]
+id = "get_chip_label.def_throws"
+target_function = "getChipLabel"
+source_lines = "92-95"
+description = "type='def'の場合formatStatLabelを使うべきというメッセージのErrorをthrowする（atkと同一case節）"
+given = "getChipLabel('def', '2000')"
+expect_throw = "Error: getChipLabel should not be used for def. Use formatStatLabel instead."
+
+[[condition]]
+id = "get_chip_label.races_delegates"
+target_function = "getChipLabel"
+source_lines = "96-97"
+description = "type='races'の場合getRaceLabel(value)に委譲する"
+given = "getChipLabel('races', 'dragon')"
+expect_return = "龍"
+
+[[condition]]
+id = "get_chip_label.default_returns_value_as_is"
+target_function = "getChipLabel"
+source_lines = "98-99"
+description = "typeが上記いずれのcaseにも一致しない場合、defaultとしてvalueをそのまま返す"
+given = "getChipLabel('unknown', 'value')"
+expect_return = "value"

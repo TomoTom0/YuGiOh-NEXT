@@ -69,17 +69,27 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('getFromStorageLocal', () => {
+    // [covers:get_from_storage_local.value_present_truthy]
     it('存在するキーの値を取得できる', async () => {
       mockStorage['testKey'] = 'testValue';
       const result = await getFromStorageLocal('testKey');
       expect(result).toBe('testValue');
     });
 
+    // [covers:get_from_storage_local.value_absent_null_fallback]
     it('存在しないキーの場合nullを返す', async () => {
       const result = await getFromStorageLocal('nonExistentKey');
       expect(result).toBeNull();
     });
 
+    // [covers:get_from_storage_local.value_present_falsy_not_nullish]
+    it('値が0のようなfalsy値でもnullに変換せずそのまま返す（??はnullishのみ変換）', async () => {
+      mockStorage['testKey'] = 0;
+      const result = await getFromStorageLocal('testKey');
+      expect(result).toBe(0);
+    });
+
+    // [covers:get_from_storage_local.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Test error' };
       await expect(getFromStorageLocal('testKey')).rejects.toThrow('Chrome Storage error: Test error');
@@ -94,11 +104,13 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('setToStorageLocal', () => {
+    // [covers:set_to_storage_local.success_resolves_undefined]
     it('値を正しく保存できる', async () => {
       await setToStorageLocal('testKey', 'testValue');
       expect(mockStorage['testKey']).toBe('testValue');
     });
 
+    // [covers:set_to_storage_local.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Set error' };
       await expect(setToStorageLocal('testKey', 'testValue')).rejects.toThrow(
@@ -120,6 +132,7 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('getFromStorageLocalMultiple', () => {
+    // [covers:get_from_storage_local_multiple.success_resolves_result_object]
     it('複数のキーの値を取得できる', async () => {
       mockStorage['key1'] = 'value1';
       mockStorage['key2'] = 'value2';
@@ -134,6 +147,7 @@ describe('chrome-storage-utils', () => {
       expect(result.nonExistent).toBeUndefined();
     });
 
+    // [covers:get_from_storage_local_multiple.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Multiple get error' };
       await expect(getFromStorageLocalMultiple(['key1', 'key2'])).rejects.toThrow(
@@ -148,12 +162,14 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('setToStorageLocalMultiple', () => {
+    // [covers:set_to_storage_local_multiple.success_resolves_undefined]
     it('複数の値を正しく保存できる', async () => {
       await setToStorageLocalMultiple({ key1: 'value1', key2: 'value2' });
       expect(mockStorage['key1']).toBe('value1');
       expect(mockStorage['key2']).toBe('value2');
     });
 
+    // [covers:set_to_storage_local_multiple.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Multiple set error' };
       await expect(setToStorageLocalMultiple({ key1: 'value1' })).rejects.toThrow(
@@ -168,6 +184,7 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('removeFromStorageLocal', () => {
+    // [covers:remove_from_storage_local.success_resolves_undefined]
     it('値を削除できる', async () => {
       mockStorage['testKey'] = 'testValue';
       await removeFromStorageLocal('testKey');
@@ -178,6 +195,7 @@ describe('chrome-storage-utils', () => {
       await expect(removeFromStorageLocal('nonExistent')).resolves.toBeUndefined();
     });
 
+    // [covers:remove_from_storage_local.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Remove error' };
       await expect(removeFromStorageLocal('testKey')).rejects.toThrow(
@@ -187,6 +205,7 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('removeFromStorageLocalMultiple', () => {
+    // [covers:remove_from_storage_local_multiple.success_resolves_undefined]
     it('複数の値を削除できる', async () => {
       mockStorage['key1'] = 'value1';
       mockStorage['key2'] = 'value2';
@@ -197,6 +216,7 @@ describe('chrome-storage-utils', () => {
       expect(mockStorage['key3']).toBe('value3');
     });
 
+    // [covers:remove_from_storage_local_multiple.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Multiple remove error' };
       await expect(removeFromStorageLocalMultiple(['key1'])).rejects.toThrow(
@@ -210,6 +230,7 @@ describe('chrome-storage-utils', () => {
   });
 
   describe('clearStorageLocal', () => {
+    // [covers:clear_storage_local.success_resolves_undefined]
     it('すべての値をクリアできる', async () => {
       mockStorage['key1'] = 'value1';
       mockStorage['key2'] = 'value2';
@@ -217,6 +238,7 @@ describe('chrome-storage-utils', () => {
       expect(Object.keys(mockStorage).length).toBe(0);
     });
 
+    // [covers:clear_storage_local.last_error_rejects]
     it('chrome.runtime.lastErrorがある場合エラーをthrowする', async () => {
       mockLastError = { message: 'Clear error' };
       await expect(clearStorageLocal()).rejects.toThrow('Chrome Storage error: Clear error');

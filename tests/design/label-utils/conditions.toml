@@ -1,0 +1,310 @@
+# 検証対象: src/utils/label-utils.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、utils残り（フォーマッタ/変換系・局所的なロジック）。
+#
+# 実装コメントとの差異:
+# - 特になし。ヘッダコメント通り「属性・種族・タイプ等の内部値を現在の言語設定に応じた
+#   表示用ラベルに変換する関数群」。
+#
+# 注記:
+# - 非exportのヘルパー `currentLang()` (L21-23) は `detectLanguage(document)` を呼ぶだけの
+#   薄いラッパーであり、README 2節の「書かない」基準（単純なgetter相当）に該当するため
+#   個別条件は起票しない。各条件の `given` では currentLang() の戻り値（lang）を
+#   直接指定する形で表現する。
+# - `src/utils/filter-label.ts` に同名（getAttributeLabel等）の別実装が存在するが、
+#   これは別ファイル・別用途（チップ表示用の短縮ラベル）であり本ファイルとは無関係。
+#   混同しないこと。
+
+[meta]
+feature = "label-utils"
+source_file = "src/utils/label-utils.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/label-utils.test.ts"
+source_hash = "265f809055fec73edfa8674ee55d45b67fc35c7c"
+note = "verified=falseは0件"
+
+# --- getAttributeLabel(attr: string): string ---
+# フォールバック優先順位: 動的マッピング(mappingManager) > 静的マッピング(ATTRIBUTE_ID_TO_NAME) > 入力値そのまま
+
+[[condition]]
+id = "get_attribute_label.dynamic_mapping_hit"
+target_function = "getAttributeLabel"
+source_lines = "28-33"
+description = "mappingManager.getAttributeIdToText(lang)[attr]が真値を返す場合、その値を最優先で返す（静的マッピングは参照しない）"
+given = "mappingManager.getAttributeIdToText(lang) が { light: '光' } を返し、attr = 'light'"
+expect_return = "光"
+
+[[condition]]
+id = "get_attribute_label.static_fallback"
+target_function = "getAttributeLabel"
+source_lines = "28-33"
+description = "動的マッピングにattrのキーが無い（undefined）場合、静的マッピングATTRIBUTE_ID_TO_NAMEの値にフォールバックする"
+given = "mappingManager.getAttributeIdToText(lang) が {} を返し、attr = 'light'（ATTRIBUTE_ID_TO_NAMEにlightのエントリが存在する）"
+expect_return_shape = "ATTRIBUTE_ID_TO_NAME['light']の値"
+
+[[condition]]
+id = "get_attribute_label.unmapped_returns_input"
+target_function = "getAttributeLabel"
+source_lines = "28-33"
+description = "動的・静的いずれのマッピングにもattrのキーが無い場合、入力値attrをそのまま返す"
+given = "mappingManager.getAttributeIdToText(lang) が {} を返し、attr = 'unknown_attr'"
+expect_return = "unknown_attr"
+
+# --- getRaceLabel(race: string): string ---
+# フォールバック優先順位: 動的マッピング > 静的マッピング(RACE_ID_TO_NAME) > 入力値そのまま
+
+[[condition]]
+id = "get_race_label.dynamic_mapping_hit"
+target_function = "getRaceLabel"
+source_lines = "38-43"
+description = "mappingManager.getRaceIdToText(lang)[race]が真値を返す場合、その値を最優先で返す"
+given = "mappingManager.getRaceIdToText(lang) が { dragon: 'ドラゴン族' } を返し、race = 'dragon'"
+expect_return = "ドラゴン族"
+
+[[condition]]
+id = "get_race_label.static_fallback"
+target_function = "getRaceLabel"
+source_lines = "38-43"
+description = "動的マッピングにraceのキーが無い場合、静的マッピングRACE_ID_TO_NAMEの値にフォールバックする"
+given = "mappingManager.getRaceIdToText(lang) が {} を返し、race = 'dragon'（RACE_ID_TO_NAMEにdragonのエントリが存在する）"
+expect_return_shape = "RACE_ID_TO_NAME['dragon']の値"
+
+[[condition]]
+id = "get_race_label.unmapped_returns_input"
+target_function = "getRaceLabel"
+source_lines = "38-43"
+description = "動的・静的いずれのマッピングにもraceのキーが無い場合、入力値raceをそのまま返す"
+given = "mappingManager.getRaceIdToText(lang) が {} を返し、race = 'unknown_race'"
+expect_return = "unknown_race"
+
+# --- getMonsterTypeLabel(type: string): string ---
+# フォールバック優先順位: 動的マッピング > 静的マッピング(MONSTER_TYPE_ID_TO_NAME) > 入力値そのまま
+
+[[condition]]
+id = "get_monster_type_label.dynamic_mapping_hit"
+target_function = "getMonsterTypeLabel"
+source_lines = "48-53"
+description = "mappingManager.getMonsterTypeIdToText(lang)[type]が真値を返す場合、その値を最優先で返す"
+given = "mappingManager.getMonsterTypeIdToText(lang) が { fusion: '融合' } を返し、type = 'fusion'"
+expect_return = "融合"
+
+[[condition]]
+id = "get_monster_type_label.static_fallback"
+target_function = "getMonsterTypeLabel"
+source_lines = "48-53"
+description = "動的マッピングにtypeのキーが無い場合、静的マッピングMONSTER_TYPE_ID_TO_NAMEの値にフォールバックする"
+given = "mappingManager.getMonsterTypeIdToText(lang) が {} を返し、type = 'fusion'（MONSTER_TYPE_ID_TO_NAMEにfusionのエントリが存在する）"
+expect_return_shape = "MONSTER_TYPE_ID_TO_NAME['fusion']の値"
+
+[[condition]]
+id = "get_monster_type_label.unmapped_returns_input"
+target_function = "getMonsterTypeLabel"
+source_lines = "48-53"
+description = "動的・静的いずれのマッピングにもtypeのキーが無い場合、入力値typeをそのまま返す"
+given = "mappingManager.getMonsterTypeIdToText(lang) が {} を返し、type = 'unknown_type'"
+expect_return = "unknown_type"
+
+# --- getLevelLabel(card: { levelValue: number; levelType: string }): string ---
+# switch(card.levelType)による排他分岐。既知の3値以外はdefaultで'level'と同じ表示になる。
+
+[[condition]]
+id = "get_level_label.level_type"
+target_function = "getLevelLabel"
+source_lines = "58-66"
+description = "levelType='level'の場合、'Lv.{levelValue}'を返す"
+given = "card = { levelValue: 4, levelType: 'level' }"
+expect_return = "Lv.4"
+
+[[condition]]
+id = "get_level_label.rank_type"
+target_function = "getLevelLabel"
+source_lines = "58-66"
+description = "levelType='rank'の場合、'Rank {levelValue}'を返す"
+given = "card = { levelValue: 4, levelType: 'rank' }"
+expect_return = "Rank 4"
+
+[[condition]]
+id = "get_level_label.link_type"
+target_function = "getLevelLabel"
+source_lines = "58-66"
+description = "levelType='link'の場合、'LINK-{levelValue}'を返す"
+given = "card = { levelValue: 3, levelType: 'link' }"
+expect_return = "LINK-3"
+
+[[condition]]
+id = "get_level_label.unknown_type_defaults_to_level"
+target_function = "getLevelLabel"
+source_lines = "58-66"
+description = "levelTypeが'level'/'rank'/'link'のいずれでもない場合、switchのdefault節により'level'と同じ'Lv.{levelValue}'を返す"
+given = "card = { levelValue: 4, levelType: 'pendulum' }"
+expect_return = "Lv.4"
+
+# --- getSpellTypeLabel(effectType: string): string ---
+# フォールバック優先順位: 動的マッピング(if文で真値判定) > 静的マッピング(SPELL_EFFECT_TYPE_ID_TO_NAME) > 入力値そのまま
+
+[[condition]]
+id = "get_spell_type_label.dynamic_mapping_hit"
+target_function = "getSpellTypeLabel"
+source_lines = "71-76"
+description = "nameMap[effectType]（mappingManager.getSpellEffectIdToText(lang)の結果）が真値の場合、その値を最優先で返す"
+given = "mappingManager.getSpellEffectIdToText(lang) が { normal: '通常魔法' } を返し、effectType = 'normal'"
+expect_return = "通常魔法"
+
+[[condition]]
+id = "get_spell_type_label.static_fallback"
+target_function = "getSpellTypeLabel"
+source_lines = "71-76"
+description = "nameMap[effectType]が falsy（未定義等）の場合、静的マッピングSPELL_EFFECT_TYPE_ID_TO_NAMEの値にフォールバックする"
+given = "mappingManager.getSpellEffectIdToText(lang) が {} を返し、effectType = 'normal'（SPELL_EFFECT_TYPE_ID_TO_NAMEにnormalのエントリが存在する）"
+expect_return_shape = "SPELL_EFFECT_TYPE_ID_TO_NAME['normal']の値"
+
+[[condition]]
+id = "get_spell_type_label.unmapped_returns_input"
+target_function = "getSpellTypeLabel"
+source_lines = "71-76"
+description = "動的・静的いずれのマッピングにもeffectTypeのキーが無い場合、入力値effectTypeをそのまま返す"
+given = "mappingManager.getSpellEffectIdToText(lang) が {} を返し、effectType = 'unknown_effect'"
+expect_return = "unknown_effect"
+
+# --- getTrapTypeLabel(effectType: string): string ---
+# フォールバック優先順位: 動的マッピング(if文で真値判定) > 静的マッピング(TRAP_EFFECT_TYPE_ID_TO_NAME) > 入力値そのまま
+
+[[condition]]
+id = "get_trap_type_label.dynamic_mapping_hit"
+target_function = "getTrapTypeLabel"
+source_lines = "81-86"
+description = "nameMap[effectType]（mappingManager.getTrapEffectIdToText(lang)の結果）が真値の場合、その値を最優先で返す"
+given = "mappingManager.getTrapEffectIdToText(lang) が { continuous: '永続罠' } を返し、effectType = 'continuous'"
+expect_return = "永続罠"
+
+[[condition]]
+id = "get_trap_type_label.static_fallback"
+target_function = "getTrapTypeLabel"
+source_lines = "81-86"
+description = "nameMap[effectType]が falsy の場合、静的マッピングTRAP_EFFECT_TYPE_ID_TO_NAMEの値にフォールバックする"
+given = "mappingManager.getTrapEffectIdToText(lang) が {} を返し、effectType = 'continuous'（TRAP_EFFECT_TYPE_ID_TO_NAMEにcontinuousのエントリが存在する）"
+expect_return_shape = "TRAP_EFFECT_TYPE_ID_TO_NAME['continuous']の値"
+
+[[condition]]
+id = "get_trap_type_label.unmapped_returns_input"
+target_function = "getTrapTypeLabel"
+source_lines = "81-86"
+description = "動的・静的いずれのマッピングにもeffectTypeのキーが無い場合、入力値effectTypeをそのまま返す"
+given = "mappingManager.getTrapEffectIdToText(lang) が {} を返し、effectType = 'unknown_effect'"
+expect_return = "unknown_effect"
+
+# --- getCardTypeLabel(cardType: string): string ---
+# if/elseの排他分岐（spell → trap → monster → それ以外）。各分岐内でlangによる日本語/英語の出し分けがある。
+
+[[condition]]
+id = "get_card_type_label.spell_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='spell'かつlang='ja'の場合、'魔法'を返す"
+given = "cardType = 'spell', lang = 'ja'"
+expect_return = "魔法"
+
+[[condition]]
+id = "get_card_type_label.spell_non_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='spell'かつlang!=='ja'の場合、'Spell'を返す"
+given = "cardType = 'spell', lang = 'en'"
+expect_return = "Spell"
+
+[[condition]]
+id = "get_card_type_label.trap_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='trap'かつlang='ja'の場合、'罠'を返す"
+given = "cardType = 'trap', lang = 'ja'"
+expect_return = "罠"
+
+[[condition]]
+id = "get_card_type_label.trap_non_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='trap'かつlang!=='ja'の場合、'Trap'を返す"
+given = "cardType = 'trap', lang = 'en'"
+expect_return = "Trap"
+
+[[condition]]
+id = "get_card_type_label.monster_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='monster'かつlang='ja'の場合、'モンスター'を返す"
+given = "cardType = 'monster', lang = 'ja'"
+expect_return = "モンスター"
+
+[[condition]]
+id = "get_card_type_label.monster_non_ja"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardType='monster'かつlang!=='ja'の場合、'Monster'を返す"
+given = "cardType = 'monster', lang = 'en'"
+expect_return = "Monster"
+
+[[condition]]
+id = "get_card_type_label.unknown_returns_input"
+target_function = "getCardTypeLabel"
+source_lines = "91-103"
+description = "cardTypeが'spell'/'trap'/'monster'のいずれでもない場合、langに関わらず入力値cardTypeをそのまま返す"
+given = "cardType = 'unknown', lang = 'ja'"
+expect_return = "unknown"
+
+# --- getEffectTypeLabel(effectType: string, cardType: string): string ---
+# cardTypeによる委譲先の排他分岐
+
+[[condition]]
+id = "get_effect_type_label.spell_delegates"
+target_function = "getEffectTypeLabel"
+source_lines = "108-112"
+description = "cardType='spell'の場合、getSpellTypeLabel(effectType)に委譲した結果を返す"
+given = "effectType = 'normal', cardType = 'spell'（getSpellTypeLabelが'通常魔法'を返す状況）"
+expect_return_shape = "getSpellTypeLabel('normal')の戻り値と一致"
+
+[[condition]]
+id = "get_effect_type_label.trap_delegates"
+target_function = "getEffectTypeLabel"
+source_lines = "108-112"
+description = "cardType='trap'の場合、getTrapTypeLabel(effectType)に委譲した結果を返す"
+given = "effectType = 'continuous', cardType = 'trap'（getTrapTypeLabelが'永続罠'を返す状況）"
+expect_return_shape = "getTrapTypeLabel('continuous')の戻り値と一致"
+
+[[condition]]
+id = "get_effect_type_label.other_returns_input"
+target_function = "getEffectTypeLabel"
+source_lines = "108-112"
+description = "cardTypeが'spell'/'trap'いずれでもない場合（例: 'monster'）、getSpellTypeLabel/getTrapTypeLabelには委譲せず入力値effectTypeをそのまま返す"
+given = "effectType = 'normal', cardType = 'monster'"
+expect_return = "normal"
+
+# --- getMonsterTypesLabel(types: string[]): string ---
+# ガード節 `!types || !Array.isArray(types)` はOR条件。両辺を個別に検証する。
+
+[[condition]]
+id = "get_monster_types_label.nullish_returns_empty"
+target_function = "getMonsterTypesLabel"
+source_lines = "117-120"
+description = "types がnull/undefinedの場合（!typesがtrue）、早期returnで空文字列を返す"
+given = "types = undefined"
+expect_return = ""
+
+[[condition]]
+id = "get_monster_types_label.non_array_returns_empty"
+target_function = "getMonsterTypesLabel"
+source_lines = "117-120"
+description = "typesが配列でない真値の場合（!typesはfalseだが!Array.isArray(types)がtrue）、早期returnで空文字列を返す"
+given = "types = 'fusion'（文字列、配列ではない）"
+expect_return = ""
+
+[[condition]]
+id = "get_monster_types_label.valid_array_maps_and_joins"
+target_function = "getMonsterTypesLabel"
+source_lines = "117-120"
+description = "typesが配列の場合、各要素をgetMonsterTypeLabelで変換し' / 'で結合した文字列を返す"
+given = "types = ['fusion', 'synchro']（getMonsterTypeLabelがそれぞれ'融合'/'シンクロ'を返す状況）"
+expect_return = "融合 / シンクロ"

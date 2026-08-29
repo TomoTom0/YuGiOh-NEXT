@@ -1,0 +1,70 @@
+# 検証対象: src/utils/card-limit.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、utilsの残り（局所的なロジック）。
+#
+# 実装コメントとの差異:
+# - ファイル冒頭のJSDocに「現時点では全カード3枚のダミー実装」とあるが、getCardLimitの返り値は
+#   枚数そのものではなく制限レベルコード（0=禁止/1=制限/2=準制限/3=無制限）であり、呼び出し側で
+#   このコードを実際の許容枚数に変換している（本ファイル単体では枚数変換ロジックは持たない）。
+# - card.limitRegulationの型はLimitRegulation = 'forbidden' | 'limited' | 'semi-limited'（コンパイル時は
+#   この3値+undefinedのみ）だが、実データはHTMLパース等の外部ソース由来でこの型を必ずしも満たさない
+#   ため、switchのdefault節（型システム上は到達不能に見える）は実行時には到達しうる有効な分岐として
+#   条件化した（README 2節の「TypeScriptのnarrowingで到達不能なelse」には該当しない）。
+#
+# 対象外関数:
+# - updateLimitRegulation(): 分岐・throw・早期return・副作用の差異が一切ない未実装のTODOスタブ
+#   （APIから最新レギュレーションを取得する処理は未実装で本体は空）。README 2節の「書かない」基準
+#   （意味のある分岐が無い）に該当するため条件化していない。
+
+[meta]
+feature = "card-limit"
+source_file = "src/utils/card-limit.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/card-limit.test.ts"
+source_hash = "1d40f9e24f3ae8e9a4ba6c5a3b2c0940459f1633"
+note = "verified=falseは0件"
+
+# --- getCardLimit(card: CardInfo): number ---
+
+[[condition]]
+id = "get_card_limit.missing_limit_regulation_returns_unlimited"
+target_function = "getCardLimit"
+source_lines = "22-24"
+description = "card.limitRegulationがfalsy（プロパティ省略またはundefined）の場合、switchを評価せず早期returnで3（無制限）を返す"
+given = "card.limitRegulationが未設定、またはundefined"
+expect_return = 3
+
+[[condition]]
+id = "get_card_limit.forbidden_returns_0"
+target_function = "getCardLimit"
+source_lines = "26-28"
+description = "card.limitRegulationが'forbidden'の場合、switchのcase一致により0（禁止カード）を返す"
+given = "card.limitRegulation = 'forbidden'"
+expect_return = 0
+
+[[condition]]
+id = "get_card_limit.limited_returns_1"
+target_function = "getCardLimit"
+source_lines = "26,29-30"
+description = "card.limitRegulationが'limited'の場合、switchのcase一致により1（制限カード）を返す"
+given = "card.limitRegulation = 'limited'"
+expect_return = 1
+
+[[condition]]
+id = "get_card_limit.semi_limited_returns_2"
+target_function = "getCardLimit"
+source_lines = "26,31-32"
+description = "card.limitRegulationが'semi-limited'の場合、switchのcase一致により2（準制限カード）を返す"
+given = "card.limitRegulation = 'semi-limited'"
+expect_return = 2
+
+[[condition]]
+id = "get_card_limit.unknown_value_falls_to_default"
+target_function = "getCardLimit"
+source_lines = "26,33-34"
+description = "card.limitRegulationがtruthyだが'forbidden'/'limited'/'semi-limited'のいずれにも一致しない場合、switchのdefault節に落ちて3（無制限）を返す。LimitRegulation型はコンパイル時この3値のみだが、実データが外部ソース由来のためこの分岐は実行時に到達しうる"
+given = "card.limitRegulation = 'unknown'（型システム外の値、実データ相当）"
+expect_return = 3

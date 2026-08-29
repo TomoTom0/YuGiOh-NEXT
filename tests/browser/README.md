@@ -216,6 +216,29 @@ node tests/browser/test-filter-dialog-header.cjs
 node tests/browser/test-filter-not-condition.cjs
 ```
 
+### `test-filter-multi-type-and-or.cjs`
+
+複数モンスタータイプ選択時のAND/OR絞り込みの回帰テストです（TASK-373）。
+
+過去に、モンスタータイプを2種類以上選択してもURL構築処理（`buildApiUrl`）が同名パラメータ
+（`other=X&other=Y`）を上書きし、実際には1種類しかサーバーへ送信されない不具合と、
+デフォルトソート順のAPI値が名前と逆の意味だった不具合があった。
+
+**確認項目**:
+1. 融合+シンクロの2種類選択時、実際のリクエストに`other`パラメータが2個とも送信されること
+2. OR検索で0件以上ヒットすること
+3. AND検索で正しく0件になること（融合とシンクロを同時に持つカードは仕様上存在しない）
+4. OR件数とAND件数が異なること（AND/OR切替が結果に反映されていること）
+
+**注意**: ハッシュ部分のみ同一のURLへの`navigate`は同一ドキュメント内遷移となり、
+前回実行時のPinia状態（フィルター選択）が残留することがあるため、`about:blank`を経由して
+確実にフルリロードしてからテストを開始する。
+
+**実行方法**:
+```bash
+node tests/browser/test-filter-multi-type-and-or.cjs
+```
+
 ### `test-header-resize.cjs`
 
 デッキ編集画面のヘッダー成長時スクロール到達性の回帰テストです（TASK-286）。

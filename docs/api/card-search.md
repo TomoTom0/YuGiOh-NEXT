@@ -1,237 +1,184 @@
 # Card Search API
 
-カード検索とパース関連のAPI。
+カード検索・パース・詳細取得関連のAPI（`src/api/card-search.ts`）。
 
-## 主要な関数
+型定義は `src/types/api/search-types.ts` にある。
 
-### `searchCards(options: SearchOptions, language?: 'ja' | 'en'): Promise<CardInfo[]>`
+## 主要な検索関数
 
-カードを検索して結果を返す。
+### `searchCards(options: SearchOptions): Promise<CardInfo[]>`
+
+`card_search.action` を1回呼び出し、結果をパースして返す最も基本的な検索関数。
 
 **パラメータ:**
-- `options: SearchOptions` - 検索オプション
-- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
+- `options: SearchOptions` - 検索オプション（下記参照）
 
 **戻り値:**
-- `Promise<CardInfo[]>` - カード情報の配列（エラー時は空配列）
-
-**言語対応:**
-- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
-- `request_locale=ja`または`request_locale=en`がAPI URLに追加されます
-
-**エラーハンドリング:**
-- HTTP通信エラー: 空配列を返す
-- パースエラー: 空配列を返す
+- `Promise<CardInfo[]>` - カード情報の配列（HTTPエラー・パースエラー時は空配列）
 
 **使用例:**
 ```typescript
-// 言語自動検出
+import { searchCards } from '@/api/card-search';
+
 const cards = await searchCards({
-  cardName: 'Blue-Eyes',
-  cardType: 'モンスター'
+  keyword: 'Blue-Eyes',
+  searchType: '1', // カード名検索
+  monsterTypes: ['fusion', 'synchro'],
+  monsterTypeLogic: 'OR',
+  sort: 21,
+  resultsPerPage: 100
 });
-
-// 言語明示指定
-const cardsEn = await searchCards({
-  cardName: 'Blue-Eyes',
-  cardType: 'monster'
-}, 'en');
 ```
+
+内部的には `buildSearchParams(options)` でクエリパラメータを組み立て、
+`buildApiUrl('card_search.action', gameType, params)` で最終URLを構築し、`queuedFetch` で取得する。
 
 ---
 
-### `searchCardsByName(keyword: string, ctype?: CardType, language?: 'ja' | 'en'): Promise<CardInfo[]>`
+### `searchCardsAuto(options: SearchOptions): Promise<SearchAutoResult>`
 
-カード名でカードを検索する。
+「auto」検索モード用。キーワードの長さに応じて検索方式を自動選択する。
 
-**パラメータ:**
-- `keyword: string` - 検索キーワード
-- `ctype?: CardType` - カードタイプ（オプション）
-- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
+**動作:**
+- キーワード1文字: カード名検索（`searchType: '1'`）のみ実行
+- キーワード2文字以上: カード名・テキスト・ペンデュラム効果（`searchType: '1'|'2'|'3'`）を`Promise.all`で並列実行し、
+  カード名検索が100件以上ヒットした場合はカード名検索の結果のみを返す（呼び出し側がname検索へ委譲して
+  追加ページを取得するため）。100件未満ならname > text > pendulumの優先順で`cardId`をキーにマージする
 
 **戻り値:**
-- `Promise<CardInfo[]>` - カード情報の配列（エラー時は空配列）
+- `Promise<SearchAutoResult>` - `{ cards: CardInfo[] }`
 
-**言語対応:**
-- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
-
-**エラーハンドリング:**
-- HTTP通信エラー: 空配列を返す
-- パースエラー: 空配列を返す
-
-**使用例:**
-```typescript
-const cards = await searchCardsByName('Blue-Eyes', 'モンスター');
-const cardsEn = await searchCardsByName('Blue-Eyes', 'monster', 'en');
-```
+**注意:** `searchCardsAuto`自体はモンスタータイプ等のAND/OR絞り込みをクライアント側で適用しない。
+呼び出し側（`useSearchExecution.ts`の`handleSearch`）が`applyClientSideFilters`で明示的に適用する必要がある
+（サーバー側の`othercon`パラメータだけでは正しく絞り込まれないケースがあるため。TASK-373参照）。
 
 ---
 
-### `searchCardById(cardId: string, language?: 'ja' | 'en'): Promise<CardInfo | null>`
+### `searchCardById(cardId: string): Promise<CardInfo | null>`
 
-カードIDでカードを検索する。
-
-**パラメータ:**
-- `cardId: string` - カードID
-- `language?: 'ja' | 'en'` - 言語指定（省略時は自動検出）
+カードIDで1件検索する（`ope=2&cid=<id>`）。
 
 **戻り値:**
 - `Promise<CardInfo | null>` - カード情報（見つからない場合はnull）
 
-**言語対応:**
-- `language`パラメータを省略した場合、`detectLanguage()`が自動でページ言語を検出します
+---
 
-**エラーハンドリング:**
-- HTTP通信エラー: nullを返す
-- パースエラー: nullを返す
+### `searchCardsByPackId(packId: string): Promise<CardInfo[]>`
+
+パック（商品）IDに含まれる全カードを取得する（`pid=<packId>&rp=99999`）。
 
 **使用例:**
 ```typescript
-const card = await searchCardById('14953');
-const cardEn = await searchCardById('14953', 'en');
+const cards = await searchCardsByPackId('1000009524000');
 ```
 
 ---
+
+### `buildSearchParams(options: SearchOptions): URLSearchParams`
+
+`SearchOptions` を実際のAPIクエリパラメータ（`URLSearchParams`）に変換する。
+`searchCards`/`searchCardsAuto`が内部的に使用する。単体でテストする場合や、
+実際に送信されるパラメータを確認したい場合に直接呼び出せる。
+
+---
+
+## `SearchOptions` 型
+
+`src/types/api/search-types.ts` で定義。主なプロパティ（全て`buildSearchParams`が対応するAPIパラメータへ変換する）:
+
+| プロパティ | 型 | 対応するAPIパラメータ |
+|-----------|-----|----------------------|
+| `keyword` | `string`（必須） | `keyword` |
+| `searchType` | `'1'\|'2'\|'3'\|'4'` | `stype`（1=カード名, 2=テキスト, 3=ペンデュラム効果, 4=カード番号） |
+| `cardType` | `CardType` | `ctype` |
+| `attributes` | `Attribute[]` | `attr`（複数） |
+| `races` | `Race[]` | `species`（複数） |
+| `monsterTypes` | `MonsterType[]` | `other`（複数） |
+| `monsterTypeLogic` | `'AND'\|'OR'` | `othercon`（1=AND, 2=OR） |
+| `excludeMonsterTypes` | `MonsterType[]` | `jogai`（複数） |
+| `levels` | `number[]` | `level0`〜`level13` |
+| `atk` / `def` | `{from?, to?}` | `atkfr`/`atkto`, `deffr`/`defto` |
+| `pendulumScales` | `number[]` | `Pscale0`〜`Pscale13` |
+| `linkNumbers` | `number[]` | `Link1`〜`Link6` |
+| `linkMarkers` | `number[]` | `linkbtn<N>`（複数） |
+| `linkMarkerLogic` | `'AND'\|'OR'` | `link_m`（1=AND, 2=OR） |
+| `spellEffectTypes` / `trapEffectTypes` | 配列 | `effe`（複数） |
+| `sort` | `number` | `sort`（下記「sort値の注意」参照） |
+| `resultsPerPage` | `number` | `rp` |
+| `releaseDate` | `{start?, end?}` | `releaseYStart`等 |
+
+**sort値の注意（非直感的）:** `sort`の実際の意味は名称から連想しにくい。
+`SORT_ORDER_TO_API_VALUE`（`src/api/mappers/card-search-mapper.ts`）でラベル→API値への
+マッピングを一元管理しているため、直接数値を指定せずこのマッピングを経由すること。
+実際のAPI値の意味は `docs/dev/official-api.md` の「sort パラメータの実際の意味」を参照
+（`sort=20`は最古、`sort=21`は最新のカードを返す）。
+
+**複数選択パラメータ(`other`/`attr`/`species`等)の注意:** これらは同じキーを複数回指定する形式。
+最終URL構築を担う`buildApiUrl`（`src/utils/url-builder.ts`）が同名キーを正しく全て保持する実装に
+なっていることが前提（TASK-373で一度この前提が壊れていたことがある）。
+
+---
+
+## パース関数
 
 ### `parseSearchResults(doc: Document): CardInfo[]`
 
-検索結果ページのHTMLドキュメントからカード情報を抽出する。
-
-**パラメータ:**
-- `doc: Document` - パース済みのHTMLドキュメント
-
-**戻り値:**
-- `CardInfo[]` - カード情報の配列
+検索結果ページのHTMLドキュメントから全カード情報を抽出する。
 
 **DOM階層の検証:**
-
-この関数は以下の階層を検証します：
 ```
 #main980 > #article_body > #card_list > .t_row
 ```
+各親要素が存在しない場合、空配列を返す。
 
-各親要素が存在しない場合、警告を出力して空配列を返します。
+### `parseSearchResultRow(row: HTMLElement, imageInfoMap): CardInfo | null`
 
-**内部動作:**
-1. `#main980`の存在確認
-2. `#main980 > #article_body`の存在確認
-3. `#main980 > #article_body > #card_list`の存在確認
-4. `.t_row`要素を取得してパース
+`.t_row`要素1行から、`detectCardType`でカードタイプを判定した上で
+`parseMonsterCard`/`parseSpellCard`/`parseTrapCard`のいずれかに委譲する。
 
-**使用例:**
-```typescript
-const response = await fetch('...');
-const html = await response.text();
-const parser = new DOMParser();
-const doc = parser.parseFromString(html, 'text/html');
-const cards = parseSearchResults(doc);
-```
+### `parseCardBase(row, imageInfoMap): CardBase | null`
 
----
+カード共通情報（`name`, `cardId`, `ruby`, `ciid`, `imgHash`等）を抽出する。
+カードIDは `input.link_value` の値（例: `/yugiohdb/card_search.action?ope=2&cid=13903`）から
+正規表現 `/[?&]cid=(\d+)/` で抽出する。
 
-### `parseSearchResultRow(row: HTMLElement, imageInfoMap: Map): CardInfo | null`
+### `extractImageInfo(doc: Document): Map<string, { ciid?, imgHash? }>`
 
-検索結果の1行からカード情報を抽出する。
-
-**パラメータ:**
-- `row: HTMLElement` - `.t_row`要素
-- `imageInfoMap: Map<string, { ciid?: string; imgHash?: string }>` - 画像情報マップ
-
-**戻り値:**
-- `CardInfo | null` - カード情報（パースできない場合はnull）
-
-**抽出する情報:**
-- カード名（`.card_name`）
-- カードID（`input.link_value`から抽出）
-- ふりがな（`.card_ruby`）
-- 効果テキスト（`.box_card_text`）
-- カードタイプ固有情報（モンスター/魔法/罠）
-
-**カードID抽出:**
-```typescript
-// input.link_value の値から cid= を抽出
-// 例: "/yugiohdb/card_search.action?ope=2&cid=13903" から "13903"
-const match = linkValueInput.value.match(/[?&]cid=(\d+)/);
-const cardId = match[1];
-```
+HTML内のインラインJavaScriptから、カードIDごとの画像識別子（`ciid`）と画像ハッシュ（`imgHash`）を
+正規表現で抽出する。`parseSearchResults`が事前に呼び出し、各行のパース時に参照する。
 
 ---
 
-### `extractImageInfo(doc: Document): Map<string, { ciid?: string; imgHash?: string }>`
+## ページング・詳細取得
 
-HTMLドキュメントから画像URL情報を抽出する。
+### `fetchAdditionalPages(baseParams, parseFunc, logPrefix): Promise<CardInfo[]>`
 
-**パラメータ:**
-- `doc: Document` - HTMLドキュメント
+`rp=2000`で2000件ずつページングしながら全件取得する共通ヘルパー（バックグラウンド処理用）。
+`hasMore`（検索結果100件到達時の拡張フェッチ）や関連カード全件取得で使用される。
 
-**戻り値:**
-- `Map<string, { ciid?: string; imgHash?: string }>` - カードIDをキーとする画像情報マップ
+### `getCardDetail(cardId, lang?, sortOrder?, fromFAQ?): Promise<CardDetail | null>`
 
-**抽出パターン:**
-```javascript
-// get_image.action?...cid=123&ciid=1&enc=xxxxx
-const regex = /get_image\.action\?[^'"]*cid=(\d+)(?:&ciid=(\d+))?(?:&enc=([^&'"\s]+))?/g;
-```
+カード詳細ページから、複数画像・ふりがな・収録情報・関連カード・関連FAQ・関連商品などの
+補足情報を取得する。基本情報（名前・ステータス等）は検索結果やデッキ読み込みで既にキャッシュ済み
+という前提で、詳細ページからは補足情報のみを取得する。
 
----
+### `getCardDetailWithCache(cardId, lang?, autoRefresh?, sortOrder?, fromFAQ?): Promise<CardDetailCacheResult>`
 
-## 型定義
-
-### `CardInfo`
-
-```typescript
-type CardInfo = MonsterCard | SpellCard | TrapCard;
-```
-
-### `CardBase`
-
-```typescript
-interface CardBase {
-  name: string;           // カード名
-  ruby?: string;          // ふりがな
-  cardId: string;         // カードID
-  imageId: string;        // 画像ID（デフォルト: '1'）
-  ciid?: string;          // 画像識別子
-  imgHash?: string;       // 画像ハッシュ
-  text?: string;          // 効果テキスト
-}
-```
-
-### `SearchOptions`
-
-```typescript
-interface SearchOptions {
-  cardName?: string;
-  cardType?: CardType;
-  attribute?: Attribute;
-  race?: Race;
-  // ... その他のオプション
-}
-```
+`getCardDetail`のキャッシュ対応版。キャッシュの仕組み自体の詳細は
+`docs/dev/cache-system.md` / `docs/design/card-info-cache.md` を参照。
 
 ---
 
 ## エラーハンドリング
 
-すべての公開関数は内部的にtry-catchを実装しており、エラー時に適切な値（空配列またはnull）を返します。
-
-```typescript
-try {
-  return parseSearchResults(doc);
-} catch (error) {
-  console.error('Failed to search cards:', error);
-  return [];
-}
-```
-
----
+すべての公開関数は内部的にtry-catchを実装しており、エラー時は空配列または`null`を返す
+（例外を上位に投げない）。エラーは`console.error`に出力される。
 
 ## 注意事項
 
-1. **DOM階層の重要性**: `parseSearchResults()`は正確なDOM階層を使用します。間違ったページを渡すと空配列を返します。
-
-2. **カードID取得**: すべてのカード行は`input.link_value`を持っていることを前提としています。
-
-3. **画像情報**: `ciid`と`imgHash`はオプションです。取得できない場合は`undefined`になります。
-
-4. **エラーログ**: パースエラーは`console.error`に出力されますが、例外は投げられません。
+1. **DOM階層の重要性**: `parseSearchResults()`は正確なDOM階層を前提とする。違うページを渡すと空配列を返す
+2. **カードID取得**: 全てのカード行は`input.link_value`を持つ前提
+3. **画像情報**: `ciid`と`imgHash`はオプション。取得できない場合は`undefined`
+4. **AND/OR絞り込みの二重実装**: サーバー側の`othercon`/`link_m`だけに頼らず、
+   `useSearchExecution.ts`の`applyClientSideFilters`でクライアント側でも同じ条件を再適用している
+   （TASK-373参照）

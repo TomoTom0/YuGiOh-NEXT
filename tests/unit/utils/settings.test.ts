@@ -32,7 +32,12 @@ describe('settings', () => {
   });
 
   describe('loadFeatureSettings', () => {
-    it('保存された設定を読み込める', async () => {
+    // 注: このテストは src/types/settings.ts の FeatureId に存在しない
+    // 'enableAllFeatures'/'enableCardSearchFeature' というキーを使っている（tests/design/settings/conditions.toml参照）。
+    // FeatureSettingsの`[key: string]: boolean` index signatureにより型エラーにはならず、
+    // マージ処理自体（load_feature_settings.merge_with_stored）は実際に検証できているため
+    // covers タグを付けて残す。実FeatureIdでの検証は下の補完テストで行う。
+    it('[covers:load_feature_settings.merge_with_stored] 保存された設定を読み込める', async () => {
       const savedSettings: Partial<FeatureSettings> = {
         enableAllFeatures: false,
         enableCardSearchFeature: true,
@@ -46,7 +51,20 @@ describe('settings', () => {
       expect(result.enableCardSearchFeature).toBe(true);
     });
 
-    it('設定が存在しない場合はデフォルト値を返す', async () => {
+    it('[covers:load_feature_settings.merge_with_stored] 実FeatureIdの保存値のみが上書きされ、未指定キーはDEFAULT値を保持する', async () => {
+      mockChromeStorage.get.mockResolvedValue({
+        featureSettings: { 'shuffle-sort': false, chat: true },
+      });
+
+      const result = await loadFeatureSettings();
+
+      expect(result['shuffle-sort']).toBe(false);
+      expect(result['chat']).toBe(true);
+      expect(result['deck-image']).toBe(DEFAULT_FEATURE_SETTINGS['deck-image']);
+      expect(result['deck-edit']).toBe(DEFAULT_FEATURE_SETTINGS['deck-edit']);
+    });
+
+    it('[covers:load_feature_settings.no_stored_returns_default] 設定が存在しない場合はデフォルト値を返す', async () => {
       mockChromeStorage.get.mockResolvedValue({});
 
       const result = await loadFeatureSettings();
@@ -54,7 +72,7 @@ describe('settings', () => {
       expect(result).toEqual(DEFAULT_FEATURE_SETTINGS);
     });
 
-    it('部分的な設定はデフォルト値とマージされる', async () => {
+    it('[covers:load_feature_settings.merge_with_stored] 部分的な設定はデフォルト値とマージされる', async () => {
       const partialSettings: Partial<FeatureSettings> = {
         enableCardSearchFeature: false,
       };
@@ -66,7 +84,7 @@ describe('settings', () => {
       expect(result.enableAllFeatures).toBe(DEFAULT_FEATURE_SETTINGS.enableAllFeatures);
     });
 
-    it('読み込み失敗時はデフォルト値を返す', async () => {
+    it('[covers:load_feature_settings.storage_get_throws_returns_default] 読み込み失敗時はデフォルト値を返す', async () => {
       mockChromeStorage.get.mockRejectedValue(new Error('Storage error'));
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -77,10 +95,45 @@ describe('settings', () => {
 
       consoleErrorSpy.mockRestore();
     });
+
+    // category3（practice/genesys）の本番強制OFFロジック（src/utils/settings.ts L25-26）。
+    // vitest実行環境ではimport.meta.env.DEVが常にtrueのため、DEFAULT_FEATURE_SETTINGS.practice/genesys
+    // も常にtrueになり通常のテストでは「本番ビルドでのDEFAULT=false」を再現できない。
+    // '@/types/settings' をvi.doMockで差し替え、DEFAULT側をfalseにして検証する。
+    describe('category3強制OFF（本番ビルド相当のシミュレーション）', () => {
+      afterEach(() => {
+        vi.doUnmock('@/types/settings');
+        vi.resetModules();
+      });
+
+      it('[covers:load_feature_settings.category3_force_off_practice][covers:load_feature_settings.category3_force_off_genesys] DEFAULT.practice/genesysがfalseの場合、保存値がtrueでも強制的にfalseになる', async () => {
+        vi.doMock('@/types/settings', async (importOriginal) => {
+          const original = await importOriginal<typeof import('@/types/settings')>();
+          return {
+            ...original,
+            DEFAULT_FEATURE_SETTINGS: {
+              ...original.DEFAULT_FEATURE_SETTINGS,
+              practice: false,
+              genesys: false,
+            },
+          };
+        });
+        vi.resetModules();
+        mockChromeStorage.get.mockResolvedValue({
+          featureSettings: { practice: true, genesys: true },
+        });
+
+        const { loadFeatureSettings: loadFeatureSettingsMocked } = await import('@/utils/settings');
+        const result = await loadFeatureSettingsMocked();
+
+        expect(result.practice).toBe(false);
+        expect(result.genesys).toBe(false);
+      });
+    });
   });
 
   describe('isFeatureEnabled', () => {
-    it('特定の機能が有効かどうかを確認できる', async () => {
+    it('[covers:is_feature_enabled.returns_defined_value] 特定の機能が有効かどうかを確認できる', async () => {
       const settings: Partial<FeatureSettings> = {
         enableCardSearchFeature: true,
       };
@@ -91,7 +144,7 @@ describe('settings', () => {
       expect(result).toBe(true);
     });
 
-    it('機能が無効の場合はfalseを返す', async () => {
+    it('[covers:is_feature_enabled.returns_defined_value] 機能が無効の場合はfalseを返す', async () => {
       const settings: Partial<FeatureSettings> = {
         enableCardSearchFeature: false,
       };
@@ -102,17 +155,37 @@ describe('settings', () => {
       expect(result).toBe(false);
     });
 
-    it('設定が存在しない場合はデフォルト値を使用する', async () => {
+    it("[covers:is_feature_enabled.returns_defined_value] 実FeatureId('shuffle-sort')でも有効/無効を確認できる", async () => {
+      mockChromeStorage.get.mockResolvedValue({
+        featureSettings: { 'shuffle-sort': false },
+      });
+
+      const result = await isFeatureEnabled('shuffle-sort');
+
+      expect(result).toBe(false);
+    });
+
+    it('[covers:load_feature_settings.no_stored_returns_default] 設定が存在しない場合はデフォルト値を使用する', async () => {
       mockChromeStorage.get.mockResolvedValue({});
 
       const result = await isFeatureEnabled('enableAllFeatures');
 
       expect(result).toBe(DEFAULT_FEATURE_SETTINGS.enableAllFeatures);
     });
+
+    it('[covers:is_feature_enabled.fallback_to_default_when_undefined] settings[featureId]がundefinedならDEFAULT_FEATURE_SETTINGSにフォールバックする', async () => {
+      mockChromeStorage.get.mockResolvedValue({
+        featureSettings: { chat: undefined },
+      });
+
+      const result = await isFeatureEnabled('chat');
+
+      expect(result).toBe(DEFAULT_FEATURE_SETTINGS.chat);
+    });
   });
 
   describe('saveFeatureSettings', () => {
-    it('機能設定を保存できる', async () => {
+    it('[covers:save_feature_settings.success] 機能設定を保存できる', async () => {
       const settings: FeatureSettings = {
         ...DEFAULT_FEATURE_SETTINGS,
         enableCardSearchFeature: false,
@@ -123,7 +196,7 @@ describe('settings', () => {
       expect(mockChromeStorage.set).toHaveBeenCalledWith({ featureSettings: settings });
     });
 
-    it('保存失敗時はエラーをスローする', async () => {
+    it('[covers:save_feature_settings.failure_rethrows] 保存失敗時はエラーをスローする', async () => {
       const settings = DEFAULT_FEATURE_SETTINGS;
       const error = new Error('Storage error');
       mockChromeStorage.set.mockRejectedValue(error);
@@ -137,7 +210,7 @@ describe('settings', () => {
   });
 
   describe('loadAppSettings', () => {
-    it('保存されたアプリ設定を読み込める', async () => {
+    it('[covers:load_app_settings.merge_with_stored] 保存されたアプリ設定を読み込める', async () => {
       const savedSettings: Partial<AppSettings> = {
         theme: 'dark',
         language: 'en',
@@ -151,7 +224,7 @@ describe('settings', () => {
       expect(result.language).toBe('en');
     });
 
-    it('設定が存在しない場合はデフォルト値を返す', async () => {
+    it('[covers:load_app_settings.no_stored_returns_default] 設定が存在しない場合はデフォルト値を返す', async () => {
       mockChromeStorage.get.mockResolvedValue({});
 
       const result = await loadAppSettings();
@@ -159,7 +232,7 @@ describe('settings', () => {
       expect(result).toEqual(DEFAULT_APP_SETTINGS);
     });
 
-    it('部分的な設定はデフォルト値とマージされる', async () => {
+    it('[covers:load_app_settings.merge_with_stored] 部分的な設定はデフォルト値とマージされる', async () => {
       const partialSettings: Partial<AppSettings> = {
         theme: 'light',
       };
@@ -171,7 +244,7 @@ describe('settings', () => {
       expect(result.language).toBe(DEFAULT_APP_SETTINGS.language);
     });
 
-    it('読み込み失敗時はデフォルト値を返す', async () => {
+    it('[covers:load_app_settings.storage_get_throws_returns_default] 読み込み失敗時はデフォルト値を返す', async () => {
       mockChromeStorage.get.mockRejectedValue(new Error('Storage error'));
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -185,7 +258,7 @@ describe('settings', () => {
   });
 
   describe('saveAppSettings', () => {
-    it('アプリ設定を保存できる', async () => {
+    it('[covers:save_app_settings.success] アプリ設定を保存できる', async () => {
       const settings: AppSettings = {
         ...DEFAULT_APP_SETTINGS,
         theme: 'dark',
@@ -196,7 +269,7 @@ describe('settings', () => {
       expect(mockChromeStorage.set).toHaveBeenCalledWith({ appSettings: settings });
     });
 
-    it('保存失敗時はエラーをスローする', async () => {
+    it('[covers:save_app_settings.failure_rethrows] 保存失敗時はエラーをスローする', async () => {
       const settings = DEFAULT_APP_SETTINGS;
       const error = new Error('Storage error');
       mockChromeStorage.set.mockRejectedValue(error);

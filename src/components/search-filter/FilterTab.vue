@@ -176,6 +176,7 @@
             :key="type"
             class="chip chip-fixed"
             :class="getMonsterTypeClass(type)"
+            :data-type="type"
             :disabled="isMonsterTypeAttributeDisabled(type)"
             :title="isMonsterTypeAttributeDisabled(type) ? getMonsterTypeDisabledReason(type) : undefined"
             @click="cycleMonsterTypeState(type)"

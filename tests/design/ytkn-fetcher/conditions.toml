@@ -1,0 +1,139 @@
+# 検証対象: src/utils/ytkn-fetcher.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、外部fetch(axios経由)を伴うutils。
+#
+# 実装コメントとの差異・特記事項:
+# - 3関数(fetchYtknFromEditForm/fetchYtknFromDeckDisplay/fetchYtknFromDeckList)は
+#   「try内でbuildApiUrl→axios.get→DOMParser→safeQueryAs→?? null」という同一骨格を持つ
+#   ほぼ重複コード。README 2節「無理に条件数を稼がない」方針に従い、共通パターン
+#   （型ガード失敗・空文字列valueの挙動）はfetchYtknFromEditFormでのみ完全に条件化し、
+#   他2関数は成功/未検出/例外catchの3条件に絞った。挙動は3関数とも同一ロジックであるため
+#   省略しても検証漏れにはならない。
+# - axios.getのresponse.statusは一切参照されない。HTTPステータスが4xx/5xxでも
+#   response.dataをそのままDOMParserに渡し、ytkn要素が見つからなければnullを返すのみで、
+#   ステータスコードによる分岐は存在しない（既存の統合テストのコメントとも一致）。
+# - DOMParser.parseFromString()は不正なHTML文字列を渡しても常にDocumentを返す仕様
+#   (ブラウザ実装依存の外部挙動)のため、「HTMLパース失敗」という分岐は実装上存在しない。
+#   parseエラー自体はthrowされずtry節を通過し、ytkn要素が見つからずnullになるだけ。
+# - fetchYtknFromDeckListのみ他2関数と異なり: (1) buildApiUrlの第4引数noLocaleにtrueを
+#   明示的に渡す、(2) 戻り値のbaseUrlに対しURLSearchParamsを使わず手動で文字列連結する
+#   （パラメータ順序を保証するためとコメントに明記）、(3) dnoパラメータを含まない、
+#   (4) セレクタが`input#ytkn`ではなく`input[name="ytkn"]`である。
+
+[meta]
+feature = "ytkn-fetcher"
+source_file = "src/utils/ytkn-fetcher.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/ytkn-fetcher.test.ts"
+source_hash = "c66bb975804fcc05fdf8f8f6f5e950610782fc2e"
+note = "verified=falseは0件。全条件がexport関数の公開APIのみで検証可能。"
+
+# --- fetchYtknFromEditForm(cgid, dno, gameType): Promise<string | null> ---
+
+[[condition]]
+id = "fetch_ytkn_from_edit_form.success_returns_value"
+target_function = "fetchYtknFromEditForm"
+source_lines = "19-30"
+description = "response.dataをDOMParserでパースしinput#ytknが見つかった場合、その.valueを返す。URLはope=2, wname=MemberDeck, cgid, dnoを含みbuildApiUrl経由（noLocale未指定=false扱い）で構築される"
+given = "axios.getがinput#ytkn value='X'を含むHTMLでresolveする"
+expect_return = "X"
+expect_side_effect = "axios.getはope=2/wname=MemberDeck/cgid=<cgid>/dno=<dno>を含むURLに対しwithCredentials:trueで呼ばれる"
+
+[[condition]]
+id = "fetch_ytkn_from_edit_form.not_found_returns_null"
+target_function = "fetchYtknFromEditForm"
+source_lines = "29-30"
+description = "input#ytknがDOM上に存在しない場合、safeQueryAsがnullを返し、?? nullによりnullを返す"
+given = "axios.getがinput#ytknを含まないHTMLでresolveする"
+expect_return = null
+
+[[condition]]
+id = "fetch_ytkn_from_edit_form.type_guard_failure_returns_null"
+target_function = "fetchYtknFromEditForm"
+source_lines = "29-30"
+description = "id=ytknの要素が存在してもHTMLInputElementでない場合（isHTMLInputElement型ガードが偽）、safeQueryAsはnullを返しytknInputはnullになる。querySelector単体ではなく型ガード付きsafeQueryAsを使う意味がある分岐"
+given = "HTMLに<div id=\"ytkn\">値</div>のみ存在しinput要素は無い"
+expect_return = null
+
+[[condition]]
+id = "fetch_ytkn_from_edit_form.empty_string_value_not_coalesced"
+target_function = "fetchYtknFromEditForm"
+source_lines = "30"
+description = "ytknInput.valueが空文字列''の場合、?? はnullish coalescingのため(null/undefinedのみ代替)、''がそのまま返る（||との違い）"
+given = "input#ytkn value=''（空文字列）"
+expect_return = ""
+
+[[condition]]
+id = "fetch_ytkn_from_edit_form.axios_error_returns_null"
+target_function = "fetchYtknFromEditForm"
+source_lines = "31-34"
+description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す（例外を再throwしない）"
+given = "axios.getがError('Network error')でrejectする"
+expect_return = null
+expect_side_effect = "console.error('[fetchYtknFromEditForm] Failed to fetch ytkn:', error)が呼ばれる"
+
+# --- fetchYtknFromDeckDisplay(cgid, dno, gameType): Promise<string | null> ---
+
+[[condition]]
+id = "fetch_ytkn_from_deck_display.success_returns_value"
+target_function = "fetchYtknFromDeckDisplay"
+source_lines = "50-61"
+description = "response.dataをDOMParserでパースしinput#ytknが見つかった場合その.valueを返す。URLはope=1, wname=MemberDeck, cgid, dnoを含む"
+given = "axios.getがinput#ytkn value='X'を含むHTMLでresolveする"
+expect_return = "X"
+expect_side_effect = "axios.getはope=1を含むURLに対しwithCredentials:trueで呼ばれる"
+
+[[condition]]
+id = "fetch_ytkn_from_deck_display.not_found_returns_null"
+target_function = "fetchYtknFromDeckDisplay"
+source_lines = "60-61"
+description = "input#ytknが見つからない場合はnullを返す（fetch_ytkn_from_edit_form.not_found_returns_nullと同一パターン）"
+given = "axios.getがinput#ytknを含まないHTMLでresolveする"
+expect_return = null
+
+[[condition]]
+id = "fetch_ytkn_from_deck_display.axios_error_returns_null"
+target_function = "fetchYtknFromDeckDisplay"
+source_lines = "62-65"
+description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す"
+given = "axios.getがError('Connection timeout')でrejectする"
+expect_return = null
+expect_side_effect = "console.error('[fetchYtknFromDeckDisplay] Failed to fetch ytkn:', error)が呼ばれる"
+
+# --- fetchYtknFromDeckList(cgid, gameType): Promise<string | null> ---
+
+[[condition]]
+id = "fetch_ytkn_from_deck_list.success_returns_value"
+target_function = "fetchYtknFromDeckList"
+source_lines = "79-91"
+description = "response.dataをDOMParserでパースしinput[name=\"ytkn\"]（id指定ではなくname属性指定である点が他2関数と異なる）が見つかった場合その.valueを返す"
+given = "axios.getがinput[name=\"ytkn\"] value='X'を含むHTMLでresolveする"
+expect_return = "X"
+
+[[condition]]
+id = "fetch_ytkn_from_deck_list.not_found_returns_null"
+target_function = "fetchYtknFromDeckList"
+source_lines = "90-91"
+description = "input[name=\"ytkn\"]が見つからない場合はnullを返す"
+given = "axios.getがinput[name=\"ytkn\"]を含まないHTMLでresolveする"
+expect_return = null
+
+[[condition]]
+id = "fetch_ytkn_from_deck_list.axios_error_returns_null"
+target_function = "fetchYtknFromDeckList"
+source_lines = "92-95"
+description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す"
+given = "axios.getがError('Server error')でrejectする"
+expect_return = null
+expect_side_effect = "console.error('[fetchYtknFromDeckList] Failed to fetch ytkn:', error)が呼ばれる"
+
+[[condition]]
+id = "fetch_ytkn_from_deck_list.url_built_without_url_search_params"
+target_function = "fetchYtknFromDeckList"
+source_lines = "80-84"
+description = "buildApiUrlをnoLocale=true（第4引数明示）で呼びrequest_localeを含まないbaseUrlを取得したうえで、URLSearchParamsを使わず`${baseUrl}?ope=4&wname=MemberDeck&cgid=${cgid}`と手動で文字列連結する（パラメータ順序保証のため、と実装コメントに明記）。dnoパラメータは付与されない"
+given = "cgid='u1', gameType='ocg'"
+expect_side_effect = "axios.getに渡されるURLはope=4/wname=MemberDeck/cgid=u1を含み、dnoは含まれない"

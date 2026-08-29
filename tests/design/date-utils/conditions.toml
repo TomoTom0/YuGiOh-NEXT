@@ -1,0 +1,129 @@
+# 検証対象: src/utils/date-utils.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、51行の小規模日付ユーティリティ。
+#
+# 実装コメントとの差異: なし。
+#
+# 実装上の注意点（分岐ではないが記録しておく）:
+# - isSameDay/toDateStringは引数のtimestampを`new Date(timestamp)`で解釈するが、
+#   年月日の取得は getFullYear/getMonth/getDate というローカルタイムゾーン基準のメソッドを
+#   使っている（getUTCFullYear等ではない）。そのためテスト実行環境のタイムゾーンに挙動が依存する。
+# - getTodayStart/getTodayEndは引数を取らず`new Date()`（システム時刻）に依存するため、
+#   テストではvi.setSystemTime等でシステム時刻を固定した上で検証する必要がある。
+#   同様の理由でこの2関数もローカルタイムゾーン基準（UTCではない）。
+# - AST骨格抽出（scripts/design/extract-ast-skeleton.ts）の結果、4関数とも if/switch分岐・
+#   throw文は存在せず、いずれも単一のreturn文のみ。isSameDayの`&&`連結条件のみが
+#   意味のある分岐（真偽の組み合わせ）を持つ。
+
+[meta]
+feature = "date-utils"
+source_file = "src/utils/date-utils.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/date-utils.test.ts"
+source_hash = "62737302c832c491219b7ddcb2c2177225f48048"
+note = "verified=falseは0件。全4関数とも公開APIのみで検証可能。"
+
+# --- isSameDay(timestamp1: number, timestamp2: number): boolean ---
+
+[[condition]]
+id = "is_same_day.identical_timestamps_true"
+target_function = "isSameDay"
+source_lines = "11-20"
+description = "同一のtimestampを2つとも渡した場合、年月日の3条件すべてが一致するためtrueを返す"
+given = "timestamp1 === timestamp2（同一のミリ秒値）"
+expect_return = true
+
+[[condition]]
+id = "is_same_day.same_day_different_time_true"
+target_function = "isSameDay"
+source_lines = "15-19"
+description = "年・月・日が一致していれば時刻部分（時分秒ミリ秒）が異なっていてもtrueを返す"
+given = "timestamp1 = 同日0:00:00.000, timestamp2 = 同日23:59:59.999"
+expect_return = true
+
+[[condition]]
+id = "is_same_day.different_year_false"
+target_function = "isSameDay"
+source_lines = "16"
+description = "月日が一致していても年が異なる場合、getFullYear比較でfalseになりfalseを返す（year !== の時点でand連鎖全体がfalse）"
+given = "timestamp1 = 2025-06-15, timestamp2 = 2026-06-15"
+expect_return = false
+
+[[condition]]
+id = "is_same_day.different_month_same_year_day_false"
+target_function = "isSameDay"
+source_lines = "17"
+description = "年・日が一致していても月が異なる場合はfalseを返す"
+given = "timestamp1 = 2026-01-15, timestamp2 = 2026-02-15"
+expect_return = false
+
+[[condition]]
+id = "is_same_day.different_date_same_year_month_false"
+target_function = "isSameDay"
+source_lines = "18"
+description = "年・月が一致していても日が異なる場合はfalseを返す"
+given = "timestamp1 = 2026-06-14, timestamp2 = 2026-06-15"
+expect_return = false
+
+[[condition]]
+id = "is_same_day.cross_year_boundary_false"
+target_function = "isSameDay"
+source_lines = "15-19"
+description = "年末年始をまたぐ場合（12/31と1/1）は年も月も日も一致しないためfalseを返す（年境界での誤判定が無いことの確認）"
+given = "timestamp1 = 2025-12-31T23:59:59.999, timestamp2 = 2026-01-01T00:00:00.000"
+expect_return = false
+
+[[condition]]
+id = "is_same_day.invalid_timestamp_nan_false"
+target_function = "isSameDay"
+source_lines = "12-19"
+description = "timestampがNaNの場合、new Date(NaN)はInvalid DateとなりgetFullYear等もNaNを返す。NaN === NaNはfalseのため、たとえ両方NaNでも一致判定はfalseになりfalseを返す"
+given = "timestamp1 = NaN, timestamp2 = NaN"
+expect_return = false
+
+# --- toDateString(timestamp: number): string ---
+
+[[condition]]
+id = "to_date_string.pads_single_digit_month_and_day"
+target_function = "toDateString"
+source_lines = "27-33"
+description = "月・日が1桁の場合、padStart(2, '0')によりゼロ埋めされた2桁文字列になる"
+given = "timestamp = 2026-03-05（3月5日）相当のローカル日時"
+expect_return = "2026-03-05"
+
+[[condition]]
+id = "to_date_string.no_padding_for_double_digit_month_and_day"
+target_function = "toDateString"
+source_lines = "27-33"
+description = "月・日が2桁の場合、padStartは何もせずそのまま2桁文字列になる"
+given = "timestamp = 2026-12-25（12月25日）相当のローカル日時"
+expect_return = "2026-12-25"
+
+# --- getTodayStart(): number ---
+
+[[condition]]
+id = "get_today_start.returns_local_midnight"
+target_function = "getTodayStart"
+source_lines = "39-42"
+description = "引数なしでシステム時刻の年月日から時分秒ミリ秒を0にしたローカルタイムゾーン基準のタイムスタンプを返す"
+given = "システム時刻を2026-06-15T13:45:30.500に固定（vi.setSystemTime）"
+expect_return_shape = "new Date(2026,5,15,0,0,0,0).getTime()と一致する値（同日の0時0分0秒0ミリ秒）"
+
+[[condition]]
+id = "get_today_end.returns_local_235959_999"
+target_function = "getTodayEnd"
+source_lines = "48-51"
+description = "引数なしでシステム時刻の年月日はそのままに、時分秒ミリ秒を23:59:59.999に固定したローカルタイムゾーン基準のタイムスタンプを返す"
+given = "システム時刻を2026-06-15T13:45:30.500に固定（vi.setSystemTime）"
+expect_return_shape = "new Date(2026,5,15,23,59,59,999).getTime()と一致する値（同日の23時59分59秒999ミリ秒）"
+
+[[condition]]
+id = "get_today_start_end.bracket_same_day"
+target_function = "getTodayStart / getTodayEnd"
+source_lines = "39-51"
+description = "getTodayStart()とgetTodayEnd()は同じシステム日付から算出されるため、isSameDayで比較すると常に同じ日になる（両関数の一貫性の確認）"
+given = "同一システム時刻でgetTodayStart()とgetTodayEnd()をそれぞれ呼ぶ"
+expect_return_shape = "isSameDay(getTodayStart(), getTodayEnd()) === true かつ getTodayStart() < getTodayEnd()"

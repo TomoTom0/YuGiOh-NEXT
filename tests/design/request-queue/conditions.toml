@@ -1,0 +1,278 @@
+# 検証対象: src/utils/request-queue.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、同時実行数制限・リトライ・タイムアウトを持つAPIリクエストキューutils。
+#
+# 単純なgetter/setterでbranchを持たない公開メソッド（getQueueSize/getActiveCount/clear）と
+# 単純なsetTimeoutラッパーの非公開メソッド（sleep）は、README 2節の粒度基準
+# （「書かない: 単純なgetter/setter」）に従い条件化しない。
+#
+# 実装コメントとの差異・注意点:
+# - executeWithTimeout (L133-143) は setTimeout の ID を保持せず、fn() が先にsettleしても
+#   clearTimeout を呼ばない（promise-timeout.ts の withTimeout とは異なり後始末しない）。
+#   このためタイマーがリークするが、Promise.race の結果自体には影響しない（分岐ではないため
+#   条件化はしないが、テストではfakeTimersで明示的にクリアする）。
+# - executeWithRetry (L106-128) はループガード `request.retries <= maxRetries` を持つが、
+#   request.retries は常に0初期化かつループ内でしか増加しないため、通常は最終的に
+#   throw(L117) かreturn(L111)でループを抜ける。maxRetriesが負数（options.maxRetries: -1等）の
+#   場合のみ、ループ本体に一度も入らずL127の`throw new Error('Max retries exceeded')`に到達する。
+#   promise-timeout.ts の retryWithTimeout と同型の実装であり、同種の「到達可能な例外パス」。
+# - process() (L87-90) の `if (!request)` は、直前の `this.queue.length === 0` ガード(L80)と
+#   L85のshift()の間に非同期処理が挟まらない（単一スレッド・awaitなし）ため、通常の呼び出し
+#   経路では到達不能に見える防御的コードである。ただしprivateメソッドへの直接アクセスで
+#   queueをshift()がundefinedを返す疑似配列に差し替えることで検証可能なため、
+#   verified=falseにはせず実テストでカバーする。
+
+[meta]
+feature = "request-queue"
+source_file = "src/utils/request-queue.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/request-queue.test.ts"
+source_hash = "c90959b63a741dd8f962323bd128e55381300ae9"
+note = "verified=falseは0件（privateメソッドへの直接アクセスにより全条件を検証可能）"
+
+# --- constructor(options: RequestQueueOptions = {}) ---
+
+[[condition]]
+id = "constructor.defaults_applied_when_options_omitted"
+target_function = "RequestQueue#constructor"
+source_lines = "43-51"
+description = "optionsを省略またはプロパティを省略した場合、各プロパティは ?? によりデフォルト値（concurrentLimit=3, initialRetryDelay=100, maxRetryDelay=10000, maxRetries=3, timeoutMs=30000）が適用される"
+given = "new RequestQueue() （options省略）"
+expect_side_effect = "内部options = { concurrentLimit: 3, initialRetryDelay: 100, maxRetryDelay: 10000, maxRetries: 3, timeoutMs: 30000 }"
+
+[[condition]]
+id = "constructor.custom_options_override_defaults"
+target_function = "RequestQueue#constructor"
+source_lines = "43-51"
+description = "optionsの各プロパティを指定した場合、??の左辺が優先されデフォルト値は使われない"
+given = "new RequestQueue({ concurrentLimit: 1, initialRetryDelay: 10, maxRetryDelay: 200, maxRetries: 2, timeoutMs: 500 })"
+expect_side_effect = "内部options = { concurrentLimit: 1, initialRetryDelay: 10, maxRetryDelay: 200, maxRetries: 2, timeoutMs: 500 }"
+
+# --- enqueue<T>(fn: () => Promise<T>): Promise<T> ---
+
+[[condition]]
+id = "enqueue.wraps_fn_in_request_and_starts_processing"
+target_function = "RequestQueue#enqueue"
+source_lines = "62-74"
+description = "fnをQueuedRequest(retries=0)としてqueueにpushし、process()を呼ぶ。返り値のPromiseはrequest.resolve/rejectが呼ばれた時点でsettleする"
+given = "fnが即座にresolveする"
+expect_return = "fnのresolve値"
+
+# --- process(): Promise<void> ---
+
+[[condition]]
+id = "process.skip_when_concurrent_limit_reached"
+target_function = "RequestQueue#process"
+source_lines = "80-82"
+description = "activeCountがconcurrentLimit以上の場合、何もせず早期returnする（activeCountもqueueも変化しない）"
+given = "activeCount === concurrentLimit、queueに1件以上ある状態でprocess()を呼ぶ"
+expect_side_effect = "activeCountもqueue.lengthも変化しない"
+
+[[condition]]
+id = "process.skip_when_queue_empty"
+target_function = "RequestQueue#process"
+source_lines = "80-82"
+description = "queueが空の場合、activeCountに余裕があっても早期returnする"
+given = "activeCount === 0、queue === [] の状態でprocess()を呼ぶ"
+expect_side_effect = "activeCountは0のまま変化しない"
+
+[[condition]]
+id = "process.shift_undefined_defensive_guard"
+target_function = "RequestQueue#process"
+source_lines = "85-90"
+description = "shift()がundefinedを返した場合（通常到達不能な防御的分岐）、activeCountを++した直後に--で元に戻しreturnする（executeWithRetryは呼ばれない）"
+given = "queue.length===1だがqueue.shift()がundefinedを返す疑似配列にqueueを差し替えてprocess()を呼ぶ"
+expect_side_effect = "activeCountは呼び出し前の値のまま変化しない（一時的に++後に--で相殺）"
+
+[[condition]]
+id = "process.success_resolves_request"
+target_function = "RequestQueue#process"
+source_lines = "92-94"
+description = "executeWithRetryが成功した場合、その結果でrequest.resolveを呼ぶ"
+given = "queueにretries=0のrequestを1件積みprocess()を呼ぶ。request.fnはresolveする"
+expect_return = "request.resolveがfnの結果で呼ばれる"
+
+[[condition]]
+id = "process.failure_rejects_request"
+target_function = "RequestQueue#process"
+source_lines = "95-96"
+description = "executeWithRetryがthrowした場合、そのerrorでrequest.rejectを呼ぶ"
+given = "queueにretries=maxRetriesのrequestを1件積みprocess()を呼ぶ。request.fnはリトライ対象外のエラーでrejectする"
+expect_throw = "request.rejectがそのエラーで呼ばれる"
+
+[[condition]]
+id = "process.finally_decrements_and_continues_next"
+target_function = "RequestQueue#process"
+source_lines = "97-100"
+description = "成功・失敗どちらでもfinallyでactiveCountを--し、続けてprocess()を再帰呼び出しして次のキュー項目の処理を開始する（concurrentLimitを超えない範囲で次の項目が処理される）"
+given = "concurrentLimit=1でrequestを2件enqueueする。1件目のfnがresolveするまで2件目は開始されない"
+expect_side_effect = "1件目完了後に2件目のfnが呼ばれる（1件目完了前は呼ばれない）"
+
+# --- executeWithRetry<T>(request: QueuedRequest<T>): Promise<T> ---
+
+[[condition]]
+id = "execute_with_retry.first_attempt_success"
+target_function = "RequestQueue#executeWithRetry"
+source_lines = "109-111"
+description = "1回目のexecuteWithTimeoutが成功した場合、その値を即returnし以後リトライしない"
+given = "request.retries=0, request.fnが1回目でresolveする"
+expect_return = "fnのresolve値"
+
+[[condition]]
+id = "execute_with_retry.retryable_error_retries_then_succeeds"
+target_function = "RequestQueue#executeWithRetry"
+source_lines = "112-124"
+description = "isRetryableErrorがtrueかつretries<maxRetriesの場合、calculateBackoffDelayで求めた時間sleepしてからretriesを++し、次のループでリトライする。次の試行が成功すればその値を返す"
+given = "request.retries=0, maxRetries=3。1回目はstatus=429のResponseでreject、2回目はresolveする"
+expect_return = "2回目のfnのresolve値"
+expect_side_effect = "sleep(calculateBackoffDelay(0))を待ってから2回目のfnが呼ばれる"
+
+[[condition]]
+id = "execute_with_retry.exhausted_retries_throws_last_error"
+target_function = "RequestQueue#executeWithRetry"
+source_lines = "113-118"
+description = "isRetryableErrorがtrueでもretries===maxRetriesの場合、shouldRetry=falseとなりリトライせず即座にそのerrorをthrowする"
+given = "request.retries=3, maxRetries=3, fnがstatus=503のResponseでreject"
+expect_throw = "fnのreject理由（Response, status=503）"
+
+[[condition]]
+id = "execute_with_retry.non_retryable_error_throws_immediately"
+target_function = "RequestQueue#executeWithRetry"
+source_lines = "113-118"
+description = "isRetryableErrorがfalseの場合、retriesに関係なくリトライせず即座にそのerrorをthrowする"
+given = "request.retries=0, maxRetries=3, fnが通常のError('boom')でreject"
+expect_throw = "Error: boom"
+
+[[condition]]
+id = "execute_with_retry.negative_max_retries_throws_max_exceeded"
+target_function = "RequestQueue#executeWithRetry"
+source_lines = "109,127"
+description = "maxRetriesが負数の場合、while(0<=負数)がfalseとなりループ本体に一度も入らず、fnを一度も呼ばずにL127のError('Max retries exceeded')をthrowする"
+given = "new RequestQueue({ maxRetries: -1 })で作成したqueueにrequestを1件積む"
+expect_throw = "Error: Max retries exceeded"
+expect_side_effect = "fnは一度も呼ばれない"
+
+# --- executeWithTimeout<T>(fn: () => Promise<T>): Promise<T> ---
+
+[[condition]]
+id = "execute_with_timeout.fn_resolves_before_timeout"
+target_function = "RequestQueue#executeWithTimeout"
+source_lines = "134-135"
+description = "fn()がtimeoutMs経過前にresolveした場合、Promise.raceによりその値でresolveする"
+given = "fnがtimeoutMs以内にresolveする"
+expect_return = "fnのresolve値"
+
+[[condition]]
+id = "execute_with_timeout.fn_rejects_before_timeout"
+target_function = "RequestQueue#executeWithTimeout"
+source_lines = "134-135"
+description = "fn()がtimeoutMs経過前にrejectした場合、Promise.raceによりその理由でrejectする"
+given = "fnがtimeoutMs以内にrejectする"
+expect_throw = "fnのreject理由"
+
+[[condition]]
+id = "execute_with_timeout.timeout_rejects_with_message"
+target_function = "RequestQueue#executeWithTimeout"
+source_lines = "136-141"
+description = "fn()がtimeoutMs以内にsettleしない場合、setTimeoutが発火しError(`Request timeout after ${timeoutMs}ms`)でrejectする"
+given = "fnがtimeoutMs以内にsettleしない、timeoutMs=500"
+expect_throw = "Error: Request timeout after 500ms"
+
+# --- isRetryableError(error: any): boolean ---
+
+[[condition]]
+id = "is_retryable_error.typeerror_fetch_message_true"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "150-152"
+description = "errorがTypeErrorインスタンスかつmessageに'fetch'を含む場合、trueを返す（ネットワークエラー扱い）"
+given = "error = new TypeError('Failed to fetch')"
+expect_return = true
+
+[[condition]]
+id = "is_retryable_error.typeerror_non_fetch_message_false"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "150"
+description = "errorがTypeErrorインスタンスでもmessageに'fetch'を含まない場合、最初のif分岐に入らず後続チェックも該当せずfalseを返す"
+given = "error = new TypeError('other error')"
+expect_return = false
+
+[[condition]]
+id = "is_retryable_error.response_status_429_or_503_true"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "155-159"
+description = "errorがResponseインスタンスでstatusが429または503の場合、trueを返す"
+given = "error = new Response(null, { status: 429 })"
+expect_return = true
+
+[[condition]]
+id = "is_retryable_error.response_status_other_false"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "155-159"
+description = "errorがResponseインスタンスでもstatusが429/503以外の場合、falseを返す"
+given = "error = new Response(null, { status: 500 })"
+expect_return = false
+
+[[condition]]
+id = "is_retryable_error.custom_status_object_429_or_503_true"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "162-165"
+description = "errorがResponseインスタンスではないが'status'プロパティを持つオブジェクトで、statusが429または503の場合、trueを返す"
+given = "error = { status: 503 }"
+expect_return = true
+
+[[condition]]
+id = "is_retryable_error.custom_status_object_other_false"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "162-165"
+description = "'status'プロパティを持つオブジェクトでも、statusが429/503以外の場合、falseを返す"
+given = "error = { status: 400 }"
+expect_return = false
+
+[[condition]]
+id = "is_retryable_error.default_false"
+target_function = "RequestQueue#isRetryableError"
+source_lines = "167"
+description = "TypeError(fetch)でもなくResponseインスタンスでもなくstatusプロパティも持たない場合（例: 通常のError、null）、falseを返す"
+given = "error = new Error('generic failure')"
+expect_return = false
+
+# --- calculateBackoffDelay(retryCount: number): number ---
+
+[[condition]]
+id = "calculate_backoff_delay.exponential_with_jitter"
+target_function = "RequestQueue#calculateBackoffDelay"
+source_lines = "176-180"
+description = "initialRetryDelay * 2^retryCount にMath.randomベースの±20%ジッター（0.8〜1.2倍）を掛けた値を返す（maxRetryDelayを超えない場合）。exponentialDelay=100*2^1=200, jitter係数=0.8+0.5*0.4=1.0 → 200*1.0=200"
+given = "initialRetryDelay=100, retryCount=1, Math.random()=0.5 に固定"
+expect_return = 200
+
+[[condition]]
+id = "calculate_backoff_delay.capped_at_max_retry_delay"
+target_function = "RequestQueue#calculateBackoffDelay"
+source_lines = "180"
+description = "exponentialDelay*jitterがmaxRetryDelayを超える場合、Math.minによりmaxRetryDelayに切り詰められる"
+given = "initialRetryDelay=1000, retryCount=5, maxRetryDelay=200, Math.random()=1"
+expect_return = 200
+
+# --- fetchWithQueue<T>(fn: () => Promise<T>): Promise<T> ---
+
+[[condition]]
+id = "fetch_with_queue.delegates_to_global_queue"
+target_function = "fetchWithQueue"
+source_lines = "235-237"
+description = "globalRequestQueue.enqueue(fn)にそのまま委譲し、その結果を返す"
+given = "fnがresolveする"
+expect_return = "fnのresolve値"
+
+# --- queuedFetch(url: string, init?: RequestInit): Promise<Response> ---
+
+[[condition]]
+id = "queued_fetch.delegates_to_fetch_with_queue"
+target_function = "queuedFetch"
+source_lines = "249-254"
+description = "fetchWithQueue(() => fetch(url, init))を呼び出す。すなわちfetch(url, init)がキュー経由で実行される"
+given = "globalなfetchをモックしてresolveさせる"
+expect_side_effect = "fetchがurl, initで呼ばれ、その結果が返る"
