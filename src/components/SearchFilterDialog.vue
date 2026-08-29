@@ -31,6 +31,11 @@
           >{{ icon.label }}</button>
         </div>
         <div class="header-actions">
+          <button class="search-btn" @click="executeHeaderSearch" title="検索">
+            <svg width="14" height="14" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+            </svg>
+          </button>
           <button v-if="hasActiveFilters" class="clear-btn" @click="clearFilters" title="クリア">
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
@@ -109,11 +114,24 @@ import { detectLanguage } from '../utils/language-detector';
 import { useSearchHistory } from '../composables/useSearchHistory';
 import { useFilterLogic } from '../composables/search-filter/useFilterLogic';
 import { buildSearchOptions } from '../utils/search-options-builder';
+import { useSearchExecution } from './searchInputBar/composables/useSearchExecution';
+import { useSettingsStore } from '../stores/settings';
+import type { SearchMode } from '../types/settings';
 
 const deckStore = useDeckEditStore();
 const searchStore = useSearchStore();
 const searchHistory = useSearchHistory();
+const settingsStore = useSettingsStore();
 const activeDialogTab = ref<'filter' | 'history'>('filter');
+
+// ダイアログヘッダーの検索実行ボタン用
+const dialogSearchMode = computed<SearchMode>({
+  get: () => settingsStore.appSettings.ux.defaultSearchMode || 'auto',
+  set: (value: SearchMode) => {
+    settingsStore.appSettings.ux.defaultSearchMode = value;
+  }
+});
+const { handleSearch: executeHeaderSearch } = useSearchExecution({ deckStore, searchMode: dialogSearchMode });
 
 // ページ言語を検出（多言語対応）
 const pageLanguage = computed(() => {
@@ -470,6 +488,7 @@ function removeHeaderChip(icon: any) {
   margin-left: auto;
 }
 
+.search-btn,
 .clear-btn,
 .close-btn {
   background: transparent;
@@ -491,6 +510,7 @@ function removeHeaderChip(icon: any) {
   }
 }
 
+.search-btn,
 .clear-btn {
   svg {
     display: block;

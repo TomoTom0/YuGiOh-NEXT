@@ -88,15 +88,18 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         // モンスタータイプフィルター
         if (filters.monsterTypes.length > 0 && 'types' in card) {
           const cardTypes = (card as any).types || []
-          // AND条件（全てのtypesが含まれている）またはOR条件
-          const hasMatch = filters.monsterTypes.some(mt => {
+          const matches = (mt: SearchFilters['monsterTypes'][number]) => {
             if (mt.state === 'normal') {
               return cardTypes.includes(mt.type)
             } else if (mt.state === 'not') {
               return !cardTypes.includes(mt.type)
             }
             return false
-          })
+          }
+          // AND条件（全ての条件を満たす）またはOR条件（いずれかの条件を満たす）
+          const hasMatch = filters.monsterTypeMatchMode === 'and'
+            ? filters.monsterTypes.every(matches)
+            : filters.monsterTypes.some(matches)
           if (!hasMatch) {
             return false
           }
@@ -124,11 +127,16 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         }
 
         // リンクマーカーフィルター
+        // card.linkMarkers はビットフラグ（bit N-1 = 方向N）であり配列ではないため、
+        // ビット演算で方向の有無を判定する
         if (filters.linkMarkers.length > 0 && 'linkMarkers' in card) {
-          const cardMarkers = (card as any).linkMarkers || []
-          // 選択された全てのマーカーが含まれているか確認
-          const hasAllMarkers = filters.linkMarkers.every(marker => cardMarkers.includes(marker))
-          if (!hasAllMarkers) {
+          const cardMarkerBits = typeof (card as any).linkMarkers === 'number' ? (card as any).linkMarkers : 0
+          const hasDirection = (pos: number) => (cardMarkerBits & (1 << (pos - 1))) !== 0
+          // AND条件（全てのマーカーが含まれている）またはOR条件（いずれかのマーカーが含まれている）
+          const hasMatch = filters.linkMarkerMatchMode === 'and'
+            ? filters.linkMarkers.every(hasDirection)
+            : filters.linkMarkers.some(hasDirection)
+          if (!hasMatch) {
             return false
           }
         }
@@ -190,6 +198,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
     // クエリもフィルターもない場合のみクリア
     // （空文字列でもフィルターがあれば検索を実行する）
     if (!query && !hasActiveFilters.value) {
+      searchStore.searchGeneration++
       searchStore.searchResults = []
       searchStore.allResults = []
       searchStore.hasMore = false
@@ -197,8 +206,17 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       return
     }
 
+    // この検索呼び出し固有の世代番号。古い検索の遅延処理（拡張検索）が
+    // 後から完了して新しい検索結果を上書きしてしまうのを防ぐため、
+    // ストアへの書き込み前に必ずこの世代がまだ最新かを確認する。
+    const myGeneration = ++searchStore.searchGeneration
+
     deckStore.activeTab = 'search'
     searchStore.isLoading = true
+    // 新しい検索条件を反映していない直前の検索結果が、fetch完了まで
+    // 画面に残り続けて見えてしまうため、ここでクリアする
+    searchStore.searchResults = []
+    searchStore.allResults = []
 
     try {
       const keyword = searchStore.searchQuery.trim()
@@ -235,9 +253,6 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         results = autoResult.cards
         const autoResultCount = results.length  // フィルタリング前の件数を保存
 
-        // autoモードでもフィルター条件を適用（クライアント側でフィルタリング）
-        results = applyClientSideFilters(results, searchStore.searchFilters)
-
         // autoモードで100件取得された場合（フィルタリング前の件数で判定）、name検索に委譲して追加取得・sort順を有効化
         if (autoResultCount >= 100) {
           delegatedToName = true
@@ -255,6 +270,20 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         )
 
         results = await searchCards(searchOptions)
+      }
+
+      // 「もっと取得できるページがあるか」はサーバーから返った生の件数で判定する必要があるため、
+      // クライアント側フィルタ適用前の件数を保持しておく
+      const rawResultCount = results.length
+
+      // モンスタータイプ・リンクマーカーのAND/OR等は検索サーバー側では正しく
+      // 絞り込まれないため、検索経路（auto/name/text/pendulum）によらず必ず
+      // クライアント側フィルタを適用する
+      results = applyClientSideFilters(results, searchStore.searchFilters)
+
+      // 他の検索が既に開始されている場合、この検索結果は古いため反映しない
+      if (searchStore.searchGeneration !== myGeneration) {
+        return
       }
 
       // 検索APIを呼び出したのでグローバル検索モードを終了
@@ -278,7 +307,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         searchHistory.addToHistory(query, searchMode.value, searchStore.searchFilters, resultCids)
       }
 
-      if (results.length >= 100) {
+      if (rawResultCount >= 100) {
         searchStore.hasMore = true
         // autoモード以外の場合のみ、拡張検索を実行
         if (searchOptions !== null) {
@@ -289,9 +318,16 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
                 ...searchOptions,
                 resultsPerPage: 2000
               })
+
+              // 待機中に別の検索が開始されていた場合、この拡張検索結果は古いため反映しない
+              if (searchStore.searchGeneration !== myGeneration) {
+                return
+              }
+
               if (moreResults.length > 100) {
-                searchStore.searchResults = moreResults as unknown as typeof searchStore.searchResults
-                searchStore.allResults = moreResults as unknown as typeof searchStore.allResults
+                const filteredMoreResults = applyClientSideFilters(moreResults, searchStore.searchFilters)
+                searchStore.searchResults = filteredMoreResults as unknown as typeof searchStore.searchResults
+                searchStore.allResults = filteredMoreResults as unknown as typeof searchStore.allResults
                 searchStore.hasMore = moreResults.length >= 2000
                 searchStore.currentPage = 1
               } else {
@@ -299,7 +335,9 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
               }
             } catch (error) {
               console.error('Extended search error:', error)
-              searchStore.hasMore = false
+              if (searchStore.searchGeneration === myGeneration) {
+                searchStore.hasMore = false
+              }
             }
           }, 1000)
         }
@@ -308,11 +346,15 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       }
     } catch (error) {
       console.error('Search error:', error)
-      searchStore.searchResults = []
-      searchStore.allResults = []
-      searchStore.hasMore = false
+      if (searchStore.searchGeneration === myGeneration) {
+        searchStore.searchResults = []
+        searchStore.allResults = []
+        searchStore.hasMore = false
+      }
     } finally {
-      searchStore.isLoading = false
+      if (searchStore.searchGeneration === myGeneration) {
+        searchStore.isLoading = false
+      }
     }
   }
 

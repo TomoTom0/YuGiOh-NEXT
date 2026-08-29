@@ -1,0 +1,77 @@
+# 検証対象: src/utils/deck-uuid-generator.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、composables/残りutils/content対象の一部。
+#
+# CLAUDE.mdとの差異（要確認事項）:
+# - CLAUDE.mdは「UUID は crypto.randomUUID() を使用」と規定しているが、本ファイルの
+#   generateDeckCardUUID は crypto.randomUUID() を一切使用せず、`${cid}-${ciid}-${index}`
+#   という決定論的な文字列を組み立てて返す（ランダム性なし、モジュール内カウンタで
+#   連番を採番する方式）。デッキ内で同一cid-ciidの組み合わせを区別するための安定した
+#   識別子生成が目的であり、crypto.randomUUID()のような非決定的なUUIDではこの用途
+#   （同一デッキロード内での再現可能な連番）を満たせないため、意図的な逸脱と考えられる。
+#   本タスクでは実装の修正は行わず、事実として記録するに留める。
+
+[meta]
+feature = "deck-uuid-generator"
+source_file = "src/utils/deck-uuid-generator.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/deck-uuid-generator.test.ts"
+source_hash = "40c1da4b95afcf249ba13ea35e5b1efaaa9f82d9"
+note = "verified=falseは0件。maxIndexMapはモジュール内state(非export)だが、__getDeckUUIDState()がテスト用に公開されているため全条件を公開APIのみで検証可能。"
+
+# --- generateDeckCardUUID(cid: string, ciid: number): string ---
+
+[[condition]]
+id = "generate_deck_card_uuid.first_call_new_key_defaults_to_zero"
+target_function = "generateDeckCardUUID"
+source_lines = "31-35"
+description = "baseKey(`${cid}-${ciid}`)がmaxIndexMapに未登録の場合、currentMaxは`??`によりデフォルト値-1にフォールバックし、newIndex=0となる。maxIndexMapにbaseKey=>0がsetされ(副作用)、`${baseKey}-0`を返す"
+given = "maxIndexMapに'12345-0'キーが存在しない状態でgenerateDeckCardUUID('12345', 0)を呼ぶ"
+expect_return = "12345-0-0"
+
+[[condition]]
+id = "generate_deck_card_uuid.repeat_call_same_key_increments"
+target_function = "generateDeckCardUUID"
+source_lines = "31-35"
+description = "同じbaseKeyに対して2回目以降の呼び出しでは、`??`のフォールバックは使われずmaxIndexMapに保存済みの直前のインデックスを取得し、newIndex=currentMax+1を返す。呼び出すたびにmaxIndexMapが更新される(モジュールレベルの副作用が呼び出し間で持続する)"
+given = "generateDeckCardUUID('12345', 0)を呼んだ直後に、同じ引数で再度generateDeckCardUUID('12345', 0)を呼ぶ"
+expect_return = "12345-0-1"
+
+[[condition]]
+id = "generate_deck_card_uuid.different_keys_are_independent_counters"
+target_function = "generateDeckCardUUID"
+source_lines = "31"
+description = "cidまたはciidのいずれかが異なればbaseKeyが変わり、maxIndexMap上の別エントリとして扱われる。既存キーのインデックスには一切影響せず、新キーはインデックス0から独立して開始する"
+given = "generateDeckCardUUID('12345', 0)を呼んだ後、generateDeckCardUUID('12345', 1)（ciid違い）とgenerateDeckCardUUID('99999', 0)（cid違い）を呼ぶ"
+expect_return_shape = "generateDeckCardUUID('12345', 1) === '12345-1-0' かつ generateDeckCardUUID('99999', 0) === '99999-0-0'（いずれも先頭インデックス0）"
+
+# --- clearDeckUUIDState(): void ---
+
+[[condition]]
+id = "clear_deck_uuid_state.resets_all_counters"
+target_function = "clearDeckUUIDState"
+source_lines = "53"
+description = "maxIndexMap.clear()により全エントリが削除される。以前使用済みのbaseKeyに対する次のgenerateDeckCardUUID呼び出しは、未登録キーと同じ扱いとなりインデックス0から再開する（先頭の`??`フォールバック条件に戻る）"
+given = "generateDeckCardUUID('12345', 0)を2回呼び(index 0, 1が消費された状態)、clearDeckUUIDState()を呼んだ後、再度generateDeckCardUUID('12345', 0)を呼ぶ"
+expect_return = "12345-0-0"
+
+# --- __getDeckUUIDState(): Map<string, number> ---
+
+[[condition]]
+id = "get_deck_uuid_state.reflects_current_internal_state"
+target_function = "__getDeckUUIDState"
+source_lines = "63"
+description = "呼び出し時点のmaxIndexMapの内容(key: baseKey, value: 現在の最大インデックス)を反映したMapを返す"
+given = "generateDeckCardUUID('12345', 0)を2回呼んだ(indexが0,1まで進んだ)後に__getDeckUUIDState()を呼ぶ"
+expect_return_shape = "Map { '12345-0' => 1 }"
+
+[[condition]]
+id = "get_deck_uuid_state.returns_defensive_copy_not_live_reference"
+target_function = "__getDeckUUIDState"
+source_lines = "63"
+description = "`new Map(maxIndexMap)`により新しいMapインスタンス(コピー)を返す。返り値に対してset/deleteを行っても内部のmaxIndexMapには影響しない(防御的コピー)"
+given = "__getDeckUUIDState()の返り値に対してcopy.set('99999-0', 999)を実行した後、再度__getDeckUUIDState()を呼ぶ、またはgenerateDeckCardUUID('99999', 0)を呼ぶ"
+expect_return_shape = "再取得したMapに'99999-0'=>999は反映されておらず、generateDeckCardUUID('99999', 0)は未登録キーとして'99999-0-0'を返す（copyへの変更は内部stateを汚染しない）"

@@ -1,0 +1,257 @@
+# 検証対象: src/utils/language-detector.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、DOM構造に依存しない純粋関数のutils。
+#
+# 実装コメントとの差異・既存テストの誤りとして発見した点:
+# - L58-63: html lang属性の値は split('-')[0] でハイフン区切りの先頭要素をそのまま返すのみで、
+#   大文字小文字の変換は一切行われない。既存テスト(修正前)は
+#   `expect(result.toLowerCase()).toBe('ja')` という形で assert 側を小文字化しており、
+#   実際の戻り値が 'JA'（大文字のまま）であっても検知できない状態だった
+#   （コメントに「実装によっては小文字に変換されないかもしれません」と書かれており、
+#   実装を確認せず推測でassertを書いていたことが読み取れる）。本conditions.tomlの
+#   method5_no_lowercase_conversion で実際の挙動（'JA'がそのまま返る）を確定させ、
+#   既存テストのassertも実挙動に合わせて修正した。
+# - L51-54: URLパラメータ request_locale は他の4手法(L9-48, L58-63)と異なり、
+#   2文字の言語コードであることを正規表現で検証せずそのまま返す（`url.searchParams.get()`の
+#   戻り値をノーチェックで return）。既存テストは `requestLocale` というオプションを
+#   createMockDocumentのシグネチャに持っていたが、実装内で一切使用されておらず
+#   （mockのlocation.hrefにrequest_localeを埋め込む処理が無い）、この検出方法(優先度4)は
+#   一度もテストされていなかった。今回新規にテストを追加した。
+# - L51: `new URL(doc.location.href)` はdoc.location.hrefが絶対URLとしてparse不可能な文字列の場合
+#   TypeErrorをthrowする。この呼び出しは優先度1〜3のいずれにも該当しなかった場合に必ず実行される
+#   ため、優先度1〜3で該当が無くlocation.hrefが不正な場合は例外が伝播する。
+
+[meta]
+feature = "language-detector"
+source_file = "src/utils/language-detector.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/language-detector.test.ts"
+source_hash = "bffcbb53956df59c610c5fca9b8f8bb2c7c0320d"
+note = "verified=falseは0件。detectLanguageは唯一のexport関数で、target_functionは全条件でdetectLanguageに統一する"
+
+# --- detectLanguage(doc: Document): string ---
+# 5つの検出方法を優先度順(1〜5)に試行し、いずれにも該当しなければ 'ja' を返す。
+# 各方法は最初にヒットした時点で return するため、後続の方法は評価されない(優先順位・排他条件)。
+
+# 優先度1: #nowlanguage a.current の href (javascript:ChangeLanguage('xx') パターン)
+
+[[condition]]
+id = "method1_match_returns"
+target_function = "detectLanguage"
+source_lines = "9-16"
+description = "#nowlanguage a.current が存在し、hrefが javascript:ChangeLanguage('xx') パターン(2文字の小文字アルファベット)にマッチする場合、キャプチャした言語コードを最優先で返す"
+given = "#nowlanguage a.current が存在し、getAttribute('href') = \"javascript:ChangeLanguage('en')\""
+expect_return = "en"
+
+[[condition]]
+id = "method1_no_element_fallthrough"
+target_function = "detectLanguage"
+source_lines = "9-17"
+description = "#nowlanguage a.current がDOM上に存在しない(querySelectorがnull)場合、優先度1の検出は成立せず優先度2以降に進む"
+given = "querySelector('#nowlanguage a.current') が null、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method1_href_null_fallthrough"
+target_function = "detectLanguage"
+source_lines = "11-16"
+description = "#nowlanguage a.current は存在するがgetAttribute('href')がnullの場合、optional chaining(href?.match)によりmatchはundefinedとなり優先度1は成立せず次に進む"
+given = "#nowlanguage a.current が存在し、getAttribute('href')がnull、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method1_href_no_match_fallthrough"
+target_function = "detectLanguage"
+source_lines = "11-16"
+description = "hrefは存在するがChangeLanguage('xx')パターンにマッチしない場合、優先度1は成立せず次に進む"
+given = "href = \"javascript:someOtherFunc()\"、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method1_priority_over_lang_attribute"
+target_function = "detectLanguage"
+source_lines = "9-16"
+description = "優先度1(nowlanguage a.current href)が該当する場合、優先度5(html lang属性)の値と異なっていても優先度1の値が優先され、html lang属性は評価されない(排他条件)"
+given = "#nowlanguage a.current の href が ChangeLanguage('en') にマッチ、かつ html lang='ko'"
+expect_return = "en(html lang='ko'は無視される)"
+
+# 優先度2: #nowlanguage 要素のtextContent (languageMap による固定テキスト→言語コード変換)
+
+[[condition]]
+id = "method2_known_texts_map"
+target_function = "detectLanguage"
+source_lines = "20-37"
+description = "#nowlanguage 要素のtextContent(trim後)が languageMap のキーと完全一致する場合、対応する言語コードを返す。マップは以下の10エントリのみ: 日本語->ja, 한글->ko, English(Asia)->ae, 簡体字->cn, English->en, Deutsch->de, Français->fr, Italiano->it, Español->es, Portugues->pt"
+given = "#nowlanguage のtextContent(trim後)が上記10エントリのいずれか"
+expect_return = "対応するマップ値(全10エントリをテストで網羅する)"
+
+[[condition]]
+id = "method2_no_element_fallthrough"
+target_function = "detectLanguage"
+source_lines = "20-38"
+description = "#nowlanguage 要素がDOM上に存在しない場合、優先度2の検出は成立せず優先度3以降に進む"
+given = "querySelector('#nowlanguage') が null、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method2_text_not_in_map_fallthrough"
+target_function = "detectLanguage"
+source_lines = "22-37"
+description = "#nowlanguage は存在するがtextContent(trim後)がlanguageMapのどのキーにも一致しない場合、優先度2は成立せず次に進む"
+given = "#nowlanguage のtextContent = '未知の言語名'、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method2_text_null_fallthrough"
+target_function = "detectLanguage"
+source_lines = "22-35"
+description = "#nowlanguage は存在するがtextContentがnullの場合、optional chaining(textContent?.trim())によりtextはundefinedとなり、if(text && ...)が false となって優先度2は成立せず次に進む"
+given = "#nowlanguage が存在し、textContentがnull、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method2_priority_over_method3_4_5"
+target_function = "detectLanguage"
+source_lines = "20-37"
+description = "優先度2が該当する場合、優先度3(og:url)・優先度4(URLパラメータ)・優先度5(html lang)の値と異なっていても優先度2の値が優先される(排他条件)"
+given = "#nowlanguage のtextContent='English'(->en)、かつ og:url content に request_locale=de、かつ html lang='fr'"
+expect_return = "en(og:urlとhtml langは無視される)"
+
+# 優先度3: meta[property="og:url"] の content (request_locale=xx パターン)
+
+[[condition]]
+id = "method3_match_returns"
+target_function = "detectLanguage"
+source_lines = "41-47"
+description = "meta[property=\"og:url\"]が存在し、content属性が request_locale=xx パターン(2文字の小文字アルファベット)にマッチする場合、キャプチャした言語コードを返す"
+given = "meta[property=\"og:url\"] のcontent = \"https://example.com/?request_locale=de\""
+expect_return = "de"
+
+[[condition]]
+id = "method3_no_element_fallthrough"
+target_function = "detectLanguage"
+source_lines = "41-48"
+description = "meta[property=\"og:url\"]がDOM上に存在しない場合、優先度3の検出は成立せず優先度4以降に進む"
+given = "querySelector('meta[property=\"og:url\"]') が null、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method3_content_null_fallthrough"
+target_function = "detectLanguage"
+source_lines = "43-47"
+description = "meta要素は存在するがgetAttribute('content')がnullの場合、optional chaining(content?.match)によりmatchはundefinedとなり優先度3は成立せず次に進む"
+given = "meta[property=\"og:url\"] が存在し、content属性がnull、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method3_content_no_match_fallthrough"
+target_function = "detectLanguage"
+source_lines = "43-47"
+description = "contentは存在するがrequest_locale=xxパターンにマッチしない場合、優先度3は成立せず次に進む"
+given = "content = \"https://example.com/no-locale-param\"、以降の検出方法も全て該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method3_priority_over_method4_5"
+target_function = "detectLanguage"
+source_lines = "41-47"
+description = "優先度3が該当する場合、優先度4(URLパラメータ)・優先度5(html lang)の値と異なっていても優先度3の値が優先される(排他条件)"
+given = "og:url content に request_locale=es、かつ location.href に ?request_locale=cn、かつ html lang='fr'"
+expect_return = "es(URLパラメータとhtml langは無視される)"
+
+# 優先度4: URLパラメータ request_locale (doc.location.href を new URL() でparseして取得)
+
+[[condition]]
+id = "method4_param_present_returns_as_is"
+target_function = "detectLanguage"
+source_lines = "51-54"
+description = "location.hrefのクエリパラメータrequest_localeが存在する場合、その値を(他の4手法と異なり2文字コードの妥当性検証をせず)そのまま返す"
+given = "doc.location.href = \"https://example.com/?request_locale=pt\"、優先度1-3は全て該当しない"
+expect_return = "pt"
+
+[[condition]]
+id = "method4_param_arbitrary_value_no_validation"
+target_function = "detectLanguage"
+source_lines = "51-54"
+description = "request_localeパラメータの値は2文字アルファベットに限定するチェックが無いため、任意の文字列がそのまま返る(優先度1・3のformat検証との非対称性)"
+given = "doc.location.href = \"https://example.com/?request_locale=xx-custom\"、優先度1-3は全て該当しない"
+expect_return = "xx-custom"
+
+[[condition]]
+id = "method4_param_absent_fallthrough"
+target_function = "detectLanguage"
+source_lines = "51-55"
+description = "location.hrefにrequest_localeクエリパラメータが無い場合、searchParams.get()はnullを返しif(locale)がfalseとなり優先度4は成立せず優先度5に進む"
+given = "doc.location.href にrequest_localeパラメータが無い、優先度1-3・5も該当しない"
+expect_return = "'ja'(デフォルトへのフォールスルーで確認)"
+
+[[condition]]
+id = "method4_invalid_href_throws"
+target_function = "detectLanguage"
+source_lines = "51"
+description = "優先度1-3のいずれにも該当しない場合、new URL(doc.location.href)が必ず実行される。doc.location.hrefが絶対URLとしてparse不可能な文字列の場合、URLコンストラクタがTypeErrorをthrowしdetectLanguageの呼び出し元に伝播する(優先度5やデフォルトへは到達しない)"
+given = "doc.location.href = \"not-a-valid-url\"、優先度1-3は全て該当しない"
+expect_throw = "TypeError"
+
+[[condition]]
+id = "method4_priority_over_method5"
+target_function = "detectLanguage"
+source_lines = "51-54"
+description = "優先度4が該当する場合、優先度5(html lang)の値と異なっていても優先度4の値が優先される(排他条件)"
+given = "doc.location.href に ?request_locale=it、かつ html lang='fr'"
+expect_return = "it(html langは無視される)"
+
+# 優先度5: html要素のlang属性
+
+[[condition]]
+id = "method5_lang_present_returns"
+target_function = "detectLanguage"
+source_lines = "58-63"
+description = "html要素のlang属性が存在する場合、ハイフンで分割した先頭要素を返す"
+given = "documentElement.getAttribute('lang') = 'en'、優先度1-4は全て該当しない"
+expect_return = "en"
+
+[[condition]]
+id = "method5_hyphenated_lang_takes_first_segment"
+target_function = "detectLanguage"
+source_lines = "58-63"
+description = "lang属性が'ja-JP'のようにハイフンを含む場合、split('-')の先頭要素のみを返す(地域サブタグは無視)"
+given = "documentElement.getAttribute('lang') = 'ja-JP'、優先度1-4は全て該当しない"
+expect_return = "ja"
+
+[[condition]]
+id = "method5_no_lowercase_conversion"
+target_function = "detectLanguage"
+source_lines = "58-63"
+description = "lang属性値は大文字小文字の変換を一切行わずそのまま返す。'JA'のような大文字は'JA'のまま返る(既存テストはこの点を検証せずtoLowerCase()でごまかしていた)"
+given = "documentElement.getAttribute('lang') = 'JA'、優先度1-4は全て該当しない"
+expect_return = "JA(小文字化されない)"
+
+[[condition]]
+id = "method5_lang_absent_fallthrough"
+target_function = "detectLanguage"
+source_lines = "58-64"
+description = "html要素にlang属性が無い(getAttributeがnull)場合、if(htmlLang)がfalseとなり優先度5は成立せずデフォルトに進む"
+given = "documentElement.getAttribute('lang') が null、優先度1-4も該当しない"
+expect_return = "'ja'(デフォルト)"
+
+[[condition]]
+id = "method5_leading_hyphen_empty_segment_fallthrough"
+target_function = "detectLanguage"
+source_lines = "60-63"
+description = "lang属性がハイフンで始まる(例: '-JP')場合、split('-')の先頭要素が空文字列になりif(langCode)がfalseとなるため、優先度5は成立せずデフォルトに進む(空文字返却にはならない)"
+given = "documentElement.getAttribute('lang') = '-JP'、優先度1-4は全て該当しない"
+expect_return = "'ja'(空文字は返らずデフォルトにフォールスルー)"
+
+# デフォルト
+
+[[condition]]
+id = "default_ja_when_none_match"
+target_function = "detectLanguage"
+source_lines = "67"
+description = "優先度1〜5のいずれにも該当しない場合、デフォルトとして'ja'を返す"
+given = "全てのDOM要素・URLパラメータ・lang属性が該当しない状態"
+expect_return = "ja"

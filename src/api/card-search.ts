@@ -393,25 +393,12 @@ export async function searchCardsAuto(
       })
     ]);
 
-    // name検索が100件以上ならname検索のみを返す（追加取得Promiseあり）
+    // name検索が100件以上ならname検索のみを返す
+    // （呼び出し側 useSearchExecution.handleSearch が name検索へ委譲して
+    //   正しいフィルター条件で追加ページを取得するため、ここでは追加取得しない）
     if (nameResults.length >= 100) {
-      const baseParams: Record<string, string> = {
-        ope: '1',
-        sess: '1',
-        keyword: keyword,
-        stype: '1',
-        othercon: '2',
-        link_m: '2'
-      };
-
-      const ctypeValue = cardTypeToCtype(options.cardType);
-      if (ctypeValue) {
-        baseParams['ctype'] = ctypeValue;
-      }
-
       return {
-        cards: nameResults,
-        fetchMorePromise: fetchAdditionalPages(baseParams, parseSearchResults, 'searchCardsAuto')
+        cards: nameResults
       };
     }
 

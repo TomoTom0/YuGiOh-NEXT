@@ -1,0 +1,341 @@
+# 検証対象: src/utils/search-options-builder.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、utils残り分。
+#
+# 実装コメントとの差異:
+# - なし（コメント自体が少なく、実装と矛盾する記述は見つからなかった）
+#
+# 備考:
+# - L15の `SORT_ORDER_TO_API_VALUE[sortOrder] || 1` は、SortOrder型で定義済みの14キーは
+#   全て非0の数値を返すため型システム上は`|| 1`側に到達しないように見えるが、sortOrderは
+#   AppSettings.sortOrderとしてlocalStorageからJSON.parseされた値が渡ってくる経路があり、
+#   実行時に不正な文字列が渡るとフォールバックに到達しうる（デフォルト値のフォールバックとして
+#   README 2節の基準に従い書く）。
+# - f.atk.exact / f.atk.unknown / f.def.exact / f.def.unknown はこの関数内では一切参照されない
+#   （SearchOptions.atk/defはmin/maxのみを転記する）。分岐ではないため条件化していないが、
+#   exact/unknown指定がAPI検索オプションに反映されない実装である点は留意。
+
+[meta]
+feature = "search-options-builder"
+source_file = "src/utils/search-options-builder.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/search-options-builder.test.ts"
+source_hash = "c5a4c37a79ec08ea3437bc71322e9e520af95f2e"
+note = "verified=falseは0件"
+
+# --- buildSearchOptions(keyword, searchType, sortOrder, filters): SearchOptions ---
+
+[[condition]]
+id = "sort.known_order_maps_to_api_value"
+target_function = "buildSearchOptions"
+source_lines = "15"
+description = "sortOrderがSORT_ORDER_TO_API_VALUEに存在するキーの場合、対応するAPI値をsortに設定する"
+given = "sortOrder = 'atk_desc'"
+expect_return_shape = "searchOptions.sort === 4"
+
+[[condition]]
+id = "sort.unknown_order_falls_back_to_1"
+target_function = "buildSearchOptions"
+source_lines = "15"
+description = "sortOrderがSORT_ORDER_TO_API_VALUEに存在しない値（型上は不正だが実行時にlocalStorage経由等で渡りうる）の場合、`|| 1`によりsort=1にフォールバックする"
+given = "sortOrder = 'invalid_order' として実行時に渡す（as unknown as SortOrderでテスト内キャスト）"
+expect_return_shape = "searchOptions.sort === 1"
+
+[[condition]]
+id = "base.always_includes_keyword_searchtype_resultsperpage"
+target_function = "buildSearchOptions"
+source_lines = "17-22"
+description = "filtersの内容に関わらず、keyword/searchType/resultsPerPage(常に100)/sortは常にsearchOptionsに含まれる"
+given = "filtersが全項目デフォルト（空配列・未設定）"
+expect_return_shape = "{ keyword, searchType, resultsPerPage: 100, sort } のみを持ち、他の任意フィールドは一切含まれない"
+
+[[condition]]
+id = "card_type.set_when_truthy"
+target_function = "buildSearchOptions"
+source_lines = "25"
+description = "f.cardTypeが truthy（'monster'等）な場合、searchOptions.cardTypeに設定する"
+given = "f.cardType = 'monster'"
+expect_return_shape = "searchOptions.cardType === 'monster'"
+
+[[condition]]
+id = "card_type.omitted_when_null"
+target_function = "buildSearchOptions"
+source_lines = "25"
+description = "f.cardTypeがnullの場合、searchOptions.cardTypeは設定されない（プロパティ自体が存在しない）"
+given = "f.cardType = null"
+expect_return_shape = "'cardType' in searchOptions === false"
+
+[[condition]]
+id = "attributes.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "26"
+description = "f.attributes.length > 0の場合、searchOptions.attributesにf.attributesをそのまま設定する"
+given = "f.attributes = ['light', 'dark']"
+expect_return_shape = "searchOptions.attributes === ['light', 'dark']"
+
+[[condition]]
+id = "attributes.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "26"
+description = "f.attributesが空配列の場合、searchOptions.attributesは設定されない"
+given = "f.attributes = []"
+expect_return_shape = "'attributes' in searchOptions === false"
+
+[[condition]]
+id = "races.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "27"
+description = "f.races.length > 0の場合、searchOptions.racesにf.racesをそのまま設定する"
+given = "f.races = ['dragon']"
+expect_return_shape = "searchOptions.races === ['dragon']"
+
+[[condition]]
+id = "races.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "27"
+description = "f.racesが空配列の場合、searchOptions.racesは設定されない"
+given = "f.races = []"
+expect_return_shape = "'races' in searchOptions === false"
+
+[[condition]]
+id = "levels.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "28"
+description = "f.levelValues.length > 0の場合、searchOptions.levelsにf.levelValuesをそのまま設定する"
+given = "f.levelValues = [4, 8]"
+expect_return_shape = "searchOptions.levels === [4, 8]"
+
+[[condition]]
+id = "levels.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "28"
+description = "f.levelValuesが空配列の場合、searchOptions.levelsは設定されない"
+given = "f.levelValues = []"
+expect_return_shape = "'levels' in searchOptions === false"
+
+[[condition]]
+id = "atk.set_when_min_defined"
+target_function = "buildSearchOptions"
+source_lines = "29-31"
+description = "f.atk.minがundefinedでない場合（maxが未定義でも）、searchOptions.atk = { from: min, to: max }を設定する"
+given = "f.atk = { exact: false, unknown: false, min: 1000, max: undefined }"
+expect_return_shape = "searchOptions.atk === { from: 1000, to: undefined }"
+
+[[condition]]
+id = "atk.set_when_max_defined"
+target_function = "buildSearchOptions"
+source_lines = "29-31"
+description = "f.atk.maxがundefinedでない場合（minが未定義でも）、searchOptions.atkを設定する"
+given = "f.atk = { exact: false, unknown: false, min: undefined, max: 2500 }"
+expect_return_shape = "searchOptions.atk === { from: undefined, to: 2500 }"
+
+[[condition]]
+id = "atk.omitted_when_both_undefined"
+target_function = "buildSearchOptions"
+source_lines = "29-31"
+description = "f.atk.min/maxが両方undefinedの場合、searchOptions.atkは設定されない（exact/unknownの値は無視される）"
+given = "f.atk = { exact: true, unknown: true, min: undefined, max: undefined }"
+expect_return_shape = "'atk' in searchOptions === false"
+
+[[condition]]
+id = "def.set_when_min_defined"
+target_function = "buildSearchOptions"
+source_lines = "32-34"
+description = "f.def.minがundefinedでない場合、searchOptions.def = { from: min, to: max }を設定する"
+given = "f.def = { exact: false, unknown: false, min: 500, max: undefined }"
+expect_return_shape = "searchOptions.def === { from: 500, to: undefined }"
+
+[[condition]]
+id = "def.omitted_when_both_undefined"
+target_function = "buildSearchOptions"
+source_lines = "32-34"
+description = "f.def.min/maxが両方undefinedの場合、searchOptions.defは設定されない"
+given = "f.def = { exact: false, unknown: false, min: undefined, max: undefined }"
+expect_return_shape = "'def' in searchOptions === false"
+
+[[condition]]
+id = "monster_types.empty_array_sets_nothing"
+target_function = "buildSearchOptions"
+source_lines = "35-44"
+description = "f.monsterTypesが空配列の場合、monsterTypes/excludeMonsterTypes/monsterTypeLogicのいずれも設定されない"
+given = "f.monsterTypes = []"
+expect_return_shape = "'monsterTypes' in searchOptions === false かつ 'excludeMonsterTypes' in searchOptions === false かつ 'monsterTypeLogic' in searchOptions === false"
+
+[[condition]]
+id = "monster_types.only_normal_sets_monster_types_not_exclude"
+target_function = "buildSearchOptions"
+source_lines = "35-43"
+description = "f.monsterTypesの要素が全てstate='normal'の場合、normalTypesのみが抽出されsearchOptions.monsterTypesに設定され、excludeMonsterTypesは設定されない"
+given = "f.monsterTypes = [{ type: 'fusion', state: 'normal' }]"
+expect_return_shape = "searchOptions.monsterTypes === ['fusion'] かつ 'excludeMonsterTypes' in searchOptions === false"
+
+[[condition]]
+id = "monster_types.only_not_sets_exclude_not_monster_types"
+target_function = "buildSearchOptions"
+source_lines = "35-43"
+description = "f.monsterTypesの要素が全てstate='not'の場合、notTypesのみが抽出されsearchOptions.excludeMonsterTypesに設定され、monsterTypesは設定されない"
+given = "f.monsterTypes = [{ type: 'synchro', state: 'not' }]"
+expect_return_shape = "searchOptions.excludeMonsterTypes === ['synchro'] かつ 'monsterTypes' in searchOptions === false"
+
+[[condition]]
+id = "monster_types.mixed_sets_both_fields"
+target_function = "buildSearchOptions"
+source_lines = "35-43"
+description = "f.monsterTypesにnormal/not両方の要素が含まれる場合、monsterTypesとexcludeMonsterTypesが両方設定される"
+given = "f.monsterTypes = [{ type: 'fusion', state: 'normal' }, { type: 'synchro', state: 'not' }]"
+expect_return_shape = "searchOptions.monsterTypes === ['fusion'] かつ searchOptions.excludeMonsterTypes === ['synchro']"
+
+[[condition]]
+id = "monster_type_logic.and_when_match_mode_and"
+target_function = "buildSearchOptions"
+source_lines = "41-42"
+description = "normalTypesまたはnotTypesが1件以上あり、f.monsterTypeMatchMode === 'and'の場合、monsterTypeLogic = 'AND'を設定する"
+given = "f.monsterTypes = [{ type: 'fusion', state: 'normal' }], f.monsterTypeMatchMode = 'and'"
+expect_return_shape = "searchOptions.monsterTypeLogic === 'AND'"
+
+[[condition]]
+id = "monster_type_logic.or_when_match_mode_not_and"
+target_function = "buildSearchOptions"
+source_lines = "41-42"
+description = "normalTypesまたはnotTypesが1件以上あり、f.monsterTypeMatchMode !== 'and'（'or'）の場合、monsterTypeLogic = 'OR'を設定する"
+given = "f.monsterTypes = [{ type: 'fusion', state: 'normal' }], f.monsterTypeMatchMode = 'or'"
+expect_return_shape = "searchOptions.monsterTypeLogic === 'OR'"
+
+[[condition]]
+id = "link_numbers.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "45"
+description = "f.linkValues.length > 0の場合、searchOptions.linkNumbersにf.linkValuesをそのまま設定する"
+given = "f.linkValues = [2, 4]"
+expect_return_shape = "searchOptions.linkNumbers === [2, 4]"
+
+[[condition]]
+id = "link_numbers.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "45"
+description = "f.linkValuesが空配列の場合、searchOptions.linkNumbersは設定されない"
+given = "f.linkValues = []"
+expect_return_shape = "'linkNumbers' in searchOptions === false"
+
+[[condition]]
+id = "link_markers.set_with_logic_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "46-49"
+description = "f.linkMarkers.length > 0の場合、searchOptions.linkMarkersを設定し、同時にlinkMarkerLogicをmatchModeに基づき設定する（'and'ならAND、それ以外ならOR）"
+given = "f.linkMarkers = [1, 3], f.linkMarkerMatchMode = 'and'"
+expect_return_shape = "searchOptions.linkMarkers === [1, 3] かつ searchOptions.linkMarkerLogic === 'AND'"
+
+[[condition]]
+id = "link_markers.omitted_with_logic_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "46-49"
+description = "f.linkMarkersが空配列の場合、linkMarkersとlinkMarkerLogicのいずれも設定されない"
+given = "f.linkMarkers = []"
+expect_return_shape = "'linkMarkers' in searchOptions === false かつ 'linkMarkerLogic' in searchOptions === false"
+
+[[condition]]
+id = "link_marker_logic.or_when_match_mode_not_and"
+target_function = "buildSearchOptions"
+source_lines = "48"
+description = "f.linkMarkers.length > 0かつf.linkMarkerMatchMode !== 'and'（'or'）の場合、linkMarkerLogic = 'OR'を設定する"
+given = "f.linkMarkers = [1], f.linkMarkerMatchMode = 'or'"
+expect_return_shape = "searchOptions.linkMarkerLogic === 'OR'"
+
+[[condition]]
+id = "pendulum_scales.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "50"
+description = "f.scaleValues.length > 0の場合、searchOptions.pendulumScalesにf.scaleValuesをそのまま設定する"
+given = "f.scaleValues = [1, 8]"
+expect_return_shape = "searchOptions.pendulumScales === [1, 8]"
+
+[[condition]]
+id = "pendulum_scales.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "50"
+description = "f.scaleValuesが空配列の場合、searchOptions.pendulumScalesは設定されない"
+given = "f.scaleValues = []"
+expect_return_shape = "'pendulumScales' in searchOptions === false"
+
+[[condition]]
+id = "spell_effect_types.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "51"
+description = "f.spellTypes.length > 0の場合、searchOptions.spellEffectTypesにf.spellTypesをそのまま設定する"
+given = "f.spellTypes = ['normal']"
+expect_return_shape = "searchOptions.spellEffectTypes === ['normal']"
+
+[[condition]]
+id = "spell_effect_types.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "51"
+description = "f.spellTypesが空配列の場合、searchOptions.spellEffectTypesは設定されない"
+given = "f.spellTypes = []"
+expect_return_shape = "'spellEffectTypes' in searchOptions === false"
+
+[[condition]]
+id = "trap_effect_types.set_when_non_empty"
+target_function = "buildSearchOptions"
+source_lines = "52"
+description = "f.trapTypes.length > 0の場合、searchOptions.trapEffectTypesにf.trapTypesをそのまま設定する"
+given = "f.trapTypes = ['normal']"
+expect_return_shape = "searchOptions.trapEffectTypes === ['normal']"
+
+[[condition]]
+id = "trap_effect_types.omitted_when_empty"
+target_function = "buildSearchOptions"
+source_lines = "52"
+description = "f.trapTypesが空配列の場合、searchOptions.trapEffectTypesは設定されない"
+given = "f.trapTypes = []"
+expect_return_shape = "'trapEffectTypes' in searchOptions === false"
+
+[[condition]]
+id = "release_date.omitted_when_both_empty"
+target_function = "buildSearchOptions"
+source_lines = "53-73"
+description = "f.releaseDate.from/toが両方falsy（未設定の空文字列やundefined）の場合、searchOptions.releaseDateは（{}すら）設定されない"
+given = "f.releaseDate = { from: undefined, to: undefined }"
+expect_return_shape = "'releaseDate' in searchOptions === false"
+
+[[condition]]
+id = "release_date.from_valid_sets_start"
+target_function = "buildSearchOptions"
+source_lines = "53-63"
+description = "f.releaseDate.fromが'YYYY-MM-DD'形式（'-'区切りで3パーツとも truthy）の場合、releaseDate.startにyear/month/dayを数値変換して設定する"
+given = "f.releaseDate = { from: '2024-03-15', to: undefined }"
+expect_return_shape = "searchOptions.releaseDate === { start: { year: 2024, month: 3, day: 15 } }（endは含まれない）"
+
+[[condition]]
+id = "release_date.from_malformed_object_created_but_start_not_set"
+target_function = "buildSearchOptions"
+source_lines = "53-63"
+description = "f.releaseDate.fromがtruthyだが'-'分割後に3パーツ揃わない（例: 'YYYY-MM'）場合、releaseDate = {} は作られるがstartは設定されない"
+given = "f.releaseDate = { from: '2024-03', to: undefined }"
+expect_return_shape = "searchOptions.releaseDate === {} （'start' in searchOptions.releaseDate === false）"
+
+[[condition]]
+id = "release_date.to_valid_sets_end"
+target_function = "buildSearchOptions"
+source_lines = "53-56,64-72"
+description = "f.releaseDate.toが'YYYY-MM-DD'形式の場合、releaseDate.endにyear/month/dayを数値変換して設定する"
+given = "f.releaseDate = { from: undefined, to: '2024-12-31' }"
+expect_return_shape = "searchOptions.releaseDate === { end: { year: 2024, month: 12, day: 31 } }（startは含まれない）"
+
+[[condition]]
+id = "release_date.to_malformed_object_created_but_end_not_set"
+target_function = "buildSearchOptions"
+source_lines = "53-56,64-72"
+description = "f.releaseDate.toがtruthyだが'-'分割後に3パーツ揃わない場合、releaseDateは作られるがendは設定されない"
+given = "f.releaseDate = { from: undefined, to: '2024' }"
+expect_return_shape = "searchOptions.releaseDate === {} （'end' in searchOptions.releaseDate === false）"
+
+[[condition]]
+id = "release_date.both_valid_sets_start_and_end"
+target_function = "buildSearchOptions"
+source_lines = "53-73"
+description = "f.releaseDate.from/toが両方'YYYY-MM-DD'形式の場合、releaseDateにstart/end両方が設定される"
+given = "f.releaseDate = { from: '2020-01-01', to: '2024-12-31' }"
+expect_return_shape = "searchOptions.releaseDate === { start: { year: 2020, month: 1, day: 1 }, end: { year: 2024, month: 12, day: 31 } }"

@@ -1,0 +1,252 @@
+# 検証対象: src/utils/deck-thumbnail-generator.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、DeckThumbnailGenerator(Canvas→WebP Data URL生成)を持つutils。
+# 混同注意: src/utils/deck-thumbnail.ts (別ファイル、TASK-330で完了済み) とは別物。
+#
+# 実装コメントとの差異:
+# - drawDeckInfoOnCanvas L131 で wrapText に canvas.width 由来の maxWidth を渡しているが、
+#   wrapText 内部（L183, `_maxWidth`）ではこの引数を全く使用せず、常に固定20文字で折り返す。
+#   引数名がアンダースコア接頭辞(`_maxWidth`)であり未使用パラメータであることをTypeScript側でも示している。
+# - wrapText本体のコメント(L184)に「日本語は1文字で改行、英数は単語単位で改行」とあるが、
+#   実際の実装は文字種を判別せず、全角/半角を問わず一律20文字ごとに機械的に折り返す
+#   （英数字であっても単語境界を無視して分割される）。
+# - drawDeckInfoOnCanvas のデッキ名描画(L132-135)にはy座標の上限チェックが無く、
+#   canvas.heightを超えてはみ出す場合でも常に描画される。一方、統計行(L152-157)・
+#   カード一覧行(L170-177)は`y < canvas.height - padding`を満たす場合のみ描画され、
+#   超過分は静かにスキップされる（非対称な挙動）。
+# - テスト実行環境(node-canvas ^3.2.0)のCanvasオブジェクトは`toBlob`メソッドを実装していないため
+#   （`typeof createCanvas(1,1).toBlob === 'undefined'`で確認済み）、
+#   generateWebPThumbnail/canvasToWebPの検証は、実装内部で呼ばれる私有メソッドを
+#   直接fakeなcanvasオブジェクト（toBlobのみ実装）またはスパイで置き換えて行う。
+
+[meta]
+feature = "deck-thumbnail-generator"
+source_file = "src/utils/deck-thumbnail-generator.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/deck-thumbnail-generator.test.ts"
+source_hash = "82e8156adc2490c58ce967fda46e0b448d43a6a9"
+note = "verified=falseは0件（公開API・privateメソッドとも直接呼び出しで到達・検証可能）"
+
+# --- constructor(options: ThumbnailGeneratorOptions = {}) ---
+
+[[condition]]
+id = "constructor.uses_defaults_when_omitted"
+target_function = "DeckThumbnailGenerator#constructor"
+source_lines = "29-31"
+description = "optionsを省略、または空オブジェクトを渡した場合、DEFAULT_OPTIONS(width:300, height:200, quality:0.8, includeExtraSide:false)がそのまま使われる"
+given = "new DeckThumbnailGenerator() または new DeckThumbnailGenerator({})"
+expect_return_shape = "options = { width:300, height:200, quality:0.8, includeExtraSide:false }"
+
+[[condition]]
+id = "constructor.merges_provided_over_defaults"
+target_function = "DeckThumbnailGenerator#constructor"
+source_lines = "30"
+description = "スプレッド構文({...DEFAULT_OPTIONS, ...options})により、指定されたキーのみDEFAULT_OPTIONSを上書きし、未指定キーはデフォルト値のまま残る"
+given = "new DeckThumbnailGenerator({ width: 500 }) のように一部のみ指定、または全キー指定"
+expect_return_shape = "指定したキーは指定値、未指定キーはDEFAULT_OPTIONSの値"
+
+# --- generateWebPThumbnail(deckInfo: DeckInfo): Promise<string> ---
+
+[[condition]]
+id = "generate_webp_thumbnail.success_returns_data_url"
+target_function = "DeckThumbnailGenerator#generateWebPThumbnail"
+source_lines = "42-47"
+description = "createCanvasThumbnail→canvasToWebPが共に成功した場合、canvasToWebPの返すWebP Data URLをそのままresolveする"
+given = "createCanvasThumbnailがCanvasでresolveし、canvasToWebPがData URL文字列でresolveする"
+expect_return_shape = "canvasToWebPが返したData URL文字列"
+
+[[condition]]
+id = "generate_webp_thumbnail.error_logged_and_rethrown"
+target_function = "DeckThumbnailGenerator#generateWebPThumbnail"
+source_lines = "48-51"
+description = "createCanvasThumbnailまたはcanvasToWebPのいずれかがrejectした場合、console.errorでログを出力した後、元のerrorをラップせずそのままthrowする"
+given = "createCanvasThumbnailがrejectする、または canvasToWebPがrejectする"
+expect_throw = "元のerrorオブジェクト（メッセージ・型とも変更されない）"
+expect_side_effect = "console.error('[DeckThumbnailGenerator] Failed to generate thumbnail:', error) が1回呼ばれる"
+
+# --- canvasToWebP(canvas: HTMLCanvasElement): Promise<string> (private) ---
+
+[[condition]]
+id = "canvas_to_webp.blob_null_rejects"
+target_function = "DeckThumbnailGenerator#canvasToWebP"
+source_lines = "60-65"
+description = "canvas.toBlobのコールバックにblob=nullが渡された場合、Error('Canvas toBlob failed')でrejectしFileReaderは使われない"
+given = "canvas.toBlob(callback, ...) がcallback(null)を呼ぶ"
+expect_throw = "Error: Canvas toBlob failed"
+
+[[condition]]
+id = "canvas_to_webp.file_reader_string_result_resolves"
+target_function = "DeckThumbnailGenerator#canvasToWebP"
+source_lines = "67-75"
+description = "blobが取得できた場合、FileReader.readAsDataURL(blob)を実行し、onloadでevent.target.resultが文字列であればその文字列でresolveする"
+given = "canvas.toBlob がBlobを渡し、FileReaderのreadAsDataURLが実データURL文字列でonloadを発火する"
+expect_return = "data:...;base64,... 形式のData URL文字列"
+
+[[condition]]
+id = "canvas_to_webp.file_reader_non_string_result_rejects"
+target_function = "DeckThumbnailGenerator#canvasToWebP"
+source_lines = "68-74"
+description = "FileReaderのonloadでevent.target?.resultが文字列でない場合（undefined/ArrayBuffer等）、Error('FileReader result is not a string')でrejectする"
+given = "FileReader.onload の event.target.result が文字列でない値（例: ArrayBuffer）"
+expect_throw = "Error: FileReader result is not a string"
+
+[[condition]]
+id = "canvas_to_webp.file_reader_onerror_rejects"
+target_function = "DeckThumbnailGenerator#canvasToWebP"
+source_lines = "76-78"
+description = "FileReaderがonerrorを発火した場合、Error('FileReader failed')でrejectする"
+given = "FileReader.readAsDataURL(blob) がonerrorを発火する"
+expect_throw = "Error: FileReader failed"
+
+[[condition]]
+id = "canvas_to_webp.sync_throw_in_to_blob_rejects"
+target_function = "DeckThumbnailGenerator#canvasToWebP"
+source_lines = "84-86"
+description = "canvas.toBlob(...)呼び出し自体が同期的にthrowした場合、外側のtry/catchでcatchされ、そのerrorでrejectする（FileReaderには到達しない）"
+given = "canvas.toBlob が呼び出し時に同期的にthrowする"
+expect_throw = "canvas.toBlobがthrowしたerrorオブジェクトそのもの"
+
+# --- createCanvasThumbnail(deckInfo: DeckInfo): Promise<HTMLCanvasElement> (private) ---
+
+[[condition]]
+id = "create_canvas_thumbnail.ctx_null_throws"
+target_function = "DeckThumbnailGenerator#createCanvasThumbnail"
+source_lines = "97-101"
+description = "canvas.getContext('2d')がnullを返した場合、Error('Failed to get canvas 2D context')をthrowし、以降のwidth/height設定・描画処理には進まない"
+given = "document.createElement('canvas')で作られたcanvasのgetContext('2d')がnullを返す"
+expect_throw = "Error: Failed to get canvas 2D context"
+
+[[condition]]
+id = "create_canvas_thumbnail.returns_canvas_sized_per_options"
+target_function = "DeckThumbnailGenerator#createCanvasThumbnail"
+source_lines = "103-113"
+description = "ctxが取得できた場合、canvas.width/heightをthis.options.width/height（コンストラクタで確定した値、省略時はデフォルト300x200）に設定し、背景を塗りつぶしてdrawDeckInfoOnCanvasを呼んだ後、そのcanvasを返す"
+given = "ctxが正常に取得できる。options未指定（デフォルト300x200）またはoptions.width/height指定あり"
+expect_return_shape = "canvas.width/heightがoptionsで確定した値と一致するHTMLCanvasElement"
+
+# --- drawDeckInfoOnCanvas(ctx, canvas, deckInfo): void (private) ---
+
+[[condition]]
+id = "draw_deck_info.name_fallback_when_empty"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "131"
+description = "deckInfo.nameが空文字列（falsy）の場合、'(No Name)'を代わりにwrapTextへ渡して描画する"
+given = "deckInfo.name = ''"
+expect_side_effect = "ctx.fillTextの最初の呼び出し引数が'(No Name)'"
+
+[[condition]]
+id = "draw_deck_info.name_wraps_via_wrap_text"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "131-135"
+description = "deckInfo.nameが20文字を超える場合、wrapTextで複数行に分割され、各行がy座標を14pxずつ増やしながらfillTextで描画される（この行の描画にはy上限チェックが無く、canvas高さを超えても常に描画される）"
+given = "deckInfo.name が21文字以上"
+expect_side_effect = "ctx.fillTextが名前について複数回呼ばれる（行数 > 1）"
+
+[[condition]]
+id = "draw_deck_info.stats_reflect_card_quantity_sums"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "140-157"
+description = "Main/Extra/Sideの各カウントはそれぞれmainDeck/extraDeck/sideDeckのquantityをreduceで合計した値であり、`Main: N`/`Extra: N`/`Side: N`という文字列で描画される（yがcanvas.height-padding未満の間のみ）"
+given = "mainDeck/extraDeck/sideDeckに既知のquantity合計を持つカードを設定し、canvas高さに十分な余白がある"
+expect_side_effect = "ctx.fillTextが'Main: <mainDeckのquantity合計>' 'Extra: <extraDeckのquantity合計>' 'Side: <sideDeckのquantity合計>' で呼ばれる"
+
+[[condition]]
+id = "draw_deck_info.stats_and_cards_skipped_when_y_exceeds_height"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "152-157,170-177"
+description = "統計行・カード一覧行はそれぞれ描画直前に`y < canvas.height - padding`を満たす場合のみfillTextし、yをlineHeight分進める。満たさない場合はそのエントリを静かにスキップし、yも増やさない（以降のエントリも同条件を再評価する）"
+given = "canvas.heightが小さく、名前描画後の時点で既にy >= canvas.height - paddingとなっている"
+expect_side_effect = "統計行('Main:'等)・カード行('cid:'を含む文字列)がctx.fillTextで一切呼ばれない"
+
+[[condition]]
+id = "draw_deck_info.include_extra_side_false_excludes_extra_and_side"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "164-168"
+description = "options.includeExtraSideがfalse（デフォルト）の場合、カード一覧候補(allCards)はmainDeckのみで構成され、extraDeck/sideDeckのカードは候補にすら含まれない"
+given = "includeExtraSide未指定（false）、extraDeck/sideDeckに要素あり"
+expect_side_effect = "ctx.fillTextの引数にextraDeck/sideDeckのcidを含む文字列が現れない"
+
+[[condition]]
+id = "draw_deck_info.include_extra_side_true_includes_extra_and_side"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "164-168"
+description = "options.includeExtraSideがtrueの場合、allCardsは[...mainDeck, ...extraDeck, ...sideDeck]の順で連結される（mainDeckが優先的に先頭を占める）"
+given = "includeExtraSide=true"
+expect_side_effect = "ctx.fillTextの引数にextraDeck/sideDeckのcidを含む文字列が現れうる（10枚スライス内に収まる場合）"
+
+[[condition]]
+id = "draw_deck_info.all_cards_sliced_to_first_ten"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "168"
+description = "allCardsは連結後.slice(0, 10)され、先頭10件のみが描画候補になる。11件目以降は（y座標に余裕があっても）描画されない"
+given = "mainDeckに11件以上のカードがあり、canvas高さに十分な余白がある"
+expect_side_effect = "ctx.fillTextに11件目以降のcidを含む文字列が現れない"
+
+[[condition]]
+id = "draw_deck_info.card_text_truncated_when_over_25_chars"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "172-173"
+description = "`${quantity}x (cid: ${cid})`の文字列長が25を超える場合、substring(0, 22) + '...'に切り詰めて描画する"
+given = "quantity/cidの組み合わせでcardText.length > 25になるカード"
+expect_side_effect = "ctx.fillTextの引数がcardText.substring(0,22)+'...'と一致する"
+
+[[condition]]
+id = "draw_deck_info.card_text_kept_when_25_or_under"
+target_function = "DeckThumbnailGenerator#drawDeckInfoOnCanvas"
+source_lines = "172-173"
+description = "cardText.length <= 25の場合は切り詰めずそのまま描画する"
+given = "quantity/cidの組み合わせでcardText.length <= 25になるカード"
+expect_side_effect = "ctx.fillTextの引数がcardTextそのものと一致する"
+
+# --- wrapText(text: string, _maxWidth: number): string[] (private) ---
+
+[[condition]]
+id = "wrap_text.empty_string_returns_empty_array"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "186-206"
+description = "textが空文字列の場合、chars=[]でforEachが一度も実行されず、currentLineは''のまま。最終if(currentLine.length>0)もfalseとなり、空配列を返す"
+given = "text = ''"
+expect_return = "[]"
+
+[[condition]]
+id = "wrap_text.under_20_chars_no_wrap"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "189-200"
+description = "文字数が20文字未満（1文字を含む）の場合、testLine.length > 20の分岐に一度も入らず、最終的に1要素の配列として全文がそのまま返る"
+given = "text.length が1〜19の任意の文字列"
+expect_return = "[text]（元の文字列を1要素とする配列）"
+
+[[condition]]
+id = "wrap_text.exactly_20_chars_no_wrap"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "192"
+description = "文字数がちょうど20文字の場合、testLine.length(20) > 20は常にfalse（境界値）となるため折り返されず、1要素の配列で全文が返る"
+given = "text.length === 20"
+expect_return = "[text]"
+
+[[condition]]
+id = "wrap_text.21_chars_wraps_into_two_lines"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "192-198"
+description = "21文字目でtestLine.length(21) > 20となり、currentLine（先頭20文字、length>0なので必ずpushされる）を1行目としてpushし、21文字目からcurrentLineを再開する。ループ終了後、残ったcurrentLine（1文字）が最終ifでpushされ2行になる"
+given = "text.length === 21"
+expect_return = "[textの先頭20文字, textの21文字目]"
+
+[[condition]]
+id = "wrap_text.multi_line_wrap_for_long_text"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "189-206"
+description = "20文字を超えるたびに新しい行へ切り替える処理が繰り返され、20文字ごとの行に分割される。最後の端数（20文字未満の残り）は最終ifでpushされる"
+given = "text.length === 50"
+expect_return = "3行（20文字, 20文字, 10文字）"
+
+[[condition]]
+id = "wrap_text.max_width_param_is_ignored"
+target_function = "DeckThumbnailGenerator#wrapText"
+source_lines = "183,192"
+description = "第2引数_maxWidthは折り返し判定に一切使用されない（固定で20文字がハードコードされている）。異なるmaxWidthを渡しても結果は変わらない"
+given = "同一textに対しmaxWidthだけを変えて複数回呼び出す（例: 10 と 1000）"
+expect_return_shape = "maxWidthの値に関わらず同一の結果配列"

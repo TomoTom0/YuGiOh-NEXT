@@ -4,9 +4,10 @@ Pinia ストアの設計と使用方法について説明します。
 
 ## 概要
 
-本プロジェクトでは Pinia を使用して状態管理を行っています。主に2つのストアがあります：
+本プロジェクトでは Pinia を使用して状態管理を行っています。主なストアは以下の通りです：
 
 - `deck-edit.ts`: デッキ編集機能の状態管理
+- `search.ts`: カード検索・検索フィルターの状態管理（`deck-edit.ts`とは独立したストア）
 - `settings.ts`: ユーザー設定の状態管理
 
 ## useDeckEditStore
@@ -26,11 +27,6 @@ interface DeckEditState {
     extra: DisplayCard[];
     side: DisplayCard[];
   };
-
-  // 検索・フィルター
-  searchQuery: string;
-  searchFilters: SearchFilters;
-  searchResults: Card[];
 
   // 選択状態
   selectedCard: Card | null;
@@ -70,12 +66,8 @@ interface DisplayCard {
 - `moveCard(uuid: string, from: DeckSection, to: DeckSection)`: カードを移動
 - `updateQuantity(uuid: string, section: DeckSection, delta: number)`: 枚数変更
 
-#### 検索・フィルター
-
-- `setSearchQuery(query: string)`: 検索クエリ設定
-- `setSearchFilters(filters: SearchFilters)`: フィルター設定
-- `searchCards()`: カード検索実行
-- `clearSearch()`: 検索クリア
+検索クエリ・検索フィルター・検索結果は `useSearchStore`（下記）で管理されており、
+`useDeckEditStore`側にはない。
 
 #### 選択状態
 
@@ -97,9 +89,6 @@ extraDeckCount: number;
 // サイドデッキのカード数
 sideDeckCount: number;
 
-// フィルター適用済み検索結果
-filteredSearchResults: Card[];
-
 // デッキが変更されたか
 isDirty: boolean;
 ```
@@ -118,6 +107,53 @@ const maxIndex = Math.max(0,
 );
 const newUuid = `card-${maxIndex + 1}`;
 ```
+
+## useSearchStore
+
+カード検索・検索フィルターの状態管理を行うストア（`src/stores/search.ts`）。
+`useDeckEditStore`とは独立しており、検索UI（`SearchInputBar`/`SearchFilterDialog`等）と
+`useSearchExecution`コンポーザブルから参照される。
+
+### State
+
+```typescript
+// 検索クエリ
+searchQuery: string;
+
+// 検索結果（拡張検索で最大2000件まで拡張される）
+searchResults: Array<{ card: CardInfo }>;
+allResults: Array<{ card: CardInfo }>;
+
+// ページネーション
+currentPage: number;
+hasMore: boolean;
+
+// ローディング状態
+isLoading: boolean;
+
+// 検索世代カウンタ。handleSearch呼び出しごとにインクリメントされ、
+// 古い検索の遅延処理（拡張検索のsetTimeoutコールバック等）が
+// 新しい検索結果を誤って上書きしないようにするためのガードに使う（TASK-373）
+searchGeneration: number;
+
+// 検索フィルター（型定義: src/types/search-filters.ts）
+searchFilters: SearchFilters;
+
+// グローバル検索モード
+isGlobalSearchMode: boolean;
+```
+
+### Getters
+
+- `exclusionResult`: `searchFilters`から`search-exclusion-engine`経由で計算される、
+  相互排他的なフィルター条件（例: 通常モンスターと融合モンスターの同時選択は矛盾）の無効化状態
+
+### Actions
+
+- `clearAllFilters()`: `searchFilters`を全て初期値に戻す
+
+検索の実行自体（サーバーへのfetch、クライアント側AND/ORフィルタ適用等）はこのストアにはなく、
+`src/components/searchInputBar/composables/useSearchExecution.ts`の`handleSearch()`が担う。
 
 ## useSettingsStore
 

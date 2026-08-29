@@ -1,0 +1,263 @@
+# 検証対象: src/utils/disabled-reason-formatter.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。排他エンジンから呼ばれるdisabled reasonの日本語フォーマッタ。
+#
+# 補足:
+# - getAttributeDisplayLabel / getFieldDisplayLabel は非exportのヘルパー関数（AST抽出スクリプトの
+#   「未カバーexport関数検出」の対象外）。README 3節Phase1.6知見の通り、非exportでも意味のある
+#   分岐を持つため人手でconditionsを書いた。機械チェックでの担保は無い点に留意。
+# - formatDisabledReason の第3引数 _details は関数本体で一切参照されない（未使用）。値によって
+#   挙動が変わらないため条件化していない。
+# - getAttributeDisplayLabel内の `monsterTypeMatch && monsterTypeMatch[1]` 等のnullチェックは、
+#   正規表現が `(.+)$`（1文字以上必須）でマッチした時点でmatch[1]は必ず非空文字列になるため、
+#   TypeScriptのnarrowing用の防御コードであり実行時に到達しうる分岐ではない
+#   （README 2節「書かない」基準：型システムで保証済みの分岐）。よって条件化していない。
+
+[meta]
+feature = "disabled-reason-formatter"
+source_file = "src/utils/disabled-reason-formatter.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/disabled-reason-formatter.test.ts"
+source_hash = "3e004ecf05b7c5ae6413f17bb690269d2e6cf637"
+note = "verified=falseは0件"
+
+# --- getAttributeDisplayLabel(attrId: string): string (非export, L16-83) ---
+
+[[condition]]
+id = "attr_label.monster_type_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "18-23"
+description = "attrIdが'monster-type_(.+)'形式かつmappingManager.getMonsterTypeIdToText('ja')にtypeが存在する場合、そのラベルを返す"
+given = "attrId = 'monster-type_fusion'（mapに'fusion'あり）"
+expect_return = "mapに登録されたラベル文字列"
+
+[[condition]]
+id = "attr_label.monster_type_not_found_fallback_to_raw_type"
+target_function = "getAttributeDisplayLabel"
+source_lines = "18-23"
+description = "'monster-type_(.+)'形式にマッチするがmapping結果にtypeが存在しない場合、type（'monster-type_'を除いた部分）をそのまま返す"
+given = "attrId = 'monster-type_unknown'（mapに'unknown'なし）"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.card_type_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "26-35"
+description = "attrIdが'card-type_(.+)'形式かつローカルlabelsマップ（monster/spell/trap固定3件）にtypeが存在する場合、そのラベルを返す"
+given = "attrId = 'card-type_spell'"
+expect_return = "魔法"
+
+[[condition]]
+id = "attr_label.card_type_not_found_fallback_to_raw_type"
+target_function = "getAttributeDisplayLabel"
+source_lines = "26-35"
+description = "'card-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
+given = "attrId = 'card-type_unknown'"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.attribute_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "38-44"
+description = "attrIdが'attribute_(.+)'形式かつmappingManager.getAttributeIdToText('ja')にattrが存在する場合、そのラベルを返す"
+given = "attrId = 'attribute_water'（mapに'water'あり）"
+expect_return = "mapに登録されたラベル文字列"
+
+[[condition]]
+id = "attr_label.attribute_not_found_fallback_to_raw_attr"
+target_function = "getAttributeDisplayLabel"
+source_lines = "38-44"
+description = "'attribute_(.+)'形式にマッチするがmapping結果にattrが存在しない（labelがundefined）場合、attr（'attribute_'を除いた部分）をそのまま返す"
+given = "attrId = 'attribute_unknown'（mapに'unknown'なし）"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.race_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "47-53"
+description = "attrIdが'race_(.+)'形式かつmappingManager.getRaceIdToText('ja')にraceが存在する場合、そのラベルを返す"
+given = "attrId = 'race_dragon'（mapに'dragon'あり）"
+expect_return = "mapに登録されたラベル文字列"
+
+[[condition]]
+id = "attr_label.race_not_found_fallback_to_raw_race"
+target_function = "getAttributeDisplayLabel"
+source_lines = "47-53"
+description = "'race_(.+)'形式にマッチするがmapping結果にraceが存在しない場合、raceをそのまま返す"
+given = "attrId = 'race_unknown'（mapに'unknown'なし）"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.spell_type_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "56-68"
+description = "attrIdが'spell-type_(.+)'形式かつローカルlabelsマップ（normal/quick/ritual/continuous/equip/field固定6件）にtypeが存在する場合、そのラベルを返す"
+given = "attrId = 'spell-type_quick'"
+expect_return = "速攻魔法"
+
+[[condition]]
+id = "attr_label.spell_type_not_found_fallback_to_raw_type"
+target_function = "getAttributeDisplayLabel"
+source_lines = "56-68"
+description = "'spell-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
+given = "attrId = 'spell-type_unknown'"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.trap_type_found"
+target_function = "getAttributeDisplayLabel"
+source_lines = "71-80"
+description = "attrIdが'trap-type_(.+)'形式かつローカルlabelsマップ（normal/continuous/counter固定3件）にtypeが存在する場合、そのラベルを返す"
+given = "attrId = 'trap-type_counter'"
+expect_return = "カウンター罠"
+
+[[condition]]
+id = "attr_label.trap_type_not_found_fallback_to_raw_type"
+target_function = "getAttributeDisplayLabel"
+source_lines = "71-80"
+description = "'trap-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
+given = "attrId = 'trap-type_unknown'"
+expect_return = "unknown"
+
+[[condition]]
+id = "attr_label.no_match_returns_raw_attr_id"
+target_function = "getAttributeDisplayLabel"
+source_lines = "18-82"
+description = "attrIdがmonster-type_/card-type_/attribute_/race_/spell-type_/trap-type_のいずれの形式にもマッチしない場合、attrIdをそのまま返す"
+given = "attrId = 'unknown-format'"
+expect_return = "unknown-format"
+
+# --- getFieldDisplayLabel(fieldName: string): string (非export, L89-104) ---
+
+[[condition]]
+id = "field_label.found"
+target_function = "getFieldDisplayLabel"
+source_lines = "90-103"
+description = "fieldNameがローカルlabelsマップ（level-rank/link-value/link-marker/p-scale/def/atk/attribute/race/monster-type/spell-type/trap-type固定11件）に存在する場合、そのラベルを返す"
+given = "fieldName = 'level-rank'"
+expect_return = "レベル/ランク"
+
+[[condition]]
+id = "field_label.not_found_fallback_to_raw_field_name"
+target_function = "getFieldDisplayLabel"
+source_lines = "90-103"
+description = "fieldNameがlabelsマップに存在しない場合、fieldNameをそのまま返す"
+given = "fieldName = 'unknown-field'"
+expect_return = "unknown-field"
+
+# --- formatDisabledReason(type, source, _details): string (export, L114-158) ---
+
+[[condition]]
+id = "format.field_to_attribute_string_source"
+target_function = "formatDisabledReason"
+source_lines = "120-129"
+description = "type='field-to-attribute'かつsourceが文字列の場合、[source]の1要素配列として扱い、labels.length===1の分岐（'{label}が選択/入力されているため'）に入る"
+given = "type='field-to-attribute', source='level-rank'"
+expect_return = "レベル/ランクが選択/入力されているため"
+
+[[condition]]
+id = "format.field_to_attribute_multi_array_joined"
+target_function = "formatDisabledReason"
+source_lines = "123-127"
+description = "type='field-to-attribute'かつsource配列の要素数が2以上の場合、各要素をgetFieldDisplayLabelでラベル化し'、'で結合してから'が選択/入力されているため'を付与する"
+given = "type='field-to-attribute', source=['level-rank', 'def']"
+expect_return = "レベル/ランク、DEFが選択/入力されているため"
+
+[[condition]]
+id = "format.field_to_attribute_single_element_array"
+target_function = "formatDisabledReason"
+source_lines = "123-128"
+description = "type='field-to-attribute'かつsourceが1要素の配列の場合、Array.isArrayでsourceがそのまま使われ、labels.length===1の分岐に入る（文字列指定時と同じ挙動）"
+given = "type='field-to-attribute', source=['atk']"
+expect_return = "ATKが選択/入力されているため"
+
+[[condition]]
+id = "format.field_to_attribute_empty_array_boundary"
+target_function = "formatDisabledReason"
+source_lines = "123-128"
+description = "type='field-to-attribute'かつsourceが空配列の場合、labels=[]でlength>1がfalseとなりelse分岐（labels[0]）に入るが、labels[0]はundefinedのためテンプレートリテラルで'undefined'という文字列が埋め込まれる（実装上のバウンダリ挙動、意図的な仕様かは実装コメントからは不明）"
+given = "type='field-to-attribute', source=[]"
+expect_return = "undefinedが選択/入力されているため"
+
+[[condition]]
+id = "format.attribute_exclusion_string_source"
+target_function = "formatDisabledReason"
+source_lines = "131-137"
+description = "type='attribute-exclusion'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
+given = "type='attribute-exclusion', source='monster-type_fusion'"
+expect_return = "融合が選択されているため"
+
+[[condition]]
+id = "format.attribute_exclusion_array_source_first_element"
+target_function = "formatDisabledReason"
+source_lines = "131-137"
+description = "type='attribute-exclusion'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
+given = "type='attribute-exclusion', source=['card-type_spell', 'card-type_trap']"
+expect_return = "魔法が選択されているため"
+
+[[condition]]
+id = "format.attribute_exclusion_empty_array_boundary"
+target_function = "formatDisabledReason"
+source_lines = "134-136"
+description = "type='attribute-exclusion'かつsourceが空配列の場合、source[0]がundefinedのため`|| ''`でattrId=''にフォールバックし、getAttributeDisplayLabel('')はどの正規表現にもマッチせず''をそのまま返すため、結果は接頭辞なしの固定文言のみになる"
+given = "type='attribute-exclusion', source=[]"
+expect_return = "が選択されているため"
+
+[[condition]]
+id = "format.attribute_unavailable_string_source"
+target_function = "formatDisabledReason"
+source_lines = "139-145"
+description = "type='attribute-unavailable'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
+given = "type='attribute-unavailable', source='attribute_dark'"
+expect_return = "闇が選択されているため"
+
+[[condition]]
+id = "format.attribute_unavailable_array_source_first_element"
+target_function = "formatDisabledReason"
+source_lines = "139-145"
+description = "type='attribute-unavailable'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
+given = "type='attribute-unavailable', source=['monster-type_synchro', 'monster-type_xyz']"
+expect_return = "シンクロが選択されているため"
+
+[[condition]]
+id = "format.attribute_unavailable_empty_array_boundary"
+target_function = "formatDisabledReason"
+source_lines = "142-144"
+description = "type='attribute-unavailable'かつsourceが空配列の場合、attribute-exclusionと同様にattrId=''にフォールバックし、結果は接頭辞なしの固定文言のみになる"
+given = "type='attribute-unavailable', source=[]"
+expect_return = "が選択されているため"
+
+[[condition]]
+id = "format.attribute_to_field_string_source"
+target_function = "formatDisabledReason"
+source_lines = "147-153"
+description = "type='attribute-to-field'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
+given = "type='attribute-to-field', source='card-type_trap'"
+expect_return = "罠が選択されているため"
+
+[[condition]]
+id = "format.attribute_to_field_array_source_first_element"
+target_function = "formatDisabledReason"
+source_lines = "147-153"
+description = "type='attribute-to-field'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
+given = "type='attribute-to-field', source=['race_warrior', 'race_dragon']"
+expect_return = "戦士が選択されているため"
+
+[[condition]]
+id = "format.attribute_to_field_empty_array_boundary"
+target_function = "formatDisabledReason"
+source_lines = "150-152"
+description = "type='attribute-to-field'かつsourceが空配列の場合、attribute-exclusion/attribute-unavailableと同様にattrId=''にフォールバックし、結果は接頭辞なしの固定文言のみになる"
+given = "type='attribute-to-field', source=[]"
+expect_return = "が選択されているため"
+
+[[condition]]
+id = "format.unknown_type_returns_empty_string"
+target_function = "formatDisabledReason"
+source_lines = "155-156"
+description = "typeがswitchのいずれのcaseにもマッチしない場合（default節）、空文字列を返す"
+given = "type = 'unknown-type' as any, source = 'some-value'"
+expect_return = ""

@@ -1,0 +1,230 @@
+# 検証対象: src/utils/filter-icons.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、SearchFiltersをFilterIcon[]に変換する純粋関数。
+#
+# 実装コメントとの差異・付記事項:
+# - L69-78/L109-118/L121-130 の levelValues/linkValues/scaleValues は
+#   「filters.X.length > 0」の外側ガードに加え「if (xLabel)」という内側ガードが二重に存在するが、
+#   formatNumberRange() は呼び出し元(本ファイル)が渡すprefix('★'/'L'/'PS')が常に非空literalであり、
+#   かつ配列が非空である限り必ず非空文字列を返す実装になっているため、内側ガードのfalse分岐は
+#   convertFiltersToIcons の公開APIからは到達不能（防御的な二重チェック）。
+#   そのためfalse分岐は個別条件化せず、この注記のみに留めた。
+# - CARD_TYPE_ID_TO_SHORTNAME / ATTRIBUTE_ID_TO_NAME / MONSTER_TYPE_ID_TO_SHORTNAME への
+#   フォールバック（`|| filters.cardType` 等）は、対応する型(CardType/Attribute/MonsterType)が
+#   マッピング定数のキーを完全に網羅している（src/types/card-maps.ts で実測確認済み）ため、
+#   正規に型付けされた入力からは到達不能。ただしREADME 2節の「書く: デフォルト値のフォールバック」
+#   に従い条件化し、テストでは `as unknown as <Type>` で型システムを迂回して到達を検証した
+#   （このプロジェクトの既存テストでも同様のバイパスパターンが使われている: 例
+#   tests/unit/card-search-cache.test.ts）。
+# - tests/unit/utils/filter-icons.test.ts の既存テストは monsterTypes の state に
+#   'include' という値を使っていたが、SearchFilters型上は state: 'normal' | 'not' のみが正。
+#   'include' は 'not' と一致しないため isNot: false のテストとして偶然成立していたに過ぎず、
+#   isNot: true になるケース（state === 'not'）はこれまで一件もテストされていなかった。
+#   本タスクで 'normal'/'not' を使う形に修正し、isNot: true のテストを追加した。
+# - spellTypes / trapTypes は変換ロジック自体は存在するが、既存テストに1件もカバーがなかった
+#   （races/attributesは存在した）。本タスクで追加した。
+
+[meta]
+feature = "filter-icons"
+source_file = "src/utils/filter-icons.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/filter-icons.test.ts"
+source_hash = "536cfc0d76a95409078f341dd5226672c9614a0a"
+note = "verified=falseは0件（すべて公開APIから到達・検証可能）"
+
+# --- convertFiltersToIcons(filters: SearchFilters): FilterIcon[] ---
+
+[[condition]]
+id = "convert_filters_to_icons.all_empty_returns_empty_array"
+target_function = "convertFiltersToIcons"
+source_lines = "20-143"
+description = "全フィールドが未設定(cardType=null)/空配列/atk・defともに条件なしの場合、iconsは1件もpushされず空配列を返す"
+given = "cardType=null, 全配列フィールド=[], atk={exact:false,unknown:false}, def={exact:false,unknown:false}"
+expect_return = "[]"
+
+[[condition]]
+id = "convert_filters_to_icons.card_type_present_pushes_mapped_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "24-30"
+description = "filters.cardTypeがnullでない場合、CARD_TYPE_ID_TO_SHORTNAMEでマップしたlabelでtype='cardType'のアイコンをpushする。valueはfilters.cardTypeの生値"
+given = "cardType='monster'"
+expect_return_shape = "[{ type:'cardType', label:'M', value:'monster' }] が結果配列の先頭に含まれる"
+
+[[condition]]
+id = "convert_filters_to_icons.card_type_unmapped_fallback"
+target_function = "convertFiltersToIcons"
+source_lines = "27"
+description = "CARD_TYPE_ID_TO_SHORTNAMEに存在しない値の場合、labelはfilters.cardTypeの生値にフォールバックする。CardType型はCARD_TYPE_ID_TO_SHORTNAMEの全キー(monster/spell/trap)を網羅しているため、正規に型付けされた値からは到達不能で、型システムを迂回した場合のみ到達する防御的分岐"
+given = "cardType = 'unknown' as unknown as CardType"
+expect_return_shape = "[{ type:'cardType', label:'unknown', value:'unknown' }]"
+
+[[condition]]
+id = "convert_filters_to_icons.spell_types_each_produces_icon_in_order"
+target_function = "convertFiltersToIcons"
+source_lines = "33-39"
+description = "filters.spellTypesの各要素についてgetSpellTypeLabelでラベル化したtype='spellType'のアイコンを、配列の順序通りにpushする。空配列なら1件もpushしない"
+given = "spellTypes=['normal','quick']"
+expect_return_shape = "[{type:'spellType',label:'通常',value:'normal'}, {type:'spellType',label:'速攻',value:'quick'}] の順で含まれる"
+
+[[condition]]
+id = "convert_filters_to_icons.trap_types_each_produces_icon_in_order"
+target_function = "convertFiltersToIcons"
+source_lines = "42-48"
+description = "filters.trapTypesの各要素についてgetTrapTypeLabelでラベル化したtype='trapType'のアイコンを、配列の順序通りにpushする。空配列なら1件もpushしない"
+given = "trapTypes=['normal','counter']"
+expect_return_shape = "[{type:'trapType',label:'通常',value:'normal'}, {type:'trapType',label:'カウンター',value:'counter'}] の順で含まれる"
+
+[[condition]]
+id = "convert_filters_to_icons.attributes_each_produces_mapped_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "51-57"
+description = "filters.attributesの各要素についてATTRIBUTE_ID_TO_NAMEでマップしたlabelでtype='attr'のアイコンを配列の順序通りにpushする"
+given = "attributes=['light','dark']"
+expect_return_shape = "[{type:'attr',label:'光',value:'light'}, {type:'attr',label:'闇',value:'dark'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.attribute_unmapped_fallback"
+target_function = "convertFiltersToIcons"
+source_lines = "54"
+description = "ATTRIBUTE_ID_TO_NAMEに存在しない値の場合、labelは生値にフォールバックする。Attribute型はATTRIBUTE_ID_TO_NAMEの全7キーを網羅しているため、正規に型付けされた値からは到達不能な防御的分岐"
+given = "attributes = ['unknownAttr'] as unknown as Attribute[]"
+expect_return_shape = "[{type:'attr', label:'unknownAttr', value:'unknownAttr'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.races_each_produces_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "60-66"
+description = "filters.racesの各要素についてgetRaceLabelでラベル化したtype='race'のアイコンを配列の順序通りにpushする"
+given = "races=['dragon','spellcaster']"
+expect_return_shape = "type='race'のアイコンが2件、入力順で含まれる"
+
+[[condition]]
+id = "convert_filters_to_icons.level_values_present_pushes_range_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "69-78"
+description = "filters.levelValues.length > 0の場合、formatNumberRange(levelValues, '★')の結果をlabelにしたtype='level'のアイコンをpushする。valueは元の値配列ではなく固定文字列'all'（一括削除用）"
+given = "levelValues=[4,5,6]"
+expect_return_shape = "[{type:'level', label:'★4-6', value:'all'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.level_values_empty_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "69"
+description = "filters.levelValuesが空配列の場合、外側ガードによりlevelアイコンはpushされない"
+given = "levelValues=[]"
+expect_return_shape = "type='level'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.atk_label_present_pushes_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "81-88"
+description = "formatStatLabel('ATK', filters.atk)が非nullを返す場合、その値をlabelにしたtype='atk'のアイコンをpushする。valueは固定文字列'atk'"
+given = "atk={exact:true, unknown:false, min:2500}"
+expect_return_shape = "[{type:'atk', label:'ATK=2500', value:'atk'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.atk_label_null_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "82-88"
+description = "formatStatLabel('ATK', filters.atk)がnullを返す場合（exact=false かつ unknown=false かつ min/max未指定等）、atkアイコンはpushされない"
+given = "atk={exact:false, unknown:false}"
+expect_return_shape = "type='atk'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.def_label_present_pushes_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "89-96"
+description = "formatStatLabel('DEF', filters.def)が非nullを返す場合、その値をlabelにしたtype='def'のアイコンをpushする。valueは固定文字列'def'"
+given = "def={exact:false, unknown:false, min:2000}"
+expect_return_shape = "[{type:'def', label:'DEF≥2000', value:'def'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.def_label_null_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "89-96"
+description = "formatStatLabel('DEF', filters.def)がnullを返す場合、defアイコンはpushされない"
+given = "def={exact:false, unknown:false}"
+expect_return_shape = "type='def'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.monster_types_each_isNot_false_when_normal"
+target_function = "convertFiltersToIcons"
+source_lines = "99-106"
+description = "filters.monsterTypesの各要素についてMONSTER_TYPE_ID_TO_SHORTNAMEでマップしたlabelでtype='mtype'のアイコンをpushする。isNotはmt.state === 'not'の真偽値。state='normal'の場合isNot=false"
+given = "monsterTypes=[{type:'fusion', state:'normal'}, {type:'synchro', state:'normal'}]"
+expect_return_shape = "[{type:'mtype', label:'融', value:'fusion', isNot:false}, {type:'mtype', label:'S', value:'synchro', isNot:false}]"
+
+[[condition]]
+id = "convert_filters_to_icons.monster_types_isNot_true_when_state_not"
+target_function = "convertFiltersToIcons"
+source_lines = "104"
+description = "mt.state === 'not'の場合、isNot=trueとなる（否定条件のアイコン表示に使用）"
+given = "monsterTypes=[{type:'xyz', state:'not'}]"
+expect_return_shape = "[{type:'mtype', label:'X', value:'xyz', isNot:true}]"
+
+[[condition]]
+id = "convert_filters_to_icons.monster_type_unmapped_fallback_first_char"
+target_function = "convertFiltersToIcons"
+source_lines = "102"
+description = "MONSTER_TYPE_ID_TO_SHORTNAMEに存在しない値の場合、labelはmt.typeの先頭1文字(slice(0,1))にフォールバックする。MonsterType型はMONSTER_TYPE_ID_TO_SHORTNAMEの全15キーを網羅しているため、正規に型付けされた値からは到達不能な防御的分岐"
+given = "monsterTypes = [{ type: 'unknownType' as unknown as MonsterType, state: 'normal' }]"
+expect_return_shape = "[{type:'mtype', label:'u', value:'unknownType', isNot:false}]"
+
+[[condition]]
+id = "convert_filters_to_icons.link_values_present_pushes_range_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "109-118"
+description = "filters.linkValues.length > 0の場合、formatNumberRange(linkValues, 'L')の結果をlabelにしたtype='link'のアイコンをpushする。valueは固定文字列'all'"
+given = "linkValues=[2,3,4]"
+expect_return_shape = "[{type:'link', label:'L2-4', value:'all'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.link_values_empty_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "109"
+description = "filters.linkValuesが空配列の場合、外側ガードによりlinkアイコンはpushされない"
+given = "linkValues=[]"
+expect_return_shape = "type='link'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.scale_values_present_pushes_range_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "121-130"
+description = "filters.scaleValues.length > 0の場合、formatNumberRange(scaleValues, 'PS')の結果をlabelにしたtype='scale'のアイコンをpushする。valueは固定文字列'all'"
+given = "scaleValues=[1,13]"
+expect_return_shape = "[{type:'scale', label:'PS1,13', value:'all'}]"
+
+[[condition]]
+id = "convert_filters_to_icons.scale_values_empty_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "121"
+description = "filters.scaleValuesが空配列の場合、外側ガードによりscaleアイコンはpushされない"
+given = "scaleValues=[]"
+expect_return_shape = "type='scale'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.link_markers_present_pushes_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "133-140"
+description = "formatLinkMarkerLabel(filters.linkMarkers)が非nullを返す場合（linkMarkers非空）、その値をlabelにしたtype='linkMarker'のアイコンをpushする。valueは固定文字列'all'。level/link/scaleと異なり外側の長さガードが無く、formatLinkMarkerLabel自身の空配列チェックのみに依存する"
+given = "linkMarkers=[1,2,3]"
+expect_return_shape = "[{type:'linkMarker', label: 文字列, value:'all'}] が含まれる"
+
+[[condition]]
+id = "convert_filters_to_icons.link_markers_empty_no_icon"
+target_function = "convertFiltersToIcons"
+source_lines = "133-140"
+description = "filters.linkMarkersが空配列の場合、formatLinkMarkerLabelがnullを返しlinkMarkerアイコンはpushされない"
+given = "linkMarkers=[]"
+expect_return_shape = "type='linkMarker'のアイコンを含まない"
+
+[[condition]]
+id = "convert_filters_to_icons.icons_pushed_in_fixed_source_order"
+target_function = "convertFiltersToIcons"
+source_lines = "20-143"
+description = "複数フィルタを同時指定した場合、返り値配列の要素順は実装のpush順（cardType→spellType→trapType→attr→race→level→atk→def→mtype→link→scale→linkMarker）に固定される"
+given = "cardType/attributes/races/levelValues/atk/monsterTypesを同時に指定"
+expect_return_shape = "配列の各要素の type がこの順序で並ぶ"

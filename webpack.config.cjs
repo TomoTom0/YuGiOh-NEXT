@@ -29,7 +29,14 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
-      chunkFilename: '[name].chunk.js',
+      // splitChunksが匿名チャンクに付与する名前はハッシュ由来で数字始まりになることがあり、
+      // webpackが識別子化のため先頭に "_" を付与する（例: "_19d2"）。
+      // Chrome拡張機能は "_" で始まるファイル名を読み込めないため、先頭の "_" を除去する。
+      chunkFilename: (pathData) => {
+        const rawName = String(pathData.chunk.name ?? pathData.chunk.id ?? pathData.chunk.hash);
+        const safeName = rawName.replace(/^_+/, '');
+        return `${safeName}.chunk.js`;
+      },
       // publicPathは実行時に__webpack_public_path__で動的設定するため空に
       publicPath: '',
       // チャンクの読み込み方式をネイティブimportに変更（チャンクのみES module）

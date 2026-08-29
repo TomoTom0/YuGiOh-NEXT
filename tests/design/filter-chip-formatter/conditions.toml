@@ -1,0 +1,227 @@
+# 検証対象: src/utils/filter-chip-formatter.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、フィルタチップ(検索条件の要約ラベル)を整形する純粋関数utils(81行)。
+#
+# 実装コメントとの差異: 特記事項なし。
+#
+# 条件化しなかった分岐について:
+# - formatNumberRange L56 `if (first === undefined) return ''`、L62/64の
+#   `current !== undefined` / `previous !== undefined` チェックは、tsconfig.json の
+#   noUncheckedIndexedAccess による配列インデックスアクセスの型安全化に起因するガードであり、
+#   number[]型を正しく満たす入力では実行時に到達しない
+#   （README 2節「型システムで保証済みの分岐」に該当するため条件化しない）。
+# - formatLinkMarkerLabel のマーカー→矢印記号の個別対応(1,2,3,4,6,7,8,9の8種)は、単一の
+#   lookupテーブル参照という同一挙動の機械的な列挙になるため、代表条件1件(known_marker_mapping)
+#   にまとめた。既存テストが8方向を個別に検証しているのはそのまま残し、同じidをcoverする。
+
+[meta]
+feature = "filter-chip-formatter"
+source_file = "src/utils/filter-chip-formatter.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/filter-chip-formatter.test.ts"
+source_hash = "b4b24cc104a060da734d52e60f7febde1d80b51b"
+note = "verified=falseは0件"
+
+# --- formatStatLabel(stat: 'ATK' | 'DEF', filter: { exact, unknown, min?, max? }): string | null ---
+# isValidMin = filter.min !== undefined && !isNaN(filter.min) && filter.min >= 0
+# isValidMax = filter.max !== undefined && !isNaN(filter.max) && filter.max >= 0
+# if-else if の優先順位: unknown > (exact && isValidMin) > (isValidMin && isValidMax) > isValidMin > isValidMax > null
+
+[[condition]]
+id = "stat_label.unknown_true_priority"
+target_function = "formatStatLabel"
+source_lines = "12-13"
+description = "filter.unknown=trueの場合、exact/min/maxの値に関わらず最優先で`${stat}=?`を返す"
+given = "filter = { exact: true, unknown: true, min: 100, max: 200 }"
+expect_return = "ATK=?"
+
+[[condition]]
+id = "stat_label.exact_true_valid_min"
+target_function = "formatStatLabel"
+source_lines = "14-15"
+description = "unknown=falseかつexact=trueかつisValidMinの場合、`${stat}=${min}`を返す(maxは無視される)"
+given = "filter = { exact: true, unknown: false, min: 2500, max: 100 }"
+expect_return = "ATK=2500"
+
+[[condition]]
+id = "stat_label.exact_true_invalid_min_falls_through"
+target_function = "formatStatLabel"
+source_lines = "14,22-25"
+description = "exact=trueでもminが無効(未指定/NaN/負数)な場合はexact分岐に入らず、以降のmin/max判定に処理が委ねられる(この例ではmaxのみ有効なので≤表記になる)"
+given = "filter = { exact: true, unknown: false, min: -5, max: 2000 }"
+expect_return = "ATK≤2000"
+
+[[condition]]
+id = "stat_label.min_max_both_valid_range"
+target_function = "formatStatLabel"
+source_lines = "16,21"
+description = "isValidMinとisValidMaxが共に真でmax>=minの場合、`${stat}:${min}-${max}`を返す"
+given = "filter = { exact: false, unknown: false, min: 1000, max: 2000 }"
+expect_return = "ATK:1000-2000"
+
+[[condition]]
+id = "stat_label.min_max_equal_boundary"
+target_function = "formatStatLabel"
+source_lines = "16,18,21"
+description = "min===maxの境界値では`filter.max! < filter.min!`がfalseになるためnullにならず、range表記を返す"
+given = "filter = { exact: false, unknown: false, min: 1500, max: 1500 }"
+expect_return = "ATK:1500-1500"
+
+[[condition]]
+id = "stat_label.max_less_than_min_null"
+target_function = "formatStatLabel"
+source_lines = "16,18-19"
+description = "isValidMin/isValidMax共に真だがmax<minの場合はnullを返す"
+given = "filter = { exact: false, unknown: false, min: 2000, max: 1000 }"
+expect_return = "null"
+
+[[condition]]
+id = "stat_label.min_only"
+target_function = "formatStatLabel"
+source_lines = "22-23"
+description = "isValidMinのみ真の場合(maxが無効/未指定)、`${stat}≥${min}`を返す"
+given = "filter = { exact: false, unknown: false, min: 1800 }"
+expect_return = "ATK≥1800"
+
+[[condition]]
+id = "stat_label.max_only"
+target_function = "formatStatLabel"
+source_lines = "24-25"
+description = "isValidMaxのみ真の場合(minが無効/未指定)、`${stat}≤${max}`を返す"
+given = "filter = { exact: false, unknown: false, max: 1500 }"
+expect_return = "ATK≤1500"
+
+[[condition]]
+id = "stat_label.none_valid_null"
+target_function = "formatStatLabel"
+source_lines = "27"
+description = "unknown=false、min/max共に無効(未指定)の場合、最終的にnullを返す"
+given = "filter = { exact: false, unknown: false }"
+expect_return = "null"
+
+[[condition]]
+id = "stat_label.zero_min_valid"
+target_function = "formatStatLabel"
+source_lines = "9,22-23"
+description = "min=0は`filter.min !== undefined`かつ`0 >= 0`によりisValidMin=trueとして扱われる(falsy値としての除外はされない)"
+given = "filter = { exact: false, unknown: false, min: 0 }"
+expect_return = "ATK≥0"
+
+[[condition]]
+id = "stat_label.negative_min_invalid"
+target_function = "formatStatLabel"
+source_lines = "9,27"
+description = "min<0(またはNaN)の場合、`min >= 0`(または`!isNaN`)チェックによりisValidMin=falseとなり、他に有効なmax等が無ければnullを返す"
+given = "filter = { exact: false, unknown: false, min: -5 }"
+expect_return = "null"
+
+# --- formatLinkMarkerLabel(markers: number[]): string | null ---
+
+[[condition]]
+id = "link_marker.empty_array_null"
+target_function = "formatLinkMarkerLabel"
+source_lines = "34"
+description = "markers.length===0の場合はnullを返す"
+given = "markers = []"
+expect_return = "null"
+
+[[condition]]
+id = "link_marker.known_marker_mapping"
+target_function = "formatLinkMarkerLabel"
+source_lines = "36-43"
+description = "markerSymbolsに定義された1,2,3,4,6,7,8,9(5は定義なし=リンクマーカーの中央は存在しないため)の各値を対応する矢印記号に変換し、`L`を先頭に付けて返す"
+given = "markers = [1]"
+expect_return = "L↙"
+
+[[condition]]
+id = "link_marker.unmapped_number_fallback"
+target_function = "formatLinkMarkerLabel"
+source_lines = "42"
+description = "markerSymbolsに存在しない数値(0, 5, 10等)は`markerSymbols[m] || m`によりmの数値そのもの(文字列化)にフォールバックする"
+given = "markers = [5]"
+expect_return = "L5"
+
+[[condition]]
+id = "link_marker.multiple_preserve_input_order"
+target_function = "formatLinkMarkerLabel"
+source_lines = "42"
+description = "複数マーカーは`.map().join('')`で入力配列の順序のまま連結される。formatNumberRangeと異なりソートは行われない"
+given = "markers = [3, 1, 2]"
+expect_return = "L↘↙↓"
+
+# --- formatNumberRange(numbers: number[], prefix: string): string ---
+
+[[condition]]
+id = "number_range.empty_array_empty_string"
+target_function = "formatNumberRange"
+source_lines = "50"
+description = "numbers.length===0の場合は空文字を返す(prefixも付与されない)"
+given = "numbers = [], prefix = '★'"
+expect_return = ""
+
+[[condition]]
+id = "number_range.single_value"
+target_function = "formatNumberRange"
+source_lines = "55-57,76,80"
+description = "要素が1つの場合、単独グループとしてgroup.join(',')が実行され`${prefix}${値}`を返す"
+given = "numbers = [5], prefix = '★'"
+expect_return = "★5"
+
+[[condition]]
+id = "number_range.sorts_input_before_grouping"
+target_function = "formatNumberRange"
+source_lines = "51"
+description = "`[...numbers].sort((a, b) => a - b)`により数値として昇順ソートしてからグループ化する(デフォルトの文字列ソートではない)"
+given = "numbers = [6, 4, 5], prefix = '★'"
+expect_return = "★4-6"
+
+[[condition]]
+id = "number_range.group_continues_on_consecutive"
+target_function = "formatNumberRange"
+source_lines = "62-63"
+description = "ソート後の隣接値が`current === previous + 1`を満たす限り同一グループに連結される"
+given = "numbers = [4, 5, 6], prefix = '★'"
+expect_return = "★4-6"
+
+[[condition]]
+id = "number_range.group_breaks_on_non_consecutive"
+target_function = "formatNumberRange"
+source_lines = "64-66"
+description = "隣接値の差が1でない場合はグループを確定し、新しいグループを開始する"
+given = "numbers = [1, 3, 5], prefix = '★'"
+expect_return = "★1,3,5"
+
+[[condition]]
+id = "number_range.group_breaks_on_duplicate"
+target_function = "formatNumberRange"
+source_lines = "62,64-66"
+description = "重複値は`current === previous + 1`を満たさない(差が0)ため、隣接していてもグループが分割される。結果として出力に同じ値がカンマ区切りで重複して現れる"
+given = "numbers = [4, 5, 5, 6], prefix = '★'"
+expect_return = "★4,5,5,6"
+
+[[condition]]
+id = "number_range.group_length_ge3_range_format"
+target_function = "formatNumberRange"
+source_lines = "73-74"
+description = "1グループの要素数が3以上(境界値)の場合、`${先頭}-${末尾}`のrange表記を返す"
+given = "numbers = [4, 5, 6], prefix = '★' (単一グループ、長さ3)"
+expect_return = "★4-6"
+
+[[condition]]
+id = "number_range.group_length_lt3_comma_format"
+target_function = "formatNumberRange"
+source_lines = "73,76"
+description = "1グループの要素数が3未満(境界値、要素数2)の場合、range表記にならずgroup.join(',')のカンマ区切りを返す"
+given = "numbers = [1, 2, 5], prefix = '★' (連続グループ[1,2]は長さ2、単独グループ[5])"
+expect_return = "★1,2,5"
+
+[[condition]]
+id = "number_range.mixed_groups_partial_consecutive"
+target_function = "formatNumberRange"
+source_lines = "72-80"
+description = "range表記(長さ3以上)とカンマ区切り(長さ3未満)の複数グループが混在する場合、`parts.join(',')`で結合して返す"
+given = "numbers = [1, 2, 3, 5, 7, 8], prefix = '★'"
+expect_return = "★1-3,5,7,8"
