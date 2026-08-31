@@ -20,10 +20,10 @@
 feature = "create-deck-recipe-image"
 source_file = "src/content/deck-recipe/createDeckRecipeImage.ts"
 verified = true
-verified_at = "2026-08-29"
+verified_at = "2026-09-01"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/create-deck-recipe-image.test.ts"
-source_hash = "76ef80856bc37e721e1f41a14d78cf0f1e0be938"
+source_hash = "48085642fc0dfef7681e127c81e80fe269ef9fe3"
 note = "verified=falseは6件（Node.js専用分岐のためhappy-domテスト環境では到達不能）。TASK-381でdrawTimestampにfooterText引数を追加。TASK-379で追加したdrawOuterBorder（canvasへの縁取り焼き込み）はTASK-390で誤実装と判明し削除（意図はImageDialog.vue側のプレビュー表示への枠線であり、エクスポート画像への焼き込みではなかった）"
 
 # --- createDeckRecipeImage(options) ---
