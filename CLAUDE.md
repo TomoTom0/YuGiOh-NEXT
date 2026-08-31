@@ -196,6 +196,13 @@ feature flag のデフォルト値はコードに直書きせず、`configs/feat
 - `docs/feature/featureSettings.toml`: `category` / `ui` / `note` を記載（default値は書かない）
 - カテゴリ定義は `docs/feature/README.md` 参照
 
+**`AppSettings` / `UXSettings` のデフォルト値も同様にコード直書き禁止。**
+
+- `configs/app-settings.toml`（`ux` キーは除く）/ `configs/ux.toml` が Single Source of Truth
+- `src/types/settings.ts` の `DEFAULT_APP_SETTINGS` / `DEFAULT_UX_SETTINGS` はビルド時注入（`__APP_SETTINGS_DEFAULTS__` / `__UX_SETTINGS_DEFAULTS__`）から構築される
+- `docs/feature/appSettings.toml` / `ux.toml` は `category` / `ui` / `note` 専用（default値は書かない）
+- 設定値を変更する場合は configs のtomlのみ編集（整合は `tests/unit/configs/` のテストが検証）
+
 ## ファイル構成の重要なルール
 
 ### `.gitignore` 管理
