@@ -233,6 +233,18 @@ describe('stores/settings', () => {
       expect(store.featureSettings.chat).toBe(DEFAULT_FEATURE_SETTINGS.chat);
     });
 
+    it('[covers:load_common.genesys_stored_artifact_overridden_by_default] 旧prodビルドが永続化したgenesys=false（category 3強制OFFのアーティファクト）はDEFAULT値で上書きされる', async () => {
+      mockStorage.featureSettings = {
+        genesys: false,
+      };
+      const store = useSettingsStore();
+
+      await store.loadCommonSettings();
+
+      expect(store.featureSettings.genesys).toBe(DEFAULT_FEATURE_SETTINGS.genesys);
+      expect(store.featureSettings.genesys).toBe(true);
+    });
+
     it('[covers:load_common.storage_get_throw_rejects] rejects when chrome.storage.local.get throws synchronously', async () => {
       (chrome.storage.local.get as any).mockImplementation(() => {
         throw new Error('Storage quota exceeded');

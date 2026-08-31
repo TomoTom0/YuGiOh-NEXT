@@ -190,6 +190,10 @@ export const useSettingsStore = defineStore('settings', () => {
         // category 3 強制: configs/features.toml で default = "dev-only" の機能は
         // 本番ビルドでは強制OFF（stored値は無視）。category は docs/feature/featureSettings.toml で管理。
         featureSettings.value.practice = DEFAULT_FEATURE_SETTINGS.practice && featureSettings.value.practice;
+        // genesys（category 1・UIなし）: 旧prodビルドが永続化した category 3 強制OFF値
+        // （genesys=false）がデフォルト値に勝ってしまうのを防ぐ。UIを持たないため保存値は
+        // ビルド強制値のアーティファクトであり、デフォルト値を正とする（UI追加時にこの行を削除する）。
+        featureSettings.value.genesys = DEFAULT_FEATURE_SETTINGS.genesys;
 
         // 初回起動時はデフォルトの末尾配置カードIDを使用
         // 以降はユーザーの設定を保持

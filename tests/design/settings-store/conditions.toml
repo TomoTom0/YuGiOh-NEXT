@@ -30,6 +30,14 @@ given = "chrome.storage.local.getの結果にappSettings/featureSettings/tailPla
 expect_side_effect = "appSettings.valueはDEFAULT_APP_SETTINGS相当、featureSettings.valueはDEFAULT_FEATURE_SETTINGS相当、tailPlacementCardIds.valueはDEFAULT_TAIL_PLACEMENT_CARD_IDS相当、isLoaded.valueはtrue"
 
 [[condition]]
+id = "load_common.genesys_stored_artifact_overridden_by_default"
+target_function = "useSettingsStore#loadCommonSettings"
+source_lines = "190-196"
+description = "merge後、featureSettings.value.genesys = DEFAULT_FEATURE_SETTINGS.genesys が適用される。旧prodビルドはcategory 3強制OFFの結果（genesys=false）をsaveSettings()で永続化しており、UIを持たないためその保存値はビルド強制値のアーティファクトとしてDEFAULT値（true）で上書きされる"
+given = "chrome.storage.local.getの結果にfeatureSettings.genesys=falseがある"
+expect_side_effect = "featureSettings.value.genesys === DEFAULT_FEATURE_SETTINGS.genesys（true）"
+
+[[condition]]
 id = "load_common.saved_nonempty_tail_ids_are_kept"
 target_function = "useSettingsStore#loadCommonSettings"
 source_lines = "190-196"

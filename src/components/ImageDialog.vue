@@ -218,8 +218,13 @@ async function generateBackgroundImage(
 }
 
 // プレビュー再生成（色/サイド有無/フッターテキストの変更を反映）
+// 生成は非同期のため連続操作で完了順が入れ替わる可能性がある。
+// generation tokenで最新の生成のみを反映し、古い結果の上書きを防ぐ。
+let previewGeneration = 0
 async function refreshPreview() {
+  const generation = ++previewGeneration
   const newImage = await generateBackgroundImage(selectedColor.value, deckDataForPreview.value, footerText.value)
+  if (generation !== previewGeneration) return
   backgroundImageUrl.value = newImage.dataUrl
   displayHeight.value = newImage.height
 }
