@@ -176,7 +176,7 @@ const backgroundImageStyle = computed(() => ({
   height: `${displayHeight.value}px`,
   background: `url('${backgroundImageUrl.value}') no-repeat center center`,
   backgroundSize: 'contain',
-  borderColor: COLOR_SETTINGS[selectedColor.value].accentLine
+  outlineColor: COLOR_SETTINGS[selectedColor.value].accentLine
 }))
 
 // 背景画像生成
@@ -422,9 +422,8 @@ defineExpose({
 .background-image {
   position: relative;
   width: 100%;
-  box-sizing: border-box;
-  border: 3px solid transparent;
-  transition: background 0.5s ease, border-color 0.3s ease;
+  outline: 3px solid transparent;
+  transition: background 0.5s ease, outline-color 0.3s ease;
 }
 
 .toggle-btn {
