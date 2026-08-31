@@ -189,8 +189,11 @@ node tmp/test-*.js
 
 **機能を無効化する場合はコードの削除やハードコードではなく、feature flag を使用する。**
 
-- `src/types/settings.ts`: `FeatureId` / `FeatureSettings` / `DEFAULT_FEATURE_SETTINGS` に追加
-- `docs/feature/featureSettings.toml`: category 3（`default = "import.meta.env.DEV"`、本番ビルドでOFF）
+feature flag のデフォルト値はコードに直書きせず、`configs/features.toml` で管理する（Single Source of Truth。webpack / vitest がビルド時に注入）。JS/TS定数への直書きもハードコード扱いで禁止。
+
+- `configs/features.toml`: デフォルト値を追加（`true` / `false` / `"dev-only"` = 開発ビルドのみ有効）
+- `src/types/settings.ts`: `FEATURE_IDS` と `FeatureSettings` にIDを追加（デフォルト値は書かない）
+- `docs/feature/featureSettings.toml`: `category` / `ui` / `note` を記載（default値は書かない）
 - カテゴリ定義は `docs/feature/README.md` 参照
 
 ## ファイル構成の重要なルール
