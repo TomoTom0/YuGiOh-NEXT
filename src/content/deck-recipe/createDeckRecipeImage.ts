@@ -46,7 +46,8 @@ export async function createDeckRecipeImage(
     scale = 2,
     color,
     deckData,
-    genesysPoints
+    genesysPoints,
+    footerText
   } = options;
 
   // 1. デッキデータの検証
@@ -157,9 +158,12 @@ export async function createDeckRecipeImage(
   }
 
   // 8. タイムスタンプ描画
-  drawTimestamp(ctx, drawSettings);
+  drawTimestamp(ctx, drawSettings, footerText);
 
-  // 9. 画像変換（Blob/Buffer）
+  // 9. 画像全体の縁取り描画
+  drawOuterBorder(ctx, drawSettings);
+
+  // 10. 画像変換（Blob/Buffer）
   if (typeof document !== 'undefined') {
     // ブラウザ環境: Blobで返す
     return new Promise((resolve, reject) => {
@@ -245,6 +249,30 @@ function drawBackgroundGradient(
   // 全体に塗りつぶし
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, settings.width, settings.height);
+}
+
+/**
+ * 画像全体の縁取りを描画する
+ *
+ * @param ctx - Canvas 2Dコンテキスト
+ * @param settings - 描画設定
+ */
+function drawOuterBorder(
+  ctx: CanvasRenderingContext2D,
+  settings: CanvasDrawSettings
+): void {
+  const lineWidth = 3 * settings.scale;
+
+  // borderLineはセクション見出し等の内部区切り線にも使われるため、
+  // 画像全体の外枠は視覚的に区別できるよう accentLine（より彩度の高い強調色）を使う
+  ctx.strokeStyle = settings.colorSettings.accentLine;
+  ctx.lineWidth = lineWidth;
+  ctx.strokeRect(
+    lineWidth / 2,
+    lineWidth / 2,
+    settings.width - lineWidth,
+    settings.height - lineWidth
+  );
 }
 
 /**
@@ -623,23 +651,32 @@ async function drawQRCode(
 }
 
 /**
- * タイムスタンプを描画する
+ * タイムスタンプ（フッターテキスト）のデフォルト値を生成する
  *
- * @param ctx - Canvas 2Dコンテキスト
- * @param settings - 描画設定
+ * @returns "exported on yyyy-mm-dd" 形式の文字列
  */
-function drawTimestamp(
-  ctx: CanvasRenderingContext2D,
-  settings: CanvasDrawSettings
-): void {
-  const scale = settings.scale;
-
-  // 現在時刻を取得（ISO 8601形式: yyyy-mm-dd）
+export function generateDefaultFooterText(): string {
   const date = new Date();
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  const timestamp = `exported on ${year}-${month}-${day}`;
+  return `exported on ${year}-${month}-${day}`;
+}
+
+/**
+ * タイムスタンプ（フッターテキスト）を描画する
+ *
+ * @param ctx - Canvas 2Dコンテキスト
+ * @param settings - 描画設定
+ * @param footerText - 描画するテキスト（未指定時はデフォルトの日付テキストを使用）
+ */
+function drawTimestamp(
+  ctx: CanvasRenderingContext2D,
+  settings: CanvasDrawSettings,
+  footerText?: string
+): void {
+  const scale = settings.scale;
+  const timestamp = footerText || generateDefaultFooterText();
 
   // フォント設定（小さめ）
   ctx.font = `${14 * scale}px ${FONT_SETTINGS.family}`;

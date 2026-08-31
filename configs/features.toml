@@ -1,0 +1,34 @@
+# フィーチャーフラグのデフォルト値（Single Source of Truth）
+#
+# このファイルが feature flag デフォルト値の唯一の参照元。
+# src/types/settings.ts の DEFAULT_FEATURE_SETTINGS は、ビルド時にここから
+# 注入される __FEATURE_DEFAULTS__（webpack DefinePlugin / vitest define）経由で
+# 構築される。値の変更はこのファイルのみで行う。
+#
+# default の値:
+#   true       = 常に有効
+#   false      = 常に無効
+#   "dev-only" = 開発ビルド（webpack mode development / vitest）でのみ有効
+#
+# 注意: webpack watch 中にこのファイルを変更しても DefinePlugin は起動時の値を
+# 使い続けるため、設定変更後はビルドの再実行が必要。
+#
+# category / ui / note 等のメタ情報は docs/feature/featureSettings.toml 参照。
+
+[shuffle-sort]
+default = true
+
+[deck-image]
+default = true
+
+[deck-edit]
+default = true
+
+[chat]
+default = false
+
+[practice]
+default = "dev-only"
+
+[genesys]
+default = true

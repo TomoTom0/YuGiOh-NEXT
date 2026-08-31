@@ -189,9 +189,19 @@ node tmp/test-*.js
 
 **機能を無効化する場合はコードの削除やハードコードではなく、feature flag を使用する。**
 
-- `src/types/settings.ts`: `FeatureId` / `FeatureSettings` / `DEFAULT_FEATURE_SETTINGS` に追加
-- `docs/feature/featureSettings.toml`: category 3（`default = "import.meta.env.DEV"`、本番ビルドでOFF）
+feature flag のデフォルト値はコードに直書きせず、`configs/features.toml` で管理する（Single Source of Truth。webpack / vitest がビルド時に注入）。JS/TS定数への直書きもハードコード扱いで禁止。
+
+- `configs/features.toml`: デフォルト値を追加（`true` / `false` / `"dev-only"` = 開発ビルドのみ有効）
+- `src/types/settings.ts`: `FEATURE_IDS` と `FeatureSettings` にIDを追加（デフォルト値は書かない）
+- `docs/feature/featureSettings.toml`: `category` / `ui` / `note` を記載（default値は書かない）
 - カテゴリ定義は `docs/feature/README.md` 参照
+
+**`AppSettings` / `UXSettings` のデフォルト値も同様にコード直書き禁止。**
+
+- `configs/app-settings.toml`（`ux` キーは除く）/ `configs/ux.toml` が Single Source of Truth
+- `src/types/settings.ts` の `DEFAULT_APP_SETTINGS` / `DEFAULT_UX_SETTINGS` はビルド時注入（`__APP_SETTINGS_DEFAULTS__` / `__UX_SETTINGS_DEFAULTS__`）から構築される
+- `docs/feature/appSettings.toml` / `ux.toml` は `category` / `ui` / `note` 専用（default値は書かない）
+- 設定値を変更する場合は configs のtomlのみ編集（整合は `tests/unit/configs/` のテストが検証）
 
 ## ファイル構成の重要なルール
 

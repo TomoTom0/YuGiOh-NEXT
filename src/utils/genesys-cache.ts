@@ -25,6 +25,11 @@ const STORAGE_KEY = 'genesysPointList';
 // backgroundは毎週チェックするため、6日にしておく。
 const DISCOVERY_TTL = 6 * 24 * 60 * 60 * 1000;
 
+// incomplete（名前解決の一部/全部が失敗）なリストの再試行間隔。
+// カードDBが未初期化なタイミングで初回fetchすると全滅しうるため再試行が必要だが、
+// デッキ編集を開くたびに毎回howtoページへfetchすると外部サーバーに負荷をかけるため間引く。
+const INCOMPLETE_RETRY_TTL = 10 * 60 * 1000;
+
 /**
  * タイムスタンプを YYYY-MM-DD 形式（ローカル時刻）に変換
  * 適用日との比較に使用。YYYY-MM-DD は辞書順 == 日付順。
@@ -166,7 +171,11 @@ export class GenesysPointCache {
    */
   async ensureCurrentList(): Promise<GenesysListEntry | null> {
     const current = selectApplicableGenesysList(this.cache, Date.now());
-    if (current) {
+    // incompleteなキャッシュ（初回fetch時にカードDB未初期化で名前解決が
+    // 全滅した状態）はそのまま返さず再取得する。forceUpdate()は既存の
+    // incompleteエントリを正しく再解決するため、ここを通すだけでよい。
+    // ただし外部サーバーへの負荷軽減のため INCOMPLETE_RETRY_TTL で間引く。
+    if (current && (!current.incomplete || Date.now() - current.fetchedAt < INCOMPLETE_RETRY_TTL)) {
       return current;
     }
 
@@ -188,7 +197,10 @@ export class GenesysPointCache {
    */
   async ensureList(listParam: string): Promise<GenesysListEntry | null> {
     const existing = this.cache?.lists[listParam];
-    if (existing) {
+    // incompleteなキャッシュ（初回fetch時にカードDB未初期化で名前解決が
+    // 全滅した状態）はそのまま返さず再取得する（forceUpdate()と同じ扱い）。
+    // ただし外部サーバーへの負荷軽減のため INCOMPLETE_RETRY_TTL で間引く。
+    if (existing && (!existing.incomplete || Date.now() - existing.fetchedAt < INCOMPLETE_RETRY_TTL)) {
       return existing;
     }
 

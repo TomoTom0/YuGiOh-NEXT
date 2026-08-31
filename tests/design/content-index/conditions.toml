@@ -1,0 +1,247 @@
+# 検証対象: src/content/index.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 本ファイルの性質: Content Scriptのエントリーポイントで、export関数を1件も持たない
+# （import時にトップレベルで副作用を実行するオーケストレーション専用ファイル）。
+# 実際の業務ロジック（デッキパース・API通信・DOM描画等）は全て他モジュールに委譲されており、
+# 本ファイル自体が持つ分岐はほぼ「どのモジュールを・いつ・どの条件で呼ぶか」という
+# 配線ロジックのみ。個々の分岐の意味は転記するが、トップレベル副作用の実行順序・
+# 大量の動的import・chrome.storage/window.matchMedia等のグローバル状態に依存するため、
+# 全分岐を実際にvitestで駆動するには依存モジュール(10件以上)を全てモック化した上で
+# vi.resetModules()による都度の再import が必要で、費用対効果が低いと判断した。
+# 「意味のある分岐」の記載は行うが、検証(テスト)は個別に切り出しやすく実害の大きい
+# 条件（dno検証・cgid欠如判定・editUILoaded重複防止・タイムアウトエラー分岐）に絞り、
+# 残りはverified=falseとしてunverifiable_reasonに理由を記載する。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - content/index.ts専用のテストは存在しなかった。
+#
+# ユニットテスト非採用の技術的根拠:
+# - 本ファイルは`import './public-path'`を先頭で実行し、public-path.tsは
+#   `__webpack_public_path__ = chrome.runtime.getURL('')`というwebpack DefinePlugin
+#   依存のグローバル代入を行う（`@ts-ignore`/`eslint-disable no-undef`付き）。
+#   Vitest実行環境(Vite)ではこの変数は事前定義されておらずstrict modeでの素の識別子代入は
+#   ReferenceErrorになりうる。vi.stubGlobalで回避可能だが、その他10件以上の依存モジュール
+#   (initializeMappingManager/getDeckMetadata/forbiddenLimitedCache/genesysPointCache/
+#   session/deck-operations/ytkn-fetcher等)を全てモックしvi.resetModulesで都度再import
+#   する必要があり、配線ロジックの検証としては費用対効果が低いと判断し、
+#   全条件をverified=falseとした。実際の検証はtests/browser/でのE2E経由が適切。
+
+[meta]
+feature = "content-index"
+source_file = "src/content/index.ts"
+verified = false
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "N/A（上記「ユニットテスト非採用の技術的根拠」参照。tests/browser/でのE2E検証が適切）"
+source_hash = "c04855b4c6f276b92a551fc3668a5f37cdda2b5d"
+note = "export関数0件のオーケストレーション専用エントリーポイント。全19条件がverified=false（webpack DefinePlugin依存のグローバル代入+多数の動的import依存によりユニットテストでの再現コストが不釣り合いに高いため）"
+
+# --- prefetchEditUI() [非export] ---
+
+[[condition]]
+id = "prefetch_edit_ui.already_prefetched_or_in_progress_skips"
+target_function = "prefetchEditUI"
+source_lines = "83"
+description = "editUIModulePromiseが既に設定済み、またはisPrefetchingがtrueの場合は何もせず早期returnする（重複プリフェッチ防止）"
+given = "1回目のprefetchEditUI()実行中(isPrefetching=true)に2回目を呼ぶ"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "requestIdleCallbackのスケジューリングタイミング・モジュールトップレベル状態(editUIModulePromise/isPrefetching)を含む再現には多数の依存モックとvi.resetModulesによる都度の再importが必要で、配線ロジックの検証としては費用対効果が低いと判断した"
+
+[[condition]]
+id = "prefetch_edit_ui.import_failure_resets_promise_and_rethrows"
+target_function = "prefetchEditUI"
+source_lines = "94-100"
+description = "edit-uiモジュールのimportがタイムアウトまたは失敗した場合、console.warnでログしeditUIModulePromiseをnullにリセットして再試行可能にした上でエラーを再throwする"
+given = "import('./edit-ui')がrejectする"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上（requestIdleCallback依存・動的import依存）"
+
+# --- preloadEditPageData() [非export] ---
+
+[[condition]]
+id = "preload_edit_page_data.missing_dno_returns_early"
+target_function = "preloadEditPageData"
+source_lines = "114-120"
+description = "URLハッシュのクエリパラメータにdnoが無い場合、以降の処理を行わずreturnする"
+given = "window.location.hash = '#/ytomo/edit'（dnoパラメータなし）"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "preloadEditPageDataは非exportかつトップレベルのisVueEditPage分岐からのみ呼ばれるため、上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできない"
+
+[[condition]]
+id = "preload_edit_page_data.non_numeric_dno_warns_and_returns"
+target_function = "preloadEditPageData"
+source_lines = "122-126"
+description = "dnoがparseIntでNaNになる場合、console.warnしてreturnする（cgid取得やデッキ先読みを行わない）"
+given = "window.location.hash = '#/ytomo/edit?dno=abc'"
+expect_side_effect = "console.warnが呼ばれ、getFromStorageLocalは呼ばれない"
+verified = false
+unverifiable_reason = "同上"
+
+[[condition]]
+id = "preload_edit_page_data.missing_cgid_warns_and_returns"
+target_function = "preloadEditPageData"
+source_lines = "129-134"
+description = "dnoは有効だがcgidがChrome Storageに無い場合、console.warnしてreturnする（デッキ先読み・ytkn先読みを行わない）"
+given = "getFromStorageLocal(CHROME_STORAGE_KEY_USER_CGID)がfalsyを返す"
+expect_side_effect = "console.warnが呼ばれ、window.ygoNextPreloadedDeckDetailPromiseは設定されない"
+verified = false
+unverifiable_reason = "同上"
+
+[[condition]]
+id = "preload_edit_page_data.valid_dno_and_cgid_starts_preload_promises"
+target_function = "preloadEditPageData"
+source_lines = "136-162"
+description = "dno・cgidが両方揃っている場合、デッキ詳細先読みPromiseとytkn先読みPromiseの両方をwindowに公開する（いずれも内部でtry/catchしエラー時はwarnのみで例外を外に漏らさない）"
+given = "有効なdno・cgidが揃っている"
+expect_side_effect = "window.ygoNextPreloadedDeckDetailPromiseとwindow.ygoNextPreloadedYtknPromiseの両方が設定される"
+verified = false
+unverifiable_reason = "同上"
+
+# --- loadEditUIIfNeeded() [非export] ---
+
+[[condition]]
+id = "load_edit_ui_if_needed.not_edit_page_or_already_loaded_skips"
+target_function = "loadEditUIIfNeeded"
+source_lines = "169"
+description = "isVueEditPage()がfalse、またはeditUILoadedが既にtrueの場合、何もせずreturnする（二重ロード防止）"
+given = "editUILoaded=trueの状態で2回目のloadEditUIIfNeeded()を呼ぶ"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "loadEditUIIfNeededは非exportかつトップレベル/hashchangeリスナーからのみ呼ばれるため、上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできない"
+
+[[condition]]
+id = "load_edit_ui_if_needed.timeout_error_logs_distinctly"
+target_function = "loadEditUIIfNeeded"
+source_lines = "272-279"
+description = "edit-uiモジュールのロードがTimeoutErrorで失敗した場合とその他のエラーで失敗した場合とでconsole.errorのメッセージを出し分け、いずれもeditUILoadedをfalseに戻して再試行可能にする"
+given = "withTimeout(...)がTimeoutErrorをthrowする場合／通常のErrorをthrowする場合の2パターン"
+expect_side_effect = "editUILoadedがfalseに戻る（TimeoutErrorかどうかでログメッセージが異なる）"
+verified = false
+unverifiable_reason = "DOM生成(ローディングオーバーレイ)・動的import('./edit-ui')・withTimeoutの実タイマー挙動を含めた再現には大掛かりなモックが必要で、配線ロジックの検証としては費用対効果が低いと判断した"
+
+[[condition]]
+id = "load_edit_ui_if_needed.overlay_theme_prefers_cached_settings_then_system"
+target_function = "loadEditUIIfNeeded"
+source_lines = "175-187"
+description = "window.ygoNextCurrentSettings.themeが'system'以外ならその値、'system'または未設定ならwindow.matchMediaのprefers-color-scheme:darkの一致有無でoverlayThemeを決定する"
+given = "cachedSettings.theme='dark' の場合／'system'でmatchMediaがdark一致の場合／cachedSettings未設定でmatchMediaがlight一致の場合"
+expect_return_shape = "overlayThemeが対応する'light'|'dark'になる"
+verified = false
+unverifiable_reason = "ローディングオーバーレイDOM生成・動的importの完了待ちを含む一連の処理全体を通してのみ観測可能で、単独切り出しには大掛かりなモックが必要なため"
+
+[[condition]]
+id = "load_edit_ui_if_needed.body_not_ready_waits_via_mutation_observer"
+target_function = "loadEditUIIfNeeded"
+source_lines = "250-261"
+description = "document.bodyが未生成の場合、MutationObserverでdocument.bodyの出現を待ってからローディングオーバーレイを追加する（即座にbodyがある場合は直接追加）"
+given = "document.bodyがまだ存在しないタイミングでloadEditUIIfNeeded()が呼ばれる"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "happy-dom環境では常にdocument.bodyが存在するため、body未生成状態の再現がテスト環境の制約上困難"
+
+# --- cacheSettingsGlobally() [非export] ---
+
+[[condition]]
+id = "cache_settings_globally.settings_found_persists_to_localstorage_and_window"
+target_function = "cacheSettingsGlobally"
+source_lines = "288-292"
+description = "Chrome Storageからappsettingsが取得できた場合、localStorageとwindow.ygoNextCurrentSettingsの両方に反映する"
+given = "getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS)が有効な設定オブジェクトを返す"
+expect_side_effect = "localStorage.getItem(STORAGE_KEY_SETTINGS)がJSON文字列を返すようになる"
+verified = false
+unverifiable_reason = "cacheSettingsGloballyは非exportかつinitializeFeatures内のrequestIdleCallbackコールバックからのみ呼ばれるため、上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできない"
+
+[[condition]]
+id = "cache_settings_globally.error_warns_only"
+target_function = "cacheSettingsGlobally"
+source_lines = "293-295"
+description = "getFromStorageLocalが失敗した場合、console.warnのみでthrowしない"
+given = "getFromStorageLocalがrejectする"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上"
+
+# --- cacheCgidInStorage() [非export] ---
+
+[[condition]]
+id = "cache_cgid_in_storage.cgid_found_saves_to_storage"
+target_function = "cacheCgidInStorage"
+source_lines = "303-308"
+description = "sessionManager.getCgid()が値を返した場合のみsetToStorageLocalで保存する（falsyの場合は保存しない）"
+given = "sessionManager.getCgid()が'testcgid'を返す場合／nullを返す場合"
+expect_side_effect = "cgidが取得できた場合のみsetToStorageLocalが呼ばれる"
+verified = false
+unverifiable_reason = "cacheCgidInStorageは非exportかつinitializeFeatures内から無条件に呼ばれるため、上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできない"
+
+[[condition]]
+id = "cache_cgid_in_storage.error_warns_only"
+target_function = "cacheCgidInStorage"
+source_lines = "309-311"
+description = "session取得またはストレージ保存が失敗した場合、console.warnのみでthrowしない"
+given = "sessionManager.getCgid()がrejectする"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上"
+
+# --- initializeFeatures() [非export] ---
+
+[[condition]]
+id = "initialize_features.deck_display_page_loads_optional_features_by_flag"
+target_function = "initializeFeatures"
+source_lines = "347-367"
+description = "isDeckDisplayPage(gameType)がtrueの場合のみdeck-display/card-detail-uiを初期化し、さらにisFeatureEnabled('deck-image')/'shuffle-sort'がそれぞれtrueの場合のみdeck-recipe/shuffleモジュールを追加でロードする"
+given = "isDeckDisplayPage=true、deck-image機能フラグ=false、shuffle-sort機能フラグ=true"
+expect_side_effect = "deck-recipeモジュールはimportされず、shuffleモジュールのみimportされる"
+verified = false
+unverifiable_reason = "initializeMappingManager/getDeckMetadata/forbiddenLimitedCache/genesysPointCache/requestIdleCallback等10件以上の依存を全てモックしvi.resetModulesで再importする必要があり、配線ロジックの検証としては費用対効果が低いと判断した"
+
+[[condition]]
+id = "initialize_features.not_deck_display_page_skips_optional_features"
+target_function = "initializeFeatures"
+source_lines = "347-367"
+description = "isDeckDisplayPage(gameType)がfalseの場合、deck-display/card-detail-ui/deck-recipe/shuffleのいずれもロードしない"
+given = "isDeckDisplayPage=false"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上"
+
+[[condition]]
+id = "initialize_features.error_logged_and_swallowed"
+target_function = "initializeFeatures"
+source_lines = "368-370"
+description = "初期化処理のいずれかがthrowした場合、console.errorでログしthrowを外に伝播させない"
+given = "initializeMappingManager()がrejectする"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上"
+
+# --- トップレベル副作用: 編集ページのFOUC防止処理 ---
+
+[[condition]]
+id = "top_level.edit_page_hides_page_and_starts_preload"
+target_function = "top-level (isVueEditPage分岐)"
+source_lines = "374-438"
+description = "isVueEditPage()がtrueの場合、テーマ判定してearlyHideStyleを追加しページを隠した上で、preloadEditPageData()とloadEditUIIfNeeded()を即座に開始する（DOMContentLoadedを待たない）"
+given = "isVueEditPage() === true"
+expect_side_effect = "document.headにearlyHideStyle要素が追加される"
+verified = false
+unverifiable_reason = "モジュールのトップレベルで即座に実行される副作用のため、vi.resetModules+動的importで多数の依存を揃えた上でしか検証できず、配線ロジックとしての検証コストが不釣り合いに高いと判断した"
+
+[[condition]]
+id = "top_level.non_edit_page_prefetches_edit_ui_on_ready_state"
+target_function = "top-level (isVueEditPage分岐)"
+source_lines = "439-447"
+description = "編集ページでない場合、document.readyStateが'loading'ならDOMContentLoadedイベントでprefetchEditUIを実行し、既に読み込み済みなら即座に実行する"
+given = "document.readyState === 'loading' の場合／'complete'の場合"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "同上"

@@ -1,35 +1,33 @@
-# FeatureId（src/types/settings.ts:10-18,287-292）
+# FeatureId（src/types/settings.ts:FEATURE_IDS, src/types/settings.ts:DEFAULT_FEATURE_SETTINGS）
 # category の定義は README.md を参照
+#
+# 【重要】default 値（feature flag の有効/無効）は configs/features.toml が
+# Single Source of Truth。このファイルでは管理しない（二重管理を防ぐため）。
+# category / ui / note のみをこのファイルで管理する。
 
 [shuffle-sort]
-default = true
 category = 1
 ui = "src/options/components/sections/ShuffleSection.vue"
 
 [deck-image]
-default = true
 category = 1
 ui = "src/options/components/sections/ImageCreationSection.vue"
 
 [deck-edit]
-default = true
 category = 1
 ui = "src/options/components/sections/CacheManagementSection.vue:44,90"
 
 [chat]
-default = false
 category = 4
 ui = "none"
 note = "意図的な方針として、devビルドを含め現時点では無効にしている。UI導線が存在しないのはこの方針の結果であり、原因ではない。services/llm/*・ChatPanel.vue等の実装自体は存在するが、公開準備が整うまでは対応不要。"
 
 [practice]
-default = "import.meta.env.DEV"
 category = 3
 ui = "src/components/DeckEditTopBar.vue（practice切替ボタン）, src/content/edit-ui/DeckEditLayout.vue（PracticeField他）, src/options/components/tabs/DeckEditTab.vue（Practiceタブ）"
-note = "一人回し練習モード。category 3（開発ビルドでのみ有効）。default値はコンパイル時定数 import.meta.env.DEV で解決される。"
+note = "一人回し練習モード。category 3（開発ビルドでのみ有効）。configs/features.toml の default = \"dev-only\" がビルド種別に解決される。"
 
 [genesys]
-default = "import.meta.env.DEV"
-category = 3
+category = 1
 ui = "none"
-note = "GENESYSポイント制リミットレギュレーション。データ精度の問題が解決するまで本番では無効。"
+note = "GENESYSポイント制リミットレギュレーション。TASK-302の修正（incompleteキャッシュの再取得バグ）を受けて本番でも有効化（category 3→1へ移行）。UIを持たないため保存値はユーザー意図になり得ず、旧prodビルドが永続化したgenesys=false（category 3強制OFFのアーティファクト）はロード時にデフォルト値で上書きされる（src/utils/settings.ts / src/stores/settings.ts）。UIを追加する際はこの上書きを削除する。"

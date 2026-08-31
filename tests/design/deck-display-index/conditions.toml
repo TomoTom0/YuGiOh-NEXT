@@ -1,0 +1,122 @@
+# 検証対象: src/content/deck-display/index.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - deck-display/index.ts専用のテストは存在しなかったため、新規作成した。
+
+[meta]
+feature = "deck-display-index"
+source_file = "src/content/deck-display/index.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/deck-display-index.test.ts"
+source_hash = "1c86d8112e11dce9e5ac7e09fd036ebdb4be97f5"
+note = "verified=falseは0件"
+
+# --- initDeckDisplay() ---
+
+[[condition]]
+id = "init_deck_display.uses_memory_cache_when_available"
+target_function = "initDeckDisplay"
+source_lines = "19-22"
+description = "window.ygoNextCurrentSettingsが既に設定済みの場合、chrome.storageへの問い合わせを行わずそれを使う"
+given = "window.ygoNextCurrentSettings = { theme: 'dark' }"
+expect_side_effect = "chrome.storage.local.getは呼ばれない"
+
+[[condition]]
+id = "init_deck_display.fetches_from_storage_when_no_cache"
+target_function = "initDeckDisplay"
+source_lines = "22-31"
+description = "メモリキャッシュが無い場合、chrome.storage.local.getから設定を取得しwindow.ygoNextCurrentSettingsに保存する"
+given = "window.ygoNextCurrentSettingsが未設定"
+expect_side_effect = "chrome.storage.local.getが呼ばれ、結果がwindow.ygoNextCurrentSettingsに設定される"
+
+[[condition]]
+id = "init_deck_display.applies_theme_from_settings"
+target_function = "initDeckDisplay"
+source_lines = "42-45"
+description = "appSettings.themeの値でapplyTheme()を呼ぶ（未設定時は'system'をデフォルトとする）"
+given = "appSettings.theme = 'dark'"
+expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'になる"
+
+[[condition]]
+id = "init_deck_display.deck_image_gets_ygo_next_class_when_present"
+target_function = "initDeckDisplay"
+source_lines = "52-55"
+description = "#deck_imageが存在する場合、.ygo-nextクラスを追加する（カードアニメーション用）"
+given = "#deck_imageがDOMに存在する"
+expect_side_effect = "#deck_imageがygo-nextクラスを持つ"
+
+[[condition]]
+id = "init_deck_display.no_deck_image_skips_class_add"
+target_function = "initDeckDisplay"
+source_lines = "52-55"
+description = "#deck_imageが存在しない場合、クラス追加処理をスキップする（エラーにはならない）"
+given = "#deck_imageがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "init_deck_display.show_card_detail_true_mounts_vue"
+target_function = "initDeckDisplay"
+source_lines = "58-61"
+description = "appSettings.showCardDetailInDeckDisplayがtrueの場合のみsetupVueAppを呼ぶ"
+given = "showCardDetailInDeckDisplay: true"
+expect_side_effect = "setupVueAppが呼ばれる"
+
+[[condition]]
+id = "init_deck_display.show_card_detail_false_or_missing_skips_vue_mount"
+target_function = "initDeckDisplay"
+source_lines = "41-61"
+description = "showCardDetailInDeckDisplayがfalseまたは未設定(デフォルトfalse)の場合、setupVueAppを呼ばない"
+given = "showCardDetailInDeckDisplayが未設定"
+expect_side_effect = "setupVueAppは呼ばれない"
+
+[[condition]]
+id = "init_deck_display.sets_card_image_size_with_default"
+target_function = "initDeckDisplay"
+source_lines = "40,64"
+description = "appSettings.deckDisplayCardImageSizeの値でsetCardImageSizeを呼ぶ。未設定時はデフォルト'medium'を使う"
+given = "deckDisplayCardImageSizeが未設定のappSettings"
+expect_side_effect = "setCardImageSizeが'medium'で呼ばれる"
+
+# --- setupImageLoadedEffect() [非export] ---
+
+[[condition]]
+id = "setup_image_loaded_effect.already_complete_adds_class_immediately"
+target_function = "setupImageLoadedEffect"
+source_lines = "76-79"
+description = "img.completeがtrueかつnaturalWidth>0（既に読み込み完了済み）の場合、即座にloadedクラスを追加する"
+given = "complete=true, naturalWidth=100のimg要素"
+expect_side_effect = "img要素がloadedクラスを持つ"
+
+[[condition]]
+id = "setup_image_loaded_effect.not_complete_adds_class_on_load_event"
+target_function = "setupImageLoadedEffect"
+source_lines = "81-84"
+description = "画像が未読み込みの場合、loadイベント(once)を登録し発火時にloadedクラスを追加する"
+given = "complete=falseのimg要素にloadイベントを発火させる"
+expect_side_effect = "loadイベント発火後にimg要素がloadedクラスを持つ"
+
+# --- applyTheme(theme) [非export] ---
+
+[[condition]]
+id = "apply_theme.system_follows_match_media"
+target_function = "applyTheme"
+source_lines = "95-99"
+description = "theme==='system'の場合、window.matchMedia('(prefers-color-scheme: dark)')の一致有無でdata-ygo-next-theme属性を決定する"
+given = "theme='system'、matchMediaがdark一致"
+expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'になる"
+
+[[condition]]
+id = "apply_theme.explicit_value_used_directly"
+target_function = "applyTheme"
+source_lines = "100-102"
+description = "theme='system'以外の明示値の場合、そのままdata-ygo-next-theme属性に設定する（matchMediaは参照しない）"
+given = "theme='dark'（matchMediaはlightの状況でも）"
+expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'になる"

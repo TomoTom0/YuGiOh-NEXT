@@ -75,6 +75,7 @@
 | PNG metadata処理 | `tests/unit/utils/png-metadata.test.ts` | デッキ復元の正確性 |
 | URL state管理 | `tests/e2e/url-state-sync.test.ts` | 状態同期の正確性 |
 | シャッフル機能 | `tests/unit/shuffle/shuffleCards.test.ts` | ランダム性の担保 |
+| feature flagデフォルト値（configs/features.toml） | `tests/unit/configs/feature-defaults.test.ts` | tomlとFeatureId/DEFAULT_FEATURE_SETTINGSの整合・dev-only解決の検証 |
 
 ---
 

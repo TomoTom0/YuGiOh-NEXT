@@ -1,0 +1,259 @@
+# 検証対象: src/content/edit-ui/index.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 本ファイルの性質: デッキ編集UI(Vue)のエントリーポイント。export関数を持たず、
+# トップレベルのIIFE(356-368行目)からwatchUrlChanges()→loadEditUI()→initVueApp()の
+# 呼び出し連鎖として全ロジックに到達する。content/index.tsと異なりwebpack依存の
+# グローバル代入は無く、依存も少ないため、vi.resetModules()による都度の動的import
+# + './DeckEditLayout.vue'のモック化で現実的にユニットテスト可能と判断した。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - edit-ui/index.ts専用のテストは存在しなかった（DeckEditLayout.vue自体のテストは
+#   tests/unit/deck-display/DeckEditLayout.test.tsに別途40件存在する）。
+
+[meta]
+feature = "edit-ui-index"
+source_file = "src/content/edit-ui/index.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/edit-ui-index.test.ts"
+source_hash = "fa17a02eff0b1031cd1f2ebc3011c81090120531"
+note = "verified=falseは3件（実タイマー/実DOM再描画タイミングに依存し、モックだけでは再現が困難な部分）"
+
+# --- applyThemeFromSettings() [非export] ---
+
+[[condition]]
+id = "apply_theme.uses_memory_cache_when_available"
+target_function = "applyThemeFromSettings"
+source_lines = "52-55"
+description = "window.ygoNextCurrentSettingsが既に設定済みの場合、Chrome Storageへの問い合わせを行わずそれを使う"
+given = "window.ygoNextCurrentSettings = { theme: 'dark' }"
+expect_side_effect = "chrome.storage.local.getは呼ばれない"
+
+[[condition]]
+id = "apply_theme.falls_back_to_storage_when_no_cache"
+target_function = "applyThemeFromSettings"
+source_lines = "55-67"
+description = "メモリキャッシュが無い場合、chrome.storage.local.getから設定を取得しwindow.ygoNextCurrentSettingsに保存する"
+given = "window.ygoNextCurrentSettingsが未設定"
+expect_side_effect = "chrome.storage.local.getが呼ばれ、結果がwindow.ygoNextCurrentSettingsに設定される"
+
+[[condition]]
+id = "apply_theme.system_theme_follows_match_media"
+target_function = "applyThemeFromSettings"
+source_lines = "73-77"
+description = "theme==='system'（またはthemeが未設定でデフォルト'system'扱い）の場合、window.matchMedia('(prefers-color-scheme: dark)')の一致有無でdata-ygo-next-theme属性を決定する"
+given = "theme: 'system'、matchMediaがdark一致"
+expect_side_effect = "document.documentElement の data-ygo-next-theme が'dark'になる"
+
+[[condition]]
+id = "apply_theme.explicit_theme_used_directly"
+target_function = "applyThemeFromSettings"
+source_lines = "78-80"
+description = "themeが'system'以外の明示値の場合、そのままdata-ygo-next-theme属性に設定する（matchMediaは参照しない）"
+given = "theme: 'dark'"
+expect_side_effect = "document.documentElement の data-ygo-next-theme が'dark'になる"
+
+[[condition]]
+id = "apply_theme.error_falls_back_to_light_and_white_bg"
+target_function = "applyThemeFromSettings"
+source_lines = "98-105"
+description = "Storage取得がタイムアウト/エラーになった場合、console.warnし、テーマを'light'・背景色を'#ffffff'に強制設定する"
+given = "callbackToPromiseがタイムアウトでrejectする"
+expect_side_effect = "document.documentElement の data-ygo-next-theme が'light'、backgroundColorが白になる"
+
+# --- performLanguageChange(lang) [非export] ---
+
+[[condition]]
+id = "perform_language_change.replaces_existing_request_locale"
+target_function = "performLanguageChange"
+source_lines = "112-122"
+description = "既存のURLにrequest_locale パラメータがある場合、それを除去してから新しいrequest_localeを付与する（他のクエリパラメータは保持）"
+given = "location.search = '?request_locale=ja&foo=bar' の状態でperformLanguageChange('en')を呼ぶ"
+expect_side_effect = "location.href が '?request_locale=en&foo=bar' を含むURLになる"
+
+[[condition]]
+id = "perform_language_change.no_existing_params_adds_request_locale_only"
+target_function = "performLanguageChange"
+source_lines = "116-119"
+description = "既存クエリパラメータが無い場合、request_localeのみのクエリ文字列を付与する"
+given = "location.search = '' の状態でperformLanguageChange('en')を呼ぶ"
+expect_side_effect = "location.href が '?request_locale=en' のみを含むURLになる"
+
+# --- replaceLanguageChangeLinks() [非export] ---
+
+[[condition]]
+id = "replace_language_links.matching_link_rewired_to_ygo_change_language"
+target_function = "replaceLanguageChangeLinks"
+source_lines = "130-142"
+description = "href属性が'javascript:ChangeLanguage(\"xx\")'パターンに一致するリンクのhrefを'javascript:void(0)'に置き換え、クリック時にpreventDefaultした上でwindow.ygoChangeLanguage(lang)を呼ぶ"
+given = "href=\"javascript:ChangeLanguage('en')\"のaタグをクリック"
+expect_side_effect = "window.ygoChangeLanguageが'en'を引数に呼ばれる"
+
+[[condition]]
+id = "replace_language_links.non_matching_link_untouched"
+target_function = "replaceLanguageChangeLinks"
+source_lines = "130-134"
+description = "href属性がChangeLanguageパターンに一致しないリンクは変更しない"
+given = "href=\"https://example.com\"のaタグを含むDOM"
+expect_no_throw = true
+
+# --- watchUrlChanges() [非export] ---
+
+[[condition]]
+id = "watch_url_changes.edit_url_not_loaded_triggers_load"
+target_function = "watchUrlChanges"
+source_lines = "155-158"
+description = "isEditUrl()がtrueかつisEditUILoadedがfalseの場合、loadEditUI()を呼ぶ"
+given = "isVueEditPage() === true、初回呼び出し"
+expect_side_effect = "loadEditUI相当の処理(テーマ適用・#vue-edit-app作成)が実行される"
+
+[[condition]]
+id = "watch_url_changes.hashchange_listener_registered_only_once"
+target_function = "watchUrlChanges"
+source_lines = "161-163"
+description = "isEventListenerRegisteredがtrueの場合、hashchangeリスナーを再登録しない（watchUrlChangesを複数回呼んでも1つしか登録されない）"
+given = "watchUrlChanges()を2回連続で呼ぶ"
+expect_side_effect = "hashchangeイベント発火時にリスナー内の処理が1回だけ実行される"
+verified = false
+unverifiable_reason = "watchUrlChangesは非exportで、1モジュールライフタイム中はトップレベルIIFEから1回しか呼ばれない設計のため、2回目の呼び出しをテストのみから誘発する手段が無い（test用exportの追加はソース変更を伴うため見送った）"
+
+[[condition]]
+id = "watch_url_changes.hashchange_to_edit_url_reapplies_theme_and_loads"
+target_function = "watchUrlChanges"
+source_lines = "164-175"
+description = "hashchangeイベントでeditUrlに一致する場合、毎回applyThemeFromSettingsを呼び、isEditUILoadedがfalseならloadEditUIも呼ぶ"
+given = "hashchangeイベントを編集URLの状態で発火させる"
+expect_side_effect = "applyThemeFromSettings相当の処理(data-ygo-next-theme更新)が実行される"
+
+[[condition]]
+id = "watch_url_changes.hashchange_away_resets_flag_and_disconnects_observer"
+target_function = "watchUrlChanges"
+source_lines = "176-183"
+description = "hashchangeイベントで編集URL以外に遷移し、かつisEditUILoadedがtrueだった場合、isEditUILoadedをfalseに戻しheaderResizeObserverをdisconnectしてnullにする"
+given = "loadEditUI実行済み(isEditUILoaded=true, headerResizeObserver設定済み)の状態でhashchangeが編集URL以外へ発火する"
+expect_side_effect = "headerResizeObserver.disconnectが呼ばれる"
+
+# --- loadEditUI() [非export] ---
+
+[[condition]]
+id = "load_edit_ui.already_loaded_returns_early"
+target_function = "loadEditUI"
+source_lines = "192-194"
+description = "isEditUILoadedが既にtrueの場合、何もせずreturnする（applyThemeFromSettingsも呼ばれない）"
+given = "isEditUILoaded=trueの状態でloadEditUI()を呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "load_edit_ui.no_bg_element_logs_error_and_resets_flag"
+target_function = "loadEditUI"
+source_lines = "203-208"
+description = "#bg要素がDOMに存在しない場合、console.errorでログしisEditUILoadedをfalseに戻して(再試行可能にして)returnする"
+given = "#bg要素が存在しないDOM"
+expect_side_effect = "isEditUILoadedがfalseのままになる（2回目のloadEditUI呼び出しが早期returnしない）"
+
+[[condition]]
+id = "load_edit_ui.removes_early_hide_style_when_present"
+target_function = "loadEditUI"
+source_lines = "212-215"
+description = "content/index.tsが追加したearlyHideStyle要素が存在する場合、これを削除する"
+given = "id=EXTENSION_IDS.loading.earlyHideStyleのstyle要素が存在する状態"
+expect_side_effect = "loadEditUI実行後、その要素がDOMから消える"
+
+[[condition]]
+id = "load_edit_ui.injects_edit_ui_styles_only_once"
+target_function = "loadEditUI"
+source_lines = "241-279"
+description = "id=EXTENSION_IDS.deckEdit.editUiStylesのstyle要素が既に存在する場合は追加しない（再訪時の重複防止）"
+given = "1回目のloadEditUI完了後、編集URLを離れて戻り2回目のloadEditUIが実行される"
+expect_side_effect = "editUiStyles要素が1つしかDOMに存在しない"
+
+[[condition]]
+id = "load_edit_ui.resize_observer_disconnects_previous_before_reobserving"
+target_function = "loadEditUI"
+source_lines = "228-235"
+description = "headerElementが存在しResizeObserverが利用可能な場合、既存のheaderResizeObserverがあればdisconnectしてから新しいResizeObserverをobserveする（再訪時のobserver蓄積防止）"
+given = "1回目のloadEditUIでheaderResizeObserverが設定済みの状態で2回目のloadEditUIを呼ぶ"
+expect_side_effect = "1回目のheaderResizeObserverインスタンスに対してdisconnectが呼ばれる"
+
+# --- initVueApp() [非export] ---
+
+[[condition]]
+id = "init_vue_app.applies_cached_settings_to_store_when_present"
+target_function = "initVueApp"
+source_lines = "331-341"
+description = "window.ygoNextCurrentSettingsが存在する場合、settings storeにマージしCSS変数適用系メソッド(applyCardSize/applyTheme/applyRightAreaStyles)を呼ぶ"
+given = "window.ygoNextCurrentSettings = { theme: 'dark', cardSize: 'large' }"
+expect_side_effect = "settingsStore.appSettingsにcachedSettingsの内容がマージされる"
+
+[[condition]]
+id = "init_vue_app.skips_settings_store_when_no_cache"
+target_function = "initVueApp"
+source_lines = "332-341"
+description = "window.ygoNextCurrentSettingsが無い場合、settings storeへのマージ処理自体を行わない（storeモジュールのimportも発生しない）"
+given = "window.ygoNextCurrentSettingsが未設定"
+expect_no_throw = true
+
+[[condition]]
+id = "init_vue_app.error_caught_and_logged"
+target_function = "initVueApp"
+source_lines = "347-349"
+description = "Vueアプリのcreate/mount処理中に例外が発生した場合、console.errorでログしthrowを外に伝播させない"
+given = "app.mount('#vue-edit-app')が例外をthrowする状況"
+expect_no_throw = true
+
+# --- トップレベルIIFE ---
+
+[[condition]]
+id = "top_level.not_edit_page_skips_all_initialization"
+target_function = "top-level IIFE"
+source_lines = "358-360"
+description = "isVueEditPage()がfalseの場合、applyThemeFromSettings・watchUrlChangesいずれも呼ばれない"
+given = "isVueEditPage() === false"
+expect_no_throw = true
+
+[[condition]]
+id = "top_level.edit_page_applies_theme_and_watches_url"
+target_function = "top-level IIFE"
+source_lines = "362-367"
+description = "isVueEditPage()がtrueの場合、applyThemeFromSettings()をfire-and-forgetで呼び、watchUrlChanges()を実行する"
+given = "isVueEditPage() === true"
+expect_side_effect = "watchUrlChanges相当の処理(loadEditUI呼び出し)が実行される"
+
+# --- 検証困難な条件 ---
+
+[[condition]]
+id = "load_edit_ui.updates_header_height_css_variable_on_resize"
+target_function = "loadEditUI"
+source_lines = "222-227"
+description = "headerElement.offsetHeightを読み取り--header-height CSS変数に反映する。ResizeObserverのコールバックでも同様に更新する"
+given = "header要素のoffsetHeightが変化する"
+expect_side_effect = "document.documentElement.style.getPropertyValue('--header-height')が更新される"
+verified = false
+unverifiable_reason = "happy-domはレイアウト計算を行わないためoffsetHeightは常に0を返し、実際の高さ変動の再現ができない"
+
+[[condition]]
+id = "init_vue_app.mounts_app_and_waits_next_tick"
+target_function = "initVueApp"
+source_lines = "324-346"
+description = "vueModulesPromise(vue/pinia/DeckEditLayout.vueの事前import)を待ち、createApp・pinia登録・app.mountを行った上でnextTick()の完了を待つ"
+given = "正常系でinitVueAppを実行"
+expect_side_effect = "#vue-edit-app配下にDeckEditLayoutコンポーネントがマウントされる"
+verified = false
+unverifiable_reason = "モジュールトップレベルのvueModulesPromiseはモジュール初回evaluate時に1度だけ生成されるため、DeckEditLayout.vueをテストごとにモック差し替えるには追加のモジュールキャッシュ制御が必要で、実際のマウント結果はDeckEditLayout.test.ts側で別途40件検証済みのため本ファイルでは重複検証としない"
+
+[[condition]]
+id = "watch_url_changes.header_resize_observer_leak_prevention_across_many_visits"
+target_function = "loadEditUI"
+source_lines = "228-235"
+description = "編集URLへの複数回の出入りを繰り返してもheaderResizeObserverが1つのインスタンスに保たれる（モジュールスコープ変数のため、observerが際限なく増え続けない）"
+given = "編集URL訪問→離脱→再訪問を3回繰り返す"
+expect_side_effect = "3回目終了時点でもheaderResizeObserverは1インスタンスのみ生存する"
+verified = false
+unverifiable_reason = "実際のResizeObserverインスタンス数の生存確認にはグローバルなインスタンス追跡が必要で、単体テストでの直接観測が困難なため、disconnectが呼ばれることの確認(load_edit_ui.resize_observer_disconnects_previous_before_reobserving)で代替する"

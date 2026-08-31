@@ -7,8 +7,8 @@
  *
  * 確認:
  * 1. カメラボタン(#ygo-next-deck-image-btn)クリックでダイアログ(.ygo-next-image-popup)が表示
- * 2. デッキ名入力(.deck-name-input)が存在
- * 3. 背景クリックで .background-image の background が切り替わる（toggleColor は async）
+ * 2. デッキ名入力(.title-field .field-input)が存在
+ * 3. カラースウォッチ(.color-swatch)クリックで .background-image の background が切り替わる（selectColor は async）
  * 4. QRトグル(.toggle-btn.qr-toggle)の active/inactive 切替
  * 5. ダウンロードボタン(.download-btn)が存在
  * 6. オーバーレイ(.ygo-next-image-popup-overlay)クリックでダイアログが閉じる
@@ -46,21 +46,24 @@ async function testDialog() {
     console.log('\n=== デッキ名入力フィールドの確認 ===');
     const inputInfo = await cdp.evaluate(`
       (() => {
-        const input = document.querySelector('.deck-name-input');
+        const input = document.querySelector('.title-field .field-input');
         return { exists: !!input, placeholder: input ? input.placeholder : null };
       })()
     `);
-    t.assert('デッキ名入力(.deck-name-input)が存在', inputInfo?.exists === true);
+    t.assert('デッキ名入力(.title-field .field-input)が存在', inputInfo?.exists === true);
 
-    console.log('\n=== 背景画像切り替え機能の確認 ===');
+    console.log('\n=== カラースウォッチの確認 ===');
+    const swatchCount = await cdp.evaluate(`document.querySelectorAll('.color-swatch').length`);
+    t.assert('カラースウォッチ(.color-swatch)が4色分存在', swatchCount === 4);
+
     const bgBefore = await cdp.evaluate(`
       (() => {
         const el = document.querySelector('.background-image');
         return el ? window.getComputedStyle(el).backgroundImage : null;
       })()
     `);
-    // .ygo-next-image-popup クリックで toggleColor（async、canvas再生成で red<->blue）
-    await cdp.evaluate(`document.querySelector('.ygo-next-image-popup')?.click()`);
+    // 未選択のスウォッチをクリック（selectColor は async、canvas再生成で色が切り替わる）
+    await cdp.evaluate(`document.querySelector('.color-swatch:not(.selected)')?.click()`);
     await cdp.wait(1500); // canvas再生成待ち
     const bgAfter = await cdp.evaluate(`
       (() => {
@@ -68,7 +71,7 @@ async function testDialog() {
         return el ? window.getComputedStyle(el).backgroundImage : null;
       })()
     `);
-    t.assert('背景クリックで .background-image の background が切り替わる', bgBefore !== bgAfter);
+    t.assert('カラースウォッチクリックで .background-image の background が切り替わる', bgBefore !== bgAfter);
 
     console.log('\n=== QRトグルボタンの確認 ===');
     const qrToggleExists = await cdp.evaluate(`document.querySelector('.toggle-btn.qr-toggle') !== null`);

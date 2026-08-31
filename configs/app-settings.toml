@@ -1,0 +1,42 @@
+# AppSettings のデフォルト値（Single Source of Truth）
+#
+# src/types/settings.ts の DEFAULT_APP_SETTINGS は、ビルド時にここから
+# 注入される __APP_SETTINGS_DEFAULTS__（webpack DefinePlugin / vitest define）
+# 経由で構築される。値の変更はこのファイルのみで行う。
+#
+# 注意:
+# - ux（UXSettings）は configs/ux.toml から合成するため、ここには定義しない
+# - webpack watch 中にこのファイルを変更しても DefinePlugin は起動時の値を
+#   使い続けるため、設定変更後はビルドの再実行が必要
+#
+# category / ui / note 等のメタ情報は docs/feature/appSettings.toml 参照。
+
+# カードサイズはLプリセット（deck/list=large, info=xlarge, grid=medium）
+deckEditCardSize = "large"
+infoCardSize = "xlarge"
+gridCardSize = "medium"
+listCardSize = "large"
+
+theme = "system"
+language = "auto"
+middleDecksLayout = "vertical"
+unsavedWarning = "always"
+
+# デッキ表示ページ設定
+showCardDetailInDeckDisplay = true
+deckDisplayCardImageSize = "normal"
+defaultSortOrder = "release_desc"
+enableCategoryPriority = true
+enableTailPlacement = true
+enableHeadPlacement = true
+deckLevelSortOrder = "toggle-desc"
+dialogFontSize = "m"
+searchUIFontSize = "m"
+backgroundDeckInfoFetch = true
+updateThumbnailWithoutFetch = true
+saveDelayMs = 0
+includeTimestampInExportFilename = true
+saveWithAutoFullSort = true
+categoryPrioritySortMode = "level"
+practiceCardSize = "small"
+practiceCardSize2P = "small"

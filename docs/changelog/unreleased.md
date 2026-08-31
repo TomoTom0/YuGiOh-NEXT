@@ -22,12 +22,11 @@
 
 ## Repository Management
 
-- リリースフローにgit tag/GitHub Release作成を必須化（release-prep skillのstep8/9を「オプション」から「必須」に変更。v0.6.4〜v0.6.12で8バージョン連続の作成漏れが発生していたため）
-- build/deployコマンドの命名を統一（コロンなし＝dev、`:prod`＝本番を明示。`build`/`build:prod`/`watch`/`sync`/`build-deploy`/`build-deploy:prod`）。普段の動作確認はdevビルドを既定にし、prod専用だったfeature flag（category3）を開発中も確認可能に
+（変更内容をここに記載）
 
 ## Internal Improvements
 
-（変更内容をここに記載）
+- `AppSettings` / `UXSettings` のデフォルト値を `configs/app-settings.toml` / `configs/ux.toml` に一元管理。feature flag（`configs/features.toml`）と同様にビルド時に注入する方式へ移行し、設定デフォルト値の `src/types/settings.ts` 直書きを廃止。`docs/feature/*.toml` は category/UI導線のメタ情報専用に分離し二重管理を解消
 
 ## Known Issues
 

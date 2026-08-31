@@ -1,0 +1,116 @@
+# 検証対象: src/content/deck-recipe/downloadDeckRecipeImage.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - downloadDeckRecipeImage.ts専用のテストは存在しなかったため、新規作成した。
+#   createDeckRecipeImage自体はtests/design/create-deck-recipe-imageで別途
+#   検証済みのため、本ファイルではモック化して呼び出し配線のみを検証する。
+
+[meta]
+feature = "download-deck-recipe-image"
+source_file = "src/content/deck-recipe/downloadDeckRecipeImage.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/download-deck-recipe-image.test.ts"
+source_hash = "3b2a4ac072fdff9159a34668b00b37424069d963"
+note = "verified=falseは0件"
+
+# --- downloadDeckRecipeImage(options) ---
+
+[[condition]]
+id = "download_deck_recipe_image.deckdata_provided_skips_fetch"
+target_function = "downloadDeckRecipeImage"
+source_lines = "27-28"
+description = "options.deckDataが既に渡されている場合、cgid取得・axios経由のHTML取得・パースを行わずそのまま使う"
+given = "options.deckDataに値が設定されている"
+expect_side_effect = "sessionManager.getCgidは呼ばれない"
+
+[[condition]]
+id = "download_deck_recipe_image.no_deckdata_fetches_own_deck_via_dno"
+target_function = "downloadDeckRecipeImage"
+source_lines = "28-42"
+description = "deckDataが無くdnoがある場合、sessionManager.getCgid()→getDeckDisplayUrlでURL生成→axios.getでHTML取得→DOMParserでパース→parseDeckDetailでdeckDataを構築する"
+given = "options.deckDataが未指定、options.dno='1'"
+expect_side_effect = "axios.getが呼ばれ、その結果からparseDeckDetailで構築されたdeckDataが以降の処理に使われる"
+
+[[condition]]
+id = "download_deck_recipe_image.no_deckdata_no_dno_stays_undefined"
+target_function = "downloadDeckRecipeImage"
+source_lines = "27-28"
+description = "deckData・dnoのいずれも無い場合、deckDataはundefinedのままcreateDeckRecipeImageに渡される（本関数自体はガードしない）"
+given = "options.deckData・options.dnoともに未指定"
+expect_side_effect = "createDeckRecipeImageがdeckData: undefinedで呼ばれる"
+
+[[condition]]
+id = "download_deck_recipe_image.embeds_png_metadata_when_deckdata_present"
+target_function = "downloadDeckRecipeImage"
+source_lines = "54-61"
+description = "deckDataが存在する場合、embedDeckInfoToPNGで画像にデッキ情報を埋め込んだBlobに差し替える"
+given = "deckDataが存在し、embedDeckInfoToPNGが成功する"
+expect_side_effect = "downloadされるBlobはembedDeckInfoToPNGの戻り値になる"
+
+[[condition]]
+id = "download_deck_recipe_image.embed_failure_falls_back_to_original_blob"
+target_function = "downloadDeckRecipeImage"
+source_lines = "56-60"
+description = "embedDeckInfoToPNGが失敗した場合、console.errorでログし元のBlob(createDeckRecipeImageの結果)をそのままダウンロードする"
+given = "embedDeckInfoToPNGがrejectする"
+expect_side_effect = "downloadされるBlobはcreateDeckRecipeImageの戻り値のまま（埋め込み前）になる"
+
+[[condition]]
+id = "download_deck_recipe_image.no_deckdata_skips_png_embedding"
+target_function = "downloadDeckRecipeImage"
+source_lines = "54"
+description = "deckDataが無い場合、embedDeckInfoToPNG自体を呼ばない"
+given = "deckData・dnoともに未指定（deckDataがundefinedのまま）"
+expect_side_effect = "embedDeckInfoToPNGは呼ばれない"
+
+[[condition]]
+id = "download_deck_recipe_image.uses_provided_filename_or_generates"
+target_function = "downloadDeckRecipeImage"
+source_lines = "64"
+description = "options.fileNameが指定されていればそれを使い、無ければgenerateFileName(deckData?.name)で生成する"
+given = "options.fileName = 'custom.png'"
+expect_side_effect = "ダウンロードファイル名が'custom.png'になる"
+
+# --- generateFileName(deckName) [非export] ---
+
+[[condition]]
+id = "generate_file_name.uses_deck_name_as_prefix"
+target_function = "generateFileName"
+source_lines = "83"
+description = "deckNameが指定されている場合、それをファイル名のプレフィックスに使う"
+given = "deckName = 'マイデッキ'"
+expect_return_shape = "'マイデッキ_<timestamp>.png'"
+
+[[condition]]
+id = "generate_file_name.default_prefix_when_no_deck_name"
+target_function = "generateFileName"
+source_lines = "83"
+description = "deckNameが未指定の場合、デフォルトプレフィックス'deck-recipe'を使う"
+given = "deckName未指定"
+expect_return_shape = "'deck-recipe_<timestamp>.png'"
+
+[[condition]]
+id = "generate_file_name.timestamp_strips_colons_and_ms"
+target_function = "generateFileName"
+source_lines = "77-84"
+description = "ISO 8601タイムスタンプのコロンをハイフンに置換し、ミリ秒以下を切り捨てた文字列をファイル名に含める"
+given = "任意の現在日時"
+expect_return_shape = "'yyyy-mm-ddThh-mm-ss'形式（コロン・ミリ秒無し）を含むファイル名"
+
+# --- downloadBlob(blob, fileName) [非export] ---
+
+[[condition]]
+id = "download_blob.creates_url_triggers_click_and_cleans_up"
+target_function = "downloadBlob"
+source_lines = "94-103"
+description = "URL.createObjectURLでBlob URLを作成し、非表示のa要素のdownload/href属性に設定してclickし、クリーンアップとしてa要素を削除しURL.revokeObjectURLを呼ぶ"
+given = "任意のBlobとファイル名"
+expect_side_effect = "URL.revokeObjectURLが作成したURLに対して呼ばれる（メモリリーク防止）"

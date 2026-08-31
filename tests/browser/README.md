@@ -187,6 +187,36 @@ node tests/browser/test-deck-code-issuance.cjs
 node tests/browser/test-deck-creation.cjs
 ```
 
+### `test-save-flow.cjs`
+
+デッキ保存フローのテストです。固定テスト用デッキ dno=3「テスト自動生成デッキ」（TASK-317）を対象に、保存ボタンで保存成功トーストが表示されることを確認します。保存ボタンは現在の並び順で保存し直すだけでカード構成は変えないため、繰り返し実行しても安全・可逆です。
+
+**実行方法**:
+```bash
+node tests/browser/test-save-flow.cjs                  # 書き込みなし（ボタン存在確認まで）
+YGO_WRITE_TESTS=1 node tests/browser/test-save-flow.cjs # 実際に保存を実行
+```
+
+### `test-sort-all-alt-save.cjs`
+
+全ソート＋代替ソート保存のテストです。固定テスト用デッキ dno=3 を対象に、メニューの「全ソート」「代替ソートで保存」がいずれも並び順のみを変更しカード構成を変えないことを利用し、繰り返し実行しても安全・可逆です。
+
+**実行方法**:
+```bash
+node tests/browser/test-sort-all-alt-save.cjs                  # 書き込みなし（メニュー項目存在確認まで）
+YGO_WRITE_TESTS=1 node tests/browser/test-sort-all-alt-save.cjs # 実際に全ソート→代替ソート保存を実行
+```
+
+### `test-unsaved-changes.cjs`
+
+未保存の変更ダイアログのテストです。固定テスト用デッキ dno=3 を対象に、デッキ名末尾への半角スペース付与（低リスクに確実な差分を作れる方法）で未保存の変更を作り、再読み込み操作時にダイアログが表示されること、「処理を中断」でキャンセルできることを確認します。`YGO_WRITE_TESTS=1` 時は「保存して続ける」経路も検証し、直後にデッキ名を元の値へ復元して dno=3 の状態を変更前に戻します。
+
+**実行方法**:
+```bash
+node tests/browser/test-unsaved-changes.cjs                  # 書き込みなし（キャンセル経路のみ）
+YGO_WRITE_TESTS=1 node tests/browser/test-unsaved-changes.cjs # 「保存して続ける」経路も検証（デッキ名を復元）
+```
+
 ### `test-filter-dialog-header.cjs`
 
 検索フィルターダイアログのヘッダー表示テストです。

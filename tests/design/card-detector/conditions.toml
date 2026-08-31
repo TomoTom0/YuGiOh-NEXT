@@ -1,0 +1,81 @@
+# 検証対象: src/content/card/detector.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り。本ファイルでTier B対象の展開が完了)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - src/content/card/__tests__/detector.test.ts (既存17テスト) は既に実装を
+#   直接importし、全分岐（spell/trap/monster各属性/img無し/src空/認識不能/
+#   コンテナ無し）を実DOM構造で検証する高品質なテストだった。推測混入は無く、
+#   [covers:<id>]タグの付与のみを行った。
+
+[meta]
+feature = "card-detector"
+source_file = "src/content/card/detector.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/content/card/__tests__/detector.test.ts"
+source_hash = "0ae9aa2f4546b5c10c57ed3a96d9d987655f5b4a"
+note = "verified=falseは0件"
+
+# --- detectCardType(row) ---
+
+[[condition]]
+id = "detect_card_type.no_img_returns_null"
+target_function = "detectCardType"
+source_lines = "16-20"
+description = ".box_card_attribute内にimg要素が見つからない場合、nullを返す"
+given = ".box_card_attributeはあるがimg要素が無いrow"
+expect_return = "null"
+
+[[condition]]
+id = "detect_card_type.empty_src_returns_null"
+target_function = "detectCardType"
+source_lines = "22-26"
+description = "img要素は見つかるがsrc属性が空文字列の場合、nullを返す"
+given = "img[src='']"
+expect_return = "null"
+
+[[condition]]
+id = "detect_card_type.spell_icon_returns_spell"
+target_function = "detectCardType"
+source_lines = "29-30"
+description = "srcに'attribute_icon_spell'を含む場合、'spell'を返す（絶対パス・相対パス両方）"
+given = "img[src*='attribute_icon_spell.png']"
+expect_return = "'spell'"
+
+[[condition]]
+id = "detect_card_type.trap_icon_returns_trap"
+target_function = "detectCardType"
+source_lines = "31-32"
+description = "srcに'attribute_icon_trap'を含む場合、'trap'を返す"
+given = "img[src*='attribute_icon_trap.png']"
+expect_return = "'trap'"
+
+[[condition]]
+id = "detect_card_type.attribute_icon_returns_monster"
+target_function = "detectCardType"
+source_lines = "33-35"
+description = "srcに'attribute_icon_'を含み、かつspell/trap以外の場合、'monster'を返す（light/dark/water/fire/earth/wind/divineの7属性全て）"
+given = "img[src*='attribute_icon_light.png'] 等7属性"
+expect_return = "'monster'"
+
+[[condition]]
+id = "detect_card_type.unrecognized_icon_returns_null"
+target_function = "detectCardType"
+source_lines = "38-39"
+description = "srcが'attribute_icon_'パターンに一致しない場合、nullを返す"
+given = "img[src*='unknown_icon.png']"
+expect_return = "null"
+
+[[condition]]
+id = "detect_card_type.no_box_card_attribute_returns_null"
+target_function = "detectCardType"
+source_lines = "16-20"
+description = ".box_card_attribute要素自体がrow内に無い場合、querySelectorがnullを返しimg取得に失敗するためnullを返す"
+given = ".box_card_attributeクラスを持つ要素が無いrow"
+expect_return = "null"

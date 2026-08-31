@@ -20,10 +20,13 @@ export async function loadFeatureSettings(): Promise<FeatureSettings> {
         ...DEFAULT_FEATURE_SETTINGS,
         ...result.featureSettings,
       };
-      // category 3 強制: デフォルト値が import.meta.env.DEV の機能は
-      // 本番ビルドでは強制OFF（stored値は無視）。toml で category を管理。
+      // category 3 強制: configs/features.toml で default = "dev-only" の機能は
+      // 本番ビルドでは強制OFF（stored値は無視）。category は docs/feature/featureSettings.toml で管理。
       merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice;
-      merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys && merged.genesys;
+      // genesys（category 1・UIなし）: 旧prodビルドは category 3 強制OFFの結果（genesys=false）を
+      // saveSettings() で永続化していた。UIを持たないため保存値はユーザー意図ではなくビルド強制値の
+      // アーティファクトであり、デフォルト値を正とする（昇格時にUIを追加した場合はこの行を削除する）。
+      merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys;
       return merged;
     }
 

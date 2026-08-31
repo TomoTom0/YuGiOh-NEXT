@@ -4,17 +4,20 @@
 # TASK-330(Tier B本展開)、chrome.storage.local を扱う設定管理utils。
 #
 # 実装コメントとの差異・注意点:
-# - L23-26 のコメントは「category 3 強制: デフォルト値が import.meta.env.DEV の機能は
-#   本番ビルドでは強制OFF（stored値は無視）」と説明しているが、実装は
+# - 実装コメント（L23-24）は「category 3 強制: configs/features.toml で default = "dev-only"
+#   の機能は本番ビルドでは強制OFF（stored値は無視）」と説明しているが、実装は
 #   `merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice` という
 #   単純な論理AND。DEFAULT側がtrueならmerged側の値がそのまま素通りするだけで、
-#   「強制OFF」が意味を持つのは DEFAULT_FEATURE_SETTINGS.practice/genesys が false
-#   (=本番ビルド, import.meta.env.DEV=false)の場合のみ。
-# - vitestの実行環境では import.meta.env.DEV は true 固定
-#   (vitest.config.ts に mode override が無いため)であり、
-#   DEFAULT_FEATURE_SETTINGS.practice/genesys は常に true になる。そのため
-#   「本番ビルドでのDEFAULT=false」を再現するには `@/types/settings` を
-#   vi.doMock で差し替える必要がある（tests/unit/utils/settings.test.ts で対応）。
+#   「強制OFF」が意味を持つのは DEFAULT_FEATURE_SETTINGS.practice が false
+#   (=本番ビルド、features.toml の "dev-only" が false 解決された場合)の時のみ。
+# - genesysは category 1（常時有効）に移行したため強制OFFロジックの対象外。
+#   merged.genesys への上書きは存在せず、stored値がそのまま保持される。
+# - DEFAULT_FEATURE_SETTINGS の実体は configs/features.toml からビルド時に
+#   __FEATURE_DEFAULTS__ として注入される（webpack DefinePlugin / vitest define）。
+#   vitestでは isDev=true 固定で解決されるため DEFAULT_FEATURE_SETTINGS.practice は
+#   常に true になる。そのため「本番ビルドでのDEFAULT=false」を再現するには
+#   `@/types/settings` を vi.doMock で差し替える必要がある
+#   （tests/unit/utils/settings.test.ts で対応）。
 # - 既存テスト(修正前)は `enableAllFeatures` / `enableCardSearchFeature` という
 #   src/types/settings.ts の FeatureId('shuffle-sort' | 'deck-image' | 'deck-edit' |
 #   'chat' | 'practice' | 'genesys')に存在しないキー名でFeatureSettingsをテストしていた。
@@ -31,10 +34,10 @@
 feature = "settings"
 source_file = "src/utils/settings.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-08-31"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/settings.test.ts"
-source_hash = "d3cb1b8428351d6d3e3d3a05230ab545d5a4c73a"
+source_hash = "74c16960ea20cba2151001885d7cc2684ccd6b64"
 note = "verified=falseは0件"
 
 # --- loadFeatureSettings(): Promise<FeatureSettings> ---
@@ -42,7 +45,7 @@ note = "verified=falseは0件"
 [[condition]]
 id = "load_feature_settings.merge_with_stored"
 target_function = "loadFeatureSettings"
-source_lines = "18-27"
+source_lines = "18-22"
 description = "chrome.storage.local.get(['featureSettings'])の結果のfeatureSettingsがtruthyの場合、{...DEFAULT_FEATURE_SETTINGS, ...result.featureSettings}でマージし、stored側に存在するキーのみ上書きされる（未指定キーはDEFAULT値を保持）"
 given = "chrome.storage.local.get(['featureSettings'])が { featureSettings: <部分的なFeatureSettings> } でresolveする"
 expect_return_shape = "DEFAULT_FEATURE_SETTINGSの全キーを持ち、storedで指定したキーのみstored値、それ以外はDEFAULT値のFeatureSettings"
@@ -56,17 +59,25 @@ given = "DEFAULT_FEATURE_SETTINGS.practice=false（'@/types/settings'をvi.doMoc
 expect_return_shape = "merged.practice === false"
 
 [[condition]]
-id = "load_feature_settings.category3_force_off_genesys"
+id = "load_feature_settings.genesys_ignores_stored_artifact"
 target_function = "loadFeatureSettings"
-source_lines = "26"
-description = "merge後、merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys && merged.genesys が適用される。DEFAULT_FEATURE_SETTINGS.genesysがfalse(本番ビルド相当)の場合、stored側でgenesys=trueが指定されていてもfalseに強制される"
+source_lines = "29"
+description = "genesys（category 1・UIなし）は merge後、merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys が適用される。旧prodビルドはcategory 3強制OFFの結果（genesys=false）をsaveSettings()で永続化しており、UIを持たないためその保存値はビルド強制値のアーティファクトとしてDEFAULT値で上書きされる"
+given = "stored featureSettings.genesys=false（旧prodビルドの強制OFFアーティファクト）"
+expect_return_shape = "merged.genesys === DEFAULT_FEATURE_SETTINGS.genesys（true）"
+
+[[condition]]
+id = "load_feature_settings.genesys_default_wins_over_stored"
+target_function = "loadFeatureSettings"
+source_lines = "29"
+description = "genesysはUIを持たないため保存値をユーザー意図として扱わず、DEFAULT値が常に優先される（DEFAULTがfalseに変わればstored=trueでもfalseになる。genesysにUIを追加する際はこの行を削除する）"
 given = "DEFAULT_FEATURE_SETTINGS.genesys=false（'@/types/settings'をvi.doMockで差し替え）、stored featureSettings.genesys=true"
 expect_return_shape = "merged.genesys === false"
 
 [[condition]]
 id = "load_feature_settings.no_stored_returns_default"
 target_function = "loadFeatureSettings"
-source_lines = "31"
+source_lines = "34"
 description = "result.featureSettingsがfalsy(undefined)の場合、マージやcategory3強制ロジックを経由せずDEFAULT_FEATURE_SETTINGSをそのまま返す"
 given = "chrome.storage.local.get(['featureSettings'])が {} でresolveする(featureSettingsキー無し)"
 expect_return = "DEFAULT_FEATURE_SETTINGS"
@@ -74,7 +85,7 @@ expect_return = "DEFAULT_FEATURE_SETTINGS"
 [[condition]]
 id = "load_feature_settings.storage_get_throws_returns_default"
 target_function = "loadFeatureSettings"
-source_lines = "32-35"
+source_lines = "35-38"
 description = "chrome.storage.local.get(...)がrejectした場合、catchでconsole.errorに記録した上でDEFAULT_FEATURE_SETTINGSを返す（throwしない）"
 given = "chrome.storage.local.get(['featureSettings'])がrejectする"
 expect_return = "DEFAULT_FEATURE_SETTINGS"
