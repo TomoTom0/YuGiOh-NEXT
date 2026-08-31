@@ -4,6 +4,7 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
 const { resolveFeatureDefaults } = require('./scripts/lib/feature-defaults.cjs');
+const { loadConfigToml } = require('./scripts/lib/config-toml.cjs');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -111,6 +112,8 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         'import.meta.env.DEV': JSON.stringify(!isProduction),
         __FEATURE_DEFAULTS__: JSON.stringify(resolveFeatureDefaults(!isProduction)),
+        __APP_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('app-settings.toml')),
+        __UX_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('ux.toml')),
       }),
 
       // public/ディレクトリ（manifest.json含む）と画像をコピー

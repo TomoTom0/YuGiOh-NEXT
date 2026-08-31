@@ -36,3 +36,4 @@ vitest define）経由で構築され、コードへの直書きは行わない�
 
 `featureSettings` / `appSettings` / `ux` に項目を追加・削除・UI変更した場合は、該当するtomlファイルも同時に更新する。
 feature flag を追加した場合は `configs/features.toml` と `src/types/settings.ts` の `FEATURE_IDS` にも同じIDを追加する（整合は `tests/unit/configs/feature-defaults.test.ts` が検証する）。
+`AppSettings` / `UXSettings` のデフォルト値を変更・追加する場合は `configs/app-settings.toml` / `configs/ux.toml` を編集する（整合は `tests/unit/configs/app-ux-defaults.test.ts` が検証する）。

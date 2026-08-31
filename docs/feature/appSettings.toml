@@ -1,137 +1,113 @@
 # AppSettings（src/types/settings.ts:184-255,326-357）
 # category の定義は README.md を参照
+#
+# 【重要】default 値は configs/app-settings.toml が Single Source of Truth。このファイルでは管理しない（ux は configs/ux.toml）。
 
 [deckEditCardSize]
-default = "large"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue（handlePresetChangeでdeckEditCardSize/infoCardSize/gridCardSize/listCardSizeを一括変更）"
 
 [infoCardSize]
-default = "xlarge"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue（deckEditCardSizeと同一プリセットで一括変更）"
 
 [gridCardSize]
-default = "medium"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue（deckEditCardSizeと同一プリセットで一括変更）"
 
 [listCardSize]
-default = "large"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue（deckEditCardSizeと同一プリセットで一括変更）"
 
 [theme]
-default = "system"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
 
 [language]
-default = "auto"
 category = 4
 ui = "none"
 note = "src/utils/mapping-manager.ts:520-521でマッピング言語の強制指定に使用。URLパラメータ（urlSettings.lang、src/stores/deck-edit.ts:1419）経由でのみ設定可能。設定画面から到達不可。"
 
 [middleDecksLayout]
-default = "vertical"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
 
 [unsavedWarning]
-default = "always"
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [showCardDetailInDeckDisplay]
-default = true
 category = 1
 ui = "src/options/components/sections/DeckDisplayCardDetailSection.vue"
 
 [deckDisplayCardImageSize]
-default = "normal"
 category = 1
 ui = "src/options/components/tabs/DeckDisplayTab.vue, src/components/SettingsDialog.vue"
 
 [defaultSortOrder]
-default = "release_desc"
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [enableCategoryPriority]
-default = true
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [enableTailPlacement]
-default = true
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [enableHeadPlacement]
-default = true
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 note = "TASK-293でUI追加（それ以前はUIなしで①でも④でもない中途半端な状態だった）"
 
 [deckLevelSortOrder]
-default = "toggle-desc"
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [dialogFontSize]
-default = "m"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
 
 [searchUIFontSize]
-default = "m"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
 
 [backgroundDeckInfoFetch]
-default = true
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue"
 
 [updateThumbnailWithoutFetch]
-default = true
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue"
 
 [saveDelayMs]
-default = 0
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue（保存設定、0〜5000msのレンジスライダー）"
 note = "TASK-293でUI追加（それ以前はUIなしで①でも④でもない中途半端な状態だった）"
 
 [includeTimestampInExportFilename]
-default = true
 category = 1
 ui = "src/components/SettingsDialog.vue:203,210"
 
 [saveWithAutoFullSort]
-default = true
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue（保存設定）"
 note = "TASK-293でUI追加（それ以前はUIなしで①でも④でもない中途半端な状態だった）"
 
 [aiApiKey]
-default = ""
 category = 4
 ui = "none"
 note = "chat機能（category 4、意図的に無効）専用の値。chatが到達不能な現状は事実上無意味。"
 
 [categoryPrioritySortMode]
-default = "level"
 category = 1
 ui = "src/options/components/sections/UXSettingsSection.vue"
 
 [practiceCardSize]
-default = "small"
 category = 1
 ui = "src/options/components/sections/UISettingsSection.vue, src/components/SettingsDialog.vue"
 
 [practiceCardSize2P]
-default = "small"
 category = 1
 ui = "src/components/SettingsDialog.vue:128"

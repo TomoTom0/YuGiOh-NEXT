@@ -8,11 +8,14 @@ const require = createRequire(import.meta.url);
 // vitest 実行環境では import.meta.env.DEV が true 固定のため isDev=true で解決して注入する
 // （webpack.config.cjs の DefinePlugin と同じ値の供給元）。
 const { resolveFeatureDefaults } = require('./scripts/lib/feature-defaults.cjs');
+const { loadConfigToml } = require('./scripts/lib/config-toml.cjs');
 
 export default defineConfig({
   plugins: [vue()],
   define: {
     __FEATURE_DEFAULTS__: JSON.stringify(resolveFeatureDefaults(true)),
+    __APP_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('app-settings.toml')),
+    __UX_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('ux.toml')),
   },
   test: {
     environment: 'happy-dom',

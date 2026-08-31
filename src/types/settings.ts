@@ -317,64 +317,30 @@ export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
 /**
  * デフォルトのUX設定
  */
-export const DEFAULT_UX_SETTINGS: UXSettings = {
-  searchInputPosition: 'right-top',   // カード検索入力欄: right-top位置
-  defaultSearchMode: 'auto',    // 検索モードのデフォルト: 自動
-  enableMouseOperations: false,
-  changeFavicon: true,
-  keyboardShortcuts: {
-    globalSearch: [
-      { ctrl: false, shift: false, alt: false, key: '/' },
-      { ctrl: true, shift: false, alt: false, key: 'j' }
-    ],
-    undo: [
-      { ctrl: true, shift: false, alt: false, key: 'z' }
-    ],
-    redo: [
-      { ctrl: true, shift: false, alt: false, key: 'y' }
-    ],
-  },
-  cardListViewMode: {
-    search: 'grid',    // 検索結果: グリッド表示（デフォルト）
-    related: 'grid',   // 関連カード: グリッド表示（デフォルト）
-    products: 'grid',  // 商品一覧: グリッド表示（デフォルト）
-  },
-  rightAreaWidth: 'L',      // Right Area の幅: L（デフォルト）
-  rightAreaFontSize: 'l',   // Right Area のフォントサイズ: l（デフォルト）
-};
+/**
+ * ビルド時に configs/ux.toml から注入される UX 設定のデフォルト値
+ * （webpack DefinePlugin / vitest define）
+ */
+declare const __UX_SETTINGS_DEFAULTS__: UXSettings;
 
 /**
- * デフォルトのアプリ設定
+ * デフォルトのUX設定（実体は configs/ux.toml からビルド時に注入される）
+ */
+export const DEFAULT_UX_SETTINGS: UXSettings = __UX_SETTINGS_DEFAULTS__;
+
+/**
+ * ビルド時に configs/app-settings.toml から注入されるアプリ設定のデフォルト値
+ * （ux キーは含まない。ux は configs/ux.toml から合成する）
+ */
+declare const __APP_SETTINGS_DEFAULTS__: Omit<AppSettings, 'ux'>;
+
+/**
+ * デフォルトのアプリ設定（実体は configs/app-settings.toml と configs/ux.toml
+ * からビルド時に注入される）
  */
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  // デフォルトはLプリセット（deck/list=large, info=xlarge, grid=medium）
-  deckEditCardSize: 'large',
-  infoCardSize: 'xlarge',
-  gridCardSize: 'medium',
-  listCardSize: 'large',
-  theme: 'system',              // テーマ: システム設定に従う
-  language: 'auto',
-  middleDecksLayout: 'vertical',  // Extra/Sideデッキ: 縦並び
-  ux: DEFAULT_UX_SETTINGS,       // UX設定
-  unsavedWarning: 'always',
-  // デッキ表示ページ設定
-  showCardDetailInDeckDisplay: true,   // CardDetail表示: デフォルト有効
-  deckDisplayCardImageSize: 'normal',  // デッキ表示ページのカード画像: normal（公式デフォルト）
-  defaultSortOrder: 'release_desc',    // デフォルトソート順序: 発売日降順
-  enableCategoryPriority: true,        // カテゴリ優先: デフォルト有効
-  enableTailPlacement: true,           // 末尾配置: デフォルト有効
-  enableHeadPlacement: true,           // 手動先頭優先配置: デフォルト有効
-  deckLevelSortOrder: 'toggle-desc',   // デッキソートのレベル順: 降順が基本・連続ソートで昇順切り替え
-  dialogFontSize: 'm',                 // ダイアログのフォントサイズ: 中（14px）
-  searchUIFontSize: 'm',               // 検索UIのフォントサイズ: 中（14px）
-  backgroundDeckInfoFetch: true,       // バックグラウンドでのデッキ情報取得: デフォルト有効（v0.6.2で通信最適化済み）
-  updateThumbnailWithoutFetch: true,   // APIフェッチなしでサムネイルを更新: デフォルト有効（v0.6.2で通信最適化済み）
-  saveDelayMs: 0,                      // 保存ボタンクリック後の遅延時間: 0ms（即座に保存）
-  includeTimestampInExportFilename: true, // エクスポートファイル名にタイムスタンプを含める: デフォルト有効
-  saveWithAutoFullSort: true,          // 保存時に自動でフルソート: デフォルト有効
-  categoryPrioritySortMode: 'level',   // カテゴリ優先内のソート順: レベル順（全体設定に従う）
-  practiceCardSize: 'small',           // practice mode 1P カードサイズ
-  practiceCardSize2P: 'small',         // practice mode 2P カードサイズ
+  ...__APP_SETTINGS_DEFAULTS__,
+  ux: DEFAULT_UX_SETTINGS,
 };
 
 /**
