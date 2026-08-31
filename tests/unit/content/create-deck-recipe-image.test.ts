@@ -610,7 +610,7 @@ describe('createDeckRecipeImage - conditions.toml (TASK-330)', () => {
     errorSpy.mockRestore();
   });
 
-  it('[covers:draw_outer_border.strokes_full_canvas_with_accent_line_color] 画像全体の縁取りがcolorSettings.accentLineでstrokeRectされ、内部の区切り線色(borderLine)とは異なる', async () => {
+  it('[covers:draw_outer_border.export_does_not_draw_canvas_border] エクスポートされる画像自体には縁取りを焼き込まない（プレビュー表示側のCSS borderのみで表現する）', async () => {
     await createDeckRecipeImage({
       cgid: 'testcgid',
       dno: '1',
@@ -620,14 +620,10 @@ describe('createDeckRecipeImage - conditions.toml (TASK-330)', () => {
       scale: 2
     });
 
-    expect(stubCtxBundle.strokeRectCalls.length).toBeGreaterThanOrEqual(1);
-    const lastIndex = stubCtxBundle.strokeRectCalls.length - 1;
-    const lastStrokeRect = stubCtxBundle.strokeRectCalls[lastIndex];
-    // scale=2の場合、lineWidth=3*2=6で、inset=3(lineWidth/2)
-    expect(lastStrokeRect).toEqual([3, 3, stubCanvas.width - 6, stubCanvas.height - 6]);
-    // 外枠はaccentLine(red: #ed1b1b)を使い、セクション区切り線のborderLine(red: #fcc4c4)とは異なる色にする
-    expect(stubCtxBundle.strokeRectStrokeStyles[lastIndex]).toBe('#ed1b1b');
-    expect(stubCtxBundle.strokeRectStrokeStyles[lastIndex]).not.toBe('#fcc4c4');
+    // TASK-390: TASK-379で追加したdrawOuterBorder(canvas全体をstrokeRectで縁取り)は、
+    // 「dialogのプレビュー表示に枠線をつける」という意図をエクスポート画像自体への焼き込みと誤って実装したもの。
+    // ダウンロードされるPNGには枠線を含めない。
+    expect(stubCtxBundle.strokeRectCalls.length).toBe(0);
   });
 
   it('[covers:draw_timestamp.footer_text_option_overrides_default] footerTextを指定した場合、そのテキストがそのまま描画される', async () => {

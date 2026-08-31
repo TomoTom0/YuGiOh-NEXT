@@ -24,7 +24,7 @@ verified_at = "2026-08-29"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/create-deck-recipe-image.test.ts"
 source_hash = "76ef80856bc37e721e1f41a14d78cf0f1e0be938"
-note = "verified=falseは6件（Node.js専用分岐のためhappy-domテスト環境では到達不能）。TASK-379/381でdrawOuterBorder追加・drawTimestampにfooterText引数追加、条件3件追加。TASK-383でdrawOuterBorderの色をborderLineからaccentLineに変更（内部区切り線と混同するとの指摘のため）"
+note = "verified=falseは6件（Node.js専用分岐のためhappy-domテスト環境では到達不能）。TASK-381でdrawTimestampにfooterText引数を追加。TASK-379で追加したdrawOuterBorder（canvasへの縁取り焼き込み）はTASK-390で誤実装と判明し削除（意図はImageDialog.vue側のプレビュー表示への枠線であり、エクスポート画像への焼き込みではなかった）"
 
 # --- createDeckRecipeImage(options) ---
 
@@ -270,15 +270,20 @@ description = "QRコード生成(import/toDataURL)またはloadImageが失敗し
 given = "QRCode.default.toDataURLがthrowする"
 expect_no_throw = true
 
-# --- drawOuterBorder(ctx, settings) [非export・内部関数、TASK-379で追加] ---
+# --- drawOuterBorder はTASK-390でcreateDeckRecipeImageから削除 ---
+# TASK-379(2026-08-29)「画像自体の縁取りがあるべきだ」は、dialogのプレビュー表示に枠線をつける
+# ことを意図していたが、当時の実装はcanvas(=エクスポートされるPNG本体)に焼き込むdrawOuterBorder()
+# として誤って実装していた（TASK-390でユーザー指摘により判明・撤回）。
+# 縁取りはsrc/components/ImageDialog.vueの.background-imageへのCSS border(accentLine連動)として
+# 実装し直した。関連テストはtests/unit/components/ImageDialog.test.tsを参照。
 
 [[condition]]
-id = "draw_outer_border.strokes_full_canvas_with_accent_line_color"
-target_function = "drawOuterBorder"
-source_lines = "260-275"
-description = "colorSettings.accentLineをstrokeStyleとして、lineWidth(3*scale)の半分だけ内側に inset した矩形をcanvas全体に対してstrokeRectする（線がcanvas外にクリップされないようにするため）。borderLineはdrawCardSectionのセクション見出し区切り線にも使われる色のため、外枠は視覚的に区別できるようaccentLine(より彩度の高い強調色)を使う（ユーザー指摘により初期実装のborderLineから変更、TASK-383）"
+id = "draw_outer_border.export_does_not_draw_canvas_border"
+target_function = "createDeckRecipeImage"
+source_lines = "160-165"
+description = "エクスポートされるcanvas画像自体にはstrokeRectによる縁取りを描画しない（縁取りはImageDialog.vue側のCSS borderのみで表現する）"
 given = "任意のcolor/scale"
-expect_side_effect = "ctx.strokeRect(lineWidth/2, lineWidth/2, width-lineWidth, height-lineWidth)が呼ばれ、strokeStyleがcolorSettings.accentLineになる（colorSettings.borderLineとは異なる値）"
+expect_side_effect = "ctx.strokeRectが一度も呼ばれない"
 
 # --- drawTimestamp(ctx, settings, footerText) [非export・内部関数、TASK-381でfooterText引数を追加] ---
 

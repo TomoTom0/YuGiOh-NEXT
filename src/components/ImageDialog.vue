@@ -175,7 +175,8 @@ const popupStyle = computed(() => {
 const backgroundImageStyle = computed(() => ({
   height: `${displayHeight.value}px`,
   background: `url('${backgroundImageUrl.value}') no-repeat center center`,
-  backgroundSize: 'contain'
+  backgroundSize: 'contain',
+  borderColor: COLOR_SETTINGS[selectedColor.value].accentLine
 }))
 
 // 背景画像生成
@@ -421,7 +422,9 @@ defineExpose({
 .background-image {
   position: relative;
   width: 100%;
-  transition: background 0.5s ease;
+  box-sizing: border-box;
+  border: 3px solid transparent;
+  transition: background 0.5s ease, border-color 0.3s ease;
 }
 
 .toggle-btn {
