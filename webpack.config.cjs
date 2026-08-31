@@ -3,6 +3,7 @@ const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
+const { resolveFeatureDefaults } = require('./scripts/lib/feature-defaults.cjs');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -104,8 +105,12 @@ module.exports = (env, argv) => {
       new VueLoaderPlugin(),
 
       // import.meta.env.DEV をビルド時に解決（category 3 機能のdev/prod切替用）
+      // feature flag のデフォルト値は configs/features.toml が Single Source of Truth。
+      // ここで "dev-only" をビルド種別に解決した結果を __FEATURE_DEFAULTS__ として注入する
+      // （src/types/settings.ts の DEFAULT_FEATURE_SETTINGS が参照）。
       new webpack.DefinePlugin({
         'import.meta.env.DEV': JSON.stringify(!isProduction),
+        __FEATURE_DEFAULTS__: JSON.stringify(resolveFeatureDefaults(!isProduction)),
       }),
 
       // public/ディレクトリ（manifest.json含む）と画像をコピー

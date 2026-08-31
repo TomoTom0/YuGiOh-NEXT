@@ -96,17 +96,19 @@ describe('settings', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    // category3（practice/genesys）の本番強制OFFロジック（src/utils/settings.ts L25-26）。
-    // vitest実行環境ではimport.meta.env.DEVが常にtrueのため、DEFAULT_FEATURE_SETTINGS.practice/genesys
+    // category3（practice）の本番強制OFFロジック（src/utils/settings.ts L25）。
+    // vitest実行環境ではimport.meta.env.DEVが常にtrueのため、DEFAULT_FEATURE_SETTINGS.practice
     // も常にtrueになり通常のテストでは「本番ビルドでのDEFAULT=false」を再現できない。
     // '@/types/settings' をvi.doMockで差し替え、DEFAULT側をfalseにして検証する。
+    // genesysはcategory 1（常時有効）に移行したため強制OFF対象外で、別テストで
+    // 保存値が保持されることを検証する。
     describe('category3強制OFF（本番ビルド相当のシミュレーション）', () => {
       afterEach(() => {
         vi.doUnmock('@/types/settings');
         vi.resetModules();
       });
 
-      it('[covers:load_feature_settings.category3_force_off_practice][covers:load_feature_settings.category3_force_off_genesys] DEFAULT.practice/genesysがfalseの場合、保存値がtrueでも強制的にfalseになる', async () => {
+      it('[covers:load_feature_settings.category3_force_off_practice] DEFAULT.practiceがfalseの場合、保存値がtrueでも強制的にfalseになる', async () => {
         vi.doMock('@/types/settings', async (importOriginal) => {
           const original = await importOriginal<typeof import('@/types/settings')>();
           return {
@@ -114,20 +116,40 @@ describe('settings', () => {
             DEFAULT_FEATURE_SETTINGS: {
               ...original.DEFAULT_FEATURE_SETTINGS,
               practice: false,
-              genesys: false,
             },
           };
         });
         vi.resetModules();
         mockChromeStorage.get.mockResolvedValue({
-          featureSettings: { practice: true, genesys: true },
+          featureSettings: { practice: true },
         });
 
         const { loadFeatureSettings: loadFeatureSettingsMocked } = await import('@/utils/settings');
         const result = await loadFeatureSettingsMocked();
 
         expect(result.practice).toBe(false);
-        expect(result.genesys).toBe(false);
+      });
+
+      it('[covers:load_feature_settings.genesys_keeps_stored_value] genesys（category 1）は強制OFF対象外のため、DEFAULTがfalseでも保存値が保持される', async () => {
+        vi.doMock('@/types/settings', async (importOriginal) => {
+          const original = await importOriginal<typeof import('@/types/settings')>();
+          return {
+            ...original,
+            DEFAULT_FEATURE_SETTINGS: {
+              ...original.DEFAULT_FEATURE_SETTINGS,
+              genesys: false,
+            },
+          };
+        });
+        vi.resetModules();
+        mockChromeStorage.get.mockResolvedValue({
+          featureSettings: { genesys: true },
+        });
+
+        const { loadFeatureSettings: loadFeatureSettingsMocked } = await import('@/utils/settings');
+        const result = await loadFeatureSettingsMocked();
+
+        expect(result.genesys).toBe(true);
       });
     });
   });

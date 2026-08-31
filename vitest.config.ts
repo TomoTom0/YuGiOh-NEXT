@@ -1,9 +1,19 @@
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+// feature flag のデフォルト値は configs/features.toml が Single Source of Truth。
+// vitest 実行環境では import.meta.env.DEV が true 固定のため isDev=true で解決して注入する
+// （webpack.config.cjs の DefinePlugin と同じ値の供給元）。
+const { resolveFeatureDefaults } = require('./scripts/lib/feature-defaults.cjs');
 
 export default defineConfig({
   plugins: [vue()],
+  define: {
+    __FEATURE_DEFAULTS__: JSON.stringify(resolveFeatureDefaults(true)),
+  },
   test: {
     environment: 'happy-dom',
     environmentOptions: {

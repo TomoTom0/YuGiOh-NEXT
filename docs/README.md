@@ -61,13 +61,14 @@
 | `dev/i18n.md` | 多言語対応変更時 | 翻訳方針、言語検出ロジック |
 | `dev/official-api.md` | 公式API変更検知時 | APIエンドポイント、レスポンス形式 |
 
-### 3. 機能フラグレジストリ（feature/）
+### 3. 機能フラグレジストリ（feature/）・設定ファイル（configs/）
 
 **対象**: `src/types/settings.ts`（featureSettings/appSettings/ux）の追加・変更
 
 | ファイル | 更新タイミング | 内容 |
 |---------|-------------|------|
-| `feature/featureSettings.toml` | `FeatureId` の追加・変更・UI変更時 | 各機能フラグの分類（デフォルトON/OFF、開発限定等）とUI導線の有無 |
+| `../configs/features.toml` | feature flag のデフォルト値変更時 | feature flag デフォルト値の Single Source of Truth（`true` / `false` / `"dev-only"`）。ビルド時に `__FEATURE_DEFAULTS__` として注入 |
+| `feature/featureSettings.toml` | `FeatureId` の追加・変更・UI変更時 | 各機能フラグの分類（category、UI導線の有無）。デフォルト値は configs/features.toml 側で管理 |
 | `feature/appSettings.toml` | `AppSettings` の追加・変更・UI変更時 | 同上 |
 | `feature/ux.toml` | `AppSettings.ux` の追加・変更・UI変更時 | 同上 |
 

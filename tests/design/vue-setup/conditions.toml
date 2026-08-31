@@ -1,0 +1,174 @@
+# 検証対象: src/content/deck-display/vueSetup.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/unit/deck-display/vueSetup-cleanup.test.ts (296行、17テスト)は
+#   vueSetup.tsを一切importせず、WeakMapやquerySelectorの一般的な使い方を
+#   再実装して「パターンの検証」をしているだけで、実際のsetupVueApp/
+#   cleanupCardImageHoverUI/setupCardImageHoverUIの分岐を一切カバーしていない
+#   （テストタイトルは「Event listener cleanup for memory leak prevention」だが、
+#   本物のイベントリスナーやWeakMapは実装側で使われていない）。
+#   本conditions.toml・新規テスト作成の動機となった（既存ファイルは削除せず併存）。
+#
+# extract-ast-skeleton.tsの既知の限界:
+# - cleanupCardImageHoverUIは`function cleanupCardImageHoverUI() {...}`宣言後に
+#   末尾で`export { cleanupCardImageHoverUI }`という名前付きexport文で公開されており、
+#   `export function`直接宣言ではないためAST抽出はこれを検出できない（0件扱い）。
+#   条件は手動で記載した。
+
+[meta]
+feature = "vue-setup"
+source_file = "src/content/deck-display/vueSetup.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/vue-setup.test.ts"
+source_hash = "923d784579d64e822ef9cf8f20825ab367147f01"
+note = "verified=falseは0件"
+
+# --- setupVueApp() ---
+
+[[condition]]
+id = "setup_vue_app.no_main980_returns_early"
+target_function = "setupVueApp"
+source_lines = "14-17"
+description = "#main980が見つからない場合、何もせずreturnする"
+given = "#main980がDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_vue_app.already_mounted_returns_early"
+target_function = "setupVueApp"
+source_lines = "20-22"
+description = "main980内に既に#ygo-next-card-detail-containerが存在する場合、二重マウントを避けてreturnする"
+given = "#main980配下に#ygo-next-card-detail-containerが既に存在する"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_vue_app.success_sets_theme_and_mounts"
+target_function = "setupVueApp"
+source_lines = "24-49"
+description = "正常時、settings storeのeffectiveThemeに応じてdocument.documentElementのdata-ygo-next-theme属性とappContainerの背景色(dark:#1a1a1a / light以外:#ffffff)を設定し、#main980配下にappContainerをマウントした上でinitCardDetailUIを呼ぶ"
+given = "#main980が存在しCard Detail未マウント、settingsStore.effectiveTheme='dark'"
+expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'、appContainerのbackgroundColorが#1a1a1aになる"
+
+# --- cleanupCardImageHoverUI() [named export] ---
+
+[[condition]]
+id = "cleanup_hover_ui.removes_listener_when_present"
+target_function = "cleanupCardImageHoverUI"
+source_lines = "68-73"
+description = "#deck_imageが存在しモジュール内のcardImageClickHandlerが設定済みの場合、そのハンドラをremoveEventListenerし、data-ygo-next-event-delegated属性を削除し、参照をnullにリセットする"
+given = "setupCardImageHoverUIでイベント委譲済みの状態でcleanupCardImageHoverUI()を呼ぶ"
+expect_side_effect = "#deck_imageのdata-ygo-next-event-delegated属性が削除される"
+
+[[condition]]
+id = "cleanup_hover_ui.no_deck_image_or_handler_skips"
+target_function = "cleanupCardImageHoverUI"
+source_lines = "68-73"
+description = "#deck_imageが存在しない、またはcardImageClickHandlerが未設定(null)の場合、リスナー削除処理をスキップする（エラーにはならない）"
+given = "setupCardImageHoverUIが未実行の状態でcleanupCardImageHoverUI()を呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "cleanup_hover_ui.removes_controls_from_marked_links_only"
+target_function = "cleanupCardImageHoverUI"
+source_lines = "76-86"
+description = "data-hover-handler-added属性を持つカードリンクのみ.ygo-next-card-controlsを削除し属性自体も削除する。属性を持たないリンクは変更しない"
+given = "一部のカードリンクのみdata-hover-handler-added属性と.ygo-next-card-controlsを持つ状態"
+expect_side_effect = "属性を持つリンクのみ.ygo-next-card-controlsとdata-hover-handler-added属性が削除される"
+
+# --- setupCardImageHoverUI() [非export] ---
+
+[[condition]]
+id = "setup_hover_ui.init_error_warns_and_returns"
+target_function = "setupCardImageHoverUI"
+source_lines = "97-110"
+description = "useCardDetailStore/api card-searchのimportまたはstore取得が失敗した場合、console.warnしreturnする"
+given = "useCardDetailStoreのimportがthrowする状況"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.no_deck_image_warns_and_returns"
+target_function = "setupCardImageHoverUI"
+source_lines = "113-117"
+description = "#deck_imageが見つからない場合、console.warnしreturnする（イベントリスナーは追加しない）"
+given = "#deck_imageがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.already_delegated_skips_reattach"
+target_function = "setupCardImageHoverUI"
+source_lines = "120-122"
+description = "#deck_imageに既にdata-ygo-next-event-delegated属性がある場合、イベントリスナーを再登録せずreturnする"
+given = "#deck_imageに既にdata-ygo-next-event-delegated='true'が設定済み"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.click_ignores_non_button_target"
+target_function = "setupCardImageHoverUI"
+source_lines = "130-133"
+description = "クリックされた要素が.ygo-next-card-btnに一致しない（closestで見つからない）場合、何もしない"
+given = ".ygo-next-card-btn以外の要素をクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.click_ignores_non_top_left_button"
+target_function = "setupCardImageHoverUI"
+source_lines = "136-138"
+description = ".ygo-next-card-btnには一致するがtop-leftクラスを持たない場合、カード詳細取得は行わない"
+given = ".ygo-next-card-btn.top-right等をクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.click_no_parent_link_warns"
+target_function = "setupCardImageHoverUI"
+source_lines = "144-148"
+description = "top-leftボタンの親に<a>要素が見つからない場合、console.warnしカード詳細取得を行わない"
+given = "top-leftボタンが<a>要素の外にある状態でクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.click_no_cid_in_href_warns"
+target_function = "setupCardImageHoverUI"
+source_lines = "151-157"
+description = "親<a>要素のhrefが'cid=(数字)'パターンに一致しない場合、console.warnしカード詳細取得を行わない"
+given = "hrefが'cid='を含まない<a>内のtop-leftボタンをクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.click_success_sets_selected_card"
+target_function = "setupCardImageHoverUI"
+source_lines = "161-179"
+description = "cidが抽出できた場合、startLoadingCard→getCardDetailWithCache→(成功時)setSelectedCard→finally endLoadingCardの順で実行する"
+given = "有効なcidを持つtop-leftボタンをクリックし、getCardDetailWithCacheが{detail:{card:{...}}}を返す"
+expect_side_effect = "cardDetailStore.setSelectedCardが呼ばれ、その後endLoadingCardも呼ばれる"
+
+[[condition]]
+id = "setup_hover_ui.click_no_card_data_warns"
+target_function = "setupCardImageHoverUI"
+source_lines = "169-173"
+description = "getCardDetailWithCacheの結果にresult.detail.cardが無い場合、console.warnしsetSelectedCardは呼ばない（finally節でendLoadingCardは呼ばれる）"
+given = "getCardDetailWithCacheが{}または{detail:{}}を返す"
+expect_side_effect = "setSelectedCardは呼ばれずendLoadingCardが呼ばれる"
+
+[[condition]]
+id = "setup_hover_ui.click_fetch_error_warns"
+target_function = "setupCardImageHoverUI"
+source_lines = "174-179"
+description = "getCardDetailWithCacheがrejectした場合、console.warnしfinally節でendLoadingCardを呼ぶ（例外は外に伝播しない）"
+given = "getCardDetailWithCacheがrejectする"
+expect_no_throw = true
+
+[[condition]]
+id = "setup_hover_ui.adds_controls_to_unmarked_links_only"
+target_function = "setupCardImageHoverUI"
+source_lines = "188-208"
+description = "data-hover-handler-added属性を持たないカードリンクのみ.ygo-next-card-controls(4つのボタン)を追加し属性を付与する。既に属性を持つリンクは変更しない"
+given = "一部のカードリンクが既にdata-hover-handler-added='true'を持つ状態"
+expect_side_effect = "属性を持たないリンクのみに.ygo-next-card-controlsが追加される"

@@ -1,0 +1,103 @@
+# 検証対象: src/content/shuffle/index.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - shuffle/index.ts専用のテストは存在しなかったため、新規作成した。
+#   （addShuffleButtons/shuffleCardsはtests/design/add-shuffle-buttons、
+#   tests/design/shuffle-cardsで別途検証済みのため、本ファイルでは
+#   initShuffle自体の重複初期化防止・リトライロジックのみを対象とする）
+
+[meta]
+feature = "shuffle-index"
+source_file = "src/content/shuffle/index.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/shuffle-index.test.ts"
+source_hash = "6ecb562e0d320992d12b9382c3e920e2b19f1be7"
+note = "verified=falseは0件"
+
+# --- initShuffle() ---
+
+[[condition]]
+id = "init_shuffle.already_initialized_skips"
+target_function = "initShuffle"
+source_lines = "36-38"
+description = "isShuffleInitializedが既にtrueの場合、何もせずreturnする（vueSetup.tsとcontent/index.tsの両方から呼ばれても2重初期化しない）"
+given = "initShuffle()を2回連続で呼ぶ"
+expect_side_effect = "2回目の呼び出しではinitShuffleButtons相当の処理が実行されない"
+
+[[condition]]
+id = "init_shuffle.loading_waits_dom_content_loaded"
+target_function = "initShuffle"
+source_lines = "46-50"
+description = "document.readyStateが'loading'の場合、DOMContentLoadedイベントを待ってからattachEventListenersとinitSortfixForCards(200ms後)を実行する"
+given = "document.readyState = 'loading'"
+expect_side_effect = "DOMContentLoadedイベント発火後にボタンへのイベントリスナーが登録される"
+
+[[condition]]
+id = "init_shuffle.ready_schedules_immediately"
+target_function = "initShuffle"
+source_lines = "51-54"
+description = "document.readyStateが'loading'以外の場合、即座にsetTimeoutでattachEventListeners(150ms後)とinitSortfixForCards(200ms後)を予約する"
+given = "document.readyState = 'complete'"
+expect_side_effect = "150ms後にボタンへのイベントリスナーが登録される"
+
+# --- attachButtonListener(buttonId, handler) [非export] ---
+
+[[condition]]
+id = "attach_button_listener.already_registered_returns_false"
+target_function = "attachButtonListener"
+source_lines = "65-67"
+description = "指定buttonIdが既にregisteredListenersに登録済みの場合、リスナーを追加せずfalseを返す（重複登録防止）"
+given = "同じbuttonIdでattachEventListenersが2回呼ばれる状況（例：DOMContentLoadedとタイムアウト経路が両方発火）"
+expect_return = "false"
+verified = false
+unverifiable_reason = "initShuffle()の1ライフタイム中、attachEventListenersは成功する組み合わせに対して1回しか実行されない設計（retryは未検出時のみ再帰し、成功後は再実行されない）ため、attachButtonListenerの重複登録防止分岐を外部からのテストのみで誘発する自然な経路が無い（非exportのためtest用exportの追加はソース変更を伴い見送った）"
+
+[[condition]]
+id = "attach_button_listener.button_not_found_returns_false"
+target_function = "attachButtonListener"
+source_lines = "69-72"
+description = "指定IDの要素がDOMに存在しない場合、falseを返す（registeredListenersにも追加しない）"
+given = "buttonIdに対応する要素がDOMに無い"
+expect_return = "false"
+
+[[condition]]
+id = "attach_button_listener.success_adds_listener_and_tracks"
+target_function = "attachButtonListener"
+source_lines = "74-76"
+description = "要素が見つかり未登録の場合、clickリスナーを追加しregisteredListenersに記録した上でtrueを返す"
+given = "buttonIdに対応する未登録の要素がDOMに存在する"
+expect_return = "true"
+
+# --- attachEventListeners(retryCount) [非export] ---
+
+[[condition]]
+id = "attach_event_listeners.main_buttons_missing_retries"
+target_function = "attachEventListeners"
+source_lines = "90-99"
+description = "メインデッキのshuffle/sortボタンのいずれかが見つからず、retryCountがMAX_ATTACH_RETRIES(50)未満の場合、100ms後にretryCount+1で再試行する"
+given = "メインシャッフルボタンがまだDOMに無い状態でattachEventListenersが呼ばれる"
+expect_side_effect = "100ms後に再度attachEventListenersが呼ばれる（retryCountがインクリメントされる）"
+
+[[condition]]
+id = "attach_event_listeners.max_retries_exceeded_logs_error"
+target_function = "attachEventListeners"
+source_lines = "92-95"
+description = "retryCountがMAX_ATTACH_RETRIES(50)に達した場合、console.errorでログしそれ以上再試行しない"
+given = "メインシャッフルボタンが50回再試行しても見つからない"
+expect_no_throw = true
+
+[[condition]]
+id = "attach_event_listeners.success_attaches_all_six_buttons"
+target_function = "attachEventListeners"
+source_lines = "102-112"
+description = "メインデッキのボタンが見つかった場合、main/extra/sideの6つのシャッフル・ソートボタン全てにattachButtonListenerを試みる（extra/sideは個別に存在確認される）"
+given = "main/extra/sideの全ボタンがDOMに存在する"
+expect_side_effect = "6つのボタン全てにclickリスナーが登録される"

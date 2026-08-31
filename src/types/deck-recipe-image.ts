@@ -1,7 +1,7 @@
 /**
  * カラーバリエーション
  */
-export type ColorVariant = 'red' | 'blue';
+export type ColorVariant = 'red' | 'blue' | 'green' | 'orange';
 
 /**
  * カラー設定
@@ -43,6 +43,24 @@ export const COLOR_SETTINGS: Record<ColorVariant, ColorSettings> = {
     headerGradientW: '#0b090c',
     borderLine: '#c7ecfc',
     accentLine: '#1485ed',
+    font: '#ffffff'
+  },
+  green: {
+    gradientNE: '#017527',
+    gradientSW: '#02240d',
+    headerGradientE: '#02501c',
+    headerGradientW: '#090c0a',
+    borderLine: '#c5fcd7',
+    accentLine: '#18ec5f',
+    font: '#ffffff'
+  },
+  orange: {
+    gradientNE: '#753b01',
+    gradientSW: '#241302',
+    headerGradientE: '#502902',
+    headerGradientW: '#0c0a09',
+    borderLine: '#fce0c5',
+    accentLine: '#ec8218',
     font: '#ffffff'
   }
 };
@@ -96,6 +114,9 @@ export interface CreateDeckRecipeImageOptions {
 
   /** GENESYSポイントマップ（cid -> pt）。genesys-limit時の画像用オーバーレイ */
   genesysPoints?: Record<string, number>;
+
+  /** 画像下部に描画するフッターテキスト（未指定時は "exported on yyyy-mm-dd" を自動生成） */
+  footerText?: string;
 }
 
 /**

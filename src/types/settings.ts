@@ -7,7 +7,20 @@
  */
 export type CardGameType = 'ocg' | 'rush';
 
-export type FeatureId = 'shuffle-sort' | 'deck-image' | 'deck-edit' | 'chat' | 'practice' | 'genesys';
+/**
+ * 全フィーチャーフラグID（configs/features.toml にセクションとして定義されるものと同一集合。
+ * 整合は tests/unit/configs/feature-defaults.test.ts で検証される）
+ */
+export const FEATURE_IDS = [
+  'shuffle-sort',
+  'deck-image',
+  'deck-edit',
+  'chat',
+  'practice',
+  'genesys',
+] as const;
+
+export type FeatureId = (typeof FEATURE_IDS)[number];
 
 export interface FeatureSettings {
   [key: string]: boolean;
@@ -284,15 +297,21 @@ export interface StorageSettings {
 }
 
 /**
- * デフォルトの機能設定（全て有効）
+ * ビルド時に configs/features.toml から注入される feature flag のデフォルト値
+ * （webpack DefinePlugin / vitest define。toml の "dev-only" はビルド種別に解決済み）
+ */
+declare const __FEATURE_DEFAULTS__: Readonly<Record<FeatureId, boolean>>;
+
+/**
+ * デフォルトの機能設定（実体は configs/features.toml からビルド時に注入される）
  */
 export const DEFAULT_FEATURE_SETTINGS: FeatureSettings = {
-  'shuffle-sort': true,
-  'deck-image': true,
-  'deck-edit': true,
-  'chat': false,
-  'practice': import.meta.env.DEV,
-  'genesys': import.meta.env.DEV,
+  'shuffle-sort': __FEATURE_DEFAULTS__['shuffle-sort'],
+  'deck-image': __FEATURE_DEFAULTS__['deck-image'],
+  'deck-edit': __FEATURE_DEFAULTS__['deck-edit'],
+  'chat': __FEATURE_DEFAULTS__['chat'],
+  'practice': __FEATURE_DEFAULTS__['practice'],
+  'genesys': __FEATURE_DEFAULTS__['genesys'],
 };
 
 /**
