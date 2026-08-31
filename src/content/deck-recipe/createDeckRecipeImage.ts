@@ -160,10 +160,7 @@ export async function createDeckRecipeImage(
   // 8. タイムスタンプ描画
   drawTimestamp(ctx, drawSettings, footerText);
 
-  // 9. 画像全体の縁取り描画
-  drawOuterBorder(ctx, drawSettings);
-
-  // 10. 画像変換（Blob/Buffer）
+  // 9. 画像変換（Blob/Buffer）
   if (typeof document !== 'undefined') {
     // ブラウザ環境: Blobで返す
     return new Promise((resolve, reject) => {
@@ -249,30 +246,6 @@ function drawBackgroundGradient(
   // 全体に塗りつぶし
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, settings.width, settings.height);
-}
-
-/**
- * 画像全体の縁取りを描画する
- *
- * @param ctx - Canvas 2Dコンテキスト
- * @param settings - 描画設定
- */
-function drawOuterBorder(
-  ctx: CanvasRenderingContext2D,
-  settings: CanvasDrawSettings
-): void {
-  const lineWidth = 3 * settings.scale;
-
-  // borderLineはセクション見出し等の内部区切り線にも使われるため、
-  // 画像全体の外枠は視覚的に区別できるよう accentLine（より彩度の高い強調色）を使う
-  ctx.strokeStyle = settings.colorSettings.accentLine;
-  ctx.lineWidth = lineWidth;
-  ctx.strokeRect(
-    lineWidth / 2,
-    lineWidth / 2,
-    settings.width - lineWidth,
-    settings.height - lineWidth
-  );
 }
 
 /**

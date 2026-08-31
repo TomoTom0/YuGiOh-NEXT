@@ -131,6 +131,25 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).toContain('height: 310px');
   });
 
+  it('TASK-390: プレビューの縁取りはCSS outlineで表現され、ダウンロード画像には焼き込まれない（selectedColorのaccentLineに連動）', async () => {
+    wrapper = await mountInitializedDialog();
+
+    // デフォルト(red)の時点でプレビュー要素にaccentLine色のoutlineColorが設定されている
+    // （borderではなくoutlineを使うのは、border-boxがcontent boxを消費してプレビューが
+    // 生成画像より縮小されるのを防ぐため。TASK-392でborderからoutlineに変更）
+    let style = wrapper.find('.background-image').attributes('style') ?? '';
+    expect(style).toContain('outline-color: #ed1b1b');
+
+    // 色を変更するとoutlineColorも追従する（画像生成オプションのcolorはCanvas描画には使うが、
+    // strokeRectによる縁取り焼き込みは行わない = createDeckRecipeImageは枠線を描画しない）
+    await wrapper.find('button[aria-label="blue"]').trigger('click');
+    resolveImage(1, 'blue', 400, 310);
+    await flushPromises();
+
+    style = wrapper.find('.background-image').attributes('style') ?? '';
+    expect(style).toContain('outline-color: #1485ed');
+  });
+
   it('連続した色変更で古い生成結果は破棄され、最新の結果のみ反映される', async () => {
     wrapper = await mountInitializedDialog();
 
