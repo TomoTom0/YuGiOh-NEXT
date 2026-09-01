@@ -42,6 +42,7 @@ describe('dom-selectors', () => {
     });
   });
 
+  // [covers:get_extension_id_selector.prefixes_hash_no_validation]
   describe('getExtensionIdSelector', () => {
     it('IDに # プレフィックスを付与する', () => {
       expect(getExtensionIdSelector('test-id')).toBe('#test-id');
@@ -49,11 +50,12 @@ describe('dom-selectors', () => {
       expect(getExtensionIdSelector('my-element')).toBe('#my-element');
     });
 
-    it('空文字列でも # を付与する', () => {
+    it('空文字列でも # を付与する（バリデーションなし）', () => {
       expect(getExtensionIdSelector('')).toBe('#');
     });
   });
 
+  // [covers:get_extension_class_selector.prefixes_dot_no_validation]
   describe('getExtensionClassSelector', () => {
     it('クラス名に . プレフィックスを付与する', () => {
       expect(getExtensionClassSelector('test-class')).toBe('.test-class');
@@ -61,7 +63,7 @@ describe('dom-selectors', () => {
       expect(getExtensionClassSelector('my-class')).toBe('.my-class');
     });
 
-    it('空文字列でも . を付与する', () => {
+    it('空文字列でも . を付与する（バリデーションなし）', () => {
       expect(getExtensionClassSelector('')).toBe('.');
     });
   });
@@ -83,12 +85,14 @@ describe('dom-selectors', () => {
       }
     });
 
+    // [covers:get_extension_element.found_returns_element]
     it('存在する要素を取得できる', () => {
       const element = getExtensionElement('test-element');
       expect(element).toBe(mockElement);
       expect(element?.id).toBe('test-element');
     });
 
+    // [covers:get_extension_element.not_found_returns_null]
     it('存在しない要素の場合nullを返す', () => {
       const element = getExtensionElement('non-existent-id');
       expect(element).toBeNull();

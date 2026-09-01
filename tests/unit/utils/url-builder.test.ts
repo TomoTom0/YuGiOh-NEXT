@@ -125,6 +125,20 @@ describe('url-builder: buildApiUrl()', () => {
       expect(url.searchParams.get('request_locale')).toBe('ja');
     });
 
+    it('[covers:build_api.params_merge_preserves_duplicates] 同名キーが複数ある場合、setで上書きせず全ての値を保持する', () => {
+      // TASK-373: モンスタータイプ(other=6&other=9等)のような複数選択パラメータが
+      // 最後の1つ以外消えてしまい、AND/OR絞り込みが常にOR相当になってしまっていたバグの回帰テスト
+      const params = new URLSearchParams();
+      params.append('other', '6');
+      params.append('other', '9');
+      params.append('othercon', '1');
+
+      const url = parseUrl(buildApiUrl('card_search.action', 'ocg', params));
+
+      expect(url.searchParams.getAll('other')).toEqual(['6', '9']);
+      expect(url.searchParams.get('othercon')).toBe('1');
+    });
+
     it('[covers:build_api.no_locale_flag_deletes_locale] noLocale=true では既存 request_locale も削除する', () => {
       const url = parseUrl(buildApiUrl('card_search.action?request_locale=en', 'ocg', undefined, true));
 

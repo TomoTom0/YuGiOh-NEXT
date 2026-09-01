@@ -3,6 +3,8 @@ const webpack = require('webpack');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
+const { resolveFeatureDefaults } = require('./scripts/lib/feature-defaults.cjs');
+const { loadConfigToml } = require('./scripts/lib/config-toml.cjs');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
@@ -29,7 +31,14 @@ module.exports = (env, argv) => {
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: '[name].js',
-      chunkFilename: '[name].chunk.js',
+      // splitChunksが匿名チャンクに付与する名前はハッシュ由来で数字始まりになることがあり、
+      // webpackが識別子化のため先頭に "_" を付与する（例: "_19d2"）。
+      // Chrome拡張機能は "_" で始まるファイル名を読み込めないため、先頭の "_" を除去する。
+      chunkFilename: (pathData) => {
+        const rawName = String(pathData.chunk.name ?? pathData.chunk.id ?? pathData.chunk.hash);
+        const safeName = rawName.replace(/^_+/, '');
+        return `${safeName}.chunk.js`;
+      },
       // publicPathは実行時に__webpack_public_path__で動的設定するため空に
       publicPath: '',
       // チャンクの読み込み方式をネイティブimportに変更（チャンクのみES module）
@@ -97,8 +106,14 @@ module.exports = (env, argv) => {
       new VueLoaderPlugin(),
 
       // import.meta.env.DEV をビルド時に解決（category 3 機能のdev/prod切替用）
+      // feature flag のデフォルト値は configs/features.toml が Single Source of Truth。
+      // ここで "dev-only" をビルド種別に解決した結果を __FEATURE_DEFAULTS__ として注入する
+      // （src/types/settings.ts の DEFAULT_FEATURE_SETTINGS が参照）。
       new webpack.DefinePlugin({
         'import.meta.env.DEV': JSON.stringify(!isProduction),
+        __FEATURE_DEFAULTS__: JSON.stringify(resolveFeatureDefaults(!isProduction)),
+        __APP_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('app-settings.toml')),
+        __UX_SETTINGS_DEFAULTS__: JSON.stringify(loadConfigToml('ux.toml')),
       }),
 
       // public/ディレクトリ（manifest.json含む）と画像をコピー

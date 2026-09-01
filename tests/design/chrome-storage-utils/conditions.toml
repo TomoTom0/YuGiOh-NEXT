@@ -1,0 +1,167 @@
+# 検証対象: src/utils/chrome-storage-utils.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、chrome.storage.local のコールバックI/OをPromise化するutils。
+#
+# 実装コメントとの差異:
+# - なし。全7関数が同一パターン（chrome.storage.local.<method>(...) をラップし、
+#   コールバック内で chrome.runtime.lastError を確認してreject/resolveする）の反復。
+#
+# 補足:
+# - getFromStorageLocal のみ `result[key] ?? null` というデフォルト値フォールバックを持ち、
+#   `??` は null/undefined のみを null に変換するため 0/''/false 等のfalsy値は
+#   そのまま返る点を条件として明示した（`||` との違いが混同されやすい箇所）。
+# - 他6関数はresolve値が固定（void または渡したオブジェクトそのまま）で分岐を持たないため、
+#   success/error の2条件ずつとした。
+
+[meta]
+feature = "chrome-storage-utils"
+source_file = "src/utils/chrome-storage-utils.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/chrome-storage-utils.test.ts"
+source_hash = "6181d4ddc06d1d6b8d22494f8333cb8cf2a25dcb"
+note = "verified=falseは0件"
+
+# --- getFromStorageLocal(key: string): Promise<any> ---
+
+[[condition]]
+id = "get_from_storage_local.value_present_truthy"
+target_function = "getFromStorageLocal"
+source_lines = "13-19"
+description = "指定キーの値がresultに存在し値がtruthyの場合、result[key]でresolveする"
+given = "chrome.storage.local.get(key, cb)がcb({ [key]: 'testValue' })を呼ぶ"
+expect_return = "testValue"
+
+[[condition]]
+id = "get_from_storage_local.value_present_falsy_not_nullish"
+target_function = "getFromStorageLocal"
+source_lines = "17"
+description = "result[key]がnull/undefinedでないfalsy値（0, '', false等）の場合、`??`はnullishのみを変換するためその値のまま返す（`||`と異なる挙動）"
+given = "chrome.storage.local.get(key, cb)がcb({ [key]: 0 })を呼ぶ"
+expect_return = 0
+
+[[condition]]
+id = "get_from_storage_local.value_absent_null_fallback"
+target_function = "getFromStorageLocal"
+source_lines = "17"
+description = "指定キーがresultに存在しない（result[key]がundefined）場合、`?? null`によりnullでresolveする"
+given = "chrome.storage.local.get(key, cb)がcb({})を呼ぶ（キー無し）"
+expect_return = "null"
+
+[[condition]]
+id = "get_from_storage_local.last_error_rejects"
+target_function = "getFromStorageLocal"
+source_lines = "14-16"
+description = "コールバック実行時にchrome.runtime.lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectし、resultは参照しない"
+given = "chrome.runtime.lastError = { message: 'Test error' }"
+expect_throw = "Error: Chrome Storage error: Test error"
+
+# --- setToStorageLocal(key: string, value: any): Promise<void> ---
+
+[[condition]]
+id = "set_to_storage_local.success_resolves_undefined"
+target_function = "setToStorageLocal"
+source_lines = "28-33"
+description = "chrome.storage.local.setがコールバックを呼びlastErrorが無い場合、値でresolveする（resolve()なのでundefined）"
+given = "chrome.storage.local.set({ [key]: value }, cb)がlastError無しでcbを呼ぶ"
+expect_return_shape = "undefined"
+
+[[condition]]
+id = "set_to_storage_local.last_error_rejects"
+target_function = "setToStorageLocal"
+source_lines = "29-31"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Set error' }"
+expect_throw = "Error: Chrome Storage error: Set error"
+
+# --- getFromStorageLocalMultiple(keys: string[]): Promise<Record<string, any>> ---
+
+[[condition]]
+id = "get_from_storage_local_multiple.success_resolves_result_object"
+target_function = "getFromStorageLocalMultiple"
+source_lines = "43-49"
+description = "lastErrorが無い場合、chrome.storage.local.getが返したresultオブジェクトをそのままresolveする（キー欠損のフィルタリングはchrome API側の挙動であり本関数の分岐ではない）"
+given = "chrome.storage.local.get(keys, cb)がcb({ key1: 'value1', key2: 'value2' })を呼ぶ"
+expect_return_shape = "{ key1: 'value1', key2: 'value2' }"
+
+[[condition]]
+id = "get_from_storage_local_multiple.last_error_rejects"
+target_function = "getFromStorageLocalMultiple"
+source_lines = "44-46"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Multiple get error' }"
+expect_throw = "Error: Chrome Storage error: Multiple get error"
+
+# --- setToStorageLocalMultiple(items: Record<string, any>): Promise<void> ---
+
+[[condition]]
+id = "set_to_storage_local_multiple.success_resolves_undefined"
+target_function = "setToStorageLocalMultiple"
+source_lines = "58-63"
+description = "lastErrorが無い場合、resolve()によりundefinedでresolveする"
+given = "chrome.storage.local.set(items, cb)がlastError無しでcbを呼ぶ"
+expect_return_shape = "undefined"
+
+[[condition]]
+id = "set_to_storage_local_multiple.last_error_rejects"
+target_function = "setToStorageLocalMultiple"
+source_lines = "59-61"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Multiple set error' }"
+expect_throw = "Error: Chrome Storage error: Multiple set error"
+
+# --- removeFromStorageLocal(key: string): Promise<void> ---
+
+[[condition]]
+id = "remove_from_storage_local.success_resolves_undefined"
+target_function = "removeFromStorageLocal"
+source_lines = "73-78"
+description = "lastErrorが無い場合、resolve()によりundefinedでresolveする（キーが元々存在しない場合もエラーにはならない）"
+given = "chrome.storage.local.remove(key, cb)がlastError無しでcbを呼ぶ"
+expect_return_shape = "undefined"
+
+[[condition]]
+id = "remove_from_storage_local.last_error_rejects"
+target_function = "removeFromStorageLocal"
+source_lines = "74-76"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Remove error' }"
+expect_throw = "Error: Chrome Storage error: Remove error"
+
+# --- removeFromStorageLocalMultiple(keys: string[]): Promise<void> ---
+
+[[condition]]
+id = "remove_from_storage_local_multiple.success_resolves_undefined"
+target_function = "removeFromStorageLocalMultiple"
+source_lines = "88-93"
+description = "lastErrorが無い場合、resolve()によりundefinedでresolveする（空配列を渡してもエラーにならない）"
+given = "chrome.storage.local.remove(keys, cb)がlastError無しでcbを呼ぶ"
+expect_return_shape = "undefined"
+
+[[condition]]
+id = "remove_from_storage_local_multiple.last_error_rejects"
+target_function = "removeFromStorageLocalMultiple"
+source_lines = "89-91"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Multiple remove error' }"
+expect_throw = "Error: Chrome Storage error: Multiple remove error"
+
+# --- clearStorageLocal(): Promise<void> ---
+
+[[condition]]
+id = "clear_storage_local.success_resolves_undefined"
+target_function = "clearStorageLocal"
+source_lines = "103-108"
+description = "lastErrorが無い場合、resolve()によりundefinedでresolveする（既に空のストレージをクリアしてもエラーにならない）"
+given = "chrome.storage.local.clear(cb)がlastError無しでcbを呼ぶ"
+expect_return_shape = "undefined"
+
+[[condition]]
+id = "clear_storage_local.last_error_rejects"
+target_function = "clearStorageLocal"
+source_lines = "104-106"
+description = "lastErrorが真値の場合、そのmessageを埋め込んだErrorでrejectする"
+given = "chrome.runtime.lastError = { message: 'Clear error' }"
+expect_throw = "Error: Chrome Storage error: Clear error"

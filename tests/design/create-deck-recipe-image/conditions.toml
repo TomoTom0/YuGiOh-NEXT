@@ -1,0 +1,304 @@
+# 検証対象: src/content/deck-recipe/createDeckRecipeImage.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/unit/content/create-deck-recipe-image.test.ts (TASK-355) はciid関連の2条件のみカバー。
+#   本conditions.toml作成にあたり、throw条件・フォールバック・空セクション除外・GENESYSバッジ・
+#   QR非公開表示等の未カバー条件を追加した。
+#
+# 検証不能な条件:
+# - Node.js分岐（typeof document === 'undefined' / typeof window === 'undefined'）は
+#   テスト実行環境がhappy-dom（documentが常に定義される）のため到達不能。
+#   本番のNode.js実行（デッキレシピ画像のサーバーサイド生成等）でのみ通る経路。
+
+[meta]
+feature = "create-deck-recipe-image"
+source_file = "src/content/deck-recipe/createDeckRecipeImage.ts"
+verified = true
+verified_at = "2026-09-01"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/create-deck-recipe-image.test.ts"
+source_hash = "48085642fc0dfef7681e127c81e80fe269ef9fe3"
+note = "verified=falseは6件（Node.js専用分岐のためhappy-domテスト環境では到達不能）。TASK-381でdrawTimestampにfooterText引数を追加。TASK-379で追加したdrawOuterBorder（canvasへの縁取り焼き込み）はTASK-390で誤実装と判明し削除（意図はImageDialog.vue側のプレビュー表示への枠線であり、エクスポート画像への焼き込みではなかった）"
+
+# --- createDeckRecipeImage(options) ---
+
+[[condition]]
+id = "create_deck_recipe.throws_when_deckdata_missing"
+target_function = "createDeckRecipeImage"
+source_lines = "53-55"
+description = "options.deckDataが未指定(falsy)の場合、以降の処理に進まずthrowする"
+given = "deckDataを渡さずに呼び出す"
+expect_throw = "deckData is required"
+
+[[condition]]
+id = "create_deck_recipe.node_env_url_absolutized"
+target_function = "createDeckRecipeImage"
+source_lines = "65-72"
+description = "Node.js環境(document未定義)かつ画像URLが'/'始まりの相対パスの場合、buildFullUrlで絶対URLに変換する。ブラウザ環境では変換しない"
+given = "typeof document === 'undefined' かつ getCardImageUrlが'/'始まりのURLを返す"
+expect_return = "buildFullUrl(url)"
+verified = false
+unverifiable_reason = "happy-domテスト環境ではdocumentが常に定義されるためisNode分岐に到達できない"
+
+[[condition]]
+id = "create_deck_recipe.card_not_found_in_either_cache_skipped"
+target_function = "createDeckRecipeImage"
+source_lines = "79-84"
+description = "TempCacheDB・UnifiedCacheDBのいずれにもカード情報が無い場合、そのcidのエントリはflatMapで空配列を返し画像リストから除外される（エラーにはしない）"
+given = "mainDeckに含まれるcidがTempCacheDBにもUnifiedCacheDBにも存在しない"
+expect_return_shape = "そのcidに対応するCardImageEntryが結果配列に含まれない。他のカードの処理は継続する"
+
+[[condition]]
+id = "create_deck_recipe.card_found_but_no_image_url_skipped"
+target_function = "createDeckRecipeImage"
+source_lines = "86-88"
+description = "カード情報は見つかったがgetCardImageUrlがfalsyを返す場合、そのエントリは画像リストから除外される"
+given = "getCardImageUrlがundefinedを返すカードを含むdeckData"
+expect_return_shape = "そのcidに対応するCardImageEntryが結果配列に含まれない"
+
+[[condition]]
+id = "create_deck_recipe.quantity_expands_to_multiple_entries"
+target_function = "createDeckRecipeImage"
+source_lines = "88"
+description = "quantityがN>1の場合、同一url/cidのCardImageEntryをN個生成する"
+given = "quantity=3の同一カードエントリ"
+expect_return_shape = "同一url/cidを持つCardImageEntryが3件生成される"
+
+[[condition]]
+id = "create_deck_recipe.empty_sections_excluded_from_canvas_height"
+target_function = "createDeckRecipeImage"
+source_lines = "147-151"
+description = "mainDeck/extraDeck/sideDeckのうちcardImages.lengthが0のセクションはnonEmptySectionsから除外され、canvas高さの計算にもセクション分の高さが加算されない"
+given = "mainDeckのみカード有り、extraDeck/sideDeckが空のdeckData"
+expect_return_shape = "canvas.heightがextra/sideセクション分の高さを含まない値になる（空セクションのヘッダー・行が描画されない）"
+
+[[condition]]
+id = "create_deck_recipe.throws_when_canvas_context_unavailable"
+target_function = "createDeckRecipeImage"
+source_lines = "130-132"
+description = "canvas.getContext('2d')がnull/undefinedを返す場合、以降の描画処理に進まずthrowする"
+given = "canvas.getContext()がnullを返す環境"
+expect_throw = "Canvas 2D context not supported"
+
+[[condition]]
+id = "create_deck_recipe.includeqr_false_skips_qr_drawing"
+target_function = "createDeckRecipeImage"
+source_lines = "155-157"
+description = "includeQR=falseの場合、drawQRCodeは呼ばれずQRコード領域は描画されない"
+given = "includeQR: false"
+expect_no_throw = true
+
+[[condition]]
+id = "create_deck_recipe.includeqr_true_draws_qr"
+target_function = "createDeckRecipeImage"
+source_lines = "155-157"
+description = "includeQR=trueの場合、drawQRCodeが呼ばれQRコード画像がcanvas右下に描画される"
+given = "includeQR: true"
+expect_side_effect = "ctx.drawImageがQRコード画像に対して追加で呼ばれる"
+
+[[condition]]
+id = "create_deck_recipe.browser_env_resolves_blob_on_success"
+target_function = "createDeckRecipeImage"
+source_lines = "163-177"
+description = "ブラウザ環境(document定義済み)でcanvas.toBlobがblobを渡してcallbackを呼ぶ場合、そのBlobでresolveする"
+given = "canvas.toBlob(callback)がBlobを渡してcallbackを呼ぶ"
+expect_return_shape = "渡されたBlobオブジェクトでPromiseがresolveされる"
+
+[[condition]]
+id = "create_deck_recipe.browser_env_rejects_when_blob_null"
+target_function = "createDeckRecipeImage"
+source_lines = "166-173"
+description = "canvas.toBlobのcallbackにnullが渡された場合、Blob変換失敗としてrejectする"
+given = "canvas.toBlob(callback)がnullを渡してcallbackを呼ぶ"
+expect_throw = "Failed to convert canvas to blob"
+
+[[condition]]
+id = "create_deck_recipe.node_env_returns_buffer"
+target_function = "createDeckRecipeImage"
+source_lines = "178-182"
+description = "Node.js環境(document未定義)ではcanvas.toBuffer('image/png')の結果をBufferとして返す（Blobではない）"
+given = "typeof document === 'undefined'"
+expect_return_shape = "Buffer"
+verified = false
+unverifiable_reason = "happy-domテスト環境ではdocumentが常に定義されるためNode.js分岐に到達できない"
+
+# --- initializeCanvasSettings(sections, scale, color, includeQR) [非export・内部関数] ---
+
+[[condition]]
+id = "initialize_canvas_settings.empty_section_adds_no_height"
+target_function = "initializeCanvasSettings"
+source_lines = "208-213"
+description = "section.cardImages.length===0のセクションはheight計算のfor loop内でスキップされ、そのセクション分の高さ(ヘッダー+行)が加算されない"
+given = "sections配列にcardImages.length===0の要素を含む"
+expect_return_shape = "スキップされたセクション分の高さが加算されないheight値"
+
+# --- drawCardSection(ctx, section, startY, settings, gamePath, genesysPoints) [非export・内部関数] ---
+
+[[condition]]
+id = "draw_card_section.cardback_skipped_when_chrome_runtime_id_missing"
+target_function = "drawCardSection"
+source_lines = "350-366"
+description = "chromeオブジェクトは定義されているがchrome.runtime.idが未設定(拡張機能コンテキストが無効等)の場合、chrome拡張機能環境の分岐にもNode.js環境の分岐(typeof chrome === 'undefined')にも該当せず、cardBackImgはnullのままカードバック画像は描画されない（エラーにもならない）"
+given = "global.chromeは定義されているがchrome.runtime.idが未設定（テスト環境のデフォルト状態）"
+expect_no_throw = true
+
+[[condition]]
+id = "draw_card_section.cardback_load_failure_warns_and_continues"
+target_function = "drawCardSection"
+source_lines = "350-358"
+description = "chrome拡張機能環境(chrome.runtime.idが設定済み)でカードバック画像のloadImageが失敗した場合、内側のtry/catchでconsole.warnのみ行いthrowせず後続のカード画像描画処理を継続する"
+given = "chrome.runtime.idが設定済みの状態でloadImageがreject（画像読み込み失敗）"
+expect_no_throw = true
+
+[[condition]]
+id = "draw_card_section.genesys_points_undefined_no_badge"
+target_function = "drawCardSection"
+source_lines = "413-422"
+description = "genesysPointsが未指定(undefined)の場合、ifブロックに入らずどのカードにもバッジを描画しない"
+given = "genesysPointsパラメータを渡さない"
+expect_no_throw = true
+
+[[condition]]
+id = "draw_card_section.genesys_point_zero_or_missing_no_badge"
+target_function = "drawCardSection"
+source_lines = "416-421"
+description = "genesysPoints[cid]がundefinedまたは0以下の場合、drawGenesysPointBadgeを呼ばない"
+given = "genesysPoints = { '5555': 0 } または該当cidのキーが存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "draw_card_section.genesys_point_positive_draws_badge"
+target_function = "drawCardSection"
+source_lines = "417-420"
+description = "genesysPoints[cid]が0より大きい場合、drawGenesysPointBadgeを呼びバッジを描画する"
+given = "genesysPoints = { '5555': 3 }"
+expect_side_effect = "drawGenesysPointBadge相当の描画(ctx.fillRect等)が該当カード位置に対して呼ばれる"
+
+# --- drawGenesysPointBadge(ctx, cardX, cardY, pt, settings) [非export・内部関数] ---
+
+[[condition]]
+id = "draw_genesys_badge.low_tier_yellow"
+target_function = "drawGenesysPointBadge"
+source_lines = "458-463"
+description = "pt<=4の場合、バッジ背景色は黄色(#f9a825)"
+given = "pt = 4"
+expect_return_shape = "ctx.fillStyleに#f9a825が設定される"
+
+[[condition]]
+id = "draw_genesys_badge.mid_tier_orange"
+target_function = "drawGenesysPointBadge"
+source_lines = "458-463"
+description = "4<pt<=9の場合、バッジ背景色はオレンジ(#ef6c00)"
+given = "pt = 9"
+expect_return_shape = "ctx.fillStyleに#ef6c00が設定される"
+
+[[condition]]
+id = "draw_genesys_badge.high_tier_red"
+target_function = "drawGenesysPointBadge"
+source_lines = "458-461"
+description = "pt>9の場合、バッジ背景色は赤(#c62828)"
+given = "pt = 10"
+expect_return_shape = "ctx.fillStyleに#c62828が設定される"
+
+# --- loadImage(url, gamePath) [非export・内部関数] ---
+
+[[condition]]
+id = "load_image.browser_resolves_on_load"
+target_function = "loadImage"
+source_lines = "502-510"
+description = "ブラウザ環境でImageのonloadが発火した場合、そのImage要素でresolveする"
+given = "new Image()にsrcを設定後、onloadが発火する"
+expect_return_shape = "HTMLImageElement"
+
+[[condition]]
+id = "load_image.browser_rejects_on_error"
+target_function = "loadImage"
+source_lines = "505-509"
+description = "ブラウザ環境でImageのonerrorが発火した場合、urlを含むエラーメッセージでrejectする"
+given = "new Image()にsrcを設定後、onerrorが発火する"
+expect_throw = "Failed to load image from"
+
+[[condition]]
+id = "load_image.node_http_url_fetches_with_referer"
+target_function = "loadImage"
+source_lines = "515-536"
+description = "Node.js環境かつurlがhttp(s)始まりの場合、Referer/User-Agentヘッダー付きでhttps.getしバッファをcanvasLoadImageに渡す"
+given = "typeof document === 'undefined' かつ url.startsWith('https://')"
+expect_return_shape = "canvas.loadImageの戻り値"
+verified = false
+unverifiable_reason = "happy-domテスト環境ではdocumentが常に定義されるためNode.js分岐に到達できない"
+
+[[condition]]
+id = "load_image.node_local_file_path"
+target_function = "loadImage"
+source_lines = "537-539"
+description = "Node.js環境かつurlがhttp(s)始まりでない場合、ローカルファイルパスとしてcanvasLoadImageに直接渡す"
+given = "typeof document === 'undefined' かつ url が'http'始まりでない文字列"
+expect_return_shape = "canvas.loadImageの戻り値"
+verified = false
+unverifiable_reason = "happy-domテスト環境ではdocumentが常に定義されるためNode.js分岐に到達できない"
+
+# --- drawQRCode(ctx, cgid, dno, settings, isPublic) [非export・内部関数] ---
+
+[[condition]]
+id = "draw_qr_code.public_deck_skips_hidden_text"
+target_function = "drawQRCode"
+source_lines = "596-618"
+description = "isPublic=trueの場合、QRコード画像のみ描画しHIDDENテキストのオーバーレイは描画しない"
+given = "isPublic: true"
+expect_no_throw = true
+
+[[condition]]
+id = "draw_qr_code.non_public_deck_draws_hidden_overlay"
+target_function = "drawQRCode"
+source_lines = "596-618"
+description = "isPublic=falseの場合、QRコード画像に加えて黒縁取り・赤縁取り・白文字の3層で'HIDDEN'テキストを中央に描画する"
+given = "isPublic: false"
+expect_side_effect = "ctx.strokeText('HIDDEN', ...)が2回、ctx.fillText('HIDDEN', ...)が1回呼ばれる"
+
+[[condition]]
+id = "draw_qr_code.error_swallowed_and_logged"
+target_function = "drawQRCode"
+source_lines = "619-622"
+description = "QRコード生成(import/toDataURL)またはloadImageが失敗した場合、console.errorでログしthrowせず処理を継続する（画像自体は生成される）"
+given = "QRCode.default.toDataURLがthrowする"
+expect_no_throw = true
+
+# --- drawOuterBorder はTASK-390でcreateDeckRecipeImageから削除 ---
+# TASK-379(2026-08-29)「画像自体の縁取りがあるべきだ」は、dialogのプレビュー表示に枠線をつける
+# ことを意図していたが、当時の実装はcanvas(=エクスポートされるPNG本体)に焼き込むdrawOuterBorder()
+# として誤って実装していた（TASK-390でユーザー指摘により判明・撤回）。
+# 縁取りはsrc/components/ImageDialog.vueの.background-imageへのCSS border(accentLine連動)として
+# 実装し直した。関連テストはtests/unit/components/ImageDialog.test.tsを参照。
+
+[[condition]]
+id = "draw_outer_border.export_does_not_draw_canvas_border"
+target_function = "createDeckRecipeImage"
+source_lines = "160-165"
+description = "エクスポートされるcanvas画像自体にはstrokeRectによる縁取りを描画しない（縁取りはImageDialog.vue側のCSS borderのみで表現する）"
+given = "任意のcolor/scale"
+expect_side_effect = "ctx.strokeRectが一度も呼ばれない"
+
+# --- drawTimestamp(ctx, settings, footerText) [非export・内部関数、TASK-381でfooterText引数を追加] ---
+
+[[condition]]
+id = "draw_timestamp.footer_text_option_overrides_default"
+target_function = "drawTimestamp"
+source_lines = "671-677"
+description = "footerText引数が指定(truthy)された場合、その文字列をそのままfillTextで描画する（日付の自動生成は行わない）"
+given = "footerTextに空文字列以外の値を指定"
+expect_side_effect = "ctx.fillText(footerTextの値, ...)が呼ばれる"
+
+[[condition]]
+id = "draw_timestamp.footer_text_option_omitted_uses_default"
+target_function = "drawTimestamp"
+source_lines = "671-677"
+description = "footerText引数が未指定またはfalsy(空文字列含む)の場合、generateDefaultFooterText()が生成する'exported on yyyy-mm-dd'形式の文字列を描画する"
+given = "footerTextを渡さない、または空文字列を渡す"
+expect_side_effect = "ctx.fillText(generateDefaultFooterText()の値, ...)が呼ばれる"

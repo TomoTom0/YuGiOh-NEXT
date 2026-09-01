@@ -1,0 +1,419 @@
+# 検証対象: src/utils/page-detector.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、URL/DOM判定によるページ種別検出utils。
+#
+# 実装コメントとの差異・特記事項:
+# - isDeckDisplayPage は URLに ope パラメータが無い場合を「ope=1のデフォルト」として true 扱いする。
+#   isDeckEditPage/isDeckListPage は ope パラメータが明示的に無いと false になる（デフォルト解釈が無い）。
+#   両者は排他（ope=1とope=2は同時に真にならない）。
+# - isCardSearchPage/isFAQSearchPage/isDeckSearchPage は ope パラメータを一切見ない（パスのみ判定）。
+#   そのため isCardSearchPage(ope=2のURL) と isCardDetailPage(同URL) は両方 true になりうる
+#   （実装上は互いに排他ではない。呼び出し側が別途 ope を見て使い分けている前提と推測される）。
+#   同型のisFAQSearchPage/isDeckSearchPageも同じ性質を持つが、条件の重複を避けるため
+#   isCardSearchPageを代表例として1件のみ明記する。
+# - isDeckDisplayPage/isDeckEditPage/isDeckListPage/isCardSearchPage/isCardDetailPage/
+#   isFAQSearchPage/isFAQDetailPage/isDeckSearchPage/isYugiohDBSite の9関数は全て
+#   `const type = gameType || detectCardGameType(url)` という共通パターンを持つ
+#   （gameType引数が明示された場合はURL自動判定より優先される）。この優先順位条件は
+#   isDeckDisplayPageの代表例1件のみ記載し、他8関数への重複記載はしない。
+# - getMyDeckCgid の `if (match && match[1])` は、正規表現 `[a-f0-9]+` が1文字以上を要求するため
+#   match が非nullなら match[1] は必ず truthy になる。match[1] 単独が falsy になる分岐は
+#   実質到達不能なため条件化しない（matchがnullの場合と統合して1条件として扱う）。
+
+[meta]
+feature = "page-detector"
+source_file = "src/utils/page-detector.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/page-detector.test.ts"
+source_hash = "34238d8436b4b3679cc4b48431ba0e21a7cb14dc"
+note = "verified=falseは0件"
+
+# --- detectCardGameType(url?: string): CardGameType ---
+
+[[condition]]
+id = "detect_card_game_type.rush_url_explicit"
+target_function = "detectCardGameType"
+source_lines = "14-17"
+description = "url引数に/rushdb/が含まれる場合は'rush'を返す"
+given = "url = 'https://www.db.yugioh-card.com/rushdb/member_deck.action?ope=1'"
+expect_return = "rush"
+
+[[condition]]
+id = "detect_card_game_type.ocg_url_explicit"
+target_function = "detectCardGameType"
+source_lines = "14-17"
+description = "url引数に/rushdb/が含まれない場合は'ocg'を返す"
+given = "url = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1'"
+expect_return = "ocg"
+
+[[condition]]
+id = "detect_card_game_type.default_to_location_href"
+target_function = "detectCardGameType"
+source_lines = "15"
+description = "url引数省略時はwindow.location.hrefをフォールバックとして使用する"
+given = "url未指定、window.location.href = 'https://www.db.yugioh-card.com/rushdb/member_deck.action'"
+expect_return = "rush"
+
+# --- getGamePath(gameType: CardGameType): string ---
+
+[[condition]]
+id = "get_game_path.rush_to_rushdb"
+target_function = "getGamePath"
+source_lines = "24-26"
+description = "gameType==='rush'の場合は'rushdb'を返す"
+given = "gameType = 'rush'"
+expect_return = "rushdb"
+
+[[condition]]
+id = "get_game_path.ocg_to_yugiohdb"
+target_function = "getGamePath"
+source_lines = "24-26"
+description = "gameType==='ocg'の場合（else分岐）は'yugiohdb'を返す"
+given = "gameType = 'ocg'"
+expect_return = "yugiohdb"
+
+# --- isDeckDisplayPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_deck_display_page.ope1_explicit_true"
+target_function = "isDeckDisplayPage"
+source_lines = "34-41"
+description = "member_deck.actionパスかつope=1が明示されている場合はtrueを返す"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=1&cgid=xxx&dno=123'"
+expect_return = true
+
+[[condition]]
+id = "is_deck_display_page.no_ope_param_true"
+target_function = "isDeckDisplayPage"
+source_lines = "38-40"
+description = "opeパラメータが存在しない場合はope=1のデフォルトとみなしtrueを返す"
+given = "location.href = '.../yugiohdb/member_deck.action'（opeパラメータなし）"
+expect_return = true
+
+[[condition]]
+id = "is_deck_display_page.ope2_false"
+target_function = "isDeckDisplayPage"
+source_lines = "38-40"
+description = "ope=2の場合はfalseを返す（isDeckEditPageと排他）"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=2&cgid=xxx&dno=123'"
+expect_return = false
+
+[[condition]]
+id = "is_deck_display_page.game_type_param_overrides_url_false"
+target_function = "isDeckDisplayPage"
+source_lines = "36-39"
+description = "gameType引数が明示された場合、URLからの自動判定より優先される。URLはyugiohdbパスだがgameType='rush'を渡すとpathがrushdbになりURLと不一致でfalseになる（9関数共通の`gameType || detectCardGameType(url)`パターンの代表例）"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=1&cgid=xxx&dno=123', 引数 gameType='rush'"
+expect_return = false
+
+# --- isDeckEditPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_deck_edit_page.ope2_true"
+target_function = "isDeckEditPage"
+source_lines = "48-53"
+description = "member_deck.actionパスかつope=2が含まれる場合はtrueを返す"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=2&cgid=xxx&dno=123'"
+expect_return = true
+
+[[condition]]
+id = "is_deck_edit_page.ope1_false"
+target_function = "isDeckEditPage"
+source_lines = "52"
+description = "ope=1の場合はfalseを返す"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=1&cgid=xxx&dno=123'"
+expect_return = false
+
+[[condition]]
+id = "is_deck_edit_page.no_ope_false"
+target_function = "isDeckEditPage"
+source_lines = "52"
+description = "opeパラメータが存在しない場合はfalseを返す（isDeckDisplayPageとは異なりデフォルト解釈をしない）"
+given = "location.href = '.../yugiohdb/member_deck.action'（opeパラメータなし）"
+expect_return = false
+
+# --- isDeckListPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_deck_list_page.ope4_true"
+target_function = "isDeckListPage"
+source_lines = "60-65"
+description = "member_deck.actionパスかつope=4が含まれる場合はtrueを返す"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=4'"
+expect_return = true
+
+[[condition]]
+id = "is_deck_list_page.other_ope_false"
+target_function = "isDeckListPage"
+source_lines = "64"
+description = "ope=4以外の場合はfalseを返す"
+given = "location.href = '.../yugiohdb/member_deck.action?ope=1'"
+expect_return = false
+
+# --- isVueEditPage(): boolean ---
+
+[[condition]]
+id = "is_vue_edit_page.hash_mismatch_false"
+target_function = "isVueEditPage"
+source_lines = "81-83"
+description = "location.hashを'?'で分割した先頭部分が'#/ytomo/edit'と一致しない場合、即falseを返す（pathnameチェックに進まない）"
+given = "location.hash = '#/other/page'"
+expect_return = false
+
+[[condition]]
+id = "is_vue_edit_page.pathname_no_trailing_slash_true"
+target_function = "isVueEditPage"
+source_lines = "88-89"
+description = "hashが一致し、pathnameが'/yugiohdb'（末尾スラッシュなし）の場合はtrueを返す"
+given = "location.hash = '#/ytomo/edit', location.pathname = '/yugiohdb'"
+expect_return = true
+
+[[condition]]
+id = "is_vue_edit_page.pathname_trailing_slash_true"
+target_function = "isVueEditPage"
+source_lines = "88-89"
+description = "hashが一致し、pathnameが'/yugiohdb/'（末尾スラッシュあり）の場合もtrueを返す"
+given = "location.hash = '#/ytomo/edit', location.pathname = '/yugiohdb/'"
+expect_return = true
+
+[[condition]]
+id = "is_vue_edit_page.pathname_rushdb_true"
+target_function = "isVueEditPage"
+source_lines = "88-89"
+description = "pathnameが'/rushdb/'の場合もtrueを返す（yugiohdb/rushdb両対応）"
+given = "location.hash = '#/ytomo/edit', location.pathname = '/rushdb/'"
+expect_return = true
+
+[[condition]]
+id = "is_vue_edit_page.pathname_mismatch_false"
+target_function = "isVueEditPage"
+source_lines = "88-89"
+description = "hashが一致してもpathnameが/yugiohdbや/rushdb以外の場合はfalseを返す"
+given = "location.hash = '#/ytomo/edit', location.pathname = '/othersystem/'"
+expect_return = false
+
+[[condition]]
+id = "is_vue_edit_page.hash_query_suffix_stripped_true"
+target_function = "isVueEditPage"
+source_lines = "78"
+description = "hash直後にクエリ風のUSP（?dno=123等）が付与されていても、'?'で分割した先頭部分のみで判定するためtrueを返す"
+given = "location.hash = '#/ytomo/edit?dno=123', location.pathname = '/yugiohdb/'"
+expect_return = true
+
+# --- isCardSearchPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_card_search_page.path_match_true"
+target_function = "isCardSearchPage"
+source_lines = "97-102"
+description = "card_search.actionパスに一致すればtrueを返す"
+given = "location.href = '.../yugiohdb/card_search.action?ope=1'"
+expect_return = true
+
+[[condition]]
+id = "is_card_search_page.path_mismatch_false"
+target_function = "isCardSearchPage"
+source_lines = "101"
+description = "yugiohdb/rushdbパスが含まれない場合はfalseを返す"
+given = "location.href = '.../othersystem/card_search.action?ope=1'"
+expect_return = false
+
+[[condition]]
+id = "is_card_search_page.ope_irrelevant_overlaps_detail_page_true"
+target_function = "isCardSearchPage"
+source_lines = "101"
+description = "opeパラメータの値を一切見ないため、isCardDetailPageがtrueになるope=2のURLでもtrueを返す（両関数は排他ではない）"
+given = "location.href = '.../yugiohdb/card_search.action?ope=2&cid=12345'"
+expect_return = true
+
+# --- isCardDetailPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_card_detail_page.ope2_true"
+target_function = "isCardDetailPage"
+source_lines = "109-114"
+description = "card_search.actionパスかつope=2が含まれる場合はtrueを返す"
+given = "location.href = '.../yugiohdb/card_search.action?ope=2&cid=12345'"
+expect_return = true
+
+[[condition]]
+id = "is_card_detail_page.ope1_false"
+target_function = "isCardDetailPage"
+source_lines = "113"
+description = "ope=1の場合はfalseを返す"
+given = "location.href = '.../yugiohdb/card_search.action?ope=1'"
+expect_return = false
+
+# --- isFAQSearchPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_faq_search_page.path_match_true"
+target_function = "isFAQSearchPage"
+source_lines = "121-126"
+description = "faq_search.actionパスに一致すればope値を問わずtrueを返す"
+given = "location.href = '.../yugiohdb/faq_search.action?ope=4&cid=12345'"
+expect_return = true
+
+[[condition]]
+id = "is_faq_search_page.path_mismatch_false"
+target_function = "isFAQSearchPage"
+source_lines = "125"
+description = "yugiohdb/rushdbパスが含まれない場合はfalseを返す"
+given = "location.href = '.../othersystem/faq_search.action'"
+expect_return = false
+
+# --- isFAQDetailPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_faq_detail_page.ope5_true"
+target_function = "isFAQDetailPage"
+source_lines = "133-138"
+description = "faq_search.actionパスかつope=5が含まれる場合はtrueを返す"
+given = "location.href = '.../yugiohdb/faq_search.action?ope=5&fid=115'"
+expect_return = true
+
+[[condition]]
+id = "is_faq_detail_page.other_ope_false"
+target_function = "isFAQDetailPage"
+source_lines = "137"
+description = "ope=5以外の場合はfalseを返す"
+given = "location.href = '.../yugiohdb/faq_search.action?ope=4&cid=12345'"
+expect_return = false
+
+# --- isDeckSearchPage(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_deck_search_page.path_match_true"
+target_function = "isDeckSearchPage"
+source_lines = "145-150"
+description = "deck_search.actionパスに一致すればtrueを返す（opeを見ない）"
+given = "location.href = '.../yugiohdb/deck_search.action?request_locale=ja'"
+expect_return = true
+
+[[condition]]
+id = "is_deck_search_page.path_mismatch_false"
+target_function = "isDeckSearchPage"
+source_lines = "149"
+description = "yugiohdb/rushdbパスが含まれない場合はfalseを返す"
+given = "location.href = '.../othersystem/deck_search.action'"
+expect_return = false
+
+# --- isYugiohDBSite(gameType?: CardGameType): boolean ---
+
+[[condition]]
+id = "is_yugioh_db_site.domain_and_path_match_true"
+target_function = "isYugiohDBSite"
+source_lines = "156-161"
+description = "https://www.db.yugioh-card.com/{path}/ で始まるURLの場合はtrueを返す"
+given = "location.href = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1'"
+expect_return = true
+
+[[condition]]
+id = "is_yugioh_db_site.domain_mismatch_false"
+target_function = "isYugiohDBSite"
+source_lines = "160"
+description = "ドメインがwww.db.yugioh-card.com以外の場合はfalseを返す（先頭アンカー^による厳密一致）"
+given = "location.href = 'https://example.com/yugiohdb/member_deck.action?ope=1'"
+expect_return = false
+
+[[condition]]
+id = "is_yugioh_db_site.path_mismatch_false"
+target_function = "isYugiohDBSite"
+source_lines = "160"
+description = "ドメインは一致してもパスがyugiohdb/rushdb以外の場合はfalseを返す"
+given = "location.href = 'https://www.db.yugioh-card.com/othersystem/page.html'"
+expect_return = false
+
+# --- getMyDeckCgid(): string | null ---
+
+[[condition]]
+id = "get_my_deck_cgid.link_not_found_null"
+target_function = "getMyDeckCgid"
+source_lines = "171-184"
+description = "フッターメニューの「マイデッキ」リンク要素がDOM上に存在しない場合、console.warnしてnullを返す"
+given = "document内に'#footer_menu > ul > li.my.menu_my_decks.sab_menu > ul > li:nth-child(1) > a'が存在しない"
+expect_return = "null"  # TOMLにnullリテラルが無いため文字列"null"で表現
+expect_side_effect = "console.warnが呼ばれる"
+
+[[condition]]
+id = "get_my_deck_cgid.href_missing_null"
+target_function = "getMyDeckCgid"
+source_lines = "173-184"
+description = "リンク要素は存在するがhref属性が無い（getAttribute('href')がnull）場合、nullを返す"
+given = "該当リンク要素はDOM上に存在するがhref属性を持たない"
+expect_return = "null"  # TOMLにnullリテラルが無いため文字列"null"で表現
+expect_side_effect = "console.warnが呼ばれる"
+
+[[condition]]
+id = "get_my_deck_cgid.href_no_cgid_match_null"
+target_function = "getMyDeckCgid"
+source_lines = "175-184"
+description = "hrefは存在するがcgid=([a-f0-9]+)にマッチしない場合、nullを返す"
+given = "リンク要素のhref = '/yugiohdb/some_other_page.action'"
+expect_return = "null"  # TOMLにnullリテラルが無いため文字列"null"で表現
+expect_side_effect = "console.warnが呼ばれる"
+
+[[condition]]
+id = "get_my_deck_cgid.href_cgid_match_returns_id"
+target_function = "getMyDeckCgid"
+source_lines = "176-179"
+description = "hrefがcgid=([a-f0-9]+)にマッチする場合、マッチしたcgid文字列を返す"
+given = "リンク要素のhref = '/yugiohdb/member_deck.action?ope=4&cgid=abc123'"
+expect_return = "abc123"
+
+# --- getDeckCgid(): string | null ---
+
+[[condition]]
+id = "get_deck_cgid.param_present_returns_value"
+target_function = "getDeckCgid"
+source_lines = "191-194"
+description = "location.searchにcgidパラメータが存在する場合、その値を返す"
+given = "location.search = '?ope=1&cgid=def456&dno=123'"
+expect_return = "def456"
+
+[[condition]]
+id = "get_deck_cgid.param_absent_returns_null"
+target_function = "getDeckCgid"
+source_lines = "193"
+description = "location.searchにcgidパラメータが存在しない場合、nullを返す（URLSearchParams.getの標準挙動）"
+given = "location.search = '?ope=1&dno=123'"
+expect_return = "null"  # TOMLにnullリテラルが無いため文字列"null"で表現
+
+# --- isOwnDeck(): boolean ---
+
+[[condition]]
+id = "is_own_deck.my_cgid_null_false"
+target_function = "isOwnDeck"
+source_lines = "205-208"
+description = "getMyDeckCgid()がnullを返す場合、console.warnしてfalseを返す（deckCgidの値によらず）"
+given = "getMyDeckCgid() → null, getDeckCgid() → 'abc123'"
+expect_return = false
+expect_side_effect = "console.warnが呼ばれる"
+
+[[condition]]
+id = "is_own_deck.deck_cgid_null_false"
+target_function = "isOwnDeck"
+source_lines = "205-208"
+description = "getDeckCgid()がnullを返す場合、console.warnしてfalseを返す（myCgidの値によらず）"
+given = "getMyDeckCgid() → 'abc123', getDeckCgid() → null"
+expect_return = false
+expect_side_effect = "console.warnが呼ばれる"
+
+[[condition]]
+id = "is_own_deck.cgid_mismatch_false"
+target_function = "isOwnDeck"
+source_lines = "210"
+description = "両cgidが共に非nullだが値が異なる場合、falseを返す"
+given = "getMyDeckCgid() → 'abc123', getDeckCgid() → 'xyz789'"
+expect_return = false
+
+[[condition]]
+id = "is_own_deck.cgid_match_true"
+target_function = "isOwnDeck"
+source_lines = "210"
+description = "両cgidが共に非nullで値が一致する場合、trueを返す"
+given = "getMyDeckCgid() → 'abc123', getDeckCgid() → 'abc123'"
+expect_return = true

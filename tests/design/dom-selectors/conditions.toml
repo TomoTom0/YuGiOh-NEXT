@@ -1,0 +1,69 @@
+# 検証対象: src/utils/dom-selectors.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。
+#
+# ファイルの性質: 全200行中約190行はセレクタ文字列を保持する定数オブジェクト
+# （OFFICIAL_SITE_SELECTORS / EXTENSION_IDS / EXTENSION_CLASSES / MISC_SELECTORS）で、
+# 分岐・throw・副作用を一切持たない。これらはREADME 1節「対象外」の
+# 「定数定義のみのファイルは対象外」の性質に該当するため、個々のキー値についての
+# conditionは書かない（既存テストの「定数オブジェクトの存在確認」で十分）。
+# ロジックを持つのは末尾の3つのexport関数のみで、`tsx scripts/design/extract-ast-skeleton.ts
+# src/utils/dom-selectors.ts` による機械抽出でも throw文・if/switch分岐点は0件、
+# return文3件のみと確認済み（下書きに使用）。そのため本ファイルはgrainの目安
+# （12行/条件等）に対して意図的に条件数が少ない。
+#
+# meta.source_hashについて: タスク指示書に記載されたsource_hash
+# "a8eb7cc050694b2cfc9e8e8b4255f1258a6fa7af" は `git cat-file -p` で確認したところ
+# dom-selectors.tsではなく別ファイル（genesys名前解決ロジック）のblobだったため、
+# `git hash-object src/utils/dom-selectors.ts` で得た実際のハッシュに置き換えている。
+#
+# 実装コメントとの差異: なし。
+
+[meta]
+feature = "dom-selectors"
+source_file = "src/utils/dom-selectors.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/dom-selectors.test.ts"
+source_hash = "a19325b3b95ce64136134e037c93cdd922d356d1"
+note = "verified=falseは0件。定数オブジェクト部分（OFFICIAL_SITE_SELECTORS等）はロジックを持たないためcondition化していない。"
+
+# --- getExtensionIdSelector(id: string): string ---
+
+[[condition]]
+id = "get_extension_id_selector.prefixes_hash_no_validation"
+target_function = "getExtensionIdSelector"
+source_lines = "184-186"
+description = "引数idの前に'#'を付与した文字列をそのまま返す。バリデーションや空文字ガードは無く、空文字列でも'#'のみの文字列になる"
+given = "id = 'ygo-next-edit-btn' および id = ''"
+expect_return = "'#ygo-next-edit-btn' および '#'"
+
+# --- getExtensionElement(id: string): HTMLElement | null ---
+
+[[condition]]
+id = "get_extension_element.found_returns_element"
+target_function = "getExtensionElement"
+source_lines = "191-193"
+description = "document.getElementById(id)がDOM上に要素を見つけた場合、その要素をそのまま返す"
+given = "id='test-element'を持つ要素がdocument.bodyに存在する"
+expect_return_shape = "その要素自身の参照"
+
+[[condition]]
+id = "get_extension_element.not_found_returns_null"
+target_function = "getExtensionElement"
+source_lines = "191-193"
+description = "document.getElementById(id)がDOM上に要素を見つけられない場合、nullを返す（例外は投げない）"
+given = "id='non-existent-id'を持つ要素がDOM上に存在しない"
+expect_return = "null"
+
+# --- getExtensionClassSelector(className: string): string ---
+
+[[condition]]
+id = "get_extension_class_selector.prefixes_dot_no_validation"
+target_function = "getExtensionClassSelector"
+source_lines = "198-200"
+description = "引数classNameの前に'.'を付与した文字列をそのまま返す。バリデーションや空文字ガードは無く、空文字列でも'.'のみの文字列になる"
+given = "className = 'ygo-next' および className = ''"
+expect_return = "'.ygo-next' および '.'"

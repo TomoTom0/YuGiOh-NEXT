@@ -20,6 +20,9 @@ export const useSearchStore = defineStore('search', () => {
   // ローディング状態
   const isLoading = ref(false)
 
+  // 検索世代（古い検索の遅延処理が新しい検索結果を上書きしないようにするためのカウンタ）
+  const searchGeneration = ref(0)
+
   // 検索フィルター
   const searchFilters = ref<SearchFilters>({
     cardType: null,
@@ -81,6 +84,7 @@ export const useSearchStore = defineStore('search', () => {
     currentPage,
     hasMore,
     isLoading,
+    searchGeneration,
     searchFilters,
     isGlobalSearchMode,
     exclusionResult,

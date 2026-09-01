@@ -1,0 +1,246 @@
+# 検証対象: src/utils/background-fetch-queue.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、キューイング・非同期リトライ・並行数制御を持つutils。
+#
+# 実装コメントとの差異:
+# - なし（コード自体の分岐・throw条件は説明コメントと矛盾しない）。
+#
+# 機械抽出との関係:
+# - `BackgroundFetchQueue` クラスは非export（モジュール内部専用）で、唯一のexportは
+#   シングルトンfactoryの `getBackgroundFetchQueue()` のみ。
+#   `scripts/design/extract-ast-skeleton.ts` はexport関数・exportクラスのメソッド・
+#   Piniaストアのreturn公開関数のみを走査するため、非exportクラスのメソッド
+#   （enqueue/sortQueue/processQueue/fetchCard/clear/size/activeCount）は
+#   機械検出の対象外（README 5節 Phase1.6の「非exportのヘルパー関数は『未カバー検出』の
+#   対象外」と同じ制約）。これらは全て人手で条件化した。
+#   実行結果: `tsx scripts/design/extract-ast-skeleton.ts src/utils/background-fetch-queue.ts`
+#   → export関数1件（getBackgroundFetchQueue）のみ検出、L163のif分岐とL166のreturnを検出。
+
+[meta]
+feature = "background-fetch-queue"
+source_file = "src/utils/background-fetch-queue.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/background-fetch-queue.test.ts"
+source_hash = "0431768e0fe2c731f5e7a7c21c5af8ac5c399963"
+note = "verified=false は1件（process_queue.shift_guard_defensive_unreachable、公開APIからは到達不能な防御的分岐）"
+
+# --- BackgroundFetchQueue#enqueue(cardId, priority='normal', onComplete, onError?): void ---
+
+[[condition]]
+id = "enqueue.duplicate_active_ignored"
+target_function = "BackgroundFetchQueue#enqueue"
+source_lines = "50-55"
+description = "cardIdが既にactiveRequests(処理中)に存在する場合、queueへの追加・sortQueue/processQueueの呼び出しを行わず即座にreturnする"
+given = "同一cardIdが既にactiveRequestsに登録されている状態でenqueueを呼ぶ"
+expect_side_effect = "queueにアイテムが追加されない。onComplete/onErrorも呼ばれない"
+
+[[condition]]
+id = "enqueue.duplicate_queue_ignored"
+target_function = "BackgroundFetchQueue#enqueue"
+source_lines = "50-55"
+description = "cardIdが既にqueue内(未処理)に存在する場合も同様に無視される（activeRequestsとqueueの両方をOR条件でチェック）"
+given = "同一cardIdが既にthis.queue配列内に存在する（まだactiveRequestsには入っていない）状態でenqueueを呼ぶ"
+expect_side_effect = "queueのサイズが増えない"
+
+[[condition]]
+id = "enqueue.default_priority_normal"
+target_function = "BackgroundFetchQueue#enqueue"
+source_lines = "43-48"
+description = "priority引数省略時はデフォルト値'normal'が使われる"
+given = "enqueue(cardId, undefined, onComplete) のようにpriorityを省略（第2引数省略）して呼ぶ"
+expect_side_effect = "生成されるQueueItemのpriorityが'normal'になり、sortQueue時にnormal優先度として扱われる"
+
+[[condition]]
+id = "enqueue.new_item_initial_state"
+target_function = "BackgroundFetchQueue#enqueue"
+source_lines = "57-68"
+description = "重複でない新規cardIdの場合、retryCount=0・maxRetries=2固定でQueueItemを生成しqueueへpush、sortQueue()、processQueue()を順に呼ぶ"
+given = "重複しない新規cardIdでenqueueを呼ぶ"
+expect_side_effect = "queueに1件追加され、直後にsortQueue/processQueueが呼ばれて処理が開始される"
+
+# --- BackgroundFetchQueue#sortQueue(): void (private) ---
+
+[[condition]]
+id = "sort_queue.priority_order"
+target_function = "BackgroundFetchQueue#sortQueue"
+source_lines = "72-79"
+description = "priorityOrder={high:0,normal:1,low:2}に従い、high優先度が先頭、low優先度が末尾になるよう昇順ソートする"
+given = "queueにhigh/normal/lowが混在した状態でsortQueueを呼ぶ"
+expect_return_shape = "high群 -> normal群 -> low群の順に並ぶ"
+
+[[condition]]
+id = "sort_queue.tie_break_preserves_order"
+target_function = "BackgroundFetchQueue#sortQueue"
+source_lines = "74-78"
+description = "同一priority同士は比較関数内でthis.queue.indexOf(a)-this.queue.indexOf(b)により元の並び順（挿入順）を維持する"
+given = "queueに同一priorityのアイテムが複数ある状態でsortQueueを呼ぶ"
+expect_return_shape = "同一priority内では呼び出し前の並び順がそのまま維持される（FIFO）"
+
+[[condition]]
+id = "sort_queue.empty_array_no_throw"
+target_function = "BackgroundFetchQueue#sortQueue"
+source_lines = "72-79"
+description = "queueが空配列の場合でもArray.sortはno-opでエラーにならない"
+given = "this.queue = []"
+expect_return_shape = "[]"
+
+# --- BackgroundFetchQueue#processQueue(): Promise<void> (private) ---
+
+[[condition]]
+id = "process_queue.already_processing_guard"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "83-84"
+description = "isProcessingが既にtrueの場合、whileループに入らず即座にreturnする（多重実行防止）。isProcessingは最初のprocessQueue呼び出しがfinallyに到達するまで（100ms待機区間を含む）trueのまま保持される"
+given = "先行するprocessQueue呼び出しが100ms待機のawait区間で一時停止している間に、別の呼び出し経路（enqueueの再呼び出し等）でprocessQueueが呼ばれる"
+expect_side_effect = "後発の呼び出しはqueueから何もdequeueしない。結果としてqueue内のアイテムが即座には処理されず残る"
+
+[[condition]]
+id = "process_queue.concurrency_limit"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "87-90"
+description = "while文はqueue.length>0かつactiveRequests.size<maxConcurrent(3固定)の間のみ継続する。3並行に達するとループを抜ける"
+given = "queueに4件以上あり、activeRequests.sizeがmaxConcurrent(3)に達する"
+expect_side_effect = "同時にfetchCardが開始されるのは最大3件までで、4件目以降はqueueに留まる"
+
+[[condition]]
+id = "process_queue.shift_guard_defensive_unreachable"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "91-92"
+description = "queue.shift()がundefinedを返した場合はbreakする防御的分岐。TypeScript型上はArray#shift()がT|undefinedを返すためnarrowingで保証された分岐ではないが、直前のwhile条件でqueue.length>0を確認済みかつシングルスレッド実行のため、同一while反復内でこの分岐がtrueになる経路は存在しない"
+given = "queue.length>0を満たした直後のshift()がundefinedを返す状況（通常の公開API経路では発生しない）"
+expect_side_effect = "breakしてwhileループを抜ける"
+verified = false
+unverifiable_reason = "queueはprivateフィールドでprocessQueue内の同期処理中に外部から変更する手段が公開APIに無く、length>0確認直後のshift()がundefinedになる状況を公開APIからは再現できない"
+
+[[condition]]
+id = "process_queue.per_item_dequeue_side_effects"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "94-106"
+description = "1件dequeueするごとに、requestId=cardIdでfetchCard(item)を開始し、その完了時にactiveRequestsから自身を削除するthenを繋げてactiveRequestsに登録する。さらにsetImmediateで次のprocessQueue呼び出しを即座にスケジュールしてから、100ms待機してから次のwhile反復に進む"
+given = "queueに複数アイテムがあり、maxConcurrent未満の状態でprocessQueueのwhileループが反復する"
+expect_side_effect = "各アイテムがactiveRequestsにcardIdキーで登録され、アイテム間に約100msの間隔が空く。setImmediateにより現在の待機中でも次のprocessQueue呼び出しが並行して試みられる"
+
+[[condition]]
+id = "process_queue.finally_resets_processing_flag"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "108-109"
+description = "whileループが正常終了・例外いずれの場合でも、finally節でisProcessingを必ずfalseに戻す"
+given = "processQueueのwhileループが完走する（queueが空になるかmaxConcurrentに達してループを抜ける）"
+expect_side_effect = "isProcessingがfalseに戻り、以降のprocessQueue呼び出しがガードされなくなる"
+
+[[condition]]
+id = "process_queue.finally_restarts_if_pending"
+target_function = "BackgroundFetchQueue#processQueue"
+source_lines = "110-113"
+description = "finally節でisProcessingをfalseに戻した直後、queue.length>0かつactiveRequests.size<maxConcurrentならprocessQueue()を再度呼び出す（await待機中に新たにenqueueされた分を拾うため）"
+given = "whileループを抜けた時点でqueueにまだアイテムが残っており、activeRequestsに空きがある"
+expect_side_effect = "processQueueが再帰的に呼ばれ、残りのアイテムも順次処理される"
+
+# --- BackgroundFetchQueue#fetchCard(item): Promise<void> (private) ---
+
+[[condition]]
+id = "fetch_card.success_truthy_result"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "119-124"
+description = "getCardDetail(item.cardId)がtruthyな値でresolveした場合、item.onComplete(result)を呼ぶ"
+given = "getCardDetailがCardInfoオブジェクトでresolveする"
+expect_side_effect = "onCompleteがそのresult値で1回呼ばれる"
+
+[[condition]]
+id = "fetch_card.success_null_result"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "121-124"
+description = "getCardDetailがnull(falsy)でresolveした場合、item.onComplete(null)を呼ぶ"
+given = "getCardDetailがnullでresolveする"
+expect_side_effect = "onCompleteがnullで1回呼ばれる"
+
+[[condition]]
+id = "fetch_card.error_retry_below_max"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "126-135"
+description = "getCardDetailがrejectし、かつitem.retryCount<item.maxRetries(2)の場合、retryCountをインクリメントし、retryDelay*2^(retryCount-1)ms待機後にitem自体をqueueへpushし、sortQueue()・processQueue()を呼ぶ。この時点ではonComplete/onErrorどちらも呼ばれない"
+given = "getCardDetailが1回目・2回目でreject（maxRetries=2固定）"
+expect_side_effect = "onComplete/onErrorは呼ばれず、itemがqueueに再投入されて再度fetchCardが呼ばれる。2回目のリトライは1回目よりも約2倍待機してから開始される（指数バックオフ）"
+
+[[condition]]
+id = "fetch_card.error_exceeds_max_retries"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "136-139"
+description = "getCardDetailがrejectし、かつitem.retryCount>=item.maxRetries(2)の場合、リトライせずitem.onError?.(err)を呼ぶ"
+given = "getCardDetailが3回連続（初回+リトライ2回）reject"
+expect_side_effect = "onErrorが1回呼ばれ、onCompleteは呼ばれない。合計呼び出し回数は3回でリトライは打ち切られる"
+
+[[condition]]
+id = "fetch_card.error_no_onError_callback"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "138"
+description = "onErrorが未指定(undefined)の場合、item.onError?.(err)はoptional chainingにより何も呼ばずスキップされ、例外はthrowされない"
+given = "onErrorを渡さずenqueueし、getCardDetailがmaxRetries回を超えてrejectし続ける"
+expect_no_throw = true
+
+[[condition]]
+id = "fetch_card.non_error_thrown_value_wrapped"
+target_function = "BackgroundFetchQueue#fetchCard"
+source_lines = "137"
+description = "catchしたerrorがErrorのインスタンスでない場合、new Error(String(error))でラップしてからonErrorに渡す"
+given = "getCardDetailが文字列や非Errorオブジェクトでreject（maxRetries超過状態）"
+expect_side_effect = "onErrorにはError.messageがString(error)相当のErrorインスタンスが渡される"
+
+# --- BackgroundFetchQueue#clear(): void ---
+
+[[condition]]
+id = "clear.resets_queue_only"
+target_function = "BackgroundFetchQueue#clear"
+source_lines = "144-146"
+description = "this.queueを空配列に置き換えるのみで、activeRequests(処理中のPromise群)には一切手を加えない"
+given = "処理中(activeRequests有り)かつqueueにも未処理アイテムがある状態でclear()を呼ぶ"
+expect_side_effect = "size()は0になるがactiveCount()は変化しない。処理中だったリクエストのonComplete/onErrorは後から呼ばれる"
+
+[[condition]]
+id = "clear.idempotent_no_throw"
+target_function = "BackgroundFetchQueue#clear"
+source_lines = "144-146"
+description = "既に空のqueueに対して複数回clear()を呼んでもエラーにならない"
+given = "queueが既に空の状態でclear()を複数回連続で呼ぶ"
+expect_no_throw = true
+
+# --- BackgroundFetchQueue#size(): number ---
+
+[[condition]]
+id = "size.returns_queue_length"
+target_function = "BackgroundFetchQueue#size"
+source_lines = "149-151"
+description = "this.queue.lengthをそのまま返す"
+given = "queueに0件〜N件のアイテムがある状態"
+expect_return_shape = "queue.lengthと常に一致する数値"
+
+# --- BackgroundFetchQueue#activeCount(): number ---
+
+[[condition]]
+id = "active_count.returns_active_requests_size"
+target_function = "BackgroundFetchQueue#activeCount"
+source_lines = "154-156"
+description = "this.activeRequests.sizeをそのまま返す"
+given = "activeRequestsに0件〜N件のPromiseが登録されている状態"
+expect_return_shape = "activeRequests.sizeと常に一致する数値"
+
+# --- getBackgroundFetchQueue(): BackgroundFetchQueue ---
+
+[[condition]]
+id = "get_background_fetch_queue.creates_once_when_null"
+target_function = "getBackgroundFetchQueue"
+source_lines = "163-165"
+description = "モジュールスコープのqueueInstanceがnullの場合のみ、新しいBackgroundFetchQueueインスタンスを生成してqueueInstanceに代入する"
+given = "queueInstanceが未初期化(null)の状態でgetBackgroundFetchQueue()を初めて呼ぶ"
+expect_side_effect = "新しいBackgroundFetchQueueインスタンスが生成され、以後のqueueInstanceに保持される"
+
+[[condition]]
+id = "get_background_fetch_queue.singleton_returns_same"
+target_function = "getBackgroundFetchQueue"
+source_lines = "163-166"
+description = "queueInstanceが既に生成済みの場合、新規生成せずそのまま同一インスタンスを返す"
+given = "getBackgroundFetchQueue()を2回以上呼ぶ"
+expect_return_shape = "全ての呼び出しが===で等しい同一インスタンスを返す"

@@ -437,7 +437,7 @@ v0.4.0でソート機能を集約し、label-utils.tsからラベル変換関数
 ### ビルドプロセス
 
 ```bash
-npm run build
+mise run build:prod
 ```
 
 **処理内容:**

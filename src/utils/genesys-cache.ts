@@ -4,7 +4,7 @@
  * chrome.storage を使ってGENESYSポイント情報をキャッシュする。
  * GENESYSリストは月次でなく不規則に公開される（例: 6月→8月）ため、
  * howtoインデックスページから実在する全リストを発見して取得する。
- * 起動時チェック + backgroundの毎週チェックで新リストを取り込む。
+ * Content Script起動時にキャッシュのTTLを確認し、必要な場合だけ新リストを取り込む。
  *
  * getPoint() は「現在有効なリスト（適用日 <= 今日 で最新）」を参照し、
  * まだどのリストも有効でなければ「最新版」を参照する。
@@ -24,6 +24,11 @@ const STORAGE_KEY = 'genesysPointList';
 // インデックス再解析間隔（新リスト発見のため）。起動時の毎回解析を避ける TTL。
 // backgroundは毎週チェックするため、6日にしておく。
 const DISCOVERY_TTL = 6 * 24 * 60 * 60 * 1000;
+
+// incomplete（名前解決の一部/全部が失敗）なリストの再試行間隔。
+// カードDBが未初期化なタイミングで初回fetchすると全滅しうるため再試行が必要だが、
+// デッキ編集を開くたびに毎回howtoページへfetchすると外部サーバーに負荷をかけるため間引く。
+const INCOMPLETE_RETRY_TTL = 10 * 60 * 1000;
 
 /**
  * タイムスタンプを YYYY-MM-DD 形式（ローカル時刻）に変換
@@ -98,7 +103,7 @@ export class GenesysPointCache {
 
     this.initialized = true;
 
-    // バックグラウンドで更新チェック（新リスト取り込み）
+    // 初期化を完了させた後、必要な場合だけ更新チェック（新リスト取り込み）
     this.checkAndUpdate().catch(err => {
       console.warn('[GenesysPointCache] Failed to check update:', err);
     });
@@ -166,7 +171,11 @@ export class GenesysPointCache {
    */
   async ensureCurrentList(): Promise<GenesysListEntry | null> {
     const current = selectApplicableGenesysList(this.cache, Date.now());
-    if (current) {
+    // incompleteなキャッシュ（初回fetch時にカードDB未初期化で名前解決が
+    // 全滅した状態）はそのまま返さず再取得する。forceUpdate()は既存の
+    // incompleteエントリを正しく再解決するため、ここを通すだけでよい。
+    // ただし外部サーバーへの負荷軽減のため INCOMPLETE_RETRY_TTL で間引く。
+    if (current && (!current.incomplete || Date.now() - current.fetchedAt < INCOMPLETE_RETRY_TTL)) {
       return current;
     }
 
@@ -188,7 +197,10 @@ export class GenesysPointCache {
    */
   async ensureList(listParam: string): Promise<GenesysListEntry | null> {
     const existing = this.cache?.lists[listParam];
-    if (existing) {
+    // incompleteなキャッシュ（初回fetch時にカードDB未初期化で名前解決が
+    // 全滅した状態）はそのまま返さず再取得する（forceUpdate()と同じ扱い）。
+    // ただし外部サーバーへの負荷軽減のため INCOMPLETE_RETRY_TTL で間引く。
+    if (existing && (!existing.incomplete || Date.now() - existing.fetchedAt < INCOMPLETE_RETRY_TTL)) {
       return existing;
     }
 

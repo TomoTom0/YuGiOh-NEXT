@@ -1,0 +1,352 @@
+# 検証対象: src/content/deck-display/card-detail-ui.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - モジュールレベルの`selectedCard`変数はファイル内のどこからも再代入されない
+#   （宣言時のnullのまま）。そのため`getSelectedCard()`は常にnullを返し、
+#   `updateTabContent()`のinfo/qaタブ描画分岐・`fetchFAQData()`・`renderFAQContent()`は
+#   本番実行時に到達不能。また`EXTENSION_IDS.deckDisplay.cardDetailContainer`/
+#   `cardInfoContent`のDOM要素はどのVueコンポーネントからも描画されておらず、
+#   `initCardDetailUI()`内のタブボタンクリックリスナー登録も常に空配列に対して
+#   実行される。実際のカード詳細表示はsrc/components/CardDetail.vueが
+#   cardDetailStore(Pinia)を直接参照する形に移行済み。
+#   技術的負債として記録: docs/dev/feature/dead-code-card-detail-ui-legacy-tab-ui.md
+#   （削除するかどうかはユーザー判断待ちのため、本conditions.tomlでは
+#   現状のコードに対して条件を記載し、到達不能な分岐はverified=falseとする）
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - tests/combine/card-detail-ui-integration.test.ts は card-detail-ui.ts を
+#   一切importせず、DOM/MutationObserverの一般的な振る舞いや
+#   `expect(deckDetailParser.parseDeckDetail).toBeDefined()`のような
+#   実質何も検証しないアサーションのみで構成されており、実装の分岐を
+#   一切カバーしていない。本conditions.toml・新規テスト作成の動機となった。
+
+[meta]
+feature = "card-detail-ui"
+source_file = "src/content/deck-display/card-detail-ui.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/card-detail-ui.test.ts"
+source_hash = "03ac21fc89abb81d1c1948d027a7df2fb4952a84"
+note = "verified=falseは9件（selectedCardが再代入されず本番で到達不能な分岐。docs/dev/feature/dead-code-card-detail-ui-legacy-tab-ui.md参照）"
+
+# --- initCardDetailUI() ---
+
+[[condition]]
+id = "init_card_detail_ui.parse_success_no_skipped_no_warn"
+target_function = "initCardDetailUI"
+source_lines = "59-62"
+description = "parseDeckDetailが成功しskippedCardsCountが0または未設定の場合、スキップ警告のconsole.warnは呼ばれない"
+given = "parseDeckDetailがskippedCardsCount: 0のDeckInfoを返す"
+expect_no_throw = true
+
+[[condition]]
+id = "init_card_detail_ui.parse_success_with_skipped_cards_warns"
+target_function = "initCardDetailUI"
+source_lines = "62-77"
+description = "skippedCardsCount>0の場合、件数のwarnに加えskippedCards配列が非空ならカード名/cid/lang付きの詳細warnも出す"
+given = "parseDeckDetailがskippedCardsCount: 2、skippedCards: [{name,cid,lang}, ...]を返す"
+expect_side_effect = "console.warnが2回呼ばれる（件数のみ・詳細付き）"
+
+[[condition]]
+id = "init_card_detail_ui.parse_failure_sets_null_and_logs_error"
+target_function = "initCardDetailUI"
+source_lines = "78-81"
+description = "parseDeckDetailがthrowする場合、console.errorでログしparsedDeckInfoをnullに設定して後続処理(タブボタン設定等)は継続する"
+given = "parseDeckDetailがrejectする"
+expect_no_throw = true
+
+[[condition]]
+id = "init_card_detail_ui.tab_click_with_data_tab_calls_switch_tab"
+target_function = "initCardDetailUI"
+source_lines = "87-93"
+description = "tab-btn要素クリック時、data-tab属性が設定されていればswitchTab(tabName)を呼ぶ"
+given = "data-tab=\"qa\"のtab-btnをクリック"
+expect_side_effect = "switchTab相当の処理(currentTab更新・active class切替)が実行される"
+
+[[condition]]
+id = "init_card_detail_ui.tab_click_without_data_tab_noop"
+target_function = "initCardDetailUI"
+source_lines = "90-93"
+description = "data-tab属性が無い(falsy)場合、switchTabを呼ばない"
+given = "data-tab属性の無いtab-btnをクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "init_card_detail_ui.tab_click_handler_error_caught"
+target_function = "initCardDetailUI"
+source_lines = "94-96"
+description = "クリックハンドラ内で例外が発生した場合、console.errorでログしthrowを伝播させない"
+given = "switchTab呼び出し中に例外が発生する状況"
+expect_no_throw = true
+
+# --- getSelectedCard() ---
+
+[[condition]]
+id = "get_selected_card.returns_module_state"
+target_function = "getSelectedCard"
+source_lines = "454-456"
+description = "モジュール変数selectedCardをそのまま返す。selectedCardはファイル内のどこからも再代入されないため、常にnullを返す（デッドコード、上記注記参照）"
+given = "initCardDetailUI実行後にgetSelectedCard()を呼ぶ"
+expect_return = "null"
+
+# --- getCurrentTab() ---
+
+[[condition]]
+id = "get_current_tab.returns_module_state"
+target_function = "getCurrentTab"
+source_lines = "461-463"
+description = "モジュール変数currentTabを返す。初期値は'info'"
+given = "初期状態でgetCurrentTab()を呼ぶ"
+expect_return = "'info'"
+
+# --- getParsedDeckInfo() ---
+
+[[condition]]
+id = "get_parsed_deck_info.returns_module_state"
+target_function = "getParsedDeckInfo"
+source_lines = "468-470"
+description = "モジュール変数parsedDeckInfoを返す。initCardDetailUI/ensureParsedDeckInfoで設定された値を反映する"
+given = "initCardDetailUIでパース成功後にgetParsedDeckInfo()を呼ぶ"
+expect_return_shape = "parseDeckDetailが返したDeckInfo"
+
+# --- ensureParsedDeckInfo() ---
+
+[[condition]]
+id = "ensure_parsed_deck_info.cache_hit_skips_reparse"
+target_function = "ensureParsedDeckInfo"
+source_lines = "477-479"
+description = "parsedDeckInfoが既に設定済みの場合、再パースせずそのままキャッシュを返す"
+given = "initCardDetailUIで既にパース済みの状態でensureParsedDeckInfo()を呼ぶ"
+expect_side_effect = "parseDeckDetailは追加で呼ばれない"
+
+[[condition]]
+id = "ensure_parsed_deck_info.null_triggers_parse"
+target_function = "ensureParsedDeckInfo"
+source_lines = "481-483"
+description = "parsedDeckInfoが未設定(null)の場合、parseDeckDetailを呼び結果をparsedDeckInfoに設定して返す"
+given = "parsedDeckInfoが未設定の状態でensureParsedDeckInfo()を呼ぶ"
+expect_return_shape = "parseDeckDetailが返したDeckInfo"
+
+[[condition]]
+id = "ensure_parsed_deck_info.parse_error_returns_null"
+target_function = "ensureParsedDeckInfo"
+source_lines = "484-487"
+description = "parseDeckDetailがthrowする場合、console.errorでログしnullを返す"
+given = "parseDeckDetailがrejectする"
+expect_return = "null"
+
+# --- findCardInParsedDeck(cid) [非export・内部関数、attachCardClickHandlersの実処理経路] ---
+
+[[condition]]
+id = "find_card_in_parsed_deck.no_parsed_deck_returns_null"
+target_function = "findCardInParsedDeck"
+source_lines = "284-286"
+description = "parsedDeckInfoが未設定(null)の場合、検索せずnullを返す"
+given = "parsedDeckInfo === null"
+expect_return = "null"
+
+[[condition]]
+id = "find_card_in_parsed_deck.cid_not_in_any_section_returns_null"
+target_function = "findCardInParsedDeck"
+source_lines = "289-298"
+description = "main/extra/sideいずれのデッキにもcidが一致するDeckCardRefが無い場合、nullを返す"
+given = "mainDeck/extraDeck/sideDeckのいずれにも該当cidが無い"
+expect_return = "null"
+
+[[condition]]
+id = "find_card_in_parsed_deck.not_in_tempcache_logs_error_returns_null"
+target_function = "findCardInParsedDeck"
+source_lines = "300-308"
+description = "デッキ内にcidは見つかるがTempCacheDBにカード詳細が無い場合、console.errorでログしnullを返す"
+given = "deckCardRefは見つかるがtempCardDB.get(cid)がundefinedを返す"
+expect_return = "null"
+
+[[condition]]
+id = "find_card_in_parsed_deck.found_returns_merged_card_with_ciid"
+target_function = "findCardInParsedDeck"
+source_lines = "310-313"
+description = "TempCacheDBからカード詳細が見つかった場合、そのカード情報にdeckCardRef.ciidを上書きマージして返す"
+given = "cidに対応するDeckCardRef(ciid='2')とTempCacheDBのカード詳細(ciid='1')が両方存在する"
+expect_return_shape = "TempCacheDBのカード詳細にciid='2'（DeckCardRef側）が上書きされたオブジェクト"
+
+# --- attachCardClickHandlers() [非export・内部関数] ---
+
+[[condition]]
+id = "attach_card_click_handlers.no_deck_image_returns_early"
+target_function = "attachCardClickHandlers"
+source_lines = "321-324"
+description = "#deck_imageに相当する要素が見つからない場合、何もせずreturnする"
+given = "#deck_imageがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "attach_card_click_handlers.filters_to_card_images_when_found"
+target_function = "attachCardClickHandlers"
+source_lines = "327-335"
+description = "#deck_image内のimg要素のうちsrcに'/card/'を含むものが1件以上あれば、それらのみにクリックハンドラを追加する"
+given = "srcに'/card/'を含むimgと含まないimgが混在する#deck_image"
+expect_side_effect = "'/card/'を含むimgのみdata-click-handler-added属性が設定される"
+
+[[condition]]
+id = "attach_card_click_handlers.falls_back_to_all_images_when_none_match"
+target_function = "attachCardClickHandlers"
+source_lines = "333-335"
+description = "'/card/'を含むimgが1件も無い場合、#deck_image内の全imgにクリックハンドラを追加する"
+given = "全imgのsrcが'/card/'を含まない#deck_image"
+expect_side_effect = "全imgにdata-click-handler-added属性が設定される"
+
+[[condition]]
+id = "attach_card_click_handlers.skips_already_handled_images"
+target_function = "attachCardClickHandlers"
+source_lines = "340-341"
+description = "既にdata-click-handler-added属性を持つimgには重複してクリックハンドラを追加しない"
+given = "1回目のattachCardClickHandlers呼び出し後、同じDOMに対して2回目を呼ぶ"
+expect_side_effect = "2回目のクリックで1回だけselectCard相当の処理が実行される（ハンドラが二重登録されない）"
+
+[[condition]]
+id = "attach_card_click_handlers.click_extracts_ciid_from_id_pattern"
+target_function = "attachCardClickHandlers"
+source_lines = "350-352"
+description = "img要素のid属性が'card_image_<index>_<ciid>'形式に一致する場合、ciidを抽出する"
+given = "id=\"card_image_0_3\"のimg要素をクリック"
+expect_side_effect = "findCardInParsedDeckの結果にciid='3'が上書きされてselectCardへ渡される"
+
+[[condition]]
+id = "attach_card_click_handlers.click_no_cid_match_skips_lookup"
+target_function = "attachCardClickHandlers"
+source_lines = "356-357"
+description = "img要素のsrc属性が'cid=(数字)'パターンに一致しない場合、カード検索・selectCard呼び出しを行わない"
+given = "srcに'cid='を含まないimg要素をクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "attach_card_click_handlers.click_card_found_calls_select_card"
+target_function = "attachCardClickHandlers"
+source_lines = "361-372"
+description = "cidが抽出でき、findCardInParsedDeckがカード情報を返す場合、selectCard(cardInfo)を呼ぶ"
+given = "TempCacheDBに存在するcidを持つimg要素をクリック"
+expect_side_effect = "cardDetailStore.setSelectedCardが呼ばれる"
+
+[[condition]]
+id = "attach_card_click_handlers.click_card_not_found_logs_error"
+target_function = "attachCardClickHandlers"
+source_lines = "373-375"
+description = "cidは抽出できたがfindCardInParsedDeckがnullを返す場合、console.errorでログしselectCardを呼ばない"
+given = "デッキ・TempCacheDBのいずれにも存在しないcidを持つimg要素をクリック"
+expect_no_throw = true
+
+[[condition]]
+id = "attach_card_click_handlers.click_handler_error_caught"
+target_function = "attachCardClickHandlers"
+source_lines = "377-379"
+description = "クリックハンドラ内で例外が発生した場合、console.errorでログしthrowを伝播させない"
+given = "selectCard呼び出し中に例外が発生する状況"
+expect_no_throw = true
+
+# --- selectCard(cardInfo) [非export・内部関数] ---
+
+[[condition]]
+id = "select_card.missing_cardinfo_or_cardid_warns_and_returns"
+target_function = "selectCard"
+source_lines = "392-395"
+description = "cardInfoがfalsy、またはcardInfo.cardIdが無い場合、console.warnし以降のstore操作を行わずreturnする"
+given = "cardInfo = null、またはcardId未設定のオブジェクト"
+expect_no_throw = true
+
+[[condition]]
+id = "select_card.success_fetches_and_sets_store"
+target_function = "selectCard"
+source_lines = "397-425"
+description = "cardIdが有効な場合、getCardDetailWithCacheで詳細を取得し、結果とcardInfoをマージしてcardDetailStore.setSelectedCardに渡し、setCardTab('info')・currentTab='info'を設定する"
+given = "getCardDetailWithCacheが{ detail: { card: {...} } }を返す"
+expect_side_effect = "cardDetailStore.setSelectedCardとsetCardTab('info')が呼ばれる"
+
+[[condition]]
+id = "select_card.partial_from_error_still_proceeds_with_warn"
+target_function = "selectCard"
+source_lines = "409-411"
+description = "result.isPartialFromErrorがtrueの場合、console.warnするが処理は継続し不完全な情報でもstoreに設定する"
+given = "getCardDetailWithCacheがisPartialFromError: trueを返す"
+expect_side_effect = "console.warnが呼ばれた上でcardDetailStore.setSelectedCardも呼ばれる"
+
+[[condition]]
+id = "select_card.imgs_and_ciid_fallback_preference"
+target_function = "selectCard"
+source_lines = "416-420"
+description = "imgsはfullCard.imgsを優先しなければcardInfo.imgs、どちらも無ければ空配列。ciidはcardInfo.ciidを優先しなければfullCard.ciid、どちらも無ければ'0'"
+given = "fullCard.imgsが無くcardInfo.imgsのみ存在、かつcardInfo.ciidが未設定でfullCard.ciid='5'"
+expect_return_shape = "cardData.imgsはcardInfo.imgsのコピー、cardData.ciidは'5'"
+
+[[condition]]
+id = "select_card.api_error_falls_back_to_cardinfo_only"
+target_function = "selectCard"
+source_lines = "426-438"
+description = "getCardDetailWithCacheがthrowする場合、console.errorでログし、取得できたcardInfoのみ(cardIdを文字列化)でsetSelectedCardを呼び、setCardTab('info')・currentTab='info'を設定した上でfinallyでendLoadingCardを呼ぶ"
+given = "getCardDetailWithCacheがrejectする"
+expect_side_effect = "cardDetailStore.setSelectedCardがcardInfoベースの値で呼ばれ、endLoadingCardも呼ばれる"
+
+# --- switchTab(tabName) [非export・内部関数] ---
+
+[[condition]]
+id = "switch_tab.updates_current_tab_and_active_class"
+target_function = "switchTab"
+source_lines = "108-121"
+description = "currentTabをtabNameに更新し、data-tab属性が一致するtab-btnのみにygo-next-activeクラスを付与、他は除去した上でupdateTabContentを呼ぶ"
+given = "'info'タブがactiveな状態で'qa'タブのtab-btnをクリック"
+expect_side_effect = "'qa'のtab-btnにygo-next-activeが付与され、'info'からは除去される"
+
+# --- updateTabContent() [非export・内部関数] ---
+
+[[condition]]
+id = "update_tab_content.no_container_returns"
+target_function = "updateTabContent"
+source_lines = "209-210"
+description = "#ygo-next-card-info-contentに相当する要素が見つからない場合、何もせずreturnする"
+given = "cardInfoContent要素がDOMに存在しない状態でswitchTabを呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "update_tab_content.no_selected_card_shows_placeholder"
+target_function = "updateTabContent"
+source_lines = "212-215"
+description = "selectedCardが無い(常にこの状態。上記デッドコード注記参照)場合、「カードを選択してください」を表示して終了する"
+given = "cardInfoContent要素は存在するがselectedCardはnull（本コードの実際の状態）"
+expect_side_effect = "contentContainer.innerHTMLが「カードを選択してください」を含むHTMLになる"
+
+[[condition]]
+id = "update_tab_content.info_qa_tab_rendering_unreachable"
+target_function = "updateTabContent"
+source_lines = "217-245"
+description = "currentTab==='info'/'qa'それぞれの実際のカード情報・FAQ描画分岐は、selectedCardが常にnullであるため到達不能"
+given = "selectedCardが再代入される経路が無い（本ファイルの現状の実装）"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "selectedCardモジュール変数が本ファイル内で再代入されないため、info/qaタブのカード情報描画分岐には到達できない（docs/dev/feature/dead-code-card-detail-ui-legacy-tab-ui.md参照）"
+
+# --- fetchFAQData(cardId) [非export・内部関数] ---
+
+[[condition]]
+id = "fetch_faq_data.cache_and_fetch_behavior_unreachable"
+target_function = "fetchFAQData"
+source_lines = "127-147"
+description = "cachedFAQDataのキャッシュヒット確認・api/card-faqからの取得・失敗時null返却は、updateTabContentのqaタブ分岐からのみ呼ばれるため到達不能"
+given = "updateTabContentのqaタブ分岐が到達不能（上記参照）"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "呼び出し元のupdateTabContentのqaタブ分岐が到達不能なため未検証（docs/dev/feature/dead-code-card-detail-ui-legacy-tab-ui.md参照）"
+
+# --- renderFAQContent(faqData) [非export・内部関数、純粋関数] ---
+
+[[condition]]
+id = "render_faq_content.formats_supplement_and_faq_sections_unreachable"
+target_function = "renderFAQContent"
+source_lines = "152-202"
+description = "テキスト補足情報・ペンデュラム補足情報・FAQ一覧・「Q&A情報がありません」メッセージの出し分けは、fetchFAQDataの成功結果に対してのみ呼ばれるため到達不能"
+given = "呼び出し元のfetchFAQDataが到達不能（上記参照）"
+expect_no_throw = true
+verified = false
+unverifiable_reason = "呼び出し元のfetchFAQData/updateTabContentのqaタブ分岐が到達不能なため未検証（docs/dev/feature/dead-code-card-detail-ui-legacy-tab-ui.md参照）"

@@ -77,9 +77,17 @@ export function buildApiUrl(path: string, gameType: CardGameType, params?: URLSe
   const url = new URL(`${BASE_URL}/${gamePath}/${path}`);
 
   // 呼び出し側から提供されたパラメータをマージ
+  // 同名キーが複数ある場合（例: モンスタータイプの other=6&other=9）、
+  // 単純に set() を繰り返すと最後の値以外が上書きで消えてしまうため、
+  // キーごとに最初の出現時だけ既存値をクリアし、以降は append で積み増す
   if (params) {
+    const mergedKeys = new Set<string>();
     for (const [key, value] of params.entries()) {
-      url.searchParams.set(key, value);
+      if (!mergedKeys.has(key)) {
+        url.searchParams.delete(key);
+        mergedKeys.add(key);
+      }
+      url.searchParams.append(key, value);
     }
   }
 

@@ -143,15 +143,21 @@ function sendCommand(method, params = {}) {
 **ソースコード更新後は必ず以下を実行すること：**
 
 ```bash
-mise run build-and-deploy
+mise run build-deploy
 ```
+
+普段の動作確認はdevビルド（コロンなし＝dev）を使う。リリース前の最終確認のみ`mise run build-deploy:prod`を使う。
 
 `package.json`の全scriptsは`mise.toml`にもtaskとして登録済み（`mise tasks ls`で一覧表示）。内部実装はpnpmを使用。
 
 ### デプロイ先
 
-- WSL環境: `/home/tomo/user/Mine/_chex/src_ygoNeuronHelper`
-- Windows環境: `C:\Users\tomo\Mine\_chex\src_ygoNeuronHelper`
+実際のデプロイ先は`.env`の`RSYNC_PATH`が正。以下は参考値であり、`.env`と食い違う場合は`.env`を優先する。
+
+- WSL環境: `/home/tomo/user/Mine/_chex/src_ygo-next`
+- Windows環境: `C:\Users\tomo\Mine\_chex\src_ygo-next`
+
+`src_ygoNeuronHelper`はプロジェクト名変更前の旧フォルダで無関係（残存しているが更新されていない）。
 
 ## テスト
 
@@ -183,9 +189,19 @@ node tmp/test-*.js
 
 **機能を無効化する場合はコードの削除やハードコードではなく、feature flag を使用する。**
 
-- `src/types/settings.ts`: `FeatureId` / `FeatureSettings` / `DEFAULT_FEATURE_SETTINGS` に追加
-- `docs/feature/featureSettings.toml`: category 3（`default = "import.meta.env.DEV"`、本番ビルドでOFF）
+feature flag のデフォルト値はコードに直書きせず、`configs/features.toml` で管理する（Single Source of Truth。webpack / vitest がビルド時に注入）。JS/TS定数への直書きもハードコード扱いで禁止。
+
+- `configs/features.toml`: デフォルト値を追加（`true` / `false` / `"dev-only"` = 開発ビルドのみ有効）
+- `src/types/settings.ts`: `FEATURE_IDS` と `FeatureSettings` にIDを追加（デフォルト値は書かない）
+- `docs/feature/featureSettings.toml`: `category` / `ui` / `note` を記載（default値は書かない）
 - カテゴリ定義は `docs/feature/README.md` 参照
+
+**`AppSettings` / `UXSettings` のデフォルト値も同様にコード直書き禁止。**
+
+- `configs/app-settings.toml`（`ux` キーは除く）/ `configs/ux.toml` が Single Source of Truth
+- `src/types/settings.ts` の `DEFAULT_APP_SETTINGS` / `DEFAULT_UX_SETTINGS` はビルド時注入（`__APP_SETTINGS_DEFAULTS__` / `__UX_SETTINGS_DEFAULTS__`）から構築される
+- `docs/feature/appSettings.toml` / `ux.toml` は `category` / `ui` / `note` 専用（default値は書かない）
+- 設定値を変更する場合は configs のtomlのみ編集（整合は `tests/unit/configs/` のテストが検証）
 
 ## ファイル構成の重要なルール
 
@@ -294,7 +310,7 @@ update-versionコマンドで以下を自動更新：
 
 変更方法：
 1. `src/styles/themes.scss` を編集
-2. `mise run build-and-deploy`
+2. `mise run build-deploy`
 3. オプション画面でテーマ切り替えを確認
 
 ## querySelector 安全性パターン

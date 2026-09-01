@@ -1,0 +1,134 @@
+# 検証対象: src/content/shuffle/sortfixCards.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - sortfixCards.ts専用のテストは存在しなかったため、新規作成した。
+
+[meta]
+feature = "sortfix-cards"
+source_file = "src/content/shuffle/sortfixCards.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/sortfix-cards.test.ts"
+source_hash = "d763e65b2899124bb329b192c887d27e9cccdae6"
+note = "verified=falseは0件"
+
+# --- initSortfixForCards() ---
+
+[[condition]]
+id = "init_sortfix_for_cards.missing_section_skipped"
+target_function = "initSortfixForCards"
+source_lines = "17-20"
+description = "main/extra/sideのいずれかのimage_setが見つからない場合、そのセクションはスキップし他のセクションの処理は継続する"
+given = "extraセクションのimage_setがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "init_sortfix_for_cards.processes_direct_card_links"
+target_function = "initSortfixForCards"
+source_lines = "22-25"
+description = "各セクションのimage_set直下の<a>要素全てに対してinitSortfixForCardを呼ぶ"
+given = "mainセクションに2枚のカードリンクがある"
+expect_side_effect = "2つのリンク両方にdata-ygo-next-sortfix-initialized属性が付与される"
+
+# --- initSortfixForCard(cardLink) [非export] ---
+
+[[condition]]
+id = "init_sortfix_for_card.already_initialized_skips"
+target_function = "initSortfixForCard"
+source_lines = "34-36"
+description = "data-ygo-next-sortfix-initialized属性が既にある場合、何もせずreturnする（重複初期化防止）"
+given = "initSortfixForCardsを同じDOMに対して2回呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "init_sortfix_for_card.no_controls_debug_logs_and_returns"
+target_function = "initSortfixForCard"
+source_lines = "41-45"
+description = ".ygo-next-card-controls要素が見つからない場合、console.debugでログしreturnする（vueSetup.tsのcard-controls追加より前に呼ばれた場合など）"
+given = "cardLink内に.ygo-next-card-controlsが無い"
+expect_no_throw = true
+
+[[condition]]
+id = "init_sortfix_for_card.no_top_right_button_returns_silently"
+target_function = "initSortfixForCard"
+source_lines = "47-50"
+description = "controlsは見つかるが.top-rightボタンが無い場合、ログ無しでreturnする"
+given = ".ygo-next-card-controlsはあるが.top-right要素が無い"
+expect_no_throw = true
+
+[[condition]]
+id = "init_sortfix_for_card.success_sets_icon_and_registers_click"
+target_function = "initSortfixForCard"
+source_lines = "52-60"
+description = "top-rightボタンが見つかった場合、updateSortfixIconでアイコンを初期化し、クリック時にtoggleSortfixを呼ぶリスナーを登録する"
+given = ".top-rightボタンが存在するcard-controls"
+expect_side_effect = "topRightBtn.innerHTMLにLOCK_OPEN_ICON（初期状態は未sortfix）が設定される"
+
+# --- updateSortfixIcon(cardLink, topRightBtn) [非export] ---
+
+[[condition]]
+id = "update_sortfix_icon.sortfixed_shows_closed_lock"
+target_function = "updateSortfixIcon"
+source_lines = "69-72"
+description = "cardLinkにdata-ygo-next-sortfix属性がある場合、閉じた南京錠アイコン(LOCK_CLOSED_ICON)を表示しis-sortfixedクラスを付与する"
+given = "cardLinkがdata-ygo-next-sortfix='true'を持つ"
+expect_side_effect = "topRightBtn.innerHTMLがLOCK_CLOSED_ICON、classListがis-sortfixedを含む"
+
+[[condition]]
+id = "update_sortfix_icon.not_sortfixed_shows_open_lock"
+target_function = "updateSortfixIcon"
+source_lines = "73-77"
+description = "cardLinkにdata-ygo-next-sortfix属性が無い場合、開いた南京錠アイコン(LOCK_OPEN_ICON)を表示しis-sortfixedクラスを除去する"
+given = "cardLinkがdata-ygo-next-sortfix属性を持たない"
+expect_side_effect = "topRightBtn.innerHTMLがLOCK_OPEN_ICON、classListがis-sortfixedを含まない"
+
+# --- toggleSortfix(cardLink, topRightBtn) [非export] ---
+
+[[condition]]
+id = "toggle_sortfix.turns_on_when_off"
+target_function = "toggleSortfix"
+source_lines = "86-92"
+description = "sortfix未設定の状態でtoggleすると、data-ygo-next-sortfix属性を付与しアイコンを更新する"
+given = "data-ygo-next-sortfix属性が無いcardLinkでtopRightBtnをクリック"
+expect_side_effect = "cardLinkにdata-ygo-next-sortfix='true'が設定され、アイコンが閉じた南京錠になる"
+
+[[condition]]
+id = "toggle_sortfix.turns_off_when_on"
+target_function = "toggleSortfix"
+source_lines = "86-92"
+description = "sortfix設定済みの状態でtoggleすると、data-ygo-next-sortfix属性を除去しアイコンを更新する"
+given = "data-ygo-next-sortfix='true'のcardLinkでtopRightBtnをクリック"
+expect_side_effect = "cardLinkからdata-ygo-next-sortfix属性が除去され、アイコンが開いた南京錠になる"
+
+[[condition]]
+id = "top_right_click.prevents_default_and_stops_propagation"
+target_function = "initSortfixForCard"
+source_lines = "56-60"
+description = "top-rightボタンのクリックはpreventDefault・stopPropagationした上でtoggleSortfixを呼ぶ（親要素のクリックハンドラを誤発火させない）"
+given = "topRightBtnをクリック"
+expect_side_effect = "クリックイベントのdefaultPreventedがtrueになる"
+
+# --- getSortfixedCards() ---
+
+[[condition]]
+id = "get_sortfixed_cards.missing_section_contributes_none"
+target_function = "getSortfixedCards"
+source_lines = "106-109"
+description = "セクションのimage_setが見つからない場合、そのセクションからはカードを収集しない（エラーにはならない）"
+given = "sideセクションのimage_setがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "get_sortfixed_cards.collects_across_all_sections"
+target_function = "getSortfixedCards"
+source_lines = "111-112"
+description = "main/extra/sideの各セクション直下のdata-ygo-next-sortfix属性を持つ<a>要素を全て集めて返す（属性を持たないリンクは含まない）"
+given = "mainに1枚、sideに1枚のsortfix済みカードがあり、他に非sortfixカードも混在する"
+expect_return_shape = "sortfix済みの2要素のみを含む配列"

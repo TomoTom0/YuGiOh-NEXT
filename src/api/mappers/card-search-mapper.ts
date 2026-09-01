@@ -124,8 +124,10 @@ export function cardTypeToCtype(cardType?: CardType): string {
 export const SORT_ORDER_TO_API_VALUE: Record<string, number> = {
   'name_asc': 1,
   'name_desc': 1, // APIは50音順のみ、descはクライアント側で反転
-  'release_desc': 20,
-  'release_asc': 21,
+  // 実サーバーで直接検証した結果、sort=20は最古のカードを、sort=21は最新のカードを
+  // 返すことを確認した（TASK-373調査時に判明。値の意味が名称と逆転していた）
+  'release_desc': 21,
+  'release_asc': 20,
   'level_desc': 2,
   'level_asc': 3,
   'atk_desc': 4,

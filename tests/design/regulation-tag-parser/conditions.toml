@@ -1,0 +1,279 @@
+# 検証対象: src/utils/regulation-tag-parser.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、デッキ名からのレギュレーションタグ抽出/置換を行うutils。
+#
+# 実装コメントとの差異・除外した分岐:
+# - tsconfig.json で noUncheckedIndexedAccess: true が有効なため、正規表現マッチの
+#   グループアクセス（match[1] 等）は TypeScript 上 string | undefined 型になり、
+#   L65, L78, L91 の `if (... === undefined) continue/return` はこれを満たすためだけの
+#   ガードである。TAG_PATTERNS/TAG_CONTENT_PATTERN の各キャプチャグループは正規表現上
+#   必須（`?`なし）のため、マッチが成立した時点で実行時に undefined になることはなく、
+#   README 2節「型システムで保証済みの分岐（TypeScriptのnarrowingで到達不能なelse等）」
+#   に該当する。よって条件化していない。
+# - resolveRegType() の `return null`（L29, 引数が GENESYS/GENE/OCG 以外の場合）は、
+#   唯一の呼び出し元 parseContent() が事前に TAG_CONTENT_PATTERN
+#   (`^(GENESYS|GENE|OCG)(?:-(\d{4}))?$/i`) でマッチした文字列のみを toUpperCase() して
+#   渡すため、公開API（parseRegulationTag）経由では実行時に到達不可能。resolveRegType
+#   は export されておらずテストから直接呼べないため、該当条件は verified=false とした。
+
+[meta]
+feature = "regulation-tag-parser"
+source_file = "src/utils/regulation-tag-parser.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/regulation-tag-parser.test.ts"
+source_hash = "68cc5cfc95279cdc218ee2da8f31022f5be316e0"
+note = "verified=falseは1件（resolve_reg_type.other_null、非exportのため公開APIから到達不可）"
+
+# --- resolveRegType(nameUpper: string): RegType | null ---
+# 非export。parseContent() からのみ呼ばれる。
+
+[[condition]]
+id = "resolve_reg_type.genesys_full"
+target_function = "resolveRegType"
+source_lines = "27"
+description = "nameUpperが'GENESYS'の場合、'genesys'を返す"
+given = "nameUpper = 'GENESYS'（[GENESYS-2608]等のタグ経由）"
+expect_return = "'genesys'"
+
+[[condition]]
+id = "resolve_reg_type.gene_abbrev"
+target_function = "resolveRegType"
+source_lines = "27"
+description = "nameUpperが'GENE'（省略形）の場合も'genesys'を返す"
+given = "nameUpper = 'GENE'（[GENE-2608]等のタグ経由）"
+expect_return = "'genesys'"
+
+[[condition]]
+id = "resolve_reg_type.ocg"
+target_function = "resolveRegType"
+source_lines = "28"
+description = "nameUpperが'OCG'の場合、'ocg'を返す"
+given = "nameUpper = 'OCG'"
+expect_return = "'ocg'"
+
+[[condition]]
+id = "resolve_reg_type.other_null"
+target_function = "resolveRegType"
+source_lines = "29"
+description = "GENESYS/GENE/OCG以外の場合はnullを返す"
+given = "nameUpper = 'FOO'"
+expect_return = "null"
+verified = false
+unverifiable_reason = "resolveRegTypeは非exportで、唯一の呼び出し元parseContent()はTAG_CONTENT_PATTERNでGENESYS|GENE|OCGのみに絞り込んだ文字列しか渡さないため、公開API（parseRegulationTag）経由ではこの分岐に到達できない"
+
+# --- findTag(deckName: string): RawTagMatch | null ---
+# 非export。TAG_PATTERNS（prefix-square, prefix-corner, suffix-square, suffix-corner の順）を
+# 先頭から順に試し、最初にマッチしたものを採用する。
+
+[[condition]]
+id = "find_tag.no_pattern_matches_returns_null"
+target_function = "findTag"
+source_lines = "56-84"
+description = "4パターンいずれにもマッチしない場合（タグ無し、または中央に位置するタグ）、ループを抜けてnullを返す"
+given = "deckName = '青眼の白龍デッキ'、または '青眼 [GENESYS] デッキ'（中央）"
+expect_return = "null"
+
+[[condition]]
+id = "find_tag.prefix_square_match"
+target_function = "findTag"
+source_lines = "49,60-70"
+description = "先頭が'[...]'+空白/終端の場合、bracket='square', position='prefix'でマッチする"
+given = "deckName = '[GENESYS-2608] 青眼の白龍デッキ'"
+expect_return_shape = "{ bracket: 'square', position: 'prefix', content: 'GENESYS-2608', raw: '[GENESYS-2608]' }"
+
+[[condition]]
+id = "find_tag.prefix_corner_match"
+target_function = "findTag"
+source_lines = "50,60-70"
+description = "先頭が'【...】'+空白/終端の場合、bracket='corner', position='prefix'でマッチする"
+given = "deckName = '【GENESYS-2608】 青眼'"
+expect_return_shape = "{ bracket: 'corner', position: 'prefix' }"
+
+[[condition]]
+id = "find_tag.suffix_square_match"
+target_function = "findTag"
+source_lines = "51,73-82"
+description = "末尾が(先頭または空白)+'[...]'の場合、bracket='square', position='suffix'でマッチする"
+given = "deckName = '青眼の白龍デッキ [GENESYS-2608]'"
+expect_return_shape = "{ bracket: 'square', position: 'suffix' }"
+
+[[condition]]
+id = "find_tag.suffix_corner_match"
+target_function = "findTag"
+source_lines = "52,73-82"
+description = "末尾が(先頭または空白)+'【...】'の場合、bracket='corner', position='suffix'でマッチする"
+given = "deckName = 'デッキ 【OCG】'"
+expect_return_shape = "{ bracket: 'corner', position: 'suffix' }"
+
+[[condition]]
+id = "find_tag.prefix_priority_over_suffix"
+target_function = "findTag"
+source_lines = "48-56"
+description = "TAG_PATTERNSはprefix系(index0,1)がsuffix系(index0,1)より先に試されるため、デッキ名の先頭・末尾双方にタグ様の括弧表記がある場合、先頭側のみがタグとして採用され末尾側は無視される"
+given = "deckName = '[GENESYS] 青眼 [OCG]'"
+expect_return_shape = "{ content: 'GENESYS', position: 'prefix' }（末尾の[OCG]は無視される）"
+
+[[condition]]
+id = "find_tag.prefix_requires_trailing_boundary"
+target_function = "findTag"
+source_lines = "49"
+description = "prefixパターンは閉じ括弧の直後が空白または文字列終端(?=\\s|$)である必要があり、後続文字がある場合はマッチしない"
+given = "deckName = '[GENESYS]青眼'（空白なしで密着）"
+expect_return = "null"
+
+[[condition]]
+id = "find_tag.suffix_requires_leading_boundary"
+target_function = "findTag"
+source_lines = "51"
+description = "suffixパターンは開き括弧の直前が先頭または空白(^|\\s)である必要があり、前置文字がある場合はマッチしない"
+given = "deckName = '青眼[GENESYS]'（空白なしで密着）"
+expect_return = "null"
+
+[[condition]]
+id = "find_tag.mismatched_brackets_no_match"
+target_function = "findTag"
+source_lines = "49-52"
+description = "開き括弧と閉じ括弧の種類が一致しない場合（'['に対して'】'等）、どのパターンにもマッチしない"
+given = "deckName = '[GENESYS】 x'"
+expect_return = "null"
+
+[[condition]]
+id = "find_tag.prefix_leading_whitespace_excluded_from_index"
+target_function = "findTag"
+source_lines = "66-68"
+description = "prefixタグの前に空白がある場合でも、その空白はstartIndexに含めずタグ本体（開き括弧以降）からインデックスを開始する"
+given = "deckName = '  [GENESYS] 青眼'"
+expect_return_shape = "startIndex は '[' の位置（先頭の空白2文字を除いた位置）"
+
+# --- parseContent(content: string): { type: RegType; yymm: string | null } | null ---
+# 非export。findTagが返したタグ内容文字列（括弧の中身）を解析する。
+
+[[condition]]
+id = "parse_content.invalid_reg_name_null"
+target_function = "parseContent"
+source_lines = "88-89"
+description = "内容がGENESYS/GENE/OCG（大文字小文字無視）+任意の-YYMMという形式に一致しない場合、nullを返す"
+given = "content = 'FOO-2608' または 'RUSH'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_content.yymm_wrong_digit_count_null"
+target_function = "parseContent"
+source_lines = "23,88-89"
+description = "YYMM部分が4桁ちょうどでない場合（3桁や5桁）、TAG_CONTENT_PATTERNの$アンカーにより全体マッチが失敗しnullを返す"
+given = "content = 'GENESYS-268' または 'GENESYS-26081'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_content.case_insensitive_match"
+target_function = "parseContent"
+source_lines = "23,88,92"
+description = "TAG_CONTENT_PATTERNのiフラグにより、レギュレーション名の大文字小文字を区別せずマッチする"
+given = "content = 'genesys-2608'"
+expect_return_shape = "{ type: 'genesys', yymm: '2608' }"
+
+[[condition]]
+id = "parse_content.trims_surrounding_whitespace"
+target_function = "parseContent"
+source_lines = "88"
+description = "content.trim()により、タグ内容の前後の空白を許容してからマッチする"
+given = "content = ' GENESYS-2608 '"
+expect_return_shape = "{ type: 'genesys', yymm: '2608' }"
+
+[[condition]]
+id = "parse_content.yymm_omitted_defaults_null"
+target_function = "parseContent"
+source_lines = "94"
+description = "-YYMM部分が省略されている場合、match[2]がundefinedとなり??演算子でyymmはnull（最新版扱い）になる"
+given = "content = 'GENESYS'"
+expect_return_shape = "{ type: 'genesys', yymm: null }"
+
+[[condition]]
+id = "parse_content.yymm_present_value"
+target_function = "parseContent"
+source_lines = "94"
+description = "-YYMM部分が指定されている場合、そのままyymmの値として返す"
+given = "content = 'OCG-2501'"
+expect_return_shape = "{ type: 'ocg', yymm: '2501' }"
+
+# --- replaceTagYymm(deckName, tag, newYymm): string ---
+# export。タグのYYMMを新しい値に置換した新しいデッキ名を返す純粋関数。
+
+[[condition]]
+id = "replace_tag_yymm.genesys_name"
+target_function = "replaceTagYymm"
+source_lines = "111"
+description = "tag.type==='genesys'の場合、再構築するタグ名に'GENESYS'を使う"
+given = "tag.type = 'genesys'"
+expect_return_shape = "新タグ文字列が'GENESYS-<newYymm>'を含む"
+
+[[condition]]
+id = "replace_tag_yymm.ocg_name"
+target_function = "replaceTagYymm"
+source_lines = "111"
+description = "tag.type==='ocg'の場合、再構築するタグ名に'OCG'を使う"
+given = "tag.type = 'ocg'"
+expect_return_shape = "新タグ文字列が'OCG-<newYymm>'を含む"
+
+[[condition]]
+id = "replace_tag_yymm.square_bracket"
+target_function = "replaceTagYymm"
+source_lines = "112-113"
+description = "tag.bracket==='square'の場合、'['と']'で新タグを囲む"
+given = "tag.bracket = 'square'"
+expect_return_shape = "新タグ文字列が'['と']'で囲まれる"
+
+[[condition]]
+id = "replace_tag_yymm.corner_bracket"
+target_function = "replaceTagYymm"
+source_lines = "112-113"
+description = "tag.bracket==='corner'の場合、'【'と'】'で新タグを囲む"
+given = "tag.bracket = 'corner'"
+expect_return_shape = "新タグ文字列が'【'と'】'で囲まれる"
+
+[[condition]]
+id = "replace_tag_yymm.preserves_surrounding_text"
+target_function = "replaceTagYymm"
+source_lines = "115"
+description = "deckName中の[tag.startIndex, tag.endIndex)の範囲のみを新タグに置換し、それ以外の部分は元のまま保持する"
+given = "deckName = '[OCG-2501] 青眼の白龍デッキ', tag = parseRegulationTag(deckName)の結果, newYymm = '2410'"
+expect_return = "'[OCG-2410] 青眼の白龍デッキ'"
+
+# --- parseRegulationTag(deckName: string): RegulationTag | null ---
+# export。公開エントリポイント。findTag → parseContent の順に呼び出し、両方成功した場合のみ
+# RegulationTagオブジェクトを構築する。
+
+[[condition]]
+id = "parse_regulation_tag.empty_deck_name_null"
+target_function = "parseRegulationTag"
+source_lines = "124"
+description = "deckNameが空文字（falsy）の場合、findTagを呼ばずに即座にnullを返す"
+given = "deckName = ''"
+expect_return = "null"
+
+[[condition]]
+id = "parse_regulation_tag.no_tag_found_null"
+target_function = "parseRegulationTag"
+source_lines = "125-126"
+description = "findTagがnullを返した場合（タグ形式が見つからない）、parseContentを呼ばずにnullを返す"
+given = "deckName = '青眼の白龍デッキ'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_regulation_tag.invalid_content_null"
+target_function = "parseRegulationTag"
+source_lines = "127-128"
+description = "findTagは成功したがparseContentがnullを返した場合（レギュレーション名が不正、YYMM桁数不正等）、nullを返す"
+given = "deckName = '[FOO-2608] デッキ'"
+expect_return = "null"
+
+[[condition]]
+id = "parse_regulation_tag.success_returns_tag_object"
+target_function = "parseRegulationTag"
+source_lines = "129-137"
+description = "findTag・parseContentともに成功した場合、typeとyymmはparsedから、raw/bracket/position/startIndex/endIndexはtagMatchから構築したRegulationTagオブジェクトを返す"
+given = "deckName = '[GENESYS-2608] 青眼の白龍デッキ'"
+expect_return_shape = "{ type: 'genesys', yymm: '2608', raw: '[GENESYS-2608]', bracket: 'square', position: 'prefix', startIndex: 0, endIndex: 14 }"

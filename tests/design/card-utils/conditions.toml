@@ -1,0 +1,162 @@
+# 検証対象: src/utils/card-utils.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、デッキ内カード検索・カード情報取得の共通utils。
+#
+# 実装コメントとの差異・補足:
+# - getCardInfoFromUnifiedDB (L44-48) の detectLanguage(document) はモジュールローカル変数の
+#   束縛先が無く、グローバルの `document`（DOM）を参照している。
+# - getCardInfoWithLang (L130-145) の detectLanguage(document) は同名の第3引数（関数パラメータ）を
+#   参照しており、上記のグローバルdocumentとは別物（シャドーイング）。
+# - getCardInfoLegacy (L89-95) はJSDocに `@deprecated` とあり、ciid/deckData引数は実装上
+#   完全に無視され getCardInfo(cid) に委譲するだけ（後方互換のためのラッパー）。
+
+[meta]
+feature = "card-utils"
+source_file = "src/utils/card-utils.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/card-utils.test.ts"
+source_hash = "7c782f4647c7af3435eb17872a790b470e5bdf85"
+note = "verified=falseは0件"
+
+# --- getCardInfoFromTempDB(cid: string): CardInfo | null ---
+
+[[condition]]
+id = "get_card_info_from_temp_db.found"
+target_function = "getCardInfoFromTempDB"
+source_lines = "31-34"
+description = "TempCacheDBにcidが存在する場合、tempCardDB.get(cid)の返り値をそのまま返す"
+given = "getTempCacheDB().get(cid) がCardInfoを返す"
+expect_return_shape = "取得したCardInfoオブジェクトそのもの"
+
+[[condition]]
+id = "get_card_info_from_temp_db.not_found"
+target_function = "getCardInfoFromTempDB"
+source_lines = "31-34"
+description = "TempCacheDBにcidが存在しない場合（get()がundefinedを返す場合）、|| null によりnullを返す"
+given = "getTempCacheDB().get(cid) がundefinedを返す"
+expect_return = "null"
+
+# --- getCardInfoFromUnifiedDB(cid: string): CardInfo | null ---
+
+[[condition]]
+id = "get_card_info_from_unified_db.found"
+target_function = "getCardInfoFromUnifiedDB"
+source_lines = "44-48"
+description = "UnifiedCacheDBにcidが存在する場合、reconstructCardInfo(cid, lang)の返り値をそのまま返す。langはdetectLanguage(document)（グローバルdocument参照）で決定"
+given = "unifiedDB.reconstructCardInfo(cid, lang) がCardInfoを返す"
+expect_return_shape = "取得したCardInfoオブジェクトそのもの"
+
+[[condition]]
+id = "get_card_info_from_unified_db.not_found"
+target_function = "getCardInfoFromUnifiedDB"
+source_lines = "44-48"
+description = "UnifiedCacheDBにcidが存在しない場合（reconstructCardInfoがundefinedを返す場合）、|| null によりnullを返す"
+given = "unifiedDB.reconstructCardInfo(cid, lang) がundefinedを返す"
+expect_return = "null"
+
+# --- getCardInfo(cid: string): CardInfo | null ---
+
+[[condition]]
+id = "get_card_info.unified_missing_fallback_temp"
+target_function = "getCardInfo"
+source_lines = "60-64"
+description = "UnifiedDBにcidが無い場合（getCardInfoFromUnifiedDBがnull）、UnifiedDBのhasCardTableCチェックを行わずTempDBの結果をそのまま返す（TempDB側もnullなら全体としてnull）"
+given = "getCardInfoFromUnifiedDB(cid) が null、getCardInfoFromTempDB(cid) がCardInfoを返す"
+expect_return_shape = "TempDBから取得したCardInfoオブジェクトそのもの"
+
+[[condition]]
+id = "get_card_info.unified_present_has_table_c"
+target_function = "getCardInfo"
+source_lines = "59-77"
+description = "UnifiedDBにcidがあり、かつhasCardTableC(cid)がtrueの場合、TempDBへの補完アクセスをせずunifiedInfoをそのまま返す"
+given = "unifiedInfo が非null、unifiedDB.hasCardTableC(cid) が true"
+expect_return_shape = "unifiedInfoオブジェクトそのもの（マージなし）"
+
+[[condition]]
+id = "get_card_info.unified_present_no_table_c_temp_supplements"
+target_function = "getCardInfo"
+source_lines = "70-75"
+description = "UnifiedDBにcidがあり、hasCardTableC(cid)がfalseで、TempDBにも同cidの情報がある場合、{...unifiedInfo, ...tempInfo}でマージして返す（TempDB側のフィールドがUnifiedDB側を上書き）"
+given = "unifiedInfo が非null、hasCardTableC(cid) が false、getCardInfoFromTempDB(cid) が非null"
+expect_return_shape = "unifiedInfoとtempInfoをスプレッドでマージしたオブジェクト（tempInfoのキーが優先）"
+
+[[condition]]
+id = "get_card_info.unified_present_no_table_c_temp_missing"
+target_function = "getCardInfo"
+source_lines = "70-77"
+description = "UnifiedDBにcidがあり、hasCardTableC(cid)がfalseだが、TempDBにも情報が無い場合、マージせずunifiedInfoをそのまま返す"
+given = "unifiedInfo が非null、hasCardTableC(cid) が false、getCardInfoFromTempDB(cid) が null"
+expect_return_shape = "unifiedInfoオブジェクトそのもの（マージなし）"
+
+# --- getCardInfoLegacy(cid, _ciid, _deckData): CardInfo | null ---
+
+[[condition]]
+id = "get_card_info_legacy.delegates_ignoring_extra_args"
+target_function = "getCardInfoLegacy"
+source_lines = "89-95"
+description = "@deprecatedな後方互換ラッパー。ciid/deckData引数は一切参照せず、getCardInfo(cid)の結果をそのまま返す"
+given = "任意のciid/deckDataを渡す（getCardInfo(cid)の返り値に影響しない）"
+expect_return_shape = "getCardInfo(cid)と同一の返り値"
+
+# --- findDeckCardRef(predicate, deckData): DeckCardRef | undefined ---
+
+[[condition]]
+id = "find_deck_card_ref.trash_deck_absent_defaults_empty"
+target_function = "findDeckCardRef"
+source_lines = "108-113"
+description = "deckData.trashDeckがundefinedの場合、|| [] により検索対象からtrashDeckが除外される（trashDeck内のカードにはpredicateがマッチしない）"
+given = "deckData.trashDeck が undefined、trashDeck相当のカードにのみマッチするpredicate"
+expect_return = "undefined"
+
+[[condition]]
+id = "find_deck_card_ref.trash_deck_present_included"
+target_function = "findDeckCardRef"
+source_lines = "108-113"
+description = "deckData.trashDeckが配列で存在する場合、mainDeck/extraDeck/sideDeckと同様に検索対象に含まれる"
+given = "deckData.trashDeck が [DeckCardRef]、trashDeck内のカードにマッチするpredicate"
+expect_return_shape = "trashDeck内の一致したDeckCardRef"
+
+[[condition]]
+id = "find_deck_card_ref.first_match_priority_order"
+target_function = "findDeckCardRef"
+source_lines = "108-115"
+description = "mainDeck→extraDeck→sideDeck→trashDeckの順に結合した配列に対しArray.find()するため、複数デッキに一致し得るpredicateの場合はこの順序で最初に見つかったものを返す"
+given = "mainDeckとsideDeckの双方にpredicateが一致するカードがある"
+expect_return_shape = "mainDeck側の一致したDeckCardRef（先勝ち）"
+
+[[condition]]
+id = "find_deck_card_ref.no_match_returns_undefined"
+target_function = "findDeckCardRef"
+source_lines = "115"
+description = "全デッキのどのカードもpredicateに一致しない場合、Array.find()の仕様通りundefinedを返す"
+given = "どのDeckCardRefに対してもpredicateがfalseを返す"
+expect_return = "undefined"
+
+# --- getCardInfoWithLang(cid, ciid, document): CardInfo | null ---
+
+[[condition]]
+id = "get_card_info_with_lang.not_found_returns_null"
+target_function = "getCardInfoWithLang"
+source_lines = "139-141"
+description = "UnifiedCacheDB.reconstructCardInfo(cid, lang)がundefinedの場合、nullを返す（TempDBへのフォールバックはしない）"
+given = "unifiedDB.reconstructCardInfo(cid, lang) が undefined"
+expect_return = "null"
+
+[[condition]]
+id = "get_card_info_with_lang.found_overwrites_ciid"
+target_function = "getCardInfoWithLang"
+source_lines = "139-144"
+description = "cardInfoが取得できた場合、元のcardInfo.ciidの値に関わらず、引数ciidをString()変換した値で常に上書きして返す"
+given = "unifiedDB.reconstructCardInfo(cid, lang) がciid='999'を含むCardInfoを返す、引数ciid=42"
+expect_return_shape = "{...cardInfo, ciid: '42'}（元のciid='999'は上書きされる）"
+
+[[condition]]
+id = "get_card_info_with_lang.lang_from_local_document_param"
+target_function = "getCardInfoWithLang"
+source_lines = "136,139"
+description = "langはdetectLanguage(document)で決定されるが、このdocumentはグローバルではなく第3引数（関数パラメータ）を参照する（getCardInfoFromUnifiedDBとの相違点）"
+given = "第3引数documentにdetectLanguageの結果が変わるようなDocumentを渡す"
+expect_side_effect = "detectLanguageに渡されるのはグローバルdocumentではなく引数document"

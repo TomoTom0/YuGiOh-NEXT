@@ -1,0 +1,82 @@
+# 検証対象: src/utils/collapse-scroll.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、utils残り分類の最終ファイル。
+#
+# 実装コメントとの差異: 特になし（JSDocの記述と実装の挙動は一致している）。
+
+[meta]
+feature = "collapse-scroll"
+source_file = "src/utils/collapse-scroll.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/collapse-scroll.test.ts"
+source_hash = "fbac7d87e204c46450f23d16c2c784bd497270e3"
+note = "verified=falseは0件"
+
+# --- collapseWithScroll(itemEl, setCollapsed, timeout, containerSelector = '.card-tab-content'): void ---
+
+[[condition]]
+id = "collapse_with_scroll.set_collapsed_called_synchronously"
+target_function = "collapseWithScroll"
+source_lines = "15-17"
+description = "beforeHeightをitemEl.scrollHeightから取得した直後、setTimeoutをスケジュールする前に、setCollapsed()が同期的に1回呼ばれる（timeoutの経過を待たない）"
+given = "itemEl.scrollHeight = 200、setCollapsedはspy、timeoutは任意の値"
+expect_side_effect = "collapseWithScroll呼び出し直後（setTimeoutのコールバック実行前）にsetCollapsedが1回呼ばれる"
+
+[[condition]]
+id = "collapse_with_scroll.default_container_selector"
+target_function = "collapseWithScroll"
+source_lines = "13,20"
+description = "containerSelector引数省略時は'.card-tab-content'がデフォルト値として使われ、itemEl.closest()の検索セレクタになる"
+given = "containerSelector引数を省略して呼び出す。itemEl.closestをspyし、heightDiff>0となるようscrollHeightを変化させる"
+expect_side_effect = "itemEl.closestが'.card-tab-content'を引数に呼ばれる"
+
+[[condition]]
+id = "collapse_with_scroll.height_diff_non_positive_returns_early"
+target_function = "collapseWithScroll"
+source_lines = "18-19"
+description = "timeout経過後、heightDiff(=beforeHeight - itemEl.scrollHeightの実行時点の値)が0以下（高さが変化しない、または増えた）の場合、以降の処理（closestによるcontainer探索・scrollTo）は一切行われず早期returnする"
+given = "beforeHeight=200（setCollapsed呼び出し前）、setTimeoutのコールバック実行時点でitemEl.scrollHeight=200（差分0）またはscrollHeight=250（差分負）"
+expect_side_effect = "itemEl.closestもcontainer.scrollToも呼ばれない"
+
+[[condition]]
+id = "collapse_with_scroll.container_not_found_returns_early"
+target_function = "collapseWithScroll"
+source_lines = "18,20-21"
+description = "heightDiff>0だがitemEl.closest(containerSelector)がnullを返す場合（該当祖先要素が存在しない）、早期returnしscrollToは呼ばれない"
+given = "heightDiff>0となるようscrollHeightを変化させる。itemEl.closestはnullを返す"
+expect_side_effect = "container.scrollToに相当する呼び出しは発生しない（例外もthrowされない）"
+
+[[condition]]
+id = "collapse_with_scroll.item_within_visible_area_scrolls"
+target_function = "collapseWithScroll"
+source_lines = "22-29"
+description = "heightDiff>0かつcontainerが見つかり、itemTop(itemEl.getBoundingClientRect().top) < containerTop(container.getBoundingClientRect().top) + container.clientHeightの場合（アイテム上端がコンテナの可視領域内にある場合）、container.scrollTo({ top: Math.max(0, container.scrollTop - heightDiff), behavior: 'smooth' })が呼ばれる"
+given = "heightDiff=50、itemTop=100、containerTop=0、container.clientHeight=300（itemTop(100) < 0+300）、container.scrollTop=200"
+expect_side_effect = "container.scrollToが1回呼ばれ、引数は{ top: 150, behavior: 'smooth' }"
+
+[[condition]]
+id = "collapse_with_scroll.scroll_top_clamped_at_zero"
+target_function = "collapseWithScroll"
+source_lines = "24-27"
+description = "item_within_visible_area_scrollsの条件下で、heightDiffがcontainer.scrollTopを上回る場合、scrollToのtopはMath.maxにより負値にならず0にクランプされる"
+given = "heightDiff=50、container.scrollTop=10（heightDiff > scrollTop）、itemTop < containerTop + clientHeightを満たす"
+expect_side_effect = "container.scrollToが{ top: 0, behavior: 'smooth' }で呼ばれる"
+
+[[condition]]
+id = "collapse_with_scroll.item_below_visible_area_no_scroll"
+target_function = "collapseWithScroll"
+source_lines = "24"
+description = "heightDiff>0かつcontainerが見つかるが、itemTop >= containerTop + container.clientHeightの場合（アイテム上端がコンテナの可視領域より下にある場合）、scrollToは呼ばれない"
+given = "heightDiff=50、itemTop=500、containerTop=0、container.clientHeight=300（itemTop(500) >= 0+300）"
+expect_side_effect = "container.scrollToは呼ばれない"
+
+[[condition]]
+id = "collapse_with_scroll.timeout_delays_measurement"
+target_function = "collapseWithScroll"
+source_lines = "17,30"
+description = "heightDiffの計算とそれ以降の処理（container探索・scrollTo）はsetTimeoutにより指定timeout ms経過後まで実行されない。timeout未経過時点ではDOM再計測やscrollTo呼び出しは発生しない"
+given = "timeout=100、setCollapsed呼び出し直後（0ms経過時点）でscrollHeightがすでに変化している状態"
+expect_side_effect = "100ms未満の経過ではitemEl.closest・container.scrollToとも呼ばれない。100ms経過後に初めてclosestが呼ばれる"

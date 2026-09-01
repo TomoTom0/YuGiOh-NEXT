@@ -1,0 +1,224 @@
+# 検証対象: src/utils/search-exclusion-adapter.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)。SearchFiltersと推論エンジン(SearchConditionState)の間のアダプター。
+#
+# 注意: src/utils/search-exclusion-engine.ts は別実装（TASK-330で完了済み・
+# tests/design/search-exclusion-engine/に既存）。本ファイルとは無関係。
+#
+# 実装コメントとの差異: 特になし。実装コメント(L42-43)の「'not'は排他ルールの対象外」記載は
+# 実際のコードと一致している。
+#
+# hasAtkInput/hasDefInputは非exportのヘルパー関数のため、extract-ast-skeleton.tsの
+# 「未カバーexport関数検出」の対象外（README 5節 Phase1.6知見と同様の既知の限界）。
+# 意味のある分岐（4項OR）を持つため、README 2節の粒度基準に従い人手でconditionを記載した。
+
+[meta]
+feature = "search-exclusion-adapter"
+source_file = "src/utils/search-exclusion-adapter.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/search-exclusion-adapter.test.ts"
+source_hash = "812dca73cb543b89cf6186acd42c2f760686c739"
+note = "verified=falseは0件"
+
+# --- toSearchConditionState(filters: SearchFilters): SearchConditionState ---
+
+[[condition]]
+id = "card_type.truthy_adds_attribute"
+target_function = "toSearchConditionState"
+source_lines = "16-18"
+description = "filters.cardTypeがtruthyな場合、'card-type_${cardType}'をselectedAttributesに追加する"
+given = "filters.cardType = '1'"
+expect_side_effect = "selectedAttributes.has('card-type_1') === true"
+
+[[condition]]
+id = "card_type.null_not_added"
+target_function = "toSearchConditionState"
+source_lines = "16-18"
+description = "filters.cardTypeがnull（falsy）の場合、card-type_始まりのキーは追加されない"
+given = "filters.cardType = null"
+expect_side_effect = "selectedAttributesにcard-type_で始まるキーが1件も含まれない"
+
+[[condition]]
+id = "attributes.each_prefixed_and_added"
+target_function = "toSearchConditionState"
+source_lines = "21-23"
+description = "filters.attributesの各要素を'attribute_${attr}'としてselectedAttributesに追加する（配列の全要素が対象）"
+given = "filters.attributes = ['light', 'dark']"
+expect_side_effect = "selectedAttributes.has('attribute_light') === true かつ selectedAttributes.has('attribute_dark') === true"
+
+[[condition]]
+id = "spell_types.each_prefixed_and_added"
+target_function = "toSearchConditionState"
+source_lines = "26-28"
+description = "filters.spellTypesの各要素を'spell-type_${type}'としてselectedAttributesに追加する"
+given = "filters.spellTypes = ['quick-play', 'continuous']"
+expect_side_effect = "selectedAttributes.has('spell-type_quick-play') === true かつ selectedAttributes.has('spell-type_continuous') === true"
+
+[[condition]]
+id = "trap_types.each_prefixed_and_added"
+target_function = "toSearchConditionState"
+source_lines = "31-33"
+description = "filters.trapTypesの各要素を'trap-type_${type}'としてselectedAttributesに追加する"
+given = "filters.trapTypes = ['counter', 'continuous']"
+expect_side_effect = "selectedAttributes.has('trap-type_counter') === true かつ selectedAttributes.has('trap-type_continuous') === true"
+
+[[condition]]
+id = "races.each_prefixed_and_added"
+target_function = "toSearchConditionState"
+source_lines = "36-38"
+description = "filters.racesの各要素を'race_${race}'としてselectedAttributesに追加する"
+given = "filters.races = ['dragon', 'spellcaster']"
+expect_side_effect = "selectedAttributes.has('race_dragon') === true かつ selectedAttributes.has('race_spellcaster') === true"
+
+[[condition]]
+id = "monster_types.normal_state_added"
+target_function = "toSearchConditionState"
+source_lines = "41-46"
+description = "filters.monsterTypesの要素のうちstate === 'normal'のものだけ'monster-type_${type}'としてselectedAttributesに追加する"
+given = "filters.monsterTypes = [{ type: 'effect', state: 'normal' }, { type: 'fusion', state: 'normal' }]"
+expect_side_effect = "selectedAttributes.has('monster-type_effect') === true かつ selectedAttributes.has('monster-type_fusion') === true"
+
+[[condition]]
+id = "monster_types.not_state_excluded"
+target_function = "toSearchConditionState"
+source_lines = "41-47"
+description = "state === 'not'（除外指定）の要素はselectedAttributesに追加されない。実装コメント通り、'not'は排他ルールの対象外として意図的に除外される優先順位・排他条件"
+given = "filters.monsterTypes = [{ type: 'effect', state: 'not' }, { type: 'fusion', state: 'normal' }]"
+expect_side_effect = "selectedAttributes.has('monster-type_effect') === false（'not'側）かつ selectedAttributes.has('monster-type_fusion') === true（'normal'側）"
+
+[[condition]]
+id = "field_inputs.array_length_fields_true_when_nonempty"
+target_function = "toSearchConditionState"
+source_lines = "51-54,57-58,60-61"
+description = "fieldInputsのうちlink-value/link-marker/p-scale/level-rank/attribute/race/spell-type/trap-typeは、対応するfilters配列のlength > 0で真偽が決まる（配列に1件以上あればtrue）"
+given = "filters.linkValues=[1,2,3], filters.linkMarkers=['top','bottom'], filters.scaleValues=[1,2], filters.levelValues=[4,7], filters.attributes=['light'], filters.races=['dragon'], filters.spellTypes=['quick-play'], filters.trapTypes=['counter']"
+expect_return_shape = "fieldInputsの該当8キー全てがtrue"
+
+[[condition]]
+id = "field_inputs.array_length_fields_false_when_empty"
+target_function = "toSearchConditionState"
+source_lines = "51-54,57-58,60-61"
+description = "対応する配列が空（初期値）の場合、fieldInputsの該当キーはfalseになる"
+given = "filters = createBaseFilters()（linkValues/linkMarkers/scaleValues/levelValues/attributes/races/spellTypes/trapTypesが全て空配列）"
+expect_return_shape = "fieldInputsの該当8キー全てがfalse"
+
+[[condition]]
+id = "field_inputs.monster_type_counts_regardless_of_state"
+target_function = "toSearchConditionState"
+source_lines = "59"
+description = "fieldInputs['monster-type']はfilters.monsterTypes.length > 0で判定されるため、state==='not'のみの要素があってもtrueになる。selectedAttributesは'not'状態を除外するが、fieldInputsは配列の要素数のみを見るため両者の判定基準が異なる非対称な仕様"
+given = "filters.monsterTypes = [{ type: 'tuner', state: 'not' }]（'normal'状態の要素は無し）"
+expect_return_shape = "fieldInputs['monster-type'] === true だが selectedAttributes.has('monster-type_tuner') === false"
+
+[[condition]]
+id = "field_inputs.atk_delegates_to_has_atk_input"
+target_function = "toSearchConditionState"
+source_lines = "56"
+description = "fieldInputs['atk']はhasAtkInput(filters.atk)の戻り値をそのまま使う（詳細な分岐はhasAtkInput側のcondition参照）"
+given = "filters.atk = { exact: true, unknown: false }"
+expect_return_shape = "fieldInputs['atk'] === hasAtkInput(filters.atk)の戻り値"
+
+[[condition]]
+id = "field_inputs.def_delegates_to_has_def_input"
+target_function = "toSearchConditionState"
+source_lines = "55"
+description = "fieldInputs['def']はhasDefInput(filters.def)の戻り値をそのまま使う（詳細な分岐はhasDefInput側のcondition参照）"
+given = "filters.def = { exact: true, unknown: false }"
+expect_return_shape = "fieldInputs['def'] === hasDefInput(filters.def)の戻り値"
+
+[[condition]]
+id = "return_value.monster_type_mode_passthrough"
+target_function = "toSearchConditionState"
+source_lines = "65"
+description = "monsterTypeModeはfilters.monsterTypeMatchModeをそのまま返す（'and'/'or'の変換なし）"
+given = "filters.monsterTypeMatchMode = 'or'"
+expect_return_shape = "result.monsterTypeMode === 'or'"
+
+# --- hasAtkInput(stat: { exact: boolean; unknown: boolean; min?: number; max?: number }): boolean ---
+# 非export関数。extract-ast-skeleton.tsの未カバー検出対象外（README 5節Phase1.6の既知の限界と同様）。
+
+[[condition]]
+id = "has_atk_input.exact_true"
+target_function = "hasAtkInput"
+source_lines = "75"
+description = "stat.exactがtrueの場合、他のフィールドに関わらずtrueを返す"
+given = "stat = { exact: true, unknown: false }"
+expect_return = true
+
+[[condition]]
+id = "has_atk_input.unknown_true"
+target_function = "hasAtkInput"
+source_lines = "75"
+description = "stat.unknownがtrueの場合（exactがfalseでも）trueを返す"
+given = "stat = { exact: false, unknown: true }"
+expect_return = true
+
+[[condition]]
+id = "has_atk_input.min_defined"
+target_function = "hasAtkInput"
+source_lines = "75"
+description = "stat.minがundefinedでない場合（exact/unknownがfalseでも）trueを返す"
+given = "stat = { exact: false, unknown: false, min: 2000 }"
+expect_return = true
+
+[[condition]]
+id = "has_atk_input.max_defined"
+target_function = "hasAtkInput"
+source_lines = "75"
+description = "stat.maxがundefinedでない場合（exact/unknown/minがfalse/undefinedでも）trueを返す"
+given = "stat = { exact: false, unknown: false, max: 3000 }"
+expect_return = true
+
+[[condition]]
+id = "has_atk_input.all_absent_false"
+target_function = "hasAtkInput"
+source_lines = "75"
+description = "exact/unknownが共にfalseかつmin/maxが共にundefinedの場合、falseを返す"
+given = "stat = { exact: false, unknown: false }"
+expect_return = false
+
+# --- hasDefInput(stat: { exact: boolean; unknown: boolean; min?: number; max?: number }): boolean ---
+# hasAtkInputと実装（式）が完全に同一（コード重複）。非export関数のため未カバー検出対象外。
+
+[[condition]]
+id = "has_def_input.exact_true"
+target_function = "hasDefInput"
+source_lines = "79"
+description = "stat.exactがtrueの場合、他のフィールドに関わらずtrueを返す"
+given = "stat = { exact: true, unknown: false }"
+expect_return = true
+
+[[condition]]
+id = "has_def_input.unknown_true"
+target_function = "hasDefInput"
+source_lines = "79"
+description = "stat.unknownがtrueの場合（exactがfalseでも）trueを返す"
+given = "stat = { exact: false, unknown: true }"
+expect_return = true
+
+[[condition]]
+id = "has_def_input.min_defined"
+target_function = "hasDefInput"
+source_lines = "79"
+description = "stat.minがundefinedでない場合（exact/unknownがfalseでも）trueを返す"
+given = "stat = { exact: false, unknown: false, min: 1000 }"
+expect_return = true
+
+[[condition]]
+id = "has_def_input.max_defined"
+target_function = "hasDefInput"
+source_lines = "79"
+description = "stat.maxがundefinedでない場合（exact/unknown/minがfalse/undefinedでも）trueを返す"
+given = "stat = { exact: false, unknown: false, max: 2000 }"
+expect_return = true
+
+[[condition]]
+id = "has_def_input.all_absent_false"
+target_function = "hasDefInput"
+source_lines = "79"
+description = "exact/unknownが共にfalseかつmin/maxが共にundefinedの場合、falseを返す"
+given = "stat = { exact: false, unknown: false }"
+expect_return = false

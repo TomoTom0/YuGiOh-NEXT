@@ -1,0 +1,239 @@
+# 検証対象: src/content/session/session.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 本ファイルの性質: SessionManagerクラスのインスタンス(sessionManager)をexportする形式。
+# extract-ast-skeleton.tsはexport classの各メソッドを検出できるが、本ファイルは
+# 「class自体はexportされず、インスタンスのみexportされる」形式(`export const sessionManager
+# = new SessionManager()`)のため、AST抽出はモジュールレベルのexport関数getCgid()しか
+# 検出できない(既知の限界)。SessionManagerの各メソッドについては手動で条件を記載した。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - src/content/session/__tests__/session.test.ts (216行、20テスト)は既に実装を直接importし
+#   実際の分岐を検証する高品質なテストだった（ensureCgidのフォールバック・isLoggedIn・
+#   saveDeckのstale ytkn再試行ロジック等）。ただしsaveDeckの「成功」パス自体のテストが
+#   無く（既存4件は全て失敗/再試行シナリオ）、createDeck/deleteDeck/getDeckList/
+#   issueDeckCode/getDeckLikes/isStaleYtknError/preloadNextYtknは未テストだったため、
+#   本タスクで追加した。
+
+[meta]
+feature = "session"
+source_file = "src/content/session/session.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- src/content/session/__tests__/session.test.ts"
+source_hash = "0ab681d4cd7f8ed481fce191ef74e3d22d128edd"
+note = "verified=falseは0件"
+
+# --- isStaleYtknError(error) [モジュール関数] ---
+
+[[condition]]
+id = "is_stale_ytkn_error.undefined_returns_false"
+target_function = "isStaleYtknError"
+source_lines = "20-22"
+description = "errorが未指定(undefined)の場合falseを返す"
+given = "isStaleYtknError(undefined)"
+expect_return = "false"
+
+[[condition]]
+id = "is_stale_ytkn_error.matches_screen_transition_message"
+target_function = "isStaleYtknError"
+source_lines = "23"
+description = "error配列内のいずれかのメッセージが'screen transition error'または'画面遷移エラー'(大文字小文字区別なし)を含む場合trueを返す"
+given = "error = ['screen transition error']、または['画面遷移エラーが発生しました']"
+expect_return = "true"
+
+[[condition]]
+id = "is_stale_ytkn_error.no_match_returns_false"
+target_function = "isStaleYtknError"
+source_lines = "23"
+description = "error配列にstale ytknを示すメッセージが無い場合falseを返す"
+given = "error = ['デッキ名が不正です']"
+expect_return = "false"
+
+# --- SessionManager#ensureCgid() [private] ---
+
+[[condition]]
+id = "ensure_cgid.cached_returns_immediately"
+target_function = "SessionManager.ensureCgid"
+source_lines = "38-40"
+description = "既にcgidがキャッシュ済みの場合、DOMを探索せずキャッシュ値を返す"
+given = "sessionManager['cgid']に値がセット済み"
+expect_return_shape = "キャッシュされたcgid文字列"
+
+[[condition]]
+id = "ensure_cgid.mydeck_link_matched_caches_and_returns"
+target_function = "SessionManager.ensureCgid"
+source_lines = "43-50"
+description = "member_deck.actionへのcgid付きリンクが見つかった場合、そのcgidをキャッシュして返す"
+given = "フッターに'member_deck.action?cgid=<32桁hex>'を含むリンクがある"
+expect_return_shape = "抽出された32桁hexのcgid"
+
+[[condition]]
+id = "ensure_cgid.fallback_any_cgid_link"
+target_function = "SessionManager.ensureCgid"
+source_lines = "53-60"
+description = "member_deck.actionリンクが無い場合でも、cgidを含む任意のリンクからフォールバック取得する"
+given = "member_deck.actionリンクは無いが、cgid付きの別リンクが存在する"
+expect_return_shape = "抽出された32桁hexのcgid"
+
+[[condition]]
+id = "ensure_cgid.no_matching_link_throws"
+target_function = "SessionManager.ensureCgid"
+source_lines = "62"
+description = "cgidを含むリンクが1件も見つからない場合throwする"
+given = "cgidを含むリンクが存在しないDOM"
+expect_throw = "cgid not found in page"
+
+# --- SessionManager#isLoggedIn() ---
+
+[[condition]]
+id = "is_logged_in.mydeck_link_matched_true"
+target_function = "SessionManager.isLoggedIn"
+source_lines = "86-92"
+description = "member_deck.actionへのcgid付きリンクが見つかればtrueを返す"
+given = "フッターに'member_deck.action?cgid=<32桁hex>'を含むリンクがある"
+expect_return = "true"
+
+[[condition]]
+id = "is_logged_in.fallback_any_link_matched_true"
+target_function = "SessionManager.isLoggedIn"
+source_lines = "94-97"
+description = "member_deck.actionリンクは無いが任意のcgid付きリンクがあればtrueを返す"
+given = "cgid付きの任意リンクのみ存在する"
+expect_return = "true"
+
+[[condition]]
+id = "is_logged_in.no_cgid_link_false"
+target_function = "SessionManager.isLoggedIn"
+source_lines = "94-99"
+description = "cgidを含むリンクが1件も無い場合falseを返す（throwしない点がensureCgidと異なる）"
+given = "cgidを含むリンクが存在しないDOM"
+expect_return = "false"
+
+# --- SessionManager#getCgid() [public] ---
+
+[[condition]]
+id = "session_manager_get_cgid.delegates_to_ensure_cgid"
+target_function = "SessionManager.getCgid"
+source_lines = "105-107"
+description = "ensureCgid()の結果をそのまま返す（テスト用に公開されたラッパー）"
+given = "キャッシュ済みのcgidがある状態"
+expect_return_shape = "ensureCgid()と同じcgid文字列"
+
+# --- SessionManager#createDeck() ---
+
+[[condition]]
+id = "create_deck.delegates_with_cgid"
+target_function = "SessionManager.createDeck"
+source_lines = "114-117"
+description = "ensureCgid()で取得したcgidを使ってcreateNewDeckInternalを呼び、その結果をそのまま返す"
+given = "有効なcgidが取得できる状態"
+expect_return_shape = "createNewDeckInternalの戻り値（新デッキ番号）"
+
+# --- SessionManager#deleteDeck(dno) ---
+
+[[condition]]
+id = "delete_deck.delegates_with_cgid"
+target_function = "SessionManager.deleteDeck"
+source_lines = "126-129"
+description = "ensureCgid()で取得したcgidとdnoでdeleteDeckInternalを呼び、その結果をそのまま返す"
+given = "有効なcgidが取得できる状態"
+expect_return_shape = "deleteDeckInternalの戻り値（成功可否のboolean）"
+
+# --- SessionManager#saveDeck(dno, deckData) ---
+
+[[condition]]
+id = "save_deck.success_preloads_next_ytkn"
+target_function = "SessionManager.saveDeck"
+source_lines = "213-217"
+description = "保存成功時、preloadNextYtkn()を非同期(fire-and-forget)で呼ぶ。preloadNextYtkn自体が失敗しても保存結果には影響しない"
+given = "saveDeckInternalが success: true を返す"
+expect_return_shape = "{ success: true } を含む結果。preloadNextYtkn相当の処理(window.ygoNextPreloadedYtknへの設定)が後続で実行される"
+
+[[condition]]
+id = "save_deck.preloaded_ytkn_promise_awaited_with_timeout"
+target_function = "SessionManager.saveDeck"
+source_lines = "152-163"
+description = "window.ygoNextPreloadedYtknPromiseが設定済みかつygoNextPreloadedYtkn未設定の場合、最大1秒待機してから使用後にpromiseをnullにリセットする。タイムアウトしてもwarnのみでthrowしない"
+given = "window.ygoNextPreloadedYtknPromiseがタイムアウトせず先に解決する場合／1秒以内に解決しない場合の両方"
+expect_no_throw = true
+
+[[condition]]
+id = "save_deck.exception_logged_and_rethrown"
+target_function = "SessionManager.saveDeck"
+source_lines = "223-226"
+description = "処理中に例外が発生した場合、console.errorでログした上で例外を再throwする（呼び出し元に伝播させる）"
+given = "ensureCgid()がthrowする（cgidが見つからない）"
+expect_throw = "cgid not found in page"
+
+# --- SessionManager#preloadNextYtkn(cgid, dno) [private] ---
+
+[[condition]]
+id = "preload_next_ytkn.success_sets_window_ytkn"
+target_function = "SessionManager.preloadNextYtkn"
+source_lines = "236-239"
+description = "fetchYtkn成功時、その値をwindow.ygoNextPreloadedYtknに設定する"
+given = "fetchYtknFromEditFormが有効なytknを返す"
+expect_side_effect = "window.ygoNextPreloadedYtknが取得したytknになる"
+
+[[condition]]
+id = "preload_next_ytkn.error_warns_only"
+target_function = "SessionManager.preloadNextYtkn"
+source_lines = "240-242"
+description = "fetchYtknが失敗した場合、console.warnのみでthrowしない（saveDeckの成功結果に影響を与えない）"
+given = "fetchYtknFromEditFormがrejectする"
+expect_no_throw = true
+
+# --- SessionManager#getDeckList() ---
+
+[[condition]]
+id = "get_deck_list.delegates_with_cgid"
+target_function = "SessionManager.getDeckList"
+source_lines = "250-253"
+description = "ensureCgid()で取得したcgidでgetDeckListInternalを呼び、その結果をそのまま返す"
+given = "有効なcgidが取得できる状態"
+expect_return_shape = "getDeckListInternalの戻り値（DeckListItem配列）"
+
+# --- SessionManager#getDeckLikes(dno) ---
+
+[[condition]]
+id = "get_deck_likes.always_returns_zero"
+target_function = "SessionManager.getDeckLikes"
+source_lines = "266-269"
+description = "未実装のため、引数に関わらず常に0を返す（TODOコメントに実装待ちの旨が記載されている）"
+given = "任意のdno"
+expect_return = "0"
+
+# --- SessionManager#issueDeckCode(dno) ---
+
+[[condition]]
+id = "issue_deck_code.delegates_with_cgid"
+target_function = "SessionManager.issueDeckCode"
+source_lines = "280-283"
+description = "ensureCgid()で取得したcgidとdnoでissueDeckCodeInternalを呼び、その結果をそのまま返す"
+given = "有効なcgidが取得できる状態"
+expect_return_shape = "issueDeckCodeInternalの戻り値（デッキコード文字列）"
+
+# --- getCgid() [モジュールレベルexport関数、後方互換] ---
+
+[[condition]]
+id = "module_get_cgid.success_delegates_to_session_manager"
+target_function = "getCgid"
+source_lines = "296-297"
+description = "sessionManager.getCgid()の結果をそのまま返す"
+given = "sessionManager.getCgid()が成功する"
+expect_return_shape = "cgid文字列"
+
+[[condition]]
+id = "module_get_cgid.error_logged_and_returns_null"
+target_function = "getCgid"
+source_lines = "298-300"
+description = "sessionManager.getCgid()がthrowした場合、console.errorでログしnullを返す（例外を再throwしない点がSessionManager#saveDeckと異なる）"
+given = "sessionManager.getCgid()がthrowする（cgidが見つからない）"
+expect_return = "null"

@@ -62,35 +62,54 @@ describe('extension-context-checker', () => {
   });
 
   describe('isExtensionContextInvalidated', () => {
+    // [covers:ctx_invalidated.message_extension_context_invalidated_true]
     it('エラーメッセージに "Extension context invalidated" が含まれる場合trueを返す', () => {
       const error = new Error('Extension context invalidated');
       expect(isExtensionContextInvalidated(error)).toBe(true);
     });
 
+    // [covers:ctx_invalidated.message_cannot_access_true]
     it('エラーメッセージに "Cannot access" が含まれる場合trueを返す', () => {
       const error = new Error('Cannot access chrome.storage');
       expect(isExtensionContextInvalidated(error)).toBe(true);
     });
 
+    // [covers:ctx_invalidated.runtime_id_undefined_true]
     it('chrome.runtime.id が undefined の場合trueを返す', () => {
       mockRuntimeId = undefined;
       const error = new Error('Some error');
       expect(isExtensionContextInvalidated(error)).toBe(true);
     });
 
+    // [covers:ctx_invalidated.falsy_error_returns_false]
     it('エラーがない場合falseを返す', () => {
       expect(isExtensionContextInvalidated(null)).toBe(false);
       expect(isExtensionContextInvalidated(undefined)).toBe(false);
     });
 
+    // [covers:ctx_invalidated.all_false]
     it('関連しないエラーメッセージの場合falseを返す', () => {
       const error = new Error('Some other error');
       expect(isExtensionContextInvalidated(error)).toBe(false);
     });
 
+    // [covers:ctx_invalidated.message_fallback_to_string]
     it('エラーオブジェクトでない場合でも文字列として処理する', () => {
       const errorString = 'Extension context invalidated';
       expect(isExtensionContextInvalidated(errorString)).toBe(true);
+    });
+
+    // [covers:ctx_invalidated.message_fallback_to_string]
+    it('error.messageが空文字の場合、String(error)へフォールバックして判定する', () => {
+      const error = { message: '', toString: () => 'Extension context invalidated' };
+      expect(isExtensionContextInvalidated(error)).toBe(true);
+    });
+
+    // [covers:ctx_invalidated.runtime_id_empty_string_not_undefined]
+    it('chrome.runtime.id が空文字（falsyだがundefinedでない）の場合、厳密等価判定によりfalseを返す', () => {
+      mockRuntimeId = '';
+      const error = new Error('Some other error');
+      expect(isExtensionContextInvalidated(error)).toBe(false);
     });
   });
 
@@ -111,6 +130,7 @@ describe('extension-context-checker', () => {
       bannerElement = null;
     });
 
+    // [covers:show_reload_prompt.creates_banner_and_logs]
     it('バナー要素が作成される', () => {
       showReloadPrompt();
       expect(bannerElement).not.toBeNull();
@@ -144,6 +164,7 @@ describe('extension-context-checker', () => {
   });
 
   describe('safeStorageGet', () => {
+    // [covers:safe_storage_get.success_resolves]
     it('正常に値を取得できる', async () => {
       mockStorage['testKey'] = 'testValue';
       const result = await safeStorageGet('testKey');
@@ -157,18 +178,34 @@ describe('extension-context-checker', () => {
       expect(result).toEqual({ key1: 'value1', key2: 'value2' });
     });
 
-    it('chrome.runtime.id が undefined の場合エラーをthrowする', async () => {
+    // [covers:safe_storage_get.runtime_id_falsy_throws_and_prompts]
+    it('chrome.runtime.id が undefined の場合エラーをthrowし、showReloadPromptが呼ばれる', async () => {
       mockRuntimeId = undefined;
+      const appendChildSpy = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node) => node as Node);
       await expect(safeStorageGet('testKey')).rejects.toThrow('Extension context invalidated');
+      expect(appendChildSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[Extension] Context invalidated. Please reload the page.'
+      );
+      appendChildSpy.mockRestore();
     });
 
-    it('chrome.runtime.lastError がある場合エラーをthrowする', async () => {
+    // [covers:safe_storage_get.last_error_rejects_no_prompt]
+    it('chrome.runtime.lastError がある場合エラーをthrowするが、showReloadPromptは呼ばれない', async () => {
       mockLastError = { message: 'Storage error' };
+      const appendChildSpy = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node) => node as Node);
       await expect(safeStorageGet('testKey')).rejects.toThrow('Storage get failed: Storage error');
+      expect(appendChildSpy).not.toHaveBeenCalled();
+      appendChildSpy.mockRestore();
     });
   });
 
   describe('safeStorageSet', () => {
+    // [covers:safe_storage_set.success_resolves_void]
     it('正常に値を設定できる', async () => {
       await safeStorageSet({ testKey: 'testValue' });
       expect(mockStorage['testKey']).toBe('testValue');
@@ -180,18 +217,33 @@ describe('extension-context-checker', () => {
       expect(mockStorage['key2']).toBe('value2');
     });
 
-    it('chrome.runtime.id が undefined の場合エラーをthrowする', async () => {
+    // [covers:safe_storage_set.runtime_id_falsy_throws_and_prompts]
+    it('chrome.runtime.id が undefined の場合エラーをthrowし、showReloadPromptが呼ばれる', async () => {
       mockRuntimeId = undefined;
+      const appendChildSpy = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node) => node as Node);
       await expect(safeStorageSet({ testKey: 'testValue' })).rejects.toThrow(
         'Extension context invalidated'
       );
+      expect(appendChildSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[Extension] Context invalidated. Please reload the page.'
+      );
+      appendChildSpy.mockRestore();
     });
 
-    it('chrome.runtime.lastError がある場合エラーをthrowする', async () => {
+    // [covers:safe_storage_set.last_error_rejects_no_prompt]
+    it('chrome.runtime.lastError がある場合エラーをthrowするが、showReloadPromptは呼ばれない', async () => {
       mockLastError = { message: 'Set error' };
+      const appendChildSpy = vi
+        .spyOn(document.body, 'appendChild')
+        .mockImplementation((node) => node as Node);
       await expect(safeStorageSet({ testKey: 'testValue' })).rejects.toThrow(
         'Storage set failed: Set error'
       );
+      expect(appendChildSpy).not.toHaveBeenCalled();
+      appendChildSpy.mockRestore();
     });
   });
 });

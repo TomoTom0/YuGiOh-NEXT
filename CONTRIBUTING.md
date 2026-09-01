@@ -32,7 +32,7 @@ cd YuGiOh-NEXT
 pnpm install
 
 # ビルド
-mise run build
+mise run build:prod
 
 # テスト実行
 mise run test:vitest
@@ -42,7 +42,7 @@ mise run test:vitest
 
 ```bash
 # ウォッチモードでビルド
-mise run dev
+mise run watch
 
 # テストをウォッチモード実行
 pnpm exec vitest
@@ -276,7 +276,7 @@ npm run test:coverage
 
 - [ ] コードが正しく動作する
 - [ ] テストが全て通過する（`mise run test:vitest`）
-- [ ] ビルドが成功する（`mise run build`）
+- [ ] ビルドが成功する（`mise run build:prod`）
 - [ ] 新機能にテストを追加した
 - [ ] ドキュメントを更新した（必要に応じて）
 - [ ] コミットメッセージが規約に従っている

@@ -1,0 +1,149 @@
+# 検証対象: src/utils/extension-context-checker.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、拡張機能コンテキスト失効判定・chrome.storageラッパーを持つutils。
+#
+# 実装コメントとの差異:
+# - なし（コード上のコメントと実際の分岐に矛盾は見られなかった）
+#
+# 分岐の微妙な非対称に関する補足:
+# - isExtensionContextInvalidated (L14) は `chrome.runtime?.id === undefined` という厳密等価判定を使う。
+#   一方 safeStorageGet/safeStorageSet の入口ガード (L66, L95) は `!chrome.runtime?.id` という真偽値判定を使う。
+#   そのため id が '' や 0 のような「falsyだがundefinedではない」値のとき、両者の判定結果が食い違いうる
+#   （safeStorageGet/Set 側は失効扱いでthrowするが、isExtensionContextInvalidated単体では
+#   メッセージがマッチしない限りfalseを返す）。この非対称性を条件として明示した
+#   （ctx_invalidated.runtime_id_empty_string_not_undefined）。
+
+[meta]
+feature = "extension-context-checker"
+source_file = "src/utils/extension-context-checker.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/extension-context-checker.test.ts"
+source_hash = "0cc5499067e131cf4531cdbb5195b442ec1ff0f7"
+note = "verified=falseは0件"
+
+# --- isExtensionContextInvalidated(error: any): boolean ---
+
+[[condition]]
+id = "ctx_invalidated.falsy_error_returns_false"
+target_function = "isExtensionContextInvalidated"
+source_lines = "9"
+description = "errorがfalsy（null/undefined/0/''等）の場合、メッセージ判定やchrome.runtime参照を行わず早期returnでfalseを返す"
+given = "error = null または undefined"
+expect_return = false
+
+[[condition]]
+id = "ctx_invalidated.message_extension_context_invalidated_true"
+target_function = "isExtensionContextInvalidated"
+source_lines = "11-14"
+description = "message（error.messageまたはString(error)）に'Extension context invalidated'が含まれる場合trueを返す"
+given = "error = new Error('Extension context invalidated')"
+expect_return = true
+
+[[condition]]
+id = "ctx_invalidated.message_cannot_access_true"
+target_function = "isExtensionContextInvalidated"
+source_lines = "11-14"
+description = "messageに'Cannot access'が含まれる場合trueを返す（他の2条件がfalseでもこの条件だけでtrue）"
+given = "error = new Error('Cannot access chrome.storage')"
+expect_return = true
+
+[[condition]]
+id = "ctx_invalidated.runtime_id_undefined_true"
+target_function = "isExtensionContextInvalidated"
+source_lines = "14"
+description = "messageが両方の文字列判定にマッチしなくても、chrome.runtime?.id が厳密にundefinedならtrueを返す（OR条件の3つ目として独立に成立する）"
+given = "error = new Error('Some error')、chrome.runtime.id = undefined"
+expect_return = true
+
+[[condition]]
+id = "ctx_invalidated.all_false"
+target_function = "isExtensionContextInvalidated"
+source_lines = "11-14"
+description = "messageがどちらの文字列にもマッチせず、かつchrome.runtime.idもundefinedでない場合、falseを返す"
+given = "error = new Error('Some other error')、chrome.runtime.id = 'test-extension-id'"
+expect_return = false
+
+[[condition]]
+id = "ctx_invalidated.message_fallback_to_string"
+target_function = "isExtensionContextInvalidated"
+source_lines = "11"
+description = "error.messageがfalsy（undefinedや空文字）の場合、`||`によりString(error)へフォールバックしてそちらの文字列でマッチ判定する（error.messageが優先、falsyの時のみフォールバック）"
+given = "error.message = ''（またはerrorがmessageプロパティを持たない文字列/オブジェクト）、String(error)が'Extension context invalidated'を含む"
+expect_return = true
+
+[[condition]]
+id = "ctx_invalidated.runtime_id_empty_string_not_undefined"
+target_function = "isExtensionContextInvalidated"
+source_lines = "14"
+description = "chrome.runtime.idが''や0のようなfalsyだが`=== undefined`ではない値の場合、L14の厳密等価判定はfalseとなる（safeStorageGet/Set入口ガードの`!id`判定とは非対称）。messageもマッチしなければ全体でfalseを返す"
+given = "error = new Error('Some other error')、chrome.runtime.id = ''"
+expect_return = false
+
+# --- showReloadPrompt(): void ---
+
+[[condition]]
+id = "show_reload_prompt.creates_banner_and_logs"
+target_function = "showReloadPrompt"
+source_lines = "20-58"
+description = "分岐なし。呼び出す度に固定メッセージ・リロードボタンを持つバナーdiv要素を生成しdocument.body.appendChildで追加、続けてconsole.errorで固定文言を出力する。戻り値なし"
+given = "showReloadPrompt()を呼ぶ"
+expect_side_effect = "document.body.appendChildが1回呼ばれ、バナーにメッセージとリロードボタンが含まれる。console.errorが'[Extension] Context invalidated. Please reload the page.'で呼ばれる"
+
+# --- safeStorageGet<T>(keys: string | string[]): Promise<Record<string, T>> ---
+
+[[condition]]
+id = "safe_storage_get.runtime_id_falsy_throws_and_prompts"
+target_function = "safeStorageGet"
+source_lines = "66-67,81-85"
+description = "入口で!chrome.runtime?.idが真の場合、Error('Extension context invalidated')をthrowする。これはcatch節に捕捉され、isExtensionContextInvalidated(error)はメッセージ一致によりtrueとなるためshowReloadPrompt()が呼ばれ、その後errorが再throwされる（chrome.storage.local.getは呼ばれない）"
+given = "chrome.runtime.id = undefined の状態でsafeStorageGet('testKey')を呼ぶ"
+expect_throw = "Error: Extension context invalidated"
+expect_side_effect = "showReloadPrompt()が呼ばれる（document.body.appendChildとconsole.errorが発生する）。chrome.storage.local.getは呼ばれない"
+
+[[condition]]
+id = "safe_storage_get.last_error_rejects_no_prompt"
+target_function = "safeStorageGet"
+source_lines = "71-80"
+description = "入口ガードを通過した後、chrome.storage.local.getのコールバック内でchrome.runtime.lastErrorが真の場合、Error(`Storage get failed: ${lastError.message}`)でreject。これもcatch節で捕捉されるが、messageが'Extension context invalidated'/'Cannot access'いずれにも一致せずchrome.runtime.idも定義済みのためisExtensionContextInvalidated(error)はfalseとなり、showReloadPrompt()は呼ばれずerrorのみ再throwされる"
+given = "chrome.runtime.id = 'test-extension-id'、chrome.runtime.lastError = { message: 'Storage error' } の状態でsafeStorageGet('testKey')を呼ぶ"
+expect_throw = "Error: Storage get failed: Storage error"
+expect_side_effect = "showReloadPrompt()は呼ばれない（document.body.appendChildが呼ばれない）"
+
+[[condition]]
+id = "safe_storage_get.success_resolves"
+target_function = "safeStorageGet"
+source_lines = "71-79"
+description = "入口ガードを通過し、chrome.storage.local.getのコールバックでlastErrorが無い場合、resultでresolveし、その値がそのまま返り値となる"
+given = "chrome.runtime.id = 'test-extension-id'、lastErrorなし、mockStorage['testKey'] = 'testValue'"
+expect_return_shape = "{ testKey: 'testValue' }"
+
+# --- safeStorageSet(items: Record<string, any>): Promise<void> ---
+
+[[condition]]
+id = "safe_storage_set.runtime_id_falsy_throws_and_prompts"
+target_function = "safeStorageSet"
+source_lines = "95-96,110-114"
+description = "入口で!chrome.runtime?.idが真の場合、Error('Extension context invalidated')をthrowする。catch節でisExtensionContextInvalidated(error)がtrueとなりshowReloadPrompt()が呼ばれた後、errorが再throwされる（chrome.storage.local.setは呼ばれない）"
+given = "chrome.runtime.id = undefined の状態でsafeStorageSet({ testKey: 'testValue' })を呼ぶ"
+expect_throw = "Error: Extension context invalidated"
+expect_side_effect = "showReloadPrompt()が呼ばれる。chrome.storage.local.setは呼ばれない"
+
+[[condition]]
+id = "safe_storage_set.last_error_rejects_no_prompt"
+target_function = "safeStorageSet"
+source_lines = "100-109"
+description = "入口ガードを通過した後、chrome.storage.local.setのコールバック内でchrome.runtime.lastErrorが真の場合、Error(`Storage set failed: ${lastError.message}`)でreject。isExtensionContextInvalidated(error)はfalseとなりshowReloadPrompt()は呼ばれず、errorのみ再throwされる"
+given = "chrome.runtime.id = 'test-extension-id'、chrome.runtime.lastError = { message: 'Set error' } の状態でsafeStorageSet({ testKey: 'testValue' })を呼ぶ"
+expect_throw = "Error: Storage set failed: Set error"
+expect_side_effect = "showReloadPrompt()は呼ばれない"
+
+[[condition]]
+id = "safe_storage_set.success_resolves_void"
+target_function = "safeStorageSet"
+source_lines = "100-108"
+description = "入口ガードを通過し、chrome.storage.local.setのコールバックでlastErrorが無い場合、引数無しでresolveする（戻り値void）。setに渡したitemsがそのままstorageへ反映される"
+given = "chrome.runtime.id = 'test-extension-id'、lastErrorなし、items = { testKey: 'testValue' }"
+expect_return_shape = "void（Promiseはresolveし、mockStorage['testKey']が'testValue'になる）"

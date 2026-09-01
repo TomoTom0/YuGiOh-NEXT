@@ -27,12 +27,15 @@ describe('card-search-mapper', () => {
       expect(SORT_ORDER_TO_API_VALUE['name_desc']).toBe(1);
     });
 
-    it('should map release_desc to API value 20', () => {
-      expect(SORT_ORDER_TO_API_VALUE['release_desc']).toBe(20);
+    // TASK-373: 実サーバーへ直接fetchして検証した結果、sort=20は最古のカード、
+    // sort=21は最新のカードを返すことが判明した（名称の意味と逆）。
+    // release_desc(新しい順)/release_asc(古い順)の割り当てをこの検証結果に合わせて修正。
+    it('should map release_desc to API value 21 (newest first, verified against real server)', () => {
+      expect(SORT_ORDER_TO_API_VALUE['release_desc']).toBe(21);
     });
 
-    it('should map release_asc to API value 21', () => {
-      expect(SORT_ORDER_TO_API_VALUE['release_asc']).toBe(21);
+    it('should map release_asc to API value 20 (oldest first, verified against real server)', () => {
+      expect(SORT_ORDER_TO_API_VALUE['release_asc']).toBe(20);
     });
 
     it('should map level_desc to API value 2', () => {

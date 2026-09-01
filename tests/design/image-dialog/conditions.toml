@@ -1,0 +1,104 @@
+# 検証対象: src/content/deck-recipe/imageDialog.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開、content残り)。
+#
+# 発見したデッドコード・到達不能分岐:
+# - なし。
+#
+# テスト作成中に発見し修正したバグ:
+# - showImageDialogWithData()を、既存ダイアログが開いた状態のまま(onCloseを経ずに)
+#   再度呼ぶと、dialogApp.unmount()はVueコンポーネントを破棄するのみでマウント先の
+#   div要素(#ygo-next-image-dialog-mount)自体はDOMに残り、新規作成されるdiv要素と
+#   id重複した空のdivが残留するバグを発見した。本タスクで
+#   `document.getElementById('ygo-next-image-dialog-mount')?.remove()`を追加して修正した。
+#
+# 既存テストの説明文・アサーションの不正確さ:
+# - imageDialog.ts専用のテストは存在しなかったため、新規作成した。
+#   @/components/ImageDialog.vue自体のUIロジックは対象外とし、スタブに差し替えた。
+
+[meta]
+feature = "image-dialog"
+source_file = "src/content/deck-recipe/imageDialog.ts"
+verified = true
+verified_at = "2026-08-29"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/image-dialog.test.ts"
+source_hash = "f3a9a681f37df451419f8c6d45b791d18a17de64"
+note = "verified=falseは0件"
+
+# --- showImageDialogWithData(cgid, dno, deckData, buttonRect, genesysPoints) ---
+
+[[condition]]
+id = "show_image_dialog_with_data.unmounts_existing_dialog_first"
+target_function = "showImageDialogWithData"
+source_lines = "28-31"
+description = "既にdialogAppが存在する場合、新しいダイアログを作成する前に既存のものをunmountしdialogAppをnullにリセットする（多重ダイアログ防止）"
+given = "1回目のshowImageDialogWithData実行中に2回目を呼ぶ"
+expect_side_effect = "1回目に作成されたmountPointがDOMから消える"
+
+[[condition]]
+id = "show_image_dialog_with_data.creates_mount_point_and_mounts"
+target_function = "showImageDialogWithData"
+source_lines = "34-54"
+description = "id='ygo-next-image-dialog-mount'のdiv要素を作成してdocument.bodyに追加し、そこにImageDialogコンポーネントをマウントする"
+given = "初回呼び出し"
+expect_side_effect = "document.bodyに#ygo-next-image-dialog-mountが追加される"
+
+[[condition]]
+id = "show_image_dialog_with_data.on_close_unmounts_and_removes_mount_point"
+target_function = "showImageDialogWithData"
+source_lines = "45-51"
+description = "コンポーネントのonCloseコールバックが呼ばれると、dialogAppをunmountしnullにリセットした上でmountPoint要素をDOMから削除する"
+given = "マウントしたダイアログのonCloseを呼ぶ"
+expect_side_effect = "#ygo-next-image-dialog-mountがDOMから削除される"
+
+[[condition]]
+id = "show_image_dialog_with_data.button_rect_defaults_to_null"
+target_function = "showImageDialogWithData"
+source_lines = "24"
+description = "buttonRect引数を省略した場合、デフォルト値nullがコンポーネントに渡される（画面中央表示を意味する）"
+given = "buttonRectを渡さずに呼ぶ"
+expect_side_effect = "ImageDialogコンポーネントにbuttonRect: nullが渡される"
+
+# --- showImageDialog() ---
+
+[[condition]]
+id = "show_image_dialog.no_button_logs_error_and_returns"
+target_function = "showImageDialog"
+source_lines = "62-66"
+description = "EXTENSION_IDS.deckImage.deckImageButtonに対応するボタンが見つからない場合、console.errorしreturnする"
+given = "デッキ画像作成ボタンがDOMに存在しない"
+expect_no_throw = true
+
+[[condition]]
+id = "show_image_dialog.no_dno_in_url_logs_error_and_returns"
+target_function = "showImageDialog"
+source_lines = "72-77"
+description = "現在URLに'dno=(数字)'パターンが無い場合、console.errorしreturnする（cgid/デッキデータ取得を行わない）"
+given = "window.location.hrefにdnoパラメータが含まれない"
+expect_no_throw = true
+
+[[condition]]
+id = "show_image_dialog.no_cgid_in_url_logs_error_and_returns"
+target_function = "showImageDialog"
+source_lines = "78-81"
+description = "dnoは取得できたがURLに'cgid=(16進数)'パターンが無い場合、console.errorしreturnする"
+given = "window.location.hrefにdnoは含まれるがcgidパラメータが無い"
+expect_no_throw = true
+
+[[condition]]
+id = "show_image_dialog.parse_failure_logs_error_and_returns"
+target_function = "showImageDialog"
+source_lines = "87-92"
+description = "現在のDOMからのparseDeckDetailが失敗した場合、console.errorしreturnする（showImageDialogWithDataは呼ばない）"
+given = "parseDeckDetail(document)がrejectする"
+expect_no_throw = true
+
+[[condition]]
+id = "show_image_dialog.success_delegates_to_with_data"
+target_function = "showImageDialog"
+source_lines = "94-95"
+description = "ボタン・dno・cgid・deckDataが全て取得できた場合、showImageDialogWithData(cgid, dno, deckData, buttonRect)を呼ぶ"
+given = "ボタンが存在し、URLにdno・cgidが含まれ、parseDeckDetailが成功する"
+expect_side_effect = "showImageDialogWithData相当の処理(mountPoint作成)が実行される"

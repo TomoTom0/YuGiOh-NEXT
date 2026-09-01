@@ -1,0 +1,47 @@
+# UXSettings のデフォルト値（Single Source of Truth）
+#
+# src/types/settings.ts の DEFAULT_UX_SETTINGS は、ビルド時にここから
+# 注入される __UX_SETTINGS_DEFAULTS__（webpack DefinePlugin / vitest define）
+# 経由で構築される。値の変更はこのファイルのみで行う。
+#
+# 注意: webpack watch 中にこのファイルを変更しても DefinePlugin は起動時の値を
+# 使い続けるため、設定変更後はビルドの再実行が必要。
+#
+# category / ui / note 等のメタ情報は docs/feature/ux.toml 参照。
+
+searchInputPosition = "right-top"
+defaultSearchMode = "auto"
+enableMouseOperations = false
+changeFavicon = true
+rightAreaWidth = "L"
+rightAreaFontSize = "l"
+
+[cardListViewMode]
+search = "grid"
+related = "grid"
+products = "grid"
+
+# カード検索のグローバルショートカット（/ または Ctrl+J）
+[[keyboardShortcuts.globalSearch]]
+ctrl = false
+shift = false
+alt = false
+key = "/"
+
+[[keyboardShortcuts.globalSearch]]
+ctrl = true
+shift = false
+alt = false
+key = "j"
+
+[[keyboardShortcuts.undo]]
+ctrl = true
+shift = false
+alt = false
+key = "z"
+
+[[keyboardShortcuts.redo]]
+ctrl = true
+shift = false
+alt = false
+key = "y"

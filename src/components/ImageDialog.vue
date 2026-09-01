@@ -1,29 +1,32 @@
 <template>
   <Teleport to="body">
-    <div v-if="isVisible">
+    <div v-if="isVisible" class="ygo-next">
       <!-- オーバーレイ -->
       <div
-        class="ygo-next-image-popup-overlay"
+        class="ygo-next-image-popup-overlay dialog-overlay"
         :class="{ closing: isClosing }"
         @click="closePopup"
       ></div>
 
       <!-- ポップアップ -->
       <div
-        class="ygo-next-image-popup"
+        class="ygo-next-image-popup dialog-content"
         :class="{ closing: isClosing }"
         :style="popupStyle"
-        @click="toggleColor"
       >
-        <!-- デッキ名入力欄 -->
-        <input
-          v-model="deckName"
-          type="text"
-          class="deck-name-input"
-          :style="{ width: `${displayWidth - 16}px` }"
-          placeholder="デッキ名を入力"
-          @click.stop
-        />
+        <!-- ヘッダー行: デッキ名入力 + 閉じるボタン -->
+        <div class="header-row">
+          <label class="text-field title-field">
+            <span class="field-label">title</span>
+            <input
+              v-model="deckName"
+              type="text"
+              class="field-input"
+              placeholder="デッキ名を入力"
+            />
+          </label>
+          <button class="close-icon-btn" @click="closePopup">×</button>
+        </div>
 
         <!-- 背景画像 -->
         <div
@@ -34,12 +37,12 @@
           <button
             class="toggle-btn qr-toggle"
             :class="includeQR ? 'active' : 'inactive'"
-            @click.stop="toggleQR"
+            @click="toggleQR"
           >
             <div class="qr-icon-bg">
               <QRIcon />
             </div>
-            <span>Include</span>
+            <span>{{ includeQR ? 'Include' : 'Not-Include' }}</span>
             <span>QR</span>
           </button>
 
@@ -48,20 +51,44 @@
             v-if="hasSideDeck"
             class="toggle-btn side-toggle"
             :class="includeSide ? 'active' : 'inactive'"
-            @click.stop="toggleSide"
+            @click="toggleSide"
           >
-            <span>Include</span>
+            <span>{{ includeSide ? 'Include' : 'Not-Include' }}</span>
             <span>Side</span>
           </button>
         </div>
 
+        <!-- フッターテキスト入力 -->
+        <label class="text-field footer-field">
+          <span class="field-label">text</span>
+          <input
+            v-model="footerText"
+            type="text"
+            class="field-input"
+            :placeholder="defaultFooterText"
+          />
+        </label>
+
         <!-- 下部ボタンエリア -->
-        <div class="button-area" @click.stop>
-          <button class="dialog-btn close-btn" @click="closePopup">
-            Close
-          </button>
+        <div class="button-area">
+          <div class="color-picker" role="radiogroup" aria-label="カラー選択">
+            <button
+              v-for="c in COLOR_VARIANTS"
+              :key="c"
+              type="button"
+              class="color-swatch"
+              :class="{ selected: selectedColor === c }"
+              :style="{ background: COLOR_SETTINGS[c].accentLine }"
+              role="radio"
+              :aria-checked="selectedColor === c"
+              :aria-label="c"
+              :disabled="isDownloading"
+              @click="selectColor(c)"
+            ></button>
+          </div>
+
           <button
-            class="dialog-btn download-btn"
+            class="dialog-btn download-btn btn btn-primary"
             :disabled="isDownloading"
             @click="handleDownload"
           >
@@ -78,10 +105,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { DeckInfo } from '@/types/deck'
-import type { ColorVariant } from '@/types/deck-recipe-image'
-import { createDeckRecipeImage } from '../content/deck-recipe/createDeckRecipeImage'
+import { COLOR_SETTINGS, type ColorVariant } from '@/types/deck-recipe-image'
+import { createDeckRecipeImage, generateDefaultFooterText } from '../content/deck-recipe/createDeckRecipeImage'
 import { downloadDeckRecipeImage } from '../content/deck-recipe/downloadDeckRecipeImage'
 import QRIcon from './icons/QRIcon.vue'
 import DownloadIcon from './icons/DownloadIcon.vue'
@@ -102,6 +129,8 @@ const emit = defineEmits<{
   close: []
 }>()
 
+const COLOR_VARIANTS: ColorVariant[] = ['red', 'blue', 'green', 'orange']
+
 // 状態管理
 const isVisible = ref(false)
 const isClosing = ref(false)
@@ -113,9 +142,16 @@ const deckName = ref('')
 const backgroundImageUrl = ref('')
 const displayWidth = ref(0)
 const displayHeight = ref(0)
+const defaultFooterText = generateDefaultFooterText()
+const footerText = ref('')
 
 // 計算プロパティ
 const hasSideDeck = computed(() => props.deckData.sideDeck.length > 0)
+
+const deckDataForPreview = computed<DeckInfo>(() => includeSide.value ? props.deckData : {
+  ...props.deckData,
+  sideDeck: []
+})
 
 const popupStyle = computed(() => {
   const rect = props.buttonRect || {
@@ -125,27 +161,29 @@ const popupStyle = computed(() => {
   const top = rect.bottom + window.scrollY + 8
   const left = rect.left + window.scrollX
   const padding = 12
-  const topMargin = 40
-  const bottomButtonHeight = 50
+  // タイトル欄のラベルが枠線にかかって上にはみ出すため、上だけ余分に確保する
+  const labelOverflow = 8
 
   return {
     top: `${top}px`,
     left: `${left}px`,
     width: `${displayWidth.value + padding * 2}px`,
-    padding: `${topMargin}px ${padding}px ${bottomButtonHeight}px ${padding}px`
+    padding: `${padding + labelOverflow}px ${padding}px ${padding}px`
   }
 })
 
 const backgroundImageStyle = computed(() => ({
   height: `${displayHeight.value}px`,
   background: `url('${backgroundImageUrl.value}') no-repeat center center`,
-  backgroundSize: 'contain'
+  backgroundSize: 'contain',
+  outlineColor: COLOR_SETTINGS[selectedColor.value].accentLine
 }))
 
 // 背景画像生成
 async function generateBackgroundImage(
   color: ColorVariant,
-  deckData: DeckInfo
+  deckData: DeckInfo,
+  footerTextValue: string
 ): Promise<{ dataUrl: string; width: number; height: number }> {
   const deckDataWithoutTitle: DeckInfo = {
     ...deckData,
@@ -159,7 +197,8 @@ async function generateBackgroundImage(
     includeQR: false,
     scale: 0.5,
     deckData: deckDataWithoutTitle,
-    genesysPoints: props.genesysPoints
+    genesysPoints: props.genesysPoints,
+    footerText: footerTextValue.trim() || undefined
   })
 
   const dataUrl = await new Promise<string>((resolve) => {
@@ -179,15 +218,23 @@ async function generateBackgroundImage(
   return { dataUrl, width, height }
 }
 
-// イベントハンドラ
-async function toggleColor() {
-  selectedColor.value = selectedColor.value === 'red' ? 'blue' : 'red'
-  const deckDataForPreview = includeSide.value ? props.deckData : {
-    ...props.deckData,
-    sideDeck: []
-  }
-  const newImage = await generateBackgroundImage(selectedColor.value, deckDataForPreview)
+// プレビュー再生成（色/サイド有無/フッターテキストの変更を反映）
+// 生成は非同期のため連続操作で完了順が入れ替わる可能性がある。
+// generation tokenで最新の生成のみを反映し、古い結果の上書きを防ぐ。
+let previewGeneration = 0
+async function refreshPreview() {
+  const generation = ++previewGeneration
+  const newImage = await generateBackgroundImage(selectedColor.value, deckDataForPreview.value, footerText.value)
+  if (generation !== previewGeneration) return
   backgroundImageUrl.value = newImage.dataUrl
+  displayHeight.value = newImage.height
+}
+
+// イベントハンドラ
+async function selectColor(color: ColorVariant) {
+  if (isDownloading.value || selectedColor.value === color) return
+  selectedColor.value = color
+  await refreshPreview()
 }
 
 function toggleQR() {
@@ -196,14 +243,17 @@ function toggleQR() {
 
 async function toggleSide() {
   includeSide.value = !includeSide.value
-  const deckDataForPreview = includeSide.value ? props.deckData : {
-    ...props.deckData,
-    sideDeck: []
-  }
-  const newImage = await generateBackgroundImage(selectedColor.value, deckDataForPreview)
-  backgroundImageUrl.value = newImage.dataUrl
-  displayHeight.value = newImage.height
+  await refreshPreview()
 }
+
+// フッターテキスト入力を少し待ってからプレビューに反映（毎打鍵での再生成を避ける）
+let footerDebounceTimer: ReturnType<typeof setTimeout> | undefined
+watch(footerText, () => {
+  if (footerDebounceTimer) clearTimeout(footerDebounceTimer)
+  footerDebounceTimer = setTimeout(() => {
+    refreshPreview()
+  }, 400)
+})
 
 function closePopup() {
   isClosing.value = true
@@ -231,7 +281,8 @@ async function handleDownload() {
       includeQR: includeQR.value,
       scale,
       deckData: updatedDeckData,
-      genesysPoints: props.genesysPoints
+      genesysPoints: props.genesysPoints,
+      footerText: footerText.value.trim() || undefined
     })
 
     closePopup()
@@ -251,7 +302,7 @@ function handleEscape(event: KeyboardEvent) {
 // 初期化
 async function initialize() {
   deckName.value = props.deckData.name
-  const image = await generateBackgroundImage(selectedColor.value, props.deckData)
+  const image = await generateBackgroundImage(selectedColor.value, props.deckData, footerText.value)
   backgroundImageUrl.value = image.dataUrl
   displayWidth.value = image.width
   displayHeight.value = image.height
@@ -265,6 +316,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleEscape)
+  if (footerDebounceTimer) clearTimeout(footerDebounceTimer)
 })
 
 // 公開メソッド
@@ -278,12 +330,7 @@ defineExpose({
 
 <style scoped>
 .ygo-next-image-popup-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  /* background/position共通部分は.dialog-overlay(common.scss)から継承 */
   z-index: 10001;
   animation: overlay-in 0.2s ease;
 }
@@ -293,13 +340,16 @@ defineExpose({
 }
 
 .ygo-next-image-popup {
+  /* background/border/border-radius/box-shadowは.dialog-content(common.scss)から継承 */
+  /* max-height(90vh)はデッキ画像の高さに合わせて可変にする必要があるため上書き */
+  max-height: none;
   position: absolute;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
   z-index: 10002;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   animation: popup-in 0.2s ease;
-  cursor: pointer;
   overflow: visible;
 }
 
@@ -307,47 +357,84 @@ defineExpose({
   animation: popup-out 0.2s ease forwards;
 }
 
-.deck-name-input {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  border: 2px solid rgba(200, 200, 200, 0.5);
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  outline: none;
-  transition: all 0.2s;
+/* ヘッダー行（タイトル入力欄と閉じるボタンを同じ行で中央揃え） */
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 枠線にラベルがかかるテキスト入力欄（title / text 共通） */
+.text-field {
+  position: relative;
+  display: block;
   box-sizing: border-box;
-  margin-bottom: 8px;
+  border: 2px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--input-bg);
+  transition: border-color 0.2s;
 }
 
-.deck-name-input:hover {
-  border-color: rgba(150, 150, 150, 0.7);
+.text-field:focus-within {
+  border-color: var(--button-bg);
 }
 
-.deck-name-input:focus {
-  border-color: rgba(100, 100, 100, 0.8);
+.title-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-label {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  padding: 0 4px;
+  background: var(--dialog-bg, #fff);
+  color: var(--text-secondary, #666);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.field-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--input-text);
+  font-size: 14px;
+  padding: 11px 12px 9px;
+}
+
+.title-field .field-input {
+  font-weight: 600;
+}
+
+.footer-field .field-input {
+  font-size: 13px;
 }
 
 .background-image {
   position: relative;
   width: 100%;
-  transition: background 0.5s ease;
-  margin-top: 8px;
+  outline: 3px solid transparent;
+  transition: background 0.5s ease, outline-color 0.3s ease;
 }
 
 .toggle-btn {
-  padding: 8px 12px;
+  box-sizing: border-box;
+  padding: 8px 6px;
   border: 2px solid rgba(200, 200, 200, 0.5);
   border-radius: 6px;
   cursor: pointer;
   width: 80px;
   height: 70px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   transition: all 0.3s;
   display: flex;
@@ -355,6 +442,8 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 2px;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .qr-toggle {
@@ -378,91 +467,115 @@ defineExpose({
 }
 
 .toggle-btn.active {
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  border-color: rgba(200, 200, 200, 0.7);
+  background: var(--input-bg, rgba(255, 255, 255, 0.9));
+  color: var(--input-text, #333);
+  border-color: var(--input-border, rgba(200, 200, 200, 0.7));
 }
 
 .toggle-btn.inactive {
-  background: rgba(80, 80, 80, 0.6);
-  color: #aaa;
-  border-color: rgba(80, 80, 80, 0.8);
+  background: var(--bg-tertiary, rgba(80, 80, 80, 0.6));
+  color: var(--text-tertiary, #aaa);
+  border-color: var(--border-primary, rgba(80, 80, 80, 0.8));
 }
 
 .toggle-btn.active:hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(150, 150, 150, 0.9);
+  background: var(--input-bg, rgba(255, 255, 255, 1));
+  border-color: var(--button-bg, rgba(150, 150, 150, 0.9));
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .toggle-btn.inactive:hover {
-  background: rgba(100, 100, 100, 0.7);
+  background: var(--border-primary, rgba(100, 100, 100, 0.7));
 }
 
 .side-toggle.active:hover {
-  background: rgba(255, 255, 255, 1);
-  border-color: rgba(150, 150, 150, 0.9);
+  background: var(--input-bg, rgba(255, 255, 255, 1));
+  border-color: var(--button-bg, rgba(150, 150, 150, 0.9));
   transform: translateY(calc(-50% - 1px));
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* 下部ボタンエリア（カラーピッカー + Download） */
 .button-area {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 50px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  background: #ffffff;
-  border-radius: 0 0 8px 8px;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.color-swatch:hover:not(:disabled) {
+  transform: scale(1.12);
+}
+
+.color-swatch.selected {
+  box-shadow:
+    0 0 0 2px var(--dialog-bg, #fff),
+    0 0 0 4px var(--text-primary, #333);
+}
+
+.color-swatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .dialog-btn {
+  /* border/border-radius/cursor/transitionは.btn(common.scss)から継承 */
   padding: 8px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
   min-width: 100px;
   height: 36px;
-  transition: all 0.2s;
 }
 
-.close-btn {
-  background: #e0e0e0;
-  color: #555;
+.close-icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  background: none;
+  color: var(--text-secondary, #555);
+  transition: background 0.2s, color 0.2s;
 }
 
-.close-btn:hover {
-  background: #d0d0d0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.close-icon-btn:hover {
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-primary, #333);
 }
 
-.download-btn {
-  background: #4078ff;
-  color: #ffffff;
-}
-
+/* background/color/hover背景は.btn-primary(common.scss)から継承 */
 .download-btn:hover:not(:disabled) {
-  background: #2060e0;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  filter: brightness(0.85);
 }
 
 .download-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #6090c0;
+  background: var(--bg-tertiary);
 }
 
 .dialog-btn:active {

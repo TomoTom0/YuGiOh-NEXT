@@ -1,22 +1,26 @@
 [tasks.build]
-description = "本番ビルド"
+description = "開発ビルド"
 run = "pnpm run build"
 
-[tasks."build:dev"]
-description = "開発ビルド"
-run = "pnpm run build:dev"
+[tasks."build:prod"]
+description = "本番ビルド"
+run = "pnpm run build:prod"
 
-[tasks.dev]
+[tasks.watch]
 description = "開発ビルド（watchモード）"
-run = "pnpm run dev"
+run = "pnpm run watch"
 
-[tasks.deploy]
-description = "ビルド済みファイルをデプロイ"
-run = "pnpm run deploy"
+[tasks.sync]
+description = "ビルド済みファイルをデプロイ（ビルドは行わない）"
+run = "pnpm run sync"
 
-[tasks."build-and-deploy"]
+[tasks."build-deploy"]
+description = "開発ビルドしてデプロイ"
+run = "pnpm run build-deploy"
+
+[tasks."build-deploy:prod"]
 description = "本番ビルドしてデプロイ"
-run = "pnpm run build-and-deploy"
+run = "pnpm run build-deploy:prod"
 
 [tasks."type-check"]
 description = "TypeScriptの型チェック"

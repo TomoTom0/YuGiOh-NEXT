@@ -1,0 +1,337 @@
+# 検証対象: src/utils/error-handler.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、utilsの残り分。
+#
+# 実装コメントとの差異:
+# - handleSuccess/handleInfo のJSDoc(L132, L173)は「console.debug でログ出力」と書かれているが、
+#   実装(L156, L195)はコメントのみで console.debug 呼び出しは削除されている。ErrorHandlerOptions.logToConsole
+#   もこの2関数では分割代入されておらず一切参照されない(渡しても無効)。
+# - handleDebug のJSDoc(L210)は「console.debug でログ出力のみ」と書かれているが、実装(L224-226)は完全な空実装。
+# - canUseToast() のJSDoc(L231)は「Background Script などでは false を返す」と説明するが、実装(L236-244)は
+#   `typeof useToastStore === 'function'` の判定のみであり、useToastStore は静的importされた関数参照なので
+#   実行コンテキスト(Background/Content Script)に関わらず常に'function'型として解決され true を返す。
+#   実際にBackground Script等でトースト表示が失敗する経路は、canUseToast()の分岐ではなく各handle*関数内の
+#   try/catch(useToastStore()呼び出しやPinia未初期化時の例外を握りつぶす箇所)である。
+
+[meta]
+feature = "error-handler"
+source_file = "src/utils/error-handler.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/error-handler.test.ts"
+source_hash = "e9433fbfd54ddbf1b5476e320ed5fdf00f34344b"
+note = "verified=falseはcanUseToast関連2件のみ(下記参照)"
+
+# --- handleError(context, message, error?, options = {}): void ---
+
+[[condition]]
+id = "handle_error.console_error_with_error_object"
+target_function = "handleError"
+source_lines = "58-64"
+description = "logToConsole=true(デフォルト)かつerror指定時、console.errorに`${context} ${message}`とerrorオブジェクトの2引数を渡す"
+given = "handleError('[ctx]', 'msg', new Error('e'))"
+expect_side_effect = "console.error('[ctx] msg', error) が呼ばれる"
+
+[[condition]]
+id = "handle_error.console_error_without_error_object"
+target_function = "handleError"
+source_lines = "58-64"
+description = "logToConsole=true(デフォルト)かつerror未指定時、console.errorに`${context} ${message}`の1引数のみ渡す"
+given = "handleError('[ctx]', 'msg')"
+expect_side_effect = "console.error('[ctx] msg') が1引数で呼ばれる"
+
+[[condition]]
+id = "handle_error.log_to_console_false_suppresses"
+target_function = "handleError"
+source_lines = "58"
+description = "options.logToConsole=falseの場合、error有無に関わらずconsole.errorは呼ばれない"
+given = "handleError('[ctx]', 'msg', new Error('e'), { logToConsole: false })"
+expect_side_effect = "console.errorは呼ばれない"
+
+[[condition]]
+id = "handle_error.toast_shown_default"
+target_function = "handleError"
+source_lines = "67-71"
+description = "showToast省略時はtrueであり、canUseToast()がtrueの場合useToastStoreを取得しshowToast(message,'error',body,toastDuration)を呼ぶ"
+given = "handleError('[ctx]', 'msg')（デフォルトオプション）"
+expect_side_effect = "toastStore.showToast('msg', 'error', undefined, 5000) が呼ばれる"
+
+[[condition]]
+id = "handle_error.toast_body_uses_error_message_when_not_specified"
+target_function = "handleError"
+source_lines = "70"
+description = "options.toastBody未指定かつerrorがErrorインスタンスの場合、body=error.messageがトーストに渡る（`toastBody ?? (error instanceof Error ? error.message : undefined)`）"
+given = "handleError('[ctx]', 'msg', new Error('詳細'))"
+expect_side_effect = "toastStore.showToast('msg', 'error', '詳細', 5000) が呼ばれる"
+
+[[condition]]
+id = "handle_error.toast_body_undefined_when_no_error"
+target_function = "handleError"
+source_lines = "70"
+description = "options.toastBody未指定かつerrorが未指定(またはErrorインスタンスでない)場合、body=undefinedがトーストに渡る"
+given = "handleError('[ctx]', 'msg')"
+expect_side_effect = "toastStore.showToast('msg', 'error', undefined, 5000) が呼ばれる"
+
+[[condition]]
+id = "handle_error.toast_body_explicit_overrides_error_message"
+target_function = "handleError"
+source_lines = "70"
+description = "options.toastBodyが指定されている場合、`??`によりerrorの内容に関わらずそのtoastBodyが優先される"
+given = "handleError('[ctx]', 'msg', new Error('無視される'), { toastBody: '追加情報' })"
+expect_side_effect = "toastStore.showToast('msg', 'error', '追加情報', 5000) が呼ばれる"
+
+[[condition]]
+id = "handle_error.show_toast_false_no_toast"
+target_function = "handleError"
+source_lines = "67"
+description = "options.showToast=falseの場合、canUseToast()の結果に関わらずuseToastStoreは呼ばれずトースト通知もされない"
+given = "handleError('[ctx]', 'msg', undefined, { showToast: false })"
+expect_side_effect = "toastStore.showToastは呼ばれない"
+
+[[condition]]
+id = "handle_error.toast_duration_passthrough"
+target_function = "handleError"
+source_lines = "71"
+description = "options.toastDuration指定時はデフォルト5000の代わりにその値がshowToastの第4引数として渡される"
+given = "handleError('[ctx]', 'msg', undefined, { toastDuration: 10000 })"
+expect_side_effect = "toastStore.showToast('msg', 'error', undefined, 10000) が呼ばれる"
+
+[[condition]]
+id = "handle_error.toast_error_swallowed"
+target_function = "handleError"
+source_lines = "68-74"
+description = "showToast=trueかつcanUseToast()=trueでも、try節内(useToastStore()またはtoastStore.showToast()の呼び出し)が例外を投げた場合catch(e)で握りつぶされ、handleError自体はthrowせず正常終了する"
+given = "useToastStore()がthrowするようモックした状態でhandleError('[ctx]', 'msg')を呼ぶ"
+expect_no_throw = true
+
+# --- handleWarning(context, message, details?, options = {}): void ---
+
+[[condition]]
+id = "handle_warning.console_warn_with_details"
+target_function = "handleWarning"
+source_lines = "110-116"
+description = "logToConsole=true(デフォルト)かつdetails指定時、console.warnに`${context} ${message}`とdetailsの2引数を渡す"
+given = "handleWarning('[ctx]', 'msg', '詳細情報')"
+expect_side_effect = "console.warn('[ctx] msg', '詳細情報') が呼ばれる"
+
+[[condition]]
+id = "handle_warning.console_warn_without_details"
+target_function = "handleWarning"
+source_lines = "110-116"
+description = "logToConsole=true(デフォルト)かつdetails未指定時、console.warnに`${context} ${message}`の1引数のみ渡す"
+given = "handleWarning('[ctx]', 'msg')"
+expect_side_effect = "console.warn('[ctx] msg') が1引数で呼ばれる"
+
+[[condition]]
+id = "handle_warning.log_to_console_false_suppresses"
+target_function = "handleWarning"
+source_lines = "110"
+description = "options.logToConsole=falseの場合、details有無に関わらずconsole.warnは呼ばれない"
+given = "handleWarning('[ctx]', 'msg', '詳細', { logToConsole: false })"
+expect_side_effect = "console.warnは呼ばれない"
+
+[[condition]]
+id = "handle_warning.toast_shown_default"
+target_function = "handleWarning"
+source_lines = "119-122"
+description = "showToast省略時true、canUseToast()=trueの場合showToast(message,'warning',toastBody,toastDuration)を呼ぶ"
+given = "handleWarning('[ctx]', 'msg')"
+expect_side_effect = "toastStore.showToast('msg', 'warning', undefined, 3000) が呼ばれる"
+
+[[condition]]
+id = "handle_warning.toast_body_defaults_to_details"
+target_function = "handleWarning"
+source_lines = "105"
+description = "options.toastBody未指定の場合、分割代入のデフォルト値によりdetailsがそのままtoastBodyとして渡る"
+given = "handleWarning('[ctx]', 'msg', '詳細情報')"
+expect_side_effect = "toastStore.showToast('msg', 'warning', '詳細情報', 3000) が呼ばれる"
+
+[[condition]]
+id = "handle_warning.toast_body_explicit_overrides_details"
+target_function = "handleWarning"
+source_lines = "105"
+description = "options.toastBodyが指定されている場合、分割代入のデフォルト値は使われずdetailsではなくそちらが渡る"
+given = "handleWarning('[ctx]', 'msg', '無視されるdetails', { toastBody: '明示body' })"
+expect_side_effect = "toastStore.showToast('msg', 'warning', '明示body', 3000) が呼ばれる"
+
+[[condition]]
+id = "handle_warning.show_toast_false_no_toast"
+target_function = "handleWarning"
+source_lines = "119"
+description = "options.showToast=falseの場合トースト通知は行われない"
+given = "handleWarning('[ctx]', 'msg', undefined, { showToast: false })"
+expect_side_effect = "toastStore.showToastは呼ばれない"
+
+[[condition]]
+id = "handle_warning.toast_duration_passthrough"
+target_function = "handleWarning"
+source_lines = "122"
+description = "options.toastDuration指定時はデフォルト3000の代わりにその値が渡される"
+given = "handleWarning('[ctx]', 'msg', undefined, { toastDuration: 5000 })"
+expect_side_effect = "toastStore.showToast('msg', 'warning', undefined, 5000) が呼ばれる"
+
+[[condition]]
+id = "handle_warning.toast_error_swallowed"
+target_function = "handleWarning"
+source_lines = "120-124"
+description = "try節内の呼び出しが例外を投げてもcatch(e)で握りつぶされ、handleWarning自体はthrowせず正常終了する"
+given = "useToastStore()がthrowするようモックした状態でhandleWarning('[ctx]', 'msg')を呼ぶ"
+expect_no_throw = true
+
+# --- handleSuccess(_context, message, details?, options = {}): void ---
+
+[[condition]]
+id = "handle_success.no_console_log_call"
+target_function = "handleSuccess"
+source_lines = "156"
+description = "handleSuccessにはconsole出力コードが存在しない(L156はコメントのみ)。options.logToConsoleも分割代入されず一切参照されないため、logToConsole=falseを渡しても効果がなく、console.error/warn/debugいずれも呼ばれない"
+given = "handleSuccess('[ctx]', '成功', undefined, { logToConsole: false })"
+expect_side_effect = "console.error/console.warn/console.debugいずれも呼ばれない"
+
+[[condition]]
+id = "handle_success.toast_shown_default"
+target_function = "handleSuccess"
+source_lines = "159-162"
+description = "showToast省略時true、canUseToast()=trueの場合showToast(message,'success',toastBody,toastDuration)を呼ぶ"
+given = "handleSuccess('[ctx]', '成功')"
+expect_side_effect = "toastStore.showToast('成功', 'success', undefined, 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_success.toast_body_defaults_to_details"
+target_function = "handleSuccess"
+source_lines = "153"
+description = "options.toastBody未指定の場合、detailsがそのままtoastBodyとして渡る"
+given = "handleSuccess('[ctx]', '成功', '詳細情報')"
+expect_side_effect = "toastStore.showToast('成功', 'success', '詳細情報', 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_success.toast_body_explicit_overrides_details"
+target_function = "handleSuccess"
+source_lines = "153"
+description = "options.toastBodyが指定されている場合はdetailsより優先される"
+given = "handleSuccess('[ctx]', '成功', '無視されるdetails', { toastBody: '明示body' })"
+expect_side_effect = "toastStore.showToast('成功', 'success', '明示body', 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_success.show_toast_false_no_toast"
+target_function = "handleSuccess"
+source_lines = "159"
+description = "options.showToast=falseの場合トースト通知は行われない"
+given = "handleSuccess('[ctx]', '成功', undefined, { showToast: false })"
+expect_side_effect = "toastStore.showToastは呼ばれない"
+
+[[condition]]
+id = "handle_success.toast_duration_passthrough"
+target_function = "handleSuccess"
+source_lines = "162"
+description = "options.toastDuration指定時はデフォルト2000の代わりにその値が渡される"
+given = "handleSuccess('[ctx]', '成功', undefined, { toastDuration: 3000 })"
+expect_side_effect = "toastStore.showToast('成功', 'success', undefined, 3000) が呼ばれる"
+
+[[condition]]
+id = "handle_success.toast_error_swallowed"
+target_function = "handleSuccess"
+source_lines = "160-163"
+description = "try節内の呼び出しが例外を投げてもcatch(e)で握りつぶされ、handleSuccess自体はthrowせず正常終了する"
+given = "useToastStore()がthrowするようモックした状態でhandleSuccess('[ctx]', '成功')を呼ぶ"
+expect_no_throw = true
+
+# --- handleInfo(_context, message, details?, options = {}): void ---
+
+[[condition]]
+id = "handle_info.no_console_log_call"
+target_function = "handleInfo"
+source_lines = "195"
+description = "handleInfoにはconsole出力コードが存在しない(L195はコメントのみ)。options.logToConsoleも一切参照されず効果がない"
+given = "handleInfo('[ctx]', '情報', undefined, { logToConsole: false })"
+expect_side_effect = "console.error/console.warn/console.debugいずれも呼ばれない"
+
+[[condition]]
+id = "handle_info.toast_shown_default"
+target_function = "handleInfo"
+source_lines = "198-201"
+description = "showToast省略時true、canUseToast()=trueの場合showToast(message,'info',toastBody,toastDuration)を呼ぶ"
+given = "handleInfo('[ctx]', '情報')"
+expect_side_effect = "toastStore.showToast('情報', 'info', undefined, 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_info.toast_body_defaults_to_details"
+target_function = "handleInfo"
+source_lines = "192"
+description = "options.toastBody未指定の場合、detailsがそのままtoastBodyとして渡る"
+given = "handleInfo('[ctx]', '情報', '詳細情報')"
+expect_side_effect = "toastStore.showToast('情報', 'info', '詳細情報', 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_info.toast_body_explicit_overrides_details"
+target_function = "handleInfo"
+source_lines = "192"
+description = "options.toastBodyが指定されている場合はdetailsより優先される"
+given = "handleInfo('[ctx]', '情報', '無視されるdetails', { toastBody: '明示body' })"
+expect_side_effect = "toastStore.showToast('情報', 'info', '明示body', 2000) が呼ばれる"
+
+[[condition]]
+id = "handle_info.show_toast_false_no_toast"
+target_function = "handleInfo"
+source_lines = "198"
+description = "options.showToast=falseの場合トースト通知は行われない"
+given = "handleInfo('[ctx]', '情報', undefined, { showToast: false })"
+expect_side_effect = "toastStore.showToastは呼ばれない"
+
+[[condition]]
+id = "handle_info.toast_duration_passthrough"
+target_function = "handleInfo"
+source_lines = "201"
+description = "options.toastDuration指定時はデフォルト2000の代わりにその値が渡される"
+given = "handleInfo('[ctx]', '情報', undefined, { toastDuration: 4000 })"
+expect_side_effect = "toastStore.showToast('情報', 'info', undefined, 4000) が呼ばれる"
+
+[[condition]]
+id = "handle_info.toast_error_swallowed"
+target_function = "handleInfo"
+source_lines = "199-203"
+description = "try節内の呼び出しが例外を投げてもcatch(e)で握りつぶされ、handleInfo自体はthrowせず正常終了する"
+given = "useToastStore()がthrowするようモックした状態でhandleInfo('[ctx]', '情報')を呼ぶ"
+expect_no_throw = true
+
+# --- handleDebug(_context, _message, _data?): void ---
+
+[[condition]]
+id = "handle_debug.no_op_always"
+target_function = "handleDebug"
+source_lines = "220-226"
+description = "実装は完全な空実装(コメントのみ)であり、引数の値に関わらずconsole出力・トースト通知のいずれも行わず、例外も投げない"
+given = "handleDebug('[ctx]', 'msg', { data: 'x' })"
+expect_no_throw = true
+expect_side_effect = "console.error/warn/debug、toastStore.showToastいずれも呼ばれない"
+
+# --- canUseToast(): boolean (非export、handle*関数内部から呼ばれるガード) ---
+
+[[condition]]
+id = "can_use_toast.returns_true_when_function"
+target_function = "canUseToast"
+source_lines = "236-240"
+description = "useToastStoreがfunction型として解決できる場合(通常の静的import経路)、typeof判定によりtrueを返し、呼び出し元でトースト通知が実行される。各handle*.toast_shown_default系の条件で間接的に検証される"
+given = "通常のモック環境(useToastStoreがvi.fn())でhandleError等を呼ぶ"
+expect_return = true
+verified = true
+
+[[condition]]
+id = "can_use_toast.returns_false_when_not_function"
+target_function = "canUseToast"
+source_lines = "236-240"
+description = "typeof useToastStore !== 'function'の場合(理論上はuseToastStoreがimport解決できない/undefinedの場合)falseを返し、showToast=trueでもトースト通知は行われない。JSDocはこれを「Background Scriptなどでは false」と説明するが、実際のBackground Script実行時もuseToastStoreは静的importされた関数参照のままtypeofは'function'であり、この分岐が本番コードパスで実際にfalseになる経路は無いとみられる"
+given = "@/stores/toast-notificationをuseToastStore=undefinedで再モックしたモジュールインスタンスでhandleErrorを呼ぶ"
+verified = false
+unverifiable_reason = "本ファイルの他テストはvi.mockでuseToastStoreを常にvi.fn()(=function型)としてモジュール先頭で固定モックしているため、通常のテスト構成内でこの分岐だけを分離して踏むにはvi.resetModules+動的importによるモジュール再構築が必要で、他テストのモック状態と干渉するリスクが高い。本番コードでもuseToastStoreは静的import後は常にfunction型であり、この分岐が実際に到達されるのはPiniaの循環import等の特殊なモジュールロード失敗時に限られ、公開APIのみからは意図的に再現できない"
+
+[[condition]]
+id = "can_use_toast.catch_returns_false"
+target_function = "canUseToast"
+source_lines = "241-243"
+description = "typeof useToastStore の評価自体が例外を投げた場合(理論上はTDZ状態の循環import等)catchされfalseを返す"
+given = "useToastStoreの参照自体がReferenceErrorを投げるような循環import状態"
+verified = false
+unverifiable_reason = "静的importされたuseToastStoreへの参照は通常のモジュールロード完了後は例外を投げないため、公開APIやモックの範囲では再現不可能。防御的コーディングであり、通常のテスト環境からは到達不能"

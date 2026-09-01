@@ -8,9 +8,10 @@ import { detectCardType } from '../detector';
  * - img要素のsrc属性に 'attribute_icon_trap.png' → 罠
  * - img要素のsrc属性に 'attribute_icon_(light|dark|water|fire|earth|wind|divine).png' → モンスター
  */
+// tests/design/card-detector/conditions.toml (TASK-330) のconditionをカバーする。
 describe('detectCardType', () => {
   describe('魔法カードの検出', () => {
-    it('attribute_icon_spell.png を含むimg要素から魔法カードを検出できる', () => {
+    it('[covers:detect_card_type.spell_icon_returns_spell] attribute_icon_spell.png を含むimg要素から魔法カードを検出できる', () => {
       // Arrange
       const container = document.createElement('div');
       container.innerHTML = `
@@ -27,7 +28,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('spell');
     });
 
-    it('相対パスのattribute_icon_spell.pngからも検出できる', () => {
+    it('[covers:detect_card_type.spell_icon_returns_spell] 相対パスのattribute_icon_spell.pngからも検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -42,7 +43,7 @@ describe('detectCardType', () => {
   });
 
   describe('罠カードの検出', () => {
-    it('attribute_icon_trap.png を含むimg要素から罠カードを検出できる', () => {
+    it('[covers:detect_card_type.trap_icon_returns_trap] attribute_icon_trap.png を含むimg要素から罠カードを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -57,7 +58,7 @@ describe('detectCardType', () => {
   });
 
   describe('モンスターカードの検出', () => {
-    it('attribute_icon_light.png を含むimg要素から光属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_light.png を含むimg要素から光属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -70,7 +71,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_dark.png を含むimg要素から闇属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_dark.png を含むimg要素から闇属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -83,7 +84,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_water.png を含むimg要素から水属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_water.png を含むimg要素から水属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -96,7 +97,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_fire.png を含むimg要素から炎属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_fire.png を含むimg要素から炎属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -109,7 +110,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_earth.png を含むimg要素から地属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_earth.png を含むimg要素から地属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -122,7 +123,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_wind.png を含むimg要素から風属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_wind.png を含むimg要素から風属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -135,7 +136,7 @@ describe('detectCardType', () => {
       expect(cardType).toBe('monster');
     });
 
-    it('attribute_icon_divine.png を含むimg要素から神属性モンスターを検出できる', () => {
+    it('[covers:detect_card_type.attribute_icon_returns_monster] attribute_icon_divine.png を含むimg要素から神属性モンスターを検出できる', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -150,7 +151,7 @@ describe('detectCardType', () => {
   });
 
   describe('エラーケース', () => {
-    it('img要素が見つからない場合はnullを返す', () => {
+    it('[covers:detect_card_type.no_img_returns_null] img要素が見つからない場合はnullを返す', () => {
       const container = document.createElement('div');
       container.innerHTML = `<div class="box_card_attribute"></div>`;
       const row = container.firstElementChild as HTMLElement;
@@ -159,7 +160,7 @@ describe('detectCardType', () => {
       expect(cardType).toBeNull();
     });
 
-    it('src属性が空の場合はnullを返す', () => {
+    it('[covers:detect_card_type.empty_src_returns_null] src属性が空の場合はnullを返す', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -172,7 +173,7 @@ describe('detectCardType', () => {
       expect(cardType).toBeNull();
     });
 
-    it('認識できないsrc属性の場合はnullを返す', () => {
+    it('[covers:detect_card_type.unrecognized_icon_returns_null] 認識できないsrc属性の場合はnullを返す', () => {
       const container = document.createElement('div');
       container.innerHTML = `
         <div class="box_card_attribute">
@@ -185,7 +186,7 @@ describe('detectCardType', () => {
       expect(cardType).toBeNull();
     });
 
-    it('.box_card_attribute要素が見つからない場合はnullを返す', () => {
+    it('[covers:detect_card_type.no_box_card_attribute_returns_null] .box_card_attribute要素が見つからない場合はnullを返す', () => {
       const container = document.createElement('div');
       container.innerHTML = `<div><img src="/yugiohdb/icon/attribute_icon_spell.png"></div>`;
       const row = container.firstElementChild as HTMLElement;

@@ -1,0 +1,93 @@
+# 検証対象: src/utils/reverse-map-generator.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、card-maps.tsから逆引きマップを動的生成するutils(69行)。
+#
+# 実装コメントとの差異: なし。
+#
+# 構造上の特記事項:
+# - このファイルはtop-levelの`export function`を1つも持たない。公開APIは
+#   `createReverseMap`(非export)を呼んで生成した3つの`export const`（オブジェクトリテラル）のみ。
+#   そのため `tsx scripts/design/extract-ast-skeleton.ts src/utils/reverse-map-generator.ts` は
+#   「export関数一覧: 0件」を返す（実行して確認済み）。骨格抽出の対象外パターンであり、
+#   本ファイルの条件は全て人手で実装を直接読んで書き出した。
+# - `createReverseMap`は非exportのため、テストコードから直接呼び出して任意の引数（衝突データ等）を
+#   与えることはできない。検証は3つのexport const（実際の呼び出し結果）を通してのみ行える。
+
+[meta]
+feature = "reverse-map-generator"
+source_file = "src/utils/reverse-map-generator.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/reverse-map-generator.test.ts"
+source_hash = "b3778db49ab4142d8b055ba674982d03160eed64"
+note = "verified=falseは1件（createReverseMapのadditionalMappings優先順位。実データでは衝突が発生せず検証不能）"
+
+# --- createReverseMap<T>(idToNameMap: T, additionalMappings?): Record<string, string> (非export) ---
+# 3つのexport const（ATTRIBUTE_REVERSE_MAP / CARD_TYPE_REVERSE_MAP / MONSTER_TYPE_REVERSE_MAP）を
+# 通して間接的に検証する。
+
+[[condition]]
+id = "create_reverse_map.entries_self_and_name_mapping"
+target_function = "createReverseMap"
+source_lines = "24-28"
+description = "idToNameMapの各[id, name]エントリについて、reverseMap[name]=idとreverseMap[id]=idの両方を設定する（日本語名→ID、英語ID自己参照→IDの双方向マッピングを生成）"
+given = "idToNameMap = ATTRIBUTE_ID_TO_NAME の1エントリ 'light' => '光'"
+expect_return_shape = "reverseMap['光'] === 'light' かつ reverseMap['light'] === 'light'"
+
+[[condition]]
+id = "create_reverse_map.no_additional_mappings_skips_assign"
+target_function = "createReverseMap"
+source_lines = "31-33"
+description = "第2引数additionalMappingsが未指定(undefined)の場合、if(additionalMappings)がfalseとなりObject.assignはスキップされ、idToNameMap由来のキー（各エントリにつきname→id, id→idの2キー）のみを持つマップを返す"
+given = "createReverseMap(ATTRIBUTE_ID_TO_NAME) — 第2引数省略"
+expect_return_shape = "ATTRIBUTE_ID_TO_NAMEは7エントリのためキー数は7*2=14。それ以外のキーは含まれない"
+
+[[condition]]
+id = "create_reverse_map.additional_mappings_merged"
+target_function = "createReverseMap"
+source_lines = "31-33"
+description = "第2引数additionalMappingsが指定された場合、if判定がtrueとなりObject.assign(reverseMap, additionalMappings)でマージされ、idToNameMapに存在しない追加キー（短縮形・表記ゆれ）が利用可能になる"
+given = "createReverseMap(CARD_TYPE_ID_TO_NAME, { m: 'monster', s: 'spell', t: 'trap' })"
+expect_return_shape = "CARD_TYPE_REVERSE_MAP['m'] === 'monster' 等、idToNameMap由来の6キーに加え追加3キーの計9キーを持つ"
+
+[[condition]]
+id = "create_reverse_map.additional_mappings_priority_over_loop"
+target_function = "createReverseMap"
+source_lines = "24-33"
+description = "Object.assign(31-33行目)はidToNameMap由来のキー設定ループ(24-28行目)より後に実行されるため、additionalMappingsのキーがidToNameMap由来のキー(name値またはid値)と衝突した場合はadditionalMappings側の値で上書きされ、idToNameMap由来の値が無視される（後勝ち・additionalMappings優先）"
+given = "additionalMappingsのキーが、同じ呼び出しのidToNameMapのid値またはname値と同一の場合"
+expect_return_shape = "衝突したキーの最終的な値はadditionalMappings側の値になる"
+verified = false
+unverifiable_reason = "本ファイル内の実際の3呼び出し(ATTRIBUTE/CARD_TYPE/MONSTER_TYPE)では、additionalMappingsのキー('m','s','t','dual','reverse')がいずれもidToNameMap由来のキー(id値・name値)と衝突しないため、この優先順位を実データでは検証できない。createReverseMapは非exportのため、衝突するデータを直接渡すテストも書けない（公開APIのみでは到達不能）。"
+
+# --- ATTRIBUTE_REVERSE_MAP = createReverseMap(ATTRIBUTE_ID_TO_NAME) ---
+
+[[condition]]
+id = "attribute_reverse_map.content"
+target_function = "ATTRIBUTE_REVERSE_MAP"
+source_lines = "42"
+description = "additionalMappings省略で生成されるため、ATTRIBUTE_ID_TO_NAMEの7属性それぞれについて日本語名→ID・ID自己参照→IDの2キーのみを持つ（短縮形なし）"
+given = "ATTRIBUTE_ID_TO_NAME = { light:'光', dark:'闇', water:'水', fire:'炎', earth:'地', wind:'風', divine:'神' }"
+expect_return_shape = "キー数は14（7*2）。'光'→'light' 等の7組と 'light'→'light' 等の7組"
+
+# --- CARD_TYPE_REVERSE_MAP = createReverseMap(CARD_TYPE_ID_TO_NAME, { m, s, t }) ---
+
+[[condition]]
+id = "card_type_reverse_map.short_forms"
+target_function = "CARD_TYPE_REVERSE_MAP"
+source_lines = "48-56"
+description = "CARD_TYPE_ID_TO_NAMEの逆引き(モンスター/魔法/罠の日本語名・英語ID自己参照、計6キー)に加え、追加マッピングとして単一英字の短縮形 m/s/t の3キーを持つ"
+given = "追加マッピング = { m: 'monster', s: 'spell', t: 'trap' }"
+expect_return_shape = "キー数は9。CARD_TYPE_REVERSE_MAP['m']==='monster', ['s']==='spell', ['t']==='trap'"
+
+# --- MONSTER_TYPE_REVERSE_MAP = createReverseMap(MONSTER_TYPE_ID_TO_NAME, { dual, reverse }) ---
+
+[[condition]]
+id = "monster_type_reverse_map.notation_variants"
+target_function = "MONSTER_TYPE_REVERSE_MAP"
+source_lines = "62-69"
+description = "MONSTER_TYPE_ID_TO_NAMEの逆引き(15モンスタータイプの日本語名・英語ID自己参照、計30キー)に加え、追加マッピングとして表記ゆれ対応の dual→gemini（デュアルの英語表記）, reverse→flip（リバースの英語表記）の2キーを持つ。dual/reverseは既存の'gemini'/'flip'自己参照キーとは別キーであり衝突しない"
+given = "追加マッピング = { dual: 'gemini', reverse: 'flip' }"
+expect_return_shape = "キー数は32。MONSTER_TYPE_REVERSE_MAP['dual']==='gemini', ['reverse']==='flip'"

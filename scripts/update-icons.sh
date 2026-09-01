@@ -53,5 +53,4 @@ echo ""
 
 echo ""
 echo "次のステップ:"
-echo "  npm run build"
-echo "  ./scripts/deploy.sh"
+echo "  mise run build-deploy"

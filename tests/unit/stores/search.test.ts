@@ -76,6 +76,11 @@ describe('stores/search', () => {
       expect(store.isGlobalSearchMode).toBe(false);
     });
 
+    it('searchGenerationは0', () => {
+      const store = useSearchStore();
+      expect(store.searchGeneration).toBe(0);
+    });
+
     it('searchFiltersはデフォルト値', () => {
       const store = useSearchStore();
       expect(store.searchFilters).toEqual({

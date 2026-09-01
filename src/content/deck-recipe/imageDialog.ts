@@ -24,10 +24,12 @@ export async function showImageDialogWithData(
   buttonRect: DOMRect | null = null,
   genesysPoints?: Record<string, number>
 ): Promise<void> {
-  // 既存のダイアログがあれば削除
+  // 既存のダイアログがあれば削除（unmountはコンポーネントを破棄するのみで
+  // マウント先のdiv要素自体は残るため、明示的に削除する）
   if (dialogApp) {
     dialogApp.unmount()
     dialogApp = null
+    document.getElementById('ygo-next-image-dialog-mount')?.remove()
   }
 
   // マウント用のdiv要素を作成

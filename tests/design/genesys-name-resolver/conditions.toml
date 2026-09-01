@@ -1,0 +1,234 @@
+# 検証対象: src/utils/genesys-name-resolver.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B展開)、GENESYSポイントのカード名->cid逆引きリゾルバ。
+#
+# 実装コメントとの差異: 無し（実装コメントは正確）。
+#
+# 補足:
+# - matchesKindClass はモジュール内非exportヘルパー関数（L40-57）。
+#   AST骨格抽出スクリプトはexport関数のみを走査するため「未カバー検出」の対象外だが、
+#   README 2節の粒度基準（意味のある分岐）に該当するため人手でconditionsを書いた
+#   （tests/design/README.md「Phase 1.6の知見」のforbidden-limited.ts前例を踏襲）。
+#   検証はGenesysNameResolver.resolveCid()経由の間接テストで行う（直接exportされていないため）。
+# - resolveCid() L113 `this.nameToCids?.get(name)` のoptional chainingは、
+#   直前でthis.build()を必ず呼び出しており、build()はreturn前に必ずthis.nameToCidsを
+#   設定してからthis.built=trueにする（早期returnルートも「既にnameToCidsが設定済み」の場合のみ）。
+#   そのため公開APIの通常呼び出し経路ではnameToCidsがnullのままresolveCidに到達することはなく、
+#   conditionとしては書いていない（型システムでの保証ではなく実装の呼び出し順序による論理的保証）。
+
+[meta]
+feature = "genesys-name-resolver"
+source_file = "src/utils/genesys-name-resolver.ts"
+verified = true
+verified_at = "2026-08-28"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/genesys-name-resolver.test.ts"
+source_hash = "a8eb7cc050694b2cfc9e8e8b4255f1258a6fa7af"
+note = "verified=falseは1件（build.skip_missing_name、理由はunverifiable_reason参照）"
+
+# --- GenesysNameResolver#build(): void ---
+
+[[condition]]
+id = "build.idempotent_no_rebuild"
+target_function = "GenesysNameResolver#build"
+source_lines = "73"
+description = "既にthis.builtがtrueの場合は即returnし、getUnifiedCacheDB()すら呼ばれない（再スキャンしない）"
+given = "buildを完了済みのresolverに対し、さらにresolveCid経由でbuildを呼ぶ"
+expect_side_effect = "2回目以降はgetUnifiedCacheDB()が呼ばれない（呼び出し回数が増えない）"
+
+[[condition]]
+id = "build.skip_missing_name"
+target_function = "GenesysNameResolver#build"
+source_lines = "81-84"
+description = "tableA.langsName.ja が無い（falsy）カードは nameToCids にも cidToKind にも登録されずスキップされる"
+given = "db.getCardBasicInfo(cid) が tableA.langsName.ja を持たないカードを含む"
+expect_side_effect = "そのcidはどの名前でも解決候補にならない"
+verified = false
+unverifiable_reason = "名前が存在しないカードは、そもそもどの文字列キーでresolveCidを呼んでも参照しようがなく（resolveCidはstring型のnameしか受け付けない）、'除外されている'ことと'そもそも参照不能'であることを公開APIだけでは区別できない。skip_missing_table_bのように「名前はあるがtableBが無いため除外される」ケースは単独候補が解決不能になることで観測できるが、名前自体が無いケースは対照実験を組めない。"
+
+[[condition]]
+id = "build.skip_missing_table_b"
+target_function = "GenesysNameResolver#build"
+source_lines = "81-84"
+description = "tableA.langsName.ja はあるが tableB が無い（falsy）カードは nameToCids にも cidToKind にも登録されずスキップされる。cids.length===1の分岐(L117-119)はcidToKindを一切参照しないため、tableBが無くてもskipされていなければnameToCidsにname->[cid]が登録され単独候補としてcidが返るはずで、実際はnullが返ることでskip（未登録）が確認できる"
+given = "唯一の候補カードがja名を持つがtableBを持たない"
+expect_return = null
+
+[[condition]]
+id = "build.types_defaults_to_empty_array"
+target_function = "GenesysNameResolver#build"
+source_lines = "95"
+description = "tableB.types が undefined の場合、cidToKindにはtypes: []として登録される（?? [] フォールバック）"
+given = "同名で複数候補があり、うち1件のtableBにtypesキーが無い（cardType: 'monster'のみ）"
+expect_return = "types未定義の候補のcidが、cardKindClass='effect'（extra deck型でない）として一致し返る"
+
+[[condition]]
+id = "build.groups_duplicate_names"
+target_function = "GenesysNameResolver#build"
+source_lines = "86-90"
+description = "同名カードが複数ある場合、1件目はnameToCidsに新規配列[cid]として登録され、2件目以降は既存配列にpushされる（同名グループ化）"
+given = "同じja名を持つカードが複数存在する"
+expect_return_shape = "nameToCids.get(name) が全候補cidを含む配列になる（resolveCidが複数候補分岐に入ることで間接確認）"
+
+# --- GenesysNameResolver#resolveCid(name, cardKindClass): string | null ---
+
+[[condition]]
+id = "resolve_cid.name_not_found"
+target_function = "GenesysNameResolver#resolveCid"
+source_lines = "114-116"
+description = "指定した名前がnameToCidsに存在しない（またはlength===0）場合、nullを返す"
+given = "name = 未登録のカード名"
+expect_return = null
+
+[[condition]]
+id = "resolve_cid.single_candidate"
+target_function = "GenesysNameResolver#resolveCid"
+source_lines = "117-119"
+description = "候補が1件のみの場合、cardKindClassによる絞り込みを行わずそのcidを直接返す"
+given = "name が1件のみのcidに対応する"
+expect_return = "唯一のcid"
+
+[[condition]]
+id = "resolve_cid.multiple_candidates_match_found"
+target_function = "GenesysNameResolver#resolveCid"
+source_lines = "121-127"
+description = "候補が複数ある場合、cidToKindの順にmatchesKindClassで一致する最初のcidを返す（配列先頭とは限らない）"
+given = "同名で複数候補があり、cardKindClassが2件目以降の候補のみと一致する"
+expect_return = "一致した候補のcid"
+
+[[condition]]
+id = "resolve_cid.multiple_candidates_no_match_fallback"
+target_function = "GenesysNameResolver#resolveCid"
+source_lines = "128-129"
+description = "候補が複数あるが、どの候補もmatchesKindClassで一致しない場合、先頭候補(cids[0])を返す"
+given = "同名で複数候補があり、cardKindClassがどの候補のtypesとも一致しない"
+expect_return = "候補配列の先頭cid"
+
+# --- matchesKindClass(kind, cardKindClass): boolean (非export、resolveCid経由で間接検証) ---
+
+[[condition]]
+id = "matches_kind_class.trims_whitespace"
+target_function = "matchesKindClass"
+source_lines = "41"
+description = "cardKindClassの前後空白はtrimしてから比較される"
+given = "同名複数候補に対し、cardKindClass=' effect '（前後空白付き）で呼ぶ"
+expect_return = "空白なしの'effect'と同じ一致結果"
+
+[[condition]]
+id = "matches_kind_class.magic_true"
+target_function = "matchesKindClass"
+source_lines = "43-45"
+description = "normalized==='magic'の場合、kind.cardType==='spell'ならtrue"
+given = "cardKindClass='magic'、候補のcardTypeが'spell'"
+expect_return = true
+
+[[condition]]
+id = "matches_kind_class.magic_false"
+target_function = "matchesKindClass"
+source_lines = "43-45"
+description = "normalized==='magic'の場合、kind.cardTypeが'spell'でなければfalse（ループはcontinueして次候補へ）"
+given = "cardKindClass='magic'、先頭候補のcardTypeが'spell'以外"
+expect_side_effect = "先頭候補は一致とみなされず、次候補の判定に進む"
+
+[[condition]]
+id = "matches_kind_class.trap_true"
+target_function = "matchesKindClass"
+source_lines = "46-48"
+description = "normalized==='trap'の場合、kind.cardType==='trap'ならtrue"
+given = "cardKindClass='trap'、候補のcardTypeが'trap'"
+expect_return = true
+
+[[condition]]
+id = "matches_kind_class.trap_false"
+target_function = "matchesKindClass"
+source_lines = "46-48"
+description = "normalized==='trap'の場合、kind.cardTypeが'trap'でなければfalse（ループはcontinueして次候補へ）"
+given = "cardKindClass='trap'、先頭候補のcardTypeが'trap'以外"
+expect_side_effect = "先頭候補は一致とみなされず、次候補の判定に進む"
+
+[[condition]]
+id = "matches_kind_class.non_monster_false"
+target_function = "matchesKindClass"
+source_lines = "49-51"
+description = "normalizedが'magic'/'trap'以外で、kind.cardTypeが'monster'でない場合、effect/extra-deck判定に進まずfalseを返す"
+given = "cardKindClass='effect'、候補のcardTypeが'monster'以外（例: 'spell'）"
+expect_return = false
+
+[[condition]]
+id = "matches_kind_class.effect_true"
+target_function = "matchesKindClass"
+source_lines = "52-54"
+description = "normalized==='effect'かつcardType==='monster'の場合、typesがEXTRA_DECK_TYPESのいずれも含まなければtrue"
+given = "cardKindClass='effect'、候補がmonsterでtypesが['effect']等extra deck型を含まない"
+expect_return = true
+
+[[condition]]
+id = "matches_kind_class.effect_false"
+target_function = "matchesKindClass"
+source_lines = "52-54"
+description = "normalized==='effect'かつcardType==='monster'の場合、typesがEXTRA_DECK_TYPESのいずれかを含めばfalse"
+given = "cardKindClass='effect'、候補がmonsterでtypesが['fusion']等extra deck型を含む"
+expect_side_effect = "この候補は一致とみなされず、次候補の判定に進む"
+
+[[condition]]
+id = "matches_kind_class.extra_deck_true"
+target_function = "matchesKindClass"
+source_lines = "55-56"
+description = "normalizedが'fusion'/'synchro'/'xyz'/'ritual'等effect以外の場合、kind.typesがnormalizedを含めばtrue"
+given = "cardKindClass='fusion'、候補のtypesが['fusion']を含む"
+expect_return = true
+
+[[condition]]
+id = "matches_kind_class.extra_deck_false"
+target_function = "matchesKindClass"
+source_lines = "55-56"
+description = "normalizedが'fusion'等の場合、kind.typesがnormalizedを含まなければfalse（ループはcontinueして次候補へ）"
+given = "cardKindClass='fusion'、先頭候補のtypesが['synchro']など'fusion'を含まない"
+expect_side_effect = "先頭候補は一致とみなされず、次候補の判定に進む"
+
+# --- GenesysNameResolver#resolveEntries(entries): { points, unresolved } ---
+
+[[condition]]
+id = "resolve_entries.resolved_entry_recorded"
+target_function = "GenesysNameResolver#resolveEntries"
+source_lines = "147-148"
+description = "resolveCidがcidを返した場合、points[cid] = entry.pointとして記録する"
+given = "entriesの各要素が解決可能なnameを持つ"
+expect_return_shape = "points に cid -> point のエントリが追加される"
+
+[[condition]]
+id = "resolve_entries.unresolved_entry_recorded"
+target_function = "GenesysNameResolver#resolveEntries"
+source_lines = "149-150"
+description = "resolveCidがnullを返した場合、entry.nameをunresolved配列にpushする（pointsには追加しない）"
+given = "entriesの中に解決不能なnameを持つ要素がある"
+expect_return_shape = "unresolved にそのnameが含まれ、pointsには追加されない"
+
+[[condition]]
+id = "resolve_entries.duplicate_cid_last_point_wins"
+target_function = "GenesysNameResolver#resolveEntries"
+source_lines = "147-148"
+description = "複数のentryが同じcidに解決される場合、points[cid]はオブジェクトキーの上書きにより最後に処理されたentryのpointになる"
+given = "entriesに同名（同cidに解決される）カードが複数件、異なるpointで存在する"
+expect_return_shape = "points[cid] は entries 配列内で最後に出現したentryのpoint"
+
+# --- GenesysNameResolver#reset(): void ---
+
+[[condition]]
+id = "reset.clears_cache_and_rebuilds"
+target_function = "GenesysNameResolver#reset"
+source_lines = "160-164"
+description = "reset()はnameToCids/cidToKindをnull、builtをfalseに戻す。以後resolveCidを呼ぶとbuild()が再度getUnifiedCacheDB()から全件スキャンし直す"
+given = "build済みのresolverに対しreset()を呼んだ後、再度resolveCidを呼ぶ"
+expect_side_effect = "reset後の最初のresolveCid呼び出しでgetUnifiedCacheDB()が再度呼ばれる（呼び出し回数が増える）"
+
+# --- resolveGenesysEntries(entries): { points, unresolved } （グローバルインスタンス使用）---
+
+[[condition]]
+id = "resolve_genesys_entries.delegates_to_global_instance"
+target_function = "resolveGenesysEntries"
+source_lines = "176-181"
+description = "モジュールレベルのgenesysNameResolverシングルトンのresolveEntriesにそのまま委譲する"
+given = "genesysNameResolverをreset()した状態でresolveGenesysEntries(entries)を呼ぶ"
+expect_return_shape = "GenesysNameResolverインスタンスを直接使ったresolveEntries(entries)と同じ結果"

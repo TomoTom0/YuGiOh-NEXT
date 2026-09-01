@@ -1,0 +1,177 @@
+# 検証対象: src/utils/settings.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-330(Tier B本展開)、chrome.storage.local を扱う設定管理utils。
+#
+# 実装コメントとの差異・注意点:
+# - 実装コメント（L23-24）は「category 3 強制: configs/features.toml で default = "dev-only"
+#   の機能は本番ビルドでは強制OFF（stored値は無視）」と説明しているが、実装は
+#   `merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice` という
+#   単純な論理AND。DEFAULT側がtrueならmerged側の値がそのまま素通りするだけで、
+#   「強制OFF」が意味を持つのは DEFAULT_FEATURE_SETTINGS.practice が false
+#   (=本番ビルド、features.toml の "dev-only" が false 解決された場合)の時のみ。
+# - genesysは category 1（常時有効）に移行したため強制OFFロジックの対象外。
+#   merged.genesys への上書きは存在せず、stored値がそのまま保持される。
+# - DEFAULT_FEATURE_SETTINGS の実体は configs/features.toml からビルド時に
+#   __FEATURE_DEFAULTS__ として注入される（webpack DefinePlugin / vitest define）。
+#   vitestでは isDev=true 固定で解決されるため DEFAULT_FEATURE_SETTINGS.practice は
+#   常に true になる。そのため「本番ビルドでのDEFAULT=false」を再現するには
+#   `@/types/settings` を vi.doMock で差し替える必要がある
+#   （tests/unit/utils/settings.test.ts で対応）。
+# - 既存テスト(修正前)は `enableAllFeatures` / `enableCardSearchFeature` という
+#   src/types/settings.ts の FeatureId('shuffle-sort' | 'deck-image' | 'deck-edit' |
+#   'chat' | 'practice' | 'genesys')に存在しないキー名でFeatureSettingsをテストしていた。
+#   FeatureSettingsは`[key: string]: boolean`という index signature を持つため
+#   型エラーにはならず、マージ処理自体は実際に呼ばれ検証できているが、
+#   実在しないキーのため category3(practice/genesys)強制ロジックは一切検証されていなかった。
+#   本タスクで実FeatureIdを使った補完テストを追加した。既存テストはそのまま残し
+#   [covers:id]タグのみ付与している。
+#
+# 検証不能な条件:
+# - なし（全条件、vi.doMockによるモジュールモックを含めpublic API経由で検証可能）
+
+[meta]
+feature = "settings"
+source_file = "src/utils/settings.ts"
+verified = true
+verified_at = "2026-08-31"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/settings.test.ts"
+source_hash = "74c16960ea20cba2151001885d7cc2684ccd6b64"
+note = "verified=falseは0件"
+
+# --- loadFeatureSettings(): Promise<FeatureSettings> ---
+
+[[condition]]
+id = "load_feature_settings.merge_with_stored"
+target_function = "loadFeatureSettings"
+source_lines = "18-22"
+description = "chrome.storage.local.get(['featureSettings'])の結果のfeatureSettingsがtruthyの場合、{...DEFAULT_FEATURE_SETTINGS, ...result.featureSettings}でマージし、stored側に存在するキーのみ上書きされる（未指定キーはDEFAULT値を保持）"
+given = "chrome.storage.local.get(['featureSettings'])が { featureSettings: <部分的なFeatureSettings> } でresolveする"
+expect_return_shape = "DEFAULT_FEATURE_SETTINGSの全キーを持ち、storedで指定したキーのみstored値、それ以外はDEFAULT値のFeatureSettings"
+
+[[condition]]
+id = "load_feature_settings.category3_force_off_practice"
+target_function = "loadFeatureSettings"
+source_lines = "25"
+description = "merge後、merged.practice = DEFAULT_FEATURE_SETTINGS.practice && merged.practice が適用される。DEFAULT_FEATURE_SETTINGS.practiceがfalse(本番ビルド相当)の場合、stored側でpractice=trueが指定されていてもfalseに強制される"
+given = "DEFAULT_FEATURE_SETTINGS.practice=false（'@/types/settings'をvi.doMockで差し替え）、stored featureSettings.practice=true"
+expect_return_shape = "merged.practice === false"
+
+[[condition]]
+id = "load_feature_settings.genesys_ignores_stored_artifact"
+target_function = "loadFeatureSettings"
+source_lines = "29"
+description = "genesys（category 1・UIなし）は merge後、merged.genesys = DEFAULT_FEATURE_SETTINGS.genesys が適用される。旧prodビルドはcategory 3強制OFFの結果（genesys=false）をsaveSettings()で永続化しており、UIを持たないためその保存値はビルド強制値のアーティファクトとしてDEFAULT値で上書きされる"
+given = "stored featureSettings.genesys=false（旧prodビルドの強制OFFアーティファクト）"
+expect_return_shape = "merged.genesys === DEFAULT_FEATURE_SETTINGS.genesys（true）"
+
+[[condition]]
+id = "load_feature_settings.genesys_default_wins_over_stored"
+target_function = "loadFeatureSettings"
+source_lines = "29"
+description = "genesysはUIを持たないため保存値をユーザー意図として扱わず、DEFAULT値が常に優先される（DEFAULTがfalseに変わればstored=trueでもfalseになる。genesysにUIを追加する際はこの行を削除する）"
+given = "DEFAULT_FEATURE_SETTINGS.genesys=false（'@/types/settings'をvi.doMockで差し替え）、stored featureSettings.genesys=true"
+expect_return_shape = "merged.genesys === false"
+
+[[condition]]
+id = "load_feature_settings.no_stored_returns_default"
+target_function = "loadFeatureSettings"
+source_lines = "34"
+description = "result.featureSettingsがfalsy(undefined)の場合、マージやcategory3強制ロジックを経由せずDEFAULT_FEATURE_SETTINGSをそのまま返す"
+given = "chrome.storage.local.get(['featureSettings'])が {} でresolveする(featureSettingsキー無し)"
+expect_return = "DEFAULT_FEATURE_SETTINGS"
+
+[[condition]]
+id = "load_feature_settings.storage_get_throws_returns_default"
+target_function = "loadFeatureSettings"
+source_lines = "35-38"
+description = "chrome.storage.local.get(...)がrejectした場合、catchでconsole.errorに記録した上でDEFAULT_FEATURE_SETTINGSを返す（throwしない）"
+given = "chrome.storage.local.get(['featureSettings'])がrejectする"
+expect_return = "DEFAULT_FEATURE_SETTINGS"
+expect_side_effect = "console.error('Failed to load feature settings:', error)が呼ばれる"
+
+# --- isFeatureEnabled(featureId: FeatureId): Promise<boolean> ---
+
+[[condition]]
+id = "is_feature_enabled.returns_defined_value"
+target_function = "isFeatureEnabled"
+source_lines = "45-46"
+description = "loadFeatureSettings()の返り値(settings)でsettings[featureId]がnull/undefinedでない(true/false問わず)場合、その値をそのまま返す。DEFAULT_FEATURE_SETTINGS[featureId]へのフォールバックは発生しない"
+given = "settings[featureId]がbooleanとして定義されている(trueまたはfalse)"
+expect_return = "settings[featureId]の値そのもの"
+
+[[condition]]
+id = "is_feature_enabled.fallback_to_default_when_undefined"
+target_function = "isFeatureEnabled"
+source_lines = "46"
+description = "settings[featureId]がnullish(undefined)の場合、`??`によりDEFAULT_FEATURE_SETTINGS[featureId]にフォールバックする。通常のマージ経路ではmerged側は常にDEFAULT_FEATURE_SETTINGSの全キーを継承するため到達しにくいが、stored側で当該キーに明示的にundefinedが設定された場合（spreadで上書きされる）に到達する"
+given = "chrome.storage.local.get(['featureSettings'])が { featureSettings: { chat: undefined } } でresolveする"
+expect_return = "DEFAULT_FEATURE_SETTINGS.chat (false)"
+
+# --- saveFeatureSettings(settings: FeatureSettings): Promise<void> ---
+
+[[condition]]
+id = "save_feature_settings.success"
+target_function = "saveFeatureSettings"
+source_lines = "56-57"
+description = "chrome.storage.local.set({featureSettings: settings})がresolveした場合、そのままresolveする(voidを返す)"
+given = "chrome.storage.local.set({featureSettings: settings})がresolveする"
+expect_no_throw = true
+expect_side_effect = "chrome.storage.local.setが{featureSettings: settings}で呼ばれる"
+
+[[condition]]
+id = "save_feature_settings.failure_rethrows"
+target_function = "saveFeatureSettings"
+source_lines = "58-60"
+description = "chrome.storage.local.set(...)がrejectした場合、catchでconsole.errorに記録した上で同じerrorをそのままrethrowする"
+given = "chrome.storage.local.set({featureSettings: settings})がrejectする"
+expect_throw = "元のerrorをそのままrethrow"
+expect_side_effect = "console.error('Failed to save feature settings:', error)が呼ばれた後にthrowされる"
+
+# --- loadAppSettings(): Promise<AppSettings> ---
+
+[[condition]]
+id = "load_app_settings.merge_with_stored"
+target_function = "loadAppSettings"
+source_lines = "73-77"
+description = "result.appSettingsがtruthyの場合、{...DEFAULT_APP_SETTINGS, ...result.appSettings}でマージし、stored側に存在するキーのみ上書きされる（未指定キーはDEFAULT値を保持）。loadFeatureSettingsと異なりcategory3相当の強制ロジックは無い"
+given = "chrome.storage.local.get(['appSettings'])が { appSettings: <部分的なAppSettings> } でresolveする"
+expect_return_shape = "DEFAULT_APP_SETTINGSの全キーを持ち、storedで指定したキーのみstored値、それ以外はDEFAULT値のAppSettings"
+
+[[condition]]
+id = "load_app_settings.no_stored_returns_default"
+target_function = "loadAppSettings"
+source_lines = "80"
+description = "result.appSettingsがfalsy(undefined)の場合、DEFAULT_APP_SETTINGSをそのまま返す"
+given = "chrome.storage.local.get(['appSettings'])が {} でresolveする(appSettingsキー無し)"
+expect_return = "DEFAULT_APP_SETTINGS"
+
+[[condition]]
+id = "load_app_settings.storage_get_throws_returns_default"
+target_function = "loadAppSettings"
+source_lines = "81-84"
+description = "chrome.storage.local.get(...)がrejectした場合、catchでconsole.errorに記録した上でDEFAULT_APP_SETTINGSを返す（throwしない）"
+given = "chrome.storage.local.get(['appSettings'])がrejectする"
+expect_return = "DEFAULT_APP_SETTINGS"
+expect_side_effect = "console.error('Failed to load app settings:', error)が呼ばれる"
+
+# --- saveAppSettings(settings: AppSettings): Promise<void> ---
+
+[[condition]]
+id = "save_app_settings.success"
+target_function = "saveAppSettings"
+source_lines = "94-95"
+description = "chrome.storage.local.set({appSettings: settings})がresolveした場合、そのままresolveする(voidを返す)"
+given = "chrome.storage.local.set({appSettings: settings})がresolveする"
+expect_no_throw = true
+expect_side_effect = "chrome.storage.local.setが{appSettings: settings}で呼ばれる"
+
+[[condition]]
+id = "save_app_settings.failure_rethrows"
+target_function = "saveAppSettings"
+source_lines = "96-98"
+description = "chrome.storage.local.set(...)がrejectした場合、catchでconsole.errorに記録した上で同じerrorをそのままrethrowする"
+given = "chrome.storage.local.set({appSettings: settings})がrejectする"
+expect_throw = "元のerrorをそのままrethrow"
+expect_side_effect = "console.error('Failed to save app settings:', error)が呼ばれた後にthrowされる"
