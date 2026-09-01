@@ -1,4 +1,4 @@
-import { type Ref, computed, nextTick } from 'vue'
+import { type Ref, computed, nextTick, toRaw } from 'vue'
 import type { CardInfo, Attribute, Race } from '../../../types/card'
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
@@ -219,6 +219,11 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
     searchStore.searchResults = []
     searchStore.allResults = []
 
+    // 検索実行中にフィルターダイアログで条件が変更されても、この検索が
+    // 送信した条件と結果のフィルタリング・履歴登録がずれないよう、
+    // 検索開始時点のフィルターをディープクローンして以降はこれを使う
+    const filtersSnapshot: SearchFilters = JSON.parse(JSON.stringify(toRaw(searchStore.searchFilters)))
+
     try {
       const keyword = searchStore.searchQuery.trim()
 
@@ -247,7 +252,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           keyword,
           '1',  // searchTypeはauto関数内で上書きされるので仮の値
           deckStore.sortOrder as SortOrder,
-          searchStore.searchFilters
+          filtersSnapshot
         )
 
         const autoResult = await searchCardsAuto(autoOptions)
@@ -267,7 +272,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
           keyword,
           searchType as '1' | '2' | '3' | '4',
           deckStore.sortOrder as SortOrder,
-          searchStore.searchFilters
+          filtersSnapshot
         )
 
         results = await searchCards(searchOptions)
@@ -280,7 +285,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // モンスタータイプ・リンクマーカーのAND/OR等は検索サーバー側では正しく
       // 絞り込まれないため、検索経路（auto/name/text/pendulum）によらず必ず
       // クライアント側フィルタを適用する
-      results = applyClientSideFilters(results, searchStore.searchFilters)
+      results = applyClientSideFilters(results, filtersSnapshot)
 
       // 他の検索が既に開始されている場合、この検索結果は古いため反映しない
       if (searchStore.searchGeneration !== myGeneration) {
@@ -305,7 +310,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索履歴に保存
       if (query || hasActiveFilters.value) {
         const resultCids = results.map(card => card.cardId)
-        searchHistory.addToHistory(query, searchMode.value, searchStore.searchFilters, resultCids)
+        searchHistory.addToHistory(query, searchMode.value, filtersSnapshot, resultCids)
       }
 
       if (rawResultCount >= 100) {
@@ -326,7 +331,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
               }
 
               if (moreResults.length > 100) {
-                const filteredMoreResults = applyClientSideFilters(moreResults, searchStore.searchFilters)
+                const filteredMoreResults = applyClientSideFilters(moreResults, filtersSnapshot)
                 searchStore.searchResults = filteredMoreResults as unknown as typeof searchStore.searchResults
                 searchStore.allResults = filteredMoreResults as unknown as typeof searchStore.allResults
                 searchStore.hasMore = moreResults.length >= 2000
