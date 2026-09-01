@@ -38,9 +38,8 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
   const searchStore = useSearchStore()
   const searchHistory = useSearchHistory()
 
-  // hasActiveFiltersを直接計算
-  const hasActiveFilters = computed(() => {
-    const f = searchStore.searchFilters
+  // 指定されたフィルターが何かしら有効かどうかを判定
+  const computeHasActiveFilters = (f: SearchFilters): boolean => {
     return f.cardType !== null ||
       f.attributes.length > 0 ||
       f.spellTypes.length > 0 ||
@@ -57,7 +56,10 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       f.def.max !== undefined ||
       f.releaseDate.from !== undefined ||
       f.releaseDate.to !== undefined
-  })
+  }
+
+  // hasActiveFiltersを直接計算（検索開始前のクリア判定など、ライブ状態が必要な箇所で使用）
+  const hasActiveFilters = computed(() => computeHasActiveFilters(searchStore.searchFilters))
 
   /**
    * クライアント側でフィルターを適用
@@ -308,7 +310,9 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       })
 
       // 検索履歴に保存
-      if (query || hasActiveFilters.value) {
+      // 検索実行中にフィルターダイアログで条件が変更される可能性があるため、
+      // 履歴登録の要否は実際に検索へ使われた filtersSnapshot を基準に判定する
+      if (query || computeHasActiveFilters(filtersSnapshot)) {
         const resultCids = results.map(card => card.cardId)
         searchHistory.addToHistory(query, searchMode.value, filtersSnapshot, resultCids)
       }
