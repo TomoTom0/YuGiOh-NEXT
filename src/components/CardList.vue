@@ -182,10 +182,7 @@
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
             @click="toggleCardExpand(item.uuid, $event)"
-          >{{ stripCardLinkTemplates(item.card.text) }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
-------
-[Pendulum]
-{{ stripCardLinkTemplates(item.card.pendulumText) }}</template></div>
+          >{{ stripCardLinkTemplates(item.card.text) }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">{{ '\n------\n[Pendulum]\n' }}{{ stripCardLinkTemplates(item.card.pendulumText) }}</template></div>
           <div class="card-stats">
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">

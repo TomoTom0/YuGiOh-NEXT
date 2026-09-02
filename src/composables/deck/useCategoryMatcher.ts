@@ -130,3 +130,53 @@ export function computeCategoryMatchedCardIds(
   // 一段階目と二段階目をマージして返す
   return new Set([...firstStageMatched, ...secondStageMatched]);
 }
+
+/**
+ * カテゴリラベルにマッチするデッキ内カードの枚数（実枚数）を数える
+ *
+ * カード名またはテキストにカテゴリラベルを含むカードの quantity を合算する。
+ * CategoryDialog.vue の「7枚以上」フィルタと同じ判定基準（name/textのみ、
+ * ruby/pendulumTextは対象外）。
+ */
+export function countCardsForCategoryLabel(
+  categoryLabel: string,
+  deckCardRefs: DeckCardRef[],
+  cardDB: (cid: string) => CardData | undefined
+): number {
+  return deckCardRefs.reduce((total, ref) => {
+    const card = cardDB(ref.cid);
+    if (!card) return total;
+
+    const nameMatch = card.name.includes(categoryLabel);
+    const textMatch = (card.text || '').includes(categoryLabel);
+    if (nameMatch || textMatch) {
+      return total + (ref.quantity || 1);
+    }
+    return total;
+  }, 0);
+}
+
+/**
+ * デッキ内カードの枚数から、閾値以上のカテゴリIDを自動判定する
+ *
+ * @param categoryLabelMap - カテゴリID → ラベル名のマップ（全カテゴリ）
+ * @param deckCardRefs - デッキ内の全カード参照（main/extra/side等）
+ * @param cardDB - カードIDからCardDataを取得する関数
+ * @param threshold - マッチ枚数がこの値以上のカテゴリを採用する閾値
+ * @returns 閾値以上のカテゴリIDの配列
+ */
+export function computeAutoCategoryIds(
+  categoryLabelMap: Record<string, string>,
+  deckCardRefs: DeckCardRef[],
+  cardDB: (cid: string) => CardData | undefined,
+  threshold: number
+): string[] {
+  const result: string[] = [];
+  for (const [categoryId, label] of Object.entries(categoryLabelMap)) {
+    if (!label) continue;
+    if (countCardsForCategoryLabel(label, deckCardRefs, cardDB) >= threshold) {
+      result.push(categoryId);
+    }
+  }
+  return result;
+}

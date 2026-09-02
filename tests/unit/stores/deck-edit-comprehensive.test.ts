@@ -817,6 +817,133 @@ describe('useDeckEditStore', () => {
       expect(mockUpdateDeckInfoAndThumbnailWithData).not.toHaveBeenCalled();
     });
   });
+
+  describe('autoSetCategory() / autoRenameDeck() - TASK-442', () => {
+    function mockCardWithNameText(name: string, text = ''): any {
+      return { cardId: name, name, text };
+    }
+
+    beforeEach(() => {
+      mockUnifiedDB.reconstructCardInfo.mockReset();
+    });
+
+    it('閾値(7)以上マッチするカテゴリのみdeckInfo.categoryに設定する [covers:auto_set_category.sets_categories_meeting_threshold]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼', cat2: '幻想魔術師' };
+      store.deckInfo.mainDeck = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 7 }, // '青眼' name一致 x7
+        { cid: '2', ciid: '0', lang: 'ja', quantity: 3 }  // '幻想魔術師' name一致 x3（閾値未満）
+      ];
+      mockUnifiedDB.reconstructCardInfo.mockImplementation((cid: string) => {
+        if (cid === '1') return mockCardWithNameText('青眼の白龍');
+        if (cid === '2') return mockCardWithNameText('幻想魔術師');
+        return null;
+      });
+
+      const result = store.autoSetCategory();
+
+      expect(result).toEqual(['cat1']);
+      expect(store.deckInfo.category).toEqual(['cat1']);
+    });
+
+    it('閾値以上のカテゴリが無い場合は空配列を設定する [covers:auto_set_category.no_match_clears_category]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼' };
+      store.deckInfo.category = ['cat1']; // 既存選択があっても上書きされる
+      store.deckInfo.mainDeck = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 1 }
+      ];
+      mockUnifiedDB.reconstructCardInfo.mockImplementation((cid: string) =>
+        cid === '1' ? mockCardWithNameText('青眼の白龍') : null
+      );
+
+      const result = store.autoSetCategory();
+
+      expect(result).toEqual([]);
+      expect(store.deckInfo.category).toEqual([]);
+    });
+
+    it('カテゴリが既に設定されている場合はautoSetCategoryを呼ばずそのまま使う [covers:auto_rename_deck.uses_existing_category_if_set]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼' };
+      store.deckInfo.category = ['cat1'];
+      store.deckInfo.name = '旧デッキ名';
+      // マッチしないデータでも、既存category設定があるので自動判定は走らない
+      store.deckInfo.mainDeck = [];
+      mockUnifiedDB.reconstructCardInfo.mockReturnValue(null);
+
+      const result = store.autoRenameDeck();
+
+      expect(result.renamed).toBe(true);
+      expect(store.deckInfo.name).toBe('青眼');
+      expect(store.deckInfo.category).toEqual(['cat1']); // 変化しない
+    });
+
+    it('カテゴリ未設定なら自動判定してから命名する [covers:auto_rename_deck.auto_sets_category_if_empty]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼' };
+      store.deckInfo.category = [];
+      store.deckInfo.name = '旧デッキ名';
+      store.deckInfo.mainDeck = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 7 }
+      ];
+      mockUnifiedDB.reconstructCardInfo.mockImplementation((cid: string) =>
+        cid === '1' ? mockCardWithNameText('青眼の白龍') : null
+      );
+
+      const result = store.autoRenameDeck();
+
+      expect(store.deckInfo.category).toEqual(['cat1']);
+      expect(result.categories).toEqual(['cat1']);
+      expect(store.deckInfo.name).toBe('青眼');
+    });
+
+    it('マッチするラベルが無い場合は名前を変更せずrenamed:falseを返す [covers:auto_rename_deck.no_matching_label_is_noop]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = {}; // 'cat1' に対応するラベルが無い
+      store.deckInfo.category = ['cat1'];
+      store.deckInfo.name = '旧デッキ名';
+
+      const result = store.autoRenameDeck();
+
+      expect(result).toEqual({ categories: ['cat1'], renamed: false });
+      expect(store.deckInfo.name).toBe('旧デッキ名');
+    });
+
+    it('先頭のレギュレーションタグは保持し、後ろをカテゴリ名で置き換える [covers:auto_rename_deck.preserves_prefix_regulation_tag]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼' };
+      store.deckInfo.category = ['cat1'];
+      store.deckInfo.name = '[OCG] 旧デッキ名';
+
+      const result = store.autoRenameDeck();
+
+      expect(store.deckInfo.name).toBe('[OCG] 青眼');
+      expect(result.renamed).toBe(true);
+    });
+
+    it('先頭タグが無い場合はデッキ名全体を置き換える [covers:auto_rename_deck.no_tag_replaces_whole_name]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼' };
+      store.deckInfo.category = ['cat1'];
+      store.deckInfo.name = '旧デッキ名';
+
+      store.autoRenameDeck();
+
+      expect(store.deckInfo.name).toBe('青眼');
+    });
+
+    it('複数カテゴリは区切り文字無しで連結する [covers:auto_rename_deck.multiple_categories_joined_without_separator]', () => {
+      const store = useDeckEditStore();
+      store.categoryLabelMap = { cat1: '青眼', cat2: 'ブラック・マジシャン' };
+      store.deckInfo.category = ['cat1', 'cat2'];
+      store.deckInfo.name = '旧デッキ名';
+
+      store.autoRenameDeck();
+
+      expect(store.deckInfo.name).toBe('青眼ブラック・マジシャン');
+    });
+  });
 });
 
 // ===== Helper Functions =====

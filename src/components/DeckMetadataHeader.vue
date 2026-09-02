@@ -157,6 +157,14 @@
                 </button>
               </div>
             </div>
+
+            <!-- 自動命名/自動カテゴリ -->
+            <button class="auto-action-btn" @click="handleAutoRename" title="レギュレーションタグより後ろをカテゴリ名で自動命名">
+              auto-rename
+            </button>
+            <button class="auto-action-btn" @click="handleAutoCategory" title="デッキ内カード枚数からカテゴリを自動設定">
+              auto-category
+            </button>
           </div>
         </Transition>
       </div>
@@ -359,6 +367,33 @@ async function copyDeckCode() {
 watch(() => deckStore.deckInfo.dno, () => {
   deckCode.value = ''
 })
+
+// デッキ名を自動整形（レギュレーションタグを保持しカテゴリ名で命名）
+function handleAutoRename() {
+  const result = deckStore.autoRenameDeck()
+  if (result.renamed) {
+    handleSuccess('[DeckMetadataHeader]', `デッキ名を自動設定しました: ${deckStore.deckInfo.name}`)
+  } else {
+    handleError(
+      '[DeckMetadataHeader]',
+      '対応するカテゴリが見つからないため、デッキ名は変更されませんでした',
+      new Error('No matching category label'),
+      { showToast: true }
+    )
+  }
+  showMetadataMenu.value = false
+}
+
+// デッキ内カード枚数からカテゴリを自動設定
+function handleAutoCategory() {
+  const categories = deckStore.autoSetCategory()
+  if (categories.length > 0) {
+    handleSuccess('[DeckMetadataHeader]', `カテゴリを自動設定しました（${categories.length}件）`)
+  } else {
+    handleSuccess('[DeckMetadataHeader]', '該当するカテゴリが見つかりませんでした')
+  }
+  showMetadataMenu.value = false
+}
 </script>
 
 <style scoped lang="scss">
@@ -405,19 +440,10 @@ watch(() => deckStore.deckInfo.dno, () => {
   color: var(--text-primary);
   cursor: pointer;
   font-size: calc(var(--right-area-font-size, 14px) * 0.79);
-  transition: all 0.2s;
+  transition: all 0.35s;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  &:hover {
-    border-color: var(--text-tertiary);
-    background: var(--bg-secondary);
-  }
-
-  &:active {
-    background: var(--bg-tertiary);
-  }
 }
 
 .deck-type-button {
@@ -439,19 +465,18 @@ watch(() => deckStore.deckInfo.dno, () => {
 
 .deck-style-button {
   min-width: 50px;
-  background: var(--color-info-bg);
-  color: var(--color-info);
+  background: var(--color-info);
+  color: var(--button-text);
   border: 1px solid var(--color-info);
   border-radius: 12px;
-  font-weight: 500;
+  font-weight: 700;
 
   &:hover {
-    background: var(--color-info-hover-bg);
-    border-color: var(--color-info);
+    filter: brightness(0.75);
   }
 
   &:active {
-    background: var(--color-info);
+    filter: brightness(0.55);
   }
 }
 
@@ -461,69 +486,56 @@ watch(() => deckStore.deckInfo.dno, () => {
 }
 
 .public-button {
-  background: var(--color-error-bg);
-  color: var(--color-error-text);
+  background: var(--color-error);
+  color: var(--button-text);
   border: 1px solid var(--color-error);
   border-radius: 12px;
-  font-weight: 500;
+  font-weight: 700;
   min-width: 44px;
 
   &:hover {
-    background: var(--color-error-hover-bg);
-    border-color: var(--color-error);
+    filter: brightness(0.75);
   }
 
   &:active {
-    background: var(--color-error);
+    filter: brightness(0.55);
   }
 
   &.is-public {
-    background: var(--color-success-bg);
-    color: var(--color-success);
+    background: var(--color-success);
     border-color: var(--color-success);
-
-    &:hover {
-      background: var(--color-success-hover-bg);
-      border-color: var(--color-success);
-    }
-
-    &:active {
-      background: var(--color-success);
-    }
   }
 }
 
 .tag-button {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-success);
+  color: var(--button-text);
   border: 1px solid var(--color-success);
   border-radius: 12px;
-  font-weight: 500;
+  font-weight: 700;
 
   &:hover {
-    background: var(--color-success-hover-bg);
-    border-color: var(--color-success);
+    filter: brightness(0.75);
   }
 
   &:active {
-    background: var(--color-success);
+    filter: brightness(0.55);
   }
 }
 
 .category-button {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-warning);
+  color: var(--button-text);
   border: 1px solid var(--color-warning);
   border-radius: 12px;
-  font-weight: 500;
+  font-weight: 700;
 
   &:hover {
-    background: var(--color-warning-hover-bg);
-    border-color: var(--color-warning);
+    filter: brightness(0.75);
   }
 
   &:active {
-    background: var(--color-warning);
+    filter: brightness(0.55);
   }
 }
 
@@ -629,18 +641,17 @@ watch(() => deckStore.deckInfo.dno, () => {
   font-weight: bold;
   min-width: 36px;
   padding: 0 6px;
-  background: var(--color-info-bg);
-  color: var(--color-info);
+  background: var(--color-info);
+  color: var(--button-text);
   border: 1px solid var(--color-info);
   border-radius: 12px;
 
   &:hover {
-    background: var(--color-info-hover-bg);
-    border-color: var(--color-info);
+    filter: brightness(0.75);
   }
 
   &:active {
-    background: var(--color-info);
+    filter: brightness(0.55);
   }
 }
 
@@ -742,26 +753,53 @@ watch(() => deckStore.deckInfo.dno, () => {
 .deck-code-btn {
   padding: 4px 12px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   border: 1px solid var(--color-success);
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-success);
+  color: var(--button-text);
   border-radius: 3px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: filter 0.35s;
   white-space: nowrap;
   flex-shrink: 0;
   height: 24px;
   line-height: 1;
 
   &:hover:not(:disabled) {
-    background: var(--color-success-hover-bg);
-    border-color: var(--color-success);
+    filter: brightness(0.75);
   }
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+}
+
+.auto-action-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--button-bg);
+  background: var(--button-bg);
+  color: var(--button-text);
+  text-align: center;
+  cursor: pointer;
+  font-size: calc(var(--right-area-font-size, 14px) * 0.79);
+  font-weight: 700;
+  border-radius: 4px;
+  transition: filter 0.35s;
+
+  &:hover {
+    filter: brightness(0.75);
+  }
+
+  &:active {
+    filter: brightness(0.55);
+  }
+
+  &:not(:last-child) {
+    margin-bottom: 4px;
   }
 }
 
