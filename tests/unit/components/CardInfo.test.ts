@@ -330,6 +330,55 @@ describe('CardInfo.vue', () => {
       expect(cardLinks).toHaveLength(1);
       expect(cardLinks?.[0].text()).toBe('関連カード');
     });
+
+    it('Card Text本文の{{カード名|cid}}形式もカードリンクとしてパースされる', () => {
+      const store = useCardDetailStore();
+      store.selectedCard = {
+        ...mockMonsterCard,
+        text: '「{{ブルーアイズ・ホワイト・ドラゴン|4007}}」を発動する。',
+      } as any;
+
+      const wrapper = mount(CardInfo, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const sections = wrapper.findAll('.card-effect-section');
+      const cardTextSection = sections.find((s) =>
+        s.find('.section-title').text().includes('Card Text')
+      );
+
+      const cardLinks = cardTextSection?.findAll('.card-link');
+      expect(cardLinks).toHaveLength(1);
+      expect(cardLinks?.[0].text()).toBe('ブルーアイズ・ホワイト・ドラゴン');
+      expect(cardTextSection?.find('.effect-text').text()).toBe(
+        '「ブルーアイズ・ホワイト・ドラゴン」を発動する。'
+      );
+    });
+
+    it('Pend. Textの{{カード名|cid}}形式もカードリンクとしてパースされる', () => {
+      const store = useCardDetailStore();
+      store.selectedCard = {
+        ...mockPendulumCard,
+        pendulumText: '「{{関連カード|999}}」を参照する。',
+      } as any;
+
+      const wrapper = mount(CardInfo, {
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const sections = wrapper.findAll('.card-effect-section');
+      const pendTextSection = sections.find((s) =>
+        s.find('.section-title').text().includes('Pend. Text')
+      );
+
+      const cardLinks = pendTextSection?.findAll('.card-link');
+      expect(cardLinks).toHaveLength(1);
+      expect(cardLinks?.[0].text()).toBe('関連カード');
+    });
   });
 
   describe('カードリンククリック処理', () => {

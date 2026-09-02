@@ -3,6 +3,7 @@ import { detectCardGameType } from '@/utils/page-detector';
 import { buildApiUrl } from '@/utils/url-builder';
 import { queuedFetch } from '@/utils/request-queue';
 import { safeQueryAs, isHTMLInputElement } from '@/utils/type-guards';
+import { convertCardLinksToTemplate } from '@/utils/card-link-template';
 
 /**
  * カードQA一覧を取得する
@@ -135,44 +136,6 @@ export async function getCardFAQList(cardId: string): Promise<CardFAQList | null
     console.error('Failed to get card FAQ list:', error);
     return null;
   }
-}
-
-/**
- * HTMLElement内のカードリンクを {{カード名|cid}} 形式のテンプレートに変換
- *
- * @param element 変換対象のHTMLElement
- * @returns 変換後のテキスト
- *
- * @example
- * ```html
- * <div>「<a href="faq_search.action?ope=4&cid=5533">王家の眠る谷－ネクロバレー</a>」の効果</div>
- * ```
- * ↓
- * ```
- * 「{{王家の眠る谷－ネクロバレー|5533}}」の効果
- * ```
- */
-function convertCardLinksToTemplate(element: HTMLElement): string {
-  const cloned = element.cloneNode(true) as HTMLElement;
-
-  // <br>を改行に変換
-  cloned.querySelectorAll('br').forEach(br => {
-    br.replaceWith('\n');
-  });
-
-  // カードリンク <a href="...?cid=5533">カード名</a> を {{カード名|5533}} に変換
-  cloned.querySelectorAll('a[href*="cid="]').forEach(link => {
-    const href = link.getAttribute('href') || '';
-    const match = href.match(/[?&]cid=(\d+)/);
-    if (match && match[1]) {
-      const cardId = match[1];
-      const cardName = link.textContent?.trim() || '';
-      // {{カード名|cid}} 形式に変換
-      link.replaceWith(`{{${cardName}|${cardId}}}`);
-    }
-  });
-
-  return cloned.textContent?.trim() || '';
 }
 
 /**

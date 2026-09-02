@@ -160,7 +160,18 @@
     <div class="card-info-bottom">
       <div v-if="card.pendulumText" class="card-effect-section">
         <div class="section-title">Pend. Text</div>
-        <div class="effect-text">{{ card.pendulumText }}</div>
+        <div class="effect-text">
+          <template v-for="(part, partIndex) in parseCardLinks(card.pendulumText)" :key="partIndex">
+            <span
+              v-if="part.type === 'link'"
+              class="card-link"
+              @click="handleCardLinkClick(part.cardId)"
+            >
+              {{ part.text }}
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </div>
       </div>
 
       <div v-if="pendulumSupplementInfo" class="card-effect-section">
@@ -182,7 +193,18 @@
       <div v-if="card" class="card-effect-section">
         <div class="section-title">Card Text</div>
         <div class="effect-text">
-          <template v-if="card.text && card.text.trim() !== ''">{{ card.text }}</template>
+          <template v-if="card.text && card.text.trim() !== ''">
+            <template v-for="(part, partIndex) in parseCardLinks(card.text)" :key="partIndex">
+              <span
+                v-if="part.type === 'link'"
+                class="card-link"
+                @click="handleCardLinkClick(part.cardId)"
+              >
+                {{ part.text }}
+              </span>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </template>
           <template v-else><span class="no-data">テキスト情報がありません</span></template>
         </div>
       </div>

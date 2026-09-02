@@ -624,6 +624,43 @@ describe('api/card-search - Comprehensive Tests', () => {
       expect(result?.qaList).toEqual([]);
     });
 
+    it('[covers:parse_text_data.card_link_converted_to_template] 詳細ページのCardText内のカードリンクを{{カード名|cid}}形式に変換する', async () => {
+      const { queuedFetch } = await import('@/utils/request-queue');
+      const monsterBase = {
+        ...baseCard,
+        cardType: 'monster',
+        attribute: 'light',
+        levelType: 'level',
+        levelValue: 4,
+        types: ['pendulum'],
+        atk: 1800,
+        def: 1500,
+        isExtraDeck: false
+      } as CardInfo;
+      const htmlWithLink = `
+        <html>
+          <body>
+            <div class="CardText pen">
+              <span class="item_box_value">ペンデュラムスケール 2</span>
+              <div class="item_box_text">「<a href="card_search.action?ope=2&cid=5533">王家の眠る谷－ネクロバレー</a>」を発動する。</div>
+            </div>
+            <div class="CardText">
+              <div class="item_box_text">「<a href="card_search.action?ope=2&cid=1234">別のカード</a>」と併用する。</div>
+            </div>
+          </body>
+        </html>
+      `;
+      queuedFetch.mockResolvedValueOnce({ ok: true, text: vi.fn().mockResolvedValueOnce(htmlWithLink) });
+      vi.spyOn(unifiedDB, 'reconstructCardInfo').mockReturnValue(monsterBase);
+
+      const result = await getCardDetail('base1', 'ja');
+
+      expect(result?.card).toMatchObject({
+        text: '「{{別のカード|1234}}」と併用する。',
+        pendulumText: '「{{王家の眠る谷－ネクロバレー|5533}}」を発動する。'
+      });
+    });
+
     it('[covers:parse_pack.missing_update_list_empty] update_listがない詳細HTMLではpacksが空になる', async () => {
       const { queuedFetch } = await import('@/utils/request-queue');
       queuedFetch.mockResolvedValueOnce({ ok: true, text: vi.fn().mockResolvedValueOnce('<html><body><div class="CardText"><div class="item_box_text">本文</div></div></body></html>') });
@@ -799,6 +836,21 @@ describe('api/card-search - Comprehensive Tests', () => {
       expect(result!.imgs).toEqual([{ ciid: '1', imgHash: '12345_1_1_1' }]);
       expect(result!.text).toBe('メイン\n効果');
     });
+
+    it('[covers:parse_base.card_link_converted_to_template] box_card_text内のカードリンクを{{カード名|cid}}形式に変換する', () => {
+      const doc = new DOMParser().parseFromString(`
+        <div class="t_row">
+          <input type="hidden" class="link_value" value="/yugiohdb/card_search.action?ope=2&cid=100&request_locale=ja" />
+          <span class="card_name">テストカード</span>
+          <div class="box_card_text">「<a href="card_search.action?ope=2&cid=5533">王家の眠る谷－ネクロバレー</a>」を発動する。</div>
+        </div>
+      `, 'text/html');
+      const row = doc.querySelector('.t_row') as HTMLElement;
+
+      const result = parseCardBase(row, new Map());
+
+      expect(result!.text).toBe('「{{王家の眠る谷－ネクロバレー|5533}}」を発動する。');
+    });
   });
 
   describe('card row parsers', () => {
@@ -861,6 +913,22 @@ describe('api/card-search - Comprehensive Tests', () => {
         pendulumText: 'P\n効果',
         isExtraDeck: true
       });
+    });
+
+    it('[covers:parse_monster.pendulum_text_card_link_converted_to_template] box_card_pen_effect内のカードリンクを{{カード名|cid}}形式に変換する', () => {
+      const doc = new DOMParser().parseFromString(`
+        <div>
+          <div class="box_card_attribute"><img src="https://example.test/attribute_icon_light.png" /></div>
+          <div class="box_card_level_rank level"><span>レベル 4</span></div>
+          <div class="card_info_species_and_other_item">【ドラゴン族／ペンデュラム／効果】</div>
+          <div class="box_card_pen_scale">スケール 1</div>
+          <div class="box_card_pen_effect">「<a href="card_search.action?ope=2&cid=5533">王家の眠る谷－ネクロバレー</a>」を発動する。</div>
+        </div>
+      `, 'text/html');
+
+      const result = parseMonsterCard(doc.body.firstElementChild as HTMLElement, baseCard);
+
+      expect(result!.pendulumText).toBe('「{{王家の眠る谷－ネクロバレー|5533}}」を発動する。');
     });
 
     it('[covers:parse_monster.link_value_and_markers] リンクモンスターのリンク値とマーカーを読む', () => {
