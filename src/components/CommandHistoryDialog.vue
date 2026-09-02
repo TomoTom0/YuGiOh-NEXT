@@ -277,11 +277,11 @@ export default defineComponent({
 
 .current-badge {
   font-size: 11px;
-  color: var(--color-info);
-  background: var(--color-info-bg);
+  color: var(--button-text);
+  background: var(--color-info);
   padding: 2px 6px;
   border-radius: 3px;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .history-dialog-footer {

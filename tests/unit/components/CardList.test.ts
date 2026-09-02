@@ -69,6 +69,40 @@ describe('CardList.vue', () => {
       expect(cardInfo[0].find('.card-text').exists()).toBe(true);
     });
 
+    it('展開時、ペンデュラムテキストの区切り線------の前後に改行が入る', async () => {
+      const pendulumCard = {
+        cardId: '9999',
+        ciid: '1',
+        name: 'ペンデュラムカード',
+        cardType: 'monster',
+        text: 'モンスター効果テキスト',
+        pendulumText: 'ペンデュラム効果テキスト',
+        imgs: [{ ciid: '1', imgHash: 'hash3' }],
+      };
+
+      const wrapper = mount(CardList, {
+        props: {
+          cards: [pendulumCard],
+          sectionType: 'search',
+          viewMode: 'list',
+        },
+        global: {
+          plugins: [pinia],
+        },
+      });
+
+      const cardText = wrapper.find('.card-text');
+      await cardText.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      const rawText = cardText.text();
+      const textContent = cardText.element.textContent ?? '';
+      expect(rawText).toContain('[Pendulum]');
+      // textContentは改行を保持する（表示上のCSSはwhite-space: pre-lineで別途改行を反映）
+      expect(textContent).toContain('\n------\n');
+      expect(textContent).toContain('[Pendulum]\n');
+    });
+
     it('DeckCardコンポーネントが正しくレンダリングされる', () => {
       const wrapper = mount(CardList, {
         props: {

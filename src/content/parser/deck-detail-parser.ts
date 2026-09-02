@@ -126,8 +126,8 @@ export async function parseDeckDetail(doc: Document): Promise<DeckInfo> {
   const favoriteCount = extractFavoriteCount(doc);
   const issuedDeckCode = extractIssuedDeckCode(doc);
 
-  // 日本語ラベル→IDに変換（メタデータは1回だけ取得）
-  const metadata = await getDeckMetadata();
+  // ラベル→IDに変換（ページと同じロケールのメタデータを取得。メタデータは1回だけ取得）
+  const metadata = await getDeckMetadata(lang);
   const category = convertCategoryLabelsToIds(categoryLabels, metadata);
   const tags = convertTagLabelsToIds(tagLabels, metadata);
 

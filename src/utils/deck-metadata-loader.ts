@@ -30,20 +30,34 @@ export interface DeckMetadata {
 
 const STORAGE_KEY = 'deck_metadata';
 
-// メモリキャッシュ
-let cachedMetadata: DeckMetadata | null = null;
+/** ロケール別メタデータの更新間隔（バックグラウンドの定期更新間隔と同じ24時間） */
+const METADATA_STALE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * ロケール別のchrome.storageキーを返す
+ *
+ * 'ja'は既存ユーザーのキャッシュ（無印の'deck_metadata'）をそのまま流用するため
+ * サフィックスを付けない。それ以外のロケールは専用キーに保存する。
+ */
+function storageKeyForLocale(locale: string): string {
+  return locale === 'ja' ? STORAGE_KEY : `${STORAGE_KEY}_${locale}`;
+}
+
+// メモリキャッシュ（ロケール別）
+const cachedMetadata: Record<string, DeckMetadata> = {};
 
 /**
  * chrome.storage.localからメタデータを取得
  */
-async function getStoredMetadata(): Promise<DeckMetadata | null> {
+async function getStoredMetadata(locale: string): Promise<DeckMetadata | null> {
   if (typeof chrome === 'undefined' || !chrome.storage) {
     return null;
   }
 
+  const key = storageKeyForLocale(locale);
   try {
-    const result = await chrome.storage.local.get(STORAGE_KEY);
-    return (result[STORAGE_KEY] as DeckMetadata | undefined) || null;
+    const result = await chrome.storage.local.get(key);
+    return (result[key] as DeckMetadata | undefined) || null;
   } catch (error) {
     console.error('Failed to load metadata from chrome.storage:', error);
     return null;
@@ -51,28 +65,52 @@ async function getStoredMetadata(): Promise<DeckMetadata | null> {
 }
 
 /**
+ * 指定ロケールのメタデータが未取得、または取得から24時間以上経過しているかを判定する
+ *
+ * ロケール別メタデータ（'ja'以外）はページ読み込み時にオンデマンドで取得するため、
+ * 呼び出し側はこの関数で「更新が必要か」を確認してから `updateDeckMetadata` を呼び、
+ * 毎回のページ読み込みで不要なfetchが発生しないようにする
+ */
+export async function isDeckMetadataStale(locale: string, maxAgeMs: number = METADATA_STALE_MS): Promise<boolean> {
+  const stored = await getStoredMetadata(locale);
+  if (!stored) return true;
+  const age = Date.now() - new Date(stored.lastUpdated).getTime();
+  return age >= maxAgeMs;
+}
+
+/**
  * デッキメタデータを取得
  *
- * chrome.storage.localに保存されたデータを優先し、
- * なければ初期JSONファイルから読み込む
- * 
- * 一度読み込んだデータはメモリにキャッシュされ、2回目以降は即座に返される
+ * chrome.storage.localに保存された指定ロケールのデータを優先し、
+ * なければ初期JSONファイル（日本語）から読み込む
+ *
+ * 一度読み込んだデータはロケール別にメモリキャッシュされ、2回目以降は即座に返される
+ *
+ * @param locale カテゴリ/タグラベルのロケール（省略時は'ja'）。
+ *   指定ロケールが未取得の場合は日本語版に暫定フォールバックする
+ *   （呼び出し側で `updateDeckMetadata(gameType, locale)` を呼んで実データを取得すること）
  */
-export async function getDeckMetadata(): Promise<DeckMetadata> {
+export async function getDeckMetadata(locale: string = 'ja'): Promise<DeckMetadata> {
   // キャッシュがあれば即座に返す
-  if (cachedMetadata) {
-    return cachedMetadata;
+  if (cachedMetadata[locale]) {
+    return cachedMetadata[locale];
   }
 
-  const stored = await getStoredMetadata();
+  const stored = await getStoredMetadata(locale);
 
   if (stored) {
-    cachedMetadata = stored;
+    cachedMetadata[locale] = stored;
     return stored;
   }
 
+  if (locale !== 'ja') {
+    // 指定ロケールが未取得の場合は日本語版に暫定フォールバック
+    // （キャッシュはしない。ロケール別データが取得され次第そちらを優先させるため）
+    return getDeckMetadata('ja');
+  }
+
   const initial = initialMetadata as any;
-  
+
   // 初期JSONのcategoriesがRecord形式の場合は配列に変換
   if (initial.categories && !Array.isArray(initial.categories)) {
     const categoriesArray = Object.entries(initial.categories).map(([value, label]) => ({
@@ -81,23 +119,24 @@ export async function getDeckMetadata(): Promise<DeckMetadata> {
     }));
     initial.categories = assignCategoryGroups(categoriesArray);
   }
-  
-  cachedMetadata = initial as DeckMetadata;
-  return cachedMetadata;
+
+  cachedMetadata.ja = initial as DeckMetadata;
+  return cachedMetadata.ja;
 }
 
 /**
  * chrome.storage.localにメタデータを保存
  */
-export async function saveDeckMetadata(metadata: DeckMetadata): Promise<void> {
+export async function saveDeckMetadata(metadata: DeckMetadata, locale: string = 'ja'): Promise<void> {
   if (typeof chrome === 'undefined' || !chrome.storage) {
     console.warn('chrome.storage is not available');
     return;
   }
 
+  const key = storageKeyForLocale(locale);
   try {
-    await chrome.storage.local.set({ [STORAGE_KEY]: metadata });
-    cachedMetadata = metadata; // キャッシュを更新
+    await chrome.storage.local.set({ [key]: metadata });
+    cachedMetadata[locale] = metadata; // キャッシュを更新
   } catch (error) {
     console.error('Failed to save metadata to chrome.storage:', error);
     throw error;
@@ -139,9 +178,10 @@ function extractOptionsFromSelect(
 /**
  * デッキ検索ページからメタデータを取得して更新
  * @param gameType ゲームタイプ（省略時はOCG）
+ * @param locale 取得するカテゴリ/タグラベルのロケール（省略時は'ja'）
  */
-export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promise<DeckMetadata> {
-  const searchPageUrl = getDeckSearchPageUrl(gameType, 'ja');
+export async function updateDeckMetadata(gameType: CardGameType = 'ocg', locale: string = 'ja'): Promise<DeckMetadata> {
+  const searchPageUrl = getDeckSearchPageUrl(gameType, locale);
 
   try {
     const response = await fetch(searchPageUrl);
@@ -208,7 +248,7 @@ export async function updateDeckMetadata(gameType: CardGameType = 'ocg'): Promis
     };
 
     // chrome.storage.localに保存
-    await saveDeckMetadata(metadata);
+    await saveDeckMetadata(metadata, locale);
 
     return metadata;
   } catch (error) {

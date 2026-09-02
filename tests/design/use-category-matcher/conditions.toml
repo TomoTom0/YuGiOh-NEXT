@@ -144,3 +144,48 @@ source_lines = "130-131"
 description = "最終的に firstStageMatched と secondStageMatched をマージ（和集合）した新たなSetを返す。firstStageMatched は必ず結果に含まれ、secondStageMatched は firstStageMatched と重複しない（L106 で除外済み）"
 given = "firstStageMatched={1,2}, secondStageMatched={3,4} の状態でマージ"
 expect_return = "{1,2,3,4} のSet"
+
+# 2026-09-02 追記（TASK-442）: metadata-tabメニューのauto-rename/auto-categoryボタン向けに追加。
+# --- countCardsForCategoryLabel(categoryLabel, deckCardRefs, cardDB): number ---
+
+[[condition]]
+id = "count_cards.sums_quantity_for_name_or_text_match"
+target_function = "countCardsForCategoryLabel"
+source_lines = "146-156"
+description = "各deckCardRefについてcardDB(ref.cid)を取得し、card.nameまたはcard.text（ruby/pendulumTextは対象外）にcategoryLabelを含む場合、そのref.quantityを合計に加える"
+given = "name一致のref(quantity=3)とtext一致のref(quantity=2)、不一致のrefを渡す"
+expect_return = "5（一致した2件のquantity合計）"
+
+[[condition]]
+id = "count_cards.zero_quantity_treated_as_one"
+target_function = "countCardsForCategoryLabel"
+source_lines = "153"
+description = "ref.quantityが0（falsy）の場合は`|| 1`で1枚として扱う（CategoryDialog.vueの既存挙動を移植・踏襲）"
+given = "マッチするref.quantity = 0"
+expect_return = "1"
+
+[[condition]]
+id = "count_cards.ignores_missing_card"
+target_function = "countCardsForCategoryLabel"
+source_lines = "148"
+description = "cardDB(ref.cid)がundefinedを返すrefは合計に加えず読み飛ばす"
+given = "cardDBが未登録のcidを含むdeckCardRefsを渡す"
+expect_return = "該当refのquantityを含まない合計"
+
+# --- computeAutoCategoryIds(categoryLabelMap, deckCardRefs, cardDB, threshold): string[] ---
+
+[[condition]]
+id = "auto_category_ids.includes_only_categories_meeting_threshold"
+target_function = "computeAutoCategoryIds"
+source_lines = "174-181"
+description = "categoryLabelMapの各カテゴリについてcountCardsForCategoryLabelでマッチ枚数を計算し、threshold以上のカテゴリIDのみを結果配列に含める"
+given = "cat1のマッチ枚数=6, cat2のマッチ枚数=3, threshold=6"
+expect_return = "['cat1']（cat2は含まれない）"
+
+[[condition]]
+id = "auto_category_ids.skips_empty_label"
+target_function = "computeAutoCategoryIds"
+source_lines = "176"
+description = "categoryLabelMap[categoryId]が空文字のカテゴリはcountCardsForCategoryLabelを呼ばずスキップする"
+given = "categoryLabelMap = { cat1: '' }"
+expect_return = "[]"

@@ -996,16 +996,16 @@ export default {
   font-size: 10px;
   font-weight: 700;
   line-height: 1.4;
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-warning);
+  color: var(--button-text);
   border: 1px solid var(--color-warning);
   z-index: 2;
   cursor: default;
   white-space: nowrap;
 
   &.is-fallback {
-    background: var(--color-error-bg);
-    color: var(--color-error-text);
+    background: var(--color-error);
+    color: var(--button-text);
     border-color: var(--color-error);
   }
 }
@@ -1385,8 +1385,9 @@ export default {
     border-radius: 4px;
     border: none;
     font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.35s;
 
     &.btn-cancel {
       background: var(--bg-secondary);
@@ -1402,7 +1403,7 @@ export default {
       color: var(--button-text);
 
       &:hover {
-        background: var(--color-error-bg);
+        filter: brightness(0.75);
       }
     }
   }

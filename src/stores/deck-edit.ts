@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch, toRaw } from 'vue';
 import type { DeckInfo, DeckCardRef, OperationResult } from '../types/deck';
+import { DECK_FIELD_LIMITS } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
@@ -10,12 +11,12 @@ import { getCardLimit } from '../utils/card-limit';
 import { getTempCacheDB, initTempCacheDBFromStorage, saveTempCacheDBToStorage } from '../utils/temp-cache-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
-import { insertAfterPrefixTag } from '../utils/regulation-tag-parser';
+import { insertAfterPrefixTag, parseRegulationTag } from '../utils/regulation-tag-parser';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 import { fisherYatesShuffle } from '../utils/array-shuffle';
 import { createDeckCardComparator, buildRecipeSortOptions } from '../composables/deck/useDeckCardSorter';
-import { computeCategoryMatchedCardIds } from '../composables/deck/useCategoryMatcher';
+import { computeCategoryMatchedCardIds, computeAutoCategoryIds } from '../composables/deck/useCategoryMatcher';
 import { canMoveCard as canMoveCardValidation } from '../composables/deck/useDeckValidation';
 import { sortDisplayOrderForOfficial as sortDisplayOrderForOfficialLogic } from '../composables/deck/useDeckSorting';
 import {
@@ -190,6 +191,67 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
    */
   function updateCategoryMatching() {
     categoryMatchingTrigger.value++;
+  }
+
+  /** auto-category判定の閾値（CategoryDialogの「7枚以上」フィルタと同じ基準） */
+  const AUTO_CATEGORY_THRESHOLD = 7;
+
+  /**
+   * デッキ内カードの枚数から、閾値以上のカテゴリを自動判定してdeckInfo.categoryに設定する
+   * @returns 自動設定されたカテゴリIDの配列
+   */
+  function autoSetCategory(): string[] {
+    const labelMap = categoryLabelMap.value || {};
+    const unifiedDB = getUnifiedCacheDB();
+    const lang = detectLanguage(document);
+    const allRefs: DeckCardRef[] = [
+      ...deckInfo.value.mainDeck,
+      ...deckInfo.value.extraDeck,
+      ...deckInfo.value.sideDeck
+    ];
+
+    const autoCategories = computeAutoCategoryIds(
+      labelMap,
+      allRefs,
+      (cid) => unifiedDB.reconstructCardInfo(cid, lang) || undefined,
+      AUTO_CATEGORY_THRESHOLD
+    );
+
+    deckInfo.value.category = autoCategories;
+    updateCategoryMatching();
+    return autoCategories;
+  }
+
+  /**
+   * デッキ名を自動整形する。
+   * デッキ名先頭のレギュレーションタグ（[OCG]等）は保持し、それより後ろの部分を
+   * 現在のカテゴリ（未設定なら自動判定して設定）のラベルを連結した文字列に置き換える。
+   * @returns 命名に使用したカテゴリID配列と、実際にリネームしたかどうか
+   */
+  function autoRenameDeck(): { categories: string[]; renamed: boolean } {
+    let categories = deckInfo.value.category ?? [];
+    if (categories.length === 0) {
+      categories = autoSetCategory();
+    }
+
+    const labelMap = categoryLabelMap.value || {};
+    const suffix = categories
+      .map(id => labelMap[id])
+      .filter((label): label is string => Boolean(label))
+      .join('');
+
+    if (!suffix) {
+      return { categories, renamed: false };
+    }
+
+    const currentName = getDeckName();
+    const tag = parseRegulationTag(currentName);
+    const newName = tag && tag.position === 'prefix'
+      ? `${currentName.slice(0, tag.endIndex)} ${suffix}`
+      : suffix;
+    setDeckName(newName.slice(0, DECK_FIELD_LIMITS.DECK_NAME_MAX));
+
+    return { categories, renamed: true };
   }
 
   // カード移動可否判定（useDeckValidation.tsから import）
@@ -1387,13 +1449,27 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function initializeOnPageLoad(): Promise<void> {
     // カテゴリラベルマップを事前に読み込み（カテゴリ優先アイコン表示に必要）
     try {
-      const { getDeckMetadata } = await import('../utils/deck-metadata-loader');
-      const metadata = await getDeckMetadata();
+      const { getDeckMetadata, updateDeckMetadata, isDeckMetadataStale } = await import('../utils/deck-metadata-loader');
+      const lang = detectLanguage(document);
+      const metadata = await getDeckMetadata(lang);
       const labelMap: Record<string, string> = {};
       metadata.categories.forEach(cat => {
         labelMap[cat.value] = cat.label;
       });
       categoryLabelMap.value = labelMap;
+
+      // 非日本語ロケールで未取得/古い場合、実データを取得して更新（取得後は次回以降キャッシュから利用）
+      if (lang !== 'ja' && await isDeckMetadataStale(lang)) {
+        updateDeckMetadata('ocg', lang)
+          .then(localizedMetadata => {
+            const localizedLabelMap: Record<string, string> = {};
+            localizedMetadata.categories.forEach(cat => {
+              localizedLabelMap[cat.value] = cat.label;
+            });
+            categoryLabelMap.value = localizedLabelMap;
+          })
+          .catch(error => console.error('Failed to update localized category label map:', error));
+      }
     } catch (error) {
       console.error('Failed to load category label map:', error);
     }
@@ -1941,6 +2017,8 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     canRedo,
     categoryMatchedCardIds,
     updateCategoryMatching,
+    autoSetCategory,
+    autoRenameDeck,
     canMoveCard,
     initializeDisplayOrder,
     addCard,

@@ -79,19 +79,18 @@ const getCategoryLabel = (catId: string): string => {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: calc(var(--right-area-font-size, 14px) * 0.86);
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 700;
+  transition: all 0.35s;
 }
 
 .chip.tag-chip {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-success);
+  color: var(--button-text);
   border: 1px solid var(--color-success);
 }
 
 .chip.tag-chip:hover {
-  background: var(--color-success-hover-bg);
-  border-color: var(--color-success);
+  filter: brightness(0.75);
 }
 
 .chip.tag-chip[data-type="fusion"] {
@@ -167,12 +166,12 @@ const getCategoryLabel = (catId: string): string => {
 }
 
 .chip.category-chip {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-warning);
+  color: var(--button-text);
   border: 1px solid var(--color-warning);
 }
 
 .chip.category-chip:hover {
-  background: var(--color-warning-hover-bg);
+  filter: brightness(0.75);
 }
 </style>
