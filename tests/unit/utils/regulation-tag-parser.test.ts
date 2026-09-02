@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRegulationTag, replaceTagYymm } from '@/utils/regulation-tag-parser';
+import { parseRegulationTag, replaceTagYymm, insertAfterPrefixTag } from '@/utils/regulation-tag-parser';
 
 describe('parseRegulationTag', () => {
   describe('基本パターン', () => {
@@ -190,5 +190,28 @@ describe('parseRegulationTag', () => {
       if (!tag) throw new Error('tag should be parsed');
       expect(replaceTagYymm(deckName, tag, '2410')).toBe('[OCG-2410] 青眼の白龍デッキ');
     });
+  });
+});
+
+describe('insertAfterPrefixTag', () => {
+  // TASK-435: Copy Deckで"COPY_"がタグより前に付いてタグの位置がずれる問題の修正
+  it('先頭タグがある場合、タグの直後に挿入する', () => {
+    expect(insertAfterPrefixTag('[OCG] 青眼の白龍デッキ', 'COPY_')).toBe('[OCG] COPY_青眼の白龍デッキ');
+  });
+
+  it('先頭タグ(corner括弧)がある場合も直後に挿入する', () => {
+    expect(insertAfterPrefixTag('【GENESYS-2608】 青眼', 'COPY_')).toBe('【GENESYS-2608】 COPY_青眼');
+  });
+
+  it('タグが末尾にある場合は先頭にそのまま連結する（挿入対象はprefixのみ）', () => {
+    expect(insertAfterPrefixTag('青眼の白龍デッキ [OCG]', 'COPY_')).toBe('COPY_青眼の白龍デッキ [OCG]');
+  });
+
+  it('タグが無い場合は先頭にそのまま連結する', () => {
+    expect(insertAfterPrefixTag('青眼の白龍デッキ', 'COPY_')).toBe('COPY_青眼の白龍デッキ');
+  });
+
+  it('無効なタグ内容（レギュレーション名以外の角括弧）は先頭にそのまま連結する', () => {
+    expect(insertAfterPrefixTag('[メモ] 青眼の白龍デッキ', 'COPY_')).toBe('COPY_[メモ] 青眼の白龍デッキ');
   });
 });

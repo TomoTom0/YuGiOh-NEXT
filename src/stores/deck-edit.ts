@@ -10,6 +10,7 @@ import { getCardLimit } from '../utils/card-limit';
 import { getTempCacheDB, initTempCacheDBFromStorage, saveTempCacheDBToStorage } from '../utils/temp-cache-db';
 import { getUnifiedCacheDB } from '../utils/unified-cache-db';
 import { detectLanguage } from '../utils/language-detector';
+import { insertAfterPrefixTag } from '../utils/regulation-tag-parser';
 import { generateDeckCardUUID, clearDeckUUIDState } from '../utils/deck-uuid-generator';
 import { recordAllCardPositionsByUUID, animateCardMoveByUUID } from '../composables/deck/useFLIPAnimation';
 import { fisherYatesShuffle } from '../utils/array-shuffle';
@@ -1757,10 +1758,12 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       }
 
       // デッキデータをコピー（dnoだけ新しいものに変更）
+      // "[OCG]"等のレギュレーションタグが先頭にある場合、COPY_をタグより前に付けると
+      // タグの位置がずれてしまうため、タグの直後に挿入する
       const copiedDeckData: DeckInfo = {
         ...capturedData,
         dno: newDno,
-        name: `COPY_${getDeckName()}`
+        name: insertAfterPrefixTag(getDeckName(), 'COPY_')
       };
 
       // 新規デッキに現在のデータを保存
@@ -1939,6 +1942,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     categoryMatchedCardIds,
     updateCategoryMatching,
     canMoveCard,
+    initializeDisplayOrder,
     addCard,
     removeCard,
     moveCard,

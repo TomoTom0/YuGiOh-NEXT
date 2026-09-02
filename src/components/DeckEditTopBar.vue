@@ -176,7 +176,7 @@
               <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
                 <path fill="currentColor" :d="mdiContentCopy" />
               </svg>
-              Copy Deck
+              Save as New Deck
             </button>
             <button data-testid="delete-deck-btn" @click="handleDeleteDeck" class="menu-item danger">
               <svg width="16" height="16" viewBox="0 0 24 24" style="margin-right: 8px;">
@@ -640,37 +640,6 @@ export default {
 
 
 
-    const handleImported = (deckInfo: any, replaceExisting: boolean) => {
-      if (replaceExisting) {
-        // 既存のデッキを置き換え
-        deckStore.deckInfo.mainDeck = []
-        deckStore.deckInfo.extraDeck = []
-        deckStore.deckInfo.sideDeck = []
-      }
-
-      // インポートされたカードを追加
-      deckInfo.mainDeck.forEach((entry: any) => {
-        for (let i = 0; i < entry.quantity; i++) {
-          deckStore.addCard(entry.card, 'main')
-        }
-      })
-
-      deckInfo.extraDeck.forEach((entry: any) => {
-        for (let i = 0; i < entry.quantity; i++) {
-          deckStore.addCard(entry.card, 'extra')
-        }
-      })
-
-      deckInfo.sideDeck.forEach((entry: any) => {
-        for (let i = 0; i < entry.quantity; i++) {
-          deckStore.addCard(entry.card, 'side')
-        }
-      })
-
-      const action = replaceExisting ? '置き換えました' : '追加しました'
-      showToast(`デッキを${action}`, 'success')
-    }
-
     const handleUndo = () => {
       if (props.practiceMode) {
         practiceStore.undo()
@@ -796,7 +765,6 @@ export default {
       handleSortAll,
       handleDownloadImage,
       handleImportExportClick,
-      handleImported,
       handleOptions,
       handleShowHistory,
       handleCloseHistory,

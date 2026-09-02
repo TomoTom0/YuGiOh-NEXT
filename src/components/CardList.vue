@@ -182,10 +182,10 @@
             class="card-text"
             :class="{ expanded: expandedCards.has(item.uuid), clickable: true }"
             @click="toggleCardExpand(item.uuid, $event)"
-          >{{ item.card.text }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
+          >{{ stripCardLinkTemplates(item.card.text) }}<template v-if="expandedCards.has(item.uuid) && item.card.pendulumText">
 ------
 [Pendulum]
-{{ item.card.pendulumText }}</template></div>
+{{ stripCardLinkTemplates(item.card.pendulumText) }}</template></div>
           <div class="card-stats">
             <!-- モンスターカード -->
             <template v-if="item.card.cardType === 'monster'">
@@ -227,6 +227,7 @@ import {
   getTrapTypeLabel
 } from '@/utils/label-utils'
 import { CARD_TYPE_SORT_ORDER } from '@/types/card-maps'
+import { useCardLinks } from '@/composables/useCardLinks'
 
 export default {
   name: 'CardList',
@@ -275,6 +276,10 @@ export default {
   setup(props, { emit }) {
     const deckStore = useDeckEditStore()
     const settingsStore = useSettingsStore()
+    const { parseCardLinks } = useCardLinks()
+
+    // {{カード名|cid}} 形式のリンクテンプレートを表示用プレーンテキストへ変換
+    const stripCardLinkTemplates = (text) => parseCardLinks(text).map(part => part.text).join('')
     const localViewMode = ref(props.viewMode)
     const wrapperRef = ref(null)
 
@@ -513,6 +518,7 @@ export default {
       handleSortChange,
       toggleSortDirection,
       toggleCardExpand,
+      stripCardLinkTemplates,
       handleScrollTopClick,
       getAttributeLabel,
       getRaceLabel,

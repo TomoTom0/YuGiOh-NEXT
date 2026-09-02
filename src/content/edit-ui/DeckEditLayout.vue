@@ -419,8 +419,9 @@ export default {
       {
         label: '保存して続ける',
         class: 'primary',
+        // 保存〜後続処理が終わるまでダイアログを開いたままにし、ConfirmDialog側のローディング表示で
+        // 処理中であることを示す（即座に閉じて瞬時に画面遷移すると保存が反映されたか分かりづらいため）
         onClick: async () => {
-          deckStore.showUnsavedChangesDialog = false
           try {
             const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
             if (result.success) {
@@ -432,6 +433,7 @@ export default {
           } catch (error) {
             console.error('Save error:', error)
           } finally {
+            deckStore.showUnsavedChangesDialog = false
             pendingAction.value = null
           }
         }
@@ -518,8 +520,59 @@ export default {
       deckStore.showExportDialog = false
     }
 
-    const handleImported = (message) => {
-      deckStore.showImportDialog = false
+    const handleImported = async (importedDeckInfo, importMode: 'replace' | 'add' | 'new') => {
+      try {
+        if (importMode === 'new') {
+          await deckStore.createNewDeck()
+        } else if (importMode === 'replace') {
+          deckStore.deckInfo.mainDeck = []
+          deckStore.deckInfo.extraDeck = []
+          deckStore.deckInfo.sideDeck = []
+          deckStore.initializeDisplayOrder()
+        }
+
+        const unifiedDB = getUnifiedCacheDB()
+        const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side']
+        let added = 0
+        let skipped = 0
+
+        sections.forEach(section => {
+          const refs = section === 'main' ? importedDeckInfo.mainDeck :
+                       section === 'extra' ? importedDeckInfo.extraDeck :
+                       importedDeckInfo.sideDeck
+          refs.forEach((ref: { cid: string; ciid: number | string; quantity: number }) => {
+            const baseCard = unifiedDB.getCardInfo(ref.cid)
+            if (!baseCard) {
+              skipped += ref.quantity
+              return
+            }
+            const card = { ...baseCard, ciid: ref.ciid }
+            for (let i = 0; i < ref.quantity; i++) {
+              const result = deckStore.addCard(card, section)
+              if (result.success) {
+                added++
+              } else {
+                skipped++
+              }
+            }
+          })
+        })
+
+        deckStore.showImportDialog = false
+
+        if (added === 0) {
+          showToast('インポートできるカードが見つかりませんでした', 'warning')
+        } else if (importMode === 'new') {
+          showToast('新しいデッキとしてインポートしました', 'success')
+        } else if (importMode === 'replace') {
+          showToast(skipped > 0 ? `デッキを置き換えました（${skipped}枚は上限超過等によりスキップ）` : 'デッキを置き換えました', 'success')
+        } else {
+          showToast(skipped > 0 ? `デッキに追加しました（${skipped}枚は上限超過等によりスキップ）` : 'デッキに追加しました', 'success')
+        }
+      } catch (error) {
+        console.error('[handleImported] Error:', error)
+        showToast('インポートに失敗しました', 'error')
+      }
     }
 
     const toggleLoadDialog = () => {

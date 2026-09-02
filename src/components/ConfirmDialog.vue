@@ -9,9 +9,11 @@
           :key="index"
           class="btn"
           :class="getButtonClass(button.class)"
-          @click="button.onClick"
+          :disabled="loadingIndex !== null"
+          @click="handleClick(button, index)"
         >
-          {{ button.label }}
+          <SpinnerIcon v-if="loadingIndex === index" class="btn-spinner" />
+          <span v-else>{{ button.label }}</span>
         </button>
       </div>
     </div>
@@ -19,19 +21,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue';
+import { defineComponent, ref, type PropType } from 'vue';
 import BaseDialog from './BaseDialog.vue';
+import SpinnerIcon from './icons/SpinnerIcon.vue';
 
 interface DialogButton {
   label: string;
   class?: string;
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
 }
 
 export default defineComponent({
   name: 'ConfirmDialog',
   components: {
-    BaseDialog
+    BaseDialog,
+    SpinnerIcon
   },
   props: {
     show: {
@@ -69,9 +73,28 @@ export default defineComponent({
       return customClass;
     };
 
+    // onClickが非同期処理の場合のみ、完了までボタンにローディング表示を出す
+    // （fire-and-forgetなonClick(戻り値がvoid)は従来通り即座に見た目上は何もしない）
+    const loadingIndex = ref<number | null>(null);
+
+    const handleClick = async (button: DialogButton, index: number) => {
+      if (loadingIndex.value !== null) return;
+      const result = button.onClick();
+      if (result instanceof Promise) {
+        loadingIndex.value = index;
+        try {
+          await result;
+        } finally {
+          loadingIndex.value = null;
+        }
+      }
+    };
+
     return {
       onCancel,
-      getButtonClass
+      getButtonClass,
+      loadingIndex,
+      handleClick
     };
   }
 });
@@ -115,6 +138,10 @@ export default defineComponent({
 }
 
 .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
   padding: 8px 20px;
   border: none;
   border-radius: 4px;
@@ -130,6 +157,16 @@ export default defineComponent({
   &:active {
     transform: translateY(1px);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
 }
 
 .btn-primary {
