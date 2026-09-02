@@ -1,8 +1,10 @@
 <template>
   <Teleport to="body">
-    <div v-if="isVisible" class="ygo-next base-dialog-overlay" :data-ygo-next-theme="theme" @click.self="onOverlayClick">
-      <slot />
-    </div>
+    <Transition name="base-dialog-fade">
+      <div v-if="isVisible" class="ygo-next base-dialog-overlay" :data-ygo-next-theme="theme" @click.self="onOverlayClick">
+        <slot />
+      </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -38,5 +40,25 @@ function onOverlayClick() {
   align-items: center;
   justify-content: center;
   z-index: 100;
+}
+
+// ダイアログの開閉が瞬時に切り替わり唐突に見えるのを避けるためのフェード+ポップイン
+.base-dialog-fade-enter-active,
+.base-dialog-fade-leave-active {
+  transition: opacity 0.15s ease;
+
+  > * {
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+}
+
+.base-dialog-fade-enter-from,
+.base-dialog-fade-leave-to {
+  opacity: 0;
+
+  > * {
+    transform: scale(0.97);
+    opacity: 0;
+  }
 }
 </style>
