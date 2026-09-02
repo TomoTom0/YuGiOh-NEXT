@@ -528,11 +528,13 @@ export default {
           deckStore.deckInfo.mainDeck = []
           deckStore.deckInfo.extraDeck = []
           deckStore.deckInfo.sideDeck = []
+          deckStore.initializeDisplayOrder()
         }
 
         const unifiedDB = getUnifiedCacheDB()
         const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side']
         let added = 0
+        let skipped = 0
 
         sections.forEach(section => {
           const refs = section === 'main' ? importedDeckInfo.mainDeck :
@@ -540,11 +542,18 @@ export default {
                        importedDeckInfo.sideDeck
           refs.forEach((ref: { cid: string; ciid: number | string; quantity: number }) => {
             const baseCard = unifiedDB.getCardInfo(ref.cid)
-            if (!baseCard) return
+            if (!baseCard) {
+              skipped += ref.quantity
+              return
+            }
             const card = { ...baseCard, ciid: ref.ciid }
             for (let i = 0; i < ref.quantity; i++) {
-              deckStore.addCard(card, section)
-              added++
+              const result = deckStore.addCard(card, section)
+              if (result.success) {
+                added++
+              } else {
+                skipped++
+              }
             }
           })
         })
@@ -556,9 +565,9 @@ export default {
         } else if (importMode === 'new') {
           showToast('新しいデッキとしてインポートしました', 'success')
         } else if (importMode === 'replace') {
-          showToast('デッキを置き換えました', 'success')
+          showToast(skipped > 0 ? `デッキを置き換えました（${skipped}枚は上限超過等によりスキップ）` : 'デッキを置き換えました', 'success')
         } else {
-          showToast('デッキに追加しました', 'success')
+          showToast(skipped > 0 ? `デッキに追加しました（${skipped}枚は上限超過等によりスキップ）` : 'デッキに追加しました', 'success')
         }
       } catch (error) {
         console.error('[handleImported] Error:', error)

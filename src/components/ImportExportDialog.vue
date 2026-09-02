@@ -146,10 +146,10 @@
               v-for="(col, idx) in csvColumns"
               :key="col.key"
               class="toggle-pill toggle-pill-warning column-pill"
-              :class="{ active: col.enabled, dragging: dragColumnIndex === idx }"
+              :class="{ active: col.enabled, dragging: dragColumnIndex === idx, required: col.required }"
               draggable="true"
-              title="クリックでON/OFF、ドラッグで並び替え"
-              @click="col.enabled = !col.enabled"
+              :title="col.required ? '再インポートに必須の列のためOFFにできません' : 'クリックでON/OFF、ドラッグで並び替え'"
+              @click="toggleColumn(col)"
               @dragstart="onColumnDragStart(idx)"
               @dragover.prevent
               @drop="onColumnDrop(idx)"
@@ -344,15 +344,17 @@ interface ExportColumn {
   key: keyof ExportRow;
   label: string;
   enabled: boolean;
+  // このアプリのimportFromCSVが再インポートに必須とする列（無効化させない）
+  required?: boolean;
 }
 
 const DEFAULT_CSV_COLUMNS: ExportColumn[] = [
-  { key: 'section', label: 'Section', enabled: true },
+  { key: 'section', label: 'Section', enabled: true, required: true },
   { key: 'name', label: 'Name', enabled: true },
-  { key: 'cid', label: 'CID', enabled: true },
+  { key: 'cid', label: 'CID', enabled: true, required: true },
   { key: 'ciid', label: 'CIID', enabled: true },
   { key: 'enc', label: 'ENC', enabled: true },
-  { key: 'quantity', label: 'Qty', enabled: true }
+  { key: 'quantity', label: 'Qty', enabled: true, required: true }
 ];
 
 const csvColumns = ref<ExportColumn[]>(DEFAULT_CSV_COLUMNS.map(c => ({ ...c })));
@@ -360,6 +362,12 @@ const dragColumnIndex = ref<number | null>(null);
 
 function resetCsvColumns() {
   csvColumns.value = DEFAULT_CSV_COLUMNS.map(c => ({ ...c }));
+}
+
+// section/cid/quantityはimportFromCSVが再インポートに必須とする列のため無効化させない
+function toggleColumn(col: ExportColumn) {
+  if (col.required) return;
+  col.enabled = !col.enabled;
 }
 
 function onColumnDragStart(index: number) {
@@ -1040,6 +1048,15 @@ function handleExport() {
   // 無効時は一目で「オフ」と分かるよう取り消し線を付ける
   &:not(.active) {
     text-decoration: line-through;
+  }
+
+  // 必須列（再インポートに必要）はON/OFF切り替え不可
+  &.required {
+    opacity: 0.85;
+
+    .drag-handle {
+      opacity: 0.4;
+    }
   }
 }
 

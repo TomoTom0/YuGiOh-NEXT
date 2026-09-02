@@ -1942,6 +1942,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     categoryMatchedCardIds,
     updateCategoryMatching,
     canMoveCard,
+    initializeDisplayOrder,
     addCard,
     removeCard,
     moveCard,
