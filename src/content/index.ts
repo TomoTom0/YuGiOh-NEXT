@@ -30,7 +30,10 @@ import { initializeMappingManager } from '../utils/mapping-manager';
 import { EXTENSION_IDS } from '../utils/dom-selectors';
 
 // デッキメタデータローダー
-import { getDeckMetadata } from '../utils/deck-metadata-loader';
+import { getDeckMetadata, updateDeckMetadata, isDeckMetadataStale } from '../utils/deck-metadata-loader';
+
+// 言語検出
+import { detectLanguage } from '../utils/language-detector';
 
 // 禁止制限キャッシュ
 import { forbiddenLimitedCache } from '../utils/forbidden-limited-cache';
@@ -320,7 +323,21 @@ async function initializeFeatures(): Promise<void> {
     await initializeMappingManager();
 
     // デッキメタデータを事前ロード（パース時の遅延を防ぐ）
-    getDeckMetadata().catch(err => console.warn('Failed to preload deck metadata:', err));
+    const metadataLang = detectLanguage(document);
+    getDeckMetadata(metadataLang).catch(err => console.warn('Failed to preload deck metadata:', err));
+
+    // 非日本語ロケールの場合、ローカライズされたカテゴリ/タグラベルを取得してキャッシュ更新
+    // （カテゴリラベルは日本語版のみバンドル/定期更新されており、他言語は初回アクセス時に取得する必要がある）
+    if (metadataLang !== 'ja') {
+      isDeckMetadataStale(metadataLang)
+        .then(stale => {
+          if (stale) {
+            return updateDeckMetadata('ocg', metadataLang);
+          }
+          return undefined;
+        })
+        .catch(err => console.warn('Failed to update localized deck metadata:', err));
+    }
 
     // 禁止制限キャッシュを初期化（バックグラウンドで更新チェック）
     forbiddenLimitedCache.init().catch(err => console.warn('Failed to initialize forbidden/limited cache:', err));

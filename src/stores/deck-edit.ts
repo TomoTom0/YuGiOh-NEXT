@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch, toRaw } from 'vue';
 import type { DeckInfo, DeckCardRef, OperationResult } from '../types/deck';
+import { DECK_FIELD_LIMITS } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
 import { getDeckDetail as getDeckDetailAPI } from '../api/deck-operations';
@@ -245,12 +246,10 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     const currentName = getDeckName();
     const tag = parseRegulationTag(currentName);
-    if (tag && tag.position === 'prefix') {
-      const prefix = currentName.slice(0, tag.endIndex);
-      setDeckName(`${prefix} ${suffix}`);
-    } else {
-      setDeckName(suffix);
-    }
+    const newName = tag && tag.position === 'prefix'
+      ? `${currentName.slice(0, tag.endIndex)} ${suffix}`
+      : suffix;
+    setDeckName(newName.slice(0, DECK_FIELD_LIMITS.DECK_NAME_MAX));
 
     return { categories, renamed: true };
   }
@@ -1450,13 +1449,27 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   async function initializeOnPageLoad(): Promise<void> {
     // カテゴリラベルマップを事前に読み込み（カテゴリ優先アイコン表示に必要）
     try {
-      const { getDeckMetadata } = await import('../utils/deck-metadata-loader');
-      const metadata = await getDeckMetadata();
+      const { getDeckMetadata, updateDeckMetadata, isDeckMetadataStale } = await import('../utils/deck-metadata-loader');
+      const lang = detectLanguage(document);
+      const metadata = await getDeckMetadata(lang);
       const labelMap: Record<string, string> = {};
       metadata.categories.forEach(cat => {
         labelMap[cat.value] = cat.label;
       });
       categoryLabelMap.value = labelMap;
+
+      // 非日本語ロケールで未取得/古い場合、実データを取得して更新（取得後は次回以降キャッシュから利用）
+      if (lang !== 'ja' && await isDeckMetadataStale(lang)) {
+        updateDeckMetadata('ocg', lang)
+          .then(localizedMetadata => {
+            const localizedLabelMap: Record<string, string> = {};
+            localizedMetadata.categories.forEach(cat => {
+              localizedLabelMap[cat.value] = cat.label;
+            });
+            categoryLabelMap.value = localizedLabelMap;
+          })
+          .catch(error => console.error('Failed to update localized category label map:', error));
+      }
     } catch (error) {
       console.error('Failed to load category label map:', error);
     }

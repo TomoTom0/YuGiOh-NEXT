@@ -843,3 +843,13 @@ source_lines = "237-241"
 description = "複数カテゴリが設定されている場合、各ラベルを区切り文字無しで連結する（ユーザー確認済み仕様）"
 given = "カテゴリラベルが ['青眼', 'ブラック・マジシャン'] の2件のデッキでautoRenameDeck()を呼ぶ"
 expect_side_effect = "デッキ名の末尾が '青眼ブラック・マジシャン'（区切り文字無し）になる"
+
+# 2026-09-03 追記（PR#147レビュー指摘対応）: 生成デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50)を超えないように切り詰める
+
+[[condition]]
+id = "auto_rename_deck.truncates_generated_name_to_max_length"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "246-250"
+description = "prefix込みの生成後デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50文字)を超える場合、setDeckNameに渡す前に50文字で機械的に切り詰める"
+given = "カテゴリラベルを連結すると50文字を超えるcategoryLabelMap（例: 30文字ラベル×2件）を持つデッキでautoRenameDeck()を呼ぶ"
+expect_side_effect = "deckInfo.name.length <= 50"

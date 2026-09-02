@@ -54,7 +54,8 @@
 import { ref, watch, computed, onMounted } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import type { DeckTypeValue, DeckStyleValue } from '../types/deck-metadata';
-import { getDeckMetadata } from '../utils/deck-metadata-loader';
+import { getDeckMetadata, updateDeckMetadata, isDeckMetadataStale } from '../utils/deck-metadata-loader';
+import { detectLanguage } from '../utils/language-detector';
 import { filterValidCategoryIds, filterValidTagIds } from '../types/deck-metadata';
 import { isDeckTypeValue, isDeckStyleValue } from '../utils/type-guards';
 import type { CategoryEntry } from '../types/dialog';
@@ -125,7 +126,8 @@ const allDeckCards = computed(() => {
 
 // マウント時にメタデータを読み込み
 onMounted(async () => {
-  const metadata = await getDeckMetadata();
+  const lang = detectLanguage(document);
+  const metadata = await getDeckMetadata(lang);
   categories.value = metadata.categories;
   tags.value = metadata.tags;
 
@@ -135,6 +137,22 @@ onMounted(async () => {
     labelMap[cat.value] = cat.label;
   });
   deckStore.categoryLabelMap = labelMap;
+
+  // 非日本語ロケールで未取得/古い場合、実データを取得して更新
+  if (lang !== 'ja' && await isDeckMetadataStale(lang)) {
+    updateDeckMetadata('ocg', lang)
+      .then(localizedMetadata => {
+        categories.value = localizedMetadata.categories;
+        tags.value = localizedMetadata.tags;
+
+        const localizedLabelMap: Record<string, string> = {};
+        localizedMetadata.categories.forEach(cat => {
+          localizedLabelMap[cat.value] = cat.label;
+        });
+        deckStore.categoryLabelMap = localizedLabelMap;
+      })
+      .catch(error => console.error('Failed to update localized category label map:', error));
+  }
 });
 
 // storeの変更を監視してローカル状態を更新

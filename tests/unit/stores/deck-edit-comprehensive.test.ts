@@ -943,6 +943,34 @@ describe('useDeckEditStore', () => {
 
       expect(store.deckInfo.name).toBe('青眼ブラック・マジシャン');
     });
+
+    it('生成後の名前が50文字を超える場合は50文字に切り詰める [covers:auto_rename_deck.truncates_generated_name_to_max_length]', () => {
+      const store = useDeckEditStore();
+      const longLabel1 = 'あ'.repeat(30);
+      const longLabel2 = 'い'.repeat(30);
+      store.categoryLabelMap = { cat1: longLabel1, cat2: longLabel2 };
+      store.deckInfo.category = ['cat1', 'cat2'];
+      store.deckInfo.name = '旧デッキ名';
+
+      const result = store.autoRenameDeck();
+
+      expect(store.deckInfo.name.length).toBeLessThanOrEqual(50);
+      expect(store.deckInfo.name).toBe((longLabel1 + longLabel2).slice(0, 50));
+      expect(result.renamed).toBe(true);
+    });
+
+    it('prefix込みで50文字を超える場合もprefixを含めた文字列を50文字に切り詰める [covers:auto_rename_deck.truncates_generated_name_to_max_length]', () => {
+      const store = useDeckEditStore();
+      const longLabel = 'あ'.repeat(50);
+      store.categoryLabelMap = { cat1: longLabel };
+      store.deckInfo.category = ['cat1'];
+      store.deckInfo.name = '[OCG] 旧デッキ名';
+
+      store.autoRenameDeck();
+
+      expect(store.deckInfo.name.length).toBeLessThanOrEqual(50);
+      expect(store.deckInfo.name).toBe(`[OCG] ${longLabel}`.slice(0, 50));
+    });
   });
 });
 
