@@ -6,15 +6,32 @@
 # 到達不能/実質到達不能分岐:
 # - なし。内部関数はreturnオブジェクトから公開され、分岐は公開APIまたはdeckInfo/getDeckNameの
 #   注入状態変更で到達可能。
+#
+# 2026-09-03(TASK-450) その1: 「デッキ編集画面でgenesysにしてもカードへの禁止のアイコンが残っている」
+# 指摘への対応。getCardLimitOverrideはmode='genesys'の場合も以前はnull（上書き無し）を返しており、
+# base.limitRegulation（OCG最新版基準で焼き込まれた値）がそのままDeckCard.vueに漏れて禁止/制限
+# バッジが表示され続けていた。mode='genesys'を明示的に分岐しundefined（バッジ非表示）を返すよう
+# 修正した。
+#
+# 2026-09-03(TASK-450) その2: 「そもそも独立にその実装があるのはおかしいのでは」指摘への対応。
+# getCardLimitOverride/getCardGenesysPointの分岐ロジック本体をsrc/utils/regulation-card-badge.ts
+# （デッキ閲覧画面のregulation-ui.tsと共有）へ切り出し、ここは薄い委譲になった
+# （limit_override.delegates_to_shared_module / genesys_point.delegates_to_shared_module に統合）。
+#
+# 2026-09-03(TASK-450) その3: 「編集モードでバッジの部分を押下してregulationを閲覧モードのように
+# 切り替えられるようにしたい。また、その際デッキ名も編集されるべきだ」指摘への対応。
+# availableRegulations（実在版一覧、バッジクリックメニュー表示用）とsetRegulation（手動選択された
+# type/yymmをデッキ名タグへ書き込む。閲覧画面の一時プレビューと異なりデッキ名自体を書き換える）を
+# 追加した。
 
 [meta]
 feature = "use-deck-regulation"
 source_file = "src/composables/deck/useDeckRegulation.ts"
 verified = true
-verified_at = "2026-08-07"
-verified_by = "codex"
+verified_at = "2026-09-03"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/composables/useDeckRegulation.test.ts"
-source_hash = "4b38e6034c6e9601b7bcac18374293c1452b9212"
+source_hash = "fd0be6ce71557138a6fc025d46176542a0c8723f"
 note = "verified=falseは0件"
 
 # --- useDeckRegulation(options) ---
@@ -22,7 +39,7 @@ note = "verified=falseは0件"
 [[condition]]
 id = "display_mode.ocg_effective_date_returns_ocg_past"
 target_function = "useDeckRegulation"
-source_lines = "51-55"
+source_lines = "57-62"
 description = "resolvedRegulation.modeが'ocg'かつeffectiveDateがtruthyの場合、displayModeは'ocg-past'を返す"
 given = "resolvedRegulation.value = { mode: 'ocg', effectiveDate: 'YYYY-MM-DD', ... }"
 expect_return = "'ocg-past'"
@@ -30,7 +47,7 @@ expect_return = "'ocg-past'"
 [[condition]]
 id = "display_mode.genesys_returns_genesys"
 target_function = "useDeckRegulation"
-source_lines = "51-55"
+source_lines = "57-62"
 description = "resolvedRegulation.modeが'genesys'の場合、listParamの有無に関わらずdisplayModeは'genesys'を返す"
 given = "resolvedRegulation.value.mode = 'genesys'"
 expect_return = "'genesys'"
@@ -38,7 +55,7 @@ expect_return = "'genesys'"
 [[condition]]
 id = "display_mode.none_or_ocg_latest_returns_none"
 target_function = "useDeckRegulation"
-source_lines = "51-55"
+source_lines = "57-62"
 description = "mode='none'、またはmode='ocg'でeffectiveDateがfalsyの場合、displayModeは'none'を返す"
 given = "resolvedRegulation.value.mode = 'none' または { mode: 'ocg', effectiveDate: null }"
 expect_return = "'none'"
@@ -46,7 +63,7 @@ expect_return = "'none'"
 [[condition]]
 id = "effective_description.none_returns_null"
 target_function = "useDeckRegulation"
-source_lines = "59-65"
+source_lines = "65-72"
 description = "resolvedRegulation.modeが'none'の場合、effectiveDescriptionはnullを返す"
 given = "resolvedRegulation.value.mode = 'none'"
 expect_return = "null"
@@ -54,7 +71,7 @@ expect_return = "null"
 [[condition]]
 id = "effective_description.fallback_yymm_preferred"
 target_function = "useDeckRegulation"
-source_lines = "59-65"
+source_lines = "65-72"
 description = "fallback.appliedYymmがある場合、tag.yymmよりfallback.appliedYymmを優先し、modeに応じたラベルで'20YY年MM月版'文字列を返す"
 given = "mode='ocg'または'genesys'、fallback.appliedYymmあり、tag.yymmもあり"
 expect_return_shape = "'OCG 20YY年MM月版' または 'GENESYS 20YY年MM月版'"
@@ -62,7 +79,7 @@ expect_return_shape = "'OCG 20YY年MM月版' または 'GENESYS 20YY年MM月版'
 [[condition]]
 id = "effective_description.tag_yymm_used_without_fallback"
 target_function = "useDeckRegulation"
-source_lines = "59-65"
+source_lines = "65-72"
 description = "fallback.appliedYymmがなくtag.yymmがある場合、tag.yymmから'20YY年MM月版'文字列を返す"
 given = "mode='ocg'または'genesys'、fallbackなし、tag.yymmあり"
 expect_return_shape = "'OCG 20YY年MM月版' または 'GENESYS 20YY年MM月版'"
@@ -70,55 +87,37 @@ expect_return_shape = "'OCG 20YY年MM月版' または 'GENESYS 20YY年MM月版'
 [[condition]]
 id = "effective_description_no_yymm_returns_latest"
 target_function = "useDeckRegulation"
-source_lines = "59-65"
+source_lines = "65-72"
 description = "modeが'none'ではなく、fallback.appliedYymmもtag.yymmもない場合、modeに応じて'OCG 最新版'または'GENESYS 最新版'を返す"
 given = "mode='ocg'または'genesys'、fallbackなし、tag.yymmなし"
 expect_return_shape = "'OCG 最新版' または 'GENESYS 最新版'"
 
-[[condition]]
-id = "limit_override.non_ocg_or_no_effective_date_returns_null"
-target_function = "useDeckRegulation"
-source_lines = "72-75"
-description = "getCardLimitOverrideはmodeが'ocg'でない、またはeffectiveDateがfalsyの場合、キャッシュを参照せずnullを返す"
-given = "resolvedRegulation.value.mode !== 'ocg' または effectiveDate=null"
-expect_return = "null"
+# 2026-09-03(TASK-450): getCardLimitOverride/getCardGenesysPointの分岐ロジック本体を
+# src/utils/regulation-card-badge.ts（getOcgLimitOverride/getGenesysPoint）へ切り出した
+# （デッキ閲覧画面のregulation-ui.tsと共有するため）。以前ここに列挙していた
+# mode別の分岐条件（null/undefined/値のケース分け）は regulation-card-badge の
+# conditions.tomlで検証する。ここでは「委譲するだけ」であることのみ条件化する。
 
 [[condition]]
-id = "limit_override.ocg_effective_date_reads_cache"
-target_function = "useDeckRegulation"
-source_lines = "72-80"
-description = "getCardLimitOverrideはmode='ocg'かつeffectiveDateがtruthyの場合、まずhasListでキャッシュにリストが存在するか確認し、存在すればforbiddenLimitedCache.getRegulation(cid, effectiveDate)の戻り値を返す"
-given = "resolvedRegulation.value = { mode: 'ocg', effectiveDate: 'YYYY-MM-DD', ... }"
-expect_return_shape = "hasList(effectiveDate)がtrueの場合: getRegulationの戻り値"
+id = "limit_override.delegates_to_shared_module"
+target_function = "getCardLimitOverride"
+source_lines = "80-82"
+description = "getCardLimitOverride(cid)はgetOcgLimitOverride(cid, resolvedRegulation.value)（regulation-card-badge.ts）の戻り値をそのまま返す。mode別の分岐仕様はgetOcgLimitOverride側で検証する"
+given = "getCardLimitOverride(cid)の呼び出し"
+expect_return_shape = "getOcgLimitOverride(cid, resolvedRegulation.value)の戻り値そのまま"
 
 [[condition]]
-id = "limit_override.list_not_in_cache_returns_null"
-target_function = "useDeckRegulation"
-source_lines = "77-79"
-description = "getCardLimitOverrideはresolveAndEnsureでensureListが呼ばれた後でもキャッシュにリストが存在しない場合（APIが過去日付非対応等）、nullを返して既存の制限バッジを維持する（TASK-346修正: 以前はundefinedを返し全カードの制限バッジが消えていた）"
-given = "resolvedRegulation.value = { mode: 'ocg', effectiveDate: '2025-01-01' }, forbiddenLimitedCache.hasList('2025-01-01')=false"
-expect_return = "null"
-
-[[condition]]
-id = "genesys_point.non_genesys_returns_undefined"
-target_function = "useDeckRegulation"
-source_lines = "79-82"
-description = "getCardGenesysPointはmodeが'genesys'でない場合、キャッシュを参照せずundefinedを返す"
-given = "resolvedRegulation.value.mode !== 'genesys'"
-expect_return = "undefined"
-
-[[condition]]
-id = "genesys_point.genesys_reads_cache_with_optional_list_param"
-target_function = "useDeckRegulation"
-source_lines = "79-82"
-description = "getCardGenesysPointはmode='genesys'の場合、genesysPointCache.getPoint(cid, r.listParam ?? undefined)の戻り値をそのまま返す"
-given = "resolvedRegulation.value.mode = 'genesys'"
-expect_return_shape = "genesysPointCache.getPointの戻り値。listParam=null時の第2引数はundefined"
+id = "genesys_point.delegates_to_shared_module"
+target_function = "getCardGenesysPoint"
+source_lines = "85-87"
+description = "getCardGenesysPoint(cid)はgetGenesysPoint(cid, resolvedRegulation.value)（regulation-card-badge.ts）の戻り値をそのまま返す。mode別の分岐仕様はgetGenesysPoint側で検証する"
+given = "getCardGenesysPoint(cid)の呼び出し"
+expect_return_shape = "getGenesysPoint(cid, resolvedRegulation.value)の戻り値そのまま"
 
 [[condition]]
 id = "reset_regulation_restores_none_and_hides_dialog"
 target_function = "useDeckRegulation"
-source_lines = "85-88,97-98"
+source_lines = "90-93,102"
 description = "resetRegulationはresolvedRegulationをタグ無し初期状態へ戻し、showRegulationFixDialogをfalseにする。resolveAndEnsure開始時にも同じ初期化を行う"
 given = "resolvedRegulation/showRegulationFixDialogが変更済み"
 expect_return_shape = "resolvedRegulation={ mode:'none', tag:null, effectiveDate:null, listParam:null, fallback:undefined } かつ showRegulationFixDialog=false"
@@ -126,7 +125,7 @@ expect_return_shape = "resolvedRegulation={ mode:'none', tag:null, effectiveDate
 [[condition]]
 id = "resolve.ensure_order_and_available_passed_to_resolver"
 target_function = "useDeckRegulation"
-source_lines = "97-115"
+source_lines = "101-133"
 description = "resolveAndEnsureはreset後、両キャッシュのinit、両キャッシュのcheckAndUpdateをawaitし、その後getAvailableDates/getAvailableListParamsの戻り値をavailableとしてresolveDeckRegulation(getDeckName(), available)へ渡し、戻り値をresolvedRegulationへ設定する"
 given = "resolveAndEnsureを呼ぶ"
 expect_return_shape = "resolveDeckRegulationに現在のデッキ名とavailableが渡され、resolvedRegulation.valueがresolver戻り値になる"
@@ -134,7 +133,7 @@ expect_return_shape = "resolveDeckRegulationに現在のデッキ名とavailable
 [[condition]]
 id = "resolve.ocg_effective_date_ensures_forbidden_list"
 target_function = "useDeckRegulation"
-source_lines = "117-127"
+source_lines = "136-145"
 description = "resolver戻り値がmode='ocg'かつeffectiveDateがtruthyの場合、forbiddenLimitedCache.ensureList(effectiveDate)だけを呼ぶ"
 given = "resolved = { mode:'ocg', effectiveDate:'YYYY-MM-DD', listParam:null }"
 expect_return_shape = "forbiddenLimitedCache.ensureList(effectiveDate)がawaitされる"
@@ -142,7 +141,7 @@ expect_return_shape = "forbiddenLimitedCache.ensureList(effectiveDate)がawait�
 [[condition]]
 id = "resolve.genesys_list_param_ensures_genesys_list"
 target_function = "useDeckRegulation"
-source_lines = "117-127"
+source_lines = "136-145"
 description = "resolver戻り値がmode='genesys'かつlistParamがtruthyの場合、genesysPointCache.ensureList(listParam)を呼び、ensureCurrentListは呼ばない"
 given = "resolved = { mode:'genesys', listParam:'YYYYMM' }"
 expect_return_shape = "genesysPointCache.ensureList(listParam)がawaitされる"
@@ -150,7 +149,7 @@ expect_return_shape = "genesysPointCache.ensureList(listParam)がawaitされる"
 [[condition]]
 id = "resolve.genesys_without_list_param_ensures_current_list"
 target_function = "useDeckRegulation"
-source_lines = "117-127"
+source_lines = "136-145"
 description = "resolver戻り値がmode='genesys'かつlistParamがfalsyの場合、genesysPointCache.ensureCurrentList()を呼ぶ"
 given = "resolved = { mode:'genesys', listParam:null }"
 expect_return_shape = "genesysPointCache.ensureCurrentList()がawaitされる"
@@ -158,7 +157,7 @@ expect_return_shape = "genesysPointCache.ensureCurrentList()がawaitされる"
 [[condition]]
 id = "resolve.none_or_ocg_latest_ensures_no_list"
 target_function = "useDeckRegulation"
-source_lines = "117-127"
+source_lines = "136-145"
 description = "resolver戻り値がmode='none'、またはmode='ocg'でeffectiveDateがfalsyの場合、forbiddenLimitedCache.ensureList/genesysPointCache.ensureList/ensureCurrentListはいずれも呼ばない"
 given = "resolved.mode='none' または { mode:'ocg', effectiveDate:null }"
 expect_return_shape = "リストensure系メソッド呼び出しなし"
@@ -166,7 +165,7 @@ expect_return_shape = "リストensure系メソッド呼び出しなし"
 [[condition]]
 id = "resolve.fallback_dialog_only_when_not_silent_not_ignored"
 target_function = "useDeckRegulation"
-source_lines = "129-131"
+source_lines = "147-150"
 description = "resolveAndEnsureはsilent=false、resolved.fallbackあり、かつopts.dnoがignoredDeckDnosに含まれない場合だけshowRegulationFixDialogをtrueにする"
 given = "opts.silent=false、resolved.fallbackあり、未ignoreのdno"
 expect_return_shape = "showRegulationFixDialog=true"
@@ -174,7 +173,7 @@ expect_return_shape = "showRegulationFixDialog=true"
 [[condition]]
 id = "resolve.fallback_dialog_suppressed_by_silent_missing_fallback_or_ignored"
 target_function = "useDeckRegulation"
-source_lines = "129-131"
+source_lines = "147-150"
 description = "silent=true、fallbackなし、またはopts.dnoがignoredDeckDnosに含まれる場合、fallbackダイアログを表示しない"
 given = "opts.silent=true、またはresolved.fallbackなし、またはignore済みdno"
 expect_return_shape = "showRegulationFixDialog=false"
@@ -182,7 +181,7 @@ expect_return_shape = "showRegulationFixDialog=false"
 [[condition]]
 id = "confirm_fix_missing_tag_or_fallback_only_hides_dialog"
 target_function = "useDeckRegulation"
-source_lines = "135-141"
+source_lines = "154-161"
 description = "confirmRegulationFixは最初にshowRegulationFixDialogをfalseにし、resolvedRegulationにtagまたはfallbackがなければsetDeckNameを呼ばずreturnする"
 given = "showRegulationFixDialog=true、tagなしまたはfallbackなし"
 expect_return_shape = "showRegulationFixDialog=false、setDeckName未呼び出し"
@@ -190,15 +189,44 @@ expect_return_shape = "showRegulationFixDialog=false、setDeckName未呼び出�
 [[condition]]
 id = "confirm_fix_replaces_tag_yymm_and_sets_deck_name"
 target_function = "useDeckRegulation"
-source_lines = "135-141"
+source_lines = "154-161"
 description = "confirmRegulationFixはtagとfallbackがある場合、replaceTagYymm(getDeckName(), r.tag, r.fallback.appliedYymm)の戻り値でsetDeckNameを呼ぶ"
 given = "resolvedRegulation.valueにtagとfallbackがある"
 expect_return_shape = "setDeckName(replaceTagYymmの戻り値)が呼ばれる"
 
+# 2026-09-03(TASK-450) その3: 「編集モードでバッジの部分を押下してregulationを閲覧モードのように
+# 切り替えられるようにしたい。また、その際デッキ名も編集されるべきだ」指摘への対応で追加。
+# バッジクリックメニュー（DeckEditTopBar.vue）が実在版一覧を表示するためのavailableRegulationsと、
+# 選択された値をデッキ名タグへ書き込むsetRegulation。
+
+[[condition]]
+id = "available_regulations.updated_by_resolve_and_ensure"
+target_function = "useDeckRegulation"
+source_lines = "53-54,122-126"
+description = "availableRegulationsは初期値{ocgDates:[],genesysListParams:[]}を持ち、resolveAndEnsure実行後はforbiddenLimitedCache.getAvailableDates()/genesysPointCache.getAvailableListParams()（isGenesysEnabled=false時は空配列）の戻り値で更新される"
+given = "resolveAndEnsureを呼ぶ"
+expect_return_shape = "availableRegulations.value = { ocgDates: [...], genesysListParams: [...] }"
+
+[[condition]]
+id = "set_regulation.writes_tag_into_deck_name"
+target_function = "useDeckRegulation"
+source_lines = "169-174"
+description = "setRegulation(option)はparseRegulationTag(getDeckName())で現在のタグを解析し、setRegulationTag(getDeckName(), currentTag, option)（regulation-tag-parser.ts）の戻り値でsetDeckNameを呼ぶ。閲覧画面の一時プレビュー（regulation-ui.ts）と異なりデッキ名自体を書き換える"
+given = "getDeckName() = '[OCG] テスト', option = { type: 'genesys', yymm: '2608' }"
+expect_return_shape = "setDeckName('[GENESYS-2608] テスト')が呼ばれる"
+
+[[condition]]
+id = "set_regulation.option_null_removes_tag"
+target_function = "useDeckRegulation"
+source_lines = "169-174"
+description = "setRegulation(null)は既存タグを削除したデッキ名でsetDeckNameを呼ぶ"
+given = "getDeckName() = '[OCG-2501] テスト', option = null"
+expect_return_shape = "setDeckName('テスト')が呼ばれる"
+
 [[condition]]
 id = "ignore_fix_without_dno_only_hides_dialog"
 target_function = "useDeckRegulation"
-source_lines = "145-151"
+source_lines = "177-181"
 description = "ignoreRegulationFixは最初にshowRegulationFixDialogをfalseにし、deckInfo.value.dnoがfalsyならignore集合へ追加せずstorage保存も行わない"
 given = "deckInfo.value.dno = 0"
 expect_return_shape = "showRegulationFixDialog=false、safeStorageSet未呼び出し"
@@ -206,7 +234,7 @@ expect_return_shape = "showRegulationFixDialog=false、safeStorageSet未呼び�
 [[condition]]
 id = "ignore_fix_with_dno_adds_and_saves_string_key_record"
 target_function = "useDeckRegulation"
-source_lines = "145-167"
+source_lines = "177-184,194-200"
 description = "ignoreRegulationFixはtruthyなdnoをignoredDeckDnosへ追加し、saveIgnoredToStorageで各dnoを文字列キー・値trueのRecordとしてCHROME_STORAGE_KEY_REGULATION_FIX_IGNOREDへ保存する"
 given = "deckInfo.value.dno = 12"
 expect_return_shape = "safeStorageSet({ regulation_fix_ignored: { '12': true } })がawaitされる"
@@ -214,7 +242,7 @@ expect_return_shape = "safeStorageSet({ regulation_fix_ignored: { '12': true } }
 [[condition]]
 id = "remove_ignored_absent_returns_without_save"
 target_function = "useDeckRegulation"
-source_lines = "154-158"
+source_lines = "187-188"
 description = "removeIgnoredは指定dnoがignoredDeckDnosに存在しない場合、削除もstorage保存も行わずreturnする"
 given = "ignoredDeckDnosにdnoが存在しない"
 expect_return_shape = "safeStorageSet未呼び出し"
@@ -222,7 +250,7 @@ expect_return_shape = "safeStorageSet未呼び出し"
 [[condition]]
 id = "remove_ignored_present_deletes_and_saves"
 target_function = "useDeckRegulation"
-source_lines = "154-167"
+source_lines = "187-191,194-200"
 description = "removeIgnoredは指定dnoがignoredDeckDnosに存在する場合、そのdnoを削除して残りのignore集合をstorageへ保存する"
 given = "ignoredDeckDnosにdnoが存在する"
 expect_return_shape = "safeStorageSet({ regulation_fix_ignored: 残りのdnoだけを含むRecord })がawaitされる"
@@ -230,7 +258,7 @@ expect_return_shape = "safeStorageSet({ regulation_fix_ignored: 残りのdnoだ�
 [[condition]]
 id = "load_ignored_record_maps_finite_numeric_keys"
 target_function = "useDeckRegulation"
-source_lines = "170-180"
+source_lines = "203-213"
 description = "loadIgnoredはsafeStorageGet結果のregulation_fix_ignoredが配列でないobjectの場合、Object.keys(raw).map(Number).filter(Number.isFinite)で作ったSetへignoredDeckDnosを置き換える。値は参照しない"
 given = "safeStorageGetが { regulation_fix_ignored: { '12': true, abc: true, '': true, Infinity: true } } を返す"
 expect_return_shape = "ignore集合は Set([12, 0]) になる"
@@ -238,7 +266,7 @@ expect_return_shape = "ignore集合は Set([12, 0]) になる"
 [[condition]]
 id = "load_ignored_non_record_leaves_existing_set"
 target_function = "useDeckRegulation"
-source_lines = "170-180"
+source_lines = "203-213"
 description = "loadIgnoredはregulation_fix_ignoredがobjectでない、null、または配列の場合、ignoredDeckDnosを変更しない"
 given = "safeStorageGet結果のregulation_fix_ignoredが配列またはnull"
 expect_return_shape = "既存のignore集合が維持される"
@@ -246,7 +274,7 @@ expect_return_shape = "既存のignore集合が維持される"
 [[condition]]
 id = "watch_tag_raw_same_returns_without_resolve"
 target_function = "useDeckRegulation"
-source_lines = "183-192"
+source_lines = "218-226"
 description = "currentTagRawのwatchはnewRawとoldRawが同じ場合、dno確認やresolveAndEnsure呼び出しをせずreturnする"
 given = "デッキ名は変わるがparseRegulationTag(getDeckName())?.rawが同じ"
 expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しなし"
@@ -254,7 +282,7 @@ expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しな�
 [[condition]]
 id = "watch_tag_raw_changed_without_dno_returns_without_resolve"
 target_function = "useDeckRegulation"
-source_lines = "183-192"
+source_lines = "218-226"
 description = "currentTagRawのwatchはタグrawが変わってもdeckInfo.value.dnoがnull/undefinedの場合のみresolveAndEnsureを呼ばずreturnする。dno=0（新規デッキ）では解決を実行する（TASK-346修正: 以前は!dnoで0も除外され新規デッキでレギュレーションが効かなかった）"
 given = "newRaw !== oldRaw、deckInfo.value.dno=null"
 expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しなし"
@@ -262,7 +290,7 @@ expect_return_shape = "resolveAndEnsure由来のcache init/check呼び出しな�
 [[condition]]
 id = "watch_tag_raw_changed_with_zero_dno_resolves_silent"
 target_function = "useDeckRegulation"
-source_lines = "183-192"
+source_lines = "218-226"
 description = "currentTagRawのwatchはタグrawが変わりdno=0（新規デッキ）の場合もresolveAndEnsure({ dno: 0, silent: true })をawaitする（TASK-346修正）"
 given = "newRaw !== oldRaw、deckInfo.value.dno=0"
 expect_return_shape = "resolveAndEnsureが呼ばれ、resolvedRegulationが更新される"
@@ -270,7 +298,7 @@ expect_return_shape = "resolveAndEnsureが呼ばれ、resolvedRegulationが更�
 [[condition]]
 id = "watch_tag_raw_changed_with_dno_resolves_silent"
 target_function = "useDeckRegulation"
-source_lines = "183-192"
+source_lines = "218-226"
 description = "currentTagRawのwatchはタグrawが変わりdeckInfo.value.dnoが1以上の場合、resolveAndEnsure({ dno, silent: true })をawaitする"
 given = "newRaw !== oldRaw、deckInfo.value.dno=12"
 expect_return_shape = "resolverに新デッキ名が渡り、fallbackがあってもshowRegulationFixDialogはtrueにならない"
@@ -278,7 +306,7 @@ expect_return_shape = "resolverに新デッキ名が渡り、fallbackがあっ�
 [[condition]]
 id = "resolve.dated_tag_applies_correct_regulation"
 target_function = "resolveAndEnsure -> getCardLimitOverride"
-source_lines = "72-80, 97-133"
+source_lines = "80-82, 101-151"
 description = "日付出力タグ（例: [OCG-2501]）を設定しresolveAndEnsureが完了した後、指定日付のリストがキャッシュに存在する場合、getCardLimitOverrideは該当カードの制限状態（forbidden/limited/semi-limited）を返す。リストが存在しない場合はnullを返し既存バッジを維持する"
 given = "deckName='[OCG-2501] Test', available.ocgDates に '2025-01-01' が含まれ ensureList が成功"
 expect_return_shape = "禁止カードのcidに対して getCardLimitOverride(cid) === 'forbidden'"
@@ -286,7 +314,7 @@ expect_return_shape = "禁止カードのcidに対して getCardLimitOverride(ci
 [[condition]]
 id = "resolve.dated_tag_preserves_existing_badges_when_list_unavailable"
 target_function = "resolveAndEnsure -> getCardLimitOverride"
-source_lines = "72-80, 97-133"
+source_lines = "80-82, 101-151"
 description = "日付出力タグを設定しensureListが失敗した場合、getCardLimitOverrideはnullを返し、DeckSection.vueのoverride !== nullガードを通過せず、カードが持つ既存のlimitRegulationが維持される"
 given = "deckName='[OCG-2510] Test', ensureListがnullを返す"
 expect_return_shape = "全カードで getCardLimitOverride(cid) === null、制限バッジが消えない"

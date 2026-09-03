@@ -52,12 +52,79 @@
               <path fill="currentColor" :d="mdiCloseCircle" />
             </svg>
           </button>
-          <span
+          <button
             v-if="regulationVisible"
+            type="button"
             class="regulation-badge"
             :class="{ 'is-fallback': regulationIsFallback }"
             :title="regulationMessage"
-          >{{ regulationBadgeLabel }}</span>
+            @click.stop="toggleRegulationMenu"
+          >{{ regulationBadgeLabel }}</button>
+          <Transition name="menu-slide">
+            <div v-if="showRegulationMenu" class="regulation-menu" @click.stop>
+              <button
+                v-for="opt in regulationRepresentativeOptions"
+                :key="`${opt.type}-${opt.yymm}`"
+                type="button"
+                class="regulation-menu-item"
+                :class="{ 'is-selected': isRegulationOptionSelected(opt) }"
+                @click="handleRegulationSelect(opt)"
+              >{{ opt.label }}</button>
+              <template v-if="regulationOcgYearGroups.length > 0">
+                <button
+                  type="button"
+                  class="regulation-menu-expand"
+                  @click="togglePastSection('ocg')"
+                >{{ isPastSectionExpanded('ocg') ? 'OCG PAST ▲' : `OCG PAST（${regulationOcgRest.length}）` }}</button>
+                <template v-if="isPastSectionExpanded('ocg')">
+                  <template v-for="group in regulationOcgYearGroups" :key="`ocg-${group.rangeLabel}`">
+                    <button
+                      type="button"
+                      class="regulation-menu-expand regulation-menu-expand-nested"
+                      @click="toggleRegulationYearGroup('ocg', group.rangeLabel)"
+                    >{{ isRegulationYearGroupExpanded('ocg', group.rangeLabel) ? `${group.rangeLabel} ▲` : `${group.rangeLabel}（${group.options.length}）` }}</button>
+                    <template v-if="isRegulationYearGroupExpanded('ocg', group.rangeLabel)">
+                      <button
+                        v-for="opt in group.options"
+                        :key="`${opt.type}-${opt.yymm}`"
+                        type="button"
+                        class="regulation-menu-item regulation-menu-item-grouped"
+                        :class="{ 'is-selected': isRegulationOptionSelected(opt) }"
+                        @click="handleRegulationSelect(opt)"
+                      >{{ opt.label }}</button>
+                    </template>
+                  </template>
+                </template>
+              </template>
+              <template v-if="regulationGenesysYearGroups.length > 0">
+                <button
+                  type="button"
+                  class="regulation-menu-expand"
+                  @click="togglePastSection('genesys')"
+                >{{ isPastSectionExpanded('genesys') ? 'GENESYS PAST ▲' : `GENESYS PAST（${regulationGenesysRest.length}）` }}</button>
+                <template v-if="isPastSectionExpanded('genesys')">
+                  <template v-for="group in regulationGenesysYearGroups" :key="`genesys-${group.rangeLabel}`">
+                    <button
+                      type="button"
+                      class="regulation-menu-expand regulation-menu-expand-nested"
+                      @click="toggleRegulationYearGroup('genesys', group.rangeLabel)"
+                    >{{ isRegulationYearGroupExpanded('genesys', group.rangeLabel) ? `${group.rangeLabel} ▲` : `${group.rangeLabel}（${group.options.length}）` }}</button>
+                    <template v-if="isRegulationYearGroupExpanded('genesys', group.rangeLabel)">
+                      <button
+                        v-for="opt in group.options"
+                        :key="`${opt.type}-${opt.yymm}`"
+                        type="button"
+                        class="regulation-menu-item regulation-menu-item-grouped"
+                        :class="{ 'is-selected': isRegulationOptionSelected(opt) }"
+                        @click="handleRegulationSelect(opt)"
+                      >{{ opt.label }}</button>
+                    </template>
+                  </template>
+                </template>
+              </template>
+            </div>
+          </Transition>
+          <div v-if="showRegulationMenu" class="menu-overlay" @click="closeRegulationMenu"></div>
           <SuggestionList
             :suggestions="deckNameSuggestions"
             :selected-index="deckNameSelectedIndex"
@@ -230,6 +297,8 @@ import HoverTooltip from './HoverTooltip.vue'
 import SuggestionList from './searchInputBar/components/SuggestionList.vue'
 import { useDeckNameVariables, type DeckNameVariable } from '../composables/useDeckNameVariables'
 import { useDeckRegulationTagSuggestions } from '../composables/useDeckRegulationTagSuggestions'
+import { buildRegulationTagOptions, groupRegulationTagOptionsByYearPair, type RegulationTagOption, type RegulationTagYearGroup } from '../utils/regulation-resolver'
+import { parseRegulationTag } from '../utils/regulation-tag-parser'
 // 画像作成機能は動的importに変更（メニュー選択時のみロード）
 // import { showImageDialogWithData } from '../content/deck-recipe/imageDialog'
 import { sessionManager } from '../content/session/session'
@@ -293,23 +362,106 @@ export default {
     const displayDeckName = computed(() => deckStore.getDeckName())
 
     // リミットレギュレーション適用状態バッジ（デッキ名入力欄右上にオーバーレイ表示、レイアウトは変更しない）
-    const regulationVisible = computed(() => deckStore.resolvedRegulation.mode !== 'none')
+    // クリックでメニューを開き手動切替できるため常時表示する（TASK-450）。
+    // mode='none'（デッキ名にタグ無し）はOCG最新版と同義（resolveDeckRegulationの仕様）のため、
+    // 閲覧画面(regulation-ui.ts typeLabel)と同様にOCG表示にする
+    const regulationVisible = computed(() => true)
     const regulationIsFallback = computed(() => !!deckStore.resolvedRegulation.fallback)
     const regulationBadgeLabel = computed(() => {
       const r = deckStore.resolvedRegulation
-      if (r.mode === 'none') return ''
-      return r.mode === 'ocg' ? 'OCG' : 'GENESYS'
+      return r.mode === 'genesys' ? 'GENESYS' : 'OCG'
     })
     const regulationMessage = computed(() => {
       const r = deckStore.resolvedRegulation
       if (r.fallback) {
         const label = r.mode === 'ocg' ? 'OCG' : 'GENESYS'
-        return `指定 ${label}-${r.fallback.requestedYymm} は存在しないため、直近版 ${label}-${r.fallback.appliedYymm} を適用中`
+        return `指定 ${label}-${r.fallback.requestedYymm} は存在しないため、直近版 ${label}-${r.fallback.appliedYymm} を適用中（クリックして変更）`
       }
-      return deckStore.regulationEffectiveDescription
-        ? `適用中: ${deckStore.regulationEffectiveDescription}`
-        : ''
+      const description = deckStore.regulationEffectiveDescription ?? 'OCG 最新版'
+      return `適用中: ${description}（クリックして変更）`
     })
+
+    // レギュレーションバッジのクリックメニュー（デッキ編集画面。閲覧画面のregulation-ui.tsの
+    // 手動切替メニューと同じUXだが、こちらは選択するとデッキ名自体を書き換える。
+    // デッキ名がレギュレーションの永続的な指定手段のため、閲覧画面のような
+    // 「デッキ名を変えない一時プレビュー」ではない）
+    const showRegulationMenu = ref(false)
+    // 過去版セクション（"OCG過去版"/"GENESYS過去版"）が展開中かどうか。展開すると年単位グループ
+    // （24-25等）の一覧が現れ、そこからさらに個別版を展開する2段階構造にする（TASK-450:
+    // 年グループを直接フラットに並べるとOCG/GENESYSの区分が埋もれるという指摘への対応）
+    const expandedPastSections = ref<Set<'ocg' | 'genesys'>>(new Set())
+    // 展開中の年グループ（"ocg:24-25"等のキー）。過去版セクション内で、グループごとに
+    // 独立して開閉できるようSetで管理する
+    const expandedRegulationYearGroups = ref<Set<string>>(new Set())
+
+    const regulationAllOptions = computed<RegulationTagOption[]>(() =>
+      buildRegulationTagOptions(deckStore.availableRegulations, settingsStore.featureSettings.genesys)
+    )
+    const regulationOcgLatest = computed(() => regulationAllOptions.value.find(o => o.type === 'ocg' && o.yymm === null) ?? null)
+    const regulationGenesysLatest = computed(() => regulationAllOptions.value.find(o => o.type === 'genesys' && o.yymm === null) ?? null)
+    const regulationOcgPast = computed(() => regulationAllOptions.value.filter(o => o.type === 'ocg' && o.yymm !== null))
+    const regulationGenesysPast = computed(() => regulationAllOptions.value.filter(o => o.type === 'genesys' && o.yymm !== null))
+    // OCG/GENESYSそれぞれ代表2件を先頭にまとめる（閲覧画面のregulation-ui.ts buildMenuHtmlと同じ方針:
+    // OCG全件を先に並べるとGENESYSが埋もれるため）。代表以外の過去版は年単位グループに分けて表示する
+    const regulationOcgRepresentatives = computed(() => regulationOcgPast.value.slice(0, 2))
+    const regulationOcgRest = computed(() => regulationOcgPast.value.slice(2))
+    const regulationGenesysRepresentatives = computed(() => regulationGenesysPast.value.slice(0, 2))
+    const regulationGenesysRest = computed(() => regulationGenesysPast.value.slice(2))
+    const regulationRepresentativeOptions = computed<RegulationTagOption[]>(() => {
+      const list: RegulationTagOption[] = []
+      if (regulationOcgLatest.value) list.push(regulationOcgLatest.value)
+      list.push(...regulationOcgRepresentatives.value)
+      if (regulationGenesysLatest.value) list.push(regulationGenesysLatest.value)
+      list.push(...regulationGenesysRepresentatives.value)
+      return list
+    })
+    // 代表以外の過去版を2年単位でグルーピング（新しい順）。「24-25」のようなグループを押すと
+    // そのグループ内の個別版が展開される（選択肢が多い場合に一覧性を上げるため。TASK-450）
+    const regulationOcgYearGroups = computed<RegulationTagYearGroup[]>(() => groupRegulationTagOptionsByYearPair(regulationOcgRest.value))
+    const regulationGenesysYearGroups = computed<RegulationTagYearGroup[]>(() => groupRegulationTagOptionsByYearPair(regulationGenesysRest.value))
+
+    const currentRegulationTag = computed(() => parseRegulationTag(deckStore.getDeckName()))
+    const isRegulationOptionSelected = (opt: RegulationTagOption): boolean => {
+      const tag = currentRegulationTag.value
+      if (!tag) return opt.type === 'ocg' && opt.yymm === null
+      return tag.type === opt.type && (tag.yymm ?? null) === opt.yymm
+    }
+
+    const isPastSectionExpanded = (type: 'ocg' | 'genesys'): boolean => expandedPastSections.value.has(type)
+    const togglePastSection = (type: 'ocg' | 'genesys'): void => {
+      const next = new Set(expandedPastSections.value)
+      if (next.has(type)) next.delete(type)
+      else next.add(type)
+      expandedPastSections.value = next
+    }
+
+    const regulationYearGroupKey = (type: RegulationTagOption['type'], rangeLabel: string): string => `${type}:${rangeLabel}`
+    const isRegulationYearGroupExpanded = (type: RegulationTagOption['type'], rangeLabel: string): boolean =>
+      expandedRegulationYearGroups.value.has(regulationYearGroupKey(type, rangeLabel))
+    const toggleRegulationYearGroup = (type: RegulationTagOption['type'], rangeLabel: string): void => {
+      const key = regulationYearGroupKey(type, rangeLabel)
+      const next = new Set(expandedRegulationYearGroups.value)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      expandedRegulationYearGroups.value = next
+    }
+
+    const toggleRegulationMenu = () => {
+      showRegulationMenu.value = !showRegulationMenu.value
+      if (!showRegulationMenu.value) {
+        expandedPastSections.value = new Set()
+        expandedRegulationYearGroups.value = new Set()
+      }
+    }
+    const closeRegulationMenu = () => {
+      showRegulationMenu.value = false
+      expandedPastSections.value = new Set()
+      expandedRegulationYearGroups.value = new Set()
+    }
+    const handleRegulationSelect = (opt: RegulationTagOption) => {
+      deckStore.setDeckRegulation({ type: opt.type, yymm: opt.yymm })
+      closeRegulationMenu()
+    }
 
     const deckNameInputRef = ref<HTMLInputElement | null>(null)
 
@@ -739,6 +891,20 @@ export default {
       regulationIsFallback,
       regulationBadgeLabel,
       regulationMessage,
+      showRegulationMenu,
+      regulationRepresentativeOptions,
+      regulationOcgRest,
+      regulationGenesysRest,
+      regulationOcgYearGroups,
+      regulationGenesysYearGroups,
+      isRegulationOptionSelected,
+      isPastSectionExpanded,
+      togglePastSection,
+      isRegulationYearGroupExpanded,
+      toggleRegulationYearGroup,
+      toggleRegulationMenu,
+      closeRegulationMenu,
+      handleRegulationSelect,
       deckNameInputRef,
       handleClearDeckName,
       deckNameSuggestions,
@@ -988,6 +1154,8 @@ export default {
 }
 
 .regulation-badge {
+  appearance: none;
+  -webkit-appearance: none;
   position: absolute;
   right: 8px;
   top: -8px;
@@ -1000,13 +1168,109 @@ export default {
   color: var(--button-text);
   border: 1px solid var(--color-warning);
   z-index: 2;
-  cursor: default;
+  cursor: pointer;
   white-space: nowrap;
+  transition: filter 0.15s;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
 
   &.is-fallback {
     background: var(--color-error);
     color: var(--button-text);
     border-color: var(--color-error);
+  }
+}
+
+// レギュレーションバッジのクリックメニュー。デッキ名候補リスト(SuggestionList.vue
+// .suggestions-dropdown)や「⋮」メニュー(.menu-dropdown)と同じ配色・角丸パネルに揃える
+.regulation-menu {
+  position: absolute;
+  top: 16px;
+  right: 8px;
+  margin-top: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 6;
+  text-align: left;
+
+  .regulation-menu-item {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+
+    &:hover {
+      background: var(--bg-secondary);
+    }
+
+    &.is-selected {
+      background: var(--color-success);
+      color: var(--button-text);
+      font-weight: 700;
+    }
+  }
+
+  // OCG過去版の折りたたみ展開トグル
+  .regulation-menu-expand {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+  }
+
+  // 過去版セクション展開後の年グループボタン（1段階目のネスト）
+  .regulation-menu-expand-nested {
+    padding-left: 24px;
+  }
+
+  // 年グループ展開後の個別版（2段階目のネスト）
+  .regulation-menu-item-grouped {
+    padding-left: 36px;
+    font-size: 12px;
   }
 }
 

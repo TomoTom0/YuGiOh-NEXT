@@ -31,12 +31,12 @@ describe('useDeckRegulationTagSuggestions', () => {
       handleInput()
 
       expect(suggestions.value).toEqual([
-        { value: '[OCG]', label: 'OCG 最新版' },
-        { value: '[GENESYS]', label: 'GENESYS 最新版' },
-        { value: '[OCG-2501]', label: 'OCG 2025年01月版' },
-        { value: '[OCG-2410]', label: 'OCG 2024年10月版' },
-        { value: '[GENESYS-2606]', label: 'GENESYS 2026年06月版' },
-        { value: '[GENESYS-2408]', label: 'GENESYS 2024年08月版' }
+        { value: '[OCG]', label: 'OCG' },
+        { value: '[GENESYS]', label: 'GENESYS' },
+        { value: '[OCG-2501]', label: 'OCG-2501' },
+        { value: '[OCG-2410]', label: 'OCG-2410' },
+        { value: '[GENESYS-2606]', label: 'GENESYS-2606' },
+        { value: '[GENESYS-2408]', label: 'GENESYS-2408' }
       ])
     })
 
@@ -47,7 +47,7 @@ describe('useDeckRegulationTagSuggestions', () => {
 
       handleInput()
 
-      expect(suggestions.value[0]).toEqual({ value: '【OCG】', label: 'OCG 最新版' })
+      expect(suggestions.value[0]).toEqual({ value: '【OCG】', label: 'OCG' })
     })
 
     it('[covers:handle_input.no_trigger_clears_bracket_and_query] [covers:suggestions.null_query_returns_empty] 冒頭以外の [ では候補を表示しない', () => {
@@ -279,7 +279,7 @@ describe('useDeckRegulationTagSuggestions', () => {
       const inputElement = ref(createInputWithCursor('テストデッキ', 4))
       const { selectSuggestion } = useDeckRegulationTagSuggestions({ inputValue, inputElement, isGenesysEnabled: () => true })
 
-      selectSuggestion({ value: '[OCG]', label: 'OCG 最新版' })
+      selectSuggestion({ value: '[OCG]', label: 'OCG' })
 
       expect(inputValue.value).toBe('テストデッキ')
     })

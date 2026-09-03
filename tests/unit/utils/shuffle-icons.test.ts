@@ -7,21 +7,14 @@ import {
 } from '../../../src/utils/shuffle-icons';
 
 describe('shuffle-icons', () => {
-  it('SHUFFLE_ICONは実装のSVG shapeを保持する [covers:shuffle_icon.literal_svg_shape]', () => {
+  it('SHUFFLE_ICONは編集画面と同じmdiShuffleのSVG shapeを保持する [covers:shuffle_icon.literal_svg_shape]', () => {
     expect(SHUFFLE_ICON).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"');
-    expect(SHUFFLE_ICON).toContain('<polyline points="16 3 21 3 21 8"></polyline>');
-    expect(SHUFFLE_ICON).toContain('<line x1="4" y1="20" x2="21" y2="3"></line>');
-    expect(SHUFFLE_ICON).toContain('<polyline points="21 16 21 21 16 21"></polyline>');
-    expect(SHUFFLE_ICON).toContain('<line x1="15" y1="15" x2="21" y2="21"></line>');
-    expect(SHUFFLE_ICON).toContain('<line x1="4" y1="4" x2="9" y2="9"></line>');
+    expect(SHUFFLE_ICON).toContain('<path fill="currentColor" d="M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z"></path>');
   });
 
-  it('SORT_ICONは実装のSVG shapeを保持する [covers:sort_icon.literal_svg_shape]', () => {
+  it('SORT_ICONは編集画面と同じmdiSortのSVG shapeを保持する [covers:sort_icon.literal_svg_shape]', () => {
     expect(SORT_ICON).toContain('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"');
-    expect(SORT_ICON).toContain('<line x1="4" y1="20" x2="4" y2="14"></line>');
-    expect(SORT_ICON).toContain('<line x1="10" y1="20" x2="10" y2="10"></line>');
-    expect(SORT_ICON).toContain('<line x1="16" y1="20" x2="16" y2="6"></line>');
-    expect(SORT_ICON).toContain('<line x1="22" y1="20" x2="22" y2="2"></line>');
+    expect(SORT_ICON).toContain('<path fill="currentColor" d="M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z"></path>');
   });
 
   it('LOCK_CLOSED_ICONは実装のSVG shapeを保持する [covers:lock_closed_icon.literal_svg_shape]', () => {

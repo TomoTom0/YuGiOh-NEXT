@@ -60,6 +60,11 @@ export async function initDeckDisplay(): Promise<void> {
     await setupVueApp()
   }
 
+  // リミットレギュレーション表示（デッキ名タグ検出時のみ動作、showCardDetailInDeckDisplay設定に非依存）
+  const { setupRegulationDisplay } = await import('./regulation-ui')
+  const { ensureParsedDeckInfo } = await import('./card-detail-ui')
+  await setupRegulationDisplay(ensureParsedDeckInfo)
+
   // カード画像サイズを設定
   setCardImageSize(cardImageSize)
 
