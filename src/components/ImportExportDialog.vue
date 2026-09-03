@@ -305,7 +305,11 @@ const previewImageUrl = ref<string | null>(null);
 const previewImageLoading = ref(false);
 const previewImageError = ref<string | null>(null);
 
+// 生成は非同期のため連続でファイルを選び直すと完了順が入れ替わる可能性がある。
+// generation tokenで最新の生成のみを反映し、古い結果による上書きを防ぐ。
+let previewImageGeneration = 0;
 async function generatePreviewImage(deckInfo: DeckInfo) {
+  const generation = ++previewImageGeneration;
   previewImageLoading.value = true;
   previewImageError.value = null;
   previewImageUrl.value = null;
@@ -320,17 +324,23 @@ async function generatePreviewImage(deckInfo: DeckInfo) {
       deckData: { ...deckInfo, name: '' }
     });
 
-    previewImageUrl.value = await new Promise<string>((resolve, reject) => {
+    const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(blob as Blob);
     });
+
+    if (generation !== previewImageGeneration) return;
+    previewImageUrl.value = dataUrl;
   } catch (error) {
+    if (generation !== previewImageGeneration) return;
     console.error('[ImportExportDialog] Failed to generate preview image:', error);
     previewImageError.value = 'プレビュー画像の生成に失敗しました';
   } finally {
-    previewImageLoading.value = false;
+    if (generation === previewImageGeneration) {
+      previewImageLoading.value = false;
+    }
   }
 }
 

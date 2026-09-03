@@ -56,6 +56,10 @@ export interface CardBase {
   pendSupplDate?: string;
   /** 禁止制限（オプション） */
   limitRegulation?: LimitRegulation;
+  /** インポート時に生成された仮データかどうか（未キャッシュカードの暫定登録用）
+   * trueの場合、実データ取得前の暫定値であり、addCard等で永続化する前に実データへの解決が必要
+   */
+  isImportPlaceholder?: boolean;
 }
 
 import type { CardGameType } from './settings';
