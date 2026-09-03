@@ -373,7 +373,7 @@ async function initialize() {
   if (persisted.footerText !== undefined) footerText.value = persisted.footerText
 
   deckName.value = props.deckData.name
-  const image = await generateBackgroundImage(selectedColor.value, props.deckData, footerText.value)
+  const image = await generateBackgroundImage(selectedColor.value, deckDataForPreview.value, footerText.value)
   backgroundImageUrl.value = image.dataUrl
   displayWidth.value = image.width
   displayHeight.value = image.height

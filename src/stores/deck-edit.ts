@@ -662,6 +662,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   const showUnsavedChangesDialog = ref(false);
   const isFilterDialogVisible = ref(false);
   const isLoadingDeck = ref(false);
+  // インポート処理中フラグ。true の間はデッキ切り替え（loadDeck/createNewDeck）をブロックし、
+  // インポート対象デッキ以外への非同期カード追加（データ破損）を防ぐ。
+  const isImporting = ref(false);
 
   // キャッシュ管理（Load Dialog用）
   const deckThumbnails = ref(loadThumbnailCache());
@@ -1169,6 +1172,11 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   }
 
   async function loadDeck(dno: number) {
+    if (isImporting.value) {
+      console.warn('[loadDeck] Import in progress, ignoring deck switch request');
+      return;
+    }
+
     // ローディング開始
     isLoadingDeck.value = true;
 
@@ -2011,6 +2019,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     showUnsavedChangesDialog,
     isFilterDialogVisible,
     isLoadingDeck,
+    isImporting,
     commandHistory,
     commandIndex,
     canUndo,

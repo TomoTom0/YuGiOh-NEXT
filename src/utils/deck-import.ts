@@ -482,6 +482,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         imageUrl: '',
         effect: '',
         isExtraDeck: false,
+        isImportPlaceholder: true,
         imgs
       } as CardInfo;
 
