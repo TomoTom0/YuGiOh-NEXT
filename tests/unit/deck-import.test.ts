@@ -158,6 +158,41 @@ describe('deck-import', () => {
       expect(result.deckInfo!.mainDeck).toHaveLength(1);
     });
 
+    it('ヘッダーの列が並び替えられていても正しくインポートできる（TASK-412: Exportのカラム並び替え機能との整合性）', () => {
+      const csv = `name,section,quantity,cid,ciid
+灰流うらら,main,2,12950,1
+PSYフレームロード・Λ,extra,1,9753,1`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.mainDeck).toEqual([
+        expect.objectContaining({ cid: '12950', ciid: '1', quantity: 2 })
+      ]);
+      expect(result.deckInfo!.extraDeck).toEqual([
+        expect.objectContaining({ cid: '9753', ciid: '1', quantity: 1 })
+      ]);
+    });
+
+    it('ヘッダーの列が間引かれていても（enc省略）正しくインポートできる（TASK-412）', () => {
+      const csv = `section,name,cid,quantity
+main,灰流うらら,12950,2`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(true);
+      expect(result.deckInfo!.mainDeck[0]).toEqual(
+        expect.objectContaining({ cid: '12950', ciid: '1', quantity: 2 })
+      );
+    });
+
+    it('ヘッダーに必須列(cid)が欠けている場合はエラーになる（TASK-412）', () => {
+      const csv = `section,name,quantity
+main,灰流うらら,2`;
+      const result = importFromCSV(csv);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('必須列');
+    });
+
     it('should skip invalid lines and add warnings [covers:import_csv.success_with_warnings] [covers:import_csv.row_null_skip] [covers:parse_import_row.invalid_section]', () => {
       const csv = `section,name,cid,ciid,quantity
 main,灰流うらら,12950,1,2

@@ -20,6 +20,7 @@ import { getUnifiedCacheDB } from '@/utils/unified-cache-db';
 import { getTempCacheDB } from '@/utils/temp-cache-db';
 import { safeQueryAs, isHTMLInputElement, isHTMLImageElement } from '@/utils/type-guards';
 import { safeQuery } from '@/utils/safe-dom-query';
+import { convertCardLinksToTemplate } from '@/utils/card-link-template';
 import {
   ATTRIBUTE_ID_TO_PATH,
   SPELL_EFFECT_TYPE_ID_TO_NAME,
@@ -642,14 +643,10 @@ export function parseCardBase(row: HTMLElement, imageInfoMap: Map<string, { ciid
   const textElem = row.querySelector('.box_card_text');
   let text: string | undefined = undefined;
   if (textElem) {
-    // <br>を改行に変換してからtextContentを取得
     const cloned = textElem.cloneNode(true) as HTMLElement;
     // ペンデュラム効果は別途取得するため、ここでは除外
     cloned.querySelectorAll('.box_card_pen_effect').forEach(elem => elem.remove());
-    cloned.querySelectorAll('br').forEach(br => {
-      br.replaceWith('\n');
-    });
-    text = cloned.textContent?.trim() || undefined;
+    text = convertCardLinksToTemplate(cloned) || undefined;
   }
 
   // 禁止制限（オプション）
@@ -897,12 +894,7 @@ export function parseMonsterCard(row: HTMLElement, base: CardBase): MonsterCard 
 
   const pendulumTextElem = row.querySelector('.box_card_pen_effect');
   if (pendulumTextElem) {
-    // <br>を改行に変換
-    const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
-    cloned.querySelectorAll('br').forEach(br => {
-      br.replaceWith('\n');
-    });
-    pendulumText = cloned.textContent?.trim();
+    pendulumText = convertCardLinksToTemplate(pendulumTextElem as HTMLElement);
   }
 
   // リンクマーカー取得
@@ -1460,11 +1452,7 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string; p
   if (penSection && result.pendulumScale !== undefined) {
     const pendulumTextElem = penSection.querySelector('.item_box_text');
     if (pendulumTextElem) {
-      const cloned = pendulumTextElem.cloneNode(true) as HTMLElement;
-      cloned.querySelectorAll('br').forEach(br => {
-        br.replaceWith('\n');
-      });
-      result.pendulumText = cloned.textContent?.trim() || undefined;
+      result.pendulumText = convertCardLinksToTemplate(pendulumTextElem as HTMLElement) || undefined;
     }
   }
 
@@ -1477,10 +1465,7 @@ function parseTextData(doc: Document): { text?: string; pendulumText?: string; p
   if (cardTextElem) {
     const cloned = cardTextElem.cloneNode(true) as HTMLElement;
     cloned.querySelector('.text_title')?.remove();
-    cloned.querySelectorAll('br').forEach(br => {
-      br.replaceWith('\n');
-    });
-    result.text = cloned.textContent?.trim() || undefined;
+    result.text = convertCardLinksToTemplate(cloned) || undefined;
   }
 
   return result;

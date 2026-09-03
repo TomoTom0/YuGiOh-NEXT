@@ -760,3 +760,96 @@ given = "issueDeckCode(dno)"
 expect_return_shape = "成功時はAPI戻り値、失敗時は''"
 verified = false
 unverifiable_reason = "sessionManagerを既存テストで差し替えておらず未検証"
+
+# 2026-09-02 追記（TASK-442）: metadata-tabメニューのauto-rename/auto-categoryボタン向けに追加。
+# --- autoSetCategory(): string[] ---
+
+[[condition]]
+id = "auto_set_category.sets_categories_meeting_threshold"
+target_function = "useDeckEditStore#autoSetCategory"
+source_lines = "202-221"
+description = "main/extra/sideの全カードについて、categoryLabelMap上の各カテゴリラベルとのマッチ枚数（countCardsForCategoryLabelに委譲）を計算し、AUTO_CATEGORY_THRESHOLD(7)以上のカテゴリIDのみをdeckInfo.categoryに設定する（既存の選択内容は上書き）"
+given = "categoryLabelMapに複数カテゴリがあり、うち1つだけがデッキ内マッチ枚数7以上のデッキでautoSetCategory()を呼ぶ"
+expect_side_effect = "deckInfo.category が該当カテゴリIDのみの配列になる"
+expect_return = "設定したカテゴリID配列と同じ配列"
+
+[[condition]]
+id = "auto_set_category.calls_update_category_matching"
+target_function = "useDeckEditStore#autoSetCategory"
+source_lines = "220"
+description = "deckInfo.category更新後にupdateCategoryMatching()を呼び、categoryMatchedCardIdsの再計算をトリガーする"
+given = "autoSetCategory()を呼ぶ"
+expect_side_effect = "categoryMatchingTrigger.valueが1増える（update_category_matching.increments_triggerと同様、非公開のため直接観測不可）"
+verified = false
+unverifiable_reason = "categoryMatchingTriggerはreturnされておらず、公開APIから直接値を観測できない"
+
+[[condition]]
+id = "auto_set_category.no_match_clears_category"
+target_function = "useDeckEditStore#autoSetCategory"
+source_lines = "202-221"
+description = "閾値以上のカテゴリが1件も無い場合は空配列を設定する（既存選択があっても上書きでクリアされる）"
+given = "categoryLabelMapが空、またはどのカテゴリも閾値未満のデッキでautoSetCategory()を呼ぶ"
+expect_side_effect = "deckInfo.category === []"
+expect_return = "[]"
+
+# --- autoRenameDeck(): { categories: string[]; renamed: boolean } ---
+
+[[condition]]
+id = "auto_rename_deck.uses_existing_category_if_set"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "231-233"
+description = "deckInfo.categoryが既に設定されている場合はautoSetCategory()を呼ばず、既存のcategoryをそのまま使う"
+given = "deckInfo.category = ['cat1']が設定済みの状態でautoRenameDeck()を呼ぶ"
+expect_side_effect = "autoSetCategory()相当の再判定は行われず、deckInfo.categoryは変化しない"
+
+[[condition]]
+id = "auto_rename_deck.auto_sets_category_if_empty"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "232-233"
+description = "deckInfo.categoryが空配列の場合はautoSetCategory()を呼んで自動設定し、その結果を命名に使う"
+given = "deckInfo.category = [] の状態でautoRenameDeck()を呼ぶ"
+expect_side_effect = "deckInfo.categoryがautoSetCategory()の結果に置き換わる"
+
+[[condition]]
+id = "auto_rename_deck.no_matching_label_is_noop"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "237-243"
+description = "カテゴリIDに対応するラベルが1件も無い（suffixが空文字）場合はdeckInfo.nameを変更せずrenamed:falseを返す"
+given = "categoryLabelMapに存在しないカテゴリIDのみがdeckInfo.categoryに入っている状態でautoRenameDeck()を呼ぶ"
+expect_return = "{ categories: 元のcategories, renamed: false }"
+expect_side_effect = "deckInfo.nameは変更されない"
+
+[[condition]]
+id = "auto_rename_deck.preserves_prefix_regulation_tag"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "246-252"
+description = "デッキ名先頭にレギュレーションタグ（[OCG]等、parseRegulationTagがposition==='prefix'を返す）がある場合、タグ部分は保持し、その直後にスペース区切りでカテゴリラベル連結文字列を続けた名前に置き換える（タグより後ろの既存文字列は破棄される）"
+given = "deckInfo.name = '[OCG] 旧デッキ名' で、カテゴリラベルが '青眼' のデッキでautoRenameDeck()を呼ぶ"
+expect_side_effect = "deckInfo.name === '[OCG] 青眼'"
+expect_return = "{ categories: [...], renamed: true }"
+
+[[condition]]
+id = "auto_rename_deck.no_tag_replaces_whole_name"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "246-252"
+description = "デッキ名に先頭タグが無い場合はデッキ名全体をカテゴリラベル連結文字列で置き換える"
+given = "deckInfo.name = '旧デッキ名'（タグ無し）で、カテゴリラベルが '青眼' のデッキでautoRenameDeck()を呼ぶ"
+expect_side_effect = "deckInfo.name === '青眼'"
+
+[[condition]]
+id = "auto_rename_deck.multiple_categories_joined_without_separator"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "237-241"
+description = "複数カテゴリが設定されている場合、各ラベルを区切り文字無しで連結する（ユーザー確認済み仕様）"
+given = "カテゴリラベルが ['青眼', 'ブラック・マジシャン'] の2件のデッキでautoRenameDeck()を呼ぶ"
+expect_side_effect = "デッキ名の末尾が '青眼ブラック・マジシャン'（区切り文字無し）になる"
+
+# 2026-09-03 追記（PR#147レビュー指摘対応）: 生成デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50)を超えないように切り詰める
+
+[[condition]]
+id = "auto_rename_deck.truncates_generated_name_to_max_length"
+target_function = "useDeckEditStore#autoRenameDeck"
+source_lines = "246-250"
+description = "prefix込みの生成後デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50文字)を超える場合、setDeckNameに渡す前に50文字で機械的に切り詰める"
+given = "カテゴリラベルを連結すると50文字を超えるcategoryLabelMap（例: 30文字ラベル×2件）を持つデッキでautoRenameDeck()を呼ぶ"
+expect_side_effect = "deckInfo.name.length <= 50"

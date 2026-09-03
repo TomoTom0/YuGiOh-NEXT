@@ -212,3 +212,65 @@ source_lines = "146-216"
 description = "fetch、response.text、parseHTML後の処理、saveDeckMetadataのいずれかで例外またはrejectが発生した場合、同じerrorを再throwする"
 given = "fetchがError('network failed')でrejectする"
 expect_throw = "Error('network failed')"
+
+# 2026-09-03 追記（PR#147レビュー指摘対応, TASK-443）:
+# categoryLabelMapが常に日本語で保存されていたため非日本語ロケールでカテゴリマッチングが機能しない不具合の修正。
+# getDeckMetadata/saveDeckMetadata/updateDeckMetadataをロケール引数対応させ、ロケール別にchrome.storageキーを分離した。
+
+[[condition]]
+id = "get_metadata.locale_specific_storage_key"
+target_function = "getDeckMetadata"
+source_lines = "42-44,52-65,93-104"
+description = "locale引数が'ja'以外の場合、chrome.storage.localのキーは'deck_metadata_<locale>'になる（'ja'は既存キー'deck_metadata'のまま）"
+given = "getDeckMetadata('en')を呼ぶ"
+expect_side_effect = "chrome.storage.local.getが'deck_metadata_en'キーで呼ばれる"
+
+[[condition]]
+id = "get_metadata.unlocalized_locale_falls_back_to_ja"
+target_function = "getDeckMetadata"
+source_lines = "106-110"
+description = "指定ロケールが'ja'以外かつchrome.storageに未保存の場合、getDeckMetadata('ja')にフォールバックする（フォールバック結果はlocale向けにはキャッシュしない）"
+given = "getDeckMetadata('en')を呼ぶが'deck_metadata_en'キーが未保存"
+expect_return_shape = "日本語版（保存済みまたは初期JSON）のDeckMetadataと同一内容"
+
+[[condition]]
+id = "save_metadata.locale_param_storage_key"
+target_function = "saveDeckMetadata"
+source_lines = "130,136-139"
+description = "locale引数が'ja'以外の場合、'deck_metadata_<locale>'キーで保存し、ロケール別メモリキャッシュを更新する"
+given = "saveDeckMetadata(metadata, 'en')を呼ぶ"
+expect_side_effect = "chrome.storage.local.setが{ 'deck_metadata_en': metadata }で呼ばれる"
+
+[[condition]]
+id = "update_metadata.locale_param_passed_to_search_url"
+target_function = "updateDeckMetadata"
+source_lines = "183-184,251"
+description = "locale引数（省略時'ja'）をgetDeckSearchPageUrlとsaveDeckMetadataの両方にそのまま渡す"
+given = "updateDeckMetadata('ocg', 'en')を呼ぶ"
+expect_side_effect = "getDeckSearchPageUrlが('ocg', 'en')で呼ばれ、saveDeckMetadataが第2引数'en'で呼ばれる"
+
+# --- isDeckMetadataStale(): Promise<boolean> ---
+
+[[condition]]
+id = "stale_metadata.missing_is_stale"
+target_function = "isDeckMetadataStale"
+source_lines = "74-79"
+description = "指定ロケールのメタデータがchrome.storageに未保存（getStoredMetadataがnull）の場合はtrue（更新が必要）を返す"
+given = "isDeckMetadataStale('en')を呼ぶが'deck_metadata_en'キーが未保存"
+expect_return = "true"
+
+[[condition]]
+id = "stale_metadata.fresh_within_max_age_returns_false"
+target_function = "isDeckMetadataStale"
+source_lines = "74-79"
+description = "保存済みメタデータのlastUpdatedからの経過時間がmaxAgeMs（省略時24時間）未満の場合はfalseを返す"
+given = "lastUpdatedが1時間前のメタデータが'deck_metadata_en'に保存された状態でisDeckMetadataStale('en')を呼ぶ"
+expect_return = "false"
+
+[[condition]]
+id = "stale_metadata.past_max_age_returns_true"
+target_function = "isDeckMetadataStale"
+source_lines = "74-79"
+description = "保存済みメタデータのlastUpdatedからの経過時間がmaxAgeMs以上の場合はtrueを返す"
+given = "lastUpdatedが25時間前のメタデータが'deck_metadata_en'に保存された状態でisDeckMetadataStale('en')を呼ぶ"
+expect_return = "true"

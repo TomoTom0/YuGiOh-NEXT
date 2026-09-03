@@ -430,19 +430,18 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-success);
+  color: var(--button-text);
   border: 1px solid var(--color-success);
   border-radius: 12px;
   font-size: calc(var(--dialog-font-size) * 0.86);
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: filter 0.35s;
 }
 
 .tag-chip:hover {
-  background: var(--color-success-hover-bg);
-  border-color: var(--color-success);
+  filter: brightness(0.75);
 }
 
 .tag-chip[data-type="fusion"] {
@@ -489,7 +488,7 @@ watch(() => props.modelValue, (newVal) => {
 .chip-remove {
   font-size: var(--dialog-font-size);
   font-weight: bold;
-  color: var(--color-success);
+  color: var(--button-text);
   opacity: 0.7;
   transition: opacity 0.2s;
 }

@@ -182,3 +182,7 @@ HTML内のインラインJavaScriptから、カードIDごとの画像識別子�
 4. **AND/OR絞り込みの二重実装**: サーバー側の`othercon`/`link_m`だけに頼らず、
    `useSearchExecution.ts`の`applyClientSideFilters`でクライアント側でも同じ条件を再適用している
    （TASK-373参照）
+5. **カードテキストの`<br>`/`<a>`エスケープ**: 一部カードは`<br>`/`<a href="...cid=...">`が
+   HTMLエンティティとして二重エスケープされたまま格納されており、実要素として存在しない。
+   `parseCardBase`等のテキスト抽出は必ず`src/utils/card-link-template.ts`の
+   `convertCardLinksToTemplate()`を経由すること（詳細は`docs/dev/official-api.md`参照、TASK-437）

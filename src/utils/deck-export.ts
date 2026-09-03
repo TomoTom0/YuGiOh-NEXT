@@ -12,7 +12,7 @@ export interface ExportOptions {
 /**
  * エクスポート用のデッキカード行データ
  */
-interface ExportRow {
+export interface ExportRow {
   section: 'main' | 'extra' | 'side';
   name: string;
   cid: string;
@@ -24,7 +24,7 @@ interface ExportRow {
 /**
  * DeckInfoからエクスポート用の行データを生成
  */
-function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): ExportRow[] {
+export function generateExportRows(deckInfo: DeckInfo, options: ExportOptions = {}): ExportRow[] {
   const rows: ExportRow[] = [];
   const { includeSide = true } = options;
   const tempCardDB = getTempCacheDB();

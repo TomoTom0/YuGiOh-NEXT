@@ -109,6 +109,7 @@ describe('ImageDialog.vue - refreshPreview', () => {
   beforeEach(() => {
     pendingCalls.length = 0;
     dimsByUrl.clear();
+    localStorage.clear();
     vi.stubGlobal('FileReader', FakeFileReader);
     vi.stubGlobal('Image', FakeImage);
   });
@@ -172,5 +173,57 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).not.toContain('data:image/png;base64,blue');
     expect(style).toContain('height: 320px');
     expect(style).not.toContain('height: 310px');
+  });
+
+  it('前回の色/QR/Side/text設定がlocalStorageに保存され、次回オープン時に復元される', async () => {
+    // side-toggleを表示させるためサイドデッキ入りのデータでマウント
+    const deckDataWithSide: DeckInfo = {
+      ...makeDeckInfo(),
+      sideDeck: [{ cid: '1', ciid: '1', lang: 'ja', quantity: 1 }],
+    };
+    wrapper = mount(ImageDialog, {
+      props: { cgid: 'cgid123', dno: '1', deckData: deckDataWithSide },
+      global: { stubs: { Teleport: true } },
+    });
+    await flushPromises();
+    resolveImage(0, 'init');
+    await flushPromises();
+
+    await wrapper.find('button[aria-label="blue"]').trigger('click');
+    resolveImage(1, 'blue', 400, 310);
+    await wrapper.find('.qr-toggle').trigger('click');
+    await wrapper.find('.side-toggle').trigger('click');
+    resolveImage(2, 'side-off', 400, 200);
+    await wrapper.find('.footer-field .field-input').setValue('カスタムフッター');
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 500)); // footerTextのdebounce待ち
+    resolveImage(3, 'footer', 400, 200);
+    await flushPromises();
+
+    wrapper.unmount();
+    wrapper = null;
+
+    const saved = JSON.parse(localStorage.getItem('ygoNext:deckImageDialogSettings') ?? '{}');
+    expect(saved.color).toBe('blue');
+    expect(saved.includeQR).toBe(false);
+    expect(saved.includeSide).toBe(false);
+    expect(saved.footerText).toBe('カスタムフッター');
+
+    // 再度開いたときに復元されることを確認
+    const reopened = mount(ImageDialog, {
+      props: { cgid: 'cgid123', dno: '1', deckData: deckDataWithSide },
+      global: { stubs: { Teleport: true } },
+    });
+    await flushPromises();
+    resolveImage(4, 'restored');
+    await flushPromises();
+
+    const style = reopened.find('.background-image').attributes('style') ?? '';
+    expect(style).toContain('outline-color: #1485ed'); // blue
+    expect(reopened.find('.qr-toggle').classes()).toContain('inactive');
+    expect(reopened.find('.side-toggle').classes()).toContain('inactive');
+    expect((reopened.find('.footer-field .field-input').element as HTMLInputElement).value).toBe('カスタムフッター');
+
+    reopened.unmount();
   });
 });

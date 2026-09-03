@@ -116,6 +116,28 @@ export function replaceTagYymm(deckName: string, tag: RegulationTag, newYymm: st
 }
 
 /**
+ * デッキ名の先頭にレギュレーションタグ（例: "[OCG]"）がある場合は、
+ * タグの位置を保ったままタグの直後に文字列を挿入する（例: "[OCG] COPY_元の名前"）。
+ * タグが無い場合は単純に先頭へ連結する（例: "COPY_元の名前"）。
+ *
+ * デッキコピー時のプレフィックス付与（例: "COPY_"）で、タグより前に付けて
+ * タグの位置がずれてしまう問題を避けるために使う。
+ *
+ * @param deckName 元のデッキ名
+ * @param insertion 挿入する文字列（末尾の区切りスペースは不要、この関数が付与する）
+ * @returns タグを考慮して挿入した新しいデッキ名
+ */
+export function insertAfterPrefixTag(deckName: string, insertion: string): string {
+  const tag = parseRegulationTag(deckName);
+  if (!tag || tag.position !== 'prefix') {
+    return `${insertion}${deckName}`;
+  }
+  const before = deckName.slice(0, tag.endIndex);
+  const after = deckName.slice(tag.endIndex).trimStart();
+  return `${before} ${insertion}${after}`;
+}
+
+/**
  * デッキ名からレギュレーションタグをパースする。
  * @param deckName デッキ名
  * @returns タグが有効なら RegulationTag、無い・無効なら null

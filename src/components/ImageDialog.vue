@@ -131,6 +131,46 @@ const emit = defineEmits<{
 
 const COLOR_VARIANTS: ColorVariant[] = ['red', 'blue', 'green', 'orange']
 
+// 前回の色/QR/Side/text設定を保持する
+const STORAGE_KEY_DIALOG_SETTINGS = 'ygoNext:deckImageDialogSettings'
+
+interface PersistedDialogSettings {
+  color: ColorVariant
+  includeQR: boolean
+  includeSide: boolean
+  footerText: string
+}
+
+function isColorVariant(value: unknown): value is ColorVariant {
+  return typeof value === 'string' && (COLOR_VARIANTS as string[]).includes(value)
+}
+
+function loadPersistedSettings(): Partial<PersistedDialogSettings> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DIALOG_SETTINGS)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null) return {}
+    const result: Partial<PersistedDialogSettings> = {}
+    if (isColorVariant(parsed.color)) result.color = parsed.color
+    if (typeof parsed.includeQR === 'boolean') result.includeQR = parsed.includeQR
+    if (typeof parsed.includeSide === 'boolean') result.includeSide = parsed.includeSide
+    if (typeof parsed.footerText === 'string') result.footerText = parsed.footerText
+    return result
+  } catch (error) {
+    console.warn('[ImageDialog] Failed to load persisted settings:', error)
+    return {}
+  }
+}
+
+function savePersistedSettings(settings: PersistedDialogSettings) {
+  try {
+    localStorage.setItem(STORAGE_KEY_DIALOG_SETTINGS, JSON.stringify(settings))
+  } catch (error) {
+    console.warn('[ImageDialog] Failed to save persisted settings:', error)
+  }
+}
+
 // 状態管理
 const isVisible = ref(false)
 const isClosing = ref(false)
@@ -153,6 +193,19 @@ const deckDataForPreview = computed<DeckInfo>(() => includeSide.value ? props.de
   sideDeck: []
 })
 
+// ダイアログの余白（画面サイズによらず一定。他ダイアログ(SettingsDialog等)と揃えた値）
+const DIALOG_PADDING = 20
+// タイトル欄のラベルが枠線にかかって上にはみ出すため、上だけ余分に確保する
+const LABEL_OVERFLOW = 8
+
+// 画面サイズを無視して画像の生の解像度をそのまま表示幅にしないよう、
+// 画面幅に対する上限を設けてそれを超える場合は縮小する
+const dialogScale = computed(() => {
+  const rawWidth = displayWidth.value + DIALOG_PADDING * 2
+  const maxDialogWidth = Math.min(window.innerWidth * 0.9, 640)
+  return rawWidth > maxDialogWidth ? maxDialogWidth / rawWidth : 1
+})
+
 const popupStyle = computed(() => {
   const rect = props.buttonRect || {
     bottom: window.innerHeight / 2 - 200,
@@ -160,20 +213,22 @@ const popupStyle = computed(() => {
   }
   const top = rect.bottom + window.scrollY + 8
   const left = rect.left + window.scrollX
-  const padding = 12
-  // タイトル欄のラベルが枠線にかかって上にはみ出すため、上だけ余分に確保する
-  const labelOverflow = 8
+  const width = (displayWidth.value + DIALOG_PADDING * 2) * dialogScale.value
+  // 画面の高さを超えて伸び続けないよう上限を設け、超える分はダイアログ内でスクロールする
+  const maxHeight = window.innerHeight * 0.85
 
   return {
     top: `${top}px`,
     left: `${left}px`,
-    width: `${displayWidth.value + padding * 2}px`,
-    padding: `${padding + labelOverflow}px ${padding}px ${padding}px`
+    width: `${width}px`,
+    maxHeight: `${maxHeight}px`,
+    overflowY: 'auto',
+    padding: `${DIALOG_PADDING + LABEL_OVERFLOW}px ${DIALOG_PADDING}px ${DIALOG_PADDING}px`
   }
 })
 
 const backgroundImageStyle = computed(() => ({
-  height: `${displayHeight.value}px`,
+  height: `${displayHeight.value * dialogScale.value}px`,
   background: `url('${backgroundImageUrl.value}') no-repeat center center`,
   backgroundSize: 'contain',
   outlineColor: COLOR_SETTINGS[selectedColor.value].accentLine
@@ -195,7 +250,7 @@ async function generateBackgroundImage(
     dno: props.dno,
     color,
     includeQR: false,
-    scale: 0.5,
+    scale: 1,
     deckData: deckDataWithoutTitle,
     genesysPoints: props.genesysPoints,
     footerText: footerTextValue.trim() || undefined
@@ -255,6 +310,16 @@ watch(footerText, () => {
   }, 400)
 })
 
+// 色/QR/Side/textの設定を次回開いた時のために保存
+watch([selectedColor, includeQR, includeSide, footerText], () => {
+  savePersistedSettings({
+    color: selectedColor.value,
+    includeQR: includeQR.value,
+    includeSide: includeSide.value,
+    footerText: footerText.value
+  })
+})
+
 function closePopup() {
   isClosing.value = true
   setTimeout(() => {
@@ -301,8 +366,14 @@ function handleEscape(event: KeyboardEvent) {
 
 // 初期化
 async function initialize() {
+  const persisted = loadPersistedSettings()
+  if (persisted.color !== undefined) selectedColor.value = persisted.color
+  if (persisted.includeQR !== undefined) includeQR.value = persisted.includeQR
+  if (persisted.includeSide !== undefined) includeSide.value = persisted.includeSide
+  if (persisted.footerText !== undefined) footerText.value = persisted.footerText
+
   deckName.value = props.deckData.name
-  const image = await generateBackgroundImage(selectedColor.value, props.deckData, footerText.value)
+  const image = await generateBackgroundImage(selectedColor.value, deckDataForPreview.value, footerText.value)
   backgroundImageUrl.value = image.dataUrl
   displayWidth.value = image.width
   displayHeight.value = image.height

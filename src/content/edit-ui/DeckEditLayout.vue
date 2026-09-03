@@ -1,10 +1,10 @@
 <template>
   <div v-show="isReady" class="deck-edit-container ygo-next" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <!-- ローディングオーバーレイ（画面中央固定） -->
-    <div v-if="deckStore.isLoadingDeck" class="deck-loading-overlay">
+    <div v-if="deckStore.isLoadingDeck || deckStore.isImporting" class="deck-loading-overlay">
       <div class="loading-content">
         <div class="spinner"></div>
-        <div class="loading-text">Loading...</div>
+        <div class="loading-text">{{ deckStore.isImporting ? 'インポート中...' : 'Loading...' }}</div>
       </div>
     </div>
 
@@ -208,6 +208,7 @@ import { useToastStore } from '../../stores/toast-notification'
 import { usePracticeStore } from '../../stores/practice'
 import { usePracticeActions } from '../../composables/practice/usePracticeActions'
 import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
+import { searchCardById } from '../../api/card-search'
 import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
@@ -224,6 +225,7 @@ const ImportExportDialog = defineAsyncComponent(() => import('../../components/I
 const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
 const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
 import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
+import type { CardInfo } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
 import { EXTENSION_IDS } from '../../utils/dom-selectors'
@@ -419,8 +421,9 @@ export default {
       {
         label: '保存して続ける',
         class: 'primary',
+        // 保存〜後続処理が終わるまでダイアログを開いたままにし、ConfirmDialog側のローディング表示で
+        // 処理中であることを示す（即座に閉じて瞬時に画面遷移すると保存が反映されたか分かりづらいため）
         onClick: async () => {
-          deckStore.showUnsavedChangesDialog = false
           try {
             const result = await deckStore.saveDeck(deckStore.deckInfo.dno)
             if (result.success) {
@@ -432,6 +435,7 @@ export default {
           } catch (error) {
             console.error('Save error:', error)
           } finally {
+            deckStore.showUnsavedChangesDialog = false
             pendingAction.value = null
           }
         }
@@ -518,8 +522,94 @@ export default {
       deckStore.showExportDialog = false
     }
 
-    const handleImported = (message) => {
-      deckStore.showImportDialog = false
+    const handleImported = async (importedDeckInfo, importMode: 'replace' | 'add' | 'new') => {
+      // ダイアログは emit 直後に閉じるが、未キャッシュカードの解決には複数の非同期リクエストが
+      // 発生しうる。isImporting が立っている間は loadDeck/createNewDeck をブロックし、
+      // 解決中に別デッキへ切り替わってインポート結果が混入するのを防ぐ。
+      deckStore.isImporting = true
+      try {
+        if (importMode === 'new') {
+          await deckStore.createNewDeck()
+        } else if (importMode === 'replace') {
+          deckStore.deckInfo.mainDeck = []
+          deckStore.deckInfo.extraDeck = []
+          deckStore.deckInfo.sideDeck = []
+          deckStore.initializeDisplayOrder()
+        }
+
+        const unifiedDB = getUnifiedCacheDB()
+        const sections: Array<'main' | 'extra' | 'side'> = ['main', 'extra', 'side']
+        let added = 0
+        let skipped = 0
+
+        // インポート直後のカードはconvertRowsToDeckInfoが登録した仮データ（isImportPlaceholder）の
+        // 可能性がある。仮データのままデッキに追加すると誤ったカード種別/ステータスが永続化されるため、
+        // 実データをAPIから取得してから追加する（cidごとに一度だけ解決してキャッシュ）。
+        const resolvedCards = new Map<string, CardInfo | null>()
+        const resolveCard = async (cid: string): Promise<CardInfo | null> => {
+          if (resolvedCards.has(cid)) {
+            return resolvedCards.get(cid) ?? null
+          }
+          const cached = unifiedDB.getCardInfo(cid)
+          if (cached && !cached.isImportPlaceholder) {
+            resolvedCards.set(cid, cached)
+            return cached
+          }
+          const fetched = await searchCardById(cid)
+          if (fetched) {
+            const existingImgs = cached?.imgs ?? []
+            const fetchedCiids = new Set(fetched.imgs.map(img => img.ciid))
+            const mergedImgs = [...fetched.imgs, ...existingImgs.filter(img => !fetchedCiids.has(img.ciid))]
+            const resolved: CardInfo = { ...fetched, imgs: mergedImgs }
+            unifiedDB.setCardInfoFull(cid, resolved, true)
+            resolvedCards.set(cid, resolved)
+            return resolved
+          }
+          // 実データ取得に失敗した場合は仮データのままフォールバックする
+          resolvedCards.set(cid, cached ?? null)
+          return cached ?? null
+        }
+
+        for (const section of sections) {
+          const refs: Array<{ cid: string; ciid: number | string; quantity: number }> =
+            section === 'main' ? importedDeckInfo.mainDeck :
+            section === 'extra' ? importedDeckInfo.extraDeck :
+            importedDeckInfo.sideDeck
+          for (const ref of refs) {
+            const baseCard = await resolveCard(ref.cid)
+            if (!baseCard) {
+              skipped += ref.quantity
+              continue
+            }
+            const card = { ...baseCard, ciid: ref.ciid }
+            for (let i = 0; i < ref.quantity; i++) {
+              const result = deckStore.addCard(card, section)
+              if (result.success) {
+                added++
+              } else {
+                skipped++
+              }
+            }
+          }
+        }
+
+        deckStore.showImportDialog = false
+
+        if (added === 0) {
+          showToast('インポートできるカードが見つかりませんでした', 'warning')
+        } else if (importMode === 'new') {
+          showToast('新しいデッキとしてインポートしました', 'success')
+        } else if (importMode === 'replace') {
+          showToast(skipped > 0 ? `デッキを置き換えました（${skipped}枚は上限超過等によりスキップ）` : 'デッキを置き換えました', 'success')
+        } else {
+          showToast(skipped > 0 ? `デッキに追加しました（${skipped}枚は上限超過等によりスキップ）` : 'デッキに追加しました', 'success')
+        }
+      } catch (error) {
+        console.error('[handleImported] Error:', error)
+        showToast('インポートに失敗しました', 'error')
+      } finally {
+        deckStore.isImporting = false
+      }
     }
 
     const toggleLoadDialog = () => {

@@ -323,5 +323,81 @@ describe('utils/deck-metadata-loader', () => {
 
       expect(consoleError).toHaveBeenCalledWith('Failed to update deck metadata:', fetchError);
     });
+
+    it('[covers:update_metadata.locale_param_passed_to_search_url] passes the locale argument to getDeckSearchPageUrl and saveDeckMetadata', async () => {
+      const { storage, set } = installChromeStorage();
+      const { getDeckSearchPageUrl } = mockSearchUrl();
+      mockFetchHtml('<html></html>');
+      const { updateDeckMetadata } = await importLoader();
+
+      const metadata = await updateDeckMetadata('ocg', 'en');
+
+      expect(getDeckSearchPageUrl).toHaveBeenCalledWith('ocg', 'en');
+      expect(set).toHaveBeenCalledWith({ 'deck_metadata_en': metadata });
+      expect(storage['deck_metadata_en']).toBe(metadata);
+    });
+  });
+
+  describe('locale-aware storage (getDeckMetadata/saveDeckMetadata)', () => {
+    it('[covers:get_metadata.locale_specific_storage_key] reads from a locale-suffixed storage key for non-ja locales', async () => {
+      const { get } = installChromeStorage();
+      const { getDeckMetadata } = await importLoader();
+
+      await getDeckMetadata('en');
+
+      expect(get).toHaveBeenCalledWith('deck_metadata_en');
+    });
+
+    it('[covers:get_metadata.unlocalized_locale_falls_back_to_ja] falls back to the ja metadata when the requested locale is not stored', async () => {
+      const jaMetadata = sampleMetadata('2026-01-01T00:00:00.000Z');
+      installChromeStorage({ [STORAGE_KEY]: jaMetadata });
+      const { getDeckMetadata } = await importLoader();
+
+      const metadata = await getDeckMetadata('en');
+
+      expect(metadata).toBe(jaMetadata);
+    });
+
+    it('[covers:save_metadata.locale_param_storage_key] saves to a locale-suffixed storage key for non-ja locales', async () => {
+      const { storage, set } = installChromeStorage();
+      const metadata = sampleMetadata();
+      const { saveDeckMetadata, getDeckMetadata } = await importLoader();
+
+      await saveDeckMetadata(metadata, 'en');
+      const cached = await getDeckMetadata('en');
+
+      expect(set).toHaveBeenCalledWith({ 'deck_metadata_en': metadata });
+      expect(storage['deck_metadata_en']).toBe(metadata);
+      expect(cached).toBe(metadata);
+    });
+  });
+
+  describe('isDeckMetadataStale', () => {
+    it('[covers:stale_metadata.missing_is_stale] returns true when the locale has no stored metadata', async () => {
+      installChromeStorage();
+      const { isDeckMetadataStale } = await importLoader();
+
+      await expect(isDeckMetadataStale('en')).resolves.toBe(true);
+    });
+
+    it('[covers:stale_metadata.fresh_within_max_age_returns_false] returns false when lastUpdated is within the max age', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-01T12:00:00.000Z'));
+      const fresh = sampleMetadata('2026-01-01T11:00:00.000Z'); // 1時間前
+      installChromeStorage({ 'deck_metadata_en': fresh });
+      const { isDeckMetadataStale } = await importLoader();
+
+      await expect(isDeckMetadataStale('en')).resolves.toBe(false);
+    });
+
+    it('[covers:stale_metadata.past_max_age_returns_true] returns true when lastUpdated exceeds the max age', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-02T13:00:00.000Z'));
+      const stale = sampleMetadata('2026-01-01T12:00:00.000Z'); // 25時間前
+      installChromeStorage({ 'deck_metadata_en': stale });
+      const { isDeckMetadataStale } = await importLoader();
+
+      await expect(isDeckMetadataStale('en')).resolves.toBe(true);
+    });
   });
 });

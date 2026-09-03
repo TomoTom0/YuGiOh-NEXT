@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { computeCategoryMatchedCardIds } from '../../../src/composables/deck/useCategoryMatcher';
+import {
+  computeCategoryMatchedCardIds,
+  countCardsForCategoryLabel,
+  computeAutoCategoryIds
+} from '../../../src/composables/deck/useCategoryMatcher';
 import type { DeckCardRef, CardData } from '../../../src/types/deck';
 
 // テストデータ
@@ -447,6 +451,91 @@ describe('useCategoryMatcher', () => {
       expect(callCount['1']).toBe(1); // 重複排除で1回のみ
       expect(result.size).toBe(1);
       expect(result.has('1')).toBe(true);
+    });
+  });
+
+  describe('countCardsForCategoryLabel', () => {
+    it('カード名にラベルを含むカードのquantityを合算する', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 3 }, // name一致
+        { cid: '4', ciid: '0', lang: 'ja', quantity: 2 }  // 不一致
+      ];
+      const count = countCardsForCategoryLabel('ブラック・マジシャン', refs, cardDBGetter);
+      expect(count).toBe(3);
+    });
+
+    it('テキストにラベルを含むカードもカウントする', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '2', ciid: '0', lang: 'ja', quantity: 1 }, // text一致（name不一致ではない）
+        { cid: '3', ciid: '0', lang: 'ja', quantity: 5 }  // text一致
+      ];
+      const count = countCardsForCategoryLabel('ブラック・マジシャン', refs, cardDBGetter);
+      // 2: name一致（ブラック・マジシャン・ガール）、3: text一致 → 両方カウント
+      expect(count).toBe(6);
+    });
+
+    it('quantityが0の場合は1として扱う（既存CategoryDialogの挙動を踏襲）', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 0 }
+      ];
+      const count = countCardsForCategoryLabel('ブラック・マジシャン', refs, cardDBGetter);
+      expect(count).toBe(1);
+    });
+
+    it('cardDBがundefinedを返すcidはスキップする', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '999', ciid: '0', lang: 'ja', quantity: 1 }
+      ];
+      const count = countCardsForCategoryLabel('ブラック・マジシャン', refs, cardDBGetter);
+      expect(count).toBe(0);
+    });
+
+    it('マッチしなければ0を返す', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '4', ciid: '0', lang: 'ja', quantity: 3 }
+      ];
+      const count = countCardsForCategoryLabel('ブラック・マジシャン', refs, cardDBGetter);
+      expect(count).toBe(0);
+    });
+  });
+
+  describe('computeAutoCategoryIds', () => {
+    it('閾値以上のカテゴリIDを全て返す', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 3 }, // 'ブラック・マジシャン' name一致
+        { cid: '2', ciid: '0', lang: 'ja', quantity: 3 }, // 'ブラック・マジシャン' text一致
+        { cid: '4', ciid: '0', lang: 'ja', quantity: 3 }  // '青眼' name一致（1件のみ）
+      ];
+      const labelMap = { cat1: 'ブラック・マジシャン', cat2: '青眼' };
+      const result = computeAutoCategoryIds(labelMap, refs, cardDBGetter, 6);
+      expect(result).toContain('cat1'); // 3(cid1)+3(cid2)=6 >= 6
+      expect(result).not.toContain('cat2'); // cid4のみ = 3 < 6
+    });
+
+    it('マッチする枚数が閾値未満のカテゴリは含まれない', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 1 }
+      ];
+      const result = computeAutoCategoryIds(
+        { cat1: 'ブラック・マジシャン' },
+        refs,
+        cardDBGetter,
+        7
+      );
+      expect(result).toEqual([]);
+    });
+
+    it('ラベルが空文字のカテゴリIDは除外する', () => {
+      const refs: DeckCardRef[] = [
+        { cid: '1', ciid: '0', lang: 'ja', quantity: 10 }
+      ];
+      const result = computeAutoCategoryIds(
+        { cat1: '' },
+        refs,
+        cardDBGetter,
+        1
+      );
+      expect(result).toEqual([]);
     });
   });
 });

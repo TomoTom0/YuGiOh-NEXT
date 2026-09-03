@@ -94,6 +94,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import BaseDialog from './BaseDialog.vue';
+import { countCardsForCategoryLabel } from '../composables/deck/useCategoryMatcher';
 
 const props = defineProps<{
   isVisible: boolean;
@@ -157,20 +158,11 @@ function countCardsWithCategory(categoryLabel: string): number {
   }
 
   // deckCardRefs から実際の枚数をカウント
-  return props.deckCardRefs.reduce((total, cardRef) => {
-    // cardRef に対応する CardInfo を見つける
-    const cardInfo = props.deckCards.find(card => card.cardId === cardRef.cid);
-    if (!cardInfo) return total;
-
-    const cardName = cardInfo.name || '';
-    const cardText = cardInfo.text || '';
-
-    // カテゴリラベルを含むかチェック
-    if (cardName.includes(categoryLabel) || cardText.includes(categoryLabel)) {
-      return total + (cardRef.quantity || 1);
-    }
-    return total;
-  }, 0);
+  return countCardsForCategoryLabel(
+    categoryLabel,
+    props.deckCardRefs,
+    (cid) => props.deckCards.find(card => card.cardId === cid)
+  );
 }
 
 // フィルタされたカテゴリ
@@ -328,25 +320,24 @@ watch(() => props.modelValue, (newVal) => {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
+  background: var(--color-warning);
+  color: var(--button-text);
   border: 1px solid var(--color-warning);
   border-radius: 12px;
   font-size: calc(var(--dialog-font-size) * 0.86);
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: filter 0.35s;
 }
 
 .category-chip:hover {
-  background: var(--color-warning-hover-bg);
-  border-color: var(--color-warning);
+  filter: brightness(0.75);
 }
 
 .chip-remove {
   font-size: var(--dialog-font-size);
   font-weight: bold;
-  color: var(--color-warning);
+  color: var(--button-text);
   opacity: 0.7;
   transition: opacity 0.2s;
 }
@@ -449,10 +440,10 @@ watch(() => props.modelValue, (newVal) => {
 }
 
 .category-item.selected {
-  background: var(--color-success-bg);
+  background: var(--color-success);
   border-color: var(--color-success);
-  color: var(--color-success);
-  font-weight: 500;
+  color: var(--button-text);
+  font-weight: 700;
   box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2), inset 0 0 0 2px var(--color-success);
 }
 

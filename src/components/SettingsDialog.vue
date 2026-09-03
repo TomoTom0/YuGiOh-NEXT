@@ -304,6 +304,7 @@ const rightAreaWidths: { value: RightAreaWidth; label: string }[] = [
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 500px;
   max-width: 90vw;
+  height: min(60vh, 560px);
   max-height: 90vh;
   overflow: hidden;
   box-sizing: border-box;

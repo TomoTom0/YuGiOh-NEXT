@@ -41,9 +41,18 @@ export function importFromCSV(content: string): ImportResult {
       return { success: false, error: 'ファイルが空です' };
     }
 
-    // ヘッダー行をスキップ（section,name,cid,ciid,quantity）
+    // ヘッダー行が存在する場合は列名からカラム位置を特定する
+    // （出力側でカラムの取捨選択・並び替えが行われていても正しく読み取れるようにするため）
     const hasHeader = (lines[0] || '').toLowerCase().includes('section');
     const dataLines = hasHeader ? lines.slice(1) : lines;
+    const columnMap = hasHeader ? buildColumnMap(lines[0] || '') : null;
+
+    if (hasHeader && !columnMap) {
+      return {
+        success: false,
+        error: 'CSVヘッダーに必須列（section, cid, quantity）が不足しています'
+      };
+    }
 
     const rows: ImportRow[] = [];
     const warnings: string[] = [];
@@ -58,7 +67,9 @@ export function importFromCSV(content: string): ImportResult {
         continue;
       }
 
-      const row = parseImportRow(parsed, i + 1, warnings);
+      const row = columnMap
+        ? parseImportRowByColumnMap(parsed, columnMap, i + 1, warnings)
+        : parseImportRow(parsed, i + 1, warnings);
       if (row) {
         rows.push(row);
       }
@@ -254,6 +265,85 @@ function parseCSVLine(line: string): string[] | null {
   return result.length > 0 ? result : null;
 }
 
+/** CSVヘッダーで使用しうる列名 */
+type CsvColumnKey = 'section' | 'name' | 'cid' | 'ciid' | 'enc' | 'quantity';
+
+/**
+ * ヘッダー行から列名→インデックスのマップを作る
+ * カラムの取捨選択・並び替えが行われていても、既知の列名さえ含まれていれば正しく読み取れる
+ */
+function buildColumnMap(headerLine: string): Partial<Record<CsvColumnKey, number>> | null {
+  const headerFields = parseCSVLine(headerLine);
+  if (!headerFields) return null;
+
+  const knownKeys: CsvColumnKey[] = ['section', 'name', 'cid', 'ciid', 'enc', 'quantity'];
+  const map: Partial<Record<CsvColumnKey, number>> = {};
+
+  headerFields.forEach((field, index) => {
+    const key = field.trim().toLowerCase() as CsvColumnKey;
+    if (knownKeys.includes(key)) {
+      map[key] = index;
+    }
+  });
+
+  // section/cid/quantityは行の意味を確定するために必須
+  if (map.section === undefined || map.cid === undefined || map.quantity === undefined) {
+    return null;
+  }
+
+  return map;
+}
+
+/**
+ * ヘッダーの列名マップを使ってCSVフィールドをImportRowに変換
+ * （カラムの取捨選択・並び替えに対応。ciidを省略した場合は'1'をデフォルトとする）
+ */
+function parseImportRowByColumnMap(
+  fields: string[],
+  columnMap: Partial<Record<CsvColumnKey, number>>,
+  lineNumber: number,
+  warnings: string[]
+): ImportRow | null {
+  const get = (key: CsvColumnKey): string | undefined => {
+    const index = columnMap[key];
+    return index === undefined ? undefined : (fields[index] || '').trim();
+  };
+
+  const section = (get('section') || '').toLowerCase() as 'main' | 'extra' | 'side';
+  if (!['main', 'extra', 'side'].includes(section)) {
+    warnings.push(`行${lineNumber}: 不正なセクション "${get('section')}" （main/extra/sideのいずれか）`);
+    return null;
+  }
+
+  const cid = get('cid') || '';
+  if (!/^\d+$/.test(cid)) {
+    warnings.push(`行${lineNumber}: cidが不正です "${cid}"`);
+    return null;
+  }
+
+  const ciid = get('ciid') || '1';
+  if (!/^\d+$/.test(ciid)) {
+    warnings.push(`行${lineNumber}: ciidが不正です "${ciid}"`);
+    return null;
+  }
+
+  const quantityStr = get('quantity') || '';
+  const quantity = parseInt(quantityStr, 10);
+  if (isNaN(quantity) || quantity < 1 || quantity > 99) {
+    warnings.push(`行${lineNumber}: quantityが不正です "${quantityStr}"`);
+    return null;
+  }
+
+  return {
+    section,
+    name: get('name') || undefined,
+    cid,
+    ciid,
+    enc: get('enc') || undefined,
+    quantity
+  };
+}
+
 /**
  * パースされたCSVフィールドをImportRowに変換
  */
@@ -392,6 +482,7 @@ function convertRowsToDeckInfo(rows: ImportRow[]): DeckInfo {
         imageUrl: '',
         effect: '',
         isExtraDeck: false,
+        isImportPlaceholder: true,
         imgs
       } as CardInfo;
 

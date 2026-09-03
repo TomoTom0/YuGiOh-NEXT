@@ -374,6 +374,32 @@ describe('api/card-faq', () => {
       expect(result?.supplementInfo).toBe('{{王家の眠る谷－ネクロバレー|5533}}と置換されないカード');
     });
 
+    it('[covers:convert_links.literal_br_and_anchor_entity] 補足情報内で<br>と<a>がHTMLエンティティとして二重にエスケープされている場合も変換する', async () => {
+      // 実際の公式サイト（cid=22993「光と闇の儀式」の補足情報）で観測された、
+      // <br>と<a>の両方がHTMLエンティティとしてエスケープされたまま登録されているケース
+      const mockHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head><title>テストカード | カードに関連するＱ＆Ａ | 遊戯王ニューロン</title></head>
+          <body>
+            <div class="supplement">
+              <div class="text" id="supplement">手札から「&lt;a href=&quot;faq_search.action?ope=4&amp;cid=22976&quot;&gt;黒き混沌の魔術師ブラック・カオス&lt;/a&gt;」を儀式召喚する。&lt;br&gt;以上です。</div>
+            </div>
+          </body>
+        </html>
+      `;
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => mockHtml
+      });
+
+      const result = await getCardFAQList('1');
+
+      expect(result?.supplementInfo).toBe(
+        '手札から「{{黒き混沌の魔術師ブラック・カオス|22976}}」を儀式召喚する。\n以上です。'
+      );
+    });
+
     it('should use GET method with credentials [covers:faq_list.request_params]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
