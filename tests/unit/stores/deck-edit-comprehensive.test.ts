@@ -972,6 +972,27 @@ describe('useDeckEditStore', () => {
       expect(store.deckInfo.name).toBe(`[OCG] ${longLabel}`.slice(0, 50));
     });
   });
+
+  describe('loadDeck() - インポート中のデッキ切替ガード [TASK-449]', () => {
+    it('isImporting が true の間は loadDeck が persistence.loadDeck を呼ばずに即returnする', async () => {
+      const store = useDeckEditStore();
+      store.isImporting = true;
+
+      await store.loadDeck(999);
+
+      expect(mockPersistenceLoadDeck).not.toHaveBeenCalled();
+      expect(store.isLoadingDeck).toBe(false);
+    });
+
+    it('isImporting が false であれば loadDeck は通常通り persistence.loadDeck を呼ぶ', async () => {
+      const store = useDeckEditStore();
+      store.isImporting = false;
+
+      await store.loadDeck(999);
+
+      expect(mockPersistenceLoadDeck).toHaveBeenCalledWith(999);
+    });
+  });
 });
 
 // ===== Helper Functions =====

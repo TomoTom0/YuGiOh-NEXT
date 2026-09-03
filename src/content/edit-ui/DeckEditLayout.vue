@@ -1,10 +1,10 @@
 <template>
   <div v-show="isReady" class="deck-edit-container ygo-next" :data-ygo-next-theme="settingsStore.effectiveTheme">
     <!-- ローディングオーバーレイ（画面中央固定） -->
-    <div v-if="deckStore.isLoadingDeck" class="deck-loading-overlay">
+    <div v-if="deckStore.isLoadingDeck || deckStore.isImporting" class="deck-loading-overlay">
       <div class="loading-content">
         <div class="spinner"></div>
-        <div class="loading-text">Loading...</div>
+        <div class="loading-text">{{ deckStore.isImporting ? 'インポート中...' : 'Loading...' }}</div>
       </div>
     </div>
 
@@ -523,6 +523,10 @@ export default {
     }
 
     const handleImported = async (importedDeckInfo, importMode: 'replace' | 'add' | 'new') => {
+      // ダイアログは emit 直後に閉じるが、未キャッシュカードの解決には複数の非同期リクエストが
+      // 発生しうる。isImporting が立っている間は loadDeck/createNewDeck をブロックし、
+      // 解決中に別デッキへ切り替わってインポート結果が混入するのを防ぐ。
+      deckStore.isImporting = true
       try {
         if (importMode === 'new') {
           await deckStore.createNewDeck()
@@ -603,6 +607,8 @@ export default {
       } catch (error) {
         console.error('[handleImported] Error:', error)
         showToast('インポートに失敗しました', 'error')
+      } finally {
+        deckStore.isImporting = false
       }
     }
 
