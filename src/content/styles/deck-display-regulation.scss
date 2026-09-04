@@ -38,7 +38,9 @@
       filter: brightness(1.1);
     }
 
-    &.is-fallback {
+    // fallback（指定版が存在しない）とリスト取得失敗（直前の選択へ戻した）は同じ警告色
+    &.is-fallback,
+    &.is-unavailable {
       background: var(--color-error);
       border-color: var(--color-error);
     }

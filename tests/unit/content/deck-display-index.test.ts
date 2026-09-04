@@ -91,6 +91,19 @@ describe('deck-display/index.ts', () => {
       expect(mockSetupRegulationDisplay).toHaveBeenCalledWith(mockEnsureParsedDeckInfo);
     });
 
+    it('[covers:init_deck_display.does_not_await_regulation_setup] regulationセットアップの完了を待たずに後続処理（setCardImageSize等）が実行される', async () => {
+      // setupRegulationDisplayは内部でcheckAndUpdateのリモート取得を待つため、新規install・
+      // stale時に長時間ブロックしうる。initDeckDisplayはこれをawaitしない（他機能・画像サイズ
+      // 適用の遅延防止。PR#151レビュー指摘）。永続pendingなmockでもinitDeckDisplayが完了し、
+      // 後続のsetCardImageSizeが呼ばれることを検証する
+      mockSetupRegulationDisplay.mockReturnValue(new Promise(() => { /* 永続pending */ }));
+      (window as unknown as { ygoNextCurrentSettings: unknown }).ygoNextCurrentSettings = {};
+
+      await initDeckDisplay();
+
+      expect(mockSetCardImageSize).toHaveBeenCalledWith('medium');
+    });
+
     it('[covers:init_deck_display.deck_image_gets_ygo_next_class_when_present] #deck_imageにygo-nextクラスが追加される', async () => {
       const deckImage = document.createElement('div');
       deckImage.id = 'deck_image';

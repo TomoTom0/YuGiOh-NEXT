@@ -16,8 +16,8 @@ verified = true
 verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/deck-display-index.test.ts"
-source_hash = "23453cda38361e202f43eabbcccead3456a15288"
-note = "verified=falseは0件。TASK-450でリミットレギュレーション表示のセットアップ呼び出しを追加。CSSはSCSS(src/content/styles/deck-display-regulation.scss)へ移行しapplyRegulationStyles()呼び出しは削除"
+source_hash = "a334c91304e1170251da77483923aeeb15ca02f4"
+note = "verified=falseは0件。TASK-450でリミットレギュレーション表示のセットアップ呼び出しを追加。CSSはSCSS(src/content/styles/deck-display-regulation.scss)へ移行しapplyRegulationStyles()呼び出しは削除。PR#151レビュー対応でsetupRegulationDisplayをawaitしない形に変更（does_not_await_regulation_setup追加）"
 
 # --- initDeckDisplay() ---
 
@@ -80,10 +80,18 @@ expect_side_effect = "setupVueAppは呼ばれない"
 [[condition]]
 id = "init_deck_display.sets_up_regulation_display_regardless_of_show_card_detail"
 target_function = "initDeckDisplay"
-source_lines = "64-66"
+source_lines = "63-72"
 description = "showCardDetailInDeckDisplayの値（true/false/未設定のいずれ）に関わらず、regulation-ui.tsのsetupRegulationDisplay()をcard-detail-ui.tsのensureParsedDeckInfoを注入して常に呼ぶ（デッキ名のレギュレーションタグ検出は当該設定に非依存のため。TASK-450）"
 given = "showCardDetailInDeckDisplayがtrue/false/未設定のいずれでも"
 expect_side_effect = "setupRegulationDisplayがensureParsedDeckInfo関数を引数として呼ばれる"
+
+[[condition]]
+id = "init_deck_display.does_not_await_regulation_setup"
+target_function = "initDeckDisplay"
+source_lines = "63-72"
+description = "setupRegulationDisplay()をawaitせず（voidで）起動する。セットアップ内のリスト更新（checkAndUpdate）はリモート取得を伴い新規install・キャッシュstale時に長時間かかりうるため、直列にawaitすると後続のカード画像サイズ適用と呼び出し元の他機能初期化（card-detail/deck-image/shuffle）まで遅延する（PR#151レビュー指摘）"
+given = "setupRegulationDisplayが未完了（永続pending）"
+expect_side_effect = "initDeckDisplay自体は完了し、setCardImageSize等の後続処理が実行される"
 
 [[condition]]
 id = "init_deck_display.sets_card_image_size_with_default"

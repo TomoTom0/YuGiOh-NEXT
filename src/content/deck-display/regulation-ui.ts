@@ -249,7 +249,7 @@ function renderRegulationControl(opts: {
   genesysListParams: string[]
   isGenesysEnabled: boolean
   onChange: (value: string, resolved: ResolvedRegulation | 'auto') => void
-}): { update: (resolved: ResolvedRegulation, isManual: boolean, currentValue: string) => void } | null {
+}): { update: (resolved: ResolvedRegulation, isManual: boolean, currentValue: string, warning?: string | null) => void } | null {
   // メインデッキ見出し（シャッフルボタンと同じ行）の<h3>直後に配置する。
   // シャッフルボタンはaddShuffleButtons()が非同期(setTimeout)で挿入するため、挿入順に関わらず
   // 常にh3の直後（＝シャッフルボタンより左）になるよう、h3を基準に挿入する。
@@ -386,13 +386,16 @@ function renderRegulationControl(opts: {
   }
 
   return {
-    update: (resolved, isManual, currentValue) => {
+    update: (resolved, isManual, currentValue, warning = null) => {
       menuValue = currentValue
       trigger.textContent = triggerBadgeText(resolved)
-      trigger.title = `リミットレギュレーション表示: ${buildTooltip(resolved, isManual)}（クリックして一時的に切り替え。デッキ名は変更されません）`
+      trigger.title = `リミットレギュレーション表示: ${buildTooltip(resolved, isManual)}`
+        + (warning ? ` / ${warning}` : '')
+        + '（クリックして一時的に切り替え。デッキ名は変更されません）'
       // mode='none'（タグ無し）もOCG最新版として扱う（typeLabel参照）ため、ニュートラル状態は
-      // 設けず常に適用中の配色にする。fallback時のみ警告色にする
+      // 設けず常に適用中の配色にする。fallback時（指定版が存在しない）とリスト取得失敗時のみ警告色
       trigger.classList.toggle('is-fallback', !!resolved.fallback)
+      trigger.classList.toggle('is-unavailable', !!warning)
       menu.innerHTML = buildMenuHtml(menuValue)
     }
   }
@@ -437,18 +440,48 @@ export async function setupRegulationDisplay(
       autoResolved = { ...NONE_RESOLVED }
     }
 
-    const applyResolved = async (resolved: ResolvedRegulation, value: string, isManual: boolean): Promise<void> => {
-      if (resolved.mode === 'ocg' && resolved.effectiveDate) {
-        await forbiddenLimitedCache.ensureList(resolved.effectiveDate)
-      } else if (resolved.mode === 'genesys' && resolved.listParam) {
-        await genesysPointCache.ensureList(resolved.listParam)
-      } else if (resolved.mode === 'genesys') {
-        await genesysPointCache.ensureCurrentList()
-      }
+    // 直前に適用に成功した選択。適用対象リストの取得に失敗した際に戻す先。
+    // null = 初回（auto解決）適用前で、戻り先はタグ無し扱い（ネイティブの最新版表示）。
+    let lastApplied: { resolved: ResolvedRegulation; value: string; isManual: boolean } | null = null
 
+    // applyResolvedの世代番号。未キャッシュ過去版のfetch中に別版が選択されると並走するため、
+    // await復帰時に最新世代でなければ描画しない（遅く完了した古い選択がバッジ・tooltip・
+    // メニュー選択状態を上書きするのを防ぐ）
+    let applyGeneration = 0
+
+    /**
+     * 適用に必要なリスト（OCG過去版 / GENESYS）を確保する。
+     * @returns true=確保成功（またはリスト不要なモード）。false=取得失敗
+     */
+    const ensureResolvedList = async (resolved: ResolvedRegulation): Promise<boolean> => {
+      if (resolved.mode === 'ocg' && resolved.effectiveDate) {
+        return (await forbiddenLimitedCache.ensureList(resolved.effectiveDate)) !== null
+      }
+      if (resolved.mode === 'genesys' && resolved.listParam) {
+        return (await genesysPointCache.ensureList(resolved.listParam)) !== null
+      }
+      if (resolved.mode === 'genesys') {
+        return (await genesysPointCache.ensureCurrentList()) !== null
+      }
+      return true
+    }
+
+    /**
+     * resolvedの描画（カードバッジ・バナー・ネイティブ表示切替・トリガー更新）。
+     * 適用対象リストの確保済みであること。
+     * @returns 描画完了ならtrue。待機中に新しい選択（世代）が来て描画しなかったらfalse
+     */
+    const renderApplied = async (
+      resolved: ResolvedRegulation,
+      value: string,
+      isManual: boolean,
+      warning: string | null,
+      generation: number
+    ): Promise<boolean> => {
       if (resolved.mode === 'genesys') {
         // link/pendulumモンスター除外判定にカード種別情報が必要なため、デッキ全体をパースする
         await ensureParsedDeckInfo()
+        if (generation !== applyGeneration) return false
       }
 
       clearCardBadges()
@@ -456,7 +489,39 @@ export async function setupRegulationDisplay(
       renderGenesysTotalBadge(resolved.mode === 'genesys' ? genesysTotalPt : 0)
       toggleViolationBanner(resolved)
       toggleNativeCardLimitOverlays(resolved)
-      control?.update(resolved, isManual, value)
+      control?.update(resolved, isManual, value, warning)
+      return true
+    }
+
+    const applyResolved = async (resolved: ResolvedRegulation, value: string, isManual: boolean): Promise<void> => {
+      const generation = ++applyGeneration
+
+      // 適用対象リストの確保。失敗時（未キャッシュ過去版が取得できない等）は取得不能な版を
+      // 「無制限」と同じ扱いで描画せず、直前の選択へ戻す: 描画してしまうとネイティブの制限表示が
+      // 非表示になり「制限が一切無い」デッキに見えてしまう
+      if (!(await ensureResolvedList(resolved))) {
+        if (generation !== applyGeneration) return
+        console.warn(`[DeckDisplay] Failed to fetch regulation list for '${value}'. Keeping previous selection.`)
+        const warning = `指定 ${triggerLabel(resolved)} のリストを取得できなかったため、直前の選択に戻しました`
+        let revertTo = lastApplied
+        if (!revertTo || !(await ensureResolvedList(revertTo.resolved))) {
+          if (generation !== applyGeneration) return
+          // 戻り先が無い（初回auto適用の失敗）か、戻り先のリストも失われた場合はタグ無し扱い
+          // （ネイティブの最新版表示を維持）に落とす
+          revertTo = { resolved: { ...NONE_RESOLVED }, value: 'auto', isManual: false }
+        }
+        if (generation !== applyGeneration) return
+
+        if (await renderApplied(revertTo.resolved, revertTo.value, revertTo.isManual, warning, generation)) {
+          lastApplied = revertTo
+        }
+        return
+      }
+      if (generation !== applyGeneration) return
+
+      if (await renderApplied(resolved, value, isManual, null, generation)) {
+        lastApplied = { resolved, value, isManual }
+      }
     }
 
     const control = renderRegulationControl({
