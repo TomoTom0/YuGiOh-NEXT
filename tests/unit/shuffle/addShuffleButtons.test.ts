@@ -110,10 +110,25 @@ describe('addShuffleButtons - 実装条件', () => {
     const click = new MouseEvent('click', { bubbles: true, cancelable: true });
     returned?.dispatchEvent(click);
     expect(click.defaultPrevented).toBe(true);
-    expect(returned?.className).toBe('ygo-next ytomo-neuron-btn');
+    expect(returned?.className).toBe('ygo-next ygo-next-shuffle-sort-btn');
     expect(returned?.getAttribute('href')).toBe('#');
     expect(returned?.title).toBe('シャッフル');
-    expect(returned?.querySelector('span')?.innerHTML).toContain('svg');
+    expect(returned?.innerHTML).toContain('svg');
+  });
+
+  it('カード枚数spanの手前に他要素(拡張機能の別UI等)が挿入されていてもシャッフルボタンを追加できる [covers:add_shuffle_section.count_span_is_last_element_child]', async () => {
+    createSection('main', '3');
+    const top = document.querySelector('#deck_image #main.card_set div.subcatergory > div.top')!;
+    const countSpan = top.lastElementChild!;
+    const inserted = document.createElement('div');
+    inserted.className = 'other-extension-ui';
+    top.insertBefore(inserted, countSpan);
+    const mod = await loadModule();
+
+    const returned = mod.addShuffleButtons();
+
+    expect(returned?.id).toBe(buttonIds('main').shuffle);
+    expect(topChildren('main')).toEqual(['SPAN', 'SPAN', 'DIV', buttonIds('main').shuffle, buttonIds('main').sort, 'SPAN']);
   });
 
   it('既存shuffleボタンがあるsectionはnullになり、addShuffleButtonsはmainがnullでもextra/sideを処理する [covers:add_shuffle_section.existing_button_returns_null] [covers:add_shuffle.main_null_still_processes_other_sections]', async () => {

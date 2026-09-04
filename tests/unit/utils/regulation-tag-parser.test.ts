@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRegulationTag, replaceTagYymm, insertAfterPrefixTag } from '@/utils/regulation-tag-parser';
+import { parseRegulationTag, replaceTagYymm, insertAfterPrefixTag, setRegulationTag } from '@/utils/regulation-tag-parser';
 
 describe('parseRegulationTag', () => {
   describe('基本パターン', () => {
@@ -190,6 +190,66 @@ describe('parseRegulationTag', () => {
       if (!tag) throw new Error('tag should be parsed');
       expect(replaceTagYymm(deckName, tag, '2410')).toBe('[OCG-2410] 青眼の白龍デッキ');
     });
+  });
+});
+
+describe('setRegulationTag', () => {
+  // [covers:set_regulation_tag.no_current_tag_inserts_prefix]
+  it('現在タグが無い場合、角括弧で先頭に挿入する', () => {
+    expect(setRegulationTag('青眼の白龍デッキ', null, { type: 'ocg', yymm: '2608' })).toBe('[OCG-2608] 青眼の白龍デッキ');
+  });
+
+  // [covers:set_regulation_tag.no_current_tag_inserts_prefix]
+  it('現在タグが無く、デッキ名も空の場合はタグのみ返す', () => {
+    expect(setRegulationTag('', null, { type: 'genesys', yymm: null })).toBe('[GENESYS]');
+  });
+
+  // [covers:set_regulation_tag.yymm_null_omits_dash]
+  it('yymm=nullの場合はダッシュ無しの最新版タグを構築する', () => {
+    expect(setRegulationTag('青眼の白龍デッキ', null, { type: 'ocg', yymm: null })).toBe('[OCG] 青眼の白龍デッキ');
+  });
+
+  // [covers:set_regulation_tag.existing_tag_replaced_in_place]
+  it('現在タグがある場合、同じ位置・括弧種別で置換する（型の変更も可）', () => {
+    const deckName = '[OCG-2501] 青眼の白龍デッキ';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(setRegulationTag(deckName, tag, { type: 'genesys', yymm: '2608' })).toBe('[GENESYS-2608] 青眼の白龍デッキ');
+  });
+
+  it('現在タグの括弧種別(corner)を保ったまま置換する', () => {
+    const deckName = '【OCG-2501】 青眼の白龍デッキ';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(setRegulationTag(deckName, tag, { type: 'ocg', yymm: '2410' })).toBe('【OCG-2410】 青眼の白龍デッキ');
+  });
+
+  it('現在タグがsuffixの場合、suffix位置のまま置換する', () => {
+    const deckName = '青眼デッキ [OCG-2501]';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(setRegulationTag(deckName, tag, { type: 'genesys', yymm: '2608' })).toBe('青眼デッキ [GENESYS-2608]');
+  });
+
+  // [covers:set_regulation_tag.option_null_removes_prefix_tag]
+  it('option=nullでprefixタグを削除する（前後の空白も除去）', () => {
+    const deckName = '[OCG-2501] 青眼の白龍デッキ';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(setRegulationTag(deckName, tag, null)).toBe('青眼の白龍デッキ');
+  });
+
+  // [covers:set_regulation_tag.option_null_removes_suffix_tag]
+  it('option=nullでsuffixタグを削除する（前後の空白も除去）', () => {
+    const deckName = '青眼の白龍デッキ [OCG-2501]';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(setRegulationTag(deckName, tag, null)).toBe('青眼の白龍デッキ');
+  });
+
+  // [covers:set_regulation_tag.option_null_without_current_tag_is_noop]
+  it('option=nullで現在タグが無ければデッキ名をそのまま返す', () => {
+    expect(setRegulationTag('青眼の白龍デッキ', null, null)).toBe('青眼の白龍デッキ');
   });
 });
 

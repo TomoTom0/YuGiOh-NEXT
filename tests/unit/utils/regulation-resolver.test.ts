@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDeckRegulation } from '@/utils/regulation-resolver';
+import { resolveDeckRegulation, buildRegulationTagOptions, groupRegulationTagOptionsByYearPair } from '@/utils/regulation-resolver';
 
 const OCG_DATES = [
   '2018-01-01', '2018-04-01', '2018-07-01', '2018-10-01',
@@ -94,5 +94,70 @@ describe('resolveDeckRegulation', () => {
       expect(r.effectiveDate).toBe('2025-01-01');
       expect(r.fallback).toBeUndefined();
     });
+  });
+});
+
+describe('buildRegulationTagOptions', () => {
+  // [covers:build_regulation_tag_options.genesys_disabled_excludes_genesys]
+  it('isGenesysEnabled=falseの場合、GENESYS関連オプションを一切含まない', () => {
+    const options = buildRegulationTagOptions(available, false);
+    expect(options.every(o => o.type === 'ocg')).toBe(true);
+  });
+
+  // [covers:build_regulation_tag_options.order_and_labels]
+  it('OCG最新版→GENESYS最新版→OCG過去版(新しい順)→GENESYS過去版(新しい順)の順で構築する', () => {
+    const options = buildRegulationTagOptions(available, true);
+    expect(options[0]).toEqual({ type: 'ocg', yymm: null, label: 'OCG' });
+    expect(options[1]).toEqual({ type: 'genesys', yymm: null, label: 'GENESYS' });
+
+    const ocgPast = options.filter(o => o.type === 'ocg' && o.yymm !== null);
+    expect(ocgPast[0]).toEqual({ type: 'ocg', yymm: '2607', label: 'OCG-2607' });
+    expect(ocgPast[ocgPast.length - 1]).toEqual({ type: 'ocg', yymm: '1801', label: 'OCG-1801' });
+
+    const genesysPast = options.filter(o => o.type === 'genesys' && o.yymm !== null);
+    expect(genesysPast).toEqual([
+      { type: 'genesys', yymm: '2608', label: 'GENESYS-2608' },
+      { type: 'genesys', yymm: '2606', label: 'GENESYS-2606' }
+    ]);
+  });
+
+  // [covers:build_regulation_tag_options.empty_available_returns_latest_only]
+  it('実在一覧が空の場合、最新版オプションのみ返す', () => {
+    const options = buildRegulationTagOptions({ ocgDates: [], genesysListParams: [] }, true);
+    expect(options).toEqual([
+      { type: 'ocg', yymm: null, label: 'OCG' },
+      { type: 'genesys', yymm: null, label: 'GENESYS' }
+    ]);
+  });
+});
+
+describe('groupRegulationTagOptionsByYearPair', () => {
+  // [covers:group_by_year_pair.excludes_latest]
+  it('yymm=null（最新版）は無視する', () => {
+    const groups = groupRegulationTagOptionsByYearPair([{ type: 'ocg', yymm: null, label: 'OCG' }]);
+    expect(groups).toEqual([]);
+  });
+
+  // [covers:group_by_year_pair.even_year_start_pairing]
+  it('偶数年始まりの2年単位でグルーピングする（例: 2024/2025が同じグループ）', () => {
+    const options = buildRegulationTagOptions(available, false).filter(o => o.yymm !== null);
+    const groups = groupRegulationTagOptionsByYearPair(options);
+
+    expect(groups.map(g => g.rangeLabel)).toEqual(['26-27', '24-25', '18-19']);
+    expect(groups[0]?.options.map(o => o.yymm)).toEqual(['2607', '2604', '2601']);
+    expect(groups[1]?.options.map(o => o.yymm)).toEqual(['2510', '2507', '2504', '2501', '2410', '2407', '2404', '2401']);
+    expect(groups[2]?.options.map(o => o.yymm)).toEqual(['1810', '1807', '1804', '1801']);
+  });
+
+  // [covers:group_by_year_pair.groups_and_items_sorted_desc]
+  it('入力（新しい順）の並びをグループ内でも保持する（呼び出し側が既に新しい順で渡す前提）', () => {
+    const options = [
+      { type: 'ocg' as const, yymm: '2307', label: 'OCG 23/07' },
+      { type: 'ocg' as const, yymm: '2301', label: 'OCG 23/01' },
+      { type: 'ocg' as const, yymm: '2201', label: 'OCG 22/01' }
+    ];
+    const groups = groupRegulationTagOptionsByYearPair(options);
+    expect(groups.map(g => g.rangeLabel)).toEqual(['22-23']);
+    expect(groups[0]?.options.map(o => o.yymm)).toEqual(['2307', '2301', '2201']);
   });
 });

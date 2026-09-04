@@ -16,6 +16,7 @@ import './public-path';
 import '../styles/themes.scss';
 import '../styles/common.scss';
 import './styles/buttons.scss';
+import './styles/deck-display-regulation.scss';
 
 // 設定読み込み
 import { isFeatureEnabled } from '../utils/settings';

@@ -39,6 +39,40 @@
     }
   }
 
+  // デッキ表示ページのシャッフル/ソートボタン(addShuffleButtons.ts)。
+  // 編集画面(DeckSection.vue .btn-section)と同じ形状（角丸の枠線ボタン）に揃える。
+  // 色だけは var(--border-primary)/var(--text-primary) 等のテーマ連動色を使わず固定色にする:
+  // このボタンはサイトネイティブの紺色ページ背景の上に直接乗るため、拡張機能側のテーマ
+  // （編集画面の白/黒背景を前提にした配色）に連動させると、ライトテーマ時は薄い枠線・
+  // 濃色文字が紺背景でほぼ見えなくなる（TASK-450）。
+  &.ygo-next-shuffle-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 22px;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+  }
 }
 
 /**

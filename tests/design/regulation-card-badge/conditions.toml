@@ -1,0 +1,140 @@
+# 検証対象: src/utils/regulation-card-badge.ts
+#
+# tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
+# TASK-450: デッキ編集画面(useDeckRegulation.ts + DeckCard.vue)とデッキ閲覧画面
+# (content script、regulation-ui.ts)に独立に書かれていた「resolvedRegulation +
+# カード情報から何のバッジを出すか決める」判定ロジックを、同じバグ(GENESYSモード中も
+# OCG最新版バッジが漏れる)を2箇所で別々に直す事態を受けて本モジュールへ一元化した。
+#
+# 到達不能/実質到達不能分岐:
+# - なし。全関数はexportされ、分岐は引数のみで到達可能な純粋関数。
+
+[meta]
+feature = "regulation-card-badge"
+source_file = "src/utils/regulation-card-badge.ts"
+verified = true
+verified_at = "2026-09-03"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/regulation-card-badge.test.ts"
+source_hash = "cf2c97933fbcd52173cf197f3270b0dd97f4b1f8"
+note = "verified=falseは0件"
+
+# --- isGenesysForbiddenCard(card) ---
+
+[[condition]]
+id = "genesys_forbidden.null_or_undefined_returns_false"
+target_function = "isGenesysForbiddenCard"
+source_lines = "27-28"
+description = "cardがnullまたはundefinedの場合、falseを返す"
+given = "card = null または undefined"
+expect_return = "false"
+
+[[condition]]
+id = "genesys_forbidden.non_monster_returns_false"
+target_function = "isGenesysForbiddenCard"
+source_lines = "29"
+description = "cardTypeが'monster'以外の場合、falseを返す"
+given = "card = { cardType: 'spell', types: ['link'] }"
+expect_return = "false"
+
+[[condition]]
+id = "genesys_forbidden.monster_without_types_returns_false"
+target_function = "isGenesysForbiddenCard"
+source_lines = "29"
+description = "cardTypeが'monster'でもtypesがfalsyの場合、falseを返す"
+given = "card = { cardType: 'monster' }（typesなし）"
+expect_return = "false"
+
+[[condition]]
+id = "genesys_forbidden.link_or_pendulum_returns_true"
+target_function = "isGenesysForbiddenCard"
+source_lines = "30"
+description = "cardTypeが'monster'かつtypesに'link'または'pendulum'を含む場合、trueを返す"
+given = "card = { cardType: 'monster', types: ['link'] } または types に 'pendulum' を含む"
+expect_return = "true"
+
+[[condition]]
+id = "genesys_forbidden.other_monster_types_return_false"
+target_function = "isGenesysForbiddenCard"
+source_lines = "30"
+description = "cardTypeが'monster'でtypesに'link'/'pendulum'を含まない場合、falseを返す"
+given = "card = { cardType: 'monster', types: ['effect', 'synchro'] }"
+expect_return = "false"
+
+# --- genesysPtTier(pt) ---
+
+[[condition]]
+id = "pt_tier.low_up_to_4"
+target_function = "genesysPtTier"
+source_lines = "37"
+description = "pt<=4の場合（0以下も含む）、'low'を返す"
+given = "pt = 0, 1, 4"
+expect_return = "'low'"
+
+[[condition]]
+id = "pt_tier.mid_5_to_9"
+target_function = "genesysPtTier"
+source_lines = "38"
+description = "5<=pt<=9の場合、'mid'を返す"
+given = "pt = 5, 9"
+expect_return = "'mid'"
+
+[[condition]]
+id = "pt_tier.high_10_or_more"
+target_function = "genesysPtTier"
+source_lines = "39"
+description = "pt>=10の場合、'high'を返す"
+given = "pt = 10, 100"
+expect_return = "'high'"
+
+# --- getOcgLimitOverride(cid, resolved) ---
+
+[[condition]]
+id = "limit_override.genesys_returns_undefined"
+target_function = "getOcgLimitOverride"
+source_lines = "53"
+description = "resolved.mode='genesys'の場合、キャッシュを参照せず即座にundefined（バッジ非表示）を返す。GENESYS表示中はOCG基準の禁止/制限/準制限バッジを一切出さないため（TASK-450）"
+given = "resolved.mode = 'genesys'"
+expect_return = "undefined"
+
+[[condition]]
+id = "limit_override.none_or_ocg_latest_returns_null"
+target_function = "getOcgLimitOverride"
+source_lines = "54"
+description = "resolved.mode='none'、またはmode='ocg'でeffectiveDateがfalsyの場合、キャッシュを参照せずnullを返す（呼び出し側の既存バッジをそのまま維持させる）"
+given = "resolved.mode = 'none' または { mode: 'ocg', effectiveDate: null }"
+expect_return = "null"
+
+[[condition]]
+id = "limit_override.list_not_in_cache_returns_null"
+target_function = "getOcgLimitOverride"
+source_lines = "57"
+description = "mode='ocg'かつeffectiveDateがtruthyでも、forbiddenLimitedCache.hasList(effectiveDate)がfalseの場合、getRegulationを呼ばずnullを返す（APIが過去日付非対応等でリスト未取得時、全カードの制限バッジが消えるのを防ぐ）"
+given = "resolved = { mode: 'ocg', effectiveDate: '2025-01-01' }, hasList('2025-01-01') = false"
+expect_return = "null"
+
+[[condition]]
+id = "limit_override.ocg_effective_date_reads_cache"
+target_function = "getOcgLimitOverride"
+source_lines = "57-58"
+description = "mode='ocg'かつeffectiveDateがtruthyでhasListがtrueの場合、forbiddenLimitedCache.getRegulation(cid, effectiveDate)の戻り値をそのまま返す"
+given = "resolved = { mode: 'ocg', effectiveDate: '2026-08-01' }, hasList=true, getRegulation('cid','2026-08-01')='limited'"
+expect_return = "'limited'"
+
+# --- getGenesysPoint(cid, resolved) ---
+
+[[condition]]
+id = "genesys_point.non_genesys_returns_undefined"
+target_function = "getGenesysPoint"
+source_lines = "63"
+description = "resolved.modeが'genesys'でない場合、キャッシュを参照せずundefinedを返す"
+given = "resolved.mode !== 'genesys'"
+expect_return = "undefined"
+
+[[condition]]
+id = "genesys_point.genesys_reads_cache_with_optional_list_param"
+target_function = "getGenesysPoint"
+source_lines = "64"
+description = "resolved.mode='genesys'の場合、genesysPointCache.getPoint(cid, resolved.listParam ?? undefined)の戻り値をそのまま返す。listParam=null時は第2引数がundefinedになる"
+given = "resolved = { mode: 'genesys', listParam: '202608' } または { mode: 'genesys', listParam: null }"
+expect_return_shape = "genesysPointCache.getPointの戻り値"

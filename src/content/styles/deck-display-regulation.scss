@@ -1,0 +1,221 @@
+/**
+ * デッキ閲覧モードのリミットレギュレーション表示
+ * （トリガーバッジ・切替メニュー・カード個別バッジ・GENESYS合計ポイント）
+ * 独自画面以外での独自要素なので .ygo-next で nest
+ */
+
+.ygo-next {
+  &.ygo-next-regulation-bar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-left: 10px;
+    margin-right: 8px;
+  }
+
+  // トリガー: DeckEditTopBar.vue の .regulation-badge と同じ形状（角丸ピル）に揃える。
+  // 色だけは var(--bg-primary) 等のテーマ連動色を使わず固定色にする: このバッジは
+  // サイトネイティブの紺色ページ背景の上に直接乗るため、拡張機能側のテーマ（編集画面の
+  // 白/黒背景を前提にした配色）に連動させると紺背景との組み合わせでコントラストが崩れる
+  // （ダークテーマ時に黒っぽい背景になり紺色に溶け込んで見えなくなる等）。TASK-450。
+  &.ygo-next-regulation-trigger {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    background: var(--color-warning);
+    color: #fff;
+    border: 1px solid var(--color-warning);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.15s;
+
+    &:hover {
+      filter: brightness(1.1);
+    }
+
+    // fallback（指定版が存在しない）とリスト取得失敗（直前の選択へ戻した）は同じ警告色
+    &.is-fallback,
+    &.is-unavailable {
+      background: var(--color-error);
+      border-color: var(--color-error);
+    }
+  }
+
+  // メニュー: デッキ名タグ候補リスト(SuggestionList.vue .suggestions-dropdown)と同じ
+  // 配色・角丸パネルに揃える
+  &.ygo-next-regulation-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 20;
+    text-align: left;
+  }
+
+  &.ygo-next-regulation-menu-item {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:first-child {
+      border-radius: 8px 8px 0 0;
+    }
+
+    &:last-child {
+      border-radius: 0 0 8px 8px;
+    }
+
+    &:hover {
+      background: var(--bg-secondary);
+    }
+
+    &.is-selected {
+      background: var(--color-success);
+      color: var(--button-text);
+      font-weight: 700;
+    }
+  }
+
+  // 過去版セクション（「OCG過去版」等）/ 年グループの折りたたみ展開トグル。
+  // 2段階（過去版セクション→年グループ→個別）のうち1段目
+  &.ygo-next-regulation-menu-expand {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    // 過去版セクション展開後の年グループボタン（2段目）
+    &.ygo-next-regulation-menu-expand-nested {
+      padding-left: 24px;
+    }
+  }
+
+  &.ygo-next-regulation-menu-rest:not([hidden]) {
+    display: contents;
+  }
+
+  // 年グループ展開後の個別版
+  &.ygo-next-regulation-menu-item-grouped {
+    padding-left: 36px;
+  }
+
+  &.ygo-next-regulation-card-badge {
+    position: absolute;
+    bottom: 5.56%;
+    left: 0;
+    width: 100%;
+    height: 19.44%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--button-text);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+
+    svg {
+      color: var(--button-text);
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+    }
+
+    &.ygo-next-limit-forbidden {
+      background: var(--deck-card-limit-forbidden-bg);
+    }
+
+    &.ygo-next-limit-limited {
+      background: var(--deck-card-limit-limited-bg);
+    }
+
+    &.ygo-next-limit-semi-limited {
+      background: var(--deck-card-limit-semi-limited-bg);
+    }
+
+    &.ygo-next-pt-tier-low {
+      background: var(--genesys-pt-bg-low, #f9a825);
+    }
+
+    &.ygo-next-pt-tier-mid {
+      background: var(--genesys-pt-bg-mid, #ef6c00);
+    }
+
+    &.ygo-next-pt-tier-high {
+      background: var(--genesys-pt-bg-high, #c62828);
+    }
+  }
+
+  // GENESYS合計ポイント: レギュレーション切替バッジの左に並ぶため、同じピル型の見た目に揃える。
+  // 色は同じ理由（紺背景コントラスト）で固定色にする
+  &.ygo-next-genesys-total-pt {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-left: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    background: var(--color-info);
+    color: #fff;
+    border: 1px solid var(--color-info);
+    white-space: nowrap;
+
+    &.over-limit {
+      background: var(--color-error);
+      border-color: var(--color-error);
+    }
+  }
+}
+
+// サイトネイティブの違反バナー(#message)が現在の表示モードでは無効であることを示す状態。
+// 文言は書き換えず（元の違反一覧のまま）、減光+グレースケールのスタイルのみで「無効」を表す
+// （ユーザー指摘: 文言での表示はおかしい、styleで示すべき）。内容を変更しないため
+// レイアウト（高さ）はずれない。#messageはサイトネイティブ要素のため .ygo-next クラスは
+// 付与しない（common.scssのmargin-left/rightリセットが元のリスト表示に波及するのを避けるため）。
+#message.ygo-next-message-inactive {
+  filter: grayscale(1);
+  opacity: 0.4;
+}

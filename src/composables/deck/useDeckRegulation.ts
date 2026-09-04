@@ -2,10 +2,12 @@ import { ref, computed, watch, type Ref, type ComputedRef } from 'vue';
 import type { DeckInfo } from '@/types/deck';
 import type { LimitRegulation } from '@/types/card';
 import type { ResolvedRegulation } from '@/types/regulation';
-import { resolveDeckRegulation } from '@/utils/regulation-resolver';
-import { parseRegulationTag, replaceTagYymm } from '@/utils/regulation-tag-parser';
+import { resolveDeckRegulation, type AvailableRegulations } from '@/utils/regulation-resolver';
+import { parseRegulationTag, replaceTagYymm, setRegulationTag } from '@/utils/regulation-tag-parser';
+import type { RegType } from '@/types/regulation';
 import { forbiddenLimitedCache } from '@/utils/forbidden-limited-cache';
 import { genesysPointCache } from '@/utils/genesys-cache';
+import { getOcgLimitOverride, getGenesysPoint } from '@/utils/regulation-card-badge';
 import { safeStorageGet, safeStorageSet } from '@/utils/extension-context-checker';
 import { isRecordOfStringKeys } from '@/utils/type-guards';
 import { CHROME_STORAGE_KEY_REGULATION_FIX_IGNORED } from '@/constants/storage-keys';
@@ -48,6 +50,9 @@ export function useDeckRegulation(options: {
   /** 修正提案を ignore したデッキ番号の集合（chrome.storage.local で永続化） */
   const ignoredDeckDnos = ref<Set<number>>(new Set());
 
+  /** 実在する版一覧（バッジクリックメニュー表示用）。resolveAndEnsure完了後に更新される */
+  const availableRegulations = ref<AvailableRegulations>({ ocgDates: [], genesysListParams: [] });
+
   /** 表示モード。OCG最新(mode='ocg'+null) と タグ無し(mode='none') は共に 'none'（UI差分なし） */
   const displayMode: ComputedRef<'ocg-past' | 'genesys' | 'none'> = computed(() => {
     const r = resolvedRegulation.value;
@@ -67,25 +72,18 @@ export function useDeckRegulation(options: {
   });
 
   /**
-   * カードの禁止制限状態（OCG過去版上書き用）
+   * カードの禁止制限状態（OCG過去版上書き用）。判定ロジック本体は
+   * regulation-card-badge.ts に一元化（デッキ閲覧画面のregulation-ui.tsと共有。
+   * TASK-450: 同じ判定漏れを編集画面/閲覧画面で別々に直す事態が発生したため切り出し）。
    * @returns null=上書き無し（最新版キャッシュをそのまま使用）/ undefined=その版で無制限 / 値=制限あり
    */
   function getCardLimitOverride(cid: string): LimitRegulation | undefined | null {
-    const r = resolvedRegulation.value;
-    if (r.mode !== 'ocg' || !r.effectiveDate) return null;
-    // resolveAndEnsure で ensureList が呼ばれているが、APIが過去日付に
-    // 対応していない等で取得失敗している場合、リストはキャッシュに存在しない。
-    // その場合 undefined を返すと全カードの制限バッジが消えるため、
-    // null（上書きなし）を返して既存のバッジを維持する。
-    if (!forbiddenLimitedCache.hasList(r.effectiveDate)) return null;
-    return forbiddenLimitedCache.getRegulation(cid, r.effectiveDate);
+    return getOcgLimitOverride(cid, resolvedRegulation.value);
   }
 
   /** カードのGENESYS pt（GENESYSモード時のみ）。それ以外は undefined */
   function getCardGenesysPoint(cid: string): number | undefined {
-    const r = resolvedRegulation.value;
-    if (r.mode !== 'genesys') return undefined;
-    return genesysPointCache.getPoint(cid, r.listParam ?? undefined);
+    return getGenesysPoint(cid, resolvedRegulation.value);
   }
 
   /** レギュレーション状態を初期化（前デッキの状態を引き継がない） */
@@ -125,6 +123,7 @@ export function useDeckRegulation(options: {
       ocgDates: forbiddenLimitedCache.getAvailableDates(),
       genesysListParams: isGenesysEnabled() ? genesysPointCache.getAvailableListParams() : []
     };
+    availableRegulations.value = available;
     const resolved = resolveDeckRegulation(getDeckName(), available);
     // feature flag で無効な場合は genesys タグを無視
     if (resolved.mode === 'genesys' && !isGenesysEnabled()) {
@@ -157,6 +156,19 @@ export function useDeckRegulation(options: {
     showRegulationFixDialog.value = false;
     if (!r.tag || !r.fallback) return;
     const newName = replaceTagYymm(getDeckName(), r.tag, r.fallback.appliedYymm);
+    setDeckName(newName);
+    // setDeckName → deckInfo.name 変更 → 下記 watch(currentTagRaw) が silent 再解決を発火
+  }
+
+  /**
+   * バッジクリックメニュー（DeckEditTopBar.vue）からの手動レギュレーション指定。
+   * 閲覧画面の一時切替（デッキ名を変更しないプレビュー）と異なり、編集画面ではデッキ名自体を
+   * 書き換える（デッキ名がレギュレーションの永続的な指定手段のため）。
+   * @param option null=タグを削除
+   */
+  function setRegulation(option: { type: RegType; yymm: string | null } | null): void {
+    const currentTag = parseRegulationTag(getDeckName());
+    const newName = setRegulationTag(getDeckName(), currentTag, option);
     setDeckName(newName);
     // setDeckName → deckInfo.name 変更 → 下記 watch(currentTagRaw) が silent 再解決を発火
   }
@@ -217,6 +229,7 @@ export function useDeckRegulation(options: {
   return {
     resolvedRegulation,
     showRegulationFixDialog,
+    availableRegulations,
     displayMode,
     effectiveDescription,
     resolveAndEnsure,
@@ -226,6 +239,7 @@ export function useDeckRegulation(options: {
     removeIgnored,
     loadIgnored,
     getCardLimitOverride,
-    getCardGenesysPoint
+    getCardGenesysPoint,
+    setRegulation
   };
 }
