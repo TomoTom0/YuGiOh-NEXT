@@ -153,6 +153,7 @@ import { getCardImageUrl } from '../types/card'
 import { detectCardGameType } from '../utils/page-detector'
 import { buildFullUrl } from '../utils/url-builder'
 import { mdiCloseCircle, mdiNumeric1Circle, mdiNumeric2Circle, mdiArrowRightBold, mdiArrowLeftBold, mdiHandBackRight, mdiArrowCollapseDown, mdiEye, mdiEyeOff } from '@mdi/js'
+import { isGenesysForbiddenCard, genesysPtTier as computeGenesysPtTier } from '../utils/regulation-card-badge'
 import { useCardDetailDisplay } from '../composables/useCardDetailDisplay'
 import { usePracticeDragState } from '../composables/practice/usePracticeDragState'
 import { usePracticeStore } from '../stores/practice'
@@ -427,24 +428,19 @@ export default {
       return this.genesysPt !== undefined && this.genesysPt > 0
     },
     genesysPtTier() {
-      // pt値に応じた色ティア（スタイル用）
-      // 1-4pt: 黄色(low), 5-9pt: 橙(mid), 10pt以上: 赤(high)
+      // pt値に応じた色ティア（スタイル用）。判定ロジックはregulation-card-badge.tsに一元化
+      // （デッキ閲覧画面のregulation-ui.tsと共有。TASK-450）
       const pt = this.genesysPt
-      if (pt === undefined || pt <= 4) return 'low'
-      if (pt <= 9) return 'mid'
-      return 'high'
+      return computeGenesysPtTier(pt === undefined ? 0 : pt)
     },
     isGenesysMode() {
       return this.deckStore.resolvedRegulation.mode === 'genesys'
     },
     isGenesysForbidden() {
-      // GENESYSモード時、link/pendulumモンスターを禁止表示
-      if (!this.isGenesysMode || !this.card) return false
-      if (this.card.cardType === 'monster' && this.card.types) {
-        const types = this.card.types
-        if (types.includes('link') || types.includes('pendulum')) return true
-      }
-      return false
+      // GENESYSモード時、link/pendulumモンスターを禁止表示。判定ロジックは
+      // regulation-card-badge.tsに一元化（デッキ閲覧画面のregulation-ui.tsと共有。TASK-450）
+      if (!this.isGenesysMode) return false
+      return isGenesysForbiddenCard(this.card)
     },
     isDragging() {
       if (this.sectionType !== 'practice') return false

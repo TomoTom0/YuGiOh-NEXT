@@ -6,29 +6,22 @@
  */
 
 /**
- * シャッフルアイコン（ランダム/シャッフル）
- * Feather アイコンの shuffle icon
+ * シャッフルアイコン。
+ * デッキ編集画面(DeckSection.vue)と同じ mdiShuffle（@mdi/js）に揃える（TASK-450）。
  */
 export const SHUFFLE_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="16 3 21 3 21 8"></polyline>
-  <line x1="4" y1="20" x2="21" y2="3"></line>
-  <polyline points="21 16 21 21 16 21"></polyline>
-  <line x1="15" y1="15" x2="21" y2="21"></line>
-  <line x1="4" y1="4" x2="9" y2="9"></line>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+  <path fill="currentColor" d="M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z"></path>
 </svg>
 `;
 
 /**
- * ソート（ヒストグラム昇順）アイコン
- * Feather アイコンの bar-chart-2 icon を参考に
+ * ソート（元に戻す）アイコン。
+ * デッキ編集画面(DeckSection.vue)と同じ mdiSort（@mdi/js）に揃える（TASK-450）。
  */
 export const SORT_ICON = `
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <line x1="4" y1="20" x2="4" y2="14"></line>
-  <line x1="10" y1="20" x2="10" y2="10"></line>
-  <line x1="16" y1="20" x2="16" y2="6"></line>
-  <line x1="22" y1="20" x2="22" y2="2"></line>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+  <path fill="currentColor" d="M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z"></path>
 </svg>
 `;
 

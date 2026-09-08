@@ -23,6 +23,16 @@ vi.mock('@/content/deck-display/vueSetup', () => ({
   setupVueApp: (...args: unknown[]) => mockSetupVueApp(...args)
 }));
 
+const mockSetupRegulationDisplay = vi.fn().mockResolvedValue(undefined);
+vi.mock('@/content/deck-display/regulation-ui', () => ({
+  setupRegulationDisplay: (...args: unknown[]) => mockSetupRegulationDisplay(...args)
+}));
+
+const mockEnsureParsedDeckInfo = vi.fn().mockResolvedValue(null);
+vi.mock('@/content/deck-display/card-detail-ui', () => ({
+  ensureParsedDeckInfo: mockEnsureParsedDeckInfo
+}));
+
 import { initDeckDisplay } from '@/content/deck-display/index';
 
 const stubMatchMedia = (matches: boolean) => {
@@ -73,6 +83,27 @@ describe('deck-display/index.ts', () => {
       expect(mockApplyCardDetailStyles).toHaveBeenCalled();
     });
 
+    it('[covers:init_deck_display.sets_up_regulation_display_regardless_of_show_card_detail] showCardDetailInDeckDisplayの値に関わらずsetupRegulationDisplayがensureParsedDeckInfoと共に呼ばれる', async () => {
+      (window as unknown as { ygoNextCurrentSettings: unknown }).ygoNextCurrentSettings = {};
+
+      await initDeckDisplay();
+
+      expect(mockSetupRegulationDisplay).toHaveBeenCalledWith(mockEnsureParsedDeckInfo);
+    });
+
+    it('[covers:init_deck_display.does_not_await_regulation_setup] regulationセットアップの完了を待たずに後続処理（setCardImageSize等）が実行される', async () => {
+      // setupRegulationDisplayは内部でcheckAndUpdateのリモート取得を待つため、新規install・
+      // stale時に長時間ブロックしうる。initDeckDisplayはこれをawaitしない（他機能・画像サイズ
+      // 適用の遅延防止。PR#151レビュー指摘）。永続pendingなmockでもinitDeckDisplayが完了し、
+      // 後続のsetCardImageSizeが呼ばれることを検証する
+      mockSetupRegulationDisplay.mockReturnValue(new Promise(() => { /* 永続pending */ }));
+      (window as unknown as { ygoNextCurrentSettings: unknown }).ygoNextCurrentSettings = {};
+
+      await initDeckDisplay();
+
+      expect(mockSetCardImageSize).toHaveBeenCalledWith('medium');
+    });
+
     it('[covers:init_deck_display.deck_image_gets_ygo_next_class_when_present] #deck_imageにygo-nextクラスが追加される', async () => {
       const deckImage = document.createElement('div');
       deckImage.id = 'deck_image';
@@ -96,6 +127,7 @@ describe('deck-display/index.ts', () => {
       await initDeckDisplay();
 
       expect(mockSetupVueApp).toHaveBeenCalled();
+      expect(mockSetupRegulationDisplay).toHaveBeenCalledWith(mockEnsureParsedDeckInfo);
     });
 
     it('[covers:init_deck_display.show_card_detail_false_or_missing_skips_vue_mount] showCardDetailInDeckDisplay未設定ならsetupVueAppは呼ばれない', async () => {

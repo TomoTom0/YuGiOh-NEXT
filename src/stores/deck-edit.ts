@@ -2080,6 +2080,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     clearHistory,
     resolvedRegulation: regulation.resolvedRegulation,
     showRegulationFixDialog: regulation.showRegulationFixDialog,
+    availableRegulations: regulation.availableRegulations,
     regulationDisplayMode: regulation.displayMode,
     regulationEffectiveDescription: regulation.effectiveDescription,
     resolveRegulationForDeck: regulation.resolveAndEnsure,
@@ -2087,6 +2088,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     confirmRegulationFix: regulation.confirmRegulationFix,
     ignoreRegulationFix: regulation.ignoreRegulationFix,
     getCardLimitOverride: regulation.getCardLimitOverride,
-    getCardGenesysPoint: regulation.getCardGenesysPoint
+    getCardGenesysPoint: regulation.getCardGenesysPoint,
+    setDeckRegulation: regulation.setRegulation
   };
 });

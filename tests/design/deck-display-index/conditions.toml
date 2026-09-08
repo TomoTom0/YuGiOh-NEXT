@@ -13,11 +13,11 @@
 feature = "deck-display-index"
 source_file = "src/content/deck-display/index.ts"
 verified = true
-verified_at = "2026-08-29"
+verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/deck-display-index.test.ts"
-source_hash = "1c86d8112e11dce9e5ac7e09fd036ebdb4be97f5"
-note = "verified=falseは0件"
+source_hash = "a334c91304e1170251da77483923aeeb15ca02f4"
+note = "verified=falseは0件。TASK-450でリミットレギュレーション表示のセットアップ呼び出しを追加。CSSはSCSS(src/content/styles/deck-display-regulation.scss)へ移行しapplyRegulationStyles()呼び出しは削除。PR#151レビュー対応でsetupRegulationDisplayをawaitしない形に変更（does_not_await_regulation_setup追加）"
 
 # --- initDeckDisplay() ---
 
@@ -78,9 +78,25 @@ given = "showCardDetailInDeckDisplayが未設定"
 expect_side_effect = "setupVueAppは呼ばれない"
 
 [[condition]]
+id = "init_deck_display.sets_up_regulation_display_regardless_of_show_card_detail"
+target_function = "initDeckDisplay"
+source_lines = "63-72"
+description = "showCardDetailInDeckDisplayの値（true/false/未設定のいずれ）に関わらず、regulation-ui.tsのsetupRegulationDisplay()をcard-detail-ui.tsのensureParsedDeckInfoを注入して常に呼ぶ（デッキ名のレギュレーションタグ検出は当該設定に非依存のため。TASK-450）"
+given = "showCardDetailInDeckDisplayがtrue/false/未設定のいずれでも"
+expect_side_effect = "setupRegulationDisplayがensureParsedDeckInfo関数を引数として呼ばれる"
+
+[[condition]]
+id = "init_deck_display.does_not_await_regulation_setup"
+target_function = "initDeckDisplay"
+source_lines = "63-72"
+description = "setupRegulationDisplay()をawaitせず（voidで）起動する。セットアップ内のリスト更新（checkAndUpdate）はリモート取得を伴い新規install・キャッシュstale時に長時間かかりうるため、直列にawaitすると後続のカード画像サイズ適用と呼び出し元の他機能初期化（card-detail/deck-image/shuffle）まで遅延する（PR#151レビュー指摘）"
+given = "setupRegulationDisplayが未完了（永続pending）"
+expect_side_effect = "initDeckDisplay自体は完了し、setCardImageSize等の後続処理が実行される"
+
+[[condition]]
 id = "init_deck_display.sets_card_image_size_with_default"
 target_function = "initDeckDisplay"
-source_lines = "40,64"
+source_lines = "40,69"
 description = "appSettings.deckDisplayCardImageSizeの値でsetCardImageSizeを呼ぶ。未設定時はデフォルト'medium'を使う"
 given = "deckDisplayCardImageSizeが未設定のappSettings"
 expect_side_effect = "setCardImageSizeが'medium'で呼ばれる"
@@ -90,7 +106,7 @@ expect_side_effect = "setCardImageSizeが'medium'で呼ばれる"
 [[condition]]
 id = "setup_image_loaded_effect.already_complete_adds_class_immediately"
 target_function = "setupImageLoadedEffect"
-source_lines = "76-79"
+source_lines = "81-84"
 description = "img.completeがtrueかつnaturalWidth>0（既に読み込み完了済み）の場合、即座にloadedクラスを追加する"
 given = "complete=true, naturalWidth=100のimg要素"
 expect_side_effect = "img要素がloadedクラスを持つ"
@@ -98,7 +114,7 @@ expect_side_effect = "img要素がloadedクラスを持つ"
 [[condition]]
 id = "setup_image_loaded_effect.not_complete_adds_class_on_load_event"
 target_function = "setupImageLoadedEffect"
-source_lines = "81-84"
+source_lines = "86-89"
 description = "画像が未読み込みの場合、loadイベント(once)を登録し発火時にloadedクラスを追加する"
 given = "complete=falseのimg要素にloadイベントを発火させる"
 expect_side_effect = "loadイベント発火後にimg要素がloadedクラスを持つ"
@@ -108,7 +124,7 @@ expect_side_effect = "loadイベント発火後にimg要素がloadedクラスを
 [[condition]]
 id = "apply_theme.system_follows_match_media"
 target_function = "applyTheme"
-source_lines = "95-99"
+source_lines = "100-104"
 description = "theme==='system'の場合、window.matchMedia('(prefers-color-scheme: dark)')の一致有無でdata-ygo-next-theme属性を決定する"
 given = "theme='system'、matchMediaがdark一致"
 expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'になる"
@@ -116,7 +132,7 @@ expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'に
 [[condition]]
 id = "apply_theme.explicit_value_used_directly"
 target_function = "applyTheme"
-source_lines = "100-102"
+source_lines = "105-107"
 description = "theme='system'以外の明示値の場合、そのままdata-ygo-next-theme属性に設定する（matchMediaは参照しない）"
 given = "theme='dark'（matchMediaはlightの状況でも）"
 expect_side_effect = "document.documentElementのdata-ygo-next-themeが'dark'になる"

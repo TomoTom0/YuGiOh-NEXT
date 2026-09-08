@@ -186,7 +186,7 @@ describe('useDeckRegulation conditions', () => {
     expect(regulation.effectiveDescription.value).toBe('GENESYS 最新版');
   });
 
-  it('[covers:limit_override.non_ocg_or_no_effective_date_returns_null] [covers:limit_override.ocg_effective_date_reads_cache] getCardLimitOverrideはOCG過去版だけキャッシュを読む', () => {
+  it('[covers:limit_override.delegates_to_shared_module] getCardLimitOverrideはOCG過去版だけキャッシュを読む', () => {
     vi.mocked(forbiddenLimitedCache.getRegulation).mockReturnValue('limited');
     const regulation = useDeckRegulation(createOptions());
 
@@ -209,7 +209,19 @@ describe('useDeckRegulation conditions', () => {
     expect(forbiddenLimitedCache.getRegulation).toHaveBeenCalledWith('100', '2026-08-01');
   });
 
-  it('[covers:limit_override.list_not_in_cache_returns_null] getCardLimitOverrideはhasListがfalseならgetRegulationを呼ばずnullを返す', () => {
+  it('[covers:limit_override.delegates_to_shared_module] getCardLimitOverrideはGENESYSモード中はundefined（バッジ非表示）を返しOCG最新版のバッジを漏らさない', () => {
+    vi.mocked(forbiddenLimitedCache.getRegulation).mockReturnValue('forbidden');
+    const regulation = useDeckRegulation(createOptions());
+
+    regulation.resolvedRegulation.value = resolved({
+      mode: 'genesys',
+      tag: tag('genesys', null, '[GENESYS]')
+    });
+    expect(regulation.getCardLimitOverride('100')).toBeUndefined();
+    expect(forbiddenLimitedCache.getRegulation).not.toHaveBeenCalled();
+  });
+
+  it('[covers:limit_override.delegates_to_shared_module] getCardLimitOverrideはhasListがfalseならgetRegulationを呼ばずnullを返す', () => {
     vi.mocked(forbiddenLimitedCache.hasList).mockReturnValue(false);
     vi.mocked(forbiddenLimitedCache.getRegulation).mockReturnValue('forbidden');
     const regulation = useDeckRegulation(createOptions());
@@ -224,7 +236,7 @@ describe('useDeckRegulation conditions', () => {
     expect(forbiddenLimitedCache.getRegulation).not.toHaveBeenCalled();
   });
 
-  it('[covers:genesys_point.non_genesys_returns_undefined] [covers:genesys_point.genesys_reads_cache_with_optional_list_param] getCardGenesysPointはGENESYS時だけlistParamを任意引数にしてキャッシュを読む', () => {
+  it('[covers:genesys_point.delegates_to_shared_module] getCardGenesysPointはGENESYS時だけlistParamを任意引数にしてキャッシュを読む', () => {
     vi.mocked(genesysPointCache.getPoint).mockReturnValue(42);
     const regulation = useDeckRegulation(createOptions());
 
@@ -261,6 +273,21 @@ describe('useDeckRegulation conditions', () => {
 
     expect(regulation.resolvedRegulation.value).toEqual(resolved());
     expect(regulation.showRegulationFixDialog.value).toBe(false);
+  });
+
+  it('[covers:available_regulations.updated_by_resolve_and_ensure] resolveAndEnsureはdiscovery後のavailableでavailableRegulationsを更新する', async () => {
+    const regulation = useDeckRegulation(createOptions());
+    vi.mocked(forbiddenLimitedCache.getAvailableDates).mockReturnValue(['2026-08-01', '2026-04-01']);
+    vi.mocked(genesysPointCache.getAvailableListParams).mockReturnValue(['202608']);
+
+    expect(regulation.availableRegulations.value).toEqual({ ocgDates: [], genesysListParams: [] });
+
+    await regulation.resolveAndEnsure({ dno: 1, silent: true });
+
+    expect(regulation.availableRegulations.value).toEqual({
+      ocgDates: ['2026-08-01', '2026-04-01'],
+      genesysListParams: ['202608']
+    });
   });
 
   it('[covers:resolve.ensure_order_and_available_passed_to_resolver] [covers:resolve.none_or_ocg_latest_ensures_no_list] resolveAndEnsureはdiscovery後のavailableで解決し、none/OCG最新版ではリスト取得しない', async () => {
@@ -388,6 +415,24 @@ describe('useDeckRegulation conditions', () => {
 
     expect(mocks.replaceTagYymm).toHaveBeenCalledWith('[OCG-2608] テスト', currentTag, '2607');
     expect(options.setDeckName).toHaveBeenCalledWith('fixed-name');
+  });
+
+  it('[covers:set_regulation.writes_tag_into_deck_name] setRegulationは現在のデッキ名をparseRegulationTagで解析し、setRegulationTagの結果をsetDeckNameへ渡す', () => {
+    const options = createOptions({ name: '[OCG] テスト' });
+    const regulation = useDeckRegulation(options);
+
+    regulation.setRegulation({ type: 'genesys', yymm: '2608' });
+
+    expect(options.setDeckName).toHaveBeenCalledWith('[GENESYS-2608] テスト');
+  });
+
+  it('[covers:set_regulation.option_null_removes_tag] setRegulationはoption=nullでタグを削除する', () => {
+    const options = createOptions({ name: '[OCG-2501] テスト' });
+    const regulation = useDeckRegulation(options);
+
+    regulation.setRegulation(null);
+
+    expect(options.setDeckName).toHaveBeenCalledWith('テスト');
   });
 
   it('[covers:ignore_fix_without_dno_only_hides_dialog] [covers:ignore_fix_with_dno_adds_and_saves_string_key_record] ignoreRegulationFixはdnoがtruthyな時だけignore保存する', async () => {

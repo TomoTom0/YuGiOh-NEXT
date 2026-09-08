@@ -8,15 +8,36 @@
 #
 # 既存テストの説明文・アサーションの不正確さ:
 # - addShuffleButtons.ts専用テストは存在しなかったため、新規作成した。
+#
+# 2026-09-03(TASK-450・1回目): カード枚数span検出を`span:nth-child(3)`から`top.lastElementChild`に変更。
+# 旧実装はdeck-display/regulation-ui.tsが#main .subcatergory .topのh3直後に要素を挿入した際、
+# nth-child(3)がその要素にずれてカード枚数spanを検出できなくなり、メインデッキのシャッフルボタンが
+# 追加されなくなる実害のあるバグを引き起こした（実機で発見）。カード枚数spanは常にtop内の最後の
+# 子要素という不変条件（shuffle/sortボタンもこのspanの直前に挿入する設計のため保たれる）を使う
+# ことで、他要素の挿入位置に依存しない実装に修正した。
+#
+# 2026-09-03(TASK-450・2回目): createButton()がアイコンを<span>で包んでいたため、サイト側CSS
+# ".subcatergory .top span:not(.icon)"（カード枚数バッジ用の紺背景+枠線+margin+min-width）が
+# このspanにも波及し、ボタンのグラデーション背景の大部分が紺色の矩形で隠れてしまう実害のある
+# バグを実機で発見（ユーザー指摘）。spanで包まず<a>要素に直接iconSvgをinnerHTMLとして設定する
+# よう修正（<a>自体が既にdisplay:inline-flex;align-items:center;justify-content:center;を
+# 持つため、中間のspanによる中央寄せは不要だった）。
+#
+# 2026-09-03(TASK-450・3回目): ユーザーから「デッキ編集画面と本当に同じ見た目になっているか」との
+# 指摘を受け実機比較したところ、編集画面(DeckSection.vue .btn-section)はニュートラルな枠線ボタン
+# （transparent背景+1px border+text-primary色）であり、こちらの.ytomo-neuron-btn（グラデーション
+# 背景）とは全く異なるデザインだったと判明。createButton()のclassNameを
+# 'ygo-next ygo-next-shuffle-sort-btn' に変更し、.btn-sectionと同じ見た目のCSSを新設
+# （src/content/styles/buttons.scss）。アイコン自体（SHUFFLE_ICON/SORT_ICON）は変更していない。
 
 [meta]
 feature = "add-shuffle-buttons"
 source_file = "src/content/shuffle/addShuffleButtons.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
+verified_at = "2026-09-03"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/shuffle/addShuffleButtons.test.ts"
-source_hash = "738cb64a750e74b1a9d2928f278416d19070240b"
+source_hash = "e06e89d886607fb589e60d7bfe16befa96b39c32"
 note = "verified=falseは0件"
 
 # --- addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side') ---
@@ -48,15 +69,23 @@ expect_return = "null"
 [[condition]]
 id = "add_shuffle_section.count_span_missing_returns_null"
 target_function = "addShuffleButtonsToSection"
-source_lines = "36-39"
-description = "top内に `span:nth-child(3)` が見つからない場合、何も追加せずnullを返す"
-given = "topは存在するが3番目のspanが存在しない"
+source_lines = "39-42"
+description = "top.lastElementChild（カード枚数span）が無い、つまりtopに子要素が一つも無い場合、何も追加せずnullを返す"
+given = "topは存在するが子要素が一つも無い"
 expect_return = "null"
+
+[[condition]]
+id = "add_shuffle_section.count_span_is_last_element_child"
+target_function = "addShuffleButtonsToSection"
+source_lines = "39"
+description = "カード枚数spanはtop内の位置（nth-child等）ではなく「topの最後の子要素」として検出する。そのため他の拡張機能UI等がカード枚数spanより前（h3の直後等）に挿入されていても、カード枚数の検出とシャッフル/ソートボタンの追加は影響を受けない（TASK-450: deck-display/regulation-ui.tsの挿入で発覚した回帰の修正）"
+given = "h3の直後・カード枚数spanの手前に他要素(div等)が挿入された状態のtop"
+expect_side_effect = "shuffleボタン・sortボタンがカード枚数spanの直前に正しく挿入される"
 
 [[condition]]
 id = "add_shuffle_section.zero_count_returns_null"
 target_function = "addShuffleButtonsToSection"
-source_lines = "42-45"
+source_lines = "45-48"
 description = "`parseInt(cardCountSpan.textContent || '0', 10)` が0の場合、ボタンを追加せずnullを返す"
 given = "cardCountSpan.textContent = '0' または空文字列"
 expect_return = "null"
@@ -64,7 +93,7 @@ expect_return = "null"
 [[condition]]
 id = "add_shuffle_section.nan_count_adds_buttons"
 target_function = "addShuffleButtonsToSection"
-source_lines = "42-55"
+source_lines = "45-58"
 description = "カード枚数テキストが数値化できずNaNになる場合、`cardCount === 0` はfalseのためボタンを追加する"
 given = "cardCountSpan.textContent = 'abc'"
 expect_return_shape = "作成されたshuffleボタン要素。shuffleボタンとsortボタンがcardCountSpan直前に挿入される"
@@ -72,7 +101,7 @@ expect_return_shape = "作成されたshuffleボタン要素。shuffleボタン�
 [[condition]]
 id = "add_shuffle_section.positive_count_adds_buttons"
 target_function = "addShuffleButtonsToSection"
-source_lines = "42-55"
+source_lines = "45-58"
 description = "カード枚数が0以外の場合、shuffleボタンとsortボタンを作成し、どちらもcardCountSpanの直前に挿入して、shuffleボタンを返す"
 given = "main/extra/sideいずれかのsectionでcardCountSpan.textContent = '3'"
 expect_return_shape = "shuffleボタン要素。top内の順序は既存1番目span、既存2番目span、shuffleボタン、sortボタン、cardCountSpanになる"
@@ -82,7 +111,7 @@ expect_return_shape = "shuffleボタン要素。top内の順序は既存1番目s
 [[condition]]
 id = "add_shuffle.all_sections_returns_main_button"
 target_function = "addShuffleButtons"
-source_lines = "63-71"
+source_lines = "66-74"
 description = "main/extra/sideの順にaddShuffleButtonsToSectionを呼び、戻り値はmainセクションの戻り値のみを返す"
 given = "main/extra/sideすべてがボタン追加可能なDOM"
 expect_return_shape = "mainのshuffleボタン要素。extra/sideにもボタンは追加されるが戻り値には使われない"
@@ -90,7 +119,7 @@ expect_return_shape = "mainのshuffleボタン要素。extra/sideにもボタン
 [[condition]]
 id = "add_shuffle.main_null_still_processes_other_sections"
 target_function = "addShuffleButtons"
-source_lines = "63-71"
+source_lines = "66-74"
 description = "mainセクションがnullを返す場合でもextra/sideの処理は実行し、関数全体の戻り値はnullになる"
 given = "mainのcardCountが0、extra/sideのcardCountが1"
 expect_return = "null"
@@ -100,8 +129,8 @@ expect_return = "null"
 [[condition]]
 id = "add_shuffle_create_button.attributes_and_prevent_default"
 target_function = "createButton"
-source_lines = "77-96"
-description = "a要素を作成し、id/className/href/title/cssTextを設定し、span.innerHTMLにiconSvgを入れてappendし、click時はpreventDefaultだけを実行する"
+source_lines = "82-102"
+description = "a要素を作成し、id/className/href/title/cssTextを設定し、a要素自体にiconSvgをinnerHTMLとして直接設定し（spanで包まない）、click時はpreventDefaultだけを実行する"
 given = "ボタンが追加された後にclickイベントをdispatchする"
 expect_return_shape = "HTMLAnchorElement。dispatchEventしたclickイベントはdefaultPreventedになる"
 
@@ -110,7 +139,7 @@ expect_return_shape = "HTMLAnchorElement。dispatchEventしたclickイベント�
 [[condition]]
 id = "init_shuffle.not_deck_display_returns"
 target_function = "initShuffleButtons"
-source_lines = "104-111"
+source_lines = "107-116"
 description = "detectCardGameTypeの結果をisDeckDisplayPageに渡し、デッキ表示ページでない場合はaddShuffleButtonsを予約せずreturnする"
 given = "window.location.href が member_deck.action 以外、または ope=2 のURL"
 expect_return = "undefined"
@@ -118,7 +147,7 @@ expect_return = "undefined"
 [[condition]]
 id = "init_shuffle.loading_waits_dom_content_loaded"
 target_function = "initShuffleButtons"
-source_lines = "114-117"
+source_lines = "119-122"
 description = "デッキ表示ページでdocument.readyState === 'loading'の場合、DOMContentLoadedリスナー内でsetTimeout(addShuffleButtons, 100)を予約する"
 given = "デッキ表示ページURLかつdocument.readyState = 'loading'"
 expect_return = "undefined"
@@ -126,7 +155,7 @@ expect_return = "undefined"
 [[condition]]
 id = "init_shuffle.ready_schedules_timeout"
 target_function = "initShuffleButtons"
-source_lines = "118-120"
+source_lines = "123-125"
 description = "デッキ表示ページでdocument.readyState !== 'loading'の場合、即座にsetTimeout(addShuffleButtons, 100)を予約する"
 given = "デッキ表示ページURLかつdocument.readyState = 'complete'"
 expect_return = "undefined"

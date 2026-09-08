@@ -4,27 +4,41 @@
 # resolveClosest で実在一覧が空の場合、YYMMから計算した値を返し ensureList に取得を試行させる。
 #
 # 到達不能/実質到達不能分岐:
-# - resolveClosest内 `const oldest = sorted[0]` (66行目):
-#   forループでavailableDatesが空の場合は早期return null (55行目) しており、
+# - resolveClosest内 `const oldest = sorted[0]`:
+#   forループでavailableDatesが空の場合は早期return nullしており、
 #   かつsorted = [...available].sort() は空配列をfilterした結果の非空配列しか
 #   受け取らないため、sorted[0]がundefinedになることはない（実質到達不能）。
+#
+# 2026-09-03(TASK-450) その1: ocgDateToYymm/genesysListParamToYymmをexportし、
+# buildRegulationTagOptions(available, isGenesysEnabled)を追加。実在する版一覧から
+# デッキ名タグの選択肢一覧を構築するロジックを、デッキ編集画面のタグ入力補完
+# （useDeckRegulationTagSuggestions.ts）とバッジクリックメニュー（DeckEditTopBar.vue）の
+# 両方から共通利用できるよう一元化した（同種のリスト構築ロジックが複数箇所に
+# 独立して書かれるのを避けるため）。
+#
+# 2026-09-03(TASK-450) その2: 「長い日本語で選択肢を示す必要はない。また、過去版を示す場合も
+# 2年単位->それぞれというように二段階のまとめにしたい」指摘への対応。yymmToOcgDate/
+# yymmToGenesysListParamをexportし、buildRegulationTagOptionsのラベル書式を短縮
+# （型名のみ/型名-YYMM）、groupRegulationTagOptionsByYearPairを追加。
+# regulation-ui.ts（閲覧画面）の手動切替メニューもbuildRegulationTagOptionsを使うよう
+# 統合した（3箇所目の独立実装を回避）。
 
 [meta]
 feature = "regulation-resolver"
 source_file = "src/utils/regulation-resolver.ts"
 verified = true
-verified_at = "2026-08-07"
+verified_at = "2026-09-03"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/utils/__tests__/regulation-resolver.test.ts"
-source_hash = "4f3a2b1c8d9e0f7a6b5c4d3e2f1a0b9c"
-note = "TASK-346でresolveClosestがnullを返した際の挙動を修正"
+test_command = "mise run test:vitest -- tests/unit/utils/regulation-resolver.test.ts"
+source_hash = "26038abd6b3b94e16b699f45758719700706bd8c"
+note = "TASK-346でresolveClosestがnullを返した際の挙動を修正。TASK-450でbuildRegulationTagOptions/groupRegulationTagOptionsByYearPair追加"
 
 # --- resolveDeckRegulation(deckName, available) ---
 
 [[condition]]
 id = "resolve.no_tag_returns_none"
 target_function = "resolveDeckRegulation"
-source_lines = "80-83"
+source_lines = "161-164"
 description = "デッキ名にタグが無い場合、mode='none'を返す"
 given = "deckName = 'ただのデッキ名'"
 expect_return_shape = "{ mode: 'none', tag: null, effectiveDate: null, listParam: null, fallback: undefined }"
@@ -32,7 +46,7 @@ expect_return_shape = "{ mode: 'none', tag: null, effectiveDate: null, listParam
 [[condition]]
 id = "resolve.ocg_no_yymm_returns_latest"
 target_function = "resolveDeckRegulation"
-source_lines = "86-88"
+source_lines = "166-170"
 description = "OCGタグでYYMM省略時は最新版扱い（effectiveDate=null）"
 given = "deckName = '[OCG] デッキ'"
 expect_return_shape = "{ mode: 'ocg', effectiveDate: null }"
@@ -40,7 +54,7 @@ expect_return_shape = "{ mode: 'ocg', effectiveDate: null }"
 [[condition]]
 id = "resolve.ocg_yymm_exact_match"
 target_function = "resolveDeckRegulation"
-source_lines = "90-97"
+source_lines = "171-180"
 description = "OCGタグのYYMMが実在一覧に存在する場合、exact matchでeffectiveDateを返す"
 given = "deckName = '[OCG-2501] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01', '2025-04-01']"
 expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: undefined }"
@@ -48,7 +62,7 @@ expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: und
 [[condition]]
 id = "resolve.ocg_yymm_closest_fallback"
 target_function = "resolveDeckRegulation"
-source_lines = "90-105"
+source_lines = "171-188"
 description = "OCGタグのYYMMが実在一覧に無い場合、直近過去版にフォールバックしfallback情報を付与する"
 given = "deckName = '[OCG-2502] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01']"
 expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: { requestedYymm: '2502', reason: 'not-exist', appliedYymm: '2501' } }"
@@ -56,7 +70,7 @@ expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: { r
 [[condition]]
 id = "resolve.ocg_yymm_before_oldest_fallback"
 target_function = "resolveDeckRegulation"
-source_lines = "65-67, 99-105"
+source_lines = "147-148, 171-188"
 description = "OCGタグのYYMMが最古の実在より前の場合、最古版にフォールバックする"
 given = "deckName = '[OCG-2001] デッキ', available.ocgDates = ['2024-10-01', '2025-01-01']"
 expect_return_shape = "{ mode: 'ocg', effectiveDate: '2024-10-01', fallback.reason: 'not-exist' }"
@@ -64,7 +78,7 @@ expect_return_shape = "{ mode: 'ocg', effectiveDate: '2024-10-01', fallback.reas
 [[condition]]
 id = "resolve.ocg_yymm_empty_available_returns_computed_date"
 target_function = "resolveDeckRegulation"
-source_lines = "92-94"
+source_lines = "173-177"
 description = "OCGタグのYYMM指定時、実在一覧が空でもYYMMから計算したeffectiveDateを返し、resolveAndEnsureのensureListに取得を試行させる（TASK-346修正: 以前はnullを返し日付指定が無視されていた）"
 given = "deckName = '[OCG-2501] デッキ', available.ocgDates = []"
 expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: undefined }"
@@ -72,7 +86,7 @@ expect_return_shape = "{ mode: 'ocg', effectiveDate: '2025-01-01', fallback: und
 [[condition]]
 id = "resolve.genesys_no_yymm_returns_latest"
 target_function = "resolveDeckRegulation"
-source_lines = "109-111"
+source_lines = "191-194"
 description = "GENESYSタグでYYMM省略時は最新版扱い（listParam=null）"
 given = "deckName = '[GENESYS] デッキ'"
 expect_return_shape = "{ mode: 'genesys', listParam: null }"
@@ -80,7 +94,7 @@ expect_return_shape = "{ mode: 'genesys', listParam: null }"
 [[condition]]
 id = "resolve.genesys_yymm_exact_match"
 target_function = "resolveDeckRegulation"
-source_lines = "112-118"
+source_lines = "195-203"
 description = "GENESYSタグのYYMMが実在一覧に存在する場合、exact matchでlistParamを返す"
 given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = ['202606', '202608']"
 expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefined }"
@@ -88,7 +102,7 @@ expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefin
 [[condition]]
 id = "resolve.genesys_yymm_closest_fallback"
 target_function = "resolveDeckRegulation"
-source_lines = "112-125"
+source_lines = "195-211"
 description = "GENESYSタグのYYMMが実在一覧に無い場合、直近過去版にフォールバックする"
 given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = ['202606']"
 expect_return_shape = "{ mode: 'genesys', listParam: '202606', fallback: { requestedYymm: '2608', reason: 'not-exist' } }"
@@ -96,7 +110,65 @@ expect_return_shape = "{ mode: 'genesys', listParam: '202606', fallback: { reque
 [[condition]]
 id = "resolve.genesys_yymm_empty_available_returns_computed_list_param"
 target_function = "resolveDeckRegulation"
-source_lines = "114-115"
+source_lines = "197-200"
 description = "GENESYSタグのYYMM指定時、実在一覧が空でもYYMMから計算したlistParamを返し、resolveAndEnsureのensureListに取得を試行させる（TASK-346修正）"
 given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = []"
 expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefined }"
+
+# --- buildRegulationTagOptions(available, isGenesysEnabled) ---
+# 2026-09-03(TASK-450) その2: 「長い日本語で選択肢を示す必要はない」指摘への対応でラベル書式変更。
+# 最新版は型名のみ（例: "OCG"）、過去版は実際のデッキ名タグ構文に合わせた"型名-YYMM"
+# （例: "OCG-2607"）にした（以前は"OCG 2026年07月版"のような長い日本語表記だった）。
+
+[[condition]]
+id = "build_regulation_tag_options.genesys_disabled_excludes_genesys"
+target_function = "buildRegulationTagOptions"
+source_lines = "60-67, 75-81"
+description = "isGenesysEnabled=falseの場合、GENESYS最新版・GENESYS過去版のいずれもオプションに含めない"
+given = "isGenesysEnabled = false"
+expect_return_shape = "全要素のtypeが'ocg'"
+
+[[condition]]
+id = "build_regulation_tag_options.order_and_labels"
+target_function = "buildRegulationTagOptions"
+source_lines = "64-81"
+description = "OCG最新版→GENESYS最新版→OCG過去版(新しい順)→GENESYS過去版(新しい順)の順でオプションを構築し、各labelは最新版なら型名のみ（'OCG'/'GENESYS'）、過去版なら'{型名}-{YYMM}'形式（例: 'OCG-2607'）になる"
+given = "available.ocgDates/genesysListParams に複数件、isGenesysEnabled=true"
+expect_return_shape = "[{type:'ocg',yymm:null,label:'OCG'}, {type:'genesys',yymm:null,label:'GENESYS'}, ...OCG過去版(降順、label='OCG-YYMM'), ...GENESYS過去版(降順、label='GENESYS-YYMM')]"
+
+[[condition]]
+id = "build_regulation_tag_options.empty_available_returns_latest_only"
+target_function = "buildRegulationTagOptions"
+source_lines = "69-81"
+description = "available.ocgDates/genesysListParamsが両方空の場合、最新版2件のオプションのみ返す"
+given = "available = { ocgDates: [], genesysListParams: [] }, isGenesysEnabled = true"
+expect_return_shape = "[{type:'ocg',yymm:null,label:'OCG'}, {type:'genesys',yymm:null,label:'GENESYS'}]"
+
+# --- groupRegulationTagOptionsByYearPair(options) ---
+# 2026-09-03(TASK-450) その2: 「過去版を示す場合も2年単位->それぞれというように二段階のまとめに
+# したい」指摘への対応で追加。過去版一覧をフラットな1段の折りたたみではなく「年単位グループ→
+# 個別」の2段階に分けて表示するため（DeckEditTopBar.vue / regulation-ui.tsの両メニューで使用）。
+
+[[condition]]
+id = "group_by_year_pair.excludes_latest"
+target_function = "groupRegulationTagOptionsByYearPair"
+source_lines = "105"
+description = "yymm=null（最新版）の要素はグルーピング対象から除外する（continueでスキップ）"
+given = "options = [{ type: 'ocg', yymm: null, label: 'OCG' }]"
+expect_return = "[]"
+
+[[condition]]
+id = "group_by_year_pair.even_year_start_pairing"
+target_function = "groupRegulationTagOptionsByYearPair"
+source_lines = "106-107"
+description = "西暦の偶数年始まり2年単位（bucketStart = year - year%2）でグルーピングする。例: 2024年と2025年は同じグループ'24-25'、2026年は単独で(2027年が現れるまでは)'26-27'になる"
+given = "yymmが2601,2604,2607,2510,2507,2504,2501,2410,2407,2404,2401,1810,1807,1804,1801の混在リスト"
+expect_return_shape = "rangeLabel='26-27'(3件),'24-25'(8件),'18-19'(4件)の3グループ（新しい順）"
+
+[[condition]]
+id = "group_by_year_pair.groups_and_items_sorted_desc"
+target_function = "groupRegulationTagOptionsByYearPair"
+source_lines = "108-120"
+description = "グループは新しい順（bucketStart降順）に並ぶ。各グループ内の要素順序は入力の並びをそのまま保持する（呼び出し側がbuildRegulationTagOptionsの新しい順の出力をfilterして渡す前提で、再ソートはしない）"
+given = "options = 新しい順に並んだ同一年ペア内の複数件"
+expect_return_shape = "groups[0].options が入力と同じ順序"

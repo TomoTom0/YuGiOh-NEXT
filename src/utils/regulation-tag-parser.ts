@@ -116,6 +116,43 @@ export function replaceTagYymm(deckName: string, tag: RegulationTag, newYymm: st
 }
 
 /**
+ * デッキ名のレギュレーションタグを設定/上書き/削除する（純粋関数）。
+ *
+ * デッキ編集画面のレギュレーションバッジクリックメニュー（DeckEditTopBar.vue）から使う:
+ * 閲覧画面の一時切替（デッキ名を変更しないプレビュー）と異なり、編集画面では
+ * デッキ名自体がレギュレーションの永続的な指定手段のため、選択操作でデッキ名を書き換える。
+ *
+ * @param deckName 元のデッキ名
+ * @param currentTag 現在のタグ（parseRegulationTag の結果。無ければ null）
+ * @param option null = タグを削除する。それ以外は指定の type/yymm でタグを構築し、
+ *   既存タグがあればその位置・括弧種別を保ったまま置換、無ければ先頭に挿入する
+ *   （新規挿入時は角括弧 [ ] を使う）
+ * @returns タグを反映した新しいデッキ名
+ */
+export function setRegulationTag(
+  deckName: string,
+  currentTag: RegulationTag | null,
+  option: { type: RegType; yymm: string | null } | null
+): string {
+  if (option === null) {
+    if (!currentTag) return deckName;
+    const removed = deckName.slice(0, currentTag.startIndex) + deckName.slice(currentTag.endIndex);
+    return currentTag.position === 'prefix' ? removed.replace(/^\s+/, '') : removed.replace(/\s+$/, '');
+  }
+
+  const name = option.type === 'genesys' ? 'GENESYS' : 'OCG';
+  const bracket = currentTag?.bracket ?? 'square';
+  const open = bracket === 'square' ? '[' : '【';
+  const close = bracket === 'square' ? ']' : '】';
+  const newTag = `${open}${name}${option.yymm ? `-${option.yymm}` : ''}${close}`;
+
+  if (!currentTag) {
+    return deckName ? `${newTag} ${deckName}` : newTag;
+  }
+  return deckName.slice(0, currentTag.startIndex) + newTag + deckName.slice(currentTag.endIndex);
+}
+
+/**
  * デッキ名の先頭にレギュレーションタグ（例: "[OCG]"）がある場合は、
  * タグの位置を保ったままタグの直後に文字列を挿入する（例: "[OCG] COPY_元の名前"）。
  * タグが無い場合は単純に先頭へ連結する（例: "COPY_元の名前"）。

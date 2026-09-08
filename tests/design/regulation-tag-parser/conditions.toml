@@ -21,11 +21,11 @@
 feature = "regulation-tag-parser"
 source_file = "src/utils/regulation-tag-parser.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/regulation-tag-parser.test.ts"
-source_hash = "68cc5cfc95279cdc218ee2da8f31022f5be316e0"
-note = "verified=falseは1件（resolve_reg_type.other_null、非exportのため公開APIから到達不可）"
+source_hash = "664e973e141fe857012273365545e021a8959cd5"
+note = "verified=falseは1件（resolve_reg_type.other_null、非exportのため公開APIから到達不可）。TASK-450でsetRegulationTag追加に伴いparseRegulationTag系のsource_linesを実測値に補正（既存の記載が実ファイルと20行以上ずれていたため）"
 
 # --- resolveRegType(nameUpper: string): RegType | null ---
 # 非export。parseContent() からのみ呼ばれる。
@@ -242,6 +242,58 @@ description = "deckName中の[tag.startIndex, tag.endIndex)の範囲のみを新
 given = "deckName = '[OCG-2501] 青眼の白龍デッキ', tag = parseRegulationTag(deckName)の結果, newYymm = '2410'"
 expect_return = "'[OCG-2410] 青眼の白龍デッキ'"
 
+# --- setRegulationTag(deckName, currentTag, option): string ---
+# export。TASK-450: デッキ編集画面のレギュレーションバッジクリックメニュー
+# （DeckEditTopBar.vue）用に追加。option=nullで削除、それ以外は挿入/置換を行う。
+
+[[condition]]
+id = "set_regulation_tag.option_null_without_current_tag_is_noop"
+target_function = "setRegulationTag"
+source_lines = "137-138"
+description = "option=nullかつcurrentTagがnullの場合、deckNameをそのまま返す"
+given = "currentTag = null, option = null"
+expect_return_shape = "deckNameそのまま"
+
+[[condition]]
+id = "set_regulation_tag.option_null_removes_prefix_tag"
+target_function = "setRegulationTag"
+source_lines = "137-140"
+description = "option=nullかつcurrentTag.position='prefix'の場合、タグ部分を削除し先頭の空白を除去する"
+given = "currentTag.position = 'prefix', option = null"
+expect_return_shape = "タグと直後の空白を除いたデッキ名"
+
+[[condition]]
+id = "set_regulation_tag.option_null_removes_suffix_tag"
+target_function = "setRegulationTag"
+source_lines = "137-140"
+description = "option=nullかつcurrentTag.position='suffix'の場合、タグ部分を削除し末尾の空白を除去する"
+given = "currentTag.position = 'suffix', option = null"
+expect_return_shape = "タグと直前の空白を除いたデッキ名"
+
+[[condition]]
+id = "set_regulation_tag.yymm_null_omits_dash"
+target_function = "setRegulationTag"
+source_lines = "143,147"
+description = "option.yymmがnullの場合、'-YYMM'部分を付けず名前のみのタグ（例: '[OCG]'）を構築する"
+given = "option = { type: 'ocg', yymm: null }"
+expect_return_shape = "新タグ文字列が'-'を含まない"
+
+[[condition]]
+id = "set_regulation_tag.no_current_tag_inserts_prefix"
+target_function = "setRegulationTag"
+source_lines = "144-150"
+description = "currentTagが無い場合、角括弧（デフォルト）で新タグを構築し、デッキ名の先頭にスペース区切りで挿入する（デッキ名が空文字ならタグのみ返す）"
+given = "currentTag = null, deckName = '青眼の白龍デッキ'"
+expect_return_shape = "'[OCG-2608] 青眼の白龍デッキ'"
+
+[[condition]]
+id = "set_regulation_tag.existing_tag_replaced_in_place"
+target_function = "setRegulationTag"
+source_lines = "144-146,152"
+description = "currentTagがある場合、その括弧種別・位置([startIndex,endIndex))を保ったまま新タグに置換する（type変更も可）"
+given = "currentTag = { bracket: 'square', startIndex: 0, endIndex: 10, ... }, option = { type: 'genesys', yymm: '2608' }"
+expect_return_shape = "元のタグ位置がGENESYS-2608タグに置換されたデッキ名"
+
 # --- parseRegulationTag(deckName: string): RegulationTag | null ---
 # export。公開エントリポイント。findTag → parseContent の順に呼び出し、両方成功した場合のみ
 # RegulationTagオブジェクトを構築する。
@@ -249,7 +301,7 @@ expect_return = "'[OCG-2410] 青眼の白龍デッキ'"
 [[condition]]
 id = "parse_regulation_tag.empty_deck_name_null"
 target_function = "parseRegulationTag"
-source_lines = "124"
+source_lines = "183"
 description = "deckNameが空文字（falsy）の場合、findTagを呼ばずに即座にnullを返す"
 given = "deckName = ''"
 expect_return = "null"
@@ -257,7 +309,7 @@ expect_return = "null"
 [[condition]]
 id = "parse_regulation_tag.no_tag_found_null"
 target_function = "parseRegulationTag"
-source_lines = "125-126"
+source_lines = "184-185"
 description = "findTagがnullを返した場合（タグ形式が見つからない）、parseContentを呼ばずにnullを返す"
 given = "deckName = '青眼の白龍デッキ'"
 expect_return = "null"
@@ -265,7 +317,7 @@ expect_return = "null"
 [[condition]]
 id = "parse_regulation_tag.invalid_content_null"
 target_function = "parseRegulationTag"
-source_lines = "127-128"
+source_lines = "186-187"
 description = "findTagは成功したがparseContentがnullを返した場合（レギュレーション名が不正、YYMM桁数不正等）、nullを返す"
 given = "deckName = '[FOO-2608] デッキ'"
 expect_return = "null"
@@ -273,7 +325,7 @@ expect_return = "null"
 [[condition]]
 id = "parse_regulation_tag.success_returns_tag_object"
 target_function = "parseRegulationTag"
-source_lines = "129-137"
+source_lines = "188-197"
 description = "findTag・parseContentともに成功した場合、typeとyymmはparsedから、raw/bracket/position/startIndex/endIndexはtagMatchから構築したRegulationTagオブジェクトを返す"
 given = "deckName = '[GENESYS-2608] 青眼の白龍デッキ'"
 expect_return_shape = "{ type: 'genesys', yymm: '2608', raw: '[GENESYS-2608]', bracket: 'square', position: 'prefix', startIndex: 0, endIndex: 14 }"

@@ -32,8 +32,11 @@ function addShuffleButtonsToSection(sectionId: 'main' | 'extra' | 'side'): HTMLE
     return null;
   }
 
-  // カード枚数のspan（nth-child(3)）を取得
-  const cardCountSpan = safeQuery<HTMLElement>('span:nth-child(3)', top);
+  // カード枚数のspanを取得。top内の最後の子要素が常にカード枚数span
+  // （shuffle/sortボタンはこのspanの直前に挿入されるため、他の拡張機能UIが
+  // カード枚数spanより前に挿入されても位置がずれない。nth-child(3)は他要素の
+  // 挿入で容易にずれるため使用しない: 参照 TASK-450）
+  const cardCountSpan = top.lastElementChild as HTMLElement | null;
   if (!cardCountSpan) {
     return null;
   }
@@ -72,21 +75,23 @@ export function addShuffleButtons(): HTMLElement | null {
 }
 
 /**
- * ボタン要素を作成（既存のbtn hexスタイルに統一）
+ * ボタン要素を作成。
+ * デッキ編集画面(DeckSection.vue .btn-section)と同じ見た目（ニュートラルな枠線ボタン）に揃える。
+ * 旧来の .ytomo-neuron-btn（グラデーション）は編集画面のデザインと一致しないため使わない（TASK-450）。
  */
 function createButton(id: string, iconSvg: string, title: string): HTMLAnchorElement {
   const button = document.createElement('a');
   button.id = id;
-  button.className = 'ygo-next ytomo-neuron-btn';
+  button.className = 'ygo-next ygo-next-shuffle-sort-btn';
   button.href = '#';
   button.title = title;
-  button.style.cssText = 'margin-right: 8px;';
+  button.style.cssText = 'margin-right: 4px;';
 
-  // アイコンを追加
-  const span = document.createElement('span');
-  span.innerHTML = iconSvg;
-
-  button.appendChild(span);
+  // アイコンを追加。<span>で包まずaに直接innerHTMLで設定する:
+  // サイト側CSS ".subcatergory .top span:not(.icon)"（カード枚数バッジ用の紺背景+枠線+margin）が
+  // このボタンは #main .subcatergory .top 配下にあるため、無関係なspan要素にも波及し、
+  // 背景の大部分が隠れてしまう（TASK-450で発覚）。spanを使わなければ影響を受けない。
+  button.innerHTML = iconSvg;
 
   // クリック時のデフォルト動作を無効化
   button.addEventListener('click', (e) => {

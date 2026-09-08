@@ -60,6 +60,16 @@ export async function initDeckDisplay(): Promise<void> {
     await setupVueApp()
   }
 
+  // リミットレギュレーション表示（デッキ名タグ検出時のみ動作、showCardDetailInDeckDisplay設定に非依存）。
+  // セットアップ内のリスト更新（checkAndUpdate）はリモート取得を伴い、新規install・キャッシュ
+  // stale時は長時間（ポーリングtimeout最大30秒×リスト数）かかりうる。awaitで直列に繋ぐと
+  // この後のカード画像サイズ適用と、呼び出し元(content/index.ts)のcard-detail・deck-image・
+  // shuffle等の他機能初期化まで全部遅延するため、awaitせず非同期で実行する（regulation UIは
+  // データ取得完了後に現れてよい。setupRegulationDisplay内でエラーは全てcatchされる）
+  const { setupRegulationDisplay } = await import('./regulation-ui')
+  const { ensureParsedDeckInfo } = await import('./card-detail-ui')
+  void setupRegulationDisplay(ensureParsedDeckInfo)
+
   // カード画像サイズを設定
   setCardImageSize(cardImageSize)
 

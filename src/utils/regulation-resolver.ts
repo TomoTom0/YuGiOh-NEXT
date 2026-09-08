@@ -20,23 +20,104 @@ export interface AvailableRegulations {
 }
 
 /** YYMM（例: "2501"）→ OCG effectiveDate（YYYY-MM-01） */
-function yymmToOcgDate(yymm: string): string {
+export function yymmToOcgDate(yymm: string): string {
   return `20${yymm.slice(0, 2)}-${yymm.slice(2, 4)}-01`;
 }
 
 /** YYMM（例: "2608"）→ GENESYS listParam（YYYYMM） */
-function yymmToGenesysListParam(yymm: string): string {
+export function yymmToGenesysListParam(yymm: string): string {
   return `20${yymm}`;
 }
 
 /** OCG effectiveDate（YYYY-MM-DD）→ YYMM */
-function ocgDateToYymm(date: string): string {
+export function ocgDateToYymm(date: string): string {
   return date.slice(2, 4) + date.slice(5, 7);
 }
 
 /** GENESYS listParam（YYYYMM）→ YYMM */
-function genesysListParamToYymm(listParam: string): string {
+export function genesysListParamToYymm(listParam: string): string {
   return listParam.slice(2);
+}
+
+/** 選択可能なレギュレーションタグの1オプション（型・YYMM・表示ラベル） */
+export interface RegulationTagOption {
+  type: 'ocg' | 'genesys';
+  /** null = 最新版（YYMM省略） */
+  yymm: string | null;
+  label: string;
+}
+
+/**
+ * 実在する版一覧から、デッキ名タグとして選択可能なオプション一覧を構築する（純粋関数）。
+ * 新しい順（最新版が先頭）。デッキ編集画面のタグ入力補完（useDeckRegulationTagSuggestions）・
+ * バッジクリックメニュー（DeckEditTopBar.vue）・デッキ閲覧画面の手動切替メニュー
+ * （regulation-ui.ts）の3箇所から共通利用する（TASK-450: 同種のリスト構築ロジックが
+ * 複数箇所に独立して書かれるのを避けるため一元化）。
+ * ラベルは長い日本語表記（「20XX年XX月版」等）を避け、実際のデッキ名タグ構文
+ * （[OCG-YYMM]）に合わせた短い表記にする: 最新版は型名のみ（例: "OCG"）、
+ * 過去版は型名-YYMM（例: "OCG-2607"）。
+ */
+export function buildRegulationTagOptions(
+  available: AvailableRegulations,
+  isGenesysEnabled: boolean
+): RegulationTagOption[] {
+  const list: RegulationTagOption[] = [{ type: 'ocg', yymm: null, label: 'OCG' }];
+  if (isGenesysEnabled) {
+    list.push({ type: 'genesys', yymm: null, label: 'GENESYS' });
+  }
+
+  const ocgDates = [...available.ocgDates].sort().reverse();
+  ocgDates.forEach(date => {
+    const yymm = ocgDateToYymm(date);
+    list.push({ type: 'ocg', yymm, label: `OCG-${yymm}` });
+  });
+
+  if (isGenesysEnabled) {
+    const genesysParams = [...available.genesysListParams].sort().reverse();
+    genesysParams.forEach(param => {
+      const yymm = genesysListParamToYymm(param);
+      list.push({ type: 'genesys', yymm, label: `GENESYS-${yymm}` });
+    });
+  }
+
+  return list;
+}
+
+/** 2年単位でグルーピングした過去版オプションの1グループ */
+export interface RegulationTagYearGroup {
+  /** 例: "24-25"（西暦下2桁のハイフン区切り） */
+  rangeLabel: string;
+  /** グループ内は新しい順 */
+  options: RegulationTagOption[];
+}
+
+/**
+ * 過去版オプション（yymmがnullでないもの。最新版=nullは無視する）を、西暦の偶数年始まり
+ * 2年単位（例: 2024年と2025年をまとめて"24-25"）でグルーピングする（純粋関数）。
+ * グループ・グループ内の要素とも新しい順。1種類（OCGまたはGENESYS）分のoptionsを渡すこと
+ * （buildRegulationTagOptionsの戻り値をtypeでfilterしてから渡す）。
+ * 過去版一覧をフラットな1段の折りたたみではなく「年単位→個別」の2段階に分けて表示するため
+ * （TASK-450: 選択肢が多い場合に一覧性を上げる指摘への対応）。
+ */
+export function groupRegulationTagOptionsByYearPair(options: RegulationTagOption[]): RegulationTagYearGroup[] {
+  const groups = new Map<number, RegulationTagOption[]>();
+  for (const opt of options) {
+    if (opt.yymm === null) continue;
+    const year = 2000 + Number(opt.yymm.slice(0, 2));
+    const bucketStart = year - (year % 2);
+    const list = groups.get(bucketStart);
+    if (list) {
+      list.push(opt);
+    } else {
+      groups.set(bucketStart, [opt]);
+    }
+  }
+  return [...groups.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([bucketStart, opts]) => ({
+      rangeLabel: `${String(bucketStart).slice(2)}-${String(bucketStart + 1).slice(2)}`,
+      options: opts
+    }));
 }
 
 interface ClosestResult {

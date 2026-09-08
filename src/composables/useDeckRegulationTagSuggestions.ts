@@ -11,6 +11,7 @@
 import { ref, computed, nextTick, type Ref, type ComputedRef } from 'vue'
 import { forbiddenLimitedCache } from '@/utils/forbidden-limited-cache'
 import { genesysPointCache } from '@/utils/genesys-cache'
+import { buildRegulationTagOptions } from '@/utils/regulation-resolver'
 
 export interface Suggestion {
   value: string
@@ -37,18 +38,6 @@ const TRIGGER_PATTERN = /^([[【])([^\]】]*)$/
 
 function closeCharFor(open: string): string {
   return open === '[' ? ']' : '】'
-}
-
-function ocgDateToYymm(date: string): string {
-  return date.slice(2, 4) + date.slice(5, 7)
-}
-
-function genesysListParamToYymm(listParam: string): string {
-  return listParam.slice(2)
-}
-
-function yymmToLabel(yymm: string): string {
-  return `20${yymm.slice(0, 2)}年${yymm.slice(2, 4)}月版`
 }
 
 export function useDeckRegulationTagSuggestions(
@@ -82,30 +71,14 @@ export function useDeckRegulationTagSuggestions(
     if (!open) return []
     const close = closeCharFor(open)
 
-    const list: Suggestion[] = [
-      { value: `${open}OCG${close}`, label: 'OCG 最新版' },
-    ]
-
-    // genesys は feature flag が有効な場合のみサジェスト
-    if (isGenesysEnabled()) {
-      list.push({ value: `${open}GENESYS${close}`, label: 'GENESYS 最新版' })
+    const available = {
+      ocgDates: forbiddenLimitedCache.getAvailableDates(),
+      genesysListParams: isGenesysEnabled() ? genesysPointCache.getAvailableListParams() : []
     }
-
-    const ocgDates = [...forbiddenLimitedCache.getAvailableDates()].sort().reverse()
-    ocgDates.forEach(date => {
-      const yymm = ocgDateToYymm(date)
-      list.push({ value: `${open}OCG-${yymm}${close}`, label: `OCG ${yymmToLabel(yymm)}` })
-    })
-
-    if (isGenesysEnabled()) {
-      const genesysParams = [...genesysPointCache.getAvailableListParams()].sort().reverse()
-      genesysParams.forEach(param => {
-        const yymm = genesysListParamToYymm(param)
-        list.push({ value: `${open}GENESYS-${yymm}${close}`, label: `GENESYS ${yymmToLabel(yymm)}` })
-      })
-    }
-
-    return list
+    return buildRegulationTagOptions(available, isGenesysEnabled()).map(opt => ({
+      value: `${open}${opt.type === 'genesys' ? 'GENESYS' : 'OCG'}${opt.yymm ? `-${opt.yymm}` : ''}${close}`,
+      label: opt.label
+    }))
   })
 
   const suggestions = computed<Suggestion[]>(() => {

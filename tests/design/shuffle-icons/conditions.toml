@@ -8,15 +8,20 @@
 #
 # 既存テストの説明文・アサーションの不正確さ:
 # - 専用テストは存在しなかったため、新規作成した。
+#
+# 2026-09-03(TASK-450): デッキ編集画面(DeckSection.vue)のシャッフル/ソートボタンと
+# 見た目が異なる（アイコン形状も含めて別デザインだった）とのユーザー指摘を受け、
+# SHUFFLE_ICON/SORT_ICONを編集画面と同じ mdiShuffle/mdiSort（@mdi/js、fill="currentColor"の
+# パス形状）に置き換えた。旧実装はFeatherアイコン風のstroke形状だった。
 
 [meta]
 feature = "shuffle-icons"
 source_file = "src/utils/shuffle-icons.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
+verified_at = "2026-09-03"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/shuffle-icons.test.ts"
-source_hash = "f701595ac2546bd8b0f7888d9371b6c857e8967c"
+source_hash = "66936a61b18b3a21872cc554c39bf8e3bf96e853"
 note = "verified=falseは0件。export関数は存在しないため、export定数のliteral shapeを条件化した"
 
 # --- exported SVG icon constants ---
@@ -24,23 +29,23 @@ note = "verified=falseは0件。export関数は存在しないため、export定
 [[condition]]
 id = "shuffle_icon.literal_svg_shape"
 target_function = "SHUFFLE_ICON"
-source_lines = "12-20"
-description = "SHUFFLE_ICONは16x16・viewBox='0 0 24 24'・stroke='currentColor'のsvg文字列で、shuffle形状のpolyline 2本とline 3本を含む"
+source_lines = "12-16"
+description = "SHUFFLE_ICONは16x16・viewBox='0 0 24 24'のsvg文字列で、デッキ編集画面(DeckSection.vue)と同じmdiShuffleのpath（fill=\"currentColor\"）を含む"
 given = "SHUFFLE_ICON"
-expect_return_shape = "svg文字列に '<polyline points=\"16 3 21 3 21 8\">'、'<line x1=\"4\" y1=\"20\" x2=\"21\" y2=\"3\">'、'<polyline points=\"21 16 21 21 16 21\">'、'<line x1=\"15\" y1=\"15\" x2=\"21\" y2=\"21\">'、'<line x1=\"4\" y1=\"4\" x2=\"9\" y2=\"9\">' を含む"
+expect_return_shape = "svg文字列に '<path fill=\"currentColor\" d=\"M14.83,13.41L13.42,14.82L16.55,17.95L14.5,20H20V14.5L17.96,16.54L14.83,13.41M14.5,4L16.54,6.04L4,18.59L5.41,20L17.96,7.46L20,9.5V4M10.59,9.17L5.41,4L4,5.41L9.17,10.58L10.59,9.17Z\">' を含む"
 
 [[condition]]
 id = "sort_icon.literal_svg_shape"
 target_function = "SORT_ICON"
-source_lines = "26-33"
-description = "SORT_ICONは16x16・viewBox='0 0 24 24'・stroke='currentColor'のsvg文字列で、x=4/10/16/22の縦line 4本を含む"
+source_lines = "22-26"
+description = "SORT_ICONは16x16・viewBox='0 0 24 24'のsvg文字列で、デッキ編集画面(DeckSection.vue)と同じmdiSortのpath（fill=\"currentColor\"）を含む"
 given = "SORT_ICON"
-expect_return_shape = "svg文字列に '<line x1=\"4\" y1=\"20\" x2=\"4\" y2=\"14\">'、'<line x1=\"10\" y1=\"20\" x2=\"10\" y2=\"10\">'、'<line x1=\"16\" y1=\"20\" x2=\"16\" y2=\"6\">'、'<line x1=\"22\" y1=\"20\" x2=\"22\" y2=\"2\">' を含む"
+expect_return_shape = "svg文字列に '<path fill=\"currentColor\" d=\"M18 21L14 17H17V7H14L18 3L22 7H19V17H22M2 19V17H12V19M2 13V11H9V13M2 7V5H6V7H2Z\">' を含む"
 
 [[condition]]
 id = "lock_closed_icon.literal_svg_shape"
 target_function = "LOCK_CLOSED_ICON"
-source_lines = "38-43"
+source_lines = "31-36"
 description = "LOCK_CLOSED_ICONは12x12・viewBox='0 0 24 24'のsvg文字列で、lock本体のrectと閉じたU字pathを含む"
 given = "LOCK_CLOSED_ICON"
 expect_return_shape = "svg文字列に '<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\" ry=\"2\" stroke=\"currentColor\" stroke-width=\"2\"/>' と '<path d=\"M7 11V7a5 5 0 0 1 10 0v4\" stroke=\"currentColor\" stroke-width=\"2\"/>' を含む"
@@ -48,7 +53,7 @@ expect_return_shape = "svg文字列に '<rect x=\"5\" y=\"11\" width=\"14\" heig
 [[condition]]
 id = "lock_open_icon.literal_svg_shape"
 target_function = "LOCK_OPEN_ICON"
-source_lines = "48-53"
+source_lines = "41-46"
 description = "LOCK_OPEN_ICONは12x12・viewBox='0 0 24 24'のsvg文字列で、lock本体のrectと開いたpathを含む"
 given = "LOCK_OPEN_ICON"
 expect_return_shape = "svg文字列に '<rect x=\"5\" y=\"11\" width=\"14\" height=\"10\" rx=\"2\" ry=\"2\" stroke=\"currentColor\" stroke-width=\"2\"/>' と '<path d=\"M7 11V7a5 5 0 0 1 5-5c1.5 0 2.8 0.6 3.7 1.5M17 11V8\" stroke=\"currentColor\" stroke-width=\"2\"/>' を含む"
