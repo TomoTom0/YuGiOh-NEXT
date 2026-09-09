@@ -31,6 +31,7 @@
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |
 | `parser/` | パーサー | - |
+| `scripts/` | デバッグ用シェルlib（browser-config.sh等。bashサブシェル呼び出しで検証） | `browser-config.test.ts` |
 
 ---
 
@@ -76,6 +77,7 @@
 | URL state管理 | `tests/e2e/url-state-sync.test.ts` | 状態同期の正確性 |
 | シャッフル機能 | `tests/unit/shuffle/shuffleCards.test.ts` | ランダム性の担保 |
 | feature flagデフォルト値（configs/features.toml） | `tests/unit/configs/feature-defaults.test.ts` | tomlとFeatureId/DEFAULT_FEATURE_SETTINGSの整合・dev-only解決の検証 |
+| ブラウザ起動lib（scripts/debug/setup/lib/browser-config.sh） | `tests/unit/scripts/browser-config.test.ts` | 全browserテストの起動経路。toml読み取り・binary/拡張機能解決・port特定kill・CDPポーリング |
 
 ---
 
@@ -118,7 +120,7 @@ mise run test:vitest -- --coverage
 ### ブラウザ自動テスト
 
 ```bash
-# ブラウザテスト実行前の準備
+# ブラウザテスト実行前の準備（ディスプレイの無い環境では --headless を付ける）
 ./scripts/debug/setup/start-chrome.sh
 
 # 個別のブラウザテストを実行
@@ -213,7 +215,7 @@ mise run test:vitest -- tests/e2e/
 
 2. **WebSocket接続情報を確認**
    ```bash
-   cat $(tomlq -r '.chrome.ws_file' configs/browser.toml)
+   cat tmp/browser/chrome/debug.ws   # パスは configs/browser.toml の chrome.ws_file で管理
    ```
 
 3. **詳細は `tests/browser/README.md` を参照**

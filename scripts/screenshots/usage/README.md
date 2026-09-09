@@ -13,6 +13,8 @@ docs/usage/ のドキュメント用のスクリーンショット・動画・GI
 ./scripts/debug/setup/start-chrome.sh
 ```
 
+ディスプレイの無い環境では `--headless` を付けます。手動操作を伴う撮影は Xvfb + VNC スタック（`./scripts/debug/setup/start-login-vnc.sh`）でGUI起動します。
+
 ### 2. 依存パッケージ
 
 - **Node.js**: WebSocket通信、スクリプト実行

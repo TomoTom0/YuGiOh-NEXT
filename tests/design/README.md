@@ -23,6 +23,9 @@ src/ 実装ファイル: 219 (*.test.ts等のテストファイルは除く。�
   stores/         6
   constants/      5  ← ロジックを持たない定数のみなら対象外
   styles/,popup/,config/,background/ 各1
+
+scripts/ 実装ファイル: 上記src/計画の対象外。ただしテスト・検証基盤のコードは
+個別に条件化する（例: scripts/debug/setup/lib/browser-config.sh → browser-config/。TASK-466）
 ```
 
 全ファイルへの展開は非現実的な工数（試作1ファイル=856行で73条件、相応の読解時間を要した）。優先順位付けと機械抽出の併用で工数を抑える。

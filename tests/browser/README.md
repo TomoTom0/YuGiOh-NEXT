@@ -12,13 +12,23 @@ Chrome DevTools Protocol（CDP）を使用して、Chromiumブラウザ上で拡
 
 ```bash
 # Chromium起動（リモートデバッグモード + 拡張機能ロード）
+# 設定（binary・拡張機能パス・headless等）は configs/browser.toml で管理
 ./scripts/debug/setup/start-chrome.sh
+
+# ディスプレイの無い環境ではヘッドレス起動を強制
+./scripts/debug/setup/start-chrome.sh --headless
+
+# 設定の解決結果だけ確認（起動しない）
+./scripts/debug/setup/start-chrome.sh --check
 ```
 
 このスクリプトは以下を実行します：
-- Chromiumをリモートデバッグモードで起動
-- 拡張機能を自動ロード
-- WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に指定されたファイルに保存
+- Chromiumをリモートデバッグモードで起動（binaryはconfig指定 > Playwright同梱 > chromium-browser の順に自動検出）
+- 拡張機能を自動ロード（config指定 > `.env` の `RSYNC_PATH`）
+- 起動成否をCDP応答で確認し、WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に保存（失敗時はログ末尾を表示して異常終了）
+- 停止は `./scripts/debug/setup/stop-chrome.sh`
+
+手動ログイン（遊戯王DB会員ログイン等）が必要なテストでは、Xvfb + VNCスタックでGUI起動できる `./scripts/debug/setup/start-login-vnc.sh`（停止は `stop-login-vnc.sh`）を使用します。
 
 ### 2. 依存パッケージのインストール
 

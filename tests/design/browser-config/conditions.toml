@@ -1,0 +1,426 @@
+# 検証対象: scripts/debug/setup/lib/browser-config.sh（+ configs/browser.toml の設定仕様）
+#
+# TASK-466: start-chrome.sh の環境依存破綻修正（tomlq無しのconfig読み取り、binary・
+# 拡張機能パスのconfig化、空値/依存欠落時の即エラー停止、起動成否ポーリング）で
+# 新設された共通ライブラリ。
+#
+# 出典について（test-structure skill §1 の fallback）: このlibに対する要件文書・設計文書は
+# 存在しないため、TASK-466 の goal/body と実装（lib関数のコメント含む）を出典として条件を
+# 起こしている。要件側に出典を移せる文書が整備された場合は source を差し替えること。
+#
+# 単体テスト対象の軸:
+# - lib 関数の分岐・エラー経路（die / require_cmd / read_cfg / resolve_binary /
+#   resolve_extension_dir / stop_port / fetch_ws_url）。Chromium 実起動を伴う
+#   スクリプト本文（start-chrome.sh 等）のフローは [[excluded]] 参照（e2e領域）
+# - configs/browser.toml 出荷値が満たすべき仕様制約
+#
+# テスト未作成のため meta.verified = false（テスト作成・全件PASS後に検証記録を書く）。
+
+[meta]
+feature = "browser-config"
+source_file = "scripts/debug/setup/lib/browser-config.sh"
+verified = true
+verified_at = "2026-09-09"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/scripts/browser-config.test.ts"
+source_hash = "9428f1a54f748323a46fe1fcf40e98d4fb61757f"
+note = "TASK-466実装後に条件化（skill fallback: 要件文書が無いため実装+TASK-466 goal/bodyを出典とする）。configs/browser.tomlの設定仕様条件2件を含む。35/36条件を tests/unit/scripts/browser-config.test.ts（35テスト、bashサブシェル+fixture TOML/.env/HOME/ダミーHTTPサーバ）で検証。verified=falseは1件: resolve-binary-all-candidates-missing-dies（開発機にシステムchromiumが実在し全候補不在を再現不能）。fetch_ws_url系は同一プロセス内HTTPサーバとのデッドロック回避のため非同期spawn（runLibAsync）で呼び出す"
+
+# --- die() ---
+
+[[condition]]
+id = "browser-config.die-writes-stderr-and-exits-1"
+target_function = "die"
+source = "TASK-466 goal/body（空値/依存欠落時に即エラー停止）+ scripts/debug/setup/lib/browser-config.sh die"
+description = "全エラー経路の基盤となるエラー終了の契約。メッセージはstderrへ[ERROR]接頭辞付きで出力し終了コード1"
+given = "die \"テストメッセージ\" を呼び出す"
+expect_return = "exit 1。stderrに [ERROR] テストメッセージ が出力され、stdoutには何も出ない"
+
+# --- require_cmd() ---
+
+[[condition]]
+id = "browser-config.require-cmd-present-returns-0"
+target_function = "require_cmd"
+source = "TASK-466 goal/body（依存欠落時の即エラー停止）+ scripts/debug/setup/lib/browser-config.sh require_cmd"
+description = "コマンドがPATH上に存在する場合は何もせず正常復帰する"
+given = "PATH上に存在するコマンド（例: curl）を指定"
+expect_no_throw = "dieせず終了コード0"
+
+[[condition]]
+id = "browser-config.require-cmd-missing-dies"
+target_function = "require_cmd"
+source = "TASK-466 goal/body（tomlq等の依存欠落時に黙って続行しない）+ scripts/debug/setup/lib/browser-config.sh require_cmd"
+description = "コマンドが存在しない場合、黙って続行せずdieする。旧start-chrome.shの「依存欠落でも成功表示する」問題の直接的修正要件"
+given = "PATH上に存在しないコマンド名（例: PATHを空のディレクトリに絞った状態で require_cmd tomlq）"
+expect_throw = "exit 1（die: 必須コマンド 'tomlq' が見つかりません…）"
+
+# --- read_cfg() ---
+
+[[condition]]
+id = "browser-config.read-cfg-double-quoted-value"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（tomlq無しでconfig読み取り。cdp-helper.cjs readBrowserConfigと同じ方式）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "TOMLの基本形 key = \"value\"（二重引用符）から値を取り出す。引用符を除去し、末尾改行なしでstdoutへ出力"
+given = "BROWSER_CONFIGの対象セクションに ws_file = \"tmp/browser/chrome/debug.ws\" と記載"
+expect_return = "tmp/browser/chrome/debug.ws（引用符なし・末尾改行なし）"
+
+[[condition]]
+id = "browser-config.read-cfg-single-quoted-value"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（tomlq無しでconfig読み取り）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "TOMLリテラル文字列 key = 'value'（単引用符）にも対応し引用符を除去する"
+given = "対象セクションに profile_dir = 'tmp/browser/chrome/profile'（単引用符）と記載"
+expect_return = "tmp/browser/chrome/profile"
+
+[[condition]]
+id = "browser-config.read-cfg-bare-number-and-bool"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（tomlq無しでconfig読み取り）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "クォートなしの数値・bool値は文字列としてそのまま返る（debug_port = 9222、headless = true 等）"
+given = "対象セクションに debug_port = 9222 と headless = false と記載（クォートなし）"
+expect_return = "read_cfg chrome debug_port = \"9222\"、read_cfg chrome headless = \"false\"（いずれも文字列）"
+
+[[condition]]
+id = "browser-config.read-cfg-strips-trailing-comment"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（tomlq無しでconfig読み取り）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "行末の # コメントを除去して値を返す（configs/browser.toml は各キーに行末コメントを持つ）"
+given = "対象セクションに port = 39050 # VNC用ポート と記載（行末コメント付き）"
+expect_return = "39050"
+
+[[condition]]
+id = "browser-config.read-cfg-truncates-at-hash-in-value"
+target_function = "read_cfg"
+source = "scripts/debug/setup/lib/browser-config.sh read_cfg（実装コメント: 現状の値に # は含まれない前提）"
+description = "値の中に # がある場合は最初の # 以降が切り捨てられる。実装明記の前提（既知の制約）であり、# を含む値を設定してはならない根拠"
+given = "対象セクションに ws_file = \"tmp/a#b\" と記載"
+expect_return = "tmp/a（最初の#以降が切り捨てられる）"
+
+[[condition]]
+id = "browser-config.read-cfg-undefined-key-or-section-empty"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（未定義なら空文字列。空値検出は呼び出し側がdie）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "keyが未定義、またはsection自体が存在しない場合はdieせず空文字列を返す。空値チェックは呼び出し側スクリプトの責務"
+given = "対象セクションに存在しないkey、または存在しないsectionを指定"
+expect_return = "空文字列（終了コード0）"
+
+[[condition]]
+id = "browser-config.read-cfg-no-section-boundary-leak"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（tomlq無しでconfig読み取り）+ scripts/debug/setup/lib/browser-config.sh read_cfg（sedのsection範囲抽出）"
+description = "セクション境界を越えて読み取らない。対象セクションにkeyが無く後続セクションに同名keyがあっても空文字列を返す（[chrome]と[login-vnc]の両方に profile_dir がある実構成で混同すると誤プロファイル起動になるため重要）"
+given = "対象セクションにkeyが無く、後続セクションに同名keyがある（例: [chrome] に無い key を [login-vnc] が持つfixture）"
+expect_return = "空文字列（後続セクションの値は読み取らない）"
+
+[[condition]]
+id = "browser-config.read-cfg-commented-out-line-empty"
+target_function = "read_cfg"
+source = "scripts/debug/setup/lib/browser-config.sh read_cfg（^key アンカー）"
+description = "行頭 # でコメントアウトされたキー行は未定義扱い。binary 等を一時無効化する典型的な編集操作が誤読みしないことの保証"
+given = "対象セクションに # binary = \"/path/to/chrome\" とコメントアウトされた行がある"
+expect_return = "空文字列"
+
+[[condition]]
+id = "browser-config.read-cfg-missing-config-file-dies"
+target_function = "read_cfg"
+source = "TASK-466 goal/body（依存欠落・設定欠落時に即エラー停止）+ scripts/debug/setup/lib/browser-config.sh read_cfg"
+description = "BROWSER_CONFIG自体が存在しない場合はdieする"
+given = "BROWSER_CONFIG に存在しないパスを設定して read_cfg を呼ぶ"
+expect_throw = "exit 1（die: 設定ファイルが見つかりません: <パス>）"
+
+# --- resolve_binary() ---
+
+[[condition]]
+id = "browser-config.resolve-binary-configured-relative-path"
+target_function = "resolve_binary"
+source = "TASK-466 goal/body（ブラウザbinaryをconfig化）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "chrome.binary がプロジェクトルート相対パスの場合は PROJECT_ROOT を連結した絶対パスとして検証・返す"
+given = "chrome.binary = \"tmp/test/chrome\"（PROJECT_ROOT相対・実行可能ファイルをfixtureに作成）"
+expect_return = "${PROJECT_ROOT}/tmp/test/chrome"
+
+[[condition]]
+id = "browser-config.resolve-binary-configured-tilde-path"
+target_function = "resolve_binary"
+source = "TASK-466 goal/body（ブラウザbinaryをconfig化）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "chrome.binary が ~/ 开始の場合は HOME に展開する"
+given = "chrome.binary = \"~/bin/chrome\"（HOME配下に実行可能ファイルをfixtureに作成）"
+expect_return = "${HOME}/bin/chrome"
+
+[[condition]]
+id = "browser-config.resolve-binary-configured-absolute-path"
+target_function = "resolve_binary"
+source = "TASK-466 goal/body（ブラウザbinaryをconfig化）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "chrome.binary が絶対パスの場合はそのまま返す（連結・展開しない）"
+given = "chrome.binary = \"/opt/chrome-bin/chrome\"（絶対パスの実行可能ファイルをfixtureに作成）"
+expect_return = "/opt/chrome-bin/chrome（そのまま）"
+
+[[condition]]
+id = "browser-config.resolve-binary-configured-not-executable-dies"
+target_function = "resolve_binary"
+source = "TASK-466 goal/body（空値/不正値なら即エラー停止）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "chrome.binary に存在しないパスや実行bitの無いパスを指定した場合はdieする（旧来の黙った失敗の防止）"
+given = "chrome.binary に存在しないパス、または実行権限の無いファイルを指定"
+expect_throw = "exit 1（die: chrome.binary に指定されたバイナリが実行可能ではありません: <パス>）"
+
+[[condition]]
+id = "browser-config.resolve-binary-unset-prefers-newest-playwright"
+target_function = "resolve_binary"
+source = "TASK-466 body項目3（Playwright同梱Chromiumもbinary候補に）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "chrome.binary が空の場合、Playwright同梱Chromium（複数バージョンあればバージョン最新）が全システム候補（/usr/bin/chromium-browser等）に優先して返る"
+given = "chrome.binary = \"\"。HOME配下のfixtureに chromium-1000/chrome-linux/chrome と chromium-1200/chrome-linux64/chrome を作成（マシン側にシステムchromiumが存在しても影響しない）"
+expect_return = "${HOME}/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome（sort -V で最大のバージョン）"
+
+[[condition]]
+id = "browser-config.resolve-binary-unset-system-fallback-order"
+target_function = "resolve_binary"
+source = "TASK-466 body項目3（binary候補順）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "Playwright同梱Chromiumが存在しない場合はシステム候補を所定順で試し、最初に存在かつ実行可能なものを返す。注: /usr/bin・/snap/bin はfixtureで制御できないため、候補間の順序そのものは検証環境の保有状況に依存する（最初に存在する候補が返ること、は検証可能）"
+given = "chrome.binary = \"\" でHOME配下にPlaywright同梱Chromiumが無く、いずれかのシステム候補が存在する環境"
+expect_return_shape = "/usr/bin/chromium-browser > /snap/bin/chromium > PATH上のchromium の順で最初に存在かつ実行可能なパス"
+
+[[condition]]
+id = "browser-config.resolve-binary-all-candidates-missing-dies"
+target_function = "resolve_binary"
+source = "TASK-466 goal/body（依存欠落時に即エラー停止・修正案の指示文言）+ scripts/debug/setup/lib/browser-config.sh resolve_binary"
+description = "全候補（明示指定・Playwright・システム3種）が存在しない場合はdieする。注: 開発機にシステムchromiumが存在する場合はこの状態を再現できず検証不能になりうる（その場合はverified=false+unverifiable_reasonを付記）"
+given = "chrome.binary = \"\" で、Playwright同梱Chromium・/usr/bin/chromium-browser・/snap/bin/chromium・PATH上のchromiumがすべて存在しない"
+expect_throw = "exit 1（die: Chromiumバイナリが見つかりません。configs/browser.toml の chrome.binary にパスを指定してください）"
+verified = false
+unverifiable_reason = "開発機に /usr/bin/chromium-browser（snap wrapper）が実在するため全候補不在を再現できない（/usr/bin・/snap/bin はfixtureで制御不可）。die経路自体は resolve-binary-configured-not-executable-dies で同様に検証済み"
+
+# --- resolve_extension_dir() ---
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-configured-relative-path"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（拡張機能パスをconfig化。旧WSLパス硬codingの解消）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = "chrome.extension_dir がプロジェクトルート相対パスの場合は PROJECT_ROOT 連結の絶対パスとして検証・返す"
+given = "chrome.extension_dir = \"tmp/test/ext\"（存在するディレクトリをfixtureに作成）"
+expect_return = "${PROJECT_ROOT}/tmp/test/ext"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-configured-tilde-path"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（拡張機能パスをconfig化）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = "chrome.extension_dir が ~/ 开始の場合は HOME に展開する"
+given = "chrome.extension_dir = \"~/ext/ygo-next\"（HOME配下にディレクトリをfixtureに作成）"
+expect_return = "${HOME}/ext/ygo-next"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-configured-absolute-path"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（拡張機能パスをconfig化）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = "chrome.extension_dir が絶対パスの場合はそのまま返す（連結・展開しない）"
+given = "chrome.extension_dir = \"/opt/ext/ygo-next\"（絶対パスのディレクトリをfixtureに作成）"
+expect_return = "/opt/ext/ygo-next（そのまま）"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-configured-not-directory-dies"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（空値/不正値なら即エラー停止）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = "chrome.extension_dir に存在しないパスを指定した場合はdieする"
+given = "chrome.extension_dir に存在しないパスを指定"
+expect_throw = "exit 1（die: chrome.extension_dir に指定されたディレクトリが存在しません: <パス>）"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-env-missing-dies"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（.env RSYNC_PATH参照・依存欠落時に即エラー停止）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = "chrome.extension_dir が空で .env ファイル自体が存在しない場合はdieする"
+given = "chrome.extension_dir = \"\" で ${PROJECT_ROOT}/.env が存在しない"
+expect_throw = "exit 1（die: .env が見つかりません…chrome.extension_dir を指定してください）"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-rsync-path-empty-dies"
+target_function = "resolve_extension_dir"
+source = "TASK-466 goal/body（空値なら即エラー停止）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = ".env は存在するが RSYNC_PATH 行が無い、または値が空の場合はdieする"
+given = "chrome.extension_dir = \"\" で、.env に RSYNC_PATH 行が無い（または値が空）"
+expect_throw = "exit 1（die: .env の RSYNC_PATH が空です。chrome.extension_dir を指定してください）"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-rsync-path-tilde-expanded"
+target_function = "resolve_extension_dir"
+source = "TASK-466 body項目2（現deploy先は .env の RSYNC_PATH）+ scripts/debug/setup/lib/browser-config.sh resolve_extension_dir"
+description = ".env の RSYNC_PATH の先頭 ~ を HOME に展開して返す"
+given = "chrome.extension_dir = \"\" で、.env に RSYNC_PATH=~/work/data/rsync/chrome-ext/ygo-next と記載"
+expect_return = "${HOME}/work/data/rsync/chrome-ext/ygo-next"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-rsync-path-quotes-stripped"
+target_function = "resolve_extension_dir"
+source = "scripts/debug/setup/lib/browser-config.sh resolve_extension_dir（tr -d によるクォート除去）"
+description = ".env の RSYNC_PATH 値を二重引用符・単引用符のいずれで囲んでいても除去して返す"
+given = ".env に RSYNC_PATH=\"/path/to/ext\" または RSYNC_PATH='/path/to/ext' と記載"
+expect_return = "/path/to/ext（引用符除去済み）"
+
+[[condition]]
+id = "browser-config.resolve-extension-dir-env-fallback-skips-dir-validation"
+target_function = "resolve_extension_dir"
+source = "scripts/debug/setup/lib/browser-config.sh resolve_extension_dir + start-chrome.sh（直後のmanifest.json検査）"
+description = "明示指定時と異なり .env の RSYNC_PATH 経由ではディレクトリ存在検査をlib内で行わない。存在検証は呼び出し側スクリプトのmanifest.json検査に委ねる二段構え"
+given = "chrome.extension_dir = \"\" で、.env の RSYNC_PATH が存在しないディレクトリを指す"
+expect_return_shape = "dieせず展開済みパスを返す（存在検査は呼び出し側に委ねられる）"
+
+# --- stop_port() ---
+
+[[condition]]
+id = "browser-config.stop-port-kills-listeners"
+target_function = "stop_port"
+source = "TASK-466 + グローバルルール（ポートをlistenするPIDのみ終了。名前ベースkillの禁止）+ scripts/debug/setup/lib/browser-config.sh stop_port"
+description = "指定ポートをlistenするプロセスのみを終了し0を返す。他プロセスを巻き込まない（lsof -ti で特定）"
+given = "テスト用ダミープロセス（例: nc や一時スクリプト）が空きポートでlistenしている"
+expect_return = "0。当該ポートをlistenするPIDのみが kill -s TERM され、ポート外のプロセスは生存する"
+
+[[condition]]
+id = "browser-config.stop-port-no-listener-returns-1"
+target_function = "stop_port"
+source = "scripts/debug/setup/lib/browser-config.sh stop_port"
+description = "対象ポートをlistenするプロセスが無い場合は何もkillせず1を返す（呼び出し側が未起動表示に分岐する根拠）"
+given = "どのプロセスもlistenしていない空きポートを指定"
+expect_return = "1（killは実行されない）"
+
+[[condition]]
+id = "browser-config.stop-port-custom-signal"
+target_function = "stop_port"
+source = "scripts/debug/setup/stop-chrome.sh（TERM後のKILLエスカレーション使用）+ scripts/debug/setup/lib/browser-config.sh stop_port"
+description = "第2引数のシグナルが kill -s に渡される。デフォルトはTERM、KILL指定でTERMをtrapして生存するプロセスも終了できる"
+given = "TERMをtrapして生存するダミープロセスがポートをlistenしている状態で stop_port <port> KILL を呼ぶ"
+expect_return = "0。kill -s KILL が送られプロセスが終了する"
+
+# --- fetch_ws_url() ---
+
+[[condition]]
+id = "browser-config.fetch-ws-url-writes-first-page-target"
+target_function = "fetch_ws_url"
+source = "TASK-466 goal/body（起動成否チェック・CDP /json からpage型のwebSocketDebuggerUrl取得）+ scripts/debug/setup/lib/browser-config.sh fetch_ws_url"
+description = "CDP /json から page 型ターゲットの webSocketDebuggerUrl を取得し ws_file へ書き込む。他type（browser等）は無視し、複数page型あれば先頭。親ディレクトリは自動作成"
+given = "localhostの空きポートでダミーHTTPサーバが /json に page型1件以上と他type混在のリスト（各要素にtype/webSocketDebuggerUrl）を返す"
+expect_return = "0。最初のpage型webSocketDebuggerUrlがws_fileへ書き込まれる（親ディレクトリ自動作成）"
+
+[[condition]]
+id = "browser-config.fetch-ws-url-timeout-returns-1"
+target_function = "fetch_ws_url"
+source = "TASK-466 goal/body（起動成否チェック。CDP応答なしを失敗として扱う）+ scripts/debug/setup/lib/browser-config.sh fetch_ws_url"
+description = "page型URLが取得できない状態（接続拒否またはpage型なし）がtimeout秒続いた場合は1を返し、ws_fileは書き込まれない"
+given = "/json がpage型URLを返さない状態で timeout_sec を短く設定して呼ぶ"
+expect_return = "1。ws_fileは作成・更新されない"
+
+[[condition]]
+id = "browser-config.fetch-ws-url-retries-until-success"
+target_function = "fetch_ws_url"
+source = "TASK-466 goal/body（起動成否のポーリング。起動直後はCDP応答が始まらない時間がある）+ scripts/debug/setup/lib/browser-config.sh fetch_ws_url"
+description = "1秒間隔でポーリングを繰り返し、timeout内にpage型URLを取得できれば成功（0）を返す。起動完了前の失敗で即断念しない"
+given = "初回は接続拒否し、ポーリング中にpage型URLを返し始めるダミーサーバ（例: 1-2秒遅れで起動）"
+expect_return = "0（再試行後にws_fileへ書き込まれる）"
+
+# --- configs/browser.toml 出荷値の仕様制約 ---
+
+[[condition]]
+id = "browser-config.browser-toml-chrome-paths-non-hidden"
+target_function = "configs/browser.toml [chrome]"
+source = "TASK-466 body項目3（snap版chromiumはhome interfaceで隠しディレクトリにアクセス不可のためprofile_dir設定の見直し）+ configs/browser.toml [chrome] コメント"
+description = "出荷状態の chrome.profile_dir と chrome.ws_file は tmp/browser/chrome/ 配下の非隠しパスである（snap版chromiumでプロファイル・ws_fileが読み書き不能になるのを防ぐ構成制約）"
+given = "リポジトリ出荷状態の configs/browser.toml"
+expect_return = "chrome.profile_dir = tmp/browser/chrome/profile、chrome.ws_file = tmp/browser/chrome/debug.ws。いずれもピリオド開始セグメント（隠しディレクトリ）を含まない tmp/browser/chrome/ 配下のパス"
+
+[[condition]]
+id = "browser-config.browser-toml-login-vnc-port-range"
+target_function = "configs/browser.toml [login-vnc]"
+source = "TASK-466 + configs/browser.toml [login-vnc] コメント（ユーザー指定範囲 39050-39054 のみ設定可能）+ start-login-vnc.sh の範囲検査（3905[0-4]）"
+description = "出荷状態の login-vnc.port は数値でユーザー指定範囲 39050-39054 内にある（範囲検査は start-login-vnc.sh 本文にあるため、unitでは出荷値が制約を満たすことを検証する）"
+given = "リポジトリ出荷状態の configs/browser.toml"
+expect_return = "login-vnc.port = 39050（39050-39054 内の数値）"
+
+# --- 条件化しない項目（test-structure skill §5 step3 / §8） ---
+
+[[excluded]]
+item = "start-chrome.sh の引数解析（--headless / --gui / --check の解釈、不明オプションでのdie、FORCE_HEADLESSによるchrome.headless設定の上書き）"
+source = "TASK-466 + scripts/debug/setup/start-chrome.sh 引数解析部"
+reason = "lib関数ではなくスクリプト本文の挙動で、検証にはスクリプト実行を要する。unit条件の軸はlib関数・設定仕様であり、スクリプト実行は依存解決（curl/jq/chromium解決）も伴うため範囲外（e2e/手動確認領域）"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "start-chrome.sh 本文の設定値検証（各キー空値時のdie、debug_port数値検査、headless/no_sandboxのtrue/false検査）"
+source = "TASK-466 goal/body（空値・不正値なら即エラー停止）+ scripts/debug/setup/start-chrome.sh"
+reason = "スクリプト本文にinlineで書かれた検証で、関数として切り出されていないためスクリプト実行無しに単体検証できない。read_cfgの値解釈条件（数値・bool・空値）とdie基盤条件でlib側は網羅しており、本文検証はスクリプト実行時のe2e確認領域"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "start-chrome.sh --check の解決結果表示（起動せず設定解決結果のみ出力して終了）"
+source = "TASK-466 + scripts/debug/setup/start-chrome.sh --check部"
+reason = "スクリプト実行を要し、かつ実環境のbinary解決・build成果物（拡張機能）に依存する。unit条件の範囲外（e2e/手動確認領域）"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "start-chrome.sh の起動フロー全体（manifest.json存在検査、既存起動検知pgrep、nohupでのChromium起動・引数組み立て、起動成否15秒ポーリングの構成）"
+source = "TASK-466 goal/body（起動成否チェック）+ scripts/debug/setup/start-chrome.sh"
+reason = "実Chromium起動とbuild成果物を伴うe2e性質の内容でありunit条件の範囲外。ポーリングの構成要素であるfetch_ws_url自体の成功・タイムアウト・再試行はlib条件（fetch-ws-url系3条件）として条件化済み"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "stop-chrome.sh の停止フロー（TERM後も残っていればKILLで再送るエスカレーション、未起動時のメッセージ表示）"
+source = "TASK-466 + scripts/debug/setup/stop-chrome.sh"
+reason = "スクリプト本文のフローで実行を要する。killの手段（listen中PIDのみ終了・シグナル指定）はlib条件（stop-port系3条件）として条件化済み"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "start-login-vnc.sh のスタック起動全体（Xvfb/x11vnc依存検査、login-vnc設定値検証、display/port数値検査と39050-39054範囲検査、既存スタック停止、Xvfb/x11vnc/Chromium GUI起動と成否チェック）"
+source = "TASK-466 body項目4（xvfb+VNCが必要）+ scripts/debug/setup/start-login-vnc.sh"
+reason = "Xサーバー（Xvfb）・VNCという外部プロセスの実起動を伴いunit条件の範囲外。範囲制約の値側はbrowser-toml-login-vnc-port-range条件として出荷値で条件化済み"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "stop-login-vnc.sh の3段階停止フロー（Chromium/VNC/Xvfbの順の停止と、停止対象なし時のメッセージ）"
+source = "TASK-466 + scripts/debug/setup/stop-login-vnc.sh"
+reason = "スクリプト本文のフローで実行を要し、実プロセスの起動状態に依存する。停止手段のlib条件（stop-port系）で検証可能な部分は条件化済み"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "browser-config.sh read_cfg と cdp-helper.cjs readBrowserConfig の読み取り値パリティ（同一browser.toml解釈の一致）"
+source = "scripts/debug/setup/lib/browser-config.sh ヘッダーコメント（cdp-helper.cjs と同じ方式）"
+reason = "TASK-466の要件はshell側の読み取り堅牢化であり、JS側（cdp-helper.cjs）との値一致は要件化されていない。shell/JS両実装をまたぐ結合確認領域"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "read_cfg で同一セクションに同一keyが複数行ある場合の先頭行採用"
+source = "scripts/debug/setup/lib/browser-config.sh read_cfg（head -1）"
+reason = "TOML仕様上の不正入力（重複キー）であり、サポート対象外の入力形式。不正入力の挙動固定は条件としない（§8: 挙動仕様として意味のある分岐ではない）"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = ".env に RSYNC_PATH 行が複数ある場合の先頭行採用"
+source = "scripts/debug/setup/lib/browser-config.sh resolve_extension_dir（head -1）"
+reason = ".envとして不正な入力形式であり、サポート対象外。不正入力の挙動固定は条件としない（§8）"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "fetch_ws_url の timeout_sec = 0 時にポーリングせず即return 1する境界"
+source = "scripts/debug/setup/lib/browser-config.sh fetch_ws_url（whileループ条件）"
+reason = "ループ継続条件の自明な算術的境界で、呼び出し側は10/15秒のみ使用。タイムアウト時の挙動自体はfetch-ws-url-timeout-returns-1条件で検証"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "stop_port/fetch_ws_url 内の require_cmd lsof/curl/jq の各依存検査"
+source = "TASK-466 + scripts/debug/setup/lib/browser-config.sh stop_port/fetch_ws_url"
+reason = "共通helper（require_cmd）の同一分岐の呼び出しであり、require_cmdの条件（present/missing の2条件）で検証済み。呼び出し個所ごとの重複条件は意味のある分岐を増やさない（§8）"
+decided_at = "2026-09-08"
+decided_by = "claude"
+
+[[excluded]]
+item = "configs/browser.toml 出荷値の値固定（headless = false、no_sandbox = true、debug_port = 9222、display = 99、login-vnc.profile_dir のパス等）"
+source = "TASK-466 + configs/browser.toml"
+reason = "これらは環境ポリシー値（no_sandboxはコメントで『sandboxが使える環境ではfalseに戻すこと』と運用指示あり）であり固定仕様ではない。値の形式検証（数値・bool）はスクリプト本文の実行時検査に委ねられ、unitで固定化すると環境毎の調整を妨げる"
+decided_at = "2026-09-08"
+decided_by = "claude"

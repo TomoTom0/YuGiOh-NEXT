@@ -1,14 +1,36 @@
 # ブラウザデバッグ設定
 #
-# start-chrome.sh / cdp-helper.cjs / Playwrightスクリプトで共有される設定。
+# scripts/debug/setup/ 配下のスクリプトと cdp-helper.cjs で共有される設定。
 # パスはプロジェクトルートからの相対パスで指定する。
 #
 # 編集後は全consumerが新しい値を参照する（ハードコード不要）。
+# 解決結果の確認: ./scripts/debug/setup/start-chrome.sh --check
 
 [chrome]
 # Chrome DevTools Protocol WebSocketエンドポイントを書き込むファイル
-ws_file = ".cache/browser/chrome/debug.ws"
+ws_file = "tmp/browser/chrome/debug.ws"
 # リモートデバッグポート
 debug_port = 9222
 # Chromiumユーザープロファイルディレクトリ
-profile_dir = ".cache/browser/chrome/profile"
+# 注: snap版chromiumは隠しディレクトリ（.cache等）配下にアクセスできないため非隠しパスとする
+profile_dir = "tmp/browser/chrome/profile"
+# Chromiumバイナリ。空文字列なら自動検出する（候補順:
+#   Playwright同梱Chromium（最新） > /usr/bin/chromium-browser > /snap/bin/chromium > PATH上のchromium）
+binary = ""
+# 拡張機能ディレクトリ。空文字列なら .env の RSYNC_PATH（build-deploy のデプロイ先）を使用
+extension_dir = ""
+# ヘッドレス起動（--headless=new）。手動ログインが必要な場合は start-login-vnc.sh を使う
+headless = false
+# --no-sandbox を付けるか。Ubuntu 23.10+ で AppArmor が unprivileged user namespaces を
+# 無効化している環境（snap版以外のchromiumで "No usable sandbox" FATAL になる環境）では true が必要。
+# snap版chromiumのようにsandboxが使える環境では false に戻すこと
+no_sandbox = true
+
+[login-vnc]
+# 手動ログイン用スタック（start-login-vnc.sh）の設定
+# Xサーバー（Xvfb）のディスプレイ番号
+display = 99
+# VNCポート（ユーザー指定範囲 39050-39054 のみ設定可能）
+port = 39050
+# ログイン用プロファイルディレクトリ（ログイン状態をここに保持する）
+profile_dir = "tmp/browser/chrome/login-profile"
