@@ -34,7 +34,7 @@ Vue コンポーネントの動作をテスト。
 - DeckSection.vue
 - CardInfo.vue
 
-### 3. APIテスト（src/api/__tests__/）
+### 3. APIテスト（tests/unit/api/）
 
 API関連の処理をテスト。
 

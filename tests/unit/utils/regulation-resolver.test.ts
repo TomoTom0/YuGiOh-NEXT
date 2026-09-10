@@ -161,3 +161,33 @@ describe('groupRegulationTagOptionsByYearPair', () => {
     expect(groups[0]?.options.map(o => o.yymm)).toEqual(['2307', '2301', '2201']);
   });
 });
+
+// 以下、src/utils/__tests__/regulation-resolver.test.ts (TASK-478) から移植。
+// tests/unit側に無かったGENE省略形タグ（parseRegulationTagの解釈を経由するresolver統合）
+// と、GENESYS実在一覧が空の場合のlistParam計算の検証を含む。
+
+describe('resolveDeckRegulation（TASK-478移植分）', () => {
+  it('GENE省略形（YYMM省略・最新版指定）をgenesys modeとして解決する [covers:resolve.gene_abbrev_resolved_as_genesys]', () => {
+    const r = resolveDeckRegulation('[GENE] マイデッキ', available);
+    expect(r.mode).toBe('genesys');
+    expect(r.effectiveDate).toBeNull();
+    expect(r.listParam).toBeNull();
+    expect(r.fallback).toBeUndefined();
+  });
+
+  it('GENESYS実在一覧が空ならYYMMから計算したlistParamを返しensureListに取得を試行させる [covers:resolve.genesys_yymm_empty_available_returns_computed_list_param]', () => {
+    const r = resolveDeckRegulation('[GENESYS-2608] マイデッキ', { ocgDates: [], genesysListParams: [] });
+    expect(r.mode).toBe('genesys');
+    // 実在一覧が空でも YYMM=2608 → listParam=202608 を返す
+    expect(r.listParam).toBe('202608');
+    expect(r.fallback).toBeUndefined();
+  });
+
+  it('[GENE-2608]（GENE省略形+YYMM）を GENESYS-2608 として解決する [covers:resolve.gene_abbrev_resolved_as_genesys]', () => {
+    const r = resolveDeckRegulation('[GENE-2608] マイデッキ', { ocgDates: [], genesysListParams: ['202608'] });
+    expect(r.mode).toBe('genesys');
+    expect(r.listParam).toBe('202608');
+    expect(r.tag?.type).toBe('genesys');
+    expect(r.tag?.yymm).toBe('2608');
+  });
+});

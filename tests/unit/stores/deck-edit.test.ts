@@ -272,7 +272,7 @@ const sampleFusion: CardInfo = {
 
   // ===== ソート機能テスト =====
 
-  await test('sortDisplayOrderForOfficial: モンスター→魔法→罠の順序', () => {
+  await test('sortDisplayOrderForOfficial: モンスター→魔法→罠の順序 [covers:sort_display_order_for_official.syncs_three_sections]', () => {
     const store = useDeckEditStore();
     
     // 罠→魔法→モンスターの順で追加（逆順）

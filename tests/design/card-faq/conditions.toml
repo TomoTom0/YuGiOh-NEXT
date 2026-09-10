@@ -15,7 +15,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/api/card-faq.test.ts"
 source_hash = "6f0f367d8e2a41f4adecb55e564ab81aa7f5eca0"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/api/__tests__/card-faq.test.tsと一本化した。src側8テストのうち実行4件（getCardFAQList/getFAQDetailのok:false時null返却・fetchエラー時null返却）はいずれもunit側の既存テスト（faq_list.response_not_ok / faq_list.catch_error / faq_detail.response_not_ok / faq_detail.catch_error対応）と同趣旨のため移植0件。skip付き4件（HTMLパース系）もunit側の実行テストが実質をカバー済み（skip側のgetFAQDetail戻り値cardName期待は現在の実装に存在しないフィールドで古い記述）。旧ファイルは削除済み"
 
 # --- getCardFAQList(cardId: string): Promise<CardFAQList | null> ---
 

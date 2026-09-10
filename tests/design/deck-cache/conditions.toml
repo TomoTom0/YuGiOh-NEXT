@@ -17,7 +17,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/deck-cache.test.ts"
 source_hash = "21258677f3dd07cc8ac8f9fe07ecf16db367d6a3"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/utils/__tests__/deck-cache.test.ts（36テスト）を削除して一本化。両ファイルをit()単位で実体比較した結果、src側36件すべてがtests/unit/utils/deck-cache.test.ts（61テスト）の既存検証と同趣旨（多くはunit側が例外・境界ケースまで広く網羅）のため移植0件。src側は旧形式のlocalStorageキー（ygo_deck_list_order等）でモックしていたが、実装はygoNext:プレフィックスキーを使用しておりunit側が正しいキーで同一検証を保持"
 
 # --- loadDeckListOrder(): number[] ---
 

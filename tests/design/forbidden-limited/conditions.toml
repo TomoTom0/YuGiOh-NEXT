@@ -8,10 +8,11 @@
 feature = "forbidden-limited"
 source_file = "src/api/forbidden-limited.ts"
 verified = true
-verified_at = "2026-08-05"
+verified_at = "2026-09-09"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/api/forbidden-limited-parse.test.ts tests/unit/api/forbidden-limited-utils.test.ts"
+test_command = "mise run test:vitest -- tests/unit/api/forbidden-limited-parse.test.ts tests/unit/api/forbidden-limited-utils.test.ts tests/unit/api/forbidden-limited.test.ts"
 source_hash = "9c2e39fff58c60a32ab152b5b6c5a48894bf07a6"
+note = "TASK-476: src/api/__tests__/forbidden-limited.test.tsをtests/unit/api/へ移動し[covers:id]タグを付与して統合。この移動でparse.fetched_at_uses_current_timeを新規追加（fetchedAtがDate.now()である点は既存条件になかった）。source_hashは移動前と同一で実装側の変更は無い"
 
 # --- parseForbiddenLimitedHtml(html: string, effectiveDate: string): ForbiddenLimitedList ---
 
@@ -22,6 +23,14 @@ source_lines = "26-29"
 description = "#list_forbiddenが存在する場合、配下の.t_rowをforbidden規制として抽出する"
 given = "html に #list_forbidden > .t_row(input.link_value=\"...cid=100\") が1件存在する"
 expect_return_shape = "regulations[\"100\"] === \"forbidden\""
+
+[[condition]]
+id = "parse.fetched_at_uses_current_time"
+target_function = "parseForbiddenLimitedHtml"
+source_lines = "43-47"
+description = "戻り値のfetchedAtは呼び出し時点のDate.now()を設定する"
+given = "任意のhtmlとeffectiveDateでparseForbiddenLimitedHtmlを呼ぶ"
+expect_return_shape = "result.fetchedAt は呼び出し時点のミリ秒タイムスタンプ（> 0）"
 
 [[condition]]
 id = "parse.forbidden_section.absent"

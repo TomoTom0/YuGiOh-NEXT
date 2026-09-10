@@ -78,6 +78,10 @@ describe('promise-timeout', () => {
   });
 
   describe('TimeoutError.isTimeoutError', () => {
+    it('[covers:timeout_error.extends_error] Errorを継承しておりinstanceof Errorが成立する', () => {
+      expect(new TimeoutError('x')).toBeInstanceOf(Error);
+    });
+
     it('[covers:timeout_error.instance_true] TimeoutErrorインスタンスならtrue', () => {
       expect(TimeoutError.isTimeoutError(new TimeoutError('x'))).toBe(true);
     });

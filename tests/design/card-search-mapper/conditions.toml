@@ -1,0 +1,166 @@
+# 検証対象: src/api/mappers/card-search-mapper.ts（マッピング定数 SORT_ORDER_TO_API_VALUE）
+# テスト: tests/unit/api/card-search-mapper.test.ts
+#
+# 経緯: tm TASK-476（src/__tests__ 配下から tests/unit への移動に伴うdesign整備）。
+#
+# 備考:
+# - SORT_ORDER_TO_API_VALUE の実定義は src/api/mappers/card-search-mapper.ts にある
+#   （src/api/card-search.ts 55行目が同定数をre-exportし、テストはそちら経由でimportする）。
+#   TASK-476委任時点では card-search.ts 内の実装と想定していたが、実態は mappers/ 配下に
+#   分離済みのため source_file を実定義元に向けている。
+# - 本テストは src/types/card-maps.ts の *_ID_TO_INT 定数群（属性・種族・モンスタータイプ・
+#   魔法/罠効果タイプ）も検証対象に含む。card-maps 単独のdesignは tests/design/README.md 1節
+#   （types/定数のみのファイルは対象外）により存在しないため、本テストが検証する範囲に限り
+#   本designの条件として管理する（card_maps系5条件。source_hashの管理外である点は下記note参照）。
+# - 既存 tests/design/card-search/conditions.toml はAPI検索・パース処理（parse_*/build_params等）
+#   を対象とし、マッピング定数の値対応は条件化していないため重複なし。
+#   tests/design/search-options-builder/conditions.toml の sort.* は SORT_ORDER_TO_API_VALUE の
+#   「利用側」のフォールバック（キー不在時 `|| 1`）を対象としており、マップ定義自体の
+#   キー→値対応（本design）とは責務が分かれる。
+
+[meta]
+feature = "card-search-mapper"
+source_file = "src/api/mappers/card-search-mapper.ts"
+verified = true
+verified_at = "2026-09-09"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/api/card-search-mapper.test.ts"
+source_hash = "4164dfd102d8e11c727388c88bc5ae536262822e"
+note = "verified=falseは0件。card_maps系5条件の実体は src/types/card-maps.ts であり source_hash（mappers/card-search-mapper.ts）の管理外。card-maps.ts 変更時は再検証が必要。"
+
+# --- SORT_ORDER_TO_API_VALUE: ソート順 → API値のマッピング（src/api/mappers/card-search-mapper.ts 124-141行） ---
+
+[[condition]]
+id = "sort_order.name_orders_map_to_api_1"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L125-126 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "125-126"
+description = "APIは50音順ソートのみを持ち降順を指定できないため、name_asc/name_descともAPI値1を用い、name_descはクライアント側で反転する"
+given = "SORT_ORDER_TO_API_VALUE['name_asc'] と ['name_desc'] を参照"
+expect_return = "いずれも 1"
+
+[[condition]]
+id = "sort_order.release_desc_maps_to_21"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L127-130 と tm TASK-373（実サーバー直接fetch検証）"
+source_lines = "127-130"
+description = "TASK-373の実サーバー検証でsort=21は最新のカードを返すことが判明した（値の意味が名称と逆転）。release_desc（新しい順）には21を割り当てる"
+given = "SORT_ORDER_TO_API_VALUE['release_desc'] を参照"
+expect_return = "21"
+
+[[condition]]
+id = "sort_order.release_asc_maps_to_20"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L127-130 と tm TASK-373（実サーバー直接fetch検証）"
+source_lines = "127-130"
+description = "TASK-373の実サーバー検証でsort=20は最古のカードを返すことが判明した。release_asc（古い順）には20を割り当てる"
+given = "SORT_ORDER_TO_API_VALUE['release_asc'] を参照"
+expect_return = "20"
+
+[[condition]]
+id = "sort_order.level_orders_map_to_2_and_3"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L131 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "131"
+description = "レベル順はlevel_desc=2、level_asc=3のAPI値に対応する"
+given = "SORT_ORDER_TO_API_VALUE['level_desc'] と ['level_asc'] を参照"
+expect_return = "desc=2, asc=3"
+
+[[condition]]
+id = "sort_order.atk_orders_map_to_4_and_5"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L133-134 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "133-134"
+description = "攻撃力順はatk_desc=4、atk_asc=5のAPI値に対応する"
+given = "SORT_ORDER_TO_API_VALUE['atk_desc'] と ['atk_asc'] を参照"
+expect_return = "desc=4, asc=5"
+
+[[condition]]
+id = "sort_order.def_orders_map_to_6_and_7"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L135-136 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "135-136"
+description = "守備力順はdef_desc=6、def_asc=7のAPI値に対応する"
+given = "SORT_ORDER_TO_API_VALUE['def_desc'] と ['def_asc'] を参照"
+expect_return = "desc=6, asc=7"
+
+[[condition]]
+id = "sort_order.unsupported_sorts_fallback_to_name"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L137-140 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "137-140"
+description = "APIに属性ソート・種族ソートが存在しないため、attribute_asc/attribute_desc/race_asc/race_descは50音順（1）にフォールバックし、クライアント側で追加ソートを行う"
+given = "SORT_ORDER_TO_API_VALUE['attribute_asc'], ['attribute_desc'], ['race_asc'], ['race_desc'] を参照"
+expect_return = "いずれも 1"
+
+[[condition]]
+id = "sort_order.all_sort_keys_defined_numeric"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L124-141 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "124-141"
+description = "SortOrder型で定義済みの全14キー（name/release/level/atk/def/attribute/raceの各asc/desc）が欠落なく定義され、値はすべてnumber型である（キー欠落はRecord<string, number>のため型では検出されない）"
+given = "マップの全キーを走査"
+expect_return_shape = "14キーすべてが定義済みで、値はtypeof number"
+
+[[condition]]
+id = "sort_order.api_values_within_valid_range"
+target_function = "SORT_ORDER_TO_API_VALUE"
+source = "src/api/mappers/card-search-mapper.ts L124-141 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "124-141"
+description = "マップの全値はAPIが受付ける有効範囲（1-21）に収まる。範囲外の値はAPI検索の失敗・無視につながる"
+given = "マップの全値を走査"
+expect_return_shape = "すべて 1以上21以下"
+
+# --- src/types/card-maps.ts の *_ID_TO_INT 定数群（本テストが検証する範囲） ---
+
+[[condition]]
+id = "card_maps.attribute_keys_positive_unique"
+target_function = "ATTRIBUTE_ID_TO_INT"
+source = "src/types/card-maps.ts L123-131 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "src/types/card-maps.ts:123-131"
+description = "主要6属性（dark/light/water/fire/wind/earth）のキーが定義され、全値は正数で一意。値の重複はgetAttributeAttrValueの変換と逆引きを破壊する"
+given = "ATTRIBUTE_ID_TO_INT の全エントリを走査"
+expect_return_shape = "主要6属性キーを持ち、全値はnumber型・0超で一意"
+
+[[condition]]
+id = "card_maps.race_keys_positive_unique"
+target_function = "RACE_ID_TO_INT"
+source = "src/types/card-maps.ts L20-47 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "src/types/card-maps.ts:20-47"
+description = "主要4種族（dragon/spellcaster/warrior/fiend）のキーが定義され、全値は正数で一意。getRaceSpeciesValueの変換と逆引きの前提"
+given = "RACE_ID_TO_INT の全エントリを走査"
+expect_return_shape = "主要4種族キーを持ち、全値はnumber型・0超で一意"
+
+[[condition]]
+id = "card_maps.monster_type_keys_unique_zero_allowed"
+target_function = "MONSTER_TYPE_ID_TO_INT"
+source = "src/types/card-maps.ts L169-185 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "src/types/card-maps.ts:169-185"
+description = "主要7モンスタータイプ（normal/effect/fusion/ritual/synchro/xyz/link）のキーが定義され、全値は一意。通常モンスター（normal）は0も有効な値のため非負で一意"
+given = "MONSTER_TYPE_ID_TO_INT の全エントリを走査"
+expect_return_shape = "主要7タイプキーを持ち、全値はnumber型・0以上で一意"
+
+[[condition]]
+id = "card_maps.spell_effect_type_keys_defined"
+target_function = "SPELL_EFFECT_TYPE_ID_TO_INT"
+source = "src/types/card-maps.ts L239-260 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "src/types/card-maps.ts:239-260"
+description = "主要6魔法効果タイプ（normal/continuous/equip/field/quick/ritual）のキーが定義される。getSpellEffectTypeEffeValueの変換の前提"
+given = "SPELL_EFFECT_TYPE_ID_TO_INT を参照"
+expect_return_shape = "主要6タイプキーが定義済み"
+
+[[condition]]
+id = "card_maps.trap_effect_type_keys_defined"
+target_function = "TRAP_EFFECT_TYPE_ID_TO_INT"
+source = "src/types/card-maps.ts L295-310 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "src/types/card-maps.ts:295-310"
+description = "主要3罠効果タイプ（normal/continuous/counter）のキーが定義される。getTrapEffectTypeEffeValueの変換の前提"
+given = "TRAP_EFFECT_TYPE_ID_TO_INT を参照"
+expect_return_shape = "主要3タイプキーが定義済み"
+
+[[excluded]]
+item = "Reverse Mapping Generation（attributes/races/monster typesの逆引き可能性3テスト: Object.entriesの結果が非空で[string, number]形式であることの検証）"
+source = "tests/unit/api/card-search-mapper.test.ts describe('Reverse Mapping Generation') と tm TASK-476"
+reason = "Record<Race, number>等の型でほぼ保証済みであり、値の正数性・一意性を検証する card_maps 系既存条件と重複する性質検査のため、意味のある分岐・排他条件を追加しない（粒度基準『書かない: 型システムで保証済みの分岐』）。実装上の逆引きマップ（*_PATH_TO_ID）は本テストの検証対象外"
+decided_at = "2026-09-09"
+decided_by = "claude"

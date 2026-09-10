@@ -318,6 +318,15 @@ describe('safe-dom-query', () => {
       expect(result).toBe(true);
       expect(document.getElementById('child')?.classList.contains('highlight')).toBe(true);
     });
+
+    it('クラス追加後も既存クラスは保持される [covers:safe_add_class.found_adds_class_true]', () => {
+      document.body.innerHTML = '<div id="btn" class="existing-class">Button</div>';
+      const result = safeAddClass('#btn', 'additional-class');
+
+      expect(result).toBe(true);
+      expect(document.getElementById('btn')?.classList.contains('existing-class')).toBe(true);
+      expect(document.getElementById('btn')?.classList.contains('additional-class')).toBe(true);
+    });
   });
 
   describe('safeRemoveClass', () => {

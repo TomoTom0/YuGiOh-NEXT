@@ -318,6 +318,29 @@ describe('useDeckRegulation conditions', () => {
     );
   });
 
+  it('[covers:resolve.ensure_order_and_available_passed_to_resolver] discovery完了（checkAndUpdate）後に取得したavailableをresolverへ渡す', async () => {
+    // src/composables/deck/__tests__/useDeckRegulation.test.ts (TASK-478) から移植。
+    // await前にgetAvailableDatesを読む実装ではavailableが不完全なまま解決されてしまうため、
+    // discoveryDoneフラグで実挙動ベースの順序を検証する
+    let discoveryDone = false;
+    vi.mocked(forbiddenLimitedCache.checkAndUpdate).mockImplementation(async () => {
+      discoveryDone = true;
+    });
+    vi.mocked(forbiddenLimitedCache.getAvailableDates).mockImplementation(() =>
+      discoveryDone ? ['2026-08-01'] : []
+    );
+
+    const regulation = useDeckRegulation(createOptions());
+
+    await regulation.resolveAndEnsure({ dno: 1, silent: true });
+
+    expect(forbiddenLimitedCache.checkAndUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.resolveDeckRegulation).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ ocgDates: ['2026-08-01'] })
+    );
+  });
+
   it('[covers:resolve.ocg_effective_date_ensures_forbidden_list] resolveAndEnsureはOCG過去版リストを取得する', async () => {
     const regulation = useDeckRegulation(createOptions());
     mocks.resolveDeckRegulation.mockReturnValue(

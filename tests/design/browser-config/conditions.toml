@@ -24,7 +24,7 @@ verified_at = "2026-09-09"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/scripts/browser-config.test.ts"
 source_hash = "9428f1a54f748323a46fe1fcf40e98d4fb61757f"
-note = "TASK-466実装後に条件化（skill fallback: 要件文書が無いため実装+TASK-466 goal/bodyを出典とする）。configs/browser.tomlの設定仕様条件2件を含む。35/36条件を tests/unit/scripts/browser-config.test.ts（35テスト、bashサブシェル+fixture TOML/.env/HOME/ダミーHTTPサーバ）で検証。verified=falseは1件: resolve-binary-all-candidates-missing-dies（開発機にシステムchromiumが実在し全候補不在を再現不能）。fetch_ws_url系は同一プロセス内HTTPサーバとのデッドロック回避のため非同期spawn（runLibAsync）で呼び出す"
+note = "TASK-466実装後に条件化（skill fallback: 要件文書が無いため実装+TASK-466 goal/bodyを出典とする）。configs/browser.tomlの設定仕様条件3件を含む。36/37条件を tests/unit/scripts/browser-config.test.ts（36テスト、bashサブシェル+fixture TOML/.env/HOME/ダミーHTTPサーバ）で検証。verified=falseは1件: resolve-binary-all-candidates-missing-dies（開発機にシステムchromiumが実在し全候補不在を再現不能）。fetch_ws_url系は同一プロセス内HTTPサーバとのデッドロック回避のため非同期spawn（runLibAsync）で呼び出す"
 
 # --- die() ---
 
@@ -331,6 +331,14 @@ source = "TASK-466 + configs/browser.toml [login-vnc] コメント（ユーザ�
 description = "出荷状態の login-vnc.port は数値でユーザー指定範囲 39050-39054 内にある（範囲検査は start-login-vnc.sh 本文にあるため、unitでは出荷値が制約を満たすことを検証する）"
 given = "リポジトリ出荷状態の configs/browser.toml"
 expect_return = "login-vnc.port = 39050（39050-39054 内の数値）"
+
+[[condition]]
+id = "browser-config.browser-toml-session-state-file-under-data"
+target_function = "configs/browser.toml [session]"
+source = "TASK-467 設計（storageStateは認証情報を含むためgitignore済みdata/配下に置く構成制約）+ configs-management規約"
+description = "出荷状態の session.state_file は data/ 配下のパスである（.gitignore の /data により認証情報を含むファイルがcommitされない構成制約）"
+given = "リポジトリ出荷状態の configs/browser.toml"
+expect_return = "session.state_file = data/session/storageState.json（data/ で始まる相対パス）"
 
 # --- 条件化しない項目（test-structure skill §5 step3 / §8） ---
 

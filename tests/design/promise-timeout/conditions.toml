@@ -15,7 +15,7 @@ verified_at = "2026-08-07"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/promise-timeout.test.ts"
 source_hash = "3befeb8d8d89e9148cb4f01283ab0d64210a6457"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/promise-timeout.test.tsを一本化。src側32itのうち31itはtests/unit/utils/promise-timeout.test.tsのfake timersによる既存検証と同趣旨だったため移植不要と判断し、未カバーだったTimeoutErrorのError継承検証1件（toBeInstanceOf(Error)）を移植してtimeout_error.extends_error条件を新規追加、旧ファイルを削除した。なおsrc側「should store cancel reason」は実検証がisCancelled()のみでreasonの保存を検証しておらず、実装もcancelのreason引数(_msg)を無視するため、保存機能自体が存在しない（cancel_token_cancel_sets_trueと同趣旨）"
 
 # --- withTimeout<T>(promise: Promise<T>, options: TimeoutOptions = {}): Promise<T> ---
 
@@ -60,7 +60,15 @@ description = "onTimeout未指定でタイムアウトした場合、optional ch
 given = "promiseがsettleしない、options={ ms: 25 }"
 expect_throw = "TimeoutError: Promise timeout after 25ms"
 
-# --- TimeoutError.isTimeoutError(error: any): error is TimeoutError ---
+# --- TimeoutError#constructor / isTimeoutError(error: any): error is TimeoutError ---
+
+[[condition]]
+id = "timeout_error.extends_error"
+target_function = "TimeoutError#constructor"
+source_lines = "72-78"
+description = "TimeoutErrorはErrorを継承し、constructor内のObject.setPrototypeOf(this, TimeoutError.prototype)によりinstanceof Error（とinstanceof TimeoutError）が成立する。catch節で通常のErrorとして捕捉できることの保証"
+given = "error = new TimeoutError('x')"
+expect_side_effect = "toBeInstanceOf(Error)がtrue"
 
 [[condition]]
 id = "timeout_error.instance_true"

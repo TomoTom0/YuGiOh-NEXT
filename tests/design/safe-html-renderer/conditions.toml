@@ -34,7 +34,7 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/safe-html-renderer.test.ts"
 source_hash = "0bd62177d4e5713ea9869c622fd0bb0732023ca4"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で重複していたsrc/utils/__tests__/safe-html-renderer.test.ts（41it）から実世界XSS防止の統合テスト3件をtests/unit/utils/safe-html-renderer.test.tsへ移植し、対応する統合条件3件（xss_integration.*）を新規追加、src側ファイルを削除して一本化した。残り38件はtests/unit側に同趣旨の検証が既存のため移植せず"
 
 # --- escapeHtml(text: string): string ---
 
@@ -249,3 +249,32 @@ source_lines = "228-240"
 description = "複数の危険パターンに同時にマッチする場合、issuesにはdangerousPatterns配列の宣言順(javascript: → イベントハンドラ → <script> → <iframe> → <object>/<embed>)でメッセージが追加される。html文字列中の出現順序ではなく配列の宣言順で決まる。"
 given = "html内にiframeがscriptより前に出現し、かつscript/iframe両方の危険パターンにマッチする"
 expect_return_shape = "issues配列内での各メッセージの並び順はdangerousPatterns宣言順(script用メッセージがiframe用メッセージより前)"
+
+# --- 実世界のXSS防止統合パターン（TASK-478でsrc/utils/__tests__/safe-html-renderer.test.tsから移植） ---
+#
+# 個別関数の分岐条件ではなく、複数関数を想定された使用パターン（JSDocの推奨用法）で
+# 組み合わせた際に危険要素がDOMへ生成されないことを保証する統合条件。
+
+[[condition]]
+id = "xss_integration.stored_data_escaped_via_builder_no_dynamic_element"
+target_function = "escapeHtml + SafeHtmlBuilder.div + setSafeInnerHTML"
+source_lines = "24-33,123-134,81-85"
+description = "APIデータ等の外部文字列をescapeHtmlでエスケープしてからSafeHtmlBuilderでHTML文字列を構築しsetSafeInnerHTMLで設定した場合、元文字列に含まれるimg/script等のタグはHTMLとして解釈されずテキストとして描画される（格納型XSSの防止）"
+given = "apiData.name = 'Product<img src=x onerror=\"alert(1)\">' をescapeHtmlしてSafeHtmlBuilder.divのcontentに渡し、setSafeInnerHTMLでdiv要素へ設定"
+expect_side_effect = "描画結果にimg要素は存在せず、textContentは'Product'を含む"
+
+[[condition]]
+id = "xss_integration.attribute_boundary_protected_by_escape_attribute"
+target_function = "escapeAttribute + setSafeInnerHTML"
+source_lines = "62-64,81-85"
+description = "テンプレートリテラルのダブルクォート属性値に外部文字列を埋め込む際、escapeAttributeでクォート文字をエスケープしていれば属性値の境界を突破されてscript要素等を注入されることはない（DOMベースXSSの防止）"
+given = "userInput = '\"><script>alert(1)</script><div class=\"' をescapeAttributeしてhref属性値に埋め込んだHTMLをsetSafeInnerHTMLでdiv要素へ設定"
+expect_side_effect = "描画結果にscript要素は存在しない"
+
+[[condition]]
+id = "xss_integration.user_html_escaped_no_dynamic_element"
+target_function = "escapeHtml + setSafeInnerHTML"
+source_lines = "24-33,81-85"
+description = "ユーザー提供のHTML文字列をinnerHTMLへそのまま渡さずescapeHtmlで文字列化してからsetSafeInnerHTMLで設定した場合、タグはすべてリテラル文字列として描画され要素は生成されない"
+given = "userHtml = '<p>Hello</p><img src=x onerror=\"alert(1)\">' をescapeHtmlしてsetSafeInnerHTMLでdiv要素へ設定"
+expect_side_effect = "描画結果にimg要素は存在せず、textContentは'<p>Hello</p>'を含む"

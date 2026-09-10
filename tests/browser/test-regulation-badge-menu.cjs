@@ -24,7 +24,7 @@
  *      .ygo-next-regulation-menu-item[data-value], .ygo-next-regulation-menu-expand[data-expand])
  */
 
-const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
+const { connectCDP, createTestContext, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
 
 /**
  * Vue の <Transition> 描画中はクリックが吸収されることがあるため、
@@ -41,8 +41,6 @@ async function clickUntil(cdp, clickExpr, conditionExpr, timeout = 5000, interva
 }
 
 const EDIT_URL = 'https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=3';
-// 公開デッキ表示ページ（認証不要、閲覧モードのメニュー確認用）
-const DECK_DISPLAY_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
 
 async function testEditPageMenu(t) {
   console.log('\n【編集画面: regulation-badgeクリックメニュー】\n');
@@ -152,7 +150,7 @@ async function testDisplayPageMenu(t) {
 
   try {
     console.log('公開デッキ表示ページにアクセス中...');
-    await cdp.navigate(DECK_DISPLAY_URL);
+    await cdp.navigate(PUBLIC_DECK_URL);
     const triggerReady = await cdp.waitFor(
       `document.querySelector('.ygo-next-regulation-trigger') !== null`,
       15000

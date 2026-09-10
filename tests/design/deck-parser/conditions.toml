@@ -19,7 +19,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/parser/deck-parser.test.ts"
 source_hash = "c2c175096784abd646308329015e77e15c7b892c"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/content/parser/__tests__/deck-parser.test.tsと一本化した。src側8テスト（monster/spell/trap行のcid・ciid・quantity・lang検証、imgs欠落時ciidデフォルト'1'、情報欠落時null、ページ全体パースのdno/name/isPublic/deckType/comment・main/extra/side、dno欠落0・name欠落''）はいずれもunit側の既存テスト（monster/spell/trapのキャッシュ形状検証・imgs_absent_defaults・card_type_missing・基本フィールド読み取り・deck_sections・省略時デフォルト値）と同趣旨のため移植0件。旧ファイルは削除済み"
 
 # --- parseCardRow(row: HTMLElement): DeckCardRef | null ---
 

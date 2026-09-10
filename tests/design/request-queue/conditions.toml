@@ -31,7 +31,7 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/request-queue.test.ts"
 source_hash = "c90959b63a741dd8f962323bd128e55381300ae9"
-note = "verified=falseは0件（privateメソッドへの直接アクセスにより全条件を検証可能）"
+note = "verified=falseは0件（privateメソッドへの直接アクセスにより全条件を検証可能）。TASK-478で、重複していたsrc/utils/__tests__/request-queue.test.tsを一本化。src側25itのうち23itはtests/unit/utils/request-queue.test.tsのprivate直接検証（concurrentLimit・リトライ・バックオフ・タイムアウト・isRetryableError・calculateBackoffDelay）と同趣旨だったため移植不要と判断（FIFO順序はprocess.finally_decrements_and_continues_nextの順序検証と同趣旨、tcgはgetGamePath非rush側でocg検証と同経路）。未カバーだったclear()の破棄動作と複数インスタンス独立性の2件をcoversタグ無しで移植（clear/getter類は本条件書の粒度基準により条件化対象外、複数インスタンス独立性は単一関数の分岐ではない）、旧ファイルを削除した。移植に伴う新規条件追加は0件"
 
 # --- constructor(options: RequestQueueOptions = {}) ---
 

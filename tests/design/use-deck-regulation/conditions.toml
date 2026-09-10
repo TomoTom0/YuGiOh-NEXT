@@ -32,7 +32,7 @@ verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/composables/useDeckRegulation.test.ts"
 source_hash = "fd0be6ce71557138a6fc025d46176542a0c8723f"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/composables/deck/__tests__/useDeckRegulation.test.tsから未カバー検証1件（checkAndUpdate完了後に取得したavailableをresolverへ渡す実挙動ベースの順序検証）を移植し、旧ファイルを削除して一本化。残るsrc側テスト3件はいずれもtests/unit側の既存テスト（resolve.genesys_without_list_param_ensures_current_list / resolve.genesys_list_param_ensures_genesys_list / resolve.ocg_effective_date_ensures_forbidden_list）に同趣旨の検証が既存のため移植不要。新規条件追加なし（resolve.ensure_order_and_available_passed_to_resolverが対応）"
 
 # --- useDeckRegulation(options) ---
 

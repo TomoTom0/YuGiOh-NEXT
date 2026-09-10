@@ -13,7 +13,7 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/collapse-scroll.test.ts"
 source_hash = "fbac7d87e204c46450f23d16c2c784bd497270e3"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で重複していたsrc/utils/__tests__/collapse-scroll.test.ts（6it）と一本化した。全検証内容がtests/unit側に同趣旨で存在したため移植0件でsrc側ファイルを削除（tests/unit側の方が広い: default_container_selector/timeout_delays_measurementを追加カバー）"
 
 # --- collapseWithScroll(itemEl, setCollapsed, timeout, containerSelector = '.card-tab-content'): void ---
 

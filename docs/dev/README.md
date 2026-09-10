@@ -17,14 +17,11 @@ mise run test:vitest
 ### 特定のテストスイートの実行
 
 ```bash
-# ユニットテストのみ
-mise run test:vitest -- src/utils/__tests__/
-
-# 結合テストのみ
-mise run test:vitest -- src/composables/__tests__/
+# 特定のディレクトリ
+mise run test:vitest -- tests/unit/utils/
 
 # 特定のファイル
-mise run test:vitest -- src/utils/__tests__/language-detector.test.ts
+mise run test:vitest -- tests/unit/utils/language-detector.test.ts
 ```
 
 ### ウォッチモード
@@ -41,18 +38,10 @@ mise run test:vitest -- --coverage
 
 ## テスト構成
 
-- `src/utils/__tests__/` - ユーティリティテスト
-  - `safe-dom-query.test.ts` - DOM クエリ安全ユーティリティテスト（32個のテスト）
-  - `type-guards.test.ts` - 型ガード関数テスト（30個のテスト）
-  - `language-detector.test.ts` - 言語検出機能テスト
-  - `mapping-manager.test.ts` - マッピング管理機能テスト
-  - `card-animation.test.ts` - カードアニメーション機能テスト
+ユニットテストは `tests/unit/` に集約している。構成の正本は [tests/README.md](../../tests/README.md) を参照。
 
-- `src/composables/__tests__/` - Composable テスト
-  - `deck-edit/` - デッキ編集機能テスト
-  - `search/` - 検索機能テスト
-
-- `tests/browser/` - ブラウザ自動テスト（CDP/Playwright経由）
+- `tests/unit/` - ユニットテスト（Vitest。api / components / composables / parser / stores / utils 等のサブディレクトリ構成）
+- `tests/browser/` - ブラウザ自動テスト（Chrome CDP経由）
   - `test-buttons.cjs` - ボタン機能テスト
   - `test-shuffle.cjs` - シャッフル機能テスト
 

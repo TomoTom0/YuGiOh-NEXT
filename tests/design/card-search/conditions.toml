@@ -45,7 +45,7 @@ source_file = "src/api/card-search.ts"
 verified = true
 verified_at = "2026-08-06"
 verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/api/card-search-basic.test.ts tests/unit/api/card-search-comprehensive.test.ts tests/unit/api/card-search-promise.test.ts tests/unit/card-search-cache.test.ts"
+test_command = "mise run test:vitest -- tests/unit/api/card-search.test.ts tests/unit/api/card-search-basic.test.ts tests/unit/api/card-search-comprehensive.test.ts tests/unit/api/card-search-promise.test.ts tests/unit/card-search-cache.test.ts"
 source_hash = "3ecea0b9c330eb90e40f38f0bbf350706e362451"
 note = "verified=falseは9件: search_auto.name_100_fetch_more、extract_image.cid_missing_continue、parse_related.card_list_preferred_then_detail_list、get_detail.related_limit_regulation_fill、get_detail.related_100_fetch_more、get_detail.search_promise_error_partial、get_detail.search_promise_full_card_overrides、get_detail.faq_parse_failure_returns_null、get_cache.stale_refresh_error_returns_null。fetchMore系は2000件規模fixtureやprivate helper制御の費用が高く、エラー系は同一モジュール内の非export/直接参照を差し替えられず公開API経由で安定再現できないため。extract_image.cid_missing_continueは正規表現上到達不能。parse_related/get_detail.related_limitは詳細ページfixture上の関連カード.t_rowが既存パーサー構造と合わず、追加調査の費用対効果を優先して未検証。"
 

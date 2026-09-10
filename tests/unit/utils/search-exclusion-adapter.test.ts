@@ -361,4 +361,14 @@ describe('search-exclusion-adapter', () => {
       expect(result.monsterTypeMode).toBe('and');
     });
   });
+
+  // 以下、src/utils/__tests__/search-exclusion-adapter.test.ts (TASK-478) から移植。
+  // 同ファイルの残り検証（fieldInputs/selectedAttributesの各フィールド・複合条件・
+  // monsterTypeMode）はtests/unit側の既存テストが同趣旨を網羅していたため移植対象外。
+
+  it('monsterTypesが空のとき、fieldInputsの"monster-type"はfalseになる [covers:field_inputs.monster_type_false_when_empty]', () => {
+    const result = toSearchConditionState(createBaseFilters());
+
+    expect(result.fieldInputs['monster-type']).toBe(false);
+  });
 });

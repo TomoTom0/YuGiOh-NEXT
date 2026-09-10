@@ -7,6 +7,7 @@ import {
   TrapEffectType
 } from './card-maps';
 import { buildApiUrl } from '../utils/url-builder';
+import type { RawGenesysEntry } from '../api/genesys';
 
 // CardTypeはcard-maps.tsで定義
 export type { CardType };
@@ -578,6 +579,12 @@ export interface GenesysListEntry {
   fetchedAt: number;
   /** 名前解決できなかったカードが残っている場合true（カードDB未初期化等）。次回チェック時に再解決対象になる */
   incomplete?: boolean;
+  /**
+   * 外部fetch直後の生エントリ（name/point/cardKindClass）。
+   * incomplete時、外部fetchなしでローカルのカードDB充実後に再解決するために保持する。
+   * 既存キャッシュとの後方互換のためoptional（TASK-470）
+   */
+  rawEntries?: RawGenesysEntry[];
 }
 
 /**

@@ -772,4 +772,17 @@ describe('configs/browser.toml 出荷値', () => {
     expect(port).toBeLessThanOrEqual(39054);
     expect(port).toBe(39050);
   });
+
+  it('[covers:browser-config.browser-toml-session-state-file-under-data] session.state_fileはdata/で始まる相対パス（data/session/storageState.json）', () => {
+    const session = browserToml.session;
+    expect(isRecord(session)).toBe(true);
+    if (!isRecord(session)) {
+      return;
+    }
+    const stateFile = session.state_file;
+    expect(stateFile).toBe('data/session/storageState.json');
+    // .gitignore の /data により認証情報を含むファイルがcommitされない構成制約
+    expect(typeof stateFile).toBe('string');
+    expect(stateFile.startsWith('data/')).toBe(true);
+  });
 });

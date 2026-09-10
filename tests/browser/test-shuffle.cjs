@@ -7,10 +7,7 @@
  * 3. アニメーションが適用されること
  */
 
-const { connectCDP } = require('./cdp-helper.cjs');
-
-// 公開デッキURL（認証不要）
-const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
+const { connectCDP, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
 
 async function testShuffle() {
   console.log('【シャッフル・ソート機能テスト】\n');
@@ -20,7 +17,7 @@ async function testShuffle() {
   try {
     // デッキ表示ページに移動
     console.log('デッキ表示ページにアクセス中...');
-    await cdp.navigate(DECK_URL);
+    await cdp.navigate(PUBLIC_DECK_URL);
     await cdp.wait(5000); // 拡張機能のロード待機
 
     console.log('\n=== 初期状態のカード順序を取得 ===\n');

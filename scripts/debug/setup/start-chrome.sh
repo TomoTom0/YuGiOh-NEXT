@@ -131,5 +131,5 @@ fi
 echo ""
 echo "次の手順:"
 echo "1. ブラウザで日本語トップページが開かれます"
-echo "2. ログインが必要なテストは start-login-vnc.sh でログインするか、TASK-467 の session注入を利用"
+echo "2. ログインが必要なテストは start-login-vnc.sh でログインするか、export-session-state.sh のセッションを injectSession で注入（詳細: tests/browser/README.md「ログインセッション」）"
 echo "3. 停止は ./stop-chrome.sh"

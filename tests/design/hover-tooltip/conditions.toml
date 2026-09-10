@@ -1,0 +1,100 @@
+# 検証対象: src/components/HoverTooltip.vue
+#
+# ボタン等をhoverした際にブラウザネイティブtitle属性の代替として独自tooltipを
+# 表示する共通ラッパー。position: fixed で body 直下へ Teleport するため祖先の
+# overflow:hidden の影響を受けない。
+# TASK-476: src/components/__tests__/HoverTooltip.test.ts の
+# tests/unit/components/ 移動に伴うdesign整備として条件化。
+#
+# 粒度方針:
+# - Vueコンポーネントのため script setup 相当のロジック分岐（表示条件・イベント
+#   状態遷移・classバインディング・slot）を主対象とし、template表示結果は簡潔に。
+# - 既存itが存在しない実装分岐（style computed の位置計算等）は [[excluded]] に記録
+#   （TASK-476 は移動伴いの design 整備であり、新規テスト追加はスコープ外）。
+
+[meta]
+feature = "hover-tooltip"
+source_file = "src/components/HoverTooltip.vue"
+verified = true
+verified_at = "2026-09-09"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/HoverTooltip.test.ts"
+source_hash = "2bec552bf05f80e766711e9e5930ea0c50f62a2c"
+note = "verified=falseは0件。idのareaはdesignディレクトリstem（hover-tooltip）で統一（browser-config/conditions.tomlの慣習に整合、`_`不使用）"
+
+[[condition]]
+id = "hover-tooltip.initial-state-not-visible"
+target_function = "HoverTooltip visible ref + template v-if"
+source = "src/components/HoverTooltip.vue L12, L45 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "12, 45"
+description = "マウント直後（hover前）は visible=false のためtooltipを描画しない。表示はmouseenter後の状態遷移に依存する初期状態の保証"
+given = "text='Reset' を指定してマウント（mouseenter未発生）"
+expect_return_shape = "body配下に .command-tooltip-fixed 要素は存在しない"
+
+[[condition]]
+id = "hover-tooltip.mouseenter-shows-teleported-tooltip-with-text"
+target_function = "HoverTooltip visible ref + template v-if"
+source = "src/components/HoverTooltip.vue L5, L9-L18 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "5, 9-18"
+description = "wrapper上の mouseenter で visible が true になり、text の内容をbody直下へTeleportしたtooltip要素に表示する（祖先のoverflow:hiddenの影響を受けない配置）"
+given = "text='save' を指定してマウントし、.btn-tooltip-wrapper へ mouseenter"
+expect_return_shape = "body直下に .command-tooltip-fixed が現れ、そのtextContentが 'save'"
+
+[[condition]]
+id = "hover-tooltip.mouseleave-hides-tooltip"
+target_function = "HoverTooltip visible ref + template v-if"
+source = "src/components/HoverTooltip.vue L6, L12 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "6, 12"
+description = "wrapper上の mouseleave で visible が false に戻り、tooltipを非表示にする（表示状態の解放）"
+given = "text='save' で mouseenter 表示後、.btn-tooltip-wrapper へ mouseleave"
+expect_return_shape = "body配下に .command-tooltip-fixed 要素は存在しない"
+
+[[condition]]
+id = "hover-tooltip.empty-text-keeps-tooltip-hidden"
+target_function = "HoverTooltip template v-if"
+source = "src/components/HoverTooltip.vue L12 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "12"
+description = "v-if の表示条件は visible && text であり、text が空文字（デフォルト）の場合はhoverされてもtooltipを描画しない"
+given = "text='' を指定してマウントし、.btn-tooltip-wrapper へ mouseenter"
+expect_return_shape = "body配下に .command-tooltip-fixed 要素は存在しない"
+
+[[condition]]
+id = "hover-tooltip.tooltip-class-bound-to-tooltip-element"
+target_function = "HoverTooltip template :class binding"
+source = "src/components/HoverTooltip.vue L14, L39-L42 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "14, 39-42"
+description = "tooltipClass prop に指定されたクラスをtooltip要素に付与する（type-add 等の意味別色分けに使用）"
+given = "text='Undo', tooltipClass='type-add' を指定してマウントし、mouseenter"
+expect_return_shape = "表示された .command-tooltip-fixed が type-add クラスを持つ"
+
+[[condition]]
+id = "hover-tooltip.default-slot-rendered"
+target_function = "HoverTooltip template slot"
+source = "src/components/HoverTooltip.vue L8 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "8"
+description = "default slot の内容（ラップ対象のボタン等）をwrapper内にそのまま描画する（tooltip表示状態と無関係に常時描画）"
+given = "default slot に <button class=\"my-btn\">click me</button> を指定してマウント"
+expect_return_shape = "wrapper内に .my-btn が存在し、text が 'click me'"
+
+# --- 除外記録（既存テストのitが存在しない実装分岐。TASK-476は移動伴いのdesign整備で新規テスト追加はスコープ外のため条件化しない） ---
+
+[[excluded]]
+item = "style computed の表示位置計算（wrapperRef の getBoundingClientRect 基準で、wrapper中心・上4pxへ translate(-50%, -100%) で固定配置）と、wrapperRef 未解決時に {} を返す早期return"
+source = "src/components/HoverTooltip.vue L48-L57（tests/unit/components/HoverTooltip.test.ts に位置・style値をassertするit無し）"
+reason = "対応する既存itが存在しない。TASK-476はsrc/__tests__からの移動に伴うdesign整備であり新規テスト追加はスコープ外のため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "tooltip-fade Transition による opacity 0.15s の表示/非表示アニメーション"
+source = "src/components/HoverTooltip.vue L10, L112-L120（tests/unit/components/HoverTooltip.test.ts にアニメーションを検証するit無し）"
+reason = "CSSの見た目遷移のみで、tooltipの表示/非表示判定（条件化済みのvisible && text分岐）自体に挙動差を生まない（§8「書かない」: 挙動に差を生まない内部処理に相当）"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "type-add / type-remove / type-move / type-reorder 各クラスのSCSS色定義（背景・文字・枠線色）"
+source = "src/components/HoverTooltip.vue L87-L109（tests/unit/components/HoverTooltip.test.ts はクラス付与の有無のみ検証）"
+reason = "静的なスタイル定義でありロジック分岐を持たない。クラスがtooltip要素へ付与される分岐は hover-tooltip.tooltip-class-bound-to-tooltip-element で条件化済み"
+decided_at = "2026-09-09"
+decided_by = "claude"

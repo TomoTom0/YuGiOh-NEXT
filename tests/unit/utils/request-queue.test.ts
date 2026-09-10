@@ -314,6 +314,56 @@ describe('request-queue', () => {
     });
   });
 
+  describe('clear', () => {
+    it('未処理リクエストをキューから破棄しgetQueueSizeを0にする（条件化対象外のbranchなし公開メソッド）', async () => {
+      const queue = new RequestQueue({ concurrentLimit: 1 });
+      let resolveFirst: () => void = () => {};
+      const fn1 = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          })
+      );
+      const fn2 = vi.fn().mockResolvedValue('second');
+
+      const firstPromise = queue.enqueue(fn1);
+      void queue.enqueue(fn2);
+
+      // concurrentLimit=1のためfn1がactive、fn2はキューに残る
+      expect(fn1).toHaveBeenCalledTimes(1);
+      expect(fn2).not.toHaveBeenCalled();
+      expect(queue.getQueueSize()).toBe(1);
+      expect(queue.getActiveCount()).toBe(1);
+
+      queue.clear();
+
+      expect(queue.getQueueSize()).toBe(0);
+
+      resolveFirst();
+      await expect(firstPromise).resolves.toBeUndefined();
+      expect(fn2).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('複数インスタンスの独立性', () => {
+    it('インスタンスごとのキュー状態は共有されず独立して動作する', async () => {
+      const queue1 = new RequestQueue({ concurrentLimit: 1 });
+      const queue2 = new RequestQueue({ concurrentLimit: 5 });
+      const fn1 = vi.fn().mockResolvedValue('queue1');
+      const fn2 = vi.fn().mockResolvedValue('queue2');
+
+      const [result1, result2] = await Promise.all([
+        queue1.enqueue(fn1),
+        queue2.enqueue(fn2),
+      ]);
+
+      expect(result1).toBe('queue1');
+      expect(result2).toBe('queue2');
+      expect(queue1.getQueueSize()).toBe(0);
+      expect(queue2.getQueueSize()).toBe(0);
+    });
+  });
+
   describe('queuedFetch', () => {
     it('[covers:queued_fetch.delegates_to_fetch_with_queue] fetch(url, init)をキュー経由で実行する', async () => {
       const mockResponse = new Response('body');

@@ -286,6 +286,71 @@ describe('components/CategoryDialog', () => {
     });
   });
 
+  describe('Filter (7+ cards)', () => {
+    // src/components/__tests__/CategoryDialog.test.ts (TASK-478) から移植。
+    // 旧テストはcountCardsWithCategoryと同じロジックのシミュレーション関数で検証していたが、
+    // ここではmount実体でCategoryDialog.vueのフォールバック分岐
+    // （deckCardRefs未指定時にdeckCardsからname/text含有件数をカウント）を検証する
+    it('deckCardRefs未指定時はdeckCardsのフォールバックカウントで7枚以上のカテゴリのみ表示する', async () => {
+      const categories: CategoryEntry[] = [
+        { value: '1', label: 'ドラゴン' },
+        { value: '2', label: 'レアカード' }
+      ];
+      const deckCards = [
+        ...Array.from({ length: 6 }, (_, i) => ({ cardId: `d${i}`, name: `ドラゴン${i}`, text: '' })),
+        { cardId: 't1', name: 'その他', text: 'ドラゴンを破壊する効果' }, // text含有でもカウント
+        { cardId: 'r1', name: 'レアカード', text: '' }
+      ];
+
+      const wrapper = mount(CategoryDialog, {
+        props: {
+          modelValue: [],
+          isVisible: true,
+          categories,
+          deckCards
+        }
+      });
+
+      await wrapper.vm.$nextTick();
+      expect(document.body.querySelectorAll('.category-item').length).toBe(2);
+
+      const filterButton = document.body.querySelector<HTMLButtonElement>('.search-row .btn-icon');
+      expect(filterButton).not.toBeNull();
+      filterButton?.click();
+      await wrapper.vm.$nextTick();
+
+      const labels = Array.from(document.body.querySelectorAll('.category-item'))
+        .map(el => el.textContent?.trim());
+      expect(labels).toEqual(['ドラゴン']);
+    });
+
+    it('フォールバックカウントが7枚未満のカテゴリはフィルター時に非表示になる', async () => {
+      const categories: CategoryEntry[] = [{ value: '1', label: 'レアカード' }];
+      const deckCards = Array.from({ length: 6 }, (_, i) => ({
+        cardId: `r${i}`,
+        name: `レアカード${i}`,
+        text: ''
+      }));
+
+      const wrapper = mount(CategoryDialog, {
+        props: {
+          modelValue: [],
+          isVisible: true,
+          categories,
+          deckCards
+        }
+      });
+
+      await wrapper.vm.$nextTick();
+
+      const filterButton = document.body.querySelector<HTMLButtonElement>('.search-row .btn-icon');
+      filterButton?.click();
+      await wrapper.vm.$nextTick();
+
+      expect(document.body.querySelectorAll('.category-item').length).toBe(0);
+    });
+  });
+
   describe('Props Validation', () => {
     it('should accept deck cards prop', () => {
       const wrapper = mount(CategoryDialog, {

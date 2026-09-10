@@ -21,9 +21,9 @@ source_file = "src/api/deck-operations.ts"
 verified = true
 verified_at = "2026-08-06"
 verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/api/deck-operations-comprehensive.test.ts tests/unit/api/deck-operations-issued-deckcode.test.ts"
+test_command = "mise run test:vitest -- tests/unit/api/deck-operations-comprehensive.test.ts tests/unit/api/deck-operations-issued-deckcode.test.ts tests/unit/api/deck-operations.test.ts"
 source_hash = "8add35fc091037e41121394d6478ece15192c47a"
-note = "verified=falseは1件: normalize_error.falsy_emptyは非export関数内の防御的分岐だが、実装上の呼び出し元saveDeckInternalはdata.errorがtruthyの場合だけnormalizeErrorMessagesを呼ぶため公開API経由では直接検証できない"
+note = "verified=falseは1件: normalize_error.falsy_emptyは非export関数内の防御的分岐だが、実装上の呼び出し元saveDeckInternalはdata.errorがtruthyの場合だけnormalizeErrorMessagesを呼ぶため公開API経由では直接検証できない。TASK-476: src/api/__tests__/deck-operations.test.tsをtests/unit/api/へ移動し[covers:id]タグを付与して統合（design未登録の重複テストだったため）。全19件のitは既存condition idで表現可能だったため新規条件は追加していない。現時点のsrc/api/deck-operations.ts (git hash-object) は8add35fc...と異なるため、行番号(source_lines)ベースの記述は要再検証。今回はcovers付与のみでsource_linesの再突合は対象外とした（別タスクでの再検証を推奨）"
 
 # --- normalizeErrorMessages(error: unknown): string[] ---
 

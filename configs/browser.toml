@@ -34,3 +34,10 @@ display = 99
 port = 39050
 # ログイン用プロファイルディレクトリ（ログイン状態をここに保持する）
 profile_dir = "tmp/browser/chrome/login-profile"
+
+[session]
+# ログインセッションのstorageState（Playwright形式）のパス。
+# scripts/debug/setup/export-session-state.sh（書き出し）と
+# tests/browser/cdp-helper.cjs の injectSession（注入）が参照する。
+# 認証情報を含むため data/（gitignore済み）配下に置く
+state_file = "data/session/storageState.json"

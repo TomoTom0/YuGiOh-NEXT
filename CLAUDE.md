@@ -402,7 +402,7 @@ const label = CARD_TYPE_ID_TO_SHORTNAME[cardType]
 
 ### 開発ガイド
 
-- **ブラウザ操作**: `scripts/debug/setup/` (start-chrome.sh, stop-chrome.sh, start-login-vnc.sh, stop-login-vnc.sh)
+- **ブラウザ操作**: `scripts/debug/setup/` (start-chrome.sh, stop-chrome.sh, start-login-vnc.sh, stop-login-vnc.sh, export-session-state.sh)
 - **テストガイド**: `tests/browser/` (既存のテストスクリプト)
 - **安全なDOM操作**: `src/utils/safe-dom-query.ts`
 - **型安全性**: `src/utils/type-guards.ts`

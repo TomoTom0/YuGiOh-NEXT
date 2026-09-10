@@ -26,7 +26,7 @@ source_file = "src/content/session/session.ts"
 verified = true
 verified_at = "2026-08-29"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/content/session/__tests__/session.test.ts"
+test_command = "mise run test:vitest -- tests/unit/content/session.test.ts"
 source_hash = "0ab681d4cd7f8ed481fce191ef74e3d22d128edd"
 note = "verified=falseは0件"
 

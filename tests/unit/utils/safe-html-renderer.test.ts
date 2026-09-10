@@ -432,4 +432,44 @@ describe('safe-html-renderer', () => {
       expect(issues.some(i => i.includes('<script>'))).toBe(true);
     });
   });
+
+  describe('実世界のXSS防止パターン', () => {
+    it('APIデータをescapeHtml + SafeHtmlBuilder + setSafeInnerHTMLで描画しても動的要素は生成されない [covers:xss_integration.stored_data_escaped_via_builder_no_dynamic_element]', () => {
+      const apiData = {
+        name: 'Product<img src=x onerror="alert(1)">',
+        description: 'Test & Demo',
+      };
+      const container = document.createElement('div');
+
+      const safeHtml = SafeHtmlBuilder.div({
+        content: escapeHtml(apiData.name),
+      });
+      const result = setSafeInnerHTML(container, safeHtml);
+
+      expect(result).toBe(true);
+      expect(container.querySelector('img')).toBeNull();
+      expect(container.textContent).toContain('Product');
+    });
+
+    it('テンプレートリテラルへの埋め込みでもescapeAttributeが属性境界の突破を防ぐ [covers:xss_integration.attribute_boundary_protected_by_escape_attribute]', () => {
+      const userInput = '"><script>alert(1)</script><div class="';
+      const safeUrl = escapeAttribute(`/search?q=${userInput}`);
+      const html = `<a href="${safeUrl}">Search</a>`;
+      const container = document.createElement('div');
+
+      setSafeInnerHTML(container, html);
+
+      expect(container.querySelector('script')).toBeNull();
+    });
+
+    it('ユーザー提供のHTML文字列をescapeHtmlで文字列化して描画しても要素は生成されない [covers:xss_integration.user_html_escaped_no_dynamic_element]', () => {
+      const userHtml = '<p>Hello</p><img src=x onerror="alert(1)">';
+      const container = document.createElement('div');
+
+      setSafeInnerHTML(container, escapeHtml(userHtml));
+
+      expect(container.textContent).toContain('<p>Hello</p>');
+      expect(container.querySelector('img')).toBeNull();
+    });
+  });
 });

@@ -66,9 +66,8 @@ if (result.success) {
 
 ### テスト
 
-- **ファイル**: `src/composables/deck/__tests__/useDeckPersistence.test.ts`
-- **カバレッジ**: 97.11%（Statements）
-- **テストケース数**: 10
+- **ファイル**: `tests/unit/composables/useDeckPersistence.test.ts`
+- **テストケース数**: 19
 
 主なテストケース:
 - プリロードデータの有無による動作分岐

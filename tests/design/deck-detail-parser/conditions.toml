@@ -9,6 +9,11 @@
 [meta]
 feature = "deck-detail-parser"
 source_file = "src/content/parser/deck-detail-parser.ts"
+verified = true
+verified_at = "2026-09-09"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/parser/deck-detail-parser.conditions.test.ts tests/unit/parser/deck-detail-parser-extract.test.ts"
+source_hash = "75b150feab1b7ba1314a359229bae291c9986839"
 
 # --- validateDeckDetailPageStructure(doc: Document): void ---
 # DOM階層 #main980 > #article_body > #deck_detailtext > #detailtext_main を
@@ -269,6 +274,15 @@ description = "cgid=パターンが無い場合、undefinedを返す"
 given = "html に cgid= パターンを含まない"
 expect_return = "undefined"
 
+[[condition]]
+id = "extract_cgid.first_match_when_multiple"
+target_function = "extractCgidFromPage"
+source = "src/content/parser/deck-detail-parser.ts L623 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "623"
+description = "cgid=パターンが複数存在する場合、String.match（gフラグ無し）の最初のマッチのみが返る（2番目以降は無視される）"
+given = "html に \"cgid=abc123\" と \"cgid=def456\" の両方を含む"
+expect_return = "abc123"
+
 # --- extractDeckType(doc: Document): DeckTypeValue | undefined ---
 
 [[condition]]
@@ -321,6 +335,15 @@ description = "dl.MD_deck_style要素が無い場合、undefinedを返す"
 given = "doc内にdl.MD_deck_styleが無い"
 expect_return = "undefined"
 
+[[condition]]
+id = "extract_deck_style.dd_text_set_not_found"
+target_function = "extractDeckStyle"
+source = "src/content/parser/deck-detail-parser.ts L667-L674 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "667-674"
+description = "dl.MD_deck_styleは存在するが、その配下にdd.text_setが存在しない場合、labelがundefinedとなりundefinedを返す"
+given = "dl.MD_deck_style内にdtは存在するがdd.text_setが存在しない"
+expect_return = "undefined"
+
 # --- extractCategory(doc: Document): DeckCategory (string[]) ---
 
 [[condition]]
@@ -356,6 +379,15 @@ source_lines = "710-721"
 description = "dd.regist_tag内の各span要素のテキストを配列で返す"
 given = "<dd class=\"regist_tag\"><span>大会優勝デッキ</span></dd>"
 expect_return = ["大会優勝デッキ"]
+
+[[condition]]
+id = "extract_tags.empty_span_text_filtered"
+target_function = "extractTags"
+source = "src/content/parser/deck-detail-parser.ts L715-L720 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "715-720"
+description = "span要素のテキストが空（trim後）の場合、その要素は結果に含まれない（extract_category.empty_span_text_filteredと同一構造）"
+given = "dd.regist_tag内に空白のみのspanを含む"
+expect_return_excludes_empty = true
 
 [[condition]]
 id = "extract_tags.dd_not_found"
@@ -471,6 +503,15 @@ source_lines = "838-851"
 description = "\"デッキコード\"を含むdtの次の兄弟dd.a_setのテキストを返す（\"発行\"を含まない場合）"
 given = "<dt><span>デッキコード</span></dt><dd class=\"a_set\">ABCD1234</dd>"
 expect_return = "ABCD1234"
+
+[[condition]]
+id = "extract_deck_code.text_trimmed"
+target_function = "extractDeckCode"
+source = "src/content/parser/deck-detail-parser.ts L845 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "845"
+description = "dd.a_setのテキストはtrimして返す（前後の空白は除去される）"
+given = "dd.a_setのテキストが\"  abc123def456  \"（前後に空白を含む）"
+expect_return = "abc123def456"
 
 [[condition]]
 id = "extract_deck_code.not_issued_yet"
