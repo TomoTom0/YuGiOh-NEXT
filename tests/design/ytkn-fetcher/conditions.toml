@@ -48,7 +48,7 @@ target_function = "fetchYtknFromEditForm"
 source_lines = "29-30"
 description = "input#ytknがDOM上に存在しない場合、safeQueryAsがnullを返し、?? nullによりnullを返す"
 given = "axios.getがinput#ytknを含まないHTMLでresolveする"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "fetch_ytkn_from_edit_form.type_guard_failure_returns_null"
@@ -56,7 +56,7 @@ target_function = "fetchYtknFromEditForm"
 source_lines = "29-30"
 description = "id=ytknの要素が存在してもHTMLInputElementでない場合（isHTMLInputElement型ガードが偽）、safeQueryAsはnullを返しytknInputはnullになる。querySelector単体ではなく型ガード付きsafeQueryAsを使う意味がある分岐"
 given = "HTMLに<div id=\"ytkn\">値</div>のみ存在しinput要素は無い"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "fetch_ytkn_from_edit_form.empty_string_value_not_coalesced"
@@ -72,7 +72,7 @@ target_function = "fetchYtknFromEditForm"
 source_lines = "31-34"
 description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す（例外を再throwしない）"
 given = "axios.getがError('Network error')でrejectする"
-expect_return = null
+expect_return = "null"
 expect_side_effect = "console.error('[fetchYtknFromEditForm] Failed to fetch ytkn:', error)が呼ばれる"
 
 # --- fetchYtknFromDeckDisplay(cgid, dno, gameType): Promise<string | null> ---
@@ -92,7 +92,7 @@ target_function = "fetchYtknFromDeckDisplay"
 source_lines = "60-61"
 description = "input#ytknが見つからない場合はnullを返す（fetch_ytkn_from_edit_form.not_found_returns_nullと同一パターン）"
 given = "axios.getがinput#ytknを含まないHTMLでresolveする"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "fetch_ytkn_from_deck_display.axios_error_returns_null"
@@ -100,7 +100,7 @@ target_function = "fetchYtknFromDeckDisplay"
 source_lines = "62-65"
 description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す"
 given = "axios.getがError('Connection timeout')でrejectする"
-expect_return = null
+expect_return = "null"
 expect_side_effect = "console.error('[fetchYtknFromDeckDisplay] Failed to fetch ytkn:', error)が呼ばれる"
 
 # --- fetchYtknFromDeckList(cgid, gameType): Promise<string | null> ---
@@ -119,7 +119,7 @@ target_function = "fetchYtknFromDeckList"
 source_lines = "90-91"
 description = "input[name=\"ytkn\"]が見つからない場合はnullを返す"
 given = "axios.getがinput[name=\"ytkn\"]を含まないHTMLでresolveする"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "fetch_ytkn_from_deck_list.axios_error_returns_null"
@@ -127,7 +127,7 @@ target_function = "fetchYtknFromDeckList"
 source_lines = "92-95"
 description = "axios.getがrejectした場合、catch節でconsole.errorを出力しnullを返す"
 given = "axios.getがError('Server error')でrejectする"
-expect_return = null
+expect_return = "null"
 expect_side_effect = "console.error('[fetchYtknFromDeckList] Failed to fetch ytkn:', error)が呼ばれる"
 
 [[condition]]

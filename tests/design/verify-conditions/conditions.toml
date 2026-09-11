@@ -1,0 +1,640 @@
+# 検証対象: scripts/design/verify-conditions.py（TASK-480）
+#
+# tests/design/<feature>/conditions.toml（条件書corpus）を機械検証するscript。
+# 要件の正本は docs/design/verify-conditions.md（設計書）で、本条件書はその
+# fail/warnリスト・CLI仕様・同期仕様・bootstrap/verified仕様・exit code規約・
+# 出力形式を系統的に条件化したもの。
+#
+# テスト先行作成: tests/unit/scripts/verify-conditions.test.ts と同時に作成し、
+# script実装（TASK-480）がこれらを満たす。実装・検証後に meta の検証記録を書く。
+#
+# なお本テストのfixture内conditions.toml・テストファイルは --root で指定する
+# fixture root（tmp/test-verify-conditions/）配下に置かれ、実corpus走査には
+# 影響しない。
+
+[meta]
+feature = "verify-conditions"
+source_file = "scripts/design/verify-conditions.py"
+verified = true
+verified_at = "2026-09-11"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/scripts/verify-conditions.test.ts"
+source_hash = "d9121715465752867f827a576182e7d3b12bd243"
+note = "テスト先行作成（TASK-480実装前に条件書とテストを確定）。全条件を tests/unit/scripts/verify-conditions.test.ts の [covers:] タグ付きitで検証する"
+
+# --- CLI引数・usage（parse_args / discover_targets / load_doc） ---
+
+[[condition]]
+id = "verify-conditions.invalid-option-exits-2"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:146"
+target_function = "parse_args"
+source = "docs/design/verify-conditions.md CLI仕様（exit code: 2 = 引数エラー）"
+description = "未定義オプションは引数エラーとして即座に弾く。検証を実行せずexit 2"
+given = "未定義のオプション（例: --unknown-flag）を付けて起動"
+expect_return = "exit 2。検証処理は実行されない"
+
+[[condition]]
+id = "verify-conditions.unknown-target-exits-2"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:152"
+target_function = "discover_targets"
+source = "docs/design/verify-conditions.md CLI仕様（位置引数・exit code 2）"
+description = "位置引数に指定した対象（feature名・path）が解決できない場合は引数エラー。黙って空対象で正常終了すると検証漏れが発生する"
+given = "存在しないfeature名（tests/design配下に対応ディレクトリ無し）を指定して起動"
+expect_return = "exit 2"
+
+[[condition]]
+id = "verify-conditions.bootstrap-verified-combo-exits-2"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:158"
+target_function = "parse_args"
+source = "docs/design/verify-conditions.md CLI仕様・--verified仕様1（設計判断11）"
+description = "--bootstrapと--verifiedの同時指定はexit 2。検証pass確認を経ずにverified=trueを書ける経路を設計段階で封じる"
+given = "--bootstrapと--verifiedを同時に指定して起動"
+expect_return = "exit 2。いずれのモードも実行されない"
+
+[[condition]]
+id = "verify-conditions.verified-requires-test-command"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:174"
+target_function = "parse_args"
+source = "docs/design/verify-conditions.md CLI仕様（--verified: --test-commandが必須）"
+description = "--verified指定時に--test-commandが無ければexit 2。検証記録にtest_commandが空のまま書かれるのを防ぐ"
+given = "--verified claude のみ指定（--test-command無し）して起動"
+expect_return = "exit 2"
+
+[[condition]]
+id = "verify-conditions.malformed-toml-exits-2"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:193"
+target_function = "load_doc"
+source = "docs/design/verify-conditions.md CLI仕様（exit code: 2 = TOMLパース失敗等）"
+description = "TOMLとして構文不正なconditions.tomlは実行継続不能のためexit 2（ファイル単位の検証failではなく引数・パース系エラー）"
+given = "構文が壊れたconditions.toml（例: 値の無い key = で終わる行）を対象に指定"
+expect_return = "exit 2"
+
+[[condition]]
+id = "verify-conditions.missing-meta-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:200"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（parse: [meta]不在）"
+description = "TOMLとしては正当でも[meta]ブロックが無ければfail。metaは検証記録の前提構造"
+given = "[[condition]]のみで[meta]が存在しないconditions.tomlを検証"
+expect_return = "exit 1。failに[meta]不在が含まれる"
+
+# --- schema検証（verify_schema）: fail系 ---
+
+[[condition]]
+id = "verify-conditions.minimal-valid-toml-passes"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:184"
+target_function = "main"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（fail無しならexit 0）"
+description = "必須構造を満たす最小構成の条件書は全検査passでexit 0。全fail検出条件の対となる正常系基準"
+given = "[meta]必須欄あり・全条件がid/expect_no_throw/coverタグ付きの最小conditions.tomlを検証"
+expect_return = "exit 0。fail・syncともに0件のサマリ"
+
+[[condition]]
+id = "verify-conditions.missing-expect-key-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:208"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) expect_プレフィックスキーが1つも無い）+ 設計判断3"
+description = "expect_プレフィックスのキーが1つも無い条件はfail。期待値が書かれていない条件を許容しない"
+given = "expect_*キーを1つも持たない[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。当該条件idのfail"
+
+[[condition]]
+id = "verify-conditions.empty-expect-value-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:217"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) 値が空文字）"
+description = "expect_キーが存在しても値が空文字ならfail。キー存在だけの形骸化を許さない（false/0/空配列は正当な期待値で対象外）"
+given = "expect_return = \"\" （空文字）の[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。当該条件idのfail"
+
+[[condition]]
+id = "verify-conditions.falsy-expect-values-pass"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:232"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) false/0/[]は正当な期待値のためfail対象外）+ 前提実態調査（expect_return = false が65件実在）"
+description = "falsyだが意味のある期待値（expect_return = false・0・空配列）は正常期待値としてpass。空文字判定とfalsy判定を混同しない"
+given = "expect_return = false / expect_return = 0 / expect_return = [] を持つ条件を含むconditions.tomlを検証"
+expect_return = "exit 0。これらの条件はfailにもwarnにもならない"
+
+[[condition]]
+id = "verify-conditions.nonstandard-expect-key-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:254"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（fail: 標準4種以外のexpect_キー使用・skill §3）+ 設計判断3（TASK-490でwarnからfailへ）"
+description = "標準4種（expect_return/return_shape/throw/no_throw）以外のexpect_キー（expect_side_effect等）はfail。skill §3表が標準4種を規定するため移行期間も許容しない（failの解消はcorpus側移行で行う）"
+given = "expect_side_effect = \"...\" のみを持つ[[condition]]を含むconditions.tomlを検証（--strict系なし）"
+expect_return = "exit 1。当該条件idのexpect_キー種別fail"
+
+[[condition]]
+id = "verify-conditions.missing-or-empty-id-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:269"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) conditionのid欠落・空）"
+description = "id欠落・空文字の条件はfail。idはcovers対応・同期のキーであり空を許容しない"
+given = "id行が無い[[condition]]と id = \"\" の[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。両条件のfail"
+
+[[condition]]
+id = "verify-conditions.duplicate-id-same-file-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:285"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) id重複・同一ファイル内）+ 書き戻しアルゴリズムのエッジケース"
+description = "同一ファイル内のid重複はfail。重複時は当該ファイルのsource_lines同期もスキップする（誤対応防止）"
+given = "同一idの[[condition]]が2つ存在するconditions.tomlを検証"
+expect_return = "exit 1。id重複のfail。当該ファイルのsource_linesは書き換わらない"
+
+[[condition]]
+id = "verify-conditions.duplicate-id-cross-feature-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:297"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) id重複・feature横断）+ 設計判断12"
+description = "feature横断（全corpus）のid重複もfail。tag→id対応・source_lines同期が別条件へ誤対応するリスクを防ぐ"
+given = "異なる2featureのconditions.tomlに同一idが存在する状態で検証"
+expect_return = "exit 1。id重複のfail"
+
+[[condition]]
+id = "verify-conditions.meta-required-fields-fail"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:316"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) metaのfeature・source_file欠落）"
+description = "[meta]のfeature・source_fileは必須。欠落・空はfail"
+given = "feature行が欠けた[meta]を持つconditions.tomlを検証"
+expect_return = "exit 1。meta必須欄欠落のfail"
+
+[[condition]]
+id = "verify-conditions.verified-true-with-empty-record-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:325"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) verified=trueなのにverified_at/verified_by/test_command/source_hashのいずれか空）"
+description = "meta.verified=trueは検証記録で裏付ける。記録欄のいずれかが空ならfail"
+given = "verified = true だが verified_by = \"\" の[meta]を持つconditions.tomlを検証"
+expect_return = "exit 1。検証記録欄空のfail"
+
+[[condition]]
+id = "verify-conditions.verified-false-without-reason-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:334"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) verified=falseなのにunverifiable_reasonが空・欠落）"
+description = "条件単位のverified=falseはunverifiable_reason付きでのみ許容。理由なしのfalseはfail"
+given = "verified = false で unverifiable_reason の無い[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。unverifiable_reason欠落のfail"
+
+[[condition]]
+id = "verify-conditions.excluded-empty-field-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:346"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(e) excludedのitem/source/reasonいずれか空欄）"
+description = "[[excluded]]のitem/source/reasonは必須。いずれかの空欄はfail（除外記録の妥当性照合の前提）"
+given = "reason = \"\" の[[excluded]]を含むconditions.tomlを検証"
+expect_return = "exit 1。excluded空欄のfail"
+
+[[condition]]
+id = "verify-conditions.excluded-absent-passes"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:362"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(e) 空配列は許容。書かれたentryのみ検証）"
+description = "[[excluded]]が0件（記載自体が無い）ことはfailではない。書かれたentryのみ構造検証する"
+given = "[[excluded]]を1つも持たないconditions.tomlを検証"
+expect_return = "exit 0（excluded無しによるfailは発生しない）"
+
+# --- schema検証（verify_schema）: warn系（デフォルト） ---
+
+[[condition]]
+id = "verify-conditions.missing-given-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:370"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: given欠落・空・実質無し）"
+description = "given欠落・空・「なし」等の実質無しはwarn。failではない"
+given = "given行が無い[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 0。given関連のwarn"
+
+[[condition]]
+id = "verify-conditions.missing-description-or-target-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:379"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: description・target_function欠落）"
+description = "description・target_functionの欠落はwarn。failではない"
+given = "description行が無い[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 0。description/target_function関連のwarn"
+
+[[condition]]
+id = "verify-conditions.feature-stem-mismatch-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:392"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: meta.feature≠ファイルstem）"
+description = "meta.featureが条件書ファイルのstemと一致しない場合はwarn"
+given = "ファイル名 alpha/conditions.toml に対し feature = \"beta\" の[meta]を検証"
+expect_return = "exit 0。feature不一致のwarn"
+
+[[condition]]
+id = "verify-conditions.missing-source-warns-by-default"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:401"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: source欄欠落・空・デフォルト）+ 設計判断2（--strict-sourceは移行完了後にon）"
+description = "source欄の欠落・空はデフォルトではwarn。fail昇格は--strict-source時のみ（段階適用）"
+given = "source行が無い[[condition]]を含むconditions.tomlを検証（--strict-source無し）"
+expect_return = "exit 0。source関連のwarn"
+
+[[condition]]
+id = "verify-conditions.invalid-verified-record-values-warn"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:420"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: verified=true時の記録形式の手編集ミス疑い）"
+description = "verified=trueの検証記録形式違反（verified_byがclaude/human/codex以外・verified_atがYYYY-MM-DD形式でない・source_hashが40桁hexでない）はwarnでpass。手編集ミス検出はfailではなくfailは空・欠落検査が担う"
+given = "verified = true かつ verified_by・verified_at・source_hashの値が規定形式と不一致な[meta]を持つconditions.tomlを検証"
+expect_return = "exit 0。3欄それぞれの記録形式warn"
+
+[[condition]]
+id = "verify-conditions.warn-only-exits-zero"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:410"
+target_function = "report"
+source = "docs/design/verify-conditions.md 出力形式（warnはexit 0に影響しない）"
+description = "warnのみでfailが無い実行はexit 0。warnの存在がexit codeを汚さない"
+given = "warn要因（given欠落等）のみを含みfail要因の無いconditions.tomlを検証"
+expect_return = "exit 0。サマリにfail 0・warn 1以上"
+
+# --- covers検査（scan_test_tags / verify_tags） ---
+
+[[condition]]
+id = "verify-conditions.dangling-tag-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:442"
+target_function = "verify_tags"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(a) dangling・feature横断で判定）+ 設計判断8"
+description = "どのconditions.tomlのidにも一致しないcoversタグはdanglingとしてfail。feature横断（全corpusのid集合）で判定する"
+given = "テストファイルに存在しないid（例: ghost.nonexistent）への[covers:]タグを含む状態で検証"
+expect_return = "exit 1。danglingタグのfail"
+
+[[condition]]
+id = "verify-conditions.comma-separated-multi-id-tag"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:454"
+target_function = "scan_test_tags"
+source = "docs/design/verify-conditions.md 関数構造（scan_test_tags: カンマ区切り収集）+ 前提実態調査（[covers:a,b]が実在）"
+description = "[covers:a,b]のカンマ区切り複数idを分解して全idをcoverとして扱う。1番目のidのみ解決したりdanglingにしてはならない"
+given = "it説明文末尾に [covers:<idA>,<idB>] 形式のタグを持つテストファイルと両idの条件書を検証"
+expect_return = "exit 0。両idともcoverありと判定される"
+
+[[condition]]
+id = "verify-conditions.tag-position-agnostic"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:463"
+target_function = "scan_test_tags"
+source = "docs/design/verify-conditions.md 前提実態調査（説明文先頭63ファイル・末尾81ファイルの混在 → 走査は位置不問）"
+description = "coversタグは説明文先頭・末尾いずれの位置でも検出する。位置を限定しない"
+given = "先頭タグ（it('[covers:<id>] ...')）と末尾タグ（it('... [covers:<id>]')）の両方を含むテストファイルを検証"
+expect_return = "exit 0。両配置ともcoverとして検出される"
+
+[[condition]]
+id = "verify-conditions.comment-line-tag-excluded-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:475"
+target_function = "scan_test_tags"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: コメント行の[covers:]）+ 設計判断13"
+description = "行頭（空白許容）//で始まる行の[covers:]はタグ走査から除外しwarn。コメント内coversをタグ誤検出しない"
+given = "// it('x [covers:<存在しないid>]') 形式のコメント行を含むテストファイルを検証"
+expect_return = "exit 0。danglingにならず、コメント行coversのwarnが出る"
+
+# --- 網羅検査（verify_coverage） ---
+
+[[condition]]
+id = "verify-conditions.uncovered-condition-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:489"
+target_function = "verify_coverage"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(b) verified=false(+reason)以外の条件が1つもcoverされていない）"
+description = "1つもcoverタグの無い条件はfail。網羅検査の中核"
+given = "coverタグが1つも存在しない[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。当該idのcover無しfail"
+
+[[condition]]
+id = "verify-conditions.verified-false-with-reason-uncovered-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:502"
+target_function = "verify_coverage"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(b) 全条件が無条件でcover必須）+ 設計判断9（TASK-490で免除廃止）"
+description = "verified=false+unverifiable_reason付きでもcover免除されない。全条件が無条件でcover必須（skill §4(b)）。failの解消はcorpus側移行で行う"
+given = "verified = false + unverifiable_reason付きでcoverタグの無い[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1。当該条件のcover無しfail"
+
+[[condition]]
+id = "verify-conditions.verified-false-without-reason-uncovered-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:516"
+target_function = "verify_coverage"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(b) 全条件が無条件でcover必須。reasonの有無は関係しない）"
+description = "verified=false（reason無し）でcoverタグの無い条件は、schema fail（unverifiable_reason欠落）に加え網羅検査でもfail扱い"
+given = "verified = false（reason無し）でcoverタグの無い[[condition]]を含むconditions.tomlを検証"
+expect_return = "exit 1"
+
+[[condition]]
+id = "verify-conditions.verified-false-with-cover-tag-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:527"
+target_function = "verify_coverage"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: verified=false条件にcoverタグが存在）"
+description = "検証不能のはずのverified=false条件へcoverタグが存在する場合は情報warn。failにはしない"
+given = "verified = false + unverifiable_reason付きの条件idへの[covers:]タグを含む状態で検証"
+expect_return = "exit 0。verified=false条件coverのwarn"
+
+# --- source_lines同期（plan_sync / apply_sync） ---
+
+[[condition]]
+id = "verify-conditions.sync-inserts-after-id-line"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:544"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（sync: coverあり・source_lines行なし→id行直下に挿入）+ 書き戻しアルゴリズム"
+description = "source_lines行が無い条件へ、coverタグの走査結果（path:line）をid行の直後に挿入する。既存corpusのフィールド順（id → target_function → source → source_lines）と整合"
+given = "source_lines行を持たない条件がcoverタグ1つで参照されているconditions.tomlを検証（--no-sync無し）"
+expect_return = "exit 0。書き戻し後、id行の直後に source_lines = \"<テスト相対path>:<行>\" が挿入される"
+
+[[condition]]
+id = "verify-conditions.sync-replaces-mismatched-value"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:555"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（sync: 新形式で値不一致→置換）"
+description = "source_linesが新形式（path:line）でcoverタグ実在位置と値が不一致なら、行値を書き換える"
+given = "source_lines = \"tests/unit/x.test.ts:99\"（実際のタグ行と不一致）の条件を検証"
+expect_return = "exit 0。書き戻し後、source_linesが実際のタグ位置（例: tests/unit/x.test.ts:2）へ置換される"
+
+[[condition]]
+id = "verify-conditions.legacy-source-lines-skipped-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:570"
+target_function = "plan_sync"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（warn: legacy形式のため同期対象外）+ 書き戻しアルゴリズム（legacy判定: ^[0-9]+(-[0-9]+)?(,...)*$）"
+description = "実装行番号参照のlegacy形式（\"51\"/\"44-46\"/\"27-28,33\"等）は書き換えずwarn。TASK-489移行前に121ファイル大diffを生まない"
+given = "source_lines = \"51\" と \"44-46\" と \"27-28,33\" を持つcover済み条件を検証"
+expect_return = "exit 0。3条件ともsource_linesは書き換わらず、legacy同期対象外のwarn"
+
+[[condition]]
+id = "verify-conditions.legacy-source-lines-with-space-skipped-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:591"
+target_function = "plan_sync"
+source = "docs/design/verify-conditions.md 書き戻しアルゴリズム（legacy判定regexはカンマ後の空白を\\s*で許容）+ 前提実態調査（空白入りカンマ区切り16件実在）"
+description = "カンマ後に空白を含むlegacy形式（\"27-28, 33\"・\"76-80, 91-93\"等）もlegacy判定し同期で書き換えない。空白入りが新形式と誤判定されcover時に書き換わる実corpus破壊を防ぐ"
+given = "source_lines = \"27-28, 33\" （カンマ後に空白）のcover済み条件を検証"
+expect_return = "exit 0。source_linesは書き換わらず、legacy同期対象外のwarn"
+
+[[condition]]
+id = "verify-conditions.mixed-legacy-and-new-source-lines"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:605"
+target_function = "plan_sync"
+source = "docs/design/verify-conditions.md 前提実態調査（legacy・新形式の混在を前提とする）+ 書き戻しアルゴリズム"
+description = "同一ファイル内にlegacy形式と新形式のsource_linesが混在する場合、新形式のみ同期しlegacy行はそのままwarnする"
+given = "legacy（\"51\"）の条件と新形式（不一致値）の条件が並ぶconditions.tomlを検証"
+expect_return = "exit 0。新形式の行のみ置換され、legacyの行は不変"
+
+[[condition]]
+id = "verify-conditions.sync-joins-multiple-covers"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:628"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 書き戻しアルゴリズム（exp = path:line,path:line（昇順・重複除去））"
+description = "同一idが複数テスト行からcoverされる場合、source_linesは全参照を昇順・重複除去したカンマ連結1行にする"
+given = "同一idへの[covers:]タグを2箇所（異なる行）に持つテストファイルを検証"
+expect_return = "exit 0。source_linesが2参照の昇順カンマ連結（例: \"tests/unit/a.test.ts:2,tests/unit/a.test.ts:5\"）で1行に書かれる"
+
+[[condition]]
+id = "verify-conditions.no-sync-leaves-file-unchanged"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:644"
+target_function = "main"
+source = "docs/design/verify-conditions.md CLI仕様（--no-sync: source_lines自動同期を無効化・CI・review用読み取り専用実行）"
+description = "--no-sync指定時は同期が必要な条件があってもファイルへ一切書き込まない。検証（fail/warn）は通常どおり実行する"
+given = "source_lines挿入が必要な条件を含むconditions.tomlに--no-syncを付けて検証"
+expect_return = "exit 0。ファイル内容は実行前と完全一致（バイト単位）"
+
+[[condition]]
+id = "verify-conditions.unexpected-format-fails-skips-writeback"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:654"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 設計判断15 + 書き戻しアルゴリズムのエッジケース（想定外形式はfailし当該ファイルの書き戻しをスキップ）"
+description = "単引用符値（source_lines = '...'）・source_lines重複記載・inline comment付き行など行ベース書き戻し前提を崩す構造はfailとし、当該ファイルの書き戻しをスキップする"
+given = "source_lines = 'tests/unit/x.test.ts:1'（単引用符）の条件を含むconditions.tomlを検証"
+expect_return = "exit 1。想定外形式のfail。ファイルは一切書き換わらない"
+
+[[condition]]
+id = "verify-conditions.crlf-and-missing-trailing-newline-preserved"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:666"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 書き戻しアルゴリズム（splitlines(keepends=True)・CRLF保持・trailing newlineは元ファイルの有無に従う）+ 設計判断14"
+description = "同期書き戻しでCRLF改行と末尾改行の有無を保持する。同期だけで全行diffが発生しないことの保証"
+given = "CRLF改行・末尾改行なしのconditions.tomlでsource_lines挿入を行う"
+expect_return = "exit 0。挿入行以外は改行コード・末尾改行なしを含め元のバイト列が保持される"
+
+[[condition]]
+id = "verify-conditions.sync-insert-preserves-missing-trailing-newline"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:684"
+target_function = "apply_sync"
+source = "docs/design/verify-conditions.md 書き戻しアルゴリズム（trailing newlineは元ファイルの有無に従う）+ 設計判断14"
+description = "id行が改行なしのファイル最終行である条件へsource_linesを挿入する場合、挿入行を改行なしの新最終行にする。id行への改行補完により末尾改行が追加されてファイル全体のdiffが広がるのを防ぐ"
+given = "id行が末尾改行なしの最終行になっている（source_lines行を持たない）cover済み条件を検証"
+expect_return = "exit 0。挿入後もファイルは末尾改行なしで終わり、id行の直後にsource_lines行が連なる"
+
+# --- strict系（--strict-source） ---
+
+[[condition]]
+id = "verify-conditions.strict-source-escalates-fail"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:701"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md CLI仕様（--strict-source: source欄の欠落・空をfailに）+ 検証項目 fail/warn 全リスト（strict行）"
+description = "--strict-source指定時、source欄欠落・空がwarnからfailへ昇格する。TASK-489移行完了後の検知用"
+given = "source行が無い[[condition]]を含むconditions.tomlに--strict-sourceを付けて検証"
+expect_return = "exit 1。source欠落のfail（--strict-source無しの同一入力はexit 0・warn）"
+
+[[condition]]
+id = "verify-conditions.invalid-id-format-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:307"
+target_function = "verify_schema"
+source = "docs/design/verify-conditions.md 検証項目 fail/warn 全リスト（(c) id形式違反・skill §2との照合・デフォルトfail）+ 設計判断4（TASK-490で--strict-id廃止）"
+description = "id形式違反（_使用・.複数・大文字等、skill §2 stable id形式との不一致）はオプション無しのデフォルトでfail。--strict-idによる段階適用は廃止済み"
+given = "id = \"feat.uses_underscore\" の条件を含むconditions.tomlを検証（オプション無し）"
+expect_return = "exit 1。id形式違反のfail"
+
+# --- --bootstrap（bootstrap_mode） ---
+
+[[condition]]
+id = "verify-conditions.bootstrap-stable-id-skips"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:725"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様1（tNN形式以外のidがあればskip報告・exit 0・上書きしない）"
+description = "stable id付きの条件書は--bootstrapで上書きしない。skip報告してexit 0"
+given = "stable id（feat.something形式）の条件を含むconditions.tomlを--bootstrapで指定"
+expect_return = "exit 0。skip報告が出て、ファイルは一切変更されない"
+
+[[condition]]
+id = "verify-conditions.bootstrap-numbers-tnn-max-plus-one"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:737"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様3（新規説明文は既存最大NN+1で採番。ゼロ埋めしない・欠番埋めない）"
+description = "タグ無しitの説明文を既存最大tNN+1で採番し、[[condition]]ブロックをファイル末尾に追記する"
+given = "example.t01・example.t03が存在するconditions.tomlとタグ無しit 2つを含むテストファイルを--bootstrapで指定"
+expect_return = "exit 0。新規条件は example.t04・example.t05 として末尾追記（t02の欠番は埋めない）"
+
+[[condition]]
+id = "verify-conditions.bootstrap-preserves-existing-lines"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:757"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様3（既存行は一切書き換えない＝手動コメント・meta直前コメント保持）+ 仕様5（テスト側へのcoversタグ付与は行わない）"
+description = "--bootstrapは末尾追記のみで既存行を書き換えない。またテストファイル側も一切書き換えない"
+given = "冒頭に手動コメントのあるtNN条件書とテストファイルを--bootstrapで指定"
+expect_return = "exit 0。追記ブロックより前の行とテストファイルの内容は実行前と完全一致"
+
+[[condition]]
+id = "verify-conditions.bootstrap-excludes-tagged-it"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:774"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様2（[covers:...]タグ付きitは除外）"
+description = "既にcoversタグ付きのitは新規採番対象から除外する（二重条件化防止）"
+given = "タグ無しit 1つとタグ付きit 1つを含むテストファイルを--bootstrapで指定"
+expect_return = "exit 0。追記される新規条件はタグ無しitの1件のみ"
+
+[[condition]]
+id = "verify-conditions.bootstrap-duplicate-description-warns"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:794"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様3（同一説明文の重複は新規採番せず既存扱い+warn）"
+description = "既存tNN条件と同一説明文（前後空白strip後の完全一致）は新規採番せず既存条件扱いでwarnする"
+given = "既存tNN条件のdescriptionと同一の説明文を持つタグ無しitを--bootstrapで指定"
+expect_return = "exit 0。新規採番されず（追記ブロック無し）、重複warn"
+
+[[condition]]
+id = "verify-conditions.bootstrap-modified-call-fails"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:810"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様2（it.each/it.skip/it.only/test.concurrent/xit等の修飾呼び出しを検出したらfail・暗黙の取りこぼし防止）"
+description = "itの修飾呼び出し（it.each等）を検出したらfail。単行抽出の暗黙の取りこぼしを許さない"
+given = "it.each([...]) を含むテストファイルを--bootstrapで指定"
+expect_return = "exit 1。修飾呼び出し検出のfail"
+
+[[condition]]
+id = "verify-conditions.bootstrap-missing-it-warns-not-deletes"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:826"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様4（対応itが消失した既存tNN条件は削除せずwarn報告）"
+description = "テスト側に対応説明文が無い既存tNN条件も削除しない。warn報告のみ"
+given = "tNN条件の説明文に対応するitがテストファイルに存在しない状態で--bootstrapを実行"
+expect_return = "exit 0。当該tNN条件はtomlに残存し、消失warnが出る"
+
+[[condition]]
+id = "verify-conditions.bootstrap-generates-new-toml"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:841"
+target_function = "bootstrap_mode"
+source = "docs/design/verify-conditions.md --bootstrap仕様3（toml不在なら[meta]のみの雛形から生成）"
+description = "conditions.tomlが存在しないfeatureは[meta]のみの雛形にタグ無しit分のtNN条件を生成する。t01から採番"
+given = "存在しないtests/design/<feature>/conditions.tomlとタグ無しit 1つのテストファイルを--bootstrapで指定"
+expect_return = "exit 0。<feature>.t01 の条件を含むconditions.tomlが新規生成される"
+
+# --- --verified（verified_mode） ---
+
+[[condition]]
+id = "verify-conditions.verified-writes-meta-on-pass"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:855"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様2〜3（全passならmetaへverified=true・verified_at・verified_by・test_commandを書き、source_hashはgit hash-objectの出力）"
+description = "検証全pass時に--verified <by>と--test-commandの値でmetaへ検証記録を書く。source_hashはgit blob hash"
+given = "全検査passなconditions.toml（source_fileが実在）に --verified claude --test-command \"<cmd>\" を指定"
+expect_return = "exit 0。書き戻り後のmetaに verified = true・verified_by = \"claude\"・test_command・40桁hexのsource_hash"
+
+[[condition]]
+id = "verify-conditions.verified-fail-leaves-meta-unchanged"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:878"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様2（failが1件でもあれば検証記録を書かずexit 1）"
+description = "検証failがある状態で--verifiedを指定してもmetaを書き換えない。fail内容を報告してexit 1"
+given = "cover無し条件を含むconditions.tomlに--verified claude --test-commandを指定"
+expect_return = "exit 1。fail報告。metaは実行前の内容と完全一致"
+
+[[condition]]
+id = "verify-conditions.verified-hash-failure-leaves-meta-unchanged"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:888"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様4（meta.source_file不在・git管理外・hash取得失敗の場合はmetaを一切更新せずfail・原子性）"
+description = "source_hash取得に失敗する（source_file不在等）場合はmetaを一切更新しない。一部だけ書き込まれた検証記録を作らない"
+given = "source_file = \"src/missing.ts\"（不在）の全検査passなconditions.tomlに--verified claude --test-commandを指定"
+expect_return = "exit 1。metaは実行前の内容と完全一致"
+
+[[condition]]
+id = "verify-conditions.verified-unblocked-by-foreign-dangling"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:901"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様2（ブロック条件は対象tomlのfailのみ。danglingはfeature横断検出のため対象外featureのテスト起因で常に出うるので報告のみ）"
+description = "danglingはfeature横断検出であり対象外featureのテスト起因で出るため、対象tomlの検証記録をブロックしない。対象tomlのfailのみがブロック条件（当該feature起因のdanglingはcoverage検査のuncover failで捕捉されるため漏れ無し）"
+given = "対象tomlは全pass、かつ存在しないidを参照するcoversタグが他テストファイルに存在する状態で--verified claude --test-commandを指定"
+expect_return = "exit 0。danglingは報告されるがmetaに検証記録が書かれる"
+
+[[condition]]
+id = "verify-conditions.verified-blocks-local-dangling"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:924"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様2（対象featureの条件をcoverするテストファイル内のdanglingタグはfailとして検証記録をブロック）"
+description = "対象featureの条件をcoverするテストファイル内のdanglingタグ（typo等でどのidにも一致しないタグ）は対象featureの品質問題のため検証記録をブロックする。対象外feature由来のdanglingとの違いは出所テストファイルがcoverに使われているか"
+given = "対象tomlの条件をcoverするテストファイル内に、存在しないidへの[covers:]タグが共存する状態で--verified claude --test-commandを指定"
+expect_return = "exit 1。dangling failを報告しmetaは実行前の内容と完全一致"
+
+[[condition]]
+id = "verify-conditions.verified-multi-target-atomic-write"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:944"
+target_function = "verified_mode"
+source = "docs/design/verify-conditions.md --verified仕様4（複数対象は全対象のhash計算後に一括書き込み＝原子性）"
+description = "複数対象指定時に1対象でもsource_hash計算に失敗する（source_file不在等）場合は、成功した対象も含め全対象のmetaを一切書かない。一部だけverified=trueになる中間状態を作らない"
+given = "2対象を指定し、2番目のmeta.source_fileが不在（1番目は実在・全検査pass）の状態で--verified claude --test-commandを指定"
+expect_return = "exit 1。1番目・2番目ともmetaは実行前の内容と完全一致"
+
+# --- 出力・exit code（report） ---
+
+[[condition]]
+id = "verify-conditions.report-fail-line-format"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:970"
+target_function = "report"
+source = "docs/design/verify-conditions.md 出力形式（FAIL <feature> <id>: 理由 形式で列挙）+ CLI仕様（exit code: 1 = 検証failあり）"
+description = "failは FAIL <feature> <id>: 理由 の行形式でファイルごとに列挙し、failありならexit 1"
+given = "fail要因（cover無し等）を含むconditions.tomlを検証"
+expect_return = "exit 1。stdoutに FAIL <feature> <id>: 形式の行"
+
+[[condition]]
+id = "verify-conditions.report-summary-line"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:978"
+target_function = "report"
+source = "docs/design/verify-conditions.md 出力形式（最終サマリ行: N files / X conditions / F fail / W warn / S synced）"
+description = "実行最後に files・conditions・fail・warn・syncedの件数を含むサマリ行を出力する"
+given = "任意のconditions.tomlを検証"
+expect_return = "stdout末尾に全件数を含むサマリ行（N files / X conditions / F fail / W warn / S synced 形式）"
+
+# --- 実corpus smoke ---
+
+[[condition]]
+id = "verify-conditions.corpus-smoke-browser-config-no-sync"
+source_lines = "tests/unit/scripts/verify-conditions.test.ts:990"
+target_function = "main"
+source = "docs/design/verify-conditions.md テスト構成（実corpus smoke: browser-configを--no-syncで実行し完了・サマリ行出力）"
+description = "実corpus（tests/design/browser-config）に対して--no-syncで実行が完走しサマリ行を出力する。exit codeは実corpusの状態に依存するため0/1いずれかを許容"
+given = "実repo rootで browser-config を--no-sync付きで実行"
+expect_return = "exit 0 または 1（異常終了・クラッシュしない）。stdoutにサマリ行"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "coversタグ走査の対象拡張子絞り込み（.ts/.tsx/.js/.cjs/.mjs以外のファイルを無視すること）"
+source = "docs/design/verify-conditions.md 関数構造（scan_test_tagsの走査範囲）+ 設計判断8"
+reason = "実装内部の走査詳細であり、観察可能挙動（他拡張子のタグが対応に使われない）はdangling・coverage検査で間接的に検証される。独立条件にするとfixture過剰（§8: 挙動に差を生まない内部処理に近い）"
+decided_at = "2026-09-11"
+decided_by = "claude"
+
+[[excluded]]
+item = "--bootstrap時のit(/test(呼び出し総数と抽出・除外説明文数の合計不一致warn"
+source = "docs/design/verify-conditions.md --bootstrap仕様2（末尾）"
+reason = "単行it抽出の取りこぼし検出は修飾呼び出しfail条件（bootstrap-modified-call-fails）が担う。総数不一致warnは複数行it等のまれなエッジで、独立テストの複雑度に対し検証価値が低い"
+decided_at = "2026-09-11"
+decided_by = "claude"
+
+[[excluded]]
+item = "--bootstrapがテストファイル側へcoversタグを付与しないことの独立条件化"
+source = "docs/design/verify-conditions.md --bootstrap仕様5"
+reason = "テストファイル不変は bootstrap-preserves-existing-lines の書き戻し検証（テストファイルの内容一致assert）に含めて検証するため、独立条件にすると重複"
+decided_at = "2026-09-11"
+decided_by = "claude"
+
+[[excluded]]
+item = "--json等の機械可読出力が存在しないこと"
+source = "docs/design/verify-conditions.md 出力形式（機械可読出力は追加しない）"
+reason = "設計書が明示的に「追加しない」と決めた不在機能。不在の検証は不可能（§8: 挙動に差を生まない）"
+decided_at = "2026-09-11"
+decided_by = "claude"
+
+[[excluded]]
+item = "exit code 0/1/2の規約全体を単独で検証する独立条件"
+source = "docs/design/verify-conditions.md CLI仕様（exit code）・テスト構成（exit code規約: 0/1/2）"
+reason = "0（minimal-valid-toml-passes・warn-only-exits-zero等）・1（各fail条件）・2（CLI引数・パース失敗条件）は全て個別機能条件のexit code assertで網羅される。単独条件は全条件と重複する"
+decided_at = "2026-09-11"
+decided_by = "claude"

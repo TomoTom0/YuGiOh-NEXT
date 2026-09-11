@@ -17,6 +17,7 @@
 ## ファイル
 
 - [card-info-cache.md](./card-info-cache.md) - カード情報キャッシュ仕様
+- [verify-conditions.md](./verify-conditions.md) - tests/design条件書検証script（verify-conditions.py）設計
 - [option-page.md](./option-page.md) - オプションページ設計
 - [search-condition.md](./search-condition.md) - 検索条件設計
 - [search-condition-limit.yml](./search-condition-limit.yml) - 検索条件制限ルール

@@ -130,6 +130,8 @@ source_hash = "<git blob hashやcommit hash等>"  # 検証対象にした実装�
 
 さらに、3節のAST抽出スクリプトによる「未カバーtarget_function検出」と、`[covers:<id>]`タグが実際に全conditionを網羅しテストがPASSしているかのチェックを、Phase 2着手前にCI（`mise run test:vitest`実行フロー、またはlint相当のチェックスクリプト）に組み込む。これが無い間は`verified = true`は自己申告に留まる点に留意する。
 
+このチェックスクリプトはTASK-480で実装済み: `uv run python scripts/design/verify-conditions.py`（coversタグdangling検出・網羅検査・schema検証・excluded構造検証・source_lines自動同期。設計: `docs/design/verify-conditions.md`）。legacy形式source_lines（実装行番号参照）のcorpus移行はTASK-489で実施する。
+
 DOM構造に依存しないロジック（純粋関数のutils等）は該当するユニットテストの実行のみで足り、HTML fixtureは不要。
 
 ## 5. 進め方（フェーズ）

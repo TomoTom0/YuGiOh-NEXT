@@ -53,7 +53,7 @@ target_function = "GenesysNameResolver#build"
 source_lines = "81-84"
 description = "tableA.langsName.ja はあるが tableB が無い（falsy）カードは nameToCids にも cidToKind にも登録されずスキップされる。cids.length===1の分岐(L117-119)はcidToKindを一切参照しないため、tableBが無くてもskipされていなければnameToCidsにname->[cid]が登録され単独候補としてcidが返るはずで、実際はnullが返ることでskip（未登録）が確認できる"
 given = "唯一の候補カードがja名を持つがtableBを持たない"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "build.types_defaults_to_empty_array"
@@ -79,7 +79,7 @@ target_function = "GenesysNameResolver#resolveCid"
 source_lines = "114-116"
 description = "指定した名前がnameToCidsに存在しない（またはlength===0）場合、nullを返す"
 given = "name = 未登録のカード名"
-expect_return = null
+expect_return = "null"
 
 [[condition]]
 id = "resolve_cid.single_candidate"

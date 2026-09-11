@@ -31,7 +31,7 @@
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |
 | `parser/` | パーサー | - |
-| `scripts/` | デバッグ用シェルlib（browser-config.sh等。bashサブシェル呼び出しで検証） | `browser-config.test.ts` |
+| `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証） | `browser-config.test.ts`, `verify-conditions.test.ts` |
 
 ---
 
@@ -78,6 +78,7 @@
 | シャッフル機能 | `tests/unit/shuffle/shuffleCards.test.ts` | ランダム性の担保 |
 | feature flagデフォルト値（configs/features.toml） | `tests/unit/configs/feature-defaults.test.ts` | tomlとFeatureId/DEFAULT_FEATURE_SETTINGSの整合・dev-only解決の検証 |
 | ブラウザ起動lib（scripts/debug/setup/lib/browser-config.sh） | `tests/unit/scripts/browser-config.test.ts` | 全browserテストの起動経路。toml読み取り・binary/拡張機能解決・port特定kill・CDPポーリング |
+| tests/design条件書検証script（scripts/design/verify-conditions.py） | `tests/unit/scripts/verify-conditions.test.ts` | coversタグ対応・網羅・schema・excluded構造の機械検証とsource_lines自動同期・bootstrap/verifiedモード |
 
 ---
 
