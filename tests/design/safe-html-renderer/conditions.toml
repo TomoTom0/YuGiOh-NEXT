@@ -258,6 +258,7 @@ expect_return_shape = "issues配列内での各メッセージの並び順はdan
 [[condition]]
 id = "xss_integration.stored_data_escaped_via_builder_no_dynamic_element"
 target_function = "escapeHtml + SafeHtmlBuilder.div + setSafeInnerHTML"
+source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
 source_lines = "24-33,123-134,81-85"
 description = "APIデータ等の外部文字列をescapeHtmlでエスケープしてからSafeHtmlBuilderでHTML文字列を構築しsetSafeInnerHTMLで設定した場合、元文字列に含まれるimg/script等のタグはHTMLとして解釈されずテキストとして描画される（格納型XSSの防止）"
 given = "apiData.name = 'Product<img src=x onerror=\"alert(1)\">' をescapeHtmlしてSafeHtmlBuilder.divのcontentに渡し、setSafeInnerHTMLでdiv要素へ設定"
@@ -266,6 +267,7 @@ expect_side_effect = "描画結果にimg要素は存在せず、textContentは'P
 [[condition]]
 id = "xss_integration.attribute_boundary_protected_by_escape_attribute"
 target_function = "escapeAttribute + setSafeInnerHTML"
+source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
 source_lines = "62-64,81-85"
 description = "テンプレートリテラルのダブルクォート属性値に外部文字列を埋め込む際、escapeAttributeでクォート文字をエスケープしていれば属性値の境界を突破されてscript要素等を注入されることはない（DOMベースXSSの防止）"
 given = "userInput = '\"><script>alert(1)</script><div class=\"' をescapeAttributeしてhref属性値に埋め込んだHTMLをsetSafeInnerHTMLでdiv要素へ設定"
@@ -274,6 +276,7 @@ expect_side_effect = "描画結果にscript要素は存在しない"
 [[condition]]
 id = "xss_integration.user_html_escaped_no_dynamic_element"
 target_function = "escapeHtml + setSafeInnerHTML"
+source = "tm TASK-478: src/utils/__tests__/safe-html-renderer.test.ts 旧テストの実世界XSS統合検証（tests/unitへの移植に伴い条件化）"
 source_lines = "24-33,81-85"
 description = "ユーザー提供のHTML文字列をinnerHTMLへそのまま渡さずescapeHtmlで文字列化してからsetSafeInnerHTMLで設定した場合、タグはすべてリテラル文字列として描画され要素は生成されない"
 given = "userHtml = '<p>Hello</p><img src=x onerror=\"alert(1)\">' をescapeHtmlしてsetSafeInnerHTMLでdiv要素へ設定"

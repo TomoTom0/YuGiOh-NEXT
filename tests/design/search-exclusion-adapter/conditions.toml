@@ -121,6 +121,7 @@ expect_return_shape = "fieldInputs['monster-type'] === true だが selectedAttri
 [[condition]]
 id = "field_inputs.monster_type_false_when_empty"
 target_function = "toSearchConditionState"
+source = "tm TASK-478: src/utils/__tests__/search-exclusion-adapter.test.ts 旧テストのmonsterTypes空配列検証（tests/unitへの移植に伴い条件化）"
 source_lines = "59"
 description = "filters.monsterTypesが空配列の場合、fieldInputs['monster-type']はfalseになる（length > 0判定の偽側）"
 given = "filters.monsterTypes = []"

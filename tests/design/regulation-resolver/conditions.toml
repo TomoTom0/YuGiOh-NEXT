@@ -123,6 +123,7 @@ expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefin
 [[condition]]
 id = "resolve.gene_abbrev_resolved_as_genesys"
 target_function = "resolveDeckRegulation"
+source = "tm TASK-478: src/utils/__tests__/regulation-resolver.test.ts 旧テストのGENE省略形タグ解決検証（tests/unitへの移植に伴い条件化）"
 source_lines = "161, 166-211"
 description = "デッキ名のGENE省略形タグ（[GENE]、[GENE-YYMM]）はparseRegulationTagがtype='genesys'と解釈するため、[GENESYS]フルネームのタグと同一のgenesys mode解決路径に入る（YYMM省略時はlistParam=null、YYMM指定時は実在一覧との照合結果が返る）"
 given = "deckName = '[GENE] マイデッキ'（YYMM省略）、または '[GENE-2608] マイデッキ'（YYMM指定、genesysListParams = ['202608']）"
