@@ -1,0 +1,347 @@
+# 検証対象: src/components/LoadDialog.vue（クローズ経路の一部は src/components/BaseDialog.vue）
+#
+# デッキ編集画面で既存デッキを選択・ロードするダイアログ。デッキリストのページング表示・
+# サムネイル表示・デッキロード実行・現在ページのサムネイル強制再生成を担う。
+# TASK-479: src/components/__tests__/LoadDialog.test.ts（30 it有効 + skip 2）と
+# tests/unit/components/LoadDialog.test.ts（13 it）の統合に伴うdesign整備として条件化。
+#
+# 粒度方針（Tier C）:
+# - Vueコンポーネントのため script setup 相当のロジック分岐（表示条件・ページング状態遷移・
+#   classバインディング・ロード時の副作用）を主対象とし、template表示結果は簡潔に。
+#
+# store側（deck-edit条件書）との線引き:
+# - openLoadDialog（ダイアログを開く前にthumbnail/infoキャッシュを再読込してshowLoadDialog=true）
+#   はstore側で条件化済みのため本書には含めない。本書は「このコンポーネントで観測できる
+#   呼び出し条件・副作用」（loadDeckがshowLoadDialogをfalseにする・generateThumbnailsInBackground
+#   の呼び出し条件・各種表示条件）のみを記載する。
+#
+# 探索中の発見事項:
+# - .thumbnail-gradient はSCSS（LoadDialog.vue L432-L442）に定義があるがtemplateに要素が存在
+#   しない（デッドCSS）。旧src側テストの当該null assertは恒真のため統合テストから削除した。
+#   CSS側削除はテスト統合タスクのスコープ外。
+
+[meta]
+verified = true
+verified_at = "2026-09-12"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/LoadDialog.test.ts"
+source_hash = "ce0e0dabb67befb17a4d06ca2464fe3c6bedb5f8"
+feature = "load-dialog"
+source_file = "src/components/LoadDialog.vue"
+
+# --- 表示の基本（visibility・リスト描画） ---
+
+[[condition]]
+id = "load-dialog.visibility-controlled-by-is-visible-prop"
+source_lines = "tests/unit/components/LoadDialog.test.ts:92,tests/unit/components/LoadDialog.test.ts:98"
+target_function = "BaseDialog isVisible + Transition v-if"
+source = "src/components/LoadDialog.vue L2 と src/components/BaseDialog.vue L3-L4 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "ダイアログの表示/非表示はisVisible propで制御される。false時はTeleport先のbody配下にoverlayを描画しない"
+given = "isVisible=false / isVisible=true でマウント"
+expect_return_shape = "false時: body直下に .base-dialog-overlay が存在しない。true時: .base-dialog-overlay が出現し .dialog-title に 'Load Deck' を表示する"
+
+[[condition]]
+id = "load-dialog.empty-deck-list-renders-no-decks"
+source_lines = "tests/unit/components/LoadDialog.test.ts:105"
+target_function = "paginatedDeckList 早期return + template v-if"
+source = "src/components/LoadDialog.vue L22-L27, L124 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "deckListが空の場合はデッキカードを描画せず「デッキがありません」の空状態表示を出す"
+given = "deckList=[] で isVisible=true"
+expect_return_shape = ".no-decks と「デッキがありません」のpを表示する"
+
+[[condition]]
+id = "load-dialog.deck-list-renders-card-name-and-dno"
+source_lines = "tests/unit/components/LoadDialog.test.ts:120,tests/unit/components/LoadDialog.test.ts:134,tests/unit/components/LoadDialog.test.ts:152"
+target_function = "paginatedDeckList slice + template deck-card"
+source = "src/components/LoadDialog.vue L29-L60, L127 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "deckListをページング件数（24）でスライスし、各デッキをdeck-cardとして件数分描画する。カード名とdnoはデッキの値をそのまま出す"
+given = "deckListに複数件のDeckListItem"
+expect_return_shape = ".deck-card が件数分描画され、.deck-name-text にname・.dno-chip にdnoを出す"
+
+[[condition]]
+id = "load-dialog.unnamed-deck-falls-back-to-placeholder"
+source_lines = "tests/unit/components/LoadDialog.test.ts:143"
+target_function = "template deck.name || '(名称未設定)'"
+source = "src/components/LoadDialog.vue L40, L44 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "名称未設定（name空文字）のデッキはプレースホルダ「(名称未設定)」を表示する"
+given = "name='' のDeckListItem"
+expect_return_shape = ".deck-name-text の表示が '(名称未設定)' になる"
+
+[[condition]]
+id = "load-dialog.card-count-shown-when-cached"
+source_lines = "tests/unit/components/LoadDialog.test.ts:161,tests/unit/components/LoadDialog.test.ts:180"
+target_function = "getDeckCardCount + v-if"
+source = "src/components/LoadDialog.vue L45, L143-L145 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "cachedDeckInfosにdno対応のcardCountがある場合のみ[main/extra/side]形式の枚数を表示する"
+given = "cachedDeckInfosにdno対応cardCount有 / 無"
+expect_return_shape = "有: .deck-count に '[40/15/15]' 形式の枚数を表示。無: .deck-count を描画しない"
+
+[[condition]]
+id = "load-dialog.current-deck-class-marks-loaded-deck"
+source_lines = "tests/unit/components/LoadDialog.test.ts:189"
+target_function = "template current-deck class"
+source = "src/components/LoadDialog.vue L41, L53 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "現在ロード中のデッキ（deckInfo.dnoと一致するdnoのカード）を強調表示する"
+given = "deckInfo.dno=1 で deckListにdno=1,2のカード"
+expect_return_shape = "dno一致カードの .deck-name と .dno-chip に current-deck クラスが付き、不一致カードには付かない"
+
+[[condition]]
+id = "load-dialog.thumbnail-src-depends-on-update-thumbnail-without-fetch"
+source_lines = "tests/unit/components/LoadDialog.test.ts:211,tests/unit/components/LoadDialog.test.ts:223"
+target_function = "paginatedDeckList thumbnailSrc生成条件 + img v-if"
+source = "src/components/LoadDialog.vue L131-L133, L55-L60 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "サムネイルimgの表示はappSettings.updateThumbnailWithoutFetchがtrue（既定）の場合のみdeckThumbnailsのdataURLをthumbnailSrcとして出す。.with-thumbnail クラス（L33）は設定値のみに従いサムネイル有無（thumbnailSrc）とは独立"
+given = "appSettings.updateThumbnailWithoutFetch=true（既定）/ false、deckThumbnailsにdno対応dataURL"
+expect_return_shape = "true: thumbnailSrc=dataURLで .thumbnail-image を表示。false: thumbnailSrc=undefinedでimg非表示かつ .deck-card に with-thumbnail クラスも付かない"
+
+[[condition]]
+id = "load-dialog.empty-string-thumbnail-treated-as-absent"
+source_lines = "tests/unit/components/LoadDialog.test.ts:238"
+target_function = "paginatedDeckList 空文字正規化"
+source = "src/components/LoadDialog.vue L137 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "deckThumbnailsの空文字列は空デッキのマーカーであるため未設定（undefined）扱いとしimgを表示しない"
+given = "updateThumbnailWithoutFetch=true（既定）で deckThumbnails.get(dno) が空文字列"
+expect_return_shape = ".thumbnail-image は描画されない（with-thumbnail クラスは設定値由来で付いたまま）"
+
+# --- ページネーション（totalPages・goToNextPage・goToPrevPage） ---
+
+[[condition]]
+id = "load-dialog.total-pages-computed-by-ceiling-24"
+source_lines = "tests/unit/components/LoadDialog.test.ts:255,tests/unit/components/LoadDialog.test.ts:267"
+target_function = "totalPages computed + footer v-if"
+source = "src/components/LoadDialog.vue L66, L147-L150 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "ページ数はdeckList件数/24の切り上げで計算され、2ページ以上の場合のみページングフッターを表示する（24/25件の境界）"
+given = "deckList 24件 / 25件"
+expect_return_shape = "24件: totalPages=1で .dialog-footer 非表示。25件: totalPages=2で .dialog-footer 表示"
+
+[[condition]]
+id = "load-dialog.go-to-next-page-increments-page"
+source_lines = "tests/unit/components/LoadDialog.test.ts:328,tests/unit/components/LoadDialog.test.ts:403"
+target_function = "goToNextPage currentPage++"
+source = "src/components/LoadDialog.vue L159 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "次ページボタンでcurrentPageを1つ進め、表示ページと表示デッキが移動する"
+given = "deckList 50件（3ページ）で次ページボタンclick"
+expect_return_shape = ".pagination-info が '1 / 3'→'2 / 3' になり、2ページ目はdno=25先頭の24件を表示する"
+
+[[condition]]
+id = "load-dialog.next-page-generates-thumbnails-in-background"
+source_lines = "tests/unit/components/LoadDialog.test.ts:377"
+target_function = "goToNextPage generateThumbnailsInBackground呼び出し"
+source = "src/components/LoadDialog.vue L162-L172 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "ページ移動時に移動後ページのサムネイルをバックグラウンド生成する"
+given = "次ページボタンclick（2ページ目へ）"
+expect_return_shape = "generateThumbnailsInBackground(移動後startIndex=24, 24, deckList, getDeckDetail関数, headPlacementCardIds, deckThumbnails, cachedDeckInfos) が呼ばれる（force引数なし）"
+
+[[condition]]
+id = "load-dialog.next-page-guarded-at-last-page"
+source_lines = "tests/unit/components/LoadDialog.test.ts:300"
+target_function = "goToNextPage ガード + disabledバインド"
+source = "src/components/LoadDialog.vue L80, L158 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "最終ページでは次ページボタンをdisabledにしcurrentPageの増分を起こさない"
+given = "currentPage >= totalPages-1（最終ページ）"
+expect_return_shape = "次ページボタンがdisabledになる"
+
+[[condition]]
+id = "load-dialog.go-to-prev-page-decrements-page"
+source_lines = "tests/unit/components/LoadDialog.test.ts:349"
+target_function = "goToPrevPage currentPage--"
+source = "src/components/LoadDialog.vue L178 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "前ページボタンでcurrentPageを1つ戻す"
+given = "2ページ目で前ページボタンclick"
+expect_return_shape = ".pagination-info が '2 / 3'→'1 / 3' になる"
+
+[[condition]]
+id = "load-dialog.prev-page-guarded-at-first-page"
+source_lines = "tests/unit/components/LoadDialog.test.ts:279"
+target_function = "goToPrevPage ガード + disabledバインド"
+source = "src/components/LoadDialog.vue L69, L177 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "先頭ページでは前ページボタンをdisabledにしcurrentPageの減分を起こさない"
+given = "currentPage === 0（先頭ページ）"
+expect_return_shape = "前ページボタンがdisabledになる"
+
+# --- デッキロード（loadDeck） ---
+
+[[condition]]
+id = "load-dialog.load-deck-closes-dialog-immediately"
+source_lines = "tests/unit/components/LoadDialog.test.ts:474"
+target_function = "loadDeck 冒頭代入"
+source = "src/components/LoadDialog.vue L190 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "デッキロード開始時に先じてshowLoadDialogをfalseにする（onLoadCallbackの成否と無関係）"
+given = "deck-card click"
+expect_return_shape = "deckStore.showLoadDialog=false が設定される（callback成功時もreject時も）"
+
+[[condition]]
+id = "load-dialog.load-deck-invokes-callback-with-dno-and-emits-deck-loaded"
+source_lines = "tests/unit/components/LoadDialog.test.ts:435,tests/unit/components/LoadDialog.test.ts:455"
+target_function = "loadDeck await + emit"
+source = "src/components/LoadDialog.vue L195-L196 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "onLoadCallbackをクリックしたカードのdnoで呼び、完了後にdeckLoaded emitを1回発火する"
+given = "onLoadCallback設定済みの状態でdeck-card click"
+expect_return_shape = "onLoadCallback(dno) がカードのdnoで呼ばれ、deckLoaded emitが1回発火される"
+
+[[condition]]
+id = "load-dialog.load-deck-without-callback-logs-error-and-skips"
+source_lines = "tests/unit/components/LoadDialog.test.ts:493"
+target_function = "loadDeck 未設定ガード"
+source = "src/components/LoadDialog.vue L191-L194 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "onLoadCallback未設定時はconsole.errorを出し、以降の処理（callback呼び出し・deckLoaded emit）をスキップする（ダイアログは先に閉じたまま）"
+given = "onLoadCallback未設定でdeck-card click"
+expect_return_shape = "console.error('LoadDialog: onLoadCallback is not set') が出て deckLoaded emitは発火せず showLoadDialog=false"
+
+[[condition]]
+id = "load-dialog.load-deck-catch-logs-error"
+source_lines = "tests/unit/components/LoadDialog.test.ts:520"
+target_function = "loadDeck catch"
+source = "src/components/LoadDialog.vue L197-L199 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "onLoadCallbackがrejectした場合はconsole.errorを出し、deckLoaded emitは発火しない（ダイアログは閉じたまま）"
+given = "onLoadCallbackがreject"
+expect_return_shape = "console.error('Load error:', error) が出て deckLoaded emit無し・showLoadDialog=false"
+
+# --- ダイアログを閉じる（close・BaseDialog経由のクローズ経路） ---
+
+[[condition]]
+id = "load-dialog.close-btn-click-emits-close"
+source_lines = "tests/unit/components/LoadDialog.test.ts:550"
+target_function = "template close-btn + close"
+source = "src/components/LoadDialog.vue L18, L117-L120 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "閉じるボタンclickで親へclose emitを発火する"
+given = ".close-btn click"
+expect_return_shape = "LoadDialogから close emitが1回発火する"
+
+[[condition]]
+id = "load-dialog.overlay-self-click-emits-close"
+source_lines = "tests/unit/components/LoadDialog.test.ts:562"
+target_function = "BaseDialog @click.self + closeOnClickOverlay既定true + close"
+source = "src/components/BaseDialog.vue L4, L24-L28 と src/components/LoadDialog.vue L2, L117-L120 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "オーバーレイ自身のclickは親へのclose emitとして扱う（closeOnClickOverlay既定true）"
+given = ".base-dialog-overlay 自身をclick"
+expect_return_shape = "LoadDialogから close emitが1回発火する（コンテンツ経由では発火しない）"
+
+[[condition]]
+id = "load-dialog.content-click-does-not-emit-close"
+source_lines = "tests/unit/components/LoadDialog.test.ts:575"
+target_function = "BaseDialog @click.self"
+source = "src/components/BaseDialog.vue L4, L24-L28 と src/components/LoadDialog.vue L2, L117-L120 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "ダイアログコンテンツのclickは @click.self の対象外のためcloseを発火しない（overlay直クリックのみ有効）"
+given = ".dialog-content をclick"
+expect_return_shape = "close emitは発火しない"
+
+[[condition]]
+id = "load-dialog.close-resets-current-page-to-first"
+source_lines = "tests/unit/components/LoadDialog.test.ts:587"
+target_function = "close currentPage=0リセット"
+source = "src/components/LoadDialog.vue L118 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "ダイアログを閉じる際にcurrentPageを先頭ページへリセットする（再オープン時に1ページ目から表示）"
+given = "2ページ目表示後にclose→再オープン"
+expect_return_shape = ".pagination-info が '1 / 3' に戻る"
+
+# --- デッキ名フォントサイズ（getDeckNameClass） ---
+
+[[condition]]
+id = "load-dialog.deck-name-class-lg-up-to-10-chars"
+source_lines = "tests/unit/components/LoadDialog.test.ts:626"
+target_function = "getDeckNameClass"
+source = "src/components/LoadDialog.vue L202-L208 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "デッキ名長が10文字以下の場合はフォントサイズlgのクラスを付与する（lg/md境目の直下）"
+given = "name.length が10以下（ちょうど10文字）"
+expect_return_shape = ".deck-name に deck-name-lg クラスが付く"
+
+[[condition]]
+id = "load-dialog.deck-name-class-md-11-to-15-chars"
+source_lines = "tests/unit/components/LoadDialog.test.ts:639"
+target_function = "getDeckNameClass"
+source = "src/components/LoadDialog.vue L202-L208 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "デッキ名長が11-15文字の場合はフォントサイズmdのクラスを付与する（lg/md境目の直上）"
+given = "name.length が11-15（ちょうど11文字）"
+expect_return_shape = ".deck-name に deck-name-md クラスが付く"
+
+[[condition]]
+id = "load-dialog.deck-name-class-sm-16-to-20-chars"
+source_lines = "tests/unit/components/LoadDialog.test.ts:652"
+target_function = "getDeckNameClass"
+source = "src/components/LoadDialog.vue L202-L208 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "デッキ名長が16-20文字の場合はフォントサイズsmのクラスを付与する（md/sm境目の直上）"
+given = "name.length が16-20（ちょうど16文字）"
+expect_return_shape = ".deck-name に deck-name-sm クラスが付く"
+
+[[condition]]
+id = "load-dialog.deck-name-class-xs-over-20-chars"
+source_lines = "tests/unit/components/LoadDialog.test.ts:665"
+target_function = "getDeckNameClass"
+source = "src/components/LoadDialog.vue L202-L208 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "デッキ名長が21文字以上の場合はフォントサイズxsのクラスを付与する（sm/xs境目の直上）"
+given = "name.length が21以上（ちょうど21文字）"
+expect_return_shape = ".deck-name に deck-name-xs クラスが付く"
+
+# --- サムネイル再生成（refreshCurrentPage） ---
+
+[[condition]]
+id = "load-dialog.refresh-forces-current-page-regeneration"
+source_lines = "tests/unit/components/LoadDialog.test.ts:683"
+target_function = "refreshCurrentPage 呼び出し"
+source = "src/components/LoadDialog.vue L216-L226 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "リフレッシュボタンで現在ページのサムネイルをforce=trueで強制再生成する"
+given = ".refresh-btn click（1ページ目）"
+expect_return_shape = "generateThumbnailsInBackground(現在ページstartIndex=0, 24, deckList, getDeckDetail関数, headPlacementCardIds, deckThumbnails, cachedDeckInfos, true) が呼ばれる（第8引数force=true）"
+
+[[condition]]
+id = "load-dialog.refresh-guarded-while-refreshing"
+source_lines = "tests/unit/components/LoadDialog.test.ts:708"
+target_function = "refreshCurrentPage isRefreshingガード + disabled/refreshingバインド"
+source = "src/components/LoadDialog.vue L9, L11, L212 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "生成処理が未解決の間はボタンをdisabled+refreshingクラスにし、再clickしても二重実行しない"
+given = "generateThumbnailsInBackgroundが未解決の間に .refresh-btn を再click"
+expect_return_shape = ".refresh-btn がdisabledかつ refreshing クラスを持ち、generateThumbnailsInBackgroundの呼び出し回数は増えない"
+
+[[condition]]
+id = "load-dialog.refresh-restores-flag-in-finally"
+source_lines = "tests/unit/components/LoadDialog.test.ts:708,tests/unit/components/LoadDialog.test.ts:749"
+target_function = "refreshCurrentPage finally"
+source = "src/components/LoadDialog.vue L227-L229 と tm TASK-479（src/__tests__統合に伴うdesign整備）"
+description = "生成処理の完了後（成功・例外とも）にisRefreshingをfalseへ戻しボタンを復帰させる"
+given = "generateThumbnailsInBackgroundの完了後"
+expect_return_shape = ".refresh-btn のdisabledが解除され refreshing クラスが外れる"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "deckListがnullの場合のno-decks表示（v-if=!deckStore.deckList || deckStore.deckList.length === 0 の左辺）"
+source = "src/components/LoadDialog.vue L22（旧src側テストに null as any で注入するitが存在）"
+reason = "storeの公開型は ref<DeckListItem[]>([])（deck-edit.ts L625）でnull非代入のため、型付きテスト経路では再現不能な防御分岐。as anyを使った異常値注入は本タスク方針（as any排除）の対象外のため、src側の該当it（null as any使用）は削除し条件化もしない"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "scrollToDialogTop のスクロール副作用（dialogBodyRef.value?.scrollTo({top:0, behavior:'smooth'})）"
+source = "src/components/LoadDialog.vue L153-L155, L160, L179"
+reason = "分岐を持たず表示結果にも差を生まない（ページ遷移ロジック自体はdno・pagination-infoのassertで担保）。happy-domのscrollTo実装詳細に依存するテストは脆くなるため条件化しない"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "deck-name-lg/md/sm/xs のfont-size値・with-thumbnail高さ・dno-chip配色等のSCSS定義"
+source = "src/components/LoadDialog.vue L233-L546"
+reason = "静的スタイル定義でロジック分岐なし。クラス付与の分岐はgetDeckNameClass系4条件・thumbnail-src条件で条件化済み（hover-tooltip前例のexcludedと同根拠）"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "base-dialog-fade Transitionのフェード+ポップインアニメーション"
+source = "src/components/BaseDialog.vue L3, L45-L63"
+reason = "CSSの見た目遷移のみで表示/非表示判定（visibility条件として条件化済み）に挙動差を生まない"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "BaseDialogのcloseOnClickOverlay=false分岐・theme prop分岐"
+source = "src/components/BaseDialog.vue L15-L18, L24-L28"
+reason = "LoadDialogは同propを未指定（既定true）で使用しており、このコンポーネントからは観測不能。BaseDialog自体の条件書（現状なし）を作成する際の対象"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "dialog-title \"Load Deck\" 固定文言・refreshボタンSVG等の静的コンテンツ"
+source = "src/components/LoadDialog.vue L5, L14-L16"
+reason = "粒度基準「書かない」: 単純な静的描画で分岐なし（visibility条件のit内assertで補助検証は行う）"
+decided_at = "2026-09-12"
+decided_by = "claude"

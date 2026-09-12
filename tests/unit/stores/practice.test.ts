@@ -135,6 +135,15 @@ describe('stores/practice', () => {
     expect(unknown).toMatchObject({ name: '', lang: 'ja', imgs: [], cardType: 'unknown', face: 'up' });
   });
 
+  it('draws all cards into hand when deck has fewer than five cards [covers:init_practice.resets_target_field_and_originals_then_draws_up_to_five]', () => {
+    const store = usePracticeStore();
+
+    store.initPractice([deckRef('monster-a', 3)], []);
+
+    expect(store.handCount).toBe(3);
+    expect(store.deckCount).toBe(0);
+  });
+
   it('returns zone arrays and empty arrays for invalid slots [covers:get_cards.monster_valid_slot_returns_slot] [covers:get_cards.monster_invalid_slot_returns_empty_array] [covers:get_cards.spell_trap_valid_slot_returns_slot] [covers:get_cards.spell_trap_invalid_slot_returns_empty_array] [covers:get_cards.extra_monster_valid_slot_returns_slot] [covers:get_cards.extra_monster_invalid_slot_returns_empty_array] [covers:get_cards.simple_zone_returns_zone_array]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('monster-a', 6)], []);
@@ -249,6 +258,16 @@ describe('stores/practice', () => {
     store.drawMultiple(1);
     expect(store.zones.banish).toHaveLength(0);
     expect(store.canUndo).toBe(false);
+  });
+
+  it('draws the requested count when it is smaller than the remaining deck [covers:draw_multiple.draws_min_count_and_deck_length]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 20)], []);
+
+    store.drawMultiple(3);
+
+    expect(store.handCount).toBe(8);
+    expect(store.deckCount).toBe(12);
   });
 
   it('moves cards with face/orientation and position variants [covers:move_card.no_location_is_noop] [covers:move_card.applies_face_orientation_and_top_position] [covers:move_card.bottom_position_pushes] [covers:move_card.numeric_position_is_clamped]', () => {
@@ -408,6 +427,43 @@ describe('stores/practice', () => {
     expect(store.hasTempRecipe).toBe(true);
   });
 
+  it('classifies temp recipe sections by intrinsic card type regardless of drop zone [covers:add_external_card.records_temp_recipe_section]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 5)], []);
+    mocks.cards.set('extra-mon', {
+      cardId: 'extra-mon',
+      name: 'Extra Mon',
+      lang: 'ja',
+      imgs: [],
+      cardType: 'monster',
+      levelType: 'rank',
+      levelValue: 4,
+      attribute: 'light',
+      race: 'warrior',
+      types: ['xyz'],
+      isExtraDeck: true,
+    });
+    mocks.cards.set('main-mon', {
+      cardId: 'main-mon',
+      name: 'Main Mon',
+      lang: 'ja',
+      imgs: [],
+      cardType: 'monster',
+      levelType: 'level',
+      levelValue: 4,
+      attribute: 'light',
+      race: 'warrior',
+      types: ['effect'],
+      isExtraDeck: false,
+    });
+
+    store.addExternalCard('extra-mon', '0', 'hand', undefined);
+    store.addExternalCard('main-mon', '0', 'extra', undefined);
+
+    expect(store.tempRecipe.find(card => card.cid === 'extra-mon')?.section).toBe('extra');
+    expect(store.tempRecipe.find(card => card.cid === 'main-mon')?.section).toBe('main');
+  });
+
   it('sets reveal flags for both fields [covers:reveal_deck_contents_sets_field_flag] [covers:reveal_extra_contents_sets_field_flag]', () => {
     const store = usePracticeStore();
 
@@ -465,6 +521,20 @@ describe('stores/practice', () => {
     expect(consoleError).toHaveBeenCalled();
   });
 
+  it('persists temp recipe through save and reload [covers:save_to_local_storage_strips_cards_and_persists_dual_field_state] [covers:load_from_local_storage.rehydrates_field1_and_defaults]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 5)], []);
+    store.addExternalCard('saved-card', '5', 'monster', 0);
+
+    setActivePinia(createPinia());
+    const reloaded = usePracticeStore();
+    const loaded = reloaded.loadFromLocalStorage();
+
+    expect(loaded).toBe(true);
+    expect(reloaded.tempRecipe[0]).toEqual({ cid: 'saved-card', ciid: '5', section: 'main' });
+    expect(reloaded.hasTempRecipe).toBe(true);
+  });
+
   it('clears field2 and localStorage according to implementation [covers:clear_field2_resets_field2_state_but_not_reveal_extra2_or_temp_recipe2] [covers:clear_local_storage_removes_key_and_swallows_errors]', () => {
     const store = usePracticeStore();
     store.initPractice([deckRef('spell-a', 6)], [], 1);
@@ -509,5 +579,67 @@ describe('stores/practice', () => {
     expect(store.handCount).toBe(handBefore);
     store.redo();
     expect(store.handCount).toBe(handBefore + 1);
+  });
+
+  it('undo restores state after moveCard and setCardFace [covers:undo_delegates_to_undo_command_then_saves]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 10)], []);
+    const card = store.zones.hand[0]!;
+
+    store.moveCard(card.instanceId!, 'monster', 0);
+    expect(store.zones.monster[0]).toHaveLength(1);
+    store.undo();
+    expect(store.zones.monster[0]).toHaveLength(0);
+    expect(store.handCount).toBe(5);
+
+    store.setCardFace(card.instanceId!, 'down');
+    expect(store.zones.hand[0]!.face).toBe('down');
+    store.undo();
+    expect(store.zones.hand[0]!.face).toBe('up');
+  });
+
+  it('undo restores state before resetPractice [covers:reset_practice.rebuilds_from_original_and_temp_recipe] [covers:undo_delegates_to_undo_command_then_saves]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 10)], []);
+
+    store.draw();
+    store.draw();
+    expect(store.handCount).toBe(7);
+
+    store.resetPractice();
+    expect(store.handCount).toBe(5);
+
+    store.undo();
+    expect(store.handCount).toBe(7);
+  });
+
+  it('tracks canUndo/canRedo flags across the undo/redo cycle [covers:undo_redo_flags.transition_with_command_history] [covers:draw_to_zone.unshift_top_deck_card_to_target_face_up]', () => {
+    const store = usePracticeStore();
+    store.initPractice([deckRef('monster-a', 10)], []);
+
+    expect(store.canUndo).toBe(false);
+    expect(store.canRedo).toBe(false);
+
+    store.draw();
+    expect(store.canUndo).toBe(true);
+    expect(store.canRedo).toBe(false);
+
+    store.undo();
+    expect(store.canUndo).toBe(false);
+    expect(store.canRedo).toBe(true);
+
+    store.redo();
+    expect(store.canUndo).toBe(true);
+    expect(store.canRedo).toBe(false);
+
+    // undo後に新しい操作を行うとredo未来が切り捨てられ、store.canRedoはfalseのままになる
+    store.draw();
+    store.undo();
+    expect(store.canRedo).toBe(true);
+    store.drawToZone('monster', 2);
+    expect(store.canRedo).toBe(false);
+
+    // drawToZoneのslotted zone宛: getCards('monster', 2)の戻り配列先頭へ配置される
+    expect(store.zones.monster[2]).toHaveLength(1);
   });
 });

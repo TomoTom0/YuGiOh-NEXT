@@ -572,6 +572,15 @@ given = "各テーブルにデータがある"
 expect_return_shape = "{ cardTierCount, deckHistoryCount, cardTableACount, cardTableBCount, productTableACount, faqTableACount }"
 
 [[condition]]
+id = "get_stats.empty_initial_state_zero"
+target_function = "UnifiedCacheDB#getStats"
+source = "tm TASK-479: src/utils/__tests__/unified-cache-db.test.ts L529「getStats: 初期状態では0」の移植に伴い条件化（comprehensiveはデータあり側のみで初期状態の全0を明示検証していなかった）"
+source_lines = "1146-1161"
+description = "空ストレージから初期化した直後は、集計対象6テーブルの件数がすべて0を返す"
+given = "ストレージが空の状態で initialize() を完了した直後に getStats() を呼ぶ"
+expect_return_shape = "{ cardTierCount: 0, deckHistoryCount: 0, cardTableACount: 0, cardTableBCount: 0, productTableACount: 0, faqTableACount: 0 }"
+
+[[condition]]
 id = "get_card_info.full_cache_or_reconstruct"
 target_function = "UnifiedCacheDB#getCardInfo"
 source_lines = "1173-1177"

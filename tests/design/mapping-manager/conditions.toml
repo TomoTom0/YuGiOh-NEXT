@@ -15,7 +15,7 @@ source_file = "src/utils/mapping-manager.ts"
 verified = true
 verified_at = "2026-08-06"
 verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/utils/mapping-manager-comprehensive.test.ts tests/unit/utils/mapping-manager.test.ts tests/unit/utils/mapping-manager-reversal.test.ts"
+test_command = "mise run test:vitest -- tests/unit/utils/mapping-manager-comprehensive.test.ts"
 source_hash = "7a071d956cd047f26a9411c271ba8cc76b4e26a3"
 note = "verified=falseは2件: initializeのinner/outer catchは実装内の通常経路ではfetch/loadが例外を外へ投げないため、private methodの差し替えなしには到達しない防御的catch"
 

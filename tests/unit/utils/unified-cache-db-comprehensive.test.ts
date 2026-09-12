@@ -247,6 +247,34 @@ describe('UnifiedCacheDB', () => {
       expect(basicInfo.tableB?.cardType).toBe('monster');
     });
 
+    it('initialize() は CardTier と CardTableA を同時にロードする [covers:initialize.first_loads_tables_then_cleanup_check]', async () => {
+      // ストレージに CardTier と CardTableA を事前設定
+      mockStorageData[STORAGE_KEYS.cardTier] = {
+        'card1': createSampleCardTier({ cardId: 'card1', lastAddedToDeck: Date.now(), lastShownDetail: Date.now(), lastSearched: Date.now() })
+      };
+      mockStorageData[STORAGE_KEYS.cardTableA] = {
+        'card1': {
+          cardId: 'card1',
+          langsName: { ja: 'カード1' },
+          langsImgs: { ja: [{ ciid: 'ciid-001', imgHash: 'hash1' }] },
+          langs_ciids: { ja: ['ciid-001'] },
+          langsFetchedAt: { ja: Date.now() }
+        }
+      };
+
+      // 初期化
+      await db.initialize();
+
+      // CardTier がロードされている（Tier 4 として cleanup でも残る）
+      expect(db.getStats().cardTierCount).toBe(1);
+      expect(db.getCardTier('card1')).toBe(4);
+
+      // CardTableA もロードされている
+      const basicInfo = db.getCardBasicInfo('card1');
+      expect(basicInfo.tableA).toBeDefined();
+      expect(basicInfo.tableA?.langsName?.ja).toBe('カード1');
+    });
+
     it('initialize() は既に初期化済みの場合は何もしない [covers:initialize.already_initialized_returns_early]', async () => {
       // 1回目の初期化
       await db.initialize();
@@ -1297,6 +1325,11 @@ describe('UnifiedCacheDB', () => {
 
       const stats = db.getStats();
       expect(stats.deckHistoryCount).toBe(5);  // 最大5件まで
+
+      // 履歴から追い出された最古デッキのカードは Tier 5 でなくなる
+      expect(db.getCardTier('card1')).toBeLessThan(5);  // dno=1 は recentDecks 外（Tier 4 に低下）
+      // 残存する最新デッキのカードは Tier 5 のまま
+      expect(db.getCardTier('card6')).toBe(5);
     });
 
     it('recordDeckOpen() は同じ dno が既にある場合は削除してから追加', () => {
@@ -1359,6 +1392,25 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(5);
     });
 
+    it('calculateTier() は複数条件が重なる場合 Tier 5 を最優先で返す [covers:calculate_tier.recent_deck_tier5]', () => {
+      const now = Date.now();
+      const tierData: CardTier = {
+        cardId: 'card-tier5-priority',
+        lastAddedToDeck: now - (1 * 24 * 60 * 60 * 1000),  // 単独なら Tier 4 相当
+        lastShownDetail: now - (100 * 24 * 60 * 60 * 1000),
+        lastSearched: now - (1 * 24 * 60 * 60 * 1000)      // 単独なら Tier 2 相当
+      };
+      const deckHistory: DeckOpenHistory = {
+        recentDecks: [
+          { dno: 1, openedAt: now, cardIds: ['card-tier5-priority'] }
+        ]
+      };
+
+      // Tier 5が日時条件（Tier 4/2相当）より優先する
+      const tier = calculateTier(tierData, deckHistory);
+      expect(tier).toBe(5);
+    });
+
     it('calculateTier() は Tier 4 を返す（1週間以内にデッキ追加） [covers:calculate_tier.detail_within_week_tier4]', () => {
       const now = Date.now();
       const tierData: CardTier = {
@@ -1366,6 +1418,22 @@ describe('UnifiedCacheDB', () => {
         lastAddedToDeck: now - (3 * 24 * 60 * 60 * 1000),  // 3日前
         lastShownDetail: 0,
         lastSearched: 0
+      };
+      const deckHistory: DeckOpenHistory = {
+        recentDecks: []  // 直近デッキには含まれない
+      };
+
+      const tier = calculateTier(tierData, deckHistory);
+      expect(tier).toBe(4);
+    });
+
+    it('calculateTier() は Tier 4 を返す（1週間以内に詳細表示、デッキ追加より新しい） [covers:calculate_tier.detail_within_week_tier4]', () => {
+      const now = Date.now();
+      const tierData: CardTier = {
+        cardId: 'card-tier4-detail',
+        lastAddedToDeck: now - (100 * 24 * 60 * 60 * 1000),  // 100日前（Math.max入力の古い側）
+        lastShownDetail: now - (2 * 24 * 60 * 60 * 1000),    // 2日前（詳細表示側が新しい）
+        lastSearched: now - (100 * 24 * 60 * 60 * 1000)
       };
       const deckHistory: DeckOpenHistory = {
         recentDecks: []  // 直近デッキには含まれない
@@ -2031,6 +2099,27 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[settingsKey]).toBeDefined();
       expect(mockStorageData[settingsKey].theme).toBe('dark');
     });
+
+    it('clearAll() はストレージ削除に remove を使用する [covers:clear_all.clears_memory_and_cache_keys_only]', async () => {
+      // データを追加して保存
+      const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
+      db.setCardInfo(cardInfo);
+      await db.saveAll();
+      expect(mockStorageData[STORAGE_KEYS.cardTableA]).toBeDefined();
+
+      // spy呼び出し記録をリセットしてから clearAll を実行
+      vi.clearAllMocks();
+
+      await db.clearAll();
+
+      // clear ではなく remove で対象キーを削除する
+      expect(chrome.storage.local.remove).toHaveBeenCalled();
+
+      // メモリ・ストレージともクリアされている
+      expect(db.getStats().cardTableACount).toBe(0);
+      expect(db.getStats().cardTierCount).toBe(0);
+      expect(mockStorageData[STORAGE_KEYS.cardTableA]).toBeUndefined();
+    });
   });
 
   // =========================================
@@ -2390,6 +2479,19 @@ describe('UnifiedCacheDB', () => {
       expect(allCardInfos.has('card2')).toBe(false);  // 再構築失敗でスキップ
     });
 
+    it('getStats() は初期状態では全カウント0を返す [covers:get_stats.empty_initial_state_zero]', async () => {
+      // 空ストレージから初期化
+      await db.initialize();
+
+      const stats = db.getStats();
+      expect(stats.cardTierCount).toBe(0);
+      expect(stats.deckHistoryCount).toBe(0);
+      expect(stats.cardTableACount).toBe(0);
+      expect(stats.cardTableBCount).toBe(0);
+      expect(stats.productTableACount).toBe(0);
+      expect(stats.faqTableACount).toBe(0);
+    });
+
     it('getStats() は統計情報を返す [covers:get_stats.counts_selected_tables]', () => {
       // テストデータを追加
       const cardInfo1 = createSampleCardInfo({ cardId: '1', lang: 'ja' });
@@ -2413,6 +2515,9 @@ describe('UnifiedCacheDB', () => {
       await db.initialize();
 
       expect(db.isInitialized()).toBe(true);
+
+      // 空ストレージでもストレージ読み込み（get）は実行される
+      expect(chrome.storage.local.get).toHaveBeenCalled();
     });
   });
 
