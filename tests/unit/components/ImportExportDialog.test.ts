@@ -2,8 +2,8 @@
  * ImportExportDialog.vue のテスト
  *
  * tests/design/import-export-dialog/conditions.toml（TASK-500・Tier C第3号）の
- * 42条件をカバーする。1条件1itを基本とし、preview-image-stale-result-discarded のみ
- * (a)(b)の2観測シーケンスが長いため2it構成（合計43it）。
+ * 44条件をカバーする。1条件1itを基本とし、preview-image-stale-result-discarded のみ
+ * (a)(b)の2観測シーケンスが長いため2it構成（合計45it）。
  *
  * 検証方針（条件書冒頭コメント・category-dialog様式）:
  * - BaseDialog実物（stubしない）: Teleport to="body" + v-if のため、観測はすべて
@@ -54,14 +54,17 @@ const {
 } = vi.hoisted(() => {
   // asキャスト禁止規約に従い、コールバック内で型注釈付きの変数として生成する
   const pendingImageResolvers: PendingImageResolution[] = [];
-  const dataUrlByBlob = new Map<Blob, string>();
+  // 値はFileReader stubのresult。非string（ArrayBuffer）を設定して異常系を駆動する場合がある
+  const dataUrlByBlob = new Map<Blob, string | ArrayBuffer>();
   return {
     mockImportDeckFromFile: vi.fn<(file: File) => Promise<ImportResult>>(),
     mockGenerateExportRows: vi.fn<(deckInfo: DeckInfo, options?: ExportOptions) => ExportRow[]>(),
     mockExportToTXT: vi.fn<(deckInfo: DeckInfo, options?: ExportOptions) => string>(),
     mockDownloadFile: vi.fn<(content: string, filename: string, mimeType: string) => void>(),
     mockDownloadDeckAsTXT: vi.fn<(deckInfo: DeckInfo, filename: string, options?: ExportOptions) => void>(),
-    mockCreateDeckRecipeImage: vi.fn<(options: CreateDeckRecipeImageOptions) => Promise<Blob>>(),
+    // 戻り値は実装契約（Promise<Blob | Buffer>）に準じ、非Blob解決（Buffer相当）の
+    // 異常系駆動のためBufferの基底クラスであるUint8Arrayも許容する
+    mockCreateDeckRecipeImage: vi.fn<(options: CreateDeckRecipeImageOptions) => Promise<Blob | Uint8Array>>(),
     pendingImageResolvers,
     dataUrlByBlob
   };
@@ -86,11 +89,12 @@ vi.mock('@/content/deck-recipe/createDeckRecipeImage', () => ({
 }));
 
 // ============================================================
-// FileReader stub（generatePreviewImageのdataURL化。BlobごとにdataUrlByBlobの値を返す）
+// FileReader stub（generatePreviewImageのdataURL化。BlobごとにdataUrlByBlobの値を返す。
+// 実FileReaderのresult型（string | ArrayBuffer | null）に合わせ、非string値も返せる）
 // ============================================================
 
 class StubFileReaderForPreview {
-  result: string | null = null;
+  result: string | ArrayBuffer | null = null;
   onloadend: (() => void) | null = null;
   onerror: (() => void) | null = null;
   error: unknown = null;
@@ -228,14 +232,15 @@ async function selectFile(fileName: string): Promise<void> {
   await new DOMWrapper(input).trigger('change');
 }
 
-/** 保留キューのindex番目の画像生成を解決する（BlobとdataURLを紐付けてからresolve） */
-function resolveImage(index: number, dataUrl: string): void {
+/** 保留キューのindex番目の画像生成を解決する（BlobとFileReaderのresult値を紐付けてからresolve。
+ *  resultには非string（ArrayBuffer）も渡せ、非string時の異常系駆動に使用する） */
+function resolveImage(index: number, fileReaderResult: string | ArrayBuffer): void {
   const entry = pendingImageResolvers[index];
   if (entry === undefined) {
     throw new Error(`[ImportExportDialog.test] pending image resolver not found: ${index}`);
   }
   const blob = new Blob(['preview'], { type: 'image/png' });
-  dataUrlByBlob.set(blob, dataUrl);
+  dataUrlByBlob.set(blob, fileReaderResult);
   entry.resolve(blob);
 }
 
@@ -660,6 +665,47 @@ describe('components/ImportExportDialog', () => {
       expect(requireElement<HTMLButtonElement>('.btn-import').disabled).toBe(false);
     });
 
+    it('[covers:import-export-dialog.preview-image-non-blob-result-rejected] createDeckRecipeImageがBlob以外（Buffer相当）を返した場合はエラー表示・loading解除（import自体は成功扱いのまま）', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockImportDeckFromFile.mockResolvedValue(okResult(makeDeckInfo()));
+      // 実装契約はPromise<Blob | Buffer>。Buffer相当としてBufferの基底クラスUint8Arrayを解決させる
+      mockCreateDeckRecipeImage.mockResolvedValue(new Uint8Array([1]));
+      mountDialog();
+      await nextTick();
+
+      await selectFile('deck.csv');
+      await flushImport();
+
+      const errorText = requireElement<HTMLElement>('.preview-image-placeholder-text.error');
+      expect(errorText.textContent?.trim()).toBe('プレビュー画像の生成に失敗しました');
+      expect(document.body.querySelectorAll('.preview-image')).toHaveLength(0);
+      // finallyでloading解除されるため 'Generating preview…' には戻らない
+      expect(requireElement('.preview-image-placeholder-text').textContent?.trim())
+        .not.toBe('Generating preview…');
+      expect(requireElement<HTMLButtonElement>('.btn-import').disabled).toBe(false);
+    });
+
+    it('[covers:import-export-dialog.preview-image-non-string-result-rejected] FileReaderのresultが非string（ArrayBuffer）の場合はエラー表示・loading解除（import自体は成功扱いのまま）', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockImportDeckFromFile.mockResolvedValue(okResult(makeDeckInfo()));
+      mountDialog();
+      await nextTick();
+
+      await selectFile('deck.csv');
+      await flushImport();
+
+      // Blobは解決するが、FileReader stubのresultがArrayBuffer（非string）になる
+      resolveImage(0, new ArrayBuffer(8));
+      await flushImport();
+
+      const errorText = requireElement<HTMLElement>('.preview-image-placeholder-text.error');
+      expect(errorText.textContent?.trim()).toBe('プレビュー画像の生成に失敗しました');
+      expect(document.body.querySelectorAll('.preview-image')).toHaveLength(0);
+      expect(requireElement('.preview-image-placeholder-text').textContent?.trim())
+        .not.toBe('Generating preview…');
+      expect(requireElement<HTMLButtonElement>('.btn-import').disabled).toBe(false);
+    });
+
     it('[covers:import-export-dialog.preview-image-stale-result-discarded] (a) 古い生成結果のresolveは反映されず最新の結果のみ表示される', async () => {
       mockImportDeckFromFile.mockResolvedValue(okResult(makeDeckInfo()));
       mountDialog();
@@ -1029,7 +1075,7 @@ describe('components/ImportExportDialog', () => {
       expect(exportPreviewValue()).toBe('section,cid,name,ciid,enc,quantity\nmain,1234,ブルーアイズ,1,ab12,2');
     });
 
-    it('[covers:import-export-dialog.column-drop-noop-guards] dragstartなしのdropと同一ピルへのdropは並び替えしない（同一ピルdropはdraggingクラスが残る現行挙動）', async () => {
+    it('[covers:import-export-dialog.column-drop-noop-guards] dragstartなしのdropと同一ピルへのdropは並び替えしない（同一ピルdropでもdraggingクラスは解除）', async () => {
       mockGenerateExportRows.mockReturnValue([makeRow()]);
       mountDialog({ initialTab: 'export', deckInfo: makeDeckInfo() });
       await nextTick();
@@ -1043,14 +1089,15 @@ describe('components/ImportExportDialog', () => {
       expect(columnPillLabels()).toEqual(labelsBefore);
       expect(exportPreviewValue()).toBe(before);
 
-      // (b) 同一ピルへのdrop: 並び替えしないがdraggingクラスは解除されず残る
+      // (b) 同一ピルへのdrop: 並び替えしないがdraggingクラスは解除される
       const namePill = requireElementWithText<HTMLButtonElement>('.column-pill', 'Name');
       await new DOMWrapper(namePill).trigger('dragstart');
+      expect(namePill.classList.contains('dragging')).toBe(true);
       await new DOMWrapper(namePill).trigger('drop');
       await nextTick();
       expect(columnPillLabels()).toEqual(labelsBefore);
       expect(exportPreviewValue()).toBe(before);
-      expect(namePill.classList.contains('dragging')).toBe(true);
+      expect(namePill.classList.contains('dragging')).toBe(false);
     });
 
     it('[covers:import-export-dialog.column-reset-restores-defaults] リセットボタンでカラムのON/OFFと並び順を既定（6列・全ON・既定順）へ戻す', async () => {
