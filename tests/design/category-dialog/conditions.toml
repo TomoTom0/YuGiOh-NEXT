@@ -1,0 +1,226 @@
+# 検証対象: src/components/CategoryDialog.vue（UIコンポーネント。template L1-92、
+#   script setup L94-235、scoped CSS L237-517）
+# 経緯: TASK-488（条件書新設・テスト再設計）× TASK-331（Tier C展開）。
+#   旧テスト21it中19itは実装非検証（prop受け渡し・定義確認系）で削除し、DOMイベント経由の
+#   実挙動テストへ再設計。Filter (7+ cards) 2it（TASK-478から移植）はcovers付け替えのうえ温存。
+#
+# 粒度方針（Tier C・deck-edit-layout条件書と同一）:
+# - script setup相当のロジック分岐（ハンドラ分岐・computed・watch副作用）を主対象とし、
+#   template表示結果は簡潔に
+# - UI操作はDOMイベント経由で検証する（vm内部呼び出し・vm内部状態の直接参照はしない）
+#
+# 線引き（use-category-matcher / category-grouping / BaseDialog との）:
+# - countCardsForCategoryLabel の判定内部（name/text一致・quantity 0→1の扱い・
+#   cardDB undefined読み飛ばし）は use-category-matcher 条件書
+#   （tests/design/use-category-matcher/conditions.toml）の対象。
+#   本書はCategoryDialogからの委譲呼び出し条件と結果のUI反映のみ
+# - categories prop の生成・順序管理（value/label/groupの決定、originalIndexの本来の用途）は
+#   category-grouping 側の対象。本書は渡された配列の消費のみ
+# - BaseDialog 内部（v-if/Teleport/overlayクリックclose/fade）は BaseDialog 側の対象。
+#   本書はCategoryDialog側の×ボタンclose emitまで
+#
+# 探索中の発見事項:
+# - selectedGroup（五十音タブ）はダイアログ再オープン時にリセットされない
+#   （watch isVisible L122-L128のリセット対象は isFilterEnabled/searchQuery のみ）。
+#   条件 reopen-keeps-selected-group として現行挙動を条件化（暫定: TASK-498で仕様確認待ち。
+#   確定時に本条件を見直す）
+# - categories prop の originalIndex フィールド（L104）はコンポーネント内で未使用。
+#   [[excluded]]に記録。フィールド掃除の要否はcategory-grouping側の整理と合わせて判断
+
+[meta]
+feature = "category-dialog"
+source_file = "src/components/CategoryDialog.vue"
+verified = true
+verified_at = "2026-09-13"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/CategoryDialog.test.ts"
+source_hash = "951f64e1b3a809b766b79f3f66f607a6a03baf01"
+note = "TASK-488で新規作成。verified=falseで作成開始し、テスト全pass（17it）・verify-conditions.pyで本topic由来のfail/warn 0件（既存の無関係dangling 26件・warn 598件はTASK-489のcorpus移行対象）・出典との内容照合後に検証記録を記載した。reopen-keeps-selected-groupはTASK-498の仕様確認結果により将来看直し"
+
+[[condition]]
+id = "category-dialog.initial-selection-from-model-value"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:189"
+target_function = "selectedCategories 初期化 + template 選択状態表示"
+source = "src/components/CategoryDialog.vue L117, L10-L18, L84 + tm TASK-488"
+description = "選択状態はmodelValueのコピーで初期化する。初期選択は選択済みチップ表示とカテゴリ項目のselectedクラスで観測する"
+given = "modelValue=['cat-kaos']（categoriesに実在するvalue）でisVisible=trueマウント"
+expect_return_shape = ".category-chip が1件（テキスト=当該カテゴリのlabel）。value='cat-kaos' の .category-item に selected クラス。未選択カテゴリには付かない"
+
+[[condition]]
+id = "category-dialog.toggle-category-add-and-remove"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:205"
+target_function = "toggleCategory"
+source = "src/components/CategoryDialog.vue L203-L212 + template L80-L88 + tm TASK-488"
+description = "カテゴリ項目クリックで選択追加/解除をトグルする（同一idの2回クリックで追加→解除）。切替のたびに現在の全選択のコピーをupdate:modelValueで即時emitする（OK/Cancelボタンを持たない即時適用設計）"
+given = "modelValue=[] でマウントし .category-item（cat-kaos）をクリック → 同一項目を再クリック"
+expect_return = "1回目: update:modelValue のpayload=['cat-kaos']・当該itemにselectedクラス。2回目: payload=[]（空配列）・selectedクラス解除"
+
+[[condition]]
+id = "category-dialog.chip-click-removes-selection"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:225"
+target_function = "toggleCategory（チップ経由）"
+source = "src/components/CategoryDialog.vue template L10-L18 + L203-L212 + tm TASK-488"
+description = "選択済みチップ自体のクリックでも当該カテゴリを選択解除する（カテゴリ項目と同じtoggleCategoryへ接続する第2のUI経路）"
+given = "modelValue=['cat-kaos','cat-dragon'] でマウントし 'カオス' の .category-chip をクリック"
+expect_return = "update:modelValue のpayload=['cat-dragon']。チップは1件になる（カオス側が消えドラゴンのみ残る）"
+
+[[condition]]
+id = "category-dialog.clear-all-button-visibility-and-emit"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:241"
+target_function = "clearAll + template クリアボタン v-if"
+source = "src/components/CategoryDialog.vue L215-L219 + template L20-L25 + tm TASK-488"
+description = "クリアボタンは選択ありの時のみ表示され、クリックで全選択を解除して空配列をemitする"
+given = "modelValue=['cat-kaos','cat-dragon']（選択あり） / modelValue=[]（選択なし）の各状態"
+expect_return_shape = "選択なし: .btn-clear-action は描画されない。選択あり: 描画され、クリックにより update:modelValue のpayload=[]・チップ0件・ボタンが非表示化される"
+
+[[condition]]
+id = "category-dialog.close-button-emits-close"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:261"
+target_function = "close"
+source = "src/components/CategoryDialog.vue L227-L229 + template L26 + tm TASK-488"
+description = "ヘッダーの×ボタンでcloseイベントをemitする（実際の非表示化は親のisVisible制御。overlayクリック経由のcloseはBaseDialog側の機構）"
+given = "isVisible=true マウント状態で .close-btn をクリック"
+expect_return_shape = "closeイベントが1回発火（引数なし）。update:modelValueは発火しない"
+
+[[condition]]
+id = "category-dialog.model-value-change-syncs-selection"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:273"
+target_function = "watch modelValue（配列置換）"
+source = "src/components/CategoryDialog.vue L232-L234 + tm TASK-488"
+description = "親がmodelValueを配列置換で変更（v-modelでの受け渡し・setProps相当）した場合に選択状態を同期する。要素変更（push等の同一配列へのmutate）経路は model-value-deep-watch-syncs-element-change が対として検証する"
+given = "modelValue=[] でマウント後、親から modelValue=['cat-kaos'] へ変更（setProps）"
+expect_return_shape = "チップが1件（cat-kaos）に増える。以後のtoggle操作のemitは同期後の選択を基準にする"
+
+[[condition]]
+id = "category-dialog.model-value-deep-watch-syncs-element-change"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:289"
+target_function = "watch modelValue（deep: true）"
+source = "src/components/CategoryDialog.vue L232-L234 + tm TASK-488"
+description = "modelValueのwatchはdeep: trueのため、親が保持するreactive配列への要素追加（push等・配列置換ではない）でも選択状態を同期する。配列置換経路（model-value-change-syncs-selection）と対になる公開挙動"
+given = "reactiveな文字列配列 ['cat-kaos'] をmodelValueとしてマウント後、同一配列へ 'cat-dragon' をpush（要素追加・置換なし）"
+expect_return_shape = "チップが2件（cat-kaos/cat-dragon）に増える。同期後のtoggle操作のemitは追加後の選択を基準にする"
+
+[[condition]]
+id = "category-dialog.reopen-resets-filter-and-search"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:311"
+target_function = "watch isVisible（リセット）"
+source = "src/components/CategoryDialog.vue L122-L128 + tm TASK-488"
+description = "ダイアログを開いた時（isVisible false→true）に7+フィルタと検索語を初期化する。前回開時の絞り込みを引き継がない"
+given = "検索語入力+7+フィルタONの状態で isVisible をfalse→true（再オープン）"
+expect_return_shape = "検索入力欄が空になり全カテゴリ表示。フィルタボタン（.search-row .btn-icon）のactiveクラスが解除され、フィルタで隠れていた7未満カテゴリも再表示される"
+
+[[condition]]
+id = "category-dialog.reopen-keeps-selected-group"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:340"
+target_function = "watch isVisible（selectedGroupリセット欠落）"
+source = "src/components/CategoryDialog.vue L118, L122-L128 + tm TASK-488"
+description = "期待仕様ではなく現行挙動（TASK-498で仕様確認待ち。確定時に本条件を見直す）: 再オープン時のリセット対象はisFilterEnabled/searchQueryのみで、selectedGroup（五十音タブ選択）は前回値を維持する"
+given = "ruby_カタブ選択（カ行のみ表示）の状態で isVisible をfalse→true（再オープン）"
+expect_return_shape = "再表示後もカ行（rowToCharsMap['ruby_カ']のカ/キ/ク/ケ/コ）のカテゴリのみ表示され、allタブへは戻らない。'all'へ戻すべきかはTASK-498の確定を待つ"
+
+[[condition]]
+id = "category-dialog.group-tab-filters-by-row-chars"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:363"
+target_function = "filteredCategories グループフィルタ + rowToCharsMap"
+source = "src/components/CategoryDialog.vue L135-L147, L173-L178 + template L45-L76 + tm TASK-488"
+description = "五十音タブは行単位（ruby_カ等）で選択し、rowToCharsMapで行内文字（カ行ならカ/キ/ク/ケ/コ）へ展開して、category.groupがいずれかを含むカテゴリのみ表示する。allは全件"
+given = "categories に group=['ruby_カ']（カオス）・['ruby_キ']（カイザー）・['ruby_タ']（ドラゴン）を含む状態で all / ruby_カ タブを順にクリック"
+expect_return_shape = "all: 全カテゴリ表示。ruby_カ: カオス・カイザー（カ行）のみ表示しドラゴン（タ行）は非表示。選択中タブにactiveクラス"
+
+[[condition]]
+id = "category-dialog.search-filters-label-case-insensitive"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:383"
+target_function = "filteredCategories 検索フィルタ"
+source = "src/components/CategoryDialog.vue L181-L184 + template L31-L37 + tm TASK-488"
+description = "検索語はラベルへの部分一致（クエリ・ラベル双方toLowerCase）で絞り込む。空白のみの入力はフィルタしない"
+given = "categories にラベル 'ABC' と 'カオス' を含む状態で、検索語 'abc' / 'カオ' / '  '（空白のみ）を入力"
+expect_return_shape = "'abc': ABCのみ表示（大文字小文字無視）。'カオ': カオスのみ表示。空白のみ: 全件表示"
+
+[[condition]]
+id = "category-dialog.filter-seven-plus-uses-fallback-count"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:405,tests/unit/components/CategoryDialog.test.ts:432"
+target_function = "filteredCategories 7+フィルタ + countCardsWithCategory フォールバック"
+source = "src/components/CategoryDialog.vue L150-L158, L186-L191 + template L38-L42 + tm TASK-488"
+description = "7+フィルタON時、deckCardRefs未指定/空の場合はフォールバックとしてdeckCardsからnameまたはtextにラベルを含むカードのエントリ数（quantity不加算）をカウントし、7以上のカテゴリのみ表示する（境界: 6は非表示・7は表示）"
+given = "'ドラゴン' がname含有6枚+text含有1枚（計7）・'レアカード' がname含有6枚（計6）のdeckCards（deckCardRefsなし）でフィルタON"
+expect_return_shape = "ドラゴン表示・レアカード非表示（境界6）。該当カテゴリが無い場合は.category-itemが0件"
+
+[[condition]]
+id = "category-dialog.missing-name-text-treated-as-no-match"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:454"
+target_function = "countCardsWithCategory フォールバック（欠損フィールド正規化）"
+source = "src/components/CategoryDialog.vue L153-L157 + tm TASK-488"
+description = "deckCardsはany[]型のためname/text欠損カードが混入し得る。フォールバックカウントは `card.name || ''` / `card.text || ''` で欠損を空文字へ正規化し、例外なく不一致扱い（カウント0寄与）として扱う。片方のみ欠損（name欠損だがtextにラベル含有等）のカードは通常どおり一致判定される"
+given = "'カオス' ラベルに対し、(a) name含有6枚+name欠損かつtext含有1枚のdeckCards / (b) name含有6枚+name・text両方欠損1枚のdeckCards。いずれもdeckCardRefsなし・フィルタON"
+expect_return_shape = "(a) カウント7として表示（name欠損カードはtext含有で一致し、例外なく動作）。(b) カウント6として非表示（両方欠損カードはカウントに寄与しない）"
+
+[[condition]]
+id = "category-dialog.filter-count-prefers-deck-card-refs"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:469"
+target_function = "countCardsWithCategory 委譲分岐"
+source = "src/components/CategoryDialog.vue L152-L165 + tm TASK-488"
+description = "deckCardRefsが指定されている場合はフォールバックカウントを使わず、countCardsForCategoryLabel（useCategoryMatcher）へラベル・refs・cid→deckCardsのcardId解決コールバックを渡して委譲する（quantity合計カウント。判定ロジック内部はuse-category-matcher条件書の対象）"
+given = "name含有カード3枚のdeckCards（フォールバックなら3）と、当該カード群をquantity合計7（3+4の2本）で指すdeckCardRefs。フィルタON時の deckCardRefsなし/あり を比較"
+expect_return_shape = "refsなし: カウント3のため非表示。refsあり: カウント7のため表示。同一props構成でdeckCardRefsの有無だけが表示結果を反転する（quantity合計が効くこととcardId解決が機能することの間接観測）"
+
+[[condition]]
+id = "category-dialog.filter-button-toggles-on-off"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:485"
+target_function = "onFilterClick + template activeクラス"
+source = "src/components/CategoryDialog.vue L221-L224 + template L38-L42 + tm TASK-488"
+description = "7+フィルタボタンはクリックごとにON/OFFをトグルし、activeクラスとリスト絞り込みが連動する（OFFで全カテゴリ復帰）"
+given = "7枚カテゴリと6枚カテゴリが混在するfixtureでフィルタボタンをクリック → 再クリック"
+expect_return_shape = "1回目: ボタンにactiveクラス・7枚カテゴリのみ表示。2回目: active解除・全カテゴリ復帰"
+
+[[condition]]
+id = "category-dialog.chip-label-falls-back-to-id"
+source_lines = "tests/unit/components/CategoryDialog.test.ts:506"
+target_function = "getCategoryLabel"
+source = "src/components/CategoryDialog.vue L196-L200 + template L16 + tm TASK-488"
+description = "チップのラベルはcategoriesからvalueで解決し、解決不能なid（categoriesに存在しないvalue）はid値自身を表示する"
+given = "modelValue=['cat-kaos','cat-unknown']（cat-unknownはcategoriesに不存在）でマウント"
+expect_return_shape = "チップ2件: 'カオス'（解決済みラベル）と 'cat-unknown'（idフォールバック）"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "categories prop の originalIndex フィールド（L104）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "コンポーネント内で参照なし（表示順はcategories配列順そのまで、originalIndexは使わない）。挙動に差を生まない（§8「書かない」: 挙動に差を生まない内部処理）。フィールド掃除の要否はcategory-grouping側（カテゴリ生成・順序管理）の整理と合わせて判断"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "rowToCharsMap未登録グループのフォールバック `|| [selectedGroup]`（L174）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "UI経路（タブ）で設定される全グループ値はrowToCharsMapに登録済み（firstRowGroups/secondRowGroupsの計11グループ）のため、当該分岐はUI操作では到達不能な防御コード（§8「書かない」: 到達不能分岐）"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "タブ行の固定構成レンダリング（firstRowGroups/secondRowGroups L131-L132 + template L45-L76。ラベルのruby_プレフィックス除去表示を含む）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "固定リストの列挙描画で分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。行→文字展開の効果は group-tab-filters-by-row-chars が検証する"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "isVisibleのBaseDialogへの受け渡しと非表示制御（template L2）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "props受け渡しのみ（§8「書かない」: props受け渡しのみの対象）。v-if/Teleport/overlayクリックclose/fade等の機構はBaseDialog側の対象"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "deckCards/deckCardRefs props の any[] 型（L108-L109）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "型宣言のみで分岐なし。テスト側はanyを使わない型付きfixture interfaceを定義して渡す（テスト設計のfixture節参照）。any[]型であるがゆえにname/text欠損が混入し得る点は条件 missing-name-text-treated-as-no-match として条件化済み"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped CSS定義（L237-L517）"
+source = "src/components/CategoryDialog.vue + tm TASK-488（本条件化）"
+reason = "スタイルはテスト対象外（ロジック分岐なし。deck-edit-layout条件書のexcludedと同根拠）"
+decided_at = "2026-09-13"
+decided_by = "claude"

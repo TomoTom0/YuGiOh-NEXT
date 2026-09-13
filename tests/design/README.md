@@ -157,8 +157,9 @@ Tier A/Bの実質完了（残りはロジック薄い要確認ファイルのみ
 - hover-tooltip: 1件目（fail 0達成の実証例）
 - load-dialog: TASK-479トピック4（29条件+excluded 6件）
 - deck-edit-layout: TASK-331/487/462統合（100条件+excluded 10件・旧40it実装非検証テストをtests/unit/content/deck-edit-layout.test.tsへ全廃再設計・E2E 8ファイルへcovers付与・verified記録済み）。Tier C最大ファイル（script 969行）での実例
+- category-dialog: TASK-488（16条件+excluded 6件・旧21it中19itの実装非検証テストを廃しtests/unit/components/CategoryDialog.test.tsを17itへ全面再設計・全it covers付き・verified記録済み）
 
-残るTier C候補（棚卸し結果はTASK-331 body参照）: CategoryDialog（TASK-488）・ImportExportDialog・ChatPanel・SearchFilterDialog+FilterTab・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体
+残るTier C候補（棚卸し結果はTASK-331 body参照）: ImportExportDialog・ChatPanel・SearchFilterDialog+FilterTab・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体
 
 各Phase完了時、TASK-323（展開実行）側で進捗をtmに記録し、次ファイルに着手する前にPhase内の優先順位（性質基準→ファイルサイズ降順）を`tm get`のbodyに残す。
 

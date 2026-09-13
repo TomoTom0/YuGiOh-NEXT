@@ -27,6 +27,7 @@
 ## Internal Improvements
 
 - テスト設計: DeckEditLayout.vue（script setup 969行）のテスト設計条件書（conditions.toml 100条件）を新設し、実pinia+実storeでマウント検証するユニットテスト102itに再設計。従来の実装非検証テスト（DOM自作・モック自己検証の40it）は削除。E2Eテスト8ファイルにも条件書へのcovers紐付けを付与
+- テスト設計: CategoryDialog.vueのテスト設計条件書（conditions.toml 16条件+除外6件）を新設し、ユニットテストを17itに再設計（旧21it中19itの実装非検証テスト〔prop受け渡し・定義確認のみ〕を削除し、全操作をDOMイベント経由の実挙動検証に統一）
 - テスト基盤: verify-conditions.pyの例外処理を廃止し、派生expect_キー許容・網羅免除・id形式の各緩和をskill基準どおりfailに改修。62条件のid張替えと条件書・テストの整合更新を実施
 
 ## Known Issues
