@@ -1,0 +1,535 @@
+# 検証対象: src/components/ImportExportDialog.vue（UIコンポーネント。template L1-222、
+#   script setup L224-574、scoped CSS L576-1225）
+# 経緯: TASK-500（Tier C第3号・条件書新設。TASK-331展開、TASK-488（category-dialog）様式踏襲）。
+#   従来はE2E（tests/browser/test-import-export.cjs）のみで、unitテスト・条件書とも未存在。
+#   本書はテストコード作成に先立つ設計条件書（fallback: 信頼できる要件・設計が存在しないため
+#   実装を一次情報として条件を起こす。整備後は出典を要件側へ移す）。
+#   初版ドラフトに対するcodex設計レビューの指摘13項目を反映済み（3条件追加・2条件拡張・
+#   3条件の分割（旧id廃止→新id6件発行）・記載修正5件・excluded 2件を条件化へ移行）。
+#
+# 粒度方針（Tier C・category-dialog条件書と同一）:
+# - script setup相当のロジック分岐（ハンドラ分岐・computed・watch副作用）を主対象とし、
+#   template表示結果は簡潔に
+# - UI操作はDOMイベント経由で検証する（vm内部呼び出し・vm内部状態の直接参照はしない）
+# - 期待値は実装の内部状態そのものでなくUI観測可能な形（DOM描画・emit・委譲先mockの
+#   呼び出し引数）で書く
+#
+# テスト手法（テストコード作成時に使用予定。条件のexpectはこれで観測可能な形で記載）:
+# - BaseDialog実物をmountし、document.body.querySelector でTeleport先を観測
+#   （CategoryDialog.test.ts方式）
+# - 依存モジュールは vi.mock で差し替え: @/utils/deck-import（importDeckFromFileの戻り値制御）、
+#   @/utils/deck-export（generateExportRows/exportToTXT/downloadFile/downloadDeckAsTXT）、
+#   @/content/deck-recipe/createDeckRecipeImage（ImageDialog.test.tsの保留キュー方式で解決順制御）
+# - FileReaderは vi.stubGlobal で差し替え（ImageDialog.test.ts方式）
+# - ファイル選択は input.file-input の files を差し替えて change イベントを発火
+#
+# 線引き（deck-import / deck-export / create-deck-recipe-image / BaseDialog との）:
+# - importDeckFromFile の内部（拡張子判定・パース・ImportResult構造）は deck-import 条件書
+#   （tests/design/deck-import/conditions.toml の import_file.* 等）の対象。
+#   本書は handleFileSelect からの呼び出しと戻り値のUI反映のみ
+# - generateExportRows / exportToTXT / downloadFile / downloadDeckAsTXT の内部は deck-export 条件書
+#   （tests/design/deck-export/conditions.toml）の対象。本書は「どの操作がどの関数にどの引数で
+#   委譲するか」。なおCSV出力は downloadDeckAsCSV でなく自前の buildCustomCsv → downloadFile 経由
+#   （L566）のため、CSV組み立て（buildCustomCsv・escapeCsvField・csvColumns操作）は本書の対象
+# - createDeckRecipeImage の内部（引数の効果・Blob生成）は create-deck-recipe-image 条件書
+#   （tests/design/create-deck-recipe-image/conditions.toml）の対象。本書はプレビュー生成の
+#   固定引数での委譲・previewImageGenerationトークンによる競合ガード・loading/error状態のUI反映
+# - BaseDialog内部（v-if/Teleport/overlayクリックclose/fade/theme属性反映）は [[excluded]] に記録
+#   （category-dialog・load-dialog条件書のexcluded記載と同根拠）。ただしLoadDialog条件書の前例
+#   （load-dialog.overlay-self-click-emits-close）と同様、このコンポーネントから観測できる
+#   公開挙動（overlay自己クリックでclose）は条件化する
+#
+# 探索中の発見事項:
+# - resetDialog（L473-487）のリセット対象はImport状態のみで、Export状態（format・includeSide・
+#   csvColumnsのON/OFFと並び替え・filenameBase）は再オープンでもリセットされない。
+#   また filenameBase はpropsのwatch（dno/deckName/includeTimestamp、L459-461）でのみ再生成され、
+#   再オープンでは再生成されない（前回開時のタイムスタンプ付きファイル名が残る）。
+#   現行挙動として reopen-keeps-export-ui-state / reopen-keeps-filename-base で条件化。
+#   仕様確認の要否は親タスク側で判断
+# - onColumnDrop の同一indexへのdrop（L388）は早期returnのため dragColumnIndex がnullに戻らず、
+#   当該ピルのdraggingクラス（半透明表示）が残る。column-drop-noop-guards の期待値に現行挙動として明記
+# - import失敗時（非PNG）はプレビュー領域のv-else-ifチェーン（L90-97）のいずれにも該当せず
+#   プレビュー領域が空表示になる（'Preview will appear here'プレースホルダはファイル未選択時のみ）。
+#   エラーメッセージ自体は別途表示されるため致命的ではないが、import-failure条件の期待値に明記
+# - asキャストが3箇所（L329 reader.result as string、L331 blob as Blob、L496 event.target as
+#   HTMLInputElement）存在し、プロジェクトの型安全規約（as禁止・型ガード使用）に反する。
+#   条件書対象外だが記録（修正判断は別途）
+# - handleFileSelect内の 'インポートに失敗しました' フォールバック（L516）と if (result.deckInfo)
+#   ガード（L524）は、deck-import.ts の戻り値契約（失敗時は必ずerror設定・成功時は必ずdeckInfo添付、
+#   L83/L142/L223・全success:false戻り）では実経路で到達不能な防御コード。
+#   設計レビューでmock差し替えによる観測が可能との指摘があり、import-failure-uses-default-error・
+#   import-success-without-deckinfo-does-not-enable として条件化した（excludedからは移行済み）
+# - escapeCsvField（L396-401）は deck-export.ts 側のCSVエスケープと論理が重複した実装。
+#   本書ではコンポーネントローカル実装（buildCustomCsv経由）の観測として条件化するが、
+#   重複解消の要否はdeck-export側の整理と合わせて判断
+
+[meta]
+feature = "import-export-dialog"
+source_file = "src/components/ImportExportDialog.vue"
+verified = true
+verified_at = "2026-09-13"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/ImportExportDialog.test.ts"
+source_hash = "c93adc9f8c1f37f4e1dd0c37a956e6ffac8fe8bb"
+note = "TASK-500（Tier C第3号）で新規作成。verified=falseで作成開始し、テスト全pass（43it・vitest全体4614 passed / 0 failed）・verify-conditions.pyで本topic由来のfail/warn 0件（既存の無関係dangling・warnはTASK-489のcorpus移行対象）・出典との内容照合後に検証記録を記載した。依存モジュール内部は deck-import / deck-export / create-deck-recipe-image 各条件書の対象（冒頭コメントの線引き参照）。reopen-keeps-export-ui-state / reopen-keeps-filename-base は現行挙動の条件化のため将来仕様確定時に見直し"
+
+# --- 初期化・タブ ---
+
+[[condition]]
+id = "import-export-dialog.initial-import-tab-state"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:317"
+target_function = "Import状態の初期値 + template Import タブ初期表示"
+source = "src/components/ImportExportDialog.vue L263-277, L42-43, L90, L188-210 + tm TASK-500"
+description = "マウント直後（ファイル未選択）のImport タブ初期状態。ファイル名プレースホルダ・プレビュー待ち表示・Importボタンdisabled・モード選択非表示"
+given = "isVisible=true・initialTab省略（既定'import'）でマウント（importDeckFromFileは未呼び出し）"
+expect_return_shape = ".file-name.placeholder が 'No file selected'。プレビュー領域に 'Preview will appear here'。.preview-view-tabs-row と .preview-counts は非描画。.btn-import は disabled。.import-mode-group は非描画。.warnings / .error-message は非描画"
+
+[[condition]]
+id = "import-export-dialog.theme-default-follows-prefers-color-scheme"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:332"
+target_function = "props.theme 既定値（window.matchMedia判定）"
+source = "src/components/ImportExportDialog.vue L241, L249 + tm TASK-500"
+description = "theme prop省略時の既定値は prefers-color-scheme: dark の一致でdark、matchMedia非対応環境ではlight。BaseDialog実物のdata-ygo-next-theme属性で観測する"
+given = "theme propを省略してマウント。window.matchMedia が '(prefers-color-scheme: dark)' の matches=true を返すstub / undefined（非対応環境相当）"
+expect_return_shape = "matches=true: .base-dialog-overlay の data-ygo-next-theme='dark'。undefined: data-ygo-next-theme='light'"
+
+[[condition]]
+id = "import-export-dialog.initial-tab-prop-on-mount"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:348"
+target_function = "activeTab 初期化（props.initialTab）"
+source = "src/components/ImportExportDialog.vue L261 + template L28, L111, L188-218 + tm TASK-500"
+description = "初回マウント時のアクティブタブはinitialTab propで決まる（isVisible watchは初回变更時にしか走らないため、初回はL261の初期化が効く）"
+given = "initialTab='export'・isVisible=true でマウント"
+expect_return_shape = "Export側 .dialog-tab にactiveクラス。export本文（v-show）が表示・import本文は display:none。フッタは .btn-export 表示で .btn-import は非描画"
+
+[[condition]]
+id = "import-export-dialog.tab-click-switches-body-and-footer"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:360"
+target_function = "activeTab切替（template タブクリック）+ v-show/v-if 表示"
+source = "src/components/ImportExportDialog.vue template L9-24, L28, L111, L188-218 + tm TASK-500"
+description = "ヘッダーのImport/Exportタブクリックで、activeクラス・本文（v-show）・フッタボタン（v-if）が連動して切替わる"
+given = "initialTab既定でマウントし、Export タブボタンをクリック → Import タブボタンをクリック"
+expect_return_shape = "Exportクリック: Exportタブにactive・export本文表示・import本文が display:none・フッタが .btn-export に切替。Importクリック: active・本文・フッタがImport側へ復帰"
+
+# --- Import: ファイル選択 ---
+
+[[condition]]
+id = "import-export-dialog.file-select-btn-delegates-to-hidden-input"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:384"
+target_function = "triggerFileSelect"
+source = "src/components/ImportExportDialog.vue L490-492 + template L31-44 + tm TASK-500"
+description = "ファイル選択ボタンのクリックは非表示の input.file-input のclickへ委譲する（ファイルピッカーを開く唯一のUI経路）"
+given = "input.file-input にclick listenerを仕込んだ状態で .file-select-btn をクリック"
+expect_return_shape = "input.file-input のclick listenerが1回発火"
+
+[[condition]]
+id = "import-export-dialog.change-without-file-ignored"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:396"
+target_function = "handleFileSelect（fileなし早期return）"
+source = "src/components/ImportExportDialog.vue L499-501 + tm TASK-500"
+description = "changeイベント発生時に対象ファイルがなければ何もしない（早期return）。importDeckFromFileを呼ばず状態も変えない"
+given = "input.file-input のfilesが空のままchangeイベントを発火"
+expect_return_shape = "importDeckFromFile（mock）は呼ばれず、.file-name.placeholder の 'No file selected' 表示のまま"
+
+[[condition]]
+id = "import-export-dialog.file-select-clears-previous-state"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:407"
+target_function = "handleFileSelect（状態クリア）"
+source = "src/components/ImportExportDialog.vue L503-508 + template L42, L73-86, L102-107 + tm TASK-500"
+description = "ファイル選択のたびに前回のwarnings・previewInfo（counts・プレビュー画像）をクリアし、選択ファイル名を表示する。新しいファイルのimport解決前はImportボタンがdisabledに戻る"
+given = "1度目: mock成功（warnings['警告1']返しcounts・テキストプレビュー表示済み）のファイル選択 → 2度目: mockの解決をpendingにしたまま別ファイルを選択"
+expect_return_shape = "2度目の選択直後: .warnings 非表示化・.preview-counts 非表示化・.btn-import がdisabled・.file-name が2度目のファイル名に差し替え"
+
+[[condition]]
+id = "import-export-dialog.preview-view-mode-initial-by-file-type"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:434"
+target_function = "handleFileSelect（previewViewMode初期表示分岐）"
+source = "src/components/ImportExportDialog.vue L510 + template L55-71, L91-97 + tm TASK-500"
+description = "プレビュー表示切替の初期値は読み込み元の逆: PNGなら画像そのものは手元にあるためtext、CSV/TXTならimageを初期表示にする。拡張子判定はtoLowerCase込み（大文字.PNGもPNG扱い）。本条件はファイル選択時の初期値のみを対象とし、サブタブ操作による切替は preview-view-mode-toggle の対象"
+given = "mock成功で file 'DECK.PNG'（大文字拡張子）を選択 / file 'deck.csv' を選択"
+expect_return_shape = "PNG: Text側 .sub-tab-btn にactive・.preview-text-view 表示。CSV: Image側 .sub-tab-btn にactive・.preview-text-view 非表示"
+
+[[condition]]
+id = "import-export-dialog.preview-view-mode-toggle"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:457"
+target_function = "previewViewMode切替（template サブタブクリック）"
+source = "src/components/ImportExportDialog.vue template L57-70, L91-97 + tm TASK-500"
+description = "Image/Textサブタブのクリックでプレビュー表示モードを手動切替できる（activeクラスと表示内容が追従する第2のUI経路）"
+given = "mock成功のファイル（deck.csv・Image初期表示）を選択後、Text サブタブをクリック → Image サブタブをクリック"
+expect_return_shape = "Textクリック: Text側 .sub-tab-btn にactive・.preview-text-view 表示（Image側は非active）。Imageクリック: Image側activeに復帰・.preview-text-view 非表示"
+
+# --- Import: 結果反映 ---
+
+[[condition]]
+id = "import-export-dialog.import-failure-shows-error-keeps-disabled"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:484"
+target_function = "handleFileSelect（失敗分岐）"
+source = "src/components/ImportExportDialog.vue L515-518 + template L48-50, L188-210, L90-97 + tm TASK-500"
+description = "importDeckFromFileがsuccess:falseを返した場合はerrorの文言をエラーメッセージ表示し、previewInfoは設定しない（Importボタンdisabled・モード選択非表示のまま）。非PNG失敗時はプレビュー領域が空表示になるが、これは仕様ではなく既知の現行挙動（プレースホルダ 'Preview will appear here' はファイル未選択時のみの表示）である点も観測する"
+given = "mock が success:false・error='ファイルが空です' を返すファイル（deck.csv）を選択"
+expect_return_shape = ".error-message のテキスト='ファイルが空です'。.btn-import はdisabledのまま・.import-mode-group は非描画。プレビュー領域（.preview-image-area のTransition内）はいずれの要素も描画されない（プレースホルダなし）"
+
+[[condition]]
+id = "import-export-dialog.import-failure-uses-default-error"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:501"
+target_function = "handleFileSelect（失敗分岐・errorなしフォールバック）"
+source = "src/components/ImportExportDialog.vue L515-518 + tm TASK-500"
+description = "importDeckFromFileがsuccess:falseかつerrorなしで返した場合のフォールバック。実モジュール契約（失敗時は必ずerror設定）では発生しないが、本コンポーネントの防御として定義された挙動でありmockで当該戻り値を再現して検証する"
+given = "mock が success:false・errorなし を返すファイル（deck.csv）を選択"
+expect_return_shape = ".error-message のテキスト='インポートに失敗しました'。.btn-import はdisabledのまま・.import-mode-group は非描画"
+
+[[condition]]
+id = "import-export-dialog.import-success-shows-counts-and-enables-import"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:514"
+target_function = "handleFileSelect（成功分岐・セクション枚数集計）"
+source = "src/components/ImportExportDialog.vue L524-537 + template L73-86, L188-210 + tm TASK-500"
+description = "import成功時はdeckInfoの各デッキからquantity合計（エントリ数でなく枚数合計）をmain/extra/side毎に集計して表示し、Importボタンを有効化・モード選択を表示する"
+given = "mock が deckInfo（mainDeck: quantity2とquantity3の2エントリ、extraDeck: quantity1の1エントリ、sideDeck: 空）を返すファイルを選択"
+expect_return_shape = ".preview-counts の main/extra/side の値が 5/1/0。.btn-import のdisabled解除。.import-mode-group が描画されReplace（既定値）がactive"
+
+[[condition]]
+id = "import-export-dialog.import-success-without-deckinfo-does-not-enable"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:539"
+target_function = "handleFileSelect（successかつdeckInfoなしガード）"
+source = "src/components/ImportExportDialog.vue L524 + tm TASK-500"
+description = "importDeckFromFileがsuccess:trueかつdeckInfoなしで返した場合はpreviewInfoを設定せず、Import実行UI（ボタン有効化・モード選択）もエラー表示も更新しない。実モジュール契約（成功時は必ずdeckInfo添付）では発生しないが、本コンポーネントの防御として定義された挙動でありmockで当該戻り値を再現して検証する"
+given = "mock が success:true・deckInfoなし を返すファイル（deck.csv）を選択"
+expect_return_shape = ".error-message は非表示（失敗扱いにしない）。.preview-counts 非描画・.btn-import はdisabledのまま・.import-mode-group は非描画"
+
+[[condition]]
+id = "import-export-dialog.import-warnings-listed"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:553"
+target_function = "handleFileSelect（warnings反映）+ template 警告表示"
+source = "src/components/ImportExportDialog.vue L520-522 + template L102-107 + tm TASK-500"
+description = "import結果にwarningsがある場合は警告一覧として全件表示する（warningsがなければ非表示）"
+given = "mock が success:true・warnings=['行2: 不正なcid', '行3: 不正な数量'] を返すファイルを選択 / warningsなしで成功するファイルを選択"
+expect_return_shape = "warningsあり: .warnings に 'Warnings:' ヘッダと li 2件（警告文そのまま）。warningsなし: .warnings は非描画"
+
+[[condition]]
+id = "import-export-dialog.import-preview-text-section-format"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:576"
+target_function = "importPreviewText computed"
+source = "src/components/ImportExportDialog.vue L281-301 + template L97 + tm TASK-500"
+description = "Textプレビューはインポート内容確認用の独自形式: セクション見出し '=== <Label> (<合計枚数> cards) ==='、各行 '<quantity>x <カード名>'、行数0のセクションは省略。enc（画像ハッシュ）は表示しない（Export用TXT形式と異なる点）"
+given = "mock成功のファイル（deck.png）を選択し、generateExportRows mock が main行(quantity=2, name='ブルーアイズ')・side行(quantity=1, name='灰流うらら')の2行を返すよう設定"
+expect_return_shape = ".preview-text-view のテキストに行 '=== Main Deck (2 cards) ==='・'2x ブルーアイズ'・'=== Side Deck (1 cards) ==='・'1x 灰流うらら' がこの順で含まれ、'Extra Deck' の見出しは含まれない。いずれの行にもenc値は含まれない"
+
+# --- Import: プレビュー画像 ---
+
+[[condition]]
+id = "import-export-dialog.preview-image-delegates-fixed-args"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:604"
+target_function = "generatePreviewImage（createDeckRecipeImage委譲）"
+source = "src/components/ImportExportDialog.vue L318-325 + tm TASK-500"
+description = "プレビュー画像生成は既存のデッキレシピ画像生成機能へ固定引数で委譲する。デッキ名はプレビュー画像に表示しないためnameを空文字化したコピーを渡す（引数の効果の内部はcreate-deck-recipe-image条件書の対象）"
+given = "mock成功のdeckInfo（name='テストデッキ'を含む）でファイルを選択し画像生成を開始"
+expect_return_shape = "createDeckRecipeImage（mock）が1回呼ばれ、引数は {cgid:'', dno:'0', color:'red', includeQR:false, scale:1, deckData: mockのdeckInfoと同内容かつname=''}"
+
+[[condition]]
+id = "import-export-dialog.preview-image-loading-then-success"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:626"
+target_function = "generatePreviewImage（loading/success状態）+ FileReader dataURL化"
+source = "src/components/ImportExportDialog.vue L311-335 + template L91, L93-96 + tm TASK-500"
+description = "生成中は'Generating preview…'プレースホルダを表示し、完了したらBlobをFileReaderでdataURL化してimg表示する（Generated=Importedバッジ付き）"
+given = "createDeckRecipeImage mock を保留キューで制御し、mock成功のファイルを選択（解決前を観測）→ 固定dataURL 'data:image/png;base64,AAA' を返すFileReader stubとともに解決"
+expect_return_shape = "解決前: 'Generating preview…' の .preview-image-placeholder-text 表示で .preview-image なし。解決後: .preview-image のsrc='data:image/png;base64,AAA'・.imported-badge 表示"
+
+[[condition]]
+id = "import-export-dialog.preview-image-failure-shows-error"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:647"
+target_function = "generatePreviewImage（error状態）"
+source = "src/components/ImportExportDialog.vue L336-344 + template L92 + tm TASK-500"
+description = "画像生成が失敗してもimport自体は成功扱いのまま、プレビュー画像エリアに固定文言のエラーを表示する"
+given = "createDeckRecipeImage mock がrejectする状態で、import成功（mock成功）のファイルを選択"
+expect_return_shape = "'プレビュー画像の生成に失敗しました' がerrorクラス付き .preview-image-placeholder-text で表示され .preview-image なし。.btn-import は有効のまま"
+
+[[condition]]
+id = "import-export-dialog.preview-image-stale-result-discarded"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:663,tests/unit/components/ImportExportDialog.test.ts:691"
+target_function = "generatePreviewImage（previewImageGenerationトークン競合ガード）"
+source = "src/components/ImportExportDialog.vue L308-310, L334, L337, L341 + tm TASK-500"
+description = "画像生成は非同期のためファイルを選び直すと完了順が入れ替わり得る。generationトークンで最新の生成のみを反映し、古い結果（dataURL反映・error表示・loading解除のいずれも）による2度目以降の状態上書きを防ぐ"
+given = "1度目のファイル選択の画像生成をpendingのまま、2度目のファイル選択（双方ともimport成功）→ (a) createDeckRecipeImage mock を1度目→2度目の順で解決（FileReader stubはBlob毎に別dataURLを返す） (b) 1度目をrejectしてから2度目を解決"
+expect_return_shape = "(a) 最終的な .preview-image のsrcは2度目の生成結果のみ。1度目のresolveでは表示が変化せず、2度目の生成中表示 'Generating preview…' も解除されない。(b) 1度目のrejectでも2度目のloading・error状態を上書きせず、エラー文言は表示されないまま2度目の結果で完了する"
+
+# --- Import実行・クローズ ---
+
+[[condition]]
+id = "import-export-dialog.import-emits-deckinfo-and-mode"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:718"
+target_function = "handleImport"
+source = "src/components/ImportExportDialog.vue L546-553 + template L188-210 + tm TASK-500"
+description = "Importボタンは選択中のimportModeとimport済みdeckInfoをimportedイベントで親へ渡し、closeする。モードの既定値はreplaceで、replace/add/newの3値が選択どおりemitされる"
+given = "mock成功後に Import ボタンをクリック（モード未選択）/ 'Add' ラジオ（.radio-pill配下のinput）を選択後にクリック / 'New' ラジオを選択後にクリック"
+expect_return_shape = "順に imported が (mockのdeckInfo, 'replace') / (mockのdeckInfo, 'add') / (mockのdeckInfo, 'new')。いずれも close 1回・exported は発火しない"
+
+[[condition]]
+id = "import-export-dialog.close-btn-emits-close"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:746"
+target_function = "close"
+source = "src/components/ImportExportDialog.vue L541-543 + template L6 + tm TASK-500"
+description = "ヘッダーの×ボタンでcloseイベントをemitする（実際の非表示化は親のisVisible制御）"
+given = "isVisible=true マウント状態で .close-btn をクリック"
+expect_return_shape = "closeイベントが1回発火（引数なし）。imported/exportedは発火しない"
+
+[[condition]]
+id = "import-export-dialog.overlay-self-click-emits-close"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:757"
+target_function = "BaseDialog @click.self + @close=close"
+source = "src/components/ImportExportDialog.vue L2, L541-543 + src/components/BaseDialog.vue L4, L24-L28 + tm TASK-500"
+description = "オーバーレイ自身のクリックでcloseする（BaseDialog実物の @click.self 経由。このコンポーネントから観測できる公開挙動として条件化。load-dialog条件書の前例と同様）。ダイアログ内容のクリックではcloseしない"
+given = "isVisible=true で .base-dialog-overlay 自身（ダイアログ外の余白）をクリック / .dialog-content をクリック"
+expect_return_shape = "前者: closeイベントが1回発火。後者: closeイベントは発火しない"
+
+# --- 再オープン ---
+
+[[condition]]
+id = "import-export-dialog.reopen-resets-import-state"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:772"
+target_function = "watch isVisible（閉）+ resetDialog"
+source = "src/components/ImportExportDialog.vue L467-469, L473-487 + tm TASK-500"
+description = "ダイアログを閉じた時（isVisible true→false）にImport状態（選択ファイル・プレビュー・warnings・モード・表示モード・ファイル入力値）をリセットする。前回開時の状態を引き継がない"
+given = "Import成功状態（counts表示・Import有効・'Add'選択・Textサブタブ表示・deck.csv選択）から isVisible をfalse→true（再オープン）。再オープン後にdeck.csvを再選択してモード・表示モードの既定への戻りを観測"
+expect_return_shape = "再オープン直後: 'No file selected'・'Preview will appear here'・.btn-import disabled・.import-mode-group 非描画・input.file-input のvalue=''。再選択後: 初期表示がImage（previewViewModeリセット）・Import実行で 'replace' がemitされる（importModeリセット）"
+
+[[condition]]
+id = "import-export-dialog.reopen-restores-initial-tab"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:817"
+target_function = "watch isVisible（開・activeTab初期化）"
+source = "src/components/ImportExportDialog.vue L464-466 + tm TASK-500"
+description = "ダイアログを開いた時（isVisible false→true）にactiveTabをinitialTabへ戻す（前回開時に手動切替したタブは引き継がない）"
+given = "Import タブ（initialTab既定'import'）からExport タブへ手動切替した状態で isVisible をfalse→true（再オープン） / initialTab='export' を与えて再オープン"
+expect_return_shape = "既定'import'の再オープン: Import タブの .dialog-tab にactive・import本文が表示。initialTab='export'の再オープン: Export タブがactive"
+
+[[condition]]
+id = "import-export-dialog.reopen-keeps-export-ui-state"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:840"
+target_function = "resetDialog（Export UI状態がリセット対象外）"
+source = "src/components/ImportExportDialog.vue L347-349, L473-487 + tm TASK-500"
+description = "期待仕様ではなく現行挙動: resetDialogの対象はImport状態のみで、format・includeSide・csvColumnsのON/OFFと並び替えは再オープンでも保持される"
+given = "Export タブで TXT形式選択・Side Deck OFF・Name列OFF+並び替えした状態で isVisible をfalse→true（再オープン）→ CSVサブタブへ戻す"
+expect_return_shape = "再オープン後もTXTサブタブがactive・.column-toggle-row 非表示（TXT選択維持）。CSVへ戻すと Name列は非activeかつ並び替え後の順のまま・Side Deckピルは非active"
+
+[[condition]]
+id = "import-export-dialog.reopen-keeps-filename-base"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:877"
+target_function = "resetDialog（filenameBase対象外）+ generateFilename watch"
+source = "src/components/ImportExportDialog.vue L350, L459-461, L473-487 + tm TASK-500"
+description = "期待仕様ではなく現行挙動: filenameBaseはresetDialogの対象外で、dno/deckName/includeTimestampのprops変更時のみ再生成される。再オープンでは再生成されず、前回開時のタイムスタンプ付きファイル名（または手編集値）が残る"
+given = "Export タブで #filename-input に手編集を行った状態（または生成済みのタイムスタンプ付きfilenameBaseが表示された状態）で isVisible をfalse→true（再オープン）"
+expect_return_shape = "再オープン後も #filename-input の値は前回値のまま（手編集値・タイムスタンプ付き初期値のいずれも再生成されない）"
+
+# --- Export ---
+
+[[condition]]
+id = "import-export-dialog.export-preview-empty-and-download-guard-without-deckinfo"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:896"
+target_function = "exportPreviewText（deckInfoなし）+ handleExport（ガード）"
+source = "src/components/ImportExportDialog.vue L420-421, L556-560 + tm TASK-500"
+description = "deckInfoがない場合はプレビューを空にし、Downloadボタン（disabled制御なし）をクリックしてもダウンロード・emit・closeを行わない（早期return）"
+given = "deckInfo省略（既定null）でExport タブを開き Download ボタンをクリック"
+expect_return_shape = "textarea.export-preview の値=''。downloadFile / downloadDeckAsTXT（各mock）は呼ばれず、exported・closeも発火しない"
+
+[[condition]]
+id = "import-export-dialog.format-switch-updates-preview-columns-extension"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:912"
+target_function = "format切替 + exportPreviewText computed"
+source = "src/components/ImportExportDialog.vue L348, L420-426 + template L113-138, L141, L144, L182 + tm TASK-500"
+description = "CSV/TXTサブタブの切替で、プレビュー内容（CSVはbuildCustomCsv・TXTはexportToTXT委譲）・カラム行の表示（CSVのみ）・拡張子表示が連動する"
+given = "deckInfoありでExport タブ: CSVサブタブ（既定）→ TXTサブタブへ切替（exportToTXT mock は 'TXT-PREVIEW' を返すよう設定）"
+expect_return_shape = "CSV: .column-toggle-row 描画・拡張子表示 '.csv'・textareaは後述のCSV形式。TXT: active切替・.column-toggle-row 非描画・'.txt'・textarea='TXT-PREVIEW'"
+
+[[condition]]
+id = "import-export-dialog.csv-preview-enabled-columns-and-order"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:932"
+target_function = "buildCustomCsv（有効カラム選別・順序）"
+source = "src/components/ImportExportDialog.vue L404-417 + tm TASK-500"
+description = "CSVプレビュー（=CSV出力内容）は有効カラムのみで組み立てる。ヘッダは有効カラムのkeyをcsvColumnsの並び順どおりにカンマ結合し、データ行も同順で各列の値をString化してカンマ結合する（空文字列フィールドは空のまま）"
+given = "deckInfoと1行（section='main', name='ブルーアイズ', cid='1234', ciid='', enc='ab12', quantity=2）を返す generateExportRows mock で、既定全列ONのCSVプレビューを表示 → ENC列をOFF"
+expect_return_shape = "全列ON: 1行目='section,name,cid,ciid,enc,quantity'・2行目='main,ブルーアイズ,1234,,ab12,2'（ciidは空フィールド）。ENC OFF後: 1行目='section,name,cid,ciid,quantity'・2行目='main,ブルーアイズ,1234,,2'（残り列の並び順は維持）"
+
+[[condition]]
+id = "import-export-dialog.csv-name-field-escape"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:948"
+target_function = "buildCustomCsv + escapeCsvField（name列エスケープ）"
+source = "src/components/ImportExportDialog.vue L396-401, L409-414 + tm TASK-500"
+description = "データ行のname列のみCSVエスケープする（カンマ・二重引用符・改行のいずれかを含む値を引用符で括り、値内の二重引用符を二重化。他列はraw結合）。escapeCsvFieldは本コンポーネント内のローカル実装であり、deck-export側のCSVエスケープ（deck-export条件書 export_csv.*）とは別実装である点に注意（重複解消の要否は冒頭の発見事項参照）"
+given = "generateExportRows mock がnameに (a) カンマと二重引用符を含む値 (b) 二重引用符のみを含む値 (c) 改行を含む値 を返す状態で、それぞれCSVプレビューを表示"
+expect_return_shape = "(a)(b)(c)いずれもnameフィールドは引用符で括られ、値内の二重引用符は二重化される（例: 値 'A\"B,C' は '\"A\"\"B,C\"'）。section/cid/quantity等の他列はrawのまま"
+
+[[condition]]
+id = "import-export-dialog.toggle-column-excludes-from-csv"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:977"
+target_function = "toggleColumn"
+source = "src/components/ImportExportDialog.vue L378-381 + template L146-161 + tm TASK-500"
+description = "非必須カラムのピルクリックでON/OFFをトグルし、activeクラス・ヘッダ・データ行から当該列が現れたり消えたりする"
+given = "CSVプレビュー表示状態で Name ピルをクリック → 再クリック"
+expect_return_shape = "1回目: ピルのactive解除・ヘッダから name 消滅・データ行から当該値が消滅。2回目: active復帰・ヘッダ・データ行に復帰"
+
+[[condition]]
+id = "import-export-dialog.required-columns-not-toggleable"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:998"
+target_function = "toggleColumn（required分岐）"
+source = "src/components/ImportExportDialog.vue L361-368, L377-381 + template L149-151 + tm TASK-500"
+description = "再インポートに必須の列（section/cid/quantity）はピルクリックでOFFにできない（required列はearly return）。requiredクラスとtitle属性で不活性であることをUI上でも示す"
+given = "CSVプレビュー表示状態で Section / CID / Qty の各ピルをクリック"
+expect_return_shape = "いずれもピルはactive維持・requiredクラス保持・ヘッダ・データ行は変化なし"
+
+[[condition]]
+id = "import-export-dialog.column-drag-drop-reorders"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1015"
+target_function = "onColumnDragStart + onColumnDrop"
+source = "src/components/ImportExportDialog.vue L383-394 + template L146-161 + tm TASK-500"
+description = "カラムピルのドラッグ&ドロップで列順を並び替え、ヘッダ・データ行の列順に反映する。移動中のピルにはdraggingクラスが付き、drop後に解除される"
+given = "CSVプレビュー表示状態で Name ピルに dragstart → CID ピルに drop"
+expect_return_shape = "dragstart時: Name ピルにdraggingクラス。drop後: ピル並びが Section,CID,Name,CIID,ENC,Qty の順（draggingクラス解除）・ヘッダも同順"
+
+[[condition]]
+id = "import-export-dialog.column-drop-noop-guards"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1032"
+target_function = "onColumnDrop（noopガード）"
+source = "src/components/ImportExportDialog.vue L387-393 + tm TASK-500"
+description = "dragstartなしのdropと、同一ピルへのdropは並び替えしない。ただし同一indexへのdropは早期returnのためdraggingクラスが残る現行挙動（発見事項参照）"
+given = "CSVプレビュー表示状態で (a) dragstartなしで CID ピルに drop (b) Name ピルに dragstart → 同一ピルに drop"
+expect_return_shape = "(a)(b)ともピル並び・ヘッダは不変。(b)はdraggingクラスが解除されず残る現行挙動"
+
+[[condition]]
+id = "import-export-dialog.column-reset-restores-defaults"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1056"
+target_function = "resetCsvColumns + template リセットボタン"
+source = "src/components/ImportExportDialog.vue L361-375 + template L162-166 + tm TASK-500"
+description = "リセットボタンでカラムのON/OFFと並び順を既定（6列・全ON・既定順）へ戻す"
+given = "Name列OFF・列順変更（Name ピルを先頭へ移動）の状態で .column-reset-btn をクリック"
+expect_return_shape = "全ピルがactive・並びが既定順（Section,Name,CID,CIID,ENC,Qty）・ヘッダが 'section,name,cid,ciid,enc,quantity' に復帰"
+
+[[condition]]
+id = "import-export-dialog.include-side-toggle-reflected"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1081"
+target_function = "includeSideトグル + buildCustomCsv（options委譲）"
+source = "src/components/ImportExportDialog.vue L349, L404-417 + template L131-137 + tm TASK-500"
+description = "Side DeckピルのON/OFFは includeSide としてプレビュー生成に渡される（side行の含有判定自体はgenerateExportRows内 = deck-export条件書の対象。本書は委譲オプションとプレビュー再計算の反映を観測）"
+given = "CSVプレビュー表示状態（Side Deckピルactive）で generateExportRows mock のincludeSide:false時の戻りを変更しておき、Side Deckピルをクリック"
+expect_return_shape = "ピルのactive解除。generateExportRows（mock）が第2引数 {includeSide:false} で少なくとも1回呼ばれ、textarea.export-preview がその戻り値に更新される"
+
+# --- ファイル名生成 ---
+
+[[condition]]
+id = "import-export-dialog.filename-priority-and-sanitization"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1104"
+target_function = "generateFilename"
+source = "src/components/ImportExportDialog.vue L440-456 + tm TASK-500"
+description = "ファイル名はdeckName優先（ファイル名禁止文字は'_'置換+trim、trim結果が空なら'deck'）。deckNameなしならdeck-{dno}、両方なしなら'deck'"
+given = "includeTimestamp=false で (a) deckName='a<b>c' (b) deckName='   '（空白のみ） (c) deckName=''・dno='12' (d) deckName=''・dno='' の各propsでマウント（watch immediate）"
+expect_return_shape = "(a) #filename-input の値='a_b_c' (b) 'deck' (c) 'deck-12' (d) 'deck'"
+
+[[condition]]
+id = "import-export-dialog.filename-timestamp-suffix"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1129"
+target_function = "generateFilename + generateTimestamp"
+source = "src/components/ImportExportDialog.vue L429-456 + tm TASK-500"
+description = "includeTimestamp=true（既定）の場合、ファイル名末尾に '-YYYYMMDD-HHmm' 形式のタイムスタンプを付与する"
+given = "includeTimestamp=true（省略時既定）・deckName='mydeck'・偽時計で2026-09-13 09:05（JST相当の地域で固定）"
+expect_return_shape = "#filename-input の値='mydeck-20260913-0905'"
+
+[[condition]]
+id = "import-export-dialog.filename-updates-on-prop-change"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1139"
+target_function = "watch [dno, deckName, includeTimestamp]（immediate）"
+source = "src/components/ImportExportDialog.vue L459-461 + tm TASK-500"
+description = "filenameBaseはdno/deckName/includeTimestampのいずれかが変わった時に再生成される（初回マウント時もimmediateで生成。ユーザー手編集はprops変更時に上書きされる）"
+given = "includeTimestamp=false・deckName='A' でマウント → setProps で deckName='B' へ変更 → includeTimestamp=true へ変更（時刻はfilename-timestamp-suffixと同様に固定）"
+expect_return_shape = "マウント直後='A'。deckName変更後='B'。includeTimestamp変更後='B-<YYYYMMDD-HHmm>' 形式へ再生成"
+
+# --- Export実行 ---
+
+[[condition]]
+id = "import-export-dialog.export-csv-delegates-download-file"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1162"
+target_function = "handleExport（CSV分岐）"
+source = "src/components/ImportExportDialog.vue L556-573 + tm TASK-500"
+description = "CSV形式のDownloadは buildCustomCsv の結果を内容として downloadFile へ '<filename>.csv'・MIME 'text/csv' で委譲し、exported('csv') と close をemitする。filenameBase空（ユーザーが入力欄を空にした場合を含む）は'deck'にフォールバック"
+given = "deckInfo・includeTimestamp=false・deckName='mydeck' でCSVのまま Download ボタンをクリック / #filename-input の値を空にしてクリック"
+expect_return_shape = "downloadFile（mock）が (textarea.export-preview の値と等しいCSV文字列, 'mydeck.csv', 'text/csv') で1回。filenameBase空の場合は 'deck.csv'。exported('csv') と close が各1回・downloadDeckAsTXT は不呼び出し"
+
+[[condition]]
+id = "import-export-dialog.export-txt-delegates-download-deck-as-txt"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1189"
+target_function = "handleExport（TXT分岐）"
+source = "src/components/ImportExportDialog.vue L556-573 + tm TASK-500"
+description = "TXT形式のDownloadは downloadDeckAsTXT へ deckInfo・'<filename>.txt'・options（includeSide）を委譲し、exported('txt') と close をemitする。includeSideはSide Deckトグルの現在値がそのまま渡る（既定ONではtrue・OFFではfalse）（TXT本文の組み立てはdeck-export側の対象）"
+given = "deckInfo・includeTimestamp=false・deckName='mydeck' でTXT形式に切替: (a) 既定状態（Side Deck ONのまま）で Download ボタンをクリック (b) Side Deck OFF にしてから Download ボタンをクリック"
+expect_return_shape = "(a) downloadDeckAsTXT（mock）が (propsのdeckInfo, 'mydeck.txt', {includeSide:true}) で呼ばれる。(b) {includeSide:false} で呼ばれる。いずれも exported('txt') と close が各1回・downloadFile は不呼び出し"
+
+[[condition]]
+id = "import-export-dialog.enter-key-on-filename-triggers-export"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1219"
+target_function = "handleExport（filename入力欄 keyup.enter 経由）"
+source = "src/components/ImportExportDialog.vue template L179 + L556-573 + tm TASK-500"
+description = "ファイル名入力欄でのEnterキーはDownloadボタンと同じhandleExportを実行する第2のUI経路"
+given = "CSVプレビュー表示状態で #filename-input に keyup.enter を発火"
+expect_return_shape = "Downloadボタンクリックと同じ委譲が発生（downloadFile（mock）が1回・exported('csv')・close が発火）"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "BaseDialog内部機構とprops受け渡し（isVisible/themeの受け渡し・v-if/Teleport/Transition fade/closeOnClickOverlay分岐・data-ygo-next-theme属性の適用）"
+source = "src/components/ImportExportDialog.vue L2 + tm TASK-500（本条件化）"
+reason = "BaseDialog側の機構であり本コンポーネントから観測・制御できない内部（§8「書かない」: props受け渡しのみの対象。category-dialog・load-dialog条件書のexcludedと同根拠）。ただし本コンポーネントの公開挙動として観測できるoverlay自己クリック→closeは overlay-self-click-emits-close として条件化済み。theme既定値のmatchMedia判定（L249）はコンポーネント側ロジックのため theme-default-follows-prefers-color-scheme として条件化済み"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "handleImport内 `if (!previewInfo.value) return` ガード（L547-549）"
+source = "src/components/ImportExportDialog.vue L546-553 + tm TASK-500（本条件化）"
+reason = "UI経路（ボタンdisabled）では到達不能。mock差し替え・内部呼出し経由では発火し得るが公開DOM操作からは観測不能な防御（§8「書かない」: 挙動に差を生まない内部処理として扱う）。ボタンのdisabled制御自体は initial-import-tab-state / file-select-clears-previous-state / import-success-shows-counts-and-enables-import で観測済み"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "FileReaderによるdataURL変換のPromiseラッパー内部（L327-332）"
+source = "src/components/ImportExportDialog.vue L327-332 + tm TASK-500（本条件化）"
+reason = "標準Web API（FileReader.readAsDataURL）の呼び出しのみでコンポーネント固有の分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。dataURL化の結果は preview-image-loading-then-success でstub経由のimg.srcとして観測する"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "静的属性・静的描画（accept='.csv,.txt,.png'属性 L34、title属性 L6, L38, L151, L162、mdiアイコンSVG L39-41, L157-165, L208, L216、ファイル拡張子ラベルの静的部 L182）"
+source = "src/components/ImportExportDialog.vue template + tm TASK-500（本条件化）"
+reason = "固定値の属性・描画でロジック分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。状態に応じて変化する拡張子表示（.csv/.txt）は format-switch-updates-preview-columns-extension で、requiredピルのtitleは required-columns-not-toggleable の観測内で扱う"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "Transition name='fade'（L89-98）"
+source = "src/components/ImportExportDialog.vue L89-98 + tm TASK-500（本条件化）"
+reason = "プレビュー内容切替のアニメーション定義で、表示内容の切替自体は各条件で観測済み（§8「書かない」: 挙動に差を生まない表示効果。BaseDialogのfadeをexcludedしたcategory-dialogと同根拠）"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped CSS定義（L576-1225）と表示効果のみのクラス束縛（.preview-image-area-idle L53・.toggle-pill-success等の配色クラス）"
+source = "src/components/ImportExportDialog.vue + tm TASK-500（本条件化）"
+reason = "スタイル定義・見た目のみの状態反映でロジック分岐なし（category-dialog・deck-edit-layout条件書のexcludedと同根拠）。状態を観測する手段としてのactive/dragging/requiredクラスは各条件で利用する"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "props/emitsの型宣言と既定値の宣言（deckInfo:null・dno:''・deckName:''・initialTab:'import'・includeTimestamp:true、L234-258。themeのmatchMedia既定値を除く）"
+source = "src/components/ImportExportDialog.vue L234-258 + tm TASK-500（本条件化）"
+reason = "宣言のみで独立した分岐なし（§8「書かない」: 型システムで保証済み・props受け渡しのみ）。各既定値の効果は本書各条件のgiven（初期マウント・deckInfo省略等）経由で観測する。theme既定値のmatchMedia判定のみ分岐を含むため条件化（theme-default-follows-prefers-color-scheme）"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "console.error出力（L338 画像生成失敗ログ・L558 deckInfoなしガードログ）"
+source = "src/components/ImportExportDialog.vue L338, L558 + tm TASK-500（本条件化）"
+reason = "ログ出力そのものはUI観測対象外で、対応するUI状態（プレビュー画像エラー表示・ダウンロード不実行）は各条件（preview-image-failure-shows-error・export-preview-empty-and-download-guard-without-deckinfo）で観測済み"
+decided_at = "2026-09-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "generateTimestampの内部書式処理（桁揃めpadStart等、L429-437）"
+source = "src/components/ImportExportDialog.vue L429-437 + tm TASK-500（本条件化）"
+reason = "生成結果の形式（YYYYMMDD-HHmm）は filename-timestamp-suffix が最終文字列で検証するため、内部の桁揃め処理を独立条件にすると同一観測の重複になる"
+decided_at = "2026-09-13"
+decided_by = "claude"
