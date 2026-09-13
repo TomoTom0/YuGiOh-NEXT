@@ -337,7 +337,7 @@ async function testImportExport() {
     console.log('\n--- 1. ダイアログを開く（Import タブ初期表示） ---');
     // ============================================================
     const opened = await openDialog(cdp);
-    t.assert('メニューの Import / Export でダイアログが開く', opened === true);
+    t.assert('メニューの Import / Export でダイアログが開く [covers:deck-edit-layout.import-export-dialog-visibility-and-tab]', opened === true);
     if (!opened) { t.summary(); return; }
 
     const header = await cdp.evaluate(`document.querySelector('${DIALOG_HEADER}')?.textContent`);
@@ -601,7 +601,7 @@ async function testImportExport() {
       `(() => { const s = ${DECK_COUNTS_EXPR}; return s.main === 2 && s.extra === 0 && s.side === 0 ? s : false; })()`,
       10000, 150
     );
-    t.assert('replace モードでメインデッキが2枚に置換される（extra/sideは0）', replaced !== false);
+    t.assert('replace モードでメインデッキが2枚に置換される（extra/sideは0） [covers:deck-edit-layout.import-mode-replace-clears-sections]', replaced !== false);
     if (replaced) {
       t.assert('置換後の枚数バッジ(h3 .count)も2になる', replaced.badge === 2);
     }
@@ -611,7 +611,7 @@ async function testImportExport() {
       return el ? el.textContent : '';
     })()`, 5000, 100);
     t.assert(
-      '置換完了のトーストが表示される',
+      '置換完了のトーストが表示される [covers:deck-edit-layout.import-toast-replace-mode]',
       typeof toastText === 'string' && toastText.includes('デッキを置き換えました')
     );
 
@@ -621,7 +621,7 @@ async function testImportExport() {
     // デッキが置換済みのため checkUnsavedChanges（unsavedWarning=always）により
     // 未保存確認ダイアログが表示される。「保存せず続ける」で続行する（保存はしない）。
     const reopenedAfterImport = await openDialog(cdp);
-    t.assert('デッキ変更後の再オープンで未保存確認を経てダイアログが開く', reopenedAfterImport === true);
+    t.assert('デッキ変更後の再オープンで未保存確認を経てダイアログが開く [covers:deck-edit-layout.unsaved-changes-shows-dialog] [covers:deck-edit-layout.unsaved-button-continue-without-saving]', reopenedAfterImport === true);
     const resetState = await cdp.waitFor(`(() => {
       const s = ${IMPORT_STATE_EXPR};
       return (s.hasPlaceholder && s.importDisabled) ? s : false;

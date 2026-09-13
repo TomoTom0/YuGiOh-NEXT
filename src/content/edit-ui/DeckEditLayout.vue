@@ -693,8 +693,10 @@ export default {
 
       const shortcuts = settingsStore.appSettings.ux.keyboardShortcuts
 
-      // グローバル検索モードを有効化
-      if (matchesAnyShortcut(event, shortcuts.globalSearch)) {
+      // TASK-462対策: 初期化完了前（isReady=false）は検索inputが非表示のため
+      // Escapeで解除できずモードが残留する。globalSearchのみisReady後に限定する
+      // （undo/redoはTASK-462の主目的のため初期化中も有効を維持）
+      if (isReady.value && matchesAnyShortcut(event, shortcuts.globalSearch)) {
         event.preventDefault()
         event.stopPropagation()
         searchStore.isGlobalSearchMode = true
@@ -767,6 +769,14 @@ export default {
         currentDeckDno.value = parseInt(lastDno, 10)
       }
 
+      // TASK-462: 初期化のawait前に登録し、デッキ描画直後からショートカット/
+      // hashchange/resizeが有効になるようにする（ハンドラは全てsetup時点で参照可能）
+      // hashchangeイベントでdno変更を監視
+      checkDnoChangeHandler = () => checkDnoChange()
+      window.addEventListener('hashchange', checkDnoChangeHandler)
+      window.addEventListener('resize', handleResize)
+      window.addEventListener('keydown', handleGlobalKeydown)
+
       // 通常のページ初期化（dno パラメータがある場合に loadDeck() が呼ばれる）
       await deckStore.initializeOnPageLoad()
 
@@ -788,13 +798,6 @@ export default {
           moduleLoadingOverlay.remove()
         }, 150)
       }
-
-      // hashchangeイベントでdno変更を監視
-      checkDnoChangeHandler = () => checkDnoChange()
-      window.addEventListener('hashchange', checkDnoChangeHandler)
-      window.addEventListener('resize', handleResize)
-      window.addEventListener('keydown', handleGlobalKeydown)
-
 
       // window.ygoChangeLanguage をオーバーライド（未保存変更確認機能を追加）
       const originalChangeLanguage = window.ygoChangeLanguage

@@ -274,13 +274,13 @@ async function testSectionShuffleSort() {
         b && eq(b.titles, ['Shuffle', 'Sort'])
       );
       t.assert(`${sec} のボタンが disabled でない`, b && b.allEnabled === true);
-      t.assert(`${sec} に枚数バッジ(h3 .count)がある`, b && b.hasBadge === true);
+      t.assert(`${sec} に枚数バッジ(h3 .count)がある [covers:deck-edit-layout.deck-sections-quantity-expansion]`, b && b.hasBadge === true);
     }
     const trashBtns = await cdp.evaluate(buttonsExpr('trash'));
     t.assert('trash の h3 に .section-buttons がない（v-if="sectionType !== \'trash\'"）',
       trashBtns && trashBtns.hasWrap === false);
     t.assert('trash に .btn-section が1つも存在しない', trashBtns && trashBtns.anyBtnInSection === 0);
-    t.assert('trash に枚数バッジがない（:show-count="false"）', trashBtns && trashBtns.hasBadge === false);
+    t.assert('trash に枚数バッジがない（:show-count="false"） [covers:deck-edit-layout.trash-section-show-count-false]', trashBtns && trashBtns.hasBadge === false);
 
     // ============================================================
     console.log('\n--- 2. main シャッフル: 順序変化 + 要素集合/枚数の保存 ---');
@@ -307,7 +307,7 @@ async function testSectionShuffleSort() {
     await blurActiveElement(cdp);
     await ctrlZ(cdp);
     const undoneShuffle = await waitForOrder(cdp, 'main', originalOrder);
-    t.assert('Ctrl+Z でシャッフル前の順序に戻る', undoneShuffle === true);
+    t.assert('Ctrl+Z でシャッフル前の順序に戻る [covers:deck-edit-layout.shortcut-undo-executes-undo]', undoneShuffle === true);
 
     // ============================================================
     console.log('\n--- 4. main ソート: 順序変化 + 要素集合の保存 + Undo ---');

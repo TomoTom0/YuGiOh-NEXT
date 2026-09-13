@@ -1,0 +1,1028 @@
+# 検証対象: src/content/edit-ui/DeckEditLayout.vue（root component・props/emitsなし・
+#   export default { setup() } 形式。templateはL1-199、scriptはL201-1172、scoped SCSSはL1174-1913）
+# 経緯: TASK-331（Tier C展開）× TASK-487（旧40it実装非検証テストの再設計）の統合。
+#   TASK-462（ショートカット登録タイミング）は本条件化に先行して実装修正済み
+#   （リスナー登録をonMounted冒頭・lastDno復元直後・初期化await直前へ移動）。
+#
+# 粒度方針（Tier C・load-dialog条件書と同一）:
+# - script setup相当のロジック分岐（ハンドラ分岐・computed・ライフサイクル副作用）を主対象、
+#   template表示結果は簡潔に
+#
+# 線引き（store・子コンポーネント側との）:
+# - deck-edit storeの各アクション内部（addCard上限判定・undo履歴・saveDeck永続化等）は
+#   deck-edit条件書側の対象。本書は「このコンポーネントでの呼び出し条件・引数・分岐」のみ
+# - ImportExportDialog/LoadDialog/SettingsDialog/ConfirmDialog内部の挙動は各コンポーネント側
+# - RightArea/DeckCard/DeckSectionの内部挙動は各コンポーネント側
+#
+# 探索中の発見事項:
+# - デッドコード群（下記[[excluded]]・削除タスクTASK-493で起票済み）
+# - 「保存せず続ける」ボタンのonClickにtry/catch無し（TASK-494で起票。条件
+#   unsaved-button-continue-without-saving-no-catch は期待仕様ではなく現行挙動として条件化）
+# - onUnmountedがwindow.ygoChangeLanguageを元に戻さない（override残留。TASK-495で起票。条件
+#   unmounted-does-not-restore-ygo-change-language も現行挙動として条件化）
+# - handleResizeのwasDesktop変数は「現在desktop」の意味（過去状態との比較ではない命名ミス）
+# - checkDnoChangeがinitializeOnPageLoadをawaitしないため、初期化中・初期化後の連続hashchangeで
+#   ロードが並走しうる（完了順によりhashと表示デッキが一時不一致になりうる。TASK-462のリスナー
+#   早期登録で初期化中の窓が広がる。直列化（世代番号・Promise共有）の検討はTASK-496）
+# - toggleLoadDialogのonLoadCallback内のlocalStorageキーはSTORAGE_KEY_LAST_DECK_DNO定数でなく
+#   リテラル 'ygoNext:lastDeckDno'（値は同一のため挙動差なし）
+
+[meta]
+verified = true
+verified_at = "2026-09-13"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/deck-edit-layout.test.ts"
+source_hash = "23ce4fa6593080b4dc714a716867023906c7ed80"
+feature = "deck-edit-layout"
+source_file = "src/content/edit-ui/DeckEditLayout.vue"
+note = "TASK-494/495（既知欠陥2条件の修正）・TASK-496（checkDnoChange並走競合の直列化）は本条件書の将来更新対象"
+
+# --- A. 表示・レイアウト ---
+
+[[condition]]
+id = "deck-edit-layout.root-container-vshow-until-ready"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:468"
+target_function = "template .deck-edit-container v-show"
+source = "src/content/edit-ui/DeckEditLayout.vue L2 + tm TASK-331/487"
+description = "ルートコンテナはisReady（onMountedの初期化完了フラグ）がtrueになるまでv-showで非表示。DOM自体は存在する"
+given = "onMountedのawait initializeOnPageLoad / await fetchDeckList が未解決（isReady=false） / 両方完了後（isReady=true）"
+expect_return_shape = "false時: .deck-edit-container.ygo-next はDOMに存在するが非表示（v-showのためdisplay:none）。true時: 表示される"
+
+[[condition]]
+id = "deck-edit-layout.loading-overlay-states"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:484"
+target_function = "template deck-loading-overlay v-if + loading-text"
+source = "src/content/edit-ui/DeckEditLayout.vue L4-L8 + tm TASK-331/487"
+description = "ローディングオーバーレイはisLoadingDeck/isImportingのいずれかtrueで表示し、テキストはisImportingを優先する"
+given = "deckStore.isLoadingDeck=true（isImporting=false） / deckStore.isImporting=true（isLoadingDeck=false） / 両方true / 両方false"
+expect_return_shape = "いずれかtrueで .deck-loading-overlay を表示し、.loading-text は isImporting=trueなら『インポート中...』、それ以外は『Loading...』。両方falseで非表示"
+
+[[condition]]
+id = "deck-edit-layout.unified-overlay-zindex"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:513"
+target_function = "template unified-overlay v-if + :style"
+source = "src/content/edit-ui/DeckEditLayout.vue L133 + tm TASK-331/487"
+description = "統一オーバーレイはstoreのoverlayVisible/overlayZIndexをそのまま表示に反映する"
+given = "deckStore.overlayVisible=true・overlayZIndex=10000 / overlayVisible=false"
+expect_return_shape = "true時: .unified-overlay が style の zIndex=10000 付きで描画される。false時: 描画されない"
+
+[[condition]]
+id = "deck-edit-layout.deck-sections-quantity-expansion"
+source_lines = "tests/browser/test-card-operations.cjs:322,tests/browser/test-section-shuffle-sort.cjs:277,tests/unit/content/deck-edit-layout.test.ts:530"
+target_function = "mainDeck/extraDeck/sideDeck computed + template DeckSection :cards"
+source = "src/content/edit-ui/DeckEditLayout.vue L901-L915, L31-L49 + tm TASK-331/487"
+description = "main/extra/sideのDeckSectionへ渡すcardsはdeckInfo各セクションのエントリをquantity枚数分に展開したカード単位の配列にする"
+given = "deckStore.deckInfo.mainDeck に {card, quantity:3} の1エントリがある状態（extra/sideも同様）"
+expect_return_shape = "各DeckSectionのcards propに同一cardが3つ並んだ配列が渡る（DeckSection側は数量バッジ等でこの展開結果を観測）"
+
+[[condition]]
+id = "deck-edit-layout.trash-section-from-store-trash"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:545"
+target_function = "trashDeck computed + template trash DeckSection"
+source = "src/content/edit-ui/DeckEditLayout.vue L916-L920, L51-L56 + tm TASK-331/487"
+description = "trashセクションのカードはdeckInfoでなくdeckStore.trashDeckをquantity展開した配列を参照する"
+given = "deckStore.trashDeck に {card, quantity:2} のエントリがある状態"
+expect_return_shape = "trash DeckSectionのcards propに当該cardが2つ並んだ配列が渡る（main/extra/sideとは異なるstore参照由来）"
+
+[[condition]]
+id = "deck-edit-layout.trash-section-show-count-false"
+source_lines = "tests/browser/test-card-operations.cjs:321,tests/browser/test-section-shuffle-sort.cjs:283,tests/unit/content/deck-edit-layout.test.ts:559"
+target_function = "template trash DeckSection :show-count"
+source = "src/content/edit-ui/DeckEditLayout.vue L51-L56, L120-L125 + tm TASK-331/487"
+description = "trashセクションは常にshowCount propをfalseで渡す（枚数バッジ非表示。デスクトップ・モバイル両templateで同一）"
+given = "trashセクションの描画時（常時）"
+expect_return_shape = "trash DeckSectionのshowCount propはfalse（他セクションは未指定=既定値）"
+
+[[condition]]
+id = "deck-edit-layout.middle-decks-vertical-class"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:570"
+target_function = "middleDecksClass computed"
+source = "src/content/edit-ui/DeckEditLayout.vue L923-L926, L37, L106 + tm TASK-331/487"
+description = "extra/sideを括るmiddle-decksの配置クラスはappSettings.middleDecksLayoutの値でvertical切替する"
+given = "appSettings.middleDecksLayout='vertical' / 'vertical'以外"
+expect_return_shape = "'vertical'時: .middle-decks.vertical-layout クラス。それ以外: .middle-decks のみ"
+
+[[condition]]
+id = "deck-edit-layout.theme-attribute-binding"
+source_lines = "tests/browser/test-settings.cjs:328,tests/unit/content/deck-edit-layout.test.ts:589"
+target_function = "template :data-ygo-next-theme"
+source = "src/content/edit-ui/DeckEditLayout.vue L2 + tm TASK-331/487"
+description = "ルートコンテナのdata-ygo-next-theme属性はsettingsStore.effectiveThemeに追従する"
+given = "settingsStore.effectiveTheme='dark' / 'light'"
+expect_return_shape = ".deck-edit-container のdata-ygo-next-theme属性がeffectiveThemeの値と一致する"
+
+[[condition]]
+id = "deck-edit-layout.import-export-dialog-visibility-and-tab"
+source_lines = "tests/browser/test-import-export.cjs:340,tests/unit/content/deck-edit-layout.test.ts:603"
+target_function = "template ImportExportDialog props"
+source = "src/content/edit-ui/DeckEditLayout.vue L136-L147 + tm TASK-331/487"
+description = "ImportExportDialogの表示はshowImportDialog/showExportDialogの論理和で、初期タブはexport優先で決まる"
+given = "showImportDialog=true（showExportDialog=false） / showExportDialog=true（showImportDialog=false） / 両方false"
+expect_return_shape = "isVisibleはshowImportDialog||showExportDialog。initialTabはshowExportDialog=trueなら'export'、それ以外は'import'。両方falseでisVisible=false"
+
+[[condition]]
+id = "deck-edit-layout.settings-dialog-visibility"
+source_lines = "tests/browser/test-settings.cjs:229,tests/browser/test-settings.cjs:279,tests/unit/content/deck-edit-layout.test.ts:627"
+target_function = "template SettingsDialog props + @close"
+source = "src/content/edit-ui/DeckEditLayout.vue L149-L152 + tm TASK-331/487"
+description = "SettingsDialogの表示はshowSettingsDialogで制御され、close emitで当該フラグをfalseにする"
+given = "deckStore.showSettingsDialog=true / SettingsDialogがclose emit"
+expect_return_shape = "true時 isVisible=true。close emitで deckStore.showSettingsDialog=false になり非表示になる"
+
+[[condition]]
+id = "deck-edit-layout.load-dialog-visibility"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:642"
+target_function = "template LoadDialog props + @close"
+source = "src/content/edit-ui/DeckEditLayout.vue L154-L158 + tm TASK-331/487"
+description = "LoadDialogの表示はshowLoadDialogで制御され、close emitで当該フラグをfalseにする（deck-loadedはhandleDeckLoadedへ接続）"
+given = "deckStore.showLoadDialog=true / LoadDialogがclose emit"
+expect_return_shape = "true時 isVisible=true。close emitで deckStore.showLoadDialog=false になり非表示になる"
+
+[[condition]]
+id = "deck-edit-layout.delete-confirm-dialog-content"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:657"
+target_function = "template delete-confirm-dialog + getDeckName フォールバック"
+source = "src/content/edit-ui/DeckEditLayout.vue L161-L175 + tm TASK-331/487"
+description = "削除確認ダイアログはshowDeleteConfirmで表示し、本文のデッキ名はgetDeckName()が空時に'(名称未設定)'へフォールバックする"
+given = "deckStore.showDeleteConfirm=true かつ getDeckName()が'デッキA'を返す / 空文字を返す"
+expect_return_shape = ".dialog-overlay と .delete-confirm-dialog が表示され、本文はそれぞれ「本当に「デッキA」を削除しますか？」/「本当に「(名称未設定)」を削除しますか？」。.btn-cancel（キャンセル）と .btn-delete（削除）が存在"
+
+[[condition]]
+id = "deck-edit-layout.practice-mode-template-switch"
+source_lines = "tests/browser/test-practice-mode.cjs:41,tests/unit/content/deck-edit-layout.test.ts:682"
+target_function = "template practiceMode分岐（Transition mode-switch）"
+source = "src/content/edit-ui/DeckEditLayout.vue L18-L58, L81-L127 + tm TASK-331/487"
+description = "practiceModeでデスクトップの.main-contentとRightAreaのdeck-tabスロット両方が、通常のデッキ編集表示とpractice表示（PracticeField）を切替する"
+given = "practiceMode=true / practiceMode=false"
+expect_return_shape = "true時: .deck-areas.practice-field-container（PracticeField。practiceStore.twoDeckMode=trueなら追加で.p2-field-wrapper）を表示し通常のdeck-areas（DeckSection群）は非表示。false時: 逆。両templateで同じ分岐に従う"
+
+# --- B. ライフサイクル（onMounted / onUnmounted / changeFavicon） ---
+
+[[condition]]
+id = "deck-edit-layout.mounted-registers-listeners-before-async-init"
+source_lines = "tests/browser/test-card-operations.cjs:299,tests/unit/content/deck-edit-layout.test.ts:726"
+target_function = "onMounted（リスナー登録）"
+source = "src/content/edit-ui/DeckEditLayout.vue L772-L778 + tm TASK-331/487 + tm TASK-462"
+description = "TASK-462: hashchange/resize/keydownの3リスナーはonMounted冒頭（lastDno復元直後・await initializeOnPageLoadの前）に登録され、初期化完了前からショートカット等が有効になる"
+given = "initializeOnPageLoadを未解決のdeferred promiseでspyしてmountし、flushPromisesせずにwindowへkeydown（Ctrl+Z）/resize/hashchange（dno変更）をdispatch"
+expect_return_shape = "await完了前でも3種ハンドラが発火する: keydown→deckStore.undo呼び出し、resize→handleResize、hashchange→checkDnoChange（dno変更時initializeOnPageLoadの追加呼び出し）"
+
+[[condition]]
+id = "deck-edit-layout.mounted-sets-ready-after-deck-list-fetch"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:748"
+target_function = "onMounted（isReady）"
+source = "src/content/edit-ui/DeckEditLayout.vue L780-L787 + tm TASK-331/487"
+description = "isReadyはawait initializeOnPageLoadとawait fetchDeckListの両方が完了した後にtrueになる（観測点はLayout側のawait完了とisReady。fetchDeckListの呼び出し回数・完了順はstore内の非await IIFEにより不安定なため観測しない）"
+given = "initializeOnPageLoad・fetchDeckListを未解決のdeferredでmountし、順に解決"
+expect_return_shape = "両方解決前はisReady=false（.deck-edit-container非表示）。両方解決後にisReady=trueになる"
+
+[[condition]]
+id = "deck-edit-layout.mounted-removes-module-loading-overlay"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:767"
+target_function = "onMounted（module loading overlay除去）"
+source = "src/content/edit-ui/DeckEditLayout.vue L789-L800 + tm TASK-331/487"
+description = "isReady後nextTickを待って、モジュールローディングオーバーレイをフェードアウトさせてから削除する"
+given = "mount時に id=ygo-next-module-loading-overlay の要素がDOMに存在し、initializeOnPageLoad/fetchDeckListが解決済み（fake timers使用）"
+expect_return_shape = "nextTick後にopacity='0'・transition='opacity 150ms ease-out'が設定され、150ms経過で当該要素がDOMからremoveされる"
+
+[[condition]]
+id = "deck-edit-layout.mounted-overrides-ygo-change-language"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:785"
+target_function = "onMounted（ygoChangeLanguage override）"
+source = "src/content/edit-ui/DeckEditLayout.vue L802-L818 + tm TASK-331/487"
+description = "mount完了時にwindow.ygoChangeLanguageを、元関数を包み未保存変更確認を挟むwrapperへ差し替える"
+given = "mount前に元のwindow.ygoChangeLanguageが設定済みの状態でonMounted完了"
+expect_return_shape = "window.ygoChangeLanguageが元関数と異なるwrapper関数に差し替わる（元関数はwrapper内から呼ばれる。元がundefinedでもwrapperは設定される）"
+
+[[condition]]
+id = "deck-edit-layout.ygo-change-language-unsaved-shows-dialog"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:805"
+target_function = "onMounted ygoChangeLanguage override（hasUnsavedChanges=true）"
+source = "src/content/edit-ui/DeckEditLayout.vue L810-L814 + tm TASK-331/487"
+description = "未保存変更がある状態での言語変更は、即座に再読み込みせず未保存ダイアログでの確認に差し替える"
+given = "deckStore.hasUnsavedChanges()=true の状態で window.ygoChangeLanguage('en') を呼ぶ"
+expect_return_shape = "unsavedChangesMessage='言語を変更するとページが再読み込みされます。保存してから変更しますか？'・pendingAction=言語変更実行関数・deckStore.showUnsavedChangesDialog=true になり、元の言語変更関数はこの時点では呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.ygo-change-language-no-unsaved-executes-directly"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:831"
+target_function = "onMounted ygoChangeLanguage override（hasUnsavedChanges=false）"
+source = "src/content/edit-ui/DeckEditLayout.vue L815-L817 + tm TASK-331/487"
+description = "未保存変更がない状態での言語変更は確認なしで元関数を直接実行する"
+given = "deckStore.hasUnsavedChanges()=false の状態で window.ygoChangeLanguage('en') を呼ぶ"
+expect_return_shape = "元の言語変更関数が'en'引数で即座に呼ばれ、未保存ダイアログは表示されない"
+
+[[condition]]
+id = "deck-edit-layout.change-favicon-when-enabled"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:851"
+target_function = "onMounted（changeFavicon呼び出し）+ changeFavicon"
+source = "src/content/edit-ui/DeckEditLayout.vue L820-L823, L845-L869 + tm TASK-331/487"
+description = "ux.changeFavicon=trueの場合のみファビコンを拡張機能アイコン（16/48/128px）へ差し替える"
+given = "appSettings.ux.changeFavicon=true でmount（headに既存link[rel*=icon]が存在）"
+expect_return_shape = "既存のicon linkが全て削除され、chrome.runtime.getURL('icons/icon16.png'等)をhrefに持つlink[rel=icon][type=image/png]がsizes=16x16/48x48/128x128の3件headへ追加される"
+
+[[condition]]
+id = "deck-edit-layout.change-favicon-disabled-noop"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:879"
+target_function = "onMounted（changeFavicon呼び出し条件）"
+source = "src/content/edit-ui/DeckEditLayout.vue L820-L823 + tm TASK-331/487"
+description = "ux.changeFavicon=falseの場合はファビコン変更を行わない"
+given = "appSettings.ux.changeFavicon=false でmount（headに既存link[rel*=icon]が存在）"
+expect_return_shape = "changeFaviconは呼ばれず、既存のicon linkはそのまま残る"
+
+[[condition]]
+id = "deck-edit-layout.change-favicon-catch-logs-error"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:897"
+target_function = "changeFavicon catch"
+source = "src/content/edit-ui/DeckEditLayout.vue L866-L868 + tm TASK-331/487"
+description = "ファビコン差し替え中の例外はlogして外へ伝播させない"
+given = "changeFavicon=true かつ chrome.runtime.getURLが例外をthrow"
+expect_return_shape = "console.error('Failed to change favicon:', error) が出力され、例外はonMountedへ伝播しない"
+
+[[condition]]
+id = "deck-edit-layout.thumbnails-generated-when-deck-list-exists"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:917"
+target_function = "onMounted（generateThumbnailsInBackground呼び出し）"
+source = "src/content/edit-ui/DeckEditLayout.vue L825-L839 + tm TASK-331/487"
+description = "ページロード時にdeckListが存在する場合のみ、先頭24デッキのサムネイルをバックグラウンド生成する"
+given = "mount完了時 deckStore.deckList が1件以上"
+expect_return_shape = "generateThumbnailsInBackground(0, 24, deckStore.deckList, dnoをdeckStore.getDeckDetail(dno)へ渡す関数, deckStore.headPlacementCardIds, deckStore.deckThumbnails, deckStore.cachedDeckInfos) が呼ばれる（force引数なし）"
+
+[[condition]]
+id = "deck-edit-layout.thumbnails-skipped-when-no-deck-list"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:934"
+target_function = "onMounted（generateThumbnailsInBackground呼び出し条件）"
+source = "src/content/edit-ui/DeckEditLayout.vue L828-L839 + tm TASK-331/487"
+description = "deckListが空の場合はサムネイル背景生成を行わない"
+given = "mount完了時 deckStore.deckList=[]（またはnull）"
+expect_return_shape = "generateThumbnailsInBackground は呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.unmounted-removes-all-listeners"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:943"
+target_function = "onUnmounted"
+source = "src/content/edit-ui/DeckEditLayout.vue L871-L880 + tm TASK-331/487"
+description = "unmount時にhashchange/resize/keydownの全リスナーを同参照で削除し、pendingLanguageChangeを破棄する"
+given = "mount後にunmountし、その後windowへhashchange/resize/keydown（Ctrl+Z）をdispatch"
+expect_return_shape = "unmount後の発火ではcheckDnoChange/handleResize/handleGlobalKeydownのいずれも実行されない（undo等のstore呼び出しが起きない）"
+
+[[condition]]
+id = "deck-edit-layout.unmounted-does-not-restore-ygo-change-language"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:964"
+target_function = "onUnmounted（ygoChangeLanguage復元欠落）"
+source = "src/content/edit-ui/DeckEditLayout.vue L800-L816, L869-L878 + tm TASK-331/487"
+description = "期待仕様ではなく現行挙動（既知欠陥）・TASK-495で修正予定: onUnmountedはwindow.ygoChangeLanguageをmount前の元関数へ復元しない（override残留）"
+given = "mount（window.ygoChangeLanguageがwrapper化済み）後にunmount"
+expect_return_shape = "window.ygoChangeLanguageはwrapper関数のまま（元関数へは復元されない）。復元するのが期待仕様だが現行実装では残る"
+
+# --- C. グローバルキーボードショートカット（handleGlobalKeydown / matchesShortcut / matchesAnyShortcut） ---
+
+[[condition]]
+id = "deck-edit-layout.shortcut-ignored-in-global-search-mode"
+source_lines = "tests/browser/test-keyboard-shortcuts.cjs:256,tests/unit/content/deck-edit-layout.test.ts:993"
+target_function = "handleGlobalKeydown"
+source = "src/content/edit-ui/DeckEditLayout.vue L681-L683 + tm TASK-331/487"
+description = "グローバル検索モード中のkeydownは最優先で無視する（入力欄側で処理されるため）"
+given = "searchStore.isGlobalSearchMode=true かつ undoショートカット（Ctrl+Z）に一致するkeydown"
+expect_return_shape = "即returnし deckStore.undo/redo・isGlobalSearchMode設定・preventDefaultのいずれも行われない"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-ignored-while-input-focused"
+source_lines = "tests/browser/test-keyboard-shortcuts.cjs:204,tests/browser/test-keyboard-shortcuts.cjs:276,tests/unit/content/deck-edit-layout.test.ts:1008"
+target_function = "handleGlobalKeydown"
+source = "src/content/edit-ui/DeckEditLayout.vue L684-L692 + tm TASK-331/487"
+description = "INPUT/TEXTAREA要素またはcontentEditable='true'要素にフォーカスがある間のkeydownはショートカット判定をスキップする"
+given = "document.activeElementがinput要素 / textarea要素 / contentEditable='true'要素の各状態で、undoショートカット（Ctrl+Z）に一致するkeydown"
+expect_return_shape = "いずれの状態でもreturnし deckStore.undo は呼ばれない（input以外の要素フォーカス時は呼ばれることとの対比）"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-global-search-activates-mode"
+source_lines = "tests/browser/test-keyboard-shortcuts.cjs:219,tests/browser/test-keyboard-shortcuts.cjs:236,tests/unit/content/deck-edit-layout.test.ts:1040"
+target_function = "handleGlobalKeydown globalSearch分岐"
+source = "src/content/edit-ui/DeckEditLayout.vue L694-L704 + tm TASK-331/487"
+description = "初期化完了後（isReady=true）にglobalSearchショートカット（既定'/'）でグローバル検索モードを有効化し、ブラウザ既定動作を抑止する（isReady=falseの初期化中は無視）"
+given = "appSettings.ux.keyboardShortcuts.globalSearchが既定（key='/'・装飾キーなし）かつisReady=true（initializeOnPageLoad等の初期化完了後）の状態で'/'のkeydown"
+expect_return_shape = "isReady=trueのためglobalSearch分岐に入り、event.preventDefaultとstopPropagationが呼ばれ searchStore.isGlobalSearchMode=true になり、undo/redo判定には進まない"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-global-search-ignored-before-ready"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1054"
+target_function = "handleGlobalKeydown globalSearch分岐"
+source = "src/content/edit-ui/DeckEditLayout.vue L694-L704 + tm TASK-462/331"
+description = "初期化完了前（isReady=false）のglobalSearchショートカットは無視する（検索inputが非表示のためEscapeで解除できずモードが残留するため。undo/redoは初期化中も有効を維持）"
+given = "isReady=false（initializeOnPageLoad未解決）の状態でglobalSearchショートカット（既定'/'）に一致するkeydown"
+expect_return_shape = "globalSearch分岐を通らず searchStore.isGlobalSearchModeはtrueにならずoverlayも出ない。preventDefault・stopPropagationも呼ばれない（undo/redo非該当のため素通り）"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-undo-executes-undo"
+source_lines = "tests/browser/test-card-operations.cjs:344,tests/browser/test-drag-drop.cjs:383,tests/browser/test-keyboard-shortcuts.cjs:174,tests/browser/test-section-shuffle-sort.cjs:310,tests/unit/content/deck-edit-layout.test.ts:1075"
+target_function = "handleGlobalKeydown undo分岐"
+source = "src/content/edit-ui/DeckEditLayout.vue L705-L709 + tm TASK-331/487"
+description = "undoショートカット（既定Ctrl+Z）でdeckStore.undo()を実行する"
+given = "undoショートカット（Ctrl+Z）に一致するkeydown（グローバル検索モードoff・入力欄非フォーカス）"
+expect_return_shape = "event.preventDefaultが呼ばれ deckStore.undo() が実行される（redoは実行されない）"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-redo-executes-redo"
+source_lines = "tests/browser/test-keyboard-shortcuts.cjs:181,tests/unit/content/deck-edit-layout.test.ts:1088"
+target_function = "handleGlobalKeydown redo分岐"
+source = "src/content/edit-ui/DeckEditLayout.vue L712-L716 + tm TASK-331/487"
+description = "redoショートカット（既定Ctrl+Y）でdeckStore.redo()を実行する"
+given = "redoショートカット（Ctrl+Y）に一致するkeydown"
+expect_return_shape = "event.preventDefaultが呼ばれ deckStore.redo() が実行される（undoは実行されない）"
+
+[[condition]]
+id = "deck-edit-layout.shortcut-first-match-wins"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1101"
+target_function = "handleGlobalKeydown 判定順"
+source = "src/content/edit-ui/DeckEditLayout.vue L697-L716 + tm TASK-331/487"
+description = "ショートカット判定はglobalSearch→undo→redoの順で、各分岐はreturnで排他されるため複数定義に一致しても先頭の1つのみ実行する"
+given = "undoショートカットの定義がglobalSearch定義と同じキー（例: 両方key='z'・ctrl=true）を含む状態で、そのキーのkeydown"
+expect_return_shape = "globalSearchのみ実行され（isGlobalSearchMode=true）、deckStore.undoは実行されない"
+
+[[condition]]
+id = "deck-edit-layout.matches-shortcut-null-returns-false"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1117"
+target_function = "matchesShortcut"
+source = "src/content/edit-ui/DeckEditLayout.vue L656-L658 + tm TASK-331/487"
+description = "ショートカット定義がnull/undefinedの場合はマッチしない（keyboardShortcutsの項目が未設定でもエラーにならない）"
+given = "appSettings.ux.keyboardShortcuts.undo をnullに設定し、undo相当（Ctrl+Z）のkeydownを発火"
+expect_return_shape = "matchesShortcut(null)はfalseを返すためundoは実行されない（keydownは無視される）"
+
+[[condition]]
+id = "deck-edit-layout.matches-shortcut-exact-modifiers"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1129"
+target_function = "matchesShortcut"
+source = "src/content/edit-ui/DeckEditLayout.vue L659-L664 + tm TASK-331/487"
+description = "マッチ判定はkey（大文字小文字無視）とctrl/shift/alt修飾キーの全一致が必要（部分一致ではマッチしない）"
+given = "undoショートカットが {key:'z', ctrl:true, shift:false, alt:false} の状態で、Ctrl+Z / Ctrl+Shift+Z / Ctrl+Alt+Z / Ctrl+Y の各keydown"
+expect_return_shape = "修飾キーまで完全一致するCtrl+Zのみundoを実行し、Ctrl+Shift+Z・Ctrl+Alt+Z・Ctrl+Y（key不一致）では実行しない"
+
+[[condition]]
+id = "deck-edit-layout.matches-any-shortcut-handles-object-form"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1146"
+target_function = "matchesAnyShortcut"
+source = "src/content/edit-ui/DeckEditLayout.vue L668-L677 + tm TASK-331/487"
+description = "ショートカット群が配列でなくオブジェクト形式（Pinia reactive変換等）でもObject.valuesで配列化して判定する"
+given = "keyboardShortcuts.undoをオブジェクト形式（例: {a:{key:'z',ctrl:true,shift:false,alt:false}}）に設定し、Ctrl+Zのkeydown"
+expect_return_shape = "配列形式と同じくundoが実行される"
+
+[[condition]]
+id = "deck-edit-layout.matches-any-shortcut-empty-returns-false"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1158"
+target_function = "matchesAnyShortcut"
+source = "src/content/edit-ui/DeckEditLayout.vue L669, L675 + tm TASK-331/487"
+description = "ショートカット群がnull/undefinedまたは空配列の場合はマッチしない"
+given = "keyboardShortcuts.undoを空配列[]に設定し、Ctrl+Zのkeydown"
+expect_return_shape = "length===0でfalseを返すためundoは実行されない"
+
+# --- D. 未保存変更（checkUnsavedChanges / unsavedChangesButtons / cancelUnsavedChanges） ---
+
+[[condition]]
+id = "deck-edit-layout.unsaved-never-warning-skipped"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1175"
+target_function = "checkUnsavedChanges"
+source = "src/content/edit-ui/DeckEditLayout.vue L486-L493 + tm TASK-331/487"
+description = "unsavedWarning='never'の場合は未保存変更の有無にかかわらず警告せずactionを即実行する"
+given = "appSettings.unsavedWarning='never' かつ deckStore.hasUnsavedChanges()=true で checkUnsavedChanges(action, 'ページ移動')"
+expect_return_shape = "actionがawait実行され、未保存ダイアログ表示・pendingAction設定は行われない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-no-changes-executes-action"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1188"
+target_function = "checkUnsavedChanges"
+source = "src/content/edit-ui/DeckEditLayout.vue L495-L499 + tm TASK-331/487"
+description = "未保存変更がない場合は警告設定によらずactionを即実行する"
+given = "appSettings.unsavedWarning='always' かつ deckStore.hasUnsavedChanges()=false で checkUnsavedChanges(action, actionName)"
+expect_return_shape = "actionがawait実行され、ダイアログは表示されない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-sorting-only-skips-warning"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1201"
+target_function = "checkUnsavedChanges"
+source = "src/content/edit-ui/DeckEditLayout.vue L501-L507 + tm TASK-331/487"
+description = "unsavedWarning='without-sorting-only'では、変更がソート順のみの場合は警告せずactionを実行する"
+given = "appSettings.unsavedWarning='without-sorting-only' かつ hasUnsavedChanges()=true・hasOnlySortOrderChanges()=true"
+expect_return_shape = "actionがawait実行され、ダイアログは表示されない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-changes-shows-dialog"
+source_lines = "tests/browser/test-import-export.cjs:624,tests/browser/test-unsaved-changes.cjs:88,tests/browser/test-unsaved-changes.cjs:94,tests/unit/content/deck-edit-layout.test.ts:1215"
+target_function = "checkUnsavedChanges"
+source = "src/content/edit-ui/DeckEditLayout.vue L509-L513 + tm TASK-331/487"
+description = "警告対象の未保存変更がある場合はactionを実行せず、確認ダイアログ表示とpendingAction待機に切り替える"
+given = "unsavedWarning='always'（または'without-sorting-only'でソート順以外の変更あり）かつ hasUnsavedChanges()=true で checkUnsavedChanges(action, 'ページ移動')"
+expect_return_shape = "unsavedChangesMessage='デッキに変更がありますが、保存せずにページ移動を行いますか？'・pendingAction=action・deckStore.showUnsavedChangesDialog=true になり、actionはこの時点では実行されない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-interrupt-closes"
+source_lines = "tests/browser/test-unsaved-changes.cjs:99,tests/unit/content/deck-edit-layout.test.ts:1227"
+target_function = "unsavedChangesButtons「処理を中断」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L412-L420 + tm TASK-331/487"
+description = "「処理を中断」でダイアログを閉じ、pendingActionを破棄する（保存も後続actionも行わない）"
+given = "未保存ダイアログ表示中（pendingAction設定済み）に「処理を中断」ボタンonClick"
+expect_return_shape = "deckStore.showUnsavedChangesDialog=false・pendingAction=null。pendingActionは実行されずsaveDeckも呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-save-continue-runs-action"
+source_lines = "tests/browser/test-unsaved-changes.cjs:121,tests/browser/test-unsaved-changes.cjs:124,tests/unit/content/deck-edit-layout.test.ts:1248"
+target_function = "unsavedChangesButtons「保存して続ける」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L426-L441 + tm TASK-331/487"
+description = "「保存して続ける」は保存成功時にトースト表示し、後続actionを実行した後にダイアログを閉じる"
+given = "pendingAction設定済みで「保存して続ける」onClick・deckStore.saveDeck(deckStore.deckInfo.dno)が{success:true}を返す"
+expect_return_shape = "saveDeckがdeckInfo.dnoで呼ばれ、toast('保存しました', success) → pendingAction実行 → finallyでshowUnsavedChangesDialog=false・pendingAction=null"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-save-failure-skips-continue"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1265"
+target_function = "unsavedChangesButtons「保存して続ける」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L429-L441 + tm TASK-331/487"
+description = "保存がsuccess=falseで失敗した場合は後続actionもトーストも行わず、ダイアログのみ閉じる"
+given = "pendingAction設定済みで「保存して続ける」onClick・saveDeckが{success:false}を返す"
+expect_return_shape = "トースト表示なし・pendingAction未実行のまま、finallyでshowUnsavedChangesDialog=false・pendingAction=null"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-save-throw-caught"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1280"
+target_function = "unsavedChangesButtons「保存して続ける」onClick catch"
+source = "src/content/edit-ui/DeckEditLayout.vue L435-L441 + tm TASK-331/487"
+description = "保存がrejectした場合は例外を捕捉してlogし、ダイアログを閉じる（unhandled rejectionにしない）"
+given = "「保存して続ける」onClick・saveDeckがreject"
+expect_return_shape = "console.error('Save error:', error) が出力され例外は外へ伝播せず、finallyでshowUnsavedChangesDialog=false・pendingAction=null"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-continue-without-saving"
+source_lines = "tests/browser/test-import-export.cjs:624,tests/unit/content/deck-edit-layout.test.ts:1296"
+target_function = "unsavedChangesButtons「保存せず続ける」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L443-L453 + tm TASK-331/487"
+description = "「保存せず続ける」は保存せずにダイアログを閉じてから後続actionを実行する"
+given = "pendingAction設定済み（正常解決するaction）で「保存せず続ける」onClick"
+expect_return_shape = "showUnsavedChangesDialog=false が先に設定され、pendingActionがawait実行された後 pendingAction=null。saveDeckは呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-button-continue-without-saving-no-catch"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1315"
+target_function = "unsavedChangesButtons「保存せず続ける」onClick（catch欠落）"
+source = "src/content/edit-ui/DeckEditLayout.vue L444-L453 + tm TASK-331/487"
+description = "期待仕様ではなく現行挙動（既知欠陥）・TASK-494で修正予定: 当該onClickにはtry/catchがなく、pendingActionがrejectするとunhandled rejectionとなりpendingActionも未クリアのまま残る"
+given = "「保存せず続ける」onClick・pendingActionがrejectするaction"
+expect_return_shape = "await pendingActionでrejectionがonClick外へ伝播し（unhandled rejection）、後続のpendingAction=nullは実行されずpendingActionが残留する"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-cancel-clears-pending"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1334"
+target_function = "cancelUnsavedChanges"
+source = "src/content/edit-ui/DeckEditLayout.vue L481-L484 + tm TASK-331/487"
+description = "ConfirmDialogのcancel（overlayクリック・ESC等）でもダイアログを閉じpendingActionを破棄する"
+given = "未保存ダイアログ表示中（pendingAction設定済み）にConfirmDialogがcancel emit"
+expect_return_shape = "deckStore.showUnsavedChangesDialog=false・pendingAction=null"
+
+[[condition]]
+id = "deck-edit-layout.unsaved-save-keeps-dialog-open-during-action"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1359"
+target_function = "unsavedChangesButtons「保存して続ける」onClick（ダイアログ保持）"
+source = "src/content/edit-ui/DeckEditLayout.vue L424-L441 + tm TASK-331/487"
+description = "「保存して続ける」は保存〜後続actionの完了までダイアログを開いたままにし、処理中であることをConfirmDialog側のローディング表示で示す（閉じるのはfinallyのみ）"
+given = "「保存して続ける」onClick実行中（saveDeck/pendingActionが未解決のdeferred）"
+expect_return_shape = "処理未解決の間 deckStore.showUnsavedChangesDialog=true が維持され、解決完了後にfalseになる"
+
+# --- E. レギュレーション修正提案ダイアログ（regulationFixMessage / regulationFixButtons） ---
+
+[[condition]]
+id = "deck-edit-layout.regulation-fix-message-empty-without-fallback"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1400"
+target_function = "regulationFixMessage computed"
+source = "src/content/edit-ui/DeckEditLayout.vue L458-L463 + tm TASK-331/487"
+description = "レギュレーションタグが無い、または直近版フォールバックが発生していない場合はメッセージを空にする"
+given = "deckStore.resolvedRegulation が tag=null / fallback=undefined のいずれか"
+expect_return = "''（空文字列）"
+
+[[condition]]
+id = "deck-edit-layout.regulation-fix-message-content"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1420"
+target_function = "regulationFixMessage computed"
+source = "src/content/edit-ui/DeckEditLayout.vue L460-L462 + tm TASK-331/487"
+description = "フォールバック発生時のメッセージは要求YYMMと適用YYMMを埋め込み、モードに応じてOCG/GENESYSのラベルを選ぶ"
+given = "resolvedRegulation={tag有, mode:'ocg', fallback:{requestedYymm:'2604', appliedYymm:'2601'}} / 同形状でmode:'genesys'"
+expect_return_shape = "ocg: 「指定 OCG-2604 は存在しません。直近版 OCG-2601 のタグに修正しますか？（「このまま使う」で直近版を適用し続けます）」。genesys: ラベルがGENESYSになる（書式は同一）"
+
+[[condition]]
+id = "deck-edit-layout.regulation-fix-button-keep"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1446"
+target_function = "regulationFixButtons「このまま使う」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L464-L471 + tm TASK-331/487"
+description = "「このまま使う」でフォールバック先の直近版タグのまま使い続ける（修正提案を無視）"
+given = "レギュレーション修正提案ダイアログ表示中に「このまま使う」ボタンonClick"
+expect_return_shape = "deckStore.ignoreRegulationFix() が呼ばれる（戻り値をawaitしないvoid呼び出し）"
+
+[[condition]]
+id = "deck-edit-layout.regulation-fix-button-fix-tag"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1462"
+target_function = "regulationFixButtons「タグを修正」onClick"
+source = "src/content/edit-ui/DeckEditLayout.vue L472-L479 + tm TASK-331/487"
+description = "「タグを修正」でデッキのレギュレーションタグを直近版へ修正する"
+given = "レギュレーション修正提案ダイアログ表示中に「タグを修正」ボタンonClick"
+expect_return_shape = "deckStore.confirmRegulationFix() が呼ばれる"
+
+# --- F. handleImported（インポート） ---
+
+[[condition]]
+id = "deck-edit-layout.import-sets-importing-flag"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1489"
+target_function = "handleImported"
+source = "src/content/edit-ui/DeckEditLayout.vue L525-L529, L610-L612 + tm TASK-331/487"
+description = "インポート中はisImporting=trueを立て、ロード系処理をブロックする。正常・例外の両経路でfinallyにより必ずfalseへ戻す"
+given = "handleImported実行中（内部のresolveCard/addCardが未解決のdeferred） / 完了後（正常終了・例外終了の両方）"
+expect_return_shape = "実行中 deckStore.isImporting=true、完了後は必ずfalse（例外時も）"
+
+[[condition]]
+id = "deck-edit-layout.import-mode-new-creates-deck"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1515"
+target_function = "handleImported importMode='new'"
+source = "src/content/edit-ui/DeckEditLayout.vue L531-L532 + tm TASK-331/487"
+description = "newモードは新規デッキ作成（createNewDeck）をしてからインポートカードを追加する（既存セクションのクリアは行わない）"
+given = "importMode='new' で handleImported(importedDeckInfo, 'new')"
+expect_return_shape = "await deckStore.createNewDeck() が呼ばれる。deckInfo各セクションへの直接クリア・initializeDisplayOrderは行われない"
+
+[[condition]]
+id = "deck-edit-layout.import-mode-replace-clears-sections"
+source_lines = "tests/browser/test-import-export.cjs:604,tests/unit/content/deck-edit-layout.test.ts:1535"
+target_function = "handleImported importMode='replace'"
+source = "src/content/edit-ui/DeckEditLayout.vue L533-L538 + tm TASK-331/487"
+description = "replaceモードはmain/extra/sideの3セクションを空にして表示順序を初期化してから追加する（createNewDeckは呼ばない）"
+given = "importMode='replace' かつ deckStore.deckInfo.mainDeck/extraDeck/sideDeckに既存カードがある状態"
+expect_return_shape = "3セクションが[]にクリアされ deckStore.initializeDisplayOrder() が呼ばれる。createNewDeckは呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.import-mode-add-keeps-deck"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1555"
+target_function = "handleImported importMode='add'"
+source = "src/content/edit-ui/DeckEditLayout.vue L531-L538 + tm TASK-331/487"
+description = "addモードはデッキ作成もクリアもせず、既存デッキへそのまま追記する"
+given = "importMode='add' かつ既存カードがある状態"
+expect_return_shape = "createNewDeck・セクションクリア・initializeDisplayOrderのいずれも呼ばれず、既存カードが残ったままaddCardされる"
+
+[[condition]]
+id = "deck-edit-layout.import-resolve-uses-cached-card"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1575"
+target_function = "handleImported resolveCard（キャッシュヒット）"
+source = "src/content/edit-ui/DeckEditLayout.vue L549-L557 + tm TASK-331/487"
+description = "unified DBにインポート仮データでない実カードがキャッシュ済みの場合はAPIへ問い合わせずキャッシュ値を使う"
+given = "unifiedDB.getCardInfo(cid)がisImportPlaceholder=falseのCardInfoを返す"
+expect_return_shape = "searchCardByIdは呼ばれず、キャッシュ値がそのままresolvedCardsへ登録されカード追加に使用される"
+
+[[condition]]
+id = "deck-edit-layout.import-resolve-fetches-and-merges-images"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1592"
+target_function = "handleImported resolveCard（fetch+マージ）"
+source = "src/content/edit-ui/DeckEditLayout.vue L558-L567 + tm TASK-331/487"
+description = "キャッシュが無い・仮データの場合はAPIで実データを取得し、キャッシュ側にのみ存在する画像（ciid）をマージして保存する"
+given = "getCardInfo(cid)がisImportPlaceholder=trueの仮データ（imgs=[ciid:1, ciid:2]）を返し、searchCardById(cid)がimgs=[ciid:1]のCardInfoを返す"
+expect_return_shape = "imgs=[ciid:1, ciid:2]をマージしたCardInfoが生成され unifiedDB.setCardInfoFull(cid, resolved, true) で保存され、resolvedCardsに登録される"
+
+[[condition]]
+id = "deck-edit-layout.import-resolve-falls-back-to-placeholder"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1625"
+target_function = "handleImported resolveCard（フォールバック）"
+source = "src/content/edit-ui/DeckEditLayout.vue L568-L570 + tm TASK-331/487"
+description = "API取得に失敗した場合は仮データのままフォールバックする（キャッシュが無い場合はnull）"
+given = "getCardInfo(cid)がisImportPlaceholder=trueの仮データを返し、searchCardById(cid)がnullを返す / getCardInfo(cid)もnull"
+expect_return_shape = "前者: 仮データのcachedをそのまま返す。後者: nullを返す（それぞれresolvedCardsに登録され再fetchしない）"
+
+[[condition]]
+id = "deck-edit-layout.import-resolves-once-per-cid"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1646"
+target_function = "handleImported resolveCard（cid単位キャッシュ）"
+source = "src/content/edit-ui/DeckEditLayout.vue L548-L551 + tm TASK-331/487"
+description = "カードの解決はcidごとに一度だけ行い、同一cidの複数エントリ（複数セクション・複数枚）では2回目以降キャッシュを返す"
+given = "同一cidを持つ ref（quantity:2）と別セクションの同一cid ref（quantity:1）を含むimportedDeckInfo（キャッシュ無し・APIで解決される）"
+expect_return_shape = "searchCardById(cid)の呼び出しは1回のみ（2回目以降はresolvedCards Mapから返る）"
+
+[[condition]]
+id = "deck-edit-layout.import-skips-unresolvable-card"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1664"
+target_function = "handleImported（解決失敗のスキップ）"
+source = "src/content/edit-ui/DeckEditLayout.vue L578-L583 + tm TASK-331/487"
+description = "解決不能（キャッシュ・APIとも取得不能）なカードはquantity分をスキップカウントして追加しない"
+given = "getCardInfo(cid)がnullかつsearchCardById(cid)がnullのcidを持つ ref {cid, ciid, quantity:2}"
+expect_return_shape = "addCardは呼ばれず skippedが+2カウントされる"
+
+[[condition]]
+id = "deck-edit-layout.import-adds-card-per-quantity"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1685,tests/unit/content/deck-edit-layout.test.ts:1703"
+target_function = "handleImported（quantity展開追加）"
+source = "src/content/edit-ui/DeckEditLayout.vue L584-L593 + tm TASK-331/487"
+description = "解決済みカードはquantity回数分addCardを呼ぶ。cardはベースにref.ciidを上書きしたもので、addCard失敗時はスキップカウントに回す"
+given = "解決済みCardInfoと ref {cid, ciid: 999, quantity:3}（deckStore.addCardは成功を返す / 2回目以降success=falseを返す）"
+expect_return_shape = "addCard(card, section)が3回呼ばれ、card.ciid=999。全成功時added=+3。2回失敗時added=+1・skipped=+2"
+
+[[condition]]
+id = "deck-edit-layout.import-closes-dialog"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1720"
+target_function = "handleImported（ダイアログclose）"
+source = "src/content/edit-ui/DeckEditLayout.vue L596 + tm TASK-331/487"
+description = "インポート処理の完了時（追加件数・トースト内容を問わず）にインポートダイアログを閉じる"
+given = "handleImportedが正常完了（added>0 / added=0の両方）"
+expect_return_shape = "deckStore.showImportDialog=false（showExportDialogには触れない）"
+
+[[condition]]
+id = "deck-edit-layout.import-toast-none-added"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1743"
+target_function = "handleImported（トースト: 追加0件）"
+source = "src/content/edit-ui/DeckEditLayout.vue L598-L599 + tm TASK-331/487"
+description = "1枚も追加できなかった場合は警告トーストを出す（モードによらない最優先分岐）"
+given = "全カードが解決不能またはaddCard失敗で added=0（importModeは3種いずれでも）"
+expect_return_shape = "toast('インポートできるカードが見つかりませんでした', warning)"
+
+[[condition]]
+id = "deck-edit-layout.import-toast-new-mode"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1754"
+target_function = "handleImported（トースト: new）"
+source = "src/content/edit-ui/DeckEditLayout.vue L600-L601 + tm TASK-331/487"
+description = "newモードで1枚以上追加できた場合は新規デッキ作成のトーストを出す"
+given = "importMode='new' かつ added>0"
+expect_return_shape = "toast('新しいデッキとしてインポートしました', success)"
+
+[[condition]]
+id = "deck-edit-layout.import-toast-replace-mode"
+source_lines = "tests/browser/test-import-export.cjs:614,tests/unit/content/deck-edit-layout.test.ts:1767"
+target_function = "handleImported（トースト: replace）"
+source = "src/content/edit-ui/DeckEditLayout.vue L602-L603 + tm TASK-331/487"
+description = "replaceモードの完了トーストはスキップ枚数の有無で文言を分ける"
+given = "importMode='replace' かつ added>0 で skipped=0 / skipped=2"
+expect_return_shape = "skipped=0: toast('デッキを置き換えました', success)。skipped=2: toast('デッキを置き換えました（2枚は上限超過等によりスキップ）', success)"
+
+[[condition]]
+id = "deck-edit-layout.import-toast-add-mode"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1788"
+target_function = "handleImported（トースト: add）"
+source = "src/content/edit-ui/DeckEditLayout.vue L604-L606 + tm TASK-331/487"
+description = "addモードの完了トーストはスキップ枚数の有無で文言を分ける"
+given = "importMode='add' かつ added>0 で skipped=0 / skipped=2"
+expect_return_shape = "skipped=0: toast('デッキに追加しました', success)。skipped=2: toast('デッキに追加しました（2枚は上限超過等によりスキップ）', success)"
+
+[[condition]]
+id = "deck-edit-layout.import-catch-shows-error-toast"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1800"
+target_function = "handleImported catch"
+source = "src/content/edit-ui/DeckEditLayout.vue L607-L612 + tm TASK-331/487"
+description = "インポート処理中の例外はlogとエラートーストで処理し、isImportingを確実に戻す"
+given = "処理中に例外（例: searchCardByIdがreject）"
+expect_return_shape = "console.error('[handleImported] Error:', error) と toast('インポートに失敗しました', error) が出て、finallyでisImporting=false"
+
+# --- G. ダイアログ・ロード系ハンドラ ---
+
+[[condition]]
+id = "deck-edit-layout.import-export-close-clears-both"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1819"
+target_function = "handleImportExportClose"
+source = "src/content/edit-ui/DeckEditLayout.vue L516-L519 + tm TASK-331/487"
+description = "ImportExportDialogのcloseでインポート・エクスポート両フラグをfalseにする（開いていた側を閉じる）"
+given = "showImportDialog=true・showExportDialog=true の状態でclose emit"
+expect_return_shape = "deckStore.showImportDialog=false かつ deckStore.showExportDialog=false"
+
+[[condition]]
+id = "deck-edit-layout.exported-closes-dialog"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1833"
+target_function = "handleExported"
+source = "src/content/edit-ui/DeckEditLayout.vue L521-L523 + tm TASK-331/487"
+description = "エクスポート完了のexported emitでエクスポートダイアログを閉じる"
+given = "showExportDialog=true の状態でexported emit"
+expect_return_shape = "deckStore.showExportDialog=false"
+
+[[condition]]
+id = "deck-edit-layout.load-dialog-open-sets-callback"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1845"
+target_function = "toggleLoadDialog（open側）"
+source = "src/content/edit-ui/DeckEditLayout.vue L615-L627 + tm TASK-331/487"
+description = "LoadDialogを開く際はonLoadCallbackに「デッキ名リセット→loadDeck→lastDeckDno記録」を行う関数を設定してからstoreのopenLoadDialogを呼ぶ"
+given = "deckStore.showLoadDialog=false の状態で toggleLoadDialog()"
+expect_return_shape = "deckStore.onLoadCallback に「deckStore.setDeckName('') → await deckStore.loadDeck(dno) → localStorage['ygoNext:lastDeckDno']=String(dno)」を行うasync関数が設定され、deckStore.openLoadDialog() が呼ばれる"
+
+[[condition]]
+id = "deck-edit-layout.load-dialog-toggle-closes"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1866"
+target_function = "toggleLoadDialog（close側）"
+source = "src/content/edit-ui/DeckEditLayout.vue L615-L627 + tm TASK-331/487"
+description = "LoadDialogが開いている状態でのtoggleLoadDialogはダイアログを閉じる（onLoadCallback設定・openLoadDialogは行わない）"
+given = "deckStore.showLoadDialog=true の状態で toggleLoadDialog()"
+expect_return_shape = "deckStore.showLoadDialog=false になり、openLoadDialogは呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.deck-loaded-scrolls-to-top"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1879"
+target_function = "handleDeckLoaded"
+source = "src/content/edit-ui/DeckEditLayout.vue L629-L640 + tm TASK-331/487"
+description = "LoadDialogのdeck-loaded emit後、nextTickを待ってデッキエリアを先頭へスクロールする"
+given = ".deck-areas がDOMに存在する状態でLoadDialogがdeck-loaded emit"
+expect_return_shape = "nextTick後 document.querySelector('.deck-areas') の要素に scrollTo({top:0, behavior:'smooth'}) が呼ばれる"
+
+[[condition]]
+id = "deck-edit-layout.delete-confirm-executes"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1893"
+target_function = "confirmDelete"
+source = "src/content/edit-ui/DeckEditLayout.vue L642-L649 + tm TASK-331/487"
+description = "「削除」で確認ダイアログを先に閉じ、現在デッキの削除を実行する"
+given = "showDeleteConfirm=true の状態で「削除」ボタンonClick"
+expect_return_shape = "deckStore.showDeleteConfirm=false が先に設定され、await deckStore.deleteCurrentDeck() が呼ばれる"
+
+[[condition]]
+id = "deck-edit-layout.delete-confirm-error-caught"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1916"
+target_function = "confirmDelete catch"
+source = "src/content/edit-ui/DeckEditLayout.vue L646-L648 + tm TASK-331/487"
+description = "削除の例外はlogして外へ伝播させない"
+given = "deleteCurrentDeck がreject"
+expect_return_shape = "console.error('Delete deck error:', error) が出力され、例外はonClick外へ伝播しない"
+
+[[condition]]
+id = "deck-edit-layout.delete-cancel-closes"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1934"
+target_function = "cancelDelete"
+source = "src/content/edit-ui/DeckEditLayout.vue L161-L162, L651-L653 + tm TASK-331/487"
+description = "「キャンセル」ボタン・overlayクリックのいずれでも確認ダイアログを閉じるのみ（削除は実行しない）"
+given = "showDeleteConfirm=true の状態で「キャンセル」ボタンonClick / .dialog-overlay 自身のclick"
+expect_return_shape = "いずれも deckStore.showDeleteConfirm=false になり、deleteCurrentDeckは呼ばれない"
+
+# --- H. プラクティスモード（togglePracticeMode等） ---
+
+[[condition]]
+id = "deck-edit-layout.practice-toggle-disabled-without-feature"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:1965"
+target_function = "togglePracticeMode"
+source = "src/content/edit-ui/DeckEditLayout.vue L267-L268 + tm TASK-331/487"
+description = "practice機能が無効（featureSettings.practice=false）の場合はトグルを何もしない"
+given = "settingsStore.featureSettings.practice=false かつ practiceMode=false で togglePracticeMode()"
+expect_return_shape = "早期returnし、practiceMode・practiceStore.isActive・deckStore.activeTab・initPracticeのいずれも変化しない"
+
+[[condition]]
+id = "deck-edit-layout.practice-toggle-on-initializes"
+source_lines = "tests/browser/test-practice-mode.cjs:41,tests/unit/content/deck-edit-layout.test.ts:1983"
+target_function = "togglePracticeMode（ON）"
+source = "src/content/edit-ui/DeckEditLayout.vue L269-L275 + tm TASK-331/487"
+description = "practiceモードONで現在デッキからpractice fieldを初期化し、practiceMode/isActive/activeTabを切替える"
+given = "practiceMode=false・featureSettings.practice=true・deckStore.deckInfo.mainDeck/extraDeckにカードがある状態で togglePracticeMode()"
+expect_return_shape = "practiceStore.initPractice(deckInfo.mainDeck, deckInfo.extraDeck)（fieldIndex省略=0）が呼ばれ、practiceMode=true・practiceStore.isActive=true・deckStore.activeTab='practice'"
+
+[[condition]]
+id = "deck-edit-layout.practice-toggle-off-clears"
+source_lines = "tests/browser/test-practice-mode.cjs:69,tests/unit/content/deck-edit-layout.test.ts:2007"
+target_function = "togglePracticeMode（OFF）"
+source = "src/content/edit-ui/DeckEditLayout.vue L276-L282 + tm TASK-331/487"
+description = "practiceモードOFFでpractice状態を解除し、P2 fieldを破棄してsearchタブへ戻す"
+given = "practiceMode=true の状態で togglePracticeMode()"
+expect_return_shape = "practiceMode=false・practiceStore.isActive=false・practiceStore.clearField2() が呼ばれ、deckStore.activeTab='search'"
+
+[[condition]]
+id = "deck-edit-layout.two-deck-toggle-on-opens-p2"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2030"
+target_function = "toggleTwoDeckMode（ON）"
+source = "src/content/edit-ui/DeckEditLayout.vue L285-L291, L319-L330 + tm TASK-331/487"
+description = "現在UI経路なし（PracticePlayerPanelが当該イベントtoggle-p2をemitしない）・ハンドラ単体の挙動条件: twoDeckMode=falseでのトグルはP2デッキ選択（LoadDialog）を開く"
+given = "practiceStore.twoDeckMode=false の状態で toggleTwoDeckMode() を直接呼ぶ"
+expect_return_shape = "openDeckForPracticeP2() が呼ばれ、deckStore.onLoadCallback に「getDeckDetail(dno)→detailあればinitPractice(main, extra, 1)とp2DeckDno/p2DeckName/p2DeckInfo設定」を行う関数が設定され、deckStore.showLoadDialog=true"
+
+[[condition]]
+id = "deck-edit-layout.two-deck-toggle-off-clears"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2062"
+target_function = "toggleTwoDeckMode（OFF）"
+source = "src/content/edit-ui/DeckEditLayout.vue L285-L291 + tm TASK-331/487"
+description = "現在UI経路なし（PracticePlayerPanelが当該イベントtoggle-p2をemitしない）・ハンドラ単体の挙動条件: twoDeckMode=trueでのトグルはP2 fieldを破棄する"
+given = "practiceStore.twoDeckMode=true の状態で toggleTwoDeckMode() を直接呼ぶ"
+expect_return_shape = "practiceStore.clearField2() が呼ばれる（openDeckForPracticeP2は呼ばれない）"
+
+[[condition]]
+id = "deck-edit-layout.load-field2-with-detail"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2078"
+target_function = "loadDeckForField2（detail取得成功）"
+source = "src/content/edit-ui/DeckEditLayout.vue L293-L301 + tm TASK-331/487"
+description = "P2へのデッキロード（load-deck-p2 emit経由。実UIの2デッキモードはこの経由）はfield 1として初期化しP2デッキ情報を設定する"
+given = "deckStore.getDeckDetail(dno) がdetail（mainDeck/extraDeck/originalName='P2デッキ'）を返す状態で loadDeckForField2(dno)"
+expect_return_shape = "practiceStore.initPractice(detail.mainDeck, detail.extraDeck, 1)・practiceStore.p2DeckDno=dno・p2DeckName='P2デッキ'・p2DeckInfo=detail が設定される"
+
+[[condition]]
+id = "deck-edit-layout.load-field2-without-detail"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2101"
+target_function = "loadDeckForField2（detail取得失敗）"
+source = "src/content/edit-ui/DeckEditLayout.vue L293-L301 + tm TASK-331/487"
+description = "デッキ詳細が取得できない場合はP2の初期化・状態設定を行わない"
+given = "deckStore.getDeckDetail(dno) がnullを返す状態で loadDeckForField2(dno)"
+expect_return_shape = "initPractice・p2DeckDno・p2DeckName・p2DeckInfoのいずれも設定されない"
+
+[[condition]]
+id = "deck-edit-layout.hard-reset-reinitializes"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2118"
+target_function = "hardResetPractice"
+source = "src/content/edit-ui/DeckEditLayout.vue L303-L307 + tm TASK-331/487"
+description = "ハードリセットは現在デッキからfieldを再初期化する（practiceMode・タブ状態は変更しない）"
+given = "practiceMode=true の状態で hardResetPractice()"
+expect_return_shape = "practiceStore.initPractice(deckInfo.mainDeck||[], deckInfo.extraDeck||[])（fieldIndex省略=0）が呼ばれ、practiceMode・practiceStore.isActive・deckStore.activeTabは変化しない"
+
+[[condition]]
+id = "deck-edit-layout.open-deck-sets-callback"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2146"
+target_function = "openDeckForPractice"
+source = "src/content/edit-ui/DeckEditLayout.vue L309-L317 + tm TASK-331/487"
+description = "自陣（field 0）用のデッキ選択は、LoadDialogのcallbackをfield 0初期化に設定してから開く"
+given = "openDeckForPractice() を実行"
+expect_return_shape = "deckStore.onLoadCallback に「await getDeckDetail(dno)→detailあればinitPractice(detail.mainDeck, detail.extraDeck, 0)」を行うasync関数が設定され、deckStore.showLoadDialog=true"
+
+[[condition]]
+id = "deck-edit-layout.open-deck-p2-sets-callback"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2166"
+target_function = "openDeckForPracticeP2"
+source = "src/content/edit-ui/DeckEditLayout.vue L319-L330 + tm TASK-331/487"
+description = "P2（field 1）用のデッキ選択は、LoadDialogのcallbackをfield 1初期化+P2状態設定にしてから開く"
+given = "openDeckForPracticeP2() を実行"
+expect_return_shape = "deckStore.onLoadCallback に「await getDeckDetail(dno)→detailあればinitPractice(main, extra, 1)・p2DeckDno=dno・p2DeckName=detail.originalName（空なら''）・p2DeckInfo=detail」を行うasync関数が設定され、deckStore.showLoadDialog=true"
+
+[[condition]]
+id = "deck-edit-layout.save-p2-missing-warns"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2189"
+target_function = "saveDeckFromPractice（playerIndex=1・P2未ロード）"
+source = "src/content/edit-ui/DeckEditLayout.vue L332-L337 + tm TASK-331/487"
+description = "P2にデッキが読み込まれていない状態でのP2保存は警告トーストのみで、保存を行わない"
+given = "practiceStore.p2DeckDno未設定（またはp2DeckInfo未設定）の状態で saveDeckFromPractice(1)"
+expect_return_shape = "toast('P2にデッキが読み込まれていません', warning) が出て、saveDeckDataは呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.save-p2-success-toast"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2201"
+target_function = "saveDeckFromPractice（playerIndex=1・成功）"
+source = "src/content/edit-ui/DeckEditLayout.vue L338-L343 + tm TASK-331/487"
+description = "P2デッキの保存はp2DeckDno/p2DeckInfoでsaveDeckDataを呼び、成功時にトーストを出す"
+given = "p2DeckDno・p2DeckInfo設定済みで saveDeckFromPractice(1)・deckStore.saveDeckData(p2DeckDno, p2DeckInfo)が{success:true}を返す"
+expect_return_shape = "saveDeckDataがp2DeckDnoとp2DeckInfoで呼ばれ、toast('保存しました', success)"
+
+[[condition]]
+id = "deck-edit-layout.save-p2-failure-toast"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2217"
+target_function = "saveDeckFromPractice（playerIndex=1・失敗）"
+source = "src/content/edit-ui/DeckEditLayout.vue L341-L343 + tm TASK-331/487"
+description = "P2デッキの保存失敗時はエラートーストを出す"
+given = "p2DeckDno・p2DeckInfo設定済みで saveDeckFromPractice(1)・saveDeckDataが{success:false}を返す"
+expect_return_shape = "toast('保存に失敗しました', error)"
+
+[[condition]]
+id = "deck-edit-layout.save-p0-success-toast"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2231"
+target_function = "saveDeckFromPractice（playerIndex既定0・成功）"
+source = "src/content/edit-ui/DeckEditLayout.vue L347-L353 + tm TASK-331/487"
+description = "自陣（playerIndex=0）の保存は現在デッキ（deckInfo.dno）をsaveDeckで保存し、成功時にトーストを出す"
+given = "saveDeckFromPractice()（引数なし=playerIndex 0）・deckStore.saveDeck(deckStore.deckInfo.dno)が{success:true}を返す"
+expect_return_shape = "saveDeckがdeckInfo.dnoで呼ばれ、toast('保存しました', success)"
+
+[[condition]]
+id = "deck-edit-layout.save-p0-failure-toast"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2244"
+target_function = "saveDeckFromPractice（playerIndex既定0・失敗）"
+source = "src/content/edit-ui/DeckEditLayout.vue L349-L352 + tm TASK-331/487"
+description = "自陣の保存失敗時はエラートーストを出す"
+given = "saveDeckFromPractice()・saveDeckが{success:false}を返す"
+expect_return_shape = "toast('保存に失敗しました', error)"
+
+[[condition]]
+id = "deck-edit-layout.save-temp-recipe-adds-cards"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2255"
+target_function = "saveTempRecipe"
+source = "src/content/edit-ui/DeckEditLayout.vue L355-L372 + tm TASK-331/487"
+description = "現在UI経路なし（PracticePlayerPanelが当該イベントsave-temp-recipeをemitしない）・ハンドラ単体の挙動条件: tempRecipe/tempRecipe2のカードをcid解決してデッキへ追加し、追加枚数をトーストする"
+given = "practiceStore.tempRecipeとtempRecipe2に {cid:'abc', section:'main'} 等2件（db.getCardInfo(cid)がcardInfoを返す）がある状態で saveTempRecipe() を直接呼ぶ"
+expect_return_shape = "各カードに deckStore.addCard(cardInfo, tc.section) が呼ばれ、toast('2枚のカードをデッキに追加しました', success)"
+
+[[condition]]
+id = "deck-edit-layout.save-temp-recipe-none-found-warns"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2276"
+target_function = "saveTempRecipe"
+source = "src/content/edit-ui/DeckEditLayout.vue L355-L372 + tm TASK-331/487"
+description = "現在UI経路なし（PracticePlayerPanelが当該イベントsave-temp-recipeをemitしない）・ハンドラ単体の挙動条件: 1枚も解決できない場合は警告トーストのみで追加しない"
+given = "tempRecipe/tempRecipe2の全cidがunifiedDB.getCardInfoでnullを返す状態で saveTempRecipe() を直接呼ぶ"
+expect_return_shape = "addCardは呼ばれず、toast('追加できるカードが見つかりませんでした', warning)"
+
+[[condition]]
+id = "deck-edit-layout.practice-action-routing"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2290"
+target_function = "handlePracticeAction"
+source = "src/content/edit-ui/DeckEditLayout.vue L374-L384 + tm TASK-331/487"
+description = "PracticeZoneInfoPanelのactionを、moveToTemp/moveToDeckTopはpracticeStore.moveCardへ、それ以外はusePracticeActions().executeActionへ振り分ける（選択中fieldをfieldIdxとして渡す）"
+given = "practiceStore.selectedFieldIndex=1 の状態でPracticeZoneInfoPanelから action='moveToTemp'/'moveToDeckTop'/'flip' を cardId='c1' 付きでemit"
+expect_return_shape = "moveToTemp→practiceStore.moveCard('c1','temp',undefined,undefined,1)、moveToDeckTop→practiceStore.moveCard('c1','deck',undefined,{position:'top',face:'down'},1)、flip→usePracticeActions().executeAction('flip','c1',1)"
+
+# --- I. resize / hashchange / dno ---
+
+[[condition]]
+id = "deck-edit-layout.resize-desktop-switches-deck-tab-to-search"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2313"
+target_function = "handleResize"
+source = "src/content/edit-ui/DeckEditLayout.vue L720-L728 + tm TASK-331/487"
+description = "画面幅がdesktop（768px超）でのresizeは、deckタブがactiveならsearchタブへ切り替える"
+given = "deckStore.activeTab='deck' かつ window.innerWidth=1200 でresizeイベント"
+expect_return_shape = "deckStore.activeTab='search' に変更される"
+
+[[condition]]
+id = "deck-edit-layout.resize-mobile-noop"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2324"
+target_function = "handleResize"
+source = "src/content/edit-ui/DeckEditLayout.vue L720-L728 + tm TASK-331/487"
+description = "画面幅がmobile（768px以下）でのresizeはタブ切替を行わない（wasDesktopは現在desktopの意味で、768px以下では常にfalse）"
+given = "deckStore.activeTab='deck' かつ window.innerWidth=768 でresizeイベント"
+expect_return_shape = "deckStore.activeTab='deck' のまま（分岐に入らない）"
+
+[[condition]]
+id = "deck-edit-layout.hashchange-reloads-on-dno-change"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2335"
+target_function = "checkDnoChange"
+source = "src/content/edit-ui/DeckEditLayout.vue L740-L747 + tm TASK-331/487"
+description = "hashのdnoパラメータが変化したhashchangeは追跡値を更新しデッキを再ロードする（initializeOnPageLoadをawaitしないため並走しうる点は条件書ヘッダー発見事項参照）"
+given = "window.location.hash が '#/ytomo/edit?dno=1' の状態から '#/ytomo/edit?dno=2' へhashchangeイベント"
+expect_return_shape = "currentDnoが'2'へ更新され、deckStore.initializeOnPageLoad() が呼ばれる"
+
+[[condition]]
+id = "deck-edit-layout.hashchange-same-dno-no-reload"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2347,tests/unit/content/deck-edit-layout.test.ts:2357"
+target_function = "checkDnoChange"
+source = "src/content/edit-ui/DeckEditLayout.vue L740-L747 + tm TASK-331/487"
+description = "dnoパラメータが同じhashchangeでは再ロードしない"
+given = "hash '#/ytomo/edit?dno=1' から dnoが変化しないhashchangeイベント（dno=1のまま、またはdnoなし→dnoなし）"
+expect_return_shape = "deckStore.initializeOnPageLoad() は呼ばれない"
+
+[[condition]]
+id = "deck-edit-layout.current-dno-parses-hash-query"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2367"
+target_function = "getCurrentDno"
+source = "src/content/edit-ui/DeckEditLayout.vue L731-L734 + tm TASK-331/487"
+description = "hash内のクエリからdnoパラメータを文字列で取り出す（無い場合は空文字列）"
+given = "window.location.hash='#/ytomo/edit?dno=123' / '#/ytomo/edit'（dnoなし）"
+expect_return = "'123'（dnoなしの場合は''）"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "ドラッグ系handler一式（dragData/onDragStart/handleDragOver/onAreaDrop/onDragOver/onDrop L985-L1051）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "Layoutのhandlerはtemplateから参照されていない。現行D&DイベントはDeckCard/DeckSection内で完結（子が直接storeを操作）し、Layout handlerを呼び出す親子イベント接続が存在しない。現行経路は子コンポーネント側のE2E（test-drag-drop.cjs）が検証する。デッドコード削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "moveToXxx/addToXxx/addCopy系handler + findSectionByCard + createFilledCards（L880-L897, L1053-L1108）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "template未使用（4隅ボタンはDeckCardが直接storeを呼ぶ・ドラッグ系と同様に親子イベント接続なし・現行経路は子側E2Eが検証）。createFilledCardsも参照なし。デッドコード削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "template未使用のreturnメンバ群（activeTab/searchQuery/selectedCard/showDetail/viewMode/cardTab L394-L399・searchResults/showCardDetail/onSearchInput/toggleDetail L942-L983）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "旧UI（RightArea分離前）の名残でtemplateから参照されず、挙動に差を生まない（§8「書かない」: 挙動に差を生まない内部処理）。デッドコード削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "未使用import群（watch L202・generateDeckThumbnailCards L230・getCardInfo L233・DeckCard L212・PracticeControlPanel L217）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "import・components登録のみで参照なし（L360/553のgetCardInfoはdb.getCardInfoメソッド呼び出しで別物）。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "cardDetailStore宣言（L260）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "宣言のみで参照なし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "mainContentStyle computed（L937-L940）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "常に{}を返すno-opで分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "provide('practiceStore')（L755）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "消費者なし（src/全体検索で当該キーのinject/useなし。checkUnsavedChanges→DeckEditTopBar L346・practiceMode→RightArea L142は消費者ありのため対象外）。削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "currentDeckDno（L401宣言・L767書き込み）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "書き込みのみで読み出しなし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "deckAreasStyle（L929-L935）と unsavedChangesTitle/regulationFixTitle 定数（L410, L457）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "いずれも分岐なしの固定値（deckAreasStyleはpaddingBottom:150px固定・titleは固定文言）で、表示への影響はそれぞれtrash-section/unsaved-changes-shows-dialog/regulation-fix系条件のassert内で補助検証する（§8「書かない」: 分岐を伴わない値）"
+decided_at = "2026-09-12"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L1174-L1913）"
+source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
+reason = "スタイルはテスト対象外（ロジック分岐なし。hover-tooltip前例のexcludedと同根拠）"
+decided_at = "2026-09-12"
+decided_by = "claude"

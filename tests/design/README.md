@@ -150,6 +150,16 @@ codexレビューの結論（TASK-322）: 「この計画のまま全体展開�
 
 Tier C（Vueコンポーネント57+15ファイル）は工数対効果が低いため、全件展開ではなく「過去にバグが出た/複雑な条件分岐を持つコンポーネントのみ」に絞る運用とする。展開要否はTier A/B完了後に改めて判断する。
 
+### Tier C着手の実績（2026-09-12時点・TASK-331）
+
+Tier A/Bの実質完了（残りはロジック薄い要確認ファイルのみ）を受けてTier C着手を判断。棚卸し（バグ履歴×script複雑度）の結果、以下を条件化済み:
+
+- hover-tooltip: 1件目（fail 0達成の実証例）
+- load-dialog: TASK-479トピック4（29条件+excluded 6件）
+- deck-edit-layout: TASK-331/487/462統合（100条件+excluded 10件・旧40it実装非検証テストをtests/unit/content/deck-edit-layout.test.tsへ全廃再設計・E2E 8ファイルへcovers付与・verified記録済み）。Tier C最大ファイル（script 969行）での実例
+
+残るTier C候補（棚卸し結果はTASK-331 body参照）: CategoryDialog（TASK-488）・ImportExportDialog・ChatPanel・SearchFilterDialog+FilterTab・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体
+
 各Phase完了時、TASK-323（展開実行）側で進捗をtmに記録し、次ファイルに着手する前にPhase内の優先順位（性質基準→ファイルサイズ降順）を`tm get`のbodyに残す。
 
 ### Phase 1.6の知見（TASK-326）

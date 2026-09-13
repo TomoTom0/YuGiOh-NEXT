@@ -45,10 +45,9 @@
  *   src/content/edit-ui/DeckEditLayout.vue
  *     (trash DeckSection は :show-count="false"。main-content と RightArea deck-tab
  *      の2箇所にセクションが存在するためセレクタは必ず .main-content 配下にスコープ。
- *      onMounted は await fetchDeckList() の完了後に window keydown リスナー
- *      （handleGlobalKeydown）を登録する。カード描画〜リスナー登録の間はボタン操作は
- *      可能だがCtrl+Z等が無反応になるため、本テストはphase1前に'/'→Escapeで
- *      ショートカット有効化を待ってから検証する（TASK-461）)
+ *      onMounted 冒頭（初期化await前）で window keydown リスナー
+ *      （handleGlobalKeydown）を登録する（TASK-462）。本テストのphase1前の
+ *      '/'→Escape待機はリスナー登録洩れに対する回帰検知として維持する)
  *   src/components/RightArea.vue
  *     (.card-detail-content は v-show="deckStore.activeTab === 'card'",
  *      .deck-tab ボタンで Deck タブに復帰)
@@ -249,11 +248,10 @@ async function ctrlZ(cdp) {
 /**
  * グローバルキーボードショートカットが有効になるまで待機する（TASK-461）。
  *
- * DeckEditLayout.vue の onMounted は await fetchDeckList()（ネットワーク）の完了後に
- * window keydown リスナーを登録する。カード描画からリスナー登録までは約1秒の間が空き、
- * その間はボタン操作は可能だが Ctrl+Z 等のショートカットが無反応になる。
- * 本テストは Ctrl+Z で undo を検証するため、'/'（globalSearch有効化）→ Escape（解除）
- * でリスナー登録済みことを確認してから検証を開始する。
+ * DeckEditLayout.vue の onMounted 冒頭（初期化await前）でリスナーを登録する
+ * （TASK-462）。本待機はリスナー登録洩れ（将来の onMounted 再構成時）に対する
+ * 回帰検知として維持する。'/'（globalSearch有効化）→ Escape（解除）で
+ * リスナー登録済みことを確認してから検証を開始する。
  * （'/'+Escape の状態復帰は test-keyboard-shortcuts.cjs で検証済みの挙動）
  */
 async function waitForShortcutsReady(cdp, timeout = 10000) {
@@ -298,7 +296,7 @@ async function testCardOperations() {
     // Ctrl+Z検証の前提: グローバルショートカットのリスナー登録済みであることを確認
     // （カード描画直後はリスナー未登録でCtrl+Zが無反応になる窓がある。TASK-461）
     t.assert(
-      'グローバルキーボードショートカットが有効になる（Ctrl+Z検証の前提）',
+      'グローバルキーボードショートカットが有効になる（Ctrl+Z検証の前提） [covers:deck-edit-layout.mounted-registers-listeners-before-async-init]',
       await waitForShortcutsReady(cdp) === true
     );
 
@@ -320,8 +318,8 @@ async function testCardOperations() {
       specMain.topRightClasses.includes('card-btn-s') && specMain.topRightText === 'S');
     t.assert('mainカードのbottom-leftはtrashアイコン（SVG）', specMain && specMain.bottomLeftHasTrashSvg === true);
     t.assert('mainカードのbottom-rightはplusアイコン（SVG）', specMain && specMain.bottomRightHasPlusSvg === true);
-    t.assert('trashセクションは枚数バッジを表示しない（show-count=false）', base.trash.badge === null);
-    t.assert('mainセクションの枚数バッジがカード数と一致する', base.main.badge === M);
+    t.assert('trashセクションは枚数バッジを表示しない（show-count=false） [covers:deck-edit-layout.trash-section-show-count-false]', base.trash.badge === null);
+    t.assert('mainセクションの枚数バッジがカード数と一致する [covers:deck-edit-layout.deck-sections-quantity-expansion]', base.main.badge === M);
 
     // ============================================================
     console.log('\n--- 2. main→side 移動（top-right S ボタン） ---');
@@ -343,7 +341,7 @@ async function testCardOperations() {
     // ============================================================
     await ctrlZ(cdp);
     const st3 = await waitCounts(cdp, baseline);
-    t.assert('Ctrl+Z で全セクション枚数が初期状態に戻る', !!st3);
+    t.assert('Ctrl+Z で全セクション枚数が初期状態に戻る [covers:deck-edit-layout.shortcut-undo-executes-undo]', !!st3);
     t.assert('Ctrl+Z で移動したカード(uuid)がmainセクションに戻る', await waitUuidLoc(cdp, cand2.uuid, 'main'));
     t.assert('undo後の枚数バッジも初期状態に戻る', st3 && st3.main.badge === M && st3.side.badge === S);
 

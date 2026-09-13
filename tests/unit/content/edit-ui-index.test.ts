@@ -4,8 +4,8 @@
  * tests/design/edit-ui-index/conditions.toml (TASK-330) のconditionをカバーする。
  * モジュールレベルの状態(isEditUILoaded/isEventListenerRegistered/headerResizeObserver)を
  * 持つため、各テストで vi.resetModules() + 動的import により状態をリセットする。
- * './DeckEditLayout.vue'は実マウント結果を検証しない(DeckEditLayout.test.tsで別途検証済み)
- * ためスタブに差し替える。
+ * './DeckEditLayout.vue'の実マウント検証は tests/unit/content/deck-edit-layout.test.ts
+ * （TASK-487の再設計。実pinia+実storeでmount）が担うため、本テストではスタブに差し替える。
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

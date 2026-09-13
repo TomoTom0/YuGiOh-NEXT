@@ -6,7 +6,7 @@
  *
  * 実装参照:
  *   src/components/DeckEditTopBar.vue (.practice-toggle / .practice-reset / [data-testid])
- *   src/components/DeckEditLayout.vue (togglePracticeMode)
+ *   src/content/edit-ui/DeckEditLayout.vue (togglePracticeMode)
  *   src/components/practice/PracticeField.vue (.practice-field, v-if="isInitialized")
  *   src/components/practice/PracticeSlot.vue (.practice-slot)
  */
@@ -38,7 +38,7 @@ async function testPracticeMode() {
     await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);
     // PracticeField は isInitialized 後に表示（デッキロード待ち）
     const fieldOn = await cdp.waitFor(`document.querySelector('.practice-field') !== null`, 10000);
-    t.assert('PracticeField が表示される', fieldOn === true);
+    t.assert('PracticeField が表示される [covers:deck-edit-layout.practice-toggle-on-initializes] [covers:deck-edit-layout.practice-mode-template-switch]', fieldOn === true);
 
     const slotCount = await cdp.evaluate(`document.querySelectorAll('.practice-slot').length`);
     t.assert('PracticeSlot が表示される（1個以上）', typeof slotCount === 'number' && slotCount >= 1);
@@ -66,7 +66,7 @@ async function testPracticeMode() {
     console.log('\n--- PracticeモードOFF（.practice-toggle を再度クリック）---');
     await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);
     const fieldOff = await cdp.waitFor(`document.querySelector('.practice-field') === null`, 5000);
-    t.assert('PracticeField が非表示になる', fieldOff === true);
+    t.assert('PracticeField が非表示になる [covers:deck-edit-layout.practice-toggle-off-clears]', fieldOff === true);
 
     console.log('\n--- 再度ON（状態維持確認）---');
     await cdp.evaluate(`document.querySelector('.practice-toggle')?.click()`);

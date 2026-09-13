@@ -26,7 +26,7 @@
 | `components/` | Vue コンポーネント | `DeckEditPanel.test.ts` |
 | `card-detail/` | カード詳細表示 | - |
 | `composables/` | Vue composables | - |
-| `content/` | Content scripts | - |
+| `content/` | Content scripts | `deck-edit-layout.test.ts` |
 | `api/` | API関連 | - |
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |

@@ -178,7 +178,7 @@ expect_return_shape = "inputValue.value = '[OCG-2501] テスト'（空白は1つ
 [[condition]]
 id = "apply_suggestion.dated_tag_with_space_ensures_regex_match"
 target_function = "useDeckRegulationTagSuggestions (applySuggestion) -> regulation-tag-parser"
-source_lines = "103-107, regulation-tag-parser.ts:48-49"
+source_lines = "tests/unit/composables/useDeckRegulationTagSuggestions.test.ts:144"
 description = "日付出力タグ補完後の文字列に対して parseRegulationTag が日付(YYMM)を正しく抽出できる。prefix パターン (?=\\s|$) が空白によってマッチするため"
 given = "applySuggestionで '[GENESYS-2606] テスト' が生成された状態"
 expect_return_shape = "parseRegulationTagの結果: { type: 'genesys', yymm: '2606' }（nullでない）"
