@@ -501,6 +501,13 @@ function resetDialog() {
   if (fileInput.value) {
     fileInput.value.value = '';
   }
+
+  // Export状態をリセット
+  format.value = 'csv';
+  includeSide.value = true;
+  resetCsvColumns();
+  dragColumnIndex.value = null;
+  generateFilename();
 }
 
 // ファイル選択ボタンをクリック

@@ -883,7 +883,7 @@ describe('components/ImportExportDialog', () => {
       expect(requireElementWithText<HTMLButtonElement>('.dialog-tab', 'Export').classList.contains('active')).toBe(true);
     });
 
-    it('[covers:import-export-dialog.reopen-keeps-export-ui-state] 現行挙動: format・includeSide・csvColumnsのON/OFFと並び替えは再オープンでも保持される', async () => {
+    it('[covers:import-export-dialog.reopen-resets-export-state] 再オープンでExport状態（format・Side Deck・カラムON/OFFと並び替え）は既定へ戻る', async () => {
       mockGenerateExportRows.mockReturnValue([makeRow()]);
       const wrapper = mountDialog({ initialTab: 'export' });
       await nextTick();
@@ -895,6 +895,7 @@ describe('components/ImportExportDialog', () => {
       await new DOMWrapper(requireElementWithText<HTMLButtonElement>('.column-pill', 'CID')).trigger('drop');
       await nextTick();
       expect(columnPillLabels()).toEqual(['Section', 'CID', 'Name', 'CIID', 'ENC', 'Qty']);
+      expect(namePill.classList.contains('active')).toBe(false);
 
       // TXT形式へ切替（column-toggle-row は非表示）+ Side Deck OFF
       await new DOMWrapper(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'TXT')).trigger('click');
@@ -903,24 +904,26 @@ describe('components/ImportExportDialog', () => {
       await new DOMWrapper(requireElementContainingText<HTMLButtonElement>('.export-tabs-row .toggle-pill', 'Side Deck')).trigger('click');
       await nextTick();
 
-      // 再オープン
+      // 再オープン（initialTab='export'のためExport タブのまま再開）
       await wrapper.setProps({ isVisible: false });
       await wrapper.setProps({ isVisible: true });
       await nextTick();
 
-      // TXT選択は維持（column-toggle-row 非表示のまま）
-      expect(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'TXT').classList.contains('active')).toBe(true);
-      expect(document.body.querySelectorAll('.column-toggle-row')).toHaveLength(0);
+      // CSV形式（column-toggle-row 復帰）・Side Deck ONへ戻る
+      expect(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'CSV').classList.contains('active')).toBe(true);
+      expect(document.body.querySelectorAll('.column-toggle-row')).toHaveLength(1);
+      expect(requireElementContainingText<HTMLButtonElement>('.export-tabs-row .toggle-pill', 'Side Deck').classList.contains('active')).toBe(true);
 
-      // CSVへ戻すと: Name列は非activeかつ並び替え後の順のまま・Side Deckピルは非active
-      await new DOMWrapper(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'CSV')).trigger('click');
-      await nextTick();
-      expect(requireElementWithText<HTMLButtonElement>('.column-pill', 'Name').classList.contains('active')).toBe(false);
-      expect(columnPillLabels()).toEqual(['Section', 'CID', 'Name', 'CIID', 'ENC', 'Qty']);
-      expect(requireElementContainingText<HTMLButtonElement>('.export-tabs-row .toggle-pill', 'Side Deck').classList.contains('active')).toBe(false);
+      // カラムは全列ON・既定順へ戻る
+      expect(columnPillLabels()).toEqual(['Section', 'Name', 'CID', 'CIID', 'ENC', 'Qty']);
+      for (const label of columnPillLabels()) {
+        const pill = requireElementWithText<HTMLButtonElement>('.column-pill', label);
+        expect(pill.classList.contains('active'), `${label} is active`).toBe(true);
+      }
     });
 
-    it('[covers:import-export-dialog.reopen-keeps-filename-base] 現行挙動: filenameBaseは再オープンで再生成されず手編集値が残る', async () => {
+    it('[covers:import-export-dialog.reopen-regenerates-filename-base] 再オープンでfilenameBaseはprops基準で再生成される（手編集値が残らない・タイムスタンプは再オープン時点）', async () => {
+      // (a) includeTimestamp=false: 手動編集値はprops基準の再生成値へ上書きされる
       mockGenerateExportRows.mockReturnValue([makeRow()]);
       const wrapper = mountDialog({ initialTab: 'export', deckName: 'mydeck', includeTimestamp: false });
       await nextTick();
@@ -930,11 +933,28 @@ describe('components/ImportExportDialog', () => {
       await new DOMWrapper(requireElement<HTMLInputElement>('#filename-input')).setValue('renamed');
       expect(filenameValue()).toBe('renamed');
 
-      // 再オープンしても再生成されず手編集値のまま
+      // 再オープンでprops基準の値へ再生成される（手編集値は残らない）
       await wrapper.setProps({ isVisible: false });
       await wrapper.setProps({ isVisible: true });
       await nextTick();
-      expect(filenameValue()).toBe('renamed');
+      expect(filenameValue()).toBe('mydeck');
+
+      unmountLastDialog();
+
+      // (b) includeTimestamp=true: 再オープン時点の新しいタイムスタンプで再生成される
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 8, 13, 9, 5));
+
+      const wrapperTimestamped = mountDialog({ initialTab: 'export', deckName: 'mydeck' });
+      await nextTick();
+      expect(filenameValue()).toBe('mydeck-20260913-0905');
+
+      // 時刻を進めた上で再オープン: 前回開時のタイムスタンプは残らない
+      vi.setSystemTime(new Date(2026, 8, 13, 10, 6));
+      await wrapperTimestamped.setProps({ isVisible: false });
+      await wrapperTimestamped.setProps({ isVisible: true });
+      await nextTick();
+      expect(filenameValue()).toBe('mydeck-20260913-1006');
     });
   });
 
