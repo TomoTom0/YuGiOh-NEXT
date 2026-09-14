@@ -502,10 +502,8 @@ function resetDialog() {
     fileInput.value.value = '';
   }
 
-  // Export状態をリセット
-  format.value = 'csv';
-  includeSide.value = true;
-  resetCsvColumns();
+  // Export設定（format・Side Deck・CSV列）は前回値を保持し、filenameBaseのみprops基準で再生成する。
+  // dragColumnIndexはドラッグ進行中の一時状態のためクリアする（残ると再オープン後にdraggingクラスが残る）
   dragColumnIndex.value = null;
   generateFilename();
 }

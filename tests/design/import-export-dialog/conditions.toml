@@ -40,14 +40,14 @@
 #   公開挙動（overlay自己クリックでclose）は条件化する
 #
 # 探索中の発見事項:
-# - resetDialogのリセット対象は当初Import状態のみで、Export状態（format・includeSide・
-#   csvColumnsのON/OFFと並び替え・filenameBase）が再オープンでもリセットされない挙動だった。
-#   仕様確認の結果「すべて残すのがおかしい」（バグ）と確定し、TASK-501で修正済み:
-#   resetDialogがExport状態も既定（CSV形式・Side Deck ON・全列ON・既定順）へ戻し、
-#   filenameBaseもprops基準で再生成する（watch immediateと同じロジック。
-#   前回開時のタイムスタンプ付きファイル名・手編集値は残らない）。
-#   reopen-resets-export-state / reopen-regenerates-filename-base が修正後仕様の条件
-#   （旧id reopen-keeps-export-ui-state / reopen-keeps-filename-base は廃止）
+# - resetDialogのExport状態の扱い: 当初はImport状態のみのリセットで、Export状態（format・
+#   includeSide・csvColumnsのON/OFFと並び替え・filenameBase）が再オープンでもすべて残る
+#   挙動だった。TASK-501での仕様確認「すべて残すのがおかしい」を4項目すべてのリセットと
+#   拡大解釈して全リセットを実装したが、ユーザー確認の結果、正しい仕様は「filenameBaseのみ
+#   props基準で再生成し、format・Side Deck・CSV列（ON/OFF・並び替え）は前回値を保持」と
+#   確定したため、実装・条件・テストを保持仕様へ修正済み。
+#   reopen-keeps-export-settings（保持仕様）/ reopen-regenerates-filename-base
+#   （filenameBase再生成）が現行仕様の条件
 # - onColumnDrop の同一indexへのdropは旧実装では早期returnのため dragColumnIndex がnullに戻らず
 #   当該ピルのdraggingクラス（半透明表示）が残っていたが、TASK-502で修正済み
 #   （同一index dropでもdragColumnIndexをクリアしdraggingクラスを解除）。column-drop-noop-guards 参照
@@ -73,8 +73,8 @@ verified = true
 verified_at = "2026-09-14"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/components/ImportExportDialog.test.ts"
-source_hash = "774d1f2fe917dc2badc7e510318e2fcfa6211943"
-note = "TASK-500（Tier C第3号）で新規作成。verified=falseで作成開始し、テスト全pass（43it・vitest全体4614 passed / 0 failed）・verify-conditions.pyで本topic由来のfail/warn 0件（既存の無関係dangling・warnはTASK-489のcorpus移行対象）・出典との内容照合後に検証記録を記載した。依存モジュール内部は deck-import / deck-export / create-deck-recipe-image 各条件書の対象（冒頭コメントの線引き参照）。TASK-501でresetDialogのExport状態リセット追加に伴い、旧 reopen-keeps-export-ui-state / reopen-keeps-filename-base（現行挙動の条件化）は廃止し、修正後仕様の reopen-resets-export-state / reopen-regenerates-filename-base を新idで発行（covers張替え済み・再検証記録済み）"
+source_hash = "c314314f887d1930a52398e6f3634641fd4f834e"
+note = "TASK-500（Tier C第3号）で新規作成。verified=falseで作成開始し、テスト全pass（43it・vitest全体4614 passed / 0 failed）・verify-conditions.pyで本topic由来のfail/warn 0件（既存の無関係dangling・warnはTASK-489のcorpus移行対象）・出典との内容照合後に検証記録を記載した。依存モジュール内部は deck-import / deck-export / create-deck-recipe-image 各条件書の対象（冒頭コメントの線引き参照）。TASK-501でresetDialogのExport状態の扱いが「filenameBaseのみprops基準で再生成（format・Side Deck・CSV列は前回値を保持）」へ確定。旧 reopen-keeps-export-ui-state / reopen-keeps-filename-base（当初挙動の条件化）、および拡大解釈時に発行した reopen-resets-export-state（全リセット仕様）は廃止し、現行仕様の reopen-keeps-export-settings / reopen-regenerates-filename-base を新idで発行（covers張替え済み・再検証記録済み）"
 
 # --- 初期化・タブ ---
 
@@ -323,19 +323,19 @@ given = "Import タブ（initialTab既定'import'）からExport タブへ手動
 expect_return_shape = "既定'import'の再オープン: Import タブの .dialog-tab にactive・import本文が表示。initialTab='export'の再オープン: Export タブがactive"
 
 [[condition]]
-id = "import-export-dialog.reopen-resets-export-state"
+id = "import-export-dialog.reopen-keeps-export-settings"
 source_lines = "tests/unit/components/ImportExportDialog.test.ts:886"
-target_function = "resetDialog（Export状態リセット）"
-source = "src/components/ImportExportDialog.vue L360-362, L385-387, L489-511 + tm TASK-501"
-description = "ダイアログを閉じた時（isVisible true→false）にExport状態（format・includeSide・csvColumnsのON/OFFと並び替え）を既定値（CSV形式・Side Deck ON・全列ON・既定順）へリセットする。前回開時の選択を引き継がない（TASK-501でImport状態のみのリセットから修正）"
+target_function = "resetDialog（Export設定保持）"
+source = "src/components/ImportExportDialog.vue L359-362, L382-383, L505-508 + tm TASK-501"
+description = "ダイアログを閉じた時（isVisible true→false）にもExport設定（format・includeSide・csvColumnsのON/OFFと並び替え）は既定値へ戻さず前回値を保持する。resetDialogがExport状態へ行う処理はfilenameBaseのprops基準再生成とドラッグ一時状態（dragColumnIndex）のクリアのみ（TASK-501でfilenameBaseのみ再生成・他は保持に仕様確定。一時期実装された全リセットは拡大解釈であったため取り消し）"
 given = "initialTab='export'・Export タブで TXT形式選択・Side Deck OFF・Name列OFF+並び替えした状態で isVisible をfalse→true（再オープン）"
-expect_return_shape = "再オープン直後: CSVサブタブがactive・.column-toggle-row は描画。全ピルがactiveかつ既定順（Section,Name,CID,CIID,ENC,Qty）・Side Deckピルはactive"
+expect_return_shape = "再オープン直後: TXTサブタブがactiveのまま・.column-toggle-row は非描画のまま（format保持）。Side Deckピルは非activeのまま（includeSide保持）。CSVサブタブへ戻すと Nameピルは非activeかつ並び替え後の順（Section,CID,Name,CIID,ENC,Qty）のまま（csvColumns保持）"
 
 [[condition]]
 id = "import-export-dialog.reopen-regenerates-filename-base"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:925"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:930"
 target_function = "resetDialog（filenameBase再生成）+ generateFilename"
-source = "src/components/ImportExportDialog.vue L362, L457-478, L489-511 + tm TASK-501"
+source = "src/components/ImportExportDialog.vue L362, L457-478, L490-509 + tm TASK-501"
 description = "ダイアログを閉じた時にfilenameBaseをprops（deckName/dno/includeTimestamp）基準で再生成する（watch immediateと同じロジック）。前回開時の手動編集値・タイムスタンプ付きファイル名は再オープンに残らず、includeTimestamp=trueでは再オープン時点の新しいタイムスタンプになる（TASK-501で修正）"
 given = "(a) includeTimestamp=false・deckName指定で #filename-input を手動編集した状態で isVisible をfalse→true（再オープン） (b) includeTimestamp=true・deckName指定・偽時計で前回開時のタイムスタンプ付きfilenameBaseが表示された状態から時刻を進めて再オープン"
 expect_return_shape = "(a) 再オープン後の #filename-input の値はprops基準の再生成値（手動編集値は残らない） (b) 進行後の時刻の '-YYYYMMDD-HHmm' を含む値へ再生成される"
@@ -344,7 +344,7 @@ expect_return_shape = "(a) 再オープン後の #filename-input の値はprops�
 
 [[condition]]
 id = "import-export-dialog.export-preview-empty-and-download-guard-without-deckinfo"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:962"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:967"
 target_function = "exportPreviewText（deckInfoなし）+ handleExport（ガード）"
 source = "src/components/ImportExportDialog.vue L420-421, L556-560 + tm TASK-500"
 description = "deckInfoがない場合はプレビューを空にし、Downloadボタン（disabled制御なし）をクリックしてもダウンロード・emit・closeを行わない（早期return）"
@@ -353,7 +353,7 @@ expect_return_shape = "textarea.export-preview の値=''。downloadFile / downlo
 
 [[condition]]
 id = "import-export-dialog.format-switch-updates-preview-columns-extension"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:978"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:983"
 target_function = "format切替 + exportPreviewText computed"
 source = "src/components/ImportExportDialog.vue L348, L420-426 + template L113-138, L141, L144, L182 + tm TASK-500"
 description = "CSV/TXTサブタブの切替で、プレビュー内容（CSVはbuildCustomCsv・TXTはexportToTXT委譲）・カラム行の表示（CSVのみ）・拡張子表示が連動する"
@@ -362,7 +362,7 @@ expect_return_shape = "CSV: .column-toggle-row 描画・拡張子表示 '.csv'�
 
 [[condition]]
 id = "import-export-dialog.csv-preview-enabled-columns-and-order"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:998"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1003"
 target_function = "buildCustomCsv（有効カラム選別・順序）"
 source = "src/components/ImportExportDialog.vue L404-417 + tm TASK-500"
 description = "CSVプレビュー（=CSV出力内容）は有効カラムのみで組み立てる。ヘッダは有効カラムのkeyをcsvColumnsの並び順どおりにカンマ結合し、データ行も同順で各列の値をString化してカンマ結合する（空文字列フィールドは空のまま）"
@@ -371,7 +371,7 @@ expect_return_shape = "全列ON: 1行目='section,name,cid,ciid,enc,quantity'・
 
 [[condition]]
 id = "import-export-dialog.csv-name-field-escape"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1014"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1019"
 target_function = "buildCustomCsv + escapeCsvField（name列エスケープ）"
 source = "src/components/ImportExportDialog.vue L396-401, L409-414 + tm TASK-500"
 description = "データ行のname列のみCSVエスケープする（カンマ・二重引用符・改行のいずれかを含む値を引用符で括り、値内の二重引用符を二重化。他列はraw結合）。escapeCsvFieldは本コンポーネント内のローカル実装であり、deck-export側のCSVエスケープ（deck-export条件書 export_csv.*）とは別実装である点に注意（重複解消の要否は冒頭の発見事項参照）"
@@ -380,7 +380,7 @@ expect_return_shape = "(a)(b)(c)いずれもnameフィールドは引用符で�
 
 [[condition]]
 id = "import-export-dialog.toggle-column-excludes-from-csv"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1043"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1048"
 target_function = "toggleColumn"
 source = "src/components/ImportExportDialog.vue L378-381 + template L146-161 + tm TASK-500"
 description = "非必須カラムのピルクリックでON/OFFをトグルし、activeクラス・ヘッダ・データ行から当該列が現れたり消えたりする"
@@ -389,7 +389,7 @@ expect_return_shape = "1回目: ピルのactive解除・ヘッダから name 消
 
 [[condition]]
 id = "import-export-dialog.required-columns-not-toggleable"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1064"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1069"
 target_function = "toggleColumn（required分岐）"
 source = "src/components/ImportExportDialog.vue L361-368, L377-381 + template L149-151 + tm TASK-500"
 description = "再インポートに必須の列（section/cid/quantity）はピルクリックでOFFにできない（required列はearly return）。requiredクラスとtitle属性で不活性であることをUI上でも示す"
@@ -398,7 +398,7 @@ expect_return_shape = "いずれもピルはactive維持・requiredクラス保�
 
 [[condition]]
 id = "import-export-dialog.column-drag-drop-reorders"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1081"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1086"
 target_function = "onColumnDragStart + onColumnDrop"
 source = "src/components/ImportExportDialog.vue L395-411 + template L146-161 + tm TASK-500"
 description = "カラムピルのドラッグ&ドロップで列順を並び替え、ヘッダ・データ行の列順に反映する。移動中のピルにはdraggingクラスが付き、drop後に解除される"
@@ -407,7 +407,7 @@ expect_return_shape = "dragstart時: Name ピルにdraggingクラス。drop後: 
 
 [[condition]]
 id = "import-export-dialog.column-drop-noop-guards"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1098"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1103"
 target_function = "onColumnDrop（noopガード）"
 source = "src/components/ImportExportDialog.vue L399-411 + tm TASK-500, TASK-502"
 description = "dragstartなしのdropは並び替えせず何もしない。同一ピルへのdropも並び替えしないが、dragColumnIndexをクリアするため当該ピルのdraggingクラス（半透明表示）は解除される"
@@ -416,7 +416,7 @@ expect_return_shape = "(a)(b)ともピル並び・ヘッダは不変。(b)はdro
 
 [[condition]]
 id = "import-export-dialog.column-reset-restores-defaults"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1123"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1128"
 target_function = "resetCsvColumns + template リセットボタン"
 source = "src/components/ImportExportDialog.vue L361-375 + template L162-166 + tm TASK-500"
 description = "リセットボタンでカラムのON/OFFと並び順を既定（6列・全ON・既定順）へ戻す"
@@ -425,7 +425,7 @@ expect_return_shape = "全ピルがactive・並びが既定順（Section,Name,CI
 
 [[condition]]
 id = "import-export-dialog.include-side-toggle-reflected"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1148"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1153"
 target_function = "includeSideトグル + buildCustomCsv（options委譲）"
 source = "src/components/ImportExportDialog.vue L349, L404-417 + template L131-137 + tm TASK-500"
 description = "Side DeckピルのON/OFFは includeSide としてプレビュー生成に渡される（side行の含有判定自体はgenerateExportRows内 = deck-export条件書の対象。本書は委譲オプションとプレビュー再計算の反映を観測）"
@@ -436,7 +436,7 @@ expect_return_shape = "ピルのactive解除。generateExportRows（mock）が�
 
 [[condition]]
 id = "import-export-dialog.filename-priority-and-sanitization"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1171"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1176"
 target_function = "generateFilename"
 source = "src/components/ImportExportDialog.vue L440-456 + tm TASK-500"
 description = "ファイル名はdeckName優先（ファイル名禁止文字は'_'置換+trim、trim結果が空なら'deck'）。deckNameなしならdeck-{dno}、両方なしなら'deck'"
@@ -445,7 +445,7 @@ expect_return_shape = "(a) #filename-input の値='a_b_c' (b) 'deck' (c) 'deck-1
 
 [[condition]]
 id = "import-export-dialog.filename-timestamp-suffix"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1196"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1201"
 target_function = "generateFilename + generateTimestamp"
 source = "src/components/ImportExportDialog.vue L429-456 + tm TASK-500"
 description = "includeTimestamp=true（既定）の場合、ファイル名末尾に '-YYYYMMDD-HHmm' 形式のタイムスタンプを付与する"
@@ -454,7 +454,7 @@ expect_return_shape = "#filename-input の値='mydeck-20260913-0905'"
 
 [[condition]]
 id = "import-export-dialog.filename-updates-on-prop-change"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1206"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1211"
 target_function = "watch [dno, deckName, includeTimestamp]（immediate）"
 source = "src/components/ImportExportDialog.vue L459-461 + tm TASK-500"
 description = "filenameBaseはdno/deckName/includeTimestampのいずれかが変わった時に再生成される（初回マウント時もimmediateで生成。ユーザー手編集はprops変更時に上書きされる）"
@@ -465,7 +465,7 @@ expect_return_shape = "マウント直後='A'。deckName変更後='B'。includeT
 
 [[condition]]
 id = "import-export-dialog.export-csv-delegates-download-file"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1229"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1234"
 target_function = "handleExport（CSV分岐）"
 source = "src/components/ImportExportDialog.vue L556-573 + tm TASK-500"
 description = "CSV形式のDownloadは buildCustomCsv の結果を内容として downloadFile へ '<filename>.csv'・MIME 'text/csv' で委譲し、exported('csv') と close をemitする。filenameBase空（ユーザーが入力欄を空にした場合を含む）は'deck'にフォールバック"
@@ -474,7 +474,7 @@ expect_return_shape = "downloadFile（mock）が (textarea.export-preview の値
 
 [[condition]]
 id = "import-export-dialog.export-txt-delegates-download-deck-as-txt"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1256"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1261"
 target_function = "handleExport（TXT分岐）"
 source = "src/components/ImportExportDialog.vue L556-573 + tm TASK-500"
 description = "TXT形式のDownloadは downloadDeckAsTXT へ deckInfo・'<filename>.txt'・options（includeSide）を委譲し、exported('txt') と close をemitする。includeSideはSide Deckトグルの現在値がそのまま渡る（既定ONではtrue・OFFではfalse）（TXT本文の組み立てはdeck-export側の対象）"
@@ -483,7 +483,7 @@ expect_return_shape = "(a) downloadDeckAsTXT（mock）が (propsのdeckInfo, 'my
 
 [[condition]]
 id = "import-export-dialog.enter-key-on-filename-triggers-export"
-source_lines = "tests/unit/components/ImportExportDialog.test.ts:1286"
+source_lines = "tests/unit/components/ImportExportDialog.test.ts:1291"
 target_function = "handleExport（filename入力欄 keyup.enter 経由）"
 source = "src/components/ImportExportDialog.vue template L179 + L556-573 + tm TASK-500"
 description = "ファイル名入力欄でのEnterキーはDownloadボタンと同じhandleExportを実行する第2のUI経路"

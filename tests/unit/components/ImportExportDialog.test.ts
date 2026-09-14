@@ -883,7 +883,7 @@ describe('components/ImportExportDialog', () => {
       expect(requireElementWithText<HTMLButtonElement>('.dialog-tab', 'Export').classList.contains('active')).toBe(true);
     });
 
-    it('[covers:import-export-dialog.reopen-resets-export-state] 再オープンでExport状態（format・Side Deck・カラムON/OFFと並び替え）は既定へ戻る', async () => {
+    it('[covers:import-export-dialog.reopen-keeps-export-settings] 再オープンでExport設定（format・Side Deck・カラムON/OFFと並び替え）は前回値のまま保持される', async () => {
       mockGenerateExportRows.mockReturnValue([makeRow()]);
       const wrapper = mountDialog({ initialTab: 'export' });
       await nextTick();
@@ -909,14 +909,19 @@ describe('components/ImportExportDialog', () => {
       await wrapper.setProps({ isVisible: true });
       await nextTick();
 
-      // CSV形式（column-toggle-row 復帰）・Side Deck ONへ戻る
-      expect(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'CSV').classList.contains('active')).toBe(true);
-      expect(document.body.querySelectorAll('.column-toggle-row')).toHaveLength(1);
-      expect(requireElementContainingText<HTMLButtonElement>('.export-tabs-row .toggle-pill', 'Side Deck').classList.contains('active')).toBe(true);
+      // TXT形式のまま（format保持・column-toggle-row は非描画のまま）
+      expect(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'TXT').classList.contains('active')).toBe(true);
+      expect(document.body.querySelectorAll('.column-toggle-row')).toHaveLength(0);
 
-      // カラムは全列ON・既定順へ戻る
-      expect(columnPillLabels()).toEqual(['Section', 'Name', 'CID', 'CIID', 'ENC', 'Qty']);
-      for (const label of columnPillLabels()) {
+      // Side Deck OFFのまま（includeSide保持）
+      expect(requireElementContainingText<HTMLButtonElement>('.export-tabs-row .toggle-pill', 'Side Deck').classList.contains('active')).toBe(false);
+
+      // CSVサブタブへ戻すとカラムも前回値どおり（Name列OFF・並び替え後の順が保持）
+      await new DOMWrapper(requireElementWithText<HTMLButtonElement>('.sub-tabs .sub-tab-btn', 'CSV')).trigger('click');
+      await nextTick();
+      expect(columnPillLabels()).toEqual(['Section', 'CID', 'Name', 'CIID', 'ENC', 'Qty']);
+      expect(requireElementWithText<HTMLButtonElement>('.column-pill', 'Name').classList.contains('active')).toBe(false);
+      for (const label of ['Section', 'CID', 'CIID', 'ENC', 'Qty']) {
         const pill = requireElementWithText<HTMLButtonElement>('.column-pill', label);
         expect(pill.classList.contains('active'), `${label} is active`).toBe(true);
       }
