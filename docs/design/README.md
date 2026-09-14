@@ -5,7 +5,6 @@
 ## ディレクトリ構成
 
 - **[category/](./category/)** - カテゴリ・タグ機能
-- **[edit/](./edit/)** - デッキ編集機能
 - **[functions/](./functions/)** - 各種機能仕様
 - **[archive/](./archive/)** - 過去バージョンの設計資料
   - `v0.4.0/` - v0.4.0設計
@@ -21,3 +20,7 @@
 - [option-page.md](./option-page.md) - オプションページ設計
 - [search-condition.md](./search-condition.md) - 検索条件設計
 - [search-condition-limit.yml](./search-condition-limit.yml) - 検索条件制限ルール
+- [solo-practice.md](./solo-practice.md) - 一人回し機能 要件定義
+- [solo-practice-tech.md](./solo-practice-tech.md) - 一人回し機能 技術設計
+- [practice-slot-menu-redesign.md](./practice-slot-menu-redesign.md) - PracticeSlotMenuDialog リデザイン要件定義
+- [practice-slot-menu-redesign-tech.md](./practice-slot-menu-redesign-tech.md) - PracticeSlotMenuDialog リデザイン技術設計

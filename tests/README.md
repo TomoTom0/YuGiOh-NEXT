@@ -32,6 +32,10 @@
 | `deck-display/` | デッキ表示 | - |
 | `parser/` | パーサー | - |
 | `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証） | `browser-config.test.ts`, `verify-conditions.test.ts` |
+| `configs/` | configs TOMLと設定デフォルト値の整合（features/app-settings/ux） | `feature-defaults.test.ts`, `app-ux-defaults.test.ts` |
+| `constants/` | 定数データの整合 | `tag-master-data.test.ts` |
+| `services/` | LLMサービス等（`llm/`配下） | `tool-executor.test.ts`, `nano-pipeline.test.ts` |
+| `webpack/` | ビルド設定のバンドル検証 | `dynamic-import-bundle.test.ts` |
 
 ---
 
