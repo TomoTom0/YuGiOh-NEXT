@@ -188,9 +188,12 @@ export class GenesysPointCache {
     // incompleteなエントリは、外部fetch判断（forceUpdate呼び出し）より先に
     // 外部fetch不要なローカル再解決を試す（カードDBが後で充実していれば
     // 外部サーバーに負荷をかけずに解決できるため）。TTL判定の対象外。
+    // 部分的にでも解決が進んだ結果（再解決後もincomplete:true）は破棄せず
+    // 永続化して返す（カードDBは閲覧単位で逐次充実するため部分解決が常態で、
+    // 完全解決時のみ反映だと解決済みポイントがTTL経過まで表示されない）。
     if (current?.incomplete) {
       const relocal = await this.reresolveLocal(current);
-      if (relocal && !relocal.incomplete) {
+      if (relocal) {
         await this.persistResolvedEntry(relocal);
         return relocal;
       }
@@ -226,9 +229,11 @@ export class GenesysPointCache {
     // incompleteなエントリは、TTL判定や外部fetchより先に外部fetch不要な
     // ローカル再解決を試す（カードDBが後で充実していれば外部サーバーに
     // 負荷をかけずに解決できるため）。TTL判定の対象外。
+    // 部分的にでも解決が進んだ結果（再解決後もincomplete:true）は破棄せず
+    // 永続化して返す（解決済みポイントをTTL経過を待たずに反映するため）。
     if (existing?.incomplete) {
       const relocal = await this.reresolveLocal(existing);
-      if (relocal && !relocal.incomplete) {
+      if (relocal) {
         await this.persistResolvedEntry(relocal);
         return relocal;
       }
@@ -361,17 +366,19 @@ export class GenesysPointCache {
         latestListParam = ref.listParam;
       }
       // 公開済みリストは不変: 未取得のリストのみ取得。ただし前回未解決カードが
-      // 残っていた場合はカードDBが揃った可能性があるため再取得する
+      // 残っていた場合はカードDBが揃った可能性があるため、ローカル再解決（DB件数
+      // 変化検知で間引き）を先に試み、それでも解決が進めない場合のみ再取得する
       const existingEntry = lists[ref.listParam];
       if (existingEntry && !existingEntry.incomplete) {
         continue;
       }
 
       // incompleteな既存エントリは、外部fetchより先に外部fetch不要な
-      // ローカル再解決を試す。完全解決できればそのlistParamの外部fetchをスキップする
+      // ローカル再解決を試す。部分的な解決進捗（再解決後もincomplete:true）でも
+      // 結果を反映できればそのlistParamの外部fetchをスキップする
       if (existingEntry?.incomplete) {
         const relocal = await this.reresolveLocal(existingEntry);
-        if (relocal && !relocal.incomplete) {
+        if (relocal) {
           lists[ref.listParam] = relocal;
           continue;
         }
@@ -441,8 +448,8 @@ export class GenesysPointCache {
    * @returns 再解決結果の新しいエントリ。entry.rawEntriesが無い/空、同一listParamの
    *   前回試行時からカードDB件数が変化していない、または再解決処理自体が失敗した
    *   場合はnull（呼び出し側は既存の外部fetchフォールバックへ進む）。再解決しても
-   *   なお未解決カードが残る場合はincomplete:trueのエントリを返す（呼び出し側が
-   *   TTL判定等で扱う）
+   *   なお未解決カードが残る場合は、解決済み分が反映されたincomplete:trueのエントリ
+   *   を返す（呼び出し側は部分解決も破棄せず永続化・採用する）
    */
   private async reresolveLocal(entry: GenesysListEntry): Promise<GenesysListEntry | null> {
     if (!entry.rawEntries || entry.rawEntries.length === 0) {
@@ -488,8 +495,8 @@ export class GenesysPointCache {
   }
 
   /**
-   * ローカル再解決で完全解決（incomplete:false）したエントリをメモリキャッシュへ反映し、
-   * chrome.storage.localへ永続化する
+   * ローカル再解決で改善したエントリ（部分解決のincomplete:trueを含む）を
+   * メモリキャッシュへ反映し、chrome.storage.localへ永続化する
    */
   private async persistResolvedEntry(entry: GenesysListEntry): Promise<void> {
     this.cache = this.cache ?? {

@@ -15,11 +15,11 @@
 feature = "genesys-cache"
 source_file = "src/utils/genesys-cache.ts"
 verified = true
-verified_at = "2026-09-09"
+verified_at = "2026-09-15"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/genesys-cache.test.ts"
-source_hash = "15561902e3d720694e670c1760177eb220021869"
-note = "verified=falseは0件。TASK-470でrawEntries保持+ローカル再解決(reresolveLocal)条件を追加。TASK-471でINCOMPLETE_RETRY_TTLをDISCOVERY_TTL同値(6日)へ延長し、reresolveLocal()にカードDB件数(cardTableACount)変化検知による間引き(lastReresolveAttemptCardCount)を追加。TASK-473で、重複していたsrc/utils/__tests__/genesys-cache.test.tsに実在したTASK-302回帰テスト9件をtests/unit/utils/genesys-cache.test.tsへ移植し、あわせてTASK-470/471/472で追加されていたreresolveLocal関連（rawEntries保持・カードDB件数変化検知等）の未カバー条件9件を同ファイルへ新規作成、旧ファイルを削除して一本化した。移植に伴いensure_current.incomplete_within_ttl_returns_without_update / ensure_list.incomplete_within_ttl_returns_without_refetch / force_update.awaits_db_init_before_resolving_entries の3条件を新規追加（既存条件書に対応する条件が無かったTASK-302回帰テストの検証内容）"
+source_hash = "16350f35f99ef7a6f7fdcd94c7e09c8d7111905f"
+note = "verified=falseは0件。TASK-470でrawEntries保持+ローカル再解決(reresolveLocal)条件を追加。TASK-471でINCOMPLETE_RETRY_TTLをDISCOVERY_TTL同値(6日)へ延長し、reresolveLocal()にカードDB件数(cardTableACount)変化検知による間引き(lastReresolveAttemptCardCount)を追加。TASK-473で、重複していたsrc/utils/__tests__/genesys-cache.test.tsに実在したTASK-302回帰テスト9件をtests/unit/utils/genesys-cache.test.tsへ移植し、あわせてTASK-470/471/472で追加されていたreresolveLocal関連（rawEntries保持・カードDB件数変化検知等）の未カバー条件9件を同ファイルへ新規作成、旧ファイルを削除して一本化した。移植に伴いensure_current.incomplete_within_ttl_returns_without_update / ensure_list.incomplete_within_ttl_returns_without_refetch / force_update.awaits_db_init_before_resolving_entries の3条件を新規追加（既存条件書に対応する条件が無かったTASK-302回帰テストの検証内容）。TASK-509（PR#155レビュー指摘P1）で、ローカル再解決が部分解決（再解決後もunresolved残）の場合の呼び出し元扱いを「完全解決のみ採用・部分改善は破棄してTTLゲート付き外部fetchへフォールバック」から「部分改善も永続化して返す」へ変更。旧id reresolve_local.still_incomplete_falls_back_to_ttl_gated_fetch を廃止し genesys-cache.partial-improvement-adopted-by-callers へ張替え、部分解決3条件（genesys-cache.ensure-list/ensure-current/force-update-partial-*）を新規追加（新規4条件はstable id形式・標準expectキーで作成。既存63条件のlegacy形式idはTASK-489のcorpus移行スコープ）"
 
 # --- timestampToYmd(ts: number): string (非export) ---
 
@@ -120,7 +120,7 @@ expect_no_throw = true
 id = "init.startup_ttl_fresh_skips_update"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts init()/checkAndUpdate()/needsUpdate()実装（storageから読み込んだcacheのdiscoveredAtがDISCOVERY_TTL以内の場合、起動時checkAndUpdateはGENESYSインデックスを再取得しない）"
-source_lines = "107-123,308-313"
+source_lines = "107-123,313-318"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL以内の場合、init()完了後のcheckAndUpdateはfetchGenesysIndexを呼ばずキャッシュをそのまま維持する"
 given = "storageのcache.discoveredAtが現在時刻から5日前（DISCOVERY_TTL=6日以内）"
 expect_side_effect = "fetchGenesysIndexは呼ばれず、cacheはstorageから読み込んだ値のまま変化しない"
@@ -129,7 +129,7 @@ expect_side_effect = "fetchGenesysIndexは呼ばれず、cacheはstorageから�
 id = "init.startup_ttl_expired_updates_and_persists"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts init()/checkAndUpdate()/forceUpdate()実装（storageから読み込んだcacheのdiscoveredAtがDISCOVERY_TTL超過の場合、起動時checkAndUpdateがforceUpdateを実行しstorageへ保存する）"
-source_lines = "107-123,323-341,350-416"
+source_lines = "107-123,328-346,355-421"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL超過の場合、init()完了後のcheckAndUpdateがforceUpdateを実行してdiscoveredAtを更新し、更新後のcacheをsafeStorageSetで保存する"
 given = "storageのcache.discoveredAtが現在時刻から7日前（DISCOVERY_TTL=6日超過）、fetchGenesysIndexが成功する"
 expect_side_effect = "fetchGenesysIndexが1回呼ばれ、cache.discoveredAtが現在時刻に更新され、safeStorageSetに更新後のcacheが渡される"
@@ -138,7 +138,7 @@ expect_side_effect = "fetchGenesysIndexが1回呼ばれ、cache.discoveredAtが�
 id = "init.startup_update_failure_preserves_cache"
 target_function = "GenesysPointCache#init"
 source = "src/utils/genesys-cache.ts checkAndUpdate()実装（forceUpdate失敗時はcatchで握りつぶし既存キャッシュを保持する）"
-source_lines = "107-123,323-341"
+source_lines = "107-123,328-346"
 description = "storageから読み込んだcache.discoveredAtがDISCOVERY_TTL超過で起動時checkAndUpdateがforceUpdateを実行するが、fetchGenesysIndexが失敗した場合、既存キャッシュとdiscoveredAtをそのまま保持し、safeStorageSetは呼ばれない"
 given = "storageのcache.discoveredAtがDISCOVERY_TTL超過、fetchGenesysIndexがrejectする"
 expect_side_effect = "cacheはstorageから読み込んだ値のまま変化せず、safeStorageSetは呼ばれない"
@@ -237,10 +237,10 @@ expect_return_shape = "更新後に選択されたGenesysListEntryまたはnull"
 [[condition]]
 id = "ensure_current.incomplete_within_ttl_returns_without_update"
 target_function = "GenesysPointCache#ensureCurrentList"
-source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）"
-source_lines = "191-214"
-description = "現在有効なentryがincomplete:trueで、ローカル再解決(reresolveLocal)でも解決できない場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならforceUpdateせずそのentryをそのまま返す。TTL超過後は改めてforceUpdateし、再取得結果が解決できればincomplete:falseのentryを返す"
-given = "current.incomplete=true（rawEntries無し、またはローカル再解決してもなお未解決）。TTL内/TTL超過の両ケース"
+source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）。TASK-509で部分解決時の挙動を分離"
+source_lines = "194-217"
+description = "現在有効なentryがincomplete:trueで、ローカル再解決が実行できない（rawEntries無し、またはカードDB件数不変でreresolveLocalがnull）場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならforceUpdateせず既存entryをそのまま返す。TTL超過後は改めてforceUpdateし、再取得結果が解決できればincomplete:falseのentryを返す（部分解決した場合はgenesys-cache.ensure-current-partial-reresolve-persisted-and-returnedのとおり改善済みentryを返す）"
+given = "current.incomplete=true、ローカル再解決不可（rawEntries無しまたはカードDB件数不変）。TTL内/TTL超過の両ケース"
 expect_return_shape = "TTL内はforceUpdateを呼ばず既存incompleteエントリを返す。TTL超過後はforceUpdate経由で再解決されたentryを返す"
 
 # --- GenesysPointCache#ensureList(listParam): Promise<GenesysListEntry | null> ---
@@ -308,10 +308,10 @@ expect_return = "null"
 [[condition]]
 id = "ensure_list.incomplete_within_ttl_returns_without_refetch"
 target_function = "GenesysPointCache#ensureList"
-source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）"
-source_lines = "229-242"
-description = "既存entryがincomplete:trueで、ローカル再解決(reresolveLocal)でも解決できない場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならfetchGenesysPointListを呼ばずそのentryをそのまま返す。TTL超過後は再度fetchし、解決できればincomplete:falseのentryに更新する"
-given = "existing.incomplete=true（rawEntries無し、またはローカル再解決してもなお未解決）。TTL内/TTL超過の両ケース"
+source = "tm TASK-302 body: 修正内容(08-29)（ensureList()/ensureCurrentList()がincompleteキャッシュを無条件に返し続けるバグを修正、INCOMPLETE_RETRY_TTLで再取得）。TASK-509で部分解決時の挙動を分離"
+source_lines = "234-248"
+description = "既存entryがincomplete:trueで、ローカル再解決が実行できない（rawEntries無し、またはカードDB件数不変でreresolveLocalがnull）場合、fetchedAtからのINCOMPLETE_RETRY_TTL未経過ならfetchGenesysPointListを呼ばずそのentryをそのまま返す。TTL超過後は再度fetchし、解決できればincomplete:falseのentryに更新する（部分解決した場合はgenesys-cache.ensure-list-partial-reresolve-persisted-and-returnedのとおり改善済みentryを返す）"
+given = "existing.incomplete=true、ローカル再解決不可（rawEntries無しまたはカードDB件数不変）。TTL内/TTL超過の両ケース"
 expect_return_shape = "TTL内はfetchGenesysPointListを呼ばず既存incompleteエントリを返す。TTL超過後はfetch経由で再解決されたentryを返す"
 
 # --- GenesysPointCache#needsUpdate(): boolean (private) ---
@@ -462,12 +462,12 @@ given = "entry.incomplete=true、entry.rawEntriesにカードDB充実後は解�
 expect_return_shape = "points/incompleteが更新された新しいGenesysListEntry（incomplete=false）"
 
 [[condition]]
-id = "reresolve_local.still_incomplete_falls_back_to_ttl_gated_fetch"
+id = "genesys-cache.partial-improvement-adopted-by-callers"
 target_function = "GenesysPointCache#reresolveLocal"
-source = "tm TASK-470 body: 確定した実装方針3（ensureList）"
-description = "ローカル再解決してもなお未解決カードが残る場合、呼び出し元（ensureList/ensureCurrentList/forceUpdate）は解決済みentryへ差し替えず、既存のINCOMPLETE_RETRY_TTLゲート付き外部fetchロジックへそのままフォールバックする"
-given = "resolveGenesysEntriesのunresolvedが1件以上残る"
-expect_return_shape = "incomplete=trueの新しいGenesysListEntry（呼び出し元は採用せず既存entryを維持したままTTL判定へ進む）"
+source = "PR#155レビュー指摘(P1): カードDBがrawEntriesの一部のみ蓄積済みの状況（2つ目のデッキを開いてそのカードがDBへ追加される等のincremental cacheケース）が常態なのに、呼び出し元のguardが完全解決（!relocal.incomplete）のみ採用していたため部分改善が破棄され、新たに解決可能になったカードのポイントがINCOMPLETE_RETRY_TTL(6日)経過まで表示されなかった"
+description = "ローカル再解決で一部のみ解決した（再解決後もunresolvedが残る）場合も、呼び出し元（ensureList/ensureCurrentList/forceUpdate）は改善済みエントリ（incomplete:true・解決済みpoints反映済み）を破棄せず永続化して返す。TTLゲート付き外部fetchへのフォールバックは、ローカル再解決が実行できない（rawEntries無し/カードDB件数不変でnull）場合のみ"
+given = "rawEntries保持済みのincomplete:trueエントリ、カードDB充実により一部カードのみ解決可能（resolveGenesysEntriesのunresolvedが1件以上残る）"
+expect_return_shape = "ensureList/ensureCurrentListは解決済みpointsを含むincomplete:trueの改善済みGenesysListEntryを返す（fetchGenesysPointList/forceUpdateは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
 
 [[condition]]
 id = "reresolve_local.resets_name_resolver_before_resolve"
@@ -560,3 +560,38 @@ source = "tm TASK-470 body: 確定した実装方針6"
 description = "外部fetchが成功した場合、常にrawEntries: parsed.entriesを保存する（次回以降のローカル再解決を可能にするため）"
 given = "fetchGenesysPointListが成功する"
 expect_side_effect = "保存されるlists[ref.listParam].rawEntriesにparsed.entriesが設定される（次回forceUpdate呼び出しでrawEntries前提のローカル再解決が成立することで間接的に検証）"
+
+# --- 部分解決結果の採用（TASK-509、PR#155レビュー指摘P1） ---
+#
+# 背景: カードDBは閲覧単位で逐次充実するため、ローカル再解決で一部カードのみ
+# 解決できる状態が常態。旧実装は完全解決（incomplete:false）のみ採用し部分改善を
+# 破棄していたため、新たに解決可能になったカードのポイントがINCOMPLETE_RETRY_TTL
+# (6日)経過まで反映されなかった。部分解決結果もincomplete:trueのまま永続化・返却し、
+# カードDBの更なる充実で後続の再解決へ引き継がせる。
+
+[[condition]]
+id = "genesys-cache.ensure-list-partial-reresolve-persisted-and-returned"
+target_function = "GenesysPointCache#ensureList"
+source = "PR#155レビュー指摘(P1): incremental cacheケースで部分解決結果が破棄され、TTL branchが古いentryを返していた（src/utils/genesys-cache.ts:234のguard）"
+source_lines = "234-240"
+description = "ローカル再解決で一部のみ解決した場合も、改善済みエントリ（incomplete:true・解決済みpoints反映済み）をpersistResolvedEntryで永続化して返す。外部fetchもINCOMPLETE_RETRY_TTL判定も行わない"
+given = "existing.incomplete=true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能（resolveGenesysEntriesのunresolvedが1件以上残る）"
+expect_return_shape = "解決済みpointsを含むincomplete:trueの改善済みGenesysListEntry（fetchGenesysPointListは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
+
+[[condition]]
+id = "genesys-cache.ensure-current-partial-reresolve-persisted-and-returned"
+target_function = "GenesysPointCache#ensureCurrentList"
+source = "PR#155レビュー指摘(P1): ensureList()と同一のguard問題。forceUpdate（外部fetch）より先に試みたローカル再解決が部分解決でも改善結果を返す必要がある"
+source_lines = "194-200"
+description = "現在有効なentryのローカル再解決で一部のみ解決した場合も、改善済みエントリ（incomplete:true）を永続化して返し、forceUpdateは呼ばない"
+given = "現在有効なentryがincomplete:true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能"
+expect_return_shape = "解決済みpointsを含むincomplete:trueの改善済みGenesysListEntry（forceUpdate/fetchGenesysPointListは呼ばれず、safeStorageSetで改善済みentryを含むcacheが保存される）"
+
+[[condition]]
+id = "genesys-cache.force-update-partial-reresolve-replaces-entry-without-fetch"
+target_function = "GenesysPointCache#forceUpdate"
+source = "PR#155レビュー指摘(P1)と同根: forceUpdateループ内の同一guardも部分解決結果を破棄して外部fetchへ進んでいた"
+source_lines = "378-385"
+description = "ループ内で既存entryのローカル再解決が一部のみ解決した場合も、改善済みエントリ（incomplete:true）でlists[ref.listParam]を置き換え、そのlistParamの外部fetchをスキップする"
+given = "lists[ref.listParam]が既存でincomplete:true、rawEntries保持済み、カードDB充実により一部カードのみ解決可能"
+expect_return_shape = "lists[ref.listParam]が解決済みpointsを含むincomplete:trueエントリで上書きされる（fetchGenesysPointListは呼ばれない）"

@@ -837,10 +837,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('cid-0', '202607')).toBe(7);
     });
 
-    it('(c) ローカル再解決してもなお未解決カードが残る場合はincomplete:trueのまま、TTLゲート付き外部fetchロジックへフォールバックする [covers:reresolve_local.still_incomplete_falls_back_to_ttl_gated_fetch]', async () => {
-      apiMocks.fetchGenesysIndex.mockResolvedValue([
-        { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
-      ]);
+    it('(c) ローカル再解決で一部のみ解決した場合も、改善済みエントリ（incomplete:true）を破棄せず永続化して返す（PR#155レビュー指摘P1） [covers:genesys-cache.partial-improvement-adopted-by-callers] [covers:genesys-cache.ensure-list-partial-reresolve-persisted-and-returned]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
       await cache.init();
@@ -869,11 +866,18 @@ describe('GenesysPointCache', () => {
 
       const result = await cache.ensureList('202607');
 
-      // ローカル再解決は試みる（resetは呼ばれる）が未解決が残るため、
-      // TTL内は外部fetchせず既存entryをそのまま返す
+      // 一部（cid-0）だけ解決できた部分解決: 改善結果を即座に採用・永続化し、
+      // 外部fetchもTTL経過待ちも発生させない。未解決分はincomplete:trueとして残り、
+      // カードDBの更なる充実で次回以降の再解決へ引き継がれる
       expect(resolverMocks.genesysNameResolver.reset).toHaveBeenCalled();
       expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
       expect(result?.incomplete).toBe(true);
+      expect(result?.points['cid-0']).toBe(3);
+      expect(cache.getPoint('cid-0', '202607')).toBe(3);
+      expect(getInternalCache(cache)?.lists['202607']?.points['cid-0']).toBe(3);
+      expect(storageMocks.safeStorageSet).toHaveBeenCalledWith({
+        [STORAGE_KEY]: getInternalCache(cache)
+      });
     });
 
     it('(d) 【設計レビュー指摘1】解決前に必ずgenesysNameResolver.resetを呼んでからresolveGenesysEntriesを呼ぶ（呼ぶ順序を誤るとカードDB充実後も古い名前解決マップを参照し続け再解決が機能しない） [covers:reresolve_local.resets_name_resolver_before_resolve]', async () => {
@@ -969,6 +973,46 @@ describe('GenesysPointCache', () => {
       expect(forceSpy).not.toHaveBeenCalled();
       expect(result?.incomplete).toBe(false);
       expect(cache.getPoint('cid-0')).toBe(11);
+    });
+
+    it('ensureCurrentListも、一部のみ解決した場合に改善済みエントリ（incomplete:true）を返しforceUpdateしない（PR#155レビュー指摘P1） [covers:genesys-cache.ensure-current-partial-reresolve-persisted-and-returned]', async () => {
+      const cache = new GenesysPointCache();
+      vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
+      await cache.init();
+      const forceSpy = vi.spyOn(cache, 'forceUpdate');
+      setInternalCache(cache, {
+        lists: {
+          '202607': {
+            listParam: '202607',
+            // 今日以前の適用日にして selectApplicableGenesysList が選択できるようにする
+            effectiveDate: '2020-01-01',
+            points: {},
+            fetchedAt: Date.now(), // TTL内
+            incomplete: true,
+            rawEntries: [
+              { name: '解決できるカード', point: 4, cardKindClass: 'effect' },
+              { name: '未解決カード', point: 8, cardKindClass: 'effect' }
+            ]
+          }
+        },
+        latestListParam: '202607',
+        availableListParams: ['202607'],
+        discoveredAt: Date.now()
+      });
+      resolverMocks.resolveGenesysEntries.mockReturnValue({
+        points: { 'cid-0': 4 },
+        unresolved: ['未解決カード']
+      });
+
+      const result = await cache.ensureCurrentList();
+
+      // 部分解決でも改善分を即座に返す（forceUpdate・外部fetchは呼ばない）
+      expect(forceSpy).not.toHaveBeenCalled();
+      expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
+      expect(result?.incomplete).toBe(true);
+      expect(result?.points['cid-0']).toBe(4);
+      expect(cache.getPoint('cid-0')).toBe(4);
+      expect(getInternalCache(cache)?.lists['202607']?.points['cid-0']).toBe(4);
     });
 
     it('(e) カードDB件数が前回のローカル再解決試行から変化していない場合、reset()を呼ばずローカル再解決処理自体をスキップする [covers:reresolve_local.skips_reresolve_when_card_count_unchanged]', async () => {
@@ -1099,6 +1143,48 @@ describe('GenesysPointCache', () => {
       expect(resolverMocks.genesysNameResolver.reset).toHaveBeenCalledTimes(2);
       expect(cache.getPoint('cid-0', '202607')).toBe(1);
       expect(cache.getPoint('cid-0', '202608')).toBe(2);
+    });
+
+    it('(h) forceUpdate()で一部のみ解決した場合もローカル再解決結果でentryを置き換え、そのlistParamの外部fetchをスキップする（PR#155レビュー指摘P1と同根） [covers:genesys-cache.force-update-partial-reresolve-replaces-entry-without-fetch]', async () => {
+      apiMocks.fetchGenesysIndex.mockResolvedValue([
+        { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
+      ]);
+      const cache = new GenesysPointCache();
+      vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
+      await cache.init();
+      const fetchedAt = Date.now();
+      setInternalCache(cache, {
+        lists: {
+          '202607': {
+            listParam: '202607',
+            effectiveDate: '2026-07-01',
+            points: {},
+            fetchedAt,
+            incomplete: true,
+            rawEntries: [
+              { name: '解決できるカード', point: 2, cardKindClass: 'effect' },
+              { name: '未解決カード', point: 6, cardKindClass: 'effect' }
+            ]
+          }
+        },
+        latestListParam: '202607',
+        availableListParams: ['202607'],
+        discoveredAt: Date.now()
+      });
+      resolverMocks.resolveGenesysEntries.mockReturnValue({
+        points: { 'cid-0': 2 },
+        unresolved: ['未解決カード']
+      });
+
+      await cache.forceUpdate();
+
+      // 部分解決でも改善分をentryへ反映し、外部fetchは行わない。
+      // fetchedAtは元の外部取得日時を維持する（再解決日時と混同しないため）
+      expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
+      const updated = getInternalCache(cache)?.lists['202607'];
+      expect(updated?.incomplete).toBe(true);
+      expect(updated?.points['cid-0']).toBe(2);
+      expect(updated?.fetchedAt).toBe(fetchedAt);
     });
   });
 });
