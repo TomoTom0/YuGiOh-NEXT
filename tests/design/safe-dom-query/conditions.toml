@@ -17,7 +17,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/safe-dom-query.test.ts"
 source_hash = "5ee9e0c4bb8c1d3f7b7e7a029211df35e7a5fb95"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で重複していたsrc/utils/__tests__/safe-dom-query.test.ts（33it）から1件（safeAddClass追加後も既存クラスが保持される）をtests/unit/utils/safe-dom-query.test.tsへ移植し、src側ファイルを削除して一本化した。残り32件はtests/unit側に同趣旨の検証が既存のため移植せず"
 
 # --- safeQuery<T extends Element = Element>(selector, parent) ---
 

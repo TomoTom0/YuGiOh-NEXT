@@ -21,7 +21,7 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/search-exclusion-adapter.test.ts"
 source_hash = "812dca73cb543b89cf6186acd42c2f760686c739"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/search-exclusion-adapter.test.tsから1件（monsterTypes空ならfieldInputs['monster-type']=false）をtests/unit/utils/search-exclusion-adapter.test.tsへ移植し、旧ファイルを削除して一本化。これに伴い同検証の条件1件（field_inputs.monster_type_false_when_empty）を新規追加（残る同ファイルの検証はtests/unit側の既存テストが同趣旨を網羅）"
 
 # --- toSearchConditionState(filters: SearchFilters): SearchConditionState ---
 
@@ -112,6 +112,20 @@ source_lines = "59"
 description = "fieldInputs['monster-type']はfilters.monsterTypes.length > 0で判定されるため、state==='not'のみの要素があってもtrueになる。selectedAttributesは'not'状態を除外するが、fieldInputsは配列の要素数のみを見るため両者の判定基準が異なる非対称な仕様"
 given = "filters.monsterTypes = [{ type: 'tuner', state: 'not' }]（'normal'状態の要素は無し）"
 expect_return_shape = "fieldInputs['monster-type'] === true だが selectedAttributes.has('monster-type_tuner') === false"
+
+# 2026-09-10(TASK-478): src/utils/__tests__/search-exclusion-adapter.test.tsにのみ存在した
+# 「monsterTypes空ならfieldInputs['monster-type']=false」の明示的検証をtests/unit側へ
+# 移植したことに伴い追加。上記monster_type_counts_regardless_of_stateがtrue側のみを
+# 記載していたため、false側を独立条件として補完した（実装は同一行L59）。
+
+[[condition]]
+id = "field_inputs.monster_type_false_when_empty"
+target_function = "toSearchConditionState"
+source = "tm TASK-478: src/utils/__tests__/search-exclusion-adapter.test.ts 旧テストのmonsterTypes空配列検証（tests/unitへの移植に伴い条件化）"
+source_lines = "59"
+description = "filters.monsterTypesが空配列の場合、fieldInputs['monster-type']はfalseになる（length > 0判定の偽側）"
+given = "filters.monsterTypes = []"
+expect_return_shape = "fieldInputs['monster-type'] === false"
 
 [[condition]]
 id = "field_inputs.atk_delegates_to_has_atk_input"

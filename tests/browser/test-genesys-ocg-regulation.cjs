@@ -19,11 +19,9 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const http = require('http');
-const { createTestContext, WS_FILE } = require('./cdp-helper.cjs');
+const { createTestContext, WS_FILE, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
 
 const PAGE_WS_URL = fs.readFileSync(WS_FILE, 'utf8').trim();
-// 公開デッキ表示URL（認証不要）
-const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
 const GENESYS_INDEX_URL = 'https://www.yugioh-card.com/japan/howto/genesys/';
 
 /** 汎用 CDP 接続（wsUrl を指定） */
@@ -111,7 +109,7 @@ async function main() {
 
   // 公開デッキページを開いて background service worker を起動させる
   console.log('公開デッキ表示ページにアクセス中...');
-  await page.navigate(DECK_URL);
+  await page.navigate(PUBLIC_DECK_URL);
   await page.wait(6000);
 
   // service worker ターゲット取得（リトライ付き）
@@ -169,7 +167,7 @@ async function main() {
   }
 
   // ページリロードで content script を再実行（genesysPointCache.init → fetch）
-  await page.navigate(DECK_URL);
+  await page.navigate(PUBLIC_DECK_URL);
   console.log('ページリロード、content script の GENESYS取得を待機中...');
 
   let cacheJson = null;

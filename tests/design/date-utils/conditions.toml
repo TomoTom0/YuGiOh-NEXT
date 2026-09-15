@@ -24,7 +24,7 @@ verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/date-utils.test.ts"
 source_hash = "62737302c832c491219b7ddcb2c2177225f48048"
-note = "verified=falseは0件。全4関数とも公開APIのみで検証可能。"
+note = "verified=falseは0件。全4関数とも公開APIのみで検証可能。TASK-478で、重複していたsrc/utils/__tests__/date-utils.test.tsを一本化。src側8itすべて（同一日付真、日付違い偽、24時間跨ぎの両ケース、YYYY-MM-DD変換、ゼロ埋め、getTodayStart/Endの時刻構成）がtests/unit/utils/date-utils.test.tsの既存検証と同趣旨だったため移植不要と判断し、旧ファイルを削除した。getTodayStart/Endはunit側がfake timersによるシステム時刻固定検証でより厳密。移植に伴う新規条件追加は0件"
 
 # --- isSameDay(timestamp1: number, timestamp2: number): boolean ---
 

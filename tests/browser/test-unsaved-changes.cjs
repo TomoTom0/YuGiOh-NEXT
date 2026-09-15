@@ -85,18 +85,18 @@ async function testUnsavedChanges() {
     await cdp.evaluate(`document.querySelector('[data-testid="reload-deck-btn"]')?.click()`);
 
     const dialogShown = await cdp.waitFor(`document.querySelector('.base-dialog-overlay') !== null`, 5000);
-    t.assert('未保存の変更ダイアログ(.base-dialog-overlay)が表示される', dialogShown === true);
+    t.assert('未保存の変更ダイアログ(.base-dialog-overlay)が表示される [covers:deck-edit-layout.unsaved-changes-shows-dialog]', dialogShown === true);
 
     const dialogTitle = await cdp.evaluate(`document.querySelector('.base-dialog-overlay .dialog-title')?.textContent || ''`);
     t.assert('ダイアログタイトルが「未保存の変更があります」', dialogTitle.includes('未保存の変更'));
 
     const hasThreeButtons = await cdp.evaluate(`document.querySelectorAll('.base-dialog-overlay .dialog-footer .btn').length === 3`);
-    t.assert('ダイアログに3つのボタン（中断/保存して続ける/保存せず続ける）が表示される', hasThreeButtons === true);
+    t.assert('ダイアログに3つのボタン（中断/保存して続ける/保存せず続ける）が表示される [covers:deck-edit-layout.unsaved-changes-shows-dialog]', hasThreeButtons === true);
 
     console.log('\n--- 「処理を中断」でダイアログを閉じる ---');
     await cdp.evaluate(`document.querySelector('.base-dialog-overlay .btn-secondary')?.click()`);
     const dialogClosed = await cdp.waitFor(`document.querySelector('.base-dialog-overlay') === null`, 5000);
-    t.assert('「処理を中断」でダイアログが閉じる', dialogClosed === true);
+    t.assert('「処理を中断」でダイアログが閉じる [covers:deck-edit-layout.unsaved-button-interrupt-closes]', dialogClosed === true);
 
     // キャンセルはサーバーに書き込まないため、末尾スペース付きの名前がローカルに
     // 残っていても無害（次回ナビゲーションで破棄される）。念のため元に戻しておく。
@@ -118,10 +118,10 @@ async function testUnsavedChanges() {
     await cdp.evaluate(`document.querySelector('.base-dialog-overlay .btn-primary')?.click()`);
 
     const savedToast = await waitForToast(cdp, '保存しました');
-    t.assert('「保存して続ける」で保存成功トーストが表示される', savedToast === true);
+    t.assert('「保存して続ける」で保存成功トーストが表示される [covers:deck-edit-layout.unsaved-button-save-continue-runs-action]', savedToast === true);
 
     const reloadedToast = await waitForToast(cdp, '再読み込みしました');
-    t.assert('保存後に再読み込みが実行される', reloadedToast === true);
+    t.assert('保存後に再読み込みが実行される [covers:deck-edit-layout.unsaved-button-save-continue-runs-action]', reloadedToast === true);
 
     const nameAfterReload = await cdp.evaluate(`document.querySelector('.deck-name-input')?.value || ''`);
     t.assert('再読み込み後、末尾スペース付きの名前で保存されている', nameAfterReload === originalName + ' ');

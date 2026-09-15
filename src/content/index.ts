@@ -55,16 +55,6 @@ import {
 } from '../constants/storage-keys';
 
 /**
- * グローバル変数拡張
- * 型定義は src/types/window.d.ts で管理
- */
-declare global {
-  interface Window {
-    ygoNextPreloadedDeckDetailPromise?: Promise<void> | null;
-  }
-}
-
-/**
  * 編集UI読み込みフラグ（二重読み込み防止）
  */
 let editUILoaded = false;

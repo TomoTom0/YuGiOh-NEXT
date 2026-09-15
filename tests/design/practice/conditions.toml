@@ -14,7 +14,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/stores/practice.test.ts"
 source_hash = "e5fbf2ed9f636a592dc30f310a642a90805495ab"
-note = "typed APIとgetCards実装により到達不能な防御分岐6件のみcondition単位でverified=false"
+note = "typed APIとgetCards実装により到達不能な防御分岐7件のみcondition単位でverified=false"
 
 [[condition]]
 id = "select_zone.records_zone_slot_and_field"
@@ -550,3 +550,12 @@ source_lines = "809-812"
 description = "useDeckUndoRedoのredoを呼んだ後、現在状態をlocalStorageへ保存する。redo不可でもsaveToLocalStorageは呼ばれる"
 given = "redo()を呼ぶ"
 expect_side_effect = "可能なら次snapshotへ進み、保存される"
+
+[[condition]]
+id = "undo_redo_flags.transition_with_command_history"
+target_function = "usePracticeStore#canUndo/canRedo"
+source = "tm TASK-479: src/stores/__tests__/practice.test.ts L360「tracks canUndo/canRedo correctly」の移植に伴い条件化（unit側はcanUndoのみ検証し、store公開canRedoの推移は未検証だった）"
+source_lines = "209-210,873-874"
+description = "canUndo/canRedoはuseDeckUndoRedoのcommandIndex位置をそのまま公開する。操作前は両方false、操作後はcanUndoのみtrue、undo後はcanUndo falseかつcanRedo true、redo後はcanUndo trueかつcanRedo falseに推移する"
+given = "初期化→操作→undo→redoの流れでstore.canUndo/canRedoを観測する"
+expect_return_shape = "{ 初期: {canUndo: false, canRedo: false}, 操作後: {canUndo: true, canRedo: false}, undo後: {canUndo: false, canRedo: true}, redo後: {canUndo: true, canRedo: false}}"

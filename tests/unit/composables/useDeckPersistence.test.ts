@@ -109,8 +109,8 @@ describe('useDeckPersistence', () => {
     });
 
     window.location.href = 'http://localhost/';
-    delete (window as any).ygoNextPreloadedDeckDetail;
-    delete (window as any).ygoNextPreloadedDeckDetailPromise;
+    delete window.ygoNextPreloadedDeckDetail;
+    delete window.ygoNextPreloadedDeckDetailPromise;
   });
 
   afterEach(() => {
@@ -125,22 +125,22 @@ describe('useDeckPersistence', () => {
         name: 'Loaded Deck',
         mainDeck: [{ cid: 'card1', ciid: '1', lang: 'ja', quantity: 1 }]
       });
-      (window as any).ygoNextPreloadedDeckDetail = loadedDeck;
+      window.ygoNextPreloadedDeckDetail = loadedDeck;
 
       await createPersistence().loadDeck(123);
 
       expect(mockSessionManager.getCgid).toHaveBeenCalled();
       expect(getDeckDetail).not.toHaveBeenCalled();
       expect(deckInfo.value.name).toBe('Loaded Deck');
-      expect((window as any).ygoNextPreloadedDeckDetail).toBeNull();
+      expect(window.ygoNextPreloadedDeckDetail).toBeNull();
     });
 
     it('[covers:load.preload_promise_waited_and_cleared] プリロードPromiseを待ってからデータを使用する', async () => {
       const loadedDeck = makeDeck({ dno: 234, name: 'Resolved Preload' });
       let resolvePreload!: () => void;
-      (window as any).ygoNextPreloadedDeckDetailPromise = new Promise<void>((resolve) => {
+      window.ygoNextPreloadedDeckDetailPromise = new Promise<void>((resolve) => {
         resolvePreload = () => {
-          (window as any).ygoNextPreloadedDeckDetail = loadedDeck;
+          window.ygoNextPreloadedDeckDetail = loadedDeck;
           resolve();
         };
       });
@@ -152,25 +152,25 @@ describe('useDeckPersistence', () => {
       await createPersistence().loadDeck(234);
 
       expect(deckInfo.value.name).toBe('Resolved Preload');
-      expect((window as any).ygoNextPreloadedDeckDetailPromise).toBeNull();
+      expect(window.ygoNextPreloadedDeckDetailPromise).toBeNull();
       expect(getDeckDetail).not.toHaveBeenCalled();
     });
 
     it('[covers:load.preload_wait_failure_continues] [covers:load.no_preloaded_detail_fetches_api] プリロード待機失敗時はAPI取得へ進む', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(getDeckDetail).mockResolvedValue(makeDeck({ dno: 345, name: 'API Deck' }));
-      (window as any).ygoNextPreloadedDeckDetailPromise = Promise.reject(new Error('preload failed'));
+      window.ygoNextPreloadedDeckDetailPromise = Promise.reject(new Error('preload failed'));
 
       await createPersistence().loadDeck(345);
 
       expect(warnSpy).toHaveBeenCalled();
-      expect((window as any).ygoNextPreloadedDeckDetailPromise).toBeNull();
+      expect(window.ygoNextPreloadedDeckDetailPromise).toBeNull();
       expect(getDeckDetail).toHaveBeenCalledWith(345, 'test-cgid');
       expect(deckInfo.value.name).toBe('API Deck');
     });
 
     it('[covers:load.null_loaded_deck_no_state_update] API取得結果がnullなら状態更新しない', async () => {
-      vi.mocked(getDeckDetail).mockResolvedValue(null as any);
+      vi.mocked(getDeckDetail).mockResolvedValue(null);
       const beforeDeckInfo = deckInfo.value;
 
       await createPersistence().loadDeck(456);
@@ -187,7 +187,7 @@ describe('useDeckPersistence', () => {
     });
 
     it('[covers:load.deck_name_fallback] ロード時のnameはoriginalName、次に空文字へフォールバックする', async () => {
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({
+      window.ygoNextPreloadedDeckDetail = makeDeck({
         name: '',
         originalName: 'Original From API'
       });
@@ -195,7 +195,7 @@ describe('useDeckPersistence', () => {
       await createPersistence().loadDeck(500);
       expect(deckInfo.value.name).toBe('Original From API');
 
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({
+      window.ygoNextPreloadedDeckDetail = makeDeck({
         name: '',
         originalName: undefined
       });
@@ -211,7 +211,7 @@ describe('useDeckPersistence', () => {
         extraDeck: [{ cid: 'extra1', ciid: '2', lang: 'ja', quantity: 1 }],
         sideDeck: [{ cid: 'side1', ciid: '3', lang: 'ja', quantity: 1 }]
       });
-      (window as any).ygoNextPreloadedDeckDetail = loadedDeck;
+      window.ygoNextPreloadedDeckDetail = loadedDeck;
 
       await createPersistence().loadDeck(678);
 
@@ -229,7 +229,7 @@ describe('useDeckPersistence', () => {
     it('[covers:load.unified_cache_save_rejection_ignored] cache保存rejectはloadDeckを失敗させない', async () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(saveUnifiedCacheDB).mockRejectedValue(new Error('storage failed'));
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({ dno: 700 });
+      window.ygoNextPreloadedDeckDetail = makeDeck({ dno: 700 });
 
       await expect(createPersistence().loadDeck(700)).resolves.toBeUndefined();
       await Promise.resolve();
@@ -242,7 +242,7 @@ describe('useDeckPersistence', () => {
     });
 
     it('[covers:load.skipped_count_absent_no_toast] skippedCardsCountがない場合はtoastを表示しない', async () => {
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({ skippedCardsCount: 0 });
+      window.ygoNextPreloadedDeckDetail = makeDeck({ skippedCardsCount: 0 });
 
       await createPersistence().loadDeck(710);
 
@@ -251,7 +251,7 @@ describe('useDeckPersistence', () => {
     });
 
     it('[covers:load.skipped_cards_toast_body_max_three] skippedCardsは最大3件と残件数をtoast本文に入れる', async () => {
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({
+      window.ygoNextPreloadedDeckDetail = makeDeck({
         skippedCardsCount: 4,
         skippedCards: [
           { cid: '1', name: 'Card A', lang: 'ja' },
@@ -270,8 +270,27 @@ describe('useDeckPersistence', () => {
       );
     });
 
+    it('[covers:load.skipped_cards_toast_body_max_three] スキップカードが3件以下なら全件表示しほかN枚を付けない', async () => {
+      // src/composables/deck/__tests__/useDeckPersistence.test.ts (TASK-478) から移植
+      window.ygoNextPreloadedDeckDetail = makeDeck({
+        skippedCardsCount: 2,
+        skippedCards: [
+          { cid: '1', name: 'Card A', lang: 'ja' },
+          { cid: '2', name: 'Card B', lang: 'ja' }
+        ]
+      });
+
+      await createPersistence().loadDeck(740);
+
+      expect(toastMocks.showToast).toHaveBeenCalledWith(
+        '2枚の未発売カードをスキップしました',
+        'warning',
+        'Card A\nCard B'
+      );
+    });
+
     it('[covers:load.skipped_count_without_cards_empty_body] skippedCardsがない場合でも空本文でtoastを表示する', async () => {
-      (window as any).ygoNextPreloadedDeckDetail = makeDeck({
+      window.ygoNextPreloadedDeckDetail = makeDeck({
         skippedCardsCount: 1,
         skippedCards: undefined
       });

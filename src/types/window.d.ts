@@ -28,6 +28,12 @@ declare global {
     ygoNextPreloadedDeckDetail?: DeckInfo | null;
 
     /**
+     * デッキ詳細プリロードのPromise
+     * getDeckDetail の完了を待てるようにする
+     */
+    ygoNextPreloadedDeckDetailPromise?: Promise<void> | null;
+
+    /**
      * プリロードされたデッキ一覧データ
      * バックグラウンドスクリプトで事前取得されたデッキリスト
      */

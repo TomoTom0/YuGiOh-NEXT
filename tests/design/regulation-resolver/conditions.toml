@@ -31,7 +31,7 @@ verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/regulation-resolver.test.ts"
 source_hash = "26038abd6b3b94e16b699f45758719700706bd8c"
-note = "TASK-346でresolveClosestがnullを返した際の挙動を修正。TASK-450でbuildRegulationTagOptions/groupRegulationTagOptionsByYearPair追加"
+note = "TASK-346でresolveClosestがnullを返した際の挙動を修正。TASK-450でbuildRegulationTagOptions/groupRegulationTagOptionsByYearPair追加。TASK-478で、重複していたsrc/utils/__tests__/regulation-resolver.test.tsから3件（GENE省略形2件・GENESYS実在一覧空1件）をtests/unit/utils/regulation-resolver.test.tsへ移植し、旧ファイルを削除して一本化。これに伴いGENE省略形の統合解決条件1件（resolve.gene_abbrev_resolved_as_genesys）を新規追加（GENE→genesysの解釈自体はregulation-tag-parser側のresolve_reg_type.gene_abbrev条件で網羅済み）"
 
 # --- resolveDeckRegulation(deckName, available) ---
 
@@ -114,6 +114,20 @@ source_lines = "197-200"
 description = "GENESYSタグのYYMM指定時、実在一覧が空でもYYMMから計算したlistParamを返し、resolveAndEnsureのensureListに取得を試行させる（TASK-346修正）"
 given = "deckName = '[GENESYS-2608] デッキ', available.genesysListParams = []"
 expect_return_shape = "{ mode: 'genesys', listParam: '202608', fallback: undefined }"
+
+# 2026-09-10(TASK-478): src/utils/__tests__/regulation-resolver.test.tsにのみ存在した
+# GENE省略形タグの解決検証をtests/unit側へ移植したことに伴い追加。GENE→genesysの解釈自体は
+# regulation-tag-parser.tsのresolveRegType（resolve_reg_type.gene_abbrev条件）で網羅済みだが、
+# resolveDeckRegulationがparseRegulationTag経由でそれを利用する統合挙動として1件条件化した。
+
+[[condition]]
+id = "resolve.gene_abbrev_resolved_as_genesys"
+target_function = "resolveDeckRegulation"
+source = "tm TASK-478: src/utils/__tests__/regulation-resolver.test.ts 旧テストのGENE省略形タグ解決検証（tests/unitへの移植に伴い条件化）"
+source_lines = "161, 166-211"
+description = "デッキ名のGENE省略形タグ（[GENE]、[GENE-YYMM]）はparseRegulationTagがtype='genesys'と解釈するため、[GENESYS]フルネームのタグと同一のgenesys mode解決路径に入る（YYMM省略時はlistParam=null、YYMM指定時は実在一覧との照合結果が返る）"
+given = "deckName = '[GENE] マイデッキ'（YYMM省略）、または '[GENE-2608] マイデッキ'（YYMM指定、genesysListParams = ['202608']）"
+expect_return_shape = "mode='genesys'。YYMM省略時は { listParam: null, fallback: undefined }、YYMM指定時は { listParam: '202608', tag.type: 'genesys', tag.yymm: '2608' }"
 
 # --- buildRegulationTagOptions(available, isGenesysEnabled) ---
 # 2026-09-03(TASK-450) その2: 「長い日本語で選択肢を示す必要はない」指摘への対応でラベル書式変更。

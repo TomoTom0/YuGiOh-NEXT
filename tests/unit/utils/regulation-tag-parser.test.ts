@@ -275,3 +275,42 @@ describe('insertAfterPrefixTag', () => {
     expect(insertAfterPrefixTag('[メモ] 青眼の白龍デッキ', 'COPY_')).toBe('COPY_[メモ] 青眼の白龍デッキ');
   });
 });
+
+// 以下、src/utils/__tests__/regulation-tag-parser.test.ts (TASK-478) から移植。
+// tests/unit側に無かったGENE省略形のバリエーション（YYMM省略・小文字・末尾位置）と
+// GENEタグ置換時のGENESYS正規化の検証を含む。
+
+describe('GENE省略形（TASK-478移植分）', () => {
+  it('YYMM省略の [GENE] タグを GENESYS として解釈する [covers:resolve_reg_type.gene_abbrev] [covers:parse_content.yymm_omitted_defaults_null]', () => {
+    const tag = parseRegulationTag('[GENE] マイデッキ');
+    expect(tag).toEqual({
+      type: 'genesys',
+      yymm: null,
+      raw: '[GENE]',
+      bracket: 'square',
+      position: 'prefix',
+      startIndex: 0,
+      endIndex: 6
+    });
+  });
+
+  it('GENE省略形は大文字小文字を無視する [covers:resolve_reg_type.gene_abbrev] [covers:parse_content.case_insensitive_match]', () => {
+    const tag = parseRegulationTag('[gene-2608] マイデッキ');
+    expect(tag?.type).toBe('genesys');
+    expect(tag?.yymm).toBe('2608');
+  });
+
+  it('末尾の [GENE-2608] タグもパースする [covers:find_tag.suffix_square_match] [covers:resolve_reg_type.gene_abbrev]', () => {
+    const tag = parseRegulationTag('マイデッキ [GENE-2608]');
+    expect(tag?.type).toBe('genesys');
+    expect(tag?.yymm).toBe('2608');
+    expect(tag?.position).toBe('suffix');
+  });
+
+  it('GENE省略形タグを置換すると GENESYS に正規化される [covers:replace_tag_yymm.genesys_name] [covers:replace_tag_yymm.square_bracket] [covers:replace_tag_yymm.preserves_surrounding_text]', () => {
+    const deckName = '[GENE-2608] マイデッキ';
+    const tag = parseRegulationTag(deckName);
+    if (!tag) throw new Error('tag should be parsed');
+    expect(replaceTagYymm(deckName, tag, '2410')).toBe('[GENESYS-2410] マイデッキ');
+  });
+});

@@ -16,7 +16,7 @@ verified_at = "2026-08-07"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/utils/url-builder.test.ts"
 source_hash = "ea3b5659a762dae8cf583b9c6fd64489f7494289"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478で、重複していたsrc/utils/__tests__/url-builder.test.tsを一本化。src側17itすべてがtests/unit/utils/url-builder.test.tsの既存検証と同趣旨だったため移植不要と判断し、旧ファイルを削除した（buildApiUrlのparamsマージ・ゲームタイプ別URLはapi_path/build_api系が、各ヘルパーはdelegates系が、getVueEditUrlのlocale/dnoはvue_edit系が、それぞれ単純連結で分岐を持たない点も含めて網羅。src側のtcg指定はgetGamePathの非rush側フォールスルーでocg検証と同経路）。移植に伴う新規条件追加は0件"
 
 # --- getApiPathType(path: string): ApiPathType ---
 

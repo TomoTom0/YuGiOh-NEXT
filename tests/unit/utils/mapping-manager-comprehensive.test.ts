@@ -580,6 +580,19 @@ describe('MappingManager', () => {
       // Assert
       expect(result).toEqual({});
     });
+
+    it('動的raceマッピングが存在しても空の場合、空オブジェクトを返す [covers:text_to_id.race_no_dynamic_empty]', async () => {
+      // Arrange
+      const { mappingManager } = await import('@/utils/mapping-manager');
+      const emptyRaceMapping = { ...validEnglishMappings, race: {} };
+      (mappingManager as any)['dynamicMappings'].set('en', emptyRaceMapping);
+
+      // Act
+      const result = mappingManager.getRaceTextToId('en');
+
+      // Assert
+      expect(result).toEqual({});
+    });
   });
 
   describe('getMonsterTypeTextToId()', () => {
@@ -1260,6 +1273,23 @@ describe('MappingManager', () => {
       await initializeMappingManager();
 
       // Assert: appSettings.language='auto' は追加のensure対象にならない
+      expect(ensureSpy).not.toHaveBeenCalled();
+    });
+
+    it('設定言語が存在しない場合、追加の確保処理を行わない [covers:initialize_manager.config_language_missing_or_auto_skips]', async () => {
+      // Arrange
+      mockChromeStorage.local.get.mockResolvedValue({});
+      mockChromeStorage.sync.get.mockResolvedValue({}); // appSettings自体が存在しない
+      const { detectLanguage } = await import('@/utils/language-detector');
+      (detectLanguage as any).mockReturnValue('ja');
+
+      // Act
+      const { initializeMappingManager, mappingManager } = await import('@/utils/mapping-manager');
+      const ensureSpy = vi.spyOn(mappingManager, 'ensureMappingForLanguage');
+      await initializeMappingManager();
+
+      // Assert: 設定を読み込んだ結果appSettingsが存在しないためensure対象にならない
+      expect(mockChromeStorage.sync.get).toHaveBeenCalledWith('appSettings');
       expect(ensureSpy).not.toHaveBeenCalled();
     });
 

@@ -468,22 +468,18 @@ export async function setupRegulationDisplay(
 
     /**
      * resolvedの描画（カードバッジ・バナー・ネイティブ表示切替・トリガー更新）。
-     * 適用対象リストの確保済みであること。
-     * @returns 描画完了ならtrue。待機中に新しい選択（世代）が来て描画しなかったらfalse
+     * 適用対象リスト・（GENESYSモードの場合は）そのデッキ自身のカード情報の確保済みであること
+     * （呼び出し元のapplyResolvedが確保する。TASK-472: 以前はここでensureParsedDeckInfo()を
+     * 呼んでいたが、GENESYS解決（ensureResolvedList）より後になってしまい、新規インストール
+     * 直後の初回表示でそのデッキ自身のカードのGENESYSポイントが欠ける不具合があったため、
+     * applyResolvedの冒頭・ensureResolvedList呼び出し直前に移動した）。
      */
-    const renderApplied = async (
+    const renderApplied = (
       resolved: ResolvedRegulation,
       value: string,
       isManual: boolean,
-      warning: string | null,
-      generation: number
-    ): Promise<boolean> => {
-      if (resolved.mode === 'genesys') {
-        // link/pendulumモンスター除外判定にカード種別情報が必要なため、デッキ全体をパースする
-        await ensureParsedDeckInfo()
-        if (generation !== applyGeneration) return false
-      }
-
+      warning: string | null
+    ): boolean => {
       clearCardBadges()
       const genesysTotalPt = renderCardBadges(resolved)
       renderGenesysTotalBadge(resolved.mode === 'genesys' ? genesysTotalPt : 0)
@@ -495,6 +491,16 @@ export async function setupRegulationDisplay(
 
     const applyResolved = async (resolved: ResolvedRegulation, value: string, isManual: boolean): Promise<void> => {
       const generation = ++applyGeneration
+
+      if (resolved.mode === 'genesys') {
+        // link/pendulumモンスター除外判定、およびそのデッキ自身のカードのGENESYSポイント解決に
+        // カード種別情報が必要なため、GENESYS解決（ensureResolvedList）より先にデッキ全体をパースし
+        // カードDBへ登録する（TASK-472: 以前はensureResolvedListの後段（renderApplied内）で実行して
+        // おり、新規インストール直後の初回表示ではそのデッキ自身のカードがカードDB未登録のまま
+        // GENESYSポイントが解決されるため、そのカードのポイントが欠ける不具合があった）
+        await ensureParsedDeckInfo()
+        if (generation !== applyGeneration) return
+      }
 
       // 適用対象リストの確保。失敗時（未キャッシュ過去版が取得できない等）は取得不能な版を
       // 「無制限」と同じ扱いで描画せず、直前の選択へ戻す: 描画してしまうとネイティブの制限表示が
@@ -512,14 +518,14 @@ export async function setupRegulationDisplay(
         }
         if (generation !== applyGeneration) return
 
-        if (await renderApplied(revertTo.resolved, revertTo.value, revertTo.isManual, warning, generation)) {
+        if (renderApplied(revertTo.resolved, revertTo.value, revertTo.isManual, warning)) {
           lastApplied = revertTo
         }
         return
       }
       if (generation !== applyGeneration) return
 
-      if (await renderApplied(resolved, value, isManual, null, generation)) {
+      if (renderApplied(resolved, value, isManual, null)) {
         lastApplied = { resolved, value, isManual }
       }
     }

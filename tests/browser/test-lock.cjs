@@ -13,10 +13,7 @@
  * 4. 再クリックでロック解除されること
  */
 
-const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
-
-// 公開デッキURL（認証不要）
-const DECK_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
+const { connectCDP, createTestContext, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
 
 // 最初のカードの状態を取得する式
 const FIRST_CARD_INFO = `
@@ -53,7 +50,7 @@ async function testLock() {
 
   try {
     console.log('デッキ表示ページにアクセス中...');
-    await cdp.navigate(DECK_URL);
+    await cdp.navigate(PUBLIC_DECK_URL);
     await cdp.wait(5000); // 拡張機能のロード待機
 
     // 最初のカードのcid取得

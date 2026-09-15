@@ -19,7 +19,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/parser/deck-list-parser.test.ts"
 source_hash = "fbc69719d0c58c493b9a9b6f679c3899fb88d313"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/content/parser/__tests__/deck-list-parser.test.tsと一本化した。src側18テスト（空配列・単複デッキ抽出・名前trim・1桁/複数桁dno・クエリパラメータ順序・dno欠落スキップ・deckType抽出/undefined/空文字・名前/link_value欠落スキップ・日本語/特殊文字/長いデッキ名）はいずれもunit側の既存テストと同趣旨（dno抽出は無アンカーregex /dno=(\\d+)/ のためパラメータ順序は独立分岐ではなくparse_row.dno_digits_parsedと同一条件、特殊文字・200文字名はtextContent.trim()のpassthroughで切り詰め分岐が存在しないためparse_row.name_trimmedと同趣旨）のため移植0件。旧ファイルは削除済み"
 
 # --- parseDeckList(doc: Document): DeckListItem[] ---
 

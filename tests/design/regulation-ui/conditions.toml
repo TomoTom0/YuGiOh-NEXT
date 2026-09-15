@@ -11,18 +11,18 @@
 feature = "regulation-ui"
 source_file = "src/content/deck-display/regulation-ui.ts"
 verified = true
-verified_at = "2026-09-04"
+verified_at = "2026-09-09"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/content/deck-display/__tests__/regulation-ui.test.ts src/content/deck-display/__tests__/regulation-ui-apply.test.ts"
-source_hash = "cb8292c370276142b6da4285e0111d6d89a525ff"
-note = "verified=falseは0件。テストはsrc/content/deck-display/__tests__/配下にcolocate"
+test_command = "mise run test:vitest -- tests/unit/deck-display/regulation-ui.test.ts tests/unit/deck-display/regulation-ui-apply.test.ts"
+source_hash = "57c28a90319e22bf93f9ffd9cad58cb06222b2a9"
+note = "verified=falseは0件。テストはsrc/content/deck-display/__tests__/配下にcolocate。TASK-472でensureParsedDeckInfo()の呼び出し位置をrenderApplied→applyResolved冒頭へ移動（GENESYS解決順序修正）したためsource_lines/hashを更新"
 
 # --- setupRegulationDisplay() 適用パス ---
 
 [[condition]]
 id = "regulation_apply.ocg_past_success_renders_override_badges"
 target_function = "setupRegulationDisplay/applyResolved"
-source_lines = "496-525"
+source_lines = "492-531"
 description = "OCG過去版の適用に成功した場合、getRegulationの結果でカード個別の上書きバッジを描画し、ネイティブの禁止/制限表示を非表示にする。tooltipに適用版を表示し警告は出さない"
 given = "デッキ名タグ[OCG-2401]・ensureList成功・getRegulation='limited'"
 expect_side_effect = "ygo-next-limit-limitedバッジが描画され、ネイティブoverlaysはdisplay:none、is-unavailableクラス無し"
@@ -30,7 +30,7 @@ expect_side_effect = "ygo-next-limit-limitedバッジが描画され、ネイテ
 [[condition]]
 id = "regulation_apply.list_fetch_failure_on_initial_auto_reverts_to_native"
 target_function = "setupRegulationDisplay/applyResolved"
-source_lines = "499-518"
+source_lines = "508-525"
 description = "初回auto適用（デッキ名タグ由来）でリスト取得に失敗した場合、取得不能な版を「無制限」と同じ扱いで描画せずタグ無し扱い（ネイティブの最新版表示）に戻す。tooltipとトリガー警告色（is-unavailable）で取得失敗を報告する（PR#151レビューThread 2）"
 given = "デッキ名タグ[OCG-2401]・ensureListがnullを返す"
 expect_side_effect = "ネイティブoverlaysは非表示にされず、独自バッジも描画されず、tooltipに「指定 OCG 2024年01月版 のリストを取得できなかったため、直前の選択に戻しました」"
@@ -38,7 +38,7 @@ expect_side_effect = "ネイティブoverlaysは非表示にされず、独自�
 [[condition]]
 id = "regulation_apply.list_fetch_failure_on_manual_selection_keeps_previous"
 target_function = "setupRegulationDisplay/applyResolved"
-source_lines = "499-518"
+source_lines = "508-525"
 description = "手動選択した過去版のリスト取得に失敗した場合、直前の適用済み選択（lastApplied、メニュー選択状態・バッジ・ネイティブ表示切替を含む）に戻し、tooltipと警告色で報告する"
 given = "タグ無しデッキ（auto適用済み）でocg:2024-01-01を手動選択・ensureListがnullを返す"
 expect_side_effect = "メニュー選択はautoのまま、ネイティブ表示は維持され、tooltipに取得失敗の警告が出る"
@@ -46,10 +46,26 @@ expect_side_effect = "メニュー選択はautoのまま、ネイティブ表示
 [[condition]]
 id = "regulation_apply.stale_completion_does_not_overwrite_newer_selection"
 target_function = "setupRegulationDisplay/applyResolved"
-source_lines = "450-525"
+source_lines = "450-531"
 description = "未キャッシュ過去版のfetch中に別版を選択した場合、applyResolvedは世代番号（applyGeneration）で並走を管理し、遅く完了した古い選択は描画（バッジ・tooltip・ネイティブ表示切替・メニュー選択状態）を行わない（PR#151レビューThread 3）"
 given = "ocg:2024-01-01のensureListがpending中にocg:2023-01-01を選択し、その後2024のfetchが完了する"
 expect_side_effect = "最終的な表示・tooltip・バッジは2023-01-01選択の結果のまま変化しない"
+
+[[condition]]
+id = "regulation_apply.genesys_ensures_parsed_deck_info_before_list_resolution"
+target_function = "setupRegulationDisplay/applyResolved"
+source_lines = "495-503"
+description = "GENESYSモード（resolved.mode==='genesys'）適用時、applyResolvedの冒頭でensureParsedDeckInfo()（そのデッキ自身のカードをカードDBへ登録する）をGENESYS解決（ensureResolvedList内のgenesysPointCache.ensureList/ensureCurrentList）より先にawaitする。TASK-472: 以前はrenderApplied内（ensureResolvedListより後）で呼んでいたため、新規インストール直後の初回表示でそのデッキ自身のカードのGENESYSポイントが欠ける不具合があった。await後はgeneration不一致（世代チェック）ならreturnして以降を実行しない"
+given = "デッキ名タグ[GENESYS]（またはGENESYS-YYMM）でgenesys機能有効"
+expect_side_effect = "ensureParsedDeckInfo()のinvocationCallOrderがgenesysPointCache.ensureList/ensureCurrentListより先になる"
+
+[[condition]]
+id = "regulation_apply.non_genesys_modes_skip_ensure_parsed_deck_info"
+target_function = "setupRegulationDisplay/applyResolved"
+source_lines = "495-503"
+description = "resolved.mode!=='genesys'（OCGモード・タグ無し=mode'none'）の場合、applyResolvedはensureParsedDeckInfo()を呼ばない（不要なデッキパースのコストを避ける既存挙動の維持）"
+given = "デッキ名タグ[OCG-2401]、またはタグ無し（mode='none'）"
+expect_side_effect = "ensureParsedDeckInfo()が一度も呼ばれない"
 
 # --- export純粋関数 ---
 

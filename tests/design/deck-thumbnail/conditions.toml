@@ -20,7 +20,7 @@ source_file = "src/utils/deck-thumbnail.ts"
 verified = true
 verified_at = "2026-08-06"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/utils/__tests__/deck-thumbnail.test.ts"
+test_command = "mise run test:vitest -- tests/unit/utils/deck-thumbnail.test.ts"
 source_hash = "83393f2cd30e9731e4b497f85ccab2db7a17a572"
 note = "既存テストファイルsrc/utils/__tests__/deck-thumbnail.test.ts（プロジェクト内の古い規約の配置。tests/unit/utils/配下が現行規約）にgenerateDeckThumbnailCardsのテストが既に存在したため、新規ファイルは作成せず既存ファイルにcoversタグを付与し、未カバーのgenerateDeckThumbnailImageおよび非export関数群のテストを追加した。verified=falseの条件は無し。"
 

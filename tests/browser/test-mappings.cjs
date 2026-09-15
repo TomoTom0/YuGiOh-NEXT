@@ -10,10 +10,7 @@
  *   src/content/index.ts (initializeFeatures -> initializeMappingManager)
  */
 
-const { connectCDP, createTestContext } = require('./cdp-helper.cjs');
-
-// 公開デッキURL（認証不要）
-const PUBLIC_URL = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95';
+const { connectCDP, createTestContext, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
 
 async function testMappings() {
   console.log('【マッピング取得テスト（認証不要・公開URL）】\n');
@@ -36,7 +33,7 @@ async function testMappings() {
     await cdp.sendCommand('Network.enable');
     const reqPromise = cdp.waitForRequest('card_search.action', 15000);
     console.log('公開デッキページにアクセス中...');
-    await cdp.navigate(PUBLIC_URL);
+    await cdp.navigate(PUBLIC_DECK_URL);
 
     const req = await reqPromise;
     if (req) {

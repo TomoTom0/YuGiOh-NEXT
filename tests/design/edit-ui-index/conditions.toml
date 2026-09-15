@@ -13,8 +13,9 @@
 # - なし。
 #
 # 既存テストの説明文・アサーションの不正確さ:
-# - edit-ui/index.ts専用のテストは存在しなかった（DeckEditLayout.vue自体のテストは
-#   tests/unit/deck-display/DeckEditLayout.test.tsに別途40件存在する）。
+# - edit-ui/index.ts専用のテストは存在しなかった。DeckEditLayout.vue自体のマウント検証は
+#   TASK-487の再設計により tests/unit/content/deck-edit-layout.test.ts（実pinia+実store
+#   によるmount、tests/design/deck-edit-layout/conditions.tomlに紐付け）が担う。
 
 [meta]
 feature = "edit-ui-index"
@@ -246,7 +247,7 @@ description = "vueModulesPromise(vue/pinia/DeckEditLayout.vueの事前import)を
 given = "正常系でinitVueAppを実行"
 expect_side_effect = "#vue-edit-app配下にDeckEditLayoutコンポーネントがマウントされる"
 verified = false
-unverifiable_reason = "モジュールトップレベルのvueModulesPromiseはモジュール初回evaluate時に1度だけ生成されるため、DeckEditLayout.vueをテストごとにモック差し替えるには追加のモジュールキャッシュ制御が必要で、実際のマウント結果はDeckEditLayout.test.ts側で別途40件検証済みのため本ファイルでは重複検証としない"
+unverifiable_reason = "モジュールトップレベルのvueModulesPromiseはモジュール初回evaluate時に1度だけ生成されるため、DeckEditLayout.vueをテストごとにモック差し替えには追加のモジュールキャッシュ制御が必要。実マウント結果の検証は tests/unit/content/deck-edit-layout.test.ts（TASK-487再設計・実コンポーネントmount）が担うため本ファイルでは重複検証としない"
 
 [[condition]]
 id = "watch_url_changes.header_resize_observer_leak_prevention_across_many_visits"

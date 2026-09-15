@@ -226,7 +226,7 @@ async function testSettings() {
     console.log('\n--- 1. ダイアログを開く ---');
     // ============================================================
     const opened = await openSettingsDialog(cdp);
-    t.assert('メニューの Options で設定ダイアログが開く', opened === true);
+    t.assert('メニューの Options で設定ダイアログが開く [covers:deck-edit-layout.settings-dialog-visibility]', opened === true);
     if (!opened) { t.summary(); return; }
 
     const header = await cdp.evaluate(`document.querySelector('${DIALOG_HEADER}')?.textContent.trim()`);
@@ -276,7 +276,7 @@ async function testSettings() {
     // ============================================================
     await cdp.evaluate(`document.querySelector('${OVERLAY} .dialog-header .close-btn')?.click()`);
     const closedByBtn = await waitDialogClosed(cdp);
-    t.assert('close-btn クリックでダイアログが閉じる', closedByBtn === true);
+    t.assert('close-btn クリックでダイアログが閉じる [covers:deck-edit-layout.settings-dialog-visibility]', closedByBtn === true);
 
     // --- 再オープンしてオーバーレイクリックでのクローズを確認 ---
     const reopened = await openSettingsDialog(cdp);
@@ -325,7 +325,7 @@ async function testSettings() {
     );
     const containerThemeAfterFirst = await getContainerTheme(cdp);
     t.assert(
-      `.deck-edit-container の data-ygo-next-theme も「${oppositeHtmlTheme}」に追従する`,
+      `.deck-edit-container の data-ygo-next-theme も「${oppositeHtmlTheme}」に追従する [covers:deck-edit-layout.theme-attribute-binding]`,
       containerThemeAfterFirst === oppositeHtmlTheme
     );
 

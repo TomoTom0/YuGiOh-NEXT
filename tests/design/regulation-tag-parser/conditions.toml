@@ -25,7 +25,7 @@ verified_at = "2026-09-03"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/regulation-tag-parser.test.ts"
 source_hash = "664e973e141fe857012273365545e021a8959cd5"
-note = "verified=falseは1件（resolve_reg_type.other_null、非exportのため公開APIから到達不可）。TASK-450でsetRegulationTag追加に伴いparseRegulationTag系のsource_linesを実測値に補正（既存の記載が実ファイルと20行以上ずれていたため）"
+note = "verified=falseは1件（resolve_reg_type.other_null、非exportのため公開APIから到達不可）。TASK-450でsetRegulationTag追加に伴いparseRegulationTag系のsource_linesを実測値に補正（既存の記載が実ファイルと20行以上ずれていたため）。TASK-478で、重複していたsrc/utils/__tests__/regulation-tag-parser.test.tsから4件（GENE省略形のYYMM省略・小文字・末尾位置、GENEタグ置換時のGENESYS正規化）をtests/unit/utils/regulation-tag-parser.test.tsへ移植し、旧ファイルを削除して一本化。4件とも既存条件でカバー可能なため新規条件の追加は無し（移植分のasキャストはunit側スタイルのnullチェックへ置換）"
 
 # --- resolveRegType(nameUpper: string): RegType | null ---
 # 非export。parseContent() からのみ呼ばれる。

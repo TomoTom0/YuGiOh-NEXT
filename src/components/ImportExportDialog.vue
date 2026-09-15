@@ -226,6 +226,7 @@ import { ref, computed, watch } from 'vue';
 import BaseDialog from './BaseDialog.vue';
 import { importDeckFromFile } from '@/utils/deck-import';
 import { downloadDeckAsTXT, downloadFile, exportToTXT, generateExportRows, type ExportRow } from '@/utils/deck-export';
+import { isHTMLInputElement } from '@/utils/type-guards';
 import { createDeckRecipeImage } from '../content/deck-recipe/createDeckRecipeImage';
 import { mdiFolderOpen, mdiTrayArrowDown, mdiDownload, mdiRefresh, mdiDragVertical } from '@mdi/js';
 // @ts-ignore - Used in defineEmits type
@@ -324,11 +325,22 @@ async function generatePreviewImage(deckInfo: DeckInfo) {
       deckData: { ...deckInfo, name: '' }
     });
 
+    // 戻り値は環境によりBlob|Buffer。Buffer（Node環境等）はBlob APIで扱えないためエラー
+    if (!(blob instanceof Blob)) {
+      throw new Error('[ImportExportDialog] createDeckRecipeImage did not return a Blob');
+    }
+
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error('[ImportExportDialog] Failed to read preview image as data URL'));
+          return;
+        }
+        resolve(reader.result);
+      };
       reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob as Blob);
+      reader.readAsDataURL(blob);
     });
 
     if (generation !== previewImageGeneration) return;
@@ -385,7 +397,12 @@ function onColumnDragStart(index: number) {
 }
 
 function onColumnDrop(index: number) {
-  if (dragColumnIndex.value === null || dragColumnIndex.value === index) return;
+  if (dragColumnIndex.value === null) return;
+  // 同一indexへのdropは並び替えしないが、draggingクラス（半透明表示）を解除するためクリアする
+  if (dragColumnIndex.value === index) {
+    dragColumnIndex.value = null;
+    return;
+  }
   const cols = [...csvColumns.value];
   const [moved] = cols.splice(dragColumnIndex.value, 1);
   cols.splice(index, 0, moved);
@@ -484,6 +501,11 @@ function resetDialog() {
   if (fileInput.value) {
     fileInput.value.value = '';
   }
+
+  // Export設定（format・Side Deck・CSV列）は前回値を保持し、filenameBaseのみprops基準で再生成する。
+  // dragColumnIndexはドラッグ進行中の一時状態のためクリアする（残ると再オープン後にdraggingクラスが残る）
+  dragColumnIndex.value = null;
+  generateFilename();
 }
 
 // ファイル選択ボタンをクリック
@@ -493,7 +515,8 @@ function triggerFileSelect() {
 
 // ファイルが選択された
 async function handleFileSelect(event: Event) {
-  const target = event.target as HTMLInputElement;
+  const target = event.target;
+  if (!isHTMLInputElement(target)) return;
   const file = target.files?.[0];
 
   if (!file) {

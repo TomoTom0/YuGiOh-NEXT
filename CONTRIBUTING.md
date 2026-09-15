@@ -220,7 +220,7 @@ src/
 **テストファイルの配置**:
 ```
 src/api/card-faq.ts
-  └─ src/api/__tests__/card-faq.test.ts
+  └─ tests/unit/api/card-faq.test.ts
 
 src/components/CardInfo.vue
   └─ tests/unit/components/CardInfo.test.ts

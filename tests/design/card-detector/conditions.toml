@@ -18,7 +18,7 @@ source_file = "src/content/card/detector.ts"
 verified = true
 verified_at = "2026-08-29"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/content/card/__tests__/detector.test.ts"
+test_command = "mise run test:vitest -- tests/unit/content/detector.test.ts"
 source_hash = "0ae9aa2f4546b5c10c57ed3a96d9d987655f5b4a"
 note = "verified=falseは0件"
 

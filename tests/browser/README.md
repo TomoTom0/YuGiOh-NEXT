@@ -12,13 +12,23 @@ Chrome DevTools Protocol（CDP）を使用して、Chromiumブラウザ上で拡
 
 ```bash
 # Chromium起動（リモートデバッグモード + 拡張機能ロード）
+# 設定（binary・拡張機能パス・headless等）は configs/browser.toml で管理
 ./scripts/debug/setup/start-chrome.sh
+
+# ディスプレイの無い環境ではヘッドレス起動を強制
+./scripts/debug/setup/start-chrome.sh --headless
+
+# 設定の解決結果だけ確認（起動しない）
+./scripts/debug/setup/start-chrome.sh --check
 ```
 
 このスクリプトは以下を実行します：
-- Chromiumをリモートデバッグモードで起動
-- 拡張機能を自動ロード
-- WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に指定されたファイルに保存
+- Chromiumをリモートデバッグモードで起動（binaryはconfig指定 > Playwright同梱 > chromium-browser の順に自動検出）
+- 拡張機能を自動ロード（config指定 > `.env` の `RSYNC_PATH`）
+- 起動成否をCDP応答で確認し、WebSocket URLを `configs/browser.toml` の `chrome.ws_file` に保存（失敗時はログ末尾を表示して異常終了）
+- 停止は `./scripts/debug/setup/stop-chrome.sh`
+
+手動ログイン（遊戯王DB会員ログイン等）が必要なテストでは、Xvfb + VNCスタックでGUI起動できる `./scripts/debug/setup/start-login-vnc.sh`（停止は `stop-login-vnc.sh`）を使用します。または、書き出し済みのセッション（storageState）を `cdp-helper.cjs` の `injectSession(cdp)` で注入する方法もあります（詳細は「ログインセッション」参照）。
 
 ### 2. 依存パッケージのインストール
 
@@ -40,6 +50,8 @@ Chrome DevTools Protocolを使用するための共通ヘルパー関数です�
 - `navigate(url)`: ページに移動
 - `wait(ms)`: 指定時間待機
 - `close()`: 接続を閉じる
+- `PUBLIC_DECK_URL`: テスト対象の公開デッキ表示URL（一元化。詳細は「テスト対象URL」参照）
+- `injectSession(cdp)`: ログインセッション（storageState）のcookieを注入（詳細は「ログインセッション」参照）
 
 ### `test-buttons.cjs`
 
@@ -84,7 +96,7 @@ Lock機能（sortfix）の動作確認テストです。
 3. シャッフル時にロックされたカードが先頭に保持されること
 4. もう一度クリックするとロックが解除されること
 
-**前提**: 公開デッキURL（認証不要）で実行。クリック対象は `<a>` ではなく子の `.ygo-next-card-btn.top-right` ボタン（DOMイベントは子孫に伝播しないため）。
+**前提**: 公開デッキURL（認証不要）で実行。クリック対象は `<a>` ではなく子の `.ygo-next-card-btn.top-right` ボタン（DOMイベントは子孫に伝播しないため）。カードコントロール（`.top-right` ボタン）は `showCardDetailInDeckDisplay` 設定が有効な場合のみ注入されるため（`src/content/deck-display/index.ts` の `initDeckDisplay`）、本テストの実行前に拡張機能の設定で「デッキ表示でのカード詳細表示」を有効にしておくこと。
 
 **実行方法**:
 ```bash
@@ -467,11 +479,48 @@ node tests/browser/test-command-history.cjs
 
 ## テスト対象URL
 
-すべてのテストは以下の公開デッキURLでテストを実行します（認証不要）：
+公開デッキ表示URLは `cdp-helper.cjs` の `PUBLIC_DECK_URL` に一元化しています（TASK-467）。テストファイルにURLをハードコードせず、requireした定数を使用します:
 
+```javascript
+const { connectCDP, PUBLIC_DECK_URL } = require('./cdp-helper.cjs');
+await cdp.navigate(PUBLIC_DECK_URL);
 ```
-https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck&ytkn=8f21eab3f9c60291cd95cd826f709d226675a2bec73af70b567bb779cca8fbfa&cgid=87999bd183514004b8aa8afa1ff1bdb9&dno=95
+
+- `ope=1` のGET表示には ytkn（CSRFトークン）は不要で、cgid（公開デッキID）のみで表示可能です（TASK-467で実機検証済み。ytknはcookieセッションとペアで失効するためURLから除去しています）
+- cgid は約6週間で失効します。テストが404等で失敗するようになったら以下の手順で再調達します:
+  1. ログイン済みブラウザでマイデッキ一覧（`member_deck.action?ope=4`）を開き、公開設定のデッキの表示URLから `cgid` の値を控える
+  2. `tests/browser/cdp-helper.cjs` の `PUBLIC_DECK_CGID` をその値に差し替える（`PUBLIC_DECK_DNO` は対象デッキの番号）
+
+## ログインセッション
+
+ログインが必要なページ（デッキ編集等）へ、手動ログイン済みプロファイルの状態に依存せずアクセスするための仕組みです（TASK-467）。`scripts/debug/setup/export-session-state.sh` で書き出したcookie（Playwright storageState形式）を `cdp-helper.cjs` の `injectSession(cdp)` で現在のChromiumへ注入します。
+
+- 出力先: `configs/browser.toml` の `session.state_file`（`data/session/storageState.json`。認証情報を含むためgitignore済み。commit・値の表示は禁止）
+- 呼び出し基準: (a) 認証が必要なページへアクセスする、かつ (b) 手動ログイン済みプロファイルの状態に依存せず動かしたい、というテストだけが `injectSession` を呼びます。`ope=1` 公開URLのみのテストは呼びません
+
+**使い方**（`connectCDP()` 直後に呼びます）:
+
+```javascript
+const { connectCDP, injectSession } = require('./cdp-helper.cjs');
+const cdp = await connectCDP();
+await injectSession(cdp);   // stateファイルのcookieを注入（戻り値=注入件数、異常時はthrow）
+await cdp.navigate('https://www.db.yugioh-card.com/yugiohdb/#/ytomo/edit?dno=3');
 ```
+
+**storageStateの再生成手順**:
+
+```bash
+./scripts/debug/setup/start-login-vnc.sh
+# VNCクライアント（configs/browser.toml の login-vnc.port）で接続し、db.yugioh-card.com へログイン
+./scripts/debug/setup/export-session-state.sh   # 起動中Chromiumのcookieを書き出し
+./scripts/debug/setup/stop-login-vnc.sh
+./scripts/debug/setup/start-chrome.sh
+```
+
+**注意**:
+
+- `injectSession` は stateファイルのcookieで現在のChromiumのcookieを上書き設定します。テスト用プロファイルに手動ログイン済みの状態がある場合、そのcookieは差し替わります
+- cookieは失効します。注入済みのはずなのにログインが必要な画面が出る場合は再生成してください
 
 ## 全テストの実行
 
@@ -512,6 +561,16 @@ Chromiumが終了している可能性があります。Chromiumを再起動し�
 await cdp.wait(5000); // 5秒待機（必要に応じて延長）
 ```
 
+### `セッションstateファイルが見つかりません: data/session/storageState.json`（injectSession）
+
+storageStateファイルが未生成です。「ログインセッション」の再生成手順で作成してください:
+
+```bash
+./scripts/debug/setup/start-login-vnc.sh
+# VNCで db.yugioh-card.com へログイン後:
+./scripts/debug/setup/export-session-state.sh
+```
+
 ## テストの追加
 
 新しいテストを追加する場合：
@@ -523,6 +582,8 @@ await cdp.wait(5000); // 5秒待機（必要に応じて延長）
 3. `navigate(url)` でページに移動
 4. `evaluate(expression)` でDOM操作・確認
 5. テスト終了時に `close()` で接続を閉じる
+
+**URLとログイン**: 公開デッキURLはハードコードせず `cdp-helper.cjs` の `PUBLIC_DECK_URL` を使用すること。ログインが必要なテストは `injectSession(cdp)` を利用する（「テスト対象URL」「ログインセッション」参照）。
 
 **テンプレート**:
 

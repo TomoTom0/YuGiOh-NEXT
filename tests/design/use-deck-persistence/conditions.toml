@@ -14,7 +14,7 @@ verified_at = "2026-08-07"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/composables/useDeckPersistence.test.ts"
 source_hash = "6928a8827394f2450dacdd5d86f89f0516ab4dc0"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/composables/deck/__tests__/useDeckPersistence.test.tsから未カバー検証1件（スキップカード3件以下の全件表示・ほかN枚なし）を移植し、旧ファイルを削除して一本化。残るsrc側テストはすべてtests/unit側に同趣旨の検証が既存のため移植不要。新規条件追加なし（load.skipped_cards_toast_body_max_threeが対応）"
 
 # --- useDeckPersistence(options): { loadDeck, saveDeck } ---
 

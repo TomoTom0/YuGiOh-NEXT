@@ -48,7 +48,7 @@ source_file = "src/composables/useDeckNameVariables.ts"
 verified = true
 verified_at = "2026-08-07"
 verified_by = "claude"
-test_command = "mise run test:vitest -- src/composables/__tests__/useDeckNameVariables.test.ts"
+test_command = "mise run test:vitest -- tests/unit/composables/useDeckNameVariables.test.ts"
 source_hash = "5134dd5979b89ded7aff2f10ab576409b55e2200"
 note = "verified=falseは0件。target_function を useDeckNameVariables#<method> 形式で記載（composable factory パターン）。ASTスクリプト未対応のため useDeckNameVariables が未カバーと出るが既知の限界。"
 

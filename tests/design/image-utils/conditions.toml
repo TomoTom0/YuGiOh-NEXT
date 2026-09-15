@@ -21,7 +21,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/api/image-utils.test.ts"
 source_hash = "7f8fd4aa08a249d28c603e14d04caae349430d73"
-note = "verified=falseは0件"
+note = "verified=falseは0件。TASK-478でsrc/api/__tests__/image-utils.test.tsと一本化した。src側21テスト（属性/レベル/ランク/魔法/罠/効果タイプアイコンURL・リンクマーカー類）はいずれもunit側の既存テストと同趣旨（unit側が負数入力・走査範囲外ビット・未知属性・決定性確認まで含む上位集合）のため移植0件。src側のみにあったwindow.location.hrefモックはhappy-dom既定locationでもdetectCardGameTypeが'ocg'を返すため挙動差なし。旧ファイルは削除済み"
 
 # --- getAttributeIconUrl(attribute: string): string ---
 

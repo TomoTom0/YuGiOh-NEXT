@@ -43,6 +43,9 @@ function readBrowserConfig(key) {
 /** WebSocketエンドポイントファイルのパス（configs/browser.toml から取得） */
 const WS_FILE = readBrowserConfig('chrome.ws_file');
 
+/** セッションstateファイルのパス（configs/browser.toml の session.state_file から取得） */
+const SESSION_STATE_FILE = readBrowserConfig('session.state_file');
+
 /**
  * Chrome CDPに接続
  */
@@ -203,4 +206,76 @@ function createTestContext() {
   };
 }
 
-module.exports = { connectCDP, createTestContext, WS_FILE };
+// --- 公開デッキ表示URL（テストデータの一元化。TASK-467） ---
+// ope=1 のGET表示には ytkn（CSRFトークン）は不要で cgid（公開デッキID）のみで表示可能
+// （TASK-467で実機検証済み。ytknはcookieセッションとペアで失効するためURLから除去）。
+// cgid は約6週間で失効する。失効時は PUBLIC_DECK_CGID のみ差し替える
+// （再調達手順は tests/browser/README.md「テスト対象URL」参照）。
+const PUBLIC_DECK_CGID = '87999bd183514004b8aa8afa1ff1bdb9';
+const PUBLIC_DECK_DNO = '95';
+const PUBLIC_DECK_URL =
+  `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck` +
+  `&cgid=${PUBLIC_DECK_CGID}&dno=${PUBLIC_DECK_DNO}`;
+
+/**
+ * ログインセッション（storageState）を現在のChromiumへcookieとして注入する（TASK-467）
+ *
+ * 呼び出し基準: (a) 認証が必要なページへアクセスする、かつ (b) 手動ログイン済み
+ * プロファイルの状態に依存せず動かしたい、というテストだけが呼ぶ。
+ * ope=1公開URLのみのテストは呼ばない（詳細: tests/browser/README.md「ログインセッション」）。
+ *
+ * @param {object} cdp - connectCDP() の戻り値（helper）
+ * @returns {Promise<number>} 注入したcookie件数
+ * @throws {Error} stateファイルの不備・cookie注入の失敗時（fail-fast）
+ */
+async function injectSession(cdp) {
+  if (!SESSION_STATE_FILE) {
+    throw new Error('configs/browser.toml の session.state_file が読み取れません');
+  }
+  if (!fs.existsSync(SESSION_STATE_FILE)) {
+    throw new Error(
+      `セッションstateファイルが見つかりません: ${SESSION_STATE_FILE}\n` +
+      '  再生成: ./scripts/debug/setup/export-session-state.sh（詳細: tests/browser/README.md「ログインセッション」）');
+  }
+  let state;
+  try {
+    state = JSON.parse(fs.readFileSync(SESSION_STATE_FILE, 'utf8'));
+  } catch (e) {
+    throw new Error(`セッションstateファイルの読み取りに失敗: ${SESSION_STATE_FILE} (${e.message})`);
+  }
+  if (!Array.isArray(state.cookies) || state.cookies.length === 0) {
+    throw new Error(`セッションstateファイルにcookieがありません: ${SESSION_STATE_FILE}`);
+  }
+  await cdp.sendCommand('Page.enable');
+  await cdp.sendCommand('Network.enable');
+  await cdp.navigate('https://www.db.yugioh-card.com/yugiohdb/');
+  // waitFor はタイムアウト時にfalseを返すだけのため、失敗をここでfail-fastさせる
+  const ready = await cdp.waitFor("document.readyState === 'complete'", 15000, 300);
+  if (!ready) {
+    throw new Error('db.yugioh-card.com へのナビゲーションがタイムアウトしました（cookie注入の前提が成立しません）');
+  }
+  await cdp.wait(1000);
+  // sameSite は Strict/Lax のみ明示し、それ以外はキーを省略する
+  // （未指定を明示的な 'None'（=SameSite=None; Secure相当）に変換しないため。レビューL-1）
+  const cookies = state.cookies.map((c) => {
+    const ck = {
+      name: c.name, value: c.value, domain: c.domain, path: c.path,
+      expires: c.expires > 0 ? c.expires : undefined,
+      httpOnly: c.httpOnly, secure: c.secure
+    };
+    if (c.sameSite === 'Strict' || c.sameSite === 'Lax') ck.sameSite = c.sameSite;
+    return ck;
+  });
+  await cdp.sendCommand('Network.setCookies', { cookies });
+  const res = await cdp.sendCommand('Network.getCookies', { urls: ['https://www.db.yugioh-card.com/'] });
+  const dbCookies = (res.result && res.result.cookies) || [];
+  if (dbCookies.length === 0) {
+    // sendCommand はCDP errorをrejectしないため、元エラーを含めて診断可能にする（レビューL-2）
+    const cdpErr = res.error ? ` CDP error: ${res.error.code || ''} ${res.error.message || ''}` : '';
+    throw new Error(`cookie注入に失敗しました（db.yugioh-card.com のcookieが0件）${cdpErr}`);
+  }
+  console.log(`[session] cookie注入完了: ${cookies.length}件（db.yugioh-card.com: ${dbCookies.length}件）`);
+  return cookies.length;
+}
+
+module.exports = { connectCDP, createTestContext, WS_FILE, PUBLIC_DECK_URL, injectSession };

@@ -171,14 +171,14 @@ async function testKeyboardShortcuts() {
     await blurActiveElement(cdp); // body フォーカスでショートカット有効条件を作る
     await ctrlZ(cdp);
     const undone = await waitForOrder(cdp, originalOrder);
-    t.assert('Ctrl+Z で undo されシャッフル前の順序に戻る', undone === true);
+    t.assert('Ctrl+Z で undo されシャッフル前の順序に戻る [covers:deck-edit-layout.shortcut-undo-executes-undo]', undone === true);
 
     // ============================================================
     console.log('\n--- 2. Ctrl+Y で redo（シャッフル再適用） ---');
     // ============================================================
     await ctrlY(cdp);
     const redone = await waitForOrder(cdp, shuffled1);
-    t.assert('Ctrl+Y で redo されシャッフル後の順序に戻る', redone === true);
+    t.assert('Ctrl+Y で redo されシャッフル後の順序に戻る [covers:deck-edit-layout.shortcut-redo-executes-redo]', redone === true);
 
     // 後続テストのために一旦 undo して元の順序に戻す
     await ctrlZ(cdp);
@@ -201,7 +201,7 @@ async function testKeyboardShortcuts() {
     await cdp.wait(300);
     const orderAfterIgnored = await getOrder(cdp);
     t.assert(
-      '入力欄フォーカス中の Ctrl+Z では undo されない（順序はシャッフルのまま）',
+      '入力欄フォーカス中の Ctrl+Z では undo されない（順序はシャッフルのまま） [covers:deck-edit-layout.shortcut-ignored-while-input-focused]',
       JSON.stringify(orderAfterIgnored) === JSON.stringify(shuffled2)
     );
 
@@ -216,7 +216,7 @@ async function testKeyboardShortcuts() {
     await blurActiveElement(cdp);
     await slash(cdp);
     const overlayShown = await cdp.waitFor(OVERLAY_EXPR, 3000);
-    t.assert('「/」キーで global-search-overlay が表示される', overlayShown === true);
+    t.assert('「/」キーで global-search-overlay が表示される [covers:deck-edit-layout.shortcut-global-search-activates-mode]', overlayShown === true);
     const modeBarShown = await cdp.evaluate(MODE_BAR_EXPR);
     t.assert('「/」キーで検索入力欄(.search-input-bottom.global-search-mode)が表示される', modeBarShown === true);
     const focusedInMode = await cdp.waitFor(FOCUSED_IN_MODE_BAR_EXPR, 3000);
@@ -233,7 +233,7 @@ async function testKeyboardShortcuts() {
     // ============================================================
     await ctrlJ(cdp);
     const overlayByCtrlJ = await cdp.waitFor(OVERLAY_EXPR, 3000);
-    t.assert('Ctrl+J で global-search-overlay が表示される', overlayByCtrlJ === true);
+    t.assert('Ctrl+J で global-search-overlay が表示される [covers:deck-edit-layout.shortcut-global-search-activates-mode]', overlayByCtrlJ === true);
     const focusedByCtrlJ = await cdp.waitFor(FOCUSED_IN_MODE_BAR_EXPR, 3000);
     t.assert('Ctrl+J でも検索欄に自動フォーカスされる', focusedByCtrlJ === true);
 
@@ -253,7 +253,7 @@ async function testKeyboardShortcuts() {
     await cdp.wait(300);
     const orderIgnoredInMode = await getOrder(cdp);
     t.assert(
-      'グローバル検索モード中の Ctrl+Z では undo されない（順序はシャッフルのまま）',
+      'グローバル検索モード中の Ctrl+Z では undo されない（順序はシャッフルのまま） [covers:deck-edit-layout.shortcut-ignored-in-global-search-mode]',
       JSON.stringify(orderIgnoredInMode) === JSON.stringify(shuffled3)
     );
 
@@ -273,7 +273,7 @@ async function testKeyboardShortcuts() {
     await slash(cdp);
     await cdp.wait(300);
     const noOverlayWhileFocused = await cdp.evaluate(`!(${OVERLAY_EXPR})`);
-    t.assert('入力欄フォーカス中の「/」ではグローバル検索モードにならない', noOverlayWhileFocused === true);
+    t.assert('入力欄フォーカス中の「/」ではグローバル検索モードにならない [covers:deck-edit-layout.shortcut-ignored-while-input-focused]', noOverlayWhileFocused === true);
     await blurActiveElement(cdp);
 
     // --- 後始末: 何も保存しておらず未保存変更も無い。念のためページを再読み込みして状態を破棄 ---

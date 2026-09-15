@@ -380,7 +380,7 @@ async function testDragDrop() {
     const main4 = await cdp.evaluate(sectionCardsExpr('main'));
     const expected4 = uuids(main0).filter(u => u !== pair.src.uuid);
     expected4.splice(pair.si - 1, 0, pair.src.uuid);
-    t.assert('Ctrl+Z で src が元の位置の1つ手前に復元される【現状挙動: off-by-one】',
+    t.assert('Ctrl+Z で src が元の位置の1つ手前に復元される【現状挙動: off-by-one】 [covers:deck-edit-layout.shortcut-undo-executes-undo]',
       JSON.stringify(uuids(main4)) === JSON.stringify(expected4));
     t.assert('undo後もuuid多重集合は不変', sameMultiset(uuids(main4), uuids(main0)));
     const counts4 = await cdp.evaluate(COUNTS_EXPR);

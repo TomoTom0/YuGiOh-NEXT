@@ -1,0 +1,251 @@
+# 検証対象: src/components/searchInputBar/composables/useSlashCommands.ts
+#
+# 検索バーのスラッシュコマンド（/attr, /level, /atk 等）の解析・バリデーション・
+# 候補抽出を提供するVue composable。
+# TASK-476: src/components/searchInputBar/__tests__/useSlashCommands.test.ts の
+# tests/unit/composables/ 移動に伴うdesign整備として条件化。
+#
+# target_function の記述形式について（composable factory パターン）:
+# `export function useSlashCommands()` が computed / 関数を返す構造のため、
+# 条件が属する実体は return オブジェクトの各メンバ（use-card-detail-display の
+# `#` 区切り形式に合わせ target_function = "useSlashCommands#<メンバ名>" と記載）。
+#
+# 粒度方針:
+# - 既存テストの全 describe/it を走査し、各itが検証する分岐を条件化。
+# - 既存itが存在しない実装分岐（未テストの filterType 等）は [[excluded]] に記録
+#   （TASK-476 は移動伴いの design 整備であり、新規テスト追加はスコープ外）。
+
+[meta]
+feature = "use-slash-commands"
+source_file = "src/components/searchInputBar/composables/useSlashCommands.ts"
+verified = true
+verified_at = "2026-09-09"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/composables/useSlashCommands.test.ts"
+source_hash = "286dc96c0963d3af33232c8f05f9eea17d99bf87"
+note = "verified=falseは0件。idのareaはdesignディレクトリstem（use-slash-commands）で統一（browser-config/conditions.tomlの慣習に整合、`_`不使用）"
+
+# --- useSlashCommands#commandSuggestions ---
+
+[[condition]]
+id = "use-slash-commands.slash-only-input-lists-major-commands"
+target_function = "useSlashCommands#commandSuggestions"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L51-L75 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "51-75"
+description = "入力がスラッシュのみ（trim後'/'で、コマンド部分が空文字）の場合はフィルタではなく主要15コマンドの固定リスト（/attr,/race,/level,/atk,/def,/type,/link,/mtype,/search,/clear,/clear-cond,/clear-text,/ai,/history-search,/favorite-search）を返す"
+given = "searchQuery = '/' かつ pendingCommand = null"
+expect_return_shape = "主要コマンド固定リスト（'/attr' '/race' '/level' を含む非空配列。各要素は { command, description }）"
+
+[[condition]]
+id = "use-slash-commands.filters-commands-by-partial-match"
+target_function = "useSlashCommands#commandSuggestions"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L55, L77-L84 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "77-84"
+description = "スラッシュ以降に入力がある場合、COMMANDSの各コマンドについてcommand名またはdescriptionが入力部分文字列に一致するものだけを返す（大文字小文字は無視）"
+given = "searchQuery = '/at' かつ pendingCommand = null"
+expect_return_shape = "COMMANDSのうち '/at' に一致するコマンドのみの配列（'/attr' を含む）"
+
+[[condition]]
+id = "use-slash-commands.pending-command-suppresses-suggestions"
+target_function = "useSlashCommands#commandSuggestions"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L53 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "53"
+description = "pendingCommandが設定されている場合（コマンド引数入力モード）、入力がスラッシュで始まっていてもコマンド候補は表示しない"
+given = "searchQuery = '/attr ' で detectCommandPattern() の戻り値を pendingCommand に設定"
+expect_return = "[]"
+
+# --- useSlashCommands#detectCommandPattern ---
+
+[[condition]]
+id = "use-slash-commands.detect-command-pattern-on-cmd-space"
+target_function = "useSlashCommands#detectCommandPattern"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L247-L262 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "247-262"
+description = "入力が COMMANDS のいずれかのコマンド + 半角スペース（'/cmd '）と完全一致する場合、そのコマンドの PendingCommand（command / filterType / isNot）を返す。'/attr ' → command='/attr' を検出"
+given = "searchQuery = '/attr ' で detectCommandPattern() を呼ぶ"
+expect_return_shape = "非null の PendingCommand（command = '/attr'、filterType は COMMANDS['/attr'] の定義由来）"
+
+# --- useSlashCommands#isValidCommandInput（attributes / levels / atk はテスト済み。他filterTypeはexcluded参照） ---
+
+[[condition]]
+id = "use-slash-commands.attr-valid-input-accepted"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L117-L124 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "123-124"
+description = "filterType='attributes' のとき、actualInputValue が ATTRIBUTE_MAP のキーに一致すれば有効"
+given = "pendingCommand = { command: '/attr', filterType: 'attributes' } かつ searchQuery = '光'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.attr-invalid-input-rejected"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L117-L124 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "123-124"
+description = "filterType='attributes' のとき、ATTRIBUTE_MAP に存在しない値は無効"
+given = "pendingCommand = { command: '/attr', filterType: 'attributes' } かつ searchQuery = '無効な属性'"
+expect_return = false
+
+[[condition]]
+id = "use-slash-commands.level-single-value-validated"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L129-L134 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "129-134"
+description = "filterType='levels' のとき、1〜12の単一数値は有効"
+given = "pendingCommand = { command: '/level', filterType: 'levels' } かつ searchQuery = '4'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.level-range-validated"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L135-L140 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "135-140"
+description = "filterType='levels' のとき、両端が1〜12で start <= end の範囲形式（'4-8'）は有効"
+given = "pendingCommand = { command: '/level', filterType: 'levels' } かつ searchQuery = '4-8'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.level-comma-list-validated"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L141-L144 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "141-144"
+description = "filterType='levels' のとき、全要素が1〜12のカンマ区切りリスト（'3,5,7'）は有効"
+given = "pendingCommand = { command: '/level', filterType: 'levels' } かつ searchQuery = '3,5,7'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.level-out-of-range-rejected"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L129-L145 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "131-133"
+description = "filterType='levels' のとき、数値形式ではあるが許容範囲（1〜12）を超える値は無効。形式不一致ではなく範囲外での拒否"
+given = "pendingCommand = { command: '/level', filterType: 'levels' } かつ searchQuery = '99'"
+expect_return = false
+
+[[condition]]
+id = "use-slash-commands.atk-range-validated"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L215-L222 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "221-222"
+description = "filterType='atk'（'def'も同一ロジック）のとき、数値範囲形式（'1000-2000'）は有効"
+given = "pendingCommand = { command: '/atk', filterType: 'atk' } かつ searchQuery = '1000-2000'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.atk-open-ended-range-accepted"
+target_function = "useSlashCommands#isValidCommandInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L217-L220 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "217-219"
+description = "filterType='atk' のとき、下限のみ（'1000-'）・上限のみ（'-2000'）の片側範囲指定も有効"
+given = "pendingCommand = { command: '/atk', filterType: 'atk' } かつ searchQuery = '1000-'"
+expect_return = true
+
+# --- useSlashCommands#isNegatedInput ---
+
+[[condition]]
+id = "use-slash-commands.negation-hyphen-detected"
+target_function = "useSlashCommands#isNegatedInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L98-L101 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "98-101"
+description = "trim後の入力が '-' で始まり長さ2以上の場合、NOT条件（否定）入力と判定する"
+given = "searchQuery = '-光'"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.negation-absent-when-no-hyphen"
+target_function = "useSlashCommands#isNegatedInput"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L98-L101 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "98-101"
+description = "'-' で始まらない入力はNOT条件ではない"
+given = "searchQuery = '光'"
+expect_return = false
+
+# --- useSlashCommands#actualInputValue ---
+
+[[condition]]
+id = "use-slash-commands.actual-value-strips-negation-hyphen"
+target_function = "useSlashCommands#actualInputValue"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L106-L112 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "106-112"
+description = "'-' プレフィックスの否定入力からは先頭のハイフン1文字を除去した値を返す（バリデーション対象の実値）"
+given = "searchQuery = '-光'"
+expect_return = "'光'"
+
+[[condition]]
+id = "use-slash-commands.actual-value-returned-as-is-without-hyphen"
+target_function = "useSlashCommands#actualInputValue"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L106-L112 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "106-112"
+description = "'-' プレフィックスがない場合はtrim・toLowerCase後の値をそのまま返す"
+given = "searchQuery = '光'"
+expect_return = "'光'"
+
+# --- useSlashCommands#isCommandMode ---
+
+[[condition]]
+id = "use-slash-commands.command-mode-on-slash-prefix"
+target_function = "useSlashCommands#isCommandMode"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L89-L93 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "89-93"
+description = "入力が '/' で始まり、pendingCommand が未設定で、'コマンド+スペース' 完了形（commandMatch）にも一致しない場合にコマンド入力モードと判定する"
+given = "searchQuery = '/attr' かつ pendingCommand = null"
+expect_return = true
+
+[[condition]]
+id = "use-slash-commands.command-mode-off-without-slash-prefix"
+target_function = "useSlashCommands#isCommandMode"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L89-L93 と tm TASK-476（src/__tests__からの移動に伴うdesign整備）"
+source_lines = "89-93"
+description = "'/' で始まらない通常入力はコマンドモードではない"
+given = "searchQuery = '光'"
+expect_return = false
+
+# --- 除外記録（既存テストのitが存在しない実装分岐。TASK-476は移動伴いのdesign整備で新規テスト追加はスコープ外のため条件化しない） ---
+
+[[excluded]]
+item = "isValidCommandInput の未テスト filterType 分岐（cardType / monsterTypes / linkNumbers(1-6) / linkMarkers / pendulumScales(0-13) / releaseDate（チルダ・スペース・ドット区切り範囲・片側指定） / races（value/label/aliases一致） / searchMode / default偽）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L125-L128, L147-L238（tests/unit/composables/useSlashCommands.test.ts には attributes / levels / atk のみのit）"
+reason = "対応する既存itが存在しない。TASK-476はsrc/__tests__からの移動に伴うdesign整備であり新規テスト追加はスコープ外のため条件化しない。テスト済みの attributes / levels / atk は各条件で網羅"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "isValidCommandInput の早期return（pendingCommand無しでfalse、actualInputValue空でfalse）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L118, L120（tests/unit/composables/useSlashCommands.test.ts にpendingCommand未設定・空入力のit無し）"
+reason = "対応する既存itが存在しない。新規テスト追加はスコープ外のため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "commandSuggestions の '/' 非始端入力時に [] を返す分岐（L53前半）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L53（tests/unit/composables/useSlashCommands.test.ts に非スラッシュ入力での commandSuggestions it無し）"
+reason = "対応する既存itが存在しない（isCommandMode の非スラッシュitとは検証対象が別）。新規テスト追加はスコープ外のため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "detectCommandPattern の不一致時に null を返す分岐"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L261（tests/unit/composables/useSlashCommands.test.ts は '/attr ' 一致ケースのみで、不一致のnull戻りをassertするit無し）"
+reason = "対応する既存itが存在しない。新規テスト追加はスコープ外のため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "isNegatedInput の '-' 単体入力ガード（value.length > 1 がfalseになるケース）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L100（tests/unit/composables/useSlashCommands.test.ts に '-' 単体入力のit無し）"
+reason = "対応する既存itが存在しない。新規テスト追加はスコープ外のため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "actualInputValue の toLowerCase 正規化（大文字小文字混合入力での挙動）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L107（tests/unit/composables/useSlashCommands.test.ts のactualInputValue系itは日本語入力のみで大小文字差が観測されない）"
+reason = "既存itでは正規化前後で観測可能な差が生じない入力のみ使用されており、正規化単体を検証するitが存在しない。新規テスト追加はスコープ外"
+decided_at = "2026-09-09"
+decided_by = "claude"
+
+[[excluded]]
+item = "resetPendingCommand（pendingCommand への null 代入）"
+source = "src/components/searchInputBar/composables/useSlashCommands.ts L267-L269（tests/unit/composables/useSlashCommands.test.ts にresetPendingCommandのit無し）"
+reason = "分岐・throwを持たない単純代入（§8「書かない」: getter/setterのみの対象）であり、既存itも存在しないため条件化しない"
+decided_at = "2026-09-09"
+decided_by = "claude"

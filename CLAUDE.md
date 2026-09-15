@@ -96,7 +96,15 @@
 
 ```bash
 # Chromium起動（リモートデバッグモード + 拡張機能ロード）
+# 設定（binary・拡張機能パス・headless等）は configs/browser.toml で管理
 ./scripts/debug/setup/start-chrome.sh
+
+# ディスプレイの無い環境ではヘッドレス起動
+./scripts/debug/setup/start-chrome.sh --headless
+
+# 手動ログイン用GUIスタック（Xvfb + VNC）
+./scripts/debug/setup/start-login-vnc.sh
+./scripts/debug/setup/stop-login-vnc.sh
 
 # 停止
 ./scripts/debug/setup/stop-chrome.sh
@@ -394,7 +402,7 @@ const label = CARD_TYPE_ID_TO_SHORTNAME[cardType]
 
 ### 開発ガイド
 
-- **ブラウザ操作**: `scripts/debug/setup/` (start-chrome.sh, stop-chrome.sh)
+- **ブラウザ操作**: `scripts/debug/setup/` (start-chrome.sh, stop-chrome.sh, start-login-vnc.sh, stop-login-vnc.sh, export-session-state.sh)
 - **テストガイド**: `tests/browser/` (既存のテストスクリプト)
 - **安全なDOM操作**: `src/utils/safe-dom-query.ts`
 - **型安全性**: `src/utils/type-guards.ts`

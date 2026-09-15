@@ -23,6 +23,9 @@ src/ 実装ファイル: 219 (*.test.ts等のテストファイルは除く。�
   stores/         6
   constants/      5  ← ロジックを持たない定数のみなら対象外
   styles/,popup/,config/,background/ 各1
+
+scripts/ 実装ファイル: 上記src/計画の対象外。ただしテスト・検証基盤のコードは
+個別に条件化する（例: scripts/debug/setup/lib/browser-config.sh → browser-config/。TASK-466）
 ```
 
 全ファイルへの展開は非現実的な工数（試作1ファイル=856行で73条件、相応の読解時間を要した）。優先順位付けと機械抽出の併用で工数を抑える。
@@ -127,6 +130,8 @@ source_hash = "<git blob hashやcommit hash等>"  # 検証対象にした実装�
 
 さらに、3節のAST抽出スクリプトによる「未カバーtarget_function検出」と、`[covers:<id>]`タグが実際に全conditionを網羅しテストがPASSしているかのチェックを、Phase 2着手前にCI（`mise run test:vitest`実行フロー、またはlint相当のチェックスクリプト）に組み込む。これが無い間は`verified = true`は自己申告に留まる点に留意する。
 
+このチェックスクリプトはTASK-480で実装済み: `uv run python scripts/design/verify-conditions.py`（coversタグdangling検出・網羅検査・schema検証・excluded構造検証・source_lines自動同期。設計: `docs/design/verify-conditions.md`）。legacy形式source_lines（実装行番号参照）のcorpus移行はTASK-489で実施する。
+
 DOM構造に依存しないロジック（純粋関数のutils等）は該当するユニットテストの実行のみで足り、HTML fixtureは不要。
 
 ## 5. 進め方（フェーズ）
@@ -144,6 +149,18 @@ DOM構造に依存しないロジック（純粋関数のutils等）は該当す
 codexレビューの結論（TASK-322）: 「この計画のまま全体展開に入るのはまだ早い。母数修正・coverage/verifiedの自動検査・AST骨格抽出の最小実装・試作conditionsの抜け修正を済ませ、その後Tier Aを数ファイルだけ追加試行して粒度を再調整する進め方が安全」。Phase 1.5/1.6はこの指摘を反映したステップ。
 
 Tier C（Vueコンポーネント57+15ファイル）は工数対効果が低いため、全件展開ではなく「過去にバグが出た/複雑な条件分岐を持つコンポーネントのみ」に絞る運用とする。展開要否はTier A/B完了後に改めて判断する。
+
+### Tier C着手の実績（2026-09-13時点・TASK-331）
+
+Tier A/Bの実質完了（残りはロジック薄い要確認ファイルのみ）を受けてTier C着手を判断。棚卸し（バグ履歴×script複雑度）の結果、以下を条件化済み:
+
+- hover-tooltip: 1件目（fail 0達成の実証例）
+- load-dialog: TASK-479トピック4（29条件+excluded 6件）
+- deck-edit-layout: TASK-331/487/462統合（100条件+excluded 10件・旧40it実装非検証テストをtests/unit/content/deck-edit-layout.test.tsへ全廃再設計・E2E 8ファイルへcovers付与・verified記録済み）。Tier C最大ファイル（script 969行）での実例
+- category-dialog: TASK-488（16条件+excluded 6件・旧21it中19itの実装非検証テストを廃しtests/unit/components/CategoryDialog.test.tsを17itへ全面再設計・全it covers付き・verified記録済み）
+- import-export-dialog: TASK-500（42条件+excluded 9件・unitテスト未存在のためtests/unit/components/ImportExportDialog.test.tsを43itで新規作成・全it covers付き・verified記録済み）。CSV/TXTエクスポート・インポートプレビューの2タブ構成で、依存モジュール（deck-import/deck-export/create-deck-recipe-image）はmock差し替えで委譲条件のみ検証
+
+残るTier C候補（棚卸し結果はTASK-331 body参照）: ChatPanel・SearchFilterDialog+FilterTab・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体
 
 各Phase完了時、TASK-323（展開実行）側で進捗をtmに記録し、次ファイルに着手する前にPhase内の優先順位（性質基準→ファイルサイズ降順）を`tm get`のbodyに残す。
 
