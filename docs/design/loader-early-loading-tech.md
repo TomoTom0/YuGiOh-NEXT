@@ -247,6 +247,17 @@ async function loadEditUIIfNeeded(): Promise<void> {
       document.addEventListener('DOMContentLoaded', () => resolve(), { once: true }));
   }
 
+  // [PR#156レビュー指摘1] 待機中のhash離脱再検証: 待機中に非編集hashへ遷移した場合は
+  //   このまま続行すると overlay 生成 + handoff（フェイルセーフ解除）まで進む一方で
+  //   edit-ui が非編集ルートをマウントせず公式画面が覆われたままになる。非編集評価
+  //   経路と同型（要素除去後に handoff）で復帰して中断する
+  if (!isVueEditPage()) {
+    editUILoaded = false;
+    removeLoaderDerivedElements();
+    window.__ygoNextLoaderHandoff?.();
+    return;
+  }
+
   // [指摘1] edit-ui の前提検証: #bg が無ければ復帰して中断（edit-ui側の console.error 経路を先回り）
   if (!document.getElementById('bg')) {
     console.error('[Content] #bg not found after DOMContentLoaded');
@@ -257,10 +268,13 @@ async function loadEditUIIfNeeded(): Promise<void> {
 
   // テーマ判定（不変）
   // オーバーレイ冪等テイクオーバー: 識別属性 data-ygo-next-loader を持つ同ID overlay
-  //   （isLoaderOverlayElement がtrue）なら中身（タイトル/スピナー/サブテキスト）を
+  //   （findLoaderOverlay() が要素を返す）なら中身（タイトル/スピナー/サブテキスト）を
   //   完全版に再構築し body へ移動（親が documentElement の場合）。属性を持たない同ID
   //   要素（他人要素）は改変せず新規生成する（新規overlayにも識別属性を付与。
   //   §9 追補・指摘3）。spinner用 style の二重注入は同一 @keyframes ygo-spin 定義のため無害
+  //   [PR#156レビュー指摘2] lookup は getElementById でなく findLoaderOverlay() の
+  //   識別属性セレクタ（#id[data-ygo-next-loader]）で行い、他人要素が文書順で先在して
+  //   も拡張由来overlayを正しく捕捉する（cleanup側も同様）
 
   try {
     // [指摘1] 失敗時処理（下のcatch）の登録済み＋前提検証済みの状態で handoff＝フェイルセーフ解除
@@ -370,9 +384,9 @@ public/ -> dist/ は CopyWebpackPlugin で自動コピー。manifest.json・load
 - **問題**: content側 removeLoaderDerivedElements はID一致で無条件削除、overlay takeover は同ID HTMLDivElement の子要素を無条件に消去・再利用していた。loader側はフェイルセーフの ownElements 参照ベースで他人要素を保護しているのに不整合
 - **対応**:
   - loader生成要素（early-hide・overlay）に識別属性 `data-ygo-next-loader="1"` を付与
-  - content側のゲートロジックを `src/utils/loader-elements.ts` に新設: removeLoaderDerivedElements（識別属性を持つ要素のみ削除）・isLoaderOverlayElement（識別属性付き HTMLDivElement のみtakeover対象。属性なしなら新規生成に切り替え）・markAsLoaderElement（contentが新規生成する early-hide/overlay にも付与し、復帰処理で拡張由来要素を一貫して除去）
+  - content側のゲートロジックを `src/utils/loader-elements.ts` に新設: removeLoaderDerivedElements（識別属性を持つ要素のみ削除）・markAsLoaderElement（contentが新規生成する early-hide/overlay にも付与し、復帰処理で拡張由来要素を一貫して除去）・takeover判定（識別属性付き HTMLDivElement のみ対象。属性なしなら新規生成に切り替え。§11 で findLoaderOverlay() に発展）
   - 属性名の loader.js 直書きと src側 LOADER_ATTR 定数の二重管理はテストがずれを機械検知する（`create-loader.own-elements-carry-loader-attribute`）
-- **検証**: `tests/design/loader-elements/conditions.toml`（4条件・unit）+ `tests/design/content-index/conditions.toml` の配線条件（E2E）
+- **検証**: `tests/design/loader-elements/conditions.toml`（unit）+ `tests/design/content-index/conditions.toml` の配線条件（E2E）
 
 ---
 
@@ -457,6 +471,26 @@ TASK-513の変更（§10）:
 | `docs/design/loader-early-loading-tech.md` | §7/§2.4/§3/§10・変更ファイル一覧の追補（本項） |
 
 変更なし: `scripts/deploy.sh`
+
+## 11. 追補: PR#156レビュー指摘対応 — DCL待機後のルート再検証・属性ベースlookup
+
+PR#156（TASK-510/511/513の実装PR）へのレビューで指摘された2件（P2）への対応。
+
+### 11.1 指摘1: DCL待機後のルート再検証なし（src/content/index.ts）
+
+- **問題**: `#/ytomo/edit` 直接ロードが document_start で開始し、DCL 待機中にユーザーが hash で非編集へ離脱した場合、`loadEditUIIfNeeded()` の await 復帰は `isVueEditPage()` を再チェックしない。このまま overlay 生成と handoff（フェイルセーフ解除）まで進む一方、import された edit-ui は非編集ルートをマウントせず、公式ページが reload まで覆われたままになる
+- **対応**: DCL 待機の await 直後に `isVueEditPage()` を再検証し、非編集なら `editUILoaded=false` + `removeLoaderDerivedElements()` + handoff（要素除去後＝引き継ぎ成功）で復帰して中断（非編集ページ評価経路と同型）。§2.3 のコード例に反映済み
+- **検証**: `tests/design/content-index/conditions.toml` の `load-edit-ui-if-needed.revalidates-route-after-domcontentloaded-wait`（verified=false・E2E方針。test-loader-flicker.cjs の coversタグ付与は TASK-516）
+
+### 11.2 指摘2: 同ID他人要素との overlay ID 衝突で拡張overlayが残存（src/content/index.ts:231）
+
+- **問題**: 属性なしの他人要素が overlay と同一IDを持つ状態（ownership check が保護対象とする衝突そのもの）で content 側が同IDの別要素を新規生成すると重複IDが並存する。cleanup（DeckEditLayout.vue の overlay 削除・edit-ui の early-hide 削除・removeLoaderDerivedElements）が `document.getElementById` ベース（文書順最初のみ返却）のため、先在する他人要素を捕捉して拡張由来の全画面 overlay がマウントUIの上に永続残存した
+- **対応**: lookup と cleanup を識別属性セレクタ（`#id[data-ygo-next-loader]`）ベースに統一:
+  - `src/utils/loader-elements.ts`: `findLoaderOverlay()` / `findLoaderEarlyHide()`（他人要素をスキップした単一取得）を新設。`removeLoaderDerivedElements()` は `querySelectorAll` で属性付き全件削除に変更。旧 `isLoaderOverlayElement`（takeover判定の型ガード）は `findLoaderOverlay()` がセレクタベースで担うため削除
+  - `src/content/index.ts`: overlay テイクオーバー判定を `findLoaderOverlay()` に変更
+  - `src/content/edit-ui/DeckEditLayout.vue`: overlay フェードアウト削除を `findLoaderOverlay()` に変更
+  - `src/content/edit-ui/index.ts`: early-hide 削除を `findLoaderEarlyHide()` に変更
+- **検証**: `tests/design/loader-elements/conditions.toml`（4条件→7条件・verified=true。他人要素先在時の全件削除・lookup の他人要素スキップ・div以外拒否）+ `tests/unit/utils/loader-elements.test.ts`
 
 ## リスク・未確定事項
 

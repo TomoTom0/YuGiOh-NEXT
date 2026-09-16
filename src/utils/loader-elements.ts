@@ -28,30 +28,36 @@ export function markAsLoaderElement(element: HTMLElement): void {
   element.setAttribute(LOADER_ATTR, '1');
 }
 
-const hasLoaderAttr = (element: Element | null): element is Element =>
-  element !== null && element.hasAttribute(LOADER_ATTR);
+// getElementById は文書順最初の要素のみを返すため、同IDの他人要素（識別属性なし）が
+// 先在する場合に拡張由来要素を捕捉できない。識別属性をセレクタに含めて除外する
+// （ID値は英小文字とハイフンのみのためCSSセレクタにそのまま埋め込める）
+const loaderOverlaySelector = `#${EXTENSION_IDS.loading.moduleLoadingOverlay}[${LOADER_ATTR}]`;
+const loaderEarlyHideSelector = `#${EXTENSION_IDS.loading.earlyHideStyle}[${LOADER_ATTR}]`;
+
+/**
+ * 拡張のロード機構由来の overlay 要素を取得する（他人要素はスキップ）
+ */
+export function findLoaderOverlay(): HTMLDivElement | null {
+  const found = document.querySelector(loaderOverlaySelector);
+  return found instanceof HTMLDivElement ? found : null;
+}
+
+/**
+ * 拡張のロード機構由来の early-hide style 要素を取得する（他人要素はスキップ）
+ */
+export function findLoaderEarlyHide(): HTMLStyleElement | null {
+  const found = document.querySelector(loaderEarlyHideSelector);
+  return found instanceof HTMLStyleElement ? found : null;
+}
 
 /**
  * ロード機構由来の early-hide/overlay を除去する（公式画面復帰）
  *
- * 識別属性を持つ要素のみ削除する。同IDだが属性を持たない他人要素は保護される
+ * 識別属性を持つ要素のみ削除する。同IDだが属性を持たない他人要素は保護される。
+ * 他人要素との同ID重複時（新規生成で拡張要素が2つ目として存在し得る）の取りこぼしを
+ * 防ぐため、単一参照でなく識別属性セレクタで全件取得して削除する
  */
 export function removeLoaderDerivedElements(): void {
-  const overlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay);
-  if (hasLoaderAttr(overlay)) {
-    overlay.remove();
-  }
-  const earlyHide = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
-  if (hasLoaderAttr(earlyHide)) {
-    earlyHide.remove();
-  }
+  document.querySelectorAll(loaderOverlaySelector).forEach(element => element.remove());
+  document.querySelectorAll(loaderEarlyHideSelector).forEach(element => element.remove());
 }
-
-/**
- * overlay テイクオーバー対象か（loader由来識別属性を持つ HTMLDivElement）
- *
- * 属性を持たない同ID要素は他人要素のため再利用（子要素の消去・再構築）せず、
- * 呼び出し側は新規生成に切り替える
- */
-export const isLoaderOverlayElement = (value: Element | null): value is HTMLDivElement =>
-  value instanceof HTMLDivElement && hasLoaderAttr(value);

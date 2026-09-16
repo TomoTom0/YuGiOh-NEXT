@@ -228,7 +228,7 @@ import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import type { CardInfo } from '../../types/card'
 import { detectCardGameType } from '../../utils/page-detector'
 import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
-import { EXTENSION_IDS } from '../../utils/dom-selectors'
+import { findLoaderOverlay } from '../../utils/loader-elements'
 import { buildFullUrl } from '../../utils/url-builder'
 import { getCardInfo } from '../../utils/card-utils'
 import {
@@ -790,7 +790,9 @@ export default {
       await nextTick()
 
       // 短いフェードアウトで削除（途切れを防ぐ）
-      const moduleLoadingOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay)
+      // getElementById は同IDの他人要素（識別属性なし）を捕捉し得るため、識別属性
+      // セレクタで拡張由来の overlay のみを対象とする（PR#156レビュー指摘）
+      const moduleLoadingOverlay = findLoaderOverlay()
       if (moduleLoadingOverlay) {
         moduleLoadingOverlay.style.opacity = '0'
         moduleLoadingOverlay.style.transition = 'opacity 150ms ease-out'

@@ -34,7 +34,7 @@ import { EXTENSION_IDS } from '../utils/dom-selectors';
 import {
   markAsLoaderElement,
   removeLoaderDerivedElements,
-  isLoaderOverlayElement
+  findLoaderOverlay
 } from '../utils/loader-elements';
 
 // デッキメタデータローダー
@@ -186,6 +186,17 @@ async function loadEditUIIfNeeded(): Promise<void> {
     });
   }
 
+  // 待機中のhash離脱再検証（PR#156レビュー指摘）: この待機の間に非編集hashへ遷移した
+  // 場合、このまま続行すると overlay 生成 + handoff（フェイルセーフ解除）まで進む一方
+  // で edit-ui は非編集ルートをマウントせず、公式画面が覆われたままになる。非編集評価
+  // 経路と同型（要素除去後に handoff）で復帰して中断する
+  if (!isVueEditPage()) {
+    editUILoaded = false;
+    removeLoaderDerivedElements();
+    window.__ygoNextLoaderHandoff?.();
+    return;
+  }
+
   // edit-ui の前提検証: #bg が無ければ復帰して中断（edit-ui側 loadEditUI の
   // console.error 経路を先回りし、loader由来要素を残したままにしない）
   if (!document.getElementById('bg')) {
@@ -218,9 +229,9 @@ async function loadEditUIIfNeeded(): Promise<void> {
   // data-ygo-next-loader を持つ同ID div）があれば新規生成せず中身（タイトル/スピナー/
   // サブテキスト）を完全版に再構築する。属性を持たない同ID要素は他人要素のため改変
   // せず、現行どおり新規生成する（hashchange経路等も新規生成側）
-  const existingOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay);
+  const existingOverlay = findLoaderOverlay();
   let loadingOverlay: HTMLDivElement;
-  if (isLoaderOverlayElement(existingOverlay)) {
+  if (existingOverlay) {
     loadingOverlay = existingOverlay;
     while (loadingOverlay.firstChild) {
       loadingOverlay.removeChild(loadingOverlay.firstChild);

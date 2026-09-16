@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EXTENSION_IDS } from '@/utils/dom-selectors';
+import { markAsLoaderElement } from '@/utils/loader-elements';
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '@/constants/storage-keys';
 
 const mockIsVueEditPage = vi.fn();
@@ -265,8 +266,11 @@ describe('edit-ui/index.ts', () => {
 
     it('[covers:watch_url_changes.edit_url_not_loaded_triggers_load][covers:load_edit_ui.removes_early_hide_style_when_present] 編集URLで初回はloadEditUIが実行されearlyHideStyleが削除される', async () => {
       setupEditPageDom();
+      // content/index.ts の runEditPageBoot が生成する実態に合わせ識別属性付きで作る
+      // （findLoaderEarlyHide は識別属性セレクタで取得するため）
       const earlyHide = document.createElement('style');
       earlyHide.id = EXTENSION_IDS.loading.earlyHideStyle;
+      markAsLoaderElement(earlyHide);
       document.head.appendChild(earlyHide);
       mockIsVueEditPage.mockReturnValue(true);
 

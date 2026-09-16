@@ -12,6 +12,7 @@
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
+import { findLoaderEarlyHide } from '../../utils/loader-elements';
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '../../constants/storage-keys';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
@@ -231,7 +232,9 @@ async function loadEditUI(): Promise<void> {
 
   // content/index.tsで追加した早期hideスタイルを削除
   // （#wrapper/#bgを表示可能にする）
-  const earlyHideStyle = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
+  // getElementById は同IDの他人要素（識別属性なし）を捕捉し得るため、識別属性
+  // セレクタで拡張由来の early-hide のみを対象とする（PR#156レビュー指摘）
+  const earlyHideStyle = findLoaderEarlyHide();
   if (earlyHideStyle) {
     earlyHideStyle.remove();
   }

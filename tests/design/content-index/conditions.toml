@@ -313,6 +313,16 @@ verified = false
 unverifiable_reason = "loadEditUIIfNeededは非exportでトップレベル/hashchangeからのみ呼ばれるため上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできず、E2E（test-loader-flicker.cjs案）が未実施（実装は段階6で完了済み）"
 
 [[condition]]
+id = "load-edit-ui-if-needed.revalidates-route-after-domcontentloaded-wait"
+target_function = "loadEditUIIfNeeded（DCL待ち直後のルート再検証）"
+source = "PR#156レビュー指摘1（DCL待機中のhash離脱でoverlay生成+handoffまで進み公式画面が覆われたままになる）+ tm TASK-517"
+description = "DOMContentLoaded待機のawait復帰後にisVueEditPage()を再検証し、待機中に非編集hashへ離脱済みの場合は editUILoaded=false・removeLoaderDerivedElements()・handoff（フェイルセーフ解除）の順で復帰して中断する（非編集ページ評価経路と同型）。再検証なしに続行するとoverlay生成+handoff（フェイルセーフ解除）まで進む一方でedit-uiが非編集ルートをマウントせず、公式画面がreloadまで覆われたままになる"
+given = "初期URL #/ytomo/edit（readyState='loading'）でloadEditUIIfNeeded()のDCL待機中にhashが非編集へ変化し、DCL発火で処理が再開する"
+expect_return_shape = "editUILoaded=false・removeLoaderDerivedElements()実行・__ygoNextLoaderHandoff()実行・overlay生成とedit-ui importなしでreturn"
+verified = false
+unverifiable_reason = "loadEditUIIfNeededは非exportでトップレベル/hashchangeからのみ呼ばれるため単独切り出しできず（上記「ユニットテスト非採用の技術的根拠」と同じ）、E2Eでの検証が適切"
+
+[[condition]]
 id = "load-edit-ui-if-needed.bg-missing-after-domcontentloaded-restores-official-page"
 target_function = "loadEditUIIfNeeded（DCL後の#bg事前検証）"
 source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（指摘1: edit-ui側console.error経路の先回り）・前提確認（edit-uiの#bg要求）+ tm TASK-510"
@@ -326,7 +336,7 @@ unverifiable_reason = "同上（非export・DOM状態と動的importを含む。
 id = "load-edit-ui-if-needed.existing-overlay-reused-completed-and-moved-to-body"
 target_function = "loadEditUIIfNeeded（overlay冪等テイクオーバー）"
 source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 loadEditUIIfNeeded変更（オーバーレイ冪等テイクオーバー）+ tm TASK-510"
-description = "loader生成のoverlay（識別属性 data-ygo-next-loader を持つ同ID div = isLoaderOverlayElement がtrue）が存在する場合は新規生成せず、中身（タイトル/スピナー/サブテキスト）を完全版に再構築しbodyへ移動する（親がdocumentElementの場合）。属性を持たない同ID要素（他人要素）は改変せず、現行どおり新規生成する（新規overlayにも識別属性を付与する）"
+description = "loader生成のoverlay（識別属性 data-ygo-next-loader を持つ同ID div = findLoaderOverlay() が要素を返す）が存在する場合は新規生成せず、中身（タイトル/スピナー/サブテキスト）を完全版に再構築しbodyへ移動する（親がdocumentElementの場合）。属性を持たない同ID要素（他人要素）は改変せず、現行どおり新規生成する（新規overlayにも識別属性を付与する）。lookupは getElementById でなく findLoaderOverlay() の識別属性セレクタで行うため、他人要素が文書順で先在しても拡張由来overlayを正しく捕捉する（PR#156レビュー指摘2対応）"
 given = "loaderが生成したoverlay（ID: EXTENSION_IDS.loading.moduleLoadingOverlay・識別属性付き）が存在する状態でoverlay構築が走る"
 expect_return_shape = "既存overlay要素が再利用され中身が完全版に再構築される。document.bodyが存在すればoverlayはbody配下に置かれる（属性なし同ID要素が存在する場合はそれを改変せず新規生成する）"
 verified = false

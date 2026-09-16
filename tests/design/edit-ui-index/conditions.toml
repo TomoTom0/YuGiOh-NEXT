@@ -187,9 +187,9 @@ expect_side_effect = "isEditUILoadedがfalseのままになる（2回目のloadE
 id = "load_edit_ui.removes_early_hide_style_when_present"
 target_function = "loadEditUI"
 source_lines = "232-237"
-description = "content/index.tsが追加したearlyHideStyle要素が存在する場合、これを削除する"
-given = "id=EXTENSION_IDS.loading.earlyHideStyleのstyle要素が存在する状態"
-expect_side_effect = "loadEditUI実行後、その要素がDOMから消える"
+description = "content/index.tsが追加したearlyHideStyle要素（識別属性 data-ygo-next-loader 付き）が存在する場合、これを削除する。取得は findLoaderEarlyHide() の識別属性セレクタで行うため、同IDの他人要素（属性なし）は削除されない（PR#156レビュー指摘2対応）"
+given = "id=EXTENSION_IDS.loading.earlyHideStyle・識別属性付きのstyle要素が存在する状態"
+expect_side_effect = "loadEditUI実行後、その要素がDOMから消える（属性なしの同ID他人要素は残る）"
 
 [[condition]]
 id = "load_edit_ui.injects_edit_ui_styles_only_once"
