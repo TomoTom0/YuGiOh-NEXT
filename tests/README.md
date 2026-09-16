@@ -26,7 +26,7 @@
 | `components/` | Vue コンポーネント | `DeckEditPanel.test.ts` |
 | `card-detail/` | カード詳細表示 | - |
 | `composables/` | Vue composables | - |
-| `content/` | Content scripts | `deck-edit-layout.test.ts` |
+| `content/` | Content scripts | `deck-edit-layout.test.ts`, `loader-early-loading.test.ts` |
 | `api/` | API関連 | - |
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |
@@ -76,6 +76,7 @@
 |------|-------------|------|
 | 型ガード関数 | `tests/unit/utils/type-guards.test.ts` | 型安全性の要 |
 | DOM操作ユーティリティ | `tests/unit/utils/safe-dom-query.test.ts` | null参照エラー防止 |
+| デッキ画像ダイアログの位置・サイズ計算 | `tests/unit/utils/image-dialog-layout.test.ts`（結合: `tests/unit/components/ImageDialog.test.ts` レイアウトdescribe） | TASK-511: 画面はみ出し修正。クランプによる画面内収束保証 |
 | デッキインポート/エクスポート | `tests/unit/utils/deck-import-comprehensive.test.ts` | データ損失防止 |
 | PNG metadata処理 | `tests/unit/utils/png-metadata.test.ts` | デッキ復元の正確性 |
 | URL state管理 | `tests/e2e/url-state-sync.test.ts` | 状態同期の正確性 |
@@ -83,6 +84,8 @@
 | feature flagデフォルト値（configs/features.toml） | `tests/unit/configs/feature-defaults.test.ts` | tomlとFeatureId/DEFAULT_FEATURE_SETTINGSの整合・dev-only解決の検証 |
 | ブラウザ起動lib（scripts/debug/setup/lib/browser-config.sh） | `tests/unit/scripts/browser-config.test.ts` | 全browserテストの起動経路。toml読み取り・binary/拡張機能解決・port特定kill・CDPポーリング |
 | tests/design条件書検証script（scripts/design/verify-conditions.py） | `tests/unit/scripts/verify-conditions.test.ts` | coversタグ対応・網羅・schema・excluded構造の機械検証とsource_lines自動同期・bootstrap/verifiedモード |
+| loader.js 先行読み込み（ロード画面の最初の描画前表示） | `tests/unit/content/loader-early-loading.test.ts`（条件書: `tests/design/loader-early-loading/conditions.toml`） | TASK-510: チラつき解消の要。loader.js をvm評価して createLoader(deps) 依存注入で状態機械（notifyStart/handoff）・フェイルセーフ（自要素参照除去・同ID他人要素保護）・boot分岐・storage例外耐性・識別属性付与を検証。manifest 側（run_at document_start）と style-loader 挿入先は `tests/unit/webpack/dynamic-import-bundle.test.ts` |
+| loader由来要素の識別属性ゲート（削除・takeover） | `tests/unit/utils/loader-elements.test.ts`（条件書: `tests/design/loader-elements/conditions.toml`） | TASK-510 コードレビュー指摘3対応。data-ygo-next-loader 識別属性を持つ要素のみ削除・takeoverすることで同IDの他人要素を保護する |
 
 ---
 

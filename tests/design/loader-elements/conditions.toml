@@ -1,0 +1,94 @@
+# 検証対象: src/utils/loader-elements.ts
+#
+# 経緯: TASK-510（ロード画面の最初の描画前表示）実装へのコードレビュー指摘3対応。
+# loader.js と content.js が共有する要素ID（EXTENSION_IDS.loading）について、
+# content側の削除（removeLoaderDerivedElements）・takeover が同IDの他人要素を
+# 保護していなかった（loader側はフェイルセーフのownElements参照ベース保護を持つ
+# のに不整合）ため、識別属性 data-ygo-next-loader="1" によるゲートを導入した。
+# content/index.ts はトップレベル副作用のため直接unitテストできないため、ゲート
+# ロジックを本ユーティリティへ切り出して検証する（tests/design/content-index/
+# conditions.toml の方針との整合: 配線はE2E、ロジックはunit）。
+#
+# PR#156レビュー指摘2対応: 他人要素との同ID衝突時に content/index.ts が同IDの
+# 別要素を新規生成すると重複IDが並存し、getElementById ベースの cleanup
+# （DeckEditLayout.vue・edit-ui/index.ts・removeLoaderDerivedElements）が文書順
+# 最初の他人要素しか捕捉できず拡張由来overlayが残存した。lookup
+# （findLoaderOverlay / findLoaderEarlyHide）と removeLoaderDerivedElements を
+# 識別属性セレクタ（#id[data-ygo-next-loader]）ベースに変更して解消した。
+#
+# 出典: TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コード
+# レビュー指摘3）。loader.js側の属性付与は tests/design/loader-early-loading/
+# conditions.toml の create-loader.own-elements-carry-loader-attribute で検証する。
+
+[meta]
+feature = "loader-elements"
+source_file = "src/utils/loader-elements.ts"
+verified = true
+verified_at = "2026-09-17"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/loader-elements.test.ts"
+source_hash = "0377d48199f45ef0656049322159d462702f0a56"
+note = "TASK-510コードレビュー指摘3対応で新設。PR#156レビュー指摘2対応（TASK-518）でlookup系関数を追加・removeLoaderDerivedElementsをセレクタ全件削除に変更。mise run test:vitest 全pass（210 files / 4665 tests）・verify-conditions.py --no-sync loader-elements でfail 0件を確認済み"
+
+[[condition]]
+id = "mark-as-loader-element.sets-identifier-attribute"
+source_lines = "tests/unit/utils/loader-elements.test.ts:49"
+target_function = "markAsLoaderElement"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘3）"
+description = "マーク関数は要素に識別属性 data-ygo-next-loader='1' を設定する（content.jsが新規生成する early-hide/overlay にも付与し、復帰処理で拡張由来要素を一貫して除去できるようにする）"
+given = "属性を持たないHTMLDivElement に対して markAsLoaderElement() を呼ぶ"
+expect_return_shape = "要素の getAttribute('data-ygo-next-loader') が '1' になる"
+
+[[condition]]
+id = "remove-loader-derived-elements.removes-only-marked-elements"
+source_lines = "tests/unit/utils/loader-elements.test.ts:56"
+target_function = "removeLoaderDerivedElements"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘3: 属性を持つ要素のみ削除）"
+description = "識別属性を持つ overlay/early-hide のみを削除する。同IDだが属性を持たない他人要素は削除されない（ID一致による無条件削除から属性ゲートへ変更）"
+given = "識別属性付きの overlay と early-hide、および同IDだが属性なしの overlay と early-hide が混在する状態で removeLoaderDerivedElements() を呼ぶ"
+expect_return_shape = "属性付きの2要素はdocumentから除去され、属性なしの2要素は残存する"
+
+[[condition]]
+id = "remove-loader-derived-elements.no-targets-is-noop"
+source_lines = "tests/unit/utils/loader-elements.test.ts:72"
+target_function = "removeLoaderDerivedElements"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（要素が存在しない呼び出し経路があるため）"
+description = "対象要素がdocumentに存在しない場合でも例外を投げずno-opとして動作する"
+given = "overlay/early-hide ともdocumentに存在しない状態で removeLoaderDerivedElements() を呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "remove-loader-derived-elements.removes-all-marked-when-foreign-precedes"
+source_lines = "tests/unit/utils/loader-elements.test.ts:76"
+target_function = "removeLoaderDerivedElements"
+source = "PR#156レビュー指摘2（getElementByIdは文書順最初のみ返すため重複IDの取りこぼし）+ tm TASK-518"
+description = "他人要素（属性なし）が文書順で先在し、その後に識別属性付き要素が複数（overlay/early-hideとも2件ずつ）並ぶ状態でも、属性付き要素は全件削除し他人要素は保護する（単一参照取得でなく識別属性セレクタで全件取得する）"
+given = "同IDの他人要素が先在＋識別属性付き overlay 2件・early-hide 2件が後続する状態で removeLoaderDerivedElements() を呼ぶ"
+expect_return_shape = "属性付き4要素はすべて document から除去され、他人要素2要素は残存する"
+
+[[condition]]
+id = "find-loader-overlay.returns-marked-even-when-foreign-precedes"
+source_lines = "tests/unit/utils/loader-elements.test.ts:97"
+target_function = "findLoaderOverlay"
+source = "PR#156レビュー指摘2（takeover判定・cleanupがgetElementByIdで他人要素を捕捉）+ tm TASK-518"
+description = "overlay の lookup は識別属性セレクタ（#id[data-ygo-next-loader]）で取得するため、同IDの他人要素が文書順で先在していても拡張由来の div を正しく返す。属性付き要素が存在しない場合は他人要素を代用せず null を返す"
+given = "同IDの他人要素（属性なし）が先在し識別属性付き div が後続する状態で findLoaderOverlay() を呼ぶ（その後属性付きを除去して再呼び出し）"
+expect_return_shape = "1回目は属性付き div を返し、2回目は null（他人要素は document に残る）"
+
+[[condition]]
+id = "find-loader-overlay.rejects-marked-non-div"
+source_lines = "tests/unit/utils/loader-elements.test.ts:110"
+target_function = "findLoaderOverlay"
+source = "PR#156レビュー指摘2対応（旧 isLoaderOverlayElement の型ゲート維持）+ tm TASK-518"
+description = "識別属性を持っていても HTMLDivElement 以外（style等）は overlay として返さない（instanceof による型ゲート）"
+given = "同ID・識別属性付きの HTMLStyleElement が存在する状態で findLoaderOverlay() を呼ぶ"
+expect_return_shape = "null を返す"
+
+[[condition]]
+id = "find-loader-early-hide.returns-marked-even-when-foreign-precedes"
+source_lines = "tests/unit/utils/loader-elements.test.ts:119"
+target_function = "findLoaderEarlyHide"
+source = "PR#156レビュー指摘2（edit-ui/index.ts の early-hide 除去がgetElementByIdで他人要素を捕捉）+ tm TASK-518"
+description = "early-hide の lookup は識別属性セレクタで取得するため、同IDの他人要素が先在していても拡張由来の style を正しく返す。属性付き要素が存在しない場合は null を返す"
+given = "同IDの他人要素（属性なし）が先在し識別属性付き style が後続する状態で findLoaderEarlyHide() を呼ぶ（その後属性付きを除去して再呼び出し）"
+expect_return_shape = "1回目は属性付き style を返し、2回目は null（他人要素は document に残る）"

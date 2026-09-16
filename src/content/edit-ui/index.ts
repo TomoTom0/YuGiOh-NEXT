@@ -12,6 +12,7 @@
 import { isVueEditPage } from '../../utils/page-detector';
 import { callbackToPromise } from '../../utils/promise-timeout';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
+import { findLoaderEarlyHide } from '../../utils/loader-elements';
 import { CHROME_STORAGE_KEY_APP_SETTINGS } from '../../constants/storage-keys';
 
 // 編集UIが既に読み込まれているかどうかのフラグ
@@ -25,6 +26,14 @@ let isEventListenerRegistered = false;
 // observerの蓄積（リーク）を防ぐ。ローカル変数にするとloadEditUI再実行ごとに
 // 別のobserverが生成され、SPAでheader要素が生き続けるため蓄積する。
 let headerResizeObserver: ResizeObserver | null = null;
+
+// 進行中のloadEditUIを無効化する世代トークン（TASK-513）。
+// 編集URLからの離脱時のみ増分する。loadEditUIは開始時点の世代を記録し、
+// await（applyThemeFromSettings/vueModulesPromise）からの復帰時に世代が
+// 不一致なら処理を中止する（離脱後の公式DOMへの副作用・Vueマウント防止）。
+// 全hashchangeで増分すると編集URL内のhash変化（dno変更等）で進行中ロードが
+// 中止されたまま再起動者がいなくなるため、離脱時のみに限る。
+let urlLeaveGeneration = 0;
 
 // 公式DOM読み込みと同時に、Vue関連モジュールを事前インポート開始
 const vueModulesPromise = Promise.all([
@@ -176,6 +185,10 @@ function watchUrlChanges(): void {
       } else if (!isEditUrl() && isEditUILoaded) {
         // 編集URL以外に移動した場合はフラグをリセットし、observerを切断
         isEditUILoaded = false;
+        // 進行中のloadEditUIを次のawait復帰時に中止させる（世代トークン増分）。
+        // フラグの所有権はこの離脱リスナ（false）または再入で開始した新規
+        // loadEditUI（true）のいずれかにあり、中止する旧処理側からは触らない
+        urlLeaveGeneration++;
         if (headerResizeObserver) {
           headerResizeObserver.disconnect();
           headerResizeObserver = null;
@@ -196,8 +209,18 @@ async function loadEditUI(): Promise<void> {
   // フラグを先に設定（二重実行防止）
   isEditUILoaded = true;
 
+  // 開始時点の世代を記録（await中の編集URL離脱を検出するため）
+  const generation = urlLeaveGeneration;
+
   // テーマを設定ストアから読み込んで適用
   await applyThemeFromSettings();
+
+  // 中止判定1（DOM準備前）: 待機中に編集URLを離脱した場合、公式DOMに触れる
+  // 前に中断する。isEditUILoaded には触らない（離脱リスナがfalseに戻している。
+  // 離脱→即再入の場合は再入で開始した新規loadEditUIがtrueを管理している）
+  if (generation !== urlLeaveGeneration) {
+    return;
+  }
 
   // div#bg要素を取得
   const bgElement = document.getElementById('bg');
@@ -209,7 +232,9 @@ async function loadEditUI(): Promise<void> {
 
   // content/index.tsで追加した早期hideスタイルを削除
   // （#wrapper/#bgを表示可能にする）
-  const earlyHideStyle = document.getElementById(EXTENSION_IDS.loading.earlyHideStyle);
+  // getElementById は同IDの他人要素（識別属性なし）を捕捉し得るため、識別属性
+  // セレクタで拡張由来の early-hide のみを対象とする（PR#156レビュー指摘）
+  const earlyHideStyle = findLoaderEarlyHide();
   if (earlyHideStyle) {
     earlyHideStyle.remove();
   }
@@ -306,7 +331,14 @@ async function loadEditUI(): Promise<void> {
   bgElement.appendChild(vueEditApp);
 
   // Vue アプリケーションを起動
-  await initVueApp();
+  await initVueApp(generation);
+
+  // 中止判定3（Vue初期化後の後続処理前）: initVueApp のawait中に編集URLを離脱した
+  // 場合（判定2でマウントを中断したのと同一世代）、後続の言語リンク差し替えも
+  // 実行しない（公式ページの言語リンク書き換えという副作用を残さないため）
+  if (generation !== urlLeaveGeneration) {
+    return;
+  }
 
   // オーバーレイはDeckEditLayout.vueのonMountedで削除される
   // （デッキ読み込み完了後に削除）
@@ -317,8 +349,9 @@ async function loadEditUI(): Promise<void> {
 
 /**
  * Vue アプリケーションを初期化
+ * @param generation loadEditUI開始時点の世代トークン（マウント直前の離脱判定に使用）
  */
-async function initVueApp(): Promise<void> {
+async function initVueApp(generation: number): Promise<void> {
   try {
     // トップレベルで既にインポート開始しているPromiseを使用
     const [{ createApp, nextTick }, { createPinia }, { default: DeckEditLayout }] = await vueModulesPromise;
@@ -340,6 +373,12 @@ async function initVueApp(): Promise<void> {
       settingsStore.applyRightAreaStyles();
     }
 
+    // 中止判定2（マウント直前）: モジュールawait中に編集URLを離脱した場合、
+    // app.mount を実行しない（Vueアプリの公式ページへのマウント防止）
+    if (generation !== urlLeaveGeneration) {
+      return;
+    }
+
     app.mount('#vue-edit-app');
 
     // Vue描画が完全に完了するまで待機
@@ -349,20 +388,26 @@ async function initVueApp(): Promise<void> {
   }
 }
 
-// このモジュールが動的インポートされた時点で編集ページにいることが確定
-// URL監視は content/index.ts 側で実施されているため、ここでは直接 watchUrlChanges() を実行
-// ただし、プリフェッチ時は編集ページでない可能性があるため、isVueEditPage() で条件チェック
+// モジュール評価時点では編集ページにいない可能性がある（prefetch時の非編集評価。
+// TASK-513: 旧実装は非編集ページで早期returnしwatchUrlChanges()が未登録のまま
+// だったため、prefetch済みモジュールがhash遷移で#/ytomo/editに入っても誰も
+// loadEditUIを呼ばずロード画面から進まなくなっていた）
+// URL監視は content/index.ts 側でも実施されているが、content側はキャッシュ済み
+// モジュールの再利用時にloadEditUIを呼ぶ経路を持たないため、edit-ui側でも
+// 常に watchUrlChanges() を登録する（起動は内部の isEditUrl() && !isEditUILoaded
+// ガードで単一に保たれる）
 // 注: オーバーレイとpreloadはcontent/index.tsで既に実行されているため、ここでは不要
 (async () => {
-  // 編集ページでない場合はスキップ
-  if (!isVueEditPage()) {
-    return;
+  if (isVueEditPage()) {
+    // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
+    // 非編集ページで実行すると公式ページの documentElement/body/#wrapper/#bg に
+    // 背景色・data-ygo-next-theme を設定する視覚回帰になるため、必ずガード内に留める
+    applyThemeFromSettings().catch(err => {
+      console.warn('[Edit UI] Failed to apply theme:', err);
+    });
   }
 
-  // テーマを非同期で読み込み（念のため、メモリキャッシュがなかった場合のフォールバック）
-  applyThemeFromSettings().catch(err => {
-    console.warn('[Edit UI] Failed to apply theme:', err);
-  });
-
+  // 非編集ページでの呼び出しはリスナ登録のみで副作用なし
+  // （内部で isEditUrl() && !isEditUILoaded をガードするため）
   watchUrlChanges();
 })();

@@ -1,0 +1,155 @@
+# 検証対象: src/utils/image-dialog-layout.ts（TASK-511で作成した純関数モジュール）
+#
+# テスト先行（test-structure skill §6「テスト先行」）: 実装前に条件書・テストを作成した後、
+# TASK-511段階6の実装で全条件のテストがPASSしたため[meta]をverified=trueへ更新した
+# （verified_at / verified_by / test_command / source_hash（git hash-object
+# src/utils/image-dialog-layout.ts）は設計書§8の記載方法に従う）。
+#
+# 出典: TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）。
+# 同設計書はtmp/配下のセッション成果物のため、恒久の参照先はtm TASK-511。
+# 条件IDは設計書§8の条件ID一覧と1:1対応させるが、設計書のunderscore区切り
+# （layout.scale_keeps_1_when_content_fits 等）はtest-structure skill §2のstable id形式
+# （kebab-case・underscore禁止）およびverify-conditions.pyのSTABLE_ID_REに合わせて
+# kebab-caseへ変換している（例: layout.scale-keeps-1-when-content-fits）。
+#
+# ImageDialog.vue本体（layout computed・popupStyle反映・resizeリスナ）はTier C条件書が
+# 未作成のため本条件書の対象外。結合挙動はtests/unit/components/ImageDialog.test.tsで
+# coversタグなしで検証する（設計書§8結合テスト節・既存テストと同様）。
+
+[meta]
+feature = "image-dialog-layout"
+source_file = "src/utils/image-dialog-layout.ts"
+verified = true
+verified_at = "2026-09-15"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/image-dialog-layout.test.ts"
+source_hash = "bfcc79683a79faf29244d4fdd176c993b01c913d"
+note = "TASK-511段階6で実装・全条件PASSを確認（11条件のcoversタグはtests/unit/utils/image-dialog-layout.test.tsに付与）。codex実装レビュー必須修正（極端小viewportの防御的正規化）を反映し条件1件を追加、source_hashを再計算。ImageDialog.vue本体の結合挙動はtests/unit/components/ImageDialog.test.tsでcoversタグなしに検証（下記excluded参照）"
+
+# --- computeImageDialogLayout: サイズ計算（設計書§1） ---
+
+[[condition]]
+id = "layout.scale-keeps-1-when-content-fits"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:35"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§1"
+description = "コンテンツ幅+両側paddingが外枠上限（min(vw-2*VIEWPORT_MARGIN, MAX_DIALOG_WIDTH)）に収まる場合は縮小しない（scale=1）。外枠幅は常にcontentWidth+2*DIALOG_PADDING"
+given = "viewport=1280x800, contentWidth=600（600+40=640が上限640にちょうど収まる）, buttonRect=null"
+expect_return = "scale=1, contentWidth=600, width=640, maxHeight=min(800*0.85, 800-32)=680"
+
+[[condition]]
+id = "layout.scale-shrinks-content-width-to-fit"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:60"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§1"
+description = "上限超過時はコンテンツ幅（.background-image実幅=画像表示幅）基準で縮小する。scale=max(0,min(1,(maxDialogWidth-2*padding)/contentWidth))でpaddingは縮小対象外の実px。高さはscaleで詰めずmaxHeight+縦スクロールで担保する（border-boxの二重縮小解消が本修正の目的）"
+given = "viewport=1280x800（外枠上限=min(1248,640)=640）, contentWidth=750, buttonRect=null"
+expect_return = "scale=0.8, contentWidth=600, width=640, maxHeight=680"
+
+[[condition]]
+id = "layout.max-height-normalized-on-short-viewport"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:76"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2（クランプ保証の成立条件）"
+description = "maxHeight=min(vh*0.85, vh-2*VIEWPORT_MARGIN)の正規化により、vh<214ではvh-32が選ばれclampY上限（vh-maxHeight-16）>=16が成立する。vh<32は位置保証対象外（入力契約）"
+given = "viewport=1280x160, contentWidth=750, buttonRect=null"
+expect_return = "maxHeight=min(136,128)=128。top=clampY(16)=16でtop+maxHeight=144=vh-16に収まる"
+
+# --- computeImageDialogLayout: 位置計算（設計書§2） ---
+
+[[condition]]
+id = "layout.center-without-button-rect"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:90"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2 計算手順3"
+description = "buttonRect無し（編集ページ）は実dialog幅・maxHeight基準で画面中央に配置する（旧フォールバックのinnerWidth/2-200という旧幅前提の計算を廃止）"
+given = "viewport=1280x800, contentWidth=750, buttonRect=null"
+expect_return = "placement='center', top=clampY((800-680)/2)=60, left=clampX((1280-640)/2)=320"
+
+[[condition]]
+id = "layout.below-button-when-fits"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:103"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2 計算手順4"
+description = "buttonRect有りで希望位置top=rect.bottom+BUTTON_GAPにmaxHeight分を確保できる（top+maxHeight<=vh-VIEWPORT_MARGIN）場合はボタン直下に配置する"
+given = "viewport=1280x800, contentWidth=750, buttonRect={top:50,bottom:80,left:100,right:140}（88+680=768<=784）"
+expect_return = "placement='below', top=88, left=clampX(100)=100"
+
+[[condition]]
+id = "layout.flips-above-when-no-space-below"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:116"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2 計算手順4・数値検証例"
+description = "下にmaxHeight分確保できない場合は上側へフリップする（top=rect.top-BUTTON_GAP-maxHeight）。設計書§2のデッキ表示ページ典型例（ボタンが画面右下）"
+given = "viewport=1280x800, contentWidth=750, buttonRect={top:740,bottom:776,left:1180,right:1216}"
+expect_return = "placement='above', top=740-8-680=52, left=clampX(1180)=624（left+width=1264=vw-16）"
+
+[[condition]]
+id = "layout.clamps-bottom-when-no-space-either-side"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:131"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2 計算手順4"
+description = "下にも上にもmaxHeight分確保できない場合はtop=clampY(rect.bottom+BUTTON_GAP)の下端クランプに収束する（ボタンと重なる可能性は許容・placement='clamped'）"
+given = "viewport=1280x800, contentWidth=750, buttonRect={top:400,bottom:436,left:100,right:140}（below=444+680>784で不可、above=400-8-680=-288<16で不可）"
+expect_return = "placement='clamped', top=clampY(444)=104（top+maxHeight=784=vh-16）, left=100"
+
+[[condition]]
+id = "layout.clamps-within-viewport-left-right"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:145"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2 計算手順4・クランプ保証（X方向）"
+description = "left=clampX(rect.left)により右端のボタンは右寄せ（left=vw-width-VIEWPORT_MARGIN）される。狭画面でもwidth<=min(vw-2*VIEWPORT_MARGIN, 640)によりclampX上限>=VIEWPORT_MARGINが成立する"
+given = "viewport=360x800, contentWidth=750, buttonRect={top:50,bottom:80,left:350,right:390}"
+expect_return = "width=328（scale=288/750）, left=clampX(350)=16（上限=360-328-16=16）, left+width=344=vw-16"
+
+# --- computeImageDialogLayout: 入力契約とフォールバック（設計書§5） ---
+
+[[condition]]
+id = "layout.falls-back-to-center-when-button-rect-nonfinite"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:163"
+target_function = "computeImageDialogLayout / isFiniteDialogAnchorRect"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§5 入力契約"
+description = "buttonRectのフィールドのいずれか1つでも非有限（NaN/Infinity）ならbuttonRectをnullとして扱い中央配置へフォールバックする。判定は型ガード関数isFiniteDialogAnchorRectで実施（asキャスト不使用）。フォールバックはImageDialog.vueの呼び出し側ではなく純関数冒頭で実施する"
+given = "viewport=1280x800, contentWidth=750, buttonRect={top:740,bottom:776,left:NaN,right:1216}"
+expect_return = "placement='center', top=60, left=320（layout.center-without-button-rectと同一結果）。isFiniteDialogAnchorRectは有限rectでtrue、非有限rectでfalse"
+
+[[condition]]
+id = "layout.zero-content-width-yields-padding-only-width"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:181"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§5 入力契約"
+description = "contentWidth=0（画像生成完了前のdisplayWidth初期値による初期評価）は契約内の入力で、例外を投げずscale=1で打ち切り外枠はpaddingのみの幅になる（isVisibleはdisplayWidth設定後にtrueになるため実際には描画されない）"
+given = "viewport=1280x800, contentWidth=0, buttonRect=null"
+expect_return = "scale=1, contentWidth=0, width=2*DIALOG_PADDING=40（throwしない）"
+
+[[condition]]
+id = "layout.normalizes-tiny-viewport-to-minimum"
+source_lines = "tests/unit/utils/image-dialog-layout.test.ts:195"
+target_function = "computeImageDialogLayout"
+source = "TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2・§5（codex実装レビュー必須修正対応で追記）"
+description = "極端小viewport入力は純関数冒頭で防御的正規化される: vw<MIN_VIEWPORT_WIDTH(=2*VIEWPORT_MARGIN+2*DIALOG_PADDING=72)は72へ、vh<MIN_VIEWPORT_HEIGHT(=2*VIEWPORT_MARGIN=32)は32へ切り上げ。正規化なしだとvw<72ではwidth=2*DIALOG_PADDING=40>vw-2*MARGINで左端クランプ保証が、vh<32ではmaxHeightが負値でY保証が崩れるため、クランプ保証は正規化後のviewport座標系で成立する"
+given = "viewport=40x20（両軸とも最小値未満）, contentWidth=750, buttonRect=null"
+expect_return = "正規化後vw=72/vh=32で計算され、maxHeight=0（負値にならない）・width=40・scale=0・中央配置top=16/left=16でleft+width=56=72-16・top+maxHeight=16=32-16に収束。throwしない"
+
+# --- 条件化しない項目（設計書の要求うち除外したもの） ---
+
+[[excluded]]
+item = "極端小viewport入力（vw<72・vh<32）を正規化前の元viewport座標系で画面内に収束させる保証（正規化後のMIN_VIEWPORT_*座標系での収束は条件 layout.normalizes-tiny-viewport-to-minimum で保証・検証済み）"
+source = "TASK-511設計書v2 §2（クランプ保証の成立条件）・§5（入力契約）。codex実装レビュー必須修正対応で正規化を追加"
+reason = "正規化前の座標系ではmaxHeight<=0・width>vw-2*MARGINとなり数学的に保証不能のため、冒頭での防御的正規化（MIN_VIEWPORT_WIDTH=72/MIN_VIEWPORT_HEIGHT=32）で解決する設計とした。実ブラウザの最小ウィンドウでは発生しない"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "viewport.width/heightに非有限値（NaN/Infinity）を渡した場合の戻り値"
+source = "TASK-511設計書v2 §5（入力契約表）"
+reason = "契約外入力のため結果は未規定（throwしないことのみ規定）。期待値が定まらないため条件化できない"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "ImageDialog.vue本体の結合挙動（popupStyleへのtop/left/width/maxHeight反映・position:fixed化・resizeリスナによる再計算）"
+source = "TASK-511設計書v2 §4・§6・§8（結合テスト節）"
+reason = "ImageDialog.vueのTier C条件書は未作成のため（tests/design/README.md Tier C候補に ImageDialog.vue本体 が残存）、tests/unit/components/ImageDialog.test.tsの結合テストでcoversタグなしに検証する。設計書§8の検証環境区分け（happy-dom=unit・ブラウザ=E2E/手動）どおり"
+decided_at = "2026-09-15"
+decided_by = "claude"

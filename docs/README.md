@@ -13,6 +13,7 @@
 - **[changelog/](./changelog/)** - 変更履歴（リリースノート含む）
 - **[design/](./design/)** - 設計ドキュメント
   - `archive/` - 過去バージョンの設計資料
+  - `loader-early-loading-tech.md` - ロード画面の最初の描画前表示（loader.js document_start 先行読み込み）技術設計
 - **[testing/](./testing/)** - テスト関連
 - **[research/](./research/)** - 調査・検証
 - **[internal-reviews/](./internal-reviews/)** - 内部レビュー

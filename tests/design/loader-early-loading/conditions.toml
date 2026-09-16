@@ -1,0 +1,321 @@
+# 検証対象: public/loader.js
+#
+# 経緯: TASK-510（ロード画面の最初の描画前表示・チラつき解消）。テスト先行として
+# 実装（段階6）に先立って条件書・テストコードを作成した。一次出典はTASK-510実装設計
+# rev2（codex設計レビュー6指摘反映済み。実装完了後に
+# docs/design/loader-early-loading-tech.md へ清書し、source参照も清書先へ更新済み）。
+#
+# idについて: 設計書§5の条件ID案はunderscore形式（is_ytomo_hash.* 等）だが、
+# test-structure skill §2のstable id形式（underscore不可・kebab）とverify-conditions.pyの
+# schema検証に適合させるためkebab形式へ変換して発行した（案のunderscoreは`_`→`-`置換のみ。
+# 対応は1:1）。設計書の「19条件案」は箇条書き19項目で、展開すると23idになる
+# （純関数6 + createLoader 7 + 状態機械7 + 本番アダプタ3）。
+#
+# 本ファイルの性質: public/loader.js はwebpack外のclassic script（ESM化しない）。
+# テストは fs.readFileSync + vm.Script による評価（module オブジェクト注入でexportフックから
+# 取り出し）+ createLoader(deps) への依存注入（happy-dom document・fake timer・importContent spy）
+# で駆動する（設計書§5テスト方式・指摘6対応）。本番アダプタはmodule定義下で起動しないため
+# 動的importの実呼び出しは無く、コード包含検証で担保する。
+#
+# 実装（TASK-510段階6）完了: 全条件 green。検証記録は [meta] に記載。
+# コードレビュー（codex）対応で4条件を追加: boot-non-ytomo-never-accesses-storage・
+# boot-ytomo-storage-error-falls-back-to-default-theme・own-elements-carry-loader-attribute・
+# production-adapter.style-loader-inserts-into-head-or-document-element（計27条件）。
+
+[meta]
+feature = "loader-early-loading"
+source_file = "public/loader.js"
+verified = true
+verified_at = "2026-09-15"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/content/loader-early-loading.test.ts"
+source_hash = "36f24ad746f33bc2c255720bbccaaa15901030b7"
+note = "TASK-510実装（段階6）完了・全27条件green（23条件+コードレビュー対応4条件: 非ytomo storage未アクセス・ytomo storage例外フォールバック・識別属性付与・style-loader挿入先。mise run test:vitest -- tests/unit/content/loader-early-loading.test.ts 全pass・verify-conditions.pyで本feature由来のfail 0件を確認済み。manifest/webpack側の検証は tests/unit/webpack/dynamic-import-bundle.test.ts）。テスト先行作成時のredはexportフックにcreateLoader等が無いことに起因するものだった"
+
+# --- 純関数: isYtomoHash / resolveThemeBgColor / buildEarlyHideCss ---
+
+[[condition]]
+id = "is-ytomo-hash.accepts-ytomo-prefix-and-bare"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:233"
+target_function = "isYtomoHash"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 純関数 + §5条件案"
+description = "ytomo系hash（bare #/ytomo と #/ytomo/ prefix）をtrueとする。クエリ部分（?dno=等）はsplit('?')[0]で除去したbase部で判定する"
+given = "hash = '#/ytomo'（bare）/ '#/ytomo/' / '#/ytomo/edit' / '#/ytomo/edit?dno=123' / '#/ytomo?request_locale=ja'"
+expect_return = "いずれも true"
+
+[[condition]]
+id = "is-ytomo-hash.rejects-other-hashes-and-query-suffix"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:242"
+target_function = "isYtomoHash"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 純関数 + §5条件案"
+description = "ytomo系以外のhash・空・falsy値・prefixだが境界が異なるhashをfalseとする（緩いhash判定の誤ヒット範囲の確定）"
+given = "hash = '' / null / undefined / '#/top' / '#ytomo' / '#/ytomoo'（#/ytomoだが直後がスラッシュでない）"
+expect_return = "いずれも false"
+
+[[condition]]
+id = "resolve-theme-bg.explicit-theme-wins"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:255"
+target_function = "resolveThemeBgColor"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 純関数・§4（判定優先順位はindex.ts:169-184, 383-411と完全一致）+ §5条件案"
+description = "localStorage設定のthemeが明示値（light/dark）の場合、prefersDark引数（matchMedia）に優先してその値を採る。戻り値の背景色定数はcontent/index.tsと同一（dark=#1a1a1a / light=#ffffff）"
+given = "settingsRawが theme:dark のJSON かつ prefersDark=false、および theme:light のJSON かつ prefersDark=true"
+expect_return = "dark指定は'#1a1a1a'、light指定は'#ffffff'"
+
+[[condition]]
+id = "resolve-theme-bg.system-follows-prefers-color-scheme"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:261"
+target_function = "resolveThemeBgColor"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 純関数・§4 + §5条件案"
+description = "theme:system の場合はprefersDark引数（prefers-color-scheme: dark一致）で判定する"
+given = "settingsRawが theme:system のJSON。prefersDark=true の場合と false の場合"
+expect_return = "prefersDark=true は'#1a1a1a'、false は'#ffffff'"
+
+[[condition]]
+id = "resolve-theme-bg.invalid-json-falls-back-to-media"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:267"
+target_function = "resolveThemeBgColor"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 純関数（同期JSON.parseのtry/catch）+ §5条件案"
+description = "settingsRawが不正JSON・null（未保存）・theme未設定のいずれでもthrowせずprefersDark引数で判定する"
+given = "settingsRaw = 不正JSON文字列 / null。prefersDark=true と false の組合せ"
+expect_return = "prefersDark=true は'#1a1a1a'、false は'#ffffff'（parse失敗・未保存で例外を外に漏らさない）"
+
+[[condition]]
+id = "build-early-hide-css.includes-bg-overflow-and-wrapper-bg-hide"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:277"
+target_function = "buildEarlyHideCss"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 buildEarlyHideCss（content/index.ts:416-424と同一内容）+ §5条件案"
+description = "背景色・html/bodyのoverflow:hidden・#wrapperと#bgのdisplay:noneをいずれも!important付きで含むCSS文字列を生成する"
+given = "bg = '#1a1a1a'"
+expect_return_shape = "background-color:#1a1a1a（!important付き）・overflow:hidden（!important付き）・#wrapper,#bg の display:none（!important付き）を包含する単一CSS文字列"
+
+# --- createLoader(deps): DOM生成・起動（ensureEarlyHide / ensureOverlay / boot） ---
+
+[[condition]]
+id = "create-loader.ensure-early-hide-attaches-without-head-and-skips-existing"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:289"
+target_function = "createLoader#ensureEarlyHide（boot経由）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（head未生成でも最速のdocumentElement直付け）+ §5条件案"
+description = "document.head未生成でもearly-hide styleをdocumentElement直下に同期注入する。既存の同ID要素がある場合は再注入せず追跡もしない（冪等）"
+given = "(a) head無しのdocumentでytomo系hashによりboot()、(b) boot()前に第三者のstyle#ygo-next-early-hideが存在"
+expect_return_shape = "(a) ID ygo-next-early-hide のstyleがdocument内に現れgetOwnElementsに含まれる。(b) 既存要素は改変されず追加も行われず、getOwnElementsに含まれない"
+
+[[condition]]
+id = "create-loader.ensure-overlay-creates-title-spinner-subtext-without-body"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:312"
+target_function = "createLoader#ensureOverlay（boot経由）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（完全版index.ts:186-255と視覚一致のoverlay）+ §5条件案"
+description = "document.body未生成でもoverlayをdocumentElement直下に同期注入する。子要素はtitle・スピナー・サブテキストの3つで、@keyframes ygo-spinを含むstyleを別途注入して追跡対象にする"
+given = "body無しのdocumentでytomo系hashによりboot()"
+expect_return_shape = "overlay（ID ygo-next-module-loading-overlay）の子要素が3つ: 先頭 'YuGiOh NEXT'・末尾 'NEXT Deck Edit Page'・中間はygo-spinを含むanimationのスピナー。getOwnElementsにoverlayとspinStyle（ygo-spinを含むstyle）が含まれる"
+
+[[condition]]
+id = "create-loader.ensure-overlay-skips-when-same-id-exists-not-tracked"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:331"
+target_function = "createLoader#ensureOverlay（boot経由）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader・§4フェイルセーフ（同ID既存要素の誤削除防止・指摘4a）+ §5条件案"
+description = "既存の同ID overlay要素がある場合は新規生成せず既存要素を追跡しない（他人要素の誤削除・二重生成の防止）"
+given = "boot()前に第三者のdiv#ygo-next-module-loading-overlay（sentinel子要素付き）を配置してboot()"
+expect_return_shape = "既存要素の内容は変化せず、getOwnElementsに含まれない"
+
+[[condition]]
+id = "create-loader.own-elements-carry-loader-attribute"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:348"
+target_function = "createLoader#ensureEarlyHide / ensureOverlay"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader + コードレビュー指摘3（data-ygo-next-loader識別属性）"
+description = "loaderが生成する early-hide と overlay は識別属性 data-ygo-next-loader='1' を持つ（content.js側はこの属性を持つ要素のみ削除・takeoverするための識別子。loader側ownElements参照保護と同義の他要素保護）。loader.js直書きとsrc/utils/loader-elements.ts LOADER_ATTRの二重管理はソース包含でずれ検知する"
+given = "ytomo系hashでboot()した後に生成された early-hide・overlay 要素"
+expect_return_shape = "両要素ともgetAttribute('data-ygo-next-loader')='1'。かつloader.jsソースがLOADER_ATTR（src/utils/loader-elements.ts）と同一の文字列を含む"
+
+[[condition]]
+id = "create-loader.boot-ytomo-creates-elements-arms-failsafe-and-imports-immediately"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:361"
+target_function = "createLoader#boot"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（ytomo系: 即時。3MB評価を公式DOM構築と並行）+ §5条件案"
+description = "ytomo系hashでは要素生成・フェイルセーフarm・content.js importを全て同期・即時に行う（readyState=loadingでもDCLを待たない）"
+given = "hash='#/ytomo/edit?dno=1'・readyState='loading'・fake timer・importContent spy でboot()"
+expect_return_shape = "boot()の同期実行中にearly-hideとoverlayが生成されimportContentが1回呼ばれる。state='armed'でタイマーが1件走行中（公式DOM要素は除去しない）"
+
+[[condition]]
+id = "create-loader.boot-non-ytomo-defers-import-until-domcontentloaded"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:376"
+target_function = "createLoader#boot"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（ytomo以外: DCL後。公式ページの実行タイミング現状維持）+ §5条件案"
+description = "非ytomo hashかつreadyState='loading'の場合、importはDOMContentLoadedまで遅延する（要素生成・フェイルセーフarmも行わない）"
+given = "hash='#/deck'・readyState='loading' でboot()した後、documentにDOMContentLoadedをdispatch"
+expect_return_shape = "dispatch前はimportContent未呼び出し・要素無し・state='idle'・タイマー無し。dispatchによりimportContentが1回呼ばれる"
+
+[[condition]]
+id = "create-loader.boot-non-ytomo-imports-immediately-when-not-loading"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:391"
+target_function = "createLoader#boot"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（readyStateがloadingでなければ即時start）+ §5条件案"
+description = "非ytomo hashでreadyStateが'loading'以外（complete等）の場合、DCLを待たず即時importする"
+given = "hash='#/deck'・readyState='complete' でboot()"
+expect_return_shape = "boot()の同期実行中にimportContentが1回呼ばれる（state='idle'・要素無し・タイマー無し）"
+
+[[condition]]
+id = "create-loader.boot-publishes-notify-start-and-handoff-only-when-armed"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:402"
+target_function = "createLoader#boot"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（状態機械をcontent.jsへ公開はytomo系のみ）・§2.2 window API + §5条件案"
+description = "ytomo系boot時のみwinに__ygoNextLoaderNotifyStart/__ygoNextLoaderHandoffを公開する（公開した関数はloader状態機械に接続される）。非ytomoでは公開しない"
+given = "ytomo系hashのboot()後と非ytomo hashのboot()後のwin"
+expect_return_shape = "ytomo系: 両propとも関数で、公開されたhandoff()呼び出しでstate='handed_off'。非ytomo: 両propともundefined"
+
+[[condition]]
+id = "create-loader.boot-non-ytomo-never-accesses-storage"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:416"
+target_function = "createLoader#boot"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader + コードレビュー指摘2（非ytomoページでのstorage例外によるloader全体の例外終了防止）"
+description = "非ytomo hashではテーマ解決（storage.getItem・prefersDark）を実行しない。そのためlocalStorageがSecurityError等を投げる環境でも非ytomoページのbootは例外終了せず、content.js import（従来起動していた経路）が阻害されない"
+given = "hash='#/deck'・readyState='complete'・storage.getItemが例外を投げるdeps でboot()"
+expect_return_shape = "boot()は例外を投げずstorage.getItemは未呼び出し。importContentが1回呼ばれstate='idle'"
+
+[[condition]]
+id = "create-loader.boot-ytomo-storage-error-falls-back-to-default-theme"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:433"
+target_function = "createLoader#boot（readSettingsRawSafely/prefersDarkSafely）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader + コードレビュー指摘2（storageアクセスのtry/catch保護）"
+description = "ytomo系bootでstorage.getItemが例外を投げても未保存扱い（prefersDarkで解決）して続行する。要素生成・フェイルセーフarm・content.js importは阻害されない"
+given = "hash='#/ytomo/edit'・readyState='loading'・prefersDark=false・storage.getItemが例外を投げるdeps でboot()"
+expect_return_shape = "boot()は例外を投げずimportContentが1回呼ばれstate='armed'。early-hideは未保存+非darkフォールバックのlight背景（#ffffff）"
+
+# --- 状態機械（指摘1: 2フェーズプロトコル・指摘4: フェイルセーフ） ---
+
+[[condition]]
+id = "state-machine.notify-start-rearms-countdown-without-cancelling"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:453"
+target_function = "createLoader api notifyStart"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（評価開始通知はタイマー解除しない。カウントダウンを1回やり直す）・§2.1 + §5条件案"
+description = "notifyStartはフェイルセーフを解除せず、カウントダウンを1回再始動する（fetch遅延対策・有界。再始動後もタイムアウトで発火する）"
+given = "ytomo系boot()（t=0でarm）→ fake timerでt=7000まで経過 → notifyStart() → さらにt=14500まで経過 → t=15100まで経過"
+expect_return_shape = "t=14500時点では未発火（旧タイマーのt=8000発火でも無く解除済みでも無い）でstate='armed'のまま。t=15100で発火しstate='fired'・自要素除去"
+
+[[condition]]
+id = "state-machine.handoff-cancels-timer-when-armed"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:471"
+target_function = "createLoader api handoff"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（armedのときのみタイマー解除）・§2.1 + §5条件案"
+description = "armed状態でのhandoffはタイマーを解除してhanded_off（終態）へ遷移する。以降タイムアウト経過しても自要素は除去されない"
+given = "ytomo系boot() → handoff() → FAILSAFE_TIMEOUT_MSの2倍以上経過"
+expect_return_shape = "state='handed_off'。自要素はdocumentに残存しconsole.warnも呼ばれない"
+
+[[condition]]
+id = "state-machine.handoff-noop-when-idle-or-fired"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:483"
+target_function = "createLoader api handoff"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（state !== 'armed'ならreturn）・§2.1（終態後no-op）+ §5条件案"
+description = "idle（boot前）とfired（フェイルセーフ発火後）ではhandoffはno-opで状態を遷移させず例外も投げない"
+given = "boot()前のidle状態でhandoff()、およびytomo系boot()→フェイルセーフ発火後のfired状態でhandoff()"
+expect_return_shape = "それぞれstate='idle'/'fired'のまま変化なし・例外なし"
+
+[[condition]]
+id = "state-machine.handoff-idempotent"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:498"
+target_function = "createLoader api handoff"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader（handoff idempotent）・§2.1 + §5条件案"
+description = "handed_off終態での2回目以降のhandoffはno-op（状態不変・例外なし・タイマー再設定も無い）"
+given = "ytomo系boot() → handoff() → もう一度handoff()"
+expect_return_shape = "2回目後もstate='handed_off'・例外なし"
+
+[[condition]]
+id = "failsafe.timeout-removes-only-own-elements-by-reference"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:509"
+target_function = "createLoader fireFailsafe"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 fireFailsafe（ownElements参照ベース除去）・§2.1・§4（指摘4a）+ §5条件案"
+description = "フェイルセーフ発火時に自分が生成した要素のみを参照ベースで除去する（ID照合でなく参照のため、公式DOMの無関係要素は残る）。除去後getOwnElementsは空になる"
+given = "ytomo系boot()でearly-hide/overlay/spinner styleを生成（公式DOM要素も併置）→ FAILSAFE_TIMEOUT_MS経過"
+expect_return_shape = "自要素のみdocumentから除去されgetOwnElements()は空。併置した公式DOM由来の無関係要素は残存する"
+
+[[condition]]
+id = "failsafe.timeout-keeps-same-id-foreign-elements"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:527"
+target_function = "createLoader fireFailsafe"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§4フェイルセーフ（同ID他要素の誤削除防止・指摘4a）+ §5条件案"
+description = "フェイルセーフの除去は自要素参照のみのため、同IDの他人要素は発火後もdocumentに残る"
+given = "boot()前に第三者の同ID overlay要素を配置（ensureOverlayのskipにより追跡対象外）→ boot() → FAILSAFE_TIMEOUT_MS経過"
+expect_return_shape = "第三者の同ID要素はdocumentに残存する"
+
+[[condition]]
+id = "failsafe.warns-on-fire"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:539"
+target_function = "createLoader fireFailsafe"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 fireFailsafe（console.warnで公式画面復帰を通知）+ §5条件案"
+description = "フェイルセーフ発火時にdeps.console.warnで通知する（拡張破損時の公式画面復帰をログから確認できる）"
+given = "ytomo系boot() → FAILSAFE_TIMEOUT_MS経過"
+expect_return = "deps.console.warn が1回呼ばれる"
+
+# --- 本番アダプタ（コード包含検証。vm実行ではmodule定義により不起動） ---
+
+[[condition]]
+id = "production-adapter.boots-only-when-module-undefined"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:547"
+target_function = "本番アダプタ起動ゲート"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 本番アダプタ（if (typeof module === 'undefined') ゲート・vmテストで起動しない構造）+ §5条件案"
+description = "本番アダプタ（document/window/localStorage実物とboot接続）はmodule未定義（classic script実行）時のみ起動し、module定義下（vmテスト）では起動しない。exportフックはmodule定義側に置く"
+given = "loader.jsのソースコード（実行形態: 本番classic scriptとvm テストの双方）"
+expect_return_shape = "本番アダプタ起動が typeof module === 'undefined' ゲート内にあり、exportフックが typeof module !== 'undefined' 側にあることをソースが包含する"
+
+[[condition]]
+id = "production-adapter.imports-via-chrome-runtime-geturl"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:554"
+target_function = "本番アダプタ importContent"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 本番アダプタ（import(chrome.runtime.getURL('content.js'))）+ §5条件案"
+description = "本番アダプタのimportContentはchrome.runtime.getURL('content.js')の戻り値を直接import()で評価する"
+given = "loader.jsのソースコード"
+expect_return = "import(chrome.runtime.getURL('content.js')) の呼び出しを直接表すコードを包含する"
+
+[[condition]]
+id = "main.ids-match-extension-ids-constants"
+source_lines = "tests/unit/content/loader-early-loading.test.ts:560"
+target_function = "loader.jsのID/キー定数"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 IDS/SETTINGS_KEY（EXTENSION_IDS/STORAGE_KEY_SETTINGSと同一文字列）・リスク4（二重管理のずれ機械検知）+ §5条件案"
+description = "loader.jsが直書きで持つoverlay/early-hide IDとsettingsキーが、src側定数（EXTENSION_IDS.loading / STORAGE_KEY_SETTINGS）と一致する（webpack外のため共有不能な二重管理のずれ検知）"
+given = "loader.jsのソースと src/utils/dom-selectors.ts / src/constants/storage-keys.ts の実定数"
+expect_return = "ソースが EXTENSION_IDS.loading.moduleLoadingOverlay・EXTENSION_IDS.loading.earlyHideStyle・STORAGE_KEY_SETTINGS と同一の文字列を含む"
+
+[[condition]]
+id = "production-adapter.style-loader-inserts-into-head-or-document-element"
+source_lines = "tests/unit/webpack/dynamic-import-bundle.test.ts:268"
+target_function = "webpack.config.cjs の style-loader options.insert（scripts/lib/style-insert.cjs）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘1: document_startでのstyle-loader例外によりcontent.js起動不能になる経路の解消）"
+description = "css/scss両ruleのstyle-loaderが挿入先モジュール scripts/lib/style-insert.cjs（document.head || document.documentElement）をoptions.insertに指定する。head未生成（document_start評価）でもスタイル注入の例外でcontent.jsのモジュール評価全体が失敗しない。headが存在する通常ページ（popup/options等）では挙動不変"
+given = "webpack.config.cjs・scripts/lib/style-insert.cjs のソース、およびビルド後の dist/content.js"
+expect_return_shape = "挿入先モジュールが存在しheadフォールバックを含む。css/scss両ruleがinsertに指定している。dist/content.jsはカスタム挿入先を含みデフォルト挿入モジュール（dist/runtime/insertBySelector）を含まない"
+
+# --- 条件化しない項目（設計書§5/§8のうち上記23条件の対象外としたもの） ---
+
+[[excluded]]
+item = "overlay内部スタイル値の全数検証（42px/600/system-ui・色値#ddd/#333等・完全版index.ts:186-255との視覚一致）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 createLoader・§5条件案（ensure-overlay条件はtitle/spinner/subtextの構造まで）"
+reason = "視覚一致の全数はunit条件として過剰（§8粒度基準: 挙動に差を生まない内部値）。構造は create-loader.ensure-overlay-creates-title-spinner-subtext-without-body で担保し、視覚一致はE2E（test-loader-flicker.cjs案）で確認する"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "documentElement直付け要素の実ブラウザ挙動（HTML parserによる再配置・foster-parentingが起きないことの確認）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1補足・§8（E2Eで確認する注記）"
+reason = "happy-domでは実HTML parserの再配置挙動を再現できないためunit検証不可。E2E（test-loader-flicker.cjs案・実装フェーズで作成）の対象"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "フェイルセーフタイムアウト値8000ms（およびnotifyStart再始動による実質最大16秒）の妥当性検証"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 FAILSAFE_TIMEOUT_MS・リスク1（調整余地あり）"
+reason = "値の適否は設計判断であり実挙動の分岐ではない（§8粒度基準）。テストはexport定数を参照して駆動するため値変更に追従する"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "本番アダプタ内のprefersDarkラッパ（matchMedia）・scheduleTimer/cancelTimerの実タイマー結線の個別検証"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1 本番アダプタ"
+reason = "vmテストではmodule定義によりアダプタが起動しないため実駆動不可（設計書§5の構造）。ゲート・import呼び出しはコード包含2条件（production-adapter.*）で、タイマー・状態機械の論理はcreateLoader DI検証で代替担保する"
+decided_at = "2026-09-15"
+decided_by = "claude"
+
+[[excluded]]
+item = "loader.jsがMutationObserverを使用しないことの検証"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§1補足（loaderはMutationObserverを使わない。直付けで最初の描画前に間に合う）"
+reason = "「使わないこと」は実装方針の確認事項であり、使用した場合は直付け同期注入を検証する既存条件（create-loader.ensure-* 等）と矛盾して検出されるため個別条件化しない"
+decided_at = "2026-09-15"
+decided_by = "claude"

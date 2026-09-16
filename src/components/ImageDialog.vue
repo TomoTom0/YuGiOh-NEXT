@@ -110,6 +110,7 @@ import type { DeckInfo } from '@/types/deck'
 import { COLOR_SETTINGS, type ColorVariant } from '@/types/deck-recipe-image'
 import { createDeckRecipeImage, generateDefaultFooterText } from '../content/deck-recipe/createDeckRecipeImage'
 import { downloadDeckRecipeImage } from '../content/deck-recipe/downloadDeckRecipeImage'
+import { computeImageDialogLayout, DIALOG_PADDING } from '@/utils/image-dialog-layout'
 import QRIcon from './icons/QRIcon.vue'
 import DownloadIcon from './icons/DownloadIcon.vue'
 import SpinnerIcon from './icons/SpinnerIcon.vue'
@@ -193,42 +194,40 @@ const deckDataForPreview = computed<DeckInfo>(() => includeSide.value ? props.de
   sideDeck: []
 })
 
-// ダイアログの余白（画面サイズによらず一定。他ダイアログ(SettingsDialog等)と揃えた値）
-const DIALOG_PADDING = 20
 // タイトル欄のラベルが枠線にかかって上にはみ出すため、上だけ余分に確保する
+// （popupStyleのpadding計算専用。レイアウト計算本体は src/utils/image-dialog-layout.ts）
 const LABEL_OVERFLOW = 8
 
-// 画面サイズを無視して画像の生の解像度をそのまま表示幅にしないよう、
-// 画面幅に対する上限を設けてそれを超える場合は縮小する
-const dialogScale = computed(() => {
-  const rawWidth = displayWidth.value + DIALOG_PADDING * 2
-  const maxDialogWidth = Math.min(window.innerWidth * 0.9, 640)
-  return rawWidth > maxDialogWidth ? maxDialogWidth / rawWidth : 1
-})
+// viewport寸法はVueのリアクティブシステムの外にあるためref化し、
+// resizeリスナで追従させる（開いたままのウィンドウリサイズではみ出しに戻るのを防ぐ）
+const viewportWidth = ref(window.innerWidth)
+const viewportHeight = ref(window.innerHeight)
 
-const popupStyle = computed(() => {
-  const rect = props.buttonRect || {
-    bottom: window.innerHeight / 2 - 200,
-    left: window.innerWidth / 2 - 200
-  }
-  const top = rect.bottom + window.scrollY + 8
-  const left = rect.left + window.scrollX
-  const width = (displayWidth.value + DIALOG_PADDING * 2) * dialogScale.value
+function handleResize() {
+  viewportWidth.value = window.innerWidth
+  viewportHeight.value = window.innerHeight
+}
+
+// 位置・サイズ計算（TASK-511）。buttonRectは開いた時点の値をそのまま使用し、
+// リサイズ時は再クランプのみ行う（rect再取得によるdialogの跳ねるちらつきを避ける）
+const layout = computed(() => computeImageDialogLayout({
+  viewport: { width: viewportWidth.value, height: viewportHeight.value },
+  contentWidth: displayWidth.value,
+  buttonRect: props.buttonRect
+}))
+
+const popupStyle = computed(() => ({
+  top: `${layout.value.top}px`,
+  left: `${layout.value.left}px`,
+  width: `${layout.value.width}px`,
   // 画面の高さを超えて伸び続けないよう上限を設け、超える分はダイアログ内でスクロールする
-  const maxHeight = window.innerHeight * 0.85
-
-  return {
-    top: `${top}px`,
-    left: `${left}px`,
-    width: `${width}px`,
-    maxHeight: `${maxHeight}px`,
-    overflowY: 'auto',
-    padding: `${DIALOG_PADDING + LABEL_OVERFLOW}px ${DIALOG_PADDING}px ${DIALOG_PADDING}px`
-  }
-})
+  maxHeight: `${layout.value.maxHeight}px`,
+  overflowY: 'auto',
+  padding: `${DIALOG_PADDING + LABEL_OVERFLOW}px ${DIALOG_PADDING}px ${DIALOG_PADDING}px`
+}))
 
 const backgroundImageStyle = computed(() => ({
-  height: `${displayHeight.value * dialogScale.value}px`,
+  height: `${displayHeight.value * layout.value.scale}px`,
   background: `url('${backgroundImageUrl.value}') no-repeat center center`,
   backgroundSize: 'contain',
   outlineColor: COLOR_SETTINGS[selectedColor.value].accentLine
@@ -383,10 +382,12 @@ async function initialize() {
 onMounted(() => {
   initialize()
   document.addEventListener('keydown', handleEscape)
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleEscape)
+  window.removeEventListener('resize', handleResize)
   if (footerDebounceTimer) clearTimeout(footerDebounceTimer)
 })
 
@@ -414,7 +415,9 @@ defineExpose({
   /* background/border/border-radius/box-shadowは.dialog-content(common.scss)から継承 */
   /* max-height(90vh)はデッキ画像の高さに合わせて可変にする必要があるため上書き */
   max-height: none;
-  position: absolute;
+  /* buttonRect(getBoundingClientRect=viewport座標)基準のクランプ計算と
+     オーバーレイ(fixed)との座標系を一致させるためfixed（TASK-511） */
+  position: fixed;
   box-sizing: border-box;
   z-index: 10002;
   display: flex;
@@ -428,11 +431,30 @@ defineExpose({
   animation: popup-out 0.2s ease forwards;
 }
 
+/* 縦スクロール発生時にクラシックスクロールバー（環境により10-17px）が
+   コンテンツ幅を消費し、.background-image の幅が contentWidth からずれて
+   background-size:contain の幅高比が崩れる（横方向の余白）ため、バーの幅を
+   0にしてスクロール機能のみ残す（ホイール・ドラッグ・プログラムスクロールで
+   操作可能。バー非表示の分、下部のコントロール群はスクロールで到達する）。
+   scrollbar-width(標準・Chromium 121+)と ::-webkit-scrollbar(旧Chromium)の
+   併用（TASK-511実機テスト指摘） */
+.ygo-next-image-popup {
+  scrollbar-width: none;
+}
+
+.ygo-next-image-popup::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* ヘッダー行（タイトル入力欄と閉じるボタンを同じ行で中央揃え） */
+/* flex子はいずれもflex-shrink:0で押し縮めを禁止し、maxHeight超過分は
+   dialog全体の縦スクロールで処理する（TASK-511実機テスト指摘） */
 .header-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 /* 枠線にラベルがかかるテキスト入力欄（title / text 共通） */
@@ -490,9 +512,17 @@ defineExpose({
   font-size: 13px;
 }
 
+.footer-field {
+  flex-shrink: 0;
+}
+
 .background-image {
   position: relative;
   width: 100%;
+  /* maxHeight制約下でflex-shrinkにより押し縮められるとbackground-size:containの
+     幅高比が崩れて横方向の余白が出るため縮小を禁止し、はみ出しはdialog内の
+     縦スクロール（overflowY:auto）で担保する（TASK-511実機テスト指摘） */
+  flex-shrink: 0;
   outline: 3px solid transparent;
   transition: background 0.5s ease, outline-color 0.3s ease;
 }
@@ -573,6 +603,7 @@ defineExpose({
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .color-picker {

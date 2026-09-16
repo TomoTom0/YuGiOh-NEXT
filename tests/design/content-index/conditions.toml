@@ -3,6 +3,15 @@
 # tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
 # TASK-330(Tier B展開、content残り)。
 #
+# TASK-510追記分（2026-09-15・テスト先行）: ロード画面の最初の描画前表示のための
+# loader.jsとの引き継ぎプロトコル（notifyStart/removeLoaderDerivedElements/
+# runEditPageBoot/DCL待ち/#bg事前検証/handoff/復帰catch）の12条件を末尾に追記した。
+# 出典はTASK-510技術設計（docs/design/loader-early-loading-tech.md。実装完了時に
+# 一次出典の設計rev2から清書し、source参照も更新済み）。追記条件は本ファイル既存の方針（トップレベル副作用のためunitテスト
+# での検証は行わずverified=false + unverifiable_reason、実際の検証はtests/browser/の
+# E2Eが適切）を踏襲する。idはtest-structure skill §2のstable id形式（kebab）で発行
+# （既存19条件のunderscore形式idは本追記の時点で既存のため変更しない）。
+#
 # 本ファイルの性質: Content Scriptのエントリーポイントで、export関数を1件も持たない
 # （import時にトップレベルで副作用を実行するオーケストレーション専用ファイル）。
 # 実際の業務ロジック（デッキパース・API通信・DOM描画等）は全て他モジュールに委譲されており、
@@ -36,11 +45,11 @@
 feature = "content-index"
 source_file = "src/content/index.ts"
 verified = false
-verified_at = "2026-08-29"
+verified_at = "2026-09-15"
 verified_by = "claude"
 test_command = "N/A（上記「ユニットテスト非採用の技術的根拠」参照。tests/browser/でのE2E検証が適切）"
-source_hash = "c04855b4c6f276b92a551fc3668a5f37cdda2b5d"
-note = "export関数0件のオーケストレーション専用エントリーポイント。全19条件がverified=false（webpack DefinePlugin依存のグローバル代入+多数の動的import依存によりユニットテストでの再現コストが不釣り合いに高いため）"
+source_hash = "6bfbbc5194fbc4170b73006bb3168b548134c74c"
+note = "export関数0件のオーケストレーション専用エントリーポイント。全31条件（TASK-330由来19条件+TASK-510追記12条件）がverified=false（webpack DefinePlugin依存のグローバル代入+多数の動的import依存によりユニットテストでの再現コストが不釣り合いに高いため。TASK-510実装時にsource_hashを再同期）"
 
 # --- prefetchEditUI() [非export] ---
 
@@ -245,3 +254,140 @@ given = "document.readyState === 'loading' の場合／'complete'の場合"
 expect_no_throw = true
 verified = false
 unverifiable_reason = "同上"
+
+# --- TASK-510追記: loader.js との引き継ぎプロトコル（テスト先行で条件化。実装完了済み・E2E未検証） ---
+# 出典: TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3/§2.4
+# コードレビュー指摘3対応: removeLoaderDerivedElements は src/utils/loader-elements.ts
+# に切り出され、識別属性 data-ygo-next-loader を持つ要素のみ削除・takeoverする
+# （属性ゲートのロジック自体は tests/design/loader-elements/conditions.toml でunit検証。
+# 本ファイルの条件は配線（呼び出し位置・順序）のE2E検証対象）
+
+[[condition]]
+id = "top-level.notifies-loader-evaluation-start-without-cancelling-failsafe"
+target_function = "トップレベル（モジュール評価冒頭）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 モジュール評価冒頭・§2.1 + tm TASK-510"
+description = "モジュール評価冒頭（他のトップレベル処理の前）にwindow.__ygoNextLoaderNotifyStart?.()を呼び、content.js評価開始をloaderへ通知する。この時点ではフェイルセーフタイマーを解除しない（評価開始後に例外が出ても発火すれば公式画面を復帰させるため）"
+given = "loader.jsがytomo系hashでarmed状態（early-hide/overlay注入済み・タイマー走行中）でcontent.jsが評価開始する"
+expect_return_shape = "評価開始通知が呼ばれるがhandoff（__ygoNextLoaderHandoff）は呼ばれない。タイマー解除は引き継ぎ成功確定時のみ"
+verified = false
+unverifiable_reason = "モジュール評価冒頭のトップレベル副作用のため上記「ユニットテスト非採用の技術的根拠」と同じコストで検証できず、TASK-510実装（段階6）も未了。tests/browser/でのE2E検証が適切"
+
+[[condition]]
+id = "top-level.non-edit-page-removes-loader-elements-then-hands-off"
+target_function = "トップレベル（isVueEditPage分岐・else節）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 非編集ページ分岐（指摘1の非編集ページ条件）+ tm TASK-510"
+description = "非編集ページではloader由来要素（緩いhash誤ヒット時に残存するearly-hide/overlay）をIDベースで除去した後にhandoffを呼ぶ（要素除去完了後＝引き継ぎ成功。順序保証）"
+given = "isVueEditPage() が false（loaderの緩いhash判定が誤ヒットし要素が残存している場合を含む）"
+expect_return_shape = "removeLoaderDerivedElements()（src/utils/loader-elements.ts。識別属性 data-ygo-next-loader を持つ overlay/early-hide のみ削除）が先に実行され、その後 window.__ygoNextLoaderHandoff?.() が呼ばれる"
+verified = false
+unverifiable_reason = "同上（トップレベル副作用・E2E（test-loader-flicker.cjs案）未実施。E2E検証が適切）"
+
+[[condition]]
+id = "top-level.edit-boot-wrapped-with-official-page-restore-on-sync-error"
+target_function = "runEditPageBoot（旧381行のif (isVueEditPage()) 分岐の関数化）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 runEditPageBoot（指摘1: handoff前クラッシュの保護）+ tm TASK-510"
+description = "編集ページブート（テーマ判定・early-hide・preloadEditPageData・loadEditUIIfNeeded）をtry/catchで包み、同期クラッシュでもremoveLoaderDerivedElements()で公式画面を復帰させてconsole.errorする（throwは外に伝播させない）"
+given = "isVueEditPage() が true で runEditPageBoot() 内の同期処理がthrowする"
+expect_return_shape = "catchがloader由来要素を除去して公式画面を復帰させconsole.error('[Content] Edit page boot failed:', ...)を出力。throwは外に伝播しない"
+verified = false
+unverifiable_reason = "同上（トップレベル副作用・E2E（test-loader-flicker.cjs案）未実施。E2E検証が適切）"
+
+[[condition]]
+id = "top-level.existing-early-hide-style-reused-not-duplicated"
+target_function = "runEditPageBoot内のearly-hide処理（既存383-438行の冪等化）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 runEditPageBoot・§3（early-hide冪等化: 既存IDのstyleがあれば再注入skip）+ tm TASK-510"
+description = "loaderが既にearly-hide style（同ID）を注入済みの場合は再注入せず既存を使う（document_start化でloaderとcontent.jsの両方が早期hideを試みるための冪等化）"
+given = "documentに既にEXTENSION_IDS.loading.earlyHideStyleのIDを持つstyleが存在する状態で編集ページブートが走る"
+expect_return_shape = "同IDのstyle要素は2重に作られず既存の1つのみ"
+verified = false
+unverifiable_reason = "同上（トップレベル副作用・E2E（test-loader-flicker.cjs案）未実施。E2E検証が適切）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.waits-domcontentloaded-before-dom-dependent-processing"
+target_function = "loadEditUIIfNeeded（先頭に追加されるDCL待ち）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 loadEditUIIfNeeded変更（指摘2: head未生成クラッシュ解消）・§2.4ケース(a) + tm TASK-510"
+description = "readyState==='loading'の場合、head/bodyに依存するoverlay構築（document.head.appendChild）より前にDOMContentLoadedを待つ。editUILoaded=trueはawait前に立つため待機中の再呼び出しは早期returnでガードされる"
+given = "初期URLが #/ytomo/edit（readyState='loading'）でloadEditUIIfNeeded()が呼ばれる"
+expect_return_shape = "editUILoaded=trueが即座に立った上でDCL待ちし、DCL後に#bg検証・overlay構築・edit-ui importが続く"
+verified = false
+unverifiable_reason = "loadEditUIIfNeededは非exportでトップレベル/hashchangeからのみ呼ばれるため上記「ユニットテスト非採用の技術的根拠」と同じコストで単独切り出しできず、E2E（test-loader-flicker.cjs案）が未実施（実装は段階6で完了済み）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.revalidates-route-after-domcontentloaded-wait"
+target_function = "loadEditUIIfNeeded（DCL待ち直後のルート再検証）"
+source = "PR#156レビュー指摘1（DCL待機中のhash離脱でoverlay生成+handoffまで進み公式画面が覆われたままになる）+ tm TASK-517"
+description = "DOMContentLoaded待機のawait復帰後にisVueEditPage()を再検証し、待機中に非編集hashへ離脱済みの場合は editUILoaded=false・removeLoaderDerivedElements()・handoff（フェイルセーフ解除）の順で復帰して中断する（非編集ページ評価経路と同型）。再検証なしに続行するとoverlay生成+handoff（フェイルセーフ解除）まで進む一方でedit-uiが非編集ルートをマウントせず、公式画面がreloadまで覆われたままになる"
+given = "初期URL #/ytomo/edit（readyState='loading'）でloadEditUIIfNeeded()のDCL待機中にhashが非編集へ変化し、DCL発火で処理が再開する"
+expect_return_shape = "editUILoaded=false・removeLoaderDerivedElements()実行・__ygoNextLoaderHandoff()実行・overlay生成とedit-ui importなしでreturn"
+verified = false
+unverifiable_reason = "loadEditUIIfNeededは非exportでトップレベル/hashchangeからのみ呼ばれるため単独切り出しできず（上記「ユニットテスト非採用の技術的根拠」と同じ）、E2Eでの検証が適切"
+
+[[condition]]
+id = "load-edit-ui-if-needed.bg-missing-after-domcontentloaded-restores-official-page"
+target_function = "loadEditUIIfNeeded（DCL後の#bg事前検証）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（指摘1: edit-ui側console.error経路の先回り）・前提確認（edit-uiの#bg要求）+ tm TASK-510"
+description = "DCL経過後も#bgが存在しない場合は、console.errorしてeditUILoadedをfalseに戻し、loader由来要素を除去して公式画面を復帰の上、edit-ui importを行わず中断する"
+given = "DOMContentLoaded経過後にdocument.getElementById('bg')がnull"
+expect_return_shape = "console.error('[Content] #bg not found after DOMContentLoaded')・editUILoaded=false・removeLoaderDerivedElements()実行・edit-ui import無しでreturn"
+verified = false
+unverifiable_reason = "同上（非export・DOM状態と動的importを含む。E2E（test-loader-flicker.cjs案）未実施。E2E検証が適切）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.existing-overlay-reused-completed-and-moved-to-body"
+target_function = "loadEditUIIfNeeded（overlay冪等テイクオーバー）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3 loadEditUIIfNeeded変更（オーバーレイ冪等テイクオーバー）+ tm TASK-510"
+description = "loader生成のoverlay（識別属性 data-ygo-next-loader を持つ同ID div = findLoaderOverlay() が要素を返す）が存在する場合は新規生成せず、中身（タイトル/スピナー/サブテキスト）を完全版に再構築しbodyへ移動する（親がdocumentElementの場合）。属性を持たない同ID要素（他人要素）は改変せず、現行どおり新規生成する（新規overlayにも識別属性を付与する）。lookupは getElementById でなく findLoaderOverlay() の識別属性セレクタで行うため、他人要素が文書順で先在しても拡張由来overlayを正しく捕捉する（PR#156レビュー指摘2対応）"
+given = "loaderが生成したoverlay（ID: EXTENSION_IDS.loading.moduleLoadingOverlay・識別属性付き）が存在する状態でoverlay構築が走る"
+expect_return_shape = "既存overlay要素が再利用され中身が完全版に再構築される。document.bodyが存在すればoverlayはbody配下に置かれる（属性なし同ID要素が存在する場合はそれを改変せず新規生成する）"
+verified = false
+unverifiable_reason = "同上（非export・DOM生成と動的import完了待ちを含む。E2E未実施（実装は段階6で完了済み）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.hands-off-after-failure-handling-registered"
+target_function = "loadEditUIIfNeeded（handoff呼び出し位置）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（指摘1: 失敗時処理登録済み＋前提検証済みの状態でhandoff）+ tm TASK-510"
+description = "handoff（__ygoNextLoaderHandoff）はDCL待ち・#bg検証・overlayテイクオーバー完了後、edit-ui importの失敗時処理（catchによる要素除去）が登録された直後（import開始直前）に呼ぶ"
+given = "編集ページでDCL待ち・#bg検証・overlay構築を完了しimportを開始する直前"
+expect_return_shape = "window.__ygoNextLoaderHandoff?.() がimport開始前に呼ばれる（フェイルセーフ解除は復帰保証登録後）"
+verified = false
+unverifiable_reason = "同上（非export・トップレベル副作用。E2E（test-loader-flicker.cjs案）未実施。E2E検証が適切）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.import-failure-or-timeout-restores-official-page"
+target_function = "loadEditUIIfNeeded（catch節の復帰追加）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（指摘1/4b: import失敗・タイムアウト時に公式画面を復帰）+ tm TASK-510"
+description = "edit-ui importがTimeoutError・通常エラーのいずれで失敗しても、既存のログ出し分けとeditUILoaded=false復帰に加えてloader由来要素を除去し公式画面を復帰させる（隠したままにしない）"
+given = "withTimeout(editUIModulePromise || import('./edit-ui'), 30000) がrejectする（TimeoutError／通常Errorの2パターン）"
+expect_return_shape = "既存のログ出し分け（TimeoutErrorか否か）・editUILoaded=false・removeLoaderDerivedElements()が実行される"
+verified = false
+unverifiable_reason = "同上（非export・実タイマーと動的importの失敗注入を含む。E2E未実施（実装は段階6で完了済み）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.reuses-prefetched-edit-ui-promise-without-dcl-wait"
+target_function = "loadEditUIIfNeeded（hashchange入遷移・ケース(b)）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.4 状態遷移ケース(b) + tm TASK-510"
+description = "非編集ページでprefetch済み（readyState='complete'）の状態からhashchangeでeditに入遷移した場合、DCL待ちなしで即時に処理し、editUIModulePromise || import('./edit-ui')でprefetch済みPromiseを再利用する（現行と同一。reject済みnullリセット後なら新規import）"
+given = "非編集ページでprefetchEditUIが完了（またはrejectでnullリセット）済みの状態からhashchangeで #/ytomo/edit へ遷移"
+expect_return_shape = "DCL待ち無しで即時にoverlay生成・handoff・importが進み、prefetch済みPromiseが再利用される（rejectが伝播した場合はcatchで要素除去して復帰）"
+verified = false
+unverifiable_reason = "同上（非export・hashchangeリスナ経由のモジュールスコープ状態を含む。E2E未実施（実装は段階6で完了済み）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.hashchange-during-page-load-still-waits-domcontentloaded"
+target_function = "loadEditUIIfNeeded（ロード中hashchange・ケース(c)）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.4 状態遷移ケース(c)（経路によらずreadyState==='loading'ならDCL待ち適用）+ tm TASK-510"
+description = "hashchange経路でもreadyState==='loading'ならDCL待ちを適用する（「hashchange経路はreadyState complete」という前提は排他的でないため経路によらず判定する）。DCL即〜短時間待ちでケース(a)と同じ流れに合流"
+given = "初期URL非ytomo・ロード中（readyState='loading'）にhashchangeで #/ytomo/edit へ変化"
+expect_return_shape = "DCL待ちが適用され、DCL後に#bg検証・overlay・handoff・importが続く（ケース(a)と同じ流れ）"
+verified = false
+unverifiable_reason = "同上（非export・ページロード中のhashchange発火を含む。E2E未実施（実装は段階6で完了済み）"
+
+[[condition]]
+id = "load-edit-ui-if-needed.reentry-guarded-by-edituiloaded-while-awaiting"
+target_function = "loadEditUIIfNeeded（DCL待ち中の再入ガード・ケース(a)）"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.4 状態遷移ケース(a)（editUILoaded=trueはawait前に立つ）+ tm TASK-510"
+description = "DCL待ちのawait中にloadEditUIIfNeededが再呼び出しされても（hashchange・DCL時点の再評価等）、await前に立ったeditUILoaded=trueにより早期returnでガードされ二重ロードしない"
+given = "初期URL #/ytomo/edit のDCL待ち中にloadEditUIIfNeeded()が再度呼ばれる"
+expect_return_shape = "2回目の呼び出しは即座にreturnし、overlay再生成・importの二重実行は行われない"
+verified = false
+unverifiable_reason = "同上（非export・await中の再入という競合状態を含む。E2E未実施（実装は段階6で完了済み）"

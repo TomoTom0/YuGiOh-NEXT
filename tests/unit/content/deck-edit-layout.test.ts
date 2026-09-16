@@ -43,6 +43,7 @@ import type { DeckCardRef, DeckInfo, OperationResult } from '@/types/deck';
 import type { RegulationFallback, RegulationTag, ResolvedRegulation } from '@/types/regulation';
 import { DEFAULT_UX_SETTINGS } from '@/types/settings';
 import { EXTENSION_IDS } from '@/utils/dom-selectors';
+import { markAsLoaderElement } from '@/utils/loader-elements';
 import { isHTMLButtonElement, isHTMLElement } from '@/utils/type-guards';
 
 // appSettings.ux は settings store が DEFAULT_APP_SETTINGS を浅いコピーで初期化するため
@@ -440,8 +441,8 @@ describe('DeckEditLayout.vue', () => {
     });
     // ファビコン差し替えテストのhead残留を掃除
     document.head.querySelectorAll('link[rel*="icon"]').forEach(el => el.remove());
-    const moduleOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay);
-    if (moduleOverlay) moduleOverlay.remove();
+    // テストが作ったoverlay（属性付き・属性なし混在も）をID一致で全件掃除
+    document.querySelectorAll(`#${EXTENSION_IDS.loading.moduleLoadingOverlay}`).forEach(el => el.remove());
 
     // 現行実装はunmountで復元しないためテスト側で復元（TASK-495）
     window.ygoChangeLanguage = originalYgoChangeLanguage;
@@ -768,6 +769,9 @@ describe('DeckEditLayout.vue', () => {
       vi.useFakeTimers();
       const overlay = document.createElement('div');
       overlay.id = EXTENSION_IDS.loading.moduleLoadingOverlay;
+      // content/index.ts の loadEditUIIfNeeded が生成する実態に合わせ識別属性付きで作る
+      // （findLoaderOverlay は識別属性セレクタで取得するため）
+      markAsLoaderElement(overlay);
       document.body.appendChild(overlay);
 
       mountLayout();
