@@ -9,10 +9,16 @@
  * createDeckRecipeImageの解決順をテスト側で制御する。
  *
  * ※Tier C（TASK-331）のconditions.tomlは未作成のためcoversタグは付与しない。
+ *   TASK-511で追加した「レイアウト」describeも同様（src/utils/image-dialog-layout.tsの
+ *   条件書は tests/design/image-dialog-layout/conditions.toml に別途あり、
+ *   ImageDialog.vue本体の結合挙動はcovers対象外と除外記録済み）。
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
+import { nextTick } from 'vue';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import ImageDialog from '@/components/ImageDialog.vue';
 import type { DeckInfo } from '@/types/deck';
 
@@ -225,5 +231,174 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect((reopened.find('.footer-field .field-input').element as HTMLInputElement).value).toBe('カスタムフッター');
 
     reopened.unmount();
+  });
+});
+
+describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
+  // TASK-511テスト先行: popupStyle（将来的にはsrc/utils/image-dialog-layout.tsの
+  // computeImageDialogLayoutを経由したlayout computed）がbuttonRect・viewportから
+  // フリップ/クランプ済みの top/left をstyle属性へ反映することを検証する。
+  // 仕様: TASK-511設計書v2（tmp/20260916_design_task511_image-dialog-layout.md）§2・§4・§6。
+  //
+  // viewport差し替えはtests/unit/content/image-dialog.test.ts:107や
+  // tests/unit/content/deck-edit-layout.test.ts:459と同じ
+  // Object.defineProperty(window, 'innerWidth'/'innerHeight', ...) 方式
+  // （vi.stubGlobalは不採用。テスト間污染を防ぐためdescriptorを保存してafterEachで復元する）。
+
+  let wrapper: VueWrapper | null = null;
+  let innerWidthDescriptor: PropertyDescriptor | undefined;
+  let innerHeightDescriptor: PropertyDescriptor | undefined;
+
+  /** window.innerWidth/innerHeightを固定値で差し替える（初回呼び出し時のみ元descriptorを退避） */
+  function stubViewport(width: number, height: number): void {
+    if (!innerWidthDescriptor) {
+      innerWidthDescriptor = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+    }
+    if (!innerHeightDescriptor) {
+      innerHeightDescriptor = Object.getOwnPropertyDescriptor(window, 'innerHeight');
+    }
+    Object.defineProperty(window, 'innerWidth', { configurable: true, get: () => width });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => height });
+  }
+
+  /** popupのstyle属性文字列から指定propのpx値を数値で取り出す（無ければthrow） */
+  function requirePxValue(style: string, prop: string): number {
+    const match = style.match(new RegExp(`${prop}:\\s*(-?[0-9.]+)px`));
+    if (!match) throw new Error(`styleに${prop}が含まれない: ${style}`);
+    return Number(match[1]);
+  }
+
+  /** 生成画像750x1000（displayWidth=750で初期化完了）したdialogをマウントする */
+  async function mountLayoutDialog(buttonRect: DOMRect | null): Promise<VueWrapper> {
+    const mounted = mount(ImageDialog, {
+      props: { cgid: 'cgid123', dno: '1', deckData: makeDeckInfo(), buttonRect },
+      global: { stubs: { Teleport: true } },
+    });
+    await flushPromises();
+    resolveImage(0, 'layout-init', 750, 1000);
+    await flushPromises();
+    return mounted;
+  }
+
+  function popupStyleOf(mounted: VueWrapper): string {
+    return mounted.find('.ygo-next-image-popup').attributes('style') ?? '';
+  }
+
+  beforeEach(() => {
+    pendingCalls.length = 0;
+    dimsByUrl.clear();
+    localStorage.clear();
+    vi.stubGlobal('FileReader', FakeFileReader);
+    vi.stubGlobal('Image', FakeImage);
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = null;
+    if (innerWidthDescriptor) {
+      Object.defineProperty(window, 'innerWidth', innerWidthDescriptor);
+      innerWidthDescriptor = undefined;
+    }
+    if (innerHeightDescriptor) {
+      Object.defineProperty(window, 'innerHeight', innerHeightDescriptor);
+      innerHeightDescriptor = undefined;
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it('buttonRect渡しで下に置けない場合は上へフリップし左は右端クランプされる（設計書§2典型例）', async () => {
+    stubViewport(1280, 800);
+    // デッキ表示ページ典型: ボタンが右下（left=1180, top=740, 36x36）
+    wrapper = await mountLayoutDialog(new DOMRect(1180, 740, 36, 36));
+
+    const style = popupStyleOf(wrapper);
+    // below希望=784で収まらないためフリップ: top=740-8-680=52
+    expect(requirePxValue(style, 'top')).toBeCloseTo(52, 6);
+    // 右端クランプ: left=1280-640-16=624
+    expect(requirePxValue(style, 'left')).toBeCloseTo(624, 6);
+    expect(requirePxValue(style, 'width')).toBeCloseTo(640, 6);
+    expect(requirePxValue(style, 'max-height')).toBeCloseTo(680, 6);
+    // 設計書§9: left+width <= innerWidth-VIEWPORT_MARGIN(16)
+    const left = requirePxValue(style, 'left');
+    const width = requirePxValue(style, 'width');
+    expect(left + width).toBeLessThanOrEqual(1280 - 16 + 1e-6);
+  });
+
+  it('buttonRect無し（編集ページ）は実dialog幅で画面中央に配置される', async () => {
+    stubViewport(1280, 800);
+    wrapper = await mountLayoutDialog(null);
+
+    const style = popupStyleOf(wrapper);
+    expect(requirePxValue(style, 'top')).toBeCloseTo(60, 6); // clampY((800-680)/2)
+    expect(requirePxValue(style, 'left')).toBeCloseTo(320, 6); // clampX((1280-640)/2)
+    expect(requirePxValue(style, 'width')).toBeCloseTo(640, 6);
+  });
+
+  it('resizeでviewportが縮むと再計算され新viewport基準のクランプに収まる（設計書§4）', async () => {
+    stubViewport(1280, 800);
+    wrapper = await mountLayoutDialog(new DOMRect(1180, 740, 36, 36));
+    expect(requirePxValue(popupStyleOf(wrapper), 'left')).toBeCloseTo(624, 6);
+
+    // ウィンドウ幅を1280→360へ縮小（高さは不変）してresizeイベントを発火
+    stubViewport(360, 800);
+    window.dispatchEvent(new Event('resize'));
+    await nextTick(); // プロジェクトルール: DOM更新後はnextTick()を必ず待つ
+
+    const style = popupStyleOf(wrapper);
+    // 外枠上限=min(360-32,640)=328、left=clampX(1180)=360-328-16=16
+    expect(requirePxValue(style, 'left')).toBeCloseTo(16, 6);
+    expect(requirePxValue(style, 'width')).toBeCloseTo(328, 6);
+    // 高さは不変のためabove配置（top=52）は維持される
+    expect(requirePxValue(style, 'top')).toBeCloseTo(52, 6);
+    const left = requirePxValue(style, 'left');
+    const width = requirePxValue(style, 'width');
+    expect(left + width).toBeLessThanOrEqual(360 - 16 + 1e-6);
+  });
+
+  it('backgroundImageStyle.heightはdisplayHeight*scaleで反映され、コンテンツ幅とアスペクト比が一致する（設計書§1）', async () => {
+    stubViewport(1280, 800);
+    // 生成画像750x1000: scale=600/750=0.8 → .background-image高さ=1000*0.8=800px。
+    // popup外枠640（コンテンツ幅600+padding40）と高さ800の比 600:800 が
+    // 生成画像 750:1000 と一致するためbackground-size:containがぴったりfitする
+    wrapper = await mountLayoutDialog(new DOMRect(1180, 740, 36, 36));
+
+    const popupStyle = popupStyleOf(wrapper);
+    const bgStyle = wrapper.find('.background-image').attributes('style') ?? '';
+    expect(requirePxValue(bgStyle, 'height')).toBeCloseTo(800, 6);
+    const contentWidth = requirePxValue(popupStyle, 'width') - 40; // 40=2*DIALOG_PADDING
+    expect(requirePxValue(bgStyle, 'height') / contentWidth).toBeCloseTo(1000 / 750, 6);
+  });
+
+  it('.ygo-next-image-popupのスタイル定義はposition: fixed（オーバーレイと座標系一致）', () => {
+    // happy-domはscoped style（data-v属性セレクタ）のcascadeを解決しないため
+    // getComputedStyleでは検証できない（実測で''が返る）。popup要素が当該クラスを
+    // 持つことは他itのfindで検証済みのため、ここではSFCのscoped定義を直接検証する
+    // （configs系テストと同じソース直読み方式）
+    const sfc = readFileSync(
+      resolve(__dirname, '../../../src/components/ImageDialog.vue'),
+      'utf8'
+    );
+    const match = sfc.match(/\.ygo-next-image-popup\s*\{[^}]*\}/);
+    expect(match).not.toBeNull();
+    const rule = match?.[0] ?? '';
+    // position:absolute（旧・ドキュメント座標）への回帰を防止
+    expect(rule).toContain('position: fixed');
+    expect(rule).not.toContain('position: absolute');
+  });
+
+  it('unmount後のresizeイベントでエラーにならない（リスナ除去の回帰固定）', async () => {
+    stubViewport(1280, 800);
+    const mounted = await mountLayoutDialog(null);
+
+    // onUnmountedでresizeリスナが除去されていること（除去漏れはunmount後も
+    // handleResizeが動き続けるメモリリークになるため直接検証する）
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+    mounted.unmount();
+    expect(removeSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+    removeSpy.mockRestore();
+
+    // 除去済みのため、unmount後のresize dispatchは何も起こさず例外も出ない
+    stubViewport(360, 800);
+    expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
   });
 });

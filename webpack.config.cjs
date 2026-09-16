@@ -69,12 +69,30 @@ module.exports = (env, argv) => {
         },
         {
           test: /\.css$/,
-          use: ['style-loader', 'css-loader'],
+          use: [
+            {
+              loader: 'style-loader',
+              options: {
+                // TASK-510: document_start 評価時に head が未生成でもスタイル注入を
+                // 継続するための挿入先モジュール（head || documentElement）。
+                // デフォルトの insertBySelector は querySelector("head") 固定で、
+                // head が無いと例外になり content.js のモジュール評価全体が失敗する
+                insert: path.resolve(__dirname, 'scripts/lib/style-insert.cjs'),
+              },
+            },
+            'css-loader',
+          ],
         },
         {
           test: /\.scss$/,
           use: [
-            'style-loader',
+            {
+              loader: 'style-loader',
+              options: {
+                // 上記 .css と同じ挿入先モジュール（TASK-510）
+                insert: path.resolve(__dirname, 'scripts/lib/style-insert.cjs'),
+              },
+            },
             'css-loader',
             {
               loader: 'sass-loader',

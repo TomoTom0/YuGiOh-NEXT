@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { isRecord } from '@/utils/type-guards';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -248,9 +249,45 @@ describe('パフォーマンス最適化（動的import）- ユニットテス�
       const sizeBytes = getFileSize(loaderPath);
       const sizeKB = bytesToKB(sizeBytes);
 
-      // loader.js は小さいファイル（通常 1-2KB）
+      // TASK-510実装（createLoader(deps)構造・設計書rev2 §1）後の実測: 10.84KB
+      // （11101 bytes・277行）。上限は「実測 + 約2KBのマージン」で固定する
+      // （document_start で最初の描画前に評価されるため、サイズ上限は初期描画への
+      // 影響を保証するガード。大きく超える増加はレビューで要確認）
       console.log(`loader.js size: ${sizeKB}KB`);
-      expect(sizeKB).toBeLessThan(10);
+      expect(sizeKB).toBeLessThan(13);
+    });
+  });
+
+  describe('style-loader の挿入先（TASK-510: document_start 対応）', () => {
+    // TASK-510 コードレビュー指摘1: style-loader 4.x のデフォルト挿入先は
+    // insertBySelector.js の document.querySelector("head") 固定で、manifest の
+    // run_at: document_start で content.js 評価時に head が未生成だと例外になり
+    // content.js のモジュール評価全体が失敗する。挿入先モジュール
+    // scripts/lib/style-insert.cjs（head || documentElement）を css/scss 両ruleの
+    // options.insert に指定していることを検証する
+    it('[covers:production-adapter.style-loader-inserts-into-head-or-document-element] 挿入先はhead||documentElementモジュール', () => {
+      const configPath = path.resolve(__dirname, '../../../webpack.config.cjs');
+      const configSource = fs.readFileSync(configPath, 'utf8');
+
+      // 挿入先モジュールが存在し head フォールバックを持つ
+      const insertModulePath = path.resolve(__dirname, '../../../scripts/lib/style-insert.cjs');
+      expect(fs.existsSync(insertModulePath)).toBe(true);
+      const insertSource = fs.readFileSync(insertModulePath, 'utf8');
+      expect(insertSource).toMatch(/document\.head\s*\|\|\s*document\.documentElement/);
+
+      // css/scss 両ruleの style-loader が insert に指定している
+      const insertRefs = configSource.match(/insert:\s*path\.resolve\(__dirname,\s*'scripts\/lib\/style-insert\.cjs'\)/g) ?? [];
+      expect(insertRefs.length).toBeGreaterThanOrEqual(2);
+
+      // dist（ビルド後）はデフォルトの querySelector("head") 固定挿入を使わない
+      const contentPath = path.join(DIST_DIR, 'content.js');
+      if (fs.existsSync(contentPath)) {
+        const distSource = fs.readFileSync(contentPath, 'utf8');
+        // カスタム挿入先モジュールがバンドルされている
+        expect(distSource).toMatch(/document\.head\s*\|\|\s*document\.documentElement/);
+        // デフォルト挿入モジュール（runtime/insertBySelector.js）がバンドルされていない
+        expect(distSource).not.toContain('dist/runtime/insertBySelector');
+      }
     });
   });
 
@@ -310,6 +347,75 @@ describe('パフォーマンス最適化（動的import）- ユニットテス�
       const contentScript = manifest.content_scripts?.[0];
       expect(contentScript?.js).toBeDefined();
       expect(contentScript?.js.some((js: string) => js.includes('loader.js'))).toBe(true);
+    });
+  });
+
+  describe('manifest.json の先行読み込み設定（TASK-510）', () => {
+    // TASK-510: ロード画面の最初の描画前表示のための manifest 設定。
+    // 設計書rev2（tmp/20260916_design_task510_loader-early-loading.md）§5:
+    // - public/manifest.json と dist/manifest.json の両方を検証（dist はビルド前skipの既存パターン）
+    // - content_scripts.js[0] === 'loader.js'（loader が最初に評価される）
+    // - run_at === 'document_start'（最初の描画前に注入）
+    // - web_accessible_resources に content.js（loader からの動的importに必要）
+    //
+    // テスト先行作成のため、TASK-510 実装（manifest の run_at 変更）までは
+    // run_at 検証が red になる（未実装由来。typo・構文エラー由来でないこと）
+
+    interface ContentScriptEntry {
+      js: string[];
+      run_at: string;
+    }
+
+    const isContentScriptEntry = (value: unknown): value is ContentScriptEntry =>
+      isRecord(value) &&
+      Array.isArray(value.js) &&
+      value.js.every((js) => typeof js === 'string') &&
+      typeof value.run_at === 'string';
+
+    const readManifest = (filePath: string): unknown => {
+      if (!fs.existsSync(filePath)) return null;
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    };
+
+    const getContentScriptEntry = (manifest: unknown): ContentScriptEntry | null => {
+      if (!isRecord(manifest)) return null;
+      const entry = manifest.content_scripts?.[0];
+      return isContentScriptEntry(entry) ? entry : null;
+    };
+
+    const hasWebAccessibleResource = (manifest: unknown, resource: string): boolean => {
+      if (!isRecord(manifest)) return false;
+      const entries = manifest.web_accessible_resources;
+      if (!Array.isArray(entries)) return false;
+      return entries.some(
+        (entry) => isRecord(entry) && Array.isArray(entry.resources) && entry.resources.includes(resource)
+      );
+    };
+
+    const verifyManifestForEarlyLoading = (manifestPath: string): boolean => {
+      // ビルド前（ファイル無し）はskip（既存パターン）
+      if (!fs.existsSync(manifestPath)) {
+        expect(true).toBe(true);
+        return false;
+      }
+      const manifest = readManifest(manifestPath);
+      const contentScript = getContentScriptEntry(manifest);
+      expect(contentScript).not.toBeNull();
+      if (!contentScript) return true;
+      // loader が先頭で document_start 評価される
+      expect(contentScript.js[0]).toBe('loader.js');
+      expect(contentScript.run_at).toBe('document_start');
+      // loader からの content.js 動的importに必要
+      expect(hasWebAccessibleResource(manifest, 'content.js')).toBe(true);
+      return true;
+    };
+
+    it('public/manifest.json が run_at document_start・js[0]=loader.js・content.js公開（TASK-510）', () => {
+      verifyManifestForEarlyLoading(path.join(PUBLIC_DIR, 'manifest.json'));
+    });
+
+    it('dist/manifest.json が run_at document_start・js[0]=loader.js・content.js公開（ビルド前skip）', () => {
+      verifyManifestForEarlyLoading(path.join(DIST_DIR, 'manifest.json'));
     });
   });
 

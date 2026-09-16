@@ -50,6 +50,20 @@ declare global {
      * loadDeck と同様に、ytkn取得を待機できるようにする
      */
     ygoNextPreloadedYtknPromise?: Promise<void> | null;
+
+    /**
+     * loader.js（先行ローダー）のフェイルセーフ状態機械: 評価開始通知
+     * content.js モジュール評価冒頭に呼ぶ。フェイルセーフタイマーは解除されず
+     * カウントダウンが1回再始動されるのみ（loaderがytomo系hashでのみ登録）
+     */
+    __ygoNextLoaderNotifyStart?: () => void;
+
+    /**
+     * loader.js（先行ローダー）のフェイルセーフ状態機械: 引き継ぎ成功通知
+     * loader由来の early-hide/overlay の引き継ぎが確定した時点で呼び、
+     * フェイルセーフタイマーを解除する（loaderがytomo系hashでのみ登録）
+     */
+    __ygoNextLoaderHandoff?: () => void;
   }
 }
 

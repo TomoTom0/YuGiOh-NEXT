@@ -120,6 +120,59 @@ node tests/browser/test-lock.cjs
 node tests/browser/test-dialog.cjs
 ```
 
+### `test-image-dialog-layout.cjs`
+
+デッキ画像作成ダイアログの位置・サイズ計算の実機テストです（TASK-511）。
+
+**確認項目**:
+1. 編集ページ（`?dno=` 付きURLでフルナビゲーション）での配置
+   - 高さ十分なviewport（1280x1400）: `.background-image` の幅高比が生成画像の自然比と一致（contain二重縮小なし）・center配置・viewport内
+   - 標準viewport（1280x800）: viewport内・QRトグル到達
+2. 小window（900x600）: 画面内収束・maxHeight<=85vh・QRトグル到達
+3. resize（500x400）: 開いたままのリサイズで再クランプ
+4. デッキ表示ページ（`PUBLIC_DECK_URL`）: カメラボタンから下はみ出しなし（above/clamped配置）・右端クランプ
+
+**実装側修正の経緯（2026-09-16解消）**: 初回実測で `a2-2`/`b4` がfailしていた原因は2つで、いずれも実装側スタイルの修正で解消済み（31項目全pass）:
+1. `.ygo-next-image-popup`（flexコンテナ）内の `.background-image` が flex-shrink で押し縮められ、`style.height` より実測高さが縮んで幅高比が崩れ、dialog内の縦スクロールも発生しない → 全flex子要素に `flex-shrink: 0` を追加し、はみ出し分は maxHeight + `overflowY: auto` の縦スクロールで担保
+2. 縦スクロール発生時にクラシックスクロールバー（環境により約10〜17px）がコンテンツ幅を消費し `.background-image` の実幅が contentWidth からずれて幅高比が崩れる → `scrollbar-width: none` + `::-webkit-scrollbar { width: 0 }` でバー幅を0にしスクロール機能のみ残す（ホイール・プログラムスクロールで到達可能）
+
+**実行方法**:
+```bash
+node tests/browser/test-image-dialog-layout.cjs
+```
+
+**前提**: `data/session/storageState.json` による `injectSession`（編集ページのcgid取得・デッキ表示ページの画像生成にログインが必要）
+
+### `test-loader-flicker.cjs`
+
+ロード画面の最初の描画前表示・チラつき解消の実機E2Eテストです（TASK-510）。
+`Page.addScriptToEvaluateOnNewDocument` で main world に記録器を注入し、
+requestAnimationFrame 毎のDOM状態スナップショット（#wrapper/#bg の表示状態・
+overlay の存在/親要素/rect・Vue UI生成）と MutationObserver の要素追加/削除時刻から
+ペイント単位でチラつきを検出します。
+
+**確認項目**（設計: `docs/design/loader-early-loading-tech.md` §8/§9）:
+1. 編集ページ（`#/ytomo/edit?dno=`）を about:blank からフルナビゲーションで開いた際、
+   公式DOM（#wrapper/#bg）が非表示かつロード画面（#ygo-next-module-loading-overlay）が
+   初期段階から存在すること（チラつきフレームなし・wrapper初観測時点でoverlay/early-hide存在）
+2. Vue編集UI（#vue-edit-app/.deck-edit-container）がマウントされ、overlay/early-hideが除去されること
+3. document_start時の overlay の documentElement(HTML) 直付けと、takeover時の body 移動で
+   rect が viewport を維持すること（foster parenting で壊れない）
+4. 非ytomo公式ページ（トップ・デッキ表示）の回帰なし（公式UIは隠されず、拡張機能ボタンが注入される）
+5. 公式トップから hashchange で #/ytomo/edit へ遷移した場合の編集UIマウント（保証レベルB）
+
+**既知の従来挙動（2026-09-16実測）**: 観点5はprefetch完了後のhash遷移ではマウントしません
+（非編集ページでのedit-ui prefetch時にモジュールIIFEが早期returnし、edit-ui側のhashchange
+リスナが未登録のままになるため。TASK-510より前の2025-12からの構造で、TASK-510の変更範囲外）。
+prefetch完了前のhash遷移ではマウントすることを確認済み。フルナビゲーション（観点1）は影響なし。
+
+**実行方法**:
+```bash
+node tests/browser/test-loader-flicker.cjs
+```
+
+**前提**: `data/session/storageState.json` による `injectSession`（編集ページのデッキ取得にログインが必要）
+
 ### `test-scroll-to-top.cjs`
 
 scroll-to-top機能の動作確認テストです。

@@ -211,8 +211,8 @@ function createTestContext() {
 // （TASK-467で実機検証済み。ytknはcookieセッションとペアで失効するためURLから除去）。
 // cgid は約6週間で失効する。失効時は PUBLIC_DECK_CGID のみ差し替える
 // （再調達手順は tests/browser/README.md「テスト対象URL」参照）。
-const PUBLIC_DECK_CGID = '87999bd183514004b8aa8afa1ff1bdb9';
-const PUBLIC_DECK_DNO = '95';
+const PUBLIC_DECK_CGID = '3d839f01a4d87b01928c60f262150bec';
+const PUBLIC_DECK_DNO = '8';
 const PUBLIC_DECK_URL =
   `https://www.db.yugioh-card.com/yugiohdb/member_deck.action?ope=1&wname=MemberDeck` +
   `&cgid=${PUBLIC_DECK_CGID}&dno=${PUBLIC_DECK_DNO}`;
@@ -278,4 +278,4 @@ async function injectSession(cdp) {
   return cookies.length;
 }
 
-module.exports = { connectCDP, createTestContext, WS_FILE, PUBLIC_DECK_URL, injectSession };
+module.exports = { connectCDP, createTestContext, WS_FILE, PUBLIC_DECK_URL, PUBLIC_DECK_CGID, PUBLIC_DECK_DNO, injectSession };

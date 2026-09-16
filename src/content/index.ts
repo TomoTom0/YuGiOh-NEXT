@@ -30,6 +30,13 @@ import { initializeMappingManager } from '../utils/mapping-manager';
 // DOMセレクタ
 import { EXTENSION_IDS } from '../utils/dom-selectors';
 
+// loader.js との要素連携（識別属性による削除・takeover のゲート）
+import {
+  markAsLoaderElement,
+  removeLoaderDerivedElements,
+  isLoaderOverlayElement
+} from '../utils/loader-elements';
+
 // デッキメタデータローダー
 import { getDeckMetadata, updateDeckMetadata, isDeckMetadataStale } from '../utils/deck-metadata-loader';
 
@@ -53,6 +60,12 @@ import {
   CHROME_STORAGE_KEY_USER_CGID,
   CHROME_STORAGE_KEY_CLEAR_LOCAL_STORAGE_KEYS
 } from '../constants/storage-keys';
+
+// ===== モジュール評価冒頭（TASK-510: 他のトップレベル処理の前） =====
+// loader.js へ content.js 評価開始を通知する。この時点ではフェイルセーフタイマーを
+// 解除しない（評価開始後に例外が出ても、発火すれば loader が自要素を除去して
+// 公式画面を復帰させるため。解除は引き継ぎ成功確定時の handoff のみ）
+window.__ygoNextLoaderNotifyStart?.();
 
 /**
  * 編集UI読み込みフラグ（二重読み込み防止）
@@ -164,6 +177,24 @@ async function loadEditUIIfNeeded(): Promise<void> {
 
   editUILoaded = true;
 
+  // head/body に依存する overlay 構築より前に DOMContentLoaded を待つ
+  // （TASK-510: loader.js が document_start で即時評価する経路が増えたため。
+  // 待機中の再呼び出し（hashchange等）は await 前に立った editUILoaded=true でガードされる）
+  if (document.readyState === 'loading') {
+    await new Promise<void>(resolve => {
+      document.addEventListener('DOMContentLoaded', () => resolve(), { once: true });
+    });
+  }
+
+  // edit-ui の前提検証: #bg が無ければ復帰して中断（edit-ui側 loadEditUI の
+  // console.error 経路を先回りし、loader由来要素を残したままにしない）
+  if (!document.getElementById('bg')) {
+    console.error('[Content] #bg not found after DOMContentLoaded');
+    editUILoaded = false;
+    removeLoaderDerivedElements();
+    return;
+  }
+
   // FOUC防止：オーバーレイを即座に作成（モジュールロード前に表示）
   // window.ygoNextCurrentSettings から同期的にテーマを取得（idle時にキャッシュ済み）
   const cachedSettings = window.ygoNextCurrentSettings;
@@ -183,8 +214,22 @@ async function loadEditUIIfNeeded(): Promise<void> {
   // シンプルな背景色
   const bgColor = overlayTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
-  const loadingOverlay = document.createElement('div');
-  loadingOverlay.id = EXTENSION_IDS.loading.moduleLoadingOverlay;
+  // オーバーレイ冪等テイクオーバー（TASK-510）: loader.js が生成した overlay（識別属性
+  // data-ygo-next-loader を持つ同ID div）があれば新規生成せず中身（タイトル/スピナー/
+  // サブテキスト）を完全版に再構築する。属性を持たない同ID要素は他人要素のため改変
+  // せず、現行どおり新規生成する（hashchange経路等も新規生成側）
+  const existingOverlay = document.getElementById(EXTENSION_IDS.loading.moduleLoadingOverlay);
+  let loadingOverlay: HTMLDivElement;
+  if (isLoaderOverlayElement(existingOverlay)) {
+    loadingOverlay = existingOverlay;
+    while (loadingOverlay.firstChild) {
+      loadingOverlay.removeChild(loadingOverlay.firstChild);
+    }
+  } else {
+    loadingOverlay = document.createElement('div');
+    loadingOverlay.id = EXTENSION_IDS.loading.moduleLoadingOverlay;
+    markAsLoaderElement(loadingOverlay);
+  }
   loadingOverlay.style.position = 'fixed';
   loadingOverlay.style.top = '0';
   loadingOverlay.style.left = '0';
@@ -257,6 +302,9 @@ async function loadEditUIIfNeeded(): Promise<void> {
   // preload はトップレベルで既に開始済み（二重実行防止）
 
   try {
+    // 失敗時処理（下のcatchによる要素除去）登録済み＋前提検証（#bg）済みの状態で
+    // handoff＝フェイルセーフ解除（TASK-510: 引き継ぎ成功確定はこの時点のみ）
+    window.__ygoNextLoaderHandoff?.();
     // プリフェッチ済みの場合はそのPromiseを使用、未実行の場合はその場でインポート
     const importPromise = editUIModulePromise || import('./edit-ui');
     await withTimeout(importPromise, {
@@ -270,6 +318,8 @@ async function loadEditUIIfNeeded(): Promise<void> {
       console.error('Failed to load edit UI:', error);
     }
     editUILoaded = false;
+    // import失敗・タイムアウト時に公式画面を復帰させる（隠したままにしない）
+    removeLoaderDerivedElements();
   }
 }
 
@@ -378,73 +428,104 @@ async function initializeFeatures(): Promise<void> {
   }
 }
 
-// 編集ページの場合、即座にページを隠す（FOUC防止）
-if (isVueEditPage()) {
-  // テーマを即座に判定（localStorageから同期的に読み込み）
-  let effectiveTheme: 'light' | 'dark' = 'light';
-  let cachedSettings = window.ygoNextCurrentSettings;
+/**
+ * 編集ページのブート処理（TASK-510: 旧トップレベルの isVueEditPage 分岐を関数化）
+ *
+ * 同期クラッシュでも removeLoaderDerivedElements() で公式画面を復帰させる
+ * （handoff前クラッシュの保護。throwは外に伝播させない）
+ */
+function runEditPageBoot(): void {
+  try {
+    // テーマを即座に判定（localStorageから同期的に読み込み）
+    let effectiveTheme: 'light' | 'dark' = 'light';
+    let cachedSettings = window.ygoNextCurrentSettings;
 
-  // localStorageから同期的に読み込み（リロード後も保持される）
-  if (!cachedSettings) {
-    try {
-      const settingsStr = localStorage.getItem(STORAGE_KEY_SETTINGS);
-      if (settingsStr) {
-        cachedSettings = JSON.parse(settingsStr);
-        window.ygoNextCurrentSettings = cachedSettings;
+    // localStorageから同期的に読み込み（リロード後も保持される）
+    if (!cachedSettings) {
+      try {
+        const settingsStr = localStorage.getItem(STORAGE_KEY_SETTINGS);
+        if (settingsStr) {
+          cachedSettings = JSON.parse(settingsStr);
+          window.ygoNextCurrentSettings = cachedSettings;
+        }
+      } catch (error) {
+        console.warn('[Early Settings] Failed to load from localStorage:', error);
       }
-    } catch (error) {
-      console.warn('[Early Settings] Failed to load from localStorage:', error);
     }
-  }
 
-  if (cachedSettings && cachedSettings.theme) {
-    if (cachedSettings.theme === 'system') {
-      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (cachedSettings && cachedSettings.theme) {
+      if (cachedSettings.theme === 'system') {
+        effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } else {
+        effectiveTheme = cachedSettings.theme;
+      }
     } else {
-      effectiveTheme = cachedSettings.theme;
+      // キャッシュがない場合はsystemのprefers-color-schemeを使用
+      effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
-  } else {
-    // キャッシュがない場合はsystemのprefers-color-schemeを使用
-    effectiveTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
 
-  const earlyBgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
+    const earlyBgColor = effectiveTheme === 'dark' ? '#1a1a1a' : '#ffffff';
 
-  // 即座にページを隠すスタイルを追加
-  const earlyHideStyle = document.createElement('style');
-  earlyHideStyle.id = EXTENSION_IDS.loading.earlyHideStyle;
-  earlyHideStyle.textContent = `
-    html, body {
-      background-color: ${earlyBgColor} !important;
-      overflow: hidden !important;
-    }
-    #wrapper, #bg {
-      display: none !important;
-    }
-  `;
+    // 即座にページを隠すスタイルを追加（冪等化: loader.js が注入済みなら再注入しない）
+    if (document.getElementById(EXTENSION_IDS.loading.earlyHideStyle)) {
+      // loader由来の early-hide を再利用（document_start化で二重注入を防ぐ）
+    } else {
+      const earlyHideStyle = document.createElement('style');
+      earlyHideStyle.id = EXTENSION_IDS.loading.earlyHideStyle;
+      // 拡張のロード機構由来と識別（復帰処理での削除対象）
+      markAsLoaderElement(earlyHideStyle);
+      earlyHideStyle.textContent = `
+        html, body {
+          background-color: ${earlyBgColor} !important;
+          overflow: hidden !important;
+        }
+        #wrapper, #bg {
+          display: none !important;
+        }
+      `;
 
-  // document.headがまだない場合もあるので対応
-  if (document.head) {
-    document.head.appendChild(earlyHideStyle);
-  } else {
-    // headが準備できるまで待つ
-    const observer = new MutationObserver(() => {
+      // document.headがまだない場合もあるので対応
       if (document.head) {
         document.head.appendChild(earlyHideStyle);
-        observer.disconnect();
+      } else {
+        // headが準備できるまで待つ
+        const observer = new MutationObserver(() => {
+          if (document.head) {
+            document.head.appendChild(earlyHideStyle);
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
       }
+    }
+
+    // 画面描画と無関係な全ての事前処理を最速で開始（Vue インポート・マウントと並行実行）
+    preloadEditPageData().catch(err => {
+      console.warn('[Content] Preload failed:', err);
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない。
+    // DCL待ち・#bg検証は loadEditUIIfNeeded 内で行う）
+    loadEditUIIfNeeded().catch(err => {
+      removeLoaderDerivedElements();
+      console.error('[Content] Edit UI boot failed:', err);
+    });
+  } catch (error) {
+    // 同期クラッシュでも公式画面を復帰させる
+    removeLoaderDerivedElements();
+    console.error('[Content] Edit page boot failed:', error);
   }
+}
 
-  // 画面描画と無関係な全ての事前処理を最速で開始（Vue インポート・マウントと並行実行）
-  preloadEditPageData().catch(err => {
-    console.warn('[Content] Preload failed:', err);
-  });
-
-  // 即座にloadEditUIIfNeeded()を実行（DOMContentLoadedを待たない）
-  loadEditUIIfNeeded();
+// 編集ページの場合、即座にページを隠す（FOUC防止）
+if (isVueEditPage()) {
+  runEditPageBoot();
 } else {
+  // 非編集ページ: loader由来要素（緩いhash誤ヒット時に残存）を除去してから handoff
+  // （要素除去完了後＝引き継ぎ成功。フェイルセーフ解除）
+  removeLoaderDerivedElements();
+  window.__ygoNextLoaderHandoff?.();
+
   // 編集ページでない場合は通常の初期化
   // 編集UIモジュールをアイドル時にプリフェッチ（ユーザーがクリックする前にロード開始）
   if (document.readyState === 'loading') {

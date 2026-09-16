@@ -24,3 +24,4 @@
 - [solo-practice-tech.md](./solo-practice-tech.md) - 一人回し機能 技術設計
 - [practice-slot-menu-redesign.md](./practice-slot-menu-redesign.md) - PracticeSlotMenuDialog リデザイン要件定義
 - [practice-slot-menu-redesign-tech.md](./practice-slot-menu-redesign-tech.md) - PracticeSlotMenuDialog リデザイン技術設計
+- [loader-early-loading-tech.md](./loader-early-loading-tech.md) - ロード画面の最初の描画前表示（loader.js 先行読み込み・TASK-510）技術設計

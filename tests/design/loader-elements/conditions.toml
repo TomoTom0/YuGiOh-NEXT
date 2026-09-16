@@ -1,0 +1,60 @@
+# 検証対象: src/utils/loader-elements.ts
+#
+# 経緯: TASK-510（ロード画面の最初の描画前表示）実装へのコードレビュー指摘3対応。
+# loader.js と content.js が共有する要素ID（EXTENSION_IDS.loading）について、
+# content側の削除（removeLoaderDerivedElements）・takeover が同IDの他人要素を
+# 保護していなかった（loader側はフェイルセーフのownElements参照ベース保護を持つ
+# のに不整合）ため、識別属性 data-ygo-next-loader="1" によるゲートを導入した。
+# content/index.ts はトップレベル副作用のため直接unitテストできないため、ゲート
+# ロジックを本ユーティリティへ切り出して検証する（tests/design/content-index/
+# conditions.toml の方針との整合: 配線はE2E、ロジックはunit）。
+#
+# 出典: TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コード
+# レビュー指摘3）。loader.js側の属性付与は tests/design/loader-early-loading/
+# conditions.toml の create-loader.own-elements-carry-loader-attribute で検証する。
+
+[meta]
+feature = "loader-elements"
+source_file = "src/utils/loader-elements.ts"
+verified = true
+verified_at = "2026-09-15"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/utils/loader-elements.test.ts"
+source_hash = "e404b1bacace26dafcd98719fff28b29e8653e15"
+note = "TASK-510コードレビュー指摘3対応で新設。実装後に mise run test:vitest -- tests/unit/utils/loader-elements.test.ts 全pass・verify-conditions.pyで本feature由来のfail 0件を確認して検証記録を書く"
+
+[[condition]]
+id = "mark-as-loader-element.sets-identifier-attribute"
+source_lines = "tests/unit/utils/loader-elements.test.ts:43"
+target_function = "markAsLoaderElement"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘3）"
+description = "マーク関数は要素に識別属性 data-ygo-next-loader='1' を設定する（content.jsが新規生成する early-hide/overlay にも付与し、復帰処理で拡張由来要素を一貫して除去できるようにする）"
+given = "属性を持たないHTMLDivElement に対して markAsLoaderElement() を呼ぶ"
+expect_return_shape = "要素の getAttribute('data-ygo-next-loader') が '1' になる"
+
+[[condition]]
+id = "remove-loader-derived-elements.removes-only-marked-elements"
+source_lines = "tests/unit/utils/loader-elements.test.ts:50"
+target_function = "removeLoaderDerivedElements"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘3: 属性を持つ要素のみ削除）"
+description = "識別属性を持つ overlay/early-hide のみを削除する。同IDだが属性を持たない他人要素は削除されない（ID一致による無条件削除から属性ゲートへ変更）"
+given = "識別属性付きの overlay と early-hide、および同IDだが属性なしの overlay と early-hide が混在する状態で removeLoaderDerivedElements() を呼ぶ"
+expect_return_shape = "属性付きの2要素はdocumentから除去され、属性なしの2要素は残存する"
+
+[[condition]]
+id = "remove-loader-derived-elements.no-targets-is-noop"
+source_lines = "tests/unit/utils/loader-elements.test.ts:66"
+target_function = "removeLoaderDerivedElements"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§2.3（要素が存在しない呼び出し経路があるため）"
+description = "対象要素がdocumentに存在しない場合でも例外を投げずno-opとして動作する"
+given = "overlay/early-hide ともdocumentに存在しない状態で removeLoaderDerivedElements() を呼ぶ"
+expect_no_throw = true
+
+[[condition]]
+id = "is-loader-overlay-element.accepts-only-marked-div"
+source_lines = "tests/unit/utils/loader-elements.test.ts:70"
+target_function = "isLoaderOverlayElement"
+source = "TASK-510技術設計（docs/design/loader-early-loading-tech.md）§9 追補（コードレビュー指摘3: takeover時も属性なしなら新規作成に切り替える）"
+description = "takeover判定は「識別属性を持つ HTMLDivElement」のみtrueとする。同IDでも属性なし（他人要素）・属性があってもdiv以外（style等）・null はfalse（呼び出し側は新規生成に切り替える）"
+given = "識別属性付きdiv・属性なしdiv・識別属性付きstyle（同ID）・null の4入力"
+expect_return_shape = "識別属性付きdivのみtrue、他3つはfalse"
