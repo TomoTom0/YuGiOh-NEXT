@@ -158,7 +158,7 @@ expect_side_effect = "headerResizeObserver.disconnectが呼ばれる"
 
 [[condition]]
 id = "watch-url-changes.prefetched-module-mounts-on-later-hashchange-to-edit"
-source_lines = "tests/unit/content/edit-ui-index.test.ts:311"
+source_lines = "tests/unit/content/edit-ui-index.test.ts:315"
 target_function = "watchUrlChanges"
 source = "TASK-513設計A案（恒久参照先はtm TASK-513。設計書: tmp/20260916_design_task513_hashchange-prefetch.md）"
 description = "非編集ページで評価（prefetch）されたモジュールが、hash遷移で#/ytomo/editに入った際に登録済みhashchangeリスナからisEditUrl() && !isEditUILoadedガードでloadEditUIを実行し#vue-edit-appを生成する（TASK-513が修正する本体挙動）。単体テストはedit-ui側のリスナ登録・ロード開始の確認に限定し、content/index.ts側のoverlay生成・takeover・handoffを含むoverlayからマウントへの統合順序はE2E（tests/browser/test-loader-flicker.cjs観点5）で検証する位置づけ（設計レビュー指摘2）"
@@ -255,7 +255,7 @@ expect_no_throw = true
 
 [[condition]]
 id = "top-level.not-edit-page-skips-theme-but-registers-url-watch"
-source_lines = "tests/unit/content/edit-ui-index.test.ts:397"
+source_lines = "tests/unit/content/edit-ui-index.test.ts:401"
 target_function = "top-level IIFE"
 source = "TASK-513設計A案（恒久参照先はtm TASK-513。設計書: tmp/20260916_design_task513_hashchange-prefetch.md）"
 description = "isVueEditPage()がfalseの場合でもwatchUrlChanges()を実行してhashchangeリスナを登録する（prefetch済みモジュールが後のhash遷移で編集UIをマウントできるようにするため。旧条件top_level.not_edit_page_skips_all_initializationの書き換え）。applyThemeFromSettingsはisVueEditPage()ガード内に留まり非編集ページでは呼ばれない（ガード外で呼ぶと公式ページにテーマ属性が適用される視覚回帰になるため）"

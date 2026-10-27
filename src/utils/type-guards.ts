@@ -5,6 +5,8 @@
  * 実行時に型をチェックし、型の安全性を保証します。
  */
 
+import type { CardInfo } from '../types/card';
+
 /**
  * HTML要素の型ガード関数を作成するヘルパー
  * ブラウザ環境では instanceof、JSDOM環境ではプロパティチェックを使用
@@ -394,4 +396,24 @@ export function isDeckStyleValue(value: any): value is '-1' | '0' | '1' | '2' {
  */
 export function isRecordOfStringKeys(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * 検索結果配列（searchStore.searchResults / allResults と同形状）の型ガード
+ *
+ * 検索履歴・キャッシュから復元した CardInfo[] を検索結果として代入する箇所で使用する。
+ * 要素型の不整合（CardInfo[] と Array<{ card: CardInfo }>）は TASK-507 で根本解決予定のため、
+ * ここでは「配列である」ことの最小検証のみ行い、代入可能な型へ絞り込む。
+ *
+ * @param value 検証対象の値
+ * @returns 配列である場合は true（Array<{ card: CardInfo }> として扱える）
+ *
+ * @example
+ * const results: CardInfo[] = restoreFromCache();
+ * if (isCardSearchResultsArray(results)) {
+ *   searchStore.searchResults = results;
+ * }
+ */
+export function isCardSearchResultsArray(value: unknown): value is Array<{ card: CardInfo }> {
+  return Array.isArray(value);
 }

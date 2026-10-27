@@ -160,8 +160,9 @@ Tier A/Bの実質完了（残りはロジック薄い要確認ファイルのみ
 - category-dialog: TASK-488（16条件+excluded 6件・旧21it中19itの実装非検証テストを廃しtests/unit/components/CategoryDialog.test.tsを17itへ全面再設計・全it covers付き・verified記録済み）
 - import-export-dialog: TASK-500（42条件+excluded 9件・unitテスト未存在のためtests/unit/components/ImportExportDialog.test.tsを43itで新規作成・全it covers付き・verified記録済み）。CSV/TXTエクスポート・インポートプレビューの2タブ構成で、依存モジュール（deck-import/deck-export/create-deck-recipe-image）はmock差し替えで委譲条件のみ検証
 - image-dialog-layout: TASK-511（10条件+excluded 3件・テスト先行で実装前に条件書・テスト作成→実装後にverified記録）。ImageDialog.vueから位置・サイズ計算を純関数src/utils/image-dialog-layout.tsへ抽出したもの（抽出元はTier C componenteだが条件書の対象はutils）。結合挙動（popupStyle反映・position:fixed化・resizeリスナ）はtests/unit/components/ImageDialog.test.tsでcoversタグなしに検証
+- search-filter-dialog: TASK-504（30条件+excluded 17件・旧8it中4itの実装非検証テストを廃しtests/unit/components/SearchFilterDialog.test.tsを30itへ全面再設計・全it covers付き・verified記録済み）。removeHeaderChipへspellType/trapType case追加のバグ修正を実施済み（TDD red→green）。履歴実行のstructuredClone回帰（Vue reactive proxyへのDataCloneError・git e18997b起因）はtoRaw併用で解消済み。executeHistorySearch冒頭の範囲外indexガードは到達不能な防御コードとして条件から除外（2026-10-27 codexレビュー指摘。公開経路の相当挙動はhistory-execute-unknown-item-is-noopが検証）
 
-残るTier C候補（棚卸し結果はTASK-331 body参照）: ChatPanel・SearchFilterDialog+FilterTab・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体（レイアウト計算はTASK-511でimage-dialog-layoutとして抽出・条件化済み。残るは画像生成・設定保存等のscript ロジック）
+残るTier C候補（棚卸し結果はTASK-331 body参照）: ChatPanel・FilterTab（TASK-505/506）・DeckMetadata系・Practice系11ファイル・ImageDialog.vue本体（レイアウト計算はTASK-511でimage-dialog-layoutとして抽出・条件化済み。残るは画像生成・設定保存等のscript ロジック）
 
 各Phase完了時、TASK-323（展開実行）側で進捗をtmに記録し、次ファイルに着手する前にPhase内の優先順位（性質基準→ファイルサイズ降順）を`tm get`のbodyに残す。
 
