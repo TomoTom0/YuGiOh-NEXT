@@ -238,6 +238,12 @@ async function executeHistorySearch(index: number) {
     }
   }
 
+  // この履歴実行の検索世代を取得する。以降の表示書き込み（キャッシュ即時表示・
+  // 遅延再検索の結果反映）はこの世代が最新の間のみ行う（useSearchExecution.handleSearch
+  // と同じ競合対策。実行中だった旧検索の遅延処理が後から履歴の表示を上書きするのを防ぐ）
+  const myGeneration = ++searchStore.searchGeneration;
+  // 世代を進めたことで旧検索のfinallyはisLoadingを解除できなくなるため、ここで明示的に解除する
+  searchStore.isLoading = false;
   // キャッシュから復元できた結果を即座に表示
   if (cachedResults.length > 0 && isCardSearchResultsArray(cachedResults)) {
     searchStore.searchResults = cachedResults;
@@ -280,6 +286,11 @@ async function executeHistorySearch(index: number) {
           newResults = await searchCards(searchOptions);
         }
 
+        // 他の検索（新規検索・別の履歴実行・空クリア）が世代を進めている場合、この再検索結果は
+        // 古いため、表示書き込みと履歴更新（updateResults）の両方を行わない
+        if (searchStore.searchGeneration !== myGeneration) {
+          return;
+        }
         // 結果を更新
         if (isCardSearchResultsArray(newResults)) {
           searchStore.searchResults = newResults;

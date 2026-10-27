@@ -2,7 +2,7 @@
  * SearchFilterDialog.vue のテスト
  *
  * tests/design/search-filter-dialog/conditions.toml（TASK-504 × TASK-331 Tier C）の
- * 31条件をカバーする。1条件1it原則（計31it）。
+ * 33条件（TASK-508で3件新設・1件改名）をカバーする。1条件1it原則（計33it）。
  *
  * 検証方針（条件書[meta]コメント・Tier C共通方針）:
  * - BaseDialog実物（stubしない）: Teleport to="body" + v-if のため、観測はすべて
@@ -801,9 +801,8 @@ describe('components/SearchFilterDialog', () => {
       expect(searchStore.searchResults).toEqual([cachedCard]);
     });
 
-    it('[covers:search-filter-dialog.history-search-rerun-lacks-generation-guard] 現行挙動: 遅延再検索の結果は世代チェックなしで新検索結果を上書きする', async () => {
+    it('[covers:search-filter-dialog.history-search-rerun-respects-generation-guard] 遅延再検索の結果は世代チェックで破棄され新検索結果を維持する', async () => {
       const searchStore = useSearchStore();
-      const deckStore = useDeckEditStore();
       const searchHistory = useSearchHistory();
       const yesterday = Date.now() - 24 * 3600 * 1000;
       setCacheRestoration({ 'cid-a': cardFixture('cid-a', 'キャッシュカード') });
@@ -811,10 +810,16 @@ describe('components/SearchFilterDialog', () => {
       searchHistory.historyItems.value = [item];
       const newCard = cardFixture('new-1', '新検索結果');
       const lateCard = cardFixture('late-1', '遅延再検索結果');
+      // 遅延再検索の応答を手動resolve可能にする（実タイマーとの競合順序を排他し、
+      // 必ず「新検索結果表示後」に遅延応答を完了させる）
+      let resolveLateSearch!: (cards: CardInfo[]) => void;
+      apiMocks.searchCards.mockImplementationOnce(
+        () => new Promise<CardInfo[]>(resolve => { resolveLateSearch = resolve; })
+      );
       mountDialog();
       await switchToHistoryTab();
 
-      // 履歴を実行（100msの遅延再検索タイマーが仕掛かる）
+      // 履歴を実行（100msの遅延再検索タイマーが仕掛かる。応答はpendingのまま）
       await new DOMWrapper(requireHistoryExecuteButton()).trigger('click');
       await settle();
 
@@ -827,10 +832,134 @@ describe('components/SearchFilterDialog', () => {
       await settle();
       expect(searchStore.searchResults).toEqual([newCard]);
 
-      // 遅延再検索の結果が到達すると世代に関係なく上書きされる（TASK-508対応時に見直す）
-      apiMocks.searchCards.mockResolvedValueOnce([lateCard]);
+      // 遅延再検索のAPI呼び出し自体は走る（タイマー発火済み・応答pending）
       await waitForMs(150);
-      expect(searchStore.searchResults).toEqual([lateCard]);
+      expect(apiMocks.searchCards).toHaveBeenCalledTimes(1);
+
+      // ここで初めて遅延応答を完了させる。世代が新検索より古いため結果は破棄され、
+      // 新検索結果の表示が維持される（現行実装では[lateCard]へ上書きされる＝red確認点）
+      resolveLateSearch([lateCard]);
+      await settle();
+      expect(searchStore.searchResults).toEqual([newCard]);
+      expect(searchStore.allResults).toEqual([newCard]);
+    });
+
+    it('[covers:search-filter-dialog.history-search-advances-generation-and-clears-loading] 履歴実行はキャッシュ復元成否に依らず検索世代を進めisLoadingを解除する', async () => {
+      const searchStore = useSearchStore();
+      const searchHistory = useSearchHistory();
+      setCacheRestoration({ 'cid-a': cardFixture('cid-a', '当日カード') });
+      const cachedItem = historyItem({ resultCids: ['cid-a'] });        // 本日・復元1件
+      const missingItem = historyItem({ resultCids: ['cid-missing'] }); // 本日・全cid復元不可
+      searchHistory.historyItems.value = [cachedItem, missingItem];
+      searchStore.searchGeneration = 3; // 旧検索が進行中の世代を想定
+      searchStore.isLoading = true;     // 旧検索がローディング中を想定
+      mountDialog();
+      await switchToHistoryTab();
+
+      // 復元1件の履歴（0番目）: 即時表示あり
+      await new DOMWrapper(requireHistoryExecuteButton(0)).trigger('click');
+      await settle();
+      expect(searchStore.searchGeneration).toBe(4);
+      expect(searchStore.isLoading).toBe(false);
+
+      // 全cid復元不可の履歴（1番目）: 即時表示なしでも世代取得・isLoading解除は無条件に行う。
+      // isLoadingは1回目でfalseになっているためtrueへ戻す（「復元成功時のみ解除する」誤実装の偽green防止）
+      await reopenDialog();
+      searchStore.isLoading = true;
+      await new DOMWrapper(requireHistoryExecuteButton(1)).trigger('click');
+      await settle();
+      expect(searchStore.searchGeneration).toBe(5);
+      expect(searchStore.isLoading).toBe(false);
+      // 本日の履歴のため再検索は発生しない
+      expect(apiMocks.searchCards).not.toHaveBeenCalled();
+      expect(apiMocks.searchCardsAuto).not.toHaveBeenCalled();
+    });
+
+    it('[covers:search-filter-dialog.history-search-rerun-discard-after-empty-clear] 空クリア後に遅延再検索の結果が到達しても表示は復活せず履歴も更新しない', async () => {
+      const searchStore = useSearchStore();
+      const searchHistory = useSearchHistory();
+      const yesterday = Date.now() - 24 * 3600 * 1000;
+      const cachedCard = cardFixture('cid-a', 'キャッシュカード');
+      setCacheRestoration({ 'cid-a': cachedCard });
+      const item = historyItem({ query: '古いクエリ', resultCids: ['cid-a'], timestamp: yesterday });
+      searchHistory.historyItems.value = [item];
+      const lateCard = cardFixture('late-1', '遅延再検索結果');
+      let resolveLateSearch!: (cards: CardInfo[]) => void;
+      apiMocks.searchCards.mockImplementationOnce(
+        () => new Promise<CardInfo[]>(resolve => { resolveLateSearch = resolve; })
+      );
+      mountDialog();
+      await switchToHistoryTab();
+
+      // 履歴を実行（キャッシュ1件を即時表示し、100ms遅延再検索タイマーが仕掛かる）
+      await new DOMWrapper(requireHistoryExecuteButton()).trigger('click');
+      await settle();
+      expect(searchStore.searchResults).toEqual([cachedCard]);
+
+      // 空クエリ+フィルター無しで検索を実行（空クリア。handleSearchの空分岐が世代を進め、
+      // 表示を空にする。履歴追加も履歴配列の変化も起こらないため、遅延再検索の
+      // updateResults(0,...)はガードが無ければ当該itemを更新する）
+      searchStore.searchQuery = '';
+      await reopenDialog();
+      await new DOMWrapper(requireElement<HTMLButtonElement>('.header-actions .search-btn')).trigger('click');
+      await settle();
+      expect(searchStore.searchResults).toEqual([]);
+
+      // 遅延再検索の応答を完了させても、空表示の復活も履歴itemのresultCids書き換えも起きない。
+      // （表示だけガードする誤実装ではresultCidsが['late-1']へ、updateResultsだけガードする
+      // 誤実装では表示が[lateCard]へ変化し、それぞれfailする）
+      await waitForMs(150);
+      expect(apiMocks.searchCards).toHaveBeenCalledTimes(1);
+      resolveLateSearch([lateCard]);
+      await settle();
+      expect(searchStore.searchResults).toEqual([]);
+      expect(searchStore.allResults).toEqual([]);
+      expect(item.resultCids).toEqual(['cid-a']);
+    });
+
+    it('[covers:search-filter-dialog.history-search-latest-run-wins-consecutive-runs] 履歴連続実行時は後発の再検索結果が維持され先発の遅延完了は破棄される', async () => {
+      const searchStore = useSearchStore();
+      const searchHistory = useSearchHistory();
+      const yesterday = Date.now() - 24 * 3600 * 1000;
+      const xCached = cardFixture('cid-x', 'X キャッシュ');
+      const yCached = cardFixture('cid-y', 'Y キャッシュ');
+      setCacheRestoration({ 'cid-x': xCached, 'cid-y': yCached });
+      const itemX = historyItem({ query: '先発', resultCids: ['cid-x'], timestamp: yesterday });
+      const itemY = historyItem({ query: '後発', resultCids: ['cid-y'], timestamp: yesterday });
+      searchHistory.historyItems.value = [itemX, itemY];
+      const xFresh = cardFixture('x-new', 'X 再検索');
+      const yFresh = cardFixture('y-new', 'Y 再検索');
+      // 両履歴の再検索応答を手動resolve可能にする（mock消費順=タイマー発火順=先発→後発）
+      let resolveFirstRun!: (cards: CardInfo[]) => void;
+      let resolveSecondRun!: (cards: CardInfo[]) => void;
+      apiMocks.searchCards
+        .mockImplementationOnce(() => new Promise<CardInfo[]>(resolve => { resolveFirstRun = resolve; }))
+        .mockImplementationOnce(() => new Promise<CardInfo[]>(resolve => { resolveSecondRun = resolve; }));
+      mountDialog();
+      await switchToHistoryTab();
+
+      // X → Y の順に連続実行（Yの実行で世代が進む。表示はYのキャッシュになる）
+      await new DOMWrapper(requireHistoryExecuteButton(0)).trigger('click');
+      await settle();
+      await reopenDialog();
+      await new DOMWrapper(requireHistoryExecuteButton(1)).trigger('click');
+      await settle();
+      expect(searchStore.searchResults).toEqual([yCached]);
+
+      // 両タイマー発火を待ち、応答をY→Xの順（逆順）で完了させる
+      await waitForMs(150);
+      expect(apiMocks.searchCards).toHaveBeenCalledTimes(2);
+      resolveSecondRun([yFresh]);
+      await settle();
+      // 後発（Y・世代最新）の再検索結果は反映される（ガードが過剰に全破棄しないことの確認）
+      expect(searchStore.searchResults).toEqual([yFresh]);
+      resolveFirstRun([xFresh]);
+      await settle();
+      // 先発（X・世代が古い）の遅延完了は破棄され、Yの結果とX/Yそれぞれの履歴状態が維持される
+      expect(searchStore.searchResults).toEqual([yFresh]);
+      expect(searchStore.allResults).toEqual([yFresh]);
+      expect(itemX.resultCids).toEqual(['cid-x']);
+      expect(itemY.resultCids).toEqual(['y-new']);
     });
   });
 

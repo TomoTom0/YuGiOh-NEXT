@@ -1,5 +1,5 @@
-# 検証対象: src/components/SearchFilterDialog.vue（template L1-102、script setup L104-361、
-#   scoped CSS L363-581。pinia直参照でprops/emits/exposeなし。親はSearchInputBarの
+# 検証対象: src/components/SearchFilterDialog.vue（template L1-102、script setup L104-380、
+#   scoped CSS L382-600。pinia直参照でprops/emits/exposeなし。親はSearchInputBarの
 #   v-if position!=='bottom'）
 # 経緯: TASK-504（Tier C第5号・TASK-331展開）。競合バグ修正履歴を持つコンポーネントで、
 #   git fa8dd0d（useSearchExecutionスナップショット化によるレース条件修正）・
@@ -22,11 +22,12 @@
 #   searchStore状態は search-store、履歴操作本体は use-search-history 条件書の対象。
 #   本書はそれぞれの呼び出し契約（引数・分岐条件）のみ
 # - FilterTab.vue固有のscript分岐・useFilterLogicとの重複問題は TASK-505/506、
-#   searchResults要素型検証の強化は TASK-507、履歴再検索の世代チェックは TASK-508のスコープ。
-#   本書は現行挙動を条件化し、該当条件のdescription/excludedで別件であることを明示
+#   searchResults要素型検証の強化は TASK-507、履歴再検索の世代チェックは
+#   TASK-508で解消済み。未解決のTASK-505/506/507は現行挙動を条件化し、
+#   該当条件のdescription/excludedで別件であることを明示
 #
 # 探索中の発見事項:
-# - removeHeaderChipのswitch（L328-359）は spellType / trapType のcaseを持たない。
+# - removeHeaderChipのswitch（L341-378）は spellType / trapType のcaseを持たない。
 #   一方 convertFiltersToIcons（filter-icons.ts）は spellType/trapType チップを生成するため、
 #   これらのヘッダーチップクリックはフィルターを削除せず無言でno-opになる。
 #   検収でバグ確定（チップ表示と削除不能の不整合）のため修正を条件化
@@ -39,8 +40,13 @@
 # - タブ選択（activeDialogTab）はダイアログを閉じてもリセットされない（コンポーネントは
 #   親の v-if position!=='bottom' で常駐マウントで、isVisibleはBaseDialog内部のv-if）。
 #   tab-selection-persists-across-close として現行挙動を条件化
-# - 履歴バックグラウンド再検索（L250-294）にsearchGeneration世代チェックが無い
-#   （TASK-508で起票済み）。history-search-rerun-lacks-generation-guard として現行挙動を条件化
+# - 履歴バックグラウンド再検索（L258-307）のsearchGeneration世代チェック欠如は
+#   TASK-508で解消（履歴実行時の世代取得と再検索完了後の世代ガードを追加。
+#   history-search-advances-generation-and-clears-loading /
+#   history-search-rerun-discard-after-empty-clear /
+#   history-search-latest-run-wins-consecutive-runs を新設し、
+#   history-search-rerun-lacks-generation-guard は
+#   history-search-rerun-respects-generation-guard へ改名）
 
 [meta]
 feature = "search-filter-dialog"
@@ -49,8 +55,8 @@ verified = true
 verified_at = "2026-10-27"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/components/SearchFilterDialog.test.ts"
-source_hash = "4e2e8102d8abb58545026965a9ec561d84af62ef"
-note = "TASK-504で新規作成。出典は実装を一次情報とするfallback位置づけで、実装の写しではなく満たすべき挙動仕様として執筆。【2026-09-19 検証完了】31it・全it covers付きで全件PASS。テスト実装過程で2件の実装バグを発見し修正: (1) removeHeaderChipのswitchにspellType/trapType caseが無くチップ削除がno-opになるバグ（条件書検収で確定済み・TDD red→greenでcase追加）、(2) git e18997bで導入されたstructuredClone(item.filters)がVue reactive proxyへDataCloneErrorを投げ履歴実行全体が失敗する回帰（structuredClone(toRaw(item.filters))へ修正。履歴実行系7条件がこの修正で解消）。filter-count-aggregates-active-filtersのexpect_return総数「5」は内訳合計と不一致の算術誤記だったため検収で7へ修正済み。【2026-10-27 codexレビュー指摘対応】history-search-invalid-index-is-noop（executeHistorySearch冒頭の範囲外indexガード）は公開経路から到達不能な防御コードと確定したため条件から除外へ移動（31→30条件・31→30it。テストの該当it削除・source_lines再同期・30/30 PASS・verify本topic由来fail/warn 0件を再確認）"
+source_hash = "3530be0a539d79f4a008c879ba18f347bbdab94c"
+note = "TASK-504で新規作成。出典は実装を一次情報とするfallback位置づけで、実装の写しではなく満たすべき挙動仕様として執筆。【2026-09-19 検証完了】31it・全it covers付きで全件PASS。テスト実装過程で2件の実装バグを発見し修正: (1) removeHeaderChipのswitchにspellType/trapType caseが無くチップ削除がno-opになるバグ（条件書検収で確定済み・TDD red→greenでcase追加）、(2) git e18997bで導入されたstructuredClone(item.filters)がVue reactive proxyへDataCloneErrorを投げ履歴実行全体が失敗する回帰（structuredClone(toRaw(item.filters))へ修正。履歴実行系7条件がこの修正で解消）。filter-count-aggregates-active-filtersのexpect_return総数「5」は内訳合計と不一致の算術誤記だったため検収で7へ修正済み。【2026-10-27 codexレビュー指摘対応】history-search-invalid-index-is-noop（executeHistorySearch冒頭の範囲外indexガード）は公開経路から到達不能な防御コードと確定したため条件から除外へ移動（31→30条件・31→30it。テストの該当it削除・source_lines再同期・30/30 PASS・verify本topic由来fail/warn 0件を再確認）。【2026-10-27 TASK-508】履歴再検索の世代ガード追加に伴い、history-search-rerun-lacks-generation-guard を history-search-rerun-respects-generation-guard へ改名（現行挙動記録から解消後仕様へ書き換え）し、世代取得系3条件（advances-generation-and-clears-loading / rerun-discard-after-empty-clear / latest-run-wins-consecutive-runs）を新設（30→33条件・30→33it。該当itの期待値反転・手動resolve制御による新規3it追加）。SearchFilterDialog.vueへの全行番号参照を実測で再同期"
 
 # --- ダイアログ開閉・タブ制御 ---
 
@@ -76,7 +82,7 @@ expect_return_shape = "deckStore.isFilterDialogVisible がfalseになりoverlay�
 id = "search-filter-dialog.close-buttons-set-store-flag-false"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:331"
 target_function = "template ヘッダーclose-btn・フッターfooter-close-btn"
-source = "src/components/SearchFilterDialog.vue L44, L98 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L44, L97 と tm TASK-504"
 description = "ヘッダーの×ボタンとフッターの×ボタンの2経路いずれもクリックでisFilterDialogVisible=falseにする（BaseDialogのclose emitを経由しない直接代入）"
 given = "isFilterDialogVisible=true の状態で .close-btn / .footer-close-btn をそれぞれclick"
 expect_return_shape = "いずれのボタンでも deckStore.isFilterDialogVisible=false になりoverlayが消える"
@@ -85,7 +91,7 @@ expect_return_shape = "いずれのボタンでも deckStore.isFilterDialogVisib
 id = "search-filter-dialog.initial-active-tab-is-filter"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:346"
 target_function = "activeDialogTab 初期化 + template タブ表示"
-source = "src/components/SearchFilterDialog.vue L128, L7-21, L51, L87 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L128, L7-21, L51, L86 と tm TASK-504"
 description = "初期タブは「検索条件」（'filter'）。マウント直後はFilterTab側の本体を表示しHistoryTab側は表示しない"
 given = "isFilterDialogVisible=true でマウント（タブ操作なし）"
 expect_return_shape = "検索条件タブの.dialog-tabにactiveクラス。dialog-body内にFilterTab由来の要素が存在しHistoryTab由来（.history-tab）は存在しない"
@@ -94,7 +100,7 @@ expect_return_shape = "検索条件タブの.dialog-tabにactiveクラス。dial
 id = "search-filter-dialog.tab-switch-swaps-tab-content"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:359"
 target_function = "activeDialogTab タブ切替 + template v-if"
-source = "src/components/SearchFilterDialog.vue L7-21, L51-53, L86-87 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L7-21, L51-53, L85-87 と tm TASK-504"
 description = "タブクリックでactiveDialogTabを切替え、activeクラスとdialog-bodyの表示内容（FilterTab/HistoryTab）が連動して入れ替わる"
 given = "マウント後、「検索履歴」タブをclick →「検索条件」タブをclick"
 expect_return_shape = "検索履歴click: 当該タブにactiveクラス・HistoryTab由来（.history-tab）が表示されFilterTab由来は非表示。検索条件click: activeクラスが検索条件側へ移動し表示がFilterTabへ戻る"
@@ -152,7 +158,7 @@ expect_return_shape = ".header-chip が2件（typeクラス cardType / attr）�
 id = "search-filter-dialog.remove-chip-card-type-clears-card-type"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:459"
 target_function = "removeHeaderChip case 'cardType'"
-source = "src/components/SearchFilterDialog.vue L329-331 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L342-344 と tm TASK-504"
 description = "カードタイプのチップ削除はcardTypeをnullへ戻す（他フィルターには触れない）"
 given = "cardType='monster'・attributes=['light'] の状態で type='cardType' のチップをclick"
 expect_return_shape = "searchFilters.cardType=null。attributes=['light'] は保持される"
@@ -161,7 +167,7 @@ expect_return_shape = "searchFilters.cardType=null。attributes=['light'] は保
 id = "search-filter-dialog.remove-chip-single-value-keeps-others"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:470"
 target_function = "removeHeaderChip case 'attr'/'race'/'mtype'"
-source = "src/components/SearchFilterDialog.vue L332-337, L347-349 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L345-347, L354-356, L366-368 と tm TASK-504"
 description = "値を列挙で持つフィルター（属性・種族・モンスタータイプ）のチップ削除はicon.valueと一致する要素のみ除外し、他の選択値は保持する。mtypeはmonsterTypes要素のtypeフィールドで一致判定し、残存要素のstate（normal/not）はそのまま"
 given = "attributes=['light','dark'] で type='attr' value='light' のチップをclick / monsterTypes=[{type:'dragon',state:'normal'},{type:'warrior',state:'not'}] で type='mtype' value='dragon' のチップをclick"
 expect_return_shape = "attr: attributes=['dark']。mtype: monsterTypes=[{type:'warrior',state:'not'}]（state保持）"
@@ -170,7 +176,7 @@ expect_return_shape = "attr: attributes=['dark']。mtype: monsterTypes=[{type:'w
 id = "search-filter-dialog.remove-chip-clears-whole-value-group"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:490"
 target_function = "removeHeaderChip case 'level'/'link'/'scale'/'linkMarker'"
-source = "src/components/SearchFilterDialog.vue L338-339, L350-358 と src/utils/filter-icons.ts L75, L115, L127, L138 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L357-359, L369-377 と src/utils/filter-icons.ts L75, L115, L127, L138 と tm TASK-504"
 description = "範囲統合表示のチップ（レベル・リンク数・ペンデュラムスケール・リンクマーカー。アイコンのvalueは'all'）の削除は当該フィルターの全値を一括クリアする（値単位の部分削除はしない）"
 given = "levelValues=[4,6,8]・linkValues=[2,3]・scaleValues=[1,7]・linkMarkers=[1,4] の状態で type='level'・'link'・'scale'・'linkMarker' の各チップをclick"
 expect_return_shape = "クリックしたtypeに対応する配列のみ[]になり、他の3配列は元の値を保持する"
@@ -179,7 +185,7 @@ expect_return_shape = "クリックしたtypeに対応する配列のみ[]にな
 id = "search-filter-dialog.remove-chip-resets-stat-condition"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:523"
 target_function = "removeHeaderChip case 'atk'/'def'"
-source = "src/components/SearchFilterDialog.vue L340-345 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L360-365 と tm TASK-504"
 description = "攻撃力・守備力チップの削除は当該stat条件を {exact:false, unknown:false} へ初期化する。オブジェクト丸ごと置換のためmin/max設定も消える（値 range・固定・不明の全指定が解除される）"
 given = "atk={exact:true,unknown:false,min:100,max:2000}・def={exact:false,unknown:true} の状態で type='atk' のチップをclick"
 expect_return_shape = "atk={exact:false,unknown:false}（min/max消滅）。def={exact:false,unknown:true} は保持される"
@@ -188,7 +194,7 @@ expect_return_shape = "atk={exact:false,unknown:false}（min/max消滅）。def=
 id = "search-filter-dialog.remove-chip-spell-trap-type-removes-value"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:538"
 target_function = "removeHeaderChip（spellType/trapType case）"
-source = "src/components/SearchFilterDialog.vue L328-359 と src/utils/filter-icons.ts L33-48 と tm TASK-504（検収でバグ確定）"
+source = "src/components/SearchFilterDialog.vue L341-378 と src/utils/filter-icons.ts L33-48 と tm TASK-504（検収でバグ確定）"
 description = "魔法タイプ・罠タイプのヘッダーチップクリックは当該フィルターを削除する。条件書作成時の発見: switchにcaseが無くチップが削除不能のバグだったため、attr/raceと同パターンのvalue一致除外としてTASK-504で修正する"
 given = "spellTypes=['normal', 'quick-play'] の状態で type='spellType' value='normal' のチップをclick"
 expect_return_shape = "searchFilters.spellTypes=['quick-play']（当該値のみ除外され他は保持。trapTypeも同様）"
@@ -228,7 +234,7 @@ expect_return_shape = "'name': 検索モード'name'。空: 'auto'（フォー�
 id = "search-filter-dialog.history-search-restores-filters-as-defensive-copy"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:626"
 target_function = "executeHistorySearch structuredClone"
-source = "src/components/SearchFilterDialog.vue L211 と git e18997b（防御コピー導入）と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L213 と git e18997b（防御コピー導入）と tm TASK-504"
 description = "履歴実行時に検索フィルターは履歴item.filtersのstructuredClone（防御コピー）を代入する。復元後にstore側フィルターを変更しても履歴側item.filtersは書き換わらない（参照非共有）"
 given = "item.filters={cardType:'monster',attributes:['light']} の履歴を実行した後、storeのsearchFilters.attributesへpush等の変更を加える"
 expect_return_shape = "searchFiltersはitem.filtersと同値。変更後も当該履歴item.filters.attributes=['light'] のまま（履歴が汚染されない）"
@@ -237,7 +243,7 @@ expect_return_shape = "searchFiltersはitem.filtersと同値。変更後も当�
 id = "search-filter-dialog.history-search-restores-query-and-closes-dialog"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:647"
 target_function = "executeHistorySearch クエリ復元・UI遷移"
-source = "src/components/SearchFilterDialog.vue L212-216 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L214-218 と tm TASK-504"
 description = "履歴実行は検索クエリをitem.queryへ復元し、ダイアログを閉じて（isFilterDialogVisible=false）deck側タブを検索結果へ切り替える（activeTab='search'）"
 given = "query='ドラゴン'・filters={cardType:'monster'} の履歴itemをHistoryTabから実行"
 expect_return_shape = "searchStore.searchQuery='ドラゴン'・searchFilters=item.filtersと同値・deckStore.isFilterDialogVisible=false・deckStore.activeTab='search'"
@@ -246,7 +252,7 @@ expect_return_shape = "searchStore.searchQuery='ドラゴン'・searchFilters=it
 id = "search-filter-dialog.history-search-restores-cached-results"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:670"
 target_function = "executeHistorySearch キャッシュ復元"
-source = "src/components/SearchFilterDialog.vue L227-244 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L229-252 と tm TASK-504"
 description = "履歴実行はitem.resultCidsをUnifiedCacheDBのreconstructCardInfoで復元し、undefined（復元失敗cid）は結果から除外する。1件以上復元できた場合に即時表示としてsearchResults/allResultsへ代入し、isGlobalSearchMode=falseにする（デッキ編集内検索結果として扱う）"
 given = "resultCids=['cid-a','cid-b','cid-missing']（cid-missingはcacheDBで復元不可）の履歴を実行"
 expect_return_shape = "searchResults・allResultsはcid-a/cid-bの2件分（cid-missingは含まれない）。isGlobalSearchMode=false"
@@ -255,7 +261,7 @@ expect_return_shape = "searchResults・allResultsはcid-a/cid-bの2件分（cid-
 id = "search-filter-dialog.history-search-empty-cache-keeps-results"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:690"
 target_function = "executeHistorySearch 復元0件分岐"
-source = "src/components/SearchFilterDialog.vue L240-244 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L247-252 と tm TASK-504"
 description = "キャッシュから1件も復元できなかった場合（resultCids空・または全cid復元失敗）は現在の検索結果を書き換えない（空配列で表示を潰さない。結果更新はバックグラウンド再検索に委ねる）"
 given = "resultCids=[] の履歴、または全cidがcacheDBで復元不可の履歴を実行（事前にsearchResultsへ1件設定済み）"
 expect_return_shape = "searchResults・allResultsは実行前の値のまま。isGlobalSearchModeも変化しない"
@@ -264,7 +270,7 @@ expect_return_shape = "searchResults・allResultsは実行前の値のまま。i
 id = "search-filter-dialog.history-search-same-date-skips-research"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:719"
 target_function = "executeHistorySearch 日付一致分岐"
-source = "src/components/SearchFilterDialog.vue L246-250 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L254-258 と tm TASK-504"
 description = "履歴のタイムスタンプが今日と同一日付の場合はバックグラウンド再検索を行わない（当日のキャッシュ結果をそのまま表示する）"
 given = "item.timestamp=本日の日時 の履歴を実行し、API検索（searchCards/searchCardsAuto）をspy"
 expect_return_shape = "キャッシュ復元のみ行われ、API検索は呼ばれない"
@@ -273,7 +279,7 @@ expect_return_shape = "キャッシュ復元のみ行われ、API検索は呼ば
 id = "search-filter-dialog.history-search-stale-date-reruns-in-background"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:736"
 target_function = "executeHistorySearch setTimeout再検索"
-source = "src/components/SearchFilterDialog.vue L246-294 と git 304d2b4・e18997b の経緯と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L258-307 と git 304d2b4・e18997b の経緯と tm TASK-504"
 description = "履歴のタイムスタンプが今日と異なる日付の場合、100ms後のsetTimeoutでバックグラウンド再検索を行う。検索種別はsearchModeのマッピング（name='1'・text='2'・pendulum='3'。それ以外は'1'フォールバック）、ソート順は'name_asc'固定（APIソート値1=50音順。ユーザー設定によらない）、検索条件は履歴item.filtersのスナップショットを使用する。searchMode='auto'の場合はsearchCardsAuto、それ以外はsearchCardsを使用する"
 given = "item.timestamp=昨日・searchMode='auto' の履歴を実行（searchCardsAutoをmock）し100ms待機"
 expect_return_shape = "buildSearchOptions(item.query,'1','name_asc',item.filters) を経由したsearchCardsAuto呼び出しが1回発生する（options構築内容の詳細はsearch-options-builder条件書の対象）"
@@ -282,54 +288,81 @@ expect_return_shape = "buildSearchOptions(item.query,'1','name_asc',item.filters
 id = "search-filter-dialog.history-search-rerun-updates-store-and-history"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:760"
 target_function = "executeHistorySearch 再検索結果反映"
-source = "src/components/SearchFilterDialog.vue L281-289 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L294-302 と tm TASK-504"
 description = "再検索結果はisCardSearchResultsArrayガード通過時のみsearchResults/allResultsへ反映する（現行ガードはArray.isArrayのみ。要素型検証の強化はTASK-507）。併せて新しい結果のcid列でsearchHistory.updateResults(index, cids)を呼び履歴側も更新する（更新可否判定はuse-search-history条件書の対象）"
-given = "昨日の履歴を実行し、再検索（mock）がカード2件を返す状態で100ms経過"
+given = "昨日の履歴を実行し、再検索（mock）がカード2件を返す状態で100ms経過（遅延中に他の検索・履歴実行が挟まらない＝世代が最新のまま）"
 expect_return_shape = "searchResults・allResultsが再検索結果の2件に入れ替わり、updateResultsが当該indexと結果cid配列で呼ばれる"
 
 [[condition]]
 id = "search-filter-dialog.history-search-rerun-failure-logs-error"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:782"
 target_function = "executeHistorySearch setTimeout内 catch"
-source = "src/components/SearchFilterDialog.vue L290-293 と git e18997b（.catch整備の経緯）と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L303-305 と git e18997b（.catch整備の経緯）と tm TASK-504"
 description = "バックグラウンド再検索が失敗（API reject・例外）した場合はconsole.error('[YGO Helper] 検索履歴の再検索に失敗しました:', error)を出し、未処理rejectとしない。キャッシュ復元済みの表示結果はそのまま保持する"
 given = "昨日の履歴を実行し、再検索（mock）がrejectする状態で100ms経過"
 expect_return_shape = "console.errorが出る（unhandled rejectionなし）。searchResultsはキャッシュ復元結果のまま"
 
 [[condition]]
-id = "search-filter-dialog.history-search-rerun-lacks-generation-guard"
+id = "search-filter-dialog.history-search-rerun-respects-generation-guard"
 source_lines = "tests/unit/components/SearchFilterDialog.test.ts:804"
-target_function = "executeHistorySearch setTimeout再検索（世代チェックなし）"
-source = "src/components/SearchFilterDialog.vue L250-294 と tm TASK-508（起票済みの既知問題）と tm TASK-504（git 304d2b4はuseSearchExecution側のみ世代ガード追加）"
-description = "現行挙動（TASK-508で解消予定）: 遅延再検索の結果反映にsearchGeneration世代チェックが無い。100msの遅延中にユーザーが新たな検索を実行した場合、遅延再検索の結果が新検索の結果を上書きしうる。条件書は現行挙動を記録し、修正時に本条件を更新する"
-given = "昨日の履歴を実行後100ms経過前に新検索を実行し、その後遅延再検索の結果が到達する"
-expect_return_shape = "遅延再検索の結果がsearchResultsへ代入される（世代に関係なく上書き。TASK-508対応後に期待値を見直す）"
+target_function = "executeHistorySearch setTimeout再検索（世代ガード）"
+source = "src/components/SearchFilterDialog.vue L289-293 と src/components/searchInputBar/composables/useSearchExecution.ts L212-215, L292-295（世代イディオムの既存実装） と tm TASK-508"
+description = "遅延再検索の結果反映は、履歴実行時に取得した検索世代（myGeneration）が再検索完了時点でも最新である場合のみ行う。100msの遅延中に新規検索で世代が進んでいた場合、再検索のAPI呼び出し自体は実行するが（タイマー取消はしない）、searchResults/allResultsへの表示書き込みとsearchHistory.updateResultsの両方をスキップする。新検索結果が遅延再検索結果に上書きされない（TASK-508で解消）"
+given = "昨日の履歴を実行後100ms経過前に新検索を実行して検索世代を進め、新検索結果の表示を確認した後に遅延再検索の結果が到達する"
+expect_return_shape = "searchResults・allResultsは新検索結果のまま維持される（遅延再検索の結果は破棄される）"
+
+[[condition]]
+id = "search-filter-dialog.history-search-advances-generation-and-clears-loading"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:847"
+target_function = "executeHistorySearch 世代取得・isLoading解除"
+source = "src/components/SearchFilterDialog.vue L241-246 と src/components/searchInputBar/composables/useSearchExecution.ts L215（世代取得イディオム） と tm TASK-508"
+description = "履歴実行はキャッシュ復元の直後（即時表示の直前・復元成否に依らず無条件）でsearchGenerationを進めて自身の世代を取得し、isLoadingをfalseへ解除する。世代を進めることで実行中だった旧検索（handleSearchの遅延完了時書き込み・1000ms拡張検索）が後から完了しても履歴の表示を上書きしない。また旧検索のfinallyは世代不一致でisLoadingを解除できなくなるため、履歴実行側で明示的にfalseへ落とす（ローディング残留防止）"
+given = "searchGeneration=3・isLoading=true の状態（旧検索が進行中を想定）で、本日の履歴（キャッシュ復元1件）と全cid復元不可の本日の履歴を順に実行する"
+expect_return = "復元1件の実行直後にsearchGeneration=4・isLoading=false、全cid復元不可の実行直後にもsearchGeneration=5・isLoading=falseになる（復元成否に依らず無条件）。再検索は発生しない（本日の履歴のため）"
+
+[[condition]]
+id = "search-filter-dialog.history-search-rerun-discard-after-empty-clear"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:878"
+target_function = "executeHistorySearch setTimeout再検索（世代ガード）"
+source = "src/components/SearchFilterDialog.vue L289-293 と src/components/searchInputBar/composables/useSearchExecution.ts L202-210（空クリアによる世代進行・履歴追加なし） と tm TASK-508"
+description = "履歴実行後に空クエリ+フィルター無しの検索実行（空クリア）で世代が進んだ場合も、遅延再検索の結果反映とupdateResultsの両方がスキップされる。空クリアは履歴配列を変化させないため、ガードが無ければ遅延再検索のupdateResults(0,...)は実行した履歴itemを更新する。空クリア後の空表示が遅延再検索の結果で復活せず、履歴itemのresultCidsも書き換わらない（競合シナリオ(d)の回帰）"
+given = "昨日の履歴（キャッシュ復元1件）を実行後、100ms経過前に空クエリ+フィルター無しで検索を実行（空クリア）して世代を進め、その後遅延再検索の結果が到達する"
+expect_return_shape = "searchResults・allResultsは空配列のまま維持され、実行した履歴itemのresultCidsも更新されない"
+
+[[condition]]
+id = "search-filter-dialog.history-search-latest-run-wins-consecutive-runs"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:920"
+target_function = "executeHistorySearch setTimeout再検索（世代ガード）"
+source = "src/components/SearchFilterDialog.vue L289-293 と tm TASK-508"
+description = "履歴を連続実行した場合、最終表示は解決順ではなく世代で決まる。後発実行（世代最新）の遅延再検索結果は反映され、先発実行（世代が古い）の遅延再検索が後から完了しても表示・updateResultsとも破棄される（競合シナリオ(c)の回帰）"
+given = "昨日の履歴2件（X・Y）をX→Yの順に連続実行し（Yの実行で世代が進む）、両者の遅延再検索応答をY→Xの順（後発を先に完了）で到達させる"
+expect_return_shape = "searchResults・allResultsはYの再検索結果のまま維持され、XのresultCidsは更新されず、YのresultCidsはYの再検索結果で更新される"
 
 # --- 履歴ハンドラ（HistoryTab emitの受領） ---
 
 [[condition]]
 id = "search-filter-dialog.history-execute-unknown-item-is-noop"
-source_lines = "tests/unit/components/SearchFilterDialog.test.ts:838"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:967"
 target_function = "handleHistoryExecute indexOfガード"
-source = "src/components/SearchFilterDialog.vue L298-302 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L310-313 と tm TASK-504"
 description = "履歴itemがhistoryItemsに存在しない（indexOf=-1。削除済み等）場合は検索実行を起こさない"
 given = "historyItemsに含まれないitemでexecute相当のemitを発生させる"
 expect_return_shape = "executeHistorySearchは呼ばれず、searchFilters・searchQuery・ダイアログ状態は変化しない"
 
 [[condition]]
 id = "search-filter-dialog.history-execute-failure-logs-error"
-source_lines = "tests/unit/components/SearchFilterDialog.test.ts:859"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:988"
 target_function = "handleHistoryExecute .catch"
-source = "src/components/SearchFilterDialog.vue L301-305 と git e18997b（floating promise修正）と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L314-317 と git e18997b（floating promise修正）と tm TASK-504"
 description = "履歴実行（executeHistorySearch）が失敗した場合はconsole.error('[YGO Helper] 検索履歴からの検索実行に失敗しました:', error)を出し、未処理rejectにしない（fire-and-forget呼び出しの失敗を握り潰さない）"
 given = "executeHistorySearchがrejectする状態（動的import失敗等）で履歴itemを実行"
 expect_return_shape = "console.errorが出る（unhandled rejectionなし）"
 
 [[condition]]
 id = "search-filter-dialog.history-favorite-remove-delegate-by-item"
-source_lines = "tests/unit/components/SearchFilterDialog.test.ts:877"
+source_lines = "tests/unit/components/SearchFilterDialog.test.ts:1006"
 target_function = "handleHistoryToggleFavorite / handleHistoryRemove"
-source = "src/components/SearchFilterDialog.vue L309-322 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L321-335 と tm TASK-504"
 description = "HistoryTabのtoggle-favorite/remove emitはitemをhistoryItems内のindexへ解決し、対応するsearchHistory操作（toggleFavorite/removeFromHistory）へ委譲する。historyItemsに存在しないitemは無視する（ガード）。操作本体（お気に入り反転・splice・保存）はuse-search-history条件書の対象"
 given = "historyItems=[itemA,itemB] の状態で itemB に対してtoggle-favorite emit / remove emitを発生させる。存在しないitemCでも同様"
 expect_return_shape = "itemB: toggleFavorite(1)・removeFromHistory(1) が呼ばれる（index=1）。itemC: いずれも呼ばれない"
@@ -380,35 +413,35 @@ decided_by = "claude"
 
 [[excluded]]
 item = "UnifiedCacheDBによるCardInfo復元のロジック内部（getUnifiedCacheDB・reconstructCardInfo）"
-source = "src/components/SearchFilterDialog.vue L227-237 と src/utils/unified-cache-db.ts と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L229-239 と src/utils/unified-cache-db.ts と tm TASK-504"
 reason = "unified-cache-db条件書の対象。本書はcid復元の呼び出し契約とundefined除外・結果反映のみ条件化（history-search-restores-cached-results）"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
 item = "buildSearchOptionsによるSearchOptions構築の内容（各フィールドの変換規則）"
-source = "src/components/SearchFilterDialog.vue L263-271 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L269-279 と tm TASK-504"
 reason = "search-options-builder条件書（34条件）で条件化済み。本書は再検索時の引数契約（query・searchType・'name_asc'固定・item.filters）のみ条件化（history-search-stale-date-reruns-in-background）"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
 item = "searchCards / searchCardsAuto のAPI検索本体（リクエスト構築・パース・エラー処理）"
-source = "src/components/SearchFilterDialog.vue L253-279 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L261-287 と tm TASK-504"
 reason = "card-search条件書（86条件）の対象。本書はautoモード時のsearchCardsAuto分岐と結果反映のみ条件化"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
 item = "searchHistory各操作の本体（toggleFavorite・removeFromHistory・updateResultsの判定・保存）"
-source = "src/components/SearchFilterDialog.vue L309-322, L288-289 と tm TASK-504"
+source = "src/components/SearchFilterDialog.vue L321-335, L300-302 と tm TASK-504"
 reason = "use-search-history条件書（toggle_favorite/remove_from_history/update_results系で条件化済み）の対象。本書はHistoryTab emit→index解決→委譲の契約のみ条件化（history-favorite-remove-delegate-by-item）"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
-item = "履歴実行後のスクロール副作用（await nextTick後の .search-content scrollTop=0。L218-225）"
-source = "src/components/SearchFilterDialog.vue L218-225 と tm TASK-504"
+item = "履歴実行後のスクロール副作用（await nextTick後の .search-content scrollTop=0。L220-227）"
+source = "src/components/SearchFilterDialog.vue L220-227 と tm TASK-504"
 reason = "分岐を持たず表示結果に差を生まない（load-dialog条件書のscrollToDialogTop除外と同根拠）。テスト環境のscrollTo実装詳細に依存するassertは脆くなるため条件化しない"
 decided_at = "2026-09-19"
 decided_by = "claude"
@@ -428,22 +461,22 @@ decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
-item = "フッターのSearchInputBar position='bottom' 配置（L96-99）"
-source = "src/components/SearchFilterDialog.vue L96-99, L97 と src/components/searchInputBar/SearchInputBar.vue L162-165 と tm TASK-504"
+item = "フッターのSearchInputBar position='bottom' 配置（L94-98）"
+source = "src/components/SearchFilterDialog.vue L94-98, L96 と src/components/searchInputBar/SearchInputBar.vue L162-165 と tm TASK-504"
 reason = "静的コンポーネント配置で分岐なし（SearchInputBar自体の挙動は同コンポーネント・既存テストの対象。循環参照回避の v-if position!=='bottom' 判定はSearchInputBar側の実装）"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
-item = "scoped SCSS定義（L363-581。チップ・タブ・バッジのスタイル）"
-source = "src/components/SearchFilterDialog.vue L363-581 と tm TASK-504"
+item = "scoped SCSS定義（L382-600。チップ・タブ・バッジのスタイル）"
+source = "src/components/SearchFilterDialog.vue L382-600 と tm TASK-504"
 reason = "静的スタイル定義でロジック分岐なし（category-dialog/load-dialog条件書のexcludedと同根拠）。クラス付与の分岐は各条件で観測する"
 decided_at = "2026-09-19"
 decided_by = "claude"
 
 [[excluded]]
-item = "removeHeaderChip冒頭の falsy icon ガード（L326-327 の if (!icon) return）"
-source = "src/components/SearchFilterDialog.vue L326-327 と tm TASK-504"
+item = "removeHeaderChip冒頭の falsy icon ガード（L339 の if (!icon) return）"
+source = "src/components/SearchFilterDialog.vue L339 と tm TASK-504"
 reason = "UI経路（v-forで生成されるチップのclick）では常に非nullのFilterIconが渡るため到達不能な防御コード（§8「書かない」: 型/経路上到達不能な分岐。category-dialogのrowToCharsMapフォールバック除外と同根拠）"
 decided_at = "2026-09-19"
 decided_by = "claude"
