@@ -117,8 +117,8 @@ export function useMydeckOperations(
       })
 
       // 検索結果に設定（各カード種類1つずつ）
-      searchStore.searchResults = uniqueCards as unknown as typeof searchStore.searchResults
-      searchStore.allResults = uniqueCards as unknown as typeof searchStore.allResults
+      searchStore.searchResults = uniqueCards
+      searchStore.allResults = uniqueCards
       searchStore.hasMore = false
       searchStore.currentPage = 0
     } catch (error) {

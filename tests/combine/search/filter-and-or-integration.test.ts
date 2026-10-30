@@ -106,10 +106,10 @@ describe('統合テスト: 絞り込み検索のAND/OR切り替え', () => {
     const searchStore = useSearchStore();
     const { handleSearch } = useSearchExecution({ deckStore, searchMode: ref('auto') });
 
-    // 直前の検索結果が残っている状態を再現
+    // 直前の検索結果が残っている状態を再現（TASK-507: storeはフラットなCardInfo[]のため直接代入）
     const stale = monsterCard({ cardId: 'stale' });
-    searchStore.searchResults = [stale] as unknown as typeof searchStore.searchResults;
-    searchStore.allResults = [stale] as unknown as typeof searchStore.allResults;
+    searchStore.searchResults = [stale];
+    searchStore.allResults = [stale];
 
     searchStore.searchQuery = 'ドラゴン';
 

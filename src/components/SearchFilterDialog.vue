@@ -51,7 +51,6 @@
         <FilterTab
           v-if="activeDialogTab === 'filter'"
           :page-language="pageLanguage"
-          :is-monster-type-field-disabled="isMonsterTypeFieldDisabled"
           :is-monster-tab-disabled="isMonsterTabDisabled"
           :is-spell-tab-disabled="isSpellTabDisabled"
           :is-trap-tab-disabled="isTrapTabDisabled"
@@ -102,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue';
+import { computed, ref, nextTick, toRaw } from 'vue';
 import { useDeckEditStore } from '../stores/deck-edit';
 import { useSearchStore } from '../stores/search';
 import type { CardInfo } from '../types/card';
@@ -116,7 +115,9 @@ import { useFilterLogic } from '../composables/search-filter/useFilterLogic';
 import { buildSearchOptions } from '../utils/search-options-builder';
 import { useSearchExecution } from './searchInputBar/composables/useSearchExecution';
 import { useSettingsStore } from '../stores/settings';
-import type { SearchMode } from '../types/settings';
+import type { SearchMode, SortOrder } from '../types/settings';
+import type { SearchHistoryItem } from '../types/search-history';
+import type { FilterIcon } from '../utils/filter-icons';
 
 const deckStore = useDeckEditStore();
 const searchStore = useSearchStore();
@@ -165,7 +166,6 @@ const filterCount = computed(() => {
 
 // filterLogicから必要な関数と値を展開
 const {
-  isMonsterTypeFieldDisabled,
   isMonsterTabDisabled,
   isSpellTabDisabled,
   isTrapTabDisabled,
@@ -204,8 +204,10 @@ async function executeHistorySearch(index: number) {
   const item = searchHistory.historyItems.value[index];
   if (!item) return;
 
-  // 検索条件を復元
-  searchStore.searchFilters = item.filters;
+  // 検索条件を復元（履歴側オブジェクトと参照を共有しないよう防御コピー）。
+  // itemはuseSearchHistoryのreactive経由で読んだproxyのため、structuredCloneへは
+  // toRawで素オブジェクトへ戻してから渡す（proxyはstructured clone不可でDataCloneErrorになる）
+  searchStore.searchFilters = structuredClone(toRaw(item.filters));
   searchStore.searchQuery = item.query;
 
   // ダイアログを閉じる
@@ -233,10 +235,16 @@ async function executeHistorySearch(index: number) {
     }
   }
 
+  // この履歴実行の検索世代を取得する。以降の表示書き込み（キャッシュ即時表示・
+  // 遅延再検索の結果反映）はこの世代が最新の間のみ行う（useSearchExecution.handleSearch
+  // と同じ競合対策。実行中だった旧検索の遅延処理が後から履歴の表示を上書きするのを防ぐ）
+  const myGeneration = ++searchStore.searchGeneration;
+  // 世代を進めたことで旧検索のfinallyはisLoadingを解除できなくなるため、ここで明示的に解除する
+  searchStore.isLoading = false;
   // キャッシュから復元できた結果を即座に表示
   if (cachedResults.length > 0) {
-    searchStore.searchResults = cachedResults as unknown as typeof searchStore.searchResults;
-    searchStore.allResults = cachedResults as unknown as typeof searchStore.allResults;
+    searchStore.searchResults = cachedResults;
+    searchStore.allResults = cachedResults;
     searchStore.isGlobalSearchMode = false;
   }
 
@@ -258,10 +266,12 @@ async function executeHistorySearch(index: number) {
         const searchType = searchTypeMap[item.searchMode] || '1';
 
         // 共通のbuildSearchOptions関数を使用してSearchOptionsを構築
+        // ソート順は従来どおりAPIソート値1（50音順）で固定。name_ascがAPI値1に対応する
+        const sortOrder: SortOrder = 'name_asc';
         const searchOptions = buildSearchOptions(
           item.query,
           searchType,
-          1 as any, // SortOrder（履歴からのソート順または1固定）
+          sortOrder,
           item.filters
         );
 
@@ -273,9 +283,14 @@ async function executeHistorySearch(index: number) {
           newResults = await searchCards(searchOptions);
         }
 
+        // 他の検索（新規検索・別の履歴実行・空クリア）が世代を進めている場合、この再検索結果は
+        // 古いため、表示書き込みと履歴更新（updateResults）の両方を行わない
+        if (searchStore.searchGeneration !== myGeneration) {
+          return;
+        }
         // 結果を更新
-        searchStore.searchResults = newResults as unknown as typeof searchStore.searchResults;
-        searchStore.allResults = newResults as unknown as typeof searchStore.allResults;
+        searchStore.searchResults = newResults;
+        searchStore.allResults = newResults;
 
         // 検索履歴の結果も更新
         const newResultCids = newResults.map(card => card.cardId);
@@ -288,15 +303,18 @@ async function executeHistorySearch(index: number) {
 }
 
 // 履歴から検索を実行
-function handleHistoryExecute(item: any) {
+function handleHistoryExecute(item: SearchHistoryItem) {
   const index = searchHistory.historyItems.value.indexOf(item);
   if (index >= 0) {
-    executeHistorySearch(index);
+    // 非同期で実行し、失敗時は未処理rejectにならないようログを出す
+    executeHistorySearch(index).catch(error => {
+      console.error('[YGO Helper] 検索履歴からの検索実行に失敗しました:', error);
+    });
   }
 }
 
 // 履歴のお気に入り状態を切り替え
-function handleHistoryToggleFavorite(item: any) {
+function handleHistoryToggleFavorite(item: SearchHistoryItem) {
   const index = searchHistory.historyItems.value.indexOf(item);
   if (index >= 0) {
     searchHistory.toggleFavorite(index);
@@ -304,7 +322,7 @@ function handleHistoryToggleFavorite(item: any) {
 }
 
 // 履歴から削除
-function handleHistoryRemove(item: any) {
+function handleHistoryRemove(item: SearchHistoryItem) {
   const index = searchHistory.historyItems.value.indexOf(item);
   if (index >= 0) {
     searchHistory.removeFromHistory(index);
@@ -312,7 +330,7 @@ function handleHistoryRemove(item: any) {
 }
 
 // ヘッダーチップから対応するフィルターを削除
-function removeHeaderChip(icon: any) {
+function removeHeaderChip(icon: FilterIcon) {
   if (!icon) return;
 
   switch (icon.type) {
@@ -321,6 +339,12 @@ function removeHeaderChip(icon: any) {
       break;
     case 'attr':
       searchStore.searchFilters.attributes = searchStore.searchFilters.attributes.filter(a => a !== icon.value);
+      break;
+    case 'spellType':
+      searchStore.searchFilters.spellTypes = searchStore.searchFilters.spellTypes.filter(st => st !== icon.value);
+      break;
+    case 'trapType':
+      searchStore.searchFilters.trapTypes = searchStore.searchFilters.trapTypes.filter(tt => tt !== icon.value);
       break;
     case 'race':
       searchStore.searchFilters.races = searchStore.searchFilters.races.filter(r => r !== icon.value);
