@@ -51,7 +51,6 @@
         <FilterTab
           v-if="activeDialogTab === 'filter'"
           :page-language="pageLanguage"
-          :is-monster-type-field-disabled="isMonsterTypeFieldDisabled"
           :is-monster-tab-disabled="isMonsterTabDisabled"
           :is-spell-tab-disabled="isSpellTabDisabled"
           :is-trap-tab-disabled="isTrapTabDisabled"
@@ -119,7 +118,6 @@ import { useSettingsStore } from '../stores/settings';
 import type { SearchMode, SortOrder } from '../types/settings';
 import type { SearchHistoryItem } from '../types/search-history';
 import type { FilterIcon } from '../utils/filter-icons';
-import { isCardSearchResultsArray } from '../utils/type-guards';
 
 const deckStore = useDeckEditStore();
 const searchStore = useSearchStore();
@@ -168,7 +166,6 @@ const filterCount = computed(() => {
 
 // filterLogicから必要な関数と値を展開
 const {
-  isMonsterTypeFieldDisabled,
   isMonsterTabDisabled,
   isSpellTabDisabled,
   isTrapTabDisabled,
@@ -245,7 +242,7 @@ async function executeHistorySearch(index: number) {
   // 世代を進めたことで旧検索のfinallyはisLoadingを解除できなくなるため、ここで明示的に解除する
   searchStore.isLoading = false;
   // キャッシュから復元できた結果を即座に表示
-  if (cachedResults.length > 0 && isCardSearchResultsArray(cachedResults)) {
+  if (cachedResults.length > 0) {
     searchStore.searchResults = cachedResults;
     searchStore.allResults = cachedResults;
     searchStore.isGlobalSearchMode = false;
@@ -292,10 +289,8 @@ async function executeHistorySearch(index: number) {
           return;
         }
         // 結果を更新
-        if (isCardSearchResultsArray(newResults)) {
-          searchStore.searchResults = newResults;
-          searchStore.allResults = newResults;
-        }
+        searchStore.searchResults = newResults;
+        searchStore.allResults = newResults;
 
         // 検索履歴の結果も更新
         const newResultCids = newResults.map(card => card.cardId);

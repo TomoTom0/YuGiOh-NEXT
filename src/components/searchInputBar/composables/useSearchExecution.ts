@@ -297,9 +297,9 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // 検索APIを呼び出したのでグローバル検索モードを終了
       searchStore.isGlobalSearchMode = false
 
-      // 検索結果をstore用の形式に変換
-      searchStore.searchResults = results as unknown as typeof searchStore.searchResults
-      searchStore.allResults = results as unknown as typeof searchStore.allResults
+      // 検索結果をstoreへ反映
+      searchStore.searchResults = results
+      searchStore.allResults = results
 
       // 検索実行時に search タブのスクロール位置を上に戻す（アニメーション付き）
       nextTick(() => {
@@ -336,8 +336,8 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
               if (moreResults.length > 100) {
                 const filteredMoreResults = applyClientSideFilters(moreResults, filtersSnapshot)
-                searchStore.searchResults = filteredMoreResults as unknown as typeof searchStore.searchResults
-                searchStore.allResults = filteredMoreResults as unknown as typeof searchStore.allResults
+                searchStore.searchResults = filteredMoreResults
+                searchStore.allResults = filteredMoreResults
                 searchStore.hasMore = moreResults.length >= 2000
                 searchStore.currentPage = 1
               } else {

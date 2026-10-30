@@ -121,8 +121,9 @@ const newUuid = `card-${maxIndex + 1}`;
 searchQuery: string;
 
 // 検索結果（拡張検索で最大2000件まで拡張される）
-searchResults: Array<{ card: CardInfo }>;
-allResults: Array<{ card: CardInfo }>;
+// 型エイリアス SearchResults = CardInfo[]（src/stores/search.ts。TASK-507でフラット構造へ統一）
+searchResults: CardInfo[];
+allResults: CardInfo[];
 
 // ページネーション
 currentPage: number;

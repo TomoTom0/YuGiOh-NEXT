@@ -182,6 +182,25 @@ describe('useFilterLogic', () => {
       expect(logic.getMonsterTypeDisabledReason('fusion')).toBe('モンスターカードタイプが選択されていません');
     });
 
+    it('[covers:use-filter-logic.monster-type-reason-individual-precedes-card-type] 個別reasonとcard-type reasonが両方存在する場合は個別reasonを優先する', () => {
+      // TASK-506 D2b回帰保証: 両reason併存ケースは既存テストに存在しなかった
+      // （設計doc tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §3.3(i)・§5.3(a)）
+      searchStore.exclusionResult.attributeStates.set(
+        'monster-type_fusion',
+        { enabled: false, required: false, selected: false, disabledReason: 'type reason' }
+      );
+      searchStore.exclusionResult.attributeStates.set(
+        'card-type_monster',
+        { enabled: false, required: false, selected: false, disabledReason: 'card type reason' }
+      );
+
+      const logic = useFilterLogic(pageLanguage);
+
+      // フィールド全体も無効（card-type_monster enabled=false）であることを前提確認
+      expect(logic.isMonsterTypeFieldDisabled.value).toBe(true);
+      expect(logic.getMonsterTypeDisabledReason('fusion')).toBe('type reason');
+    });
+
     it('[covers:use_filter_logic.tab_disabled_states] カードタイプタブの無効化をattributeStateから判定する', () => {
       searchStore.exclusionResult.attributeStates.set('card-type_monster', { enabled: false });
       searchStore.exclusionResult.attributeStates.set('card-type_spell', { enabled: false });

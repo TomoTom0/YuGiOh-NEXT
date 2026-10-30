@@ -13,7 +13,7 @@ verified_at = "2026-08-06"
 verified_by = "codex"
 test_command = "mise run test:vitest -- tests/unit/composables/useFilterLogic.test.ts"
 source_hash = "bd42f7d679fe5bc29a50178a0ab1669a993ca685"
-note = "verified=falseは0件。useFilterLogic本体はexport関数としてAST未カバー検出に掛けるため1条件を置き、返却メンバーはuseFilterLogic#memberName形式で記録する"
+note = "verified=falseは0件。useFilterLogic本体はexport関数としてAST未カバー検出に掛けるため1条件を置き、返却メンバーはuseFilterLogic#memberName形式で記録する。【2026-10-28 TASK-506テスト先行】D2b両reason併存パス（個別reason優先）の条件を38件目として追加（新規条件のidはstable id形式のkebab表記で付与。既存snake_case id群は付与後不変のため維持）。useFilterLogic.ts本体は本タスクで変更しないためsource_hash不変"
 
 # --- useFilterLogic(pageLanguage) ---
 
@@ -74,6 +74,15 @@ source_lines = "82-93"
 description = "monster-type個別reasonがあればそれを返す。無ければフィールド全体が無効なときcard-type_monsterのreason、さらに無ければ固定文言を返す。フィールドも有効ならundefined"
 given = "個別reasonあり/フィールド無効でcard-type reasonあり/フィールド無効でreasonなし/フィールド有効"
 expect_return_shape = "個別reason、card-type reason、'モンスターカードタイプが選択されていません'、undefinedのいずれか"
+
+[[condition]]
+id = "use-filter-logic.monster-type-reason-individual-precedes-card-type"
+source_lines = "tests/unit/composables/useFilterLogic.test.ts:185"
+target_function = "useFilterLogic#getMonsterTypeDisabledReason"
+source = "tm TASK-506（設計: tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §3.3(iii)・§5.3(a)）"
+description = "monster-type個別reasonとcard-type_monster reasonが両方存在する場合は個別reasonを優先して返す（D2b両reason併存パス。hover対象チップ自身の理由を優先する表示方針としてTASK-506で決定）。既存monster_type_reason_precedence条件の記載範囲のうち本パスは既存テストで未検証だったため、TASK-506テスト先行で独立条件として追加"
+given = "attributeStatesにmonster-type_fusion={enabled:false, disabledReason:'type reason'}とcard-type_monster={enabled:false, disabledReason:'card type reason'}が両方登録された状態"
+expect_return = "getMonsterTypeDisabledReason('fusion')は'type reason'（card-type側reasonではない）"
 
 [[condition]]
 id = "use_filter_logic.tab_disabled_states"

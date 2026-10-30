@@ -21,23 +21,22 @@ describe('stores/search', () => {
     setActivePinia(createPinia());
   });
 
-  // サンプルカード情報を作成するヘルパー
+  // サンプルカード情報を作成するヘルパー（src/types/card.ts のMonsterCard必須フィールドを過不足なく持つ）
   const createCard = (id: string): CardInfo => ({
     cardId: id,
     ciid: 'ciid1',
-    cid: id,
+    lang: 'ja',
+    imgs: [{ ciid: 'ciid1', imgHash: 'hash1' }],
     name: `Card ${id}`,
-    nameRuby: '',
-    imageUrl: '',
     cardType: 'monster',
-    cardTypeText: 'Monster',
     attribute: 'light',
-    level: 4,
+    levelType: 'level',
+    levelValue: 4,
+    race: 'dragon',
+    types: ['effect'],
     atk: 1800,
     def: 1000,
-    race: 'dragon',
-    effect: 'Sample effect',
-    forbidden: null
+    isExtraDeck: false
   });
 
   describe('初期状態', () => {
@@ -111,26 +110,28 @@ describe('stores/search', () => {
       expect(store.searchQuery).toBe('ブラック・マジシャン');
     });
 
-    it('searchResultsを更新できる', () => {
+    it('searchResultsを更新できる [covers:search-results.hold-flat-card-info-array]', () => {
       const store = useSearchStore();
       const card1 = createCard('card1');
       const card2 = createCard('card2');
 
-      store.searchResults = [{ card: card1 }, { card: card2 }];
+      // TASK-507: searchResultsはフラットなCardInfo[]（{card}ラッパーなし）
+      store.searchResults = [card1, card2];
 
       expect(store.searchResults).toHaveLength(2);
-      expect(store.searchResults[0]?.card).toMatchObject(card1);
-      expect(store.searchResults[1]?.card).toMatchObject(card2);
+      expect(store.searchResults[0]).toMatchObject(card1);
+      expect(store.searchResults[1]).toMatchObject(card2);
     });
 
-    it('allResultsを更新できる', () => {
+    it('allResultsを更新できる [covers:search-results.hold-flat-card-info-array]', () => {
       const store = useSearchStore();
       const card1 = createCard('card1');
 
-      store.allResults = [{ card: card1 }];
+      // TASK-507: allResultsもフラットなCardInfo[]（{card}ラッパーなし）
+      store.allResults = [card1];
 
       expect(store.allResults).toHaveLength(1);
-      expect(store.allResults[0]?.card).toMatchObject(card1);
+      expect(store.allResults[0]).toMatchObject(card1);
     });
 
     it('currentPageを更新できる', () => {
@@ -170,7 +171,7 @@ describe('stores/search', () => {
   });
 
   describe('clearAllFilters', () => {
-    it('全てのフィルターをデフォルト値にリセットする [covers:clear_all_filters.resets_search_filters_to_default_values]', () => {
+    it('全てのフィルターをデフォルト値にリセットする [covers:clear-all-filters.resets-search-filters-to-default-values]', () => {
       const store = useSearchStore();
 
       // フィルターを設定

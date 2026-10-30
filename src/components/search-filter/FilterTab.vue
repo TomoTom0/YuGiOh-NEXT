@@ -458,6 +458,7 @@ import { getAttributeLabel, getSpellTypeLabel, getTrapTypeLabel } from '@/utils/
 import { mappingManager } from '@/utils/mapping-manager';
 import { MONSTER_TYPE_ID_TO_NAME } from '@/types/card-maps';
 import { useSearchStore } from '@/stores/search';
+import { useFilterLogic } from '@/composables/search-filter/useFilterLogic';
 
 // searchStoreから直接filtersを使用
 const searchStore = useSearchStore();
@@ -465,7 +466,6 @@ const searchStore = useSearchStore();
 // Props
 const props = defineProps<{
   pageLanguage: string;
-  isMonsterTypeFieldDisabled: boolean;
   isMonsterTabDisabled: boolean;
   isSpellTabDisabled: boolean;
   isTrapTabDisabled: boolean;
@@ -480,6 +480,19 @@ const props = defineProps<{
   selectedAtkChips: string[];
   selectedDefChips: string[];
 }>();
+
+// 読み取り系ロジック（無効化判定・理由・クラス導出）はuseFilterLogicが正本（TASK-506）
+const {
+  isFieldDisabled,
+  getFieldDisabledReason,
+  isMonsterTypeAttributeDisabled,
+  getMonsterTypeDisabledReason,
+  getMonsterTypeClass,
+  isLevelValueActive,
+  isLinkMarkerActive,
+  getStatFilter,
+  isMonsterTypeFieldDisabled,
+} = useFilterLogic(computed(() => props.pageLanguage));
 
 // Emits
 const emit = defineEmits<{
@@ -576,84 +589,6 @@ function toggleStatUnknown(stat: 'atk' | 'def') {
 
 function validateStatInput(event: Event, stat: 'atk' | 'def', field: 'min' | 'max') {
   emit('validate-stat-input', event, stat, field);
-}
-
-// Helper functions
-function isFieldDisabled(field: string): boolean {
-  const fieldState = searchStore.exclusionResult.fieldStates.get(field);
-  if (fieldState) {
-    return !fieldState.enabled;
-  }
-  // フィールドが存在しない場合は、card-typeから推論
-  if (searchStore.searchFilters.cardType !== null) {
-    // monsterカードタイプ専用フィールド
-    const monsterOnlyFields = ['attribute', 'race', 'level-rank', 'link-value', 'link-marker', 'p-scale', 'atk', 'def'];
-    if (monsterOnlyFields.includes(field) && searchStore.searchFilters.cardType !== 'monster') {
-      return true;
-    }
-    // spellカードタイプ専用フィールド
-    if (field === 'spell-type' && searchStore.searchFilters.cardType !== 'spell') {
-      return true;
-    }
-    // trapカードタイプ専用フィールド
-    if (field === 'trap-type' && searchStore.searchFilters.cardType !== 'trap') {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-
-
-function getFieldDisabledReason(field: string): string | undefined {
-  const fieldState = searchStore.exclusionResult.fieldStates.get(field);
-  return fieldState?.disabledReason || undefined;
-}
-
-function isMonsterTypeAttributeDisabled(type: MonsterType): boolean {
-  // フィールド全体が無効化されている場合（cardTypeがspell/trapの場合など）
-  if (props.isMonsterTypeFieldDisabled) {
-    return true;
-  }
-
-  // または個別のモンスタータイプ属性が無効化されているか
-  const attrState = searchStore.exclusionResult.attributeStates.get(`monster-type_${type}`);
-  return attrState ? !attrState.enabled : false;
-}
-
-function getMonsterTypeDisabledReason(type: MonsterType): string | undefined {
-  // フィールド全体が無効化されている場合
-  if (props.isMonsterTypeFieldDisabled) {
-    const attrState = searchStore.exclusionResult.attributeStates.get('card-type_monster');
-    return attrState?.disabledReason || undefined;
-  }
-
-  // または個別のモンスタータイプが無効化されている場合
-  const attrState = searchStore.exclusionResult.attributeStates.get(`monster-type_${type}`);
-  return attrState?.disabledReason || undefined;
-}
-
-function getMonsterTypeClass(type: MonsterType) {
-  const state = searchStore.searchFilters.monsterTypes.find(t => t.type === type);
-  if (!state) return '';
-  return state.state === 'not' ? 'not' : 'active';
-}
-
-function isLevelValueActive(num: number): boolean {
-  if (searchStore.searchFilters.levelType === 'level') {
-    return searchStore.searchFilters.levelValues.includes(num);
-  } else {
-    return searchStore.searchFilters.scaleValues.includes(num);
-  }
-}
-
-function isLinkMarkerActive(pos: number): boolean {
-  return searchStore.searchFilters.linkMarkers.includes(pos);
-}
-
-function getStatFilter(stat: 'atk' | 'def') {
-  return searchStore.searchFilters[stat];
 }
 
 // ボタン表示用のラベル取得関数（言語対応版）
