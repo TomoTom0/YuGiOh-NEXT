@@ -106,7 +106,7 @@ function buildDeckSections(): DeckSections {
     extra: resolveCards(deckStore.deckInfo.extraDeck ?? []),
     side: resolveCards(deckStore.deckInfo.sideDeck ?? []),
     trash: resolveCards(deckStore.trashDeck ?? []),
-    searchResults: searchStore.searchResults.map(r => r.card),
+    searchResults: searchStore.searchResults,
   };
 }
 

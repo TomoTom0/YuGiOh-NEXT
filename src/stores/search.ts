@@ -5,13 +5,21 @@ import type { CardInfo } from '../types/card'
 import { inferExclusions, loadExclusionRules } from '../utils/search-exclusion-engine'
 import { toSearchConditionState } from '../utils/search-exclusion-adapter'
 
+/**
+ * 検索結果配列の型（searchResults / allResults 共用）
+ *
+ * 全ての書き込み箇所がフラットな CardInfo[]（ラッパーなし）を代入する実態に合わせた型。
+ * 検索結果構造が将来変化する場合はこのエイリアスの変更のみで対応する。
+ */
+export type SearchResults = CardInfo[]
+
 export const useSearchStore = defineStore('search', () => {
   // 検索クエリ
   const searchQuery = ref('')
 
   // 検索結果
-  const searchResults = ref<Array<{ card: CardInfo }>>([])
-  const allResults = ref<Array<{ card: CardInfo }>>([])
+  const searchResults = ref<SearchResults>([])
+  const allResults = ref<SearchResults>([])
 
   // ページネーション
   const currentPage = ref(0)

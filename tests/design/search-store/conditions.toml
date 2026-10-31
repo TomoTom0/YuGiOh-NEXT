@@ -7,26 +7,40 @@
 # 実装されている。returnオブジェクトで公開されるローカル関数は
 # "useSearchStore#アクション名"として記載する。
 #
-# searchQuery/searchResults/allResults/currentPage/hasMore/isLoading/searchFilters/isGlobalSearchModeは
+# searchQuery/currentPage/hasMore/isLoading/searchFilters/isGlobalSearchModeは
 # refをそのまま公開している状態であり、分岐・throw・独自ロジックを持たないため条件化しない。
+# searchResults/allResultsも分岐・throwは持たないが、保持構造（フラットなCardInfo[]）は
+# 消費者（CardList・ChatPanelのDeckSections構築）とのデータ契約のためTASK-507で条件化した。
 # exclusionResultはcomputed getterで、公開アクションではなく意味のある分岐も持たないため条件化しない。
 
 [meta]
 feature = "search-store"
 source_file = "src/stores/search.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/stores/search.test.ts"
-source_hash = "6515076d335c35c429af657948d3c4c7a9d27c1c"
-note = "公開アクションはclearAllFiltersのみ。分岐・throwは存在しないため、無条件の状態置換を1条件として記載した。verified=falseは0件。"
+verified_at = "2026-10-27"
+verified_by = "claude"
+test_command = "pnpm vitest run tests/unit/stores/search.test.ts tests/unit/components/ChatPanel.test.ts tests/combine/search/filter-and-or-integration.test.ts tests/unit/components/SearchFilterDialog.test.ts tests/unit/utils/type-guards.test.ts"
+source_hash = "67acb48571ac9ffb3a330207e578e8af211d7f74"
+note = "公開アクションはclearAllFiltersのみ。分岐・throwは存在しないため、無条件の状態置換を1条件として記載した。verified=falseは0件。【2026-10-27 TASK-507テスト先行】(1) searchResults/allResultsの保持構造条件（search-results.hold-flat-card-info-array）を追加、(2) legacy id（clear_all_filters.resets_...）をstable id形式（clear-all-filters.resets-...）へ改名しタグを張替え、(3) 非標準のexpect_side_effectをexpect_return_shapeへ変更・source欄を追記（verify-conditions.pyのschema検査通過のため。旧source_lines実装行番号参照は自動同期へ移行）。【2026-10-27 TASK-507実装】storeの型宣言をCardInfo[]（export type SearchResults = CardInfo[] エイリアス経由）へ変更し、source_hashを型変更後の実測値へ再記録・再検証した。"
 
 # --- clearAllFilters(): void ---
 
 [[condition]]
-id = "clear_all_filters.resets_search_filters_to_default_values"
+id = "clear-all-filters.resets-search-filters-to-default-values"
+source_lines = "tests/unit/stores/search.test.ts:174"
 target_function = "useSearchStore#clearAllFilters"
-source_lines = "56-75"
+source = "src/stores/search.ts clearAllFilters（Tier A本展開での実装転記）"
 description = "clearAllFiltersは現在のsearchFilters.valueの内容に関係なく、実装内に書かれた既定値オブジェクトでsearchFilters.value全体を置き換える"
 given = "searchFilters.valueにcardType/attributes/spellTypes/trapTypes/races/monsterTypes/level/link/scale/atk/def/releaseDate等の値が設定された状態でclearAllFilters()を呼ぶ"
-expect_side_effect = "searchFilters.value === { cardType: null, attributes: [], spellTypes: [], trapTypes: [], races: [], monsterTypes: [], monsterTypeMatchMode: 'or', levelType: 'level', levelValues: [], linkValues: [], scaleValues: [], linkMarkers: [], linkMarkerMatchMode: 'or', atk: { exact: false, unknown: false }, def: { exact: false, unknown: false }, releaseDate: {} }"
+expect_return_shape = "searchFilters.value === { cardType: null, attributes: [], spellTypes: [], trapTypes: [], races: [], monsterTypes: [], monsterTypeMatchMode: 'or', levelType: 'level', levelValues: [], linkValues: [], scaleValues: [], linkMarkers: [], linkMarkerMatchMode: 'or', atk: { exact: false, unknown: false }, def: { exact: false, unknown: false }, releaseDate: {} }"
+
+# --- searchResults / allResults（保持構造） ---
+
+[[condition]]
+id = "search-results.hold-flat-card-info-array"
+source_lines = "tests/unit/stores/search.test.ts:113,tests/unit/stores/search.test.ts:126"
+target_function = "useSearchStore searchResults/allResults ref"
+source = "tm TASK-507（設計: tmp/tasks/tm-507/design_search-results-type.md 決定節・変更内容1）"
+description = "searchResults/allResultsの要素はフラットなCardInfo（{card: CardInfo}ラッパーなし）。TASK-507で全書き込み箇所の実態（フラット構造）へ型宣言を統一したもので、消費者（CardList・ChatPanelのDeckSections構築）は要素のcardId等へ直接アクセスする"
+given = "CardInfoの配列（ラッパーなし）をsearchResults / allResultsへ代入"
+expect_return_shape = "要素はそのままCardInfoとして読み取れる（[0].cardId等の直接アクセスが成立し、cardプロパティ経由の読み取りは不可）"

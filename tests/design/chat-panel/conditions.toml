@@ -1,0 +1,40 @@
+# 検証対象: src/components/ChatPanel.vue
+#
+# TASK-507（searchStore.searchResults/allResultsのCardInfo[]型統一）のテスト先行Phaseで
+# 回帰条件のみを新規作成した最小条件書。ChatPanel本体の全面条件化はTier C候補として
+# 棚上げされている（tests/design/README.md「残るTier C候補」参照。TASK-331棚卸し）ため
+# 別タスクのスコープ。
+#
+# 経緯（TASK-507設計: tmp/tasks/tm-507/design_search-results-type.md）:
+# - ChatPanel.vue buildDeckSectionsの searchResults: searchStore.searchResults.map(r => r.card) は
+#   CardInfo（MonsterCard/SpellCard/TrapCardのunion）にcardプロパティが存在しないため、
+#   実行時は常にundefined配列をLLM用DeckSections.searchResultsへ渡す潜在バグだった
+# - TASK-507のstore型統一（CardInfo[]）に伴い、searchStore.searchResultsの直接渡しへ修正する
+# - 本条件はその接続部分の回帰保証（既存tests/unit/services/llm/はDeckSectionsを直接構築して
+#   おりstore→ChatPanel→LLMの接続を保証しないため、design doc変更内容6で追加を決定）
+
+[meta]
+feature = "chat-panel"
+source_file = "src/components/ChatPanel.vue"
+verified = true
+verified_at = "2026-10-27"
+verified_by = "claude"
+test_command = "pnpm vitest run tests/unit/stores/search.test.ts tests/unit/components/ChatPanel.test.ts tests/combine/search/filter-and-or-integration.test.ts tests/unit/components/SearchFilterDialog.test.ts tests/unit/utils/type-guards.test.ts"
+source_hash = "65159151cd1a4b2623c3e8c9f51ebcec51f86bbd"
+note = "TASK-507テスト先行Phaseで作成（回帰条件1件のみ）。実装（ChatPanel.vue buildDeckSectionsのsearchResults直接渡し化）前に本条件のテストがred（旧実装はundefined配列を渡すためfail）、実装後にgreenとなることを確認済み。【2026-10-27 TASK-507実装】ChatPanel.vueの当該行をsearchStore.searchResults直接渡しへ変更し、実装後のsource_hash算出・検証記録（verified=true）を本書へ記録した"
+
+[[condition]]
+id = "chat-panel.deck-sections-pass-search-results-directly"
+source_lines = "tests/unit/components/ChatPanel.test.ts:71"
+target_function = "buildDeckSections"
+source = "tm TASK-507（設計: tmp/tasks/tm-507/design_search-results-type.md 変更内容6・「LLM側の影響」節）"
+description = "chat呼び出し時のrequest.deckSections.searchResultsにはsearchStore.searchResults（フラットなCardInfo[]）をそのまま渡す。旧実装の map(r => r.card) のようなカードプロパティ経由の変換は行わない（CardInfoにcardプロパティは無く、常にundefined配列をLLMへ渡す潜在バグだった）"
+given = "searchStore.searchResultsにフラットなカード2件を設定した状態で、textareaへ入力し送信ボタンをclick（chatはmock）"
+expect_return_shape = "chatの第1引数request.deckSections.searchResultsは設定した2件のカード（cardId等の直接参照が成立）。undefined要素を含まない"
+
+[[excluded]]
+item = "ChatPanel.vue本体の全面条件化（send/LLM呼び出しフロー・ツールメッセージ表示・カードリンク解析・チャット履歴・abort等のscript分岐）"
+source = "tm TASK-507（スコープはsearchResults渡しの回帰保証のみ）と tests/design/README.md「残るTier C候補」（TASK-331棚卸し）"
+reason = "TASK-507のテスト先行スコープ外。ChatPanelはTier C候補として棚上げされており、script setupロジックの全面条件化は別タスクで実施する"
+decided_at = "2026-10-27"
+decided_by = "claude"

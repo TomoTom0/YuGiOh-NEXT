@@ -1,0 +1,453 @@
+# 検証対象: src/components/search-filter/FilterTab.vue
+#
+# 経緯:
+# - TASK-506（FilterTab/useFilterLogic重複8関数解消）のテスト先行Phaseで、
+#   無効化配線・tooltip表示の最小4条件を作成（旧red緑記録:
+#   tmp/tasks/tm-506/test_red_pre_impl.log）
+# - TASK-505（Tier C第6号・TASK-331展開）で全面条件化。TASK-506完了後の構成
+#   （読み取り系8関数+isMonsterTypeFieldDisabledをuseFilterLogicから直接
+#   destructure）を前提に、template配線の表示契約・emit透過ラッパー15関数の
+#   emit契約・ローカルscript分岐（activeStatTab/maxDate/ラベルフォールバック）を条件化
+#
+# 粒度方針（Tier C・search-filter-dialog条件書と同一）:
+# - templateのv-if/v-show・:class/:disabled/:titleバインディングは表示契約として
+#   条件化する。同一パターンのchip群（属性/魔法/罠/種族等）は1条件に束ね、
+#   個別値の列挙はテスト側fixture表で持つ
+# - UI操作はDOMイベント経由で検証する（vm内部状態の直接参照はしない）
+#
+# 線引き（隣接条件書との）:
+# - 読み取り系8関数の内部挙動（isFieldDisabledのフォールバック推論・
+#   getMonsterTypeDisabledReasonの優先順位・getMonsterTypeClassの分岐本体等）は
+#   use-filter-logic条件書（tests/design/use-filter-logic/conditions.toml）が保証。
+#   本書はFilterTab template/scriptからの呼び出し配線（引数・表示結果）のみ。
+#   ただしTASK-506由来のtooltip 2条件（monster-type-chip-title-*）はid維持の
+#   経緯（赤緑記録との対応）からuse-filter-logic条件書と文言レベルが重複保証に
+#   なっており、これは意図的（レビュー指摘対応として明記）
+#   cardTypeフォールバック経由の無効化（モンスター選択時の魔法/罠タイプ
+#   無効化）は表示契約の一部として本書の条件に含める
+# - 選択済みchipラベルの計算本体（selectedAttributeChips等）はuseFilterLogic/
+#   filter-label条件書の対象。本書はpropsで受け取った配列をそのまま描画する契約のみ
+# - SearchFilterDialog側のprops/emits受け渡し・ヘッダー表示は
+#   search-filter-dialog条件書の対象
+# - emitsの型定義（defineEmits）は15 emit条件が契約（イベント名・引数）として保証
+
+[meta]
+feature = "filter-tab"
+source_file = "src/components/search-filter/FilterTab.vue"
+verified = true
+verified_at = "2026-10-31"
+verified_by = "claude"
+test_command = "npx vitest run tests/unit/components/FilterTab.test.ts"
+source_hash = "6094592fb83b46e894387cad0c9bf1fcc802c553"
+note = "TASK-506テスト先行Phaseで最小4条件を作成し、TASK-505（Tier C第6号）で全面展開（38条件）。8関数分の内部挙動はuse-filter-logic条件書（38条件）が保証するため再条件化せず、template配線の表示契約26条件（うち4条件はTASK-506由来のid維持）+emit透過ラッパー8条件（15イベントを引数形状別に集約）+ローカルscript分岐を含む。mount構成はpinia実物・直接mount（既存SearchFilterDialog.test.tsと同一手法）。maxDate検証はfake Date（toFake:['Date']）でシステム時刻を固定"
+
+# --- カードタイプタブ（モンスター/魔法/罠） ---
+
+[[condition]]
+id = "filter-tab.card-type-tab-active-follows-store-card-type"
+source_lines = "tests/unit/components/FilterTab.test.ts:176"
+target_function = "FilterTab template カードタイプタブ :class binding"
+source = "src/components/search-filter/FilterTab.vue L11, L47, L96 と tm TASK-505"
+description = "3つのカードタイプタブ（モンスター/魔法/罠）ボタンのactiveクラスはsearchStore.searchFilters.cardTypeの値と一致するタブにのみ付く"
+given = "searchFilters.cardType='spell' でmount（spellタブがactive想定）"
+expect_return_shape = "spellタブ（.spell-wrapper .card-type-tab）にactiveクラス。monster/trapタブには付かない"
+
+[[condition]]
+id = "filter-tab.card-type-tab-disabled-from-props-with-tooltip"
+source_lines = "tests/unit/components/FilterTab.test.ts:185"
+target_function = "FilterTab template カードタイプタブ :disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L12-13, L48-49, L97-98 と tm TASK-505"
+description = "カードタイプタブのdisabledは親からprops（isMonsterTabDisabled/isSpellTabDisabled/isTrapTabDisabled）で受け渡され、disabled時は固定文言「他のカードタイプが選択されています」をtitle（tooltip）に表示する"
+given = "isMonsterTabDisabled=true でmount（他タブpropsはfalse）"
+expect_return_shape = "monsterタブにdisabled属性とtitle='他のカードタイプが選択されています'。spell/trapタブはdisabled属性もtitleも無し"
+
+[[condition]]
+id = "filter-tab.detail-chip-active-follows-selected-values"
+source_lines = "tests/unit/components/FilterTab.test.ts:202"
+target_function = "FilterTab template 属性/魔法タイプ/罠タイプ/種族chip :class binding"
+source = "src/components/search-filter/FilterTab.vue L30, L67, L80, L116, L144 と tm TASK-505"
+description = "属性・魔法タイプ・罠タイプ・種族の各chipはsearchFiltersの対応配列（attributes/spellTypes/trapTypes/races）に値が含まれる場合のみactiveクラスが付く。属性chipはアイコンimg（src末尾attribute_icon_<id>.png）とラベルテキストを併せて表示する"
+given = "attributes=['light']・spellTypes=['quick']・trapTypes=['counter']・races=['zombie'] でmount"
+expect_return_shape = "光/速攻/カウンター/アンデット族の各chipにactiveクラス。未選択値（炎・通常・永続・ドラゴン族等）のchipには付かない。光chip内のimgのsrcはattribute_icon_light.pngで終りalt='光'"
+
+# --- 種族 ---
+
+[[condition]]
+id = "filter-tab.race-chips-render-in-fixed-order-with-ja-labels"
+source_lines = "tests/unit/components/FilterTab.test.ts:232"
+target_function = "FilterTab racesOrdered + template race chip v-for + getRaceButtonLabel"
+source = "src/components/search-filter/FilterTab.vue L140-151, L525-531, L595-599 と tm TASK-505"
+description = "種族chipはracesOrderedの固定順（zombie先頭・幻神獣族と創造神族が最後）で26件すべて描画され、pageLanguage='ja'ではRACE_ID_TO_NAMEの日本語ラベルを表示する"
+given = "pageLanguage='ja'・races未選択でmount"
+expect_return_shape = ".race-rows内のchipテキストはracesOrdered順の26件（先頭'アンデット族'・末尾'創造神族'・末尾から2番目'幻神獣族'）。いずれもactiveクラスなし"
+
+[[condition]]
+id = "filter-tab.race-chip-label-falls-back-to-id-when-mapping-absent"
+source_lines = "tests/unit/components/FilterTab.test.ts:249"
+target_function = "FilterTab getRaceButtonLabel"
+source = "src/components/search-filter/FilterTab.vue L595-599 と src/utils/mapping-manager.ts getRaceIdToText と tm TASK-505"
+description = "mappingManagerが当該言語の種族マッピングを保持しない場合（動的マッピング未取得の非ja言語）、ラベルは種族の内部IDそのものにフォールバックする"
+given = "pageLanguage='en'（動的マッピング無し）でmount"
+expect_return_shape = "zombieのchipテキスト='zombie'（内部ID。日本語ラベルではない）"
+
+[[condition]]
+id = "filter-tab.monster-type-chip-label-uses-ja-static-fallback"
+source_lines = "tests/unit/components/FilterTab.test.ts:256"
+target_function = "FilterTab getMonsterTypeButtonLabel"
+source = "src/components/search-filter/FilterTab.vue L601-612 と src/utils/mapping-manager.ts getMonsterTypeIdToText と tm TASK-505"
+description = "モンスタータイプchipのラベルはmappingManager取得値が無い場合（動的マッピング未取得の非ja言語）でもMONSTER_TYPE_ID_TO_NAMEの日本語静的マッピングへフォールバックし、内部IDを表示しない（種族のフォールバックとの差異）"
+given = "pageLanguage='en'（動的マッピング無し）でmount"
+expect_return_shape = "fusionのchipテキスト='融合'（ja静的マッピング。'fusion'ではない）"
+
+# --- モンスタータイプ（TASK-506由来4条件 + 補完） ---
+
+[[condition]]
+id = "filter-tab.monster-type-chip-state-class-follows-monster-types"
+source_lines = "tests/unit/components/FilterTab.test.ts:266"
+target_function = "FilterTab template モンスタータイプchip :class binding"
+source = "src/components/search-filter/FilterTab.vue L178, L192, L206 と tm TASK-505"
+description = "モンスタータイプchipのクラスはgetMonsterTypeClass(type)の判定結果（monsterTypesのstate）に従う。data-type属性でchipを識別できる"
+given = "monsterTypes=[{type:'fusion',state:'normal'},{type:'synchro',state:'not'}] でmount（xyzは未登録）"
+expect_return_shape = "fusion chipにactiveクラス（notなし）。synchro chipにnotクラス（activeなし）。xyz chipはactive/notとも無し"
+
+[[condition]]
+id = "filter-tab.monster-type-chip-disabled-by-individual-attribute-state"
+source_lines = "tests/unit/components/FilterTab.test.ts:288"
+target_function = "FilterTab template モンスタータイプchip :disabled binding"
+source = "src/components/search-filter/FilterTab.vue L180, L194, L208 と tm TASK-505"
+description = "モンスタータイプchipはそれぞれ自身の型（monster-type_<type>）のattributeStateで個別に無効化される（フィールド全体は有効のまま、該当chipのみdisabled+理由tooltip）"
+given = "attributeStatesにmonster-type_fusion={enabled:false, disabledReason:'融合の個別理由'}のみ設定（card-type_monsterは無効にしない）してmount"
+expect_return_shape = "fusion chipにdisabled属性とtitle='融合の個別理由'。synchro等の他chipはdisabled属性なし"
+
+[[condition]]
+id = "filter-tab.monster-type-match-mode-button-label-and-state"
+source_lines = "tests/unit/components/FilterTab.test.ts:301"
+target_function = "FilterTab template モンスタータイプAND/ORボタン :class/テキスト"
+source = "src/components/search-filter/FilterTab.vue L166-173 と tm TASK-505"
+description = "モンスタータイプのAND/ORボタンのラベルはmonsterTypeMatchMode==='and'で'AND'（activeクラス付き）、'or'で'OR'（activeなし）を表示する"
+given = "monsterTypeMatchMode='or' / 'and' の各状態でmount"
+expect_return_shape = "'or': ボタンテキスト='OR'・activeなし。'and': テキスト='AND'・activeクラス付き"
+
+[[condition]]
+id = "filter-tab.monster-type-heading-disabled-class"
+source_lines = "tests/unit/components/FilterTab.test.ts:314,tests/unit/components/FilterTab.test.ts:324"
+target_function = "FilterTab template モンスタータイプ見出し :class binding"
+source = "tm TASK-506（設計: tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §2.1-1・§5.3(b)）"
+description = "モンスタータイプ見出し（span.section-title）のdisabledクラスはisMonsterTypeFieldDisabled（useFilterLogic由来・storeのexclusionResultから導出）に配線される"
+given = "attributeStatesにcard-type_monster={enabled:false}を設定してFilterTabをmount（フィールド無効）、およびcard-type_monster={enabled:true}を設定してmount（フィールド有効）"
+expect_return_shape = "フィールド無効時: 見出しspanのclassにdisabledを含む。フィールド有効時: disabledを含まない"
+
+[[condition]]
+id = "filter-tab.monster-type-match-mode-button-disabled"
+source_lines = "tests/unit/components/FilterTab.test.ts:334,tests/unit/components/FilterTab.test.ts:345"
+target_function = "FilterTab template AND/OR切替ボタン :disabled binding"
+source = "tm TASK-506（設計: tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §2.1-1・§5.3(b)）"
+description = "モンスタータイプのAND/OR切替ボタン（button.chip-mode）のdisabledはisMonsterTypeFieldDisabled（useFilterLogic由来）に配線される"
+given = "attributeStatesにcard-type_monster={enabled:false}を設定してFilterTabをmount（フィールド無効）、および未登録（フィールド有効）"
+expect_return_shape = "フィールド無効時: ボタンにdisabled属性。フィールド有効時: disabled属性なし"
+
+[[condition]]
+id = "filter-tab.monster-type-chip-title-fallback-without-reason"
+source_lines = "tests/unit/components/FilterTab.test.ts:352"
+target_function = "FilterTab template モンスタータイプchip :title binding"
+source = "tm TASK-506（設計: tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §3.3(iii)・§5.3(b)）D2a"
+description = "フィールド無効かつcard-type_monster理由なしの状態で、無効化されたモンスタータイプchipのtooltip（title属性）はフォールバック文言「モンスターカードタイプが選択されていません」を表示する（tooltipが空にならない表示契約）"
+given = "attributeStatesにcard-type_monster={enabled:false}（disabledReasonなし）を設定してFilterTabをmount"
+expect_return_shape = "button.chip[data-type]のtitle属性='モンスターカードタイプが選択されていません'"
+
+[[condition]]
+id = "filter-tab.monster-type-chip-title-individual-reason-preferred"
+source_lines = "tests/unit/components/FilterTab.test.ts:366"
+target_function = "FilterTab template モンスタータイプchip :title binding"
+source = "tm TASK-506（設計: tmp/tasks/tm-506/design_filter-tab-usefilter-dedup.md §3.3(iii)・§5.3(b)）D2b"
+description = "個別monster-type理由とcard-type_monster理由が両方存在する場合、該当chipのtooltipは個別理由を優先表示する（hover対象チップ自身の理由を優先する表示方針）"
+given = "attributeStatesにmonster-type_fusion={enabled:false, disabledReason:'個別理由'}とcard-type_monster={enabled:false, disabledReason:'カードタイプ側理由'}を設定してFilterTabをmount"
+expect_return_shape = "button.chip[data-type='fusion']のtitle属性='個別理由'（カードタイプ側理由ではない）"
+
+# --- フィールド無効化の配線（属性/魔法/罠/種族chip） ---
+
+[[condition]]
+id = "filter-tab.field-disabled-wiring-disables-chips-with-reason"
+source_lines = "tests/unit/components/FilterTab.test.ts:389"
+target_function = "FilterTab template chip :disabled/:title binding（isFieldDisabled/getFieldDisabledReason呼び出し）"
+source = "src/components/search-filter/FilterTab.vue L31-32, L68-69, L81-82, L117-118, L145-146 と tm TASK-505"
+description = "属性・魔法タイプ・罠タイプ・種族の各chipのdisabledはisFieldDisabled(<フィールドID>)に、tooltipはgetFieldDisabledReason(<フィールドID>)に配線される。フィールドIDは各セクションが固定文字列（attribute/spell-type/trap-type/race）を渡す。無効時は該当セクションのchip全てがdisabled+理由titleになり、種族セクション見出し（span.section-title）のdisabledクラスも同じフィールドに配線される。有効時（fieldStates初期状態は全フィールドenabled）はdisabledなし・titleなし。なおstore経由ではfieldStatesが推論エンジンexclusionResultのcreateInitialResultで全フィールド事前登録されるため、useFilterLogic#isFieldDisabledのcardType推論フォールバックは実経路では到達せず、フィールド無効化はすべてfieldStates（エンジンのattributeToField規則または手動設定）経由で起こる"
+given = "fieldStatesにattribute/spell-type/trap-type/race={enabled:false, disabledReason:'<各フィールド理由>'}を設定してmount / fieldStates初期状態（全フィールドenabled）でmount"
+expect_return_shape = "無効設定: 各セクションのchip全てにdisabled属性とtitle=当該理由・種族見出しにdisabledクラス。初期状態: 全chip有効・titleなし"
+
+# --- レベル/リンク/Pスケール ---
+
+[[condition]]
+id = "filter-tab.level-type-tab-active-follows-store-level-type"
+source_lines = "tests/unit/components/FilterTab.test.ts:434"
+target_function = "FilterTab template レベルタイプタブ :class binding + wrapper class"
+source = "src/components/search-filter/FilterTab.vue L220, L225, L241, L257 と tm TASK-505"
+description = "レベル/ランク・リンク・Pスケールの3タブのactiveクラスはsearchFilters.levelTypeの値と一致するタブにのみ付く。セクションwrapperにはlevel-type-<levelType>クラスが動的に付く"
+given = "levelType='level' / 'link' の各状態でmount"
+expect_return_shape = "level: レベル/ランクタブにactive・wrapper classにlevel-type-level。link: リンクタブにactive・他2タブはactiveなし・wrapper classにlevel-type-link"
+
+[[condition]]
+id = "filter-tab.level-type-tab-disabled-wiring"
+source_lines = "tests/unit/components/FilterTab.test.ts:447"
+target_function = "FilterTab template レベルタイプタブ :disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L226-227, L242-243, L258-259 と tm TASK-505"
+description = "レベル/ランクタブとPスケールタブは対応フィールド（level-rank/p-scale）単独のisFieldDisabledで無効化され理由をtooltip表示する。リンクタブのみlink-valueとlink-markerの両方が無効な場合に無効化され、tooltipはlink-valueの理由を優先し無ければlink-markerの理由を表示する（||評価）"
+given = "fieldStatesにlevel-rank={enabled:false, disabledReason:'レベル理由'} / p-scale={enabled:false, disabledReason:'スケール理由'} / link-value={enabled:false, disabledReason:'リンク値理由'}+link-marker={enabled:false, disabledReason:'マーカー理由'} / link-markerのみ無効 の各状態でmount"
+expect_return_shape = "level-rank無効: レベル/ランクタブdisabled+title='レベル理由'。p-scale無効: Pスケールタブdisabled+title='スケール理由'。両link無効: リンクタブdisabled+title='リンク値理由'（link-marker理由ではない）。link-markerのみ無効: リンクタブはdisabledなし"
+
+[[condition]]
+id = "filter-tab.level-type-switches-number-panel"
+source_lines = "tests/unit/components/FilterTab.test.ts:479"
+target_function = "FilterTab template level-numbers/link-section v-if"
+source = "src/components/search-filter/FilterTab.vue L273, L303 と tm TASK-505"
+description = "数値パネルはlevelTypeで切替わる。levelType!=='link'（level/scale）では.level-numbers（0-13のchip）を描画し.link-sectionは描画しない。levelType==='link'では.link-section（リンク値1-6とマーカー）を描画し.level-numbersは描画しない"
+given = "levelType='level' / 'link' の各状態でmount"
+expect_return_shape = "level: .level-numbersが存在（0-13の14 chip）し.link-sectionは存在しない。link: .link-sectionが存在し.level-numbersは存在しない"
+
+[[condition]]
+id = "filter-tab.level-scale-number-chip-active-and-disabled-follow-level-type"
+source_lines = "tests/unit/components/FilterTab.test.ts:492"
+target_function = "FilterTab template レベル/スケール数字chip :class/:disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L275-299 と tm TASK-505"
+description = "レベル/スケール数字chip（0-13の同一行）はlevelTypeに応じて参照先を切替える: active判定はlevelType='level'でlevelValues、それ以外（scale）でscaleValues。disabledとtooltipもlevelType='level'でlevel-rankフィールド、scaleでp-scaleフィールドの状態に従う（他方のフィールド状態は影響しない）"
+given = "levelType='level'・levelValues=[4] / levelType='scale'・scaleValues=[4]・levelValues=[7] / levelType='level'+fieldStates level-rank無効 / levelType='scale'+fieldStates p-scale無効（level-rankは無効にしない）の各状態でmount"
+expect_return_shape = "level+levelValues=[4]: chip 4がactive。scale+scaleValues=[4]: chip 4がactive・chip 7はactiveなし（levelValuesは参照しない）。level+level-rank無効: 全chip disabled+title=レベル理由。scale+p-scale無効: 全chip disabled+title=スケール理由"
+
+[[condition]]
+id = "filter-tab.link-value-chip-active-and-disabled-wiring"
+source_lines = "tests/unit/components/FilterTab.test.ts:522"
+target_function = "FilterTab template リンク値chip :class/:disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L303-331 と tm TASK-505"
+description = "リンク値chip（1-6）はlinkValuesに含まれる値がactiveになる。disabledとtooltipはlink-valueフィールドの状態に配線される"
+given = "levelType='link'・linkValues=[2] でmount、およびfieldStates link-value={enabled:false, disabledReason:'リンク値理由'}を追加した状態でmount"
+expect_return_shape = "chip 2がactive・chip 3はactiveなし。link-value無効時: 全chip disabled+title='リンク値理由'"
+
+[[condition]]
+id = "filter-tab.link-marker-render-and-active-class"
+source_lines = "tests/unit/components/FilterTab.test.ts:535"
+target_function = "FilterTab template リンクマーカー span v-for :class"
+source = "src/components/search-filter/FilterTab.vue L333-341 と tm TASK-505"
+description = "リンクマーカーは8方位（7,8,9,4,6,1,2,3の順）をi_i_<pos>クラスのspanとして描画する（中心の5は描画しない）。activeクラスはisLinkMarkerActive(pos)（linkMarkers含有）に従う"
+given = "levelType='link'・linkMarkers=[1,4] でmount"
+expect_return_shape = "span.i_i_1とspan.i_i_4にactiveクラス。span.i_i_2はactiveなし。span.i_i_5は存在しない（8 span）"
+
+[[condition]]
+id = "filter-tab.link-marker-disabled-blocks-click"
+source_lines = "tests/unit/components/FilterTab.test.ts:547"
+target_function = "FilterTab template リンクマーカー click guard（!isFieldDisabled('link-marker')）"
+source = "src/components/search-filter/FilterTab.vue L334, L339-340 と tm TASK-505"
+description = "link-markerフィールド無効時、マーカー枠（.icon_img_set）にdisabledクラスと各spanに理由titleが付き、spanクリックではtoggle-link-marker emitを発生させない（spanはbuttonでないためdisabled属性に代わる明示ガード）"
+given = "levelType='link'・fieldStates link-marker={enabled:false, disabledReason:'マーカー理由'}でmountし、span.i_i_2をclick"
+expect_return_shape = ".icon_img_setにdisabledクラス。spanのtitle='マーカー理由'。toggle-link-marker emitは発生しない"
+
+[[condition]]
+id = "filter-tab.link-marker-mode-button-label-and-state"
+source_lines = "tests/unit/components/FilterTab.test.ts:559"
+target_function = "FilterTab template リンクマーカーAND/ORボタン :class/:disabled/テキスト"
+source = "src/components/search-filter/FilterTab.vue L342-350 と tm TASK-505"
+description = "リンクマーカーのAND/ORボタンのラベルはlinkMarkerMatchMode==='and'で'AND'（active付き）、'or'で'OR'（activeなし）。disabledはlink-markerフィールドの状態に配線される"
+given = "levelType='link'・linkMarkerMatchMode='or'でmount / 'and'でmount / fieldStates link-marker無効を追加"
+expect_return_shape = "'or': テキスト='OR'・activeなし。'and': テキスト='AND'・activeクラス付き。無効時: disabled属性"
+
+# --- ATK/DEF ---
+
+[[condition]]
+id = "filter-tab.stat-tab-switch-local-state"
+source_lines = "tests/unit/components/FilterTab.test.ts:579"
+target_function = "FilterTab activeStatTab ref + template stat-tab/stat-controls"
+source = "src/components/search-filter/FilterTab.vue L360, L365, L381, L517 と tm TASK-505"
+description = "ATK/DEFタブの選択状態（activeStatTab）はコンポーネントローカルのrefで初期値'atk'。タブclickで切替わり（emitは発生しない）、wrapperのstat-type-<tab>クラスと表示中のstatフィルタが連動する"
+given = "初期mountでATKタブのactiveとstat-type-atkクラスを確認し、DEFタブをclick"
+expect_return_shape = "初期: ATKタブにactive・wrapper classにstat-type-atk。DEF click後: DEFタブにactive・wrapper classにstat-type-def・emitは一切発生しない"
+
+[[condition]]
+id = "filter-tab.stat-tab-disabled-wiring"
+source_lines = "tests/unit/components/FilterTab.test.ts:604"
+target_function = "FilterTab template stat-tab :disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L366-367, L382-383 と tm TASK-505"
+description = "ATK/DEF各タブのdisabledは対応フィールド（atk/def）のisFieldDisabledに、tooltipはgetFieldDisabledReasonに配線される"
+given = "fieldStatesにatk={enabled:false, disabledReason:'ATK理由'}のみ設定してmount"
+expect_return_shape = "ATKタブにdisabled属性とtitle='ATK理由'。DEFタブはdisabled属性なし"
+
+[[condition]]
+id = "filter-tab.stat-toggle-active-follows-active-stat"
+source_lines = "tests/unit/components/FilterTab.test.ts:614"
+target_function = "FilterTab template 完全一致/?トグル :class binding"
+source = "src/components/search-filter/FilterTab.vue L401, L410 と tm TASK-505"
+description = "完全一致トグル（exact）と?トグル（unknown）のactiveクラスは表示中タブ（activeStatTab）のstatフィルタ（getStatFilter(activeStatTab)）のexact/unknownフラグに従う。タブ切替で表示中の値も切替わる"
+given = "atk={exact:true,unknown:false}・def={exact:false,unknown:true}でmountし、完全一致/?のactiveを確認後DEFタブへ切替"
+expect_return_shape = "ATK表示中: 完全一致にactive・?はactiveなし。DEF切替後: ?にactive・完全一致はactiveなし"
+
+[[condition]]
+id = "filter-tab.stat-toggle-disabled-wiring"
+source_lines = "tests/unit/components/FilterTab.test.ts:626"
+target_function = "FilterTab template 完全一致/?トグル :disabled/:title binding"
+source = "src/components/search-filter/FilterTab.vue L402-403, L411-412 と tm TASK-505"
+description = "完全一致/?トグルのdisabledは表示中タブのstatフィールド（isFieldDisabled(activeStatTab)）に、tooltipはgetFieldDisabledReason(activeStatTab)に配線される"
+given = "fieldStatesにatk={enabled:false, disabledReason:'ATK理由'}を設定してmount"
+expect_return_shape = "完全一致・?の両トグルにdisabled属性とtitle='ATK理由'"
+
+[[condition]]
+id = "filter-tab.stat-input-value-binding-and-disabled-branches"
+source_lines = "tests/unit/components/FilterTab.test.ts:638"
+target_function = "FilterTab template Min/Max入力 :value/:disabled binding"
+source = "src/components/search-filter/FilterTab.vue L419-435 と tm TASK-505"
+description = "Min/Max入力の値は表示中タブのstatフィルタ（min/max）で、undefinedは空文字列で表示する。Min入力のdisabledは「フィールド無効 or unknown」、Max入力のdisabledは「フィールド無効 or unknown or exact」で分岐する（完全一致時はMax入力を排他する）"
+given = "atk={exact:false,unknown:false,min:100,max:2000} / atk={exact:true,unknown:false,min:100} / def={exact:false,unknown:true}（DEFタブへ切替） / fieldStates atk無効 の各状態でmount"
+expect_return_shape = "通常: Min値'100'・Max値'2000'・両方入力可。exact時: Max入力がdisabled（Minは可）。unknown時: Min/Max両方disabled。フィールド無効時: 両方disabled+title=理由"
+
+# --- 発売日 ---
+
+[[condition]]
+id = "filter-tab.release-date-vmodel-binds-store"
+source_lines = "tests/unit/components/FilterTab.test.ts:675"
+target_function = "FilterTab template 発売日input v-model"
+source = "src/components/search-filter/FilterTab.vue L445, L447 と tm TASK-505"
+description = "発売日from/toの2つのdate inputはsearchStore.searchFilters.releaseDate.from/toへv-model直結する（emitを介さないstore書き込み）"
+given = "mountし、from inputへ'2020-01-01'・to inputへ'2021-06-30'をinputイベントで設定"
+expect_return_shape = "searchStore.searchFilters.releaseDate={from:'2020-01-01', to:'2021-06-30'}"
+
+[[condition]]
+id = "filter-tab.release-date-bounds-static-min-and-computed-max"
+source_lines = "tests/unit/components/FilterTab.test.ts:690"
+target_function = "FilterTab maxDate computed + template input min/:max"
+source = "src/components/search-filter/FilterTab.vue L445, L447, L519-523 と tm TASK-505"
+description = "発売日inputのmin属性は静的な'1999-01-01'固定。max属性はmaxDate computed（システム日付の翌年12月31日）による"
+given = "システム時刻を2026年に固定（fake Date）してmount"
+expect_return_shape = "from/to両inputともmin='1999-01-01'・max='2027-12-31'（2026+1年の年末）"
+
+# --- 選択済みchip（props由来の表示） ---
+
+[[condition]]
+id = "filter-tab.selected-chip-labels-echo-props"
+source_lines = "tests/unit/components/FilterTab.test.ts:703"
+target_function = "FilterTab template selected-chip-inline v-for/v-if/v-show"
+source = "src/components/search-filter/FilterTab.vue L18-22, L55-59, L104-108, L133-137, L158-162, L232-269, L372-392 と tm TASK-505"
+description = "各セクションの選択済みchip（span.selected-chip-inline）はpropsのselectedXxxChips配列（10種）の要素をそのままラベルとして表示する。配列が空の場合はchipを描画しない（タブ見出し内はv-show・セクション見出し内はv-if）"
+given = "10種のselectedXxxChips propsに代表値を設定してmount / 全て空配列でmount"
+expect_return_shape = "設定時: 各ラベルのspan.selected-chip-inlineが描画される（例: 属性'光'/'闇'・モンスタータイプ'N-融合'・ATK'ATK=100'等）。空時: span.selected-chip-inlineは1件も存在しない"
+
+# --- emit透過ラッパー15関数（引数形状別に8条件へ集約） ---
+
+[[condition]]
+id = "filter-tab.emit-select-card-type-relays-tab"
+source_lines = "tests/unit/components/FilterTab.test.ts:743,tests/unit/components/FilterTab.test.ts:749,tests/unit/components/FilterTab.test.ts:755"
+target_function = "FilterTab selectCardType wrapper"
+source = "src/components/search-filter/FilterTab.vue L534-536 と tm TASK-505"
+description = "カードタイプタブclickはselect-card-typeイベントにタブ対応のcardType（monster/spell/trap）を渡してemitする"
+given = "モンスター/魔法/罠の各タブボタンをclick"
+expect_return_shape = "各clickで'select-card-type'イベントが発生し、payload=[クリックしたタブのcardType]"
+
+[[condition]]
+id = "filter-tab.emit-value-chip-click-relays-chip-value"
+source_lines = "tests/unit/components/FilterTab.test.ts:762,tests/unit/components/FilterTab.test.ts:768,tests/unit/components/FilterTab.test.ts:774,tests/unit/components/FilterTab.test.ts:780,tests/unit/components/FilterTab.test.ts:786"
+target_function = "FilterTab toggleAttribute/toggleSpellType/toggleTrapType/toggleRace/cycleMonsterTypeState wrapper"
+source = "src/components/search-filter/FilterTab.vue L538-556 と tm TASK-505"
+description = "値を持つchip（属性/魔法タイプ/罠タイプ/種族/モンスタータイプ）のclickは各セクション対応のイベント（toggle-attribute/toggle-spell-type/toggle-trap-type/toggle-race/cycle-monster-type-state）にクリックしたchipの値を渡してemitする"
+given = "属性の'光'・魔法タイプの'速攻'・罠タイプの'カウンター'・種族の'アンデット族'・モンスタータイプの融合chipをそれぞれclick"
+expect_return_shape = "clickごとに対応イベントが発生し、payload=[chipの内部値]（light/quick/counter/zombie/fusion）"
+
+[[condition]]
+id = "filter-tab.emit-match-mode-toggles-have-no-args"
+source_lines = "tests/unit/components/FilterTab.test.ts:793,tests/unit/components/FilterTab.test.ts:799"
+target_function = "FilterTab toggleMonsterTypeMatchMode/toggleLinkMarkerMatchMode wrapper"
+source = "src/components/search-filter/FilterTab.vue L558-560, L578-580 と tm TASK-505"
+description = "AND/OR切替ボタン（モンスタータイプ・リンクマーカー）のclickは対応イベント（toggle-monster-type-match-mode/toggle-link-marker-match-mode）を引数なしでemitする（モード値の切替は親が行う）"
+given = "モンスタータイプのAND/ORボタン、およびlevelType='link'でリンクマーカーのAND/ORボタンをclick"
+expect_return_shape = "各clickで対応イベントが発生し、payload=[]（引数なし）"
+
+[[condition]]
+id = "filter-tab.emit-set-level-type-relays-choice"
+source_lines = "tests/unit/components/FilterTab.test.ts:807,tests/unit/components/FilterTab.test.ts:813,tests/unit/components/FilterTab.test.ts:819"
+target_function = "FilterTab setLevelType wrapper"
+source = "src/components/search-filter/FilterTab.vue L562-564 と tm TASK-505"
+description = "レベル/ランク・リンク・Pスケールタブのclickはset-level-typeイベントにタブ対応のlevelType（level/link/scale）を渡してemitする"
+given = "レベル/ランク・リンク・Pスケールの各タブボタンをclick"
+expect_return_shape = "各clickで'set-level-type'イベントが発生し、payload=[クリックしたタブのlevelType]"
+
+[[condition]]
+id = "filter-tab.emit-number-chip-click-relays-number"
+source_lines = "tests/unit/components/FilterTab.test.ts:826,tests/unit/components/FilterTab.test.ts:832"
+target_function = "FilterTab toggleLevelValue/toggleLinkValue wrapper"
+source = "src/components/search-filter/FilterTab.vue L566-572 と tm TASK-505"
+description = "数字chipのclickは表示中パネル対応のイベント（levelType!=='link'でtoggle-level-value、linkでtoggle-link-value）にクリックした数値を渡してemitする"
+given = "levelType='level'で数字4のchipをclick、levelType='link'で数字3のchipをclick"
+expect_return_shape = "level: 'toggle-level-value' payload=[4]。link: 'toggle-link-value' payload=[3]"
+
+[[condition]]
+id = "filter-tab.emit-link-marker-click-relays-position"
+source_lines = "tests/unit/components/FilterTab.test.ts:840"
+target_function = "FilterTab toggleLinkMarker wrapper"
+source = "src/components/search-filter/FilterTab.vue L574-576 と tm TASK-505"
+description = "リンクマーカーspanのclick（link-markerフィールド有効時）はtoggle-link-markerイベントにマーカー位置（pos）を渡してemitする"
+given = "levelType='link'でspan.i_i_2をclick"
+expect_return_shape = "'toggle-link-marker'イベントが発生し、payload=[2]"
+
+[[condition]]
+id = "filter-tab.emit-stat-toggles-relay-active-stat"
+source_lines = "tests/unit/components/FilterTab.test.ts:848,tests/unit/components/FilterTab.test.ts:854,tests/unit/components/FilterTab.test.ts:860"
+target_function = "FilterTab toggleStatExact/toggleStatUnknown wrapper"
+source = "src/components/search-filter/FilterTab.vue L582-588 と tm TASK-505"
+description = "完全一致/?トグルのclickは対応イベント（toggle-stat-exact/toggle-stat-unknown）に表示中タブ（activeStatTab）のstat値（atk/def）を渡してemitする"
+given = "ATK表示中に完全一致/?をclick、DEFタブへ切替後に完全一致をclick"
+expect_return_shape = "ATK中: payload=['atk']。DEF切替後: payload=['def']"
+
+[[condition]]
+id = "filter-tab.emit-validate-stat-input-relays-event-stat-field"
+source_lines = "tests/unit/components/FilterTab.test.ts:870,tests/unit/components/FilterTab.test.ts:878"
+target_function = "FilterTab validateStatInput wrapper"
+source = "src/components/search-filter/FilterTab.vue L590-592 と tm TASK-505"
+description = "Min/Max入力のinputイベントはvalidate-stat-inputイベントに[入力Event, 表示中タブのstat, 入力フィールド（min/max）]を渡してemitする（バリデーション本体は親が行う）"
+given = "ATK表示中のMin入力とMax入力へそれぞれinputイベントを発生させる"
+expect_return_shape = "Min: payload=[Event, 'atk', 'min']。Max: payload=[Event, 'atk', 'max']（第1引数はDOM Eventインスタンス）"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "読み取り系8関数の内部挙動条件（isFieldDisabled・getMonsterTypeDisabledReason・getMonsterTypeClass等の分岐本体）"
+source = "tm TASK-506（設計doc §5.1「同一挙動の二重条件書を避ける」）"
+reason = "FilterTabはこれらをuseFilterLogicから直接呼ぶ構成のため、内部挙動はuse-filter-logic条件書（38条件）が保証する。本書はtemplate/scriptからの呼び出し配線（引数・表示結果）のみ条件化"
+decided_at = "2026-10-28"
+decided_by = "claude"
+
+[[excluded]]
+item = "選択済みchipラベルの計算本体（selectedAttributeChips等10 computed・formatStatLabel/formatNumberRange等の整形）"
+source = "src/composables/search-filter/useFilterLogic.ts L143-198 と tm TASK-505"
+reason = "use-filter-logic条件書（selected_label_chips/selected_number_chips/selected_stat_chips）とfilter-chip-formatter条件書の対象。FilterTabはpropsとして受け取った配列を描画するのみで、その表示契約はselected-chip-labels-echo-propsが検証する"
+decided_at = "2026-10-30"
+decided_by = "claude"
+
+[[excluded]]
+item = "属性/魔法/罠アイコンURL・ラベル変換の本体（getAttributeIconUrl/getSpellIconUrl/getTrapIconUrl・getAttributeLabel/getSpellTypeLabel/getTrapTypeLabel・mappingManager・静的マッピング定数）"
+source = "src/api/image-utils.ts・src/utils/filter-label.ts・src/utils/mapping-manager.ts・src/types/card-maps.ts と tm TASK-505"
+reason = "変換本体は各モジュールの責務（FilterTabは呼び出しのみ）。本書は表示結果（detail-chip-active-follows-selected-values・race/monster-typeラベル条件）として観測する"
+decided_at = "2026-10-30"
+decided_by = "claude"
+
+[[excluded]]
+item = "モンスタータイプAND/OR・リンクマーカーAND/ORのモード値切替ロジック（and↔orの反転）と、チップ選択値のトグル・サイクル・クリア等のフィルタ状態変更本体"
+source = "src/composables/search-filter/useFilterLogic.ts toggleMonsterTypeMatchMode/toggleLinkMarkerMatchMode等のtoggle系・selectCardType L293-431 と tm TASK-505"
+reason = "emitの先（親SearchFilterDialog→useFilterLogic）で行う処理でFilterTabのスコープ外。use-filter-logic条件書が保証する。本書はemit契約とモード値の表示（ラベル/active）のみ条件化"
+decided_at = "2026-10-30"
+decided_by = "claude"
+
+[[excluded]]
+item = "ATK/DEF入力のバリデーション本体（数字以外の除去・exact時のmin/max同期・空値のundefined化）"
+source = "src/composables/search-filter/useFilterLogic.ts validateStatInput L260-288 と tm TASK-505"
+reason = "FilterTabはvalidate-stat-inputイベントを親へ透過するのみ（emit-validate-stat-input-relays-event-stat-fieldが検証）。バリデーション本体はuse-filter-logic条件書の対象"
+decided_at = "2026-10-30"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L615-1794。チップ・タブ・tooltipのスタイル）"
+source = "src/components/search-filter/FilterTab.vue L615-1794 と tm TASK-505"
+reason = "静的スタイル定義でロジック分岐なし（search-filter-dialog条件書のexcludedと同根拠）。クラス付与の分岐は各条件で観測する"
+decided_at = "2026-10-30"
+decided_by = "claude"
+
+[[excluded]]
+item = "pageLanguage propsからuseFilterLogicへ渡すcomputed化（computed(() => props.pageLanguage)）と3タブdisabled propsの受け渡し経路"
+source = "src/components/search-filter/FilterTab.vue L484-495, L466-482 と tm TASK-505"
+reason = "受け渡しのみの部分は分岐なし（§8「書かない」）。表示への影響はrace/monster-typeラベル条件と言語に依らないタブ条件・propsのdisabled条件がそれぞれ観測する"
+decided_at = "2026-10-30"
+decided_by = "claude"
