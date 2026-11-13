@@ -40,7 +40,12 @@ describe('統合テスト: LoadDialog ↔ deckStore', () => {
         Object.keys(store_data).forEach(key => delete store_data[key]);
       }),
     };
-    global.localStorage = localStorageMock as any;
+    // happy-dom 21 では localStorage が getter-only のため defineProperty で差し替える
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
   });
 
   describe('deckStore の初期化', () => {

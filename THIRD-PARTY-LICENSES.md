@@ -28,13 +28,6 @@ This project uses the following open source libraries:
 
 ---
 
-## jsdom
-
-**License:** MIT
-**Source:** https://github.com/jsdom/jsdom
-
----
-
 ## linkedom
 
 **License:** ISC
@@ -56,14 +49,6 @@ This project uses the following open source libraries:
 **License:** MIT
 **Author:** Ryan Day <soldair@gmail.com>
 **Source:** https://github.com/soldair/node-qrcode
-
----
-
-## sass-loader
-
-**License:** MIT
-**Author:** J. Tangelder
-**Source:** https://github.com/webpack/sass-loader
 
 ---
 

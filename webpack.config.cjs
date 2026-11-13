@@ -97,8 +97,11 @@ module.exports = (env, argv) => {
             {
               loader: 'sass-loader',
               options: {
-                // Dart Sass の新しい JavaScript API を使用（legacy JS API deprecation を回避）
-                implementation: require.resolve('sass'),
+                // Dart Sass の新しい JavaScript API を使用（legacy JS API deprecation を回避）。
+                // sass-loader 17 は文字列指定を dynamic import() で解決するため CJS entry の
+                // namespace から info が取れず "Unknown Sass implementation" になる。
+                // モジュールオブジェクトを直接渡すことで回避する
+                implementation: require('sass'),
               },
             },
           ],

@@ -66,7 +66,12 @@ describe('E2E: デッキコード発行フロー（PR #82）', () => {
         Object.keys(store).forEach((key) => delete store[key]);
       }),
     };
-    global.localStorage = localStorageMock as any;
+    // happy-dom 21 では localStorage が getter-only のため defineProperty で差し替える
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {

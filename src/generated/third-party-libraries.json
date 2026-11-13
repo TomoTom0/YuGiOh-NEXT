@@ -15,10 +15,6 @@
     "copyright": "(c) TJ Holowaychuk"
   },
   {
-    "name": "jsdom",
-    "license": "MIT"
-  },
-  {
     "name": "linkedom",
     "license": "ISC",
     "copyright": "(c) Andrea Giammarchi"
@@ -32,11 +28,6 @@
     "name": "qrcode",
     "license": "MIT",
     "copyright": "(c) Ryan Day"
-  },
-  {
-    "name": "sass-loader",
-    "license": "MIT",
-    "copyright": "(c) J. Tangelder"
   },
   {
     "name": "sass",
