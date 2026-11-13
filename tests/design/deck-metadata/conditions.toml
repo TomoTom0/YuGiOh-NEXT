@@ -1,0 +1,344 @@
+# 検証対象: src/components/DeckMetadata.vue
+#
+# 経緯:
+# - TASK-532（Tier C第7号・TASK-331展開）。DeckMetadata系1/4ファイル目の親コンポーネント
+#   （396行）。既存tests/unit/components/DeckMetadata.test.ts（7it・html長assertのみの
+#   実装非検証テスト）を全面展開
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm
+#
+# 粒度方針（Tier C・filter-tab条件書と同一）:
+# - 子コンポーネントへのprops配線は表示契約として条件化する。配列の要素列挙は
+#   テスト側fixtureで持つ
+# - 子コンポーネントからのイベントハンドリング（更新関数）はstoreへの書き込み結果で検証
+# - UI操作はDOMイベント経由で検証する（vm内部状態の直接参照はしない）
+#
+# 線引き（隣接条件書との）:
+# - 子コンポーネント5種（DeckMetadataHeader 806行/TagDialog 975行/CategoryDialog 517行/
+#   DeckMetadataTags 177行/DeckMetadataDescription 104行）の内部挙動は本書の対象外。
+#   CategoryDialogはcategory-dialog条件書（TASK-488）が保証。Header/TagDialog/Tags/
+#   DescriptionはTier C第8号以降の対象。本書は親DeckMetadataが持つ配線
+#   （props値・イベント→store書き込み）のみ
+# - deck-edit storeの内部挙動（updateCategoryMatchingのマッチング本体・deckInfo管理）は
+#   store/use-category-matcher側の対象。本書は呼び出し契約（呼ばれたか/呼ばれないか）
+# - deck-metadata-loader/getDeckMetadataのフォールバック・キャッシュ・stale判定本体・
+#   language-detectorの検出ロジック・type-guards（filterValidCategoryIds等）の関数本体は
+#   各モジュールの既存条件書が保証。本書はmock経由の呼び出し契約（引数・結果反映）のみ
+# - allDeckCardsが参照するunified-cache-db（reconstructCardInfo）の選択ロジックは
+#   unified-cache-db条件書の対象。本書は重複cid除去とnullスキップの収集契約のみ
+
+[meta]
+feature = "deck-metadata"
+source_file = "src/components/DeckMetadata.vue"
+verified = true
+verified_at = "2026-11-13"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/DeckMetadata.test.ts"
+source_hash = "934c4dcf0bdf678b764329ee230c8a5bb942e5ec"
+note = "TASK-532（Tier C第7号）で全面条件化。28条件=template配線5（子props初期値）+onMounted 5（メタデータロードとロケール更新）+watch同期4+更新関数12（toggle/select×4/comment/categories/tags/remove×4）+ダイアログ表示状態2。子コンポーネントは5種ともカスタムstub（propsをdata属性へ描画し操作ボタンでemit）で配線のみ検証し、内部挙動は各子の条件書（category-dialog既存・他は第8号以降）へ委譲。pinia実物・deck-metadata-loader/language-detector/unified-cache-dbはmodule mock"
+
+# --- 初期配線（template・子propsへの反映） ---
+
+[[condition]]
+id = "deck-metadata.header-props-initialized-from-store-with-defaults"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:284"
+target_function = "DeckMetadata template DeckMetadataHeader :is-public/:deck-type/:deck-style binding + localIsPublic/localDeckType/localDeckStyle初期化"
+source = "src/components/DeckMetadata.vue L4-7, L79-85 と tm TASK-532"
+description = "DeckMetadataHeaderへ渡す公開状態・デッキタイプ・デッキスタイルはmount時にstore.deckInfoの値から初期化し、未設定（undefined）の場合はデフォルト値（false/'-1'/'-1'）へフォールバックする"
+given = "store.deckInfo.isPublic/deckType/deckStyleがすべて未設定でmount、およびisPublic=true・deckType='3'・deckStyle='1'を設定してmount"
+expect_return_shape = "未設定: header stubのis-public='false'・deck-type='-1'・deck-style='-1'（undefinedは渡らない）。設定済み: 'true'/'3'/'1'がそのまま渡る"
+
+[[condition]]
+id = "deck-metadata.model-values-initialized-as-store-copies"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:303"
+target_function = "DeckMetadata template TagDialog/CategoryDialog/DeckMetadataTags/DeckMetadataDescription :model-value系 binding + localCategory/localTags/localComment初期化"
+source = "src/components/DeckMetadata.vue L16-17, L25-26, L36-38, L46-47, L86-88 と tm TASK-532"
+description = "タグ・カテゴリ・コメントの各子コンポーネントの初期値（localTags/localCategory/localComment）はmount時にstore.deckInfoの該当フィールドからコピーして供給する"
+given = "store.deckInfo.tags=['8']・category=['cat-kaos']・comment='初コメント'でmount"
+expect_return_shape = "TagDialog stub model-value='8'・CategoryDialog stub model-value='cat-kaos'・Tags stub model-tags='8'/model-categories='cat-kaos'・Description stub model-value='初コメント'。子が受領するtags/category配列はstore配列と同一内容だが別参照（コピー）"
+
+[[condition]]
+id = "deck-metadata.tag-list-derived-from-loaded-tag-map"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:332"
+target_function = "DeckMetadata tagList computed + template TagDialog :tags binding"
+source = "src/components/DeckMetadata.vue L19, L74-76 と tm TASK-532"
+description = "TagDialogへ渡すタグ一覧（tagList）はonMountedでロードしたtagsのRecord（ID→ラベル）を{value,label}配列へ変換したもの"
+given = "getDeckMetadataがtags={'8':'リンク','108':'公式紹介デッキ'}を返す状態でmountしてロード完了"
+expect_return_shape = "TagDialog stub tags='8=リンク,108=公式紹介デッキ'（value=label形式の配列）"
+
+[[condition]]
+id = "deck-metadata.deck-card-refs-concatenate-all-deck-sections"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:341"
+target_function = "DeckMetadata allDeckCardRefs computed + template CategoryDialog :deck-card-refs binding"
+source = "src/components/DeckMetadata.vue L30, L95-101 と tm TASK-532"
+description = "CategoryDialogへ渡すデッキ内全カード参照（allDeckCardRefs）はmain・extra・sideの3デッキをこの順で連結したもの"
+given = "store.deckInfo.mainDeck=[cid m1,m2]・extraDeck=[cid e1]・sideDeck=[cid s1]でmount"
+expect_return_shape = "CategoryDialog stub deck-card-refs='m1,m2,e1,s1'（main→extra→sideの連結順）"
+
+[[condition]]
+id = "deck-metadata.deck-cards-dedupe-cids-and-skip-missing-cards"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:351"
+target_function = "DeckMetadata allDeckCards computed + template TagDialog/CategoryDialog :deck-cards binding"
+source = "src/components/DeckMetadata.vue L20, L29, L104-125 と tm TASK-532"
+description = "TagDialog/CategoryDialogへ渡すカード情報（allDeckCards）は全デッキのcidを重複除去してCardInfoを収集したもので、UnifiedCacheDBに存在しないcid（取得結果がnull）は結果へ含めない"
+given = "mainDeck=[cid c1,c1,c2]・extraDeck=[cid c3]で、reconstructCardInfoがc1/c3はCardInfoを返しc2はundefined（→null）を返す状態でmount"
+expect_return_shape = "TagDialog/CategoryDialog両stubのdeck-cards='c1,c3'（c1の重複は1件・c2は不在）"
+
+# --- onMounted: メタデータロード ---
+
+[[condition]]
+id = "deck-metadata.mount-loads-metadata-and-builds-category-label-map"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:367"
+target_function = "DeckMetadata onMounted"
+source = "src/components/DeckMetadata.vue L128-139 と tm TASK-532"
+description = "mount時にdetectLanguage(document)で検出した言語でgetDeckMetadataを呼び、categories/tagsをローカル状態へ設定し、categoriesからvalue→labelのcategoryLabelMapを構築してdeckStore.categoryLabelMapへ設定する"
+given = "detectLanguage='ja'・getDeckMetadata('ja')がcategories=[cat-kaos/cat-dragon]・tags={'8':'リンク','108':'公式紹介デッキ'}を返す状態でmount"
+expect_return_shape = "detectLanguageがdocument引数で・getDeckMetadataが'ja'引数で呼ばれ、Tags stub tags='8,108'/categories='cat-kaos,cat-dragon'が描画され、CategoryDialog stub categories='cat-kaos,cat-dragon'を受領し、deckStore.categoryLabelMap={'cat-kaos':'カオス','cat-dragon':'ドラゴン'}"
+
+[[condition]]
+id = "deck-metadata.mount-non-ja-stale-refreshes-localized-metadata"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:387"
+target_function = "DeckMetadata onMounted ロケール更新分岐"
+source = "src/components/DeckMetadata.vue L142-153 と tm TASK-532"
+description = "検出言語が非jaかつisDeckMetadataStaleがtrueの場合、updateDeckMetadata('ocg', 言語)でローカライズ版を取得し、categories/tagsとdeckStore.categoryLabelMapをローカライズ版へ更新する"
+given = "detectLanguage='en'・isDeckMetadataStale('en')=true・updateDeckMetadata('ocg','en')がcategories=[cat-kaos(en)]・tags={'8':'Link'}を返す状態でmount"
+expect_return_shape = "detectLanguageがdocument引数で・初回ロードgetDeckMetadataが'en'引数で呼ばれ、updateDeckMetadataが('ocg','en')引数で呼ばれ、Tags stub tags='8'/categories='cat-kaos'・TagDialog stub tags='8=Link'・CategoryDialog stub categories='cat-kaos'へ更新され、deckStore.categoryLabelMap={'cat-kaos':'Chaos'}"
+
+[[condition]]
+id = "deck-metadata.mount-ja-never-refreshes-metadata"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:407"
+target_function = "DeckMetadata onMounted ロケール更新分岐"
+source = "src/components/DeckMetadata.vue L142 と tm TASK-532"
+description = "検出言語がjaの場合はisDeckMetadataStaleもupdateDeckMetadataも呼ばない（jaはバンドル済み初期JSONが正であり更新不要）"
+given = "detectLanguage='ja'でmountしてロード完了"
+expect_return_shape = "isDeckMetadataStale・updateDeckMetadataとも呼ばれず、categories/tagsはgetDeckMetadataの結果のまま"
+
+[[condition]]
+id = "deck-metadata.mount-non-ja-fresh-skips-refresh"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:419"
+target_function = "DeckMetadata onMounted ロケール更新分岐"
+source = "src/components/DeckMetadata.vue L142 と tm TASK-532"
+description = "検出言語が非jaでもisDeckMetadataStaleがfalse（24時間以内に取得済み）の場合はupdateDeckMetadataを呼ばない"
+given = "detectLanguage='en'・isDeckMetadataStale('en')=falseでmountしてロード完了"
+expect_return_shape = "updateDeckMetadataは呼ばれず、categories/tagsはgetDeckMetadataの初期ロード結果のまま"
+
+[[condition]]
+id = "deck-metadata.mount-refresh-failure-keeps-loaded-metadata"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:433"
+target_function = "DeckMetadata onMounted ロケール更新のcatch"
+source = "src/components/DeckMetadata.vue L143-154 と tm TASK-532"
+description = "updateDeckMetadataがrejectした場合はconsole.errorを記録してクラッシュせず、categories/tags/categoryLabelMapは初期ロード済みの値を維持する"
+given = "detectLanguage='en'・isDeckMetadataStale('en')=true・updateDeckMetadataがrejectする状態でmount"
+expect_return_shape = "console.errorが呼ばれ、Tags stub categories='cat-kaos,cat-dragon'/tags='8,108'・TagDialog stub tags='8=リンク,108=公式紹介デッキ'はjaロード時の値のまま。テスト自体は例外で失敗しない"
+
+# --- store→ローカル同期（watch） ---
+
+[[condition]]
+id = "deck-metadata.watch-syncs-scalar-fields-with-defaults"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:457"
+target_function = "DeckMetadata watch deckStore.deckInfo（スカラー系）"
+source = "src/components/DeckMetadata.vue L159-162, L188-189 と tm TASK-532"
+description = "store.deckInfoの変更（deep watch）でlocalIsPublic/localDeckType/localDeckStyle/localCommentをstore値へ再同期する。undefinedへ変更した場合は??のデフォルト値へ戻す"
+given = "mountしてロード完了後、deckInfo.isPublic=true・deckType='2'・deckStyle='1'・comment='更新コメント'を設定、さらにisPublicをundefinedへ戻す"
+expect_return_shape = "設定時: header stub is-public='true'・deck-type='2'・deck-style='1'・Description stub model-value='更新コメント'。全スカラーをundefinedへ戻した後: is-public='false'・deck-type='-1'・deck-style='-1'・model-value=''（??のデフォルトへ復帰）"
+
+[[condition]]
+id = "deck-metadata.watch-filters-category-ids-when-categories-loaded"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:486"
+target_function = "DeckMetadata watch deckStore.deckInfo（カテゴリフィルタ分岐）"
+source = "src/components/DeckMetadata.vue L166-175 と src/types/deck-metadata.ts filterValidCategoryIds と tm TASK-532"
+description = "categoriesがロード済み（length>0）の状態でstore.deckInfo.categoryが変わった場合、filterValidCategoryIdsでロード済みcategoriesに存在しないIDを除外してlocalCategoryへ設定する"
+given = "categories=[cat-kaos,cat-dragon]をロードした状態で、deckInfo.category=['cat-kaos','cat-unknown']を設定"
+expect_return_shape = "Tags stub model-categories='cat-kaos'・CategoryDialog stub model-value='cat-kaos'（cat-unknownは除外）"
+
+[[condition]]
+id = "deck-metadata.watch-filters-tag-ids-when-tags-loaded"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:499"
+target_function = "DeckMetadata watch deckStore.deckInfo（タグフィルタ分岐）"
+source = "src/components/DeckMetadata.vue L177-186 と src/types/deck-metadata.ts filterValidTagIds と tm TASK-532"
+description = "tagsがロード済み（キー数>0）の状態でstore.deckInfo.tagsが変わった場合、filterValidTagIdsでロード済みtagsに存在しないIDを除外してlocalTagsへ設定する"
+given = "tags={'8':'リンク','108':'公式紹介デッキ'}をロードした状態で、deckInfo.tags=['8','tag-unknown']を設定"
+expect_return_shape = "Tags stub model-tags='8'・TagDialog stub model-value='8'（tag-unknownは除外）"
+
+[[condition]]
+id = "deck-metadata.watch-keeps-unknown-ids-before-metadata-loaded"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:510"
+target_function = "DeckMetadata watch deckStore.deckInfo（未ロード時フィルタスキップ分岐）"
+source = "src/components/DeckMetadata.vue L166, L172-175, L177, L183-186 と tm TASK-532"
+description = "categories/tagsがまだロードされていない（空）状態でstore.deckInfo.category/tagsが変わった場合、フィルタリングせずそのままのID列をlocalへ設定する（ロード前のstore値を欠落させない）"
+given = "getDeckMetadataがcategories=[]・tags={}を返す状態でmount（ロード済みだが空）し、deckInfo.category=['cat-kaos','cat-unknown']・tags=['8','tag-unknown']を設定"
+expect_return_shape = "Tags stub model-categories='cat-kaos,cat-unknown'・model-tags='8,tag-unknown'（フィルタされない）"
+
+# --- 更新関数（子イベント→store書き込み） ---
+
+[[condition]]
+id = "deck-metadata.toggle-public-inverts-value-and-writes-store"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:526"
+target_function = "DeckMetadata togglePublicStatus"
+source = "src/components/DeckMetadata.vue L8, L192-195 と tm TASK-532"
+description = "DeckMetadataHeaderのtoggle-publicイベントでlocalIsPublicを反転し、反転後の値をstore.deckInfo.isPublicへ書き込む（headerへの表示も追従）"
+given = "初期状態（isPublic未設定=false）でmountし、toggle-publicを2回発火"
+expect_return_shape = "1回目: header stub is-public='true'・deckStore.deckInfo.isPublic=true。2回目: 両方ともfalse"
+
+[[condition]]
+id = "deck-metadata.select-deck-type-valid-value-updates-store"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:539"
+target_function = "DeckMetadata selectDeckType（有効値分岐）"
+source = "src/components/DeckMetadata.vue L9, L197-205 と src/utils/type-guards.ts isDeckTypeValue と tm TASK-532"
+description = "DeckMetadataHeaderのselect-deck-typeイベントの値がisDeckTypeValueで有効（'0'〜'3'）の場合、localDeckTypeとstore.deckInfo.deckTypeをその値へ更新する"
+given = "初期状態（deckType未設定）でmountし、select-deck-type('1')を発火"
+expect_return_shape = "header stub deck-type='1'・deckStore.deckInfo.deckType='1'"
+
+[[condition]]
+id = "deck-metadata.select-deck-type-invalid-value-rejected"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:549"
+target_function = "DeckMetadata selectDeckType（無効値分岐）"
+source = "src/components/DeckMetadata.vue L197-205 と src/utils/type-guards.ts isDeckTypeValue と tm TASK-532"
+description = "select-deck-typeの値が無効（'0'〜'3'以外）の場合はconsole.errorを記録し、localDeckTypeもstore.deckInfo.deckTypeも更新しない"
+given = "初期状態（deckType未設定）でmountし、select-deck-type('9')を発火"
+expect_return_shape = "console.errorが呼ばれ、header stub deck-type='-1'のまま・deckStore.deckInfo.deckTypeはundefinedのまま"
+
+[[condition]]
+id = "deck-metadata.select-deck-style-valid-value-updates-store"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:561"
+target_function = "DeckMetadata selectDeckStyle（有効値分岐）"
+source = "src/components/DeckMetadata.vue L10, L207-215 と src/utils/type-guards.ts isDeckStyleValue と tm TASK-532"
+description = "DeckMetadataHeaderのselect-deck-styleイベントの値がisDeckStyleValueで有効（'-1'〜'2'）の場合、localDeckStyleとstore.deckInfo.deckStyleをその値へ更新する"
+given = "初期状態（deckStyle未設定）でmountし、select-deck-style('2')を発火"
+expect_return_shape = "header stub deck-style='2'・deckStore.deckInfo.deckStyle='2'"
+
+[[condition]]
+id = "deck-metadata.select-deck-style-invalid-value-rejected"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:571"
+target_function = "DeckMetadata selectDeckStyle（無効値分岐）"
+source = "src/components/DeckMetadata.vue L207-215 と src/utils/type-guards.ts isDeckStyleValue と tm TASK-532"
+description = "select-deck-styleの値が無効（'-1'〜'2'以外）の場合はconsole.errorを記録し、localDeckStyleもstore.deckInfo.deckStyleも更新しない"
+given = "初期状態（deckStyle未設定）でmountし、select-deck-style('9')を発火"
+expect_return_shape = "console.errorが呼ばれ、header stub deck-style='-1'のまま・deckStore.deckInfo.deckStyleはundefinedのまま"
+
+[[condition]]
+id = "deck-metadata.comment-vmodel-syncs-local-and-store"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:583"
+target_function = "DeckMetadata updateComment + template DeckMetadataDescription v-model/@update:model-value"
+source = "src/components/DeckMetadata.vue L46-49, L217-219 と tm TASK-532"
+description = "DeckMetadataDescriptionのupdate:modelValueイベントはv-modelでlocalCommentへ反映され、かつupdateCommentがstore.deckInfo.commentへ書き込む（1イベントでlocalとstoreの両方が更新される）"
+given = "初期状態でmountし、Descriptionからupdate:modelValue('入力テキスト')を発火"
+expect_return_shape = "Description stub model-value='入力テキスト'（v-model反映）・deckStore.deckInfo.comment='入力テキスト'"
+
+[[condition]]
+id = "deck-metadata.update-categories-writes-store-and-refreshes-matching"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:595"
+target_function = "DeckMetadata updateCategories"
+source = "src/components/DeckMetadata.vue L31, L222-227 と tm TASK-532"
+description = "CategoryDialogのupdate:modelValueイベントでlocalCategoryとstore.deckInfo.categoryを選択値へ更新し、deckStore.updateCategoryMatching()を呼んでカテゴリ判定を更新する"
+given = "categoriesロード済みの状態でmountし、CategoryDialogからupdate:modelValue(['cat-dragon'])を発火"
+expect_return_shape = "CategoryDialog stub model-value='cat-dragon'・deckStore.deckInfo.category=['cat-dragon']・updateCategoryMatchingが呼ばれる"
+
+[[condition]]
+id = "deck-metadata.update-tags-writes-store-without-matching-refresh"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:609"
+target_function = "DeckMetadata updateTags"
+source = "src/components/DeckMetadata.vue L21, L229-232 と tm TASK-532"
+description = "TagDialogのupdate:modelValueイベントでlocalTagsとstore.deckInfo.tagsを選択値へ更新する。カテゴリ判定（updateCategoryMatching）は呼ばない（タグはカテゴリマッチングに影響しない）"
+given = "tagsロード済みの状態でmountし、TagDialogからupdate:modelValue(['108'])を発火"
+expect_return_shape = "TagDialog stub model-value='108'・deckStore.deckInfo.tags=['108']・updateCategoryMatchingは呼ばれない"
+
+[[condition]]
+id = "deck-metadata.remove-category-removes-id-and-refreshes-matching"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:622"
+target_function = "DeckMetadata removeCategory（存在するID分岐）"
+source = "src/components/DeckMetadata.vue L42, L235-243 と tm TASK-532"
+description = "DeckMetadataTagsのremove-categoryイベントで該当IDをlocalCategoryから除去し、store.deckInfo.categoryを除去後の配列で更新してupdateCategoryMatchingを呼ぶ"
+given = "store.deckInfo.category=['cat-kaos','cat-dragon']でmountし、remove-category('cat-dragon')を発火"
+expect_return_shape = "Tags stub model-categories='cat-kaos'・deckStore.deckInfo.category=['cat-kaos']・updateCategoryMatchingが呼ばれる"
+
+[[condition]]
+id = "deck-metadata.remove-category-unknown-id-is-noop"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:636"
+target_function = "DeckMetadata removeCategory（不在ID分岐）"
+source = "src/components/DeckMetadata.vue L235-243 と tm TASK-532"
+description = "remove-categoryのIDがlocalCategoryに存在しない場合（indexOf<0）は何もしない（store更新もカテゴリ判定更新も発生しない）"
+given = "store.deckInfo.category=['cat-kaos']でmountし、remove-category('cat-unknown')を発火"
+expect_return_shape = "deckStore.deckInfo.category=['cat-kaos']のまま・updateCategoryMatchingは呼ばれない"
+
+[[condition]]
+id = "deck-metadata.remove-tag-removes-id-from-store"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:648"
+target_function = "DeckMetadata removeTag（存在するID分岐）"
+source = "src/components/DeckMetadata.vue L41, L245-251 と tm TASK-532"
+description = "DeckMetadataTagsのremove-tagイベントで該当IDをlocalTagsから除去し、store.deckInfo.tagsを除去後の配列で更新する"
+given = "store.deckInfo.tags=['8','108']でmountし、remove-tag('8')を発火"
+expect_return_shape = "Tags stub model-tags='108'・deckStore.deckInfo.tags=['108']"
+
+[[condition]]
+id = "deck-metadata.remove-tag-unknown-id-is-noop"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:659"
+target_function = "DeckMetadata removeTag（不在ID分岐）"
+source = "src/components/DeckMetadata.vue L245-251 と tm TASK-532"
+description = "remove-tagのIDがlocalTagsに存在しない場合（indexOf<0）は何もしない（store更新も発生しない）"
+given = "store.deckInfo.tags=['8']でmountし、remove-tag('tag-unknown')を発火"
+expect_return_shape = "deckStore.deckInfo.tags=['8']のまま"
+
+# --- ダイアログ表示状態 ---
+
+[[condition]]
+id = "deck-metadata.tag-dialog-visibility-toggles-on-header-and-close-events"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:671"
+target_function = "DeckMetadata showTagDialog + template TagDialog :is-visible"
+source = "src/components/DeckMetadata.vue L11, L18, L22, L91-92 と tm TASK-532"
+description = "TagDialogの表示状態はローカルrefで管理し、DeckMetadataHeaderのshow-tag-dialogイベントでtrue、TagDialogのcloseイベントでfalseへ遷移する（CategoryDialogの表示状態とは独立）"
+given = "mountしてTagDialog stubのis-visibleを確認後、headerのshow-tag-dialogを発火し、続けてTagDialogのcloseを発火"
+expect_return_shape = "初期: is-visible='false'。show-tag-dialog後: 'true'（CategoryDialog stubは'false'のまま）。close後: 'false'"
+
+[[condition]]
+id = "deck-metadata.category-dialog-visibility-toggles-on-header-and-close-events"
+source_lines = "tests/unit/components/DeckMetadata.test.ts:688"
+target_function = "DeckMetadata showCategoryDialog + template CategoryDialog :is-visible"
+source = "src/components/DeckMetadata.vue L12, L27, L32, L91-92 と tm TASK-532"
+description = "CategoryDialogの表示状態はローカルrefで管理し、DeckMetadataHeaderのshow-category-dialogイベントでtrue、CategoryDialogのcloseイベントでfalseへ遷移する（TagDialogの表示状態とは独立）"
+given = "mountしてCategoryDialog stubのis-visibleを確認後、headerのshow-category-dialogを発火し、続けてCategoryDialogのcloseを発火"
+expect_return_shape = "初期: is-visible='false'。show-category-dialog後: 'true'（TagDialog stubは'false'のまま）。close後: 'false'"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "子コンポーネント5種の内部挙動（DeckMetadataHeaderのドロップダウン/お気に入り/デッキコード、TagDialog・CategoryDialogの絞り込み・選択UI、DeckMetadataTagsのチップラベル解決・モンスタータイプ色分け、DeckMetadataDescriptionの文字数カウント/maxlength）"
+source = "src/components/DeckMetadataHeader.vue・TagDialog.vue・CategoryDialog.vue・DeckMetadataTags.vue・DeckMetadataDescription.vue と tm TASK-532"
+reason = "本書は親DeckMetadata.vueの配線契約（props値・イベント→store書き込み）が対象。CategoryDialogはcategory-dialog条件書（TASK-488）が保証し、Header/TagDialog/Tags/DescriptionはTier C第8号以降の各条件書の対象。テストでは5種ともカスタムstubで置き換える"
+decided_at = "2026-11-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "deck-edit storeの内部挙動（updateCategoryMatchingのマッチング本体・categoryLabelMapの消費・deckInfoのライフサイクル管理）"
+source = "src/stores/deck-edit.ts L192-221 と tm TASK-532"
+reason = "storeおよびuseCategoryMatcherの責務。本書はDeckMetadataからの呼び出し契約（引数なしで呼ばれたか/呼ばれないか）とcategoryLabelMapへの設定結果のみ観測する"
+decided_at = "2026-11-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "deck-metadata-loader（getDeckMetadataのjaフォールバック/メモリキャッシュ、isDeckMetadataStaleの24時間判定、updateDeckMetadataのfetch/parse本体）・language-detectorの検出ロジック・type-guardsのfilterValidCategoryIds/filterValidTagIds/isDeckTypeValue/isDeckStyleValue本体"
+source = "src/utils/deck-metadata-loader.ts・src/utils/language-detector.ts・src/utils/type-guards.ts・src/types/deck-metadata.ts と tm TASK-532"
+reason = "deck-metadata-loader・language-detectorは外部I/Oを伴うためmodule mockで呼び出し契約（引数・結果の反映）のみ検証する。一方でisDeckTypeValue/isDeckStyleValueとfilterValidCategoryIds/filterValidTagIdsは純関数のためテストでは実物を使用し、本体の分岐はtype-guards等の各条件書が保証する"
+decided_at = "2026-11-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "unified-cache-db（reconstructCardInfo）のカード情報構築・言語選択・Table B2補完の選択ロジック"
+source = "src/utils/card-utils.ts getCardInfoFromUnifiedDB・src/utils/unified-cache-db.ts と tm TASK-532"
+reason = "unified-cache-db/card-utils条件書の対象。本書はallDeckCardsの収集契約（重複cid除去・nullスキップ・収集結果の配線）のみ観測する"
+decided_at = "2026-11-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L254-396。deck-metadataレイアウト・chip/dropdown系スタイル。多くは子コンポーネントへ移譲済みのコメント付き定義）"
+source = "src/components/DeckMetadata.vue L254-396 と tm TASK-532"
+reason = "静的スタイル定義でロジック分岐なし（filter-tab条件書のexcludedと同根拠）。クラス付与の分岐は本書では扱わない（子stubへの配線でdata属性を観測）"
+decided_at = "2026-11-13"
+decided_by = "claude"
+
+[[excluded]]
+item = "DeckMetadata.vueのemits定義・props定義（defineEmits/definePropsが存在しない=親からのprops受け渡しは無く、子への配線のみ）"
+source = "src/components/DeckMetadata.vue L53-68 と tm TASK-532"
+reason = "props/emits受け渡しのみの部分は分岐なし（§8「書かない」: getter/setterやprops受け渡しのみ）。子への配線は各配線条件が観測する"
+decided_at = "2026-11-13"
+decided_by = "claude"
