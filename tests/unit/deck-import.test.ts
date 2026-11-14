@@ -59,8 +59,9 @@ const validTXTEnglish = `=== Main Deck ===
 
 describe('deck-import', () => {
   afterEach(() => {
-    vi.clearAllMocks();
-    vi.restoreAllMocks();
+    // vitest 4+ は restoreAllMocks が vi.fn の実装を復元しないため、
+    // mockImplementation のテスト間リークを防ぐには resetAllMocks が必要
+    vi.resetAllMocks();
     Object.defineProperty(globalThis, 'FileReader', {
       value: originalFileReader,
       configurable: true,

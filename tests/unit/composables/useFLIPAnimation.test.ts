@@ -468,6 +468,12 @@ describe('useFLIPAnimation', () => {
     // [covers:animate.max_duration_uses_same_formula_as_per_card]
     it('maxDuration は per-card duration の最大値と一致する（同計算式で再計算）', () => {
       vi.useFakeTimers();
+      // vitest 3+ は useFakeTimers が requestAnimationFrame も fake 化するため、
+      // beforeEach の即時実行 stub が上書きされる。ここで再スタブして挙動を維持する
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+        cb(Date.now());
+        return 0;
+      });
       try {
         // 2枚のカード: 1枚は duration=420ms（deltaY=100）、1枚は duration=600ms（クランプ）
         document.body.innerHTML = `

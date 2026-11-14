@@ -50,7 +50,9 @@ describe('デッキ操作API', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    // vitest 4+ は restoreAllMocks が vi.fn の実装（mockResolvedValue 等）を復元しないため
+    // resetAllMocks で次テストへのモック実装リークを防ぐ
+    vi.resetAllMocks();
   });
 
   describe('createNewDeckInternal', () => {
