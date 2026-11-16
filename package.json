@@ -71,7 +71,7 @@
     "pinia": "^4.1.0",
     "qrcode": "^1.5.4",
     "sass": "^1.108.2",
-    "ws": "^8.22.2"
+    "ws": "^8.23.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
