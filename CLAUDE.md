@@ -460,5 +460,5 @@ interface ExtractedCondition {
 ### ワークフロー（Agent Skills）
 
 - **リリース準備**: `~/.claude/skills/release-prep.md` (changelog管理、バージョン更新)
-- **ドキュメント更新漏れチェック**: `~/.claude/skills/check-doc-updates.md` (docs/README.md参照)
-- **テスト更新漏れチェック**: `~/.claude/skills/check-test-updates.md` (tests/README.md参照)
+- **ドキュメント更新**: `~/.claude/skills/update-docs` (docs/README.md参照)
+- **テスト更新**: `~/.claude/skills/update-tests` (tests/README.md参照)
