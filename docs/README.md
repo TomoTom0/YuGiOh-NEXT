@@ -116,10 +116,10 @@
 
 **使用方法**:
 ```bash
-# ~/.claude/skills/check-doc-updates.md を Skill として呼び出し
+# update-docs スキルを呼び出し
 ```
 
-詳細は `~/.claude/skills/check-doc-updates.md` を参照。
+詳細は `~/.claude/skills/update-docs` を参照。
 
 ---
 

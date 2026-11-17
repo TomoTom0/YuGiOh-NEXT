@@ -181,10 +181,10 @@ mise run test:vitest -- tests/e2e/
 
 **使用方法**:
 ```bash
-# ~/.claude/skills/check-test-updates.md を Skill として呼び出し
+# update-tests スキルを呼び出し
 ```
 
-詳細は `~/.claude/skills/check-test-updates.md` を参照。
+詳細は `~/.claude/skills/update-tests` を参照。
 
 ---
 
