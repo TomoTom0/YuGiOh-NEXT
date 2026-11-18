@@ -184,14 +184,19 @@ export function useDeckPersistence(options: {
         name: getDeckName() // getterから取得した値を使用
       };
 
-      const result = await sessionManager.saveDeck(dno, dataToSave);
+      // 保存リクエストの飛行中に編集されても、送信内容と履歴の記録内容が
+      // 食い違わないよう、送信前にペイロードを凍結して両方に使う
+      // （reactive proxy を含むため、JSON往復でディープコピーする）
+      const frozenDataToSave: DeckInfo = JSON.parse(JSON.stringify(dataToSave));
+
+      const result = await sessionManager.saveDeck(dno, frozenDataToSave);
 
       if (result.success) {
         // 保存成功時にスナップショットを更新
         savedDeckSnapshot.value = captureDeckSnapshot();
 
         // レシピ履歴: 公式保存の成功時に版を記録する
-        recordDeckHistory(dataToSave, 'save');
+        recordDeckHistory(frozenDataToSave, 'save');
       }
 
       return result;

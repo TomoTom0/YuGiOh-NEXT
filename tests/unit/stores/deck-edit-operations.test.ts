@@ -368,6 +368,43 @@ describe('deck-edit store - saveDeckData', () => {
     expect(store.deckInfo.name).toBe('P1のデッキ名');
     expect(store.deckInfo.dno).toBe(1);
   });
+
+  it('保存成功時にレシピ履歴へ記録し、失敗時は記録しない [covers:save_deck_data.records_recipe_history_on_success]', async () => {
+    const store = useDeckEditStore();
+    const { sessionManager } = await import('@/content/session/session');
+    const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
+    const { STORAGE_KEY_DECK_HISTORY } = await import('@/constants/storage-keys');
+
+    localStorage.removeItem(STORAGE_KEY_DECK_HISTORY);
+    try {
+      const p2DeckInfo: DeckInfo = {
+        ...mockDeckInfo,
+        dno: 5,
+        name: '',
+        originalName: 'P2のデッキ名',
+      };
+
+      const result = await store.saveDeckData(5, p2DeckInfo);
+
+      expect(result.success).toBe(true);
+      const history = getDeckHistory(5);
+      expect(history).toHaveLength(1);
+      expect(history[0].source).toBe('save');
+      // 正規化された名前（originalName）で記録される
+      expect(JSON.parse(history[0].snapshot).name).toBe('P2のデッキ名');
+
+      // 保存が失敗した場合は記録しない
+      vi.mocked(sessionManager.saveDeck).mockResolvedValueOnce({
+        success: false,
+        error: ['save failed'],
+      });
+      const failed = await store.saveDeckData(6, { ...p2DeckInfo, dno: 6 });
+      expect(failed.success).toBe(false);
+      expect(getDeckHistory(6)).toEqual([]);
+    } finally {
+      localStorage.removeItem(STORAGE_KEY_DECK_HISTORY);
+    }
+  });
 });
 
 // ============================================================

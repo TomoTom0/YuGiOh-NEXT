@@ -453,6 +453,25 @@ describe('useDeckPersistence', () => {
       expect(getDeckHistory(100)).toHaveLength(1);
     });
 
+    it('[covers:save.records_history_from_frozen_payload] 保存リクエスト飛行中の編集は履歴に記録されない', async () => {
+      const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
+
+      // 保存処理の実行中に編集中のデッキが変更される状況を再現する
+      // （dataToSave と配列を共有するため、インプレースな変更が旧実装では記録へ混入する）
+      mockSessionManager.saveDeck.mockImplementation(async () => {
+        deckInfo.value.mainDeck.push({ cid: '99999', ciid: 'ciidX', lang: 'ja', quantity: 1 });
+        return { success: true };
+      });
+
+      const result = await createPersistence().saveDeck(100);
+
+      expect(result.success).toBe(true);
+      const history = getDeckHistory(100);
+      expect(history).toHaveLength(1);
+      // 記録されるのは送信時点のペイロード（飛行中の編集を含まない）
+      expect(JSON.parse(history[0].snapshot).mainDeck).toEqual([]);
+    });
+
     it('[covers:save.no_recipe_history_on_failure] 保存が失敗した場合はレシピ履歴へ記録しない', async () => {
       const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
 

@@ -213,3 +213,11 @@ source = "TASK-538 body 確定設計（起点は履歴が無い場合のみ記�
 description = "読み込んだデッキのレシピ履歴が既にある場合、loadDeckでは起点を記録しない"
 given = "対象デッキの履歴が既にある状態で loadDeck(dno) が成功する"
 expect_return_shape = "履歴の件数・内容は変わらない"
+
+[[condition]]
+id = "save.records_history_from_frozen_payload"
+target_function = "useDeckPersistence"
+source = "TASK-539（PR#179 Codexレビュー指摘）/ TASK-538 body 確定設計"
+description = "保存リクエストの飛行中に編集中のデッキがインプレースに変更されても、履歴に記録されるのは送信前に凍結したペイロードであり、送信内容と記録内容が一致する"
+given = "sessionManager.saveDeck の実行中に deckInfo の配列へカードが追加される"
+expect_return_shape = "記録されたスナップショットは飛行中の編集を含まない"
