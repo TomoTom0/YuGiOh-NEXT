@@ -559,6 +559,50 @@ describe('deck-edit store - deleteCurrentDeck', () => {
     // createNewDeck が呼ばれている
     expect(sessionManager.createDeck).toHaveBeenCalled();
   });
+
+  it('should remove recipe history of the deleted deck [covers:delete_current_deck.removes_recipe_history]', async () => {
+    const store = useDeckEditStore();
+    const { recordDeckHistory, getDeckHistory } = await import(
+      '@/composables/deck/useDeckHistory'
+    );
+    const { STORAGE_KEY_DECK_HISTORY } = await import('@/constants/storage-keys');
+
+    localStorage.removeItem(STORAGE_KEY_DECK_HISTORY);
+    try {
+      // 削除対象（dno=1）と他デッキ（dno=2）の履歴を用意する
+      expect(recordDeckHistory({ ...mockDeckInfo, dno: 1 }, 'save')).toBe(true);
+      expect(recordDeckHistory({ ...mockDeckInfo, dno: 2 }, 'save')).toBe(true);
+      expect(getDeckHistory(1)).toHaveLength(1);
+      expect(getDeckHistory(2)).toHaveLength(1);
+
+      store.deckInfo.dno = 1;
+
+      // 削除後は dno=2 のデッキだけが残っている状態にする
+      const { sessionManager } = await import('@/content/session/session');
+      vi.mocked(sessionManager.getDeckList).mockResolvedValueOnce([
+        {
+          dno: 2,
+          name: 'Deck 2',
+          mainDeck: [],
+          extraDeck: [],
+          sideDeck: [],
+          category: [],
+          tags: [],
+          comment: '',
+          deckCode: ''
+        }
+      ]);
+
+      await store.deleteCurrentDeck();
+
+      // 削除したデッキの履歴だけが消え、他デッキの履歴は残る
+      expect(getDeckHistory(1)).toEqual([]);
+      expect(getDeckHistory(2)).toHaveLength(1);
+      expect(getDeckHistory(2)[0].source).toBe('save');
+    } finally {
+      localStorage.removeItem(STORAGE_KEY_DECK_HISTORY);
+    }
+  });
 });
 
 // ============================================================

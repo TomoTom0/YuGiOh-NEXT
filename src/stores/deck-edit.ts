@@ -32,6 +32,7 @@ import {
 } from '../composables/deck/useDeckSnapshot';
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
+import { removeDeckHistory } from '../composables/deck/useDeckHistory';
 import { useDeckRegulation } from '../composables/deck/useDeckRegulation';
 import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
 
@@ -1926,6 +1927,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!success) {
         throw new Error('Failed to delete deck');
       }
+
+      // レシピ履歴を削除（永続ゴミ回避）
+      removeDeckHistory(dnoToDelete);
 
       // ignore登録を削除（永続ゴミ回避）。失敗してもデッキ削除は継続
       regulation.removeIgnored(dnoToDelete).catch(error => {

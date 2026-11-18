@@ -400,4 +400,97 @@ describe('useDeckPersistence', () => {
       expect(Object.keys(persistence)).toEqual(['loadDeck', 'saveDeck']);
     });
   });
+
+  describe('レシピ履歴の記録', () => {
+    // 履歴の検証には実動作する localStorage が必要なため、このブロックでは
+    // インメモリ実装に差し替える（外側の beforeEach のモックを上書き）
+    class MemoryStorage implements Storage {
+      private store = new Map<string, string>();
+      get length(): number {
+        return this.store.size;
+      }
+      clear(): void {
+        this.store.clear();
+      }
+      getItem(key: string): string | null {
+        return this.store.get(key) ?? null;
+      }
+      key(index: number): string | null {
+        return [...this.store.keys()][index] ?? null;
+      }
+      removeItem(key: string): void {
+        this.store.delete(key);
+      }
+      setItem(key: string, value: string): void {
+        this.store.set(key, value);
+      }
+    }
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'localStorage', {
+        value: new MemoryStorage(),
+        writable: true,
+        configurable: true
+      });
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    it('[covers:save.records_recipe_history_on_success] 保存成功時にレシピ履歴へ記録する', async () => {
+      const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
+
+      const result = await createPersistence().saveDeck(100);
+
+      expect(result.success).toBe(true);
+      const history = getDeckHistory(100);
+      expect(history).toHaveLength(1);
+      expect(history[0].source).toBe('save');
+      // 保存名（getDeckName() の戻り値）がスナップショットに反映される
+      expect(JSON.parse(history[0].snapshot).name).toBe('Test Deck');
+
+      // 同一構成のまま再保存しても重複記録しない
+      await createPersistence().saveDeck(100);
+      expect(getDeckHistory(100)).toHaveLength(1);
+    });
+
+    it('[covers:save.no_recipe_history_on_failure] 保存が失敗した場合はレシピ履歴へ記録しない', async () => {
+      const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
+
+      mockSessionManager.saveDeck.mockResolvedValue({ success: false, error: ['Save failed'] });
+      const failedResult = await createPersistence().saveDeck(100);
+      expect(failedResult.success).toBe(false);
+      expect(getDeckHistory(100)).toEqual([]);
+
+      mockSessionManager.saveDeck.mockRejectedValue(new Error('Save error'));
+      const errorResult = await createPersistence().saveDeck(100);
+      expect(errorResult.success).toBe(false);
+      expect(getDeckHistory(100)).toEqual([]);
+    });
+
+    it('[covers:load.records_origin_when_history_empty] 履歴が無いデッキの読込時に起点を記録する', async () => {
+      const { getDeckHistory } = await import('@/composables/deck/useDeckHistory');
+
+      await createPersistence().loadDeck(1);
+
+      const history = getDeckHistory(1);
+      expect(history).toHaveLength(1);
+      expect(history[0].source).toBe('load');
+    });
+
+    it('[covers:load.no_origin_when_history_exists] 履歴が既にあるデッキの読込では起点を記録しない', async () => {
+      const { getDeckHistory, recordDeckHistory } = await import(
+        '@/composables/deck/useDeckHistory'
+      );
+
+      // 既存履歴を用意する
+      expect(recordDeckHistory(makeDeck({ comment: 'seed' }), 'save')).toBe(true);
+
+      await createPersistence().loadDeck(1);
+
+      const history = getDeckHistory(1);
+      expect(history).toHaveLength(1);
+      expect(history[0].source).toBe('save');
+      expect(JSON.parse(history[0].snapshot).comment).toBe('seed');
+    });
+  });
 });

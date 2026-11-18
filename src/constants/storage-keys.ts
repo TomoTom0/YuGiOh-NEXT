@@ -42,6 +42,12 @@ export const STORAGE_KEY_LAST_DECK_DNO = 'ygoNext:lastDeckDno';
 export const STORAGE_KEY_SETTINGS = 'ygoNext:settings';
 
 /**
+ * デッキレシピ履歴
+ * 型: Record<デッキ番号, DeckHistoryEntry[]>
+ */
+export const STORAGE_KEY_DECK_HISTORY = 'ygoNext:deckHistory';
+
+/**
  * chrome.storage.local キー定数
  *
  * chrome.storage.local は衝突の恐れがないため、プレフィックス不要
