@@ -32,6 +32,7 @@ import {
 } from '../composables/deck/useDeckSnapshot';
 import { useDeckUndoRedo, type Command } from '../composables/deck/useDeckUndoRedo';
 import { useDeckPersistence } from '../composables/deck/useDeckPersistence';
+import { recordDeckHistory, removeDeckHistory } from '../composables/deck/useDeckHistory';
 import { useDeckRegulation } from '../composables/deck/useDeckRegulation';
 import { loadThumbnailCache, loadDeckInfoCache, updateDeckInfoAndThumbnailWithData, saveDeckListOrder } from '../utils/deck-cache';
 
@@ -1879,8 +1880,14 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       // getDeckDetail直後のデータは name が '' で originalName に実際の名前が入っているため、
       // deckInfo.value経由のloadDeckと異なりここで正規化しないと空のdnmが送信されてしまう
       const normalizedName = deckData.name || deckData.originalName || '';
-      const result = await sessionManager.saveDeck(dno, { ...deckData, dno, name: normalizedName });
+      const dataToSave = { ...deckData, dno, name: normalizedName };
+      // 送信前にペイロードを凍結し、送信内容と履歴の記録内容を一致させる
+      // （reactive proxy を含むため、pseudoCopyDeck と同じ JSON 往復でディープコピーする）
+      const frozenDataToSave: DeckInfo = JSON.parse(JSON.stringify(toRaw(dataToSave)));
+      const result = await sessionManager.saveDeck(dno, frozenDataToSave);
       if (result.success) {
+        // レシピ履歴: 公式保存の成功時に版を記録する（P2デッキの保存も対象）
+        recordDeckHistory(frozenDataToSave, 'save');
         fetchDeckList().catch(error => {
           console.error('[saveDeckData] Failed to refresh deck list:', error);
         });
@@ -1926,6 +1933,9 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
       if (!success) {
         throw new Error('Failed to delete deck');
       }
+
+      // レシピ履歴を削除（永続ゴミ回避）
+      removeDeckHistory(dnoToDelete);
 
       // ignore登録を削除（永続ゴミ回避）。失敗してもデッキ削除は継続
       regulation.removeIgnored(dnoToDelete).catch(error => {

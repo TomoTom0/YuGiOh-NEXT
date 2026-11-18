@@ -177,3 +177,47 @@ source_lines = "190-199"
 description = "saveDeck内でcatchしたerrorが未ログインエラー条件に一致しない場合、throwせず { success: false, error: [String(error)] } を返す"
 given = "sessionManager.saveDeckが Error('Save error') をrejectする"
 expect_return_shape = "{ success: false, error: ['Error: Save error'] }"
+
+[[condition]]
+id = "save.records_recipe_history_on_success"
+source_lines = "tests/unit/composables/useDeckPersistence.test.ts:439"
+target_function = "useDeckPersistence"
+source = "TASK-538 body 確定設計（契機(a): 公式保存の成功時に記録する）"
+description = "sessionManager.saveDeckが成功を返した場合、保存データ（getDeckName()適用後のnameを含む）をレシピ履歴に source=save で記録する。同一構成の再保存では重複記録しない（重複判定は useDeckHistory 側）"
+given = "sessionManager.saveDeckが { success: true } を返す"
+expect_return_shape = "getDeckHistory(dno) に source=save の版が1件記録され、スナップショットの name は getDeckName() の戻り値"
+
+[[condition]]
+id = "save.no_recipe_history_on_failure"
+source_lines = "tests/unit/composables/useDeckPersistence.test.ts:456"
+target_function = "useDeckPersistence"
+source = "TASK-538 body 確定設計（記録の契機は公式保存の成功時のみ）"
+description = "sessionManager.saveDeckが失敗を返す、または例外で保存が失敗した場合、レシピ履歴は記録しない"
+given = "sessionManager.saveDeckが { success: false } を返す、または Error を reject する"
+expect_return_shape = "getDeckHistory(dno) は空のまま"
+
+[[condition]]
+id = "load.records_origin_when_history_empty"
+source_lines = "tests/unit/composables/useDeckPersistence.test.ts:470"
+target_function = "useDeckPersistence"
+source = "TASK-538 body 確定設計（契機(b): 履歴が無い状態で読み込んだときに起点の版を記録する）"
+description = "loadDeckでデッキを読み込み、そのデッキのレシピ履歴が無い場合、読み込んだ版を起点（source=load）として記録する"
+given = "対象デッキの履歴が無い状態で loadDeck(dno) が成功する"
+expect_return_shape = "getDeckHistory(dno) に source=load の版が1件記録される"
+
+[[condition]]
+id = "load.no_origin_when_history_exists"
+source_lines = "tests/unit/composables/useDeckPersistence.test.ts:480"
+target_function = "useDeckPersistence"
+source = "TASK-538 body 確定設計（起点は履歴が無い場合のみ記録する）"
+description = "読み込んだデッキのレシピ履歴が既にある場合、loadDeckでは起点を記録しない"
+given = "対象デッキの履歴が既にある状態で loadDeck(dno) が成功する"
+expect_return_shape = "履歴の件数・内容は変わらない"
+
+[[condition]]
+id = "save.records_history_from_frozen_payload"
+target_function = "useDeckPersistence"
+source = "TASK-539（PR#179 Codexレビュー指摘）/ TASK-538 body 確定設計"
+description = "保存リクエストの飛行中に編集中のデッキがインプレースに変更されても、履歴に記録されるのは送信前に凍結したペイロードであり、送信内容と記録内容が一致する"
+given = "sessionManager.saveDeck の実行中に deckInfo の配列へカードが追加される"
+expect_return_shape = "記録されたスナップショットは飛行中の編集を含まない"

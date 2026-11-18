@@ -4,6 +4,7 @@ import { getDeckDetail as getDeckDetailAPI } from '@/api/deck-operations';
 import { URLStateManager } from '@/utils/url-state';
 import { recordDeckOpen } from '@/utils/temp-cache-db';
 import { useToastStore } from '@/stores/toast-notification';
+import { recordDeckHistory, recordDeckHistoryOrigin } from './useDeckHistory';
 
 /**
  * SessionManager のインターフェース（最小限の型定義）
@@ -124,6 +125,10 @@ export function useDeckPersistence(options: {
         // Load時点のスナップショットを保存
         savedDeckSnapshot.value = captureDeckSnapshot();
 
+        // レシピ履歴: 履歴が無いデッキでは、読み込んだ版を起点として記録する
+        // （キーは読み込み対象の dno。URL同期や lastUsedDno と同じ扱い）
+        recordDeckHistoryOrigin({ ...deckInfo.value, dno });
+
         // 未発売カード通知を表示（skippedCards があれば）
         if (loadedDeck.skippedCardsCount && loadedDeck.skippedCardsCount > 0) {
           const skippedCards = loadedDeck.skippedCards || [];
@@ -179,11 +184,19 @@ export function useDeckPersistence(options: {
         name: getDeckName() // getterから取得した値を使用
       };
 
-      const result = await sessionManager.saveDeck(dno, dataToSave);
+      // 保存リクエストの飛行中に編集されても、送信内容と履歴の記録内容が
+      // 食い違わないよう、送信前にペイロードを凍結して両方に使う
+      // （reactive proxy を含むため、JSON往復でディープコピーする）
+      const frozenDataToSave: DeckInfo = JSON.parse(JSON.stringify(dataToSave));
+
+      const result = await sessionManager.saveDeck(dno, frozenDataToSave);
 
       if (result.success) {
         // 保存成功時にスナップショットを更新
         savedDeckSnapshot.value = captureDeckSnapshot();
+
+        // レシピ履歴: 公式保存の成功時に版を記録する
+        recordDeckHistory(frozenDataToSave, 'save');
       }
 
       return result;
