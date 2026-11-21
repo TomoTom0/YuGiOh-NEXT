@@ -1,0 +1,123 @@
+# 検証対象: src/components/practice/PracticeSharedEMZRow.vue
+#
+# 経緯:
+# - TASK-560（TASK-331 Tier C第14号・TASK-559第13号の後続）。Practice系コンポーネント
+#   11ファイルの条件化3ファイル目。122行（template＋script setup。props/emitsなし、
+#   practice store・settings store・usePracticeActions・usePracticeDropHandler経由で
+#   PracticeSlot 2件へ描画とイベント転送を行う）。既存の専用ユニットテストは無く、
+#   tests/unit/components/PracticeSharedEMZRow.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-560
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第13号条件書と同一）:
+# - 1条件=1振る舞いclass。スロット2件の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（子stubへ渡されるprops・根源要素のCSS変数）と転送先composableの
+#   呼び出し引数。vm内部状態は直接参照しない
+# - 子コンポーネント（PracticeSlot）はDeckMetadata.test.tsと同一手法のカスタムstubで
+#   置き換え、受け取ったpropsをdata属性へ描画しボタンで親がlistenするイベントを発火する。
+#   子の内部挙動はPracticeSlot自身の条件書（後続号）が保証。転送先のcomposableは
+#   module mockで置き換え、呼び出し引数を観測する（composable本体は各条件書へ委譲）
+# - 静的SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - practice storeのzones（extraMonsterの2スロット）・settings storeのpracticeCardSizePixels
+#   の値そのものは各storeの条件書が保証。本書はその値を本コンポーネントがどう
+#   PracticeSlotへ渡すか・CSS変数へ反映するかのみ
+# - executeAction・handleCardDrop・handleExternalCardDropの内部動作は
+#   use-practice-actions条件書・use-practice-drop-handler条件書へ委譲
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-shared-emz-row"
+source_file = "src/components/practice/PracticeSharedEMZRow.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeSharedEMZRow.test.ts"
+source_hash = "4610d63701614ff269df931ab73472eb0d1dc1b1"
+note = "TASK-560（TASK-331第14号）でPractice系コンポーネント3ファイル目の条件化。props/emitsなし。5条件=EMZスロット2件の描画・props束縛1+根源要素のCSS変数とカードサイズ1+card-action転送1+card-drop転送1+deck-card-drop転送1。転送はいずれもfieldIndex=0・targetZone=extraMonster。テストは新規作成（PracticeSlotはカスタムstub、転送先composableはmodule mock）。src不変"
+
+# --- EMZスロットの描画・props束縛 ---
+
+[[condition]]
+id = "practice-shared-emz-row.renders-two-emz-slots-bound-to-extra-monster-zones"
+source_lines = "tests/unit/components/PracticeSharedEMZRow.test.ts:115"
+target_function = "PracticeSharedEMZRow template v-for i in 2 + PracticeSlot props"
+source = "src/components/practice/PracticeSharedEMZRow.vue L4-24 と tm TASK-560"
+description = "extraMonsterゾーンのスロットをちょうど2件描画する。各スロットのPracticeSlotには practice storeのzones.extraMonster[i]（i=0/1）がcardsとして、zone='extraMonster'、slot-index=i、stack-direction='right-up'、card-width/card-height=settingsStore.practiceCardSizePixels が渡される"
+given = "初期状態（extraMonsterは空2スロット）でmountし、その後 practice storeのzones.extraMonster[1]へカード1枚を置く"
+expect_return_shape = "PracticeSlotが2件描画され、i件目のpropsが上記の値と一致する。store更新後は2件目のcardsが置いたカード1枚を反映する"
+
+# --- 根源要素のCSS変数 ---
+
+[[condition]]
+id = "practice-shared-emz-row.root-style-vars-from-settings-card-size"
+source_lines = "tests/unit/components/PracticeSharedEMZRow.test.ts:142"
+target_function = "PracticeSharedEMZRow practiceCardStyle computed"
+source = "src/components/practice/PracticeSharedEMZRow.vue L44-50 と tm TASK-560"
+description = "根源要素のstyleにCSS変数 --practice-card-width / --practice-card-height が settingsStore.practiceCardSizePixels のpx値で設定される。設定変更（practiceCardSizeの変更）で変数値も変わる"
+given = "初期状態（practiceCardSize未設定=small 36x53）でmountし、その後 practiceCardSizeを'medium'へ変える"
+expect_return_shape = "初期は --practice-card-width: 36px / --practice-card-height: 53px、変更後は 60px / 88px になる"
+
+# --- card-actionの転送 ---
+
+[[condition]]
+id = "practice-shared-emz-row.card-action-forwarded-to-execute-action-with-field-zero"
+source_lines = "tests/unit/components/PracticeSharedEMZRow.test.ts:159"
+target_function = "PracticeSharedEMZRow handleAction"
+source = "src/components/practice/PracticeSharedEMZRow.vue L56-58 と tm TASK-560"
+description = "いずれかのスロットのPracticeSlotから card-action (action, cardId) を受け取ると、usePracticeActions().executeAction(action, cardId, 0) を呼ぶ。fieldIndexは常に0"
+given = "1件目のスロットのstubボタンから card-action('flip', 'card-xyz') を発火する"
+expect_return_shape = "executeActionが ('flip', 'card-xyz', 0) でちょうど1回呼ばれる"
+
+# --- card-dropの転送 ---
+
+[[condition]]
+id = "practice-shared-emz-row.card-drop-forwarded-with-emz-context"
+source_lines = "tests/unit/components/PracticeSharedEMZRow.test.ts:170"
+target_function = "PracticeSharedEMZRow handleDrop"
+source = "src/components/practice/PracticeSharedEMZRow.vue L60-63 と tm TASK-560"
+description = "スロットiのPracticeSlotから card-drop (cardId, fromZone, fromSlotIndex, dropPos) を受け取ると、usePracticeDropHandler().handleCardDrop(cardId, {targetZone:'extraMonster', targetSlotIndex:i, fieldIndex:0}, dropPos) を呼ぶ。受け取ったfromZone/fromSlotIndexは転送に使わない"
+given = "2件目のスロットのstubボタンから card-drop('card-xyz', 'hand', 3, {isRight:false, isTop:true}) を発火する"
+expect_return_shape = "handleCardDropが ('card-xyz', {targetZone:'extraMonster', targetSlotIndex:1, fieldIndex:0}, {isRight:false, isTop:true}) でちょうど1回呼ばれる"
+
+# --- deck-card-dropの転送 ---
+
+[[condition]]
+id = "practice-shared-emz-row.deck-card-drop-forwarded-with-emz-context"
+source_lines = "tests/unit/components/PracticeSharedEMZRow.test.ts:185"
+target_function = "PracticeSharedEMZRow handleDeckDrop"
+source = "src/components/practice/PracticeSharedEMZRow.vue L65-68 と tm TASK-560"
+description = "スロットiのPracticeSlotから deck-card-drop (cid, ciid, dropPos) を受け取ると、usePracticeDropHandler().handleExternalCardDrop(cid, ciid, {targetZone:'extraMonster', targetSlotIndex:i, fieldIndex:0}, dropPos) を呼ぶ"
+given = "1件目のスロットのstubボタンから deck-card-drop('12345', '12345-1', {isRight:true, isTop:false}) を発火する"
+expect_return_shape = "handleExternalCardDropが ('12345', '12345-1', {targetZone:'extraMonster', targetSlotIndex:0, fieldIndex:0}, {isRight:true, isTop:false}) でちょうど1回呼ばれる"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "hovered1 ref（mouseenter/mouseleaveでの代入のみ）"
+source = "src/components/practice/PracticeSharedEMZRow.vue L5-9, L40 と tm TASK-560"
+reason = "代入されるのみで描画・他ロジックから一切読まれず、観測可能な出力が存在しない（§8「書かない」: 内部状態のみ）。hover時の枠線変化はCSSの :hover 擬似クラスによる静的スタイルであり本refとは無関係"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L71-121。行・スロット枠の静的スタイル）"
+source = "src/components/practice/PracticeSharedEMZRow.vue L71-121 と tm TASK-560"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。スロット数・props束縛の分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "PracticeSlotコンポーネント本体（描画・ドラッグ挙動）"
+source = "src/components/practice/PracticeSlot.vue と tm TASK-560"
+reason = "隣接コンポーネント責務。PracticeSlot自身の条件書（TASK-331後続号）で保証する。本書は本コンポーネントが渡すpropsと受け取るイベントのみを検証し、テストではカスタムstubで置き換える"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "practice store・settings store・usePracticeActions・usePracticeDropHandlerの内部動作"
+source = "src/stores/practice.ts、src/stores/settings.ts、src/composables/practice/usePracticeActions.ts、src/composables/practice/usePracticeDropHandler.ts と tm TASK-560"
+reason = "隣接モジュール責務。各条件書（practice、practice-actions、practice-drop-handler、settings）で保証済み。本書は本コンポーネントが実ストアから読む値と転送先composableへ渡す引数のみを検証し、テストではcomposableをmodule mockで置き換える"
+decided_at = "2026-11-22"
+decided_by = "claude"
