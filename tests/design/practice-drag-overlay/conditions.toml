@@ -1,0 +1,147 @@
+# 検証対象: src/components/practice/PracticeDragOverlay.vue
+#
+# 経緯:
+# - TASK-559（TASK-331 Tier C第13号・TASK-557第12号の後続）。Practice系コンポーネント
+#   11ファイルの条件化2ファイル目。102行（template＋script setup。props/emitsなし、
+#   共有drag状態 usePracticeDragState の購読と overlayStyle computed のみ）。
+#   既存の専用ユニットテストは無く、tests/unit/components/PracticeDragOverlay.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-559
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）。
+#   本コンポーネントはTeleportでbodyへ描画するドラッグ中オーバーレイ
+#
+# 粒度方針（Tier C・第8号〜第12号条件書と同一）:
+# - 1条件=1振る舞いclass。状態値の列挙（stackTop null/true/false等）はテスト側で持ち、
+#   条件書には親条件のみ置く
+# - 観測対象は描画結果（Teleport先のDOM・img src・style属性）のみ。vm内部状態は直接参照しない
+# - 静的スタイル定数・scoped SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - drag状態そのものの遷移（startDrag/endDrag・リスナ登録・自動スクロール等）は
+#   practice-drag-state条件書（usePracticeDragState）が保証済み。本書はその状態を
+#   購読して描画する本コンポーネント自身の契約のみ。状態の駆動はcomposableの公開refへの
+#   代入で行い、composableはモックしない
+# - 裏面画像URLは chrome.runtime.getURL('images/card_back.png')。テスト環境では
+#   tests/setup.ts のスタブがパスをそのまま返すため 'images/card_back.png' が期待値になる
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-drag-overlay"
+source_file = "src/components/practice/PracticeDragOverlay.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeDragOverlay.test.ts"
+source_hash = "75cf159e8222a807e5acbe7fd89c08e1b77d5f5d"
+note = "TASK-559（TASK-331第13号）でPractice系コンポーネント2ファイル目の条件化。props/emitsなし・usePracticeDragState購読のみ。8条件=非ドラッグ時非表示1+メイン画像src2（draggingImageUrl優先／null時は裏面fallback）+裏向き重ね画像2（表示条件／非表示ケース）+スタックプレビュー矩形1（draggingStackTop三値）+overlayスタイル2（位置・サイズ／回転transform・transformOrigin）。テストは新規作成。src不変"
+
+# --- 非ドラッグ時の非表示 ---
+
+[[condition]]
+id = "practice-drag-overlay.renders-nothing-when-not-dragging"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:89"
+target_function = "PracticeDragOverlay template Teleport配下 root div v-if"
+source = "src/components/practice/PracticeDragOverlay.vue L3-5 と tm TASK-559"
+description = "draggingCardIdがnull（ドラッグ中でない）間は、Teleport先（body）にオーバーレイ要素（.practice-drag-overlay）を描画しない"
+given = "drag状態を初期値（draggingCardId=null）にしてmount"
+expect_return_shape = "document内に.practice-drag-overlayが存在しない"
+
+# --- メイン画像のsrc ---
+
+[[condition]]
+id = "practice-drag-overlay.main-image-uses-dragging-image-url"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:97"
+target_function = "PracticeDragOverlay template img.drag-overlay-img :src"
+source = "src/components/practice/PracticeDragOverlay.vue L7-12 と tm TASK-559"
+description = "ドラッグ中はメイン画像のsrcにdraggingImageUrlを使う（draggingImageUrl ?? backImageUrl の左辺が優先）"
+given = "draggingCardIdとdraggingImageUrl（裏面URLとは異なる値）を設定してmount"
+expect_return_shape = "メイン画像（img.drag-overlay-img）のsrc属性がdraggingImageUrlと一致する"
+
+[[condition]]
+id = "practice-drag-overlay.main-image-falls-back-to-card-back"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:104"
+target_function = "PracticeDragOverlay template img.drag-overlay-img :src（?? の右辺）"
+source = "src/components/practice/PracticeDragOverlay.vue L8, L29 と tm TASK-559"
+description = "draggingImageUrlがnullのときはメイン画像のsrcが裏面画像URL（chrome.runtime.getURL('images/card_back.png')）になる"
+given = "draggingCardIdを設定しdraggingImageUrl=nullでmount"
+expect_return_shape = "メイン画像のsrc属性が裏面画像URL（テスト環境では 'images/card_back.png'）と一致する"
+
+# --- 裏向き重ね画像 ---
+
+[[condition]]
+id = "practice-drag-overlay.facedown-overlay-rendered-when-facedown-with-front-image"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:113"
+target_function = "PracticeDragOverlay template img.drag-overlay-facedown v-if"
+source = "src/components/practice/PracticeDragOverlay.vue L13-19 と tm TASK-559"
+description = "draggingFaceDown=true かつ draggingImageUrl が非null かつ裏面URLと異なる場合に限り、裏面画像をsrcとする重ね画像（img.drag-overlay-facedown）が追加で描画される"
+given = "draggingFaceDown=true、draggingImageUrlに裏面URLと異なる値を設定してmount"
+expect_return_shape = "img.drag-overlay-facedownが1件存在し、そのsrc属性が裏面画像URLと一致する"
+
+[[condition]]
+id = "practice-drag-overlay.facedown-overlay-absent-otherwise"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:122,tests/unit/components/PracticeDragOverlay.test.ts:129,tests/unit/components/PracticeDragOverlay.test.ts:136"
+target_function = "PracticeDragOverlay template img.drag-overlay-facedown v-if（否定側）"
+source = "src/components/practice/PracticeDragOverlay.vue L13-19 と tm TASK-559"
+description = "上記条件を満たさない場合（draggingFaceDown=false／draggingImageUrl=null／draggingImageUrlが裏面URLと同一）は重ね画像を描画しない"
+given = "3ケースをそれぞれ設定してmount（テスト側で列挙）"
+expect_return_shape = "いずれのケースでもimg.drag-overlay-facedownが存在しない"
+
+# --- スタックプレビュー矩形 ---
+
+[[condition]]
+id = "practice-drag-overlay.stack-preview-rect-reflects-dragging-stack-top"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:145,tests/unit/components/PracticeDragOverlay.test.ts:152,tests/unit/components/PracticeDragOverlay.test.ts:162"
+target_function = "PracticeDragOverlay template div.stack-preview-rect v-if / :class"
+source = "src/components/practice/PracticeDragOverlay.vue L20 と tm TASK-559"
+description = "draggingStackTopがnullの間はスタックプレビュー矩形を描画しない。trueのときはpreview-topクラス、falseのときはpreview-bottomクラスで描画する"
+given = "draggingStackTop=null/true/falseをそれぞれ設定してmount（テスト側で列挙）"
+expect_return_shape = "nullでは.stack-preview-rectが存在せず、trueではpreview-top、falseではpreview-bottomのクラスを持つ矩形が存在する"
+
+# --- overlayスタイル ---
+
+[[condition]]
+id = "practice-drag-overlay.overlay-style-position-and-size-from-drag-state"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:174"
+target_function = "PracticeDragOverlay overlayStyle computed（left/top/width/height）"
+source = "src/components/practice/PracticeDragOverlay.vue L34-47 と tm TASK-559"
+description = "オーバーレイのleft/topはdraggingPosからdraggingOffsetを引いたpx値、width/heightはdraggingCardSizeのpx値になる。draggingPosの更新はスタイルへ反応的に反映される"
+given = "draggingPos・draggingOffset・draggingCardSizeに既知の値を設定してmountし、その後draggingPosを更新する"
+expect_return_shape = "root要素のstyle.left/topが (pos-offset) のpx文字列、style.width/heightがcardSizeのpx文字列と一致し、pos更新後は新しいleft/topに変わる"
+
+[[condition]]
+id = "practice-drag-overlay.overlay-style-transform-reflects-rotated"
+source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:192,tests/unit/components/PracticeDragOverlay.test.ts:201"
+target_function = "PracticeDragOverlay overlayStyle computed（transform/transformOrigin）"
+source = "src/components/practice/PracticeDragOverlay.vue L43-44 と tm TASK-559"
+description = "draggingRotated=trueのときtransformは rotate(-90deg)、falseのときは none になる。transformOriginはdraggingOffsetの `${x}px ${y}px` になる"
+given = "draggingRotated=true/falseをそれぞれ設定し、draggingOffsetに既知の値を設定してmount（テスト側で列挙）"
+expect_return_shape = "root要素のstyle.transformが回転有無に対応する値になり、style.transformOriginがoffsetのpx文字列と一致する"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "overlayStyleの静的定数部（position: fixed、pointerEvents: none、zIndex: 99999、opacity: 0.85）"
+source = "src/components/practice/PracticeDragOverlay.vue L38-46 と tm TASK-559"
+reason = "drag状態に依存しない固定値で分岐なし（§8「書かない」: 静的提示）。状態依存部（left/top/width/height/transform/transformOrigin）のみ対応条件で検証する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L51-102。オーバーレイ・画像・矩形の静的スタイル）"
+source = "src/components/practice/PracticeDragOverlay.vue L51-102 と tm TASK-559"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。クラス付与の分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "usePracticeDragState composable本体（状態遷移・documentリスナ・自動スクロール等）"
+source = "src/composables/practice/usePracticeDragState.ts と tm TASK-559"
+reason = "隣接モジュール責務。practice-drag-state条件書（tests/design/practice-drag-state/）で保証済み。本書はcomposableの公開状態を購読した描画結果のみを検証し、テストでもcomposableはモックせず実物を使う"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "chrome.runtime.getURL本体と裏面画像アセット（images/card_back.png）"
+source = "src/components/practice/PracticeDragOverlay.vue L29 と tm TASK-559"
+reason = "ブラウザ拡張APIと静的アセットで本コンポーネントのロジックではない。テスト環境ではtests/setup.tsのスタブ（パスをそのまま返す）で代替し、呼び出し結果のsrc反映のみ対応条件で検証する"
+decided_at = "2026-11-22"
+decided_by = "claude"
