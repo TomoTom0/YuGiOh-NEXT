@@ -1,5 +1,5 @@
 import { type Ref, computed, nextTick, toRaw } from 'vue'
-import type { CardInfo, Attribute, Race } from '../../../types/card'
+import type { CardInfo } from '../../../types/card'
 import type { SearchFilters } from '../../../types/search-filters'
 import type { SearchOptions } from '../../../api/card-search'
 import { useDeckEditStore } from '../../../stores/deck-edit'
@@ -75,21 +75,21 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       if (card.cardType === 'monster') {
         // 属性フィルター
         if (filters.attributes.length > 0) {
-          if (!('attribute' in card) || !filters.attributes.includes(card.attribute as Attribute)) {
+          if (!('attribute' in card) || !filters.attributes.includes(card.attribute)) {
             return false
           }
         }
 
         // 種族フィルター
         if (filters.races.length > 0) {
-          if (!('race' in card) || !filters.races.includes(card.race as Race)) {
+          if (!('race' in card) || !filters.races.includes(card.race)) {
             return false
           }
         }
 
         // モンスタータイプフィルター
         if (filters.monsterTypes.length > 0 && 'types' in card) {
-          const cardTypes = (card as any).types || []
+          const cardTypes = card.types || []
           const matches = (mt: SearchFilters['monsterTypes'][number]) => {
             if (mt.state === 'normal') {
               return cardTypes.includes(mt.type)
@@ -132,7 +132,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         // card.linkMarkers はビットフラグ（bit N-1 = 方向N）であり配列ではないため、
         // ビット演算で方向の有無を判定する
         if (filters.linkMarkers.length > 0 && 'linkMarkers' in card) {
-          const cardMarkerBits = typeof (card as any).linkMarkers === 'number' ? (card as any).linkMarkers : 0
+          const cardMarkerBits = typeof card.linkMarkers === 'number' ? card.linkMarkers : 0
           const hasDirection = (pos: number) => (cardMarkerBits & (1 << (pos - 1))) !== 0
           // AND条件（全てのマーカーが含まれている）またはOR条件（いずれかのマーカーが含まれている）
           const hasMatch = filters.linkMarkerMatchMode === 'and'
@@ -145,7 +145,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
         // ATKフィルター
         if ((filters.atk.min !== undefined || filters.atk.max !== undefined) && 'atk' in card) {
-          const atk = (card as any).atk
+          const atk = card.atk
           if (typeof atk === 'number') {
             if (filters.atk.min !== undefined && atk < filters.atk.min) {
               return false
@@ -158,7 +158,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
         // DEFフィルター
         if ((filters.def.min !== undefined || filters.def.max !== undefined) && 'def' in card) {
-          const def = (card as any).def
+          const def = card.def
           if (typeof def === 'number') {
             if (filters.def.min !== undefined && def < filters.def.min) {
               return false
@@ -172,14 +172,14 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
 
       // 魔法カードのみに適用されるフィルター
       if (card.cardType === 'spell' && filters.spellTypes.length > 0) {
-        if (!('effectType' in card) || !filters.spellTypes.includes((card as any).effectType)) {
+        if (card.effectType === undefined || !filters.spellTypes.includes(card.effectType)) {
           return false
         }
       }
 
       // 罠カードのみに適用されるフィルター
       if (card.cardType === 'trap' && filters.trapTypes.length > 0) {
-        if (!('effectType' in card) || !filters.trapTypes.includes((card as any).effectType)) {
+        if (card.effectType === undefined || !filters.trapTypes.includes(card.effectType)) {
           return false
         }
       }
@@ -232,13 +232,13 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
       // autoモードで2文字以下の場合はname検索として扱う
       const effectiveSearchMode = (searchMode.value === 'auto' && keyword.length <= 2) ? 'name' : searchMode.value
 
-      const searchTypeMap: Record<string, string> = {
+      const searchTypeMap: Record<string, '1' | '2' | '3' | '4'> = {
         'auto': '1',
         'name': '1',
         'text': '2',
         'pendulum': '3'
       }
-      let searchType = searchTypeMap[effectiveSearchMode] || '1'
+      let searchType: '1' | '2' | '3' | '4' = searchTypeMap[effectiveSearchMode] ?? '1'
 
       // 検索実行時に動的import
       const { searchCards, searchCardsAuto } = await import('@/api/card-search')
@@ -272,7 +272,7 @@ export function useSearchExecution(options: UseSearchExecutionOptions): UseSearc
         // 通常の検索（またはautoモードから委譲された場合）
         searchOptions = buildSearchOptions(
           keyword,
-          searchType as '1' | '2' | '3' | '4',
+          searchType,
           deckStore.sortOrder as SortOrder,
           filtersSnapshot
         )
