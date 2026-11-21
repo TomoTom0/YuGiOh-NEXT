@@ -18,6 +18,7 @@ import { mount, VueWrapper } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import PracticeField from '@/components/practice/PracticeField.vue';
+import { isHTMLElement } from '@/utils/type-guards';
 import { usePracticeStore } from '@/stores/practice';
 import { useSettingsStore } from '@/stores/settings';
 import { useDeckEditStore } from '@/stores/deck-edit';
@@ -133,6 +134,11 @@ const PracticeDragOverlayStub = defineComponent({
 // fixture / mount
 // ============================================================
 
+function htmlElement(el: Element | undefined): HTMLElement {
+  if (!isHTMLElement(el)) throw new Error('element is not an HTMLElement');
+  return el;
+}
+
 function makeCard(id: string): PracticeCard {
   return {
     cardId: id,
@@ -143,7 +149,7 @@ function makeCard(id: string): PracticeCard {
     cardType: 'monster',
     empty: false,
     instanceId: `inst-${id}`,
-  } as PracticeCard;
+  };
 }
 
 const CARD_A = makeCard('a');
@@ -252,7 +258,7 @@ describe('components/practice/PracticeField', () => {
       s.appSettings.practiceCardSize = 'medium';
       s.appSettings.practiceCardSize2P = 'large';
     });
-    let root = wrapper.find('.practice-field').element as HTMLElement;
+    let root = htmlElement(wrapper.find('.practice-field').element);
     expect(root.style.getPropertyValue('--practice-card-width')).toBe('60px');
     expect(root.style.getPropertyValue('--practice-card-height')).toBe('88px');
     wrapper.unmount();
@@ -263,7 +269,7 @@ describe('components/practice/PracticeField', () => {
       s.appSettings.practiceCardSize = 'medium';
       s.appSettings.practiceCardSize2P = 'large';
     });
-    root = wrapper.find('.practice-field').element as HTMLElement;
+    root = htmlElement(wrapper.find('.practice-field').element);
     expect(root.style.getPropertyValue('--practice-card-width')).toBe('90px');
     expect(root.style.getPropertyValue('--practice-card-height')).toBe('132px');
   });
@@ -396,12 +402,15 @@ describe('components/practice/PracticeField', () => {
         if (twoDeck) p.p2DeckDno = 999;
         p.zones.hand = [CARD_A];
         p.zones2.hand = [CARD_B];
+        p.zones.temp = [CARD_B];
+        p.zones2.temp = [CARD_A];
       });
 
       const area = wrapper.findComponent(PracticeHandAreaStub);
       expect(area.props('reversed')).toBe(reversed);
       expect(area.props('twoDeckMode')).toBe(twoDeck);
       expect(area.props('handCards')).toEqual(fieldIndex === 1 ? [CARD_B] : [CARD_A]);
+      expect(area.props('tempCards')).toEqual(fieldIndex === 1 ? [CARD_A] : [CARD_B]);
       expect(area.props('cardWidth')).toBe(36);
       expect(area.props('cardHeight')).toBe(53);
     },
