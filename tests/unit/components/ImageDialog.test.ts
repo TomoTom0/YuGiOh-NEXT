@@ -23,6 +23,8 @@ import { resolve } from 'node:path';
 import ImageDialog from '@/components/ImageDialog.vue';
 import { downloadDeckRecipeImage } from '@/content/deck-recipe/downloadDeckRecipeImage';
 import type { DeckInfo } from '@/types/deck';
+import type { CreateDeckRecipeImageOptions, DownloadDeckRecipeImageOptions } from '@/types/deck-recipe-image';
+import { isHTMLInputElement } from '@/utils/type-guards';
 
 interface GeneratedImage {
   dataUrl: string;
@@ -33,13 +35,13 @@ interface GeneratedImage {
 // createDeckRecipeImageの解決順を制御するため、resolve関数を保留キューに貯める。
 // FakeImageはdataUrlから寸法を復元するため、dataUrl→寸法の対応も保持する。
 const { pendingCalls, dimsByUrl, createArgs } = vi.hoisted(() => ({
-  pendingCalls: [] as Array<(value: GeneratedImage) => void>,
+  pendingCalls: new Array<(value: GeneratedImage) => void>(),
   dimsByUrl: new Map<string, { width: number; height: number }>(),
-  createArgs: [] as Array<Record<string, unknown>>,
+  createArgs: new Array<CreateDeckRecipeImageOptions>(),
 }));
 
 vi.mock('@/content/deck-recipe/createDeckRecipeImage', () => ({
-  createDeckRecipeImage: (args: Record<string, unknown>) => {
+  createDeckRecipeImage: (args: CreateDeckRecipeImageOptions) => {
     createArgs.push(args);
     return new Promise<GeneratedImage>((resolve) => {
       pendingCalls.push(resolve);
@@ -49,7 +51,7 @@ vi.mock('@/content/deck-recipe/createDeckRecipeImage', () => ({
 }));
 
 vi.mock('@/content/deck-recipe/downloadDeckRecipeImage', () => ({
-  downloadDeckRecipeImage: vi.fn(),
+  downloadDeckRecipeImage: vi.fn<(options: DownloadDeckRecipeImageOptions) => Promise<void>>(),
 }));
 
 // ImageDialog.vueのgenerateBackgroundImageが使うDOM APIのスタブ
@@ -233,7 +235,9 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).toContain('outline-color: #1485ed'); // blue
     expect(reopened.find('.qr-toggle').classes()).toContain('inactive');
     expect(reopened.find('.side-toggle').classes()).toContain('inactive');
-    expect((reopened.find('.footer-field .field-input').element as HTMLInputElement).value).toBe('カスタムフッター');
+    const restoredFooterInput = reopened.find('.footer-field .field-input').element;
+    if (!isHTMLInputElement(restoredFooterInput)) throw new Error('footer input is not an HTMLInputElement');
+    expect(restoredFooterInput.value).toBe('カスタムフッター');
 
     reopened.unmount();
   });
@@ -412,7 +416,7 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
   let wrapper: VueWrapper | null = null;
   const downloadMock = vi.mocked(downloadDeckRecipeImage);
 
-  const sideCard = { cid: '1', ciid: '1', lang: 'ja', quantity: 1 } as DeckInfo['sideDeck'][number];
+  const sideCard: DeckInfo['sideDeck'][number] = { cid: '1', ciid: '1', lang: 'ja', quantity: 1 };
   const deckDataWithSide: DeckInfo = { ...makeDeckInfo(), sideDeck: [sideCard] };
 
   function mountWith(deckData: DeckInfo) {
@@ -455,10 +459,8 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     // 生成が未解決の間はポップアップは表示されない
     expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(false);
     expect(createArgs).toHaveLength(1);
-    const args = createArgs[0] as {
-      cgid: string; dno: string; color: string; includeQR: boolean; scale: number;
-      footerText?: string; genesysPoints?: unknown; deckData: DeckInfo;
-    };
+    const args = createArgs[0];
+    if (!args?.deckData) throw new Error('createDeckRecipeImage was not called with deckData');
     expect(args.cgid).toBe('cgid123');
     expect(args.dno).toBe('1');
     expect(args.color).toBe('red');
@@ -471,7 +473,8 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     await flushPromises();
 
     expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(true);
-    const titleInput = wrapper.find('.title-field .field-input').element as HTMLInputElement;
+    const titleInput = wrapper.find('.title-field .field-input').element;
+    if (!isHTMLInputElement(titleInput)) throw new Error('title input is not an HTMLInputElement');
     expect(titleInput.value).toBe('テストデッキ');
   });
 
@@ -487,10 +490,12 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     expect(wrapper.find('.qr-toggle').classes()).toContain('active');
     expect(wrapper.find('.qr-toggle').text()).toContain('Include');
     // includeSide false は有効なbooleanとして適用され、プレビューはサイドなしで生成される
-    const args = createArgs[0] as { deckData: DeckInfo };
+    const args = createArgs[0];
+    if (!args?.deckData) throw new Error('createDeckRecipeImage was not called with deckData');
     expect(args.deckData.sideDeck).toEqual([]);
     // footerText 42 は非string→デフォルト''（入力欄は空）
-    const footerInput = wrapper.find('.footer-field .field-input').element as HTMLInputElement;
+    const footerInput = wrapper.find('.footer-field .field-input').element;
+    if (!isHTMLInputElement(footerInput)) throw new Error('footer input is not an HTMLInputElement');
     expect(footerInput.value).toBe('');
   });
 
@@ -517,14 +522,14 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     await wrapper.find('.side-toggle').trigger('click');
     await flushPromises();
     expect(createArgs).toHaveLength(2);
-    expect((createArgs[1] as { deckData: DeckInfo }).deckData.sideDeck).toEqual([]);
+    expect(createArgs[1]?.deckData?.sideDeck).toEqual([]);
     resolveImage(1, 'side-off');
     await flushPromises();
 
     await wrapper.find('.side-toggle').trigger('click');
     await flushPromises();
     expect(createArgs).toHaveLength(3);
-    expect((createArgs[2] as { deckData: DeckInfo }).deckData.sideDeck).toEqual([sideCard]);
+    expect(createArgs[2]?.deckData?.sideDeck).toEqual([sideCard]);
     resolveImage(2, 'side-on');
     await flushPromises();
 
@@ -543,7 +548,7 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     await flushPromises();
     expect(createArgs).toHaveLength(2);
-    expect((createArgs[1] as { footerText?: string }).footerText).toBe('カスタム');
+    expect(createArgs[1]?.footerText).toBe('カスタム');
     resolveImage(1, 'footer');
     await flushPromises();
   });
@@ -561,9 +566,8 @@ describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
     await flushPromises();
 
     expect(downloadMock).toHaveBeenCalledTimes(1);
-    const args = downloadMock.mock.calls[0]?.[0] as unknown as {
-      color: string; includeQR: boolean; scale: number; footerText?: string; deckData: DeckInfo;
-    };
+    const args = downloadMock.mock.calls[0]?.[0];
+    if (!args?.deckData) throw new Error('downloadDeckRecipeImage was not called with deckData');
     expect(args.color).toBe('red');
     expect(args.includeQR).toBe(true);
     expect(args.scale).toBe(2);
