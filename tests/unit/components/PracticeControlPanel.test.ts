@@ -28,7 +28,7 @@ function makeCard(id: string): PracticeCard {
     cardType: 'monster',
     empty: false,
     instanceId: `inst-${id}`,
-  } as PracticeCard;
+  };
 }
 
 function cards(n: number, prefix: string): PracticeCard[] {
