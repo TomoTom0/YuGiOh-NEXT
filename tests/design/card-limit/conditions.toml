@@ -4,7 +4,8 @@
 # TASK-330(Tier B展開)、utilsの残り（局所的なロジック）。
 #
 # 実装コメントとの差異:
-# - ファイル冒頭のJSDocに「現時点では全カード3枚のダミー実装」とあるが、getCardLimitの返り値は
+# - かつてファイル冒頭のJSDocに「現時点では全カード3枚のダミー実装」とあったが（TASK-304で
+#   当該コメントは削除済み）、getCardLimitの返り値は
 #   枚数そのものではなく制限レベルコード（0=禁止/1=制限/2=準制限/3=無制限）であり、呼び出し側で
 #   このコードを実際の許容枚数に変換している（本ファイル単体では枚数変換ロジックは持たない）。
 # - card.limitRegulationの型はLimitRegulation = 'forbidden' | 'limited' | 'semi-limited'（コンパイル時は
@@ -13,19 +14,18 @@
 #   条件化した（README 2節の「TypeScriptのnarrowingで到達不能なelse」には該当しない）。
 #
 # 対象外関数:
-# - updateLimitRegulation(): 分岐・throw・早期return・副作用の差異が一切ない未実装のTODOスタブ
-#   （APIから最新レギュレーションを取得する処理は未実装で本体は空）。README 2節の「書かない」基準
-#   （意味のある分岐が無い）に該当するため条件化していない。
+# - updateLimitRegulation(): 未実装のTODOスタブ（本体は空・呼び出し元ゼロ）のため条件化して
+#   いなかったが、TASK-304で関数自体を削除済み（2026-11-21）。
 
 [meta]
 feature = "card-limit"
 source_file = "src/utils/card-limit.ts"
-verified = true
+verified = false
 verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/card-limit.test.ts"
 source_hash = "1d40f9e24f3ae8e9a4ba6c5a3b2c0940459f1633"
-note = "verified=falseは0件"
+note = "TASK-304でsource変更（updateLimitRegulation削除）のため再検証が必要だが、既存欠陥（id形式・coversタグ欠落、fail 10件）が再検証をブロックしている。是正タスクをtmに起票済み。是正後にverified=trueへ復帰させる"
 
 # --- getCardLimit(card: CardInfo): number ---
 
