@@ -119,22 +119,8 @@ export function useFilterLogic(
     if (fieldState) {
       return !fieldState.enabled;
     }
-    // フィールドが存在しない場合は、card-typeから推論
-    if (searchStore.searchFilters.cardType !== null) {
-      // monsterカードタイプ専用フィールド
-      const monsterOnlyFields = ['attribute', 'race', 'level-rank', 'link-value', 'link-marker', 'p-scale', 'atk', 'def'];
-      if (monsterOnlyFields.includes(field) && searchStore.searchFilters.cardType !== 'monster') {
-        return true;
-      }
-      // spellカードタイプ専用フィールド
-      if (field === 'spell-type' && searchStore.searchFilters.cardType !== 'spell') {
-        return true;
-      }
-      // trapカードタイプ専用フィールド
-      if (field === 'trap-type' && searchStore.searchFilters.cardType !== 'trap') {
-        return true;
-      }
-    }
+    // 未登録のフィールドは有効として扱う。store実経路ではcreateInitialResultが
+    // 全フィールドを事前登録するため、cardTypeからの推論は不要（TASK-526）
     return false;
   }
 
