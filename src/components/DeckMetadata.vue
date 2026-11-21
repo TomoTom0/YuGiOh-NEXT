@@ -65,6 +65,7 @@ import DeckMetadataDescription from './DeckMetadataDescription.vue';
 import DeckMetadataTags from './DeckMetadataTags.vue';
 import DeckMetadataHeader from './DeckMetadataHeader.vue';
 import { getCardInfoFromUnifiedDB } from '../utils/card-utils';
+import type { CardInfo } from '../types/card';
 
 const deckStore = useDeckEditStore();
 
@@ -102,7 +103,7 @@ const allDeckCardRefs = computed(() => {
 
 // デッキ内の全カード情報を取得
 const allDeckCards = computed(() => {
-  const cards: any[] = [];
+  const cards: CardInfo[] = [];
 
   // mainDeck, extraDeck, sideDeckからカードIDを取得
   const allCardRefs = [
