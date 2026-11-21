@@ -1,0 +1,322 @@
+# 検証対象: src/components/DeckMetadataHeader.vue
+#
+# 経緯:
+# - TASK-544（TASK-331 Tier C第8号・TASK-532第7号の後続）。DeckMetadata系2/4ファイル目の
+#   Header（806行）。既存tests/unit/components/DeckMetadataHeader.test.ts（4it・
+#   auto-rename/auto-categoryのstore呼び出しとメニュー閉鎖のみ）を全面再設計
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-544
+#
+# 粒度方針（第7号・filter-tab条件書と同一）:
+# - 1条件=1振る舞いclass。同種入力の列挙（deckStyle 4値・deckType 5値など）は
+#   テスト側fixture表（it.each）で持ち、条件書には親条件のみ置く
+# - UI操作はDOMイベント経由で検証し、vm内部状態は直接参照しない。storeの公開状態
+#   （deckInfo）とemitは観測対象とする
+# - props/emits定義・静的SVG/SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - 親DeckMetadataの配線契約（props初期値・select-deck-typeの型ガード検証・
+#   ダイアログ表示状態・store書き込み）はdeck-metadata条件書（TASK-532）が保証。
+#   本書はHeader自身の内部挙動（computed/lifecycle/外クリック/dropdown/メニュー/
+#   デッキコード/auto系）のみ
+# - 呼び出すstoreメソッド（issueDeckCode/autoRenameDeck/autoSetCategory）の本体は
+#   deck-edit store側の責務。本書は呼び出し契約（引数・件数・成功/失敗の分岐）と
+#   Header側の状態遷移のみ観測する
+# - error-handler（handleSuccess/handleError）のトースト本体はerror-handler条件書の
+#   対象。本書はmodule mockで呼び出し引数（context/メッセージ/options）を観測する
+# - type-guards（isDeckTypeValue/isDeckStyleValue）の関数本体はtype-guards条件書の対象
+#
+# deckType '-1' 非対称の調査結論（第7号からの引継ぎ・tm TASK-544 bodyに詳細）:
+# 結論: 意図的設計ではなく**不具合疑い**。src修正は範囲外のためTASK-545へ分離起票。
+# 根拠:
+# 1. 型定義: Header props（L187）は deckType: '-1'|'0'|'1'|'2'|'3' で'-1'を正当な
+#    初期値として受け、親もDEFAULT_DECK_TYPE='-1'を未設定フォールバックに使用。
+#    src/types/deck-metadata.tsのDeckTypeValueもstringを含むため'-1'は型上許容
+# 2. 選択肢の構築: L45-47に @click="selectDeckType('-1')" の「未設定」optionが存在し、
+#    Header自身は'-1'をフィルタせずemitする（Header単体は対称。条件6で検証）
+# 3. 非対称の所在: 親DeckMetadata.selectDeckTypeがisDeckTypeValue（'0'〜'3'のみ）で
+#    検証し'-1'をconsole.errorで拒否するため、UI上の「未設定」が機能しない
+# 4. 対照: 兄弟のisDeckStyleValueは'-1'を含み、DeckStyleValueは'-1'を「未選択」と定義。
+#    デッキタイプだけ'-1'を除外する理由はコード上見当たらない
+# 5. 履歴: 「未設定」optionは422b819（PR #34）追加時は無検証代入で動作していたが、
+#    bacb696（PR #67 / 2025-12-12）で型ガード検証へ置換された際に'-1'が除外され回帰
+#
+# 作業中に発見した追加不具合: adjustAlignRightは呼び出し時にv-if配下のdropdown refが
+# まだnullのため早期returnし、align-rightが一切適用されない（probeで確認）。
+# src不変契約のため修正せずTASK-546へ分離起票・本条件書のexcludedに記録
+
+[meta]
+feature = "deck-metadata-header"
+source_file = "src/components/DeckMetadataHeader.vue"
+verified = true
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/DeckMetadataHeader.test.ts"
+source_hash = "fbb8742b5be8214d76b3afb0178c71038be7556c"
+note = "TASK-544（TASK-331第8号）でscript setup挙動を条件化。22条件=スタイルラベル1/リスナlifecycle1/外クリック1/dropdown開閉2/select emit2/メニュー読取1/デッキコード発行4+コピー2+dno watch1/auto系4/template表示3。既存4itを全面再設計。src不変（source_hash一致）。'-1'非対称はTASK-545、align-right無効はTASK-546へ分離"
+
+# --- computed / lifecycle / 外クリック ---
+
+[[condition]]
+id = "deck-metadata-header.deck-style-label-known-values"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:143"
+target_function = "deckStyleLabel computed"
+source = "src/components/DeckMetadataHeader.vue L218-225 と tm TASK-544"
+description = "デッキスタイルの設定値をボタン表示用の短縮ラベルへ変換する。既知4値の対応は表示契約として固定"
+given = "deckStyleが'-1'/'0'/'1'/'2'のいずれかでmount（テスト側fixture表で4値を列挙）"
+expect_return_shape = "'-1'→'Style'・'0'→'Chara'・'1'→'Tourn'・'2'→'Concep'が.deck-style-buttonのテキストとして描画される"
+
+[[condition]]
+id = "deck-metadata-header.document-click-listener-lifecycle"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:150"
+target_function = "DeckMetadataHeader onMounted / onUnmounted"
+source = "src/components/DeckMetadataHeader.vue L227-233 と tm TASK-544"
+description = "外クリック判定リスナをmount時にdocumentへ登録し、unmount時に同一ハンドラを解除する（リーク防止）"
+given = "headerをmountし、続けてunmountする"
+expect_return_shape = "document.addEventListener('click', handler)がmountで1回呼ばれ、unmountでremoveEventListener('click', 同一handler)が1回呼ばれる"
+
+[[condition]]
+id = "deck-metadata-header.outside-click-dismisses-matching-dropdown"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:167"
+target_function = "DeckMetadataHeader handleClickOutside"
+source = "src/components/DeckMetadataHeader.vue L236-248 と tm TASK-544"
+description = "外クリックはクリックされたコンテナに対応するUIだけを閉じ、他は維持する。コンテナ内クリックでは閉じない（3セレクタが独立判定）"
+given = "deckType/deckStyle/メニューの3つをすべて開いた状態で、各コンテナ外（document.body）と各コンテナ内をそれぞれクリック"
+expect_return_shape = "type外クリックでtype dropdownのみ閉じstyle/menuは残る。style外でstyleのみ閉じる。menu外でmenuのみ閉じる。各コンテナ内クリックでは対応するUIは開いたまま"
+
+# --- dropdown 開閉 / select emit ---
+
+[[condition]]
+id = "deck-metadata-header.deck-type-dropdown-toggles"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:202"
+target_function = "DeckMetadataHeader toggleDeckTypeDropdown"
+source = "src/components/DeckMetadataHeader.vue L271-280, L20-23 と tm TASK-544"
+description = "デッキタイプボタンのクリックでドロップダウンの表示をトグルする"
+given = "初期状態（閉じている）で.deck-type-buttonを2回クリック"
+expect_return_shape = "1回目で.deck-type-dropdownが存在し、2回目で消える"
+
+[[condition]]
+id = "deck-metadata-header.deck-style-dropdown-toggles"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:211"
+target_function = "DeckMetadataHeader toggleDeckStyleDropdown"
+source = "src/components/DeckMetadataHeader.vue L282-290, L86-90 と tm TASK-544"
+description = "デッキスタイルボタンのクリックでドロップダウンの表示をトグルする（タイプ側とは独立）"
+given = "初期状態（閉じている）で.deck-style-buttonを2回クリック"
+expect_return_shape = "1回目で.deck-style-dropdownが存在し、2回目で消える。タイプ側のdropdownは影響されない"
+
+[[condition]]
+id = "deck-metadata-header.select-deck-type-emits-and-closes"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:222"
+target_function = "DeckMetadataHeader selectDeckType"
+source = "src/components/DeckMetadataHeader.vue L293-296, L45-78 と tm TASK-544（'-1'非対称の調査結論はTASK-545）"
+description = "デッキタイプoptionの選択でselect-deck-typeを選択値そのもの（未設定'-1'を含む）でemitし、ドロップダウンを閉じる。Header自身は'-1'を拒否しない"
+given = "type dropdownを開き、未設定('-1')・'0'・'1'・'2'・'3'の各optionをクリック（fixture表）"
+expect_return_shape = "各クリックでselect-deck-typeがクリック値を引数に1回emitされ、dropdownが閉じる。'-1'も他の値と同じくemitされる（親側の拒否は別タスク）"
+
+[[condition]]
+id = "deck-metadata-header.select-deck-style-emits-and-closes"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:234"
+target_function = "DeckMetadataHeader selectDeckStyle"
+source = "src/components/DeckMetadataHeader.vue L298-301, L96-100 と tm TASK-544"
+description = "デッキスタイルoptionの選択でselect-deck-styleを選択値でemitし、ドロップダウンを閉じる"
+given = "style dropdownを開き、'Character'('0')・'Concept'('2')のoptionをクリック（fixture表）"
+expect_return_shape = "各クリックでselect-deck-styleが'0'/'2'を引数に1回emitされ、dropdownが閉じる"
+
+# --- メニュー / デッキコード ---
+
+[[condition]]
+id = "deck-metadata-header.menu-open-reads-store-with-defaults"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:249"
+target_function = "DeckMetadataHeader toggleMetadataMenu"
+source = "src/components/DeckMetadataHeader.vue L304-318, L123-160 と tm TASK-544"
+description = "メニューを開くときstore.deckInfoからお気に入り数と発行済みデッキコードを読み取り、未設定ならデフォルト（0/空文字）へフォールバックする"
+given = "favoriteCount=7・issuedDeckCode='ABC123'で開くケースと、両方undefined（未設定）で開き直すケース"
+expect_return_shape = "設定時: .menu-value-badge='7'・.deck-code-displayのvalue='ABC123'。未設定時: badge='0'・.deck-code-displayは無く.deck-code-btn（発行）が表示される"
+
+[[condition]]
+id = "deck-metadata-header.issue-deck-code-success"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:267"
+target_function = "DeckMetadataHeader issueDeckCode（成功分岐）"
+source = "src/components/DeckMetadataHeader.vue L320-348, L153-160 と tm TASK-544"
+description = "デッキコード発行が成功した場合、返却コードを表示しstoreへ保存して成功通知を行う"
+given = "deckInfo.dno=42・deckStore.issueDeckCode(42)が'NEWCODE'をresolve"
+expect_return_shape = "issueDeckCodeが42引数で1回呼ばれ、.deck-code-displayのvalue='NEWCODE'・store.deckInfo.issuedDeckCode='NEWCODE'・handleSuccessが呼ばれる"
+
+[[condition]]
+id = "deck-metadata-header.issue-deck-code-empty-response"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:285"
+target_function = "DeckMetadataHeader issueDeckCode（空レスポンス分岐）"
+source = "src/components/DeckMetadataHeader.vue L327-340 と tm TASK-544"
+description = "発行結果が空文字の場合はコードを保存せずエラー通知を行う（空文字を成功扱いしない）"
+given = "deckStore.issueDeckCodeが''（空文字）をresolve"
+expect_return_shape = "handleErrorがデッキコード発行失敗メッセージ・Error('Empty response')・{showToast:true}で呼ばれ、.deck-code-displayは出ず.deck-code-btnが残る"
+
+[[condition]]
+id = "deck-metadata-header.issue-deck-code-rejection"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:304"
+target_function = "DeckMetadataHeader issueDeckCode（catch分岐）"
+source = "src/components/DeckMetadataHeader.vue L341-348 と tm TASK-544"
+description = "発行処理がthrowしてもクラッシュせずエラー通知を行い、発行ボタンへ戻る"
+given = "deckStore.issueDeckCodeがreject(new Error('boom'))"
+expect_return_shape = "handleErrorがエラーオブジェクト'boom'を含む引数で呼ばれ、.deck-code-btnが残る（テスト自体は失敗しない）"
+
+[[condition]]
+id = "deck-metadata-header.issue-deck-code-loading-state"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:321"
+target_function = "DeckMetadataHeader issueDeckCode（issueLoading）"
+source = "src/components/DeckMetadataHeader.vue L320-322, L346-348, L153-160 と tm TASK-544"
+description = "発行中はボタンをdisabledにして'発行中'と表示し、完了（成功・失敗いずれも）後に通常状態へ戻す"
+given = "deckStore.issueDeckCodeが未resolveのPromiseを返し、後で'CODE'へresolve"
+expect_return_shape = "resolve前: .deck-code-btnがdisabledかつテキスト'発行中'。resolve後: disabled解除・テキスト'発行'・code display表示"
+
+[[condition]]
+id = "deck-metadata-header.copy-deck-code-success"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:343"
+target_function = "DeckMetadataHeader copyDeckCode（成功分岐）"
+source = "src/components/DeckMetadataHeader.vue L350-365, L146-151 と tm TASK-544"
+description = "表示されたデッキコードをクリックするとクリップボードへ書き込み成功通知を行う"
+given = "issuedDeckCode='ABC123'でメニューを開き.deck-code-displayをクリック。navigator.clipboard.writeTextがresolve"
+expect_return_shape = "clipboard.writeText('ABC123')が1回呼ばれ、handleSuccessがコピー成功メッセージで呼ばれる"
+
+[[condition]]
+id = "deck-metadata-header.copy-deck-code-failure"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:357"
+target_function = "DeckMetadataHeader copyDeckCode（catch分岐）"
+source = "src/components/DeckMetadataHeader.vue L358-364 と tm TASK-544"
+description = "クリップボード書き込みが失敗してもクラッシュせずエラー通知を行う"
+given = "navigator.clipboard.writeTextがreject(new Error('denied'))"
+expect_return_shape = "handleErrorがコピー失敗メッセージ・エラー'denied'・{showToast:true}で呼ばれる"
+
+[[condition]]
+id = "deck-metadata-header.dno-change-clears-deck-code"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:374"
+target_function = "DeckMetadataHeader watch(deckStore.deckInfo.dno)"
+source = "src/components/DeckMetadataHeader.vue L367-369 と tm TASK-544"
+description = "編集中デッキが切り替わったら表示中のデッキコードをクリアし、前デッキのコードが残らないようにする"
+given = "issuedDeckCode='ABC123'でメニューを開きcode displayを表示中にstore.deckInfo.dnoを42→99へ変更"
+expect_return_shape = ".deck-code-displayが消え.deck-code-btn（発行）が表示される（ローカル表示がリセットされる）"
+
+# --- auto-rename / auto-category ---
+
+[[condition]]
+id = "deck-metadata-header.auto-rename-success"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:391"
+target_function = "DeckMetadataHeader handleAutoRename（renamed=true分岐）"
+source = "src/components/DeckMetadataHeader.vue L372-382, L162-164 と tm TASK-544"
+description = "自動命名が成功した場合は設定後のデッキ名を含む成功通知を出し、メニューを閉じる"
+given = "store.autoRenameDeck()が{renamed:true, categories:['cat1']}を返しdeckInfo.name='自動名'"
+expect_return_shape = "autoRenameDeckが1回呼ばれ、handleSuccessが'自動名'を含むメッセージで呼ばれ、.metadata-menu-dropdownが消える"
+
+[[condition]]
+id = "deck-metadata-header.auto-rename-no-match"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:411"
+target_function = "DeckMetadataHeader handleAutoRename（renamed=false分岐）"
+source = "src/components/DeckMetadataHeader.vue L378-385 と tm TASK-544"
+description = "該当カテゴリが無く自動命名できなかった場合はエラー通知を出し、メニューを閉じる"
+given = "store.autoRenameDeck()が{renamed:false, categories:[]}を返す"
+expect_return_shape = "handleErrorが'対応するカテゴリが見つからない'趣旨のメッセージで呼ばれ、.metadata-menu-dropdownが消える"
+
+[[condition]]
+id = "deck-metadata-header.auto-category-found"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:427"
+target_function = "DeckMetadataHeader handleAutoCategory（該当あり分岐）"
+source = "src/components/DeckMetadataHeader.vue L388-393, L165-167 と tm TASK-544"
+description = "カテゴリ自動設定でカテゴリが見つかった場合は件数を含む成功通知を出し、メニューを閉じる"
+given = "store.autoSetCategory()が['cat1','cat2']を返す"
+expect_return_shape = "autoSetCategoryが1回呼ばれ、handleSuccessが'2件'を含むメッセージで呼ばれ、.metadata-menu-dropdownが消える"
+
+[[condition]]
+id = "deck-metadata-header.auto-category-none"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:442"
+target_function = "DeckMetadataHeader handleAutoCategory（該当なし分岐）"
+source = "src/components/DeckMetadataHeader.vue L393-396 と tm TASK-544"
+description = "該当カテゴリが0件の場合もエラーではなく「見つかりませんでした」の成功通知を出し、メニューを閉じる"
+given = "store.autoSetCategory()が[]を返す"
+expect_return_shape = "handleSuccessが'該当するカテゴリが見つかりませんでした'で呼ばれ、handleErrorは呼ばれず、.metadata-menu-dropdownが消える"
+
+# --- template 表示契約（script の状態に直結する分岐） ---
+
+[[condition]]
+id = "deck-metadata-header.public-button-state-and-emit"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:461"
+target_function = "DeckMetadataHeader template public-button"
+source = "src/components/DeckMetadataHeader.vue L5-12 と tm TASK-544"
+description = "公開状態に応じてボタンの表示（ラベル・is-publicクラス）を切り替え、クリックでtoggle-publicをemitする"
+given = "isPublic=falseとisPublic=trueでそれぞれmountし、false側でボタンをクリック"
+expect_return_shape = "false: テキスト'非公開'・is-publicクラスなし。true: '公開'・is-publicクラスあり。クリックでtoggle-publicが1回emit"
+
+[[condition]]
+id = "deck-metadata-header.deck-type-placeholder-for-unset"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:475"
+target_function = "DeckMetadataHeader template deck-type-button"
+source = "src/components/DeckMetadataHeader.vue L14-17 と tm TASK-544"
+description = "未設定（'-1'）のときはplaceholderを表示し、設定済み（'0'〜'3'）のときはタイプアイコンを表示する"
+given = "deckTypeが'-1'・'0'・'1'・'2'・'3'でそれぞれmount（fixture表）"
+expect_return_shape = "'-1': .deck-type-placeholderのテキスト='type'で.deck-type-iconなし。'0'〜'3': .deck-type-iconが1つありplaceholderなし"
+
+[[condition]]
+id = "deck-metadata-header.deck-style-bold-when-set"
+source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:484"
+target_function = "DeckMetadataHeader template deck-style-button"
+source = "src/components/DeckMetadataHeader.vue L86-89 と tm TASK-544"
+description = "デッキスタイル未設定（'-1'）は通常文字、設定済みは太字で表示する（未設定を視覚的に区別）"
+given = "deckStyleが'-1'・'0'〜'2'でそれぞれmount（fixture表）"
+expect_return_shape = "'-1': .deck-style-button内のspanにtext-boldクラスなし。'0'〜'2': text-boldクラスあり"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "adjustAlignRightによる右寄せ位置調整（Viewport幅とrectからalign-rightを決める分岐・setTimeout(10)・nextTickのタイミング）"
+source = "src/components/DeckMetadataHeader.vue L250-290, L304-318 と tm TASK-546"
+reason = "不具合によりUIから到達不能。呼び出し側がshowXxx=true直後にv-if配下のdropdown refを渡すため、呼び出し時点でrefがnullでadjustAlignRightのガード（!dropdown）に引っかかり早期returnする。一時probeでオーバーフロー条件でもalign-rightが付かないことを確認済み。src不変契約のため修正せずTASK-546へ分離。形だけの条件（実装の言い換え）を作らないため対象外"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "copyDeckCodeの先頭早期return（if (!deckCode.value) return）"
+source = "src/components/DeckMetadataHeader.vue L350-352 と tm TASK-544"
+reason = "UI上deckCodeが空のときは.deck-code-displayが描画されずcopyDeckCodeが呼ばれないため到達不能な防御コード。§8「書かない」（型/UI構造で保証済みの分岐）に該当"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "deckStyleLabelのデフォルトフォールバック（return 'Style'）"
+source = "src/components/DeckMetadataHeader.vue L224 と tm TASK-544"
+reason = "props型 deckStyle: '-1'|'0'|'1'|'2' で既知4値のみが渡され、分岐が型システムで網羅されているため到達不能（§8「書かない」）。既知4値のマッピングは条件1で検証"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "Tag/Catボタンのshow-tag-dialog・show-category-dialog emit（template直結のイベント透過のみ）"
+source = "src/components/DeckMetadataHeader.vue L102-108 と tm TASK-544"
+reason = "分岐を持たないemitの受け渡しのみで§8「書かない」（getter/setterやprops受け渡しのみ）に該当。ダイアログの表示状態は親deck-metadata条件書が保証"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps/defineEmits定義・DOM参照ref宣言・内部状態ref（showXxx/deckCode/issueLoading等）の宣言自体"
+source = "src/components/DeckMetadataHeader.vue L180-216 と tm TASK-544"
+reason = "宣言・受け渡しのみで分岐なし（§8「書かない」）。各状態の遷移は対応条件（dropdown開閉・メニュー読取・loading状態等）でObservableな結果として検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L414-806。レイアウト・配色・ホバー/アクティブ状態等）"
+source = "src/components/DeckMetadataHeader.vue L414-806 と tm TASK-544"
+reason = "静的スタイル定義でロジック分岐なし（第7号・filter-tab条件書のexcludedと同根拠）。is-public/text-bold/align-right等クラス付与の分岐は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "deck-type/deck-styleアイコンのSVGパス定数・mdiStar/mdiXmlアイコン文字列・固定ラベル文字列"
+source = "src/components/DeckMetadataHeader.vue L18-80, L177 と tm TASK-544"
+reason = "静的な表示データで分岐なし。条件21（placeholder vs アイコンの表示切り替え）で表示の有無は検証済みで、パス内容自体は検証対象外"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "error-handler（handleSuccess/handleError）のトースト表示本体・storeメソッド（issueDeckCode/autoRenameDeck/autoSetCategory）の内部実装"
+source = "src/components/DeckMetadataHeader.vue L203, L320-397 と tm TASK-544"
+reason = "error-handler条件書・deck-edit store側の責務。本書ではmodule mock/spyで呼び出し契約（引数・結果分岐・Header側の状態遷移）のみ観測する"
+decided_at = "2026-11-21"
+decided_by = "claude"
