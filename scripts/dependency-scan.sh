@@ -4,12 +4,12 @@ set -euo pipefail
 # Simple helper to run dependency scans and save outputs under docs/internal-reviews/reports/
 mkdir -p docs/internal-reviews/reports
 
-echo "Running npm audit..."
-npm audit --json > docs/internal-reviews/reports/dependency-license-report.raw-audit.json || true
+echo "Running pnpm audit..."
+pnpm audit --json > docs/internal-reviews/reports/dependency-license-report.raw-audit.json || true
 echo "Saved audit to docs/internal-reviews/reports/dependency-license-report.raw-audit.json"
 
-echo "Running npm outdated..."
-npm outdated --json > docs/internal-reviews/reports/dependency-license-report.raw-outdated.json || true
+echo "Running pnpm outdated..."
+pnpm outdated --json > docs/internal-reviews/reports/dependency-license-report.raw-outdated.json || true
 echo "Saved outdated to docs/internal-reviews/reports/dependency-license-report.raw-outdated.json"
 
 echo "Attempting license scan with license-checker (if available)..."
