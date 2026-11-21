@@ -1,0 +1,140 @@
+# 検証対象: src/components/DeckMetadataTags.vue
+#
+# 経緯:
+# - TASK-554（TASK-331 Tier C第10号・TASK-551第9号の後続）。DeckMetadata系4ファイル目の
+#   Tags（177行。script setupはL23-49、残りはtemplateとscoped CSS）。既存の専用ユニット
+#   テストは無く（DeckMetadata.test.tsからstub経由で触れるのみ）、
+#   tests/unit/components/DeckMetadataTags.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-554
+#
+# 粒度方針（Tier C・第7号〜第9号条件書と同一）:
+# - 1条件=1振る舞いclass。モンスタータイプ6種（fusion/synchro/xyz/link/ritual/pendulum）の
+#   個別caseはテスト側fixture表（it.each）で持ち、条件書には親条件のみ置く
+# - 表示専用コンポーネントのため観測対象は描画結果（チップ数・順序・クラス・テキスト・
+#   data-type）のみ。vm内部状態は直接参照しない
+# - props/emits定義・静的SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - 親DeckMetadataの配線契約（modelTags/modelCategories/tags/categoriesの供給）は
+#   deck-metadata条件書（TASK-532）が保証。本書はTags自身の描画挙動のみ
+# - tag-master-data（getMonsterTypeFromLabel）の関数本体は隣接モジュールの対象。
+#   本書は実物を呼び出した結果のdata-type反映のみ（tag-dialog条件書と同じ線引き）
+#
+# 作業中に発見した不具合疑い（src不変のため別タスクへ分離）:
+# - defineEmitsのremove-tag/remove-category（L33-36）はtemplateに発火経路（クリック
+#   ハンドラ等）が無く一度もemitされない。親DeckMetadata.vue（L41-42）は両イベントを
+#   リッスンし実装済みハンドラ（L236-252）へ接続するが発火し得ないためデッドコード。
+#   チップ削除UIが存在せず、実際の削除はTagDialog/CategoryDialogの選択解除経由。
+#   [[excluded]]に記録しTASK-555へ分離起票
+
+[meta]
+feature = "deck-metadata-tags"
+source_file = "src/components/DeckMetadataTags.vue"
+verified = true
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/DeckMetadataTags.test.ts"
+source_hash = "258445b6e1783f8a6afc877791a848a2d0f75655"
+note = "TASK-554（TASK-331第10号）で表示専用コンポーネントの描画挙動を条件化。7条件=タグチップ描画1+data-type導出3（モンスタータイプ6種・tagId不在・タイプ名不含）/カテゴリチップ描画1+フォールバック1/空モデル1。テストは新規作成（12it）。src不変。emit未実装（remove-tag/remove-categoryが親リスナー経由で死んでいる件）はTASK-555へ分離"
+
+# --- タグチップ描画 ---
+
+[[condition]]
+id = "deck-metadata-tags.tag-chips-render-in-model-order"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:70"
+target_function = "DeckMetadataTags template tag-chip v-for"
+source = "src/components/DeckMetadataTags.vue L4-11 と tm TASK-554"
+description = "modelTagsの各エントリに対してタグチップを1件ずつmodelTagsの並び順どおりに描画する。クラスはchip/tag-chip、テキストはtags[tagId]のラベル。チップ全体の並びはタグ→カテゴリの順"
+given = "modelTags=['8','18','1']（いずれもtagsに実在するタグID）+ modelCategories=['4']でmount"
+expect_return_shape = ".tag-chipが3件・順にリンク/融合/闇と表示され、各チップのクラスにchipを含む。全.chipはタグチップ3件→カテゴリチップ1件の順に並ぶ"
+
+# --- タグチップのdata-type導出 ---
+
+[[condition]]
+id = "deck-metadata-tags.tag-chip-data-type-monster-type-labels"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:90"
+target_function = "DeckMetadataTags getTagType"
+source = "src/components/DeckMetadataTags.vue L38-43 と tm TASK-554"
+description = "タグチップのdata-typeは、解決したラベルからgetMonsterTypeFromLabel（tag-master-data実物）で導出したモンスタータイプ。エクストラデッキ系6種の対応は表示契約として固定"
+given = "融合/シンクロ/エクシーズ/リンク/儀式/ペンデュラムの実マスタラベルを持つタグID（'18'/'11'/'10'/'8'/'17'/'9'。テスト側fixture表で6種を列挙）をそれぞれ単独でmodelTagsへ渡してmount"
+expect_return_shape = "各チップのdata-typeがそれぞれfusion/synchro/xyz/link/ritual/pendulumになる"
+
+[[condition]]
+id = "deck-metadata-tags.tag-chip-data-type-empty-when-tag-id-missing"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:101"
+target_function = "DeckMetadataTags getTagType（ラベル不在早期return）"
+source = "src/components/DeckMetadataTags.vue L39-40 と tm TASK-554"
+description = "tagsに存在しないtagIdはラベル解決不能。チップ自体は描画されるがテキストは空・data-typeは空文字になる（getTagTypeはgetMonsterTypeFromLabelを呼ぶ前に早期return）"
+given = "modelTags=['999']（tagsに不存在するID）でmount"
+expect_return_shape = ".tag-chipが1件・テキストは空文字・data-typeは空文字"
+
+[[condition]]
+id = "deck-metadata-tags.tag-chip-data-type-empty-when-label-has-no-monster-type"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:110"
+target_function = "DeckMetadataTags getTagType（タイプ名不含側）"
+source = "src/components/DeckMetadataTags.vue L41-42 と tm TASK-554"
+description = "ラベルが解決してもモンスタータイプ名を一切含まないタグ（attr/race/othersグループ）はdata-typeが空文字になる（チップのテキスト表示には影響しない）"
+given = "modelTags=['1','108']（ラベルは闇・公式紹介デッキ。いずれもモンスタータイプ名を含まない）でmount"
+expect_return_shape = "両チップともテキストはラベルどおり（闇・公式紹介デッキ）で、data-typeは空文字"
+
+# --- カテゴリチップ描画 ---
+
+[[condition]]
+id = "deck-metadata-tags.category-chips-render-in-model-order"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:121"
+target_function = "DeckMetadataTags template category-chip v-for + getCategoryLabel"
+source = "src/components/DeckMetadataTags.vue L12-18, L45-48 と tm TASK-554"
+description = "modelCategoriesの各エントリに対してカテゴリチップを1件ずつmodelCategoriesの並び順どおりに（categories側の並び順ではなく）描画する。クラスはchip/category-chip、テキストはcategoriesの一致エントリのlabel"
+given = "modelCategories=['517','4']（categoriesはvalue='4'が先頭に登録済み）でmount"
+expect_return_shape = ".category-chipが2件・modelCategories順のラベル（517→ドラゴン、4→カオス）で表示され、各チップのクラスにchipを含む"
+
+[[condition]]
+id = "deck-metadata-tags.category-chip-label-falls-back-to-cat-id"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:134"
+target_function = "DeckMetadataTags getCategoryLabel（フォールバック）"
+source = "src/components/DeckMetadataTags.vue L45-48 と tm TASK-554"
+description = "categoriesに一致するvalueを持たないcatIdはラベル解決不能のため、catId自身の値をそのままチップテキストとして表示する"
+given = "modelCategories=['999']（categoriesに不存在するvalue）でmount"
+expect_return_shape = ".category-chipが1件・テキスト='999'"
+
+# --- 空モデル ---
+
+[[condition]]
+id = "deck-metadata-tags.empty-models-render-no-chips"
+source_lines = "tests/unit/components/DeckMetadataTags.test.ts:144"
+target_function = "DeckMetadataTags template chips-container"
+source = "src/components/DeckMetadataTags.vue L2-19 と tm TASK-554"
+description = "modelTags/modelCategoriesが空の場合はチップを1件も描画しない（行のコンテナは描画される）。片方だけ空の場合は空側のチップ種別のみ0件になる"
+given = "modelTags=[] かつ modelCategories=[]でmount（追加でmodelTags=[]+modelCategories=['4']も観測）"
+expect_return_shape = "両方空: .chips-containerは存在するが.chip/.tag-chip/.category-chipは0件。片方空: .tag-chipのみ0件で.category-chipは1件"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "defineEmitsで宣言されたremove-tag/remove-categoryイベントの発火（L33-36）"
+source = "src/components/DeckMetadataTags.vue L33-36 と tm TASK-554"
+reason = "template（L1-21）にクリックハンドラ等の発火経路が無く、両イベントは一度もemitされないため検証可能な振る舞いが存在しない。親DeckMetadata.vue L41-42は両イベントをリッスンし実装済みハンドラ（L236-252）へ接続しているが発火し得ない=デッドコードであり、チップ削除UI欠落の不具合疑いとしてTASK-555へ分離起票した（実際のタグ/カテゴリ削除はTagDialog/CategoryDialogの選択解除経由）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L51-177。data-type別チップ配色・hover・レイアウト等）"
+source = "src/components/DeckMetadataTags.vue L51-177 と tm TASK-554"
+reason = "静的スタイル定義でロジック分岐なし（第8号・deck-metadata-header条件書のexcludedと同根拠）。data-type属性値の付与分岐は対応条件（tag-chip-data-type系3条件）でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps/defineEmits定義・template静的構造（.metadata-row/.chips-containerラッパー・v-forのkey前置辞'tag-'/'cat-'）"
+source = "src/components/DeckMetadataTags.vue L2-3, L26-36 と tm TASK-554"
+reason = "宣言・静的構造のみで分岐なし（§8「書かない」: props受け渡しのみ・挙動に差を生まない内部処理）。ラッパー描画は空モデル条件の観測内で確認する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "tag-master-data（getMonsterTypeFromLabel）・card-maps（MONSTER_TYPE_ID_TO_NAME）の関数・マップ本体"
+source = "src/components/DeckMetadataTags.vue L24, L41 と tm TASK-554"
+reason = "隣接モジュールの責務（tag-dialog条件書と同じ線引き）。本書は実物をmockせずに呼び出した結果のUI反映（data-type）のみを条件化する"
+decided_at = "2026-11-21"
+decided_by = "claude"
