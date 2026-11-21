@@ -21,6 +21,7 @@ import { defineComponent, nextTick } from 'vue';
 import PracticeSlot from '@/components/practice/PracticeSlot.vue';
 import type { PracticeCard, ZoneType } from '@/stores/practice';
 import { usePracticeDragState } from '@/composables/practice/usePracticeDragState';
+import { isHTMLElement } from '@/utils/type-guards';
 
 // ============================================================
 // PracticeCardStack カスタムstub
@@ -69,7 +70,7 @@ function makeCard(id: string): PracticeCard {
     cardType: 'monster',
     empty: false,
     instanceId: `inst-${id}`,
-  } as PracticeCard;
+  };
 }
 
 const CARD_A = makeCard('a');
@@ -109,8 +110,10 @@ function mountSlot(opts: MountOptions): VueWrapper {
     global: { stubs: { PracticeCardStack: PracticeCardStackStub } },
   });
   // 矩形を既知値（100x100・原点0,0）に差し替える
-  (wrapper.element as HTMLElement).getBoundingClientRect = () =>
-    ({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+  if (!isHTMLElement(wrapper.element)) throw new Error('slot element is not an HTMLElement');
+  wrapper.element.getBoundingClientRect = (): DOMRect => ({
+    left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}),
+  });
   return wrapper;
 }
 
@@ -125,7 +128,8 @@ async function dispatchDrag(
   if (dataTransfer) {
     Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
   }
-  (wrapper.element as HTMLElement).dispatchEvent(event);
+  if (!isHTMLElement(wrapper.element)) throw new Error('slot element is not an HTMLElement');
+  wrapper.element.dispatchEvent(event);
   await nextTick();
 }
 
