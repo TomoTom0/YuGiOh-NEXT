@@ -173,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch, type Ref } from 'vue'
 import { mdiStar, mdiXml } from '@mdi/js'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { handleError, handleSuccess } from '../utils/error-handler'
@@ -247,46 +247,40 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 // ドロップダウン位置調整
+// 呼び出し時点ではv-if配下のdropdownが未描画でrefがnullのため、refオブジェクトを
+// 受け取りnextTick後（描画後）に要素を解決してから位置計算する
 async function adjustAlignRight(
-  selector: HTMLElement | null,
-  dropdown: HTMLElement | null,
-  alignRightRef: { value: boolean }
+  selectorRef: Ref<HTMLElement | null>,
+  dropdownRef: Ref<HTMLElement | null>,
+  alignRightRef: Ref<boolean>
 ) {
+  await nextTick()
+  const selector = selectorRef.value
+  const dropdown = dropdownRef.value
   if (!selector || !dropdown) return
 
-  await nextTick()
-  setTimeout(() => {
-    const rect = selector.getBoundingClientRect()
-    const dropdownRect = dropdown.getBoundingClientRect()
-    const viewportWidth = window.innerWidth
+  const rect = selector.getBoundingClientRect()
+  const dropdownRect = dropdown.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
 
-    if (rect.left + dropdownRect.width > viewportWidth) {
-      alignRightRef.value = true
-    } else {
-      alignRightRef.value = false
-    }
-  }, 10)
+  if (rect.left + dropdownRect.width > viewportWidth) {
+    alignRightRef.value = true
+  } else {
+    alignRightRef.value = false
+  }
 }
 
 function toggleDeckTypeDropdown() {
   showDeckTypeDropdown.value = !showDeckTypeDropdown.value
   if (showDeckTypeDropdown.value) {
-    adjustAlignRight(
-      deckTypeSelector.value,
-      deckTypeDropdown.value,
-      deckTypeDropdownAlignRight
-    )
+    adjustAlignRight(deckTypeSelector, deckTypeDropdown, deckTypeDropdownAlignRight)
   }
 }
 
 function toggleDeckStyleDropdown() {
   showDeckStyleDropdown.value = !showDeckStyleDropdown.value
   if (showDeckStyleDropdown.value) {
-    adjustAlignRight(
-      deckStyleSelector.value,
-      deckStyleDropdown.value,
-      deckStyleDropdownAlignRight
-    )
+    adjustAlignRight(deckStyleSelector, deckStyleDropdown, deckStyleDropdownAlignRight)
   }
 }
 
@@ -308,11 +302,7 @@ async function toggleMetadataMenu() {
     favoriteCount.value = deckStore.deckInfo.favoriteCount ?? 0
     deckCode.value = deckStore.deckInfo.issuedDeckCode ?? ''
 
-    adjustAlignRight(
-      metadataMenuContainer.value,
-      metadataMenuDropdown.value,
-      metadataMenuAlignRight
-    )
+    adjustAlignRight(metadataMenuContainer, metadataMenuDropdown, metadataMenuAlignRight)
   }
 }
 

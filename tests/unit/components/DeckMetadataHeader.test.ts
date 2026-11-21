@@ -2,7 +2,7 @@
  * components/DeckMetadataHeader のユニットテスト
  *
  * tests/design/deck-metadata-header/conditions.toml（TASK-544 × TASK-331 Tier C第8号）の
- * 22条件をカバーする（1条件1it／同種入力の列挙はfixture表でit.each集約）。
+ * 23条件をカバーする（1条件1it／同種入力の列挙はfixture表でit.each集約）。
  * 旧4it（auto-rename/auto-categoryのstore呼び出しとメニュー閉鎖のみ）は全面展開に伴い廃止。
  *
  * 検証方針（条件書[meta]コメント・Tier C共通方針）:
@@ -11,7 +11,8 @@
  * - store公開状態（deckInfo）とemitは観測対象。storeメソッドはspyで呼び出し契約を検証
  * - error-handlerはmodule mock（トースト本体はerror-handler条件書の対象）
  * - clipboard.writeTextはstub（外部I/O境界）
- * - 右寄せ位置調整は到達不能な不具合のため条件書excluded（TASK-546）。DOM rectのstubは不要
+ * - 右寄せ位置調整はTASK-546で修正済み。adjustAlignRightはクリック直後にdropdown要素が
+ *   生成されるため、DOM rectはElement.prototype単位でstub（要素事前取得ができない）
  * - wrapperのunmountはafterEachに一元化（assert失敗時も必ず全wrapperをunmount）
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -81,6 +82,13 @@ const styleBoldCases: Array<[HeaderProps['deckStyle'], boolean]> = [
   ['2', true],
 ];
 
+// align-right検証: [ラベル, 開くボタン, dropdown]（type/style/menuの3呼び出し口）
+const alignRightCases: Array<[string, string, string]> = [
+  ['deck-type', '.deck-type-button', '.deck-type-dropdown'],
+  ['deck-style', '.deck-style-button', '.deck-style-dropdown'],
+  ['metadata-menu', '.metadata-menu-button', '.metadata-menu-dropdown'],
+];
+
 describe('components/DeckMetadataHeader', () => {
   let pinia: ReturnType<typeof createPinia>;
   let store: ReturnType<typeof useDeckEditStore>;
@@ -134,6 +142,34 @@ describe('components/DeckMetadataHeader', () => {
     const btn = wrapper.findAll('.auto-action-btn').find((b) => b.text() === label);
     if (!btn) throw new Error(`auto action button not found: ${label}`);
     return btn;
+  }
+
+  /**
+   * align-right判定に使う要素矩形をstubする。adjustAlignRightはクリックハンドラ内で
+   * nextTick後にdropdown要素を解決するため、テスト側で要素を事前に取得できず
+   * Element.prototype単位のmockにする（useDragQuarter.test.tsのmockRectと同様に
+   * 本物のDOMRectを返しasキャスト不使用）。
+   * geometry: selector左端=200px・dropdown幅=240px（min-width相当）→ 合計440px
+   */
+  function stubDropdownGeometry(): void {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: Element): DOMRect {
+        const isDropdown = this.classList.contains('deck-type-dropdown')
+          || this.classList.contains('deck-style-dropdown')
+          || this.classList.contains('metadata-menu-dropdown');
+        if (isDropdown) return new DOMRect(0, 0, 240, 100);
+        const isSelector = this.classList.contains('deck-type-selector')
+          || this.classList.contains('deck-style-selector')
+          || this.classList.contains('metadata-menu-container');
+        if (isSelector) return new DOMRect(200, 0, 60, 24);
+        return new DOMRect(0, 0, 0, 0);
+      },
+    );
+  }
+
+  /** window.innerWidthを上書きする（happy-dom既定は1024。afterEachで既定値へ戻す） */
+  function stubViewportWidth(width: number): void {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: width });
   }
 
   // --- computed / lifecycle / 外クリック ---
@@ -239,6 +275,44 @@ describe('components/DeckMetadataHeader', () => {
         await options[index].trigger('click');
         expect(wrapper.emitted('select-deck-style')).toEqual([[expected]]);
         expect(wrapper.find('.deck-style-dropdown').exists()).toBe(false);
+      },
+    );
+  });
+
+  // --- align-right位置調整（TASK-546修正） ---
+
+  describe('align-right位置調整', () => {
+    afterEach(() => {
+      stubViewportWidth(1024);
+    });
+
+    it.each(alignRightCases)(
+      '[covers:deck-metadata-header.dropdown-align-right-on-overflow] オーバーフロー時は %s を開くとalign-rightが付く',
+      async (_label, buttonSelector, dropdownSelector) => {
+        stubDropdownGeometry();
+        stubViewportWidth(300); // 200 + 240 = 440 > 300 で右端はみ出し
+        const wrapper = mountHeader();
+
+        await wrapper.find(buttonSelector).trigger('click');
+        await nextTick();
+
+        expect(wrapper.find(dropdownSelector).exists()).toBe(true);
+        expect(wrapper.find(dropdownSelector).classes()).toContain('align-right');
+      },
+    );
+
+    it.each(alignRightCases)(
+      '[covers:deck-metadata-header.dropdown-align-right-on-overflow] 非オーバーフロー時は %s を開いてもalign-rightが付かない',
+      async (_label, buttonSelector, dropdownSelector) => {
+        stubDropdownGeometry();
+        stubViewportWidth(1024); // 200 + 240 = 440 <= 1024 で収まる
+        const wrapper = mountHeader();
+
+        await wrapper.find(buttonSelector).trigger('click');
+        await nextTick();
+
+        expect(wrapper.find(dropdownSelector).exists()).toBe(true);
+        expect(wrapper.find(dropdownSelector).classes()).not.toContain('align-right');
       },
     );
   });
