@@ -1,0 +1,123 @@
+# 検証対象: src/components/DeckMetadataDescription.vue
+#
+# 経緯:
+# - TASK-556（TASK-331 Tier C第11号・TASK-554第10号の後続）。DeckMetadata系5ファイル目（最終）の
+#   Description（104行。script setupはL16-38、残りはtemplateとscoped CSS）。既存の専用
+#   ユニットテストは無く（DeckMetadata.test.tsからstub経由で触れるのみ）、
+#   tests/unit/components/DeckMetadataDescription.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-556
+#
+# 粒度方針（Tier C・第8号〜第10号条件書と同一）:
+# - 1条件=1振る舞いclass。空文字列を含む初期値の列挙はテスト側fixture表（it.each）で持ち、
+#   条件書には親条件のみ置く
+# - template L8のv-model="value"はcomputed get（props.modelValue返却）/ set（emit）の糖衣で
+#   あるため制御コンポーネント。入力時はemitペイロードを、表示はprops.modelValueに基づく
+#   描画結果（textareaのDOM value・文字数カウント・maxlength属性）を観測し、vm内部状態
+#   （computed value）は直接参照しない
+# - defineProps/defineEmits定義・静的SCSS・固定ラベル/placeholder文字列は§8「書かない」に
+#   該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - 親DeckMetadataの配線契約（update:modelValueのv-model:commentによるlocalComment反映と
+#   updateCommentのstore書き込み）はdeck-metadata条件書（TASK-532）の
+#   comment-vmodel-syncs-local-and-storeが保証。本書はDescription自身の表示・emit契約のみ
+# - DECK_FIELD_LIMITS（src/types/deck.ts）の定数本体は隣接モジュールの責務。本書は実物を
+#   importした結果のUI反映（文字数カウント・maxlength属性）のみ検証する
+#
+# 不具合疑い: 特になし（制御コンポーネントとして標準的な実装のため分離起票なし）
+
+[meta]
+feature = "deck-metadata-description"
+source_file = "src/components/DeckMetadataDescription.vue"
+verified = true
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/DeckMetadataDescription.test.ts"
+source_hash = "b4e990b63e7f6c5e058af421bfcdf7fd9650a5b7"
+note = "TASK-556（TASK-331第11号）でv-model制御textareaの表示・emit契約を条件化。5条件=初期表示1（computed get）+文字数カウント1（${modelValue.length}/${COMMENT_MAX}・COMMENT_MAXはDECK_FIELD_LIMITS実物=2000）+入力emit1（1 inputで1回・全文payload・制御コンポーネントのためemitペイロードを観測）+prop更新反映1+maxlength属性1。テストは新規作成（9it・it.each展開含む）。src不変。不具合疑いなし・分離起票なし"
+
+# --- 初期表示（computed get） ---
+
+[[condition]]
+id = "deck-metadata-description.textarea-displays-model-value-initially"
+source_lines = "tests/unit/components/DeckMetadataDescription.test.ts:41"
+target_function = "DeckMetadataDescription value computed get / template textarea v-model"
+source = "src/components/DeckMetadataDescription.vue L8, L30-33 と tm TASK-556"
+description = "textareaの表示値はprops.modelValueそのもの（computed getがprops.modelValueを返す制御コンポーネント）。mount時の初期表示もmodelValueに一致し、ローカルの初期状態を持たない"
+given = "modelValue=''（空文字）・非空の文字列・複数行文字列でそれぞれmount（テスト側fixture表で列挙）"
+expect_return_shape = "textarea（.metadata-textarea）のDOM valueが渡したmodelValueと完全一致する"
+
+# --- 文字数カウント表示 ---
+
+[[condition]]
+id = "deck-metadata-description.char-count-displays-length-over-comment-max"
+source_lines = "tests/unit/components/DeckMetadataDescription.test.ts:52"
+target_function = "DeckMetadataDescription template char-count"
+source = "src/components/DeckMetadataDescription.vue L5, L20 と tm TASK-556"
+description = "ヘッダ右端の文字数カウントは${modelValue.length}/${COMMENT_MAX}形式で表示する。COMMENT_MAXはDECK_FIELD_LIMITS.COMMENT_MAX（src/types/deck.ts L14＝公式サイト仕様の2000）をimportした実物"
+given = "modelValue=''（'0/2000'）・'あいうえお'（'5/2000'）・英字列でそれぞれmount（fixture表）"
+expect_return_shape = ".char-countのテキストが${modelValue.length}/${COMMENT_MAX}になる（テスト側もDECK_FIELD_LIMITS実物から期待値を組み立てる）"
+
+# --- 入力時のemit（computed set） ---
+
+[[condition]]
+id = "deck-metadata-description.textarea-input-emits-update-model-value"
+source_lines = "tests/unit/components/DeckMetadataDescription.test.ts:63"
+target_function = "DeckMetadataDescription value computed set / template textarea v-model"
+source = "src/components/DeckMetadataDescription.vue L8, L26-28, L34-36 と tm TASK-556"
+description = "textareaへの入力（inputイベント）1回ごとにupdate:modelValueをその時点の入力文字列全体をpayloadとしてちょうど1回emitする。コンポーネントはローカル状態を持たないため表示が追従するのは親がmodelValueを更新した場合のみ（表示変化としてではなくemitペイロードを観測）"
+given = "modelValue='旧テキスト'でmountし、textareaへ'入力した全文'→'入力した全文（追記）'と連続入力"
+expect_return_shape = "update:modelValueが['入力した全文']→['入力した全文（追記）']の順で各1回・計2回emitされる（それ以外のコンポーネントemitは存在しない）"
+
+# --- 親によるprop更新の表示反映 ---
+
+[[condition]]
+id = "deck-metadata-description.model-value-prop-update-reflects-display"
+source_lines = "tests/unit/components/DeckMetadataDescription.test.ts:82"
+target_function = "DeckMetadataDescription value computed get（props変更時の再描画）"
+source = "src/components/DeckMetadataDescription.vue L5, L8, L30-33 と tm TASK-556"
+description = "親がmodelValueを更新するとtextareaの表示値と文字数カウントの両方が新しいprop値へ同期される（制御コンポーネントの表示更新経路）"
+given = "modelValue='初期値'でmount後、setProps({modelValue:'親が更新した説明文'})する"
+expect_return_shape = "textarea（.metadata-textarea）のDOM value='親が更新した説明文'・.char-countのテキスト='9/2000'"
+
+# --- maxlength属性 ---
+
+[[condition]]
+id = "deck-metadata-description.textarea-maxlength-attribute-equals-comment-max"
+source_lines = "tests/unit/components/DeckMetadataDescription.test.ts:94"
+target_function = "DeckMetadataDescription template textarea :maxlength"
+source = "src/components/DeckMetadataDescription.vue L10, L20 と tm TASK-556"
+description = "textareaのmaxlength属性はCOMMENT_MAX（DECK_FIELD_LIMITS.COMMENT_MAX＝2000）に等しく、ブラウザレベルで2000文字超の入力を拒否する"
+given = "modelValue=''でmount"
+expect_return_shape = ".metadata-textareaのmaxlength属性='2000'（String(COMMENT_MAX)。COMMENT_MAX=2000であることも併せて検証）"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "ラベル「説明」（L4）・placeholder「デッキの説明を入力...」（L11）の固定表示文字列"
+source = "src/components/DeckMetadataDescription.vue L4, L11 と tm TASK-556"
+reason = "状態に依存しない無条件の静的文字列で分岐なし（§8「書かない」。deck-metadata-header条件書excludedの固定ラベル文字列と同根拠）。Header側の表示契約条件（public-button等）は状態で表示が切り替わるため条件化したが、本コンポーネントにはそのような分岐が存在しない"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L40-104。レイアウト・配色・focus/hover・placeholder配色等）"
+source = "src/components/DeckMetadataDescription.vue L40-104 と tm TASK-556"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps/defineEmits定義・computed valueのget/set宣言自体・template静的構造（.description-section/.description-headerラッパー）"
+source = "src/components/DeckMetadataDescription.vue L2-3, L22-28, L30-37 と tm TASK-556"
+reason = "宣言・受け渡しのみで分岐なし（§8「書かない」: 単純なgetter/setterやprops受け渡しのみ）。get/setの振る舞いは対応条件（初期表示・入力emit・prop更新反映）でObservableな結果として検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "DECK_FIELD_LIMITS（src/types/deck.ts）の定数本体"
+source = "src/components/DeckMetadataDescription.vue L18, L20 と tm TASK-556"
+reason = "隣接モジュールの責務（型・定数定義のみのファイルはconditions展開対象外）。本書は実物をimportした結果のUI反映（文字数カウント・maxlength属性）のみを検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
