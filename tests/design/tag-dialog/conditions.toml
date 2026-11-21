@@ -1,0 +1,362 @@
+# 検証対象: src/components/TagDialog.vue
+#
+# 経緯:
+# - TASK-551（TASK-331 Tier C第9号・TASK-544第8号の後続）。DeckMetadata系3ファイル目
+#   のTagDialog（975行。script setupはL111-345、残りはtemplateとscoped CSS）。
+#   既存の専用ユニットテストは無く（DeckMetadata.test.tsからstub経由で触れるのみ）、
+#   tests/unit/components/TagDialog.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm
+#
+# 粒度方針（Tier C・第7号/第8号条件書と同一）:
+# - 1条件=1振る舞いclass。同種入力の列挙はテスト側fixtureで持つ
+# - UI操作はDOMイベント経由で検証し、vm内部状態は直接参照しない。emitは観測対象
+# - props/emits定義・静的SVG/SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - 親DeckMetadataの配線契約（TagDialogへのmodelValue/tags供給・update:modelValueの
+#   store書き込みと型ガード）はdeck-metadata条件書（TASK-532）が保証。本書は
+#   TagDialog自身の内部挙動（選択状態・絞り込み・emit）のみ
+# - tag-master-data（classifyTagById/getMonsterTypeFromLabel/各TAG_ID_TO_*マップ）の
+#   関数本体とimage-utils（getAttributeIconUrl）のURL生成本体は各モジュールの対象。
+#   本書は呼び出し結果のUI反映（グループ分類・並び順・data-type・アイコンsrc）のみ
+# - BaseDialog内部（v-if/Teleport/overlayクリックclose/fade）はBaseDialog側の対象。
+#   本書はTagDialog側のclose emitまで
+#
+# 作業中に発見した到達不能分岐・不具合疑い（src不変のため別タスクへ分離）:
+# - race枚数フィルタの創造神族（creatorgod）特例（L248）は、TAG_ID_TO_RACEに
+#   creatorgodへ対応するタグIDが存在しないため到達不能。[[excluded]]に記録し、
+#   マスタデータ側に創造神族タグが欠けている疑いとしてTASK-552へ分離起票
+# - モンスター0枚時に枚数フィルタでattr/raceタグが全て表示される挙動
+#   （count 0 >= totalMonsterCount 0 / 4 = 0）は現行挙動として条件化し
+#   （count-filter-with-no-monsters-shows-attr-and-race）、意図確認をTASK-553へ分離起票
+
+[meta]
+feature = "tag-dialog"
+source_file = "src/components/TagDialog.vue"
+verified = true
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/TagDialog.test.ts"
+source_hash = "8c3263c2e8585f211c7e25383b8f63586b38b3d2"
+note = "TASK-551（TASK-331第9号）でscript setup挙動を条件化。27条件=選択/emit 6+modelValue同期2+再オープン2+グループ/並び順/検索/合成4+枚数フィルタ10（トグル1/attr2/race2/others1/type3/モンスター0枚1）+ラベル/タイプ/アイコン3。テストは新規作成。src不変。creatorgod到達不能はTASK-552・モンスター0枚時表示はTASK-553へ分離"
+
+# --- 選択状態とemit ---
+
+[[condition]]
+id = "tag-dialog.initial-selection-from-model-value"
+source_lines = "tests/unit/components/TagDialog.test.ts:172"
+target_function = "selectedTags 初期化 + template 選択状態表示"
+source = "src/components/TagDialog.vue L137, L10-21, L93 と tm TASK-551"
+description = "選択状態はmodelValueのコピーで初期化する。初期選択は選択済みチップ（modelValueの順序）とタグ項目のselectedクラスで観測する"
+given = "modelValue=['1','20']（tagsに実在するattr/raceタグ）でisVisible=trueマウント"
+expect_return_shape = "チップ2件がmodelValue順（闇・ドラゴン族）。value='1'/'20'の.tag-itemにselectedクラスが付き、未選択タグには付かない"
+
+[[condition]]
+id = "tag-dialog.toggle-tag-add-and-remove"
+source_lines = "tests/unit/components/TagDialog.test.ts:180"
+target_function = "toggleTag"
+source = "src/components/TagDialog.vue L318-327 + template L89-105 と tm TASK-551"
+description = "タグ項目クリックで選択追加/解除をトグルする。切替のたびに現在の全選択のコピーをupdate:modelValueで即時emitする（OK/Cancelボタンを持たない即時適用設計）"
+given = "modelValue=[]でマウントし.tag-item（闇）をクリック → 同一項目を再クリック"
+expect_return = "1回目: update:modelValueのpayload=['1']・当該itemにselectedクラス。2回目: payload=[]・selectedクラス解除"
+
+[[condition]]
+id = "tag-dialog.chip-click-removes-selection"
+source_lines = "tests/unit/components/TagDialog.test.ts:190"
+target_function = "toggleTag（チップ経由）"
+source = "src/components/TagDialog.vue template L10-21 + L318-327 と tm TASK-551"
+description = "選択済みチップ自体のクリックでも当該タグを選択解除する（タグ項目と同じtoggleTagへ接続する第2のUI経路）"
+given = "modelValue=['1','20']でマウントし'闇'の.tag-chipをクリック"
+expect_return = "update:modelValueのpayload=['20']。チップは1件になる（闇が消えドラゴン族のみ残る）"
+
+[[condition]]
+id = "tag-dialog.clear-all-button-visibility-and-emit"
+source_lines = "tests/unit/components/TagDialog.test.ts:197"
+target_function = "clearAll + template クリアボタン v-if"
+source = "src/components/TagDialog.vue L330-334 + template L24 と tm TASK-551"
+description = "クリアボタンは選択ありの時のみ表示され、クリックで全選択を解除して空配列をemitする"
+given = "modelValue=['1','20']（選択あり）/ modelValue=[]（選択なし）の各状態"
+expect_return_shape = "選択なし: .btn-clear-actionは描画されない。選択あり: 描画され、クリックによりupdate:modelValueのpayload=[]・チップ0件・ボタンが非表示化される"
+
+[[condition]]
+id = "tag-dialog.close-button-emits-close"
+source_lines = "tests/unit/components/TagDialog.test.ts:208"
+target_function = "close"
+source = "src/components/TagDialog.vue L337-339 + template L29 と tm TASK-551"
+description = "ヘッダーの×ボタンでcloseイベントをemitする（実際の非表示化は親のisVisible制御。overlayクリック経由のcloseはBaseDialog側の機構）"
+given = "isVisible=trueマウント状態で.close-btnをクリック"
+expect_return_shape = "closeイベントが1回発火（引数なし）。update:modelValueは発火しない"
+
+[[condition]]
+id = "tag-dialog.toggle-does-not-mutate-model-value-array"
+source_lines = "tests/unit/components/TagDialog.test.ts:215"
+target_function = "toggleTag（emitペイロードのコピー性）"
+source = "src/components/TagDialog.vue L137, L326 と tm TASK-551"
+description = "選択状態はmodelValueのコピーとして保持し、emitペイロードも都度コピーを作るため、toggle操作で親が渡したmodelValue配列自体は破壊されない"
+given = "配列['1']をmodelValueとしてマウントし、ドラゴン族の項目をクリック"
+expect_return_shape = "emitペイロードは['1','20']だが、親の配列は['1']のまま変化しない"
+
+# --- modelValue同期（watch） ---
+
+[[condition]]
+id = "tag-dialog.model-value-change-syncs-selection"
+source_lines = "tests/unit/components/TagDialog.test.ts:225"
+target_function = "watch modelValue（配列置換）"
+source = "src/components/TagDialog.vue L342-344 と tm TASK-551"
+description = "親がmodelValueを配列置換で変更した場合に選択状態を同期する。要素変更（push等）経路はmodel-value-deep-watch-syncs-element-changeが対として検証する"
+given = "modelValue=[]でマウント後、親からmodelValue=['1']へ変更（setProps）"
+expect_return_shape = "チップが1件（闇）に増える。以後のtoggle操作のemitは同期後の選択を基準にする（ドラゴン族追加で['1','20']）"
+
+[[condition]]
+id = "tag-dialog.model-value-deep-watch-syncs-element-change"
+source_lines = "tests/unit/components/TagDialog.test.ts:233"
+target_function = "watch modelValue（deep: true）"
+source = "src/components/TagDialog.vue L342-344 と tm TASK-551"
+description = "modelValueのwatchはdeep: trueのため、親が保持するreactive配列への要素追加（push等・配列置換ではない）でも選択状態を同期する"
+given = "reactiveな文字列配列['1']をmodelValueとしてマウント後、同一配列へ'20'をpush（要素追加・置換なし）"
+expect_return_shape = "チップが2件（闇/ドラゴン族）に増える"
+
+# --- 再オープン時のリセット ---
+
+[[condition]]
+id = "tag-dialog.reopen-resets-filter-and-search"
+source_lines = "tests/unit/components/TagDialog.test.ts:244"
+target_function = "watch isVisible（リセット）"
+source = "src/components/TagDialog.vue L143-148 と tm TASK-551"
+description = "ダイアログを開いた時（isVisible false→true）に枚数フィルタと検索語を初期化する。前回開時の絞り込みを引き継がない"
+given = "検索語入力+枚数フィルタONの状態でisVisibleをfalse→true（再オープン）"
+expect_return_shape = "検索入力欄が空になり全タグ表示。フィルタボタン（.search-row .btn-icon）のactiveクラスが解除される"
+
+[[condition]]
+id = "tag-dialog.reopen-keeps-selected-group"
+source_lines = "tests/unit/components/TagDialog.test.ts:257"
+target_function = "watch isVisible（selectedGroupリセット欠落）"
+source = "src/components/TagDialog.vue L138, L143-148 と tm TASK-551"
+description = "現行挙動: 再オープン時のリセット対象はisFilterEnabled/searchQueryのみで、selectedGroup（グループタブ選択）は前回値を維持する（category-dialogのreopen-keeps-selected-groupと同型）"
+given = "raceタブ選択（raceタグのみ表示）の状態でisVisibleをfalse→true（再オープン）"
+expect_return_shape = "再表示後もraceタグのみ表示され、allタブへは戻らない"
+
+# --- グループ・並び順・検索 ---
+
+[[condition]]
+id = "tag-dialog.group-tab-filters-by-group"
+source_lines = "tests/unit/components/TagDialog.test.ts:269"
+target_function = "filteredTags グループフィルタ + template タブ"
+source = "src/components/TagDialog.vue L218-220 + template L49-85 と tm TASK-551"
+description = "グループタブはall/others/attr/race/typeのいずれかを選択し、タグの分類グループが一致するものだけを表示する。allは全件。分類自体はclassifyTagById（tag-master-data）へ委譲する"
+given = "attr/race/type/othersの各グループを含むtagsでall/race/othersタブを順にクリック"
+expect_return_shape = "all: 全タグ表示。race: raceタグのみ。others: othersタグのみ。選択中タブにactiveクラス"
+
+[[condition]]
+id = "tag-dialog.tags-sorted-by-group-order"
+source_lines = "tests/unit/components/TagDialog.test.ts:281"
+target_function = "tagsWithGroups（GROUP_ORDERソート）"
+source = "src/components/TagDialog.vue L156, L159-175 と tm TASK-551"
+description = "タグ一覧は入力順によらずグループ順（attr→race→type→others）で表示する。同グループ内の順序は入力順を維持する（安定ソート）"
+given = "others/type/race/attrの順で混在させたtagsを渡してマウント"
+expect_return_shape = ".tag-itemのラベル列がattr群→race群→type群→others群の順になり、各群内は入力順どおり"
+
+[[condition]]
+id = "tag-dialog.search-filters-label-case-insensitive"
+source_lines = "tests/unit/components/TagDialog.test.ts:291"
+target_function = "filteredTags 検索フィルタ"
+source = "src/components/TagDialog.vue L223-226 + template L35-40 と tm TASK-551"
+description = "検索語はラベルへの部分一致（クエリ・ラベル双方toLowerCase）で絞り込む。空白のみの入力はフィルタしない（trim後に空なら素通り）"
+given = "ラベル'ABCタグ'と'ドラゴン族'を含む状態で、検索語'abc'/'ドラ'/'  '（空白のみ）を入力"
+expect_return_shape = "'abc': ABCタグのみ表示（大文字小文字無視）。'ドラ': ドラゴン族のみ。空白のみ: 全件表示"
+
+[[condition]]
+id = "tag-dialog.filters-compose-group-search-and-count"
+source_lines = "tests/unit/components/TagDialog.test.ts:301"
+target_function = "filteredTags（グループ→検索→枚数の直列適用）"
+source = "src/components/TagDialog.vue L214-283 と tm TASK-551"
+description = "グループ・検索・枚数の3フィルタはAND条件で直列に適用される。いずれか1つでも外れたタグは表示されない"
+given = "attrタブ選択+検索語'闇'+枚数フィルタON（闇は枚数基準を満たし、光は満たさないdeckCards）"
+expect_return_shape = "表示は闇のみ。グループ外（race等）は検索語に一致しても出ず、検索に一致しないattr（神）も出ない"
+
+# --- 枚数フィルタ（isFilterEnabled） ---
+
+[[condition]]
+id = "tag-dialog.filter-button-toggles-on-off"
+source_lines = "tests/unit/components/TagDialog.test.ts:311"
+target_function = "toggleFilter + template activeクラス"
+source = "src/components/TagDialog.vue L286-288 + template L41 と tm TASK-551"
+description = "枚数フィルタボタンはクリックごとにON/OFFをトグルし、activeクラスとリスト絞り込みが連動する（OFFで全タグ復帰）"
+given = "枚数基準を満たすタグと満たさないタグが混在するfixtureでフィルタボタンをクリック → 再クリック"
+expect_return_shape = "1回目: ボタンにactiveクラス・基準を満たすタグのみ表示。2回目: active解除・全タグ復帰"
+
+[[condition]]
+id = "tag-dialog.attr-count-filter-quarter-threshold"
+source_lines = "tests/unit/components/TagDialog.test.ts:322"
+target_function = "filteredTags 枚数フィルタ attr分岐 + countMonstersWithTag attr + totalMonsterCount"
+source = "src/components/TagDialog.vue L151-153, L192-211, L239-244 と tm TASK-551"
+description = "attrタグ（神属性を除く）は、その属性のモンスター枚数がデッキ内モンスター総数の1/4以上で表示される。総数・カウントともcardType='monster'のみが対象で、属性が一致しないカードや魔法等の非モンスターは数えない"
+given = "モンスター8枚（闇2・光1・水5）+属性闇の非モンスター3枚のdeckCardsでフィルタON"
+expect_return_shape = "闇（2 >= 8/4）は表示、光（1 < 2）は非表示。非モンスターが総数にも闇カウントにも混入していれば結果が反転する構成で検証する"
+
+[[condition]]
+id = "tag-dialog.attr-divine-count-filter-single-card"
+source_lines = "tests/unit/components/TagDialog.test.ts:329"
+target_function = "filteredTags 枚数フィルタ attr神属性特例"
+source = "src/components/TagDialog.vue L241-243 と tm TASK-551"
+description = "神属性タグ（internalKey='divine'）は1/4基準の特例として、神属性モンスターが1枚以上あれば表示される"
+given = "モンスター8枚（神属性1・水7）のdeckCardsでフィルタON（1/4基準なら1 < 2で非表示になる構成）"
+expect_return_shape = "神が表示される"
+
+[[condition]]
+id = "tag-dialog.race-count-filter-quarter-threshold"
+source_lines = "tests/unit/components/TagDialog.test.ts:340"
+target_function = "filteredTags 枚数フィルタ race分岐 + countMonstersWithTag race"
+source = "src/components/TagDialog.vue L246-251, L202-203 と tm TASK-551"
+description = "raceタグ（幻神獣族等の特例を除く）は、その種族のモンスター枚数がデッキ内モンスター総数の1/4以上で表示される。種族が一致しないモンスターは数えない"
+given = "モンスター8枚（ドラゴン族2・戦士族1・魔法使い族5）のdeckCardsでフィルタON"
+expect_return_shape = "ドラゴン族（2 >= 8/4）は表示、戦士族（1 < 2）は非表示"
+
+[[condition]]
+id = "tag-dialog.race-divine-count-filter-single-card"
+source_lines = "tests/unit/components/TagDialog.test.ts:353"
+target_function = "filteredTags 枚数フィルタ race幻神獣族特例"
+source = "src/components/TagDialog.vue L248-250 と tm TASK-551"
+description = "幻神獣族タグ（internalKey='divine'）は1/4基準の特例として、幻神獣族モンスターが1枚以上あれば表示される。同じ特例に並ぶ創造神族（creatorgod）は到達不能のためexcludedに記録する"
+given = "モンスター8枚（幻神獣族1・魔法使い族7）のdeckCardsでフィルタON（1/4基準なら1 < 2で非表示になる構成）"
+expect_return_shape = "幻神獣族が表示される"
+
+[[condition]]
+id = "tag-dialog.count-filter-excludes-others-tags"
+source_lines = "tests/unit/components/TagDialog.test.ts:364"
+target_function = "filteredTags 枚数フィルタ others除外"
+source = "src/components/TagDialog.vue L231-234 と tm TASK-551"
+description = "枚数フィルタON時、モンスター関連以外のothersグループのタグは枚数判定を行わず常に除外される"
+given = "othersタグを含むtagsとモンスター複数枚のdeckCardsでフィルタON"
+expect_return_shape = "othersタグ（特別タグ等）は表示されず、フィルタOFFでは表示される"
+
+[[condition]]
+id = "tag-dialog.type-count-filter-requires-seven"
+source_lines = "tests/unit/components/TagDialog.test.ts:372"
+target_function = "filteredTags 枚数フィルタ type分岐（エクストラ系以外） + countMonstersWithTag type"
+source = "src/components/TagDialog.vue L253-273, L204-206 と tm TASK-551"
+description = "エクストラデッキ系以外のモンスタータイプタグは、そのタイプを持つモンスターが7枚以上で表示される（1/4基準ではない固定閾値。メイン/エクストラの区別はしない）。境界: 6は非表示・7は表示"
+given = "チューナー7枚・デュアル6枚のモンスターdeckCardsでフィルタON"
+expect_return_shape = "チューナーは表示、デュアルは非表示"
+
+[[condition]]
+id = "tag-dialog.extra-type-count-filter-requires-seven-extra-deck"
+source_lines = "tests/unit/components/TagDialog.test.ts:384"
+target_function = "filteredTags 枚数フィルタ type分岐（エクストラデッキ系）"
+source = "src/components/TagDialog.vue L257-270 と tm TASK-551"
+description = "エクストラデッキ系タイプ（融合/シンクロ/エクシーズ/リンク。ラベルからgetMonsterTypeFromLabelで判定）は、そのタイプのエクストラデッキモンスターが7枚以上で表示される。メインデッキの同タイプモンスターは数えない"
+given = "融合のエクストラ7枚と、シンクロのエクストラ6枚+メイン7枚のdeckCardsでフィルタON"
+expect_return_shape = "融合は表示。シンクロは同タイプ総数13枚でもエクストラ6枚のため非表示"
+
+[[condition]]
+id = "tag-dialog.type-count-ignores-monsters-without-types"
+source_lines = "tests/unit/components/TagDialog.test.ts:397"
+target_function = "countMonstersWithTag type（types欠損の扱い）"
+source = "src/components/TagDialog.vue L206 と tm TASK-551"
+description = "deckCardsはany[]型のためtypes欠損モンスターが混入し得る。typeカウントはtypesが無いカードを不一致として扱い、例外なく動作する"
+given = "チューナー6枚+types欠損モンスター3枚のdeckCardsでフィルタON"
+expect_return_shape = "例外なく描画され、チューナーはカウント6のため非表示（欠損カードが寄与すれば7以上で表示される構成）"
+
+[[condition]]
+id = "tag-dialog.count-filter-with-no-monsters-shows-attr-and-race"
+source_lines = "tests/unit/components/TagDialog.test.ts:408"
+target_function = "filteredTags 枚数フィルタ（モンスター総数0の境界）"
+source = "src/components/TagDialog.vue L244, L251 と tm TASK-551"
+description = "現行挙動（意図はTASK-553で確認待ち）: モンスター総数0の場合、attr/raceの1/4基準は 0 >= 0/4 = 0 で成立するため、該当モンスターが1枚も無くてもattr/raceタグが全て表示される。神属性等の1枚以上特例とtypeの7枚基準は成立しない"
+given = "deckCardsが非モンスターのみ（モンスター0枚）の状態でフィルタON"
+expect_return_shape = "闇・ドラゴン族は表示される。神・融合・othersタグは表示されない"
+
+# --- ラベル・タイプ・アイコンの解決 ---
+
+[[condition]]
+id = "tag-dialog.chip-label-falls-back-to-id"
+source_lines = "tests/unit/components/TagDialog.test.ts:420"
+target_function = "getTagLabel"
+source = "src/components/TagDialog.vue L291-294 + template L16-19 と tm TASK-551"
+description = "チップのラベルはtagsからvalueで解決し、解決不能なid（tagsに存在しないvalue）はid値自身を表示する"
+given = "modelValue=['1','999']（999はtagsに不存在）でマウント"
+expect_return_shape = "チップ2件: '闇'（解決済みラベル）と'999'（idフォールバック）"
+
+[[condition]]
+id = "tag-dialog.tag-type-derived-from-label"
+source_lines = "tests/unit/components/TagDialog.test.ts:425"
+target_function = "getTagType + template data-type"
+source = "src/components/TagDialog.vue L296-300 + template L14, L94 と tm TASK-551"
+description = "チップとタグ項目のdata-typeはラベルからgetMonsterTypeFromLabelで導出したモンスタータイプ。タイプ名を含まないラベルやtagsに存在しないidでは空文字になる"
+given = "modelValue=['18','999']（18=融合ラベル、999は不存在）でマウントし、融合の項目と各チップのdata-typeを観測"
+expect_return_shape = "融合の項目・チップのdata-type='fusion'。999のチップはdata-type=''。闇の項目もdata-type=''（ラベルにタイプ名を含まない）"
+
+[[condition]]
+id = "tag-dialog.attr-icon-only-for-attr-tags"
+source_lines = "tests/unit/components/TagDialog.test.ts:433"
+target_function = "getAttrIcon + template attr-icon v-if"
+source = "src/components/TagDialog.vue L302-315 + template L99-104 と tm TASK-551"
+description = "属性アイコン画像はattrグループのタグ項目にのみ表示され、srcはタグIDに対応する属性名のアイコンURL（getAttributeIconUrlへ委譲）になる。他グループには画像を表示しない"
+given = "attrタグ（闇=ID '1'）とraceタグ（ドラゴン族）を含むtagsでマウント"
+expect_return_shape = "闇の項目にimg.attr-iconがありsrcに'attribute_icon_dark.png'を含む。ドラゴン族の項目にimgは無い"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "isVisibleのBaseDialogへの受け渡しと非表示制御（template L2）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "props受け渡しのみ（test-structure §8「書かない」: props受け渡しのみの対象）。v-if/Teleport/overlayクリックclose/fade等の機構はBaseDialog側の対象"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "props/emits定義とdeckCards propのany[]型（L125-135）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "型宣言のみで分岐なし。テスト側はanyを使わない型付きfixture interfaceを定義して渡す。any[]型であるがゆえにtypes欠損が混入し得る点は条件type-count-ignores-monsters-without-typesとして条件化済み"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "getAttrIconの未知IDに対する空文字フォールバック（L313-314のattrNameMap未登録側）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "templateの呼び出しはattrグループのタグに限られ、attrグループのIDは'1'〜'7'の全てがattrNameMapに登録済みのため、UI経路では到達不能（§8「書かない」: 到達不能分岐）。到達可能な側は条件attr-icon-only-for-attr-tagsが検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "countMonstersWithTagのinternalKey不在側（L201-206の三項演算子のfalse側）とothers/default側（L207-208）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "attr/race/typeグループの全タグIDはTAG_ID_TO_ATTR/RACE/MONSTER_TYPEに登録済みでinternalKeyは必ず解決されるためfalse側は到達不能。またcountMonstersWithTagの唯一の呼び出し元（枚数フィルタ）はothersを事前に除外するためothers/default側も到達不能（§8「書かない」: 到達不能分岐）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "filteredTags枚数フィルタswitchのdefault側（L276-277）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "グループはattr/race/type/othersの4値のみで、othersはswitch前に除外済みのためdefaultは到達不能（§8「書かない」: 到達不能分岐）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "枚数フィルタrace分岐の創造神族（internalKey='creatorgod'）特例（L248）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "TAG_ID_TO_RACE（tag-master-data）にcreatorgodへ対応するタグIDが存在せず、どのタグからもinternalKey='creatorgod'が得られないため現行マスタデータでは到達不能（§8「書かない」: 到達不能分岐）。幻神獣族側は条件race-divine-count-filter-single-cardが検証する。マスタデータに創造神族タグ自体が欠けている疑いはTASK-552へ分離起票した"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "GROUP_ORDERの'all'要素（L156）とgetInternalKeyのothers側undefined（L186-187）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "分類結果に'all'は現れないためソート順に影響せず、othersのinternalKey undefinedは枚数フィルタでothersが事前除外されるため挙動に差を生まない（§8「書かない」: 挙動に差を生まない内部処理）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "tag-master-data/image-utilsの関数本体（classifyTagById/getMonsterTypeFromLabel/getAttributeIconUrl）"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "隣接モジュールの責務。本書は呼び出し結果のUI反映（グループ分類・並び順・data-type・アイコンsrc）のみを条件化する（線引き節参照）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped CSS定義（L347-975）と静的SVGアイコン"
+source = "src/components/TagDialog.vue + tm TASK-551（本条件化）"
+reason = "スタイルはテスト対象外（ロジック分岐なし。category-dialog条件書のexcludedと同根拠）"
+decided_at = "2026-11-21"
+decided_by = "claude"
