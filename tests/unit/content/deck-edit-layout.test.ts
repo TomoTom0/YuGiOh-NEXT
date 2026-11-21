@@ -172,7 +172,7 @@ const PracticeFieldStub = defineComponent({
 
 const PracticePlayerPanelStub = defineComponent({
   name: 'PracticePlayerPanel',
-  emits: ['toggle-p2', 'load-deck-p2', 'save-temp-recipe', 'hard-reset', 'open-deck', 'open-deck-p2', 'save-deck'],
+  emits: ['load-deck-p2', 'hard-reset', 'open-deck', 'open-deck-p2', 'save-deck'],
   setup: () => () => h('div', { class: 'practice-player-panel-stub' }),
 });
 
@@ -2031,54 +2031,6 @@ describe('DeckEditLayout.vue', () => {
       expect(initPracticeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('[covers:deck-edit-layout.two-deck-toggle-on-opens-p2] twoDeckMode=falseでのトグルはP2デッキ選択（LoadDialog）を開く（ハンドラ単体条件・現在UI経路なし）', async () => {
-      const { deckStore, settingsStore } = mountLayout();
-      await flushPromises();
-      settingsStore.featureSettings.practice = true;
-      const practiceStore = usePracticeStore();
-      expect(practiceStore.twoDeckMode).toBe(false);
-
-      const initPracticeSpy = vi.spyOn(practiceStore, 'initPractice');
-      const detail = createDeckInfo({
-        dno: 7,
-        originalName: 'P2デッキ',
-        mainDeck: [cardRef('c1', 1)],
-        extraDeck: [],
-      });
-      const getDeckDetailSpy = vi.spyOn(deckStore, 'getDeckDetail').mockResolvedValue(detail);
-
-      // PracticePlayerPanelのtoggle-p2 emitで駆動
-      playerPanelStub().vm.$emit('toggle-p2');
-      await nextTick();
-
-      expect(deckStore.showLoadDialog).toBe(true);
-      const callback = deckStore.onLoadCallback;
-      if (typeof callback !== 'function') throw new Error('onLoadCallback is not set');
-      await callback(7);
-
-      expect(getDeckDetailSpy).toHaveBeenCalledWith(7);
-      expect(initPracticeSpy).toHaveBeenCalledWith(detail.mainDeck, detail.extraDeck, 1);
-      expect(practiceStore.p2DeckDno).toBe(7);
-      expect(practiceStore.p2DeckName).toBe('P2デッキ');
-      expect(practiceStore.p2DeckInfo?.originalName).toBe('P2デッキ');
-    });
-
-    it('[covers:deck-edit-layout.two-deck-toggle-off-clears] twoDeckMode=trueでのトグルはP2 fieldを破棄する（ハンドラ単体条件・現在UI経路なし）', async () => {
-      const { settingsStore } = mountLayout();
-      await flushPromises();
-      const practiceStore = usePracticeStore();
-      practiceStore.p2DeckDno = 5;
-      expect(practiceStore.twoDeckMode).toBe(true);
-
-      const clearField2Spy = vi.spyOn(practiceStore, 'clearField2');
-
-      playerPanelStub().vm.$emit('toggle-p2');
-      await nextTick();
-
-      expect(clearField2Spy).toHaveBeenCalledTimes(1);
-      expect(practiceStore.p2DeckDno).toBe(null);
-    });
-
     it('[covers:deck-edit-layout.load-field2-with-detail] P2へのデッキロードはfield 1として初期化しP2デッキ情報を設定する', async () => {
       const { deckStore } = mountLayout();
       await flushPromises();
@@ -2254,41 +2206,6 @@ describe('DeckEditLayout.vue', () => {
       await flushPromises();
 
       expect(toastSpy).toHaveBeenCalledWith('保存に失敗しました', 'error');
-    });
-
-    it('[covers:deck-edit-layout.save-temp-recipe-adds-cards] tempRecipe/tempRecipe2のカードをcid解決してデッキへ追加し追加枚数をトーストする（ハンドラ単体条件・現在UI経路なし）', async () => {
-      const { deckStore } = mountLayout();
-      await flushPromises();
-      const practiceStore = usePracticeStore();
-      practiceStore.tempRecipe.push({ cid: 'a', ciid: '1', section: 'main' });
-      practiceStore.tempRecipe2.push({ cid: 'b', ciid: '1', section: 'extra' });
-      const cardA = createCardInfo('a');
-      const cardB = createCardInfo('b');
-      fakeUnifiedDB.cardInfoTable.set('a', cardA);
-      fakeUnifiedDB.cardInfoTable.set('b', cardB);
-      const addCardSpy = vi.spyOn(deckStore, 'addCard');
-
-      playerPanelStub().vm.$emit('save-temp-recipe');
-      await nextTick();
-
-      expect(addCardSpy).toHaveBeenCalledTimes(2);
-      expect(addCardSpy).toHaveBeenCalledWith(cardA, 'main');
-      expect(addCardSpy).toHaveBeenCalledWith(cardB, 'extra');
-      expect(toastSpy).toHaveBeenCalledWith('2枚のカードをデッキに追加しました', 'success');
-    });
-
-    it('[covers:deck-edit-layout.save-temp-recipe-none-found-warns] 1枚も解決できない場合は警告トーストのみで追加しない（ハンドラ単体条件・現在UI経路なし）', async () => {
-      const { deckStore } = mountLayout();
-      await flushPromises();
-      const practiceStore = usePracticeStore();
-      practiceStore.tempRecipe.push({ cid: 'unknown', ciid: '1', section: 'main' });
-      const addCardSpy = vi.spyOn(deckStore, 'addCard');
-
-      playerPanelStub().vm.$emit('save-temp-recipe');
-      await nextTick();
-
-      expect(addCardSpy).not.toHaveBeenCalled();
-      expect(toastSpy).toHaveBeenCalledWith('追加できるカードが見つかりませんでした', 'warning');
     });
 
     it('[covers:deck-edit-layout.practice-action-routing] actionをmoveToTemp/moveToDeckTopはpracticeStore.moveCardへ、それ以外はexecuteActionへ振り分ける', async () => {

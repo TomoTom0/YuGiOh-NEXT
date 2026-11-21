@@ -8,7 +8,7 @@
       </div>
     </div>
 
-    <div class="main-content" :class="{ 'hide-on-mobile': true }" :style="mainContentStyle">
+    <div class="main-content" :class="{ 'hide-on-mobile': true }">
       <DeckEditTopBar
         :practice-mode="practiceMode"
         @toggle-practice="togglePracticeMode"
@@ -61,9 +61,7 @@
     <RightArea>
       <template #practice-tab>
         <PracticePlayerPanel
-          @toggle-p2="toggleTwoDeckMode"
           @load-deck-p2="loadDeckForField2"
-          @save-temp-recipe="saveTempRecipe"
           @hard-reset="hardResetPractice"
           @open-deck="openDeckForPractice"
           @open-deck-p2="openDeckForPracticeP2"
@@ -81,9 +79,7 @@
           <Transition name="mode-switch" mode="out-in">
           <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
             <PracticePlayerPanel
-              @toggle-p2="toggleTwoDeckMode"
               @load-deck-p2="loadDeckForField2"
-              @save-temp-recipe="saveTempRecipe"
               @hard-reset="hardResetPractice"
               @open-deck="openDeckForPractice"
               @save-deck="saveDeckFromPractice"
@@ -199,22 +195,19 @@
 </template>
 
 <script lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent, provide } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, defineAsyncComponent, provide } from 'vue'
 import { useDeckEditStore } from '../../stores/deck-edit'
 import { useSearchStore } from '../../stores/search'
 import { useSettingsStore } from '../../stores/settings'
-import { useCardDetailStore } from '../../stores/card-detail'
 import { useToastStore } from '../../stores/toast-notification'
 import { usePracticeStore } from '../../stores/practice'
 import { usePracticeActions } from '../../composables/practice/usePracticeActions'
 import { getUnifiedCacheDB } from '../../utils/unified-cache-db'
 import { searchCardById } from '../../api/card-search'
-import DeckCard from '../../components/DeckCard.vue'
 import DeckSection from '../../components/DeckSection.vue'
 import DeckEditTopBar from '../../components/DeckEditTopBar.vue'
 import RightArea from '../../components/RightArea.vue'
 import PracticeField from '../../components/practice/PracticeField.vue'
-import PracticeControlPanel from '../../components/practice/PracticeControlPanel.vue'
 import PracticeZoneInfoPanel from '../../components/practice/PracticeZoneInfoPanel.vue'
 import PracticePlayerPanel from '../../components/practice/PracticePlayerPanel.vue'
 
@@ -224,22 +217,15 @@ import ToastContainer from '../../components/ToastContainer.vue'
 const ImportExportDialog = defineAsyncComponent(() => import('../../components/ImportExportDialog.vue'))
 const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
 const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
-import { getCardImageUrl as getCardImageUrlHelper } from '../../types/card'
 import type { CardInfo } from '../../types/card'
-import { detectCardGameType } from '../../utils/page-detector'
-import { generateDeckThumbnailCards } from '../../utils/deck-thumbnail'
 import { findLoaderOverlay } from '../../utils/loader-elements'
-import { buildFullUrl } from '../../utils/url-builder'
-import { getCardInfo } from '../../utils/card-utils'
 import {
   generateThumbnailsInBackground
 } from '../../utils/deck-cache'
-import { STORAGE_KEY_LAST_DECK_DNO } from '../../constants/storage-keys'
 
 export default {
   name: 'DeckEditLayout',
   components: {
-    DeckCard,
     DeckSection,
     DeckEditTopBar,
     RightArea,
@@ -249,7 +235,6 @@ export default {
     SettingsDialog,
     LoadDialog,
     PracticeField,
-    PracticeControlPanel,
     PracticeZoneInfoPanel,
     PracticePlayerPanel,
   },
@@ -257,7 +242,6 @@ export default {
     const deckStore = useDeckEditStore()
     const searchStore = useSearchStore()
     const settingsStore = useSettingsStore()
-    const cardDetailStore = useCardDetailStore()
     const { showToast: dispatchToast } = useToastStore()
     const practiceStore = usePracticeStore()
 
@@ -279,14 +263,6 @@ export default {
         practiceStore.isActive = false
         practiceStore.clearField2()
         deckStore.activeTab = 'search'
-      }
-    }
-
-    const toggleTwoDeckMode = () => {
-      if (practiceStore.twoDeckMode) {
-        practiceStore.clearField2()
-      } else {
-        openDeckForPracticeP2()
       }
     }
 
@@ -352,25 +328,6 @@ export default {
       }
     }
 
-    const saveTempRecipe = () => {
-      const db = getUnifiedCacheDB()
-      const allCards = [...practiceStore.tempRecipe, ...practiceStore.tempRecipe2]
-      let added = 0
-      for (const tc of allCards) {
-        const cardInfo = db.getCardInfo(tc.cid)
-        if (cardInfo) {
-          const section = tc.section
-          deckStore.addCard(cardInfo, section)
-          added++
-        }
-      }
-      if (added > 0) {
-        showToast(`${added}枚のカードをデッキに追加しました`, 'success')
-      } else {
-        showToast('追加できるカードが見つかりませんでした', 'warning')
-      }
-    }
-
     const handlePracticeAction = (action: string, cardId: string) => {
       const { executeAction } = usePracticeActions()
       const fieldIdx = practiceStore.selectedFieldIndex
@@ -390,15 +347,6 @@ export default {
 
     // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
     const isReady = ref(false)
-
-    const activeTab = ref('search')
-    const searchQuery = ref('')
-    const selectedCard = ref(null)
-    const showDetail = ref(true)
-    const viewMode = ref('list')
-    const cardTab = ref('info')
-    // 現在開いているデッキのdno
-    const currentDeckDno = ref<number | null>(null)
 
     // 言語変更待機中フラグ
     let pendingLanguageChange: (() => void) | null = null;
@@ -754,7 +702,6 @@ export default {
     // checkUnsavedChanges を子コンポーネント（DeckEditTopBar）に提供
     provide('checkUnsavedChanges', checkUnsavedChanges)
     provide('practiceMode', practiceMode)
-    provide('practiceStore', practiceStore)
 
     // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
     let isComponentMounted = false
@@ -762,12 +709,6 @@ export default {
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
       isComponentMounted = true
-
-      // 前回のdnoを復元
-      const lastDno = localStorage.getItem(STORAGE_KEY_LAST_DECK_DNO)
-      if (lastDno) {
-        currentDeckDno.value = parseInt(lastDno, 10)
-      }
 
       // TASK-462: 初期化のawait前に登録し、デッキ描画直後からショートカット/
       // hashchange/resizeが有効になるようにする（ハンドラは全てsetup時点で参照可能）
@@ -881,25 +822,6 @@ export default {
       pendingLanguageChange = null
     })
 
-    const createFilledCards = (count, prefix, isExtra = false) => {
-      return Array.from({ length: count }, (_, i) => ({
-        card: {
-          name: `${prefix}カード${i + 1}`,
-          cardId: `${prefix}-${i + 1}`,
-          imageId: '1',
-          cardType: isExtra ? 'monster' : 'monster',
-          text: `${prefix}のカード${i + 1}`,
-          isExtraDeck: isExtra,
-          attribute: 'dark',
-          levelType: 'level',
-          levelValue: 4,
-          race: 'warrior',
-          types: ['effect']
-        },
-        quantity: 1
-      }))
-    }
-
     // 初期データ設定は行わない（load で読み込むため）
     
     const mainDeck = computed(() => {
@@ -938,179 +860,6 @@ export default {
       }
     })
 
-    const mainContentStyle = computed(() => {
-      // padding-bottomを.deck-areasに移動したため、ここでは何も設定しない
-      return {}
-    })
-
-    const searchResults = reactive([])
-
-    const showCardDetail = (card) => {
-      selectedCard.value = card
-      activeTab.value = 'card'
-      cardTab.value = 'info'
-    }
-
-    const onSearchInput = async (query) => {
-      if (!query || !query.trim()) {
-        searchResults.length = 0
-        return
-      }
-
-      try {
-        // Load Dialog検索時に動的import
-        const { searchCards } = await import('../../api/card-search')
-        const results = await searchCards({
-          keyword: query.trim(),
-          searchType: '1',
-          resultsPerPage: 100
-        })
-        const gameType = detectCardGameType()
-        searchResults.length = 0
-        searchResults.push(...results.map(card => {
-          const relativeUrl = getCardImageUrl(card, gameType)
-          const imageUrl = relativeUrl ? buildFullUrl(relativeUrl) : undefined
-          return {
-            card: {
-              ...card,
-              imageUrl
-            },
-            quantity: 1
-          }
-        }))
-      } catch (error) {
-        console.error('Search error:', error)
-      }
-    }
-
-    const toggleDetail = (card) => {
-    }
-
-    const dragData = ref(null)
-
-    const onDragStart = (event, deckType, index, card) => {
-      if (card.empty) {
-        event.preventDefault()
-        return false
-      }
-
-      dragData.value = { deckType, index, card }
-      event.dataTransfer.effectAllowed = deckType === 'search' ? 'copy' : 'move'
-      event.dataTransfer.setData('text/plain', JSON.stringify({ deckType, index }))
-    }
-
-    const handleDragOver = (event) => {
-      event.preventDefault()
-      return false
-    }
-
-    const onAreaDrop = (event, targetDeckType) => {
-      event.preventDefault()
-      event.stopPropagation()
-      if (!dragData.value) {
-        console.error('ERROR: No drag data!')
-        return
-      }
-
-      const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-
-      if (sourceDeckType === 'search') {
-        if (targetDeckType === 'main' || targetDeckType === 'extra') {
-          deckStore.addCopyToMainOrExtra(card)
-        } else if (targetDeckType === 'side') {
-          deckStore.addCopyToSection(card, 'side')
-        }
-      } else if (sourceDeckType !== targetDeckType) {
-        deckStore.moveCard(card.cardId, sourceDeckType, targetDeckType)
-      }
-
-      dragData.value = null
-    }
-
-    const onDragOver = (event) => {
-      event.preventDefault()
-      event.dataTransfer.dropEffect = 'move'
-    }
-
-    const onDrop = (event, targetDeckType, targetIndex) => {
-      event.preventDefault()
-      event.stopPropagation()
-      if (!dragData.value) {
-        return
-      }
-
-      const { deckType: sourceDeckType, index: sourceIndex, card } = dragData.value
-
-      if (sourceDeckType === 'search') {
-        if (targetDeckType === 'main' || targetDeckType === 'extra') {
-          deckStore.insertCard(card, card.isExtraDeck ? 'extra' : 'main', targetIndex)
-        } else if (targetDeckType === 'side') {
-          deckStore.insertCard(card, 'side', targetIndex)
-        }
-      } else {
-        deckStore.moveCardWithPosition(card.cardId, sourceDeckType, sourceIndex, targetDeckType, targetIndex)
-      }
-
-      dragData.value = null
-    }
-
-    const findSectionByCard = (card) => {
-      if (mainDeck.value.some(c => c.cardId === card.cardId)) return 'main'
-      if (extraDeck.value.some(c => c.cardId === card.cardId)) return 'extra'
-      if (sideDeck.value.some(c => c.cardId === card.cardId)) return 'side'
-      if (trashDeck.value.some(c => c.cardId === card.cardId)) return 'trash'
-      return null
-    }
-
-    const moveToTrash = (card, index) => {
-      const section = findSectionByCard(card)
-      if (section && section !== 'trash') {
-        deckStore.moveCardToTrash(card, section)
-      }
-    }
-
-    const moveToSide = (card, index) => {
-      const section = findSectionByCard(card)
-      if (section === 'main' || section === 'extra' || section === 'trash') {
-        deckStore.moveCardToSide(card, section)
-      }
-    }
-
-    const moveFromSide = (card, index) => {
-      deckStore.moveCardFromSide(card)
-    }
-
-    const moveFromTrash = (card, index, targetType) => {
-      if (targetType === 'side') {
-        deckStore.moveCardToSide(card, 'trash')
-      } else {
-        deckStore.moveCardToMainOrExtra(card, 'trash')
-      }
-    }
-
-    const addCopy = (card, index) => {
-      const section = findSectionByCard(card)
-      if (section && section !== 'trash') {
-        deckStore.addCopyToSection(card, section)
-      }
-    }
-
-    const addToMain = (card) => {
-      deckStore.addCopyToSection(card, 'main')
-    }
-
-    const addToExtra = (card) => {
-      deckStore.addCopyToSection(card, 'extra')
-    }
-
-    const addToSide = (card) => {
-      deckStore.addCopyToSection(card, 'side')
-    }
-
-    const addToMainOrExtra = (card, index) => {
-      deckStore.addCopyToMainOrExtra(card)
-    }
-
     return {
       regulationFixTitle,
       regulationFixMessage,
@@ -1121,49 +870,23 @@ export default {
       practiceStore,
       practiceMode,
       togglePracticeMode,
-      toggleTwoDeckMode,
       loadDeckForField2,
       hardResetPractice,
       openDeckForPractice,
       openDeckForPracticeP2,
       saveDeckFromPractice,
-      saveTempRecipe,
       handlePracticeAction,
-      activeTab,
-      searchQuery,
-      selectedCard,
-      showDetail,
-      viewMode,
-      cardTab,
       mainDeck,
       extraDeck,
       sideDeck,
       trashDeck,
       middleDecksClass,
       deckAreasStyle,
-      mainContentStyle,
-      searchResults,
-      showCardDetail,
-      onSearchInput,
-      toggleDetail,
-      addToMain,
       handleImportExportClose,
       handleExported,
       handleImported,
       confirmDelete,
       cancelDelete,
-      addToExtra,
-      addToSide,
-      onDragStart,
-      onDrop,
-      onAreaDrop,
-      handleDragOver,
-      moveToTrash,
-      moveToSide,
-      moveFromSide,
-      moveFromTrash,
-      addCopy,
-      addToMainOrExtra,
       toggleLoadDialog,
       handleDeckLoaded,
       unsavedChangesMessage,
