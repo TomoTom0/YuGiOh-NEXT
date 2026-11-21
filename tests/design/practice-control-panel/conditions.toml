@@ -1,0 +1,127 @@
+# 検証対象: src/components/practice/PracticeControlPanel.vue
+#
+# 経緯:
+# - TASK-564（TASK-331 Tier C第17号・TASK-563第16号の後続）。Practice系コンポーネント
+#   11ファイルの条件化6ファイル目。245行（template＋script setup。props: fieldIndex
+#   のみ。practice store実物へアクション呼び出しとゾーン件数表示を行う）。
+#   既存の専用ユニットテストは無く、tests/unit/components/PracticeControlPanel.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-564
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第16号条件書と同一）:
+# - 1条件=1振る舞いclass。ゾーン7種の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（件数表示・selectedクラス・2Pボタンのtitle/active）と
+#   storeアクションの呼び出し引数・emit。vm内部computedは直接参照しない
+# - practice storeは実物を使い、アクションはspyで呼び出し引数を観測する
+#   （store本体の挙動はpractice条件書が保証）。件数表示はstoreの公開状態を
+#   seedして検証する
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-control-panel"
+source_file = "src/components/practice/PracticeControlPanel.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeControlPanel.test.ts"
+source_hash = "50bfeee830fdab5bc6283bb2cf88f22859be2447"
+note = "TASK-564（TASK-331第17号）でPractice系コンポーネント6ファイル目の条件化。7条件=アクションボタンのstore呼び出し1+2Pボタン表示条件1+2Pボタン状態反映1+2P emit1+ゾーン件数表示1+selectedクラス1+ゾーン選択クリック1。テストは新規作成（store実物+アクションspy）。src不変"
+
+# --- アクションボタン ---
+
+[[condition]]
+id = "practice-control-panel.action-buttons-call-store-actions-with-field-index"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:74"
+target_function = "PracticeControlPanel template action buttons @click"
+source = "src/components/practice/PracticeControlPanel.vue L6-21 と tm TASK-564"
+description = "Drawボタンは practiceStore.draw(fieldIndex)、Draw 2は drawMultiple(2, fieldIndex)、Shuf Hは shuffleHand(fieldIndex)、Shuf EXは shuffleExtra(fieldIndex) を呼ぶ。fieldIndexはpropの値（デフォルト0）がそのまま渡る"
+given = "fieldIndex=0とfieldIndex=1でそれぞれmountし、4ボタンをクリックする（テスト側で列挙）"
+expect_return_shape = "各storeアクションが対応する引数でちょうど1回ずつ呼ばれる"
+
+# --- 2Pモードボタン ---
+
+[[condition]]
+id = "practice-control-panel.two-deck-button-only-for-field-zero"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:100"
+target_function = "PracticeControlPanel template two-player-btn v-if"
+source = "src/components/practice/PracticeControlPanel.vue L22-32 と tm TASK-564"
+description = "2P Modeボタンは fieldIndex===0 のときのみ表示される。fieldIndex=1では表示されない"
+given = "fieldIndex=0/1でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "fieldIndex=0では.two-player-btnが存在し、1では存在しない"
+
+[[condition]]
+id = "practice-control-panel.two-deck-button-reflects-two-deck-mode"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:109"
+target_function = "PracticeControlPanel template two-player-btn :class / :title"
+source = "src/components/practice/PracticeControlPanel.vue L25-26 と tm TASK-564"
+description = "2P Modeボタンは practiceStore.twoDeckMode（p2DeckDnoが非null）がfalseのとき title='Open 2P mode'でactiveクラスなし、trueのとき title='Close 2P mode'でactiveクラスが付く"
+given = "twoDeckMode=false/trueの状態でそれぞれmount（テスト側で列挙。trueはp2DeckDnoへ値を設定）"
+expect_return_shape = "ボタンのtitleとactiveクラスの有無がtwoDeckModeに対応する"
+
+[[condition]]
+id = "practice-control-panel.two-deck-button-click-emits-toggle"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:125"
+target_function = "PracticeControlPanel template two-player-btn @click"
+source = "src/components/practice/PracticeControlPanel.vue L27 と tm TASK-564"
+description = "2P Modeボタンのクリックは toggle-two-deck イベントを引数なしでemitする（storeは直接変更しない）"
+given = "fieldIndex=0でmountし、2P Modeボタンをクリックする"
+expect_return_shape = "emitted('toggle-two-deck') が [[]] を記録する"
+
+# --- ゾーン件数表示 ---
+
+[[condition]]
+id = "practice-control-panel.zone-counts-display-per-field"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:135,tests/unit/components/PracticeControlPanel.test.ts:156"
+target_function = "PracticeControlPanel zones / deckCount computed と template zone-counts"
+source = "src/components/practice/PracticeControlPanel.vue L36-93, L121-126 と tm TASK-564"
+description = "Deck Infoの7行（Deck/Hand/GY/Banish/Extra/Temp/EM）は、fieldIndex=0ではzones、1ではzones2の件数を表示する。DeckはdeckCount（zones.deck.length）、Hand/GY/Banish/Extra/Tempは各ゾーンのlength、EMはextraMonster.flat().length"
+given = "zonesとzones2に互いに異なる既知の件数をseedし、fieldIndex=0/1でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "各行の.zone-valueが対応するゾーンの件数と一致し、fieldIndexで参照先が切り替わる"
+
+[[condition]]
+id = "practice-control-panel.zone-row-selected-class"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:170"
+target_function = "PracticeControlPanel template zone-count :class"
+source = "src/components/practice/PracticeControlPanel.vue L37-93 と tm TASK-564"
+description = "ゾーン行は practiceStore.selectedZone とその行のゾーンが一致するときのみ selected クラスが付く"
+given = "selectedZone='gy'の状態でmountする"
+expect_return_shape = "GY行にのみselectedクラスが付き、他の6行には付かない"
+
+[[condition]]
+id = "practice-control-panel.zone-row-click-selects-zone"
+source_lines = "tests/unit/components/PracticeControlPanel.test.ts:182"
+target_function = "PracticeControlPanel template zone-count @click"
+source = "src/components/practice/PracticeControlPanel.vue L37-93 と tm TASK-564"
+description = "ゾーン行のクリックは practiceStore.selectZone(その行のゾーン) を呼ぶ（引数はゾーン名のみ。slotIndex/fieldIndexは渡さない）"
+given = "mountし、GY行とExtra行をクリックする"
+expect_return_shape = "selectZoneが ('gy') と ('extra') でそれぞれ1回呼ばれる"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "静的表示文字列（セクション見出し・ボタンラベル・ゾーンラベル）とmdiアイコン"
+source = "src/components/practice/PracticeControlPanel.vue L1-96, L101-107 と tm TASK-564"
+reason = "状態に依存しない固定文字列・固定アイコンで分岐なし（第11号・deck-metadata-description条件書のexcludedと同根拠）。状態で切り替わる2Pボタンのtitleのみ対応条件で検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L129-245。パネル・ボタン・ゾーン行の静的スタイル）"
+source = "src/components/practice/PracticeControlPanel.vue L129-245 と tm TASK-564"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。selected/activeクラスの付与分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "practice store本体（draw/drawMultiple/shuffleHand/shuffleExtra/selectZoneの動作、zones/zones2/deckCount/twoDeckModeの算出）"
+source = "src/stores/practice.ts と tm TASK-564"
+reason = "隣接モジュール責務。practice条件書（tests/design/practice/）で保証済み。本書は本コンポーネントが渡す引数と、store状態の表示反映のみを検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps/defineEmits定義（L109-117）"
+source = "src/components/practice/PracticeControlPanel.vue L109-117 と tm TASK-564"
+reason = "宣言のみで分岐なし（§8「書かない」: props/emits定義）。fieldIndexの値は対応条件で呼び出し引数・表示切替としてObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
