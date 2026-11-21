@@ -20,17 +20,17 @@
 [meta]
 feature = "card-limit"
 source_file = "src/utils/card-limit.ts"
-verified = false
-verified_at = "2026-08-28"
+verified = true
+verified_at = "2026-11-21"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/card-limit.test.ts"
-source_hash = "1d40f9e24f3ae8e9a4ba6c5a3b2c0940459f1633"
-note = "TASK-304でsource変更（updateLimitRegulation削除）のため再検証が必要だが、既存欠陥（id形式・coversタグ欠落、fail 10件）が再検証をブロックしている。是正タスクをtmに起票済み。是正後にverified=trueへ復帰させる"
+source_hash = "7a60938ba6d7f7fe49fd6b8065fe3f4174e51f0e"
+note = "TASK-541で既存欠陥（id形式・coversタグ欠落、fail 10件）を是正し、verified=trueへ復帰（2026-11-21）"
 
 # --- getCardLimit(card: CardInfo): number ---
 
 [[condition]]
-id = "get_card_limit.missing_limit_regulation_returns_unlimited"
+id = "card-limit.missing-limit-regulation-returns-unlimited"
 target_function = "getCardLimit"
 source_lines = "22-24"
 description = "card.limitRegulationがfalsy（プロパティ省略またはundefined）の場合、switchを評価せず早期returnで3（無制限）を返す"
@@ -38,7 +38,7 @@ given = "card.limitRegulationが未設定、またはundefined"
 expect_return = 3
 
 [[condition]]
-id = "get_card_limit.forbidden_returns_0"
+id = "card-limit.forbidden-returns-0"
 target_function = "getCardLimit"
 source_lines = "26-28"
 description = "card.limitRegulationが'forbidden'の場合、switchのcase一致により0（禁止カード）を返す"
@@ -46,7 +46,7 @@ given = "card.limitRegulation = 'forbidden'"
 expect_return = 0
 
 [[condition]]
-id = "get_card_limit.limited_returns_1"
+id = "card-limit.limited-returns-1"
 target_function = "getCardLimit"
 source_lines = "26,29-30"
 description = "card.limitRegulationが'limited'の場合、switchのcase一致により1（制限カード）を返す"
@@ -54,7 +54,7 @@ given = "card.limitRegulation = 'limited'"
 expect_return = 1
 
 [[condition]]
-id = "get_card_limit.semi_limited_returns_2"
+id = "card-limit.semi-limited-returns-2"
 target_function = "getCardLimit"
 source_lines = "26,31-32"
 description = "card.limitRegulationが'semi-limited'の場合、switchのcase一致により2（準制限カード）を返す"
@@ -62,7 +62,7 @@ given = "card.limitRegulation = 'semi-limited'"
 expect_return = 2
 
 [[condition]]
-id = "get_card_limit.unknown_value_falls_to_default"
+id = "card-limit.unknown-value-falls-to-default"
 target_function = "getCardLimit"
 source_lines = "26,33-34"
 description = "card.limitRegulationがtruthyだが'forbidden'/'limited'/'semi-limited'のいずれにも一致しない場合、switchのdefault節に落ちて3（無制限）を返す。LimitRegulation型はコンパイル時この3値のみだが、実データが外部ソース由来のためこの分岐は実行時に到達しうる"
