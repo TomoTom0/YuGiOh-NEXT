@@ -14,8 +14,9 @@ export type DeckType =
 
 /**
  * デッキタイプのvalue値（フォーム送信時の値）
+ * '-1' は「未設定」を示す
  */
-export type DeckTypeValue = '0' | '1' | '2' | '3' | string;
+export type DeckTypeValue = '-1' | '0' | '1' | '2' | '3' | string;
 
 /**
  * デッキスタイル（表示名）

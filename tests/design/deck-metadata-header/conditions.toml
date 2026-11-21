@@ -41,6 +41,9 @@
 # 5. 履歴: 「未設定」optionは422b819（PR #34）追加時は無検証代入で動作していたが、
 #    bacb696（PR #67 / 2025-12-12）で型ガード検証へ置換された際に'-1'が除外され回帰
 #
+# 【TASK-545 対応済み 2026-11-21】上記'-1'非対称は親DeckMetadata.selectDeckType /
+# isDeckTypeValue / DeckTypeValue を修正して解消。Header側の挙動（条件6）は不変
+#
 # 作業中に発見した追加不具合: adjustAlignRightは呼び出し時にv-if配下のdropdown refが
 # まだnullのため早期returnし、align-rightが一切適用されない（probeで確認）。
 # src不変契約のため修正せずTASK-546へ分離起票・本条件書のexcludedに記録
@@ -108,10 +111,10 @@ expect_return_shape = "1回目で.deck-style-dropdownが存在し、2回目で�
 id = "deck-metadata-header.select-deck-type-emits-and-closes"
 source_lines = "tests/unit/components/DeckMetadataHeader.test.ts:222"
 target_function = "DeckMetadataHeader selectDeckType"
-source = "src/components/DeckMetadataHeader.vue L293-296, L45-78 と tm TASK-544（'-1'非対称の調査結論はTASK-545）"
+source = "src/components/DeckMetadataHeader.vue L293-296, L45-78 と tm TASK-544（'-1'非対称はTASK-545で親側も修正済み）"
 description = "デッキタイプoptionの選択でselect-deck-typeを選択値そのもの（未設定'-1'を含む）でemitし、ドロップダウンを閉じる。Header自身は'-1'を拒否しない"
 given = "type dropdownを開き、未設定('-1')・'0'・'1'・'2'・'3'の各optionをクリック（fixture表）"
-expect_return_shape = "各クリックでselect-deck-typeがクリック値を引数に1回emitされ、dropdownが閉じる。'-1'も他の値と同じくemitされる（親側の拒否は別タスク）"
+expect_return_shape = "各クリックでselect-deck-typeがクリック値を引数に1回emitされ、dropdownが閉じる。'-1'も他の値と同じくemitされる（親DeckMetadataもTASK-545で'-1'を有効値として受け入れ）"
 
 [[condition]]
 id = "deck-metadata-header.select-deck-style-emits-and-closes"

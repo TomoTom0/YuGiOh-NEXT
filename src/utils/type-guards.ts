@@ -346,6 +346,7 @@ export function anyGuard<T>(
 
 /**
  * デッキタイプの有効な値かどうかをチェック
+ * '-1' は「未設定」を示す有効値として扱う（DeckStyleValue と対称）
  *
  * @param value チェック対象の値
  * @returns DeckTypeValue である場合は true
@@ -355,8 +356,8 @@ export function anyGuard<T>(
  *   deckType = value;  // 安全に代入可能
  * }
  */
-export function isDeckTypeValue(value: any): value is '0' | '1' | '2' | '3' {
-  return typeof value === 'string' && ['0', '1', '2', '3'].includes(value);
+export function isDeckTypeValue(value: any): value is '-1' | '0' | '1' | '2' | '3' {
+  return typeof value === 'string' && ['-1', '0', '1', '2', '3'].includes(value);
 }
 
 /**

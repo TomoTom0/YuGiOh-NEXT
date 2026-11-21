@@ -291,9 +291,9 @@ expect_return = "false"
 id = "is_deck_type_value.string_0_to_3"
 target_function = "isDeckTypeValue"
 source_lines = "358-359"
-description = "typeof value === 'string' かつ valueが'0','1','2','3'のいずれかの場合のみtrueを返す"
-given = "'0'、'1'、'2'、'3'、'4'、'-1'、'a'、0、null"
-expect_return = "'0'から'3'のみtrue"
+description = "typeof value === 'string' かつ valueが'-1','0','1','2','3'のいずれかの場合のみtrueを返す。'-1'は未設定を示す有効値（TASK-545）"
+given = "'-1'、'0'、'1'、'2'、'3'、'4'、'-2'、'a'、0、null"
+expect_return = "'-1'から'3'のみtrue"
 
 [[condition]]
 id = "is_deck_style_value.string_minus1_to_2"
