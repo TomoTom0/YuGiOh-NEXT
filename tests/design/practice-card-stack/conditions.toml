@@ -1,0 +1,172 @@
+# 検証対象: src/components/practice/PracticeCardStack.vue
+#
+# 経緯:
+# - TASK-563（TASK-331 Tier C第16号・TASK-561第15号の後続）。Practice系コンポーネント
+#   11ファイルの条件化5ファイル目。185行（template＋script setup。props: cards/
+#   direction/maxVisible/forceReveal/zone/slotIndex/dragOver/cardWidth/cardHeight、
+#   子DeckCardのラッパー）。既存の専用ユニットテストは無く、
+#   tests/unit/components/PracticeCardStack.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-563
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第15号条件書と同一）:
+# - 1条件=1振る舞いclass。カード構成・方向の列挙はテスト側fixtureで持ち、
+#   条件書には親条件のみ置く
+# - 観測対象は描画結果（DeckCardへ渡されるprops・style・バッジ）とemitのみ。
+#   vm内部computedは直接参照しない
+# - 子DeckCardはDeckMetadata.test.tsと同一手法のカスタムstubで置き換え、受け取った
+#   propsをdata属性へ描画しボタンで親がlistenするイベントを発火する。子の内部挙動は
+#   DeckCard自身の条件書が保証
+# - ルートの direction-* クラスに対応するSCSSルールは存在しない（クラスは目印のみで、
+#   視覚配置はoffsetStyleのinline styleが担う）。クラス自体は条件化する
+# - dragOver propは宣言のみで描画・ロジックに一切使われていない（受け取りのみ）。
+#   観測可能な出力が無いため条件化対象外（excluded参照）
+#
+# 作業中に発見した不具合疑い（src不変のため別タスクへ分離）:
+# - defineEmitsの card-dragstart / practice-action / practice-dragend は宣言のみで
+#   template内で一度もemitされない。特に card-dragstart は親PracticeSlot.vueが
+#   (card, event) でlistenして自らのcard-dragstartへ再emitする実装があるため、
+#   ドラッグ開始経路が成立していない疑いがある。[[excluded]]に記録しTASK-562へ分離起票
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-card-stack"
+source_file = "src/components/practice/PracticeCardStack.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeCardStack.test.ts"
+source_hash = "021522fbd6293baa0232e12bd6d70b5899f4f637"
+note = "TASK-563（TASK-331第16号）でPractice系コンポーネント5ファイル目の条件化。10条件=ルートclass・サイズ1+可視カード選択2（通常キャップ／deck・extra裏向きモード）+DeckCard props1+オフセットstyle1+バッジ1+イベント転送4（card-click／card-action／practice-dragstart／card-dragend）。DeckCardはカスタムstub。未emitのemit宣言（card-dragstart等）はTASK-562へ分離。src不変"
+
+# --- ルートのclass・サイズ ---
+
+[[condition]]
+id = "practice-card-stack.root-class-and-size-from-props"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:107,tests/unit/components/PracticeCardStack.test.ts:116"
+target_function = "PracticeCardStack template root div :class / stackSizeStyle computed"
+source = "src/components/practice/PracticeCardStack.vue L2, L51-54 と tm TASK-563"
+description = "根源要素は direction-<direction prop> クラス（デフォルト'right-up'）を持ち、styleのwidth/heightはcardWidth/cardHeight propsのpx値（デフォルト36/53）になる。directionクラスはeffectiveDirectionではなく生のprop値を反映する"
+given = "デフォルトpropsでmountしたケースと、direction='left'・cardWidth=60・cardHeight=88でmountしたケース（テスト側で列挙）"
+expect_return_shape = "根源要素のクラスに direction-right-up（または direction-left）が含まれ、style.width/heightが36px/53px（または60px/88px）と一致する"
+
+# --- 可視カードの選択 ---
+
+[[condition]]
+id = "practice-card-stack.visible-cards-capped-at-max-visible-from-tail"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:127,tests/unit/components/PracticeCardStack.test.ts:133,tests/unit/components/PracticeCardStack.test.ts:140"
+target_function = "PracticeCardStack visibleCards computed（通常分岐）"
+source = "src/components/practice/PracticeCardStack.vue L102-103 と tm TASK-563"
+description = "deck/extra以外のゾーン（またはforceReveal時）は、cardsがmaxVisible（デフォルト3）以下なら全件、超える場合は末尾maxVisible件（順序維持）をDeckCardとして描画する"
+given = "zone='monster'でcards 2件（maxVisible=3）／cards 5件（maxVisible=3）／cards 5件（maxVisible=2）をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "描画されるDeckCardが2件（全件）／3件（末尾3件・順序維持）／2件（末尾2件）になる"
+
+[[condition]]
+id = "practice-card-stack.visible-cards-face-down-only-mode-selection"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:149,tests/unit/components/PracticeCardStack.test.ts:156,tests/unit/components/PracticeCardStack.test.ts:163,tests/unit/components/PracticeCardStack.test.ts:170,tests/unit/components/PracticeCardStack.test.ts:177,tests/unit/components/PracticeCardStack.test.ts:183"
+target_function = "PracticeCardStack visibleCards computed（deck/extra・forceReveal=false分岐）"
+source = "src/components/practice/PracticeCardStack.vue L83-103 と tm TASK-563"
+description = "zone='deck'/'extra'かつforceReveal=falseのときは表向きカードだけを選ぶ: 下端カードが表向き（2枚以上）ならそれを先に、上端カードが表向きなら後に（同一カードの重複なし）並べる。表向きが無ければ先頭1件のみ。forceReveal=trueではこの分岐に入らず通常のキャップ規則になる"
+given = "zone='deck'で (a)全て裏向き3件 (b)上端のみ表向き (c)下端のみ表向き (d)両端表向き (e)1件のみ表向き (f)forceReveal=trueで5件 をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "(a)先頭1件 (b)上端1件 (c)下端1件 (d)下端→上端の2件 (e)その1件（重複なし） (f)末尾3件（maxVisible）が描画される"
+
+# --- DeckCardへのprops ---
+
+[[condition]]
+id = "practice-card-stack.deck-card-props-bound"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:192"
+target_function = "PracticeCardStack template DeckCard props"
+source = "src/components/practice/PracticeCardStack.vue L5-18 と tm TASK-563"
+description = "各DeckCardには card（カードオブジェクトそのもの）、section-type='practice'、uuid=card.instanceId（無い場合は''）、force-reveal=forceReveal prop、zone、slot-index が渡され、class='stack-card' が付く"
+given = "instanceIdを持つカードと持たないカードを含めてmount"
+expect_return_shape = "DeckCard stubのpropsが上記の値と一致し、instanceId無しカードのuuidは''になる"
+
+# --- オフセットstyle ---
+
+[[condition]]
+id = "practice-card-stack.offset-style-per-index-and-effective-direction"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:211,tests/unit/components/PracticeCardStack.test.ts:221,tests/unit/components/PracticeCardStack.test.ts:230,tests/unit/components/PracticeCardStack.test.ts:239"
+target_function = "PracticeCardStack offsetStyle関数"
+source = "src/components/practice/PracticeCardStack.vue L66-77, L108-124 と tm TASK-563"
+description = "各DeckCardのstyleは position:absolute、left=(i-(n-1)/2)*x px、top=i*y px、zIndex=i。方向ベクトル(x,y)はeffectiveDirectionで決まり right-up=(16,-5) / none=(0,0) 等。effectiveDirectionは deck/extra・forceReveal=false で両端表向きなら'right-up'、片端のみ表向きなら'none'になり、direction propより優先される"
+given = "(a)direction='right-up'・3件 (b)direction='none'・3件 (c)zone='deck'・direction='none'・両端表向き2件 (d)zone='deck'・direction='right-up'・上端のみ表向き をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "(a)left=-16/0/16px・top=0/-5/-10px・zIndex=0/1/2 (b)全てleft=0px・top=0px (c)right-upのオフセット (d)全てオフセット0 になる"
+
+# --- バッジ ---
+
+[[condition]]
+id = "practice-card-stack.badge-shows-total-count"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:251,tests/unit/components/PracticeCardStack.test.ts:257"
+target_function = "PracticeCardStack template div.stack-badge v-if / totalCount computed"
+source = "src/components/practice/PracticeCardStack.vue L21-23, L79 と tm TASK-563"
+description = "cardsが1件以上あるとき .stack-badge に総件数（可視件数ではなくcards.length）を表示する。0件ではバッジを描画しない"
+given = "cards 0件／5件（maxVisible=3）でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "0件では.stack-badgeが存在せず、5件ではバッジのテキストが'5'になる"
+
+# --- イベント転送 ---
+
+[[condition]]
+id = "practice-card-stack.card-click-forwarded"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:266"
+target_function = "PracticeCardStack template DeckCard @click"
+source = "src/components/practice/PracticeCardStack.vue L15 と tm TASK-563"
+description = "DeckCardのclickを受けると card-click イベントをそのカードオブジェクトでemitする"
+given = "カード2件でmountし、1件目のDeckCard stubをクリックする"
+expect_return_shape = "emitted('card-click') が [[カードオブジェクト]] を記録する"
+
+[[condition]]
+id = "practice-card-stack.practice-action-forwarded-as-card-action"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:275"
+target_function = "PracticeCardStack template DeckCard @practice-action"
+source = "src/components/practice/PracticeCardStack.vue L16 と tm TASK-563"
+description = "DeckCardの practice-action (action, uuid) を受けると、card-action イベントを同じ (action, uuid) でemitする（イベント名が変わる）"
+given = "DeckCard stubから practice-action('flip', uuid) を発火する"
+expect_return_shape = "emitted('card-action') が [['flip', uuid]] を記録する"
+
+[[condition]]
+id = "practice-card-stack.practice-dragstart-forwarded"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:283"
+target_function = "PracticeCardStack template DeckCard @practice-dragstart"
+source = "src/components/practice/PracticeCardStack.vue L17 と tm TASK-563"
+description = "DeckCardの practice-dragstart (event, uuid, offset) を受けると、practice-dragstart イベントを同じ3引数でemitする"
+given = "DeckCard stubから practice-dragstart(event, uuid, {x:1, y:2}) を発火する"
+expect_return_shape = "emitted('practice-dragstart') が [[event, uuid, {x:1, y:2}]] を記録する（eventは同一オブジェクト）"
+
+[[condition]]
+id = "practice-card-stack.practice-dragend-forwarded-as-card-dragend"
+source_lines = "tests/unit/components/PracticeCardStack.test.ts:297"
+target_function = "PracticeCardStack template DeckCard @practice-dragend"
+source = "src/components/practice/PracticeCardStack.vue L18 と tm TASK-563"
+description = "DeckCardの practice-dragend を受けると、card-dragend イベントを引数なしでemitする（イベント名が変わる）"
+given = "DeckCard stubから practice-dragend を発火する"
+expect_return_shape = "emitted('card-dragend') が [[]] を記録する"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "defineEmitsのうち一度もemitされない宣言（card-dragstart / practice-action / practice-dragend）"
+source = "src/components/practice/PracticeCardStack.vue L56-64、src/components/practice/PracticeSlot.vue L41-45 と tm TASK-563"
+reason = "発火経路が無いため振る舞いとして観測不能。特にcard-dragstartは親PracticeSlotが (card, event) でlistenし自らのcard-dragstartへ再emitする実装があるのに子が発火せず、ドラッグ開始経路が成立していない疑いがある。DeckCardのpractice-dragstartは (event, uuid, offset) で本コンポーネントが同名転送するがPracticeSlotはlistenしていない。修正はemit名・payload変換の設計判断を伴うためTASK-562へ分離起票し、本書は実際にemitされる4イベントのみ条件化する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "dragOver prop（宣言・デフォルトfalseのみ）"
+source = "src/components/practice/PracticeCardStack.vue L39, L46 と tm TASK-563"
+reason = "受け取るだけで描画・ロジックのどこにも使われておらず、観測可能な出力が存在しない（§8「書かない」: props受け渡しのみ）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "TransitionGroupのアニメーション（card-stack enter/leave/move）とscoped SCSS定義（L128-185）"
+source = "src/components/practice/PracticeCardStack.vue L128-185 と tm TASK-563"
+reason = "静的スタイル・遷移定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。可視カード選択の分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "DeckCardコンポーネント本体（カード描画・ドラッグ開始の発火）"
+source = "src/components/DeckCard.vue と tm TASK-563"
+reason = "隣接コンポーネント責務。DeckCard自身の条件書で保証する。本書は本コンポーネントが渡すpropsと転送するイベントのみを検証し、テストではカスタムstubで置き換える"
+decided_at = "2026-11-21"
+decided_by = "claude"
