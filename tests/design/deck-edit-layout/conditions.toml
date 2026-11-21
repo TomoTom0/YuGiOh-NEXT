@@ -15,7 +15,13 @@
 # - RightArea/DeckCard/DeckSectionの内部挙動は各コンポーネント側
 #
 # 探索中の発見事項:
-# - デッドコード群（下記[[excluded]]・削除タスクTASK-493で起票済み）
+# - デッドコード群（下記[[excluded]]・TASK-493で削除済み）
+# - TASK-493で toggleTwoDeckMode / saveTempRecipe（UI未接続ハンドラ）も削除したため、
+#   対応する4条件（two-deck-toggle-on-opens-p2 / two-deck-toggle-off-clears /
+#   save-temp-recipe-adds-cards / save-temp-recipe-none-found-warns）は取り下げた
+#   （PracticePlayerPanelが当該イベントをemitしないため実UI経路がなく、イベント接続の
+#   実装は機能追加として別途扱うべきもの。ハンドラ単体条件の記録は本ファイルの
+#   git履歴とTASK-493に残る）
 # - 「保存せず続ける」ボタンのonClickにtry/catch無し（TASK-494で起票。条件
 #   unsaved-button-continue-without-saving-no-catch は期待仕様ではなく現行挙動として条件化）
 # - onUnmountedがwindow.ygoChangeLanguageを元に戻さない（override残留。TASK-495で起票。条件
@@ -29,10 +35,10 @@
 
 [meta]
 verified = true
-verified_at = "2026-09-13"
+verified_at = "2026-11-21"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/content/deck-edit-layout.test.ts"
-source_hash = "23ce4fa6593080b4dc714a716867023906c7ed80"
+source_hash = "25bf7a34abecae792a3a42e1e12bdaa512c48ff2"
 feature = "deck-edit-layout"
 source_file = "src/content/edit-ui/DeckEditLayout.vue"
 note = "TASK-494/495（既知欠陥2条件の修正）・TASK-496（checkDnoChange並走競合の直列化）は本条件書の将来更新対象"
@@ -774,26 +780,8 @@ given = "practiceMode=true の状態で togglePracticeMode()"
 expect_return_shape = "practiceMode=false・practiceStore.isActive=false・practiceStore.clearField2() が呼ばれ、deckStore.activeTab='search'"
 
 [[condition]]
-id = "deck-edit-layout.two-deck-toggle-on-opens-p2"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2034"
-target_function = "toggleTwoDeckMode（ON）"
-source = "src/content/edit-ui/DeckEditLayout.vue L285-L291, L319-L330 + tm TASK-331/487"
-description = "現在UI経路なし（PracticePlayerPanelが当該イベントtoggle-p2をemitしない）・ハンドラ単体の挙動条件: twoDeckMode=falseでのトグルはP2デッキ選択（LoadDialog）を開く"
-given = "practiceStore.twoDeckMode=false の状態で toggleTwoDeckMode() を直接呼ぶ"
-expect_return_shape = "openDeckForPracticeP2() が呼ばれ、deckStore.onLoadCallback に「getDeckDetail(dno)→detailあればinitPractice(main, extra, 1)とp2DeckDno/p2DeckName/p2DeckInfo設定」を行う関数が設定され、deckStore.showLoadDialog=true"
-
-[[condition]]
-id = "deck-edit-layout.two-deck-toggle-off-clears"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2066"
-target_function = "toggleTwoDeckMode（OFF）"
-source = "src/content/edit-ui/DeckEditLayout.vue L285-L291 + tm TASK-331/487"
-description = "現在UI経路なし（PracticePlayerPanelが当該イベントtoggle-p2をemitしない）・ハンドラ単体の挙動条件: twoDeckMode=trueでのトグルはP2 fieldを破棄する"
-given = "practiceStore.twoDeckMode=true の状態で toggleTwoDeckMode() を直接呼ぶ"
-expect_return_shape = "practiceStore.clearField2() が呼ばれる（openDeckForPracticeP2は呼ばれない）"
-
-[[condition]]
 id = "deck-edit-layout.load-field2-with-detail"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2082"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2034"
 target_function = "loadDeckForField2（detail取得成功）"
 source = "src/content/edit-ui/DeckEditLayout.vue L293-L301 + tm TASK-331/487"
 description = "P2へのデッキロード（load-deck-p2 emit経由。実UIの2デッキモードはこの経由）はfield 1として初期化しP2デッキ情報を設定する"
@@ -802,7 +790,7 @@ expect_return_shape = "practiceStore.initPractice(detail.mainDeck, detail.extraD
 
 [[condition]]
 id = "deck-edit-layout.load-field2-without-detail"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2105"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2057"
 target_function = "loadDeckForField2（detail取得失敗）"
 source = "src/content/edit-ui/DeckEditLayout.vue L293-L301 + tm TASK-331/487"
 description = "デッキ詳細が取得できない場合はP2の初期化・状態設定を行わない"
@@ -811,7 +799,7 @@ expect_return_shape = "initPractice・p2DeckDno・p2DeckName・p2DeckInfoのい�
 
 [[condition]]
 id = "deck-edit-layout.hard-reset-reinitializes"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2122"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2074"
 target_function = "hardResetPractice"
 source = "src/content/edit-ui/DeckEditLayout.vue L303-L307 + tm TASK-331/487"
 description = "ハードリセットは現在デッキからfieldを再初期化する（practiceMode・タブ状態は変更しない）"
@@ -820,7 +808,7 @@ expect_return_shape = "practiceStore.initPractice(deckInfo.mainDeck||[], deckInf
 
 [[condition]]
 id = "deck-edit-layout.open-deck-sets-callback"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2150"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2102"
 target_function = "openDeckForPractice"
 source = "src/content/edit-ui/DeckEditLayout.vue L309-L317 + tm TASK-331/487"
 description = "自陣（field 0）用のデッキ選択は、LoadDialogのcallbackをfield 0初期化に設定してから開く"
@@ -829,7 +817,7 @@ expect_return_shape = "deckStore.onLoadCallback に「await getDeckDetail(dno)�
 
 [[condition]]
 id = "deck-edit-layout.open-deck-p2-sets-callback"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2170"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2122"
 target_function = "openDeckForPracticeP2"
 source = "src/content/edit-ui/DeckEditLayout.vue L319-L330 + tm TASK-331/487"
 description = "P2（field 1）用のデッキ選択は、LoadDialogのcallbackをfield 1初期化+P2状態設定にしてから開く"
@@ -838,7 +826,7 @@ expect_return_shape = "deckStore.onLoadCallback に「await getDeckDetail(dno)�
 
 [[condition]]
 id = "deck-edit-layout.save-p2-missing-warns"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2193"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2145"
 target_function = "saveDeckFromPractice（playerIndex=1・P2未ロード）"
 source = "src/content/edit-ui/DeckEditLayout.vue L332-L337 + tm TASK-331/487"
 description = "P2にデッキが読み込まれていない状態でのP2保存は警告トーストのみで、保存を行わない"
@@ -847,7 +835,7 @@ expect_return_shape = "toast('P2にデッキが読み込まれていません', 
 
 [[condition]]
 id = "deck-edit-layout.save-p2-success-toast"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2205"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2157"
 target_function = "saveDeckFromPractice（playerIndex=1・成功）"
 source = "src/content/edit-ui/DeckEditLayout.vue L338-L343 + tm TASK-331/487"
 description = "P2デッキの保存はp2DeckDno/p2DeckInfoでsaveDeckDataを呼び、成功時にトーストを出す"
@@ -856,7 +844,7 @@ expect_return_shape = "saveDeckDataがp2DeckDnoとp2DeckInfoで呼ばれ、toast
 
 [[condition]]
 id = "deck-edit-layout.save-p2-failure-toast"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2221"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2173"
 target_function = "saveDeckFromPractice（playerIndex=1・失敗）"
 source = "src/content/edit-ui/DeckEditLayout.vue L341-L343 + tm TASK-331/487"
 description = "P2デッキの保存失敗時はエラートーストを出す"
@@ -865,7 +853,7 @@ expect_return_shape = "toast('保存に失敗しました', error)"
 
 [[condition]]
 id = "deck-edit-layout.save-p0-success-toast"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2235"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2187"
 target_function = "saveDeckFromPractice（playerIndex既定0・成功）"
 source = "src/content/edit-ui/DeckEditLayout.vue L347-L353 + tm TASK-331/487"
 description = "自陣（playerIndex=0）の保存は現在デッキ（deckInfo.dno）をsaveDeckで保存し、成功時にトーストを出す"
@@ -874,7 +862,7 @@ expect_return_shape = "saveDeckがdeckInfo.dnoで呼ばれ、toast('保存しま
 
 [[condition]]
 id = "deck-edit-layout.save-p0-failure-toast"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2248"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2200"
 target_function = "saveDeckFromPractice（playerIndex既定0・失敗）"
 source = "src/content/edit-ui/DeckEditLayout.vue L349-L352 + tm TASK-331/487"
 description = "自陣の保存失敗時はエラートーストを出す"
@@ -882,26 +870,8 @@ given = "saveDeckFromPractice()・saveDeckが{success:false}を返す"
 expect_return_shape = "toast('保存に失敗しました', error)"
 
 [[condition]]
-id = "deck-edit-layout.save-temp-recipe-adds-cards"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2259"
-target_function = "saveTempRecipe"
-source = "src/content/edit-ui/DeckEditLayout.vue L355-L372 + tm TASK-331/487"
-description = "現在UI経路なし（PracticePlayerPanelが当該イベントsave-temp-recipeをemitしない）・ハンドラ単体の挙動条件: tempRecipe/tempRecipe2のカードをcid解決してデッキへ追加し、追加枚数をトーストする"
-given = "practiceStore.tempRecipeとtempRecipe2に {cid:'abc', section:'main'} 等2件（db.getCardInfo(cid)がcardInfoを返す）がある状態で saveTempRecipe() を直接呼ぶ"
-expect_return_shape = "各カードに deckStore.addCard(cardInfo, tc.section) が呼ばれ、toast('2枚のカードをデッキに追加しました', success)"
-
-[[condition]]
-id = "deck-edit-layout.save-temp-recipe-none-found-warns"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2280"
-target_function = "saveTempRecipe"
-source = "src/content/edit-ui/DeckEditLayout.vue L355-L372 + tm TASK-331/487"
-description = "現在UI経路なし（PracticePlayerPanelが当該イベントsave-temp-recipeをemitしない）・ハンドラ単体の挙動条件: 1枚も解決できない場合は警告トーストのみで追加しない"
-given = "tempRecipe/tempRecipe2の全cidがunifiedDB.getCardInfoでnullを返す状態で saveTempRecipe() を直接呼ぶ"
-expect_return_shape = "addCardは呼ばれず、toast('追加できるカードが見つかりませんでした', warning)"
-
-[[condition]]
 id = "deck-edit-layout.practice-action-routing"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2294"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2211"
 target_function = "handlePracticeAction"
 source = "src/content/edit-ui/DeckEditLayout.vue L374-L384 + tm TASK-331/487"
 description = "PracticeZoneInfoPanelのactionを、moveToTemp/moveToDeckTopはpracticeStore.moveCardへ、それ以外はusePracticeActions().executeActionへ振り分ける（選択中fieldをfieldIdxとして渡す）"
@@ -912,7 +882,7 @@ expect_return_shape = "moveToTemp→practiceStore.moveCard('c1','temp',undefined
 
 [[condition]]
 id = "deck-edit-layout.resize-desktop-switches-deck-tab-to-search"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2317"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2234"
 target_function = "handleResize"
 source = "src/content/edit-ui/DeckEditLayout.vue L720-L728 + tm TASK-331/487"
 description = "画面幅がdesktop（768px超）でのresizeは、deckタブがactiveならsearchタブへ切り替える"
@@ -921,7 +891,7 @@ expect_return_shape = "deckStore.activeTab='search' に変更される"
 
 [[condition]]
 id = "deck-edit-layout.resize-mobile-noop"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2328"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2245"
 target_function = "handleResize"
 source = "src/content/edit-ui/DeckEditLayout.vue L720-L728 + tm TASK-331/487"
 description = "画面幅がmobile（768px以下）でのresizeはタブ切替を行わない（wasDesktopは現在desktopの意味で、768px以下では常にfalse）"
@@ -930,7 +900,7 @@ expect_return_shape = "deckStore.activeTab='deck' のまま（分岐に入らな
 
 [[condition]]
 id = "deck-edit-layout.hashchange-reloads-on-dno-change"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2339"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2256"
 target_function = "checkDnoChange"
 source = "src/content/edit-ui/DeckEditLayout.vue L740-L747 + tm TASK-331/487"
 description = "hashのdnoパラメータが変化したhashchangeは追跡値を更新しデッキを再ロードする（initializeOnPageLoadをawaitしないため並走しうる点は条件書ヘッダー発見事項参照）"
@@ -939,7 +909,7 @@ expect_return_shape = "currentDnoが'2'へ更新され、deckStore.initializeOnP
 
 [[condition]]
 id = "deck-edit-layout.hashchange-same-dno-no-reload"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2351,tests/unit/content/deck-edit-layout.test.ts:2361"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2268,tests/unit/content/deck-edit-layout.test.ts:2278"
 target_function = "checkDnoChange"
 source = "src/content/edit-ui/DeckEditLayout.vue L740-L747 + tm TASK-331/487"
 description = "dnoパラメータが同じhashchangeでは再ロードしない"
@@ -948,7 +918,7 @@ expect_return_shape = "deckStore.initializeOnPageLoad() は呼ばれない"
 
 [[condition]]
 id = "deck-edit-layout.current-dno-parses-hash-query"
-source_lines = "tests/unit/content/deck-edit-layout.test.ts:2371"
+source_lines = "tests/unit/content/deck-edit-layout.test.ts:2288"
 target_function = "getCurrentDno"
 source = "src/content/edit-ui/DeckEditLayout.vue L731-L734 + tm TASK-331/487"
 description = "hash内のクエリからdnoパラメータを文字列で取り出す（無い場合は空文字列）"
@@ -960,56 +930,56 @@ expect_return = "'123'（dnoなしの場合は''）"
 [[excluded]]
 item = "ドラッグ系handler一式（dragData/onDragStart/handleDragOver/onAreaDrop/onDragOver/onDrop L985-L1051）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "Layoutのhandlerはtemplateから参照されていない。現行D&DイベントはDeckCard/DeckSection内で完結（子が直接storeを操作）し、Layout handlerを呼び出す親子イベント接続が存在しない。現行経路は子コンポーネント側のE2E（test-drag-drop.cjs）が検証する。デッドコード削除はTASK-493で起票済み"
+reason = "Layoutのhandlerはtemplateから参照されていない。現行D&DイベントはDeckCard/DeckSection内で完結（子が直接storeを操作）し、Layout handlerを呼び出す親子イベント接続が存在しない。現行経路は子コンポーネント側のE2E（test-drag-drop.cjs）が検証する。デッドコード削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "moveToXxx/addToXxx/addCopy系handler + findSectionByCard + createFilledCards（L880-L897, L1053-L1108）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "template未使用（4隅ボタンはDeckCardが直接storeを呼ぶ・ドラッグ系と同様に親子イベント接続なし・現行経路は子側E2Eが検証）。createFilledCardsも参照なし。デッドコード削除はTASK-493で起票済み"
+reason = "template未使用（4隅ボタンはDeckCardが直接storeを呼ぶ・ドラッグ系と同様に親子イベント接続なし・現行経路は子側E2Eが検証）。createFilledCardsも参照なし。デッドコード削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "template未使用のreturnメンバ群（activeTab/searchQuery/selectedCard/showDetail/viewMode/cardTab L394-L399・searchResults/showCardDetail/onSearchInput/toggleDetail L942-L983）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "旧UI（RightArea分離前）の名残でtemplateから参照されず、挙動に差を生まない（§8「書かない」: 挙動に差を生まない内部処理）。デッドコード削除はTASK-493で起票済み"
+reason = "旧UI（RightArea分離前）の名残でtemplateから参照されず、挙動に差を生まない（§8「書かない」: 挙動に差を生まない内部処理）。デッドコード削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "未使用import群（watch L202・generateDeckThumbnailCards L230・getCardInfo L233・DeckCard L212・PracticeControlPanel L217）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "import・components登録のみで参照なし（L360/553のgetCardInfoはdb.getCardInfoメソッド呼び出しで別物）。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+reason = "import・components登録のみで参照なし（L360/553のgetCardInfoはdb.getCardInfoメソッド呼び出しで別物）。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "cardDetailStore宣言（L260）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "宣言のみで参照なし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+reason = "宣言のみで参照なし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "mainContentStyle computed（L937-L940）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "常に{}を返すno-opで分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。削除はTASK-493で起票済み"
+reason = "常に{}を返すno-opで分岐なし（§8「書かない」: 挙動に差を生まない内部処理）。削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "provide('practiceStore')（L755）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "消費者なし（src/全体検索で当該キーのinject/useなし。checkUnsavedChanges→DeckEditTopBar L346・practiceMode→RightArea L142は消費者ありのため対象外）。削除はTASK-493で起票済み"
+reason = "消費者なし（src/全体検索で当該キーのinject/useなし。checkUnsavedChanges→DeckEditTopBar L346・practiceMode→RightArea L142は消費者ありのため対象外）。削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
 [[excluded]]
 item = "currentDeckDno（L401宣言・L767書き込み）"
 source = "src/content/edit-ui/DeckEditLayout.vue + tm TASK-331/487（本条件化）"
-reason = "書き込みのみで読み出しなし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み"
+reason = "書き込みのみで読み出しなし。挙動に差を生まない（§8「書かない」）。削除はTASK-493で起票済み → TASK-493で削除済み"
 decided_at = "2026-09-12"
 decided_by = "claude"
 
