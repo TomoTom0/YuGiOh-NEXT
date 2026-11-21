@@ -79,8 +79,8 @@
           <Transition name="mode-switch" mode="out-in">
           <div v-if="practiceMode" key="practice" class="deck-areas practice-field-container">
             <PracticePlayerPanel
-                  @load-deck-p2="loadDeckForField2"
-                  @hard-reset="hardResetPractice"
+              @load-deck-p2="loadDeckForField2"
+              @hard-reset="hardResetPractice"
               @open-deck="openDeckForPractice"
               @save-deck="saveDeckFromPractice"
             />

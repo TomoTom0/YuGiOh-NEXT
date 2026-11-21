@@ -172,7 +172,7 @@ const PracticeFieldStub = defineComponent({
 
 const PracticePlayerPanelStub = defineComponent({
   name: 'PracticePlayerPanel',
-  emits: ['toggle-p2', 'load-deck-p2', 'save-temp-recipe', 'hard-reset', 'open-deck', 'open-deck-p2', 'save-deck'],
+  emits: ['load-deck-p2', 'hard-reset', 'open-deck', 'open-deck-p2', 'save-deck'],
   setup: () => () => h('div', { class: 'practice-player-panel-stub' }),
 });
 
