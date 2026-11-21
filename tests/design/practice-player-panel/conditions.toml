@@ -1,0 +1,140 @@
+# 検証対象: src/components/practice/PracticePlayerPanel.vue
+#
+# 経緯:
+# - TASK-568（TASK-331 Tier C第19号・TASK-566第18号の後続）。Practice系コンポーネント
+#   11ファイルの条件化8ファイル目。319行（template＋script setup。propsなし、
+#   practice storeとdeck-edit storeの状態を表示し、emitとresetPractice呼び出しを行う）。
+#   既存の専用ユニットテストは無く、tests/unit/components/PracticePlayerPanel.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-568
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第18号条件書と同一）:
+# - 1条件=1振る舞いclass。P1/P2・初期化有無の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（デッキ名・プレビュー画像・ボタンのdisabled）とemit・
+#   storeアクションの呼び出し引数。vm内部computedは直接参照しない
+# - practice/deck-editの両storeは実物を使い、resetPracticeはspyで呼び出し引数を
+#   観測する（store本体の挙動は各storeの条件書が保証）
+#
+# TASK-550との線引き:
+# - load-deck-p2 は本コンポーネントのemit契約に含まれない。DeckEditLayout側の
+#   loadDeckForField2の実UI経路の有無はTASK-550（判断待ち）の論点であり、
+#   本書はその判断に触れない（excluded参照）
+#
+# 作業中に発見した非対称（src不変のため別タスクへ分離）:
+# - P1のHard Resetは emit('hard-reset') だが、P2（initialized2時）のHard Resetは
+#   practiceStore.resetPractice(1) の直呼びでP2のResetボタンと同一動作。
+#   意図か否かはTASK-567へ分離起票し、本書は実挙動を条件化する
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-player-panel"
+source_file = "src/components/practice/PracticePlayerPanel.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticePlayerPanel.test.ts"
+source_hash = "fa11b650c99f90bef5031df6af9631bc247abe57"
+note = "TASK-568（TASK-331第19号）でPractice系コンポーネント8ファイル目の条件化。7条件=P1デッキ名1+P1プレビュー1+P1ボタン群1+P2未初期化1+P2デッキ名とクリア1+P2プレビュー1+P2ボタン群1。テストは新規作成（両store実物、resetPracticeはspy）。P2 Hard Resetの非対称はTASK-567へ分離。load-deck-p2はTASK-550の論点として不干渉。src不変"
+
+# --- P1のデッキ名・プレビュー ---
+
+[[condition]]
+id = "practice-player-panel.p1-deck-name-display"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:67"
+target_function = "PracticePlayerPanel p1DeckName computed / template P1 deck-name"
+source = "src/components/practice/PracticePlayerPanel.vue L22, L133 と tm TASK-568"
+description = "P1のデッキ名は deck-edit storeのgetDeckName()（deckInfo.name）を表示し、空の場合は '(No Name)' になる"
+given = "deckInfo.name='My Deck'／''でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "P1セクションの.deck-nameが 'My Deck'／'(No Name)' になる"
+
+[[condition]]
+id = "practice-player-panel.p1-preview-images"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:77,tests/unit/components/PracticePlayerPanel.test.ts:97"
+target_function = "PracticePlayerPanel p1DeckPreviewImages computed / getDeckThumbnail"
+source = "src/components/practice/PracticePlayerPanel.vue L7-17, L135-141 と tm TASK-568"
+description = "P1のプレビューは deckInfo.dno に対応するサムネイル（deckThumbnails）があれば画像1件（left=0px・zIndex=1）を表示し、無ければ .deck-preview-empty を表示する。dnoが0/未設定では常に空表示"
+given = "dno=42かつサムネイル登録あり／dno=42でサムネイルなし／dno=0 をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "サムネイルありではimg.deck-preview-cardが1件でsrcがそのURLになり、他ケースでは.deck-preview-emptyが表示される"
+
+# --- P1のボタン群 ---
+
+[[condition]]
+id = "practice-player-panel.p1-action-buttons"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:108"
+target_function = "PracticePlayerPanel template P1 action-row"
+source = "src/components/practice/PracticePlayerPanel.vue L25-38 と tm TASK-568"
+description = "P1のボタン群: Open Deckは open-deck をemit、Save Deckは save-deck を [0] でemit、Resetは practiceStore.resetPractice(0) を呼び、Hard Resetは hard-reset をemitする"
+given = "mountし、P1の4ボタンをそれぞれクリックする"
+expect_return_shape = "emitted('open-deck') が [[]]、emitted('save-deck') が [[0]]、resetPracticeが (0) で1回、emitted('hard-reset') が [[]] を記録する"
+
+# --- P2（未初期化） ---
+
+[[condition]]
+id = "practice-player-panel.p2-uninitialized-state"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:129"
+target_function = "PracticePlayerPanel template P2 v-else分岐"
+source = "src/components/practice/PracticePlayerPanel.vue L81-105 と tm TASK-568"
+description = "practiceStore.initialized2=falseの間、P2セクションはデッキ名 '(No Deck)' と空プレビューを表示し、Save Deck/Reset/Hard Resetボタンはdisabledになる。Open Deckボタンは有効で open-deck-p2 をemitする"
+given = "initialized2=falseでmountし、Open Deckボタンをクリックする"
+expect_return_shape = "P2の.deck-nameが '(No Deck)' で、3ボタンにdisabledが付き、emitted('open-deck-p2') が [[]] を記録する"
+
+# --- P2（初期化済み）のデッキ名・プレビュー ---
+
+[[condition]]
+id = "practice-player-panel.p2-deck-name-and-clear"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:145,tests/unit/components/PracticePlayerPanel.test.ts:163"
+target_function = "PracticePlayerPanel template P2 deck-meta / clearP2DeckName"
+source = "src/components/practice/PracticePlayerPanel.vue L58-63, L144-146 と tm TASK-568"
+description = "initialized2=trueのときP2のデッキ名は practiceStore.p2DeckName（空なら '(No Name)'）を表示する。名前がある場合のみクリアボタンが表示され、クリックすると p2DeckName が '' になり表示が '(No Name)' に変わってクリアボタンが消える"
+given = "initialized2=true・p2DeckName='Rival Deck'でmountし、クリアボタンをクリックする"
+expect_return_shape = "初期表示が 'Rival Deck' でクリアボタンが存在し、クリック後はstoreのp2DeckNameが''で表示が '(No Name)' になりクリアボタンが消える"
+
+[[condition]]
+id = "practice-player-panel.p2-preview-images"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:173,tests/unit/components/PracticePlayerPanel.test.ts:186"
+target_function = "PracticePlayerPanel p2DeckPreviewImages computed / getDeckThumbnail"
+source = "src/components/practice/PracticePlayerPanel.vue L46-56, L142 と tm TASK-568"
+description = "initialized2=trueのときP2のプレビューは practiceStore.p2DeckDno に対応するサムネイルがあれば画像1件を表示し、無ければ .deck-preview-empty を表示する"
+given = "p2DeckDno=77かつサムネイル登録あり／なしでそれぞれmount（テスト側で列挙）"
+expect_return_shape = "サムネイルありではP2側にimg.deck-preview-cardが1件でsrcがそのURLになり、なしでは.deck-preview-emptyが表示される"
+
+# --- P2（初期化済み）のボタン群 ---
+
+[[condition]]
+id = "practice-player-panel.p2-action-buttons"
+source_lines = "tests/unit/components/PracticePlayerPanel.test.ts:198"
+target_function = "PracticePlayerPanel template P2 action-row（initialized2分岐）"
+source = "src/components/practice/PracticePlayerPanel.vue L66-79 と tm TASK-568"
+description = "initialized2=trueのときP2のボタン群: Open Deckは open-deck-p2 をemit、Save Deckは save-deck を [1] でemit、Resetは practiceStore.resetPractice(1) を呼ぶ。Hard Resetも resetPractice(1) の直呼びであり hard-reset はemitされない（P1との非対称。TASK-567参照）"
+given = "initialized2=trueでmountし、P2の4ボタンをそれぞれクリックする"
+expect_return_shape = "emitted('open-deck-p2') が [[]]、emitted('save-deck') が [[1]]、resetPracticeが (1) で2回（ResetとHard Reset）呼ばれ、emitted('hard-reset') は無い"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "load-deck-p2 の発火経路（DeckEditLayoutのloadDeckForField2との接続）"
+source = "src/components/practice/PracticePlayerPanel.vue（emit契約に含まれない）と tm TASK-550"
+reason = "本コンポーネントのemit契約（hard-reset/open-deck/open-deck-p2/save-deck）にload-deck-p2は含まれず、その要否はDeckEditLayout側の条件（deck-edit-layout.load-deck-p2）との整合としてTASK-550で判断待ちになっている。本書はTASK-550の判断に触れず、本コンポーネント自身の実挙動のみを条件化する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L163-319。プレビュー重ね表示・ボタン見た目）"
+source = "src/components/practice/PracticePlayerPanel.vue L149-319 と tm TASK-568"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。プレビュー画像のleft/zIndexの数値自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "practice store・deck-edit store本体（resetPracticeの動作、deckThumbnailsの管理、getDeckNameの算出）"
+source = "src/stores/practice.ts、src/stores/deck-edit.ts と tm TASK-568"
+reason = "隣接モジュール責務。各storeの条件書で保証済み。本書は本コンポーネントが渡す引数と、store状態の表示反映のみを検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineEmits定義（L137-142）"
+source = "src/components/practice/PracticePlayerPanel.vue L123-128 と tm TASK-568"
+reason = "宣言のみで分岐なし（§8「書かない」: emits定義）。各emitは対応条件でクリック時の発火としてObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
