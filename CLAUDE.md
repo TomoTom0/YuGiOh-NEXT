@@ -268,7 +268,6 @@ update-versionコマンドで以下を自動更新：
 | `ygoNext:deckListOrder` | デッキリスト順序 | デッキ番号配列 |
 | `ygoNext:deckThumbnails` | デッキサムネイル | Map<デッキ番号, Data URL> |
 | `ygoNext:deckInfoCache` | デッキ情報キャッシュ | Map<デッキ番号, CachedDeckInfo> |
-| `ygoNext:deckHistory` | デッキレシピ履歴 | Record<デッキ番号, DeckHistoryEntry[]>（1デッキ最大30版） |
 | `ygoNext:lastDeckDno` | 最後に使用したデッキ番号 | デッキ番号 |
 | `ygoNext:deckImageDialogSettings` | デッキ画像作成ダイアログの前回設定 | {color, includeQR, includeSide, footerText} |
 
