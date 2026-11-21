@@ -83,6 +83,7 @@ const DeckMetadataHeaderStub = defineComponent({
       :data-deck-type="deckType === undefined ? 'unset' : deckType"
       :data-deck-style="deckStyle === undefined ? 'unset' : deckStyle">
       <button data-emit="toggle-public" @click="$emit('toggle-public')">toggle-public</button>
+      <button data-emit="select-deck-type" data-arg="-1" @click="$emit('select-deck-type', '-1')">type-unset</button>
       <button data-emit="select-deck-type" data-arg="1" @click="$emit('select-deck-type', '1')">type-1</button>
       <button data-emit="select-deck-type" data-arg="9" @click="$emit('select-deck-type', '9')">type-9</button>
       <button data-emit="select-deck-style" data-arg="2" @click="$emit('select-deck-style', '2')">style-2</button>
@@ -544,6 +545,21 @@ describe('components/DeckMetadata', () => {
 
       expect(requireStub(wrapper, '.header-stub').attributes('data-deck-type')).toBe('1');
       expect(deckStore.deckInfo.deckType).toBe('1');
+    });
+
+    it('[covers:deck-metadata.select-deck-type-unset-value-updates-store] 「未設定」(-1)選択でlocalとstoreを更新する', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const wrapper = mountDeckMetadata();
+      await flushPromises();
+
+      await requireStubButton(wrapper, 'select-deck-type', '1').trigger('click');
+      expect(deckStore.deckInfo.deckType).toBe('1');
+
+      await requireStubButton(wrapper, 'select-deck-type', '-1').trigger('click');
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(requireStub(wrapper, '.header-stub').attributes('data-deck-type')).toBe('-1');
+      expect(deckStore.deckInfo.deckType).toBe('-1');
     });
 
     it('[covers:deck-metadata.select-deck-type-invalid-value-rejected] 無効なdeckType値はconsole.errorで拒否し更新しない', async () => {
