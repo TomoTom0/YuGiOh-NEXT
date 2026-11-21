@@ -31,7 +31,7 @@
 | `search-modes/` | 検索モード | - |
 | `deck-display/` | デッキ表示 | - |
 | `parser/` | パーサー | - |
-| `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証） | `browser-config.test.ts`, `verify-conditions.test.ts` |
+| `scripts/` | デバッグ用シェルlib・design検証script（browser-config.sh等はbashサブシェル呼び出しで検証）・filename-case hook | `browser-config.test.ts`, `verify-conditions.test.ts`, `filename-case-hook.test.ts` |
 | `configs/` | configs TOMLと設定デフォルト値の整合（features/app-settings/ux） | `feature-defaults.test.ts`, `app-ux-defaults.test.ts` |
 | `constants/` | 定数データの整合 | `tag-master-data.test.ts` |
 | `services/` | LLMサービス等（`llm/`配下） | `tool-executor.test.ts`, `nano-pipeline.test.ts` |
@@ -84,6 +84,7 @@
 | feature flagデフォルト値（configs/features.toml） | `tests/unit/configs/feature-defaults.test.ts` | tomlとFeatureId/DEFAULT_FEATURE_SETTINGSの整合・dev-only解決の検証 |
 | ブラウザ起動lib（scripts/debug/setup/lib/browser-config.sh） | `tests/unit/scripts/browser-config.test.ts` | 全browserテストの起動経路。toml読み取り・binary/拡張機能解決・port特定kill・CDPポーリング |
 | tests/design条件書検証script（scripts/design/verify-conditions.py） | `tests/unit/scripts/verify-conditions.test.ts` | coversタグ対応・網羅・schema・excluded構造の機械検証とsource_lines自動同期・bootstrap/verifiedモード |
+| ファイル名大文字検出hook（.claude/hooks/check-new-filename.mjs） | `tests/unit/scripts/filename-case-hook.test.ts` | 新規Write時のrepo相対path大文字検出（ask）・除外（慣例名/*.vue/use*.ts/対応test）・fail-open。条件書: tests/design/filename-case-hook/conditions.toml |
 | loader.js 先行読み込み（ロード画面の最初の描画前表示） | `tests/unit/content/loader-early-loading.test.ts`（条件書: `tests/design/loader-early-loading/conditions.toml`） | TASK-510: チラつき解消の要。loader.js をvm評価して createLoader(deps) 依存注入で状態機械（notifyStart/handoff）・フェイルセーフ（自要素参照除去・同ID他人要素保護）・boot分岐・storage例外耐性・識別属性付与を検証。manifest 側（run_at document_start）と style-loader 挿入先は `tests/unit/webpack/dynamic-import-bundle.test.ts` |
 | loader由来要素の識別属性ゲート（削除・takeover） | `tests/unit/utils/loader-elements.test.ts`（条件書: `tests/design/loader-elements/conditions.toml`） | TASK-510 コードレビュー指摘3対応。data-ygo-next-loader 識別属性を持つ要素のみ削除・takeoverすることで同IDの他人要素を保護する |
 
