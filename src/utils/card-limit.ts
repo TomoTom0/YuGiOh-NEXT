@@ -1,19 +1,7 @@
 /**
- * カードのリミットレギュレーションに基づく枚数制限を取得
- *
- * TODO: 実際のリミットレギュレーション情報を取得するAPIまたはデータソースが必要
- * 現時点では全カード3枚のダミー実装
- */
-
-/**
- * カードIDからそのカードの制限枚数を取得
- * @param cardId カードID
- * @returns 制限枚数（0=禁止カード, 1=制限カード, 2=準制限カード, 3=無制限）
- */
-/**
- * カードのリミットレギュレーションに基づく枚数制限を取得
+ * カードのリミットレギュレーションに基づく制限レベルコードを取得
  * @param card カード情報
- * @returns 制限枚数（0=禁止カード, 1=制限カード, 2=準制限カード, 3=無制限）
+ * @returns 制限レベルコード（0=禁止, 1=制限, 2=準制限, 3=無制限）。許容枚数への変換は呼び出し側が行う
  */
 import type { CardInfo } from '../types/card';
 
@@ -33,13 +21,4 @@ export function getCardLimit(card: CardInfo): number {
     default:
       return 3;
   }
-}
-
-/**
- * リミットレギュレーション情報を更新
- * TODO: APIから最新のリミットレギュレーション情報を取得して更新
- */
-export async function updateLimitRegulation(): Promise<void> {
-  // TODO: APIから最新のリミットレギュレーション情報を取得
-  // 例: const data = await fetch('https://api.example.com/limit-regulation');
 }

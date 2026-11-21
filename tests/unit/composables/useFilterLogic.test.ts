@@ -490,8 +490,8 @@ describe('useFilterLogic', () => {
   });
 
   describe('フィールド無効化判定', () => {
-    it('[covers:use_filter_logic.field_disabled_card_type_fallback] モンスター以外が選択された時、モンスター専用フィールドは無効', () => {
-      // searchStoreのフィルタを事前に設定
+    it('[covers:use_filter_logic.field_disabled_state_precedence] モンスター以外が選択された時、モンスター専用フィールドは無効', () => {
+      // store経由のexclusionResultではエンジンのattributeToField規則でモンスター専用フィールドが無効化される
       searchStore.searchFilters.cardType = 'spell';
 
       const logic = useFilterLogic(pageLanguage);
@@ -501,18 +501,18 @@ describe('useFilterLogic', () => {
       expect(logic.isFieldDisabled('level-rank')).toBe(true);
     });
 
-    it('[covers:use_filter_logic.field_disabled_card_type_fallback] モンスターが選択された時、モンスター専用フィールドは有効', () => {
-      // searchStoreのフィルタを事前に設定
+    it('[covers:use_filter_logic.field_disabled_state_precedence] モンスターが選択された時、モンスター専用フィールドは有効', () => {
       searchStore.searchFilters.cardType = 'monster';
 
       const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isFieldDisabled('attribute')).toBe(false);
       expect(logic.isFieldDisabled('race')).toBe(false);
+      expect(logic.isFieldDisabled('spell-type')).toBe(true);
+      expect(logic.isFieldDisabled('trap-type')).toBe(true);
     });
 
-    it('[covers:use_filter_logic.field_disabled_card_type_fallback] 魔法以外が選択された時、魔法タイプフィールドは無効', () => {
-      // searchStoreのフィルタを事前に設定
+    it('[covers:use_filter_logic.field_disabled_state_precedence] 魔法以外が選択された時、魔法タイプフィールドは無効', () => {
       searchStore.searchFilters.cardType = 'trap';
 
       const logic = useFilterLogic(pageLanguage);
@@ -520,7 +520,7 @@ describe('useFilterLogic', () => {
       expect(logic.isFieldDisabled('spell-type')).toBe(true);
     });
 
-    it('[covers:use_filter_logic.field_disabled_state_precedence] fieldStateがある場合はcardType推論よりfieldStateを優先する', () => {
+    it('[covers:use_filter_logic.field_disabled_state_precedence] fieldStateがある場合はそのenabledを採用する', () => {
       searchStore.searchFilters.cardType = 'spell';
       searchStore.exclusionResult.fieldStates.set('attribute', { enabled: true });
       searchStore.exclusionResult.fieldStates.set('spell-type', { enabled: false });
@@ -531,14 +531,21 @@ describe('useFilterLogic', () => {
       expect(logic.isFieldDisabled('spell-type')).toBe(true);
     });
 
-    it('[covers:use_filter_logic.field_disabled_card_type_fallback] cardTypeがnullまたは専用外フィールドの場合は無効にしない', () => {
+    it('[covers:use-filter-logic.unregistered-field-not-disabled] 未登録のフィールドIDはcardTypeに関わらず無効化しない', () => {
+      const logic = useFilterLogic(pageLanguage);
+
+      expect(logic.isFieldDisabled('free-word')).toBe(false);
+      searchStore.searchFilters.cardType = 'spell';
+      expect(logic.isFieldDisabled('free-word')).toBe(false);
+    });
+
+    it('[covers:use-filter-logic.unregistered-field-not-disabled] 登録済みフィールドが未登録になってもcardTypeから推論しない', () => {
+      searchStore.searchFilters.cardType = 'spell';
+      searchStore.exclusionResult.fieldStates.delete('attribute');
+
       const logic = useFilterLogic(pageLanguage);
 
       expect(logic.isFieldDisabled('attribute')).toBe(false);
-      searchStore.searchFilters.cardType = 'monster';
-      expect(logic.isFieldDisabled('spell-type')).toBe(true);
-      expect(logic.isFieldDisabled('trap-type')).toBe(true);
-      expect(logic.isFieldDisabled('free-word')).toBe(false);
     });
   });
 
