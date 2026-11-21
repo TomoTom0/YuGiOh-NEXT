@@ -93,6 +93,7 @@ describe('デッキ操作API', () => {
         expect.any(Object)
       );
       expect(parseDeckList).toHaveBeenCalledOnce();
+      expect(axios.get).toHaveBeenCalledOnce();
       expect(result).toBe(10);
     });
 
