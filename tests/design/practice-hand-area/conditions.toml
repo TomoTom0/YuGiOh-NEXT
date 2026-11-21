@@ -33,18 +33,18 @@ note = "TASK-570（TASK-331第21号）でPractice系コンポーネント10フ�
 
 [[condition]]
 id = "practice-hand-area.layout-two-deck-mode"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:134"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:141"
 target_function = "PracticeHandArea template twoDeckMode分岐"
-source = "src/components/practice/PracticeHandArea.vue L4, L10-61 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L4, L10-65 と tm TASK-570"
 description = "twoDeckMode=trueでは根源要素に two-deck-mode クラスが付き、Tempセクション（.temp-section-inline）がHandセクション（.hand-section-inline）より前に横並びレイアウトで表示される。reversedの値に依らない"
 given = "twoDeckMode=trueでmount"
 expect_return_shape = "根源要素がtwo-deck-modeクラスを持ち、area-labelの並びが ['Temp', 'Hand'] になる"
 
 [[condition]]
 id = "practice-hand-area.layout-normal-mode-order"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:147"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:154"
 target_function = "PracticeHandArea template 通常分岐（reversed）"
-source = "src/components/practice/PracticeHandArea.vue L64-171 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L68-157 と tm TASK-570"
 description = "通常モードでは、reversed=falseならHandセクションの後にTempセクション（.temp-section）が、reversed=trueならTempセクションの後にHandセクションが表示される"
 given = "reversed=false/trueでそれぞれmount（テスト側で列挙）"
 expect_return_shape = "area-labelの並びが falseでは ['Hand', 'Temp']、trueでは ['Temp', 'Hand'] になる"
@@ -53,25 +53,25 @@ expect_return_shape = "area-labelの並びが falseでは ['Hand', 'Temp']、tru
 
 [[condition]]
 id = "practice-hand-area.hand-cards-rendered-with-props"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:158"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:165"
 target_function = "PracticeHandArea template hand DeckCard"
-source = "src/components/practice/PracticeHandArea.vue L42-58, L105-121 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L46-62, L105-121 と tm TASK-570"
 description = "handCardsの各カードがDeckCardとして描画され、card・section-type='practice'・uuid=instanceId ?? ''・zone='hand'・show-face-indicator=false・style（カードサイズのwidth/height）が渡される"
 given = "handCards 2件（うち1件はinstanceIdなし）・cardWidth=60・cardHeight=88でmount"
 expect_return_shape = "DeckCard stubが2件で、propsが上記の値と一致し、instanceIdなしカードのuuidは''になる"
 
 [[condition]]
 id = "practice-hand-area.temp-cards-rendered-with-props"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:174,tests/unit/components/PracticeHandArea.test.ts:183"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:181,tests/unit/components/PracticeHandArea.test.ts:190"
 target_function = "PracticeHandArea template temp DeckCard"
-source = "src/components/practice/PracticeHandArea.vue L21-37 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L24-38 と tm TASK-570"
 description = "tempCardsが1件以上ある場合のみ、Temp領域にDeckCardが zone='temp' で描画される（hand側と同じprops規則）。0件では.temp-cards自体が描画されない"
 given = "tempCards 1件／0件でそれぞれmount（テスト側で列挙）"
 expect_return_shape = "1件ではDeckCard stubがzone='temp'で1件描画され、0件では.temp-cardsが存在しない"
 
 [[condition]]
 id = "practice-hand-area.card-size-fallback-to-settings"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:195"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:202"
 target_function = "PracticeHandArea cardSize computed"
 source = "src/components/practice/PracticeHandArea.vue L197-202 と tm TASK-570"
 description = "カードサイズは cardWidth/cardHeight の両方が指定された場合のみその値になり、どちらか欠ける場合は settings storeの practiceCardSizePixels（デフォルトsmall=36x53）になる"
@@ -80,9 +80,9 @@ expect_return_shape = "DeckCardのstyleが 60x88（指定値）／36x53（settin
 
 [[condition]]
 id = "practice-hand-area.hand-gap-computation"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:210"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:217"
 target_function = "PracticeHandArea handGap computed"
-source = "src/components/practice/PracticeHandArea.vue L211-221 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L212-223 と tm TASK-570"
 description = ".hand-cardsのgapは: 手札1件以下なら2px。カード幅36pxでは収まる件数（8件）まで2px、溢れる件数（10件）では round((available - count*cardW)/(count-1)) の値（10件では-4px）になる。availableは 7*(cardW+6)+36-4 でカード幅から算出される"
 given = "cardWidth=36で handCards 1件／8件／10件をそれぞれmount（テスト側で列挙）"
 expect_return_shape = ".hand-cardsのstyle.gapが '2px'／'2px'／'-4px' になる"
@@ -91,9 +91,9 @@ expect_return_shape = ".hand-cardsのstyle.gapが '2px'／'2px'／'-4px' にな�
 
 [[condition]]
 id = "practice-hand-area.drag-over-state-classes"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:221"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:228"
 target_function = "PracticeHandArea handleHandAreaDragOver / handleTempDragOver / handleHandAreaDragLeave"
-source = "src/components/practice/PracticeHandArea.vue L223-246 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L225-243 と tm TASK-570"
 description = "根源要素へのdragoverで .hand-cards に drag-over クラスが付く。Tempセクションへのdragoverでは .temp-area に temp-drag-over が付き、手札側のdrag-overは外れる。根源要素からdragleave（relatedTargetが外側）すると両方外れる"
 given = "mount後に根源要素へdragover→Tempセクションへdragover→根源要素へdragleaveを順に発火する"
 expect_return_shape = "各段階で .hand-cards の drag-over と .temp-area の temp-drag-over の有無が上記のとおり切り替わる"
@@ -102,18 +102,18 @@ expect_return_shape = "各段階で .hand-cards の drag-over と .temp-area の
 
 [[condition]]
 id = "practice-hand-area.card-drop-on-hand-card-with-insert-index"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:244"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:251"
 target_function = "PracticeHandArea handleCardDrop"
-source = "src/components/practice/PracticeHandArea.vue L262-275 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L253-271 と tm TASK-570"
 description = "手札カード上のdrop（practice系データ）では card-drop を (cardId, 元zone, 元slotIndex, dropPos) でemitする。dropPos.insertIndexはドロップ先カードのindexで、ポインタがそのカードの右半分なら index+1、左半分なら index になる（dropPosのisRight/isTopは常にtrue固定）"
 given = "index=1の手札カードへ、矩形右半分／左半分の位置でpractice系データのdropを発火する（テスト側で列挙）"
 expect_return_shape = "emitted('card-drop') が [[cardId, zone, slotIndex, {isRight:true, isTop:true, insertIndex:2}]] ／同 insertIndex:1 を記録する"
 
 [[condition]]
 id = "practice-hand-area.deck-card-drop-on-hand-card"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:258"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:265"
 target_function = "PracticeHandArea handleCardDrop（deck系分岐）"
-source = "src/components/practice/PracticeHandArea.vue L276-280 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L266-270 と tm TASK-570"
 description = "手札カード上のdrop（deck系データ・card.emptyでない）では deck-card-drop を (String(card.cardId ?? card.cid), String(card.ciid), dropPos) でemitする。dropPosはpractice系と同じ挿入位置計算"
 given = "index=0の手札カードの右半分へdeck系データのdropを発火する"
 expect_return_shape = "emitted('deck-card-drop') が [[cid, ciid, {isRight:true, isTop:true, insertIndex:1}]] を記録する"
@@ -122,18 +122,18 @@ expect_return_shape = "emitted('deck-card-drop') が [[cid, ciid, {isRight:true,
 
 [[condition]]
 id = "practice-hand-area.hand-area-drop-emits"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:272,tests/unit/components/PracticeHandArea.test.ts:287,tests/unit/components/PracticeHandArea.test.ts:297"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:279,tests/unit/components/PracticeHandArea.test.ts:294,tests/unit/components/PracticeHandArea.test.ts:304"
 target_function = "PracticeHandArea handleHandDrop"
-source = "src/components/practice/PracticeHandArea.vue L282-296 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L273-288 と tm TASK-570"
 description = "根源要素（手札領域）へのdropでは、practice系データなら card-drop、deck系データなら deck-card-drop を、固定の dropPos {isRight:true, isTop:true}（insertIndexなし）でemitし、drag-over表示が解除される。どちらのデータでもない場合は何もemitしない"
 given = "practice系／deck系／無効データのdropを根源要素へそれぞれ発火する（テスト側で列挙）"
 expect_return_shape = "対応するemittedが固定dropPosで記録され、無効データでは両方とも無い。practice系drop後は.hand-cardsのdrag-overが外れる"
 
 [[condition]]
 id = "practice-hand-area.temp-area-drop-emits"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:306,tests/unit/components/PracticeHandArea.test.ts:321"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:313,tests/unit/components/PracticeHandArea.test.ts:328"
 target_function = "PracticeHandArea handleTempDrop"
-source = "src/components/practice/PracticeHandArea.vue L298-312 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L290-305 と tm TASK-570"
 description = "Tempセクションへのdropでは、practice系データなら temp-card-drop、deck系データなら temp-deck-card-drop を、固定の dropPos {isRight:true, isTop:true} でemitし、temp-drag-over表示が解除される"
 given = "practice系／deck系のdropをTempセクションへそれぞれ発火する（テスト側で列挙）"
 expect_return_shape = "emitted('temp-card-drop') / emitted('temp-deck-card-drop') が固定dropPosで記録され、drop後は.temp-areaのtemp-drag-overが外れる"
@@ -142,9 +142,9 @@ expect_return_shape = "emitted('temp-card-drop') / emitted('temp-deck-card-drop'
 
 [[condition]]
 id = "practice-hand-area.card-events-forwarded"
-source_lines = "tests/unit/components/PracticeHandArea.test.ts:333,tests/unit/components/PracticeHandArea.test.ts:354"
+source_lines = "tests/unit/components/PracticeHandArea.test.ts:340,tests/unit/components/PracticeHandArea.test.ts:361"
 target_function = "PracticeHandArea template DeckCard event listeners（hand/temp共通）"
-source = "src/components/practice/PracticeHandArea.vue L31-34, L51-54 と tm TASK-570"
+source = "src/components/practice/PracticeHandArea.vue L34-37, L58-61 と tm TASK-570"
 description = "手札・TempどちらのDeckCardからも、clickは card-click (card)、practice-action (action, uuid) は card-action (action, uuid)、practice-dragstart (event, uuid, offset) は card-dragstart (card, event)（uuid/offsetは捨て、v-forのcardとeventに変換）、practice-dragend は card-dragend として再emitされる"
 given = "手札カードとTempカードのstubから4イベントを発火する（dragstartの変換はTemp側でも確認する）"
 expect_return_shape = "対応するemittedが変換後の同引数で記録される"
@@ -152,29 +152,29 @@ expect_return_shape = "対応するemittedが変換後の同引数で記録さ�
 # --- 除外記録（条件化しない項目） ---
 
 [[excluded]]
-item = "TransitionGroupのアニメーション（hand-card enter/leave/move）とscoped SCSS定義（L316-433）"
-source = "src/components/practice/PracticeHandArea.vue L316-433 と tm TASK-570"
+item = "TransitionGroupのアニメーション（hand-card enter/leave/move）とscoped SCSS定義（L308-433）"
+source = "src/components/practice/PracticeHandArea.vue L308-433 と tm TASK-570"
 reason = "静的スタイル・遷移定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。レイアウト分岐・クラス付与自体は対応条件でObservableに検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
 item = "DeckCardコンポーネント本体（カード描画・ドラッグ開始の発火）"
 source = "src/components/DeckCard.vue と tm TASK-570"
 reason = "隣接コンポーネント責務。DeckCard自身の条件書で保証する。本書は本コンポーネントが渡すpropsと転送するイベントのみを検証し、テストではカスタムstubで置き換える"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
 item = "settings storeのpracticeCardSizePixels算出・drag-dataの型ガード（parseDragData/isPracticeDragData/isDeckDragData/isDragEvent）"
 source = "src/stores/settings.ts、src/utils/drag-data.ts と tm TASK-570"
 reason = "隣接モジュール責務。各条件書・既存テストで保証済み。本書は読み取ったサイズ値の反映と、ガード結果に応じたemit分岐のみを検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
-item = "defineProps/defineEmits定義（L175-195）"
-source = "src/components/practice/PracticeHandArea.vue L175-195 と tm TASK-570"
+item = "defineProps/defineEmits定義（L170-191）"
+source = "src/components/practice/PracticeHandArea.vue L170-191 と tm TASK-570"
 reason = "宣言のみで分岐なし（§8「書かない」: props/emits定義）。propsの値は対応条件で描画・レイアウト・emitとしてObservableに検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"

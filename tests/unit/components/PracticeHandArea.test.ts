@@ -19,6 +19,7 @@ import { defineComponent, nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 import PracticeHandArea from '@/components/practice/PracticeHandArea.vue';
 import type { PracticeCard } from '@/stores/practice';
+import { isHTMLElement } from '@/utils/type-guards';
 
 // ============================================================
 // DeckCard カスタムstub
@@ -56,6 +57,11 @@ const DeckCardStub = defineComponent({
 // fixture / helpers
 // ============================================================
 
+function htmlElement(el: Element | undefined): HTMLElement {
+  if (!isHTMLElement(el)) throw new Error('element is not an HTMLElement');
+  return el;
+}
+
 function makeCard(id: string, withInstanceId = true): PracticeCard {
   return {
     cardId: id,
@@ -66,7 +72,7 @@ function makeCard(id: string, withInstanceId = true): PracticeCard {
     cardType: 'monster',
     empty: false,
     ...(withInstanceId ? { instanceId: `inst-${id}` } : {}),
-  } as PracticeCard;
+  };
 }
 
 interface MountOptions {
@@ -95,8 +101,9 @@ function mountArea(opts: MountOptions): VueWrapper {
 }
 
 function stubRect(el: HTMLElement): void {
-  el.getBoundingClientRect = () =>
-    ({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+  el.getBoundingClientRect = (): DOMRect => ({
+    left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100, x: 0, y: 0, toJSON: () => ({}),
+  });
 }
 
 async function dispatchDrag(
@@ -166,8 +173,8 @@ describe('components/practice/PracticeHandArea', () => {
     expect(stubs[0]?.props('sectionType')).toBe('practice');
     expect(stubs[0]?.props('uuid')).toBe('inst-a');
     expect(stubs[0]?.props('showFaceIndicator')).toBe(false);
-    expect((stubs[0]?.element as HTMLElement).style.width).toBe('60px');
-    expect((stubs[0]?.element as HTMLElement).style.height).toBe('88px');
+    expect(htmlElement(stubs[0]?.element).style.width).toBe('60px');
+    expect(htmlElement(stubs[0]?.element).style.height).toBe('88px');
     expect(stubs[1]?.props('uuid')).toBe('');
   });
 
@@ -196,7 +203,7 @@ describe('components/practice/PracticeHandArea', () => {
     ({ opts, width, height }) => {
       wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [], ...opts });
 
-      const el = stubsByZone(wrapper, 'hand')[0]!.element as HTMLElement;
+      const el = htmlElement(stubsByZone(wrapper, 'hand')[0]?.element);
       expect(el.style.width).toBe(width);
       expect(el.style.height).toBe(height);
     },
@@ -212,7 +219,7 @@ describe('components/practice/PracticeHandArea', () => {
       const cards = Array.from({ length: count }, (_, i) => makeCard(`c${i}`));
       wrapper = mountArea({ handCards: cards, tempCards: [], cardWidth: 36, cardHeight: 53 });
 
-      expect((wrapper.find('.hand-cards').element as HTMLElement).style.gap).toBe(gap);
+      expect(htmlElement(wrapper.find('.hand-cards').element).style.gap).toBe(gap);
     },
   );
 
@@ -220,13 +227,13 @@ describe('components/practice/PracticeHandArea', () => {
 
   it('[covers:practice-hand-area.drag-over-state-classes] dragoverで手札側→Temp側へ drag-over が切り替わり、dragleaveで両方外れる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [makeCard('t')] });
-    const root = wrapper.element as HTMLElement;
+    const root = htmlElement(wrapper.element);
 
     await dispatchDrag(root, 'dragover');
     expect(wrapper.find('.hand-cards').classes()).toContain('drag-over');
     expect(wrapper.find('.temp-area').classes()).not.toContain('temp-drag-over');
 
-    await dispatchDrag(wrapper.find('.temp-section').element as HTMLElement, 'dragover');
+    await dispatchDrag(htmlElement(wrapper.find('.temp-section').element), 'dragover');
     expect(wrapper.find('.temp-area').classes()).toContain('temp-drag-over');
     expect(wrapper.find('.hand-cards').classes()).not.toContain('drag-over');
 
@@ -244,7 +251,7 @@ describe('components/practice/PracticeHandArea', () => {
     '[covers:practice-hand-area.card-drop-on-hand-card-with-insert-index] index=1のカードへx=$clientXでdropするとinsertIndex=$insertIndexになる',
     async ({ clientX, insertIndex }) => {
       wrapper = mountArea({ handCards: [makeCard('a'), makeCard('b'), makeCard('c')], tempCards: [] });
-      const target = stubsByZone(wrapper, 'hand')[1]!.element as HTMLElement;
+      const target = htmlElement(stubsByZone(wrapper, 'hand')[1]?.element);
       stubRect(target);
 
       await dispatchDrag(target, 'drop', clientX, 50, { getData: () => PRACTICE_PAYLOAD });
@@ -257,7 +264,7 @@ describe('components/practice/PracticeHandArea', () => {
 
   it('[covers:practice-hand-area.deck-card-drop-on-hand-card] 手札カード上のdeck系dropでdeck-card-dropがemitされる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a'), makeCard('b')], tempCards: [] });
-    const target = stubsByZone(wrapper, 'hand')[0]!.element as HTMLElement;
+    const target = htmlElement(stubsByZone(wrapper, 'hand')[0]?.element);
     stubRect(target);
 
     await dispatchDrag(target, 'drop', 75, 50, { getData: () => DECK_PAYLOAD });
@@ -271,7 +278,7 @@ describe('components/practice/PracticeHandArea', () => {
 
   it('[covers:practice-hand-area.hand-area-drop-emits] 手札領域へのpractice系dropでcard-dropが固定dropPosでemitされdrag-overが外れる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [] });
-    const root = wrapper.element as HTMLElement;
+    const root = htmlElement(wrapper.element);
 
     await dispatchDrag(root, 'dragover');
     expect(wrapper.find('.hand-cards').classes()).toContain('drag-over');
@@ -287,7 +294,7 @@ describe('components/practice/PracticeHandArea', () => {
   it('[covers:practice-hand-area.hand-area-drop-emits] 手札領域へのdeck系dropでdeck-card-dropがemitされる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [] });
 
-    await dispatchDrag(wrapper.element as HTMLElement, 'drop', 50, 50, { getData: () => DECK_PAYLOAD });
+    await dispatchDrag(htmlElement(wrapper.element), 'drop', 50, 50, { getData: () => DECK_PAYLOAD });
 
     expect(wrapper.emitted('deck-card-drop')).toEqual([
       ['123', '456', { isRight: true, isTop: true }],
@@ -297,7 +304,7 @@ describe('components/practice/PracticeHandArea', () => {
   it('[covers:practice-hand-area.hand-area-drop-emits] 手札領域への無効データのdropでは何もemitしない', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [] });
 
-    await dispatchDrag(wrapper.element as HTMLElement, 'drop', 50, 50, { getData: () => '' });
+    await dispatchDrag(htmlElement(wrapper.element), 'drop', 50, 50, { getData: () => '' });
 
     expect(wrapper.emitted('card-drop')).toBeUndefined();
     expect(wrapper.emitted('deck-card-drop')).toBeUndefined();
@@ -305,7 +312,7 @@ describe('components/practice/PracticeHandArea', () => {
 
   it('[covers:practice-hand-area.temp-area-drop-emits] Temp領域へのpractice系dropでtemp-card-dropがemitされtemp-drag-overが外れる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [makeCard('t')] });
-    const tempSection = wrapper.find('.temp-section').element as HTMLElement;
+    const tempSection = htmlElement(wrapper.find('.temp-section').element);
 
     await dispatchDrag(tempSection, 'dragover');
     expect(wrapper.find('.temp-area').classes()).toContain('temp-drag-over');
@@ -321,7 +328,7 @@ describe('components/practice/PracticeHandArea', () => {
   it('[covers:practice-hand-area.temp-area-drop-emits] Temp領域へのdeck系dropでtemp-deck-card-dropがemitされる', async () => {
     wrapper = mountArea({ handCards: [makeCard('a')], tempCards: [makeCard('t')] });
 
-    await dispatchDrag(wrapper.find('.temp-section').element as HTMLElement, 'drop', 50, 50, { getData: () => DECK_PAYLOAD });
+    await dispatchDrag(htmlElement(wrapper.find('.temp-section').element), 'drop', 50, 50, { getData: () => DECK_PAYLOAD });
 
     expect(wrapper.emitted('temp-deck-card-drop')).toEqual([
       ['123', '456', { isRight: true, isTop: true }],
