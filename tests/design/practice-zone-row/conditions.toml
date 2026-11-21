@@ -1,0 +1,99 @@
+# 検証対象: src/components/practice/PracticeZoneRow.vue
+#
+# 経緯:
+# - TASK-557（TASK-331 Tier C第12号・TASK-556第11号の後続）。Practice系コンポーネント
+#   11ファイルの条件化1ファイル目。33行の最小構成（template 5行＋defineProps 3行＋
+#   scoped SCSS）。既存の専用ユニットテストは無く、
+#   tests/unit/components/PracticeZoneRow.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-557
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）で
+#   build時に解決されるfeature flag配下にあるが、本コンポーネント自身はflagを参照しない
+#   純粋な表示ラッパーのため、単体mountで検証する（provider不要）
+#
+# 粒度方針（Tier C・第8号〜第11号条件書と同一）:
+# - 1条件=1振る舞いclass。row値1/2/3の列挙はテスト側fixture表（it.each）で持ち、
+#   条件書には親条件のみ置く
+# - 表示専用コンポーネントのため観測対象は描画結果（根源要素のclass構成・slot内容の
+#   出力位置）のみ。vm内部状態は直接参照しない
+# - defineProps定義・静的SCSSは§8「書かない」に該当するため除外
+#
+# 線引き（隣接条件書との）:
+# - Practiceの状態・操作ロジック（ゾーン選択・カード移動等）はpractice store条件書
+#   （tests/design/practice/）とuse-practice-actions等composable条件書が保証済み。
+#   本書はPracticeZoneRow自身の描画契約のみ（Practice系コンポーネントでは初回）
+# - 親PracticeField.vueとの統合は存在しない（下記不具合疑い参照）
+#
+# 作業中に発見した不具合疑い（src不変のため別タスクへ分離）:
+# - PracticeZoneRow.vueはsrc内のどこからもimportされていない（import箇所0件。参照は
+#   docs/design/solo-practice-tech.md L98の設計docのみ）。PracticeField.vueが同等の行構造
+#   （.field-row.row-1/2/3）を自前のtemplateで描画しているため未使用コンポーネント
+#   （デッドコード）として残存。併せてscoped SCSSの .row-1/.row-2 の grid-template-columns が
+#   基底 .practice-zone-row の display:flex 下では効かない点も観察された。
+#   [[excluded]]に記録しTASK-558へ分離起票（本書は単体mountで振る舞いを固定）
+
+[meta]
+feature = "practice-zone-row"
+source_file = "src/components/practice/PracticeZoneRow.vue"
+verified = true
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/components/PracticeZoneRow.test.ts"
+source_hash = "1c28e9565f563e001c99ac4eb48b89bc534837bf"
+note = "TASK-557（TASK-331第12号）でPractice系コンポーネント初の条件化。dev-only機能（configs/features.toml [practice]）配下だがコンポーネント自身はflag非参照の表示ラッパー。3条件=静的基底クラス1（ygo-next・practice-zone-row・row値に依存しない）+row prop対応クラス1（row-1/2/3がテンプレートリテラル row-${row} で排他的に付与）+default slot描画1（根源要素の内側）。テストは新規作成（7it・it.each展開含む）。src不変。本コンポーネントがどこからもimportされていない（デッドコード）件とrowクラスのgrid系プロパティがdisplay:flex下でno-opとなる件はTASK-558へ分離"
+
+# --- 根源要素の静的基底クラス ---
+
+[[condition]]
+id = "practice-zone-row.root-carries-static-base-classes"
+source_lines = "tests/unit/components/PracticeZoneRow.test.ts:36"
+target_function = "PracticeZoneRow template root div class（静的部）"
+source = "src/components/practice/PracticeZoneRow.vue L2 と tm TASK-557"
+description = "根源要素はrow propの値に依らず静的基底クラス ygo-next と practice-zone-row を常に持つ。ygo-nextはスタイルスコープ規約（CLAUDE.md: 独自要素スタイルは .ygo-next スコープ必須）由来のスコープクラス"
+given = "row=1/2/3でそれぞれmount（テスト側fixture表で列挙）"
+expect_return_shape = "根源要素（wrapper.classes()）に'ygo-next'と'practice-zone-row'が共に含まれる"
+
+# --- row propに対応する row-N クラス ---
+
+[[condition]]
+id = "practice-zone-row.root-carries-row-n-class-matching-row-prop"
+source_lines = "tests/unit/components/PracticeZoneRow.test.ts:49"
+target_function = "PracticeZoneRow template root div :class（動的部 row-${row}）"
+source = "src/components/practice/PracticeZoneRow.vue L2, L8-10 と tm TASK-557"
+description = "根源要素はrow propの値に対応する row-${row} クラス（row-1/row-2/row-3）を動的クラスとして追加する。テンプレートリテラルによる1値1クラスのため他のrow-Nクラスは付与しない（排他）"
+given = "row=1/2/3でそれぞれmount（テスト側fixture表で列挙）"
+expect_return_shape = "根源要素（wrapper.classes()）に`row-${row}`が含まれ、他のrow-1/2/3クラスは含まれない"
+
+# --- default slotの描画位置 ---
+
+[[condition]]
+id = "practice-zone-row.default-slot-content-rendered-inside-root"
+source_lines = "tests/unit/components/PracticeZoneRow.test.ts:66"
+target_function = "PracticeZoneRow template slot（default）"
+source = "src/components/practice/PracticeZoneRow.vue L3 と tm TASK-557"
+description = "default slotに渡された内容は根源要素（div.ygo-next.practice-zone-row.row-N）の内側に描画される。slotは根源要素の唯一の子として展開され、外側（兄弟）には出力されない"
+given = "row=2でmountし、default slotへ'<div class=\"slot-marker\">スロット内容</div>'を渡す"
+expect_return_shape = ".practice-zone-rowの内側に.slot-markerが存在し、テキスト'スロット内容'が根源要素のtextに含まれる。slot内容は文書全体に1箇所のみで、根源要素（div・子要素1個）の外には出力されない"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "親コンポーネントからの利用経路（PracticeField.vue等でのimport・slotへのゾーン描画の供給）"
+source = "src/components/practice/PracticeZoneRow.vue（src全体grepでimport箇所0件）と tm TASK-557"
+reason = "PracticeZoneRow.vueはsrc内のどこからもimportされておらず（参照はdocs/design/solo-practice-tech.md L98の設計docのみ）、PracticeField.vue L89/L170/L256が同等の行構造（.field-row.row-1/2/3）を自前のtemplateで描画しているため統合挙動が存在しない=デッドコード。統合の整備または削除はsrc変更を伴うためTASK-558へ分離起票し、本書は単体mountでコンポーネント自身の振る舞いを固定する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L13-33。基底flexレイアウト・.row-1/.row-2のgrid-template-columns・.row-3のflex再宣言）"
+source = "src/components/practice/PracticeZoneRow.vue L13-33 と tm TASK-557"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。rowクラスの付与分岐自体は対応条件（root-carries-row-n-class-matching-row-prop）でObservableに検証する。なお.row-1/.row-2のgrid-template-columnsは基底.practice-zone-rowのdisplay:flex下では効かない（no-op）点はTASK-558へ分離した未使用コンポーネント件に付帯して記録済み"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps<{row: 1 | 2 | 3}>定義（L8-10）"
+source = "src/components/practice/PracticeZoneRow.vue L8-10 と tm TASK-557"
+reason = "宣言・受け渡しのみで分岐なし（§8「書かない」: props受け渡しのみ）。row propの値は対応条件（root-carries-row-n-class-matching-row-prop）でクラス反映としてObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
