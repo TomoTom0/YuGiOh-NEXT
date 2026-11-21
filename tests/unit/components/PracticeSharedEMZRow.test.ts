@@ -76,10 +76,12 @@ const PracticeSlotStub = defineComponent({
 
 const CARD_FIXTURE: PracticeCard = {
   cardId: 'monster-a',
+  ciid: 'monster-a-1',
   name: 'Monster A',
   lang: 'ja',
-  imgs: ['monster-a.jpg'],
+  imgs: [{ ciid: 'monster-a-1', imgHash: 'monster-a-hash' }],
   cardType: 'monster',
+  empty: false,
   atk: 1800,
   def: 1200,
   levelType: 'level',
@@ -88,7 +90,7 @@ const CARD_FIXTURE: PracticeCard = {
   race: 'warrior',
   types: ['effect'],
   isExtraDeck: true,
-} as PracticeCard;
+};
 
 describe('components/practice/PracticeSharedEMZRow', () => {
   let wrapper: VueWrapper | undefined;
