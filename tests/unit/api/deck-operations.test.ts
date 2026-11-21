@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createNewDeckInternal, saveDeckInternal, deleteDeckInternal, getDeckDetail, getDeckListInternal } from '@/api/deck-operations';
-import { DeckInfo } from '@/types/deck';
+import { DeckInfo, DeckListItem } from '@/types/deck';
 import axios from 'axios';
 
 // axiosをモック
@@ -56,6 +56,15 @@ describe('デッキ操作API', () => {
   });
 
   describe('createNewDeckInternal', () => {
+    // afterEach の resetAllMocks は vi.fn の既定実装も消すため、各テストで明示的に設定する
+    const setupYtknAndDeckList = async (ytkn: string, deckList: DeckListItem[]) => {
+      const { fetchYtknFromDeckList } = await import('@/utils/ytkn-fetcher');
+      const { parseDeckList } = await import('@/content/parser/deck-list-parser');
+      vi.mocked(fetchYtknFromDeckList).mockResolvedValue(ytkn);
+      vi.mocked(parseDeckList).mockReturnValue(deckList);
+      return { fetchYtknFromDeckList, parseDeckList };
+    };
+
     it('[covers:create_new.request_url_no_locale_order,create_new.success_returns_max_dno] 新規デッキを作成し、デッキ番号を返す', async () => {
       const mockResponse = `
         <html>
@@ -64,35 +73,57 @@ describe('デッキ操作API', () => {
           </body>
         </html>
       `;
+      const { fetchYtknFromDeckList, parseDeckList } = await setupYtknAndDeckList('test-ytkn', [
+        { dno: 10, name: 'Test Deck' }
+      ]);
       vi.mocked(axios.get).mockResolvedValue({
         data: mockResponse
       });
 
       const result = await createNewDeckInternal(testCgid);
 
+      // ytkn取得・axios取得成功・パーサー実行まで到達していることを確認
+      expect(fetchYtknFromDeckList).toHaveBeenCalledOnce();
       expect(axios.get).toHaveBeenCalledWith(
         expect.stringContaining(`${BASE_URL}?ope=6&wname=MemberDeck&cgid=${testCgid}`),
         expect.any(Object)
       );
+      expect(axios.get).toHaveBeenCalledWith(
+        expect.stringContaining('ytkn=test-ytkn'),
+        expect.any(Object)
+      );
+      expect(parseDeckList).toHaveBeenCalledOnce();
       expect(result).toBe(10);
     });
 
     it('[covers:create_new.deck_list_empty_returns_zero] デッキ番号が取得できない場合は0を返す', async () => {
       const mockResponse = '<html><body></body></html>';
+      const { fetchYtknFromDeckList, parseDeckList } = await setupYtknAndDeckList('test-ytkn', []);
       vi.mocked(axios.get).mockResolvedValue({
         data: mockResponse
       });
 
       const result = await createNewDeckInternal(testCgid);
 
+      // ytkn未取得の早期returnではなく、空一覧の分岐に到達したことを確認
+      expect(fetchYtknFromDeckList).toHaveBeenCalledOnce();
+      expect(axios.get).toHaveBeenCalledOnce();
+      expect(parseDeckList).toHaveBeenCalledOnce();
       expect(result).toBe(0);
     });
 
     it('[covers:create_new.catch_returns_zero] axiosが失敗した場合は0を返す', async () => {
+      const { fetchYtknFromDeckList, parseDeckList } = await setupYtknAndDeckList('test-ytkn', [
+        { dno: 10, name: 'Test Deck' }
+      ]);
       vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
 
       const result = await createNewDeckInternal(testCgid);
 
+      // ytkn未取得の早期returnではなく、axios失敗のcatch分岐に到達したことを確認
+      expect(fetchYtknFromDeckList).toHaveBeenCalledOnce();
+      expect(axios.get).toHaveBeenCalledOnce();
+      expect(parseDeckList).not.toHaveBeenCalled();
       expect(result).toBe(0);
     });
   });
