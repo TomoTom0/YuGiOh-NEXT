@@ -8,10 +8,11 @@
  * generateBackgroundImage内のFileReader/Imageをスタブし、
  * createDeckRecipeImageの解決順をテスト側で制御する。
  *
- * ※Tier C（TASK-331）のconditions.tomlは未作成のためcoversタグは付与しない。
- *   TASK-511で追加した「レイアウト」describeも同様（src/utils/image-dialog-layout.tsの
- *   条件書は tests/design/image-dialog-layout/conditions.toml に別途あり、
- *   ImageDialog.vue本体の結合挙動はcovers対象外と除外記録済み）。
+ * ※Tier C（TASK-331）第23号（TASK-572）でImageDialog.vue本体の条件書
+ *   tests/design/image-dialog-component/conditions.toml を新設し、本ファイルの
+ *   既存itへcoversタグを付与した（レイアウト計算本体は
+ *   tests/design/image-dialog-layout/conditions.toml が保証し、本ファイルは
+ *   コンポーネント側の結合のみを対象とする）。
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -20,6 +21,7 @@ import { nextTick } from 'vue';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ImageDialog from '@/components/ImageDialog.vue';
+import { downloadDeckRecipeImage } from '@/content/deck-recipe/downloadDeckRecipeImage';
 import type { DeckInfo } from '@/types/deck';
 
 interface GeneratedImage {
@@ -30,16 +32,19 @@ interface GeneratedImage {
 
 // createDeckRecipeImageの解決順を制御するため、resolve関数を保留キューに貯める。
 // FakeImageはdataUrlから寸法を復元するため、dataUrl→寸法の対応も保持する。
-const { pendingCalls, dimsByUrl } = vi.hoisted(() => ({
+const { pendingCalls, dimsByUrl, createArgs } = vi.hoisted(() => ({
   pendingCalls: [] as Array<(value: GeneratedImage) => void>,
   dimsByUrl: new Map<string, { width: number; height: number }>(),
+  createArgs: [] as Array<Record<string, unknown>>,
 }));
 
 vi.mock('@/content/deck-recipe/createDeckRecipeImage', () => ({
-  createDeckRecipeImage: () =>
-    new Promise<GeneratedImage>((resolve) => {
+  createDeckRecipeImage: (args: Record<string, unknown>) => {
+    createArgs.push(args);
+    return new Promise<GeneratedImage>((resolve) => {
       pendingCalls.push(resolve);
-    }),
+    });
+  },
   generateDefaultFooterText: () => 'footer-text',
 }));
 
@@ -126,7 +131,7 @@ describe('ImageDialog.vue - refreshPreview', () => {
     vi.unstubAllGlobals();
   });
 
-  it('初期化後に色変更1回の再生成結果はプレビューへ反映される', async () => {
+  it('[covers:image-dialog-component.preview-reflects-latest-regeneration] 初期化後に色変更1回の再生成結果はプレビューへ反映される', async () => {
     wrapper = await mountInitializedDialog();
 
     await wrapper.find('button[aria-label="blue"]').trigger('click');
@@ -138,7 +143,7 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).toContain('height: 310px');
   });
 
-  it('TASK-390: プレビューの縁取りはCSS outlineで表現され、ダウンロード画像には焼き込まれない（selectedColorのaccentLineに連動）', async () => {
+  it('[covers:image-dialog-component.background-image-style-tracks-image-and-color] TASK-390: プレビューの縁取りはCSS outlineで表現され、ダウンロード画像には焼き込まれない（selectedColorのaccentLineに連動）', async () => {
     wrapper = await mountInitializedDialog();
 
     // デフォルト(red)の時点でプレビュー要素にaccentLine色のoutlineColorが設定されている
@@ -157,7 +162,7 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).toContain('outline-color: #1485ed');
   });
 
-  it('連続した色変更で古い生成結果は破棄され、最新の結果のみ反映される', async () => {
+  it('[covers:image-dialog-component.stale-generation-results-discarded] 連続した色変更で古い生成結果は破棄され、最新の結果のみ反映される', async () => {
     wrapper = await mountInitializedDialog();
 
     // blue → green の順に連続変更（それぞれの生成は未解決のまま）
@@ -181,7 +186,7 @@ describe('ImageDialog.vue - refreshPreview', () => {
     expect(style).not.toContain('height: 310px');
   });
 
-  it('前回の色/QR/Side/text設定がlocalStorageに保存され、次回オープン時に復元される', async () => {
+  it('[covers:image-dialog-component.settings-saved-on-change-and-restored-on-open] 前回の色/QR/Side/text設定がlocalStorageに保存され、次回オープン時に復元される', async () => {
     // side-toggleを表示させるためサイドデッキ入りのデータでマウント
     const deckDataWithSide: DeckInfo = {
       ...makeDeckInfo(),
@@ -306,7 +311,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     vi.unstubAllGlobals();
   });
 
-  it('buttonRect渡しで下に置けない場合は上へフリップし左は右端クランプされる（設計書§2典型例）', async () => {
+  it('[covers:image-dialog-component.popup-style-applies-layout] buttonRect渡しで下に置けない場合は上へフリップし左は右端クランプされる（設計書§2典型例）', async () => {
     stubViewport(1280, 800);
     // デッキ表示ページ典型: ボタンが右下（left=1180, top=740, 36x36）
     wrapper = await mountLayoutDialog(new DOMRect(1180, 740, 36, 36));
@@ -324,7 +329,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     expect(left + width).toBeLessThanOrEqual(1280 - 16 + 1e-6);
   });
 
-  it('buttonRect無し（編集ページ）は実dialog幅で画面中央に配置される', async () => {
+  it('[covers:image-dialog-component.popup-style-applies-layout] buttonRect無し（編集ページ）は実dialog幅で画面中央に配置される', async () => {
     stubViewport(1280, 800);
     wrapper = await mountLayoutDialog(null);
 
@@ -334,7 +339,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     expect(requirePxValue(style, 'width')).toBeCloseTo(640, 6);
   });
 
-  it('resizeでviewportが縮むと再計算され新viewport基準のクランプに収まる（設計書§4）', async () => {
+  it('[covers:image-dialog-component.popup-style-applies-layout] resizeでviewportが縮むと再計算され新viewport基準のクランプに収まる（設計書§4）', async () => {
     stubViewport(1280, 800);
     wrapper = await mountLayoutDialog(new DOMRect(1180, 740, 36, 36));
     expect(requirePxValue(popupStyleOf(wrapper), 'left')).toBeCloseTo(624, 6);
@@ -355,7 +360,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     expect(left + width).toBeLessThanOrEqual(360 - 16 + 1e-6);
   });
 
-  it('backgroundImageStyle.heightはdisplayHeight*scaleで反映され、コンテンツ幅とアスペクト比が一致する（設計書§1）', async () => {
+  it('[covers:image-dialog-component.background-image-style-tracks-image-and-color] backgroundImageStyle.heightはdisplayHeight*scaleで反映され、コンテンツ幅とアスペクト比が一致する（設計書§1）', async () => {
     stubViewport(1280, 800);
     // 生成画像750x1000: scale=600/750=0.8 → .background-image高さ=1000*0.8=800px。
     // popup外枠640（コンテンツ幅600+padding40）と高さ800の比 600:800 が
@@ -369,7 +374,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     expect(requirePxValue(bgStyle, 'height') / contentWidth).toBeCloseTo(1000 / 750, 6);
   });
 
-  it('.ygo-next-image-popupのスタイル定義はposition: fixed（オーバーレイと座標系一致）', () => {
+  it('[covers:image-dialog-component.popup-style-applies-layout] .ygo-next-image-popupのスタイル定義はposition: fixed（オーバーレイと座標系一致）', () => {
     // happy-domはscoped style（data-v属性セレクタ）のcascadeを解決しないため
     // getComputedStyleでは検証できない（実測で''が返る）。popup要素が当該クラスを
     // 持つことは他itのfindで検証済みのため、ここではSFCのscoped定義を直接検証する
@@ -386,7 +391,7 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     expect(rule).not.toContain('position: absolute');
   });
 
-  it('unmount後のresizeイベントでエラーにならない（リスナ除去の回帰固定）', async () => {
+  it('[covers:image-dialog-component.listeners-cleaned-up-on-unmount] unmount後のresizeイベントでエラーにならない（リスナ除去の回帰固定）', async () => {
     stubViewport(1280, 800);
     const mounted = await mountLayoutDialog(null);
 
@@ -400,5 +405,233 @@ describe('ImageDialog.vue - レイアウト（TASK-511）', () => {
     // 除去済みのため、unmount後のresize dispatchは何も起こさず例外も出ない
     stubViewport(360, 800);
     expect(() => window.dispatchEvent(new Event('resize'))).not.toThrow();
+  });
+});
+
+describe('ImageDialog.vue - 条件化追加分（TASK-572）', () => {
+  let wrapper: VueWrapper | null = null;
+  const downloadMock = vi.mocked(downloadDeckRecipeImage);
+
+  const sideCard = { cid: '1', ciid: '1', lang: 'ja', quantity: 1 } as DeckInfo['sideDeck'][number];
+  const deckDataWithSide: DeckInfo = { ...makeDeckInfo(), sideDeck: [sideCard] };
+
+  function mountWith(deckData: DeckInfo) {
+    return mount(ImageDialog, {
+      props: { cgid: 'cgid123', dno: '1', deckData },
+      global: { stubs: { Teleport: true } },
+    });
+  }
+
+  async function mountInitializedWith(deckData: DeckInfo): Promise<VueWrapper> {
+    const w = mountWith(deckData);
+    await flushPromises();
+    // 同一テスト内で複数回マウントする場合があるため、最後の保留コール（今回の初期化分）を解決する
+    resolveImage(pendingCalls.length - 1, 'init');
+    await flushPromises();
+    return w;
+  }
+
+  beforeEach(() => {
+    pendingCalls.length = 0;
+    dimsByUrl.clear();
+    createArgs.length = 0;
+    localStorage.clear();
+    downloadMock.mockReset();
+    vi.stubGlobal('FileReader', FakeFileReader);
+    vi.stubGlobal('Image', FakeImage);
+  });
+
+  afterEach(() => {
+    wrapper?.unmount();
+    wrapper = null;
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('[covers:image-dialog-component.initialize-generates-preview-and-shows-dialog] 初期化完了まで非表示で、プレビュー生成はname空・QRなし・scale1で呼ばれ、デッキ名がタイトルへ入る', async () => {
+    wrapper = mountWith(makeDeckInfo());
+    await flushPromises();
+
+    // 生成が未解決の間はポップアップは表示されない
+    expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(false);
+    expect(createArgs).toHaveLength(1);
+    const args = createArgs[0] as {
+      cgid: string; dno: string; color: string; includeQR: boolean; scale: number;
+      footerText?: string; genesysPoints?: unknown; deckData: DeckInfo;
+    };
+    expect(args.cgid).toBe('cgid123');
+    expect(args.dno).toBe('1');
+    expect(args.color).toBe('red');
+    expect(args.includeQR).toBe(false); // プレビューにはQRを含めない
+    expect(args.scale).toBe(1);
+    expect(args.footerText).toBeUndefined(); // 空フッターはundefined
+    expect(args.deckData.name).toBe(''); // タイトルは画像へ焼き込まない
+
+    resolveImage(0, 'init');
+    await flushPromises();
+
+    expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(true);
+    const titleInput = wrapper.find('.title-field .field-input').element as HTMLInputElement;
+    expect(titleInput.value).toBe('テストデッキ');
+  });
+
+  it('[covers:image-dialog-component.persisted-settings-validation-and-defaults] 保存設定はフィールド単位で検証され、不正な値はデフォルトのままになる', async () => {
+    localStorage.setItem(
+      'ygoNext:deckImageDialogSettings',
+      JSON.stringify({ color: 'purple', includeQR: 'yes', includeSide: false, footerText: 42 })
+    );
+    wrapper = await mountInitializedWith(deckDataWithSide);
+
+    // color 'purple' は不正→デフォルトred、includeQR 'yes' は非boolean→デフォルトtrue
+    expect(wrapper.find('button[aria-label="red"]').classes()).toContain('selected');
+    expect(wrapper.find('.qr-toggle').classes()).toContain('active');
+    expect(wrapper.find('.qr-toggle').text()).toContain('Include');
+    // includeSide false は有効なbooleanとして適用され、プレビューはサイドなしで生成される
+    const args = createArgs[0] as { deckData: DeckInfo };
+    expect(args.deckData.sideDeck).toEqual([]);
+    // footerText 42 は非string→デフォルト''（入力欄は空）
+    const footerInput = wrapper.find('.footer-field .field-input').element as HTMLInputElement;
+    expect(footerInput.value).toBe('');
+  });
+
+  it('[covers:image-dialog-component.select-color-same-color-noop] 選択中の色をクリックしても再生成されない', async () => {
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('button[aria-label="red"]').trigger('click');
+    await flushPromises();
+    expect(createArgs).toHaveLength(1);
+  });
+
+  it('[covers:image-dialog-component.qr-toggle-flips-without-regeneration] QRトグルはラベルとクラスが切り替わり再生成しない', async () => {
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    const toggle = wrapper.find('.qr-toggle');
+    expect(toggle.classes()).toContain('active');
+    await toggle.trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.qr-toggle').classes()).toContain('inactive');
+    expect(wrapper.find('.qr-toggle').text()).toContain('Not-Include');
+    expect(createArgs).toHaveLength(1);
+  });
+
+  it('[covers:image-dialog-component.side-toggle-regenerates-preview-without-side] Sideトグルはサイドなしで再生成し、サイドが無い場合はボタン自体が出ない', async () => {
+    wrapper = await mountInitializedWith(deckDataWithSide);
+    await wrapper.find('.side-toggle').trigger('click');
+    await flushPromises();
+    expect(createArgs).toHaveLength(2);
+    expect((createArgs[1] as { deckData: DeckInfo }).deckData.sideDeck).toEqual([]);
+    resolveImage(1, 'side-off');
+    await flushPromises();
+
+    await wrapper.find('.side-toggle').trigger('click');
+    await flushPromises();
+    expect(createArgs).toHaveLength(3);
+    expect((createArgs[2] as { deckData: DeckInfo }).deckData.sideDeck).toEqual([sideCard]);
+    resolveImage(2, 'side-on');
+    await flushPromises();
+
+    // サイドデッキなしではトグルボタン自体が表示されない
+    const noSide = await mountInitializedWith(makeDeckInfo());
+    expect(noSide.find('.side-toggle').exists()).toBe(false);
+    noSide.unmount();
+  });
+
+  it('[covers:image-dialog-component.footer-text-debounced-regeneration] フッターテキストは400ms debounce後にtrimされて再生成される', async () => {
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('.footer-field .field-input').setValue('  カスタム  ');
+    await flushPromises();
+    expect(createArgs).toHaveLength(1); // debounce前は再生成しない
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await flushPromises();
+    expect(createArgs).toHaveLength(2);
+    expect((createArgs[1] as { footerText?: string }).footerText).toBe('カスタム');
+    resolveImage(1, 'footer');
+    await flushPromises();
+  });
+
+  it('[covers:image-dialog-component.download-arguments-reflect-current-settings] ダウンロードはタイトル編集・Side設定・フッターを反映した引数で呼ばれる', async () => {
+    downloadMock.mockResolvedValue(undefined);
+    wrapper = await mountInitializedWith(deckDataWithSide);
+    await wrapper.find('.side-toggle').trigger('click');
+    resolveImage(1, 'side-off');
+    await flushPromises();
+    await wrapper.find('.title-field .field-input').setValue('編集後デッキ名');
+    await wrapper.find('.footer-field .field-input').setValue('  abc  ');
+
+    await wrapper.find('.download-btn').trigger('click');
+    await flushPromises();
+
+    expect(downloadMock).toHaveBeenCalledTimes(1);
+    const args = downloadMock.mock.calls[0]?.[0] as unknown as {
+      color: string; includeQR: boolean; scale: number; footerText?: string; deckData: DeckInfo;
+    };
+    expect(args.color).toBe('red');
+    expect(args.includeQR).toBe(true);
+    expect(args.scale).toBe(2);
+    expect(args.footerText).toBe('abc');
+    expect(args.deckData.name).toBe('編集後デッキ名');
+    expect(args.deckData.sideDeck).toEqual([]); // includeSide=falseのため空
+  });
+
+  it('[covers:image-dialog-component.download-success-closes-dialog] ダウンロード成功でダイアログが閉じcloseがemitされる', async () => {
+    downloadMock.mockResolvedValue(undefined);
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('.download-btn').trigger('click');
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 250)); // closePopupの200ms待ち
+    expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(false);
+    expect(wrapper.emitted('close')).toEqual([[]]);
+  });
+
+  it('[covers:image-dialog-component.download-failure-keeps-dialog-open] ダウンロード失敗ではダイアログは開いたままでボタンが有効に戻る', async () => {
+    downloadMock.mockRejectedValue(new Error('boom'));
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('.download-btn').trigger('click');
+    await flushPromises();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(true);
+    expect(wrapper.emitted('close')).toBeUndefined();
+    const btn = wrapper.find('.download-btn');
+    expect(btn.attributes('disabled')).toBeUndefined();
+    expect(btn.text()).toContain('Download');
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it('[covers:image-dialog-component.downloading-state-disables-controls] ダウンロード中はDownloadボタンとswatchが無効化され色変更も受け付けない', async () => {
+    downloadMock.mockImplementation(() => new Promise<void>(() => {}));
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('.download-btn').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('.download-btn').attributes('disabled')).toBeDefined();
+    const swatch = wrapper.find('button[aria-label="blue"]');
+    expect(swatch.attributes('disabled')).toBeDefined();
+    await swatch.trigger('click');
+    await flushPromises();
+    expect(createArgs).toHaveLength(1); // ダウンロード中は再生成しない
+  });
+
+  it('[covers:image-dialog-component.close-flow-with-closing-state] オーバーレイクリックとEscapeでclosing状態を経て閉じ、他のキーでは閉じない', async () => {
+    wrapper = await mountInitializedWith(makeDeckInfo());
+    await wrapper.find('.ygo-next-image-popup-overlay').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('.ygo-next-image-popup').classes()).toContain('closing');
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(wrapper.find('.ygo-next-image-popup').exists()).toBe(false);
+    expect(wrapper.emitted('close')).toEqual([[]]);
+    wrapper.unmount();
+    wrapper = null;
+
+    const second = await mountInitializedWith(makeDeckInfo());
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    await flushPromises();
+    expect(second.find('.ygo-next-image-popup').classes()).not.toContain('closing');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(second.find('.ygo-next-image-popup').classes()).toContain('closing');
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(second.emitted('close')).toEqual([[]]);
+    second.unmount();
   });
 });

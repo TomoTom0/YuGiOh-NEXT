@@ -1,0 +1,230 @@
+# 検証対象: src/components/ImageDialog.vue
+#
+# 経緯:
+# - TASK-572（TASK-331 Tier C第23号・TASK-571第22号の後続）。Tier C残候補の
+#   ImageDialog.vue本体（730行）。レイアウト計算はTASK-511で
+#   src/utils/image-dialog-layout.tsへ抽出・条件化済み（image-dialog-layout条件書）。
+#   起動側はimage-dialog条件書（src/content/deck-recipe/imageDialog.ts）が保証。
+#   本書はコンポーネント本体のscriptロジック（初期化・設定永続化・プレビュー再生成・
+#   ダウンロード・開閉）を条件化する。feature名は起動側と分けるため
+#   image-dialog-componentとする
+# - 既存の tests/unit/components/ImageDialog.test.ts（TASK-388/TASK-511由来）は
+#   coversタグなしで一部挙動を検証済み。本単位で条件書を新設し、既存itへcoversを
+#   付与して不足分を追加した
+#
+# 粒度方針（Tier C・第8号〜第22号条件書と同一）:
+# - 1条件=1振る舞いclass。分岐の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（表示・ラベル・クラス・style）とlocalStorage・生成/ダウンロード
+#   関数の呼び出し引数・emit。vm内部状態は直接参照しない
+# - createDeckRecipeImage/downloadDeckRecipeImageはmodule mockで置き換え、
+#   FileReader/Imageはスタブで制御する（既存テストのハーネスを継承）
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "image-dialog-component"
+source_file = "src/components/ImageDialog.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/ImageDialog.test.ts"
+source_hash = "f6677b4f36110aa48372c8f291f71b82f7884238"
+note = "TASK-572（TASK-331第23号）でImageDialog.vue本体の条件化。17条件=設定の検証付き復元1+保存と復元1+初期化生成1+プレビュー反映1+古い生成の破棄1+同色no-op1+QRトグル1+Sideトグル1+フッターdebounce1+ダウンロード引数1+ダウンロード後閉じる1+失敗時継続1+ダウンロード中無効化1+閉じる流れ1+レイアウト結合1+背景スタイル1+リスナ除去1。既存テストへcovers付与+不足分を追加。src不変"
+
+# --- 初期化・設定永続化 ---
+
+[[condition]]
+id = "image-dialog-component.persisted-settings-validation-and-defaults"
+source_lines = "tests/unit/components/ImageDialog.test.ts:478"
+target_function = "ImageDialog loadPersistedSettings / initialize"
+source = "src/components/ImageDialog.vue L143-163, L368-378 と tm TASK-572"
+description = "初期化時にlocalStorage（ygoNext:deckImageDialogSettings）から設定を復元する際、フィールド単位で検証する: colorは red/blue/green/orange のいずれか、includeQR/includeSideはboolean、footerTextはstring の場合のみ適用し、不正な値や欠けたフィールドはデフォルト（red/true/true/''）のままになる。保存データが無い・JSONでない場合もデフォルトになる"
+given = "不正な型のフィールドを含む保存データ／保存データなしでそれぞれmount（テスト側で列挙）"
+expect_return_shape = "選択中カラーのswatchがredのままで、プレビュー生成引数のdeckData.sideDeckがincludeSide=falseの適用時のみ空になる等、検証を通過したフィールドだけが反映される"
+
+[[condition]]
+id = "image-dialog-component.settings-saved-on-change-and-restored-on-open"
+source_lines = "tests/unit/components/ImageDialog.test.ts:189"
+target_function = "ImageDialog watch([selectedColor, includeQR, includeSide, footerText]) / initialize"
+source = "src/components/ImageDialog.vue L335-343, L368-378 と tm TASK-572"
+description = "色・QR・Side・フッターテキストのいずれかを変更すると、4項目の現在値がlocalStorageへJSON保存される。次回開いた時は保存値が復元され、UI（選択カラー・トグルのactive/inactive・フッター入力値）に反映される"
+given = "色変更・QRトグル・Sideトグル・フッター入力を行ってからunmountし、localStorageの内容を確認、その後再マウントする"
+expect_return_shape = "localStorageのJSONが変更後の4項目と一致し、再マウント後は復元された表示になる"
+
+[[condition]]
+id = "image-dialog-component.initialize-generates-preview-and-shows-dialog"
+source_lines = "tests/unit/components/ImageDialog.test.ts:451"
+target_function = "ImageDialog initialize / generateBackgroundImage"
+source = "src/components/ImageDialog.vue L253-282, L368-385 と tm TASK-572"
+description = "マウント直後はダイアログが非表示で、初期化（設定復元→デッキ名にdeckData.nameを設定→プレビュー生成）が完了すると表示される。プレビュー生成の呼び出しは cgid/dno・選択カラー・includeQR=false固定・scale=1・name=''のdeckData（タイトルは画像に焼き込まない）・genesysPoints・footerText（trim後、空ならundefined）"
+given = "mountして初期化の生成を解決する前後を観測する"
+expect_return_shape = "解決前はポップアップが存在せず、解決後は表示され、タイトル入力の値がdeckData.nameになり、生成呼び出しの引数が上記のとおりになる"
+
+# --- プレビュー再生成 ---
+
+[[condition]]
+id = "image-dialog-component.preview-reflects-latest-regeneration"
+source_lines = "tests/unit/components/ImageDialog.test.ts:134"
+target_function = "ImageDialog refreshPreview / selectColor"
+source = "src/components/ImageDialog.vue L286-303 と tm TASK-572"
+description = "色を変更するとプレビューが再生成され、背景画像のdataUrlと表示高さが新しい生成結果に差し替わる"
+given = "初期化後に青へ変更し、生成を解決する"
+expect_return_shape = ".background-imageのstyleに新しいdataUrlと、その画像の高さ×scaleのheightが反映される"
+
+[[condition]]
+id = "image-dialog-component.stale-generation-results-discarded"
+source_lines = "tests/unit/components/ImageDialog.test.ts:165"
+target_function = "ImageDialog refreshPreview（generation token）"
+source = "src/components/ImageDialog.vue L284-294 と tm TASK-572"
+description = "再生成が連続した場合、後から完了した古い生成結果は破棄され、最新の生成結果のみがプレビューに反映される"
+given = "青→緑と連続で変更し、緑（新しい方）を先に、青（古い方）を後に解決する"
+expect_return_shape = "最終的なプレビューは緑の生成結果のままで、青の結果では上書きされない"
+
+[[condition]]
+id = "image-dialog-component.select-color-same-color-noop"
+source_lines = "tests/unit/components/ImageDialog.test.ts:497"
+target_function = "ImageDialog selectColor（早期return）"
+source = "src/components/ImageDialog.vue L297-301 と tm TASK-572"
+description = "既に選択中の色のswatchをクリックしても再生成は行われない"
+given = "初期化後、選択中（red）のswatchをクリックする"
+expect_return_shape = "createDeckRecipeImageの呼び出し回数が増えない"
+
+[[condition]]
+id = "image-dialog-component.qr-toggle-flips-without-regeneration"
+source_lines = "tests/unit/components/ImageDialog.test.ts:504"
+target_function = "ImageDialog toggleQR"
+source = "src/components/ImageDialog.vue L303-305 と tm TASK-572"
+description = "QRトグルは includeQR を反転し、ボタンのラベル（Include/Not-Include）とactive/inactiveクラスが切り替わる。プレビュー再生成は行われない（QRはダウンロード時にのみ効く）"
+given = "初期化後にQRトグルをクリックする"
+expect_return_shape = "トグルがinactive表示になり、createDeckRecipeImageの呼び出し回数が増えない"
+
+[[condition]]
+id = "image-dialog-component.side-toggle-regenerates-preview-without-side"
+source_lines = "tests/unit/components/ImageDialog.test.ts:515"
+target_function = "ImageDialog toggleSide / deckDataForPreview / hasSideDeck"
+source = "src/components/ImageDialog.vue L51-61, L197, L307-310 と tm TASK-572"
+description = "Sideトグルボタンはサイドデッキがある場合のみ表示される。トグルをオフにすると、サイドデッキを空にしたdeckDataでプレビューが再生成される（オンに戻すと元のサイドデッキで再生成）"
+given = "サイドデッキ入りのデータで初期化し、Sideトグルをオフ→オンする"
+expect_return_shape = "再生成呼び出しの引数deckData.sideDeckがオフ時は空配列、オン時は元のサイドデッキになる。サイドデッキなしではボタン自体が表示されない"
+
+[[condition]]
+id = "image-dialog-component.footer-text-debounced-regeneration"
+source_lines = "tests/unit/components/ImageDialog.test.ts:537"
+target_function = "ImageDialog watch(footerText) debounce"
+source = "src/components/ImageDialog.vue L312-318 と tm TASK-572"
+description = "フッターテキストの入力は即時には再生成せず、400msのdebounce後に1回だけ再生成する。再生成時の引数footerTextはtrimされ、空白のみの場合はundefinedになる"
+given = "フッターテキストを入力し、debounce経過前と経過後を観測する"
+expect_return_shape = "経過前は再生成されず、経過後にtrim済みfooterTextで1回再生成される"
+
+# --- ダウンロード ---
+
+[[condition]]
+id = "image-dialog-component.download-arguments-reflect-current-settings"
+source_lines = "tests/unit/components/ImageDialog.test.ts:551"
+target_function = "ImageDialog handleDownload"
+source = "src/components/ImageDialog.vue L330-356 と tm TASK-572"
+description = "Downloadクリックで downloadDeckRecipeImage が現在の設定で呼ばれる: cgid/dno・選択カラー・includeQR・scale=2・deckData（nameはタイトル入力の値、sideDeckは「サイドあり かつ includeSide」の場合のみ元のサイドデッキ、それ以外は空）・genesysPoints・footerText（trim後、空ならundefined）"
+given = "タイトルを編集し、サイドあり・includeSide=falseの状態でDownloadをクリックする"
+expect_return_shape = "downloadDeckRecipeImageの引数が上記のとおりになる"
+
+[[condition]]
+id = "image-dialog-component.download-success-closes-dialog"
+source_lines = "tests/unit/components/ImageDialog.test.ts:575"
+target_function = "ImageDialog handleDownload（成功時closePopup）"
+source = "src/components/ImageDialog.vue L348-349 と tm TASK-572"
+description = "ダウンロードが成功するとダイアログが閉じる（closePopupの流れでcloseがemitされる）"
+given = "downloadDeckRecipeImageが解決する状態でDownloadをクリックし、閉じるアニメーション時間を待つ"
+expect_return_shape = "ポップアップが消え、emitted('close')が記録される"
+
+[[condition]]
+id = "image-dialog-component.download-failure-keeps-dialog-open"
+source_lines = "tests/unit/components/ImageDialog.test.ts:585"
+target_function = "ImageDialog handleDownload（catch/finally）"
+source = "src/components/ImageDialog.vue L350-355 と tm TASK-572"
+description = "ダウンロードが失敗すると、ダイアログは開いたままで、isDownloadingが解除され（Downloadボタンが再び有効になり）console.errorに記録される"
+given = "downloadDeckRecipeImageがrejectする状態でDownloadをクリックする"
+expect_return_shape = "ポップアップが表示されたままで、Downloadボタンが有効に戻り、closeはemitされない"
+
+[[condition]]
+id = "image-dialog-component.downloading-state-disables-controls"
+source_lines = "tests/unit/components/ImageDialog.test.ts:600"
+target_function = "ImageDialog template :disabled=isDownloading / selectColor guard"
+source = "src/components/ImageDialog.vue L84-103, L297-298 と tm TASK-572"
+description = "ダウンロード中はDownloadボタンとカラーswatchがdisabledになり、色変更も受け付けない（再生成しない）"
+given = "downloadDeckRecipeImageが未解決のままDownloadをクリックし、その間にswatchをクリックする"
+expect_return_shape = "Downloadボタンとswatchにdisabledが付き、createDeckRecipeImageの呼び出し回数が増えない"
+
+# --- 閉じる流れ ---
+
+[[condition]]
+id = "image-dialog-component.close-flow-with-closing-state"
+source_lines = "tests/unit/components/ImageDialog.test.ts:615"
+target_function = "ImageDialog closePopup / handleEscape"
+source = "src/components/ImageDialog.vue L345-352, L358-362, L387-395 と tm TASK-572"
+description = "オーバーレイクリック・閉じるボタン・Escapeキーのいずれでも、まずclosing状態（closingクラス）になり、200ms後に非表示になってcloseがemitされる。Escape以外のキーでは閉じない"
+given = "オーバーレイクリック／Escapeキー／他のキーをそれぞれ発火する（テスト側で列挙）"
+expect_return_shape = "オーバーレイとEscapeでは closing クラス→200ms後に非表示+close emit となり、他のキーでは何も起きない"
+
+# --- レイアウト・背景スタイル結合 ---
+
+[[condition]]
+id = "image-dialog-component.popup-style-applies-layout"
+source_lines = "tests/unit/components/ImageDialog.test.ts:314,tests/unit/components/ImageDialog.test.ts:332,tests/unit/components/ImageDialog.test.ts:342,tests/unit/components/ImageDialog.test.ts:377"
+target_function = "ImageDialog layout / popupStyle computed"
+source = "src/components/ImageDialog.vue L216-235 と tm TASK-572"
+description = "ポップアップのstyle（top/left/width/maxHeight）は computeImageDialogLayout の結果をpxで反映し、paddingは DIALOG_PADDING に LABEL_OVERFLOW(8) を上乗せした値になる。buttonRectがある場合はその基準で配置・フリップし、resizeでviewportが変わると再計算される（計算本体はimage-dialog-layout条件書へ委譲）"
+given = "buttonRectあり／なしとresizeを組み合わせてmount・操作する（既存のTASK-511テスト群）"
+expect_return_shape = "styleの各値がレイアウト計算の結果と一致する"
+
+[[condition]]
+id = "image-dialog-component.background-image-style-tracks-image-and-color"
+source_lines = "tests/unit/components/ImageDialog.test.ts:146,tests/unit/components/ImageDialog.test.ts:363"
+target_function = "ImageDialog backgroundImageStyle computed"
+source = "src/components/ImageDialog.vue L237-242 と tm TASK-572"
+description = "背景領域のstyleは height=表示高さ×レイアウトscale、backgroundに対象dataUrl、outlineColorに選択カラーのaccentLineが設定される（縁取りはダウンロード画像には焼き込まれずCSS outlineで表現される）"
+given = "初期化後と色変更後を観測する（既存のTASK-390テスト）"
+expect_return_shape = "styleのheight/background/outlineColorが生成結果と選択カラーに追従する"
+
+[[condition]]
+id = "image-dialog-component.listeners-cleaned-up-on-unmount"
+source_lines = "tests/unit/components/ImageDialog.test.ts:394"
+target_function = "ImageDialog onUnmounted"
+source = "src/components/ImageDialog.vue L397-401 と tm TASK-572"
+description = "アンマウント時に document の keydown リスナと window の resize リスナが除去され、フッターdebounceのタイマーもクリアされる。アンマウント後のresizeイベントでエラーにならない"
+given = "mount後にリスナ除去をspyしてunmountし、resizeイベントを発火する（既存のTASK-511テスト）"
+expect_return_shape = "removeEventListenerがresizeについて呼ばれ、unmount後のresize発火で例外が出ない"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "computeImageDialogLayout本体（位置・サイズ・scaleの計算）"
+source = "src/utils/image-dialog-layout.ts と tm TASK-572"
+reason = "隣接モジュール責務。image-dialog-layout条件書（TASK-511）で保証済み。本書は計算結果のstyle反映（結合）のみを検証する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "createDeckRecipeImage / downloadDeckRecipeImage / generateDefaultFooterText 本体"
+source = "src/content/deck-recipe/createDeckRecipeImage.ts、src/content/deck-recipe/downloadDeckRecipeImage.ts と tm TASK-572"
+reason = "隣接モジュール責務。create-deck-recipe-image / download-deck-recipe-image条件書で保証済み。本書は呼び出し引数と結果の反映のみを検証し、テストではmodule mockで置き換える。フッター入力のplaceholderはgenerateDefaultFooterTextの返値の表示であり、生成ロジック自体は対象外"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineExposeの show / close（ホスト向けAPI）"
+source = "src/components/ImageDialog.vue L402-407 と tm TASK-572"
+reason = "コンテンツスクリプト側ホストが使う公開APIであり、起動・マウント・終了のライフサイクルはimage-dialog条件書（imageDialog.ts）が保証する。本書はコンポーネント内部の利用者向け挙動のみを条件化する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "generateBackgroundImage内のFileReader/Imageによる読み込み機構"
+source = "src/components/ImageDialog.vue L266-281 と tm TASK-572"
+reason = "ブラウザAPIによるBlob→dataUrl変換と寸法取得の機構であり、本コンポーネントの分岐ではない。変換結果（dataUrl・寸法）のプレビュー反映は対応条件で検証し、テストではFileReader/Imageをスタブで制御する"
+decided_at = "2026-11-22"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L411-730。ポップアップ・ボタン等の静的スタイルと開閉アニメーション）"
+source = "src/components/ImageDialog.vue L411-730 と tm TASK-572"
+reason = "静的スタイル・アニメーション定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。closingクラスの付与自体は対応条件で検証し、アニメーションの見た目は対象外"
+decided_at = "2026-11-22"
+decided_by = "claude"
