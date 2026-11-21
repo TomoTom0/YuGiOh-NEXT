@@ -19,6 +19,7 @@ import { nextTick } from 'vue';
 import PracticePlayerPanel from '@/components/practice/PracticePlayerPanel.vue';
 import { usePracticeStore } from '@/stores/practice';
 import { useDeckEditStore } from '@/stores/deck-edit';
+import { isHTMLElement } from '@/utils/type-guards';
 
 const THUMB_P1 = 'https://example.test/thumb-p1.png';
 const THUMB_P2 = 'https://example.test/thumb-p2.png';
@@ -82,8 +83,10 @@ describe('components/practice/PracticePlayerPanel', () => {
     const img = section('p1').find('img.deck-preview-card');
     expect(img.exists()).toBe(true);
     expect(img.attributes('src')).toBe(THUMB_P1);
-    expect((img.element as HTMLElement).style.left).toBe('0px');
-    expect((img.element as HTMLElement).style.zIndex).toBe('1');
+    expect(section('p1').findAll('img.deck-preview-card')).toHaveLength(1);
+    if (!isHTMLElement(img.element)) throw new Error('preview img is not an HTMLElement');
+    expect(img.element.style.left).toBe('0px');
+    expect(img.element.style.zIndex).toBe('1');
     expect(section('p1').find('.deck-preview-empty').exists()).toBe(false);
   });
 
@@ -177,6 +180,7 @@ describe('components/practice/PracticePlayerPanel', () => {
     const img = section('p2').find('img.deck-preview-card');
     expect(img.exists()).toBe(true);
     expect(img.attributes('src')).toBe(THUMB_P2);
+    expect(section('p2').findAll('img.deck-preview-card')).toHaveLength(1);
   });
 
   it('[covers:practice-player-panel.p2-preview-images] p2DeckDnoのサムネイルが無ければP2プレビューが空表示になる', () => {
