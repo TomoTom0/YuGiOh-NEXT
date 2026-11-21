@@ -1,0 +1,1 @@
+{"hooks":{"PreToolUse":[{"hooks":[{"command":"node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-new-filename.mjs\"","timeout":10,"type":"command"}],"matcher":"Write"}]}}
