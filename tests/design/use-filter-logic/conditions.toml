@@ -3,17 +3,17 @@
 # tests/design/README.md の方針に基づき、実装コードを直接読んで転記した条件一覧。
 # TASK-330(Tier B本展開)、Vue composableの返却computed/関数を対象にする。
 #
-# デッドコード・到達不能分岐: なし。
+# デッドコード・到達不能分岐: TASK-526でisFieldDisabledのcardType推論フォールバックを削除済み。
 
 [meta]
 feature = "use-filter-logic"
 source_file = "src/composables/search-filter/useFilterLogic.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
+verified_at = "2026-11-21"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/composables/useFilterLogic.test.ts"
-source_hash = "bd42f7d679fe5bc29a50178a0ab1669a993ca685"
-note = "verified=falseは0件。useFilterLogic本体はexport関数としてAST未カバー検出に掛けるため1条件を置き、返却メンバーはuseFilterLogic#memberName形式で記録する。【2026-10-28 TASK-506テスト先行】D2b両reason併存パス（個別reason優先）の条件を38件目として追加（新規条件のidはstable id形式のkebab表記で付与。既存snake_case id群は付与後不変のため維持）。useFilterLogic.ts本体は本タスクで変更しないためsource_hash不変"
+source_hash = "b400ee88d764b8448c380f8c6486722eb9a7e7b6"
+note = "verified=falseは0件。useFilterLogic本体はexport関数としてAST未カバー検出に掛けるため1条件を置き、返却メンバーはuseFilterLogic#memberName形式で記録する。【2026-10-28 TASK-506テスト先行】D2b両reason併存パス（個別reason優先）の条件を38件目として追加（新規条件のidはstable id形式のkebab表記で付与。既存snake_case id群は付与後不変のため維持）。【2026-11-21 TASK-526】store実経路でfieldStates未登録が発生しないことをコード追跡で確定し、cardType推論フォールバックを削除。旧field_disabled_card_type_fallback条件を削除し、未登録IDは有効扱いとする新条件を追加"
 
 # --- useFilterLogic(pageLanguage) ---
 
@@ -96,17 +96,18 @@ expect_return_shape = "enabled=falseならtrue、未登録ならfalse"
 id = "use_filter_logic.field_disabled_state_precedence"
 target_function = "useFilterLogic#isFieldDisabled"
 source_lines = "117-121"
-description = "fieldStatesに対象fieldが存在する場合、そのenabledの否定を返し、cardTypeによる推論は使わない"
-given = "fieldStates.get(field)が{ enabled: true }または{ enabled: false }"
+description = "fieldStatesに対象fieldが存在する場合、そのenabledの否定だけを無効化判定に使う。store実経路では推論エンジンのcreateInitialResultがfieldInputs全11件を事前登録し、cardType選択による無効化もattributeToField規則等でfieldStatesへ反映されるため、cardTypeを直接参照しない"
+given = "fieldStates.get(field)が{ enabled: true }または{ enabled: false }（cardTypeはnull/'monster'/'spell'/'trap'のいずれか）"
 expect_return_shape = "enabled=trueならfalse、enabled=falseならtrue"
 
 [[condition]]
-id = "use_filter_logic.field_disabled_card_type_fallback"
+id = "use-filter-logic.unregistered-field-not-disabled"
+source_lines = "tests/unit/composables/useFilterLogic.test.ts:534,tests/unit/composables/useFilterLogic.test.ts:542"
 target_function = "useFilterLogic#isFieldDisabled"
-source_lines = "122-138"
-description = "fieldStateが無くcardTypeがnullでない場合、モンスター専用フィールドはcardType!='monster'、spell-typeはcardType!='spell'、trap-typeはcardType!='trap'でtrue。それ以外はfalse"
-given = "fieldState未登録でcardTypeがnull/'monster'/'spell'/'trap'のいずれか"
-expect_return_shape = "専用フィールドとcardTypeが合わない場合のみtrue。それ以外はfalse"
+source = "tm TASK-526 body（旧field_disabled_card_type_fallback条件の実態書き換え。toSearchConditionStateが11フィールドを返しcreateInitialResultが全件登録・engine側にfieldStates削除経路なし）"
+description = "fieldStatesに未登録のフィールドIDは無効化しない。store実経路では全フィールドが事前登録されるため通常発生しないが、未知IDが渡ってもcardTypeから無効を推論せず有効として扱う防御的なデフォルト"
+given = "fieldStatesに対象fieldが未登録（cardTypeはnullまたは'spell'等のいずれか）"
+expect_return = "false"
 
 # --- チップ表示computed ---
 
