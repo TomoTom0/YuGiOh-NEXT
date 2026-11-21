@@ -68,7 +68,7 @@ target_function = "DeckMetadataDescription value computed set / template textare
 source = "src/components/DeckMetadataDescription.vue L8, L26-28, L34-36 と tm TASK-556"
 description = "textareaへの入力（inputイベント）1回ごとにupdate:modelValueをその時点の入力文字列全体をpayloadとしてちょうど1回emitする。コンポーネントはローカル状態を持たないため表示が追従するのは親がmodelValueを更新した場合のみ（表示変化としてではなくemitペイロードを観測）"
 given = "modelValue='旧テキスト'でmountし、textareaへ'入力した全文'→'入力した全文（追記）'と連続入力"
-expect_return_shape = "update:modelValueが['入力した全文']→['入力した全文（追記）']の順で各1回・計2回emitされる（それ以外のコンポーネントemitは存在しない）"
+expect_return_shape = "update:modelValueが['入力した全文']→['入力した全文（追記）']の順で各1回・計2回emitされる（宣言上のemitはupdate:modelValueのみ。テストではupdate:modelValueの記録のみを検証し、それ以外のemitの不存在は直接検証しない）"
 
 # --- 親によるprop更新の表示反映 ---
 
