@@ -1,0 +1,149 @@
+# 検証対象: src/components/practice/PracticeSlotControls.vue
+#
+# 経緯:
+# - TASK-561（TASK-331 Tier C第15号・TASK-560第14号の後続）。Practice系コンポーネント
+#   11ファイルの条件化4ファイル目。123行（template＋script setup。props: zone/cards/
+#   visible/deckEmpty/revealExtra、emits: action/open-menu。store・composable非依存の
+#   表示専用）。既存の専用ユニットテストは無く、
+#   tests/unit/components/PracticeSlotControls.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-561
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）だが、
+#   本コンポーネント自身はflagを参照しないため単体mountで検証する
+#
+# 粒度方針（Tier C・第8号〜第14号条件書と同一）:
+# - 1条件=1振る舞いclass。zone値・境界値の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（ボタンの有無・title・disabled・svgパス）とemitのみ。
+#   vm内部状態（quickActions computed）は直接参照しない
+# - 静的SCSSは§8「書かない」に該当するため除外
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-slot-controls"
+source_file = "src/components/practice/PracticeSlotControls.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeSlotControls.test.ts"
+source_hash = "8da0d9a922eda49b89f7175d0e3805e7893d122d"
+note = "TASK-561（TASK-331第15号）でPractice系コンポーネント4ファイル目の条件化。store非依存の表示専用。10条件=表示可否1+deckクイックアクション構成1+draw無効化1+shuffle無効化1+deck emit1+extraトグル表示1+extra無効化1+extra emit1+他ゾーン1+メニューボタン1。テストは新規作成。src不変"
+
+# --- 表示可否 ---
+
+[[condition]]
+id = "practice-slot-controls.renders-nothing-when-not-visible"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:54"
+target_function = "PracticeSlotControls template root div v-if"
+source = "src/components/practice/PracticeSlotControls.vue L2 と tm TASK-561"
+description = "visible=falseの間は根源要素（.practice-slot-controls）を描画しない（クイックアクション・メニューボタンのいずれも存在しない）。visible=trueになると描画される"
+given = "visible=falseでmountし、その後visible=trueへpropを更新する"
+expect_return_shape = "visible=falseでは.practice-slot-controlsが存在せず、trueへ更新すると存在する"
+
+# --- deckゾーンのクイックアクション ---
+
+[[condition]]
+id = "practice-slot-controls.deck-zone-shows-draw-and-shuffle-actions"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:67"
+target_function = "PracticeSlotControls quickActions computed（zone=deck分岐）"
+source = "src/components/practice/PracticeSlotControls.vue L58-63 と tm TASK-561"
+description = "zone='deck'のときクイックアクションはDraw（mdiCardPlus）とShuffle（mdiShuffle）の2件をこの順で表示する（title属性とsvgパスで識別）"
+given = "zone='deck'、visible=trueでmount"
+expect_return_shape = "button.quick-btnが2件あり、titleが['Draw','Shuffle']の順で、各svg pathのdがmdiCardPlus/mdiShuffleと一致する"
+
+[[condition]]
+id = "practice-slot-controls.draw-action-disabled-only-when-deck-empty"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:81"
+target_function = "PracticeSlotControls quickActions computed（draw の disabled）"
+source = "src/components/practice/PracticeSlotControls.vue L60 と tm TASK-561"
+description = "DrawボタンはdeckEmpty=trueのときのみdisabledになる。deckEmpty=falseおよび未指定（undefined）のときは有効"
+given = "zone='deck'でdeckEmpty=true/false/未指定をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "Drawボタンのdisabledが deckEmpty=trueのときだけ真になる"
+
+[[condition]]
+id = "practice-slot-controls.shuffle-action-disabled-when-deck-has-at-most-one-card"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:96"
+target_function = "PracticeSlotControls quickActions computed（shuffle の disabled）"
+source = "src/components/practice/PracticeSlotControls.vue L61 と tm TASK-561"
+description = "Shuffleボタンはcards.length<=1のときdisabledになる（境界: 0と1で無効、2で有効）"
+given = "zone='deck'でcards.length=0/1/2をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "Shuffleボタンのdisabledが length 0・1で真、2で偽になる"
+
+[[condition]]
+id = "practice-slot-controls.deck-quick-action-clicks-emit-actions"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:106"
+target_function = "PracticeSlotControls quickActions handler（draw/shuffle）"
+source = "src/components/practice/PracticeSlotControls.vue L60-61 と tm TASK-561"
+description = "Drawボタンのクリックは action イベントを 'draw' で、Shuffleボタンのクリックは 'shuffleDeck' でemitする（cardId引数は付けない）"
+given = "zone='deck'・有効状態でmountし、各ボタンをクリックする"
+expect_return_shape = "emitted('action') が [['draw']] および [['shuffleDeck']] をそれぞれ記録する"
+
+# --- extraゾーンの公開トグル ---
+
+[[condition]]
+id = "practice-slot-controls.extra-zone-reveal-toggle-reflects-reveal-extra"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:123"
+target_function = "PracticeSlotControls quickActions computed（zone=extra分岐）"
+source = "src/components/practice/PracticeSlotControls.vue L65-75 と tm TASK-561"
+description = "zone='extra'のときクイックアクションは公開トグルの1件のみ。revealExtra=falseではtitle='Reveal'・アイコンmdiEye、revealExtra=trueではtitle='Hide'・アイコンmdiEyeOffになる"
+given = "zone='extra'でrevealExtra=false/trueをそれぞれmount（テスト側で列挙）"
+expect_return_shape = "button.quick-btnが1件で、titleとsvg pathのdがrevealExtraの値に対応する"
+
+[[condition]]
+id = "practice-slot-controls.reveal-toggle-disabled-when-extra-empty"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:138"
+target_function = "PracticeSlotControls quickActions computed（revealExtraToggle の disabled）"
+source = "src/components/practice/PracticeSlotControls.vue L71 と tm TASK-561"
+description = "公開トグルボタンはcards.length===0のときdisabledになる（1以上で有効）"
+given = "zone='extra'でcards.length=0/1をそれぞれmount（テスト側で列挙）"
+expect_return_shape = "トグルボタンのdisabledが length 0で真、1で偽になる"
+
+[[condition]]
+id = "practice-slot-controls.reveal-toggle-click-emits-action"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:146"
+target_function = "PracticeSlotControls quickActions handler（revealExtraToggle）"
+source = "src/components/practice/PracticeSlotControls.vue L72 と tm TASK-561"
+description = "公開トグルボタンのクリックは action イベントを 'revealExtraToggle' でemitする"
+given = "zone='extra'・有効状態でmountし、トグルボタンをクリックする"
+expect_return_shape = "emitted('action') が [['revealExtraToggle']] を記録する"
+
+# --- 他ゾーン・メニューボタン ---
+
+[[condition]]
+id = "practice-slot-controls.other-zones-show-no-quick-actions"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:156"
+target_function = "PracticeSlotControls quickActions computed（deck/extra以外）"
+source = "src/components/practice/PracticeSlotControls.vue L55-78 と tm TASK-561"
+description = "zoneが'deck'でも'extra'でもない場合、クイックアクションは0件で、表示されるのはメニューボタンのみ"
+given = "zone='monster'、visible=trueでmount"
+expect_return_shape = "button.quick-btnが0件で、button.menu-btnが1件存在する"
+
+[[condition]]
+id = "practice-slot-controls.menu-button-emits-open-menu"
+source_lines = "tests/unit/components/PracticeSlotControls.test.ts:166"
+target_function = "PracticeSlotControls template button.menu-btn @click"
+source = "src/components/practice/PracticeSlotControls.vue L15 と tm TASK-561"
+description = "メニューボタン（title='Menu'）はvisible=trueのとき常に表示され、クリックで open-menu イベントをemitする"
+given = "zone='monster'、visible=trueでmountし、メニューボタンをクリックする"
+expect_return_shape = "emitted('open-menu') が [[]] を記録する"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "scoped SCSS定義（L81-123。ボタン配置・見た目）"
+source = "src/components/practice/PracticeSlotControls.vue L81-123 と tm TASK-561"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。ボタンの有無・disabled分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "defineProps/defineEmits定義・QuickAction interface（L34-53）"
+source = "src/components/practice/PracticeSlotControls.vue L34-53 と tm TASK-561"
+reason = "宣言のみで分岐なし（§8「書かない」: props/emits定義）。propsの値は対応条件で描画・disabled・emitとしてObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "クリックハンドラの .stop 修飾子（伝播停止）"
+source = "src/components/practice/PracticeSlotControls.vue L9, L15 と tm TASK-561"
+reason = "親要素へのイベント伝播の有無は本コンポーネント単体の描画契約ではなく、親（PracticeSlot）側の統合挙動で検証すべき事項。本書はemit自体を対応条件で検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
