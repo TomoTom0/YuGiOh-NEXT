@@ -107,6 +107,7 @@
 |---------|-------------|------|
 | `CLAUDE.md` | プロジェクト固有ルール変更時 | プロジェクト固有のコーディング規約、ワークフロー |
 | `.claude/skills/` | ワークフロー追加時 | Agent Skills（リリース準備、PRレビュー対応等） |
+| `.claude/settings.json` / `.claude/hooks/` | hook追加・変更時 | プロジェクト共有のClaude Code設定とhook（新規ファイル名の大文字検出等） |
 
 ---
 
