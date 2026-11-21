@@ -1,0 +1,155 @@
+# 検証対象: .claude/hooks/check-new-filename.mjs（TASK-535）
+#
+# 新規ファイル作成 (Write) 時に、repo相対pathへ大文字ASCIIを含む場合に
+# PreToolUse hook が ask を返す仕組み。設計の正本は
+# tmp/tasks/tm-535/design_filename-case-hook.md (D1〜D10)。
+# 確認事項A〜Cは確定済み: A=src/**/use*.ts を除外に含める /
+# B=CONTRIBUTING.md を慣例名除外に追加 / C=docs/internal-reviews/** はask対象のまま。
+#
+# テスト先行作成: tests/unit/scripts/filename-case-hook.test.ts と同時に作成し、
+# 実装がこれらを満たす。実装・検証後に meta の検証記録を書く。
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/scripts/filename-case-hook.test.ts"
+source_hash = "877c0858a6a13860acf5ffd23ce809e1cf470b88"
+feature = "filename-case-hook"
+source_file = ".claude/hooks/check-new-filename.mjs"
+verified = true
+note = "テスト先行作成（TASK-535）。全条件を tests/unit/scripts/filename-case-hook.test.ts の [covers:] タグ付きitで検証する"
+
+[[condition]]
+id = "filename-case-hook.lowercase-new-path-allowed"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:78"
+target_function = "checkPath"
+source = "設計D9 テスト条件1"
+description = "小文字のみの新規pathはaskしない"
+given = "repo配下の小文字のみの新規ファイルpath"
+expect_return = "decision=allow。CLIではstdout空・exit 0"
+
+[[condition]]
+id = "filename-case-hook.overwrite-existing-allowed"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:84"
+target_function = "checkPath"
+source = "設計D6・D9 テスト条件2"
+description = "既存ファイルのoverwriteは、大文字を含んでも全判定をスキップして素通りする"
+given = "fixture内に実在する大文字名ファイルへのpath"
+expect_return = "decision=allow"
+
+[[condition]]
+id = "filename-case-hook.uppercase-basename-asks"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:90"
+target_function = "checkPath"
+source = "設計D9 テスト条件3"
+description = "新規basenameに大文字を含む場合はaskする（過去事例 docs/dev/TESTING_PHASE_COMPLETE.md の再現）"
+given = "repo配下の新規ファイル docs/dev/TESTING_PHASE_COMPLETE.md"
+expect_return = "decision=ask"
+
+[[condition]]
+id = "filename-case-hook.uppercase-directory-asks"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:99"
+target_function = "checkPath"
+source = "設計D2・D9 テスト条件4"
+description = "判定はbasenameでなくrepo相対path全体。新規ディレクトリ名の大文字もaskする"
+given = "repo配下の新規ファイル docs/dev/NewDir/readme.md"
+expect_return = "decision=ask"
+
+[[condition]]
+id = "filename-case-hook.exclusion-glob-allowed"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:105"
+target_function = "checkPath"
+source = "設計D4・D9 テスト条件5"
+description = "除外glob（README*.md / *.vue）と慣例名exactに一致する新規ファイルは素通りする"
+given = "docs/new/README.md / src/components/NewComp.vue / LICENSE / CONTRIBUTING.md / docs/feature/appSettings.toml"
+expect_return = "decision=allow"
+
+[[condition]]
+id = "filename-case-hook.corresponding-test-allowed"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:120"
+target_function = "checkPath"
+source = "設計D5・D9 テスト条件6"
+description = "対応testは、stemがsrc/配下の実ファイル（git未追跡でも）と一致すれば素通りする"
+given = "fixture src/components/Sample.vue が実在する状態で tests/unit/components/Sample.test.ts"
+expect_return = "decision=allow"
+
+[[condition]]
+id = "filename-case-hook.orphan-test-asks"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:129"
+target_function = "checkPath"
+source = "設計D9 テスト条件7"
+description = "対応sourceが存在しない大文字stemのtestはaskする"
+given = "src/配下に同stemのファイルが無い tests/unit/components/Ghost.test.ts"
+expect_return = "decision=ask"
+
+[[condition]]
+id = "filename-case-hook.uppercase-in-src-asks"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:138"
+target_function = "checkPath"
+source = "設計D9 テスト条件8"
+description = "src/配下でも除外に該当しない大文字ファイルはaskする"
+given = "repo配下の新規ファイル src/utils/BadName.ts"
+expect_return = "decision=ask"
+
+[[condition]]
+id = "filename-case-hook.composable-use-excluded"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:144"
+target_function = "checkPath"
+source = "設計D4・確認事項A・D9 テスト条件9"
+description = "src/**/use*.ts（composableのcamelCase慣例）は除外され素通りする"
+given = "repo配下の新規ファイル src/composables/useNewFeature.ts"
+expect_return = "decision=allow"
+
+[[condition]]
+id = "filename-case-hook.outside-repo-allowed"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:153"
+target_function = "checkPath"
+source = "設計D2・D9 テスト条件10"
+description = "repo外の絶対pathは対象外として素通りする"
+given = "projectDirの外にある大文字名ファイルへの絶対path"
+expect_return = "decision=allow"
+
+[[condition]]
+id = "filename-case-hook.invalid-json-fail-open"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:162"
+target_function = "main"
+source = "設計D8・D9 テスト条件11"
+description = "stdinが不正JSONでもfail-openで素通りする"
+given = "stdinにJSONでない文字列を流してCLI起動"
+expect_return = "stdout空・exit 0"
+
+[[condition]]
+id = "filename-case-hook.missing-fields-fail-open"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:169"
+target_function = "main"
+source = "設計D8・D9 テスト条件12"
+description = "tool_input / file_path が欠損したstdinでもfail-openで素通りする"
+given = "stdinに {} や file_path の無いWrite入力を流してCLI起動"
+expect_return = "stdout空・exit 0"
+
+[[condition]]
+id = "filename-case-hook.non-write-tool-ignored"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:178"
+target_function = "main"
+source = "設計D7・D9 テスト条件13"
+description = "tool_nameがWrite以外のstdinは素通りする（settings matcherとの二重防御）"
+given = "tool_name=Edit で大文字pathを含むstdinを流してCLI起動"
+expect_return = "stdout空・exit 0"
+
+[[condition]]
+id = "filename-case-hook.ask-output-contract"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:189"
+target_function = "main"
+source = "設計D9 テスト条件14・I/O契約"
+description = "ask時の出力は hookSpecificOutput (hookEventName=PreToolUse / permissionDecision=ask / permissionDecisionReason非空) のvalid JSONで、exit codeは0（exit 2はdeny扱いになるため厳守）"
+given = "tool_name=Write で大文字の新規pathを含むstdinを流してCLI起動"
+expect_return = "上記shapeのJSONがstdoutに出力され exit 0"
+
+[[condition]]
+id = "filename-case-hook.ask-reason-json-escape"
+source_lines = "tests/unit/scripts/filename-case-hook.test.ts:205"
+target_function = "main"
+source = "設計D9 テスト条件15"
+description = "reasonに日本語と対象pathが含まれてもvalid JSONとしてparseできる（escape事故がない）"
+given = "条件14と同じ入力"
+expect_return = "stdoutがJSON.parse可能で、permissionDecisionReasonに対象の相対pathが含まれる"
