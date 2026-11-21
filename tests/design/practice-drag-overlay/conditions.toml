@@ -18,7 +18,7 @@
 #
 # 線引き（隣接条件書との）:
 # - drag状態そのものの遷移（startDrag/endDrag・リスナ登録・自動スクロール等）は
-#   practice-drag-state条件書（usePracticeDragState）が保証済み。本書はその状態を
+#   use-practice-drag-state条件書（usePracticeDragState）が保証済み。本書はその状態を
 #   購読して描画する本コンポーネント自身の契約のみ。状態の駆動はcomposableの公開refへの
 #   代入で行い、composableはモックしない
 # - 裏面画像URLは chrome.runtime.getURL('images/card_back.png')。テスト環境では
@@ -51,7 +51,7 @@ expect_return_shape = "document内に.practice-drag-overlayが存在しない"
 id = "practice-drag-overlay.main-image-uses-dragging-image-url"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:97"
 target_function = "PracticeDragOverlay template img.drag-overlay-img :src"
-source = "src/components/practice/PracticeDragOverlay.vue L7-12 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L8-13 と tm TASK-559"
 description = "ドラッグ中はメイン画像のsrcにdraggingImageUrlを使う（draggingImageUrl ?? backImageUrl の左辺が優先）"
 given = "draggingCardIdとdraggingImageUrl（裏面URLとは異なる値）を設定してmount"
 expect_return_shape = "メイン画像（img.drag-overlay-img）のsrc属性がdraggingImageUrlと一致する"
@@ -60,7 +60,7 @@ expect_return_shape = "メイン画像（img.drag-overlay-img）のsrc属性がd
 id = "practice-drag-overlay.main-image-falls-back-to-card-back"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:104"
 target_function = "PracticeDragOverlay template img.drag-overlay-img :src（?? の右辺）"
-source = "src/components/practice/PracticeDragOverlay.vue L8, L29 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L9, L32 と tm TASK-559"
 description = "draggingImageUrlがnullのときはメイン画像のsrcが裏面画像URL（chrome.runtime.getURL('images/card_back.png')）になる"
 given = "draggingCardIdを設定しdraggingImageUrl=nullでmount"
 expect_return_shape = "メイン画像のsrc属性が裏面画像URL（テスト環境では 'images/card_back.png'）と一致する"
@@ -71,7 +71,7 @@ expect_return_shape = "メイン画像のsrc属性が裏面画像URL（テスト
 id = "practice-drag-overlay.facedown-overlay-rendered-when-facedown-with-front-image"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:113"
 target_function = "PracticeDragOverlay template img.drag-overlay-facedown v-if"
-source = "src/components/practice/PracticeDragOverlay.vue L13-19 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L14-20 と tm TASK-559"
 description = "draggingFaceDown=true かつ draggingImageUrl が非null かつ裏面URLと異なる場合に限り、裏面画像をsrcとする重ね画像（img.drag-overlay-facedown）が追加で描画される"
 given = "draggingFaceDown=true、draggingImageUrlに裏面URLと異なる値を設定してmount"
 expect_return_shape = "img.drag-overlay-facedownが1件存在し、そのsrc属性が裏面画像URLと一致する"
@@ -80,7 +80,7 @@ expect_return_shape = "img.drag-overlay-facedownが1件存在し、そのsrc属�
 id = "practice-drag-overlay.facedown-overlay-absent-otherwise"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:122,tests/unit/components/PracticeDragOverlay.test.ts:129,tests/unit/components/PracticeDragOverlay.test.ts:136"
 target_function = "PracticeDragOverlay template img.drag-overlay-facedown v-if（否定側）"
-source = "src/components/practice/PracticeDragOverlay.vue L13-19 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L14-20 と tm TASK-559"
 description = "上記条件を満たさない場合（draggingFaceDown=false／draggingImageUrl=null／draggingImageUrlが裏面URLと同一）は重ね画像を描画しない"
 given = "3ケースをそれぞれ設定してmount（テスト側で列挙）"
 expect_return_shape = "いずれのケースでもimg.drag-overlay-facedownが存在しない"
@@ -91,7 +91,7 @@ expect_return_shape = "いずれのケースでもimg.drag-overlay-facedownが�
 id = "practice-drag-overlay.stack-preview-rect-reflects-dragging-stack-top"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:145,tests/unit/components/PracticeDragOverlay.test.ts:152,tests/unit/components/PracticeDragOverlay.test.ts:162"
 target_function = "PracticeDragOverlay template div.stack-preview-rect v-if / :class"
-source = "src/components/practice/PracticeDragOverlay.vue L20 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L21 と tm TASK-559"
 description = "draggingStackTopがnullの間はスタックプレビュー矩形を描画しない。trueのときはpreview-topクラス、falseのときはpreview-bottomクラスで描画する"
 given = "draggingStackTop=null/true/falseをそれぞれ設定してmount（テスト側で列挙）"
 expect_return_shape = "nullでは.stack-preview-rectが存在せず、trueではpreview-top、falseではpreview-bottomのクラスを持つ矩形が存在する"
@@ -111,7 +111,7 @@ expect_return_shape = "root要素のstyle.left/topが (pos-offset) のpx文字�
 id = "practice-drag-overlay.overlay-style-transform-reflects-rotated"
 source_lines = "tests/unit/components/PracticeDragOverlay.test.ts:192,tests/unit/components/PracticeDragOverlay.test.ts:201"
 target_function = "PracticeDragOverlay overlayStyle computed（transform/transformOrigin）"
-source = "src/components/practice/PracticeDragOverlay.vue L43-44 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L45-46 と tm TASK-559"
 description = "draggingRotated=trueのときtransformは rotate(-90deg)、falseのときは none になる。transformOriginはdraggingOffsetの `${x}px ${y}px` になる"
 given = "draggingRotated=true/falseをそれぞれ設定し、draggingOffsetに既知の値を設定してmount（テスト側で列挙）"
 expect_return_shape = "root要素のstyle.transformが回転有無に対応する値になり、style.transformOriginがoffsetのpx文字列と一致する"
@@ -120,28 +120,28 @@ expect_return_shape = "root要素のstyle.transformが回転有無に対応す�
 
 [[excluded]]
 item = "overlayStyleの静的定数部（position: fixed、pointerEvents: none、zIndex: 99999、opacity: 0.85）"
-source = "src/components/practice/PracticeDragOverlay.vue L38-46 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L40, L47-49 と tm TASK-559"
 reason = "drag状態に依存しない固定値で分岐なし（§8「書かない」: 静的提示）。状態依存部（left/top/width/height/transform/transformOrigin）のみ対応条件で検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
-item = "scoped SCSS定義（L51-102。オーバーレイ・画像・矩形の静的スタイル）"
-source = "src/components/practice/PracticeDragOverlay.vue L51-102 と tm TASK-559"
+item = "scoped SCSS定義（L54-102。オーバーレイ・画像・矩形の静的スタイル）"
+source = "src/components/practice/PracticeDragOverlay.vue L54-102 と tm TASK-559"
 reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。クラス付与の分岐自体は対応条件でObservableに検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
 item = "usePracticeDragState composable本体（状態遷移・documentリスナ・自動スクロール等）"
 source = "src/composables/practice/usePracticeDragState.ts と tm TASK-559"
-reason = "隣接モジュール責務。practice-drag-state条件書（tests/design/practice-drag-state/）で保証済み。本書はcomposableの公開状態を購読した描画結果のみを検証し、テストでもcomposableはモックせず実物を使う"
-decided_at = "2026-11-22"
+reason = "隣接モジュール責務。use-practice-drag-state条件書（tests/design/use-practice-drag-state/）で保証済み。本書はcomposableの公開状態を購読した描画結果のみを検証し、テストでもcomposableはモックせず実物を使う"
+decided_at = "2026-11-21"
 decided_by = "claude"
 
 [[excluded]]
 item = "chrome.runtime.getURL本体と裏面画像アセット（images/card_back.png）"
-source = "src/components/practice/PracticeDragOverlay.vue L29 と tm TASK-559"
+source = "src/components/practice/PracticeDragOverlay.vue L32 と tm TASK-559"
 reason = "ブラウザ拡張APIと静的アセットで本コンポーネントのロジックではない。テスト環境ではtests/setup.tsのスタブ（パスをそのまま返す）で代替し、呼び出し結果のsrc反映のみ対応条件で検証する"
-decided_at = "2026-11-22"
+decided_at = "2026-11-21"
 decided_by = "claude"
