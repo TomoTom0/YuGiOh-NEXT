@@ -1,0 +1,187 @@
+# 検証対象: src/components/practice/PracticeField.vue
+#
+# 経緯:
+# - TASK-571（TASK-331 Tier C第22号・TASK-570第21号の後続）。Practice系コンポーネント
+#   11ファイルの条件化11ファイル目（最終）。538行（template＋script setup。props:
+#   fieldIndex/hideEMZ。全ゾーンのPracticeSlot配置と、子コンポーネントのイベントを
+#   store・dropHandlerへ束ねる統合コンポーネント）。既存の専用ユニットテストは無く、
+#   tests/unit/components/PracticeField.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-571
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第21号条件書と同一）:
+# - 1条件=1振る舞いclass。ゾーン・ハンドラの列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（子stubへ渡されるprops・CSS変数）とstore/composableの
+#   呼び出し引数。vm内部computedは直接参照しない
+# - 子（PracticeSlot/PracticeSlotControls/PracticeHandArea/PracticeDragOverlay）は
+#   カスタムstubで置き換え（内部挙動は各子の条件書が保証）。practice/settings/
+#   deck-editの各storeは実物を使い、アクションはspyで引数を観測する。
+#   usePracticeActions/usePracticeDropHandlerはmodule mockで置き換える
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-field"
+source_file = "src/components/practice/PracticeField.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeField.test.ts"
+source_hash = "5c04281d3b9e6578f9feea47056b9b527ed4fe0f"
+note = "TASK-571（TASK-331第22号）でPractice系コンポーネント最終ファイルの条件化。12条件=DragOverlay表示1+初期化ゲート1+カードサイズ・CSS変数1+EMZ行1+スロット束縛1+コントロール表示1+コントロールprops1+HandArea束縛1+ゾーン選択1+アクション処理1+ドロップ処理1+P2専用ハンドラ1。テストは新規作成（子4種はカスタムstub、store実物、composableはmodule mock）。src不変"
+
+# --- 全体ゲート ---
+
+[[condition]]
+id = "practice-field.drag-overlay-only-for-field-zero"
+source_lines = "tests/unit/components/PracticeField.test.ts:217"
+target_function = "PracticeField template PracticeDragOverlay v-if"
+source = "src/components/practice/PracticeField.vue L2 と tm TASK-571"
+description = "PracticeDragOverlayは fieldIndex===0 のときのみ描画される（初期化状態に依らない）。fieldIndex=1では描画されない"
+given = "fieldIndex=0/1でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "fieldIndex=0ではDragOverlayが存在し、1では存在しない"
+
+[[condition]]
+id = "practice-field.rendered-only-when-initialized"
+source_lines = "tests/unit/components/PracticeField.test.ts:225,tests/unit/components/PracticeField.test.ts:231"
+target_function = "PracticeField isInitialized computed / template root v-if"
+source = "src/components/practice/PracticeField.vue L3, L320-322 と tm TASK-571"
+description = "フィールド本体（.practice-field）は、対象フィールドが初期化済みのときのみ描画される（fieldIndex=0はpracticeStore.initialized、1はinitialized2）。fieldIndex=1では root に field-opponent クラスが付く"
+given = "initialized=false/true、fieldIndex=1でinitialized2=false/trueをそれぞれmount（テスト側で列挙）"
+expect_return_shape = "未初期化では.practice-fieldが存在せず、初期化済みで存在する。fieldIndex=1の場合はfield-opponentクラスが付く"
+
+# --- カードサイズ ---
+
+[[condition]]
+id = "practice-field.card-size-source-and-css-vars"
+source_lines = "tests/unit/components/PracticeField.test.ts:255"
+target_function = "PracticeField currentCardSize / practiceCardStyle computed"
+source = "src/components/practice/PracticeField.vue L309-318 と tm TASK-571"
+description = "カードサイズは通常時は settings の practiceCardSizePixels、twoDeckMode時は practiceCardSize2PPixels を使い、rootのstyleに --practice-card-width / --practice-card-height としてpx値で設定される。子スロットへも同じサイズが渡る"
+given = "practiceCardSize='medium'(60x88)・practiceCardSize2P='large'(90x132)に設定し、通常時とtwoDeckMode時（p2DeckDno設定）でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "CSS変数が通常時 60px/88px、twoDeckMode時 90px/132px になる"
+
+# --- EMZ行 ---
+
+[[condition]]
+id = "practice-field.emz-row-and-p2-banish"
+source_lines = "tests/unit/components/PracticeField.test.ts:279,tests/unit/components/PracticeField.test.ts:287,tests/unit/components/PracticeField.test.ts:299"
+target_function = "PracticeField template row-em"
+source = "src/components/practice/PracticeField.vue L5-87 と tm TASK-571"
+description = "EMZ行は hideEMZ=true で行ごと非表示になる。twoDeckMode時は行の先頭セルにP2のbanishスロット（zones2.banish・zone='banish'）が入り、通常時は空セルのプレースホルダになる。EMスロット（slot-index 0/1）と自フィールドのbanishスロットは常時表示される"
+given = "hideEMZ=true／twoDeckMode=true／通常時でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "hideEMZでは.row-emが存在しない。twoDeckModeではrow-em内のPracticeSlotが4件（先頭がzones2.banishのcards）になり、通常時は3件（EM×2+banish）になる"
+
+# --- スロット束縛 ---
+
+[[condition]]
+id = "practice-field.slot-bindings-per-zone"
+source_lines = "tests/unit/components/PracticeField.test.ts:314,tests/unit/components/PracticeField.test.ts:342"
+target_function = "PracticeField template PracticeSlot配置一式"
+source = "src/components/practice/PracticeField.vue L89-253 と tm TASK-571"
+description = "各ゾーンのPracticeSlotには currentZones（fieldIndexで zones/zones2 切替）のカードと、ゾーン固有のpropsが渡される: monster/spellTrapは5件（slot-index 0..4）、extraMonsterは2件、stack-directionは extra/deck のみ 'none' で他は 'right-up'、max-visible=10は banish/gy のみ、force-revealは extra= currentRevealExtra・deck=currentRevealDeck"
+given = "fieldIndex=0でzonesに目印カードをseedしてmountし、fieldIndex=1ではzones2の値が使われることも確認する（テスト側で列挙）"
+expect_return_shape = "各PracticeSlot stubのprops（cards/zone/slotIndex/stackDirection/maxVisible/forceReveal）が上記の規則と一致する"
+
+[[condition]]
+id = "practice-field.slot-controls-visibility-on-hover"
+source_lines = "tests/unit/components/PracticeField.test.ts:354"
+target_function = "PracticeField hoveredZone / template PracticeSlotControls visible"
+source = "src/components/practice/PracticeField.vue L113-247, L307 と tm TASK-571"
+description = "各ゾーンのPracticeSlotControlsは、そのゾーンのラッパーへmouseenterした間だけ visible=true になり、mouseleaveで false に戻る。他ゾーンのコントロールは false のまま"
+given = "mount後に monster-2 のラッパーへ mouseenter → mouseleave を発火する"
+expect_return_shape = "monster（slot-index=2）に対応するコントロールのvisibleが false→true→false と切り替わり、他のコントロールは false のまま"
+
+[[condition]]
+id = "practice-field.slot-controls-props"
+source_lines = "tests/unit/components/PracticeField.test.ts:372"
+target_function = "PracticeField template PracticeSlotControls props"
+source = "src/components/practice/PracticeField.vue L78-251 と tm TASK-571"
+description = "PracticeSlotControlsには zone とそのゾーンのcardsが渡される。deckのコントロールには deck-empty（currentDeckCount===0）が、extraのコントロールには reveal-extra（currentRevealExtra）が追加で渡される"
+given = "deckが0件の状態と、revealExtra=trueの状態でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "deckコントロールのdeckEmptyが deck 0件でtrue・1件でfalseになり、extraコントロールのrevealExtraがstoreの値と一致する"
+
+# --- HandArea束縛 ---
+
+[[condition]]
+id = "practice-field.hand-area-bindings"
+source_lines = "tests/unit/components/PracticeField.test.ts:397"
+target_function = "PracticeField template PracticeHandArea props"
+source = "src/components/practice/PracticeField.vue L257-272 と tm TASK-571"
+description = "PracticeHandAreaには hand-cards=currentZones.hand、temp-cards=currentZones.temp、reversed=(fieldIndex===1)、two-deck-mode=practiceStore.twoDeckMode、card-width/card-height=currentCardSize が渡される"
+given = "fieldIndex=0/1とtwoDeckMode有無を組み合わせてmount（テスト側で列挙）"
+expect_return_shape = "HandArea stubのpropsが各ケースの値と一致する"
+
+# --- イベント処理 ---
+
+[[condition]]
+id = "practice-field.slot-click-selects-zone"
+source_lines = "tests/unit/components/PracticeField.test.ts:421,tests/unit/components/PracticeField.test.ts:434"
+target_function = "PracticeField selectZoneOnly"
+source = "src/components/practice/PracticeField.vue L340-343 と tm TASK-571"
+description = "子スロットの slot-click を受けると practiceStore.selectZone(zone, slotIndex, fieldIndex) を呼び、deck-edit storeの activeTab を 'practice' にする。SlotControlsの open-menu も同じ処理になる"
+given = "monsterスロット（slot-index=2）のstubから slot-click を発火し、別のケースでコントロールの open-menu を発火する"
+expect_return_shape = "selectZoneが ('monster', 2, 0) で呼ばれ、deckStore.activeTabが 'practice' になる"
+
+[[condition]]
+id = "practice-field.action-handling"
+source_lines = "tests/unit/components/PracticeField.test.ts:446,tests/unit/components/PracticeField.test.ts:471"
+target_function = "PracticeField handleAction"
+source = "src/components/practice/PracticeField.vue L349-359 と tm TASK-571"
+description = "cardIdなしのactionは種類で分岐する: 'draw'は practiceStore.draw(fieldIndex)、'shuffleDeck'は shuffleDeck(fieldIndex)、'revealExtraToggle'は revealExtraContents(!currentRevealExtra, fieldIndex)、それ以外は何もしない。cardIdありのactionは usePracticeActions().executeAction(action, cardId, fieldIndex) へ委譲する"
+given = "コントロールstubとスロットstubから各actionを発火する（テスト側で列挙）"
+expect_return_shape = "対応するstoreアクション/executeActionが上記の引数で呼ばれ、対象外actionでは何も呼ばれない"
+
+[[condition]]
+id = "practice-field.drop-handling-to-drop-handler"
+source_lines = "tests/unit/components/PracticeField.test.ts:482,tests/unit/components/PracticeField.test.ts:504"
+target_function = "PracticeField handleDropOnZone / handleDeckCardDrop"
+source = "src/components/practice/PracticeField.vue L369-377, L268-271 と tm TASK-571"
+description = "子スロットの card-drop は usePracticeDropHandler().handleCardDrop(cardId, {targetZone: スロットのゾーン, targetSlotIndex, fieldIndex}, dropPos) へ、deck-card-drop は handleExternalCardDrop(cid, ciid, 同コンテキスト, dropPos) へ変換される。HandAreaの card-drop は targetZone='hand'、temp-card-drop は 'temp' になる"
+given = "monsterスロット（slot-index=1）のstubから card-drop と deck-card-drop を、HandArea stubから card-drop と temp-card-drop を発火する（テスト側で列挙）"
+expect_return_shape = "handleCardDrop/handleExternalCardDropが対応するコンテキストで呼ばれる"
+
+[[condition]]
+id = "practice-field.p2-banish-handlers-use-field-one"
+source_lines = "tests/unit/components/PracticeField.test.ts:535"
+target_function = "PracticeField handleActionP2 / handleDropOnZoneP2 / selectZoneOnlyP2"
+source = "src/components/practice/PracticeField.vue L379-406 と tm TASK-571"
+description = "twoDeckMode時のP2 banishスロット専用ハンドラは fieldIndex=1 固定で処理する: slot-clickは selectZone(zone, slotIndex, 1)、actionは cardIdなしなら 'draw' のみ draw(1)（'shuffleDeck'等は処理しない）、cardIdありなら executeAction(action, cardId, 1)、card-dropはコンテキストのfieldIndex=1でhandleCardDropする"
+given = "twoDeckModeでmountし、P2 banishスロットのstubから slot-click/action/card-drop を発火する（テスト側で列挙）"
+expect_return_shape = "各呼び出しが fieldIndex=1 で行われ、'shuffleDeck' では shuffleDeck が呼ばれない"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "handleCardClick / handleDragStart / handleDragEnd（およびP2版）"
+source = "src/components/practice/PracticeField.vue L345-347, L361-367, L385, L395-396 と tm TASK-571"
+reason = "いずれも空実装（TODO・コメントのみ）で観測可能な振る舞いが存在しない。将来実装される場合はその時点で条件化する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "usePracticeDragStateの draggingRotated / draggingFaceDown の購読（L303）"
+source = "src/components/practice/PracticeField.vue L303 と tm TASK-571"
+reason = "分割代入されるだけで template・script のどこからも読まれておらず、観測可能な出力が存在しない（§8「書かない」: 内部状態のみ）"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "hoveredZone のうち PracticeSlotControls の visible へ効かない保持自体"
+source = "src/components/practice/PracticeField.vue L307 と tm TASK-571"
+reason = "hoveredZoneの値はコントロールのvisible propsとしてのみ観測可能であり、その観測は対応条件（slot-controls-visibility-on-hover）で検証する。ref自体の保持は条件化対象にしない"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "子コンポーネント本体（PracticeSlot/PracticeSlotControls/PracticeHandArea/PracticeDragOverlay）とstore・composable本体"
+source = "src/components/practice/配下、src/stores/practice.ts、src/composables/practice/usePracticeActions.ts、src/composables/practice/usePracticeDropHandler.ts と tm TASK-571"
+reason = "隣接モジュール責務。各条件書（practice-slot第20号・practice-slot-controls第15号・practice-hand-area第21号・practice-drag-overlay第13号・practice・use-practice-actions・use-practice-drop-handler）で保証済み。本書は本コンポーネントが渡すpropsと変換する呼び出しのみを検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L409-538。行・スロット配置の静的スタイル）"
+source = "src/components/practice/PracticeField.vue L409-538 と tm TASK-571"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。CSS変数の値自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
