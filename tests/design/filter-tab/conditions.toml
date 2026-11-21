@@ -171,7 +171,7 @@ id = "filter-tab.field-disabled-wiring-disables-chips-with-reason"
 source_lines = "tests/unit/components/FilterTab.test.ts:389"
 target_function = "FilterTab template chip :disabled/:title binding（isFieldDisabled/getFieldDisabledReason呼び出し）"
 source = "src/components/search-filter/FilterTab.vue L31-32, L68-69, L81-82, L117-118, L145-146 と tm TASK-505"
-description = "属性・魔法タイプ・罠タイプ・種族の各chipのdisabledはisFieldDisabled(<フィールドID>)に、tooltipはgetFieldDisabledReason(<フィールドID>)に配線される。フィールドIDは各セクションが固定文字列（attribute/spell-type/trap-type/race）を渡す。無効時は該当セクションのchip全てがdisabled+理由titleになり、種族セクション見出し（span.section-title）のdisabledクラスも同じフィールドに配線される。有効時（fieldStates初期状態は全フィールドenabled）はdisabledなし・titleなし。なおstore経由ではfieldStatesが推論エンジンexclusionResultのcreateInitialResultで全フィールド事前登録されるため、useFilterLogic#isFieldDisabledのcardType推論フォールバックは実経路では到達せず、フィールド無効化はすべてfieldStates（エンジンのattributeToField規則または手動設定）経由で起こる"
+description = "属性・魔法タイプ・罠タイプ・種族の各chipのdisabledはisFieldDisabled(<フィールドID>)に、tooltipはgetFieldDisabledReason(<フィールドID>)に配線される。フィールドIDは各セクションが固定文字列（attribute/spell-type/trap-type/race）を渡す。無効時は該当セクションのchip全てがdisabled+理由titleになり、種族セクション見出し（span.section-title）のdisabledクラスも同じフィールドに配線される。有効時（fieldStates初期状態は全フィールドenabled）はdisabledなし・titleなし。なおstore経由ではfieldStatesが推論エンジンexclusionResultのcreateInitialResultで全フィールド事前登録されるため、フィールド無効化はすべてfieldStates（エンジンのattributeToField規則または手動設定）経由で起こる。TASK-526で到達不能と確定したuseFilterLogic#isFieldDisabledのcardType推論フォールバックは削除済み"
 given = "fieldStatesにattribute/spell-type/trap-type/race={enabled:false, disabledReason:'<各フィールド理由>'}を設定してmount / fieldStates初期状態（全フィールドenabled）でmount"
 expect_return_shape = "無効設定: 各セクションのchip全てにdisabled属性とtitle=当該理由・種族見出しにdisabledクラス。初期状態: 全chip有効・titleなし"
 
