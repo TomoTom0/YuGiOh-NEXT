@@ -1027,20 +1027,3 @@ source = "tests/unit/stores/deck-edit-uistate.test.ts UIと編集状態の同時
 reason = "状態間の独立性の組み合わせ観察であり個別の分岐・throw・優先順位を検証しない（§8「書かない」: 挙動に差を生まない内部処理に相当）。個々の操作はadd_card / remove_card / undo_redo系各条件とref公開のexcludedで検証済み"
 decided_at = "2026-09-09"
 decided_by = "claude"
-
-[[condition]]
-id = "delete_current_deck.removes_recipe_history"
-source_lines = "tests/unit/stores/deck-edit-operations.test.ts:563"
-target_function = "useDeckEditStore#deleteCurrentDeck"
-source = "TASK-538 body 確定設計（デッキ削除時は履歴も一緒に消す）"
-description = "デッキ削除に成功した場合、そのデッキのレシピ履歴（localStorage ygoNext:deckHistory）を削除する。他デッキの履歴は削除しない"
-given = "削除対象デッキと他デッキの履歴がある状態で deleteCurrentDeck() が成功する"
-expect_side_effect = "削除対象デッキの履歴が空になり、他デッキの履歴は残る"
-
-[[condition]]
-id = "save_deck_data.records_recipe_history_on_success"
-target_function = "useDeckEditStore#saveDeckData"
-source = "TASK-540（PR#179 Codexレビュー指摘）/ TASK-538 body 確定設計（契機(a): 公式保存の成功時に記録する）"
-description = "saveDeckData（practiceモードP2デッキ等の保存）でも、公式保存の成功時に送信ペイロード（name正規化済み）をレシピ履歴に source=save で記録する。失敗時は記録しない"
-given = "sessionManager.saveDeckが成功を返す saveDeckData(dno, deckData) の呼び出し"
-expect_side_effect = "getDeckHistory(dno) に source=save の版が1件記録され、スナップショットの name は正規化後の名前"
