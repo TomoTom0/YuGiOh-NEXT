@@ -1,0 +1,189 @@
+# 検証対象: src/components/practice/PracticeSlot.vue
+#
+# 経緯:
+# - TASK-569（TASK-331 Tier C第20号・TASK-568第19号の後続）。Practice系コンポーネント
+#   11ファイルの条件化9ファイル目。333行（template＋script setup。props: cards/zone/
+#   slotIndex/stackDirection/maxVisible/forceReveal/cardWidth/cardHeight。
+#   ドロップ受け入れ・四分円オーバーレイ・drag状態へのfaceDown/stackTop通知を担う）。
+#   既存の専用ユニットテストは無く、tests/unit/components/PracticeSlot.test.tsを新規作成
+# - 本ファイル単独の要件定義・設計書は存在しないため、test-structure skill §1の
+#   fallback（実装を一次情報として条件を起こす）位置づけで条件化。出典はsrc行参照+tm TASK-569
+# - Practice機能はカテゴリ3（configs/features.toml [practice] default = "dev-only"）
+#
+# 粒度方針（Tier C・第8号〜第19号条件書と同一）:
+# - 1条件=1振る舞いclass。ゾーン・座標の列挙はテスト側で持ち、条件書には親条件のみ置く
+# - 観測対象は描画結果（クラス・オーバーレイ・子props）とemit・共有drag状態
+#   （usePracticeDragStateの公開ref）。vm内部computedは直接参照しない
+# - 子PracticeCardStackはカスタムstubで置き換え（内部挙動は第16号practice-card-stack
+#   条件書が保証）。useDragQuarter/usePracticeDragState/drag-dataの各ガードは実物を
+#   使い、内部仕様は各条件書へ委譲する
+# - ドラッグ系イベントはhappy-domのDragEventがEventのエイリアスである前提
+#   （tests/unit/utils/drag-data.test.tsの注記どおり）で、実要素へのdispatchEventと
+#   dataTransferのdefineProperty付与で再現する
+
+[meta]
+verified_at = "2026-11-21"
+verified_by = "claude"
+feature = "practice-slot"
+source_file = "src/components/practice/PracticeSlot.vue"
+verified = true
+test_command = "mise run test:vitest -- tests/unit/components/PracticeSlot.test.ts"
+source_hash = "be11422ad08d76e48ec0f6566942061c101d5eaf"
+note = "TASK-569（TASK-331第20号）でPractice系コンポーネント9ファイル目の条件化。12条件=ルート状態・空表示1+子props1+slot-click1+カードイベント転送1+四分円構成1+四分円active系1+faceDown通知1+stackTop通知1+dragleaveリセット1+drop転送2（practice系／deck系）+drop無視1。テストは新規作成（CardStackはカスタムstub、composable・ガードは実物）。src不変"
+
+# --- ルートの状態表示 ---
+
+[[condition]]
+id = "practice-slot.root-state-classes-and-empty-display"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:155,tests/unit/components/PracticeSlot.test.ts:165"
+target_function = "PracticeSlot template root div :class / PracticeCardStack v-if"
+source = "src/components/practice/PracticeSlot.vue L2-47 と tm TASK-569"
+description = "根源要素は data-zone=zone を持ち、cardsが1件以上なら has-cards クラスと共にPracticeCardStackを描画し、0件なら is-empty クラスと共に .slot-empty-label（'0'）を表示する（CardStackは描画しない）"
+given = "cards 1件／0件でそれぞれmount（テスト側で列挙）"
+expect_return_shape = "1件ではhas-cardsクラスとCardStackが存在し、0件ではis-emptyクラスとテキスト'0'のラベルが存在する"
+
+# --- PracticeCardStackへのprops ---
+
+[[condition]]
+id = "practice-slot.card-stack-props-bound"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:177"
+target_function = "PracticeSlot template PracticeCardStack props"
+source = "src/components/practice/PracticeSlot.vue L31-46 と tm TASK-569"
+description = "PracticeCardStackには cards、direction=stackDirection（デフォルト'right-up'）、max-visible（デフォルト3）、force-reveal、zone、slot-index、drag-over=現在のisDragOver、card-width/card-height（デフォルト36/53）が渡される。drag-overはdragover開始でtrueに追随する"
+given = "props一式を指定してmountし、その後dragoverを発火する"
+expect_return_shape = "CardStack stubのpropsが指定値と一致し、dragOverが初期false→dragover後trueになる"
+
+# --- クリック・カードイベント ---
+
+[[condition]]
+id = "practice-slot.slot-click-emitted"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:201"
+target_function = "PracticeSlot handleSlotClick"
+source = "src/components/practice/PracticeSlot.vue L10, L205-207 と tm TASK-569"
+description = "根源要素のクリックで slot-click イベントを (zone, slotIndex) でemitする"
+given = "zone='monster'・slotIndex=2でmountし、根源要素をクリックする"
+expect_return_shape = "emitted('slot-click') が [['monster', 2]] を記録する"
+
+[[condition]]
+id = "practice-slot.card-events-forwarded"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:209"
+target_function = "PracticeSlot template PracticeCardStack event listeners"
+source = "src/components/practice/PracticeSlot.vue L42-45 と tm TASK-569"
+description = "PracticeCardStackの card-click (card) は card-click として、card-action (key, cardId) は card-action として、card-dragstart (card, event) は card-dragstart として、card-dragend は card-dragend として、それぞれ同じ引数で再emitする"
+given = "CardStack stubから4イベントをそれぞれ発火する"
+expect_return_shape = "対応する4つのemittedが同じ引数でそれぞれ1回ずつ記録される"
+
+# --- 四分円オーバーレイ ---
+
+[[condition]]
+id = "practice-slot.quarters-composition-by-zone"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:237,tests/unit/components/PracticeSlot.test.ts:249"
+target_function = "PracticeSlot quarters computed / template drop-quarter-overlay"
+source = "src/components/practice/PracticeSlot.vue L15-29, L112-146 と tm TASK-569"
+description = "ドラッグオーバー中（zone='gy'以外）は四分円オーバーレイを表示する。構成はゾーンと有無で変わる: deckは3件（上2件+下span-full 1件）、extraは2件（両方span-full）、カード0件（deck/extra以外）は2件（両方span-full）、それ以外は4件。zone='gy'ではドラッグオーバー中でもオーバーレイを表示しない"
+given = "各ゾーン・件数でmountしdragoverを発火する（テスト側で列挙）"
+expect_return_shape = ".drop-quarter-overlay内の.quarter件数とspan-fullの付き方がゾーン・件数に対応し、gyではオーバーレイ自体が存在しない"
+
+[[condition]]
+id = "practice-slot.quarter-active-and-facedown-classes"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:258,tests/unit/components/PracticeSlot.test.ts:268,tests/unit/components/PracticeSlot.test.ts:278"
+target_function = "PracticeSlot isActiveQuarter / isFaceDownQuarter"
+source = "src/components/practice/PracticeSlot.vue L148-169 と tm TASK-569"
+description = "四分円は現在のdragQuarterと一致するとき active クラスが付く（span-fullの四分円は上下のみで判定）。activeかつその四分円へのドロップが裏向きになる場合は active-facedown も付く（裏向き判定: deckは下半分、gyは常時false、それ以外は下半分）"
+given = "zone='monster'・カードありで右上／左下へdragoverし、zone='deck'で下半分へdragoverする（テスト側で列挙）"
+expect_return_shape = "右上ではtr四分円のみactive（facedownなし）、左下ではbl四分円がactive+active-facedown、deckの下半分ではb四分円がactive+active-facedownになる"
+
+# --- drag状態への通知 ---
+
+[[condition]]
+id = "practice-slot.drag-over-sets-drag-face-down"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:297"
+target_function = "PracticeSlot handleDragOver（setDraggingFaceDown）"
+source = "src/components/practice/PracticeSlot.vue L173-180 と tm TASK-569"
+description = "dragoverのたびに、ポインタ位置とゾーンから「ドロップしたら裏向きになるか」を共有drag状態のdraggingFaceDownへ通知する: deckは上半分=false・下半分=true、gyは常時false、それ以外のゾーンは下半分=true・上半分=false"
+given = "zone='monster'/'deck'/'gy'で上半分・下半分へそれぞれdragoverする（テスト側で列挙）"
+expect_return_shape = "usePracticeDragStateのdraggingFaceDownが各ケースの値になる"
+
+[[condition]]
+id = "practice-slot.drag-over-sets-drag-stack-top"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:318"
+target_function = "PracticeSlot handleDragOver（setDraggingStackTop）"
+source = "src/components/practice/PracticeSlot.vue L179-189 と tm TASK-569"
+description = "dragoverのたびにスタック先頭/末尾の予測を共有drag状態のdraggingStackTopへ通知する: カード0件ならnull。extra/extraMonsterは上下（上=true）。deckは上半分では左右（右=true）、下半分ではnull。それ以外のゾーンは左右（右=true）"
+given = "各ゾーン・件数・位置でdragoverする（テスト側で列挙）"
+expect_return_shape = "usePracticeDragStateのdraggingStackTopが各ケースの値（true/false/null）になる"
+
+[[condition]]
+id = "practice-slot.drag-leave-resets-drag-state"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:328"
+target_function = "PracticeSlot handleDragLeave"
+source = "src/components/practice/PracticeSlot.vue L193-199 と tm TASK-569"
+description = "dragleaveでスロットから出たら（isDragOverがfalseになったら）、共有drag状態のdraggingFaceDownをfalse・draggingStackTopをnullへ戻し、根源要素のdrag-overクラスも外れる"
+given = "dragoverでfaceDown/stackTopを設定した後、dragleaveを発火する"
+expect_return_shape = "draggingFaceDown=false・draggingStackTop=nullになり、根源要素にdrag-overクラスが付いていない"
+
+# --- ドロップの転送 ---
+
+[[condition]]
+id = "practice-slot.drop-emits-card-drop-for-practice-data"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:345"
+target_function = "PracticeSlot handleDrop（practice系分岐）"
+source = "src/components/practice/PracticeSlot.vue L210-237 と tm TASK-569"
+description = "practice系ドラッグデータ（cardId・zone文字列）を持つdropでは、card-drop を (cardId, 元zone, 元slotIndex, dropPos) でemitする。dropPosは共有drag状態のdraggingPosとスロット矩形から算出する（右半分=isRight、 上半分=isTop）。drop後はドラッグオーバー表示がリセットされる"
+given = "draggingPosを既知値にし、practice系JSONをdataTransferに持つdropイベントを発火する"
+expect_return_shape = "emitted('card-drop') が [[cardId, zone, slotIndex, {isRight, isTop}]] を記録し、根源要素のdrag-overクラスが外れる"
+
+[[condition]]
+id = "practice-slot.drop-emits-deck-card-drop-for-deck-data"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:365"
+target_function = "PracticeSlot handleDrop（deck系分岐）"
+source = "src/components/practice/PracticeSlot.vue L231-240 と tm TASK-569"
+description = "deck系ドラッグデータ（sectionType・card）を持つdropでは、cardが空（empty）でない場合に deck-card-drop を (String(card.cardId ?? card.cid), String(card.ciid), dropPos) でemitする"
+given = "deck系JSON（cardIdあり／cidのみ）をdataTransferに持つdropイベントを発火する（テスト側で列挙）"
+expect_return_shape = "emitted('deck-card-drop') が文字列化されたcid/ciidとdropPosを記録する"
+
+[[condition]]
+id = "practice-slot.drop-ignored-for-other-data"
+source_lines = "tests/unit/components/PracticeSlot.test.ts:384"
+target_function = "PracticeSlot handleDrop（無視分岐）"
+source = "src/components/practice/PracticeSlot.vue L226-240 と tm TASK-569"
+description = "次のdropでは card-drop / deck-card-drop のいずれもemitしない: ドラッグデータが無い、practice系でもzoneが有効なZoneTypeでない、deck系だがcard.empty=true"
+given = "3ケースのdropイベントをそれぞれ発火する（テスト側で列挙）"
+expect_return_shape = "いずれのケースでも両emittedが無い"
+
+# --- 除外記録（条件化しない項目） ---
+
+[[excluded]]
+item = "useDragQuarter composable本体（isDragOver/dragQuarterの算出とreset）"
+source = "src/composables/practice/useDragQuarter.ts と tm TASK-569"
+reason = "隣接モジュール責務。use-drag-quarter条件書で保証済み。本書はその状態の表示反映（drag-overクラス・オーバーレイ）と、本コンポーネント側の追加処理（faceDown/stackTop通知）のみを検証し、テストでもcomposableは実物を使う"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "usePracticeDragState本体・drag-dataの型ガード（parseDragData/isPracticeDragData/isDeckDragData/isDragEvent）"
+source = "src/composables/practice/usePracticeDragState.ts、src/utils/drag-data.ts と tm TASK-569"
+reason = "隣接モジュール責務。practice-drag-state条件書・drag-dataの既存テストで保証済み。本書は本コンポーネントが書き込むdrag状態の値と、ガード結果に応じたemit分岐のみを検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "PracticeCardStackコンポーネント本体"
+source = "src/components/practice/PracticeCardStack.vue と tm TASK-569"
+reason = "隣接コンポーネント責務。第16号practice-card-stack条件書で保証する。本書は本コンポーネントが渡すpropsと転送するイベントのみを検証し、テストではカスタムstubで置き換える"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "handleDrop内のconsole.debug診断ログ"
+source = "src/components/practice/PracticeSlot.vue L224, L237 と tm TASK-569"
+reason = "診断出力であり、利用者向けの振る舞い契約ではない。emit分岐自体は対応条件で検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
+
+[[excluded]]
+item = "scoped SCSS定義（L253-333。オーバーレイ・四分円の静的スタイル）"
+source = "src/components/practice/PracticeSlot.vue L244-333 と tm TASK-569"
+reason = "静的スタイル定義でロジック分岐なし（第10号・deck-metadata-tags条件書のexcludedと同根拠）。クラス付与の分岐自体は対応条件でObservableに検証する"
+decided_at = "2026-11-21"
+decided_by = "claude"
