@@ -63,7 +63,7 @@ function makeCard(id: string, face?: 'up' | 'down', withInstanceId = true): Prac
     empty: false,
     ...(withInstanceId ? { instanceId: `inst-${id}` } : {}),
     ...(face ? { face } : {}),
-  } as PracticeCard;
+  };
 }
 
 interface MountOptions {
@@ -283,11 +283,13 @@ describe('components/practice/PracticeCardStack', () => {
   it('[covers:practice-card-stack.practice-dragstart-forwarded] DeckCardのpractice-dragstartが同じ3引数で転送される', async () => {
     const wrapper = mountStack({ cards: [makeCard('a')], zone: 'monster' });
 
-    await stubsOf(wrapper)[0]!.find('.emit-practice-dragstart').trigger('click');
+    const ev = new MouseEvent('click', { bubbles: true });
+    stubsOf(wrapper)[0]!.find('.emit-practice-dragstart').element.dispatchEvent(ev);
+    await wrapper.vm.$nextTick();
 
     const emitted = wrapper.emitted('practice-dragstart');
     expect(emitted).toHaveLength(1);
-    expect(emitted![0]![0]).toBeInstanceOf(Event);
+    expect(emitted![0]![0]).toBe(ev);
     expect(emitted![0]![1]).toBe('inst-a');
     expect(emitted![0]![2]).toEqual({ x: 1, y: 2 });
   });
