@@ -103,7 +103,7 @@ function makeCard(id: string, ciid: string, face?: 'up' | 'down'): PracticeCard 
     instanceId: `inst-${id}`,
     orientation: 'vertical',
     ...(face ? { face } : {}),
-  } as PracticeCard;
+  };
 }
 
 const CARD_A = makeCard('a', '100');
