@@ -200,7 +200,7 @@ function selectDeckType(value: string) {
     localDeckType.value = value;
     deckStore.deckInfo.deckType = localDeckType.value;
   } else {
-    console.error(`[DeckMetadata] Invalid deck type value: ${value}. Expected one of: 0, 1, 2, 3`);
+    console.error(`[DeckMetadata] Invalid deck type value: ${value}. Expected one of: -1, 0, 1, 2, 3`);
   }
 }
 

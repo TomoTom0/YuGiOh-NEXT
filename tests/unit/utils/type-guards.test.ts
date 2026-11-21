@@ -443,7 +443,8 @@ describe('type-guards', () => {
 
   describe('ドメイン固有型ガード', () => {
     describe('isDeckTypeValue', () => {
-      it('有効なデッキタイプ値の場合trueを返す [covers:is_deck_type_value.string_0_to_3]', () => {
+      it('有効なデッキタイプ値（未設定 -1 を含む）の場合trueを返す [covers:is_deck_type_value.string_0_to_3]', () => {
+        expect(isDeckTypeValue('-1')).toBe(true);
         expect(isDeckTypeValue('0')).toBe(true);
         expect(isDeckTypeValue('1')).toBe(true);
         expect(isDeckTypeValue('2')).toBe(true);
@@ -452,7 +453,7 @@ describe('type-guards', () => {
 
       it('無効なデッキタイプ値の場合falseを返す [covers:is_deck_type_value.string_0_to_3]', () => {
         expect(isDeckTypeValue('4')).toBe(false);
-        expect(isDeckTypeValue('-1')).toBe(false);
+        expect(isDeckTypeValue('-2')).toBe(false);
         expect(isDeckTypeValue('a')).toBe(false);
         expect(isDeckTypeValue(0)).toBe(false);
         expect(isDeckTypeValue(null)).toBe(false);
