@@ -205,7 +205,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('初期化とセットアップ', () => {
-    it('initialize() は初回呼び出しで全データをロードする [covers:initialize.first_loads_tables_then_cleanup_check] [covers:load_card_tier.object_loaded_as_map] [covers:load_deck_history.truthy_loaded] [covers:load_card_table_a.object_loaded_as_map] [covers:load_card_table_b.object_loaded_as_map] [covers:load_card_table_b2.object_loaded_as_map] [covers:load_product_table_a.object_loaded_as_map] [covers:load_faq_table_a.object_loaded_as_map]', async () => {
+    it('initialize() は初回呼び出しで全データをロードする [covers:initialize.first-loads-tables-then-cleanup-check] [covers:load-card-tier.object-loaded-as-map] [covers:load-deck-history.truthy-loaded] [covers:load-card-table-a.object-loaded-as-map] [covers:load-card-table-b.object-loaded-as-map] [covers:load-card-table-b2.object-loaded-as-map] [covers:load-product-table-a.object-loaded-as-map] [covers:load-faq-table-a.object-loaded-as-map]', async () => {
       // ストレージに初期データを設定
       mockStorageData[STORAGE_KEYS.cardTier] = {
         '123': createSampleCardTier({ cardId: '123' })
@@ -247,7 +247,7 @@ describe('UnifiedCacheDB', () => {
       expect(basicInfo.tableB?.cardType).toBe('monster');
     });
 
-    it('initialize() は CardTier と CardTableA を同時にロードする [covers:initialize.first_loads_tables_then_cleanup_check]', async () => {
+    it('initialize() は CardTier と CardTableA を同時にロードする [covers:initialize.first-loads-tables-then-cleanup-check]', async () => {
       // ストレージに CardTier と CardTableA を事前設定
       mockStorageData[STORAGE_KEYS.cardTier] = {
         'card1': createSampleCardTier({ cardId: 'card1', lastAddedToDeck: Date.now(), lastShownDetail: Date.now(), lastSearched: Date.now() })
@@ -275,7 +275,7 @@ describe('UnifiedCacheDB', () => {
       expect(basicInfo.tableA?.langsName?.ja).toBe('カード1');
     });
 
-    it('initialize() は既に初期化済みの場合は何もしない [covers:initialize.already_initialized_returns_early]', async () => {
+    it('initialize() は既に初期化済みの場合は何もしない [covers:initialize.already-initialized-returns-early]', async () => {
       // 1回目の初期化
       await db.initialize();
       expect(db.isInitialized()).toBe(true);
@@ -421,7 +421,7 @@ describe('UnifiedCacheDB', () => {
       expect(faq?.question).toBe('Test Question');
     });
 
-    it('loadMoveHistory() はストレージから moveHistory をロード [covers:load_move_history.array_loaded]', async () => {
+    it('loadMoveHistory() はストレージから moveHistory をロード [covers:load-move-history.array-loaded]', async () => {
       // ストレージに moveHistory を設定
       mockStorageData[STORAGE_KEYS.moveHistory] = [
         { action: 'add', cardId: 'card1', ts: Date.now() },
@@ -437,7 +437,7 @@ describe('UnifiedCacheDB', () => {
       expect(history[0].action).toBe('add');
     });
 
-    it('checkAndRunCleanup() は24時間以上経過していればクリーンアップを実行 [covers:cleanup_check.runs_when_missing_or_older_than_interval]', async () => {
+    it('checkAndRunCleanup() は24時間以上経過していればクリーンアップを実行 [covers:cleanup-check.runs-when-missing-or-older-than-interval]', async () => {
       // 最後のクリーンアップ時刻を25時間前に設定
       const oldTimestamp = Date.now() - (25 * 60 * 60 * 1000);
       mockStorageData[STORAGE_KEYS.lastCleanupAt] = oldTimestamp;
@@ -460,7 +460,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[STORAGE_KEYS.lastCleanupAt]).toBeGreaterThan(oldTimestamp);
     });
 
-    it('checkAndRunCleanup() は24時間未満ならクリーンアップをスキップ [covers:cleanup_check.skips_when_within_interval]', async () => {
+    it('checkAndRunCleanup() は24時間未満ならクリーンアップをスキップ [covers:cleanup-check.skips-when-within-interval]', async () => {
       // 最後のクリーンアップ時刻を1時間前に設定
       const recentTimestamp = Date.now() - (1 * 60 * 60 * 1000);
       mockStorageData[STORAGE_KEYS.lastCleanupAt] = recentTimestamp;
@@ -481,7 +481,7 @@ describe('UnifiedCacheDB', () => {
       expect((db as any).cardTierTable.has('card-old')).toBe(true);
     });
 
-    it('checkAndRunCleanup() は lastCleanupAt 取得エラーを握りつぶす [covers:cleanup_check.catch_logs_and_resolves]', async () => {
+    it('checkAndRunCleanup() は lastCleanupAt 取得エラーを握りつぶす [covers:cleanup-check.catch-logs-and-resolves]', async () => {
       const originalGet = global.chrome.storage.local.get;
       global.chrome.storage.local.get = vi.fn((keys: string | string[] | null) => {
         if (keys === STORAGE_KEYS.lastCleanupAt) {
@@ -502,7 +502,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('保存操作', () => {
-    it('saveAll() は全テーブルを一括保存する [covers:save_all.saves_all_memory_tables] [covers:save_card_tier.object_from_entries] [covers:save_deck_history.stores_object] [covers:save_card_table_b.object_from_entries] [covers:save_card_table_b2.object_from_entries] [covers:save_product_table_a.object_from_entries] [covers:save_faq_table_a.object_from_entries]', async () => {
+    it('saveAll() は全テーブルを一括保存する [covers:save-all.saves-all-memory-tables] [covers:save-card-tier.object-from-entries] [covers:save-deck-history.stores-object] [covers:save-card-table-b.object-from-entries] [covers:save-card-table-b2.object-from-entries] [covers:save-product-table-a.object-from-entries] [covers:save-faq-table-a.object-from-entries]', async () => {
       // テストデータを設定
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -555,7 +555,7 @@ describe('UnifiedCacheDB', () => {
       expect(savedData.recentDecks[1].dno).toBe(1);
     });
 
-    it('saveCardTableA() は新規データを保存 [covers:save_card_table_a.new_data_saved]', async () => {
+    it('saveCardTableA() は新規データを保存 [covers:save-card-table-a.new-data-saved]', async () => {
       // 新規カードを追加
       const cardInfo = createSampleCardInfo({ cardId: '999', name: 'New Card', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -569,7 +569,7 @@ describe('UnifiedCacheDB', () => {
       expect(savedData['999'].langsName.ja).toBe('New Card');
     });
 
-    it('saveCardTableA() は既存データと langsImgs をマージ [covers:save_card_table_a.merge_imgs_ciids_ruby]', async () => {
+    it('saveCardTableA() は既存データと langsImgs をマージ [covers:save-card-table-a.merge-imgs-ciids-ruby]', async () => {
       // 既存データをストレージに設定
       mockStorageData[STORAGE_KEYS.cardTableA] = {
         '123': {
@@ -743,7 +743,7 @@ describe('UnifiedCacheDB', () => {
       expect(savedData['faq123'].question).toBe('Test FAQ');
     });
 
-    it('saveMoveHistory() はメモリ内データをストレージに保存 [covers:save_move_history.catch_ignored]', async () => {
+    it('saveMoveHistory() はメモリ内データをストレージに保存 [covers:save-move-history.catch-ignored]', async () => {
       // move history を追加
       db.recordMove({ action: 'add', cardId: 'card1' });
       db.recordMove({ action: 'move', cardId: 'card2', from: 'main', to: 'side' });
@@ -764,7 +764,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('カード操作: getCardBasicInfo() / setCardInfo()', () => {
-    it('getCardBasicInfo() は TableA と TableB を返す [covers:get_card_basic_info.returns_table_a_b_or_undefined]', () => {
+    it('getCardBasicInfo() は TableA と TableB を返す [covers:get-card-basic-info.returns-table-a-b-or-undefined]', () => {
       // テストデータを直接セット
       const cardInfo = createSampleCardInfo({ cardId: '123', name: 'Blue-Eyes White Dragon', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -851,7 +851,7 @@ describe('UnifiedCacheDB', () => {
       expect(result.tableB?.effectType).toBe('normal');
     });
 
-    it('setCardInfo() は既存のキャッシュが有効な場合は false を返す（TTL以内） [covers:set_card_info.ttl_valid_no_new_ciids_returns_false]', () => {
+    it('setCardInfo() は既存のキャッシュが有効な場合は false を返す（TTL以内） [covers:set-card-info.ttl-valid-no-new-ciids-returns-false]', () => {
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
 
       // 1回目: 新規登録
@@ -863,7 +863,7 @@ describe('UnifiedCacheDB', () => {
       expect(secondUpdate).toBe(false);
     });
 
-    it('setCardInfo() はキャッシュ期限切れの場合は更新して true を返す [covers:set_card_info.expired_force_or_new_lang_updates]', () => {
+    it('setCardInfo() はキャッシュ期限切れの場合は更新して true を返す [covers:set-card-info.expired-force-or-new-lang-updates]', () => {
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
 
       // 1回目: 新規登録
@@ -920,7 +920,7 @@ describe('UnifiedCacheDB', () => {
       expect(updated).toBe(true);
     });
 
-    it('setCardInfo() は言語ごとに langsName を保存 [covers:set_card_info.table_a_merges_language_fields]', () => {
+    it('setCardInfo() は言語ごとに langsName を保存 [covers:set-card-info.table-a-merges-language-fields]', () => {
       const cardInfoJa = createSampleCardInfo({ cardId: '123', name: 'ブルーアイズ', lang: 'ja' });
       const cardInfoEn = createSampleCardInfo({ cardId: '123', name: 'Blue-Eyes', lang: 'en' });
 
@@ -982,7 +982,7 @@ describe('UnifiedCacheDB', () => {
       expect(result.tableA?.langsFetchedAt?.ja).toBeGreaterThanOrEqual(now);
     });
 
-    it('setCardInfo() は text と pendulumText を TableB2 に保存 [covers:set_card_info.table_b2_text_pendulum_merge_or_skip]', () => {
+    it('setCardInfo() は text と pendulumText を TableB2 に保存 [covers:set-card-info.table-b2-text-pendulum-merge-or-skip]', () => {
       // text と pendulumText を含むカード情報を作成
       const cardInfo: any = createSampleCardInfo({
         cardId: '999',
@@ -1000,7 +1000,7 @@ describe('UnifiedCacheDB', () => {
       expect(tableB2.langsPendText.ja).toBe('ペンデュラム効果テキスト');
     });
 
-    it('setCardInfo() はモンスター固有フィールドを TableB に保存 [covers:set_card_info.table_b_monster_vs_spell_trap]', () => {
+    it('setCardInfo() はモンスター固有フィールドを TableB に保存 [covers:set-card-info.table-b-monster-vs-spell-trap]', () => {
       // モンスター固有フィールドを含むカード情報を作成
       const cardInfo = createSampleCardInfo({
         cardId: '888',
@@ -1051,7 +1051,7 @@ describe('UnifiedCacheDB', () => {
       expect(result.tableB?.effectType).toBe('quickplay');
     });
 
-    it('setCardInfo() は Tier テーブルを更新（lastSearched） [covers:set_card_info.updates_tier_last_searched]', () => {
+    it('setCardInfo() は Tier テーブルを更新（lastSearched） [covers:set-card-info.updates-tier-last-searched]', () => {
       const beforeSet = Date.now();
       const cardInfo = createSampleCardInfo({ cardId: '666', lang: 'ja' });
 
@@ -1094,7 +1094,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('カード操作: CardTableC', () => {
-    it('getCardTableC() はメモリキャッシュから取得 [covers:get_card_table_c.cache_storage_miss] [covers:has_card_table_c.memory_has]', async () => {
+    it('getCardTableC() はメモリキャッシュから取得 [covers:get-card-table-c.cache-storage-miss] [covers:has-card-table-c.memory-has]', async () => {
       // CardTableC データを作成
       const tableC: CardTableC = {
         cardId: '123',
@@ -1152,7 +1152,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[storageKey]).toBeDefined();
     });
 
-    it('setCardTableC() は既存データと言語別フィールドをマージ [covers:set_card_table_c.merges_lang_fields_and_persists]', async () => {
+    it('setCardTableC() は既存データと言語別フィールドをマージ [covers:set-card-table-c.merges-lang-fields-and-persists]', async () => {
       // 既存データを保存（日本語）
       const tableC1: CardTableC = {
         cardId: '222',
@@ -1208,7 +1208,7 @@ describe('UnifiedCacheDB', () => {
       expect(tierData.lastShownDetail).toBeGreaterThanOrEqual(beforeSet);
     });
 
-    it('updateCardTableCFetchedAt() はメモリキャッシュの fetchedAt を更新 [covers:update_card_table_c_fetched_at.cached_updates_storage_and_tier]', async () => {
+    it('updateCardTableCFetchedAt() はメモリキャッシュの fetchedAt を更新 [covers:update-card-table-c-fetched-at.cached-updates-storage-and-tier]', async () => {
       // CardTableC を作成
       const tableC: CardTableC = {
         cardId: '333',
@@ -1225,7 +1225,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.langsFetchedAt?.ja).toBeGreaterThanOrEqual(beforeUpdate);
     });
 
-    it('updateCardTableCFetchedAt() はストレージの fetchedAt を更新 [covers:update_card_table_c_fetched_at.storage_path_returns_without_tier_update]', async () => {
+    it('updateCardTableCFetchedAt() はストレージの fetchedAt を更新 [covers:update-card-table-c-fetched-at.storage-path-returns-without-tier-update]', async () => {
       // ストレージに直接データを設定（メモリキャッシュなし）
       const tableC: CardTableC = {
         cardId: '444',
@@ -1268,7 +1268,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('Tier管理', () => {
-    it('updateCardTier() は既存の Tier データを更新 [covers:update_card_tier.creates_or_merges]', () => {
+    it('updateCardTier() は既存の Tier データを更新 [covers:update-card-tier.creates-or-merges]', () => {
       // 既存の Tier データを作成
       db.updateCardTier('card1', {
         lastAddedToDeck: 1000,
@@ -1317,7 +1317,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBeGreaterThan(0);  // Tier 5になっているはず
     });
 
-    it('recordDeckOpen() は最大5件まで保持（古いものから削除） [covers:record_deck_open.dedup_unshift_cap5_update_cards]', () => {
+    it('recordDeckOpen() は最大5件まで保持（古いものから削除） [covers:record-deck-open.dedup-unshift-cap5-update-cards]', () => {
       // 6件のデッキを追加
       for (let i = 1; i <= 6; i++) {
         db.recordDeckOpen(i, [`card${i}`]);
@@ -1368,13 +1368,13 @@ describe('UnifiedCacheDB', () => {
       expect(db.getCardTier('card-tier0')).toBe(0);
     });
 
-    it('getCardTier() はデータがない場合 0 を返す [covers:get_card_tier.missing_zero_or_calculated]', () => {
+    it('getCardTier() はデータがない場合 0 を返す [covers:get-card-tier.missing-zero-or-calculated]', () => {
       // 存在しないカードのTierを取得
       const tier = db.getCardTier('nonexistent');
       expect(tier).toBe(0);
     });
 
-    it('calculateTier() は Tier 5 を返す（直近デッキに含まれる） [covers:calculate_tier.recent_deck_tier5]', () => {
+    it('calculateTier() は Tier 5 を返す（直近デッキに含まれる） [covers:calculate-tier.recent-deck-tier5]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier5',
@@ -1392,7 +1392,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(5);
     });
 
-    it('calculateTier() は複数条件が重なる場合 Tier 5 を最優先で返す [covers:calculate_tier.recent_deck_tier5]', () => {
+    it('calculateTier() は複数条件が重なる場合 Tier 5 を最優先で返す [covers:calculate-tier.recent-deck-tier5]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier5-priority',
@@ -1411,7 +1411,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(5);
     });
 
-    it('calculateTier() は Tier 4 を返す（1週間以内にデッキ追加） [covers:calculate_tier.detail_within_week_tier4]', () => {
+    it('calculateTier() は Tier 4 を返す（1週間以内にデッキ追加） [covers:calculate-tier.detail-within-week-tier4]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier4',
@@ -1427,7 +1427,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(4);
     });
 
-    it('calculateTier() は Tier 4 を返す（1週間以内に詳細表示、デッキ追加より新しい） [covers:calculate_tier.detail_within_week_tier4]', () => {
+    it('calculateTier() は Tier 4 を返す（1週間以内に詳細表示、デッキ追加より新しい） [covers:calculate-tier.detail-within-week-tier4]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier4-detail',
@@ -1443,7 +1443,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(4);
     });
 
-    it('calculateTier() は Tier 3 を返す（1ヶ月以内にデッキ追加） [covers:calculate_tier.detail_within_month_tier3]', () => {
+    it('calculateTier() は Tier 3 を返す（1ヶ月以内にデッキ追加） [covers:calculate-tier.detail-within-month-tier3]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier3',
@@ -1459,7 +1459,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(3);
     });
 
-    it('calculateTier() は Tier 2 を返す（1週間以内に検索表示） [covers:calculate_tier.search_within_week_tier2]', () => {
+    it('calculateTier() は Tier 2 を返す（1週間以内に検索表示） [covers:calculate-tier.search-within-week-tier2]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier2',
@@ -1475,7 +1475,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(2);
     });
 
-    it('calculateTier() は Tier 1 を返す（1ヶ月以内に検索表示） [covers:calculate_tier.search_within_month_tier1]', () => {
+    it('calculateTier() は Tier 1 を返す（1ヶ月以内に検索表示） [covers:calculate-tier.search-within-month-tier1]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier1',
@@ -1491,7 +1491,7 @@ describe('UnifiedCacheDB', () => {
       expect(tier).toBe(1);
     });
 
-    it('calculateTier() は Tier 0 を返す（それ以外） [covers:calculate_tier.otherwise_tier0]', () => {
+    it('calculateTier() は Tier 0 を返す（それ以外） [covers:calculate-tier.otherwise-tier0]', () => {
       const now = Date.now();
       const tierData: CardTier = {
         cardId: 'card-tier0',
@@ -1525,7 +1525,7 @@ describe('UnifiedCacheDB', () => {
       expect(history[1].action).toBe('remove');
     });
 
-    it('recordMove() は最大1000件まで保持 [covers:record_move.adds_ts_caps_and_persists_async]', () => {
+    it('recordMove() は最大1000件まで保持 [covers:record-move.adds-ts-caps-and-persists-async]', () => {
       // 1010件の履歴を追加
       for (let i = 1; i <= 1010; i++) {
         db.recordMove({ action: `action${i}`, cardId: `card${i}` });
@@ -1578,7 +1578,7 @@ describe('UnifiedCacheDB', () => {
       expect(history[2].action).toBe('move');
     });
 
-    it('getMoveHistory() は最新N件を返す（limit指定） [covers:get_move_history.limit_or_copy]', () => {
+    it('getMoveHistory() は最新N件を返す（limit指定） [covers:get-move-history.limit-or-copy]', () => {
       // 5件の履歴を追加
       for (let i = 1; i <= 5; i++) {
         db.recordMove({ action: `action${i}`, cardId: `card${i}` });
@@ -1591,7 +1591,7 @@ describe('UnifiedCacheDB', () => {
       expect(history[1].action).toBe('action5');
     });
 
-    it('clearMoveHistory() は履歴を全削除 [covers:clear_move_history.clears_and_persists_async]', () => {
+    it('clearMoveHistory() は履歴を全削除 [covers:clear-move-history.clears-and-persists-async]', () => {
       // 履歴を追加
       db.recordMove({ action: 'add', cardId: 'card1' });
       db.recordMove({ action: 'add', cardId: 'card2' });
@@ -1610,7 +1610,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('Product操作', () => {
-    it('getProductA() は ProductTableA を取得 [covers:get_product_a.returns_map_value]', () => {
+    it('getProductA() は ProductTableA を取得 [covers:get-product-a.returns-map-value]', () => {
       // ProductTableA を保存
       const productA: ProductTableA = {
         packId: 'pack123',
@@ -1644,7 +1644,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.name).toBe('New Pack');
     });
 
-    it('setProductA() は fetchedAt を自動設定 [covers:set_product_a.sets_fetched_at_and_memory]', () => {
+    it('setProductA() は fetchedAt を自動設定 [covers:set-product-a.sets-fetched-at-and-memory]', () => {
       const beforeSet = Date.now();
       const productA: ProductTableA = {
         packId: 'pack789',
@@ -1658,7 +1658,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.fetchedAt).toBeGreaterThanOrEqual(beforeSet);
     });
 
-    it('getProductB() はメモリキャッシュから取得 [covers:get_product_b.cache_storage_miss]', async () => {
+    it('getProductB() はメモリキャッシュから取得 [covers:get-product-b.cache-storage-miss]', async () => {
       // ProductTableB を保存
       const productB: ProductTableB = {
         packId: 'pack111',
@@ -1712,7 +1712,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[storageKey]).toBeDefined();
     });
 
-    it('setProductB() は fetchedAt を自動設定 [covers:set_product_b.sets_fetched_at_memory_and_storage]', async () => {
+    it('setProductB() は fetchedAt を自動設定 [covers:set-product-b.sets-fetched-at-memory-and-storage]', async () => {
       const beforeSet = Date.now();
       const productB: ProductTableB = {
         packId: 'pack333',
@@ -1748,7 +1748,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.question).toBe('Test Question');
     });
 
-    it('getFAQA() は lastAccessedAt を更新 [covers:get_faq_a.updates_access_when_found]', () => {
+    it('getFAQA() は lastAccessedAt を更新 [covers:get-faq-a.updates-access-when-found]', () => {
       // FAQTableA を保存
       const faqA: FAQTableA = {
         faqId: 'faq456',
@@ -1784,7 +1784,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.question).toBe('New FAQ');
     });
 
-    it('setFAQA() は fetchedAt と lastAccessedAt を自動設定 [covers:set_faq_a.sets_fetched_and_access]', () => {
+    it('setFAQA() は fetchedAt と lastAccessedAt を自動設定 [covers:set-faq-a.sets-fetched-and-access]', () => {
       const beforeSet = Date.now();
       const faqA: FAQTableA = {
         faqId: 'faq101',
@@ -1800,7 +1800,7 @@ describe('UnifiedCacheDB', () => {
       expect(result?.lastAccessedAt).toBeGreaterThanOrEqual(beforeSet);
     });
 
-    it('getFAQB() はメモリキャッシュから取得 [covers:get_faq_b.cache_storage_miss_updates_access]', async () => {
+    it('getFAQB() はメモリキャッシュから取得 [covers:get-faq-b.cache-storage-miss-updates-access]', async () => {
       // FAQTableB を保存（メモリキャッシュに保存される）
       const faqB: FAQTableB = {
         faqId: 'faq111',
@@ -1873,7 +1873,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[storageKey]).toBeDefined();
     });
 
-    it('setFAQB() は fetchedAt と lastAccessedAt を自動設定 [covers:set_faq_b.sets_times_memory_and_storage]', async () => {
+    it('setFAQB() は fetchedAt と lastAccessedAt を自動設定 [covers:set-faq-b.sets-times-memory-and-storage]', async () => {
       const beforeSet = Date.now();
       const faqB: FAQTableB = {
         faqId: 'faq444',
@@ -1895,7 +1895,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('クリーンアップ', () => {
-    it('cleanup() は Tier 0 のカードを CardTier から削除 [covers:cleanup.removes_tier0_and_card_table_c_for_tier2_or_less]', async () => {
+    it('cleanup() は Tier 0 のカードを CardTier から削除 [covers:cleanup.removes-tier0-and-card-table-c-for-tier2-or-less]', async () => {
       // Tier 0 のカードを追加（60日前にアクセス）
       const oldTimestamp = Date.now() - (60 * 24 * 60 * 60 * 1000);
       db.updateCardTier('card-tier0', {
@@ -1976,7 +1976,7 @@ describe('UnifiedCacheDB', () => {
       expect(db.hasCardTableC('card-tier3')).toBe(true);
     });
 
-    it('cleanup() は1ヶ月以上アクセスされていない FAQ を削除 [covers:cleanup.removes_expired_faq_and_saves]', async () => {
+    it('cleanup() は1ヶ月以上アクセスされていない FAQ を削除 [covers:cleanup.removes-expired-faq-and-saves]', async () => {
       // 古い FAQ を追加（35日前にアクセス）
       const oldTimestamp = Date.now() - (35 * 24 * 60 * 60 * 1000);
       // FAQTableA を直接メモリに設定（setFAQA は lastAccessedAt を更新してしまう）
@@ -2056,7 +2056,7 @@ describe('UnifiedCacheDB', () => {
       expect(db.hasCardTableC('123')).toBe(false);
     });
 
-    it('clearAll() はストレージの Cache DB 関連キーを削除 [covers:clear_all.clears_memory_and_cache_keys_only]', async () => {
+    it('clearAll() はストレージの Cache DB 関連キーを削除 [covers:clear-all.clears-memory-and-cache-keys-only]', async () => {
       // データを追加
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -2100,7 +2100,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[settingsKey].theme).toBe('dark');
     });
 
-    it('clearAll() はストレージ削除に remove を使用する [covers:clear_all.clears_memory_and_cache_keys_only]', async () => {
+    it('clearAll() はストレージ削除に remove を使用する [covers:clear-all.clears-memory-and-cache-keys-only]', async () => {
       // データを追加して保存
       const cardInfo = createSampleCardInfo({ cardId: '123', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -2127,7 +2127,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('ユーティリティ: reconstructCardInfo()', () => {
-    it('reconstructCardInfo() は TableA + TableB から CardInfo を再構築（モンスター） [covers:reconstruct.monster_spell_trap_shapes]', () => {
+    it('reconstructCardInfo() は TableA + TableB から CardInfo を再構築（モンスター） [covers:reconstruct.monster-spell-trap-shapes]', () => {
       const cardInfo = createSampleCardInfo({
         cardId: '123',
         name: 'Blue-Eyes White Dragon',
@@ -2212,7 +2212,7 @@ describe('UnifiedCacheDB', () => {
       expect(reconstructedEn?.name).toBe('Blue-Eyes');
     });
 
-    it('reconstructCardInfo() は指定言語が存在しない場合 undefined を返す [covers:reconstruct.missing_table_or_language_data_returns_undefined]', () => {
+    it('reconstructCardInfo() は指定言語が存在しない場合 undefined を返す [covers:reconstruct.missing-table-or-language-data-returns-undefined]', () => {
       const cardInfo = createSampleCardInfo({
         cardId: '123',
         name: 'Blue-Eyes',
@@ -2255,7 +2255,7 @@ describe('UnifiedCacheDB', () => {
       expect(reconstructed).toBeUndefined();
     });
 
-    it('reconstructCardInfo() は TableB2 の text と pendulumText をマージ [covers:reconstruct.merges_table_b2_and_cached_table_c]', () => {
+    it('reconstructCardInfo() は TableB2 の text と pendulumText をマージ [covers:reconstruct.merges-table-b2-and-cached-table-c]', () => {
       // text と pendulumText を含むカード情報を作成
       const cardInfo: any = createSampleCardInfo({
         cardId: '789',
@@ -2300,7 +2300,7 @@ describe('UnifiedCacheDB', () => {
       expect(reconstructed?.pendSupplDate).toBe('2024-01-02');
     });
 
-    it('reconstructCardInfo() は CardTableC がない場合でもエラーにならない [covers:reconstruct.table_c_merge_catch_ignored]', () => {
+    it('reconstructCardInfo() は CardTableC がない場合でもエラーにならない [covers:reconstruct.table-c-merge-catch-ignored]', () => {
       // CardTableC なしでカード情報を作成
       const cardInfo = createSampleCardInfo({ cardId: '222', lang: 'ja' });
       db.setCardInfo(cardInfo);
@@ -2394,7 +2394,7 @@ describe('UnifiedCacheDB', () => {
       expect(db.hasCardTableC('123')).toBe(true);
     });
 
-    it('getAllCardIds() は全カード ID を返す [covers:get_all_card_ids.card_table_a_keys]', () => {
+    it('getAllCardIds() は全カード ID を返す [covers:get-all-card-ids.card-table-a-keys]', () => {
       // カードを追加
       const card1 = createSampleCardInfo({ cardId: 'card1', lang: 'ja' });
       const card2 = createSampleCardInfo({ cardId: 'card2', lang: 'ja' });
@@ -2412,7 +2412,7 @@ describe('UnifiedCacheDB', () => {
       expect(allIds).toContain('card3');
     });
 
-    it('getValidCiidsForLang() は指定言語の利用可能 ciid リストを返す [covers:get_valid_ciids.lang_list_or_empty]', () => {
+    it('getValidCiidsForLang() は指定言語の利用可能 ciid リストを返す [covers:get-valid-ciids.lang-list-or-empty]', () => {
       // カードを追加（複数ciid）
       const cardInfo = createSampleCardInfo({
         cardId: '999',
@@ -2460,7 +2460,7 @@ describe('UnifiedCacheDB', () => {
       expect(allCardInfos.get('card2')?.name).toBe('Card 2');
     });
 
-    it('getAllCardInfos() は再構築に失敗したカードをスキップ [covers:get_all_card_infos.only_reconstructed]', () => {
+    it('getAllCardInfos() は再構築に失敗したカードをスキップ [covers:get-all-card-infos.only-reconstructed]', () => {
       // 正常なカードを追加
       const card1 = createSampleCardInfo({ cardId: 'card1', name: 'Card 1', lang: 'ja' });
       db.setCardInfo(card1);
@@ -2479,7 +2479,7 @@ describe('UnifiedCacheDB', () => {
       expect(allCardInfos.has('card2')).toBe(false);  // 再構築失敗でスキップ
     });
 
-    it('getStats() は初期状態では全カウント0を返す [covers:get_stats.empty_initial_state_zero]', async () => {
+    it('getStats() は初期状態では全カウント0を返す [covers:get-stats.empty-initial-state-zero]', async () => {
       // 空ストレージから初期化
       await db.initialize();
 
@@ -2492,7 +2492,7 @@ describe('UnifiedCacheDB', () => {
       expect(stats.faqTableACount).toBe(0);
     });
 
-    it('getStats() は統計情報を返す [covers:get_stats.counts_selected_tables]', () => {
+    it('getStats() は統計情報を返す [covers:get-stats.counts-selected-tables]', () => {
       // テストデータを追加
       const cardInfo1 = createSampleCardInfo({ cardId: '1', lang: 'ja' });
       const cardInfo2 = createSampleCardInfo({ cardId: '2', lang: 'ja' });
@@ -2509,7 +2509,7 @@ describe('UnifiedCacheDB', () => {
       expect(stats.deckHistoryCount).toBe(1);
     });
 
-    it('isInitialized() は初期化状態を返す [covers:is_initialized.returns_flag]', async () => {
+    it('isInitialized() は初期化状態を返す [covers:is-initialized.returns-flag]', async () => {
       expect(db.isInitialized()).toBe(false);
 
       await db.initialize();
@@ -2526,7 +2526,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('エッジケースとエラー処理', () => {
-    it('moveHistory のストレージ読み込みエラーだけなら初期化が完了する [covers:load_move_history.array_loaded]', async () => {
+    it('moveHistory のストレージ読み込みエラーだけなら初期化が完了する [covers:load-move-history.array-loaded]', async () => {
       // moveHistory キーの読み込みだけをエラーに置き換え
       const originalGet = global.chrome.storage.local.get;
       global.chrome.storage.local.get = vi.fn((keys: string | string[] | null) => {
@@ -2713,7 +2713,7 @@ describe('UnifiedCacheDB', () => {
   // =========================================
 
   describe('シングルトン関数', () => {
-    it('getUnifiedCacheDB() は同じインスタンスを返す [covers:get_unified_cache_db.creates_once]', () => {
+    it('getUnifiedCacheDB() は同じインスタンスを返す [covers:get-unified-cache-db.creates-once]', () => {
       const instance1 = getUnifiedCacheDB();
       const instance2 = getUnifiedCacheDB();
 
@@ -2721,7 +2721,7 @@ describe('UnifiedCacheDB', () => {
       expect(instance1).toBe(instance2);
     });
 
-    it('initUnifiedCacheDB() はシングルトンインスタンスを初期化 [covers:init_unified_cache_db.delegates_initialize]', async () => {
+    it('initUnifiedCacheDB() はシングルトンインスタンスを初期化 [covers:init-unified-cache-db.delegates-initialize]', async () => {
       // ストレージにデータを設定
       mockStorageData[STORAGE_KEYS.cardTableA] = {
         '123': {
@@ -2746,7 +2746,7 @@ describe('UnifiedCacheDB', () => {
       expect(basicInfo.tableA?.langsName?.ja).toBe('テストカード');
     });
 
-    it('saveUnifiedCacheDB() はシングルトンインスタンスを保存 [covers:save_unified_cache_db.delegates_save_all]', async () => {
+    it('saveUnifiedCacheDB() はシングルトンインスタンスを保存 [covers:save-unified-cache-db.delegates-save-all]', async () => {
       const instance = getUnifiedCacheDB();
 
       // カード情報を追加
@@ -2761,7 +2761,7 @@ describe('UnifiedCacheDB', () => {
       expect(mockStorageData[STORAGE_KEYS.cardTableA]['456']).toBeDefined();
     });
 
-    it('cleanupUnifiedCacheDB() はシングルトンインスタンスをクリーンアップ [covers:cleanup_unified_cache_db.delegates_cleanup]', async () => {
+    it('cleanupUnifiedCacheDB() はシングルトンインスタンスをクリーンアップ [covers:cleanup-unified-cache-db.delegates-cleanup]', async () => {
       const instance = getUnifiedCacheDB();
 
       // Tier 0 のカードを追加
@@ -2779,7 +2779,7 @@ describe('UnifiedCacheDB', () => {
       expect(instance.getCardTier('card-old')).toBe(0);
     });
 
-    it('resetUnifiedCacheDB() は新しいインスタンスを作成 [covers:reset_unified_cache_db.fire_and_forget_clear_then_new]', async () => {
+    it('resetUnifiedCacheDB() は新しいインスタンスを作成 [covers:reset-unified-cache-db.fire-and-forget-clear-then-new]', async () => {
       // 既存インスタンスにデータを追加
       const instance1 = getUnifiedCacheDB();
       const cardInfo = createSampleCardInfo({ cardId: '789', lang: 'ja' });

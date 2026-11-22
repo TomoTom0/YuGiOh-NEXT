@@ -28,49 +28,49 @@ note = "verified=falseは3件: private saveMoveHistory catch、reconstructCardIn
 # --- calculateTier(tierData, deckHistory) ---
 
 [[condition]]
-id = "calculate_tier.recent_deck_tier5"
+id = "calculate-tier.recent-deck-tier5"
 target_function = "calculateTier"
-source_lines = "75-80"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1377,tests/unit/utils/unified-cache-db-comprehensive.test.ts:1395"
 description = "deckHistory.recentDecks のいずれかの cardIds に tierData.cardId が含まれる場合、日時条件より優先して5を返す"
 given = "recentDecks に対象cardIdを含むデッキがある"
 expect_return = "5"
 
 [[condition]]
-id = "calculate_tier.detail_within_week_tier4"
+id = "calculate-tier.detail-within-week-tier4"
 target_function = "calculateTier"
-source_lines = "81-84"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1414,tests/unit/utils/unified-cache-db-comprehensive.test.ts:1430"
 description = "直近デッキに含まれず、max(lastAddedToDeck,lastShownDetail) が1週間未満前の場合4を返す"
 given = "lastAddedToDeck または lastShownDetail が Date.now() から7日未満"
 expect_return = "4"
 
 [[condition]]
-id = "calculate_tier.detail_within_month_tier3"
+id = "calculate-tier.detail-within-month-tier3"
 target_function = "calculateTier"
-source_lines = "81-85"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1446"
 description = "詳細/デッキ追加の経過が1週間以上かつ1ヶ月未満の場合3を返す"
 given = "max(lastAddedToDeck,lastShownDetail) が7日以上30日未満前"
 expect_return = "3"
 
 [[condition]]
-id = "calculate_tier.search_within_week_tier2"
+id = "calculate-tier.search-within-week-tier2"
 target_function = "calculateTier"
-source_lines = "86-89"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1462"
 description = "詳細/デッキ追加が1ヶ月以上前で、lastSearched が1週間未満前の場合2を返す"
 given = "lastSearched が Date.now() から7日未満"
 expect_return = "2"
 
 [[condition]]
-id = "calculate_tier.search_within_month_tier1"
+id = "calculate-tier.search-within-month-tier1"
 target_function = "calculateTier"
-source_lines = "86-90"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1478"
 description = "lastSearched の経過が1週間以上かつ1ヶ月未満の場合1を返す"
 given = "lastSearched が7日以上30日未満前"
 expect_return = "1"
 
 [[condition]]
-id = "calculate_tier.otherwise_tier0"
+id = "calculate-tier.otherwise-tier0"
 target_function = "calculateTier"
-source_lines = "91"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1494"
 description = "直近デッキ・詳細/追加・検索のいずれの保持条件にも該当しない場合0を返す"
 given = "全日時が1ヶ月以上前または0"
 expect_return = "0"
@@ -78,105 +78,105 @@ expect_return = "0"
 # --- UnifiedCacheDB#initialize / private load methods / cleanup check ---
 
 [[condition]]
-id = "initialize.first_loads_tables_then_cleanup_check"
+id = "initialize.first-loads-tables-then-cleanup-check"
 target_function = "UnifiedCacheDB#initialize"
-source_lines = "128-145"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208,tests/unit/utils/unified-cache-db-comprehensive.test.ts:250"
 description = "initialized=falseの場合、CardTier/DeckOpenHistory/CardTableA/B/B2/ProductTableA/FAQTableA/moveHistoryをPromise.allでロードし、initialized=true後にcheckAndRunCleanupを呼ぶ"
 given = "新規 UnifiedCacheDB インスタンス"
 expect_return_shape = "Promise<void> がresolveし、isInitialized() が true になる"
 
 [[condition]]
-id = "initialize.already_initialized_returns_early"
+id = "initialize.already-initialized-returns-early"
 target_function = "UnifiedCacheDB#initialize"
-source_lines = "129"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:278"
 description = "initialized=trueの場合、ロードやcleanup checkを行わず早期returnする"
 given = "initialize() を2回呼ぶ"
 expect_return_shape = "2回目は追加ロードなしでresolveする"
 
 [[condition]]
-id = "cleanup_check.runs_when_missing_or_older_than_interval"
+id = "cleanup-check.runs-when-missing-or-older-than-interval"
 target_function = "UnifiedCacheDB#checkAndRunCleanup"
-source_lines = "153-161"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:440"
 description = "lastCleanupAt が未設定、または前回から24時間より大きく経過している場合 cleanup() を実行し lastCleanupAt に現在時刻を保存する"
 given = "chrome.storage.local に lastCleanupAt が無い、または24時間超過前の値"
 expect_return_shape = "cleanup後に lastCleanupAt が保存される"
 
 [[condition]]
-id = "cleanup_check.skips_when_within_interval"
+id = "cleanup-check.skips-when-within-interval"
 target_function = "UnifiedCacheDB#checkAndRunCleanup"
-source_lines = "157-161"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:463"
 description = "lastCleanupAt が存在し前回から24時間以内の場合 cleanup() も lastCleanupAt 保存も行わない"
 given = "lastCleanupAt = Date.now()"
 expect_return_shape = "cleanup由来のremove/setは実行されない"
 
 [[condition]]
-id = "cleanup_check.catch_logs_and_resolves"
+id = "cleanup-check.catch-logs-and-resolves"
 target_function = "UnifiedCacheDB#checkAndRunCleanup"
-source_lines = "162-164"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:484"
 description = "cleanup check中に例外が発生した場合、console.errorに記録して例外を再throwしない"
 given = "chrome.storage.local.get または cleanup がrejectする"
 expect_no_throw = true
 
 [[condition]]
-id = "load_card_tier.object_loaded_as_map"
+id = "load-card-tier.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadCardTierTable"
-source_lines = "167-172"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "cardTierTableキーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.cardTierTable = { card1: CardTier }"
 expect_return_shape = "getStats().cardTierCount 等に読み込み結果が反映される"
 
 [[condition]]
-id = "load_deck_history.truthy_loaded"
+id = "load-deck-history.truthy-loaded"
 target_function = "UnifiedCacheDB#loadDeckOpenHistory"
-source_lines = "175-180"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "deckOpenHistoryキーの値がtruthyの場合、その値をdeckOpenHistoryとして採用する"
 given = "storage.deckOpenHistory = { recentDecks: [...] }"
 expect_return_shape = "getStats().deckHistoryCount に読み込み結果が反映される"
 
 [[condition]]
-id = "load_card_table_a.object_loaded_as_map"
+id = "load-card-table-a.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadCardTableA"
-source_lines = "183-188"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "cardTableAキーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.cardTableA = { card1: CardTableA }"
 expect_return_shape = "getCardBasicInfo(card1).tableA が取得できる"
 
 [[condition]]
-id = "load_card_table_b.object_loaded_as_map"
+id = "load-card-table-b.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadCardTableB"
-source_lines = "191-196"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "cardTableBキーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.cardTableB = { card1: CardTableB }"
 expect_return_shape = "getCardBasicInfo(card1).tableB が取得できる"
 
 [[condition]]
-id = "load_card_table_b2.object_loaded_as_map"
+id = "load-card-table-b2.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadCardTableB2"
-source_lines = "199-204"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "cardTableB2キーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.cardTableB2 = { card1: CardTableB2 }"
 expect_return_shape = "reconstructCardInfoでTableB2のtext等がマージ可能になる"
 
 [[condition]]
-id = "load_product_table_a.object_loaded_as_map"
+id = "load-product-table-a.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadProductTableA"
-source_lines = "207-212"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "productTableAキーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.productTableA = { pack1: ProductTableA }"
 expect_return_shape = "getProductA(pack1) が取得できる"
 
 [[condition]]
-id = "load_faq_table_a.object_loaded_as_map"
+id = "load-faq-table-a.object-loaded-as-map"
 target_function = "UnifiedCacheDB#loadFAQTableA"
-source_lines = "215-220"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:208"
 description = "faqTableAキーの値がtruthy objectの場合、Object.entries(data)からMapへ置き換える"
 given = "storage.faqTableA = { faq1: FAQTableA }"
 expect_return_shape = "getFAQA(faq1) が取得できる"
 
 [[condition]]
-id = "load_move_history.array_loaded"
+id = "load-move-history.array-loaded"
 target_function = "UnifiedCacheDB#loadMoveHistory"
-source_lines = "223-232"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:424,tests/unit/utils/unified-cache-db-comprehensive.test.ts:2529"
 description = "moveHistoryキーの値が配列の場合のみmoveHistoryへ採用し、読み込み例外は握りつぶす"
 given = "storage.moveHistory = [entry]、またはmoveHistory取得だけがrejectする"
 expect_no_throw = true
@@ -184,17 +184,17 @@ expect_no_throw = true
 # --- save methods ---
 
 [[condition]]
-id = "save_all.saves_all_memory_tables"
+id = "save-all.saves-all-memory-tables"
 target_function = "UnifiedCacheDB#saveAll"
-source_lines = "242-252"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "saveAllはCardTier/DeckOpenHistory/CardTableA/B/B2/ProductTableA/FAQTableA/moveHistoryの保存Promiseを並列実行する"
 given = "各メモリテーブルにデータがある"
 expect_return_shape = "対応するstorageキーに保存される"
 
 [[condition]]
-id = "save_move_history.catch_ignored"
+id = "save-move-history.catch-ignored"
 target_function = "UnifiedCacheDB#saveMoveHistory"
-source_lines = "255-260"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:746"
 description = "moveHistory保存時にchrome.storage.local.setが例外を投げてもcatchして再throwしない"
 given = "moveHistory保存がrejectする"
 expect_no_throw = true
@@ -202,65 +202,65 @@ verified = false
 unverifiable_reason = "privateメソッドでありrecordMove/clearMoveHistoryからはcatch付きfire-and-forgetで呼ばれるため、保存失敗の完了順を公開APIで確定検証しにくい"
 
 [[condition]]
-id = "save_card_tier.object_from_entries"
+id = "save-card-tier.object-from-entries"
 target_function = "UnifiedCacheDB#saveCardTierTable"
-source_lines = "263-265"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "cardTierTable MapをObject.fromEntriesで通常キー形式に変換してcardTierTableキーへ保存する"
 given = "updateCardTierでMapにデータがある"
 expect_return_shape = "storage.cardTierTable がcardIdキーのobjectになる"
 
 [[condition]]
-id = "save_deck_history.stores_object"
+id = "save-deck-history.stores-object"
 target_function = "UnifiedCacheDB#saveDeckOpenHistory"
-source_lines = "268-269"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "deckOpenHistoryオブジェクトをdeckOpenHistoryキーへそのまま保存する"
 given = "recordDeckOpen後にsaveAllする"
 expect_return_shape = "storage.deckOpenHistory.recentDecks に履歴が保存される"
 
 [[condition]]
-id = "save_card_table_a.new_data_saved"
+id = "save-card-table-a.new-data-saved"
 target_function = "UnifiedCacheDB#saveCardTableA"
-source_lines = "272-337"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:558"
 description = "storage側に同cardIdの既存レコードがない場合、メモリ上のCardTableAがそのままmergedDataに残り保存される"
 given = "setCardInfoで新規cardIdを追加し、storage.cardTableAは空"
 expect_return_shape = "storage.cardTableA[cardId] がメモリデータと一致する"
 
 [[condition]]
-id = "save_card_table_a.merge_imgs_ciids_ruby"
+id = "save-card-table-a.merge-imgs-ciids-ruby"
 target_function = "UnifiedCacheDB#saveCardTableA"
-source_lines = "285-333"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:572"
 description = "storage側に既存レコードがある場合、langsImgsは既存ciidを保持して新ciidのみ追加、langs_ciidsは重複排除で和集合、langsRubyはstorageをベースにmemoryで上書きする"
 given = "storage.cardTableA[cardId] とメモリCardTableAに同一/追加ciidやrubyが混在する"
 expect_return_shape = "保存結果は既存画像を保持し、新ciidだけ追加し、ciidsは重複しない"
 
 [[condition]]
-id = "save_card_table_b.object_from_entries"
+id = "save-card-table-b.object-from-entries"
 target_function = "UnifiedCacheDB#saveCardTableB"
-source_lines = "340-342"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "cardTableB MapをObject.fromEntriesでcardTableBキーへ保存する"
 given = "setCardInfoでTableBにデータがある"
 expect_return_shape = "storage.cardTableB[cardId] が保存される"
 
 [[condition]]
-id = "save_card_table_b2.object_from_entries"
+id = "save-card-table-b2.object-from-entries"
 target_function = "UnifiedCacheDB#saveCardTableB2"
-source_lines = "345-347"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "cardTableB2 MapをObject.fromEntriesでcardTableB2キーへ保存する"
 given = "setCardInfoでtextまたはpendulumTextを持つカードを保存"
 expect_return_shape = "storage.cardTableB2[cardId] が保存される"
 
 [[condition]]
-id = "save_product_table_a.object_from_entries"
+id = "save-product-table-a.object-from-entries"
 target_function = "UnifiedCacheDB#saveProductTableA"
-source_lines = "350-352"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "productTableA MapをObject.fromEntriesでproductTableAキーへ保存する"
 given = "setProductA後にsaveAllする"
 expect_return_shape = "storage.productTableA[packId] が保存される"
 
 [[condition]]
-id = "save_faq_table_a.object_from_entries"
+id = "save-faq-table-a.object-from-entries"
 target_function = "UnifiedCacheDB#saveFAQTableA"
-source_lines = "355-357"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:505"
 description = "faqTableA MapをObject.fromEntriesでfaqTableAキーへ保存する"
 given = "setFAQA後にsaveAllする"
 expect_return_shape = "storage.faqTableA[faqId] が保存される"
@@ -268,113 +268,113 @@ expect_return_shape = "storage.faqTableA[faqId] が保存される"
 # --- card operations / move history ---
 
 [[condition]]
-id = "get_card_basic_info.returns_table_a_b_or_undefined"
+id = "get-card-basic-info.returns-table-a-b-or-undefined"
 target_function = "UnifiedCacheDB#getCardBasicInfo"
-source_lines = "367-371"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:767"
 description = "指定cardIdのTableAとTableBをそれぞれMapから取得し、存在しない側はundefinedとして返す"
 given = "TableA/Bの有無が異なるcardId"
 expect_return_shape = "{ tableA?: CardTableA, tableB?: CardTableB }"
 
 [[condition]]
-id = "record_move.adds_ts_caps_and_persists_async"
+id = "record-move.adds-ts-caps-and-persists-async"
 target_function = "UnifiedCacheDB#recordMove"
-source_lines = "375-383"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1528"
 description = "entryにDate.now()のtsを付与して末尾追加し、1000件超過時は古い分をspliceで削除し、saveMoveHistoryをcatch付きで非同期実行する"
 given = "1001件以上recordMoveする"
 expect_return_shape = "getMoveHistory() は最新1000件のみ返す"
 
 [[condition]]
-id = "get_move_history.limit_or_copy"
+id = "get-move-history.limit-or-copy"
 target_function = "UnifiedCacheDB#getMoveHistory"
-source_lines = "386-388"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1581"
 description = "limitがnumberの場合は末尾limit件のsliceを返し、未指定等number以外の場合は全履歴の浅いコピーを返す"
 given = "履歴3件、limit=2 または未指定"
 expect_return_shape = "limit指定時は最新2件、未指定時は全件"
 
 [[condition]]
-id = "clear_move_history.clears_and_persists_async"
+id = "clear-move-history.clears-and-persists-async"
 target_function = "UnifiedCacheDB#clearMoveHistory"
-source_lines = "391-395"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1594"
 description = "moveHistoryを空配列に置き換え、saveMoveHistoryをcatch付きで非同期実行する"
 given = "履歴が存在する状態でclearMoveHistoryする"
 expect_return_shape = "getMoveHistory() は空配列を返す"
 
 [[condition]]
-id = "set_card_info.ttl_valid_no_new_ciids_returns_false"
+id = "set-card-info.ttl-valid-no-new-ciids-returns-false"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "401-430"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:854"
 description = "既存TableAがありforceUpdate=false、新しいciidがなく、対象言語のlangsFetchedAtが存在しage < cacheTTLの場合falseを返して更新をスキップする"
 given = "同じcardId/lang/ciidをTTL内に再設定する"
 expect_return = "false"
 
 [[condition]]
-id = "set_card_info.expired_force_or_new_lang_updates"
+id = "set-card-info.expired-force-or-new-lang-updates"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "420-430,571"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:866"
 description = "forceUpdate=true、TTL期限切れ、対象言語のlangsFetchedAt未設定、または新しいciidがある場合は更新を継続してtrueを返す"
 given = "TTL境界age >= cacheTTL、forceUpdate=true、別言語、新ciid追加のいずれか"
 expect_return = "true"
 
 [[condition]]
-id = "set_card_info.table_a_merges_language_fields"
+id = "set-card-info.table-a-merges-language-fields"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "432-490"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:923"
 description = "TableAはlangsName/langsImgs/langs_ciids/langsFetchedAtを対象言語にマージし、rubyがtruthyならlangsRubyも対象言語に保存、rubyがfalsyなら既存langsRubyを保持する"
 given = "既存TableAに別言語/既存ciidがあり、新CardInfoを保存する"
 expect_return_shape = "言語別フィールドが既存値を保持しつつ対象言語で更新される"
 
 [[condition]]
-id = "set_card_info.table_b_monster_vs_spell_trap"
+id = "set-card-info.table-b-monster-vs-spell-trap"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "493-528"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1003"
 description = "cardTypeがmonsterの場合はmonster固有フィールドをTableBへ保存し、atk/defはnumber以外ならnull、monster以外の場合はeffectTypeのみを保存する"
 given = "monster/spell/trapのCardInfo"
 expect_return_shape = "monsterはattribute等、spell/trapはeffectTypeがTableBに保存される"
 
 [[condition]]
-id = "set_card_info.table_b2_text_pendulum_merge_or_skip"
+id = "set-card-info.table-b2-text-pendulum-merge-or-skip"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "530-566"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:985"
 description = "textまたはpendulumTextがtruthyな場合だけTableB2を更新し、textはlangsText、pendulumTextはlangsPendTextへ保存する。pendulumTextがfalsyかつ同langの既存langsPendTextがあれば削除し、空objectはundefinedにする"
 given = "text/pendulumTextの有無が異なるCardInfoを保存する"
 expect_return_shape = "TableB2が必要時のみ作成/更新される"
 
 [[condition]]
-id = "set_card_info.updates_tier_last_searched"
+id = "set-card-info.updates-tier-last-searched"
 target_function = "UnifiedCacheDB#setCardInfo"
-source_lines = "568-571"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1054"
 description = "更新を実行した場合、updateCardTier(cardId,{lastSearched: now})を呼びtrueを返す"
 given = "setCardInfoがスキップされない"
 expect_return = "true"
 
 [[condition]]
-id = "get_card_table_c.cache_storage_miss"
+id = "get-card-table-c.cache-storage-miss"
 target_function = "UnifiedCacheDB#getCardTableC"
-source_lines = "577-592"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1097"
 description = "cardTableCCacheにあればそれを返し、無ければcardTableC:<cardId>をsafeStorageGetで読み、データがあればキャッシュして返し、無ければundefinedを返す"
 given = "メモリヒット、storageヒット、storageミス"
 expect_return_shape = "順にcached data、storage data、undefined"
 
 [[condition]]
-id = "set_card_table_c.merges_lang_fields_and_persists"
+id = "set-card-table-c.merges-lang-fields-and-persists"
 target_function = "UnifiedCacheDB#setCardTableC"
-source_lines = "600-659"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1155"
 description = "lang引数またはdetectLanguageのtargetLangでlangsFetchedAtを現在時刻に更新し、既存のlangsRelatedCards/Products/ProductDetailを新データでマージしてメモリとcardTableC:<cardId>へ保存し、lastShownDetailを更新する"
 given = "既存CardTableCがあり、一部言語別関連フィールドだけを持つ新dataを保存する"
 expect_return_shape = "既存言語別フィールドを保持し、新dataのキーで上書きされる"
 
 [[condition]]
-id = "update_card_table_c_fetched_at.storage_path_returns_without_tier_update"
+id = "update-card-table-c-fetched-at.storage-path-returns-without-tier-update"
 target_function = "UnifiedCacheDB#updateCardTableCFetchedAt"
-source_lines = "667-688"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1228"
 description = "メモリに対象CardTableCが無い場合、storageから読み込み、存在すればlangsFetchedAtを更新してメモリ/ストレージへ保存し、その後returnする。この経路ではTierテーブルを更新しない"
 given = "cardTableCCacheミスかつstorageにcardTableC:<cardId>が存在する"
 expect_return_shape = "langsFetchedAtは更新されるがgetCardTierはlastShownDetail更新を反映しない"
 
 [[condition]]
-id = "update_card_table_c_fetched_at.cached_updates_storage_and_tier"
+id = "update-card-table-c-fetched-at.cached-updates-storage-and-tier"
 target_function = "UnifiedCacheDB#updateCardTableCFetchedAt"
-source_lines = "691-704"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1211"
 description = "メモリキャッシュに対象がある場合、langsFetchedAtを更新してストレージへ保存し、updateCardTier(cardId,{lastShownDetail: now})も実行する"
 given = "setCardTableC等でメモリキャッシュに対象がある"
 expect_return_shape = "storage更新に加えてTierが詳細表示として更新される"
@@ -382,89 +382,89 @@ expect_return_shape = "storage更新に加えてTierが詳細表示として更�
 # --- tier / product / FAQ ---
 
 [[condition]]
-id = "update_card_tier.creates_or_merges"
+id = "update-card-tier.creates-or-merges"
 target_function = "UnifiedCacheDB#updateCardTier"
-source_lines = "714-729"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1271"
 description = "既存CardTierがあればupdatesをマージし、無ければcardIdと0初期値のlastAddedToDeck/lastShownDetail/lastSearchedを作ってupdatesをマージする"
 given = "既存あり/なしのcardIdへupdateCardTierする"
 expect_return_shape = "getCardTier計算に更新値が反映される"
 
 [[condition]]
-id = "record_deck_open.dedup_unshift_cap5_update_cards"
+id = "record-deck-open.dedup-unshift-cap5-update-cards"
 target_function = "UnifiedCacheDB#recordDeckOpen"
-source_lines = "734-757"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1320"
 description = "同じdnoの既存履歴を削除してから先頭に追加し、recentDecksが5件を超えた場合先頭5件に切り詰め、cardIds全件のlastAddedToDeckを現在時刻に更新する"
 given = "同じdnoを再度開く、または6件以上のデッキを開く"
 expect_return_shape = "履歴は重複なし最大5件で、対象カードはTier計算に反映される"
 
 [[condition]]
-id = "get_card_tier.missing_zero_or_calculated"
+id = "get-card-tier.missing-zero-or-calculated"
 target_function = "UnifiedCacheDB#getCardTier"
-source_lines = "763-766"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1371"
 description = "cardTierTableに対象が無ければ0を返し、存在すればcalculateTierの結果を返す"
 given = "未登録cardId、登録済みcardId"
 expect_return_shape = "未登録は0、登録済みは履歴/日時に応じたTier"
 
 [[condition]]
-id = "get_product_a.returns_map_value"
+id = "get-product-a.returns-map-value"
 target_function = "UnifiedCacheDB#getProductA"
-source_lines = "776-777"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1613"
 description = "productTableA MapからpackIdの値を返し、無ければundefinedを返す"
 given = "setProductA済み/未設定のpackId"
 expect_return_shape = "ProductTableA または undefined"
 
 [[condition]]
-id = "set_product_a.sets_fetched_at_and_memory"
+id = "set-product-a.sets-fetched-at-and-memory"
 target_function = "UnifiedCacheDB#setProductA"
-source_lines = "783-785"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1647"
 description = "data.fetchedAtを現在時刻に上書きしてproductTableAへ保存する"
 given = "ProductTableAをsetProductAに渡す"
 expect_return_shape = "getProductA(packId).fetchedAt が現在時刻になる"
 
 [[condition]]
-id = "get_product_b.cache_storage_miss"
+id = "get-product-b.cache-storage-miss"
 target_function = "UnifiedCacheDB#getProductB"
-source_lines = "791-806"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1661"
 description = "productTableBにあれば返し、無ければproductTableB:<packId>をstorageから読み、データがあればメモリへ保存して返し、無ければundefinedを返す"
 given = "メモリヒット、storageヒット、storageミス"
 expect_return_shape = "順にcached data、storage data、undefined"
 
 [[condition]]
-id = "set_product_b.sets_fetched_at_memory_and_storage"
+id = "set-product-b.sets-fetched-at-memory-and-storage"
 target_function = "UnifiedCacheDB#setProductB"
-source_lines = "812-817"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1715"
 description = "data.fetchedAtを現在時刻に上書きし、productTableBへ保存してproductTableB:<packId>キーにも保存する"
 given = "ProductTableBをsetProductBに渡す"
 expect_return_shape = "メモリとstorage個別キーに保存される"
 
 [[condition]]
-id = "get_faq_a.updates_access_when_found"
+id = "get-faq-a.updates-access-when-found"
 target_function = "UnifiedCacheDB#getFAQA"
-source_lines = "827-833"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1751"
 description = "faqTableAにデータがある場合lastAccessedAtを現在時刻に更新して返し、無ければundefinedを返す"
 given = "setFAQA済み/未設定のfaqId"
 expect_return_shape = "FAQTableA または undefined"
 
 [[condition]]
-id = "set_faq_a.sets_fetched_and_access"
+id = "set-faq-a.sets-fetched-and-access"
 target_function = "UnifiedCacheDB#setFAQA"
-source_lines = "839-843"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1787"
 description = "data.fetchedAtとdata.lastAccessedAtを同じ現在時刻に上書きしてfaqTableAへ保存する"
 given = "FAQTableAをsetFAQAに渡す"
 expect_return_shape = "getFAQA(faqId)で取得できる"
 
 [[condition]]
-id = "get_faq_b.cache_storage_miss_updates_access"
+id = "get-faq-b.cache-storage-miss-updates-access"
 target_function = "UnifiedCacheDB#getFAQB"
-source_lines = "849-867"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1803"
 description = "faqTableBメモリヒット時はlastAccessedAtを更新して返す。ミス時はfaqTableB:<faqId>をstorageから読み、データがあればlastAccessedAt更新後にメモリへ保存して返し、無ければundefinedを返す"
 given = "メモリヒット、storageヒット、storageミス"
 expect_return_shape = "順にFAQTableB、FAQTableB、undefined"
 
 [[condition]]
-id = "set_faq_b.sets_times_memory_and_storage"
+id = "set-faq-b.sets-times-memory-and-storage"
 target_function = "UnifiedCacheDB#setFAQB"
-source_lines = "873-880"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1876"
 description = "data.fetchedAtとlastAccessedAtを現在時刻に上書きし、faqTableBへ保存してfaqTableB:<faqId>キーにも保存する"
 given = "FAQTableBをsetFAQBに渡す"
 expect_return_shape = "メモリとstorage個別キーに保存される"
@@ -472,25 +472,25 @@ expect_return_shape = "メモリとstorage個別キーに保存される"
 # --- cleanup / clearAll ---
 
 [[condition]]
-id = "cleanup.removes_tier0_and_card_table_c_for_tier2_or_less"
+id = "cleanup.removes-tier0-and-card-table-c-for-tier2-or-less"
 target_function = "UnifiedCacheDB#cleanup"
-source_lines = "890-920"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1898"
 description = "calculateTierが0のcardIdはcardTierTableから削除し、Tier 2以下のcardIdはcardTableCCacheから削除しcardTableC:<cardId>キーもremoveする。削除キーが空ならremoveしない"
 given = "Tier0/Tier1-2/Tier3以上のカードが混在する"
 expect_return_shape = "Tier0はCardTier削除、Tier2以下はCardTableC削除"
 
 [[condition]]
-id = "cleanup.removes_expired_faq_and_saves"
+id = "cleanup.removes-expired-faq-and-saves"
 target_function = "UnifiedCacheDB#cleanup"
-source_lines = "922-942"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1979"
 description = "faqTableAでlastAccessedAtが1ヶ月より古いFAQをfaqTableA/faqTableBから削除し、faqTableB:<id>キーもremoveし、最後にsaveAllする"
 given = "1ヶ月超過/以内のFAQが混在する"
 expect_return_shape = "期限切れFAQだけ削除され、残データが保存される"
 
 [[condition]]
-id = "clear_all.clears_memory_and_cache_keys_only"
+id = "clear-all.clears-memory-and-cache-keys-only"
 target_function = "UnifiedCacheDB#clearAll"
-source_lines = "948-984"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2059,tests/unit/utils/unified-cache-db-comprehensive.test.ts:2103"
 description = "メモリ上の各Map/履歴/cacheを空にし、固定キーとcardTableC:/productTableB:/faqTableB:プレフィックスキーをstorageから削除する。その他設定キーは削除しない"
 given = "Cache DB関連キーと無関係な設定キーがstorageにある"
 expect_return_shape = "関連キーのみ削除され、設定キーは残る"
@@ -498,33 +498,33 @@ expect_return_shape = "関連キーのみ削除され、設定キーは残る"
 # --- reconstruct / utilities / full card cache ---
 
 [[condition]]
-id = "reconstruct.missing_table_or_language_data_returns_undefined"
+id = "reconstruct.missing-table-or-language-data-returns-undefined"
 target_function = "UnifiedCacheDB#reconstructCardInfo"
-source_lines = "996-1022"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2215"
 description = "TableAまたはTableBが無い、対象言語のnameが無い、または対象言語のimgsが無い/空の場合undefinedを返す。指定言語が無い場合のフォールバックはしない"
 given = "TableA欠如、TableB欠如、langsName/langsImgsの対象言語欠如"
 expect_return = "undefined"
 
 [[condition]]
-id = "reconstruct.monster_spell_trap_shapes"
+id = "reconstruct.monster-spell-trap-shapes"
 target_function = "UnifiedCacheDB#reconstructCardInfo"
-source_lines = "1024-1067"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2130"
 description = "monsterはattribute/race/levelType/levelValue/types/isExtraDeckにデフォルト値を使いつつ再構築し、spell/trapはeffectTypeを含む対応cardTypeで再構築する。ciidはimgs[0]?.ciid || ''"
 given = "monster/spell/trapのTableA+B"
 expect_return_shape = "CardInfoのcardType別shape"
 
 [[condition]]
-id = "reconstruct.merges_table_b2_and_cached_table_c"
+id = "reconstruct.merges-table-b2-and-cached-table-c"
 target_function = "UnifiedCacheDB#reconstructCardInfo"
-source_lines = "1069-1102"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2258"
 description = "TableB2があれば対象言語のtext/pendulumTextをtruthy時だけ追加し、cardTableCCacheにTableCがあればsupplInfo/supplDate/pendSupplInfo/pendSupplDateがundefinedでない項目だけ追加する"
 given = "TableB2とメモリ上のCardTableCが存在する"
 expect_return_shape = "基本CardInfoにtext/pendulumText/補足情報がマージされる"
 
 [[condition]]
-id = "reconstruct.table_c_merge_catch_ignored"
+id = "reconstruct.table-c-merge-catch-ignored"
 target_function = "UnifiedCacheDB#reconstructCardInfo"
-source_lines = "1089-1100"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2303"
 description = "CardTableCの同期マージ中に例外が発生してもcatchして再構築自体は継続する"
 given = "cardTableCCache.getまたは補足情報代入がthrowする状況"
 expect_no_throw = true
@@ -532,90 +532,90 @@ verified = false
 unverifiable_reason = "対象Mapはprivateで、通常のMap#getとplain object代入では例外が発生しない防御的catch"
 
 [[condition]]
-id = "has_card_table_c.memory_has"
+id = "has-card-table-c.memory-has"
 target_function = "UnifiedCacheDB#hasCardTableC"
-source_lines = "1108-1109"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:1097"
 description = "cardTableCCache.has(cardId)の結果をそのまま返す"
 given = "setCardTableC済み/未設定のcardId"
 expect_return_shape = "true または false"
 
 [[condition]]
-id = "get_all_card_ids.card_table_a_keys"
+id = "get-all-card-ids.card-table-a-keys"
 target_function = "UnifiedCacheDB#getAllCardIds"
-source_lines = "1115-1116"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2397"
 description = "cardTableA MapのキーをArray.fromで配列化して返す"
 given = "複数cardIdをsetCardInfo済み"
 expect_return_shape = "cardTableAに存在するcardId配列"
 
 [[condition]]
-id = "get_valid_ciids.lang_list_or_empty"
+id = "get-valid-ciids.lang-list-or-empty"
 target_function = "UnifiedCacheDB#getValidCiidsForLang"
-source_lines = "1122-1125"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2415"
 description = "TableAまたはlangs_ciidsが無ければ空配列を返し、存在する場合は指定言語のciid配列または空配列を返す"
 given = "対象言語あり/なし/カードなし"
 expect_return_shape = "string[]"
 
 [[condition]]
-id = "get_all_card_infos.only_reconstructed"
+id = "get-all-card-infos.only-reconstructed"
 target_function = "UnifiedCacheDB#getAllCardInfos"
-source_lines = "1132-1140"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2463"
 description = "cardTableAの全キーについてreconstructCardInfoを呼び、truthyなCardInfoだけを結果Mapに追加する"
 given = "再構築可能/不可能なカードが混在する"
 expect_return_shape = "再構築成功分だけを含むMap"
 
 [[condition]]
-id = "get_stats.counts_selected_tables"
+id = "get-stats.counts-selected-tables"
 target_function = "UnifiedCacheDB#getStats"
-source_lines = "1146-1161"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2495"
 description = "cardTier/deckHistory/cardTableA/cardTableB/productTableA/faqTableAの件数を返す。B2/C/ProductB/FAQB/fullCardInfoは含めない"
 given = "各テーブルにデータがある"
 expect_return_shape = "{ cardTierCount, deckHistoryCount, cardTableACount, cardTableBCount, productTableACount, faqTableACount }"
 
 [[condition]]
-id = "get_stats.empty_initial_state_zero"
+id = "get-stats.empty-initial-state-zero"
 target_function = "UnifiedCacheDB#getStats"
 source = "tm TASK-479: src/utils/__tests__/unified-cache-db.test.ts L529「getStats: 初期状態では0」の移植に伴い条件化（comprehensiveはデータあり側のみで初期状態の全0を明示検証していなかった）"
-source_lines = "1146-1161"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2482"
 description = "空ストレージから初期化した直後は、集計対象6テーブルの件数がすべて0を返す"
 given = "ストレージが空の状態で initialize() を完了した直後に getStats() を呼ぶ"
 expect_return_shape = "{ cardTierCount: 0, deckHistoryCount: 0, cardTableACount: 0, cardTableBCount: 0, productTableACount: 0, faqTableACount: 0 }"
 
 [[condition]]
-id = "get_card_info.full_cache_or_reconstruct"
+id = "get-card-info.full-cache-or-reconstruct"
 target_function = "UnifiedCacheDB#getCardInfo"
-source_lines = "1173-1177"
+source_lines = "tests/unit/utils/unified-cache-db.test.ts:303"
 description = "fullCardInfoCacheにcached.cardがあればそれを返し、無ければdetectLanguage(document)の言語でreconstructCardInfoを呼んだ結果を返す"
 given = "full cacheヒット、full cacheミスだがTableA/Bあり、完全ミス"
 expect_return_shape = "CardInfo または undefined"
 
 [[condition]]
-id = "set_card_info_full.ttl_skip_or_update"
+id = "set-card-info-full.ttl-skip-or-update"
 target_function = "UnifiedCacheDB#setCardInfoFull"
-source_lines = "1187-1205"
+source_lines = "tests/unit/utils/unified-cache-db.test.ts:323"
 description = "fullCardInfoCacheに既存がありforceUpdate=falseかつage < cacheTTLならfalseを返す。それ以外はfull cacheを更新しsetCardInfo(card, forceUpdate)も呼んでtrueを返す"
 given = "TTL内再設定、forceUpdate=true、TTL経過後"
 expect_return_shape = "TTL内はfalse、それ以外はtrue"
 
 [[condition]]
-id = "has_card_info.full_cache_has"
+id = "has-card-info.full-cache-has"
 target_function = "UnifiedCacheDB#hasCardInfo"
-source_lines = "1213-1214"
+source_lines = "tests/unit/utils/unified-cache-db.test.ts:356"
 description = "fullCardInfoCache.has(cid)の結果をそのまま返す"
 given = "setCardInfoFull済み/未設定のcid"
 expect_return_shape = "true または false"
 
 [[condition]]
-id = "clear_card_info_cache.clears_full_cache"
+id = "clear-card-info-cache.clears-full-cache"
 target_function = "UnifiedCacheDB#clearCardInfoCache"
-source_lines = "1220-1221"
+source_lines = "tests/unit/utils/unified-cache-db.test.ts:366"
 description = "fullCardInfoCacheをclearする"
 given = "setCardInfoFull後にclearCardInfoCacheする"
 expect_return_shape = "hasCardInfo(cid) が false になる"
 
 [[condition]]
-id = "is_initialized.returns_flag"
+id = "is-initialized.returns-flag"
 target_function = "UnifiedCacheDB#isInitialized"
-source_lines = "1227-1228"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2512"
 description = "initializedフラグの現在値を返す"
 given = "initialize前/後"
 expect_return_shape = "false または true"
@@ -623,41 +623,41 @@ expect_return_shape = "false または true"
 # --- singleton helpers ---
 
 [[condition]]
-id = "get_unified_cache_db.creates_once"
+id = "get-unified-cache-db.creates-once"
 target_function = "getUnifiedCacheDB"
-source_lines = "1238-1242"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2716"
 description = "module-level instanceがnullの場合new UnifiedCacheDB()を作成し、以後は同じinstanceを返す"
 given = "reset後にgetUnifiedCacheDBを複数回呼ぶ"
 expect_return_shape = "同一インスタンス"
 
 [[condition]]
-id = "init_unified_cache_db.delegates_initialize"
+id = "init-unified-cache-db.delegates-initialize"
 target_function = "initUnifiedCacheDB"
-source_lines = "1248-1250"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2724"
 description = "getUnifiedCacheDB()で取得したシングルトンのinitialize()をawaitする"
 given = "未初期化のシングルトン"
 expect_return_shape = "シングルトンが初期化済みになる"
 
 [[condition]]
-id = "save_unified_cache_db.delegates_save_all"
+id = "save-unified-cache-db.delegates-save-all"
 target_function = "saveUnifiedCacheDB"
-source_lines = "1256-1258"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2749"
 description = "getUnifiedCacheDB()で取得したシングルトンのsaveAll()をawaitする"
 given = "シングルトンに保存対象データがある"
 expect_return_shape = "storageに保存される"
 
 [[condition]]
-id = "cleanup_unified_cache_db.delegates_cleanup"
+id = "cleanup-unified-cache-db.delegates-cleanup"
 target_function = "cleanupUnifiedCacheDB"
-source_lines = "1264-1266"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2764"
 description = "getUnifiedCacheDB()で取得したシングルトンのcleanup()をawaitする"
 given = "シングルトンにcleanup対象データがある"
 expect_return_shape = "cleanup結果が反映される"
 
 [[condition]]
-id = "reset_unified_cache_db.fire_and_forget_clear_then_new"
+id = "reset-unified-cache-db.fire-and-forget-clear-then-new"
 target_function = "resetUnifiedCacheDB"
-source_lines = "1272-1276"
+source_lines = "tests/unit/utils/unified-cache-db-comprehensive.test.ts:2782"
 description = "既存instanceがある場合clearAll()をawaitせず呼び出し、その直後にinstanceへnew UnifiedCacheDB()を代入する。instanceがnullでも新規作成する"
 given = "既存シングルトンあり/なしでresetUnifiedCacheDBする"
 expect_return_shape = "次のgetUnifiedCacheDB()は新しいインスタンスを返す"

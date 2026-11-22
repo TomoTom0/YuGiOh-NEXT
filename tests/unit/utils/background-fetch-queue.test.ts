@@ -24,15 +24,13 @@ describe('background-fetch-queue', () => {
   });
 
   describe('getBackgroundFetchQueue', () => {
-    // [covers:get_background_fetch_queue.singleton_returns_same]
-    it('シングルトンインスタンスを返す', () => {
+    it('シングルトンインスタンスを返す [covers:get-background-fetch-queue.singleton-returns-same]', () => {
       const instance1 = getBackgroundFetchQueue();
       const instance2 = getBackgroundFetchQueue();
       expect(instance1).toBe(instance2);
     });
 
-    // [covers:get_background_fetch_queue.creates_once_when_null]
-    it('モジュール初回ロード時(queueInstance未初期化)は新しいインスタンスを生成する', async () => {
+    it('モジュール初回ロード時(queueInstance未初期化)は新しいインスタンスを生成する [covers:get-background-fetch-queue.creates-once-when-null]', async () => {
       vi.resetModules();
       const fresh = await import('../../../src/utils/background-fetch-queue');
       const instanceA = fresh.getBackgroundFetchQueue();
@@ -45,8 +43,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('enqueue', () => {
-    // [covers:enqueue.new_item_initial_state]
-    it('enqueueメソッドが呼べる', () => {
+    it('enqueueメソッドが呼べる [covers:enqueue.new-item-initial-state]', () => {
       const onComplete = vi.fn();
       // enqueueは即座に処理を開始するため、呼び出せることだけ確認
       expect(() => {
@@ -54,8 +51,7 @@ describe('background-fetch-queue', () => {
       }).not.toThrow();
     });
 
-    // [covers:enqueue.default_priority_normal]
-    it('priority省略時はnormal優先度として扱われる', () => {
+    it('priority省略時はnormal優先度として扱われる [covers:enqueue.default-priority-normal]', () => {
       // enqueue()内はpush -> sortQueue() -> processQueue()の順で呼ばれるため、
       // sortQueue()をモックしてpush直後(まだqueueに残っている)priority値を捕捉する
       let capturedPriority: string | undefined;
@@ -73,8 +69,7 @@ describe('background-fetch-queue', () => {
       }
     });
 
-    // [covers:enqueue.duplicate_queue_ignored]
-    it('queue内で未処理のまま残っているcardIdへの再enqueueは無視される', async () => {
+    it('queue内で未処理のまま残っているcardIdへの再enqueueは無視される [covers:enqueue.duplicate-queue-ignored]', async () => {
       // maxConcurrent(3)を最初の3件で埋め、isProcessingが解放されるまで
       // 4件目以降がqueue内に留まる状態を作ってから重複enqueueを試みる
       mockGetCardDetail.mockImplementation(
@@ -97,8 +92,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('clear', () => {
-    // [covers:clear.idempotent_no_throw]
-    it('clearメソッドが呼べる', () => {
+    it('clearメソッドが呼べる [covers:clear.idempotent-no-throw]', () => {
       expect(() => {
         queue.clear();
       }).not.toThrow();
@@ -107,22 +101,19 @@ describe('background-fetch-queue', () => {
   });
 
   describe('size', () => {
-    // [covers:size.returns_queue_length]
-    it('初期状態でサイズが0である', () => {
+    it('初期状態でサイズが0である [covers:size.returns-queue-length]', () => {
       expect(queue.size()).toBe(0);
     });
   });
 
   describe('activeCount', () => {
-    // [covers:active_count.returns_active_requests_size]
-    it('初期状態でアクティブカウントが0である', () => {
+    it('初期状態でアクティブカウントが0である [covers:active-count.returns-active-requests-size]', () => {
       expect(queue.activeCount()).toBe(0);
     });
   });
 
   describe('fetchCard - success', () => {
-    // [covers:fetch_card.success_truthy_result]
-    it('成功時にonCompleteが呼ばれる', async () => {
+    it('成功時にonCompleteが呼ばれる [covers:fetch-card.success-truthy-result]', async () => {
       const onComplete = vi.fn();
       const mockCardDetail: CardDetail = {
         card: {
@@ -147,8 +138,7 @@ describe('background-fetch-queue', () => {
       expect(onComplete).toHaveBeenCalledWith(mockCardDetail);
     });
 
-    // [covers:fetch_card.success_null_result]
-    it('カード詳細がnullの場合nullをonCompleteに渡す', async () => {
+    it('カード詳細がnullの場合nullをonCompleteに渡す [covers:fetch-card.success-null-result]', async () => {
       const onComplete = vi.fn();
       mockGetCardDetail.mockResolvedValue(null);
 
@@ -162,8 +152,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('sortQueue', () => {
-    // [covers:sort_queue.priority_order]
-    it('優先度順にソートされる（high > normal > low）', () => {
+    it('優先度順にソートされる（high > normal > low） [covers:sort-queue.priority-order]', () => {
       // キューに直接アイテムを追加（processQueueを回避）
       (queue as any).queue = [
         { cardId: 'card-low', priority: 'low', retryCount: 0, maxRetries: 2, onComplete: vi.fn() },
@@ -180,8 +169,7 @@ describe('background-fetch-queue', () => {
       expect(queueItems[2].priority).toBe('low');
     });
 
-    // [covers:sort_queue.tie_break_preserves_order]
-    it('同じ優先度の場合はFIFO順序を維持する', () => {
+    it('同じ優先度の場合はFIFO順序を維持する [covers:sort-queue.tie-break-preserves-order]', () => {
       (queue as any).queue = [
         { cardId: 'card-3', priority: 'normal', retryCount: 0, maxRetries: 2, onComplete: vi.fn() },
         { cardId: 'card-1', priority: 'normal', retryCount: 0, maxRetries: 2, onComplete: vi.fn() },
@@ -218,8 +206,7 @@ describe('background-fetch-queue', () => {
       expect(queueItems[5].cardId).toBe('card-low-2');
     });
 
-    // [covers:sort_queue.empty_array_no_throw]
-    it('空のキューでもエラーにならない', () => {
+    it('空のキューでもエラーにならない [covers:sort-queue.empty-array-no-throw]', () => {
       (queue as any).queue = [];
 
       expect(() => {
@@ -231,12 +218,11 @@ describe('background-fetch-queue', () => {
   });
 
   describe('duplicate prevention', () => {
-    // [covers:enqueue.duplicate_active_ignored]
     // 注: このテストは"キュー内の"重複を意図した名前だが、実際にはmaxConcurrent(3)未満かつ
     // isProcessingがfalseの初回enqueueであるため、同期実行の範囲内でactiveRequestsへ即座に
-    // 移動する。よって実際にはduplicate_active_ignoredを検証している
-    // （queue内に残ったままの重複はenqueue.duplicate_queue_ignoredの専用テストで別途検証）
-    it('キュー内の重複するcardIdは無視される', () => {
+    // 移動する。よって実際にはduplicate-active-ignoredを検証している
+    // （queue内に残ったままの重複はenqueue.duplicate-queue-ignoredの専用テストで別途検証）
+    it('キュー内の重複するcardIdは無視される [covers:enqueue.duplicate-active-ignored]', () => {
       const onComplete1 = vi.fn();
       const onComplete2 = vi.fn();
 
@@ -248,8 +234,7 @@ describe('background-fetch-queue', () => {
       expect(sizeAfter).toBe(sizeBefore);
     });
 
-    // [covers:enqueue.duplicate_active_ignored]
-    it('処理中のcardIdに対するenqueueは無視される', async () => {
+    it('処理中のcardIdに対するenqueueは無視される [covers:enqueue.duplicate-active-ignored]', async () => {
       const onComplete1 = vi.fn();
       const onComplete2 = vi.fn();
 
@@ -291,10 +276,9 @@ describe('background-fetch-queue', () => {
 
 
   describe('clear', () => {
-    // [covers:process_queue.already_processing_guard]
     // このテストのsizeBeforeClear>0は、先発enqueueのprocessQueueがisProcessing=trueのまま
-    // 100ms待機区間にいるため後続enqueueがqueueに留まる(already_processing_guard)ことの証拠
-    it('clearするとキューが空になる', async () => {
+    // 100ms待機区間にいるため後続enqueueがqueueに留まる(already-processing-guard)ことの証拠
+    it('clearするとキューが空になる [covers:process-queue.already-processing-guard]', async () => {
       // モックを遅延させて、enqueueがキューに溜まるようにする
       mockGetCardDetail.mockImplementation(() =>
         new Promise((resolve) => setTimeout(() => resolve(null), 500))
@@ -315,8 +299,7 @@ describe('background-fetch-queue', () => {
 
 
   describe('activeCount', () => {
-    // [covers:process_queue.per_item_dequeue_side_effects]
-    it('処理中はactiveCountが増加し、完了後に減少する', async () => {
+    it('処理中はactiveCountが増加し、完了後に減少する [covers:process-queue.per-item-dequeue-side-effects, process-queue.shift-guard-defensive-unreachable]', async () => {
       mockGetCardDetail.mockImplementation(() =>
         new Promise((resolve) => setTimeout(() => resolve(null), 150))
       );
@@ -356,8 +339,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('concurrent limit', () => {
-    // [covers:process_queue.concurrency_limit]
-    it('並行リクエスト数が制限される（最大3並行）', async () => {
+    it('並行リクエスト数が制限される（最大3並行） [covers:process-queue.concurrency-limit]', async () => {
       let concurrentCount = 0;
       let maxConcurrent = 0;
 
@@ -406,8 +388,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('multiple clear', () => {
-    // [covers:clear.idempotent_no_throw]
-    it('複数回clearしてもエラーにならない', () => {
+    it('複数回clearしてもエラーにならない [covers:clear.idempotent-no-throw]', () => {
       queue.clear();
       queue.clear();
       queue.clear();
@@ -431,9 +412,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('large number of items', () => {
-    // [covers:process_queue.finally_resets_processing_flag]
-    // [covers:process_queue.finally_restarts_if_pending]
-    it('大量のアイテムをenqueueしても問題なく処理できる', async () => {
+    it('大量のアイテムをenqueueしても問題なく処理できる [covers:process-queue.finally-resets-processing-flag, process-queue.finally-restarts-if-pending]', async () => {
       const results: string[] = [];
 
       mockGetCardDetail.mockResolvedValue(null);
@@ -477,8 +456,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('clear during processing', () => {
-    // [covers:clear.resets_queue_only]
-    it('処理中にclearしてもactiveRequestsは残る', async () => {
+    it('処理中にclearしてもactiveRequestsは残る [covers:clear.resets-queue-only]', async () => {
       mockGetCardDetail.mockImplementation(() =>
         new Promise((resolve) => setTimeout(() => resolve(null), 300))
       );
@@ -499,9 +477,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('retry logic', () => {
-    // [covers:fetch_card.error_retry_below_max]
-    // [covers:fetch_card.error_exceeds_max_retries]
-    it('エラー時に最大2回リトライする', async () => {
+    it('エラー時に最大2回リトライする [covers:fetch-card.error-retry-below-max, fetch-card.error-exceeds-max-retries]', async () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
       let callCount = 0;
@@ -526,8 +502,7 @@ describe('background-fetch-queue', () => {
       expect(onError).toHaveBeenCalled();
     });
 
-    // [covers:fetch_card.error_retry_below_max]
-    it('リトライ中に成功すればonCompleteが呼ばれる', async () => {
+    it('リトライ中に成功すればonCompleteが呼ばれる [covers:fetch-card.error-retry-below-max]', async () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
       let callCount = 0;
@@ -551,8 +526,7 @@ describe('background-fetch-queue', () => {
       expect(onError).not.toHaveBeenCalled();
     });
 
-    // [covers:fetch_card.error_exceeds_max_retries]
-    it('maxRetriesを超えるとonErrorが呼ばれる', async () => {
+    it('maxRetriesを超えるとonErrorが呼ばれる [covers:fetch-card.error-exceeds-max-retries]', async () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
@@ -568,8 +542,7 @@ describe('background-fetch-queue', () => {
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
     });
 
-    // [covers:fetch_card.error_no_onError_callback]
-    it('onError未指定でmaxRetries超過してもthrowされない', async () => {
+    it('onError未指定でmaxRetries超過してもthrowされない [covers:fetch-card.error-no-on-error-callback]', async () => {
       const onComplete = vi.fn();
 
       (queue as any).retryDelay = 50;
@@ -587,8 +560,7 @@ describe('background-fetch-queue', () => {
       expect(onComplete).not.toHaveBeenCalled();
     });
 
-    // [covers:fetch_card.non_error_thrown_value_wrapped]
-    it('Errorインスタンスでない値でrejectされてもnew Error()でラップされてonErrorに渡る', async () => {
+    it('Errorインスタンスでない値でrejectされてもnew Error()でラップされてonErrorに渡る [covers:fetch-card.non-error-thrown-value-wrapped]', async () => {
       const onComplete = vi.fn();
       const onError = vi.fn();
 
@@ -610,9 +582,7 @@ describe('background-fetch-queue', () => {
   });
 
   describe('priority integration test', () => {
-    // [covers:sort_queue.priority_order]
-    // [covers:process_queue.per_item_dequeue_side_effects]
-    it('実際のenqueue時に優先度順に処理される', async () => {
+    it('実際のenqueue時に優先度順に処理される [covers:sort-queue.priority-order, process-queue.per-item-dequeue-side-effects]', async () => {
       const results: string[] = [];
 
       (queue as any).retryDelay = 50;
