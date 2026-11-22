@@ -95,6 +95,7 @@
 import { ref, computed, watch } from 'vue';
 import BaseDialog from './BaseDialog.vue';
 import { countCardsForCategoryLabel } from '../composables/deck/useCategoryMatcher';
+import type { CardInfo, DeckCardRef } from '@/types/card';
 
 const props = defineProps<{
   isVisible: boolean;
@@ -105,8 +106,8 @@ const props = defineProps<{
     group: string[];
   }>;
   modelValue: string[];
-  deckCards: any[];
-  deckCardRefs?: any[]; // DeckCardRef[] from all sections
+  deckCards: CardInfo[];
+  deckCardRefs?: DeckCardRef[];
 }>();
 
 const emit = defineEmits<{
