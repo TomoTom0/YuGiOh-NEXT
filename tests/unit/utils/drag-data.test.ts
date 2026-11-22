@@ -138,6 +138,7 @@ describe('isDeckDragData', () => {
   it('cardがオブジェクトでない場合はfalseを返す [covers:is_deck_drag_data.card_non_object_false]', () => {
     expect(isDeckDragData({ sectionType: 'main', card: 'card' })).toBe(false);
     expect(isDeckDragData({ sectionType: 'main', card: 42 })).toBe(false);
+    expect(isDeckDragData({ sectionType: 'main', card: [] })).toBe(false);
   });
 
   it('cardに識別子（cardId/cid）が無い、または識別子として使えない値の場合はfalseを返す [covers:is_deck_drag_data.card_missing_identifier_false]', () => {
@@ -145,6 +146,13 @@ describe('isDeckDragData', () => {
     expect(isDeckDragData({ sectionType: 'main', card: { cardId: null, ciid: '1' } })).toBe(false);
     expect(isDeckDragData({ sectionType: 'main', card: { cardId: '', ciid: '1' } })).toBe(false);
     expect(isDeckDragData({ sectionType: 'main', card: { cardId: true, ciid: '1' } })).toBe(false);
+    // cardIdが存在するが使えない値の場合、消費側の ?? はcidへ進まないためcidが有効でもfalse
+    expect(isDeckDragData({ sectionType: 'main', card: { cardId: '', cid: '100', ciid: '1' } })).toBe(
+      false
+    );
+    expect(
+      isDeckDragData({ sectionType: 'main', card: { cardId: true, cid: '100', ciid: '1' } })
+    ).toBe(false);
   });
 
   it('cardのciidが欠落、または識別子として使えない値の場合はfalseを返す [covers:is_deck_drag_data.card_missing_or_invalid_ciid_false]', () => {
@@ -172,6 +180,10 @@ describe('isDeckDragData', () => {
         card: { cid: '100', ciid: '1' },
         uuid: 'u1',
       })
+    ).toBe(true);
+    // cardIdがnullの場合も、消費側の ?? がcidへ進むためtrue
+    expect(
+      isDeckDragData({ sectionType: 'main', card: { cardId: null, cid: '100', ciid: '1' } })
     ).toBe(true);
   });
 
