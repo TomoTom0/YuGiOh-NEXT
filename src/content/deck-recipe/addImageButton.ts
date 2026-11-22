@@ -7,6 +7,7 @@ import { isDeckDisplayPage, detectCardGameType, isOwnDeck, getDeckCgid } from '.
 import { getVueEditUrl } from '../../utils/url-builder';
 import { detectLanguage } from '../../utils/language-detector';
 import { EXTENSION_IDS } from '../../utils/dom-selectors';
+import type { DeckInfo } from '../../types/deck';
 
 /**
  * カメラアイコンのSVG
@@ -156,7 +157,8 @@ function addNextEditButton(bottomBtnSet: Element): HTMLElement | null {
               span.textContent = 'copying...';
 
               // 作成したデッキにデッキ情報を保存
-              const deckDataToCopy: any = {
+              const deckDataToCopy: DeckInfo = {
+                dno: newDno,
                 mainDeck: parsedDeckInfo.mainDeck,
                 extraDeck: parsedDeckInfo.extraDeck,
                 sideDeck: parsedDeckInfo.sideDeck,
