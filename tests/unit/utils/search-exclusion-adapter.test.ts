@@ -20,8 +20,7 @@ describe('search-exclusion-adapter', () => {
   });
 
   describe('toSearchConditionState', () => {
-    // [covers:card_type.null_not_added]
-    it('基本的な変換ができる', () => {
+    it('[covers:card-type.null-not-added] 基本的な変換ができる', () => {
       const filters = createBaseFilters();
       const result = toSearchConditionState(filters);
 
@@ -31,8 +30,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs).toBeDefined();
     });
 
-    // [covers:card_type.truthy_adds_attribute]
-    it('カードタイプを属性に変換できる', () => {
+    it('[covers:card-type.truthy-adds-attribute] カードタイプを属性に変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         cardType: '1', // モンスター
@@ -43,8 +41,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('card-type_1')).toBe(true);
     });
 
-    // [covers:attributes.each_prefixed_and_added]
-    it('属性を変換できる', () => {
+    it('[covers:attributes.each-prefixed-and-added] 属性を変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         attributes: ['light', 'dark'],
@@ -56,8 +53,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('attribute_dark')).toBe(true);
     });
 
-    // [covers:spell_types.each_prefixed_and_added]
-    it('魔法タイプを変換できる', () => {
+    it('[covers:spell-types.each-prefixed-and-added] 魔法タイプを変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         spellTypes: ['quick-play', 'continuous'],
@@ -69,8 +65,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('spell-type_continuous')).toBe(true);
     });
 
-    // [covers:trap_types.each_prefixed_and_added]
-    it('罠タイプを変換できる', () => {
+    it('[covers:trap-types.each-prefixed-and-added] 罠タイプを変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         trapTypes: ['counter', 'continuous'],
@@ -82,8 +77,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('trap-type_continuous')).toBe(true);
     });
 
-    // [covers:races.each_prefixed_and_added]
-    it('種族を変換できる', () => {
+    it('[covers:races.each-prefixed-and-added] 種族を変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         races: ['dragon', 'spellcaster'],
@@ -95,8 +89,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('race_spellcaster')).toBe(true);
     });
 
-    // [covers:monster_types.normal_state_added]
-    it('モンスタータイプ（normal状態）を変換できる', () => {
+    it('[covers:monster-types.normal-state-added] モンスタータイプ（normal状態）を変換できる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         monsterTypes: [
@@ -111,8 +104,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('monster-type_fusion')).toBe(true);
     });
 
-    // [covers:monster_types.not_state_excluded]
-    it('モンスタータイプ（not状態）は属性に含まれない', () => {
+    it('[covers:monster-types.not-state-excluded] モンスタータイプ（not状態）は属性に含まれない', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         monsterTypes: [
@@ -127,8 +119,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.selectedAttributes.has('monster-type_fusion')).toBe(true);
     });
 
-    // [covers:field_inputs.array_length_fields_true_when_nonempty]
-    it('リンク値の入力状況を正しく判定する', () => {
+    it('[covers:field-inputs.array-length-fields-true-when-nonempty] リンク値の入力状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         linkValues: [1, 2, 3],
@@ -172,8 +163,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['level-rank']).toBe(true);
     });
 
-    // [covers:has_atk_input.exact_true,field_inputs.atk_delegates_to_has_atk_input]
-    it('ATK入力（exact）の状況を正しく判定する', () => {
+    it('[covers:has-atk-input.exact-true,field-inputs.atk-delegates-to-has-atk-input] ATK入力（exact）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         atk: { exact: true, unknown: false },
@@ -184,8 +174,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['atk']).toBe(true);
     });
 
-    // [covers:has_atk_input.unknown_true]
-    it('ATK入力（unknown）の状況を正しく判定する', () => {
+    it('[covers:has-atk-input.unknown-true] ATK入力（unknown）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         atk: { exact: false, unknown: true },
@@ -196,8 +185,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['atk']).toBe(true);
     });
 
-    // [covers:has_atk_input.min_defined]
-    it('ATK入力（min）の状況を正しく判定する', () => {
+    it('[covers:has-atk-input.min-defined] ATK入力（min）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         atk: { exact: false, unknown: false, min: 2000 },
@@ -208,8 +196,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['atk']).toBe(true);
     });
 
-    // [covers:has_atk_input.max_defined]
-    it('ATK入力（max）の状況を正しく判定する', () => {
+    it('[covers:has-atk-input.max-defined] ATK入力（max）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         atk: { exact: false, unknown: false, max: 3000 },
@@ -220,8 +207,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['atk']).toBe(true);
     });
 
-    // [covers:has_def_input.exact_true,field_inputs.def_delegates_to_has_def_input]
-    it('DEF入力（exact）の状況を正しく判定する', () => {
+    it('[covers:has-def-input.exact-true,field-inputs.def-delegates-to-has-def-input] DEF入力（exact）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         def: { exact: true, unknown: false },
@@ -232,8 +218,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['def']).toBe(true);
     });
 
-    // [covers:has_def_input.unknown_true]
-    it('DEF入力（unknown）の状況を正しく判定する', () => {
+    it('[covers:has-def-input.unknown-true] DEF入力（unknown）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         def: { exact: false, unknown: true },
@@ -244,8 +229,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['def']).toBe(true);
     });
 
-    // [covers:has_def_input.min_defined,has_def_input.max_defined]
-    it('DEF入力（min/max）の状況を正しく判定する', () => {
+    it('[covers:has-def-input.min-defined,has-def-input.max-defined] DEF入力（min/max）の状況を正しく判定する', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         def: { exact: false, unknown: false, min: 1000, max: 2000 },
@@ -256,8 +240,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['def']).toBe(true);
     });
 
-    // [covers:field_inputs.array_length_fields_false_when_empty,has_atk_input.all_absent_false,has_def_input.all_absent_false]
-    it('入力なしの項目はfalseになる', () => {
+    it('[covers:field-inputs.array-length-fields-false-when-empty,has-atk-input.all-absent-false,has-def-input.all-absent-false] 入力なしの項目はfalseになる', () => {
       const filters = createBaseFilters();
 
       const result = toSearchConditionState(filters);
@@ -270,8 +253,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['atk']).toBe(false);
     });
 
-    // [covers:return_value.monster_type_mode_passthrough]
-    it('モンスタータイプマッチモードを正しく設定する', () => {
+    it('[covers:return-value.monster-type-mode-passthrough] モンスタータイプマッチモードを正しく設定する', () => {
       const filtersAnd: SearchFilters = {
         ...createBaseFilters(),
         monsterTypeMatchMode: 'and',
@@ -288,8 +270,7 @@ describe('search-exclusion-adapter', () => {
       expect(resultOr.monsterTypeMode).toBe('or');
     });
 
-    // [covers:field_inputs.array_length_fields_true_when_nonempty]
-    it('fieldInputsのattribute/race/spell-type/trap-typeも対応配列の有無で判定される', () => {
+    it('[covers:field-inputs.array-length-fields-true-when-nonempty] fieldInputsのattribute/race/spell-type/trap-typeも対応配列の有無で判定される', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         attributes: ['light'],
@@ -306,8 +287,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['trap-type']).toBe(true);
     });
 
-    // [covers:field_inputs.array_length_fields_false_when_empty]
-    it('fieldInputsのattribute/race/spell-type/trap-typeは配列が空ならfalseになる', () => {
+    it('[covers:field-inputs.array-length-fields-false-when-empty] fieldInputsのattribute/race/spell-type/trap-typeは配列が空ならfalseになる', () => {
       const filters = createBaseFilters();
 
       const result = toSearchConditionState(filters);
@@ -318,8 +298,7 @@ describe('search-exclusion-adapter', () => {
       expect(result.fieldInputs['trap-type']).toBe(false);
     });
 
-    // [covers:field_inputs.monster_type_counts_regardless_of_state]
-    it('fieldInputsのmonster-typeはnot状態のみの要素でもtrueになる', () => {
+    it('[covers:field-inputs.monster-type-counts-regardless-of-state] fieldInputsのmonster-typeはnot状態のみの要素でもtrueになる', () => {
       const filters: SearchFilters = {
         ...createBaseFilters(),
         monsterTypes: [{ type: 'tuner', state: 'not' }],
@@ -366,7 +345,7 @@ describe('search-exclusion-adapter', () => {
   // 同ファイルの残り検証（fieldInputs/selectedAttributesの各フィールド・複合条件・
   // monsterTypeMode）はtests/unit側の既存テストが同趣旨を網羅していたため移植対象外。
 
-  it('monsterTypesが空のとき、fieldInputsの"monster-type"はfalseになる [covers:field_inputs.monster_type_false_when_empty]', () => {
+  it('monsterTypesが空のとき、fieldInputsの"monster-type"はfalseになる [covers:field-inputs.monster-type-false-when-empty]', () => {
     const result = toSearchConditionState(createBaseFilters());
 
     expect(result.fieldInputs['monster-type']).toBe(false);
