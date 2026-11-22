@@ -65,7 +65,7 @@ describe('デッキ操作API', () => {
       return { fetchYtknFromDeckList, parseDeckList };
     };
 
-    it('[covers:create_new.request_url_no_locale_order,create_new.success_returns_max_dno] 新規デッキを作成し、デッキ番号を返す', async () => {
+    it('[covers:create-new.request-url-no-locale-order,create-new.success-returns-max-dno] 新規デッキを作成し、デッキ番号を返す', async () => {
       const mockResponse = `
         <html>
           <body>
@@ -97,7 +97,7 @@ describe('デッキ操作API', () => {
       expect(result).toBe(10);
     });
 
-    it('[covers:create_new.deck_list_empty_returns_zero] デッキ番号が取得できない場合は0を返す', async () => {
+    it('[covers:create-new.deck-list-empty-returns-zero] デッキ番号が取得できない場合は0を返す', async () => {
       const mockResponse = '<html><body></body></html>';
       const { fetchYtknFromDeckList, parseDeckList } = await setupYtknAndDeckList('test-ytkn', []);
       vi.mocked(axios.get).mockResolvedValue({
@@ -113,7 +113,7 @@ describe('デッキ操作API', () => {
       expect(result).toBe(0);
     });
 
-    it('[covers:create_new.catch_returns_zero] axiosが失敗した場合は0を返す', async () => {
+    it('[covers:create-new.catch-returns-zero] axiosが失敗した場合は0を返す', async () => {
       const { fetchYtknFromDeckList, parseDeckList } = await setupYtknAndDeckList('test-ytkn', [
         { dno: 10, name: 'Test Deck' }
       ]);
@@ -131,7 +131,7 @@ describe('デッキ操作API', () => {
 
 
   describe('saveDeckInternal', () => {
-    it('[covers:save.server_result_truthy_success] デッキを保存し、成功結果を返す', async () => {
+    it('[covers:save.server-result-truthy-success] デッキを保存し、成功結果を返す', async () => {
       const deckData: DeckInfo = {
         dno: 4,
         name: 'テストデッキ',
@@ -156,7 +156,7 @@ describe('デッキ操作API', () => {
       expect(result.success).toBe(true);
     });
 
-    it('[covers:save.server_error_truthy_failure] エラーがある場合は失敗結果を返す', async () => {
+    it('[covers:save.server-error-truthy-failure] エラーがある場合は失敗結果を返す', async () => {
       const deckData: DeckInfo = {
         dno: 4,
         name: '',
@@ -176,7 +176,7 @@ describe('デッキ操作API', () => {
       expect(result.error).toContain('エラー1');
     });
 
-    it('[covers:normalize_error.string_wraps] data.errorが配列以外（文字列）の場合も例外を出さず失敗結果を返す', async () => {
+    it('[covers:normalize-error.string-wraps] data.errorが配列以外（文字列）の場合も例外を出さず失敗結果を返す', async () => {
       const deckData: DeckInfo = {
         dno: 4,
         name: '',
@@ -195,7 +195,7 @@ describe('デッキ操作API', () => {
       expect(result.error).toEqual(['枚数が不正です']);
     });
 
-    it('[covers:normalize_error.truthy_non_string_json] data.errorが配列以外（オブジェクト）の場合も例外を出さず失敗結果を返す', async () => {
+    it('[covers:normalize-error.truthy-non-string-json] data.errorが配列以外（オブジェクト）の場合も例外を出さず失敗結果を返す', async () => {
       const deckData: DeckInfo = {
         dno: 4,
         name: '',
@@ -216,7 +216,7 @@ describe('デッキ操作API', () => {
   });
 
   describe('deleteDeckInternal', () => {
-    it('[covers:delete.status_200_success] デッキを削除し、成功結果を返す', async () => {
+    it('[covers:delete.status-200-success] デッキを削除し、成功結果を返す', async () => {
       // fetchYtknFromEditFormが成功するようにモック
       const { fetchYtknFromEditForm } = await import('@/utils/ytkn-fetcher');
       vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('test-ytkn');
@@ -238,7 +238,7 @@ describe('デッキ操作API', () => {
       expect(result).toBe(true);
     });
 
-    it('[covers:delete.ytkn_missing_returns_false] ytknの取得に失敗した場合はfalseを返す', async () => {
+    it('[covers:delete.ytkn-missing-returns-false] ytknの取得に失敗した場合はfalseを返す', async () => {
       const { fetchYtknFromEditForm } = await import('@/utils/ytkn-fetcher');
       vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('');
 
@@ -247,7 +247,7 @@ describe('デッキ操作API', () => {
       expect(result).toBe(false);
     });
 
-    it('[covers:delete.status_not_200_failure] 削除リクエストが失敗した場合はfalseを返す', async () => {
+    it('[covers:delete.status-not-200-failure] 削除リクエストが失敗した場合はfalseを返す', async () => {
       const { fetchYtknFromEditForm } = await import('@/utils/ytkn-fetcher');
       vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('test-ytkn');
       vi.mocked(axios.get).mockResolvedValue({
@@ -262,7 +262,7 @@ describe('デッキ操作API', () => {
   });
 
   describe('getDeckDetail', () => {
-    it('[covers:deck_detail.public_without_cgid] 正常にHTMLを取得してデッキ詳細をリクエストする', async () => {
+    it('[covers:deck-detail.public-without-cgid] 正常にHTMLを取得してデッキ詳細をリクエストする', async () => {
       const mockResponse = `<html><body></body></html>`;
       vi.mocked(axios.get).mockResolvedValue({
         data: mockResponse
@@ -282,7 +282,7 @@ describe('デッキ操作API', () => {
       );
     });
 
-    it('[covers:deck_detail.private_with_cgid] cgidパラメータがある場合は含める', async () => {
+    it('[covers:deck-detail.private-with-cgid] cgidパラメータがある場合は含める', async () => {
       const mockResponse = `<html><body></body></html>`;
       vi.mocked(axios.get).mockResolvedValue({
         data: mockResponse
@@ -296,7 +296,7 @@ describe('デッキ操作API', () => {
       );
     });
 
-    it('[covers:deck_detail.catch_returns_null] デッキ取得失敗時はnullを返す', async () => {
+    it('[covers:deck-detail.catch-returns-null] デッキ取得失敗時はnullを返す', async () => {
       vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
 
       const result = await getDeckDetail(999);
@@ -306,7 +306,7 @@ describe('デッキ操作API', () => {
   });
 
   describe('getDeckListInternal', () => {
-    it('[covers:deck_list.request_and_parse] 正しいパラメータでマイデッキ一覧をリクエストする', async () => {
+    it('[covers:deck-list.request-and-parse] 正しいパラメータでマイデッキ一覧をリクエストする', async () => {
       const mockResponse = `<html><body></body></html>`;
       vi.mocked(axios.get).mockResolvedValue({
         data: mockResponse
@@ -321,7 +321,7 @@ describe('デッキ操作API', () => {
       );
     });
 
-    it('[covers:deck_list.catch_returns_empty] デッキ一覧取得失敗時は空配列を返す', async () => {
+    it('[covers:deck-list.catch-returns-empty] デッキ一覧取得失敗時は空配列を返す', async () => {
       vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
 
       const result = await getDeckListInternal(testCgid);
@@ -331,7 +331,7 @@ describe('デッキ操作API', () => {
   });
 
   describe('saveDeckInternal - 詳細なFormDataテスト', () => {
-    it('[covers:save.main_deck_type_slots,save.extra_side_slots,save.get_card_type_temp_preferred] メインデッキの複数カード型を正しくFormDataに追加する', async () => {
+    it('[covers:save.main-deck-type-slots,save.extra-side-slots,save.get-card-type-temp-preferred] メインデッキの複数カード型を正しくFormDataに追加する', async () => {
       const deckData: DeckInfo = {
         dno: 5,
         name: 'マルチ型デッキ',
@@ -419,7 +419,7 @@ describe('デッキ操作API', () => {
       expect(postData).toContain('54321'); // 呪文カードID
     });
 
-    it('[covers:save.server_error_truthy_failure] 空のデッキを保存時にエラー返却する', async () => {
+    it('[covers:save.server-error-truthy-failure] 空のデッキを保存時にエラー返却する', async () => {
       const deckData: DeckInfo = {
         dno: 6,
         name: '',
@@ -442,7 +442,7 @@ describe('デッキ操作API', () => {
       expect(result.error).toHaveLength(2);
     });
 
-    it('[covers:save.categories_tags_repeated] Postリクエスト時にタグ・カテゴリーを含める', async () => {
+    it('[covers:save.categories-tags-repeated] Postリクエスト時にタグ・カテゴリーを含める', async () => {
       const deckData: DeckInfo = {
         dno: 7,
         name: 'カテゴリー付きデッキ',
@@ -467,7 +467,7 @@ describe('デッキ操作API', () => {
       expect(postData).toContain('dckTagMst');
     });
 
-    it('[covers:save.catch_error_message] Postリクエスト失敗時はエラーメッセージを返す', async () => {
+    it('[covers:save.catch-error-message] Postリクエスト失敗時はエラーメッセージを返す', async () => {
       const deckData: DeckInfo = {
         dno: 8,
         name: 'テストデッキ',

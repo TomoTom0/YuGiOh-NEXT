@@ -219,7 +219,7 @@ describe('deck-operations.ts', () => {
 
   describe('getDeckListInternal()', () => {
     describe('正常系', () => {
-      it('should fetch deck list and return parsed deck items [covers:deck_list.request_and_parse]', async () => {
+      it('should fetch deck list and return parsed deck items [covers:deck-list.request-and-parse]', async () => {
         // Arrange: axios.get がデッキ一覧HTMLを返すようにモック
         const mockHtml = '<html><body><div class="deck-list">...</div></body></html>';
         vi.mocked(axios.get).mockResolvedValue({ status: 200, data: mockHtml });
@@ -280,7 +280,7 @@ describe('deck-operations.ts', () => {
     });
 
     describe('異常系', () => {
-      it('should return empty array when API request fails [covers:deck_list.catch_returns_empty]', async () => {
+      it('should return empty array when API request fails [covers:deck-list.catch-returns-empty]', async () => {
         // Arrange: axios.get がエラーを投げるようにモック
         const error = new Error('Network error');
         vi.mocked(axios.get).mockRejectedValue(error);
@@ -295,7 +295,7 @@ describe('deck-operations.ts', () => {
         expect(handleError).toHaveBeenCalled();
       });
 
-      it('should return empty array when parseDeckList returns empty [covers:deck_list.empty_success]', async () => {
+      it('should return empty array when parseDeckList returns empty [covers:deck-list.empty-success]', async () => {
         // Arrange: parseDeckList が空配列を返すようにモック
         vi.mocked(axios.get).mockResolvedValue({ status: 200, data: '<html></html>' });
         vi.mocked(parseDeckList).mockReturnValue([]);
@@ -385,7 +385,7 @@ describe('deck-operations.ts', () => {
 
   describe('createNewDeckInternal()', () => {
     describe('正常系', () => {
-      it('should create a new deck and return its dno [covers:create_new.success_returns_max_dno]', async () => {
+      it('should create a new deck and return its dno [covers:create-new.success-returns-max-dno]', async () => {
         // Arrange: fetchYtknFromDeckList が有効な ytkn を返す
         vi.mocked(fetchYtknFromDeckList).mockResolvedValue('test-ytkn');
 
@@ -413,7 +413,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should construct correct API URL with ope=6 (CREATE) [covers:create_new.request_url_no_locale_order]', async () => {
+      it('should construct correct API URL with ope=6 (CREATE) [covers:create-new.request-url-no-locale-order]', async () => {
         // Arrange: モック設定
         vi.mocked(fetchYtknFromDeckList).mockResolvedValue('test-ytkn');
         vi.mocked(axios.get).mockResolvedValue({ status: 200, data: '<html></html>' });
@@ -507,7 +507,7 @@ describe('deck-operations.ts', () => {
     });
 
     describe('異常系', () => {
-      it('should return 0 when ytkn fetch fails [covers:create_new.ytkn_missing_returns_zero]', async () => {
+      it('should return 0 when ytkn fetch fails [covers:create-new.ytkn-missing-returns-zero]', async () => {
         // Arrange: fetchYtknFromDeckList が null を返す
         vi.mocked(fetchYtknFromDeckList).mockResolvedValue(null);
 
@@ -526,7 +526,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should return 0 when API request fails [covers:create_new.catch_returns_zero]', async () => {
+      it('should return 0 when API request fails [covers:create-new.catch-returns-zero]', async () => {
         // Arrange: axios.get がエラーを投げる
         vi.mocked(fetchYtknFromDeckList).mockResolvedValue('test-ytkn');
         const error = new Error('API request failed');
@@ -547,7 +547,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should return 0 when deck list is empty after creation [covers:create_new.deck_list_empty_returns_zero]', async () => {
+      it('should return 0 when deck list is empty after creation [covers:create-new.deck-list-empty-returns-zero]', async () => {
         // Arrange: parseDeckList が空配列を返す
         vi.mocked(fetchYtknFromDeckList).mockResolvedValue('test-ytkn');
         vi.mocked(axios.get).mockResolvedValue({ status: 200, data: '<html></html>' });
@@ -635,7 +635,7 @@ describe('deck-operations.ts', () => {
 
   describe('getDeckDetail()', () => {
     describe('正常系', () => {
-      it('should fetch deck detail for public deck (no cgid) [covers:deck_detail.public_without_cgid] [covers:deck_detail.success_returns_parsed]', async () => {
+      it('should fetch deck detail for public deck (no cgid) [covers:deck-detail.public-without-cgid] [covers:deck-detail.success-returns-parsed]', async () => {
         // Arrange: 前のテストの影響をクリア
         vi.clearAllMocks();
 
@@ -662,7 +662,7 @@ describe('deck-operations.ts', () => {
         expect(callPath![0]).not.toContain('cgid');
       });
 
-      it('should fetch deck detail for private deck (with cgid) [covers:deck_detail.private_with_cgid]', async () => {
+      it('should fetch deck detail for private deck (with cgid) [covers:deck-detail.private-with-cgid]', async () => {
         // Arrange: 前のテストの影響をクリア
         vi.clearAllMocks();
 
@@ -752,7 +752,7 @@ describe('deck-operations.ts', () => {
     });
 
     describe('異常系', () => {
-      it('should return null when API request fails [covers:deck_detail.catch_returns_null]', async () => {
+      it('should return null when API request fails [covers:deck-detail.catch-returns-null]', async () => {
         // Arrange: axios.get がエラーを投げる
         const error = new Error('Network error');
         vi.mocked(axios.get).mockRejectedValue(error);
@@ -814,7 +814,7 @@ describe('deck-operations.ts', () => {
         expect(result).toBeNull();
       });
 
-      it('should continue even if saveUnifiedCacheDB fails [covers:deck_detail.save_cache_failure_debug_only]', async () => {
+      it('should continue even if saveUnifiedCacheDB fails [covers:deck-detail.save-cache-failure-debug-only]', async () => {
         // Arrange: saveUnifiedCacheDB がエラーを投げる
         vi.mocked(axios.get).mockResolvedValue({ status: 200, data: '<html></html>' });
         const mockDeckInfo = createSampleDeckInfo();
@@ -878,7 +878,7 @@ describe('deck-operations.ts', () => {
 
   describe('saveDeckInternal()', () => {
     describe('正常系', () => {
-      it('should save deck successfully and return success [covers:save.server_result_truthy_success]', async () => {
+      it('should save deck successfully and return success [covers:save.server-result-truthy-success]', async () => {
         // Arrange: axios.post が成功レスポンス（{ result: true }）を返す
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
 
@@ -988,7 +988,7 @@ describe('deck-operations.ts', () => {
         expect(postData).toContain('biko=Test%20comment');
       });
 
-      it('should encode spaces as "%20" in URL params [covers:save.post_url_and_encoding]', async () => {
+      it('should encode spaces as "%20" in URL params [covers:save.post-url-and-encoding]', async () => {
         // Arrange: デッキ情報を用意
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const deckData = createSampleDeckInfo();
@@ -1031,7 +1031,7 @@ describe('deck-operations.ts', () => {
         });
       });
 
-      it('should apply optional metadata defaults and repeated category/tag fields [covers:save.metadata_optional_fields] [covers:save.categories_tags_repeated]', async () => {
+      it('should apply optional metadata defaults and repeated category/tag fields [covers:save.metadata-optional-fields] [covers:save.categories-tags-repeated]', async () => {
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const deckData = {
           ...createSampleDeckInfo(),
@@ -1058,7 +1058,7 @@ describe('deck-operations.ts', () => {
         expect(params.get('biko')).toBe('');
       });
 
-      it('should build card fields and empty slots by deck location [covers:save.get_card_type_temp_preferred] [covers:save.get_card_type_unified_fallback] [covers:save.main_deck_type_slots] [covers:save.extra_side_slots] [covers:append_card.main_monster_fields] [covers:append_card.main_spell_fields] [covers:append_card.main_trap_fields] [covers:append_card.extra_fields] [covers:append_card.side_fields]', async () => {
+      it('should build card fields and empty slots by deck location [covers:save.get-card-type-temp-preferred] [covers:save.get-card-type-unified-fallback] [covers:save.main-deck-type-slots] [covers:save.extra-side-slots] [covers:append-card.main-monster-fields] [covers:append-card.main-spell-fields] [covers:append-card.main-trap-fields] [covers:append-card.extra-fields] [covers:append-card.side-fields]', async () => {
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const tempGet = vi.fn((cid: string) => {
           if (cid === 'm1') return { cardType: 'monster' };
@@ -1121,7 +1121,7 @@ describe('deck-operations.ts', () => {
       // 3枚積み上限に合わせた3スロット固定のフォーマットであることが判明した。
       // 以前は「1(cid,ciid)ペア=1行」という誤ったモデルで、同一cidに複数の非デフォルトciidが
       // 混在すると2枚目以降のスロットが正しく埋まらず代表イラストに上書きされていた。
-      it('同一cidに非デフォルトciidが複数あっても1行にまとめ、imgsに物理コピーごとのciidを順番に並べて送信する [covers:append_card.imgs_per_copy_ciid_slots]', async () => {
+      it('同一cidに非デフォルトciidが複数あっても1行にまとめ、imgsに物理コピーごとのciidを順番に並べて送信する [covers:append-card.imgs-per-copy-ciid-slots]', async () => {
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const tempGet = vi.fn((cid: string) => (cid === 'm1' ? { cardType: 'monster' } : null));
         vi.mocked(getTempCacheDB).mockReturnValue({ get: tempGet, set: vi.fn(), clear: vi.fn() } as any);
@@ -1154,7 +1154,7 @@ describe('deck-operations.ts', () => {
         expect(params.getAll('monm')).toHaveLength(65);
       });
 
-      it('quantity=1の非デフォルトciidは3スロット全てが同じciidでパディングされる [covers:append_card.imgs_padding_single_copy]', async () => {
+      it('quantity=1の非デフォルトciidは3スロット全てが同じciidでパディングされる [covers:append-card.imgs-padding-single-copy]', async () => {
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const tempGet = vi.fn((cid: string) => (cid === 'm1' ? { cardType: 'monster' } : null));
         vi.mocked(getTempCacheDB).mockReturnValue({ get: tempGet, set: vi.fn(), clear: vi.fn() } as any);
@@ -1254,7 +1254,7 @@ describe('deck-operations.ts', () => {
     });
 
     describe('異常系', () => {
-      it('should return failure when server returns { result: false } [covers:save.server_error_truthy_failure] [covers:normalize_error.array_maps_strings_and_json]', async () => {
+      it('should return failure when server returns { result: false } [covers:save.server-error-truthy-failure] [covers:normalize-error.array-maps-strings-and-json]', async () => {
         // Arrange: axios.post が { result: false, error: ['Error message'] } を返す
         vi.mocked(axios.post).mockResolvedValue({
           status: 200,
@@ -1273,7 +1273,7 @@ describe('deck-operations.ts', () => {
         expect(handleError).toHaveBeenCalled();
       });
 
-      it('should normalize string server error [covers:normalize_error.string_wraps]', async () => {
+      it('should normalize string server error [covers:normalize-error.string-wraps]', async () => {
         vi.mocked(axios.post).mockResolvedValue({
           status: 200,
           data: { result: false, error: '保存エラー' }
@@ -1284,7 +1284,7 @@ describe('deck-operations.ts', () => {
         expect(result).toEqual({ success: false, error: ['保存エラー'] });
       });
 
-      it('should normalize object server error [covers:normalize_error.truthy_non_string_json]', async () => {
+      it('should normalize object server error [covers:normalize-error.truthy-non-string-json]', async () => {
         vi.mocked(axios.post).mockResolvedValue({
           status: 200,
           data: { result: false, error: { message: '保存エラー' } }
@@ -1295,7 +1295,7 @@ describe('deck-operations.ts', () => {
         expect(result).toEqual({ success: false, error: ['{"message":"保存エラー"}'] });
       });
 
-      it('should return failure when server returns no result field [covers:save.server_no_error_fallback]', async () => {
+      it('should return failure when server returns no result field [covers:save.server-no-error-fallback]', async () => {
         // Arrange: axios.post が {} を返す
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: {} });
 
@@ -1311,7 +1311,23 @@ describe('deck-operations.ts', () => {
         expect(handleError).toHaveBeenCalled();
       });
 
-      it('should handle API request failure (network error) [covers:save.options_default_show_error_toast_true] [covers:save.catch_error_message]', async () => {
+      it('should return fixed fallback when server returns falsy error [covers:normalize-error.falsy-empty]', async () => {
+        // Arrange: axios.post が { result: false, error: null } を返す。
+        // 前提の固定: normalizeErrorMessages の唯一の呼び出し元 saveDeckInternal は
+        // data.error が truthy の場合だけ呼び出すため、falsy の場合はその戻り値
+        // （空配列）ではなく固定文言が返る。falsy 分岐が公開API経由で観測できない
+        // （= 到達不能である）前提をここに固定する。
+        vi.mocked(axios.post).mockResolvedValue({
+          status: 200,
+          data: { result: false, error: null }
+        });
+
+        const result = await saveDeckInternal('test-cgid', 3, createSampleDeckInfo(), 'test-ytkn');
+
+        expect(result).toEqual({ success: false, error: ['保存に失敗しました'] });
+      });
+
+      it('should handle API request failure (network error) [covers:save.options-default-show-error-toast-true] [covers:save.catch-error-message]', async () => {
         // Arrange: axios.post がエラーを投げる
         const networkError = new Error('Network error');
         vi.mocked(axios.post).mockRejectedValue(networkError);
@@ -1332,7 +1348,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should pass showToast=false when showErrorToast is false [covers:save.options_show_error_toast_false]', async () => {
+      it('should pass showToast=false when showErrorToast is false [covers:save.options-show-error-toast-false]', async () => {
         vi.mocked(axios.post).mockResolvedValue({
           status: 200,
           data: { result: false, error: ['保存エラー'] }
@@ -1351,7 +1367,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should return Unknown error for non-Error throws [covers:save.catch_non_error_unknown]', async () => {
+      it('should return Unknown error for non-Error throws [covers:save.catch-non-error-unknown]', async () => {
         vi.mocked(axios.post).mockRejectedValue('boom');
 
         const result = await saveDeckInternal('test-cgid', 3, createSampleDeckInfo(), 'test-ytkn');
@@ -1373,7 +1389,7 @@ describe('deck-operations.ts', () => {
         expect(result.success).toBe(false);
       });
 
-      it('should handle missing card data in TempCardDB and UnifiedCacheDB [covers:append_card.not_found_throws] [covers:save.parameter_construction_error_caught]', async () => {
+      it('should handle missing card data in TempCardDB and UnifiedCacheDB [covers:append-card.not-found-throws] [covers:save.parameter-construction-error-caught]', async () => {
         // Arrange: カードが見つからない状態を設定
         vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
         const mockCardDB = {
@@ -1451,7 +1467,7 @@ describe('deck-operations.ts', () => {
   });
 
   describe('showSaveDeckErrorToast()', () => {
-    it('should show the provided save errors [covers:show_save_error.uses_given_error]', () => {
+    it('should show the provided save errors [covers:show-save-error.uses-given-error]', () => {
       showSaveDeckErrorToast(['a', 'b']);
 
       expect(handleError).toHaveBeenCalledWith(
@@ -1462,7 +1478,7 @@ describe('deck-operations.ts', () => {
       );
     });
 
-    it('should use the default save error message [covers:show_save_error.default_message]', () => {
+    it('should use the default save error message [covers:show-save-error.default-message]', () => {
       showSaveDeckErrorToast([]);
 
       expect(handleError).toHaveBeenCalledWith(
@@ -1480,7 +1496,7 @@ describe('deck-operations.ts', () => {
 
   describe('deleteDeckInternal()', () => {
     describe('正常系', () => {
-      it('should delete deck successfully and return true [covers:delete.status_200_success]', async () => {
+      it('should delete deck successfully and return true [covers:delete.status-200-success]', async () => {
         // Arrange: fetchYtknFromEditForm が有効な ytkn を返す
         vi.mocked(fetchYtknFromEditForm).mockResolvedValue('test-ytkn');
 
@@ -1500,7 +1516,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should construct correct API URL with ope=7 (DELETE) [covers:delete.request_url_with_locale]', async () => {
+      it('should construct correct API URL with ope=7 (DELETE) [covers:delete.request-url-with-locale]', async () => {
         // Arrange: モック設定
         vi.mocked(fetchYtknFromEditForm).mockResolvedValueOnce('test-ytkn');
         vi.mocked(axios.get).mockResolvedValueOnce({ status: 200, data: 'success' });
@@ -1551,7 +1567,7 @@ describe('deck-operations.ts', () => {
     });
 
     describe('異常系', () => {
-      it('should return false when ytkn fetch fails [covers:delete.ytkn_missing_returns_false]', async () => {
+      it('should return false when ytkn fetch fails [covers:delete.ytkn-missing-returns-false]', async () => {
         // Arrange: fetchYtknFromEditForm が null を返す
         vi.mocked(fetchYtknFromEditForm).mockResolvedValue(null);
 
@@ -1570,7 +1586,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should return false when API request fails [covers:delete.catch_returns_false]', async () => {
+      it('should return false when API request fails [covers:delete.catch-returns-false]', async () => {
         // Arrange: axios.get がエラーを投げる
         vi.mocked(fetchYtknFromEditForm).mockResolvedValue('test-ytkn');
         const error = new Error('Delete request failed');
@@ -1591,7 +1607,7 @@ describe('deck-operations.ts', () => {
         );
       });
 
-      it('should return false when response status is not 200 [covers:delete.status_not_200_failure]', async () => {
+      it('should return false when response status is not 200 [covers:delete.status-not-200-failure]', async () => {
         // Arrange: axios.get が 500 レスポンスをresolveする
         vi.mocked(fetchYtknFromEditForm).mockResolvedValue('test-ytkn');
         vi.mocked(axios.get).mockResolvedValue({ status: 500, data: 'server error' });
@@ -2064,7 +2080,7 @@ describe('deck-operations.ts', () => {
   });
 
   describe('saveDeckInternal() - データ検証', () => {
-    it('cidが空のカードがある場合、エラーが返される [covers:save.validation_empty_cid]', async () => {
+    it('cidが空のカードがある場合、エラーが返される [covers:save.validation-empty-cid]', async () => {
       const deckData = createSampleDeckInfo();
       // cidを空にする
       deckData.mainDeck = [{ cid: '', ciid: 1, quantity: 1 }];
@@ -2075,7 +2091,7 @@ describe('deck-operations.ts', () => {
       expect(result.error![0]).toContain('cid is empty or undefined');
     });
 
-    it('quantityが0のカードがある場合、エラーが返される [covers:save.validation_invalid_quantity]', async () => {
+    it('quantityが0のカードがある場合、エラーが返される [covers:save.validation-invalid-quantity]', async () => {
       const deckData = createSampleDeckInfo();
       deckData.mainDeck = [{ cid: '12345', ciid: 1, quantity: 0 }];
 
@@ -2085,7 +2101,7 @@ describe('deck-operations.ts', () => {
       expect(result.error![0]).toContain('invalid quantity');
     });
 
-    it('ciidが空のカードがある場合、エラーが返される [covers:save.validation_invalid_ciid]', async () => {
+    it('ciidが空のカードがある場合、エラーが返される [covers:save.validation-invalid-ciid]', async () => {
       const deckData = createSampleDeckInfo();
       deckData.mainDeck = [{ cid: '12345', ciid: '', quantity: 1 }];
 
@@ -2095,7 +2111,7 @@ describe('deck-operations.ts', () => {
       expect(result.error![0]).toContain('invalid ciid');
     });
 
-    it('重複カード（同一cid+ciid）がある場合、エラーが返される [covers:save.validation_duplicate_cid_ciid]', async () => {
+    it('重複カード（同一cid+ciid）がある場合、エラーが返される [covers:save.validation-duplicate-cid-ciid]', async () => {
       const deckData = createSampleDeckInfo();
       deckData.mainDeck = [
         { cid: '12345', ciid: 1, quantity: 2 },
@@ -2108,7 +2124,7 @@ describe('deck-operations.ts', () => {
       expect(result.error![0]).toContain('Duplicate card found');
     });
 
-    it('ciidが0のカードは有効として扱われる [covers:save.validation_invalid_ciid]', async () => {
+    it('ciidが0のカードは有効として扱われる [covers:save.validation-invalid-ciid]', async () => {
       vi.mocked(axios.post).mockResolvedValue({ status: 200, data: { result: true } });
 
       const deckData = createSampleDeckInfo();
@@ -2121,7 +2137,7 @@ describe('deck-operations.ts', () => {
       }
     });
 
-    it('mainDeckが省略された場合はパラメータ構築で失敗結果になる [covers:save.parameter_construction_error_caught]', async () => {
+    it('mainDeckが省略された場合はパラメータ構築で失敗結果になる [covers:save.parameter-construction-error-caught]', async () => {
       const deckData = {
         ...createSampleDeckInfo(),
         mainDeck: undefined
