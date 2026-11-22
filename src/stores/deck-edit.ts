@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, nextTick, watch, toRaw } from 'vue';
-import type { DeckInfo, DeckCardRef, OperationResult } from '../types/deck';
+import type { DeckInfo, DeckCardRef, DeckListItem, OperationResult } from '../types/deck';
+import type { SortOrder } from '../types/settings';
 import { DECK_FIELD_LIMITS } from '../types/deck';
 import type { CardInfo } from '../types/card';
 import { sessionManager } from '../content/session/session';
@@ -680,7 +681,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
   watch([viewMode, sortOrder, activeTab, cardTab, showDetail], () => {
     URLStateManager.syncUIStateToURL({
       viewMode: viewMode.value,
-      sortOrder: sortOrder.value as any,
+      sortOrder: sortOrder.value as SortOrder,
       activeTab: activeTab.value,
       cardTab: cardTab.value,
       showDetail: showDetail.value,
@@ -1265,7 +1266,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
 
     try {
       const result = await chrome.storage.local.get(CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS);
-      const allData = (result[CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS] as Record<string, any>) || {};
+      const allData = (result[CHROME_STORAGE_KEY_DECK_HEAD_PLACEMENT_CARDS] as Record<string, unknown> | undefined) || {};
       const dnoKey = String(dno);
       const loadedData = allData[dnoKey];
 
@@ -1276,7 +1277,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
         headPlacementCardIds.value = loadedData;
       } else if (loadedData && typeof loadedData === 'object') {
         // オブジェクトの場合は values() で配列に変換
-        headPlacementCardIds.value = Object.values(loadedData).filter(v => typeof v === 'string');
+        headPlacementCardIds.value = Object.values(loadedData).filter((v): v is string => typeof v === 'string');
         needsResave = true; // 変換したので再保存が必要
       } else {
         headPlacementCardIds.value = [];
@@ -1414,7 +1415,7 @@ export const useDeckEditStore = defineStore('deck-edit', () => {
     // backgroundDeckInfoFetch 設定は、バックグラウンド更新には影響しない
 
     try {
-      let list: any[] | null = null;
+      let list: DeckListItem[] | null = null;
 
       // Background で事前取得済みのデッキリストを確認
       try {
