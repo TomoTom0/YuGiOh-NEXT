@@ -23,8 +23,8 @@ export interface RequestQueueOptions {
 
 interface QueuedRequest<T> {
   fn: () => Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason?: any) => void;
+  resolve(value: T): void;
+  reject(reason?: unknown): void;
   retries: number;
 }
 
@@ -36,7 +36,7 @@ interface QueuedRequest<T> {
  * const result = await queue.enqueue(() => fetch(url));
  */
 export class RequestQueue {
-  private queue: QueuedRequest<any>[] = [];
+  private queue: QueuedRequest<unknown>[] = [];
   private activeCount = 0;
   private readonly options: Required<RequestQueueOptions>;
 
@@ -145,7 +145,7 @@ export class RequestQueue {
   /**
    * リトライ可能なエラーかどうかを判定
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     // ネットワークエラーはリトライ対象
     if (error instanceof TypeError && error.message.includes('fetch')) {
       return true;
@@ -160,7 +160,7 @@ export class RequestQueue {
 
     // response オブジェクトを持つカスタムエラー
     if (error && typeof error === 'object' && 'status' in error) {
-      const status = (error as any).status;
+      const status = error.status;
       return status === 429 || status === 503;
     }
 
