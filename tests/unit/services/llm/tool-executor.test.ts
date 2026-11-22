@@ -73,7 +73,7 @@ describe('tool history exports', () => {
     clearSessionToolHistory();
   });
 
-  it('履歴配列そのものを返し、clearは同一参照を空にする [covers:history.get_returns_live_array] [covers:history.clear_truncates]', () => {
+  it('履歴配列そのものを返し、clearは同一参照を空にする [covers:history.get-returns-live-array] [covers:history.clear-truncates]', () => {
     recordToolCall('first', { a: 1 }, { ok: true });
     const history = getSessionToolHistory();
 
@@ -85,7 +85,7 @@ describe('tool history exports', () => {
     expect(history).toHaveLength(0);
   });
 
-  it('name/args/resultを履歴末尾に追加する [covers:history.record_pushes_entry]', () => {
+  it('name/args/resultを履歴末尾に追加する [covers:history.record-pushes-entry]', () => {
     recordToolCall('tool', { a: 1 }, { ok: true });
     recordToolCall('next', {}, null);
 
@@ -100,14 +100,14 @@ describe('executeTool - common and simple tools', () => {
     vi.mocked(searchCards).mockResolvedValue([]);
   });
 
-  it('未知のツール名はエラーを返す [covers:execute.unknown_tool_error]', async () => {
+  it('未知のツール名はエラーを返す [covers:execute.unknown-tool-error]', async () => {
     await expect(executeTool({ name: 'unknownTool', arguments: {} }, createMockStoreRefs())).resolves.toEqual({
       success: false,
       error: '未知のツール: unknownTool',
     });
   });
 
-  it('Error例外はmessageをerrorにして返す [covers:execute.catch_error_message]', async () => {
+  it('Error例外はmessageをerrorにして返す [covers:execute.catch-error-message]', async () => {
     const refs = createMockStoreRefs({
       getDeckState: vi.fn(() => {
         throw new Error('boom');
@@ -120,7 +120,7 @@ describe('executeTool - common and simple tools', () => {
     });
   });
 
-  it('Error以外の例外はString(err)をerrorにして返す [covers:execute.catch_non_error_string]', async () => {
+  it('Error以外の例外はString(err)をerrorにして返す [covers:execute.catch-non-error-string]', async () => {
     const refs = createMockStoreRefs({
       getDeckState: vi.fn(() => {
         throw 'boom';
@@ -133,7 +133,7 @@ describe('executeTool - common and simple tools', () => {
     });
   });
 
-  it('searchCardsはkeyword/searchTypeで検索し先頭10件だけを射影する [covers:execute.search_cards_keyword_searchtype_limit_shape]', async () => {
+  it('searchCardsはkeyword/searchTypeで検索し先頭10件だけを射影する [covers:execute.search-cards-keyword-searchtype-limit-shape]', async () => {
     const cards = Array.from({ length: 11 }, (_, index) => spell(String(index + 1), `Card ${index + 1}`));
     vi.mocked(searchCards).mockResolvedValue(cards);
 
@@ -149,7 +149,7 @@ describe('executeTool - common and simple tools', () => {
     });
   });
 
-  it('getChatHistoryは履歴配列そのものをdataで返す [covers:execute.get_chat_history_returns_live_history]', async () => {
+  it('getChatHistoryは履歴配列そのものをdataで返す [covers:execute.get-chat-history-returns-live-history]', async () => {
     recordToolCall('tool', {}, { ok: true });
     const result = await executeTool({ name: 'getChatHistory', arguments: {} }, createMockStoreRefs());
 
@@ -157,7 +157,7 @@ describe('executeTool - common and simple tools', () => {
     expect(result.data).toBe(getSessionToolHistory());
   });
 
-  it('getDeckStateはstoreの戻り値をdataで返す [covers:execute.get_deck_state_returns_store_state]', async () => {
+  it('getDeckStateはstoreの戻り値をdataで返す [covers:execute.get-deck-state-returns-store-state]', async () => {
     const state = { main: ['1'] };
     const refs = createMockStoreRefs({ getDeckState: vi.fn(() => state) });
 
@@ -174,7 +174,7 @@ describe('executeTool - getCardDetail', () => {
     vi.mocked(searchCards).mockResolvedValue([]);
   });
 
-  it('cardIdがある場合はnameを解決せずcardIdで取得する [covers:execute.get_card_detail_card_id_skips_name_resolution]', async () => {
+  it('cardIdがある場合はnameを解決せずcardIdで取得する [covers:execute.get-card-detail-card-id-skips-name-resolution]', async () => {
     const target = spell('1', 'Exact', { text: 'effect text' });
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('2', 'Other')] })),
@@ -194,7 +194,7 @@ describe('executeTool - getCardDetail', () => {
     });
   });
 
-  it('name解決がnotFoundなら未検出エラーを返す [covers:execute.get_card_detail_name_not_found]', async () => {
+  it('name解決がnotFoundなら未検出エラーを返す [covers:execute.get-card-detail-name-not-found]', async () => {
     vi.mocked(searchCards).mockResolvedValue([]);
 
     await expect(
@@ -202,7 +202,7 @@ describe('executeTool - getCardDetail', () => {
     ).resolves.toEqual({ success: false, error: 'カード「missing」が見つかりません' });
   });
 
-  it('name解決がambiguousなら候補名を連結したエラーを返す [covers:execute.get_card_detail_name_ambiguous]', async () => {
+  it('name解決がambiguousなら候補名を連結したエラーを返す [covers:execute.get-card-detail-name-ambiguous]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', 'Blue A'), spell('2', 'Blue B')] })),
     });
@@ -212,19 +212,19 @@ describe('executeTool - getCardDetail', () => {
     ).resolves.toEqual({ success: false, error: 'カード「Blue」は複数該当します: Blue A, Blue B' });
   });
 
-  it('cardId/nameがない場合は識別子要求エラーを返す [covers:execute.get_card_detail_missing_identifier]', async () => {
+  it('cardId/nameがない場合は識別子要求エラーを返す [covers:execute.get-card-detail-missing-identifier]', async () => {
     await expect(
       executeTool({ name: 'getCardDetail', arguments: {} }, createMockStoreRefs())
     ).resolves.toEqual({ success: false, error: 'cardIdまたはnameを指定してください' });
   });
 
-  it('解決したcardIdがstoreにない場合はカードID未検出エラーを返す [covers:execute.get_card_detail_missing_card]', async () => {
+  it('解決したcardIdがstoreにない場合はカードID未検出エラーを返す [covers:execute.get-card-detail-missing-card]', async () => {
     await expect(
       executeTool({ name: 'getCardDetail', arguments: { cardId: '404' } }, createMockStoreRefs())
     ).resolves.toEqual({ success: false, error: 'カードID 404 が見つかりません' });
   });
 
-  it('成功時はtextキー有無に応じてtext値またはundefinedを返す [covers:execute.get_card_detail_success_text_field]', async () => {
+  it('成功時はtextキー有無に応じてtext値またはundefinedを返す [covers:execute.get-card-detail-success-text-field]', async () => {
     const withText = spell('1', 'With Text', { text: 'effect' });
     const withoutText = spell('2', 'Without Text');
     const refs = createMockStoreRefs({
@@ -243,7 +243,7 @@ describe('executeTool - getCardDetail', () => {
 });
 
 describe('executeTool - addCardToDeck', () => {
-  it('カードが見つからない場合はaddCardを呼ばずエラーを返す [covers:execute.add_card_missing_card]', async () => {
+  it('カードが見つからない場合はaddCardを呼ばずエラーを返す [covers:execute.add-card-missing-card]', async () => {
     const refs = createMockStoreRefs();
 
     await expect(
@@ -252,7 +252,7 @@ describe('executeTool - addCardToDeck', () => {
     expect(refs.addCard).not.toHaveBeenCalled();
   });
 
-  it('section未指定時はmainでaddCardしsuccess/errorだけを返す [covers:execute.add_card_default_section_and_forwards_result]', async () => {
+  it('section未指定時はmainでaddCardしsuccess/errorだけを返す [covers:execute.add-card-default-section-and-forwards-result]', async () => {
     const refs = createMockStoreRefs({
       getCardInfoById: vi.fn(() => spell('1', 'Card')),
       addCard: vi.fn(() => ({ success: false, error: 'full' })),
@@ -266,7 +266,7 @@ describe('executeTool - addCardToDeck', () => {
 });
 
 describe('executeTool - removeCardFromDeck', () => {
-  it('cardIdもcardIdsもない場合は完全一致のエラーを返す [covers:execute.remove_card_missing_ids]', async () => {
+  it('cardIdもcardIdsもない場合は完全一致のエラーを返す [covers:execute.remove-card-missing-ids]', async () => {
     const refs = createMockStoreRefs();
 
     await expect(
@@ -275,7 +275,7 @@ describe('executeTool - removeCardFromDeck', () => {
     expect(refs.moveCard).not.toHaveBeenCalled();
   });
 
-  it('section/fromがない場合は完全一致のエラーを返す [covers:execute.remove_card_missing_from]', async () => {
+  it('section/fromがない場合は完全一致のエラーを返す [covers:execute.remove-card-missing-from]', async () => {
     const refs = createMockStoreRefs();
 
     await expect(
@@ -284,7 +284,7 @@ describe('executeTool - removeCardFromDeck', () => {
     expect(refs.moveCard).not.toHaveBeenCalled();
   });
 
-  it('cardIdsをcardIdより優先しsectionをfrom別名として使う [covers:execute.remove_card_card_ids_preferred_and_from_alias] [covers:execute.remove_card_all_success]', async () => {
+  it('cardIdsをcardIdより優先しsectionをfrom別名として使う [covers:execute.remove-card-card-ids-preferred-and-from-alias] [covers:execute.remove-card-all-success]', async () => {
     const refs = createMockStoreRefs();
 
     const result = await executeTool(
@@ -299,7 +299,7 @@ describe('executeTool - removeCardFromDeck', () => {
     expect(refs.removeCard).not.toHaveBeenCalled();
   });
 
-  it('to未指定ならtrash、指定時はその移動先を使う [covers:execute.remove_card_to_default_trash_or_override]', async () => {
+  it('to未指定ならtrash、指定時はその移動先を使う [covers:execute.remove-card-to-default-trash-or-override]', async () => {
     const refs = createMockStoreRefs();
 
     await executeTool({ name: 'removeCardFromDeck', arguments: { cardId: '1', from: 'main' } }, refs);
@@ -309,7 +309,7 @@ describe('executeTool - removeCardFromDeck', () => {
     expect(refs.moveCard).toHaveBeenCalledWith('2', 'main', 'side');
   });
 
-  it('一部失敗ならsuccess=trueで失敗errorと成功件数を返す [covers:execute.remove_card_partial_failure]', async () => {
+  it('一部失敗ならsuccess=trueで失敗errorと成功件数を返す [covers:execute.remove-card-partial-failure]', async () => {
     const refs = createMockStoreRefs({
       moveCard: vi.fn((id: string) => id === '1' ? { success: true } : { success: false, error: 'fail' }),
     });
@@ -319,7 +319,7 @@ describe('executeTool - removeCardFromDeck', () => {
     ).resolves.toEqual({ success: true, error: '2: fail', data: { removed: 1 } });
   });
 
-  it('全件失敗ならsuccess=falseでdataを返さない [covers:execute.remove_card_all_failure]', async () => {
+  it('全件失敗ならsuccess=falseでdataを返さない [covers:execute.remove-card-all-failure]', async () => {
     const refs = createMockStoreRefs({
       moveCard: vi.fn((id: string) => ({ success: false, error: `fail${id}` })),
     });
@@ -331,7 +331,7 @@ describe('executeTool - removeCardFromDeck', () => {
 });
 
 describe('executeTool - moveCard', () => {
-  it('cardIdもcardIdsもない場合は完全一致のエラーを返す [covers:execute.move_card_missing_ids]', async () => {
+  it('cardIdもcardIdsもない場合は完全一致のエラーを返す [covers:execute.move-card-missing-ids]', async () => {
     const refs = createMockStoreRefs();
 
     await expect(
@@ -340,7 +340,7 @@ describe('executeTool - moveCard', () => {
     expect(refs.moveCard).not.toHaveBeenCalled();
   });
 
-  it('from/sectionまたはtoがない場合は完全一致のエラーを返す [covers:execute.move_card_missing_endpoint]', async () => {
+  it('from/sectionまたはtoがない場合は完全一致のエラーを返す [covers:execute.move-card-missing-endpoint]', async () => {
     const refs = createMockStoreRefs();
 
     await expect(
@@ -352,7 +352,7 @@ describe('executeTool - moveCard', () => {
     expect(refs.moveCard).not.toHaveBeenCalled();
   });
 
-  it('cardIdsをcardIdより優先しsectionをfrom別名として使う [covers:execute.move_card_card_ids_preferred_and_section_alias] [covers:execute.move_card_all_success]', async () => {
+  it('cardIdsをcardIdより優先しsectionをfrom別名として使う [covers:execute.move-card-card-ids-preferred-and-section-alias] [covers:execute.move-card-all-success]', async () => {
     const refs = createMockStoreRefs();
 
     const result = await executeTool(
@@ -366,7 +366,7 @@ describe('executeTool - moveCard', () => {
     expect(refs.moveCard).not.toHaveBeenCalledWith('ignored', expect.anything(), expect.anything());
   });
 
-  it('一部失敗ならsuccess=trueで失敗errorと成功件数を返す [covers:execute.move_card_partial_failure]', async () => {
+  it('一部失敗ならsuccess=trueで失敗errorと成功件数を返す [covers:execute.move-card-partial-failure]', async () => {
     const refs = createMockStoreRefs({
       moveCard: vi.fn((id: string) => id === '1' ? { success: true } : { success: false, error: 'fail' }),
     });
@@ -376,7 +376,7 @@ describe('executeTool - moveCard', () => {
     ).resolves.toEqual({ success: true, error: '2: fail', data: { moved: 1 } });
   });
 
-  it('全件失敗ならsuccess=falseでdataを返さない [covers:execute.move_card_all_failure]', async () => {
+  it('全件失敗ならsuccess=falseでdataを返さない [covers:execute.move-card-all-failure]', async () => {
     const refs = createMockStoreRefs({
       moveCard: vi.fn((id: string) => ({ success: false, error: `fail${id}` })),
     });
@@ -393,7 +393,7 @@ describe('executeTool - resolveCardName', () => {
     vi.mocked(searchCards).mockResolvedValue([]);
   });
 
-  it('名前解決結果を形に関わらずsuccess=trueで返す [covers:execute.resolve_card_name_returns_resolution_success]', async () => {
+  it('名前解決結果を形に関わらずsuccess=trueで返す [covers:execute.resolve-card-name-returns-resolution-success]', async () => {
     await expect(
       executeTool({ name: 'resolveCardName', arguments: { name: 'missing' } }, createMockStoreRefs())
     ).resolves.toEqual({ success: true, data: { notFound: true } });
@@ -405,7 +405,7 @@ describe('executeTool - searchDeckCards', () => {
     vi.clearAllMocks();
   });
 
-  it('section指定時は該当セクションだけを検索する [covers:execute.search_deck_sections_filter]', async () => {
+  it('section指定時は該当セクションだけを検索する [covers:execute.search-deck-sections-filter]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({
         main: [spell('main', 'Shared')],
@@ -428,7 +428,7 @@ describe('executeTool - searchDeckCards', () => {
     });
   });
 
-  it('空白keywordは一致判定せず全カードを返す [covers:execute.search_deck_blank_keyword_matches_all]', async () => {
+  it('空白keywordは一致判定せず全カードを返す [covers:execute.search-deck-blank-keyword-matches-all]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', 'Alpha'), spell('2', 'Beta')] })),
     });
@@ -439,7 +439,7 @@ describe('executeTool - searchDeckCards', () => {
     expect((result.data as { cards: Array<{ cardId: string }> }).cards.map(c => c.cardId)).toEqual(['1', '2']);
   });
 
-  it('kind未指定のauto検索はtextまで検索する [covers:execute.search_deck_auto_expands_all_kinds]', async () => {
+  it('kind未指定のauto検索はtextまで検索する [covers:execute.search-deck-auto-expands-all-kinds]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', 'Alpha', { text: 'special keyword' })] })),
     });
@@ -449,7 +449,7 @@ describe('executeTool - searchDeckCards', () => {
     expect(result.data).toMatchObject({ cards: [{ cardId: '1' }], totalCount: 1 });
   });
 
-  it('明示raceで種族名解決に失敗すると空結果を即返す [covers:execute.search_deck_explicit_invalid_race_empty]', async () => {
+  it('明示raceで種族名解決に失敗すると空結果を即返す [covers:execute.search-deck-explicit-invalid-race-empty]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', '存在しない種族')] })),
     });
@@ -459,7 +459,7 @@ describe('executeTool - searchDeckCards', () => {
     ).resolves.toEqual({ success: true, data: { cards: [], totalCount: 0 } });
   });
 
-  it('autoのrace解決失敗はraceだけを無効化しname一致は継続する [covers:execute.search_deck_auto_invalid_race_skips_race]', async () => {
+  it('autoのrace解決失敗はraceだけを無効化しname一致は継続する [covers:execute.search-deck-auto-invalid-race-skips-race]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', '存在しない種族')] })),
     });
@@ -472,7 +472,7 @@ describe('executeTool - searchDeckCards', () => {
     expect(result.data).toMatchObject({ cards: [{ cardId: '1' }], totalCount: 1 });
   });
 
-  it('明示attributeで属性名解決に失敗すると空結果を即返す [covers:execute.search_deck_explicit_invalid_attribute_empty]', async () => {
+  it('明示attributeで属性名解決に失敗すると空結果を即返す [covers:execute.search-deck-explicit-invalid-attribute-empty]', async () => {
     await expect(
       executeTool(
         { name: 'searchDeckCards', arguments: { keyword: '存在しない属性', kind: 'attribute' } },
@@ -481,7 +481,7 @@ describe('executeTool - searchDeckCards', () => {
     ).resolves.toEqual({ success: true, data: { cards: [], totalCount: 0 } });
   });
 
-  it('明示typeでタイプ名解決に失敗すると空結果を即返す [covers:execute.search_deck_explicit_invalid_type_empty]', async () => {
+  it('明示typeでタイプ名解決に失敗すると空結果を即返す [covers:execute.search-deck-explicit-invalid-type-empty]', async () => {
     await expect(
       executeTool(
         { name: 'searchDeckCards', arguments: { keyword: '存在しないタイプ', kind: 'type' } },
@@ -490,7 +490,7 @@ describe('executeTool - searchDeckCards', () => {
     ).resolves.toEqual({ success: true, data: { cards: [], totalCount: 0 } });
   });
 
-  it('name部分一致でカードを返し、不一致カードは除外する [covers:execute.search_deck_match_name] [covers:execute.search_deck_no_keyword_match_skips]', async () => {
+  it('name部分一致でカードを返し、不一致カードは除外する [covers:execute.search-deck-match-name] [covers:execute.search-deck-no-keyword-match-skips]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({ main: [spell('1', 'Blue Card'), spell('2', 'Red Card')] })),
     });
@@ -503,7 +503,7 @@ describe('executeTool - searchDeckCards', () => {
     expect(result.data).toMatchObject({ cards: [{ cardId: '1' }], totalCount: 1 });
   });
 
-  it('race/attribute/typeは表示名の完全一致または前方一致で内部IDへ変換して検索する [covers:execute.search_deck_match_race_attribute_type]', async () => {
+  it('race/attribute/typeは表示名の完全一致または前方一致で内部IDへ変換して検索する [covers:execute.search-deck-match-race-attribute-type]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({
         main: [
@@ -522,7 +522,7 @@ describe('executeTool - searchDeckCards', () => {
       .resolves.toMatchObject({ data: { cards: [{ cardId: 'effect' }], totalCount: 1 } });
   });
 
-  it('text検索はtextまたはpendulumTextの部分一致で返す [covers:execute.search_deck_match_text_or_pendulum_text]', async () => {
+  it('text検索はtextまたはpendulumTextの部分一致で返す [covers:execute.search-deck-match-text-or-pendulum-text]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({
         main: [
@@ -540,7 +540,7 @@ describe('executeTool - searchDeckCards', () => {
     expect((result.data as { cards: Array<{ cardId: string }> }).cards.map(c => c.cardId)).toEqual(['text', 'pendulum']);
   });
 
-  it('cardType指定と結果マッピングを適用する [covers:execute.search_deck_card_type_filter] [covers:execute.search_deck_result_mapping]', async () => {
+  it('cardType指定と結果マッピングを適用する [covers:execute.search-deck-card-type-filter] [covers:execute.search-deck-result-mapping]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({
         main: [
@@ -574,7 +574,7 @@ describe('executeTool - searchDeckCards', () => {
     });
   });
 
-  it('同一セクション内の同一cardIdを集約しquantity合計をtotalCountにする [covers:execute.search_deck_dedup_count_and_total]', async () => {
+  it('同一セクション内の同一cardIdを集約しquantity合計をtotalCountにする [covers:execute.search-deck-dedup-count-and-total]', async () => {
     const refs = createMockStoreRefs({
       getDeckSections: vi.fn(() => deck({
         main: [spell('1', 'Shared'), spell('1', 'Shared'), spell('2', 'Shared')],
