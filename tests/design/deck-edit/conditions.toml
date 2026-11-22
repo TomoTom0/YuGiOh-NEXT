@@ -16,198 +16,192 @@
 feature = "deck-edit-store"
 source_file = "src/stores/deck-edit.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/stores/deck-edit-comprehensive.test.ts tests/unit/stores/deck-edit-undo-redo.test.ts tests/unit/stores/deck-edit.test.ts tests/unit/stores/deck-edit-displayorder.test.ts tests/unit/stores/deck-edit-operations.test.ts tests/unit/stores/deck-edit-uistate.test.ts tests/e2e/deck-edit-export-import.test.ts"
-source_hash = "12e8e0622e9175c67f16d058e60360628db2c762"
+verified_at = "2026-11-22"
+verified_by = "claude"
+test_command = "mise run test:vitest -- tests/unit/stores/deck-edit-comprehensive.test.ts tests/unit/stores/deck-edit-undo-redo.test.ts tests/unit/stores/deck-edit.test.ts tests/unit/stores/deck-edit-displayorder.test.ts tests/unit/stores/deck-edit-operations.test.ts tests/unit/stores/deck-edit-uistate.test.ts tests/unit/stores/deck-edit-conditions.test.ts tests/e2e/deck-edit-export-import.test.ts"
+source_hash = "de5f6daee1b19aac778d462ad940112aecdbd476"
 note = "verified=falseは公開APIだけでは再現困難な外部I/O失敗・非同期catch・未公開内部状態依存・既存テスト未到達の条件。理由は各conditionのunverifiable_reason参照"
 
 # --- setDraggingCard(card): void ---
 
 [[condition]]
-id = "set_dragging_card.assigns_value"
+id = "set-dragging-card.assigns-value"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:730,tests/unit/stores/deck-edit-uistate.test.ts:476,tests/unit/stores/deck-edit-uistate.test.ts:480,tests/unit/stores/deck-edit-uistate.test.ts:489,tests/unit/stores/deck-edit-uistate.test.ts:497"
 target_function = "useDeckEditStore#setDraggingCard"
-source_lines = "81-83"
 description = "渡されたドラッグ中カード情報またはnullをdraggingCard.valueへそのまま代入する"
 given = "setDraggingCard(cardInfo) または setDraggingCard(null)"
-expect_side_effect = "draggingCard.value === 引数card"
+expect_return_shape = "draggingCard.value === 引数card"
 
 # --- updateCategoryMatching(): void ---
 
 [[condition]]
-id = "update_category_matching.increments_trigger"
+id = "update-category-matching.increments-trigger"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1077"
 target_function = "useDeckEditStore#updateCategoryMatching"
-source_lines = "190-192"
 description = "カテゴリ判定更新トリガーを1増やし、categoryMatchedCardIds computedの再計算を促す"
 given = "updateCategoryMatching()を呼ぶ"
-expect_side_effect = "categoryMatchingTrigger.value が呼び出し前から1増える"
+expect_return_shape = "categoryMatchingTrigger.value が呼び出し前から1増える"
 verified = false
 unverifiable_reason = "categoryMatchingTriggerはreturnされておらず、公開APIから直接値を観測できない"
 
 # --- sortDisplayOrderForOfficial(): void ---
 
 [[condition]]
-id = "sort_display_order_for_official.syncs_three_sections"
+id = "sort-display-order-for-official.syncs-three-sections"
+source_lines = "tests/unit/stores/deck-edit.test.ts:275"
 target_function = "useDeckEditStore#sortDisplayOrderForOfficial"
-source_lines = "243-276"
 description = "main/extra/sideのdisplayOrderを公式保存順に並び替え、対応するdeckInfo.*Deckへresult.sortedDeckを反映する"
 given = "main/extra/sideにカードが存在する状態でsortDisplayOrderForOfficial()を呼ぶ"
-expect_side_effect = "displayOrder.main/extra/side と deckInfo.mainDeck/extraDeck/sideDeck がsortDisplayOrderForOfficialLogicの結果へ置き換わる"
+expect_return_shape = "displayOrder.main/extra/side と deckInfo.mainDeck/extraDeck/sideDeck がsortDisplayOrderForOfficialLogicの結果へ置き換わる"
 
 # --- backupDisplayOrder(): void ---
 
 [[condition]]
-id = "backup_display_order.deep_copies_display_and_deck"
+id = "backup-display-order.deep-copies-display-and-deck"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:592"
 target_function = "useDeckEditStore#backupDisplayOrder"
-source_lines = "279-291"
 description = "displayOrder全セクションとmain/extra/sideのdeckInfo配列をJSON経由で深くコピーしてdisplayOrderBackupに保存する"
 given = "backupDisplayOrder()を呼ぶ"
-expect_side_effect = "displayOrderBackup.valueにmain/extra/side/trash/mainDeck/extraDeck/sideDeckのコピーが入る"
+expect_return_shape = "displayOrderBackup.valueにmain/extra/side/trash/mainDeck/extraDeck/sideDeckのコピーが入る"
 
 # --- restoreDisplayOrder(): void ---
 
 [[condition]]
-id = "restore_display_order.no_backup_is_noop"
+id = "restore-display-order.no-backup-is-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1229"
 target_function = "useDeckEditStore#restoreDisplayOrder"
-source_lines = "294-317"
 description = "displayOrderBackup.valueがnullの場合、復元処理は行われない"
 given = "backupDisplayOrder()未実行または復元済みの状態でrestoreDisplayOrder()"
-expect_side_effect = "displayOrder/deckInfo/displayOrderBackupは変更されない"
+expect_return_shape = "displayOrder/deckInfo/displayOrderBackupは変更されない"
 verified = false
 unverifiable_reason = "displayOrderBackupは公開されておらず、no-opを直接区別する観測点が限定的"
 
 [[condition]]
-id = "restore_display_order.restores_and_clears_backup"
+id = "restore-display-order.restores-and-clears-backup"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:592,tests/unit/stores/deck-edit-comprehensive.test.ts:622"
 target_function = "useDeckEditStore#restoreDisplayOrder"
-source_lines = "295-317"
 description = "バックアップがある場合、displayOrder全セクションとmain/extra/sideのdeckInfo配列を復元し、displayOrderBackupをnullに戻す"
 given = "backupDisplayOrder()後にdisplayOrder/deckInfoを書き換えてrestoreDisplayOrder()"
-expect_side_effect = "displayOrderとdeckInfoがバックアップ時点へ戻り、以後同じバックアップで再復元できない"
+expect_return_shape = "displayOrderとdeckInfoがバックアップ時点へ戻り、以後同じバックアップで再復元できない"
 
 # --- reorderWithinSection(section, sourceUuid, targetUuid): Result ---
 
 [[condition]]
-id = "reorder_within_section.same_uuid_noop"
+id = "reorder-within-section.same-uuid-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:381"
 target_function = "useDeckEditStore#reorderWithinSection"
-source_lines = "410-414"
 description = "sourceUuidとtargetUuidが同じ場合、何も移動せずsuccess=true,moved=falseを返す"
 given = "reorderWithinSection(section, uuid, uuid)"
 expect_return_shape = "{ success: true, moved: false }"
 
 [[condition]]
-id = "reorder_within_section.validation_error_returns_failure"
+id = "reorder-within-section.validation-error-returns-failure"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:394,tests/unit/stores/deck-edit-displayorder.test.ts:186"
 target_function = "useDeckEditStore#reorderWithinSection"
-source_lines = "417-421"
 description = "validateReorderParametersがエラー文字列を返した場合、並び替えずsuccess=false,error=その文字列を返す"
 given = "存在しないsourceUuid等、不正な並び替えパラメータ"
 expect_return_shape = "{ success: false, error: validationError }"
 
 [[condition]]
-id = "reorder_within_section.success_pushes_reorder_command"
+id = "reorder-within-section.success-pushes-reorder-command"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:344,tests/unit/stores/deck-edit-comprehensive.test.ts:365,tests/unit/stores/deck-edit-comprehensive.test.ts:685,tests/unit/stores/deck-edit-displayorder.test.ts:145,tests/unit/stores/deck-edit-displayorder.test.ts:169"
 target_function = "useDeckEditStore#reorderWithinSection"
-source_lines = "424-446"
 description = "バリデーション成功時は内部並び替えを実行し、undoで元位置へ戻すreorderコマンドをpushしてsuccess=true,moved=trueを返す"
 given = "同一セクション内に存在するsourceUuidをtargetUuid直前またはnull末尾へ移動"
-expect_return_shape = "{ success: true, moved: true }"
-expect_side_effect = "displayOrder[section]の順序が変わり、commandHistory末尾のtypeは'reorder'"
+expect_return_shape = "{ success: true, moved: true }。displayOrder[section]の順序が変わり、commandHistory末尾のtypeは'reorder'"
 
 # --- addCard(card, section): Result ---
 
 [[condition]]
-id = "add_card.invalid_ciid_for_language_rejected"
+id = "add-card.invalid-ciid-for-language-rejected"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1112"
 target_function = "useDeckEditStore#addCard"
-source_lines = "626-644"
 description = "UnifiedCacheDB初期化済み、validCiidsが非空、かつcard.ciidまたはcard.imgs[0].ciidがvalidCiidsに無い場合は追加を拒否する"
 given = "unifiedDB.isInitialized()=true, getValidCiidsForLang(cardId, lang)=['1'], card.ciid='2'"
-expect_return_shape = "{ success: false, error: 'invalid_ciid_for_language' }"
-expect_side_effect = "limitErrorCardId.valueにcard.cardIdを設定し、setTimeoutで1秒後nullへ戻す"
+expect_return_shape = "{ success: false, error: 'invalid_ciid_for_language' }。limitErrorCardId.valueにcard.cardIdを設定し、setTimeoutで1秒後nullへ戻す"
 verified = false
 unverifiable_reason = "実装内のCommonJS require('@/utils/language-detector')が現行Vitestのalias解決に乗らず、該当分岐を直接実行するとCannot find moduleになるため未検証"
 
 [[condition]]
-id = "add_card.max_copies_reached_rejected"
+id = "add-card.max-copies-reached-rejected"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:151"
 target_function = "useDeckEditStore#addCard"
-source_lines = "649-669"
 description = "main/extra/side合計の同一cid枚数がlimit以上の場合、カードを追加せずmax_copies_reachedを返す"
 given = "同一cardIdがmain/extra/side合計でlimit枚存在する状態でaddCard(card, section)"
-expect_return_shape = "{ success: false, error: 'max_copies_reached' }"
-expect_side_effect = "deckInfo/displayOrderは増えず、limitErrorCardId.valueを一時的にcard.cardIdへ設定する"
+expect_return_shape = "{ success: false, error: 'max_copies_reached' }。deckInfo/displayOrderは増えず、limitErrorCardId.valueを一時的にcard.cardIdへ設定する"
 
 [[condition]]
-id = "add_card.success_adds_display_order_and_command"
+id = "add-card.success-adds-display-order-and-command"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:138,tests/unit/stores/deck-edit-comprehensive.test.ts:180,tests/unit/stores/deck-edit-comprehensive.test.ts:463,tests/unit/stores/deck-edit-comprehensive.test.ts:578,tests/unit/stores/deck-edit-comprehensive.test.ts:650,tests/unit/stores/deck-edit-comprehensive.test.ts:702,tests/unit/stores/deck-edit-displayorder.test.ts:58,tests/unit/stores/deck-edit-displayorder.test.ts:68,tests/unit/stores/deck-edit-displayorder.test.ts:80,tests/unit/stores/deck-edit-displayorder.test.ts:91,tests/unit/stores/deck-edit-displayorder.test.ts:198,tests/unit/stores/deck-edit-displayorder.test.ts:217"
 target_function = "useDeckEditStore#addCard"
-source_lines = "672-684"
 description = "ciidと言語チェック・枚数制限を通過した場合、displayOrderとdeckInfoへ追加し、TempCacheDB保存を非同期で試み、カテゴリ判定を更新してsuccess=trueを返す"
 given = "制限未満のカードをmain/extra/sideへ追加"
-expect_return_shape = "{ success: true }"
-expect_side_effect = "displayOrder[section]が1枚増え、対応deckInfoのquantityも増える"
+expect_return_shape = "{ success: true }。displayOrder[section]が1枚増え、対応deckInfoのquantityも増える"
 
 # --- removeCard(cardId, section): unknown ---
 
 [[condition]]
-id = "remove_card.delegates_remove_records_move_and_updates_category"
+id = "remove-card.delegates-remove-records-move-and-updates-category"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:193,tests/unit/stores/deck-edit-comprehensive.test.ts:220,tests/unit/stores/deck-edit-comprehensive.test.ts:559,tests/unit/stores/deck-edit-comprehensive.test.ts:568,tests/unit/stores/deck-edit-displayorder.test.ts:104,tests/unit/stores/deck-edit-displayorder.test.ts:116,tests/unit/stores/deck-edit-displayorder.test.ts:130,tests/unit/stores/deck-edit-displayorder.test.ts:198"
 target_function = "useDeckEditStore#removeCard"
-source_lines = "687-698"
 description = "removeFromDisplayOrderを実行し、UnifiedCacheDB.recordMove(remove)をtry/catchで試み、カテゴリ判定を更新してremoveFromDisplayOrderの戻り値を返す"
 given = "removeCard(cardId, section)"
-expect_side_effect = "対象カードがあればdisplayOrder/deckInfoから1枚削除され、recordMove失敗は握りつぶされる"
+expect_return_shape = "対象カードがあればdisplayOrder/deckInfoから1枚削除され、recordMove失敗は握りつぶされる"
 
 # --- moveCard(cardId, from, to, uuid): Result ---
 
 [[condition]]
-id = "move_card.source_not_found"
+id = "move-card.source-not-found"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:279"
 target_function = "useDeckEditStore#moveCard"
-source_lines = "700-708"
 description = "移動元deck/trashDeckにcardIdが存在しない場合、移動せずカード未検出エラーを返す"
 given = "fromDeck.findIndex(dc => dc.cid === cardId) === -1"
 expect_return_shape = "{ success: false, error: 'カードが見つかりません' }"
 
 [[condition]]
-id = "move_card.invalid_ciid_to_deck_rejected"
+id = "move-card.invalid-ciid-to-deck-rejected"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1124"
 target_function = "useDeckEditStore#moveCard"
-source_lines = "710-727"
 description = "移動先がmain/extra/sideで、UnifiedCacheDB初期化済み、validCiids非空、movingCard.ciidがvalidCiidsに無い場合は移動を拒否する"
 given = "toがmain/extra/side、movingCard.ciid='2'、validCiids=['1']"
-expect_return_shape = "{ success: false, error: 'invalid_ciid_for_language' }"
-expect_side_effect = "limitErrorCardId.valueを一時的にcardIdへ設定する"
+expect_return_shape = "{ success: false, error: 'invalid_ciid_for_language' }。limitErrorCardId.valueを一時的にcardIdへ設定する"
 verified = false
 unverifiable_reason = "実装内のCommonJS require('@/utils/language-detector')が現行Vitestのalias解決に乗らず、該当分岐を直接実行するとCannot find moduleになるため未検証"
 
 [[condition]]
-id = "move_card.success_moves_and_records"
+id = "move-card.success-moves-and-records"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:228,tests/unit/stores/deck-edit-comprehensive.test.ts:243,tests/unit/stores/deck-edit-comprehensive.test.ts:262,tests/unit/stores/deck-edit-comprehensive.test.ts:479,tests/unit/stores/deck-edit-comprehensive.test.ts:669"
 target_function = "useDeckEditStore#moveCard"
-source_lines = "730-751"
 description = "移動元にカードがありciidチェックを通過した場合、displayOrder/deckInfo上で移動し、FLIPアニメーション予約とrecordMove(move)を行ってsuccess=trueを返す"
 given = "fromにcardIdが存在する状態でmoveCard(cardId, from, to, uuid?)"
-expect_return_shape = "{ success: true }"
-expect_side_effect = "from側が1枚減りto側が1枚増える。recordMove例外は握りつぶされる"
+expect_return_shape = "{ success: true }。from側が1枚減りto側が1枚増える。recordMove例外は握りつぶされる"
 
 # --- reorderCard(sourceUuid, targetUuid, section): Result ---
 
 [[condition]]
-id = "reorder_card.no_actual_move_skips_followup"
+id = "reorder-card.no-actual-move-skips-followup"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:381"
 target_function = "useDeckEditStore#reorderCard"
-source_lines = "754-781"
 description = "reorderWithinSectionの結果が失敗またはmoved=falseの場合、手動先頭配置順更新・アニメーション・recordMoveは実行しない"
 given = "sourceUuid===targetUuid または validateReorderParameters失敗"
 expect_return_shape = "reorderWithinSectionの戻り値をそのまま返す"
 
 [[condition]]
-id = "reorder_card.success_updates_head_order_and_records"
+id = "reorder-card.success-updates-head-order-and-records"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1136"
 target_function = "useDeckEditStore#reorderCard"
-source_lines = "762-780"
 description = "reorderWithinSectionがsuccess=trueかつmoved!==falseを返した場合、手動先頭配置カード順を更新し、アニメーション予約とrecordMove(reorder)を試みる"
 given = "実際に移動が発生するreorderCard(sourceUuid,targetUuid,section)"
-expect_side_effect = "displayOrder[section]が変わり、recordMove例外は握りつぶされる"
+expect_return_shape = "displayOrder[section]が変わり、recordMove例外は握りつぶされる"
 verified = false
 unverifiable_reason = "deck-edit-comprehensive.test.ts の reorderCard 呼び出しは同一uuid（sourceUuid===targetUuid）のno-opケースのみで、移動が実際に発生するsuccess系を検証するitが存在しない"
 
 # --- moveCardToTrash(card, from, uuid): Result ---
 
 [[condition]]
-id = "move_card_to_trash.delegates_to_move_card"
+id = "move-card-to-trash.delegates-to-move-card"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1149"
 target_function = "useDeckEditStore#moveCardToTrash"
-source_lines = "784-786"
 description = "card.cardIdをfromからtrashへ移動するmoveCard呼び出しの戻り値をそのまま返す"
 given = "moveCardToTrash(card, from, uuid?)"
 expect_return_shape = "moveCard(card.cardId, from, 'trash', uuid)の戻り値"
@@ -217,19 +211,19 @@ unverifiable_reason = "moveCardToTrash を呼び出す既存itが test_command �
 # --- moveCardToSide(card, from, uuid): Result ---
 
 [[condition]]
-id = "move_card_to_side.trash_max_copies_rejected"
+id = "move-card-to-side.trash-max-copies-rejected"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1162"
 target_function = "useDeckEditStore#moveCardToSide"
-source_lines = "788-807"
 description = "fromがtrashでmain/extra/side合計の同一cid枚数がlimit以上なら、trashからsideへ戻さずmax_copies_reachedを返す"
 given = "from='trash' かつ同一cardIdがmain/extra/side合計でlimit枚"
 expect_return_shape = "{ success: false, error: 'max_copies_reached' }"
 verified = false
-unverifiable_reason = "moveCardToSide の既存itは main→side への移動（move_card_to_side.delegates_to_move_card）のみで、from='trash' かつ枚数制限超過の分岐を検証するitが存在しない"
+unverifiable_reason = "moveCardToSide の既存itは main→side への移動（move-card-to-side.delegates-to-move-card）のみで、from='trash' かつ枚数制限超過の分岐を検証するitが存在しない"
 
 [[condition]]
-id = "move_card_to_side.delegates_to_move_card"
+id = "move-card-to-side.delegates-to-move-card"
+source_lines = "tests/unit/stores/deck-edit.test.ts:202"
 target_function = "useDeckEditStore#moveCardToSide"
-source_lines = "790-810"
 description = "fromがtrashでない、またはtrashでも枚数制限未満の場合、moveCard(card.cardId, from, 'side', uuid)の結果を返す"
 given = "moveCardToSide(card, 'main'|'extra'|'trash', uuid?)"
 expect_return_shape = "moveCard(card.cardId, from, 'side', uuid)の戻り値"
@@ -237,29 +231,29 @@ expect_return_shape = "moveCard(card.cardId, from, 'side', uuid)の戻り値"
 # --- moveCardToMainOrExtra(card, from, uuid): Result ---
 
 [[condition]]
-id = "move_card_to_main_or_extra.extra_monster_targets_extra_otherwise_main"
+id = "move-card-to-main-or-extra.extra-monster-targets-extra-otherwise-main"
+source_lines = "tests/unit/stores/deck-edit.test.ts:222"
 target_function = "useDeckEditStore#moveCardToMainOrExtra"
-source_lines = "813-837"
 description = "card.cardTypeがmonsterかつisExtraDeck truthyならextra、それ以外はmainを移動先にする"
 given = "moveCardToMainOrExtra(card, from, uuid?)"
-expect_side_effect = "targetSectionはextraDeckモンスターなら'extra'、それ以外なら'main'"
+expect_return_shape = "targetSectionはextraDeckモンスターなら'extra'、それ以外なら'main'"
 
 [[condition]]
-id = "move_card_to_main_or_extra.trash_max_copies_rejected"
+id = "move-card-to-main-or-extra.trash-max-copies-rejected"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1178"
 target_function = "useDeckEditStore#moveCardToMainOrExtra"
-source_lines = "817-834"
 description = "fromがtrashでmain/extra/side合計の同一cid枚数がlimit以上なら、main/extraへ戻さずmax_copies_reachedを返す"
 given = "from='trash' かつ同一cardIdがmain/extra/side合計でlimit枚"
 expect_return_shape = "{ success: false, error: 'max_copies_reached' }"
 verified = false
-unverifiable_reason = "moveCardToMainOrExtra の既存itは extra モンスターの振り分け（move_card_to_main_or_extra.extra_monster_targets_extra_otherwise_main）のみで、from='trash' かつ枚数制限超過の分岐を検証するitが存在しない"
+unverifiable_reason = "moveCardToMainOrExtra の既存itは extra モンスターの振り分け（move-card-to-main-or-extra.extra-monster-targets-extra-otherwise-main）のみで、from='trash' かつ枚数制限超過の分岐を検証するitが存在しない"
 
 # --- moveCardFromSide(card, uuid): Result ---
 
 [[condition]]
-id = "move_card_from_side.extra_monster_targets_extra_otherwise_main"
+id = "move-card-from-side.extra-monster-targets-extra-otherwise-main"
+source_lines = "tests/unit/stores/deck-edit.test.ts:212"
 target_function = "useDeckEditStore#moveCardFromSide"
-source_lines = "840-843"
 description = "sideから、extraDeckモンスターはextraへ、それ以外はmainへmoveCardで移動する"
 given = "moveCardFromSide(card, uuid?)"
 expect_return_shape = "moveCard(card.cardId, 'side', targetSection, uuid)の戻り値"
@@ -267,9 +261,9 @@ expect_return_shape = "moveCard(card.cardId, 'side', targetSection, uuid)の戻�
 # --- addCopyToSection(card, section): Result ---
 
 [[condition]]
-id = "add_copy_to_section.delegates_to_add_card"
+id = "add-copy-to-section.delegates-to-add-card"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1194"
 target_function = "useDeckEditStore#addCopyToSection"
-source_lines = "845-847"
 description = "指定sectionへaddCard(card, section)を呼び、その戻り値を返す"
 given = "addCopyToSection(card, section)"
 expect_return_shape = "addCard(card, section)の戻り値"
@@ -279,9 +273,9 @@ unverifiable_reason = "addCopyToSection を呼び出す既存itが test_command 
 # --- addCopyToMainOrExtra(card): Result ---
 
 [[condition]]
-id = "add_copy_to_main_or_extra.extra_monster_targets_extra_otherwise_main"
+id = "add-copy-to-main-or-extra.extra-monster-targets-extra-otherwise-main"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1205"
 target_function = "useDeckEditStore#addCopyToMainOrExtra"
-source_lines = "849-852"
 description = "extraDeckモンスターはextra、それ以外はmainをtargetSectionとしてaddCardを呼ぶ"
 given = "addCopyToMainOrExtra(card)"
 expect_return_shape = "addCard(card, targetSection)の戻り値"
@@ -291,17 +285,17 @@ unverifiable_reason = "addCopyToMainOrExtra を呼び出す既存itが test_comm
 # --- moveCardWithPosition(cardId, from, to, sourceUuid, targetUuid): Result ---
 
 [[condition]]
-id = "move_card_with_position.source_card_missing"
+id = "move-card-with-position.source-card-missing"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:325"
 target_function = "useDeckEditStore#moveCardWithPosition"
-source_lines = "854-866"
 description = "displayOrder[from]にsourceUuidのカードが無い場合、移動せずカード未検出エラーを返す"
 given = "displayOrder.value[from].find(dc => dc.uuid === sourceUuid) がundefined"
 expect_return_shape = "{ success: false, error: 'カードが見つかりません' }"
 
 [[condition]]
-id = "move_card_with_position.source_index_missing"
+id = "move-card-with-position.source-index-missing"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1216"
 target_function = "useDeckEditStore#moveCardWithPosition"
-source_lines = "870-873"
 description = "sourceCard取得後にfromOrder.indexOf(sourceCard)が-1の場合、カード位置未検出エラーを返す"
 given = "sourceCardは取得できたがindexOf(sourceCard)===-1"
 expect_return_shape = "{ success: false, error: 'カードの位置が見つかりません' }"
@@ -309,81 +303,80 @@ verified = false
 unverifiable_reason = "同一配列から取得したsourceCardを直後にindexOfするため、通常の公開API経由では不整合状態を作れない防御分岐"
 
 [[condition]]
-id = "move_card_with_position.card_info_missing"
+id = "move-card-with-position.card-info-missing"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:333"
 target_function = "useDeckEditStore#moveCardWithPosition"
-source_lines = "875-878"
 description = "TempCacheDBにcardIdのCardInfoが無い場合、削除・追加を行わずカード情報未検出エラーを返す"
 given = "getTempCacheDB().get(cardId) がundefined/null"
 expect_return_shape = "{ success: false, error: 'カード情報が見つかりません' }"
 
 [[condition]]
-id = "move_card_with_position.success_inserts_at_target_or_end"
+id = "move-card-with-position.success-inserts-at-target-or-end"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:290,tests/unit/stores/deck-edit-comprehensive.test.ts:311,tests/unit/stores/deck-edit-displayorder.test.ts:342,tests/unit/stores/deck-edit-displayorder.test.ts:364,tests/unit/stores/deck-edit-displayorder.test.ts:377"
 target_function = "useDeckEditStore#moveCardWithPosition"
-source_lines = "880-995"
 description = "sourceUuidのカードをfromから削除し、to側deckInfoの既存cid+ciidはquantity加算、無ければ新規pushし、targetUuid直前または末尾へdisplayOrderを挿入する"
 given = "sourceUuidが存在しTempCacheDBにCardInfoがある状態でmoveCardWithPosition(..., targetUuid|null)"
-expect_return_shape = "{ success: true }"
-expect_side_effect = "移動全体を1つのtype='move'コマンドとしてpushし、undoで元の位置へ戻す"
+expect_return_shape = "{ success: true }。移動全体を1つのtype='move'コマンドとしてpushし、undoで元の位置へ戻す"
 
 # --- getDeckName(): string / setDeckName(name): void ---
 
 [[condition]]
-id = "get_deck_name.name_then_original_then_empty"
+id = "get-deck-name.name-then-original-then-empty"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:741,tests/unit/stores/deck-edit-uistate.test.ts:462,tests/unit/stores/deck-edit-uistate.test.ts:468"
 target_function = "useDeckEditStore#getDeckName"
-source_lines = "1003-1006"
 description = "deckInfo.nameをそのまま返す（originalNameへのフォールバックはloadDeck時点で反映済みのため行わない。明示的にクリアした空文字を保護するため）"
 given = "deckInfo.value.nameの値"
 expect_return_shape = "name ?? ''"
 
 [[condition]]
-id = "set_deck_name.assigns_name"
+id = "set-deck-name.assigns-name"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:741,tests/unit/stores/deck-edit-uistate.test.ts:462"
 target_function = "useDeckEditStore#setDeckName"
-source_lines = "1002-1004"
 description = "deckInfo.value.nameに引数nameを代入する"
 given = "setDeckName('テスト')"
-expect_side_effect = "deckInfo.value.name === 'テスト'"
+expect_return_shape = "deckInfo.value.name === 'テスト'"
 
 # --- saveDeck(dno): Promise<Result> ---
 
 [[condition]]
-id = "save_deck.syncs_then_delegates_and_refreshes_list"
+id = "save-deck.syncs-then-delegates-and-refreshes-list"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:271,tests/unit/stores/deck-edit-operations.test.ts:285,tests/unit/stores/deck-edit-operations.test.ts:296"
 target_function = "useDeckEditStore#saveDeck"
-source_lines = "1049-1060"
 description = "保存前にdisplayOrderからdeckInfoを再構築し、getPersistence().saveDeck(dno)をawaitし、結果に関わらずfetchDeckListを非同期で試みる"
 given = "saveDeck(dno)"
 expect_return_shape = "getPersistence().saveDeck(dno)の戻り値"
 
 [[condition]]
-id = "save_deck.success_updates_cache_and_thumbnail"
+id = "save-deck.success-updates-cache-and-thumbnail"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:794"
 target_function = "useDeckEditStore#saveDeck"
-source_lines = "1062-1074"
 description = "saveDeck結果がsuccess=trueの場合のみ、updateDeckInfoAndThumbnailWithDataでデッキ情報・先頭配置・サムネイル/情報キャッシュを更新する"
 given = "getPersistence().saveDeck(dno) が { success: true } を返す"
-expect_side_effect = "updateDeckInfoAndThumbnailWithData(dno, deckInfo.value, headPlacementCardIds.value, deckThumbnails.value, cachedDeckInfos.value) を非同期で呼ぶ"
+expect_return_shape = "updateDeckInfoAndThumbnailWithData(dno, deckInfo.value, headPlacementCardIds.value, deckThumbnails.value, cachedDeckInfos.value) を非同期で呼ぶ"
 verified = true
 
 # --- captureDeckSnapshot / hasOnlySortOrderChanges / hasUnsavedChanges ---
 
 [[condition]]
-id = "capture_deck_snapshot.delegates_to_logic"
+id = "capture-deck-snapshot.delegates-to-logic"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:787"
 target_function = "useDeckEditStore#captureDeckSnapshot"
-source_lines = "1077-1079"
 description = "captureDeckSnapshotLogic(deckInfo.value)の戻り値を返す"
 given = "captureDeckSnapshot()"
 expect_return_shape = "現在のdeckInfoを元にしたsnapshot文字列"
 
 [[condition]]
-id = "has_only_sort_order_changes.no_saved_snapshot_false"
+id = "has-only-sort-order-changes.no-saved-snapshot-false"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:787"
 target_function = "useDeckEditStore#hasOnlySortOrderChanges"
-source_lines = "1085-1087"
 description = "savedDeckSnapshot.valueが無い場合はfalseを返す"
 given = "savedDeckSnapshot.value === null"
 expect_return = false
 
 [[condition]]
-id = "has_only_sort_order_changes.delegates_when_snapshot_exists"
+id = "has-only-sort-order-changes.delegates-when-snapshot-exists"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:873"
 target_function = "useDeckEditStore#hasOnlySortOrderChanges"
-source_lines = "1088-1089"
 description = "savedDeckSnapshotがある場合、現在snapshotを取得してhasOnlySortOrderChangesLogic(saved,current)の結果を返す"
 given = "loadDeck等でsavedDeckSnapshot.valueが設定済み"
 expect_return_shape = "hasOnlySortOrderChangesLogic(savedDeckSnapshot.value, captureDeckSnapshot())のboolean"
@@ -391,17 +384,17 @@ verified = false
 unverifiable_reason = "savedDeckSnapshotはreturnされておらず、既存テストでは設定経路(loadDeck)をmockしていない"
 
 [[condition]]
-id = "has_unsaved_changes.no_saved_snapshot_false"
+id = "has-unsaved-changes.no-saved-snapshot-false"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:719"
 target_function = "useDeckEditStore#hasUnsavedChanges"
-source_lines = "1091-1093"
 description = "savedDeckSnapshot.valueが無い場合はfalseを返す"
 given = "savedDeckSnapshot.value === null"
 expect_return = false
 
 [[condition]]
-id = "has_unsaved_changes.compares_saved_snapshot"
+id = "has-unsaved-changes.compares-saved-snapshot"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:746"
 target_function = "useDeckEditStore#hasUnsavedChanges"
-source_lines = "1093"
 description = "savedDeckSnapshotがある場合、保存済みsnapshotと現在snapshotが異なればtrueを返す"
 given = "savedDeckSnapshot.valueが設定済み"
 expect_return_shape = "savedDeckSnapshot.value !== captureDeckSnapshot()"
@@ -409,65 +402,63 @@ expect_return_shape = "savedDeckSnapshot.value !== captureDeckSnapshot()"
 # --- loadDeck(dno): Promise<Result> ---
 
 [[condition]]
-id = "load_deck.success_clears_regulation_loads_head_resolves_waits_and_caches"
+id = "load-deck.success-clears-regulation-loads-head-resolves-waits-and-caches"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:379"
 target_function = "useDeckEditStore#loadDeck"
-source_lines = "1096-1138"
 description = "isLoadingDeck=true後にregulationをresetし、persistence.loadDeckをawait、先頭配置読込、regulation解決、nextTickと画像ロード待機後にisLoadingDeck=falseへ戻し、deckList再取得とキャッシュ更新を非同期実行してresultを返す"
 given = "getPersistence().loadDeck(dno)が成功する"
-expect_return_shape = "getPersistence().loadDeck(dno)の戻り値"
-expect_side_effect = "最終的にisLoadingDeck.value === false"
+expect_return_shape = "getPersistence().loadDeck(dno)の戻り値。最終的にisLoadingDeck.value === false"
 verified = false
 unverifiable_reason = "useDeckPersistence/regulation/chrome storage/画像ロード待機を統合mockするテストが無く未検証。deck-edit-operations.test.ts『should load deck from dno』でgetDeckDetail呼び出しとdeckInfo.dno反映までは検証済み（TASK-476）。isLoadingDeck終了・head placement読込・regulation解決・キャッシュ更新は未検証"
 
 [[condition]]
-id = "load_deck.error_resets_loading_and_rethrows"
+id = "load-deck.error-resets-loading-and-rethrows"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:401"
 target_function = "useDeckEditStore#loadDeck"
-source_lines = "1139-1142"
 description = "try内で例外が発生した場合、isLoadingDeck=falseに戻して同じerrorをthrowする"
 given = "getPersistence().loadDeck(dno)等がthrow"
-expect_throw = "同じerror"
-expect_side_effect = "isLoadingDeck.value === false"
+expect_throw = "同じerror。isLoadingDeck.value === false"
 verified = false
 unverifiable_reason = "sessionManager経路の例外throw自体はtests/unit/stores/deck-edit-operations.test.ts『should handle load failure gracefully』で検証済み（TASK-476）だが、regulation/画像ロード待機等の統合的な副作用（isLoadingDeck.value===falseの直接assert含む）は未mockのため未検証のまま"
 
 # --- head placement public actions ---
 
 [[condition]]
-id = "add_head_placement_card.adds_unique_and_saves"
+id = "add-head-placement-card.adds-unique-and-saves"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:763"
 target_function = "useDeckEditStore#addHeadPlacementCard"
-source_lines = "1247-1252"
 description = "cardIdがheadPlacementCardIdsに未登録の場合だけpushし、saveHeadPlacementCardsを呼ぶ"
 given = "isHeadPlacementCard(cardId) === false"
-expect_side_effect = "headPlacementCardIdsにcardIdが追加される"
+expect_return_shape = "headPlacementCardIdsにcardIdが追加される"
 
 [[condition]]
-id = "add_head_placement_card.duplicate_noop"
+id = "add-head-placement-card.duplicate-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:763"
 target_function = "useDeckEditStore#addHeadPlacementCard"
-source_lines = "1248"
 description = "cardIdが既にheadPlacementCardIdsに含まれる場合、重複追加も保存も行わない"
 given = "同じcardIdでaddHeadPlacementCardを2回呼ぶ"
-expect_side_effect = "headPlacementCardIds内のcardIdは1件のまま"
+expect_return_shape = "headPlacementCardIds内のcardIdは1件のまま"
 
 [[condition]]
-id = "remove_head_placement_card.removes_existing_and_saves"
+id = "remove-head-placement-card.removes-existing-and-saves"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:763"
 target_function = "useDeckEditStore#removeHeadPlacementCard"
-source_lines = "1257-1263"
 description = "cardIdがheadPlacementCardIdsに存在する場合、1件削除してsaveHeadPlacementCardsを呼ぶ"
 given = "headPlacementCardIdsにcardIdが存在する"
-expect_side_effect = "headPlacementCardIdsからcardIdが削除される"
+expect_return_shape = "headPlacementCardIdsからcardIdが削除される"
 
 [[condition]]
-id = "remove_head_placement_card.missing_noop"
+id = "remove-head-placement-card.missing-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:763"
 target_function = "useDeckEditStore#removeHeadPlacementCard"
-source_lines = "1259"
 description = "cardIdがheadPlacementCardIdsに存在しない場合は何もしない"
 given = "headPlacementCardIdsにcardIdが存在しない"
-expect_side_effect = "headPlacementCardIdsは変化しない"
+expect_return_shape = "headPlacementCardIdsは変化しない"
 
 [[condition]]
-id = "is_head_placement_card.includes_result"
+id = "is-head-placement-card.includes-result"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:763"
 target_function = "useDeckEditStore#isHeadPlacementCard"
-source_lines = "1268-1270"
 description = "headPlacementCardIds.value.includes(cardId)の結果を返す"
 given = "isHeadPlacementCard(cardId)"
 expect_return_shape = "cardIdが登録済みならtrue、未登録ならfalse"
@@ -475,17 +466,17 @@ expect_return_shape = "cardIdが登録済みならtrue、未登録ならfalse"
 # --- getDeckDetail / reloadDeck ---
 
 [[condition]]
-id = "get_deck_detail.success_returns_api_result"
+id = "get-deck-detail.success-returns-api-result"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:428,tests/unit/stores/deck-edit-operations.test.ts:438"
 target_function = "useDeckEditStore#getDeckDetail"
-source_lines = "1310-1315"
 description = "sessionManager.getCgid()の後、getDeckDetailAPI(dno,cgid)の結果を返す"
 given = "getCgidとgetDeckDetailAPIが成功する"
 expect_return_shape = "DeckInfo"
 
 [[condition]]
-id = "get_deck_detail.error_returns_null"
+id = "get-deck-detail.error-returns-null"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:767"
 target_function = "useDeckEditStore#getDeckDetail"
-source_lines = "1315-1318"
 description = "getCgidまたはgetDeckDetailAPIがthrowした場合、例外を握りつぶしてnullを返す"
 given = "sessionManager.getCgid() または getDeckDetailAPI がthrow"
 expect_return = "null"
@@ -493,27 +484,27 @@ verified = false
 unverifiable_reason = "sessionManager/getDeckDetailAPIを既存テストで差し替えておらず未検証"
 
 [[condition]]
-id = "reload_deck.no_current_deck_throws"
+id = "reload-deck.no-current-deck-throws"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:779,tests/unit/stores/deck-edit-operations.test.ts:728"
 target_function = "useDeckEditStore#reloadDeck"
-source_lines = "1321-1325"
 description = "deckInfo.value.dnoがfalsyの場合、loadDeckを呼ばず'No deck loaded'をthrowする"
 given = "deckInfo.value.dno === 0"
 expect_throw = "No deck loaded"
 
 [[condition]]
-id = "reload_deck.current_deck_loads_same_dno"
+id = "reload-deck.current-deck-loads-same-dno"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:716"
 target_function = "useDeckEditStore#reloadDeck"
-source_lines = "1326"
 description = "deckInfo.value.dnoがtruthyの場合、そのdnoでloadDeckをawaitする"
 given = "deckInfo.value.dno = 123"
-expect_side_effect = "loadDeck(123)が実行される"
+expect_return_shape = "loadDeck(123)が実行される"
 
 # --- fetchDeckList(): Promise<any[]> ---
 
 [[condition]]
-id = "fetch_deck_list.uses_preloaded_storage_when_nonempty"
+id = "fetch-deck-list.uses-preloaded-storage-when-nonempty"
+source_lines = "tests/unit/stores/deck-edit-conditions.test.ts:186"
 target_function = "useDeckEditStore#fetchDeckList"
-source_lines = "1329-1363"
 description = "storageのpreloadedDataが文字列JSONで、parsed.deckListが非空配列ならAPIを呼ばずその配列をdeckList.valueへ設定して返す"
 given = "getFromStorageLocal(CHROME_STORAGE_KEY_DECK_LIST_PRELOAD) が '{\"deckList\":[...]}' を返す"
 expect_return_shape = "parsed.deckList"
@@ -521,40 +512,39 @@ verified = false
 unverifiable_reason = "動的importされるchrome-storage-utilsを既存テストで差し替えておらず未検証"
 
 [[condition]]
-id = "fetch_deck_list.falls_back_to_api"
+id = "fetch-deck-list.falls-back-to-api"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:570,tests/unit/stores/deck-edit-operations.test.ts:581"
 target_function = "useDeckEditStore#fetchDeckList"
-source_lines = "1338-1363"
 description = "プリロードが無い、文字列でない、空配列、またはプリロード読込/parse失敗の場合、sessionManager.getDeckList()をawaitする"
 given = "有効なpreloaded deckListが得られない"
 expect_return_shape = "sessionManager.getDeckList()の戻り値"
 
 [[condition]]
-id = "fetch_deck_list.outer_error_returns_empty"
+id = "fetch-deck-list.outer-error-returns-empty"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:782"
 target_function = "useDeckEditStore#fetchDeckList"
-source_lines = "1364-1367"
 description = "外側tryで例外が発生した場合、deckList.value=[]にして[]を返す"
 given = "sessionManager.getDeckList()等がthrow"
-expect_return_shape = "[]"
-expect_side_effect = "deckList.value === []"
+expect_return_shape = "[]。deckList.value === []"
 verified = false
 unverifiable_reason = "sessionManagerを既存テストで差し替えておらず未検証"
 
 # --- initializeOnPageLoad(): Promise<void> ---
 
 [[condition]]
-id = "initialize_on_page_load.restores_async_settings_and_deck_list"
+id = "initialize-on-page-load.restores-async-settings-and-deck-list"
+source_lines = "tests/unit/stores/deck-edit-conditions.test.ts:216"
 target_function = "useDeckEditStore#initializeOnPageLoad"
-source_lines = "1374-1437"
 description = "メタデータ・UnifiedCacheDB初期化をtry/catchで試みた後、TempCacheDB/設定/UI状態/URL設定/テーマ/カードサイズ/デッキリスト取得を非同期IIFEで実行する"
 given = "initializeOnPageLoad()"
-expect_side_effect = "uiState.viewMode/cardTab/showDetailが存在すれば反映し、urlSettings.theme/langが存在すればsettingsStoreへ反映する"
+expect_return_shape = "uiState.viewMode/cardTab/showDetailが存在すれば反映し、urlSettings.theme/langが存在すればsettingsStoreへ反映する"
 verified = false
 unverifiable_reason = "非同期IIFEをawaitしない設計で、既存テストではメタデータ/設定/URL/DB依存を統合検証していない"
 
 [[condition]]
-id = "initialize_on_page_load.target_dno_loads_deck"
+id = "initialize-on-page-load.target-dno-loads-deck"
+source_lines = "tests/unit/stores/deck-edit-conditions.test.ts:207"
 target_function = "useDeckEditStore#initializeOnPageLoad"
-source_lines = "1440-1450"
 description = "URLStateManager.getDno()がnullでない場合はそれを、無ければlocalStorageのlast used dnoをparseIntした値をtargetDnoにし、targetDnoがnullでなければloadDeck(targetDno)を返す"
 given = "URLまたはlocalStorageにdnoが存在する"
 expect_return_shape = "loadDeck(targetDno)のPromise"
@@ -562,9 +552,9 @@ verified = false
 unverifiable_reason = "loadDeck内部依存を既存テストでmockしておらず未検証"
 
 [[condition]]
-id = "initialize_on_page_load.no_target_dno_resolves"
+id = "initialize-on-page-load.no-target-dno-resolves"
+source_lines = "tests/unit/stores/deck-edit-conditions.test.ts:200"
 target_function = "useDeckEditStore#initializeOnPageLoad"
-source_lines = "1451-1453"
 description = "URLにもlocalStorageにもdnoが無い場合、デッキをロードせずPromise.resolve()を返す"
 given = "URLStateManager.getDno()===null かつ localStorageのlast used dnoが無い"
 expect_return_shape = "resolved Promise<void>"
@@ -574,27 +564,27 @@ unverifiable_reason = "初期化副作用が多く既存テストで未検証"
 # --- shuffle/sort ---
 
 [[condition]]
-id = "shuffle_section.empty_section_noop"
+id = "shuffle-section.empty-section-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1241"
 target_function = "useDeckEditStore#shuffleSection"
-source_lines = "1459-1462"
 description = "対象sectionが存在しないか空の場合、何もせず早期returnする"
 given = "displayOrder[sectionType]が空配列"
-expect_side_effect = "displayOrderとcommandHistoryは変化しない"
+expect_return_shape = "displayOrderとcommandHistoryは変化しない"
 verified = false
-unverifiable_reason = "shuffleSection の既存itはいずれも非空セクションのケース（shuffle_section.nonempty_shuffles_and_pushes_command）で、空セクションのno-opを検証するitが存在しない"
+unverifiable_reason = "shuffleSection の既存itはいずれも非空セクションのケース（shuffle-section.nonempty-shuffles-and-pushes-command）で、空セクションのno-opを検証するitが存在しない"
 
 [[condition]]
-id = "shuffle_section.nonempty_shuffles_and_pushes_command"
+id = "shuffle-section.nonempty-shuffles-and-pushes-command"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:499,tests/unit/stores/deck-edit-comprehensive.test.ts:514"
 target_function = "useDeckEditStore#shuffleSection"
-source_lines = "1464-1511"
 description = "非空sectionでは元順序を保存し、fisherYatesShuffle結果でdisplayOrderを置換し、undoで元順序へ戻すreorderコマンドをpushする"
 given = "displayOrder[sectionType]にカードがある状態でshuffleSection(sectionType)"
-expect_side_effect = "カード数は変わらず、commandHistory末尾typeは'reorder'"
+expect_return_shape = "カード数は変わらず、commandHistory末尾typeは'reorder'"
 
 [[condition]]
-id = "is_all_sections_sorted_for_save.toggle_accepts_asc_or_desc"
+id = "is-all-sections-sorted-for-save.toggle-accepts-asc-or-desc"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1264"
 target_function = "useDeckEditStore#isAllSectionsSortedForSave"
-source_lines = "1566-1581"
 description = "deckLevelSortOrderが'toggle-'で始まる場合、main/extra/side全てがdescまたは全てがascでソート済みならtrueを返す。空セクションはtrue扱い"
 given = "settingsStore.appSettings.deckLevelSortOrder='toggle-desc'等"
 expect_return_shape = "isSorted('desc') || isSorted('asc')"
@@ -602,9 +592,9 @@ verified = false
 unverifiable_reason = "isAllSectionsSortedForSave を呼び出す既存itが test_command 対象7ファイルのいずれにも存在しない"
 
 [[condition]]
-id = "is_all_sections_sorted_for_save.fixed_direction"
+id = "is-all-sections-sorted-for-save.fixed-direction"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1284"
 target_function = "useDeckEditStore#isAllSectionsSortedForSave"
-source_lines = "1582-1583"
 description = "deckLevelSortOrderがtoggleでない場合、その値を'asc'|'desc'としてisSorted(raw)を返す"
 given = "settingsStore.appSettings.deckLevelSortOrder='asc'または'desc'"
 expect_return_shape = "指定方向でmain/extra/side全てがソート済みならtrue"
@@ -612,45 +602,45 @@ verified = false
 unverifiable_reason = "isAllSectionsSortedForSave を呼び出す既存itが test_command 対象7ファイルのいずれにも存在しない"
 
 [[condition]]
-id = "sort_section.empty_section_noop"
+id = "sort-section.empty-section-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:536"
 target_function = "useDeckEditStore#sortSection"
-source_lines = "1606-1609"
 description = "対象sectionが存在しないか空の場合、何もせず早期returnする"
 given = "displayOrder[sectionType]が空配列"
-expect_side_effect = "displayOrderとcommandHistoryは変化しない"
+expect_return_shape = "displayOrderとcommandHistoryは変化しない"
 
 [[condition]]
-id = "sort_section.override_uses_given_direction"
+id = "sort-section.override-uses-given-direction"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1250"
 target_function = "useDeckEditStore#sortSection"
-source_lines = "1615-1621"
 description = "levelSortOrderOverrideがundefinedでなければ、その値をeffectiveLevelSortOrderとして使う"
 given = "sortSection('main', 'asc')"
-expect_side_effect = "createDeckCardComparatorへlevelSortOrder='asc'のoptionsを渡す"
+expect_return_shape = "createDeckCardComparatorへlevelSortOrder='asc'のoptionsを渡す"
 verified = false
 unverifiable_reason = "createDeckCardComparator呼び出し引数を既存テストでmock検証していない"
 
 [[condition]]
-id = "sort_section.no_override_resolves_toggle_and_pushes_command"
+id = "sort-section.no-override-resolves-toggle-and-pushes-command"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:545,tests/unit/stores/deck-edit-operations.test.ts:602,tests/unit/stores/deck-edit-operations.test.ts:616,tests/unit/stores/deck-edit-operations.test.ts:629"
 target_function = "useDeckEditStore#sortSection"
-source_lines = "1621-1679"
 description = "overrideが無い場合は現在descソート済みかを見てresolveEffectiveLevelSortOrderで方向を決め、ソート結果でdisplayOrderを置換し、undoで元順序へ戻すreorderコマンドをpushする"
 given = "非空sectionでsortSection(sectionType)"
-expect_side_effect = "カード数は変わらず、commandHistory末尾typeは'reorder'"
+expect_return_shape = "カード数は変わらず、commandHistory末尾typeは'reorder'"
 
 [[condition]]
-id = "sort_all_sections.shared_direction_for_three_sections"
+id = "sort-all-sections.shared-direction-for-three-sections"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:647"
 target_function = "useDeckEditStore#sortAllSections"
-source_lines = "1682-1695"
 description = "main/extra/side全体がdescソート済みかを先に判定し、resolveEffectiveLevelSortOrderで得た同じdirectionを3セクションのsortSectionに渡す"
 given = "sortAllSections()"
-expect_side_effect = "sortSection('main', direction), sortSection('extra', direction), sortSection('side', direction)が順に実行される"
+expect_return_shape = "sortSection('main', direction), sortSection('extra', direction), sortSection('side', direction)が順に実行される"
 
 # --- create/copy/delete/load dialog/likes/code ---
 
 [[condition]]
-id = "create_new_deck.invalid_dno_throws"
+id = "create-new-deck.invalid-dno-throws"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:799"
 target_function = "useDeckEditStore#createNewDeck"
-source_lines = "1705-1712"
 description = "sessionManager.createDeck()がfalsyまたは0を返した場合、invalid dnoエラーをthrowする"
 given = "sessionManager.createDeck() が0/null/undefinedを返す"
 expect_throw = "Failed to create new deck: server returned invalid dno"
@@ -658,19 +648,19 @@ verified = false
 unverifiable_reason = "sessionManagerを既存テストで差し替えておらず未検証"
 
 [[condition]]
-id = "create_new_deck.success_loads_and_refreshes"
+id = "create-new-deck.success-loads-and-refreshes"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:453"
 target_function = "useDeckEditStore#createNewDeck"
-source_lines = "1715-1720"
 description = "有効なnewDnoが返った場合、そのデッキをloadDeckし、fetchDeckListを非同期で試みる"
 given = "sessionManager.createDeck() が正のdnoを返す"
-expect_side_effect = "await loadDeck(newDno)後、fetchDeckList().catch(...)を呼ぶ"
+expect_return_shape = "await loadDeck(newDno)後、fetchDeckList().catch(...)を呼ぶ"
 verified = false
 unverifiable_reason = "deck-edit-operations.test.ts『should create a new deck on server and load it』でcreateDeck呼び出しとloadDeck完了（dno>0）までは検証済み（TASK-476）。fetchDeckList呼び出しの明示的assertが無く未検証"
 
 [[condition]]
-id = "pseudo_copy_deck.invalid_dno_throws"
+id = "pseudo-copy-deck.invalid-dno-throws"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:814"
 target_function = "useDeckEditStore#pseudoCopyDeck"
-source_lines = "1733-1745"
 description = "displayOrderからdeckInfoを同期して複製元を深くコピーした後、createDeckがfalsyまたは0を返すとcopy用エラーをthrowする"
 given = "sessionManager.createDeck() が0/null/undefinedを返す"
 expect_throw = "Failed to create new deck for copy"
@@ -678,9 +668,9 @@ verified = false
 unverifiable_reason = "sessionManagerを既存テストで差し替えておらず未検証"
 
 [[condition]]
-id = "pseudo_copy_deck.success_saves_copy_loads_and_returns_new_dno"
+id = "pseudo-copy-deck.success-saves-copy-loads-and-returns-new-dno"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:686"
 target_function = "useDeckEditStore#pseudoCopyDeck"
-source_lines = "1748-1765"
 description = "有効なnewDnoではcapturedDataにnewDnoとname='COPY_'+getDeckName()を設定してsaveDeckし、loadDeck(newDno)後にfetchDeckListを非同期実行してnewDnoを返す"
 given = "pseudoCopyDeck(deckData)かつsessionManager.createDeck()が正のdnoを返す"
 expect_return_shape = "newDno"
@@ -688,69 +678,69 @@ verified = false
 unverifiable_reason = "deck-edit-operations.test.ts『should create pseudo copy with new dno』でnewDno返却とloadDeck(newDno)完了までは検証済み（TASK-476）。saveDeckへ渡すname='COPY_'+getDeckName()の引数assertとfetchDeckList呼び出しは未検証"
 
 [[condition]]
-id = "copy_current_deck.no_loaded_deck_throws"
+id = "copy-current-deck.no-loaded-deck-throws"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:779"
 target_function = "useDeckEditStore#copyCurrentDeck"
-source_lines = "1772-1776"
 description = "deckInfo.value.dnoがfalsyの場合、pseudoCopyDeckを呼ばず'No deck loaded'をthrowする"
 given = "deckInfo.value.dno === 0"
 expect_throw = "No deck loaded"
 
 [[condition]]
-id = "copy_current_deck.loaded_deck_delegates_to_pseudo_copy"
+id = "copy-current-deck.loaded-deck-delegates-to-pseudo-copy"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:667"
 target_function = "useDeckEditStore#copyCurrentDeck"
-source_lines = "1778"
 description = "deckInfo.value.dnoがtruthyの場合、現在のdeckInfo.valueをpseudoCopyDeckへ渡してawaitする"
 given = "deckInfo.value.dnoが正の値"
-expect_side_effect = "await pseudoCopyDeck(deckInfo.value)"
+expect_return_shape = "await pseudoCopyDeck(deckInfo.value)"
 verified = false
 unverifiable_reason = "deck-edit-operations.test.ts『should copy current deck』でpseudoCopyDeck内部のcreateDeck呼び出しまで検証済み（TASK-476）。deckInfo.valueを渡すこと自体の直接assertは無く未検証"
 
 [[condition]]
-id = "open_load_dialog.reloads_caches_and_shows_dialog"
+id = "open-load-dialog.reloads-caches-and-shows-dialog"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:753"
 target_function = "useDeckEditStore#openLoadDialog"
-source_lines = "1786-1790"
 description = "Load Dialogを開く前にthumbnail/infoキャッシュを再読込し、showLoadDialogをtrueにする"
 given = "openLoadDialog()"
-expect_side_effect = "deckThumbnails.value=loadThumbnailCache(), cachedDeckInfos.value=loadDeckInfoCache(), showLoadDialog.value=true"
+expect_return_shape = "deckThumbnails.value=loadThumbnailCache(), cachedDeckInfos.value=loadDeckInfoCache(), showLoadDialog.value=true"
 
 [[condition]]
-id = "delete_current_deck.no_loaded_deck_throws"
+id = "delete-current-deck.no-loaded-deck-throws"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:779,tests/unit/stores/deck-edit-operations.test.ts:520"
 target_function = "useDeckEditStore#deleteCurrentDeck"
-source_lines = "1792-1796"
 description = "deckInfo.value.dnoがfalsyの場合、削除APIを呼ばず'No deck loaded'をthrowする"
 given = "deckInfo.value.dno === 0"
 expect_throw = "No deck loaded"
 
 [[condition]]
-id = "delete_current_deck.delete_failure_throws"
+id = "delete-current-deck.delete-failure-throws"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:533"
 target_function = "useDeckEditStore#deleteCurrentDeck"
-source_lines = "1798-1805"
 description = "sessionManager.deleteDeck(dnoToDelete)がfalseを返した場合、Failed to delete deckをthrowする"
 given = "deckInfo.value.dno truthy, deleteDeck returns false"
 expect_throw = "Failed to delete deck"
 
 [[condition]]
-id = "delete_current_deck.loads_previous_smaller_or_max_deck"
+id = "delete-current-deck.loads-previous-smaller-or-max-deck"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:505"
 target_function = "useDeckEditStore#deleteCurrentDeck"
-source_lines = "1808-1826"
 description = "削除成功後のdeckListが非空なら、削除dnoより小さいdnoがあればその最大値、無ければ一覧最大dnoをloadDeckし、fetchDeckListを非同期実行する"
 given = "deleteDeck success, sessionManager.getDeckList() returns nonempty list"
-expect_side_effect = "await loadDeck(newDno)"
+expect_return_shape = "await loadDeck(newDno)"
 verified = false
 unverifiable_reason = "deck-edit-operations.test.ts『should delete current deck and load another』でdeleteDeck呼び出しと再ロード完了（dno>0）までは検証済み（TASK-476）。次デッキ選択ロジック（削除dnoより小さい最大dno/一覧最大dnoの分岐）の検証は無く未検証"
 
 [[condition]]
-id = "delete_current_deck.empty_list_creates_new_deck"
+id = "delete-current-deck.empty-list-creates-new-deck"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:549"
 target_function = "useDeckEditStore#deleteCurrentDeck"
-source_lines = "1827-1830"
 description = "削除成功後のdeckListが空の場合、createNewDeck()をawaitする"
 given = "deleteDeck success, sessionManager.getDeckList() returns []"
-expect_side_effect = "await createNewDeck()"
+expect_return_shape = "await createNewDeck()"
 
 [[condition]]
-id = "get_deck_likes.success_or_zero_on_error"
+id = "get-deck-likes.success-or-zero-on-error"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:829,tests/unit/stores/deck-edit-operations.test.ts:838"
 target_function = "useDeckEditStore#getDeckLikes"
-source_lines = "1844-1850"
 description = "sessionManager.getDeckLikes(dno)が成功すればその数値を返し、throw時は0を返す"
 given = "getDeckLikes(dno)"
 expect_return_shape = "成功時はAPI戻り値、失敗時は0"
@@ -758,9 +748,9 @@ verified = false
 unverifiable_reason = "sessionManagerを既存テストで差し替えておらず未検証"
 
 [[condition]]
-id = "issue_deck_code.success_or_empty_on_error"
+id = "issue-deck-code.success-or-empty-on-error"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:851,tests/unit/stores/deck-edit-operations.test.ts:860"
 target_function = "useDeckEditStore#issueDeckCode"
-source_lines = "1859-1865"
 description = "sessionManager.issueDeckCode(dno)が成功すれば文字列を返し、throw時は空文字列を返す"
 given = "issueDeckCode(dno)"
 expect_return_shape = "成功時はAPI戻り値、失敗時は''"
@@ -771,94 +761,90 @@ unverifiable_reason = "sessionManagerを既存テストで差し替えておら�
 # --- autoSetCategory(): string[] ---
 
 [[condition]]
-id = "auto_set_category.sets_categories_meeting_threshold"
+id = "auto-set-category.sets-categories-meeting-threshold"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:830"
 target_function = "useDeckEditStore#autoSetCategory"
-source_lines = "202-221"
 description = "main/extra/sideの全カードについて、categoryLabelMap上の各カテゴリラベルとのマッチ枚数（countCardsForCategoryLabelに委譲）を計算し、AUTO_CATEGORY_THRESHOLD(7)以上のカテゴリIDのみをdeckInfo.categoryに設定する（既存の選択内容は上書き）"
 given = "categoryLabelMapに複数カテゴリがあり、うち1つだけがデッキ内マッチ枚数7以上のデッキでautoSetCategory()を呼ぶ"
-expect_side_effect = "deckInfo.category が該当カテゴリIDのみの配列になる"
-expect_return = "設定したカテゴリID配列と同じ配列"
+expect_return = "設定したカテゴリID配列と同じ配列。deckInfo.category が該当カテゴリIDのみの配列になる"
 
 [[condition]]
-id = "auto_set_category.calls_update_category_matching"
+id = "auto-set-category.calls-update-category-matching"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:1096"
 target_function = "useDeckEditStore#autoSetCategory"
-source_lines = "220"
 description = "deckInfo.category更新後にupdateCategoryMatching()を呼び、categoryMatchedCardIdsの再計算をトリガーする"
 given = "autoSetCategory()を呼ぶ"
-expect_side_effect = "categoryMatchingTrigger.valueが1増える（update_category_matching.increments_triggerと同様、非公開のため直接観測不可）"
+expect_return_shape = "categoryMatchingTrigger.valueが1増える（update-category-matching.increments-triggerと同様、非公開のため直接観測不可）"
 verified = false
 unverifiable_reason = "categoryMatchingTriggerはreturnされておらず、公開APIから直接値を観測できない"
 
 [[condition]]
-id = "auto_set_category.no_match_clears_category"
+id = "auto-set-category.no-match-clears-category"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:849"
 target_function = "useDeckEditStore#autoSetCategory"
-source_lines = "202-221"
 description = "閾値以上のカテゴリが1件も無い場合は空配列を設定する（既存選択があっても上書きでクリアされる）"
 given = "categoryLabelMapが空、またはどのカテゴリも閾値未満のデッキでautoSetCategory()を呼ぶ"
-expect_side_effect = "deckInfo.category === []"
-expect_return = "[]"
+expect_return = "[]。deckInfo.category === []"
 
 # --- autoRenameDeck(): { categories: string[]; renamed: boolean } ---
 
 [[condition]]
-id = "auto_rename_deck.uses_existing_category_if_set"
+id = "auto-rename-deck.uses-existing-category-if-set"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:866"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "231-233"
 description = "deckInfo.categoryが既に設定されている場合はautoSetCategory()を呼ばず、既存のcategoryをそのまま使う"
 given = "deckInfo.category = ['cat1']が設定済みの状態でautoRenameDeck()を呼ぶ"
-expect_side_effect = "autoSetCategory()相当の再判定は行われず、deckInfo.categoryは変化しない"
+expect_return_shape = "autoSetCategory()相当の再判定は行われず、deckInfo.categoryは変化しない"
 
 [[condition]]
-id = "auto_rename_deck.auto_sets_category_if_empty"
+id = "auto-rename-deck.auto-sets-category-if-empty"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:882"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "232-233"
 description = "deckInfo.categoryが空配列の場合はautoSetCategory()を呼んで自動設定し、その結果を命名に使う"
 given = "deckInfo.category = [] の状態でautoRenameDeck()を呼ぶ"
-expect_side_effect = "deckInfo.categoryがautoSetCategory()の結果に置き換わる"
+expect_return_shape = "deckInfo.categoryがautoSetCategory()の結果に置き換わる"
 
 [[condition]]
-id = "auto_rename_deck.no_matching_label_is_noop"
+id = "auto-rename-deck.no-matching-label-is-noop"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:901"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "237-243"
 description = "カテゴリIDに対応するラベルが1件も無い（suffixが空文字）場合はdeckInfo.nameを変更せずrenamed:falseを返す"
 given = "categoryLabelMapに存在しないカテゴリIDのみがdeckInfo.categoryに入っている状態でautoRenameDeck()を呼ぶ"
-expect_return = "{ categories: 元のcategories, renamed: false }"
-expect_side_effect = "deckInfo.nameは変更されない"
+expect_return = "{ categories: 元のcategories, renamed: false }。deckInfo.nameは変更されない"
 
 [[condition]]
-id = "auto_rename_deck.preserves_prefix_regulation_tag"
+id = "auto-rename-deck.preserves-prefix-regulation-tag"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:913"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "246-252"
 description = "デッキ名先頭にレギュレーションタグ（[OCG]等、parseRegulationTagがposition==='prefix'を返す）がある場合、タグ部分は保持し、その直後にスペース区切りでカテゴリラベル連結文字列を続けた名前に置き換える（タグより後ろの既存文字列は破棄される）"
 given = "deckInfo.name = '[OCG] 旧デッキ名' で、カテゴリラベルが '青眼' のデッキでautoRenameDeck()を呼ぶ"
-expect_side_effect = "deckInfo.name === '[OCG] 青眼'"
-expect_return = "{ categories: [...], renamed: true }"
+expect_return = "{ categories: [...], renamed: true }。deckInfo.name === '[OCG] 青眼'"
 
 [[condition]]
-id = "auto_rename_deck.no_tag_replaces_whole_name"
+id = "auto-rename-deck.no-tag-replaces-whole-name"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:925"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "246-252"
 description = "デッキ名に先頭タグが無い場合はデッキ名全体をカテゴリラベル連結文字列で置き換える"
 given = "deckInfo.name = '旧デッキ名'（タグ無し）で、カテゴリラベルが '青眼' のデッキでautoRenameDeck()を呼ぶ"
-expect_side_effect = "deckInfo.name === '青眼'"
+expect_return_shape = "deckInfo.name === '青眼'"
 
 [[condition]]
-id = "auto_rename_deck.multiple_categories_joined_without_separator"
+id = "auto-rename-deck.multiple-categories-joined-without-separator"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:936"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "237-241"
 description = "複数カテゴリが設定されている場合、各ラベルを区切り文字無しで連結する（ユーザー確認済み仕様）"
 given = "カテゴリラベルが ['青眼', 'ブラック・マジシャン'] の2件のデッキでautoRenameDeck()を呼ぶ"
-expect_side_effect = "デッキ名の末尾が '青眼ブラック・マジシャン'（区切り文字無し）になる"
+expect_return_shape = "デッキ名の末尾が '青眼ブラック・マジシャン'（区切り文字無し）になる"
 
 # 2026-09-03 追記（PR#147レビュー指摘対応）: 生成デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50)を超えないように切り詰める
 
 [[condition]]
-id = "auto_rename_deck.truncates_generated_name_to_max_length"
+id = "auto-rename-deck.truncates-generated-name-to-max-length"
+source_lines = "tests/unit/stores/deck-edit-comprehensive.test.ts:947,tests/unit/stores/deck-edit-comprehensive.test.ts:962"
 target_function = "useDeckEditStore#autoRenameDeck"
-source_lines = "246-250"
 description = "prefix込みの生成後デッキ名がDECK_FIELD_LIMITS.DECK_NAME_MAX(50文字)を超える場合、setDeckNameに渡す前に50文字で機械的に切り詰める"
 given = "カテゴリラベルを連結すると50文字を超えるcategoryLabelMap（例: 30文字ラベル×2件）を持つデッキでautoRenameDeck()を呼ぶ"
-expect_side_effect = "deckInfo.name.length <= 50"
+expect_return_shape = "deckInfo.name.length <= 50"
 
 # 2026-09-09 追記（TASK-476: src/stores/__tests__/deck-edit-displayorder.test.ts,
 # deck-edit-operations.test.ts, deck-edit-uistate.test.ts のtests/unit/stores/移動に伴うdesign整備）
@@ -866,137 +852,137 @@ expect_side_effect = "deckInfo.name.length <= 50"
 # --- addToDisplayOrder(card, section): void（addCard内部、displayOrder UUID割当とundo） ---
 
 [[condition]]
-id = "add_card.duplicate_add_undo_removes_the_just_added_copy"
+id = "add-card.duplicate-add-undo-removes-the-just-added-copy"
+source_lines = "tests/unit/stores/deck-edit-displayorder.test.ts:291"
 target_function = "useDeckEditStore#addCard"
-source_lines = "411-427"
 description = "addToDisplayOrderのcommand.undoは、execute時にaddedUuidへ記録したuuidでremoveFromDisplayOrderInternalを呼ぶ（findIndexによる(cid,ciid)一致検索ではない）。これにより同一(cid,ciid)を複数回追加した状態でも、undoは各追加コマンドに対応する1件だけを取り除く"
 source = "src/stores/deck-edit.ts:411-427 コメント「findIndexだと同(cid,ciid)の既存カードを誤削除するため」（tm TASK-355 回帰）"
 given = "同(cid,ciid)のカードをaddCardで2回連続追加した状態で、2回目の追加コマンドをundo()する"
-expect_side_effect = "displayOrder[section]は1枚目の追加時点の状態に戻り、2枚目として追加した方のdisplayCardエントリだけが取り除かれる（1枚目のuuidは保持される）"
+expect_return_shape = "displayOrder[section]は1枚目の追加時点の状態に戻り、2枚目として追加した方のdisplayCardエントリだけが取り除かれる（1枚目のuuidは保持される）"
 
 [[condition]]
-id = "add_card.generates_new_uuid_per_call_via_deck_uuid_generator"
+id = "add-card.generates-new-uuid-per-call-via-deck-uuid-generator"
+source_lines = "tests/unit/stores/deck-edit-displayorder.test.ts:80,tests/unit/stores/deck-edit-displayorder.test.ts:232,tests/unit/stores/deck-edit-displayorder.test.ts:244"
 target_function = "useDeckEditStore#addCard"
-source_lines = "402-407,135"
 description = "addToDisplayOrderInternalはgenerateDeckCardUUIDをuuid生成に使う。同(cid,ciid)への複数回呼び出しはgenerateDeckCardUUID自身の連番カウンタ（generate-deck-card-uuid.repeat-call-same-key-increments）により一意なuuidを返すため、addCardで同一カードを複数回追加してもdisplayOrder内のuuidは重複しない"
 source = "src/utils/deck-uuid-generator.ts（tests/design/deck-uuid-generator/conditions.toml: generate-deck-card-uuid.repeat-call-same-key-increments, generate-deck-card-uuid.different-keys-are-independent-counters）"
 given = "同じcard（同(cid,ciid)）をaddCard(card, 'main')で2回呼ぶ、またはciidだけ異なるcardを2回呼ぶ"
-expect_side_effect = "displayOrder.main[].uuidが2件とも異なる（generateDeckCardUUIDの連番カウンタに委譲）"
+expect_return_shape = "displayOrder.main[].uuidが2件とも異なる（generateDeckCardUUIDの連番カウンタに委譲）"
 
 # --- moveCardWithPosition(cardId, from, to, sourceUuid, targetUuid): Result（イラスト違いカードのciid保持） ---
 
 [[condition]]
-id = "move_card_with_position.preserves_actual_ciid_not_representative_value"
+id = "move-card-with-position.preserves-actual-ciid-not-representative-value"
+source_lines = "tests/unit/stores/deck-edit-displayorder.test.ts:342,tests/unit/stores/deck-edit-displayorder.test.ts:364"
 target_function = "useDeckEditStore#moveCardWithPosition"
-source_lines = "941-947"
 description = "移動するカードの実際のciidは、TempCacheDBのcardInfo.ciid（imgs[0]の代表値）ではなく、sourceUuidで特定したdisplayOrderエントリ自身のciid(sourceCard.ciid)を優先して使う。これによりイラスト違い(ciid違い)カードを移動しても、移動先のdeckInfo/displayOrderのciidが代表値へ化けない"
 source = "src/stores/deck-edit.ts:941-947 コメント「TempCacheDB の cardInfo.ciid は代表値（imgs[0]）のため、イラスト違いカードでは実際のciidと一致しない」（tm TASK-354 回帰）"
 given = "TempCacheDBの代表ciidが'1'、移動対象のdisplayOrderエントリのciidが'2'（イラスト違い）の状態でmoveCardWithPositionを呼ぶ"
-expect_side_effect = "移動先のdeckInfo[to]とdisplayOrder[to]のciidは'2'のまま保持され、'1'（代表値）に上書きされない"
+expect_return_shape = "移動先のdeckInfo[to]とdisplayOrder[to]のciidは'2'のまま保持され、'1'（代表値）に上書きされない"
 
 # --- saveDeckData(dno, deckData): Promise<Result>（practiceモードP2デッキ保存等、saveDeckとは独立した経路） ---
 
 [[condition]]
-id = "save_deck_data.name_empty_falls_back_to_original_name"
+id = "save-deck-data.name-empty-falls-back-to-original-name"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:318"
 target_function = "useDeckEditStore#saveDeckData"
-source_lines = "1877-1882"
 description = "getDeckDetail直後のデータはname=''でoriginalNameに実名が入っているため、deckData.nameが空の場合はdeckData.name || deckData.originalName || ''で正規化した名前をsessionManager.saveDeckへ渡す"
 given = "deckData = { ...mockDeckInfo, name: '', originalName: 'P2のデッキ名' } でsaveDeckData(5, deckData)を呼ぶ"
-expect_side_effect = "sessionManager.saveDeckは{ name: 'P2のデッキ名', dno: 5, ... }で呼ばれる"
+expect_return_shape = "sessionManager.saveDeckは{ name: 'P2のデッキ名', dno: 5, ... }で呼ばれる"
 
 [[condition]]
-id = "save_deck_data.name_present_kept_as_is"
+id = "save-deck-data.name-present-kept-as-is"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:337"
 target_function = "useDeckEditStore#saveDeckData"
-source_lines = "1877-1882"
 description = "deckData.nameが空文字でない場合、正規化ロジック（|| originalName || ''）はname自体を採用するためoriginalNameは使われない"
 given = "deckData = { ...mockDeckInfo, name: '明示的な名前', originalName: '元の名前' } でsaveDeckData(5, deckData)を呼ぶ"
-expect_side_effect = "sessionManager.saveDeckは{ name: '明示的な名前', dno: 5, ... }で呼ばれる"
+expect_return_shape = "sessionManager.saveDeckは{ name: '明示的な名前', dno: 5, ... }で呼ばれる"
 
 [[condition]]
-id = "save_deck_data.does_not_mutate_editing_deck_info"
+id = "save-deck-data.does-not-mutate-editing-deck-info"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:356"
 target_function = "useDeckEditStore#saveDeckData"
-source_lines = "1877-1893"
 description = "saveDeckDataは引数で受け取ったdeckData（P2側等、編集中のdeckInfo.valueとは別オブジェクト）だけをsessionManager.saveDeckへ渡す。編集中のdeckInfo.value（P1側）を参照・変更する処理は無い"
 given = "store.deckInfo.value（P1側）を設定済みの状態で、別のDeckInfoオブジェクトを引数にsaveDeckData(5, p2DeckInfo)を呼ぶ"
-expect_side_effect = "store.deckInfo.value.name / store.deckInfo.value.dnoは呼び出し前と変わらない"
+expect_return_shape = "store.deckInfo.value.name / store.deckInfo.value.dnoは呼び出し前と変わらない"
 
 # --- undo/redo・コマンド履歴のstore公開観測（useDeckUndoRedo composableへの委譲。
 #     履歴アルゴリズム本体は tests/design/use-deck-undo-redo/conditions.toml 参照） ---
 
 [[condition]]
-id = "undo_redo.initial_state_both_flags_false"
+id = "undo-redo.initial-state-both-flags-false"
+source_lines = "tests/unit/stores/deck-edit-uistate.test.ts:69,tests/unit/stores/deck-edit-uistate.test.ts:73,tests/unit/stores/deck-edit-uistate.test.ts:289,tests/unit/stores/deck-edit-uistate.test.ts:293"
 target_function = "useDeckEditStore#canUndo/canRedo"
 source = "tm TASK-476（tests/unit/stores/deck-edit-uistate.test.ts 初期状態・Undo/Redo状態describe のdesign整備）"
-source_lines = "117-132,2023-2026"
 description = "コマンド履歴が空の初期状態ではcanUndo・canRedoともにfalse"
 given = "store生成直後（コマンド未実行）"
-expect_side_effect = "canUndo === false かつ canRedo === false"
+expect_return_shape = "canUndo === false かつ canRedo === false"
 
 [[condition]]
-id = "undo_redo.command_push_enables_undo_only"
+id = "undo-redo.command-push-enables-undo-only"
+source_lines = "tests/unit/stores/deck-edit-uistate.test.ts:297,tests/unit/stores/deck-edit-uistate.test.ts:304"
 target_function = "useDeckEditStore#canUndo/canRedo"
 source = "tm TASK-476（tests/unit/stores/deck-edit-uistate.test.ts Undo/Redo状態describe のdesign整備）"
-source_lines = "117-132,2023-2026"
 description = "コマンドを1件push（addCard等の実行）するとcanUndo=trueになり、undo実行前のcanRedoはfalseのまま"
 given = "addCard(card, 'main')実行後、undo未実行"
-expect_side_effect = "canUndo === true かつ canRedo === false"
+expect_return_shape = "canUndo === true かつ canRedo === false"
 
 [[condition]]
-id = "undo_redo.undo_enables_redo_then_redo_disables"
+id = "undo-redo.undo-enables-redo-then-redo-disables"
+source_lines = "tests/unit/stores/deck-edit-uistate.test.ts:311,tests/unit/stores/deck-edit-uistate.test.ts:320"
 target_function = "useDeckEditStore#undo/redo/canRedo"
 source = "tm TASK-476（tests/unit/stores/deck-edit-uistate.test.ts Undo/Redo状態describe のdesign整備）"
-source_lines = "1799-1800,2023-2026"
 description = "undo実行後はcanRedo=trueになり、その後redoを実行するとcanRedoはfalseへ戻る"
 given = "addCard実行後にundo()し、さらにredo()する"
-expect_side_effect = "undo直後 canRedo === true、redo直後 canRedo === false"
+expect_return_shape = "undo直後 canRedo === true、redo直後 canRedo === false"
 
 [[condition]]
-id = "undo_redo.stacked_commands_repeat_undo_redo"
+id = "undo-redo.stacked-commands-repeat-undo-redo"
+source_lines = "tests/unit/stores/deck-edit-uistate.test.ts:331,tests/unit/stores/deck-edit-uistate.test.ts:352"
 target_function = "useDeckEditStore#undo/redo/canUndo/canRedo"
 source = "tm TASK-476（tests/unit/stores/deck-edit-uistate.test.ts Undo/Redo状態describe のdesign整備）"
-source_lines = "117-132,1799-1800"
 description = "複数コマンドを積んだ状態ではundoを複数回実行でき、履歴が尽きるとcanUndo=falseになる。redoも同様に複数回実行でき、消費し尽くすとcanRedo=falseになる"
 given = "addCardを2回実行後にundo()を2回、さらにredo()を2回実行する"
-expect_side_effect = "1回目undo後 canUndo=true/canRedo=true、2回目undo後 canUndo=false/canRedo=true、redo実行ごとに履歴を消費して最終的にcanRedo=false"
+expect_return_shape = "1回目undo後 canUndo=true/canRedo=true、2回目undo後 canUndo=false/canRedo=true、redo実行ごとに履歴を消費して最終的にcanRedo=false"
 
 [[condition]]
-id = "add_card.undo_redo_round_trip_restores_display_order"
+id = "add-card.undo-redo-round-trip-restores-display-order"
+source_lines = "tests/unit/stores/deck-edit-displayorder.test.ts:259"
 target_function = "useDeckEditStore#addCard（command undo/redo）"
 source = "tm TASK-476（tests/unit/stores/deck-edit-displayorder.test.ts displayOrder Undo/Redo describe のdesign整備）"
-source_lines = "411-432"
 description = "addCard成功時にpushされるaddコマンドは、undoで追加を取り消し（displayOrderが追加前へ戻る）、redoで再追加する"
 given = "addCard(card, 'main')後にundo()し、さらにredo()する"
-expect_side_effect = "undo後 displayOrder.main.length === 0、redo後 displayOrder.main.length === 1"
+expect_return_shape = "undo後 displayOrder.main.length === 0、redo後 displayOrder.main.length === 1"
 
 [[condition]]
-id = "remove_card.undo_restores_removed_card"
+id = "remove-card.undo-restores-removed-card"
+source_lines = "tests/unit/stores/deck-edit-displayorder.test.ts:272"
 target_function = "useDeckEditStore#removeCard（command undo）"
 source = "tm TASK-476（tests/unit/stores/deck-edit-displayorder.test.ts displayOrder Undo/Redo describe のdesign整備）"
-source_lines = "540-558"
 description = "removeCardで削除したカードはundoでdisplayOrderへ復元される"
 given = "addCard(cardA), addCard(cardB)後にremoveCard(cardA)し、undo()する"
-expect_side_effect = "displayOrder.main.length === 2 かつ cardAのcidを含むエントリが復元される"
+expect_return_shape = "displayOrder.main.length === 2 かつ cardAのcidを含むエントリが復元される"
 
 # --- loadDeck成功時のstore統合観測（persistence内部の初期化・履歴クリアの詳細は
 #     tests/design/use-deck-persistence/conditions.toml load.success_updates_side_effects 参照） ---
 
 [[condition]]
-id = "load_deck.success_initializes_display_order_from_deck_info"
+id = "load-deck.success-initializes-display-order-from-deck-info"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:390,tests/unit/stores/deck-edit-operations.test.ts:471"
 target_function = "useDeckEditStore#loadDeck"
 source = "tm TASK-476（tests/unit/stores/deck-edit-operations.test.ts loadDeck・createNewDeck describe のdesign整備）"
-source_lines = "1174-1226"
 description = "loadDeck成功後、main/extra/side各セクションのdisplayOrderが読み込んだdeckInfoから再構築される（useDeckPersistence経由のinitializeDisplayOrder呼び出し）"
 given = "main/extra/sideにカードがあるデッキをloadDeck(dno)で読み込む"
-expect_side_effect = "displayOrder.main / displayOrder.extra / displayOrder.side がそれぞれ非空になる"
+expect_return_shape = "displayOrder.main / displayOrder.extra / displayOrder.side がそれぞれ非空になる"
 
 [[condition]]
-id = "load_deck.success_clears_undo_history"
+id = "load-deck.success-clears-undo-history"
+source_lines = "tests/unit/stores/deck-edit-operations.test.ts:483"
 target_function = "useDeckEditStore#loadDeck"
 source = "tm TASK-476（tests/unit/stores/deck-edit-operations.test.ts createNewDeck describe のdesign整備）"
-source_lines = "1174-1226"
 description = "loadDeck成功後、commandHistoryは空配列・commandIndexは-1へリセットされる（useDeckPersistence経由のclearHistory呼び出し）"
 given = "コマンド履歴が残っている状態でloadDeck(dno)を実行する"
-expect_side_effect = "commandHistory.length === 0 かつ commandIndex === -1"
+expect_return_shape = "commandHistory.length === 0 かつ commandIndex === -1"
 
 # --- 単純ref状態フィールドの除外記録（search-store/conditions.tomlのsearchQuery等と同様の判断） ---
 
