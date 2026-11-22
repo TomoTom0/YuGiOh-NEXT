@@ -265,7 +265,7 @@ export class DeckThumbnailCache {
   /**
    * Chrome Storage.local.get のPromise版
    */
-  private chromeSafeStorageGet(key: string): Promise<Record<string, any>> {
+  private chromeSafeStorageGet(key: string): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
       chrome.storage.local.get(key, (result) => {
         if (chrome.runtime.lastError) {
@@ -280,7 +280,7 @@ export class DeckThumbnailCache {
   /**
    * Chrome Storage.local.set のPromise版
    */
-  private chromeSafeStorageSet(key: string, value: any): Promise<void> {
+  private chromeSafeStorageSet(key: string, value: unknown): Promise<void> {
     return new Promise((resolve, reject) => {
       chrome.storage.local.set({ [key]: value }, () => {
         if (chrome.runtime.lastError) {
