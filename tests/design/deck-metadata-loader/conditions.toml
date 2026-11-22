@@ -17,10 +17,10 @@
 feature = "deck-metadata-loader"
 source_file = "src/utils/deck-metadata-loader.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/utils/deck-metadata-loader.test.ts"
-source_hash = "e562c4caf289c5e3737f88240e100cba25cff902"
+verified_at = "2026-11-22"
+verified_by = "claude"
+test_command = "pnpm exec vitest run"
+source_hash = "6b90e3339ab1fc339cfb9bf9e45c5f14f5d254a9"
 note = "verified=falseは0件"
 
 # --- getStoredMetadata(): Promise<DeckMetadata | null> ---
