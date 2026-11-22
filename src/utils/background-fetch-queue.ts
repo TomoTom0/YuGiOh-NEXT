@@ -9,7 +9,7 @@
  */
 
 import { getCardDetail } from '../api/card-search';
-import type { MonsterCard, SpellCard, TrapCard } from '../types/card';
+import type { CardDetail, MonsterCard, SpellCard, TrapCard } from '../types/card';
 
 export type CardInfo = MonsterCard | SpellCard | TrapCard;
 
@@ -22,7 +22,7 @@ interface QueueItem {
   priority: QueuePriority;
   retryCount: number;
   maxRetries: number;
-  onComplete: (result: CardInfo | null) => void;
+  onComplete: (result: CardDetail | null) => void;
   onError?: (error: Error) => void;
 }
 
@@ -43,7 +43,7 @@ class BackgroundFetchQueue {
   enqueue(
     cardId: string,
     priority: QueuePriority = 'normal',
-    onComplete: (result: CardInfo | null) => void,
+    onComplete: (result: CardDetail | null) => void,
     onError?: (error: Error) => void
   ): void {
     // 同じカードIDが既にキューまたは処理中なら無視
@@ -119,7 +119,7 @@ class BackgroundFetchQueue {
     try {
       const result = await getCardDetail(item.cardId);
       if (result) {
-        item.onComplete(result as any);
+        item.onComplete(result);
       } else {
         item.onComplete(null);
       }
