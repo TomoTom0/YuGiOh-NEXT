@@ -72,12 +72,12 @@ function serialize() {
 }
 
 function toJson() {
-  const obj: Record<string, any> = { dnm: deckName.value };
+  const obj: Record<string, string | string[]> = { dnm: deckName.value };
   // Collect arrays for repeating names
-  const map: Record<string, any[]> = {};
+  const map: Record<string, string[]> = {};
   for (const c of cards) {
-    [['monm', c.monm], ['monum', c.monum], ['monsterCardId', c.monsterCardId], ['imgs', c.imgs]].forEach(([k, v]) => {
-      const key = k as string;
+    ([['monm', c.monm], ['monum', c.monum], ['monsterCardId', c.monsterCardId], ['imgs', c.imgs]] as Array<[string, string]>).forEach(([k, v]) => {
+      const key = k;
       if (!map[key]) map[key] = [];
       map[key].push(v);
     });
