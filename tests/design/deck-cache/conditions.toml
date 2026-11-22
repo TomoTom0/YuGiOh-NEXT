@@ -13,34 +13,34 @@
 feature = "deck-cache"
 source_file = "src/utils/deck-cache.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
+verified_at = "2026-11-22"
+verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/deck-cache.test.ts"
-source_hash = "21258677f3dd07cc8ac8f9fe07ecf16db367d6a3"
+source_hash = "e68f798454435d9c5593ae3bb58dbc517e46dc77"
 note = "verified=falseは0件。TASK-478でsrc/utils/__tests__/deck-cache.test.ts（36テスト）を削除して一本化。両ファイルをit()単位で実体比較した結果、src側36件すべてがtests/unit/utils/deck-cache.test.ts（61テスト）の既存検証と同趣旨（多くはunit側が例外・境界ケースまで広く網羅）のため移植0件。src側は旧形式のlocalStorageキー（ygo_deck_list_order等）でモックしていたが、実装はygoNext:プレフィックスキーを使用しておりunit側が正しいキーで同一検証を保持"
 
 # --- loadDeckListOrder(): number[] ---
 
 [[condition]]
-id = "load_order.cached_returns_parsed"
+id = "load-order.cached-returns-parsed"
+source_lines = "tests/unit/utils/deck-cache.test.ts:61"
 target_function = "loadDeckListOrder"
-source_lines = "40-44"
 description = "localStorageのdeck list orderキーにtruthyな文字列がある場合、JSON.parse(cached)の結果をそのまま返す"
 given = "localStorage['ygoNext:deckListOrder'] = '[1,2,3]'"
 expect_return = "[1, 2, 3]"
 
 [[condition]]
-id = "load_order.missing_returns_empty"
+id = "load-order.missing-returns-empty"
+source_lines = "tests/unit/utils/deck-cache.test.ts:81"
 target_function = "loadDeckListOrder"
-source_lines = "40-48"
 description = "localStorageの値がnull等のfalsyの場合はJSON.parseせず空配列を返す"
 given = "localStorageにdeck list orderキーが存在しない"
 expect_return = "[]"
 
 [[condition]]
-id = "load_order.catch_returns_empty"
+id = "load-order.catch-returns-empty"
+source_lines = "tests/unit/utils/deck-cache.test.ts:86"
 target_function = "loadDeckListOrder"
-source_lines = "40-48"
 description = "getItemまたはJSON.parseで例外が発生した場合、例外を投げず空配列を返す"
 given = "deck list orderキーの値が不正JSON"
 expect_no_throw = true
@@ -49,17 +49,17 @@ expect_return = "[]"
 # --- saveDeckListOrder(deckList: DeckListItem[]): void ---
 
 [[condition]]
-id = "save_order.serializes_dnos"
+id = "save-order.serializes-dnos"
+source_lines = "tests/unit/utils/deck-cache.test.ts:61"
 target_function = "saveDeckListOrder"
-source_lines = "55-57"
 description = "deckListの各要素からdnoだけを抽出し、JSON文字列としてdeck list orderキーに保存する"
 given = "deckList = [{dno: 1}, {dno: 2}, {dno: 3}]"
-expect_side_effect = "localStorage['ygoNext:deckListOrder'] = '[1,2,3]'"
+expect_return_shape = "localStorage['ygoNext:deckListOrder'] = '[1,2,3]'"
 
 [[condition]]
-id = "save_order.catch_swallows"
+id = "save-order.catch-swallows"
+source_lines = "tests/unit/utils/deck-cache.test.ts:92"
 target_function = "saveDeckListOrder"
-source_lines = "55-60"
 description = "map/JSON.stringify/setItemのいずれかで例外が発生しても例外を再throwしない"
 given = "localStorage.setItemが例外をthrowする"
 expect_no_throw = true
@@ -67,25 +67,25 @@ expect_no_throw = true
 # --- isDeckListOrderChanged(currentDeckList: DeckListItem[]): boolean ---
 
 [[condition]]
-id = "order_changed.length_mismatch_true"
+id = "order-changed.length-mismatch-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:130,tests/unit/utils/deck-cache.test.ts:145"
 target_function = "isDeckListOrderChanged"
-source_lines = "67-72"
 description = "保存済みdno配列と現在dno配列の長さが異なる場合trueを返す"
 given = "previousOrder = [1], currentOrder = [1,2]"
 expect_return = "true"
 
 [[condition]]
-id = "order_changed.element_mismatch_true"
+id = "order-changed.element-mismatch-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:114"
 target_function = "isDeckListOrderChanged"
-source_lines = "75-79"
 description = "長さが同じでも同じindexのdnoが1つでも異なる場合trueを返す"
 given = "previousOrder = [1,2], currentOrder = [2,1]"
 expect_return = "true"
 
 [[condition]]
-id = "order_changed.same_false"
+id = "order-changed.same-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:102"
 target_function = "isDeckListOrderChanged"
-source_lines = "75-82"
 description = "長さが同じで全indexのdnoが一致する場合falseを返す"
 given = "previousOrder = [1,2], currentOrder = [1,2]"
 expect_return = "false"
@@ -93,25 +93,25 @@ expect_return = "false"
 # --- loadThumbnailCache(): Map<number, string> ---
 
 [[condition]]
-id = "load_thumbnail.cached_object_to_map"
+id = "load-thumbnail.cached-object-to-map"
+source_lines = "tests/unit/utils/deck-cache.test.ts:171"
 target_function = "loadThumbnailCache"
-source_lines = "89-95"
 description = "localStorageにtruthyなJSON文字列がある場合、Object.entriesのkeyをparseInt(key,10)したnumberキーのMapを返す"
 given = "localStorage['ygoNext:deckThumbnails'] = '{\"1\":\"a\",\"2\":\"b\"}'"
 expect_return_shape = "Map([[1, 'a'], [2, 'b']])"
 
 [[condition]]
-id = "load_thumbnail.missing_returns_empty_map"
+id = "load-thumbnail.missing-returns-empty-map"
+source_lines = "tests/unit/utils/deck-cache.test.ts:191"
 target_function = "loadThumbnailCache"
-source_lines = "89-100"
 description = "localStorageの値がnull等のfalsyの場合は空Mapを返す"
 given = "localStorageにthumbnail cacheキーが存在しない"
 expect_return_shape = "new Map()"
 
 [[condition]]
-id = "load_thumbnail.catch_returns_empty_map"
+id = "load-thumbnail.catch-returns-empty-map"
+source_lines = "tests/unit/utils/deck-cache.test.ts:196"
 target_function = "loadThumbnailCache"
-source_lines = "89-100"
 description = "getItemまたはJSON.parseで例外が発生した場合、例外を投げず空Mapを返す"
 given = "thumbnail cacheキーの値が不正JSON"
 expect_no_throw = true
@@ -120,17 +120,17 @@ expect_return_shape = "new Map()"
 # --- saveThumbnailCache(deckThumbnails: Map<number, string>): void ---
 
 [[condition]]
-id = "save_thumbnail.map_to_object_json"
+id = "save-thumbnail.map-to-object-json"
+source_lines = "tests/unit/utils/deck-cache.test.ts:171"
 target_function = "saveThumbnailCache"
-source_lines = "107-109"
 description = "MapをObject.fromEntriesで通常objectに変換し、JSON文字列としてthumbnail cacheキーに保存する"
 given = "Map([[1, 'a'], [2, 'b']])"
-expect_side_effect = "localStorage['ygoNext:deckThumbnails'] = '{\"1\":\"a\",\"2\":\"b\"}'"
+expect_return_shape = "localStorage['ygoNext:deckThumbnails'] = '{\"1\":\"a\",\"2\":\"b\"}'"
 
 [[condition]]
-id = "save_thumbnail.catch_swallows"
+id = "save-thumbnail.catch-swallows"
+source_lines = "tests/unit/utils/deck-cache.test.ts:202"
 target_function = "saveThumbnailCache"
-source_lines = "107-112"
 description = "Object.fromEntries/JSON.stringify/setItemのいずれかで例外が発生しても例外を再throwしない"
 given = "localStorage.setItemが例外をthrowする"
 expect_no_throw = true
@@ -138,33 +138,33 @@ expect_no_throw = true
 # --- loadDeckInfoCache(): Map<number, CachedDeckInfo> ---
 
 [[condition]]
-id = "load_info.cached_with_card_count_preserved"
+id = "load-info.cached-with-card-count-preserved"
+source_lines = "tests/unit/utils/deck-cache.test.ts:212"
 target_function = "loadDeckInfoCache"
-source_lines = "119-136"
 description = "読み込んだCachedDeckInfoにcardCountが存在する場合、そのcardCountを再計算せず保持してMapへ入れる"
 given = "cardCount付きのdeck info cache JSON"
 expect_return_shape = "Mapの値は保存済みcardCountを保持する"
 
 [[condition]]
-id = "load_info.missing_card_count_computed"
+id = "load-info.missing-card-count-computed"
+source_lines = "tests/unit/utils/deck-cache.test.ts:235"
 target_function = "loadDeckInfoCache"
-source_lines = "126-132"
 description = "読み込んだCachedDeckInfoにcardCountが無い場合、mainDeck/extraDeck/sideDeckのquantity合計からcardCountを追加する"
 given = "main quantity 2+3、extra quantity 1、side emptyのcardCount無しJSON"
 expect_return_shape = "cardCount = { main: 5, extra: 1, side: 0 }"
 
 [[condition]]
-id = "load_info.missing_returns_empty_map"
+id = "load-info.missing-returns-empty-map"
+source_lines = "tests/unit/utils/deck-cache.test.ts:262"
 target_function = "loadDeckInfoCache"
-source_lines = "119-141"
 description = "localStorageの値がnull等のfalsyの場合は空Mapを返す"
 given = "localStorageにdeck info cacheキーが存在しない"
 expect_return_shape = "new Map()"
 
 [[condition]]
-id = "load_info.catch_returns_empty_map"
+id = "load-info.catch-returns-empty-map"
+source_lines = "tests/unit/utils/deck-cache.test.ts:267"
 target_function = "loadDeckInfoCache"
-source_lines = "119-141"
 description = "getItem/JSON.parse/cardCount計算等で例外が発生した場合、例外を投げず空Mapを返す"
 given = "deck info cacheキーの値が不正JSON"
 expect_no_throw = true
@@ -173,17 +173,17 @@ expect_return_shape = "new Map()"
 # --- saveDeckInfoCache(cachedDeckInfos: Map<number, CachedDeckInfo>): void ---
 
 [[condition]]
-id = "save_info.map_to_object_json"
+id = "save-info.map-to-object-json"
+source_lines = "tests/unit/utils/deck-cache.test.ts:212"
 target_function = "saveDeckInfoCache"
-source_lines = "148-150"
 description = "MapをObject.fromEntriesで通常objectに変換し、JSON文字列としてdeck info cacheキーに保存する"
 given = "Map([[1, cachedInfo]])"
-expect_side_effect = "localStorage['ygoNext:deckInfoCache']にdno 1のobject JSONが保存される"
+expect_return_shape = "localStorage['ygoNext:deckInfoCache']にdno 1のobject JSONが保存される"
 
 [[condition]]
-id = "save_info.catch_swallows"
+id = "save-info.catch-swallows"
+source_lines = "tests/unit/utils/deck-cache.test.ts:273"
 target_function = "saveDeckInfoCache"
-source_lines = "148-153"
 description = "Object.fromEntries/JSON.stringify/setItemのいずれかで例外が発生しても例外を再throwしない"
 given = "localStorage.setItemが例外をthrowする"
 expect_no_throw = true
@@ -191,25 +191,25 @@ expect_no_throw = true
 # --- calculateDeckHash(deckInfo: DeckInfo): string ---
 
 [[condition]]
-id = "hash.uses_original_name_or_empty"
+id = "hash.uses-original-name-or-empty"
+source_lines = "tests/unit/utils/deck-cache.test.ts:302,tests/unit/utils/deck-cache.test.ts:362"
 target_function = "calculateDeckHash"
-source_lines = "175-177"
 description = "デッキ名としてdeckInfo.originalNameを使い、falsyの場合は空文字列を使う。deckInfo.dname/nameはハッシュ対象ではない"
 given = "originalNameが同一でdname/nameだけ異なる2つのDeckInfo、またはoriginalName未設定"
 expect_return_shape = "dname/nameだけの差では同じハッシュになる"
 
 [[condition]]
-id = "hash.includes_ordered_cards_by_section"
+id = "hash.includes-ordered-cards-by-section"
+source_lines = "tests/unit/utils/deck-cache.test.ts:312,tests/unit/utils/deck-cache.test.ts:328"
 target_function = "calculateDeckHash"
-source_lines = "179-194"
 description = "mainDeck、extraDeck、sideDeckの順に、各カードのcid:ciid:quantityとカード順序をハッシュ対象にする"
 given = "同じカード集合だがmainDeckの順序またはquantityが異なるDeckInfo"
 expect_return_shape = "ハッシュ文字列が異なる"
 
 [[condition]]
-id = "hash.returns_unsigned_base36"
+id = "hash.returns-unsigned-base36"
+source_lines = "tests/unit/utils/deck-cache.test.ts:344"
 target_function = "calculateDeckHash"
-source_lines = "196"
 description = "32bit unsigned化したhash値を36進文字列で返す"
 given = "任意のDeckInfo"
 expect_return_shape = "typeof result === 'string' かつ空文字列ではない"
@@ -217,25 +217,25 @@ expect_return_shape = "typeof result === 'string' かつ空文字列ではない
 # --- isDeckInfoChanged(dno, deckInfo, cachedDeckInfos): boolean ---
 
 [[condition]]
-id = "info_changed.no_cache_true"
+id = "info-changed.no-cache-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:375"
 target_function = "isDeckInfoChanged"
-source_lines = "207-210"
 description = "cachedDeckInfosにdnoが存在しない場合trueを返す"
 given = "cachedDeckInfos = new Map()"
 expect_return = "true"
 
 [[condition]]
-id = "info_changed.hash_mismatch_true"
+id = "info-changed.hash-mismatch-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:404"
 target_function = "isDeckInfoChanged"
-source_lines = "213-218"
 description = "現在のcalculateDeckHash(deckInfo)とcached.hashが異なる場合trueを返す"
 given = "cached.hash = 'different-hash'"
 expect_return = "true"
 
 [[condition]]
-id = "info_changed.hash_match_false"
+id = "info-changed.hash-match-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:384"
 target_function = "isDeckInfoChanged"
-source_lines = "213-218"
 description = "現在のcalculateDeckHash(deckInfo)とcached.hashが一致する場合falseを返す"
 given = "cached.hash = calculateDeckHash(deckInfo)"
 expect_return = "false"
@@ -243,17 +243,17 @@ expect_return = "false"
 # --- isCacheExpired(cachedInfo, expirationMs = CACHE_EXPIRATION_MS): boolean ---
 
 [[condition]]
-id = "cache_expired.age_greater_than_expiration_true"
+id = "cache-expired.age-greater-than-expiration-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:442,tests/unit/utils/deck-cache.test.ts:459"
 target_function = "isCacheExpired"
-source_lines = "224-233"
 description = "Date.now() - cachedInfo.lastUpdated が expirationMs より大きい場合trueを返す"
 given = "lastUpdatedが8日前、デフォルト有効期限7日"
 expect_return = "true"
 
 [[condition]]
-id = "cache_expired.age_within_or_equal_false"
+id = "cache-expired.age-within-or-equal-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:425,tests/unit/utils/deck-cache.test.ts:476"
 target_function = "isCacheExpired"
-source_lines = "224-233"
 description = "Date.now() - cachedInfo.lastUpdated が expirationMs 以下の場合falseを返す（比較は > であり >= ではない）"
 given = "lastUpdatedが1秒前、または差分がexpirationMsちょうど"
 expect_return = "false"
@@ -261,33 +261,33 @@ expect_return = "false"
 # --- generateAndCacheThumbnail(...) ---
 
 [[condition]]
-id = "generate_cache.saves_deck_info_before_thumbnail"
+id = "generate-cache.saves-deck-info-before-thumbnail"
+source_lines = "tests/unit/utils/deck-cache.test.ts:495"
 target_function = "generateAndCacheThumbnail"
-source_lines = "246-274"
 description = "サムネイル生成前に、DeckInfoの各deck配列をそのまま使い、nameはoriginalName||''、category、hash、cardCount、lastUpdated、lastThumbnailUpdateを持つCachedDeckInfoをMapとlocalStorageへ保存する"
 given = "deckInfoにoriginalName/category/main/extra/sideがある"
-expect_side_effect = "cachedDeckInfos.set(dno, cachedInfo) と deck info cacheのlocalStorage保存が実行される"
+expect_return_shape = "cachedDeckInfos.set(dno, cachedInfo) と deck info cacheのlocalStorage保存が実行される"
 
 [[condition]]
-id = "generate_cache.truthy_image_saved"
+id = "generate-cache.truthy-image-saved"
+source_lines = "tests/unit/utils/deck-cache.test.ts:495"
 target_function = "generateAndCacheThumbnail"
-source_lines = "276-284"
 description = "generateDeckThumbnailImageがtruthyなimageUrlを返した場合、その値をdeckThumbnailsに保存しthumbnail cacheをlocalStorageへ保存する"
 given = "generateDeckThumbnailImage resolves 'data:image/png;base64,mock'"
-expect_side_effect = "deckThumbnails.get(dno) === 'data:image/png;base64,mock'"
+expect_return_shape = "deckThumbnails.get(dno) === 'data:image/png;base64,mock'"
 
 [[condition]]
-id = "generate_cache.falsy_image_empty_marker"
+id = "generate-cache.falsy-image-empty-marker"
+source_lines = "tests/unit/utils/deck-cache.test.ts:523"
 target_function = "generateAndCacheThumbnail"
-source_lines = "276-284"
 description = "generateDeckThumbnailImageがfalsyなimageUrlを返した場合、空文字列をdeckThumbnailsに保存しthumbnail cacheをlocalStorageへ保存する"
 given = "generateDeckThumbnailImage resolves ''"
-expect_side_effect = "deckThumbnails.get(dno) === ''"
+expect_return_shape = "deckThumbnails.get(dno) === ''"
 
 [[condition]]
-id = "generate_cache.catch_swallows"
+id = "generate-cache.catch-swallows"
+source_lines = "tests/unit/utils/deck-cache.test.ts:534"
 target_function = "generateAndCacheThumbnail"
-source_lines = "246-287"
 description = "処理中に例外が発生した場合、例外を再throwしない"
 given = "generateDeckThumbnailImageがrejectする"
 expect_no_throw = true
@@ -295,33 +295,33 @@ expect_no_throw = true
 # --- checkDeckNeedsUpdate(...) ---
 
 [[condition]]
-id = "check_needs.null_detail_false"
+id = "check-needs.null-detail-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:555"
 target_function = "checkDeckNeedsUpdate"
-source_lines = "298-302"
 description = "getDeckDetailがnullを返した場合、needsUpdate=falseかつdeckInfo=nullを返す"
 given = "getDeckDetail resolves null"
 expect_return_shape = "{ needsUpdate: false, deckInfo: null }"
 
 [[condition]]
-id = "check_needs.changed_or_expired_true"
+id = "check-needs.changed-or-expired-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:542,tests/unit/utils/deck-cache.test.ts:589"
 target_function = "checkDeckNeedsUpdate"
-source_lines = "303-308"
 description = "deckInfoが取得でき、isDeckInfoChangedがtrue、またはキャッシュが存在してisCacheExpiredがtrueの場合needsUpdate=trueを返す"
 given = "キャッシュなし、またはhash一致だがlastUpdatedが期限切れ"
 expect_return_shape = "{ needsUpdate: true, deckInfo }"
 
 [[condition]]
-id = "check_needs.unchanged_and_fresh_false"
+id = "check-needs.unchanged-and-fresh-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:566"
 target_function = "checkDeckNeedsUpdate"
-source_lines = "303-308"
 description = "deckInfoが取得でき、hashが一致し、キャッシュが存在して期限切れでない場合needsUpdate=falseを返す"
 given = "cached.hash = calculateDeckHash(deckInfo)、lastUpdatedが現在時刻"
 expect_return_shape = "{ needsUpdate: false, deckInfo }"
 
 [[condition]]
-id = "check_needs.catch_false_null"
+id = "check-needs.catch-false-null"
+source_lines = "tests/unit/utils/deck-cache.test.ts:611"
 target_function = "checkDeckNeedsUpdate"
-source_lines = "298-312"
 description = "getDeckDetailや変更判定で例外が発生した場合、例外を投げずneedsUpdate=falseかつdeckInfo=nullを返す"
 given = "getDeckDetail rejects"
 expect_no_throw = true
@@ -330,62 +330,59 @@ expect_return_shape = "{ needsUpdate: false, deckInfo: null }"
 # --- updateDeckInfoAndThumbnail(...) ---
 
 [[condition]]
-id = "update_fetch.needs_update_generates"
+id = "update-fetch.needs-update-generates"
+source_lines = "tests/unit/utils/deck-cache.test.ts:542"
 target_function = "updateDeckInfoAndThumbnail"
-source_lines = "325-337"
 description = "checkDeckNeedsUpdateの結果がneedsUpdate=trueかつdeckInfo truthyの場合、generateAndCacheThumbnailをawaitしてからtrueを返す"
 given = "getDeckDetailがキャッシュに無いDeckInfoを返す"
-expect_return = "true"
-expect_side_effect = "thumbnail/deck info cacheが更新される"
+expect_return = "true。thumbnail/deck info cacheが更新される"
 
 [[condition]]
-id = "update_fetch.no_update_or_no_detail_skips_generation"
+id = "update-fetch.no-update-or-no-detail-skips-generation"
+source_lines = "tests/unit/utils/deck-cache.test.ts:555,tests/unit/utils/deck-cache.test.ts:566"
 target_function = "updateDeckInfoAndThumbnail"
-source_lines = "325-337"
 description = "needsUpdate=falseまたはdeckInfoがnullの場合、generateAndCacheThumbnailを呼ばずneedsUpdateを返す"
 given = "getDeckDetailがnull、またはhash一致かつ期限内"
-expect_return = "false"
-expect_side_effect = "thumbnail cacheは更新されない"
+expect_return = "false。thumbnail cacheは更新されない"
 
 # --- updateDeckInfoAndThumbnailWithData(...) ---
 
 [[condition]]
-id = "update_with_data.setting_disabled_returns"
+id = "update-with-data.setting-disabled-returns"
+source_lines = "tests/unit/utils/deck-cache.test.ts:629"
 target_function = "updateDeckInfoAndThumbnailWithData"
-source_lines = "354-358"
 description = "window.ygoNextCurrentSettingsがtruthyでupdateThumbnailWithoutFetch === falseの場合、以降の更新処理を行わずreturnする"
 given = "window.ygoNextCurrentSettings = { updateThumbnailWithoutFetch: false }"
-expect_side_effect = "thumbnail/deck info cacheは更新されない"
+expect_return_shape = "thumbnail/deck info cacheは更新されない"
 
 [[condition]]
-id = "update_with_data.setting_access_error_continues"
+id = "update-with-data.setting-access-error-continues"
+source_lines = "tests/unit/utils/deck-cache.test.ts:641"
+expect_return_shape = "void（戻り値なし）。更新が必要ならthumbnail/deck info cacheが更新される"
 target_function = "updateDeckInfoAndThumbnailWithData"
-source_lines = "354-361"
 description = "設定取得で例外が発生した場合、その例外を無視して通常の更新判定へ進む"
 given = "window.ygoNextCurrentSettings getterがthrowする"
-expect_no_throw = true
-expect_side_effect = "更新が必要ならthumbnail/deck info cacheが更新される"
 
 [[condition]]
-id = "update_with_data.needs_update_or_thumbnail_missing_generates"
+id = "update-with-data.needs-update-or-thumbnail-missing-generates"
+source_lines = "tests/unit/utils/deck-cache.test.ts:657"
 target_function = "updateDeckInfoAndThumbnailWithData"
-source_lines = "363-380"
 description = "needsUpdateがtrue、またはdeckThumbnailsにdnoが存在しない場合、generateAndCacheThumbnailを実行する"
 given = "hash一致かつ期限内だがdeckThumbnails.has(dno)がfalse、またはキャッシュなし"
-expect_side_effect = "thumbnail/deck info cacheが更新される"
+expect_return_shape = "thumbnail/deck info cacheが更新される"
 
 [[condition]]
-id = "update_with_data.no_need_and_thumbnail_exists_skips"
+id = "update-with-data.no-need-and-thumbnail-exists-skips"
+source_lines = "tests/unit/utils/deck-cache.test.ts:678"
 target_function = "updateDeckInfoAndThumbnailWithData"
-source_lines = "363-380"
 description = "needsUpdate=falseかつdeckThumbnailsにdnoが存在する場合、generateAndCacheThumbnailを実行しない"
 given = "hash一致、期限内、deckThumbnails.has(dno)がtrue"
-expect_side_effect = "thumbnail/deck info cacheは変更されない"
+expect_return_shape = "thumbnail/deck info cacheは変更されない"
 
 [[condition]]
-id = "update_with_data.catch_swallows"
+id = "update-with-data.catch-swallows"
+source_lines = "tests/unit/utils/deck-cache.test.ts:700"
 target_function = "updateDeckInfoAndThumbnailWithData"
-source_lines = "363-383"
 description = "更新判定または生成呼び出しまでの処理で例外が発生した場合、例外を再throwしない"
 given = "不正なdeckInfoによりcalculateDeckHashがthrowする"
 expect_no_throw = true
@@ -393,35 +390,35 @@ expect_no_throw = true
 # --- waitForIdleCallback(): Promise<void> ---
 
 [[condition]]
-id = "wait_idle.uses_request_idle_callback"
+id = "wait-idle.uses-request-idle-callback"
+source_lines = "tests/unit/utils/deck-cache.test.ts:862"
 target_function = "waitForIdleCallback"
-source_lines = "395-399"
 description = "windowにrequestIdleCallbackプロパティがある場合、requestIdleCallbackのコールバック実行でresolveする"
 given = "window.requestIdleCallbackを即時callback呼び出し関数にする"
-expect_side_effect = "background thumbnail生成前にrequestIdleCallbackが呼ばれる"
+expect_return_shape = "background thumbnail生成前にrequestIdleCallbackが呼ばれる"
 
 [[condition]]
-id = "wait_idle.fallback_set_timeout"
+id = "wait-idle.fallback-set-timeout"
+source_lines = "tests/unit/utils/deck-cache.test.ts:901"
 target_function = "waitForIdleCallback"
-source_lines = "395-401"
 description = "windowにrequestIdleCallbackプロパティが無い場合、setTimeout(..., 200)のコールバック実行でresolveする"
 given = "delete window.requestIdleCallback"
-expect_side_effect = "200msタイマー経由でbackground thumbnail生成が進む"
+expect_return_shape = "200msタイマー経由でbackground thumbnail生成が進む"
 
 # --- isSubsequence(subsequence, sequence): boolean ---
 
 [[condition]]
-id = "subsequence.all_found_in_order_true"
+id = "subsequence.all-found-in-order-true"
+source_lines = "tests/unit/utils/deck-cache.test.ts:802"
 target_function = "isSubsequence"
-source_lines = "417-424"
 description = "subsequenceの全要素がsequence内に同じ順序で出現する場合trueを返す"
 given = "previous relevant dnos [1,2] が current before dnos [1,3,2] に順序保持で含まれる"
 expect_return = "true"
 
 [[condition]]
-id = "subsequence.missing_or_reordered_false"
+id = "subsequence.missing-or-reordered-false"
+source_lines = "tests/unit/utils/deck-cache.test.ts:820"
 target_function = "isSubsequence"
-source_lines = "417-424"
 description = "subsequenceの要素が不足する、または順序が逆転している場合falseを返す"
 given = "previous relevant dnos [1,2] に対して current before dnos [2,1]"
 expect_return = "false"
@@ -429,97 +426,97 @@ expect_return = "false"
 # --- generateThumbnailsInBackground(...) ---
 
 [[condition]]
-id = "background.empty_deck_list_returns"
+id = "background.empty-deck-list-returns"
+source_lines = "tests/unit/utils/deck-cache.test.ts:727"
 target_function = "generateThumbnailsInBackground"
-source_lines = "438-448"
 description = "deckListがfalsy、またはlength===0の場合、何もせずreturnする"
 given = "deckList = []"
-expect_side_effect = "getDeckDetailは呼ばれない"
+expect_return_shape = "getDeckDetailは呼ばれない"
 
 [[condition]]
-id = "background.force_false_requires_background_fetch_enabled"
+id = "background.force-false-requires-background-fetch-enabled"
+source_lines = "tests/unit/utils/deck-cache.test.ts:735"
 target_function = "generateThumbnailsInBackground"
-source_lines = "452-461"
 description = "force=falseで、appSettingsがfalsyまたはbackgroundDeckInfoFetch === false、または設定取得がthrowした場合、何もせずreturnする"
 given = "window.ygoNextCurrentSettings未設定、または{backgroundDeckInfoFetch:false}"
-expect_side_effect = "getDeckDetailは呼ばれない"
+expect_return_shape = "getDeckDetailは呼ばれない"
 
 [[condition]]
-id = "background.force_false_thumbnail_generation_disabled_returns"
+id = "background.force-false-thumbnail-generation-disabled-returns"
+source_lines = "tests/unit/utils/deck-cache.test.ts:743"
 target_function = "generateThumbnailsInBackground"
-source_lines = "466-474"
 description = "force=falseで、appSettings.enableDeckThumbnailGeneration === falseの場合、何もせずreturnする。設定取得がthrowした場合はこの段階では処理を続ける"
 given = "window.ygoNextCurrentSettings = { backgroundDeckInfoFetch: true, enableDeckThumbnailGeneration: false }"
-expect_side_effect = "getDeckDetailは呼ばれない"
+expect_return_shape = "getDeckDetailは呼ばれない"
 
 [[condition]]
-id = "background.force_bypasses_settings"
+id = "background.force-bypasses-settings"
+source_lines = "tests/unit/utils/deck-cache.test.ts:755"
 target_function = "generateThumbnailsInBackground"
-source_lines = "452-475"
 description = "force=trueの場合、backgroundDeckInfoFetchとenableDeckThumbnailGenerationの設定チェックを行わず処理へ進む"
 given = "force=true、window.ygoNextCurrentSettings未設定"
-expect_side_effect = "対象deckのgetDeckDetailが呼ばれる"
+expect_return_shape = "対象deckのgetDeckDetailが呼ばれる"
 
 [[condition]]
-id = "background.slices_target_decks"
+id = "background.slices-target-decks"
+source_lines = "tests/unit/utils/deck-cache.test.ts:769"
 target_function = "generateThumbnailsInBackground"
-source_lines = "480-491"
 description = "endIndex = min(startIndex + batchSize, deckList.length) とし、deckList.slice(startIndex,endIndex)だけを処理対象にする。slice結果内のfalsy要素はcontinueする"
 given = "startIndex=1,batchSize=2,deckList dno=[1,2,3,4]"
-expect_side_effect = "getDeckDetailはdno 2と3だけで呼ばれる"
+expect_return_shape = "getDeckDetailはdno 2と3だけで呼ばれる"
 
 [[condition]]
-id = "background.recent_update_skips_api"
+id = "background.recent-update-skips-api"
+source_lines = "tests/unit/utils/deck-cache.test.ts:786"
 target_function = "generateThumbnailsInBackground"
-source_lines = "494-548"
 description = "force=falseでcached.lastThumbnailUpdateがtruthy、かつDate.nowとの差分が1日未満の場合、そのdeckではcheckDeckNeedsUpdateを呼ばずskipDueToRecentUpdate=trueにする"
 given = "lastThumbnailUpdateが現在時刻、force=false"
-expect_side_effect = "そのdnoのgetDeckDetailは呼ばれない"
+expect_return_shape = "そのdnoのgetDeckDetailは呼ばれない"
 
 [[condition]]
-id = "background.order_preserved_no_update_skip_records_check_time"
+id = "background.order-preserved-no-update-skip-records-check-time"
+source_lines = "tests/unit/utils/deck-cache.test.ts:802"
 target_function = "generateThumbnailsInBackground"
-source_lines = "508-566"
 description = "前回順序上で当該dnoより前にあったdnoのうち現存するものが、今回の当該dnoより前にも部分シーケンスとして存在し、needsUpdate=falseの場合shouldSkipになり、force=falseかつrecent skipでなければcached.lastThumbnailUpdateを現在時刻に更新する"
 given = "前回順序[1,2]、今回順序[1,2]、dno 2のhash一致・期限内、force=false"
-expect_side_effect = "dno 2のlastThumbnailUpdateが更新され、thumbnailは生成されない"
+expect_return_shape = "dno 2のlastThumbnailUpdateが更新され、thumbnailは生成されない"
 
 [[condition]]
-id = "background.consecutive_five_skips_breaks"
+id = "background.consecutive-five-skips-breaks"
+source_lines = "tests/unit/utils/deck-cache.test.ts:846"
 target_function = "generateThumbnailsInBackground"
-source_lines = "555-573"
 description = "shouldSkipが5件連続した時点でループをbreakし、残りのtargetDecksをチェックしない"
 given = "7件のdeckが順序保持かつ変更なし"
-expect_side_effect = "getDeckDetailは5回だけ呼ばれる"
+expect_return_shape = "getDeckDetailは5回だけ呼ばれる"
 
 [[condition]]
-id = "background.non_skip_changed_deck_queued"
+id = "background.non-skip-changed-deck-queued"
+source_lines = "tests/unit/utils/deck-cache.test.ts:862"
 target_function = "generateThumbnailsInBackground"
-source_lines = "574-579"
 description = "shouldSkipでない場合consecutiveSkippedを0に戻し、needsUpdate=trueかつdeckInfo truthyならdecksToUpdateに追加する"
 given = "キャッシュなしのdeckInfoが取得できる"
-expect_side_effect = "後続フェーズでthumbnail/deck info cacheが更新される"
+expect_return_shape = "後続フェーズでthumbnail/deck info cacheが更新される"
 
 [[condition]]
-id = "background.no_decks_to_update_returns_after_save"
+id = "background.no-decks-to-update-returns-after-save"
+source_lines = "tests/unit/utils/deck-cache.test.ts:888"
 target_function = "generateThumbnailsInBackground"
-source_lines = "583-590"
 description = "ループ後にsaveDeckInfoCacheを呼び、decksToUpdateが空ならサムネイル生成を行わずreturnする"
 given = "全targetDecksがskipまたはneedsUpdate=false"
-expect_side_effect = "deck info cache保存は行われ、generateDeckThumbnailImageは呼ばれない"
+expect_return_shape = "deck info cache保存は行われ、generateDeckThumbnailImageは呼ばれない"
 
 [[condition]]
-id = "background.generates_each_queued_after_idle"
+id = "background.generates-each-queued-after-idle"
+source_lines = "tests/unit/utils/deck-cache.test.ts:862"
 target_function = "generateThumbnailsInBackground"
-source_lines = "592-605"
 description = "decksToUpdateがある場合、各deckについてwaitForIdleCallbackをawaitしてからgenerateAndCacheThumbnailをawaitする"
 given = "2件のdeckが更新対象、requestIdleCallbackは即時callback"
-expect_side_effect = "requestIdleCallbackが2回呼ばれ、thumbnail/deck info cacheが2件更新される"
+expect_return_shape = "requestIdleCallbackが2回呼ばれ、thumbnail/deck info cacheが2件更新される"
 
 [[condition]]
-id = "background.random_delay_before_second_api_when_not_force"
+id = "background.random-delay-before-second-api-when-not-force"
+source_lines = "tests/unit/utils/deck-cache.test.ts:923"
 target_function = "generateThumbnailsInBackground"
-source_lines = "536-542"
 description = "skipDueToRecentUpdateでなく、apiCallCount>0かつforce=falseの場合、次のcheckDeckNeedsUpdate前に500+Math.random()*1500 ms待機する"
 given = "force=falseで2件以上をAPI確認し、1件目がskipでもrecent skipではない"
-expect_side_effect = "2件目のgetDeckDetail前にsetTimeoutが呼ばれる"
+expect_return_shape = "2件目のgetDeckDetail前にsetTimeoutが呼ばれる"
