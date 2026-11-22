@@ -13,7 +13,7 @@
  * @param propertyChecks プロパティベースのチェック関数
  * @returns 型ガード関数
  */
-function isConstructor(value: unknown): value is abstract new (...args: never[]) => unknown {
+function isCallable(value: unknown): value is (...args: never[]) => unknown {
   return typeof value === 'function';
 }
 
@@ -25,7 +25,7 @@ function createHtmlElementTypeGuard<T extends Element>(
     // ブラウザ環境では instanceof を優先
     if (typeof window !== 'undefined') {
       const ctor: unknown = Reflect.get(window, interfaceName);
-      if (isConstructor(ctor) && element instanceof ctor) {
+      if (isCallable(ctor) && element instanceof ctor) {
         return true;
       }
     }
@@ -254,7 +254,7 @@ export function isEnumMember<T extends Record<string, string | number>>(
   value: unknown,
   enumObject: T
 ): value is T[keyof T] {
-  return Object.values(enumObject).some((member) => member === value);
+  return Object.values(enumObject).some((member) => member === value || Object.is(member, value));
 }
 
 /**
