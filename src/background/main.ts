@@ -124,9 +124,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
     (async () => {
       try {
-        const settings = await getFromStorageLocal(CHROME_STORAGE_KEY_APP_SETTINGS) as
-          | { aiApiKey?: string }
-          | null;
+        const settings = await getFromStorageLocal<{ aiApiKey?: string }>(
+          CHROME_STORAGE_KEY_APP_SETTINGS
+        );
         const apiKey = settings?.aiApiKey ?? '';
         if (!apiKey) {
           sendResponse({ success: false, error: 'Z.ai APIキーが設定されていません' });

@@ -8,13 +8,13 @@
 /**
  * Chrome Storage Local から値を取得（Promise版）
  */
-export async function getFromStorageLocal(key: string): Promise<any> {
+export async function getFromStorageLocal<T = unknown>(key: string): Promise<T | null> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(key, (result) => {
       if (chrome.runtime.lastError) {
         reject(new Error(`Chrome Storage error: ${chrome.runtime.lastError.message}`));
       } else {
-        resolve(result[key] ?? null);
+        resolve((result[key] ?? null) as T | null);
       }
     });
   });
@@ -23,7 +23,7 @@ export async function getFromStorageLocal(key: string): Promise<any> {
 /**
  * Chrome Storage Local に値を設定（Promise版）
  */
-export async function setToStorageLocal(key: string, value: any): Promise<void> {
+export async function setToStorageLocal(key: string, value: unknown): Promise<void> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.set({ [key]: value }, () => {
       if (chrome.runtime.lastError) {
@@ -38,7 +38,7 @@ export async function setToStorageLocal(key: string, value: any): Promise<void> 
 /**
  * Chrome Storage Local から複数の値を取得（Promise版）
  */
-export async function getFromStorageLocalMultiple(keys: string[]): Promise<Record<string, any>> {
+export async function getFromStorageLocalMultiple(keys: string[]): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, (result) => {
       if (chrome.runtime.lastError) {
@@ -53,7 +53,7 @@ export async function getFromStorageLocalMultiple(keys: string[]): Promise<Recor
 /**
  * Chrome Storage Local から複数の値を設定（Promise版）
  */
-export async function setToStorageLocalMultiple(items: Record<string, any>): Promise<void> {
+export async function setToStorageLocalMultiple(items: Record<string, unknown>): Promise<void> {
   return new Promise((resolve, reject) => {
     chrome.storage.local.set(items, () => {
       if (chrome.runtime.lastError) {
