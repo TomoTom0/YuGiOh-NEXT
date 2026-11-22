@@ -18,7 +18,7 @@
 feature = "disabled-reason-formatter"
 source_file = "src/utils/disabled-reason-formatter.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/disabled-reason-formatter.test.ts"
 source_hash = "3e004ecf05b7c5ae6413f17bb690269d2e6cf637"
@@ -27,105 +27,105 @@ note = "verified=falseは0件"
 # --- getAttributeDisplayLabel(attrId: string): string (非export, L16-83) ---
 
 [[condition]]
-id = "attr_label.monster_type_found"
+id = "attr-label.monster-type-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "18-23"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:67"
 description = "attrIdが'monster-type_(.+)'形式かつmappingManager.getMonsterTypeIdToText('ja')にtypeが存在する場合、そのラベルを返す"
 given = "attrId = 'monster-type_fusion'（mapに'fusion'あり）"
 expect_return = "mapに登録されたラベル文字列"
 
 [[condition]]
-id = "attr_label.monster_type_not_found_fallback_to_raw_type"
+id = "attr-label.monster-type-not-found-fallback-to-raw-type"
 target_function = "getAttributeDisplayLabel"
-source_lines = "18-23"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:174"
 description = "'monster-type_(.+)'形式にマッチするがmapping結果にtypeが存在しない場合、type（'monster-type_'を除いた部分）をそのまま返す"
 given = "attrId = 'monster-type_unknown'（mapに'unknown'なし）"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.card_type_found"
+id = "attr-label.card-type-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "26-35"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:72"
 description = "attrIdが'card-type_(.+)'形式かつローカルlabelsマップ（monster/spell/trap固定3件）にtypeが存在する場合、そのラベルを返す"
 given = "attrId = 'card-type_spell'"
 expect_return = "魔法"
 
 [[condition]]
-id = "attr_label.card_type_not_found_fallback_to_raw_type"
+id = "attr-label.card-type-not-found-fallback-to-raw-type"
 target_function = "getAttributeDisplayLabel"
-source_lines = "26-35"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:179"
 description = "'card-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
 given = "attrId = 'card-type_unknown'"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.attribute_found"
+id = "attr-label.attribute-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "38-44"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:77"
 description = "attrIdが'attribute_(.+)'形式かつmappingManager.getAttributeIdToText('ja')にattrが存在する場合、そのラベルを返す"
 given = "attrId = 'attribute_water'（mapに'water'あり）"
 expect_return = "mapに登録されたラベル文字列"
 
 [[condition]]
-id = "attr_label.attribute_not_found_fallback_to_raw_attr"
+id = "attr-label.attribute-not-found-fallback-to-raw-attr"
 target_function = "getAttributeDisplayLabel"
-source_lines = "38-44"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:184"
 description = "'attribute_(.+)'形式にマッチするがmapping結果にattrが存在しない（labelがundefined）場合、attr（'attribute_'を除いた部分）をそのまま返す"
 given = "attrId = 'attribute_unknown'（mapに'unknown'なし）"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.race_found"
+id = "attr-label.race-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "47-53"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:82"
 description = "attrIdが'race_(.+)'形式かつmappingManager.getRaceIdToText('ja')にraceが存在する場合、そのラベルを返す"
 given = "attrId = 'race_dragon'（mapに'dragon'あり）"
 expect_return = "mapに登録されたラベル文字列"
 
 [[condition]]
-id = "attr_label.race_not_found_fallback_to_raw_race"
+id = "attr-label.race-not-found-fallback-to-raw-race"
 target_function = "getAttributeDisplayLabel"
-source_lines = "47-53"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:189"
 description = "'race_(.+)'形式にマッチするがmapping結果にraceが存在しない場合、raceをそのまま返す"
 given = "attrId = 'race_unknown'（mapに'unknown'なし）"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.spell_type_found"
+id = "attr-label.spell-type-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "56-68"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:87"
 description = "attrIdが'spell-type_(.+)'形式かつローカルlabelsマップ（normal/quick/ritual/continuous/equip/field固定6件）にtypeが存在する場合、そのラベルを返す"
 given = "attrId = 'spell-type_quick'"
 expect_return = "速攻魔法"
 
 [[condition]]
-id = "attr_label.spell_type_not_found_fallback_to_raw_type"
+id = "attr-label.spell-type-not-found-fallback-to-raw-type"
 target_function = "getAttributeDisplayLabel"
-source_lines = "56-68"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:194"
 description = "'spell-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
 given = "attrId = 'spell-type_unknown'"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.trap_type_found"
+id = "attr-label.trap-type-found"
 target_function = "getAttributeDisplayLabel"
-source_lines = "71-80"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:92"
 description = "attrIdが'trap-type_(.+)'形式かつローカルlabelsマップ（normal/continuous/counter固定3件）にtypeが存在する場合、そのラベルを返す"
 given = "attrId = 'trap-type_counter'"
 expect_return = "カウンター罠"
 
 [[condition]]
-id = "attr_label.trap_type_not_found_fallback_to_raw_type"
+id = "attr-label.trap-type-not-found-fallback-to-raw-type"
 target_function = "getAttributeDisplayLabel"
-source_lines = "71-80"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:199"
 description = "'trap-type_(.+)'形式にマッチするがローカルlabelsマップにtypeが存在しない場合、typeをそのまま返す"
 given = "attrId = 'trap-type_unknown'"
 expect_return = "unknown"
 
 [[condition]]
-id = "attr_label.no_match_returns_raw_attr_id"
+id = "attr-label.no-match-returns-raw-attr-id"
 target_function = "getAttributeDisplayLabel"
-source_lines = "18-82"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:204"
 description = "attrIdがmonster-type_/card-type_/attribute_/race_/spell-type_/trap-type_のいずれの形式にもマッチしない場合、attrIdをそのまま返す"
 given = "attrId = 'unknown-format'"
 expect_return = "unknown-format"
@@ -133,17 +133,17 @@ expect_return = "unknown-format"
 # --- getFieldDisplayLabel(fieldName: string): string (非export, L89-104) ---
 
 [[condition]]
-id = "field_label.found"
+id = "field-label.found"
 target_function = "getFieldDisplayLabel"
-source_lines = "90-103"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:35"
 description = "fieldNameがローカルlabelsマップ（level-rank/link-value/link-marker/p-scale/def/atk/attribute/race/monster-type/spell-type/trap-type固定11件）に存在する場合、そのラベルを返す"
 given = "fieldName = 'level-rank'"
 expect_return = "レベル/ランク"
 
 [[condition]]
-id = "field_label.not_found_fallback_to_raw_field_name"
+id = "field-label.not-found-fallback-to-raw-field-name"
 target_function = "getFieldDisplayLabel"
-source_lines = "90-103"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:50"
 description = "fieldNameがlabelsマップに存在しない場合、fieldNameをそのまま返す"
 given = "fieldName = 'unknown-field'"
 expect_return = "unknown-field"
@@ -151,113 +151,113 @@ expect_return = "unknown-field"
 # --- formatDisabledReason(type, source, _details): string (export, L114-158) ---
 
 [[condition]]
-id = "format.field_to_attribute_string_source"
+id = "format.field-to-attribute-string-source"
 target_function = "formatDisabledReason"
-source_lines = "120-129"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:35"
 description = "type='field-to-attribute'かつsourceが文字列の場合、[source]の1要素配列として扱い、labels.length===1の分岐（'{label}が選択/入力されているため'）に入る"
 given = "type='field-to-attribute', source='level-rank'"
 expect_return = "レベル/ランクが選択/入力されているため"
 
 [[condition]]
-id = "format.field_to_attribute_multi_array_joined"
+id = "format.field-to-attribute-multi-array-joined"
 target_function = "formatDisabledReason"
-source_lines = "123-127"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:40,tests/unit/utils/disabled-reason-formatter.test.ts:45"
 description = "type='field-to-attribute'かつsource配列の要素数が2以上の場合、各要素をgetFieldDisplayLabelでラベル化し'、'で結合してから'が選択/入力されているため'を付与する"
 given = "type='field-to-attribute', source=['level-rank', 'def']"
 expect_return = "レベル/ランク、DEFが選択/入力されているため"
 
 [[condition]]
-id = "format.field_to_attribute_single_element_array"
+id = "format.field-to-attribute-single-element-array"
 target_function = "formatDisabledReason"
-source_lines = "123-128"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:55"
 description = "type='field-to-attribute'かつsourceが1要素の配列の場合、Array.isArrayでsourceがそのまま使われ、labels.length===1の分岐に入る（文字列指定時と同じ挙動）"
 given = "type='field-to-attribute', source=['atk']"
 expect_return = "ATKが選択/入力されているため"
 
 [[condition]]
-id = "format.field_to_attribute_empty_array_boundary"
+id = "format.field-to-attribute-empty-array-boundary"
 target_function = "formatDisabledReason"
-source_lines = "123-128"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:60"
 description = "type='field-to-attribute'かつsourceが空配列の場合、labels=[]でlength>1がfalseとなりelse分岐（labels[0]）に入るが、labels[0]はundefinedのためテンプレートリテラルで'undefined'という文字列が埋め込まれる（実装上のバウンダリ挙動、意図的な仕様かは実装コメントからは不明）"
 given = "type='field-to-attribute', source=[]"
 expect_return = "undefinedが選択/入力されているため"
 
 [[condition]]
-id = "format.attribute_exclusion_string_source"
+id = "format.attribute-exclusion-string-source"
 target_function = "formatDisabledReason"
-source_lines = "131-137"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:67"
 description = "type='attribute-exclusion'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
 given = "type='attribute-exclusion', source='monster-type_fusion'"
 expect_return = "融合が選択されているため"
 
 [[condition]]
-id = "format.attribute_exclusion_array_source_first_element"
+id = "format.attribute-exclusion-array-source-first-element"
 target_function = "formatDisabledReason"
-source_lines = "131-137"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:97"
 description = "type='attribute-exclusion'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
 given = "type='attribute-exclusion', source=['card-type_spell', 'card-type_trap']"
 expect_return = "魔法が選択されているため"
 
 [[condition]]
-id = "format.attribute_exclusion_empty_array_boundary"
+id = "format.attribute-exclusion-empty-array-boundary"
 target_function = "formatDisabledReason"
-source_lines = "134-136"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:105"
 description = "type='attribute-exclusion'かつsourceが空配列の場合、source[0]がundefinedのため`|| ''`でattrId=''にフォールバックし、getAttributeDisplayLabel('')はどの正規表現にもマッチせず''をそのまま返すため、結果は接頭辞なしの固定文言のみになる"
 given = "type='attribute-exclusion', source=[]"
 expect_return = "が選択されているため"
 
 [[condition]]
-id = "format.attribute_unavailable_string_source"
+id = "format.attribute-unavailable-string-source"
 target_function = "formatDisabledReason"
-source_lines = "139-145"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:112,tests/unit/utils/disabled-reason-formatter.test.ts:117"
 description = "type='attribute-unavailable'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
 given = "type='attribute-unavailable', source='attribute_dark'"
 expect_return = "闇が選択されているため"
 
 [[condition]]
-id = "format.attribute_unavailable_array_source_first_element"
+id = "format.attribute-unavailable-array-source-first-element"
 target_function = "formatDisabledReason"
-source_lines = "139-145"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:122"
 description = "type='attribute-unavailable'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
 given = "type='attribute-unavailable', source=['monster-type_synchro', 'monster-type_xyz']"
 expect_return = "シンクロが選択されているため"
 
 [[condition]]
-id = "format.attribute_unavailable_empty_array_boundary"
+id = "format.attribute-unavailable-empty-array-boundary"
 target_function = "formatDisabledReason"
-source_lines = "142-144"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:130"
 description = "type='attribute-unavailable'かつsourceが空配列の場合、attribute-exclusionと同様にattrId=''にフォールバックし、結果は接頭辞なしの固定文言のみになる"
 given = "type='attribute-unavailable', source=[]"
 expect_return = "が選択されているため"
 
 [[condition]]
-id = "format.attribute_to_field_string_source"
+id = "format.attribute-to-field-string-source"
 target_function = "formatDisabledReason"
-source_lines = "147-153"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:137,tests/unit/utils/disabled-reason-formatter.test.ts:142,tests/unit/utils/disabled-reason-formatter.test.ts:147"
 description = "type='attribute-to-field'かつsourceが文字列の場合、sourceをそのままattrIdとしてgetAttributeDisplayLabelに渡す"
 given = "type='attribute-to-field', source='card-type_trap'"
 expect_return = "罠が選択されているため"
 
 [[condition]]
-id = "format.attribute_to_field_array_source_first_element"
+id = "format.attribute-to-field-array-source-first-element"
 target_function = "formatDisabledReason"
-source_lines = "147-153"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:152"
 description = "type='attribute-to-field'かつsourceが配列の場合、source[0]をattrIdとして使用する（2番目以降の要素は無視される）"
 given = "type='attribute-to-field', source=['race_warrior', 'race_dragon']"
 expect_return = "戦士が選択されているため"
 
 [[condition]]
-id = "format.attribute_to_field_empty_array_boundary"
+id = "format.attribute-to-field-empty-array-boundary"
 target_function = "formatDisabledReason"
-source_lines = "150-152"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:160"
 description = "type='attribute-to-field'かつsourceが空配列の場合、attribute-exclusion/attribute-unavailableと同様にattrId=''にフォールバックし、結果は接頭辞なしの固定文言のみになる"
 given = "type='attribute-to-field', source=[]"
 expect_return = "が選択されているため"
 
 [[condition]]
-id = "format.unknown_type_returns_empty_string"
+id = "format.unknown-type-returns-empty-string"
 target_function = "formatDisabledReason"
-source_lines = "155-156"
+source_lines = "tests/unit/utils/disabled-reason-formatter.test.ts:167"
 description = "typeがswitchのいずれのcaseにもマッチしない場合（default節）、空文字列を返す"
 given = "type = 'unknown-type' as any, source = 'some-value'"
-expect_return = ""
+expect_return = "''（空文字列）"
