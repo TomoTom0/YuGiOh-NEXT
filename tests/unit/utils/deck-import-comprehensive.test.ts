@@ -9,7 +9,7 @@ import { importFromCSV, importFromTXT } from '@/utils/deck-import';
 
 describe('deck-import', () => {
   describe('importFromCSV', () => {
-    it('CSV形式の文字列をパースできる [covers:import_csv.success_without_warnings]', () => {
+    it('CSV形式の文字列をパースできる [covers:import-csv.success-without-warnings]', () => {
       const csvContent = `section,name,cid,ciid,quantity
 main,ブルーアイズ,89631139,1,3
 extra,青眼の究極竜,23995346,1,2
@@ -25,7 +25,7 @@ side,灰流うらら,14558127,1,1`;
       expect(result.warnings).toBeUndefined();
     });
 
-    it('ヘッダーなしのCSV形式をパースできる [covers:import_csv.header_absent]', () => {
+    it('ヘッダーなしのCSV形式をパースできる [covers:import-csv.header-absent]', () => {
       const csvContent = `main,ブルーアイズ,89631139,1,3
 extra,青眼の究極竜,23995346,1,2`;
 
@@ -37,7 +37,7 @@ extra,青眼の究極竜,23995346,1,2`;
       expect(result.deckInfo?.extraDeck).toHaveLength(1);
     });
 
-    it('不正な形式の文字列でエラーを返す [covers:parse_import_row.too_few_fields]', () => {
+    it('不正な形式の文字列でエラーを返す [covers:parse-import-row.too-few-fields]', () => {
       const csvContent = `invalid,data`;
 
       const result = importFromCSV(csvContent);
@@ -46,7 +46,7 @@ extra,青眼の究極竜,23995346,1,2`;
       expect(result.error).toBeDefined();
     });
 
-    it('空の文字列でエラーを返す [covers:import_csv.all_rows_invalid_error]', () => {
+    it('空の文字列でエラーを返す [covers:import-csv.all-rows-invalid-error]', () => {
       const csvContent = '';
 
       const result = importFromCSV(csvContent);
@@ -55,7 +55,7 @@ extra,青眼の究極竜,23995346,1,2`;
       expect(result.error).toBe('インポート可能なデータがありません');
     });
 
-    it('最小限の形式（section,cid,quantity）をパースできる [covers:parse_import_row.fields3_minimal]', () => {
+    it('最小限の形式（section,cid,quantity）をパースできる [covers:parse-import-row.fields3-minimal]', () => {
       const csvContent = `main,89631139,3
 extra,23995346,2`;
 
@@ -69,7 +69,7 @@ extra,23995346,2`;
   });
 
   describe('importFromTXT', () => {
-    it('TXT形式の文字列をパースできる [covers:import_txt.match_old_no_enc]', () => {
+    it('TXT形式の文字列をパースできる [covers:import-txt.match-old-no-enc]', () => {
       const txtContent = `=== Main Deck ===
 3x ブルーアイズ・ホワイト・ドラゴン (89631139:1)
 
@@ -88,7 +88,7 @@ extra,23995346,2`;
       expect(result.deckInfo?.sideDeck).toHaveLength(1);
     });
 
-    it('新形式（enc付き）をパースできる [covers:import_txt.match_with_enc]', () => {
+    it('新形式（enc付き）をパースできる [covers:import-txt.match-with-enc]', () => {
       const txtContent = `=== Main Deck ===
 3x 灰流うらら (14558127:1:abc123)`;
 
@@ -101,7 +101,7 @@ extra,23995346,2`;
       expect(result.deckInfo?.mainDeck[0]?.quantity).toBe(3);
     });
 
-    it('セクション区切りを正しく認識する [covers:import_txt.section_header_switches_current_section]', () => {
+    it('セクション区切りを正しく認識する [covers:import-txt.section-header-switches-current-section]', () => {
       const txtContent = `=== Main Deck ===
 3x カード1 (1:1)
 === Extra Deck ===
@@ -117,7 +117,7 @@ extra,23995346,2`;
       expect(result.deckInfo?.sideDeck).toHaveLength(1);
     });
 
-    it('空のファイルでエラーを返す [covers:import_txt.all_rows_invalid_error]', () => {
+    it('空のファイルでエラーを返す [covers:import-txt.all-rows-invalid-error]', () => {
       const txtContent = '';
 
       const result = importFromTXT(txtContent);
@@ -126,7 +126,7 @@ extra,23995346,2`;
       expect(result.error).toBe('インポート可能なデータがありません');
     });
 
-    it('不正なフォーマットで警告を返す [covers:import_txt.no_match_with_section_warning]', () => {
+    it('不正なフォーマットで警告を返す [covers:import-txt.no-match-with-section-warning]', () => {
       const txtContent = `=== Main Deck ===
 不正な行
 3x カード1 (1:1)`;
@@ -138,7 +138,7 @@ extra,23995346,2`;
       expect(result.warnings?.length).toBeGreaterThan(0);
     });
 
-    it('セクションなしのカード行を無視する [covers:import_txt.no_match_without_section_silent]', () => {
+    it('セクションなしのカード行を無視する [covers:import-txt.no-match-without-section-silent]', () => {
       const txtContent = `3x カード1 (1:1)
 === Main Deck ===
 2x カード2 (2:1)`;
@@ -150,7 +150,7 @@ extra,23995346,2`;
       expect(result.deckInfo?.mainDeck[0]?.cid).toBe('2');
     });
 
-    it('空行を正しくスキップする [covers:import_txt.empty_line_skipped]', () => {
+    it('空行を正しくスキップする [covers:import-txt.empty-line-skipped]', () => {
       const txtContent = `=== Main Deck ===
 
 3x カード1 (1:1)
@@ -181,7 +181,7 @@ extra,23995346,2`;
         expect(result.deckInfo?.mainDeck).toHaveLength(500);
       });
 
-      it('特殊文字を含むカード名を処理できる [covers:parse_csv_line.escaped_double_quote]', () => {
+      it('特殊文字を含むカード名を処理できる [covers:parse-csv-line.escaped-double-quote]', () => {
         const csvContent = `section,name,cid,ciid,quantity
 main,"カード""名",123,1,1
 main,カード@#$,456,1,1`;
@@ -192,7 +192,7 @@ main,カード@#$,456,1,1`;
         expect(result.deckInfo?.mainDeck).toHaveLength(2);
       });
 
-      it('重複するCIDを正しくマージできる [covers:convert_rows.merge_duplicate_key_sums_quantity]', () => {
+      it('重複するCIDを正しくマージできる [covers:convert-rows.merge-duplicate-key-sums-quantity]', () => {
         const csvContent = `section,cid,quantity
 main,89631139,2
 main,89631139,1`;
@@ -204,7 +204,7 @@ main,89631139,1`;
         expect(result.deckInfo?.mainDeck[0]?.quantity).toBe(3);
       });
 
-      it('不正なquantity値を持つ行をスキップする [covers:parse_import_row.quantity_nan_invalid]', () => {
+      it('不正なquantity値を持つ行をスキップする [covers:parse-import-row.quantity-nan-invalid]', () => {
         const csvContent = `section,cid,quantity
 main,123,abc
 main,456,3`;
@@ -255,7 +255,7 @@ main,456,2`;
         expect(result.deckInfo?.mainDeck).toHaveLength(2);
       });
 
-      it('ciidが異なる同一CIDを別カードとして扱う [covers:convert_rows.different_ciid_treated_as_distinct]', () => {
+      it('ciidが異なる同一CIDを別カードとして扱う [covers:convert-rows.different-ciid-treated-as-distinct]', () => {
         const csvContent = `section,cid,ciid,quantity
 main,123,1,2
 main,123,2,1`;
@@ -307,7 +307,7 @@ main,456,2`;
         expect(result.deckInfo?.mainDeck[2]?.quantity).toBe(1);
       });
 
-      it('コメント行（#）は専用ロジックが無く、フォーマット不正warning付きでスキップされる [covers:import_txt.no_match_with_section_warning]', () => {
+      it('コメント行（#）は専用ロジックが無く、フォーマット不正warning付きでスキップされる [covers:import-txt.no-match-with-section-warning]', () => {
         // 実装にコメント専用の除外ロジックは存在しない。#行はmatchWithEnc/matchOldのどちらにも
         // マッチしないため、他の不正フォーマット行と同様に扱われているだけ（「無視」ではない）
         const txtContent = `=== Main Deck ===
@@ -362,7 +362,7 @@ main,456,2`;
         expect(result.deckInfo?.mainDeck).toHaveLength(2);
       });
 
-      it('不正なCID形式を持つ行をスキップする [covers:import_txt.no_match_with_section_warning]', () => {
+      it('不正なCID形式を持つ行をスキップする [covers:import-txt.no-match-with-section-warning]', () => {
         const txtContent = `=== Main Deck ===
 3x カード1 (abc:1)
 2x カード2 (456:1)`;
@@ -374,7 +374,7 @@ main,456,2`;
         expect(result.deckInfo?.mainDeck).toHaveLength(1);
       });
 
-      it('カード名がない行は正規表現不一致でフォーマット不正warningになりスキップされる [covers:import_txt.no_match_with_section_warning]', () => {
+      it('カード名がない行は正規表現不一致でフォーマット不正warningになりスキップされる [covers:import-txt.no-match-with-section-warning]', () => {
         const txtContent = `=== Main Deck ===
 3x (123:1)
 2x カード2 (456:1)`;
@@ -386,7 +386,7 @@ main,456,2`;
         expect(result.warnings).toBeDefined();
       });
 
-      it('複数のセクション区切りを正しく処理する [covers:import_txt.section_header_switches_current_section]', () => {
+      it('複数のセクション区切りを正しく処理する [covers:import-txt.section-header-switches-current-section]', () => {
         const txtContent = `=== Main Deck ===
 3x カード1 (123:1)
 === Extra Deck ===
@@ -403,7 +403,7 @@ main,456,2`;
         expect(result.deckInfo?.mainDeck).toHaveLength(2);
       });
 
-      it('ciidが省略されている行は正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import_txt.no_match_with_section_warning] [covers:import_txt.all_rows_invalid_error]', () => {
+      it('ciidが省略されている行は正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import-txt.no-match-with-section-warning] [covers:import-txt.all-rows-invalid-error]', () => {
         // ciid省略形式 "(cid)" は \((\d+):(\d+)\) にマッチしないため、他の不正フォーマット行と同様に扱われる
         const txtContent = `=== Main Deck ===
 3x カード1 (123)`;
@@ -414,7 +414,7 @@ main,456,2`;
         expect(result.error).toBe('インポート可能なデータがありません');
       });
 
-      it('全角数字を含む数量表記は正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import_txt.no_match_with_section_warning] [covers:import_txt.all_rows_invalid_error]', () => {
+      it('全角数字を含む数量表記は正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import-txt.no-match-with-section-warning] [covers:import-txt.all-rows-invalid-error]', () => {
         // 正規表現の(\d+)は半角数字のみマッチするため、全角"３"は数量として認識されない
         const txtContent = `=== Main Deck ===
 ３x カード1 (123:1)`;
@@ -425,7 +425,7 @@ main,456,2`;
         expect(result.error).toBe('インポート可能なデータがありません');
       });
 
-      it('全角括弧を含むカードIDは正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import_txt.no_match_with_section_warning] [covers:import_txt.all_rows_invalid_error]', () => {
+      it('全角括弧を含むカードIDは正規表現不一致でフォーマット不正warningになり、他に有効行が無いためエラーを返す [covers:import-txt.no-match-with-section-warning] [covers:import-txt.all-rows-invalid-error]', () => {
         // 正規表現の\(...\)は半角括弧のみマッチするため、全角"（）"は区切りとして認識されない
         const txtContent = `=== Main Deck ===
 3x カード1 （123:1）`;
