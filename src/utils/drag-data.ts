@@ -5,6 +5,8 @@
  * ドラッグデータの型安全な読み書きを提供する
  */
 
+import type { CardInfo } from '@/types/card';
+
 /**
  * デッキ編集用ドラッグデータ
  */
@@ -13,8 +15,12 @@ export type SectionType = 'main' | 'extra' | 'side' | 'trash' | 'search';
 export interface DeckDragData {
   sectionType: SectionType;
   index: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  card: any;
+  /**
+   * ドラッグ中のカード
+   * 本体は CardInfo。供給元によっては cid（DeckCardRef 形式）や
+   * empty（空スロットのプレースホルダ）を持つ場合がある
+   */
+  card: CardInfo & { cid?: string; empty?: boolean };
   uuid: string;
 }
 
