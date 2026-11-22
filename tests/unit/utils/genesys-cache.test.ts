@@ -91,12 +91,12 @@ function deferred(): { promise: Promise<void>; resolve: () => void; reject: (rea
 }
 
 describe('selectApplicableGenesysList', () => {
-  it('cacheがnullまたはlistsが空ならnullを返す [covers:select.no_cache_null] [covers:select.empty_lists_null]', () => {
+  it('cacheがnullまたはlistsが空ならnullを返す [covers:select.no-cache-null] [covers:select.empty-lists-null]', () => {
     expect(selectApplicableGenesysList(null, ts('2026-07-11'))).toBeNull();
     expect(selectApplicableGenesysList(cacheData([], { latestListParam: null }), ts('2026-07-11'))).toBeNull();
   });
 
-  it('ローカル日付YYYY-MM-DDで今日以前の最新リストを選ぶ [covers:timestamp_to_ymd.local_date_zero_padded] [covers:select.effective_latest_past_or_today]', () => {
+  it('ローカル日付YYYY-MM-DDで今日以前の最新リストを選ぶ [covers:timestamp-to-ymd.local-date-zero-padded] [covers:select.effective-latest-past-or-today]', () => {
     const data = cacheData(
       [
         entry('202608', '2026-08-01', { c1: 100 }),
@@ -112,7 +112,7 @@ describe('selectApplicableGenesysList', () => {
     expect(selected?.points.c1).toBe(50);
   });
 
-  it('適用当日のリストは有効扱いになる [covers:select.effective_includes_today]', () => {
+  it('適用当日のリストは有効扱いになる [covers:select.effective-includes-today]', () => {
     const data = cacheData(
       [entry('202608', '2026-08-01', { c1: 100 }), entry('202606', '2026-06-01', { c1: 50 })],
       { latestListParam: '202608' }
@@ -121,7 +121,7 @@ describe('selectApplicableGenesysList', () => {
     expect(selectApplicableGenesysList(data, ts('2026-08-01'))?.listParam).toBe('202608');
   });
 
-  it('すべて未来ならlatestListParamを優先し、無ければ適用日最大を返す [covers:select.all_future_uses_latest_list_param] [covers:select.all_future_latest_missing_uses_max_effective_date]', () => {
+  it('すべて未来ならlatestListParamを優先し、無ければ適用日最大を返す [covers:select.all-future-uses-latest-list-param] [covers:select.all-future-latest-missing-uses-max-effective-date]', () => {
     const futureEntries = [
       entry('202610', '2026-10-01', { c1: 30 }),
       entry('202608', '2026-08-01', { c1: 20 })
@@ -162,7 +162,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('init', () => {
-    it('storageのキャッシュを読み込み、2回目のinitは何もしない [covers:init.stored_cache_loaded] [covers:init.already_initialized_returns_early]', async () => {
+    it('storageのキャッシュを読み込み、2回目のinitは何もしない [covers:init.stored-cache-loaded] [covers:genesys-cache.init-already-initialized-returns-early]', async () => {
       const stored = cacheData([entry('202606', '2026-06-01', { c1: 50 })]);
       storageMocks.safeStorageGet.mockResolvedValue({ [STORAGE_KEY]: stored });
       const cache = new GenesysPointCache();
@@ -177,7 +177,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getCurrentListParam()).toBe('202606');
     });
 
-    it('storageにキャッシュが無い場合はnullのまま初期化する [covers:init.no_stored_cache_keeps_null]', async () => {
+    it('storageにキャッシュが無い場合はnullのまま初期化する [covers:init.no-stored-cache-keeps-null]', async () => {
       storageMocks.safeStorageGet.mockResolvedValue({});
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
@@ -188,7 +188,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getAvailableListParams()).toEqual([]);
     });
 
-    it('起動時にdiscoveredAtがTTL以内ならGENESYSインデックスを再取得しない [covers:init.startup_ttl_fresh_skips_update]', async () => {
+    it('起動時にdiscoveredAtがTTL以内ならGENESYSインデックスを再取得しない [covers:init.startup-ttl-fresh-skips-update]', async () => {
       const stored = cacheData([entry('202606', '2026-06-01')], {
         discoveredAt: Date.now() - 5 * DAY
       });
@@ -202,7 +202,7 @@ describe('GenesysPointCache', () => {
       expect(getInternalCache(cache)).toEqual(stored);
     });
 
-    it('起動時にdiscoveredAtがTTL超過なら更新し、確認日時をキャッシュへ保存する [covers:init.startup_ttl_expired_updates_and_persists]', async () => {
+    it('起動時にdiscoveredAtがTTL超過なら更新し、確認日時をキャッシュへ保存する [covers:init.startup-ttl-expired-updates-and-persists]', async () => {
       const old = cacheData([entry('202606', '2026-06-01')], {
         discoveredAt: Date.now() - 7 * DAY
       });
@@ -220,7 +220,7 @@ describe('GenesysPointCache', () => {
       });
     });
 
-    it('起動時の更新に失敗しても既存キャッシュとdiscoveredAtを保持する [covers:init.startup_update_failure_preserves_cache]', async () => {
+    it('起動時の更新に失敗しても既存キャッシュとdiscoveredAtを保持する [covers:init.startup-update-failure-preserves-cache]', async () => {
       const old = cacheData([entry('202606', '2026-06-01', { c1: 50 })], {
         discoveredAt: Date.now() - 7 * DAY
       });
@@ -235,7 +235,7 @@ describe('GenesysPointCache', () => {
       expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
     });
 
-    it('バックグラウンド更新がrejectしてもinitはrejectしない [covers:init.starts_background_check_and_swallows_rejection]', async () => {
+    it('バックグラウンド更新がrejectしてもinitはrejectしない [covers:genesys-cache.init-starts-background-check-and-swallows-rejection]', async () => {
       storageMocks.safeStorageGet.mockResolvedValue(null);
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockRejectedValue(new Error('background failed'));
@@ -246,7 +246,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('read methods', () => {
-    it('明示listParamは現在有効リストではなく指定リストからpointを読む [covers:get_point.explicit_list_param_lookup]', () => {
+    it('明示listParamは現在有効リストではなく指定リストからpointを読む [covers:get-point.explicit-list-param-lookup]', () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([
         entry('202606', '2026-06-01', { c1: 50 }),
@@ -258,7 +258,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('c1', '209999')).toBeUndefined();
     });
 
-    it('listParam省略時は現在有効リストからpoint/listParam/effectiveDateを読む [covers:get_point.current_applicable_lookup] [covers:current_list_param.selected_or_undefined] [covers:current_effective_date.selected_or_undefined]', () => {
+    it('listParam省略時は現在有効リストからpoint/listParam/effectiveDateを読む [covers:get-point.current-applicable-lookup] [covers:current-list-param.selected-or-undefined] [covers:current-effective-date.selected-or-undefined]', () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([
         entry('202606', '2026-06-01', { c1: 50 }),
@@ -275,7 +275,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getCurrentEffectiveDate()).toBeUndefined();
     });
 
-    it('availableListParamsはコピーを返し、無ければlistsキーを返す [covers:available_params.no_cache_empty] [covers:available_params.available_copy] [covers:available_params.fallback_list_keys]', () => {
+    it('availableListParamsはコピーを返し、無ければlistsキーを返す [covers:available-params.no-cache-empty] [covers:available-params.available-copy] [covers:available-params.fallback-list-keys]', () => {
       const cache = new GenesysPointCache();
       expect(cache.getAvailableListParams()).toEqual([]);
 
@@ -303,7 +303,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('ensureCurrentList', () => {
-    it('現在有効リストがあればforceUpdateせず返す [covers:ensure_current.existing_returns_without_update]', async () => {
+    it('現在有効リストがあればforceUpdateせず返す [covers:ensure-current.existing-returns-without-update]', async () => {
       const current = entry('202606', '2026-06-01', { c1: 50 });
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([current]));
@@ -313,14 +313,14 @@ describe('GenesysPointCache', () => {
       expect(forceSpy).not.toHaveBeenCalled();
     });
 
-    it('forceUpdate失敗時はnullを返す [covers:ensure_current.force_update_error_returns_null]', async () => {
+    it('forceUpdate失敗時はnullを返す [covers:ensure-current.force-update-error-returns-null]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'forceUpdate').mockRejectedValue(new Error('network'));
 
       await expect(cache.ensureCurrentList()).resolves.toBeNull();
     });
 
-    it('forceUpdate成功後に再選択したリストを返す [covers:ensure_current.force_update_success_reselects]', async () => {
+    it('forceUpdate成功後に再選択したリストを返す [covers:ensure-current.force-update-success-reselects]', async () => {
       const cache = new GenesysPointCache();
       const updated = entry('202606', '2026-06-01', { c1: 50 });
       vi.spyOn(cache, 'forceUpdate').mockImplementation(async () => {
@@ -332,7 +332,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('ensureList', () => {
-    it('既存entryがあればfetchせず返す [covers:ensure_list.existing_returns_without_fetch]', async () => {
+    it('既存entryがあればfetchせず返す [covers:genesys-cache.ensure-list-existing-returns-without-fetch]', async () => {
       const existing = entry('202608', '2026-08-01', { c1: 100 });
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([existing], { availableListParams: ['202608'] }));
@@ -344,14 +344,14 @@ describe('GenesysPointCache', () => {
       expect(storageMocks.safeStorageSet).not.toHaveBeenCalled();
     });
 
-    it('availableが空でforceUpdateが失敗するとnullを返す [covers:ensure_list.no_available_force_update_error_returns_null]', async () => {
+    it('availableが空でforceUpdateが失敗するとnullを返す [covers:ensure-list.no-available-force-update-error-returns-null]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'forceUpdate').mockRejectedValue(new Error('index failed'));
 
       await expect(cache.ensureList('202608')).resolves.toBeNull();
     });
 
-    it('availableに無いlistParamはnullを返しfetchしない [covers:ensure_list.not_in_available_returns_null]', async () => {
+    it('availableに無いlistParamはnullを返しfetchしない [covers:ensure-list.not-in-available-returns-null]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([], { lists: {}, availableListParams: ['202608'] }));
 
@@ -359,7 +359,7 @@ describe('GenesysPointCache', () => {
       expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
     });
 
-    it('available確認後にcomplete entryがあれば追加fetchせず返す [covers:ensure_list.after_force_complete_returns]', async () => {
+    it('available確認後にcomplete entryがあれば追加fetchせず返す [covers:ensure-list.after-force-complete-returns]', async () => {
       const afterForce = entry('202608', '2026-08-01', { c1: 100 }, { incomplete: false });
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([afterForce], { availableListParams: [] }));
@@ -368,7 +368,7 @@ describe('GenesysPointCache', () => {
       expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
     });
 
-    it('未取得またはincompleteなら取得・解決して保存する [covers:ensure_list.fetch_success_creates_or_updates_cache] [covers:ensure_list.unresolved_marks_incomplete]', async () => {
+    it('未取得またはincompleteなら取得・解決して保存する [covers:ensure-list.fetch-success-creates-or-updates-cache] [covers:ensure-list.unresolved-marks-incomplete]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([], { lists: {}, availableListParams: ['202608'] }));
       apiMocks.fetchGenesysPointList.mockResolvedValue({ entries: [{ name: '未解決', point: 10, cardKindClass: 'effect' }] });
@@ -389,7 +389,7 @@ describe('GenesysPointCache', () => {
       });
     });
 
-    it('取得または保存で例外が出てもnullを返す [covers:ensure_list.fetch_or_persist_error_returns_null]', async () => {
+    it('取得または保存で例外が出てもnullを返す [covers:ensure-list.fetch-or-persist-error-returns-null]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([], { lists: {}, availableListParams: ['202608'] }));
       apiMocks.fetchGenesysPointList.mockRejectedValue(new Error('network'));
@@ -399,7 +399,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('needsUpdate and checkAndUpdate', () => {
-    it('cache無しまたはDISCOVERY_TTL超過だけを更新必要と判定する [covers:needs_update.no_cache_true] [covers:needs_update.discovery_ttl_comparison]', () => {
+    it('cache無しまたはDISCOVERY_TTL超過だけを更新必要と判定する [covers:genesys-cache.needs-update-no-cache-true] [covers:needs-update.discovery-ttl-comparison]', () => {
       const cache = new GenesysPointCache();
       expect((cache as any).needsUpdate()).toBe(true);
 
@@ -410,7 +410,7 @@ describe('GenesysPointCache', () => {
       expect((cache as any).needsUpdate()).toBe(false);
     });
 
-    it('更新中のcheckAndUpdateはforceUpdateを多重起動しない [covers:check_update.in_flight_returns_same_promise]', async () => {
+    it('更新中のcheckAndUpdateはforceUpdateを多重起動しない [covers:check-update.in-flight-returns-same-promise]', async () => {
       const cache = new GenesysPointCache();
       const pending = deferred();
       const forceSpy = vi.spyOn(cache, 'forceUpdate').mockReturnValue(pending.promise);
@@ -424,7 +424,7 @@ describe('GenesysPointCache', () => {
       await expect(second).resolves.toBeUndefined();
     });
 
-    it('更新不要ならforceUpdateせずundefinedを返す [covers:check_update.no_update_needed_returns_undefined]', async () => {
+    it('更新不要ならforceUpdateせずundefinedを返す [covers:check-update.no-update-needed-returns-undefined]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([], { discoveredAt: Date.now() }));
       const forceSpy = vi.spyOn(cache, 'forceUpdate');
@@ -433,7 +433,7 @@ describe('GenesysPointCache', () => {
       expect(forceSpy).not.toHaveBeenCalled();
     });
 
-    it('forceUpdateの失敗は握りつぶし、完了後に再実行できる [covers:check_update.force_update_errors_are_swallowed_and_promise_cleared]', async () => {
+    it('forceUpdateの失敗は握りつぶし、完了後に再実行できる [covers:check-update.force-update-errors-are-swallowed-and-promise-cleared]', async () => {
       const cache = new GenesysPointCache();
       const forceSpy = vi.spyOn(cache, 'forceUpdate')
         .mockRejectedValueOnce(new Error('update failed'))
@@ -446,7 +446,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('forceUpdate and clear', () => {
-    it('indexを取得し、complete既存entryをスキップし、未取得/incompleteを保存する [covers:force_update.fetches_index_initializes_db_and_persists] [covers:force_update.latest_ref_sets_latest_list_param] [covers:force_update.complete_existing_entry_skipped] [covers:force_update.incomplete_or_missing_entry_fetched] [covers:force_update.unresolved_marks_incomplete]', async () => {
+    it('indexを取得し、complete既存entryをスキップし、未取得/incompleteを保存する [covers:force-update.fetches-index-initializes-db-and-persists] [covers:force-update.latest-ref-sets-latest-list-param] [covers:force-update.complete-existing-entry-skipped] [covers:force-update.incomplete-or-missing-entry-fetched] [covers:force-update.unresolved-marks-incomplete]', async () => {
       const complete = entry('202606', '2026-06-01', { old: 1 });
       const incomplete = entry('202604', '2026-04-01', { stale: 1 }, { incomplete: true });
       const cache = new GenesysPointCache();
@@ -486,7 +486,7 @@ describe('GenesysPointCache', () => {
       });
     });
 
-    it('latest refが無ければ既存latestListParamを保持し、個別fetch失敗後も次のrefを処理する [covers:force_update.no_latest_ref_preserves_previous_or_null] [covers:force_update.fetch_list_error_continues]', async () => {
+    it('latest refが無ければ既存latestListParamを保持し、個別fetch失敗後も次のrefを処理する [covers:force-update.no-latest-ref-preserves-previous-or-null] [covers:force-update.fetch-list-error-continues]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData([], { lists: {}, latestListParam: '202606', availableListParams: [] }));
       apiMocks.fetchGenesysIndex.mockResolvedValue([
@@ -515,7 +515,7 @@ describe('GenesysPointCache', () => {
       expect(getInternalCache(emptyCache)?.latestListParam).toBeNull();
     });
 
-    it('clearは内部cacheとstorageをnullにする [covers:clear.clears_cache_and_storage]', async () => {
+    it('clearは内部cacheとstorageをnullにする [covers:clear.clears-cache-and-storage]', async () => {
       const cache = new GenesysPointCache();
       setInternalCache(cache, cacheData());
 
@@ -531,7 +531,7 @@ describe('GenesysPointCache', () => {
   // TASK-470/471/472で追加されたローカル再解決(reresolveLocal)関連テストを含む。
 
   describe('ensureCurrentList（TASK-302回帰・実装経由の統合テスト）', () => {
-    it('起動直後（キャッシュ未取得）でも現在有効なリストを取得できる [covers:ensure_current.force_update_success_reselects]', async () => {
+    it('起動直後（キャッシュ未取得）でも現在有効なリストを取得できる [covers:ensure-current.force-update-success-reselects]', async () => {
       const yesterday = new Date(Date.now() - DAY);
       const yyyymm = `${yesterday.getFullYear()}${String(yesterday.getMonth() + 1).padStart(2, '0')}`;
       const effectiveDate = `${yyyymm.slice(0, 4)}-${yyyymm.slice(4, 6)}-01`;
@@ -559,7 +559,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('c1')).toBe(3);
     });
 
-    it('既にキャッシュ済みなら再取得せずそのまま返す [covers:ensure_current.existing_returns_without_update]', async () => {
+    it('既にキャッシュ済みなら再取得せずそのまま返す [covers:ensure-current.existing-returns-without-update]', async () => {
       const yesterday = new Date(Date.now() - DAY);
       const yyyymm = `${yesterday.getFullYear()}${String(yesterday.getMonth() + 1).padStart(2, '0')}`;
       const effectiveDate = `${yyyymm.slice(0, 4)}-${yyyymm.slice(4, 6)}-01`;
@@ -585,7 +585,7 @@ describe('GenesysPointCache', () => {
       expect(apiMocks.fetchGenesysIndex).not.toHaveBeenCalled();
     });
 
-    it('インデックス取得に失敗した場合はnullを返す [covers:ensure_current.force_update_error_returns_null]', async () => {
+    it('インデックス取得に失敗した場合はnullを返す [covers:ensure-current.force-update-error-returns-null]', async () => {
       apiMocks.fetchGenesysIndex.mockRejectedValue(new Error('network error'));
 
       const cache = new GenesysPointCache();
@@ -597,7 +597,7 @@ describe('GenesysPointCache', () => {
       expect(result).toBeNull();
     });
 
-    it('未解決カードが残っている場合、再試行間隔(TTL)を過ぎてから再取得する [covers:ensure_current.incomplete_within_ttl_returns_without_update]', async () => {
+    it('未解決カードが残っている場合、再試行間隔(TTL)を過ぎてから再取得する [covers:ensure-current.incomplete-within-ttl-returns-without-update]', async () => {
       // TASK-302回帰: 初回fetch時にカードDB未初期化で名前解決が全滅した状態を再現。
       // ensureCurrentList()はincomplete時、TTL内は既存entryをそのまま返し、
       // TTL超過後に改めて解決を試みるべき
@@ -635,7 +635,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('ensureList（TASK-302回帰・実装経由の統合テスト）', () => {
-    it('未解決カードが残ったリストは再試行間隔(TTL)を過ぎてから再取得される [covers:ensure_list.incomplete_within_ttl_returns_without_refetch]', async () => {
+    it('未解決カードが残ったリストは再試行間隔(TTL)を過ぎてから再取得される [covers:ensure-list.incomplete-within-ttl-returns-without-refetch]', async () => {
       // TASK-302回帰: カードDB未初期化のタイミングで初回fetchが全カード未解決のまま
       // キャッシュされ、以後ensureList()が「存在するから」とその壊れたキャッシュを
       // 返し続けてしまう問題の回帰テスト
@@ -668,7 +668,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('c1', '202607')).toBe(3);
     });
 
-    it('完全解決済みのリストは再取得しない [covers:ensure_list.after_force_complete_returns] [covers:ensure_list.existing_returns_without_fetch]', async () => {
+    it('完全解決済みのリストは再取得しない [covers:ensure-list.after-force-complete-returns] [covers:genesys-cache.ensure-list-existing-returns-without-fetch]', async () => {
       apiMocks.fetchGenesysIndex.mockResolvedValue([
         { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
       ]);
@@ -691,7 +691,7 @@ describe('GenesysPointCache', () => {
   });
 
   describe('forceUpdate（TASK-302回帰・実装経由の統合テスト）', () => {
-    it('カードDB初期化を名前解決前に待機する [covers:force_update.awaits_db_init_before_resolving_entries]', async () => {
+    it('カードDB初期化を名前解決前に待機する [covers:force-update.awaits-db-init-before-resolving-entries]', async () => {
       const callOrder: string[] = [];
       dbMocks.db.initialize.mockImplementation(async () => {
         callOrder.push('db-init');
@@ -716,7 +716,7 @@ describe('GenesysPointCache', () => {
       expect(callOrder).toEqual(['db-init', 'resolve']);
     });
 
-    it('未解決カードが残ったリストは次回forceUpdateでローカル再解決される（外部fetch無し・TASK-302/TASK-470） [covers:force_update.local_reresolve_skips_fetch_when_fully_resolved] [covers:force_update.fetch_success_saves_raw_entries]', async () => {
+    it('未解決カードが残ったリストは次回forceUpdateでローカル再解決される（外部fetch無し・TASK-302/TASK-470） [covers:force-update.local-reresolve-skips-fetch-when-fully-resolved] [covers:force-update.fetch-success-saves-raw-entries]', async () => {
       // TASK-302: 未解決カードは後で（カードDBが充実したら）解決されるべき、という
       // 回帰テストの本質は維持しつつ、TASK-470でのローカル再解決導入により
       // 2回目は外部fetchなしで解決できることを検証する内容に更新
@@ -747,7 +747,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('c1', '202607')).toBe(3);
     });
 
-    it('完全解決済みのリストは再取得しない [covers:force_update.complete_existing_entry_skipped]', async () => {
+    it('完全解決済みのリストは再取得しない [covers:force-update.complete-existing-entry-skipped]', async () => {
       apiMocks.fetchGenesysIndex.mockResolvedValue([
         { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
       ]);
@@ -769,7 +769,7 @@ describe('GenesysPointCache', () => {
    * private メソッドのため ensureList()/ensureCurrentList()/forceUpdate() 経由で間接的に検証する（TASK-470）。
    */
   describe('reresolveLocal（ensureList/ensureCurrentList/forceUpdate経由、TASK-470/471/472）', () => {
-    it('(a) rawEntriesが無いincompleteエントリはローカル再解決をスキップし既存の外部fetchロジックにフォールバックする [covers:reresolve_local.no_raw_entries_falls_back_to_fetch]', async () => {
+    it('(a) rawEntriesが無いincompleteエントリはローカル再解決をスキップし既存の外部fetchロジックにフォールバックする [covers:reresolve-local.no-raw-entries-falls-back-to-fetch]', async () => {
       apiMocks.fetchGenesysIndex.mockResolvedValue([
         { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
       ]);
@@ -806,7 +806,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('cid-0', '202607')).toBe(5);
     });
 
-    it('(b) rawEntries保持済みのincompleteエントリは、カードDB充実後に外部fetch無しのローカル再解決だけでincomplete:falseへ解決される [covers:reresolve_local.resolves_incomplete_to_complete_without_fetch] [covers:reresolve_local.preserves_fetched_at] [covers:ensure_list.incomplete_existing_tries_local_reresolve_first]', async () => {
+    it('(b) rawEntries保持済みのincompleteエントリは、カードDB充実後に外部fetch無しのローカル再解決だけでincomplete:falseへ解決される [covers:reresolve-local.resolves-incomplete-to-complete-without-fetch] [covers:reresolve-local.preserves-fetched-at] [covers:ensure-list.incomplete-existing-tries-local-reresolve-first]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
       await cache.init();
@@ -880,7 +880,7 @@ describe('GenesysPointCache', () => {
       });
     });
 
-    it('(d) 【設計レビュー指摘1】解決前に必ずgenesysNameResolver.resetを呼んでからresolveGenesysEntriesを呼ぶ（呼ぶ順序を誤るとカードDB充実後も古い名前解決マップを参照し続け再解決が機能しない） [covers:reresolve_local.resets_name_resolver_before_resolve]', async () => {
+    it('(d) 【設計レビュー指摘1】解決前に必ずgenesysNameResolver.resetを呼んでからresolveGenesysEntriesを呼ぶ（呼ぶ順序を誤るとカードDB充実後も古い名前解決マップを参照し続け再解決が機能しない） [covers:reresolve-local.resets-name-resolver-before-resolve]', async () => {
       const callOrder: string[] = [];
       resolverMocks.genesysNameResolver.reset.mockImplementation(() => {
         callOrder.push('reset');
@@ -914,7 +914,7 @@ describe('GenesysPointCache', () => {
       expect(callOrder).toEqual(['reset', 'resolve']);
     });
 
-    it('ensureListの外部fetch成功時はrawEntriesを常に保存する（次回のローカル再解決を可能にするため） [covers:ensure_list.fetch_success_saves_raw_entries]', async () => {
+    it('ensureListの外部fetch成功時はrawEntriesを常に保存する（次回のローカル再解決を可能にするため） [covers:ensure-list.fetch-success-saves-raw-entries]', async () => {
       apiMocks.fetchGenesysIndex.mockResolvedValue([
         { listParam: '202607', effectiveDate: '2026-07-01', isLatest: true }
       ]);
@@ -944,7 +944,7 @@ describe('GenesysPointCache', () => {
       expect(cache.getPoint('cid-0', '202607')).toBe(3);
     });
 
-    it('ensureCurrentListも、外部fetch判断（forceUpdate）より先にローカル再解決を試す [covers:ensure_current.incomplete_existing_tries_local_reresolve_first]', async () => {
+    it('ensureCurrentListも、外部fetch判断（forceUpdate）より先にローカル再解決を試す [covers:ensure-current.incomplete-existing-tries-local-reresolve-first]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
       await cache.init();
@@ -1015,7 +1015,7 @@ describe('GenesysPointCache', () => {
       expect(getInternalCache(cache)?.lists['202607']?.points['cid-0']).toBe(4);
     });
 
-    it('(e) カードDB件数が前回のローカル再解決試行から変化していない場合、reset()を呼ばずローカル再解決処理自体をスキップする [covers:reresolve_local.skips_reresolve_when_card_count_unchanged]', async () => {
+    it('(e) カードDB件数が前回のローカル再解決試行から変化していない場合、reset()を呼ばずローカル再解決処理自体をスキップする [covers:reresolve-local.skips-reresolve-when-card-count-unchanged]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
       await cache.init();
@@ -1053,7 +1053,7 @@ describe('GenesysPointCache', () => {
       expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
     });
 
-    it('(f) カードDB件数が前回のローカル再解決試行から変化した場合、reset()を呼んでローカル再解決を再試行する [covers:reresolve_local.retries_reresolve_when_card_count_changed]', async () => {
+    it('(f) カードDB件数が前回のローカル再解決試行から変化した場合、reset()を呼んでローカル再解決を再試行する [covers:reresolve-local.retries-reresolve-when-card-count-changed]', async () => {
       const cache = new GenesysPointCache();
       vi.spyOn(cache, 'checkAndUpdate').mockResolvedValue(undefined);
       await cache.init();
@@ -1092,7 +1092,7 @@ describe('GenesysPointCache', () => {
       expect(apiMocks.fetchGenesysPointList).not.toHaveBeenCalled();
     });
 
-    it('(g) forceUpdate()内で複数の異なるlistParamが同時にincompleteな場合、1件目のローカル再解決が2件目以降を誤ってスキップさせない（カードDB件数変化検知はlistParamごとに記録、TASK-471コードレビュー指摘） [covers:reresolve_local.tracks_card_count_per_list_param]', async () => {
+    it('(g) forceUpdate()内で複数の異なるlistParamが同時にincompleteな場合、1件目のローカル再解決が2件目以降を誤ってスキップさせない（カードDB件数変化検知はlistParamごとに記録、TASK-471コードレビュー指摘） [covers:reresolve-local.tracks-card-count-per-list-param]', async () => {
       apiMocks.fetchGenesysIndex.mockResolvedValue([
         { listParam: '202607', effectiveDate: '2026-07-01', isLatest: false },
         { listParam: '202608', effectiveDate: '2026-08-01', isLatest: true }
