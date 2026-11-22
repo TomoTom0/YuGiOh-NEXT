@@ -146,7 +146,7 @@ id = "fetch_card.success_truthy_result"
 target_function = "BackgroundFetchQueue#fetchCard"
 source_lines = "119-124"
 description = "getCardDetail(item.cardId)がtruthyな値でresolveした場合、item.onComplete(result)を呼ぶ"
-given = "getCardDetailがCardInfoオブジェクトでresolveする"
+given = "getCardDetailがCardDetailオブジェクトでresolveする"
 expect_side_effect = "onCompleteがそのresult値で1回呼ばれる"
 
 [[condition]]
