@@ -229,8 +229,7 @@ function handleDrop(event: Event) {
   }
 
   if (isDeckDragData(data)) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const card = data.card as any
+    const card = data.card
     if (card && !card.empty) {
       const cid = String(card.cardId ?? card.cid)
       const ciid = String(card.ciid)
