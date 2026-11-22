@@ -19,10 +19,7 @@ describe('useDeckNameVariables', () => {
   })
 
   describe('handleInput / suggestions', () => {
-    it('@ 直後は全ての変数候補を表示する', () => {
-      // [covers:handleinput.matches_at_pattern_sets_query]
-      // [covers:suggestions.output_at_prefixed_value]
-      // [covers:suggestions.case_insensitive_prefix_match]
+    it('[covers:handleinput.matches-at-pattern-sets-query] [covers:suggestions.output-at-prefixed-value] [covers:suggestions.case-insensitive-prefix-match] [covers:handleinput.always-resets-selected-index] @ 直後は全ての変数候補を表示する', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { suggestions, handleInput, selectedIndex } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -30,12 +27,10 @@ describe('useDeckNameVariables', () => {
       handleInput()
 
       expect(suggestions.value).toEqual([{ value: '@orig', label: '元のデッキ名' }])
-      // [covers:handleinput.always_resets_selected_index]
       expect(selectedIndex.value).toBe(-1)
     })
 
-    it('@ に続く文字列で候補を絞り込む', () => {
-      // [covers:suggestions.case_insensitive_prefix_match] （前方一致でフィルタされる側面）
+    it('[covers:suggestions.case-insensitive-prefix-match] （前方一致でフィルタされる側面） @ に続く文字列で候補を絞り込む', () => {
       const inputValue = ref('デッキ@or')
       const inputElement = ref(createInputWithCursor('デッキ@or', 5))
       const { suggestions, handleInput } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -45,8 +40,7 @@ describe('useDeckNameVariables', () => {
       expect(suggestions.value).toEqual([{ value: '@orig', label: '元のデッキ名' }])
     })
 
-    it('一致しない文字列では候補を表示しない', () => {
-      // [covers:suggestions.case_insensitive_prefix_match] （マッチしないkeyは除外される側面）
+    it('[covers:suggestions.case-insensitive-prefix-match] （マッチしないkeyは除外される側面） 一致しない文字列では候補を表示しない', () => {
       const inputValue = ref('@xyz')
       const inputElement = ref(createInputWithCursor('@xyz', 4))
       const { suggestions, handleInput } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -56,9 +50,7 @@ describe('useDeckNameVariables', () => {
       expect(suggestions.value).toEqual([])
     })
 
-    it('@ を含まない入力では候補を表示しない', () => {
-      // [covers:handleinput.no_match_sets_null]
-      // [covers:suggestions.empty_when_query_null]
+    it('[covers:handleinput.no-match-sets-null] [covers:suggestions.empty-when-query-null] @ を含まない入力では候補を表示しない', () => {
       const inputValue = ref('テストデッキ')
       const inputElement = ref(createInputWithCursor('テストデッキ', 4))
       const { suggestions, handleInput } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -68,8 +60,7 @@ describe('useDeckNameVariables', () => {
       expect(suggestions.value).toEqual([])
     })
 
-    it('inputElement.value が null でもカーソル位置を入力末尾とみなして候補を出す', () => {
-      // [covers:getcursor.input_null_fallback_to_value_length]
+    it('[covers:getcursor.input-null-fallback-to-value-length] inputElement.value が null でもカーソル位置を入力末尾とみなして候補を出す', () => {
       const inputValue = ref('@orig')
       const inputElement = ref<HTMLInputElement | null>(null)
       const { suggestions, handleInput } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -82,9 +73,7 @@ describe('useDeckNameVariables', () => {
   })
 
   describe('selectSuggestion / applyVariable', () => {
-    it('@orig を選択すると元のデッキ名に置き換わる', async () => {
-      // [covers:applyvariable.replaces_at_word_with_resolved_value]
-      // [covers:selectsuggestion.strips_at_prefix_and_applies]
+    it('[covers:applyvariable.replaces-at-word-with-resolved-value] [covers:selectsuggestion.strips-at-prefix-and-applies] [covers:applyvariable.resets-state-after-apply] @orig を選択すると元のデッキ名に置き換わる', async () => {
       const inputValue = ref('新デッキ@orig')
       const inputElement = ref(createInputWithCursor('新デッキ@orig', 9))
       const { suggestions, handleInput, selectSuggestion } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -96,12 +85,10 @@ describe('useDeckNameVariables', () => {
       await nextTick()
 
       expect(inputValue.value).toBe('新デッキ元のデッキ名テスト')
-      // [covers:applyvariable.resets_state_after_apply]
       expect(suggestions.value).toEqual([])
     })
 
-    it('カーソルが文中でも @word の直後だけを置き換える', async () => {
-      // [covers:applyvariable.replaces_at_word_with_resolved_value] （前後の文字列を保持する側面）
+    it('[covers:applyvariable.replaces-at-word-with-resolved-value] （前後の文字列を保持する側面） カーソルが文中でも @word の直後だけを置き換える', async () => {
       const inputValue = ref('@orig の複製')
       // カーソルは "@orig" の直後（5文字目）
       const inputElement = ref(createInputWithCursor('@orig の複製', 5))
@@ -116,8 +103,7 @@ describe('useDeckNameVariables', () => {
       expect(inputValue.value).toBe('元のデッキ名テスト の複製')
     })
 
-    it('置換後はカーソルが置換後文字列の末尾に移動し input をフォーカスする', async () => {
-      // [covers:applyvariable.restores_cursor_and_focus_after_replace]
+    it('[covers:applyvariable.restores-cursor-and-focus-after-replace] 置換後はカーソルが置換後文字列の末尾に移動し input をフォーカスする', async () => {
       const inputValue = ref('@orig')
       const inputElement = ref(createInputWithCursor('@orig', 5))
       const input = inputElement.value
@@ -136,8 +122,7 @@ describe('useDeckNameVariables', () => {
       expect(focusSpy).toHaveBeenCalled()
     })
 
-    it('存在しないキーの suggestion を渡した場合は入力値が変わらない', async () => {
-      // [covers:applyvariable.early_return_when_variable_not_found]
+    it('[covers:applyvariable.early-return-when-variable-not-found] 存在しないキーの suggestion を渡した場合は入力値が変わらない', async () => {
       const inputValue = ref('@orig')
       const inputElement = ref(createInputWithCursor('@orig', 5))
       const { selectSuggestion } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -148,8 +133,7 @@ describe('useDeckNameVariables', () => {
       expect(inputValue.value).toBe('@orig')
     })
 
-    it('カーソル位置が異常で triggerStart が負になる場合は入力値が変わらない', async () => {
-      // [covers:applyvariable.early_return_when_trigger_start_negative]
+    it('[covers:applyvariable.early-return-when-trigger-start-negative] カーソル位置が異常で triggerStart が負になる場合は入力値が変わらない', async () => {
       const inputValue = ref('@orig')
       const inputElement = ref(createInputWithCursor('@orig', 5))
       const { handleInput, selectSuggestion, suggestions } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -167,8 +151,7 @@ describe('useDeckNameVariables', () => {
   })
 
   describe('handleKeydown', () => {
-    it('候補が無い場合は何も処理しない', () => {
-      // [covers:handlekeydown.no_suggestions_returns_false]
+    it('[covers:handlekeydown.no-suggestions-returns-false] 候補が無い場合は何も処理しない', () => {
       const inputValue = ref('テスト')
       const inputElement = ref(createInputWithCursor('テスト', 3))
       const { handleKeydown } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -179,8 +162,7 @@ describe('useDeckNameVariables', () => {
       expect(handled).toBe(false)
     })
 
-    it('ArrowDown で選択インデックスが進む', () => {
-      // [covers:handlekeydown.arrow_down_or_tab_advances_index_wrap_around] （先頭へ進む側面）
+    it('[covers:handlekeydown.arrow-down-or-tab-advances-index-wrap-around] （先頭へ進む側面） ArrowDown で選択インデックスが進む', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, selectedIndex } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -193,8 +175,7 @@ describe('useDeckNameVariables', () => {
       expect(selectedIndex.value).toBe(0)
     })
 
-    it('Tab でも ArrowDown と同じく選択インデックスが進む', () => {
-      // [covers:handlekeydown.arrow_down_or_tab_advances_index_wrap_around] （Tab の側面）
+    it('[covers:handlekeydown.arrow-down-or-tab-advances-index-wrap-around] （Tab の側面） Tab でも ArrowDown と同じく選択インデックスが進む', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, selectedIndex } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -207,8 +188,7 @@ describe('useDeckNameVariables', () => {
       expect(selectedIndex.value).toBe(0)
     })
 
-    it('ArrowUp で選択インデックスが末尾にラップする', () => {
-      // [covers:handlekeydown.arrow_up_decrements_index_wrap_around]
+    it('[covers:handlekeydown.arrow-up-decrements-index-wrap-around] ArrowUp で選択インデックスが末尾にラップする', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, selectedIndex, suggestions } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -222,8 +202,7 @@ describe('useDeckNameVariables', () => {
       expect(selectedIndex.value).toBe(suggestions.value.length - 1)
     })
 
-    it('Enter で選択中の候補が確定される', async () => {
-      // [covers:handlekeydown.enter_confirms_selected_or_first]
+    it('[covers:handlekeydown.enter-confirms-selected-or-first] Enter で選択中の候補が確定される', async () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -237,8 +216,7 @@ describe('useDeckNameVariables', () => {
       expect(inputValue.value).toBe('元のデッキ名テスト')
     })
 
-    it('Enter で selectedIndex が範囲外の場合は何もしない', () => {
-      // [covers:handlekeydown.enter_out_of_range_returns_false]
+    it('[covers:handlekeydown.enter-out-of-range-returns-false] Enter で selectedIndex が範囲外の場合は何もしない', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, selectedIndex } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -253,8 +231,7 @@ describe('useDeckNameVariables', () => {
       expect(inputValue.value).toBe('@')
     })
 
-    it('Escape で候補が閉じる', () => {
-      // [covers:handlekeydown.escape_resets_and_returns_true]
+    it('[covers:handlekeydown.escape-resets-and-returns-true] Escape で候補が閉じる', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, suggestions } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -268,8 +245,7 @@ describe('useDeckNameVariables', () => {
       expect(suggestions.value).toEqual([])
     })
 
-    it('未対応のキーは何も処理しない', () => {
-      // [covers:handlekeydown.unhandled_keys_return_false]
+    it('[covers:handlekeydown.unhandled-keys-return-false] 未対応のキーは何も処理しない', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, handleKeydown, selectedIndex } = useDeckNameVariables({ inputValue, inputElement, variables })
@@ -284,8 +260,7 @@ describe('useDeckNameVariables', () => {
   })
 
   describe('resetSuggestion', () => {
-    it('候補表示状態をリセットする', () => {
-      // [covers:resetsuggestion.clears_state]
+    it('[covers:resetsuggestion.clears-state] 候補表示状態をリセットする', () => {
       const inputValue = ref('@')
       const inputElement = ref(createInputWithCursor('@', 1))
       const { handleInput, resetSuggestion, suggestions } = useDeckNameVariables({ inputValue, inputElement, variables })
