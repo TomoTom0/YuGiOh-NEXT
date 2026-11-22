@@ -218,6 +218,8 @@ const ImportExportDialog = defineAsyncComponent(() => import('../../components/I
 const SettingsDialog = defineAsyncComponent(() => import('../../components/SettingsDialog.vue'))
 const LoadDialog = defineAsyncComponent(() => import('../../components/LoadDialog.vue'))
 import type { CardInfo } from '../../types/card'
+import type { DeckInfo } from '../../types/deck'
+import type { KeyboardShortcut } from '../../types/settings'
 import { findLoaderOverlay } from '../../utils/loader-elements'
 import {
   generateThumbnailsInBackground
@@ -348,12 +350,10 @@ export default {
     // Vue UIの表示準備完了フラグ（デッキ読み込み完了まで非表示）
     const isReady = ref(false)
 
-    // 言語変更待機中フラグ
-    let pendingLanguageChange: (() => void) | null = null;
 
     // 未保存警告ダイアログ用
     const unsavedChangesMessage = ref('')
-    const pendingAction = ref<(() => Promise<void>) | null>(null)
+    const pendingAction = ref<(() => void | Promise<void>) | null>(null)
 
     const unsavedChangesTitle = '未保存の変更があります'
 
@@ -466,11 +466,11 @@ export default {
       deckStore.showExportDialog = false
     }
 
-    const handleExported = (message) => {
+    const handleExported = (_format: string) => {
       deckStore.showExportDialog = false
     }
 
-    const handleImported = async (importedDeckInfo, importMode: 'replace' | 'add' | 'new') => {
+    const handleImported = async (importedDeckInfo: DeckInfo, importMode: 'replace' | 'add' | 'new') => {
       // ダイアログは emit 直後に閉じるが、未キャッシュカードの解決には複数の非同期リクエストが
       // 発生しうる。isImporting が立っている間は loadDeck/createNewDeck をブロックし、
       // 解決中に別デッキへ切り替わってインポート結果が混入するのを防ぐ。
@@ -529,7 +529,7 @@ export default {
               skipped += ref.quantity
               continue
             }
-            const card = { ...baseCard, ciid: ref.ciid }
+            const card = { ...baseCard, ciid: String(ref.ciid) }
             for (let i = 0; i < ref.quantity; i++) {
               const result = deckStore.addCard(card, section)
               if (result.success) {
@@ -601,7 +601,7 @@ export default {
     }
 
     // キーボードショートカットのマッチング関数（単一のショートカット）
-    const matchesShortcut = (event, shortcut) => {
+    const matchesShortcut = (event: KeyboardEvent, shortcut: KeyboardShortcut) => {
       if (!shortcut) return false
 
       return (
@@ -613,7 +613,7 @@ export default {
     }
 
     // キーボードショートカット配列のいずれかにマッチするかチェック
-    const matchesAnyShortcut = (event, shortcuts) => {
+    const matchesAnyShortcut = (event: KeyboardEvent, shortcuts: KeyboardShortcut[] | Record<string, KeyboardShortcut>) => {
       if (!shortcuts) return false
 
       // Pinia の reactive で変換された場合、オブジェクトになる可能性があるため、
@@ -625,12 +625,12 @@ export default {
     }
 
     // グローバルキーボードイベント
-    const handleGlobalKeydown = (event) => {
+    const handleGlobalKeydown = (event: KeyboardEvent) => {
       // グローバル検索モードが有効な場合は無視（入力欄で処理される）
       if (searchStore.isGlobalSearchMode) return
 
       // 入力要素にフォーカスがある場合は無視
-      const activeElement = document.activeElement
+      const activeElement = document.activeElement as HTMLElement | null
       const isInputFocused = activeElement && (
         activeElement.tagName === 'INPUT' ||
         activeElement.tagName === 'TEXTAREA' ||
@@ -668,7 +668,6 @@ export default {
     
     // 画面幅変更時の処理
     const handleResize = () => {
-      const isMobile = window.innerWidth <= 768
       const wasDesktop = window.innerWidth > 768
       
       // 画面が広くなった時にdeck tabがactiveならsearch tabに変更
@@ -703,12 +702,9 @@ export default {
     provide('checkUnsavedChanges', checkUnsavedChanges)
     provide('practiceMode', practiceMode)
 
-    // コンポーネントがマウントされているかを追跡（非同期処理中のアンマウント検出用）
-    let isComponentMounted = false
 
     // ページ初期化時にデッキを自動ロード
     onMounted(async () => {
-      isComponentMounted = true
 
       // TASK-462: 初期化のawait前に登録し、デッキ描画直後からショートカット/
       // hashchange/resizeが有効になるようにする（ハンドラは全てsetup時点で参照可能）
@@ -752,7 +748,6 @@ export default {
         // 編集中の場合はダイアログを表示
         if (deckStore.hasUnsavedChanges()) {
           unsavedChangesMessage.value = '言語を変更するとページが再読み込みされます。保存してから変更しますか？'
-          pendingLanguageChange = performChange
           pendingAction.value = performChange
           deckStore.showUnsavedChangesDialog = true
         } else {
@@ -812,14 +807,12 @@ export default {
     }
 
     onUnmounted(() => {
-      isComponentMounted = false
       // 全てのイベントリスナーを削除
       if (checkDnoChangeHandler) {
         window.removeEventListener('hashchange', checkDnoChangeHandler)
       }
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('keydown', handleGlobalKeydown)
-      pendingLanguageChange = null
     })
 
     // 初期データ設定は行わない（load で読み込むため）
