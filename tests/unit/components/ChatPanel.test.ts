@@ -38,7 +38,10 @@ vi.mock('@/services/llm/llm-chat-service', () => ({
 
 // カードリンク解析（useCardLinks）。parseCardLinks本体はuse-card-links条件書の対象のため、
 // {{名前|cardId}} をlink partへ分割する忠実なstubへ置き換える（card-links条件の観測用）。
-// handleCardLinkClickは本テストの観測対象外のためmockのまま
+// handleCardLinkClickはcardIdの保持・補完の検証に使うためhoisted mockで観測する
+// handleCardLinkClickへ渡るcardIdを検証するためのhoisted mock
+const cardLinkMocks = vi.hoisted(() => ({ handleCardLinkClick: vi.fn() }));
+
 vi.mock('@/composables/useCardLinks', () => ({
   useCardLinks: () => ({
     parseCardLinks: (text: string | undefined): CardLinkPart[] => {
@@ -59,7 +62,7 @@ vi.mock('@/composables/useCardLinks', () => ({
       }
       return parts.length > 0 ? parts : [{ type: 'text', text }];
     },
-    handleCardLinkClick: vi.fn(),
+    handleCardLinkClick: cardLinkMocks.handleCardLinkClick,
   }),
 }));
 
@@ -375,6 +378,10 @@ describe('components/ChatPanel', () => {
     resolveChat({ message: '{{青眼の白龍}} {{失敗カード}} {{未知のカード}}', needsClarification: false });
     await flushPromises();
     expect(wrapper.findAll('.card-link').map((l) => l.text())).toEqual(['青眼の白龍']);
+    // リンクのcardIdも成功側データのもの（89631139）であることをクリックで検証
+    await wrapper.find('.card-link').trigger('click');
+    expect(cardLinkMocks.handleCardLinkClick).toHaveBeenCalledTimes(1);
+    expect(cardLinkMocks.handleCardLinkClick).toHaveBeenCalledWith('89631139');
     const assistantText = wrapper.find('.chat-message.assistant .chat-message-content').text();
     expect(assistantText).toContain('失敗カード');
     expect(assistantText).toContain('未知のカード');
@@ -622,6 +629,11 @@ describe('components/ChatPanel', () => {
     expect(wrapper.findAll('.card-link').map((l) => l.text())).toEqual([
       'カードA', 'カードB', 'カードC', 'カードC',
     ]);
+    // 各リンクのcardId（3形状からの補完と、cardId付きはそのまま保持）もクリックで検証
+    for (const link of wrapper.findAll('.card-link')) {
+      await link.trigger('click');
+    }
+    expect(cardLinkMocks.handleCardLinkClick.mock.calls.map((c) => c[0])).toEqual(['111', '222', '333', '999']);
     // 未知の名前は{{...}}が外れてプレーンテキスト化
     const assistantText = wrapper.find('.chat-message.assistant .chat-message-content').text();
     expect(assistantText).toContain('未知カード');

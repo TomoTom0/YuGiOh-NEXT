@@ -36,7 +36,7 @@ note = "TASK-573（TASK-331 Tier C第24号）でChatPanel.vue本体を全面条�
 
 [[condition]]
 id = "chat-panel.send-blocked-when-empty-or-loading"
-source_lines = "tests/unit/components/ChatPanel.test.ts:176"
+source_lines = "tests/unit/components/ChatPanel.test.ts:179"
 target_function = "send（空・送信中ガード）"
 source = "src/components/ChatPanel.vue L9, L15, L200-202 と tm TASK-573"
 description = "入力が空・空白のみの場合は送信ボタンがdisabledになり、Enter送信もchatを呼ばない（trim空の早期return）。送信中（isLoading中=chat未解決）の再送も早期returnで中断され、chatの追加呼び出しとならない"
@@ -45,7 +45,7 @@ expect_return_shape = "いずれの場合もchatの呼び出し回数が0回（�
 
 [[condition]]
 id = "chat-panel.send-flow-user-message-and-loading"
-source_lines = "tests/unit/components/ChatPanel.test.ts:202"
+source_lines = "tests/unit/components/ChatPanel.test.ts:205"
 target_function = "send（userメッセージ追加〜chat呼び出し〜assistantメッセージ追加）"
 source = "src/components/ChatPanel.vue L200-240 と tm TASK-573"
 description = "送信すると入力がクリアされ、content=trim済みテキストのuserメッセージが追加され、応答後にcontent=response.messageのassistantメッセージが追加される。chat呼び出しは第1引数={userMessage=trim済みテキスト, deckSections=buildDeckSections()結果, focusedCard=cardDetailStore.selectedCard（未選択ならundefined）, history}, 第2引数=settingsStore.appSettings?.aiApiKey ?? ''"
@@ -54,7 +54,7 @@ expect_return_shape = "textareaが空に戻り、userメッセージ（trim済�
 
 [[condition]]
 id = "chat-panel.history-limited-to-last-ten"
-source_lines = "tests/unit/components/ChatPanel.test.ts:234"
+source_lines = "tests/unit/components/ChatPanel.test.ts:237"
 target_function = "send（history構築 L219）"
 source = "src/components/ChatPanel.vue L219 と tm TASK-573"
 description = "chat呼び出しのhistoryは、今回pushしたuserメッセージを除外した（slice(0,-1)）上で直近最大10件（slice(-10)）に制限される"
@@ -63,7 +63,7 @@ expect_return_shape = "historyの長さが10で、最古の2件（1回目のuser
 
 [[condition]]
 id = "chat-panel.send-error-shows-error-message"
-source_lines = "tests/unit/components/ChatPanel.test.ts:264"
+source_lines = "tests/unit/components/ChatPanel.test.ts:267"
 target_function = "send（catch: 通常エラー）"
 source = "src/components/ChatPanel.vue L22, L241-246 と tm TASK-573"
 description = "chatがChatAbortError以外でrejectすると、errorMessageにerr.message（ErrorでなければString(err)）が設定され.chat-errorに表示される。assistantメッセージは追加されず、isLoadingは解除される"
@@ -72,7 +72,7 @@ expect_return_shape = ".chat-errorに'APIエラー'が表示され、assistant�
 
 [[condition]]
 id = "chat-panel.send-abort-appends-interruption-message"
-source_lines = "tests/unit/components/ChatPanel.test.ts:275"
+source_lines = "tests/unit/components/ChatPanel.test.ts:278"
 target_function = "send（catch: ChatAbortError）"
 source = "src/components/ChatPanel.vue L242-243 と tm TASK-573"
 description = "chatがChatAbortErrorでrejectすると、assistantメッセージ'(処理を中断しました)'が追加される。errorMessageは設定されず.chat-errorは表示されない"
@@ -81,7 +81,7 @@ expect_return_shape = "assistantメッセージ'(処理を中断しました)'�
 
 [[condition]]
 id = "chat-panel.stop-button-aborts-in-flight"
-source_lines = "tests/unit/components/ChatPanel.test.ts:284"
+source_lines = "tests/unit/components/ChatPanel.test.ts:287"
 target_function = "stopChat / template chat-stop-btn"
 source = "src/components/ChatPanel.vue L43-48, L210, L237, L254-256 と tm TASK-573"
 description = "送信中（isLoading）は、最後のメッセージがuserの行にのみ停止ボタンが表示される。クリックするとchatへ渡したAbortControllerのsignalがabortされ、応答完了（isLoading解除）後は停止ボタンが消える"
@@ -90,7 +90,7 @@ expect_return_shape = "クリック後にsignal.abortedがtrueになり、解決
 
 [[condition]]
 id = "chat-panel.pending-chat-message-auto-sends"
-source_lines = "tests/unit/components/ChatPanel.test.ts:305"
+source_lines = "tests/unit/components/ChatPanel.test.ts:308"
 target_function = "watch(deckStore.pendingChatMessage)"
 source = "src/components/ChatPanel.vue L310-316 と tm TASK-573"
 description = "deckStore.pendingChatMessageに文字列が設定されると、inputTextへその文字列が入り、pendingChatMessageはnullに戻り、自動で送信される（chatがそのテキストで呼ばれる）"
@@ -99,7 +99,7 @@ expect_return_shape = "chatが1回呼ばれ、第1引数userMessageが設定し�
 
 [[condition]]
 id = "chat-panel.enter-to-send-shift-enter-newline"
-source_lines = "tests/unit/components/ChatPanel.test.ts:317"
+source_lines = "tests/unit/components/ChatPanel.test.ts:320"
 target_function = "template textarea @keydown.enter（L9-10）"
 source = "src/components/ChatPanel.vue L9-10 と tm TASK-573"
 description = "textareaのEnter（Shift等の修飾なし）で送信される（trim済みテキスト）。Shift+Enterでは送信されず、inputTextに改行が追加される"
@@ -110,7 +110,7 @@ expect_return_shape = "Enterでchatが呼ばれ（userMessage=trim済みテキ�
 
 [[condition]]
 id = "chat-panel.tool-callback-appends-summarized-tool-message"
-source_lines = "tests/unit/components/ChatPanel.test.ts:337"
+source_lines = "tests/unit/components/ChatPanel.test.ts:340"
 target_function = "send（onToolCallコールバック L223-236）"
 source = "src/components/ChatPanel.vue L223-236 と tm TASK-573"
 description = "chatの第4引数コールバックを呼ぶとtoolメッセージが追加される。content=summarizeToolResult(info.name, info.result)の要約、toolName=info.name、toolSuccess=info.result.success、toolArgs=info.args、toolReasoning=info.nanoReasoningが伝播し、toolResultDataはresult.successの場合のみresult.dataが渡る（失敗時は渡らないため後続のカードリンク解決にも使われない）"
@@ -119,7 +119,7 @@ expect_return_shape = "toolメッセージが2件追加され、それぞれのt
 
 [[condition]]
 id = "chat-panel.tool-result-summary-formats"
-source_lines = "tests/unit/components/ChatPanel.test.ts:402"
+source_lines = "tests/unit/components/ChatPanel.test.ts:409"
 target_function = "summarizeToolResult"
 source = "src/components/ChatPanel.vue L169-198 と tm TASK-573"
 description = "summarizeToolResultの書式: 失敗時はresult.error（無ければ'エラー'）。成功時はsearchDeckCardsは'{totalCount}枚: 名前x枚数, ...'（カード側はquantity>1の時のみxN、0件は'該当なし'）、removeCardFromDeckは'{removed}枚削除'、moveCardは'{moved}枚移動'、addCardToDeckは'追加完了'、getDeckStateは'デッキ状態取得'、resolveCardNameはdata.name（無ければ'特定完了'）、getCardDetailは'カード情報取得'、searchCardsは'{data.length}件'（data無しは'0件'）、その他は'完了'"
@@ -128,7 +128,7 @@ expect_return_shape = "toolメッセージのcontent（.tool-content）がそれ
 
 [[condition]]
 id = "chat-panel.tool-args-display-formats"
-source_lines = "tests/unit/components/ChatPanel.test.ts:435"
+source_lines = "tests/unit/components/ChatPanel.test.ts:442"
 target_function = "formatToolArgs"
 source = "src/components/ChatPanel.vue L30, L141-167 と tm TASK-573"
 description = "formatToolArgsの書式がtoolメッセージの.tool-argsに表示される: moveCardは'{from} -> {to}'（cardIdsが2件以上で末尾に' x{件数}'、1件なら付かない）。removeCardFromDeckはsection（無ければfrom）+件数2件以上で' x{件数}'。searchDeckCardsはcardType/race/attribute/types(','連結)/section/keywordを' / '連結（存在するもののみ）。resolveCardNameはname。getCardDetailはcardId。addCardToDeckは'{section} +{cardId}'。未知ツールは空文字。args無し（undefined）も空文字だがToolCallInfo.argsは必須のためコールバック経路では生成できない防御分岐（未知ツール+args空オブジェクトで到達可能側を検証）"
@@ -137,7 +137,7 @@ expect_return_shape = ".tool-argsの表示がそれぞれの書式になる"
 
 [[condition]]
 id = "chat-panel.tool-message-display-and-expand-toggle"
-source_lines = "tests/unit/components/ChatPanel.test.ts:443"
+source_lines = "tests/unit/components/ChatPanel.test.ts:450"
 target_function = "template tool行 / toggleToolExpand"
 source = "src/components/ChatPanel.vue L27-36, L258-263 と tm TASK-573"
 description = "toolメッセージは成功時'>'アイコンとOK（successクラス）・失敗時'!'アイコンとNG（errorクラス）を表示する。content（.tool-content）は送信中（isLoading）またはクリックで展開した時だけ表示され、tool行クリックで開閉がトグルする。toolReasoningがある場合は.tool-reasoningが表示される"
@@ -148,7 +148,7 @@ expect_return_shape = "送信中はcontentが表示され、解決直後は非�
 
 [[condition]]
 id = "chat-panel.deck-sections-pass-search-results-directly"
-source_lines = "tests/unit/components/ChatPanel.test.ts:487"
+source_lines = "tests/unit/components/ChatPanel.test.ts:494"
 target_function = "buildDeckSections"
 source = "src/components/ChatPanel.vue L96-111 と tm TASK-507（設計: tmp/tasks/tm-507/design_search-results-type.md 変更内容6・「LLM側の影響」節）"
 description = "chat呼び出し時のrequest.deckSections.searchResultsにはsearchStore.searchResults（フラットなCardInfo[]）をそのまま渡す。旧実装の map(r => r.card) のようなカードプロパティ経由の変換は行わない（CardInfoにcardプロパティは無く、常にundefined配列をLLMへ渡す潜在バグだった）"
@@ -157,7 +157,7 @@ expect_return_shape = "chatの第1引数request.deckSections.searchResultsは設
 
 [[condition]]
 id = "chat-panel.deck-sections-resolve-cards-by-quantity"
-source_lines = "tests/unit/components/ChatPanel.test.ts:516"
+source_lines = "tests/unit/components/ChatPanel.test.ts:523"
 target_function = "buildDeckSections（resolveCards）"
 source = "src/components/ChatPanel.vue L96-111 と tm TASK-573"
 description = "buildDeckSectionsのmain/extra/side/trashは、deckStore.deckInfoの各デッキとtrashDeckの各DeckCardRefのcidをgetCardInfoで解決し、解決したCardInfoをquantity件ずつ複製した配列になる。getCardInfoで解決できないcid（cache miss）は除外される"
@@ -166,7 +166,7 @@ expect_return_shape = "chatの第1引数deckSections.main/extra/side/trashが、
 
 [[condition]]
 id = "chat-panel.store-refs-delegate-to-deck-store"
-source_lines = "tests/unit/components/ChatPanel.test.ts:542"
+source_lines = "tests/unit/components/ChatPanel.test.ts:549"
 target_function = "buildStoreRefs"
 source = "src/components/ChatPanel.vue L113-139 と tm TASK-573"
 description = "chat第3引数storeRefsの委譲: addCardはgetCardInfoで解決できない場合{success:false, error:'カードが見つかりません'}を返し（deckStore.addCardは呼ばない）、解決できる場合はdeckStore.addCard(card, section)へ委譲しその戻り値を返す（戻り値undefined時の{success:true}フォールバックはdeckStore.addCardが全経路で{success}オブジェクトを返すため実経路では非到達の防御コード。同型のフォールバックはremoveCard側で検証）。removeCardはdeckStore.removeCard(cardId, section)へ委譲し戻り値undefined（void）時は{success:true}へフォールバック、moveCardはdeckStore.moveCard(cardId, from, to)の戻り値をフォールバックなしで返す。getDeckStateはmain/extra/side各デッキのquantity合計を返す。getCardsBySectionはsectionに応じてdeckInfo各デッキ/trashDeckを{cid, quantity}配列へ写す。getCardInfoByIdはgetCardInfoの結果（無ければundefined）を返す"
@@ -177,7 +177,7 @@ expect_return_shape = "解決失敗時はカードが見つかりませんエラ
 
 [[condition]]
 id = "chat-panel.card-links-resolved-from-tool-results"
-source_lines = "tests/unit/components/ChatPanel.test.ts:600"
+source_lines = "tests/unit/components/ChatPanel.test.ts:607"
 target_function = "knownCards computed / resolveCardLinks"
 source = "src/components/ChatPanel.vue L53-56, L265-297 と tm TASK-573"
 description = "assistantメッセージ内の{{名前}}は、tool結果（toolResultData）から収集した名前→cardIdマップ（{cards:[...]}の配列・配列自体・単体オブジェクトの3形状）で{{名前|cardId}}に補完されてリンク表示される。cardId付きの{{名前|id}}はそのまま保持され、tool結果で確認できない名前は{{...}}を外したプレーンテキストになる"
@@ -186,7 +186,7 @@ expect_return_shape = "3形状で確認した名前は.card-link（確認済みc
 
 [[condition]]
 id = "chat-panel.loading-state-disables-input-and-shows-thinking"
-source_lines = "tests/unit/components/ChatPanel.test.ts:631"
+source_lines = "tests/unit/components/ChatPanel.test.ts:643"
 target_function = "template :disabled / chat-loading"
 source = "src/components/ChatPanel.vue L8, L15, L62-64 と tm TASK-573"
 description = "送信中（isLoading）はtextareaと送信ボタンがdisabledになり、'Thinking'のローディング表示（chat-loading）が出る。応答完了後に全て解除・消去される"
@@ -195,7 +195,7 @@ expect_return_shape = "送信中はtextarea/送信ボタンともdisabled属性�
 
 [[condition]]
 id = "chat-panel.message-time-format"
-source_lines = "tests/unit/components/ChatPanel.test.ts:657"
+source_lines = "tests/unit/components/ChatPanel.test.ts:669"
 target_function = "formatTime"
 source = "src/components/ChatPanel.vue L41, L58, L306-308 と tm TASK-573"
 description = "user/assistant各メッセージに、timestampをja-JP・2桁時分でフォーマットした時刻（HH:MM）が表示される"
