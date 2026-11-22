@@ -21,10 +21,10 @@
 feature = "background-fetch-queue"
 source_file = "src/utils/background-fetch-queue.ts"
 verified = true
-verified_at = "2026-08-28"
+verified_at = "2026-11-22"
 verified_by = "claude"
-test_command = "mise run test:vitest -- tests/unit/utils/background-fetch-queue.test.ts"
-source_hash = "0431768e0fe2c731f5e7a7c21c5af8ac5c399963"
+test_command = "pnpm exec vitest run"
+source_hash = "d75b8452d3d3564eca219d2ca86f995e005c0c34"
 note = "verified=false は1件（process_queue.shift_guard_defensive_unreachable、公開APIからは到達不能な防御的分岐）"
 
 # --- BackgroundFetchQueue#enqueue(cardId, priority='normal', onComplete, onError?): void ---
@@ -146,7 +146,7 @@ id = "fetch_card.success_truthy_result"
 target_function = "BackgroundFetchQueue#fetchCard"
 source_lines = "119-124"
 description = "getCardDetail(item.cardId)がtruthyな値でresolveした場合、item.onComplete(result)を呼ぶ"
-given = "getCardDetailがCardInfoオブジェクトでresolveする"
+given = "getCardDetailがCardDetailオブジェクトでresolveする"
 expect_side_effect = "onCompleteがそのresult値で1回呼ばれる"
 
 [[condition]]
