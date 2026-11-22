@@ -581,8 +581,8 @@ export class UnifiedCacheDB {
 
     // ストレージから読み込み
     const key = STORAGE_KEYS.cardTableCPrefix + cardId;
-    const result = await safeStorageGet(key);
-    const data = result[key] as CardTableC | undefined;
+    const result = await safeStorageGet<CardTableC>(key);
+    const data = result[key];
     if (data) {
       this.cardTableCCache.set(cardId, data);
       return data;
