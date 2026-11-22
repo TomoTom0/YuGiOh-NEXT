@@ -60,7 +60,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type PropType } from 'vue'
 import DeckCard from '../components/DeckCard.vue'
 import { useDeckEditStore } from '../stores/deck-edit'
 import { mdiShuffle, mdiSort } from '@mdi/js'
@@ -79,7 +79,7 @@ export default {
       required: true
     },
     sectionType: {
-      type: String,
+      type: String as PropType<'main' | 'extra' | 'side' | 'trash'>,
       required: true
     },
     cards: {
@@ -96,7 +96,7 @@ export default {
     const cardGridRef = ref(null)
     const isSectionDragOver = ref(false)
 
-    const handleMoveResult = (result) => {
+    const handleMoveResult = (result: { success: boolean; error?: string }) => {
       if (!result || result.success) return true
       console.error('[DeckSection] 移動失敗:', result.error)
       return false
@@ -141,7 +141,7 @@ export default {
       return base
     }
 
-    const handleEndZoneDragOver = (event) => {
+    const handleEndZoneDragOver = (event: DragEvent) => {
       // 移動可能な場合のみpreventDefaultを呼ぶ
       const canDrop = canDropToSection()
       if (canDrop) {
@@ -149,11 +149,11 @@ export default {
       }
     }
 
-    const handleEndZoneDragLeave = (event) => {
+    const handleEndZoneDragLeave = () => {
       // 何もしない（視覚的フィードバックは不要）
     }
 
-    const handleEndDrop = (event) => {
+    const handleEndDrop = (event: DragEvent) => {
       event.preventDefault()
       event.stopPropagation()
       isSectionDragOver.value = false
@@ -218,7 +218,7 @@ export default {
       return canMove
     }
 
-    const handleSectionDragOver = (event) => {
+    const handleSectionDragOver = (event: DragEvent) => {
       // 移動可能かチェック
       const canDrop = canDropToSection()
 
@@ -236,9 +236,10 @@ export default {
       }
     }
 
-    const handleSectionDragLeave = (event) => {
+    const handleSectionDragLeave = (event: DragEvent) => {
       // セクション境界を出た時のみdrag-overを解除
-      if (event.currentTarget === event.target || !event.currentTarget.contains(event.relatedTarget)) {
+      const currentTarget = event.currentTarget as HTMLElement
+      if (currentTarget === event.target || !currentTarget.contains(event.relatedTarget as Node | null)) {
         isSectionDragOver.value = false
       }
     }
