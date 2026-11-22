@@ -21,7 +21,7 @@ verified = true
 verified_at = "2026-08-28"
 verified_by = "claude"
 test_command = "mise run test:vitest -- tests/unit/utils/chrome-storage-utils.test.ts"
-source_hash = "6181d4ddc06d1d6b8d22494f8333cb8cf2a25dcb"
+source_hash = "64937bd020fd73934bb59e457e4120fa60ee4d51"
 note = "verified=falseは0件"
 
 # --- getFromStorageLocal<T = unknown>(key: string): Promise<T | null> ---
