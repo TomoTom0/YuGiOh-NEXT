@@ -22,8 +22,19 @@ vi.mock('@/utils/page-detector', () => ({
   isVueEditPage: () => mockIsVueEditPage()
 }));
 
+// TASK-489前提固定テスト用: スタブのrender実行回数と例外発生をテストごとに制御する
+const mockLayoutState = vi.hoisted(() => ({ shouldThrow: false, renderCalls: 0 }));
 vi.mock('@/content/edit-ui/DeckEditLayout.vue', () => ({
-  default: { name: 'StubDeckEditLayout', render: () => null }
+  default: {
+    name: 'StubDeckEditLayout',
+    render: () => {
+      mockLayoutState.renderCalls++;
+      if (mockLayoutState.shouldThrow) {
+        throw new Error('stub render failure');
+      }
+      return null;
+    }
+  }
 }));
 
 const stubMatchMedia = (matches: boolean) => {
@@ -99,7 +110,7 @@ describe('edit-ui/index.ts', () => {
   });
 
   describe('applyThemeFromSettings (top-level IIFE経由)', () => {
-    it('[covers:apply_theme.uses_memory_cache_when_available] メモリキャッシュがあればstorageを参照しない', async () => {
+    it('[covers:apply-theme.uses-memory-cache-when-available] メモリキャッシュがあればstorageを参照しない', async () => {
       (window as unknown as { ygoNextCurrentSettings: unknown }).ygoNextCurrentSettings = { theme: 'dark' };
       const getSpy = vi.spyOn(global.chrome.storage.local, 'get');
       mockIsVueEditPage.mockReturnValue(true);
@@ -112,7 +123,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.documentElement.getAttribute('data-ygo-next-theme')).toBe('dark');
     });
 
-    it('[covers:apply_theme.falls_back_to_storage_when_no_cache] メモリキャッシュが無ければstorageから取得する', async () => {
+    it('[covers:apply-theme.falls-back-to-storage-when-no-cache] メモリキャッシュが無ければstorageから取得する', async () => {
       global.chrome.storage.local.get = vi.fn((_keys, callback) =>
         callback({ [CHROME_STORAGE_KEY_APP_SETTINGS]: { theme: 'dark' } })
       );
@@ -125,7 +136,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.documentElement.getAttribute('data-ygo-next-theme')).toBe('dark');
     });
 
-    it('[covers:apply_theme.system_theme_follows_match_media] system指定時はmatchMediaに従う', async () => {
+    it('[covers:apply-theme.system-theme-follows-match-media] system指定時はmatchMediaに従う', async () => {
       stubMatchMedia(true);
       global.chrome.storage.local.get = vi.fn((_keys, callback) =>
         callback({ [CHROME_STORAGE_KEY_APP_SETTINGS]: { theme: 'system' } })
@@ -139,7 +150,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.documentElement.getAttribute('data-ygo-next-theme')).toBe('dark');
     });
 
-    it('[covers:apply_theme.explicit_theme_used_directly] 明示的なtheme指定はmatchMediaを無視して直接使う', async () => {
+    it('[covers:apply-theme.explicit-theme-used-directly] 明示的なtheme指定はmatchMediaを無視して直接使う', async () => {
       stubMatchMedia(true); // darkと判定されうる状態でも
       global.chrome.storage.local.get = vi.fn((_keys, callback) =>
         callback({ [CHROME_STORAGE_KEY_APP_SETTINGS]: { theme: 'light' } })
@@ -153,7 +164,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.documentElement.getAttribute('data-ygo-next-theme')).toBe('light');
     });
 
-    it('[covers:apply_theme.error_falls_back_to_light_and_white_bg] storage取得エラー時はlight+白背景にフォールバックする', async () => {
+    it('[covers:apply-theme.error-falls-back-to-light-and-white-bg] storage取得エラー時はlight+白背景にフォールバックする', async () => {
       global.chrome.storage.local.get = vi.fn(() => {
         throw new Error('storage error');
       });
@@ -180,7 +191,7 @@ describe('edit-ui/index.ts', () => {
       return loc;
     }
 
-    it('[covers:perform_language_change.replaces_existing_request_locale] 既存のrequest_localeを置き換えて他のパラメータは保持する', async () => {
+    it('[covers:perform-language-change.replaces-existing-request-locale] 既存のrequest_localeを置き換えて他のパラメータは保持する', async () => {
       const loc = stubLocation({ pathname: '/yugiohdb/', search: '?request_locale=ja&foo=bar', hash: '#/ytomo/edit' });
 
       vi.resetModules();
@@ -194,7 +205,7 @@ describe('edit-ui/index.ts', () => {
       expect(loc.href).not.toContain('request_locale=ja');
     });
 
-    it('[covers:perform_language_change.no_existing_params_adds_request_locale_only] クエリパラメータが無い場合はrequest_localeのみ付与する', async () => {
+    it('[covers:perform-language-change.no-existing-params-adds-request-locale-only] クエリパラメータが無い場合はrequest_localeのみ付与する', async () => {
       const loc = stubLocation({ pathname: '/yugiohdb/', search: '', hash: '#/ytomo/edit' });
 
       vi.resetModules();
@@ -218,7 +229,7 @@ describe('edit-ui/index.ts', () => {
       document.body.appendChild(bg);
     }
 
-    it('[covers:replace_language_links.matching_link_rewired_to_ygo_change_language] ChangeLanguageパターンのリンクはjavascript:void(0)に書き換えられクリックでygoChangeLanguageが呼ばれる', async () => {
+    it('[covers:replace-language-links.matching-link-rewired-to-ygo-change-language] ChangeLanguageパターンのリンクはjavascript:void(0)に書き換えられクリックでygoChangeLanguageが呼ばれる', async () => {
       setupEditPageDom();
       const link = document.createElement('a');
       link.setAttribute('href', "javascript:ChangeLanguage('en')");
@@ -238,7 +249,7 @@ describe('edit-ui/index.ts', () => {
       expect(changeLanguageSpy).toHaveBeenCalledWith('en');
     });
 
-    it('[covers:replace_language_links.non_matching_link_untouched] パターンに一致しないリンクは変更しない', async () => {
+    it('[covers:replace-language-links.non-matching-link-untouched] パターンに一致しないリンクは変更しない', async () => {
       setupEditPageDom();
       const link = document.createElement('a');
       link.setAttribute('href', 'https://example.com');
@@ -264,7 +275,7 @@ describe('edit-ui/index.ts', () => {
       return { bg, wrapper };
     }
 
-    it('[covers:watch_url_changes.edit_url_not_loaded_triggers_load][covers:load_edit_ui.removes_early_hide_style_when_present] 編集URLで初回はloadEditUIが実行されearlyHideStyleが削除される', async () => {
+    it('[covers:watch-url-changes.edit-url-not-loaded-triggers-load][covers:load-edit-ui.removes-early-hide-style-when-present] 編集URLで初回はloadEditUIが実行されearlyHideStyleが削除される', async () => {
       setupEditPageDom();
       // content/index.ts の runEditPageBoot が生成する実態に合わせ識別属性付きで作る
       // （findLoaderEarlyHide は識別属性セレクタで取得するため）
@@ -282,7 +293,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.getElementById('vue-edit-app')).not.toBeNull();
     });
 
-    it('[covers:load_edit_ui.no_bg_element_logs_error_and_resets_flag] #bgが無い場合エラーをログしisEditUILoadedをfalseに戻す', async () => {
+    it('[covers:load-edit-ui.no-bg-element-logs-error-and-resets-flag] #bgが無い場合エラーをログしisEditUILoadedをfalseに戻す', async () => {
       // #bgを用意しない
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockIsVueEditPage.mockReturnValue(true);
@@ -295,7 +306,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.getElementById('vue-edit-app')).toBeNull();
     });
 
-    it('[covers:watch_url_changes.hashchange_to_edit_url_reapplies_theme_and_loads] hashchangeで複数回イベントが発火しても例外にならず処理が継続する', async () => {
+    it('[covers:watch-url-changes.hashchange-to-edit-url-reapplies-theme-and-loads] hashchangeで複数回イベントが発火しても例外にならず処理が継続する', async () => {
       setupEditPageDom();
       mockIsVueEditPage.mockReturnValue(true);
 
@@ -334,7 +345,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.getElementById('vue-edit-app')).not.toBeNull();
     });
 
-    it('[covers:watch_url_changes.hashchange_away_resets_flag_and_disconnects_observer] 編集URLを離れるとisEditUILoadedがリセットされobserverがdisconnectされる', async () => {
+    it('[covers:watch-url-changes.hashchange-away-resets-flag-and-disconnects-observer] 編集URLを離れるとisEditUILoadedがリセットされobserverがdisconnectされる', async () => {
       setupEditPageDom();
       const header = document.createElement('header');
       document.body.appendChild(header);
@@ -359,7 +370,7 @@ describe('edit-ui/index.ts', () => {
       expect(document.getElementById('vue-edit-app')).not.toBeNull();
     });
 
-    it('[covers:load_edit_ui.injects_edit_ui_styles_only_once] 編集URLへの再訪でもeditUiStylesは重複しない', async () => {
+    it('[covers:load-edit-ui.injects-edit-ui-styles-only-once] 編集URLへの再訪でもeditUiStylesは重複しない', async () => {
       setupEditPageDom();
       mockIsVueEditPage.mockReturnValue(true);
 
@@ -379,10 +390,164 @@ describe('edit-ui/index.ts', () => {
       const styleEls = document.querySelectorAll(`#${EXTENSION_IDS.deckEdit.editUiStyles}`);
       expect(styleEls.length).toBe(1);
     });
+
+    // --- TASK-489 前提固定テスト群 ---
+    // loadEditUI / watchUrlChanges は非exportで、到達経路はトップレベルIIFEと
+    // hashchangeハンドラのみ。未cover条件の前提（呼び出し経路の制約と環境の制約）を
+    // 公開挙動で固定し、観測可能な不変条件を検証する。
+
+    // ResizeObserver の記録用モック（happy-domの実装有無に依存しないため各テストで差し替える）
+    class MockResizeObserver {
+      static instances: MockResizeObserver[] = [];
+      static events: string[] = [];
+      readonly callback: ResizeObserverCallback;
+      disconnected = false;
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+        MockResizeObserver.instances.push(this);
+      }
+      observe(_target: Element): void {
+        MockResizeObserver.events.push(`observe#${MockResizeObserver.instances.indexOf(this)}`);
+      }
+      unobserve(_target: Element): void {}
+      disconnect(): void {
+        this.disconnected = true;
+        MockResizeObserver.events.push(`disconnect#${MockResizeObserver.instances.indexOf(this)}`);
+      }
+      static reset(): void {
+        MockResizeObserver.instances = [];
+        MockResizeObserver.events = [];
+      }
+    }
+
+    it('[covers:watch-url-changes.hashchange-listener-registered-only-once] モジュール評価でhashchangeリスナは1つだけ登録され、発火しても再登録されない', async () => {
+      // beforeEachで非編集ページとしてモジュールが1回評価済み。
+      // watchUrlChangesは非exportで評価時に1回しか呼ばれないため、同一モジュール
+      // ライフタイムで登録が1回だけであることを登録数の観測で固定する
+      expect(hashchangeListenerRemovers.length).toBe(1);
+
+      window.dispatchEvent(new Event('hashchange'));
+      window.dispatchEvent(new Event('hashchange'));
+      await flush();
+
+      expect(hashchangeListenerRemovers.length).toBe(1);
+    });
+
+    it('[covers:load-edit-ui.already-loaded-returns-early] ロード済みの状態でhashchangeが再発火しても二重にロードしない', async () => {
+      // beforeEach評価分のリスナを解除し、本テストで評価するインスタンスだけを残す
+      hashchangeListenerRemovers.shift()?.();
+      setupEditPageDom();
+      mockIsVueEditPage.mockReturnValue(true);
+
+      vi.resetModules();
+      mod = await import('@/content/edit-ui/index');
+      await flush();
+      expect(document.querySelectorAll('#vue-edit-app').length).toBe(1);
+
+      // isEditUILoaded=true のまま編集URL内でhashchangeが再発火しても、
+      // loadEditUIは再実行されず（早期return相当の観測可能な挙動）、例外も出ない
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      window.dispatchEvent(new Event('hashchange'));
+      window.dispatchEvent(new Event('hashchange'));
+      await flush();
+
+      expect(document.querySelectorAll('#vue-edit-app').length).toBe(1);
+      expect(document.querySelectorAll(`#${EXTENSION_IDS.deckEdit.editUiStyles}`).length).toBe(1);
+      expect(errorSpy).not.toHaveBeenCalled();
+    });
+
+    it('[covers:load-edit-ui.updates-header-height-css-variable-on-resize] headerの高さがCSS変数へ反映される（happy-domではoffsetHeightが常に0という前提を固定）', async () => {
+      MockResizeObserver.reset();
+      vi.stubGlobal('ResizeObserver', MockResizeObserver);
+      setupEditPageDom();
+      const header = document.createElement('header');
+      document.body.appendChild(header);
+      mockIsVueEditPage.mockReturnValue(true);
+
+      vi.resetModules();
+      mod = await import('@/content/edit-ui/index');
+      await flush();
+
+      // 前提: happy-domはレイアウト計算をしないためoffsetHeightは常に0
+      expect(header.offsetHeight).toBe(0);
+      // loadEditUIの初回計算で --header-height が offsetHeight 由来の値に更新される
+      expect(document.documentElement.style.getPropertyValue('--header-height')).toBe('0px');
+
+      // ResizeObserverのコールバック経由でも同じ更新が行われる
+      const setPropertySpy = vi.spyOn(document.documentElement.style, 'setProperty');
+      expect(MockResizeObserver.instances.length).toBe(1);
+      MockResizeObserver.instances[0].callback([], MockResizeObserver.instances[0] as unknown as ResizeObserver);
+      expect(setPropertySpy).toHaveBeenCalledWith('--header-height', '0px');
+    });
+
+    it('[covers:load-edit-ui.resize-observer-disconnects-previous-before-reobserving] 再訪時は前任observerのdisconnectが新規observerのobserveより先に起きる', async () => {
+      hashchangeListenerRemovers.shift()?.();
+      MockResizeObserver.reset();
+      vi.stubGlobal('ResizeObserver', MockResizeObserver);
+      setupEditPageDom();
+      const header = document.createElement('header');
+      document.body.appendChild(header);
+      mockIsVueEditPage.mockReturnValue(true);
+
+      vi.resetModules();
+      mod = await import('@/content/edit-ui/index');
+      await flush();
+      expect(MockResizeObserver.instances.length).toBe(1);
+
+      // 離脱で前任observerがdisconnectされ、再訪で新規observerが生成される。
+      // loadEditUI再実行時に既存observerが残る経路は現行の呼び出し側ガードでは
+      // 到達しないため、「新規observeより前に前任のdisconnectが完了している」
+      // という観測可能な保証で前提を固定する
+      mockIsVueEditPage.mockReturnValue(false);
+      window.dispatchEvent(new Event('hashchange'));
+      await flush();
+
+      document.getElementById('bg')!.innerHTML = '';
+      mockIsVueEditPage.mockReturnValue(true);
+      window.dispatchEvent(new Event('hashchange'));
+      await flush();
+
+      expect(MockResizeObserver.instances.length).toBe(2);
+      expect(MockResizeObserver.instances[0].disconnected).toBe(true);
+      const disconnectIdx = MockResizeObserver.events.indexOf('disconnect#0');
+      const reobserveIdx = MockResizeObserver.events.indexOf('observe#1');
+      expect(disconnectIdx).toBeGreaterThanOrEqual(0);
+      expect(reobserveIdx).toBeGreaterThan(disconnectIdx);
+    });
+
+    it('[covers:watch-url-changes.header-resize-observer-leak-prevention-across-many-visits] 訪問と離脱を3回繰り返しても生存するobserverは1つだけ', async () => {
+      hashchangeListenerRemovers.shift()?.();
+      MockResizeObserver.reset();
+      vi.stubGlobal('ResizeObserver', MockResizeObserver);
+      setupEditPageDom();
+      const header = document.createElement('header');
+      document.body.appendChild(header);
+      mockIsVueEditPage.mockReturnValue(true);
+
+      vi.resetModules();
+      mod = await import('@/content/edit-ui/index');
+      await flush();
+
+      for (let visit = 0; visit < 2; visit++) {
+        mockIsVueEditPage.mockReturnValue(false);
+        window.dispatchEvent(new Event('hashchange'));
+        await flush();
+        document.getElementById('bg')!.innerHTML = '';
+        mockIsVueEditPage.mockReturnValue(true);
+        window.dispatchEvent(new Event('hashchange'));
+        await flush();
+      }
+
+      // 3回分の訪問で3インスタンスが生成されるが、生存（未disconnect）は最後の1つだけ
+      expect(MockResizeObserver.instances.length).toBe(3);
+      expect(MockResizeObserver.instances[0].disconnected).toBe(true);
+      expect(MockResizeObserver.instances[1].disconnected).toBe(true);
+      expect(MockResizeObserver.instances[2].disconnected).toBe(false);
+    });
   });
 
   describe('initVueApp (loadEditUI経由)', () => {
-    it('[covers:init_vue_app.applies_cached_settings_to_store_when_present][covers:init_vue_app.skips_settings_store_when_no_cache] キャッシュ設定の有無に関わらずVueアプリのマウントは成功する', async () => {
+    it('[covers:init-vue-app.applies-cached-settings-to-store-when-present][covers:init-vue-app.skips-settings-store-when-no-cache] キャッシュ設定の有無に関わらずVueアプリのマウントは成功する', async () => {
       const bg = document.createElement('div');
       bg.id = 'bg';
       document.body.appendChild(bg);
@@ -394,6 +559,52 @@ describe('edit-ui/index.ts', () => {
       await flush();
 
       expect(document.getElementById('vue-edit-app')?.children.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('[covers:init-vue-app.mounts-app-and-waits-next-tick] 正常系ではスタブコンポーネントがマウントされrenderが実行される', async () => {
+      // 実コンポーネントのマウント検証は deck-edit-layout.test.ts が担うため、
+      // ここではスタブで mount 経路（createApp・mount・nextTick完了）自体を固定する
+      mockLayoutState.renderCalls = 0;
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bg = document.createElement('div');
+      bg.id = 'bg';
+      document.body.appendChild(bg);
+      mockIsVueEditPage.mockReturnValue(true);
+
+      vi.resetModules();
+      mod = await import('@/content/edit-ui/index');
+      await flush();
+
+      expect(document.getElementById('vue-edit-app')).not.toBeNull();
+      expect(mockLayoutState.renderCalls).toBeGreaterThanOrEqual(1);
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('Failed to initialize Vue app:'),
+        expect.anything()
+      );
+    });
+
+    it('[covers:init-vue-app.error-caught-and-logged] マウント中に例外が発生してもconsole.errorに記録され外へ伝播しない', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const bg = document.createElement('div');
+      bg.id = 'bg';
+      document.body.appendChild(bg);
+      mockIsVueEditPage.mockReturnValue(true);
+      mockLayoutState.shouldThrow = true;
+
+      try {
+        vi.resetModules();
+        mod = await import('@/content/edit-ui/index');
+        await flush();
+      } finally {
+        mockLayoutState.shouldThrow = false;
+      }
+
+      // initVueAppのcatchで記録され、loadEditUIの完了まで処理が継続する
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to initialize Vue app:'),
+        expect.any(Error)
+      );
+      expect(document.getElementById('vue-edit-app')).not.toBeNull();
     });
   });
 
@@ -409,7 +620,7 @@ describe('edit-ui/index.ts', () => {
       expect(hashchangeListenerRemovers.length).toBeGreaterThan(0);
     });
 
-    it('[covers:top_level.edit_page_applies_theme_and_watches_url] 編集ページならテーマ適用とURL監視の両方が動く', async () => {
+    it('[covers:top-level.edit-page-applies-theme-and-watches-url] 編集ページならテーマ適用とURL監視の両方が動く', async () => {
       const bg = document.createElement('div');
       bg.id = 'bg';
       document.body.appendChild(bg);
