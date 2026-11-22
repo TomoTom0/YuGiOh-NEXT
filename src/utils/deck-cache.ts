@@ -5,6 +5,7 @@
  */
 
 import { generateDeckThumbnailImage } from '@/utils/deck-thumbnail';
+import { hasProperty } from '@/utils/type-guards';
 import { DeckInfo, DeckListItem } from '@/types/deck';
 import { DeckCardRef } from '@/types/card';
 import { DeckCategory } from '@/types/deck-metadata';
@@ -89,7 +90,7 @@ export function loadThumbnailCache(): Map<number, string> {
   try {
     const cached = localStorage.getItem(STORAGE_KEY_DECK_THUMBNAILS);
     if (cached) {
-      const parsed = JSON.parse(cached);
+      const parsed = JSON.parse(cached) as Record<string, unknown>;
       return new Map(
         Object.entries(parsed).map(([key, value]) => [parseInt(key, 10), value as string])
       );
@@ -119,15 +120,15 @@ export function loadDeckInfoCache(): Map<number, CachedDeckInfo> {
   try {
     const cached = localStorage.getItem(STORAGE_KEY_DECK_INFO_CACHE);
     if (cached) {
-      const parsed = JSON.parse(cached);
+      const parsed = JSON.parse(cached) as Record<string, unknown>;
       const map = new Map(
-        Object.entries(parsed).map(([key, value]: [string, any]) => {
+        Object.entries(parsed).map(([key, value]) => {
           const info = value as CachedDeckInfo;
           if (!info.cardCount) {
             info.cardCount = {
-              main: info.mainDeck.reduce((sum: number, card: any) => sum + card.quantity, 0),
-              extra: info.extraDeck.reduce((sum: number, card: any) => sum + card.quantity, 0),
-              side: info.sideDeck.reduce((sum: number, card: any) => sum + card.quantity, 0)
+              main: info.mainDeck.reduce((sum: number, card) => sum + card.quantity, 0),
+              extra: info.extraDeck.reduce((sum: number, card) => sum + card.quantity, 0),
+              side: info.sideDeck.reduce((sum: number, card) => sum + card.quantity, 0)
             };
           }
           return [parseInt(key, 10), info];
@@ -352,7 +353,7 @@ export async function updateDeckInfoAndThumbnailWithData(
   // 設定でAPIフェッチなしでのサムネイル更新が無効な場合はスキップ
   // Storeをインポートしないため、window グローバルオブジェクトから設定を取得
   try {
-    const appSettings = (window as any).ygoNextCurrentSettings;
+    const appSettings = window.ygoNextCurrentSettings;
     if (appSettings && appSettings.updateThumbnailWithoutFetch === false) {
       return;
     }
@@ -451,7 +452,7 @@ export async function generateThumbnailsInBackground(
   // window グローバルオブジェクトから設定を取得
   if (!force) {
     try {
-      const appSettings = (window as any).ygoNextCurrentSettings;
+      const appSettings = window.ygoNextCurrentSettings;
       if (!appSettings || appSettings.backgroundDeckInfoFetch === false) {
         return;
       }
@@ -465,8 +466,12 @@ export async function generateThumbnailsInBackground(
   // window グローバルオブジェクトから設定を取得
   if (!force) {
     try {
-      const appSettings = (window as any).ygoNextCurrentSettings;
-      if (appSettings && appSettings.enableDeckThumbnailGeneration === false) {
+      const appSettings = window.ygoNextCurrentSettings;
+      if (
+        appSettings &&
+        hasProperty(appSettings, 'enableDeckThumbnailGeneration') &&
+        appSettings.enableDeckThumbnailGeneration === false
+      ) {
         return;
       }
     } catch (error) {
