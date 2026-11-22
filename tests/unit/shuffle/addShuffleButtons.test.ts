@@ -93,7 +93,7 @@ describe('addShuffleButtons - 実装条件', () => {
     document.body.innerHTML = '';
   });
 
-  it('main/extra/sideすべてにボタンを追加しmainのshuffleボタンを返す [covers:add_shuffle_section.positive_count_adds_buttons] [covers:add_shuffle.all_sections_returns_main_button] [covers:add_shuffle_create_button.attributes_and_prevent_default]', async () => {
+  it('main/extra/sideすべてにボタンを追加しmainのshuffleボタンを返す [covers:add-shuffle-section.positive-count-adds-buttons] [covers:add-shuffle.all-sections-returns-main-button] [covers:add-shuffle-create-button.attributes-and-prevent-default]', async () => {
     createSection('main', '3');
     createSection('extra', '2');
     createSection('side', '1');
@@ -116,7 +116,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(returned?.innerHTML).toContain('svg');
   });
 
-  it('カード枚数spanの手前に他要素(拡張機能の別UI等)が挿入されていてもシャッフルボタンを追加できる [covers:add_shuffle_section.count_span_is_last_element_child]', async () => {
+  it('カード枚数spanの手前に他要素(拡張機能の別UI等)が挿入されていてもシャッフルボタンを追加できる [covers:add-shuffle-section.count-span-is-last-element-child]', async () => {
     createSection('main', '3');
     const top = document.querySelector('#deck_image #main.card_set div.subcatergory > div.top')!;
     const countSpan = top.lastElementChild!;
@@ -131,7 +131,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(topChildren('main')).toEqual(['SPAN', 'SPAN', 'DIV', buttonIds('main').shuffle, buttonIds('main').sort, 'SPAN']);
   });
 
-  it('既存shuffleボタンがあるsectionはnullになり、addShuffleButtonsはmainがnullでもextra/sideを処理する [covers:add_shuffle_section.existing_button_returns_null] [covers:add_shuffle.main_null_still_processes_other_sections]', async () => {
+  it('既存shuffleボタンがあるsectionはnullになり、addShuffleButtonsはmainがnullでもextra/sideを処理する [covers:add-shuffle-section.existing-button-returns-null] [covers:add-shuffle.main-null-still-processes-other-sections]', async () => {
     createSection('main', '3');
     createSection('extra', '1');
     createSection('side', '1');
@@ -148,7 +148,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(document.querySelector(`#${buttonIds('side').shuffle}`)).toBeInstanceOf(HTMLAnchorElement);
   });
 
-  it('必要なDOMが無いsectionとカード枚数0のsectionにはボタンを追加しない [covers:add_shuffle_section.card_set_missing_returns_null] [covers:add_shuffle_section.top_missing_returns_null] [covers:add_shuffle_section.count_span_missing_returns_null] [covers:add_shuffle_section.zero_count_returns_null]', async () => {
+  it('必要なDOMが無いsectionとカード枚数0のsectionにはボタンを追加しない [covers:add-shuffle-section.card-set-missing-returns-null] [covers:add-shuffle-section.top-missing-returns-null] [covers:add-shuffle-section.count-span-missing-returns-null] [covers:add-shuffle-section.zero-count-returns-null]', async () => {
     createSection('main', '1', { omitCardSet: true });
     createSection('extra', '1', { omitTop: true });
     createSection('side', '1', { omitCountSpan: true });
@@ -165,7 +165,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(document.querySelector(`#${buttonIds('main').shuffle}`)).toBeNull();
   });
 
-  it('カード枚数テキストがNaNの場合は0判定に入らずボタンを追加する [covers:add_shuffle_section.nan_count_adds_buttons]', async () => {
+  it('カード枚数テキストがNaNの場合は0判定に入らずボタンを追加する [covers:add-shuffle-section.nan-count-adds-buttons]', async () => {
     createSection('main', 'abc');
     const mod = await loadModule();
 
@@ -175,7 +175,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(document.querySelector(`#${buttonIds('main').sort}`)).toBeInstanceOf(HTMLAnchorElement);
   });
 
-  it('デッキ表示ページでない場合はタイマーを予約しない [covers:init_shuffle.not_deck_display_returns]', async () => {
+  it('デッキ表示ページでない場合はタイマーを予約しない [covers:init-shuffle-buttons.not-deck-display-returns]', async () => {
     setUrl('/yugiohdb/member_deck.action?ope=2');
     const timeoutSpy = vi.spyOn(window, 'setTimeout');
     const mod = await loadModule();
@@ -185,7 +185,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(timeoutSpy).not.toHaveBeenCalled();
   });
 
-  it('readyStateがcompleteのデッキ表示ページでは100msタイマーでボタン追加を予約する [covers:init_shuffle.ready_schedules_timeout]', async () => {
+  it('readyStateがcompleteのデッキ表示ページでは100msタイマーでボタン追加を予約する [covers:init-shuffle-buttons.ready-schedules-timeout]', async () => {
     setUrl('/yugiohdb/member_deck.action?cgid=abc&dno=1');
     setReadyState('complete');
     createSection('main', '1');
@@ -198,7 +198,7 @@ describe('addShuffleButtons - 実装条件', () => {
     expect(document.querySelector(`#${buttonIds('main').shuffle}`)).toBeInstanceOf(HTMLAnchorElement);
   });
 
-  it('readyStateがloadingのデッキ表示ページではDOMContentLoaded後に100msタイマーを予約する [covers:init_shuffle.loading_waits_dom_content_loaded]', async () => {
+  it('readyStateがloadingのデッキ表示ページではDOMContentLoaded後に100msタイマーを予約する [covers:init-shuffle-buttons.loading-waits-dom-content-loaded]', async () => {
     setUrl('/rushdb/member_deck.action?ope=1');
     setReadyState('loading');
     createSection('main', '1');

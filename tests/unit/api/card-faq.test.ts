@@ -71,7 +71,7 @@ describe('api/card-faq', () => {
       </html>
     `;
 
-    it('should fetch FAQ list successfully [covers:faq_list.title_extracts_card_name] [covers:faq_list.supplement_card_text] [covers:faq_list.supplement_pendulum_text] [covers:faq_list.faq_valid_row_added]', async () => {
+    it('should fetch FAQ list successfully [covers:faq-list.title-extracts-card-name] [covers:faq-list.supplement-card-text] [covers:faq-list.supplement-pendulum-text] [covers:faq-list.faq-valid-row-added]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -91,7 +91,7 @@ describe('api/card-faq', () => {
       expect(result?.faqs).toHaveLength(2);
     });
 
-    it('should extract card name from title correctly [covers:faq_list.title_extracts_card_name]', async () => {
+    it('should extract card name from title correctly [covers:faq-list.title-extracts-card-name]', async () => {
       const mockHtml = mockFAQListHTML('12345', 'テストカード');
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -103,7 +103,7 @@ describe('api/card-faq', () => {
       expect(result?.cardName).toBe('テストカード');
     });
 
-    it('should extract FAQs with correct structure [covers:faq_list.faq_valid_row_added]', async () => {
+    it('should extract FAQs with correct structure [covers:faq-list.faq-valid-row-added]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -127,7 +127,7 @@ describe('api/card-faq', () => {
       });
     });
 
-    it('should extract supplement information correctly [covers:faq_list.supplement_card_text] [covers:faq_list.supplement_pendulum_text]', async () => {
+    it('should extract supplement information correctly [covers:faq-list.supplement-card-text] [covers:faq-list.supplement-pendulum-text]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -142,7 +142,7 @@ describe('api/card-faq', () => {
       expect(result?.pendulumSupplementDate).toBe('2024-02-20');
     });
 
-    it('should handle missing supplement information gracefully [covers:faq_list.supplement_without_text_skipped]', async () => {
+    it('should handle missing supplement information gracefully [covers:faq-list.supplement-without-text-skipped]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -170,7 +170,7 @@ describe('api/card-faq', () => {
       expect(result?.faqs.length).toBe(1);
     });
 
-    it('should use empty cardName when title is missing [covers:faq_list.title_missing_empty_card_name]', async () => {
+    it('should use empty cardName when title is missing [covers:faq-list.title-missing-empty-card-name]', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         text: async () => '<!DOCTYPE html><html><body></body></html>'
@@ -189,7 +189,7 @@ describe('api/card-faq', () => {
       });
     });
 
-    it('should ignore supplement blocks with unknown text id [covers:faq_list.supplement_unknown_id_ignored]', async () => {
+    it('should ignore supplement blocks with unknown text id [covers:faq-list.supplement-unknown-id-ignored]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -215,7 +215,7 @@ describe('api/card-faq', () => {
       expect(result?.pendulumSupplementDate).toBeUndefined();
     });
 
-    it('should return null when API response is not OK [covers:faq_list.response_not_ok]', async () => {
+    it('should return null when API response is not OK [covers:faq-list.response-not-ok]', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false
       });
@@ -225,7 +225,7 @@ describe('api/card-faq', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null when fetch fails [covers:faq_list.catch_error]', async () => {
+    it('should return null when fetch fails [covers:faq-list.catch-error]', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
@@ -237,7 +237,7 @@ describe('api/card-faq', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should skip FAQ entries without question text [covers:faq_list.faq_question_missing_skipped]', async () => {
+    it('should skip FAQ entries without question text [covers:faq-list.faq-question-missing-skipped]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -269,7 +269,7 @@ describe('api/card-faq', () => {
       expect(result?.faqs[0].question).toBe('有効な質問');
     });
 
-    it('should skip FAQ entries without link_value input [covers:faq_list.faq_link_value_missing_skipped]', async () => {
+    it('should skip FAQ entries without link_value input [covers:faq-list.faq-link-value-missing-skipped]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -300,7 +300,7 @@ describe('api/card-faq', () => {
       expect(result?.faqs[0].faqId).toBe('115');
     });
 
-    it('should skip FAQ entries whose link_value does not contain numeric fid [covers:faq_list.faq_fid_unmatched_skipped]', async () => {
+    it('should skip FAQ entries whose link_value does not contain numeric fid [covers:faq-list.faq-fid-unmatched-skipped]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -330,7 +330,7 @@ describe('api/card-faq', () => {
       expect(result?.faqs[0].question).toBe('有効な質問');
     });
 
-    it('should handle carriage returns and newlines in supplement info [covers:convert_links.br_to_newline]', async () => {
+    it('should handle carriage returns and newlines in supplement info [covers:convert-links.br-to-newline]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -352,7 +352,7 @@ describe('api/card-faq', () => {
       expect(result?.supplementInfo).toBe('テキスト1\nテキスト2\nテキスト3');
     });
 
-    it('should convert cid links in supplement and keep non-matching cid-like links as text [covers:convert_links.cid_anchor_to_template] [covers:convert_links.cid_anchor_without_regex_match_keeps_text]', async () => {
+    it('should convert cid links in supplement and keep non-matching cid-like links as text [covers:convert-links.cid-anchor-to-template] [covers:convert-links.cid-anchor-without-regex-match-keeps-text]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -374,7 +374,7 @@ describe('api/card-faq', () => {
       expect(result?.supplementInfo).toBe('{{王家の眠る谷－ネクロバレー|5533}}と置換されないカード');
     });
 
-    it('[covers:convert_links.literal_br_and_anchor_entity] 補足情報内で<br>と<a>がHTMLエンティティとして二重にエスケープされている場合も変換する', async () => {
+    it('[covers:convert-links.literal-br-and-anchor-entity] 補足情報内で<br>と<a>がHTMLエンティティとして二重にエスケープされている場合も変換する', async () => {
       // 実際の公式サイト（cid=22993「光と闇の儀式」の補足情報）で観測された、
       // <br>と<a>の両方がHTMLエンティティとしてエスケープされたまま登録されているケース
       const mockHtml = `
@@ -400,7 +400,7 @@ describe('api/card-faq', () => {
       );
     });
 
-    it('should use GET method with credentials [covers:faq_list.request_params]', async () => {
+    it('should use GET method with credentials [covers:faq-list.request-params]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -418,7 +418,7 @@ describe('api/card-faq', () => {
       );
     });
 
-    it('should include correct parameters in API URL [covers:faq_list.request_params]', async () => {
+    it('should include correct parameters in API URL [covers:faq-list.request-params]', async () => {
       const mockHtml = mockFAQListHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -457,7 +457,7 @@ describe('api/card-faq', () => {
       </html>
     `;
 
-    it('should fetch FAQ detail successfully [covers:faq_detail.success] [covers:faq_detail.answer_present_converted] [covers:faq_detail.updated_at_optional] [covers:convert_links.cid_anchor_to_template] [covers:convert_links.br_to_newline]', async () => {
+    it('should fetch FAQ detail successfully [covers:faq-detail.success] [covers:faq-detail.answer-present-converted] [covers:faq-detail.updated-at-optional] [covers:convert-links.cid-anchor-to-template] [covers:convert-links.br-to-newline]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -474,7 +474,7 @@ describe('api/card-faq', () => {
       expect(result?.updatedAt).toBe('2024-01-15');
     });
 
-    it('should convert card links to template format [covers:convert_links.cid_anchor_to_template]', async () => {
+    it('should convert card links to template format [covers:convert-links.cid-anchor-to-template]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -487,7 +487,7 @@ describe('api/card-faq', () => {
       expect(result?.answer).toContain('{{別のカード|1234}}');
     });
 
-    it('should extract question correctly [covers:faq_detail.success]', async () => {
+    it('should extract question correctly [covers:faq-detail.success]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -500,7 +500,7 @@ describe('api/card-faq', () => {
       expect(result?.question?.length).toBeGreaterThan(0);
     });
 
-    it('should extract answer correctly [covers:faq_detail.answer_present_converted]', async () => {
+    it('should extract answer correctly [covers:faq-detail.answer-present-converted]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -513,7 +513,7 @@ describe('api/card-faq', () => {
       expect(result?.answer?.length).toBeGreaterThan(0);
     });
 
-    it('should extract updated date correctly [covers:faq_detail.updated_at_optional]', async () => {
+    it('should extract updated date correctly [covers:faq-detail.updated-at-optional]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -525,7 +525,7 @@ describe('api/card-faq', () => {
       expect(result?.updatedAt).toBe('2024-01-15');
     });
 
-    it('should trim detail updated date without removing label and return undefined when missing [covers:faq_detail.updated_at_optional]', async () => {
+    it('should trim detail updated date without removing label and return undefined when missing [covers:faq-detail.updated-at-optional]', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         text: async () => `
@@ -553,7 +553,7 @@ describe('api/card-faq', () => {
       expect(withoutDate?.updatedAt).toBeUndefined();
     });
 
-    it('should handle missing answer element gracefully [covers:faq_detail.answer_missing_empty]', async () => {
+    it('should handle missing answer element gracefully [covers:faq-detail.answer-missing-empty]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -574,7 +574,7 @@ describe('api/card-faq', () => {
       expect(result?.answer).toBe('');
     });
 
-    it('should return null when question element not found [covers:faq_detail.question_element_missing]', async () => {
+    it('should return null when question element not found [covers:faq-detail.question-element-missing]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -593,7 +593,7 @@ describe('api/card-faq', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null when API response is not OK [covers:faq_detail.response_not_ok]', async () => {
+    it('should return null when API response is not OK [covers:faq-detail.response-not-ok]', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false
       });
@@ -603,7 +603,7 @@ describe('api/card-faq', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null when fetch fails [covers:faq_detail.catch_error]', async () => {
+    it('should return null when fetch fails [covers:faq-detail.catch-error]', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
@@ -615,7 +615,7 @@ describe('api/card-faq', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle question that becomes empty after parsing [covers:faq_detail.question_empty_after_conversion] [covers:convert_links.no_text_returns_empty]', async () => {
+    it('should handle question that becomes empty after parsing [covers:faq-detail.question-empty-after-conversion] [covers:convert-links.no-text-returns-empty]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>
@@ -634,7 +634,7 @@ describe('api/card-faq', () => {
       expect(result).toBeNull();
     });
 
-    it('should use GET method with credentials [covers:faq_detail.request_params]', async () => {
+    it('should use GET method with credentials [covers:faq-detail.request-params]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -652,7 +652,7 @@ describe('api/card-faq', () => {
       );
     });
 
-    it('should include correct parameters in API URL [covers:faq_detail.request_params]', async () => {
+    it('should include correct parameters in API URL [covers:faq-detail.request-params]', async () => {
       const mockHtml = mockFAQDetailHTML();
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -668,7 +668,7 @@ describe('api/card-faq', () => {
       }
     });
 
-    it('should handle card links with different card IDs [covers:convert_links.cid_anchor_to_template]', async () => {
+    it('should handle card links with different card IDs [covers:convert-links.cid-anchor-to-template]', async () => {
       const mockHtml = `
         <!DOCTYPE html>
         <html>

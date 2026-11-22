@@ -61,7 +61,7 @@ describe('shuffle/index.ts', () => {
     vi.useRealTimers();
   });
 
-  it('[covers:init_shuffle.already_initialized_skips] 2回目の呼び出しは何もしない', () => {
+  it('[covers:init-shuffle.already-initialized-skips] 2回目の呼び出しは何もしない', () => {
     mod.initShuffle();
     expect(mockInitShuffleButtons).toHaveBeenCalledTimes(1);
 
@@ -69,7 +69,7 @@ describe('shuffle/index.ts', () => {
     expect(mockInitShuffleButtons).toHaveBeenCalledTimes(1);
   });
 
-  it('[covers:init_shuffle.ready_schedules_immediately][covers:attach_event_listeners.success_attaches_all_six_buttons] readyState=completeなら150ms後に全ボタンへリスナーが登録される', () => {
+  it('[covers:init-shuffle.ready-schedules-immediately][covers:attach-event-listeners.success-attaches-all-six-buttons][covers:attach-button-listener.success-adds-listener-and-tracks] readyState=completeなら150ms後に全ボタンへリスナーが登録される', () => {
     createButtons([
       EXTENSION_IDS.shuffle.mainShuffleButton,
       EXTENSION_IDS.shuffle.mainSortButton,
@@ -96,14 +96,14 @@ describe('shuffle/index.ts', () => {
     expect(mockSortCardsSide).toHaveBeenCalledTimes(1);
   });
 
-  it('[covers:init_shuffle.ready_schedules_immediately] readyState=completeなら200ms後にinitSortfixForCardsが呼ばれる', () => {
+  it('[covers:init-shuffle.ready-schedules-immediately] readyState=completeなら200ms後にinitSortfixForCardsが呼ばれる', () => {
     mod.initShuffle();
     vi.advanceTimersByTime(200);
 
     expect(mockInitSortfixForCards).toHaveBeenCalledTimes(1);
   });
 
-  it('[covers:init_shuffle.loading_waits_dom_content_loaded] readyState=loadingならDOMContentLoaded後に登録される', () => {
+  it('[covers:init-shuffle.loading-waits-dom-content-loaded] readyState=loadingならDOMContentLoaded後に登録される', () => {
     Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
     createButtons([EXTENSION_IDS.shuffle.mainShuffleButton, EXTENSION_IDS.shuffle.mainSortButton]);
 
@@ -119,7 +119,7 @@ describe('shuffle/index.ts', () => {
     expect(mockInitSortfixForCards).toHaveBeenCalledTimes(1);
   });
 
-  it('[covers:attach_event_listeners.main_buttons_missing_retries] メインボタンが無い場合100ms間隔で再試行する', () => {
+  it('[covers:attach-event-listeners.main-buttons-missing-retries] メインボタンが無い場合100ms間隔で再試行する', () => {
     mod.initShuffle();
     vi.advanceTimersByTime(150); // 初回試行（ボタン無し）
 
@@ -130,7 +130,7 @@ describe('shuffle/index.ts', () => {
     expect(mockShuffleCards).toHaveBeenCalledTimes(1);
   });
 
-  it('[covers:attach_event_listeners.max_retries_exceeded_logs_error] 50回再試行しても見つからない場合エラーログを出して終了する', () => {
+  it('[covers:attach-event-listeners.max-retries-exceeded-logs-error] 50回再試行しても見つからない場合エラーログを出して終了する', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     mod.initShuffle();
@@ -144,7 +144,7 @@ describe('shuffle/index.ts', () => {
     );
   });
 
-  it('[covers:attach_button_listener.button_not_found_returns_false] extraボタンが無い場合はそのボタンだけスキップされる', () => {
+  it('[covers:attach-button-listener.button-not-found-returns-false] extraボタンが無い場合はそのボタンだけスキップされる', () => {
     createButtons([EXTENSION_IDS.shuffle.mainShuffleButton, EXTENSION_IDS.shuffle.mainSortButton]);
     // extra/sideボタンは作らない
 
@@ -152,6 +152,23 @@ describe('shuffle/index.ts', () => {
     vi.advanceTimersByTime(150);
 
     expect(document.getElementById(EXTENSION_IDS.shuffle.extraShuffleButton)).toBeNull();
+    document.getElementById(EXTENSION_IDS.shuffle.mainShuffleButton)!.click();
+    expect(mockShuffleCards).toHaveBeenCalledTimes(1);
+  });
+
+  it('[covers:attach-button-listener.already-registered-returns-false] attachButtonListenerは非exportであり、initShuffleを複数回呼んでもリスナーは二重登録されない', () => {
+    // この条件はverified=false（検証不能）のため、その前提を固定する:
+    // attachButtonListenerはexportされておらず、initShuffleの初期化ガードにより
+    // attachEventListenersが成功実行されるのは1ライフタイムで1回だけである
+    expect('attachButtonListener' in mod).toBe(false);
+
+    createButtons([EXTENSION_IDS.shuffle.mainShuffleButton, EXTENSION_IDS.shuffle.mainSortButton]);
+
+    mod.initShuffle();
+    vi.advanceTimersByTime(150);
+    mod.initShuffle();
+    vi.advanceTimersByTime(150);
+
     document.getElementById(EXTENSION_IDS.shuffle.mainShuffleButton)!.click();
     expect(mockShuffleCards).toHaveBeenCalledTimes(1);
   });

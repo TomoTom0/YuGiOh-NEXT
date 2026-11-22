@@ -75,7 +75,7 @@ describe('shuffleCards - 実装条件', () => {
     document.body.innerHTML = '';
   });
 
-  it('対象sectionのimage_setが無い場合は何もしない [covers:shuffle_section.image_set_missing_returns] [covers:sort_section.image_set_missing_returns]', async () => {
+  it('対象sectionのimage_setが無い場合は何もしない [covers:shuffle-section.image-set-missing-returns] [covers:sort-section.image-set-missing-returns]', async () => {
     const mod = await loadModule();
 
     expect(() => mod.shuffleCards()).not.toThrow();
@@ -83,7 +83,7 @@ describe('shuffleCards - 実装条件', () => {
     expect(document.body.innerHTML).toBe('');
   });
 
-  it('初回shuffleで元順序を保存し、2回目shuffle後もsortで初回順序へ戻す [covers:shuffle_fisher_yates.copies_input] [covers:shuffle_fisher_yates.loop_swaps_from_tail] [covers:shuffle_section.first_call_saves_original_order] [covers:shuffle_section.subsequent_call_keeps_original_order] [covers:shuffle_section.normal_cards_shuffled_only] [covers:sort_section.sortfixed_from_all_sections_then_original_normals] [covers:shuffle_export.main_shuffle_delegates] [covers:shuffle_export.main_sort_delegates]', async () => {
+  it('初回shuffleで元順序を保存し、2回目shuffle後もsortで初回順序へ戻す [covers:shuffle-fisher-yates.copies-input] [covers:shuffle-fisher-yates.loop-swaps-from-tail] [covers:shuffle-section.first-call-saves-original-order] [covers:shuffle-section.subsequent-call-keeps-original-order] [covers:shuffle-section.normal-cards-shuffled-only] [covers:sort-section.sortfixed-from-all-sections-then-original-normals] [covers:shuffle-export.main-shuffle-delegates] [covers:shuffle-export.main-sort-delegates]', async () => {
     createDeck({ main: ['M1', 'M2', 'M3'] });
     const mod = await loadModule();
 
@@ -97,7 +97,7 @@ describe('shuffleCards - 実装条件', () => {
     expect(cardTexts('main')).toEqual(['M1', 'M2', 'M3']);
   });
 
-  it('空または1枚のsectionは順序を変えず、FLIP後にstyleとanimatingを片付ける [covers:shuffle_fisher_yates.empty_or_single_unchanged] [covers:shuffle_flip.reorders_and_animates]', async () => {
+  it('空または1枚のsectionは順序を変えず、FLIP後にstyleとanimatingを片付ける [covers:shuffle-fisher-yates.empty-or-single-unchanged] [covers:shuffle-flip.reorders-and-animates]', async () => {
     createDeck({ main: ['M1'], extra: [] });
     const mod = await loadModule();
 
@@ -119,7 +119,7 @@ describe('shuffleCards - 実装条件', () => {
     expect(cardTexts('extra')).toEqual([]);
   });
 
-  it('sortfixカードは全セクション分が対象sectionの先頭へ移動し、元section外カードはInvert初期styleを設定されない [covers:shuffle_section.sortfixed_from_all_sections_first] [covers:shuffle_flip.skips_invert_when_position_missing]', async () => {
+  it('sortfixカードは全セクション分が対象sectionの先頭へ移動し、元section外カードはInvert初期styleを設定されない [covers:shuffle-section.sortfixed-from-all-sections-first] [covers:shuffle-flip.skips-invert-when-position-missing]', async () => {
     createDeck({ main: ['M1', 'M2'], extra: ['E1'] });
     const extraCard = imageSet('extra').querySelector<HTMLElement>('a');
     extraCard?.setAttribute('data-ygo-next-sortfix', 'true');
@@ -134,7 +134,7 @@ describe('shuffleCards - 実装条件', () => {
     expect(extraCard?.style.transform).toBe('');
   });
 
-  it('sortはshuffle未実行なら何もしない [covers:sort_section.original_order_missing_returns]', async () => {
+  it('sortはshuffle未実行なら何もしない [covers:sort-section.original-order-missing-returns]', async () => {
     createDeck({ main: ['M1', 'M2'] });
     const mod = await loadModule();
 
@@ -143,7 +143,7 @@ describe('shuffleCards - 実装条件', () => {
     expect(cardTexts('main')).toEqual(['M1', 'M2']);
   });
 
-  it('extra/sideのexport関数は対応sectionだけを処理する [covers:shuffle_export.extra_shuffle_delegates] [covers:shuffle_export.extra_sort_delegates] [covers:shuffle_export.side_shuffle_delegates] [covers:shuffle_export.side_sort_delegates]', async () => {
+  it('extra/sideのexport関数は対応sectionだけを処理する [covers:shuffle-export.extra-shuffle-delegates] [covers:shuffle-export.extra-sort-delegates] [covers:shuffle-export.side-shuffle-delegates] [covers:shuffle-export.side-sort-delegates]', async () => {
     createDeck({
       main: ['M1', 'M2', 'M3'],
       extra: ['E1', 'E2', 'E3'],
