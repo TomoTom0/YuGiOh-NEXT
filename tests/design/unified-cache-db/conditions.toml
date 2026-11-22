@@ -19,10 +19,10 @@
 feature = "unified-cache-db"
 source_file = "src/utils/unified-cache-db.ts"
 verified = true
-verified_at = "2026-08-06"
-verified_by = "codex"
-test_command = "mise run test:vitest -- tests/unit/utils/unified-cache-db.test.ts tests/unit/utils/unified-cache-db-comprehensive.test.ts"
-source_hash = "5cad83c415ddbdbca07e000b53e027604ec56ebe"
+verified_at = "2026-11-22"
+verified_by = "claude"
+test_command = "pnpm exec vitest run tests/unit/utils/unified-cache-db.test.ts tests/unit/utils/unified-cache-db-comprehensive.test.ts"
+source_hash = "0de555a5eb0876275babbca7598b32d80c152ef5"
 note = "verified=falseは3件: private saveMoveHistory catch、reconstructCardInfo defensive catch、resetUnifiedCacheDBの非await clearAll完了順。いずれも公開APIから副作用を確定検証しにくい防御的/非同期fire-and-forget分岐"
 
 # --- calculateTier(tierData, deckHistory) ---
